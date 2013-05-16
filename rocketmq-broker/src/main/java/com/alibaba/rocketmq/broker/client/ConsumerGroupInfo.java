@@ -56,7 +56,8 @@ public class ConsumerGroupInfo {
         if (info != null) {
             ClientChannelInfo prev = this.channelInfoTable.put(clientChannelInfo.getChannel(), clientChannelInfo);
             if (null == prev) {
-                log.info("receive new channel, " + clientChannelInfo + ", consumer group: " + this.groupName);
+                log.info("new consumer connected, group: {} {} {} channel: {}", this.groupName, consumeType,
+                    messageModel, clientChannelInfo.toString());
                 updated = true;
             }
         }
