@@ -16,19 +16,19 @@ import com.alibaba.rocketmq.store.transaction.TransactionStateService;
  */
 public class MessageStoreConfig {
     // CommitLog存储目录
-    private String storePathCommitLog = System.getProperty("user.home") + File.separator + "metastore"
+    private String storePathCommitLog = System.getProperty("user.home") + File.separator + "store"
             + File.separator + "commitlog";
     // ConsumeQueue存储目录
-    private String storePathConsumeQueue = System.getProperty("user.home") + File.separator + "metastore"
+    private String storePathConsumeQueue = System.getProperty("user.home") + File.separator + "store"
             + File.separator + "consumequeue";
     // 索引文件存储目录
-    private String storePathIndex = System.getProperty("user.home") + File.separator + "metastore"
-            + File.separator + "index";
+    private String storePathIndex = System.getProperty("user.home") + File.separator + "store" + File.separator
+            + "index";
     // 异常退出产生的文件
-    private String storeCheckpoint = System.getProperty("user.home") + File.separator + "metastore"
-            + File.separator + "storeCheckpoint";
+    private String storeCheckpoint = System.getProperty("user.home") + File.separator + "store" + File.separator
+            + "storeCheckpoint";
     // 异常退出产生的文件
-    private String abortFile = System.getProperty("user.home") + File.separator + "metastore" + File.separator
+    private String abortFile = System.getProperty("user.home") + File.separator + "store" + File.separator
             + "storeAbort";
     // CommitLog每个文件大小 1G
     private int mapedFileSizeCommitLog = 1024 * 1024 * 1024;
@@ -106,15 +106,15 @@ public class MessageStoreConfig {
     // 定时消息相关
     private String messageDelayLevel = "1s 5s 10s 30s 1m 5m 10m 30m 1h 2h 6h 12h 1d";
     private long flushDelayOffsetInterval = 1000 * 5;
-    private String delayOffsetStorePath = System.getProperty("user.home") + File.separator + "metastore"
+    private String delayOffsetStorePath = System.getProperty("user.home") + File.separator + "store"
             + File.separator + "delayOffset.properties";
 
     // 分布式事务配置
-    private String tranStateTableStorePath = System.getProperty("user.home") + File.separator + "metastore"
+    private String tranStateTableStorePath = System.getProperty("user.home") + File.separator + "store"
             + File.separator + "transaction" + File.separator + "statetable";
     private int tranStateTableMapedFileSize = 2000000 * TransactionStateService.TSStoreUnitSize;
 
-    private String tranRedoLogStorePath = System.getProperty("user.home") + File.separator + "metastore"
+    private String tranRedoLogStorePath = System.getProperty("user.home") + File.separator + "store"
             + File.separator + "transaction" + File.separator + "redolog";
     private int tranRedoLogMapedFileSize = 2000000 * ConsumeQueue.CQStoreUnitSize;
 
