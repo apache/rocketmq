@@ -6,7 +6,7 @@ import "remoting.proto";
 package metaq;
 option optimize_for = SPEED;
 option java_package = "com.alibaba.rocketmq.common.protocol";
-option java_outer_classname = "MetaProtos";
+option java_outer_classname = "MQProtos";
 
 
 // RPCÇëÇó´úÂë

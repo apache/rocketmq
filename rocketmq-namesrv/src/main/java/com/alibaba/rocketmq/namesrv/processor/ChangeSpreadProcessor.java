@@ -1,7 +1,7 @@
 package com.alibaba.rocketmq.namesrv.processor;
 
-import static com.alibaba.rocketmq.common.protocol.MetaProtos.MQRequestCode.REGISTER_BROKER_SINGLE_VALUE;
-import static com.alibaba.rocketmq.common.protocol.MetaProtos.MQRequestCode.REGISTER_ORDER_TOPIC_SINGLE_VALUE;
+import static com.alibaba.rocketmq.common.protocol.MQProtos.MQRequestCode.REGISTER_BROKER_SINGLE_VALUE;
+import static com.alibaba.rocketmq.common.protocol.MQProtos.MQRequestCode.REGISTER_ORDER_TOPIC_SINGLE_VALUE;
 import static com.alibaba.rocketmq.namesrv.sync.TaskType.REG_BROKER;
 import static com.alibaba.rocketmq.namesrv.sync.TaskType.REG_TOPIC;
 import static com.alibaba.rocketmq.namesrv.sync.TaskType.UNREG_BROKER;
@@ -19,7 +19,7 @@ import org.slf4j.LoggerFactory;
 
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.namesrv.NamesrvConfig;
-import com.alibaba.rocketmq.common.protocol.MetaProtos.MQRequestCode;
+import com.alibaba.rocketmq.common.protocol.MQProtos.MQRequestCode;
 import com.alibaba.rocketmq.common.protocol.header.namesrv.RegisterBrokerRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.namesrv.RegisterOrderTopicRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.namesrv.UnRegisterBrokerRequestHeader;

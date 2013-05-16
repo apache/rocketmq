@@ -18,7 +18,7 @@ import java.util.zip.CRC32;
 import java.util.zip.DeflaterOutputStream;
 import java.util.zip.InflaterInputStream;
 
-import com.alibaba.rocketmq.common.protocol.MetaProtos.MQResponseCode;
+import com.alibaba.rocketmq.common.protocol.MQProtos.MQResponseCode;
 import com.alibaba.rocketmq.remoting.protocol.RemotingProtos.ResponseCode;
 
 

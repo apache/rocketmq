@@ -6,9 +6,9 @@ package com.alibaba.rocketmq.common.protocol.heartbeat;
 import java.util.HashSet;
 import java.util.Set;
 
-import com.alibaba.rocketmq.common.protocol.MetaProtos.ConsumerInfo;
-import com.alibaba.rocketmq.common.protocol.MetaProtos.ProducerInfo;
-import com.alibaba.rocketmq.common.protocol.MetaProtos.SubscriptionInfo;
+import com.alibaba.rocketmq.common.protocol.MQProtos.ConsumerInfo;
+import com.alibaba.rocketmq.common.protocol.MQProtos.ProducerInfo;
+import com.alibaba.rocketmq.common.protocol.MQProtos.SubscriptionInfo;
 
 
 /**

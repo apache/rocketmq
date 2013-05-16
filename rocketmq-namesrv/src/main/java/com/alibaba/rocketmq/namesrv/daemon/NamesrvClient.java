@@ -2,7 +2,7 @@ package com.alibaba.rocketmq.namesrv.daemon;
 
 import static com.alibaba.rocketmq.common.MixAll.Localhost;
 import static com.alibaba.rocketmq.common.protocol.route.ObjectConverter.props2TopicConfigTable;
-import static com.alibaba.rocketmq.common.protocol.MetaProtos.MQRequestCode.GET_ALL_TOPIC_CONFIG_VALUE;
+import static com.alibaba.rocketmq.common.protocol.MQProtos.MQRequestCode.GET_ALL_TOPIC_CONFIG_VALUE;
 import static com.alibaba.rocketmq.remoting.protocol.RemotingProtos.ResponseCode.SUCCESS_VALUE;
 
 import java.beans.PropertyChangeEvent;

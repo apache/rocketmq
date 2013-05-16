@@ -5,7 +5,7 @@ package com.alibaba.rocketmq.common.protocol.route;
 
 import java.util.List;
 
-import com.alibaba.rocketmq.common.protocol.MetaProtos.TopicRouteInfo;
+import com.alibaba.rocketmq.common.protocol.MQProtos.TopicRouteInfo;
 import com.google.protobuf.InvalidProtocolBufferException;
 
 

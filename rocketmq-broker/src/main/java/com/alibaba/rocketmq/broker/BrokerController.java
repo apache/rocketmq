@@ -30,7 +30,7 @@ import com.alibaba.rocketmq.common.BrokerConfig;
 import com.alibaba.rocketmq.common.DataVersion;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.namesrv.TopAddressing;
-import com.alibaba.rocketmq.common.protocol.MetaProtos;
+import com.alibaba.rocketmq.common.protocol.MQProtos;
 import com.alibaba.rocketmq.common.protocol.MetaProtosHelper;
 import com.alibaba.rocketmq.remoting.RemotingServer;
 import com.alibaba.rocketmq.remoting.netty.NettyRemotingServer;
@@ -258,25 +258,25 @@ public class BrokerController {
 
 
     public void registerProcessor() {
-        this.remotingServer.registerProcessor(MetaProtos.MQRequestCode.SEND_MESSAGE_VALUE,
+        this.remotingServer.registerProcessor(MQProtos.MQRequestCode.SEND_MESSAGE_VALUE,
             new SendMessageProcessor(this), this.sendMessageExecutor);
 
-        this.remotingServer.registerProcessor(MetaProtos.MQRequestCode.PULL_MESSAGE_VALUE,
+        this.remotingServer.registerProcessor(MQProtos.MQRequestCode.PULL_MESSAGE_VALUE,
             this.pullMessageProcessor, this.pullMessageExecutor);
 
         NettyRequestProcessor queryProcessor = new QueryMessageProcessor(this);
-        this.remotingServer.registerProcessor(MetaProtos.MQRequestCode.QUERY_MESSAGE_VALUE, queryProcessor,
+        this.remotingServer.registerProcessor(MQProtos.MQRequestCode.QUERY_MESSAGE_VALUE, queryProcessor,
             this.pullMessageExecutor);
-        this.remotingServer.registerProcessor(MetaProtos.MQRequestCode.VIEW_MESSAGE_BY_ID_VALUE, queryProcessor,
+        this.remotingServer.registerProcessor(MQProtos.MQRequestCode.VIEW_MESSAGE_BY_ID_VALUE, queryProcessor,
             this.pullMessageExecutor);
 
         NettyRequestProcessor clientProcessor = new ClientManageProcessor(this);
-        this.remotingServer.registerProcessor(MetaProtos.MQRequestCode.REGISTER_CLIENT_VALUE, clientProcessor,
+        this.remotingServer.registerProcessor(MQProtos.MQRequestCode.REGISTER_CLIENT_VALUE, clientProcessor,
             this.adminBrokerExecutor);
-        this.remotingServer.registerProcessor(MetaProtos.MQRequestCode.UNREGISTER_CLIENT_VALUE, queryProcessor,
+        this.remotingServer.registerProcessor(MQProtos.MQRequestCode.UNREGISTER_CLIENT_VALUE, queryProcessor,
             this.adminBrokerExecutor);
 
-        this.remotingServer.registerProcessor(MetaProtos.MQRequestCode.END_TRANSACTION_VALUE,
+        this.remotingServer.registerProcessor(MQProtos.MQRequestCode.END_TRANSACTION_VALUE,
             new EndTransactionProcessor(this), this.sendMessageExecutor);
 
         this.remotingServer.registerDefaultProcessor(new AdminBrokerProcessor(this), this.adminBrokerExecutor);

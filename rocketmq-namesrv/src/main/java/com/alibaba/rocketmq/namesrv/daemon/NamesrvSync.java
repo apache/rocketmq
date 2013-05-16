@@ -1,6 +1,6 @@
 package com.alibaba.rocketmq.namesrv.daemon;
 
-import static com.alibaba.rocketmq.common.protocol.MetaProtos.MQRequestCode.SYNC_NAMESRV_RUNTIME_CONF_VALUE;
+import static com.alibaba.rocketmq.common.protocol.MQProtos.MQRequestCode.SYNC_NAMESRV_RUNTIME_CONF_VALUE;
 import static com.alibaba.rocketmq.namesrv.common.MergeResult.MERGE_INVALID;
 import static com.alibaba.rocketmq.namesrv.common.MergeResult.MERGE_SUCCESS;
 import static com.alibaba.rocketmq.namesrv.common.MergeResult.NOT_MERGE;

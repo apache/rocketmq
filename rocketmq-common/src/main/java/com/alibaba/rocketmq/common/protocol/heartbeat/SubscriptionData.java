@@ -3,8 +3,8 @@
  */
 package com.alibaba.rocketmq.common.protocol.heartbeat;
 
-import com.alibaba.rocketmq.common.protocol.MetaProtos.ConsumerInfo;
-import com.alibaba.rocketmq.common.protocol.MetaProtos.SubscriptionInfo;
+import com.alibaba.rocketmq.common.protocol.MQProtos.ConsumerInfo;
+import com.alibaba.rocketmq.common.protocol.MQProtos.SubscriptionInfo;
 
 
 /**
