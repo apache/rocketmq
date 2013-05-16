@@ -12,16 +12,11 @@ import com.alibaba.rocketmq.broker.BrokerController;
 import com.alibaba.rocketmq.broker.client.ClientChannelInfo;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.protocol.MQProtos.MQRequestCode;
-import com.alibaba.rocketmq.common.protocol.MQProtosHelper;
-import com.alibaba.rocketmq.common.protocol.header.PullMessageRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.PullMessageResponseHeader;
 import com.alibaba.rocketmq.common.protocol.heartbeat.ConsumerData;
 import com.alibaba.rocketmq.common.protocol.heartbeat.HeartbeatData;
-import com.alibaba.rocketmq.remoting.common.RemotingUtil;
 import com.alibaba.rocketmq.remoting.netty.NettyRequestProcessor;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 import com.alibaba.rocketmq.remoting.protocol.RemotingProtos.ResponseCode;
-import com.alibaba.rocketmq.remoting.protocol.RemotingProtosHelper;
 import com.google.protobuf.InvalidProtocolBufferException;
 
 

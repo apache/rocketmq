@@ -18,7 +18,7 @@ import com.alibaba.rocketmq.store.config.FlushDiskType;
 import com.alibaba.rocketmq.store.config.MessageStoreConfig;
 
 
-public class DefaultMetaStoreTest {
+public class DefaultMessageStoreTest {
     // 队列个数
     private static int QUEUE_TOTAL = 100;
     // 发往哪个队列
