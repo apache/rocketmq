@@ -49,6 +49,7 @@ import com.alibaba.rocketmq.common.protocol.header.namesrv.GetRouteInfoRequestHe
 import com.alibaba.rocketmq.common.protocol.header.namesrv.RegisterOrderTopicRequestHeader;
 import com.alibaba.rocketmq.common.protocol.heartbeat.HeartbeatData;
 import com.alibaba.rocketmq.common.protocol.route.BrokerData;
+import com.alibaba.rocketmq.common.protocol.route.QueueData;
 import com.alibaba.rocketmq.common.protocol.route.TopicRouteData;
 import com.alibaba.rocketmq.remoting.InvokeCallback;
 import com.alibaba.rocketmq.remoting.RemotingClient;
@@ -709,7 +710,7 @@ public class MQClientAPIImpl {
         BrokerData bd = new BrokerData();
 
         HashMap<Long/* brokerId */, String/* broker address */> brokerAddrs = new HashMap<Long, String>();
-        brokerAddrs.put(0L, "10.235.170.22:10911");
+        brokerAddrs.put(0L, "10.12.49.150:10911");
 
         bd.setBrokerName("dev170022.sqa.cm6");
         bd.setBrokerAddrs(brokerAddrs);
@@ -717,6 +718,14 @@ public class MQClientAPIImpl {
         brokerDatas.add(bd);
 
         topicRouteData.setBrokerDatas(brokerDatas);
+        List<QueueData> queueDatas = new ArrayList<QueueData>();
+        QueueData queueData = new QueueData();
+        queueData.setBrokerName("dev170022.sqa.cm6");
+        queueData.setPerm(6);
+        queueData.setReadQueueNums(4);
+        queueData.setWriteQueueNums(4);
+        queueDatas.add(queueData);
+        topicRouteData.setQueueDatas(queueDatas);
 
         return topicRouteData;
     }
