@@ -710,7 +710,7 @@ public class MQClientAPIImpl {
         BrokerData bd = new BrokerData();
 
         HashMap<Long/* brokerId */, String/* broker address */> brokerAddrs = new HashMap<Long, String>();
-        brokerAddrs.put(0L, "10.12.49.150:10911");
+        brokerAddrs.put(0L, "10.235.170.22:10911");
 
         bd.setBrokerName("dev170022.sqa.cm6");
         bd.setBrokerAddrs(brokerAddrs);
