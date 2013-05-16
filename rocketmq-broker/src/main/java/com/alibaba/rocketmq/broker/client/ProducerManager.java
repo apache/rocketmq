@@ -80,8 +80,8 @@ public class ProducerManager {
 
                     if (!channelTable.containsKey(clientChannelInfo.getChannel())) {
                         channelTable.put(clientChannelInfo.getChannel(), clientChannelInfo);
-                        log.info("new producer[{}] connected, producer group: {}",
-                            RemotingHelper.parseChannelRemoteAddr(clientChannelInfo.getChannel()), group);
+                        log.info("new producer connected, group: {} channel: {}", group,
+                            clientChannelInfo.toString());
                     }
                 }
                 finally {
