@@ -14,6 +14,7 @@ import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.protocol.MQProtos.MQRequestCode;
 import com.alibaba.rocketmq.common.protocol.heartbeat.ConsumerData;
 import com.alibaba.rocketmq.common.protocol.heartbeat.HeartbeatData;
+import com.alibaba.rocketmq.common.protocol.heartbeat.ProducerData;
 import com.alibaba.rocketmq.remoting.netty.NettyRequestProcessor;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 import com.alibaba.rocketmq.remoting.protocol.RemotingProtos.ResponseCode;
@@ -65,15 +66,15 @@ public class ClientManageProcessor implements NettyRequestProcessor {
             return response;
         }
 
+        ClientChannelInfo clientChannelInfo = new ClientChannelInfo(//
+            ctx.channel(),//
+            heartbeatData.getClientID(),//
+            request.getLanguage(),//
+            request.getVersion()//
+                );
+
         // ×¢²áConsumer
         for (ConsumerData data : heartbeatData.getConsumerDataSet()) {
-            ClientChannelInfo clientChannelInfo = new ClientChannelInfo(//
-                ctx.channel(),//
-                heartbeatData.getClientID(),//
-                request.getLanguage(),//
-                request.getVersion()//
-                    );
-
             this.brokerController.getConsumerManager().registerConsumer(//
                 data.getGroupName(),//
                 clientChannelInfo,//
@@ -84,6 +85,9 @@ public class ClientManageProcessor implements NettyRequestProcessor {
         }
 
         // ×¢²áProducer
+        for (ProducerData data : heartbeatData.getProducerDataSet()) {
+            this.brokerController.getProducerManager().registerProducer(data.getGroupName(), clientChannelInfo);
+        }
 
         response.setCode(ResponseCode.SUCCESS_VALUE);
         response.setRemark(null);
