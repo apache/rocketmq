@@ -17,6 +17,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.alibaba.rocketmq.broker.client.ConsumerManager;
+import com.alibaba.rocketmq.broker.client.ProducerManager;
 import com.alibaba.rocketmq.broker.longpolling.PullRequestHoldService;
 import com.alibaba.rocketmq.broker.offset.ConsumerOffsetManager;
 import com.alibaba.rocketmq.broker.processor.AdminBrokerProcessor;
@@ -67,6 +68,8 @@ public class BrokerController {
     private final ConsumerOffsetManager consumerOffsetManager;
     // Consumer连接、订阅关系管理
     private final ConsumerManager consumerManager;
+    // Producer连接管理
+    private final ProducerManager producerManager;
 
     // Topic配置
     private TopicConfigManager topicConfigManager;
@@ -100,6 +103,7 @@ public class BrokerController {
         this.pullMessageProcessor = new PullMessageProcessor(this);
         this.pullRequestHoldService = new PullRequestHoldService(this);
         this.consumerManager = new ConsumerManager();
+        this.producerManager = new ProducerManager();
     }
 
 
