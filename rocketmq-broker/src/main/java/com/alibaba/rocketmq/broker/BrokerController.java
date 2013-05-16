@@ -453,4 +453,9 @@ public class BrokerController {
     public ConsumerManager getConsumerManager() {
         return consumerManager;
     }
+
+
+    public ProducerManager getProducerManager() {
+        return producerManager;
+    }
 }
