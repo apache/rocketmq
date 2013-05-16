@@ -9,7 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.alibaba.rocketmq.broker.BrokerController;
-import com.alibaba.rocketmq.common.MetaMix;
+import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.remoting.netty.NettyRequestProcessor;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 
@@ -21,7 +21,7 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
  * 
  */
 public class ForwardRequestProcessor implements NettyRequestProcessor {
-    private static final Logger log = LoggerFactory.getLogger(MetaMix.BrokerLoggerName);
+    private static final Logger log = LoggerFactory.getLogger(MixAll.BrokerLoggerName);
 
     private final BrokerController brokerController;
 

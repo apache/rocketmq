@@ -13,7 +13,7 @@ public class SubGroupConfig {
     // 0 表示 master
     // > 0 表示 具体slave
     private int subFromWhere = 0;
-    private int perm = MetaMix.PERM_READ;
+    private int perm = MixAll.PERM_READ;
 
 
     public SubGroupConfig(String groupName) {

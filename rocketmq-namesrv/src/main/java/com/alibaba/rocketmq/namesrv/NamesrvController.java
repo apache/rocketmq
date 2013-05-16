@@ -11,7 +11,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.alibaba.rocketmq.common.MetaMix;
+import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.namesrv.NamesrvConfig;
 import com.alibaba.rocketmq.namesrv.daemon.NamesrvClient;
 import com.alibaba.rocketmq.namesrv.daemon.NamesrvSync;
@@ -34,7 +34,7 @@ import com.alibaba.rocketmq.remoting.netty.NettyServerConfig;
  * @author lansheng.zj@taobao.com
  */
 public class NamesrvController {
-    private static final Logger log = LoggerFactory.getLogger(MetaMix.NamesrvLoggerName);
+    private static final Logger log = LoggerFactory.getLogger(MixAll.NamesrvLoggerName);
     // Name Server配置
     private final NamesrvConfig namesrvConfig;
     // 通信层配置
@@ -71,7 +71,7 @@ public class NamesrvController {
 
     public boolean initialize() {
         // 打印服务器配置参数
-        MetaMix.printObjectProperties(log, namesrvConfig);
+        MixAll.printObjectProperties(log, namesrvConfig);
 
         // 初始化通信层
         remotingServer = new NettyRemotingServer(nettyServerConfig);

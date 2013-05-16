@@ -12,7 +12,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.alibaba.rocketmq.broker.BrokerController;
-import com.alibaba.rocketmq.common.MetaMix;
+import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.TopicConfig;
 import com.alibaba.rocketmq.common.protocol.MetaProtos.MQRequestCode;
 import com.alibaba.rocketmq.common.protocol.MetaProtos.MQResponseCode;
@@ -43,7 +43,7 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingProtos.ResponseCode;
  * 
  */
 public class AdminBrokerProcessor implements NettyRequestProcessor {
-    private static final Logger log = LoggerFactory.getLogger(MetaMix.BrokerLoggerName);
+    private static final Logger log = LoggerFactory.getLogger(MixAll.BrokerLoggerName);
 
     private final BrokerController brokerController;
 
@@ -170,7 +170,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         String content = this.brokerController.getTopicConfigManager().encodeIncludeSysTopic();
         if (content != null && content.length() > 0) {
             try {
-                response.setBody(content.getBytes(MetaMix.DEFAULT_CHARSET));
+                response.setBody(content.getBytes(MixAll.DEFAULT_CHARSET));
             }
             catch (UnsupportedEncodingException e) {
                 log.error("", e);
@@ -206,8 +206,8 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         byte[] body = request.getBody();
         if (body != null) {
             try {
-                String bodyStr = new String(body, MetaMix.DEFAULT_CHARSET);
-                Properties properties = MetaMix.string2Properties(bodyStr);
+                String bodyStr = new String(body, MixAll.DEFAULT_CHARSET);
+                Properties properties = MixAll.string2Properties(bodyStr);
                 if (properties != null) {
                     log.info("updateBrokerConfig, new config: " + properties + " client: "
                             + ctx.channel().remoteAddress());
@@ -244,7 +244,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         String content = this.brokerController.encodeAllConfig();
         if (content != null && content.length() > 0) {
             try {
-                response.setBody(content.getBytes(MetaMix.DEFAULT_CHARSET));
+                response.setBody(content.getBytes(MixAll.DEFAULT_CHARSET));
             }
             catch (UnsupportedEncodingException e) {
                 log.error("", e);

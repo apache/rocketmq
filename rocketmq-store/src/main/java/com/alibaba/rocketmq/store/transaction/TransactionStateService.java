@@ -14,7 +14,7 @@ import org.slf4j.LoggerFactory;
 
 import com.alibaba.rocketmq.common.Message;
 import com.alibaba.rocketmq.common.MessageExt;
-import com.alibaba.rocketmq.common.MetaMix;
+import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.sysflag.MessageSysFlag;
 import com.alibaba.rocketmq.store.ConsumeQueue;
 import com.alibaba.rocketmq.store.DefaultMessageStore;
@@ -33,7 +33,7 @@ import com.alibaba.rocketmq.store.SelectMapedBufferResult;
  * 
  */
 public class TransactionStateService {
-    private static final Logger log = LoggerFactory.getLogger(MetaMix.StoreLoggerName);
+    private static final Logger log = LoggerFactory.getLogger(MixAll.StoreLoggerName);
     // 存储单元大小
     public static final int TSStoreUnitSize = 24;
     // 用来恢复事务状态表的redolog

@@ -1,6 +1,6 @@
 package com.alibaba.rocketmq.namesrv.daemon;
 
-import static com.alibaba.rocketmq.common.MetaMix.Localhost;
+import static com.alibaba.rocketmq.common.MixAll.Localhost;
 import static com.alibaba.rocketmq.common.protocol.route.ObjectConverter.props2TopicConfigTable;
 import static com.alibaba.rocketmq.common.protocol.MetaProtos.MQRequestCode.GET_ALL_TOPIC_CONFIG_VALUE;
 import static com.alibaba.rocketmq.remoting.protocol.RemotingProtos.ResponseCode.SUCCESS_VALUE;
@@ -19,7 +19,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.alibaba.rocketmq.common.MetaMix;
+import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.ServiceThread;
 import com.alibaba.rocketmq.common.TopicConfig;
 import com.alibaba.rocketmq.common.namesrv.NamesrvConfig;
@@ -44,7 +44,7 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
  */
 public class NamesrvClient extends ServiceThread {
 
-    private static final Logger log = LoggerFactory.getLogger(MetaMix.NamesrvLoggerName);
+    private static final Logger log = LoggerFactory.getLogger(MixAll.NamesrvLoggerName);
     public static final int MAX_RETRIES = 3;
     private TaskGroupExecutor<Boolean, Object> reqBrokerGroupExecutor;
     private TaskGroup<Boolean, Object> reqTaskGroup;

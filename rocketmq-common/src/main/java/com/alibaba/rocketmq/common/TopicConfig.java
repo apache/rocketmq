@@ -17,7 +17,7 @@ public class TopicConfig {
     private String topicName;
     private int readQueueNums = DefaultReadQueueNums;
     private int writeQueueNums = DefaultWriteQueueNums;
-    private int perm = MetaMix.PERM_READ | MetaMix.PERM_WRITE;
+    private int perm = MixAll.PERM_READ | MixAll.PERM_WRITE;
     private TopicFilterType topicFilterType = TopicFilterType.MULTI_TAG;
 
 
@@ -146,7 +146,7 @@ public class TopicConfig {
     @Override
     public String toString() {
         return "TopicConfig [topicName=" + topicName + ", readQueueNums=" + readQueueNums + ", writeQueueNums="
-                + writeQueueNums + ", perm=" + MetaMix.perm2String(perm) + ", topicFilterType=" + topicFilterType
+                + writeQueueNums + ", perm=" + MixAll.perm2String(perm) + ", topicFilterType=" + topicFilterType
                 + "]";
     }
 }

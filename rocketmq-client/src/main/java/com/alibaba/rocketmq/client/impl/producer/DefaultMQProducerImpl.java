@@ -27,7 +27,7 @@ import com.alibaba.rocketmq.common.MessageDecoder;
 import com.alibaba.rocketmq.common.MessageExt;
 import com.alibaba.rocketmq.common.MessageId;
 import com.alibaba.rocketmq.common.MessageQueue;
-import com.alibaba.rocketmq.common.MetaMix;
+import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.MetaUtil;
 import com.alibaba.rocketmq.common.ServiceState;
 import com.alibaba.rocketmq.common.TopicFilterType;
@@ -67,8 +67,8 @@ public class DefaultMQProducerImpl {
             throw new MQClientException("producerGroup is null", null);
         }
 
-        if (this.defaultMQProducer.getProducerGroup().equals(MetaMix.DEFAULT_PRODUCER_GROUP)) {
-            throw new MQClientException("producerGroup can not equal " + MetaMix.DEFAULT_PRODUCER_GROUP
+        if (this.defaultMQProducer.getProducerGroup().equals(MixAll.DEFAULT_PRODUCER_GROUP)) {
+            throw new MQClientException("producerGroup can not equal " + MixAll.DEFAULT_PRODUCER_GROUP
                     + ", please specify another one.", null);
         }
     }

@@ -7,7 +7,7 @@ import java.beans.PropertyChangeListener;
 import java.beans.PropertyChangeSupport;
 import java.io.File;
 
-import com.alibaba.rocketmq.common.MetaMix;
+import com.alibaba.rocketmq.common.MixAll;
 
 
 /**
@@ -18,7 +18,7 @@ import com.alibaba.rocketmq.common.MetaMix;
  * 
  */
 public class NamesrvConfig {
-    private String metaqHome = System.getenv(MetaMix.ROCKETMQ_HOME_ENV);
+    private String metaqHome = System.getenv(MixAll.ROCKETMQ_HOME_ENV);
     private String orderConfPath = System.getProperty("user.home") + File.separator + "namesrv" + File.separator
             + "orderConf.properties";
     private String brokerAddrConfPath = System.getProperty("user.home") + File.separator + "namesrv"

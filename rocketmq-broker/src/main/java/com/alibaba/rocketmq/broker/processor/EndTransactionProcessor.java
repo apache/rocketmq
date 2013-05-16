@@ -12,7 +12,7 @@ import com.alibaba.rocketmq.broker.BrokerController;
 import com.alibaba.rocketmq.common.Message;
 import com.alibaba.rocketmq.common.MessageDecoder;
 import com.alibaba.rocketmq.common.MessageExt;
-import com.alibaba.rocketmq.common.MetaMix;
+import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.TopicFilterType;
 import com.alibaba.rocketmq.common.protocol.MetaProtos.MQResponseCode;
 import com.alibaba.rocketmq.common.protocol.header.EndTransactionRequestHeader;
@@ -34,7 +34,7 @@ import com.alibaba.rocketmq.store.SelectMapedBufferResult;
  * 
  */
 public class EndTransactionProcessor implements NettyRequestProcessor {
-    private static final Logger log = LoggerFactory.getLogger(MetaMix.BrokerLoggerName);
+    private static final Logger log = LoggerFactory.getLogger(MixAll.BrokerLoggerName);
 
     private final BrokerController brokerController;
 

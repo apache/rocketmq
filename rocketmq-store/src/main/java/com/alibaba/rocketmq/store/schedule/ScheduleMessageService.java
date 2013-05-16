@@ -17,7 +17,7 @@ import org.slf4j.LoggerFactory;
 import com.alibaba.rocketmq.common.Message;
 import com.alibaba.rocketmq.common.MessageDecoder;
 import com.alibaba.rocketmq.common.MessageExt;
-import com.alibaba.rocketmq.common.MetaMix;
+import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.TopicFilterType;
 import com.alibaba.rocketmq.common.sysflag.MessageSysFlag;
 import com.alibaba.rocketmq.store.ConsumeQueue;
@@ -35,7 +35,7 @@ import com.alibaba.rocketmq.store.SelectMapedBufferResult;
  * 
  */
 public class ScheduleMessageService {
-    private static final Logger log = LoggerFactory.getLogger(MetaMix.StoreLoggerName);
+    private static final Logger log = LoggerFactory.getLogger(MixAll.StoreLoggerName);
     public static final String SCHEDULE_TOPIC = "SCHEDULE_TOPIC_XXXX";
     private static final long FIRST_DELAY_TIME = 1000L;
     private static final long DELAY_FOR_A_WHILE = 100L;
@@ -258,9 +258,9 @@ public class ScheduleMessageService {
     public boolean load() {
         boolean result = this.parseDelayLevel();
         if (result) {
-            String str = MetaMix.file2String(this.defaultMessageStore.getMessageStoreConfig().getDelayOffsetStorePath());
+            String str = MixAll.file2String(this.defaultMessageStore.getMessageStoreConfig().getDelayOffsetStorePath());
             if (str != null) {
-                Properties prop = MetaMix.string2Properties(str);
+                Properties prop = MixAll.string2Properties(str);
                 if (prop != null) {
                     Set<Object> keyset = prop.keySet();
                     for (Object object : keyset) {
@@ -322,7 +322,7 @@ public class ScheduleMessageService {
             return;
 
         boolean result =
-                MetaMix.string2File(sb.toString(), this.defaultMessageStore.getMessageStoreConfig()
+                MixAll.string2File(sb.toString(), this.defaultMessageStore.getMessageStoreConfig()
                     .getDelayOffsetStorePath());
         log.info("flush delay offset table, {}", (result ? "SUCCESS" : "FAILED"));
     }

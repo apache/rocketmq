@@ -13,7 +13,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.alibaba.rocketmq.broker.BrokerController;
-import com.alibaba.rocketmq.common.MetaMix;
+import com.alibaba.rocketmq.common.MixAll;
 
 
 /**
@@ -23,7 +23,7 @@ import com.alibaba.rocketmq.common.MetaMix;
  * 
  */
 public class ConsumerOffsetManager {
-    private static final Logger log = LoggerFactory.getLogger(MetaMix.BrokerLoggerName);
+    private static final Logger log = LoggerFactory.getLogger(MixAll.BrokerLoggerName);
 
     private static final String TOPIC_GROUP_SEPARATOR = "@";
     private static final String QUEUEID_OFFSET_SEPARATOR = ":";
@@ -45,9 +45,9 @@ public class ConsumerOffsetManager {
     public boolean load() {
         try {
             String fileName = this.brokerController.getBrokerConfig().getConsumerOffsetPath();
-            String content = MetaMix.file2String(fileName);
+            String content = MixAll.file2String(fileName);
             if (content != null) {
-                Properties prop = MetaMix.string2Properties(content);
+                Properties prop = MixAll.string2Properties(content);
                 if (prop != null) {
                     return this.decode(prop);
                 }
@@ -152,7 +152,7 @@ public class ConsumerOffsetManager {
         String content = this.encode();
         if (content != null && content.length() > 0) {
             String fileName = this.brokerController.getBrokerConfig().getConsumerOffsetPath();
-            boolean result = MetaMix.string2File(content, fileName);
+            boolean result = MixAll.string2File(content, fileName);
             log.info("flush consumer offset, " + fileName + (result ? " OK" : " Failed"));
         }
     }
@@ -167,7 +167,7 @@ public class ConsumerOffsetManager {
             String fileName =
                     this.brokerController.getBrokerConfig().getConsumerOffsetHistoryDir() + File.separator
                             + System.currentTimeMillis();
-            boolean result = MetaMix.string2File(content, fileName);
+            boolean result = MixAll.string2File(content, fileName);
             log.info("flush consumer history offset, " + fileName + (result ? " OK" : " Failed"));
         }
     }

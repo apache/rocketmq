@@ -16,8 +16,8 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.cli.PosixParser;
 import org.slf4j.Logger;
 
-import com.alibaba.rocketmq.common.MetaMix;
-import com.alibaba.rocketmq.common.MetaVersion;
+import com.alibaba.rocketmq.common.MixAll;
+import com.alibaba.rocketmq.common.MQVersion;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 
 
@@ -43,13 +43,13 @@ public class ConsoleStartup {
 
     public static void main(String[] args) {
         // 设置当前程序版本号，每次发布版本时，都要修改CurrentVersion
-        System.setProperty(RemotingCommand.RemotingVersionKey, Integer.toString(MetaVersion.CurrentVersion));
+        System.setProperty(RemotingCommand.RemotingVersionKey, Integer.toString(MQVersion.CurrentVersion));
 
         try {
             // 解析命令行
-            Options options = MetaMix.buildCommandlineOptions(new Options());
+            Options options = MixAll.buildCommandlineOptions(new Options());
             final CommandLine commandLine =
-                    MetaMix.parseCmdLine("mqconsole", args, buildCommandlineOptions(options), new PosixParser());
+                    MixAll.parseCmdLine("mqconsole", args, buildCommandlineOptions(options), new PosixParser());
             if (null == commandLine) {
                 System.exit(-1);
                 return;
@@ -60,7 +60,7 @@ public class ConsoleStartup {
 
             // 打印默认配置
             if (commandLine.hasOption('p')) {
-                MetaMix.printObjectProperties(null, consoleConfig);
+                MixAll.printObjectProperties(null, consoleConfig);
                 System.exit(0);
             }
 
@@ -71,16 +71,16 @@ public class ConsoleStartup {
                     InputStream in = new BufferedInputStream(new FileInputStream(file));
                     Properties properties = new Properties();
                     properties.load(in);
-                    MetaMix.properties2Object(properties, consoleConfig);
+                    MixAll.properties2Object(properties, consoleConfig);
 
                     System.out.println("load config properties file OK, " + file);
                 }
             }
 
-            MetaMix.properties2Object(MetaMix.commandLine2Properties(commandLine), consoleConfig);
+            MixAll.properties2Object(MixAll.commandLine2Properties(commandLine), consoleConfig);
 
             if (null == consoleConfig.getMetaqHome()) {
-                System.out.println("Please set the " + MetaMix.ROCKETMQ_HOME_ENV
+                System.out.println("Please set the " + MixAll.ROCKETMQ_HOME_ENV
                         + " variable in your environment to match the location of the Metaq installation");
                 System.exit(-2);
             }
@@ -91,7 +91,7 @@ public class ConsoleStartup {
             final Logger log = null;
 
             // 打印启动参数
-            MetaMix.printObjectProperties(log, consoleConfig);
+            MixAll.printObjectProperties(log, consoleConfig);
 
             // 初始化服务控制对象
             final ConsoleController controller = new ConsoleController(consoleConfig);

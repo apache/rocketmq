@@ -16,14 +16,14 @@ import com.alibaba.rocketmq.remoting.common.RemotingUtil;
  * @author vintage.wang@gmail.com shijia.wxr@taobao.com
  */
 public class BrokerConfig {
-    private String rocketmqHome = System.getenv(MetaMix.ROCKETMQ_HOME_ENV);
+    private String rocketmqHome = System.getenv(MixAll.ROCKETMQ_HOME_ENV);
     private String namesrvAddr = null;
     private String brokerIP1 = RemotingUtil.getLocalAddress();
     private String brokerIP2 = RemotingUtil.getLocalAddress();
     private String brokerName = localHostName();
     private String brokerClusterName = "C01";
-    private long brokerId = MetaMix.MASTER_ID;
-    private int brokerPermission = MetaMix.PERM_READ | MetaMix.PERM_WRITE;
+    private long brokerId = MixAll.MASTER_ID;
+    private int brokerPermission = MixAll.PERM_READ | MixAll.PERM_WRITE;
     private int defaultTopicQueueNums = 8;
     // 自动创建Topic，继承自MetaUtil.DEFAULT_TOPIC
     private boolean autoCreateTopic = true;

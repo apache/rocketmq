@@ -11,7 +11,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.alibaba.rocketmq.common.MetaMix;
+import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.protocol.heartbeat.ConsumeType;
 import com.alibaba.rocketmq.common.protocol.heartbeat.MessageModel;
 import com.alibaba.rocketmq.common.protocol.heartbeat.SubscriptionData;
@@ -24,7 +24,7 @@ import com.alibaba.rocketmq.common.protocol.heartbeat.SubscriptionData;
  * 
  */
 public class ConsumerGroupInfo {
-    private static final Logger log = LoggerFactory.getLogger(MetaMix.BrokerLoggerName);
+    private static final Logger log = LoggerFactory.getLogger(MixAll.BrokerLoggerName);
 
     private final String groupName;
     private volatile ConsumeType consumeType;

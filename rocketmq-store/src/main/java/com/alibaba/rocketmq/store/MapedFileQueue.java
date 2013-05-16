@@ -14,7 +14,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.alibaba.rocketmq.common.MetaMix;
+import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.MetaUtil;
 
 
@@ -25,7 +25,7 @@ import com.alibaba.rocketmq.common.MetaUtil;
  * @author vintage.wang@gmail.com shijia.wxr@taobao.com
  */
 public class MapedFileQueue {
-    private static final Logger log = LoggerFactory.getLogger(MetaMix.StoreLoggerName);
+    private static final Logger log = LoggerFactory.getLogger(MixAll.StoreLoggerName);
     // 每次触发删除文件，最多删除多少个文件
     private static final int DeleteFilesBatchMax = 30;
     // 文件存储位置

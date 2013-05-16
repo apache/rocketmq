@@ -20,7 +20,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.alibaba.rocketmq.common.MetaMix;
+import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.MetaUtil;
 
 
@@ -30,7 +30,7 @@ import com.alibaba.rocketmq.common.MetaUtil;
  * @author vintage.wang@gmail.com shijia.wxr@taobao.com
  */
 public class MapedFile extends ReferenceResource {
-    private static final Logger log = LoggerFactory.getLogger(MetaMix.StoreLoggerName);
+    private static final Logger log = LoggerFactory.getLogger(MixAll.StoreLoggerName);
     public static final int OS_PAGE_SIZE = 1024 * 4;
     // 当前JVM中映射的虚拟内存总大小
     private static final AtomicLong TotalMapedVitualMemory = new AtomicLong(0);

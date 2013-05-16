@@ -15,7 +15,7 @@ public class MetaMixTest {
 
     @Test
     public void test() throws Exception {
-        List<String> localInetAddress = MetaMix.getLocalInetAddress();
+        List<String> localInetAddress = MixAll.getLocalInetAddress();
         String local = InetAddress.getLocalHost().getHostAddress();
         Assert.assertTrue(localInetAddress.contains("127.0.0.1"));
         Assert.assertTrue(localInetAddress.contains(local));

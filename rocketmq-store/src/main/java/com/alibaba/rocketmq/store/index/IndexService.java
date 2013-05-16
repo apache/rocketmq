@@ -18,7 +18,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.alibaba.rocketmq.common.Message;
-import com.alibaba.rocketmq.common.MetaMix;
+import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.MetaUtil;
 import com.alibaba.rocketmq.common.ServiceThread;
 import com.alibaba.rocketmq.common.sysflag.MessageSysFlag;
@@ -32,7 +32,7 @@ import com.alibaba.rocketmq.store.DispatchRequest;
  * @author vintage.wang@gmail.com shijia.wxr@taobao.com
  */
 public class IndexService extends ServiceThread {
-    private static final Logger log = LoggerFactory.getLogger(MetaMix.StoreLoggerName);
+    private static final Logger log = LoggerFactory.getLogger(MixAll.StoreLoggerName);
 
     private LinkedBlockingDeque<Object[]> requestQueue = new LinkedBlockingDeque<Object[]>();
     private AtomicInteger requestCount = new AtomicInteger(0);

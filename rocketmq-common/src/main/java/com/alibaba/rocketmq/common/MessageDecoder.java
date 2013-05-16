@@ -275,5 +275,5 @@ public class MessageDecoder {
         return map;
     }
 
-    private static final Logger log = LoggerFactory.getLogger(MetaMix.CommonLoggerName);
+    private static final Logger log = LoggerFactory.getLogger(MixAll.CommonLoggerName);
 }

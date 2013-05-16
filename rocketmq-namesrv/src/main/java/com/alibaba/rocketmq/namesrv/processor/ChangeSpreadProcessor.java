@@ -17,7 +17,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.alibaba.rocketmq.common.MetaMix;
+import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.namesrv.NamesrvConfig;
 import com.alibaba.rocketmq.common.protocol.MetaProtos.MQRequestCode;
 import com.alibaba.rocketmq.common.protocol.header.namesrv.RegisterBrokerRequestHeader;
@@ -38,7 +38,7 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
  */
 public class ChangeSpreadProcessor {
 
-    private static final Logger log = LoggerFactory.getLogger(MetaMix.NamesrvLoggerName);
+    private static final Logger log = LoggerFactory.getLogger(MixAll.NamesrvLoggerName);
     private Map<Integer, TaskGroup<Result, String[]>> taskGroupMap;
     private TaskGroupExecutor<Result, String[]> clientTaskGroupExecutor;
     private NamesrvConfig namesrvConf;
@@ -116,7 +116,7 @@ public class ChangeSpreadProcessor {
         if (null != namesrv && !"".equals(namesrv)) {
             String[] addresses = namesrv.split(";");
             for (String address : addresses) {
-                if (!MetaMix.isLocalAddr(address)) {
+                if (!MixAll.isLocalAddr(address)) {
                     switch (type) {
                     case REG_BROKER:
                         taskGroup.addTask(address, createRegBrokerTask(address));

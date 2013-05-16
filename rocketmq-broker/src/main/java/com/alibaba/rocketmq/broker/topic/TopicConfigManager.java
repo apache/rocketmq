@@ -15,7 +15,7 @@ import org.slf4j.LoggerFactory;
 
 import com.alibaba.rocketmq.broker.BrokerController;
 import com.alibaba.rocketmq.common.DataVersion;
-import com.alibaba.rocketmq.common.MetaMix;
+import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.TopicConfig;
 import com.alibaba.rocketmq.store.schedule.ScheduleMessageService;
 
@@ -26,7 +26,7 @@ import com.alibaba.rocketmq.store.schedule.ScheduleMessageService;
  * 
  */
 public class TopicConfigManager {
-    private static final Logger log = LoggerFactory.getLogger(MetaMix.BrokerLoggerName);
+    private static final Logger log = LoggerFactory.getLogger(MixAll.BrokerLoggerName);
 
     // Topic≈‰÷√
     private final ConcurrentHashMap<String, TopicConfig> topicConfigTable =
@@ -40,25 +40,25 @@ public class TopicConfigManager {
         this.brokerController = brokerController;
 
         // MetaMix.DEFAULT_TOPIC
-        TopicConfig topicConfig = new TopicConfig(MetaMix.DEFAULT_TOPIC);
+        TopicConfig topicConfig = new TopicConfig(MixAll.DEFAULT_TOPIC);
         topicConfig.setReadQueueNums(this.brokerController.getBrokerConfig().getDefaultTopicQueueNums());
         topicConfig.setWriteQueueNums(this.brokerController.getBrokerConfig().getDefaultTopicQueueNums());
-        int perm = this.brokerController.getBrokerConfig().isAutoCreateTopic() ? MetaMix.PERM_INHERIT : 0;
-        perm |= MetaMix.PERM_READ | MetaMix.PERM_WRITE;
+        int perm = this.brokerController.getBrokerConfig().isAutoCreateTopic() ? MixAll.PERM_INHERIT : 0;
+        perm |= MixAll.PERM_READ | MixAll.PERM_WRITE;
         topicConfig.setPerm(perm);
         this.topicConfigTable.put(topicConfig.getTopicName(), topicConfig);
 
         // MetaMix.SELF_TEST_TOPIC
-        topicConfig = new TopicConfig(MetaMix.SELF_TEST_TOPIC);
+        topicConfig = new TopicConfig(MixAll.SELF_TEST_TOPIC);
         topicConfig.setReadQueueNums(1);
         topicConfig.setWriteQueueNums(1);
         this.topicConfigTable.put(topicConfig.getTopicName(), topicConfig);
 
         // ºØ»∫√˚◊÷
         topicConfig = new TopicConfig(this.brokerController.getBrokerConfig().getBrokerClusterName());
-        perm = MetaMix.PERM_INHERIT;
+        perm = MixAll.PERM_INHERIT;
         if (this.brokerController.getBrokerConfig().isClusterTopicEnable()) {
-            perm |= MetaMix.PERM_READ | MetaMix.PERM_WRITE;
+            perm |= MixAll.PERM_READ | MixAll.PERM_WRITE;
         }
         topicConfig.setPerm(perm);
         this.topicConfigTable.put(topicConfig.getTopicName(), topicConfig);
@@ -68,9 +68,9 @@ public class TopicConfigManager {
     public boolean load() {
         try {
             String fileName = this.brokerController.getBrokerConfig().getTopicConfigPath();
-            String content = MetaMix.file2String(fileName);
+            String content = MixAll.file2String(fileName);
             if (content != null) {
-                Properties prop = MetaMix.string2Properties(content);
+                Properties prop = MixAll.string2Properties(content);
                 if (prop != null) {
                     return this.decode(prop);
                 }
@@ -125,11 +125,11 @@ public class TopicConfigManager {
 
     private boolean isSystemTopic(final String topic) {
         boolean res = //
-                topic.equals(MetaMix.DEFAULT_TOPIC)//
-                        || topic.equals(MetaMix.SELF_TEST_TOPIC)//
+                topic.equals(MixAll.DEFAULT_TOPIC)//
+                        || topic.equals(MixAll.SELF_TEST_TOPIC)//
                         || topic.equals(this.brokerController.getBrokerConfig().getBrokerClusterName())//
                         || topic.equals(ScheduleMessageService.SCHEDULE_TOPIC)//
-                        || topic.equals(MetaMix.SELF_TEST_TOPIC);
+                        || topic.equals(MixAll.SELF_TEST_TOPIC);
 
         return res;
     }
@@ -137,7 +137,7 @@ public class TopicConfigManager {
 
     public boolean isTopicCanSendMessage(final String topic) {
         boolean reservedWords =
-                topic.equals(MetaMix.DEFAULT_TOPIC)
+                topic.equals(MixAll.DEFAULT_TOPIC)
                         || topic.equals(this.brokerController.getBrokerConfig().getBrokerClusterName());
 
         return !reservedWords;
@@ -148,7 +148,7 @@ public class TopicConfigManager {
         String content = this.encodeNotIncludeSysTopic();
         if (content != null) {
             String fileName = this.brokerController.getBrokerConfig().getTopicConfigPath();
-            boolean result = MetaMix.string2File(content, fileName);
+            boolean result = MixAll.string2File(content, fileName);
             log.info("flush topic config, " + fileName + (result ? " OK" : " Failed"));
         }
 
@@ -171,7 +171,7 @@ public class TopicConfigManager {
 
         TopicConfig defaultTopicConfig = this.topicConfigTable.get(defaultTopic);
         if (defaultTopicConfig != null) {
-            if (MetaMix.isInherited(defaultTopicConfig.getPerm())) {
+            if (MixAll.isInherited(defaultTopicConfig.getPerm())) {
                 topicConfig = new TopicConfig(topic);
 
                 int queueNums =
@@ -185,7 +185,7 @@ public class TopicConfigManager {
                 topicConfig.setReadQueueNums(queueNums);
                 topicConfig.setWriteQueueNums(queueNums);
                 int perm = defaultTopicConfig.getPerm();
-                perm &= ~MetaMix.PERM_INHERIT;
+                perm &= ~MixAll.PERM_INHERIT;
                 topicConfig.setPerm(perm);
                 topicConfig.setTopicFilterType(defaultTopicConfig.getTopicFilterType());
             }

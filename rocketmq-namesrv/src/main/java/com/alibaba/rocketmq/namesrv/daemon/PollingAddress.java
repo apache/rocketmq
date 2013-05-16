@@ -3,7 +3,7 @@ package com.alibaba.rocketmq.namesrv.daemon;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.alibaba.rocketmq.common.MetaMix;
+import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.ServiceThread;
 import com.alibaba.rocketmq.common.namesrv.NamesrvConfig;
 import com.alibaba.rocketmq.common.namesrv.TopAddressing;
@@ -15,7 +15,7 @@ import com.alibaba.rocketmq.common.namesrv.TopAddressing;
  * @author lansheng.zj@taobao.com
  */
 public class PollingAddress extends ServiceThread {
-    private static final Logger log = LoggerFactory.getLogger(MetaMix.NamesrvLoggerName);
+    private static final Logger log = LoggerFactory.getLogger(MixAll.NamesrvLoggerName);
 
     private NamesrvConfig namesrvConfig;
     private TopAddressing topAddressing;

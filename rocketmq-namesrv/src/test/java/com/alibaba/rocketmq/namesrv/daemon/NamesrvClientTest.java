@@ -16,7 +16,7 @@ import org.easymock.EasyMock;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.alibaba.rocketmq.common.MetaMix;
+import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.TopicConfig;
 import com.alibaba.rocketmq.common.namesrv.NamesrvConfig;
 import com.alibaba.rocketmq.common.namesrv.TopicRuntimeData;
@@ -50,7 +50,7 @@ public class NamesrvClientTest {
         Map<String, TopicConfig> topicConfigTable = create();
         String content = encode(topicConfigTable);
         RemotingCommand response1 = RemotingCommand.createResponseCommand(GetTopicResponseHeader.class);
-        response1.setBody(content.getBytes(MetaMix.DEFAULT_CHARSET));
+        response1.setBody(content.getBytes(MixAll.DEFAULT_CHARSET));
         
         GetTopicResponseHeader getTopicResponseHeader=(GetTopicResponseHeader)response1.getCustomHeader();
         getTopicResponseHeader.setVersion("version");
@@ -61,7 +61,7 @@ public class NamesrvClientTest {
         response1.setRemark(null);
 
         RemotingCommand response2 = RemotingCommand.createResponseCommand(GetTopicResponseHeader.class);
-        response2.setBody(content.getBytes(MetaMix.DEFAULT_CHARSET));
+        response2.setBody(content.getBytes(MixAll.DEFAULT_CHARSET));
         
         GetTopicResponseHeader getTopicResponseHeader2=(GetTopicResponseHeader)response2.getCustomHeader();
         getTopicResponseHeader2.setVersion("version");

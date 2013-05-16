@@ -20,7 +20,7 @@ import org.slf4j.LoggerFactory;
 import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.joran.JoranConfigurator;
 
-import com.alibaba.rocketmq.common.MetaMix;
+import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.namesrv.NamesrvConfig;
 import com.alibaba.rocketmq.remoting.netty.NettyClientConfig;
 import com.alibaba.rocketmq.remoting.netty.NettyServerConfig;
@@ -50,9 +50,9 @@ public class NamesrvStartup {
     public static void main(String[] args) {
         try {
             // 解析命令行
-            Options options = MetaMix.buildCommandlineOptions(new Options());
+            Options options = MixAll.buildCommandlineOptions(new Options());
             final CommandLine commandLine =
-                    MetaMix.parseCmdLine("mqnamesrv", args, buildCommandlineOptions(options), new PosixParser());
+                    MixAll.parseCmdLine("mqnamesrv", args, buildCommandlineOptions(options), new PosixParser());
             if (null == commandLine) {
                 System.exit(-1);
                 return;
@@ -69,9 +69,9 @@ public class NamesrvStartup {
                     InputStream in = new BufferedInputStream(new FileInputStream(file));
                     Properties properties = new Properties();
                     properties.load(in);
-                    MetaMix.properties2Object(properties, namesrvConfig);
-                    MetaMix.properties2Object(properties, nettyServerConfig);
-                    MetaMix.properties2Object(properties, nettyClientConfig);
+                    MixAll.properties2Object(properties, namesrvConfig);
+                    MixAll.properties2Object(properties, nettyServerConfig);
+                    MixAll.properties2Object(properties, nettyClientConfig);
                     System.out.println("load config properties file OK, " + file);
                     in.close();
                 }
@@ -79,16 +79,16 @@ public class NamesrvStartup {
 
             // 打印默认配置
             if (commandLine.hasOption('p')) {
-                MetaMix.printObjectProperties(null, namesrvConfig);
-                MetaMix.printObjectProperties(null, nettyServerConfig);
-                MetaMix.printObjectProperties(null, nettyClientConfig);
+                MixAll.printObjectProperties(null, namesrvConfig);
+                MixAll.printObjectProperties(null, nettyServerConfig);
+                MixAll.printObjectProperties(null, nettyClientConfig);
                 System.exit(0);
             }
 
-            MetaMix.properties2Object(MetaMix.commandLine2Properties(commandLine), namesrvConfig);
+            MixAll.properties2Object(MixAll.commandLine2Properties(commandLine), namesrvConfig);
 
             if (null == namesrvConfig.getMetaqHome()) {
-                System.out.println("Please set the " + MetaMix.ROCKETMQ_HOME_ENV
+                System.out.println("Please set the " + MixAll.ROCKETMQ_HOME_ENV
                         + " variable in your environment to match the location of the Metaq installation");
                 System.exit(-2);
             }
@@ -100,7 +100,7 @@ public class NamesrvStartup {
             lc.reset();
             configurator.doConfigure(namesrvConfig.getMetaqHome() + "/conf/log4j_namesrv.xml");
 
-            final Logger log = LoggerFactory.getLogger(MetaMix.NamesrvLoggerName);
+            final Logger log = LoggerFactory.getLogger(MixAll.NamesrvLoggerName);
 
             // 初始化服务控制对象
             final NamesrvController controller =

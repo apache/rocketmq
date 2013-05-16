@@ -13,7 +13,7 @@ import org.apache.commons.httpclient.params.HttpConnectionManagerParams;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.alibaba.rocketmq.common.MetaMix;
+import com.alibaba.rocketmq.common.MixAll;
 
 
 /**
@@ -23,7 +23,7 @@ import com.alibaba.rocketmq.common.MetaMix;
  * 
  */
 public class TopAddressing {
-    private static final Logger log = LoggerFactory.getLogger(MetaMix.CommonLoggerName);
+    private static final Logger log = LoggerFactory.getLogger(MixAll.CommonLoggerName);
     private HttpClient httpClient = new HttpClient();
     private String nsAddr;
 
@@ -55,7 +55,7 @@ public class TopAddressing {
         HttpMethod httpMethod = null;
 
         try {
-            httpMethod = new GetMethod(MetaMix.WS_ADDR);
+            httpMethod = new GetMethod(MixAll.WS_ADDR);
             int httpStatus = this.httpClient.executeMethod(httpMethod);
             if (200 == httpStatus) {
                 byte[] responseBody = httpMethod.getResponseBody();
@@ -84,7 +84,7 @@ public class TopAddressing {
         }
 
         String errorMsg =
-                "connect to " + MetaMix.WS_ADDR + " failed, maybe the domain name " + MetaMix.WS_DOMAIN_NAME
+                "connect to " + MixAll.WS_ADDR + " failed, maybe the domain name " + MixAll.WS_DOMAIN_NAME
                         + " not bind in /etc/hosts";
         log.warn(errorMsg);
         System.out.println(errorMsg);

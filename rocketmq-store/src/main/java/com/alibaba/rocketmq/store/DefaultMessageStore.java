@@ -16,7 +16,7 @@ import org.slf4j.LoggerFactory;
 
 import com.alibaba.rocketmq.common.MessageDecoder;
 import com.alibaba.rocketmq.common.MessageExt;
-import com.alibaba.rocketmq.common.MetaMix;
+import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.MetaUtil;
 import com.alibaba.rocketmq.common.ServiceThread;
 import com.alibaba.rocketmq.common.SystemClock;
@@ -37,7 +37,7 @@ import com.alibaba.rocketmq.store.transaction.TransactionStateService;
  * @author vintage.wang@gmail.com shijia.wxr@taobao.com
  */
 public class DefaultMessageStore implements MessageStore {
-    private static final Logger log = LoggerFactory.getLogger(MetaMix.StoreLoggerName);
+    private static final Logger log = LoggerFactory.getLogger(MixAll.StoreLoggerName);
     // 存储服务是否启动
     private volatile boolean shutdown = true;
     // 消息过滤
@@ -1004,7 +1004,7 @@ public class DefaultMessageStore implements MessageStore {
     private boolean isTheBatchFull(long offsetPy, int sizePy, int maxMsgNums, int bufferTotal, int messageTotal) {
         long maxOffsetPy = this.commitLog.getMaxOffset();
         long memory =
-                (long) (MetaMix.TotalPhysicalMemorySize * (this.messageStoreConfig
+                (long) (MixAll.TotalPhysicalMemorySize * (this.messageStoreConfig
                     .getAccessMessageInMemoryMaxRatio() / 100.0));
 
         // 第一条消息可以不做限制
@@ -1152,7 +1152,7 @@ public class DefaultMessageStore implements MessageStore {
 
                         long diff = this.getMaxPhyOffset() - maxPhyOffsetPulling;
                         long memory =
-                                (long) (MetaMix.TotalPhysicalMemorySize * (this.messageStoreConfig
+                                (long) (MixAll.TotalPhysicalMemorySize * (this.messageStoreConfig
                                     .getAccessMessageInMemoryMaxRatio() / 100.0));
                         getResult.setSuggestPullingFromSlave(diff > memory);
                     }

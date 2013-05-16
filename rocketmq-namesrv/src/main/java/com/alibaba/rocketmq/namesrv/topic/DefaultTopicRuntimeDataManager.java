@@ -1,6 +1,6 @@
 package com.alibaba.rocketmq.namesrv.topic;
 
-import static com.alibaba.rocketmq.common.MetaMix.Localhost;
+import static com.alibaba.rocketmq.common.MixAll.Localhost;
 import static com.alibaba.rocketmq.common.namesrv.TopicRuntimeData.ORDER_PREFIX;
 import static com.alibaba.rocketmq.common.protocol.MetaProtos.MQResponseCode.REGISTER_BROKER_FAIL_VALUE;
 import static com.alibaba.rocketmq.common.protocol.MetaProtos.MQResponseCode.REGISTER_BROKER_TIMEOUT_VALUE;
@@ -35,7 +35,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock.WriteLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.alibaba.rocketmq.common.MetaMix;
+import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.protocol.MetaProtos.MQResponseCode;
 import com.alibaba.rocketmq.common.protocol.route.ObjectConverter;
 import com.alibaba.rocketmq.common.namesrv.NamesrvConfig;
@@ -55,7 +55,7 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
  */
 public class DefaultTopicRuntimeDataManager implements TopicRuntimeDataManager {
 
-    private static final Logger log = LoggerFactory.getLogger(MetaMix.NamesrvLoggerName);
+    private static final Logger log = LoggerFactory.getLogger(MixAll.NamesrvLoggerName);
 
     private NamesrvConfig namesrvConfig;
     private TopicRuntimeData topicData;
@@ -91,7 +91,7 @@ public class DefaultTopicRuntimeDataManager implements TopicRuntimeDataManager {
 
     private boolean loadBrokerList() {
         try {
-            String content = MetaMix.file2String(namesrvConfig.getBrokerAddrConfPath());
+            String content = MixAll.file2String(namesrvConfig.getBrokerAddrConfPath());
             if (null == content)
                 return true;
 
@@ -411,7 +411,7 @@ public class DefaultTopicRuntimeDataManager implements TopicRuntimeDataManager {
     private void storeOrderTopic() {
         String content = topicData.encodeOrderTopicAsString();
         String fileName = namesrvConfig.getOrderConfPath();
-        boolean success = MetaMix.string2File(content, fileName);
+        boolean success = MixAll.string2File(content, fileName);
 
         log.info("store order topic in local " + success);
     }
@@ -420,7 +420,7 @@ public class DefaultTopicRuntimeDataManager implements TopicRuntimeDataManager {
     private void storeBrokerList() {
         String content = topicData.encodeBrokerListAsString();
         String fileName = namesrvConfig.getBrokerAddrConfPath();
-        boolean success = MetaMix.string2File(content, fileName);
+        boolean success = MixAll.string2File(content, fileName);
 
         log.info("store broker list in local " + success);
     }

@@ -20,7 +20,7 @@ import com.alibaba.rocketmq.common.Message;
 import com.alibaba.rocketmq.common.MessageExt;
 import com.alibaba.rocketmq.common.MessageDecoder;
 import com.alibaba.rocketmq.common.MessageId;
-import com.alibaba.rocketmq.common.MetaMix;
+import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.MessageQueue;
 import com.alibaba.rocketmq.common.TopicConfig;
 import com.alibaba.rocketmq.common.TopicFilterType;
@@ -68,7 +68,7 @@ public class MQAdminImpl {
 
                 // ±éÀú¸÷¸öBroker
                 for (BrokerData brokerData : brokerDataList) {
-                    String addr = brokerData.getBrokerAddrs().get(MetaMix.MASTER_ID);
+                    String addr = brokerData.getBrokerAddrs().get(MixAll.MASTER_ID);
                     if (addr != null) {
                         TopicConfig topicConfig = new TopicConfig(newTopic);
                         topicConfig.setReadQueueNums(queueNum);

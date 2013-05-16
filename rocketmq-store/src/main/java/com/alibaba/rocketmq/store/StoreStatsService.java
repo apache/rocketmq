@@ -12,7 +12,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.alibaba.rocketmq.common.MetaMix;
+import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.ServiceThread;
 
 
@@ -43,7 +43,7 @@ public class StoreStatsService extends ServiceThread {
         }
     }
 
-    private static final Logger log = LoggerFactory.getLogger(MetaMix.StoreLoggerName);
+    private static final Logger log = LoggerFactory.getLogger(MixAll.StoreLoggerName);
     // 启动时间
     private long metaStoreBootTimestamp = System.currentTimeMillis();
     // putMessage，写入整个消息耗时，含加锁竟争时间（单位毫秒）

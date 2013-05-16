@@ -30,7 +30,7 @@ import com.alibaba.rocketmq.client.impl.MQClientAPIImpl;
 import com.alibaba.rocketmq.client.impl.consumer.MQConsumerInner;
 import com.alibaba.rocketmq.client.impl.producer.DefaultMQProducerImpl;
 import com.alibaba.rocketmq.client.impl.producer.TopicPublishInfo;
-import com.alibaba.rocketmq.common.MetaMix;
+import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.MessageQueue;
 import com.alibaba.rocketmq.common.ServiceState;
 import com.alibaba.rocketmq.common.protocol.heartbeat.ConsumerData;
@@ -97,7 +97,7 @@ public class MQClientFactory {
         this.nettyClientConfig = new NettyClientConfig();
         this.nettyClientConfig.setClientCallbackExecutorThreads(mQClientConfig.getClientCallbackExecutorThreads());
         this.mQClientAPIImpl = new MQClientAPIImpl(this.nettyClientConfig);
-        this.log = MetaMix.createLogger(mQClientConfig.getLogFileName(), mQClientConfig.getLogLevel());
+        this.log = MixAll.createLogger(mQClientConfig.getLogFileName(), mQClientConfig.getLogLevel());
 
         if (this.mQClientConfig.getNamesrvAddr() != null) {
             this.mQClientAPIImpl.updateNameServerAddressList(this.mQClientConfig.getNamesrvAddr());
@@ -120,7 +120,7 @@ public class MQClientFactory {
         sb.append(this.mQClientConfig.getInstanceName());
         sb.append("@");
 
-        sb.append(MetaMix.CURRENT_JVM_PID);
+        sb.append(MixAll.CURRENT_JVM_PID);
         sb.append("@");
 
         sb.append(this.bootTimestamp);
@@ -279,7 +279,7 @@ public class MQClientFactory {
                     if (addr != null) {
                         // 说明只有Producer，则不向Slave发心跳
                         if (consumerEmpty) {
-                            if (id != MetaMix.MASTER_ID)
+                            if (id != MixAll.MASTER_ID)
                                 continue;
                         }
 
@@ -361,7 +361,7 @@ public class MQClientFactory {
                 brokerAddr = entry.getValue();
                 if (brokerAddr != null) {
                     found = true;
-                    if (MetaMix.MASTER_ID == id) {
+                    if (MixAll.MASTER_ID == id) {
                         slave = false;
                         break FOR_SEG;
                     }
@@ -388,7 +388,7 @@ public class MQClientFactory {
     public String findBrokerAddressInPublish(final String brokerName) {
         HashMap<Long/* brokerId */, String/* address */> map = this.brokerAddrTable.get(brokerName);
         if (map != null && !map.isEmpty()) {
-            return map.get(MetaMix.MASTER_ID);
+            return map.get(MixAll.MASTER_ID);
         }
 
         return null;
@@ -416,7 +416,7 @@ public class MQClientFactory {
                     switch (consumeFromWhichNode) {
                     case CONSUME_FROM_MASTER_FIRST:
                         found = true;
-                        if (MetaMix.MASTER_ID == id) {
+                        if (MixAll.MASTER_ID == id) {
                             slave = false;
                             break FOR_SEG;
                         }
@@ -426,7 +426,7 @@ public class MQClientFactory {
                         break;
                     case CONSUME_FROM_SLAVE_FIRST:
                         found = true;
-                        if (MetaMix.MASTER_ID != id) {
+                        if (MixAll.MASTER_ID != id) {
                             slave = true;
                             break FOR_SEG;
                         }
@@ -435,14 +435,14 @@ public class MQClientFactory {
                         }
                         break;
                     case CONSUME_FROM_MASTER_ONLY:
-                        if (MetaMix.MASTER_ID == id) {
+                        if (MixAll.MASTER_ID == id) {
                             found = true;
                             slave = false;
                             break FOR_SEG;
                         }
                         break;
                     case CONSUME_FROM_SLAVE_ONLY:
-                        if (MetaMix.MASTER_ID != id) {
+                        if (MixAll.MASTER_ID != id) {
                             found = true;
                             slave = true;
                             break FOR_SEG;
@@ -485,7 +485,7 @@ public class MQClientFactory {
             // 排序原因：即使没有配置顺序消息模式，默认队列的顺序同配置的一致。
             Collections.sort(qds);
             for (QueueData qd : qds) {
-                if (MetaMix.isWriteable(qd.getPerm())) {
+                if (MixAll.isWriteable(qd.getPerm())) {
                     for (int i = 0; i < qd.getWriteQueueNums(); i++) {
                         MessageQueue mq = new MessageQueue(topic, qd.getBrokerName(), i);
                         info.getMetaQueueList().add(mq);
@@ -505,7 +505,7 @@ public class MQClientFactory {
         List<MessageQueue> mqList = new ArrayList<MessageQueue>();
         List<QueueData> qds = route.getQueueDatas();
         for (QueueData qd : qds) {
-            if (MetaMix.isReadable(qd.getPerm())) {
+            if (MixAll.isReadable(qd.getPerm())) {
                 for (int i = 0; i < qd.getWriteQueueNums(); i++) {
                     MessageQueue mq = new MessageQueue(topic, qd.getBrokerName(), i);
                     mqList.add(mq);

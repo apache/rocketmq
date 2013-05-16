@@ -18,7 +18,7 @@ import org.slf4j.LoggerFactory;
 import com.alibaba.rocketmq.common.Message;
 import com.alibaba.rocketmq.common.MessageExt;
 import com.alibaba.rocketmq.common.MessageDecoder;
-import com.alibaba.rocketmq.common.MetaMix;
+import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.MetaUtil;
 import com.alibaba.rocketmq.common.ServiceThread;
 import com.alibaba.rocketmq.common.sysflag.MessageSysFlag;
@@ -34,7 +34,7 @@ import com.alibaba.rocketmq.store.schedule.ScheduleMessageService;
  * @author vintage.wang@gmail.com shijia.wxr@taobao.com
  */
 public class CommitLog {
-    private static final Logger log = LoggerFactory.getLogger(MetaMix.StoreLoggerName);
+    private static final Logger log = LoggerFactory.getLogger(MixAll.StoreLoggerName);
     // 用来保存每个ConsumeQueue的当前最大Offset信息
     private HashMap<String/* topic-queueid */, Long/* offset */> topicQueueTable = new HashMap<String, Long>(1024);
     // 存储消息的队列

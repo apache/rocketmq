@@ -14,7 +14,7 @@ import com.alibaba.rocketmq.client.exception.MQClientException;
 import com.alibaba.rocketmq.client.impl.producer.DefaultMQProducerImpl;
 import com.alibaba.rocketmq.common.Message;
 import com.alibaba.rocketmq.common.MessageExt;
-import com.alibaba.rocketmq.common.MetaMix;
+import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.MessageQueue;
 import com.alibaba.rocketmq.common.TopicFilterType;
 import com.alibaba.rocketmq.remoting.exception.RemotingException;
@@ -33,11 +33,11 @@ public class DefaultMQProducer implements MQProducer {
     /**
      * 一般发送同样消息的Producer，归为同一个Group，应用必须设置，并保证命名唯一
      */
-    private String producerGroup = MetaMix.DEFAULT_PRODUCER_GROUP;
+    private String producerGroup = MixAll.DEFAULT_PRODUCER_GROUP;
     /**
      * Metaq支持在发送消息时，如果Topic不存在，自动创建Topic，但是要指定Key
      */
-    private String createTopicKey = MetaMix.DEFAULT_TOPIC;
+    private String createTopicKey = MixAll.DEFAULT_TOPIC;
     /**
      * 发送消息，自动创建Topic时，默认队列数
      */

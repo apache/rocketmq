@@ -16,7 +16,7 @@ import org.slf4j.LoggerFactory;
 
 import com.alibaba.rocketmq.broker.BrokerController;
 import com.alibaba.rocketmq.common.MessageDecoder;
-import com.alibaba.rocketmq.common.MetaMix;
+import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.TopicConfig;
 import com.alibaba.rocketmq.common.TopicFilterType;
 import com.alibaba.rocketmq.common.protocol.MetaProtos.MQResponseCode;
@@ -38,7 +38,7 @@ import com.alibaba.rocketmq.store.PutMessageResult;
  * 
  */
 public class SendMessageProcessor implements NettyRequestProcessor {
-    private static final Logger log = LoggerFactory.getLogger(MetaMix.BrokerLoggerName);
+    private static final Logger log = LoggerFactory.getLogger(MixAll.BrokerLoggerName);
 
     private final BrokerController brokerController;
     private final Random random = new Random(System.currentTimeMillis());
@@ -69,7 +69,7 @@ public class SendMessageProcessor implements NettyRequestProcessor {
         }
 
         // 检查Broker权限
-        if (!MetaMix.isWriteable(this.brokerController.getBrokerConfig().getBrokerPermission())) {
+        if (!MixAll.isWriteable(this.brokerController.getBrokerConfig().getBrokerPermission())) {
             response.setCode(MQResponseCode.NO_PERMISSION_VALUE);
             response.setRemark("the broker[" + this.brokerController.getBrokerConfig().getBrokerIP1()
                     + "] sending message is forbidden");
@@ -106,7 +106,7 @@ public class SendMessageProcessor implements NettyRequestProcessor {
         }
 
         // 检查topic权限
-        if (!MetaMix.isWriteable(topicConfig.getPerm())) {
+        if (!MixAll.isWriteable(topicConfig.getPerm())) {
             response.setCode(MQResponseCode.NO_PERMISSION_VALUE);
             response.setRemark("the topic[" + requestHeader.getTopic() + "] sending message is forbidden");
             return response;

@@ -13,7 +13,7 @@ import com.alibaba.rocketmq.client.exception.MQBrokerException;
 import com.alibaba.rocketmq.client.exception.MQClientException;
 import com.alibaba.rocketmq.client.impl.consumer.DefaultMQPullConsumerImpl;
 import com.alibaba.rocketmq.common.MessageExt;
-import com.alibaba.rocketmq.common.MetaMix;
+import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.MessageQueue;
 import com.alibaba.rocketmq.common.TopicFilterType;
 import com.alibaba.rocketmq.remoting.exception.RemotingException;
@@ -33,7 +33,7 @@ public class DefaultMQPullConsumer implements MQPullConsumer {
     /**
      * 做同样事情的Consumer归为同一个Group，应用必须设置，并保证命名唯一
      */
-    private String consumerGroup = MetaMix.DEFAULT_CONSUMER_GROUP;
+    private String consumerGroup = MixAll.DEFAULT_CONSUMER_GROUP;
     /**
      * 长轮询模式，Consumer连接在Broker挂起最长时间，不建议修改
      */

@@ -15,7 +15,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.alibaba.rocketmq.common.MetaMix;
+import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.ServiceThread;
 import com.alibaba.rocketmq.common.namesrv.NamesrvConfig;
 import com.alibaba.rocketmq.common.namesrv.TopicRuntimeData;
@@ -36,7 +36,7 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
  */
 public class NamesrvSync extends ServiceThread {
 
-    private static final Logger log = LoggerFactory.getLogger(MetaMix.NamesrvLoggerName);
+    private static final Logger log = LoggerFactory.getLogger(MixAll.NamesrvLoggerName);
     private TaskGroupExecutor<Object, Object> syncTaskGroupExecutor;
     private TopicRuntimeDataManager topicRuntimeDataManager;
     private NamesrvConfig namesrvConf;
@@ -67,7 +67,7 @@ public class NamesrvSync extends ServiceThread {
             String[] addresses = namesrv.split(";");
             for (String address : addresses) {
                 // 排除本机，本机不注册任务
-                if (!MetaMix.isLocalAddr(address)) {
+                if (!MixAll.isLocalAddr(address)) {
                     taskGroup.addTask(address, createTask(address));
                 }
             }

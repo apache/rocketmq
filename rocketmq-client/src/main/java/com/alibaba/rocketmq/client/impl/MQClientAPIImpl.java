@@ -21,7 +21,7 @@ import com.alibaba.rocketmq.common.Message;
 import com.alibaba.rocketmq.common.MessageDecoder;
 import com.alibaba.rocketmq.common.MessageExt;
 import com.alibaba.rocketmq.common.MessageQueue;
-import com.alibaba.rocketmq.common.MetaVersion;
+import com.alibaba.rocketmq.common.MQVersion;
 import com.alibaba.rocketmq.common.TopicConfig;
 import com.alibaba.rocketmq.common.namesrv.TopAddressing;
 import com.alibaba.rocketmq.common.protocol.MetaProtos.MQRequestCode;
@@ -74,7 +74,7 @@ public class MQClientAPIImpl {
     private String nameSrvAddr = null;
 
     static {
-        System.setProperty(RemotingCommand.RemotingVersionKey, Integer.toString(MetaVersion.CurrentVersion));
+        System.setProperty(RemotingCommand.RemotingVersionKey, Integer.toString(MQVersion.CurrentVersion));
     }
 
 

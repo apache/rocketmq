@@ -12,7 +12,7 @@ import com.alibaba.rocketmq.client.producer.SendResult;
 import com.alibaba.rocketmq.common.BrokerConfig;
 import com.alibaba.rocketmq.common.Message;
 import com.alibaba.rocketmq.common.MessageDecoder;
-import com.alibaba.rocketmq.common.MetaMix;
+import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.protocol.header.SendMessageRequestHeader;
 import com.alibaba.rocketmq.remoting.netty.NettyClientConfig;
 import com.alibaba.rocketmq.remoting.netty.NettyServerConfig;
@@ -45,7 +45,7 @@ public class SendMessageTest {
                 SendMessageRequestHeader requestHeader = new SendMessageRequestHeader();
                 requestHeader.setProducerGroup("abc");
                 requestHeader.setTopic(msg.getTopic());
-                requestHeader.setDefaultTopic(MetaMix.DEFAULT_TOPIC);
+                requestHeader.setDefaultTopic(MixAll.DEFAULT_TOPIC);
                 requestHeader.setDefaultTopicQueueNums(4);
                 requestHeader.setQueueId(i % 4);
                 requestHeader.setSysFlag(0);

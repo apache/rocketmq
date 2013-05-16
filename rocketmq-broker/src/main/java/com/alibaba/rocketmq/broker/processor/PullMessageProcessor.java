@@ -15,7 +15,7 @@ import org.slf4j.LoggerFactory;
 import com.alibaba.rocketmq.broker.BrokerController;
 import com.alibaba.rocketmq.broker.longpolling.PullRequest;
 import com.alibaba.rocketmq.broker.pagecache.ManyMessageTransfer;
-import com.alibaba.rocketmq.common.MetaMix;
+import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.TopicConfig;
 import com.alibaba.rocketmq.common.protocol.MetaProtos.MQResponseCode;
 import com.alibaba.rocketmq.common.protocol.header.PullMessageRequestHeader;
@@ -35,7 +35,7 @@ import com.alibaba.rocketmq.store.GetMessageResult;
  * 
  */
 public class PullMessageProcessor implements NettyRequestProcessor {
-    private static final Logger log = LoggerFactory.getLogger(MetaMix.BrokerLoggerName);
+    private static final Logger log = LoggerFactory.getLogger(MixAll.BrokerLoggerName);
 
     private final BrokerController brokerController;
 
@@ -95,7 +95,7 @@ public class PullMessageProcessor implements NettyRequestProcessor {
         }
 
         // 检查Broker权限
-        if (!MetaMix.isReadable(this.brokerController.getBrokerConfig().getBrokerPermission())) {
+        if (!MixAll.isReadable(this.brokerController.getBrokerConfig().getBrokerPermission())) {
             response.setCode(MQResponseCode.NO_PERMISSION_VALUE);
             response.setRemark("the broker[" + this.brokerController.getBrokerConfig().getBrokerIP1()
                     + "] pulling message is forbidden");
@@ -119,7 +119,7 @@ public class PullMessageProcessor implements NettyRequestProcessor {
         }
 
         // 检查topic权限
-        if (!MetaMix.isReadable(topicConfig.getPerm())) {
+        if (!MixAll.isReadable(topicConfig.getPerm())) {
             response.setCode(MQResponseCode.NO_PERMISSION_VALUE);
             response.setRemark("the topic[" + requestHeader.getTopic() + "] pulling message is forbidden");
             return response;

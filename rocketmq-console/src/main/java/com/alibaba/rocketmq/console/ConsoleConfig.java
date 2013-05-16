@@ -3,7 +3,7 @@
  */
 package com.alibaba.rocketmq.console;
 
-import com.alibaba.rocketmq.common.MetaMix;
+import com.alibaba.rocketmq.common.MixAll;
 
 
 /**
@@ -11,7 +11,7 @@ import com.alibaba.rocketmq.common.MetaMix;
  * 
  */
 public class ConsoleConfig {
-    private String metaqHome = System.getenv(MetaMix.ROCKETMQ_HOME_ENV);
+    private String metaqHome = System.getenv(MixAll.ROCKETMQ_HOME_ENV);
     private String namesrvAddr = null;
     private String webRootPath;
     private int listenPort = 8888;

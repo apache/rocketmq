@@ -23,7 +23,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.alibaba.rocketmq.common.MetaMix;
+import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.ServiceThread;
 import com.alibaba.rocketmq.remoting.common.RemotingUtil;
 import com.alibaba.rocketmq.store.DefaultMessageStore;
@@ -36,7 +36,7 @@ import com.alibaba.rocketmq.store.CommitLog.GroupCommitRequest;
  * @author vintage.wang@gmail.com shijia.wxr@taobao.com
  */
 public class HAService {
-    private static final Logger log = LoggerFactory.getLogger(MetaMix.StoreLoggerName);
+    private static final Logger log = LoggerFactory.getLogger(MixAll.StoreLoggerName);
     // 客户端连接计数
     private final AtomicInteger connectionCount = new AtomicInteger(0);
     // 存储客户端连接

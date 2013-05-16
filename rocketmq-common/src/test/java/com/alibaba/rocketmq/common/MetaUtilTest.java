@@ -72,7 +72,7 @@ public class MetaUtilTest {
     @Test
     public void test_resetClassProperties() {
         DemoConfig demoConfig = new DemoConfig();
-        MetaMix.properties2Object(new Properties(), demoConfig);
+        MixAll.properties2Object(new Properties(), demoConfig);
     }
 
 
@@ -85,14 +85,14 @@ public class MetaUtilTest {
     @Test
     public void test_properties2String() {
         DemoConfig demoConfig = new DemoConfig();
-        Properties properties = MetaMix.object2Properties(demoConfig);
-        System.out.println(MetaMix.properties2String(properties));
+        Properties properties = MixAll.object2Properties(demoConfig);
+        System.out.println(MixAll.properties2String(properties));
     }
 
 
     @Test
     public void test_getTotalPhysicalMemorySize() {
-        System.out.println(MetaMix.TotalPhysicalMemorySize);
+        System.out.println(MixAll.TotalPhysicalMemorySize);
     }
 
 
@@ -114,7 +114,7 @@ public class MetaUtilTest {
         p2.setProperty("b", "2");
         //p2.setProperty("c", "3");
 
-        assertTrue(MetaMix.isPropertiesEqual(p1, p2));
+        assertTrue(MixAll.isPropertiesEqual(p1, p2));
     }
 
 

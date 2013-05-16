@@ -28,7 +28,7 @@ import com.alibaba.rocketmq.broker.processor.SendMessageProcessor;
 import com.alibaba.rocketmq.broker.topic.TopicConfigManager;
 import com.alibaba.rocketmq.common.BrokerConfig;
 import com.alibaba.rocketmq.common.DataVersion;
-import com.alibaba.rocketmq.common.MetaMix;
+import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.namesrv.TopAddressing;
 import com.alibaba.rocketmq.common.protocol.MetaProtos;
 import com.alibaba.rocketmq.common.protocol.MetaProtosHelper;
@@ -48,7 +48,7 @@ import com.alibaba.rocketmq.store.config.MessageStoreConfig;
  * @author vintage.wang@gmail.com shijia.wxr@taobao.com
  */
 public class BrokerController {
-    private static final Logger log = LoggerFactory.getLogger(MetaMix.BrokerLoggerName);
+    private static final Logger log = LoggerFactory.getLogger(MixAll.BrokerLoggerName);
     // 服务器配置
     private final BrokerConfig brokerConfig;
     // 通信层配置
@@ -140,9 +140,9 @@ public class BrokerController {
         boolean result = true;
 
         // 打印服务器配置参数
-        MetaMix.printObjectProperties(log, this.brokerConfig);
-        MetaMix.printObjectProperties(log, this.nettyServerConfig);
-        MetaMix.printObjectProperties(log, this.messageStoreConfig);
+        MixAll.printObjectProperties(log, this.brokerConfig);
+        MixAll.printObjectProperties(log, this.nettyServerConfig);
+        MixAll.printObjectProperties(log, this.messageStoreConfig);
 
         // 注册到Name Server
         // result = result && this.registerToNameServer();
@@ -380,9 +380,9 @@ public class BrokerController {
 
 
     public void updateAllConfig(Properties properties) {
-        MetaMix.properties2Object(properties, brokerConfig);
-        MetaMix.properties2Object(properties, nettyServerConfig);
-        MetaMix.properties2Object(properties, messageStoreConfig);
+        MixAll.properties2Object(properties, brokerConfig);
+        MixAll.properties2Object(properties, nettyServerConfig);
+        MixAll.properties2Object(properties, messageStoreConfig);
         this.configDataVersion.nextVersion();
         this.flushAllConfig();
     }
@@ -390,7 +390,7 @@ public class BrokerController {
 
     private void flushAllConfig() {
         String allConfig = this.encodeAllConfig();
-        boolean result = MetaMix.string2File(allConfig, this.brokerConfig.getConfigFilePath());
+        boolean result = MixAll.string2File(allConfig, this.brokerConfig.getConfigFilePath());
         log.info("flush topic config, " + this.brokerConfig.getConfigFilePath() + (result ? " OK" : " Failed"));
     }
 
@@ -398,9 +398,9 @@ public class BrokerController {
     public String encodeAllConfig() {
         StringBuilder sb = new StringBuilder();
         {
-            Properties properties = MetaMix.object2Properties(this.brokerConfig);
+            Properties properties = MixAll.object2Properties(this.brokerConfig);
             if (properties != null) {
-                sb.append(MetaMix.properties2String(properties));
+                sb.append(MixAll.properties2String(properties));
             }
             else {
                 log.error("encodeAllConfig object2Properties error");
@@ -408,9 +408,9 @@ public class BrokerController {
         }
 
         {
-            Properties properties = MetaMix.object2Properties(this.messageStoreConfig);
+            Properties properties = MixAll.object2Properties(this.messageStoreConfig);
             if (properties != null) {
-                sb.append(MetaMix.properties2String(properties));
+                sb.append(MixAll.properties2String(properties));
             }
             else {
                 log.error("encodeAllConfig object2Properties error");
@@ -418,9 +418,9 @@ public class BrokerController {
         }
 
         {
-            Properties properties = MetaMix.object2Properties(this.nettyServerConfig);
+            Properties properties = MixAll.object2Properties(this.nettyServerConfig);
             if (properties != null) {
-                sb.append(MetaMix.properties2String(properties));
+                sb.append(MixAll.properties2String(properties));
             }
             else {
                 log.error("encodeAllConfig object2Properties error");

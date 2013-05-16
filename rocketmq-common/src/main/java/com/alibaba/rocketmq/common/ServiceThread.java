@@ -13,7 +13,7 @@ import org.slf4j.LoggerFactory;
  * @author vintage.wang@gmail.com shijia.wxr@taobao.com
  */
 public abstract class ServiceThread implements Runnable {
-    private static final Logger stlog = LoggerFactory.getLogger(MetaMix.CommonLoggerName);
+    private static final Logger stlog = LoggerFactory.getLogger(MixAll.CommonLoggerName);
     // 执行线程
     protected final Thread thread;
     // 线程回收时间，默认90S
