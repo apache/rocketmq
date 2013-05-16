@@ -40,7 +40,7 @@ public class NettyRPCTest {
     public static RemotingServer createRemotingServer() throws InterruptedException {
         NettyServerConfig config = new NettyServerConfig();
         RemotingServer client = new NettyRemotingServer(config);
-        client.registerProcessor(RequestCode.HEART_BEAT_VALUE, new NettyRequestProcessor() {
+        client.registerProcessor(RequestCode.DEMO_REQUEST_VALUE, new NettyRequestProcessor() {
             private int i = 0;
 
 
@@ -63,7 +63,7 @@ public class NettyRPCTest {
         RemotingClient client = createRemotingClient();
 
         for (int i = 0; i < 100; i++) {
-            RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.HEART_BEAT_VALUE, null);
+            RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.DEMO_REQUEST_VALUE, null);
             RemotingCommand response = client.invokeSync("127.0.0.1:10911", request, 1000 * 3);
             System.out.println("invoke result = " + response);
             assertTrue(response != null);
@@ -82,7 +82,7 @@ public class NettyRPCTest {
         RemotingClient client = createRemotingClient();
 
         for (int i = 0; i < 100; i++) {
-            RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.HEART_BEAT_VALUE, null);
+            RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.DEMO_REQUEST_VALUE, null);
             request.setRemark(String.valueOf(i));
             client.invokeOneway("127.0.0.1:10911", request, 1000 * 3);
         }
@@ -100,7 +100,7 @@ public class NettyRPCTest {
         RemotingClient client = createRemotingClient();
 
         for (int i = 0; i < 100; i++) {
-            RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.HEART_BEAT_VALUE, null);
+            RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.DEMO_REQUEST_VALUE, null);
             request.setRemark(String.valueOf(i));
             client.invokeAsync("127.0.0.1:10911", request, 1000 * 3, new InvokeCallback() {
                 @Override
@@ -124,7 +124,7 @@ public class NettyRPCTest {
         final RemotingServer server = createRemotingServer();
         final RemotingClient client = createRemotingClient();
 
-        server.registerProcessor(RequestCode.HEART_BEAT_VALUE, new NettyRequestProcessor() {
+        server.registerProcessor(RequestCode.DEMO_REQUEST_VALUE, new NettyRequestProcessor() {
             @Override
             public RemotingCommand processRequest(ChannelHandlerContext ctx, RemotingCommand request) {
                 try {
@@ -144,7 +144,7 @@ public class NettyRPCTest {
             }
         }, Executors.newCachedThreadPool());
 
-        client.registerProcessor(RequestCode.HEART_BEAT_VALUE, new NettyRequestProcessor() {
+        client.registerProcessor(RequestCode.DEMO_REQUEST_VALUE, new NettyRequestProcessor() {
             @Override
             public RemotingCommand processRequest(ChannelHandlerContext ctx, RemotingCommand request) {
                 System.out.println("client receive server request = " + request);
@@ -154,7 +154,7 @@ public class NettyRPCTest {
         }, Executors.newCachedThreadPool());
 
         for (int i = 0; i < 3; i++) {
-            RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.HEART_BEAT_VALUE, null);
+            RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.DEMO_REQUEST_VALUE, null);
             RemotingCommand response = client.invokeSync("127.0.0.1:10911", request, 1000 * 3);
             System.out.println("invoke result = " + response);
             assertTrue(response != null);

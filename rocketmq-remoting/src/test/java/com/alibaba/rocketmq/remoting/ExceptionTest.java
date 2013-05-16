@@ -38,7 +38,7 @@ public class ExceptionTest {
     private static RemotingServer createRemotingServer() throws InterruptedException {
         NettyServerConfig config = new NettyServerConfig();
         RemotingServer client = new NettyRemotingServer(config);
-        client.registerProcessor(RequestCode.HEART_BEAT_VALUE, new NettyRequestProcessor() {
+        client.registerProcessor(RequestCode.DEMO_REQUEST_VALUE, new NettyRequestProcessor() {
             private int i = 0;
 
 
@@ -58,7 +58,7 @@ public class ExceptionTest {
     public void test_CONNECT_EXCEPTION() {
         RemotingClient client = createRemotingClient();
 
-        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.HEART_BEAT_VALUE, null);
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.DEMO_REQUEST_VALUE, null);
         RemotingCommand response = null;
         try {
             response = client.invokeSync("127.0.0.1:10911", request, 1000 * 3);

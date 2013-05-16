@@ -258,8 +258,8 @@ public class BrokerController {
 
 
     public void registerProcessor() {
-        this.remotingServer.registerProcessor(MQProtos.MQRequestCode.SEND_MESSAGE_VALUE,
-            new SendMessageProcessor(this), this.sendMessageExecutor);
+        this.remotingServer.registerProcessor(MQProtos.MQRequestCode.SEND_MESSAGE_VALUE, new SendMessageProcessor(
+            this), this.sendMessageExecutor);
 
         this.remotingServer.registerProcessor(MQProtos.MQRequestCode.PULL_MESSAGE_VALUE,
             this.pullMessageProcessor, this.pullMessageExecutor);
@@ -271,7 +271,7 @@ public class BrokerController {
             this.pullMessageExecutor);
 
         NettyRequestProcessor clientProcessor = new ClientManageProcessor(this);
-        this.remotingServer.registerProcessor(MQProtos.MQRequestCode.REGISTER_CLIENT_VALUE, clientProcessor,
+        this.remotingServer.registerProcessor(MQProtos.MQRequestCode.HEART_BEAT_VALUE, clientProcessor,
             this.adminBrokerExecutor);
         this.remotingServer.registerProcessor(MQProtos.MQRequestCode.UNREGISTER_CLIENT_VALUE, queryProcessor,
             this.adminBrokerExecutor);

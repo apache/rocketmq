@@ -603,7 +603,7 @@ public class MQClientAPIImpl {
             final HeartbeatData heartbeatData,//
             final long timeoutMillis//
     ) throws RemotingException, MQBrokerException, InterruptedException {
-        RemotingCommand request = RemotingCommand.createRequestCommand(MQRequestCode.REGISTER_CLIENT_VALUE, null);
+        RemotingCommand request = RemotingCommand.createRequestCommand(MQRequestCode.HEART_BEAT_VALUE, null);
         RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
         assert response != null;
         switch (response.getCode()) {
@@ -659,7 +659,7 @@ public class MQClientAPIImpl {
 
     public boolean registerClient(final String addr, final HeartbeatData heartbeat, final long timeoutMillis)
             throws RemotingException, InterruptedException {
-        RemotingCommand request = RemotingCommand.createRequestCommand(MQRequestCode.REGISTER_CLIENT_VALUE, null);
+        RemotingCommand request = RemotingCommand.createRequestCommand(MQRequestCode.HEART_BEAT_VALUE, null);
         request.setBody(heartbeat.encode());
         RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
         return response.getCode() == ResponseCode.SUCCESS_VALUE;

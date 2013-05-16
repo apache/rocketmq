@@ -65,7 +65,7 @@ enum FlagBit{
 
 // RPC请求代码
 enum RequestCode{
-    HEART_BEAT = 0;                     // 心跳消息
+    DEMO_REQUEST = 0;
 }
 
 // RPC应答代码
@@ -86,27 +86,3 @@ message CommandHeader {
     optional string remark = 6;
     repeated NVPair extFields=7;
 }
-
-// 扩展字段
-// enum ExtFieldKey{
-//     FIELD_1 = 1;
-//     FIELD_2 = 2;
-//     FIELD_3 = 3;
-//     FIELD_4 = 4;
-//     FIELD_5 = 5;
-//     FIELD_6 = 6;
-//     FIELD_7 = 7;
-//     FIELD_8 = 8;
-//     FIELD_9 = 9;
-//     FIELD_10 = 10;
-//     FIELD_11 = 11;
-//     FIELD_12 = 12;
-//     FIELD_13 = 13;
-//     FIELD_14 = 14;
-//     FIELD_15 = 15;
-//     FIELD_16 = 16;
-//     FIELD_17 = 17;
-//     FIELD_18 = 18;
-//     FIELD_19 = 19;
-//     FIELD_20 = 20;
-// }

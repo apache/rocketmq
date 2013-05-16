@@ -36,8 +36,8 @@ public class ClientManageProcessor implements NettyRequestProcessor {
     public RemotingCommand processRequest(ChannelHandlerContext ctx, RemotingCommand request) {
         MQRequestCode code = MQRequestCode.valueOf(request.getCode());
         switch (code) {
-        case REGISTER_CLIENT:
-            break;
+        case HEART_BEAT:
+            return this.heartBeat(ctx, request);
         case UNREGISTER_CLIENT:
             break;
         default:
@@ -47,7 +47,7 @@ public class ClientManageProcessor implements NettyRequestProcessor {
     }
 
 
-    public RemotingCommand registerClient(ChannelHandlerContext ctx, RemotingCommand request) {
+    public RemotingCommand heartBeat(ChannelHandlerContext ctx, RemotingCommand request) {
 
         return null;
     }

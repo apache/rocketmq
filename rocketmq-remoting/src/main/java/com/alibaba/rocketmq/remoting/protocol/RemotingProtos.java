@@ -166,17 +166,17 @@ public final class RemotingProtos {
   
   public enum RequestCode
       implements com.google.protobuf.ProtocolMessageEnum {
-    HEART_BEAT(0, 0),
+    DEMO_REQUEST(0, 0),
     ;
     
-    public static final int HEART_BEAT_VALUE = 0;
+    public static final int DEMO_REQUEST_VALUE = 0;
     
     
     public final int getNumber() { return value; }
     
     public static RequestCode valueOf(int value) {
       switch (value) {
-        case 0: return HEART_BEAT;
+        case 0: return DEMO_REQUEST;
         default: return null;
       }
     }
@@ -207,7 +207,7 @@ public final class RemotingProtos {
     }
     
     private static final RequestCode[] VALUES = {
-      HEART_BEAT, 
+      DEMO_REQUEST, 
     };
     
     public static RequestCode valueOf(
@@ -3799,12 +3799,12 @@ public final class RemotingProtos {
       "r*f\n\014LanguageCode\022\010\n\004JAVA\020\000\022\007\n\003CPP\020\001\022\n\n\006" +
       "DOTNET\020\002\022\n\n\006PYTHON\020\003\022\n\n\006DELPHI\020\004\022\n\n\006ERLA" +
       "NG\020\005\022\010\n\004RUBY\020\006\022\t\n\005OTHER\020\007*\'\n\007FlagBit\022\014\n\010" +
-      "RPC_TYPE\020\000\022\016\n\nRPC_ONEWAY\020\001*\035\n\013RequestCod" +
-      "e\022\016\n\nHEART_BEAT\020\000*^\n\014ResponseCode\022\013\n\007SUC" +
-      "CESS\020\000\022\020\n\014SYSTEM_ERROR\020\001\022\017\n\013SYSTEM_BUSY\020" +
-      "\002\022\036\n\032REQUEST_CODE_NOT_SUPPORTED\020\003B:\n&com" +
-      ".alibaba.rocketmq.remoting.protocolB\016Rem" +
-      "otingProtosH\001"
+      "RPC_TYPE\020\000\022\016\n\nRPC_ONEWAY\020\001*\037\n\013RequestCod" +
+      "e\022\020\n\014DEMO_REQUEST\020\000*^\n\014ResponseCode\022\013\n\007S" +
+      "UCCESS\020\000\022\020\n\014SYSTEM_ERROR\020\001\022\017\n\013SYSTEM_BUS" +
+      "Y\020\002\022\036\n\032REQUEST_CODE_NOT_SUPPORTED\020\003B:\n&c" +
+      "om.alibaba.rocketmq.remoting.protocolB\016R" +
+      "emotingProtosH\001"
     };
     com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
       new com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner() {

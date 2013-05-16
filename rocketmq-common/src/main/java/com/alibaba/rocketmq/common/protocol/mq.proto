@@ -37,7 +37,7 @@ enum MQRequestCode{
     GET_EARLIEST_MSG_STORETIME = 32;                    // Broker 查询队列最早消息对应时间
     VIEW_MESSAGE_BY_ID = 33;                            // Broker 根据消息ID来查询消息
 
-    REGISTER_CLIENT = 34;                               // Broker Client注册
+    HEART_BEAT = 34;                                    // Broker Client向Client发送心跳，并注册自身
     UNREGISTER_CLIENT = 35;                             // Broker Client注销
 
     CONSUMER_SEND_MSG_BACK = 36;                        // Broker Consumer将处理不了的消息发回服务器
