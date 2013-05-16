@@ -9,10 +9,20 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.alibaba.rocketmq.broker.BrokerController;
+import com.alibaba.rocketmq.broker.client.ClientChannelInfo;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.protocol.MQProtos.MQRequestCode;
+import com.alibaba.rocketmq.common.protocol.MQProtosHelper;
+import com.alibaba.rocketmq.common.protocol.header.PullMessageRequestHeader;
+import com.alibaba.rocketmq.common.protocol.header.PullMessageResponseHeader;
+import com.alibaba.rocketmq.common.protocol.heartbeat.ConsumerData;
+import com.alibaba.rocketmq.common.protocol.heartbeat.HeartbeatData;
+import com.alibaba.rocketmq.remoting.common.RemotingUtil;
 import com.alibaba.rocketmq.remoting.netty.NettyRequestProcessor;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
+import com.alibaba.rocketmq.remoting.protocol.RemotingProtos.ResponseCode;
+import com.alibaba.rocketmq.remoting.protocol.RemotingProtosHelper;
+import com.google.protobuf.InvalidProtocolBufferException;
 
 
 /**
@@ -48,7 +58,40 @@ public class ClientManageProcessor implements NettyRequestProcessor {
 
 
     public RemotingCommand heartBeat(ChannelHandlerContext ctx, RemotingCommand request) {
+        RemotingCommand response = RemotingCommand.createResponseCommand(null);
+        HeartbeatData heartbeatData = null;
+        try {
+            heartbeatData = HeartbeatData.decode(request.getBody());
+        }
+        catch (InvalidProtocolBufferException e) {
+            log.error("decode heartbeat body from channel[{}] error", ctx.channel().remoteAddress().toString());
+            response.setCode(ResponseCode.SYSTEM_ERROR_VALUE);
+            response.setRemark("decode heartbeat body error");
+            return response;
+        }
 
-        return null;
+        // ×¢²áConsumer
+        for (ConsumerData data : heartbeatData.getConsumerDataSet()) {
+            ClientChannelInfo clientChannelInfo = new ClientChannelInfo(//
+                ctx.channel(),//
+                heartbeatData.getClientID(),//
+                request.getLanguage(),//
+                request.getVersion()//
+                    );
+
+            this.brokerController.getConsumerManager().registerConsumer(//
+                data.getGroupName(),//
+                clientChannelInfo,//
+                data.getConsumeType(),//
+                data.getMessageModel(),//
+                data.getSubscriptionDataSet()//
+                );
+        }
+
+        // ×¢²áProducer
+
+        response.setCode(ResponseCode.SUCCESS_VALUE);
+        response.setRemark(null);
+        return response;
     }
 }

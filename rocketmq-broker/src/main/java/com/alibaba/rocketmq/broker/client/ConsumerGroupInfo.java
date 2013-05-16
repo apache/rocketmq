@@ -5,7 +5,7 @@ package com.alibaba.rocketmq.broker.client;
 
 import io.netty.channel.Channel;
 
-import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.slf4j.Logger;
@@ -78,7 +78,7 @@ public class ConsumerGroupInfo {
     /**
      * 返回值表示是否发生变更
      */
-    public boolean updateSubscription(final List<SubscriptionData> subList) {
+    public boolean updateSubscription(final Set<SubscriptionData> subList) {
         boolean updated = false;
         for (SubscriptionData sub : subList) {
             SubscriptionData old = this.subscriptionTable.get(sub.getTopic());
