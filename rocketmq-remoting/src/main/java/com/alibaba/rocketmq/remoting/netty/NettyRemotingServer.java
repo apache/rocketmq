@@ -26,6 +26,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.alibaba.rocketmq.remoting.ChannelEventListener;
 import com.alibaba.rocketmq.remoting.InvokeCallback;
 import com.alibaba.rocketmq.remoting.RemotingServer;
 import com.alibaba.rocketmq.remoting.common.Pair;
@@ -49,6 +50,8 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
     // ´¦ÀíCallbackÓ¦´ðÆ÷
     private final ExecutorService callbackExecutor;
 
+    private final ChannelEventListener channelEventListener;
+
     class NettyServerHandler extends ChannelInboundMessageHandlerAdapter<Object> {
 
         @Override
@@ -63,6 +66,10 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
             final String remoteAddr = RemotingHelper.parseChannelRemoteAddr(ctx.channel());
             log.info("NETTY PIPELINE: channelRegistered, the channel[{}]", remoteAddr);
             super.channelRegistered(ctx);
+
+            if (NettyRemotingServer.this.channelEventListener != null) {
+                NettyRemotingServer.this.channelEventListener.onChannelConnect(ctx.channel());
+            }
         }
 
 
@@ -71,6 +78,10 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
             final String remoteAddr = RemotingHelper.parseChannelRemoteAddr(ctx.channel());
             log.info("NETTY PIPELINE: channelActive, the channel[{}]", remoteAddr);
             super.channelActive(ctx);
+
+            if (NettyRemotingServer.this.channelEventListener != null) {
+                NettyRemotingServer.this.channelEventListener.onChannelConnect(ctx.channel());
+            }
         }
 
 
@@ -79,6 +90,10 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
             final String remoteAddr = RemotingHelper.parseChannelRemoteAddr(ctx.channel());
             log.info("NETTY PIPELINE: channelInactive, the channel[{}]", remoteAddr);
             super.channelInactive(ctx);
+
+            if (NettyRemotingServer.this.channelEventListener != null) {
+                NettyRemotingServer.this.channelEventListener.onChannelClose(ctx.channel());
+            }
         }
 
 
@@ -87,6 +102,10 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
             final String remoteAddr = RemotingHelper.parseChannelRemoteAddr(ctx.channel());
             log.info("NETTY PIPELINE: channelUnregistered, the channel[{}]", remoteAddr);
             super.channelUnregistered(ctx);
+
+            if (NettyRemotingServer.this.channelEventListener != null) {
+                NettyRemotingServer.this.channelEventListener.onChannelClose(ctx.channel());
+            }
         }
 
 
@@ -108,14 +127,25 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
             log.warn("NETTY PIPELINE: Unexpected exception from the channel[{}], Exception: {}", remoteAddr,
                 cause.getMessage());
             ctx.channel().close();
+
+            if (NettyRemotingServer.this.channelEventListener != null) {
+                NettyRemotingServer.this.channelEventListener.onChannelException(ctx.channel());
+            }
         }
     }
 
 
     public NettyRemotingServer(final NettyServerConfig nettyServerConfig) {
+        this(nettyServerConfig, null);
+    }
+
+
+    public NettyRemotingServer(final NettyServerConfig nettyServerConfig,
+            final ChannelEventListener channelEventListener) {
         super(nettyServerConfig.getServerOnewaySemaphoreValue(), nettyServerConfig.getServerAsyncSemaphoreValue());
         this.serverBootstrap = new ServerBootstrap();
         this.nettyServerConfig = nettyServerConfig;
+        this.channelEventListener = channelEventListener;
 
         if (nettyServerConfig.getServerCallbackExecutorThreads() > 0) {
             this.callbackExecutor =

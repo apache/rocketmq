@@ -37,6 +37,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.alibaba.rocketmq.remoting.ChannelEventListener;
 import com.alibaba.rocketmq.remoting.InvokeCallback;
 import com.alibaba.rocketmq.remoting.RemotingClient;
 import com.alibaba.rocketmq.remoting.common.Pair;
@@ -75,6 +76,8 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
 
     // ´¦ÀíCallbackÓ¦´ðÆ÷
     private final ExecutorService callbackExecutor;
+
+    private final ChannelEventListener channelEventListener;
 
     class ChannelWrapper {
         private final Channel channel;
@@ -115,6 +118,10 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                 ChannelPromise promise) throws Exception {
             log.info("NettyConnetManageHandler CONNECT(" + remoteAddress + ", " + localAddress + ')');
             super.connect(ctx, remoteAddress, localAddress, promise);
+
+            if (NettyRemotingClient.this.channelEventListener != null) {
+                NettyRemotingClient.this.channelEventListener.onChannelConnect(ctx.channel());
+            }
         }
 
 
@@ -123,6 +130,10 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
             log.info("NettyConnetManageHandler DISCONNECT()");
             closeChannel(ctx.channel());
             super.disconnect(ctx, promise);
+
+            if (NettyRemotingClient.this.channelEventListener != null) {
+                NettyRemotingClient.this.channelEventListener.onChannelClose(ctx.channel());
+            }
         }
 
 
@@ -131,6 +142,10 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
             log.info("NettyConnetManageHandler CLOSE()");
             closeChannel(ctx.channel());
             super.close(ctx, promise);
+
+            if (NettyRemotingClient.this.channelEventListener != null) {
+                NettyRemotingClient.this.channelEventListener.onChannelClose(ctx.channel());
+            }
         }
 
 
@@ -148,15 +163,10 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
 
         @Override
         public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-        	closeChannel(ctx.channel());
-        	
-            Channel channel = ctx.channel();
-            if (channel != null) {
-                SocketAddress remoteAddress = channel.remoteAddress();
-                if (null != remoteAddress) {
-                    log.warn("Netty pipeline exception, {}", remoteAddress);
-                    log.warn("Netty pipeline exception, {}", cause.getMessage());
-                }
+            closeChannel(ctx.channel());
+
+            if (NettyRemotingClient.this.channelEventListener != null) {
+                NettyRemotingClient.this.channelEventListener.onChannelClose(ctx.channel());
             }
         }
     }
@@ -170,8 +180,15 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
 
 
     public NettyRemotingClient(final NettyClientConfig nettyClientConfig) {
+        this(nettyClientConfig, null);
+    }
+
+
+    public NettyRemotingClient(final NettyClientConfig nettyClientConfig,
+            final ChannelEventListener channelEventListener) {
         super(nettyClientConfig.getClientOnewaySemaphoreValue(), nettyClientConfig.getClientAsyncSemaphoreValue());
         this.nettyClientConfig = nettyClientConfig;
+        this.channelEventListener = channelEventListener;
 
         if (nettyClientConfig.getClientCallbackExecutorThreads() > 0) {
             this.callbackExecutor =
@@ -461,6 +478,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
         }
     }
 
+
     public void closeChannel(final Channel channel) {
         if (null == channel)
             return;
@@ -469,25 +487,26 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
             if (this.lockChannelTables.tryLock(LockTimeoutMillis, TimeUnit.MILLISECONDS)) {
                 try {
                     boolean removeItemFromTable = true;
-                    ChannelWrapper prevCW =null;
+                    ChannelWrapper prevCW = null;
                     String addrRemote = null;
-                    for(String key :channelTables.keySet()){
-                    	ChannelWrapper prev = this.channelTables.get(key);
-                    	if(prev.channel.equals(channel)){
-                    		prevCW= prev;
-                    		addrRemote = key;
-                    		break;
-                    	}
+                    for (String key : channelTables.keySet()) {
+                        ChannelWrapper prev = this.channelTables.get(key);
+                        if (prev.channel.equals(channel)) {
+                            prevCW = prev;
+                            addrRemote = key;
+                            break;
+                        }
                     }
 
                     if (null == prevCW) {
-                        log.info("eventCloseChannel: the channel[["+addrRemote+"]] has been removed from the channel table before");
+                        log.info("eventCloseChannel: the channel[[" + addrRemote
+                                + "]] has been removed from the channel table before");
                         removeItemFromTable = false;
                     }
 
                     if (removeItemFromTable) {
                         this.channelTables.remove(addrRemote);
-                        log.info("closeChannel: the channel["+addrRemote+"] was removed from channel table");
+                        log.info("closeChannel: the channel[" + addrRemote + "] was removed from channel table");
                     }
                 }
                 catch (Exception e) {
@@ -505,6 +524,8 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
             log.error("closeChannel exception", e);
         }
     }
+
+
     @Override
     public void registerProcessor(int requestCode, NettyRequestProcessor processor, Executor executor) {
         Pair<NettyRequestProcessor, Executor> pair =
