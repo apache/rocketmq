@@ -19,7 +19,7 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingProtos.ResponseCode;
  * @author vintage.wang@gmail.com shijia.wxr@taobao.com
  * 
  */
-public class MetaProtosHelper {
+public class MQProtosHelper {
     /**
      * ½«BrokerµØÖ·×¢²áµ½Name Server
      */

@@ -31,7 +31,7 @@ import com.alibaba.rocketmq.common.DataVersion;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.namesrv.TopAddressing;
 import com.alibaba.rocketmq.common.protocol.MQProtos;
-import com.alibaba.rocketmq.common.protocol.MetaProtosHelper;
+import com.alibaba.rocketmq.common.protocol.MQProtosHelper;
 import com.alibaba.rocketmq.remoting.RemotingServer;
 import com.alibaba.rocketmq.remoting.netty.NettyRemotingServer;
 import com.alibaba.rocketmq.remoting.netty.NettyRequestProcessor;
@@ -123,7 +123,7 @@ public class BrokerController {
                 for (int i = 0; i < addrArray.length; i++) {
                     String addr = addrArray[begin++ % addrArray.length];
                     boolean result =
-                            MetaProtosHelper.registerBrokerToNameServer(addr, this.getBrokerAddr(), 1000 * 10);
+                            MQProtosHelper.registerBrokerToNameServer(addr, this.getBrokerAddr(), 1000 * 10);
                     log.info("register broker[" + this.getBrokerAddr() + "] to name server[" + addr + "] "
                             + (result ? " success" : " failed"));
                     if (result)
