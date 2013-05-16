@@ -1,4 +1,4 @@
-svn up
+git pull
 
 rm -rf target
 rm -f devenv
