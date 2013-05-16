@@ -1,0 +1,168 @@
+//
+// Metaq通信协议
+//      2013-01-21 19:11:14 誓嘉<vintage.wang@gmail.com>草拟 V0.1
+//
+import "remoting.proto";
+package metaq;
+option optimize_for = SPEED;
+option java_package = "com.alibaba.rocketmq.common.protocol";
+option java_outer_classname = "MetaProtos";
+
+
+// RPC请求代码
+enum MQRequestCode{
+    SEND_MESSAGE = 10;                                  // Broker 发送消息
+    PULL_MESSAGE = 11;                                  // Broker 订阅消息
+    QUERY_MESSAGE = 12;                                 // Broker 查询消息
+
+    QUERY_BROKER_OFFSET = 13;                           // Broker 查询Broker Offset
+    QUERY_CONSUMER_OFFSET = 14;                         // Broker 查询Consumer Offset
+    UPDATE_CONSUMER_OFFSET = 15;                        // Broker 更新Consumer Offset
+
+    UPDATE_AND_CREATE_TOPIC = 17;                       // Broker 更新或者增加一个Topic
+    DELETE_TOPIC = 19;                                  // Broker 删除一个Topic，包含数据与配置
+    GET_ALL_TOPIC_CONFIG = 21;                          // Broker 获取所有Topic的配置（Slave和Namesrv都会向Master请求此配置）
+
+    GET_TOPIC_CONFIG_LIST = 22;                         // Broker 获取所有Topic配置（Slave和Namesrv都会向Master请求此配置）
+    GET_TOPIC_NAME_LIST = 23;                           // Broker 获取所有Topic名称列表
+    PULL_ALL_CONSUMER_OFFSET = 24;                      // Broker Slave获取Master所有Consumer消费进度
+    UPDATE_BROKER_CONFIG = 25;                          // Broker 更新Broker上的配置
+    GET_BROKER_CONFIG = 26;                             // Broker 获取Broker上的配置
+    TRIGGER_DELETE_FILES = 27;                          // Broker 触发Broker删除文件
+    GET_BROKER_RUNTIME_INFO = 28;                       // Broker 获取Broker运行时信息
+
+    SEARCH_OFFSET_BY_TIMESTAMP = 29;                    // Broker 根据时间查询队列的Offset
+    GET_MAX_OFFSET = 30;                                // Broker 查询队列最大Offset
+    GET_MIN_OFFSET = 31;                                // Broker 查询队列最小Offset
+    GET_EARLIEST_MSG_STORETIME = 32;                    // Broker 查询队列最早消息对应时间
+    VIEW_MESSAGE_BY_ID = 33;                            // Broker 根据消息ID来查询消息
+
+    REGISTER_CLIENT = 34;                               // Broker Client注册
+    UNREGISTER_CLIENT = 35;                             // Broker Client注销
+
+    CONSUMER_SEND_MSG_BACK = 36;                        // Broker Consumer将处理不了的消息发回服务器
+
+    END_TRANSACTION = 37;                               // Broker Commit或者Rollback事务
+
+    REGISTER_BROKER = 100;                              // Namesrv 注册一个Broker，数据都是持久化的，如果存在则覆盖配置
+    UNREGISTER_BROKER = 101;                            // Namesrv 卸载一个Broker，数据都是持久化的
+    GET_BROKER_LIST = 102;                              // Namesrv 获取注册的Broker列表
+    REGISTER_ORDER_TOPIC = 103;                         // Namesrv 注册一个严格顺序Topic，数据都是持久化的，如果存在则覆盖配置
+    UNREGISTER_ORDER_TOPIC = 104;                       // Namesrv 卸载一个严格顺序Topic，数据都是持久化的
+    GET_ORDER_TOPIC_LIST = 105;                         // Namesrv 获取注册的严格顺序Topic列表
+    UPDATE_NAMESRV_CONFIG = 106;                        // Namesrv 更新Namesrv上的配置
+    GET_NAMESRV_CONFIG = 107;                           // Namesrv 获取Namesrv上的配置
+    GET_NAMESRV_RUNTIME_INFO = 108;                     // Namesrv 获取Namesrv运行时信息
+
+    GET_ROUTEINTO_BY_TOPIC = 109;                       // Namesrv 根据Topic获取Broker Name、队列数(包含读队列与写队列)
+                                                        // 如果是Producer，Namesrv会检索是否有顺序消息配置，一并返回。
+
+    SYNC_NAMESRV_RUNTIME_CONF = 110;                    // Namesrv 同步Namesrv节点间的运行时topic相关路由信息数据
+    REGISTER_BROKER_SINGLE = 111;                       // Namesrv 向其他的Namesrv结点扩散broker注册的信息
+    UNREGISTER_BROKER_SINGLE = 112;                     // Namesrv 向其他的Namesrv结点扩散broker注销的信息
+    REGISTER_ORDER_TOPIC_SINGLE = 113;                  // Namesrv 向其他的Namesrv结点扩散order topic注册的信息
+    UNREGISTER_ORDER_TOPIC_SINGLE = 114;                // Namesrv 向其他的Namesrv结点扩散order topic注销的信息
+
+}
+
+// RPC应答代码
+enum MQResponseCode{
+    FLUSH_DISK_TIMEOUT = 10;                            // Broker 刷盘超时
+    SLAVE_NOT_AVAILABLE = 11;                           // Broker 同步双写，Slave不可用
+    FLUSH_SLAVE_TIMEOUT = 12;                           // Broker 同步双写，等待Slave应答超时
+    MESSAGE_ILLEGAL = 13;                               // Broker 消息非法
+    SERVICE_NOT_AVAILABLE = 14;                         // Broker, Namesrv 服务不可用，可能是正在关闭或者权限问题
+
+    VERSION_NOT_SUPPORTED = 15;                         // Broker, Namesrv 版本号不支持
+    NO_PERMISSION = 16;                                 // Broker, Namesrv 无权限执行此操作，可能是发、收、或者其他操作
+    TOPIC_NOT_EXIST = 17;                               // Broker, Topic不存在
+    TOPIC_EXIST_ALREADY = 18;                           // Broker, Topic已经存在，创建Topic
+    PULL_NOT_FOUND = 19;                                // Broker 拉消息未找到（请求的Offset等于最大Offset，最大Offset无对应消息）
+    PULL_RETRY_IMMEDIATELY = 20;                        // Broker 可能被过滤，或者误通知等
+    PULL_OFFSET_MOVED = 21;                             // Broker 拉消息请求的Offset不合法，太小或太大
+    QUERY_NOT_FOUND = 22;                               // Broker 查询消息未找到
+
+    DELETE_INVALID_CONF = 100;                          // Namesrv 同步数据时出现两个节点间数据不一致，删除不一致的数据
+    NOT_MERGE_CONF = 101;                               // Namesrv 两节点之间的数据一致没有做修改
+    REGISTER_BROKER_FAIL = 102;                         // Namesrv 注册broker信息失败
+    REGISTER_BROKER_TIMEOUT = 103;                      // Namesrv 注册broker信息超时
+    REGISTER_ORDER_TOPIC_FAIL = 104;                    // Namesrv 注册order topic的配置失败
+    REGISTER_ORDER_TOPIC_TIMEOUT = 105;                 // Namesrv 注册order topic的配置超时
+    UNREGISTER_BROKER_FAIL = 106;						// Namesrv 注销broker信息失败
+    UNREGISTER_BROKER_TIMEOUT = 107;					// Namesrv 注销broker超时
+    UNREGISTER_ORDER_TOPIC_TIMEOUT = 108;				// Namesrv 注销order topic的配置超时
+}
+
+//
+// Name Server Route
+//
+message BrokerInfo {
+    required string brokerName = 1;
+
+    message BrokerAddr{
+        required int64 id = 1;
+        required string addr = 2;
+    }
+
+    repeated BrokerAddr brokerAddrs = 2;
+}
+
+message QueueInfo{
+    required string brokerName = 1;
+    required int32 readQueueNums = 2;
+    required int32 writeQueueNums = 3;
+    required int32 perm = 4;
+}
+
+message TopicRouteInfo {
+    repeated QueueInfo queueInfos = 1;
+    repeated BrokerInfo brokerInfos = 2;
+    optional string orderTopicConf = 3;
+}
+
+//
+// Heart Beat
+//
+message ProducerInfo {
+    required string groupName = 1;
+}
+
+message SubscriptionInfo {
+    required string topic = 1;
+    required string subString = 2;
+    required string subNumfmt = 3;
+    required bool hasAndOperator = 4;
+}
+
+message ConsumerInfo {
+    required string groupName = 1;
+    required string consumeType = 2;
+    required string messageModel = 3;
+    repeated SubscriptionInfo subscriptionInfos = 4;
+}
+
+message HeartbeatInfo {
+    required string clientID = 1;
+	repeated ProducerInfo producerInfos = 2;
+    repeated ConsumerInfo consumerInfos = 3;
+}
+
+// TODO 暂时不使用
+message TopicQueuePair {
+    required string topic = 1;
+    repeated QueueInfo queueInfo = 2;
+}
+
+// TODO 暂时不使用
+message BrokerDataPair {
+    required string brokerName = 1;
+    required BrokerInfo brokerInfo = 2;
+}
+
+// TODO 暂时不使用
+message TopicRuntimeInfo {
+    repeated TopicQueuePair topicBrokers = 1;
+    required remoting.NVPairList topicOrderConfs = 2;
+    repeated BrokerDataPair brokers = 3;
+    required remoting.StringList brokerList = 4;
+}

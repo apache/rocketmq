@@ -1,0 +1,41 @@
+/**
+ * $Id: SyncInvokeTest.java 1831 2013-05-16 01:39:51Z shijia.wxr $
+ */
+package com.alibaba.rocketmq.remoting;
+
+import static org.junit.Assert.assertTrue;
+
+import org.junit.Test;
+
+import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
+import com.alibaba.rocketmq.remoting.protocol.RemotingProtos.RequestCode;
+
+
+/**
+ * @author vintage.wang@gmail.com shijia.wxr@taobao.com
+ * 
+ */
+public class SyncInvokeTest {
+    @Test
+    public void test_RPC_Sync() throws Exception {
+        RemotingServer server = NettyRPCTest.createRemotingServer();
+        RemotingClient client = NettyRPCTest.createRemotingClient();
+
+        for (int i = 0; i < 1000000; i++) {
+            try {
+                RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.HEART_BEAT_VALUE, null);
+                RemotingCommand response = client.invokeSync("127.0.0.1:10911", request, 1000 * 3);
+                System.out.println(i + "\t" + "invoke result = " + response);
+                assertTrue(response != null);
+            }
+            catch (Exception e) {
+                e.printStackTrace();
+                throw e;
+            }
+        }
+
+        client.shutdown();
+        server.shutdown();
+        System.out.println("-----------------------------------------------------------------");
+    }
+}

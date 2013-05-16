@@ -1,0 +1,112 @@
+//
+// Remoting通信协议
+//      2013-01-21 19:11:14 誓嘉<vintage.wang@gmail.com>草拟 V0.1
+//
+// 协议格式 <length> <header length> <header data> <body data>
+//            1        2               3             4
+// 协议分4部分，含义分别如下
+//     1、大端4个字节整数，等于2、3、4长度总和
+//     2、大端4个字节整数，等于3的长度
+//     3、二进制Google Protobuf序列化数据
+//     4、应用自定义二进制序列化数据
+//
+package remoting;
+option optimize_for = SPEED;
+option java_package = "com.alibaba.rocketmq.remoting.protocol";
+option java_outer_classname = "RemotingProtos";
+
+// KV对
+message KVPair{
+    required int32 key=1;
+    required string value=2;
+}
+
+// KV对集合
+message KVPairList{
+    repeated KVPair fields=1;
+}
+
+// NV对
+message NVPair{
+    required string name=1;
+    required string value=2;
+}
+
+// NV对集合
+message NVPairList{
+    repeated NVPair fields=1;
+}
+
+// 字符串集合
+message StringList{
+    repeated string name=1;
+}
+
+// 编程语言
+enum LanguageCode{
+    JAVA = 0;
+    CPP = 1;
+    DOTNET = 2;
+    PYTHON = 3;
+    DELPHI = 4;
+    ERLANG = 5;
+    RUBY = 6;
+    OTHER = 7;
+}
+
+// Flag标记位
+enum FlagBit{
+    RPC_TYPE = 0;                       // 0, REQUEST_COMMAND
+                                        // 1, RESPONSE_COMMAND
+
+    RPC_ONEWAY = 1;                     // 0, RPC
+                                        // 1, Oneway
+}
+
+// RPC请求代码
+enum RequestCode{
+    HEART_BEAT = 0;                     // 心跳消息
+}
+
+// RPC应答代码
+enum ResponseCode{
+    SUCCESS = 0;                        // 成功
+    SYSTEM_ERROR = 1;                   // 发生了未捕获异常
+    SYSTEM_BUSY = 2;                    // 由于线程池拥堵，系统繁忙
+    REQUEST_CODE_NOT_SUPPORTED = 3;     // 请求代码不支持
+}
+
+
+message CommandHeader {
+    required int32 code = 1;
+    required LanguageCode language = 2;
+    required int32 version = 3;
+    required int32 opaque = 4;
+    required int32 flag = 5;
+    optional string remark = 6;
+    repeated NVPair extFields=7;
+}
+
+// 扩展字段
+// enum ExtFieldKey{
+//     FIELD_1 = 1;
+//     FIELD_2 = 2;
+//     FIELD_3 = 3;
+//     FIELD_4 = 4;
+//     FIELD_5 = 5;
+//     FIELD_6 = 6;
+//     FIELD_7 = 7;
+//     FIELD_8 = 8;
+//     FIELD_9 = 9;
+//     FIELD_10 = 10;
+//     FIELD_11 = 11;
+//     FIELD_12 = 12;
+//     FIELD_13 = 13;
+//     FIELD_14 = 14;
+//     FIELD_15 = 15;
+//     FIELD_16 = 16;
+//     FIELD_17 = 17;
+//     FIELD_18 = 18;
+//     FIELD_19 = 19;
+//     FIELD_20 = 20;
+// }
