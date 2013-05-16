@@ -3,7 +3,11 @@
  */
 package com.alibaba.rocketmq.common.protocol.heartbeat;
 
+import static org.junit.Assert.*;
+
 import org.junit.Test;
+
+import com.google.protobuf.InvalidProtocolBufferException;
 
 
 /**
@@ -11,7 +15,7 @@ import org.junit.Test;
  */
 public class HeartbeatTest {
     @Test
-    public void test_encode_decode() {
+    public void test_encode_decode() throws InvalidProtocolBufferException {
         HeartbeatData heartbeatData = new HeartbeatData();
         heartbeatData.setClientID("id100");
 
@@ -35,11 +39,19 @@ public class HeartbeatTest {
                 sub.setSubNumfmt("1 || 2 || 3");
                 sub.setTopic("HelloTopic");
                 sub.setSubString("A || B ||C");
+                data.getSubscriptionDataSet().add(sub);
             }
 
             heartbeatData.getConsumerDataSet().add(data);
         }
 
+        byte[] data = heartbeatData.encode();
+
+        assertTrue(data != null);
+
+        HeartbeatData heartbeatDataDecode = HeartbeatData.decode(data);
+
+        System.out.println(heartbeatDataDecode);
     }
 
 }
