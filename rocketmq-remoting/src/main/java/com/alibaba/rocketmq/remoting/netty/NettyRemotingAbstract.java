@@ -13,6 +13,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
@@ -20,10 +21,12 @@ import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.alibaba.rocketmq.remoting.ChannelEventListener;
 import com.alibaba.rocketmq.remoting.InvokeCallback;
 import com.alibaba.rocketmq.remoting.common.Pair;
 import com.alibaba.rocketmq.remoting.common.RemotingHelper;
 import com.alibaba.rocketmq.remoting.common.SemaphoreReleaseOnlyOnce;
+import com.alibaba.rocketmq.remoting.common.ServiceThread;
 import com.alibaba.rocketmq.remoting.exception.RemotingSendRequestException;
 import com.alibaba.rocketmq.remoting.exception.RemotingTimeoutException;
 import com.alibaba.rocketmq.remoting.exception.RemotingTooMuchRequestException;
@@ -54,6 +57,73 @@ public abstract class NettyRemotingAbstract {
     // 注册的各个RPC处理器
     protected final HashMap<Integer/* request code */, Pair<NettyRequestProcessor, Executor>> processorTable =
             new HashMap<Integer, Pair<NettyRequestProcessor, Executor>>(64);
+
+    protected final NettyEventExecuter nettyEventExecuter = new NettyEventExecuter();
+
+
+    public abstract ChannelEventListener getChannelEventListener();
+
+
+    public void putNettyEvent(final NettyEvent event) {
+        this.nettyEventExecuter.putNettyEvent(event);
+    }
+
+    class NettyEventExecuter extends ServiceThread {
+        private final LinkedBlockingQueue<NettyEvent> eventQueue = new LinkedBlockingQueue<NettyEvent>();
+        private final int MaxSize = 10000;
+
+
+        public void putNettyEvent(final NettyEvent event) {
+            if (this.eventQueue.size() <= MaxSize) {
+                this.eventQueue.add(event);
+            }
+            else {
+                plog.warn("event queue size[{}] enough, so drop this event {}", this.eventQueue.size(),
+                    event.toString());
+            }
+        }
+
+
+        @Override
+        public void run() {
+            plog.info(this.getServiceName() + " service started");
+
+            final ChannelEventListener listener = NettyRemotingAbstract.this.getChannelEventListener();
+
+            while (!this.isStoped()) {
+                try {
+                    NettyEvent event = this.eventQueue.poll(3000, TimeUnit.MILLISECONDS);
+                    if (event != null) {
+                        switch (event.getType()) {
+                        case CLOSE:
+                            listener.onChannelClose(event.getRemoteAddr(), event.getChannel());
+                            break;
+                        case CONNECT:
+                            listener.onChannelConnect(event.getRemoteAddr(), event.getChannel());
+                            break;
+                        case EXCEPTION:
+                            listener.onChannelException(event.getRemoteAddr(), event.getChannel());
+                            break;
+                        default:
+                            break;
+
+                        }
+                    }
+                }
+                catch (Exception e) {
+                    plog.warn(this.getServiceName() + " service has exception. ", e);
+                }
+            }
+
+            plog.info(this.getServiceName() + " service end");
+        }
+
+
+        @Override
+        public String getServiceName() {
+            return NettyEventExecuter.class.getSimpleName();
+        }
+    }
 
 
     public NettyRemotingAbstract(final int permitsOneway, final int permitsAsync) {

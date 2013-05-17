@@ -9,11 +9,11 @@ import io.netty.channel.Channel;
  * @author vintage.wang@gmail.com shijia.wxr@taobao.com
  */
 public interface ChannelEventListener {
-    public void onChannelConnect(final Channel channel);
+    public void onChannelConnect(final String remoteAddr, final Channel channel);
 
 
-    public void onChannelClose(final Channel channel);
+    public void onChannelClose(final String remoteAddr, final Channel channel);
 
 
-    public void onChannelException(final Channel channel);
+    public void onChannelException(final String remoteAddr, final Channel channel);
 }

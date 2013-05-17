@@ -116,35 +116,41 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
         @Override
         public void connect(ChannelHandlerContext ctx, SocketAddress remoteAddress, SocketAddress localAddress,
                 ChannelPromise promise) throws Exception {
-            log.info("NettyConnetManageHandler CONNECT(" + remoteAddress + ", " + localAddress + ')');
+            log.info("NETTY CLIENT PIPELINE: CONNECT  {} ----> {}", localAddress.toString(),
+                remoteAddress.toString());
             super.connect(ctx, remoteAddress, localAddress, promise);
 
             if (NettyRemotingClient.this.channelEventListener != null) {
-                NettyRemotingClient.this.channelEventListener.onChannelConnect(ctx.channel());
+                NettyRemotingClient.this.putNettyEvent(new NettyEvent(NettyEventType.CONNECT, remoteAddress
+                    .toString(), ctx.channel()));
             }
         }
 
 
         @Override
         public void disconnect(ChannelHandlerContext ctx, ChannelPromise promise) throws Exception {
-            log.info("NettyConnetManageHandler DISCONNECT()");
+            final String remoteAddress = RemotingHelper.parseChannelRemoteAddr(ctx.channel());
+            log.info("NETTY CLIENT PIPELINE: DISCONNECT {}", remoteAddress);
             closeChannel(ctx.channel());
             super.disconnect(ctx, promise);
 
             if (NettyRemotingClient.this.channelEventListener != null) {
-                NettyRemotingClient.this.channelEventListener.onChannelClose(ctx.channel());
+                NettyRemotingClient.this.putNettyEvent(new NettyEvent(NettyEventType.CLOSE, remoteAddress
+                    .toString(), ctx.channel()));
             }
         }
 
 
         @Override
         public void close(ChannelHandlerContext ctx, ChannelPromise promise) throws Exception {
-            log.info("NettyConnetManageHandler CLOSE()");
+            final String remoteAddress = RemotingHelper.parseChannelRemoteAddr(ctx.channel());
+            log.info("NETTY CLIENT PIPELINE: CLOSE {}", remoteAddress);
             closeChannel(ctx.channel());
             super.close(ctx, promise);
 
             if (NettyRemotingClient.this.channelEventListener != null) {
-                NettyRemotingClient.this.channelEventListener.onChannelClose(ctx.channel());
+                NettyRemotingClient.this.putNettyEvent(new NettyEvent(NettyEventType.CLOSE, remoteAddress
+                    .toString(), ctx.channel()));
             }
         }
 
@@ -163,10 +169,13 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
 
         @Override
         public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
+            final String remoteAddress = RemotingHelper.parseChannelRemoteAddr(ctx.channel());
+            log.warn("NETTY CLIENT PIPELINE: exceptionCaught {}", remoteAddress);
+            log.warn("NETTY CLIENT PIPELINE: exceptionCaught exception.", cause);
             closeChannel(ctx.channel());
-
             if (NettyRemotingClient.this.channelEventListener != null) {
-                NettyRemotingClient.this.channelEventListener.onChannelClose(ctx.channel());
+                NettyRemotingClient.this.putNettyEvent(new NettyEvent(NettyEventType.EXCEPTION, remoteAddress
+                    .toString(), ctx.channel()));
             }
         }
     }
@@ -281,12 +290,20 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                 }
             }
         }, 1000 * 10, 1000 * 10);
+
+        if (this.channelEventListener != null) {
+            this.nettyEventExecuter.start();
+        }
     }
 
 
     @Override
     public void shutdown() {
         try {
+            if (this.nettyEventExecuter != null) {
+                this.nettyEventExecuter.shutdown();
+            }
+
             this.timer.cancel();
 
             for (ChannelWrapper cw : this.channelTables.values()) {
@@ -631,5 +648,11 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
         }
 
         this.namesrvAddrList.set(addrs);
+    }
+
+
+    @Override
+    public ChannelEventListener getChannelEventListener() {
+        return channelEventListener;
     }
 }

@@ -63,49 +63,43 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
     class NettyConnetManageHandler extends ChannelDuplexHandler {
         @Override
         public void channelRegistered(ChannelHandlerContext ctx) throws Exception {
-            final String remoteAddr = RemotingHelper.parseChannelRemoteAddr(ctx.channel());
-            log.info("NETTY PIPELINE: channelRegistered, the channel[{}]", remoteAddr);
+            final String remoteAddress = RemotingHelper.parseChannelRemoteAddr(ctx.channel());
+            log.info("NETTY SERVER PIPELINE: channelRegistered {}", remoteAddress);
             super.channelRegistered(ctx);
-
-            if (NettyRemotingServer.this.channelEventListener != null) {
-                NettyRemotingServer.this.channelEventListener.onChannelConnect(ctx.channel());
-            }
         }
 
 
         @Override
         public void channelActive(ChannelHandlerContext ctx) throws Exception {
-            final String remoteAddr = RemotingHelper.parseChannelRemoteAddr(ctx.channel());
-            log.info("NETTY PIPELINE: channelActive, the channel[{}]", remoteAddr);
+            final String remoteAddress = RemotingHelper.parseChannelRemoteAddr(ctx.channel());
+            log.info("NETTY SERVER PIPELINE: channelActive, the channel[{}]", remoteAddress);
             super.channelActive(ctx);
 
             if (NettyRemotingServer.this.channelEventListener != null) {
-                NettyRemotingServer.this.channelEventListener.onChannelConnect(ctx.channel());
+                NettyRemotingServer.this.putNettyEvent(new NettyEvent(NettyEventType.CONNECT, remoteAddress
+                    .toString(), ctx.channel()));
             }
         }
 
 
         @Override
         public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-            final String remoteAddr = RemotingHelper.parseChannelRemoteAddr(ctx.channel());
-            log.info("NETTY PIPELINE: channelInactive, the channel[{}]", remoteAddr);
+            final String remoteAddress = RemotingHelper.parseChannelRemoteAddr(ctx.channel());
+            log.info("NETTY SERVER PIPELINE: channelInactive, the channel[{}]", remoteAddress);
             super.channelInactive(ctx);
 
             if (NettyRemotingServer.this.channelEventListener != null) {
-                NettyRemotingServer.this.channelEventListener.onChannelClose(ctx.channel());
+                NettyRemotingServer.this.putNettyEvent(new NettyEvent(NettyEventType.CLOSE, remoteAddress
+                    .toString(), ctx.channel()));
             }
         }
 
 
         @Override
         public void channelUnregistered(ChannelHandlerContext ctx) throws Exception {
-            final String remoteAddr = RemotingHelper.parseChannelRemoteAddr(ctx.channel());
-            log.info("NETTY PIPELINE: channelUnregistered, the channel[{}]", remoteAddr);
+            final String remoteAddress = RemotingHelper.parseChannelRemoteAddr(ctx.channel());
+            log.info("NETTY SERVER PIPELINE: channelUnregistered, the channel[{}]", remoteAddress);
             super.channelUnregistered(ctx);
-
-            if (NettyRemotingServer.this.channelEventListener != null) {
-                NettyRemotingServer.this.channelEventListener.onChannelClose(ctx.channel());
-            }
         }
 
 
@@ -123,14 +117,16 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
 
         @Override
         public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-            final String remoteAddr = RemotingHelper.parseChannelRemoteAddr(ctx.channel());
-            log.warn("NETTY PIPELINE: Unexpected exception from the channel[{}], Exception: {}", remoteAddr,
-                cause.getMessage());
-            ctx.channel().close();
+            final String remoteAddress = RemotingHelper.parseChannelRemoteAddr(ctx.channel());
+            log.warn("NETTY SERVER PIPELINE: exceptionCaught {}", remoteAddress);
+            log.warn("NETTY SERVER PIPELINE: exceptionCaught exception.", cause);
 
             if (NettyRemotingServer.this.channelEventListener != null) {
-                NettyRemotingServer.this.channelEventListener.onChannelException(ctx.channel());
+                NettyRemotingServer.this.putNettyEvent(new NettyEvent(NettyEventType.EXCEPTION, remoteAddress
+                    .toString(), ctx.channel()));
             }
+
+            ctx.channel().close();
         }
     }
 
@@ -187,6 +183,10 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
             });
 
         this.serverBootstrap.bind().sync();
+
+        if (this.channelEventListener != null) {
+            this.nettyEventExecuter.start();
+        }
     }
 
 
@@ -194,6 +194,10 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
     public void shutdown() {
         try {
             this.serverBootstrap.shutdown();
+
+            if (this.nettyEventExecuter != null) {
+                this.nettyEventExecuter.shutdown();
+            }
         }
         catch (Exception e) {
             log.error("NettyRemotingServer shutdown exception, ", e);
@@ -251,5 +255,11 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
     @Override
     public void registerDefaultProcessor(NettyRequestProcessor processor, Executor executor) {
         this.defaultRequestProcessor = new Pair<NettyRequestProcessor, Executor>(processor, executor);
+    }
+
+
+    @Override
+    public ChannelEventListener getChannelEventListener() {
+        return channelEventListener;
     }
 }
