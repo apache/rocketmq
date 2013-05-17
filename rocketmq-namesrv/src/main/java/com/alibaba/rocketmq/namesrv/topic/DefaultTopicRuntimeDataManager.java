@@ -360,7 +360,12 @@ public class DefaultTopicRuntimeDataManager implements TopicRuntimeDataManager {
     @Override
     public RemotingCommand registerBroker(String address) {
         RemotingCommand response = RemotingCommand.createResponseCommand(null);
-
+        if (null == address || "".equals(address)) {
+            response.setCode(MQResponseCode.REGISTER_BROKER_FAIL_VALUE);
+            response.setRemark("empty address");
+            return response;
+        }
+        
         // register to local
         doRegisterBroker(address);
 
@@ -511,6 +516,7 @@ public class DefaultTopicRuntimeDataManager implements TopicRuntimeDataManager {
         if (null == brokerName || "".equals(brokerName)) {
             response.setCode(MQResponseCode.UNREGISTER_BROKER_FAIL_VALUE);
             response.setRemark("empty brokerName");
+            return response;
         }
 
         if (doUnRegisterBroker(brokerName)) {
@@ -650,14 +656,23 @@ public class DefaultTopicRuntimeDataManager implements TopicRuntimeDataManager {
         }
     }
 
-
+    
     @Override
-    public boolean unRegisterBrokerByAddr(String addr) {
+    public RemotingCommand unRegisterBrokerByAddr(String addr) {
         if (null == addr || "".equals(addr))
-            return false;
+            return null;
+        String brokerName = findBrokerNameByAddr(addr);
+        return this.unRegisterBroker(brokerName);
+    }
+
+    
+    @Override
+    public RemotingCommand unRegisterBrokerSingleByAddr(String addr) {
+        if (null == addr || "".equals(addr))
+            return null;
 
         String brokerName = findBrokerNameByAddr(addr);
-        return doUnRegisterBroker(brokerName);
+        return this.unRegisterBrokerSingle(brokerName);
     }
 
 
