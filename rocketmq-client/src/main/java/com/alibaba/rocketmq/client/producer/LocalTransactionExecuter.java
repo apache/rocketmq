@@ -3,6 +3,9 @@
  */
 package com.alibaba.rocketmq.client.producer;
 
+import com.alibaba.rocketmq.common.Message;
+
+
 /**
  * 执行本地事务，由Metaq客户端回调
  * 
@@ -10,5 +13,5 @@ package com.alibaba.rocketmq.client.producer;
  * 
  */
 public interface LocalTransactionExecuter {
-    public boolean executeLocalTransactionBranch();
+    public boolean executeLocalTransactionBranch(final Message msg);
 }

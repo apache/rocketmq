@@ -85,8 +85,7 @@ public class DefaultMQProducerImpl {
                     MQClientManager.getInstance().getAndCreateMetaClientFactory(
                         this.defaultMQProducer.getMQClientConfig());
 
-            boolean registerOK =
-                    mQClientFactory.registerProducer(this.defaultMQProducer.getProducerGroup(), this);
+            boolean registerOK = mQClientFactory.registerProducer(this.defaultMQProducer.getProducerGroup(), this);
             if (!registerOK) {
                 this.serviceState = ServiceState.CREATE_JUST;
                 throw new MQClientException("The producer group[" + this.defaultMQProducer.getProducerGroup()
@@ -189,8 +188,8 @@ public class DefaultMQProducerImpl {
     }
 
 
-    public MessageExt viewMessage(String msgId) throws RemotingException, MQBrokerException,
-            InterruptedException, MQClientException {
+    public MessageExt viewMessage(String msgId) throws RemotingException, MQBrokerException, InterruptedException,
+            MQClientException {
         this.makeSureStateOK();
 
         return this.mQClientFactory.getMetaAdminImpl().viewMessage(msgId);
@@ -334,8 +333,7 @@ public class DefaultMQProducerImpl {
         if (null == brokerAddr) {
             // TODO 此处可能对Name Server压力过大，需要调优
             this.mQClientFactory.updateTopicRouteInfoFromNameServer(mq.getTopic());
-            this.mQClientFactory
-                .updateTopicRouteInfoFromNameServer(this.defaultMQProducer.getCreateTopicKey());
+            this.mQClientFactory.updateTopicRouteInfoFromNameServer(this.defaultMQProducer.getCreateTopicKey());
             brokerAddr = this.mQClientFactory.findBrokerAddressInPublish(mq.getBrokerName());
         }
 
@@ -421,8 +419,7 @@ public class DefaultMQProducerImpl {
         if (null == topicPublishInfo) {
             this.topicPublishInfoTable.putIfAbsent(topic, new TopicPublishInfo());
             this.mQClientFactory.updateTopicRouteInfoFromNameServer(topic);
-            this.mQClientFactory
-                .updateTopicRouteInfoFromNameServer(this.defaultMQProducer.getCreateTopicKey());
+            this.mQClientFactory.updateTopicRouteInfoFromNameServer(this.defaultMQProducer.getCreateTopicKey());
             topicPublishInfo = this.topicPublishInfoTable.get(topic);
         }
 
@@ -608,7 +605,7 @@ public class DefaultMQProducerImpl {
         boolean localTransactionOK = false;
         MQClientException exception = null;
         try {
-            localTransactionOK = tranExecuter.executeLocalTransactionBranch();
+            localTransactionOK = tranExecuter.executeLocalTransactionBranch(msg);
         }
         catch (Throwable e) {
             exception =
