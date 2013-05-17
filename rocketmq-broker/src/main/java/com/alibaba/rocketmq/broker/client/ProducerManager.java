@@ -8,6 +8,7 @@ import io.netty.channel.Channel;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -16,6 +17,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.alibaba.rocketmq.common.MixAll;
+import com.alibaba.rocketmq.remoting.common.RemotingHelper;
 
 
 /**
@@ -40,6 +42,64 @@ public class ProducerManager {
     }
 
 
+    public void doChannelCloseEvent(final String remoteAddr, final Channel channel) {
+        if (channel != null) {
+            try {
+                if (this.hashcodeChannelLock.tryLock(LockTimeoutMillis, TimeUnit.MILLISECONDS)) {
+                    try {
+                        for (final Map.Entry<Integer, List<Channel>> entry : this.hashcodeChannelTable.entrySet()) {
+                            final Integer groupHashCode = entry.getKey();
+                            final List<Channel> chlList = entry.getValue();
+                            boolean result = chlList.remove(channel);
+                            if (result) {
+                                log.info(
+                                    "remove channel[{}][{}] from ProducerManager hashcodeChannelTable, producer group hash code: {}",
+                                    RemotingHelper.parseChannelRemoteAddr(channel), remoteAddr, groupHashCode);
+                            }
+                        }
+                    }
+                    finally {
+                        this.hashcodeChannelLock.unlock();
+                    }
+                }
+                else {
+                    log.warn("ProducerManager closeChannel lock timeout");
+                }
+            }
+            catch (InterruptedException e) {
+                log.error("", e);
+            }
+
+            try {
+                if (this.groupChannelLock.tryLock(LockTimeoutMillis, TimeUnit.MILLISECONDS)) {
+                    try {
+                        for (final Map.Entry<String, HashMap<Channel, ClientChannelInfo>> entry : this.groupChannelTable
+                            .entrySet()) {
+                            final String group = entry.getKey();
+                            final HashMap<Channel, ClientChannelInfo> chlMap = entry.getValue();
+                            final ClientChannelInfo clientChannelInfo = chlMap.remove(channel);
+                            if (clientChannelInfo != null) {
+                                log.info(
+                                    "remove channel[{}][{}] from ProducerManager groupChannelTable, producer group: {}",
+                                    clientChannelInfo.toString(), remoteAddr, group);
+                            }
+                        }
+                    }
+                    finally {
+                        this.groupChannelLock.unlock();
+                    }
+                }
+                else {
+                    log.warn("ProducerManager closeChannel lock timeout");
+                }
+            }
+            catch (InterruptedException e) {
+                log.error("", e);
+            }
+        }
+    }
+
+
     public void registerProducer(final String group, final ClientChannelInfo clientChannelInfo) {
         try {
             if (this.hashcodeChannelLock.tryLock(LockTimeoutMillis, TimeUnit.MILLISECONDS)) {
@@ -59,7 +119,7 @@ public class ProducerManager {
                 }
             }
             else {
-                log.warn("registerProducer lock timeout");
+                log.warn("ProducerManager registerProducer lock timeout");
             }
         }
         catch (InterruptedException e) {
@@ -86,7 +146,7 @@ public class ProducerManager {
                 }
             }
             else {
-                log.warn("registerProducer lock timeout");
+                log.warn("ProducerManager registerProducer lock timeout");
             }
         }
         catch (InterruptedException e) {
