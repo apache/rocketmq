@@ -44,4 +44,11 @@ public class SendResult {
     public long getQueueOffset() {
         return queueOffset;
     }
+
+
+    @Override
+    public String toString() {
+        return "SendResult [sendStatus=" + sendStatus + ", msgId=" + msgId + ", messageQueue=" + messageQueue
+                + ", queueOffset=" + queueOffset + "]";
+    }
 }
