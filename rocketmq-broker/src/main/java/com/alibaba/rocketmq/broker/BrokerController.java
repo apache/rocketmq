@@ -16,6 +16,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.alibaba.rocketmq.broker.client.ClientHousekeepingService;
 import com.alibaba.rocketmq.broker.client.ConsumerManager;
 import com.alibaba.rocketmq.broker.client.ProducerManager;
 import com.alibaba.rocketmq.broker.longpolling.PullRequestHoldService;
@@ -70,6 +71,8 @@ public class BrokerController {
     private final ConsumerManager consumerManager;
     // Producer连接管理
     private final ProducerManager producerManager;
+    // 检测所有客户端连接
+    private final ClientHousekeepingService clientHousekeepingService;
 
     // Topic配置
     private TopicConfigManager topicConfigManager;
@@ -104,6 +107,7 @@ public class BrokerController {
         this.pullRequestHoldService = new PullRequestHoldService(this);
         this.consumerManager = new ConsumerManager();
         this.producerManager = new ProducerManager();
+        this.clientHousekeepingService = new ClientHousekeepingService(this);
     }
 
 
@@ -150,7 +154,7 @@ public class BrokerController {
 
         // 注册到Name Server
         // result = result && this.registerToNameServer();
-
+        registerToNameServer();
         // 加载Topic配置
         result = result && this.topicConfigManager.load();
 
@@ -299,10 +303,18 @@ public class BrokerController {
         if (this.pullRequestHoldService != null) {
             this.pullRequestHoldService.start();
         }
+
+        if (this.clientHousekeepingService != null) {
+            this.clientHousekeepingService.start();
+        }
     }
 
 
     public void shutdown() {
+        if (this.clientHousekeepingService != null) {
+            this.clientHousekeepingService.shutdown();
+        }
+
         if (this.pullRequestHoldService != null) {
             this.pullRequestHoldService.shutdown();
         }
