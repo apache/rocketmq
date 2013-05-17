@@ -15,6 +15,7 @@ import com.alibaba.rocketmq.common.protocol.MQProtos.MQRequestCode;
 import com.alibaba.rocketmq.common.protocol.heartbeat.ConsumerData;
 import com.alibaba.rocketmq.common.protocol.heartbeat.HeartbeatData;
 import com.alibaba.rocketmq.common.protocol.heartbeat.ProducerData;
+import com.alibaba.rocketmq.remoting.common.RemotingHelper;
 import com.alibaba.rocketmq.remoting.netty.NettyRequestProcessor;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 import com.alibaba.rocketmq.remoting.protocol.RemotingProtos.ResponseCode;
@@ -60,7 +61,8 @@ public class ClientManageProcessor implements NettyRequestProcessor {
             heartbeatData = HeartbeatData.decode(request.getBody());
         }
         catch (InvalidProtocolBufferException e) {
-            log.error("decode heartbeat body from channel[{}] error", ctx.channel().remoteAddress().toString());
+            log.error("decode heartbeat body from channel[{}] error",
+                RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
             response.setCode(ResponseCode.SYSTEM_ERROR_VALUE);
             response.setRemark("decode heartbeat body error");
             return response;

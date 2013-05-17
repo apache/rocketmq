@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.LinkedBlockingDeque;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReadWriteLock;
@@ -34,7 +35,7 @@ import com.alibaba.rocketmq.store.DispatchRequest;
 public class IndexService extends ServiceThread {
     private static final Logger log = LoggerFactory.getLogger(MixAll.StoreLoggerName);
 
-    private LinkedBlockingDeque<Object[]> requestQueue = new LinkedBlockingDeque<Object[]>();
+    private LinkedBlockingQueue<Object[]> requestQueue = new LinkedBlockingQueue<Object[]>();
     private AtomicInteger requestCount = new AtomicInteger(0);
 
     private final DefaultMessageStore defaultMessageStore;
