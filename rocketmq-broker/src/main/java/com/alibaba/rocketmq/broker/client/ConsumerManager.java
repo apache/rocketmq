@@ -3,6 +3,8 @@
  */
 package com.alibaba.rocketmq.broker.client;
 
+import io.netty.channel.Channel;
+
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -24,6 +26,16 @@ public class ConsumerManager {
 
     public ConsumerGroupInfo getConsumerGroupInfo(final String group) {
         return this.consumerTable.get(group);
+    }
+
+
+    public void doChannelCloseEvent(final String remoteAddr, final Channel channel) {
+        for (String group : this.consumerTable.keySet()) {
+            final ConsumerGroupInfo info = this.consumerTable.get(group);
+            if (info != null) {
+                info.doChannelCloseEvent(remoteAddr, channel);
+            }
+        }
     }
 
 

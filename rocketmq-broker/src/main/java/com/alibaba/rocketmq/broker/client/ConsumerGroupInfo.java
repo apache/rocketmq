@@ -44,6 +44,15 @@ public class ConsumerGroupInfo {
     }
 
 
+    public void doChannelCloseEvent(final String remoteAddr, final Channel channel) {
+        final ClientChannelInfo info = this.channelInfoTable.remove(channel);
+        if (info != null) {
+            log.warn("remove not active channel[{}] from ConsumerGroupInfo groupChannelTable, consumer group: {}",
+                info.toString(), groupName);
+        }
+    }
+
+
     /**
      * 返回值表示是否发生变更
      */

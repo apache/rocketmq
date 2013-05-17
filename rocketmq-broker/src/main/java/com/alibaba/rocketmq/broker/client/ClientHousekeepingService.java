@@ -76,11 +76,13 @@ public class ClientHousekeepingService implements ChannelEventListener {
     @Override
     public void onChannelClose(String remoteAddr, Channel channel) {
         this.brokerController.getProducerManager().doChannelCloseEvent(remoteAddr, channel);
+        this.brokerController.getConsumerManager().doChannelCloseEvent(remoteAddr, channel);
     }
 
 
     @Override
     public void onChannelException(String remoteAddr, Channel channel) {
         this.brokerController.getProducerManager().doChannelCloseEvent(remoteAddr, channel);
+        this.brokerController.getConsumerManager().doChannelCloseEvent(remoteAddr, channel);
     }
 }
