@@ -62,19 +62,19 @@ public class MessageDecoder {
         long offset;
 
         //  ±º‰
-        byte[] data = MetaUtil.string2bytes(msgId.substring(0, 4));
+        byte[] data = MetaUtil.string2bytes(msgId.substring(0, 8));
         ByteBuffer bb = ByteBuffer.wrap(data);
         timestamp = bb.getInt(0) * 1000;
 
         // µÿ÷∑
-        byte[] ip = MetaUtil.string2bytes(msgId.substring(4, 8));
-        byte[] port = MetaUtil.string2bytes(msgId.substring(8, 12));
+        byte[] ip = MetaUtil.string2bytes(msgId.substring(8, 16));
+        byte[] port = MetaUtil.string2bytes(msgId.substring(16, 24));
         bb = ByteBuffer.wrap(port);
         int portInt = bb.getInt(0);
         address = new InetSocketAddress(InetAddress.getByAddress(ip), portInt);
 
         // offset
-        data = MetaUtil.string2bytes(msgId.substring(12, 20));
+        data = MetaUtil.string2bytes(msgId.substring(24, 40));
         bb = ByteBuffer.wrap(data);
         offset = bb.getLong(0);
 
