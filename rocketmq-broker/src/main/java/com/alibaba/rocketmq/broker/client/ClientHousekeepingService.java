@@ -3,6 +3,8 @@
  */
 package com.alibaba.rocketmq.broker.client;
 
+import io.netty.channel.Channel;
+
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
@@ -10,8 +12,6 @@ import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import io.netty.channel.Channel;
 
 import com.alibaba.rocketmq.broker.BrokerController;
 import com.alibaba.rocketmq.common.MixAll;
@@ -69,15 +69,18 @@ public class ClientHousekeepingService implements ChannelEventListener {
 
     @Override
     public void onChannelConnect(String remoteAddr, Channel channel) {
+
     }
 
 
     @Override
     public void onChannelClose(String remoteAddr, Channel channel) {
+        this.brokerController.getProducerManager().doChannelCloseEvent(remoteAddr, channel);
     }
 
 
     @Override
     public void onChannelException(String remoteAddr, Channel channel) {
+        this.brokerController.getProducerManager().doChannelCloseEvent(remoteAddr, channel);
     }
 }

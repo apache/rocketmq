@@ -528,7 +528,7 @@ public class DefaultMessageStore implements MessageStore {
                     case MessageSysFlag.TransactionNotType:
                         break;
                     case MessageSysFlag.TransactionPreparedType:
-                        // 将Prepared事务记录下来 TODO 结果需要处理
+                        // 将Prepared事务记录下来
                         DefaultMessageStore.this.getTransactionStateService().appendPreparedTransaction(
                             req.getCommitLogOffset(), req.getMsgSize(), (int) (req.getStoreTimestamp() / 1000),
                             req.getProducerGroup().hashCode());
@@ -889,7 +889,7 @@ public class DefaultMessageStore implements MessageStore {
         this.cleanConsumeQueueService.start();
         this.indexService.start();
         // 在构造函数已经start了。
-        //this.dispatchMessageService.start();
+        // this.dispatchMessageService.start();
         this.flushConsumeQueueService.start();
         this.commitLog.start();
         this.scheduleMessageService.start();
