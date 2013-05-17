@@ -35,20 +35,20 @@ public class BrokerConfig {
     private int pullMessageThreadPoolNums = Runtime.getRuntime().availableProcessors() * 6;
     private int adminBrokerThreadPoolNums = 8;
 
-    private String topicConfigPath = System.getProperty("user.home") + File.separator + "metastore"
+    private String topicConfigPath = System.getProperty("user.home") + File.separator + "store"
             + File.separator + "config" + File.separator + "topics.properties";
 
-    private String consumerOffsetPath = System.getProperty("user.home") + File.separator + "metastore"
+    private String consumerOffsetPath = System.getProperty("user.home") + File.separator + "store"
             + File.separator + "config" + File.separator + "consumeroffset.properties";
 
-    private String consumerOffsetHistoryDir = System.getProperty("user.home") + File.separator + "metastore"
+    private String consumerOffsetHistoryDir = System.getProperty("user.home") + File.separator + "store"
             + File.separator + "config" + File.separator + "offsethistory";
 
     private int flushConsumerOffsetInterval = 1000 * 5;
 
     private int flushConsumerOffsetHistoryInterval = 1000 * 60;
 
-    private String configFilePath = System.getProperty("user.home") + File.separator + "metastore"
+    private String configFilePath = System.getProperty("user.home") + File.separator + "store"
             + File.separator + "config" + File.separator + "broker.properties";
 
 
