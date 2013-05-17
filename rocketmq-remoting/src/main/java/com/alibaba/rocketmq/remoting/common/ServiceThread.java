@@ -49,13 +49,13 @@ public abstract class ServiceThread implements Runnable {
 
     public void makeStop() {
         this.stoped = true;
-        stlog.info("makestop thead " + this.getServiceName());
+        stlog.info("makestop thread " + this.getServiceName());
     }
 
 
     public void stop(final boolean interrupt) {
         this.stoped = true;
-        stlog.info("stop thead " + this.getServiceName() + " interrupt " + interrupt);
+        stlog.info("stop thread " + this.getServiceName() + " interrupt " + interrupt);
         synchronized (this) {
             if (!this.hasNotified) {
                 this.hasNotified = true;
@@ -71,7 +71,7 @@ public abstract class ServiceThread implements Runnable {
 
     public void shutdown(final boolean interrupt) {
         this.stoped = true;
-        stlog.info("shutdown thead " + this.getServiceName() + " interrupt " + interrupt);
+        stlog.info("shutdown thread " + this.getServiceName() + " interrupt " + interrupt);
         synchronized (this) {
             if (!this.hasNotified) {
                 this.hasNotified = true;
@@ -87,7 +87,7 @@ public abstract class ServiceThread implements Runnable {
             long beginTime = System.currentTimeMillis();
             this.thread.join(this.getJointime());
             long eclipseTime = System.currentTimeMillis() - beginTime;
-            stlog.info("join thead " + this.getServiceName() + " eclipse time(ms) " + eclipseTime + " "
+            stlog.info("join thread " + this.getServiceName() + " eclipse time(ms) " + eclipseTime + " "
                     + this.getJointime());
         }
         catch (InterruptedException e) {
