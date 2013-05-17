@@ -42,6 +42,72 @@ public class ProducerManager {
     }
 
 
+    public void scanNotActiveChannel() {
+        try {
+            if (this.hashcodeChannelLock.tryLock(LockTimeoutMillis, TimeUnit.MILLISECONDS)) {
+                try {
+                    for (final Map.Entry<Integer, List<Channel>> entry : this.hashcodeChannelTable.entrySet()) {
+                        final Integer groupHashCode = entry.getKey();
+                        final List<Channel> chlList = entry.getValue();
+                        for (Channel channel : chlList) {
+                            if (!channel.isActive()) {
+                                boolean result = chlList.remove(channel);
+                                if (result) {
+                                    log.info(
+                                        "remove not active channel[{}] from ProducerManager hashcodeChannelTable, producer group hash code: {}",
+                                        RemotingHelper.parseChannelRemoteAddr(channel), groupHashCode);
+                                }
+                            }
+                        }
+                    }
+                }
+                finally {
+                    this.hashcodeChannelLock.unlock();
+                }
+            }
+            else {
+                log.warn("ProducerManager closeChannel lock timeout");
+            }
+        }
+        catch (InterruptedException e) {
+            log.error("", e);
+        }
+
+        try {
+            if (this.groupChannelLock.tryLock(LockTimeoutMillis, TimeUnit.MILLISECONDS)) {
+                try {
+                    for (final Map.Entry<String, HashMap<Channel, ClientChannelInfo>> entry : this.groupChannelTable
+                        .entrySet()) {
+                        final String group = entry.getKey();
+                        final HashMap<Channel, ClientChannelInfo> chlMap = entry.getValue();
+
+                        for (final Map.Entry<Channel, ClientChannelInfo> item : chlMap.entrySet()) {
+                            final Channel channel = item.getKey();
+                            final ClientChannelInfo info = item.getValue();
+
+                            if (!channel.isActive()) {
+                                log.warn(
+                                    "remove not active channel[{}] from ProducerManager groupChannelTable, producer group: {}",
+                                    info.toString(), group);
+                                chlMap.remove(chlMap);
+                            }
+                        }
+                    }
+                }
+                finally {
+                    this.groupChannelLock.unlock();
+                }
+            }
+            else {
+                log.warn("ProducerManager closeChannel lock timeout");
+            }
+        }
+        catch (InterruptedException e) {
+            log.error("", e);
+        }
+    }
+
+
     public void doChannelCloseEvent(final String remoteAddr, final Channel channel) {
         if (channel != null) {
             try {

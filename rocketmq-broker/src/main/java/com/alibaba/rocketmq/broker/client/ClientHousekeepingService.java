@@ -58,7 +58,7 @@ public class ClientHousekeepingService implements ChannelEventListener {
 
 
     private void scanExceptionChannel() {
-
+        this.brokerController.getProducerManager().scanNotActiveChannel();
     }
 
 
