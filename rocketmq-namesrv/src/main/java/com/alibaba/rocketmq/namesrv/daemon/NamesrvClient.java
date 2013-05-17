@@ -5,6 +5,8 @@ import static com.alibaba.rocketmq.common.protocol.route.ObjectConverter.props2T
 import static com.alibaba.rocketmq.common.protocol.MQProtos.MQRequestCode.GET_ALL_TOPIC_CONFIG_VALUE;
 import static com.alibaba.rocketmq.remoting.protocol.RemotingProtos.ResponseCode.SUCCESS_VALUE;
 
+import io.netty.channel.Channel;
+
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.io.ByteArrayInputStream;
@@ -31,6 +33,7 @@ import com.alibaba.rocketmq.namesrv.sync.FutureGroup;
 import com.alibaba.rocketmq.namesrv.sync.TaskGroup;
 import com.alibaba.rocketmq.namesrv.sync.TaskGroupExecutor;
 import com.alibaba.rocketmq.namesrv.topic.TopicRuntimeDataManager;
+import com.alibaba.rocketmq.remoting.ChannelEventListener;
 import com.alibaba.rocketmq.remoting.RemotingClient;
 import com.alibaba.rocketmq.remoting.netty.NettyClientConfig;
 import com.alibaba.rocketmq.remoting.netty.NettyRemotingClient;
@@ -59,7 +62,28 @@ public class NamesrvClient extends ServiceThread {
         namesrvConf = nameConf;
         topicRuntimeDataManager = runtimeDataManager;
         nettyClientConfig = nettyConfig;
-        remotingClient = new NettyRemotingClient(nettyClientConfig);
+        remotingClient = new NettyRemotingClient(nettyClientConfig, new ChannelEventListener() {
+
+            @Override
+            public void onChannelConnect(String remoteAddr, Channel channel) {
+                // ignore
+            }
+
+
+            @Override
+            public void onChannelClose(String remoteAddr, Channel channel) {
+                // unregister broker topic info when channel close
+                unRegisterBrokerTopic(remoteAddr);
+            }
+
+
+            @Override
+            public void onChannelException(String remoteAddr, Channel channel) {
+                // unregister broker topic info when channel exception
+                unRegisterBrokerTopic(remoteAddr);
+            }
+
+        });
 
         reqTaskGroup = createTaskGroup();
         reqBrokerGroupExecutor = new TaskGroupExecutor<Boolean, Object>(new ThreadFactory() {
@@ -105,10 +129,7 @@ public class NamesrvClient extends ServiceThread {
 
             @Override
             public Boolean doExec(Object param) throws Exception {
-                if (NamesrvClient.this.requestBrokerTopicConf(address))
-                    return true;
-
-                return unRegisterBrokerTopic(address);
+                return NamesrvClient.this.requestBrokerTopicConf(address);
             }
         };
     }
@@ -171,7 +192,15 @@ public class NamesrvClient extends ServiceThread {
 
 
     public boolean unRegisterBrokerTopic(String address) {
-        return topicRuntimeDataManager.unRegisterBrokerByAddr(address);
+        if (null == address || "".equals(address))
+            return false;
+
+        RemotingCommand rc = topicRuntimeDataManager.unRegisterBrokerByAddr(address);
+        if (rc.getCode() == SUCCESS_VALUE)
+            return true;
+
+        // log
+        return false;
     }
 
 
