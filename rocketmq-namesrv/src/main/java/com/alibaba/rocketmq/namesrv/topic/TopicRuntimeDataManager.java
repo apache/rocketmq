@@ -131,8 +131,16 @@ public interface TopicRuntimeDataManager {
      * @param addr
      * @return
      */
-    public boolean unRegisterBrokerByAddr(String addr);
+    public RemotingCommand unRegisterBrokerSingleByAddr(String addr);
 
+    
+    /**
+     * 注销地址为addr的broker相关数据
+     * @param addr
+     * @return
+     */
+    public RemotingCommand unRegisterBrokerByAddr(String addr);
+    
 
     /**
      * 关闭，资源清理

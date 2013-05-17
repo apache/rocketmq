@@ -61,7 +61,11 @@ public class AllRequestProcessor implements NettyRequestProcessor {
                         .decodeCommandCustomHeader(UnRegisterBrokerRequestHeader.class);
             return topicInfoManager.unRegisterBroker(unRequestBrokerHeader.getBrokerName());
         case UNREGISTER_BROKER_SINGLE:
-            break;
+            UnRegisterBrokerRequestHeader unRequestBrokerSingleHeader =
+                    (UnRegisterBrokerRequestHeader) request
+                        .decodeCommandCustomHeader(UnRegisterBrokerRequestHeader.class);
+
+            return topicInfoManager.unRegisterBrokerSingle(unRequestBrokerSingleHeader.getBrokerName());
         case GET_BROKER_LIST:
             break;
         case REGISTER_ORDER_TOPIC:
