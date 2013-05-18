@@ -34,7 +34,7 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringList;
  * 
  */
 public class RemotingHelper {
-    public static final String RemotingLogName = "MetaqRemoting";
+    public static final String RemotingLogName = "RocketmqRemoting";
 
 
     /**

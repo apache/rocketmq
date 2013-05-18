@@ -285,6 +285,8 @@ public class MQClientFactory {
 
                         try {
                             this.mQClientAPIImpl.sendHearbeat(addr, heartbeatData, 3000);
+                            log.debug("send heart beat to broker[{} {} {}] success", name, id, addr);
+                            log.debug(heartbeatData.toString());
                         }
                         catch (RemotingException e) {
                             log.error("send heart beat to broker exception", e);
