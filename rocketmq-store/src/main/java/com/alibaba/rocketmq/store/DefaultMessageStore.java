@@ -334,10 +334,13 @@ public class DefaultMessageStore implements MessageStore {
                         }
                     }
                 }
-            }
 
-            // É¾³ýË÷Òý
-            DefaultMessageStore.this.indexService.deleteExpiredFile(minOffset);
+                // É¾³ýÈÕÖ¾RedoLog
+                DefaultMessageStore.this.transactionStateService.getTranRedoLog().deleteExpiredFile(minOffset);
+
+                // É¾³ýË÷Òý
+                DefaultMessageStore.this.indexService.deleteExpiredFile(minOffset);
+            }
         }
 
 
