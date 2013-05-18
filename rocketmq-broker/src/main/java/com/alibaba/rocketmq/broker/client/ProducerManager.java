@@ -52,17 +52,23 @@ public class ProducerManager {
                     for (final Map.Entry<Integer, List<ClientChannelInfo>> entry : this.hashcodeChannelTable
                         .entrySet()) {
                         final Integer groupHashCode = entry.getKey();
-                        final List<ClientChannelInfo> chlList = entry.getValue();
-                        for (ClientChannelInfo channel : chlList) {
-                            long diff = System.currentTimeMillis() - channel.getLastUpdateTimestamp();
+                        final List<ClientChannelInfo> clientChannelInfoList = entry.getValue();
+                        final List<ClientChannelInfo> willRemoveChannel = new ArrayList<ClientChannelInfo>();
+                        for (ClientChannelInfo clientChannelInfo : clientChannelInfoList) {
+                            long diff = System.currentTimeMillis() - clientChannelInfo.getLastUpdateTimestamp();
                             if (diff > ChannelExpiredTimeout) {
-                                boolean result = chlList.remove(channel);
-                                if (result) {
-                                    log.warn(
-                                        "remove expired channel[{}] from ProducerManager hashcodeChannelTable, producer group hash code: {}",
-                                        RemotingHelper.parseChannelRemoteAddr(channel.getChannel()), groupHashCode);
-                                    channel.getChannel().close();
-                                }
+                                willRemoveChannel.add(clientChannelInfo);
+                            }
+                        }
+
+                        for (ClientChannelInfo clientChannelInfo : willRemoveChannel) {
+                            boolean result = clientChannelInfoList.remove(clientChannelInfo);
+                            if (result) {
+                                log.warn(
+                                    "SCAN: remove expired channel[{}] from ProducerManager hashcodeChannelTable, producer group hash code: {}",
+                                    RemotingHelper.parseChannelRemoteAddr(clientChannelInfo.getChannel()),
+                                    groupHashCode);
+                                clientChannelInfo.getChannel().close();
                             }
                         }
                     }
@@ -96,7 +102,7 @@ public class ProducerManager {
                                 ClientChannelInfo old = chlMap.remove(id);
                                 if (old != null) {
                                     log.warn(
-                                        "remove expired channel[{}] from ProducerManager groupChannelTable, producer group name: {}",
+                                        "SCAN: remove expired channel[{}] from ProducerManager groupChannelTable, producer group name: {}",
                                         RemotingHelper.parseChannelRemoteAddr(info.getChannel()), group);
                                     info.getChannel().close();
                                 }
@@ -130,7 +136,7 @@ public class ProducerManager {
                             boolean result = clientChannelInfoList.remove(channel);
                             if (result) {
                                 log.info(
-                                    "remove channel[{}][{}] from ProducerManager hashcodeChannelTable, producer group hash code: {}",
+                                    "NETTY EVENT: remove channel[{}][{}] from ProducerManager hashcodeChannelTable, producer group hash code: {}",
                                     RemotingHelper.parseChannelRemoteAddr(channel), remoteAddr, groupHashCode);
                             }
                         }
@@ -158,7 +164,7 @@ public class ProducerManager {
                                     clientChannelInfoTable.remove(channel.id());
                             if (clientChannelInfo != null) {
                                 log.info(
-                                    "remove channel[{}][{}] from ProducerManager groupChannelTable, producer group: {}",
+                                    "NETTY EVENT: remove channel[{}][{}] from ProducerManager groupChannelTable, producer group: {}",
                                     clientChannelInfo.toString(), remoteAddr, group);
                             }
                         }
