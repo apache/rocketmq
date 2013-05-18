@@ -177,7 +177,7 @@ public class BrokerController {
 
         if (result) {
             // 初始化通信层
-            this.remotingServer = new NettyRemotingServer(this.nettyServerConfig);
+            this.remotingServer = new NettyRemotingServer(this.nettyServerConfig, this.clientHousekeepingService);
 
             // 初始化线程池
             this.sendMessageExecutor =
