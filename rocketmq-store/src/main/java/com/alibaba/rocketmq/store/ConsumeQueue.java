@@ -348,7 +348,7 @@ public class ConsumeQueue {
 
 
     public int deleteExpiredFile(long offset) {
-        int cnt = this.mapedFileQueue.deleteExpiredFileByOffset(offset);
+        int cnt = this.mapedFileQueue.deleteExpiredFileByOffset(offset, CQStoreUnitSize);
         // 无论是否删除文件，都需要纠正下最小值，因为有可能物理文件删除了，
         // 但是逻辑文件一个也删除不了
         this.correctMinOffset(offset);

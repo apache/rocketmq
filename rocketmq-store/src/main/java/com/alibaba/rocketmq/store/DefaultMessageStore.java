@@ -337,7 +337,8 @@ public class DefaultMessageStore implements MessageStore {
 
                 // 删除日志RedoLog
                 DefaultMessageStore.this.transactionStateService.getTranRedoLog().deleteExpiredFile(minOffset);
-
+                // 删除日志StateTable
+                DefaultMessageStore.this.transactionStateService.deleteExpiredStateFile(minOffset);
                 // 删除索引
                 DefaultMessageStore.this.indexService.deleteExpiredFile(minOffset);
             }
