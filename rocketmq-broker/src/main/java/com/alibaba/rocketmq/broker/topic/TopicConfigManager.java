@@ -8,6 +8,9 @@ import io.netty.channel.ChannelHandlerContext;
 
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
@@ -31,6 +34,9 @@ public class TopicConfigManager {
     // Topic≈‰÷√
     private final ConcurrentHashMap<String, TopicConfig> topicConfigTable =
             new ConcurrentHashMap<String, TopicConfig>(1024);
+    private final Lock lockTopicConfigTable = new ReentrantLock();
+    private static final long LockTimeoutMillis = 3000;
+
     private final DataVersion dataVersion = new DataVersion();
 
     private final BrokerController brokerController;
@@ -167,48 +173,60 @@ public class TopicConfigManager {
     public TopicConfig createTopicInSendMessageMethod(final String topic, final String defaultTopic,
             final ChannelHandlerContext ctx, final int clientDefaultTopicQueueNums) {
         final String remoteAddress = ctx != null ? ctx.channel().remoteAddress().toString() : "UNKNOW ADDR";
-        TopicConfig topicConfig = null;
 
-        TopicConfig defaultTopicConfig = this.topicConfigTable.get(defaultTopic);
-        if (defaultTopicConfig != null) {
-            if (MixAll.isInherited(defaultTopicConfig.getPerm())) {
-                topicConfig = new TopicConfig(topic);
+        try {
+            if (this.lockTopicConfigTable.tryLock(LockTimeoutMillis, TimeUnit.MILLISECONDS)) {
+                TopicConfig topicConfig = this.topicConfigTable.get(topic);
+                if (topicConfig != null)
+                    return topicConfig;
 
-                int queueNums =
-                        clientDefaultTopicQueueNums > defaultTopicConfig.getWriteQueueNums() ? defaultTopicConfig
-                            .getWriteQueueNums() : clientDefaultTopicQueueNums;
+                TopicConfig defaultTopicConfig = this.topicConfigTable.get(defaultTopic);
+                if (defaultTopicConfig != null) {
+                    if (MixAll.isInherited(defaultTopicConfig.getPerm())) {
+                        topicConfig = new TopicConfig(topic);
 
-                if (queueNums < 0) {
-                    queueNums = 0;
+                        int queueNums =
+                                clientDefaultTopicQueueNums > defaultTopicConfig.getWriteQueueNums() ? defaultTopicConfig
+                                    .getWriteQueueNums() : clientDefaultTopicQueueNums;
+
+                        if (queueNums < 0) {
+                            queueNums = 0;
+                        }
+
+                        topicConfig.setReadQueueNums(queueNums);
+                        topicConfig.setWriteQueueNums(queueNums);
+                        int perm = defaultTopicConfig.getPerm();
+                        perm &= ~MixAll.PERM_INHERIT;
+                        topicConfig.setPerm(perm);
+                        topicConfig.setTopicFilterType(defaultTopicConfig.getTopicFilterType());
+                    }
+                    else {
+                        log.warn("create new topic failed, because the default topic[" + defaultTopic
+                                + "] no perm, " + defaultTopicConfig.getPerm() + " producer: " + remoteAddress);
+                    }
+                }
+                else {
+                    log.warn("create new topic failed, because the default topic[" + defaultTopic + "] not exist."
+                            + " producer: " + remoteAddress);
                 }
 
-                topicConfig.setReadQueueNums(queueNums);
-                topicConfig.setWriteQueueNums(queueNums);
-                int perm = defaultTopicConfig.getPerm();
-                perm &= ~MixAll.PERM_INHERIT;
-                topicConfig.setPerm(perm);
-                topicConfig.setTopicFilterType(defaultTopicConfig.getTopicFilterType());
+                if (topicConfig != null) {
+                    log.info("create new topic by default topic[" + defaultTopic + "], " + topicConfig
+                            + " producer: " + remoteAddress);
+
+                    this.topicConfigTable.put(topic, topicConfig);
+
+                    this.flush();
+                }
+
+                return topicConfig;
             }
-            else {
-                log.warn("create new topic failed, because the default topic[" + defaultTopic + "] no perm, "
-                        + defaultTopicConfig.getPerm() + " producer: " + remoteAddress);
-            }
         }
-        else {
-            log.warn("create new topic failed, because the default topic[" + defaultTopic + "] not exist."
-                    + " producer: " + remoteAddress);
+        catch (InterruptedException e) {
+            log.error("createTopicInSendMessageMethod exception", e);
         }
 
-        if (topicConfig != null) {
-            log.info("create new topic by default topic[" + defaultTopic + "], " + topicConfig + " producer: "
-                    + remoteAddress);
-
-            this.topicConfigTable.putIfAbsent(topic, topicConfig);
-
-            this.flush();
-        }
-
-        return topicConfig;
+        return null;
     }
 
 

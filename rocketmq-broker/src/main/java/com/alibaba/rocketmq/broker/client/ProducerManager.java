@@ -133,7 +133,7 @@ public class ProducerManager {
                             .entrySet()) {
                             final Integer groupHashCode = entry.getKey();
                             final List<ClientChannelInfo> clientChannelInfoList = entry.getValue();
-                            boolean result = clientChannelInfoList.remove(channel);
+                            boolean result = clientChannelInfoList.remove(new ClientChannelInfo(channel));
                             if (result) {
                                 log.info(
                                     "NETTY EVENT: remove channel[{}][{}] from ProducerManager hashcodeChannelTable, producer group hash code: {}",
