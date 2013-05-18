@@ -186,6 +186,7 @@ public class ProducerManager {
 
     public void registerProducer(final String group, final ClientChannelInfo clientChannelInfo) {
         try {
+            ClientChannelInfo clientChannelInfoFound = null;
             if (this.hashcodeChannelLock.tryLock(LockTimeoutMillis, TimeUnit.MILLISECONDS)) {
                 try {
                     List<ClientChannelInfo> clientChannelInfoList =
@@ -195,12 +196,21 @@ public class ProducerManager {
                         this.hashcodeChannelTable.put(group.hashCode(), clientChannelInfoList);
                     }
 
-                    if (!clientChannelInfoList.contains(clientChannelInfo)) {
+                    int index = clientChannelInfoList.indexOf(clientChannelInfo);
+                    if (index >= 0) {
+                        clientChannelInfoFound = clientChannelInfoList.get(index);
+                    }
+
+                    if (null == clientChannelInfoFound) {
                         clientChannelInfoList.add(clientChannelInfo);
                     }
                 }
                 finally {
                     this.hashcodeChannelLock.unlock();
+                }
+
+                if (clientChannelInfoFound != null) {
+                    clientChannelInfoFound.setLastUpdateTimestamp(System.currentTimeMillis());
                 }
             }
             else {
@@ -212,6 +222,8 @@ public class ProducerManager {
         }
 
         try {
+            ClientChannelInfo clientChannelInfoFound = null;
+
             if (this.groupChannelLock.tryLock(LockTimeoutMillis, TimeUnit.MILLISECONDS)) {
                 try {
                     HashMap<Integer, ClientChannelInfo> channelTable = this.groupChannelTable.get(group);
@@ -220,7 +232,8 @@ public class ProducerManager {
                         this.groupChannelTable.put(group, channelTable);
                     }
 
-                    if (!channelTable.containsKey(clientChannelInfo.getChannel().id())) {
+                    clientChannelInfoFound = channelTable.get(clientChannelInfo.getChannel().id());
+                    if (null == clientChannelInfoFound) {
                         channelTable.put(clientChannelInfo.getChannel().id(), clientChannelInfo);
                         log.info("new producer connected, group: {} channel: {}", group,
                             clientChannelInfo.toString());
@@ -228,6 +241,10 @@ public class ProducerManager {
                 }
                 finally {
                     this.groupChannelLock.unlock();
+                }
+
+                if (clientChannelInfoFound != null) {
+                    clientChannelInfoFound.setLastUpdateTimestamp(System.currentTimeMillis());
                 }
             }
             else {
