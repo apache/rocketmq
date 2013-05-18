@@ -28,6 +28,7 @@ import com.alibaba.rocketmq.store.ha.HAService;
 import com.alibaba.rocketmq.store.index.IndexService;
 import com.alibaba.rocketmq.store.index.QueryOffsetResult;
 import com.alibaba.rocketmq.store.schedule.ScheduleMessageService;
+import com.alibaba.rocketmq.store.transaction.TransactionCheckExecuter;
 import com.alibaba.rocketmq.store.transaction.TransactionStateService;
 
 
@@ -78,10 +79,19 @@ public class DefaultMessageStore implements MessageStore {
     private AtomicLong printTimes = new AtomicLong(0);
     // 优化获取时间性能，精度1ms
     private final SystemClock systemClock = new SystemClock(1);
+    // 事务回查接口
+    private final TransactionCheckExecuter transactionCheckExecuter;
 
 
     public DefaultMessageStore(final MessageStoreConfig messageStoreConfig) throws IOException {
+        this(messageStoreConfig, null);
+    }
+
+
+    public DefaultMessageStore(final MessageStoreConfig messageStoreConfig,
+            final TransactionCheckExecuter transactionCheckExecuter) throws IOException {
         this.messageStoreConfig = messageStoreConfig;
+        this.transactionCheckExecuter = transactionCheckExecuter;
         this.allocateMapedFileService = new AllocateMapedFileService();
         this.commitLog = new CommitLog(this);
         this.consumeQueueTable =
@@ -110,7 +120,6 @@ public class DefaultMessageStore implements MessageStore {
 
         // load过程依赖此服务，所以提前启动
         this.allocateMapedFileService.start();
-
         this.dispatchMessageService.start();
     }
 
@@ -1577,5 +1586,10 @@ public class DefaultMessageStore implements MessageStore {
 
     public RunningFlags getRunningFlags() {
         return runningFlags;
+    }
+
+
+    public TransactionCheckExecuter getTransactionCheckExecuter() {
+        return transactionCheckExecuter;
     }
 }
