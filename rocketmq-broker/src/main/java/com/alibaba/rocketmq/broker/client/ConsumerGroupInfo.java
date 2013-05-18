@@ -31,8 +31,8 @@ public class ConsumerGroupInfo {
     private volatile MessageModel messageModel;
     private final ConcurrentHashMap<String/* Topic */, SubscriptionData> subscriptionTable =
             new ConcurrentHashMap<String, SubscriptionData>();
-    private final ConcurrentHashMap<Channel, ClientChannelInfo> channelInfoTable =
-            new ConcurrentHashMap<Channel, ClientChannelInfo>(16);
+    private final ConcurrentHashMap<Integer/* channel id */, ClientChannelInfo> channelInfoTable =
+            new ConcurrentHashMap<Integer/* channel id */, ClientChannelInfo>(16);
 
     private volatile long lastUpdateTimestamp = System.currentTimeMillis();
 
@@ -45,9 +45,10 @@ public class ConsumerGroupInfo {
 
 
     public void doChannelCloseEvent(final String remoteAddr, final Channel channel) {
-        final ClientChannelInfo info = this.channelInfoTable.remove(channel);
+        final ClientChannelInfo info = this.channelInfoTable.remove(channel.id());
         if (info != null) {
-            log.warn("remove not active channel[{}] from ConsumerGroupInfo groupChannelTable, consumer group: {}",
+            log.warn(
+                "NETTY EVENT: remove not active channel[{}] from ConsumerGroupInfo groupChannelTable, consumer group: {}",
                 info.toString(), groupName);
         }
     }
@@ -61,21 +62,13 @@ public class ConsumerGroupInfo {
         boolean updated = false;
         this.consumeType = consumeType;
         this.messageModel = messageModel;
-        ClientChannelInfo info = this.channelInfoTable.get(clientChannelInfo.getChannel());
+        ClientChannelInfo info = this.channelInfoTable.get(clientChannelInfo.getChannel().id());
         if (info != null) {
-            ClientChannelInfo prev = this.channelInfoTable.put(clientChannelInfo.getChannel(), clientChannelInfo);
+            ClientChannelInfo prev =
+                    this.channelInfoTable.put(clientChannelInfo.getChannel().id(), clientChannelInfo);
             if (null == prev) {
                 log.info("new consumer connected, group: {} {} {} channel: {}", this.groupName, consumeType,
                     messageModel, clientChannelInfo.toString());
-                updated = true;
-            }
-        }
-
-        for (Channel c : this.channelInfoTable.keySet()) {
-            if (!c.isActive()) {
-                log.info("the channel is not active, remove it, " + c.remoteAddress() + ", consumer group: "
-                        + this.groupName);
-                this.channelInfoTable.remove(c);
                 updated = true;
             }
         }
