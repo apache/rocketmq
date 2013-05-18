@@ -20,6 +20,11 @@ public class ClientChannelInfo {
     private volatile long lastUpdateTimestamp = System.currentTimeMillis();
 
 
+    public ClientChannelInfo(Channel channel) {
+        this(channel, null, null, 0);
+    }
+
+
     public ClientChannelInfo(Channel channel, String clientId, LanguageCode language, int version) {
         this.channel = channel;
         this.clientId = clientId;

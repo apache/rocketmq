@@ -118,7 +118,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                 ChannelPromise promise) throws Exception {
             final String local = localAddress == null ? "UNKNOW" : localAddress.toString();
             final String remote = remoteAddress == null ? "UNKNOW" : remoteAddress.toString();
-            log.info("NETTY CLIENT PIPELINE: CONNECT  {} ----> {}", local, remote);
+            log.info("NETTY CLIENT PIPELINE: CONNECT  {} => {}", local, remote);
             super.connect(ctx, remoteAddress, localAddress, promise);
 
             if (NettyRemotingClient.this.channelEventListener != null) {
