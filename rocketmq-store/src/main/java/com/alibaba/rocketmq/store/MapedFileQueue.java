@@ -278,7 +278,7 @@ public class MapedFileQueue {
      * @param offset
      *            物理队列最小offset
      */
-    public int deleteExpiredFileByOffset(long offset) {
+    public int deleteExpiredFileByOffset(long offset, int unitSize) {
         Object[] mfs = this.copyMapedFiles(0);
 
         List<MapedFile> files = new ArrayList<MapedFile>();
@@ -291,8 +291,7 @@ public class MapedFileQueue {
             for (int i = 0; i < mfsLength; i++) {
                 boolean destroy = true;
                 MapedFile mapedFile = (MapedFile) mfs[i];
-                SelectMapedBufferResult result =
-                        mapedFile.selectMapedBuffer(this.mapedFileSize - ConsumeQueue.CQStoreUnitSize);
+                SelectMapedBufferResult result = mapedFile.selectMapedBuffer(this.mapedFileSize - unitSize);
                 if (result != null) {
                     long maxOffsetInLogicQueue = result.getByteBuffer().getLong();
                     result.release();

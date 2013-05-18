@@ -81,6 +81,12 @@ public class TransactionStateService {
     }
 
 
+    public int deleteExpiredStateFile(long offset) {
+        int cnt = this.tranStateTable.deleteExpiredFileByOffset(offset, TSStoreUnitSize);
+        return cnt;
+    }
+
+
     public void recoverStateTable(final boolean lastExitOK) {
         if (lastExitOK) {
             this.recoverStateTableNormal();
