@@ -15,7 +15,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.alibaba.rocketmq.common.MixAll;
-import com.alibaba.rocketmq.common.MetaUtil;
+import com.alibaba.rocketmq.common.UtilALl;
 
 
 /**
@@ -388,9 +388,9 @@ public class MapedFileQueue {
         }
 
         if (createOffset != -1) {
-            String nextFilePath = this.storePath + File.separator + MetaUtil.offset2FileName(createOffset);
+            String nextFilePath = this.storePath + File.separator + UtilALl.offset2FileName(createOffset);
             String nextNextFilePath =
-                    this.storePath + File.separator + MetaUtil.offset2FileName(createOffset + this.mapedFileSize);
+                    this.storePath + File.separator + UtilALl.offset2FileName(createOffset + this.mapedFileSize);
             MapedFile mapedFile =
                     this.allocateMapedFileService.putRequestAndReturnMapedFile(nextFilePath, nextNextFilePath,
                         this.mapedFileSize);

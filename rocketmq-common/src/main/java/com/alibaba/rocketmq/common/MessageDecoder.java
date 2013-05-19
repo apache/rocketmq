@@ -52,7 +52,7 @@ public class MessageDecoder {
         // 消息对应的物理分区 OFFSET 8
         input.putLong(offset);
 
-        return MetaUtil.bytes2string(input.array());
+        return UtilALl.bytes2string(input.array());
     }
 
 
@@ -62,19 +62,19 @@ public class MessageDecoder {
         long offset;
 
         // 时间
-        byte[] data = MetaUtil.string2bytes(msgId.substring(0, 8));
+        byte[] data = UtilALl.string2bytes(msgId.substring(0, 8));
         ByteBuffer bb = ByteBuffer.wrap(data);
         timestamp = bb.getInt(0) * 1000;
 
         // 地址
-        byte[] ip = MetaUtil.string2bytes(msgId.substring(8, 16));
-        byte[] port = MetaUtil.string2bytes(msgId.substring(16, 24));
+        byte[] ip = UtilALl.string2bytes(msgId.substring(8, 16));
+        byte[] port = UtilALl.string2bytes(msgId.substring(16, 24));
         bb = ByteBuffer.wrap(port);
         int portInt = bb.getInt(0);
         address = new InetSocketAddress(InetAddress.getByAddress(ip), portInt);
 
         // offset
-        data = MetaUtil.string2bytes(msgId.substring(24, 40));
+        data = UtilALl.string2bytes(msgId.substring(24, 40));
         bb = ByteBuffer.wrap(data);
         offset = bb.getLong(0);
 
@@ -162,7 +162,7 @@ public class MessageDecoder {
 
                     // uncompress body
                     if ((sysFlag & MessageSysFlag.CompressedFlag) == MessageSysFlag.CompressedFlag) {
-                        body = MetaUtil.uncompress(body);
+                        body = UtilALl.uncompress(body);
                     }
 
                     msgExt.setBody(body);

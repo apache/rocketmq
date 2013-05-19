@@ -178,7 +178,7 @@ public class ConsumeQueue {
 
                         // 比较时间, 折半
                         long storeTime =
-                                this.defaultMessageStore.getMetaQueuePhysical().pickupStoretimestamp(phyOffset,
+                                this.defaultMessageStore.getCommitLog().pickupStoretimestamp(phyOffset,
                                     size);
                         if (storeTime < 0) {
                             // 没有从物理文件找到消息，此时直接返回0

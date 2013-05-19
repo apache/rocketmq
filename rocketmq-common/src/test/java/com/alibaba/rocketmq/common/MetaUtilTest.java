@@ -98,7 +98,7 @@ public class MetaUtilTest {
 
     @Test
     public void test_timeMillisToHumanString() {
-        System.out.println(MetaUtil.timeMillisToHumanString());
+        System.out.println(UtilALl.timeMillisToHumanString());
     }
 
 
@@ -120,7 +120,7 @@ public class MetaUtilTest {
 
     @Test
     public void test_getpid() {
-        int pid = MetaUtil.getPid();
+        int pid = UtilALl.getPid();
 
         System.out.println("PID = " + pid);
         assertTrue(pid > 0);

@@ -29,7 +29,7 @@ import com.alibaba.rocketmq.common.MessageExt;
 import com.alibaba.rocketmq.common.MessageId;
 import com.alibaba.rocketmq.common.MessageQueue;
 import com.alibaba.rocketmq.common.MixAll;
-import com.alibaba.rocketmq.common.MetaUtil;
+import com.alibaba.rocketmq.common.UtilALl;
 import com.alibaba.rocketmq.common.ServiceState;
 import com.alibaba.rocketmq.common.TopicFilterType;
 import com.alibaba.rocketmq.common.protocol.MQProtos.MQResponseCode;
@@ -225,7 +225,7 @@ public class DefaultMQProducerImpl {
         if (body != null) {
             if (body.length >= this.defaultMQProducer.getCompressMsgBodyOverHowmuch()) {
                 try {
-                    byte[] data = MetaUtil.compress(body, 9);
+                    byte[] data = UtilALl.compress(body, 9);
                     if (data != null) {
                         msg.setBody(data);
                         return true;

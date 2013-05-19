@@ -19,7 +19,7 @@ import com.alibaba.rocketmq.common.Message;
 import com.alibaba.rocketmq.common.MessageExt;
 import com.alibaba.rocketmq.common.MessageDecoder;
 import com.alibaba.rocketmq.common.MixAll;
-import com.alibaba.rocketmq.common.MetaUtil;
+import com.alibaba.rocketmq.common.UtilALl;
 import com.alibaba.rocketmq.common.ServiceThread;
 import com.alibaba.rocketmq.common.sysflag.MessageSysFlag;
 import com.alibaba.rocketmq.store.config.BrokerRole;
@@ -658,7 +658,7 @@ public class CommitLog {
 
                     // 校验CRC
                     if (checkCRC) {
-                        int crc = MetaUtil.crc32(bytesContent, 0, bodyLen);
+                        int crc = UtilALl.crc32(bytesContent, 0, bodyLen);
                         if (crc != bodyCRC) {
                             log.warn("CRC check failed " + crc + " " + bodyCRC);
                             return new DispatchRequest(-1);
@@ -877,7 +877,7 @@ public class CommitLog {
         // 设置存储时间
         msg.setStoreTimestamp(System.currentTimeMillis());
         // 设置消息体BODY CRC（考虑在客户端设置最合适）
-        msg.setBodyCRC(MetaUtil.crc32(msg.getBody()));
+        msg.setBodyCRC(UtilALl.crc32(msg.getBody()));
         // 返回结果
         AppendMessageResult result = null;
 

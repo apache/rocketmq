@@ -14,7 +14,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.alibaba.rocketmq.common.MixAll;
-import com.alibaba.rocketmq.common.MetaUtil;
+import com.alibaba.rocketmq.common.UtilALl;
 
 
 /**
@@ -48,9 +48,9 @@ public class StoreCheckpoint {
             this.logicsMsgTimestamp = this.mappedByteBuffer.getLong(8);
 
             log.info("store checkpoint file physicMsgTimestamp " + this.physicMsgTimestamp + ", "
-                    + MetaUtil.timeMillisToHumanString(this.physicMsgTimestamp));
+                    + UtilALl.timeMillisToHumanString(this.physicMsgTimestamp));
             log.info("store checkpoint file logicsMsgTimestamp " + this.logicsMsgTimestamp + ", "
-                    + MetaUtil.timeMillisToHumanString(this.logicsMsgTimestamp));
+                    + UtilALl.timeMillisToHumanString(this.logicsMsgTimestamp));
         }
         else {
             log.info("store checkpoint file not exists, " + scpPath);
