@@ -375,7 +375,7 @@ public class BrokerController {
     }
 
 
-    public MessageStoreConfig getMetaStoreConfig() {
+    public MessageStoreConfig getMessageStoreConfig() {
         return messageStoreConfig;
     }
 

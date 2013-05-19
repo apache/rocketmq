@@ -41,7 +41,7 @@ public class ConsumeOrderlyContext {
     }
 
 
-    public MessageQueue getMetaQueue() {
+    public MessageQueue getMessageQueue() {
         return messageQueue;
     }
 

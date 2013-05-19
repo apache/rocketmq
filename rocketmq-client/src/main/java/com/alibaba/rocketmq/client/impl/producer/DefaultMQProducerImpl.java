@@ -83,7 +83,7 @@ public class DefaultMQProducerImpl {
             this.serviceState = ServiceState.RUNNING;
 
             this.mQClientFactory =
-                    MQClientManager.getInstance().getAndCreateMetaClientFactory(
+                    MQClientManager.getInstance().getAndCreateMQClientFactory(
                         this.defaultMQProducer.getMQClientConfig());
 
             boolean registerOK = mQClientFactory.registerProducer(this.defaultMQProducer.getProducerGroup(), this);

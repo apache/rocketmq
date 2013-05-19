@@ -30,7 +30,7 @@ public interface MQConsumer extends MQAdmin {
 
 
     /**
-     * 根据topic获取对应的MetaQueue，是可被订阅的队列
+     * 根据topic获取对应的MessageQueue，是可被订阅的队列
      * 
      * @param topic
      *            消息Topic

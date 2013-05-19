@@ -17,7 +17,7 @@ public class ConsumeConcurrentlyContext {
      */
     private final MessageQueue messageQueue;
     /**
-     * 0，表示由Meta客户端决定
+     * 0，表示由客户端决定
      */
     private int delayLevelWhenNextConsume = 0;
 
@@ -37,7 +37,7 @@ public class ConsumeConcurrentlyContext {
     }
 
 
-    public MessageQueue getMetaQueue() {
+    public MessageQueue getMessageQueue() {
         return messageQueue;
     }
 }

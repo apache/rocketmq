@@ -56,7 +56,7 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
             this.serviceState = ServiceState.RUNNING;
 
             this.mQClientFactory =
-                    MQClientManager.getInstance().getAndCreateMetaClientFactory(
+                    MQClientManager.getInstance().getAndCreateMQClientFactory(
                         this.defaultMQPullConsumer.getMQClientConfig());
 
             this.pullAPIWrapper = new PullAPIWrapper(//
@@ -343,13 +343,13 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
     }
 
 
-    public List<MessageQueue> fetchMetaQueuesInBalance(String topic) {
+    public List<MessageQueue> fetchMessageQueuesInBalance(String topic) {
         // TODO Auto-generated method stub
         return null;
     }
 
 
-    public List<MessageQueue> fetchSubscribeMetaQueues(String topic) throws MQClientException {
+    public List<MessageQueue> fetchSubscribeMessageQueues(String topic) throws MQClientException {
         return this.mQClientFactory.getMetaAdminImpl().fetchSubscribeMetaQueues(topic);
     }
 

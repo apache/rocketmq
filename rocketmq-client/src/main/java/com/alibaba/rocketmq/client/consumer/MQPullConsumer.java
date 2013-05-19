@@ -36,7 +36,7 @@ public interface MQPullConsumer extends MQConsumer {
      * 
      * @param topic
      * @param listener
-     *            一旦发生变化，Metaq客户端会主动回调listener对象
+     *            一旦发生变化，客户端会主动回调listener对象
      */
     public void registerMessageQueueListener(final String topic, final MessageQueueListener listener);
 
@@ -109,7 +109,7 @@ public interface MQPullConsumer extends MQConsumer {
 
 
     /**
-     * 根据topic获取MetaQueue，以均衡方式在组内多个成员之间分配
+     * 根据topic获取MessageQueue，以均衡方式在组内多个成员之间分配
      * 
      * @param topic
      *            消息Topic

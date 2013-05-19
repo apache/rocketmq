@@ -34,7 +34,7 @@ public class MQClientManager {
     }
 
 
-    public MQClientFactory getAndCreateMetaClientFactory(final MQClientConfig mQClientConfig) {
+    public MQClientFactory getAndCreateMQClientFactory(final MQClientConfig mQClientConfig) {
         MQClientFactory factory = this.factoryTable.get(mQClientConfig);
         if (null == factory) {
             factory = new MQClientFactory(mQClientConfig, this.factoryIndexGenerator.getAndIncrement());

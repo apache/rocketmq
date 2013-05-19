@@ -15,7 +15,7 @@ import com.alibaba.rocketmq.remoting.common.RemotingUtil;
  */
 public class MQClientConfig {
     private String namesrvAddr = null;
-    private String logFileName = defaultMetaClientLogFileName();
+    private String logFileName = defaultClientLogFileName();
     private String logLevel = "INFO";
     private String clientIP = RemotingUtil.getLocalAddress();
     private String instanceName = "DEFAULT";
@@ -24,8 +24,8 @@ public class MQClientConfig {
     private int heartbeatBrokerInterval = 1000 * 30;
 
 
-    public static String defaultMetaClientLogFileName() {
-        return System.getProperty("user.home") + File.separator + "metaqlogs" + File.separator
+    public static String defaultClientLogFileName() {
+        return System.getProperty("user.home") + File.separator + "rocketmqlogs" + File.separator
                 + "rocketmq_client.log";
     }
 

@@ -29,7 +29,7 @@ import com.alibaba.rocketmq.remoting.exception.RemotingException;
  */
 public class DefaultMQPushConsumer implements MQPushConsumer {
     /**
-     * Metaq客户端公共配置，不建议修改
+     * 客户端公共配置，不建议修改
      */
     private MQClientConfig mQClientConfig = new MQClientConfig();
     /**
