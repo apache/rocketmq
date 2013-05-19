@@ -573,10 +573,10 @@ public class DefaultMQProducerImpl {
         EndTransactionRequestHeader requestHeader = new EndTransactionRequestHeader();
         requestHeader.setCommitLogOffset(id.getOffset());
         switch (localTransactionState) {
-        case COMMIT:
+        case COMMIT_MESSAGE:
             requestHeader.setCommitOrRollback(MessageSysFlag.TransactionCommitType);
             break;
-        case ROLLBACK:
+        case ROLLBACK_MESSAGE:
             requestHeader.setCommitOrRollback(MessageSysFlag.TransactionRollbackType);
             break;
         case UNKNOW:
@@ -618,6 +618,9 @@ public class DefaultMQProducerImpl {
         MQClientException exception = null;
         try {
             localTransactionState = tranExecuter.executeLocalTransactionBranch(msg);
+            if (null == localTransactionState) {
+                localTransactionState = LocalTransactionState.UNKNOW;
+            }
         }
         catch (Throwable e) {
             exception =
@@ -626,8 +629,8 @@ public class DefaultMQProducerImpl {
 
         // 第三步，提交或者回滚Broker端消息
         switch (localTransactionState) {
-        case COMMIT:
-        case ROLLBACK:
+        case COMMIT_MESSAGE:
+        case ROLLBACK_MESSAGE:
             try {
                 this.endTransaction(sendResult, localTransactionState);
             }
