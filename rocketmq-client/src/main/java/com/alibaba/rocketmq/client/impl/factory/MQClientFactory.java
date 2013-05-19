@@ -24,6 +24,7 @@ import com.alibaba.rocketmq.client.MQClientConfig;
 import com.alibaba.rocketmq.client.consumer.ConsumeFromWhichNode;
 import com.alibaba.rocketmq.client.exception.MQBrokerException;
 import com.alibaba.rocketmq.client.exception.MQClientException;
+import com.alibaba.rocketmq.client.impl.ClientRemotingProcessor;
 import com.alibaba.rocketmq.client.impl.FindBrokerResult;
 import com.alibaba.rocketmq.client.impl.MQAdminImpl;
 import com.alibaba.rocketmq.client.impl.MQClientAPIImpl;
@@ -59,19 +60,21 @@ public class MQClientFactory {
     private final String clientId;
     private final long bootTimestamp = System.currentTimeMillis();
 
+    // Producer对象
     private final ConcurrentHashMap<String/* group */, DefaultMQProducerImpl> producerTable =
             new ConcurrentHashMap<String, DefaultMQProducerImpl>();
-
+    // Consumer对象
     private final ConcurrentHashMap<String/* group */, MQConsumerInner> consumerTable =
             new ConcurrentHashMap<String, MQConsumerInner>();
-
+    // Netty客户端配置
     private final NettyClientConfig nettyClientConfig;
+    // RPC调用的封装类
     private final MQClientAPIImpl mQClientAPIImpl;
+    private final MQAdminImpl mQAdminImpl;
 
     // 存储从Name Server拿到的Topic路由信息
     private final ConcurrentHashMap<String/* Topic */, TopicRouteData> topicRouteTable =
             new ConcurrentHashMap<String, TopicRouteData>();
-
     // 调用Name Server获取Topic路由信息时，加锁
     private final Lock lockNamesrv = new ReentrantLock();
     private final static long LockTimeoutMillis = 3000;
@@ -80,7 +83,8 @@ public class MQClientFactory {
     private final ConcurrentHashMap<String/* Broker Name */, HashMap<Long/* brokerId */, String/* address */>> brokerAddrTable =
             new ConcurrentHashMap<String, HashMap<Long, String>>();
 
-    private ScheduledExecutorService scheduledExecutorService = Executors
+    // 定时线程
+    private final ScheduledExecutorService scheduledExecutorService = Executors
         .newSingleThreadScheduledExecutor(new ThreadFactory() {
             @Override
             public Thread newThread(Runnable r) {
@@ -88,27 +92,28 @@ public class MQClientFactory {
             }
         });
 
-    private final MQAdminImpl mQAdminImpl;
+    private final ClientRemotingProcessor clientRemotingProcessor;
 
 
     public MQClientFactory(MQClientConfig mQClientConfig, int factoryIndex) {
         this.mQClientConfig = mQClientConfig;
+        this.log = MixAll.createLogger(mQClientConfig.getLogFileName(), mQClientConfig.getLogLevel());
         this.factoryIndex = factoryIndex;
         this.nettyClientConfig = new NettyClientConfig();
         this.nettyClientConfig.setClientCallbackExecutorThreads(mQClientConfig.getClientCallbackExecutorThreads());
-        this.mQClientAPIImpl = new MQClientAPIImpl(this.nettyClientConfig);
-        this.log = MixAll.createLogger(mQClientConfig.getLogFileName(), mQClientConfig.getLogLevel());
+        this.clientRemotingProcessor = new ClientRemotingProcessor(this, this.log);
+        this.mQClientAPIImpl = new MQClientAPIImpl(this.nettyClientConfig, this.clientRemotingProcessor);
 
         if (this.mQClientConfig.getNamesrvAddr() != null) {
             this.mQClientAPIImpl.updateNameServerAddressList(this.mQClientConfig.getNamesrvAddr());
-            log.info("user specfied name server address, " + this.mQClientConfig.getNamesrvAddr());
+            log.info("user specfied name server address: {}", this.mQClientConfig.getNamesrvAddr());
         }
 
         this.clientId = this.buildMQClientId();
 
         this.mQAdminImpl = new MQAdminImpl(this);
 
-        log.info("created a new client fatory, " + this.factoryIndex);
+        log.info("created a new client fatory, ", this.factoryIndex);
     }
 
 

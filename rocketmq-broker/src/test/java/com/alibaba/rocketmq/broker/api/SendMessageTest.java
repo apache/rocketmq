@@ -33,7 +33,7 @@ public class SendMessageTest {
 
         brokerController.start();
 
-        MQClientAPIImpl client = new MQClientAPIImpl(new NettyClientConfig());
+        MQClientAPIImpl client = new MQClientAPIImpl(new NettyClientConfig(), null);
         client.start();
 
         for (int i = 0; i < 100000; i++) {

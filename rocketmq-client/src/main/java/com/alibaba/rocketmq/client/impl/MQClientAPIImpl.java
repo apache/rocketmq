@@ -75,13 +75,19 @@ public class MQClientAPIImpl {
     private final TopAddressing topAddressing = new TopAddressing();
     private String nameSrvAddr = null;
 
+    private final ClientRemotingProcessor clientRemotingProcessor;
+
     static {
         System.setProperty(RemotingCommand.RemotingVersionKey, Integer.toString(MQVersion.CurrentVersion));
     }
 
 
-    public MQClientAPIImpl(final NettyClientConfig nettyClientConfig) {
+    public MQClientAPIImpl(final NettyClientConfig nettyClientConfig,
+            final ClientRemotingProcessor clientRemotingProcessor) {
         this.remotingClient = new NettyRemotingClient(nettyClientConfig);
+        this.clientRemotingProcessor = clientRemotingProcessor;
+        this.remotingClient.registerProcessor(MQRequestCode.CHECK_TRANSACTION_STATE_VALUE,
+            this.clientRemotingProcessor, null);
     }
 
 
