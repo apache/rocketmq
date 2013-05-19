@@ -86,6 +86,10 @@ public class MQClientAPIImpl {
             final ClientRemotingProcessor clientRemotingProcessor) {
         this.remotingClient = new NettyRemotingClient(nettyClientConfig);
         this.clientRemotingProcessor = clientRemotingProcessor;
+
+        /**
+         * 注册客户端支持的RPC CODE
+         */
         this.remotingClient.registerProcessor(MQRequestCode.CHECK_TRANSACTION_STATE_VALUE,
             this.clientRemotingProcessor, null);
     }
