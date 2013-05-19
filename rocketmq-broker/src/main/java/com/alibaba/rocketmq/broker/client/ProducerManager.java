@@ -255,4 +255,66 @@ public class ProducerManager {
             log.error("", e);
         }
     }
+
+
+    public void unregisterProducer(final String group, final ClientChannelInfo clientChannelInfo) {
+        try {
+            if (this.hashcodeChannelLock.tryLock(LockTimeoutMillis, TimeUnit.MILLISECONDS)) {
+                try {
+                    List<ClientChannelInfo> clientChannelInfoList =
+                            this.hashcodeChannelTable.get(group.hashCode());
+                    if (null != clientChannelInfoList && !clientChannelInfoList.isEmpty()) {
+                        boolean result = clientChannelInfoList.remove(clientChannelInfo);
+                        if (result) {
+                            log.info("unregister a producer[{}] from hashcodeChannelTable {}", group,
+                                clientChannelInfo.toString());
+                        }
+
+                        if (clientChannelInfoList.isEmpty()) {
+                            this.hashcodeChannelTable.remove(group.hashCode());
+                            log.info("unregister a producer group[{}] from hashcodeChannelTable", group);
+                        }
+                    }
+                }
+                finally {
+                    this.hashcodeChannelLock.unlock();
+                }
+            }
+            else {
+                log.warn("ProducerManager unregisterProducer lock timeout");
+            }
+        }
+        catch (InterruptedException e) {
+            log.error("", e);
+        }
+
+        try {
+            if (this.groupChannelLock.tryLock(LockTimeoutMillis, TimeUnit.MILLISECONDS)) {
+                try {
+                    HashMap<Integer, ClientChannelInfo> channelTable = this.groupChannelTable.get(group);
+                    if (null != channelTable && !channelTable.isEmpty()) {
+                        ClientChannelInfo old = channelTable.remove(clientChannelInfo.getChannel().id());
+                        if (old != null) {
+                            log.info("unregister a producer[{}] from groupChannelTable {}", group,
+                                clientChannelInfo.toString());
+                        }
+
+                        if (channelTable.isEmpty()) {
+                            this.hashcodeChannelTable.remove(group.hashCode());
+                            log.info("unregister a producer group[{}] from groupChannelTable", group);
+                        }
+                    }
+                }
+                finally {
+                    this.groupChannelLock.unlock();
+                }
+            }
+            else {
+                log.warn("ProducerManager registerProducer lock timeout");
+            }
+        }
+        catch (InterruptedException e) {
+            log.error("", e);
+        }
+    }
 }

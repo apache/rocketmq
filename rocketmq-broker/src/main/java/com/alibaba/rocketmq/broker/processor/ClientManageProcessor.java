@@ -12,10 +12,15 @@ import com.alibaba.rocketmq.broker.BrokerController;
 import com.alibaba.rocketmq.broker.client.ClientChannelInfo;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.protocol.MQProtos.MQRequestCode;
+import com.alibaba.rocketmq.common.protocol.header.SendMessageRequestHeader;
+import com.alibaba.rocketmq.common.protocol.header.SendMessageResponseHeader;
+import com.alibaba.rocketmq.common.protocol.header.UnregisterClientRequestHeader;
+import com.alibaba.rocketmq.common.protocol.header.UnregisterClientResponseHeader;
 import com.alibaba.rocketmq.common.protocol.heartbeat.ConsumerData;
 import com.alibaba.rocketmq.common.protocol.heartbeat.HeartbeatData;
 import com.alibaba.rocketmq.common.protocol.heartbeat.ProducerData;
 import com.alibaba.rocketmq.remoting.common.RemotingHelper;
+import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
 import com.alibaba.rocketmq.remoting.netty.NettyRequestProcessor;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 import com.alibaba.rocketmq.remoting.protocol.RemotingProtos.ResponseCode;
@@ -40,17 +45,53 @@ public class ClientManageProcessor implements NettyRequestProcessor {
 
 
     @Override
-    public RemotingCommand processRequest(ChannelHandlerContext ctx, RemotingCommand request) {
+    public RemotingCommand processRequest(ChannelHandlerContext ctx, RemotingCommand request)
+            throws RemotingCommandException {
         MQRequestCode code = MQRequestCode.valueOf(request.getCode());
         switch (code) {
         case HEART_BEAT:
             return this.heartBeat(ctx, request);
         case UNREGISTER_CLIENT:
-            break;
+            return this.unregisterClient(ctx, request);
         default:
             break;
         }
         return null;
+    }
+
+
+    public RemotingCommand unregisterClient(ChannelHandlerContext ctx, RemotingCommand request)
+            throws RemotingCommandException {
+        final RemotingCommand response =
+                RemotingCommand.createResponseCommand(UnregisterClientResponseHeader.class);
+        final UnregisterClientResponseHeader responseHeader =
+                (UnregisterClientResponseHeader) response.getCustomHeader();
+        final UnregisterClientRequestHeader requestHeader =
+                (UnregisterClientRequestHeader) request
+                    .decodeCommandCustomHeader(UnregisterClientRequestHeader.class);
+
+        ClientChannelInfo clientChannelInfo = new ClientChannelInfo(//
+            ctx.channel(),//
+            requestHeader.getClientID(),//
+            request.getLanguage(),//
+            request.getVersion()//
+                );
+
+        // ×¢ÏúProducer
+        final String producerGroup = requestHeader.getProducerGroup();
+        if (producerGroup != null) {
+            this.brokerController.getProducerManager().unregisterProducer(producerGroup, clientChannelInfo);
+        }
+
+        // ×¢ÏúConsumer
+        final String consumerGroup = requestHeader.getProducerGroup();
+        if (consumerGroup != null) {
+            this.brokerController.getConsumerManager().unregisterConsumer(consumerGroup, clientChannelInfo);
+        }
+
+        response.setCode(ResponseCode.SUCCESS_VALUE);
+        response.setRemark(null);
+        return response;
     }
 
 
