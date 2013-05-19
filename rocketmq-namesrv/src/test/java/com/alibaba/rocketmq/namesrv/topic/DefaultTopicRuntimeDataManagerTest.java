@@ -39,7 +39,7 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingProtos.ResponseCode;
  * @auther lansheng.zj@taobao.com
  */
 @RunWith(PowerMockRunner.class)
-@PowerMockIgnore("com.alibaba.rocketmq.common.MetaMix")
+@PowerMockIgnore("com.alibaba.rocketmq.common.MixAll")
 @PrepareForTest({ RemotingHelper.class })
 public class DefaultTopicRuntimeDataManagerTest {
 
@@ -49,7 +49,7 @@ public class DefaultTopicRuntimeDataManagerTest {
     @Before
     public void init() {
         NamesrvConfig namesrvConfig = new NamesrvConfig();
-        namesrvConfig.setNamesrvAddr("meta://10.232.133.1:9876;meta://10.232.133.2:9876;");
+        namesrvConfig.setNamesrvAddr("10.232.133.1:9876;10.232.133.2:9876;");
         dataManager = new DefaultTopicRuntimeDataManager(namesrvConfig);
         dataManager.init();
     }
@@ -72,7 +72,7 @@ public class DefaultTopicRuntimeDataManagerTest {
         TopicRuntimeData expected = createExpect();
 
         NamesrvConfig namesrvConfig = new NamesrvConfig();
-        namesrvConfig.setNamesrvAddr("meta://10.232.133.1:9876;meta://10.232.133.2:9876;");
+        namesrvConfig.setNamesrvAddr("10.232.133.1:9876;10.232.133.2:9876;");
         DefaultTopicRuntimeDataManager dataManager = new DefaultTopicRuntimeDataManager(namesrvConfig);
         boolean success = dataManager.init();
 

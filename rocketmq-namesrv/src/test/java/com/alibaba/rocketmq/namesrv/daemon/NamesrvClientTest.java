@@ -73,19 +73,19 @@ public class NamesrvClientTest {
 
         EasyMock
             .expect(
-                remotingClient.invokeSync(eq("meta://12.12.13.4:8123"), anyObject(RemotingCommand.class),
+                remotingClient.invokeSync(eq("12.12.13.4:8123"), anyObject(RemotingCommand.class),
                     anyLong())).andReturn(response1).anyTimes();
         EasyMock
             .expect(
-                remotingClient.invokeSync(eq("meta://12.12.13.89:8123"), anyObject(RemotingCommand.class),
+                remotingClient.invokeSync(eq("12.12.13.89:8123"), anyObject(RemotingCommand.class),
                     anyLong())).andReturn(response2).anyTimes();
         EasyMock.replay(remotingClient);
 
         NamesrvConfig namesrvConfig = new NamesrvConfig();
-        namesrvConfig.setNamesrvAddr("meta://120.21.21.12:9876;meta://120.21.21.11:9876;");
+        namesrvConfig.setNamesrvAddr("120.21.21.12:9876;120.21.21.11:9876;");
         List<String> brokerList = new ArrayList<String>();
-        brokerList.add("meta://12.12.13.4:8123");
-        brokerList.add("meta://12.12.13.89:8123");
+        brokerList.add("12.12.13.4:8123");
+        brokerList.add("12.12.13.89:8123");
         DefaultTopicRuntimeDataManager dataManager = new DefaultTopicRuntimeDataManager(namesrvConfig);
         TopicRuntimeData topicRuntimeData = DataUtils.getField(dataManager, TopicRuntimeData.class, "topicData");
 
@@ -100,7 +100,7 @@ public class NamesrvClientTest {
         Result result = namesrvClient.pullSuccess(futureGroup);
 
         Assert.assertTrue(result.isSuccess());
-        Assert.assertTrue("meta://12.12.13.4:8123".equals(topicRuntimeData.getBrokers().get("broker-019")
+        Assert.assertTrue("12.12.13.4:8123".equals(topicRuntimeData.getBrokers().get("broker-019")
             .getBrokerAddrs().get(0L)));
     }
 

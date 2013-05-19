@@ -31,15 +31,15 @@ public class PollingAddressTest {
         changeSpread.init();
 
         PollingAddress pollingAddress = new PollingAddress(namesrvConfig);
-        pollingAddress.setAddrAndFireChange("meta://12.123.12.31:9876;meta://12.123.12.98:9876;");
+        pollingAddress.setAddrAndFireChange("12.123.12.31:9876;12.123.12.98:9876;");
 
         TaskGroup taskGroup = DataUtils.getField(namesrvSync, TaskGroup.class, "syncTaskGroup");
-        Task task = taskGroup.getTask("meta://12.123.12.31:9876");
+        Task task = taskGroup.getTask("12.123.12.31:9876");
         Assert.assertTrue(null != task);
 
         Map map = DataUtils.getField(changeSpread, Map.class, "taskGroupMap");
         taskGroup = (TaskGroup) map.get(TaskType.REG_BROKER);
-        task = taskGroup.getTask("meta://12.123.12.98:9876");
+        task = taskGroup.getTask("12.123.12.98:9876");
         Assert.assertTrue(null != task);
     }
 }
