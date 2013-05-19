@@ -98,6 +98,7 @@ enum MQResponseCode{
     TRANSACTION_SHOULD_COMMIT = 200;                    // Producer 事务应该被提交
     TRANSACTION_SHOULD_ROLLBACK = 201;                  // Producer 事务应该被回滚
     TRANSACTION_STATE_UNKNOW = 202;                     // Producer 事务状态未知
+    TRANSACTION_STATE_GROUP_WRONG = 203;                // Producer ProducerGroup错误
 }
 
 //
