@@ -13,5 +13,5 @@ import com.alibaba.rocketmq.common.MessageExt;
  * 
  */
 public interface TransactionCheckListener {
-    public boolean checkLocalTransactionBranchState(final MessageExt msg);
+    public LocalTransactionState checkLocalTransactionState(final MessageExt msg);
 }
