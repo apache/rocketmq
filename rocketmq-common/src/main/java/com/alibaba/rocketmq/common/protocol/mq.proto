@@ -44,6 +44,8 @@ enum MQRequestCode{
 
     END_TRANSACTION = 37;                               // Broker Commit或者Rollback事务
 
+    CHECK_TRANSACTION_STATE = 38;                       // Broker 主动向Producer回查事务状态
+
     REGISTER_BROKER = 100;                              // Namesrv 注册一个Broker，数据都是持久化的，如果存在则覆盖配置
     UNREGISTER_BROKER = 101;                            // Namesrv 卸载一个Broker，数据都是持久化的
     GET_BROKER_LIST = 102;                              // Namesrv 获取注册的Broker列表
@@ -82,6 +84,7 @@ enum MQResponseCode{
     PULL_OFFSET_MOVED = 21;                             // Broker 拉消息请求的Offset不合法，太小或太大
     QUERY_NOT_FOUND = 22;                               // Broker 查询消息未找到
 
+
     DELETE_INVALID_CONF = 100;                          // Namesrv 同步数据时出现两个节点间数据不一致，删除不一致的数据
     NOT_MERGE_CONF = 101;                               // Namesrv 两节点之间的数据一致没有做修改
     REGISTER_BROKER_FAIL = 102;                         // Namesrv 注册broker信息失败
@@ -91,6 +94,10 @@ enum MQResponseCode{
     UNREGISTER_BROKER_FAIL = 106;						// Namesrv 注销broker信息失败
     UNREGISTER_BROKER_TIMEOUT = 107;					// Namesrv 注销broker超时
     UNREGISTER_ORDER_TOPIC_TIMEOUT = 108;				// Namesrv 注销order topic的配置超时
+
+    TRANSACTION_SHOULD_COMMIT = 200;                    // Producer 事务应该被提交
+    TRANSACTION_SHOULD_ROLLBACK = 201;                  // Producer 事务应该被回滚
+    TRANSACTION_STATE_UNKNOW = 202;                     // Producer 事务状态未知
 }
 
 //
