@@ -212,8 +212,13 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
 
     @Override
     public void registerProcessor(int requestCode, NettyRequestProcessor processor, Executor executor) {
+        Executor executorThis = executor;
+        if (null == executor) {
+            executorThis = this.publicExecutor;
+        }
+
         Pair<NettyRequestProcessor, Executor> pair =
-                new Pair<NettyRequestProcessor, Executor>(processor, executor);
+                new Pair<NettyRequestProcessor, Executor>(processor, executorThis);
         this.processorTable.put(requestCode, pair);
     }
 
