@@ -282,7 +282,7 @@ public class DefaultMQProducer implements MQProducer {
     }
 
 
-    public void sendMessageInTransaction(Message msg, LocalTransactionExecuter tranExecuter)
+    public SendResult sendMessageInTransaction(Message msg, LocalTransactionExecuter tranExecuter)
             throws MQClientException {
         throw new NotImplementedException();
     }
