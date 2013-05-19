@@ -233,6 +233,9 @@ public class TransactionStateService {
             return false;
         }
 
+        this.byteBufferAppend.position(0);
+        this.byteBufferAppend.limit(TSStoreUnitSize);
+
         // Commit Log Offset
         this.byteBufferAppend.putLong(clOffset);
         // Message Size
@@ -243,9 +246,6 @@ public class TransactionStateService {
         this.byteBufferAppend.putInt(groupHashCode);
         // Transaction State
         this.byteBufferAppend.putInt(MessageSysFlag.TransactionPreparedType);
-
-        this.byteBufferAppend.position(0);
-        this.byteBufferAppend.limit(TSStoreUnitSize);
 
         return mapedFile.appendMessage(this.byteBufferAppend.array());
     }
