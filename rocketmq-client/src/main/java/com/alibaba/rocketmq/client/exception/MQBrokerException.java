@@ -3,7 +3,7 @@
  */
 package com.alibaba.rocketmq.client.exception;
 
-import com.alibaba.rocketmq.common.MetaUtil;
+import com.alibaba.rocketmq.common.UtilALl;
 
 
 /**
@@ -16,7 +16,7 @@ public class MQBrokerException extends Exception {
 
 
     public MQBrokerException(int responseCode, String errorMessage) {
-        super("CODE: " + MetaUtil.responseCode2String(responseCode) + "\tDESC: " + errorMessage);
+        super("CODE: " + UtilALl.responseCode2String(responseCode) + "\tDESC: " + errorMessage);
         this.responseCode = responseCode;
         this.errorMessage = errorMessage;
     }

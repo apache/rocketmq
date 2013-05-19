@@ -17,7 +17,7 @@ import org.slf4j.LoggerFactory;
 import com.alibaba.rocketmq.common.MessageDecoder;
 import com.alibaba.rocketmq.common.MessageExt;
 import com.alibaba.rocketmq.common.MixAll;
-import com.alibaba.rocketmq.common.MetaUtil;
+import com.alibaba.rocketmq.common.UtilALl;
 import com.alibaba.rocketmq.common.ServiceThread;
 import com.alibaba.rocketmq.common.SystemClock;
 import com.alibaba.rocketmq.common.protocol.heartbeat.SubscriptionData;
@@ -150,7 +150,7 @@ public class DefaultMessageStore implements MessageStore {
          */
         private boolean isTimeToDelete() {
             String when = DefaultMessageStore.this.getMessageStoreConfig().getDeleteWhen();
-            if (MetaUtil.isItTimeToDo(when)) {
+            if (UtilALl.isItTimeToDo(when)) {
                 DefaultMessageStore.log.info("it's time to reclaim disk space, " + when);
                 return true;
             }
@@ -168,7 +168,7 @@ public class DefaultMessageStore implements MessageStore {
             // 检测物理文件磁盘空间
             {
                 String storePathPhysic = DefaultMessageStore.this.getMessageStoreConfig().getStorePathCommitLog();
-                double physicRatio = MetaUtil.getDiskPartitionSpaceUsedPercent(storePathPhysic);
+                double physicRatio = UtilALl.getDiskPartitionSpaceUsedPercent(storePathPhysic);
                 if (physicRatio > DiskSpaveWarningLevelRatio) {
                     boolean diskok = DefaultMessageStore.this.runningFlags.getAndMakeDiskFull();
                     if (diskok) {
@@ -194,7 +194,7 @@ public class DefaultMessageStore implements MessageStore {
             {
                 String storePathLogics =
                         DefaultMessageStore.this.getMessageStoreConfig().getStorePathConsumeQueue();
-                double logicsRatio = MetaUtil.getDiskPartitionSpaceUsedPercent(storePathLogics);
+                double logicsRatio = UtilALl.getDiskPartitionSpaceUsedPercent(storePathLogics);
                 if (logicsRatio > DiskSpaveWarningLevelRatio) {
                     boolean diskok = DefaultMessageStore.this.runningFlags.getAndMakeDiskFull();
                     if (diskok) {
@@ -1273,7 +1273,7 @@ public class DefaultMessageStore implements MessageStore {
     }
 
 
-    public CommitLog getMetaQueuePhysical() {
+    public CommitLog getCommitLog() {
         return commitLog;
     }
 
@@ -1444,7 +1444,7 @@ public class DefaultMessageStore implements MessageStore {
                 try {
                     final long phyOffset = result.getByteBuffer().getLong();
                     final int size = result.getByteBuffer().getInt();
-                    long storeTime = this.getMetaQueuePhysical().pickupStoretimestamp(phyOffset, size);
+                    long storeTime = this.getCommitLog().pickupStoretimestamp(phyOffset, size);
                     return storeTime;
                 }
                 catch (Exception e) {

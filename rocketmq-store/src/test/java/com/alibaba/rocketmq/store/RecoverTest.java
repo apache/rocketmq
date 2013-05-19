@@ -64,31 +64,31 @@ public class RecoverTest {
     public static void tearDownAfterClass() throws Exception {
     }
 
-    private MessageStore metaStoreWrite1;
-    private MessageStore metaStoreWrite2;
-    private MessageStore metaStoreRead;
+    private MessageStore storeWrite1;
+    private MessageStore storeWrite2;
+    private MessageStore storeRead;
 
 
     private void destroy() {
-        if (metaStoreWrite1 != null) {
+        if (storeWrite1 != null) {
             // 关闭存储服务
-            metaStoreWrite1.shutdown();
+            storeWrite1.shutdown();
             // 删除文件
-            metaStoreWrite1.destroy();
+            storeWrite1.destroy();
         }
 
-        if (metaStoreWrite2 != null) {
+        if (storeWrite2 != null) {
             // 关闭存储服务
-            metaStoreWrite2.shutdown();
+            storeWrite2.shutdown();
             // 删除文件
-            metaStoreWrite2.destroy();
+            storeWrite2.destroy();
         }
 
-        if (metaStoreRead != null) {
+        if (storeRead != null) {
             // 关闭存储服务
-            metaStoreRead.shutdown();
+            storeRead.shutdown();
             // 删除文件
-            metaStoreRead.destroy();
+            storeRead.destroy();
         }
     }
 
@@ -110,10 +110,10 @@ public class RecoverTest {
 
         MessageStore messageStore = new DefaultMessageStore(messageStoreConfig);
         if (first) {
-            this.metaStoreWrite1 = messageStore;
+            this.storeWrite1 = messageStore;
         }
         else {
-            this.metaStoreWrite2 = messageStore;
+            this.storeWrite2 = messageStore;
         }
 
         // 第一步，load已有数据
@@ -167,19 +167,19 @@ public class RecoverTest {
         messageStoreConfig.setMapedFileSizeConsumeQueue(100 * 20);
         messageStoreConfig.setMessageIndexEnable(false);
 
-        metaStoreRead = new DefaultMessageStore(messageStoreConfig);
+        storeRead = new DefaultMessageStore(messageStoreConfig);
         // 第一步，load已有数据
-        boolean loadResult = metaStoreRead.load();
+        boolean loadResult = storeRead.load();
         assertTrue(loadResult);
 
         // 第二步，启动服务
-        metaStoreRead.start();
+        storeRead.start();
 
         // 第三步，收消息
         long readCnt = 0;
         for (int queueId = 0; queueId < QUEUE_TOTAL; queueId++) {
             for (long offset = 0;;) {
-                GetMessageResult result = metaStoreRead.getMessage("TOPIC_A", queueId, offset, 1024 * 1024, null);
+                GetMessageResult result = storeRead.getMessage("TOPIC_A", queueId, offset, 1024 * 1024, null);
                 if (result.getStatus() == GetMessageStatus.FOUND) {
                     System.out.println(queueId + "\t" + result.getMessageCount());
                     this.veryReadMessage(queueId, offset, result.getMessageBufferList());

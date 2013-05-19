@@ -8,7 +8,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -19,8 +18,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.alibaba.rocketmq.common.Message;
+import com.alibaba.rocketmq.common.UtilALl;
 import com.alibaba.rocketmq.common.MixAll;
-import com.alibaba.rocketmq.common.MetaUtil;
 import com.alibaba.rocketmq.common.ServiceThread;
 import com.alibaba.rocketmq.common.sysflag.MessageSysFlag;
 import com.alibaba.rocketmq.store.DefaultMessageStore;
@@ -122,7 +121,7 @@ public class IndexService extends ServiceThread {
             try {
                 String fileName =
                         this.storePath + File.separator
-                                + MetaUtil.timeMillisToHumanString(System.currentTimeMillis());
+                                + UtilALl.timeMillisToHumanString(System.currentTimeMillis());
                 indexFile =
                         new IndexFile(fileName, this.hashSlotNum, this.indexNum, lastUpdateEndPhyOffset,
                             lastUpdateIndexTimestamp);

@@ -82,18 +82,18 @@ public class ScheduleMessageTest {
         messageStoreConfig.setMaxHashSlotNum(100);
         messageStoreConfig.setMaxIndexNum(1000 * 10);
 
-        MessageStore metaStoreMaster = new DefaultMessageStore(messageStoreConfig);
+        MessageStore master = new DefaultMessageStore(messageStoreConfig);
         // 第一步，load已有数据
-        boolean load = metaStoreMaster.load();
+        boolean load = master.load();
         assertTrue(load);
 
         // 第二步，启动服务
-        metaStoreMaster.start();
+        master.start();
         for (int i = 0; i < totalMsgs; i++) {
             MessageExtBrokerInner msg = buildMessage();
             msg.setDelayTimeLevel(i % 4);
 
-            PutMessageResult result = metaStoreMaster.putMessage(msg);
+            PutMessageResult result = master.putMessage(msg);
             System.out.println(i + "\t" + result.getAppendMessageResult().getMsgId());
         }
 
@@ -103,7 +103,7 @@ public class ScheduleMessageTest {
         // 开始读文件
         for (long i = 0; i < totalMsgs; i++) {
             try {
-                GetMessageResult result = metaStoreMaster.getMessage("TOPIC_A", 0, i, 1024 * 1024, null);
+                GetMessageResult result = master.getMessage("TOPIC_A", 0, i, 1024 * 1024, null);
                 if (result == null) {
                     System.out.println("result == null " + i);
                 }
@@ -120,10 +120,10 @@ public class ScheduleMessageTest {
         Thread.sleep(1000 * 15);
 
         // 关闭存储服务
-        metaStoreMaster.shutdown();
+        master.shutdown();
 
         // 删除文件
-        metaStoreMaster.destroy();
+        master.destroy();
         System.out.println("================================================================");
     }
 }

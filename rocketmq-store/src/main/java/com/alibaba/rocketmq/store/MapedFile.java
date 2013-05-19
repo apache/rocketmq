@@ -21,7 +21,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.alibaba.rocketmq.common.MixAll;
-import com.alibaba.rocketmq.common.MetaUtil;
+import com.alibaba.rocketmq.common.UtilALl;
 
 
 /**
@@ -364,7 +364,7 @@ public class MapedFile extends ReferenceResource {
                 boolean result = this.file.delete();
                 log.info("delete file[REF:" + this.getRefCount() + "] " + this.fileName
                         + (result ? " OK, " : " Failed, ") + "W:" + this.getWrotePostion() + " M:"
-                        + this.getCommittedPosition() + ", " + MetaUtil.computeEclipseTimeMilliseconds(beginTime));
+                        + this.getCommittedPosition() + ", " + UtilALl.computeEclipseTimeMilliseconds(beginTime));
             }
             catch (Exception e) {
                 log.warn("close file channel " + this.fileName + " Failed. ", e);

@@ -453,9 +453,9 @@ public class HAService {
 
                         // 检查Master的反向心跳
                         long interval =
-                                HAService.this.getDefaultMetaStore().getSystemClock().now()
+                                HAService.this.getDefaultMessageStore().getSystemClock().now()
                                         - this.lastWriteTimestamp;
-                        if (interval > HAService.this.getDefaultMetaStore().getMessageStoreConfig()
+                        if (interval > HAService.this.getDefaultMessageStore().getMessageStoreConfig()
                             .getHaHousekeepingInterval()) {
                             log.warn("HAClient, housekeeping, found this connection[" + this.masterAddress
                                     + "] expired, " + interval);
@@ -664,7 +664,7 @@ public class HAService {
     }
 
 
-    public DefaultMessageStore getDefaultMetaStore() {
+    public DefaultMessageStore getDefaultMessageStore() {
         return defaultMessageStore;
     }
 

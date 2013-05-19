@@ -1,6 +1,3 @@
-/**
- * $Id: DefaultMetaStoreTest.java 1831 2013-05-16 01:39:51Z shijia.wxr $
- */
 package com.alibaba.rocketmq.store;
 
 import static org.junit.Assert.assertTrue;
@@ -18,6 +15,9 @@ import com.alibaba.rocketmq.store.config.FlushDiskType;
 import com.alibaba.rocketmq.store.config.MessageStoreConfig;
 
 
+/**
+ * @author vintage.wang@gmail.com shijia.wxr@taobao.com
+ */
 public class DefaultMessageStoreTest {
     // 队列个数
     private static int QUEUE_TOTAL = 100;
@@ -79,15 +79,15 @@ public class DefaultMessageStoreTest {
         messageStoreConfig.setMaxHashSlotNum(100);
         messageStoreConfig.setMaxIndexNum(100 * 10);
 
-        MessageStore metaStoreMaster = new DefaultMessageStore(messageStoreConfig);
+        MessageStore master = new DefaultMessageStore(messageStoreConfig);
         // 第一步，load已有数据
-        boolean load = metaStoreMaster.load();
+        boolean load = master.load();
         assertTrue(load);
 
         // 第二步，启动服务
-        metaStoreMaster.start();
+        master.start();
         for (long i = 0; i < totalMsgs; i++) {
-            PutMessageResult result = metaStoreMaster.putMessage(buildMessage());
+            PutMessageResult result = master.putMessage(buildMessage());
 
             System.out.println(i + "\t" + result.getAppendMessageResult().getMsgId());
         }
@@ -95,7 +95,7 @@ public class DefaultMessageStoreTest {
         // 开始读文件
         for (long i = 0; i < totalMsgs; i++) {
             try {
-                GetMessageResult result = metaStoreMaster.getMessage("TOPIC_A", 0, i, 1024 * 1024, null);
+                GetMessageResult result = master.getMessage("TOPIC_A", 0, i, 1024 * 1024, null);
                 if (result == null) {
                     System.out.println("result == null " + i);
                 }
@@ -110,10 +110,10 @@ public class DefaultMessageStoreTest {
         }
 
         // 关闭存储服务
-        metaStoreMaster.shutdown();
+        master.shutdown();
 
         // 删除文件
-        metaStoreMaster.destroy();
+        master.destroy();
         System.out.println("================================================================");
     }
 
@@ -134,15 +134,15 @@ public class DefaultMessageStoreTest {
         // 开启GroupCommit功能
         messageStoreConfig.setFlushDiskType(FlushDiskType.SYNC_FLUSH);
 
-        MessageStore metaStoreMaster = new DefaultMessageStore(messageStoreConfig);
+        MessageStore master = new DefaultMessageStore(messageStoreConfig);
         // 第一步，load已有数据
-        boolean load = metaStoreMaster.load();
+        boolean load = master.load();
         assertTrue(load);
 
         // 第二步，启动服务
-        metaStoreMaster.start();
+        master.start();
         for (long i = 0; i < totalMsgs; i++) {
-            PutMessageResult result = metaStoreMaster.putMessage(buildMessage());
+            PutMessageResult result = master.putMessage(buildMessage());
 
             System.out.println(i + "\t" + result.getAppendMessageResult().getMsgId());
         }
@@ -150,7 +150,7 @@ public class DefaultMessageStoreTest {
         // 开始读文件
         for (long i = 0; i < totalMsgs; i++) {
             try {
-                GetMessageResult result = metaStoreMaster.getMessage("TOPIC_A", 0, i, 1024 * 1024, null);
+                GetMessageResult result = master.getMessage("TOPIC_A", 0, i, 1024 * 1024, null);
                 if (result == null) {
                     System.out.println("result == null " + i);
                 }
@@ -165,10 +165,10 @@ public class DefaultMessageStoreTest {
         }
 
         // 关闭存储服务
-        metaStoreMaster.shutdown();
+        master.shutdown();
 
         // 删除文件
-        metaStoreMaster.destroy();
+        master.destroy();
         System.out.println("================================================================");
     }
 }
