@@ -191,7 +191,7 @@ public final class MQProtos {
       this.value = value;
     }
     
-    // @@protoc_insertion_point(enum_scope:metaq.MQRequestCode)
+    // @@protoc_insertion_point(enum_scope:rocketmq.MQRequestCode)
   }
   
   public enum MQResponseCode
@@ -332,7 +332,7 @@ public final class MQProtos {
       this.value = value;
     }
     
-    // @@protoc_insertion_point(enum_scope:metaq.MQResponseCode)
+    // @@protoc_insertion_point(enum_scope:rocketmq.MQResponseCode)
   }
   
   public interface BrokerInfoOrBuilder
@@ -342,7 +342,7 @@ public final class MQProtos {
     boolean hasBrokerName();
     String getBrokerName();
     
-    // repeated .metaq.BrokerInfo.BrokerAddr brokerAddrs = 2;
+    // repeated .rocketmq.BrokerInfo.BrokerAddr brokerAddrs = 2;
     java.util.List<com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr> 
         getBrokerAddrsList();
     com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr getBrokerAddrs(int index);
@@ -372,12 +372,12 @@ public final class MQProtos {
     
     public static final com.google.protobuf.Descriptors.Descriptor
         getDescriptor() {
-      return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_metaq_BrokerInfo_descriptor;
+      return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_rocketmq_BrokerInfo_descriptor;
     }
     
     protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
         internalGetFieldAccessorTable() {
-      return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_metaq_BrokerInfo_fieldAccessorTable;
+      return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_rocketmq_BrokerInfo_fieldAccessorTable;
     }
     
     public interface BrokerAddrOrBuilder
@@ -411,12 +411,12 @@ public final class MQProtos {
       
       public static final com.google.protobuf.Descriptors.Descriptor
           getDescriptor() {
-        return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_metaq_BrokerInfo_BrokerAddr_descriptor;
+        return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_rocketmq_BrokerInfo_BrokerAddr_descriptor;
       }
       
       protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
           internalGetFieldAccessorTable() {
-        return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_metaq_BrokerInfo_BrokerAddr_fieldAccessorTable;
+        return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_rocketmq_BrokerInfo_BrokerAddr_fieldAccessorTable;
       }
       
       private int bitField0_;
@@ -606,12 +606,12 @@ public final class MQProtos {
          implements com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddrOrBuilder {
         public static final com.google.protobuf.Descriptors.Descriptor
             getDescriptor() {
-          return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_metaq_BrokerInfo_BrokerAddr_descriptor;
+          return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_rocketmq_BrokerInfo_BrokerAddr_descriptor;
         }
         
         protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
             internalGetFieldAccessorTable() {
-          return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_metaq_BrokerInfo_BrokerAddr_fieldAccessorTable;
+          return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_rocketmq_BrokerInfo_BrokerAddr_fieldAccessorTable;
         }
         
         // Construct using com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr.newBuilder()
@@ -817,7 +817,7 @@ public final class MQProtos {
           onChanged();
         }
         
-        // @@protoc_insertion_point(builder_scope:metaq.BrokerInfo.BrokerAddr)
+        // @@protoc_insertion_point(builder_scope:rocketmq.BrokerInfo.BrokerAddr)
       }
       
       static {
@@ -825,7 +825,7 @@ public final class MQProtos {
         defaultInstance.initFields();
       }
       
-      // @@protoc_insertion_point(class_scope:metaq.BrokerInfo.BrokerAddr)
+      // @@protoc_insertion_point(class_scope:rocketmq.BrokerInfo.BrokerAddr)
     }
     
     private int bitField0_;
@@ -861,7 +861,7 @@ public final class MQProtos {
       }
     }
     
-    // repeated .metaq.BrokerInfo.BrokerAddr brokerAddrs = 2;
+    // repeated .rocketmq.BrokerInfo.BrokerAddr brokerAddrs = 2;
     public static final int BROKERADDRS_FIELD_NUMBER = 2;
     private java.util.List<com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr> brokerAddrs_;
     public java.util.List<com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr> getBrokerAddrsList() {
@@ -1028,12 +1028,12 @@ public final class MQProtos {
        implements com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfoOrBuilder {
       public static final com.google.protobuf.Descriptors.Descriptor
           getDescriptor() {
-        return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_metaq_BrokerInfo_descriptor;
+        return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_rocketmq_BrokerInfo_descriptor;
       }
       
       protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
           internalGetFieldAccessorTable() {
-        return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_metaq_BrokerInfo_fieldAccessorTable;
+        return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_rocketmq_BrokerInfo_fieldAccessorTable;
       }
       
       // Construct using com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.newBuilder()
@@ -1254,7 +1254,7 @@ public final class MQProtos {
         onChanged();
       }
       
-      // repeated .metaq.BrokerInfo.BrokerAddr brokerAddrs = 2;
+      // repeated .rocketmq.BrokerInfo.BrokerAddr brokerAddrs = 2;
       private java.util.List<com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr> brokerAddrs_ =
         java.util.Collections.emptyList();
       private void ensureBrokerAddrsIsMutable() {
@@ -1440,7 +1440,7 @@ public final class MQProtos {
         return brokerAddrsBuilder_;
       }
       
-      // @@protoc_insertion_point(builder_scope:metaq.BrokerInfo)
+      // @@protoc_insertion_point(builder_scope:rocketmq.BrokerInfo)
     }
     
     static {
@@ -1448,7 +1448,7 @@ public final class MQProtos {
       defaultInstance.initFields();
     }
     
-    // @@protoc_insertion_point(class_scope:metaq.BrokerInfo)
+    // @@protoc_insertion_point(class_scope:rocketmq.BrokerInfo)
   }
   
   public interface QueueInfoOrBuilder
@@ -1490,12 +1490,12 @@ public final class MQProtos {
     
     public static final com.google.protobuf.Descriptors.Descriptor
         getDescriptor() {
-      return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_metaq_QueueInfo_descriptor;
+      return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_rocketmq_QueueInfo_descriptor;
     }
     
     protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
         internalGetFieldAccessorTable() {
-      return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_metaq_QueueInfo_fieldAccessorTable;
+      return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_rocketmq_QueueInfo_fieldAccessorTable;
     }
     
     private int bitField0_;
@@ -1729,12 +1729,12 @@ public final class MQProtos {
        implements com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfoOrBuilder {
       public static final com.google.protobuf.Descriptors.Descriptor
           getDescriptor() {
-        return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_metaq_QueueInfo_descriptor;
+        return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_rocketmq_QueueInfo_descriptor;
       }
       
       protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
           internalGetFieldAccessorTable() {
-        return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_metaq_QueueInfo_fieldAccessorTable;
+        return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_rocketmq_QueueInfo_fieldAccessorTable;
       }
       
       // Construct using com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo.newBuilder()
@@ -2018,7 +2018,7 @@ public final class MQProtos {
         return this;
       }
       
-      // @@protoc_insertion_point(builder_scope:metaq.QueueInfo)
+      // @@protoc_insertion_point(builder_scope:rocketmq.QueueInfo)
     }
     
     static {
@@ -2026,13 +2026,13 @@ public final class MQProtos {
       defaultInstance.initFields();
     }
     
-    // @@protoc_insertion_point(class_scope:metaq.QueueInfo)
+    // @@protoc_insertion_point(class_scope:rocketmq.QueueInfo)
   }
   
   public interface TopicRouteInfoOrBuilder
       extends com.google.protobuf.MessageOrBuilder {
     
-    // repeated .metaq.QueueInfo queueInfos = 1;
+    // repeated .rocketmq.QueueInfo queueInfos = 1;
     java.util.List<com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo> 
         getQueueInfosList();
     com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo getQueueInfos(int index);
@@ -2042,7 +2042,7 @@ public final class MQProtos {
     com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfoOrBuilder getQueueInfosOrBuilder(
         int index);
     
-    // repeated .metaq.BrokerInfo brokerInfos = 2;
+    // repeated .rocketmq.BrokerInfo brokerInfos = 2;
     java.util.List<com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo> 
         getBrokerInfosList();
     com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo getBrokerInfos(int index);
@@ -2076,16 +2076,16 @@ public final class MQProtos {
     
     public static final com.google.protobuf.Descriptors.Descriptor
         getDescriptor() {
-      return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_metaq_TopicRouteInfo_descriptor;
+      return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_rocketmq_TopicRouteInfo_descriptor;
     }
     
     protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
         internalGetFieldAccessorTable() {
-      return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_metaq_TopicRouteInfo_fieldAccessorTable;
+      return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_rocketmq_TopicRouteInfo_fieldAccessorTable;
     }
     
     private int bitField0_;
-    // repeated .metaq.QueueInfo queueInfos = 1;
+    // repeated .rocketmq.QueueInfo queueInfos = 1;
     public static final int QUEUEINFOS_FIELD_NUMBER = 1;
     private java.util.List<com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo> queueInfos_;
     public java.util.List<com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo> getQueueInfosList() {
@@ -2106,7 +2106,7 @@ public final class MQProtos {
       return queueInfos_.get(index);
     }
     
-    // repeated .metaq.BrokerInfo brokerInfos = 2;
+    // repeated .rocketmq.BrokerInfo brokerInfos = 2;
     public static final int BROKERINFOS_FIELD_NUMBER = 2;
     private java.util.List<com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo> brokerInfos_;
     public java.util.List<com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo> getBrokerInfosList() {
@@ -2315,12 +2315,12 @@ public final class MQProtos {
        implements com.alibaba.rocketmq.common.protocol.MQProtos.TopicRouteInfoOrBuilder {
       public static final com.google.protobuf.Descriptors.Descriptor
           getDescriptor() {
-        return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_metaq_TopicRouteInfo_descriptor;
+        return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_rocketmq_TopicRouteInfo_descriptor;
       }
       
       protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
           internalGetFieldAccessorTable() {
-        return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_metaq_TopicRouteInfo_fieldAccessorTable;
+        return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_rocketmq_TopicRouteInfo_fieldAccessorTable;
       }
       
       // Construct using com.alibaba.rocketmq.common.protocol.MQProtos.TopicRouteInfo.newBuilder()
@@ -2555,7 +2555,7 @@ public final class MQProtos {
       
       private int bitField0_;
       
-      // repeated .metaq.QueueInfo queueInfos = 1;
+      // repeated .rocketmq.QueueInfo queueInfos = 1;
       private java.util.List<com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo> queueInfos_ =
         java.util.Collections.emptyList();
       private void ensureQueueInfosIsMutable() {
@@ -2741,7 +2741,7 @@ public final class MQProtos {
         return queueInfosBuilder_;
       }
       
-      // repeated .metaq.BrokerInfo brokerInfos = 2;
+      // repeated .rocketmq.BrokerInfo brokerInfos = 2;
       private java.util.List<com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo> brokerInfos_ =
         java.util.Collections.emptyList();
       private void ensureBrokerInfosIsMutable() {
@@ -2963,7 +2963,7 @@ public final class MQProtos {
         onChanged();
       }
       
-      // @@protoc_insertion_point(builder_scope:metaq.TopicRouteInfo)
+      // @@protoc_insertion_point(builder_scope:rocketmq.TopicRouteInfo)
     }
     
     static {
@@ -2971,7 +2971,7 @@ public final class MQProtos {
       defaultInstance.initFields();
     }
     
-    // @@protoc_insertion_point(class_scope:metaq.TopicRouteInfo)
+    // @@protoc_insertion_point(class_scope:rocketmq.TopicRouteInfo)
   }
   
   public interface ProducerInfoOrBuilder
@@ -3001,12 +3001,12 @@ public final class MQProtos {
     
     public static final com.google.protobuf.Descriptors.Descriptor
         getDescriptor() {
-      return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_metaq_ProducerInfo_descriptor;
+      return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_rocketmq_ProducerInfo_descriptor;
     }
     
     protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
         internalGetFieldAccessorTable() {
-      return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_metaq_ProducerInfo_fieldAccessorTable;
+      return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_rocketmq_ProducerInfo_fieldAccessorTable;
     }
     
     private int bitField0_;
@@ -3174,12 +3174,12 @@ public final class MQProtos {
        implements com.alibaba.rocketmq.common.protocol.MQProtos.ProducerInfoOrBuilder {
       public static final com.google.protobuf.Descriptors.Descriptor
           getDescriptor() {
-        return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_metaq_ProducerInfo_descriptor;
+        return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_rocketmq_ProducerInfo_descriptor;
       }
       
       protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
           internalGetFieldAccessorTable() {
-        return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_metaq_ProducerInfo_fieldAccessorTable;
+        return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_rocketmq_ProducerInfo_fieldAccessorTable;
       }
       
       // Construct using com.alibaba.rocketmq.common.protocol.MQProtos.ProducerInfo.newBuilder()
@@ -3346,7 +3346,7 @@ public final class MQProtos {
         onChanged();
       }
       
-      // @@protoc_insertion_point(builder_scope:metaq.ProducerInfo)
+      // @@protoc_insertion_point(builder_scope:rocketmq.ProducerInfo)
     }
     
     static {
@@ -3354,7 +3354,7 @@ public final class MQProtos {
       defaultInstance.initFields();
     }
     
-    // @@protoc_insertion_point(class_scope:metaq.ProducerInfo)
+    // @@protoc_insertion_point(class_scope:rocketmq.ProducerInfo)
   }
   
   public interface SubscriptionInfoOrBuilder
@@ -3396,12 +3396,12 @@ public final class MQProtos {
     
     public static final com.google.protobuf.Descriptors.Descriptor
         getDescriptor() {
-      return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_metaq_SubscriptionInfo_descriptor;
+      return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_rocketmq_SubscriptionInfo_descriptor;
     }
     
     protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
         internalGetFieldAccessorTable() {
-      return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_metaq_SubscriptionInfo_fieldAccessorTable;
+      return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_rocketmq_SubscriptionInfo_fieldAccessorTable;
     }
     
     private int bitField0_;
@@ -3679,12 +3679,12 @@ public final class MQProtos {
        implements com.alibaba.rocketmq.common.protocol.MQProtos.SubscriptionInfoOrBuilder {
       public static final com.google.protobuf.Descriptors.Descriptor
           getDescriptor() {
-        return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_metaq_SubscriptionInfo_descriptor;
+        return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_rocketmq_SubscriptionInfo_descriptor;
       }
       
       protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
           internalGetFieldAccessorTable() {
-        return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_metaq_SubscriptionInfo_fieldAccessorTable;
+        return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_rocketmq_SubscriptionInfo_fieldAccessorTable;
       }
       
       // Construct using com.alibaba.rocketmq.common.protocol.MQProtos.SubscriptionInfo.newBuilder()
@@ -3998,7 +3998,7 @@ public final class MQProtos {
         return this;
       }
       
-      // @@protoc_insertion_point(builder_scope:metaq.SubscriptionInfo)
+      // @@protoc_insertion_point(builder_scope:rocketmq.SubscriptionInfo)
     }
     
     static {
@@ -4006,7 +4006,7 @@ public final class MQProtos {
       defaultInstance.initFields();
     }
     
-    // @@protoc_insertion_point(class_scope:metaq.SubscriptionInfo)
+    // @@protoc_insertion_point(class_scope:rocketmq.SubscriptionInfo)
   }
   
   public interface ConsumerInfoOrBuilder
@@ -4024,7 +4024,7 @@ public final class MQProtos {
     boolean hasMessageModel();
     String getMessageModel();
     
-    // repeated .metaq.SubscriptionInfo subscriptionInfos = 4;
+    // repeated .rocketmq.SubscriptionInfo subscriptionInfos = 4;
     java.util.List<com.alibaba.rocketmq.common.protocol.MQProtos.SubscriptionInfo> 
         getSubscriptionInfosList();
     com.alibaba.rocketmq.common.protocol.MQProtos.SubscriptionInfo getSubscriptionInfos(int index);
@@ -4054,12 +4054,12 @@ public final class MQProtos {
     
     public static final com.google.protobuf.Descriptors.Descriptor
         getDescriptor() {
-      return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_metaq_ConsumerInfo_descriptor;
+      return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_rocketmq_ConsumerInfo_descriptor;
     }
     
     protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
         internalGetFieldAccessorTable() {
-      return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_metaq_ConsumerInfo_fieldAccessorTable;
+      return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_rocketmq_ConsumerInfo_fieldAccessorTable;
     }
     
     private int bitField0_;
@@ -4159,7 +4159,7 @@ public final class MQProtos {
       }
     }
     
-    // repeated .metaq.SubscriptionInfo subscriptionInfos = 4;
+    // repeated .rocketmq.SubscriptionInfo subscriptionInfos = 4;
     public static final int SUBSCRIPTIONINFOS_FIELD_NUMBER = 4;
     private java.util.List<com.alibaba.rocketmq.common.protocol.MQProtos.SubscriptionInfo> subscriptionInfos_;
     public java.util.List<com.alibaba.rocketmq.common.protocol.MQProtos.SubscriptionInfo> getSubscriptionInfosList() {
@@ -4350,12 +4350,12 @@ public final class MQProtos {
        implements com.alibaba.rocketmq.common.protocol.MQProtos.ConsumerInfoOrBuilder {
       public static final com.google.protobuf.Descriptors.Descriptor
           getDescriptor() {
-        return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_metaq_ConsumerInfo_descriptor;
+        return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_rocketmq_ConsumerInfo_descriptor;
       }
       
       protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
           internalGetFieldAccessorTable() {
-        return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_metaq_ConsumerInfo_fieldAccessorTable;
+        return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_rocketmq_ConsumerInfo_fieldAccessorTable;
       }
       
       // Construct using com.alibaba.rocketmq.common.protocol.MQProtos.ConsumerInfo.newBuilder()
@@ -4684,7 +4684,7 @@ public final class MQProtos {
         onChanged();
       }
       
-      // repeated .metaq.SubscriptionInfo subscriptionInfos = 4;
+      // repeated .rocketmq.SubscriptionInfo subscriptionInfos = 4;
       private java.util.List<com.alibaba.rocketmq.common.protocol.MQProtos.SubscriptionInfo> subscriptionInfos_ =
         java.util.Collections.emptyList();
       private void ensureSubscriptionInfosIsMutable() {
@@ -4870,7 +4870,7 @@ public final class MQProtos {
         return subscriptionInfosBuilder_;
       }
       
-      // @@protoc_insertion_point(builder_scope:metaq.ConsumerInfo)
+      // @@protoc_insertion_point(builder_scope:rocketmq.ConsumerInfo)
     }
     
     static {
@@ -4878,7 +4878,7 @@ public final class MQProtos {
       defaultInstance.initFields();
     }
     
-    // @@protoc_insertion_point(class_scope:metaq.ConsumerInfo)
+    // @@protoc_insertion_point(class_scope:rocketmq.ConsumerInfo)
   }
   
   public interface HeartbeatInfoOrBuilder
@@ -4888,7 +4888,7 @@ public final class MQProtos {
     boolean hasClientID();
     String getClientID();
     
-    // repeated .metaq.ProducerInfo producerInfos = 2;
+    // repeated .rocketmq.ProducerInfo producerInfos = 2;
     java.util.List<com.alibaba.rocketmq.common.protocol.MQProtos.ProducerInfo> 
         getProducerInfosList();
     com.alibaba.rocketmq.common.protocol.MQProtos.ProducerInfo getProducerInfos(int index);
@@ -4898,7 +4898,7 @@ public final class MQProtos {
     com.alibaba.rocketmq.common.protocol.MQProtos.ProducerInfoOrBuilder getProducerInfosOrBuilder(
         int index);
     
-    // repeated .metaq.ConsumerInfo consumerInfos = 3;
+    // repeated .rocketmq.ConsumerInfo consumerInfos = 3;
     java.util.List<com.alibaba.rocketmq.common.protocol.MQProtos.ConsumerInfo> 
         getConsumerInfosList();
     com.alibaba.rocketmq.common.protocol.MQProtos.ConsumerInfo getConsumerInfos(int index);
@@ -4928,12 +4928,12 @@ public final class MQProtos {
     
     public static final com.google.protobuf.Descriptors.Descriptor
         getDescriptor() {
-      return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_metaq_HeartbeatInfo_descriptor;
+      return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_rocketmq_HeartbeatInfo_descriptor;
     }
     
     protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
         internalGetFieldAccessorTable() {
-      return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_metaq_HeartbeatInfo_fieldAccessorTable;
+      return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_rocketmq_HeartbeatInfo_fieldAccessorTable;
     }
     
     private int bitField0_;
@@ -4969,7 +4969,7 @@ public final class MQProtos {
       }
     }
     
-    // repeated .metaq.ProducerInfo producerInfos = 2;
+    // repeated .rocketmq.ProducerInfo producerInfos = 2;
     public static final int PRODUCERINFOS_FIELD_NUMBER = 2;
     private java.util.List<com.alibaba.rocketmq.common.protocol.MQProtos.ProducerInfo> producerInfos_;
     public java.util.List<com.alibaba.rocketmq.common.protocol.MQProtos.ProducerInfo> getProducerInfosList() {
@@ -4990,7 +4990,7 @@ public final class MQProtos {
       return producerInfos_.get(index);
     }
     
-    // repeated .metaq.ConsumerInfo consumerInfos = 3;
+    // repeated .rocketmq.ConsumerInfo consumerInfos = 3;
     public static final int CONSUMERINFOS_FIELD_NUMBER = 3;
     private java.util.List<com.alibaba.rocketmq.common.protocol.MQProtos.ConsumerInfo> consumerInfos_;
     public java.util.List<com.alibaba.rocketmq.common.protocol.MQProtos.ConsumerInfo> getConsumerInfosList() {
@@ -5171,12 +5171,12 @@ public final class MQProtos {
        implements com.alibaba.rocketmq.common.protocol.MQProtos.HeartbeatInfoOrBuilder {
       public static final com.google.protobuf.Descriptors.Descriptor
           getDescriptor() {
-        return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_metaq_HeartbeatInfo_descriptor;
+        return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_rocketmq_HeartbeatInfo_descriptor;
       }
       
       protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
           internalGetFieldAccessorTable() {
-        return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_metaq_HeartbeatInfo_fieldAccessorTable;
+        return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_rocketmq_HeartbeatInfo_fieldAccessorTable;
       }
       
       // Construct using com.alibaba.rocketmq.common.protocol.MQProtos.HeartbeatInfo.newBuilder()
@@ -5451,7 +5451,7 @@ public final class MQProtos {
         onChanged();
       }
       
-      // repeated .metaq.ProducerInfo producerInfos = 2;
+      // repeated .rocketmq.ProducerInfo producerInfos = 2;
       private java.util.List<com.alibaba.rocketmq.common.protocol.MQProtos.ProducerInfo> producerInfos_ =
         java.util.Collections.emptyList();
       private void ensureProducerInfosIsMutable() {
@@ -5637,7 +5637,7 @@ public final class MQProtos {
         return producerInfosBuilder_;
       }
       
-      // repeated .metaq.ConsumerInfo consumerInfos = 3;
+      // repeated .rocketmq.ConsumerInfo consumerInfos = 3;
       private java.util.List<com.alibaba.rocketmq.common.protocol.MQProtos.ConsumerInfo> consumerInfos_ =
         java.util.Collections.emptyList();
       private void ensureConsumerInfosIsMutable() {
@@ -5823,7 +5823,7 @@ public final class MQProtos {
         return consumerInfosBuilder_;
       }
       
-      // @@protoc_insertion_point(builder_scope:metaq.HeartbeatInfo)
+      // @@protoc_insertion_point(builder_scope:rocketmq.HeartbeatInfo)
     }
     
     static {
@@ -5831,7 +5831,7 @@ public final class MQProtos {
       defaultInstance.initFields();
     }
     
-    // @@protoc_insertion_point(class_scope:metaq.HeartbeatInfo)
+    // @@protoc_insertion_point(class_scope:rocketmq.HeartbeatInfo)
   }
   
   public interface TopicQueuePairOrBuilder
@@ -5841,7 +5841,7 @@ public final class MQProtos {
     boolean hasTopic();
     String getTopic();
     
-    // repeated .metaq.QueueInfo queueInfo = 2;
+    // repeated .rocketmq.QueueInfo queueInfo = 2;
     java.util.List<com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo> 
         getQueueInfoList();
     com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo getQueueInfo(int index);
@@ -5871,12 +5871,12 @@ public final class MQProtos {
     
     public static final com.google.protobuf.Descriptors.Descriptor
         getDescriptor() {
-      return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_metaq_TopicQueuePair_descriptor;
+      return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_rocketmq_TopicQueuePair_descriptor;
     }
     
     protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
         internalGetFieldAccessorTable() {
-      return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_metaq_TopicQueuePair_fieldAccessorTable;
+      return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_rocketmq_TopicQueuePair_fieldAccessorTable;
     }
     
     private int bitField0_;
@@ -5912,7 +5912,7 @@ public final class MQProtos {
       }
     }
     
-    // repeated .metaq.QueueInfo queueInfo = 2;
+    // repeated .rocketmq.QueueInfo queueInfo = 2;
     public static final int QUEUEINFO_FIELD_NUMBER = 2;
     private java.util.List<com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo> queueInfo_;
     public java.util.List<com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo> getQueueInfoList() {
@@ -6079,12 +6079,12 @@ public final class MQProtos {
        implements com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePairOrBuilder {
       public static final com.google.protobuf.Descriptors.Descriptor
           getDescriptor() {
-        return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_metaq_TopicQueuePair_descriptor;
+        return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_rocketmq_TopicQueuePair_descriptor;
       }
       
       protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
           internalGetFieldAccessorTable() {
-        return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_metaq_TopicQueuePair_fieldAccessorTable;
+        return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_rocketmq_TopicQueuePair_fieldAccessorTable;
       }
       
       // Construct using com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair.newBuilder()
@@ -6305,7 +6305,7 @@ public final class MQProtos {
         onChanged();
       }
       
-      // repeated .metaq.QueueInfo queueInfo = 2;
+      // repeated .rocketmq.QueueInfo queueInfo = 2;
       private java.util.List<com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo> queueInfo_ =
         java.util.Collections.emptyList();
       private void ensureQueueInfoIsMutable() {
@@ -6491,7 +6491,7 @@ public final class MQProtos {
         return queueInfoBuilder_;
       }
       
-      // @@protoc_insertion_point(builder_scope:metaq.TopicQueuePair)
+      // @@protoc_insertion_point(builder_scope:rocketmq.TopicQueuePair)
     }
     
     static {
@@ -6499,7 +6499,7 @@ public final class MQProtos {
       defaultInstance.initFields();
     }
     
-    // @@protoc_insertion_point(class_scope:metaq.TopicQueuePair)
+    // @@protoc_insertion_point(class_scope:rocketmq.TopicQueuePair)
   }
   
   public interface BrokerDataPairOrBuilder
@@ -6509,7 +6509,7 @@ public final class MQProtos {
     boolean hasBrokerName();
     String getBrokerName();
     
-    // required .metaq.BrokerInfo brokerInfo = 2;
+    // required .rocketmq.BrokerInfo brokerInfo = 2;
     boolean hasBrokerInfo();
     com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo getBrokerInfo();
     com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfoOrBuilder getBrokerInfoOrBuilder();
@@ -6534,12 +6534,12 @@ public final class MQProtos {
     
     public static final com.google.protobuf.Descriptors.Descriptor
         getDescriptor() {
-      return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_metaq_BrokerDataPair_descriptor;
+      return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_rocketmq_BrokerDataPair_descriptor;
     }
     
     protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
         internalGetFieldAccessorTable() {
-      return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_metaq_BrokerDataPair_fieldAccessorTable;
+      return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_rocketmq_BrokerDataPair_fieldAccessorTable;
     }
     
     private int bitField0_;
@@ -6575,7 +6575,7 @@ public final class MQProtos {
       }
     }
     
-    // required .metaq.BrokerInfo brokerInfo = 2;
+    // required .rocketmq.BrokerInfo brokerInfo = 2;
     public static final int BROKERINFO_FIELD_NUMBER = 2;
     private com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo brokerInfo_;
     public boolean hasBrokerInfo() {
@@ -6736,12 +6736,12 @@ public final class MQProtos {
        implements com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPairOrBuilder {
       public static final com.google.protobuf.Descriptors.Descriptor
           getDescriptor() {
-        return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_metaq_BrokerDataPair_descriptor;
+        return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_rocketmq_BrokerDataPair_descriptor;
       }
       
       protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
           internalGetFieldAccessorTable() {
-        return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_metaq_BrokerDataPair_fieldAccessorTable;
+        return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_rocketmq_BrokerDataPair_fieldAccessorTable;
       }
       
       // Construct using com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair.newBuilder()
@@ -6943,7 +6943,7 @@ public final class MQProtos {
         onChanged();
       }
       
-      // required .metaq.BrokerInfo brokerInfo = 2;
+      // required .rocketmq.BrokerInfo brokerInfo = 2;
       private com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo brokerInfo_ = com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.getDefaultInstance();
       private com.google.protobuf.SingleFieldBuilder<
           com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo, com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.Builder, com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfoOrBuilder> brokerInfoBuilder_;
@@ -7033,7 +7033,7 @@ public final class MQProtos {
         return brokerInfoBuilder_;
       }
       
-      // @@protoc_insertion_point(builder_scope:metaq.BrokerDataPair)
+      // @@protoc_insertion_point(builder_scope:rocketmq.BrokerDataPair)
     }
     
     static {
@@ -7041,13 +7041,13 @@ public final class MQProtos {
       defaultInstance.initFields();
     }
     
-    // @@protoc_insertion_point(class_scope:metaq.BrokerDataPair)
+    // @@protoc_insertion_point(class_scope:rocketmq.BrokerDataPair)
   }
   
   public interface TopicRuntimeInfoOrBuilder
       extends com.google.protobuf.MessageOrBuilder {
     
-    // repeated .metaq.TopicQueuePair topicBrokers = 1;
+    // repeated .rocketmq.TopicQueuePair topicBrokers = 1;
     java.util.List<com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair> 
         getTopicBrokersList();
     com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair getTopicBrokers(int index);
@@ -7062,7 +7062,7 @@ public final class MQProtos {
     com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairList getTopicOrderConfs();
     com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairListOrBuilder getTopicOrderConfsOrBuilder();
     
-    // repeated .metaq.BrokerDataPair brokers = 3;
+    // repeated .rocketmq.BrokerDataPair brokers = 3;
     java.util.List<com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair> 
         getBrokersList();
     com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair getBrokers(int index);
@@ -7097,16 +7097,16 @@ public final class MQProtos {
     
     public static final com.google.protobuf.Descriptors.Descriptor
         getDescriptor() {
-      return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_metaq_TopicRuntimeInfo_descriptor;
+      return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_rocketmq_TopicRuntimeInfo_descriptor;
     }
     
     protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
         internalGetFieldAccessorTable() {
-      return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_metaq_TopicRuntimeInfo_fieldAccessorTable;
+      return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_rocketmq_TopicRuntimeInfo_fieldAccessorTable;
     }
     
     private int bitField0_;
-    // repeated .metaq.TopicQueuePair topicBrokers = 1;
+    // repeated .rocketmq.TopicQueuePair topicBrokers = 1;
     public static final int TOPICBROKERS_FIELD_NUMBER = 1;
     private java.util.List<com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair> topicBrokers_;
     public java.util.List<com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair> getTopicBrokersList() {
@@ -7140,7 +7140,7 @@ public final class MQProtos {
       return topicOrderConfs_;
     }
     
-    // repeated .metaq.BrokerDataPair brokers = 3;
+    // repeated .rocketmq.BrokerDataPair brokers = 3;
     public static final int BROKERS_FIELD_NUMBER = 3;
     private java.util.List<com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair> brokers_;
     public java.util.List<com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair> getBrokersList() {
@@ -7350,12 +7350,12 @@ public final class MQProtos {
        implements com.alibaba.rocketmq.common.protocol.MQProtos.TopicRuntimeInfoOrBuilder {
       public static final com.google.protobuf.Descriptors.Descriptor
           getDescriptor() {
-        return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_metaq_TopicRuntimeInfo_descriptor;
+        return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_rocketmq_TopicRuntimeInfo_descriptor;
       }
       
       protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
           internalGetFieldAccessorTable() {
-        return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_metaq_TopicRuntimeInfo_fieldAccessorTable;
+        return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_rocketmq_TopicRuntimeInfo_fieldAccessorTable;
       }
       
       // Construct using com.alibaba.rocketmq.common.protocol.MQProtos.TopicRuntimeInfo.newBuilder()
@@ -7642,7 +7642,7 @@ public final class MQProtos {
       
       private int bitField0_;
       
-      // repeated .metaq.TopicQueuePair topicBrokers = 1;
+      // repeated .rocketmq.TopicQueuePair topicBrokers = 1;
       private java.util.List<com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair> topicBrokers_ =
         java.util.Collections.emptyList();
       private void ensureTopicBrokersIsMutable() {
@@ -7918,7 +7918,7 @@ public final class MQProtos {
         return topicOrderConfsBuilder_;
       }
       
-      // repeated .metaq.BrokerDataPair brokers = 3;
+      // repeated .rocketmq.BrokerDataPair brokers = 3;
       private java.util.List<com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair> brokers_ =
         java.util.Collections.emptyList();
       private void ensureBrokersIsMutable() {
@@ -8194,7 +8194,7 @@ public final class MQProtos {
         return brokerListBuilder_;
       }
       
-      // @@protoc_insertion_point(builder_scope:metaq.TopicRuntimeInfo)
+      // @@protoc_insertion_point(builder_scope:rocketmq.TopicRuntimeInfo)
     }
     
     static {
@@ -8202,64 +8202,64 @@ public final class MQProtos {
       defaultInstance.initFields();
     }
     
-    // @@protoc_insertion_point(class_scope:metaq.TopicRuntimeInfo)
+    // @@protoc_insertion_point(class_scope:rocketmq.TopicRuntimeInfo)
   }
   
   private static com.google.protobuf.Descriptors.Descriptor
-    internal_static_metaq_BrokerInfo_descriptor;
+    internal_static_rocketmq_BrokerInfo_descriptor;
   private static
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
-      internal_static_metaq_BrokerInfo_fieldAccessorTable;
+      internal_static_rocketmq_BrokerInfo_fieldAccessorTable;
   private static com.google.protobuf.Descriptors.Descriptor
-    internal_static_metaq_BrokerInfo_BrokerAddr_descriptor;
+    internal_static_rocketmq_BrokerInfo_BrokerAddr_descriptor;
   private static
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
-      internal_static_metaq_BrokerInfo_BrokerAddr_fieldAccessorTable;
+      internal_static_rocketmq_BrokerInfo_BrokerAddr_fieldAccessorTable;
   private static com.google.protobuf.Descriptors.Descriptor
-    internal_static_metaq_QueueInfo_descriptor;
+    internal_static_rocketmq_QueueInfo_descriptor;
   private static
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
-      internal_static_metaq_QueueInfo_fieldAccessorTable;
+      internal_static_rocketmq_QueueInfo_fieldAccessorTable;
   private static com.google.protobuf.Descriptors.Descriptor
-    internal_static_metaq_TopicRouteInfo_descriptor;
+    internal_static_rocketmq_TopicRouteInfo_descriptor;
   private static
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
-      internal_static_metaq_TopicRouteInfo_fieldAccessorTable;
+      internal_static_rocketmq_TopicRouteInfo_fieldAccessorTable;
   private static com.google.protobuf.Descriptors.Descriptor
-    internal_static_metaq_ProducerInfo_descriptor;
+    internal_static_rocketmq_ProducerInfo_descriptor;
   private static
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
-      internal_static_metaq_ProducerInfo_fieldAccessorTable;
+      internal_static_rocketmq_ProducerInfo_fieldAccessorTable;
   private static com.google.protobuf.Descriptors.Descriptor
-    internal_static_metaq_SubscriptionInfo_descriptor;
+    internal_static_rocketmq_SubscriptionInfo_descriptor;
   private static
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
-      internal_static_metaq_SubscriptionInfo_fieldAccessorTable;
+      internal_static_rocketmq_SubscriptionInfo_fieldAccessorTable;
   private static com.google.protobuf.Descriptors.Descriptor
-    internal_static_metaq_ConsumerInfo_descriptor;
+    internal_static_rocketmq_ConsumerInfo_descriptor;
   private static
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
-      internal_static_metaq_ConsumerInfo_fieldAccessorTable;
+      internal_static_rocketmq_ConsumerInfo_fieldAccessorTable;
   private static com.google.protobuf.Descriptors.Descriptor
-    internal_static_metaq_HeartbeatInfo_descriptor;
+    internal_static_rocketmq_HeartbeatInfo_descriptor;
   private static
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
-      internal_static_metaq_HeartbeatInfo_fieldAccessorTable;
+      internal_static_rocketmq_HeartbeatInfo_fieldAccessorTable;
   private static com.google.protobuf.Descriptors.Descriptor
-    internal_static_metaq_TopicQueuePair_descriptor;
+    internal_static_rocketmq_TopicQueuePair_descriptor;
   private static
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
-      internal_static_metaq_TopicQueuePair_fieldAccessorTable;
+      internal_static_rocketmq_TopicQueuePair_fieldAccessorTable;
   private static com.google.protobuf.Descriptors.Descriptor
-    internal_static_metaq_BrokerDataPair_descriptor;
+    internal_static_rocketmq_BrokerDataPair_descriptor;
   private static
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
-      internal_static_metaq_BrokerDataPair_fieldAccessorTable;
+      internal_static_rocketmq_BrokerDataPair_fieldAccessorTable;
   private static com.google.protobuf.Descriptors.Descriptor
-    internal_static_metaq_TopicRuntimeInfo_descriptor;
+    internal_static_rocketmq_TopicRuntimeInfo_descriptor;
   private static
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
-      internal_static_metaq_TopicRuntimeInfo_fieldAccessorTable;
+      internal_static_rocketmq_TopicRuntimeInfo_fieldAccessorTable;
   
   public static com.google.protobuf.Descriptors.FileDescriptor
       getDescriptor() {
@@ -8269,171 +8269,172 @@ public final class MQProtos {
       descriptor;
   static {
     java.lang.String[] descriptorData = {
-      "\n\010mq.proto\022\005metaq\032\016remoting.proto\"{\n\nBro" +
-      "kerInfo\022\022\n\nbrokerName\030\001 \002(\t\0221\n\013brokerAdd" +
-      "rs\030\002 \003(\0132\034.metaq.BrokerInfo.BrokerAddr\032&" +
-      "\n\nBrokerAddr\022\n\n\002id\030\001 \002(\003\022\014\n\004addr\030\002 \002(\t\"\\" +
-      "\n\tQueueInfo\022\022\n\nbrokerName\030\001 \002(\t\022\025\n\rreadQ" +
-      "ueueNums\030\002 \002(\005\022\026\n\016writeQueueNums\030\003 \002(\005\022\014" +
-      "\n\004perm\030\004 \002(\005\"v\n\016TopicRouteInfo\022$\n\nqueueI" +
-      "nfos\030\001 \003(\0132\020.metaq.QueueInfo\022&\n\013brokerIn" +
-      "fos\030\002 \003(\0132\021.metaq.BrokerInfo\022\026\n\016orderTop" +
-      "icConf\030\003 \001(\t\"!\n\014ProducerInfo\022\021\n\tgroupNam",
-      "e\030\001 \002(\t\"_\n\020SubscriptionInfo\022\r\n\005topic\030\001 \002" +
-      "(\t\022\021\n\tsubString\030\002 \002(\t\022\021\n\tsubNumfmt\030\003 \002(\t" +
-      "\022\026\n\016hasAndOperator\030\004 \002(\010\"\200\001\n\014ConsumerInf" +
-      "o\022\021\n\tgroupName\030\001 \002(\t\022\023\n\013consumeType\030\002 \002(" +
-      "\t\022\024\n\014messageModel\030\003 \002(\t\0222\n\021subscriptionI" +
-      "nfos\030\004 \003(\0132\027.metaq.SubscriptionInfo\"y\n\rH" +
-      "eartbeatInfo\022\020\n\010clientID\030\001 \002(\t\022*\n\rproduc" +
-      "erInfos\030\002 \003(\0132\023.metaq.ProducerInfo\022*\n\rco" +
-      "nsumerInfos\030\003 \003(\0132\023.metaq.ConsumerInfo\"D" +
-      "\n\016TopicQueuePair\022\r\n\005topic\030\001 \002(\t\022#\n\tqueue",
-      "Info\030\002 \003(\0132\020.metaq.QueueInfo\"K\n\016BrokerDa" +
-      "taPair\022\022\n\nbrokerName\030\001 \002(\t\022%\n\nbrokerInfo" +
-      "\030\002 \002(\0132\021.metaq.BrokerInfo\"\300\001\n\020TopicRunti" +
-      "meInfo\022+\n\014topicBrokers\030\001 \003(\0132\025.metaq.Top" +
-      "icQueuePair\022-\n\017topicOrderConfs\030\002 \002(\0132\024.r" +
-      "emoting.NVPairList\022&\n\007brokers\030\003 \003(\0132\025.me" +
-      "taq.BrokerDataPair\022(\n\nbrokerList\030\004 \002(\0132\024" +
-      ".remoting.StringList*\251\010\n\rMQRequestCode\022\020" +
-      "\n\014SEND_MESSAGE\020\n\022\020\n\014PULL_MESSAGE\020\013\022\021\n\rQU" +
-      "ERY_MESSAGE\020\014\022\027\n\023QUERY_BROKER_OFFSET\020\r\022\031",
-      "\n\025QUERY_CONSUMER_OFFSET\020\016\022\032\n\026UPDATE_CONS" +
-      "UMER_OFFSET\020\017\022\033\n\027UPDATE_AND_CREATE_TOPIC" +
-      "\020\021\022\020\n\014DELETE_TOPIC\020\023\022\030\n\024GET_ALL_TOPIC_CO" +
-      "NFIG\020\025\022\031\n\025GET_TOPIC_CONFIG_LIST\020\026\022\027\n\023GET" +
-      "_TOPIC_NAME_LIST\020\027\022\034\n\030PULL_ALL_CONSUMER_" +
-      "OFFSET\020\030\022\030\n\024UPDATE_BROKER_CONFIG\020\031\022\025\n\021GE" +
-      "T_BROKER_CONFIG\020\032\022\030\n\024TRIGGER_DELETE_FILE" +
-      "S\020\033\022\033\n\027GET_BROKER_RUNTIME_INFO\020\034\022\036\n\032SEAR" +
-      "CH_OFFSET_BY_TIMESTAMP\020\035\022\022\n\016GET_MAX_OFFS" +
-      "ET\020\036\022\022\n\016GET_MIN_OFFSET\020\037\022\036\n\032GET_EARLIEST",
-      "_MSG_STORETIME\020 \022\026\n\022VIEW_MESSAGE_BY_ID\020!" +
-      "\022\016\n\nHEART_BEAT\020\"\022\025\n\021UNREGISTER_CLIENT\020#\022" +
-      "\032\n\026CONSUMER_SEND_MSG_BACK\020$\022\023\n\017END_TRANS" +
-      "ACTION\020%\022\033\n\027CHECK_TRANSACTION_STATE\020&\022\023\n" +
-      "\017REGISTER_BROKER\020d\022\025\n\021UNREGISTER_BROKER\020" +
-      "e\022\023\n\017GET_BROKER_LIST\020f\022\030\n\024REGISTER_ORDER" +
-      "_TOPIC\020g\022\032\n\026UNREGISTER_ORDER_TOPIC\020h\022\030\n\024" +
-      "GET_ORDER_TOPIC_LIST\020i\022\031\n\025UPDATE_NAMESRV" +
-      "_CONFIG\020j\022\026\n\022GET_NAMESRV_CONFIG\020k\022\034\n\030GET" +
-      "_NAMESRV_RUNTIME_INFO\020l\022\032\n\026GET_ROUTEINTO",
-      "_BY_TOPIC\020m\022\035\n\031SYNC_NAMESRV_RUNTIME_CONF" +
-      "\020n\022\032\n\026REGISTER_BROKER_SINGLE\020o\022\034\n\030UNREGI" +
-      "STER_BROKER_SINGLE\020p\022\037\n\033REGISTER_ORDER_T" +
-      "OPIC_SINGLE\020q\022!\n\035UNREGISTER_ORDER_TOPIC_" +
-      "SINGLE\020r*\313\005\n\016MQResponseCode\022\026\n\022FLUSH_DIS" +
-      "K_TIMEOUT\020\n\022\027\n\023SLAVE_NOT_AVAILABLE\020\013\022\027\n\023" +
-      "FLUSH_SLAVE_TIMEOUT\020\014\022\023\n\017MESSAGE_ILLEGAL" +
-      "\020\r\022\031\n\025SERVICE_NOT_AVAILABLE\020\016\022\031\n\025VERSION" +
-      "_NOT_SUPPORTED\020\017\022\021\n\rNO_PERMISSION\020\020\022\023\n\017T" +
-      "OPIC_NOT_EXIST\020\021\022\027\n\023TOPIC_EXIST_ALREADY\020",
-      "\022\022\022\n\016PULL_NOT_FOUND\020\023\022\032\n\026PULL_RETRY_IMME" +
-      "DIATELY\020\024\022\025\n\021PULL_OFFSET_MOVED\020\025\022\023\n\017QUER" +
-      "Y_NOT_FOUND\020\026\022\027\n\023DELETE_INVALID_CONF\020d\022\022" +
-      "\n\016NOT_MERGE_CONF\020e\022\030\n\024REGISTER_BROKER_FA" +
-      "IL\020f\022\033\n\027REGISTER_BROKER_TIMEOUT\020g\022\035\n\031REG" +
-      "ISTER_ORDER_TOPIC_FAIL\020h\022 \n\034REGISTER_ORD" +
-      "ER_TOPIC_TIMEOUT\020i\022\032\n\026UNREGISTER_BROKER_" +
-      "FAIL\020j\022\035\n\031UNREGISTER_BROKER_TIMEOUT\020k\022\"\n" +
-      "\036UNREGISTER_ORDER_TOPIC_TIMEOUT\020l\022\036\n\031TRA" +
-      "NSACTION_SHOULD_COMMIT\020\310\001\022 \n\033TRANSACTION",
-      "_SHOULD_ROLLBACK\020\311\001\022\035\n\030TRANSACTION_STATE" +
-      "_UNKNOW\020\312\001\022\"\n\035TRANSACTION_STATE_GROUP_WR" +
-      "ONG\020\313\001B2\n$com.alibaba.rocketmq.common.pr" +
-      "otocolB\010MQProtosH\001"
+      "\n\010mq.proto\022\010rocketmq\032\016remoting.proto\"~\n\n" +
+      "BrokerInfo\022\022\n\nbrokerName\030\001 \002(\t\0224\n\013broker" +
+      "Addrs\030\002 \003(\0132\037.rocketmq.BrokerInfo.Broker" +
+      "Addr\032&\n\nBrokerAddr\022\n\n\002id\030\001 \002(\003\022\014\n\004addr\030\002" +
+      " \002(\t\"\\\n\tQueueInfo\022\022\n\nbrokerName\030\001 \002(\t\022\025\n" +
+      "\rreadQueueNums\030\002 \002(\005\022\026\n\016writeQueueNums\030\003" +
+      " \002(\005\022\014\n\004perm\030\004 \002(\005\"|\n\016TopicRouteInfo\022\'\n\n" +
+      "queueInfos\030\001 \003(\0132\023.rocketmq.QueueInfo\022)\n" +
+      "\013brokerInfos\030\002 \003(\0132\024.rocketmq.BrokerInfo" +
+      "\022\026\n\016orderTopicConf\030\003 \001(\t\"!\n\014ProducerInfo",
+      "\022\021\n\tgroupName\030\001 \002(\t\"_\n\020SubscriptionInfo\022" +
+      "\r\n\005topic\030\001 \002(\t\022\021\n\tsubString\030\002 \002(\t\022\021\n\tsub" +
+      "Numfmt\030\003 \002(\t\022\026\n\016hasAndOperator\030\004 \002(\010\"\203\001\n" +
+      "\014ConsumerInfo\022\021\n\tgroupName\030\001 \002(\t\022\023\n\013cons" +
+      "umeType\030\002 \002(\t\022\024\n\014messageModel\030\003 \002(\t\0225\n\021s" +
+      "ubscriptionInfos\030\004 \003(\0132\032.rocketmq.Subscr" +
+      "iptionInfo\"\177\n\rHeartbeatInfo\022\020\n\010clientID\030" +
+      "\001 \002(\t\022-\n\rproducerInfos\030\002 \003(\0132\026.rocketmq." +
+      "ProducerInfo\022-\n\rconsumerInfos\030\003 \003(\0132\026.ro" +
+      "cketmq.ConsumerInfo\"G\n\016TopicQueuePair\022\r\n",
+      "\005topic\030\001 \002(\t\022&\n\tqueueInfo\030\002 \003(\0132\023.rocket" +
+      "mq.QueueInfo\"N\n\016BrokerDataPair\022\022\n\nbroker" +
+      "Name\030\001 \002(\t\022(\n\nbrokerInfo\030\002 \002(\0132\024.rocketm" +
+      "q.BrokerInfo\"\306\001\n\020TopicRuntimeInfo\022.\n\014top" +
+      "icBrokers\030\001 \003(\0132\030.rocketmq.TopicQueuePai" +
+      "r\022-\n\017topicOrderConfs\030\002 \002(\0132\024.remoting.NV" +
+      "PairList\022)\n\007brokers\030\003 \003(\0132\030.rocketmq.Bro" +
+      "kerDataPair\022(\n\nbrokerList\030\004 \002(\0132\024.remoti" +
+      "ng.StringList*\251\010\n\rMQRequestCode\022\020\n\014SEND_" +
+      "MESSAGE\020\n\022\020\n\014PULL_MESSAGE\020\013\022\021\n\rQUERY_MES",
+      "SAGE\020\014\022\027\n\023QUERY_BROKER_OFFSET\020\r\022\031\n\025QUERY" +
+      "_CONSUMER_OFFSET\020\016\022\032\n\026UPDATE_CONSUMER_OF" +
+      "FSET\020\017\022\033\n\027UPDATE_AND_CREATE_TOPIC\020\021\022\020\n\014D" +
+      "ELETE_TOPIC\020\023\022\030\n\024GET_ALL_TOPIC_CONFIG\020\025\022" +
+      "\031\n\025GET_TOPIC_CONFIG_LIST\020\026\022\027\n\023GET_TOPIC_" +
+      "NAME_LIST\020\027\022\034\n\030PULL_ALL_CONSUMER_OFFSET\020" +
+      "\030\022\030\n\024UPDATE_BROKER_CONFIG\020\031\022\025\n\021GET_BROKE" +
+      "R_CONFIG\020\032\022\030\n\024TRIGGER_DELETE_FILES\020\033\022\033\n\027" +
+      "GET_BROKER_RUNTIME_INFO\020\034\022\036\n\032SEARCH_OFFS" +
+      "ET_BY_TIMESTAMP\020\035\022\022\n\016GET_MAX_OFFSET\020\036\022\022\n",
+      "\016GET_MIN_OFFSET\020\037\022\036\n\032GET_EARLIEST_MSG_ST" +
+      "ORETIME\020 \022\026\n\022VIEW_MESSAGE_BY_ID\020!\022\016\n\nHEA" +
+      "RT_BEAT\020\"\022\025\n\021UNREGISTER_CLIENT\020#\022\032\n\026CONS" +
+      "UMER_SEND_MSG_BACK\020$\022\023\n\017END_TRANSACTION\020" +
+      "%\022\033\n\027CHECK_TRANSACTION_STATE\020&\022\023\n\017REGIST" +
+      "ER_BROKER\020d\022\025\n\021UNREGISTER_BROKER\020e\022\023\n\017GE" +
+      "T_BROKER_LIST\020f\022\030\n\024REGISTER_ORDER_TOPIC\020" +
+      "g\022\032\n\026UNREGISTER_ORDER_TOPIC\020h\022\030\n\024GET_ORD" +
+      "ER_TOPIC_LIST\020i\022\031\n\025UPDATE_NAMESRV_CONFIG" +
+      "\020j\022\026\n\022GET_NAMESRV_CONFIG\020k\022\034\n\030GET_NAMESR",
+      "V_RUNTIME_INFO\020l\022\032\n\026GET_ROUTEINTO_BY_TOP" +
+      "IC\020m\022\035\n\031SYNC_NAMESRV_RUNTIME_CONF\020n\022\032\n\026R" +
+      "EGISTER_BROKER_SINGLE\020o\022\034\n\030UNREGISTER_BR" +
+      "OKER_SINGLE\020p\022\037\n\033REGISTER_ORDER_TOPIC_SI" +
+      "NGLE\020q\022!\n\035UNREGISTER_ORDER_TOPIC_SINGLE\020" +
+      "r*\313\005\n\016MQResponseCode\022\026\n\022FLUSH_DISK_TIMEO" +
+      "UT\020\n\022\027\n\023SLAVE_NOT_AVAILABLE\020\013\022\027\n\023FLUSH_S" +
+      "LAVE_TIMEOUT\020\014\022\023\n\017MESSAGE_ILLEGAL\020\r\022\031\n\025S" +
+      "ERVICE_NOT_AVAILABLE\020\016\022\031\n\025VERSION_NOT_SU" +
+      "PPORTED\020\017\022\021\n\rNO_PERMISSION\020\020\022\023\n\017TOPIC_NO",
+      "T_EXIST\020\021\022\027\n\023TOPIC_EXIST_ALREADY\020\022\022\022\n\016PU" +
+      "LL_NOT_FOUND\020\023\022\032\n\026PULL_RETRY_IMMEDIATELY" +
+      "\020\024\022\025\n\021PULL_OFFSET_MOVED\020\025\022\023\n\017QUERY_NOT_F" +
+      "OUND\020\026\022\027\n\023DELETE_INVALID_CONF\020d\022\022\n\016NOT_M" +
+      "ERGE_CONF\020e\022\030\n\024REGISTER_BROKER_FAIL\020f\022\033\n" +
+      "\027REGISTER_BROKER_TIMEOUT\020g\022\035\n\031REGISTER_O" +
+      "RDER_TOPIC_FAIL\020h\022 \n\034REGISTER_ORDER_TOPI" +
+      "C_TIMEOUT\020i\022\032\n\026UNREGISTER_BROKER_FAIL\020j\022" +
+      "\035\n\031UNREGISTER_BROKER_TIMEOUT\020k\022\"\n\036UNREGI" +
+      "STER_ORDER_TOPIC_TIMEOUT\020l\022\036\n\031TRANSACTIO",
+      "N_SHOULD_COMMIT\020\310\001\022 \n\033TRANSACTION_SHOULD" +
+      "_ROLLBACK\020\311\001\022\035\n\030TRANSACTION_STATE_UNKNOW" +
+      "\020\312\001\022\"\n\035TRANSACTION_STATE_GROUP_WRONG\020\313\001B" +
+      "2\n$com.alibaba.rocketmq.common.protocolB" +
+      "\010MQProtosH\001"
     };
     com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
       new com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner() {
         public com.google.protobuf.ExtensionRegistry assignDescriptors(
             com.google.protobuf.Descriptors.FileDescriptor root) {
           descriptor = root;
-          internal_static_metaq_BrokerInfo_descriptor =
+          internal_static_rocketmq_BrokerInfo_descriptor =
             getDescriptor().getMessageTypes().get(0);
-          internal_static_metaq_BrokerInfo_fieldAccessorTable = new
+          internal_static_rocketmq_BrokerInfo_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
-              internal_static_metaq_BrokerInfo_descriptor,
+              internal_static_rocketmq_BrokerInfo_descriptor,
               new java.lang.String[] { "BrokerName", "BrokerAddrs", },
               com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.class,
               com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.Builder.class);
-          internal_static_metaq_BrokerInfo_BrokerAddr_descriptor =
-            internal_static_metaq_BrokerInfo_descriptor.getNestedTypes().get(0);
-          internal_static_metaq_BrokerInfo_BrokerAddr_fieldAccessorTable = new
+          internal_static_rocketmq_BrokerInfo_BrokerAddr_descriptor =
+            internal_static_rocketmq_BrokerInfo_descriptor.getNestedTypes().get(0);
+          internal_static_rocketmq_BrokerInfo_BrokerAddr_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
-              internal_static_metaq_BrokerInfo_BrokerAddr_descriptor,
+              internal_static_rocketmq_BrokerInfo_BrokerAddr_descriptor,
               new java.lang.String[] { "Id", "Addr", },
               com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr.class,
               com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr.Builder.class);
-          internal_static_metaq_QueueInfo_descriptor =
+          internal_static_rocketmq_QueueInfo_descriptor =
             getDescriptor().getMessageTypes().get(1);
-          internal_static_metaq_QueueInfo_fieldAccessorTable = new
+          internal_static_rocketmq_QueueInfo_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
-              internal_static_metaq_QueueInfo_descriptor,
+              internal_static_rocketmq_QueueInfo_descriptor,
               new java.lang.String[] { "BrokerName", "ReadQueueNums", "WriteQueueNums", "Perm", },
               com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo.class,
               com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo.Builder.class);
-          internal_static_metaq_TopicRouteInfo_descriptor =
+          internal_static_rocketmq_TopicRouteInfo_descriptor =
             getDescriptor().getMessageTypes().get(2);
-          internal_static_metaq_TopicRouteInfo_fieldAccessorTable = new
+          internal_static_rocketmq_TopicRouteInfo_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
-              internal_static_metaq_TopicRouteInfo_descriptor,
+              internal_static_rocketmq_TopicRouteInfo_descriptor,
               new java.lang.String[] { "QueueInfos", "BrokerInfos", "OrderTopicConf", },
               com.alibaba.rocketmq.common.protocol.MQProtos.TopicRouteInfo.class,
               com.alibaba.rocketmq.common.protocol.MQProtos.TopicRouteInfo.Builder.class);
-          internal_static_metaq_ProducerInfo_descriptor =
+          internal_static_rocketmq_ProducerInfo_descriptor =
             getDescriptor().getMessageTypes().get(3);
-          internal_static_metaq_ProducerInfo_fieldAccessorTable = new
+          internal_static_rocketmq_ProducerInfo_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
-              internal_static_metaq_ProducerInfo_descriptor,
+              internal_static_rocketmq_ProducerInfo_descriptor,
               new java.lang.String[] { "GroupName", },
               com.alibaba.rocketmq.common.protocol.MQProtos.ProducerInfo.class,
               com.alibaba.rocketmq.common.protocol.MQProtos.ProducerInfo.Builder.class);
-          internal_static_metaq_SubscriptionInfo_descriptor =
+          internal_static_rocketmq_SubscriptionInfo_descriptor =
             getDescriptor().getMessageTypes().get(4);
-          internal_static_metaq_SubscriptionInfo_fieldAccessorTable = new
+          internal_static_rocketmq_SubscriptionInfo_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
-              internal_static_metaq_SubscriptionInfo_descriptor,
+              internal_static_rocketmq_SubscriptionInfo_descriptor,
               new java.lang.String[] { "Topic", "SubString", "SubNumfmt", "HasAndOperator", },
               com.alibaba.rocketmq.common.protocol.MQProtos.SubscriptionInfo.class,
               com.alibaba.rocketmq.common.protocol.MQProtos.SubscriptionInfo.Builder.class);
-          internal_static_metaq_ConsumerInfo_descriptor =
+          internal_static_rocketmq_ConsumerInfo_descriptor =
             getDescriptor().getMessageTypes().get(5);
-          internal_static_metaq_ConsumerInfo_fieldAccessorTable = new
+          internal_static_rocketmq_ConsumerInfo_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
-              internal_static_metaq_ConsumerInfo_descriptor,
+              internal_static_rocketmq_ConsumerInfo_descriptor,
               new java.lang.String[] { "GroupName", "ConsumeType", "MessageModel", "SubscriptionInfos", },
               com.alibaba.rocketmq.common.protocol.MQProtos.ConsumerInfo.class,
               com.alibaba.rocketmq.common.protocol.MQProtos.ConsumerInfo.Builder.class);
-          internal_static_metaq_HeartbeatInfo_descriptor =
+          internal_static_rocketmq_HeartbeatInfo_descriptor =
             getDescriptor().getMessageTypes().get(6);
-          internal_static_metaq_HeartbeatInfo_fieldAccessorTable = new
+          internal_static_rocketmq_HeartbeatInfo_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
-              internal_static_metaq_HeartbeatInfo_descriptor,
+              internal_static_rocketmq_HeartbeatInfo_descriptor,
               new java.lang.String[] { "ClientID", "ProducerInfos", "ConsumerInfos", },
               com.alibaba.rocketmq.common.protocol.MQProtos.HeartbeatInfo.class,
               com.alibaba.rocketmq.common.protocol.MQProtos.HeartbeatInfo.Builder.class);
-          internal_static_metaq_TopicQueuePair_descriptor =
+          internal_static_rocketmq_TopicQueuePair_descriptor =
             getDescriptor().getMessageTypes().get(7);
-          internal_static_metaq_TopicQueuePair_fieldAccessorTable = new
+          internal_static_rocketmq_TopicQueuePair_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
-              internal_static_metaq_TopicQueuePair_descriptor,
+              internal_static_rocketmq_TopicQueuePair_descriptor,
               new java.lang.String[] { "Topic", "QueueInfo", },
               com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair.class,
               com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair.Builder.class);
-          internal_static_metaq_BrokerDataPair_descriptor =
+          internal_static_rocketmq_BrokerDataPair_descriptor =
             getDescriptor().getMessageTypes().get(8);
-          internal_static_metaq_BrokerDataPair_fieldAccessorTable = new
+          internal_static_rocketmq_BrokerDataPair_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
-              internal_static_metaq_BrokerDataPair_descriptor,
+              internal_static_rocketmq_BrokerDataPair_descriptor,
               new java.lang.String[] { "BrokerName", "BrokerInfo", },
               com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair.class,
               com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair.Builder.class);
-          internal_static_metaq_TopicRuntimeInfo_descriptor =
+          internal_static_rocketmq_TopicRuntimeInfo_descriptor =
             getDescriptor().getMessageTypes().get(9);
-          internal_static_metaq_TopicRuntimeInfo_fieldAccessorTable = new
+          internal_static_rocketmq_TopicRuntimeInfo_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
-              internal_static_metaq_TopicRuntimeInfo_descriptor,
+              internal_static_rocketmq_TopicRuntimeInfo_descriptor,
               new java.lang.String[] { "TopicBrokers", "TopicOrderConfs", "Brokers", "BrokerList", },
               com.alibaba.rocketmq.common.protocol.MQProtos.TopicRuntimeInfo.class,
               com.alibaba.rocketmq.common.protocol.MQProtos.TopicRuntimeInfo.Builder.class);

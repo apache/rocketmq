@@ -56,7 +56,7 @@ public class MQAdminImpl {
             boolean order) throws MQClientException {
         try {
             TopicRouteData topicRouteData =
-                    this.mQClientFactory.getMetaClientAPIImpl().getTopicRouteInfoFromNameServer(key, 1000 * 3);
+                    this.mQClientFactory.getMQClientAPIImpl().getTopicRouteInfoFromNameServer(key, 1000 * 3);
             List<BrokerData> brokerDataList = topicRouteData.getBrokerDatas();
             if (brokerDataList != null && !brokerDataList.isEmpty()) {
                 // 排序原因：即使没有配置顺序消息模式，默认队列的顺序同配置的一致。
@@ -75,7 +75,7 @@ public class MQAdminImpl {
                         topicConfig.setWriteQueueNums(queueNum);
                         topicConfig.setTopicFilterType(topicFilterType);
                         try {
-                            this.mQClientFactory.getMetaClientAPIImpl().createTopic(addr, key, topicConfig,
+                            this.mQClientFactory.getMQClientAPIImpl().createTopic(addr, key, topicConfig,
                                 1000 * 3);
                         }
                         catch (Exception e) {
@@ -95,7 +95,7 @@ public class MQAdminImpl {
 
                 if (order) {
                     // 向Name Server注册顺序消息
-                    this.mQClientFactory.getMetaClientAPIImpl().registerOrderTopic(newTopic,
+                    this.mQClientFactory.getMQClientAPIImpl().registerOrderTopic(newTopic,
                         orderTopicString.toString(), 1000 * 10);
                 }
             }
@@ -109,30 +109,30 @@ public class MQAdminImpl {
     }
 
 
-    public List<MessageQueue> fetchPublishMetaQueues(String topic) throws MQClientException {
+    public List<MessageQueue> fetchPublishMessageQueues(String topic) throws MQClientException {
         try {
             TopicRouteData topicRouteData =
-                    this.mQClientFactory.getMetaClientAPIImpl().getTopicRouteInfoFromNameServer(topic, 1000 * 3);
+                    this.mQClientFactory.getMQClientAPIImpl().getTopicRouteInfoFromNameServer(topic, 1000 * 3);
             if (topicRouteData != null) {
                 TopicPublishInfo topicPublishInfo =
                         MQClientFactory.topicRouteData2TopicPublishInfo(topic, topicRouteData);
                 if (topicPublishInfo != null && topicPublishInfo.ok()) {
-                    return topicPublishInfo.getMetaQueueList();
+                    return topicPublishInfo.getMessageQueueList();
                 }
             }
         }
         catch (Exception e) {
-            throw new MQClientException("Can not find Meta Queue for this topic, " + topic, e);
+            throw new MQClientException("Can not find Message Queue for this topic, " + topic, e);
         }
 
-        throw new MQClientException("Unknow why, Can not find Meta Queue for this topic, " + topic, null);
+        throw new MQClientException("Unknow why, Can not find Message Queue for this topic, " + topic, null);
     }
 
 
-    public List<MessageQueue> fetchSubscribeMetaQueues(String topic) throws MQClientException {
+    public List<MessageQueue> fetchSubscribeMessageQueues(String topic) throws MQClientException {
         try {
             TopicRouteData topicRouteData =
-                    this.mQClientFactory.getMetaClientAPIImpl().getTopicRouteInfoFromNameServer(topic, 1000 * 3);
+                    this.mQClientFactory.getMQClientAPIImpl().getTopicRouteInfoFromNameServer(topic, 1000 * 3);
             if (topicRouteData != null) {
                 List<MessageQueue> mqList =
                         MQClientFactory.topicRouteData2TopicSubscribeInfo(topic, topicRouteData);
@@ -140,15 +140,15 @@ public class MQAdminImpl {
                     return mqList;
                 }
                 else {
-                    throw new MQClientException("Can not find Meta Queue for this topic, " + topic, null);
+                    throw new MQClientException("Can not find Message Queue for this topic, " + topic, null);
                 }
             }
         }
         catch (Exception e) {
-            throw new MQClientException("Can not find Meta Queue for this topic, " + topic, e);
+            throw new MQClientException("Can not find Message Queue for this topic, " + topic, e);
         }
 
-        throw new MQClientException("Unknow why, Can not find Meta Queue for this topic, " + topic, null);
+        throw new MQClientException("Unknow why, Can not find Message Queue for this topic, " + topic, null);
     }
 
 
@@ -161,7 +161,7 @@ public class MQAdminImpl {
 
         if (brokerAddr != null) {
             try {
-                return this.mQClientFactory.getMetaClientAPIImpl().searchOffset(brokerAddr, mq.getTopic(),
+                return this.mQClientFactory.getMQClientAPIImpl().searchOffset(brokerAddr, mq.getTopic(),
                     mq.getQueueId(), timestamp, 1000 * 3);
             }
             catch (Exception e) {
@@ -182,7 +182,7 @@ public class MQAdminImpl {
 
         if (brokerAddr != null) {
             try {
-                return this.mQClientFactory.getMetaClientAPIImpl().getMaxOffset(brokerAddr, mq.getTopic(),
+                return this.mQClientFactory.getMQClientAPIImpl().getMaxOffset(brokerAddr, mq.getTopic(),
                     mq.getQueueId(), 1000 * 3);
             }
             catch (Exception e) {
@@ -203,7 +203,7 @@ public class MQAdminImpl {
 
         if (brokerAddr != null) {
             try {
-                return this.mQClientFactory.getMetaClientAPIImpl().getMinOffset(brokerAddr, mq.getTopic(),
+                return this.mQClientFactory.getMQClientAPIImpl().getMinOffset(brokerAddr, mq.getTopic(),
                     mq.getQueueId(), 1000 * 3);
             }
             catch (Exception e) {
@@ -224,7 +224,7 @@ public class MQAdminImpl {
 
         if (brokerAddr != null) {
             try {
-                return this.mQClientFactory.getMetaClientAPIImpl().getEarliestMsgStoretime(brokerAddr,
+                return this.mQClientFactory.getMQClientAPIImpl().getEarliestMsgStoretime(brokerAddr,
                     mq.getTopic(), mq.getQueueId(), 1000 * 3);
             }
             catch (Exception e) {
@@ -240,7 +240,7 @@ public class MQAdminImpl {
             InterruptedException, MQClientException {
         try {
             MessageId messageId = MessageDecoder.decodeMessageId(msgId);
-            return this.mQClientFactory.getMetaClientAPIImpl()
+            return this.mQClientFactory.getMQClientAPIImpl()
                 .viewMessage(RemotingUtil.socketAddress2String(messageId.getAddress()),
                     messageId.getOffset(), 1000 * 3);
         }
@@ -280,7 +280,7 @@ public class MQAdminImpl {
                         requestHeader.setBeginTimestamp(begin);
                         requestHeader.setEndTimestamp(end);
 
-                        this.mQClientFactory.getMetaClientAPIImpl().queryMessage(addr, requestHeader, 1000 * 5,
+                        this.mQClientFactory.getMQClientAPIImpl().queryMessage(addr, requestHeader, 1000 * 5,
                             new InvokeCallback() {
                                 @Override
                                 public void operationComplete(ResponseFuture responseFuture) {

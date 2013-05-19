@@ -16,8 +16,8 @@ public class AllocateMessageQueueAveragelyTeset {
     @Test
     public void test_allocate() {
     	AllocateMessageQueueAveragely allocateMessageQueueAveragely  =new AllocateMessageQueueAveragely();
-    	String group = "s_test_metaq";
-    	String topic = "topic_test_metaq";
+    	String group = "s_test";
+    	String topic = "topic_test";
     	String currentCID = "CID";
     	List<MessageQueue> mqAll = new ArrayList<MessageQueue>();
     	for(int i=0;i<10;i++){

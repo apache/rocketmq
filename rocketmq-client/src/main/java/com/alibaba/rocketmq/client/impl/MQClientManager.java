@@ -11,7 +11,7 @@ import com.alibaba.rocketmq.client.impl.factory.MQClientFactory;
 
 
 /**
- * Meta Client单例管理
+ * Client单例管理
  * 
  * @author vintage.wang@gmail.com shijia.wxr@taobao.com
  * 

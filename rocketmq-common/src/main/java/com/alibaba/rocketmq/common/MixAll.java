@@ -1,6 +1,3 @@
-/**
- * $Id: MetaMix.java 1839 2013-05-16 02:12:02Z shijia.wxr $
- */
 package com.alibaba.rocketmq.common;
 
 import java.io.ByteArrayInputStream;

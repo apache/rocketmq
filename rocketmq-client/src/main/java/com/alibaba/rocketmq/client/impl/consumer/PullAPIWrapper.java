@@ -117,7 +117,7 @@ public class PullAPIWrapper {
             requestHeader.setSuspendTimeoutMillis(brokerSuspendMaxTimeMillis);
             requestHeader.setSubscription(subExpression);
 
-            PullResult pullResult = this.mQClientFactory.getMetaClientAPIImpl().pullMessage(//
+            PullResult pullResult = this.mQClientFactory.getMQClientAPIImpl().pullMessage(//
                 findBrokerResult.getBrokerAddr(),//
                 requestHeader,//
                 timeoutMillis,//

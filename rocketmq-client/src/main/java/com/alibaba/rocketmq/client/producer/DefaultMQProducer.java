@@ -27,7 +27,7 @@ import com.alibaba.rocketmq.remoting.exception.RemotingException;
  */
 public class DefaultMQProducer implements MQProducer {
     /**
-     * Metaq客户端公共配置，不建议修改
+     * 客户端公共配置，不建议修改
      */
     private MQClientConfig mQClientConfig = new MQClientConfig();
     /**
@@ -35,7 +35,7 @@ public class DefaultMQProducer implements MQProducer {
      */
     private String producerGroup = MixAll.DEFAULT_PRODUCER_GROUP;
     /**
-     * Metaq支持在发送消息时，如果Topic不存在，自动创建Topic，但是要指定Key
+     * 支持在发送消息时，如果Topic不存在，自动创建Topic，但是要指定Key
      */
     private String createTopicKey = MixAll.DEFAULT_TOPIC;
     /**
@@ -100,7 +100,7 @@ public class DefaultMQProducer implements MQProducer {
 
     @Override
     public List<MessageQueue> fetchPublishMessageQueues(String topic) throws MQClientException {
-        return this.defaultMQProducerImpl.fetchPublishMetaQueues(topic);
+        return this.defaultMQProducerImpl.fetchPublishMessageQueues(topic);
     }
 
 

@@ -137,7 +137,7 @@ public interface MQProducer extends MQAdmin {
 
     /**
      * 发送消息，可以自定义选择队列，队列的总数可能会由于Broker的启停变化<br>
-     * 如果要保证消息严格有序，在向Metaq运维人员申请Topic时，需要特别说明<br>
+     * 如果要保证消息严格有序，在向运维人员申请Topic时，需要特别说明<br>
      * 同步调用
      * 
      * @param msg
@@ -158,7 +158,7 @@ public interface MQProducer extends MQAdmin {
 
     /**
      * 发送消息，可以自定义选择队列，队列的总数可能会由于Broker的启停变化<br>
-     * 如果要保证消息严格有序，在向Metaq运维人员申请Topic时，需要特别说明<br>
+     * 如果要保证消息严格有序，在向运维人员申请Topic时，需要特别说明<br>
      * 异步调用
      * 
      * @param msg
@@ -179,7 +179,7 @@ public interface MQProducer extends MQAdmin {
 
     /**
      * 发送消息，可以自定义选择队列，队列的总数可能会由于Broker的启停变化<br>
-     * 如果要保证消息严格有序，在向Metaq运维人员申请Topic时，需要特别说明<br>
+     * 如果要保证消息严格有序，在向运维人员申请Topic时，需要特别说明<br>
      * Oneway形式，服务器不应答，无法保证消息是否成功到达服务器
      * 
      * @param msg
