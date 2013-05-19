@@ -75,7 +75,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
     private final Lock lockNamesrvChannel = new ReentrantLock();
 
     // ´¦ÀíCallbackÓ¦´ðÆ÷
-    private final ExecutorService callbackExecutor;
+    private final ExecutorService publicExecutor;
 
     private final ChannelEventListener channelEventListener;
 
@@ -200,24 +200,21 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
         this.nettyClientConfig = nettyClientConfig;
         this.channelEventListener = channelEventListener;
 
-        if (nettyClientConfig.getClientCallbackExecutorThreads() > 0) {
-            this.callbackExecutor =
-                    Executors.newFixedThreadPool(nettyClientConfig.getClientCallbackExecutorThreads(),
-                        new ThreadFactory() {
-
-                            private AtomicInteger threadIndex = new AtomicInteger(0);
-
-
-                            @Override
-                            public Thread newThread(Runnable r) {
-                                return new Thread(r, "NettyClientCallbackExecutor_"
-                                        + this.threadIndex.incrementAndGet());
-                            }
-                        });
+        int publicThreadNums = nettyClientConfig.getClientCallbackExecutorThreads();
+        if (publicThreadNums <= 0) {
+            publicThreadNums = 4;
         }
-        else {
-            this.callbackExecutor = null;
-        }
+
+        this.publicExecutor = Executors.newFixedThreadPool(publicThreadNums, new ThreadFactory() {
+            private AtomicInteger threadIndex = new AtomicInteger(0);
+
+
+            @Override
+            public Thread newThread(Runnable r) {
+                return new Thread(r, "NettyClientPublicExecutor_" + this.threadIndex.incrementAndGet());
+            }
+        });
+
     }
 
 
@@ -319,9 +316,9 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
             log.error("NettyRemotingClient shutdown exception, ", e);
         }
 
-        if (this.callbackExecutor != null) {
+        if (this.publicExecutor != null) {
             try {
-                this.callbackExecutor.shutdown();
+                this.publicExecutor.shutdown();
             }
             catch (Exception e) {
                 log.error("NettyRemotingServer shutdown exception, ", e);
@@ -625,7 +622,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
 
     @Override
     public Executor getCallbackExecutor() {
-        return this.callbackExecutor;
+        return this.publicExecutor;
     }
 
 
