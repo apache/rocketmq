@@ -13,5 +13,5 @@ import com.alibaba.rocketmq.common.Message;
  * 
  */
 public interface LocalTransactionExecuter {
-    public boolean executeLocalTransactionBranch(final Message msg);
+    public LocalTransactionState executeLocalTransactionBranch(final Message msg);
 }

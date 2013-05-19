@@ -18,6 +18,7 @@ import com.alibaba.rocketmq.client.impl.MQClientManager;
 import com.alibaba.rocketmq.client.impl.factory.MQClientFactory;
 import com.alibaba.rocketmq.client.producer.DefaultMQProducer;
 import com.alibaba.rocketmq.client.producer.LocalTransactionExecuter;
+import com.alibaba.rocketmq.client.producer.LocalTransactionState;
 import com.alibaba.rocketmq.client.producer.MessageQueueSelector;
 import com.alibaba.rocketmq.client.producer.SendCallback;
 import com.alibaba.rocketmq.client.producer.SendResult;
@@ -565,14 +566,25 @@ public class DefaultMQProducerImpl {
     }
 
 
-    private void endTransaction(final SendResult sendResult, final boolean commit) throws RemotingException,
-            MQBrokerException, InterruptedException, UnknownHostException {
+    private void endTransaction(final SendResult sendResult, final LocalTransactionState localTransactionState)
+            throws RemotingException, MQBrokerException, InterruptedException, UnknownHostException {
         final MessageId id = MessageDecoder.decodeMessageId(sendResult.getMsgId());
         final String addr = RemotingUtil.socketAddress2String(id.getAddress());
         EndTransactionRequestHeader requestHeader = new EndTransactionRequestHeader();
         requestHeader.setCommitLogOffset(id.getOffset());
-        requestHeader.setCommitOrRollback(commit ? MessageSysFlag.TransactionCommitType
-                : MessageSysFlag.TransactionRollbackType);
+        switch (localTransactionState) {
+        case COMMIT:
+            requestHeader.setCommitOrRollback(MessageSysFlag.TransactionCommitType);
+            break;
+        case ROLLBACK:
+            requestHeader.setCommitOrRollback(MessageSysFlag.TransactionRollbackType);
+            break;
+        case UNKNOW:
+            break;
+        default:
+            break;
+        }
+
         requestHeader.setProducerGroup(this.defaultMQProducer.getProducerGroup());
         requestHeader.setTranStateTableOffset(sendResult.getQueueOffset());
         this.mQClientFactory.getMetaClientAPIImpl().endTransaction(addr, requestHeader,
@@ -580,7 +592,7 @@ public class DefaultMQProducerImpl {
     }
 
 
-    public void sendMessageInTransaction(final Message msg, final LocalTransactionExecuter tranExecuter)
+    public SendResult sendMessageInTransaction(final Message msg, final LocalTransactionExecuter tranExecuter)
             throws MQClientException {
         if (null == msg) {
             throw new MQClientException("msg is null", null);
@@ -602,36 +614,36 @@ public class DefaultMQProducerImpl {
         }
 
         // 第二步，回调本地事务
-        boolean localTransactionOK = false;
+        LocalTransactionState localTransactionState = LocalTransactionState.UNKNOW;
         MQClientException exception = null;
         try {
-            localTransactionOK = tranExecuter.executeLocalTransactionBranch(msg);
+            localTransactionState = tranExecuter.executeLocalTransactionBranch(msg);
         }
         catch (Throwable e) {
             exception =
                     new MQClientException("send message OK, but execute local transaction branch Exception", e);
         }
 
-        if (!localTransactionOK) {
-            exception =
-                    new MQClientException("send message OK, but execute local transaction branch, return false",
-                        null);
-        }
-
-        // 第三步，提交/回滚Broker上的消息
-        if (null == exception) {
+        // 第三步，提交或者回滚Broker端消息
+        switch (localTransactionState) {
+        case COMMIT:
+        case ROLLBACK:
             try {
-                this.endTransaction(sendResult, localTransactionOK);
+                this.endTransaction(sendResult, localTransactionState);
             }
             catch (Exception e) {
-                throw new MQClientException("local transaction execute "
-                        + (localTransactionOK ? "Success" : "Failed") + ", but end broker transaction failed", e);
+                throw new MQClientException("local transaction execute " + localTransactionState
+                        + ", but end broker transaction failed", e);
             }
+            break;
+        // 本地事务抛出异常或者返回未知状态，所以暂时不提交也不回滚，等待服务器主动check
+        case UNKNOW:
+            // TODO log
+        default:
+            break;
+
         }
-        // 本地事务抛出异常，所以暂时不提交也不回滚，等待服务器主动check
-        else {
-            throw new MQClientException("local transaction branch exception, so wait broker to check it",
-                exception);
-        }
+
+        return sendResult;
     }
 }
