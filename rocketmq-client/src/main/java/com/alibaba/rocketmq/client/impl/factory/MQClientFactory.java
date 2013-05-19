@@ -227,6 +227,35 @@ public class MQClientFactory {
     }
 
 
+    private void unregisterClient(final String producerGroup, final String consumerGroup) {
+        for (String name : this.brokerAddrTable.keySet()) {
+            final HashMap<Long, String> oneTable = this.brokerAddrTable.get(name);
+            if (oneTable != null) {
+                for (Long id : oneTable.keySet()) {
+                    String addr = oneTable.get(id);
+                    if (addr != null) {
+                        try {
+                            this.mQClientAPIImpl.unregisterClient(addr, this.clientId, producerGroup,
+                                consumerGroup, 3000);
+                            log.info("unregister client[Producer: {} Consumer: {}] from broker[{} {} {}] success",
+                                producerGroup, consumerGroup, name, id, addr);
+                        }
+                        catch (RemotingException e) {
+                            log.error("unregister client exception from broker: " + addr, e);
+                        }
+                        catch (MQBrokerException e) {
+                            log.error("unregister client exception from broker: " + addr, e);
+                        }
+                        catch (InterruptedException e) {
+                            log.error("unregister client exception from broker: " + addr, e);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+
     private HeartbeatData prepareHeartbeatData() {
         HeartbeatData heartbeatData = new HeartbeatData();
 
@@ -321,6 +350,7 @@ public class MQClientFactory {
 
     public void unregisterProducer(final String group) {
         this.producerTable.remove(group);
+        this.unregisterClient(group, null);
     }
 
 
@@ -341,6 +371,7 @@ public class MQClientFactory {
 
     public void unregisterConsumer(final String group) {
         this.consumerTable.remove(group);
+        this.unregisterClient(null, group);
     }
 
 
