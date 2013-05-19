@@ -45,7 +45,7 @@ public class StoreStatsService extends ServiceThread {
 
     private static final Logger log = LoggerFactory.getLogger(MixAll.StoreLoggerName);
     // 启动时间
-    private long metaStoreBootTimestamp = System.currentTimeMillis();
+    private long messageStoreBootTimestamp = System.currentTimeMillis();
     // putMessage，写入整个消息耗时，含加锁竟争时间（单位毫秒）
     private volatile long putMessageEntireTimeMax = 0;
     // getMessage，读取一批消息耗时，含加锁竟争时间（单位毫秒）
@@ -190,13 +190,6 @@ public class StoreStatsService extends ServiceThread {
     }
 
 
-    //
-    // private String getRuntime() {
-    // long time = System.currentTimeMillis() - this.metaStoreBootTimestamp;
-    // Long result = (time / 1000);
-    // return result.toString();
-    // }
-
     private String getFormatRuntime() {
         final long MILLISECOND = 1;
         final long SECOND = 1000 * MILLISECOND;
@@ -205,7 +198,7 @@ public class StoreStatsService extends ServiceThread {
         final long DAY = 24 * HOUR;
         final MessageFormat TIME = new MessageFormat("[ {0} days, {1} hours, {2} minutes, {3} seconds ]");
 
-        long time = System.currentTimeMillis() - this.metaStoreBootTimestamp;
+        long time = System.currentTimeMillis() - this.messageStoreBootTimestamp;
         long days = time / DAY;
         long hours = (time % DAY) / HOUR;
         long minutes = (time % HOUR) / MINUTE;
@@ -248,7 +241,7 @@ public class StoreStatsService extends ServiceThread {
             totalTimes = 1L;
         }
 
-        result.put("bootimestamp", String.valueOf(this.metaStoreBootTimestamp));
+        result.put("bootimestamp", String.valueOf(this.messageStoreBootTimestamp));
         result.put("runtime", this.getFormatRuntime());
         result.put("putMessageEntireTimeMax", String.valueOf(this.putMessageEntireTimeMax));
         result.put("putMessageAverageSize",
