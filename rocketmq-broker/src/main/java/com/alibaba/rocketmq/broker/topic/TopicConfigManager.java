@@ -45,7 +45,7 @@ public class TopicConfigManager {
     public TopicConfigManager(BrokerController brokerController) {
         this.brokerController = brokerController;
 
-        // MetaMix.DEFAULT_TOPIC
+        // MixAll.DEFAULT_TOPIC
         TopicConfig topicConfig = new TopicConfig(MixAll.DEFAULT_TOPIC);
         topicConfig.setReadQueueNums(this.brokerController.getBrokerConfig().getDefaultTopicQueueNums());
         topicConfig.setWriteQueueNums(this.brokerController.getBrokerConfig().getDefaultTopicQueueNums());
@@ -54,7 +54,7 @@ public class TopicConfigManager {
         topicConfig.setPerm(perm);
         this.topicConfigTable.put(topicConfig.getTopicName(), topicConfig);
 
-        // MetaMix.SELF_TEST_TOPIC
+        // MixAll.SELF_TEST_TOPIC
         topicConfig = new TopicConfig(MixAll.SELF_TEST_TOPIC);
         topicConfig.setReadQueueNums(1);
         topicConfig.setWriteQueueNums(1);

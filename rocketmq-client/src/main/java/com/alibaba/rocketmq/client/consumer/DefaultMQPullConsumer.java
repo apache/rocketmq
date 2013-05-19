@@ -27,7 +27,7 @@ import com.alibaba.rocketmq.remoting.exception.RemotingException;
  */
 public class DefaultMQPullConsumer implements MQPullConsumer {
     /**
-     * Metaq客户端公共配置，不建议修改
+     * 客户端公共配置，不建议修改
      */
     private MQClientConfig mQClientConfig = new MQClientConfig();
     /**
@@ -184,13 +184,13 @@ public class DefaultMQPullConsumer implements MQPullConsumer {
 
     @Override
     public List<MessageQueue> fetchMessageQueuesInBalance(String topic) {
-        return this.defaultMQPullConsumerImpl.fetchMetaQueuesInBalance(topic);
+        return this.defaultMQPullConsumerImpl.fetchMessageQueuesInBalance(topic);
     }
 
 
     @Override
     public List<MessageQueue> fetchSubscribeMessageQueues(String topic) throws MQClientException {
-        return this.defaultMQPullConsumerImpl.fetchSubscribeMetaQueues(topic);
+        return this.defaultMQPullConsumerImpl.fetchSubscribeMessageQueues(topic);
     }
 
 
@@ -244,12 +244,12 @@ public class DefaultMQPullConsumer implements MQPullConsumer {
     }
 
 
-    public MessageQueueListener getMetaQueueListener() {
+    public MessageQueueListener getMessageQueueListener() {
         return messageQueueListener;
     }
 
 
-    public void setMetaQueueListener(MessageQueueListener messageQueueListener) {
+    public void setMessageQueueListener(MessageQueueListener messageQueueListener) {
         this.messageQueueListener = messageQueueListener;
     }
 

@@ -21,7 +21,7 @@ public interface MQAdmin {
      * 创建topic
      * 
      * @param key
-     *            请向Metaq运维人员申请
+     *            请向运维人员申请
      * @param newTopic
      *            要创建的新topic
      * @param queueNum
@@ -38,7 +38,7 @@ public interface MQAdmin {
      * 根据时间查询对应的offset，精确到毫秒
      * 
      * @param mq
-     *            Meta队列
+     *            队列
      * @param timestamp
      *            毫秒形式时间戳
      * @return 指定时间对应的offset
@@ -48,32 +48,32 @@ public interface MQAdmin {
 
 
     /**
-     * 向服务器查询Meta队列最大Offset PS: 最大Offset无对应消息，减1有消息
+     * 向服务器查询队列最大Offset PS: 最大Offset无对应消息，减1有消息
      * 
      * @param mq
-     *            Meta队列
-     * @return Meta队列的最大Offset
+     *            队列
+     * @return 队列的最大Offset
      * @throws MQClientException
      */
     public long getMaxOffset(final MessageQueue mq) throws MQClientException;
 
 
     /**
-     * 向服务器查询Meta队列最小Offset PS: 最小Offset有对应消息
+     * 向服务器查询队列最小Offset PS: 最小Offset有对应消息
      * 
      * @param mq
-     *            Meta队列
-     * @return Meta队列的最小Offset
+     *            队列
+     * @return 队列的最小Offset
      * @throws MQClientException
      */
     public long getMinOffset(final MessageQueue mq) throws MQClientException;
 
 
     /**
-     * 向服务器查询Meta队列保存的最早消息对应的存储时间
+     * 向服务器查询队列保存的最早消息对应的存储时间
      * 
      * @param mq
-     *            Meta队列
+     *            队列
      * @return 最早消息对应的存储时间，精确到毫秒
      * @throws MQClientException
      */

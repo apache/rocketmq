@@ -108,7 +108,7 @@ public class BrokerStartup {
 
             if (null == brokerConfig.getRocketmqHome()) {
                 System.out.println("Please set the " + MixAll.ROCKETMQ_HOME_ENV
-                        + " variable in your environment to match the location of the Metaq installation");
+                        + " variable in your environment to match the location of the RocketMQ installation");
                 System.exit(-2);
             }
 
@@ -130,24 +130,6 @@ public class BrokerStartup {
 
             // Master监听Slave请求的端口，默认为服务端口+1
             messageStoreConfig.setHaListenPort(nettyServerConfig.getListenPort() + 1);
-
-            // 设置日志
-            /*
-             * try { // assume SLF4J is bound to logback in the current
-             * environment LoggerContext context = (LoggerContext)
-             * LoggerFactory.getILoggerFactory(); JoranConfigurator configurator
-             * = new JoranConfigurator(); configurator.setContext(context);
-             * context.reset();
-             * configurator.doConfigure(brokerConfig.getMetaqHome() +
-             * "/conf/log4j_broker.xml");
-             * StatusPrinter.printInCaseOfErrorsOrWarnings(context); } catch
-             * (JoranException je) { }
-             * 
-             * final Logger log =
-             * LoggerFactory.getLogger(MetaMix.BrokerLoggerName);
-             * 
-             * final Logger log = null;
-             */
 
             // 初始化Logback
             LoggerContext lc = (LoggerContext) LoggerFactory.getILoggerFactory();
