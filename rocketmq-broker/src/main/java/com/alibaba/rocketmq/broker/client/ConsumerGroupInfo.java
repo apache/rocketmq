@@ -44,6 +44,14 @@ public class ConsumerGroupInfo {
     }
 
 
+    public void unregisterChannel(final ClientChannelInfo clientChannelInfo) {
+        ClientChannelInfo old = this.channelInfoTable.remove(clientChannelInfo.getChannel().id());
+        if (old != null) {
+            log.info("unregister a consumer[{}] from consumerGroupInfo {}", this.groupName, old.toString());
+        }
+    }
+
+
     public void doChannelCloseEvent(final String remoteAddr, final Channel channel) {
         final ClientChannelInfo info = this.channelInfoTable.remove(channel.id());
         if (info != null) {
