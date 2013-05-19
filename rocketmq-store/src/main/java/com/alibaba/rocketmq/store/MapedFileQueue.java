@@ -132,6 +132,9 @@ public class MapedFileQueue {
      * 刷盘进度落后了多少
      */
     public long howMuchFallBehind() {
+        if (this.mapedFiles.isEmpty())
+            return 0;
+
         long committed = this.committedWhere;
         if (committed != 0) {
             MapedFile mapedFile = this.getLastMapedFile();
