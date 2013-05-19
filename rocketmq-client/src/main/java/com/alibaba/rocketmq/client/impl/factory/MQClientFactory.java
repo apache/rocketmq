@@ -511,7 +511,7 @@ public class MQClientFactory {
                 int nums = Integer.parseInt(item[1]);
                 for (int i = 0; i < nums; i++) {
                     MessageQueue mq = new MessageQueue(topic, item[0], i);
-                    info.getMetaQueueList().add(mq);
+                    info.getMessageQueueList().add(mq);
                 }
             }
 
@@ -526,7 +526,7 @@ public class MQClientFactory {
                 if (MixAll.isWriteable(qd.getPerm())) {
                     for (int i = 0; i < qd.getWriteQueueNums(); i++) {
                         MessageQueue mq = new MessageQueue(topic, qd.getBrokerName(), i);
-                        info.getMetaQueueList().add(mq);
+                        info.getMessageQueueList().add(mq);
                     }
                 }
             }
@@ -649,12 +649,12 @@ public class MQClientFactory {
     }
 
 
-    public MQClientAPIImpl getMetaClientAPIImpl() {
+    public MQClientAPIImpl getMQClientAPIImpl() {
         return mQClientAPIImpl;
     }
 
 
-    public MQAdminImpl getMetaAdminImpl() {
+    public MQAdminImpl getMQAdminImpl() {
         return mQAdminImpl;
     }
 

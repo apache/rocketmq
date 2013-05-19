@@ -155,37 +155,37 @@ public class DefaultMQProducerImpl {
     public void createTopic(String key, String newTopic, int queueNum, TopicFilterType topicFilterType,
             boolean order) throws MQClientException {
         this.makeSureStateOK();
-        this.mQClientFactory.getMetaAdminImpl().createTopic(key, newTopic, queueNum, topicFilterType, order);
+        this.mQClientFactory.getMQAdminImpl().createTopic(key, newTopic, queueNum, topicFilterType, order);
     }
 
 
-    public List<MessageQueue> fetchPublishMetaQueues(String topic) throws MQClientException {
+    public List<MessageQueue> fetchPublishMessageQueues(String topic) throws MQClientException {
         this.makeSureStateOK();
-        return this.mQClientFactory.getMetaAdminImpl().fetchPublishMetaQueues(topic);
+        return this.mQClientFactory.getMQAdminImpl().fetchPublishMessageQueues(topic);
     }
 
 
     public long searchOffset(MessageQueue mq, long timestamp) throws MQClientException {
         this.makeSureStateOK();
-        return this.mQClientFactory.getMetaAdminImpl().searchOffset(mq, timestamp);
+        return this.mQClientFactory.getMQAdminImpl().searchOffset(mq, timestamp);
     }
 
 
     public long getMaxOffset(MessageQueue mq) throws MQClientException {
         this.makeSureStateOK();
-        return this.mQClientFactory.getMetaAdminImpl().getMaxOffset(mq);
+        return this.mQClientFactory.getMQAdminImpl().getMaxOffset(mq);
     }
 
 
     public long getMinOffset(MessageQueue mq) throws MQClientException {
         this.makeSureStateOK();
-        return this.mQClientFactory.getMetaAdminImpl().getMinOffset(mq);
+        return this.mQClientFactory.getMQAdminImpl().getMinOffset(mq);
     }
 
 
     public long getEarliestMsgStoreTime(MessageQueue mq) throws MQClientException {
         this.makeSureStateOK();
-        return this.mQClientFactory.getMetaAdminImpl().getEarliestMsgStoreTime(mq);
+        return this.mQClientFactory.getMQAdminImpl().getEarliestMsgStoreTime(mq);
     }
 
 
@@ -193,14 +193,14 @@ public class DefaultMQProducerImpl {
             MQClientException {
         this.makeSureStateOK();
 
-        return this.mQClientFactory.getMetaAdminImpl().viewMessage(msgId);
+        return this.mQClientFactory.getMQAdminImpl().viewMessage(msgId);
     }
 
 
     public QueryResult queryMessage(String topic, String key, int maxNum, long begin, long end)
             throws MQClientException, InterruptedException {
         this.makeSureStateOK();
-        return this.mQClientFactory.getMetaAdminImpl().queryMessage(topic, key, maxNum, begin, end);
+        return this.mQClientFactory.getMQAdminImpl().queryMessage(topic, key, maxNum, begin, end);
     }
 
 
@@ -362,7 +362,7 @@ public class DefaultMQProducerImpl {
                 requestHeader.setFlag(msg.getFlag());
                 requestHeader.setProperties(MessageDecoder.messageProperties2String(msg.getProperties()));
 
-                SendResult sendResult = this.mQClientFactory.getMetaClientAPIImpl().sendMessage(//
+                SendResult sendResult = this.mQClientFactory.getMQClientAPIImpl().sendMessage(//
                     brokerAddr,// 1
                     mq.getBrokerName(),// 2
                     msg,// 3
@@ -394,17 +394,17 @@ public class DefaultMQProducerImpl {
         if (topicPublishInfo != null && topicPublishInfo.ok()) {
             MessageQueue mq = null;
             try {
-                mq = selector.select(topicPublishInfo.getMetaQueueList(), msg, arg);
+                mq = selector.select(topicPublishInfo.getMessageQueueList(), msg, arg);
             }
             catch (Throwable e) {
-                throw new MQClientException("selectMetaQueue throwed exception.", e);
+                throw new MQClientException("select message queue throwed exception.", e);
             }
 
             if (mq != null) {
                 return this.sendKernelImpl(msg, mq, communicationMode, sendCallback);
             }
             else {
-                throw new MQClientException("selectMetaQueue return null.", null);
+                throw new MQClientException("select message queue return null.", null);
             }
         }
 
@@ -587,7 +587,7 @@ public class DefaultMQProducerImpl {
 
         requestHeader.setProducerGroup(this.defaultMQProducer.getProducerGroup());
         requestHeader.setTranStateTableOffset(sendResult.getQueueOffset());
-        this.mQClientFactory.getMetaClientAPIImpl().endTransaction(addr, requestHeader,
+        this.mQClientFactory.getMQClientAPIImpl().endTransaction(addr, requestHeader,
             this.defaultMQProducer.getSendMsgTimeout());
     }
 

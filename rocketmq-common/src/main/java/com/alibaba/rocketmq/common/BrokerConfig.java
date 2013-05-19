@@ -25,7 +25,7 @@ public class BrokerConfig {
     private long brokerId = MixAll.MASTER_ID;
     private int brokerPermission = MixAll.PERM_READ | MixAll.PERM_WRITE;
     private int defaultTopicQueueNums = 8;
-    // 自动创建Topic，继承自MetaUtil.DEFAULT_TOPIC
+    // 自动创建Topic
     private boolean autoCreateTopic = true;
 
     // 是否开启以集群名字命名的Topic
@@ -69,8 +69,8 @@ public class BrokerConfig {
     }
 
 
-    public void setRocketmqHome(String metaqHome) {
-        this.rocketmqHome = metaqHome;
+    public void setRocketmqHome(String rocketmqHome) {
+        this.rocketmqHome = rocketmqHome;
     }
 
 

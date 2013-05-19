@@ -1,9 +1,9 @@
 //
-// Metaq通信协议
+// RocketMQ通信协议
 //      2013-01-21 19:11:14 誓嘉<vintage.wang@gmail.com>草拟 V0.1
 //
 import "remoting.proto";
-package metaq;
+package rocketmq;
 option optimize_for = SPEED;
 option java_package = "com.alibaba.rocketmq.common.protocol";
 option java_outer_classname = "MQProtos";

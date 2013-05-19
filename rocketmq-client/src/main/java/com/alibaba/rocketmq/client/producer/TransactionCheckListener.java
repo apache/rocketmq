@@ -7,7 +7,7 @@ import com.alibaba.rocketmq.common.MessageExt;
 
 
 /**
- * Metaq服务器回调Producer，检查本地事务分支成功还是失败
+ * 服务器回调Producer，检查本地事务分支成功还是失败
  * 
  * @author vintage.wang@gmail.com shijia.wxr@taobao.com
  * 

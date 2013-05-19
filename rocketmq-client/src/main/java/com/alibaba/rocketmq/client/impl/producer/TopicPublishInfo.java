@@ -16,7 +16,7 @@ import com.alibaba.rocketmq.common.MessageQueue;
  */
 public class TopicPublishInfo {
     private boolean orderTopic = false;
-    private List<MessageQueue> metaQueueList = new ArrayList<MessageQueue>();
+    private List<MessageQueue> messageQueueList = new ArrayList<MessageQueue>();
     private AtomicInteger sendWhichQueue = new AtomicInteger(0);
 
 
@@ -26,7 +26,7 @@ public class TopicPublishInfo {
 
 
     public boolean ok() {
-        return null != this.metaQueueList && !this.metaQueueList.isEmpty();
+        return null != this.messageQueueList && !this.messageQueueList.isEmpty();
     }
 
 
@@ -35,13 +35,13 @@ public class TopicPublishInfo {
     }
 
 
-    public List<MessageQueue> getMetaQueueList() {
-        return metaQueueList;
+    public List<MessageQueue> getMessageQueueList() {
+        return messageQueueList;
     }
 
 
-    public void setMetaQueueList(List<MessageQueue> metaQueueList) {
-        this.metaQueueList = metaQueueList;
+    public void setMessageQueueList(List<MessageQueue> messageQueueList) {
+        this.messageQueueList = messageQueueList;
     }
 
 
@@ -56,14 +56,14 @@ public class TopicPublishInfo {
 
 
     /**
-     * 如果lastBrokerName不为null，则寻找与其不同的MetaQueue
+     * 如果lastBrokerName不为null，则寻找与其不同的MessageQueue
      */
     public MessageQueue selectOneMessageQueue(final String lastBrokerName) {
         if (lastBrokerName != null) {
             int index = this.sendWhichQueue.getAndIncrement();
-            for (int i = 0; i < this.metaQueueList.size(); i++) {
-                int pos = Math.abs(index++) % this.metaQueueList.size();
-                MessageQueue mq = this.metaQueueList.get(pos);
+            for (int i = 0; i < this.messageQueueList.size(); i++) {
+                int pos = Math.abs(index++) % this.messageQueueList.size();
+                MessageQueue mq = this.messageQueueList.get(pos);
                 if (!mq.getBrokerName().equals(lastBrokerName)) {
                     return mq;
                 }
@@ -73,8 +73,8 @@ public class TopicPublishInfo {
         }
         else {
             int index = this.sendWhichQueue.getAndIncrement();
-            int pos = Math.abs(index) % this.metaQueueList.size();
-            return this.metaQueueList.get(pos);
+            int pos = Math.abs(index) % this.messageQueueList.size();
+            return this.messageQueueList.get(pos);
         }
     }
 }

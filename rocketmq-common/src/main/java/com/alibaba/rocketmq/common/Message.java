@@ -19,11 +19,11 @@ public class Message {
      */
     private String topic;
     /**
-     * 消息标志，Metaq不做干预，完全由应用决定如何使用
+     * 消息标志，系统不做干预，完全由应用决定如何使用
      */
     private int flag;
     /**
-     * 消息属性，Metaq有保留属性，应用也可以自定义属性
+     * 消息属性，系统有保留属性，应用也可以自定义属性
      */
     private Map<String, String> properties;
     /**

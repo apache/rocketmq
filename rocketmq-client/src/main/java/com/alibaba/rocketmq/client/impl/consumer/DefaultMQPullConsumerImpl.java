@@ -111,51 +111,51 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
     public void createTopic(String key, String newTopic, int queueNum, TopicFilterType topicFilterType,
             boolean order) throws MQClientException {
         this.makeSureStateOK();
-        this.mQClientFactory.getMetaAdminImpl().createTopic(key, newTopic, queueNum, topicFilterType, order);
+        this.mQClientFactory.getMQAdminImpl().createTopic(key, newTopic, queueNum, topicFilterType, order);
     }
 
 
-    public List<MessageQueue> fetchPublishMetaQueues(String topic) throws MQClientException {
+    public List<MessageQueue> fetchPublishMessageQueues(String topic) throws MQClientException {
         this.makeSureStateOK();
-        return this.mQClientFactory.getMetaAdminImpl().fetchPublishMetaQueues(topic);
+        return this.mQClientFactory.getMQAdminImpl().fetchPublishMessageQueues(topic);
     }
 
 
     public long searchOffset(MessageQueue mq, long timestamp) throws MQClientException {
         this.makeSureStateOK();
-        return this.mQClientFactory.getMetaAdminImpl().searchOffset(mq, timestamp);
+        return this.mQClientFactory.getMQAdminImpl().searchOffset(mq, timestamp);
     }
 
 
     public long getMaxOffset(MessageQueue mq) throws MQClientException {
         this.makeSureStateOK();
-        return this.mQClientFactory.getMetaAdminImpl().getMaxOffset(mq);
+        return this.mQClientFactory.getMQAdminImpl().getMaxOffset(mq);
     }
 
 
     public long getMinOffset(MessageQueue mq) throws MQClientException {
         this.makeSureStateOK();
-        return this.mQClientFactory.getMetaAdminImpl().getMinOffset(mq);
+        return this.mQClientFactory.getMQAdminImpl().getMinOffset(mq);
     }
 
 
     public long getEarliestMsgStoreTime(MessageQueue mq) throws MQClientException {
         this.makeSureStateOK();
-        return this.mQClientFactory.getMetaAdminImpl().getEarliestMsgStoreTime(mq);
+        return this.mQClientFactory.getMQAdminImpl().getEarliestMsgStoreTime(mq);
     }
 
 
     public MessageExt viewMessage(String msgId) throws RemotingException, MQBrokerException, InterruptedException,
             MQClientException {
         this.makeSureStateOK();
-        return this.mQClientFactory.getMetaAdminImpl().viewMessage(msgId);
+        return this.mQClientFactory.getMQAdminImpl().viewMessage(msgId);
     }
 
 
     public QueryResult queryMessage(String topic, String key, int maxNum, long begin, long end)
             throws MQClientException, InterruptedException {
         this.makeSureStateOK();
-        return this.mQClientFactory.getMetaAdminImpl().queryMessage(topic, key, maxNum, begin, end);
+        return this.mQClientFactory.getMQAdminImpl().queryMessage(topic, key, maxNum, begin, end);
     }
 
 
@@ -310,7 +310,7 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
             requestHeader.setQueueId(mq.getQueueId());
             requestHeader.setCommitOffset(offset);
 
-            this.mQClientFactory.getMetaClientAPIImpl().updateConsumerOffset(findBrokerResult.getBrokerAddr(),
+            this.mQClientFactory.getMQClientAPIImpl().updateConsumerOffset(findBrokerResult.getBrokerAddr(),
                 requestHeader, 1000 * 5);
         }
         else {
@@ -334,7 +334,7 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
             requestHeader.setConsumerGroup(this.defaultMQPullConsumer.getConsumerGroup());
             requestHeader.setQueueId(mq.getQueueId());
 
-            return this.mQClientFactory.getMetaClientAPIImpl().queryConsumerOffset(
+            return this.mQClientFactory.getMQClientAPIImpl().queryConsumerOffset(
                 findBrokerResult.getBrokerAddr(), requestHeader, 1000 * 5);
         }
         else {
@@ -350,7 +350,7 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
 
 
     public List<MessageQueue> fetchSubscribeMessageQueues(String topic) throws MQClientException {
-        return this.mQClientFactory.getMetaAdminImpl().fetchSubscribeMetaQueues(topic);
+        return this.mQClientFactory.getMQAdminImpl().fetchSubscribeMessageQueues(topic);
     }
 
 

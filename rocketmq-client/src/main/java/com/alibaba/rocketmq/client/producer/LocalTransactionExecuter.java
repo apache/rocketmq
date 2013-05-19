@@ -7,7 +7,7 @@ import com.alibaba.rocketmq.common.Message;
 
 
 /**
- * 执行本地事务，由Metaq客户端回调
+ * 执行本地事务，由客户端回调
  * 
  * @author vintage.wang@gmail.com shijia.wxr@taobao.com
  * 

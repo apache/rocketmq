@@ -87,7 +87,7 @@ public class NamesrvStartup {
 
             MixAll.properties2Object(MixAll.commandLine2Properties(commandLine), namesrvConfig);
 
-            if (null == namesrvConfig.getMetaqHome()) {
+            if (null == namesrvConfig.getRocketmqHome()) {
                 System.out.println("Please set the " + MixAll.ROCKETMQ_HOME_ENV
                         + " variable in your environment to match the location of the Metaq installation");
                 System.exit(-2);
@@ -98,7 +98,7 @@ public class NamesrvStartup {
             JoranConfigurator configurator = new JoranConfigurator();
             configurator.setContext(lc);
             lc.reset();
-            configurator.doConfigure(namesrvConfig.getMetaqHome() + "/conf/log4j_namesrv.xml");
+            configurator.doConfigure(namesrvConfig.getRocketmqHome() + "/conf/log4j_namesrv.xml");
 
             final Logger log = LoggerFactory.getLogger(MixAll.NamesrvLoggerName);
 

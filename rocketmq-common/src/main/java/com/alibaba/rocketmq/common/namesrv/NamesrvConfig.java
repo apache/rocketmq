@@ -18,7 +18,7 @@ import com.alibaba.rocketmq.common.MixAll;
  * 
  */
 public class NamesrvConfig {
-    private String metaqHome = System.getenv(MixAll.ROCKETMQ_HOME_ENV);
+    private String rocketmqHome = System.getenv(MixAll.ROCKETMQ_HOME_ENV);
     private String orderConfPath = System.getProperty("user.home") + File.separator + "namesrv" + File.separator
             + "orderConf.properties";
     private String brokerAddrConfPath = System.getProperty("user.home") + File.separator + "namesrv"
@@ -97,13 +97,13 @@ public class NamesrvConfig {
     }
 
 
-    public String getMetaqHome() {
-        return metaqHome;
+    public String getRocketmqHome() {
+        return rocketmqHome;
     }
 
 
-    public void setMetaqHome(String metaqHome) {
-        this.metaqHome = metaqHome;
+    public void setRocketmqHome(String rocketmqHome) {
+        this.rocketmqHome = rocketmqHome;
     }
 
 
