@@ -881,7 +881,7 @@ public class CommitLog {
         // ·µ»Ø½á¹û
         AppendMessageResult result = null;
 
-        StoreStatsService storeStatsService = this.defaultMessageStore.getMetaStatsService();
+        StoreStatsService storeStatsService = this.defaultMessageStore.getStoreStatsService();
 
         String topic = msg.getTopic();
         int queueId = msg.getQueueId();
