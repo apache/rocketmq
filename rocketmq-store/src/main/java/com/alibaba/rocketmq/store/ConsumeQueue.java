@@ -402,7 +402,7 @@ public class ConsumeQueue {
      * @return 是否成功
      */
     private boolean putMessagePostionInfo(final long offset, final int size, final long tagsCode,
-            final long logicOffset) {
+            final long cqOffset) {
         // 在数据恢复时会走到这个流程
         if (offset <= this.maxPhysicOffset) {
             return true;
@@ -414,21 +414,23 @@ public class ConsumeQueue {
         this.byteBufferIndex.putInt(size);
         this.byteBufferIndex.putLong(tagsCode);
 
-        final long realLogicOffset = logicOffset * CQStoreUnitSize;
+        final long realLogicOffset = cqOffset * CQStoreUnitSize;
 
         MapedFile mapedFile = this.mapedFileQueue.getLastMapedFile(realLogicOffset);
         if (mapedFile != null) {
             // 纠正MapedFile逻辑队列索引顺序
-            if (mapedFile.isFirstCreateInQueue() && logicOffset != 0 && mapedFile.getWrotePostion() == 0) {
+            if (mapedFile.isFirstCreateInQueue() && cqOffset != 0 && mapedFile.getWrotePostion() == 0) {
                 this.minLogicOffset = realLogicOffset;
                 this.fillPreBlank(mapedFile, realLogicOffset);
                 log.info("fill pre blank space " + mapedFile.getFileName() + " " + realLogicOffset + " "
                         + mapedFile.getWrotePostion());
             }
 
-            if (realLogicOffset != (mapedFile.getWrotePostion() + mapedFile.getFileFromOffset())) {
-                log.warn("logic queue order maybe wrong " + realLogicOffset + " "
-                        + (mapedFile.getWrotePostion() + mapedFile.getFileFromOffset()));
+            if (cqOffset != 0) {
+                if (realLogicOffset != (mapedFile.getWrotePostion() + mapedFile.getFileFromOffset())) {
+                    log.warn("logic queue order maybe wrong " + realLogicOffset + " "
+                            + (mapedFile.getWrotePostion() + mapedFile.getFileFromOffset()));
+                }
             }
 
             // 记录物理队列最大offset
