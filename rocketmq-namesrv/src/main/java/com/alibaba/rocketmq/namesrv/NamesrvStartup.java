@@ -89,7 +89,7 @@ public class NamesrvStartup {
 
             if (null == namesrvConfig.getRocketmqHome()) {
                 System.out.println("Please set the " + MixAll.ROCKETMQ_HOME_ENV
-                        + " variable in your environment to match the location of the Metaq installation");
+                        + " variable in your environment to match the location of the RocketMQ installation");
                 System.exit(-2);
             }
 

@@ -1,6 +1,3 @@
-/**
- * $Id: MetaStoreTestObject.java 1831 2013-05-16 01:39:51Z shijia.wxr $
- */
 package com.alibaba.rocketmq.research.store;
 
 import java.io.IOException;
@@ -22,7 +19,7 @@ import com.alibaba.rocketmq.store.config.MessageStoreConfig;
  * @author vintage.wang@gmail.com shijia.wxr@taobao.com
  * 
  */
-public class MetaStoreTestObject {
+public class MessageStoreTestObject {
     // 消息大小
     protected int MessageSize = 1024 * 2;
     // 队列个数
@@ -40,7 +37,7 @@ public class MetaStoreTestObject {
     protected final MessageStore messageStore;
 
 
-    public MetaStoreTestObject(final MessageStoreConfig messageStoreConfig) throws IOException {
+    public MessageStoreTestObject(final MessageStoreConfig messageStoreConfig) throws IOException {
         this.storeHost = new InetSocketAddress(InetAddress.getLocalHost(), 8123);
         this.bornHost = new InetSocketAddress(InetAddress.getByName("10.232.102.184"), 0);
         this.messageStore = new DefaultMessageStore(messageStoreConfig);

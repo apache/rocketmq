@@ -11,19 +11,19 @@ import com.alibaba.rocketmq.common.MixAll;
  * 
  */
 public class ConsoleConfig {
-    private String metaqHome = System.getenv(MixAll.ROCKETMQ_HOME_ENV);
+    private String rocketmqHome = System.getenv(MixAll.ROCKETMQ_HOME_ENV);
     private String namesrvAddr = null;
     private String webRootPath;
     private int listenPort = 8888;
 
 
-    public String getMetaqHome() {
-        return metaqHome;
+    public String getRocketmqHome() {
+        return rocketmqHome;
     }
 
 
-    public void setMetaqHome(String metaqHome) {
-        this.metaqHome = metaqHome;
+    public void setRocketmqHome(String rocketmqHome) {
+        this.rocketmqHome = rocketmqHome;
     }
 
 

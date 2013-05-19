@@ -26,7 +26,7 @@ public class PullConsumer {
     private static Map<MessageQueue, Long> offseTable = new HashMap<MessageQueue, Long>();
 
 
-    private static long getMetaQueueOffset(MessageQueue mq) {
+    private static long getMessageQueueOffset(MessageQueue mq) {
         Long offset = offseTable.get(mq);
         if (offset != null)
             return offset;
@@ -49,7 +49,7 @@ public class PullConsumer {
             List<MessageQueue> mqs = consumer.fetchSubscribeMessageQueues("TopicTest");
             for (MessageQueue mq : mqs) {
                 System.out.println("Consume from the queue: " + mq);
-                PullResult pullResult = consumer.pullBlockIfNotFound(mq, null, getMetaQueueOffset(mq), 32);
+                PullResult pullResult = consumer.pullBlockIfNotFound(mq, null, getMessageQueueOffset(mq), 32);
                 System.out.println(pullResult);
                 switch (pullResult.getPullStatus()) {
                 case FOUND:

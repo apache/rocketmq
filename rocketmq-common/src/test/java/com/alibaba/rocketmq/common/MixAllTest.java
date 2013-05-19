@@ -11,7 +11,7 @@ import org.junit.Test;
 /**
  * @auther lansheng.zj@taobao.com
  */
-public class MetaMixTest {
+public class MixAllTest {
 
     @Test
     public void test() throws Exception {

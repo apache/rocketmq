@@ -7,7 +7,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicLong;
 
-import com.alibaba.rocketmq.research.store.MetaStoreTestObject;
+import com.alibaba.rocketmq.research.store.MessageStoreTestObject;
 import com.alibaba.rocketmq.store.config.MessageStoreConfig;
 
 
@@ -27,14 +27,14 @@ public class BrokerMaster {
             MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
             messageStoreConfig.setBrokerRole(brokerRole);
 
-            final MetaStoreTestObject metaStoreTestObject = new MetaStoreTestObject(messageStoreConfig);
+            final MessageStoreTestObject storeTestObject = new MessageStoreTestObject(messageStoreConfig);
 
-            if (!metaStoreTestObject.load()) {
+            if (!storeTestObject.load()) {
                 System.out.println("load store failed");
                 System.exit(-1);
             }
 
-            metaStoreTestObject.start();
+            storeTestObject.start();
 
             System.out.println("waiting 5s for slave connect....");
             Thread.sleep(1000 * 5);
@@ -54,7 +54,7 @@ public class BrokerMaster {
                         for (long k = 1;; k++) {
                             try {
                                 long beginTime = System.currentTimeMillis();
-                                boolean result = metaStoreTestObject.sendMessage();
+                                boolean result = storeTestObject.sendMessage();
                                 long rt = System.currentTimeMillis() - beginTime;
                                 if (rt > maxResponseTime.get()) {
                                     maxResponseTime.set(rt);
