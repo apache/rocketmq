@@ -31,7 +31,7 @@ public class TransactionProducer {
             TranExecuterImpl tranExecuter = new TranExecuterImpl();
             for (int i = 0; i < 100; i++) {
                 Message msg =
-                        new Message("TopicTest", tags[i % tags.length], "KEY" + i, ("Hello Metaq " + i).getBytes());
+                        new Message("TopicTest", tags[i % tags.length], "KEY" + i, ("Hello RocketMQ " + i).getBytes());
                 tranExecuter.setTransactionStats(1);
                 producer.sendMessageInTransaction(msg, tranExecuter);
             }

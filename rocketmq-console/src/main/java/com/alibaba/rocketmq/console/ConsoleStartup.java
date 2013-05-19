@@ -79,14 +79,14 @@ public class ConsoleStartup {
 
             MixAll.properties2Object(MixAll.commandLine2Properties(commandLine), consoleConfig);
 
-            if (null == consoleConfig.getMetaqHome()) {
+            if (null == consoleConfig.getRocketmqHome()) {
                 System.out.println("Please set the " + MixAll.ROCKETMQ_HOME_ENV
-                        + " variable in your environment to match the location of the Metaq installation");
+                        + " variable in your environment to match the location of the RocketMQ installation");
                 System.exit(-2);
             }
 
             // …Ë÷√≤Œ ˝
-            consoleConfig.setWebRootPath(consoleConfig.getMetaqHome() + File.separator + "webroot");
+            consoleConfig.setWebRootPath(consoleConfig.getRocketmqHome() + File.separator + "webroot");
 
             final Logger log = null;
 

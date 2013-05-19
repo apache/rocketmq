@@ -28,7 +28,7 @@ import com.google.protobuf.InvalidProtocolBufferException;
  * @author vintage.wang@gmail.com shijia.wxr@taobao.com
  */
 public class RemotingCommand {
-    public static String RemotingVersionKey = "metaq.remoting.version";
+    public static String RemotingVersionKey = "rocketmq.remoting.version";
     private static volatile int ConfigVersion = -1;
     private static AtomicInteger RequestId = new AtomicInteger(0);
 

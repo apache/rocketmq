@@ -3,7 +3,7 @@
  */
 package com.alibaba.rocketmq.research.storeha;
 
-import com.alibaba.rocketmq.research.store.MetaStoreTestObject;
+import com.alibaba.rocketmq.research.store.MessageStoreTestObject;
 import com.alibaba.rocketmq.store.config.BrokerRole;
 import com.alibaba.rocketmq.store.config.MessageStoreConfig;
 
@@ -21,16 +21,16 @@ public class BrokerSlave {
             MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
             messageStoreConfig.setBrokerRole(BrokerRole.SLAVE);
 
-            final MetaStoreTestObject metaStoreTestObject = new MetaStoreTestObject(messageStoreConfig);
+            final MessageStoreTestObject storeTestObject = new MessageStoreTestObject(messageStoreConfig);
 
-            metaStoreTestObject.updateMasterAddress("10.235.170.21:10912");
+            storeTestObject.updateMasterAddress("10.235.170.21:10912");
 
-            if (!metaStoreTestObject.load()) {
+            if (!storeTestObject.load()) {
                 System.out.println("load store failed");
                 System.exit(-1);
             }
 
-            metaStoreTestObject.start();
+            storeTestObject.start();
 
             System.out.println("start OK, " + messageStoreConfig.getBrokerRole());
         }

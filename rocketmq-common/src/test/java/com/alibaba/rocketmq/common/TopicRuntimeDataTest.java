@@ -39,10 +39,10 @@ public class TopicRuntimeDataTest {
         data.getTopicOrderConfs().put("topic-1",
             "topic.num.DAILY-UIC-USERS-EXTRA=105:4;106:4;topic.num.andor-applye-test=100:2;101:2");
 
-        data.getBrokerList().add("meta://10.23.12.12:8123");
-        data.getBrokerList().add("meta://10.23.12.13:8123");
-        data.getBrokerList().add("meta://10.23.12.14:8123");
-        data.getBrokerList().add("meta://10.23.12.15:8123");
+        data.getBrokerList().add("10.23.12.12:8123");
+        data.getBrokerList().add("10.23.12.13:8123");
+        data.getBrokerList().add("10.23.12.14:8123");
+        data.getBrokerList().add("10.23.12.15:8123");
 
         return data;
     }
@@ -91,25 +91,25 @@ public class TopicRuntimeDataTest {
         BrokerData broker1 = new BrokerData();
         broker1.setBrokerName("broker-1");
         HashMap<Long, String> brokerAddrs1 = new HashMap<Long, String>();
-        brokerAddrs1.put(0L, "meta://10.23.12.12:8123");
+        brokerAddrs1.put(0L, "10.23.12.12:8123");
         broker1.setBrokerAddrs(brokerAddrs1);
 
         BrokerData broker2 = new BrokerData();
         broker2.setBrokerName("broker-2");
         HashMap<Long, String> brokerAddrs2 = new HashMap<Long, String>();
-        brokerAddrs2.put(0L, "meta://10.23.12.13:8123");
+        brokerAddrs2.put(0L, "10.23.12.13:8123");
         broker2.setBrokerAddrs(brokerAddrs2);
 
         BrokerData broker3 = new BrokerData();
         broker3.setBrokerName("broker-3");
         HashMap<Long, String> brokerAddrs3 = new HashMap<Long, String>();
-        brokerAddrs3.put(0L, "meta://10.23.12.14:8123");
+        brokerAddrs3.put(0L, "10.23.12.14:8123");
         broker3.setBrokerAddrs(brokerAddrs3);
 
         BrokerData broker4 = new BrokerData();
         broker4.setBrokerName("broker-4");
         HashMap<Long, String> brokerAddrs4 = new HashMap<Long, String>();
-        //brokerAddrs4.put(0L, "meta://10.23.12.15:8123");
+        //brokerAddrs4.put(0L, "10.23.12.15:8123");
         broker4.setBrokerAddrs(brokerAddrs4);
 
         data.getBrokers().put("broker-1", broker1);
@@ -117,10 +117,10 @@ public class TopicRuntimeDataTest {
         data.getBrokers().put("broker-3", broker3);
         data.getBrokers().put("broker-4", broker4);
 
-        data.getBrokerList().add("meta://10.23.12.12:8123");
-        data.getBrokerList().add("meta://10.23.12.13:8123");
-        data.getBrokerList().add("meta://10.23.12.14:8123");
-        data.getBrokerList().add("meta://10.23.12.15:8123");
+        data.getBrokerList().add("10.23.12.12:8123");
+        data.getBrokerList().add("10.23.12.13:8123");
+        data.getBrokerList().add("10.23.12.14:8123");
+        data.getBrokerList().add("10.23.12.15:8123");
 
         return data;
     }
