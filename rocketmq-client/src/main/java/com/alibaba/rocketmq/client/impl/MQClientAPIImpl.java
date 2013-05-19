@@ -43,6 +43,7 @@ import com.alibaba.rocketmq.common.protocol.header.SearchOffsetRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.SearchOffsetResponseHeader;
 import com.alibaba.rocketmq.common.protocol.header.SendMessageRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.SendMessageResponseHeader;
+import com.alibaba.rocketmq.common.protocol.header.UnregisterClientRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.UpdateConsumerOffsetRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.ViewMessageRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.namesrv.GetRouteInfoRequestHeader;
@@ -606,6 +607,36 @@ public class MQClientAPIImpl {
     ) throws RemotingException, MQBrokerException, InterruptedException {
         RemotingCommand request = RemotingCommand.createRequestCommand(MQRequestCode.HEART_BEAT_VALUE, null);
         request.setBody(heartbeatData.encode());
+        RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
+        assert response != null;
+        switch (response.getCode()) {
+        case ResponseCode.SUCCESS_VALUE: {
+            return;
+        }
+        default:
+            break;
+        }
+
+        throw new MQBrokerException(response.getCode(), response.getRemark());
+    }
+
+
+    /**
+     * ·¢ËÍÐÄÌø
+     */
+    public void unregisterClient(//
+            final String addr,//
+            final String clientID,//
+            final String producerGroup,//
+            final String consumerGroup,//
+            final long timeoutMillis//
+    ) throws RemotingException, MQBrokerException, InterruptedException {
+        final UnregisterClientRequestHeader requestHeader = new UnregisterClientRequestHeader();
+        requestHeader.setClientID(clientID);
+        requestHeader.setProducerGroup(producerGroup);
+        requestHeader.setConsumerGroup(consumerGroup);
+        RemotingCommand request =
+                RemotingCommand.createRequestCommand(MQRequestCode.UNREGISTER_CLIENT_VALUE, requestHeader);
         RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
         assert response != null;
         switch (response.getCode()) {
