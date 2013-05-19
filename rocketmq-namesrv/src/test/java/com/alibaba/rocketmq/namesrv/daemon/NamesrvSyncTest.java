@@ -32,7 +32,7 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
  * @auther lansheng.zj@taobao.com
  */
 @RunWith(PowerMockRunner.class)
-@PowerMockIgnore("com.taobao.metaq.common.MetaMix")
+@PowerMockIgnore("com.taobao.rocketmq.common.MixAll")
 @PrepareForTest({ RemotingHelper.class })
 public class NamesrvSyncTest {
 
@@ -44,7 +44,7 @@ public class NamesrvSyncTest {
         response.setBody(expected.encode());
 
         NamesrvConfig namesrvConf = new NamesrvConfig();
-        namesrvConf.setNamesrvAddr("meta://10.12.12.11:9876;meta://10.12.12.16:9876;");
+        namesrvConf.setNamesrvAddr("10.12.12.11:9876;10.12.12.16:9876;");
         DefaultTopicRuntimeDataManager topicRuntimeDataManager = new DefaultTopicRuntimeDataManager(namesrvConf);
         NamesrvSync namesrvSync = new NamesrvSync(namesrvConf, topicRuntimeDataManager);
 
