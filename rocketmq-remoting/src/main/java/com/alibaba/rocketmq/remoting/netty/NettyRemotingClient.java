@@ -514,14 +514,15 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                     }
 
                     if (null == prevCW) {
-                        log.info("eventCloseChannel: the channel[[" + addrRemote
-                                + "]] has been removed from the channel table before");
+                        log.info(
+                            "eventCloseChannel: the channel[{}] has been removed from the channel table before",
+                            addrRemote);
                         removeItemFromTable = false;
                     }
 
                     if (removeItemFromTable) {
                         this.channelTables.remove(addrRemote);
-                        log.info("closeChannel: the channel[" + addrRemote + "] was removed from channel table");
+                        log.info("closeChannel: the channel[{}] was removed from channel table", addrRemote);
                     }
                 }
                 catch (Exception e) {
