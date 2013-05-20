@@ -132,8 +132,11 @@ public class BrokerController {
                     String addr = addrArray[begin++ % addrArray.length];
                     boolean result =
                             MQProtosHelper.registerBrokerToNameServer(addr, this.getBrokerAddr(), 1000 * 10);
-                    log.info("register broker[" + this.getBrokerAddr() + "] to name server[" + addr + "] "
-                            + (result ? " success" : " failed"));
+                    final String info =
+                            "register broker[" + this.getBrokerAddr() + "] to name server[" + addr + "] "
+                                    + (result ? " success" : " failed");
+                    log.info(info);
+                    System.out.println(info);
                     if (result)
                         return true;
                 }
