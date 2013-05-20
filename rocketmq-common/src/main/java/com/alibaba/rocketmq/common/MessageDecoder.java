@@ -29,7 +29,7 @@ public class MessageDecoder {
     /**
      * 消息ID定长
      */
-    public final static int MSG_ID_LENGTH = 4 + 8 + 8;
+    public final static int MSG_ID_LENGTH = 8 + 8;
 
     /**
      * 存储记录各个字段位置
@@ -40,13 +40,10 @@ public class MessageDecoder {
     public final static int MessageStoreTimestampPostion = 56;
 
 
-    public static String createMessageId(final ByteBuffer input, final int time, final ByteBuffer addr,
-            final long offset) {
+    public static String createMessageId(final ByteBuffer input, final ByteBuffer addr, final long offset) {
         input.flip();
         input.limit(MessageDecoder.MSG_ID_LENGTH);
 
-        // 消息存储时间 4
-        input.putInt(time);
         // 消息存储主机地址 IP PORT 8
         input.put(addr);
         // 消息对应的物理分区 OFFSET 8
@@ -57,28 +54,22 @@ public class MessageDecoder {
 
 
     public static MessageId decodeMessageId(final String msgId) throws UnknownHostException {
-        long timestamp;
         SocketAddress address;
         long offset;
 
-        // 时间
-        byte[] data = UtilALl.string2bytes(msgId.substring(0, 8));
-        ByteBuffer bb = ByteBuffer.wrap(data);
-        timestamp = bb.getInt(0) * 1000;
-
         // 地址
-        byte[] ip = UtilALl.string2bytes(msgId.substring(8, 16));
-        byte[] port = UtilALl.string2bytes(msgId.substring(16, 24));
-        bb = ByteBuffer.wrap(port);
+        byte[] ip = UtilALl.string2bytes(msgId.substring(0, 8));
+        byte[] port = UtilALl.string2bytes(msgId.substring(8, 16));
+        ByteBuffer bb = ByteBuffer.wrap(port);
         int portInt = bb.getInt(0);
         address = new InetSocketAddress(InetAddress.getByAddress(ip), portInt);
 
         // offset
-        data = UtilALl.string2bytes(msgId.substring(24, 40));
+        byte[] data = UtilALl.string2bytes(msgId.substring(16, 32));
         bb = ByteBuffer.wrap(data);
         offset = bb.getLong(0);
 
-        return new MessageId(timestamp, address, offset);
+        return new MessageId(address, offset);
     }
 
 
@@ -191,8 +182,7 @@ public class MessageDecoder {
             // 消息ID
             ByteBuffer byteBufferMsgId = ByteBuffer.allocate(MSG_ID_LENGTH);
             String msgId =
-                    createMessageId(byteBufferMsgId, (int) (msgExt.getStoreTimestamp() / 1000),
-                        msgExt.getStoreHostBytes(), msgExt.getCommitLogOffset());
+                    createMessageId(byteBufferMsgId, msgExt.getStoreHostBytes(), msgExt.getCommitLogOffset());
             msgExt.setMsgId(msgId);
 
             return msgExt;

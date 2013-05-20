@@ -320,8 +320,7 @@ public class CommitLog {
             // PHY OFFSET
             long wroteOffset = fileFromOffset + byteBuffer.position();
             String msgId =
-                    MessageDecoder.createMessageId(this.msgIdMemory, (int) (msgInner.getStoreTimestamp() / 1000),
-                        msgInner.getStoreHostBytes(), wroteOffset);
+                    MessageDecoder.createMessageId(this.msgIdMemory, msgInner.getStoreHostBytes(), wroteOffset);
 
             /**
              * ¼ÇÂ¼ConsumeQueueÐÅÏ¢
