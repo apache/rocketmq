@@ -21,7 +21,7 @@ import com.alibaba.rocketmq.common.UtilALl;
 /**
  * 存储队列，数据定时删除，无限增长<br>
  * 队列是由多个文件组成
- *
+ * 
  * @author vintage.wang@gmail.com shijia.wxr@taobao.com
  */
 public class MapedFileQueue {
@@ -277,7 +277,7 @@ public class MapedFileQueue {
 
     /**
      * 根据物理队列最小Offset来删除逻辑队列
-     *
+     * 
      * @param offset
      *            物理队列最小offset
      */
@@ -328,7 +328,7 @@ public class MapedFileQueue {
 
     /**
      * 返回值表示是否全部刷盘完成
-     *
+     * 
      * @return
      */
     public boolean commit(final int flushLeastPages) {
@@ -364,7 +364,7 @@ public class MapedFileQueue {
 
     /**
      * 获取最后一个MapedFile对象，如果一个都没有，则新创建一个，如果最后一个写满了，则新创建一个
-     *
+     * 
      * @param startOffset
      *            如果创建新的文件，起始offset
      * @return
@@ -391,9 +391,22 @@ public class MapedFileQueue {
             String nextFilePath = this.storePath + File.separator + UtilALl.offset2FileName(createOffset);
             String nextNextFilePath =
                     this.storePath + File.separator + UtilALl.offset2FileName(createOffset + this.mapedFileSize);
-            MapedFile mapedFile =
-                    this.allocateMapedFileService.putRequestAndReturnMapedFile(nextFilePath, nextNextFilePath,
-                        this.mapedFileSize);
+            MapedFile mapedFile = null;
+
+            if (this.allocateMapedFileService != null) {
+                mapedFile =
+                        this.allocateMapedFileService.putRequestAndReturnMapedFile(nextFilePath, nextNextFilePath,
+                            this.mapedFileSize);
+            }
+            else {
+                try {
+                    mapedFile = new MapedFile(nextFilePath, this.mapedFileSize);
+                }
+                catch (IOException e) {
+                    log.error("create mapedfile exception", e);
+                }
+            }
+
             if (mapedFile != null) {
                 this.readWriteLock.writeLock().lock();
                 if (this.mapedFiles.isEmpty()) {
