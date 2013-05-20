@@ -45,6 +45,12 @@ public class ProducerManager {
     }
 
 
+    public Channel pickProducerChannelRandomly() {
+
+        return null;
+    }
+
+
     public void scanNotActiveChannel() {
         try {
             if (this.hashcodeChannelLock.tryLock(LockTimeoutMillis, TimeUnit.MILLISECONDS)) {

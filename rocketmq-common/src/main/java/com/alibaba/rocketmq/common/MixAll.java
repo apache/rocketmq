@@ -65,6 +65,7 @@ public class MixAll {
     public static final String ToolsLoggerName = "RocketmqTools";
     public static final String CommonLoggerName = "RocketmqCommon";
     public static final String StoreLoggerName = "RocketmqStore";
+    public static final String TransactionLoggerName = "RocketmqTransaction";
     public static final long TotalPhysicalMemorySize = getTotalPhysicalMemorySize();
     public static final List<String> LocalInetAddrs = getLocalInetAddress();
     public static final String Localhost = localhost();
