@@ -1079,7 +1079,8 @@ public class DefaultMessageStore implements MessageStore {
         }
 
         if (!this.runningFlags.isReadable()) {
-            log.warn("message store is not readable, so getMessage is forbidden " + this.runningFlags.getFlagBits());
+            log.warn("message store is not readable, so getMessage is forbidden "
+                    + this.runningFlags.getFlagBits());
             return null;
         }
 
@@ -1340,13 +1341,13 @@ public class DefaultMessageStore implements MessageStore {
     }
 
 
-    public MessageExt lookMessageByOffset(long phyOffset) {
-        SelectMapedBufferResult sbr = this.commitLog.getMessage(phyOffset, 4);
+    public MessageExt lookMessageByOffset(long commitLogOffset) {
+        SelectMapedBufferResult sbr = this.commitLog.getMessage(commitLogOffset, 4);
         if (null != sbr) {
             try {
                 // 1 TOTALSIZE
                 int size = sbr.getByteBuffer().getInt();
-                return lookMessageByOffset(phyOffset, size);
+                return lookMessageByOffset(commitLogOffset, size);
             }
             finally {
                 sbr.release();
@@ -1357,8 +1358,8 @@ public class DefaultMessageStore implements MessageStore {
     }
 
 
-    public MessageExt lookMessageByOffset(long phyOffset, int size) {
-        SelectMapedBufferResult sbr = this.commitLog.getMessage(phyOffset, size);
+    public MessageExt lookMessageByOffset(long commitLogOffset, int size) {
+        SelectMapedBufferResult sbr = this.commitLog.getMessage(commitLogOffset, size);
         if (null != sbr) {
             try {
                 return MessageDecoder.decode(sbr.getByteBuffer());
@@ -1557,13 +1558,13 @@ public class DefaultMessageStore implements MessageStore {
 
 
     @Override
-    public SelectMapedBufferResult selectOneMessageByOffset(long phyOffset) {
-        SelectMapedBufferResult sbr = this.commitLog.getMessage(phyOffset, 4);
+    public SelectMapedBufferResult selectOneMessageByOffset(long commitLogOffset) {
+        SelectMapedBufferResult sbr = this.commitLog.getMessage(commitLogOffset, 4);
         if (null != sbr) {
             try {
                 // 1 TOTALSIZE
                 int size = sbr.getByteBuffer().getInt();
-                return this.commitLog.getMessage(phyOffset, size);
+                return this.commitLog.getMessage(commitLogOffset, size);
             }
             finally {
                 sbr.release();
@@ -1571,6 +1572,12 @@ public class DefaultMessageStore implements MessageStore {
         }
 
         return null;
+    }
+
+
+    @Override
+    public SelectMapedBufferResult selectOneMessageByOffset(long commitLogOffset, int msgSize) {
+        return this.commitLog.getMessage(commitLogOffset, msgSize);
     }
 
 
@@ -1592,4 +1599,5 @@ public class DefaultMessageStore implements MessageStore {
     public TransactionCheckExecuter getTransactionCheckExecuter() {
         return transactionCheckExecuter;
     }
+
 }
