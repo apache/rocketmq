@@ -8,45 +8,17 @@ package com.alibaba.rocketmq.research.mix;
  * 
  */
 public class Test1 {
-    private int a = 10;
 
+    public static void test_1(String[] args) {
+        long timeLong = System.currentTimeMillis();
+        System.out.println(" timeLong = " + timeLong);
 
-    public static void main(String[] args) throws InstantiationException, IllegalAccessException {
-        // String processName =
-        // java.lang.management.ManagementFactory.getRuntimeMXBean().getName();
-        //
-        // String processID = processName.substring(0,
-        // processName.indexOf('@'));
-        //
-        // System.out.println("processID=" + processID);
-        
-        
-//        int i = 0;
-//        
-//        Integer abc = 99;
-//        i = abc;
-//        System.out.println(abc);
-        
-        long i = 100L;
-        Object obj = i;
-        System.out.println(obj);
-        System.out.println(obj.getClass());
-
-        Test1 test1 = Test1.class.newInstance();
-
-        test1.register(Test1.class);
-        System.out.println(test1);
+        int timeInt = (int) (timeLong / 1000);
+        System.out.println(" timeInt = " + timeInt);
     }
 
 
-    public void register(Class<? extends Object> t) {
-
+    public static void main(String[] args) {
+        test_1(args);
     }
-
-
-    @Override
-    public String toString() {
-        return "Test1 [a=" + a + "]";
-    }
-
 }
