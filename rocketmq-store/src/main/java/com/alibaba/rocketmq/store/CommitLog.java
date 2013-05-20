@@ -354,12 +354,16 @@ public class CommitLog {
             /**
              * 序列化消息
              */
-            int propertiesLength =
-                    msgInner.getPropertiesString() == null ? 0 : msgInner.getPropertiesString().length();
+            final byte[] propertiesData =
+                    msgInner.getPropertiesString() == null ? null : msgInner.getPropertiesString().getBytes();
+            final int propertiesLength = propertiesData == null ? 0 : propertiesData.length;
 
-            int bodyLength = msgInner.getBody() == null ? 0 : msgInner.getBody().length;
+            final byte[] topicData = msgInner.getTopic().getBytes();
+            final int topicLength = topicData == null ? 0 : topicData.length;
 
-            int msgLen = 4 // 1 TOTALSIZE
+            final int bodyLength = msgInner.getBody() == null ? 0 : msgInner.getBody().length;
+
+            final int msgLen = 4 // 1 TOTALSIZE
                     + 4 // 2 MAGICCODE
                     + 4 // 3 BODYCRC
                     + 4 // 4 QUEUEID
@@ -374,7 +378,7 @@ public class CommitLog {
                     + 4 // 13 RECONSUMETIMES
                     + 8 // 14 Prepared Transaction Offset
                     + 4 + bodyLength // 14 BODY
-                    + 1 + msgInner.getTopic().length() // 15 TOPIC
+                    + 1 + topicLength // 15 TOPIC
                     + 2 + propertiesLength // 16 propertiesLength
                     + 0;
 
@@ -436,12 +440,12 @@ public class CommitLog {
             if (bodyLength > 0)
                 this.msgStoreItemMemory.put(msgInner.getBody());
             // 16 TOPIC
-            this.msgStoreItemMemory.put((byte) msgInner.getTopic().length());
-            this.msgStoreItemMemory.put(msgInner.getTopic().getBytes());
+            this.msgStoreItemMemory.put((byte) topicLength);
+            this.msgStoreItemMemory.put(topicData);
             // 17 PROPERTIES
             this.msgStoreItemMemory.putShort((short) propertiesLength);
             if (propertiesLength > 0)
-                this.msgStoreItemMemory.put(msgInner.getPropertiesString().getBytes());
+                this.msgStoreItemMemory.put(propertiesData);
 
             // 向队列缓冲区写入消息
             byteBuffer.put(this.msgStoreItemMemory.array(), 0, msgLen);
