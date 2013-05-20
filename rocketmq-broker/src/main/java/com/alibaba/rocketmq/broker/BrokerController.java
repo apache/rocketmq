@@ -28,6 +28,7 @@ import com.alibaba.rocketmq.broker.processor.PullMessageProcessor;
 import com.alibaba.rocketmq.broker.processor.QueryMessageProcessor;
 import com.alibaba.rocketmq.broker.processor.SendMessageProcessor;
 import com.alibaba.rocketmq.broker.topic.TopicConfigManager;
+import com.alibaba.rocketmq.broker.transaction.DefaultTransactionCheckExecuter;
 import com.alibaba.rocketmq.common.BrokerConfig;
 import com.alibaba.rocketmq.common.DataVersion;
 import com.alibaba.rocketmq.common.MixAll;
@@ -73,10 +74,11 @@ public class BrokerController {
     private final ProducerManager producerManager;
     // 检测所有客户端连接
     private final ClientHousekeepingService clientHousekeepingService;
+    // Broker主动回查Producer事务状态
+    private final DefaultTransactionCheckExecuter defaultTransactionCheckExecuter;
 
     // Topic配置
     private TopicConfigManager topicConfigManager;
-
     // 处理发送消息线程池
     private ExecutorService sendMessageExecutor;
     // 处理拉取消息线程池
@@ -108,6 +110,7 @@ public class BrokerController {
         this.consumerManager = new ConsumerManager();
         this.producerManager = new ProducerManager();
         this.clientHousekeepingService = new ClientHousekeepingService(this);
+        this.defaultTransactionCheckExecuter = new DefaultTransactionCheckExecuter(this);
     }
 
 
@@ -472,5 +475,10 @@ public class BrokerController {
 
     public ProducerManager getProducerManager() {
         return producerManager;
+    }
+
+
+    public DefaultTransactionCheckExecuter getDefaultTransactionCheckExecuter() {
+        return defaultTransactionCheckExecuter;
     }
 }
