@@ -61,8 +61,7 @@ public class TransactionStateService {
         this.defaultMessageStore = defaultMessageStore;
         this.tranStateTable =
                 new MapedFileQueue(defaultMessageStore.getMessageStoreConfig().getTranStateTableStorePath(),
-                    defaultMessageStore.getMessageStoreConfig().getTranStateTableMapedFileSize(),
-                    defaultMessageStore.getAllocateMapedFileService());
+                    defaultMessageStore.getMessageStoreConfig().getTranStateTableMapedFileSize(), null);
 
         this.tranRedoLog = new ConsumeQueue(//
             TRANSACTION_REDOLOG_TOPIC,//
@@ -103,8 +102,7 @@ public class TransactionStateService {
     private void recreateStateTable() {
         this.tranStateTable =
                 new MapedFileQueue(defaultMessageStore.getMessageStoreConfig().getTranStateTableStorePath(),
-                    defaultMessageStore.getMessageStoreConfig().getTranStateTableMapedFileSize(),
-                    defaultMessageStore.getAllocateMapedFileService());
+                    defaultMessageStore.getMessageStoreConfig().getTranStateTableMapedFileSize(), null);
 
         final TreeSet<Long> preparedItemSet = new TreeSet<Long>();
 
