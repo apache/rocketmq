@@ -11,25 +11,13 @@ import java.net.SocketAddress;
  * 
  */
 public class MessageId {
-    private long timestamp;
     private SocketAddress address;
     private long offset;
 
 
-    public MessageId(long timestamp, SocketAddress address, long offset) {
-        this.timestamp = timestamp;
+    public MessageId(SocketAddress address, long offset) {
         this.address = address;
         this.offset = offset;
-    }
-
-
-    public long getTimestamp() {
-        return timestamp;
-    }
-
-
-    public void setTimestamp(long timestamp) {
-        this.timestamp = timestamp;
     }
 
 

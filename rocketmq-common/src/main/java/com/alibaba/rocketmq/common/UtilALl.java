@@ -139,7 +139,7 @@ public class UtilALl {
      * 字节数组转化成16进制形式
      */
     public static String bytes2string(byte[] src) {
-        StringBuilder sb = new StringBuilder(40);
+        StringBuilder sb = new StringBuilder();
         if (src == null || src.length <= 0) {
             return null;
         }
