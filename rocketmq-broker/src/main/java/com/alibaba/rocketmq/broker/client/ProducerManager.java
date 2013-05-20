@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -31,6 +32,8 @@ public class ProducerManager {
 
     private static final long ChannelExpiredTimeout = 1000 * 120;
 
+    private final Random random = new Random(System.currentTimeMillis());
+
     private final Lock hashcodeChannelLock = new ReentrantLock();
     private final HashMap<Integer /* group hash code */, List<ClientChannelInfo>> hashcodeChannelTable =
             new HashMap<Integer, List<ClientChannelInfo>>();
@@ -41,11 +44,42 @@ public class ProducerManager {
 
 
     public ProducerManager() {
-
     }
 
 
-    public Channel pickProducerChannelRandomly() {
+    private int generateRandmonNum() {
+        int value = this.random.nextInt();
+
+        if (value < 0) {
+            value = Math.abs(value);
+        }
+
+        return value;
+    }
+
+
+    public ClientChannelInfo pickProducerChannelRandomly(final int producerGroupHashCode) {
+        try {
+            if (this.hashcodeChannelLock.tryLock(LockTimeoutMillis, TimeUnit.MILLISECONDS)) {
+                try {
+                    List<ClientChannelInfo> channelInfoList = this.hashcodeChannelTable.get(producerGroupHashCode);
+                    if (channelInfoList != null && !channelInfoList.isEmpty()) {
+                        int index = this.generateRandmonNum() % channelInfoList.size();
+                        ClientChannelInfo info = channelInfoList.get(index);
+                        return info;
+                    }
+                }
+                finally {
+                    this.hashcodeChannelLock.unlock();
+                }
+            }
+            else {
+                log.warn("ProducerManager pickProducerChannelRandomly lock timeout");
+            }
+        }
+        catch (InterruptedException e) {
+            log.error("", e);
+        }
 
         return null;
     }
@@ -84,7 +118,7 @@ public class ProducerManager {
                 }
             }
             else {
-                log.warn("ProducerManager closeChannel lock timeout");
+                log.warn("ProducerManager scanNotActiveChannel lock timeout");
             }
         }
         catch (InterruptedException e) {
@@ -121,7 +155,7 @@ public class ProducerManager {
                 }
             }
             else {
-                log.warn("ProducerManager closeChannel lock timeout");
+                log.warn("ProducerManager scanNotActiveChannel lock timeout");
             }
         }
         catch (InterruptedException e) {
@@ -152,7 +186,7 @@ public class ProducerManager {
                     }
                 }
                 else {
-                    log.warn("ProducerManager closeChannel lock timeout");
+                    log.warn("ProducerManager doChannelCloseEvent lock timeout");
                 }
             }
             catch (InterruptedException e) {
@@ -180,7 +214,7 @@ public class ProducerManager {
                     }
                 }
                 else {
-                    log.warn("ProducerManager closeChannel lock timeout");
+                    log.warn("ProducerManager doChannelCloseEvent lock timeout");
                 }
             }
             catch (InterruptedException e) {
@@ -316,7 +350,7 @@ public class ProducerManager {
                 }
             }
             else {
-                log.warn("ProducerManager registerProducer lock timeout");
+                log.warn("ProducerManager unregisterProducer lock timeout");
             }
         }
         catch (InterruptedException e) {

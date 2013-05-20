@@ -75,13 +75,16 @@ public interface MessageStore {
     /**
      * 通过物理队列Offset，查询消息。 如果发生错误，则返回null
      */
-    public MessageExt lookMessageByOffset(final long phyOffset);
+    public MessageExt lookMessageByOffset(final long commitLogOffset);
 
 
     /**
      * 通过物理队列Offset，查询消息。 如果发生错误，则返回null
      */
-    public SelectMapedBufferResult selectOneMessageByOffset(final long phyOffset);
+    public SelectMapedBufferResult selectOneMessageByOffset(final long commitLogOffset);
+
+
+    public SelectMapedBufferResult selectOneMessageByOffset(final long commitLogOffset, final int msgSize);
 
 
     /**
