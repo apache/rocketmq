@@ -23,7 +23,6 @@ import com.alibaba.rocketmq.store.DefaultMessageStore;
 import com.alibaba.rocketmq.store.MapedFile;
 import com.alibaba.rocketmq.store.MapedFileQueue;
 import com.alibaba.rocketmq.store.SelectMapedBufferResult;
-import com.alibaba.rocketmq.store.schedule.ScheduleMessageService;
 
 
 /**
@@ -86,8 +85,16 @@ public class TransactionStateService {
     }
 
 
-    public void start() {
+    private void initTimerTask() {
+        final List<MapedFile> mapedFiles = this.tranStateTable.getMapedFiles();
+        for (MapedFile mf : mapedFiles) {
+            this.addTimerTask(mf);
+        }
+    }
 
+
+    public void start() {
+        this.initTimerTask();
     }
 
 
