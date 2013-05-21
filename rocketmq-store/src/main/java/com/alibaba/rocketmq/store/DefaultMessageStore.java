@@ -930,6 +930,7 @@ public class DefaultMessageStore implements MessageStore {
             this.reputMessageService.start();
         }
 
+        this.transactionStateService.start();
         this.haService.start();
 
         this.createTempFile();
@@ -951,6 +952,8 @@ public class DefaultMessageStore implements MessageStore {
             catch (InterruptedException e) {
                 log.error("shutdown Exception, ", e);
             }
+
+            this.transactionStateService.shutdown();
 
             this.scheduleMessageService.shutdown();
             this.haService.shutdown();
