@@ -400,6 +400,16 @@ public class MQClientFactory {
     }
 
 
+    public MQProducerInner selectProducer(final String group) {
+        return this.producerTable.get(group);
+    }
+
+
+    public MQConsumerInner selectConsumer(final String group) {
+        return this.consumerTable.get(group);
+    }
+
+
     public void unregisterProducer(final String group) {
         this.producerTable.remove(group);
         this.unregisterClientWithLock(group, null);

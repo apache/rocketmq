@@ -23,6 +23,8 @@ import com.alibaba.rocketmq.client.producer.MessageQueueSelector;
 import com.alibaba.rocketmq.client.producer.SendCallback;
 import com.alibaba.rocketmq.client.producer.SendResult;
 import com.alibaba.rocketmq.client.producer.SendStatus;
+import com.alibaba.rocketmq.client.producer.TransactionCheckListener;
+import com.alibaba.rocketmq.client.producer.TransactionMQProducer;
 import com.alibaba.rocketmq.common.Message;
 import com.alibaba.rocketmq.common.MessageDecoder;
 import com.alibaba.rocketmq.common.MessageExt;
@@ -649,5 +651,16 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         }
 
         return sendResult;
+    }
+
+
+    @Override
+    public TransactionCheckListener checkListener() {
+        if (this.defaultMQProducer instanceof TransactionMQProducer) {
+            TransactionMQProducer producer = (TransactionMQProducer) defaultMQProducer;
+            return producer.getTransactionCheckListener();
+        }
+
+        return null;
     }
 }
