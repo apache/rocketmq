@@ -46,7 +46,7 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingProtos.ResponseCode;
  * 
  * @author vintage.wang@gmail.com shijia.wxr@taobao.com
  */
-public class DefaultMQProducerImpl {
+public class DefaultMQProducerImpl implements MQProducerInner {
     private ServiceState serviceState = ServiceState.CREATE_JUST;
 
     private final DefaultMQProducer defaultMQProducer;
@@ -131,6 +131,7 @@ public class DefaultMQProducerImpl {
     }
 
 
+    @Override
     public void updateTopicPublishInfo(final String topic, final TopicPublishInfo info) {
         if (info != null && topic != null) {
             TopicPublishInfo prev = this.topicPublishInfoTable.put(topic, info);
@@ -141,6 +142,7 @@ public class DefaultMQProducerImpl {
     }
 
 
+    @Override
     public Set<String> getPublishTopicList() {
         Set<String> topicList = new HashSet<String>();
         for (String key : this.topicPublishInfoTable.keySet()) {
