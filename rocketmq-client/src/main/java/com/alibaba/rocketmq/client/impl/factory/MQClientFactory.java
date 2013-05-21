@@ -30,6 +30,7 @@ import com.alibaba.rocketmq.client.impl.MQAdminImpl;
 import com.alibaba.rocketmq.client.impl.MQClientAPIImpl;
 import com.alibaba.rocketmq.client.impl.consumer.MQConsumerInner;
 import com.alibaba.rocketmq.client.impl.producer.DefaultMQProducerImpl;
+import com.alibaba.rocketmq.client.impl.producer.MQProducerInner;
 import com.alibaba.rocketmq.client.impl.producer.TopicPublishInfo;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.MessageQueue;
@@ -61,8 +62,8 @@ public class MQClientFactory {
     private final long bootTimestamp = System.currentTimeMillis();
 
     // Producer对象
-    private final ConcurrentHashMap<String/* group */, DefaultMQProducerImpl> producerTable =
-            new ConcurrentHashMap<String, DefaultMQProducerImpl>();
+    private final ConcurrentHashMap<String/* group */, MQProducerInner> producerTable =
+            new ConcurrentHashMap<String, MQProducerInner>();
     // Consumer对象
     private final ConcurrentHashMap<String/* group */, MQConsumerInner> consumerTable =
             new ConcurrentHashMap<String, MQConsumerInner>();
@@ -309,7 +310,7 @@ public class MQClientFactory {
 
         // Producer
         for (String group : this.producerTable.keySet()) {
-            DefaultMQProducerImpl impl = this.producerTable.get(group);
+            MQProducerInner impl = this.producerTable.get(group);
             if (impl != null) {
                 ProducerData producerData = new ProducerData();
                 producerData.setGroupName(group);
@@ -387,7 +388,7 @@ public class MQClientFactory {
             return false;
         }
 
-        DefaultMQProducerImpl prev = this.producerTable.putIfAbsent(group, producer);
+        MQProducerInner prev = this.producerTable.putIfAbsent(group, producer);
         if (prev != null) {
             log.warn("the producer group[{}] exist already.", group);
             return false;
@@ -619,7 +620,7 @@ public class MQClientFactory {
 
         // Producer
         for (String g : this.producerTable.keySet()) {
-            DefaultMQProducerImpl impl = this.producerTable.get(g);
+            MQProducerInner impl = this.producerTable.get(g);
             if (impl != null) {
                 Set<String> lst = impl.getPublishTopicList();
                 topicList.addAll(lst);
@@ -658,7 +659,7 @@ public class MQClientFactory {
                             // 更新发布队列信息
                             TopicPublishInfo publishInfo = topicRouteData2TopicPublishInfo(topic, topicRouteData);
                             for (String g : this.producerTable.keySet()) {
-                                DefaultMQProducerImpl impl = this.producerTable.get(g);
+                                MQProducerInner impl = this.producerTable.get(g);
                                 if (impl != null) {
                                     impl.updateTopicPublishInfo(topic, publishInfo);
                                 }
