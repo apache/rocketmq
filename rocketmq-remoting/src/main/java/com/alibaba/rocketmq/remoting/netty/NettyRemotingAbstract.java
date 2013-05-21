@@ -143,14 +143,8 @@ public abstract class NettyRemotingAbstract {
                 public void run() {
                     try {
                         final RemotingCommand response = pair.getObject1().processRequest(ctx, cmd);
-                        if (cmd.isOnewayRPC()) {
-                            if (response.getCode() != ResponseCode.SUCCESS_VALUE) {
-                                plog.error("client oneway request has failed response, "
-                                        + RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
-                                plog.error(response.toString());
-                            }
-                        }
-                        else {
+                        // Oneway形式忽略应答结果
+                        if (!cmd.isOnewayRPC()) {
                             if (response != null) {
                                 response.setOpaque(cmd.getOpaque());
                                 response.markResponseType();
