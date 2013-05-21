@@ -79,6 +79,9 @@ public class MQClientFactory {
     private final Lock lockNamesrv = new ReentrantLock();
     private final static long LockTimeoutMillis = 3000;
 
+    // 心跳与注销动作加锁
+    private final Lock lockHeartbeat = new ReentrantLock();
+
     // 存储Broker Name 与Broker Address的对应关系
     private final ConcurrentHashMap<String/* Broker Name */, HashMap<Long/* brokerId */, String/* address */>> brokerAddrTable =
             new ConcurrentHashMap<String, HashMap<Long, String>>();
@@ -170,7 +173,7 @@ public class MQClientFactory {
             @Override
             public void run() {
                 try {
-                    MQClientFactory.this.sendHeartbeatToAllBroker();
+                    MQClientFactory.this.sendHeartbeatToAllBrokerWithLock();
                 }
                 catch (Exception e) {
                     log.error("ScheduledTask sendHeartbeatToAllBroker exception", e);
@@ -228,6 +231,29 @@ public class MQClientFactory {
             default:
                 break;
             }
+        }
+    }
+
+
+    private void unregisterClientWithLock(final String producerGroup, final String consumerGroup) {
+        try {
+            if (this.lockHeartbeat.tryLock(LockTimeoutMillis, TimeUnit.MILLISECONDS)) {
+                try {
+                    this.unregisterClient(producerGroup, consumerGroup);
+                }
+                catch (Exception e) {
+                    log.error("unregisterClient exception", e);
+                }
+                finally {
+                    this.lockHeartbeat.unlock();
+                }
+            }
+            else {
+                log.warn("lock heartBeat, but failed.");
+            }
+        }
+        catch (InterruptedException e) {
+            log.warn("unregisterClientWithLock exception", e);
         }
     }
 
@@ -296,6 +322,24 @@ public class MQClientFactory {
     }
 
 
+    private void sendHeartbeatToAllBrokerWithLock() {
+        if (this.lockHeartbeat.tryLock()) {
+            try {
+                this.sendHeartbeatToAllBroker();
+            }
+            catch (final Exception e) {
+                log.error("sendHeartbeatToAllBroker exception", e);
+            }
+            finally {
+                this.lockHeartbeat.unlock();
+            }
+        }
+        else {
+            log.warn("lock heartBeat, but failed.");
+        }
+    }
+
+
     private void sendHeartbeatToAllBroker() {
         final HeartbeatData heartbeatData = this.prepareHeartbeatData();
         final boolean producerEmpty = heartbeatData.getProducerDataSet().isEmpty();
@@ -349,13 +393,15 @@ public class MQClientFactory {
             return false;
         }
 
+        this.sendHeartbeatToAllBrokerWithLock();
+
         return true;
     }
 
 
     public void unregisterProducer(final String group) {
         this.producerTable.remove(group);
-        this.unregisterClient(group, null);
+        this.unregisterClientWithLock(group, null);
     }
 
 
@@ -370,13 +416,15 @@ public class MQClientFactory {
             return false;
         }
 
+        this.sendHeartbeatToAllBrokerWithLock();
+
         return true;
     }
 
 
     public void unregisterConsumer(final String group) {
         this.consumerTable.remove(group);
-        this.unregisterClient(null, group);
+        this.unregisterClientWithLock(null, group);
     }
 
 
