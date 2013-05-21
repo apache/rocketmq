@@ -9,6 +9,7 @@ import java.nio.ByteBuffer;
 
 import org.slf4j.Logger;
 
+import com.alibaba.rocketmq.client.exception.MQBrokerException;
 import com.alibaba.rocketmq.client.impl.factory.MQClientFactory;
 import com.alibaba.rocketmq.client.impl.producer.MQProducerInner;
 import com.alibaba.rocketmq.client.producer.LocalTransactionState;
@@ -18,7 +19,11 @@ import com.alibaba.rocketmq.common.MessageDecoder;
 import com.alibaba.rocketmq.common.MessageExt;
 import com.alibaba.rocketmq.common.protocol.MQProtos.MQRequestCode;
 import com.alibaba.rocketmq.common.protocol.header.CheckTransactionStateRequestHeader;
+import com.alibaba.rocketmq.common.protocol.header.EndTransactionRequestHeader;
+import com.alibaba.rocketmq.common.sysflag.MessageSysFlag;
+import com.alibaba.rocketmq.remoting.common.RemotingHelper;
 import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
+import com.alibaba.rocketmq.remoting.exception.RemotingException;
 import com.alibaba.rocketmq.remoting.netty.NettyRequestProcessor;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 
@@ -57,8 +62,33 @@ public class ClientRemotingProcessor implements NettyRequestProcessor {
             final ChannelHandlerContext ctx,//
             final CheckTransactionStateRequestHeader requestHeader,//
             final LocalTransactionState localTransactionState,//
+            final String producerGroup,//
             final Throwable exception) {
-        // TODO
+        final String addr = RemotingHelper.parseChannelRemoteAddr(ctx.channel());
+        final EndTransactionRequestHeader thisHeader = new EndTransactionRequestHeader();
+        thisHeader.setCommitLogOffset(requestHeader.getCommitLogOffset());
+        thisHeader.setProducerGroup(producerGroup);
+        thisHeader.setTranStateTableOffset(requestHeader.getTranStateTableOffset());
+        switch (localTransactionState) {
+        case COMMIT_MESSAGE:
+            thisHeader.setCommitOrRollback(MessageSysFlag.TransactionCommitType);
+            break;
+        case ROLLBACK_MESSAGE:
+            thisHeader.setCommitOrRollback(MessageSysFlag.TransactionRollbackType);
+            break;
+        case UNKNOW:
+            thisHeader.setCommitOrRollback(MessageSysFlag.TransactionNotType);
+            break;
+        default:
+            break;
+        }
+
+        try {
+            mqClientFactory.getMQClientAPIImpl().endTransactionOneway(addr, thisHeader, 3000);
+        }
+        catch (Exception e) {
+            log.error("endTransactionOneway exception", e);
+        }
     }
 
 
@@ -90,7 +120,7 @@ public class ClientRemotingProcessor implements NettyRequestProcessor {
                             exception = e;
                         }
 
-                        this.processTransactionState(ctx, requestHeader, localTransactionState, exception);
+                        this.processTransactionState(ctx, requestHeader, localTransactionState, group, exception);
                     }
                     else {
                         log.warn("checkTransactionState, pick transactionCheckListener by group[{}] failed", group);

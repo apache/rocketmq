@@ -662,7 +662,7 @@ public class MQClientAPIImpl {
 
 
     /**
-     * 更新Consumer消费进度
+     * 提交或者回滚事务
      */
     public void endTransaction(//
             final String addr,//
@@ -682,6 +682,20 @@ public class MQClientAPIImpl {
         }
 
         throw new MQBrokerException(response.getCode(), response.getRemark());
+    }
+
+
+    /**
+     * 提交或者回滚事务
+     */
+    public void endTransactionOneway(//
+            final String addr,//
+            final EndTransactionRequestHeader requestHeader,//
+            final long timeoutMillis//
+    ) throws RemotingException, MQBrokerException, InterruptedException {
+        RemotingCommand request =
+                RemotingCommand.createRequestCommand(MQRequestCode.END_TRANSACTION_VALUE, requestHeader);
+        this.remotingClient.invokeOneway(addr, request, timeoutMillis);
     }
 
 
