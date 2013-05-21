@@ -1,6 +1,3 @@
-/**
- * 
- */
 package com.alibaba.rocketmq.client.impl;
 
 import io.netty.channel.ChannelHandlerContext;
@@ -9,7 +6,6 @@ import java.nio.ByteBuffer;
 
 import org.slf4j.Logger;
 
-import com.alibaba.rocketmq.client.exception.MQBrokerException;
 import com.alibaba.rocketmq.client.impl.factory.MQClientFactory;
 import com.alibaba.rocketmq.client.impl.producer.MQProducerInner;
 import com.alibaba.rocketmq.client.producer.LocalTransactionState;
@@ -23,7 +19,6 @@ import com.alibaba.rocketmq.common.protocol.header.EndTransactionRequestHeader;
 import com.alibaba.rocketmq.common.sysflag.MessageSysFlag;
 import com.alibaba.rocketmq.remoting.common.RemotingHelper;
 import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
-import com.alibaba.rocketmq.remoting.exception.RemotingException;
 import com.alibaba.rocketmq.remoting.netty.NettyRequestProcessor;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 
