@@ -170,7 +170,6 @@ public abstract class NettyRemotingAbstract {
                                 }
                             }
                             else {
-                                // TODO
                                 // 收到请求，但是没有返回应答，可能是processRequest中进行了应答，忽略这种情况
                             }
                         }

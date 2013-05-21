@@ -24,7 +24,6 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingProtos.ResponseCode;
 import com.alibaba.rocketmq.store.MessageExtBrokerInner;
 import com.alibaba.rocketmq.store.MessageStore;
 import com.alibaba.rocketmq.store.PutMessageResult;
-import com.alibaba.rocketmq.store.SelectMapedBufferResult;
 
 
 /**
@@ -72,6 +71,8 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
         return msgInner;
     }
 
+    private static final Logger logTransaction = LoggerFactory.getLogger(MixAll.TransactionLoggerName);
+
 
     @Override
     public RemotingCommand processRequest(ChannelHandlerContext ctx, RemotingCommand request)
@@ -79,6 +80,25 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
         final EndTransactionRequestHeader requestHeader =
                 (EndTransactionRequestHeader) request.decodeCommandCustomHeader(EndTransactionRequestHeader.class);
+
+        switch (requestHeader.getCommitOrRollback()) {
+        // 不提交也不回滚
+        case MessageSysFlag.TransactionNotType: {
+            logTransaction.warn("check producer transaction state, but it's pending status.\n"//
+                    + "RequestHeader: {} Remark: {}", requestHeader.toString(), request.getRemark());
+            return null;
+        }
+        // 提交
+        case MessageSysFlag.TransactionCommitType: {
+            break;
+        }
+        // 回滚
+        case MessageSysFlag.TransactionRollbackType: {
+            break;
+        }
+        default:
+            return null;
+        }
 
         final MessageExt msgExt =
                 this.brokerController.getMessageStore().lookMessageByOffset(requestHeader.getCommitLogOffset());

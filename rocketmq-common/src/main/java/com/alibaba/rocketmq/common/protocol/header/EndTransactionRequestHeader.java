@@ -77,4 +77,12 @@ public class EndTransactionRequestHeader implements CommandCustomHeader {
     public void setCommitOrRollback(Integer commitOrRollback) {
         this.commitOrRollback = commitOrRollback;
     }
+
+
+    @Override
+    public String toString() {
+        return "EndTransactionRequestHeader [producerGroup=" + producerGroup + ", tranStateTableOffset="
+                + tranStateTableOffset + ", commitLogOffset=" + commitLogOffset + ", commitOrRollback="
+                + commitOrRollback + "]";
+    }
 }
