@@ -6,6 +6,8 @@ package com.alibaba.rocketmq.store.transaction;
 import java.nio.ByteBuffer;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -21,6 +23,7 @@ import com.alibaba.rocketmq.store.DefaultMessageStore;
 import com.alibaba.rocketmq.store.MapedFile;
 import com.alibaba.rocketmq.store.MapedFileQueue;
 import com.alibaba.rocketmq.store.SelectMapedBufferResult;
+import com.alibaba.rocketmq.store.schedule.ScheduleMessageService;
 
 
 /**
@@ -56,6 +59,9 @@ public class TransactionStateService {
     // State Table Offset，重启时，必须纠正
     private final AtomicLong tranStateTableOffset = new AtomicLong(0);
 
+    // 定时回查线程
+    private final Timer timer = new Timer("CheckTransactionMessageTimer", true);
+
 
     public TransactionStateService(final DefaultMessageStore defaultMessageStore) {
         this.defaultMessageStore = defaultMessageStore;
@@ -77,6 +83,15 @@ public class TransactionStateService {
         result = result && this.tranStateTable.load();
 
         return result;
+    }
+
+
+    public void start() {
+
+    }
+
+
+    public void shutdown() {
     }
 
 
@@ -216,6 +231,76 @@ public class TransactionStateService {
     }
 
 
+    private void addTimerTask(final MapedFile mf) {
+        this.timer.scheduleAtFixedRate(new TimerTask() {
+            private final MapedFile mapedFile = mf;
+            private final TransactionCheckExecuter transactionCheckExecuter =
+                    TransactionStateService.this.defaultMessageStore.getTransactionCheckExecuter();
+
+
+            private long getTranStateOffset(final long currentIndex) {
+                long offset = this.mapedFile.getFileFromOffset() / TransactionStateService.TSStoreUnitSize;
+                offset += currentIndex;
+                return offset;
+            }
+
+
+            @Override
+            public void run() {
+                try {
+                    SelectMapedBufferResult selectMapedBufferResult = mapedFile.selectMapedBuffer(0);
+                    // TODO 回查事务延时时间需要优化
+                    if (selectMapedBufferResult != null) {
+                        try {
+                            for (long i = 0; i < selectMapedBufferResult.getSize(); i += TSStoreUnitSize) {
+                                // Commit Log Offset
+                                long clOffset = selectMapedBufferResult.getByteBuffer().getLong();
+                                // Message Size
+                                int msgSize = selectMapedBufferResult.getByteBuffer().getInt();
+                                // Timestamp
+                                int timestamp = selectMapedBufferResult.getByteBuffer().getInt();
+                                // Producer Group Hashcode
+                                int groupHashCode = selectMapedBufferResult.getByteBuffer().getInt();
+                                // Transaction State
+                                int tranType = selectMapedBufferResult.getByteBuffer().getInt();
+
+                                long timestampLong = timestamp * 1000;
+                                // TODO 判断间隔指定时间后再回查
+                                if (tranType != MessageSysFlag.TransactionPreparedType) {
+                                    continue;
+                                }
+
+                                try {
+                                    this.transactionCheckExecuter.gotoCheck(//
+                                        groupHashCode,//
+                                        getTranStateOffset(i),//
+                                        clOffset,//
+                                        msgSize);
+                                }
+                                catch (Exception e) {
+                                    log.warn("", e);
+                                }
+                            }
+                        }
+                        finally {
+                            selectMapedBufferResult.release();
+                        }
+                    }
+
+                    if (mapedFile.isFull()) {
+                        // 并且无Prepared事务
+
+                        // this.cancel();
+                    }
+                }
+                catch (Exception e) {
+                    log.error("", e);
+                }
+            }
+        }, 1000 * 60, 1000 * 60 * 3);
+    }
+
+
     /**
      * 单线程调用
      */
@@ -229,6 +314,11 @@ public class TransactionStateService {
         if (null == mapedFile) {
             log.error("appendPreparedTransaction: create mapedfile error.");
             return false;
+        }
+
+        // 首次创建，加入定时任务中
+        if (0 == mapedFile.getWrotePostion()) {
+            this.addTimerTask(mapedFile);
         }
 
         this.byteBufferAppend.position(0);
