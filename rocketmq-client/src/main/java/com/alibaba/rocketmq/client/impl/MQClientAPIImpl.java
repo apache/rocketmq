@@ -810,4 +810,9 @@ public class MQClientAPIImpl {
 
         throw new MQClientException(response.getCode(), response.getRemark());
     }
+
+
+    public RemotingClient getRemotingClient() {
+        return remotingClient;
+    }
 }

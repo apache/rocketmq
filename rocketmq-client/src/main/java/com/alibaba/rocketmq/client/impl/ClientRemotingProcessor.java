@@ -83,8 +83,15 @@ public class ClientRemotingProcessor implements NettyRequestProcessor {
             break;
         }
 
+        RemotingCommand request =
+                RemotingCommand.createRequestCommand(MQRequestCode.END_TRANSACTION_VALUE, thisHeader);
+        if (exception != null) {
+            request.setRemark("checkLocalTransactionState Exception: " + exception.toString() + ", "
+                    + exception.getMessage());
+        }
+
         try {
-            mqClientFactory.getMQClientAPIImpl().endTransactionOneway(addr, thisHeader, 3000);
+            mqClientFactory.getMQClientAPIImpl().getRemotingClient().invokeOneway(addr, request, 3000);
         }
         catch (Exception e) {
             log.error("endTransactionOneway exception", e);
@@ -116,7 +123,8 @@ public class ClientRemotingProcessor implements NettyRequestProcessor {
                                     transactionCheckListener.checkLocalTransactionState(messageExt);
                         }
                         catch (Throwable e) {
-                            log.error("checkTransactionState, checkLocalTransactionState exception", e);
+                            log.error(
+                                "Broker call checkTransactionState, but checkLocalTransactionState exception", e);
                             exception = e;
                         }
 
