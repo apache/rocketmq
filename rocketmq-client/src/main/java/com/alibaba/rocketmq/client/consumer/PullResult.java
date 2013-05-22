@@ -65,6 +65,6 @@ public class PullResult {
     @Override
     public String toString() {
         return "PullResult [pullStatus=" + pullStatus + ", nextBeginOffset=" + nextBeginOffset + ", minOffset="
-                + minOffset + ", maxOffset=" + maxOffset + ", msgFoundList=" + msgFoundList.size() + "]";
+                + minOffset + ", maxOffset=" + maxOffset + ", msgFoundList=" + (msgFoundList==null?0:msgFoundList.size()) + "]";
     }
 }
