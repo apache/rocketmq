@@ -709,7 +709,7 @@ public class CommitLog {
                 sysFlag,// 9
                 0L,// 10
                 preparedTransactionOffset,// 11
-                ""// 12
+                null// 12
             );
         }
         catch (BufferUnderflowException e) {
