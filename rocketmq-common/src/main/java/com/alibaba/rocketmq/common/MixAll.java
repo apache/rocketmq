@@ -53,8 +53,8 @@ public class MixAll {
 
     public static final String ROCKETMQ_HOME_ENV = "ROCKETMQ_HOME";
     public static final String WS_DOMAIN_NAME = "diamondserver.tbsite.net";
-    // http://diamondserver.tbsite.net:8080/metaq/nsaddr
-    public static final String WS_ADDR = "http://" + WS_DOMAIN_NAME + ":8080/metaq/nsaddr";
+    // http://diamondserver.tbsite.net:8080/rocketmq/nsaddr
+    public static final String WS_ADDR = "http://" + WS_DOMAIN_NAME + ":8080/rocketmq/nsaddr";
     public static final String DEFAULT_TOPIC = "TBW102";
     public static final String DEFAULT_PRODUCER_GROUP = "DEFAULT_PRODUCER";
     public static final String DEFAULT_CONSUMER_GROUP = "DEFAULT_CONSUMER";
