@@ -30,12 +30,12 @@
 		</encoder>
 	</appender>
 	<appender name="RocketmqTransactionAppender" class="ch.qos.logback.core.rolling.RollingFileAppender">
-		<file>${user.home}/rocketmqlogs/rocketmq_rransaction.log</file>
+		<file>${user.home}/rocketmqlogs/rocketmq_transaction.log</file>
 		<append>true</append>
 		<rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
 			<fileNamePattern>${user.home}/rocketmqlogs/otherdays/rocketmq_transaction-%d{yyyy-MM-dd}.%i.log</fileNamePattern>
 			<timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
-				<maxFileSize>33554432</maxFileSize>
+				<maxFileSize>1073741824</maxFileSize>
 			</timeBasedFileNamingAndTriggeringPolicy>
 		</rollingPolicy>
 		<encoder>
