@@ -97,6 +97,7 @@ public class IndexService extends ServiceThread {
      */
     public IndexFile getAndCreateLastIndexFile() {
         IndexFile indexFile = null;
+        IndexFile prevIndexFile = null;
         long lastUpdateEndPhyOffset = 0;
         long lastUpdateIndexTimestamp = 0;
         // 先尝试使用读锁
@@ -110,6 +111,7 @@ public class IndexService extends ServiceThread {
                 else {
                     lastUpdateEndPhyOffset = tmp.getEndPhyOffset();
                     lastUpdateIndexTimestamp = tmp.getEndTimestamp();
+                    prevIndexFile = tmp;
                 }
             }
 
@@ -135,12 +137,13 @@ public class IndexService extends ServiceThread {
                 this.readWriteLock.writeLock().unlock();
             }
 
-            // 每创建一个新文件，刷一次盘
+            // 每创建一个新文件，之前文件要刷盘
             if (indexFile != null) {
+                final IndexFile flushThisFile = prevIndexFile;
                 Thread flushThread = new Thread(new Runnable() {
                     @Override
                     public void run() {
-                        IndexService.this.flush();
+                        IndexService.this.flush(flushThisFile);
                     }
                 }, "FlushIndexFileThread");
 
@@ -231,6 +234,23 @@ public class IndexService extends ServiceThread {
         finally {
             this.readWriteLock.readLock().unlock();
         }
+    }
+
+
+    public void flush(final IndexFile f) {
+        if (null == f)
+            return;
+
+        long indexMsgTimestamp = 0;
+
+        if (f.isWriteFull()) {
+            indexMsgTimestamp = f.getEndTimestamp();
+        }
+
+        f.flush();
+
+        this.defaultMessageStore.getStoreCheckpoint().setIndexMsgTimestamp(indexMsgTimestamp);
+        this.defaultMessageStore.getStoreCheckpoint().flush();
     }
 
 
