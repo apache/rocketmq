@@ -14,5 +14,8 @@ public interface SubCommand {
     public String commandDesc();
 
 
+    public void printHelp();
+
+
     public void execute(String[] args);
 }

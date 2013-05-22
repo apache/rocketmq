@@ -1,4 +1,4 @@
-package com.alibaba.rocketmq.tools.topic;
+package com.alibaba.rocketmq.tools.stats;
 
 import com.alibaba.rocketmq.tools.SubCommand;
 
@@ -6,17 +6,22 @@ import com.alibaba.rocketmq.tools.SubCommand;
 /**
  * @author vintage.wang@gmail.com shijia.wxr@taobao.com
  */
-public class TopicManagerSubCommand implements SubCommand {
+public class StatsSubCommand implements SubCommand {
 
     @Override
     public String commandName() {
-        return "topic";
+        return "stats";
     }
 
 
     @Override
     public String commandDesc() {
-        return "Update, create, delete or list topics";
+        return "Print the stats of broker, producer or consumer";
+    }
+
+
+    @Override
+    public void printHelp() {
     }
 
 
