@@ -237,12 +237,17 @@ public class TransactionStateService {
         }
     }
 
+    private static final Logger tranlog = LoggerFactory.getLogger(MixAll.TransactionLoggerName);
+
 
     private void addTimerTask(final MapedFile mf) {
         this.timer.scheduleAtFixedRate(new TimerTask() {
             private final MapedFile mapedFile = mf;
             private final TransactionCheckExecuter transactionCheckExecuter =
                     TransactionStateService.this.defaultMessageStore.getTransactionCheckExecuter();
+            private final long checkTransactionMessageAtleastInterval =
+                    TransactionStateService.this.defaultMessageStore.getMessageStoreConfig()
+                        .getCheckTransactionMessageAtleastInterval();
 
 
             private long getTranStateOffset(final long currentIndex) {
@@ -255,11 +260,15 @@ public class TransactionStateService {
             @Override
             public void run() {
                 try {
+                    long preparedMessageCountInThisMapedFile = 0;
+
                     SelectMapedBufferResult selectMapedBufferResult = mapedFile.selectMapedBuffer(0);
-                    // TODO 回查事务延时时间需要优化
                     if (selectMapedBufferResult != null) {
                         try {
-                            for (long i = 0; i < selectMapedBufferResult.getSize(); i += TSStoreUnitSize) {
+                            int i = 0;
+                            for (; i < selectMapedBufferResult.getSize(); i += TSStoreUnitSize) {
+                                selectMapedBufferResult.getByteBuffer().position(i);
+
                                 // Commit Log Offset
                                 long clOffset = selectMapedBufferResult.getByteBuffer().getLong();
                                 // Message Size
@@ -271,11 +280,19 @@ public class TransactionStateService {
                                 // Transaction State
                                 int tranType = selectMapedBufferResult.getByteBuffer().getInt();
 
-                                long timestampLong = timestamp * 1000;
-                                // TODO 判断间隔指定时间后再回查
+                                // 已经提交或者回滚的消息跳过
                                 if (tranType != MessageSysFlag.TransactionPreparedType) {
                                     continue;
                                 }
+
+                                // 遇到时间不符合，终止
+                                long timestampLong = timestamp * 1000;
+                                long diff = System.currentTimeMillis() - timestampLong;
+                                if (diff < checkTransactionMessageAtleastInterval) {
+                                    break;
+                                }
+
+                                preparedMessageCountInThisMapedFile++;
 
                                 try {
                                     this.transactionCheckExecuter.gotoCheck(//
@@ -285,26 +302,36 @@ public class TransactionStateService {
                                         msgSize);
                                 }
                                 catch (Exception e) {
-                                    log.warn("", e);
+                                    tranlog.warn("gotoCheck Exception", e);
                                 }
+                            }
+
+                            // 无Prepared消息，且遍历完，则终止定时任务
+                            if (0 == preparedMessageCountInThisMapedFile //
+                                    && i == mapedFile.getFileSize()) {
+                                tranlog
+                                    .info(
+                                        "remove the transaction timer task, because no prepared message in this mapedfile[{}]",
+                                        mapedFile.getFileName());
+                                this.cancel();
                             }
                         }
                         finally {
                             selectMapedBufferResult.release();
                         }
                     }
-
-                    if (mapedFile.isFull()) {
-                        // 并且无Prepared事务
-
-                        // this.cancel();
+                    else if (mapedFile.isFull()) {
+                        tranlog.info("the mapedfile[{}] maybe removed, cancel check transaction timer task",
+                            mapedFile.getFileName());
+                        this.cancel();
+                        return;
                     }
                 }
                 catch (Exception e) {
-                    log.error("", e);
+                    log.error("check transaction timer task Exception", e);
                 }
             }
-        }, 1000 * 60, 1000 * 60 * 3);
+        }, 1000 * 60, this.defaultMessageStore.getMessageStoreConfig().getCheckTransactionMessageTimerInterval());
     }
 
 

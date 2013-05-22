@@ -118,8 +118,10 @@ public class MessageStoreConfig {
             + File.separator + "transaction" + File.separator + "redolog";
     private int tranRedoLogMapedFileSize = 2000000 * ConsumeQueue.CQStoreUnitSize;
 
-    // 事务回查间隔时间
-    private long checkTransactionMessageInterval = 1000 * 60 * 3;
+    // 事务回查至少间隔时间
+    private long checkTransactionMessageAtleastInterval = 1000 * 60 * 6;
+    // 事务回查定时间隔时间
+    private long checkTransactionMessageTimerInterval = 1000 * 60 * 3;
 
 
     public int getMapedFileSizeCommitLog() {
@@ -632,5 +634,25 @@ public class MessageStoreConfig {
 
     public void setTranRedoLogMapedFileSize(int tranRedoLogMapedFileSize) {
         this.tranRedoLogMapedFileSize = tranRedoLogMapedFileSize;
+    }
+
+
+    public long getCheckTransactionMessageAtleastInterval() {
+        return checkTransactionMessageAtleastInterval;
+    }
+
+
+    public void setCheckTransactionMessageAtleastInterval(long checkTransactionMessageAtleastInterval) {
+        this.checkTransactionMessageAtleastInterval = checkTransactionMessageAtleastInterval;
+    }
+
+
+    public long getCheckTransactionMessageTimerInterval() {
+        return checkTransactionMessageTimerInterval;
+    }
+
+
+    public void setCheckTransactionMessageTimerInterval(long checkTransactionMessageTimerInterval) {
+        this.checkTransactionMessageTimerInterval = checkTransactionMessageTimerInterval;
     }
 }
