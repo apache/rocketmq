@@ -200,11 +200,13 @@ public abstract class NettyRemotingAbstract {
                     plog.warn(RemotingHelper.parseChannelRemoteAddr(ctx.channel())
                             + ", system thread pool busy, RejectedExecutionException "
                             + pair.getObject2().toString());
-                    try {
-                        Thread.sleep(2);
-                    }
-                    catch (InterruptedException e1) {
-                        plog.error("", e1);
+                    if (!cmd.isOnewayRPC()) {
+                        try {
+                            Thread.sleep(2);
+                        }
+                        catch (InterruptedException e1) {
+                            plog.error("", e1);
+                        }
                     }
                 }
             }
