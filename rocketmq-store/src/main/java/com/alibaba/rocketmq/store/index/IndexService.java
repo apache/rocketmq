@@ -253,37 +253,37 @@ public class IndexService extends ServiceThread {
         this.defaultMessageStore.getStoreCheckpoint().flush();
     }
 
+  
 
-    public void flush() {
-        ArrayList<IndexFile> indexFileListClone = null;
-        try {
-            this.readWriteLock.readLock().lock();
-            indexFileListClone = (ArrayList<IndexFile>) this.indexFileList.clone();
-        }
-        catch (Exception e) {
-            log.error("flush exception", e);
-        }
-        finally {
-            this.readWriteLock.readLock().unlock();
-        }
-
-        long indexMsgTimestamp = 0;
-
-        if (indexFileListClone != null) {
-            for (IndexFile f : indexFileListClone) {
-                if (f.isWriteFull()) {
-                    indexMsgTimestamp = f.getEndTimestamp();
-                }
-
-                f.flush();
-            }
-        }
-
-        this.defaultMessageStore.getStoreCheckpoint().setIndexMsgTimestamp(indexMsgTimestamp);
-        this.defaultMessageStore.getStoreCheckpoint().flush();
-    }
-
-
+    // public void flush() {
+    // ArrayList<IndexFile> indexFileListClone = null;
+    // try {
+    // this.readWriteLock.readLock().lock();
+    // indexFileListClone = (ArrayList<IndexFile>) this.indexFileList.clone();
+    // }
+    // catch (Exception e) {
+    // log.error("flush exception", e);
+    // }
+    // finally {
+    // this.readWriteLock.readLock().unlock();
+    // }
+    //
+    // long indexMsgTimestamp = 0;
+    //
+    // if (indexFileListClone != null) {
+    // for (IndexFile f : indexFileListClone) {
+    // if (f.isWriteFull()) {
+    // indexMsgTimestamp = f.getEndTimestamp();
+    // }
+    //
+    // f.flush();
+    // }
+    // }
+    //
+    // this.defaultMessageStore.getStoreCheckpoint().setIndexMsgTimestamp(indexMsgTimestamp);
+    // this.defaultMessageStore.getStoreCheckpoint().flush();
+    // }
+ 
     public QueryOffsetResult queryOffset(String topic, String key, int maxNum, long begin, long end) {
         List<Long> phyOffsets = new ArrayList<Long>(maxNum);
         // TODO 可能需要返回给最终用户
