@@ -3,7 +3,13 @@ package com.alibaba.rocketmq.tools;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.alibaba.rocketmq.tools.topic.TopicManagerSubCommand;
+import com.alibaba.rocketmq.tools.broker.BrokerSubCommand;
+import com.alibaba.rocketmq.tools.cluster.ClusterSubCommand;
+import com.alibaba.rocketmq.tools.connection.ConnectionSubCommand;
+import com.alibaba.rocketmq.tools.message.MessageSubCommand;
+import com.alibaba.rocketmq.tools.namesrv.NamesrvSubCommand;
+import com.alibaba.rocketmq.tools.stats.StatsSubCommand;
+import com.alibaba.rocketmq.tools.topic.TopicSubCommand;
 
 
 /**
@@ -13,12 +19,13 @@ public class MQAdminStartup {
     private static List<SubCommand> subCommandList = new ArrayList<SubCommand>();
 
     static {
-        subCommandList.add(new TopicManagerSubCommand());
-        subCommandList.add(new TopicManagerSubCommand());
-        subCommandList.add(new TopicManagerSubCommand());
-        subCommandList.add(new TopicManagerSubCommand());
-        subCommandList.add(new TopicManagerSubCommand());
-        subCommandList.add(new TopicManagerSubCommand());
+        subCommandList.add(new TopicSubCommand());
+        subCommandList.add(new BrokerSubCommand());
+        subCommandList.add(new ClusterSubCommand());
+        subCommandList.add(new NamesrvSubCommand());
+        subCommandList.add(new ConnectionSubCommand());
+        subCommandList.add(new MessageSubCommand());
+        subCommandList.add(new StatsSubCommand());
     }
 
 
@@ -26,7 +33,7 @@ public class MQAdminStartup {
         System.out.println("The most commonly used mqadmin commands are:");
 
         for (SubCommand cmd : subCommandList) {
-            System.out.printf("   %-12s %s\n", cmd.commandName(), cmd.commandDesc());
+            System.out.printf("   %-11s %s\n", cmd.commandName(), cmd.commandDesc());
         }
 
         System.out.println("\nSee 'mqadmin help <command>' for more information on a specific command.");
