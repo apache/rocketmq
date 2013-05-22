@@ -118,6 +118,9 @@ public class MessageStoreConfig {
             + File.separator + "transaction" + File.separator + "redolog";
     private int tranRedoLogMapedFileSize = 2000000 * ConsumeQueue.CQStoreUnitSize;
 
+    // 事务回查间隔时间
+    private long checkTransactionMessageInterval = 1000 * 60 * 3;
+
 
     public int getMapedFileSizeCommitLog() {
         return mapedFileSizeCommitLog;
