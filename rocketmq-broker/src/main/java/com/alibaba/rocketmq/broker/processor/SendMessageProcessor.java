@@ -92,7 +92,7 @@ public class SendMessageProcessor implements NettyRequestProcessor {
         TopicConfig topicConfig =
                 this.brokerController.getTopicConfigManager().selectTopicConfig(requestHeader.getTopic());
         if (null == topicConfig) {
-            log.error("the topic " + requestHeader.getTopic() + " not exist, producer: "
+            log.warn("the topic " + requestHeader.getTopic() + " not exist, producer: "
                     + ctx.channel().remoteAddress());
             topicConfig =
                     this.brokerController.getTopicConfigManager().createTopicInSendMessageMethod(
