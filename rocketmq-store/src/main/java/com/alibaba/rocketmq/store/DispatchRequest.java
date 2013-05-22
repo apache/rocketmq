@@ -43,6 +43,9 @@ public class DispatchRequest {
             final long tranStateTableOffset,// 10
             final long preparedTransactionOffset,// 11
             final String producerGroup// 12
+                                      // 如果producerGroup为空，表示是recover过程，所以不更新
+                                      // Transaction state
+                                      // table
     ) {
         this.topic = topic;
         this.queueId = queueId;
