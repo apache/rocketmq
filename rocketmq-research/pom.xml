@@ -34,5 +34,9 @@
   <groupId>ch.qos.logback</groupId>
   <artifactId>logback-classic</artifactId>
 </dependency>
+<dependency>
+  <groupId>com.google.code.gson</groupId>
+  <artifactId>gson</artifactId>
+</dependency>
 	</dependencies>
 </project>
