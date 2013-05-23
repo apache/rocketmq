@@ -94,6 +94,8 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
         }
         // »Ø¹ö
         case MessageSysFlag.TransactionRollbackType: {
+            logTransaction.warn("check producer transaction state, the producer rollback the message.\n"//
+                    + "RequestHeader: {} Remark: {}", requestHeader.toString(), request.getRemark());
             break;
         }
         default:
