@@ -97,17 +97,8 @@ public class ClientManageProcessor implements NettyRequestProcessor {
 
     public RemotingCommand heartBeat(ChannelHandlerContext ctx, RemotingCommand request) {
         RemotingCommand response = RemotingCommand.createResponseCommand(null);
-        HeartbeatData heartbeatData = null;
-        try {
-            heartbeatData = HeartbeatData.decode(request.getBody());
-        }
-        catch (InvalidProtocolBufferException e) {
-            log.error("decode heartbeat body from channel[{}] error",
-                RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
-            response.setCode(ResponseCode.SYSTEM_ERROR_VALUE);
-            response.setRemark("decode heartbeat body error");
-            return response;
-        }
+
+        HeartbeatData heartbeatData = HeartbeatData.decode(request.getBody(), HeartbeatData.class);
 
         ClientChannelInfo clientChannelInfo = new ClientChannelInfo(//
             ctx.channel(),//
