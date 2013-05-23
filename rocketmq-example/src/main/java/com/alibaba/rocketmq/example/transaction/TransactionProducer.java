@@ -20,8 +20,8 @@ import com.alibaba.rocketmq.remoting.exception.RemotingException;
  * 
  */
 public class TransactionProducer {
-    public static void main(String[] args) {
-        try {
+    public static void main(String[] args) throws MQClientException {
+        
         	TransactionCheckListener transactionCheckListener = new TransactionCheckListenerImpl();
         	TransactionMQProducer producer = new TransactionMQProducer("example.producer");
         	producer.setTransactionCheckListener(transactionCheckListener);
@@ -30,16 +30,18 @@ public class TransactionProducer {
             String[] tags = new String[] { "TagA", "TagB", "TagC", "TagD", "TagE" };
             TranExecuterImpl tranExecuter = new TranExecuterImpl();
             for (int i = 0; i < 100; i++) {
-                Message msg =
-                        new Message("TopicTest", tags[i % tags.length], "KEY" + i, ("Hello RocketMQ " + i).getBytes());
-                tranExecuter.setTransactionStats(1);
-                producer.sendMessageInTransaction(msg, tranExecuter);
+            	try {
+	                Message msg =
+	                        new Message("TopicTest", tags[i % tags.length], "KEY" + i, ("Hello RocketMQ " + i).getBytes());
+	                tranExecuter.setTransactionStats(1);
+	                producer.sendMessageInTransaction(msg, tranExecuter);
+            	}
+                catch (MQClientException e) {
+                    e.printStackTrace();
+                }
             }
 
             producer.shutdown();
-        }
-        catch (MQClientException e) {
-            e.printStackTrace();
-        }
+        
     }
 }
