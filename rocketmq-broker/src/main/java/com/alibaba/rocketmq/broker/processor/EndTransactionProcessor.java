@@ -17,6 +17,7 @@ import com.alibaba.rocketmq.common.TopicFilterType;
 import com.alibaba.rocketmq.common.protocol.MQProtos.MQResponseCode;
 import com.alibaba.rocketmq.common.protocol.header.EndTransactionRequestHeader;
 import com.alibaba.rocketmq.common.sysflag.MessageSysFlag;
+import com.alibaba.rocketmq.remoting.common.RemotingHelper;
 import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
 import com.alibaba.rocketmq.remoting.netty.NettyRequestProcessor;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
@@ -84,8 +85,9 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
         switch (requestHeader.getCommitOrRollback()) {
         // 不提交也不回滚
         case MessageSysFlag.TransactionNotType: {
-            logTransaction.warn("check producer transaction state, but it's pending status.\n"//
-                    + "RequestHeader: {} Remark: {}", requestHeader.toString(), request.getRemark());
+            logTransaction.warn("check producer[{}] transaction state, but it's pending status.\n"//
+                    + "RequestHeader: {} Remark: {}", RemotingHelper.parseChannelRemoteAddr(ctx.channel()),
+                requestHeader.toString(), request.getRemark());
             return null;
         }
         // 提交
@@ -94,8 +96,9 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
         }
         // 回滚
         case MessageSysFlag.TransactionRollbackType: {
-            logTransaction.warn("check producer transaction state, the producer rollback the message.\n"//
-                    + "RequestHeader: {} Remark: {}", requestHeader.toString(), request.getRemark());
+            logTransaction.warn("check producer[{}] transaction state, the producer rollback the message.\n"//
+                    + "RequestHeader: {} Remark: {}", RemotingHelper.parseChannelRemoteAddr(ctx.channel()),
+                requestHeader.toString(), request.getRemark());
             break;
         }
         default:
