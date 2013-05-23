@@ -49,7 +49,7 @@ public class HeartbeatTest {
 
         assertTrue(data != null);
 
-        HeartbeatData heartbeatDataDecode = HeartbeatData.decode(data);
+        HeartbeatData heartbeatDataDecode = HeartbeatData.decode(data, HeartbeatData.class);
 
         System.out.println(heartbeatDataDecode);
     }
