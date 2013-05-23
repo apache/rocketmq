@@ -6,10 +6,6 @@ package com.alibaba.rocketmq.common.protocol.heartbeat;
 import java.util.HashSet;
 import java.util.Set;
 
-import com.alibaba.rocketmq.common.protocol.MQProtos.ConsumerInfo;
-import com.alibaba.rocketmq.common.protocol.MQProtos.ProducerInfo;
-import com.alibaba.rocketmq.common.protocol.MQProtos.SubscriptionInfo;
-
 
 /**
  * @author vintage.wang@gmail.com shijia.wxr@taobao.com
@@ -20,37 +16,6 @@ public class ConsumerData {
     private ConsumeType consumeType;
     private MessageModel messageModel;
     private Set<SubscriptionData> subscriptionDataSet = new HashSet<SubscriptionData>();
-
-
-    public ConsumerInfo encode() {
-        ConsumerInfo.Builder builder = ConsumerInfo.newBuilder();
-        builder.setGroupName(this.groupName);
-        builder.setConsumeType(this.consumeType.name());
-        builder.setMessageModel(this.messageModel.name());
-        if (subscriptionDataSet != null) {
-            int i = 0;
-            for (SubscriptionData data : this.subscriptionDataSet) {
-                builder.addSubscriptionInfos(i++, data.encode());
-            }
-        }
-
-        return builder.build();
-    }
-
-
-    public static ConsumerData decode(ConsumerInfo info) {
-        ConsumerData data = new ConsumerData();
-        data.setGroupName(info.getGroupName());
-        data.setConsumeType(ConsumeType.valueOf(info.getConsumeType()));
-        data.setMessageModel(MessageModel.valueOf(info.getMessageModel()));
-
-        // subscriptionDataSet
-        for (SubscriptionInfo sub : info.getSubscriptionInfosList()) {
-            data.getSubscriptionDataSet().add(SubscriptionData.decode(sub));
-        }
-
-        return data;
-    }
 
 
     public String getGroupName() {

@@ -3,7 +3,6 @@
  */
 package com.alibaba.rocketmq.common.protocol.heartbeat;
 
-import com.alibaba.rocketmq.common.protocol.MQProtos.ProducerInfo;
 
 
 /**
@@ -12,20 +11,6 @@ import com.alibaba.rocketmq.common.protocol.MQProtos.ProducerInfo;
  */
 public class ProducerData {
     private String groupName;
-
-
-    public ProducerInfo encode() {
-        ProducerInfo.Builder builder = ProducerInfo.newBuilder();
-        builder.setGroupName(this.groupName);
-        return builder.build();
-    }
-
-
-    public static ProducerData decode(ProducerInfo info) {
-        ProducerData data = new ProducerData();
-        data.setGroupName(info.getGroupName());
-        return data;
-    }
 
 
     public String getGroupName() {
