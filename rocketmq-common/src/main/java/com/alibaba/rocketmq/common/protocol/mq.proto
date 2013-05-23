@@ -104,30 +104,30 @@ enum MQResponseCode{
 //
 // Name Server Route
 //
-message BrokerInfo {
-    required string brokerName = 1;
+ message BrokerInfo {
+     required string brokerName = 1;
 
-    message BrokerAddr{
-        required int64 id = 1;
-        required string addr = 2;
-    }
+     message BrokerAddr{
+         required int64 id = 1;
+         required string addr = 2;
+     }
 
-    repeated BrokerAddr brokerAddrs = 2;
-}
+     repeated BrokerAddr brokerAddrs = 2;
+ }
 
-message QueueInfo{
-    required string brokerName = 1;
-    required int32 readQueueNums = 2;
-    required int32 writeQueueNums = 3;
-    required int32 perm = 4;
-}
+ message QueueInfo{
+     required string brokerName = 1;
+     required int32 readQueueNums = 2;
+     required int32 writeQueueNums = 3;
+     required int32 perm = 4;
+ }
 
-message TopicRouteInfo {
-    repeated QueueInfo queueInfos = 1;
-    repeated BrokerInfo brokerInfos = 2;
-    optional string orderTopicConf = 3;
-}
-
+ message TopicRouteInfo {
+     repeated QueueInfo queueInfos = 1;
+     repeated BrokerInfo brokerInfos = 2;
+     optional string orderTopicConf = 3;
+ }
+//
 //
 // Heart Beat
 //
