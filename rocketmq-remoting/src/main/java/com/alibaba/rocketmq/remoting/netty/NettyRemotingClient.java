@@ -298,10 +298,6 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
     @Override
     public void shutdown() {
         try {
-            if (this.nettyEventExecuter != null) {
-                this.nettyEventExecuter.shutdown();
-            }
-
             this.timer.cancel();
 
             for (ChannelWrapper cw : this.channelTables.values()) {
@@ -311,6 +307,10 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
             this.channelTables.clear();
 
             this.bootstrap.shutdown();
+
+            if (this.nettyEventExecuter != null) {
+                this.nettyEventExecuter.shutdown();
+            }
         }
         catch (Exception e) {
             log.error("NettyRemotingClient shutdown exception, ", e);
