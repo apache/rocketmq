@@ -131,29 +131,29 @@ message TopicRouteInfo {
 //
 // Heart Beat
 //
-message ProducerInfo {
-    required string groupName = 1;
-}
-
-message SubscriptionInfo {
-    required string topic = 1;
-    required string subString = 2;
-    required string subNumfmt = 3;
-    required bool hasAndOperator = 4;
-}
-
-message ConsumerInfo {
-    required string groupName = 1;
-    required string consumeType = 2;
-    required string messageModel = 3;
-    repeated SubscriptionInfo subscriptionInfos = 4;
-}
-
-message HeartbeatInfo {
-    required string clientID = 1;
-	repeated ProducerInfo producerInfos = 2;
-    repeated ConsumerInfo consumerInfos = 3;
-}
+// message ProducerInfo {
+//     required string groupName = 1;
+// }
+//
+// message SubscriptionInfo {
+//     required string topic = 1;
+//     required string subString = 2;
+//     required string subNumfmt = 3;
+//     required bool hasAndOperator = 4;
+// }
+//
+// message ConsumerInfo {
+//     required string groupName = 1;
+//     required string consumeType = 2;
+//     required string messageModel = 3;
+//     repeated SubscriptionInfo subscriptionInfos = 4;
+// }
+//
+// message HeartbeatInfo {
+//     required string clientID = 1;
+// 	repeated ProducerInfo producerInfos = 2;
+//     repeated ConsumerInfo consumerInfos = 3;
+// }
 
 // TODO 暂时不使用
 message TopicQueuePair {

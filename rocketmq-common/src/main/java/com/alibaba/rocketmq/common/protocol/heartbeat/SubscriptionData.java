@@ -3,10 +3,6 @@
  */
 package com.alibaba.rocketmq.common.protocol.heartbeat;
 
-import com.alibaba.rocketmq.common.protocol.MQProtos.ConsumerInfo;
-import com.alibaba.rocketmq.common.protocol.MQProtos.SubscriptionInfo;
-
-
 /**
  * @author vintage.wang@gmail.com shijia.wxr@taobao.com
  * 
@@ -28,28 +24,6 @@ public class SubscriptionData {
         this.subString = subString;
         this.subNumfmt = subNumfmt;
         this.hasAndOperator = hasAndOperator;
-    }
-
-
-    public static SubscriptionData decode(SubscriptionInfo info) {
-        SubscriptionData data = new SubscriptionData();
-        data.setTopic(info.getTopic());
-        data.setSubString(info.getSubString());
-        data.setSubNumfmt(info.getSubNumfmt());
-        data.setHasAndOperator(info.getHasAndOperator());
-        return data;
-    }
-
-
-    public SubscriptionInfo encode() {
-        SubscriptionInfo.Builder builder = SubscriptionInfo.newBuilder();
-
-        builder.setTopic(this.topic);
-        builder.setSubString(this.subString);
-        builder.setSubNumfmt(this.subNumfmt);
-        builder.setHasAndOperator(this.hasAndOperator);
-
-        return builder.build();
     }
 
 
