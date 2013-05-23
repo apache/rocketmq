@@ -170,7 +170,8 @@ public class BrokerController {
         // ≥ı ºªØ¥Ê¥¢≤„
         if (result) {
             try {
-                this.messageStore = new DefaultMessageStore(this.messageStoreConfig);
+                this.messageStore =
+                        new DefaultMessageStore(this.messageStoreConfig, this.defaultTransactionCheckExecuter);
             }
             catch (IOException e) {
                 result = false;

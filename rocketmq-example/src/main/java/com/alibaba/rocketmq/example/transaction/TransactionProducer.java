@@ -4,6 +4,7 @@
 package com.alibaba.rocketmq.example.transaction;
 
 import com.alibaba.rocketmq.client.exception.MQClientException;
+import com.alibaba.rocketmq.client.producer.SendResult;
 import com.alibaba.rocketmq.client.producer.TransactionCheckListener;
 import com.alibaba.rocketmq.client.producer.TransactionMQProducer;
 import com.alibaba.rocketmq.common.Message;
@@ -28,7 +29,8 @@ public class TransactionProducer {
                 Message msg =
                         new Message("TopicTest", tags[i % tags.length], "KEY" + i,
                             ("Hello RocketMQ " + i).getBytes());
-                producer.sendMessageInTransaction(msg, tranExecuter);
+                SendResult sendResult = producer.sendMessageInTransaction(msg, tranExecuter);
+                System.out.println(sendResult);
             }
             catch (MQClientException e) {
                 e.printStackTrace();
