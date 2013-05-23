@@ -8,7 +8,7 @@ import com.alibaba.rocketmq.common.MessageExt;
 
 
 public class TransactionCheckListenerImpl implements TransactionCheckListener {
-    private AtomicInteger transactionIndex = new AtomicInteger(1);
+    private AtomicInteger transactionIndex = new AtomicInteger(0);
 
 
     @Override
@@ -19,10 +19,10 @@ public class TransactionCheckListenerImpl implements TransactionCheckListener {
         if (value == 0) {
             throw new RuntimeException("Could not find db");
         }
-        else if ((value % 2) == 0) {
+        else if ((value % 5) == 0) {
             return LocalTransactionState.ROLLBACK_MESSAGE;
         }
-        else if ((value % 3) == 0) {
+        else if ((value % 4) == 0) {
             return LocalTransactionState.COMMIT_MESSAGE;
         }
 

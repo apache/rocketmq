@@ -27,6 +27,10 @@ public class EndTransactionRequestHeader implements CommandCustomHeader {
 
     @Override
     public void checkFields() throws RemotingCommandException {
+        if (MessageSysFlag.TransactionNotType == this.commitOrRollback) {
+            return;
+        }
+
         if (MessageSysFlag.TransactionCommitType == this.commitOrRollback) {
             return;
         }
