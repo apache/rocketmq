@@ -15,7 +15,7 @@ import com.alibaba.rocketmq.common.Message;
  * 
  */
 public class TransactionProducer {
-    public static void main(String[] args) throws MQClientException {
+    public static void main(String[] args) throws MQClientException, InterruptedException {
 
         TransactionCheckListener transactionCheckListener = new TransactionCheckListenerImpl();
         TransactionMQProducer producer = new TransactionMQProducer("example.producer");
@@ -35,6 +35,10 @@ public class TransactionProducer {
             catch (MQClientException e) {
                 e.printStackTrace();
             }
+        }
+
+        for (int i = 0; i < 100000; i++) {
+            Thread.sleep(1000);
         }
 
         producer.shutdown();
