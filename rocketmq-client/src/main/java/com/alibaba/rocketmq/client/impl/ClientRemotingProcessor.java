@@ -70,9 +70,11 @@ public class ClientRemotingProcessor implements NettyRequestProcessor {
             break;
         case ROLLBACK_MESSAGE:
             thisHeader.setCommitOrRollback(MessageSysFlag.TransactionRollbackType);
+            log.warn("when broker check, client rollback this transaction, {}", thisHeader);
             break;
         case UNKNOW:
             thisHeader.setCommitOrRollback(MessageSysFlag.TransactionNotType);
+            log.warn("when broker check, client donot know this transaction state, {}", thisHeader);
             break;
         default:
             break;
