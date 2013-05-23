@@ -761,14 +761,14 @@ public class MQClientAPIImpl {
     public TopicRouteData getTopicRouteInfoFromNameServer(final String topic, final long timeoutMillis)
             throws RemotingException, MQClientException, InterruptedException, InvalidProtocolBufferException {
         TopicRouteData topicRouteData = new TopicRouteData();
-        topicRouteData.setOrderTopicConf("dev170022.sqa.cm6:4;");
+        topicRouteData.setOrderTopicConf("dev170021.sqa.cm6:4;");
         List<BrokerData> brokerDatas = new ArrayList<BrokerData>();
         BrokerData bd = new BrokerData();
 
         HashMap<Long/* brokerId */, String/* broker address */> brokerAddrs = new HashMap<Long, String>();
-        brokerAddrs.put(0L, "10.235.170.22:10911");
+        brokerAddrs.put(0L, "10.235.170.21:10911");
 
-        bd.setBrokerName("dev170022.sqa.cm6");
+        bd.setBrokerName("dev170021.sqa.cm6");
         bd.setBrokerAddrs(brokerAddrs);
 
         brokerDatas.add(bd);
@@ -776,7 +776,7 @@ public class MQClientAPIImpl {
         topicRouteData.setBrokerDatas(brokerDatas);
         List<QueueData> queueDatas = new ArrayList<QueueData>();
         QueueData queueData = new QueueData();
-        queueData.setBrokerName("dev170022.sqa.cm6");
+        queueData.setBrokerName("dev170021.sqa.cm6");
         queueData.setPerm(6);
         queueData.setReadQueueNums(4);
         queueData.setWriteQueueNums(4);
