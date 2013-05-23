@@ -744,7 +744,7 @@ public class MQClientAPIImpl {
         case ResponseCode.SUCCESS_VALUE: {
             byte[] body = response.getBody();
             if (body != null) {
-                return TopicRouteData.decode(body);
+                return TopicRouteData.decode(body, TopicRouteData.class);
             }
         }
         default:
