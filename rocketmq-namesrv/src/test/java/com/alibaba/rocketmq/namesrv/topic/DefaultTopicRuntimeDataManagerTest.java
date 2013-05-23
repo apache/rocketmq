@@ -90,7 +90,7 @@ public class DefaultTopicRuntimeDataManagerTest {
         RemotingCommand response = dataManager.getRouteInfoByTopic(topic);
         Assert.assertTrue(response.getCode() == ResponseCode.SUCCESS_VALUE);
 
-        TopicRouteData topicRouteData = TopicRouteData.decode(response.getBody());
+        TopicRouteData topicRouteData = TopicRouteData.decode(response.getBody(), TopicRouteData.class);
         Assert.assertTrue("topic.num.topic-1=105:4;106:4".equals(topicRouteData.getOrderTopicConf()));
     }
 
@@ -184,7 +184,7 @@ public class DefaultTopicRuntimeDataManagerTest {
         Assert.assertTrue(ret);
     }
 
-    
+
     @Test
     public void testDoUnRegisterBrokerOne() throws Exception {
         String brokerName = "broker-1";
@@ -193,5 +193,5 @@ public class DefaultTopicRuntimeDataManagerTest {
         boolean ret = dataManager.doUnRegisterBroker(brokerName);
         Assert.assertTrue(ret);
     }
-    
+
 }
