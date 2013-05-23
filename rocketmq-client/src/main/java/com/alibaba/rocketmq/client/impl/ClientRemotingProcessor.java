@@ -81,8 +81,7 @@ public class ClientRemotingProcessor implements NettyRequestProcessor {
         RemotingCommand request =
                 RemotingCommand.createRequestCommand(MQRequestCode.END_TRANSACTION_VALUE, thisHeader);
         if (exception != null) {
-            request.setRemark("checkLocalTransactionState Exception: " + exception.toString() + ", "
-                    + exception.getMessage());
+            request.setRemark("checkLocalTransactionState Exception: " + exception.toString());
         }
 
         try {

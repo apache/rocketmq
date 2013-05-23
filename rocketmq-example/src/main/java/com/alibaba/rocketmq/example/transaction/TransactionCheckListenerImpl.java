@@ -16,7 +16,7 @@ public class TransactionCheckListenerImpl implements TransactionCheckListener {
         System.out.println("server checking TrMsg " + msg.toString());
 
         int value = transactionIndex.getAndIncrement();
-        if (value == 0) {
+        if ((value % 6) == 0) {
             throw new RuntimeException("Could not find db");
         }
         else if ((value % 5) == 0) {
