@@ -1,11 +1,13 @@
 package com.alibaba.rocketmq.research.gson;
 
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.serializer.SerializerFeature;
 
 
 /**
  * @author vintage.wang@gmail.com shijia.wxr@taobao.com
  */
-public class TestGson {
+public class TestFastjson {
 
     public static void main(String[] args) {
         ContactBook contactBook = new ContactBook();
@@ -21,18 +23,12 @@ public class TestGson {
         contactBook.getContactList().add(new Contact("张惠妹", 41, 52.69, "研究生", SexType.GIRL));
         contactBook.getContactList().add(new Contact("周星驰", 54, 61.22, "博士", SexType.BOY));
 
-        // GsonBuilder builder = new GsonBuilder();
-        // // builder.excludeFieldsWithoutExposeAnnotation();
-        //
-        // Gson gson = builder.create();
-        //
-        // String json = gson.toJson(contactBook);
-        // System.out.println(json);
-        //
-        // ContactBook cb = gson.fromJson(json, ContactBook.class);
-        // System.out.println(cb);
-        // String json2 = gson.toJson(cb);
-        // System.out.println(json2);
-       
+        String json = JSON.toJSONString(contactBook, SerializerFeature.WriteClassName);
+        System.out.println(json);
+
+        // ContactBook fan = (ContactBook) JSON.parse(json);
+
+        ContactBook fan = JSON.parseObject(json, ContactBook.class);
+        System.out.println(fan);
     }
 }
