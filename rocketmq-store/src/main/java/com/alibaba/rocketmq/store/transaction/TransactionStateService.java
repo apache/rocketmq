@@ -251,8 +251,9 @@ public class TransactionStateService {
 
 
             private long getTranStateOffset(final long currentIndex) {
-                long offset = this.mapedFile.getFileFromOffset() / TransactionStateService.TSStoreUnitSize;
-                offset += currentIndex;
+                long offset =
+                        (this.mapedFile.getFileFromOffset() + currentIndex)
+                                / TransactionStateService.TSStoreUnitSize;
                 return offset;
             }
 
@@ -260,12 +261,12 @@ public class TransactionStateService {
             @Override
             public void run() {
                 try {
-                    long preparedMessageCountInThisMapedFile = 0;
-
                     SelectMapedBufferResult selectMapedBufferResult = mapedFile.selectMapedBuffer(0);
                     if (selectMapedBufferResult != null) {
+                        long preparedMessageCountInThisMapedFile = 0;
+                        int i = 0;
                         try {
-                            int i = 0;
+
                             for (; i < selectMapedBufferResult.getSize(); i += TSStoreUnitSize) {
                                 selectMapedBufferResult.getByteBuffer().position(i);
 
@@ -319,9 +320,18 @@ public class TransactionStateService {
                         finally {
                             selectMapedBufferResult.release();
                         }
+
+                        tranlog
+                            .info(
+                                "the transaction timer task execute over, {} Prepared Message: {} Check Progress: {}/{}",
+                                mapedFile.getFileName(),//
+                                preparedMessageCountInThisMapedFile,//
+                                i / TSStoreUnitSize,//
+                                mapedFile.getFileSize() / TSStoreUnitSize//
+                            );
                     }
                     else if (mapedFile.isFull()) {
-                        tranlog.info("the mapedfile[{}] maybe removed, cancel check transaction timer task",
+                        tranlog.info("the mapedfile[{}] maybe deleted, cancel check transaction timer task",
                             mapedFile.getFileName());
                         this.cancel();
                         return;
