@@ -11,6 +11,7 @@ import io.netty.channel.ChannelInboundMessageHandlerAdapter;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.ChannelPromise;
+import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
@@ -44,8 +45,9 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 public class NettyRemotingServer extends NettyRemotingAbstract implements RemotingServer {
     private static final Logger log = LoggerFactory.getLogger(RemotingHelper.RemotingLogName);
 
-    private ServerBootstrap serverBootstrap;
-    private NettyServerConfig nettyServerConfig;
+    private final ServerBootstrap serverBootstrap;
+    private final EventLoopGroup eventLoopGroup;
+    private final NettyServerConfig nettyServerConfig;
 
     // ´¦ÀíCallbackÓ¦´ðÆ÷
     private final ExecutorService publicExecutor;
@@ -157,15 +159,16 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
                 return new Thread(r, "NettyServerPublicExecutor_" + this.threadIndex.incrementAndGet());
             }
         });
+
+        this.eventLoopGroup = new NioEventLoopGroup(nettyServerConfig.getServerSelectorThreads());
     }
 
 
     @Override
     public void start() throws InterruptedException {
-        this.serverBootstrap
-            .group(new NioEventLoopGroup(this.nettyServerConfig.getServerSelectorThreads()),
-                new NioEventLoopGroup()).channel(NioServerSocketChannel.class)
-            .option(ChannelOption.SO_BACKLOG, 65536).childOption(ChannelOption.TCP_NODELAY, true)
+        this.serverBootstrap.group(this.eventLoopGroup, new NioEventLoopGroup())
+            .channel(NioServerSocketChannel.class).option(ChannelOption.SO_BACKLOG, 65536)
+            .childOption(ChannelOption.TCP_NODELAY, true)
             .localAddress(new InetSocketAddress(this.nettyServerConfig.getListenPort()))
             .childHandler(new ChannelInitializer<SocketChannel>() {
                 @Override
@@ -189,7 +192,7 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
     @Override
     public void shutdown() {
         try {
-            this.serverBootstrap.shutdown();
+            this.eventLoopGroup.shutdownGracefully();
 
             if (this.nettyEventExecuter != null) {
                 this.nettyEventExecuter.shutdown();
