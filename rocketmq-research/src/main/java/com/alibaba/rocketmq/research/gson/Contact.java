@@ -1,18 +1,13 @@
 package com.alibaba.rocketmq.research.gson;
 
-import com.google.gson.annotations.Expose;
 
 
-public class Contact  {
+public class Contact {
     public final static String SUB_ALL = "*";
-    @Expose
     private String name;
-    @Expose
     private int age;
-    @Expose
     private double weight;
     private String school;
-    @Expose
     private SexType sex;
 
 
@@ -63,6 +58,10 @@ public class Contact  {
 
     public void setSex(SexType sex) {
         this.sex = sex;
+    }
+
+
+    public Contact() {
     }
 
 

@@ -5,15 +5,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.google.gson.annotations.Expose;
-
 
 public class ContactBook extends Convert {
-    @Expose
     private String name;
-    @Expose
     private List<Contact> contactList = new ArrayList<Contact>();
-    @Expose
     private Map<String, String> customField = new HashMap<String, String>();
 
     private int code;

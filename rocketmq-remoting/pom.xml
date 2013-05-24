@@ -28,8 +28,8 @@
 			<artifactId>protobuf-java</artifactId>
 		</dependency>
 <dependency>
-  <groupId>com.google.code.gson</groupId>
-  <artifactId>gson</artifactId>
+  <groupId>com.alibaba.platform.shared</groupId>
+  <artifactId>fastjson</artifactId>
 </dependency>
 		<dependency>
 			<groupId>io.netty</groupId>
