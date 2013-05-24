@@ -64,6 +64,7 @@ public class ClientRemotingProcessor implements NettyRequestProcessor {
         thisHeader.setCommitLogOffset(requestHeader.getCommitLogOffset());
         thisHeader.setProducerGroup(producerGroup);
         thisHeader.setTranStateTableOffset(requestHeader.getTranStateTableOffset());
+        thisHeader.setFromTransactionCheck(true);
         switch (localTransactionState) {
         case COMMIT_MESSAGE:
             thisHeader.setCommitOrRollback(MessageSysFlag.TransactionCommitType);
