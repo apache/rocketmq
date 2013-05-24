@@ -13,6 +13,7 @@ import io.netty.channel.ChannelInboundMessageHandlerAdapter;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.ChannelPromise;
+import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
@@ -60,6 +61,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
 
     private final NettyClientConfig nettyClientConfig;
     private final Bootstrap bootstrap = new Bootstrap();
+    private final EventLoopGroup eventLoopGroup;
 
     private final Lock lockChannelTables = new ReentrantLock();
     private final ConcurrentHashMap<String /* addr */, ChannelWrapper> channelTables =
@@ -215,6 +217,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
             }
         });
 
+        this.eventLoopGroup = new NioEventLoopGroup(nettyClientConfig.getClientSelectorThreads());
     }
 
 
@@ -248,9 +251,8 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
 
     @Override
     public void start() {
-        this.bootstrap.group(new NioEventLoopGroup(nettyClientConfig.getClientSelectorThreads()))
-            .channel(NioSocketChannel.class).option(ChannelOption.TCP_NODELAY, true)
-            .handler(new ChannelInitializer<SocketChannel>() {
+        this.bootstrap.group(this.eventLoopGroup).channel(NioSocketChannel.class)
+            .option(ChannelOption.TCP_NODELAY, true).handler(new ChannelInitializer<SocketChannel>() {
                 @Override
                 public void initChannel(SocketChannel ch) throws Exception {
                     ch.pipeline().addLast(//
@@ -306,7 +308,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
 
             this.channelTables.clear();
 
-            this.bootstrap.shutdown();
+            this.eventLoopGroup.shutdownGracefully();
 
             if (this.nettyEventExecuter != null) {
                 this.nettyEventExecuter.shutdown();
