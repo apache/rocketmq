@@ -6,6 +6,7 @@ package com.alibaba.rocketmq.common.protocol.header;
 import com.alibaba.rocketmq.common.sysflag.MessageSysFlag;
 import com.alibaba.rocketmq.remoting.CommandCustomHeader;
 import com.alibaba.rocketmq.remoting.annotation.CFNotNull;
+import com.alibaba.rocketmq.remoting.annotation.CFNullable;
 import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
 
 
@@ -23,6 +24,9 @@ public class EndTransactionRequestHeader implements CommandCustomHeader {
     @CFNotNull
     private Integer commitOrRollback; // TransactionCommitType
                                       // TransactionRollbackType
+
+    @CFNullable
+    private Boolean fromTransactionCheck = false;
 
 
     @Override
@@ -83,10 +87,20 @@ public class EndTransactionRequestHeader implements CommandCustomHeader {
     }
 
 
+    public Boolean getFromTransactionCheck() {
+        return fromTransactionCheck;
+    }
+
+
+    public void setFromTransactionCheck(Boolean fromTransactionCheck) {
+        this.fromTransactionCheck = fromTransactionCheck;
+    }
+
+
     @Override
     public String toString() {
         return "EndTransactionRequestHeader [producerGroup=" + producerGroup + ", tranStateTableOffset="
                 + tranStateTableOffset + ", commitLogOffset=" + commitLogOffset + ", commitOrRollback="
-                + commitOrRollback + "]";
+                + commitOrRollback + ", fromTransactionCheck=" + fromTransactionCheck + "]";
     }
 }
