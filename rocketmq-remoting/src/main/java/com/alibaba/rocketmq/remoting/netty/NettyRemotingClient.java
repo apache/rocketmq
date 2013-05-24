@@ -413,11 +413,13 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                     if (!channel.isActive()) {
                         log.warn("connect {} in {}ms ok, but channel not active", addr,
                             this.nettyClientConfig.getConnectTimeoutMillis());
+                        channel.close().sync();
                         return null;
                     }
                 }
                 else {
-                    log.error("connect {} in {}ms timeout", addr, this.nettyClientConfig.getConnectTimeoutMillis());
+                    log.error("connect {} in {}ms timeout", addr, this.nettyClientConfig.getConnectTimeoutMillis()); 
+                    channel.close().sync();
                     return null;
                 }
 
@@ -525,6 +527,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                     if (removeItemFromTable) {
                         this.channelTables.remove(addrRemote);
                         log.info("closeChannel: the channel[{}] was removed from channel table", addrRemote);
+//                        channel.close().sync();
                     }
                 }
                 catch (Exception e) {
