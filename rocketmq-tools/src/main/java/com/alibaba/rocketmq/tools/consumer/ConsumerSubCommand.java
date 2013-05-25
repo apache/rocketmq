@@ -16,7 +16,7 @@ public class ConsumerSubCommand implements SubCommand {
 
     @Override
     public String commandDesc() {
-        return "Insepect data of consumer";
+        return "Inspect data of consumer";
     }
 
 

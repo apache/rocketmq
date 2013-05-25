@@ -16,7 +16,7 @@ public class ProducerSubCommand implements SubCommand {
 
     @Override
     public String commandDesc() {
-        return "Insepect data of producer";
+        return "Inspect data of producer";
     }
 
 

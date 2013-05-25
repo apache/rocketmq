@@ -34,8 +34,6 @@ import com.alibaba.rocketmq.remoting.exception.RemotingException;
 
 
 /**
- * 主动Consumer实现
- * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public class DefaultMQPullConsumerImpl implements MQConsumerInner {
@@ -334,8 +332,8 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
             requestHeader.setConsumerGroup(this.defaultMQPullConsumer.getConsumerGroup());
             requestHeader.setQueueId(mq.getQueueId());
 
-            return this.mQClientFactory.getMQClientAPIImpl().queryConsumerOffset(
-                findBrokerResult.getBrokerAddr(), requestHeader, 1000 * 5);
+            return this.mQClientFactory.getMQClientAPIImpl().queryConsumerOffset(findBrokerResult.getBrokerAddr(),
+                requestHeader, 1000 * 5);
         }
         else {
             throw new MQClientException("The broker[" + mq.getBrokerName() + "] not exist", null);
