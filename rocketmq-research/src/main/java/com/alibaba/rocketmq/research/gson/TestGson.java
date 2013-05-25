@@ -1,7 +1,5 @@
 package com.alibaba.rocketmq.research.gson;
 
-
-
 /**
  * @author shijia.wxr<vintage.wang@gmail.com>
  */
@@ -33,6 +31,6 @@ public class TestGson {
         // System.out.println(cb);
         // String json2 = gson.toJson(cb);
         // System.out.println(json2);
-       
+
     }
 }
