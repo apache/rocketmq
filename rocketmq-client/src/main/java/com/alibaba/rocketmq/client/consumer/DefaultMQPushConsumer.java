@@ -22,7 +22,7 @@ import com.alibaba.rocketmq.remoting.exception.RemotingException;
 
 
 /**
- * 被动Consumer
+ * 类似于Broker Push消息到Consumer方式，但实际仍然是Consumer内部后台从Broker Pull消息
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * 
@@ -69,8 +69,8 @@ public class DefaultMQPushConsumer implements MQPushConsumer {
      */
     private int consumeMessageBatchMaxSize = 1;
 
-    private final DefaultMQPushConsumerImpl defaultMQPushConsumerImpl =
-            new DefaultMQPushConsumerImpl(this);
+    private final transient DefaultMQPushConsumerImpl defaultMQPushConsumerImpl = new DefaultMQPushConsumerImpl(
+        this);
 
 
     public DefaultMQPushConsumer() {
@@ -126,8 +126,8 @@ public class DefaultMQPushConsumer implements MQPushConsumer {
 
 
     @Override
-    public MessageExt viewMessage(String msgId) throws RemotingException, MQBrokerException,
-            InterruptedException, MQClientException {
+    public MessageExt viewMessage(String msgId) throws RemotingException, MQBrokerException, InterruptedException,
+            MQClientException {
         // TODO Auto-generated method stub
         return null;
     }
