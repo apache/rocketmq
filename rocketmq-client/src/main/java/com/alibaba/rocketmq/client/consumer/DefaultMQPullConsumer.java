@@ -59,7 +59,7 @@ public class DefaultMQPullConsumer implements MQPullConsumer {
      */
     private Set<String> registerTopics = new HashSet<String>();
 
-    private final DefaultMQPullConsumerImpl defaultMQPullConsumerImpl = new DefaultMQPullConsumerImpl(
+    private final transient DefaultMQPullConsumerImpl defaultMQPullConsumerImpl = new DefaultMQPullConsumerImpl(
         this);
 
 
@@ -104,8 +104,8 @@ public class DefaultMQPullConsumer implements MQPullConsumer {
 
 
     @Override
-    public MessageExt viewMessage(String msgId) throws RemotingException, MQBrokerException,
-            InterruptedException, MQClientException {
+    public MessageExt viewMessage(String msgId) throws RemotingException, MQBrokerException, InterruptedException,
+            MQClientException {
         return this.defaultMQPullConsumerImpl.viewMessage(msgId);
     }
 

@@ -60,7 +60,7 @@ public class DefaultMQProducer implements MQProducer {
      */
     private int maxMessageSize = 1024 * 512;
 
-    protected final DefaultMQProducerImpl defaultMQProducerImpl = new DefaultMQProducerImpl(this);
+    protected final transient DefaultMQProducerImpl defaultMQProducerImpl = new DefaultMQProducerImpl(this);
 
 
     public DefaultMQProducer() {
@@ -129,8 +129,8 @@ public class DefaultMQProducer implements MQProducer {
 
 
     @Override
-    public MessageExt viewMessage(String msgId) throws RemotingException, MQBrokerException,
-            InterruptedException, MQClientException {
+    public MessageExt viewMessage(String msgId) throws RemotingException, MQBrokerException, InterruptedException,
+            MQClientException {
         return this.defaultMQProducerImpl.viewMessage(msgId);
     }
 

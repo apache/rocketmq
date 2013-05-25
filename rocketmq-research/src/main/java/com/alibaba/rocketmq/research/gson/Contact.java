@@ -1,13 +1,11 @@
 package com.alibaba.rocketmq.research.gson;
 
-
-
 public class Contact {
     public final static String SUB_ALL = "*";
     private String name;
     private int age;
     private double weight;
-    private String school;
+    private  String school;
     private SexType sex;
 
 
