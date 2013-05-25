@@ -124,15 +124,10 @@ public class MQClientFactory {
     private String buildMQClientId() {
         StringBuilder sb = new StringBuilder();
         sb.append(this.mQClientConfig.getClientIP());
-        sb.append("@");
 
+        sb.append("@");
         sb.append(this.mQClientConfig.getInstanceName());
-        sb.append("@");
 
-        sb.append(MixAll.CURRENT_JVM_PID);
-        sb.append("@");
-
-        sb.append(this.bootTimestamp);
         return sb.toString();
     }
 
