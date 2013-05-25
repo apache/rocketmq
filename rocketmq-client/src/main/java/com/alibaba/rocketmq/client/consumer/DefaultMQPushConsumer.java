@@ -68,6 +68,10 @@ public class DefaultMQPushConsumer implements MQPushConsumer {
      * 消费一批消息，最大数
      */
     private int consumeMessageBatchMaxSize = 1;
+    /**
+     * 拉消息，一次拉多少条
+     */
+    private int pullBatchSize = 32;
 
     private final transient DefaultMQPushConsumerImpl defaultMQPushConsumerImpl = new DefaultMQPushConsumerImpl(
         this);
@@ -195,4 +199,17 @@ public class DefaultMQPushConsumer implements MQPushConsumer {
         // TODO Auto-generated method stub
         return null;
     }
+
+
+    // ////////////////////////////////////////////////////////////////////////
+
+    public int getPullBatchSize() {
+        return pullBatchSize;
+    }
+
+
+    public void setPullBatchSize(int pullBatchSize) {
+        this.pullBatchSize = pullBatchSize;
+    }
+
 }

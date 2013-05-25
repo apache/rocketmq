@@ -754,4 +754,9 @@ public class MQClientFactory {
     public long getBootTimestamp() {
         return bootTimestamp;
     }
+
+
+    public ScheduledExecutorService getScheduledExecutorService() {
+        return scheduledExecutorService;
+    }
 }
