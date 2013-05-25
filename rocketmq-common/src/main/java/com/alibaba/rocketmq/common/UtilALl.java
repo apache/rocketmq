@@ -22,7 +22,7 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingProtos.ResponseCode;
 /**
  * 各种方法大杂烩
  * 
- * @author vintage.wang@gmail.com shijia.wxr@taobao.com
+ * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public class UtilALl {
     public static int getPid() {

@@ -31,7 +31,7 @@ import com.alibaba.rocketmq.store.schedule.ScheduleMessageService;
 /**
  * CommitLog µœ÷
  * 
- * @author vintage.wang@gmail.com shijia.wxr@taobao.com
+ * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public class CommitLog {
     private static final Logger log = LoggerFactory.getLogger(MixAll.StoreLoggerName);

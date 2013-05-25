@@ -67,7 +67,7 @@ import com.google.protobuf.InvalidProtocolBufferException;
 /**
  * 封装所有与服务器通信部分API
  * 
- * @author vintage.wang@gmail.com shijia.wxr@taobao.com
+ * @author shijia.wxr<vintage.wang@gmail.com>
  * 
  */
 public class MQClientAPIImpl {

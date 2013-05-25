@@ -13,7 +13,7 @@ import com.alibaba.rocketmq.research.rpc.RPCClient;
 /**
  * ºÚµ•π¶ƒ‹≤‚ ‘£¨Client∂À
  * 
- * @author vintage.wang@gmail.com shijia.wxr@taobao.com
+ * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public class Client {
     public static void main(String[] args) {

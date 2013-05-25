@@ -11,7 +11,7 @@ import java.util.List;
 /**
  * 访问消息返回结果
  * 
- * @author vintage.wang@gmail.com shijia.wxr@taobao.com
+ * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public class GetMessageResult {
     // 枚举变量，取消息结果

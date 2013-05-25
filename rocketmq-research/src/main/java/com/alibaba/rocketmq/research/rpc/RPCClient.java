@@ -10,7 +10,7 @@ import java.nio.ByteBuffer;
 /**
  * 客户端接口
  * 
- * @author vintage.wang@gmail.com shijia.wxr@taobao.com
+ * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public interface RPCClient {
     public void start();

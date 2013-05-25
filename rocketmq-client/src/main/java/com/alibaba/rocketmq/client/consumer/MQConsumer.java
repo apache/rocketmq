@@ -12,7 +12,7 @@ import com.alibaba.rocketmq.common.MessageQueue;
 
 
 /**
- * @author vintage.wang@gmail.com shijia.wxr@taobao.com
+ * @author shijia.wxr<vintage.wang@gmail.com>
  * 
  */
 public interface MQConsumer extends MQAdmin {

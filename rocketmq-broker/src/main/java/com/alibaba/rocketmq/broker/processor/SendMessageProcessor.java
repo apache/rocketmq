@@ -34,7 +34,7 @@ import com.alibaba.rocketmq.store.PutMessageResult;
 /**
  * 处理客户端发送消息的请求
  * 
- * @author vintage.wang@gmail.com shijia.wxr@taobao.com
+ * @author shijia.wxr<vintage.wang@gmail.com>
  * 
  */
 public class SendMessageProcessor implements NettyRequestProcessor {

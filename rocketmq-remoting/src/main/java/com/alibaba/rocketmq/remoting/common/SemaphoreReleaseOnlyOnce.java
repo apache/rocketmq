@@ -22,7 +22,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 /**
  * 信号量保证只释放一次
  * 
- * @author vintage.wang@gmail.com shijia.wxr@taobao.com
+ * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public class SemaphoreReleaseOnlyOnce {
     private final AtomicBoolean released = new AtomicBoolean(false);

@@ -14,7 +14,7 @@ import com.alibaba.rocketmq.remoting.exception.RemotingException;
 /**
  * MQ管理类接口
  * 
- * @author vintage.wang@gmail.com shijia.wxr@taobao.com
+ * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public interface MQAdmin {
     /**

@@ -25,7 +25,7 @@ import java.lang.annotation.ElementType;
 /**
  * 标识字段可以非空
  * 
- * @author vintage.wang@gmail.com shijia.wxr@taobao.com
+ * @author shijia.wxr<vintage.wang@gmail.com>
  */
 @Documented
 @Retention(RetentionPolicy.CLASS)

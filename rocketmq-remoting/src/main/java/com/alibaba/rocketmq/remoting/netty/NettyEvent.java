@@ -7,7 +7,7 @@ import io.netty.channel.Channel;
 
 
 /**
- * @author vintage.wang@gmail.com shijia.wxr@taobao.com
+ * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public class NettyEvent {
     private final NettyEventType type;

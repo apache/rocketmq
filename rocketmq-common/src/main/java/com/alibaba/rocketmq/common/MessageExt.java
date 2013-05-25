@@ -13,7 +13,7 @@ import com.alibaba.rocketmq.common.sysflag.MessageSysFlag;
 /**
  * 消息扩展属性，在服务器上产生此对象
  * 
- * @author vintage.wang@gmail.com shijia.wxr@taobao.com
+ * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public class MessageExt extends Message {
     // 队列ID <PUT>

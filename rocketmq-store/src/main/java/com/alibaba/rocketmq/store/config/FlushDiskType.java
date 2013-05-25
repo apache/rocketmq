@@ -6,7 +6,7 @@ package com.alibaba.rocketmq.store.config;
 /**
  * À¢≈Ã∑Ω Ω
  * 
- * @author vintage.wang@gmail.com shijia.wxr@taobao.com
+ * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public enum FlushDiskType {
     /**

@@ -36,7 +36,7 @@ import com.alibaba.rocketmq.remoting.exception.RemotingException;
 /**
  * 主动Consumer实现
  * 
- * @author vintage.wang@gmail.com shijia.wxr@taobao.com
+ * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public class DefaultMQPullConsumerImpl implements MQConsumerInner {
     private ServiceState serviceState = ServiceState.CREATE_JUST;

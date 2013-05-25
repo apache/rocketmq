@@ -23,7 +23,7 @@ import com.alibaba.rocketmq.remoting.exception.RemotingException;
 /**
  * 消息生产者，适合使用spring初始化
  * 
- * @author vintage.wang@gmail.com shijia.wxr@taobao.com
+ * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public class DefaultMQProducer implements MQProducer {
     /**

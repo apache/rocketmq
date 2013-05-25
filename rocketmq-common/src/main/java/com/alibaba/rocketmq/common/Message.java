@@ -11,7 +11,7 @@ import java.util.Map;
 /**
  * 消息，Producer与Consumer使用
  * 
- * @author vintage.wang@gmail.com shijia.wxr@taobao.com
+ * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public class Message {
     /**

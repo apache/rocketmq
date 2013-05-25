@@ -21,7 +21,7 @@ import com.alibaba.rocketmq.store.SelectMapedBufferResult;
 /**
  * HA服务，Master用来向Slave Push数据，并接收Slave应答
  * 
- * @author vintage.wang@gmail.com shijia.wxr@taobao.com
+ * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public class HAConnection {
     private static final Logger log = LoggerFactory.getLogger(MixAll.StoreLoggerName);
@@ -41,7 +41,7 @@ public class HAConnection {
     /**
      * 读取Slave请求，一般为push ack
      * 
-     * @author vintage.wang@gmail.com shijia.wxr@taobao.com
+     * @author shijia.wxr<vintage.wang@gmail.com>
      */
     class ReadSocketService extends ServiceThread {
         private static final int ReadMaxBufferSize = 1024 * 1024;
@@ -179,7 +179,7 @@ public class HAConnection {
     /**
      * 向Slave写入数据
      * 
-     * @author vintage.wang@gmail.com shijia.wxr@taobao.com
+     * @author shijia.wxr<vintage.wang@gmail.com>
      */
     class WriteSocketService extends ServiceThread {
         private final Selector selector;

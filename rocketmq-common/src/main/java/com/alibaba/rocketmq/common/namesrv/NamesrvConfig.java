@@ -13,7 +13,7 @@ import com.alibaba.rocketmq.common.MixAll;
 /**
  * Name server µƒ≈‰÷√¿‡
  * 
- * @author vintage.wang@gmail.com shijia.wxr@taobao.com
+ * @author shijia.wxr<vintage.wang@gmail.com>
  * @author lansheng.zj@taobao.com
  * 
  */

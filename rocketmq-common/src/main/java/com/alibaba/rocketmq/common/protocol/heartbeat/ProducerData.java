@@ -6,7 +6,7 @@ package com.alibaba.rocketmq.common.protocol.heartbeat;
 
 
 /**
- * @author vintage.wang@gmail.com shijia.wxr@taobao.com
+ * @author shijia.wxr<vintage.wang@gmail.com>
  * 
  */
 public class ProducerData {

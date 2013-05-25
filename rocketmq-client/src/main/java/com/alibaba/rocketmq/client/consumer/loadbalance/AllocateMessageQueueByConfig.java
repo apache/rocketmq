@@ -12,7 +12,7 @@ import com.alibaba.rocketmq.common.MessageQueue;
 /**
  * 按照配置来分配队列，建议应用使用Spring来初始化
  * 
- * @author vintage.wang@gmail.com shijia.wxr@taobao.com
+ * @author shijia.wxr<vintage.wang@gmail.com>
  * 
  */
 public class AllocateMessageQueueByConfig implements AllocateMessageQueueStrategy {

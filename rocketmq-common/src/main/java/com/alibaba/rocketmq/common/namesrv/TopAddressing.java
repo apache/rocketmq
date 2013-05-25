@@ -19,7 +19,7 @@ import com.alibaba.rocketmq.common.MixAll;
 /**
  * Ñ°Ö··þÎñ
  * 
- * @author vintage.wang@gmail.com shijia.wxr@taobao.com
+ * @author shijia.wxr<vintage.wang@gmail.com>
  * 
  */
 public class TopAddressing {

@@ -9,7 +9,7 @@ import com.alibaba.rocketmq.common.MessageQueue;
 /**
  * 消费消息上下文，同一队列的消息同一时刻只有一个线程消费，可保证同一队列消息顺序消费
  * 
- * @author vintage.wang@gmail.com shijia.wxr@taobao.com
+ * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public class ConsumeOrderlyContext {
     /**

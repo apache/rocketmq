@@ -16,7 +16,7 @@ import com.alibaba.rocketmq.common.protocol.heartbeat.SubscriptionData;
 /**
  * Consumer连接、订阅关系管理
  * 
- * @author vintage.wang@gmail.com shijia.wxr@taobao.com
+ * @author shijia.wxr<vintage.wang@gmail.com>
  * 
  */
 public class ConsumerManager {

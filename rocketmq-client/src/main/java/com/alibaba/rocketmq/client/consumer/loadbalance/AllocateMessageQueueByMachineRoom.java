@@ -12,7 +12,7 @@ import com.alibaba.rocketmq.common.MessageQueue;
 /**
  * 按照机房来分配队列，例如支付宝逻辑机房
  * 
- * @author vintage.wang@gmail.com shijia.wxr@taobao.com
+ * @author shijia.wxr<vintage.wang@gmail.com>
  * 
  */
 public class AllocateMessageQueueByMachineRoom implements AllocateMessageQueueStrategy {

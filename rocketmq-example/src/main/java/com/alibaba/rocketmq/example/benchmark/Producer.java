@@ -21,7 +21,7 @@ import com.alibaba.rocketmq.remoting.exception.RemotingException;
 /**
  * 性能测试，多线程同步发送消息
  * 
- * @author vintage.wang@gmail.com shijia.wxr@taobao.com
+ * @author shijia.wxr<vintage.wang@gmail.com>
  * 
  */
 public class Producer {

@@ -19,7 +19,7 @@ import com.alibaba.rocketmq.common.ServiceThread;
 /**
  * 存储层内部统计服务
  * 
- * @author vintage.wang@gmail.com shijia.wxr@taobao.com
+ * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public class StoreStatsService extends ServiceThread {
     static class CallSnapshot {

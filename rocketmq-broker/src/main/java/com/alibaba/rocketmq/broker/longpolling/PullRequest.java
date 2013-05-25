@@ -11,7 +11,7 @@ import io.netty.channel.Channel;
 /**
  * 一个拉消息请求
  * 
- * @author vintage.wang@gmail.com shijia.wxr@taobao.com
+ * @author shijia.wxr<vintage.wang@gmail.com>
  * 
  */
 public class PullRequest {

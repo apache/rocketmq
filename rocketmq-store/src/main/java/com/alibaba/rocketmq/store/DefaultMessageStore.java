@@ -35,7 +35,7 @@ import com.alibaba.rocketmq.store.transaction.TransactionStateService;
 /**
  * ¥Ê¥¢≤„ƒ¨»œ µœ÷
  * 
- * @author vintage.wang@gmail.com shijia.wxr@taobao.com
+ * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public class DefaultMessageStore implements MessageStore {
     private static final Logger log = LoggerFactory.getLogger(MixAll.StoreLoggerName);

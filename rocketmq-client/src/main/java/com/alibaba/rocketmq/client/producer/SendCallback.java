@@ -6,7 +6,7 @@ package com.alibaba.rocketmq.client.producer;
 /**
  * 异步发送消息回调接口
  * 
- * @author vintage.wang@gmail.com shijia.wxr@taobao.com
+ * @author shijia.wxr<vintage.wang@gmail.com>
  * 
  */
 public interface SendCallback {

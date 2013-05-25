@@ -30,7 +30,7 @@ import com.alibaba.rocketmq.remoting.netty.NettyServerConfig;
 /**
  * Name server 各个服务控制器
  * 
- * @author vintage.wang@gmail.com shijia.wxr@taobao.com
+ * @author shijia.wxr<vintage.wang@gmail.com>
  * @author lansheng.zj@taobao.com
  */
 public class NamesrvController {

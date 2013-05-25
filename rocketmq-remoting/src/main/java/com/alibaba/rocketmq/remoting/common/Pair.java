@@ -18,7 +18,7 @@ package com.alibaba.rocketmq.remoting.common;
 /**
  * 包装2个对象
  * 
- * @author vintage.wang@gmail.com shijia.wxr@taobao.com
+ * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public class Pair<T1, T2> {
     private T1 object1;

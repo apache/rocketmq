@@ -15,7 +15,7 @@ import com.alibaba.rocketmq.research.rpc.RPCServer;
 /**
  * ºÚµ•π¶ƒ‹≤‚ ‘£¨Server∂À
  * 
- * @author vintage.wang@gmail.com shijia.wxr@taobao.com
+ * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public class Server {
     static class ServerRPCProcessor implements RPCProcessor {

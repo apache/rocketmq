@@ -6,7 +6,7 @@ package com.alibaba.rocketmq.remoting.protocol;
 /**
  * 命令类型，请求还是应答
  * 
- * @author vintage.wang@gmail.com shijia.wxr@taobao.com
+ * @author shijia.wxr<vintage.wang@gmail.com>
  * 
  */
 public enum RemotingCommandType {

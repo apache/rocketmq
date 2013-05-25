@@ -8,7 +8,7 @@ import com.alibaba.rocketmq.client.consumer.listener.MessageListener;
 /**
  * 消费者，被动方式消费
  * 
- * @author vintage.wang@gmail.com shijia.wxr@taobao.com
+ * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public interface MQPushConsumer extends MQConsumer {
     /**

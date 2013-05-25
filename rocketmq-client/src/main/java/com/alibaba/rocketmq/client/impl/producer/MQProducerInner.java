@@ -8,7 +8,7 @@ import com.alibaba.rocketmq.client.producer.TransactionCheckListener;
 /**
  * Producer内部接口
  * 
- * @author vintage.wang@gmail.com shijia.wxr@taobao.com
+ * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public interface MQProducerInner {
     public Set<String> getPublishTopicList();

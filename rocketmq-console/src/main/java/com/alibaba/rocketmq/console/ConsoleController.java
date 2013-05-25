@@ -9,7 +9,7 @@ import com.alibaba.rocketmq.console.http.ConsoleJettyHander;
 
 
 /**
- * @author vintage.wang@gmail.com shijia.wxr@taobao.com
+ * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public class ConsoleController {
     private final ConsoleConfig consoleConfig;

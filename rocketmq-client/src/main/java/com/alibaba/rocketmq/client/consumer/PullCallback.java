@@ -6,7 +6,7 @@ package com.alibaba.rocketmq.client.consumer;
 /**
  * 异步拉消息回调接口
  * 
- * @author vintage.wang@gmail.com shijia.wxr@taobao.com
+ * @author shijia.wxr<vintage.wang@gmail.com>
  * 
  */
 public interface PullCallback {

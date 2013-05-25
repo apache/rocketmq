@@ -13,7 +13,7 @@ import com.alibaba.rocketmq.client.impl.factory.MQClientFactory;
 /**
  * Clientµ¥Àý¹ÜÀí
  * 
- * @author vintage.wang@gmail.com shijia.wxr@taobao.com
+ * @author shijia.wxr<vintage.wang@gmail.com>
  * 
  */
 public class MQClientManager {

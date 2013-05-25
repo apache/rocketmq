@@ -22,7 +22,7 @@ import com.alibaba.rocketmq.remoting.exception.RemotingException;
 /**
  * 消息消费者，主动消费
  * 
- * @author vintage.wang@gmail.com shijia.wxr@taobao.com
+ * @author shijia.wxr<vintage.wang@gmail.com>
  * 
  */
 public class DefaultMQPullConsumer implements MQPullConsumer {

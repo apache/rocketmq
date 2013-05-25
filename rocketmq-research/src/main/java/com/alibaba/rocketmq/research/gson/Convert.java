@@ -6,7 +6,7 @@ package com.alibaba.rocketmq.research.gson;
 
 
 /**
- * @author vintage.wang@gmail.com shijia.wxr@taobao.com
+ * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public abstract class Convert {
 //    public String encode() {

@@ -11,7 +11,7 @@ import com.alibaba.rocketmq.remoting.common.RemotingUtil;
 /**
  * Producer与Consumer的公共配置
  * 
- * @author vintage.wang@gmail.com shijia.wxr@taobao.com
+ * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public class MQClientConfig {
     private String namesrvAddr = null;

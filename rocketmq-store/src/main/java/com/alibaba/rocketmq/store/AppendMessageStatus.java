@@ -6,7 +6,7 @@ package com.alibaba.rocketmq.store;
 /**
  * 向物理队列写消息返回结果码
  * 
- * @author vintage.wang@gmail.com shijia.wxr@taobao.com
+ * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public enum AppendMessageStatus {
     // 成功追加消息

@@ -6,7 +6,7 @@ package com.alibaba.rocketmq.common;
 /**
  * 消息队列数据结构，对外提供
  * 
- * @author vintage.wang@gmail.com shijia.wxr@taobao.com
+ * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public class MessageQueue {
     private String topic;

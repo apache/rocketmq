@@ -1,7 +1,7 @@
 package com.alibaba.rocketmq.research;
 
 /**
- * @author vintage.wang@gmail.com shijia.wxr@taobao.com
+ * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public class Test {
 

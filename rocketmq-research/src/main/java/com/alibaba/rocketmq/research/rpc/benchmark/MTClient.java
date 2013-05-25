@@ -16,7 +16,7 @@ import com.alibaba.rocketmq.research.rpc.RPCClient;
 /**
  * 多线程客户端，做性能压测
  * 
- * @author vintage.wang@gmail.com shijia.wxr@taobao.com
+ * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public class MTClient {
     private static byte[] buildMessage(final int size) {

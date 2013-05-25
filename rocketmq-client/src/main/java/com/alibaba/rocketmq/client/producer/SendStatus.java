@@ -6,7 +6,7 @@ package com.alibaba.rocketmq.client.producer;
 /**
  * 这4种状态都表示消息已经成功到达Master
  * 
- * @author vintage.wang@gmail.com shijia.wxr@taobao.com
+ * @author shijia.wxr<vintage.wang@gmail.com>
  * 
  */
 public enum SendStatus {

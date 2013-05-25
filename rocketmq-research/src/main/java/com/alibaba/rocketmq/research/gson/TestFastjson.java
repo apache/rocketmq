@@ -5,7 +5,7 @@ import com.alibaba.fastjson.serializer.SerializerFeature;
 
 
 /**
- * @author vintage.wang@gmail.com shijia.wxr@taobao.com
+ * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public class TestFastjson {
 

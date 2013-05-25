@@ -20,7 +20,7 @@ import com.alibaba.rocketmq.common.protocol.heartbeat.SubscriptionData;
 /**
  * 整个Consumer Group信息
  * 
- * @author vintage.wang@gmail.com shijia.wxr@taobao.com
+ * @author shijia.wxr<vintage.wang@gmail.com>
  * 
  */
 public class ConsumerGroupInfo {

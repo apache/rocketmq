@@ -9,7 +9,7 @@ import com.alibaba.rocketmq.common.UtilALl;
 /**
  * MQ“Ï≥£¿‡
  * 
- * @author vintage.wang@gmail.com shijia.wxr@taobao.com
+ * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public class MQClientException extends Exception {
     private static final long serialVersionUID = -5758410930844185841L;

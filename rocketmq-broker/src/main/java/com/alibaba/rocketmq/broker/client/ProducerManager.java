@@ -24,7 +24,7 @@ import com.alibaba.rocketmq.remoting.common.RemotingHelper;
 /**
  * 管理Producer组及各个Producer连接
  * 
- * @author vintage.wang@gmail.com shijia.wxr@taobao.com
+ * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public class ProducerManager {
     private static final Logger log = LoggerFactory.getLogger(MixAll.BrokerLoggerName);

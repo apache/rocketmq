@@ -31,7 +31,7 @@ import com.alibaba.rocketmq.store.GetMessageResult;
 /**
  * 拉消息请求处理
  * 
- * @author vintage.wang@gmail.com shijia.wxr@taobao.com
+ * @author shijia.wxr<vintage.wang@gmail.com>
  * 
  */
 public class PullMessageProcessor implements NettyRequestProcessor {

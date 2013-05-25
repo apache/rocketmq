@@ -20,7 +20,7 @@ import com.alibaba.rocketmq.research.rpc.LinkedByteBufferList.ByteBufferNode;
 /**
  * 一个Socket连接对象，Client与Server通用
  * 
- * @author vintage.wang@gmail.com shijia.wxr@taobao.com
+ * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public class Connection {
     private static final int ReadMaxBufferSize = 1024 * 1024 * 4;

@@ -4,7 +4,7 @@
 package com.alibaba.rocketmq.example.benchmark;
 
 /**
- * @author vintage.wang@gmail.com shijia.wxr@taobao.com
+ * @author shijia.wxr<vintage.wang@gmail.com>
  * 
  */
 public class Consumer {

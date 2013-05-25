@@ -27,7 +27,7 @@ import com.alibaba.rocketmq.common.UtilALl;
 /**
  * Pagecache文件访问封装
  * 
- * @author vintage.wang@gmail.com shijia.wxr@taobao.com
+ * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public class MapedFile extends ReferenceResource {
     private static final Logger log = LoggerFactory.getLogger(MixAll.StoreLoggerName);

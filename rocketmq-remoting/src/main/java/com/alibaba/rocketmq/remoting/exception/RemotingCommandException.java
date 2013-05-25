@@ -18,7 +18,7 @@ package com.alibaba.rocketmq.remoting.exception;
 /**
  * 命令解析自定义字段时，校验字段有效性抛出异常
  * 
- * @author vintage.wang@gmail.com shijia.wxr@taobao.com
+ * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public class RemotingCommandException extends RemotingException {
     private static final long serialVersionUID = -6061365915274953096L;
