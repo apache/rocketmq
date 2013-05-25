@@ -123,7 +123,7 @@ public class MQClientFactory {
 
         this.mQAdminImpl = new MQAdminImpl(this);
 
-        log.info("created a new client fatory, ", this.factoryIndex);
+        log.info("created a new client fatory, FactoryIndex: {} ClinetID: {}", this.factoryIndex, this.clientId);
     }
 
 
@@ -141,7 +141,7 @@ public class MQClientFactory {
             this.datagramSocket = new DatagramSocket(udpPort);
         }
         catch (SocketException e) {
-            throw new MQClientException("instance name is a duplicate one, please set a new name", null);
+            throw new MQClientException("instance name is a duplicate one, please set a new name", e);
         }
     }
 
