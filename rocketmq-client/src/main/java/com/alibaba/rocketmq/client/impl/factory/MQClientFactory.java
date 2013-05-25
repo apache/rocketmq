@@ -3,6 +3,8 @@
  */
 package com.alibaba.rocketmq.client.impl.factory;
 
+import java.net.DatagramSocket;
+import java.net.SocketException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -96,7 +98,11 @@ public class MQClientFactory {
             }
         });
 
+    // 处理服务器主动发来的请求
     private final ClientRemotingProcessor clientRemotingProcessor;
+
+    // 监听一个UDP端口，用来防止同一个Factory启动多份（有可能分布在多个JVM中）
+    private DatagramSocket datagramSocket;
 
 
     public MQClientFactory(MQClientConfig mQClientConfig, int factoryIndex) {
@@ -118,6 +124,25 @@ public class MQClientFactory {
         this.mQAdminImpl = new MQAdminImpl(this);
 
         log.info("created a new client fatory, ", this.factoryIndex);
+    }
+
+
+    private void makesureInstanceNameIsOnly(final String instanceName) throws MQClientException {
+        int udpPort = 33333;
+
+        int value = instanceName.hashCode();
+        if (value < 0) {
+            value = Math.abs(value);
+        }
+
+        udpPort += value % 10000;
+
+        try {
+            this.datagramSocket = new DatagramSocket(udpPort);
+        }
+        catch (SocketException e) {
+            throw new MQClientException("instance name is a duplicate one, please set a new name", null);
+        }
     }
 
 
@@ -179,10 +204,12 @@ public class MQClientFactory {
     }
 
 
-    public void start() {
+    public void start() throws MQClientException {
         synchronized (this) {
             switch (this.serviceState) {
             case CREATE_JUST:
+                this.makesureInstanceNameIsOnly(this.mQClientConfig.getInstanceName());
+
                 this.serviceState = ServiceState.RUNNING;
                 // TODO
                 if (null == this.mQClientConfig.getNamesrvAddr()) {
@@ -221,6 +248,12 @@ public class MQClientFactory {
                 // TODO
                 this.scheduledExecutorService.shutdown();
                 this.mQClientAPIImpl.shutdown();
+
+                if (this.datagramSocket != null) {
+                    this.datagramSocket.close();
+                    this.datagramSocket = null;
+                }
+
                 break;
             case SHUTDOWN_ALREADY:
                 break;
@@ -715,5 +748,10 @@ public class MQClientFactory {
 
     public String getClientId() {
         return clientId;
+    }
+
+
+    public long getBootTimestamp() {
+        return bootTimestamp;
     }
 }
