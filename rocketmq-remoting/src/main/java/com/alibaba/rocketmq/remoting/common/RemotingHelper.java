@@ -44,7 +44,7 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringList;
 /**
  * 通信层一些辅助方法
  * 
- * @author vintage.wang@gmail.com shijia.wxr@taobao.com
+ * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public class RemotingHelper {
     public static final String RemotingLogName = "RocketmqRemoting";

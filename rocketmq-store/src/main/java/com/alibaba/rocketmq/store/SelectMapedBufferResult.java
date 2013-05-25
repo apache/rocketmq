@@ -9,7 +9,7 @@ import java.nio.ByteBuffer;
 /**
  * 查询Pagecache返回结果
  * 
- * @author vintage.wang@gmail.com shijia.wxr@taobao.com
+ * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public class SelectMapedBufferResult {
     // 从队列中哪个绝对Offset开始

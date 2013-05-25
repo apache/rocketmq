@@ -10,7 +10,7 @@ import java.util.List;
 
 /**
  * 
- * @author vintage.wang@gmail.com shijia.wxr@taobao.com
+ * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public class QueryMessageResult {
     private long indexLastUpdateTimestamp;

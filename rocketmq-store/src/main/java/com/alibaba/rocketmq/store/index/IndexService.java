@@ -29,7 +29,7 @@ import com.alibaba.rocketmq.store.DispatchRequest;
 /**
  * 消息索引服务
  * 
- * @author vintage.wang@gmail.com shijia.wxr@taobao.com
+ * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public class IndexService extends ServiceThread {
     private static final Logger log = LoggerFactory.getLogger(MixAll.StoreLoggerName);

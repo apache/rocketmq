@@ -22,7 +22,7 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 
 
 /**
- * @author vintage.wang@gmail.com shijia.wxr@taobao.com
+ * @author shijia.wxr<vintage.wang@gmail.com>
  * @author lansheng.zj@taobao.com
  */
 public class AllRequestProcessor implements NettyRequestProcessor {

@@ -25,7 +25,7 @@ import com.google.protobuf.InvalidProtocolBufferException;
 /**
  * RPC «Î«Û”¶¥√¸¡Ó
  * 
- * @author vintage.wang@gmail.com shijia.wxr@taobao.com
+ * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public class RemotingCommand {
     public static String RemotingVersionKey = "rocketmq.remoting.version";

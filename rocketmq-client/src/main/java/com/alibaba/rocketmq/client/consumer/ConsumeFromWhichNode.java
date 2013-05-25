@@ -6,7 +6,7 @@ package com.alibaba.rocketmq.client.consumer;
 /**
  * Consumer从Master还是Slave消费消息
  * 
- * @author vintage.wang@gmail.com shijia.wxr@taobao.com
+ * @author shijia.wxr<vintage.wang@gmail.com>
  * 
  */
 public enum ConsumeFromWhichNode {

@@ -6,7 +6,7 @@ package com.alibaba.rocketmq.store;
 /**
  * 访问消息返回的状态码
  * 
- * @author vintage.wang@gmail.com shijia.wxr@taobao.com
+ * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public enum GetMessageStatus {
     // 找到消息

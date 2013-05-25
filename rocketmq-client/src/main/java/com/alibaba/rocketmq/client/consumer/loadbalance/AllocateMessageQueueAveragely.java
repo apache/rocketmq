@@ -13,7 +13,7 @@ import com.alibaba.rocketmq.common.MessageQueue;
 /**
  * 平均分配队列算法
  * 
- * @author vintage.wang@gmail.com shijia.wxr@taobao.com
+ * @author shijia.wxr<vintage.wang@gmail.com>
  * 
  */
 public class AllocateMessageQueueAveragely implements AllocateMessageQueueStrategy {

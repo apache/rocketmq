@@ -6,7 +6,7 @@ package com.alibaba.rocketmq.common;
 /**
  * 服务对象的状态，通常需要start，shutdown
  * 
- * @author vintage.wang@gmail.com shijia.wxr@taobao.com
+ * @author shijia.wxr<vintage.wang@gmail.com>
  * 
  */
 public enum ServiceState {

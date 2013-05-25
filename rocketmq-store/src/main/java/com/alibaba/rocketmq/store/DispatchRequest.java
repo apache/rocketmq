@@ -6,7 +6,7 @@ package com.alibaba.rocketmq.store;
 /**
  * 分发消息位置信息到逻辑队列和索引服务
  * 
- * @author vintage.wang@gmail.com shijia.wxr@taobao.com
+ * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public class DispatchRequest {
     private final String topic;

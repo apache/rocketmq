@@ -48,7 +48,7 @@ import com.alibaba.rocketmq.store.config.MessageStoreConfig;
 /**
  * Broker各个服务控制器
  * 
- * @author vintage.wang@gmail.com shijia.wxr@taobao.com
+ * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public class BrokerController {
     private static final Logger log = LoggerFactory.getLogger(MixAll.BrokerLoggerName);

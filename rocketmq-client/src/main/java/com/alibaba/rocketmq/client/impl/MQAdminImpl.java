@@ -40,7 +40,7 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingProtos.ResponseCode;
 /**
  * 管理类接口实现
  * 
- * @author vintage.wang@gmail.com shijia.wxr@taobao.com
+ * @author shijia.wxr<vintage.wang@gmail.com>
  * 
  */
 public class MQAdminImpl {

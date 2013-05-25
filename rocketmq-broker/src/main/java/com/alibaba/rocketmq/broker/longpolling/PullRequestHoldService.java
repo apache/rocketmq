@@ -19,7 +19,7 @@ import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
 /**
  * 拉消息请求管理，如果拉不到消息，则在这里Hold住，等待消息到来
  * 
- * @author vintage.wang@gmail.com shijia.wxr@taobao.com
+ * @author shijia.wxr<vintage.wang@gmail.com>
  * 
  */
 public class PullRequestHoldService extends ServiceThread {

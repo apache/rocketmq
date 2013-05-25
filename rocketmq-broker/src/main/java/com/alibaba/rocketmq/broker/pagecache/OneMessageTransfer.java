@@ -14,7 +14,7 @@ import io.netty.channel.FileRegion;
 
 
 /**
- * @author vintage.wang@gmail.com shijia.wxr@taobao.com
+ * @author shijia.wxr<vintage.wang@gmail.com>
  * 
  */
 public class OneMessageTransfer extends AbstractReferenceCounted implements FileRegion {

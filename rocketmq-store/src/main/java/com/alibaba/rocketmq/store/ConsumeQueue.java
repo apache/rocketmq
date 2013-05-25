@@ -16,7 +16,7 @@ import com.alibaba.rocketmq.common.MixAll;
 /**
  * 消费队列实现
  * 
- * @author vintage.wang@gmail.com shijia.wxr@taobao.com
+ * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public class ConsumeQueue {
     private static final Logger log = LoggerFactory.getLogger(MixAll.StoreLoggerName);

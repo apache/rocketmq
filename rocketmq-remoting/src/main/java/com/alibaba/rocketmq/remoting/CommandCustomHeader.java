@@ -21,7 +21,7 @@ import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
 /**
  * RemotingCommand中自定义字段反射对象的公共接口
  * 
- * @author vintage.wang@gmail.com shijia.wxr@taobao.com
+ * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public interface CommandCustomHeader {
     public void checkFields() throws RemotingCommandException;

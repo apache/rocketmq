@@ -46,7 +46,7 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingProtos.ResponseCode;
 /**
  * 生产者默认实现
  * 
- * @author vintage.wang@gmail.com shijia.wxr@taobao.com
+ * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public class DefaultMQProducerImpl implements MQProducerInner {
     private ServiceState serviceState = ServiceState.CREATE_JUST;

@@ -12,7 +12,7 @@ import com.alibaba.rocketmq.store.transaction.TransactionStateService;
 /**
  * 存储层配置文件类
  * 
- * @author vintage.wang@gmail.com shijia.wxr@taobao.com
+ * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public class MessageStoreConfig {
     // CommitLog存储目录

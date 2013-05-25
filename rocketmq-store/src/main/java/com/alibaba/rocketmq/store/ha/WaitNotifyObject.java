@@ -9,7 +9,7 @@ import java.util.HashMap;
 /**
  * 用来做线程之间异步通知
  * 
- * @author vintage.wang@gmail.com shijia.wxr@taobao.com
+ * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public class WaitNotifyObject {
     // 是否已经被Notify过

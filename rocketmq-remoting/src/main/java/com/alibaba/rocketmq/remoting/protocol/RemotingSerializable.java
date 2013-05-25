@@ -6,7 +6,7 @@ import com.alibaba.fastjson.JSON;
 /**
  * 复杂对象的序列化，利用gson来实现
  * 
- * @author vintage.wang@gmail.com shijia.wxr@taobao.com
+ * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public abstract class RemotingSerializable {
     public String toJson() {

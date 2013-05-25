@@ -22,7 +22,7 @@ import com.alibaba.rocketmq.common.UtilALl;
  * 存储队列，数据定时删除，无限增长<br>
  * 队列是由多个文件组成
  * 
- * @author vintage.wang@gmail.com shijia.wxr@taobao.com
+ * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public class MapedFileQueue {
     private static final Logger log = LoggerFactory.getLogger(MixAll.StoreLoggerName);

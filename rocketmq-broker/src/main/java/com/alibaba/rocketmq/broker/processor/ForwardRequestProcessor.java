@@ -17,7 +17,7 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 /**
  * 向Client转发请求，通常用于管理、监控、统计目的
  * 
- * @author vintage.wang@gmail.com shijia.wxr@taobao.com
+ * @author shijia.wxr<vintage.wang@gmail.com>
  * 
  */
 public class ForwardRequestProcessor implements NettyRequestProcessor {

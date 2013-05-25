@@ -6,7 +6,7 @@ package com.alibaba.rocketmq.store.config;
 /**
  * Broker½ÇÉ«
  * 
- * @author vintage.wang@gmail.com shijia.wxr@taobao.com
+ * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public enum BrokerRole {
     // Òì²½¸´ÖÆMaster

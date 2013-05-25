@@ -30,7 +30,7 @@ import com.google.protobuf.InvalidProtocolBufferException;
 /**
  * Client注册与注销管理
  * 
- * @author vintage.wang@gmail.com shijia.wxr@taobao.com
+ * @author shijia.wxr<vintage.wang@gmail.com>
  * 
  */
 public class ClientManageProcessor implements NettyRequestProcessor {

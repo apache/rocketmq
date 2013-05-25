@@ -20,7 +20,7 @@ import com.alibaba.rocketmq.common.ServiceThread;
 /**
  * ‘§∑÷≈‰MapedFile∑˛ŒÒ
  * 
- * @author vintage.wang@gmail.com shijia.wxr@taobao.com
+ * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public class AllocateMapedFileService extends ServiceThread {
     class AllocateRequest implements Comparable<AllocateRequest> {

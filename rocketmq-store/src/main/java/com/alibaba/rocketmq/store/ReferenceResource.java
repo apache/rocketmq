@@ -9,7 +9,7 @@ import java.util.concurrent.atomic.AtomicLong;
 /**
  * 引用计数基类，类似于C++智能指针实现
  * 
- * @author vintage.wang@gmail.com shijia.wxr@taobao.com
+ * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public abstract class ReferenceResource {
     protected final AtomicLong refCount = new AtomicLong(1);

@@ -9,7 +9,7 @@ import java.nio.ByteBuffer;
 /**
  * 写入消息的回调接口
  * 
- * @author vintage.wang@gmail.com shijia.wxr@taobao.com
+ * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public interface AppendMessageCallback {
 

@@ -18,7 +18,7 @@ package com.alibaba.rocketmq.remoting.exception;
 /**
  * RPC调用超时异常
  * 
- * @author vintage.wang@gmail.com shijia.wxr@taobao.com
+ * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public class RemotingTimeoutException extends RemotingException {
 

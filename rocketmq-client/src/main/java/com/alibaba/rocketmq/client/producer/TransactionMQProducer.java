@@ -10,7 +10,7 @@ import com.alibaba.rocketmq.common.Message;
 /**
  * 支持分布式事务Producer
  * 
- * @author vintage.wang@gmail.com shijia.wxr@taobao.com
+ * @author shijia.wxr<vintage.wang@gmail.com>
  * 
  */
 public class TransactionMQProducer extends DefaultMQProducer {

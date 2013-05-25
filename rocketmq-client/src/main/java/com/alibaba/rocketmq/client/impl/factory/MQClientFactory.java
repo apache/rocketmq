@@ -50,7 +50,7 @@ import com.google.protobuf.InvalidProtocolBufferException;
 /**
  * 客户端Factory类，用来管理Producer与Consumer
  * 
- * @author vintage.wang@gmail.com shijia.wxr@taobao.com
+ * @author shijia.wxr<vintage.wang@gmail.com>
  * 
  */
 public class MQClientFactory {

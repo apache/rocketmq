@@ -23,7 +23,7 @@ import com.alibaba.rocketmq.remoting.exception.RemotingException;
 /**
  * 对Pull接口进行进一步的封装
  * 
- * @author vintage.wang@gmail.com shijia.wxr@taobao.com
+ * @author shijia.wxr<vintage.wang@gmail.com>
  * 
  */
 public class PullAPIWrapper {

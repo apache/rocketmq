@@ -14,7 +14,7 @@ import org.eclipse.jetty.server.handler.AbstractHandler;
 
 
 /**
- * @author vintage.wang@gmail.com shijia.wxr@taobao.com
+ * @author shijia.wxr<vintage.wang@gmail.com>
  * 
  */
 public class ConsoleJettyHander extends AbstractHandler {

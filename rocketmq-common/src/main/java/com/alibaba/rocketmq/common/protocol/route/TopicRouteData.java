@@ -11,7 +11,7 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingSerializable;
 /**
  * Topic路由数据，从Name Server获取
  * 
- * @author vintage.wang@gmail.com shijia.wxr@taobao.com
+ * @author shijia.wxr<vintage.wang@gmail.com>
  * 
  */
 public class TopicRouteData extends RemotingSerializable {

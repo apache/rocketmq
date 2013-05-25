@@ -20,7 +20,7 @@ import com.alibaba.rocketmq.common.UtilALl;
 /**
  * 记录存储模型最终一致的时间点
  * 
- * @author vintage.wang@gmail.com shijia.wxr@taobao.com
+ * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public class StoreCheckpoint {
     private static final Logger log = LoggerFactory.getLogger(MixAll.StoreLoggerName);

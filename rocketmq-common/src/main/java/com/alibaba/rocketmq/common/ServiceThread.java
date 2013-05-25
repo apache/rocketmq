@@ -10,7 +10,7 @@ import org.slf4j.LoggerFactory;
 /**
  * 后台服务线程基类
  * 
- * @author vintage.wang@gmail.com shijia.wxr@taobao.com
+ * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public abstract class ServiceThread implements Runnable {
     private static final Logger stlog = LoggerFactory.getLogger(MixAll.CommonLoggerName);

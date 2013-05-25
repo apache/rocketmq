@@ -33,7 +33,7 @@ import com.alibaba.rocketmq.store.CommitLog.GroupCommitRequest;
 /**
  * HA服务，负责同步双写，异步复制功能
  * 
- * @author vintage.wang@gmail.com shijia.wxr@taobao.com
+ * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public class HAService {
     private static final Logger log = LoggerFactory.getLogger(MixAll.StoreLoggerName);

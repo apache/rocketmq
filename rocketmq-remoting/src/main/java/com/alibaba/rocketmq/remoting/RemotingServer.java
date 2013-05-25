@@ -29,7 +29,7 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 /**
  * 远程通信，Server接口
  * 
- * @author vintage.wang@gmail.com shijia.wxr@taobao.com
+ * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public interface RemotingServer {
     public void start() throws InterruptedException;

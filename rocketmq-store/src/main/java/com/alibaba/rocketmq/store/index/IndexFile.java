@@ -20,7 +20,7 @@ import com.alibaba.rocketmq.store.MapedFile;
 /**
  * 存储具体消息索引信息的文件
  * 
- * @author vintage.wang@gmail.com shijia.wxr@taobao.com
+ * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public class IndexFile {
     private static final Logger log = LoggerFactory.getLogger(MixAll.StoreLoggerName);

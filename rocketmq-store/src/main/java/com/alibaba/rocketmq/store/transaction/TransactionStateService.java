@@ -31,7 +31,7 @@ import com.alibaba.rocketmq.store.SelectMapedBufferResult;
  * clOffset - Commit Log Offset<br>
  * tsOffset - Transaction State Table Offset
  * 
- * @author vintage.wang@gmail.com shijia.wxr@taobao.com
+ * @author shijia.wxr<vintage.wang@gmail.com>
  * 
  */
 public class TransactionStateService {

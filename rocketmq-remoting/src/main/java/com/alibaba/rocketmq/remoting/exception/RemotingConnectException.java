@@ -18,7 +18,7 @@ package com.alibaba.rocketmq.remoting.exception;
 /**
  * Client连接Server失败，抛出此异常
  * 
- * @author vintage.wang@gmail.com shijia.wxr@taobao.com
+ * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public class RemotingConnectException extends RemotingException {
     private static final long serialVersionUID = -5565366231695911316L;

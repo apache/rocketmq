@@ -12,7 +12,7 @@ import com.alibaba.rocketmq.common.protocol.heartbeat.SubscriptionData;
 /**
  * 存储层对外提供的接口
  * 
- * @author vintage.wang@gmail.com shijia.wxr@taobao.com
+ * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public interface MessageStore {
 

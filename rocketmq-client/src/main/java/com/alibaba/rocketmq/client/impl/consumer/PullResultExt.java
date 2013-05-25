@@ -13,7 +13,7 @@ import com.alibaba.rocketmq.common.MessageExt;
 /**
  * 只在内部使用，不对外公开
  * 
- * @author vintage.wang@gmail.com shijia.wxr@taobao.com
+ * @author shijia.wxr<vintage.wang@gmail.com>
  * 
  */
 public class PullResultExt extends PullResult {

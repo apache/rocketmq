@@ -17,7 +17,7 @@ import com.alibaba.rocketmq.common.MessageExt;
 /**
  * 被动接收Broker Push消息的Consumer
  * 
- * @author vintage.wang@gmail.com shijia.wxr@taobao.com
+ * @author shijia.wxr<vintage.wang@gmail.com>
  * 
  */
 public class PushConsumer {

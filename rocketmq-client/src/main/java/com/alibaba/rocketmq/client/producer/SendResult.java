@@ -9,7 +9,7 @@ import com.alibaba.rocketmq.common.MessageQueue;
 /**
  * 发送消息结果
  * 
- * @author vintage.wang@gmail.com shijia.wxr@taobao.com
+ * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public class SendResult {
     private final SendStatus sendStatus;

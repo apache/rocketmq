@@ -21,7 +21,7 @@ import com.alibaba.rocketmq.remoting.netty.ResponseFuture;
 /**
  * 异步调用应答回调接口
  * 
- * @author vintage.wang@gmail.com shijia.wxr@taobao.com
+ * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public interface InvokeCallback {
     public void operationComplete(final ResponseFuture responseFuture);

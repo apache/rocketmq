@@ -9,7 +9,7 @@ import java.util.List;
 /**
  * 根据索引查询消息，返回结果
  * 
- * @author vintage.wang@gmail.com shijia.wxr@taobao.com
+ * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public class QueryOffsetResult {
     private final List<Long> phyOffsets;

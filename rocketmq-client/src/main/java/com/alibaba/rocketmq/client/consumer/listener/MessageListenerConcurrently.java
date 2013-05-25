@@ -11,7 +11,7 @@ import com.alibaba.rocketmq.common.MessageExt;
 /**
  * 同一队列的消息并行消费
  * 
- * @author vintage.wang@gmail.com shijia.wxr@taobao.com
+ * @author shijia.wxr<vintage.wang@gmail.com>
  * 
  */
 public interface MessageListenerConcurrently extends MessageListener {

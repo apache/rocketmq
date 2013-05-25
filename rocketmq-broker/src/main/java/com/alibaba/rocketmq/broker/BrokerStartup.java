@@ -30,7 +30,7 @@ import com.alibaba.rocketmq.store.config.MessageStoreConfig;
 /**
  * BrokerÆô¶¯Èë¿Ú
  * 
- * @author vintage.wang@gmail.com shijia.wxr@taobao.com
+ * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public class BrokerStartup {
 

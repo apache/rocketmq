@@ -4,7 +4,7 @@
 package com.alibaba.rocketmq.client.consumer;
 
 /**
- * @author vintage.wang@gmail.com shijia.wxr@taobao.com
+ * @author shijia.wxr<vintage.wang@gmail.com>
  * 
  */
 public enum PullStatus {

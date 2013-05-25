@@ -13,7 +13,7 @@ import com.alibaba.rocketmq.tools.topic.TopicSubCommand;
 
 
 /**
- * @author vintage.wang@gmail.com shijia.wxr@taobao.com
+ * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public class MQAdminStartup {
     private static List<SubCommand> subCommandList = new ArrayList<SubCommand>();

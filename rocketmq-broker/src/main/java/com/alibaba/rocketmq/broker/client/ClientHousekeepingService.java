@@ -21,7 +21,7 @@ import com.alibaba.rocketmq.remoting.ChannelEventListener;
 /**
  * 定期检测客户端连接，清除不活动的连接
  * 
- * @author vintage.wang@gmail.com shijia.wxr@taobao.com
+ * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public class ClientHousekeepingService implements ChannelEventListener {
     private static final Logger log = LoggerFactory.getLogger(MixAll.BrokerLoggerName);

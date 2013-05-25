@@ -6,7 +6,7 @@ package com.alibaba.rocketmq.store;
 /**
  * 向物理队列写入消息返回结果
  * 
- * @author vintage.wang@gmail.com shijia.wxr@taobao.com
+ * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public class AppendMessageResult {
     // 返回码

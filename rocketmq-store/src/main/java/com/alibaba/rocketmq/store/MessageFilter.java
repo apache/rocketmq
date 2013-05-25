@@ -9,7 +9,7 @@ import com.alibaba.rocketmq.common.protocol.heartbeat.SubscriptionData;
 /**
  * 消息过滤接口
  * 
- * @author vintage.wang@gmail.com shijia.wxr@taobao.com
+ * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public interface MessageFilter {
     public boolean isMessageMatched(final SubscriptionData subscriptionData, final long tagsCode);
