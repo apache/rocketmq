@@ -53,7 +53,6 @@ import com.google.protobuf.InvalidProtocolBufferException;
  * 客户端Factory类，用来管理Producer与Consumer
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
- * 
  */
 public class MQClientFactory {
     private ServiceState serviceState = ServiceState.CREATE_JUST;
@@ -141,7 +140,8 @@ public class MQClientFactory {
             this.datagramSocket = new DatagramSocket(udpPort);
         }
         catch (SocketException e) {
-            throw new MQClientException("instance name is a duplicate one, please set a new name", e);
+            throw new MQClientException(
+                "instance name is a duplicate one[" + udpPort + "], please set a new name", e);
         }
     }
 
