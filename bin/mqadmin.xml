@@ -3,7 +3,7 @@
 
 	<javahome>${JAVA_HOME}</javahome>
 
-	<jvmtype>client</jvmtype>
+	<jvmtype>server</jvmtype>
 
 	<mainclass>com.alibaba.rocketmq.tools.MQAdminStartup</mainclass>
 
@@ -16,8 +16,8 @@
 	</classpaths>
 
 	<options>
-		<-Xms128m></-Xms128m>
-		<-Xmx256m></-Xmx256m>
+		<-Xms512m></-Xms512m>
+		<-Xmx2g></-Xmx2g>
 		<-XX:NewSize>256M</-XX:NewSize>
 		<-XX:MaxNewSize>512M</-XX:MaxNewSize>
 		<-XX:PermSize>128M</-XX:PermSize>
