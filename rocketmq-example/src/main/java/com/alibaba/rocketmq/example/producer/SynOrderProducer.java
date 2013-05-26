@@ -4,7 +4,9 @@ import com.alibaba.rocketmq.client.exception.MQBrokerException;
 import com.alibaba.rocketmq.client.exception.MQClientException;
 import com.alibaba.rocketmq.client.producer.DefaultMQProducer;
 import com.alibaba.rocketmq.client.producer.MQProducer;
+import com.alibaba.rocketmq.client.producer.MessageQueueSelector;
 import com.alibaba.rocketmq.client.producer.SendResult;
+import com.alibaba.rocketmq.client.producer.selector.SelectMessageQueueByMachineRoom;
 import com.alibaba.rocketmq.common.Message;
 import com.alibaba.rocketmq.remoting.exception.RemotingException;
 
@@ -26,7 +28,8 @@ public class SynOrderProducer {
 				Message msg =
 	                    new Message("TopicTest", tags[i % tags.length], "KEY" + i, ("Hello RocketMQ from synproducer" + i).getBytes());
 	            SendResult sendResult;
-				sendResult = synproducer.send(msg);
+	            MessageQueueSelector selector = new SelectMessageQueueByMachineRoom();
+				sendResult = synproducer.send(msg, selector, null);
 				System.out.println(sendResult);
 			} catch (RemotingException e) {
 				e.printStackTrace();
