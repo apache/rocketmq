@@ -22,6 +22,7 @@ public class MQClientConfig {
     private int clientCallbackExecutorThreads = 5;
     private int pollNameServerInteval = 1000 * 30;
     private int heartbeatBrokerInterval = 1000 * 30;
+    private int uploadConsumerOffsetInterval = 1000 * 5;
 
 
     public static String defaultClientLogFileName() {
@@ -110,6 +111,26 @@ public class MQClientConfig {
     }
 
 
+    public int getUploadConsumerOffsetInterval() {
+        return uploadConsumerOffsetInterval;
+    }
+
+
+    public void setUploadConsumerOffsetInterval(int uploadConsumerOffsetInterval) {
+        this.uploadConsumerOffsetInterval = uploadConsumerOffsetInterval;
+    }
+
+
+    @Override
+    public String toString() {
+        return "MQClientConfig [namesrvAddr=" + namesrvAddr + ", logFileName=" + logFileName + ", logLevel="
+                + logLevel + ", clientIP=" + clientIP + ", instanceName=" + instanceName
+                + ", clientCallbackExecutorThreads=" + clientCallbackExecutorThreads + ", pollNameServerInteval="
+                + pollNameServerInteval + ", heartbeatBrokerInterval=" + heartbeatBrokerInterval
+                + ", uploadConsumerOffsetInterval=" + uploadConsumerOffsetInterval + "]";
+    }
+
+
     @Override
     public int hashCode() {
         final int prime = 31;
@@ -122,6 +143,7 @@ public class MQClientConfig {
         result = prime * result + ((logLevel == null) ? 0 : logLevel.hashCode());
         result = prime * result + ((namesrvAddr == null) ? 0 : namesrvAddr.hashCode());
         result = prime * result + pollNameServerInteval;
+        result = prime * result + uploadConsumerOffsetInterval;
         return result;
     }
 
@@ -171,15 +193,8 @@ public class MQClientConfig {
             return false;
         if (pollNameServerInteval != other.pollNameServerInteval)
             return false;
+        if (uploadConsumerOffsetInterval != other.uploadConsumerOffsetInterval)
+            return false;
         return true;
-    }
-
-
-    @Override
-    public String toString() {
-        return "MQClientConfig [namesrvAddr=" + namesrvAddr + ", logFileName=" + logFileName + ", logLevel="
-                + logLevel + ", clientIP=" + clientIP + ", instanceName=" + instanceName
-                + ", clientCallbackExecutorThreads=" + clientCallbackExecutorThreads + ", pollNameServerInteval="
-                + pollNameServerInteval + ", heartbeatBrokerInterval=" + heartbeatBrokerInterval + "]";
     }
 }

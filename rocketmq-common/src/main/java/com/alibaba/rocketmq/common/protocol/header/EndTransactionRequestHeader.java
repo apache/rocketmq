@@ -24,6 +24,7 @@ public class EndTransactionRequestHeader implements CommandCustomHeader {
     @CFNotNull
     private Integer commitOrRollback; // TransactionCommitType
                                       // TransactionRollbackType
+                                      // TransactionNotType
 
     @CFNullable
     private Boolean fromTransactionCheck = false;

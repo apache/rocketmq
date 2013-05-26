@@ -89,8 +89,9 @@ public class ClientChannelInfo {
             if (other.channel != null)
                 return false;
         }
-        else if (this.channel.id().intValue() != other.channel.id().intValue())
+        else if (this.channel.id().intValue() != other.channel.id().intValue()) {
             return false;
+        }
 
         return true;
     }

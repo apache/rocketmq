@@ -92,6 +92,11 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
         }
         // Ìá½»
         case MessageSysFlag.TransactionCommitType: {
+            if (requestHeader.getFromTransactionCheck()) {
+                logTransaction.warn("check producer[{}] transaction state, the producer commit the message.\n"//
+                        + "RequestHeader: {} Remark: {}", RemotingHelper.parseChannelRemoteAddr(ctx.channel()),
+                    requestHeader.toString(), request.getRemark());
+            }
             break;
         }
         // »Ø¹ö
