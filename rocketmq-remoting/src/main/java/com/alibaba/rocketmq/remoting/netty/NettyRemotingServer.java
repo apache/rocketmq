@@ -18,6 +18,8 @@ import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.util.concurrent.DefaultEventExecutorGroup;
 
 import java.net.InetSocketAddress;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -53,6 +55,9 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
     private final ExecutorService publicExecutor;
 
     private final ChannelEventListener channelEventListener;
+
+    // 定时器
+    private final Timer timer = new Timer("ServerHouseKeepingService", true);
 
     class NettyServerHandler extends ChannelInboundMessageHandlerAdapter<Object> {
 
@@ -186,12 +191,30 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
         if (this.channelEventListener != null) {
             this.nettyEventExecuter.start();
         }
+
+        // 每隔1秒扫描下异步调用超时情况
+        this.timer.scheduleAtFixedRate(new TimerTask() {
+
+            @Override
+            public void run() {
+                try {
+                    NettyRemotingServer.this.scanResponseTable();
+                }
+                catch (Exception e) {
+                    log.error("scanResponseTable exception", e);
+                }
+            }
+        }, 1000 * 3, 1000);
     }
 
 
     @Override
     public void shutdown() {
         try {
+            if (this.timer != null) {
+                this.timer.cancel();
+            }
+
             this.eventLoopGroup.shutdownGracefully();
 
             if (this.nettyEventExecuter != null) {
