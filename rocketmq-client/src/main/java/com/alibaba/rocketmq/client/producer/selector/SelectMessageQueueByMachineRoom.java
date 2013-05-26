@@ -4,6 +4,7 @@
 package com.alibaba.rocketmq.client.producer.selector;
 
 import java.util.List;
+import java.util.Set;
 
 import com.alibaba.rocketmq.client.producer.MessageQueueSelector;
 import com.alibaba.rocketmq.common.Message;
@@ -17,10 +18,19 @@ import com.alibaba.rocketmq.common.MessageQueue;
  * 
  */
 public class SelectMessageQueueByMachineRoom implements MessageQueueSelector {
+	private Set<String> consumeridcs;
 
-    @Override
+	@Override
     public MessageQueue select(List<MessageQueue> mqs, Message msg, Object arg) {
         // TODO Auto-generated method stub
         return null;
     }
+
+	public Set<String> getConsumeridcs() {
+		return consumeridcs;
+	}
+
+	public void setConsumeridcs(Set<String> consumeridcs) {
+		this.consumeridcs = consumeridcs;
+	}
 }
