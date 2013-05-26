@@ -1,0 +1,26 @@
+<java>
+	<debug>false</debug>
+
+	<javahome>${JAVA_HOME}</javahome>
+
+	<jvmtype>client</jvmtype>
+
+	<mainclass>com.alibaba.rocketmq.tools.MQAdminStartup</mainclass>
+
+	<properties>
+		<java.ext.dirs>${cpd}/../lib</java.ext.dirs>
+		<rocketmq.home.dir>${cpd}/..</rocketmq.home.dir>
+	</properties>
+
+	<classpaths>
+	</classpaths>
+
+	<options>
+		<-Xms128m></-Xms128m>
+		<-Xmx256m></-Xmx256m>
+		<-XX:NewSize>256M</-XX:NewSize>
+		<-XX:MaxNewSize>512M</-XX:MaxNewSize>
+		<-XX:PermSize>128M</-XX:PermSize>
+		<-XX:MaxPermSize>128M</-XX:MaxPermSize>
+	</options>
+</java>
