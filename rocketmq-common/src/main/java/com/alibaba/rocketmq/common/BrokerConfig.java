@@ -16,7 +16,7 @@ import com.alibaba.rocketmq.remoting.common.RemotingUtil;
  * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public class BrokerConfig {
-    private String rocketmqHome = System.getenv(MixAll.ROCKETMQ_HOME_ENV);
+    private String rocketmqHome = System.getProperty("rocketmq.home.dir", System.getenv(MixAll.ROCKETMQ_HOME_ENV));
     private String namesrvAddr = null;
     private String brokerIP1 = RemotingUtil.getLocalAddress();
     private String brokerIP2 = RemotingUtil.getLocalAddress();
@@ -35,8 +35,8 @@ public class BrokerConfig {
     private int pullMessageThreadPoolNums = Runtime.getRuntime().availableProcessors() * 6;
     private int adminBrokerThreadPoolNums = 8;
 
-    private String topicConfigPath = System.getProperty("user.home") + File.separator + "store"
-            + File.separator + "config" + File.separator + "topics.properties";
+    private String topicConfigPath = System.getProperty("user.home") + File.separator + "store" + File.separator
+            + "config" + File.separator + "topics.properties";
 
     private String consumerOffsetPath = System.getProperty("user.home") + File.separator + "store"
             + File.separator + "config" + File.separator + "consumeroffset.properties";
@@ -48,8 +48,8 @@ public class BrokerConfig {
 
     private int flushConsumerOffsetHistoryInterval = 1000 * 60;
 
-    private String configFilePath = System.getProperty("user.home") + File.separator + "store"
-            + File.separator + "config" + File.separator + "broker.properties";
+    private String configFilePath = System.getProperty("user.home") + File.separator + "store" + File.separator
+            + "config" + File.separator + "broker.properties";
 
 
     public static String localHostName() {
