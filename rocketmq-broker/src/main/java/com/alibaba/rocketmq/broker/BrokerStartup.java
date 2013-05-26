@@ -7,6 +7,7 @@ import java.io.BufferedInputStream;
 import java.io.FileInputStream;
 import java.io.InputStream;
 import java.util.Properties;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.commons.cli.CommandLine;
@@ -105,6 +106,12 @@ public class BrokerStartup {
             }
 
             MixAll.properties2Object(MixAll.commandLine2Properties(commandLine), brokerConfig);
+
+            Properties p = System.getProperties();
+            Set<Object> sets = p.keySet();
+            for (Object key : sets) {
+                System.out.println(key + "=" + p.getProperty(key.toString()));
+            }
 
             if (null == brokerConfig.getRocketmqHome()) {
                 System.out.println("Please set the " + MixAll.ROCKETMQ_HOME_ENV

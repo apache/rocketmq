@@ -21,6 +21,7 @@ import com.alibaba.rocketmq.common.TopicConfig;
 import com.alibaba.rocketmq.common.namesrv.NamesrvConfig;
 import com.alibaba.rocketmq.common.namesrv.TopicRuntimeData;
 import com.alibaba.rocketmq.common.protocol.header.namesrv.GetTopicResponseHeader;
+
 import com.alibaba.rocketmq.namesrv.DataUtils;
 import com.alibaba.rocketmq.namesrv.common.Result;
 import com.alibaba.rocketmq.namesrv.sync.FutureGroup;
@@ -51,8 +52,8 @@ public class NamesrvClientTest {
         String content = encode(topicConfigTable);
         RemotingCommand response1 = RemotingCommand.createResponseCommand(GetTopicResponseHeader.class);
         response1.setBody(content.getBytes(MixAll.DEFAULT_CHARSET));
-        
-        GetTopicResponseHeader getTopicResponseHeader=(GetTopicResponseHeader)response1.getCustomHeader();
+
+        GetTopicResponseHeader getTopicResponseHeader = (GetTopicResponseHeader) response1.getCustomHeader();
         getTopicResponseHeader.setVersion("version");
         getTopicResponseHeader.setBrokerName("broker-019");
         getTopicResponseHeader.setBrokerId(0);
@@ -62,8 +63,8 @@ public class NamesrvClientTest {
 
         RemotingCommand response2 = RemotingCommand.createResponseCommand(GetTopicResponseHeader.class);
         response2.setBody(content.getBytes(MixAll.DEFAULT_CHARSET));
-        
-        GetTopicResponseHeader getTopicResponseHeader2=(GetTopicResponseHeader)response2.getCustomHeader();
+
+        GetTopicResponseHeader getTopicResponseHeader2 = (GetTopicResponseHeader) response2.getCustomHeader();
         getTopicResponseHeader2.setVersion("version");
         getTopicResponseHeader2.setBrokerName("broker-019");
         getTopicResponseHeader2.setBrokerId(0);
@@ -72,13 +73,11 @@ public class NamesrvClientTest {
         response2.setRemark(null);
 
         EasyMock
-            .expect(
-                remotingClient.invokeSync(eq("12.12.13.4:8123"), anyObject(RemotingCommand.class),
-                    anyLong())).andReturn(response1).anyTimes();
+            .expect(remotingClient.invokeSync(eq("12.12.13.4:8123"), anyObject(RemotingCommand.class), anyLong()))
+            .andReturn(response1).anyTimes();
         EasyMock
-            .expect(
-                remotingClient.invokeSync(eq("12.12.13.89:8123"), anyObject(RemotingCommand.class),
-                    anyLong())).andReturn(response2).anyTimes();
+            .expect(remotingClient.invokeSync(eq("12.12.13.89:8123"), anyObject(RemotingCommand.class), anyLong()))
+            .andReturn(response2).anyTimes();
         EasyMock.replay(remotingClient);
 
         NamesrvConfig namesrvConfig = new NamesrvConfig();

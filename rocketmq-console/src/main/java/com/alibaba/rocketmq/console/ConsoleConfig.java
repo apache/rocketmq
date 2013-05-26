@@ -11,7 +11,7 @@ import com.alibaba.rocketmq.common.MixAll;
  * 
  */
 public class ConsoleConfig {
-    private String rocketmqHome = System.getenv(MixAll.ROCKETMQ_HOME_ENV);
+    private String rocketmqHome = System.getProperty("rocketmq.home.dir", System.getenv(MixAll.ROCKETMQ_HOME_ENV));
     private String namesrvAddr = null;
     private String webRootPath;
     private int listenPort = 8888;
