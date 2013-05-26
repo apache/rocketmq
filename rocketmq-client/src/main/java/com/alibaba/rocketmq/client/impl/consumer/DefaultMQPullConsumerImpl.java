@@ -7,6 +7,8 @@ import java.nio.ByteBuffer;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 
 import com.alibaba.rocketmq.client.QueryResult;
 import com.alibaba.rocketmq.client.consumer.DefaultMQPullConsumer;
@@ -41,6 +43,9 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
     private final DefaultMQPullConsumer defaultMQPullConsumer;
     private MQClientFactory mQClientFactory;
     private PullAPIWrapper pullAPIWrapper;
+
+    private ConcurrentHashMap<MessageQueue, AtomicLong> offsetTable =
+            new ConcurrentHashMap<MessageQueue, AtomicLong>();
 
 
     public DefaultMQPullConsumerImpl(final DefaultMQPullConsumer defaultMQPullConsumer) {
@@ -88,6 +93,7 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
             break;
         case RUNNING:
             this.serviceState = ServiceState.SHUTDOWN_ALREADY;
+            this.uploadConsumerOffsetsToBroker();
             this.mQClientFactory.unregisterConsumer(this.defaultMQPullConsumer.getConsumerGroup());
             this.mQClientFactory.shutdown();
             break;
@@ -292,8 +298,16 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
     }
 
 
-    public void updateConsumeOffset(MessageQueue mq, long offset) throws RemotingException, MQBrokerException,
-            InterruptedException, MQClientException {
+    public void updateConsumeOffset(MessageQueue mq, long offset) {
+
+    }
+
+
+    /**
+     * 更新Consumer Offset，在Master断网期间，可能会更新到Slave，这里需要优化，或者在Slave端优化， TODO
+     */
+    public void updateConsumeOffsetToBroker(MessageQueue mq, long offset) throws RemotingException,
+            MQBrokerException, InterruptedException, MQClientException {
         FindBrokerResult findBrokerResult = this.mQClientFactory.findBrokerAddressInAdmin(mq.getBrokerName());
         if (null == findBrokerResult) {
             // TODO 此处可能对Name Server压力过大，需要调优
@@ -317,7 +331,7 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
     }
 
 
-    public long fetchConsumeOffset(MessageQueue mq) throws RemotingException, MQBrokerException,
+    public long fetchConsumeOffsetFromBroker(MessageQueue mq) throws RemotingException, MQBrokerException,
             InterruptedException, MQClientException {
         FindBrokerResult findBrokerResult = this.mQClientFactory.findBrokerAddressInAdmin(mq.getBrokerName());
         if (null == findBrokerResult) {
@@ -386,5 +400,22 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
     @Override
     public String getGroupName() {
         return this.defaultMQPullConsumer.getConsumerGroup();
+    }
+
+
+    @Override
+    public void uploadConsumerOffsetsToBroker() {
+        for (MessageQueue mq : this.offsetTable.keySet()) {
+            AtomicLong offset = this.offsetTable.get(mq);
+            if (offset != null) {
+                try {
+                    this.updateConsumeOffsetToBroker(mq, offset.get());
+                    // TODO log
+                }
+                catch (Exception e) {
+                    // TODO log
+                }
+            }
+        }
     }
 }

@@ -173,6 +173,7 @@ public class TransactionStateService {
             if (msgExt != null) {
                 this.appendPreparedTransaction(msgExt.getCommitLogOffset(), msgExt.getStoreSize(), (int) (msgExt
                     .getStoreTimestamp() / 1000), msgExt.getProperty(Message.PROPERTY_PRODUCER_GROUP).hashCode());
+                this.tranStateTableOffset.incrementAndGet();
             }
         }
     }
@@ -193,18 +194,32 @@ public class TransactionStateService {
             long mapedFileOffset = 0;
             while (true) {
                 for (int i = 0; i < mapedFileSizeLogics; i += TSStoreUnitSize) {
-                    long offset = byteBuffer.getLong();
-                    int size = byteBuffer.getInt();
-                    long tagsCode = byteBuffer.getLong();
+
+                    final long clOffset_read = byteBuffer.getLong();
+                    final int size_read = byteBuffer.getInt();
+                    final int timestamp_read = byteBuffer.getInt();
+                    final int groupHashCode_read = byteBuffer.getInt();
+                    final int state_read = byteBuffer.getInt();
+
+                    boolean stateOK = false;
+                    switch (state_read) {
+                    case MessageSysFlag.TransactionPreparedType:
+                    case MessageSysFlag.TransactionCommitType:
+                    case MessageSysFlag.TransactionRollbackType:
+                        stateOK = true;
+                        break;
+                    default:
+                        break;
+                    }
 
                     // 说明当前存储单元有效
                     // TODO 这样判断有效是否合理？
-                    if (offset >= 0 && size > 0) {
+                    if (clOffset_read >= 0 && size_read > 0 && stateOK) {
                         mapedFileOffset = i + TSStoreUnitSize;
                     }
                     else {
-                        log.info("recover current logics file over,  " + mapedFile.getFileName() + " " + offset
-                                + " " + size + " " + tagsCode);
+                        log.info("recover current transaction state table file over,  " + mapedFile.getFileName()
+                                + " " + clOffset_read + " " + size_read + " " + timestamp_read);
                         break;
                     }
                 }
@@ -214,7 +229,8 @@ public class TransactionStateService {
                     index++;
                     if (index >= mapedFiles.size()) {
                         // 当前条件分支不可能发生
-                        log.info("recover last logics file over, last maped file " + mapedFile.getFileName());
+                        log.info("recover last transaction state table file over, last maped file "
+                                + mapedFile.getFileName());
                         break;
                     }
                     else {
@@ -222,11 +238,11 @@ public class TransactionStateService {
                         byteBuffer = mapedFile.sliceByteBuffer();
                         processOffset = mapedFile.getFileFromOffset();
                         mapedFileOffset = 0;
-                        log.info("recover next logics file, " + mapedFile.getFileName());
+                        log.info("recover next transaction state table file, " + mapedFile.getFileName());
                     }
                 }
                 else {
-                    log.info("recover current logics queue over " + mapedFile.getFileName() + " "
+                    log.info("recover current transaction state table queue over " + mapedFile.getFileName() + " "
                             + (processOffset + mapedFileOffset));
                     break;
                 }
@@ -234,6 +250,9 @@ public class TransactionStateService {
 
             processOffset += mapedFileOffset;
             this.tranStateTable.truncateDirtyFiles(processOffset);
+            this.tranStateTableOffset.set(this.tranStateTable.getMaxOffset() / TSStoreUnitSize);
+            log.info("recover normal over, transaction state table max offset: {}",
+                this.tranStateTableOffset.get());
         }
     }
 

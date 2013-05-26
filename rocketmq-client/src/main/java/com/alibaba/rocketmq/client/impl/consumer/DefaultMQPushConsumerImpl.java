@@ -249,4 +249,11 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
             e.printStackTrace();
         }
     }
+
+
+    @Override
+    public void uploadConsumerOffsetsToBroker() {
+        // TODO Auto-generated method stub
+
+    }
 }

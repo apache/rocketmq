@@ -171,14 +171,14 @@ public class DefaultMQPullConsumer implements MQPullConsumer {
     @Override
     public void updateConsumeOffset(MessageQueue mq, long offset) throws RemotingException, MQBrokerException,
             InterruptedException, MQClientException {
-        this.defaultMQPullConsumerImpl.updateConsumeOffset(mq, offset);
+        this.defaultMQPullConsumerImpl.updateConsumeOffsetToBroker(mq, offset);
     }
 
 
     @Override
     public long fetchConsumeOffset(MessageQueue mq) throws RemotingException, MQBrokerException,
             InterruptedException, MQClientException {
-        return this.defaultMQPullConsumerImpl.fetchConsumeOffset(mq);
+        return this.defaultMQPullConsumerImpl.fetchConsumeOffsetFromBroker(mq);
     }
 
 
