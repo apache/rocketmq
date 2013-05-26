@@ -206,23 +206,25 @@ public class SendMessageProcessor implements NettyRequestProcessor {
                 responseHeader.setQueueOffset(putMessageResult.getAppendMessageResult().getLogicsOffset());
 
                 // Ö±½Ó·µ»Ø
-                try {
-                    ctx.write(response).addListener(new ChannelFutureListener() {
-                        @Override
-                        public void operationComplete(ChannelFuture future) throws Exception {
-                            if (!future.isSuccess()) {
-                                log.error("SendMessageProcessor response to " + future.channel().remoteAddress()
-                                        + " failed", future.cause());
-                                log.error(request.toString());
-                                log.error(response.toString());
+                if (!request.isOnewayRPC()) {
+                    try {
+                        ctx.write(response).addListener(new ChannelFutureListener() {
+                            @Override
+                            public void operationComplete(ChannelFuture future) throws Exception {
+                                if (!future.isSuccess()) {
+                                    log.error("SendMessageProcessor response to "
+                                            + future.channel().remoteAddress() + " failed", future.cause());
+                                    log.error(request.toString());
+                                    log.error(response.toString());
+                                }
                             }
-                        }
-                    });
-                }
-                catch (Throwable e) {
-                    log.error("SendMessageProcessor process request over, but response failed", e);
-                    log.error(request.toString());
-                    log.error(response.toString());
+                        });
+                    }
+                    catch (Throwable e) {
+                        log.error("SendMessageProcessor process request over, but response failed", e);
+                        log.error(request.toString());
+                        log.error(response.toString());
+                    }
                 }
 
                 this.brokerController.getPullRequestHoldService().notifyMessageArriving(requestHeader.getTopic(),
