@@ -20,7 +20,7 @@ public class MQClientConfig {
     private String logFileName = defaultClientLogFileName();
     private String logLevel = "INFO";
     private String clientIP = RemotingUtil.getLocalAddress();
-    private String instanceName = "DEFAULT";
+    private String instanceName = System.getProperty("rocketmq.client.id", "DEFAULT");
     private int clientCallbackExecutorThreads = 5;
     private int pollNameServerInteval = 1000 * 30;
     private int heartbeatBrokerInterval = 1000 * 30;
