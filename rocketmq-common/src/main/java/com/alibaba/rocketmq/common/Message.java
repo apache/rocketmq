@@ -212,6 +212,6 @@ public class Message {
     @Override
     public String toString() {
         return "Message [topic=" + topic + ", flag=" + flag + ", properties=" + properties + ", body="
-                + Arrays.toString(body) + "]";
+                + (body != null ? body.length : 0) + "]";
     }
 }

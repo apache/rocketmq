@@ -12,7 +12,6 @@ public class Test1 {
     public static void test_1(String[] args) {
         long timeLong = System.currentTimeMillis();
         System.out.println(" timeLong = " + timeLong);
-
         int timeInt = (int) (timeLong / 1000);
         System.out.println(" timeInt = " + timeInt);
     }
