@@ -52,6 +52,11 @@ public class MixAll {
     public static final int PERM_INHERIT = 0x1 << 0;
 
     public static final String ROCKETMQ_HOME_ENV = "ROCKETMQ_HOME";
+    public static final String ROCKETMQ_HOME_PROPERTY = "rocketmq.home.dir";
+
+    public static final String NAMESRV_ADDR_ENV = "NAMESRV_ADDR";
+    public static final String NAMESRV_ADDR_PROPERTY = "rocketmq.namesrv.addr";
+
     public static final String WS_DOMAIN_NAME = "diamondserver.tbsite.net";
     // http://diamondserver.tbsite.net:8080/rocketmq/nsaddr
     public static final String WS_ADDR = "http://" + WS_DOMAIN_NAME + ":8080/rocketmq/nsaddr";
