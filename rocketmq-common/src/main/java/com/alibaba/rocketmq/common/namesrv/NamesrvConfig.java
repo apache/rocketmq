@@ -18,14 +18,16 @@ import com.alibaba.rocketmq.common.MixAll;
  * 
  */
 public class NamesrvConfig {
-    private String rocketmqHome = System.getProperty("rocketmq.home.dir", System.getenv(MixAll.ROCKETMQ_HOME_ENV));
+    private String rocketmqHome = System.getProperty(MixAll.ROCKETMQ_HOME_PROPERTY,
+        System.getenv(MixAll.ROCKETMQ_HOME_ENV));
     private String orderConfPath = System.getProperty("user.home") + File.separator + "namesrv" + File.separator
             + "orderConf.properties";
     private String brokerAddrConfPath = System.getProperty("user.home") + File.separator + "namesrv"
             + File.separator + "brokerAddr.properties";
 
     // namesrv 集群地址
-    private String namesrvAddr;
+    private String namesrvAddr = System.getProperty(MixAll.NAMESRV_ADDR_PROPERTY,
+        System.getenv(MixAll.NAMESRV_ADDR_ENV));
     // 同步namesrv信息的超时时间
     private long syncTimeout = 3000L;
     // 同步namesrv信息的时间间隔

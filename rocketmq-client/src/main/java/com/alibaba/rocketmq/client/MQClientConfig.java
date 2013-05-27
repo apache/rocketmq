@@ -5,6 +5,7 @@ package com.alibaba.rocketmq.client;
 
 import java.io.File;
 
+import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.remoting.common.RemotingUtil;
 
 
@@ -14,7 +15,8 @@ import com.alibaba.rocketmq.remoting.common.RemotingUtil;
  * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public class MQClientConfig {
-    private String namesrvAddr = null;
+    private String namesrvAddr = System.getProperty(MixAll.NAMESRV_ADDR_PROPERTY,
+        System.getenv(MixAll.NAMESRV_ADDR_ENV));
     private String logFileName = defaultClientLogFileName();
     private String logLevel = "INFO";
     private String clientIP = RemotingUtil.getLocalAddress();
