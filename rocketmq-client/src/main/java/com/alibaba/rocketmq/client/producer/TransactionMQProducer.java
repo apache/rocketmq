@@ -15,6 +15,9 @@ import com.alibaba.rocketmq.common.Message;
  */
 public class TransactionMQProducer extends DefaultMQProducer {
     private TransactionCheckListener transactionCheckListener;
+    private int checkThreadPoolMinSize = 1;
+    private int checkThreadPoolMaxSize = 1;
+    private int checkRequestHoldMax = 2000;
 
 
     public TransactionMQProducer() {
@@ -23,6 +26,20 @@ public class TransactionMQProducer extends DefaultMQProducer {
 
     public TransactionMQProducer(final String producerGroup) {
         super(producerGroup);
+    }
+
+
+    @Override
+    public void start() throws MQClientException {
+        this.defaultMQProducerImpl.initTransactionEnv();
+        super.start();
+    }
+
+
+    @Override
+    public void shutdown() {
+        super.shutdown();
+        this.defaultMQProducerImpl.destroyTransactionEnv();
     }
 
 
@@ -43,5 +60,35 @@ public class TransactionMQProducer extends DefaultMQProducer {
 
     public void setTransactionCheckListener(TransactionCheckListener transactionCheckListener) {
         this.transactionCheckListener = transactionCheckListener;
+    }
+
+
+    public int getCheckThreadPoolMinSize() {
+        return checkThreadPoolMinSize;
+    }
+
+
+    public void setCheckThreadPoolMinSize(int checkThreadPoolMinSize) {
+        this.checkThreadPoolMinSize = checkThreadPoolMinSize;
+    }
+
+
+    public int getCheckThreadPoolMaxSize() {
+        return checkThreadPoolMaxSize;
+    }
+
+
+    public void setCheckThreadPoolMaxSize(int checkThreadPoolMaxSize) {
+        this.checkThreadPoolMaxSize = checkThreadPoolMaxSize;
+    }
+
+
+    public int getCheckRequestHoldMax() {
+        return checkRequestHoldMax;
+    }
+
+
+    public void setCheckRequestHoldMax(int checkRequestHoldMax) {
+        this.checkRequestHoldMax = checkRequestHoldMax;
     }
 }

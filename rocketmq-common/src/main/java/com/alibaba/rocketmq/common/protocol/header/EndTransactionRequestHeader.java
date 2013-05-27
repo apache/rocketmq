@@ -29,6 +29,9 @@ public class EndTransactionRequestHeader implements CommandCustomHeader {
     @CFNullable
     private Boolean fromTransactionCheck = false;
 
+    @CFNotNull
+    private String msgId;
+
 
     @Override
     public void checkFields() throws RemotingCommandException {
@@ -98,10 +101,20 @@ public class EndTransactionRequestHeader implements CommandCustomHeader {
     }
 
 
+    public String getMsgId() {
+        return msgId;
+    }
+
+
+    public void setMsgId(String msgId) {
+        this.msgId = msgId;
+    }
+
+
     @Override
     public String toString() {
         return "EndTransactionRequestHeader [producerGroup=" + producerGroup + ", tranStateTableOffset="
                 + tranStateTableOffset + ", commitLogOffset=" + commitLogOffset + ", commitOrRollback="
-                + commitOrRollback + ", fromTransactionCheck=" + fromTransactionCheck + "]";
+                + commitOrRollback + ", fromTransactionCheck=" + fromTransactionCheck + ", msgId=" + msgId + "]";
     }
 }

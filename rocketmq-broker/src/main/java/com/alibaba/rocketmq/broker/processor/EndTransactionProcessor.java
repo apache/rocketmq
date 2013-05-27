@@ -88,22 +88,32 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
             // 不提交也不回滚
             case MessageSysFlag.TransactionNotType: {
                 logTransaction.warn("check producer[{}] transaction state, but it's pending status.\n"//
-                        + "RequestHeader: {} Remark: {}", RemotingHelper.parseChannelRemoteAddr(ctx.channel()),
-                    requestHeader.toString(), request.getRemark());
+                        + "MsgID: {} RequestHeader: {} Remark: {}",//
+                    RemotingHelper.parseChannelRemoteAddr(ctx.channel()), //
+                    requestHeader.getMsgId(),//
+                    requestHeader.toString(),//
+                    request.getRemark());
                 return null;
             }
             // 提交
             case MessageSysFlag.TransactionCommitType: {
                 logTransaction.warn("check producer[{}] transaction state, the producer commit the message.\n"//
-                        + "RequestHeader: {} Remark: {}", RemotingHelper.parseChannelRemoteAddr(ctx.channel()),
-                    requestHeader.toString(), request.getRemark());
+                        + "MsgID: {} RequestHeader: {} Remark: {}",
+                    RemotingHelper.parseChannelRemoteAddr(ctx.channel()), //
+                    requestHeader.getMsgId(),//
+                    requestHeader.toString(),//
+                    request.getRemark());
+
                 break;
             }
             // 回滚
             case MessageSysFlag.TransactionRollbackType: {
                 logTransaction.warn("check producer[{}] transaction state, the producer rollback the message.\n"//
-                        + "RequestHeader: {} Remark: {}", RemotingHelper.parseChannelRemoteAddr(ctx.channel()),
-                    requestHeader.toString(), request.getRemark());
+                        + "MsgID: {} RequestHeader: {} Remark: {}",
+                    RemotingHelper.parseChannelRemoteAddr(ctx.channel()), //
+                    requestHeader.getMsgId(),//
+                    requestHeader.toString(),//
+                    request.getRemark());
                 break;
             }
             default:
@@ -117,8 +127,10 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
             case MessageSysFlag.TransactionNotType: {
                 logTransaction.warn(
                     "the producer[{}] end transaction in sending message,  and it's pending status.\n"//
-                            + "RequestHeader: {} Remark: {}",
-                    RemotingHelper.parseChannelRemoteAddr(ctx.channel()), requestHeader.toString(),
+                            + "MsgID: {} RequestHeader: {} Remark: {}",
+                    RemotingHelper.parseChannelRemoteAddr(ctx.channel()), //
+                    requestHeader.getMsgId(),//
+                    requestHeader.toString(),//
                     request.getRemark());
                 return null;
             }
@@ -129,8 +141,11 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
             // 回滚
             case MessageSysFlag.TransactionRollbackType: {
                 logTransaction.warn("the producer[{}] end transaction in sending message, rollback the message.\n"//
-                        + "RequestHeader: {} Remark: {}", RemotingHelper.parseChannelRemoteAddr(ctx.channel()),
-                    requestHeader.toString(), request.getRemark());
+                        + "MsgID: {} RequestHeader: {} Remark: {}",
+                    RemotingHelper.parseChannelRemoteAddr(ctx.channel()), //
+                    requestHeader.getMsgId(),//
+                    requestHeader.toString(),//
+                    request.getRemark());
                 break;
             }
             default:
