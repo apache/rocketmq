@@ -500,7 +500,7 @@ public class CommitLog {
 
     public boolean load() {
         boolean result = this.mapedFileQueue.load();
-        log.info("load physic queue " + (result ? "OK" : "Failed"));
+        log.info("load commit log " + (result ? "OK" : "Failed"));
         return result;
     }
 
