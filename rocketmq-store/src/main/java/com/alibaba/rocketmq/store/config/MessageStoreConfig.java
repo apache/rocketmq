@@ -119,9 +119,9 @@ public class MessageStoreConfig {
     private int tranRedoLogMapedFileSize = 2000000 * ConsumeQueue.CQStoreUnitSize;
 
     // 事务回查至少间隔时间
-    private long checkTransactionMessageAtleastInterval = 1000 * 60 * 6;
+    private long checkTransactionMessageAtleastInterval = 1000 * 40;
     // 事务回查定时间隔时间
-    private long checkTransactionMessageTimerInterval = 1000 * 60 * 3;
+    private long checkTransactionMessageTimerInterval = 1000 * 20;
 
 
     public int getMapedFileSizeCommitLog() {

@@ -5,6 +5,7 @@ package com.alibaba.rocketmq.client;
 
 import java.io.File;
 
+import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.remoting.common.RemotingUtil;
 
 
@@ -14,11 +15,12 @@ import com.alibaba.rocketmq.remoting.common.RemotingUtil;
  * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public class MQClientConfig {
-    private String namesrvAddr = null;
+    private String namesrvAddr = System.getProperty(MixAll.NAMESRV_ADDR_PROPERTY,
+        System.getenv(MixAll.NAMESRV_ADDR_ENV));
     private String logFileName = defaultClientLogFileName();
     private String logLevel = "INFO";
     private String clientIP = RemotingUtil.getLocalAddress();
-    private String instanceName = "DEFAULT";
+    private String instanceName = System.getProperty("rocketmq.client.id", "DEFAULT");
     private int clientCallbackExecutorThreads = 5;
     private int pollNameServerInteval = 1000 * 30;
     private int heartbeatBrokerInterval = 1000 * 30;

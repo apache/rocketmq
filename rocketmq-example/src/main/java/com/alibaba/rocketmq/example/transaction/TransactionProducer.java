@@ -24,13 +24,15 @@ public class TransactionProducer {
 
         String[] tags = new String[] { "TagA", "TagB", "TagC", "TagD", "TagE" };
         TransactionExecuterImpl tranExecuter = new TransactionExecuterImpl();
-        for (int i = 0; i < 1000; i++) {
+        for (int i = 0; i < 100000; i++) {
             try {
                 Message msg =
                         new Message("TopicTest", tags[i % tags.length], "KEY" + i,
                             ("Hello RocketMQ " + i).getBytes());
                 SendResult sendResult = producer.sendMessageInTransaction(msg, tranExecuter);
                 System.out.println(sendResult);
+
+                Thread.sleep(10);
             }
             catch (MQClientException e) {
                 e.printStackTrace();
