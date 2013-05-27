@@ -99,7 +99,7 @@ public class ConsumeQueue {
                         this.maxPhysicOffset = offset;
                     }
                     else {
-                        log.info("recover current logics file over,  " + mapedFile.getFileName() + " " + offset
+                        log.info("recover current consume queue file over,  " + mapedFile.getFileName() + " " + offset
                                 + " " + size + " " + tagsCode);
                         break;
                     }
@@ -110,7 +110,7 @@ public class ConsumeQueue {
                     index++;
                     if (index >= mapedFiles.size()) {
                         // 当前条件分支不可能发生
-                        log.info("recover last logics file over, last maped file " + mapedFile.getFileName());
+                        log.info("recover last consume queue file over, last maped file " + mapedFile.getFileName());
                         break;
                     }
                     else {
@@ -118,11 +118,11 @@ public class ConsumeQueue {
                         byteBuffer = mapedFile.sliceByteBuffer();
                         processOffset = mapedFile.getFileFromOffset();
                         mapedFileOffset = 0;
-                        log.info("recover next logics file, " + mapedFile.getFileName());
+                        log.info("recover next consume queue file, " + mapedFile.getFileName());
                     }
                 }
                 else {
-                    log.info("recover current logics queue over " + mapedFile.getFileName() + " "
+                    log.info("recover current consume queue queue over " + mapedFile.getFileName() + " "
                             + (processOffset + mapedFileOffset));
                     break;
                 }

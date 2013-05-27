@@ -16,8 +16,10 @@ import com.alibaba.rocketmq.remoting.common.RemotingUtil;
  * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public class BrokerConfig {
-    private String rocketmqHome = System.getProperty("rocketmq.home.dir", System.getenv(MixAll.ROCKETMQ_HOME_ENV));
-    private String namesrvAddr = null;
+    private String rocketmqHome = System.getProperty(MixAll.ROCKETMQ_HOME_PROPERTY,
+        System.getenv(MixAll.ROCKETMQ_HOME_ENV));
+    private String namesrvAddr = System.getProperty(MixAll.NAMESRV_ADDR_PROPERTY,
+        System.getenv(MixAll.NAMESRV_ADDR_ENV));
     private String brokerIP1 = RemotingUtil.getLocalAddress();
     private String brokerIP2 = RemotingUtil.getLocalAddress();
     private String brokerName = localHostName();

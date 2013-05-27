@@ -342,7 +342,7 @@ public class TransactionStateService {
 
                         tranlog
                             .info(
-                                "the transaction timer task execute over, {} Prepared Message: {} Check Progress: {}/{}",
+                                "the transaction timer task execute over in this period, {} Prepared Message: {} Check Progress: {}/{}",
                                 mapedFile.getFileName(),//
                                 preparedMessageCountInThisMapedFile,//
                                 i / TSStoreUnitSize,//
