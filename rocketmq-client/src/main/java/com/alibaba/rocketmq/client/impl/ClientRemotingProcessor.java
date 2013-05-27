@@ -53,49 +53,6 @@ public class ClientRemotingProcessor implements NettyRequestProcessor {
     }
 
 
-    private void processTransactionState(//
-            final ChannelHandlerContext ctx,//
-            final CheckTransactionStateRequestHeader requestHeader,//
-            final LocalTransactionState localTransactionState,//
-            final String producerGroup,//
-            final Throwable exception) {
-        final String addr = RemotingHelper.parseChannelRemoteAddr(ctx.channel());
-        final EndTransactionRequestHeader thisHeader = new EndTransactionRequestHeader();
-        thisHeader.setCommitLogOffset(requestHeader.getCommitLogOffset());
-        thisHeader.setProducerGroup(producerGroup);
-        thisHeader.setTranStateTableOffset(requestHeader.getTranStateTableOffset());
-        thisHeader.setFromTransactionCheck(true);
-        switch (localTransactionState) {
-        case COMMIT_MESSAGE:
-            thisHeader.setCommitOrRollback(MessageSysFlag.TransactionCommitType);
-            break;
-        case ROLLBACK_MESSAGE:
-            thisHeader.setCommitOrRollback(MessageSysFlag.TransactionRollbackType);
-            log.warn("when broker check, client rollback this transaction, {}", thisHeader);
-            break;
-        case UNKNOW:
-            thisHeader.setCommitOrRollback(MessageSysFlag.TransactionNotType);
-            log.warn("when broker check, client donot know this transaction state, {}", thisHeader);
-            break;
-        default:
-            break;
-        }
-
-        RemotingCommand request =
-                RemotingCommand.createRequestCommand(MQRequestCode.END_TRANSACTION_VALUE, thisHeader);
-        if (exception != null) {
-            request.setRemark("checkLocalTransactionState Exception: " + exception.toString());
-        }
-
-        try {
-            mqClientFactory.getMQClientAPIImpl().getRemotingClient().invokeOneway(addr, request, 3000);
-        }
-        catch (Exception e) {
-            log.error("endTransactionOneway exception", e);
-        }
-    }
-
-
     /**
      * Oneway调用，无返回值
      */
@@ -111,25 +68,8 @@ public class ClientRemotingProcessor implements NettyRequestProcessor {
             if (group != null) {
                 MQProducerInner producer = this.mqClientFactory.selectProducer(group);
                 if (producer != null) {
-                    TransactionCheckListener transactionCheckListener = producer.checkListener();
-                    if (transactionCheckListener != null) {
-                        LocalTransactionState localTransactionState = LocalTransactionState.UNKNOW;
-                        Throwable exception = null;
-                        try {
-                            localTransactionState =
-                                    transactionCheckListener.checkLocalTransactionState(messageExt);
-                        }
-                        catch (Throwable e) {
-                            log.error(
-                                "Broker call checkTransactionState, but checkLocalTransactionState exception", e);
-                            exception = e;
-                        }
-
-                        this.processTransactionState(ctx, requestHeader, localTransactionState, group, exception);
-                    }
-                    else {
-                        log.warn("checkTransactionState, pick transactionCheckListener by group[{}] failed", group);
-                    }
+                    final String addr = RemotingHelper.parseChannelRemoteAddr(ctx.channel());
+                    producer.checkTransactionState(addr, messageExt, requestHeader);
                 }
                 else {
                     log.debug("checkTransactionState, pick producer by group[{}] failed", group);

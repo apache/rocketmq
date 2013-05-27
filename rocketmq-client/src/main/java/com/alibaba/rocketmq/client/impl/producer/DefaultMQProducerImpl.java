@@ -3,12 +3,22 @@
  */
 package com.alibaba.rocketmq.client.impl.producer;
 
+import io.netty.channel.ChannelHandlerContext;
+
 import java.io.IOException;
 import java.net.UnknownHostException;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.alibaba.rocketmq.client.QueryResult;
 import com.alibaba.rocketmq.client.exception.MQBrokerException;
@@ -34,12 +44,16 @@ import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.ServiceState;
 import com.alibaba.rocketmq.common.TopicFilterType;
 import com.alibaba.rocketmq.common.UtilALl;
+import com.alibaba.rocketmq.common.protocol.MQProtos.MQRequestCode;
 import com.alibaba.rocketmq.common.protocol.MQProtos.MQResponseCode;
+import com.alibaba.rocketmq.common.protocol.header.CheckTransactionStateRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.EndTransactionRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.SendMessageRequestHeader;
 import com.alibaba.rocketmq.common.sysflag.MessageSysFlag;
+import com.alibaba.rocketmq.remoting.common.RemotingHelper;
 import com.alibaba.rocketmq.remoting.common.RemotingUtil;
 import com.alibaba.rocketmq.remoting.exception.RemotingException;
+import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 import com.alibaba.rocketmq.remoting.protocol.RemotingProtos.ResponseCode;
 
 
@@ -49,6 +63,7 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingProtos.ResponseCode;
  * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public class DefaultMQProducerImpl implements MQProducerInner {
+    private static final Logger log = LoggerFactory.getLogger(MixAll.ClientLoggerName);
     private ServiceState serviceState = ServiceState.CREATE_JUST;
 
     private final DefaultMQProducer defaultMQProducer;
@@ -58,9 +73,33 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
     private MQClientFactory mQClientFactory;
 
+    /**
+     * 事务相关
+     */
+    protected BlockingQueue<Runnable> checkRequestQueue;
+    protected ExecutorService checkExecutor;
+
 
     public DefaultMQProducerImpl(final DefaultMQProducer defaultMQProducer) {
         this.defaultMQProducer = defaultMQProducer;
+    }
+
+
+    public void initTransactionEnv() {
+        TransactionMQProducer producer = (TransactionMQProducer) this.defaultMQProducer;
+        this.checkRequestQueue = new LinkedBlockingQueue<Runnable>(producer.getCheckRequestHoldMax());
+        this.checkExecutor = new ThreadPoolExecutor(//
+            producer.getCheckThreadPoolMinSize(),//
+            producer.getCheckThreadPoolMaxSize(),//
+            1000 * 60,//
+            TimeUnit.MILLISECONDS,//
+            this.checkRequestQueue);
+    }
+
+
+    public void destroyTransactionEnv() {
+        this.checkExecutor.shutdown();
+        this.checkRequestQueue.clear();
     }
 
 
@@ -583,6 +622,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             requestHeader.setCommitOrRollback(MessageSysFlag.TransactionRollbackType);
             break;
         case UNKNOW:
+            requestHeader.setCommitOrRollback(MessageSysFlag.TransactionNotType);
             break;
         default:
             break;
@@ -590,6 +630,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
         requestHeader.setProducerGroup(this.defaultMQProducer.getProducerGroup());
         requestHeader.setTranStateTableOffset(sendResult.getQueueOffset());
+        requestHeader.setMsgId(sendResult.getMsgId());
         this.mQClientFactory.getMQClientAPIImpl().endTransaction(addr, requestHeader,
             this.defaultMQProducer.getSendMsgTimeout());
     }
@@ -631,23 +672,12 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         }
 
         // 第三步，提交或者回滚Broker端消息
-        switch (localTransactionState) {
-        case COMMIT_MESSAGE:
-        case ROLLBACK_MESSAGE:
-            try {
-                this.endTransaction(sendResult, localTransactionState);
-            }
-            catch (Exception e) {
-                throw new MQClientException("local transaction execute " + localTransactionState
-                        + ", but end broker transaction failed", e);
-            }
-            break;
-        // 本地事务抛出异常或者返回未知状态，所以暂时不提交也不回滚，等待服务器主动check
-        case UNKNOW:
-            // TODO log
-        default:
-            break;
-
+        try {
+            this.endTransaction(sendResult, localTransactionState);
+        }
+        catch (Exception e) {
+            throw new MQClientException("local transaction execute " + localTransactionState
+                    + ", but end broker transaction failed", e);
         }
 
         return sendResult;
@@ -662,5 +692,86 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         }
 
         return null;
+    }
+
+
+    @Override
+    public void checkTransactionState(final String addr, final MessageExt msg,
+            final CheckTransactionStateRequestHeader header) {
+        Runnable request = new Runnable() {
+            private final String brokerAddr = addr;
+            private final MessageExt message = msg;
+            private final CheckTransactionStateRequestHeader checkRequestHeader = header;
+            private final String group = DefaultMQProducerImpl.this.defaultMQProducer.getProducerGroup();
+
+
+            private void processTransactionState(//
+                    final LocalTransactionState localTransactionState,//
+                    final String producerGroup,//
+                    final Throwable exception) {
+                final EndTransactionRequestHeader thisHeader = new EndTransactionRequestHeader();
+                thisHeader.setCommitLogOffset(checkRequestHeader.getCommitLogOffset());
+                thisHeader.setProducerGroup(producerGroup);
+                thisHeader.setTranStateTableOffset(checkRequestHeader.getTranStateTableOffset());
+                thisHeader.setFromTransactionCheck(true);
+                thisHeader.setMsgId(message.getMsgId());
+                switch (localTransactionState) {
+                case COMMIT_MESSAGE:
+                    thisHeader.setCommitOrRollback(MessageSysFlag.TransactionCommitType);
+                    break;
+                case ROLLBACK_MESSAGE:
+                    thisHeader.setCommitOrRollback(MessageSysFlag.TransactionRollbackType);
+                    log.warn("when broker check, client rollback this transaction, {}", thisHeader);
+                    break;
+                case UNKNOW:
+                    thisHeader.setCommitOrRollback(MessageSysFlag.TransactionNotType);
+                    log.warn("when broker check, client donot know this transaction state, {}", thisHeader);
+                    break;
+                default:
+                    break;
+                }
+
+                RemotingCommand request =
+                        RemotingCommand.createRequestCommand(MQRequestCode.END_TRANSACTION_VALUE, thisHeader);
+                if (exception != null) {
+                    request.setRemark("checkLocalTransactionState Exception: " + exception.toString());
+                }
+
+                try {
+                    DefaultMQProducerImpl.this.mQClientFactory.getMQClientAPIImpl().getRemotingClient()
+                        .invokeOneway(brokerAddr, request, 3000);
+                }
+                catch (Exception e) {
+                    log.error("endTransactionOneway exception", e);
+                }
+            }
+
+
+            @Override
+            public void run() {
+                TransactionCheckListener transactionCheckListener = DefaultMQProducerImpl.this.checkListener();
+                if (transactionCheckListener != null) {
+                    LocalTransactionState localTransactionState = LocalTransactionState.UNKNOW;
+                    Throwable exception = null;
+                    try {
+                        localTransactionState = transactionCheckListener.checkLocalTransactionState(message);
+                    }
+                    catch (Throwable e) {
+                        log.error("Broker call checkTransactionState, but checkLocalTransactionState exception", e);
+                        exception = e;
+                    }
+
+                    this.processTransactionState(//
+                        localTransactionState,//
+                        group, //
+                        exception);
+                }
+                else {
+                    log.warn("checkTransactionState, pick transactionCheckListener by group[{}] failed", group);
+                }
+            }
+        };
+
+        this.checkExecutor.submit(request);
     }
 }
