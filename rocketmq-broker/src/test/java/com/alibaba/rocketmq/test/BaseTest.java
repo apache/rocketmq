@@ -1,6 +1,7 @@
 package com.alibaba.rocketmq.test;
 
 import java.io.BufferedInputStream;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
 import java.util.Properties;
@@ -44,6 +45,8 @@ public abstract class  BaseTest extends TestCase {
             final NettyServerConfig nettyServerConfig = new NettyServerConfig();
             nettyServerConfig.setListenPort(10911);
             final MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
+            // 清理环境
+            deleteDir(System.getProperty("user.home") + File.separator + "store");
 
             if (null == brokerConfig.getRocketmqHome()) {
                 System.out.println("Please set the " + MixAll.ROCKETMQ_HOME_ENV
@@ -130,4 +133,23 @@ public abstract class  BaseTest extends TestCase {
         System.out.println("after------");  
         brokerController.shutdown();
     }  
+	public static void deleteDir(String path)
+	{
+		File file = new File(path);
+		if (file.exists())
+		{
+			if (file.isDirectory())
+			{
+				File[] files = file.listFiles();
+				for (File subFile : files)
+				{
+					if (subFile.isDirectory())
+						deleteDir(subFile.getPath());
+					else
+						subFile.delete();
+				}
+			}
+			file.delete();
+		}
+	}
 }

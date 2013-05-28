@@ -1,20 +1,24 @@
 package com.alibaba.rocketmq.test.producer;
 
+import java.util.List;
+
 import junit.framework.Assert;
 
 import com.alibaba.rocketmq.client.exception.MQBrokerException;
 import com.alibaba.rocketmq.client.exception.MQClientException;
 import com.alibaba.rocketmq.client.producer.DefaultMQProducer;
 import com.alibaba.rocketmq.client.producer.MQProducer;
+import com.alibaba.rocketmq.client.producer.MessageQueueSelector;
+import com.alibaba.rocketmq.client.producer.SendCallback;
 import com.alibaba.rocketmq.client.producer.SendResult;
 import com.alibaba.rocketmq.client.producer.SendStatus;
 import com.alibaba.rocketmq.common.Message;
+import com.alibaba.rocketmq.common.MessageQueue;
+import com.alibaba.rocketmq.common.TopicFilterType;
 import com.alibaba.rocketmq.remoting.exception.RemotingException;
 import com.alibaba.rocketmq.test.BaseTest;
 
-import org.junit.After;
 import org.junit.AfterClass;
-import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -37,24 +41,42 @@ public class ProducerTest extends BaseTest{
         Assert.assertEquals(SendStatus.SEND_OK, sendResult.getSendStatus());
 	}
 	@Test
-	public void testProducerOrderMsg() {
-		// TODO Auto-generated constructor stub
+	public void testProducerOrderMsg() throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
+		MessageQueueSelector selector = new MessageQueueSelector() {
+            @Override
+            public MessageQueue select(List<MessageQueue> mqs, Message msg, Object arg) {
+                Integer id = (Integer) arg;
+                int index = id % mqs.size();
+                return mqs.get(index);
+            }
+        };
+		Message msg =
+                new Message("TopicTest", "TagA", "TESTKEY", ("Hello RocketMQ from producerMsg").getBytes());
+        SendResult sendResult = producer.send(msg, selector, 1);
+        Assert.assertEquals(SendStatus.SEND_OK, sendResult.getSendStatus());
+	}
+//	@Test
+//	public void testProducerOnlyOrderMsg() {
+//		// TODO Auto-generated constructor stub
+//	}
+	@Test
+	public void testProducerDelayMsg() throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
+		Message msg =
+                new Message("TopicTest", "TagA", "TESTKEY", ("Hello RocketMQ from producerMsg").getBytes());
+		msg.setDelayTimeLevel(4);
+		SendResult sendResult = producer.send(msg);
+        Assert.assertEquals(SendStatus.SEND_OK, sendResult.getSendStatus());
 	}
 	@Test
-	public void testProducerOnlyOrderMsg() {
-		// TODO Auto-generated constructor stub
+	public void testProducerMsgAndCreateTopic() throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
+		Message msg =
+                new Message("TopicTest1", "TagA", "TESTKEY", ("Hello RocketMQ from producerMsg").getBytes());
+		SendResult sendResult = producer.send(msg);
+        Assert.assertEquals(SendStatus.SEND_OK, sendResult.getSendStatus());
 	}
 	@Test
-	public void testProducerDelayMsg() {
-		// TODO Auto-generated constructor stub
-	}
-	@Test
-	public void testProducerMsgAndCreateTopic() {
-		// TODO Auto-generated constructor stub
-	}
-	@Test
-	public void testClientCreateTopic() {
-		// TODO Auto-generated constructor stub
+	public void testClientCreateTopic() throws MQClientException {
+		producer.createTopic("TopicTest", "newTopicTest", 1, TopicFilterType.MULTI_TAG, true);
 	}
 //	@Test
 	//发送普通消息失败后自动重试下一个Broker，最多重试3次
@@ -63,18 +85,38 @@ public class ProducerTest extends BaseTest{
 //	}
 	@Test
 //	发送消息API支持三种通信方式
-	public void testProducerSynMsg() {
-		// TODO Auto-generated constructor stub
+	public void testProducerSynMsg() throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
+		Message msg =
+                new Message("TopicTest", "TagA", "TESTKEY", ("Hello RocketMQ from producerMsg").getBytes());
+        SendResult sendResult = producer.send(msg);
+        Assert.assertEquals(SendStatus.SEND_OK, sendResult.getSendStatus());
 	}
 	@Test
 //	发送消息API支持三种通信方式
-	public void testProducerAsyMsg() {
-		// TODO Auto-generated constructor stub
+	public void testProducerAsyMsg() throws MQClientException, RemotingException, InterruptedException {
+		 final SendCallback sendCallback = new SendCallback(){
+
+				@Override
+				public void onSuccess(SendResult sendResult) {
+					Assert.assertEquals(SendStatus.SEND_OK, sendResult.getSendStatus());
+				}
+
+				@Override
+				public void onException(Throwable e) {
+					e.printStackTrace();
+				}
+	        	
+	        };
+		Message msg =
+                new Message("TopicTest", "TagA", "TESTKEY", ("Hello RocketMQ from producerMsg").getBytes());
+        producer.send(msg,sendCallback);
 	}
 	@Test
 //	发送消息API支持三种通信方式
-	public void testProducerOneWayMsg() {
-		// TODO Auto-generated constructor stub
+	public void testProducerOneWayMsg() throws MQClientException, RemotingException, InterruptedException {
+		Message msg =
+                new Message("TopicTest", "TagA", "TESTKEY", ("Hello RocketMQ from producerMsg").getBytes());
+        producer.sendOneway(msg);
 	}
 	@AfterClass
 	@Override
