@@ -37,7 +37,7 @@ public class DefaultMQProducer implements MQProducer {
     /**
      * 支持在发送消息时，如果Topic不存在，自动创建Topic，但是要指定Key
      */
-    private String createTopicKey = "";//MixAll.DEFAULT_TOPIC;
+    private String createTopicKey = MixAll.DEFAULT_TOPIC;
     /**
      * 发送消息，自动创建Topic时，默认队列数
      */
