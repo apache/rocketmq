@@ -17,4 +17,13 @@ public class FAQUrl {
     // Name Serverµÿ÷∑≤ª¥Ê‘⁄
     public static final String NAME_SERVER_ADDR_NOT_EXIST_URL = //
             "https://github.com/alibaba/RocketMQ/issues/57";
+
+
+    public static String suggestTodo(final String url) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("\n");
+        sb.append("For more infomation, please acccess this url, ");
+        sb.append(url);
+        return sb.toString();
+    }
 }

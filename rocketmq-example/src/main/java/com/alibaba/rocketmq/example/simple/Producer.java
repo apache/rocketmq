@@ -27,7 +27,7 @@ public class Producer {
 
             for (int i = 0; i < 100; i++) {
                 Message msg =
-                        new Message("TopicTestAAA", tags[i % tags.length], "KEY" + i, ("Hello RocketMQ " + i).getBytes());
+                        new Message("TopicTestAAB", tags[i % tags.length], "KEY" + i, ("Hello RocketMQ " + i).getBytes());
                 SendResult sendResult = producer.send(msg);
                 System.out.println(sendResult);
             }
