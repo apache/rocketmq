@@ -419,7 +419,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                 }
                 else {
                     log.error("connect {} in {}ms timeout", addr, this.nettyClientConfig.getConnectTimeoutMillis());
-                    channelFuture.channel();
+                    channelFuture.channel().close().sync();
                     return null;
                 }
 

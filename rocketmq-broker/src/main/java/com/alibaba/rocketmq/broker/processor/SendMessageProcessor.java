@@ -19,6 +19,7 @@ import com.alibaba.rocketmq.common.MessageDecoder;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.TopicConfig;
 import com.alibaba.rocketmq.common.TopicFilterType;
+import com.alibaba.rocketmq.common.help.FAQUrl;
 import com.alibaba.rocketmq.common.protocol.MQProtos.MQResponseCode;
 import com.alibaba.rocketmq.common.protocol.header.SendMessageRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.SendMessageResponseHeader;
@@ -100,7 +101,7 @@ public class SendMessageProcessor implements NettyRequestProcessor {
                         requestHeader.getDefaultTopicQueueNums());
             if (null == topicConfig) {
                 response.setCode(MQResponseCode.TOPIC_NOT_EXIST_VALUE);
-                response.setRemark("topic not exist, apply first please!");
+                response.setRemark("topic not exist, apply first please!\n" + FAQUrl.APPLY_TOPIC_URL);
                 return response;
             }
         }
