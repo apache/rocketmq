@@ -142,7 +142,8 @@ public class MQClientFactory {
         }
         catch (SocketException e) {
             throw new MQClientException("instance name is a duplicate one[" + udpPort
-                    + "], please set a new name\n" + FAQUrl.CLIENT_INSTACNCE_NAME_DUPLICATE_URL, e);
+                    + "], please set a new name"
+                    + FAQUrl.suggestTodo(FAQUrl.CLIENT_INSTACNCE_NAME_DUPLICATE_URL), e);
         }
     }
 
