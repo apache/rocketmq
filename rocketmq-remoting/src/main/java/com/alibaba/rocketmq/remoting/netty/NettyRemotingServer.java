@@ -15,6 +15,9 @@ import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
+import io.netty.handler.timeout.IdleState;
+import io.netty.handler.timeout.IdleStateEvent;
+import io.netty.handler.timeout.IdleStateHandler;
 import io.netty.util.concurrent.DefaultEventExecutorGroup;
 
 import java.net.InetSocketAddress;
@@ -25,6 +28,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.logging.Level;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -135,6 +139,19 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
 
             ctx.channel().close();
         }
+        @Override
+        public void userEventTriggered(ChannelHandlerContext ctx, Object evt)
+                throws Exception {
+        	
+        	if (evt instanceof IdleStateEvent){
+        		IdleStateEvent evnet =(IdleStateEvent)evt;
+        		if(evnet.state().equals(IdleState.ALL_IDLE)){
+        			log.warn("channel idle exception ", evt.toString());
+        			ctx.channel().close();
+        		}
+        	}
+            ctx.fireUserEventTriggered(evt);
+        }
     }
 
 
@@ -182,7 +199,9 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
                         new DefaultEventExecutorGroup(nettyServerConfig.getServerWorkerThreads()), //
                         new NettyEncoder(), //
                         new NettyDecoder(), //
-                        new NettyConnetManageHandler(), new NettyServerHandler());
+                        new IdleStateHandler(0, 0, 3),
+                        new NettyConnetManageHandler(), 
+                        new NettyServerHandler());
                 }
             });
 
