@@ -14,9 +14,9 @@ public class OneWayProducer {
 	 * @throws MQClientException 
 	 */
 	public static void main(String[] args) throws MQClientException {
-		MQProducer synproducer = new DefaultMQProducer("example.producer");
+		MQProducer oneWayProducer = new DefaultMQProducer("example.producer");
 
-		synproducer.start();
+		oneWayProducer.start();
 
         String[] tags = new String[] { "TagA", "TagB", "TagC", "TagD", "TagE" };
 
@@ -24,7 +24,7 @@ public class OneWayProducer {
 			try {
 				Message msg =
 	                    new Message("TopicTest", tags[i % tags.length], "KEY" + i, ("Hello RocketMQ from OneWay" + i).getBytes());
-				synproducer.sendOneway(msg);
+				oneWayProducer.sendOneway(msg);
 			} catch (RemotingException e) {
 				e.printStackTrace();
 			} catch (InterruptedException e) {
@@ -33,7 +33,7 @@ public class OneWayProducer {
 				e1.printStackTrace();
 			}
         }
-        synproducer.shutdown();
+        oneWayProducer.shutdown();
         System.exit(0);
 	}
 }
