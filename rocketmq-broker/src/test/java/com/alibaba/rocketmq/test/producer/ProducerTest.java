@@ -75,8 +75,12 @@ public class ProducerTest extends BaseTest{
         Assert.assertEquals(SendStatus.SEND_OK, sendResult.getSendStatus());
 	}
 	@Test
-	public void testClientCreateTopic() throws MQClientException {
+	public void testClientCreateTopicIsOrder() throws MQClientException {
 		producer.createTopic("TopicTest", "newTopicTest", 1, TopicFilterType.MULTI_TAG, true);
+	}
+	@Test
+	public void testClientCreateTopicNoOrder() throws MQClientException {
+		producer.createTopic("TopicTest", "newTopicTest", 1, TopicFilterType.MULTI_TAG, false);
 	}
 //	@Test
 	//发送普通消息失败后自动重试下一个Broker，最多重试3次
