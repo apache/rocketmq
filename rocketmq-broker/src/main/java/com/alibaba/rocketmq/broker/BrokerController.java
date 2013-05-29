@@ -160,7 +160,7 @@ public class BrokerController {
 
         // ×¢²áµ½Name Server
         // result = result && this.registerToNameServer();
-        registerToNameServer();
+//        registerToNameServer();
         // ¼ÓÔØTopicÅäÖÃ
         result = result && this.topicConfigManager.load();
 
