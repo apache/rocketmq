@@ -37,6 +37,7 @@ import com.alibaba.rocketmq.client.impl.producer.TopicPublishInfo;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.MessageQueue;
 import com.alibaba.rocketmq.common.ServiceState;
+import com.alibaba.rocketmq.common.help.FAQUrl;
 import com.alibaba.rocketmq.common.protocol.heartbeat.ConsumerData;
 import com.alibaba.rocketmq.common.protocol.heartbeat.HeartbeatData;
 import com.alibaba.rocketmq.common.protocol.heartbeat.ProducerData;
@@ -140,8 +141,8 @@ public class MQClientFactory {
             this.datagramSocket = new DatagramSocket(udpPort);
         }
         catch (SocketException e) {
-            throw new MQClientException(
-                "instance name is a duplicate one[" + udpPort + "], please set a new name", e);
+            throw new MQClientException("instance name is a duplicate one[" + udpPort
+                    + "], please set a new name\n" + FAQUrl.CLIENT_INSTACNCE_NAME_DUPLICATE_URL, e);
         }
     }
 
