@@ -46,7 +46,7 @@ public abstract class  BaseTest extends TestCase {
             nettyServerConfig.setListenPort(10911);
             final MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
             // 清理环境
-            deleteDir(System.getProperty("user.home") + File.separator + "store");
+//            deleteDir(System.getProperty("user.home") + File.separator + "store");
 
             if (null == brokerConfig.getRocketmqHome()) {
                 System.out.println("Please set the " + MixAll.ROCKETMQ_HOME_ENV

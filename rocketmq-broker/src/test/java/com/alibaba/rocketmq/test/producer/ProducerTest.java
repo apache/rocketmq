@@ -1,5 +1,6 @@
 package com.alibaba.rocketmq.test.producer;
 
+import java.io.File;
 import java.util.List;
 
 import junit.framework.Assert;
@@ -28,6 +29,7 @@ public class ProducerTest extends BaseTest{
 	@BeforeClass 
 	@Override
     public void testInit() throws Exception{
+		deleteDir(System.getProperty("user.home") + File.separator + "store");
 		super.testInit();
 		producer = new DefaultMQProducer("example.producer");
 		producer.start();
