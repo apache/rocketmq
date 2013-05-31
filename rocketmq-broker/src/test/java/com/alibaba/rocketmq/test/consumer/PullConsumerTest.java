@@ -2,6 +2,8 @@ package com.alibaba.rocketmq.test.consumer;
 
 import java.util.List;
 
+import junit.framework.Assert;
+
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -19,7 +21,7 @@ import com.alibaba.rocketmq.remoting.exception.RemotingException;
 import com.alibaba.rocketmq.test.BaseTest;
 
 public class PullConsumerTest extends BaseTest{
-public static MQPullConsumer consumer;
+public static DefaultMQPullConsumer consumer;
 	
 	@BeforeClass 
 	@Override
@@ -214,6 +216,50 @@ public static MQPullConsumer consumer;
 //	Pull方式自由拉消息
 //	@Test
 //	订阅消息低延时，不堆积情况下可保证延时在10ms以内或左右（长轮询）
+	
+
+	@Test 
+	//消息查询
+	//根据消息ID查询消息
+	public void testSearcMsgbyId() throws MQClientException, RemotingException, MQBrokerException, InterruptedException{
+		 List<MessageQueue> mqs = consumer.fetchSubscribeMessageQueues("TopicTest");
+	      for (MessageQueue mq : mqs) {
+	          System.out.println("Consume from the queue: " + mq);
+	          PullResult pullResult = consumer.pullBlockIfNotFound(mq, null, 0, 32);
+	          System.out.println(pullResult);
+	          switch (pullResult.getPullStatus()) {
+	          case FOUND:
+	         	 for(MessageExt mex:pullResult.getMsgFoundList()){
+	         		 System.out.println(mex);
+	         		MessageExt data = consumer.viewMessage(mex.getMsgId());
+//	         		Assert.assertEquals(mex.toString(), data.toString());
+	         	 }
+	              break;
+	          case NO_MATCHED_MSG:
+	              break;
+	          case NO_NEW_MSG:
+	              break;
+	          case OFFSET_ILLEGAL:
+	              break;
+	          default:
+	              break;
+	          }
+	      }
+		
+	}
+	@Test//	根据消息Key查询消息
+	public void testSearcMsgbyKey(){
+		//单Tag消息服务端过滤
+		
+		//多Tag消息服务端过滤
+		
+		//多Tag消息任意tag服务端过滤
+		
+	}
+	
+//	事务消息设置Key，可以通过Key来跟踪消息提交回滚状况
+	
+	
 	@AfterClass
 	@Override
     public void testDown() throws Exception{  
