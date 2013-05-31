@@ -95,7 +95,7 @@ public class MQClientAPIImpl {
     }
 
 
-    public void fetchNameServerAddr() {
+    public String fetchNameServerAddr() {
         try {
             String addrs = this.topAddressing.fetchNSAddr();
             if (addrs != null) {
@@ -104,12 +104,14 @@ public class MQClientAPIImpl {
                     // this.nameSrvAddr + " new: " + addrs);
                     this.updateNameServerAddressList(addrs);
                     this.nameSrvAddr = addrs;
+                    return nameSrvAddr;
                 }
             }
         }
         catch (Exception e) {
             // log.error(e);
         }
+		return nameSrvAddr;
     }
 
 

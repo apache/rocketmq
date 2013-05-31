@@ -229,7 +229,7 @@ public class MQClientFactory {
                 this.serviceState = ServiceState.RUNNING;
                 // TODO
                 if (null == this.mQClientConfig.getNamesrvAddr()) {
-                    MQClientFactory.this.mQClientAPIImpl.fetchNameServerAddr();
+                	this.mQClientConfig.setNamesrvAddr(this.mQClientAPIImpl.fetchNameServerAddr());
                 }
 
                 this.startScheduledTask();
