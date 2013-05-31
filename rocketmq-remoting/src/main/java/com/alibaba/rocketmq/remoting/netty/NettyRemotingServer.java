@@ -146,8 +146,8 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
         	if (evt instanceof IdleStateEvent){
         		IdleStateEvent evnet =(IdleStateEvent)evt;
         		if(evnet.state().equals(IdleState.ALL_IDLE)){
-        			log.warn("channel idle exception ", evt.toString());
-        			ctx.channel().close();
+        			log.warn("channel idle exception {}",ctx.channel().remoteAddress()!=null ? ctx.channel().remoteAddress().toString():"null");
+        			ctx.channel().close().sync();
         		}
         	}
             ctx.fireUserEventTriggered(evt);
@@ -199,7 +199,7 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
                         new DefaultEventExecutorGroup(nettyServerConfig.getServerWorkerThreads()), //
                         new NettyEncoder(), //
                         new NettyDecoder(), //
-                        new IdleStateHandler(0, 0, 3),
+                        new IdleStateHandler(0, 0, 120),
                         new NettyConnetManageHandler(), 
                         new NettyServerHandler());
                 }
