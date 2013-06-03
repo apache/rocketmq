@@ -107,7 +107,7 @@ public class MQClientFactory {
 
     public MQClientFactory(MQClientConfig mQClientConfig, int factoryIndex) {
         this.mQClientConfig = mQClientConfig;
-        this.log = MixAll.createLogger(mQClientConfig.getLogFileName(), mQClientConfig.getLogLevel());
+        this.log = MixAll.createLogger(mQClientConfig.getLogFileName());
         this.factoryIndex = factoryIndex;
         this.nettyClientConfig = new NettyClientConfig();
         this.nettyClientConfig.setClientCallbackExecutorThreads(mQClientConfig.getClientCallbackExecutorThreads());

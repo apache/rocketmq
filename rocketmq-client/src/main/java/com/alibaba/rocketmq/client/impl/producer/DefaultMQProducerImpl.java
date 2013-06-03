@@ -20,6 +20,8 @@ import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import ch.qos.logback.classic.Level;
+
 import com.alibaba.rocketmq.client.QueryResult;
 import com.alibaba.rocketmq.client.exception.MQBrokerException;
 import com.alibaba.rocketmq.client.exception.MQClientException;
@@ -63,7 +65,7 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingProtos.ResponseCode;
  * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public class DefaultMQProducerImpl implements MQProducerInner {
-    private static final Logger log = LoggerFactory.getLogger(MixAll.ClientLoggerName);
+    private static final Logger log = MixAll.createLogger(MixAll.ClientLoggerName);
     private ServiceState serviceState = ServiceState.CREATE_JUST;
 
     private final DefaultMQProducer defaultMQProducer;
