@@ -14,7 +14,7 @@ import com.alibaba.rocketmq.remoting.common.RemotingUtil;
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  */
-public class MQClientConfig {
+public class ClientConfig {
     private String namesrvAddr = System.getProperty(MixAll.NAMESRV_ADDR_PROPERTY,
         System.getenv(MixAll.NAMESRV_ADDR_ENV));
     private String logFileName = defaultClientLogFileName();
@@ -158,7 +158,7 @@ public class MQClientConfig {
             return false;
         if (getClass() != obj.getClass())
             return false;
-        MQClientConfig other = (MQClientConfig) obj;
+        ClientConfig other = (ClientConfig) obj;
         if (clientCallbackExecutorThreads != other.clientCallbackExecutorThreads)
             return false;
         if (clientIP == null) {

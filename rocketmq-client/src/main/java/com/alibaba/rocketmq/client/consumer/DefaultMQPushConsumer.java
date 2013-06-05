@@ -7,7 +7,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.alibaba.rocketmq.client.MQClientConfig;
+import com.alibaba.rocketmq.client.ClientConfig;
 import com.alibaba.rocketmq.client.QueryResult;
 import com.alibaba.rocketmq.client.consumer.listener.MessageListener;
 import com.alibaba.rocketmq.client.consumer.loadbalance.AllocateMessageQueueAveragely;
@@ -31,7 +31,7 @@ public class DefaultMQPushConsumer implements MQPushConsumer {
     /**
      * 客户端公共配置，不建议修改
      */
-    private MQClientConfig mQClientConfig = new MQClientConfig();
+    private ClientConfig mQClientConfig = new ClientConfig();
     /**
      * 做同样事情的Consumer归为同一个Group，应用必须设置，并保证命名唯一
      */
@@ -201,7 +201,95 @@ public class DefaultMQPushConsumer implements MQPushConsumer {
     }
 
 
-    // ////////////////////////////////////////////////////////////////////////
+    public String getConsumerGroup() {
+        return consumerGroup;
+    }
+
+
+    public void setConsumerGroup(String consumerGroup) {
+        this.consumerGroup = consumerGroup;
+    }
+
+
+    public ConsumeFromWhichNode getConsumeFromWhichNode() {
+        return consumeFromWhichNode;
+    }
+
+
+    public void setConsumeFromWhichNode(ConsumeFromWhichNode consumeFromWhichNode) {
+        this.consumeFromWhichNode = consumeFromWhichNode;
+    }
+
+
+    public ConsumeFromWhereOffset getConsumeFromWhereOffset() {
+        return consumeFromWhereOffset;
+    }
+
+
+    public void setConsumeFromWhereOffset(ConsumeFromWhereOffset consumeFromWhereOffset) {
+        this.consumeFromWhereOffset = consumeFromWhereOffset;
+    }
+
+
+    public AllocateMessageQueueStrategy getAllocateMessageQueueStrategy() {
+        return allocateMessageQueueStrategy;
+    }
+
+
+    public void setAllocateMessageQueueStrategy(AllocateMessageQueueStrategy allocateMessageQueueStrategy) {
+        this.allocateMessageQueueStrategy = allocateMessageQueueStrategy;
+    }
+
+
+    public Map<String, String> getSubscription() {
+        return subscription;
+    }
+
+
+    public void setSubscription(Map<String, String> subscription) {
+        this.subscription = subscription;
+    }
+
+
+    public MessageListener getMessageListener() {
+        return messageListener;
+    }
+
+
+    public void setMessageListener(MessageListener messageListener) {
+        this.messageListener = messageListener;
+    }
+
+
+    public int getConsumeThreadCount() {
+        return consumeThreadCount;
+    }
+
+
+    public void setConsumeThreadCount(int consumeThreadCount) {
+        this.consumeThreadCount = consumeThreadCount;
+    }
+
+
+    public int getConsumeConcurrentlyMaxSpan() {
+        return consumeConcurrentlyMaxSpan;
+    }
+
+
+    public void setConsumeConcurrentlyMaxSpan(int consumeConcurrentlyMaxSpan) {
+        this.consumeConcurrentlyMaxSpan = consumeConcurrentlyMaxSpan;
+    }
+
+
+    public int getConsumeMessageBatchMaxSize() {
+        return consumeMessageBatchMaxSize;
+    }
+
+
+    public void setConsumeMessageBatchMaxSize(int consumeMessageBatchMaxSize) {
+        this.consumeMessageBatchMaxSize = consumeMessageBatchMaxSize;
+    }
+
 
     public int getPullBatchSize() {
         return pullBatchSize;
@@ -212,4 +300,18 @@ public class DefaultMQPushConsumer implements MQPushConsumer {
         this.pullBatchSize = pullBatchSize;
     }
 
+
+    public DefaultMQPushConsumerImpl getDefaultMQPushConsumerImpl() {
+        return defaultMQPushConsumerImpl;
+    }
+
+
+    public ClientConfig getmQClientConfig() {
+        return mQClientConfig;
+    }
+
+
+    public void setmQClientConfig(ClientConfig mQClientConfig) {
+        this.mQClientConfig = mQClientConfig;
+    }
 }

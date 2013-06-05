@@ -60,7 +60,7 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
 
             this.mQClientFactory =
                     MQClientManager.getInstance().getAndCreateMQClientFactory(
-                        this.defaultMQPullConsumer.getMQClientConfig());
+                        this.defaultMQPullConsumer.getClientConfig());
 
             this.pullAPIWrapper = new PullAPIWrapper(//
                 mQClientFactory,//

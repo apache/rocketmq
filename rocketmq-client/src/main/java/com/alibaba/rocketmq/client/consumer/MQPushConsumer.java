@@ -4,6 +4,8 @@
 package com.alibaba.rocketmq.client.consumer;
 
 import com.alibaba.rocketmq.client.consumer.listener.MessageListener;
+import com.alibaba.rocketmq.client.exception.MQClientException;
+
 
 /**
  * 消费者，被动方式消费
@@ -13,8 +15,10 @@ import com.alibaba.rocketmq.client.consumer.listener.MessageListener;
 public interface MQPushConsumer extends MQConsumer {
     /**
      * 启动服务，调用之前确保registerMessageListener与subscribe都已经调用
+     * 
+     * @throws MQClientException
      */
-    public void start();
+    public void start() throws MQClientException;
 
 
     /**

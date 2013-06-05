@@ -22,7 +22,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import org.slf4j.Logger;
 
-import com.alibaba.rocketmq.client.MQClientConfig;
+import com.alibaba.rocketmq.client.ClientConfig;
 import com.alibaba.rocketmq.client.consumer.ConsumeFromWhichNode;
 import com.alibaba.rocketmq.client.exception.MQBrokerException;
 import com.alibaba.rocketmq.client.exception.MQClientException;
@@ -58,7 +58,7 @@ import com.google.protobuf.InvalidProtocolBufferException;
 public class MQClientFactory {
     private ServiceState serviceState = ServiceState.CREATE_JUST;
     private final Logger log;
-    private final MQClientConfig mQClientConfig;
+    private final ClientConfig mQClientConfig;
     private final int factoryIndex;
     private final String clientId;
     private final long bootTimestamp = System.currentTimeMillis();
@@ -105,7 +105,7 @@ public class MQClientFactory {
     private DatagramSocket datagramSocket;
 
 
-    public MQClientFactory(MQClientConfig mQClientConfig, int factoryIndex) {
+    public MQClientFactory(ClientConfig mQClientConfig, int factoryIndex) {
         this.mQClientConfig = mQClientConfig;
         this.log = MixAll.createLogger(mQClientConfig.getLogFileName());
         this.factoryIndex = factoryIndex;
