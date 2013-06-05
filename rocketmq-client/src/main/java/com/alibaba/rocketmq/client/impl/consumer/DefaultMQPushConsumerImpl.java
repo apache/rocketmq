@@ -13,7 +13,9 @@ import com.alibaba.rocketmq.client.consumer.MQPushConsumer;
 import com.alibaba.rocketmq.client.consumer.PullCallback;
 import com.alibaba.rocketmq.client.consumer.PullResult;
 import com.alibaba.rocketmq.client.consumer.listener.MessageListener;
+import com.alibaba.rocketmq.client.consumer.store.LocalFileOffsetStore;
 import com.alibaba.rocketmq.client.consumer.store.OffsetStore;
+import com.alibaba.rocketmq.client.consumer.store.RemoteBrokerOffsetStore;
 import com.alibaba.rocketmq.client.exception.MQBrokerException;
 import com.alibaba.rocketmq.client.exception.MQClientException;
 import com.alibaba.rocketmq.client.impl.CommunicationMode;
@@ -23,6 +25,7 @@ import com.alibaba.rocketmq.common.MessageExt;
 import com.alibaba.rocketmq.common.MessageQueue;
 import com.alibaba.rocketmq.common.ServiceState;
 import com.alibaba.rocketmq.common.TopicFilterType;
+import com.alibaba.rocketmq.common.help.FAQUrl;
 import com.alibaba.rocketmq.common.protocol.heartbeat.ConsumeType;
 import com.alibaba.rocketmq.common.protocol.heartbeat.MessageModel;
 import com.alibaba.rocketmq.common.protocol.heartbeat.SubscriptionData;
@@ -42,11 +45,66 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
     // 消费进度存储
     private OffsetStore offsetStore;
 
-    /**
-     * 消息存储相关
-     */
+    // 消息存储相关
     private ConcurrentHashMap<MessageQueue, ProcessQueue> processQueueTable =
             new ConcurrentHashMap<MessageQueue, ProcessQueue>(64);
+
+
+    @Override
+    public void start() throws MQClientException {
+        switch (this.serviceState) {
+        case CREATE_JUST:
+            this.serviceState = ServiceState.RUNNING;
+
+            this.mQClientFactory =
+                    MQClientManager.getInstance().getAndCreateMQClientFactory(
+                        this.defaultMQPushConsumer.getClientConfig());
+
+            this.pullAPIWrapper = new PullAPIWrapper(//
+                mQClientFactory,//
+                this.defaultMQPushConsumer.getConsumerGroup(),//
+                this.defaultMQPushConsumer.getConsumeFromWhichNode());
+
+            // 广播消费/集群消费
+            switch (this.defaultMQPushConsumer.getMessageModel()) {
+            case BROADCASTING:
+                this.offsetStore = new LocalFileOffsetStore();
+                break;
+            case CLUSTERING:
+                this.offsetStore = new RemoteBrokerOffsetStore();
+                break;
+            case UNKNOWNS:
+                break;
+            default:
+                break;
+            }
+
+            boolean registerOK =
+                    mQClientFactory.registerConsumer(this.defaultMQPushConsumer.getConsumerGroup(), this);
+            if (!registerOK) {
+                this.serviceState = ServiceState.CREATE_JUST;
+                throw new MQClientException("The consumer group[" + this.defaultMQPushConsumer.getConsumerGroup()
+                        + "] has created already, specifed another name please."
+                        + FAQUrl.suggestTodo(FAQUrl.GROUP_NAME_DUPLICATE_URL), null);
+            }
+
+            mQClientFactory.start();
+            break;
+        case RUNNING:
+            break;
+        case SHUTDOWN_ALREADY:
+            break;
+        default:
+            break;
+        }
+    }
+
+
+    @Override
+    public void shutdown() {
+        // TODO Auto-generated method stub
+
+    }
 
 
     public DefaultMQPushConsumerImpl(DefaultMQPushConsumer defaultMQPushConsumer) {
@@ -116,48 +174,6 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
             throws MQClientException, InterruptedException {
         // TODO Auto-generated method stub
         return null;
-    }
-
-
-    @Override
-    public void start() throws MQClientException {
-        switch (this.serviceState) {
-        case CREATE_JUST:
-            this.serviceState = ServiceState.RUNNING;
-
-            this.mQClientFactory =
-                    MQClientManager.getInstance().getAndCreateMQClientFactory(
-                        this.defaultMQPushConsumer.getmQClientConfig());
-
-            this.pullAPIWrapper = new PullAPIWrapper(//
-                mQClientFactory,//
-                this.defaultMQPushConsumer.getConsumerGroup(),//
-                this.defaultMQPushConsumer.getConsumeFromWhichNode());
-
-            boolean registerOK =
-                    mQClientFactory.registerConsumer(this.defaultMQPushConsumer.getConsumerGroup(), this);
-            if (!registerOK) {
-                this.serviceState = ServiceState.CREATE_JUST;
-                throw new MQClientException("The consumer group[" + this.defaultMQPushConsumer.getConsumerGroup()
-                        + "] has created already, specifed another name please.", null);
-            }
-
-            mQClientFactory.start();
-            break;
-        case RUNNING:
-            break;
-        case SHUTDOWN_ALREADY:
-            break;
-        default:
-            break;
-        }
-    }
-
-
-    @Override
-    public void shutdown() {
-        // TODO Auto-generated method stub
-
     }
 
 

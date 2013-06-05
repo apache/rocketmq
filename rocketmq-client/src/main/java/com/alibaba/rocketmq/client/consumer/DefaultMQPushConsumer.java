@@ -18,6 +18,7 @@ import com.alibaba.rocketmq.common.MessageExt;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.MessageQueue;
 import com.alibaba.rocketmq.common.TopicFilterType;
+import com.alibaba.rocketmq.common.protocol.heartbeat.MessageModel;
 import com.alibaba.rocketmq.remoting.exception.RemotingException;
 
 
@@ -31,11 +32,15 @@ public class DefaultMQPushConsumer implements MQPushConsumer {
     /**
      * 客户端公共配置，不建议修改
      */
-    private ClientConfig mQClientConfig = new ClientConfig();
+    private ClientConfig clientConfig = new ClientConfig();
     /**
      * 做同样事情的Consumer归为同一个Group，应用必须设置，并保证命名唯一
      */
     private String consumerGroup = MixAll.DEFAULT_CONSUMER_GROUP;
+    /**
+     * 集群消费/广播消费
+     */
+    private MessageModel messageModel = MessageModel.CLUSTERING;
     /**
      * Consumer从Master还是Slave拉消息
      */
@@ -306,12 +311,22 @@ public class DefaultMQPushConsumer implements MQPushConsumer {
     }
 
 
-    public ClientConfig getmQClientConfig() {
-        return mQClientConfig;
+    public ClientConfig getClientConfig() {
+        return clientConfig;
     }
 
 
-    public void setmQClientConfig(ClientConfig mQClientConfig) {
-        this.mQClientConfig = mQClientConfig;
+    public void setClientConfig(ClientConfig clientConfig) {
+        this.clientConfig = clientConfig;
+    }
+
+
+    public MessageModel getMessageModel() {
+        return messageModel;
+    }
+
+
+    public void setMessageModel(MessageModel messageModel) {
+        this.messageModel = messageModel;
     }
 }
