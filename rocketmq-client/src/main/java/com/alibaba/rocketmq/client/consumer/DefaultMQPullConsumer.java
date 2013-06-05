@@ -7,7 +7,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import com.alibaba.rocketmq.client.MQClientConfig;
+import com.alibaba.rocketmq.client.ClientConfig;
 import com.alibaba.rocketmq.client.QueryResult;
 import com.alibaba.rocketmq.client.exception.MQBrokerException;
 import com.alibaba.rocketmq.client.exception.MQClientException;
@@ -29,7 +29,7 @@ public class DefaultMQPullConsumer implements MQPullConsumer {
     /**
      * 客户端公共配置，不建议修改
      */
-    private MQClientConfig mQClientConfig = new MQClientConfig();
+    private ClientConfig clientConfig = new ClientConfig();
     /**
      * 做同样事情的Consumer归为同一个Group，应用必须设置，并保证命名唯一
      */
@@ -194,13 +194,13 @@ public class DefaultMQPullConsumer implements MQPullConsumer {
     }
 
 
-    public MQClientConfig getMQClientConfig() {
-        return mQClientConfig;
+    public ClientConfig getClientConfig() {
+        return clientConfig;
     }
 
 
-    public void setMQClientConfig(MQClientConfig mQClientConfig) {
-        this.mQClientConfig = mQClientConfig;
+    public void setClientConfig(ClientConfig clientConfig) {
+        this.clientConfig = clientConfig;
     }
 
 

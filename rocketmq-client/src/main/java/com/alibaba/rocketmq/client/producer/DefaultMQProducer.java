@@ -7,7 +7,7 @@ import java.util.List;
 
 import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
-import com.alibaba.rocketmq.client.MQClientConfig;
+import com.alibaba.rocketmq.client.ClientConfig;
 import com.alibaba.rocketmq.client.QueryResult;
 import com.alibaba.rocketmq.client.exception.MQBrokerException;
 import com.alibaba.rocketmq.client.exception.MQClientException;
@@ -29,7 +29,7 @@ public class DefaultMQProducer implements MQProducer {
     /**
      * 客户端公共配置，不建议修改
      */
-    private MQClientConfig mQClientConfig = new MQClientConfig();
+    private ClientConfig mQClientConfig = new ClientConfig();
     /**
      * 一般发送同样消息的Producer，归为同一个Group，应用必须设置，并保证命名唯一
      */
@@ -197,12 +197,12 @@ public class DefaultMQProducer implements MQProducer {
     }
 
 
-    public MQClientConfig getMQClientConfig() {
+    public ClientConfig getMQClientConfig() {
         return mQClientConfig;
     }
 
 
-    public void setMQClientConfig(MQClientConfig mQClientConfig) {
+    public void setMQClientConfig(ClientConfig mQClientConfig) {
         this.mQClientConfig = mQClientConfig;
     }
 

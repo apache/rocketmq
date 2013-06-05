@@ -11,6 +11,7 @@ import com.alibaba.rocketmq.client.consumer.MQPushConsumer;
 import com.alibaba.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext;
 import com.alibaba.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
 import com.alibaba.rocketmq.client.consumer.listener.MessageListenerConcurrently;
+import com.alibaba.rocketmq.client.exception.MQClientException;
 import com.alibaba.rocketmq.common.MessageExt;
 
 
@@ -22,7 +23,7 @@ import com.alibaba.rocketmq.common.MessageExt;
  */
 public class PushConsumer {
 
-    public static void main(String[] args) throws InterruptedException {
+    public static void main(String[] args) throws InterruptedException, MQClientException {
         MQPushConsumer consumer = new DefaultMQPushConsumer("example.consumer.passive");
 
         consumer.subscribe("TopicTest", "TagA || TagC || TagD");

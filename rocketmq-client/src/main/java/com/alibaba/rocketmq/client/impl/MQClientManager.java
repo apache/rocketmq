@@ -6,7 +6,7 @@ package com.alibaba.rocketmq.client.impl;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import com.alibaba.rocketmq.client.MQClientConfig;
+import com.alibaba.rocketmq.client.ClientConfig;
 import com.alibaba.rocketmq.client.impl.factory.MQClientFactory;
 
 
@@ -20,8 +20,8 @@ public class MQClientManager {
     private static MQClientManager instance = new MQClientManager();
 
     private AtomicInteger factoryIndexGenerator = new AtomicInteger();
-    private ConcurrentHashMap<MQClientConfig, MQClientFactory> factoryTable =
-            new ConcurrentHashMap<MQClientConfig, MQClientFactory>();
+    private ConcurrentHashMap<ClientConfig, MQClientFactory> factoryTable =
+            new ConcurrentHashMap<ClientConfig, MQClientFactory>();
 
 
     private MQClientManager() {
@@ -34,11 +34,11 @@ public class MQClientManager {
     }
 
 
-    public MQClientFactory getAndCreateMQClientFactory(final MQClientConfig mQClientConfig) {
-        MQClientFactory factory = this.factoryTable.get(mQClientConfig);
+    public MQClientFactory getAndCreateMQClientFactory(final ClientConfig clientConfig) {
+        MQClientFactory factory = this.factoryTable.get(clientConfig);
         if (null == factory) {
-            factory = new MQClientFactory(mQClientConfig, this.factoryIndexGenerator.getAndIncrement());
-            MQClientFactory prev = this.factoryTable.putIfAbsent(mQClientConfig, factory);
+            factory = new MQClientFactory(clientConfig, this.factoryIndexGenerator.getAndIncrement());
+            MQClientFactory prev = this.factoryTable.putIfAbsent(clientConfig, factory);
             if (prev != null) {
                 factory = prev;
             }
