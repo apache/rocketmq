@@ -46,6 +46,7 @@ import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.ServiceState;
 import com.alibaba.rocketmq.common.TopicFilterType;
 import com.alibaba.rocketmq.common.UtilALl;
+import com.alibaba.rocketmq.common.help.FAQUrl;
 import com.alibaba.rocketmq.common.protocol.MQProtos.MQRequestCode;
 import com.alibaba.rocketmq.common.protocol.MQProtos.MQResponseCode;
 import com.alibaba.rocketmq.common.protocol.header.CheckTransactionStateRequestHeader;
@@ -132,7 +133,8 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             if (!registerOK) {
                 this.serviceState = ServiceState.CREATE_JUST;
                 throw new MQClientException("The producer group[" + this.defaultMQProducer.getProducerGroup()
-                        + "] has created already, specifed another name please.", null);
+                        + "] has created already, specifed another name please."//
+                        + FAQUrl.suggestTodo(FAQUrl.GROUP_NAME_DUPLICATE_URL), null);
             }
 
             // Ä¬ÈÏTopic×¢²á

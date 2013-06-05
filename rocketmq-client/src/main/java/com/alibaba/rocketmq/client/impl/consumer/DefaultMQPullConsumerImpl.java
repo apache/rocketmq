@@ -26,6 +26,7 @@ import com.alibaba.rocketmq.common.MessageExt;
 import com.alibaba.rocketmq.common.MessageQueue;
 import com.alibaba.rocketmq.common.ServiceState;
 import com.alibaba.rocketmq.common.TopicFilterType;
+import com.alibaba.rocketmq.common.help.FAQUrl;
 import com.alibaba.rocketmq.common.protocol.header.QueryConsumerOffsetRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.UpdateConsumerOffsetRequestHeader;
 import com.alibaba.rocketmq.common.protocol.heartbeat.ConsumeType;
@@ -72,7 +73,8 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
             if (!registerOK) {
                 this.serviceState = ServiceState.CREATE_JUST;
                 throw new MQClientException("The consumer group[" + this.defaultMQPullConsumer.getConsumerGroup()
-                        + "] has created already, specifed another name please.", null);
+                        + "] has created already, specifed another name please."//
+                        + FAQUrl.suggestTodo(FAQUrl.GROUP_NAME_DUPLICATE_URL), null);
             }
 
             mQClientFactory.start();
