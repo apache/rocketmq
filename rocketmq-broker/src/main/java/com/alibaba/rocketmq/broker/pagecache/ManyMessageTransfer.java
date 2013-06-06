@@ -31,8 +31,8 @@ public class ManyMessageTransfer extends AbstractReferenceCounted implements Fil
 
     @Override
     public long position() {
+        int pos = byteBufferHeader.position();
         List<ByteBuffer> messageBufferList = this.getMessageResult.getMessageBufferList();
-        int pos = 0;
         for (ByteBuffer bb : messageBufferList) {
             pos += bb.position();
         }
@@ -42,7 +42,7 @@ public class ManyMessageTransfer extends AbstractReferenceCounted implements Fil
 
     @Override
     public long count() {
-        return this.getMessageResult.getBufferTotalSize();
+        return byteBufferHeader.limit() + this.getMessageResult.getBufferTotalSize();
     }
 
 

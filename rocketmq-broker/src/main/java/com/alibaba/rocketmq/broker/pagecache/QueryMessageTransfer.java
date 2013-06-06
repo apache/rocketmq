@@ -31,8 +31,8 @@ public class QueryMessageTransfer extends AbstractReferenceCounted implements Fi
 
     @Override
     public long position() {
+        int pos = byteBufferHeader.position();
         List<ByteBuffer> messageBufferList = this.queryMessageResult.getMessageBufferList();
-        int pos = 0;
         for (ByteBuffer bb : messageBufferList) {
             pos += bb.position();
         }
@@ -42,7 +42,7 @@ public class QueryMessageTransfer extends AbstractReferenceCounted implements Fi
 
     @Override
     public long count() {
-        return this.queryMessageResult.getBufferTotalSize();
+        return byteBufferHeader.limit() + this.queryMessageResult.getBufferTotalSize();
     }
 
 
