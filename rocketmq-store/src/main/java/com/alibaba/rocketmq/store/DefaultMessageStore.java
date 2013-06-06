@@ -1531,6 +1531,7 @@ public class DefaultMessageStore implements MessageStore {
             if (result != null) {
                 int size = result.getByteBuffer().getInt(0);
                 result.getByteBuffer().limit(size);
+                result.setSize(size);
                 queryMessageResult.addMessage(result);
             }
         }
