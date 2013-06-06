@@ -23,7 +23,8 @@ import com.alibaba.rocketmq.remoting.exception.RemotingException;
 
 
 /**
- * 类似于Broker Push消息到Consumer方式，但实际仍然是Consumer内部后台从Broker Pull消息
+ * 类似于Broker Push消息到Consumer方式，但实际仍然是Consumer内部后台从Broker Pull消息<br>
+ * 采用长轮询方式拉消息，实时性同push方式一致，且不会无谓的拉消息导致Broker压力增大
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * 
