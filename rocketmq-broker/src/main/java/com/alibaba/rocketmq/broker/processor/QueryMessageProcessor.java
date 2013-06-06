@@ -126,38 +126,29 @@ public class QueryMessageProcessor implements NettyRequestProcessor {
         final SelectMapedBufferResult selectMapedBufferResult =
                 this.brokerController.getMessageStore().selectOneMessageByOffset(requestHeader.getOffset());
         if (selectMapedBufferResult != null) {
-            // 校验Message合法性
-            MessageExt msgExt = MessageDecoder.decode(selectMapedBufferResult.getByteBuffer(), true);
-            if (null == msgExt) {
-                response.setCode(ResponseCode.SYSTEM_ERROR_VALUE);
-                response.setRemark("The offset: " + requestHeader.getOffset() + " not match any message.");
-            }
-            // 传输Message到客户端
-            else {
-                response.setCode(ResponseCode.SUCCESS_VALUE);
-                response.setRemark(null);
+            response.setCode(ResponseCode.SUCCESS_VALUE);
+            response.setRemark(null);
 
-                try {
-                    FileRegion fileRegion =
-                            new OneMessageTransfer(response.encodeHeader(selectMapedBufferResult.getSize()),
-                                selectMapedBufferResult);
-                    ctx.channel().sendFile(fileRegion).addListener(new ChannelFutureListener() {
-                        @Override
-                        public void operationComplete(ChannelFuture future) throws Exception {
-                            selectMapedBufferResult.release();
-                            if (!future.isSuccess()) {
-                                log.error("transfer one message by pagecache failed, ", future.cause());
-                            }
+            try {
+                FileRegion fileRegion =
+                        new OneMessageTransfer(response.encodeHeader(selectMapedBufferResult.getSize()),
+                            selectMapedBufferResult);
+                ctx.channel().sendFile(fileRegion).addListener(new ChannelFutureListener() {
+                    @Override
+                    public void operationComplete(ChannelFuture future) throws Exception {
+                        selectMapedBufferResult.release();
+                        if (!future.isSuccess()) {
+                            log.error("transfer one message by pagecache failed, ", future.cause());
                         }
-                    });
-                }
-                catch (Throwable e) {
-                    log.error("", e);
-                    selectMapedBufferResult.release();
-                }
-
-                return null;
+                    }
+                });
             }
+            catch (Throwable e) {
+                log.error("", e);
+                selectMapedBufferResult.release();
+            }
+
+            return null;
         }
         else {
             response.setCode(ResponseCode.SYSTEM_ERROR_VALUE);
