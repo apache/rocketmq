@@ -20,6 +20,10 @@ public class ConsumeConcurrentlyContext {
      * 0，表示由客户端决定
      */
     private int delayLevelWhenNextConsume = 0;
+    /**
+     * 对于批量消费，ack至哪条消息，默认全部ack，至最后一条消息
+     */
+    private int ackIndex = Integer.MAX_VALUE;
 
 
     public ConsumeConcurrentlyContext(MessageQueue messageQueue) {
@@ -39,5 +43,15 @@ public class ConsumeConcurrentlyContext {
 
     public MessageQueue getMessageQueue() {
         return messageQueue;
+    }
+
+
+    public int getAckIndex() {
+        return ackIndex;
+    }
+
+
+    public void setAckIndex(int ackIndex) {
+        this.ackIndex = ackIndex;
     }
 }
