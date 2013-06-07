@@ -23,6 +23,7 @@ import com.alibaba.rocketmq.store.DefaultMessageStore;
 import com.alibaba.rocketmq.store.MapedFile;
 import com.alibaba.rocketmq.store.MapedFileQueue;
 import com.alibaba.rocketmq.store.SelectMapedBufferResult;
+import com.alibaba.rocketmq.store.config.BrokerRole;
 
 
 /**
@@ -99,6 +100,7 @@ public class TransactionStateService {
 
 
     public void shutdown() {
+        this.timer.cancel();
     }
 
 
@@ -268,6 +270,9 @@ public class TransactionStateService {
                     TransactionStateService.this.defaultMessageStore.getMessageStoreConfig()
                         .getCheckTransactionMessageAtleastInterval();
 
+            private final boolean slave = TransactionStateService.this.defaultMessageStore.getMessageStoreConfig()
+                .getBrokerRole() == BrokerRole.SLAVE;
+
 
             private long getTranStateOffset(final long currentIndex) {
                 long offset =
@@ -279,6 +284,10 @@ public class TransactionStateService {
 
             @Override
             public void run() {
+                // Slave不需要回查事务状态
+                if (slave)
+                    return;
+
                 try {
                     SelectMapedBufferResult selectMapedBufferResult = mapedFile.selectMapedBuffer(0);
                     if (selectMapedBufferResult != null) {
