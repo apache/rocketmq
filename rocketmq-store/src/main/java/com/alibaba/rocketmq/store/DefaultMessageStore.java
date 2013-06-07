@@ -105,17 +105,21 @@ public class DefaultMessageStore implements MessageStore {
         this.storeStatsService = new StoreStatsService();
         this.indexService = new IndexService(this);
         this.haService = new HAService(this);
-        this.scheduleMessageService = new ScheduleMessageService(this);
         this.transactionStateService = new TransactionStateService(this);
 
         switch (this.messageStoreConfig.getBrokerRole()) {
         case SLAVE:
             this.reputMessageService = new ReputMessageService();
+            this.scheduleMessageService = null;
             break;
         case ASYNC_MASTER:
         case SYNC_MASTER:
+            this.reputMessageService = null;
+            this.scheduleMessageService = new ScheduleMessageService(this);
+            break;
         default:
             this.reputMessageService = null;
+            this.scheduleMessageService = null;
         }
 
         // load过程依赖此服务，所以提前启动
@@ -925,8 +929,11 @@ public class DefaultMessageStore implements MessageStore {
         // this.dispatchMessageService.start();
         this.flushConsumeQueueService.start();
         this.commitLog.start();
-        this.scheduleMessageService.start();
         this.storeStatsService.start();
+
+        if (this.scheduleMessageService != null) {
+            this.scheduleMessageService.start();
+        }
 
         if (this.reputMessageService != null) {
             this.reputMessageService.setReputFromOffset(this.commitLog.getMaxOffset());
@@ -958,7 +965,10 @@ public class DefaultMessageStore implements MessageStore {
 
             this.transactionStateService.shutdown();
 
-            this.scheduleMessageService.shutdown();
+            if (this.scheduleMessageService != null) {
+                this.scheduleMessageService.shutdown();
+            }
+
             this.haService.shutdown();
 
             this.storeStatsService.shutdown();
