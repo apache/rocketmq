@@ -21,7 +21,6 @@ import com.alibaba.rocketmq.common.TopicConfig;
 import com.alibaba.rocketmq.common.namesrv.NamesrvConfig;
 import com.alibaba.rocketmq.common.namesrv.TopicRuntimeData;
 import com.alibaba.rocketmq.common.protocol.header.namesrv.GetTopicResponseHeader;
-
 import com.alibaba.rocketmq.namesrv.DataUtils;
 import com.alibaba.rocketmq.namesrv.common.Result;
 import com.alibaba.rocketmq.namesrv.sync.FutureGroup;

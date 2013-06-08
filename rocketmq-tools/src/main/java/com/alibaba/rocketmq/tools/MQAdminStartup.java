@@ -3,14 +3,18 @@ package com.alibaba.rocketmq.tools;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.slf4j.Logger;
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.Options;
+import org.apache.commons.cli.PosixParser;
 import org.slf4j.LoggerFactory;
 
 import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.joran.JoranConfigurator;
 import ch.qos.logback.core.joran.spi.JoranException;
 
+import com.alibaba.rocketmq.common.MQVersion;
 import com.alibaba.rocketmq.common.MixAll;
+import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 import com.alibaba.rocketmq.tools.broker.BrokerSubCommand;
 import com.alibaba.rocketmq.tools.cluster.ClusterSubCommand;
 import com.alibaba.rocketmq.tools.connection.ConnectionSubCommand;
@@ -89,6 +93,9 @@ public class MQAdminStartup {
 
 
     public static void main(String[] args) {
+        // 设置当前程序版本号，每次发布版本时，都要修改CurrentVersion
+        System.setProperty(RemotingCommand.RemotingVersionKey, Integer.toString(MQVersion.CurrentVersion));
+
         try {
             switch (args.length) {
             case 0:
@@ -99,15 +106,34 @@ public class MQAdminStartup {
                 if (args[0].equals("help")) {
                     SubCommand cmd = findSubCommand(args[1]);
                     if (cmd != null) {
-                        cmd.printHelp();
+                        Options options = MixAll.buildCommandlineOptions(new Options());
+                        options = cmd.buildCommandlineOptions(options);
+                        if (options != null) {
+                            MixAll.printCommandLineHelp("mqadmin " + cmd.commandName(), options);
+                        }
                     }
                     break;
                 }
             default:
                 SubCommand cmd = findSubCommand(args[0]);
                 if (cmd != null) {
+                    // 初始化日志
                     initLogback();
-                    cmd.execute(parseSubArgs(args));
+
+                    // 将main中的args转化为子命令的args（去除第一个参数）
+                    String[] subargs = parseSubArgs(args);
+
+                    // 解析命令行
+                    Options options = MixAll.buildCommandlineOptions(new Options());
+                    final CommandLine commandLine =
+                            MixAll.parseCmdLine("mqadmin " + cmd.commandName(), subargs,
+                                cmd.buildCommandlineOptions(options), new PosixParser());
+                    if (null == commandLine) {
+                        System.exit(-1);
+                        return;
+                    }
+
+                    cmd.execute(commandLine);
                 }
                 break;
             }

@@ -1,5 +1,9 @@
 package com.alibaba.rocketmq.tools.topic;
 
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.Option;
+import org.apache.commons.cli.Options;
+
 import com.alibaba.rocketmq.tools.SubCommand;
 
 
@@ -21,15 +25,17 @@ public class TopicSubCommand implements SubCommand {
 
 
     @Override
-    public void printHelp() {
-        // TODO Auto-generated method stub
+    public Options buildCommandlineOptions(final Options options) {
+        Option opt = new Option("t", "topic", true, "topic name");
+        opt.setRequired(false);
+        options.addOption(opt);
 
+        return options;
     }
 
 
     @Override
-    public void execute(String[] args) {
-        // TODO Auto-generated method stub
+    public void execute(CommandLine commandLine) {
 
     }
 }

@@ -1,5 +1,8 @@
 package com.alibaba.rocketmq.tools.producer;
 
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.Options;
+
 import com.alibaba.rocketmq.tools.SubCommand;
 
 
@@ -21,11 +24,15 @@ public class ProducerSubCommand implements SubCommand {
 
 
     @Override
-    public void printHelp() {
+    public Options buildCommandlineOptions(Options options) {
+        // TODO Auto-generated method stub
+        return null;
     }
 
 
     @Override
-    public void execute(String[] args) {
+    public void execute(CommandLine commandLine) {
+        // TODO Auto-generated method stub
+
     }
 }
