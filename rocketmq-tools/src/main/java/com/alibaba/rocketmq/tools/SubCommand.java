@@ -3,6 +3,10 @@
  */
 package com.alibaba.rocketmq.tools;
 
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.Options;
+
+
 /**
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
@@ -14,8 +18,8 @@ public interface SubCommand {
     public String commandDesc();
 
 
-    public void printHelp();
+    public Options buildCommandlineOptions(final Options options);
 
 
-    public void execute(String[] args);
+    public void execute(CommandLine commandLine);
 }
