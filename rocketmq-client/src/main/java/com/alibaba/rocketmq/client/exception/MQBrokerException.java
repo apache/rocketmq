@@ -4,6 +4,7 @@
 package com.alibaba.rocketmq.client.exception;
 
 import com.alibaba.rocketmq.common.UtilALl;
+import com.alibaba.rocketmq.common.help.FAQUrl;
 
 
 /**
@@ -16,7 +17,8 @@ public class MQBrokerException extends Exception {
 
 
     public MQBrokerException(int responseCode, String errorMessage) {
-        super("CODE: " + UtilALl.responseCode2String(responseCode) + "\tDESC: " + errorMessage);
+        super(FAQUrl.attachDefaultURL("CODE: " + UtilALl.responseCode2String(responseCode) + "  DESC: "
+                + errorMessage));
         this.responseCode = responseCode;
         this.errorMessage = errorMessage;
     }
@@ -30,10 +32,4 @@ public class MQBrokerException extends Exception {
     public String getErrorMessage() {
         return errorMessage;
     }
-
-    //
-    // public boolean needRetry() {
-    // // TODO
-    // return false;
-    // }
 }

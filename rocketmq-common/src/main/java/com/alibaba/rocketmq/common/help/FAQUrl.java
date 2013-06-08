@@ -22,12 +22,39 @@ public class FAQUrl {
     public static final String GROUP_NAME_DUPLICATE_URL = //
             "https://github.com/alibaba/RocketMQ/issues/63";
 
+    //
+    // FAQ: 未收录异常处理办法
+    //
+    public static final String UNEXPECTED_EXCEPTION_URL = //
+            "https://github.com/alibaba/RocketMQ/issues/63";
+
+    private static final String TipString = "\nFor more infomation, please visit this url, ";
+
 
     public static String suggestTodo(final String url) {
         StringBuilder sb = new StringBuilder();
-        sb.append("\n");
-        sb.append("For more infomation, please acccess this url, ");
+        sb.append(TipString);
         sb.append(url);
         return sb.toString();
+    }
+
+
+    /**
+     * 对于没有未异常原因指定FAQ的情况，追加默认FAQ
+     */
+    public static String attachDefaultURL(final String errorMessage) {
+        if (errorMessage != null) {
+            int index = errorMessage.indexOf(TipString);
+            if (-1 == index) {
+                StringBuilder sb = new StringBuilder();
+                sb.append(errorMessage);
+                sb.append("\n");
+                sb.append("For inquiries, please visit this url, ");
+                sb.append(UNEXPECTED_EXCEPTION_URL);
+                return sb.toString();
+            }
+        }
+
+        return errorMessage;
     }
 }
