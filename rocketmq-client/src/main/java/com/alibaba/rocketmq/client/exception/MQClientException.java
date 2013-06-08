@@ -4,6 +4,7 @@
 package com.alibaba.rocketmq.client.exception;
 
 import com.alibaba.rocketmq.common.UtilALl;
+import com.alibaba.rocketmq.common.help.FAQUrl;
 
 
 /**
@@ -18,14 +19,15 @@ public class MQClientException extends Exception {
 
 
     public MQClientException(String errorMessage, Throwable cause) {
-        super(errorMessage, cause);
+        super(FAQUrl.attachDefaultURL(errorMessage), cause);
         this.responseCode = -1;
-        this.errorMessage = null;
+        this.errorMessage = errorMessage;
     }
 
 
     public MQClientException(int responseCode, String errorMessage) {
-        super("CODE: " + UtilALl.responseCode2String(responseCode) + "\tDESC: " + errorMessage);
+        super(FAQUrl.attachDefaultURL("CODE: " + UtilALl.responseCode2String(responseCode) + "  DESC: "
+                + errorMessage));
         this.responseCode = responseCode;
         this.errorMessage = errorMessage;
     }
@@ -38,11 +40,5 @@ public class MQClientException extends Exception {
 
     public String getErrorMessage() {
         return errorMessage;
-    }
-
-
-    public boolean needRetry() {
-        // TODO
-        return false;
     }
 }

@@ -35,7 +35,8 @@ public interface MQAdmin {
 
 
     /**
-     * 根据时间查询对应的offset，精确到毫秒
+     * 根据时间查询对应的offset，精确到毫秒<br>
+     * P.S. 当前接口有较多IO开销，请勿频繁调用
      * 
      * @param mq
      *            队列
