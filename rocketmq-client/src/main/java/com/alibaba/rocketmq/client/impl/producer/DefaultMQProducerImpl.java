@@ -3,8 +3,6 @@
  */
 package com.alibaba.rocketmq.client.impl.producer;
 
-import io.netty.channel.ChannelHandlerContext;
-
 import java.io.IOException;
 import java.net.UnknownHostException;
 import java.util.HashSet;
@@ -18,9 +16,6 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import ch.qos.logback.classic.Level;
 
 import com.alibaba.rocketmq.client.QueryResult;
 import com.alibaba.rocketmq.client.exception.MQBrokerException;
@@ -47,13 +42,13 @@ import com.alibaba.rocketmq.common.ServiceState;
 import com.alibaba.rocketmq.common.TopicFilterType;
 import com.alibaba.rocketmq.common.UtilALl;
 import com.alibaba.rocketmq.common.help.FAQUrl;
+import com.alibaba.rocketmq.common.logger.LoggerName;
 import com.alibaba.rocketmq.common.protocol.MQProtos.MQRequestCode;
 import com.alibaba.rocketmq.common.protocol.MQProtos.MQResponseCode;
 import com.alibaba.rocketmq.common.protocol.header.CheckTransactionStateRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.EndTransactionRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.SendMessageRequestHeader;
 import com.alibaba.rocketmq.common.sysflag.MessageSysFlag;
-import com.alibaba.rocketmq.remoting.common.RemotingHelper;
 import com.alibaba.rocketmq.remoting.common.RemotingUtil;
 import com.alibaba.rocketmq.remoting.exception.RemotingException;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
@@ -66,7 +61,7 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingProtos.ResponseCode;
  * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public class DefaultMQProducerImpl implements MQProducerInner {
-    private static final Logger log = MixAll.createLogger(MixAll.ClientLoggerName);
+    private static final Logger log = MixAll.createLogger(LoggerName.ClientLoggerName);
     private ServiceState serviceState = ServiceState.CREATE_JUST;
 
     private final DefaultMQProducer defaultMQProducer;

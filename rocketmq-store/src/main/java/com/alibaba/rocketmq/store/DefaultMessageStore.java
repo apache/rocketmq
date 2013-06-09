@@ -20,6 +20,7 @@ import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.UtilALl;
 import com.alibaba.rocketmq.common.ServiceThread;
 import com.alibaba.rocketmq.common.SystemClock;
+import com.alibaba.rocketmq.common.logger.LoggerName;
 import com.alibaba.rocketmq.common.protocol.heartbeat.SubscriptionData;
 import com.alibaba.rocketmq.common.sysflag.MessageSysFlag;
 import com.alibaba.rocketmq.store.config.BrokerRole;
@@ -38,7 +39,7 @@ import com.alibaba.rocketmq.store.transaction.TransactionStateService;
  * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public class DefaultMessageStore implements MessageStore {
-    private static final Logger log = LoggerFactory.getLogger(MixAll.StoreLoggerName);
+    private static final Logger log = LoggerFactory.getLogger(LoggerName.StoreLoggerName);
     // 存储服务是否启动
     private volatile boolean shutdown = true;
     // 消息过滤

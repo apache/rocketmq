@@ -21,6 +21,7 @@ import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.joran.JoranConfigurator;
 
 import com.alibaba.rocketmq.common.MixAll;
+import com.alibaba.rocketmq.common.logger.LoggerName;
 import com.alibaba.rocketmq.common.namesrv.NamesrvConfig;
 import com.alibaba.rocketmq.remoting.netty.NettyClientConfig;
 import com.alibaba.rocketmq.remoting.netty.NettyServerConfig;
@@ -100,8 +101,7 @@ public class NamesrvStartup {
             lc.reset();
             configurator.doConfigure(namesrvConfig.getRocketmqHome() + "/conf/log4j_namesrv.xml");
 
-            final Logger log = LoggerFactory.getLogger(MixAll.NamesrvLoggerName);
-
+            final Logger log = LoggerFactory.getLogger(LoggerName.NamesrvLoggerName);
             // 初始化服务控制对象
             final NamesrvController controller =
                     new NamesrvController(namesrvConfig, nettyServerConfig, nettyClientConfig);

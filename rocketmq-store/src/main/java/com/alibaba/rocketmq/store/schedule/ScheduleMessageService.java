@@ -19,6 +19,7 @@ import com.alibaba.rocketmq.common.MessageDecoder;
 import com.alibaba.rocketmq.common.MessageExt;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.TopicFilterType;
+import com.alibaba.rocketmq.common.logger.LoggerName;
 import com.alibaba.rocketmq.common.sysflag.MessageSysFlag;
 import com.alibaba.rocketmq.store.ConsumeQueue;
 import com.alibaba.rocketmq.store.DefaultMessageStore;
@@ -35,7 +36,7 @@ import com.alibaba.rocketmq.store.SelectMapedBufferResult;
  * 
  */
 public class ScheduleMessageService {
-    private static final Logger log = LoggerFactory.getLogger(MixAll.StoreLoggerName);
+    private static final Logger log = LoggerFactory.getLogger(LoggerName.StoreLoggerName);
     public static final String SCHEDULE_TOPIC = "SCHEDULE_TOPIC_XXXX";
     private static final long FIRST_DELAY_TIME = 1000L;
     private static final long DELAY_FOR_A_WHILE = 100L;
@@ -140,8 +141,8 @@ public class ScheduleMessageService {
                             // 时间到了，该投递
                             if (countdown <= 0) {
                                 MessageExt msgExt =
-                                        ScheduleMessageService.this.defaultMessageStore.lookMessageByOffset(offsetPy,
-                                            sizePy);
+                                        ScheduleMessageService.this.defaultMessageStore.lookMessageByOffset(
+                                            offsetPy, sizePy);
                                 if (msgExt != null) {
                                     MessageExtBrokerInner msgInner = this.messageTimeup(msgExt);
                                     PutMessageResult putMessageResult =
@@ -258,7 +259,8 @@ public class ScheduleMessageService {
     public boolean load() {
         boolean result = this.parseDelayLevel();
         if (result) {
-            String str = MixAll.file2String(this.defaultMessageStore.getMessageStoreConfig().getDelayOffsetStorePath());
+            String str =
+                    MixAll.file2String(this.defaultMessageStore.getMessageStoreConfig().getDelayOffsetStorePath());
             if (str != null) {
                 Properties prop = MixAll.string2Properties(str);
                 if (prop != null) {

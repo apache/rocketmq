@@ -18,6 +18,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.alibaba.rocketmq.common.MixAll;
+import com.alibaba.rocketmq.common.logger.LoggerName;
 import com.alibaba.rocketmq.common.namesrv.NamesrvConfig;
 import com.alibaba.rocketmq.common.protocol.MQProtos.MQRequestCode;
 import com.alibaba.rocketmq.common.protocol.header.namesrv.RegisterBrokerRequestHeader;
@@ -38,7 +39,7 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
  */
 public class ChangeSpreadProcessor {
 
-    private static final Logger log = LoggerFactory.getLogger(MixAll.NamesrvLoggerName);
+    private static final Logger log = LoggerFactory.getLogger(LoggerName.NamesrvLoggerName);
     private Map<Integer, TaskGroup<Result, String[]>> taskGroupMap;
     private TaskGroupExecutor<Result, String[]> clientTaskGroupExecutor;
     private NamesrvConfig namesrvConf;
@@ -208,8 +209,8 @@ public class ChangeSpreadProcessor {
 
         };
     }
-    
-    
+
+
     public Exec<Result, String[]> createUnRegBrokerTask(final String address) {
         return new Exec<Result, String[]>() {
 
@@ -224,7 +225,8 @@ public class ChangeSpreadProcessor {
                 UnRegisterBrokerRequestHeader unRegisterBrokerRequestHeader = new UnRegisterBrokerRequestHeader();
                 unRegisterBrokerRequestHeader.setBrokerName(brokerName[0]);
                 RemotingCommand request =
-                        RemotingCommand.createRequestCommand(MQRequestCode.UNREGISTER_BROKER_SINGLE_VALUE, unRegisterBrokerRequestHeader);
+                        RemotingCommand.createRequestCommand(MQRequestCode.UNREGISTER_BROKER_SINGLE_VALUE,
+                            unRegisterBrokerRequestHeader);
                 RemotingCommand response =
                         RemotingHelper.invokeSync(address, request, namesrvConf.getSyncTimeout());
                 if (SUCCESS_VALUE == response.getCode()) {
@@ -242,7 +244,7 @@ public class ChangeSpreadProcessor {
 
         };
     }
-    
+
 
     public void shutdown() {
         clientTaskGroupExecutor.shutdown();

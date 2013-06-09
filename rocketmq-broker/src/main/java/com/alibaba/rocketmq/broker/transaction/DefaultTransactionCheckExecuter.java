@@ -11,7 +11,7 @@ import org.slf4j.LoggerFactory;
 import com.alibaba.rocketmq.broker.BrokerController;
 import com.alibaba.rocketmq.broker.client.ClientChannelInfo;
 import com.alibaba.rocketmq.broker.pagecache.OneMessageTransfer;
-import com.alibaba.rocketmq.common.MixAll;
+import com.alibaba.rocketmq.common.logger.LoggerName;
 import com.alibaba.rocketmq.common.protocol.MQProtos.MQRequestCode;
 import com.alibaba.rocketmq.common.protocol.header.CheckTransactionStateRequestHeader;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
@@ -25,7 +25,7 @@ import com.alibaba.rocketmq.store.transaction.TransactionCheckExecuter;
  * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public class DefaultTransactionCheckExecuter implements TransactionCheckExecuter {
-    private static final Logger log = LoggerFactory.getLogger(MixAll.TransactionLoggerName);
+    private static final Logger log = LoggerFactory.getLogger(LoggerName.BrokerLoggerName);
     private final BrokerController brokerController;
 
 

@@ -18,9 +18,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.alibaba.rocketmq.common.Message;
-import com.alibaba.rocketmq.common.UtilALl;
-import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.ServiceThread;
+import com.alibaba.rocketmq.common.UtilALl;
+import com.alibaba.rocketmq.common.logger.LoggerName;
 import com.alibaba.rocketmq.common.sysflag.MessageSysFlag;
 import com.alibaba.rocketmq.store.DefaultMessageStore;
 import com.alibaba.rocketmq.store.DispatchRequest;
@@ -32,7 +32,7 @@ import com.alibaba.rocketmq.store.DispatchRequest;
  * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public class IndexService extends ServiceThread {
-    private static final Logger log = LoggerFactory.getLogger(MixAll.StoreLoggerName);
+    private static final Logger log = LoggerFactory.getLogger(LoggerName.StoreLoggerName);
 
     private LinkedBlockingQueue<Object[]> requestQueue = new LinkedBlockingQueue<Object[]>();
     private AtomicInteger requestCount = new AtomicInteger(0);
@@ -253,7 +253,6 @@ public class IndexService extends ServiceThread {
         this.defaultMessageStore.getStoreCheckpoint().flush();
     }
 
-  
 
     // public void flush() {
     // ArrayList<IndexFile> indexFileListClone = null;
@@ -283,7 +282,7 @@ public class IndexService extends ServiceThread {
     // this.defaultMessageStore.getStoreCheckpoint().setIndexMsgTimestamp(indexMsgTimestamp);
     // this.defaultMessageStore.getStoreCheckpoint().flush();
     // }
- 
+
     public QueryOffsetResult queryOffset(String topic, String key, int maxNum, long begin, long end) {
         List<Long> phyOffsets = new ArrayList<Long>(maxNum);
         // TODO 可能需要返回给最终用户

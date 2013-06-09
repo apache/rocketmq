@@ -20,6 +20,7 @@ import com.alibaba.rocketmq.broker.BrokerController;
 import com.alibaba.rocketmq.common.DataVersion;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.TopicConfig;
+import com.alibaba.rocketmq.common.logger.LoggerName;
 import com.alibaba.rocketmq.store.schedule.ScheduleMessageService;
 
 
@@ -29,7 +30,7 @@ import com.alibaba.rocketmq.store.schedule.ScheduleMessageService;
  * 
  */
 public class TopicConfigManager {
-    private static final Logger log = LoggerFactory.getLogger(MixAll.BrokerLoggerName);
+    private static final Logger log = LoggerFactory.getLogger(LoggerName.BrokerLoggerName);
 
     // Topic≈‰÷√
     private final ConcurrentHashMap<String, TopicConfig> topicConfigTable =
@@ -49,7 +50,7 @@ public class TopicConfigManager {
         TopicConfig topicConfig = new TopicConfig(MixAll.DEFAULT_TOPIC);
         topicConfig.setReadQueueNums(this.brokerController.getBrokerConfig().getDefaultTopicQueueNums());
         topicConfig.setWriteQueueNums(this.brokerController.getBrokerConfig().getDefaultTopicQueueNums());
-        int perm = this.brokerController.getBrokerConfig().isAutoCreateTopic() ? MixAll.PERM_INHERIT : 0;
+        int perm = this.brokerController.getBrokerConfig().isAutoCreateTopicEnable() ? MixAll.PERM_INHERIT : 0;
         perm |= MixAll.PERM_READ | MixAll.PERM_WRITE;
         topicConfig.setPerm(perm);
         this.topicConfigTable.put(topicConfig.getTopicName(), topicConfig);

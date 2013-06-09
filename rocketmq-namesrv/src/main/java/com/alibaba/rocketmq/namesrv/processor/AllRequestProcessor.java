@@ -8,7 +8,7 @@ import io.netty.channel.ChannelHandlerContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.alibaba.rocketmq.common.MixAll;
+import com.alibaba.rocketmq.common.logger.LoggerName;
 import com.alibaba.rocketmq.common.protocol.MQProtos.MQRequestCode;
 import com.alibaba.rocketmq.common.protocol.header.namesrv.GetRouteInfoRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.namesrv.RegisterBrokerRequestHeader;
@@ -26,7 +26,7 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
  * @author lansheng.zj@taobao.com
  */
 public class AllRequestProcessor implements NettyRequestProcessor {
-    private static final Logger log = LoggerFactory.getLogger(MixAll.NamesrvLoggerName);
+    private static final Logger log = LoggerFactory.getLogger(LoggerName.NamesrvLoggerName);
 
     private final NamesrvController namesrvController;
     private TopicRuntimeDataManager topicInfoManager;

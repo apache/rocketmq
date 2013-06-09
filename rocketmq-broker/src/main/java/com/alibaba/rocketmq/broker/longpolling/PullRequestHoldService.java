@@ -11,8 +11,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.alibaba.rocketmq.broker.BrokerController;
-import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.ServiceThread;
+import com.alibaba.rocketmq.common.logger.LoggerName;
 import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
 
 
@@ -23,7 +23,7 @@ import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
  * 
  */
 public class PullRequestHoldService extends ServiceThread {
-    private static final Logger log = LoggerFactory.getLogger(MixAll.BrokerLoggerName);
+    private static final Logger log = LoggerFactory.getLogger(LoggerName.BrokerLoggerName);
     private static final String TOPIC_QUEUEID_SEPARATOR = "@";
 
     private ConcurrentHashMap<String/* topic@queueid */, ManyPullRequest> pullRequestTable =

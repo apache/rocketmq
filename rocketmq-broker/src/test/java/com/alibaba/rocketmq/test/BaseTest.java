@@ -1,19 +1,12 @@
 package com.alibaba.rocketmq.test;
 
-import java.io.BufferedInputStream;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.InputStream;
-import java.util.Properties;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import junit.framework.TestCase;
 
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.Options;
-import org.apache.commons.cli.PosixParser;
+import org.junit.AfterClass;
 import org.junit.BeforeClass;
-import org.junit.AfterClass;  
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -21,20 +14,23 @@ import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.joran.JoranConfigurator;
 
 import com.alibaba.rocketmq.broker.BrokerController;
-import com.alibaba.rocketmq.broker.BrokerStartup;
 import com.alibaba.rocketmq.common.BrokerConfig;
 import com.alibaba.rocketmq.common.MQVersion;
 import com.alibaba.rocketmq.common.MixAll;
+import com.alibaba.rocketmq.common.logger.LoggerName;
 import com.alibaba.rocketmq.remoting.netty.NettyServerConfig;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 import com.alibaba.rocketmq.store.config.MessageStoreConfig;
 
 
-public abstract class  BaseTest extends TestCase {
-	public static BrokerController brokerController;
-	@BeforeClass   //测试方法之前执行  
-    public void testInit() throws Exception{  
-        System.out.println("before-----");  
+public abstract class BaseTest extends TestCase {
+    public static BrokerController brokerController;
+
+
+    @BeforeClass
+    // 测试方法之前执行
+    public void testInit() throws Exception {
+        System.out.println("before-----");
         // 设置当前程序版本号，每次发布版本时，都要修改CurrentVersion
         System.setProperty(RemotingCommand.RemotingVersionKey, Integer.toString(MQVersion.CurrentVersion));
 
@@ -46,7 +42,8 @@ public abstract class  BaseTest extends TestCase {
             nettyServerConfig.setListenPort(10911);
             final MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
             // 清理环境
-//            deleteDir(System.getProperty("user.home") + File.separator + "store");
+            // deleteDir(System.getProperty("user.home") + File.separator +
+            // "store");
 
             if (null == brokerConfig.getRocketmqHome()) {
                 System.out.println("Please set the " + MixAll.ROCKETMQ_HOME_ENV
@@ -79,7 +76,7 @@ public abstract class  BaseTest extends TestCase {
             configurator.setContext(lc);
             lc.reset();
             configurator.doConfigure(brokerConfig.getRocketmqHome() + "/conf/log4j_broker.xml");
-            final Logger log = LoggerFactory.getLogger(MixAll.BrokerLoggerName);
+            final Logger log = LoggerFactory.getLogger(LoggerName.BrokerLoggerName);
 
             // 打印启动参数
             MixAll.printObjectProperties(log, brokerConfig);
@@ -87,11 +84,10 @@ public abstract class  BaseTest extends TestCase {
             MixAll.printObjectProperties(log, messageStoreConfig);
 
             // 初始化服务控制对象
-            brokerController =
-                    new BrokerController(brokerConfig, nettyServerConfig, messageStoreConfig);
+            brokerController = new BrokerController(brokerConfig, nettyServerConfig, messageStoreConfig);
             boolean initResult = brokerController.initialize();
             if (!initResult) {
-            	brokerController.shutdown();
+                brokerController.shutdown();
                 System.exit(-3);
             }
 
@@ -127,29 +123,30 @@ public abstract class  BaseTest extends TestCase {
             e.printStackTrace();
             System.exit(-1);
         }
-    }  
-	@AfterClass     //测试方法之后执行  
-    public void testDown() throws Exception{  
-        System.out.println("after------");  
+    }
+
+
+    @AfterClass
+    // 测试方法之后执行
+    public void testDown() throws Exception {
+        System.out.println("after------");
         brokerController.shutdown();
-    }  
-	public static void deleteDir(String path)
-	{
-		File file = new File(path);
-		if (file.exists())
-		{
-			if (file.isDirectory())
-			{
-				File[] files = file.listFiles();
-				for (File subFile : files)
-				{
-					if (subFile.isDirectory())
-						deleteDir(subFile.getPath());
-					else
-						subFile.delete();
-				}
-			}
-			file.delete();
-		}
-	}
+    }
+
+
+    public static void deleteDir(String path) {
+        File file = new File(path);
+        if (file.exists()) {
+            if (file.isDirectory()) {
+                File[] files = file.listFiles();
+                for (File subFile : files) {
+                    if (subFile.isDirectory())
+                        deleteDir(subFile.getPath());
+                    else
+                        subFile.delete();
+                }
+            }
+            file.delete();
+        }
+    }
 }

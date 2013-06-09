@@ -12,6 +12,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.alibaba.rocketmq.common.MixAll;
+import com.alibaba.rocketmq.common.logger.LoggerName;
 import com.alibaba.rocketmq.common.namesrv.NamesrvConfig;
 import com.alibaba.rocketmq.namesrv.daemon.NamesrvClient;
 import com.alibaba.rocketmq.namesrv.daemon.NamesrvSync;
@@ -34,7 +35,7 @@ import com.alibaba.rocketmq.remoting.netty.NettyServerConfig;
  * @author lansheng.zj@taobao.com
  */
 public class NamesrvController {
-    private static final Logger log = LoggerFactory.getLogger(MixAll.NamesrvLoggerName);
+    private static final Logger log = LoggerFactory.getLogger(LoggerName.NamesrvLoggerName);
     // Name Server≈‰÷√
     private final NamesrvConfig namesrvConfig;
     // Õ®–≈≤„≈‰÷√

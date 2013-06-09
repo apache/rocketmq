@@ -15,6 +15,7 @@ import org.slf4j.LoggerFactory;
 
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.help.FAQUrl;
+import com.alibaba.rocketmq.common.logger.LoggerName;
 
 
 /**
@@ -24,7 +25,7 @@ import com.alibaba.rocketmq.common.help.FAQUrl;
  * 
  */
 public class TopAddressing {
-    private static final Logger log = LoggerFactory.getLogger(MixAll.CommonLoggerName);
+    private static final Logger log = LoggerFactory.getLogger(LoggerName.CommonLoggerName);
     private HttpClient httpClient = new HttpClient();
     private String nsAddr;
 
