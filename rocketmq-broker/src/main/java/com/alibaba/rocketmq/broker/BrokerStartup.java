@@ -7,7 +7,6 @@ import java.io.BufferedInputStream;
 import java.io.FileInputStream;
 import java.io.InputStream;
 import java.util.Properties;
-import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.commons.cli.CommandLine;
@@ -21,8 +20,9 @@ import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.joran.JoranConfigurator;
 
 import com.alibaba.rocketmq.common.BrokerConfig;
-import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.MQVersion;
+import com.alibaba.rocketmq.common.MixAll;
+import com.alibaba.rocketmq.common.logger.LoggerName;
 import com.alibaba.rocketmq.remoting.netty.NettyServerConfig;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 import com.alibaba.rocketmq.store.config.MessageStoreConfig;
@@ -138,7 +138,7 @@ public class BrokerStartup {
             configurator.setContext(lc);
             lc.reset();
             configurator.doConfigure(brokerConfig.getRocketmqHome() + "/conf/log4j_broker.xml");
-            final Logger log = LoggerFactory.getLogger(MixAll.BrokerLoggerName);
+            final Logger log = LoggerFactory.getLogger(LoggerName.BrokerLoggerName);
 
             // 打印启动参数
             MixAll.printObjectProperties(log, brokerConfig);

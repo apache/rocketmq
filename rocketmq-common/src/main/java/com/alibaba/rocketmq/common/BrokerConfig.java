@@ -27,11 +27,12 @@ public class BrokerConfig {
     private long brokerId = MixAll.MASTER_ID;
     private int brokerPermission = MixAll.PERM_READ | MixAll.PERM_WRITE;
     private int defaultTopicQueueNums = 8;
-    // 自动创建Topic
-    private boolean autoCreateTopic = true;
-
-    // 是否开启以集群名字命名的Topic
+    // 自动创建Topic功能是否开启（线上建议关闭）
+    private boolean autoCreateTopicEnable = true;
+    // 自动创建以集群名字命名的Topic功能是否开启
     private boolean clusterTopicEnable = true;
+    // 自动创建订阅组功能是否开启（线上建议关闭）
+    private boolean autoCreateSubscriptionGroup = true;
 
     private int sendMessageThreadPoolNums = Runtime.getRuntime().availableProcessors() * 6;
     private int pullMessageThreadPoolNums = Runtime.getRuntime().availableProcessors() * 6;
@@ -106,13 +107,13 @@ public class BrokerConfig {
     }
 
 
-    public boolean isAutoCreateTopic() {
-        return autoCreateTopic;
+    public boolean isAutoCreateTopicEnable() {
+        return autoCreateTopicEnable;
     }
 
 
-    public void setAutoCreateTopic(boolean autoCreateTopic) {
-        this.autoCreateTopic = autoCreateTopic;
+    public void setAutoCreateTopicEnable(boolean autoCreateTopic) {
+        this.autoCreateTopicEnable = autoCreateTopic;
     }
 
 
@@ -263,5 +264,15 @@ public class BrokerConfig {
 
     public void setBrokerId(long brokerId) {
         this.brokerId = brokerId;
+    }
+
+
+    public boolean isAutoCreateSubscriptionGroup() {
+        return autoCreateSubscriptionGroup;
+    }
+
+
+    public void setAutoCreateSubscriptionGroup(boolean autoCreateSubscriptionGroup) {
+        this.autoCreateSubscriptionGroup = autoCreateSubscriptionGroup;
     }
 }

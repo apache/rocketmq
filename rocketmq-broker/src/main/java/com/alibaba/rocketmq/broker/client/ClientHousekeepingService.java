@@ -14,7 +14,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.alibaba.rocketmq.broker.BrokerController;
-import com.alibaba.rocketmq.common.MixAll;
+import com.alibaba.rocketmq.common.logger.LoggerName;
 import com.alibaba.rocketmq.remoting.ChannelEventListener;
 
 
@@ -24,7 +24,7 @@ import com.alibaba.rocketmq.remoting.ChannelEventListener;
  * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public class ClientHousekeepingService implements ChannelEventListener {
-    private static final Logger log = LoggerFactory.getLogger(MixAll.BrokerLoggerName);
+    private static final Logger log = LoggerFactory.getLogger(LoggerName.BrokerLoggerName);
     private final BrokerController brokerController;
 
     private ScheduledExecutorService scheduledExecutorService = Executors

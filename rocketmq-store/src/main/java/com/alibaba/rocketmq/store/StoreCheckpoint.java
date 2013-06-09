@@ -13,8 +13,8 @@ import java.nio.channels.FileChannel.MapMode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.UtilALl;
+import com.alibaba.rocketmq.common.logger.LoggerName;
 
 
 /**
@@ -23,7 +23,7 @@ import com.alibaba.rocketmq.common.UtilALl;
  * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public class StoreCheckpoint {
-    private static final Logger log = LoggerFactory.getLogger(MixAll.StoreLoggerName);
+    private static final Logger log = LoggerFactory.getLogger(LoggerName.StoreLoggerName);
     private volatile long physicMsgTimestamp = 0;
     private volatile long logicsMsgTimestamp = 0;
     private volatile long indexMsgTimestamp = 0;

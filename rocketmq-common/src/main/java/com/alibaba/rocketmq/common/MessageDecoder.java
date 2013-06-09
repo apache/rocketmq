@@ -217,7 +217,6 @@ public class MessageDecoder {
                 msgExts.add(msgExt);
             }
             else {
-                log.warn("message decode error.");
                 break;
             }
         }
@@ -264,6 +263,4 @@ public class MessageDecoder {
 
         return map;
     }
-
-    private static final Logger log = LoggerFactory.getLogger(MixAll.CommonLoggerName);
 }

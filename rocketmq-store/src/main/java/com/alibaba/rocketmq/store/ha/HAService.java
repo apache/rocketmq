@@ -23,11 +23,11 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.ServiceThread;
+import com.alibaba.rocketmq.common.logger.LoggerName;
 import com.alibaba.rocketmq.remoting.common.RemotingUtil;
-import com.alibaba.rocketmq.store.DefaultMessageStore;
 import com.alibaba.rocketmq.store.CommitLog.GroupCommitRequest;
+import com.alibaba.rocketmq.store.DefaultMessageStore;
 
 
 /**
@@ -36,7 +36,7 @@ import com.alibaba.rocketmq.store.CommitLog.GroupCommitRequest;
  * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public class HAService {
-    private static final Logger log = LoggerFactory.getLogger(MixAll.StoreLoggerName);
+    private static final Logger log = LoggerFactory.getLogger(LoggerName.StoreLoggerName);
     // 客户端连接计数
     private final AtomicInteger connectionCount = new AtomicInteger(0);
     // 存储客户端连接
@@ -256,7 +256,8 @@ public class HAService {
         private boolean isTimeToReportOffset() {
             long interval = HAService.this.defaultMessageStore.getSystemClock().now() - this.lastWriteTimestamp;
             boolean needHeart =
-                    (interval > HAService.this.defaultMessageStore.getMessageStoreConfig().getHaSendHeartbeatInterval());
+                    (interval > HAService.this.defaultMessageStore.getMessageStoreConfig()
+                        .getHaSendHeartbeatInterval());
 
             return needHeart;
         }

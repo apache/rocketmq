@@ -17,6 +17,7 @@ import org.slf4j.LoggerFactory;
 
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.ServiceThread;
+import com.alibaba.rocketmq.common.logger.LoggerName;
 import com.alibaba.rocketmq.common.namesrv.NamesrvConfig;
 import com.alibaba.rocketmq.common.namesrv.TopicRuntimeData;
 import com.alibaba.rocketmq.namesrv.common.Result;
@@ -35,8 +36,7 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
  * @author lansheng.zj@taobao.com
  */
 public class NamesrvSync extends ServiceThread {
-
-    private static final Logger log = LoggerFactory.getLogger(MixAll.NamesrvLoggerName);
+    private static final Logger log = LoggerFactory.getLogger(LoggerName.NamesrvLoggerName);
     private TaskGroupExecutor<Object, Object> syncTaskGroupExecutor;
     private TopicRuntimeDataManager topicRuntimeDataManager;
     private NamesrvConfig namesrvConf;
@@ -104,7 +104,8 @@ public class NamesrvSync extends ServiceThread {
 
                 // 主动同步各节点间数据，主动拉取方式，只同步namesrv上持久化数据
 
-                RemotingCommand request = RemotingCommand.createRequestCommand(SYNC_NAMESRV_RUNTIME_CONF_VALUE, null);
+                RemotingCommand request =
+                        RemotingCommand.createRequestCommand(SYNC_NAMESRV_RUNTIME_CONF_VALUE, null);
                 RemotingCommand response =
                         RemotingHelper.invokeSync(address, request, namesrvConf.getSyncTimeout());
 

@@ -15,6 +15,7 @@ import org.slf4j.LoggerFactory;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.UtilALl;
 import com.alibaba.rocketmq.common.ServiceThread;
+import com.alibaba.rocketmq.common.logger.LoggerName;
 
 
 /**
@@ -85,7 +86,7 @@ public class AllocateMapedFileService extends ServiceThread {
         }
     }
 
-    private static final Logger log = LoggerFactory.getLogger(MixAll.StoreLoggerName);
+    private static final Logger log = LoggerFactory.getLogger(LoggerName.StoreLoggerName);
     private static int WaitTimeOut = 1000 * 5;
 
     private ConcurrentHashMap<String, AllocateRequest> requestTable =

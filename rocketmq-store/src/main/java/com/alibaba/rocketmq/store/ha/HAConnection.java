@@ -12,8 +12,8 @@ import java.nio.channels.SocketChannel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.ServiceThread;
+import com.alibaba.rocketmq.common.logger.LoggerName;
 import com.alibaba.rocketmq.remoting.common.RemotingUtil;
 import com.alibaba.rocketmq.store.SelectMapedBufferResult;
 
@@ -24,7 +24,7 @@ import com.alibaba.rocketmq.store.SelectMapedBufferResult;
  * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public class HAConnection {
-    private static final Logger log = LoggerFactory.getLogger(MixAll.StoreLoggerName);
+    private static final Logger log = LoggerFactory.getLogger(LoggerName.StoreLoggerName);
 
     private final HAService haService;
     private final SocketChannel socketChannel;
@@ -249,8 +249,8 @@ public class HAConnection {
                                 HAConnection.this.haService.getDefaultMessageStore().getSystemClock().now()
                                         - this.lastWriteTimestamp;
 
-                        if (interval > HAConnection.this.haService.getDefaultMessageStore().getMessageStoreConfig()
-                            .getHaSendHeartbeatInterval()) {
+                        if (interval > HAConnection.this.haService.getDefaultMessageStore()
+                            .getMessageStoreConfig().getHaSendHeartbeatInterval()) {
                             // ÏòSlave·¢ËÍÐÄÌø
                             // Build Header
                             this.byteBufferHeader.position(0);

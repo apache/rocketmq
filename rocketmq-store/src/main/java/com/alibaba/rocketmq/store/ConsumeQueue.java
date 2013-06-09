@@ -10,7 +10,7 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.alibaba.rocketmq.common.MixAll;
+import com.alibaba.rocketmq.common.logger.LoggerName;
 
 
 /**
@@ -19,7 +19,7 @@ import com.alibaba.rocketmq.common.MixAll;
  * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public class ConsumeQueue {
-    private static final Logger log = LoggerFactory.getLogger(MixAll.StoreLoggerName);
+    private static final Logger log = LoggerFactory.getLogger(LoggerName.StoreLoggerName);
     // 存储单元大小
     public static final int CQStoreUnitSize = 20;
     // 存储顶层对象

@@ -36,11 +36,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.alibaba.rocketmq.common.MixAll;
-import com.alibaba.rocketmq.common.protocol.MQProtos.MQResponseCode;
-import com.alibaba.rocketmq.common.protocol.route.ObjectConverter;
+import com.alibaba.rocketmq.common.logger.LoggerName;
 import com.alibaba.rocketmq.common.namesrv.NamesrvConfig;
 import com.alibaba.rocketmq.common.namesrv.TopicRuntimeData;
+import com.alibaba.rocketmq.common.protocol.MQProtos.MQResponseCode;
 import com.alibaba.rocketmq.common.protocol.route.BrokerData;
+import com.alibaba.rocketmq.common.protocol.route.ObjectConverter;
 import com.alibaba.rocketmq.common.protocol.route.QueueData;
 import com.alibaba.rocketmq.common.protocol.route.TopicRouteData;
 import com.alibaba.rocketmq.namesrv.common.MergeResultHolder;
@@ -54,8 +55,7 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
  * @author lansheng.zj@taobao.com
  */
 public class DefaultTopicRuntimeDataManager implements TopicRuntimeDataManager {
-
-    private static final Logger log = LoggerFactory.getLogger(MixAll.NamesrvLoggerName);
+    private static final Logger log = LoggerFactory.getLogger(LoggerName.NamesrvLoggerName);
 
     private NamesrvConfig namesrvConfig;
     private TopicRuntimeData topicData;
@@ -365,7 +365,7 @@ public class DefaultTopicRuntimeDataManager implements TopicRuntimeDataManager {
             response.setRemark("empty address");
             return response;
         }
-        
+
         // register to local
         doRegisterBroker(address);
 
@@ -656,7 +656,7 @@ public class DefaultTopicRuntimeDataManager implements TopicRuntimeDataManager {
         }
     }
 
-    
+
     @Override
     public RemotingCommand unRegisterBrokerByAddr(String addr) {
         if (null == addr || "".equals(addr))
@@ -665,7 +665,7 @@ public class DefaultTopicRuntimeDataManager implements TopicRuntimeDataManager {
         return this.unRegisterBroker(brokerName);
     }
 
-    
+
     @Override
     public RemotingCommand unRegisterBrokerSingleByAddr(String addr) {
         if (null == addr || "".equals(addr))
