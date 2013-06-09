@@ -204,13 +204,13 @@ public class MQClientFactory {
             }
         }, 1000, this.mQClientConfig.getHeartbeatBrokerInterval(), TimeUnit.MILLISECONDS);
 
-        // 定时向Broker上传Consumer Offset信息
+        // 定时持久化Consumer消费进度（广播存储到本地，集群存储到Broker）
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 
             @Override
             public void run() {
                 try {
-                    MQClientFactory.this.uploadConsumerOffsetsToBroker();
+                    MQClientFactory.this.persistAllConsumerOffset();
                 }
                 catch (Exception e) {
                     log.error("ScheduledTask uploadConsumerOffsets exception", e);
@@ -280,9 +280,9 @@ public class MQClientFactory {
     }
 
 
-    private void uploadConsumerOffsetsToBroker() {
+    private void persistAllConsumerOffset() {
         for (MQConsumerInner consumer : this.consumerTable.values()) {
-            consumer.uploadConsumerOffsetsToBroker();
+            consumer.persistConsumerOffset();
         }
     }
 
