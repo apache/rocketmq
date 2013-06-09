@@ -7,7 +7,7 @@ import java.util.List;
 
 import com.alibaba.rocketmq.client.consumer.PullResult;
 import com.alibaba.rocketmq.client.consumer.PullStatus;
-import com.alibaba.rocketmq.common.MessageExt;
+import com.alibaba.rocketmq.common.message.MessageExt;
 
 
 /**

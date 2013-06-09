@@ -6,7 +6,7 @@ package com.alibaba.rocketmq.common;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.alibaba.rocketmq.common.logger.LoggerName;
+import com.alibaba.rocketmq.common.constant.LoggerName;
 
 
 /**

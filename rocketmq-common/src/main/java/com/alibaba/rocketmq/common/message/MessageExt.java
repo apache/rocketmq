@@ -1,12 +1,13 @@
 /**
  * $Id: MessageExt.java 1831 2013-05-16 01:39:51Z shijia.wxr $
  */
-package com.alibaba.rocketmq.common;
+package com.alibaba.rocketmq.common.message;
 
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 
+import com.alibaba.rocketmq.common.TopicFilterType;
 import com.alibaba.rocketmq.common.sysflag.MessageSysFlag;
 
 

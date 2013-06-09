@@ -32,7 +32,7 @@ import com.alibaba.rocketmq.broker.transaction.DefaultTransactionCheckExecuter;
 import com.alibaba.rocketmq.common.BrokerConfig;
 import com.alibaba.rocketmq.common.DataVersion;
 import com.alibaba.rocketmq.common.MixAll;
-import com.alibaba.rocketmq.common.logger.LoggerName;
+import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.common.namesrv.TopAddressing;
 import com.alibaba.rocketmq.common.protocol.MQProtos;
 import com.alibaba.rocketmq.common.protocol.MQProtosHelper;
@@ -161,7 +161,7 @@ public class BrokerController {
 
         // ◊¢≤·µΩName Server
         // result = result && this.registerToNameServer();
-        // registerToNameServer();
+        registerToNameServer();
         // º”‘ÿTopic≈‰÷√
         result = result && this.topicConfigManager.load();
 

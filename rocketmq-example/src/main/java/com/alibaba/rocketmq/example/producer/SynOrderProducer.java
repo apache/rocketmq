@@ -9,8 +9,8 @@ import com.alibaba.rocketmq.client.producer.MQProducer;
 import com.alibaba.rocketmq.client.producer.MessageQueueSelector;
 import com.alibaba.rocketmq.client.producer.SendResult;
 import com.alibaba.rocketmq.client.producer.selector.SelectMessageQueueByMachineRoom;
-import com.alibaba.rocketmq.common.Message;
-import com.alibaba.rocketmq.common.MessageQueue;
+import com.alibaba.rocketmq.common.message.Message;
+import com.alibaba.rocketmq.common.message.MessageQueue;
 import com.alibaba.rocketmq.remoting.exception.RemotingException;
 
 public class SynOrderProducer {

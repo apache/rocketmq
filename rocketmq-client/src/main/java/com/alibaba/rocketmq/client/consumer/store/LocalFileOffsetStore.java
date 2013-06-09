@@ -1,6 +1,6 @@
 package com.alibaba.rocketmq.client.consumer.store;
 
-import com.alibaba.rocketmq.common.MessageQueue;
+import com.alibaba.rocketmq.common.message.MessageQueue;
 
 
 /**

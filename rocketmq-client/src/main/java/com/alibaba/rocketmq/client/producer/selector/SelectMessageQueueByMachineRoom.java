@@ -7,8 +7,8 @@ import java.util.List;
 import java.util.Set;
 
 import com.alibaba.rocketmq.client.producer.MessageQueueSelector;
-import com.alibaba.rocketmq.common.Message;
-import com.alibaba.rocketmq.common.MessageQueue;
+import com.alibaba.rocketmq.common.message.Message;
+import com.alibaba.rocketmq.common.message.MessageQueue;
 
 
 /**

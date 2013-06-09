@@ -5,7 +5,7 @@ package com.alibaba.rocketmq.client.impl.producer;
 
 import com.alibaba.rocketmq.client.producer.SendResult;
 import com.alibaba.rocketmq.client.producer.SendStatus;
-import com.alibaba.rocketmq.common.MessageQueue;
+import com.alibaba.rocketmq.common.message.MessageQueue;
 
 
 /**

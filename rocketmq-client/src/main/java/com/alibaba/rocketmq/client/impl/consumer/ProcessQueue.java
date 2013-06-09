@@ -5,7 +5,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-import com.alibaba.rocketmq.common.MessageExt;
+import com.alibaba.rocketmq.common.message.MessageExt;
 
 
 /**
