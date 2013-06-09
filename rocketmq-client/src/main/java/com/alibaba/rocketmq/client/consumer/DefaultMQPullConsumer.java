@@ -16,6 +16,7 @@ import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.TopicFilterType;
 import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.common.message.MessageQueue;
+import com.alibaba.rocketmq.common.protocol.heartbeat.MessageModel;
 import com.alibaba.rocketmq.remoting.exception.RemotingException;
 
 
@@ -45,6 +46,10 @@ public class DefaultMQPullConsumer implements MQPullConsumer {
      * 非阻塞拉模式，Consumer超时时间，不建议修改
      */
     private long consumerPullTimeoutMillis = 1000 * 10;
+    /**
+     * 集群消费/广播消费
+     */
+    private MessageModel messageModel = MessageModel.BROADCASTING;
     /**
      * Consumer从Master还是Slave拉消息
      */
@@ -168,16 +173,14 @@ public class DefaultMQPullConsumer implements MQPullConsumer {
 
 
     @Override
-    public void updateConsumeOffset(MessageQueue mq, long offset) throws RemotingException, MQBrokerException,
-            InterruptedException, MQClientException {
-        this.defaultMQPullConsumerImpl.updateConsumeOffsetToBroker(mq, offset);
+    public void updateConsumeOffset(MessageQueue mq, long offset) throws MQClientException {
+        this.defaultMQPullConsumerImpl.updateConsumeOffset(mq, offset);
     }
 
 
     @Override
-    public long fetchConsumeOffset(MessageQueue mq) throws RemotingException, MQBrokerException,
-            InterruptedException, MQClientException {
-        return this.defaultMQPullConsumerImpl.fetchConsumeOffsetFromBroker(mq);
+    public long fetchConsumeOffset(MessageQueue mq) throws MQClientException {
+        return this.defaultMQPullConsumerImpl.fetchConsumeOffset(mq);
     }
 
 
@@ -276,5 +279,15 @@ public class DefaultMQPullConsumer implements MQPullConsumer {
 
     public void setConsumeFromWhichNode(ConsumeFromWhichNode consumeFromWhichNode) {
         this.consumeFromWhichNode = consumeFromWhichNode;
+    }
+
+
+    public MessageModel getMessageModel() {
+        return messageModel;
+    }
+
+
+    public void setMessageModel(MessageModel messageModel) {
+        this.messageModel = messageModel;
     }
 }

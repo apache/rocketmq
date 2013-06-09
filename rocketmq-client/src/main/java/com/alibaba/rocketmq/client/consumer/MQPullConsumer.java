@@ -100,12 +100,10 @@ public interface MQPullConsumer extends MQConsumer {
             InterruptedException;
 
 
-    public void updateConsumeOffset(final MessageQueue mq, final long offset) throws RemotingException,
-            MQBrokerException, InterruptedException, MQClientException;
+    public void updateConsumeOffset(final MessageQueue mq, final long offset) throws MQClientException;
 
 
-    public long fetchConsumeOffset(final MessageQueue mq) throws RemotingException, MQBrokerException,
-            InterruptedException, MQClientException;
+    public long fetchConsumeOffset(final MessageQueue mq) throws MQClientException;
 
 
     /**

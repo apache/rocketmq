@@ -71,7 +71,9 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
                 this.offsetStore = new LocalFileOffsetStore();
                 break;
             case CLUSTERING:
-                this.offsetStore = new RemoteBrokerOffsetStore();
+                this.offsetStore =
+                        new RemoteBrokerOffsetStore(this.mQClientFactory,
+                            this.defaultMQPushConsumer.getConsumerGroup());
                 break;
             case UNKNOWNS:
                 break;
@@ -301,7 +303,7 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
 
 
     @Override
-    public void uploadConsumerOffsetsToBroker() {
+    public void persistConsumerOffset() {
         // TODO Auto-generated method stub
 
     }

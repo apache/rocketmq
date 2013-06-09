@@ -27,5 +27,5 @@ public interface MQConsumerInner {
     public Set<SubscriptionData> getMQSubscriptions();
 
 
-    public void uploadConsumerOffsetsToBroker();
+    public void persistConsumerOffset();
 }
