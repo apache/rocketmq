@@ -16,8 +16,8 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import com.alibaba.rocketmq.common.MessageExt;
-import com.alibaba.rocketmq.common.MessageDecoder;
+import com.alibaba.rocketmq.common.message.MessageDecoder;
+import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.store.config.MessageStoreConfig;
 
 

@@ -1,4 +1,4 @@
-package com.alibaba.rocketmq.common.logger;
+package com.alibaba.rocketmq.common.constant;
 
 /**
  * @author shijia.wxr<vintage.wang@gmail.com>

@@ -4,7 +4,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import com.alibaba.rocketmq.client.producer.LocalTransactionExecuter;
 import com.alibaba.rocketmq.client.producer.LocalTransactionState;
-import com.alibaba.rocketmq.common.Message;
+import com.alibaba.rocketmq.common.message.Message;
 
 
 public class TransactionExecuterImpl implements LocalTransactionExecuter {

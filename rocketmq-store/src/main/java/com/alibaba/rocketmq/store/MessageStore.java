@@ -5,7 +5,7 @@ package com.alibaba.rocketmq.store;
 
 import java.util.HashMap;
 
-import com.alibaba.rocketmq.common.MessageExt;
+import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.common.protocol.heartbeat.SubscriptionData;
 
 

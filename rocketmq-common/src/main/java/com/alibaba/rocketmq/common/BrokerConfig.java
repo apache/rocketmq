@@ -7,6 +7,7 @@ import java.io.File;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 
+import com.alibaba.rocketmq.common.constant.PermName;
 import com.alibaba.rocketmq.remoting.common.RemotingUtil;
 
 
@@ -25,7 +26,7 @@ public class BrokerConfig {
     private String brokerName = localHostName();
     private String brokerClusterName = "C01";
     private long brokerId = MixAll.MASTER_ID;
-    private int brokerPermission = MixAll.PERM_READ | MixAll.PERM_WRITE;
+    private int brokerPermission = PermName.PERM_READ | PermName.PERM_WRITE;
     private int defaultTopicQueueNums = 8;
     // 自动创建Topic功能是否开启（线上建议关闭）
     private boolean autoCreateTopicEnable = true;

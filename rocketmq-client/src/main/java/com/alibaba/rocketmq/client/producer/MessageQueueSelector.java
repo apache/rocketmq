@@ -5,8 +5,8 @@ package com.alibaba.rocketmq.client.producer;
 
 import java.util.List;
 
-import com.alibaba.rocketmq.common.Message;
-import com.alibaba.rocketmq.common.MessageQueue;
+import com.alibaba.rocketmq.common.message.Message;
+import com.alibaba.rocketmq.common.message.MessageQueue;
 
 
 /**

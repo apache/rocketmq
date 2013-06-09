@@ -12,10 +12,10 @@ import com.alibaba.rocketmq.client.QueryResult;
 import com.alibaba.rocketmq.client.exception.MQBrokerException;
 import com.alibaba.rocketmq.client.exception.MQClientException;
 import com.alibaba.rocketmq.client.impl.consumer.DefaultMQPullConsumerImpl;
-import com.alibaba.rocketmq.common.MessageExt;
 import com.alibaba.rocketmq.common.MixAll;
-import com.alibaba.rocketmq.common.MessageQueue;
 import com.alibaba.rocketmq.common.TopicFilterType;
+import com.alibaba.rocketmq.common.message.MessageExt;
+import com.alibaba.rocketmq.common.message.MessageQueue;
 import com.alibaba.rocketmq.remoting.exception.RemotingException;
 
 

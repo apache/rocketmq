@@ -20,7 +20,8 @@ import com.alibaba.rocketmq.broker.BrokerController;
 import com.alibaba.rocketmq.common.DataVersion;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.TopicConfig;
-import com.alibaba.rocketmq.common.logger.LoggerName;
+import com.alibaba.rocketmq.common.constant.LoggerName;
+import com.alibaba.rocketmq.common.constant.PermName;
 import com.alibaba.rocketmq.store.schedule.ScheduleMessageService;
 
 
@@ -50,8 +51,8 @@ public class TopicConfigManager {
         TopicConfig topicConfig = new TopicConfig(MixAll.DEFAULT_TOPIC);
         topicConfig.setReadQueueNums(this.brokerController.getBrokerConfig().getDefaultTopicQueueNums());
         topicConfig.setWriteQueueNums(this.brokerController.getBrokerConfig().getDefaultTopicQueueNums());
-        int perm = this.brokerController.getBrokerConfig().isAutoCreateTopicEnable() ? MixAll.PERM_INHERIT : 0;
-        perm |= MixAll.PERM_READ | MixAll.PERM_WRITE;
+        int perm = this.brokerController.getBrokerConfig().isAutoCreateTopicEnable() ? PermName.PERM_INHERIT : 0;
+        perm |= PermName.PERM_READ | PermName.PERM_WRITE;
         topicConfig.setPerm(perm);
         this.topicConfigTable.put(topicConfig.getTopicName(), topicConfig);
 
@@ -63,9 +64,9 @@ public class TopicConfigManager {
 
         // ¼¯ÈºÃû×Ö
         topicConfig = new TopicConfig(this.brokerController.getBrokerConfig().getBrokerClusterName());
-        perm = MixAll.PERM_INHERIT;
+        perm = PermName.PERM_INHERIT;
         if (this.brokerController.getBrokerConfig().isClusterTopicEnable()) {
-            perm |= MixAll.PERM_READ | MixAll.PERM_WRITE;
+            perm |= PermName.PERM_READ | PermName.PERM_WRITE;
         }
         topicConfig.setPerm(perm);
         this.topicConfigTable.put(topicConfig.getTopicName(), topicConfig);
@@ -183,7 +184,7 @@ public class TopicConfigManager {
 
                 TopicConfig defaultTopicConfig = this.topicConfigTable.get(defaultTopic);
                 if (defaultTopicConfig != null) {
-                    if (MixAll.isInherited(defaultTopicConfig.getPerm())) {
+                    if (PermName.isInherited(defaultTopicConfig.getPerm())) {
                         topicConfig = new TopicConfig(topic);
 
                         int queueNums =
@@ -197,7 +198,7 @@ public class TopicConfigManager {
                         topicConfig.setReadQueueNums(queueNums);
                         topicConfig.setWriteQueueNums(queueNums);
                         int perm = defaultTopicConfig.getPerm();
-                        perm &= ~MixAll.PERM_INHERIT;
+                        perm &= ~PermName.PERM_INHERIT;
                         topicConfig.setPerm(perm);
                         topicConfig.setTopicFilterType(defaultTopicConfig.getTopicFilterType());
                     }

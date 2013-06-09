@@ -8,7 +8,7 @@ import java.util.List;
 
 import org.junit.Test;
 
-import com.alibaba.rocketmq.common.MessageQueue;
+import com.alibaba.rocketmq.common.message.MessageQueue;
 
 
 public class AllocateMessageQueueAveragelyTeset {

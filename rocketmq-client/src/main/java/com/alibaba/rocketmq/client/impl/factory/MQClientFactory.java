@@ -35,9 +35,10 @@ import com.alibaba.rocketmq.client.impl.producer.DefaultMQProducerImpl;
 import com.alibaba.rocketmq.client.impl.producer.MQProducerInner;
 import com.alibaba.rocketmq.client.impl.producer.TopicPublishInfo;
 import com.alibaba.rocketmq.common.MixAll;
-import com.alibaba.rocketmq.common.MessageQueue;
 import com.alibaba.rocketmq.common.ServiceState;
+import com.alibaba.rocketmq.common.constant.PermName;
 import com.alibaba.rocketmq.common.help.FAQUrl;
+import com.alibaba.rocketmq.common.message.MessageQueue;
 import com.alibaba.rocketmq.common.protocol.heartbeat.ConsumerData;
 import com.alibaba.rocketmq.common.protocol.heartbeat.HeartbeatData;
 import com.alibaba.rocketmq.common.protocol.heartbeat.ProducerData;
@@ -141,8 +142,7 @@ public class MQClientFactory {
             this.datagramSocket = new DatagramSocket(udpPort);
         }
         catch (SocketException e) {
-            throw new MQClientException("instance name is a duplicate one[" + udpPort
-                    + "], please set a new name"
+            throw new MQClientException("instance name is a duplicate one[" + udpPort + "], please set a new name"
                     + FAQUrl.suggestTodo(FAQUrl.CLIENT_INSTACNCE_NAME_DUPLICATE_URL), e);
         }
     }
@@ -229,7 +229,7 @@ public class MQClientFactory {
                 this.serviceState = ServiceState.RUNNING;
                 // TODO
                 if (null == this.mQClientConfig.getNamesrvAddr()) {
-                	this.mQClientConfig.setNamesrvAddr(this.mQClientAPIImpl.fetchNameServerAddr());
+                    this.mQClientConfig.setNamesrvAddr(this.mQClientAPIImpl.fetchNameServerAddr());
                 }
 
                 this.startScheduledTask();
@@ -633,7 +633,7 @@ public class MQClientFactory {
             // 排序原因：即使没有配置顺序消息模式，默认队列的顺序同配置的一致。
             Collections.sort(qds);
             for (QueueData qd : qds) {
-                if (MixAll.isWriteable(qd.getPerm())) {
+                if (PermName.isWriteable(qd.getPerm())) {
                     for (int i = 0; i < qd.getWriteQueueNums(); i++) {
                         MessageQueue mq = new MessageQueue(topic, qd.getBrokerName(), i);
                         info.getMessageQueueList().add(mq);
@@ -653,7 +653,7 @@ public class MQClientFactory {
         List<MessageQueue> mqList = new ArrayList<MessageQueue>();
         List<QueueData> qds = route.getQueueDatas();
         for (QueueData qd : qds) {
-            if (MixAll.isReadable(qd.getPerm())) {
+            if (PermName.isReadable(qd.getPerm())) {
                 for (int i = 0; i < qd.getWriteQueueNums(); i++) {
                     MessageQueue mq = new MessageQueue(topic, qd.getBrokerName(), i);
                     mqList.add(mq);

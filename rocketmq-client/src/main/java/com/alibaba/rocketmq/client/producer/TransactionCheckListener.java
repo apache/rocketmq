@@ -3,7 +3,7 @@
  */
 package com.alibaba.rocketmq.client.producer;
 
-import com.alibaba.rocketmq.common.MessageExt;
+import com.alibaba.rocketmq.common.message.MessageExt;
 
 
 /**

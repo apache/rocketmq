@@ -35,14 +35,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import sun.management.ManagementFactory;
-
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.LoggerContext;
-import ch.qos.logback.classic.PatternLayout;
 import ch.qos.logback.classic.encoder.PatternLayoutEncoder;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.rolling.RollingFileAppender;
-import ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP;
 import ch.qos.logback.core.rolling.TimeBasedRollingPolicy;
 
 import com.sun.management.OperatingSystemMXBean;
@@ -56,11 +53,6 @@ import com.sun.management.OperatingSystemMXBean;
  * 
  */
 public class MixAll {
-    public static final int PERM_PRIORITY = 0x1 << 3;
-    public static final int PERM_READ = 0x1 << 2;
-    public static final int PERM_WRITE = 0x1 << 1;
-    public static final int PERM_INHERIT = 0x1 << 0;
-
     public static final String ROCKETMQ_HOME_ENV = "ROCKETMQ_HOME";
     public static final String ROCKETMQ_HOME_PROPERTY = "rocketmq.home.dir";
 
@@ -74,13 +66,6 @@ public class MixAll {
     public static final String DEFAULT_PRODUCER_GROUP = "DEFAULT_PRODUCER";
     public static final String DEFAULT_CONSUMER_GROUP = "DEFAULT_CONSUMER";
     public static final String SELF_TEST_TOPIC = "SELF_TEST_TOPIC";
-//    public static final String NamesrvLoggerName = "RocketmqNamesrv";
-//    public static final String BrokerLoggerName = "RocketmqBroker";
-//    public static final String ClientLoggerName = "RocketmqClient";
-//    public static final String ToolsLoggerName = "RocketmqTools";
-//    public static final String CommonLoggerName = "RocketmqCommon";
-//    public static final String StoreLoggerName = "RocketmqStore";
-//    public static final String TransactionLoggerName = "RocketmqTransaction";
     public static final long TotalPhysicalMemorySize = getTotalPhysicalMemorySize();
     public static final List<String> LocalInetAddrs = getLocalInetAddress();
     public static final String Localhost = localhost();
@@ -175,39 +160,6 @@ public class MixAll {
         }
 
         return false;
-    }
-
-
-    public static boolean isReadable(final int perm) {
-        return (perm & PERM_READ) == PERM_READ;
-    }
-
-
-    public static boolean isWriteable(final int perm) {
-        return (perm & PERM_WRITE) == PERM_WRITE;
-    }
-
-
-    public static boolean isInherited(final int perm) {
-        return (perm & PERM_INHERIT) == PERM_INHERIT;
-    }
-
-
-    public static String perm2String(final int perm) {
-        final StringBuffer sb = new StringBuffer("---");
-        if (isReadable(perm)) {
-            sb.replace(0, 1, "R");
-        }
-
-        if (isWriteable(perm)) {
-            sb.replace(1, 2, "W");
-        }
-
-        if (isInherited(perm)) {
-            sb.replace(2, 3, "X");
-        }
-
-        return sb.toString();
     }
 
 
