@@ -106,7 +106,7 @@ public class MQClientFactory {
     private DatagramSocket datagramSocket;
 
 
-    public MQClientFactory(ClientConfig mQClientConfig, int factoryIndex) {
+    public MQClientFactory(ClientConfig mQClientConfig, int factoryIndex, String clientId) {
         this.mQClientConfig = mQClientConfig;
         this.log = MixAll.createLogger(mQClientConfig.getLogFileName());
         this.factoryIndex = factoryIndex;
@@ -120,7 +120,7 @@ public class MQClientFactory {
             log.info("user specfied name server address: {}", this.mQClientConfig.getNamesrvAddr());
         }
 
-        this.clientId = this.buildMQClientId();
+        this.clientId = clientId;
 
         this.mQAdminImpl = new MQAdminImpl(this);
 
@@ -145,17 +145,6 @@ public class MQClientFactory {
             throw new MQClientException("instance name is a duplicate one[" + udpPort + "], please set a new name"
                     + FAQUrl.suggestTodo(FAQUrl.CLIENT_INSTACNCE_NAME_DUPLICATE_URL), e);
         }
-    }
-
-
-    private String buildMQClientId() {
-        StringBuilder sb = new StringBuilder();
-        sb.append(this.mQClientConfig.getClientIP());
-
-        sb.append("@");
-        sb.append(this.mQClientConfig.getInstanceName());
-
-        return sb.toString();
     }
 
 

@@ -33,6 +33,32 @@ public class ClientConfig {
     }
 
 
+    public String buildMQClientId() {
+        StringBuilder sb = new StringBuilder();
+        sb.append(this.getClientIP());
+
+        sb.append("@");
+        sb.append(this.getInstanceName());
+
+        return sb.toString();
+    }
+
+
+    public ClientConfig cloneClientConfig() {
+        ClientConfig cc = new ClientConfig();
+        cc.namesrvAddr = namesrvAddr;
+        cc.logFileName = logFileName;
+        cc.logLevel = logLevel;
+        cc.clientIP = clientIP;
+        cc.instanceName = instanceName;
+        cc.clientCallbackExecutorThreads = clientCallbackExecutorThreads;
+        cc.pollNameServerInteval = pollNameServerInteval;
+        cc.heartbeatBrokerInterval = heartbeatBrokerInterval;
+        cc.uploadConsumerOffsetInterval = uploadConsumerOffsetInterval;
+        return cc;
+    }
+
+
     public String getNamesrvAddr() {
         return namesrvAddr;
     }
@@ -130,73 +156,5 @@ public class ClientConfig {
                 + ", clientCallbackExecutorThreads=" + clientCallbackExecutorThreads + ", pollNameServerInteval="
                 + pollNameServerInteval + ", heartbeatBrokerInterval=" + heartbeatBrokerInterval
                 + ", uploadConsumerOffsetInterval=" + uploadConsumerOffsetInterval + "]";
-    }
-
-
-    @Override
-    public int hashCode() {
-        final int prime = 31;
-        int result = 1;
-        result = prime * result + clientCallbackExecutorThreads;
-        result = prime * result + ((clientIP == null) ? 0 : clientIP.hashCode());
-        result = prime * result + heartbeatBrokerInterval;
-        result = prime * result + ((instanceName == null) ? 0 : instanceName.hashCode());
-        result = prime * result + ((logFileName == null) ? 0 : logFileName.hashCode());
-        result = prime * result + ((logLevel == null) ? 0 : logLevel.hashCode());
-        result = prime * result + ((namesrvAddr == null) ? 0 : namesrvAddr.hashCode());
-        result = prime * result + pollNameServerInteval;
-        result = prime * result + uploadConsumerOffsetInterval;
-        return result;
-    }
-
-
-    @Override
-    public boolean equals(Object obj) {
-        if (this == obj)
-            return true;
-        if (obj == null)
-            return false;
-        if (getClass() != obj.getClass())
-            return false;
-        ClientConfig other = (ClientConfig) obj;
-        if (clientCallbackExecutorThreads != other.clientCallbackExecutorThreads)
-            return false;
-        if (clientIP == null) {
-            if (other.clientIP != null)
-                return false;
-        }
-        else if (!clientIP.equals(other.clientIP))
-            return false;
-        if (heartbeatBrokerInterval != other.heartbeatBrokerInterval)
-            return false;
-        if (instanceName == null) {
-            if (other.instanceName != null)
-                return false;
-        }
-        else if (!instanceName.equals(other.instanceName))
-            return false;
-        if (logFileName == null) {
-            if (other.logFileName != null)
-                return false;
-        }
-        else if (!logFileName.equals(other.logFileName))
-            return false;
-        if (logLevel == null) {
-            if (other.logLevel != null)
-                return false;
-        }
-        else if (!logLevel.equals(other.logLevel))
-            return false;
-        if (namesrvAddr == null) {
-            if (other.namesrvAddr != null)
-                return false;
-        }
-        else if (!namesrvAddr.equals(other.namesrvAddr))
-            return false;
-        if (pollNameServerInteval != other.pollNameServerInteval)
-            return false;
-        if (uploadConsumerOffsetInterval != other.uploadConsumerOffsetInterval)
-            return false;
-        return true;
     }
 }

@@ -19,7 +19,6 @@ import com.alibaba.rocketmq.client.consumer.store.RemoteBrokerOffsetStore;
 import com.alibaba.rocketmq.client.exception.MQBrokerException;
 import com.alibaba.rocketmq.client.exception.MQClientException;
 import com.alibaba.rocketmq.client.impl.CommunicationMode;
-import com.alibaba.rocketmq.client.impl.FindBrokerResult;
 import com.alibaba.rocketmq.client.impl.MQClientManager;
 import com.alibaba.rocketmq.client.impl.factory.MQClientFactory;
 import com.alibaba.rocketmq.common.ServiceState;
@@ -28,8 +27,6 @@ import com.alibaba.rocketmq.common.help.FAQUrl;
 import com.alibaba.rocketmq.common.message.MessageDecoder;
 import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.common.message.MessageQueue;
-import com.alibaba.rocketmq.common.protocol.header.QueryConsumerOffsetRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.UpdateConsumerOffsetRequestHeader;
 import com.alibaba.rocketmq.common.protocol.heartbeat.ConsumeType;
 import com.alibaba.rocketmq.common.protocol.heartbeat.MessageModel;
 import com.alibaba.rocketmq.common.protocol.heartbeat.SubscriptionData;
@@ -62,7 +59,7 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
 
             this.mQClientFactory =
                     MQClientManager.getInstance().getAndCreateMQClientFactory(
-                        this.defaultMQPullConsumer.getClientConfig());
+                        this.defaultMQPullConsumer);
 
             this.pullAPIWrapper = new PullAPIWrapper(//
                 mQClientFactory,//
