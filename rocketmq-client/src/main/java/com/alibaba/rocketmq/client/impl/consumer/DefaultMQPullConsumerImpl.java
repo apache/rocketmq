@@ -58,8 +58,7 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
             this.serviceState = ServiceState.RUNNING;
 
             this.mQClientFactory =
-                    MQClientManager.getInstance().getAndCreateMQClientFactory(
-                        this.defaultMQPullConsumer);
+                    MQClientManager.getInstance().getAndCreateMQClientFactory(this.defaultMQPullConsumer);
 
             this.pullAPIWrapper = new PullAPIWrapper(//
                 mQClientFactory,//
@@ -320,9 +319,9 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
     }
 
 
-    public long fetchConsumeOffset(MessageQueue mq) throws MQClientException {
+    public long fetchConsumeOffset(MessageQueue mq, boolean fromStore) throws MQClientException {
         this.makeSureStateOK();
-        return this.offsetStore.readOffset(mq);
+        return this.offsetStore.readOffset(mq, fromStore);
     }
 
 

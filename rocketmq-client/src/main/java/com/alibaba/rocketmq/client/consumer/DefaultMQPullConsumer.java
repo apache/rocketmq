@@ -175,8 +175,8 @@ public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsume
 
 
     @Override
-    public long fetchConsumeOffset(MessageQueue mq) throws MQClientException {
-        return this.defaultMQPullConsumerImpl.fetchConsumeOffset(mq);
+    public long fetchConsumeOffset(MessageQueue mq, boolean fromStore) throws MQClientException {
+        return this.defaultMQPullConsumerImpl.fetchConsumeOffset(mq, fromStore);
     }
 
 

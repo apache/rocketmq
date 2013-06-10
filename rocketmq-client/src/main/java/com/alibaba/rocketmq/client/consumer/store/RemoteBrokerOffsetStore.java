@@ -105,9 +105,12 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
 
 
     @Override
-    public long readOffset(MessageQueue mq) {
+    public long readOffset(MessageQueue mq, boolean fromStore) {
         if (mq != null) {
             AtomicLong offset = this.offsetTable.get(mq);
+            if (fromStore)
+                offset = null;
+
             if (null == offset) {
                 try {
                     long brokerOffset = this.fetchConsumeOffsetFromBroker(mq);
@@ -139,4 +142,5 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
             }
         }
     }
+
 }
