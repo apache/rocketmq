@@ -20,12 +20,13 @@ public class LocalFileOffsetStore implements OffsetStore {
 
 
     @Override
-    public long readOffset(MessageQueue mq) {
-        return 0;
+    public void persistAll() {
     }
 
 
     @Override
-    public void persistAll() {
+    public long readOffset(MessageQueue mq, boolean fromStore) {
+        // TODO Auto-generated method stub
+        return 0;
     }
 }

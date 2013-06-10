@@ -100,10 +100,29 @@ public interface MQPullConsumer extends MQConsumer {
             InterruptedException;
 
 
+    /**
+     * 更新消费进度<br>
+     * 只是更新Consumer缓存中的数据，如果是广播模式，则定时更新到本地存储<br>
+     * 如果是集群模式，则定时更新到远端Broker<br>
+     * 
+     * P.S. 可频繁调用，无性能开销
+     * 
+     * @param mq
+     * @param offset
+     * @throws MQClientException
+     */
     public void updateConsumeOffset(final MessageQueue mq, final long offset) throws MQClientException;
 
 
-    public long fetchConsumeOffset(final MessageQueue mq) throws MQClientException;
+    /**
+     * 获取消费进度，返回-1表示出错
+     * 
+     * @param mq
+     * @param fromStore
+     * @return
+     * @throws MQClientException
+     */
+    public long fetchConsumeOffset(final MessageQueue mq, final boolean fromStore) throws MQClientException;
 
 
     /**
