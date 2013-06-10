@@ -8,15 +8,11 @@ import org.slf4j.Logger;
 
 import com.alibaba.rocketmq.client.impl.factory.MQClientFactory;
 import com.alibaba.rocketmq.client.impl.producer.MQProducerInner;
-import com.alibaba.rocketmq.client.producer.LocalTransactionState;
-import com.alibaba.rocketmq.client.producer.TransactionCheckListener;
 import com.alibaba.rocketmq.common.message.Message;
 import com.alibaba.rocketmq.common.message.MessageDecoder;
 import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.common.protocol.MQProtos.MQRequestCode;
 import com.alibaba.rocketmq.common.protocol.header.CheckTransactionStateRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.EndTransactionRequestHeader;
-import com.alibaba.rocketmq.common.sysflag.MessageSysFlag;
 import com.alibaba.rocketmq.remoting.common.RemotingHelper;
 import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
 import com.alibaba.rocketmq.remoting.netty.NettyRequestProcessor;

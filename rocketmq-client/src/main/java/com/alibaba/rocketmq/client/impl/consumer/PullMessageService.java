@@ -6,10 +6,8 @@ package com.alibaba.rocketmq.client.impl.consumer;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
 
-import com.alibaba.rocketmq.client.impl.CommunicationMode;
 import com.alibaba.rocketmq.client.impl.factory.MQClientFactory;
 import com.alibaba.rocketmq.common.ServiceThread;
-import com.alibaba.rocketmq.common.sysflag.PullSysFlag;
 
 
 /**
