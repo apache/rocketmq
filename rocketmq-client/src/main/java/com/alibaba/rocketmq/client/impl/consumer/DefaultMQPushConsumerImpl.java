@@ -57,8 +57,7 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
             this.serviceState = ServiceState.RUNNING;
 
             this.mQClientFactory =
-                    MQClientManager.getInstance().getAndCreateMQClientFactory(
-                        this.defaultMQPushConsumer.getClientConfig());
+                    MQClientManager.getInstance().getAndCreateMQClientFactory(this.defaultMQPushConsumer);
 
             this.pullAPIWrapper = new PullAPIWrapper(//
                 mQClientFactory,//

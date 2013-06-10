@@ -121,8 +121,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             this.serviceState = ServiceState.RUNNING;
 
             this.mQClientFactory =
-                    MQClientManager.getInstance().getAndCreateMQClientFactory(
-                        this.defaultMQProducer.getMQClientConfig());
+                    MQClientManager.getInstance().getAndCreateMQClientFactory(this.defaultMQProducer);
 
             boolean registerOK = mQClientFactory.registerProducer(this.defaultMQProducer.getProducerGroup(), this);
             if (!registerOK) {

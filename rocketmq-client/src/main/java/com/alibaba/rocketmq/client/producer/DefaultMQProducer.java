@@ -25,11 +25,7 @@ import com.alibaba.rocketmq.remoting.exception.RemotingException;
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  */
-public class DefaultMQProducer implements MQProducer {
-    /**
-     * 客户端公共配置，不建议修改
-     */
-    private ClientConfig mQClientConfig = new ClientConfig();
+public class DefaultMQProducer extends ClientConfig implements MQProducer {
     /**
      * 一般发送同样消息的Producer，归为同一个Group，应用必须设置，并保证命名唯一
      */
@@ -194,16 +190,6 @@ public class DefaultMQProducer implements MQProducer {
     public void sendOneway(Message msg, MessageQueueSelector selector, Object arg) throws MQClientException,
             RemotingException, InterruptedException {
         this.defaultMQProducerImpl.sendOneway(msg, selector, arg);
-    }
-
-
-    public ClientConfig getMQClientConfig() {
-        return mQClientConfig;
-    }
-
-
-    public void setMQClientConfig(ClientConfig mQClientConfig) {
-        this.mQClientConfig = mQClientConfig;
     }
 
 

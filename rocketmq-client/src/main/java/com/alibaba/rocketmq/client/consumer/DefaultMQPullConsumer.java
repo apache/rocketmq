@@ -25,11 +25,7 @@ import com.alibaba.rocketmq.remoting.exception.RemotingException;
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  */
-public class DefaultMQPullConsumer implements MQPullConsumer {
-    /**
-     * 客户端公共配置，不建议修改
-     */
-    private ClientConfig clientConfig = new ClientConfig();
+public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsumer {
     /**
      * 做同样事情的Consumer归为同一个Group，应用必须设置，并保证命名唯一
      */
@@ -193,16 +189,6 @@ public class DefaultMQPullConsumer implements MQPullConsumer {
     @Override
     public List<MessageQueue> fetchSubscribeMessageQueues(String topic) throws MQClientException {
         return this.defaultMQPullConsumerImpl.fetchSubscribeMessageQueues(topic);
-    }
-
-
-    public ClientConfig getClientConfig() {
-        return clientConfig;
-    }
-
-
-    public void setClientConfig(ClientConfig clientConfig) {
-        this.clientConfig = clientConfig;
     }
 
 
