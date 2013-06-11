@@ -111,7 +111,7 @@ public class MQClientAPIImpl {
         catch (Exception e) {
             // log.error(e);
         }
-		return nameSrvAddr;
+        return nameSrvAddr;
     }
 
 
@@ -669,10 +669,12 @@ public class MQClientAPIImpl {
     public void endTransaction(//
             final String addr,//
             final EndTransactionRequestHeader requestHeader,//
+            final String remark,//
             final long timeoutMillis//
     ) throws RemotingException, MQBrokerException, InterruptedException {
         RemotingCommand request =
                 RemotingCommand.createRequestCommand(MQRequestCode.END_TRANSACTION_VALUE, requestHeader);
+        request.setRemark(remark);
         RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
         assert response != null;
         switch (response.getCode()) {
@@ -768,7 +770,7 @@ public class MQClientAPIImpl {
         BrokerData bd = new BrokerData();
 
         HashMap<Long/* brokerId */, String/* broker address */> brokerAddrs = new HashMap<Long, String>();
-        //brokerAddrs.put(0L, "10.235.170.21:10911");
+        // brokerAddrs.put(0L, "10.235.170.21:10911");
         brokerAddrs.put(0L, "127.0.0.1:10911");
 
         bd.setBrokerName("dev170021.sqa.cm6");

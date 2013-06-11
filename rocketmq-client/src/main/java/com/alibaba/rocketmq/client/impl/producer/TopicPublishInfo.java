@@ -77,4 +77,11 @@ public class TopicPublishInfo {
             return this.messageQueueList.get(pos);
         }
     }
+
+
+    @Override
+    public String toString() {
+        return "TopicPublishInfo [orderTopic=" + orderTopic + ", messageQueueList=" + messageQueueList
+                + ", sendWhichQueue=" + sendWhichQueue + "]";
+    }
 }
