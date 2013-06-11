@@ -30,6 +30,7 @@ import com.alibaba.rocketmq.client.impl.ClientRemotingProcessor;
 import com.alibaba.rocketmq.client.impl.FindBrokerResult;
 import com.alibaba.rocketmq.client.impl.MQAdminImpl;
 import com.alibaba.rocketmq.client.impl.MQClientAPIImpl;
+import com.alibaba.rocketmq.client.impl.MQClientManager;
 import com.alibaba.rocketmq.client.impl.consumer.MQConsumerInner;
 import com.alibaba.rocketmq.client.impl.consumer.PullMessageService;
 import com.alibaba.rocketmq.client.impl.producer.DefaultMQProducerImpl;
@@ -220,15 +221,14 @@ public class MQClientFactory {
                 this.makesureInstanceNameIsOnly(this.mQClientConfig.getInstanceName());
 
                 this.serviceState = ServiceState.RUNNING;
-                // TODO
                 if (null == this.mQClientConfig.getNamesrvAddr()) {
                     this.mQClientConfig.setNamesrvAddr(this.mQClientAPIImpl.fetchNameServerAddr());
                 }
 
                 this.startScheduledTask();
                 this.mQClientAPIImpl.start();
-
                 this.pullMessageService.start();
+                log.info("the client factory [{}] start OK", this.clientId);
                 break;
             case RUNNING:
                 break;
@@ -264,6 +264,8 @@ public class MQClientFactory {
                     this.datagramSocket.close();
                     this.datagramSocket = null;
                 }
+                MQClientManager.getInstance().removeClientFactory(this.clientId);
+                log.info("the client factory [{}] shutdown OK", this.clientId);
                 break;
             case SHUTDOWN_ALREADY:
                 break;
