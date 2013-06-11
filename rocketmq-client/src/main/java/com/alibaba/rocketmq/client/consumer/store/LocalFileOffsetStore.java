@@ -1,5 +1,9 @@
 package com.alibaba.rocketmq.client.consumer.store;
 
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
+
+import com.alibaba.rocketmq.client.impl.factory.MQClientFactory;
 import com.alibaba.rocketmq.common.message.MessageQueue;
 
 
@@ -9,6 +13,18 @@ import com.alibaba.rocketmq.common.message.MessageQueue;
  * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public class LocalFileOffsetStore implements OffsetStore {
+    private final MQClientFactory mQClientFactory;
+    private final String groupName;
+    private ConcurrentHashMap<MessageQueue, AtomicLong> offsetTable =
+            new ConcurrentHashMap<MessageQueue, AtomicLong>();
+
+
+    public LocalFileOffsetStore(MQClientFactory mQClientFactory, String groupName) {
+        this.mQClientFactory = mQClientFactory;
+        this.groupName = groupName;
+    }
+
+
     @Override
     public void load() {
     }

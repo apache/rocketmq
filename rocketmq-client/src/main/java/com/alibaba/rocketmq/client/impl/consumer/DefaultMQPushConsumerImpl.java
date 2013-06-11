@@ -67,7 +67,9 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
             // 广播消费/集群消费
             switch (this.defaultMQPushConsumer.getMessageModel()) {
             case BROADCASTING:
-                this.offsetStore = new LocalFileOffsetStore();
+                this.offsetStore =
+                        new LocalFileOffsetStore(this.mQClientFactory,
+                            this.defaultMQPushConsumer.getConsumerGroup());
                 break;
             case CLUSTERING:
                 this.offsetStore =
