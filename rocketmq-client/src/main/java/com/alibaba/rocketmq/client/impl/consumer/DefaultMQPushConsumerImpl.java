@@ -309,6 +309,10 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
             @Override
             public void onSuccess(PullResult pullResult) {
                 if (pullResult != null) {
+                    pullResult =
+                            DefaultMQPushConsumerImpl.this.pullAPIWrapper.processPullResult(
+                                pullRequest.getMessageQueue(), pullResult);
+
                     switch (pullResult.getPullStatus()) {
                     case FOUND:
                         processQueue.putMessage(pullResult.getMsgFoundList());
