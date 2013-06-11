@@ -10,10 +10,13 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
+import org.slf4j.Logger;
+
 import com.alibaba.rocketmq.client.consumer.DefaultMQPushConsumer;
 import com.alibaba.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext;
 import com.alibaba.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
 import com.alibaba.rocketmq.client.consumer.listener.MessageListenerConcurrently;
+import com.alibaba.rocketmq.client.log.ClientLogger;
 import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.common.message.MessageQueue;
 
@@ -24,6 +27,7 @@ import com.alibaba.rocketmq.common.message.MessageQueue;
  * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public class ConsumeMessageConcurrentlyService implements ConsumeMessageService {
+    private static final Logger log = ClientLogger.getLog();
     private final DefaultMQPushConsumerImpl defaultMQPushConsumerImpl;
     private final DefaultMQPushConsumer defaultMQPushConsumer;
     private final MessageListenerConcurrently messageListenerConcurrently;
@@ -87,13 +91,77 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
             MessageListenerConcurrently listener =
                     ConsumeMessageConcurrentlyService.this.messageListenerConcurrently;
             ConsumeConcurrentlyContext context = new ConsumeConcurrentlyContext(messageQueue);
+            ConsumeConcurrentlyStatus status = null;
             try {
-                ConsumeConcurrentlyStatus status = listener.consumeMessage(msgs, context);
+                status = listener.consumeMessage(msgs, context);
             }
             catch (Throwable e) {
+                log.warn("consumeMessage exception, Group: "
+                        + ConsumeMessageConcurrentlyService.this.consumerGroup//
+                        + " Message: " + msgs//
+                        + " MessageQueue: " + messageQueue, e);
             }
+
+            if (null == status) {
+                status = ConsumeConcurrentlyStatus.RECONSUME_LATER;
+            }
+
+            ConsumeMessageConcurrentlyService.this.processConsumeResult(status, context, this);
         }
 
+
+        public List<MessageExt> getMsgs() {
+            return msgs;
+        }
+
+
+        public ProcessQueue getProcessQueue() {
+            return processQueue;
+        }
+
+
+        public MessageQueue getMessageQueue() {
+            return messageQueue;
+        }
+    }
+
+
+    public void processConsumeResult(//
+            final ConsumeConcurrentlyStatus status, //
+            final ConsumeConcurrentlyContext context, //
+            final ConsumeRequest consumeRequest//
+    ) {
+        int ackIndex = context.getAckIndex();
+
+        switch (status) {
+        case CONSUME_SUCCESS:
+            if (ackIndex >= consumeRequest.getMsgs().size()) {
+                ackIndex = consumeRequest.getMsgs().size() - 1;
+            }
+            break;
+        case RECONSUME_LATER:
+            ackIndex = 0;
+            break;
+        default:
+            break;
+        }
+
+        switch (this.defaultMQPushConsumer.getMessageModel()) {
+        case BROADCASTING:
+            // 如果是广播模式，直接丢弃失败消息，需要在文档中告知用户
+            // 这样做的原因：广播模式对于失败重试代价过高，对整个集群性能会有较大影响，失败重试功能交由应用处理
+            break;
+        case CLUSTERING:
+            // 处理消费失败的消息，直接发回到Broker
+            for (int i = ackIndex + 1; i < consumeRequest.getMsgs().size(); i++) {
+                // TODO
+            }
+            break;
+        default:
+            break;
+        }
+
+        consumeRequest.getProcessQueue().removeMessage(consumeRequest.getMsgs());
     }
 
 
