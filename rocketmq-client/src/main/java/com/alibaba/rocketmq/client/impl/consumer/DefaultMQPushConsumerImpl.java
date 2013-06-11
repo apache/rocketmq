@@ -86,6 +86,9 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
                 break;
             }
 
+            // 加载消费进度
+            this.offsetStore.load();
+
             boolean registerOK =
                     mQClientFactory.registerConsumer(this.defaultMQPushConsumer.getConsumerGroup(), this);
             if (!registerOK) {
