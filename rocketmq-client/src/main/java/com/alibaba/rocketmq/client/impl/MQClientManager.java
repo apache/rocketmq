@@ -52,4 +52,9 @@ public class MQClientManager {
 
         return factory;
     }
+
+
+    public void removeClientFactory(final String clientId) {
+        this.factoryTable.remove(clientId);
+    }
 }

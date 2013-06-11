@@ -46,6 +46,8 @@ public class PullMessageService extends ServiceThread {
 
     @Override
     public void run() {
+        log.info(this.getServiceName() + " service started");
+
         while (!this.isStoped()) {
             try {
                 PullRequest pullRequest = this.pullRequestQueue.take();
@@ -57,6 +59,8 @@ public class PullMessageService extends ServiceThread {
                 log.error("Pull Message Service Run Method exception", e);
             }
         }
+
+        log.info(this.getServiceName() + " service end");
     }
 
 
