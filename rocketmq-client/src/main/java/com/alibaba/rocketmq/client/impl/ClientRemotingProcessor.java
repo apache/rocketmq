@@ -8,6 +8,7 @@ import org.slf4j.Logger;
 
 import com.alibaba.rocketmq.client.impl.factory.MQClientFactory;
 import com.alibaba.rocketmq.client.impl.producer.MQProducerInner;
+import com.alibaba.rocketmq.client.log.ClientLogger;
 import com.alibaba.rocketmq.common.message.Message;
 import com.alibaba.rocketmq.common.message.MessageDecoder;
 import com.alibaba.rocketmq.common.message.MessageExt;
@@ -25,12 +26,11 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
  * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public class ClientRemotingProcessor implements NettyRequestProcessor {
-    private final Logger log;
+    private final Logger log = ClientLogger.getLog();
     private final MQClientFactory mqClientFactory;
 
 
-    public ClientRemotingProcessor(final MQClientFactory mqClientFactory, final Logger log) {
-        this.log = log;
+    public ClientRemotingProcessor(final MQClientFactory mqClientFactory) {
         this.mqClientFactory = mqClientFactory;
     }
 

@@ -6,7 +6,10 @@ package com.alibaba.rocketmq.client.impl.consumer;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
 
+import org.slf4j.Logger;
+
 import com.alibaba.rocketmq.client.impl.factory.MQClientFactory;
+import com.alibaba.rocketmq.client.log.ClientLogger;
 import com.alibaba.rocketmq.common.ServiceThread;
 
 
@@ -16,6 +19,7 @@ import com.alibaba.rocketmq.common.ServiceThread;
  * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public class PullMessageService extends ServiceThread {
+    private final Logger log = ClientLogger.getLog();
     private final LinkedBlockingQueue<PullRequest> pullRequestQueue = new LinkedBlockingQueue<PullRequest>();
     private final MQClientFactory mQClientFactory;
     // 与Factory对象共用一个定时对象
