@@ -18,8 +18,8 @@ public enum MessageModel {
      * 集群模型
      */
     CLUSTERING,
-    /**
-     * 未知，如果是主动消费，很难确定应用的消息模型
-     */
-    UNKNOWNS,
+//    /**
+//     * 未知，如果是主动消费，很难确定应用的消息模型
+//     */
+//    UNKNOWNS,
 }

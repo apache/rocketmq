@@ -83,8 +83,6 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
                         new RemoteBrokerOffsetStore(this.mQClientFactory,
                             this.defaultMQPushConsumer.getConsumerGroup());
                 break;
-            case UNKNOWNS:
-                break;
             default:
                 break;
             }

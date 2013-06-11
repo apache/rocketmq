@@ -49,6 +49,25 @@ public class ProcessQueue {
     }
 
 
+    public void removeMessage(final List<MessageExt> msgs) {
+        try {
+            this.lockTreeMap.writeLock().lockInterruptibly();
+            try {
+                for (MessageExt msg : msgs) {
+                    msgTreeMap.remove(msg.getQueueOffset());
+                }
+                msgCount.addAndGet(msgs.size() * (-1));
+            }
+            finally {
+                this.lockTreeMap.writeLock().unlock();
+            }
+        }
+        catch (InterruptedException e) {
+            log.error("removeMessage exception", e);
+        }
+    }
+
+
     public void setLocked(boolean locked) {
         this.locked = locked;
     }

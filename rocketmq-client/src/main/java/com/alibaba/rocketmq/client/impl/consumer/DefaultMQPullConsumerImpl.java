@@ -78,8 +78,6 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
                         new RemoteBrokerOffsetStore(this.mQClientFactory,
                             this.defaultMQPullConsumer.getConsumerGroup());
                 break;
-            case UNKNOWNS:
-                break;
             default:
                 break;
             }
@@ -327,7 +325,7 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
 
     @Override
     public MessageModel getMessageModel() {
-        return MessageModel.UNKNOWNS;
+        return this.defaultMQPullConsumer.getMessageModel();
     }
 
 
