@@ -97,6 +97,7 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
             }
 
             mQClientFactory.start();
+            log.info("the consumer [{}] start OK", this.defaultMQPullConsumer.getConsumerGroup());
             break;
         case RUNNING:
             break;
@@ -117,6 +118,7 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
             this.persistConsumerOffset();
             this.mQClientFactory.unregisterConsumer(this.defaultMQPullConsumer.getConsumerGroup());
             this.mQClientFactory.shutdown();
+            log.info("the consumer [{}] shutdown OK", this.defaultMQPullConsumer.getConsumerGroup());
             break;
         case SHUTDOWN_ALREADY:
             break;
@@ -213,27 +215,7 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
                     this.defaultMQPullConsumer.getBrokerSuspendMaxTimeMillis(), timeoutMillis,
                     CommunicationMode.SYNC, null);
 
-        return this.processPullResult(mq, pullResult);
-    }
-
-
-    /**
-     * 对拉取结果进行处理，主要是消息反序列化
-     */
-    private PullResult processPullResult(final MessageQueue mq, final PullResult pullResult) {
-        PullResultExt pullResultExt = (PullResultExt) pullResult;
-
-        this.pullAPIWrapper.updatePullFromWhichNode(mq, pullResultExt.isSuggestPullingFromSlave());
-        if (PullStatus.FOUND == pullResult.getPullStatus()) {
-            ByteBuffer byteBuffer = ByteBuffer.wrap(pullResultExt.getMessageBinary());
-            List<MessageExt> msgList = MessageDecoder.decodes(byteBuffer);
-            pullResultExt.setMsgFoundList(msgList);
-        }
-
-        // 令GC释放内存
-        pullResultExt.setMessageBinary(null);
-
-        return pullResult;
+        return this.pullAPIWrapper.processPullResult(mq, pullResult);
     }
 
 
@@ -279,7 +261,8 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
 
                     @Override
                     public void onSuccess(PullResult pullResult) {
-                        pullCallback.onSuccess(DefaultMQPullConsumerImpl.this.processPullResult(mq, pullResult));
+                        pullCallback.onSuccess(DefaultMQPullConsumerImpl.this.pullAPIWrapper.processPullResult(mq,
+                            pullResult));
                     }
 
 
@@ -330,68 +313,6 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
         return this.offsetStore.readOffset(mq, fromStore);
     }
 
-
-    // /**
-    // * 更新Consumer Offset，在Master断网期间，可能会更新到Slave，这里需要优化，或者在Slave端优化， TODO
-    // */
-    // public void updateConsumeOffsetToBroker(MessageQueue mq, long offset)
-    // throws RemotingException,
-    // MQBrokerException, InterruptedException, MQClientException {
-    // FindBrokerResult findBrokerResult =
-    // this.mQClientFactory.findBrokerAddressInAdmin(mq.getBrokerName());
-    // if (null == findBrokerResult) {
-    // // TODO 此处可能对Name Server压力过大，需要调优
-    // this.mQClientFactory.updateTopicRouteInfoFromNameServer(mq.getTopic());
-    // findBrokerResult =
-    // this.mQClientFactory.findBrokerAddressInAdmin(mq.getBrokerName());
-    // }
-    //
-    // if (findBrokerResult != null) {
-    // UpdateConsumerOffsetRequestHeader requestHeader = new
-    // UpdateConsumerOffsetRequestHeader();
-    // requestHeader.setTopic(mq.getTopic());
-    // requestHeader.setConsumerGroup(this.defaultMQPullConsumer.getConsumerGroup());
-    // requestHeader.setQueueId(mq.getQueueId());
-    // requestHeader.setCommitOffset(offset);
-    //
-    // this.mQClientFactory.getMQClientAPIImpl().updateConsumerOffset(findBrokerResult.getBrokerAddr(),
-    // requestHeader, 1000 * 5);
-    // }
-    // else {
-    // throw new MQClientException("The broker[" + mq.getBrokerName() +
-    // "] not exist", null);
-    // }
-    // }
-    //
-    //
-    // public long fetchConsumeOffsetFromBroker(MessageQueue mq) throws
-    // RemotingException, MQBrokerException,
-    // InterruptedException, MQClientException {
-    // FindBrokerResult findBrokerResult =
-    // this.mQClientFactory.findBrokerAddressInAdmin(mq.getBrokerName());
-    // if (null == findBrokerResult) {
-    // // TODO 此处可能对Name Server压力过大，需要调优
-    // this.mQClientFactory.updateTopicRouteInfoFromNameServer(mq.getTopic());
-    // findBrokerResult =
-    // this.mQClientFactory.findBrokerAddressInAdmin(mq.getBrokerName());
-    // }
-    //
-    // if (findBrokerResult != null) {
-    // QueryConsumerOffsetRequestHeader requestHeader = new
-    // QueryConsumerOffsetRequestHeader();
-    // requestHeader.setTopic(mq.getTopic());
-    // requestHeader.setConsumerGroup(this.defaultMQPullConsumer.getConsumerGroup());
-    // requestHeader.setQueueId(mq.getQueueId());
-    //
-    // return
-    // this.mQClientFactory.getMQClientAPIImpl().queryConsumerOffset(findBrokerResult.getBrokerAddr(),
-    // requestHeader, 1000 * 5);
-    // }
-    // else {
-    // throw new MQClientException("The broker[" + mq.getBrokerName() +
-    // "] not exist", null);
-    // }
-    // }
 
     public List<MessageQueue> fetchMessageQueuesInBalance(String topic) {
         // TODO Auto-generated method stub
@@ -448,7 +369,7 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
             this.offsetStore.persistAll();
         }
         catch (MQClientException e) {
-            // TODO log
+            log.error("persistConsumerOffset exception", e);
         }
     }
 }
