@@ -17,20 +17,12 @@ import com.alibaba.rocketmq.remoting.common.RemotingUtil;
 public class ClientConfig {
     private String namesrvAddr = System.getProperty(MixAll.NAMESRV_ADDR_PROPERTY,
         System.getenv(MixAll.NAMESRV_ADDR_ENV));
-    private String logFileName = defaultClientLogFileName();
-    private String logLevel = "INFO";
     private String clientIP = RemotingUtil.getLocalAddress();
     private String instanceName = System.getProperty("rocketmq.client.name", "DEFAULT");
     private int clientCallbackExecutorThreads = 5;
     private int pollNameServerInteval = 1000 * 30;
     private int heartbeatBrokerInterval = 1000 * 30;
     private int uploadConsumerOffsetInterval = 1000 * 5;
-
-
-    public static String defaultClientLogFileName() {
-        return System.getProperty("user.home") + File.separator + "rocketmqlogs" + File.separator
-                + "rocketmq_client.log";
-    }
 
 
     public String buildMQClientId() {
@@ -47,8 +39,6 @@ public class ClientConfig {
     public ClientConfig cloneClientConfig() {
         ClientConfig cc = new ClientConfig();
         cc.namesrvAddr = namesrvAddr;
-        cc.logFileName = logFileName;
-        cc.logLevel = logLevel;
         cc.clientIP = clientIP;
         cc.instanceName = instanceName;
         cc.clientCallbackExecutorThreads = clientCallbackExecutorThreads;
@@ -66,26 +56,6 @@ public class ClientConfig {
 
     public void setNamesrvAddr(String namesrvAddr) {
         this.namesrvAddr = namesrvAddr;
-    }
-
-
-    public String getLogFileName() {
-        return logFileName;
-    }
-
-
-    public void setLogFileName(String logFileName) {
-        this.logFileName = logFileName;
-    }
-
-
-    public String getLogLevel() {
-        return logLevel;
-    }
-
-
-    public void setLogLevel(String logLevel) {
-        this.logLevel = logLevel;
     }
 
 
@@ -151,10 +121,9 @@ public class ClientConfig {
 
     @Override
     public String toString() {
-        return "MQClientConfig [namesrvAddr=" + namesrvAddr + ", logFileName=" + logFileName + ", logLevel="
-                + logLevel + ", clientIP=" + clientIP + ", instanceName=" + instanceName
-                + ", clientCallbackExecutorThreads=" + clientCallbackExecutorThreads + ", pollNameServerInteval="
-                + pollNameServerInteval + ", heartbeatBrokerInterval=" + heartbeatBrokerInterval
-                + ", uploadConsumerOffsetInterval=" + uploadConsumerOffsetInterval + "]";
+        return "ClientConfig [namesrvAddr=" + namesrvAddr + ", clientIP=" + clientIP + ", instanceName="
+                + instanceName + ", clientCallbackExecutorThreads=" + clientCallbackExecutorThreads
+                + ", pollNameServerInteval=" + pollNameServerInteval + ", heartbeatBrokerInterval="
+                + heartbeatBrokerInterval + ", uploadConsumerOffsetInterval=" + uploadConsumerOffsetInterval + "]";
     }
 }
