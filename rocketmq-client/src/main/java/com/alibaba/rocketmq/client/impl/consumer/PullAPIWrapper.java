@@ -3,17 +3,22 @@
  */
 package com.alibaba.rocketmq.client.impl.consumer;
 
+import java.nio.ByteBuffer;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.alibaba.rocketmq.client.consumer.PullCallback;
 import com.alibaba.rocketmq.client.consumer.ConsumeFromWhichNode;
 import com.alibaba.rocketmq.client.consumer.PullResult;
+import com.alibaba.rocketmq.client.consumer.PullStatus;
 import com.alibaba.rocketmq.client.exception.MQBrokerException;
 import com.alibaba.rocketmq.client.exception.MQClientException;
 import com.alibaba.rocketmq.client.impl.CommunicationMode;
 import com.alibaba.rocketmq.client.impl.FindBrokerResult;
 import com.alibaba.rocketmq.client.impl.factory.MQClientFactory;
+import com.alibaba.rocketmq.common.message.MessageDecoder;
+import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.common.message.MessageQueue;
 import com.alibaba.rocketmq.common.protocol.header.PullMessageRequestHeader;
 import com.alibaba.rocketmq.common.sysflag.PullSysFlag;
@@ -51,6 +56,26 @@ public class PullAPIWrapper {
         else {
             suggest.set(suggestPullingFromSlave);
         }
+    }
+
+
+    /**
+     * 对拉取结果进行处理，主要是消息反序列化
+     */
+    public PullResult processPullResult(final MessageQueue mq, final PullResult pullResult) {
+        PullResultExt pullResultExt = (PullResultExt) pullResult;
+
+        this.updatePullFromWhichNode(mq, pullResultExt.isSuggestPullingFromSlave());
+        if (PullStatus.FOUND == pullResult.getPullStatus()) {
+            ByteBuffer byteBuffer = ByteBuffer.wrap(pullResultExt.getMessageBinary());
+            List<MessageExt> msgList = MessageDecoder.decodes(byteBuffer);
+            pullResultExt.setMsgFoundList(msgList);
+        }
+
+        // 令GC释放内存
+        pullResultExt.setMessageBinary(null);
+
+        return pullResult;
     }
 
 

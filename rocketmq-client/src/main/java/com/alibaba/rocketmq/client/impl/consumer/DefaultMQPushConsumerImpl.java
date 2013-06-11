@@ -264,7 +264,6 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
             );
 
         PullCallback pullCallback = new PullCallback() {
-
             @Override
             public void onSuccess(PullResult pullResult) {
             }

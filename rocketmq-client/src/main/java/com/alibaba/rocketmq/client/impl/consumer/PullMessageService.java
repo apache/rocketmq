@@ -39,7 +39,7 @@ public class PullMessageService extends ServiceThread {
             impl.pullMessage(pullRequest);
         }
         else {
-            // TODO log
+            log.warn("No matched consumer for the PullRequest {}", pullRequest);
         }
     }
 
@@ -54,7 +54,7 @@ public class PullMessageService extends ServiceThread {
                 }
             }
             catch (Exception e) {
-                // TODO log
+                log.error("Pull Message Service Run Method exception", e);
             }
         }
     }
