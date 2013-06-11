@@ -57,4 +57,9 @@ public class ProcessQueue {
     public TreeMap<Long, MessageExt> getMsgTreeMap() {
         return msgTreeMap;
     }
+
+
+    public AtomicLong getMsgCount() {
+        return msgCount;
+    }
 }

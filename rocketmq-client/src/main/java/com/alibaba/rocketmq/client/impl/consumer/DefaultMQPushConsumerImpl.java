@@ -291,10 +291,19 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
     }
 
     private final long PullTimeDelayMillsWhenException = 3000;
+    private final long PullTimeDelayMillsWhenFlowControl = 1000;
 
 
     public void pullMessage(final PullRequest pullRequest) {
         final ProcessQueue processQueue = this.getAndCreateProcessQueue(pullRequest.getMessageQueue());
+
+        // Á÷Á¿¿ØÖÆ
+        long size = processQueue.getMsgCount().get();
+        if (size > this.defaultMQPushConsumer.getConsumeConcurrentlyMaxSpan()) {
+            this.executePullRequestLater(pullRequest, PullTimeDelayMillsWhenFlowControl);
+            log.warn("the consumer message buffer is full, so do flow control, {} {}", size, pullRequest);
+            return;
+        }
 
         PullCallback pullCallback = new PullCallback() {
             @Override
