@@ -53,6 +53,9 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
     private ConcurrentHashMap<MessageQueue, ProcessQueue> processQueueTable =
             new ConcurrentHashMap<MessageQueue, ProcessQueue>(64);
 
+    // 消费消息服务
+    private ConsumeMessageService consumeMessageService;
+
 
     @Override
     public void start() throws MQClientException {
@@ -319,6 +322,8 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
                     switch (pullResult.getPullStatus()) {
                     case FOUND:
                         processQueue.putMessage(pullResult.getMsgFoundList());
+                        DefaultMQPushConsumerImpl.this.consumeMessageService.submitConsumeRequest(
+                            pullResult.getMsgFoundList(), processQueue, pullRequest.getMessageQueue());
                         break;
                     case NO_NEW_MSG:
                         DefaultMQPushConsumerImpl.this.executePullRequestImmediately(pullRequest);
@@ -391,5 +396,10 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
             log.error("group: " + this.defaultMQPushConsumer.getConsumerGroup()
                     + " persistConsumerOffset exception", e);
         }
+    }
+
+
+    public DefaultMQPushConsumer getDefaultMQPushConsumer() {
+        return defaultMQPushConsumer;
     }
 }

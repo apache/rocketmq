@@ -59,9 +59,13 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
      */
     private MessageListener messageListener;
     /**
-     * 消费消息线程数
+     * 消费消息线程，最小数目
      */
-    private int consumeThreadCount = 10;
+    private int consumeThreadMin = 10;
+    /**
+     * 消费消息线程，最大数目
+     */
+    private int consumeThreadMax = 20;
     /**
      * 同一队列并行消费的最大跨度，顺序消费方式情况下，此参数无效
      */
@@ -263,13 +267,13 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
     }
 
 
-    public int getConsumeThreadCount() {
-        return consumeThreadCount;
+    public int getConsumeThreadMin() {
+        return consumeThreadMin;
     }
 
 
-    public void setConsumeThreadCount(int consumeThreadCount) {
-        this.consumeThreadCount = consumeThreadCount;
+    public void setConsumeThreadMin(int consumeThreadMin) {
+        this.consumeThreadMin = consumeThreadMin;
     }
 
 
@@ -315,5 +319,15 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
 
     public void setMessageModel(MessageModel messageModel) {
         this.messageModel = messageModel;
+    }
+
+
+    public int getConsumeThreadMax() {
+        return consumeThreadMax;
+    }
+
+
+    public void setConsumeThreadMax(int consumeThreadMax) {
+        this.consumeThreadMax = consumeThreadMax;
     }
 }
