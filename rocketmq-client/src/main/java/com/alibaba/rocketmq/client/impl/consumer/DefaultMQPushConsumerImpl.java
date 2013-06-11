@@ -7,6 +7,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.slf4j.Logger;
+
 import com.alibaba.rocketmq.client.QueryResult;
 import com.alibaba.rocketmq.client.consumer.DefaultMQPushConsumer;
 import com.alibaba.rocketmq.client.consumer.MQPushConsumer;
@@ -21,6 +23,7 @@ import com.alibaba.rocketmq.client.exception.MQClientException;
 import com.alibaba.rocketmq.client.impl.CommunicationMode;
 import com.alibaba.rocketmq.client.impl.MQClientManager;
 import com.alibaba.rocketmq.client.impl.factory.MQClientFactory;
+import com.alibaba.rocketmq.client.log.ClientLogger;
 import com.alibaba.rocketmq.common.ServiceState;
 import com.alibaba.rocketmq.common.TopicFilterType;
 import com.alibaba.rocketmq.common.help.FAQUrl;
@@ -37,6 +40,7 @@ import com.alibaba.rocketmq.remoting.exception.RemotingException;
  * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInner {
+    private final Logger log = ClientLogger.getLog();
     private final DefaultMQPushConsumer defaultMQPushConsumer;
     private ServiceState serviceState = ServiceState.CREATE_JUST;
     private MQClientFactory mQClientFactory;

@@ -34,6 +34,7 @@ import com.alibaba.rocketmq.client.impl.consumer.MQConsumerInner;
 import com.alibaba.rocketmq.client.impl.producer.DefaultMQProducerImpl;
 import com.alibaba.rocketmq.client.impl.producer.MQProducerInner;
 import com.alibaba.rocketmq.client.impl.producer.TopicPublishInfo;
+import com.alibaba.rocketmq.client.log.ClientLogger;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.ServiceState;
 import com.alibaba.rocketmq.common.constant.PermName;
@@ -58,7 +59,7 @@ import com.google.protobuf.InvalidProtocolBufferException;
  */
 public class MQClientFactory {
     private ServiceState serviceState = ServiceState.CREATE_JUST;
-    private final Logger log;
+    private final Logger log = ClientLogger.getLog();
     private final ClientConfig mQClientConfig;
     private final int factoryIndex;
     private final String clientId;
@@ -108,11 +109,10 @@ public class MQClientFactory {
 
     public MQClientFactory(ClientConfig mQClientConfig, int factoryIndex, String clientId) {
         this.mQClientConfig = mQClientConfig;
-        this.log = MixAll.createLogger(mQClientConfig.getLogFileName());
         this.factoryIndex = factoryIndex;
         this.nettyClientConfig = new NettyClientConfig();
         this.nettyClientConfig.setClientCallbackExecutorThreads(mQClientConfig.getClientCallbackExecutorThreads());
-        this.clientRemotingProcessor = new ClientRemotingProcessor(this, this.log);
+        this.clientRemotingProcessor = new ClientRemotingProcessor(this);
         this.mQClientAPIImpl = new MQClientAPIImpl(this.nettyClientConfig, this.clientRemotingProcessor);
 
         if (this.mQClientConfig.getNamesrvAddr() != null) {
