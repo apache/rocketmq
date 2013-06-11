@@ -3,7 +3,6 @@
  */
 package com.alibaba.rocketmq.client.impl.consumer;
 
-import java.nio.ByteBuffer;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -14,7 +13,6 @@ import com.alibaba.rocketmq.client.QueryResult;
 import com.alibaba.rocketmq.client.consumer.DefaultMQPullConsumer;
 import com.alibaba.rocketmq.client.consumer.PullCallback;
 import com.alibaba.rocketmq.client.consumer.PullResult;
-import com.alibaba.rocketmq.client.consumer.PullStatus;
 import com.alibaba.rocketmq.client.consumer.store.LocalFileOffsetStore;
 import com.alibaba.rocketmq.client.consumer.store.OffsetStore;
 import com.alibaba.rocketmq.client.consumer.store.RemoteBrokerOffsetStore;
@@ -27,7 +25,6 @@ import com.alibaba.rocketmq.client.log.ClientLogger;
 import com.alibaba.rocketmq.common.ServiceState;
 import com.alibaba.rocketmq.common.TopicFilterType;
 import com.alibaba.rocketmq.common.help.FAQUrl;
-import com.alibaba.rocketmq.common.message.MessageDecoder;
 import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.common.message.MessageQueue;
 import com.alibaba.rocketmq.common.protocol.heartbeat.ConsumeType;
@@ -130,7 +127,7 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
 
     private void makeSureStateOK() throws MQClientException {
         if (this.serviceState != ServiceState.RUNNING) {
-            throw new MQClientException("The producer service state not OK, " + this.serviceState, null);
+            throw new MQClientException("The consumer service state not OK, " + this.serviceState, null);
         }
     }
 
@@ -368,8 +365,9 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
             this.makeSureStateOK();
             this.offsetStore.persistAll();
         }
-        catch (MQClientException e) {
-            log.error("persistConsumerOffset exception", e);
+        catch (Exception e) {
+            log.error("group: " + this.defaultMQPullConsumer.getConsumerGroup()
+                    + " persistConsumerOffset exception", e);
         }
     }
 }
