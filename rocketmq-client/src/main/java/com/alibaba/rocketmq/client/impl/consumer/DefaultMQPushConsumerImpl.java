@@ -145,6 +145,11 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
     }
 
 
+    public void updateConsumeOffset(MessageQueue mq, long offset) {
+        this.offsetStore.updateOffset(mq, offset);
+    }
+
+
     @Override
     public void sendMessageBack(MessageExt msg, MessageQueue mq, int delayLevel) {
         // TODO Auto-generated method stub

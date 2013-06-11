@@ -49,7 +49,13 @@ public class ProcessQueue {
     }
 
 
-    public void removeMessage(final List<MessageExt> msgs) {
+    /**
+     * 删除已经消费过的消息，返回最小Offset，这个Offset对应的消息未消费
+     * 
+     * @param msgs
+     * @return
+     */
+    public long removeMessage(final List<MessageExt> msgs) {
         try {
             this.lockTreeMap.writeLock().lockInterruptibly();
             try {
@@ -57,6 +63,8 @@ public class ProcessQueue {
                     msgTreeMap.remove(msg.getQueueOffset());
                 }
                 msgCount.addAndGet(msgs.size() * (-1));
+
+                return msgTreeMap.firstKey();
             }
             finally {
                 this.lockTreeMap.writeLock().unlock();
@@ -65,6 +73,8 @@ public class ProcessQueue {
         catch (InterruptedException e) {
             log.error("removeMessage exception", e);
         }
+
+        return -1;
     }
 
 

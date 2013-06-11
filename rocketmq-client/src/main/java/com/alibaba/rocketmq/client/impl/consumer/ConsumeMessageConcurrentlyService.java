@@ -156,12 +156,17 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
             for (int i = ackIndex + 1; i < consumeRequest.getMsgs().size(); i++) {
                 // TODO
             }
+
+            // TODO 此过程处理失败的消息，需要在Client中做定时消费，直到成功
             break;
         default:
             break;
         }
 
-        consumeRequest.getProcessQueue().removeMessage(consumeRequest.getMsgs());
+        long offset = consumeRequest.getProcessQueue().removeMessage(consumeRequest.getMsgs());
+        if (offset > 0) {
+            this.defaultMQPushConsumerImpl.updateConsumeOffset(consumeRequest.getMessageQueue(), offset);
+        }
     }
 
 
