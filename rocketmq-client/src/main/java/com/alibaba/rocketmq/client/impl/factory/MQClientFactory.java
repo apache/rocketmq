@@ -31,6 +31,7 @@ import com.alibaba.rocketmq.client.impl.FindBrokerResult;
 import com.alibaba.rocketmq.client.impl.MQAdminImpl;
 import com.alibaba.rocketmq.client.impl.MQClientAPIImpl;
 import com.alibaba.rocketmq.client.impl.consumer.MQConsumerInner;
+import com.alibaba.rocketmq.client.impl.consumer.PullMessageService;
 import com.alibaba.rocketmq.client.impl.producer.DefaultMQProducerImpl;
 import com.alibaba.rocketmq.client.impl.producer.MQProducerInner;
 import com.alibaba.rocketmq.client.impl.producer.TopicPublishInfo;
@@ -105,6 +106,9 @@ public class MQClientFactory {
 
     // 监听一个UDP端口，用来防止同一个Factory启动多份（有可能分布在多个JVM中）
     private DatagramSocket datagramSocket;
+
+    // 拉消息服务
+    private final PullMessageService pullMessageService = new PullMessageService(this);
 
 
     public MQClientFactory(ClientConfig mQClientConfig, int factoryIndex, String clientId) {
@@ -223,6 +227,8 @@ public class MQClientFactory {
 
                 this.startScheduledTask();
                 this.mQClientAPIImpl.start();
+
+                this.pullMessageService.start();
                 break;
             case RUNNING:
                 break;
@@ -250,7 +256,7 @@ public class MQClientFactory {
                 break;
             case RUNNING:
                 this.serviceState = ServiceState.SHUTDOWN_ALREADY;
-                // TODO
+                this.pullMessageService.shutdown(true);
                 this.scheduledExecutorService.shutdown();
                 this.mQClientAPIImpl.shutdown();
 
@@ -258,7 +264,6 @@ public class MQClientFactory {
                     this.datagramSocket.close();
                     this.datagramSocket = null;
                 }
-
                 break;
             case SHUTDOWN_ALREADY:
                 break;

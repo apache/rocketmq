@@ -17,7 +17,6 @@ import java.net.SocketException;
 import java.net.URL;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
-import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
@@ -32,15 +31,8 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import sun.management.ManagementFactory;
-import ch.qos.logback.classic.Level;
-import ch.qos.logback.classic.LoggerContext;
-import ch.qos.logback.classic.encoder.PatternLayoutEncoder;
-import ch.qos.logback.classic.spi.ILoggingEvent;
-import ch.qos.logback.core.rolling.RollingFileAppender;
-import ch.qos.logback.core.rolling.TimeBasedRollingPolicy;
 
 import com.sun.management.OperatingSystemMXBean;
 
@@ -395,50 +387,55 @@ public class MixAll {
         return p1.equals(p2);
     }
 
-//
-//    public static Logger createLogger(final String loggerName) {
-//        Logger logger = LoggerFactory.getLogger(loggerName);
-//        LoggerContext loggerContext = (LoggerContext) LoggerFactory.getILoggerFactory();
-//
-//        ch.qos.logback.classic.Logger newLogger = (ch.qos.logback.classic.Logger) logger;
-//        // Remove all previously added appenders from this logger instance.
-//        newLogger.detachAndStopAllAppenders();
-//
-//        // define appender
-//        RollingFileAppender<ILoggingEvent> appender = new RollingFileAppender<ILoggingEvent>();
-//
-//        // policy
-//        TimeBasedRollingPolicy<ILoggingEvent> rollingPolicy = new TimeBasedRollingPolicy<ILoggingEvent>();
-//        rollingPolicy.setContext(loggerContext);
-//        rollingPolicy.setFileNamePattern(System.getProperty("user.home") + File.separator
-//                + "rocketmqlogs/rocketmq_" + loggerName + "-%d{yyyy-MM-dd}.log");
-//        rollingPolicy.setParent(appender);
-//        rollingPolicy.start();
-//
-//        // encoder
-//        PatternLayoutEncoder encoder = new PatternLayoutEncoder();
-//        encoder.setContext(loggerContext);
-//        encoder.setPattern("%d{yyy-MM-dd HH:mm:ss,GMT+8} %p %t - %m%n");
-//        encoder.setCharset(Charset.forName("UTF-8"));
-//        encoder.start();
-//
-//        // start appender
-//        appender.setRollingPolicy(rollingPolicy);
-//        appender.setContext(loggerContext);
-//        appender.setEncoder(encoder);
-//        appender.setPrudent(true); // support that multiple JVMs can safely
-//                                   // write to the same file.
-//        appender.start();
-//
-//        newLogger.addAppender(appender);
-//
-//        // setup level
-//        newLogger.setLevel(Level.INFO);
-//        // remove the appenders that inherited 'ROOT'.
-//        newLogger.setAdditive(true);
-//        return newLogger;
-//    }
 
+    //
+    // public static Logger createLogger(final String loggerName) {
+    // Logger logger = LoggerFactory.getLogger(loggerName);
+    // LoggerContext loggerContext = (LoggerContext)
+    // LoggerFactory.getILoggerFactory();
+    //
+    // ch.qos.logback.classic.Logger newLogger = (ch.qos.logback.classic.Logger)
+    // logger;
+    // // Remove all previously added appenders from this logger instance.
+    // newLogger.detachAndStopAllAppenders();
+    //
+    // // define appender
+    // RollingFileAppender<ILoggingEvent> appender = new
+    // RollingFileAppender<ILoggingEvent>();
+    //
+    // // policy
+    // TimeBasedRollingPolicy<ILoggingEvent> rollingPolicy = new
+    // TimeBasedRollingPolicy<ILoggingEvent>();
+    // rollingPolicy.setContext(loggerContext);
+    // rollingPolicy.setFileNamePattern(System.getProperty("user.home") +
+    // File.separator
+    // + "rocketmqlogs/rocketmq_" + loggerName + "-%d{yyyy-MM-dd}.log");
+    // rollingPolicy.setParent(appender);
+    // rollingPolicy.start();
+    //
+    // // encoder
+    // PatternLayoutEncoder encoder = new PatternLayoutEncoder();
+    // encoder.setContext(loggerContext);
+    // encoder.setPattern("%d{yyy-MM-dd HH:mm:ss,GMT+8} %p %t - %m%n");
+    // encoder.setCharset(Charset.forName("UTF-8"));
+    // encoder.start();
+    //
+    // // start appender
+    // appender.setRollingPolicy(rollingPolicy);
+    // appender.setContext(loggerContext);
+    // appender.setEncoder(encoder);
+    // appender.setPrudent(true); // support that multiple JVMs can safely
+    // // write to the same file.
+    // appender.start();
+    //
+    // newLogger.addAppender(appender);
+    //
+    // // setup level
+    // newLogger.setLevel(Level.INFO);
+    // // remove the appenders that inherited 'ROOT'.
+    // newLogger.setAdditive(true);
+    // return newLogger;
+    // }
 
     public static List<String> getLocalInetAddress() {
         List<String> inetAddressList = new ArrayList<String>();
