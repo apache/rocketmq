@@ -8,7 +8,7 @@ import com.alibaba.rocketmq.common.message.MessageQueue;
 
 
 /**
- * 消费进度存储到Consumer本地，不是很可靠
+ * 消费进度存储到Consumer本地
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  */

@@ -84,6 +84,9 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
                 break;
             }
 
+            // 加载消费进度
+            this.offsetStore.load();
+
             boolean registerOK =
                     mQClientFactory.registerConsumer(this.defaultMQPullConsumer.getConsumerGroup(), this);
             if (!registerOK) {
