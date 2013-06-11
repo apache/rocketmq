@@ -6,6 +6,7 @@ package com.alibaba.rocketmq.remoting.netty;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.alibaba.rocketmq.remoting.InvokeCallback;
 import com.alibaba.rocketmq.remoting.common.SemaphoreReleaseOnlyOnce;
@@ -27,6 +28,7 @@ public class ResponseFuture {
     private final long beginTimestamp = System.currentTimeMillis();
     private final CountDownLatch countDownLatch = new CountDownLatch(1);
     private final SemaphoreReleaseOnlyOnce once;
+    private final AtomicBoolean executeCallbackOnlyOnce = new AtomicBoolean(false);
 
 
     public ResponseFuture(int opaque, long timeoutMillis, InvokeCallback invokeCallback,
@@ -35,6 +37,15 @@ public class ResponseFuture {
         this.timeoutMillis = timeoutMillis;
         this.invokeCallback = invokeCallback;
         this.once = once;
+    }
+
+
+    public void executeInvokeCallback() {
+        if (invokeCallback != null) {
+            if (this.executeCallbackOnlyOnce.compareAndSet(false, true)) {
+                invokeCallback.operationComplete(this);
+            }
+        }
     }
 
 
