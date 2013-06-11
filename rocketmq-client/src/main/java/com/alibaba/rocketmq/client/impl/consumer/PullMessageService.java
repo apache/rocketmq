@@ -3,8 +3,11 @@
  */
 package com.alibaba.rocketmq.client.impl.consumer;
 
+import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 
@@ -22,13 +25,49 @@ public class PullMessageService extends ServiceThread {
     private final Logger log = ClientLogger.getLog();
     private final LinkedBlockingQueue<PullRequest> pullRequestQueue = new LinkedBlockingQueue<PullRequest>();
     private final MQClientFactory mQClientFactory;
-    // 与Factory对象共用一个定时对象
-    private final ScheduledExecutorService scheduledExecutorService;
+    private final ScheduledExecutorService scheduledExecutorService = Executors
+        .newSingleThreadScheduledExecutor(new ThreadFactory() {
+            @Override
+            public Thread newThread(Runnable r) {
+                return new Thread(r, "PullMessageServiceScheduledThread");
+            }
+        });;
 
 
     public PullMessageService(MQClientFactory mQClientFactory) {
         this.mQClientFactory = mQClientFactory;
-        this.scheduledExecutorService = mQClientFactory.getScheduledExecutorService();
+    }
+
+
+    /**
+     * 只定时一次
+     */
+    public void executePullRequestLater(final PullRequest pullRequest, final long timeDelay) {
+        this.scheduledExecutorService.schedule(new Runnable() {
+
+            @Override
+            public void run() {
+                try {
+                    PullMessageService.this.pullRequestQueue.put(pullRequest);
+                }
+                catch (InterruptedException e) {
+                    log.error("executePullRequestLater pullRequestQueue.put", e);
+                }
+            }
+        }, timeDelay, TimeUnit.MILLISECONDS);
+    }
+
+
+    /**
+     * 立刻执行PullRequest
+     */
+    public void executePullRequestImmediately(final PullRequest pullRequest) {
+        try {
+            this.pullRequestQueue.put(pullRequest);
+        }
+        catch (InterruptedException e) {
+            log.error("executePullRequestImmediately pullRequestQueue.put", e);
+        }
     }
 
 
@@ -39,7 +78,7 @@ public class PullMessageService extends ServiceThread {
             impl.pullMessage(pullRequest);
         }
         else {
-            log.warn("No matched consumer for the PullRequest {}", pullRequest);
+            log.warn("No matched consumer for the PullRequest {}, drop it", pullRequest);
         }
     }
 
@@ -67,5 +106,10 @@ public class PullMessageService extends ServiceThread {
     @Override
     public String getServiceName() {
         return PullMessageService.class.getSimpleName();
+    }
+
+
+    public ScheduledExecutorService getScheduledExecutorService() {
+        return scheduledExecutorService;
     }
 }

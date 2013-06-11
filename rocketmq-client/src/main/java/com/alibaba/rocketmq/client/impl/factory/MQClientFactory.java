@@ -778,4 +778,9 @@ public class MQClientFactory {
     public ScheduledExecutorService getScheduledExecutorService() {
         return scheduledExecutorService;
     }
+
+
+    public PullMessageService getPullMessageService() {
+        return pullMessageService;
+    }
 }

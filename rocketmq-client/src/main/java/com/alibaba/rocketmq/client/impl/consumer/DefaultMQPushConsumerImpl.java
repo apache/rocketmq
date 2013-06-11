@@ -96,6 +96,7 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
             }
 
             mQClientFactory.start();
+            log.info("the consumer [{}] start OK", this.defaultMQPushConsumer.getConsumerGroup());
             break;
         case RUNNING:
             break;
@@ -109,8 +110,29 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
 
     @Override
     public void shutdown() {
-        // TODO Auto-generated method stub
+        switch (this.serviceState) {
+        case CREATE_JUST:
+            break;
+        case RUNNING:
+            this.serviceState = ServiceState.SHUTDOWN_ALREADY;
+            // TODO 存储消费进度时，需要考虑集群模式覆盖掉其他消费者消费进度的问题
+            this.persistConsumerOffset();
+            this.mQClientFactory.unregisterConsumer(this.defaultMQPushConsumer.getConsumerGroup());
+            this.mQClientFactory.shutdown();
+            log.info("the consumer [{}] shutdown OK", this.defaultMQPushConsumer.getConsumerGroup());
+            break;
+        case SHUTDOWN_ALREADY:
+            break;
+        default:
+            break;
+        }
+    }
 
+
+    private void makeSureStateOK() throws MQClientException {
+        if (this.serviceState != ServiceState.RUNNING) {
+            throw new MQClientException("The consumer service state not OK, " + this.serviceState, null);
+        }
     }
 
 
@@ -256,24 +278,72 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
     }
 
 
+    /**
+     * 稍后再执行这个PullRequest
+     */
+    private void executePullRequestLater(final PullRequest pullRequest, final long timeDelay) {
+        this.mQClientFactory.getPullMessageService().executePullRequestLater(pullRequest, timeDelay);
+    }
+
+
+    public void executePullRequestImmediately(final PullRequest pullRequest) {
+        this.mQClientFactory.getPullMessageService().executePullRequestImmediately(pullRequest);
+    }
+
+    private final long PullTimeDelayMillsWhenException = 3000;
+
+
     public void pullMessage(final PullRequest pullRequest) {
-        int sysFlag = PullSysFlag.buildSysFlag(//
-            false, // commitOffset
-            true, // suspend
-            false// subscription
-            );
+        final ProcessQueue processQueue = this.getAndCreateProcessQueue(pullRequest.getMessageQueue());
 
         PullCallback pullCallback = new PullCallback() {
             @Override
             public void onSuccess(PullResult pullResult) {
+                if (pullResult != null) {
+                    switch (pullResult.getPullStatus()) {
+                    case FOUND:
+                        processQueue.putMessage(pullResult.getMsgFoundList());
+                        break;
+                    case NO_NEW_MSG:
+                        DefaultMQPushConsumerImpl.this.executePullRequestImmediately(pullRequest);
+                        break;
+                    case NO_MATCHED_MSG:
+                        pullRequest.setNextOffset(pullResult.getNextBeginOffset());
+                        DefaultMQPushConsumerImpl.this.executePullRequestImmediately(pullRequest);
+                        break;
+                    case OFFSET_ILLEGAL:
+                        log.warn("the pull request offset illegal, {} {}",//
+                            pullRequest.toString(), pullResult.toString());
+                        if (pullRequest.getNextOffset() < pullResult.getMinOffset()) {
+                            pullRequest.setNextOffset(pullResult.getMinOffset());
+                        }
+                        else if (pullRequest.getNextOffset() > pullResult.getMaxOffset()) {
+                            pullRequest.setNextOffset(pullResult.getMaxOffset());
+                        }
+
+                        log.warn("fix the pull request offset, {}", pullRequest);
+                        DefaultMQPushConsumerImpl.this.executePullRequestImmediately(pullRequest);
+                        break;
+                    default:
+                        break;
+                    }
+                }
             }
 
 
             @Override
             public void onException(Throwable e) {
+                log.warn("execute the pull request exception", e);
+                DefaultMQPushConsumerImpl.this.executePullRequestLater(pullRequest,
+                    PullTimeDelayMillsWhenException);
             }
         };
 
+        int sysFlag = PullSysFlag.buildSysFlag(//
+            false, // commitOffset
+            true, // suspend
+            false// subscription
+            );
         try {
             this.pullAPIWrapper.pullKernelImpl(//
                 pullRequest.getMessageQueue(), // 1
@@ -288,27 +358,22 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
                 pullCallback// 10
                 );
         }
-        catch (MQClientException e) {
-            e.printStackTrace();
-        }
-        catch (RemotingException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
-        catch (MQBrokerException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
-        catch (InterruptedException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
+        catch (Exception e) {
+            log.error("pullKernelImpl exception", e);
+            this.executePullRequestLater(pullRequest, PullTimeDelayMillsWhenException);
         }
     }
 
 
     @Override
     public void persistConsumerOffset() {
-        // TODO Auto-generated method stub
-
+        try {
+            this.makeSureStateOK();
+            this.offsetStore.persistAll();
+        }
+        catch (Exception e) {
+            log.error("group: " + this.defaultMQPushConsumer.getConsumerGroup()
+                    + " persistConsumerOffset exception", e);
+        }
     }
 }
