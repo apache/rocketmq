@@ -249,7 +249,7 @@ public abstract class NettyRemotingAbstract {
                             @Override
                             public void run() {
                                 try {
-                                    responseFuture.getInvokeCallback().operationComplete(responseFuture);
+                                    responseFuture.executeInvokeCallback();
                                 }
                                 catch (Throwable e) {
                                     plog.warn("excute callback in executor exception, and callback throw", e);
@@ -316,13 +316,11 @@ public abstract class NettyRemotingAbstract {
         for (ResponseFuture rep : this.responseTable.values()) {
             if ((rep.getBeginTimestamp() + rep.getTimeoutMillis() + 1000) <= System.currentTimeMillis()) {
                 todoList.add(rep.getOpaque());
-                if (rep.getInvokeCallback() != null) {
-                    try {
-                        rep.getInvokeCallback().operationComplete(rep);
-                    }
-                    catch (Throwable e) {
-                        plog.error("scanResponseTable, operationComplete exception", e);
-                    }
+                try {
+                    rep.executeInvokeCallback();
+                }
+                catch (Throwable e) {
+                    plog.error("scanResponseTable, operationComplete exception", e);
                 }
             }
         }
