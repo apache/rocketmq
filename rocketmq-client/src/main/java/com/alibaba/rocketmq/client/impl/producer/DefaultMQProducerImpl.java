@@ -646,7 +646,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         String remark =
                 localException != null ? ("executeLocalTransactionBranch exception: " + localException.toString())
                         : null;
-        this.mQClientFactory.getMQClientAPIImpl().endTransaction(addr, requestHeader, remark,
+        this.mQClientFactory.getMQClientAPIImpl().endTransactionOneway(addr, requestHeader, remark,
             this.defaultMQProducer.getSendMsgTimeout());
     }
 
@@ -752,15 +752,14 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                     break;
                 }
 
-                RemotingCommand request =
-                        RemotingCommand.createRequestCommand(MQRequestCode.END_TRANSACTION_VALUE, thisHeader);
+                String remark = null;
                 if (exception != null) {
-                    request.setRemark("checkLocalTransactionState Exception: " + exception.toString());
+                    remark = "checkLocalTransactionState Exception: " + exception.toString();
                 }
 
                 try {
-                    DefaultMQProducerImpl.this.mQClientFactory.getMQClientAPIImpl().getRemotingClient()
-                        .invokeOneway(brokerAddr, request, 3000);
+                    DefaultMQProducerImpl.this.mQClientFactory.getMQClientAPIImpl().endTransactionOneway(brokerAddr,
+                        thisHeader, remark, 3000);
                 }
                 catch (Exception e) {
                     log.error("endTransactionOneway exception", e);
