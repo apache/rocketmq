@@ -134,7 +134,7 @@ public class MQClientFactory {
 
         this.pullMessageService = new PullMessageService(this);
 
-        this.rebalanceService = new RebalanceService();
+        this.rebalanceService = new RebalanceService(this);
 
         log.info("created a new client fatory, FactoryIndex: {} ClinetID: {}", this.factoryIndex, this.clientId);
     }
@@ -246,6 +246,8 @@ public class MQClientFactory {
                 break;
             }
         }
+
+        this.rebalanceImmediately();
     }
 
 
@@ -453,6 +455,26 @@ public class MQClientFactory {
         this.sendHeartbeatToAllBrokerWithLock();
 
         return true;
+    }
+
+
+    public void rebalanceImmediately() {
+        this.rebalanceService.wakeup();
+    }
+
+
+    public void doRebalance() {
+        for (String group : this.consumerTable.keySet()) {
+            MQConsumerInner impl = this.consumerTable.get(group);
+            if (impl != null) {
+                try {
+                    impl.doRebalance();
+                }
+                catch (Exception e) {
+                    log.error("doRebalance exception", e);
+                }
+            }
+        }
     }
 
 
