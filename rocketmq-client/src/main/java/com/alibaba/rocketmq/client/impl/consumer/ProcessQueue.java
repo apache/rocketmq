@@ -56,15 +56,22 @@ public class ProcessQueue {
      * @return
      */
     public long removeMessage(final List<MessageExt> msgs) {
+        long result = -1;
+
         try {
             this.lockTreeMap.writeLock().lockInterruptibly();
             try {
-                for (MessageExt msg : msgs) {
-                    msgTreeMap.remove(msg.getQueueOffset());
-                }
-                msgCount.addAndGet(msgs.size() * (-1));
+                if (!msgTreeMap.isEmpty()) {
+                    result = msgTreeMap.lastKey();
+                    for (MessageExt msg : msgs) {
+                        msgTreeMap.remove(msg.getQueueOffset());
+                    }
+                    msgCount.addAndGet(msgs.size() * (-1));
 
-                return msgTreeMap.firstKey();
+                    if (!msgTreeMap.isEmpty()) {
+                        result = msgTreeMap.firstKey();
+                    }
+                }
             }
             finally {
                 this.lockTreeMap.writeLock().unlock();
@@ -74,7 +81,7 @@ public class ProcessQueue {
             log.error("removeMessage exception", e);
         }
 
-        return -1;
+        return result;
     }
 
 
