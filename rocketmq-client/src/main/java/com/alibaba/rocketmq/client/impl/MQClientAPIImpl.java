@@ -666,7 +666,7 @@ public class MQClientAPIImpl {
     /**
      * 提交或者回滚事务
      */
-    public void endTransaction(//
+    public void endTransactionOneway(//
             final String addr,//
             final EndTransactionRequestHeader requestHeader,//
             final String remark,//
@@ -675,30 +675,6 @@ public class MQClientAPIImpl {
         RemotingCommand request =
                 RemotingCommand.createRequestCommand(MQRequestCode.END_TRANSACTION_VALUE, requestHeader);
         request.setRemark(remark);
-        RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
-        assert response != null;
-        switch (response.getCode()) {
-        case ResponseCode.SUCCESS_VALUE: {
-            return;
-        }
-        default:
-            break;
-        }
-
-        throw new MQBrokerException(response.getCode(), response.getRemark());
-    }
-
-
-    /**
-     * 提交或者回滚事务
-     */
-    public void endTransactionOneway(//
-            final String addr,//
-            final EndTransactionRequestHeader requestHeader,//
-            final long timeoutMillis//
-    ) throws RemotingException, MQBrokerException, InterruptedException {
-        RemotingCommand request =
-                RemotingCommand.createRequestCommand(MQRequestCode.END_TRANSACTION_VALUE, requestHeader);
         this.remotingClient.invokeOneway(addr, request, timeoutMillis);
     }
 
