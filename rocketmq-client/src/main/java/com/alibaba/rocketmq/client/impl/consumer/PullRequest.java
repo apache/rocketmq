@@ -12,6 +12,7 @@ import com.alibaba.rocketmq.common.message.MessageQueue;
 public class PullRequest {
     private String consumerGroup;
     private MessageQueue messageQueue;
+    private ProcessQueue processQueue;
     // hashCode与equals方法不包含此字段
     private long nextOffset;
 
@@ -85,5 +86,15 @@ public class PullRequest {
         else if (!messageQueue.equals(other.messageQueue))
             return false;
         return true;
+    }
+
+
+    public ProcessQueue getProcessQueue() {
+        return processQueue;
+    }
+
+
+    public void setProcessQueue(ProcessQueue processQueue) {
+        this.processQueue = processQueue;
     }
 }
