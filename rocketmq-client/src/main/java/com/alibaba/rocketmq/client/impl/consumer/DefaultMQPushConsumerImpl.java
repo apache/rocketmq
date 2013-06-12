@@ -308,7 +308,7 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
 
         // 流量控制
         long size = processQueue.getMsgCount().get();
-        if (size > this.defaultMQPushConsumer.getConsumeConcurrentlyMaxSpan()) {
+        if (size > this.defaultMQPushConsumer.getPullThresholdForQueue()) {
             this.executePullRequestLater(pullRequest, PullTimeDelayMillsWhenFlowControl);
             log.warn("the consumer message buffer is full, so do flow control, {} {}", size, pullRequest);
             return;
@@ -327,6 +327,17 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
                         processQueue.putMessage(pullResult.getMsgFoundList());
                         DefaultMQPushConsumerImpl.this.consumeMessageService.submitConsumeRequest(
                             pullResult.getMsgFoundList(), processQueue, pullRequest.getMessageQueue());
+
+                        // 流控
+                        if (DefaultMQPushConsumerImpl.this.defaultMQPushConsumer.getPullInterval() > 0) {
+                            DefaultMQPushConsumerImpl.this.executePullRequestLater(pullRequest,
+                                DefaultMQPushConsumerImpl.this.defaultMQPushConsumer.getPullInterval());
+                        }
+                        // 立刻拉消息
+                        else {
+                            DefaultMQPushConsumerImpl.this.executePullRequestImmediately(pullRequest);
+                        }
+
                         break;
                     case NO_NEW_MSG:
                         DefaultMQPushConsumerImpl.this.executePullRequestImmediately(pullRequest);
