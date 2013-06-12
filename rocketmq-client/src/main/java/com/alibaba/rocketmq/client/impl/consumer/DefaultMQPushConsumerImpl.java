@@ -304,7 +304,11 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
 
 
     public void pullMessage(final PullRequest pullRequest) {
-        final ProcessQueue processQueue = this.getAndCreateProcessQueue(pullRequest.getMessageQueue());
+        final ProcessQueue processQueue = pullRequest.getProcessQueue();
+        if (processQueue.isDroped()) {
+            log.info("the pull request[{}] is droped.", pullRequest.toString());
+            return;
+        }
 
         // Á÷Á¿¿ØÖÆ
         long size = processQueue.getMsgCount().get();
@@ -321,6 +325,8 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
                     pullResult =
                             DefaultMQPushConsumerImpl.this.pullAPIWrapper.processPullResult(
                                 pullRequest.getMessageQueue(), pullResult);
+
+                    pullRequest.setNextOffset(pullResult.getNextBeginOffset());
 
                     switch (pullResult.getPullStatus()) {
                     case FOUND:
