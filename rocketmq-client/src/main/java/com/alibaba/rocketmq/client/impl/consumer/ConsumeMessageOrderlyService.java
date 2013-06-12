@@ -15,29 +15,27 @@ import org.slf4j.Logger;
 import com.alibaba.rocketmq.client.consumer.DefaultMQPushConsumer;
 import com.alibaba.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext;
 import com.alibaba.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
-import com.alibaba.rocketmq.client.consumer.listener.MessageListenerConcurrently;
+import com.alibaba.rocketmq.client.consumer.listener.MessageListenerOrderly;
 import com.alibaba.rocketmq.client.log.ClientLogger;
 import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.common.message.MessageQueue;
 
 
 /**
- * 并发消费消息服务
- * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  */
-public class ConsumeMessageConcurrentlyService implements ConsumeMessageService {
+public class ConsumeMessageOrderlyService implements ConsumeMessageService {
     private static final Logger log = ClientLogger.getLog();
     private final DefaultMQPushConsumerImpl defaultMQPushConsumerImpl;
     private final DefaultMQPushConsumer defaultMQPushConsumer;
-    private final MessageListenerConcurrently messageListener;
+    private final MessageListenerOrderly messageListener;
     private final BlockingQueue<Runnable> consumeRequestQueue;
     private final ExecutorService consumeExecutor;
     private final String consumerGroup;
 
 
-    public ConsumeMessageConcurrentlyService(DefaultMQPushConsumerImpl defaultMQPushConsumerImpl,
-            MessageListenerConcurrently messageListener) {
+    public ConsumeMessageOrderlyService(DefaultMQPushConsumerImpl defaultMQPushConsumerImpl,
+            MessageListenerOrderly messageListener) {
         this.defaultMQPushConsumerImpl = defaultMQPushConsumerImpl;
         this.messageListener = messageListener;
 
@@ -58,7 +56,7 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
                 @Override
                 public Thread newThread(Runnable r) {
                     return new Thread(r, "ConsumeMessageThread-" //
-                            + ConsumeMessageConcurrentlyService.this.consumerGroup//
+                            + ConsumeMessageOrderlyService.this.consumerGroup//
                             + "-" + this.threadIndex.incrementAndGet());
                 }
             });
@@ -88,24 +86,7 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
 
         @Override
         public void run() {
-            MessageListenerConcurrently listener = ConsumeMessageConcurrentlyService.this.messageListener;
-            ConsumeConcurrentlyContext context = new ConsumeConcurrentlyContext(messageQueue);
-            ConsumeConcurrentlyStatus status = null;
-            try {
-                status = listener.consumeMessage(msgs, context);
-            }
-            catch (Throwable e) {
-                log.warn("consumeMessage exception, Group: "
-                        + ConsumeMessageConcurrentlyService.this.consumerGroup//
-                        + " Message: " + msgs//
-                        + " MessageQueue: " + messageQueue, e);
-            }
 
-            if (null == status) {
-                status = ConsumeConcurrentlyStatus.RECONSUME_LATER;
-            }
-
-            ConsumeMessageConcurrentlyService.this.processConsumeResult(status, context, this);
         }
 
 

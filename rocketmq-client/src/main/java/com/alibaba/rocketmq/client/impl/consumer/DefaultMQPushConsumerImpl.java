@@ -15,6 +15,8 @@ import com.alibaba.rocketmq.client.consumer.MQPushConsumer;
 import com.alibaba.rocketmq.client.consumer.PullCallback;
 import com.alibaba.rocketmq.client.consumer.PullResult;
 import com.alibaba.rocketmq.client.consumer.listener.MessageListener;
+import com.alibaba.rocketmq.client.consumer.listener.MessageListenerConcurrently;
+import com.alibaba.rocketmq.client.consumer.listener.MessageListenerOrderly;
 import com.alibaba.rocketmq.client.consumer.store.LocalFileOffsetStore;
 import com.alibaba.rocketmq.client.consumer.store.OffsetStore;
 import com.alibaba.rocketmq.client.consumer.store.RemoteBrokerOffsetStore;
@@ -90,6 +92,20 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
             // 加载消费进度
             this.offsetStore.load();
 
+            // 启动消费消息服务
+            if (this.defaultMQPushConsumer.getMessageListener() instanceof MessageListenerOrderly) {
+                this.consumeMessageService =
+                        new ConsumeMessageOrderlyService(this,
+                            (MessageListenerOrderly) this.defaultMQPushConsumer.getMessageListener());
+            }
+            else if (this.defaultMQPushConsumer.getMessageListener() instanceof MessageListenerConcurrently) {
+                this.consumeMessageService =
+                        new ConsumeMessageConcurrentlyService(this,
+                            (MessageListenerConcurrently) this.defaultMQPushConsumer.getMessageListener());
+            }
+
+            this.consumeMessageService.start();
+
             boolean registerOK =
                     mQClientFactory.registerConsumer(this.defaultMQPushConsumer.getConsumerGroup(), this);
             if (!registerOK) {
@@ -120,6 +136,7 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
         case RUNNING:
             this.serviceState = ServiceState.SHUTDOWN_ALREADY;
             // TODO 存储消费进度时，需要考虑集群模式覆盖掉其他消费者消费进度的问题
+            this.consumeMessageService.shutdown();
             this.persistConsumerOffset();
             this.mQClientFactory.unregisterConsumer(this.defaultMQPushConsumer.getConsumerGroup());
             this.mQClientFactory.shutdown();
