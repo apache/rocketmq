@@ -8,6 +8,7 @@ import java.util.List;
 
 import org.junit.Test;
 
+import com.alibaba.rocketmq.client.consumer.rebalance.AllocateMessageQueueAveragely;
 import com.alibaba.rocketmq.common.message.MessageQueue;
 
 

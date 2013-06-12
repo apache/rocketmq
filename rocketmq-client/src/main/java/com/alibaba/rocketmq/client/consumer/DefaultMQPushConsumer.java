@@ -10,7 +10,7 @@ import java.util.Map;
 import com.alibaba.rocketmq.client.ClientConfig;
 import com.alibaba.rocketmq.client.QueryResult;
 import com.alibaba.rocketmq.client.consumer.listener.MessageListener;
-import com.alibaba.rocketmq.client.consumer.loadbalance.AllocateMessageQueueAveragely;
+import com.alibaba.rocketmq.client.consumer.rebalance.AllocateMessageQueueAveragely;
 import com.alibaba.rocketmq.client.exception.MQBrokerException;
 import com.alibaba.rocketmq.client.exception.MQClientException;
 import com.alibaba.rocketmq.client.impl.consumer.DefaultMQPushConsumerImpl;

@@ -33,6 +33,7 @@ import com.alibaba.rocketmq.client.impl.MQClientAPIImpl;
 import com.alibaba.rocketmq.client.impl.MQClientManager;
 import com.alibaba.rocketmq.client.impl.consumer.MQConsumerInner;
 import com.alibaba.rocketmq.client.impl.consumer.PullMessageService;
+import com.alibaba.rocketmq.client.impl.consumer.RebalanceService;
 import com.alibaba.rocketmq.client.impl.producer.DefaultMQProducerImpl;
 import com.alibaba.rocketmq.client.impl.producer.MQProducerInner;
 import com.alibaba.rocketmq.client.impl.producer.TopicPublishInfo;
@@ -109,7 +110,9 @@ public class MQClientFactory {
     private DatagramSocket datagramSocket;
 
     // 拉消息服务
-    private final PullMessageService pullMessageService = new PullMessageService(this);
+    private final PullMessageService pullMessageService;
+
+    private final RebalanceService rebalanceService;
 
 
     public MQClientFactory(ClientConfig mQClientConfig, int factoryIndex, String clientId) {
@@ -128,6 +131,10 @@ public class MQClientFactory {
         this.clientId = clientId;
 
         this.mQAdminImpl = new MQAdminImpl(this);
+
+        this.pullMessageService = new PullMessageService(this);
+
+        this.rebalanceService = new RebalanceService();
 
         log.info("created a new client fatory, FactoryIndex: {} ClinetID: {}", this.factoryIndex, this.clientId);
     }
@@ -228,6 +235,7 @@ public class MQClientFactory {
                 this.startScheduledTask();
                 this.mQClientAPIImpl.start();
                 this.pullMessageService.start();
+                this.rebalanceService.start();
                 log.info("the client factory [{}] start OK", this.clientId);
                 break;
             case RUNNING:
@@ -259,6 +267,7 @@ public class MQClientFactory {
                 this.pullMessageService.shutdown(true);
                 this.scheduledExecutorService.shutdown();
                 this.mQClientAPIImpl.shutdown();
+                this.rebalanceService.shutdown();
 
                 if (this.datagramSocket != null) {
                     this.datagramSocket.close();
