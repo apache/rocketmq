@@ -371,4 +371,11 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
                     + " persistConsumerOffset exception", e);
         }
     }
+
+
+    @Override
+    public void doRebalance() {
+        // TODO Auto-generated method stub
+        
+    }
 }

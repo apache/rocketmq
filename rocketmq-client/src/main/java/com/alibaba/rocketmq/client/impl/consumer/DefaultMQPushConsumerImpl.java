@@ -439,4 +439,11 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
     public DefaultMQPushConsumer getDefaultMQPushConsumer() {
         return defaultMQPushConsumer;
     }
+
+
+    @Override
+    public void doRebalance() {
+        // TODO Auto-generated method stub
+        
+    }
 }
