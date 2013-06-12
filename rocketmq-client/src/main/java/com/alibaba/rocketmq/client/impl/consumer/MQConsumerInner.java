@@ -12,7 +12,6 @@ import com.alibaba.rocketmq.common.protocol.heartbeat.SubscriptionData;
 
 /**
  * @author shijia.wxr<vintage.wang@gmail.com>
- * 
  */
 public interface MQConsumerInner {
     public String getGroupName();
