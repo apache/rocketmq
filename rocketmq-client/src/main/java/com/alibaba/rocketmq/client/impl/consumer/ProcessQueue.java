@@ -24,6 +24,9 @@ public class ProcessQueue {
     private final TreeMap<Long, MessageExt> msgTreeMap = new TreeMap<Long, MessageExt>();
     private final AtomicLong msgCount = new AtomicLong();
 
+    // 当前Q是否被rebalance丢弃
+    private volatile boolean droped = false;
+
 
     public boolean isLocked() {
         return locked;
@@ -97,5 +100,15 @@ public class ProcessQueue {
 
     public AtomicLong getMsgCount() {
         return msgCount;
+    }
+
+
+    public boolean isDroped() {
+        return droped;
+    }
+
+
+    public void setDroped(boolean droped) {
+        this.droped = droped;
     }
 }
