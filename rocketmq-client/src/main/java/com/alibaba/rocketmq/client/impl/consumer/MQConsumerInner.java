@@ -3,8 +3,10 @@
  */
 package com.alibaba.rocketmq.client.impl.consumer;
 
+import java.util.List;
 import java.util.Set;
 
+import com.alibaba.rocketmq.common.message.MessageQueue;
 import com.alibaba.rocketmq.common.protocol.heartbeat.ConsumeType;
 import com.alibaba.rocketmq.common.protocol.heartbeat.MessageModel;
 import com.alibaba.rocketmq.common.protocol.heartbeat.SubscriptionData;
@@ -30,4 +32,7 @@ public interface MQConsumerInner {
 
 
     public void persistConsumerOffset();
+
+
+    public void updateTopicSubscribeInfo(final String topic, final List<MessageQueue> info);
 }
