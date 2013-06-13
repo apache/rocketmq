@@ -16,6 +16,7 @@ import com.alibaba.rocketmq.broker.client.ConsumerGroupInfo;
 import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.common.protocol.MQProtos.MQRequestCode;
 import com.alibaba.rocketmq.common.protocol.header.GetConsumerListByGroupRequestHeader;
+import com.alibaba.rocketmq.common.protocol.header.GetConsumerListByGroupResponseBody;
 import com.alibaba.rocketmq.common.protocol.header.GetConsumerListByGroupResponseHeader;
 import com.alibaba.rocketmq.common.protocol.header.UnregisterClientRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.UnregisterClientResponseHeader;
@@ -79,8 +80,8 @@ public class ClientManageProcessor implements NettyRequestProcessor {
         if (consumerGroupInfo != null) {
             List<String> clientIds = consumerGroupInfo.getAllClientId();
             if (!clientIds.isEmpty()) {
-                byte[] body = RemotingSerializable.encode(clientIds);
-                response.setBody(body);
+                GetConsumerListByGroupResponseBody body = new GetConsumerListByGroupResponseBody();
+                response.setBody(body.encode());
                 response.setCode(ResponseCode.SUCCESS_VALUE);
                 response.setRemark(null);
                 return response;

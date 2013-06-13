@@ -28,6 +28,8 @@ import com.alibaba.rocketmq.common.protocol.MQProtos.MQRequestCode;
 import com.alibaba.rocketmq.common.protocol.MQProtos.MQResponseCode;
 import com.alibaba.rocketmq.common.protocol.header.CreateTopicRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.EndTransactionRequestHeader;
+import com.alibaba.rocketmq.common.protocol.header.GetConsumerListByGroupRequestHeader;
+import com.alibaba.rocketmq.common.protocol.header.GetConsumerListByGroupResponseBody;
 import com.alibaba.rocketmq.common.protocol.header.GetEarliestMsgStoretimeRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.GetEarliestMsgStoretimeResponseHeader;
 import com.alibaba.rocketmq.common.protocol.header.GetMaxOffsetRequestHeader;
@@ -55,12 +57,16 @@ import com.alibaba.rocketmq.common.protocol.route.TopicRouteData;
 import com.alibaba.rocketmq.remoting.InvokeCallback;
 import com.alibaba.rocketmq.remoting.RemotingClient;
 import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
+import com.alibaba.rocketmq.remoting.exception.RemotingConnectException;
 import com.alibaba.rocketmq.remoting.exception.RemotingException;
+import com.alibaba.rocketmq.remoting.exception.RemotingSendRequestException;
+import com.alibaba.rocketmq.remoting.exception.RemotingTimeoutException;
 import com.alibaba.rocketmq.remoting.netty.NettyClientConfig;
 import com.alibaba.rocketmq.remoting.netty.NettyRemotingClient;
 import com.alibaba.rocketmq.remoting.netty.ResponseFuture;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 import com.alibaba.rocketmq.remoting.protocol.RemotingProtos.ResponseCode;
+import com.alibaba.rocketmq.remoting.protocol.RemotingSerializable;
 import com.google.protobuf.InvalidProtocolBufferException;
 
 
@@ -488,6 +494,35 @@ public class MQClientAPIImpl {
                         .decodeCommandCustomHeader(GetMaxOffsetResponseHeader.class);
 
             return responseHeader.getOffset();
+        }
+        default:
+            break;
+        }
+
+        throw new MQBrokerException(response.getCode(), response.getRemark());
+    }
+
+
+    public List<String> getConsumerIdListByGroup(//
+            final String addr, //
+            final String consumerGroup, //
+            final long timeoutMillis) throws RemotingConnectException, RemotingSendRequestException,
+            RemotingTimeoutException, MQBrokerException, InterruptedException {
+        GetConsumerListByGroupRequestHeader requestHeader = new GetConsumerListByGroupRequestHeader();
+        requestHeader.setConsumerGroup(consumerGroup);
+        RemotingCommand request =
+                RemotingCommand
+                    .createRequestCommand(MQRequestCode.GET_CONSUMER_LIST_BY_GROUP_VALUE, requestHeader);
+        RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
+        assert response != null;
+        switch (response.getCode()) {
+        case ResponseCode.SUCCESS_VALUE: {
+            if (response.getBody() != null) {
+                GetConsumerListByGroupResponseBody body =
+                        GetConsumerListByGroupResponseBody.decode(response.getBody(),
+                            GetConsumerListByGroupResponseBody.class);
+                return body.getConsumerIdList();
+            }
         }
         default:
             break;
