@@ -4,7 +4,6 @@
 package com.alibaba.rocketmq.client.consumer;
 
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
 import com.alibaba.rocketmq.client.ClientConfig;

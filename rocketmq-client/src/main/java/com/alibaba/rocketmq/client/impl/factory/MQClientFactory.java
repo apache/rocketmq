@@ -5,7 +5,6 @@ package com.alibaba.rocketmq.client.impl.factory;
 
 import java.net.DatagramSocket;
 import java.net.SocketException;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -52,7 +51,6 @@ import com.alibaba.rocketmq.common.protocol.route.QueueData;
 import com.alibaba.rocketmq.common.protocol.route.TopicRouteData;
 import com.alibaba.rocketmq.remoting.exception.RemotingException;
 import com.alibaba.rocketmq.remoting.netty.NettyClientConfig;
-import com.google.protobuf.InvalidProtocolBufferException;
 
 
 /**
@@ -397,7 +395,7 @@ public class MQClientFactory {
     }
 
 
-    private void sendHeartbeatToAllBroker() {
+    public void sendHeartbeatToAllBroker() {
         final HeartbeatData heartbeatData = this.prepareHeartbeatData();
         final boolean producerEmpty = heartbeatData.getProducerDataSet().isEmpty();
         final boolean consumerEmpty = heartbeatData.getConsumerDataSet().isEmpty();
@@ -636,6 +634,40 @@ public class MQClientFactory {
     }
 
 
+    public String findBrokerAddrByTopic(final String topic) {
+        TopicRouteData topicRouteData = this.topicRouteTable.get(topic);
+        if (topicRouteData != null) {
+            List<BrokerData> brokers = topicRouteData.getBrokerDatas();
+            if (!brokers.isEmpty()) {
+                BrokerData bd = brokers.get(0);
+                return bd.getOneBrokerAddr();
+            }
+        }
+
+        return null;
+    }
+
+
+    public List<String> findConsumerIdList(final String topic, final String group) {
+        String brokerAddr = this.findBrokerAddrByTopic(topic);
+        if (null == brokerAddr) {
+            this.updateTopicRouteInfoFromNameServer(topic);
+            brokerAddr = this.findBrokerAddrByTopic(topic);
+        }
+
+        if (null != brokerAddr) {
+            try {
+                return this.mQClientAPIImpl.getConsumerIdListByGroup(brokerAddr, group, 3000);
+            }
+            catch (Exception e) {
+                log.warn("getConsumerIdListByGroup exception, " + brokerAddr + " " + group, e);
+            }
+        }
+
+        return null;
+    }
+
+
     public static TopicPublishInfo topicRouteData2TopicPublishInfo(final String topic, final TopicRouteData route) {
         TopicPublishInfo info = new TopicPublishInfo();
         // Ë³ÐòÏûÏ¢
@@ -766,17 +798,8 @@ public class MQClientFactory {
                         }
                     }
                 }
-                catch (RemotingException e) {
-                    log.warn("", e);
-                }
-                catch (MQClientException e) {
-                    log.warn("", e);
-                }
-                catch (InterruptedException e) {
-                    log.warn("", e);
-                }
-                catch (InvalidProtocolBufferException e) {
-                    log.warn("", e);
+                catch (Exception e) {
+                    log.warn("updateTopicRouteInfoFromNameServer Exception", e);
                 }
                 finally {
                     this.lockNamesrv.unlock();
@@ -784,7 +807,7 @@ public class MQClientFactory {
             }
         }
         catch (InterruptedException e) {
-            log.warn("", e);
+            log.warn("updateTopicRouteInfoFromNameServer Exception", e);
         }
 
         return false;
