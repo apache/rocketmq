@@ -284,7 +284,7 @@ public class MQAdminImpl {
                             new InvokeCallback() {
                                 @Override
                                 public void operationComplete(ResponseFuture responseFuture) {
-                                    countDownLatch.countDown();
+                                   
                                     RemotingCommand response = responseFuture.getResponseCommand();
                                     if (response != null) {
                                         switch (response.getCode()) {
@@ -318,6 +318,7 @@ public class MQAdminImpl {
                                     else {
                                         // TODO log
                                     }
+                                    countDownLatch.countDown();
                                 }
                             });
                     }
