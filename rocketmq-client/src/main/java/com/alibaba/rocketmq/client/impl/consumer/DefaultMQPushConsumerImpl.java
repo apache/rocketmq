@@ -325,6 +325,7 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
 
     private final long PullTimeDelayMillsWhenException = 3000;
     private final long PullTimeDelayMillsWhenFlowControl = 1000;
+    private final long PullTimeDelayMillsWhenSuspend = 1000;
 
 
     public void pullMessage(final PullRequest pullRequest) {
@@ -334,12 +335,20 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
             return;
         }
 
+        // 检测Consumer是否启动
         try {
             this.makeSureStateOK();
         }
         catch (MQClientException e) {
             log.warn("pullMessage exception, consumer state not ok", e);
             this.executePullRequestLater(pullRequest, PullTimeDelayMillsWhenException);
+            return;
+        }
+
+        // 检测Consumer是否被挂起
+        if (this.isPause()) {
+            this.executePullRequestLater(pullRequest, PullTimeDelayMillsWhenSuspend);
+            return;
         }
 
         // 流量控制
