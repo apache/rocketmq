@@ -60,8 +60,8 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
     private ConsumeMessageService consumeMessageService;
 
     // 可订阅的信息（定时从Name Server更新最新版本）
-    private final ConcurrentHashMap<String/* topic */, List<MessageQueue>> topicSubscribeInfoTable =
-            new ConcurrentHashMap<String, List<MessageQueue>>();
+    private final ConcurrentHashMap<String/* topic */, Set<MessageQueue>> topicSubscribeInfoTable =
+            new ConcurrentHashMap<String, Set<MessageQueue>>();
 
 
     @Override
@@ -183,7 +183,7 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
 
 
     @Override
-    public List<MessageQueue> fetchSubscribeMessageQueues(String topic) throws MQClientException {
+    public Set<MessageQueue> fetchSubscribeMessageQueues(String topic) throws MQClientException {
         // TODO Auto-generated method stub
         return null;
     }
@@ -461,6 +461,10 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
     private void rebalanceByTopic(final String topic) {
         switch (this.defaultMQPushConsumer.getMessageModel()) {
         case BROADCASTING:
+            Set<MessageQueue> mqs = this.topicSubscribeInfoTable.get(topic);
+            if (mqs != null) {
+
+            }
 
             break;
         case CLUSTERING:
@@ -502,7 +506,7 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
 
 
     @Override
-    public void updateTopicSubscribeInfo(String topic, List<MessageQueue> info) {
+    public void updateTopicSubscribeInfo(String topic, Set<MessageQueue> info) {
         Map<String, String> subTable = this.defaultMQPushConsumer.getSubscription();
         if (subTable != null) {
             String value = subTable.get(topic);

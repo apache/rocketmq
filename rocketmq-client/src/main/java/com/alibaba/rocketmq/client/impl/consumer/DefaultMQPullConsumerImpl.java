@@ -312,13 +312,13 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
     }
 
 
-    public List<MessageQueue> fetchMessageQueuesInBalance(String topic) {
+    public Set<MessageQueue> fetchMessageQueuesInBalance(String topic) {
         // TODO Auto-generated method stub
         return null;
     }
 
 
-    public List<MessageQueue> fetchSubscribeMessageQueues(String topic) throws MQClientException {
+    public Set<MessageQueue> fetchSubscribeMessageQueues(String topic) throws MQClientException {
         return this.mQClientFactory.getMQAdminImpl().fetchSubscribeMessageQueues(topic);
     }
 
@@ -376,13 +376,12 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
     @Override
     public void doRebalance() {
         // TODO Auto-generated method stub
-        
+
     }
 
 
     @Override
-    public void updateTopicSubscribeInfo(String topic, List<MessageQueue> info) {
-        // TODO Auto-generated method stub
-        
+    public void updateTopicSubscribeInfo(String topic, Set<MessageQueue> info) {
+
     }
 }

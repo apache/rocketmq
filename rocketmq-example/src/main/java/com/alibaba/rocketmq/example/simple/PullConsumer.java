@@ -4,8 +4,8 @@
 package com.alibaba.rocketmq.example.simple;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import com.alibaba.rocketmq.client.consumer.DefaultMQPullConsumer;
 import com.alibaba.rocketmq.client.consumer.MQPullConsumer;
@@ -46,7 +46,7 @@ public class PullConsumer {
 
             consumer.start();
 
-            List<MessageQueue> mqs = consumer.fetchSubscribeMessageQueues("TopicTest");
+            Set<MessageQueue> mqs = consumer.fetchSubscribeMessageQueues("TopicTest");
             for (MessageQueue mq : mqs) {
                 System.out.println("Consume from the queue: " + mq);
                 PullResult pullResult = consumer.pullBlockIfNotFound(mq, null, getMessageQueueOffset(mq), 32);
@@ -82,5 +82,5 @@ public class PullConsumer {
             e.printStackTrace();
         }
     }
-    
+
 }

@@ -3,7 +3,7 @@
  */
 package com.alibaba.rocketmq.client.consumer;
 
-import java.util.List;
+import java.util.Set;
 
 import com.alibaba.rocketmq.client.MQAdmin;
 import com.alibaba.rocketmq.client.exception.MQClientException;
@@ -37,6 +37,6 @@ public interface MQConsumer extends MQAdmin {
      * @return 返回队列集合
      * @throws MQClientException
      */
-    public List<MessageQueue> fetchSubscribeMessageQueues(final String topic) throws MQClientException;
+    public Set<MessageQueue> fetchSubscribeMessageQueues(final String topic) throws MQClientException;
 
 }

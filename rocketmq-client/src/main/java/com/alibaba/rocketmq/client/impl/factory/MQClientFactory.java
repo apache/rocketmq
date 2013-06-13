@@ -673,9 +673,9 @@ public class MQClientFactory {
     }
 
 
-    public static List<MessageQueue> topicRouteData2TopicSubscribeInfo(final String topic,
+    public static Set<MessageQueue> topicRouteData2TopicSubscribeInfo(final String topic,
             final TopicRouteData route) {
-        List<MessageQueue> mqList = new ArrayList<MessageQueue>();
+        Set<MessageQueue> mqList = new HashSet<MessageQueue>();
         List<QueueData> qds = route.getQueueDatas();
         for (QueueData qd : qds) {
             if (PermName.isReadable(qd.getPerm())) {
@@ -752,7 +752,7 @@ public class MQClientFactory {
                             }
 
                             // 更新订阅队列信息
-                            List<MessageQueue> subscribeInfo =
+                            Set<MessageQueue> subscribeInfo =
                                     topicRouteData2TopicSubscribeInfo(topic, topicRouteData);
                             for (String g : this.consumerTable.keySet()) {
                                 MQConsumerInner impl = this.consumerTable.get(g);

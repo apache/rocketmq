@@ -1,6 +1,7 @@
 package com.alibaba.rocketmq.test.consumer;
 
 import java.util.List;
+import java.util.Set;
 
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -73,7 +74,7 @@ public class PullConsumerTest extends BaseTest {
     // }
     @Test
     public void testPull() throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
-        List<MessageQueue> mqs = consumer.fetchSubscribeMessageQueues("TopicTest");
+        Set<MessageQueue> mqs = consumer.fetchSubscribeMessageQueues("TopicTest");
         for (MessageQueue mq : mqs) {
             PullResult pullResult = consumer.pull(mq, null, 0, 32);
             System.out.println(pullResult);
@@ -99,7 +100,7 @@ public class PullConsumerTest extends BaseTest {
             }
 
         };
-        List<MessageQueue> mqs = consumer.fetchSubscribeMessageQueues("TopicTest");
+        Set<MessageQueue> mqs = consumer.fetchSubscribeMessageQueues("TopicTest");
         for (MessageQueue mq : mqs) {
             consumer.pull(mq, null, 0, 32, pullCallback);
 
@@ -111,7 +112,7 @@ public class PullConsumerTest extends BaseTest {
     @Test
     public void testPullBlockIfNotFound() throws MQClientException, RemotingException, MQBrokerException,
             InterruptedException {
-        List<MessageQueue> mqs = consumer.fetchSubscribeMessageQueues("TopicTest");
+        Set<MessageQueue> mqs = consumer.fetchSubscribeMessageQueues("TopicTest");
         for (MessageQueue mq : mqs) {
             // TODO 设置阻塞时间
             PullResult pullResult = consumer.pullBlockIfNotFound(mq, null, 0, 32);
@@ -138,7 +139,7 @@ public class PullConsumerTest extends BaseTest {
             }
 
         };
-        List<MessageQueue> mqs = consumer.fetchSubscribeMessageQueues("TopicTest");
+        Set<MessageQueue> mqs = consumer.fetchSubscribeMessageQueues("TopicTest");
         for (MessageQueue mq : mqs) {
             // TODO 设置阻塞时间
             consumer.pullBlockIfNotFound(mq, null, 0, 32, pullCallback);
@@ -149,7 +150,7 @@ public class PullConsumerTest extends BaseTest {
     @Test
     public void testUpdateConsumeOffset() throws MQClientException, RemotingException, MQBrokerException,
             InterruptedException {
-        List<MessageQueue> mqs = consumer.fetchSubscribeMessageQueues("TopicTest");
+        Set<MessageQueue> mqs = consumer.fetchSubscribeMessageQueues("TopicTest");
         for (MessageQueue mq : mqs) {
             PullResult pullResult = consumer.pullBlockIfNotFound(mq, null, 0, 32);
             consumer.updateConsumeOffset(mq, pullResult.getMaxOffset());
@@ -161,7 +162,7 @@ public class PullConsumerTest extends BaseTest {
     @Test
     public void testFetchConsumeOffset() throws RemotingException, MQBrokerException, InterruptedException,
             MQClientException {
-        List<MessageQueue> mqs = consumer.fetchSubscribeMessageQueues("TopicTest");
+        Set<MessageQueue> mqs = consumer.fetchSubscribeMessageQueues("TopicTest");
         for (MessageQueue mq : mqs) {
             long offset = consumer.fetchConsumeOffset(mq, true);
             System.out.println(offset);
@@ -171,7 +172,7 @@ public class PullConsumerTest extends BaseTest {
 
     @Test
     public void testFetchMessageQueuesInBalance() throws MQClientException {
-        List<MessageQueue> mqs = consumer.fetchMessageQueuesInBalance("TopicTest");
+        Set<MessageQueue> mqs = consumer.fetchMessageQueuesInBalance("TopicTest");
         for (MessageQueue mq : mqs) {
             System.out.println(mq);
         }
@@ -181,7 +182,7 @@ public class PullConsumerTest extends BaseTest {
     @Test
     public void testSendMessageBack() throws MQClientException, RemotingException, MQBrokerException,
             InterruptedException {
-        List<MessageQueue> mqs = consumer.fetchSubscribeMessageQueues("TopicTest");
+        Set<MessageQueue> mqs = consumer.fetchSubscribeMessageQueues("TopicTest");
         for (MessageQueue mq : mqs) {
             System.out.println("Consume from the queue: " + mq);
             PullResult pullResult = consumer.pullBlockIfNotFound(mq, null, 0, 32);
@@ -208,7 +209,7 @@ public class PullConsumerTest extends BaseTest {
 
     @Test
     public void testFetchSubscribeMessageQueues() throws MQClientException {
-        List<MessageQueue> mqs = consumer.fetchSubscribeMessageQueues("TopicTest");
+        Set<MessageQueue> mqs = consumer.fetchSubscribeMessageQueues("TopicTest");
         for (MessageQueue mq : mqs) {
             System.out.println(mq);
         }
@@ -247,7 +248,7 @@ public class PullConsumerTest extends BaseTest {
     // 根据消息ID查询消息
     public void testSearcMsgbyId() throws MQClientException, RemotingException, MQBrokerException,
             InterruptedException {
-        List<MessageQueue> mqs = consumer.fetchSubscribeMessageQueues("TopicTest");
+        Set<MessageQueue> mqs = consumer.fetchSubscribeMessageQueues("TopicTest");
         for (MessageQueue mq : mqs) {
             System.out.println("Consume from the queue: " + mq);
             PullResult pullResult = consumer.pullBlockIfNotFound(mq, null, 0, 32);

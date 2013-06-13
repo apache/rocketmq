@@ -6,6 +6,7 @@ package com.alibaba.rocketmq.client.consumer;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import com.alibaba.rocketmq.client.ClientConfig;
 import com.alibaba.rocketmq.client.QueryResult;
@@ -209,7 +210,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
 
 
     @Override
-    public List<MessageQueue> fetchSubscribeMessageQueues(String topic) throws MQClientException {
+    public Set<MessageQueue> fetchSubscribeMessageQueues(String topic) throws MQClientException {
         // TODO Auto-generated method stub
         return null;
     }
