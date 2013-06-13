@@ -266,7 +266,6 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
     @Override
     public void unsubscribe(String topic) {
         // TODO Auto-generated method stub
-
     }
 
 
@@ -280,7 +279,7 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
     @Override
     public void resume() {
         this.pause = false;
-        log.info("suspend this consumer, {}", this.defaultMQPushConsumer.getConsumerGroup());
+        log.info("resume this consumer, {}", this.defaultMQPushConsumer.getConsumerGroup());
     }
 
 
