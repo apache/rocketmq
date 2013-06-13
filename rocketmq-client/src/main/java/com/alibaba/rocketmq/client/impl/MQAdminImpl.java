@@ -8,6 +8,7 @@ import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
@@ -75,8 +76,8 @@ public class MQAdminImpl {
                         topicConfig.setWriteQueueNums(queueNum);
                         topicConfig.setTopicFilterType(topicFilterType);
                         try {
-                            this.mQClientFactory.getMQClientAPIImpl().createTopic(addr, key, topicConfig,
-                                1000 * 3);
+                            this.mQClientFactory.getMQClientAPIImpl()
+                                .createTopic(addr, key, topicConfig, 1000 * 3);
                         }
                         catch (Exception e) {
                             exception = new MQClientException("create topic to broker exception", e);
@@ -129,12 +130,12 @@ public class MQAdminImpl {
     }
 
 
-    public List<MessageQueue> fetchSubscribeMessageQueues(String topic) throws MQClientException {
+    public Set<MessageQueue> fetchSubscribeMessageQueues(String topic) throws MQClientException {
         try {
             TopicRouteData topicRouteData =
                     this.mQClientFactory.getMQClientAPIImpl().getTopicRouteInfoFromNameServer(topic, 1000 * 3);
             if (topicRouteData != null) {
-                List<MessageQueue> mqList =
+                Set<MessageQueue> mqList =
                         MQClientFactory.topicRouteData2TopicSubscribeInfo(topic, topicRouteData);
                 if (!mqList.isEmpty()) {
                     return mqList;
@@ -236,13 +237,12 @@ public class MQAdminImpl {
     }
 
 
-    public MessageExt viewMessage(String msgId) throws RemotingException, MQBrokerException,
-            InterruptedException, MQClientException {
+    public MessageExt viewMessage(String msgId) throws RemotingException, MQBrokerException, InterruptedException,
+            MQClientException {
         try {
             MessageId messageId = MessageDecoder.decodeMessageId(msgId);
-            return this.mQClientFactory.getMQClientAPIImpl()
-                .viewMessage(RemotingUtil.socketAddress2String(messageId.getAddress()),
-                    messageId.getOffset(), 1000 * 3);
+            return this.mQClientFactory.getMQClientAPIImpl().viewMessage(
+                RemotingUtil.socketAddress2String(messageId.getAddress()), messageId.getOffset(), 1000 * 3);
         }
         catch (UnknownHostException e) {
             throw new MQClientException("message id illegal", e);
@@ -301,8 +301,8 @@ public class MQAdminImpl {
                                             }
 
                                             List<MessageExt> wrappers =
-                                                    MessageDecoder.decodes(
-                                                        ByteBuffer.wrap(response.getBody()), true);
+                                                    MessageDecoder.decodes(ByteBuffer.wrap(response.getBody()),
+                                                        true);
 
                                             QueryResult qr =
                                                     new QueryResult(responseHeader.getIndexLastUpdateTimestamp(),

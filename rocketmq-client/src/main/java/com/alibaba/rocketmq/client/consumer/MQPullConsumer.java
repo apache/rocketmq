@@ -3,7 +3,7 @@
  */
 package com.alibaba.rocketmq.client.consumer;
 
-import java.util.List;
+import java.util.Set;
 
 import com.alibaba.rocketmq.client.exception.MQBrokerException;
 import com.alibaba.rocketmq.client.exception.MQClientException;
@@ -133,5 +133,5 @@ public interface MQPullConsumer extends MQConsumer {
      * @return 成功 返回队列集合 失败 返回null
      * 
      */
-    public List<MessageQueue> fetchMessageQueuesInBalance(final String topic);
+    public Set<MessageQueue> fetchMessageQueuesInBalance(final String topic);
 }

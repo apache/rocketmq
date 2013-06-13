@@ -503,6 +503,9 @@ public class MQClientAPIImpl {
     }
 
 
+    /**
+     * 获取某个组的Consumer Id列表
+     */
     public List<String> getConsumerIdListByGroup(//
             final String addr, //
             final String consumerGroup, //

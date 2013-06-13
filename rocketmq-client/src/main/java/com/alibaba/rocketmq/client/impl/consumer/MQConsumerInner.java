@@ -3,7 +3,6 @@
  */
 package com.alibaba.rocketmq.client.impl.consumer;
 
-import java.util.List;
 import java.util.Set;
 
 import com.alibaba.rocketmq.common.message.MessageQueue;
@@ -34,5 +33,5 @@ public interface MQConsumerInner {
     public void persistConsumerOffset();
 
 
-    public void updateTopicSubscribeInfo(final String topic, final List<MessageQueue> info);
+    public void updateTopicSubscribeInfo(final String topic, final Set<MessageQueue> info);
 }
