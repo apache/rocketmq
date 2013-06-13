@@ -246,8 +246,6 @@ public class MQClientFactory {
                 break;
             }
         }
-
-        this.rebalanceImmediately();
     }
 
 
@@ -754,7 +752,14 @@ public class MQClientFactory {
                             }
 
                             // 更新订阅队列信息
-                            // TODO
+                            List<MessageQueue> subscribeInfo =
+                                    topicRouteData2TopicSubscribeInfo(topic, topicRouteData);
+                            for (String g : this.consumerTable.keySet()) {
+                                MQConsumerInner impl = this.consumerTable.get(g);
+                                if (impl != null) {
+                                    impl.updateTopicSubscribeInfo(topic, subscribeInfo);
+                                }
+                            }
 
                             this.topicRouteTable.put(topic, topicRouteData);
                             return true;

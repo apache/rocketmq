@@ -378,4 +378,11 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
         // TODO Auto-generated method stub
         
     }
+
+
+    @Override
+    public void updateTopicSubscribeInfo(String topic, List<MessageQueue> info) {
+        // TODO Auto-generated method stub
+        
+    }
 }

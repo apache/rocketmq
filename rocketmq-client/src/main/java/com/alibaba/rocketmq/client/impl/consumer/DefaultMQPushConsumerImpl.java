@@ -4,6 +4,7 @@
 package com.alibaba.rocketmq.client.impl.consumer;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -57,6 +58,10 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
 
     // 消费消息服务
     private ConsumeMessageService consumeMessageService;
+
+    // 可订阅的信息（定时从Name Server更新最新版本）
+    private final ConcurrentHashMap<String/* topic */, List<MessageQueue>> topicSubscribeInfoTable =
+            new ConcurrentHashMap<String, List<MessageQueue>>();
 
 
     @Override
@@ -125,6 +130,10 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
         default:
             break;
         }
+
+        this.updateTopicSubscribeInfoWhenSubscriptionChanged();
+
+        this.mQClientFactory.rebalanceImmediately();
     }
 
 
@@ -327,6 +336,14 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
             return;
         }
 
+        try {
+            this.makeSureStateOK();
+        }
+        catch (MQClientException e) {
+            log.warn("pullMessage exception, consumer state not ok", e);
+            this.executePullRequestLater(pullRequest, PullTimeDelayMillsWhenException);
+        }
+
         // 流量控制
         long size = processQueue.getMsgCount().get();
         if (size > this.defaultMQPushConsumer.getPullThresholdForQueue()) {
@@ -444,6 +461,29 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
     @Override
     public void doRebalance() {
         // TODO Auto-generated method stub
-        
+
+    }
+
+
+    private void updateTopicSubscribeInfoWhenSubscriptionChanged() {
+        Map<String, String> subTable = this.defaultMQPushConsumer.getSubscription();
+        if (subTable != null) {
+            for (final Map.Entry<String, String> entry : subTable.entrySet()) {
+                final String topic = entry.getKey();
+                this.mQClientFactory.updateTopicRouteInfoFromNameServer(topic);
+            }
+        }
+    }
+
+
+    @Override
+    public void updateTopicSubscribeInfo(String topic, List<MessageQueue> info) {
+        Map<String, String> subTable = this.defaultMQPushConsumer.getSubscription();
+        if (subTable != null) {
+            String value = subTable.get(topic);
+            if (value != null) {
+                this.topicSubscribeInfoTable.put(topic, info);
+            }
+        }
     }
 }
