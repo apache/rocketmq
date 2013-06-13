@@ -12,11 +12,14 @@ import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
+import org.slf4j.Logger;
+
 import com.alibaba.rocketmq.client.QueryResult;
 import com.alibaba.rocketmq.client.exception.MQBrokerException;
 import com.alibaba.rocketmq.client.exception.MQClientException;
 import com.alibaba.rocketmq.client.impl.factory.MQClientFactory;
 import com.alibaba.rocketmq.client.impl.producer.TopicPublishInfo;
+import com.alibaba.rocketmq.client.log.ClientLogger;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.TopicConfig;
 import com.alibaba.rocketmq.common.TopicFilterType;
@@ -45,6 +48,7 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingProtos.ResponseCode;
  * 
  */
 public class MQAdminImpl {
+    private final Logger log = ClientLogger.getLog();
     private final MQClientFactory mQClientFactory;
 
 
@@ -284,58 +288,57 @@ public class MQAdminImpl {
                             new InvokeCallback() {
                                 @Override
                                 public void operationComplete(ResponseFuture responseFuture) {
-                                   
-                                    RemotingCommand response = responseFuture.getResponseCommand();
-                                    if (response != null) {
-                                        switch (response.getCode()) {
-                                        case ResponseCode.SUCCESS_VALUE: {
-                                            QueryMessageResponseHeader responseHeader = null;
-                                            try {
-                                                responseHeader =
-                                                        (QueryMessageResponseHeader) response
-                                                            .decodeCommandCustomHeader(QueryMessageResponseHeader.class);
-                                            }
-                                            catch (RemotingCommandException e) {
-                                                // TODO log
-                                                return;
-                                            }
+                                    try {
+                                        RemotingCommand response = responseFuture.getResponseCommand();
+                                        if (response != null) {
+                                            switch (response.getCode()) {
+                                            case ResponseCode.SUCCESS_VALUE: {
+                                                QueryMessageResponseHeader responseHeader = null;
+                                                try {
+                                                    responseHeader =
+                                                            (QueryMessageResponseHeader) response
+                                                                .decodeCommandCustomHeader(QueryMessageResponseHeader.class);
+                                                }
+                                                catch (RemotingCommandException e) {
+                                                    log.error("decodeCommandCustomHeader exception", e);
+                                                    return;
+                                                }
 
-                                            List<MessageExt> wrappers =
-                                                    MessageDecoder.decodes(ByteBuffer.wrap(response.getBody()),
-                                                        true);
+                                                List<MessageExt> wrappers =
+                                                        MessageDecoder.decodes(
+                                                            ByteBuffer.wrap(response.getBody()), true);
 
-                                            QueryResult qr =
-                                                    new QueryResult(responseHeader.getIndexLastUpdateTimestamp(),
-                                                        wrappers);
-                                            queryResultList.add(qr);
-                                            break;
+                                                QueryResult qr =
+                                                        new QueryResult(responseHeader
+                                                            .getIndexLastUpdateTimestamp(), wrappers);
+                                                queryResultList.add(qr);
+                                                break;
+                                            }
+                                            default:
+                                                log.warn("getResponseCommand failed, {} {}", response.getCode(),
+                                                    response.getRemark());
+                                                break;
+                                            }
                                         }
-                                        default:
-                                            // TODO error log
-                                            break;
+                                        else {
+                                            log.warn("getResponseCommand return null");
                                         }
                                     }
-                                    else {
-                                        // TODO log
+                                    finally {
+                                        countDownLatch.countDown();
                                     }
-                                    countDownLatch.countDown();
                                 }
                             });
                     }
-                    catch (RemotingException e) {
-                        // TODO log
-                    }
-                    catch (MQBrokerException e) {
-                        // TODO log
-                    }
-                    catch (InterruptedException e) {
-                        // TODO log
-                    } // end of try
+                    catch (Exception e) {
+                        log.warn("queryMessage exception", e);
+                    }// end of try
+
                 } // end of for
 
                 boolean ok = countDownLatch.await(1000 * 10, TimeUnit.MILLISECONDS);
                 if (!ok) {
-                    // TODO log，仅仅打印日志即可，有可能部分成功，部分超时
+                    log.warn("queryMessage, maybe some broker failed");
                 }
 
                 long indexLastUpdateTimestamp = 0;
@@ -345,8 +348,8 @@ public class MQAdminImpl {
                         indexLastUpdateTimestamp = qr.getIndexLastUpdateTimestamp();
                     }
 
-                    for (MessageExt wrapper : qr.getMessageList()) {
-                        String keys = wrapper.getKeys();
+                    for (MessageExt msgExt : qr.getMessageList()) {
+                        String keys = msgExt.getKeys();
                         if (keys != null) {
                             boolean matched = false;
                             String[] keyArray = keys.split(Message.KEY_SEPARATOR);
@@ -360,10 +363,10 @@ public class MQAdminImpl {
                             }
 
                             if (matched) {
-                                messageList.add(wrapper);
+                                messageList.add(msgExt);
                             }
                             else {
-                                // TODO log
+                                log.warn("queryMessage, client find not matched message {}", msgExt.toString());
                             }
                         }
                     }
@@ -373,7 +376,6 @@ public class MQAdminImpl {
                     return new QueryResult(indexLastUpdateTimestamp, messageList);
                 }
                 else {
-                    // TODO log
                     throw new MQClientException("query operation over, but no message.", null);
                 }
             }
