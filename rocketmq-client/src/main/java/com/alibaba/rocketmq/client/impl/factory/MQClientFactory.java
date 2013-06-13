@@ -679,7 +679,7 @@ public class MQClientFactory {
         List<QueueData> qds = route.getQueueDatas();
         for (QueueData qd : qds) {
             if (PermName.isReadable(qd.getPerm())) {
-                for (int i = 0; i < qd.getWriteQueueNums(); i++) {
+                for (int i = 0; i < qd.getReadQueueNums(); i++) {
                     MessageQueue mq = new MessageQueue(topic, qd.getBrokerName(), i);
                     mqList.add(mq);
                 }
