@@ -461,6 +461,7 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
     private void rebalanceByTopic(final String topic) {
         switch (this.defaultMQPushConsumer.getMessageModel()) {
         case BROADCASTING:
+
             break;
         case CLUSTERING:
             break;

@@ -5,6 +5,8 @@ package com.alibaba.rocketmq.broker.client;
 
 import io.netty.channel.Channel;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -41,6 +43,20 @@ public class ConsumerGroupInfo {
         this.groupName = groupName;
         this.consumeType = consumeType;
         this.messageModel = messageModel;
+    }
+
+
+    public List<String> getAllClientId() {
+        List<String> result = new ArrayList<String>();
+
+        for (Integer id : this.channelInfoTable.keySet()) {
+            ClientChannelInfo info = this.channelInfoTable.get(id);
+            if (info != null) {
+                result.add(info.getClientId());
+            }
+        }
+
+        return result;
     }
 
 

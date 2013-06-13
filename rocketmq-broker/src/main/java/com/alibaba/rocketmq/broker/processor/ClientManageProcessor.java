@@ -3,6 +3,8 @@
  */
 package com.alibaba.rocketmq.broker.processor;
 
+import java.util.List;
+
 import io.netty.channel.ChannelHandlerContext;
 
 import org.slf4j.Logger;
@@ -10,8 +12,11 @@ import org.slf4j.LoggerFactory;
 
 import com.alibaba.rocketmq.broker.BrokerController;
 import com.alibaba.rocketmq.broker.client.ClientChannelInfo;
+import com.alibaba.rocketmq.broker.client.ConsumerGroupInfo;
 import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.common.protocol.MQProtos.MQRequestCode;
+import com.alibaba.rocketmq.common.protocol.header.GetConsumerListByGroupRequestHeader;
+import com.alibaba.rocketmq.common.protocol.header.GetConsumerListByGroupResponseHeader;
 import com.alibaba.rocketmq.common.protocol.header.UnregisterClientRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.UnregisterClientResponseHeader;
 import com.alibaba.rocketmq.common.protocol.heartbeat.ConsumerData;
@@ -21,6 +26,7 @@ import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
 import com.alibaba.rocketmq.remoting.netty.NettyRequestProcessor;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 import com.alibaba.rocketmq.remoting.protocol.RemotingProtos.ResponseCode;
+import com.alibaba.rocketmq.remoting.protocol.RemotingSerializable;
 
 
 /**
@@ -49,10 +55,41 @@ public class ClientManageProcessor implements NettyRequestProcessor {
             return this.heartBeat(ctx, request);
         case UNREGISTER_CLIENT:
             return this.unregisterClient(ctx, request);
+        case GET_CONSUMER_LIST_BY_GROUP:
+            return this.getConsumerListByGroup(ctx, request);
         default:
             break;
         }
         return null;
+    }
+
+
+    public RemotingCommand getConsumerListByGroup(ChannelHandlerContext ctx, RemotingCommand request)
+            throws RemotingCommandException {
+        final RemotingCommand response =
+                RemotingCommand.createResponseCommand(GetConsumerListByGroupResponseHeader.class);
+        final GetConsumerListByGroupRequestHeader responseHeader =
+                (GetConsumerListByGroupRequestHeader) response.getCustomHeader();
+        final GetConsumerListByGroupRequestHeader requestHeader =
+                (GetConsumerListByGroupRequestHeader) request
+                    .decodeCommandCustomHeader(GetConsumerListByGroupRequestHeader.class);
+
+        ConsumerGroupInfo consumerGroupInfo =
+                this.brokerController.getConsumerManager().getConsumerGroupInfo(requestHeader.getConsumerGroup());
+        if (consumerGroupInfo != null) {
+            List<String> clientIds = consumerGroupInfo.getAllClientId();
+            if (!clientIds.isEmpty()) {
+                byte[] body = RemotingSerializable.encode(clientIds);
+                response.setBody(body);
+                response.setCode(ResponseCode.SUCCESS_VALUE);
+                response.setRemark(null);
+                return response;
+            }
+        }
+
+        response.setCode(ResponseCode.SYSTEM_ERROR_VALUE);
+        response.setRemark("no consumer for this group, " + requestHeader.getConsumerGroup());
+        return response;
     }
 
 
