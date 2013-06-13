@@ -46,6 +46,8 @@ enum MQRequestCode{
 
     CHECK_TRANSACTION_STATE = 38;                       // Broker 主动向Producer回查事务状态
 
+    GET_CONSUMER_LIST_BY_GROUP = 39;                    // Broker 获取ConsumerId列表通过GroupName
+
     REGISTER_BROKER = 100;                              // Namesrv 注册一个Broker，数据都是持久化的，如果存在则覆盖配置
     UNREGISTER_BROKER = 101;                            // Namesrv 卸载一个Broker，数据都是持久化的
     GET_BROKER_LIST = 102;                              // Namesrv 获取注册的Broker列表

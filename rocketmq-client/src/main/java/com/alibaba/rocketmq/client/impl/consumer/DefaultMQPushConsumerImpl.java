@@ -458,9 +458,34 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
     }
 
 
+    private void rebalanceByTopic(final String topic) {
+        switch (this.defaultMQPushConsumer.getMessageModel()) {
+        case BROADCASTING:
+            break;
+        case CLUSTERING:
+            break;
+        default:
+            break;
+        }
+    }
+
+
+    private void truncateMessageQueueNotMe() {
+
+    }
+
+
     @Override
     public void doRebalance() {
+        Map<String, String> subTable = this.defaultMQPushConsumer.getSubscription();
+        if (subTable != null) {
+            for (final Map.Entry<String, String> entry : subTable.entrySet()) {
+                final String topic = entry.getKey();
+                this.rebalanceByTopic(topic);
+            }
+        }
 
+        this.truncateMessageQueueNotMe();
     }
 
 
