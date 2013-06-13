@@ -7,11 +7,13 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
+import com.alibaba.rocketmq.client.QueryResult;
 import com.alibaba.rocketmq.client.consumer.DefaultMQPullConsumer;
 import com.alibaba.rocketmq.client.consumer.MQPullConsumer;
 import com.alibaba.rocketmq.client.consumer.PullResult;
 import com.alibaba.rocketmq.client.exception.MQBrokerException;
 import com.alibaba.rocketmq.client.exception.MQClientException;
+import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.common.message.MessageQueue;
 import com.alibaba.rocketmq.remoting.exception.RemotingException;
 
@@ -40,8 +42,7 @@ public class PullConsumer {
     }
 
 
-    public static void main(String[] args) {
-        try {
+    public static void main(String[] args) throws MQClientException {
             MQPullConsumer consumer = new DefaultMQPullConsumer("example.consumer.active");
 
             consumer.start();
@@ -49,38 +50,28 @@ public class PullConsumer {
             Set<MessageQueue> mqs = consumer.fetchSubscribeMessageQueues("TopicTest");
             for (MessageQueue mq : mqs) {
                 System.out.println("Consume from the queue: " + mq);
-                PullResult pullResult = consumer.pullBlockIfNotFound(mq, null, getMessageQueueOffset(mq), 32);
-                System.out.println(pullResult);
-                switch (pullResult.getPullStatus()) {
-                case FOUND:
-                    break;
-                case NO_MATCHED_MSG:
-                    break;
-                case NO_NEW_MSG:
-                    break;
-                case OFFSET_ILLEGAL:
-                    break;
-                default:
-                    break;
-                }
-
-                putMessageQueueOffset(mq, pullResult.getNextBeginOffset());
+                PullResult pullResult;
+				try {
+					pullResult = consumer.pullBlockIfNotFound(mq, null, getMessageQueueOffset(mq), 32);
+					System.out.println(pullResult);
+	                for (MessageExt mex : pullResult.getMsgFoundList()) {
+	                    QueryResult data = consumer.queryMessage(mex.getTopic(), mex.getKeys(), 1000, 0, System.currentTimeMillis());
+	                    System.out.println("--QueryResult----"+data.getMessageList().toString());
+	                }
+				} catch (RemotingException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} catch (MQBrokerException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+               
             }
 
             consumer.shutdown();
         }
-        catch (MQClientException e) {
-            e.printStackTrace();
-        }
-        catch (RemotingException e) {
-            e.printStackTrace();
-        }
-        catch (MQBrokerException e) {
-            e.printStackTrace();
-        }
-        catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-    }
 
 }
