@@ -8,7 +8,7 @@ package com.alibaba.rocketmq.common.message;
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  */
-public class MessageQueue {
+public class MessageQueue implements Comparable<MessageQueue> {
     private String topic;
     private String brokerName;
     private int queueId;
@@ -92,5 +92,11 @@ public class MessageQueue {
         else if (!topic.equals(other.topic))
             return false;
         return true;
+    }
+
+
+    @Override
+    public int compareTo(MessageQueue o) {
+        return this.toString().compareTo(o.toString());
     }
 }

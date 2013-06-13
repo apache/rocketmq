@@ -19,6 +19,7 @@ import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Enumeration;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
 import java.util.Set;
@@ -476,4 +477,21 @@ public class MixAll {
         }
     }
 
+
+    public Set<String> list2Set(List<String> values) {
+        Set<String> result = new HashSet<String>();
+        for (String v : values) {
+            result.add(v);
+        }
+        return result;
+    }
+
+
+    public List<String> set2List(Set<String> values) {
+        List<String> result = new ArrayList<String>();
+        for (String v : values) {
+            result.add(v);
+        }
+        return result;
+    }
 }

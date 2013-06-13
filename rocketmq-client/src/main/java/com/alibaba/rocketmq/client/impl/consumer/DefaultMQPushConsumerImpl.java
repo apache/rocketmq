@@ -3,6 +3,9 @@
  */
 package com.alibaba.rocketmq.client.impl.consumer;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -11,6 +14,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
 
 import com.alibaba.rocketmq.client.QueryResult;
+import com.alibaba.rocketmq.client.consumer.AllocateMessageQueueStrategy;
 import com.alibaba.rocketmq.client.consumer.DefaultMQPushConsumer;
 import com.alibaba.rocketmq.client.consumer.MQPushConsumer;
 import com.alibaba.rocketmq.client.consumer.PullCallback;
@@ -132,6 +136,8 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
         }
 
         this.updateTopicSubscribeInfoWhenSubscriptionChanged();
+
+        this.mQClientFactory.sendHeartbeatToAllBroker();
 
         this.mQClientFactory.rebalanceImmediately();
     }
@@ -458,17 +464,87 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
     }
 
 
+    private void updateProcessQueueTableInRebalance(final String topic, final Set<MessageQueue> mqSet) {
+        // 将多余的队列删除
+        for (MessageQueue mq : this.processQueueTable.keySet()) {
+            if (mq.getTopic().equals(topic)) {
+                if (!mqSet.contains(mq)) {
+                    ProcessQueue pq = this.processQueueTable.remove(mq);
+                    if (pq != null) {
+                        pq.setDroped(true);
+                        log.info("[{}] doRebalance, remove unnecessary mq, {}",
+                            this.defaultMQPushConsumer.getConsumerGroup(), mq);
+                    }
+                }
+            }
+        }
+
+        // 增加新增的队列
+        List<PullRequest> pullRequestList = new ArrayList<PullRequest>();
+
+        for (MessageQueue mq : mqSet) {
+            ProcessQueue pq = this.processQueueTable.get(mq);
+            if (null == pq) {
+                PullRequest pullRequest = new PullRequest();
+                pullRequest.setConsumerGroup(this.defaultMQPushConsumer.getConsumerGroup());
+                pullRequest.setMessageQueue(mq);
+                pullRequest.setProcessQueue(new ProcessQueue());
+
+                // TODO 这个需要根据策略来设置
+                pullRequest.setNextOffset(0L);
+
+                this.processQueueTable.put(mq, pullRequest.getProcessQueue());
+                log.info("[{}] doRebalance, add a new mq, {}", this.defaultMQPushConsumer.getConsumerGroup(), mq);
+            }
+        }
+
+    }
+
+
     private void rebalanceByTopic(final String topic) {
         switch (this.defaultMQPushConsumer.getMessageModel()) {
-        case BROADCASTING:
-            Set<MessageQueue> mqs = this.topicSubscribeInfoTable.get(topic);
-            if (mqs != null) {
-
+        case BROADCASTING: {
+            Set<MessageQueue> mqSet = this.topicSubscribeInfoTable.get(topic);
+            if (mqSet != null) {
+                this.updateProcessQueueTableInRebalance(topic, mqSet);
             }
+            else {
+                log.warn("[{}] doRebalance, but the topic[{}] not exist.",
+                    this.defaultMQPushConsumer.getConsumerGroup(), topic);
+            }
+            break;
+        }
+        case CLUSTERING: {
+            Set<MessageQueue> mqSet = this.topicSubscribeInfoTable.get(topic);
+            List<String> cidAll =
+                    this.mQClientFactory.findConsumerIdList(topic, this.defaultMQPushConsumer.getConsumerGroup());
+            if (mqSet != null && cidAll != null) {
+                List<MessageQueue> mqAll = new ArrayList<MessageQueue>();
+                mqAll.addAll(mqSet);
 
+                // 排序
+                Collections.sort(mqAll);
+                Collections.sort(cidAll);
+
+                AllocateMessageQueueStrategy strategy =
+                        this.defaultMQPushConsumer.getAllocateMessageQueueStrategy();
+
+                // 执行分配算法
+                List<MessageQueue> allocateResult =
+                        strategy.allocate(this.mQClientFactory.getClientId(), mqAll, cidAll);
+
+                Set<MessageQueue> allocateResultSet = new HashSet<MessageQueue>();
+                allocateResultSet.addAll(allocateResult);
+
+                // 更新本地队列
+                this.updateProcessQueueTableInRebalance(topic, allocateResultSet);
+            }
+            else {
+                log.warn("[{}] doRebalance, but the topic[{}] not exist.",
+                    this.defaultMQPushConsumer.getConsumerGroup(), topic);
+            }
             break;
-        case CLUSTERING:
-            break;
+        }
         default:
             break;
         }
@@ -486,7 +562,12 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
         if (subTable != null) {
             for (final Map.Entry<String, String> entry : subTable.entrySet()) {
                 final String topic = entry.getKey();
-                this.rebalanceByTopic(topic);
+                try {
+                    this.rebalanceByTopic(topic);
+                }
+                catch (Exception e) {
+                    log.warn("rebalanceByTopic Exception", e);
+                }
             }
         }
 
