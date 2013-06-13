@@ -460,7 +460,6 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
 
     @Override
     public void doRebalance() {
-        // TODO Auto-generated method stub
 
     }
 

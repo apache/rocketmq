@@ -16,26 +16,25 @@ public class AllocateMessageQueueAveragelyTeset {
 
     @Test
     public void test_allocate() {
-    	AllocateMessageQueueAveragely allocateMessageQueueAveragely  =new AllocateMessageQueueAveragely();
-    	String group = "s_test";
-    	String topic = "topic_test";
-    	String currentCID = "CID";
-    	List<MessageQueue> mqAll = new ArrayList<MessageQueue>();
-    	for(int i=0;i<10;i++){
-    		MessageQueue mq  = new MessageQueue(topic,"brokerName",i);
-    		mqAll.add(mq);
-    	}
-    	
-    	List<String> cidAll  = new ArrayList<String> ();
-    	for(int j=0;j<3;j++){
-    		cidAll.add("CID"+j);
-    	}
-    	System.out.println(mqAll.toString());
-    	System.out.println(cidAll.toString());
-    	for(int i=0;i<3;i++){
-    		List<MessageQueue> rs = allocateMessageQueueAveragely.allocate(group, topic, currentCID+i, mqAll, cidAll);
-    		System.out.println("rs["+currentCID+i+"]:"+rs.toString());
-    	}
-        
+        AllocateMessageQueueAveragely allocateMessageQueueAveragely = new AllocateMessageQueueAveragely();
+        String topic = "topic_test";
+        String currentCID = "CID";
+        List<MessageQueue> mqAll = new ArrayList<MessageQueue>();
+        for (int i = 0; i < 10; i++) {
+            MessageQueue mq = new MessageQueue(topic, "brokerName", i);
+            mqAll.add(mq);
+        }
+
+        List<String> cidAll = new ArrayList<String>();
+        for (int j = 0; j < 3; j++) {
+            cidAll.add("CID" + j);
+        }
+        System.out.println(mqAll.toString());
+        System.out.println(cidAll.toString());
+        for (int i = 0; i < 3; i++) {
+            List<MessageQueue> rs = allocateMessageQueueAveragely.allocate(currentCID + i, mqAll, cidAll);
+            System.out.println("rs[" + currentCID + i + "]:" + rs.toString());
+        }
+
     }
 }
