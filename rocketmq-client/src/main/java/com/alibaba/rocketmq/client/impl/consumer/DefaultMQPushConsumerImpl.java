@@ -53,6 +53,8 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
     private MQClientFactory mQClientFactory;
     private PullAPIWrapper pullAPIWrapper;
 
+    private volatile boolean pause = false;
+
     // 消费进度存储
     private OffsetStore offsetStore;
 
@@ -270,14 +272,15 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
 
     @Override
     public void suspend() {
-        // TODO Auto-generated method stub
-
+        this.pause = true;
+        log.info("suspend this consumer, {}", this.defaultMQPushConsumer.getConsumerGroup());
     }
 
 
     @Override
     public void resume() {
-        // TODO Auto-generated method stub
+        this.pause = false;
+        log.info("suspend this consumer, {}", this.defaultMQPushConsumer.getConsumerGroup());
     }
 
 
@@ -306,20 +309,6 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
 
 
     /**
-     * 单线程调用
-     */
-    private ProcessQueue getAndCreateProcessQueue(final MessageQueue mq) {
-        ProcessQueue pq = this.processQueueTable.get(mq);
-        if (null == pq) {
-            pq = new ProcessQueue();
-            this.processQueueTable.put(mq, pq);
-        }
-
-        return pq;
-    }
-
-
-    /**
      * 稍后再执行这个PullRequest
      */
     private void executePullRequestLater(final PullRequest pullRequest, final long timeDelay) {
@@ -327,6 +316,9 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
     }
 
 
+    /**
+     * 立刻执行这个PullRequest
+     */
     public void executePullRequestImmediately(final PullRequest pullRequest) {
         this.mQClientFactory.getPullMessageService().executePullRequestImmediately(pullRequest);
     }
@@ -599,5 +591,15 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
                 this.topicSubscribeInfoTable.put(topic, info);
             }
         }
+    }
+
+
+    public boolean isPause() {
+        return pause;
+    }
+
+
+    public void setPause(boolean pause) {
+        this.pause = pause;
     }
 }
