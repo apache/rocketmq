@@ -18,8 +18,7 @@ import com.alibaba.rocketmq.common.message.MessageQueue;
  */
 public class AllocateMessageQueueAveragely implements AllocateMessageQueueStrategy {
     @Override
-    public List<MessageQueue> allocate(String group, String topic, String currentCID, List<MessageQueue> mqAll,
-            List<String> cidAll) {
+    public List<MessageQueue> allocate(String currentCID, List<MessageQueue> mqAll, List<String> cidAll) {
         List<MessageQueue> result = new ArrayList<MessageQueue>();
         int currentIndex = cidAll.indexOf(currentCID);
         if (currentIndex < 0) {

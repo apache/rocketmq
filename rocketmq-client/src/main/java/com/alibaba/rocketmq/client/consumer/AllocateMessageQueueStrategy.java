@@ -18,8 +18,6 @@ public interface AllocateMessageQueueStrategy {
     /**
      * 队列分配算法
      * 
-     * @param group
-     * @param topic
      * @param currentCID
      *            当前ConsumerId
      * @param mqAll
@@ -29,8 +27,6 @@ public interface AllocateMessageQueueStrategy {
      * @return 分配结果，无重复数据
      */
     public List<MessageQueue> allocate(//
-            final String group,//
-            final String topic,//
             final String currentCID,//
             final List<MessageQueue> mqAll,//
             final List<String> cidAll//
