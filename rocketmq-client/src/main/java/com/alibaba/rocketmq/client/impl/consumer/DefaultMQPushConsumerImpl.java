@@ -481,7 +481,6 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
 
         // 增加新增的队列
         List<PullRequest> pullRequestList = new ArrayList<PullRequest>();
-
         for (MessageQueue mq : mqSet) {
             ProcessQueue pq = this.processQueueTable.get(mq);
             if (null == pq) {
@@ -492,12 +491,17 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
 
                 // TODO 这个需要根据策略来设置
                 pullRequest.setNextOffset(0L);
-
+                pullRequestList.add(pullRequest);
                 this.processQueueTable.put(mq, pullRequest.getProcessQueue());
                 log.info("[{}] doRebalance, add a new mq, {}", this.defaultMQPushConsumer.getConsumerGroup(), mq);
             }
         }
 
+        // 派发PullRequest
+        for (PullRequest pullRequest : pullRequestList) {
+            this.executePullRequestImmediately(pullRequest);
+            log.info("add a new pull request {}", pullRequest);
+        }
     }
 
 
