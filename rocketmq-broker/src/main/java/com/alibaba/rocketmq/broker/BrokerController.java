@@ -19,6 +19,7 @@ import org.slf4j.LoggerFactory;
 import com.alibaba.rocketmq.broker.client.ClientHousekeepingService;
 import com.alibaba.rocketmq.broker.client.ConsumerManager;
 import com.alibaba.rocketmq.broker.client.ProducerManager;
+import com.alibaba.rocketmq.broker.client.net.Broker2Client;
 import com.alibaba.rocketmq.broker.longpolling.PullRequestHoldService;
 import com.alibaba.rocketmq.broker.offset.ConsumerOffsetManager;
 import com.alibaba.rocketmq.broker.processor.AdminBrokerProcessor;
@@ -98,6 +99,9 @@ public class BrokerController {
             }
         });
 
+    // Broker主动调用Client
+    private final Broker2Client broker2Client;
+
 
     public BrokerController(final BrokerConfig brokerConfig, final NettyServerConfig nettyServerConfig,
             final MessageStoreConfig messageStoreConfig) {
@@ -112,6 +116,7 @@ public class BrokerController {
         this.producerManager = new ProducerManager();
         this.clientHousekeepingService = new ClientHousekeepingService(this);
         this.defaultTransactionCheckExecuter = new DefaultTransactionCheckExecuter(this);
+        this.broker2Client = new Broker2Client(this);
     }
 
 
@@ -484,5 +489,10 @@ public class BrokerController {
 
     public DefaultTransactionCheckExecuter getDefaultTransactionCheckExecuter() {
         return defaultTransactionCheckExecuter;
+    }
+
+
+    public Broker2Client getBroker2Client() {
+        return broker2Client;
     }
 }

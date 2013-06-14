@@ -46,6 +46,20 @@ public class ConsumerGroupInfo {
     }
 
 
+    public List<Channel> getAllChannel() {
+        List<Channel> result = new ArrayList<Channel>();
+
+        for (Integer id : this.channelInfoTable.keySet()) {
+            ClientChannelInfo info = this.channelInfoTable.get(id);
+            if (info != null) {
+                result.add(info.getChannel());
+            }
+        }
+
+        return result;
+    }
+
+
     public List<String> getAllClientId() {
         List<String> result = new ArrayList<String>();
 
