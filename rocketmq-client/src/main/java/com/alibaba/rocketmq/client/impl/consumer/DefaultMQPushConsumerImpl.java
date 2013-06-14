@@ -200,60 +200,52 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
 
     @Override
     public Set<MessageQueue> fetchSubscribeMessageQueues(String topic) throws MQClientException {
-        // TODO Auto-generated method stub
-        return null;
+        return this.topicSubscribeInfoTable.get(topic);
     }
 
 
     @Override
     public void createTopic(String key, String newTopic, int queueNum, TopicFilterType topicFilterType,
             boolean order) throws MQClientException {
-        // TODO Auto-generated method stub
-
+        this.mQClientFactory.getMQAdminImpl().createTopic(key, newTopic, queueNum, topicFilterType, order);
     }
 
 
     @Override
     public long searchOffset(MessageQueue mq, long timestamp) throws MQClientException {
-        // TODO Auto-generated method stub
-        return 0;
+        return this.mQClientFactory.getMQAdminImpl().searchOffset(mq, timestamp);
     }
 
 
     @Override
     public long getMaxOffset(MessageQueue mq) throws MQClientException {
-        // TODO Auto-generated method stub
-        return 0;
+        return this.mQClientFactory.getMQAdminImpl().getMaxOffset(mq);
     }
 
 
     @Override
     public long getMinOffset(MessageQueue mq) throws MQClientException {
-        // TODO Auto-generated method stub
-        return 0;
+        return this.mQClientFactory.getMQAdminImpl().getMinOffset(mq);
     }
 
 
     @Override
     public long getEarliestMsgStoreTime(MessageQueue mq) throws MQClientException {
-        // TODO Auto-generated method stub
-        return 0;
+        return this.mQClientFactory.getMQAdminImpl().getEarliestMsgStoreTime(mq);
     }
 
 
     @Override
     public MessageExt viewMessage(String msgId) throws RemotingException, MQBrokerException, InterruptedException,
             MQClientException {
-        // TODO Auto-generated method stub
-        return null;
+        return this.mQClientFactory.getMQAdminImpl().viewMessage(msgId);
     }
 
 
     @Override
     public QueryResult queryMessage(String topic, String key, int maxNum, long begin, long end)
             throws MQClientException, InterruptedException {
-        // TODO Auto-generated method stub
-        return null;
+        return this.mQClientFactory.getMQAdminImpl().queryMessage(topic, key, maxNum, begin, end);
     }
 
 
@@ -490,7 +482,7 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
                     ProcessQueue pq = this.processQueueTable.remove(mq);
                     if (pq != null) {
                         pq.setDroped(true);
-                        log.info("[{}] doRebalance, remove unnecessary mq, {}",
+                        log.info("doRebalance, {}, remove unnecessary mq, {}",
                             this.defaultMQPushConsumer.getConsumerGroup(), mq);
                     }
                 }
@@ -580,8 +572,19 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
     }
 
 
-    private void truncateMessageQueueNotMe() {
+    private void truncateMessageQueueNotMyTopic() {
+        Map<String, String> subTable = this.defaultMQPushConsumer.getSubscription();
 
+        for (MessageQueue mq : this.processQueueTable.keySet()) {
+            if (!subTable.containsKey(mq.getTopic())) {
+                ProcessQueue pq = this.processQueueTable.remove(mq);
+                if (pq != null) {
+                    pq.setDroped(true);
+                    log.info("doRebalance, {}, truncateMessageQueueNotMyTopic remove unnecessary mq, {}",
+                        this.defaultMQPushConsumer.getConsumerGroup(), mq);
+                }
+            }
+        }
     }
 
 
@@ -600,7 +603,7 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
             }
         }
 
-        this.truncateMessageQueueNotMe();
+        this.truncateMessageQueueNotMyTopic();
     }
 
 
