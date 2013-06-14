@@ -379,7 +379,7 @@ public class MQClientFactory {
     }
 
 
-    private void sendHeartbeatToAllBrokerWithLock() {
+    public void sendHeartbeatToAllBrokerWithLock() {
         if (this.lockHeartbeat.tryLock()) {
             try {
                 this.sendHeartbeatToAllBroker();
@@ -397,7 +397,7 @@ public class MQClientFactory {
     }
 
 
-    public void sendHeartbeatToAllBroker() {
+    private void sendHeartbeatToAllBroker() {
         final HeartbeatData heartbeatData = this.prepareHeartbeatData();
         final boolean producerEmpty = heartbeatData.getProducerDataSet().isEmpty();
         final boolean consumerEmpty = heartbeatData.getConsumerDataSet().isEmpty();

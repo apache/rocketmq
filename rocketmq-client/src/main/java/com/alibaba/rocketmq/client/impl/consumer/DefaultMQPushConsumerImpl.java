@@ -147,7 +147,7 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
 
         this.updateTopicSubscribeInfoWhenSubscriptionChanged();
 
-        this.mQClientFactory.sendHeartbeatToAllBroker();
+        this.mQClientFactory.sendHeartbeatToAllBrokerWithLock();
 
         this.mQClientFactory.rebalanceImmediately();
     }
