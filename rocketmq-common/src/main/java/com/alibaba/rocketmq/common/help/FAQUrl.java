@@ -26,9 +26,9 @@ public class FAQUrl {
     // FAQ: 未收录异常处理办法
     //
     public static final String UNEXPECTED_EXCEPTION_URL = //
-            "https://github.com/alibaba/RocketMQ/issues/63";
+            "https://github.com/alibaba/RocketMQ/issues/64";
 
-    private static final String TipString = "\nFor more infomation, please visit this url, ";
+    private static final String TipString = "\nFor more infomation, please visit the url, ";
 
 
     public static String suggestTodo(final String url) {
@@ -49,7 +49,7 @@ public class FAQUrl {
                 StringBuilder sb = new StringBuilder();
                 sb.append(errorMessage);
                 sb.append("\n");
-                sb.append("For inquiries, please visit this url, ");
+                sb.append("For inquiries, please visit the url, ");
                 sb.append(UNEXPECTED_EXCEPTION_URL);
                 return sb.toString();
             }

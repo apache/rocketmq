@@ -69,8 +69,8 @@ public class ClientManageProcessor implements NettyRequestProcessor {
             throws RemotingCommandException {
         final RemotingCommand response =
                 RemotingCommand.createResponseCommand(GetConsumerListByGroupResponseHeader.class);
-        final GetConsumerListByGroupRequestHeader responseHeader =
-                (GetConsumerListByGroupRequestHeader) response.getCustomHeader();
+        final GetConsumerListByGroupResponseHeader responseHeader =
+                (GetConsumerListByGroupResponseHeader) response.getCustomHeader();
         final GetConsumerListByGroupRequestHeader requestHeader =
                 (GetConsumerListByGroupRequestHeader) request
                     .decodeCommandCustomHeader(GetConsumerListByGroupRequestHeader.class);
@@ -143,13 +143,15 @@ public class ClientManageProcessor implements NettyRequestProcessor {
 
         // ×¢²áConsumer
         for (ConsumerData data : heartbeatData.getConsumerDataSet()) {
-            this.brokerController.getConsumerManager().registerConsumer(//
+            boolean changed = this.brokerController.getConsumerManager().registerConsumer(//
                 data.getGroupName(),//
                 clientChannelInfo,//
                 data.getConsumeType(),//
                 data.getMessageModel(),//
                 data.getSubscriptionDataSet()//
                 );
+
+            log.debug("");
         }
 
         // ×¢²áProducer
