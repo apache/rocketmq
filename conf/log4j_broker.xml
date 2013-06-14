@@ -56,27 +56,27 @@
 	</logger>
 
 	<logger name="RocketmqCommon" additivity="false">
-		<level value="DEBUG" />
+		<level value="INFO" />
 		<appender-ref ref="RocketmqBrokerAppender" />
 	</logger>
 
 	<logger name="RocketmqStore" additivity="false">
-		<level value="DEBUG" />
+		<level value="INFO" />
 		<appender-ref ref="RocketmqBrokerAppender" />
 	</logger>
 
 	<logger name="RocketmqTransaction" additivity="false">
-		<level value="DEBUG" />
+		<level value="INFO" />
 		<appender-ref ref="RocketmqTransactionAppender" />
 	</logger>
 
 	<logger name="RocketmqRemoting" additivity="false">
-		<level value="DEBUG" />
+		<level value="INFO" />
 		<appender-ref ref="RocketmqBrokerAppender" />
 	</logger>
 
 	<root>
-		<level value="DEBUG" />
+		<level value="INFO" />
 		<appender-ref ref="DefaultAppender" />
 	</root>
 </configuration>
