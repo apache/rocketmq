@@ -110,6 +110,7 @@ public class MQClientFactory {
     // 拉消息服务
     private final PullMessageService pullMessageService;
 
+    // Rebalance服务
     private final RebalanceService rebalanceService;
 
 
@@ -423,13 +424,7 @@ public class MQClientFactory {
                             log.debug("send heart beat to broker[{} {} {}] success", name, id, addr);
                             log.debug(heartbeatData.toString());
                         }
-                        catch (RemotingException e) {
-                            log.error("send heart beat to broker exception", e);
-                        }
-                        catch (MQBrokerException e) {
-                            log.error("send heart beat to broker exception", e);
-                        }
-                        catch (InterruptedException e) {
+                        catch (Exception e) {
                             log.error("send heart beat to broker exception", e);
                         }
                     }
