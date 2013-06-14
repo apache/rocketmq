@@ -23,6 +23,7 @@ import com.alibaba.rocketmq.common.protocol.header.UnregisterClientResponseHeade
 import com.alibaba.rocketmq.common.protocol.heartbeat.ConsumerData;
 import com.alibaba.rocketmq.common.protocol.heartbeat.HeartbeatData;
 import com.alibaba.rocketmq.common.protocol.heartbeat.ProducerData;
+import com.alibaba.rocketmq.remoting.common.RemotingHelper;
 import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
 import com.alibaba.rocketmq.remoting.netty.NettyRequestProcessor;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
@@ -69,8 +70,6 @@ public class ClientManageProcessor implements NettyRequestProcessor {
             throws RemotingCommandException {
         final RemotingCommand response =
                 RemotingCommand.createResponseCommand(GetConsumerListByGroupResponseHeader.class);
-        final GetConsumerListByGroupResponseHeader responseHeader =
-                (GetConsumerListByGroupResponseHeader) response.getCustomHeader();
         final GetConsumerListByGroupRequestHeader requestHeader =
                 (GetConsumerListByGroupRequestHeader) request
                     .decodeCommandCustomHeader(GetConsumerListByGroupRequestHeader.class);
@@ -81,11 +80,20 @@ public class ClientManageProcessor implements NettyRequestProcessor {
             List<String> clientIds = consumerGroupInfo.getAllClientId();
             if (!clientIds.isEmpty()) {
                 GetConsumerListByGroupResponseBody body = new GetConsumerListByGroupResponseBody();
+                body.setConsumerIdList(clientIds);
                 response.setBody(body.encode());
                 response.setCode(ResponseCode.SUCCESS_VALUE);
                 response.setRemark(null);
                 return response;
             }
+            else {
+                log.warn("getAllClientId failed, {} {}", requestHeader.getConsumerGroup(),
+                    RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
+            }
+        }
+        else {
+            log.warn("getConsumerGroupInfo failed, {} {}", requestHeader.getConsumerGroup(),
+                RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
         }
 
         response.setCode(ResponseCode.SYSTEM_ERROR_VALUE);
@@ -151,7 +159,11 @@ public class ClientManageProcessor implements NettyRequestProcessor {
                 data.getSubscriptionDataSet()//
                 );
 
-            log.debug("");
+            log.debug("registerConsumer {} {} CHANGED: {}",//
+                data.toString(),//
+                changed,//
+                RemotingHelper.parseChannelRemoteAddr(ctx.channel())//
+            );
         }
 
         // ×¢²áProducer
