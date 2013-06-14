@@ -293,13 +293,13 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
 
     @Override
     public String getGroupName() {
-        return null;
+        return this.defaultMQPushConsumer.getConsumerGroup();
     }
 
 
     @Override
     public MessageModel getMessageModel() {
-        return null;
+        return this.defaultMQPushConsumer.getMessageModel();
     }
 
 
@@ -540,6 +540,16 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
             Set<MessageQueue> mqSet = this.topicSubscribeInfoTable.get(topic);
             List<String> cidAll =
                     this.mQClientFactory.findConsumerIdList(topic, this.defaultMQPushConsumer.getConsumerGroup());
+            if (null == mqSet) {
+                log.warn("[{}] doRebalance, but the topic[{}] not exist.",
+                    this.defaultMQPushConsumer.getConsumerGroup(), topic);
+            }
+
+            if (null == cidAll) {
+                log.warn("[{}] doRebalance, get consumer id list failed",
+                    this.defaultMQPushConsumer.getConsumerGroup());
+            }
+
             if (mqSet != null && cidAll != null) {
                 List<MessageQueue> mqAll = new ArrayList<MessageQueue>();
                 mqAll.addAll(mqSet);
@@ -560,10 +570,6 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
 
                 // 更新本地队列
                 this.updateProcessQueueTableInRebalance(topic, allocateResultSet);
-            }
-            else {
-                log.warn("[{}] doRebalance, but the topic[{}] not exist.",
-                    this.defaultMQPushConsumer.getConsumerGroup(), topic);
             }
             break;
         }

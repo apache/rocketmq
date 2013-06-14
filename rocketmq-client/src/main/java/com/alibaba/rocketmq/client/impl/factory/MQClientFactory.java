@@ -356,7 +356,9 @@ public class MQClientFactory {
                 consumerData.setGroupName(impl.getGroupName());
                 consumerData.setConsumeType(impl.getConsumeType());
                 consumerData.setMessageModel(impl.getMessageModel());
-                consumerData.getSubscriptionDataSet().addAll(impl.getMQSubscriptions());
+                if (impl.getMQSubscriptions() != null) {
+                    consumerData.getSubscriptionDataSet().addAll(impl.getMQSubscriptions());
+                }
 
                 heartbeatData.getConsumerDataSet().add(consumerData);
             }
@@ -730,8 +732,10 @@ public class MQClientFactory {
             MQConsumerInner impl = this.consumerTable.get(g);
             if (impl != null) {
                 Set<SubscriptionData> subList = impl.getMQSubscriptions();
-                for (SubscriptionData subData : subList) {
-                    topicList.add(subData.getTopic());
+                if (subList != null) {
+                    for (SubscriptionData subData : subList) {
+                        topicList.add(subData.getTopic());
+                    }
                 }
             }
         }
