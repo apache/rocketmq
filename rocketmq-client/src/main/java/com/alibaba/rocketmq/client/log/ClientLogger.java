@@ -28,11 +28,11 @@ public class ClientLogger {
         }
 
         // ≥ı ºªØLogger
-        log = createLogger(LoggerName.ClientLoggerName);
+        log = createLogger(LoggerName.ClientLoggerName, "rocketmq_client.log");
     }
 
 
-    private static Logger createLogger(final String loggerName) {
+    private static Logger createLogger(final String loggerName, final String fileName) {
         Logger logger = LoggerFactory.getLogger(loggerName);
         LoggerContext loggerContext = (LoggerContext) LoggerFactory.getILoggerFactory();
 
@@ -46,8 +46,7 @@ public class ClientLogger {
         // policy
         TimeBasedRollingPolicy<ILoggingEvent> rollingPolicy = new TimeBasedRollingPolicy<ILoggingEvent>();
         rollingPolicy.setContext(loggerContext);
-        rollingPolicy.setFileNamePattern(logFilePath + File.separator + "rocketmq_" + loggerName
-                + "-%d{yyyy-MM-dd}.log");
+        rollingPolicy.setFileNamePattern(logFilePath + File.separator + fileName);
         rollingPolicy.setParent(appender);
         rollingPolicy.start();
 
