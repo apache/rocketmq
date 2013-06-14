@@ -14,6 +14,7 @@ public class NettyServerConfig {
     private int serverSelectorThreads = 8;
     private int serverOnewaySemaphoreValue = 32;
     private int serverAsyncSemaphoreValue = 64;
+    private int serverChannelMaxIdleTimeSeconds = 120;
 
 
     public int getListenPort() {
@@ -73,5 +74,15 @@ public class NettyServerConfig {
 
     public void setServerAsyncSemaphoreValue(int serverAsyncSemaphoreValue) {
         this.serverAsyncSemaphoreValue = serverAsyncSemaphoreValue;
+    }
+
+
+    public int getServerChannelMaxIdleTimeSeconds() {
+        return serverChannelMaxIdleTimeSeconds;
+    }
+
+
+    public void setServerChannelMaxIdleTimeSeconds(int serverChannelMaxIdleTimeSeconds) {
+        this.serverChannelMaxIdleTimeSeconds = serverChannelMaxIdleTimeSeconds;
     }
 }

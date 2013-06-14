@@ -18,6 +18,8 @@ public class NettyClientConfig {
     // channel超过1分钟不被访问 就关闭
     private long channelNotActiveInterval = 1000 * 60;
 
+    private int clientChannelMaxIdleTimeSeconds = 120;
+
 
     public int getClientWorkerThreads() {
         return clientWorkerThreads;
@@ -86,5 +88,15 @@ public class NettyClientConfig {
 
     public void setClientAsyncSemaphoreValue(int clientAsyncSemaphoreValue) {
         this.clientAsyncSemaphoreValue = clientAsyncSemaphoreValue;
+    }
+
+
+    public int getClientChannelMaxIdleTimeSeconds() {
+        return clientChannelMaxIdleTimeSeconds;
+    }
+
+
+    public void setClientChannelMaxIdleTimeSeconds(int clientChannelMaxIdleTimeSeconds) {
+        this.clientChannelMaxIdleTimeSeconds = clientChannelMaxIdleTimeSeconds;
     }
 }
