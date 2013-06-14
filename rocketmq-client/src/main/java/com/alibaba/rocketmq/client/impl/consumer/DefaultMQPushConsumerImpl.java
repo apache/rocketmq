@@ -559,7 +559,9 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
                         strategy.allocate(this.mQClientFactory.getClientId(), mqAll, cidAll);
 
                 Set<MessageQueue> allocateResultSet = new HashSet<MessageQueue>();
-                allocateResultSet.addAll(allocateResult);
+                if (allocateResult != null) {
+                    allocateResultSet.addAll(allocateResult);
+                }
 
                 // 更新本地队列
                 this.updateProcessQueueTableInRebalance(topic, allocateResultSet);

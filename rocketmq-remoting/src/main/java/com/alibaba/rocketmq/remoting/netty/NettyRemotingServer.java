@@ -28,7 +28,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.logging.Level;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -139,17 +138,17 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
 
             ctx.channel().close();
         }
+
+
         @Override
-        public void userEventTriggered(ChannelHandlerContext ctx, Object evt)
-                throws Exception {
-        	
-        	if (evt instanceof IdleStateEvent){
-        		IdleStateEvent evnet =(IdleStateEvent)evt;
-        		if(evnet.state().equals(IdleState.ALL_IDLE)){
-        			log.warn("channel idle exception {}",ctx.channel().remoteAddress()!=null ? ctx.channel().remoteAddress().toString():"null");
-        			ctx.channel().close().sync();
-        		}
-        	}
+        public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
+            if (evt instanceof IdleStateEvent) {
+                IdleStateEvent evnet = (IdleStateEvent) evt;
+                if (evnet.state().equals(IdleState.ALL_IDLE)) {
+                    log.warn("channel idle exception {}", RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
+                    ctx.channel().close().sync();
+                }
+            }
             ctx.fireUserEventTriggered(evt);
         }
     }
@@ -195,13 +194,13 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
             .childHandler(new ChannelInitializer<SocketChannel>() {
                 @Override
                 public void initChannel(SocketChannel ch) throws Exception {
-                    ch.pipeline().addLast(//
+                    ch.pipeline().addLast(
+                        //
                         new DefaultEventExecutorGroup(nettyServerConfig.getServerWorkerThreads()), //
                         new NettyEncoder(), //
                         new NettyDecoder(), //
-                        new IdleStateHandler(0, 0, 120),
-                        new NettyConnetManageHandler(), 
-                        new NettyServerHandler());
+                        new IdleStateHandler(0, 0, nettyServerConfig.getServerChannelMaxIdleTimeSeconds()),
+                        new NettyConnetManageHandler(), new NettyServerHandler());
                 }
             });
 

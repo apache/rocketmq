@@ -97,8 +97,8 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
             catch (Throwable e) {
                 log.warn("consumeMessage exception, Group: "
                         + ConsumeMessageConcurrentlyService.this.consumerGroup//
-                        + " Message: " + msgs//
-                        + " MessageQueue: " + messageQueue, e);
+                        + " " + msgs//
+                        + " " + messageQueue, e);
             }
 
             if (null == status) {
