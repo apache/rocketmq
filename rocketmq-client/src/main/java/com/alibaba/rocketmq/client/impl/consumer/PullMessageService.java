@@ -47,12 +47,7 @@ public class PullMessageService extends ServiceThread {
 
             @Override
             public void run() {
-                try {
-                    PullMessageService.this.pullRequestQueue.put(pullRequest);
-                }
-                catch (InterruptedException e) {
-                    log.error("executePullRequestLater pullRequestQueue.put", e);
-                }
+                PullMessageService.this.executePullRequestImmediately(pullRequest);
             }
         }, timeDelay, TimeUnit.MILLISECONDS);
     }

@@ -53,6 +53,29 @@ public class ProcessQueue {
 
 
     /**
+     * 获取当前队列的最大跨度
+     */
+    public long getMaxSpan() {
+        try {
+            this.lockTreeMap.readLock().lockInterruptibly();
+            try {
+                if (!this.msgTreeMap.isEmpty()) {
+                    return this.msgTreeMap.lastKey() - this.msgTreeMap.firstKey();
+                }
+            }
+            finally {
+                this.lockTreeMap.readLock().unlock();
+            }
+        }
+        catch (InterruptedException e) {
+            log.error("getMaxSpan exception", e);
+        }
+
+        return 0;
+    }
+
+
+    /**
      * 删除已经消费过的消息，返回最小Offset，这个Offset对应的消息未消费
      * 
      * @param msgs

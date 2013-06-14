@@ -69,6 +69,9 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
     private final ConcurrentHashMap<String/* topic */, Set<MessageQueue>> topicSubscribeInfoTable =
             new ConcurrentHashMap<String, Set<MessageQueue>>();
 
+    // 是否顺序消费消息
+    private boolean consumeOrderly = false;
+
 
     @Override
     public void start() throws MQClientException {
@@ -105,14 +108,19 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
 
             // 启动消费消息服务
             if (this.defaultMQPushConsumer.getMessageListener() instanceof MessageListenerOrderly) {
+                this.consumeOrderly = true;
                 this.consumeMessageService =
                         new ConsumeMessageOrderlyService(this,
                             (MessageListenerOrderly) this.defaultMQPushConsumer.getMessageListener());
             }
             else if (this.defaultMQPushConsumer.getMessageListener() instanceof MessageListenerConcurrently) {
+                this.consumeOrderly = false;
                 this.consumeMessageService =
                         new ConsumeMessageConcurrentlyService(this,
                             (MessageListenerConcurrently) this.defaultMQPushConsumer.getMessageListener());
+            }
+            else {
+                throw new MQClientException("the message listener is wrong", null);
             }
 
             this.consumeMessageService.start();
@@ -350,12 +358,22 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
             return;
         }
 
-        // 流量控制
+        // 流量控制，队列中消息总数
         long size = processQueue.getMsgCount().get();
         if (size > this.defaultMQPushConsumer.getPullThresholdForQueue()) {
             this.executePullRequestLater(pullRequest, PullTimeDelayMillsWhenFlowControl);
             log.warn("the consumer message buffer is full, so do flow control, {} {}", size, pullRequest);
             return;
+        }
+
+        // 流量控制，队列中消息最大跨度
+        if (!this.consumeOrderly) {
+            if (processQueue.getMaxSpan() > this.defaultMQPushConsumer.getConsumeConcurrentlyMaxSpan()) {
+                this.executePullRequestLater(pullRequest, PullTimeDelayMillsWhenFlowControl);
+                log.warn("the consumer message in the queue, span too long, so do flow control, {} {}", size,
+                    pullRequest);
+                return;
+            }
         }
 
         PullCallback pullCallback = new PullCallback() {
