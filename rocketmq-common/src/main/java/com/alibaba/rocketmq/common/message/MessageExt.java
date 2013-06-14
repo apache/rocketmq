@@ -228,16 +228,6 @@ public class MessageExt extends Message {
     }
 
 
-    @Override
-    public String toString() {
-        return "MessageExt [queueId=" + queueId + ", storeSize=" + storeSize + ", queueOffset=" + queueOffset
-                + ", sysFlag=" + sysFlag + ", bornTimestamp=" + bornTimestamp + ", bornHost=" + bornHost
-                + ", storeTimestamp=" + storeTimestamp + ", storeHost=" + storeHost + ", msgId=" + msgId
-                + ", physicOffset=" + commitLogOffset + ", bodyCRC=" + bodyCRC + ", reconsumeTimes=" + reconsumeTimes
-                + ", toString()=" + super.toString() + "]";
-    }
-
-
     public long getPreparedTransactionOffset() {
         return preparedTransactionOffset;
     }
@@ -245,5 +235,16 @@ public class MessageExt extends Message {
 
     public void setPreparedTransactionOffset(long preparedTransactionOffset) {
         this.preparedTransactionOffset = preparedTransactionOffset;
+    }
+
+
+    @Override
+    public String toString() {
+        return "MessageExt [queueId=" + queueId + ", storeSize=" + storeSize + ", queueOffset=" + queueOffset
+                + ", sysFlag=" + sysFlag + ", bornTimestamp=" + bornTimestamp + ", bornHost=" + bornHost
+                + ", storeTimestamp=" + storeTimestamp + ", storeHost=" + storeHost + ", msgId=" + msgId
+                + ", commitLogOffset=" + commitLogOffset + ", bodyCRC=" + bodyCRC + ", reconsumeTimes="
+                + reconsumeTimes + ", preparedTransactionOffset=" + preparedTransactionOffset + ", toString()="
+                + super.toString() + "]";
     }
 }
