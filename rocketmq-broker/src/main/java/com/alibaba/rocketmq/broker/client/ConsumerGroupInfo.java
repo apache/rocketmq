@@ -87,7 +87,7 @@ public class ConsumerGroupInfo {
         this.consumeType = consumeType;
         this.messageModel = messageModel;
         ClientChannelInfo info = this.channelInfoTable.get(clientChannelInfo.getChannel().id());
-        if (info != null) {
+        if (null == info) {
             ClientChannelInfo prev =
                     this.channelInfoTable.put(clientChannelInfo.getChannel().id(), clientChannelInfo);
             if (null == prev) {
