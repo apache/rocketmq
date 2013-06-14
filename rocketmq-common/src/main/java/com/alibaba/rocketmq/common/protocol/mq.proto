@@ -43,10 +43,10 @@ enum MQRequestCode{
     CONSUMER_SEND_MSG_BACK = 36;                        // Broker Consumer将处理不了的消息发回服务器
 
     END_TRANSACTION = 37;                               // Broker Commit或者Rollback事务
+    GET_CONSUMER_LIST_BY_GROUP = 38;                    // Broker 获取ConsumerId列表通过GroupName
 
-    CHECK_TRANSACTION_STATE = 38;                       // Broker 主动向Producer回查事务状态
-
-    GET_CONSUMER_LIST_BY_GROUP = 39;                    // Broker 获取ConsumerId列表通过GroupName
+    CHECK_TRANSACTION_STATE = 39;                       // Broker 主动向Producer回查事务状态
+    NOTIFY_CONSUMER_IDS_CHANGED = 40;                   // Broker Broker通知Consumer列表变化
 
     REGISTER_BROKER = 100;                              // Namesrv 注册一个Broker，数据都是持久化的，如果存在则覆盖配置
     UNREGISTER_BROKER = 101;                            // Namesrv 卸载一个Broker，数据都是持久化的
@@ -93,9 +93,9 @@ enum MQResponseCode{
     REGISTER_BROKER_TIMEOUT = 103;                      // Namesrv 注册broker信息超时
     REGISTER_ORDER_TOPIC_FAIL = 104;                    // Namesrv 注册order topic的配置失败
     REGISTER_ORDER_TOPIC_TIMEOUT = 105;                 // Namesrv 注册order topic的配置超时
-    UNREGISTER_BROKER_FAIL = 106;						// Namesrv 注销broker信息失败
-    UNREGISTER_BROKER_TIMEOUT = 107;					// Namesrv 注销broker超时
-    UNREGISTER_ORDER_TOPIC_TIMEOUT = 108;				// Namesrv 注销order topic的配置超时
+    UNREGISTER_BROKER_FAIL = 106;                       // Namesrv 注销broker信息失败
+    UNREGISTER_BROKER_TIMEOUT = 107;                    // Namesrv 注销broker超时
+    UNREGISTER_ORDER_TOPIC_TIMEOUT = 108;               // Namesrv 注销order topic的配置超时
 
     TRANSACTION_SHOULD_COMMIT = 200;                    // Producer 事务应该被提交
     TRANSACTION_SHOULD_ROLLBACK = 201;                  // Producer 事务应该被回滚
@@ -153,7 +153,7 @@ enum MQResponseCode{
 //
 // message HeartbeatInfo {
 //     required string clientID = 1;
-// 	repeated ProducerInfo producerInfos = 2;
+//  repeated ProducerInfo producerInfos = 2;
 //     repeated ConsumerInfo consumerInfos = 3;
 // }
 

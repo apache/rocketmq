@@ -14,6 +14,7 @@ import com.alibaba.rocketmq.common.message.MessageDecoder;
 import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.common.protocol.MQProtos.MQRequestCode;
 import com.alibaba.rocketmq.common.protocol.header.CheckTransactionStateRequestHeader;
+import com.alibaba.rocketmq.common.protocol.header.NotifyConsumerIdsChangedRequestHeader;
 import com.alibaba.rocketmq.remoting.common.RemotingHelper;
 import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
 import com.alibaba.rocketmq.remoting.netty.NettyRequestProcessor;
@@ -42,9 +43,26 @@ public class ClientRemotingProcessor implements NettyRequestProcessor {
         switch (code) {
         case CHECK_TRANSACTION_STATE:
             return this.checkTransactionState(ctx, request);
+        case NOTIFY_CONSUMER_IDS_CHANGED:
+            return this.notifyConsumerIdsChanged(ctx, request);
         default:
             break;
         }
+        return null;
+    }
+
+
+    /**
+     * Oneway调用，无返回值
+     */
+    public RemotingCommand notifyConsumerIdsChanged(ChannelHandlerContext ctx, RemotingCommand request)
+            throws RemotingCommandException {
+        final NotifyConsumerIdsChangedRequestHeader requestHeader =
+                (NotifyConsumerIdsChangedRequestHeader) request
+                    .decodeCommandCustomHeader(NotifyConsumerIdsChangedRequestHeader.class);
+        log.info("receive broker's notification, the consumer group: {} changed, rebalance immediately",
+            requestHeader.getConsumerGroup());
+        this.mqClientFactory.rebalanceImmediately();
         return null;
     }
 

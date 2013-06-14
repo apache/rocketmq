@@ -511,14 +511,15 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
                 pullRequest.setNextOffset(0L);
                 pullRequestList.add(pullRequest);
                 this.processQueueTable.put(mq, pullRequest.getProcessQueue());
-                log.info("[{}] doRebalance, add a new mq, {}", this.defaultMQPushConsumer.getConsumerGroup(), mq);
+                log.info("doRebalance, {}, add a new mq, {}", this.defaultMQPushConsumer.getConsumerGroup(), mq);
             }
         }
 
         // ≈…∑¢PullRequest
         for (PullRequest pullRequest : pullRequestList) {
             this.executePullRequestImmediately(pullRequest);
-            log.info("add a new pull request {}", pullRequest);
+            log.info("doRebalance, {}, add a new pull request {}", this.defaultMQPushConsumer.getConsumerGroup(),
+                pullRequest);
         }
     }
 
@@ -531,7 +532,7 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
                 this.updateProcessQueueTableInRebalance(topic, mqSet);
             }
             else {
-                log.warn("[{}] doRebalance, but the topic[{}] not exist.",
+                log.warn("doRebalance, {}, but the topic[{}] not exist.",
                     this.defaultMQPushConsumer.getConsumerGroup(), topic);
             }
             break;
@@ -541,12 +542,12 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
             List<String> cidAll =
                     this.mQClientFactory.findConsumerIdList(topic, this.defaultMQPushConsumer.getConsumerGroup());
             if (null == mqSet) {
-                log.warn("[{}] doRebalance, but the topic[{}] not exist.",
+                log.warn("doRebalance, {}, but the topic[{}] not exist.",
                     this.defaultMQPushConsumer.getConsumerGroup(), topic);
             }
 
             if (null == cidAll) {
-                log.warn("[{}] doRebalance, get consumer id list failed",
+                log.warn("doRebalance, {}, get consumer id list failed",
                     this.defaultMQPushConsumer.getConsumerGroup());
             }
 

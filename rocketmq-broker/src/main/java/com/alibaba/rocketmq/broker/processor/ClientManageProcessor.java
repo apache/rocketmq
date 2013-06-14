@@ -3,9 +3,10 @@
  */
 package com.alibaba.rocketmq.broker.processor;
 
-import java.util.List;
-
+import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
+
+import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,7 +29,6 @@ import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
 import com.alibaba.rocketmq.remoting.netty.NettyRequestProcessor;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 import com.alibaba.rocketmq.remoting.protocol.RemotingProtos.ResponseCode;
-import com.alibaba.rocketmq.remoting.protocol.RemotingSerializable;
 
 
 /**
@@ -164,6 +164,19 @@ public class ClientManageProcessor implements NettyRequestProcessor {
                 RemotingHelper.parseChannelRemoteAddr(ctx.channel()),//
                 changed//
             );
+
+            // 通知当前订阅组下的所有Consumer，Consumer Id列表发生变化，立刻rebalance
+            if (changed) {
+                ConsumerGroupInfo consumerGroupInfo =
+                        this.brokerController.getConsumerManager().getConsumerGroupInfo(data.getGroupName());
+                if (consumerGroupInfo != null) {
+                    List<Channel> channels = consumerGroupInfo.getAllChannel();
+                    for (Channel chl : channels) {
+                        this.brokerController.getBroker2Client()
+                            .notifyConsumerIdsChanged(chl, data.getGroupName());
+                    }
+                }
+            }
         }
 
         // 注册Producer

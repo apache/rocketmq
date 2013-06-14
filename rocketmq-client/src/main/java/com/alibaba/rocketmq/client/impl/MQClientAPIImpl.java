@@ -66,7 +66,6 @@ import com.alibaba.rocketmq.remoting.netty.NettyRemotingClient;
 import com.alibaba.rocketmq.remoting.netty.ResponseFuture;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 import com.alibaba.rocketmq.remoting.protocol.RemotingProtos.ResponseCode;
-import com.alibaba.rocketmq.remoting.protocol.RemotingSerializable;
 import com.google.protobuf.InvalidProtocolBufferException;
 
 
@@ -97,6 +96,9 @@ public class MQClientAPIImpl {
          * 注册客户端支持的RPC CODE
          */
         this.remotingClient.registerProcessor(MQRequestCode.CHECK_TRANSACTION_STATE_VALUE,
+            this.clientRemotingProcessor, null);
+
+        this.remotingClient.registerProcessor(MQRequestCode.NOTIFY_CONSUMER_IDS_CHANGED_VALUE,
             this.clientRemotingProcessor, null);
     }
 

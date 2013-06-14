@@ -1,20 +1,12 @@
 package com.alibaba.rocketmq.broker.transaction;
 
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelFutureListener;
-import io.netty.channel.FileRegion;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.alibaba.rocketmq.broker.BrokerController;
 import com.alibaba.rocketmq.broker.client.ClientChannelInfo;
-import com.alibaba.rocketmq.broker.pagecache.OneMessageTransfer;
 import com.alibaba.rocketmq.common.constant.LoggerName;
-import com.alibaba.rocketmq.common.protocol.MQProtos.MQRequestCode;
 import com.alibaba.rocketmq.common.protocol.header.CheckTransactionStateRequestHeader;
-import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 import com.alibaba.rocketmq.store.SelectMapedBufferResult;
 import com.alibaba.rocketmq.store.transaction.TransactionCheckExecuter;
 
@@ -34,36 +26,6 @@ public class DefaultTransactionCheckExecuter implements TransactionCheckExecuter
     }
 
 
-    private void invokeProducer(//
-            final Channel channel,//
-            final CheckTransactionStateRequestHeader requestHeader,//
-            final SelectMapedBufferResult selectMapedBufferResult//
-    ) {
-        RemotingCommand request =
-                RemotingCommand.createRequestCommand(MQRequestCode.CHECK_TRANSACTION_STATE_VALUE, requestHeader);
-        request.markOnewayRPC();
-
-        try {
-            FileRegion fileRegion =
-                    new OneMessageTransfer(request.encodeHeader(selectMapedBufferResult.getSize()),
-                        selectMapedBufferResult);
-            channel.sendFile(fileRegion).addListener(new ChannelFutureListener() {
-                @Override
-                public void operationComplete(ChannelFuture future) throws Exception {
-                    selectMapedBufferResult.release();
-                    if (!future.isSuccess()) {
-                        log.error("invokeProducer failed,", future.cause());
-                    }
-                }
-            });
-        }
-        catch (Throwable e) {
-            log.error("invokeProducer exception", e);
-            selectMapedBufferResult.release();
-        }
-    }
-
-
     @Override
     public void gotoCheck(int producerGroupHashCode, long tranStateTableOffset, long commitLogOffset, int msgSize) {
         // 第一步、查询Producer
@@ -74,6 +36,7 @@ public class DefaultTransactionCheckExecuter implements TransactionCheckExecuter
                 producerGroupHashCode);
             return;
         }
+
         // 第二步、查询消息
         SelectMapedBufferResult selectMapedBufferResult =
                 this.brokerController.getMessageStore().selectOneMessageByOffset(commitLogOffset, msgSize);
@@ -87,6 +50,7 @@ public class DefaultTransactionCheckExecuter implements TransactionCheckExecuter
         final CheckTransactionStateRequestHeader requestHeader = new CheckTransactionStateRequestHeader();
         requestHeader.setCommitLogOffset(commitLogOffset);
         requestHeader.setTranStateTableOffset(tranStateTableOffset);
-        this.invokeProducer(clientChannelInfo.getChannel(), requestHeader, selectMapedBufferResult);
+        this.brokerController.getBroker2Client().checkProducerTransactionState(clientChannelInfo.getChannel(),
+            requestHeader, selectMapedBufferResult);
     }
 }
