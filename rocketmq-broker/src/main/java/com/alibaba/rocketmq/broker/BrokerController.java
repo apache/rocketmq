@@ -291,6 +291,8 @@ public class BrokerController {
             this.adminBrokerExecutor);
         this.remotingServer.registerProcessor(MQProtos.MQRequestCode.UNREGISTER_CLIENT_VALUE, clientProcessor,
             this.adminBrokerExecutor);
+        this.remotingServer.registerProcessor(MQProtos.MQRequestCode.GET_CONSUMER_LIST_BY_GROUP_VALUE,
+            clientProcessor, this.adminBrokerExecutor);
 
         this.remotingServer.registerProcessor(MQProtos.MQRequestCode.END_TRANSACTION_VALUE,
             new EndTransactionProcessor(this), this.sendMessageExecutor);

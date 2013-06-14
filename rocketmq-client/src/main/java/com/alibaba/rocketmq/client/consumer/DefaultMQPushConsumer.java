@@ -102,6 +102,30 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
 
 
     @Override
+    public void start() throws MQClientException {
+        this.defaultMQPushConsumerImpl.start();
+    }
+
+
+    @Override
+    public void shutdown() {
+        this.defaultMQPushConsumerImpl.shutdown();
+    }
+
+
+    @Override
+    public void suspend() {
+        this.defaultMQPushConsumerImpl.suspend();
+    }
+
+
+    @Override
+    public void resume() {
+        this.defaultMQPushConsumerImpl.resume();
+    }
+
+
+    @Override
     public void sendMessageBack(MessageExt msg, MessageQueue mq, int delayLevel) {
         // TODO Auto-generated method stub
     }
@@ -160,51 +184,20 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
 
 
     @Override
-    public void start() {
-        // TODO Auto-generated method stub
-
-    }
-
-
-    @Override
-    public void shutdown() {
-        // TODO Auto-generated method stub
-
-    }
-
-
-    @Override
     public void registerMessageListener(MessageListener messageListener) {
-        // TODO Auto-generated method stub
-
+        this.messageListener = messageListener;
     }
 
 
     @Override
     public void subscribe(String topic, String subExpression) {
-        // TODO Auto-generated method stub
-
+        this.subscription.put(topic, subExpression);
     }
 
 
     @Override
     public void unsubscribe(String topic) {
-        // TODO Auto-generated method stub
-
-    }
-
-
-    @Override
-    public void suspend() {
-        // TODO Auto-generated method stub
-
-    }
-
-
-    @Override
-    public void resume() {
-        // TODO Auto-generated method stub
-
+        this.subscription.remove(topic);
     }
 
 

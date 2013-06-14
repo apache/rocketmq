@@ -24,7 +24,7 @@ import com.alibaba.rocketmq.common.message.MessageExt;
 public class PushConsumer {
 
     public static void main(String[] args) throws InterruptedException, MQClientException {
-        MQPushConsumer consumer = new DefaultMQPushConsumer("example.consumer.passive");
+        MQPushConsumer consumer = new DefaultMQPushConsumer("example_consumer_group");
 
         consumer.subscribe("TopicTest", "TagA || TagC || TagD");
 
