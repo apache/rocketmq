@@ -51,32 +51,32 @@
 		</encoder>
 	</appender>
 	<logger name="RocketmqBroker" additivity="false">
-		<level value="INFO" />
+		<level value="DEBUG" />
 		<appender-ref ref="RocketmqBrokerAppender" />
 	</logger>
 
 	<logger name="RocketmqCommon" additivity="false">
-		<level value="INFO" />
+		<level value="DEBUG" />
 		<appender-ref ref="RocketmqBrokerAppender" />
 	</logger>
 
 	<logger name="RocketmqStore" additivity="false">
-		<level value="INFO" />
+		<level value="DEBUG" />
 		<appender-ref ref="RocketmqBrokerAppender" />
 	</logger>
 
 	<logger name="RocketmqTransaction" additivity="false">
-		<level value="INFO" />
+		<level value="DEBUG" />
 		<appender-ref ref="RocketmqTransactionAppender" />
 	</logger>
 
 	<logger name="RocketmqRemoting" additivity="false">
-		<level value="INFO" />
+		<level value="DEBUG" />
 		<appender-ref ref="RocketmqBrokerAppender" />
 	</logger>
 
 	<root>
-		<level value="INFO" />
+		<level value="DEBUG" />
 		<appender-ref ref="DefaultAppender" />
 	</root>
 </configuration>
