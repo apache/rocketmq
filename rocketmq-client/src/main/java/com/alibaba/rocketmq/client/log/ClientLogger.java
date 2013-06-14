@@ -69,7 +69,7 @@ public class ClientLogger {
         newLogger.addAppender(appender);
 
         // setup level
-        newLogger.setLevel(Level.INFO);
+        newLogger.setLevel(Level.DEBUG);
         // remove the appenders that inherited 'ROOT'.
         newLogger.setAdditive(true);
         return newLogger;
