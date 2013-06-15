@@ -73,6 +73,11 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
     // 是否顺序消费消息
     private boolean consumeOrderly = false;
 
+    // 订阅关系
+    private final ConcurrentHashMap<String /* topic */, String /* sub expression */> subscriptionInner =
+            new ConcurrentHashMap<String, String>();
+    private MessageListener messageListenerInner;
+
 
     private void checkConfig() throws MQClientException {
         // consumerGroup
@@ -210,6 +215,10 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
         case CREATE_JUST:
             this.checkConfig();
 
+            // 复制订阅关系
+            this.subscriptionInner.putAll(this.defaultMQPushConsumer.getSubscription());
+            this.messageListenerInner = this.defaultMQPushConsumer.getMessageListener();
+
             this.serviceState = ServiceState.RUNNING;
 
             this.mQClientFactory =
@@ -240,17 +249,17 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
             this.offsetStore.load();
 
             // 启动消费消息服务
-            if (this.defaultMQPushConsumer.getMessageListener() instanceof MessageListenerOrderly) {
+            if (this.getMessageListenerInner() instanceof MessageListenerOrderly) {
                 this.consumeOrderly = true;
                 this.consumeMessageService =
                         new ConsumeMessageOrderlyService(this,
-                            (MessageListenerOrderly) this.defaultMQPushConsumer.getMessageListener());
+                            (MessageListenerOrderly) this.getMessageListenerInner());
             }
-            else if (this.defaultMQPushConsumer.getMessageListener() instanceof MessageListenerConcurrently) {
+            else if (this.getMessageListenerInner() instanceof MessageListenerConcurrently) {
                 this.consumeOrderly = false;
                 this.consumeMessageService =
                         new ConsumeMessageConcurrentlyService(this,
-                            (MessageListenerConcurrently) this.defaultMQPushConsumer.getMessageListener());
+                            (MessageListenerConcurrently) this.getMessageListenerInner());
             }
 
             this.consumeMessageService.start();
@@ -291,7 +300,6 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
             break;
         case RUNNING:
             this.serviceState = ServiceState.SHUTDOWN_ALREADY;
-            // TODO 存储消费进度时，需要考虑集群模式覆盖掉其他消费者消费进度的问题
             this.consumeMessageService.shutdown();
             this.persistConsumerOffset();
             this.mQClientFactory.unregisterConsumer(this.defaultMQPushConsumer.getConsumerGroup());
@@ -493,8 +501,7 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
         if (!this.consumeOrderly) {
             if (processQueue.getMaxSpan() > this.defaultMQPushConsumer.getConsumeConcurrentlyMaxSpan()) {
                 this.executePullRequestLater(pullRequest, PullTimeDelayMillsWhenFlowControl);
-                log.warn("the consumer message in the queue, span too long, so do flow control, {} {}", size,
-                    pullRequest);
+                log.warn("the queue's messages, span too long, so do flow control, {} {}", size, pullRequest);
                 return;
             }
         }
@@ -574,8 +581,8 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
                 this.defaultMQPushConsumer.getPullBatchSize(), // 4
                 sysFlag, // 5
                 0,// 6
-                1000 * 10, // 7
-                1000 * 20, // 8
+                BrokerSuspendMaxTimeMillis, // 7
+                ConsumerTimeoutMillisWhenSuspend, // 8
                 CommunicationMode.ASYNC, // 9
                 pullCallback// 10
                 );
@@ -585,6 +592,11 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
             this.executePullRequestLater(pullRequest, PullTimeDelayMillsWhenException);
         }
     }
+
+    // 长轮询模式，Consumer连接在Broker挂起最长时间
+    private static final long BrokerSuspendMaxTimeMillis = 1000 * 15;
+    // 长轮询模式，Consumer超时时间（必须要大于brokerSuspendMaxTimeMillis）
+    private static final long ConsumerTimeoutMillisWhenSuspend = 1000 * 30;
 
 
     @Override
@@ -731,7 +743,7 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
 
     @Override
     public void doRebalance() {
-        Map<String, String> subTable = this.defaultMQPushConsumer.getSubscription();
+        Map<String, String> subTable = this.getSubscriptionInner();
         if (subTable != null) {
             for (final Map.Entry<String, String> entry : subTable.entrySet()) {
                 final String topic = entry.getKey();
@@ -749,7 +761,7 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
 
 
     private void updateTopicSubscribeInfoWhenSubscriptionChanged() {
-        Map<String, String> subTable = this.defaultMQPushConsumer.getSubscription();
+        Map<String, String> subTable = this.getSubscriptionInner();
         if (subTable != null) {
             for (final Map.Entry<String, String> entry : subTable.entrySet()) {
                 final String topic = entry.getKey();
@@ -761,7 +773,7 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
 
     @Override
     public void updateTopicSubscribeInfo(String topic, Set<MessageQueue> info) {
-        Map<String, String> subTable = this.defaultMQPushConsumer.getSubscription();
+        Map<String, String> subTable = this.getSubscriptionInner();
         if (subTable != null) {
             String value = subTable.get(topic);
             if (value != null) {
@@ -778,5 +790,15 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
 
     public void setPause(boolean pause) {
         this.pause = pause;
+    }
+
+
+    public ConcurrentHashMap<String, String> getSubscriptionInner() {
+        return subscriptionInner;
+    }
+
+
+    public MessageListener getMessageListenerInner() {
+        return messageListenerInner;
     }
 }
