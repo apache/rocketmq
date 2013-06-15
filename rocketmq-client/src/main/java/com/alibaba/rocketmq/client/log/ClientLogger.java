@@ -46,7 +46,7 @@ public class ClientLogger {
         // policy
         TimeBasedRollingPolicy<ILoggingEvent> rollingPolicy = new TimeBasedRollingPolicy<ILoggingEvent>();
         rollingPolicy.setContext(loggerContext);
-        rollingPolicy.setFileNamePattern(logFilePath + File.separator + fileName);
+        rollingPolicy.setFileNamePattern(logFilePath + File.separator + fileName+ "-%d{yyyy-MM-dd}.log");
         rollingPolicy.setParent(appender);
         rollingPolicy.start();
 
