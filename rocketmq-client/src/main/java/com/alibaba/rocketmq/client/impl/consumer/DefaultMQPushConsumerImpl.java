@@ -390,21 +390,19 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
 
     @Override
     public void registerMessageListener(MessageListener messageListener) {
-        // TODO Auto-generated method stub
-
+        this.messageListenerInner = messageListener;
     }
 
 
     @Override
     public void subscribe(String topic, String subExpression) {
-        // TODO Auto-generated method stub
-
+        this.subscriptionInner.put(topic, subExpression);
     }
 
 
     @Override
     public void unsubscribe(String topic) {
-        // TODO Auto-generated method stub
+        this.subscriptionInner.remove(topic);
     }
 
 

@@ -185,19 +185,19 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
 
     @Override
     public void registerMessageListener(MessageListener messageListener) {
-        this.messageListener = messageListener;
+        this.defaultMQPushConsumerImpl.registerMessageListener(messageListener);
     }
 
 
     @Override
     public void subscribe(String topic, String subExpression) {
-        this.subscription.put(topic, subExpression);
+        this.defaultMQPushConsumerImpl.subscribe(topic, subExpression);
     }
 
 
     @Override
     public void unsubscribe(String topic) {
-        this.subscription.remove(topic);
+        this.defaultMQPushConsumerImpl.unsubscribe(topic);
     }
 
 
