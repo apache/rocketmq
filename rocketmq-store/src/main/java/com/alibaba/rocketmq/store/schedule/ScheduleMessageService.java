@@ -77,8 +77,8 @@ public class ScheduleMessageService {
             }
             catch (Exception e) {
                 log.error("executeOnTimeup exception", e);
-                ScheduleMessageService.this.timer.schedule(new DeliverDelayedMessageTimerTask(this.delayLevel,
-                    this.offset), DELAY_FOR_A_PERIOD);
+                ScheduleMessageService.this.timer.schedule(new DeliverDelayedMessageTimerTask(
+                    this.delayLevel, this.offset), DELAY_FOR_A_PERIOD);
             }
         }
 
@@ -89,10 +89,9 @@ public class ScheduleMessageService {
             msgInner.setFlag(msgExt.getFlag());
             msgInner.setProperties(msgExt.getProperties());
 
-            TopicFilterType topicFilterType =
-                    (msgInner.getSysFlag() & MessageSysFlag.MultiTagsFlag) == MessageSysFlag.MultiTagsFlag ? TopicFilterType.MULTI_TAG
-                            : TopicFilterType.SINGLE_TAG;
-            long tagsCodeValue = MessageExtBrokerInner.tagsString2tagsCode(topicFilterType, msgInner.getTags());
+            TopicFilterType topicFilterType = MessageExt.parseTopicFilterType(msgInner.getSysFlag());
+            long tagsCodeValue =
+                    MessageExtBrokerInner.tagsString2tagsCode(topicFilterType, msgInner.getTags());
             msgInner.setTagsCode(tagsCodeValue);
             msgInner.setPropertiesString(MessageDecoder.messageProperties2String(msgExt.getProperties()));
 
@@ -146,7 +145,8 @@ public class ScheduleMessageService {
                                 if (msgExt != null) {
                                     MessageExtBrokerInner msgInner = this.messageTimeup(msgExt);
                                     PutMessageResult putMessageResult =
-                                            ScheduleMessageService.this.defaultMessageStore.putMessage(msgInner);
+                                            ScheduleMessageService.this.defaultMessageStore
+                                                .putMessage(msgInner);
                                     // 成功
                                     if (putMessageResult != null
                                             && putMessageResult.getPutMessageStatus() == PutMessageStatus.PUT_OK) {
@@ -154,7 +154,8 @@ public class ScheduleMessageService {
                                     }
                                     // 失败
                                     else {
-                                        log.error("a message time up, but reput it failed, topic: {} msgId {}",
+                                        log.error(
+                                            "a message time up, but reput it failed, topic: {} msgId {}",
                                             msgExt.getTopic(), msgExt.getMsgId());
                                         ScheduleMessageService.this.timer.schedule(
                                             new DeliverDelayedMessageTimerTask(this.delayLevel, nextOffset),
@@ -166,8 +167,9 @@ public class ScheduleMessageService {
                             }
                             // 时候未到，继续定时
                             else {
-                                ScheduleMessageService.this.timer.schedule(new DeliverDelayedMessageTimerTask(
-                                    this.delayLevel, nextOffset), countdown);
+                                ScheduleMessageService.this.timer.schedule(
+                                    new DeliverDelayedMessageTimerTask(this.delayLevel, nextOffset),
+                                    countdown);
                                 ScheduleMessageService.this.updateOffset(this.delayLevel, nextOffset);
                                 return;
                             }
@@ -260,7 +262,8 @@ public class ScheduleMessageService {
         boolean result = this.parseDelayLevel();
         if (result) {
             String str =
-                    MixAll.file2String(this.defaultMessageStore.getMessageStoreConfig().getDelayOffsetStorePath());
+                    MixAll.file2String(this.defaultMessageStore.getMessageStoreConfig()
+                        .getDelayOffsetStorePath());
             if (str != null) {
                 Properties prop = MixAll.string2Properties(str);
                 if (prop != null) {
@@ -269,7 +272,8 @@ public class ScheduleMessageService {
                         String propValue = prop.getProperty(object.toString());
                         if (propValue != null) {
                             this.updateOffset(Integer.parseInt(object.toString()), Long.parseLong(propValue));
-                            log.info("load delay offset table, LEVEL: {} OFFSET {}", object.toString(), propValue);
+                            log.info("load delay offset table, LEVEL: {} OFFSET {}", object.toString(),
+                                propValue);
                         }
                     }
                 }

@@ -13,7 +13,6 @@ import com.alibaba.rocketmq.client.exception.MQBrokerException;
 import com.alibaba.rocketmq.client.exception.MQClientException;
 import com.alibaba.rocketmq.client.impl.producer.DefaultMQProducerImpl;
 import com.alibaba.rocketmq.common.MixAll;
-import com.alibaba.rocketmq.common.TopicFilterType;
 import com.alibaba.rocketmq.common.message.Message;
 import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.common.message.MessageQueue;
@@ -125,8 +124,8 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
 
 
     @Override
-    public MessageExt viewMessage(String msgId) throws RemotingException, MQBrokerException, InterruptedException,
-            MQClientException {
+    public MessageExt viewMessage(String msgId) throws RemotingException, MQBrokerException,
+            InterruptedException, MQClientException {
         return this.defaultMQProducerImpl.viewMessage(msgId);
     }
 
@@ -139,9 +138,9 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
 
 
     @Override
-    public void createTopic(String key, String newTopic, int queueNum, TopicFilterType topicFilterType,
-            boolean order) throws MQClientException {
-        this.defaultMQProducerImpl.createTopic(key, newTopic, queueNum, topicFilterType, order);
+    public void createTopic(String key, String newTopic, int queueNum, boolean order)
+            throws MQClientException {
+        this.defaultMQProducerImpl.createTopic(key, newTopic, queueNum, order);
     }
 
 

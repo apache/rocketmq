@@ -35,7 +35,6 @@ import com.alibaba.rocketmq.client.producer.TransactionCheckListener;
 import com.alibaba.rocketmq.client.producer.TransactionMQProducer;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.ServiceState;
-import com.alibaba.rocketmq.common.TopicFilterType;
 import com.alibaba.rocketmq.common.UtilALl;
 import com.alibaba.rocketmq.common.help.FAQUrl;
 import com.alibaba.rocketmq.common.message.Message;
@@ -121,7 +120,8 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             this.mQClientFactory =
                     MQClientManager.getInstance().getAndCreateMQClientFactory(this.defaultMQProducer);
 
-            boolean registerOK = mQClientFactory.registerProducer(this.defaultMQProducer.getProducerGroup(), this);
+            boolean registerOK =
+                    mQClientFactory.registerProducer(this.defaultMQProducer.getProducerGroup(), this);
             if (!registerOK) {
                 this.serviceState = ServiceState.CREATE_JUST;
                 throw new MQClientException("The producer group[" + this.defaultMQProducer.getProducerGroup()
@@ -130,7 +130,8 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             }
 
             // 默认Topic注册
-            this.topicPublishInfoTable.put(this.defaultMQProducer.getCreateTopicKey(), new TopicPublishInfo());
+            this.topicPublishInfoTable
+                .put(this.defaultMQProducer.getCreateTopicKey(), new TopicPublishInfo());
 
             mQClientFactory.start();
             log.info("the producer [{}] start OK", this.defaultMQProducer.getProducerGroup());
@@ -192,10 +193,10 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     }
 
 
-    public void createTopic(String key, String newTopic, int queueNum, TopicFilterType topicFilterType,
-            boolean order) throws MQClientException {
+    public void createTopic(String key, String newTopic, int queueNum, boolean order)
+            throws MQClientException {
         this.makeSureStateOK();
-        this.mQClientFactory.getMQAdminImpl().createTopic(key, newTopic, queueNum, topicFilterType, order);
+        this.mQClientFactory.getMQAdminImpl().createTopic(key, newTopic, queueNum, order);
     }
 
 
@@ -229,8 +230,8 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     }
 
 
-    public MessageExt viewMessage(String msgId) throws RemotingException, MQBrokerException, InterruptedException,
-            MQClientException {
+    public MessageExt viewMessage(String msgId) throws RemotingException, MQBrokerException,
+            InterruptedException, MQClientException {
         this.makeSureStateOK();
 
         return this.mQClientFactory.getMQAdminImpl().viewMessage(msgId);
@@ -383,7 +384,8 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         if (null == brokerAddr) {
             // TODO 此处可能对Name Server压力过大，需要调优
             this.mQClientFactory.updateTopicRouteInfoFromNameServer(mq.getTopic());
-            this.mQClientFactory.updateTopicRouteInfoFromNameServer(this.defaultMQProducer.getCreateTopicKey());
+            this.mQClientFactory.updateTopicRouteInfoFromNameServer(this.defaultMQProducer
+                .getCreateTopicKey());
             brokerAddr = this.mQClientFactory.findBrokerAddressInPublish(mq.getBrokerName());
         }
 
@@ -469,7 +471,8 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         if (null == topicPublishInfo) {
             this.topicPublishInfoTable.putIfAbsent(topic, new TopicPublishInfo());
             this.mQClientFactory.updateTopicRouteInfoFromNameServer(topic);
-            this.mQClientFactory.updateTopicRouteInfoFromNameServer(this.defaultMQProducer.getCreateTopicKey());
+            this.mQClientFactory.updateTopicRouteInfoFromNameServer(this.defaultMQProducer
+                .getCreateTopicKey());
             topicPublishInfo = this.topicPublishInfoTable.get(topic);
         }
 
@@ -618,8 +621,8 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     private void endTransaction(//
             final SendResult sendResult, //
             final LocalTransactionState localTransactionState, //
-            final Throwable localException) throws RemotingException, MQBrokerException, InterruptedException,
-            UnknownHostException {
+            final Throwable localException) throws RemotingException, MQBrokerException,
+            InterruptedException, UnknownHostException {
         final MessageId id = MessageDecoder.decodeMessageId(sendResult.getMsgId());
         final String addr = RemotingUtil.socketAddress2String(id.getAddress());
         EndTransactionRequestHeader requestHeader = new EndTransactionRequestHeader();
@@ -642,8 +645,8 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         requestHeader.setTranStateTableOffset(sendResult.getQueueOffset());
         requestHeader.setMsgId(sendResult.getMsgId());
         String remark =
-                localException != null ? ("executeLocalTransactionBranch exception: " + localException.toString())
-                        : null;
+                localException != null ? ("executeLocalTransactionBranch exception: " + localException
+                    .toString()) : null;
         this.mQClientFactory.getMQClientAPIImpl().endTransactionOneway(addr, requestHeader, remark,
             this.defaultMQProducer.getSendMsgTimeout());
     }
@@ -695,8 +698,8 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             this.endTransaction(sendResult, localTransactionState, localException);
         }
         catch (Exception e) {
-            log.warn("local transaction execute " + localTransactionState + ", but end broker transaction failed",
-                e);
+            log.warn("local transaction execute " + localTransactionState
+                    + ", but end broker transaction failed", e);
         }
 
         return sendResult;
@@ -756,8 +759,8 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                 }
 
                 try {
-                    DefaultMQProducerImpl.this.mQClientFactory.getMQClientAPIImpl().endTransactionOneway(brokerAddr,
-                        thisHeader, remark, 3000);
+                    DefaultMQProducerImpl.this.mQClientFactory.getMQClientAPIImpl().endTransactionOneway(
+                        brokerAddr, thisHeader, remark, 3000);
                 }
                 catch (Exception e) {
                     log.error("endTransactionOneway exception", e);
@@ -767,7 +770,8 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
             @Override
             public void run() {
-                TransactionCheckListener transactionCheckListener = DefaultMQProducerImpl.this.checkListener();
+                TransactionCheckListener transactionCheckListener =
+                        DefaultMQProducerImpl.this.checkListener();
                 if (transactionCheckListener != null) {
                     LocalTransactionState localTransactionState = LocalTransactionState.UNKNOW;
                     Throwable exception = null;
@@ -775,7 +779,8 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                         localTransactionState = transactionCheckListener.checkLocalTransactionState(message);
                     }
                     catch (Throwable e) {
-                        log.error("Broker call checkTransactionState, but checkLocalTransactionState exception", e);
+                        log.error(
+                            "Broker call checkTransactionState, but checkLocalTransactionState exception", e);
                         exception = e;
                     }
 
@@ -785,7 +790,8 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                         exception);
                 }
                 else {
-                    log.warn("checkTransactionState, pick transactionCheckListener by group[{}] failed", group);
+                    log.warn("checkTransactionState, pick transactionCheckListener by group[{}] failed",
+                        group);
                 }
             }
         };

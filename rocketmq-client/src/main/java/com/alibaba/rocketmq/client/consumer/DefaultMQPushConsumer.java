@@ -15,7 +15,6 @@ import com.alibaba.rocketmq.client.exception.MQBrokerException;
 import com.alibaba.rocketmq.client.exception.MQClientException;
 import com.alibaba.rocketmq.client.impl.consumer.DefaultMQPushConsumerImpl;
 import com.alibaba.rocketmq.common.MixAll;
-import com.alibaba.rocketmq.common.TopicFilterType;
 import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.common.message.MessageQueue;
 import com.alibaba.rocketmq.common.protocol.heartbeat.MessageModel;
@@ -132,8 +131,8 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
 
 
     @Override
-    public void createTopic(String key, String newTopic, int queueNum, TopicFilterType topicFilterType,
-            boolean order) throws MQClientException {
+    public void createTopic(String key, String newTopic, int queueNum, boolean order)
+            throws MQClientException {
         // TODO Auto-generated method stub
 
     }

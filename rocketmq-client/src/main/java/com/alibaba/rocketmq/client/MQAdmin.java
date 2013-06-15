@@ -5,7 +5,6 @@ package com.alibaba.rocketmq.client;
 
 import com.alibaba.rocketmq.client.exception.MQBrokerException;
 import com.alibaba.rocketmq.client.exception.MQClientException;
-import com.alibaba.rocketmq.common.TopicFilterType;
 import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.common.message.MessageQueue;
 import com.alibaba.rocketmq.remoting.exception.RemotingException;
@@ -30,8 +29,8 @@ public interface MQAdmin {
      *            是否是严格的顺序消息
      * @throws MQClientException
      */
-    public void createTopic(final String key, final String newTopic, final int queueNum,
-            final TopicFilterType topicFilterType, final boolean order) throws MQClientException;
+    public void createTopic(final String key, final String newTopic, final int queueNum, final boolean order)
+            throws MQClientException;
 
 
     /**
