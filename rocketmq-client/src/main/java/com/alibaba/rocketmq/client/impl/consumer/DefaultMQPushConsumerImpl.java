@@ -129,7 +129,8 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
                     mQClientFactory.registerConsumer(this.defaultMQPushConsumer.getConsumerGroup(), this);
             if (!registerOK) {
                 this.serviceState = ServiceState.CREATE_JUST;
-                throw new MQClientException("The consumer group[" + this.defaultMQPushConsumer.getConsumerGroup()
+                throw new MQClientException("The consumer group["
+                        + this.defaultMQPushConsumer.getConsumerGroup()
                         + "] has created already, specifed another name please."
                         + FAQUrl.suggestTodo(FAQUrl.GROUP_NAME_DUPLICATE_URL), null);
             }
@@ -236,8 +237,8 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
 
 
     @Override
-    public MessageExt viewMessage(String msgId) throws RemotingException, MQBrokerException, InterruptedException,
-            MQClientException {
+    public MessageExt viewMessage(String msgId) throws RemotingException, MQBrokerException,
+            InterruptedException, MQClientException {
         return this.mQClientFactory.getMQAdminImpl().viewMessage(msgId);
     }
 
@@ -509,15 +510,16 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
                 pullRequest.setNextOffset(0L);
                 pullRequestList.add(pullRequest);
                 this.processQueueTable.put(mq, pullRequest.getProcessQueue());
-                log.info("doRebalance, {}, add a new mq, {}", this.defaultMQPushConsumer.getConsumerGroup(), mq);
+                log.info("doRebalance, {}, add a new mq, {}", this.defaultMQPushConsumer.getConsumerGroup(),
+                    mq);
             }
         }
 
         // ≈…∑¢PullRequest
         for (PullRequest pullRequest : pullRequestList) {
             this.executePullRequestImmediately(pullRequest);
-            log.info("doRebalance, {}, add a new pull request {}", this.defaultMQPushConsumer.getConsumerGroup(),
-                pullRequest);
+            log.info("doRebalance, {}, add a new pull request {}",
+                this.defaultMQPushConsumer.getConsumerGroup(), pullRequest);
         }
     }
 
@@ -538,7 +540,8 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
         case CLUSTERING: {
             Set<MessageQueue> mqSet = this.topicSubscribeInfoTable.get(topic);
             List<String> cidAll =
-                    this.mQClientFactory.findConsumerIdList(topic, this.defaultMQPushConsumer.getConsumerGroup());
+                    this.mQClientFactory.findConsumerIdList(topic,
+                        this.defaultMQPushConsumer.getConsumerGroup());
             if (null == mqSet) {
                 log.warn("doRebalance, {}, but the topic[{}] not exist.",
                     this.defaultMQPushConsumer.getConsumerGroup(), topic);
