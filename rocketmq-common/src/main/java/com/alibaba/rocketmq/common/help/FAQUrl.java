@@ -22,6 +22,10 @@ public class FAQUrl {
     public static final String GROUP_NAME_DUPLICATE_URL = //
             "https://github.com/alibaba/RocketMQ/issues/63";
 
+    // FAQ: 客户端对象参数校验合法性
+    public static final String CLIENT_PARAMETER_CHECK_URL = //
+            "https://github.com/alibaba/RocketMQ/issues/73";
+
     //
     // FAQ: 未收录异常处理办法
     //

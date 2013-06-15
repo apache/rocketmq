@@ -31,6 +31,7 @@ import com.alibaba.rocketmq.client.impl.CommunicationMode;
 import com.alibaba.rocketmq.client.impl.MQClientManager;
 import com.alibaba.rocketmq.client.impl.factory.MQClientFactory;
 import com.alibaba.rocketmq.client.log.ClientLogger;
+import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.ServiceState;
 import com.alibaba.rocketmq.common.TopicFilterType;
 import com.alibaba.rocketmq.common.help.FAQUrl;
@@ -73,10 +74,142 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
     private boolean consumeOrderly = false;
 
 
+    private void checkConfig() throws MQClientException {
+        // consumerGroup
+        if (null == this.defaultMQPushConsumer.getConsumerGroup()) {
+            throw new MQClientException("consumerGroup is null" //
+                    + FAQUrl.suggestTodo(FAQUrl.CLIENT_PARAMETER_CHECK_URL), //
+                null);
+        }
+
+        // consumerGroup
+        if (this.defaultMQPushConsumer.getConsumerGroup().equals(MixAll.DEFAULT_CONSUMER_GROUP)) {
+            throw new MQClientException("consumerGroup can not equal "//
+                    + MixAll.DEFAULT_CONSUMER_GROUP //
+                    + ", please specify another one."//
+                    + FAQUrl.suggestTodo(FAQUrl.CLIENT_PARAMETER_CHECK_URL), //
+                null);
+        }
+
+        // messageModel
+        if (null == this.defaultMQPushConsumer.getMessageModel()) {
+            throw new MQClientException("messageModel is null" //
+                    + FAQUrl.suggestTodo(FAQUrl.CLIENT_PARAMETER_CHECK_URL), //
+                null);
+        }
+
+        // consumeFromWhichNode
+        if (null == this.defaultMQPushConsumer.getConsumeFromWhichNode()) {
+            throw new MQClientException("consumeFromWhichNode is null" //
+                    + FAQUrl.suggestTodo(FAQUrl.CLIENT_PARAMETER_CHECK_URL), //
+                null);
+        }
+
+        // consumeFromWhereOffset
+        if (null == this.defaultMQPushConsumer.getConsumeFromWhereOffset()) {
+            throw new MQClientException("consumeFromWhereOffset is null" //
+                    + FAQUrl.suggestTodo(FAQUrl.CLIENT_PARAMETER_CHECK_URL), //
+                null);
+        }
+
+        // allocateMessageQueueStrategy
+        if (null == this.defaultMQPushConsumer.getAllocateMessageQueueStrategy()) {
+            throw new MQClientException("allocateMessageQueueStrategy is null" //
+                    + FAQUrl.suggestTodo(FAQUrl.CLIENT_PARAMETER_CHECK_URL), //
+                null);
+        }
+
+        // subscription
+        if (null == this.defaultMQPushConsumer.getSubscription()) {
+            throw new MQClientException("subscription is null" //
+                    + FAQUrl.suggestTodo(FAQUrl.CLIENT_PARAMETER_CHECK_URL), //
+                null);
+        }
+
+        // messageListener
+        if (null == this.defaultMQPushConsumer.getMessageListener()) {
+            throw new MQClientException("messageListener is null" //
+                    + FAQUrl.suggestTodo(FAQUrl.CLIENT_PARAMETER_CHECK_URL), //
+                null);
+        }
+
+        boolean orderly = this.defaultMQPushConsumer.getMessageListener() instanceof MessageListenerOrderly;
+        boolean concurrently =
+                this.defaultMQPushConsumer.getMessageListener() instanceof MessageListenerConcurrently;
+        if (!orderly && !concurrently) {
+            throw new MQClientException(
+                "messageListener must be instanceof MessageListenerOrderly or MessageListenerConcurrently" //
+                        + FAQUrl.suggestTodo(FAQUrl.CLIENT_PARAMETER_CHECK_URL), //
+                null);
+        }
+
+        // consumeThreadMin
+        if (this.defaultMQPushConsumer.getConsumeThreadMin() < 1 //
+                || this.defaultMQPushConsumer.getConsumeThreadMin() > 1000//
+                || this.defaultMQPushConsumer.getConsumeThreadMin() > this.defaultMQPushConsumer
+                    .getConsumeThreadMax()//
+        ) {
+            throw new MQClientException("consumeThreadMin Out of range [1, 1000]" //
+                    + FAQUrl.suggestTodo(FAQUrl.CLIENT_PARAMETER_CHECK_URL), //
+                null);
+        }
+
+        // consumeThreadMax
+        if (this.defaultMQPushConsumer.getConsumeThreadMax() < 1
+                || this.defaultMQPushConsumer.getConsumeThreadMax() > 1000) {
+            throw new MQClientException("consumeThreadMax Out of range [1, 1000]" //
+                    + FAQUrl.suggestTodo(FAQUrl.CLIENT_PARAMETER_CHECK_URL), //
+                null);
+        }
+
+        // consumeConcurrentlyMaxSpan
+        if (this.defaultMQPushConsumer.getConsumeConcurrentlyMaxSpan() < 1
+                || this.defaultMQPushConsumer.getConsumeConcurrentlyMaxSpan() > 65535) {
+            throw new MQClientException("consumeConcurrentlyMaxSpan Out of range [1, 65535]" //
+                    + FAQUrl.suggestTodo(FAQUrl.CLIENT_PARAMETER_CHECK_URL), //
+                null);
+        }
+
+        // pullThresholdForQueue
+        if (this.defaultMQPushConsumer.getPullThresholdForQueue() < 1
+                || this.defaultMQPushConsumer.getPullThresholdForQueue() > 65535) {
+            throw new MQClientException("pullThresholdForQueue Out of range [1, 65535]" //
+                    + FAQUrl.suggestTodo(FAQUrl.CLIENT_PARAMETER_CHECK_URL), //
+                null);
+        }
+
+        // pullInterval
+        if (this.defaultMQPushConsumer.getPullInterval() < 1
+                || this.defaultMQPushConsumer.getPullInterval() > 65535) {
+            throw new MQClientException("pullInterval Out of range [1, 65535]" //
+                    + FAQUrl.suggestTodo(FAQUrl.CLIENT_PARAMETER_CHECK_URL), //
+                null);
+        }
+
+        // consumeMessageBatchMaxSize
+        if (this.defaultMQPushConsumer.getConsumeMessageBatchMaxSize() < 1
+                || this.defaultMQPushConsumer.getConsumeMessageBatchMaxSize() > 1024) {
+            throw new MQClientException("consumeMessageBatchMaxSize Out of range [1, 1024]" //
+                    + FAQUrl.suggestTodo(FAQUrl.CLIENT_PARAMETER_CHECK_URL), //
+                null);
+        }
+
+        // pullBatchSize
+        if (this.defaultMQPushConsumer.getPullBatchSize() < 1
+                || this.defaultMQPushConsumer.getPullBatchSize() > 1024) {
+            throw new MQClientException("pullBatchSize Out of range [1, 1024]" //
+                    + FAQUrl.suggestTodo(FAQUrl.CLIENT_PARAMETER_CHECK_URL), //
+                null);
+        }
+    }
+
+
     @Override
     public void start() throws MQClientException {
         switch (this.serviceState) {
         case CREATE_JUST:
+            this.checkConfig();
+
             this.serviceState = ServiceState.RUNNING;
 
             this.mQClientFactory =
@@ -118,9 +251,6 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
                 this.consumeMessageService =
                         new ConsumeMessageConcurrentlyService(this,
                             (MessageListenerConcurrently) this.defaultMQPushConsumer.getMessageListener());
-            }
-            else {
-                throw new MQClientException("the message listener is wrong", null);
             }
 
             this.consumeMessageService.start();

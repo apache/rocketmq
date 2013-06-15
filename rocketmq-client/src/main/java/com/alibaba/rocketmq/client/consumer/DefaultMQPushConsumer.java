@@ -87,8 +87,8 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
      */
     private int pullBatchSize = 32;
 
-    private final transient DefaultMQPushConsumerImpl defaultMQPushConsumerImpl = new DefaultMQPushConsumerImpl(
-        this);
+    private final transient DefaultMQPushConsumerImpl defaultMQPushConsumerImpl =
+            new DefaultMQPushConsumerImpl(this);
 
 
     public DefaultMQPushConsumer() {
@@ -168,8 +168,8 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
 
 
     @Override
-    public MessageExt viewMessage(String msgId) throws RemotingException, MQBrokerException, InterruptedException,
-            MQClientException {
+    public MessageExt viewMessage(String msgId) throws RemotingException, MQBrokerException,
+            InterruptedException, MQClientException {
         // TODO Auto-generated method stub
         return null;
     }
