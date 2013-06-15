@@ -1,12 +1,16 @@
 package com.alibaba.rocketmq.client.consumer.store;
 
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
+
+import org.slf4j.Logger;
 
 import com.alibaba.rocketmq.client.exception.MQBrokerException;
 import com.alibaba.rocketmq.client.exception.MQClientException;
 import com.alibaba.rocketmq.client.impl.FindBrokerResult;
 import com.alibaba.rocketmq.client.impl.factory.MQClientFactory;
+import com.alibaba.rocketmq.client.log.ClientLogger;
 import com.alibaba.rocketmq.common.message.MessageQueue;
 import com.alibaba.rocketmq.common.protocol.header.QueryConsumerOffsetRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.UpdateConsumerOffsetRequestHeader;
@@ -19,6 +23,7 @@ import com.alibaba.rocketmq.remoting.exception.RemotingException;
  * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public class RemoteBrokerOffsetStore implements OffsetStore {
+    private final Logger log = ClientLogger.getLog();
     private final MQClientFactory mQClientFactory;
     private final String groupName;
     private ConcurrentHashMap<MessageQueue, AtomicLong> offsetTable =
@@ -129,18 +134,21 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
 
 
     @Override
-    public void persistAll() {
-        for (MessageQueue mq : this.offsetTable.keySet()) {
-            AtomicLong offset = this.offsetTable.get(mq);
-            if (offset != null) {
-                try {
-                    this.updateConsumeOffsetToBroker(mq, offset.get());
-                }
-                catch (Exception e) {
-                    // TODO log
+    public void persistAll(Set<MessageQueue> mqs) {
+        if (mqs != null && !mqs.isEmpty()) {
+            for (MessageQueue mq : this.offsetTable.keySet()) {
+                AtomicLong offset = this.offsetTable.get(mq);
+                if (offset != null) {
+                    if (mqs.contains(mq)) {
+                        try {
+                            this.updateConsumeOffsetToBroker(mq, offset.get());
+                        }
+                        catch (Exception e) {
+                            log.error("updateConsumeOffsetToBroker exception, " + mq.toString(), e);
+                        }
+                    }
                 }
             }
         }
     }
-
 }

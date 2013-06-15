@@ -460,7 +460,13 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
     public void persistConsumerOffset() {
         try {
             this.makeSureStateOK();
-            this.offsetStore.persistAll();
+            Set<MessageQueue> mqs = new HashSet<MessageQueue>();
+            Set<MessageQueue> allocateMq = this.processQueueTable.keySet();
+            if (allocateMq != null) {
+                mqs.addAll(allocateMq);
+            }
+
+            this.offsetStore.persistAll(mqs);
         }
         catch (Exception e) {
             log.error("group: " + this.defaultMQPushConsumer.getConsumerGroup()

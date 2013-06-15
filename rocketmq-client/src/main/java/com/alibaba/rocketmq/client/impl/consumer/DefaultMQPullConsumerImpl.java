@@ -364,7 +364,7 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
     public void persistConsumerOffset() {
         try {
             this.makeSureStateOK();
-            this.offsetStore.persistAll();
+            // TODO this.offsetStore.persistAll();
         }
         catch (Exception e) {
             log.error("group: " + this.defaultMQPullConsumer.getConsumerGroup()
