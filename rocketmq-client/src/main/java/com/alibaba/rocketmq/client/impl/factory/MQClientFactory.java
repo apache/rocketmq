@@ -61,7 +61,7 @@ import com.alibaba.rocketmq.remoting.netty.NettyClientConfig;
 public class MQClientFactory {
     private ServiceState serviceState = ServiceState.CREATE_JUST;
     private final Logger log = ClientLogger.getLog();
-    private final ClientConfig mQClientConfig;
+    private final ClientConfig clientConfig;
     private final int factoryIndex;
     private final String clientId;
     private final long bootTimestamp = System.currentTimeMillis();
@@ -114,17 +114,17 @@ public class MQClientFactory {
     private final RebalanceService rebalanceService;
 
 
-    public MQClientFactory(ClientConfig mQClientConfig, int factoryIndex, String clientId) {
-        this.mQClientConfig = mQClientConfig;
+    public MQClientFactory(ClientConfig clientConfig, int factoryIndex, String clientId) {
+        this.clientConfig = clientConfig;
         this.factoryIndex = factoryIndex;
         this.nettyClientConfig = new NettyClientConfig();
-        this.nettyClientConfig.setClientCallbackExecutorThreads(mQClientConfig.getClientCallbackExecutorThreads());
+        this.nettyClientConfig.setClientCallbackExecutorThreads(clientConfig.getClientCallbackExecutorThreads());
         this.clientRemotingProcessor = new ClientRemotingProcessor(this);
         this.mQClientAPIImpl = new MQClientAPIImpl(this.nettyClientConfig, this.clientRemotingProcessor);
 
-        if (this.mQClientConfig.getNamesrvAddr() != null) {
-            this.mQClientAPIImpl.updateNameServerAddressList(this.mQClientConfig.getNamesrvAddr());
-            log.info("user specfied name server address: {}", this.mQClientConfig.getNamesrvAddr());
+        if (this.clientConfig.getNamesrvAddr() != null) {
+            this.mQClientAPIImpl.updateNameServerAddressList(this.clientConfig.getNamesrvAddr());
+            log.info("user specfied name server address: {}", this.clientConfig.getNamesrvAddr());
         }
 
         this.clientId = clientId;
@@ -135,7 +135,10 @@ public class MQClientFactory {
 
         this.rebalanceService = new RebalanceService(this);
 
-        log.info("created a new client fatory, FactoryIndex: {} ClinetID: {}", this.factoryIndex, this.clientId);
+        log.info("created a new client fatory, FactoryIndex: {} ClinetID: {} {}",//
+            this.factoryIndex, //
+            this.clientId, //
+            this.clientConfig);
     }
 
 
@@ -161,7 +164,7 @@ public class MQClientFactory {
 
     private void startScheduledTask() {
         // 定时获取Name Server地址
-        if (null == this.mQClientConfig.getNamesrvAddr()) {
+        if (null == this.clientConfig.getNamesrvAddr()) {
             this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 
                 @Override
@@ -188,7 +191,7 @@ public class MQClientFactory {
                     log.error("ScheduledTask updateTopicRouteInfoFromNameServer exception", e);
                 }
             }
-        }, 0, this.mQClientConfig.getPollNameServerInteval(), TimeUnit.MILLISECONDS);
+        }, 0, this.clientConfig.getPollNameServerInteval(), TimeUnit.MILLISECONDS);
 
         // 向所有Broker发送心跳信息（包含订阅关系等）
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
@@ -202,7 +205,7 @@ public class MQClientFactory {
                     log.error("ScheduledTask sendHeartbeatToAllBroker exception", e);
                 }
             }
-        }, 1000, this.mQClientConfig.getHeartbeatBrokerInterval(), TimeUnit.MILLISECONDS);
+        }, 1000, this.clientConfig.getHeartbeatBrokerInterval(), TimeUnit.MILLISECONDS);
 
         // 定时持久化Consumer消费进度（广播存储到本地，集群存储到Broker）
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
@@ -216,7 +219,7 @@ public class MQClientFactory {
                     log.error("ScheduledTask uploadConsumerOffsets exception", e);
                 }
             }
-        }, 1000 * 10, this.mQClientConfig.getUploadConsumerOffsetInterval(), TimeUnit.MILLISECONDS);
+        }, 1000 * 10, this.clientConfig.getPersistConsumerOffsetInterval(), TimeUnit.MILLISECONDS);
     }
 
 
@@ -224,11 +227,11 @@ public class MQClientFactory {
         synchronized (this) {
             switch (this.serviceState) {
             case CREATE_JUST:
-                this.makesureInstanceNameIsOnly(this.mQClientConfig.getInstanceName());
+                this.makesureInstanceNameIsOnly(this.clientConfig.getInstanceName());
 
                 this.serviceState = ServiceState.RUNNING;
-                if (null == this.mQClientConfig.getNamesrvAddr()) {
-                    this.mQClientConfig.setNamesrvAddr(this.mQClientAPIImpl.fetchNameServerAddr());
+                if (null == this.clientConfig.getNamesrvAddr()) {
+                    this.clientConfig.setNamesrvAddr(this.mQClientAPIImpl.fetchNameServerAddr());
                 }
 
                 this.startScheduledTask();
