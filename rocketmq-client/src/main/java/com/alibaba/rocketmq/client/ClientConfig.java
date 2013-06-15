@@ -20,7 +20,7 @@ public class ClientConfig {
     private int clientCallbackExecutorThreads = 5;
     private int pollNameServerInteval = 1000 * 30;
     private int heartbeatBrokerInterval = 1000 * 30;
-    private int uploadConsumerOffsetInterval = 1000 * 5;
+    private int persistConsumerOffsetInterval = 1000 * 5;
 
 
     public String buildMQClientId() {
@@ -42,7 +42,7 @@ public class ClientConfig {
         cc.clientCallbackExecutorThreads = clientCallbackExecutorThreads;
         cc.pollNameServerInteval = pollNameServerInteval;
         cc.heartbeatBrokerInterval = heartbeatBrokerInterval;
-        cc.uploadConsumerOffsetInterval = uploadConsumerOffsetInterval;
+        cc.persistConsumerOffsetInterval = persistConsumerOffsetInterval;
         return cc;
     }
 
@@ -107,13 +107,13 @@ public class ClientConfig {
     }
 
 
-    public int getUploadConsumerOffsetInterval() {
-        return uploadConsumerOffsetInterval;
+    public int getPersistConsumerOffsetInterval() {
+        return persistConsumerOffsetInterval;
     }
 
 
-    public void setUploadConsumerOffsetInterval(int uploadConsumerOffsetInterval) {
-        this.uploadConsumerOffsetInterval = uploadConsumerOffsetInterval;
+    public void setPersistConsumerOffsetInterval(int persistConsumerOffsetInterval) {
+        this.persistConsumerOffsetInterval = persistConsumerOffsetInterval;
     }
 
 
@@ -122,6 +122,7 @@ public class ClientConfig {
         return "ClientConfig [namesrvAddr=" + namesrvAddr + ", clientIP=" + clientIP + ", instanceName="
                 + instanceName + ", clientCallbackExecutorThreads=" + clientCallbackExecutorThreads
                 + ", pollNameServerInteval=" + pollNameServerInteval + ", heartbeatBrokerInterval="
-                + heartbeatBrokerInterval + ", uploadConsumerOffsetInterval=" + uploadConsumerOffsetInterval + "]";
+                + heartbeatBrokerInterval + ", persistConsumerOffsetInterval=" + persistConsumerOffsetInterval
+                + "]";
     }
 }
