@@ -57,6 +57,7 @@ import com.alibaba.rocketmq.remoting.netty.NettyClientConfig;
  * 客户端Factory类，用来管理Producer与Consumer
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
+ * @since 2013-6-15
  */
 public class MQClientFactory {
     private ServiceState serviceState = ServiceState.CREATE_JUST;
