@@ -818,7 +818,9 @@ public class DefaultMessageStore implements MessageStore {
             result = result && this.transactionStateService.load();
 
             // load 定时进度
-            result = result && this.scheduleMessageService.load();
+            if(null != scheduleMessageService){
+            	result = result && this.scheduleMessageService.load();
+            }
 
             if (result) {
                 this.storeCheckpoint = new StoreCheckpoint(this.messageStoreConfig.getStoreCheckpoint());
