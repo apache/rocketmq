@@ -23,7 +23,6 @@ import com.alibaba.rocketmq.client.impl.MQClientManager;
 import com.alibaba.rocketmq.client.impl.factory.MQClientFactory;
 import com.alibaba.rocketmq.client.log.ClientLogger;
 import com.alibaba.rocketmq.common.ServiceState;
-import com.alibaba.rocketmq.common.TopicFilterType;
 import com.alibaba.rocketmq.common.help.FAQUrl;
 import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.common.message.MessageQueue;
@@ -89,7 +88,8 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
                     mQClientFactory.registerConsumer(this.defaultMQPullConsumer.getConsumerGroup(), this);
             if (!registerOK) {
                 this.serviceState = ServiceState.CREATE_JUST;
-                throw new MQClientException("The consumer group[" + this.defaultMQPullConsumer.getConsumerGroup()
+                throw new MQClientException("The consumer group["
+                        + this.defaultMQPullConsumer.getConsumerGroup()
                         + "] has created already, specifed another name please."//
                         + FAQUrl.suggestTodo(FAQUrl.GROUP_NAME_DUPLICATE_URL), null);
             }
@@ -133,10 +133,10 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
     }
 
 
-    public void createTopic(String key, String newTopic, int queueNum, TopicFilterType topicFilterType,
-            boolean order) throws MQClientException {
+    public void createTopic(String key, String newTopic, int queueNum, boolean order)
+            throws MQClientException {
         this.makeSureStateOK();
-        this.mQClientFactory.getMQAdminImpl().createTopic(key, newTopic, queueNum, topicFilterType, order);
+        this.mQClientFactory.getMQAdminImpl().createTopic(key, newTopic, queueNum, order);
     }
 
 
@@ -170,8 +170,8 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
     }
 
 
-    public MessageExt viewMessage(String msgId) throws RemotingException, MQBrokerException, InterruptedException,
-            MQClientException {
+    public MessageExt viewMessage(String msgId) throws RemotingException, MQBrokerException,
+            InterruptedException, MQClientException {
         this.makeSureStateOK();
         return this.mQClientFactory.getMQAdminImpl().viewMessage(msgId);
     }
@@ -184,8 +184,9 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
     }
 
 
-    private PullResult pullSyncImpl(MessageQueue mq, String subExpression, long offset, int maxNums, boolean block)
-            throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
+    private PullResult pullSyncImpl(MessageQueue mq, String subExpression, long offset, int maxNums,
+            boolean block) throws MQClientException, RemotingException, MQBrokerException,
+            InterruptedException {
         this.makeSureStateOK();
 
         if (null == mq) {
@@ -259,8 +260,8 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
 
                     @Override
                     public void onSuccess(PullResult pullResult) {
-                        pullCallback.onSuccess(DefaultMQPullConsumerImpl.this.pullAPIWrapper.processPullResult(mq,
-                            pullResult));
+                        pullCallback.onSuccess(DefaultMQPullConsumerImpl.this.pullAPIWrapper
+                            .processPullResult(mq, pullResult));
                     }
 
 
@@ -288,8 +289,8 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
     }
 
 
-    public void pull(MessageQueue mq, String subExpression, long offset, int maxNums, PullCallback pullCallback)
-            throws MQClientException, RemotingException, InterruptedException {
+    public void pull(MessageQueue mq, String subExpression, long offset, int maxNums,
+            PullCallback pullCallback) throws MQClientException, RemotingException, InterruptedException {
         this.pullAsyncImpl(mq, subExpression, offset, maxNums, pullCallback, false);
     }
 

@@ -6,6 +6,9 @@ import junit.framework.Assert;
 
 import org.junit.Test;
 
+import com.alibaba.rocketmq.common.filter.impl.Op;
+import com.alibaba.rocketmq.common.filter.impl.PolishExpr;
+
 
 /**
  * @auther lansheng.zj@taobao.com

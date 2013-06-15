@@ -1,4 +1,4 @@
-package com.alibaba.rocketmq.common.filter;
+package com.alibaba.rocketmq.common.filter.impl;
 
 /**
  * @auther lansheng.zj@taobao.com

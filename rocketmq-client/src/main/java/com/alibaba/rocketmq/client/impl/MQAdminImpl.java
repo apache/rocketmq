@@ -22,7 +22,6 @@ import com.alibaba.rocketmq.client.impl.producer.TopicPublishInfo;
 import com.alibaba.rocketmq.client.log.ClientLogger;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.TopicConfig;
-import com.alibaba.rocketmq.common.TopicFilterType;
 import com.alibaba.rocketmq.common.message.Message;
 import com.alibaba.rocketmq.common.message.MessageDecoder;
 import com.alibaba.rocketmq.common.message.MessageExt;
@@ -57,8 +56,8 @@ public class MQAdminImpl {
     }
 
 
-    public void createTopic(String key, String newTopic, int queueNum, TopicFilterType topicFilterType,
-            boolean order) throws MQClientException {
+    public void createTopic(String key, String newTopic, int queueNum, boolean order)
+            throws MQClientException {
         try {
             TopicRouteData topicRouteData =
                     this.mQClientFactory.getMQClientAPIImpl().getTopicRouteInfoFromNameServer(key, 1000 * 3);
@@ -78,10 +77,9 @@ public class MQAdminImpl {
                         TopicConfig topicConfig = new TopicConfig(newTopic);
                         topicConfig.setReadQueueNums(queueNum);
                         topicConfig.setWriteQueueNums(queueNum);
-                        topicConfig.setTopicFilterType(topicFilterType);
                         try {
-                            this.mQClientFactory.getMQClientAPIImpl()
-                                .createTopic(addr, key, topicConfig, 1000 * 3);
+                            this.mQClientFactory.getMQClientAPIImpl().createTopic(addr, key, topicConfig,
+                                1000 * 3);
                         }
                         catch (Exception e) {
                             exception = new MQClientException("create topic to broker exception", e);
@@ -117,7 +115,8 @@ public class MQAdminImpl {
     public List<MessageQueue> fetchPublishMessageQueues(String topic) throws MQClientException {
         try {
             TopicRouteData topicRouteData =
-                    this.mQClientFactory.getMQClientAPIImpl().getTopicRouteInfoFromNameServer(topic, 1000 * 3);
+                    this.mQClientFactory.getMQClientAPIImpl()
+                        .getTopicRouteInfoFromNameServer(topic, 1000 * 3);
             if (topicRouteData != null) {
                 TopicPublishInfo topicPublishInfo =
                         MQClientFactory.topicRouteData2TopicPublishInfo(topic, topicRouteData);
@@ -137,7 +136,8 @@ public class MQAdminImpl {
     public Set<MessageQueue> fetchSubscribeMessageQueues(String topic) throws MQClientException {
         try {
             TopicRouteData topicRouteData =
-                    this.mQClientFactory.getMQClientAPIImpl().getTopicRouteInfoFromNameServer(topic, 1000 * 3);
+                    this.mQClientFactory.getMQClientAPIImpl()
+                        .getTopicRouteInfoFromNameServer(topic, 1000 * 3);
             if (topicRouteData != null) {
                 Set<MessageQueue> mqList =
                         MQClientFactory.topicRouteData2TopicSubscribeInfo(topic, topicRouteData);
@@ -241,8 +241,8 @@ public class MQAdminImpl {
     }
 
 
-    public MessageExt viewMessage(String msgId) throws RemotingException, MQBrokerException, InterruptedException,
-            MQClientException {
+    public MessageExt viewMessage(String msgId) throws RemotingException, MQBrokerException,
+            InterruptedException, MQClientException {
         try {
             MessageId messageId = MessageDecoder.decodeMessageId(msgId);
             return this.mQClientFactory.getMQClientAPIImpl().viewMessage(
@@ -315,8 +315,8 @@ public class MQAdminImpl {
                                                 break;
                                             }
                                             default:
-                                                log.warn("getResponseCommand failed, {} {}", response.getCode(),
-                                                    response.getRemark());
+                                                log.warn("getResponseCommand failed, {} {}",
+                                                    response.getCode(), response.getRemark());
                                                 break;
                                             }
                                         }
@@ -366,7 +366,8 @@ public class MQAdminImpl {
                                 messageList.add(msgExt);
                             }
                             else {
-                                log.warn("queryMessage, client find not matched message {}", msgExt.toString());
+                                log.warn("queryMessage, client find not matched message {}",
+                                    msgExt.toString());
                             }
                         }
                     }

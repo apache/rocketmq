@@ -21,7 +21,7 @@ public class TopicConfig {
     private int readQueueNums = DefaultReadQueueNums;
     private int writeQueueNums = DefaultWriteQueueNums;
     private int perm = PermName.PERM_READ | PermName.PERM_WRITE;
-    private TopicFilterType topicFilterType = TopicFilterType.MULTI_TAG;
+    private TopicFilterType topicFilterType = TopicFilterType.SINGLE_TAG;
 
 
     public TopicConfig(String topicName) {
@@ -148,8 +148,8 @@ public class TopicConfig {
 
     @Override
     public String toString() {
-        return "TopicConfig [topicName=" + topicName + ", readQueueNums=" + readQueueNums + ", writeQueueNums="
-                + writeQueueNums + ", perm=" + PermName.perm2String(perm) + ", topicFilterType=" + topicFilterType
-                + "]";
+        return "TopicConfig [topicName=" + topicName + ", readQueueNums=" + readQueueNums
+                + ", writeQueueNums=" + writeQueueNums + ", perm=" + PermName.perm2String(perm)
+                + ", topicFilterType=" + topicFilterType + "]";
     }
 }

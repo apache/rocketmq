@@ -35,7 +35,7 @@ public class Message {
      */
     public static final String PROPERTY_KEYS = "KEYS";
     /**
-     * 消息标签，多个tag用TAG_SEPARATOR隔开（服务端消息过滤使用）
+     * 消息标签，只支持设置一个Tag（服务端消息过滤使用）
      */
     public static final String PROPERTY_TAGS = "TAGS";
     /**
@@ -56,8 +56,6 @@ public class Message {
     public static final String PROPERTY_PRODUCER_GROUP = "PGROUP";
 
     public static final String KEY_SEPARATOR = " ";
-
-    public static final String TAG_SEPARATOR = " ";
 
 
     public Message() {

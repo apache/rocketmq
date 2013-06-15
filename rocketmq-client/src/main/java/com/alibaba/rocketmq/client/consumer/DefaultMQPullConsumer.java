@@ -58,8 +58,8 @@ public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsume
      */
     private Set<String> registerTopics = new HashSet<String>();
 
-    private final transient DefaultMQPullConsumerImpl defaultMQPullConsumerImpl = new DefaultMQPullConsumerImpl(
-        this);
+    private final transient DefaultMQPullConsumerImpl defaultMQPullConsumerImpl =
+            new DefaultMQPullConsumerImpl(this);
 
 
     public DefaultMQPullConsumer() {
@@ -72,9 +72,9 @@ public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsume
 
 
     @Override
-    public void createTopic(String key, String newTopic, int queueNum, TopicFilterType topicFilterType,
-            boolean order) throws MQClientException {
-        this.defaultMQPullConsumerImpl.createTopic(key, newTopic, queueNum, topicFilterType, order);
+    public void createTopic(String key, String newTopic, int queueNum, boolean order)
+            throws MQClientException {
+        this.defaultMQPullConsumerImpl.createTopic(key, newTopic, queueNum, order);
     }
 
 
@@ -103,8 +103,8 @@ public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsume
 
 
     @Override
-    public MessageExt viewMessage(String msgId) throws RemotingException, MQBrokerException, InterruptedException,
-            MQClientException {
+    public MessageExt viewMessage(String msgId) throws RemotingException, MQBrokerException,
+            InterruptedException, MQClientException {
         return this.defaultMQPullConsumerImpl.viewMessage(msgId);
     }
 
@@ -154,8 +154,8 @@ public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsume
 
 
     @Override
-    public void pull(MessageQueue mq, String subExpression, long offset, int maxNums, PullCallback pullCallback)
-            throws MQClientException, RemotingException, InterruptedException {
+    public void pull(MessageQueue mq, String subExpression, long offset, int maxNums,
+            PullCallback pullCallback) throws MQClientException, RemotingException, InterruptedException {
         this.defaultMQPullConsumerImpl.pull(mq, subExpression, offset, maxNums, pullCallback);
     }
 
