@@ -1,5 +1,6 @@
 package com.alibaba.rocketmq.client.consumer.store;
 
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -36,13 +37,15 @@ public class LocalFileOffsetStore implements OffsetStore {
 
 
     @Override
-    public void persistAll() {
+    public long readOffset(MessageQueue mq, boolean fromStore) {
+        // TODO Auto-generated method stub
+        return 0;
     }
 
 
     @Override
-    public long readOffset(MessageQueue mq, boolean fromStore) {
+    public void persistAll(Set<MessageQueue> mqs) {
         // TODO Auto-generated method stub
-        return 0;
+
     }
 }

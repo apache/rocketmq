@@ -48,10 +48,6 @@ public class PushConsumer {
         consumer.start();
 
         System.out.println("Consumer Started.");
-
-        while (true) {
-            Thread.sleep(1000);
-        }
     }
 
 }

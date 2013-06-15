@@ -14,7 +14,6 @@ import com.alibaba.rocketmq.remoting.exception.RemotingException;
 
 /**
  * @author shijia.wxr<vintage.wang@gmail.com>
- * 
  */
 public class Producer {
     public static void main(String[] args) {
