@@ -203,8 +203,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
 
     @Override
     public Set<MessageQueue> fetchSubscribeMessageQueues(String topic) throws MQClientException {
-        // TODO Auto-generated method stub
-        return null;
+        return this.defaultMQPushConsumerImpl.fetchSubscribeMessageQueues(topic);
     }
 
 
