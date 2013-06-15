@@ -339,7 +339,17 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
 
     @Override
     public Set<MessageQueue> fetchSubscribeMessageQueues(String topic) throws MQClientException {
-        return this.topicSubscribeInfoTable.get(topic);
+        Set<MessageQueue> result = this.topicSubscribeInfoTable.get(topic);
+        if (null == result) {
+            this.mQClientFactory.updateTopicRouteInfoFromNameServer(topic);
+            result = this.topicSubscribeInfoTable.get(topic);
+        }
+
+        if (null == result) {
+            throw new MQClientException("The topic[" + topic + "] not exist", null);
+        }
+
+        return result;
     }
 
 

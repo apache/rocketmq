@@ -30,7 +30,8 @@ public interface MQConsumer extends MQAdmin {
 
 
     /**
-     * 根据topic获取对应的MessageQueue，是可被订阅的队列
+     * 根据topic获取对应的MessageQueue，是可被订阅的队列<br>
+     * P.S 从Consumer Cache中拿数据，可以频繁调用。Cache中数据大约30秒更新一次
      * 
      * @param topic
      *            消息Topic
@@ -38,5 +39,4 @@ public interface MQConsumer extends MQAdmin {
      * @throws MQClientException
      */
     public Set<MessageQueue> fetchSubscribeMessageQueues(final String topic) throws MQClientException;
-
 }
