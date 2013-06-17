@@ -84,7 +84,8 @@ public class PullMessageProcessor implements NettyRequestProcessor {
     private RemotingCommand processRequest(final Channel channel, RemotingCommand request,
             boolean brokerAllowSuspend) throws RemotingCommandException {
         RemotingCommand response = RemotingCommand.createResponseCommand(PullMessageResponseHeader.class);
-        final PullMessageResponseHeader responseHeader = (PullMessageResponseHeader) response.getCustomHeader();
+        final PullMessageResponseHeader responseHeader =
+                (PullMessageResponseHeader) response.getCustomHeader();
         final PullMessageRequestHeader requestHeader =
                 (PullMessageRequestHeader) request.decodeCommandCustomHeader(PullMessageRequestHeader.class);
 
@@ -113,7 +114,8 @@ public class PullMessageProcessor implements NettyRequestProcessor {
         TopicConfig topicConfig =
                 this.brokerController.getTopicConfigManager().selectTopicConfig(requestHeader.getTopic());
         if (null == topicConfig) {
-            log.error("the topic " + requestHeader.getTopic() + " not exist, producer: " + channel.remoteAddress());
+            log.error("the topic " + requestHeader.getTopic() + " not exist, producer: "
+                    + channel.remoteAddress());
             response.setCode(MQResponseCode.TOPIC_NOT_EXIST_VALUE);
             response.setRemark("topic not exist, apply first please!");
             return response;
@@ -139,8 +141,8 @@ public class PullMessageProcessor implements NettyRequestProcessor {
 
         final GetMessageResult getMessageResult =
                 this.brokerController.getMessageStore().getMessage(requestHeader.getTopic(),
-                    requestHeader.getQueueId(), requestHeader.getQueueOffset(), requestHeader.getMaxMsgNums(),
-                    null);
+                    requestHeader.getQueueId(), requestHeader.getQueueOffset(),
+                    requestHeader.getMaxMsgNums(), null);
         if (getMessageResult != null) {
             response.setRemark(getMessageResult.getStatus().name());
 
@@ -179,8 +181,8 @@ public class PullMessageProcessor implements NettyRequestProcessor {
             case OFFSET_TOO_SMALL:
                 response.setCode(MQResponseCode.PULL_OFFSET_MOVED_VALUE);
                 log.info("the request offset: " + requestHeader.getQueueOffset()
-                        + " too small, broker min offset: " + getMessageResult.getMinOffset() + ", consumer: "
-                        + channel.remoteAddress());
+                        + " too small, broker min offset: " + getMessageResult.getMinOffset()
+                        + ", consumer: " + channel.remoteAddress());
                 break;
             default:
                 assert false;
@@ -191,14 +193,15 @@ public class PullMessageProcessor implements NettyRequestProcessor {
             case ResponseCode.SUCCESS_VALUE:
                 try {
                     FileRegion fileRegion =
-                            new ManyMessageTransfer(response.encodeHeader(getMessageResult.getBufferTotalSize()),
-                                getMessageResult);
+                            new ManyMessageTransfer(response.encodeHeader(getMessageResult
+                                .getBufferTotalSize()), getMessageResult);
                     channel.sendFile(fileRegion).addListener(new ChannelFutureListener() {
                         @Override
                         public void operationComplete(ChannelFuture future) throws Exception {
                             getMessageResult.release();
                             if (!future.isSuccess()) {
-                                log.error("transfer many message by pagecache failed, " + channel.remoteAddress(),
+                                log.error(
+                                    "transfer many message by pagecache failed, " + channel.remoteAddress(),
                                     future.cause());
                             }
                         }
@@ -217,8 +220,8 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                     PullRequest pullRequest =
                             new PullRequest(request, channel, suspendTimeoutMillisLong, this.brokerController
                                 .getMessageStore().now(), requestHeader.getQueueOffset());
-                    this.brokerController.getPullRequestHoldService().suspendPullRequest(requestHeader.getTopic(),
-                        requestHeader.getQueueId(), pullRequest);
+                    this.brokerController.getPullRequestHoldService().suspendPullRequest(
+                        requestHeader.getTopic(), requestHeader.getQueueId(), pullRequest);
                     response = null;
                     break;
                 }
@@ -239,8 +242,9 @@ public class PullMessageProcessor implements NettyRequestProcessor {
         // 存储Consumer消费进度
         if (brokerAllowSuspend) { // 说明是首次调用，相对于长轮询通知
             if (hasCommitOffsetFlag) {
-                this.brokerController.getConsumerOffsetManager().commitOffset(requestHeader.getConsumerGroup(),
-                    requestHeader.getTopic(), requestHeader.getQueueId(), requestHeader.getCommitOffset());
+                this.brokerController.getConsumerOffsetManager().commitOffset(
+                    requestHeader.getConsumerGroup(), requestHeader.getTopic(), requestHeader.getQueueId(),
+                    requestHeader.getCommitOffset());
             }
         }
 

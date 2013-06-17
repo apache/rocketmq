@@ -103,6 +103,7 @@ public class PullAPIWrapper {
     public PullResult pullKernelImpl(//
             final MessageQueue mq,// 1
             final String subExpression,// 2
+            final long subVersion,// 2
             final long offset,// 3
             final int maxNums,// 4
             final int sysFlag,// 5
@@ -141,6 +142,7 @@ public class PullAPIWrapper {
             requestHeader.setCommitOffset(commitOffset);
             requestHeader.setSuspendTimeoutMillis(brokerSuspendMaxTimeMillis);
             requestHeader.setSubscription(subExpression);
+            requestHeader.setSubVersion(subVersion);
 
             PullResult pullResult = this.mQClientFactory.getMQClientAPIImpl().pullMessage(//
                 findBrokerResult.getBrokerAddr(),//

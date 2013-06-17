@@ -15,6 +15,7 @@ public class SubscriptionData {
     private String topic;
     private String subString;
     private final Set<String> tagsSet = new HashSet<String>();
+    private long subVersion = System.currentTimeMillis();
 
 
     public SubscriptionData() {
@@ -51,6 +52,16 @@ public class SubscriptionData {
 
     public Set<String> getTagsSet() {
         return tagsSet;
+    }
+
+
+    public long getSubVersion() {
+        return subVersion;
+    }
+
+
+    public void setSubVersion(long subVersion) {
+        this.subVersion = subVersion;
     }
 
 
