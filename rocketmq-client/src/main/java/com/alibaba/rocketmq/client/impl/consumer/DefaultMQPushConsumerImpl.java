@@ -33,6 +33,7 @@ import com.alibaba.rocketmq.client.impl.factory.MQClientFactory;
 import com.alibaba.rocketmq.client.log.ClientLogger;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.ServiceState;
+import com.alibaba.rocketmq.common.filter.FilterAPI;
 import com.alibaba.rocketmq.common.help.FAQUrl;
 import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.common.message.MessageQueue;
@@ -66,20 +67,17 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
     // 消费消息服务
     private ConsumeMessageService consumeMessageService;
 
+    // 是否顺序消费消息
+    private boolean consumeOrderly = false;
+
     // 可订阅的信息（定时从Name Server更新最新版本）
     private final ConcurrentHashMap<String/* topic */, Set<MessageQueue>> topicSubscribeInfoTable =
             new ConcurrentHashMap<String, Set<MessageQueue>>();
 
-    // 是否顺序消费消息
-    private boolean consumeOrderly = false;
-
     // 订阅关系，用户配置的原始数据
-    private final ConcurrentHashMap<String /* topic */, String /* sub expression */> subscriptionInner =
-            new ConcurrentHashMap<String, String>();
+    private final ConcurrentHashMap<String /* topic */, SubscriptionData> subscriptionInner =
+            new ConcurrentHashMap<String, SubscriptionData>();
     private MessageListener messageListenerInner;
-
-    // 订阅关系，表达式已经处理过
-    private final Set<SubscriptionData> subscriptionDataSet = new HashSet<SubscriptionData>();
 
 
     @Override
@@ -89,8 +87,7 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
             this.checkConfig();
 
             // 复制订阅关系
-            this.subscriptionInner.putAll(this.defaultMQPushConsumer.getSubscription());
-            this.messageListenerInner = this.defaultMQPushConsumer.getMessageListener();
+            this.copySubscription();
 
             this.serviceState = ServiceState.RUNNING;
 
@@ -141,6 +138,7 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
                     mQClientFactory.registerConsumer(this.defaultMQPushConsumer.getConsumerGroup(), this);
             if (!registerOK) {
                 this.serviceState = ServiceState.CREATE_JUST;
+                this.consumeMessageService.shutdown();
                 throw new MQClientException("The consumer group["
                         + this.defaultMQPushConsumer.getConsumerGroup()
                         + "] has created already, specifed another name please."
@@ -278,8 +276,14 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
 
 
     @Override
-    public void subscribe(String topic, String subExpression) {
-        this.subscriptionInner.put(topic, subExpression);
+    public void subscribe(String topic, String subExpression) throws MQClientException {
+        try {
+            SubscriptionData subscriptionData = FilterAPI.buildSubscriptionData(topic, subExpression);
+            this.subscriptionInner.put(topic, subscriptionData);
+        }
+        catch (Exception e) {
+            throw new MQClientException("subscription exception", e);
+        }
     }
 
 
@@ -323,7 +327,11 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
 
     @Override
     public Set<SubscriptionData> getMQSubscriptions() {
-        return null;
+        Set<SubscriptionData> subSet = new HashSet<SubscriptionData>();
+
+        subSet.addAll(this.subscriptionInner.values());
+
+        return subSet;
     }
 
 
@@ -607,7 +615,7 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
 
 
     private void truncateMessageQueueNotMyTopic() {
-        Map<String, String> subTable = this.getSubscriptionInner();
+        Map<String, SubscriptionData> subTable = this.getSubscriptionInner();
 
         for (MessageQueue mq : this.processQueueTable.keySet()) {
             if (!subTable.containsKey(mq.getTopic())) {
@@ -624,9 +632,9 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
 
     @Override
     public void doRebalance() {
-        Map<String, String> subTable = this.getSubscriptionInner();
+        Map<String, SubscriptionData> subTable = this.getSubscriptionInner();
         if (subTable != null) {
-            for (final Map.Entry<String, String> entry : subTable.entrySet()) {
+            for (final Map.Entry<String, SubscriptionData> entry : subTable.entrySet()) {
                 final String topic = entry.getKey();
                 try {
                     this.rebalanceByTopic(topic);
@@ -642,9 +650,9 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
 
 
     private void updateTopicSubscribeInfoWhenSubscriptionChanged() {
-        Map<String, String> subTable = this.getSubscriptionInner();
+        Map<String, SubscriptionData> subTable = this.getSubscriptionInner();
         if (subTable != null) {
-            for (final Map.Entry<String, String> entry : subTable.entrySet()) {
+            for (final Map.Entry<String, SubscriptionData> entry : subTable.entrySet()) {
                 final String topic = entry.getKey();
                 this.mQClientFactory.updateTopicRouteInfoFromNameServer(topic);
             }
@@ -654,12 +662,33 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
 
     @Override
     public void updateTopicSubscribeInfo(String topic, Set<MessageQueue> info) {
-        Map<String, String> subTable = this.getSubscriptionInner();
+        Map<String, SubscriptionData> subTable = this.getSubscriptionInner();
         if (subTable != null) {
-            String value = subTable.get(topic);
-            if (value != null) {
+            if (subTable.containsKey(topic)) {
                 this.topicSubscribeInfoTable.put(topic, info);
             }
+        }
+    }
+
+
+    private void copySubscription() throws MQClientException {
+        try {
+            Map<String, String> sub = this.defaultMQPushConsumer.getSubscription();
+            if (sub != null) {
+                for (final Map.Entry<String, String> entry : sub.entrySet()) {
+                    final String topic = entry.getKey();
+                    final String subString = entry.getValue();
+                    SubscriptionData subscriptionData = FilterAPI.buildSubscriptionData(topic, subString);
+                    this.subscriptionInner.put(topic, subscriptionData);
+                }
+            }
+        }
+        catch (Exception e) {
+            throw new MQClientException("subscription exception", e);
+        }
+
+        if (null == this.messageListenerInner) {
+            this.messageListenerInner = this.defaultMQPushConsumer.getMessageListener();
         }
     }
 
@@ -804,12 +833,12 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
     }
 
 
-    public ConcurrentHashMap<String, String> getSubscriptionInner() {
-        return subscriptionInner;
+    public MessageListener getMessageListenerInner() {
+        return messageListenerInner;
     }
 
 
-    public MessageListener getMessageListenerInner() {
-        return messageListenerInner;
+    public ConcurrentHashMap<String, SubscriptionData> getSubscriptionInner() {
+        return subscriptionInner;
     }
 }

@@ -47,8 +47,9 @@ public interface MQPushConsumer extends MQConsumer {
      *            如果subExpression=null, 则表示全部订阅
      * @param listener
      *            消息回调监听器
+     * @throws MQClientException
      */
-    public void subscribe(final String topic, final String subExpression);
+    public void subscribe(final String topic, final String subExpression) throws MQClientException;
 
 
     /**
