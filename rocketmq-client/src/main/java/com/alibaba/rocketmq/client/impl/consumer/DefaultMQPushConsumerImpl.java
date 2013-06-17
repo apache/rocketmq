@@ -586,8 +586,10 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
                     this.mQClientFactory.findConsumerIdList(topic,
                         this.defaultMQPushConsumer.getConsumerGroup());
             if (null == mqSet) {
-                log.warn("doRebalance, {}, but the topic[{}] not exist.",
-                    this.defaultMQPushConsumer.getConsumerGroup(), topic);
+                if (!topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
+                    log.warn("doRebalance, {}, but the topic[{}] not exist.",
+                        this.defaultMQPushConsumer.getConsumerGroup(), topic);
+                }
             }
 
             if (null == cidAll) {
@@ -685,6 +687,7 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
 
     private void copySubscription() throws MQClientException {
         try {
+            // 复制用户初始设置的订阅关系
             Map<String, String> sub = this.defaultMQPushConsumer.getSubscription();
             if (sub != null) {
                 for (final Map.Entry<String, String> entry : sub.entrySet()) {
@@ -694,13 +697,27 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
                     this.subscriptionInner.put(topic, subscriptionData);
                 }
             }
+
+            if (null == this.messageListenerInner) {
+                this.messageListenerInner = this.defaultMQPushConsumer.getMessageListener();
+            }
+
+            switch (this.defaultMQPushConsumer.getMessageModel()) {
+            case BROADCASTING:
+                break;
+            case CLUSTERING:
+                // 默认订阅消息重试Topic
+                final String retryTopic = MixAll.getRetryTopic(this.defaultMQPushConsumer.getConsumerGroup());
+                SubscriptionData subscriptionData =
+                        FilterAPI.buildSubscriptionData(retryTopic, SubscriptionData.SUB_ALL);
+                this.subscriptionInner.put(retryTopic, subscriptionData);
+                break;
+            default:
+                break;
+            }
         }
         catch (Exception e) {
             throw new MQClientException("subscription exception", e);
-        }
-
-        if (null == this.messageListenerInner) {
-            this.messageListenerInner = this.defaultMQPushConsumer.getMessageListener();
         }
     }
 

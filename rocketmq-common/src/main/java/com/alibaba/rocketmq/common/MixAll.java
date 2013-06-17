@@ -43,7 +43,6 @@ import com.sun.management.OperatingSystemMXBean;
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @author lansheng.zj@taobao.com
- * 
  */
 public class MixAll {
     public static final String ROCKETMQ_HOME_ENV = "ROCKETMQ_HOME";
@@ -65,6 +64,14 @@ public class MixAll {
     public static final String DEFAULT_CHARSET = "UTF-8";
     public static final long MASTER_ID = 0L;
     public static final long CURRENT_JVM_PID = getPID();
+
+    // 为每个Consumer Group建立一个默认的Topic，前缀 + GroupName
+    public static final String RETRY_GROUP_TOPIC_PREFIX = "RETRY_GROUP_TOPIC-";
+
+
+    public static String getRetryTopic(final String consumerGroup) {
+        return RETRY_GROUP_TOPIC_PREFIX + consumerGroup;
+    }
 
 
     public static long getPID() {
