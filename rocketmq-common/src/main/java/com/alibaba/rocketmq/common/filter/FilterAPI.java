@@ -14,6 +14,7 @@ public class FilterAPI {
     public static SubscriptionData buildSubscriptionData(String topic, String subString) throws Exception {
         SubscriptionData subscriptionData = new SubscriptionData();
         subscriptionData.setTopic(topic);
+        subscriptionData.setSubString(subString);
 
         if (null == subString || subString.equals(SubscriptionData.SUB_ALL)) {
             subscriptionData.setSubString(SubscriptionData.SUB_ALL);

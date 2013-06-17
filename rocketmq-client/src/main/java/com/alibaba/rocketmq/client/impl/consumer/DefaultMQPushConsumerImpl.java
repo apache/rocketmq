@@ -398,7 +398,7 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
         }
 
         // 查询订阅关系
-        SubscriptionData subscriptionData =
+        final SubscriptionData subscriptionData =
                 this.subscriptionInner.get(pullRequest.getMessageQueue().getTopic());
         if (null == subscriptionData) {
             // 由于并发关系，即使找不到订阅关系，也要重试下，防止丢失PullRequest
@@ -413,8 +413,7 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
                 if (pullResult != null) {
                     pullResult =
                             DefaultMQPushConsumerImpl.this.pullAPIWrapper.processPullResult(
-                                pullRequest.getMessageQueue(), pullResult);
-
+                                pullRequest.getMessageQueue(), pullResult, subscriptionData);
                     pullRequest.setNextOffset(pullResult.getNextBeginOffset());
 
                     switch (pullResult.getPullStatus()) {
@@ -478,15 +477,15 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
             this.pullAPIWrapper.pullKernelImpl(//
                 pullRequest.getMessageQueue(), // 1
                 null, // 2
-                subscriptionData.getSubVersion(), // 2
-                pullRequest.getNextOffset(), // 3
-                this.defaultMQPushConsumer.getPullBatchSize(), // 4
-                sysFlag, // 5
-                0,// 6
-                BrokerSuspendMaxTimeMillis, // 7
-                ConsumerTimeoutMillisWhenSuspend, // 8
-                CommunicationMode.ASYNC, // 9
-                pullCallback// 10
+                subscriptionData.getSubVersion(), // 3
+                pullRequest.getNextOffset(), // 4
+                this.defaultMQPushConsumer.getPullBatchSize(), // 5
+                sysFlag, // 6
+                0,// 7
+                BrokerSuspendMaxTimeMillis, // 8
+                ConsumerTimeoutMillisWhenSuspend, // 9
+                CommunicationMode.ASYNC, // 10
+                pullCallback// 11
                 );
         }
         catch (Exception e) {

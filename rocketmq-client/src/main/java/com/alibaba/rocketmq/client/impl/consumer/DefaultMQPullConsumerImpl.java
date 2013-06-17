@@ -23,6 +23,7 @@ import com.alibaba.rocketmq.client.impl.MQClientManager;
 import com.alibaba.rocketmq.client.impl.factory.MQClientFactory;
 import com.alibaba.rocketmq.client.log.ClientLogger;
 import com.alibaba.rocketmq.common.ServiceState;
+import com.alibaba.rocketmq.common.filter.FilterAPI;
 import com.alibaba.rocketmq.common.help.FAQUrl;
 import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.common.message.MessageQueue;
@@ -203,18 +204,33 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
 
         int sysFlag = PullSysFlag.buildSysFlag(false, block, true);
 
-        String subExpressionInner = subExpression != null ? subExpression : SubscriptionData.SUB_ALL;
+        SubscriptionData subscriptionData;
+        try {
+            subscriptionData = FilterAPI.buildSubscriptionData(mq.getTopic(), subExpression);
+        }
+        catch (Exception e) {
+            throw new MQClientException("parse subscription error", e);
+        }
 
         long timeoutMillis =
                 block ? this.defaultMQPullConsumer.getConsumerTimeoutMillisWhenSuspend()
                         : this.defaultMQPullConsumer.getConsumerPullTimeoutMillis();
 
-        PullResult pullResult =
-                this.pullAPIWrapper.pullKernelImpl(mq, subExpressionInner, 0L, offset, maxNums, sysFlag, 0,
-                    this.defaultMQPullConsumer.getBrokerSuspendMaxTimeMillis(), timeoutMillis,
-                    CommunicationMode.SYNC, null);
+        PullResult pullResult = this.pullAPIWrapper.pullKernelImpl(//
+            mq, // 1
+            subscriptionData.getSubString(), // 2
+            0L, // 3
+            offset, // 4
+            maxNums, // 5
+            sysFlag, // 6
+            0, // 7
+            this.defaultMQPullConsumer.getBrokerSuspendMaxTimeMillis(), // 8
+            timeoutMillis, // 9
+            CommunicationMode.SYNC, // 10
+            null// 11
+            );
 
-        return this.pullAPIWrapper.processPullResult(mq, pullResult);
+        return this.pullAPIWrapper.processPullResult(mq, pullResult, subscriptionData);
     }
 
 
@@ -245,23 +261,37 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
         }
 
         try {
-
             int sysFlag = PullSysFlag.buildSysFlag(false, block, true);
 
-            String subExpressionInner = subExpression != null ? subExpression : SubscriptionData.SUB_ALL;
+            final SubscriptionData subscriptionData;
+            try {
+                subscriptionData = FilterAPI.buildSubscriptionData(mq.getTopic(), subExpression);
+            }
+            catch (Exception e) {
+                throw new MQClientException("parse subscription error", e);
+            }
 
             long timeoutMillis =
                     block ? this.defaultMQPullConsumer.getConsumerTimeoutMillisWhenSuspend()
                             : this.defaultMQPullConsumer.getConsumerPullTimeoutMillis();
 
-            this.pullAPIWrapper.pullKernelImpl(mq, subExpressionInner, 0L, offset, maxNums, sysFlag, 0,
-                this.defaultMQPullConsumer.getBrokerSuspendMaxTimeMillis(), timeoutMillis,
-                CommunicationMode.ASYNC, new PullCallback() {
+            this.pullAPIWrapper.pullKernelImpl(//
+                mq, // 1
+                subscriptionData.getSubString(), // 2
+                0L, // 3
+                offset, // 4
+                maxNums, // 5
+                sysFlag, // 6
+                0, // 7
+                this.defaultMQPullConsumer.getBrokerSuspendMaxTimeMillis(), // 8
+                timeoutMillis, // 9
+                CommunicationMode.ASYNC, // 10
+                new PullCallback() {
 
                     @Override
                     public void onSuccess(PullResult pullResult) {
                         pullCallback.onSuccess(DefaultMQPullConsumerImpl.this.pullAPIWrapper
-                            .processPullResult(mq, pullResult));
+                            .processPullResult(mq, pullResult, subscriptionData));
                     }
 
 
