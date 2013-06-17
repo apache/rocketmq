@@ -280,6 +280,8 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
         try {
             SubscriptionData subscriptionData = FilterAPI.buildSubscriptionData(topic, subExpression);
             this.subscriptionInner.put(topic, subscriptionData);
+            // 发送心跳，将变更的订阅关系注册上去
+            this.mQClientFactory.sendHeartbeatToAllBrokerWithLock();
         }
         catch (Exception e) {
             throw new MQClientException("subscription exception", e);
@@ -399,6 +401,7 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
         SubscriptionData subscriptionData =
                 this.subscriptionInner.get(pullRequest.getMessageQueue().getTopic());
         if (null == subscriptionData) {
+            // 由于并发关系，即使找不到订阅关系，也要重试下，防止丢失PullRequest
             this.executePullRequestLater(pullRequest, PullTimeDelayMillsWhenException);
             log.warn("find the consumer's subscription failed, {}", pullRequest);
             return;

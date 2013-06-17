@@ -18,9 +18,11 @@ import com.alibaba.rocketmq.broker.pagecache.ManyMessageTransfer;
 import com.alibaba.rocketmq.common.TopicConfig;
 import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.common.constant.PermName;
+import com.alibaba.rocketmq.common.filter.FilterAPI;
 import com.alibaba.rocketmq.common.protocol.MQProtos.MQResponseCode;
 import com.alibaba.rocketmq.common.protocol.header.PullMessageRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.PullMessageResponseHeader;
+import com.alibaba.rocketmq.common.protocol.heartbeat.SubscriptionData;
 import com.alibaba.rocketmq.common.sysflag.PullSysFlag;
 import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
 import com.alibaba.rocketmq.remoting.netty.NettyRequestProcessor;
@@ -137,6 +139,44 @@ public class PullMessageProcessor implements NettyRequestProcessor {
             response.setCode(ResponseCode.SYSTEM_ERROR_VALUE);
             response.setRemark(errorInfo);
             return response;
+        }
+
+        // 订阅关系处理
+        SubscriptionData subscriptionData = null;
+        if (hasSubscriptionFlag) {
+            try {
+                subscriptionData =
+                        FilterAPI.buildSubscriptionData(requestHeader.getTopic(),
+                            requestHeader.getSubscription());
+            }
+            catch (Exception e) {
+                log.warn("parse the consumer's subscription[{}] failed, group: {} ",
+                    requestHeader.getSubscription(),//
+                    requestHeader.getConsumerGroup());
+                response.setCode(MQResponseCode.SUBSCRIPTION_PARSE_FAILED_VALUE);
+                response.setRemark("parse the consumer's subscription failed");
+                return response;
+            }
+        }
+        else {
+            subscriptionData =
+                    this.brokerController.getConsumerManager().findSubscriptionData(
+                        requestHeader.getConsumerGroup(), requestHeader.getTopic());
+            if (null == subscriptionData) {
+                log.warn("the consumer's subscription not exist, group: {}", requestHeader.getConsumerGroup());
+                response.setCode(MQResponseCode.SUBSCRIPTION_NOT_EXIST_VALUE);
+                response.setRemark("the consumer's subscription not exist");
+                return response;
+            }
+
+            // 判断Broker的订阅关系版本是否最新
+            if (subscriptionData.getSubVersion() < requestHeader.getSubVersion()) {
+                log.warn("the broker's subscription is not latest, group: {} {}",
+                    requestHeader.getConsumerGroup(), subscriptionData.getSubString());
+                response.setCode(MQResponseCode.SUBSCRIPTION_NOT_LATEST_VALUE);
+                response.setRemark("the consumer's subscription not latest");
+                return response;
+            }
         }
 
         final GetMessageResult getMessageResult =

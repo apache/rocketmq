@@ -75,7 +75,8 @@ public class ClientManageProcessor implements NettyRequestProcessor {
                     .decodeCommandCustomHeader(GetConsumerListByGroupRequestHeader.class);
 
         ConsumerGroupInfo consumerGroupInfo =
-                this.brokerController.getConsumerManager().getConsumerGroupInfo(requestHeader.getConsumerGroup());
+                this.brokerController.getConsumerManager().getConsumerGroupInfo(
+                    requestHeader.getConsumerGroup());
         if (consumerGroupInfo != null) {
             List<String> clientIds = consumerGroupInfo.getAllClientId();
             if (!clientIds.isEmpty()) {
@@ -172,8 +173,8 @@ public class ClientManageProcessor implements NettyRequestProcessor {
                 if (consumerGroupInfo != null) {
                     List<Channel> channels = consumerGroupInfo.getAllChannel();
                     for (Channel chl : channels) {
-                        this.brokerController.getBroker2Client()
-                            .notifyConsumerIdsChanged(chl, data.getGroupName());
+                        this.brokerController.getBroker2Client().notifyConsumerIdsChanged(chl,
+                            data.getGroupName());
                     }
                 }
             }
@@ -181,7 +182,8 @@ public class ClientManageProcessor implements NettyRequestProcessor {
 
         // ×¢²áProducer
         for (ProducerData data : heartbeatData.getProducerDataSet()) {
-            this.brokerController.getProducerManager().registerProducer(data.getGroupName(), clientChannelInfo);
+            this.brokerController.getProducerManager().registerProducer(data.getGroupName(),
+                clientChannelInfo);
         }
 
         response.setCode(ResponseCode.SUCCESS_VALUE);

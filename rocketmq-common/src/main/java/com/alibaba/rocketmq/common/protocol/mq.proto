@@ -86,6 +86,10 @@ enum MQResponseCode{
     PULL_OFFSET_MOVED = 21;                             // Broker 拉消息请求的Offset不合法，太小或太大
     QUERY_NOT_FOUND = 22;                               // Broker 查询消息未找到
 
+    SUBSCRIPTION_PARSE_FAILED = 23;                     // Broker 订阅关系解析失败
+    SUBSCRIPTION_NOT_EXIST = 24;                        // Broker 订阅关系不存在
+    SUBSCRIPTION_NOT_LATEST = 25;                       // Broker 订阅关系不是最新的
+
 
     DELETE_INVALID_CONF = 100;                          // Namesrv 同步数据时出现两个节点间数据不一致，删除不一致的数据
     NOT_MERGE_CONF = 101;                               // Namesrv 两节点之间的数据一致没有做修改
