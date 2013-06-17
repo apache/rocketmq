@@ -344,8 +344,7 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
         if (topics != null) {
             synchronized (topics) {
                 for (String t : topics) {
-                    // TODO
-                    SubscriptionData ms = new SubscriptionData(t, null, null, true);
+                    SubscriptionData ms = new SubscriptionData(t, SubscriptionData.SUB_ALL);
                     result.add(ms);
                 }
             }

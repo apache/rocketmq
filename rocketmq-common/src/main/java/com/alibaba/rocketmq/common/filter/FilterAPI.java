@@ -8,14 +8,29 @@ import com.alibaba.rocketmq.common.protocol.heartbeat.SubscriptionData;
  * @since 2013-6-15
  */
 public class FilterAPI {
-    public static SubscriptionData buildSubscriptionData(String topic, String subString) {
+    private static final String TAG_SEPRATOR = "||";
+
+
+    public static SubscriptionData buildSubscriptionData(String topic, String subString) throws Exception {
         SubscriptionData subscriptionData = new SubscriptionData();
         subscriptionData.setTopic(topic);
-        subscriptionData.setSubString(subString);
 
-        // TODO ×Ö¶Î×ª»¯
-        subscriptionData.setHasAndOperator(false);
+        if (null == subString || subString.equals(SubscriptionData.SUB_ALL)) {
+            subscriptionData.setSubString(SubscriptionData.SUB_ALL);
+        }
+        else {
+            String[] tags = subString.split(TAG_SEPRATOR);
+            if (tags != null && tags.length > 0) {
+                for (String t : tags) {
+                    subscriptionData.getTagsSet().add(t);
+                }
+            }
+            else {
+                throw new Exception("subString split error");
+            }
+        }
 
         return subscriptionData;
     }
+
 }

@@ -47,9 +47,8 @@ public interface MQPullConsumer extends MQConsumer {
      * @param mq
      *            指定具体要拉取的队列
      * @param subExpression
-     *            订阅过滤表达式字符串，broker依据此表达式进行过滤。<br>
+     *            订阅过滤表达式字符串，broker依据此表达式进行过滤。目前只支持或运算<br>
      *            eg: "tag1 || tag2 || tag3"<br>
-     *            "tag1 || (tag2 && tag3)"<br>
      *            如果subExpression=null, 则表示全部订阅
      * @param offset
      *            从指定队列哪个位置开始拉取
@@ -61,12 +60,14 @@ public interface MQPullConsumer extends MQConsumer {
      * @throws MQBrokerException
      * @throws RemotingException
      */
-    public PullResult pull(final MessageQueue mq, final String subExpression, final long offset, final int maxNums)
-            throws MQClientException, RemotingException, MQBrokerException, InterruptedException;
+    public PullResult pull(final MessageQueue mq, final String subExpression, final long offset,
+            final int maxNums) throws MQClientException, RemotingException, MQBrokerException,
+            InterruptedException;
 
 
     public void pull(final MessageQueue mq, final String subExpression, final long offset, final int maxNums,
-            final PullCallback pullCallback) throws MQClientException, RemotingException, InterruptedException;
+            final PullCallback pullCallback) throws MQClientException, RemotingException,
+            InterruptedException;
 
 
     /**
@@ -76,9 +77,8 @@ public interface MQPullConsumer extends MQConsumer {
      * @param mq
      *            指定具体要拉取的队列
      * @param subExpression
-     *            订阅过滤表达式字符串，broker依据此表达式进行过滤。<br>
+     *            订阅过滤表达式字符串，broker依据此表达式进行过滤。目前只支持或运算<br>
      *            eg: "tag1 || tag2 || tag3"<br>
-     *            "tag1 || (tag2 && tag3)"<br>
      *            如果subExpression=null, 则表示全部订阅
      * @param offset
      *            从指定队列哪个位置开始拉取
@@ -90,9 +90,9 @@ public interface MQPullConsumer extends MQConsumer {
      * @throws RemotingException
      * @throws MQClientException
      */
-    public PullResult pullBlockIfNotFound(final MessageQueue mq, final String subExpression, final long offset,
-            final int maxNums) throws MQClientException, RemotingException, MQBrokerException,
-            InterruptedException;
+    public PullResult pullBlockIfNotFound(final MessageQueue mq, final String subExpression,
+            final long offset, final int maxNums) throws MQClientException, RemotingException,
+            MQBrokerException, InterruptedException;
 
 
     public void pullBlockIfNotFound(final MessageQueue mq, final String subExpression, final long offset,

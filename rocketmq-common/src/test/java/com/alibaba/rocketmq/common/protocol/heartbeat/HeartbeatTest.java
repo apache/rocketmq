@@ -35,8 +35,6 @@ public class HeartbeatTest {
 
             for (int k = 0; k < 3; k++) {
                 SubscriptionData sub = new SubscriptionData();
-                sub.setHasAndOperator(false);
-                sub.setSubNumfmt("1 || 2 || 3");
                 sub.setTopic("HelloTopic");
                 sub.setSubString("A || B ||C");
                 data.getSubscriptionDataSet().add(sub);
