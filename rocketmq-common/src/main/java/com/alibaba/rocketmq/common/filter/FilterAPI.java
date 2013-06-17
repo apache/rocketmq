@@ -23,6 +23,7 @@ public class FilterAPI {
             if (tags != null && tags.length > 0) {
                 for (String t : tags) {
                     subscriptionData.getTagsSet().add(t);
+                    subscriptionData.getCodeSet().add(t.hashCode());
                 }
             }
             else {

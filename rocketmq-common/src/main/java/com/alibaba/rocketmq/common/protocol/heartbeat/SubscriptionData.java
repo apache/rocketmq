@@ -15,6 +15,7 @@ public class SubscriptionData {
     private String topic;
     private String subString;
     private final Set<String> tagsSet = new HashSet<String>();
+    private final Set<Integer> codeSet = new HashSet<Integer>();
     private long subVersion = System.currentTimeMillis();
 
 
@@ -110,5 +111,10 @@ public class SubscriptionData {
         else if (!topic.equals(other.topic))
             return false;
         return true;
+    }
+
+
+    public Set<Integer> getCodeSet() {
+        return codeSet;
     }
 }

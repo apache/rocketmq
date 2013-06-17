@@ -18,8 +18,12 @@ public class DefaultMessageFilter implements MessageFilter {
         if (null == subscriptionData) {
             return true;
         }
-        // TODO
-        return true;
+
+        if (subscriptionData.getSubString().equals(SubscriptionData.SUB_ALL)) {
+            return true;
+        }
+
+        return subscriptionData.getCodeSet().contains(tagsCode);
     }
 
 }

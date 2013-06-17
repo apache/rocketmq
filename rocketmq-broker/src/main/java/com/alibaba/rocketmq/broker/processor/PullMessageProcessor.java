@@ -182,7 +182,7 @@ public class PullMessageProcessor implements NettyRequestProcessor {
         final GetMessageResult getMessageResult =
                 this.brokerController.getMessageStore().getMessage(requestHeader.getTopic(),
                     requestHeader.getQueueId(), requestHeader.getQueueOffset(),
-                    requestHeader.getMaxMsgNums(), null);
+                    requestHeader.getMaxMsgNums(), subscriptionData);
         if (getMessageResult != null) {
             response.setRemark(getMessageResult.getStatus().name());
 
