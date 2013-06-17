@@ -31,6 +31,8 @@ public class PullMessageRequestHeader implements CommandCustomHeader {
     private Long suspendTimeoutMillis;
     @CFNotNull
     private String subscription;
+    @CFNotNull
+    private long subVersion;
 
 
     @Override
@@ -125,5 +127,15 @@ public class PullMessageRequestHeader implements CommandCustomHeader {
 
     public void setSubscription(String subscription) {
         this.subscription = subscription;
+    }
+
+
+    public long getSubVersion() {
+        return subVersion;
+    }
+
+
+    public void setSubVersion(long subVersion) {
+        this.subVersion = subVersion;
     }
 }

@@ -395,6 +395,15 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
             }
         }
 
+        // ²éÑ¯¶©ÔÄ¹ØÏµ
+        SubscriptionData subscriptionData =
+                this.subscriptionInner.get(pullRequest.getMessageQueue().getTopic());
+        if (null == subscriptionData) {
+            this.executePullRequestLater(pullRequest, PullTimeDelayMillsWhenException);
+            log.warn("find the consumer's subscription failed, {}", pullRequest);
+            return;
+        }
+
         PullCallback pullCallback = new PullCallback() {
             @Override
             public void onSuccess(PullResult pullResult) {
@@ -466,6 +475,7 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
             this.pullAPIWrapper.pullKernelImpl(//
                 pullRequest.getMessageQueue(), // 1
                 null, // 2
+                subscriptionData.getSubVersion(), // 2
                 pullRequest.getNextOffset(), // 3
                 this.defaultMQPushConsumer.getPullBatchSize(), // 4
                 sysFlag, // 5

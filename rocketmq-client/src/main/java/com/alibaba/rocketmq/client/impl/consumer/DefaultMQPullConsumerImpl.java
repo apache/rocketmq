@@ -210,7 +210,7 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
                         : this.defaultMQPullConsumer.getConsumerPullTimeoutMillis();
 
         PullResult pullResult =
-                this.pullAPIWrapper.pullKernelImpl(mq, subExpressionInner, offset, maxNums, sysFlag, 0,
+                this.pullAPIWrapper.pullKernelImpl(mq, subExpressionInner, 0L, offset, maxNums, sysFlag, 0,
                     this.defaultMQPullConsumer.getBrokerSuspendMaxTimeMillis(), timeoutMillis,
                     CommunicationMode.SYNC, null);
 
@@ -254,7 +254,7 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
                     block ? this.defaultMQPullConsumer.getConsumerTimeoutMillisWhenSuspend()
                             : this.defaultMQPullConsumer.getConsumerPullTimeoutMillis();
 
-            this.pullAPIWrapper.pullKernelImpl(mq, subExpressionInner, offset, maxNums, sysFlag, 0,
+            this.pullAPIWrapper.pullKernelImpl(mq, subExpressionInner, 0L, offset, maxNums, sysFlag, 0,
                 this.defaultMQPullConsumer.getBrokerSuspendMaxTimeMillis(), timeoutMillis,
                 CommunicationMode.ASYNC, new PullCallback() {
 

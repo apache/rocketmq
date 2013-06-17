@@ -224,7 +224,8 @@ public abstract class NettyRemotingAbstract {
         else {
             String error = " request type " + cmd.getCode() + " not supported";
             final RemotingCommand response =
-                    RemotingCommand.createResponseCommand(ResponseCode.REQUEST_CODE_NOT_SUPPORTED_VALUE, error);
+                    RemotingCommand.createResponseCommand(ResponseCode.REQUEST_CODE_NOT_SUPPORTED_VALUE,
+                        error);
             response.setOpaque(cmd.getOpaque());
             ctx.write(response);
             plog.error(RemotingHelper.parseChannelRemoteAddr(ctx.channel()) + error);
@@ -268,7 +269,7 @@ public abstract class NettyRemotingAbstract {
 
                 if (runInThisThread) {
                     try {
-                        responseFuture.getInvokeCallback().operationComplete(responseFuture);
+                        responseFuture.executeInvokeCallback();
                     }
                     catch (Throwable e) {
                         plog.warn("", e);
@@ -383,9 +384,9 @@ public abstract class NettyRemotingAbstract {
     }
 
 
-    public void invokeAsyncImpl(final Channel channel, final RemotingCommand request, final long timeoutMillis,
-            final InvokeCallback invokeCallback) throws InterruptedException, RemotingTooMuchRequestException,
-            RemotingTimeoutException, RemotingSendRequestException {
+    public void invokeAsyncImpl(final Channel channel, final RemotingCommand request,
+            final long timeoutMillis, final InvokeCallback invokeCallback) throws InterruptedException,
+            RemotingTooMuchRequestException, RemotingTimeoutException, RemotingSendRequestException {
         boolean acquired = this.semaphoreAsync.tryAcquire(timeoutMillis, TimeUnit.MILLISECONDS);
         if (acquired) {
             final SemaphoreReleaseOnlyOnce once = new SemaphoreReleaseOnlyOnce(this.semaphoreAsync);
@@ -409,7 +410,8 @@ public abstract class NettyRemotingAbstract {
 
                         responseTable.remove(request.getOpaque());
                         responseFuture.putResponse(null);
-                        plog.warn("send a request command to channel <" + channel.remoteAddress() + "> failed.");
+                        plog.warn("send a request command to channel <" + channel.remoteAddress()
+                                + "> failed.");
                         plog.warn(request.toString());
                     }
                 });
@@ -435,9 +437,9 @@ public abstract class NettyRemotingAbstract {
     }
 
 
-    public void invokeOnewayImpl(final Channel channel, final RemotingCommand request, final long timeoutMillis)
-            throws InterruptedException, RemotingTooMuchRequestException, RemotingTimeoutException,
-            RemotingSendRequestException {
+    public void invokeOnewayImpl(final Channel channel, final RemotingCommand request,
+            final long timeoutMillis) throws InterruptedException, RemotingTooMuchRequestException,
+            RemotingTimeoutException, RemotingSendRequestException {
         request.markOnewayRPC();
         boolean acquired = this.semaphoreOneway.tryAcquire(timeoutMillis, TimeUnit.MILLISECONDS);
         if (acquired) {

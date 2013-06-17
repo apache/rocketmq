@@ -26,7 +26,6 @@ import com.alibaba.rocketmq.remoting.exception.RemotingException;
  * 采用长轮询方式拉消息，实时性同push方式一致，且不会无谓的拉消息导致Broker、Consumer压力增大
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
- * 
  */
 public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsumer {
     /**
