@@ -150,7 +150,7 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                             requestHeader.getSubscription());
             }
             catch (Exception e) {
-                log.warn("parse the consumer's subscription[{}] failed, group: {} ",
+                log.warn("parse the consumer's subscription[{}] failed, group: {}",
                     requestHeader.getSubscription(),//
                     requestHeader.getConsumerGroup());
                 response.setCode(MQResponseCode.SUBSCRIPTION_PARSE_FAILED_VALUE);
