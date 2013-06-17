@@ -127,9 +127,17 @@ public class ConsumerGroupInfo {
                 SubscriptionData prev = this.subscriptionTable.put(sub.getTopic(), sub);
                 if (null == prev) {
                     updated = true;
+                    log.info("subscription changed, add new topic, group: {} {}", this.groupName,
+                        sub.toString());
                 }
             }
-            else if (!sub.equals(old)) {
+            else if (sub.getSubVersion() > old.getSubVersion()) {
+                log.info("subscription changed, group: {} OLD: {} NEW: {}", //
+                    this.groupName,//
+                    old.toString(),//
+                    sub.toString()//
+                );
+
                 this.subscriptionTable.put(sub.getTopic(), sub);
             }
         }
@@ -142,6 +150,9 @@ public class ConsumerGroupInfo {
         return updated;
     }
 
+    public SubscriptionData findSubscriptionData(final String topic) {
+        return this.subscriptionTable.get(topic);
+    }
 
     public ConsumeType getConsumeType() {
         return consumeType;

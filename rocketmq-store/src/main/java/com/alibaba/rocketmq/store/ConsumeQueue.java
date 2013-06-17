@@ -99,8 +99,8 @@ public class ConsumeQueue {
                         this.maxPhysicOffset = offset;
                     }
                     else {
-                        log.info("recover current consume queue file over,  " + mapedFile.getFileName() + " " + offset
-                                + " " + size + " " + tagsCode);
+                        log.info("recover current consume queue file over,  " + mapedFile.getFileName() + " "
+                                + offset + " " + size + " " + tagsCode);
                         break;
                     }
                 }
@@ -110,7 +110,8 @@ public class ConsumeQueue {
                     index++;
                     if (index >= mapedFiles.size()) {
                         // 当前条件分支不可能发生
-                        log.info("recover last consume queue file over, last maped file " + mapedFile.getFileName());
+                        log.info("recover last consume queue file over, last maped file "
+                                + mapedFile.getFileName());
                         break;
                     }
                     else {
@@ -214,8 +215,8 @@ public class ConsumeQueue {
                         else {
                             // 取最接近timestamp的offset
                             offset =
-                                    Math.abs(timestamp - leftIndexValue) > Math.abs(timestamp - rightIndexValue) ? rightOffset
-                                            : leftOffset;
+                                    Math.abs(timestamp - leftIndexValue) > Math.abs(timestamp
+                                            - rightIndexValue) ? rightOffset : leftOffset;
                         }
                     }
 
@@ -389,7 +390,7 @@ public class ConsumeQueue {
 
 
     /**
-     * 存储一个16字节的信息，putMessagePostionInfo只有一个线程调用，所以不需要加锁
+     * 存储一个20字节的信息，putMessagePostionInfo只有一个线程调用，所以不需要加锁
      * 
      * @param offset
      *            消息对应的CommitLog offset
@@ -459,7 +460,7 @@ public class ConsumeQueue {
                     Thread.sleep(1000 * 5);
                 }
                 catch (InterruptedException e) {
-                    e.printStackTrace();
+                    log.warn("", e);
                 }
             }
         }

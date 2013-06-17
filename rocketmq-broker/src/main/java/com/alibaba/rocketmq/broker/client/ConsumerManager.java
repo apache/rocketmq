@@ -29,6 +29,16 @@ public class ConsumerManager {
     }
 
 
+    public SubscriptionData findSubscriptionData(final String group, final String topic) {
+        ConsumerGroupInfo consumerGroupInfo = this.getConsumerGroupInfo(group);
+        if (consumerGroupInfo != null) {
+            return consumerGroupInfo.findSubscriptionData(topic);
+        }
+
+        return null;
+    }
+
+
     public void doChannelCloseEvent(final String remoteAddr, final Channel channel) {
         for (String group : this.consumerTable.keySet()) {
             final ConsumerGroupInfo info = this.consumerTable.get(group);
