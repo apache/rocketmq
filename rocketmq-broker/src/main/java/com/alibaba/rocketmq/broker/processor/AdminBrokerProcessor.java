@@ -275,10 +275,13 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
 
     private RemotingCommand searchOffsetByTimestamp(ChannelHandlerContext ctx, RemotingCommand request)
             throws RemotingCommandException {
-        final RemotingCommand response = RemotingCommand.createResponseCommand(SearchOffsetResponseHeader.class);
-        final SearchOffsetResponseHeader responseHeader = (SearchOffsetResponseHeader) response.getCustomHeader();
+        final RemotingCommand response =
+                RemotingCommand.createResponseCommand(SearchOffsetResponseHeader.class);
+        final SearchOffsetResponseHeader responseHeader =
+                (SearchOffsetResponseHeader) response.getCustomHeader();
         final SearchOffsetRequestHeader requestHeader =
-                (SearchOffsetRequestHeader) request.decodeCommandCustomHeader(SearchOffsetRequestHeader.class);
+                (SearchOffsetRequestHeader) request
+                    .decodeCommandCustomHeader(SearchOffsetRequestHeader.class);
 
         long offset =
                 this.brokerController.getMessageStore().getOffsetInQueueByTime(requestHeader.getTopic(),
@@ -294,10 +297,13 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
 
     private RemotingCommand getMaxOffset(ChannelHandlerContext ctx, RemotingCommand request)
             throws RemotingCommandException {
-        final RemotingCommand response = RemotingCommand.createResponseCommand(GetMaxOffsetResponseHeader.class);
-        final GetMaxOffsetResponseHeader responseHeader = (GetMaxOffsetResponseHeader) response.getCustomHeader();
+        final RemotingCommand response =
+                RemotingCommand.createResponseCommand(GetMaxOffsetResponseHeader.class);
+        final GetMaxOffsetResponseHeader responseHeader =
+                (GetMaxOffsetResponseHeader) response.getCustomHeader();
         final GetMaxOffsetRequestHeader requestHeader =
-                (GetMaxOffsetRequestHeader) request.decodeCommandCustomHeader(GetMaxOffsetRequestHeader.class);
+                (GetMaxOffsetRequestHeader) request
+                    .decodeCommandCustomHeader(GetMaxOffsetRequestHeader.class);
 
         long offset =
                 this.brokerController.getMessageStore().getMaxOffsetInQuque(requestHeader.getTopic(),
@@ -313,10 +319,13 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
 
     private RemotingCommand getMinOffset(ChannelHandlerContext ctx, RemotingCommand request)
             throws RemotingCommandException {
-        final RemotingCommand response = RemotingCommand.createResponseCommand(GetMinOffsetResponseHeader.class);
-        final GetMinOffsetResponseHeader responseHeader = (GetMinOffsetResponseHeader) response.getCustomHeader();
+        final RemotingCommand response =
+                RemotingCommand.createResponseCommand(GetMinOffsetResponseHeader.class);
+        final GetMinOffsetResponseHeader responseHeader =
+                (GetMinOffsetResponseHeader) response.getCustomHeader();
         final GetMinOffsetRequestHeader requestHeader =
-                (GetMinOffsetRequestHeader) request.decodeCommandCustomHeader(GetMinOffsetRequestHeader.class);
+                (GetMinOffsetRequestHeader) request
+                    .decodeCommandCustomHeader(GetMinOffsetRequestHeader.class);
 
         long offset =
                 this.brokerController.getMessageStore().getMinOffsetInQuque(requestHeader.getTopic(),
@@ -380,8 +389,8 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                     .decodeCommandCustomHeader(QueryConsumerOffsetRequestHeader.class);
 
         long offset =
-                this.brokerController.getConsumerOffsetManager().queryOffset(requestHeader.getConsumerGroup(),
-                    requestHeader.getTopic(), requestHeader.getQueueId());
+                this.brokerController.getConsumerOffsetManager().queryOffset(
+                    requestHeader.getConsumerGroup(), requestHeader.getTopic(), requestHeader.getQueueId());
 
         if (offset >= 0) {
             responseHeader.setOffset(offset);

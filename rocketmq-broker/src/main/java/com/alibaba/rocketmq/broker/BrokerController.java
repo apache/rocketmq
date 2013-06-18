@@ -129,8 +129,8 @@ public class BrokerController {
     private boolean registerToNameServer() {
         TopAddressing topAddressing = new TopAddressing();
         String addrs =
-                (null == this.brokerConfig.getNamesrvAddr()) ? topAddressing.fetchNSAddr() : this.brokerConfig
-                    .getNamesrvAddr();
+                (null == this.brokerConfig.getNamesrvAddr()) ? topAddressing.fetchNSAddr()
+                        : this.brokerConfig.getNamesrvAddr();
         if (addrs != null) {
             String[] addrArray = addrs.split(";");
 
@@ -190,7 +190,8 @@ public class BrokerController {
 
         if (result) {
             // 初始化通信层
-            this.remotingServer = new NettyRemotingServer(this.nettyServerConfig, this.clientHousekeepingService);
+            this.remotingServer =
+                    new NettyRemotingServer(this.nettyServerConfig, this.clientHousekeepingService);
 
             // 初始化线程池
             this.sendMessageExecutor =
@@ -202,7 +203,8 @@ public class BrokerController {
 
                             @Override
                             public Thread newThread(Runnable r) {
-                                return new Thread(r, "SendMessageThread_" + this.threadIndex.incrementAndGet());
+                                return new Thread(r, "SendMessageThread_"
+                                        + this.threadIndex.incrementAndGet());
                             }
                         });
 
@@ -215,7 +217,8 @@ public class BrokerController {
 
                             @Override
                             public Thread newThread(Runnable r) {
-                                return new Thread(r, "PullMessageThread_" + this.threadIndex.incrementAndGet());
+                                return new Thread(r, "PullMessageThread_"
+                                        + this.threadIndex.incrementAndGet());
                             }
                         });
 
@@ -228,7 +231,8 @@ public class BrokerController {
 
                             @Override
                             public Thread newThread(Runnable r) {
-                                return new Thread(r, "AdminBrokerThread_" + this.threadIndex.incrementAndGet());
+                                return new Thread(r, "AdminBrokerThread_"
+                                        + this.threadIndex.incrementAndGet());
                             }
                         });
 
@@ -279,30 +283,52 @@ public class BrokerController {
 
 
     public void registerProcessor() {
-        this.remotingServer.registerProcessor(MQProtos.MQRequestCode.SEND_MESSAGE_VALUE, new SendMessageProcessor(
-            this), this.sendMessageExecutor);
+        /**
+         * SendMessageProcessor
+         */
+        NettyRequestProcessor sendProcessor = new SendMessageProcessor(this);
+        this.remotingServer.registerProcessor(MQProtos.MQRequestCode.SEND_MESSAGE_VALUE, sendProcessor,
+            this.sendMessageExecutor);
+        this.remotingServer.registerProcessor(MQProtos.MQRequestCode.CONSUMER_SEND_MSG_BACK_VALUE,
+            sendProcessor, this.sendMessageExecutor);
 
+        /**
+         * PullMessageProcessor
+         */
         this.remotingServer.registerProcessor(MQProtos.MQRequestCode.PULL_MESSAGE_VALUE,
             this.pullMessageProcessor, this.pullMessageExecutor);
 
+        /**
+         * QueryMessageProcessor
+         */
         NettyRequestProcessor queryProcessor = new QueryMessageProcessor(this);
         this.remotingServer.registerProcessor(MQProtos.MQRequestCode.QUERY_MESSAGE_VALUE, queryProcessor,
             this.pullMessageExecutor);
-        this.remotingServer.registerProcessor(MQProtos.MQRequestCode.VIEW_MESSAGE_BY_ID_VALUE, queryProcessor,
-            this.pullMessageExecutor);
+        this.remotingServer.registerProcessor(MQProtos.MQRequestCode.VIEW_MESSAGE_BY_ID_VALUE,
+            queryProcessor, this.pullMessageExecutor);
 
+        /**
+         * ClientManageProcessor
+         */
         NettyRequestProcessor clientProcessor = new ClientManageProcessor(this);
         this.remotingServer.registerProcessor(MQProtos.MQRequestCode.HEART_BEAT_VALUE, clientProcessor,
             this.adminBrokerExecutor);
-        this.remotingServer.registerProcessor(MQProtos.MQRequestCode.UNREGISTER_CLIENT_VALUE, clientProcessor,
-            this.adminBrokerExecutor);
+        this.remotingServer.registerProcessor(MQProtos.MQRequestCode.UNREGISTER_CLIENT_VALUE,
+            clientProcessor, this.adminBrokerExecutor);
         this.remotingServer.registerProcessor(MQProtos.MQRequestCode.GET_CONSUMER_LIST_BY_GROUP_VALUE,
             clientProcessor, this.adminBrokerExecutor);
 
+        /**
+         * EndTransactionProcessor
+         */
         this.remotingServer.registerProcessor(MQProtos.MQRequestCode.END_TRANSACTION_VALUE,
             new EndTransactionProcessor(this), this.sendMessageExecutor);
 
-        this.remotingServer.registerDefaultProcessor(new AdminBrokerProcessor(this), this.adminBrokerExecutor);
+        /**
+         * Default
+         */
+        this.remotingServer
+            .registerDefaultProcessor(new AdminBrokerProcessor(this), this.adminBrokerExecutor);
     }
 
 
@@ -422,7 +448,8 @@ public class BrokerController {
     private void flushAllConfig() {
         String allConfig = this.encodeAllConfig();
         boolean result = MixAll.string2File(allConfig, this.brokerConfig.getConfigFilePath());
-        log.info("flush topic config, " + this.brokerConfig.getConfigFilePath() + (result ? " OK" : " Failed"));
+        log.info("flush topic config, " + this.brokerConfig.getConfigFilePath()
+                + (result ? " OK" : " Failed"));
     }
 
 

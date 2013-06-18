@@ -21,6 +21,7 @@ import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.common.constant.PermName;
 import com.alibaba.rocketmq.common.help.FAQUrl;
 import com.alibaba.rocketmq.common.message.MessageDecoder;
+import com.alibaba.rocketmq.common.protocol.MQProtos.MQRequestCode;
 import com.alibaba.rocketmq.common.protocol.MQProtos.MQResponseCode;
 import com.alibaba.rocketmq.common.protocol.header.SendMessageRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.SendMessageResponseHeader;
@@ -56,10 +57,26 @@ public class SendMessageProcessor implements NettyRequestProcessor {
 
 
     @Override
-    public RemotingCommand processRequest(final ChannelHandlerContext ctx, final RemotingCommand request)
+    public RemotingCommand processRequest(ChannelHandlerContext ctx, RemotingCommand request)
             throws RemotingCommandException {
-        final RemotingCommand response = RemotingCommand.createResponseCommand(SendMessageResponseHeader.class);
-        final SendMessageResponseHeader responseHeader = (SendMessageResponseHeader) response.getCustomHeader();
+        MQRequestCode code = MQRequestCode.valueOf(request.getCode());
+        switch (code) {
+        case SEND_MESSAGE:
+            return this.sendMessage(ctx, request);
+        case CONSUMER_SEND_MSG_BACK:
+        default:
+            break;
+        }
+        return null;
+    }
+
+
+    private RemotingCommand sendMessage(final ChannelHandlerContext ctx, final RemotingCommand request)
+            throws RemotingCommandException {
+        final RemotingCommand response =
+                RemotingCommand.createResponseCommand(SendMessageResponseHeader.class);
+        final SendMessageResponseHeader responseHeader =
+                (SendMessageResponseHeader) response.getCustomHeader();
         final SendMessageRequestHeader requestHeader =
                 (SendMessageRequestHeader) request.decodeCommandCustomHeader(SendMessageRequestHeader.class);
 
@@ -230,8 +247,9 @@ public class SendMessageProcessor implements NettyRequestProcessor {
                     }
                 }
 
-                this.brokerController.getPullRequestHoldService().notifyMessageArriving(requestHeader.getTopic(),
-                    queueIdInt, putMessageResult.getAppendMessageResult().getLogicsOffset());
+                this.brokerController.getPullRequestHoldService().notifyMessageArriving(
+                    requestHeader.getTopic(), queueIdInt,
+                    putMessageResult.getAppendMessageResult().getLogicsOffset());
 
                 return null;
             }
