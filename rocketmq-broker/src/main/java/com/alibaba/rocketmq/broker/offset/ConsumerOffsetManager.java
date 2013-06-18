@@ -29,7 +29,6 @@ public class ConsumerOffsetManager extends ConfigManager {
 
     private transient volatile ConcurrentHashMap<String, ConcurrentHashMap<Integer, Long>> offsetTableLastLast;
     private transient volatile ConcurrentHashMap<String, ConcurrentHashMap<Integer, Long>> offsetTableLast;
-
     private transient BrokerController brokerController;
 
 
@@ -163,5 +162,15 @@ public class ConsumerOffsetManager extends ConfigManager {
     @Override
     public String configFilePath() {
         return this.brokerController.getBrokerConfig().getConsumerOffsetPath();
+    }
+
+
+    public ConcurrentHashMap<String, ConcurrentHashMap<Integer, Long>> getOffsetTable() {
+        return offsetTable;
+    }
+
+
+    public void setOffsetTable(ConcurrentHashMap<String, ConcurrentHashMap<Integer, Long>> offsetTable) {
+        this.offsetTable = offsetTable;
     }
 }
