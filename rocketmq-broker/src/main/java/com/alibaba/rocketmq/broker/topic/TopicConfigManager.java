@@ -29,7 +29,7 @@ import com.alibaba.rocketmq.store.schedule.ScheduleMessageService;
 public class TopicConfigManager extends ConfigManager {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.BrokerLoggerName);
     private static final long LockTimeoutMillis = 3000;
-    private final transient Lock lockTopicConfigTable = new ReentrantLock();
+    private transient final Lock lockTopicConfigTable = new ReentrantLock();
     private transient BrokerController brokerController;
 
     // Topic≈‰÷√
@@ -77,7 +77,7 @@ public class TopicConfigManager extends ConfigManager {
     }
 
 
-    private boolean isSystemTopic(final String topic) {
+    public boolean isSystemTopic(final String topic) {
         boolean res = //
                 topic.equals(MixAll.DEFAULT_TOPIC)//
                         || topic.equals(MixAll.SELF_TEST_TOPIC)//
@@ -211,5 +211,15 @@ public class TopicConfigManager extends ConfigManager {
     @Override
     public String configFilePath() {
         return this.brokerController.getBrokerConfig().getTopicConfigPath();
+    }
+
+
+    public DataVersion getDataVersion() {
+        return dataVersion;
+    }
+
+
+    public ConcurrentHashMap<String, TopicConfig> getTopicConfigTable() {
+        return topicConfigTable;
     }
 }

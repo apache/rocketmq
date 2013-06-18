@@ -12,25 +12,36 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingSerializable;
 public class Test {
 
     public static class TestTable {
-        private ConcurrentHashMap<String, Long> testTable = new ConcurrentHashMap<String, Long>();
+        private final ConcurrentHashMap<String, ConcurrentHashMap<String, Long>> testTable =
+                new ConcurrentHashMap<String, ConcurrentHashMap<String, Long>>();
+        private String remark = "abc";
 
 
-        public ConcurrentHashMap<String, Long> getTestTable() {
+        public ConcurrentHashMap<String, ConcurrentHashMap<String, Long>> getTestTable() {
             return testTable;
         }
 
 
-        public void setTestTable(ConcurrentHashMap<String, Long> testTable) {
-            this.testTable = testTable;
+        public String getRemark() {
+            return remark;
+        }
+
+
+        public void setRemark(String remark) {
+            this.remark = remark;
         }
     }
 
 
     public static void main(String[] args) {
         TestTable testTable = new TestTable();
-        testTable.getTestTable().put("consumer1", 100L);
-        testTable.getTestTable().put("consumer2", 200L);
-        testTable.getTestTable().put("consumer3", 400L);
+        testTable.getTestTable().put("consumer1", new ConcurrentHashMap<String, Long>());
+        testTable.getTestTable().put("consumer2", new ConcurrentHashMap<String, Long>());
+        testTable.getTestTable().put("consumer3", new ConcurrentHashMap<String, Long>());
+
+        testTable.getTestTable().get("consumer1").put("A", 100L);
+        testTable.getTestTable().get("consumer1").put("B", 200L);
+        testTable.getTestTable().get("consumer1").put("C", 300L);
 
         String jsonString = RemotingSerializable.toJson(testTable);
 

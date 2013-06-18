@@ -77,4 +77,14 @@ public class SubscriptionGroupManager extends ConfigManager {
     public String configFilePath() {
         return this.brokerController.getBrokerConfig().getSubscriptionGroupPath();
     }
+
+
+    public ConcurrentHashMap<String, SubscriptionGroupConfig> getSubscriptionGroupTable() {
+        return subscriptionGroupTable;
+    }
+
+
+    public DataVersion getDataVersion() {
+        return dataVersion;
+    }
 }
