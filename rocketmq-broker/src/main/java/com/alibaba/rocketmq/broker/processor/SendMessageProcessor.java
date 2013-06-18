@@ -15,17 +15,22 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.alibaba.rocketmq.broker.BrokerController;
+import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.TopicConfig;
 import com.alibaba.rocketmq.common.TopicFilterType;
 import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.common.constant.PermName;
 import com.alibaba.rocketmq.common.help.FAQUrl;
 import com.alibaba.rocketmq.common.message.MessageDecoder;
+import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.common.protocol.MQProtos.MQRequestCode;
 import com.alibaba.rocketmq.common.protocol.MQProtos.MQResponseCode;
+import com.alibaba.rocketmq.common.protocol.header.ConsumerSendMsgBackRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.SendMessageRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.SendMessageResponseHeader;
+import com.alibaba.rocketmq.common.subscription.SubscriptionGroupConfig;
 import com.alibaba.rocketmq.common.sysflag.MessageSysFlag;
+import com.alibaba.rocketmq.remoting.common.RemotingHelper;
 import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
 import com.alibaba.rocketmq.remoting.netty.NettyRequestProcessor;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
@@ -38,7 +43,6 @@ import com.alibaba.rocketmq.store.PutMessageResult;
  * 处理客户端发送消息的请求
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
- * 
  */
 public class SendMessageProcessor implements NettyRequestProcessor {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.BrokerLoggerName);
@@ -64,10 +68,44 @@ public class SendMessageProcessor implements NettyRequestProcessor {
         case SEND_MESSAGE:
             return this.sendMessage(ctx, request);
         case CONSUMER_SEND_MSG_BACK:
+            return this.consumerSendMsgBack(ctx, request);
         default:
             break;
         }
         return null;
+    }
+
+
+    private RemotingCommand consumerSendMsgBack(final ChannelHandlerContext ctx, final RemotingCommand request)
+            throws RemotingCommandException {
+        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
+        final ConsumerSendMsgBackRequestHeader requestHeader =
+                (ConsumerSendMsgBackRequestHeader) request
+                    .decodeCommandCustomHeader(ConsumerSendMsgBackRequestHeader.class);
+
+        SubscriptionGroupConfig subscriptionGroupConfig =
+                this.brokerController.getSubscriptionGroupManager().findSubscriptionGroupConfig(
+                    requestHeader.getGroup());
+        if (null == subscriptionGroupConfig) {
+            response.setCode(MQResponseCode.SUBSCRIPTION_GROUP_NOT_EXIST_VALUE);
+            response.setRemark("subscription group not exist, " + requestHeader.getGroup() + " "
+                    + FAQUrl.suggestTodo(FAQUrl.SUBSCRIPTION_GROUP_NOT_EXIST));
+            return response;
+        }
+
+        MessageExt msgExt =
+                this.brokerController.getMessageStore().lookMessageByOffset(requestHeader.getOffset());
+        if (msgExt != null) {
+            final String newTopic = MixAll.getRetryTopic(requestHeader.getGroup());
+
+        }
+        else {
+            response.setCode(ResponseCode.SYSTEM_ERROR_VALUE);
+            response.setRemark("look message by offset failed, " + requestHeader.getOffset());
+            return response;
+        }
+
+        return response;
     }
 
 
@@ -113,10 +151,11 @@ public class SendMessageProcessor implements NettyRequestProcessor {
         if (null == topicConfig) {
             log.warn("the topic " + requestHeader.getTopic() + " not exist, producer: "
                     + ctx.channel().remoteAddress());
-            topicConfig =
-                    this.brokerController.getTopicConfigManager().createTopicInSendMessageMethod(
-                        requestHeader.getTopic(), requestHeader.getDefaultTopic(), ctx,
-                        requestHeader.getDefaultTopicQueueNums());
+            topicConfig = this.brokerController.getTopicConfigManager().createTopicInSendMessageMethod(//
+                requestHeader.getTopic(), //
+                requestHeader.getDefaultTopic(), //
+                RemotingHelper.parseChannelRemoteAddr(ctx.channel()), //
+                requestHeader.getDefaultTopicQueueNums());
             if (null == topicConfig) {
                 response.setCode(MQResponseCode.TOPIC_NOT_EXIST_VALUE);
                 response.setRemark("topic not exist, apply first please!"
@@ -266,5 +305,4 @@ public class SendMessageProcessor implements NettyRequestProcessor {
     public SocketAddress getStoreHost() {
         return storeHost;
     }
-
 }

@@ -42,7 +42,7 @@ public class TopicConfigManagerTest {
             assertTrue(topicConfig != null);
         }
 
-        topicConfigManager.flush();
+        topicConfigManager.persist();
 
         brokerController.shutdown();
     }
