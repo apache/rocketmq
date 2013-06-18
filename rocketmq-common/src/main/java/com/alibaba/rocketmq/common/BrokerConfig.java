@@ -39,21 +39,24 @@ public class BrokerConfig {
     private int pullMessageThreadPoolNums = Runtime.getRuntime().availableProcessors() * 6;
     private int adminBrokerThreadPoolNums = 8;
 
-    private String topicConfigPath = System.getProperty("user.home") + File.separator + "store" + File.separator
-            + "config" + File.separator + "topics.properties";
+    private String topicConfigPath = System.getProperty("user.home") + File.separator + "store"
+            + File.separator + "config" + File.separator + "topics.json";
 
     private String consumerOffsetPath = System.getProperty("user.home") + File.separator + "store"
-            + File.separator + "config" + File.separator + "consumeroffset.properties";
+            + File.separator + "config" + File.separator + "consumeroffset.json";
 
     private String consumerOffsetHistoryDir = System.getProperty("user.home") + File.separator + "store"
             + File.separator + "config" + File.separator + "offsethistory";
 
+    private String brokerConfigPath = System.getProperty("user.home") + File.separator + "store"
+            + File.separator + "config" + File.separator + "broker.properties";
+
+    private String subscriptionGroupPath = System.getProperty("user.home") + File.separator + "store"
+            + File.separator + "config" + File.separator + "subscriptionGroup.json";
+
     private int flushConsumerOffsetInterval = 1000 * 5;
 
     private int flushConsumerOffsetHistoryInterval = 1000 * 60;
-
-    private String configFilePath = System.getProperty("user.home") + File.separator + "store" + File.separator
-            + "config" + File.separator + "broker.properties";
 
 
     public static String localHostName() {
@@ -228,13 +231,13 @@ public class BrokerConfig {
     }
 
 
-    public String getConfigFilePath() {
-        return configFilePath;
+    public String getBrokerConfigPath() {
+        return brokerConfigPath;
     }
 
 
-    public void setConfigFilePath(String configFilePath) {
-        this.configFilePath = configFilePath;
+    public void setBrokerConfigPath(String brokerConfigPath) {
+        this.brokerConfigPath = brokerConfigPath;
     }
 
 
@@ -275,5 +278,15 @@ public class BrokerConfig {
 
     public void setAutoCreateSubscriptionGroup(boolean autoCreateSubscriptionGroup) {
         this.autoCreateSubscriptionGroup = autoCreateSubscriptionGroup;
+    }
+
+
+    public String getSubscriptionGroupPath() {
+        return subscriptionGroupPath;
+    }
+
+
+    public void setSubscriptionGroupPath(String subscriptionGroupPath) {
+        this.subscriptionGroupPath = subscriptionGroupPath;
     }
 }

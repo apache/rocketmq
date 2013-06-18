@@ -60,7 +60,8 @@ public class BrokerStartup {
             // 解析命令行
             Options options = MixAll.buildCommandlineOptions(new Options());
             final CommandLine commandLine =
-                    MixAll.parseCmdLine("mqbroker", args, buildCommandlineOptions(options), new PosixParser());
+                    MixAll
+                        .parseCmdLine("mqbroker", args, buildCommandlineOptions(options), new PosixParser());
             if (null == commandLine) {
                 System.exit(-1);
                 return;
@@ -91,7 +92,7 @@ public class BrokerStartup {
                     MixAll.properties2Object(properties, nettyServerConfig);
                     MixAll.properties2Object(properties, messageStoreConfig);
 
-                    brokerConfig.setConfigFilePath(file);
+                    brokerConfig.setBrokerConfigPath(file);
 
                     System.out.println("load config properties file OK, " + file);
                 }
@@ -121,9 +122,11 @@ public class BrokerStartup {
                 brokerConfig.setBrokerId(MixAll.MASTER_ID);
                 break;
             case SLAVE:
-                // Slave Id由Slave监听IP、端口决定
-                long id = MixAll.createBrokerId(brokerConfig.getBrokerIP1(), nettyServerConfig.getListenPort());
-                brokerConfig.setBrokerId(id);
+                if (brokerConfig.getBrokerId() <= 0) {
+                    System.out.println("Slave's brokerId must be > 0");
+                    System.exit(-3);
+                }
+
                 break;
             default:
                 break;

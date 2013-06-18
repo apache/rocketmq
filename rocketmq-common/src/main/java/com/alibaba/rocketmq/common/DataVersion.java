@@ -5,6 +5,8 @@ package com.alibaba.rocketmq.common;
 
 import java.util.concurrent.atomic.AtomicLong;
 
+import com.alibaba.rocketmq.remoting.protocol.RemotingSerializable;
+
 
 /**
  * 用来标识数据的版本号
@@ -12,33 +14,40 @@ import java.util.concurrent.atomic.AtomicLong;
  * @author shijia.wxr<vintage.wang@gmail.com>
  * 
  */
-public class DataVersion {
+public class DataVersion extends RemotingSerializable {
     private long timestatmp = System.currentTimeMillis();
     private AtomicLong counter = new AtomicLong(0);
 
 
-    public String encode() {
-        return this.timestatmp + " " + this.counter.get();
+    public void assignNewOne(final DataVersion dataVersion) {
+        this.timestatmp = dataVersion.timestatmp;
+        this.counter.set(dataVersion.counter.get());
     }
 
 
-    public static DataVersion decode(final String data) {
-        String[] strs = data.split(" ");
-        DataVersion dv = new DataVersion();
-        dv.timestatmp = Long.parseLong(strs[0]);
-        dv.counter.set(Long.parseLong(strs[1]));
-        return dv;
-    }
-
-
-    public String nextVersion() {
+    public void nextVersion() {
+        this.timestatmp = System.currentTimeMillis();
         this.counter.incrementAndGet();
-        return this.encode();
     }
 
 
-    public String currentVersion() {
-        return this.encode();
+    public long getTimestatmp() {
+        return timestatmp;
+    }
+
+
+    public void setTimestatmp(long timestatmp) {
+        this.timestatmp = timestatmp;
+    }
+
+
+    public AtomicLong getCounter() {
+        return counter;
+    }
+
+
+    public void setCounter(AtomicLong counter) {
+        this.counter = counter;
     }
 
 

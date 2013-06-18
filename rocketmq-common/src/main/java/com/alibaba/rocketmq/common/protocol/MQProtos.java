@@ -945,13 +945,21 @@ public final class MQProtos {
      */
     SUBSCRIPTION_NOT_LATEST(15, 25),
     /**
+     * <code>SUBSCRIPTION_GROUP_NOT_EXIST = 26;</code>
+     *
+     * <pre>
+     * Broker 订阅组不存在
+     * </pre>
+     */
+    SUBSCRIPTION_GROUP_NOT_EXIST(16, 26),
+    /**
      * <code>DELETE_INVALID_CONF = 100;</code>
      *
      * <pre>
      * Namesrv 同步数据时出现两个节点间数据不一致，删除不一致的数据
      * </pre>
      */
-    DELETE_INVALID_CONF(16, 100),
+    DELETE_INVALID_CONF(17, 100),
     /**
      * <code>NOT_MERGE_CONF = 101;</code>
      *
@@ -959,7 +967,7 @@ public final class MQProtos {
      * Namesrv 两节点之间的数据一致没有做修改
      * </pre>
      */
-    NOT_MERGE_CONF(17, 101),
+    NOT_MERGE_CONF(18, 101),
     /**
      * <code>REGISTER_BROKER_FAIL = 102;</code>
      *
@@ -967,7 +975,7 @@ public final class MQProtos {
      * Namesrv 注册broker信息失败
      * </pre>
      */
-    REGISTER_BROKER_FAIL(18, 102),
+    REGISTER_BROKER_FAIL(19, 102),
     /**
      * <code>REGISTER_BROKER_TIMEOUT = 103;</code>
      *
@@ -975,7 +983,7 @@ public final class MQProtos {
      * Namesrv 注册broker信息超时
      * </pre>
      */
-    REGISTER_BROKER_TIMEOUT(19, 103),
+    REGISTER_BROKER_TIMEOUT(20, 103),
     /**
      * <code>REGISTER_ORDER_TOPIC_FAIL = 104;</code>
      *
@@ -983,7 +991,7 @@ public final class MQProtos {
      * Namesrv 注册order topic的配置失败
      * </pre>
      */
-    REGISTER_ORDER_TOPIC_FAIL(20, 104),
+    REGISTER_ORDER_TOPIC_FAIL(21, 104),
     /**
      * <code>REGISTER_ORDER_TOPIC_TIMEOUT = 105;</code>
      *
@@ -991,7 +999,7 @@ public final class MQProtos {
      * Namesrv 注册order topic的配置超时
      * </pre>
      */
-    REGISTER_ORDER_TOPIC_TIMEOUT(21, 105),
+    REGISTER_ORDER_TOPIC_TIMEOUT(22, 105),
     /**
      * <code>UNREGISTER_BROKER_FAIL = 106;</code>
      *
@@ -999,7 +1007,7 @@ public final class MQProtos {
      * Namesrv 注销broker信息失败
      * </pre>
      */
-    UNREGISTER_BROKER_FAIL(22, 106),
+    UNREGISTER_BROKER_FAIL(23, 106),
     /**
      * <code>UNREGISTER_BROKER_TIMEOUT = 107;</code>
      *
@@ -1007,7 +1015,7 @@ public final class MQProtos {
      * Namesrv 注销broker超时
      * </pre>
      */
-    UNREGISTER_BROKER_TIMEOUT(23, 107),
+    UNREGISTER_BROKER_TIMEOUT(24, 107),
     /**
      * <code>UNREGISTER_ORDER_TOPIC_TIMEOUT = 108;</code>
      *
@@ -1015,7 +1023,7 @@ public final class MQProtos {
      * Namesrv 注销order topic的配置超时
      * </pre>
      */
-    UNREGISTER_ORDER_TOPIC_TIMEOUT(24, 108),
+    UNREGISTER_ORDER_TOPIC_TIMEOUT(25, 108),
     /**
      * <code>TRANSACTION_SHOULD_COMMIT = 200;</code>
      *
@@ -1023,7 +1031,7 @@ public final class MQProtos {
      * Producer 事务应该被提交
      * </pre>
      */
-    TRANSACTION_SHOULD_COMMIT(25, 200),
+    TRANSACTION_SHOULD_COMMIT(26, 200),
     /**
      * <code>TRANSACTION_SHOULD_ROLLBACK = 201;</code>
      *
@@ -1031,7 +1039,7 @@ public final class MQProtos {
      * Producer 事务应该被回滚
      * </pre>
      */
-    TRANSACTION_SHOULD_ROLLBACK(26, 201),
+    TRANSACTION_SHOULD_ROLLBACK(27, 201),
     /**
      * <code>TRANSACTION_STATE_UNKNOW = 202;</code>
      *
@@ -1039,7 +1047,7 @@ public final class MQProtos {
      * Producer 事务状态未知
      * </pre>
      */
-    TRANSACTION_STATE_UNKNOW(27, 202),
+    TRANSACTION_STATE_UNKNOW(28, 202),
     /**
      * <code>TRANSACTION_STATE_GROUP_WRONG = 203;</code>
      *
@@ -1047,7 +1055,7 @@ public final class MQProtos {
      * Producer ProducerGroup错误
      * </pre>
      */
-    TRANSACTION_STATE_GROUP_WRONG(28, 203),
+    TRANSACTION_STATE_GROUP_WRONG(29, 203),
     ;
 
     /**
@@ -1179,6 +1187,14 @@ public final class MQProtos {
      */
     public static final int SUBSCRIPTION_NOT_LATEST_VALUE = 25;
     /**
+     * <code>SUBSCRIPTION_GROUP_NOT_EXIST = 26;</code>
+     *
+     * <pre>
+     * Broker 订阅组不存在
+     * </pre>
+     */
+    public static final int SUBSCRIPTION_GROUP_NOT_EXIST_VALUE = 26;
+    /**
      * <code>DELETE_INVALID_CONF = 100;</code>
      *
      * <pre>
@@ -1304,6 +1320,7 @@ public final class MQProtos {
         case 23: return SUBSCRIPTION_PARSE_FAILED;
         case 24: return SUBSCRIPTION_NOT_EXIST;
         case 25: return SUBSCRIPTION_NOT_LATEST;
+        case 26: return SUBSCRIPTION_GROUP_NOT_EXIST;
         case 100: return DELETE_INVALID_CONF;
         case 101: return NOT_MERGE_CONF;
         case 102: return REGISTER_BROKER_FAIL;
@@ -7889,7 +7906,7 @@ public final class MQProtos {
       "NC_NAMESRV_RUNTIME_CONF\020n\022\032\n\026REGISTER_BR" +
       "OKER_SINGLE\020o\022\034\n\030UNREGISTER_BROKER_SINGL" +
       "E\020p\022\037\n\033REGISTER_ORDER_TOPIC_SINGLE\020q\022!\n\035" +
-      "UNREGISTER_ORDER_TOPIC_SINGLE\020r*\243\006\n\016MQRe" +
+      "UNREGISTER_ORDER_TOPIC_SINGLE\020r*\305\006\n\016MQRe" +
       "sponseCode\022\026\n\022FLUSH_DISK_TIMEOUT\020\n\022\027\n\023SL" +
       "AVE_NOT_AVAILABLE\020\013\022\027\n\023FLUSH_SLAVE_TIMEO" +
       "UT\020\014\022\023\n\017MESSAGE_ILLEGAL\020\r\022\031\n\025SERVICE_NOT",
@@ -7900,18 +7917,19 @@ public final class MQProtos {
       "_OFFSET_MOVED\020\025\022\023\n\017QUERY_NOT_FOUND\020\026\022\035\n\031" +
       "SUBSCRIPTION_PARSE_FAILED\020\027\022\032\n\026SUBSCRIPT" +
       "ION_NOT_EXIST\020\030\022\033\n\027SUBSCRIPTION_NOT_LATE" +
-      "ST\020\031\022\027\n\023DELETE_INVALID_CONF\020d\022\022\n\016NOT_MER" +
-      "GE_CONF\020e\022\030\n\024REGISTER_BROKER_FAIL\020f\022\033\n\027R" +
-      "EGISTER_BROKER_TIMEOUT\020g\022\035\n\031REGISTER_ORD",
-      "ER_TOPIC_FAIL\020h\022 \n\034REGISTER_ORDER_TOPIC_" +
-      "TIMEOUT\020i\022\032\n\026UNREGISTER_BROKER_FAIL\020j\022\035\n" +
-      "\031UNREGISTER_BROKER_TIMEOUT\020k\022\"\n\036UNREGIST" +
-      "ER_ORDER_TOPIC_TIMEOUT\020l\022\036\n\031TRANSACTION_" +
-      "SHOULD_COMMIT\020\310\001\022 \n\033TRANSACTION_SHOULD_R" +
-      "OLLBACK\020\311\001\022\035\n\030TRANSACTION_STATE_UNKNOW\020\312" +
-      "\001\022\"\n\035TRANSACTION_STATE_GROUP_WRONG\020\313\001B2\n" +
-      "$com.alibaba.rocketmq.common.protocolB\010M" +
-      "QProtosH\001"
+      "ST\020\031\022 \n\034SUBSCRIPTION_GROUP_NOT_EXIST\020\032\022\027" +
+      "\n\023DELETE_INVALID_CONF\020d\022\022\n\016NOT_MERGE_CON" +
+      "F\020e\022\030\n\024REGISTER_BROKER_FAIL\020f\022\033\n\027REGISTE",
+      "R_BROKER_TIMEOUT\020g\022\035\n\031REGISTER_ORDER_TOP" +
+      "IC_FAIL\020h\022 \n\034REGISTER_ORDER_TOPIC_TIMEOU" +
+      "T\020i\022\032\n\026UNREGISTER_BROKER_FAIL\020j\022\035\n\031UNREG" +
+      "ISTER_BROKER_TIMEOUT\020k\022\"\n\036UNREGISTER_ORD" +
+      "ER_TOPIC_TIMEOUT\020l\022\036\n\031TRANSACTION_SHOULD" +
+      "_COMMIT\020\310\001\022 \n\033TRANSACTION_SHOULD_ROLLBAC" +
+      "K\020\311\001\022\035\n\030TRANSACTION_STATE_UNKNOW\020\312\001\022\"\n\035T" +
+      "RANSACTION_STATE_GROUP_WRONG\020\313\001B2\n$com.a" +
+      "libaba.rocketmq.common.protocolB\010MQProto" +
+      "sH\001"
     };
     com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
       new com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner() {

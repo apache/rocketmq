@@ -29,13 +29,18 @@ public class ConsumerOffsetManager {
     private static final String TOPIC_GROUP_SEPARATOR = "@";
     private static final String QUEUEID_OFFSET_SEPARATOR = ":";
     private static final String OFFSETS_SEPARATOR = " ";
+
     private final ConcurrentHashMap<String/* topic@group */, ConcurrentHashMap<Integer, Long>> offsetTable =
             new ConcurrentHashMap<String, ConcurrentHashMap<Integer, Long>>(512);
 
-    private volatile ConcurrentHashMap<String, ConcurrentHashMap<Integer, Long>> offsetTableLastLast;
-    private volatile ConcurrentHashMap<String, ConcurrentHashMap<Integer, Long>> offsetTableLast;
+    private transient volatile ConcurrentHashMap<String, ConcurrentHashMap<Integer, Long>> offsetTableLastLast;
+    private transient volatile ConcurrentHashMap<String, ConcurrentHashMap<Integer, Long>> offsetTableLast;
 
-    private final BrokerController brokerController;
+    private transient BrokerController brokerController;
+
+
+    public ConsumerOffsetManager() {
+    }
 
 
     public ConsumerOffsetManager(BrokerController brokerController) {

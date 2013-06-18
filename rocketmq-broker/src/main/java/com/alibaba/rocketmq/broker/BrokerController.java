@@ -28,6 +28,7 @@ import com.alibaba.rocketmq.broker.processor.EndTransactionProcessor;
 import com.alibaba.rocketmq.broker.processor.PullMessageProcessor;
 import com.alibaba.rocketmq.broker.processor.QueryMessageProcessor;
 import com.alibaba.rocketmq.broker.processor.SendMessageProcessor;
+import com.alibaba.rocketmq.broker.subscription.SubscriptionGroupManager;
 import com.alibaba.rocketmq.broker.topic.TopicConfigManager;
 import com.alibaba.rocketmq.broker.transaction.DefaultTransactionCheckExecuter;
 import com.alibaba.rocketmq.common.BrokerConfig;
@@ -102,6 +103,9 @@ public class BrokerController {
     // Broker主动调用Client
     private final Broker2Client broker2Client;
 
+    // 订阅组配置管理
+    private final SubscriptionGroupManager subscriptionGroupManager;
+
 
     public BrokerController(final BrokerConfig brokerConfig, final NettyServerConfig nettyServerConfig,
             final MessageStoreConfig messageStoreConfig) {
@@ -117,6 +121,7 @@ public class BrokerController {
         this.clientHousekeepingService = new ClientHousekeepingService(this);
         this.defaultTransactionCheckExecuter = new DefaultTransactionCheckExecuter(this);
         this.broker2Client = new Broker2Client(this);
+        this.subscriptionGroupManager = new SubscriptionGroupManager(this);
     }
 
 
@@ -447,8 +452,8 @@ public class BrokerController {
 
     private void flushAllConfig() {
         String allConfig = this.encodeAllConfig();
-        boolean result = MixAll.string2File(allConfig, this.brokerConfig.getConfigFilePath());
-        log.info("flush topic config, " + this.brokerConfig.getConfigFilePath()
+        boolean result = MixAll.string2File(allConfig, this.brokerConfig.getBrokerConfigPath());
+        log.info("flush topic config, " + this.brokerConfig.getBrokerConfigPath()
                 + (result ? " OK" : " Failed"));
     }
 
@@ -490,7 +495,7 @@ public class BrokerController {
 
 
     public String getConfigDataVersion() {
-        return this.configDataVersion.currentVersion();
+        return this.configDataVersion.toJson();
     }
 
 
@@ -521,5 +526,10 @@ public class BrokerController {
 
     public Broker2Client getBroker2Client() {
         return broker2Client;
+    }
+
+
+    public SubscriptionGroupManager getSubscriptionGroupManager() {
+        return subscriptionGroupManager;
     }
 }

@@ -90,6 +90,8 @@ enum MQResponseCode{
     SUBSCRIPTION_NOT_EXIST = 24;                        // Broker 订阅关系不存在
     SUBSCRIPTION_NOT_LATEST = 25;                       // Broker 订阅关系不是最新的
 
+    SUBSCRIPTION_GROUP_NOT_EXIST = 26;                  // Broker 订阅组不存在
+
 
     DELETE_INVALID_CONF = 100;                          // Namesrv 同步数据时出现两个节点间数据不一致，删除不一致的数据
     NOT_MERGE_CONF = 101;                               // Namesrv 两节点之间的数据一致没有做修改

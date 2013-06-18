@@ -168,7 +168,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         final GetAllTopicConfigResponseHeader responseHeader =
                 (GetAllTopicConfigResponseHeader) response.getCustomHeader();
 
-        String content = this.brokerController.getTopicConfigManager().encodeIncludeSysTopic();
+        String content = this.brokerController.getTopicConfigManager().encode();
         if (content != null && content.length() > 0) {
             try {
                 response.setBody(content.getBytes(MixAll.DEFAULT_CHARSET));

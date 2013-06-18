@@ -26,6 +26,10 @@ public class FAQUrl {
     public static final String CLIENT_PARAMETER_CHECK_URL = //
             "https://github.com/alibaba/RocketMQ/issues/73";
 
+    // FAQ: 订阅组不存在如何解决
+    public static final String SUBSCRIPTION_GROUP_NOT_EXIST = //
+            "https://github.com/alibaba/RocketMQ/issues/75";
+
     //
     // FAQ: 未收录异常处理办法
     //
