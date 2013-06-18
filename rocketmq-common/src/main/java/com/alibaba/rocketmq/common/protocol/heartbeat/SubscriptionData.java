@@ -66,9 +66,8 @@ public class SubscriptionData {
     }
 
 
-    @Override
-    public String toString() {
-        return "SubscriptionData [topic=" + topic + ", subString=" + subString + ", tagsSet=" + tagsSet + "]";
+    public Set<Integer> getCodeSet() {
+        return codeSet;
     }
 
 
@@ -76,7 +75,9 @@ public class SubscriptionData {
     public int hashCode() {
         final int prime = 31;
         int result = 1;
+        result = prime * result + ((codeSet == null) ? 0 : codeSet.hashCode());
         result = prime * result + ((subString == null) ? 0 : subString.hashCode());
+        result = prime * result + (int) (subVersion ^ (subVersion >>> 32));
         result = prime * result + ((tagsSet == null) ? 0 : tagsSet.hashCode());
         result = prime * result + ((topic == null) ? 0 : topic.hashCode());
         return result;
@@ -92,11 +93,19 @@ public class SubscriptionData {
         if (getClass() != obj.getClass())
             return false;
         SubscriptionData other = (SubscriptionData) obj;
+        if (codeSet == null) {
+            if (other.codeSet != null)
+                return false;
+        }
+        else if (!codeSet.equals(other.codeSet))
+            return false;
         if (subString == null) {
             if (other.subString != null)
                 return false;
         }
         else if (!subString.equals(other.subString))
+            return false;
+        if (subVersion != other.subVersion)
             return false;
         if (tagsSet == null) {
             if (other.tagsSet != null)
@@ -114,7 +123,9 @@ public class SubscriptionData {
     }
 
 
-    public Set<Integer> getCodeSet() {
-        return codeSet;
+    @Override
+    public String toString() {
+        return "SubscriptionData [topic=" + topic + ", subString=" + subString + ", tagsSet=" + tagsSet
+                + ", codeSet=" + codeSet + ", subVersion=" + subVersion + "]";
     }
 }

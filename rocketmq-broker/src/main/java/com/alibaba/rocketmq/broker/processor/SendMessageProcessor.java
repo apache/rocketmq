@@ -158,7 +158,7 @@ public class SendMessageProcessor implements NettyRequestProcessor {
                 requestHeader.getDefaultTopicQueueNums());
             if (null == topicConfig) {
                 response.setCode(MQResponseCode.TOPIC_NOT_EXIST_VALUE);
-                response.setRemark("topic not exist, apply first please!"
+                response.setRemark("topic[" + requestHeader.getTopic() + "] not exist, apply first please!"
                         + FAQUrl.suggestTodo(FAQUrl.APPLY_TOPIC_URL));
                 return response;
             }

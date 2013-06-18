@@ -49,5 +49,4 @@ public class PushConsumer {
 
         System.out.println("Consumer Started.");
     }
-
 }

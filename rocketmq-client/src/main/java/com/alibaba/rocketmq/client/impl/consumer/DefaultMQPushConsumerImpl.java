@@ -281,7 +281,9 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
             SubscriptionData subscriptionData = FilterAPI.buildSubscriptionData(topic, subExpression);
             this.subscriptionInner.put(topic, subscriptionData);
             // 发送心跳，将变更的订阅关系注册上去
-            this.mQClientFactory.sendHeartbeatToAllBrokerWithLock();
+            if (this.mQClientFactory != null) {
+                this.mQClientFactory.sendHeartbeatToAllBrokerWithLock();
+            }
         }
         catch (Exception e) {
             throw new MQClientException("subscription exception", e);
@@ -462,7 +464,10 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
 
             @Override
             public void onException(Throwable e) {
-                log.warn("execute the pull request exception", e);
+                if (!pullRequest.getMessageQueue().getTopic().startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
+                    log.warn("execute the pull request exception", e);
+                }
+
                 DefaultMQPushConsumerImpl.this.executePullRequestLater(pullRequest,
                     PullTimeDelayMillsWhenException);
             }
@@ -827,9 +832,9 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
         }
 
         // pullInterval
-        if (this.defaultMQPushConsumer.getPullInterval() < 1
+        if (this.defaultMQPushConsumer.getPullInterval() < 0
                 || this.defaultMQPushConsumer.getPullInterval() > 65535) {
-            throw new MQClientException("pullInterval Out of range [1, 65535]" //
+            throw new MQClientException("pullInterval Out of range [0, 65535]" //
                     + FAQUrl.suggestTodo(FAQUrl.CLIENT_PARAMETER_CHECK_URL), //
                 null);
         }

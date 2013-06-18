@@ -91,33 +91,35 @@ public class MixAll {
 
     public static final String file2String(final String fileName) {
         File file = new File(fileName);
-        char[] data = new char[(int) file.length()];
-        boolean result = false;
+        if (file.exists()) {
+            char[] data = new char[(int) file.length()];
+            boolean result = false;
 
-        FileReader fileReader = null;
-        try {
-            fileReader = new FileReader(file);
-            int len = fileReader.read(data);
-            result = (len == data.length);
-        }
-        catch (IOException e) {
-            // e.printStackTrace();
-        }
-        finally {
-            if (fileReader != null)
-                try {
-                    fileReader.close();
+            FileReader fileReader = null;
+            try {
+                fileReader = new FileReader(file);
+                int len = fileReader.read(data);
+                result = (len == data.length);
+            }
+            catch (IOException e) {
+                // e.printStackTrace();
+            }
+            finally {
+                if (fileReader != null) {
+                    try {
+                        fileReader.close();
+                    }
+                    catch (IOException e) {
+                        e.printStackTrace();
+                    }
                 }
-                catch (IOException e) {
-                    e.printStackTrace();
-                }
-        }
+            }
 
-        if (result) {
-            String value = new String(data);
-            return value;
+            if (result) {
+                String value = new String(data);
+                return value;
+            }
         }
-
         return null;
     }
 

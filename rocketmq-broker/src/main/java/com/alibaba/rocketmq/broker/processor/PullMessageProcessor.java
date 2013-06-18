@@ -19,11 +19,13 @@ import com.alibaba.rocketmq.common.TopicConfig;
 import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.common.constant.PermName;
 import com.alibaba.rocketmq.common.filter.FilterAPI;
+import com.alibaba.rocketmq.common.help.FAQUrl;
 import com.alibaba.rocketmq.common.protocol.MQProtos.MQResponseCode;
 import com.alibaba.rocketmq.common.protocol.header.PullMessageRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.PullMessageResponseHeader;
 import com.alibaba.rocketmq.common.protocol.heartbeat.SubscriptionData;
 import com.alibaba.rocketmq.common.sysflag.PullSysFlag;
+import com.alibaba.rocketmq.remoting.common.RemotingHelper;
 import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
 import com.alibaba.rocketmq.remoting.netty.NettyRequestProcessor;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
@@ -116,10 +118,11 @@ public class PullMessageProcessor implements NettyRequestProcessor {
         TopicConfig topicConfig =
                 this.brokerController.getTopicConfigManager().selectTopicConfig(requestHeader.getTopic());
         if (null == topicConfig) {
-            log.error("the topic " + requestHeader.getTopic() + " not exist, producer: "
-                    + channel.remoteAddress());
+            log.error("the topic " + requestHeader.getTopic() + " not exist, consumer: "
+                    + RemotingHelper.parseChannelRemoteAddr(channel));
             response.setCode(MQResponseCode.TOPIC_NOT_EXIST_VALUE);
-            response.setRemark("topic not exist, apply first please!");
+            response.setRemark("topic[" + requestHeader.getTopic() + "] not exist, apply first please!"
+                    + FAQUrl.suggestTodo(FAQUrl.APPLY_TOPIC_URL));
             return response;
         }
 
