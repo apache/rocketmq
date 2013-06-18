@@ -119,7 +119,8 @@ public class MQClientFactory {
         this.clientConfig = clientConfig;
         this.factoryIndex = factoryIndex;
         this.nettyClientConfig = new NettyClientConfig();
-        this.nettyClientConfig.setClientCallbackExecutorThreads(clientConfig.getClientCallbackExecutorThreads());
+        this.nettyClientConfig.setClientCallbackExecutorThreads(clientConfig
+            .getClientCallbackExecutorThreads());
         this.clientRemotingProcessor = new ClientRemotingProcessor(this);
         this.mQClientAPIImpl = new MQClientAPIImpl(this.nettyClientConfig, this.clientRemotingProcessor);
 
@@ -157,7 +158,8 @@ public class MQClientFactory {
             this.datagramSocket = new DatagramSocket(udpPort);
         }
         catch (SocketException e) {
-            throw new MQClientException("instance name is a duplicate one[" + udpPort + "], please set a new name"
+            throw new MQClientException("instance name is a duplicate one[" + udpPort
+                    + "], please set a new name"
                     + FAQUrl.suggestTodo(FAQUrl.CLIENT_INSTACNCE_NAME_DUPLICATE_URL), e);
         }
     }
@@ -328,7 +330,8 @@ public class MQClientFactory {
                         try {
                             this.mQClientAPIImpl.unregisterClient(addr, this.clientId, producerGroup,
                                 consumerGroup, 3000);
-                            log.info("unregister client[Producer: {} Consumer: {}] from broker[{} {} {}] success",
+                            log.info(
+                                "unregister client[Producer: {} Consumer: {}] from broker[{} {} {}] success",
                                 producerGroup, consumerGroup, name, id, addr);
                         }
                         catch (RemotingException e) {
@@ -361,9 +364,7 @@ public class MQClientFactory {
                 consumerData.setGroupName(impl.getGroupName());
                 consumerData.setConsumeType(impl.getConsumeType());
                 consumerData.setMessageModel(impl.getMessageModel());
-                if (impl.getMQSubscriptions() != null) {
-                    consumerData.getSubscriptionDataSet().addAll(impl.getMQSubscriptions());
-                }
+                consumerData.getSubscriptionDataSet().addAll(impl.getMQSubscriptions());
 
                 heartbeatData.getConsumerDataSet().add(consumerData);
             }
@@ -669,7 +670,8 @@ public class MQClientFactory {
     }
 
 
-    public static TopicPublishInfo topicRouteData2TopicPublishInfo(final String topic, final TopicRouteData route) {
+    public static TopicPublishInfo topicRouteData2TopicPublishInfo(final String topic,
+            final TopicRouteData route) {
         TopicPublishInfo info = new TopicPublishInfo();
         // 顺序消息
         if (route.getOrderTopicConf() != null && route.getOrderTopicConf().length() > 0) {
@@ -778,7 +780,8 @@ public class MQClientFactory {
                             }
 
                             // 更新发布队列信息
-                            TopicPublishInfo publishInfo = topicRouteData2TopicPublishInfo(topic, topicRouteData);
+                            TopicPublishInfo publishInfo =
+                                    topicRouteData2TopicPublishInfo(topic, topicRouteData);
                             for (String g : this.producerTable.keySet()) {
                                 MQProducerInner impl = this.producerTable.get(g);
                                 if (impl != null) {
