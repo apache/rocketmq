@@ -33,13 +33,16 @@ public class ConsumerOffsetManagerTest {
         for (int i = 0; i < 100; i++) {
             String group = "DIANPU_GROUP_" + i;
             for (int id = 0; id < 16; id++) {
-                consumerOffsetManager.commitOffset(group, "TOPIC_A", id, random.nextLong() % 1024 * 1024 * 1024);
-                consumerOffsetManager.commitOffset(group, "TOPIC_B", id, random.nextLong() % 1024 * 1024 * 1024);
-                consumerOffsetManager.commitOffset(group, "TOPIC_C", id, random.nextLong() % 1024 * 1024 * 1024);
+                consumerOffsetManager.commitOffset(group, "TOPIC_A", id,
+                    random.nextLong() % 1024 * 1024 * 1024);
+                consumerOffsetManager.commitOffset(group, "TOPIC_B", id,
+                    random.nextLong() % 1024 * 1024 * 1024);
+                consumerOffsetManager.commitOffset(group, "TOPIC_C", id,
+                    random.nextLong() % 1024 * 1024 * 1024);
             }
         }
 
-        consumerOffsetManager.flush();
+        consumerOffsetManager.persist();
 
         brokerController.shutdown();
     }
@@ -60,15 +63,16 @@ public class ConsumerOffsetManagerTest {
         for (int i = 0; i < 100; i++) {
             String group = "DIANPU_GROUP_" + i;
             for (int id = 0; id < 16; id++) {
-                consumerOffsetManager.commitOffset(group, "TOPIC_A", id, random.nextLong() % 1024 * 1024 * 1024);
-                consumerOffsetManager.commitOffset(group, "TOPIC_B", id, random.nextLong() % 1024 * 1024 * 1024);
-                consumerOffsetManager.commitOffset(group, "TOPIC_C", id, random.nextLong() % 1024 * 1024 * 1024);
+                consumerOffsetManager.commitOffset(group, "TOPIC_A", id,
+                    random.nextLong() % 1024 * 1024 * 1024);
+                consumerOffsetManager.commitOffset(group, "TOPIC_B", id,
+                    random.nextLong() % 1024 * 1024 * 1024);
+                consumerOffsetManager.commitOffset(group, "TOPIC_C", id,
+                    random.nextLong() % 1024 * 1024 * 1024);
             }
         }
 
         for (int i = 0; i < 10; i++) {
-            consumerOffsetManager.flushHistory();
-
             Thread.sleep(1000 * 3);
         }
 
