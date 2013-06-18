@@ -20,11 +20,14 @@ public class FilterAPI {
             subscriptionData.setSubString(SubscriptionData.SUB_ALL);
         }
         else {
-            String[] tags = subString.split(TAG_SEPRATOR);
+            String[] tags = subString.split("\\|\\|");
             if (tags != null && tags.length > 0) {
-                for (String t : tags) {
-                    subscriptionData.getTagsSet().add(t);
-                    subscriptionData.getCodeSet().add(t.hashCode());
+                for (String tag : tags) {
+                    if (tag.length() > 0) {
+                        String trimString = tag.trim();
+                        subscriptionData.getTagsSet().add(trimString);
+                        subscriptionData.getCodeSet().add(trimString.hashCode());
+                    }
                 }
             }
             else {

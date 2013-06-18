@@ -183,6 +183,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
 
     @Override
     public void registerMessageListener(MessageListener messageListener) {
+        this.messageListener = messageListener;
         this.defaultMQPushConsumerImpl.registerMessageListener(messageListener);
     }
 

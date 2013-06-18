@@ -27,9 +27,10 @@ public abstract class ConfigManager {
             }
         }
         catch (Exception e) {
+            return false;
         }
 
-        return false;
+        return true;
     }
 
 
