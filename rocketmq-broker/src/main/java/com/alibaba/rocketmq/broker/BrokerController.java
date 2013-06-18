@@ -248,7 +248,7 @@ public class BrokerController {
                 @Override
                 public void run() {
                     try {
-                        BrokerController.this.consumerOffsetManager.flush();
+                        BrokerController.this.consumerOffsetManager.persist();
                     }
                     catch (Exception e) {
                         log.error("", e);
@@ -256,13 +256,11 @@ public class BrokerController {
                 }
             }, 1000 * 10, this.brokerConfig.getFlushConsumerOffsetInterval(), TimeUnit.MILLISECONDS);
 
-            // 定时刷消费进度，历史记录，方便生成报表
+            // 定时打印各个消费组的消费速度
             this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
                 @Override
                 public void run() {
                     try {
-                        BrokerController.this.consumerOffsetManager.flushHistory();
-
                         BrokerController.this.consumerOffsetManager.recordPullTPS();
                     }
                     catch (Exception e) {
@@ -387,7 +385,7 @@ public class BrokerController {
             this.adminBrokerExecutor.shutdown();
         }
 
-        this.consumerOffsetManager.flush();
+        this.consumerOffsetManager.persist();
     }
 
 

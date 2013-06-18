@@ -3,18 +3,15 @@
  */
 package com.alibaba.rocketmq.broker.offset;
 
-import java.io.File;
-import java.util.Properties;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.alibaba.rocketmq.broker.BrokerController;
-import com.alibaba.rocketmq.common.MixAll;
+import com.alibaba.rocketmq.common.ConfigManager;
 import com.alibaba.rocketmq.common.constant.LoggerName;
+import com.alibaba.rocketmq.remoting.protocol.RemotingSerializable;
 
 
 /**
@@ -23,14 +20,11 @@ import com.alibaba.rocketmq.common.constant.LoggerName;
  * @author shijia.wxr<vintage.wang@gmail.com>
  * 
  */
-public class ConsumerOffsetManager {
+public class ConsumerOffsetManager extends ConfigManager {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.BrokerLoggerName);
-
     private static final String TOPIC_GROUP_SEPARATOR = "@";
-    private static final String QUEUEID_OFFSET_SEPARATOR = ":";
-    private static final String OFFSETS_SEPARATOR = " ";
 
-    private final ConcurrentHashMap<String/* topic@group */, ConcurrentHashMap<Integer, Long>> offsetTable =
+    private ConcurrentHashMap<String/* topic@group */, ConcurrentHashMap<Integer, Long>> offsetTable =
             new ConcurrentHashMap<String, ConcurrentHashMap<Integer, Long>>(512);
 
     private transient volatile ConcurrentHashMap<String, ConcurrentHashMap<Integer, Long>> offsetTableLastLast;
@@ -45,51 +39,6 @@ public class ConsumerOffsetManager {
 
     public ConsumerOffsetManager(BrokerController brokerController) {
         this.brokerController = brokerController;
-    }
-
-
-    public boolean load() {
-        try {
-            String fileName = this.brokerController.getBrokerConfig().getConsumerOffsetPath();
-            String content = MixAll.file2String(fileName);
-            if (content != null) {
-                Properties prop = MixAll.string2Properties(content);
-                if (prop != null) {
-                    return this.decode(prop);
-                }
-            }
-        }
-        catch (Exception e) {
-        }
-
-        return true;
-    }
-
-
-    private boolean decode(final Properties prop) {
-        Set<Object> keyset = prop.keySet();
-        for (Object object : keyset) {
-            String key = object.toString();
-            String value = prop.getProperty(key);
-            if (value != null) {
-                String[] items = value.split(OFFSETS_SEPARATOR);
-                if (items != null) {
-                    for (String item : items) {
-                        String[] pair = item.split(QUEUEID_OFFSET_SEPARATOR);
-                        try {
-                            int queueId = Integer.parseInt(pair[0]);
-                            long offset = Long.parseLong(pair[1]);
-                            this.commitOffset(key, queueId, offset);
-                        }
-                        catch (NumberFormatException e) {
-                            e.printStackTrace();
-                        }
-                    }
-                }
-            }
-        }
-
-        return true;
     }
 
 
@@ -115,67 +64,6 @@ public class ConsumerOffsetManager {
         }
 
         return out;
-    }
-
-
-    private String encode() {
-        StringBuilder result = new StringBuilder();
-
-        for (String topicgroup : this.offsetTable.keySet()) {
-            ConcurrentHashMap<Integer, Long> map = this.offsetTable.get(topicgroup);
-            if (map != null) {
-                StringBuilder sb = new StringBuilder();
-                sb.append(topicgroup);
-                sb.append("=");
-                boolean first = true;
-                for (Integer queueId : map.keySet()) {
-                    Long offset = map.get(queueId);
-                    if (offset != null) {
-                        String item = queueId + QUEUEID_OFFSET_SEPARATOR + offset;
-                        if (!first) {
-                            sb.append(OFFSETS_SEPARATOR);
-                        }
-                        sb.append(item);
-                        first = false;
-                    }
-                }
-
-                if (!first) {
-                    sb.append(IOUtils.LINE_SEPARATOR);
-                    result.append(sb.toString());
-                }
-            }
-        }
-
-        return result.toString();
-    }
-
-
-    /**
-     * 会有定时线程定时刷盘
-     */
-    public void flush() {
-        String content = this.encode();
-        if (content != null && content.length() > 0) {
-            String fileName = this.brokerController.getBrokerConfig().getConsumerOffsetPath();
-            boolean result = MixAll.string2File(content, fileName);
-            log.info("flush consumer offset, " + fileName + (result ? " OK" : " Failed"));
-        }
-    }
-
-
-    /**
-     * 会有定时线程定时刷盘
-     */
-    public void flushHistory() {
-        String content = this.encode();
-        if (content != null && content.length() > 0) {
-            String fileName =
-                    this.brokerController.getBrokerConfig().getConsumerOffsetHistoryDir() + File.separator
-                            + System.currentTimeMillis();
-            boolean result = MixAll.string2File(content, fileName);
-            log.info("flush consumer history offset, " + fileName + (result ? " OK" : " Failed"));
-        }
     }
 
 
@@ -251,5 +139,29 @@ public class ConsumerOffsetManager {
         else {
             map.put(queueId, offset);
         }
+    }
+
+
+    @Override
+    public String encode() {
+        return RemotingSerializable.toJson(this);
+    }
+
+
+    @Override
+    public void decode(String jsonString) {
+        if (jsonString != null) {
+            ConsumerOffsetManager obj =
+                    RemotingSerializable.fromJson(jsonString, ConsumerOffsetManager.class);
+            if (obj != null) {
+                this.offsetTable = obj.offsetTable;
+            }
+        }
+    }
+
+
+    @Override
+    public String configFilePath() {
+        return this.brokerController.getBrokerConfig().getConsumerOffsetPath();
     }
 }
