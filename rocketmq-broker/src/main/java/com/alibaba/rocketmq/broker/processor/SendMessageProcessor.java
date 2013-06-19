@@ -38,7 +38,6 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 import com.alibaba.rocketmq.remoting.protocol.RemotingProtos.ResponseCode;
 import com.alibaba.rocketmq.store.MessageExtBrokerInner;
 import com.alibaba.rocketmq.store.PutMessageResult;
-import com.alibaba.rocketmq.store.config.BrokerRole;
 
 
 /**
@@ -85,14 +84,6 @@ public class SendMessageProcessor implements NettyRequestProcessor {
                 (ConsumerSendMsgBackRequestHeader) request
                     .decodeCommandCustomHeader(ConsumerSendMsgBackRequestHeader.class);
 
-        // 只有Master可以写入消息
-        if (this.brokerController.getMessageStoreConfig().getBrokerRole() != BrokerRole.SYNC_MASTER) {
-            response.setCode(MQResponseCode.NO_PERMISSION_VALUE);
-            response.setRemark("the broker[" + this.brokerController.getBrokerConfig().getBrokerIP1()
-                    + "] is slave");
-            return response;
-        }
-
         // 确保订阅组存在
         SubscriptionGroupConfig subscriptionGroupConfig =
                 this.brokerController.getSubscriptionGroupManager().findSubscriptionGroupConfig(
@@ -101,6 +92,26 @@ public class SendMessageProcessor implements NettyRequestProcessor {
             response.setCode(MQResponseCode.SUBSCRIPTION_GROUP_NOT_EXIST_VALUE);
             response.setRemark("subscription group not exist, " + requestHeader.getGroup() + " "
                     + FAQUrl.suggestTodo(FAQUrl.SUBSCRIPTION_GROUP_NOT_EXIST));
+            return response;
+        }
+
+        final String newTopic = MixAll.getRetryTopic(requestHeader.getGroup());
+        int queueIdInt = Math.abs(this.random.nextInt()) % subscriptionGroupConfig.getRetryQueueNums();
+
+        // 检查topic是否存在
+        TopicConfig topicConfig =
+                this.brokerController.getTopicConfigManager().createTopicInSendMessageBackMethod(newTopic,
+                    subscriptionGroupConfig.getRetryQueueNums());
+        if (null == topicConfig) {
+            response.setCode(ResponseCode.SYSTEM_ERROR_VALUE);
+            response.setRemark("topic[" + newTopic + "] not exist");
+            return response;
+        }
+
+        // 检查topic权限
+        if (!PermName.isWriteable(topicConfig.getPerm())) {
+            response.setCode(MQResponseCode.NO_PERMISSION_VALUE);
+            response.setRemark("the topic[" + newTopic + "] sending message is forbidden");
             return response;
         }
 
@@ -115,8 +126,6 @@ public class SendMessageProcessor implements NettyRequestProcessor {
         }
 
         // 构造消息
-        final String newTopic = MixAll.getRetryTopic(requestHeader.getGroup());
-        int queueIdInt = Math.abs(this.random.nextInt()) % subscriptionGroupConfig.getRetryQueueNums();
         msgExt.putProperty(Message.PROPERTY_RETRY_TOPIC, msgExt.getTopic());
         msgExt.setDelayTimeLevel(requestHeader.getDelayLevel());
         msgExt.setWaitStoreMsgOK(false);

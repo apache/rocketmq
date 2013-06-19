@@ -110,51 +110,56 @@ public class TopicConfigManager extends ConfigManager {
             final String remoteAddress, final int clientDefaultTopicQueueNums) {
         try {
             if (this.lockTopicConfigTable.tryLock(LockTimeoutMillis, TimeUnit.MILLISECONDS)) {
-                TopicConfig topicConfig = this.topicConfigTable.get(topic);
-                if (topicConfig != null)
-                    return topicConfig;
+                try {
+                    TopicConfig topicConfig = this.topicConfigTable.get(topic);
+                    if (topicConfig != null)
+                        return topicConfig;
 
-                TopicConfig defaultTopicConfig = this.topicConfigTable.get(defaultTopic);
-                if (defaultTopicConfig != null) {
-                    if (PermName.isInherited(defaultTopicConfig.getPerm())) {
-                        topicConfig = new TopicConfig(topic);
+                    TopicConfig defaultTopicConfig = this.topicConfigTable.get(defaultTopic);
+                    if (defaultTopicConfig != null) {
+                        if (PermName.isInherited(defaultTopicConfig.getPerm())) {
+                            topicConfig = new TopicConfig(topic);
 
-                        int queueNums =
-                                clientDefaultTopicQueueNums > defaultTopicConfig.getWriteQueueNums() ? defaultTopicConfig
-                                    .getWriteQueueNums() : clientDefaultTopicQueueNums;
+                            int queueNums =
+                                    clientDefaultTopicQueueNums > defaultTopicConfig.getWriteQueueNums() ? defaultTopicConfig
+                                        .getWriteQueueNums() : clientDefaultTopicQueueNums;
 
-                        if (queueNums < 0) {
-                            queueNums = 0;
+                            if (queueNums < 0) {
+                                queueNums = 0;
+                            }
+
+                            topicConfig.setReadQueueNums(queueNums);
+                            topicConfig.setWriteQueueNums(queueNums);
+                            int perm = defaultTopicConfig.getPerm();
+                            perm &= ~PermName.PERM_INHERIT;
+                            topicConfig.setPerm(perm);
+                            topicConfig.setTopicFilterType(defaultTopicConfig.getTopicFilterType());
                         }
-
-                        topicConfig.setReadQueueNums(queueNums);
-                        topicConfig.setWriteQueueNums(queueNums);
-                        int perm = defaultTopicConfig.getPerm();
-                        perm &= ~PermName.PERM_INHERIT;
-                        topicConfig.setPerm(perm);
-                        topicConfig.setTopicFilterType(defaultTopicConfig.getTopicFilterType());
+                        else {
+                            log.warn("create new topic failed, because the default topic[" + defaultTopic
+                                    + "] no perm, " + defaultTopicConfig.getPerm() + " producer: "
+                                    + remoteAddress);
+                        }
                     }
                     else {
                         log.warn("create new topic failed, because the default topic[" + defaultTopic
-                                + "] no perm, " + defaultTopicConfig.getPerm() + " producer: "
-                                + remoteAddress);
+                                + "] not exist." + " producer: " + remoteAddress);
                     }
+
+                    if (topicConfig != null) {
+                        log.info("create new topic by default topic[" + defaultTopic + "], " + topicConfig
+                                + " producer: " + remoteAddress);
+
+                        this.topicConfigTable.put(topic, topicConfig);
+
+                        this.persist();
+                    }
+
+                    return topicConfig;
                 }
-                else {
-                    log.warn("create new topic failed, because the default topic[" + defaultTopic
-                            + "] not exist." + " producer: " + remoteAddress);
+                finally {
+                    this.lockTopicConfigTable.unlock();
                 }
-
-                if (topicConfig != null) {
-                    log.info("create new topic by default topic[" + defaultTopic + "], " + topicConfig
-                            + " producer: " + remoteAddress);
-
-                    this.topicConfigTable.put(topic, topicConfig);
-
-                    this.persist();
-                }
-
-                return topicConfig;
             }
         }
         catch (InterruptedException e) {
@@ -162,6 +167,43 @@ public class TopicConfigManager extends ConfigManager {
         }
 
         return null;
+    }
+
+
+    public TopicConfig createTopicInSendMessageBackMethod(//
+            final String topic, //
+            final int clientDefaultTopicQueueNums) {
+        TopicConfig topicConfig = this.topicConfigTable.get(topic);
+        if (topicConfig != null)
+            return topicConfig;
+
+        try {
+            if (this.lockTopicConfigTable.tryLock(LockTimeoutMillis, TimeUnit.MILLISECONDS)) {
+                try {
+                    topicConfig = this.topicConfigTable.get(topic);
+                    if (topicConfig != null)
+                        return topicConfig;
+
+                    topicConfig = new TopicConfig(topic);
+                    topicConfig.setReadQueueNums(clientDefaultTopicQueueNums);
+                    topicConfig.setWriteQueueNums(clientDefaultTopicQueueNums);
+
+                    if (topicConfig != null) {
+                        log.info("create new topic {}", topicConfig);
+                        this.topicConfigTable.put(topic, topicConfig);
+                        this.persist();
+                    }
+                }
+                finally {
+                    this.lockTopicConfigTable.unlock();
+                }
+            }
+        }
+        catch (InterruptedException e) {
+            log.error("createTopicInSendMessageBackMethod exception", e);
+        }
+
+        return topicConfig;
     }
 
 
