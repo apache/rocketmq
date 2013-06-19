@@ -26,6 +26,7 @@ import com.alibaba.rocketmq.common.message.MessageQueue;
 import com.alibaba.rocketmq.common.namesrv.TopAddressing;
 import com.alibaba.rocketmq.common.protocol.MQProtos.MQRequestCode;
 import com.alibaba.rocketmq.common.protocol.MQProtos.MQResponseCode;
+import com.alibaba.rocketmq.common.protocol.header.ConsumerSendMsgBackRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.CreateTopicRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.EndTransactionRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.GetConsumerListByGroupRequestHeader;
@@ -56,6 +57,7 @@ import com.alibaba.rocketmq.common.protocol.route.QueueData;
 import com.alibaba.rocketmq.common.protocol.route.TopicRouteData;
 import com.alibaba.rocketmq.remoting.InvokeCallback;
 import com.alibaba.rocketmq.remoting.RemotingClient;
+import com.alibaba.rocketmq.remoting.common.RemotingHelper;
 import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
 import com.alibaba.rocketmq.remoting.exception.RemotingConnectException;
 import com.alibaba.rocketmq.remoting.exception.RemotingException;
@@ -100,6 +102,11 @@ public class MQClientAPIImpl {
 
         this.remotingClient.registerProcessor(MQRequestCode.NOTIFY_CONSUMER_IDS_CHANGED_VALUE,
             this.clientRemotingProcessor, null);
+    }
+
+
+    public RemotingClient getRemotingClient() {
+        return remotingClient;
     }
 
 
@@ -752,7 +759,41 @@ public class MQClientAPIImpl {
 
 
     /**
-     * 从Name Server获取Topic路由信息
+     * 失败的消息发回Broker
+     */
+    public void consumerSendMessageBack(//
+            final MessageExt msg,//
+            final String consumerGroup,//
+            final int delayLevel,//
+            final long timeoutMillis//
+    ) throws RemotingException, MQBrokerException, InterruptedException {
+        ConsumerSendMsgBackRequestHeader requestHeader = new ConsumerSendMsgBackRequestHeader();
+        RemotingCommand request =
+                RemotingCommand.createRequestCommand(MQRequestCode.CONSUMER_SEND_MSG_BACK_VALUE,
+                    requestHeader);
+        requestHeader.setGroup(consumerGroup);
+        requestHeader.setOffset(msg.getCommitLogOffset());
+        requestHeader.setDelayLevel(delayLevel);
+        requestHeader.setPrevTopic(msg.getTopic());
+
+        String addr = RemotingHelper.parseSocketAddressAddr(msg.getStoreHost());
+
+        RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
+        assert response != null;
+        switch (response.getCode()) {
+        case ResponseCode.SUCCESS_VALUE: {
+            return;
+        }
+        default:
+            break;
+        }
+
+        throw new MQBrokerException(response.getCode(), response.getRemark());
+    }
+
+
+    /**
+     * Name Server: 从Name Server获取Topic路由信息
      */
     public TopicRouteData getTopicRouteInfoFromNameServer_real(final String topic, final long timeoutMillis)
             throws RemotingException, MQClientException, InterruptedException, InvalidProtocolBufferException {
@@ -785,7 +826,7 @@ public class MQClientAPIImpl {
 
 
     /**
-     * 仅仅为测试服务，可以绕过Name Server
+     * Name Server: 仅仅为测试服务，可以绕过Name Server
      */
     public TopicRouteData getTopicRouteInfoFromNameServer(final String topic, final long timeoutMillis)
             throws RemotingException, MQClientException, InterruptedException, InvalidProtocolBufferException {
@@ -818,7 +859,7 @@ public class MQClientAPIImpl {
 
 
     /**
-     * 向Name Server注册顺序消息配置
+     * Name Server: 向Name Server注册顺序消息配置
      */
     public void registerOrderTopic(final String topic, final String orderTopicString, final long timeoutMillis)
             throws RemotingException, MQClientException, InterruptedException {
@@ -841,8 +882,4 @@ public class MQClientAPIImpl {
         throw new MQClientException(response.getCode(), response.getRemark());
     }
 
-
-    public RemotingClient getRemotingClient() {
-        return remotingClient;
-    }
 }

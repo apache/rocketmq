@@ -251,8 +251,8 @@ public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsume
 
 
     @Override
-    public void sendMessageBack(MessageExt msg, MessageQueue mq, int delayLevel) {
-        // TODO
+    public void sendMessageBack(MessageExt msg, int delayLevel) {
+        this.sendMessageBack(msg, delayLevel);
     }
 
 

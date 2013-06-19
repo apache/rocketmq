@@ -203,8 +203,10 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
 
 
     @Override
-    public void sendMessageBack(MessageExt msg, MessageQueue mq, int delayLevel) {
-        // TODO Auto-generated method stub
+    public void sendMessageBack(MessageExt msg, int delayLevel) throws RemotingException, MQBrokerException,
+            InterruptedException {
+        this.mQClientFactory.getMQClientAPIImpl().consumerSendMessageBack(msg,
+            this.defaultMQPushConsumer.getConsumerGroup(), delayLevel, 3000);
     }
 
 
