@@ -189,7 +189,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             return response;
         }
 
-        responseHeader.setVersion(brokerController.getTopicConfigManager().getCurrentDataVersion());
+        responseHeader.setVersion(brokerController.getTopicConfigManager().currentDataVersion());
         responseHeader.setBrokerName(brokerController.getBrokerConfig().getBrokerName());
         responseHeader.setBrokerId(brokerController.getBrokerConfig().getBrokerId());
         responseHeader.setClusterName(brokerController.getBrokerConfig().getBrokerClusterName());

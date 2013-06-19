@@ -51,7 +51,7 @@
 		</encoder>
 	</appender>
 	<logger name="RocketmqBroker" additivity="false">
-		<level value="DEBUG" />
+		<level value="INFO" />
 		<appender-ref ref="RocketmqBrokerAppender" />
 	</logger>
 

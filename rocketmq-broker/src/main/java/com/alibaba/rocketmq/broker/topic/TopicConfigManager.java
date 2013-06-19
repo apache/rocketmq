@@ -72,7 +72,7 @@ public class TopicConfigManager extends ConfigManager {
     }
 
 
-    public String getCurrentDataVersion() {
+    public String currentDataVersion() {
         return this.dataVersion.toJson();
     }
 
