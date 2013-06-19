@@ -19,6 +19,8 @@ import com.alibaba.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext;
 import com.alibaba.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
 import com.alibaba.rocketmq.client.consumer.listener.MessageListenerConcurrently;
 import com.alibaba.rocketmq.client.log.ClientLogger;
+import com.alibaba.rocketmq.common.MixAll;
+import com.alibaba.rocketmq.common.message.Message;
 import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.common.message.MessageQueue;
 
@@ -98,12 +100,28 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
         }
 
 
+        /**
+         * »¹Ô­Topic
+         */
+        private void resetRetryTopic(final List<MessageExt> msgs) {
+            final String groupTopic = MixAll.getRetryTopic(consumerGroup);
+            for (MessageExt msg : msgs) {
+                String retryTopic = msg.getProperty(Message.PROPERTY_RETRY_TOPIC);
+                if (retryTopic != null && groupTopic.equals(msg.getTopic())) {
+                    msg.setTopic(retryTopic);
+                }
+            }
+        }
+
+
         @Override
         public void run() {
             MessageListenerConcurrently listener = ConsumeMessageConcurrentlyService.this.messageListener;
             ConsumeConcurrentlyContext context = new ConsumeConcurrentlyContext(messageQueue);
             ConsumeConcurrentlyStatus status = null;
             try {
+                this.resetRetryTopic(msgs);
+
                 status = listener.consumeMessage(msgs, context);
             }
             catch (Throwable e) {
