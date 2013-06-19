@@ -43,10 +43,7 @@ public class BrokerConfig {
             + File.separator + "config" + File.separator + "topics.json";
 
     private String consumerOffsetPath = System.getProperty("user.home") + File.separator + "store"
-            + File.separator + "config" + File.separator + "consumeroffset.json";
-
-    private String consumerOffsetHistoryDir = System.getProperty("user.home") + File.separator + "store"
-            + File.separator + "config" + File.separator + "offsethistory";
+            + File.separator + "config" + File.separator + "consumerOffset.json";
 
     private String brokerConfigPath = System.getProperty("user.home") + File.separator + "store"
             + File.separator + "config" + File.separator + "broker.properties";
@@ -208,16 +205,6 @@ public class BrokerConfig {
 
     public void setFlushConsumerOffsetInterval(int flushConsumerOffsetInterval) {
         this.flushConsumerOffsetInterval = flushConsumerOffsetInterval;
-    }
-
-
-    public String getConsumerOffsetHistoryDir() {
-        return consumerOffsetHistoryDir;
-    }
-
-
-    public void setConsumerOffsetHistoryDir(String consumerOffsetHistoryDir) {
-        this.consumerOffsetHistoryDir = consumerOffsetHistoryDir;
     }
 
 

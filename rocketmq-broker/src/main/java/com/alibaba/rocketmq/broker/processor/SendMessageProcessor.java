@@ -126,7 +126,7 @@ public class SendMessageProcessor implements NettyRequestProcessor {
         }
 
         // 构造消息
-        msgExt.putProperty(Message.PROPERTY_RETRY_TOPIC, msgExt.getTopic());
+        msgExt.putProperty(Message.PROPERTY_RETRY_TOPIC, requestHeader.getPrevTopic());
         msgExt.setDelayTimeLevel(requestHeader.getDelayLevel());
         msgExt.setWaitStoreMsgOK(false);
 
