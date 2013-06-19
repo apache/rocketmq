@@ -196,7 +196,7 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
             }
             break;
         case RECONSUME_LATER:
-            ackIndex = 0;
+            ackIndex = -1;
             break;
         default:
             break;
@@ -223,12 +223,14 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
                 }
             }
 
-            // 发回失败的消息仍然要保留
-            consumeRequest.getMsgs().removeAll(msgBackFailed);
+            if (!msgBackFailed.isEmpty()) {
+                // 发回失败的消息仍然要保留
+                consumeRequest.getMsgs().removeAll(msgBackFailed);
 
-            // 此过程处理失败的消息，需要在Client中做定时消费，直到成功
-            this.submitConsumeRequestLater(msgBackFailed, consumeRequest.getProcessQueue(),
-                consumeRequest.getMessageQueue());
+                // 此过程处理失败的消息，需要在Client中做定时消费，直到成功
+                this.submitConsumeRequestLater(msgBackFailed, consumeRequest.getProcessQueue(),
+                    consumeRequest.getMessageQueue());
+            }
             break;
         default:
             break;

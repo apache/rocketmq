@@ -37,7 +37,7 @@ public class PushConsumer {
                     ConsumeConcurrentlyContext context) {
                 System.out.println("Receive New Messages: " + msgs);
                 // 模拟消费失败情况
-                if ((this.consumeTimes.getAndIncrement() % 5) == 0) {
+                if ((this.consumeTimes.getAndIncrement() % 2) == 0) {
                     return ConsumeConcurrentlyStatus.RECONSUME_LATER;
                 }
 
