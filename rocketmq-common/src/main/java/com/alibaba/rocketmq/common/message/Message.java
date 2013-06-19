@@ -50,6 +50,7 @@ public class Message {
     /**
      * 内部使用
      */
+    public static final String PROPERTY_RETRY_TOPIC = "RETRY_TOPIC";
     public static final String PROPERTY_REAL_TOPIC = "REAL_TOPIC";
     public static final String PROPERTY_REAL_QUEUE_ID = "REAL_QID";
     public static final String PROPERTY_TRANSACTION_PREPARED = "TRAN_MSG";

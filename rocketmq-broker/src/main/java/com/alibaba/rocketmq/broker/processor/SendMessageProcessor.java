@@ -21,6 +21,7 @@ import com.alibaba.rocketmq.common.TopicFilterType;
 import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.common.constant.PermName;
 import com.alibaba.rocketmq.common.help.FAQUrl;
+import com.alibaba.rocketmq.common.message.Message;
 import com.alibaba.rocketmq.common.message.MessageDecoder;
 import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.common.protocol.MQProtos.MQRequestCode;
@@ -37,6 +38,7 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 import com.alibaba.rocketmq.remoting.protocol.RemotingProtos.ResponseCode;
 import com.alibaba.rocketmq.store.MessageExtBrokerInner;
 import com.alibaba.rocketmq.store.PutMessageResult;
+import com.alibaba.rocketmq.store.config.BrokerRole;
 
 
 /**
@@ -83,6 +85,15 @@ public class SendMessageProcessor implements NettyRequestProcessor {
                 (ConsumerSendMsgBackRequestHeader) request
                     .decodeCommandCustomHeader(ConsumerSendMsgBackRequestHeader.class);
 
+        // 只有Master可以写入消息
+        if (this.brokerController.getMessageStoreConfig().getBrokerRole() != BrokerRole.SYNC_MASTER) {
+            response.setCode(MQResponseCode.NO_PERMISSION_VALUE);
+            response.setRemark("the broker[" + this.brokerController.getBrokerConfig().getBrokerIP1()
+                    + "] is slave");
+            return response;
+        }
+
+        // 确保订阅组存在
         SubscriptionGroupConfig subscriptionGroupConfig =
                 this.brokerController.getSubscriptionGroupManager().findSubscriptionGroupConfig(
                     requestHeader.getGroup());
@@ -93,18 +104,56 @@ public class SendMessageProcessor implements NettyRequestProcessor {
             return response;
         }
 
+        // 查询消息，这里如果堆积消息过多，会访问磁盘
+        // 另外如果频繁调用，是否会引起gc问题，需要关注 TODO
         MessageExt msgExt =
                 this.brokerController.getMessageStore().lookMessageByOffset(requestHeader.getOffset());
-        if (msgExt != null) {
-            final String newTopic = MixAll.getRetryTopic(requestHeader.getGroup());
-
-        }
-        else {
+        if (null == msgExt) {
             response.setCode(ResponseCode.SYSTEM_ERROR_VALUE);
             response.setRemark("look message by offset failed, " + requestHeader.getOffset());
             return response;
         }
 
+        // 构造消息
+        final String newTopic = MixAll.getRetryTopic(requestHeader.getGroup());
+        int queueIdInt = Math.abs(this.random.nextInt()) % subscriptionGroupConfig.getRetryQueueNums();
+        msgExt.putProperty(Message.PROPERTY_RETRY_TOPIC, msgExt.getTopic());
+        msgExt.setDelayTimeLevel(requestHeader.getDelayLevel());
+        msgExt.setWaitStoreMsgOK(false);
+
+        MessageExtBrokerInner msgInner = new MessageExtBrokerInner();
+        msgInner.setTopic(newTopic);
+        msgInner.setBody(msgExt.getBody());
+        msgInner.setFlag(msgExt.getFlag());
+        msgInner.setProperties(msgExt.getProperties());
+        msgInner.setPropertiesString(MessageDecoder.messageProperties2String(msgExt.getProperties()));
+        msgInner.setTagsCode(MessageExtBrokerInner.tagsString2tagsCode(null, msgExt.getTags()));
+
+        msgInner.setQueueId(queueIdInt);
+        msgInner.setSysFlag(msgExt.getSysFlag());
+        msgInner.setBornTimestamp(msgExt.getBornTimestamp());
+        msgInner.setBornHost(msgExt.getBornHost());
+        msgInner.setStoreHost(this.getStoreHost());
+        msgInner.setReconsumeTimes(msgExt.getReconsumeTimes() + 1);
+
+        PutMessageResult putMessageResult = this.brokerController.getMessageStore().putMessage(msgInner);
+        if (putMessageResult != null) {
+            switch (putMessageResult.getPutMessageStatus()) {
+            case PUT_OK:
+                response.setCode(ResponseCode.SUCCESS_VALUE);
+                response.setRemark(null);
+                return response;
+            default:
+                break;
+            }
+
+            response.setCode(ResponseCode.SYSTEM_ERROR_VALUE);
+            response.setRemark(putMessageResult.getPutMessageStatus().name());
+            return response;
+        }
+
+        response.setCode(ResponseCode.SYSTEM_ERROR_VALUE);
+        response.setRemark("putMessageResult is null");
         return response;
     }
 

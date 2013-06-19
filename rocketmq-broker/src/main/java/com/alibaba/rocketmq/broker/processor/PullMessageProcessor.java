@@ -24,6 +24,7 @@ import com.alibaba.rocketmq.common.protocol.MQProtos.MQResponseCode;
 import com.alibaba.rocketmq.common.protocol.header.PullMessageRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.PullMessageResponseHeader;
 import com.alibaba.rocketmq.common.protocol.heartbeat.SubscriptionData;
+import com.alibaba.rocketmq.common.subscription.SubscriptionGroupConfig;
 import com.alibaba.rocketmq.common.sysflag.PullSysFlag;
 import com.alibaba.rocketmq.remoting.common.RemotingHelper;
 import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
@@ -105,6 +106,24 @@ public class PullMessageProcessor implements NettyRequestProcessor {
             response.setCode(MQResponseCode.NO_PERMISSION_VALUE);
             response.setRemark("the broker[" + this.brokerController.getBrokerConfig().getBrokerIP1()
                     + "] pulling message is forbidden");
+            return response;
+        }
+
+        // 确保订阅组存在
+        SubscriptionGroupConfig subscriptionGroupConfig =
+                this.brokerController.getSubscriptionGroupManager().findSubscriptionGroupConfig(
+                    requestHeader.getConsumerGroup());
+        if (null == subscriptionGroupConfig) {
+            response.setCode(MQResponseCode.SUBSCRIPTION_GROUP_NOT_EXIST_VALUE);
+            response.setRemark("subscription group not exist, " + requestHeader.getConsumerGroup() + " "
+                    + FAQUrl.suggestTodo(FAQUrl.SUBSCRIPTION_GROUP_NOT_EXIST));
+            return response;
+        }
+
+        // 这个订阅组是否可以消费消息
+        if (!subscriptionGroupConfig.isConsumeEnable()) {
+            response.setCode(MQResponseCode.NO_PERMISSION_VALUE);
+            response.setRemark("subscription group no permission, " + requestHeader.getConsumerGroup());
             return response;
         }
 
