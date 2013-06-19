@@ -124,8 +124,9 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
 
 
     @Override
-    public void sendMessageBack(MessageExt msg, MessageQueue mq, int delayLevel) {
-        // TODO Auto-generated method stub
+    public void sendMessageBack(MessageExt msg, int delayLevel) throws RemotingException, MQBrokerException,
+            InterruptedException {
+        this.defaultMQPushConsumerImpl.sendMessageBack(msg, delayLevel);
     }
 
 

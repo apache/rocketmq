@@ -127,7 +127,8 @@ public class RemotingHelper {
             return null;
         }
 
-        HashMap<Integer/* key */, String/* value */> result = new HashMap<Integer/* key */, String/* value */>();
+        HashMap<Integer/* key */, String/* value */> result =
+                new HashMap<Integer/* key */, String/* value */>();
 
         KVPairList kvList = KVPairList.parseFrom(data);
 
@@ -204,7 +205,8 @@ public class RemotingHelper {
             return null;
         }
 
-        HashMap<String/* name */, String/* value */> result = new HashMap<String/* name */, String/* value */>();
+        HashMap<String/* name */, String/* value */> result =
+                new HashMap<String/* name */, String/* value */>();
 
         NVPairList ps = NVPairList.parseFrom(data);
 
@@ -340,6 +342,18 @@ public class RemotingHelper {
             return addr.substring(1);
         }
 
+        return "";
+    }
+
+
+    public static String parseSocketAddressAddr(SocketAddress socketAddress) {
+        if (socketAddress != null) {
+            final String addr = socketAddress.toString();
+
+            if (addr.length() > 0) {
+                return addr.substring(1);
+            }
+        }
         return "";
     }
 }

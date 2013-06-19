@@ -6,9 +6,11 @@ package com.alibaba.rocketmq.client.consumer;
 import java.util.Set;
 
 import com.alibaba.rocketmq.client.MQAdmin;
+import com.alibaba.rocketmq.client.exception.MQBrokerException;
 import com.alibaba.rocketmq.client.exception.MQClientException;
 import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.common.message.MessageQueue;
+import com.alibaba.rocketmq.remoting.exception.RemotingException;
 
 
 /**
@@ -23,10 +25,13 @@ public interface MQConsumer extends MQAdmin {
      * 重传回去的消息只会被当前Consumer Group消费。
      * 
      * @param msg
-     * @param mq
      * @param delayLevel
+     * @throws InterruptedException
+     * @throws MQBrokerException
+     * @throws RemotingException
      */
-    public void sendMessageBack(final MessageExt msg, final MessageQueue mq, final int delayLevel);
+    public void sendMessageBack(final MessageExt msg, final int delayLevel) throws RemotingException,
+            MQBrokerException, InterruptedException;
 
 
     /**

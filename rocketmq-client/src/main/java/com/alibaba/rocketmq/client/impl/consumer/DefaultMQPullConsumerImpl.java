@@ -343,6 +343,13 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
     }
 
 
+    public void sendMessageBack(MessageExt msg, int delayLevel) throws RemotingException, MQBrokerException,
+            InterruptedException {
+        this.mQClientFactory.getMQClientAPIImpl().consumerSendMessageBack(msg,
+            this.defaultMQPullConsumer.getConsumerGroup(), delayLevel, 3000);
+    }
+
+
     public Set<MessageQueue> fetchMessageQueuesInBalance(String topic) {
         // TODO Auto-generated method stub
         return null;
