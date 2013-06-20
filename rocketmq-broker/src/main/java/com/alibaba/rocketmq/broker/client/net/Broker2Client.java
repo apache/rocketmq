@@ -42,7 +42,8 @@ public class Broker2Client {
             final SelectMapedBufferResult selectMapedBufferResult//
     ) {
         RemotingCommand request =
-                RemotingCommand.createRequestCommand(MQRequestCode.CHECK_TRANSACTION_STATE_VALUE, requestHeader);
+                RemotingCommand.createRequestCommand(MQRequestCode.CHECK_TRANSACTION_STATE_VALUE,
+                    requestHeader);
         request.markOnewayRPC();
 
         try {

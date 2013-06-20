@@ -14,10 +14,7 @@ import org.slf4j.LoggerFactory;
 import com.alibaba.rocketmq.broker.BrokerController;
 import com.alibaba.rocketmq.broker.pagecache.OneMessageTransfer;
 import com.alibaba.rocketmq.broker.pagecache.QueryMessageTransfer;
-import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.constant.LoggerName;
-import com.alibaba.rocketmq.common.message.MessageDecoder;
-import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.common.protocol.MQProtos.MQRequestCode;
 import com.alibaba.rocketmq.common.protocol.MQProtos.MQResponseCode;
 import com.alibaba.rocketmq.common.protocol.header.QueryMessageRequestHeader;
@@ -65,10 +62,13 @@ public class QueryMessageProcessor implements NettyRequestProcessor {
 
     public RemotingCommand queryMessage(ChannelHandlerContext ctx, RemotingCommand request)
             throws RemotingCommandException {
-        final RemotingCommand response = RemotingCommand.createResponseCommand(QueryMessageResponseHeader.class);
-        final QueryMessageResponseHeader responseHeader = (QueryMessageResponseHeader) response.getCustomHeader();
+        final RemotingCommand response =
+                RemotingCommand.createResponseCommand(QueryMessageResponseHeader.class);
+        final QueryMessageResponseHeader responseHeader =
+                (QueryMessageResponseHeader) response.getCustomHeader();
         final QueryMessageRequestHeader requestHeader =
-                (QueryMessageRequestHeader) request.decodeCommandCustomHeader(QueryMessageRequestHeader.class);
+                (QueryMessageRequestHeader) request
+                    .decodeCommandCustomHeader(QueryMessageRequestHeader.class);
 
         // 由于使用sendfile，所以必须要设置
         response.setOpaque(request.getOpaque());
@@ -89,8 +89,8 @@ public class QueryMessageProcessor implements NettyRequestProcessor {
 
             try {
                 FileRegion fileRegion =
-                        new QueryMessageTransfer(response.encodeHeader(queryMessageResult.getBufferTotalSize()),
-                            queryMessageResult);
+                        new QueryMessageTransfer(response.encodeHeader(queryMessageResult
+                            .getBufferTotalSize()), queryMessageResult);
                 ctx.channel().sendFile(fileRegion).addListener(new ChannelFutureListener() {
                     @Override
                     public void operationComplete(ChannelFuture future) throws Exception {
