@@ -78,11 +78,11 @@ public class ProducerTest extends BaseTest{
 	}
 	@Test
 	public void testClientCreateTopicIsOrder() throws MQClientException {
-		producer.createTopic("TopicTest", "newTopicTest", 1, TopicFilterType.MULTI_TAG, true);
+		producer.createTopic("TopicTest", "newTopicTest", 1, true);
 	}
 	@Test
 	public void testClientCreateTopicNoOrder() throws MQClientException {
-		producer.createTopic("TopicTest", "newTopicTest", 1, TopicFilterType.MULTI_TAG, false);
+		producer.createTopic("TopicTest", "newTopicTest", 1, false);
 	}
 //	@Test
 	//发送普通消息失败后自动重试下一个Broker，最多重试3次

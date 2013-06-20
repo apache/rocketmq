@@ -191,7 +191,7 @@ public class PullConsumerTest extends BaseTest {
             case FOUND:
                 for (MessageExt mex : pullResult.getMsgFoundList()) {
                     System.out.println(mex);
-                    consumer.sendMessageBack(mex, mq, 4);
+                    consumer.sendMessageBack(mex,4);
                 }
                 break;
             case NO_MATCHED_MSG:
