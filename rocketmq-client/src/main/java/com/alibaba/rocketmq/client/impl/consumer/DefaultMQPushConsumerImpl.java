@@ -589,7 +589,7 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
         // 增加新增的队列
         List<PullRequest> pullRequestList = new ArrayList<PullRequest>();
         for (MessageQueue mq : mqSet) {
-            if (!this.processQueueTable.contains(mq)) {
+            if (!this.processQueueTable.containsKey(mq)) {
                 PullRequest pullRequest = new PullRequest();
                 pullRequest.setConsumerGroup(this.defaultMQPushConsumer.getConsumerGroup());
                 pullRequest.setMessageQueue(mq);
