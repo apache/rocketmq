@@ -531,6 +531,46 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
     }
 
 
+    /**
+     * 计算从哪里开始拉消息，如果出错返回-1
+     */
+    private long computePullFromWhere(final MessageQueue mq) {
+        long result = -1;
+        switch (this.defaultMQPushConsumer.getConsumeFromWhereOffset()) {
+        case CONSUME_FROM_LAST_OFFSET: {
+            long lastOffset = this.offsetStore.readOffset(mq, true);
+            if (lastOffset >= 0) {
+                result = lastOffset;
+            }
+            else {
+                result = Long.MAX_VALUE;
+            }
+            break;
+        }
+        case CONSUME_FROM_LAST_OFFSET_AND_FROM_MIN_WHEN_BOOT_FIRST: {
+            long lastOffset = this.offsetStore.readOffset(mq, true);
+            if (lastOffset >= 0) {
+                result = lastOffset;
+            }
+            else {
+                result = 0L;
+            }
+            break;
+        }
+        case CONSUME_FROM_MAX_OFFSET:
+            result = Long.MAX_VALUE;
+            break;
+        case CONSUME_FROM_MIN_OFFSET:
+            result = 0L;
+            break;
+        default:
+            break;
+        }
+
+        return result;
+    }
+
+
     private void updateProcessQueueTableInRebalance(final String topic, final Set<MessageQueue> mqSet) {
         // 将多余的队列删除
         for (MessageQueue mq : this.processQueueTable.keySet()) {
@@ -549,15 +589,15 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
         // 增加新增的队列
         List<PullRequest> pullRequestList = new ArrayList<PullRequest>();
         for (MessageQueue mq : mqSet) {
-            ProcessQueue pq = this.processQueueTable.get(mq);
-            if (null == pq) {
+            if (!this.processQueueTable.contains(mq)) {
                 PullRequest pullRequest = new PullRequest();
                 pullRequest.setConsumerGroup(this.defaultMQPushConsumer.getConsumerGroup());
                 pullRequest.setMessageQueue(mq);
                 pullRequest.setProcessQueue(new ProcessQueue());
 
-                // TODO 这个需要根据策略来设置
-                pullRequest.setNextOffset(0L);
+                // 这个需要根据策略来设置
+                long nextOffset = this.computePullFromWhere(mq);
+                pullRequest.setNextOffset(nextOffset);
                 pullRequestList.add(pullRequest);
                 this.processQueueTable.put(mq, pullRequest.getProcessQueue());
                 log.info("doRebalance, {}, add a new mq, {}", this.defaultMQPushConsumer.getConsumerGroup(),
@@ -616,8 +656,13 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
                         this.defaultMQPushConsumer.getAllocateMessageQueueStrategy();
 
                 // 执行分配算法
-                List<MessageQueue> allocateResult =
-                        strategy.allocate(this.mQClientFactory.getClientId(), mqAll, cidAll);
+                List<MessageQueue> allocateResult = null;
+                try {
+                    allocateResult = strategy.allocate(this.mQClientFactory.getClientId(), mqAll, cidAll);
+                }
+                catch (Throwable e) {
+                    log.error("AllocateMessageQueueStrategy.allocate Exception", e);
+                }
 
                 Set<MessageQueue> allocateResultSet = new HashSet<MessageQueue>();
                 if (allocateResult != null) {
