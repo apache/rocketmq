@@ -11,11 +11,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import com.google.protobuf.InvalidProtocolBufferException;
-import com.alibaba.rocketmq.common.protocol.route.ObjectConverter;
 import com.alibaba.rocketmq.common.protocol.MQProtos.TopicRuntimeInfo;
 import com.alibaba.rocketmq.common.protocol.route.BrokerData;
+import com.alibaba.rocketmq.common.protocol.route.ObjectConverter;
 import com.alibaba.rocketmq.common.protocol.route.QueueData;
+import com.google.protobuf.InvalidProtocolBufferException;
 
 
 /**

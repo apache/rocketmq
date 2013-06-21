@@ -29,7 +29,6 @@ import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
 
-import com.google.protobuf.InvalidProtocolBufferException;
 import com.alibaba.rocketmq.remoting.exception.RemotingConnectException;
 import com.alibaba.rocketmq.remoting.exception.RemotingSendRequestException;
 import com.alibaba.rocketmq.remoting.exception.RemotingTimeoutException;
@@ -39,6 +38,7 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingProtos.KVPairList;
 import com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair;
 import com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairList;
 import com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringList;
+import com.google.protobuf.InvalidProtocolBufferException;
 
 
 /**

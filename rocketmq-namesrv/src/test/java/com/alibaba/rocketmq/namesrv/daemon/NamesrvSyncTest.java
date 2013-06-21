@@ -8,7 +8,6 @@ import static org.easymock.EasyMock.anyLong;
 import static org.easymock.EasyMock.anyObject;
 import static org.easymock.EasyMock.eq;
 import static org.easymock.EasyMock.expect;
-
 import junit.framework.Assert;
 
 import org.junit.Test;

@@ -8,10 +8,10 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
 
-import com.google.protobuf.InvalidProtocolBufferException;
 import com.alibaba.rocketmq.remoting.protocol.RemotingProtos.KVPair;
 import com.alibaba.rocketmq.remoting.protocol.RemotingProtos.KVPairList;
 import com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringList;
+import com.google.protobuf.InvalidProtocolBufferException;
 
 
 /**
