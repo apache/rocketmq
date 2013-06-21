@@ -48,7 +48,8 @@ public class RemotingProtosHelperTest {
 
     @Test
     public void hashMap2Bytes_bytes2HashMap() throws InvalidProtocolBufferException {
-        HashMap<Integer/* key */, String/* value */> nmsWrite = new HashMap<Integer/* key */, String/* value */>();
+        HashMap<Integer/* key */, String/* value */> nmsWrite =
+                new HashMap<Integer/* key */, String/* value */>();
         nmsWrite.put(1, "hello");
         nmsWrite.put(2, "hi");
         nmsWrite.put(4, "nice");

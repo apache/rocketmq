@@ -67,7 +67,8 @@ public class PullRequestHoldService extends ServiceThread {
             if (kArray != null && 2 == kArray.length) {
                 String topic = kArray[0];
                 int queueId = Integer.parseInt(kArray[1]);
-                final long offset = this.brokerController.getMessageStore().getMaxOffsetInQuque(topic, queueId);
+                final long offset =
+                        this.brokerController.getMessageStore().getMaxOffsetInQuque(topic, queueId);
                 this.notifyMessageArriving(topic, queueId, offset);
             }
         }
@@ -111,7 +112,8 @@ public class PullRequestHoldService extends ServiceThread {
                     }
 
                     // 查看是否超时
-                    if (System.currentTimeMillis() >= (request.getSuspendTimestamp() + request.getTimeoutMillis())) {
+                    if (System.currentTimeMillis() >= (request.getSuspendTimestamp() + request
+                        .getTimeoutMillis())) {
                         try {
                             this.brokerController.getPullMessageProcessor().excuteRequestWhenWakeup(
                                 request.getClientChannel(), request.getRequestCommand());

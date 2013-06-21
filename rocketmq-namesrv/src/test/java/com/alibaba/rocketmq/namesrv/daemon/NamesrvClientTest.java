@@ -72,10 +72,13 @@ public class NamesrvClientTest {
         response2.setRemark(null);
 
         EasyMock
-            .expect(remotingClient.invokeSync(eq("12.12.13.4:8123"), anyObject(RemotingCommand.class), anyLong()))
+            .expect(
+                remotingClient.invokeSync(eq("12.12.13.4:8123"), anyObject(RemotingCommand.class), anyLong()))
             .andReturn(response1).anyTimes();
         EasyMock
-            .expect(remotingClient.invokeSync(eq("12.12.13.89:8123"), anyObject(RemotingCommand.class), anyLong()))
+            .expect(
+                remotingClient
+                    .invokeSync(eq("12.12.13.89:8123"), anyObject(RemotingCommand.class), anyLong()))
             .andReturn(response2).anyTimes();
         EasyMock.replay(remotingClient);
 
@@ -85,7 +88,8 @@ public class NamesrvClientTest {
         brokerList.add("12.12.13.4:8123");
         brokerList.add("12.12.13.89:8123");
         DefaultTopicRuntimeDataManager dataManager = new DefaultTopicRuntimeDataManager(namesrvConfig);
-        TopicRuntimeData topicRuntimeData = DataUtils.getField(dataManager, TopicRuntimeData.class, "topicData");
+        TopicRuntimeData topicRuntimeData =
+                DataUtils.getField(dataManager, TopicRuntimeData.class, "topicData");
 
         topicRuntimeData.setBrokerList(brokerList);
 

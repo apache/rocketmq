@@ -150,9 +150,11 @@ public class ConsumerGroupInfo {
         return updated;
     }
 
+
     public SubscriptionData findSubscriptionData(final String topic) {
         return this.subscriptionTable.get(topic);
     }
+
 
     public ConsumeType getConsumeType() {
         return consumeType;

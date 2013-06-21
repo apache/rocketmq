@@ -48,8 +48,8 @@ public interface RemotingServer {
 
 
     public void invokeAsync(final Channel channel, final RemotingCommand request, final long timeoutMillis,
-            final InvokeCallback invokeCallback) throws InterruptedException, RemotingTooMuchRequestException,
-            RemotingTimeoutException, RemotingSendRequestException;
+            final InvokeCallback invokeCallback) throws InterruptedException,
+            RemotingTooMuchRequestException, RemotingTimeoutException, RemotingSendRequestException;
 
 
     public void invokeOneway(final Channel channel, final RemotingCommand request, final long timeoutMillis)

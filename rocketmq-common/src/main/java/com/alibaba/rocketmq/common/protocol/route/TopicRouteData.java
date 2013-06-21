@@ -52,8 +52,8 @@ public class TopicRouteData extends RemotingSerializable {
 
     @Override
     public String toString() {
-        return "TopicRouteData [queueDatas=" + queueDatas + ", brokerDatas=" + brokerDatas + ", orderTopicConf="
-                + orderTopicConf + "]";
+        return "TopicRouteData [queueDatas=" + queueDatas + ", brokerDatas=" + brokerDatas
+                + ", orderTopicConf=" + orderTopicConf + "]";
     }
 
 

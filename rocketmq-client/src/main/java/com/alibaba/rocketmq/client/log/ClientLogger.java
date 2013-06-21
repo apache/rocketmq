@@ -22,7 +22,8 @@ public class ClientLogger {
 
     static {
         // 确认日志默认存储路径
-        logFilePath = System.getProperty("rocketmq.client.log.path", System.getenv("ROCKETMQ_CLIENT_LOG_PATH"));
+        logFilePath =
+                System.getProperty("rocketmq.client.log.path", System.getenv("ROCKETMQ_CLIENT_LOG_PATH"));
         if (null == logFilePath) {
             logFilePath = System.getProperty("user.home") + File.separator + "rocketmqlogs";
         }

@@ -122,7 +122,7 @@ public class ClientConfig {
         return "ClientConfig [namesrvAddr=" + namesrvAddr + ", clientIP=" + clientIP + ", instanceName="
                 + instanceName + ", clientCallbackExecutorThreads=" + clientCallbackExecutorThreads
                 + ", pollNameServerInteval=" + pollNameServerInteval + ", heartbeatBrokerInterval="
-                + heartbeatBrokerInterval + ", persistConsumerOffsetInterval=" + persistConsumerOffsetInterval
-                + "]";
+                + heartbeatBrokerInterval + ", persistConsumerOffsetInterval="
+                + persistConsumerOffsetInterval + "]";
     }
 }

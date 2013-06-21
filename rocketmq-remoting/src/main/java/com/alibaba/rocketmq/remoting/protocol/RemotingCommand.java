@@ -65,7 +65,8 @@ public class RemotingCommand {
 
     public static RemotingCommand createResponseCommand(Class<? extends CommandCustomHeader> classHeader) {
         RemotingCommand cmd =
-                createResponseCommand(ResponseCode.SYSTEM_ERROR_VALUE, "not set any response code", classHeader);
+                createResponseCommand(ResponseCode.SYSTEM_ERROR_VALUE, "not set any response code",
+                    classHeader);
 
         return cmd;
     }
@@ -513,9 +514,9 @@ public class RemotingCommand {
 
     @Override
     public String toString() {
-        return "RemotingCommand [code=" + code + ", language=" + language + ", version=" + version + ", opaque="
-                + opaque + ", flag(B)=" + Integer.toBinaryString(flag) + ", remark=" + remark + ", extFields="
-                + extFields + "]";
+        return "RemotingCommand [code=" + code + ", language=" + language + ", version=" + version
+                + ", opaque=" + opaque + ", flag(B)=" + Integer.toBinaryString(flag) + ", remark=" + remark
+                + ", extFields=" + extFields + "]";
     }
 
     // public CommandCustomHeader getCustomHeader() {

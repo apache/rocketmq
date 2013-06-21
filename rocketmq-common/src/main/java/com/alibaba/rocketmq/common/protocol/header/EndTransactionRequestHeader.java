@@ -115,6 +115,7 @@ public class EndTransactionRequestHeader implements CommandCustomHeader {
     public String toString() {
         return "EndTransactionRequestHeader [producerGroup=" + producerGroup + ", tranStateTableOffset="
                 + tranStateTableOffset + ", commitLogOffset=" + commitLogOffset + ", commitOrRollback="
-                + commitOrRollback + ", fromTransactionCheck=" + fromTransactionCheck + ", msgId=" + msgId + "]";
+                + commitOrRollback + ", fromTransactionCheck=" + fromTransactionCheck + ", msgId=" + msgId
+                + "]";
     }
 }

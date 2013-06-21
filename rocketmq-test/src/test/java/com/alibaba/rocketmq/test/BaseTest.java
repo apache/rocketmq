@@ -60,7 +60,8 @@ public abstract class BaseTest extends TestCase {
                 break;
             case SLAVE:
                 // Slave Id由Slave监听IP、端口决定
-                long id = MixAll.createBrokerId(brokerConfig.getBrokerIP1(), nettyServerConfig.getListenPort());
+                long id =
+                        MixAll.createBrokerId(brokerConfig.getBrokerIP1(), nettyServerConfig.getListenPort());
                 brokerConfig.setBrokerId(id);
                 break;
             default:

@@ -28,7 +28,8 @@ public class Client {
                 ByteBuffer repdata = rpcClient.call(reqstr.getBytes());
                 if (repdata != null) {
                     String repstr =
-                            new String(repdata.array(), repdata.position(), repdata.limit() - repdata.position());
+                            new String(repdata.array(), repdata.position(), repdata.limit()
+                                    - repdata.position());
                     System.out.println("call result, " + repstr);
                 }
                 else {

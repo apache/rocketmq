@@ -10,9 +10,11 @@ import java.util.Set;
 /**
  * 
  * @author lansheng.zj@taobao.com
- *
- * @param <R> 返回值类型
- * @param <T> 参数类型
+ * 
+ * @param <R>
+ *            返回值类型
+ * @param <T>
+ *            参数类型
  */
 public class TaskGroup<R, T> implements Iterable<Entry<String, Task<R, T>>> {
 
@@ -42,8 +44,8 @@ public class TaskGroup<R, T> implements Iterable<Entry<String, Task<R, T>>> {
     public int size() {
         return taskMap.size();
     }
-    
-    
+
+
     public Set<String> getKeys() {
         return taskMap.keySet();
     }

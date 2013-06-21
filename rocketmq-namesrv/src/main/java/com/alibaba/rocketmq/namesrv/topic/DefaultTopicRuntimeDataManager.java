@@ -390,8 +390,8 @@ public class DefaultTopicRuntimeDataManager implements TopicRuntimeDataManager {
         }
 
         if (log.isInfoEnabled())
-            log.info("register broker and spread to others, address:" + address + ",result:" + result.isSuccess()
-                    + ",code:" + response.getCode());
+            log.info("register broker and spread to others, address:" + address + ",result:"
+                    + result.isSuccess() + ",code:" + response.getCode());
 
         return response;
     }
@@ -634,7 +634,8 @@ public class DefaultTopicRuntimeDataManager implements TopicRuntimeDataManager {
             topicData.getBrokers().remove(brokerName);
 
             // remove topic info
-            Iterator<Entry<String, List<QueueData>>> iterator = topicData.getTopicBrokers().entrySet().iterator();
+            Iterator<Entry<String, List<QueueData>>> iterator =
+                    topicData.getTopicBrokers().entrySet().iterator();
             while (iterator.hasNext()) {
                 Entry<String, List<QueueData>> entry = iterator.next();
                 List<QueueData> listQueue = entry.getValue();

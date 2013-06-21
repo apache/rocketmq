@@ -147,7 +147,8 @@ public class LinkedByteBufferList {
                 int remainHeaderPut = HEADER_SIZE - minHeader;
                 int remainDataPut = data.length - minData;
                 if (remainHeaderPut > 0) {
-                    this.currentWriteNode.getByteBufferWrite().put(header.array(), minHeader, remainHeaderPut);
+                    this.currentWriteNode.getByteBufferWrite()
+                        .put(header.array(), minHeader, remainHeaderPut);
                     this.currentWriteNode.getWriteOffset().addAndGet(remainHeaderPut);
                 }
 

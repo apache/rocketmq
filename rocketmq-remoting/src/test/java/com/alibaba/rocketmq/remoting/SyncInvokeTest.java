@@ -23,7 +23,8 @@ public class SyncInvokeTest {
 
         for (int i = 0; i < 1000000; i++) {
             try {
-                RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.DEMO_REQUEST_VALUE, null);
+                RemotingCommand request =
+                        RemotingCommand.createRequestCommand(RequestCode.DEMO_REQUEST_VALUE, null);
                 RemotingCommand response = client.invokeSync("127.0.0.1:10911", request, 1000 * 3);
                 System.out.println(i + "\t" + "invoke result = " + response);
                 assertTrue(response != null);

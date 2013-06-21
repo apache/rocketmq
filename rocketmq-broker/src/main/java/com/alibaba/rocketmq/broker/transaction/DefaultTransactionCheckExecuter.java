@@ -27,7 +27,8 @@ public class DefaultTransactionCheckExecuter implements TransactionCheckExecuter
 
 
     @Override
-    public void gotoCheck(int producerGroupHashCode, long tranStateTableOffset, long commitLogOffset, int msgSize) {
+    public void gotoCheck(int producerGroupHashCode, long tranStateTableOffset, long commitLogOffset,
+            int msgSize) {
         // 第一步、查询Producer
         final ClientChannelInfo clientChannelInfo =
                 this.brokerController.getProducerManager().pickProducerChannelRandomly(producerGroupHashCode);
@@ -41,7 +42,8 @@ public class DefaultTransactionCheckExecuter implements TransactionCheckExecuter
         SelectMapedBufferResult selectMapedBufferResult =
                 this.brokerController.getMessageStore().selectOneMessageByOffset(commitLogOffset, msgSize);
         if (null == selectMapedBufferResult) {
-            log.warn("check a producer transaction state, but not find message by commitLogOffset: {}, msgSize: ",
+            log.warn(
+                "check a producer transaction state, but not find message by commitLogOffset: {}, msgSize: ",
                 commitLogOffset, msgSize);
             return;
         }
@@ -50,7 +52,7 @@ public class DefaultTransactionCheckExecuter implements TransactionCheckExecuter
         final CheckTransactionStateRequestHeader requestHeader = new CheckTransactionStateRequestHeader();
         requestHeader.setCommitLogOffset(commitLogOffset);
         requestHeader.setTranStateTableOffset(tranStateTableOffset);
-        this.brokerController.getBroker2Client().checkProducerTransactionState(clientChannelInfo.getChannel(),
-            requestHeader, selectMapedBufferResult);
+        this.brokerController.getBroker2Client().checkProducerTransactionState(
+            clientChannelInfo.getChannel(), requestHeader, selectMapedBufferResult);
     }
 }

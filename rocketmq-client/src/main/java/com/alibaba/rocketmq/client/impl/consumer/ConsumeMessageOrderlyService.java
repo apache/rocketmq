@@ -151,7 +151,8 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
 
 
     @Override
-    public void submitConsumeRequest(List<MessageExt> msgs, ProcessQueue processQueue, MessageQueue messageQueue) {
+    public void submitConsumeRequest(List<MessageExt> msgs, ProcessQueue processQueue,
+            MessageQueue messageQueue) {
         final int consumeBatchSize = this.defaultMQPushConsumer.getConsumeMessageBatchMaxSize();
         if (msgs.size() <= consumeBatchSize) {
             ConsumeRequest consumeRequest = new ConsumeRequest(msgs, processQueue, messageQueue);

@@ -5,7 +5,7 @@ public class Contact {
     private String name;
     private int age;
     private double weight;
-    private  String school;
+    private String school;
     private SexType sex;
 
 
@@ -75,7 +75,7 @@ public class Contact {
 
     @Override
     public String toString() {
-        return "Contact [name=" + name + ", age=" + age + ", weight=" + weight + ", school=" + school + ", sex="
-                + sex + "]";
+        return "Contact [name=" + name + ", age=" + age + ", weight=" + weight + ", school=" + school
+                + ", sex=" + sex + "]";
     }
 }

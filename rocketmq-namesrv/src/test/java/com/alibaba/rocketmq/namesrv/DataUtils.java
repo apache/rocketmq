@@ -219,11 +219,10 @@ public class DataUtils {
     }
 
 
-    public static <T, F> F getField(T target, Class<F> fieldClazz, String fieldName)
-            throws Exception {
+    public static <T, F> F getField(T target, Class<F> fieldClazz, String fieldName) throws Exception {
         Field field = target.getClass().getDeclaredField(fieldName);
         field.setAccessible(true);
-        F fieldObj = (F)field.get(target);
+        F fieldObj = (F) field.get(target);
         return fieldObj;
     }
 }

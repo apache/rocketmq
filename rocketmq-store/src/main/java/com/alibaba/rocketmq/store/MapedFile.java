@@ -305,7 +305,8 @@ public class MapedFile extends ReferenceResource {
     }
 
 
-    private static Method method(Object target, String methodName, Class<?>[] args) throws NoSuchMethodException {
+    private static Method method(Object target, String methodName, Class<?>[] args)
+            throws NoSuchMethodException {
         try {
             return target.getClass().getMethod(methodName, args);
         }
@@ -328,13 +329,15 @@ public class MapedFile extends ReferenceResource {
     public boolean cleanup(final long currentRef) {
         // 如果没有被shutdown，则不可以unmap文件，否则会crash
         if (this.isAvailable()) {
-            log.error("this file[REF:" + currentRef + "] " + this.fileName + " have not shutdown, stop unmaping.");
+            log.error("this file[REF:" + currentRef + "] " + this.fileName
+                    + " have not shutdown, stop unmaping.");
             return false;
         }
 
         // 如果已经cleanup，再次操作会引起crash
         if (this.isCleanupOver()) {
-            log.error("this file[REF:" + currentRef + "] " + this.fileName + " have cleanup, do not do it again.");
+            log.error("this file[REF:" + currentRef + "] " + this.fileName
+                    + " have cleanup, do not do it again.");
             // 必须返回true
             return true;
         }
@@ -364,7 +367,8 @@ public class MapedFile extends ReferenceResource {
                 boolean result = this.file.delete();
                 log.info("delete file[REF:" + this.getRefCount() + "] " + this.fileName
                         + (result ? " OK, " : " Failed, ") + "W:" + this.getWrotePostion() + " M:"
-                        + this.getCommittedPosition() + ", " + UtilALl.computeEclipseTimeMilliseconds(beginTime));
+                        + this.getCommittedPosition() + ", "
+                        + UtilALl.computeEclipseTimeMilliseconds(beginTime));
             }
             catch (Exception e) {
                 log.warn("close file channel " + this.fileName + " Failed. ", e);

@@ -19,20 +19,21 @@ public class TopicRuntimeDataTest {
         TopicRuntimeData topicRuntimeData = create();
         byte[] data = topicRuntimeData.encode();
         TopicRuntimeData serial = TopicRuntimeData.decode(data);
-        
+
         Assert.assertTrue(topicRuntimeData.equals(serial));
     }
-    
+
+
     @Test
     public void testEncodeSpecific() throws Exception {
         TopicRuntimeData topicRuntimeData = createSpecific();
         byte[] data = topicRuntimeData.encodeSpecific();
         TopicRuntimeData serial = TopicRuntimeData.decode(data);
-        
+
         Assert.assertTrue(topicRuntimeData.equals(serial));
     }
 
-    
+
     private TopicRuntimeData createSpecific() {
         TopicRuntimeData data = new TopicRuntimeData();
 
@@ -46,7 +47,7 @@ public class TopicRuntimeDataTest {
 
         return data;
     }
-    
+
 
     private TopicRuntimeData create() {
         TopicRuntimeData data = new TopicRuntimeData();
@@ -109,7 +110,7 @@ public class TopicRuntimeDataTest {
         BrokerData broker4 = new BrokerData();
         broker4.setBrokerName("broker-4");
         HashMap<Long, String> brokerAddrs4 = new HashMap<Long, String>();
-        //brokerAddrs4.put(0L, "10.23.12.15:8123");
+        // brokerAddrs4.put(0L, "10.23.12.15:8123");
         broker4.setBrokerAddrs(brokerAddrs4);
 
         data.getBrokers().put("broker-1", broker1);

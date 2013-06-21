@@ -6,12 +6,12 @@ package com.alibaba.rocketmq.example.simple;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 
-import com.alibaba.rocketmq.client.consumer.ConsumeFromWhere;
 import com.alibaba.rocketmq.client.consumer.DefaultMQPushConsumer;
 import com.alibaba.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext;
 import com.alibaba.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
 import com.alibaba.rocketmq.client.consumer.listener.MessageListenerConcurrently;
 import com.alibaba.rocketmq.client.exception.MQClientException;
+import com.alibaba.rocketmq.common.consumer.ConsumeFromWhere;
 import com.alibaba.rocketmq.common.message.MessageExt;
 
 

@@ -38,7 +38,8 @@ public class SendMessageTest {
 
         for (int i = 0; i < 100000; i++) {
             String topic = "UnitTestTopic_" + i % 3;
-            Message msg = new Message(topic, "TAG1 TAG2", "100200300", ("Hello, Nice world\t" + i).getBytes());
+            Message msg =
+                    new Message(topic, "TAG1 TAG2", "100200300", ("Hello, Nice world\t" + i).getBytes());
             msg.setDelayTimeLevel(i % 3 + 1);
 
             try {

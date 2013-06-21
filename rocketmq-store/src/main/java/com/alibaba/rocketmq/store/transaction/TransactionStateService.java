@@ -165,16 +165,17 @@ public class TransactionStateService {
             }
         }
 
-        log.info("scan transaction redolog over, End offset: {},  Prepared Transaction Count: {}", processOffset,
-            preparedItemSet.size());
+        log.info("scan transaction redolog over, End offset: {},  Prepared Transaction Count: {}",
+            processOffset, preparedItemSet.size());
         // 第二步，重建StateTable
         Iterator<Long> it = preparedItemSet.iterator();
         while (it.hasNext()) {
             Long offset = it.next();
             MessageExt msgExt = this.defaultMessageStore.lookMessageByOffset(offset);
             if (msgExt != null) {
-                this.appendPreparedTransaction(msgExt.getCommitLogOffset(), msgExt.getStoreSize(), (int) (msgExt
-                    .getStoreTimestamp() / 1000), msgExt.getProperty(Message.PROPERTY_PRODUCER_GROUP).hashCode());
+                this.appendPreparedTransaction(msgExt.getCommitLogOffset(), msgExt.getStoreSize(),
+                    (int) (msgExt.getStoreTimestamp() / 1000),
+                    msgExt.getProperty(Message.PROPERTY_PRODUCER_GROUP).hashCode());
                 this.tranStateTableOffset.incrementAndGet();
             }
         }
@@ -220,8 +221,9 @@ public class TransactionStateService {
                         mapedFileOffset = i + TSStoreUnitSize;
                     }
                     else {
-                        log.info("recover current transaction state table file over,  " + mapedFile.getFileName()
-                                + " " + clOffset_read + " " + size_read + " " + timestamp_read);
+                        log.info("recover current transaction state table file over,  "
+                                + mapedFile.getFileName() + " " + clOffset_read + " " + size_read + " "
+                                + timestamp_read);
                         break;
                     }
                 }
@@ -244,8 +246,8 @@ public class TransactionStateService {
                     }
                 }
                 else {
-                    log.info("recover current transaction state table queue over " + mapedFile.getFileName() + " "
-                            + (processOffset + mapedFileOffset));
+                    log.info("recover current transaction state table queue over " + mapedFile.getFileName()
+                            + " " + (processOffset + mapedFileOffset));
                     break;
                 }
             }
@@ -270,8 +272,8 @@ public class TransactionStateService {
                     TransactionStateService.this.defaultMessageStore.getMessageStoreConfig()
                         .getCheckTransactionMessageAtleastInterval();
 
-            private final boolean slave = TransactionStateService.this.defaultMessageStore.getMessageStoreConfig()
-                .getBrokerRole() == BrokerRole.SLAVE;
+            private final boolean slave = TransactionStateService.this.defaultMessageStore
+                .getMessageStoreConfig().getBrokerRole() == BrokerRole.SLAVE;
 
 
             private long getTranStateOffset(final long currentIndex) {
@@ -369,7 +371,8 @@ public class TransactionStateService {
                     log.error("check transaction timer task Exception", e);
                 }
             }
-        }, 1000 * 60, this.defaultMessageStore.getMessageStoreConfig().getCheckTransactionMessageTimerInterval());
+        }, 1000 * 60, this.defaultMessageStore.getMessageStoreConfig()
+            .getCheckTransactionMessageTimerInterval());
     }
 
 

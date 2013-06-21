@@ -14,5 +14,6 @@ import com.alibaba.rocketmq.common.message.MessageQueue;
  * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public interface MessageQueueListener {
-    public void messageQueueChanged(final String topic, final List<MessageQueue> mqAll, final List<MessageQueue> mqDivided);
+    public void messageQueueChanged(final String topic, final List<MessageQueue> mqAll,
+            final List<MessageQueue> mqDivided);
 }

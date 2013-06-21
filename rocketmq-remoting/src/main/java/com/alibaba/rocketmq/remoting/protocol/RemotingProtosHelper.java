@@ -88,7 +88,8 @@ public class RemotingProtosHelper {
             return null;
         }
 
-        HashMap<Integer/* key */, String/* value */> result = new HashMap<Integer/* key */, String/* value */>();
+        HashMap<Integer/* key */, String/* value */> result =
+                new HashMap<Integer/* key */, String/* value */>();
 
         KVPairList kvList = KVPairList.parseFrom(data);
 

@@ -153,7 +153,8 @@ public class ChangeSpreadProcessor {
                 RegisterBrokerRequestHeader regBrokerRequestHeader = new RegisterBrokerRequestHeader();
                 regBrokerRequestHeader.setBrokerAddr(brokerAddr[0]);
                 RemotingCommand request =
-                        RemotingCommand.createRequestCommand(REGISTER_BROKER_SINGLE_VALUE, regBrokerRequestHeader);
+                        RemotingCommand.createRequestCommand(REGISTER_BROKER_SINGLE_VALUE,
+                            regBrokerRequestHeader);
                 RemotingCommand response =
                         RemotingHelper.invokeSync(address, request, namesrvConf.getSyncTimeout());
                 if (SUCCESS_VALUE == response.getCode()) {
@@ -185,7 +186,8 @@ public class ChangeSpreadProcessor {
 
             @Override
             public Result doExec(String[] ts) throws Exception {
-                RegisterOrderTopicRequestHeader regOrderTopicRequestHeader = new RegisterOrderTopicRequestHeader();
+                RegisterOrderTopicRequestHeader regOrderTopicRequestHeader =
+                        new RegisterOrderTopicRequestHeader();
                 regOrderTopicRequestHeader.setTopic(ts[0]);
                 regOrderTopicRequestHeader.setOrderTopicString(ts[1]);
                 RemotingCommand request =
@@ -222,7 +224,8 @@ public class ChangeSpreadProcessor {
 
             @Override
             public Result doExec(String[] brokerName) throws Exception {
-                UnRegisterBrokerRequestHeader unRegisterBrokerRequestHeader = new UnRegisterBrokerRequestHeader();
+                UnRegisterBrokerRequestHeader unRegisterBrokerRequestHeader =
+                        new UnRegisterBrokerRequestHeader();
                 unRegisterBrokerRequestHeader.setBrokerName(brokerName[0]);
                 RemotingCommand request =
                         RemotingCommand.createRequestCommand(MQRequestCode.UNREGISTER_BROKER_SINGLE_VALUE,

@@ -390,13 +390,14 @@ public class MapedFileQueue {
         if (createOffset != -1) {
             String nextFilePath = this.storePath + File.separator + UtilALl.offset2FileName(createOffset);
             String nextNextFilePath =
-                    this.storePath + File.separator + UtilALl.offset2FileName(createOffset + this.mapedFileSize);
+                    this.storePath + File.separator
+                            + UtilALl.offset2FileName(createOffset + this.mapedFileSize);
             MapedFile mapedFile = null;
 
             if (this.allocateMapedFileService != null) {
                 mapedFile =
-                        this.allocateMapedFileService.putRequestAndReturnMapedFile(nextFilePath, nextNextFilePath,
-                            this.mapedFileSize);
+                        this.allocateMapedFileService.putRequestAndReturnMapedFile(nextFilePath,
+                            nextNextFilePath, this.mapedFileSize);
             }
             else {
                 try {
@@ -457,9 +458,9 @@ public class MapedFileQueue {
                 int index =
                         (int) ((offset / this.mapedFileSize) - (mapedFile.getFileFromOffset() / this.mapedFileSize));
                 if (index < 0 || index >= this.mapedFiles.size()) {
-                    log.warn("findMapedFileByOffset offset not matched, request Offset: " + offset + ", index: "
-                            + index + ", mapedFileSize: " + this.mapedFileSize + ", mapedFiles count: "
-                            + this.mapedFiles.size());
+                    log.warn("findMapedFileByOffset offset not matched, request Offset: " + offset
+                            + ", index: " + index + ", mapedFileSize: " + this.mapedFileSize
+                            + ", mapedFiles count: " + this.mapedFiles.size());
                 }
 
                 try {

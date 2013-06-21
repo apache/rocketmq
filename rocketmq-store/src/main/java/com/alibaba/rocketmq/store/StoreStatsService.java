@@ -219,7 +219,8 @@ public class StoreStatsService extends ServiceThread {
         sb.append("\tputMessageEntireTimeMax: " + this.putMessageEntireTimeMax + "\r\n");
         sb.append("\tputMessageTimesTotal: " + totalTimes + "\r\n");
         sb.append("\tputMessageSizeTotal: " + this.putMessageSizeTotal.get() + "\r\n");
-        sb.append("\tputMessageDistributeTime: " + this.getPutMessageDistributeTimeStringInfo(totalTimes) + "\r\n");
+        sb.append("\tputMessageDistributeTime: " + this.getPutMessageDistributeTimeStringInfo(totalTimes)
+                + "\r\n");
         sb.append("\tputMessageAverageSize: " + (this.putMessageSizeTotal.get() / totalTimes.doubleValue())
                 + "\r\n");
         sb.append("\tdispatchMaxBuffer: " + this.dispatchMaxBuffer + "\r\n");
@@ -260,14 +261,14 @@ public class StoreStatsService extends ServiceThread {
             this.putTimesList.removeFirst();
         }
 
-        this.getTimesFoundList.add(new CallSnapshot(System.currentTimeMillis(), this.getMessageTimesTotalFound
-            .get()));
+        this.getTimesFoundList.add(new CallSnapshot(System.currentTimeMillis(),
+            this.getMessageTimesTotalFound.get()));
         if (this.getTimesFoundList.size() > (MaxRecordsOfSampling + 1)) {
             this.getTimesFoundList.removeFirst();
         }
 
-        this.getTimesMissList
-            .add(new CallSnapshot(System.currentTimeMillis(), this.getMessageTimesTotalMiss.get()));
+        this.getTimesMissList.add(new CallSnapshot(System.currentTimeMillis(), this.getMessageTimesTotalMiss
+            .get()));
         if (this.getTimesMissList.size() > (MaxRecordsOfSampling + 1)) {
             this.getTimesMissList.removeFirst();
         }
@@ -423,7 +424,8 @@ public class StoreStatsService extends ServiceThread {
             CallSnapshot last = this.getTimesFoundList.getLast();
 
             if (this.getTimesFoundList.size() > time) {
-                CallSnapshot lastBefore = this.getTimesFoundList.get(this.getTimesFoundList.size() - (time + 1));
+                CallSnapshot lastBefore =
+                        this.getTimesFoundList.get(this.getTimesFoundList.size() - (time + 1));
                 found = CallSnapshot.getTPS(lastBefore, last);
             }
         }
@@ -431,7 +433,8 @@ public class StoreStatsService extends ServiceThread {
             CallSnapshot last = this.getTimesMissList.getLast();
 
             if (this.getTimesMissList.size() > time) {
-                CallSnapshot lastBefore = this.getTimesMissList.get(this.getTimesMissList.size() - (time + 1));
+                CallSnapshot lastBefore =
+                        this.getTimesMissList.get(this.getTimesMissList.size() - (time + 1));
                 miss = CallSnapshot.getTPS(lastBefore, last);
             }
         }

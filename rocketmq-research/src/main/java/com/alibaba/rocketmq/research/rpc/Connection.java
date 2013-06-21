@@ -323,7 +323,8 @@ public class Connection {
                             for (ByteBuffer request : requestList) {
                                 try {
                                     final int reqId = request.getInt(request.position() - 4);
-                                    byte[] response = Connection.this.rpcServerProcessor.process(reqId, request);
+                                    byte[] response =
+                                            Connection.this.rpcServerProcessor.process(reqId, request);
                                     if (response != null) {
                                         Connection.this.linkeByteBufferList.putData(reqId, response);
                                     }

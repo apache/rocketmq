@@ -45,7 +45,8 @@ public class NamesrvSyncTest {
 
         NamesrvConfig namesrvConf = new NamesrvConfig();
         namesrvConf.setNamesrvAddr("10.12.12.11:9876;10.12.12.16:9876;");
-        DefaultTopicRuntimeDataManager topicRuntimeDataManager = new DefaultTopicRuntimeDataManager(namesrvConf);
+        DefaultTopicRuntimeDataManager topicRuntimeDataManager =
+                new DefaultTopicRuntimeDataManager(namesrvConf);
         NamesrvSync namesrvSync = new NamesrvSync(namesrvConf, topicRuntimeDataManager);
 
         PowerMock.mockStatic(RemotingHelper.class);
@@ -80,7 +81,8 @@ public class NamesrvSyncTest {
         NamesrvConfig namesrvConf = new NamesrvConfig();
         namesrvConf.setNamesrvAddr("addr1;addr2");
         namesrvConf.setSyncTimeout(100L);
-        DefaultTopicRuntimeDataManager topicRuntimeDataManager = new DefaultTopicRuntimeDataManager(namesrvConf);
+        DefaultTopicRuntimeDataManager topicRuntimeDataManager =
+                new DefaultTopicRuntimeDataManager(namesrvConf);
         NamesrvSync namesrvSync = new NamesrvSync(namesrvConf, topicRuntimeDataManager);
 
         PowerMock.mockStatic(RemotingHelper.class);

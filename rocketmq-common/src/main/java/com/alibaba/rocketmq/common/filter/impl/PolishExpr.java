@@ -39,8 +39,8 @@ public class PolishExpr {
                 if (Type.OPERATOR == preType || Type.SEPAERATOR == preType || Type.NULL == preType
                         || Type.PARENTHESIS == preType) {
                     if (Type.OPERATOR == preType) {
-                        segments
-                            .add(createOperator(expression.substring(wordStartIndex, wordStartIndex + wordLen)));
+                        segments.add(createOperator(expression.substring(wordStartIndex, wordStartIndex
+                                + wordLen)));
                     }
                     wordStartIndex = i;
                     wordLen = 0;
@@ -52,7 +52,8 @@ public class PolishExpr {
                 // À¨ºÅ
 
                 if (Type.OPERATOR == preType) {
-                    segments.add(createOperator(expression.substring(wordStartIndex, wordStartIndex + wordLen)));
+                    segments.add(createOperator(expression
+                        .substring(wordStartIndex, wordStartIndex + wordLen)));
                     wordStartIndex = -1;
                     wordLen = 0;
                 }
@@ -69,7 +70,8 @@ public class PolishExpr {
                 // ²Ù×÷·û
                 if (Type.OPERAND == preType || Type.SEPAERATOR == preType || Type.PARENTHESIS == preType) {
                     if (Type.OPERAND == preType) {
-                        segments.add(new Operand(expression.substring(wordStartIndex, wordStartIndex + wordLen)));
+                        segments.add(new Operand(expression.substring(wordStartIndex, wordStartIndex
+                                + wordLen)));
                     }
                     wordStartIndex = i;
                     wordLen = 0;
@@ -81,7 +83,8 @@ public class PolishExpr {
                 // µ¥´Ê·Ö¸ô·û
 
                 if (Type.OPERATOR == preType) {
-                    segments.add(createOperator(expression.substring(wordStartIndex, wordStartIndex + wordLen)));
+                    segments.add(createOperator(expression
+                        .substring(wordStartIndex, wordStartIndex + wordLen)));
                     wordStartIndex = -1;
                     wordLen = 0;
                 }

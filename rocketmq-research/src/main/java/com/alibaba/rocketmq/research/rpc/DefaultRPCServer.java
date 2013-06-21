@@ -54,7 +54,8 @@ public class DefaultRPCServer implements RPCServer {
                     for (SelectionKey k : selectedList) {
                         if ((k.readyOps() & SelectionKey.OP_ACCEPT) != 0) {
                             SocketChannel sc = ((ServerSocketChannel) k.channel()).accept();
-                            System.out.println("receive new connection, " + sc.socket().getRemoteSocketAddress());
+                            System.out.println("receive new connection, "
+                                    + sc.socket().getRemoteSocketAddress());
                             Connection newConnection =
                                     new Connection(sc, DefaultRPCServer.this.rpcServerProcessor,
                                         DefaultRPCServer.this.executor);
@@ -96,7 +97,8 @@ public class DefaultRPCServer implements RPCServer {
     }
 
 
-    public DefaultRPCServer(final int listenPort, final int minPoolSize, final int maxPoolSize) throws IOException {
+    public DefaultRPCServer(final int listenPort, final int minPoolSize, final int maxPoolSize)
+            throws IOException {
         this.listenPort = listenPort;
         this.socketAddressListen = new InetSocketAddress(this.listenPort);
         this.serverSocketChannel = ServerSocketChannel.open();

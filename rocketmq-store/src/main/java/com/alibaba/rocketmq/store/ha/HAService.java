@@ -254,7 +254,8 @@ public class HAService {
 
 
         private boolean isTimeToReportOffset() {
-            long interval = HAService.this.defaultMessageStore.getSystemClock().now() - this.lastWriteTimestamp;
+            long interval =
+                    HAService.this.defaultMessageStore.getSystemClock().now() - this.lastWriteTimestamp;
             boolean needHeart =
                     (interval > HAService.this.defaultMessageStore.getMessageStoreConfig()
                         .getHaSendHeartbeatInterval());
@@ -275,7 +276,8 @@ public class HAService {
                     this.socketChannel.write(this.reportOffset);
                 }
                 catch (IOException e) {
-                    log.error(this.getServiceName() + "reportSlaveMaxOffset this.socketChannel.write exception", e);
+                    log.error(this.getServiceName()
+                            + "reportSlaveMaxOffset this.socketChannel.write exception", e);
                     return false;
                 }
             }

@@ -91,7 +91,8 @@ public class AllocateMapedFileService extends ServiceThread {
 
     private ConcurrentHashMap<String, AllocateRequest> requestTable =
             new ConcurrentHashMap<String, AllocateRequest>();
-    private PriorityBlockingQueue<AllocateRequest> requestQueue = new PriorityBlockingQueue<AllocateRequest>();
+    private PriorityBlockingQueue<AllocateRequest> requestQueue =
+            new PriorityBlockingQueue<AllocateRequest>();
     private volatile boolean hasException = false;
 
 
@@ -182,8 +183,8 @@ public class AllocateMapedFileService extends ServiceThread {
                 // 记录大于10ms的
                 if (eclipseTime > 10) {
                     int queueSize = this.requestQueue.size();
-                    log.warn("create mapedFile spent time(ms) " + eclipseTime + " queue size " + queueSize + " "
-                            + req.getFilePath() + " " + req.getFileSize());
+                    log.warn("create mapedFile spent time(ms) " + eclipseTime + " queue size " + queueSize
+                            + " " + req.getFilePath() + " " + req.getFileSize());
                 }
 
                 req.setMapedFile(mapedFile);
