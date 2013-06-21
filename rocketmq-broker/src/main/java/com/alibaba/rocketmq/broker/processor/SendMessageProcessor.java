@@ -127,7 +127,10 @@ public class SendMessageProcessor implements NettyRequestProcessor {
         }
 
         // 构造消息
-        msgExt.putProperty(Message.PROPERTY_RETRY_TOPIC, requestHeader.getPrevTopic());
+        final String retryTopic = msgExt.getProperty(Message.PROPERTY_RETRY_TOPIC);
+        if (null == retryTopic) {
+            msgExt.putProperty(Message.PROPERTY_RETRY_TOPIC, msgExt.getTopic());
+        }
         msgExt.setWaitStoreMsgOK(false);
 
         // 死信消息处理
