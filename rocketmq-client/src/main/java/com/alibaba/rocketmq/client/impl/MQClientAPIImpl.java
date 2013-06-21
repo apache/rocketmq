@@ -774,7 +774,6 @@ public class MQClientAPIImpl {
         requestHeader.setGroup(consumerGroup);
         requestHeader.setOffset(msg.getCommitLogOffset());
         requestHeader.setDelayLevel(delayLevel);
-        requestHeader.setPrevTopic(msg.getTopic());
 
         String addr = RemotingHelper.parseSocketAddressAddr(msg.getStoreHost());
 
