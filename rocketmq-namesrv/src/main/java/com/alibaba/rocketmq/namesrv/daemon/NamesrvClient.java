@@ -171,8 +171,8 @@ public class NamesrvClient extends ServiceThread {
                 }
                 else {
                     // record failure
-                    log.error("get all topic config from broker(" + address + ") fail, code:" + response.getCode()
-                            + ", remark:" + response.getRemark());
+                    log.error("get all topic config from broker(" + address + ") fail, code:"
+                            + response.getCode() + ", remark:" + response.getRemark());
                     success = false;
                 }
             }
@@ -248,7 +248,8 @@ public class NamesrvClient extends ServiceThread {
                     }
                     else {
                         // someone fail
-                        log.error("merge broker topic conf not all success. detail:\n" + pullResult.getDetail());
+                        log.error("merge broker topic conf not all success. detail:\n"
+                                + pullResult.getDetail());
                     }
                 }
                 else {

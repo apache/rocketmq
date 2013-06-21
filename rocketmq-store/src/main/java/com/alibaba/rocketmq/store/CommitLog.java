@@ -36,7 +36,8 @@ import com.alibaba.rocketmq.store.schedule.ScheduleMessageService;
 public class CommitLog {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.StoreLoggerName);
     // 用来保存每个ConsumeQueue的当前最大Offset信息
-    private HashMap<String/* topic-queueid */, Long/* offset */> topicQueueTable = new HashMap<String, Long>(1024);
+    private HashMap<String/* topic-queueid */, Long/* offset */> topicQueueTable = new HashMap<String, Long>(
+        1024);
     // 存储消息的队列
     private final MapedFileQueue mapedFileQueue;
     // 存储顶层对象
@@ -73,9 +74,11 @@ public class CommitLog {
 
             while (!this.isStoped()) {
                 int interval =
-                        CommitLog.this.defaultMessageStore.getMessageStoreConfig().getFlushIntervalCommitLog();
+                        CommitLog.this.defaultMessageStore.getMessageStoreConfig()
+                            .getFlushIntervalCommitLog();
                 int flushPhysicQueueLeastPages =
-                        CommitLog.this.defaultMessageStore.getMessageStoreConfig().getFlushCommitLogLeastPages();
+                        CommitLog.this.defaultMessageStore.getMessageStoreConfig()
+                            .getFlushCommitLogLeastPages();
 
                 int flushPhysicQueueThoroughInterval =
                         CommitLog.this.defaultMessageStore.getMessageStoreConfig()
@@ -219,7 +222,8 @@ public class CommitLog {
 
                 long storeTimestamp = CommitLog.this.mapedFileQueue.getStoreTimestamp();
                 if (storeTimestamp > 0) {
-                    CommitLog.this.defaultMessageStore.getStoreCheckpoint().setPhysicMsgTimestamp(storeTimestamp);
+                    CommitLog.this.defaultMessageStore.getStoreCheckpoint().setPhysicMsgTimestamp(
+                        storeTimestamp);
                 }
 
                 this.requestsRead.clear();
@@ -320,7 +324,8 @@ public class CommitLog {
             // PHY OFFSET
             long wroteOffset = fileFromOffset + byteBuffer.position();
             String msgId =
-                    MessageDecoder.createMessageId(this.msgIdMemory, msgInner.getStoreHostBytes(), wroteOffset);
+                    MessageDecoder.createMessageId(this.msgIdMemory, msgInner.getStoreHostBytes(),
+                        wroteOffset);
 
             /**
              * 记录ConsumeQueue信息
@@ -339,8 +344,8 @@ public class CommitLog {
             switch (tranType) {
             case MessageSysFlag.TransactionPreparedType:
                 queueOffset =
-                        CommitLog.this.defaultMessageStore.getTransactionStateService().getTranStateTableOffset()
-                            .get();
+                        CommitLog.this.defaultMessageStore.getTransactionStateService()
+                            .getTranStateTableOffset().get();
                 break;
             case MessageSysFlag.TransactionRollbackType:
                 queueOffset = msgInner.getQueueOffset();
@@ -494,7 +499,8 @@ public class CommitLog {
         }
 
         this.appendMessageCallback =
-                new DefaultAppendMessageCallback(defaultMessageStore.getMessageStoreConfig().getMaxMessageSize());
+                new DefaultAppendMessageCallback(defaultMessageStore.getMessageStoreConfig()
+                    .getMaxMessageSize());
     }
 
 
@@ -535,8 +541,10 @@ public class CommitLog {
     }
 
 
-    public int deleteExpiredFile(final long expiredTime, final int deleteFilesInterval, final long intervalForcibly) {
-        return this.mapedFileQueue.deleteExpiredFileByTime(expiredTime, deleteFilesInterval, intervalForcibly);
+    public int deleteExpiredFile(final long expiredTime, final int deleteFilesInterval,
+            final long intervalForcibly) {
+        return this.mapedFileQueue
+            .deleteExpiredFileByTime(expiredTime, deleteFilesInterval, intervalForcibly);
     }
 
 
@@ -692,8 +700,8 @@ public class CommitLog {
                 String tags = propertiesMap.get(Message.PROPERTY_TAGS);
                 if (tags != null && tags.length() > 0) {
                     tagsCode =
-                            MessageExtBrokerInner.tagsString2tagsCode(MessageExt.parseTopicFilterType(sysFlag),
-                                tags);
+                            MessageExtBrokerInner.tagsString2tagsCode(
+                                MessageExt.parseTopicFilterType(sysFlag), tags);
                 }
             }
 
@@ -740,7 +748,8 @@ public class CommitLog {
             long processOffset = mapedFile.getFileFromOffset();
             long mapedFileOffset = 0;
             while (true) {
-                DispatchRequest dispatchRequest = this.checkMessageAndReturnSize(byteBuffer, checkCRCOnRecover);
+                DispatchRequest dispatchRequest =
+                        this.checkMessageAndReturnSize(byteBuffer, checkCRCOnRecover);
                 int size = dispatchRequest.getMsgSize();
                 // 正常数据
                 if (size > 0) {
@@ -757,7 +766,8 @@ public class CommitLog {
                     index++;
                     if (index >= mapedFiles.size()) {
                         // 当前条件分支不可能发生
-                        log.info("recover last 3 physics file over, last maped file " + mapedFile.getFileName());
+                        log.info("recover last 3 physics file over, last maped file "
+                                + mapedFile.getFileName());
                         break;
                     }
                     else {
@@ -802,7 +812,8 @@ public class CommitLog {
             long processOffset = mapedFile.getFileFromOffset();
             long mapedFileOffset = 0;
             while (true) {
-                DispatchRequest dispatchRequest = this.checkMessageAndReturnSize(byteBuffer, checkCRCOnRecover);
+                DispatchRequest dispatchRequest =
+                        this.checkMessageAndReturnSize(byteBuffer, checkCRCOnRecover);
                 int size = dispatchRequest.getMsgSize();
                 // 正常数据
                 if (size > 0) {
@@ -897,7 +908,8 @@ public class CommitLog {
             if (msg.getDelayTimeLevel() > 0) {
                 if (msg.getDelayTimeLevel() > this.defaultMessageStore.getScheduleMessageService()
                     .getMaxDelayLevel()) {
-                    msg.setDelayTimeLevel(this.defaultMessageStore.getScheduleMessageService().getMaxDelayLevel());
+                    msg.setDelayTimeLevel(this.defaultMessageStore.getScheduleMessageService()
+                        .getMaxDelayLevel());
                 }
 
                 topic = ScheduleMessageService.SCHEDULE_TOPIC;
@@ -1034,8 +1046,9 @@ public class CommitLog {
                             request.waitForFlush(this.defaultMessageStore.getMessageStoreConfig()
                                 .getSyncFlushTimeout());
                     if (!flushOK) {
-                        log.error("do sync transfer other node, wait return, but failed, topic: " + msg.getTopic()
-                                + " tags: " + msg.getTags() + " client address: " + msg.getBornHostString());
+                        log.error("do sync transfer other node, wait return, but failed, topic: "
+                                + msg.getTopic() + " tags: " + msg.getTags() + " client address: "
+                                + msg.getBornHostString());
                         putMessageResult.setPutMessageStatus(PutMessageStatus.FLUSH_SLAVE_TIMEOUT);
                     }
                 }

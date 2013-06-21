@@ -22,11 +22,11 @@ public class MessageStoreConfig {
     private String storePathConsumeQueue = System.getProperty("user.home") + File.separator + "store"
             + File.separator + "consumequeue";
     // 索引文件存储目录
-    private String storePathIndex = System.getProperty("user.home") + File.separator + "store" + File.separator
-            + "index";
+    private String storePathIndex = System.getProperty("user.home") + File.separator + "store"
+            + File.separator + "index";
     // 异常退出产生的文件
-    private String storeCheckpoint = System.getProperty("user.home") + File.separator + "store" + File.separator
-            + "storeCheckpoint";
+    private String storeCheckpoint = System.getProperty("user.home") + File.separator + "store"
+            + File.separator + "storeCheckpoint";
     // 异常退出产生的文件
     private String abortFile = System.getProperty("user.home") + File.separator + "store" + File.separator
             + "storeAbort";

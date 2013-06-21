@@ -3,8 +3,6 @@
  */
 package com.alibaba.rocketmq.client.consumer.listener;
 
-
-
 /**
  * 消息监听器，被动方式订阅消息使用，需要用户实现
  * 

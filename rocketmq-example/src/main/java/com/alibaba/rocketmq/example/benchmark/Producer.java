@@ -70,7 +70,8 @@ public class Producer {
                     Long[] begin = snapshotList.getFirst();
                     Long[] end = snapshotList.getLast();
 
-                    final long sendTps = (long) (((end[3] - begin[3]) / (double) (end[0] - begin[0])) * 1000L);
+                    final long sendTps =
+                            (long) (((end[3] - begin[3]) / (double) (end[0] - begin[0])) * 1000L);
                     final double averageRT = ((end[5] - begin[5]) / (double) (end[3] - begin[3]));
 
                     System.out.printf(
@@ -118,7 +119,8 @@ public class Producer {
                             long prevMaxRT = statsBenchmark.getSendMessageMaxRT().get();
                             while (currentRT > prevMaxRT) {
                                 boolean updated =
-                                        statsBenchmark.getSendMessageMaxRT().compareAndSet(prevMaxRT, currentRT);
+                                        statsBenchmark.getSendMessageMaxRT().compareAndSet(prevMaxRT,
+                                            currentRT);
                                 if (updated)
                                     break;
 

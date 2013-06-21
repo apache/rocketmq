@@ -131,8 +131,8 @@ public class HAConnection {
                     long interval =
                             HAConnection.this.haService.getDefaultMessageStore().getSystemClock().now()
                                     - this.lastReadTimestamp;
-                    if (interval > HAConnection.this.haService.getDefaultMessageStore().getMessageStoreConfig()
-                        .getHaHousekeepingInterval()) {
+                    if (interval > HAConnection.this.haService.getDefaultMessageStore()
+                        .getMessageStoreConfig().getHaHousekeepingInterval()) {
                         log.warn("ha housekeeping, found this connection[" + HAConnection.this.clientAddr
                                 + "] expired, " + interval);
                         break;
@@ -225,8 +225,9 @@ public class HAConnection {
                                         .getMaxOffset();
                             masterOffset =
                                     masterOffset
-                                            - (masterOffset % HAConnection.this.haService.getDefaultMessageStore()
-                                                .getMessageStoreConfig().getMapedFileSizeCommitLog());
+                                            - (masterOffset % HAConnection.this.haService
+                                                .getDefaultMessageStore().getMessageStoreConfig()
+                                                .getMapedFileSizeCommitLog());
 
                             if (masterOffset < 0) {
                                 masterOffset = 0;
@@ -278,11 +279,11 @@ public class HAConnection {
                                 this.nextTransferFromWhere);
                     if (selectResult != null) {
                         int size = selectResult.getSize();
-                        if (size > HAConnection.this.haService.getDefaultMessageStore().getMessageStoreConfig()
-                            .getHaTransferBatchSize()) {
+                        if (size > HAConnection.this.haService.getDefaultMessageStore()
+                            .getMessageStoreConfig().getHaTransferBatchSize()) {
                             size =
-                                    HAConnection.this.haService.getDefaultMessageStore().getMessageStoreConfig()
-                                        .getHaTransferBatchSize();
+                                    HAConnection.this.haService.getDefaultMessageStore()
+                                        .getMessageStoreConfig().getHaTransferBatchSize();
                         }
 
                         long thisOffset = this.nextTransferFromWhere;

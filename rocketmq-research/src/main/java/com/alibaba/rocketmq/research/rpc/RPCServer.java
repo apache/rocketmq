@@ -6,7 +6,7 @@ package com.alibaba.rocketmq.research.rpc;
 /**
  * Ò»¸ö¼òµ¥RPC Server
  * 
- * @author vintage.wang@gmail.com  shijia.wxr@taobao.com
+ * @author vintage.wang@gmail.com shijia.wxr@taobao.com
  */
 public interface RPCServer {
     public void start();

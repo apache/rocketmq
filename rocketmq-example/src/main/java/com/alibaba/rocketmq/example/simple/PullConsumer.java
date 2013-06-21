@@ -43,35 +43,40 @@ public class PullConsumer {
 
 
     public static void main(String[] args) throws MQClientException {
-            MQPullConsumer consumer = new DefaultMQPullConsumer("example.consumer.active");
+        MQPullConsumer consumer = new DefaultMQPullConsumer("example.consumer.active");
 
-            consumer.start();
+        consumer.start();
 
-            Set<MessageQueue> mqs = consumer.fetchSubscribeMessageQueues("TopicTest");
-            for (MessageQueue mq : mqs) {
-                System.out.println("Consume from the queue: " + mq);
-                PullResult pullResult;
-				try {
-					pullResult = consumer.pullBlockIfNotFound(mq, null, getMessageQueueOffset(mq), 32);
-					System.out.println(pullResult);
-	                for (MessageExt mex : pullResult.getMsgFoundList()) {
-	                    QueryResult data = consumer.queryMessage(mex.getTopic(), mex.getKeys(), 1000, 0, System.currentTimeMillis());
-	                    System.out.println("--QueryResult----"+data.getMessageList().toString());
-	                }
-				} catch (RemotingException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				} catch (MQBrokerException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				} catch (InterruptedException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-               
+        Set<MessageQueue> mqs = consumer.fetchSubscribeMessageQueues("TopicTest");
+        for (MessageQueue mq : mqs) {
+            System.out.println("Consume from the queue: " + mq);
+            PullResult pullResult;
+            try {
+                pullResult = consumer.pullBlockIfNotFound(mq, null, getMessageQueueOffset(mq), 32);
+                System.out.println(pullResult);
+                for (MessageExt mex : pullResult.getMsgFoundList()) {
+                    QueryResult data =
+                            consumer.queryMessage(mex.getTopic(), mex.getKeys(), 1000, 0,
+                                System.currentTimeMillis());
+                    System.out.println("--QueryResult----" + data.getMessageList().toString());
+                }
+            }
+            catch (RemotingException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+            catch (MQBrokerException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+            catch (InterruptedException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
             }
 
-            consumer.shutdown();
         }
+
+        consumer.shutdown();
+    }
 
 }

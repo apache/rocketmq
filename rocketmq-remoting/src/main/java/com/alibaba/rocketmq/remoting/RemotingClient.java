@@ -38,9 +38,9 @@ public interface RemotingClient {
     public void updateNameServerAddressList(final List<String> addrs);
 
 
-    public RemotingCommand invokeSync(final String addr, final RemotingCommand request, final long timeoutMillis)
-            throws InterruptedException, RemotingConnectException, RemotingSendRequestException,
-            RemotingTimeoutException;
+    public RemotingCommand invokeSync(final String addr, final RemotingCommand request,
+            final long timeoutMillis) throws InterruptedException, RemotingConnectException,
+            RemotingSendRequestException, RemotingTimeoutException;
 
 
     public void invokeAsync(final String addr, final RemotingCommand request, final long timeoutMillis,

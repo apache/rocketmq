@@ -49,8 +49,8 @@ public class PullRequest {
 
     @Override
     public String toString() {
-        return "PullRequest [consumerGroup=" + consumerGroup + ", messageQueue=" + messageQueue + ", nextOffset="
-                + nextOffset + "]";
+        return "PullRequest [consumerGroup=" + consumerGroup + ", messageQueue=" + messageQueue
+                + ", nextOffset=" + nextOffset + "]";
     }
 
 

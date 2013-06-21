@@ -109,7 +109,7 @@ public class UtilAllTest {
 
         p2.setProperty("a", "1");
         p2.setProperty("b", "2");
-        //p2.setProperty("c", "3");
+        // p2.setProperty("c", "3");
 
         assertTrue(MixAll.isPropertiesEqual(p1, p2));
     }

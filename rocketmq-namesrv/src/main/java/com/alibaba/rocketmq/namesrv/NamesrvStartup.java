@@ -53,7 +53,8 @@ public class NamesrvStartup {
             // Ω‚Œˆ√¸¡Ó––
             Options options = MixAll.buildCommandlineOptions(new Options());
             final CommandLine commandLine =
-                    MixAll.parseCmdLine("mqnamesrv", args, buildCommandlineOptions(options), new PosixParser());
+                    MixAll.parseCmdLine("mqnamesrv", args, buildCommandlineOptions(options),
+                        new PosixParser());
             if (null == commandLine) {
                 System.exit(-1);
                 return;

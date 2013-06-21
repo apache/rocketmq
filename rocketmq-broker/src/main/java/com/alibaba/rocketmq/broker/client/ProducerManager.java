@@ -62,7 +62,8 @@ public class ProducerManager {
         try {
             if (this.hashcodeChannelLock.tryLock(LockTimeoutMillis, TimeUnit.MILLISECONDS)) {
                 try {
-                    List<ClientChannelInfo> channelInfoList = this.hashcodeChannelTable.get(producerGroupHashCode);
+                    List<ClientChannelInfo> channelInfoList =
+                            this.hashcodeChannelTable.get(producerGroupHashCode);
                     if (channelInfoList != null && !channelInfoList.isEmpty()) {
                         int index = this.generateRandmonNum() % channelInfoList.size();
                         ClientChannelInfo info = channelInfoList.get(index);
@@ -95,7 +96,8 @@ public class ProducerManager {
                         final List<ClientChannelInfo> clientChannelInfoList = entry.getValue();
                         final List<ClientChannelInfo> willRemoveChannel = new ArrayList<ClientChannelInfo>();
                         for (ClientChannelInfo clientChannelInfo : clientChannelInfoList) {
-                            long diff = System.currentTimeMillis() - clientChannelInfo.getLastUpdateTimestamp();
+                            long diff =
+                                    System.currentTimeMillis() - clientChannelInfo.getLastUpdateTimestamp();
                             if (diff > ChannelExpiredTimeout) {
                                 willRemoveChannel.add(clientChannelInfo);
                             }
@@ -199,7 +201,8 @@ public class ProducerManager {
                         for (final Map.Entry<String, HashMap<Integer, ClientChannelInfo>> entry : this.groupChannelTable
                             .entrySet()) {
                             final String group = entry.getKey();
-                            final HashMap<Integer, ClientChannelInfo> clientChannelInfoTable = entry.getValue();
+                            final HashMap<Integer, ClientChannelInfo> clientChannelInfoTable =
+                                    entry.getValue();
                             final ClientChannelInfo clientChannelInfo =
                                     clientChannelInfoTable.remove(channel.id());
                             if (clientChannelInfo != null) {

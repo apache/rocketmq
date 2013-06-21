@@ -22,8 +22,7 @@ public class PullResultExt extends PullResult {
 
 
     public PullResultExt(PullStatus pullStatus, long nextBeginOffset, long minOffset, long maxOffset,
-            List<MessageExt> msgFoundList, final boolean suggestPullingFromSlave,
-            final byte[] messageBinary) {
+            List<MessageExt> msgFoundList, final boolean suggestPullingFromSlave, final byte[] messageBinary) {
         super(pullStatus, nextBeginOffset, minOffset, maxOffset, msgFoundList);
         this.suggestPullingFromSlave = suggestPullingFromSlave;
         this.messageBinary = messageBinary;

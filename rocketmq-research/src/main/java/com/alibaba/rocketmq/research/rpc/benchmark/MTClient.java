@@ -32,7 +32,8 @@ public class MTClient {
 
     public static void main(String[] args) {
         if (args.length < 2) {
-            System.err.println("Useage: mtclient remoteHost remotePort [messageSize] [threadCnt] [connectionCnt]");
+            System.err
+                .println("Useage: mtclient remoteHost remotePort [messageSize] [threadCnt] [connectionCnt]");
             return;
         }
 
@@ -48,7 +49,8 @@ public class MTClient {
 
         // rpcclient
         final RPCClient rpcClient = new DefaultRPCClient();
-        final boolean connectOK = rpcClient.connect(new InetSocketAddress(remoteHost, remotePort), connectionCnt);
+        final boolean connectOK =
+                rpcClient.connect(new InetSocketAddress(remoteHost, remotePort), connectionCnt);
         System.out.println("connect server " + remoteHost + (connectOK ? " OK" : " Failed"));
         rpcClient.start();
 

@@ -31,7 +31,8 @@ public class PullConsumerTest extends BaseTest {
         MessageQueueListener listener = new MessageQueueListener() {
 
             @Override
-            public void messageQueueChanged(String topic, List<MessageQueue> mqAll, List<MessageQueue> mqDivided) {
+            public void messageQueueChanged(String topic, List<MessageQueue> mqAll,
+                    List<MessageQueue> mqDivided) {
                 System.out.println("Topic=" + topic);
                 System.out.println("mqAll:" + mqAll);
                 System.out.println("mqDivided:" + mqDivided);
@@ -73,7 +74,8 @@ public class PullConsumerTest extends BaseTest {
     //
     // }
     @Test
-    public void testPull() throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
+    public void testPull() throws MQClientException, RemotingException, MQBrokerException,
+            InterruptedException {
         Set<MessageQueue> mqs = consumer.fetchSubscribeMessageQueues("TopicTest");
         for (MessageQueue mq : mqs) {
             PullResult pullResult = consumer.pull(mq, null, 0, 32);
@@ -191,7 +193,7 @@ public class PullConsumerTest extends BaseTest {
             case FOUND:
                 for (MessageExt mex : pullResult.getMsgFoundList()) {
                     System.out.println(mex);
-                    consumer.sendMessageBack(mex,4);
+                    consumer.sendMessageBack(mex, 4);
                 }
                 break;
             case NO_MATCHED_MSG:

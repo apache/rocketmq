@@ -32,7 +32,8 @@ public class AllRequestProcessor implements NettyRequestProcessor {
     private TopicRuntimeDataManager topicInfoManager;
 
 
-    public AllRequestProcessor(final NamesrvController namesrvController, TopicRuntimeDataManager topicInfoManager) {
+    public AllRequestProcessor(final NamesrvController namesrvController,
+            TopicRuntimeDataManager topicInfoManager) {
         this.namesrvController = namesrvController;
         this.topicInfoManager = topicInfoManager;
     }
@@ -94,7 +95,8 @@ public class AllRequestProcessor implements NettyRequestProcessor {
             break;
         case GET_ROUTEINTO_BY_TOPIC:
             GetRouteInfoRequestHeader getRouteInfoHeader =
-                    (GetRouteInfoRequestHeader) request.decodeCommandCustomHeader(GetRouteInfoRequestHeader.class);
+                    (GetRouteInfoRequestHeader) request
+                        .decodeCommandCustomHeader(GetRouteInfoRequestHeader.class);
             return topicInfoManager.getRouteInfoByTopic(getRouteInfoHeader.getTopic());
 
         case SYNC_NAMESRV_RUNTIME_CONF:

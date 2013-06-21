@@ -16,7 +16,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * @see 
  *      <A>https://github.com/zhongl/jtoolkit/blob/master/common/src/main/java/com
  *      /github/zhongl/jtoolkit/SystemClock.java</A>
- * @author vintage.wang@gmail.com  shijia.wxr@taobao.com
+ * @author vintage.wang@gmail.com shijia.wxr@taobao.com
  */
 public class SystemClock {
 

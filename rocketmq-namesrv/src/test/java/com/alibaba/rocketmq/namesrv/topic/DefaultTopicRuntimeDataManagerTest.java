@@ -59,7 +59,8 @@ public class DefaultTopicRuntimeDataManagerTest {
     public void testMerge() throws Exception {
         TopicRuntimeData expected = createExpect();
         int code = dataManager.merge(expected);
-        TopicRuntimeData topicRuntimeData = DataUtils.getField(dataManager, TopicRuntimeData.class, "topicData");
+        TopicRuntimeData topicRuntimeData =
+                DataUtils.getField(dataManager, TopicRuntimeData.class, "topicData");
 
         Assert.assertTrue(MERGE_INVALID != code);
         Assert.assertTrue(SYS_ERROR != code);
@@ -76,7 +77,8 @@ public class DefaultTopicRuntimeDataManagerTest {
         DefaultTopicRuntimeDataManager dataManager = new DefaultTopicRuntimeDataManager(namesrvConfig);
         boolean success = dataManager.init();
 
-        TopicRuntimeData topicRuntimeData = DataUtils.getField(dataManager, TopicRuntimeData.class, "topicData");
+        TopicRuntimeData topicRuntimeData =
+                DataUtils.getField(dataManager, TopicRuntimeData.class, "topicData");
 
         Assert.assertTrue(success);
         Assert.assertTrue(topicRuntimeData.equals(expected));
@@ -102,7 +104,8 @@ public class DefaultTopicRuntimeDataManagerTest {
         Assert.assertTrue(response.getCode() == SUCCESS_VALUE);
 
         TopicRuntimeData data = TopicRuntimeData.decode(response.getBody());
-        TopicRuntimeData topicRuntimeData = DataUtils.getField(dataManager, TopicRuntimeData.class, "topicData");
+        TopicRuntimeData topicRuntimeData =
+                DataUtils.getField(dataManager, TopicRuntimeData.class, "topicData");
 
         Assert.assertTrue(topicRuntimeData.equals(data));
     }
@@ -115,14 +118,15 @@ public class DefaultTopicRuntimeDataManagerTest {
         PowerMock.mockStatic(RemotingHelper.class);
         EasyMock
             .expect(
-                RemotingHelper.invokeSync(anyObject(String.class), anyObject(RemotingCommand.class), anyLong()))
-            .andReturn(mockResponse).anyTimes();
+                RemotingHelper.invokeSync(anyObject(String.class), anyObject(RemotingCommand.class),
+                    anyLong())).andReturn(mockResponse).anyTimes();
         PowerMock.replay(RemotingHelper.class);
 
         String addr = createAddr();
         RemotingCommand response = dataManager.registerBroker(addr);
 
-        TopicRuntimeData topicRuntimeData = DataUtils.getField(dataManager, TopicRuntimeData.class, "topicData");
+        TopicRuntimeData topicRuntimeData =
+                DataUtils.getField(dataManager, TopicRuntimeData.class, "topicData");
 
         Assert.assertTrue(response.getCode() == SUCCESS_VALUE);
         Assert.assertTrue(topicRuntimeData.getBrokerList().contains(addr));
@@ -136,12 +140,13 @@ public class DefaultTopicRuntimeDataManagerTest {
         PowerMock.mockStatic(RemotingHelper.class);
         EasyMock
             .expect(
-                RemotingHelper.invokeSync(anyObject(String.class), anyObject(RemotingCommand.class), anyLong()))
-            .andReturn(mockResponse).anyTimes();
+                RemotingHelper.invokeSync(anyObject(String.class), anyObject(RemotingCommand.class),
+                    anyLong())).andReturn(mockResponse).anyTimes();
         PowerMock.replay(RemotingHelper.class);
         RemotingCommand response = dataManager.registerOrderTopic("topic-100", "105:4;106:4");
 
-        TopicRuntimeData topicRuntimeData = DataUtils.getField(dataManager, TopicRuntimeData.class, "topicData");
+        TopicRuntimeData topicRuntimeData =
+                DataUtils.getField(dataManager, TopicRuntimeData.class, "topicData");
 
         Assert.assertTrue(response.getCode() == SUCCESS_VALUE);
         Assert.assertTrue("topic.num.topic-100=105:4;106:4".equals(topicRuntimeData
@@ -164,7 +169,8 @@ public class DefaultTopicRuntimeDataManagerTest {
         map.put(topic, queueData);
         boolean success = dataManager.mergeQueueData(map);
 
-        TopicRuntimeData topicRuntimeData = DataUtils.getField(dataManager, TopicRuntimeData.class, "topicData");
+        TopicRuntimeData topicRuntimeData =
+                DataUtils.getField(dataManager, TopicRuntimeData.class, "topicData");
 
         Assert.assertTrue(topicRuntimeData.getTopicBrokers().get(topic).contains(queueData));
         Assert.assertTrue(success);

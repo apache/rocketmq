@@ -49,7 +49,8 @@ public class ConsoleStartup {
             // Ω‚Œˆ√¸¡Ó––
             Options options = MixAll.buildCommandlineOptions(new Options());
             final CommandLine commandLine =
-                    MixAll.parseCmdLine("mqconsole", args, buildCommandlineOptions(options), new PosixParser());
+                    MixAll.parseCmdLine("mqconsole", args, buildCommandlineOptions(options),
+                        new PosixParser());
             if (null == commandLine) {
                 System.exit(-1);
                 return;

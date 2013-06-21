@@ -20,11 +20,11 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class TaskGroupExecutor<R, T> {
     private ExecutorService executorService;
 
-    
+
     public TaskGroupExecutor(ThreadFactory threadFactory) {
         this(32, threadFactory);
     }
-    
+
 
     public TaskGroupExecutor(int nThreads, ThreadFactory threadFactory) {
         executorService = Executors.newFixedThreadPool(nThreads, threadFactory);

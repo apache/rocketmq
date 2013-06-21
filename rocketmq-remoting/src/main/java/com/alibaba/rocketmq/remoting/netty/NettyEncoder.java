@@ -18,7 +18,7 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 
 /**
  * @author shijia.wxr<vintage.wang@gmail.com>
- *
+ * 
  */
 public class NettyEncoder extends MessageToByteEncoder<Object> {
     private static final Logger log = LoggerFactory.getLogger(RemotingHelper.RemotingLogName);
