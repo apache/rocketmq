@@ -63,8 +63,7 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
 
             this.pullAPIWrapper = new PullAPIWrapper(//
                 mQClientFactory,//
-                this.defaultMQPullConsumer.getConsumerGroup(),//
-                this.defaultMQPullConsumer.getConsumeFromWhichNode());
+                this.defaultMQPullConsumer.getConsumerGroup());
 
             // 广播消费/集群消费
             switch (this.defaultMQPullConsumer.getMessageModel()) {

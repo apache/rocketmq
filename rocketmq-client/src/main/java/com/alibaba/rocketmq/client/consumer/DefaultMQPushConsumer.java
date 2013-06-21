@@ -37,10 +37,6 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
      */
     private MessageModel messageModel = MessageModel.CLUSTERING;
     /**
-     * Consumer从Master还是Slave拉消息
-     */
-    private ConsumeFromWhichNode consumeFromWhichNode = ConsumeFromWhichNode.CONSUME_FROM_MASTER_FIRST;
-    /**
      * Consumer启动时，从哪里开始消费
      */
     private ConsumeFromWhereOffset consumeFromWhereOffset = ConsumeFromWhereOffset.CONSUME_FROM_LAST_OFFSET;
@@ -214,16 +210,6 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
 
     public void setConsumerGroup(String consumerGroup) {
         this.consumerGroup = consumerGroup;
-    }
-
-
-    public ConsumeFromWhichNode getConsumeFromWhichNode() {
-        return consumeFromWhichNode;
-    }
-
-
-    public void setConsumeFromWhichNode(ConsumeFromWhichNode consumeFromWhichNode) {
-        this.consumeFromWhichNode = consumeFromWhichNode;
     }
 
 
