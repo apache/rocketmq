@@ -13,8 +13,8 @@ import java.util.Map.Entry;
 
 import org.junit.Test;
 
-import com.google.protobuf.InvalidProtocolBufferException;
 import com.alibaba.rocketmq.remoting.protocol.RemotingProtosHelper;
+import com.google.protobuf.InvalidProtocolBufferException;
 
 
 /**

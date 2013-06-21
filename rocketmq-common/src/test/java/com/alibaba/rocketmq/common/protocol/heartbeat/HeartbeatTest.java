@@ -3,7 +3,7 @@
  */
 package com.alibaba.rocketmq.common.protocol.heartbeat;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
 
