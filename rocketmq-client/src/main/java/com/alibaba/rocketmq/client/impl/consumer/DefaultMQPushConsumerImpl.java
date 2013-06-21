@@ -33,6 +33,7 @@ import com.alibaba.rocketmq.client.impl.factory.MQClientFactory;
 import com.alibaba.rocketmq.client.log.ClientLogger;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.ServiceState;
+import com.alibaba.rocketmq.common.consumer.ConsumeFromWhere;
 import com.alibaba.rocketmq.common.filter.FilterAPI;
 import com.alibaba.rocketmq.common.help.FAQUrl;
 import com.alibaba.rocketmq.common.message.MessageExt;
@@ -916,5 +917,11 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
 
     public ConcurrentHashMap<String, SubscriptionData> getSubscriptionInner() {
         return subscriptionInner;
+    }
+
+
+    @Override
+    public ConsumeFromWhere getConsumeFromWhere() {
+        return this.defaultMQPushConsumer.getConsumeFromWhere();
     }
 }

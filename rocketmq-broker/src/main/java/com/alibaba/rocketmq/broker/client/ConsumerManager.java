@@ -8,6 +8,7 @@ import io.netty.channel.Channel;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+import com.alibaba.rocketmq.common.consumer.ConsumeFromWhere;
 import com.alibaba.rocketmq.common.protocol.heartbeat.ConsumeType;
 import com.alibaba.rocketmq.common.protocol.heartbeat.MessageModel;
 import com.alibaba.rocketmq.common.protocol.heartbeat.SubscriptionData;
@@ -53,15 +54,18 @@ public class ConsumerManager {
      * 返回是否有变化
      */
     public boolean registerConsumer(final String group, final ClientChannelInfo clientChannelInfo,
-            ConsumeType consumeType, MessageModel messageModel, final Set<SubscriptionData> subList) {
+            ConsumeType consumeType, MessageModel messageModel, ConsumeFromWhere consumeFromWhere,
+            final Set<SubscriptionData> subList) {
         ConsumerGroupInfo consumerGroupInfo = this.consumerTable.get(group);
         if (null == consumerGroupInfo) {
-            ConsumerGroupInfo tmp = new ConsumerGroupInfo(group, consumeType, messageModel);
+            ConsumerGroupInfo tmp = new ConsumerGroupInfo(group, consumeType, messageModel, consumeFromWhere);
             ConsumerGroupInfo prev = this.consumerTable.putIfAbsent(group, tmp);
             consumerGroupInfo = prev != null ? prev : tmp;
         }
 
-        boolean r1 = consumerGroupInfo.updateChannel(clientChannelInfo, consumeType, messageModel);
+        boolean r1 =
+                consumerGroupInfo.updateChannel(clientChannelInfo, consumeType, messageModel,
+                    consumeFromWhere);
         boolean r2 = consumerGroupInfo.updateSubscription(subList);
         return r1 || r2;
     }

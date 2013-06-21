@@ -107,8 +107,6 @@ public class ClientManageProcessor implements NettyRequestProcessor {
             throws RemotingCommandException {
         final RemotingCommand response =
                 RemotingCommand.createResponseCommand(UnregisterClientResponseHeader.class);
-        final UnregisterClientResponseHeader responseHeader =
-                (UnregisterClientResponseHeader) response.getCustomHeader();
         final UnregisterClientRequestHeader requestHeader =
                 (UnregisterClientRequestHeader) request
                     .decodeCommandCustomHeader(UnregisterClientRequestHeader.class);
@@ -157,6 +155,7 @@ public class ClientManageProcessor implements NettyRequestProcessor {
                 clientChannelInfo,//
                 data.getConsumeType(),//
                 data.getMessageModel(),//
+                data.getConsumeFromWhere(),//
                 data.getSubscriptionDataSet()//
                 );
 
