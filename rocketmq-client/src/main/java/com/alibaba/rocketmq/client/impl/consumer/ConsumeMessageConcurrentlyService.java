@@ -144,7 +144,8 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
         if (context.getDelayLevelWhenNextConsume() <= 0) {
             int reconsumeTimes = msg.getReconsumeTimes();
             if (reconsumeTimes > 0) {
-                // TODO 每个级别重试若干次
+                // 每个级别重试若干次
+                delayLevel += delayLevel / 3;
             }
         }
 

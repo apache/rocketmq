@@ -14,6 +14,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.alibaba.rocketmq.common.constant.LoggerName;
+import com.alibaba.rocketmq.common.consumer.ConsumeFromWhere;
 import com.alibaba.rocketmq.common.protocol.heartbeat.ConsumeType;
 import com.alibaba.rocketmq.common.protocol.heartbeat.MessageModel;
 import com.alibaba.rocketmq.common.protocol.heartbeat.SubscriptionData;
@@ -31,6 +32,7 @@ public class ConsumerGroupInfo {
     private final String groupName;
     private volatile ConsumeType consumeType;
     private volatile MessageModel messageModel;
+    private volatile ConsumeFromWhere consumeFromWhere;
     private final ConcurrentHashMap<String/* Topic */, SubscriptionData> subscriptionTable =
             new ConcurrentHashMap<String, SubscriptionData>();
     private final ConcurrentHashMap<Integer/* channel id */, ClientChannelInfo> channelInfoTable =
@@ -39,10 +41,12 @@ public class ConsumerGroupInfo {
     private volatile long lastUpdateTimestamp = System.currentTimeMillis();
 
 
-    public ConsumerGroupInfo(String groupName, ConsumeType consumeType, MessageModel messageModel) {
+    public ConsumerGroupInfo(String groupName, ConsumeType consumeType, MessageModel messageModel,
+            ConsumeFromWhere consumeFromWhere) {
         this.groupName = groupName;
         this.consumeType = consumeType;
         this.messageModel = messageModel;
+        this.consumeFromWhere = consumeFromWhere;
     }
 
 
@@ -96,10 +100,12 @@ public class ConsumerGroupInfo {
      * 返回值表示是否发生变更
      */
     public boolean updateChannel(final ClientChannelInfo clientChannelInfo, ConsumeType consumeType,
-            MessageModel messageModel) {
+            MessageModel messageModel, ConsumeFromWhere consumeFromWhere) {
         boolean updated = false;
         this.consumeType = consumeType;
         this.messageModel = messageModel;
+        this.consumeFromWhere = consumeFromWhere;
+
         ClientChannelInfo info = this.channelInfoTable.get(clientChannelInfo.getChannel().id());
         if (null == info) {
             ClientChannelInfo prev =
@@ -188,5 +194,15 @@ public class ConsumerGroupInfo {
 
     public void setLastUpdateTimestamp(long lastUpdateTimestamp) {
         this.lastUpdateTimestamp = lastUpdateTimestamp;
+    }
+
+
+    public ConsumeFromWhere getConsumeFromWhere() {
+        return consumeFromWhere;
+    }
+
+
+    public void setConsumeFromWhere(ConsumeFromWhere consumeFromWhere) {
+        this.consumeFromWhere = consumeFromWhere;
     }
 }

@@ -5,6 +5,7 @@ package com.alibaba.rocketmq.client.impl.consumer;
 
 import java.util.Set;
 
+import com.alibaba.rocketmq.common.consumer.ConsumeFromWhere;
 import com.alibaba.rocketmq.common.message.MessageQueue;
 import com.alibaba.rocketmq.common.protocol.heartbeat.ConsumeType;
 import com.alibaba.rocketmq.common.protocol.heartbeat.MessageModel;
@@ -22,6 +23,9 @@ public interface MQConsumerInner {
 
 
     public ConsumeType getConsumeType();
+
+
+    public ConsumeFromWhere getConsumeFromWhere();
 
 
     public Set<SubscriptionData> getMQSubscriptions();
