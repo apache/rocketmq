@@ -125,39 +125,128 @@ public class BrokerController {
     }
 
 
+    public String encodeAllConfig() {
+        StringBuilder sb = new StringBuilder();
+        {
+            Properties properties = MixAll.object2Properties(this.brokerConfig);
+            if (properties != null) {
+                sb.append(MixAll.properties2String(properties));
+            }
+            else {
+                log.error("encodeAllConfig object2Properties error");
+            }
+        }
+
+        {
+            Properties properties = MixAll.object2Properties(this.messageStoreConfig);
+            if (properties != null) {
+                sb.append(MixAll.properties2String(properties));
+            }
+            else {
+                log.error("encodeAllConfig object2Properties error");
+            }
+        }
+
+        {
+            Properties properties = MixAll.object2Properties(this.nettyServerConfig);
+            if (properties != null) {
+                sb.append(MixAll.properties2String(properties));
+            }
+            else {
+                log.error("encodeAllConfig object2Properties error");
+            }
+        }
+
+        return sb.toString();
+    }
+
+
+    private void flushAllConfig() {
+        String allConfig = this.encodeAllConfig();
+        boolean result = MixAll.string2File(allConfig, this.brokerConfig.getBrokerConfigPath());
+        log.info("flush topic config, " + this.brokerConfig.getBrokerConfigPath()
+                + (result ? " OK" : " Failed"));
+    }
+
+
+    public Broker2Client getBroker2Client() {
+        return broker2Client;
+    }
+
+
     public String getBrokerAddr() {
         String addr = this.brokerConfig.getBrokerIP1() + ":" + this.nettyServerConfig.getListenPort();
         return addr;
     }
 
 
-    private boolean registerToNameServer() {
-        TopAddressing topAddressing = new TopAddressing();
-        String addrs =
-                (null == this.brokerConfig.getNamesrvAddr()) ? topAddressing.fetchNSAddr()
-                        : this.brokerConfig.getNamesrvAddr();
-        if (addrs != null) {
-            String[] addrArray = addrs.split(";");
+    public BrokerConfig getBrokerConfig() {
+        return brokerConfig;
+    }
 
-            if (addrArray != null && addrArray.length > 0) {
-                Random r = new Random();
-                int begin = Math.abs(r.nextInt()) % 1000000;
-                for (int i = 0; i < addrArray.length; i++) {
-                    String addr = addrArray[begin++ % addrArray.length];
-                    boolean result =
-                            MQProtosHelper.registerBrokerToNameServer(addr, this.getBrokerAddr(), 1000 * 10);
-                    final String info =
-                            "register broker[" + this.getBrokerAddr() + "] to name server[" + addr + "] "
-                                    + (result ? " success" : " failed");
-                    log.info(info);
-                    System.out.println(info);
-                    if (result)
-                        return true;
-                }
-            }
-        }
 
-        return false;
+    public String getConfigDataVersion() {
+        return this.configDataVersion.toJson();
+    }
+
+
+    public ConsumerManager getConsumerManager() {
+        return consumerManager;
+    }
+
+
+    public ConsumerOffsetManager getConsumerOffsetManager() {
+        return consumerOffsetManager;
+    }
+
+
+    public DefaultTransactionCheckExecuter getDefaultTransactionCheckExecuter() {
+        return defaultTransactionCheckExecuter;
+    }
+
+
+    public MessageStore getMessageStore() {
+        return messageStore;
+    }
+
+
+    public MessageStoreConfig getMessageStoreConfig() {
+        return messageStoreConfig;
+    }
+
+
+    public NettyServerConfig getNettyServerConfig() {
+        return nettyServerConfig;
+    }
+
+
+    public ProducerManager getProducerManager() {
+        return producerManager;
+    }
+
+
+    public PullMessageProcessor getPullMessageProcessor() {
+        return pullMessageProcessor;
+    }
+
+
+    public PullRequestHoldService getPullRequestHoldService() {
+        return pullRequestHoldService;
+    }
+
+
+    public RemotingServer getRemotingServer() {
+        return remotingServer;
+    }
+
+
+    public SubscriptionGroupManager getSubscriptionGroupManager() {
+        return subscriptionGroupManager;
+    }
+
+
+    public TopicConfigManager getTopicConfigManager() {
+        return topicConfigManager;
     }
 
 
@@ -335,22 +424,48 @@ public class BrokerController {
     }
 
 
-    public void start() throws Exception {
-        if (this.messageStore != null) {
-            this.messageStore.start();
+    private boolean registerToNameServer() {
+        TopAddressing topAddressing = new TopAddressing();
+        String addrs =
+                (null == this.brokerConfig.getNamesrvAddr()) ? topAddressing.fetchNSAddr()
+                        : this.brokerConfig.getNamesrvAddr();
+        if (addrs != null) {
+            String[] addrArray = addrs.split(";");
+
+            if (addrArray != null && addrArray.length > 0) {
+                Random r = new Random();
+                int begin = Math.abs(r.nextInt()) % 1000000;
+                for (int i = 0; i < addrArray.length; i++) {
+                    String addr = addrArray[begin++ % addrArray.length];
+                    boolean result =
+                            MQProtosHelper.registerBrokerToNameServer(addr, this.getBrokerAddr(), 1000 * 10);
+                    final String info =
+                            "register broker[" + this.getBrokerAddr() + "] to name server[" + addr + "] "
+                                    + (result ? " success" : " failed");
+                    log.info(info);
+                    System.out.println(info);
+                    if (result)
+                        return true;
+                }
+            }
         }
 
-        if (this.remotingServer != null) {
-            this.remotingServer.start();
-        }
+        return false;
+    }
 
-        if (this.pullRequestHoldService != null) {
-            this.pullRequestHoldService.start();
-        }
 
-        if (this.clientHousekeepingService != null) {
-            this.clientHousekeepingService.start();
-        }
+    public void setMessageStore(MessageStore messageStore) {
+        this.messageStore = messageStore;
+    }
+
+
+    public void setRemotingServer(RemotingServer remotingServer) {
+        this.remotingServer = remotingServer;
+    }
+
+
+    public void setTopicConfigManager(TopicConfigManager topicConfigManager) {
+        this.topicConfigManager = topicConfigManager;
     }
 
 
@@ -389,53 +504,22 @@ public class BrokerController {
     }
 
 
-    public MessageStore getMessageStore() {
-        return messageStore;
-    }
+    public void start() throws Exception {
+        if (this.messageStore != null) {
+            this.messageStore.start();
+        }
 
+        if (this.remotingServer != null) {
+            this.remotingServer.start();
+        }
 
-    public void setMessageStore(MessageStore messageStore) {
-        this.messageStore = messageStore;
-    }
+        if (this.pullRequestHoldService != null) {
+            this.pullRequestHoldService.start();
+        }
 
-
-    public RemotingServer getRemotingServer() {
-        return remotingServer;
-    }
-
-
-    public void setRemotingServer(RemotingServer remotingServer) {
-        this.remotingServer = remotingServer;
-    }
-
-
-    public BrokerConfig getBrokerConfig() {
-        return brokerConfig;
-    }
-
-
-    public NettyServerConfig getNettyServerConfig() {
-        return nettyServerConfig;
-    }
-
-
-    public MessageStoreConfig getMessageStoreConfig() {
-        return messageStoreConfig;
-    }
-
-
-    public ConsumerOffsetManager getConsumerOffsetManager() {
-        return consumerOffsetManager;
-    }
-
-
-    public TopicConfigManager getTopicConfigManager() {
-        return topicConfigManager;
-    }
-
-
-    public void setTopicConfigManager(TopicConfigManager topicConfigManager) {
-        this.topicConfigManager = topicConfigManager;
+        if (this.clientHousekeepingService != null) {
+            this.clientHousekeepingService.start();
+        }
     }
 
 
@@ -445,89 +529,5 @@ public class BrokerController {
         MixAll.properties2Object(properties, messageStoreConfig);
         this.configDataVersion.nextVersion();
         this.flushAllConfig();
-    }
-
-
-    private void flushAllConfig() {
-        String allConfig = this.encodeAllConfig();
-        boolean result = MixAll.string2File(allConfig, this.brokerConfig.getBrokerConfigPath());
-        log.info("flush topic config, " + this.brokerConfig.getBrokerConfigPath()
-                + (result ? " OK" : " Failed"));
-    }
-
-
-    public String encodeAllConfig() {
-        StringBuilder sb = new StringBuilder();
-        {
-            Properties properties = MixAll.object2Properties(this.brokerConfig);
-            if (properties != null) {
-                sb.append(MixAll.properties2String(properties));
-            }
-            else {
-                log.error("encodeAllConfig object2Properties error");
-            }
-        }
-
-        {
-            Properties properties = MixAll.object2Properties(this.messageStoreConfig);
-            if (properties != null) {
-                sb.append(MixAll.properties2String(properties));
-            }
-            else {
-                log.error("encodeAllConfig object2Properties error");
-            }
-        }
-
-        {
-            Properties properties = MixAll.object2Properties(this.nettyServerConfig);
-            if (properties != null) {
-                sb.append(MixAll.properties2String(properties));
-            }
-            else {
-                log.error("encodeAllConfig object2Properties error");
-            }
-        }
-
-        return sb.toString();
-    }
-
-
-    public String getConfigDataVersion() {
-        return this.configDataVersion.toJson();
-    }
-
-
-    public PullMessageProcessor getPullMessageProcessor() {
-        return pullMessageProcessor;
-    }
-
-
-    public PullRequestHoldService getPullRequestHoldService() {
-        return pullRequestHoldService;
-    }
-
-
-    public ConsumerManager getConsumerManager() {
-        return consumerManager;
-    }
-
-
-    public ProducerManager getProducerManager() {
-        return producerManager;
-    }
-
-
-    public DefaultTransactionCheckExecuter getDefaultTransactionCheckExecuter() {
-        return defaultTransactionCheckExecuter;
-    }
-
-
-    public Broker2Client getBroker2Client() {
-        return broker2Client;
-    }
-
-
-    public SubscriptionGroupManager getSubscriptionGroupManager() {
-        return subscriptionGroupManager;
     }
 }
