@@ -6,7 +6,7 @@ package com.alibaba.rocketmq.example.simple;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 
-import com.alibaba.rocketmq.client.consumer.ConsumeFromWhereOffset;
+import com.alibaba.rocketmq.client.consumer.ConsumeFromWhere;
 import com.alibaba.rocketmq.client.consumer.DefaultMQPushConsumer;
 import com.alibaba.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext;
 import com.alibaba.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
@@ -26,7 +26,7 @@ public class PushConsumer {
     public static void main(String[] args) throws InterruptedException, MQClientException {
         DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("example_consumer_group2");
 
-        consumer.setConsumeFromWhereOffset(ConsumeFromWhereOffset.CONSUME_FROM_MIN_OFFSET);
+        consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_MIN_OFFSET);
 
         consumer.subscribe("TopicTest", "TagA || TagC || TagD");
 

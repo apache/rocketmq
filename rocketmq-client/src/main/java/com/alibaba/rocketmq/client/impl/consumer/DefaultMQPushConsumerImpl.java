@@ -535,7 +535,7 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
      */
     private long computePullFromWhere(final MessageQueue mq) {
         long result = -1;
-        switch (this.defaultMQPushConsumer.getConsumeFromWhereOffset()) {
+        switch (this.defaultMQPushConsumer.getConsumeFromWhere()) {
         case CONSUME_FROM_LAST_OFFSET: {
             long lastOffset = this.offsetStore.readOffset(mq, true);
             if (lastOffset >= 0) {
@@ -798,8 +798,8 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
         }
 
         // consumeFromWhereOffset
-        if (null == this.defaultMQPushConsumer.getConsumeFromWhereOffset()) {
-            throw new MQClientException("consumeFromWhereOffset is null" //
+        if (null == this.defaultMQPushConsumer.getConsumeFromWhere()) {
+            throw new MQClientException("consumeFromWhere is null" //
                     + FAQUrl.suggestTodo(FAQUrl.CLIENT_PARAMETER_CHECK_URL), //
                 null);
         }

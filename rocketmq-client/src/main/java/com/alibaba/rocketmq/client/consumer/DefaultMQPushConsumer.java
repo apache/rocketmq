@@ -39,7 +39,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
     /**
      * Consumer启动时，从哪里开始消费
      */
-    private ConsumeFromWhereOffset consumeFromWhereOffset = ConsumeFromWhereOffset.CONSUME_FROM_LAST_OFFSET;
+    private ConsumeFromWhere consumeFromWhere = ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET;
     /**
      * 队列分配算法，应用可重写
      */
@@ -213,13 +213,13 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
     }
 
 
-    public ConsumeFromWhereOffset getConsumeFromWhereOffset() {
-        return consumeFromWhereOffset;
+    public ConsumeFromWhere getConsumeFromWhere() {
+        return consumeFromWhere;
     }
 
 
-    public void setConsumeFromWhereOffset(ConsumeFromWhereOffset consumeFromWhereOffset) {
-        this.consumeFromWhereOffset = consumeFromWhereOffset;
+    public void setConsumeFromWhere(ConsumeFromWhere consumeFromWhere) {
+        this.consumeFromWhere = consumeFromWhere;
     }
 
 
