@@ -9,7 +9,7 @@ package com.alibaba.rocketmq.client.consumer;
  * @author shijia.wxr<vintage.wang@gmail.com>
  * 
  */
-public enum ConsumeFromWhereOffset {
+public enum ConsumeFromWhere {
     /**
      * 每次启动都从上次记录的位点开始消费，如果是第一次启动则从最大位点开始消费，建议在生产环境使用
      */
