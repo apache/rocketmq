@@ -18,6 +18,7 @@ import com.alibaba.rocketmq.client.exception.MQClientException;
 import com.alibaba.rocketmq.client.impl.CommunicationMode;
 import com.alibaba.rocketmq.client.impl.FindBrokerResult;
 import com.alibaba.rocketmq.client.impl.factory.MQClientFactory;
+import com.alibaba.rocketmq.common.message.Message;
 import com.alibaba.rocketmq.common.message.MessageDecoder;
 import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.common.message.MessageQueue;
@@ -82,6 +83,12 @@ public class PullAPIWrapper {
                         }
                     }
                 }
+            }
+
+            // 消息中放入队列的最大最小Offset，方便应用来感知消息堆积程度
+            for (MessageExt msg : msgListFilterAgain) {
+                msg.putProperty(Message.PROPERTY_MIN_OFFSET, Long.toString(pullResult.getMinOffset()));
+                msg.putProperty(Message.PROPERTY_MAX_OFFSET, Long.toString(pullResult.getMaxOffset()));
             }
 
             pullResultExt.setMsgFoundList(msgListFilterAgain);
