@@ -96,8 +96,7 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
 
             this.pullAPIWrapper = new PullAPIWrapper(//
                 mQClientFactory,//
-                this.defaultMQPushConsumer.getConsumerGroup(),//
-                this.defaultMQPushConsumer.getConsumeFromWhichNode());
+                this.defaultMQPushConsumer.getConsumerGroup());
 
             // 广播消费/集群消费
             switch (this.defaultMQPushConsumer.getMessageModel()) {
@@ -794,13 +793,6 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
         // messageModel
         if (null == this.defaultMQPushConsumer.getMessageModel()) {
             throw new MQClientException("messageModel is null" //
-                    + FAQUrl.suggestTodo(FAQUrl.CLIENT_PARAMETER_CHECK_URL), //
-                null);
-        }
-
-        // consumeFromWhichNode
-        if (null == this.defaultMQPushConsumer.getConsumeFromWhichNode()) {
-            throw new MQClientException("consumeFromWhichNode is null" //
                     + FAQUrl.suggestTodo(FAQUrl.CLIENT_PARAMETER_CHECK_URL), //
                 null);
         }

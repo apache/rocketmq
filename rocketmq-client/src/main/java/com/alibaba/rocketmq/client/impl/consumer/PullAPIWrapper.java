@@ -39,14 +39,11 @@ public class PullAPIWrapper {
 
     private final MQClientFactory mQClientFactory;
     private final String consumerGroup;
-    private final ConsumeFromWhichNode consumeFromWhichNode;
 
 
-    public PullAPIWrapper(MQClientFactory mQClientFactory, String consumerGroup,
-            final ConsumeFromWhichNode pullFromWhere) {
+    public PullAPIWrapper(MQClientFactory mQClientFactory, String consumerGroup) {
         this.mQClientFactory = mQClientFactory;
         this.consumerGroup = consumerGroup;
-        this.consumeFromWhichNode = pullFromWhere;
     }
 
 
@@ -101,20 +98,14 @@ public class PullAPIWrapper {
      * 每个队列都应该有相应的变量来保存从哪个服务器拉
      */
     public ConsumeFromWhichNode recalculatePullFromWhichNode(final MessageQueue mq) {
-        switch (this.consumeFromWhichNode) {
-        case CONSUME_FROM_MASTER_FIRST:
-            AtomicBoolean suggest = this.pullFromWhichNodeTable.get(mq);
-            if (suggest != null) {
-                if (suggest.get()) {
-                    return ConsumeFromWhichNode.CONSUME_FROM_SLAVE_FIRST;
-                }
+        AtomicBoolean suggest = this.pullFromWhichNodeTable.get(mq);
+        if (suggest != null) {
+            if (suggest.get()) {
+                return ConsumeFromWhichNode.CONSUME_FROM_SLAVE_FIRST;
             }
-            return ConsumeFromWhichNode.CONSUME_FROM_MASTER_FIRST;
-
-        default:
-            break;
         }
-        return this.consumeFromWhichNode;
+
+        return ConsumeFromWhichNode.CONSUME_FROM_MASTER_FIRST;
     }
 
 
