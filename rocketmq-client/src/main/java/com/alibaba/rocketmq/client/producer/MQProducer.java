@@ -28,7 +28,7 @@ public interface MQProducer extends MQAdmin {
 
 
     /**
-     * 关闭服务
+     * 关闭服务，一旦关闭，此对象将不可用
      */
     public void shutdown();
 

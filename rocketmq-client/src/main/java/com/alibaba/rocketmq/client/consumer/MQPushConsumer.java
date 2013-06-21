@@ -14,7 +14,8 @@ import com.alibaba.rocketmq.client.exception.MQClientException;
  */
 public interface MQPushConsumer extends MQConsumer {
     /**
-     * 启动服务，调用之前确保registerMessageListener与subscribe都已经调用
+     * 启动服务，调用之前确保registerMessageListener与subscribe都已经调用<br>
+     * 或者已经通过Spring注入了相关配置
      * 
      * @throws MQClientException
      */
@@ -22,7 +23,7 @@ public interface MQPushConsumer extends MQConsumer {
 
 
     /**
-     * 关闭服务
+     * 关闭服务，一旦关闭，此对象将不可用
      */
     public void shutdown();
 
