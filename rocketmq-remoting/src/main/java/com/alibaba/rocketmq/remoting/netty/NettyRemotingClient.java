@@ -62,6 +62,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
     private final NettyClientConfig nettyClientConfig;
     private final Bootstrap bootstrap = new Bootstrap();
     private final EventLoopGroup eventLoopGroup;
+    private DefaultEventExecutorGroup defaultEventExecutorGroup;
 
     private final Lock lockChannelTables = new ReentrantLock();
     private final ConcurrentHashMap<String /* addr */, ChannelWrapper> channelTables =
@@ -116,8 +117,8 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
 
     class NettyConnetManageHandler extends ChannelDuplexHandler {
         @Override
-        public void connect(ChannelHandlerContext ctx, SocketAddress remoteAddress, SocketAddress localAddress,
-                ChannelPromise promise) throws Exception {
+        public void connect(ChannelHandlerContext ctx, SocketAddress remoteAddress,
+                SocketAddress localAddress, ChannelPromise promise) throws Exception {
             final String local = localAddress == null ? "UNKNOW" : localAddress.toString();
             final String remote = remoteAddress == null ? "UNKNOW" : remoteAddress.toString();
             log.info("NETTY CLIENT PIPELINE: CONNECT  {} => {}", local, remote);
@@ -198,7 +199,8 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
 
     public NettyRemotingClient(final NettyClientConfig nettyClientConfig,
             final ChannelEventListener channelEventListener) {
-        super(nettyClientConfig.getClientOnewaySemaphoreValue(), nettyClientConfig.getClientAsyncSemaphoreValue());
+        super(nettyClientConfig.getClientOnewaySemaphoreValue(), nettyClientConfig
+            .getClientAsyncSemaphoreValue());
         this.nettyClientConfig = nettyClientConfig;
         this.channelEventListener = channelEventListener;
 
@@ -230,7 +232,8 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                     if (cw != null) {
                         long diff = System.currentTimeMillis() - cw.getLastActiveTimestamp();
                         if (diff > this.nettyClientConfig.getChannelNotActiveInterval()) {
-                            log.warn("the channel[{}] not active for a while[{}ms], close it forcibly", addr, diff);
+                            log.warn("the channel[{}] not active for a while[{}ms], close it forcibly", addr,
+                                diff);
                             this.closeChannel(addr, cw.getChannel());
                         }
                     }
@@ -251,12 +254,25 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
 
     @Override
     public void start() {
+        this.defaultEventExecutorGroup = new DefaultEventExecutorGroup(//
+            nettyClientConfig.getClientWorkerThreads(), //
+            new ThreadFactory() {
+
+                private AtomicInteger threadIndex = new AtomicInteger(0);
+
+
+                @Override
+                public Thread newThread(Runnable r) {
+                    return new Thread(r, "NettyClientWorkerThread_" + this.threadIndex.incrementAndGet());
+                }
+            });
+
         this.bootstrap.group(this.eventLoopGroup).channel(NioSocketChannel.class)
             .option(ChannelOption.TCP_NODELAY, true).handler(new ChannelInitializer<SocketChannel>() {
                 @Override
                 public void initChannel(SocketChannel ch) throws Exception {
                     ch.pipeline().addLast(//
-                        new DefaultEventExecutorGroup(nettyClientConfig.getClientWorkerThreads()), //
+                        defaultEventExecutorGroup, //
                         new NettyEncoder(), //
                         new NettyDecoder(), //
                         new NettyConnetManageHandler(), new NettyClientHandler());
@@ -312,6 +328,10 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
 
             if (this.nettyEventExecuter != null) {
                 this.nettyEventExecuter.shutdown();
+            }
+
+            if (this.defaultEventExecutorGroup != null) {
+                this.defaultEventExecutorGroup.shutdownGracefully();
             }
         }
         catch (Exception e) {
@@ -406,7 +426,8 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                     return cw.getChannel();
                 }
 
-                ChannelFuture channelFuture = this.bootstrap.connect(RemotingHelper.string2SocketAddress(addr));
+                ChannelFuture channelFuture =
+                        this.bootstrap.connect(RemotingHelper.string2SocketAddress(addr));
                 Channel channel = null;
                 if (channelFuture.awaitUninterruptibly(this.nettyClientConfig.getConnectTimeoutMillis())) {
                     channel = channelFuture.channel();
@@ -418,7 +439,8 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                     }
                 }
                 else {
-                    log.error("connect {} in {}ms timeout", addr, this.nettyClientConfig.getConnectTimeoutMillis());
+                    log.error("connect {} in {}ms timeout", addr,
+                        this.nettyClientConfig.getConnectTimeoutMillis());
                     channelFuture.channel().close().sync();
                     return null;
                 }
@@ -454,10 +476,12 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                     boolean removeItemFromTable = true;
                     final ChannelWrapper prevCW = this.channelTables.get(addrRemote);
 
-                    log.info("closeChannel: begin close the channel[{}] Found: {}", addrRemote, (prevCW != null));
+                    log.info("closeChannel: begin close the channel[{}] Found: {}", addrRemote,
+                        (prevCW != null));
 
                     if (null == prevCW) {
-                        log.info("closeChannel: the channel[{}] has been removed from the channel table before",
+                        log.info(
+                            "closeChannel: the channel[{}] has been removed from the channel table before",
                             addrRemote);
                         removeItemFromTable = false;
                     }
@@ -588,9 +612,9 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
 
 
     @Override
-    public void invokeAsync(String addr, RemotingCommand request, long timeoutMillis, InvokeCallback invokeCallback)
-            throws InterruptedException, RemotingConnectException, RemotingTooMuchRequestException,
-            RemotingTimeoutException, RemotingSendRequestException {
+    public void invokeAsync(String addr, RemotingCommand request, long timeoutMillis,
+            InvokeCallback invokeCallback) throws InterruptedException, RemotingConnectException,
+            RemotingTooMuchRequestException, RemotingTimeoutException, RemotingSendRequestException {
         final Channel channel = this.getAndCreateChannel(addr);
         if (channel != null && channel.isActive()) {
             try {

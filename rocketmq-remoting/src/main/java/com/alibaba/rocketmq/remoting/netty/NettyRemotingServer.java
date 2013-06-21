@@ -53,6 +53,7 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
     private final ServerBootstrap serverBootstrap;
     private final EventLoopGroup eventLoopGroup;
     private final NettyServerConfig nettyServerConfig;
+    private DefaultEventExecutorGroup defaultEventExecutorGroup;
 
     // ´¦ÀíCallbackÓ¦´ðÆ÷
     private final ExecutorService publicExecutor;
@@ -145,7 +146,8 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
             if (evt instanceof IdleStateEvent) {
                 IdleStateEvent evnet = (IdleStateEvent) evt;
                 if (evnet.state().equals(IdleState.ALL_IDLE)) {
-                    log.warn("channel idle exception {}", RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
+                    log.warn("channel idle exception {}",
+                        RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
                     ctx.channel().close().sync();
                 }
             }
@@ -161,7 +163,8 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
 
     public NettyRemotingServer(final NettyServerConfig nettyServerConfig,
             final ChannelEventListener channelEventListener) {
-        super(nettyServerConfig.getServerOnewaySemaphoreValue(), nettyServerConfig.getServerAsyncSemaphoreValue());
+        super(nettyServerConfig.getServerOnewaySemaphoreValue(), nettyServerConfig
+            .getServerAsyncSemaphoreValue());
         this.serverBootstrap = new ServerBootstrap();
         this.nettyServerConfig = nettyServerConfig;
         this.channelEventListener = channelEventListener;
@@ -187,6 +190,9 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
 
     @Override
     public void start() throws InterruptedException {
+        this.defaultEventExecutorGroup =
+                new DefaultEventExecutorGroup(nettyServerConfig.getServerWorkerThreads());
+
         this.serverBootstrap.group(this.eventLoopGroup, new NioEventLoopGroup())
             .channel(NioServerSocketChannel.class).option(ChannelOption.SO_BACKLOG, 65536)
             .childOption(ChannelOption.TCP_NODELAY, true)
@@ -196,7 +202,7 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
                 public void initChannel(SocketChannel ch) throws Exception {
                     ch.pipeline().addLast(
                         //
-                        new DefaultEventExecutorGroup(nettyServerConfig.getServerWorkerThreads()), //
+                        defaultEventExecutorGroup, //
                         new NettyEncoder(), //
                         new NettyDecoder(), //
                         new IdleStateHandler(0, 0, nettyServerConfig.getServerChannelMaxIdleTimeSeconds()),
@@ -237,6 +243,10 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
 
             if (this.nettyEventExecuter != null) {
                 this.nettyEventExecuter.shutdown();
+            }
+
+            if (this.defaultEventExecutorGroup != null) {
+                this.defaultEventExecutorGroup.shutdownGracefully();
             }
         }
         catch (Exception e) {
