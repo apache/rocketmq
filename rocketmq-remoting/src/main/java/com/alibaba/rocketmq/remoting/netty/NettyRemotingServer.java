@@ -190,8 +190,18 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
 
     @Override
     public void start() throws InterruptedException {
-        this.defaultEventExecutorGroup =
-                new DefaultEventExecutorGroup(nettyServerConfig.getServerWorkerThreads());
+        this.defaultEventExecutorGroup = new DefaultEventExecutorGroup(//
+            nettyServerConfig.getServerWorkerThreads(), //
+            new ThreadFactory() {
+
+                private AtomicInteger threadIndex = new AtomicInteger(0);
+
+
+                @Override
+                public Thread newThread(Runnable r) {
+                    return new Thread(r, "NettyServerWorkerThread_" + this.threadIndex.incrementAndGet());
+                }
+            });
 
         this.serverBootstrap.group(this.eventLoopGroup, new NioEventLoopGroup())
             .channel(NioServerSocketChannel.class).option(ChannelOption.SO_BACKLOG, 65536)
