@@ -48,6 +48,7 @@ import com.alibaba.rocketmq.store.PutMessageResult;
 public class SendMessageProcessor implements NettyRequestProcessor {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.BrokerLoggerName);
 
+    private final static int DLQ_NUMS_PER_GROUP = 1;
     private final BrokerController brokerController;
     private final Random random = new Random(System.currentTimeMillis());
     private final SocketAddress storeHost;
@@ -95,7 +96,7 @@ public class SendMessageProcessor implements NettyRequestProcessor {
             return response;
         }
 
-        final String newTopic = MixAll.getRetryTopic(requestHeader.getGroup());
+        String newTopic = MixAll.getRetryTopic(requestHeader.getGroup());
         int queueIdInt = Math.abs(this.random.nextInt()) % subscriptionGroupConfig.getRetryQueueNums();
 
         // 检查topic是否存在
@@ -127,8 +128,26 @@ public class SendMessageProcessor implements NettyRequestProcessor {
 
         // 构造消息
         msgExt.putProperty(Message.PROPERTY_RETRY_TOPIC, requestHeader.getPrevTopic());
-        msgExt.setDelayTimeLevel(requestHeader.getDelayLevel());
         msgExt.setWaitStoreMsgOK(false);
+
+        // 死信消息处理
+        if (msgExt.getReconsumeTimes() >= subscriptionGroupConfig.getRetryMaxTimes()) {
+            newTopic = MixAll.getDLQTopic(requestHeader.getGroup());
+            queueIdInt = Math.abs(this.random.nextInt()) % DLQ_NUMS_PER_GROUP;
+
+            topicConfig =
+                    this.brokerController.getTopicConfigManager().createTopicInSendMessageBackMethod(
+                        newTopic, DLQ_NUMS_PER_GROUP);
+            if (null == topicConfig) {
+                response.setCode(ResponseCode.SYSTEM_ERROR_VALUE);
+                response.setRemark("topic[" + newTopic + "] not exist");
+                return response;
+            }
+        }
+        // 继续重试
+        else {
+            msgExt.setDelayTimeLevel(requestHeader.getDelayLevel());
+        }
 
         MessageExtBrokerInner msgInner = new MessageExtBrokerInner();
         msgInner.setTopic(newTopic);

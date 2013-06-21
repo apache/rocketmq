@@ -188,11 +188,9 @@ public class TopicConfigManager extends ConfigManager {
                     topicConfig.setReadQueueNums(clientDefaultTopicQueueNums);
                     topicConfig.setWriteQueueNums(clientDefaultTopicQueueNums);
 
-                    if (topicConfig != null) {
-                        log.info("create new topic {}", topicConfig);
-                        this.topicConfigTable.put(topic, topicConfig);
-                        this.persist();
-                    }
+                    log.info("create new topic {}", topicConfig);
+                    this.topicConfigTable.put(topic, topicConfig);
+                    this.persist();
                 }
                 finally {
                     this.lockTopicConfigTable.unlock();
