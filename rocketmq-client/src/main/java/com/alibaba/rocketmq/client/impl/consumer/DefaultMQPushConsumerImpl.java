@@ -453,6 +453,9 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
                             pullRequest.setNextOffset(pullResult.getMaxOffset());
                         }
 
+                        DefaultMQPushConsumerImpl.this.offsetStore.updateOffset(
+                            pullRequest.getMessageQueue(), pullRequest.getNextOffset());
+
                         log.warn("fix the pull request offset, {}", pullRequest);
                         DefaultMQPushConsumerImpl.this.executePullRequestImmediately(pullRequest);
                         break;

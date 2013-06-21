@@ -6,7 +6,7 @@
 
 pid=`ps ax | grep -i 'com.alibaba.rocketmq.broker.BrokerStartup' |grep java | grep -v grep | awk '{print $1}'`
 if [ -z "$pid" ] ; then
-		echo "No mqbroker running."
+        echo "No mqbroker running."
         exit -1;
 fi
 
