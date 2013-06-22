@@ -178,7 +178,7 @@ public class MQAdminImpl {
     }
 
 
-    public long getMaxOffset(MessageQueue mq) throws MQClientException {
+    public long maxOffset(MessageQueue mq) throws MQClientException {
         String brokerAddr = this.mQClientFactory.findBrokerAddressInPublish(mq.getBrokerName());
         if (null == brokerAddr) {
             this.mQClientFactory.updateTopicRouteInfoFromNameServer(mq.getTopic());
@@ -199,7 +199,7 @@ public class MQAdminImpl {
     }
 
 
-    public long getMinOffset(MessageQueue mq) throws MQClientException {
+    public long minOffset(MessageQueue mq) throws MQClientException {
         String brokerAddr = this.mQClientFactory.findBrokerAddressInPublish(mq.getBrokerName());
         if (null == brokerAddr) {
             this.mQClientFactory.updateTopicRouteInfoFromNameServer(mq.getTopic());
@@ -220,7 +220,7 @@ public class MQAdminImpl {
     }
 
 
-    public long getEarliestMsgStoreTime(MessageQueue mq) throws MQClientException {
+    public long earliestMsgStoreTime(MessageQueue mq) throws MQClientException {
         String brokerAddr = this.mQClientFactory.findBrokerAddressInPublish(mq.getBrokerName());
         if (null == brokerAddr) {
             this.mQClientFactory.updateTopicRouteInfoFromNameServer(mq.getTopic());

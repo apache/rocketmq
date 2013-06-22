@@ -55,7 +55,7 @@ public interface MQAdmin {
      * @return 队列的最大Offset
      * @throws MQClientException
      */
-    public long getMaxOffset(final MessageQueue mq) throws MQClientException;
+    public long maxOffset(final MessageQueue mq) throws MQClientException;
 
 
     /**
@@ -66,7 +66,7 @@ public interface MQAdmin {
      * @return 队列的最小Offset
      * @throws MQClientException
      */
-    public long getMinOffset(final MessageQueue mq) throws MQClientException;
+    public long minOffset(final MessageQueue mq) throws MQClientException;
 
 
     /**
@@ -77,7 +77,7 @@ public interface MQAdmin {
      * @return 最早消息对应的存储时间，精确到毫秒
      * @throws MQClientException
      */
-    public long getEarliestMsgStoreTime(final MessageQueue mq) throws MQClientException;
+    public long earliestMsgStoreTime(final MessageQueue mq) throws MQClientException;
 
 
     /**

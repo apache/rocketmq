@@ -122,14 +122,14 @@ public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsume
 
 
     @Override
-    public long getEarliestMsgStoreTime(MessageQueue mq) throws MQClientException {
-        return this.defaultMQPullConsumerImpl.getEarliestMsgStoreTime(mq);
+    public long earliestMsgStoreTime(MessageQueue mq) throws MQClientException {
+        return this.defaultMQPullConsumerImpl.earliestMsgStoreTime(mq);
     }
 
 
     @Override
-    public long getMaxOffset(MessageQueue mq) throws MQClientException {
-        return this.defaultMQPullConsumerImpl.getMaxOffset(mq);
+    public long maxOffset(MessageQueue mq) throws MQClientException {
+        return this.defaultMQPullConsumerImpl.maxOffset(mq);
     }
 
 
@@ -144,8 +144,8 @@ public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsume
 
 
     @Override
-    public long getMinOffset(MessageQueue mq) throws MQClientException {
-        return this.defaultMQPullConsumerImpl.getMinOffset(mq);
+    public long minOffset(MessageQueue mq) throws MQClientException {
+        return this.defaultMQPullConsumerImpl.minOffset(mq);
     }
 
 
