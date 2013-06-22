@@ -18,6 +18,11 @@ public class RebalancePullImpl extends RebalanceImpl {
     private final DefaultMQPullConsumerImpl defaultMQPullConsumerImpl;
 
 
+    public RebalancePullImpl(DefaultMQPullConsumerImpl defaultMQPullConsumerImpl) {
+        this(null, null, null, null, defaultMQPullConsumerImpl);
+    }
+
+
     public RebalancePullImpl(String consumerGroup, MessageModel messageModel,
             AllocateMessageQueueStrategy allocateMessageQueueStrategy, MQClientFactory mQClientFactory,
             DefaultMQPullConsumerImpl defaultMQPullConsumerImpl) {

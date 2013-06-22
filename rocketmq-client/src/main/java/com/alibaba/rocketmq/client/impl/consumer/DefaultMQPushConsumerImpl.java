@@ -67,7 +67,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
     private ConsumeMessageService consumeMessageService;
 
     // Rebalance实现
-    private RebalanceImpl rebalanceImpl;
+    private RebalanceImpl rebalanceImpl = new RebalancePushImpl(this);
 
     // 拉消息异常时，延迟一段时间再拉
     private static final long PullTimeDelayMillsWhenException = 3000;
@@ -590,12 +590,6 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
         case CREATE_JUST:
             this.checkConfig();
 
-            this.rebalanceImpl = new RebalancePushImpl(this.defaultMQPushConsumer.getConsumerGroup(),//
-                this.defaultMQPushConsumer.getMessageModel(),//
-                this.defaultMQPushConsumer.getAllocateMessageQueueStrategy(),//
-                this.mQClientFactory,//
-                this);
-
             // 复制订阅关系
             this.copySubscription();
 
@@ -603,6 +597,13 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
 
             this.mQClientFactory =
                     MQClientManager.getInstance().getAndCreateMQClientFactory(this.defaultMQPushConsumer);
+
+            // 初始化Rebalance变量
+            this.rebalanceImpl.setConsumerGroup(this.defaultMQPushConsumer.getConsumerGroup());
+            this.rebalanceImpl.setMessageModel(this.defaultMQPushConsumer.getMessageModel());
+            this.rebalanceImpl.setAllocateMessageQueueStrategy(this.defaultMQPushConsumer
+                .getAllocateMessageQueueStrategy());
+            this.rebalanceImpl.setmQClientFactory(this.mQClientFactory);
 
             this.pullAPIWrapper = new PullAPIWrapper(//
                 mQClientFactory,//

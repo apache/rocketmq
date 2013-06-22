@@ -19,6 +19,11 @@ public class RebalancePushImpl extends RebalanceImpl {
     private final DefaultMQPushConsumerImpl defaultMQPushConsumerImpl;
 
 
+    public RebalancePushImpl(DefaultMQPushConsumerImpl defaultMQPushConsumerImpl) {
+        this(null, null, null, null, defaultMQPushConsumerImpl);
+    }
+
+
     public RebalancePushImpl(String consumerGroup, MessageModel messageModel,
             AllocateMessageQueueStrategy allocateMessageQueueStrategy, MQClientFactory mQClientFactory,
             DefaultMQPushConsumerImpl defaultMQPushConsumerImpl) {
@@ -32,7 +37,7 @@ public class RebalancePushImpl extends RebalanceImpl {
         // ≈…∑¢PullRequest
         for (PullRequest pullRequest : pullRequestList) {
             this.defaultMQPushConsumerImpl.executePullRequestImmediately(pullRequest);
-            log.info("doRebalance, {}, add a new pull request {}", consumerGroup);
+            log.info("doRebalance, {}, add a new pull request {}", consumerGroup, pullRequest);
         }
     }
 

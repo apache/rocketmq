@@ -40,10 +40,10 @@ public abstract class RebalanceImpl {
     protected final ConcurrentHashMap<String /* topic */, SubscriptionData> subscriptionInner =
             new ConcurrentHashMap<String, SubscriptionData>();
 
-    protected final String consumerGroup;
-    protected final MessageModel messageModel;
-    protected final AllocateMessageQueueStrategy allocateMessageQueueStrategy;
-    protected final MQClientFactory mQClientFactory;
+    protected String consumerGroup;
+    protected MessageModel messageModel;
+    protected AllocateMessageQueueStrategy allocateMessageQueueStrategy;
+    protected MQClientFactory mQClientFactory;
 
 
     public RebalanceImpl(String consumerGroup, MessageModel messageModel,
@@ -232,13 +232,13 @@ public abstract class RebalanceImpl {
     }
 
 
-    public MQClientFactory getmQClientFactory() {
-        return mQClientFactory;
+    public String getConsumerGroup() {
+        return consumerGroup;
     }
 
 
-    public String getConsumerGroup() {
-        return consumerGroup;
+    public void setConsumerGroup(String consumerGroup) {
+        this.consumerGroup = consumerGroup;
     }
 
 
@@ -247,7 +247,27 @@ public abstract class RebalanceImpl {
     }
 
 
+    public void setMessageModel(MessageModel messageModel) {
+        this.messageModel = messageModel;
+    }
+
+
     public AllocateMessageQueueStrategy getAllocateMessageQueueStrategy() {
         return allocateMessageQueueStrategy;
+    }
+
+
+    public void setAllocateMessageQueueStrategy(AllocateMessageQueueStrategy allocateMessageQueueStrategy) {
+        this.allocateMessageQueueStrategy = allocateMessageQueueStrategy;
+    }
+
+
+    public MQClientFactory getmQClientFactory() {
+        return mQClientFactory;
+    }
+
+
+    public void setmQClientFactory(MQClientFactory mQClientFactory) {
+        this.mQClientFactory = mQClientFactory;
     }
 }

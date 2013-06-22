@@ -50,7 +50,8 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
     // 消费进度存储
     private OffsetStore offsetStore;
 
-    private RebalanceImpl rebalanceImpl;
+    // Rebalance实现
+    private RebalanceImpl rebalanceImpl = new RebalancePullImpl(this);
 
 
     public DefaultMQPullConsumerImpl(final DefaultMQPullConsumer defaultMQPullConsumer) {
@@ -413,18 +414,20 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
     public void start() throws MQClientException {
         switch (this.serviceState) {
         case CREATE_JUST:
-            this.serviceState = ServiceState.RUNNING;
-
-            this.rebalanceImpl = new RebalancePullImpl(this.defaultMQPullConsumer.getConsumerGroup(),//
-                this.defaultMQPullConsumer.getMessageModel(),//
-                this.defaultMQPullConsumer.getAllocateMessageQueueStrategy(),//
-                this.mQClientFactory,//
-                this);
 
             this.copySubscription();
 
+            this.serviceState = ServiceState.RUNNING;
+
             this.mQClientFactory =
                     MQClientManager.getInstance().getAndCreateMQClientFactory(this.defaultMQPullConsumer);
+
+            // 初始化Rebalance变量
+            this.rebalanceImpl.setConsumerGroup(this.defaultMQPullConsumer.getConsumerGroup());
+            this.rebalanceImpl.setMessageModel(this.defaultMQPullConsumer.getMessageModel());
+            this.rebalanceImpl.setAllocateMessageQueueStrategy(this.defaultMQPullConsumer
+                .getAllocateMessageQueueStrategy());
+            this.rebalanceImpl.setmQClientFactory(this.mQClientFactory);
 
             this.pullAPIWrapper = new PullAPIWrapper(//
                 mQClientFactory,//
