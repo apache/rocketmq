@@ -405,7 +405,8 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
             this.rebalanceImpl = new RebalancePullImpl(this.defaultMQPullConsumer.getConsumerGroup(),//
                 this.defaultMQPullConsumer.getMessageModel(),//
                 this.defaultMQPullConsumer.getAllocateMessageQueueStrategy(),//
-                this.mQClientFactory);
+                this.mQClientFactory,//
+                this);
 
             this.copySubscription();
 
@@ -479,5 +480,10 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
             InterruptedException, MQClientException {
         this.makeSureStateOK();
         return this.mQClientFactory.getMQAdminImpl().viewMessage(msgId);
+    }
+
+
+    public DefaultMQPullConsumer getDefaultMQPullConsumer() {
+        return defaultMQPullConsumer;
     }
 }

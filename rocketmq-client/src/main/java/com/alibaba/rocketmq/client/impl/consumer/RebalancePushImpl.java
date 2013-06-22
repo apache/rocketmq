@@ -1,6 +1,7 @@
 package com.alibaba.rocketmq.client.impl.consumer;
 
 import java.util.List;
+import java.util.Set;
 
 import com.alibaba.rocketmq.client.consumer.AllocateMessageQueueStrategy;
 import com.alibaba.rocketmq.client.consumer.store.OffsetStore;
@@ -74,5 +75,10 @@ public class RebalancePushImpl extends RebalanceImpl {
         }
 
         return result;
+    }
+
+
+    @Override
+    public void messageQueueChanged(String topic, Set<MessageQueue> mqAll, Set<MessageQueue> mqDivided) {
     }
 }
