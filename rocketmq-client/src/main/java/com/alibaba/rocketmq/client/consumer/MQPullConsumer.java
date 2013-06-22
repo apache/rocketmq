@@ -130,8 +130,9 @@ public interface MQPullConsumer extends MQConsumer {
      * 
      * @param topic
      *            消息Topic
-     * @return 成功 返回队列集合 失败 返回null
+     * @return 返回队列集合
+     * @throws MQClientException
      * 
      */
-    public Set<MessageQueue> fetchMessageQueuesInBalance(final String topic);
+    public Set<MessageQueue> fetchMessageQueuesInBalance(final String topic) throws MQClientException;
 }
