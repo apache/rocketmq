@@ -89,6 +89,8 @@ public class PullMessageService extends ServiceThread {
                     this.pullMessage(pullRequest);
                 }
             }
+            catch (InterruptedException e) {
+            }
             catch (Exception e) {
                 log.error("Pull Message Service Run Method exception", e);
             }
