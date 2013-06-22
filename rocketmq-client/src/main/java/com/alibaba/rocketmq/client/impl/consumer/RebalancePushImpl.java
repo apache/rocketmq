@@ -54,8 +54,14 @@ public class RebalancePushImpl extends RebalanceImpl {
             if (lastOffset >= 0) {
                 result = lastOffset;
             }
-            else {
+            // 当前订阅组在服务器没有对应的Offset
+            // 说明是第一次启动
+            else if (-1 == lastOffset) {
                 result = Long.MAX_VALUE;
+            }
+            // 发生其他错误
+            else {
+                result = -1;
             }
             break;
         }
@@ -64,8 +70,14 @@ public class RebalancePushImpl extends RebalanceImpl {
             if (lastOffset >= 0) {
                 result = lastOffset;
             }
-            else {
+            // 当前订阅组在服务器没有对应的Offset
+            // 说明是第一次启动
+            else if (-1 == lastOffset) {
                 result = 0L;
+            }
+            // 发生其他错误
+            else {
+                result = -1;
             }
             break;
         }

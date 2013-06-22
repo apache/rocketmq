@@ -187,11 +187,17 @@ public abstract class RebalanceImpl {
 
                 // 这个需要根据策略来设置
                 long nextOffset = this.computePullFromWhere(mq);
-                pullRequest.setNextOffset(nextOffset);
-                pullRequestList.add(pullRequest);
-                changed = true;
-                this.processQueueTable.put(mq, pullRequest.getProcessQueue());
-                log.info("doRebalance, {}, add a new mq, {}", consumerGroup, mq);
+                if (nextOffset >= 0) {
+                    pullRequest.setNextOffset(nextOffset);
+                    pullRequestList.add(pullRequest);
+                    changed = true;
+                    this.processQueueTable.put(mq, pullRequest.getProcessQueue());
+                    log.info("doRebalance, {}, add a new mq, {}", consumerGroup, mq);
+                }
+                else {
+                    // 等待此次Rebalance做重试
+                    log.warn("doRebalance, {}, add new mq failed, {}", consumerGroup, mq);
+                }
             }
         }
 

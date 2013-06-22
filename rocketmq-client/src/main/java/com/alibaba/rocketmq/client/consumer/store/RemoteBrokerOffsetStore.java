@@ -103,8 +103,9 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
                     offsetprev.set(offset);
                 }
             }
-
-            offsetOld.set(offset);
+            else {
+                offsetOld.set(offset);
+            }
         }
     }
 
@@ -122,8 +123,14 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
                     offset = new AtomicLong(brokerOffset);
                     this.offsetTable.putIfAbsent(mq, offset);
                 }
-                catch (Exception e) {
+                // 当前订阅组在服务器没有对应的Offset
+                catch (MQBrokerException e) {
+                    log.warn("fetchConsumeOffsetFromBroker exception, " + mq, e);
                     return -1;
+                }
+                // 其他通信错误
+                catch (Exception e) {
+                    return -2;
                 }
 
                 return offset.get();
@@ -142,6 +149,7 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
                     if (mqs.contains(mq)) {
                         try {
                             this.updateConsumeOffsetToBroker(mq, offset.get());
+                            log.debug("updateConsumeOffsetToBroker {} {}", mq, offset.get());
                         }
                         catch (Exception e) {
                             log.error("updateConsumeOffsetToBroker exception, " + mq.toString(), e);
