@@ -70,6 +70,16 @@ public class QueryMessageProcessor implements NettyRequestProcessor {
                 (QueryMessageRequestHeader) request
                     .decodeCommandCustomHeader(QueryMessageRequestHeader.class);
 
+        // 校验查询时间范围
+        long maxTimeSpan =
+                this.brokerController.getBrokerConfig().getQueryMessageMaxTimeSpan() * 60 * 60 * 1000;
+        long diff = requestHeader.getEndTimestamp() - requestHeader.getBeginTimestamp();
+        if (diff > maxTimeSpan) {
+            response.setCode(ResponseCode.SYSTEM_ERROR_VALUE);
+            response.setRemark("the time range is too long, broker limits " + maxTimeSpan + "h");
+            return response;
+        }
+
         // 由于使用sendfile，所以必须要设置
         response.setOpaque(request.getOpaque());
 
