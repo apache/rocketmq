@@ -71,7 +71,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
 
     // 拉消息异常时，延迟一段时间再拉
     private static final long PullTimeDelayMillsWhenException = 3000;
-    private static final long PullTimeDelayMillsWhenFlowControl = 1000;
+    private static final long PullTimeDelayMillsWhenFlowControl = 100;
     private static final long PullTimeDelayMillsWhenSuspend = 1000;
 
     // 长轮询模式，Consumer连接在Broker挂起最长时间
@@ -289,7 +289,6 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
 
 
     public Set<MessageQueue> fetchSubscribeMessageQueues(String topic) throws MQClientException {
-
         Set<MessageQueue> result = this.rebalanceImpl.getTopicSubscribeInfoTable().get(topic);
         if (null == result) {
             this.mQClientFactory.updateTopicRouteInfoFromNameServer(topic);
