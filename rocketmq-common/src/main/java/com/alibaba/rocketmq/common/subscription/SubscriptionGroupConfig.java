@@ -12,6 +12,8 @@ public class SubscriptionGroupConfig {
     private String groupName;
     // 消费功能是否开启
     private boolean consumeEnable = true;
+    // 是否允许从队列最小位置开始消费，线上默认会设置为false
+    private boolean consumeFromMinEnable = true;
     // 消费失败的消息放到一个重试队列，每个订阅组配置几个重试队列
     private int retryQueueNums = 1;
     // 重试消费最大次数，超过则投递到死信队列，不再投递，并报警
@@ -37,6 +39,16 @@ public class SubscriptionGroupConfig {
 
     public void setConsumeEnable(boolean consumeEnable) {
         this.consumeEnable = consumeEnable;
+    }
+
+
+    public boolean isConsumeFromMinEnable() {
+        return consumeFromMinEnable;
+    }
+
+
+    public void setConsumeFromMinEnable(boolean consumeFromMinEnable) {
+        this.consumeFromMinEnable = consumeFromMinEnable;
     }
 
 
@@ -76,6 +88,7 @@ public class SubscriptionGroupConfig {
         int result = 1;
         result = prime * result + (int) (brokerId ^ (brokerId >>> 32));
         result = prime * result + (consumeEnable ? 1231 : 1237);
+        result = prime * result + (consumeFromMinEnable ? 1231 : 1237);
         result = prime * result + ((groupName == null) ? 0 : groupName.hashCode());
         result = prime * result + retryMaxTimes;
         result = prime * result + retryQueueNums;
@@ -96,6 +109,8 @@ public class SubscriptionGroupConfig {
             return false;
         if (consumeEnable != other.consumeEnable)
             return false;
+        if (consumeFromMinEnable != other.consumeFromMinEnable)
+            return false;
         if (groupName == null) {
             if (other.groupName != null)
                 return false;
@@ -113,7 +128,7 @@ public class SubscriptionGroupConfig {
     @Override
     public String toString() {
         return "SubscriptionGroupConfig [groupName=" + groupName + ", consumeEnable=" + consumeEnable
-                + ", retryQueueNums=" + retryQueueNums + ", retryMaxTimes=" + retryMaxTimes + ", brokerId="
-                + brokerId + "]";
+                + ", consumeFromMinEnable=" + consumeFromMinEnable + ", retryQueueNums=" + retryQueueNums
+                + ", retryMaxTimes=" + retryMaxTimes + ", brokerId=" + brokerId + "]";
     }
 }
