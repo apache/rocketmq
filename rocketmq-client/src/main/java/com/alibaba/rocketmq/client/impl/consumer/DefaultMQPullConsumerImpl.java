@@ -7,6 +7,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.slf4j.Logger;
 
@@ -96,9 +97,21 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
     }
 
 
-    public Set<MessageQueue> fetchMessageQueuesInBalance(String topic) {
-        // TODO Auto-generated method stub
-        return null;
+    public Set<MessageQueue> fetchMessageQueuesInBalance(String topic) throws MQClientException {
+        this.makeSureStateOK();
+        if (null == topic) {
+            throw new IllegalArgumentException("topic is null");
+        }
+
+        ConcurrentHashMap<MessageQueue, ProcessQueue> mqTable = this.rebalanceImpl.getProcessQueueTable();
+        Set<MessageQueue> mqResult = new HashSet<MessageQueue>();
+        for (MessageQueue mq : mqTable.keySet()) {
+            if (mq.getTopic().equals(topic)) {
+                mqResult.add(mq);
+            }
+        }
+
+        return mqResult;
     }
 
 
