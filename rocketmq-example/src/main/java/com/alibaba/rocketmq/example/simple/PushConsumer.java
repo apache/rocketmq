@@ -43,7 +43,7 @@ public class PushConsumer {
                     return ConsumeConcurrentlyStatus.RECONSUME_LATER;
                 }
 
-                return ConsumeConcurrentlyStatus.RECONSUME_LATER;
+                return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
             }
         });
 
