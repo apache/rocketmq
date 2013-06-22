@@ -55,6 +55,9 @@ public class BrokerConfig {
 
     private int flushConsumerOffsetHistoryInterval = 1000 * 60;
 
+    // 查询消息最大时间跨度，单位消息
+    private long queryMessageMaxTimeSpan = 2;
+
 
     public static String localHostName() {
         try {
@@ -275,5 +278,15 @@ public class BrokerConfig {
 
     public void setSubscriptionGroupPath(String subscriptionGroupPath) {
         this.subscriptionGroupPath = subscriptionGroupPath;
+    }
+
+
+    public long getQueryMessageMaxTimeSpan() {
+        return queryMessageMaxTimeSpan;
+    }
+
+
+    public void setQueryMessageMaxTimeSpan(long queryMessageMaxTimeSpan) {
+        this.queryMessageMaxTimeSpan = queryMessageMaxTimeSpan;
     }
 }
