@@ -97,85 +97,110 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
 
 
     @Override
-    public void start() throws MQClientException {
-        this.defaultMQPushConsumerImpl.start();
-    }
-
-
-    @Override
-    public void shutdown() {
-        this.defaultMQPushConsumerImpl.shutdown();
-    }
-
-
-    @Override
-    public void suspend() {
-        this.defaultMQPushConsumerImpl.suspend();
-    }
-
-
-    @Override
-    public void resume() {
-        this.defaultMQPushConsumerImpl.resume();
-    }
-
-
-    @Override
-    public void sendMessageBack(MessageExt msg, int delayLevel) throws RemotingException, MQBrokerException,
-            InterruptedException {
-        this.defaultMQPushConsumerImpl.sendMessageBack(msg, delayLevel);
-    }
-
-
-    @Override
     public void createTopic(String key, String newTopic, int queueNum, boolean order)
             throws MQClientException {
-        // TODO Auto-generated method stub
-
-    }
-
-
-    @Override
-    public long searchOffset(MessageQueue mq, long timestamp) throws MQClientException {
-        // TODO Auto-generated method stub
-        return 0;
-    }
-
-
-    @Override
-    public long maxOffset(MessageQueue mq) throws MQClientException {
-        // TODO Auto-generated method stub
-        return 0;
-    }
-
-
-    @Override
-    public long minOffset(MessageQueue mq) throws MQClientException {
-        // TODO Auto-generated method stub
-        return 0;
+        this.defaultMQPushConsumerImpl.createTopic(key, newTopic, queueNum, order);
     }
 
 
     @Override
     public long earliestMsgStoreTime(MessageQueue mq) throws MQClientException {
-        // TODO Auto-generated method stub
-        return 0;
+        return this.defaultMQPushConsumerImpl.earliestMsgStoreTime(mq);
     }
 
 
     @Override
-    public MessageExt viewMessage(String msgId) throws RemotingException, MQBrokerException,
-            InterruptedException, MQClientException {
-        // TODO Auto-generated method stub
-        return null;
+    public Set<MessageQueue> fetchSubscribeMessageQueues(String topic) throws MQClientException {
+        return this.defaultMQPushConsumerImpl.fetchSubscribeMessageQueues(topic);
+    }
+
+
+    public AllocateMessageQueueStrategy getAllocateMessageQueueStrategy() {
+        return allocateMessageQueueStrategy;
+    }
+
+
+    public int getConsumeConcurrentlyMaxSpan() {
+        return consumeConcurrentlyMaxSpan;
+    }
+
+
+    public ConsumeFromWhere getConsumeFromWhere() {
+        return consumeFromWhere;
+    }
+
+
+    public int getConsumeMessageBatchMaxSize() {
+        return consumeMessageBatchMaxSize;
+    }
+
+
+    public String getConsumerGroup() {
+        return consumerGroup;
+    }
+
+
+    public int getConsumeThreadMax() {
+        return consumeThreadMax;
+    }
+
+
+    public int getConsumeThreadMin() {
+        return consumeThreadMin;
+    }
+
+
+    public DefaultMQPushConsumerImpl getDefaultMQPushConsumerImpl() {
+        return defaultMQPushConsumerImpl;
+    }
+
+
+    public MessageListener getMessageListener() {
+        return messageListener;
+    }
+
+
+    public MessageModel getMessageModel() {
+        return messageModel;
+    }
+
+
+    public int getPullBatchSize() {
+        return pullBatchSize;
+    }
+
+
+    public long getPullInterval() {
+        return pullInterval;
+    }
+
+
+    public int getPullThresholdForQueue() {
+        return pullThresholdForQueue;
+    }
+
+
+    public Map<String, String> getSubscription() {
+        return subscription;
+    }
+
+
+    @Override
+    public long maxOffset(MessageQueue mq) throws MQClientException {
+        return this.defaultMQPushConsumerImpl.maxOffset(mq);
+    }
+
+
+    @Override
+    public long minOffset(MessageQueue mq) throws MQClientException {
+        return this.defaultMQPushConsumerImpl.minOffset(mq);
     }
 
 
     @Override
     public QueryResult queryMessage(String topic, String key, int maxNum, long begin, long end)
             throws MQClientException, InterruptedException {
-        // TODO Auto-generated method stub
-        return null;
+        return this.defaultMQPushConsumerImpl.queryMessage(topic, key, maxNum, begin, end);
     }
 
 
@@ -187,8 +212,110 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
 
 
     @Override
+    public void resume() {
+        this.defaultMQPushConsumerImpl.resume();
+    }
+
+
+    @Override
+    public long searchOffset(MessageQueue mq, long timestamp) throws MQClientException {
+        return this.defaultMQPushConsumerImpl.searchOffset(mq, timestamp);
+    }
+
+
+    @Override
+    public void sendMessageBack(MessageExt msg, int delayLevel) throws RemotingException, MQBrokerException,
+            InterruptedException {
+        this.defaultMQPushConsumerImpl.sendMessageBack(msg, delayLevel);
+    }
+
+
+    public void setAllocateMessageQueueStrategy(AllocateMessageQueueStrategy allocateMessageQueueStrategy) {
+        this.allocateMessageQueueStrategy = allocateMessageQueueStrategy;
+    }
+
+
+    public void setConsumeConcurrentlyMaxSpan(int consumeConcurrentlyMaxSpan) {
+        this.consumeConcurrentlyMaxSpan = consumeConcurrentlyMaxSpan;
+    }
+
+
+    public void setConsumeFromWhere(ConsumeFromWhere consumeFromWhere) {
+        this.consumeFromWhere = consumeFromWhere;
+    }
+
+
+    public void setConsumeMessageBatchMaxSize(int consumeMessageBatchMaxSize) {
+        this.consumeMessageBatchMaxSize = consumeMessageBatchMaxSize;
+    }
+
+
+    public void setConsumerGroup(String consumerGroup) {
+        this.consumerGroup = consumerGroup;
+    }
+
+
+    public void setConsumeThreadMax(int consumeThreadMax) {
+        this.consumeThreadMax = consumeThreadMax;
+    }
+
+
+    public void setConsumeThreadMin(int consumeThreadMin) {
+        this.consumeThreadMin = consumeThreadMin;
+    }
+
+
+    public void setMessageListener(MessageListener messageListener) {
+        this.messageListener = messageListener;
+    }
+
+
+    public void setMessageModel(MessageModel messageModel) {
+        this.messageModel = messageModel;
+    }
+
+
+    public void setPullBatchSize(int pullBatchSize) {
+        this.pullBatchSize = pullBatchSize;
+    }
+
+
+    public void setPullInterval(long pullInterval) {
+        this.pullInterval = pullInterval;
+    }
+
+
+    public void setPullThresholdForQueue(int pullThresholdForQueue) {
+        this.pullThresholdForQueue = pullThresholdForQueue;
+    }
+
+
+    public void setSubscription(Map<String, String> subscription) {
+        this.subscription = subscription;
+    }
+
+
+    @Override
+    public void shutdown() {
+        this.defaultMQPushConsumerImpl.shutdown();
+    }
+
+
+    @Override
+    public void start() throws MQClientException {
+        this.defaultMQPushConsumerImpl.start();
+    }
+
+
+    @Override
     public void subscribe(String topic, String subExpression) throws MQClientException {
         this.defaultMQPushConsumerImpl.subscribe(topic, subExpression);
+    }
+
+
+    @Override
+    public void suspend() {
+        this.defaultMQPushConsumerImpl.suspend();
     }
 
 
@@ -199,142 +326,8 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
 
 
     @Override
-    public Set<MessageQueue> fetchSubscribeMessageQueues(String topic) throws MQClientException {
-        return this.defaultMQPushConsumerImpl.fetchSubscribeMessageQueues(topic);
-    }
-
-
-    public String getConsumerGroup() {
-        return consumerGroup;
-    }
-
-
-    public void setConsumerGroup(String consumerGroup) {
-        this.consumerGroup = consumerGroup;
-    }
-
-
-    public ConsumeFromWhere getConsumeFromWhere() {
-        return consumeFromWhere;
-    }
-
-
-    public void setConsumeFromWhere(ConsumeFromWhere consumeFromWhere) {
-        this.consumeFromWhere = consumeFromWhere;
-    }
-
-
-    public AllocateMessageQueueStrategy getAllocateMessageQueueStrategy() {
-        return allocateMessageQueueStrategy;
-    }
-
-
-    public void setAllocateMessageQueueStrategy(AllocateMessageQueueStrategy allocateMessageQueueStrategy) {
-        this.allocateMessageQueueStrategy = allocateMessageQueueStrategy;
-    }
-
-
-    public Map<String, String> getSubscription() {
-        return subscription;
-    }
-
-
-    public void setSubscription(Map<String, String> subscription) {
-        this.subscription = subscription;
-    }
-
-
-    public MessageListener getMessageListener() {
-        return messageListener;
-    }
-
-
-    public void setMessageListener(MessageListener messageListener) {
-        this.messageListener = messageListener;
-    }
-
-
-    public int getConsumeThreadMin() {
-        return consumeThreadMin;
-    }
-
-
-    public void setConsumeThreadMin(int consumeThreadMin) {
-        this.consumeThreadMin = consumeThreadMin;
-    }
-
-
-    public int getConsumeConcurrentlyMaxSpan() {
-        return consumeConcurrentlyMaxSpan;
-    }
-
-
-    public void setConsumeConcurrentlyMaxSpan(int consumeConcurrentlyMaxSpan) {
-        this.consumeConcurrentlyMaxSpan = consumeConcurrentlyMaxSpan;
-    }
-
-
-    public int getConsumeMessageBatchMaxSize() {
-        return consumeMessageBatchMaxSize;
-    }
-
-
-    public void setConsumeMessageBatchMaxSize(int consumeMessageBatchMaxSize) {
-        this.consumeMessageBatchMaxSize = consumeMessageBatchMaxSize;
-    }
-
-
-    public int getPullBatchSize() {
-        return pullBatchSize;
-    }
-
-
-    public void setPullBatchSize(int pullBatchSize) {
-        this.pullBatchSize = pullBatchSize;
-    }
-
-
-    public DefaultMQPushConsumerImpl getDefaultMQPushConsumerImpl() {
-        return defaultMQPushConsumerImpl;
-    }
-
-
-    public MessageModel getMessageModel() {
-        return messageModel;
-    }
-
-
-    public void setMessageModel(MessageModel messageModel) {
-        this.messageModel = messageModel;
-    }
-
-
-    public int getConsumeThreadMax() {
-        return consumeThreadMax;
-    }
-
-
-    public void setConsumeThreadMax(int consumeThreadMax) {
-        this.consumeThreadMax = consumeThreadMax;
-    }
-
-
-    public int getPullThresholdForQueue() {
-        return pullThresholdForQueue;
-    }
-
-
-    public void setPullThresholdForQueue(int pullThresholdForQueue) {
-        this.pullThresholdForQueue = pullThresholdForQueue;
-    }
-
-
-    public long getPullInterval() {
-        return pullInterval;
-    }
-
-
-    public void setPullInterval(long pullInterval) {
-        this.pullInterval = pullInterval;
+    public MessageExt viewMessage(String msgId) throws RemotingException, MQBrokerException,
+            InterruptedException, MQClientException {
+        return this.defaultMQPushConsumerImpl.viewMessage(msgId);
     }
 }

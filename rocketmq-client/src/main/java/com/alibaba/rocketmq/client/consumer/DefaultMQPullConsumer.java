@@ -79,6 +79,12 @@ public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsume
 
 
     @Override
+    public long earliestMsgStoreTime(MessageQueue mq) throws MQClientException {
+        return this.defaultMQPullConsumerImpl.earliestMsgStoreTime(mq);
+    }
+
+
+    @Override
     public long fetchConsumeOffset(MessageQueue mq, boolean fromStore) throws MQClientException {
         return this.defaultMQPullConsumerImpl.fetchConsumeOffset(mq, fromStore);
     }
@@ -121,18 +127,6 @@ public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsume
     }
 
 
-    @Override
-    public long earliestMsgStoreTime(MessageQueue mq) throws MQClientException {
-        return this.defaultMQPullConsumerImpl.earliestMsgStoreTime(mq);
-    }
-
-
-    @Override
-    public long maxOffset(MessageQueue mq) throws MQClientException {
-        return this.defaultMQPullConsumerImpl.maxOffset(mq);
-    }
-
-
     public MessageModel getMessageModel() {
         return messageModel;
     }
@@ -143,14 +137,20 @@ public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsume
     }
 
 
-    @Override
-    public long minOffset(MessageQueue mq) throws MQClientException {
-        return this.defaultMQPullConsumerImpl.minOffset(mq);
+    public Set<String> getRegisterTopics() {
+        return registerTopics;
     }
 
 
-    public Set<String> getRegisterTopics() {
-        return registerTopics;
+    @Override
+    public long maxOffset(MessageQueue mq) throws MQClientException {
+        return this.defaultMQPullConsumerImpl.maxOffset(mq);
+    }
+
+
+    @Override
+    public long minOffset(MessageQueue mq) throws MQClientException {
+        return this.defaultMQPullConsumerImpl.minOffset(mq);
     }
 
 
