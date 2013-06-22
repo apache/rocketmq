@@ -24,8 +24,9 @@ import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.common.namesrv.NamesrvConfig;
 import com.alibaba.rocketmq.remoting.netty.NettyClientConfig;
 import com.alibaba.rocketmq.remoting.netty.NettyServerConfig;
-//import org.apache.log4j.xml.DOMConfigurator;
 
+
+//import org.apache.log4j.xml.DOMConfigurator;
 
 /**
  * Name server Æô¶¯Èë¿Ú

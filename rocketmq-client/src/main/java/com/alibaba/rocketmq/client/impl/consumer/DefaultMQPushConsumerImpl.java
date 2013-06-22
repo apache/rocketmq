@@ -12,7 +12,6 @@ import org.slf4j.Logger;
 
 import com.alibaba.rocketmq.client.QueryResult;
 import com.alibaba.rocketmq.client.consumer.DefaultMQPushConsumer;
-import com.alibaba.rocketmq.client.consumer.MQPushConsumer;
 import com.alibaba.rocketmq.client.consumer.PullCallback;
 import com.alibaba.rocketmq.client.consumer.PullResult;
 import com.alibaba.rocketmq.client.consumer.listener.MessageListener;
@@ -45,7 +44,7 @@ import com.alibaba.rocketmq.remoting.exception.RemotingException;
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-6-15
  */
-public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInner {
+public class DefaultMQPushConsumerImpl implements MQConsumerInner {
     private final Logger log = ClientLogger.getLog();
     private final DefaultMQPushConsumer defaultMQPushConsumer;
     private ServiceState serviceState = ServiceState.CREATE_JUST;
@@ -259,7 +258,6 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
     }
 
 
-    @Override
     public void createTopic(String key, String newTopic, int queueNum, boolean order)
             throws MQClientException {
         this.mQClientFactory.getMQAdminImpl().createTopic(key, newTopic, queueNum, order);
@@ -290,7 +288,6 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
     }
 
 
-    @Override
     public Set<MessageQueue> fetchSubscribeMessageQueues(String topic) throws MQClientException {
 
         Set<MessageQueue> result = this.rebalanceImpl.getTopicSubscribeInfoTable().get(topic);
@@ -312,15 +309,13 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
     }
 
 
-    @Override
-    public long getEarliestMsgStoreTime(MessageQueue mq) throws MQClientException {
-        return this.mQClientFactory.getMQAdminImpl().getEarliestMsgStoreTime(mq);
+    public long earliestMsgStoreTime(MessageQueue mq) throws MQClientException {
+        return this.mQClientFactory.getMQAdminImpl().earliestMsgStoreTime(mq);
     }
 
 
-    @Override
-    public long getMaxOffset(MessageQueue mq) throws MQClientException {
-        return this.mQClientFactory.getMQAdminImpl().getMaxOffset(mq);
+    public long maxOffset(MessageQueue mq) throws MQClientException {
+        return this.mQClientFactory.getMQAdminImpl().maxOffset(mq);
     }
 
 
@@ -329,9 +324,8 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
     }
 
 
-    @Override
-    public long getMinOffset(MessageQueue mq) throws MQClientException {
-        return this.mQClientFactory.getMQAdminImpl().getMinOffset(mq);
+    public long minOffset(MessageQueue mq) throws MQClientException {
+        return this.mQClientFactory.getMQAdminImpl().minOffset(mq);
     }
 
 
@@ -532,33 +526,28 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
     }
 
 
-    @Override
     public QueryResult queryMessage(String topic, String key, int maxNum, long begin, long end)
             throws MQClientException, InterruptedException {
         return this.mQClientFactory.getMQAdminImpl().queryMessage(topic, key, maxNum, begin, end);
     }
 
 
-    @Override
     public void registerMessageListener(MessageListener messageListener) {
         this.messageListenerInner = messageListener;
     }
 
 
-    @Override
     public void resume() {
         this.pause = false;
         log.info("resume this consumer, {}", this.defaultMQPushConsumer.getConsumerGroup());
     }
 
 
-    @Override
     public long searchOffset(MessageQueue mq, long timestamp) throws MQClientException {
         return this.mQClientFactory.getMQAdminImpl().searchOffset(mq, timestamp);
     }
 
 
-    @Override
     public void sendMessageBack(MessageExt msg, int delayLevel) throws RemotingException, MQBrokerException,
             InterruptedException {
         this.mQClientFactory.getMQClientAPIImpl().consumerSendMessageBack(msg,
@@ -576,7 +565,6 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
     }
 
 
-    @Override
     public void shutdown() {
         switch (this.serviceState) {
         case CREATE_JUST:
@@ -597,7 +585,6 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
     }
 
 
-    @Override
     public void start() throws MQClientException {
         switch (this.serviceState) {
         case CREATE_JUST:
@@ -686,7 +673,6 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
     }
 
 
-    @Override
     public void subscribe(String topic, String subExpression) throws MQClientException {
         try {
             SubscriptionData subscriptionData = FilterAPI.buildSubscriptionData(topic, subExpression);
@@ -712,14 +698,12 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
     }
 
 
-    @Override
     public void suspend() {
         this.pause = true;
         log.info("suspend this consumer, {}", this.defaultMQPushConsumer.getConsumerGroup());
     }
 
 
-    @Override
     public void unsubscribe(String topic) {
         this.rebalanceImpl.getSubscriptionInner().remove(topic);
     }
@@ -752,7 +736,6 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumer, MQConsumerInne
     }
 
 
-    @Override
     public MessageExt viewMessage(String msgId) throws RemotingException, MQBrokerException,
             InterruptedException, MQClientException {
         return this.mQClientFactory.getMQAdminImpl().viewMessage(msgId);

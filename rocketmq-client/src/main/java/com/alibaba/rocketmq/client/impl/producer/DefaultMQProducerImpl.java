@@ -212,21 +212,21 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     }
 
 
-    public long getMaxOffset(MessageQueue mq) throws MQClientException {
+    public long maxOffset(MessageQueue mq) throws MQClientException {
         this.makeSureStateOK();
-        return this.mQClientFactory.getMQAdminImpl().getMaxOffset(mq);
+        return this.mQClientFactory.getMQAdminImpl().maxOffset(mq);
     }
 
 
-    public long getMinOffset(MessageQueue mq) throws MQClientException {
+    public long minOffset(MessageQueue mq) throws MQClientException {
         this.makeSureStateOK();
-        return this.mQClientFactory.getMQAdminImpl().getMinOffset(mq);
+        return this.mQClientFactory.getMQAdminImpl().minOffset(mq);
     }
 
 
-    public long getEarliestMsgStoreTime(MessageQueue mq) throws MQClientException {
+    public long earliestMsgStoreTime(MessageQueue mq) throws MQClientException {
         this.makeSureStateOK();
-        return this.mQClientFactory.getMQAdminImpl().getEarliestMsgStoreTime(mq);
+        return this.mQClientFactory.getMQAdminImpl().earliestMsgStoreTime(mq);
     }
 
 

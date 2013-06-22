@@ -143,21 +143,21 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
 
 
     @Override
-    public long getMaxOffset(MessageQueue mq) throws MQClientException {
+    public long maxOffset(MessageQueue mq) throws MQClientException {
         // TODO Auto-generated method stub
         return 0;
     }
 
 
     @Override
-    public long getMinOffset(MessageQueue mq) throws MQClientException {
+    public long minOffset(MessageQueue mq) throws MQClientException {
         // TODO Auto-generated method stub
         return 0;
     }
 
 
     @Override
-    public long getEarliestMsgStoreTime(MessageQueue mq) throws MQClientException {
+    public long earliestMsgStoreTime(MessageQueue mq) throws MQClientException {
         // TODO Auto-generated method stub
         return 0;
     }

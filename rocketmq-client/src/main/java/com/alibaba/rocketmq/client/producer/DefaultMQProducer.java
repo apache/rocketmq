@@ -106,20 +106,20 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
 
 
     @Override
-    public long getMaxOffset(MessageQueue mq) throws MQClientException {
-        return this.defaultMQProducerImpl.getMaxOffset(mq);
+    public long maxOffset(MessageQueue mq) throws MQClientException {
+        return this.defaultMQProducerImpl.maxOffset(mq);
     }
 
 
     @Override
-    public long getMinOffset(MessageQueue mq) throws MQClientException {
-        return this.defaultMQProducerImpl.getMinOffset(mq);
+    public long minOffset(MessageQueue mq) throws MQClientException {
+        return this.defaultMQProducerImpl.minOffset(mq);
     }
 
 
     @Override
-    public long getEarliestMsgStoreTime(MessageQueue mq) throws MQClientException {
-        return this.defaultMQProducerImpl.getEarliestMsgStoreTime(mq);
+    public long earliestMsgStoreTime(MessageQueue mq) throws MQClientException {
+        return this.defaultMQProducerImpl.earliestMsgStoreTime(mq);
     }
 
 
