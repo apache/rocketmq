@@ -13,6 +13,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.alibaba.rocketmq.broker.BrokerController;
+import com.alibaba.rocketmq.broker.client.ConsumerGroupInfo;
 import com.alibaba.rocketmq.broker.longpolling.PullRequest;
 import com.alibaba.rocketmq.broker.pagecache.ManyMessageTransfer;
 import com.alibaba.rocketmq.common.TopicConfig;
@@ -181,9 +182,35 @@ public class PullMessageProcessor implements NettyRequestProcessor {
             }
         }
         else {
-            subscriptionData =
-                    this.brokerController.getConsumerManager().findSubscriptionData(
-                        requestHeader.getConsumerGroup(), requestHeader.getTopic());
+            ConsumerGroupInfo consumerGroupInfo =
+                    this.brokerController.getConsumerManager().getConsumerGroupInfo(
+                        requestHeader.getConsumerGroup());
+            if (null == consumerGroupInfo) {
+                log.warn("the consumer's group info not exist, group: {}", requestHeader.getConsumerGroup());
+                response.setCode(MQResponseCode.SUBSCRIPTION_NOT_EXIST_VALUE);
+                response.setRemark("the consumer's group info not exist");
+                return response;
+            }
+
+            switch (consumerGroupInfo.getConsumeFromWhere()) {
+            case CONSUME_FROM_LAST_OFFSET:
+            case CONSUME_FROM_MAX_OFFSET:
+                break;
+            case CONSUME_FROM_LAST_OFFSET_AND_FROM_MIN_WHEN_BOOT_FIRST:
+            case CONSUME_FROM_MIN_OFFSET:
+                if (!subscriptionGroupConfig.isConsumeFromMinEnable()) {
+                    response.setCode(MQResponseCode.NO_PERMISSION_VALUE);
+                    response.setRemark("the consumer group[" + requestHeader.getConsumerGroup()
+                            + "] can not consume from min");
+                    return response;
+                }
+                break;
+            default:
+                break;
+
+            }
+
+            subscriptionData = consumerGroupInfo.findSubscriptionData(requestHeader.getTopic());
             if (null == subscriptionData) {
                 log.warn("the consumer's subscription not exist, group: {}", requestHeader.getConsumerGroup());
                 response.setCode(MQResponseCode.SUBSCRIPTION_NOT_EXIST_VALUE);
