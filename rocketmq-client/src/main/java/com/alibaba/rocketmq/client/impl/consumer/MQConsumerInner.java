@@ -16,19 +16,19 @@ import com.alibaba.rocketmq.common.protocol.heartbeat.SubscriptionData;
  * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public interface MQConsumerInner {
-    public String getGroupName();
+    public String groupName();
 
 
-    public MessageModel getMessageModel();
+    public MessageModel messageModel();
 
 
-    public ConsumeType getConsumeType();
+    public ConsumeType consumeType();
 
 
-    public ConsumeFromWhere getConsumeFromWhere();
+    public ConsumeFromWhere consumeFromWhere();
 
 
-    public Set<SubscriptionData> getMQSubscriptions();
+    public Set<SubscriptionData> subscriptions();
 
 
     public void doRebalance();
