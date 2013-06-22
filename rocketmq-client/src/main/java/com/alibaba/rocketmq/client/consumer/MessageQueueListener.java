@@ -3,7 +3,7 @@
  */
 package com.alibaba.rocketmq.client.consumer;
 
-import java.util.List;
+import java.util.Set;
 
 import com.alibaba.rocketmq.common.message.MessageQueue;
 
@@ -14,6 +14,6 @@ import com.alibaba.rocketmq.common.message.MessageQueue;
  * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public interface MessageQueueListener {
-    public void messageQueueChanged(final String topic, final List<MessageQueue> mqAll,
-            final List<MessageQueue> mqDivided);
+    public void messageQueueChanged(final String topic, final Set<MessageQueue> mqAll,
+            final Set<MessageQueue> mqDivided);
 }

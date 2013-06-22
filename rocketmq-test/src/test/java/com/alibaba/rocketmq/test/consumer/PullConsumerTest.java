@@ -1,6 +1,5 @@
 package com.alibaba.rocketmq.test.consumer;
 
-import java.util.List;
 import java.util.Set;
 
 import org.junit.AfterClass;
@@ -31,8 +30,7 @@ public class PullConsumerTest extends BaseTest {
         MessageQueueListener listener = new MessageQueueListener() {
 
             @Override
-            public void messageQueueChanged(String topic, List<MessageQueue> mqAll,
-                    List<MessageQueue> mqDivided) {
+            public void messageQueueChanged(String topic, Set<MessageQueue> mqAll, Set<MessageQueue> mqDivided) {
                 System.out.println("Topic=" + topic);
                 System.out.println("mqAll:" + mqAll);
                 System.out.println("mqDivided:" + mqDivided);

@@ -28,11 +28,11 @@ import com.alibaba.rocketmq.common.protocol.heartbeat.SubscriptionData;
 public abstract class RebalanceImpl {
     protected static final Logger log = ClientLogger.getLog();
 
-    // 消息存储相关
+    // 分配好的队列，消息存储也在这里
     protected final ConcurrentHashMap<MessageQueue, ProcessQueue> processQueueTable =
             new ConcurrentHashMap<MessageQueue, ProcessQueue>(64);
 
-    // 可订阅的信息（定时从Name Server更新最新版本）
+    // 可以订阅的所有队列（定时从Name Server更新最新版本）
     protected final ConcurrentHashMap<String/* topic */, Set<MessageQueue>> topicSubscribeInfoTable =
             new ConcurrentHashMap<String, Set<MessageQueue>>();
 
@@ -61,6 +61,10 @@ public abstract class RebalanceImpl {
     public abstract long computePullFromWhere(final MessageQueue mq);
 
 
+    public abstract void messageQueueChanged(final String topic, final Set<MessageQueue> mqAll,
+            final Set<MessageQueue> mqDivided);
+
+
     public void doRebalance() {
         Map<String, SubscriptionData> subTable = this.getSubscriptionInner();
         if (subTable != null) {
@@ -84,7 +88,15 @@ public abstract class RebalanceImpl {
         case BROADCASTING: {
             Set<MessageQueue> mqSet = this.topicSubscribeInfoTable.get(topic);
             if (mqSet != null) {
-                this.updateProcessQueueTableInRebalance(topic, mqSet);
+                boolean changed = this.updateProcessQueueTableInRebalance(topic, mqSet);
+                if (changed) {
+                    this.messageQueueChanged(topic, mqSet, mqSet);
+                    log.info("messageQueueChanged {} {} {} {}",//
+                        consumerGroup,//
+                        topic,//
+                        mqSet,//
+                        mqSet);
+                }
             }
             else {
                 log.warn("doRebalance, {}, but the topic[{}] not exist.", consumerGroup, topic);
@@ -129,7 +141,15 @@ public abstract class RebalanceImpl {
                 }
 
                 // 更新本地队列
-                this.updateProcessQueueTableInRebalance(topic, allocateResultSet);
+                boolean changed = this.updateProcessQueueTableInRebalance(topic, allocateResultSet);
+                if (changed) {
+                    this.messageQueueChanged(topic, mqSet, allocateResultSet);
+                    log.info("messageQueueChanged {} {} {} {}",//
+                        consumerGroup,//
+                        topic,//
+                        mqSet,//
+                        allocateResultSet);
+                }
             }
             break;
         }
@@ -139,11 +159,14 @@ public abstract class RebalanceImpl {
     }
 
 
-    private void updateProcessQueueTableInRebalance(final String topic, final Set<MessageQueue> mqSet) {
+    private boolean updateProcessQueueTableInRebalance(final String topic, final Set<MessageQueue> mqSet) {
+        boolean changed = false;
+
         // 将多余的队列删除
         for (MessageQueue mq : this.processQueueTable.keySet()) {
             if (mq.getTopic().equals(topic)) {
                 if (!mqSet.contains(mq)) {
+                    changed = true;
                     ProcessQueue pq = this.processQueueTable.remove(mq);
                     if (pq != null) {
                         pq.setDroped(true);
@@ -166,12 +189,15 @@ public abstract class RebalanceImpl {
                 long nextOffset = this.computePullFromWhere(mq);
                 pullRequest.setNextOffset(nextOffset);
                 pullRequestList.add(pullRequest);
+                changed = true;
                 this.processQueueTable.put(mq, pullRequest.getProcessQueue());
                 log.info("doRebalance, {}, add a new mq, {}", consumerGroup, mq);
             }
         }
 
         this.dispatchPullRequest(pullRequestList);
+
+        return changed;
     }
 
 
