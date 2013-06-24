@@ -49,7 +49,7 @@ public interface MQPullConsumer extends MQConsumer {
      * @param subExpression
      *            订阅过滤表达式字符串，broker依据此表达式进行过滤。目前只支持或运算<br>
      *            eg: "tag1 || tag2 || tag3"<br>
-     *            如果subExpression=null, 则表示全部订阅
+     *            如果subExpression等于null或者*，则表示全部订阅
      * @param offset
      *            从指定队列哪个位置开始拉取
      * @param maxNums
@@ -79,7 +79,7 @@ public interface MQPullConsumer extends MQConsumer {
      * @param subExpression
      *            订阅过滤表达式字符串，broker依据此表达式进行过滤。目前只支持或运算<br>
      *            eg: "tag1 || tag2 || tag3"<br>
-     *            如果subExpression=null, 则表示全部订阅
+     *            如果subExpression等于null或者*，则表示全部订阅
      * @param offset
      *            从指定队列哪个位置开始拉取
      * @param maxNums
