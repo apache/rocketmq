@@ -27,7 +27,7 @@ import com.alibaba.rocketmq.remoting.exception.RemotingException;
 public class Producer {
     private static Message buildMessage(final int messageSize) {
         Message msg = new Message();
-        msg.setTopic("BenchmarkTest4");
+        msg.setTopic("BenchmarkTest");
 
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < messageSize; i += 10) {
@@ -48,7 +48,7 @@ public class Producer {
 
         final ExecutorService sendThreadPool = Executors.newFixedThreadPool(threadCount);
 
-        final StatsBenchmark statsBenchmark = new StatsBenchmark();
+        final StatsBenchmarkProducer statsBenchmark = new StatsBenchmarkProducer();
 
         final Timer timer = new Timer("BenchmarkTimerThread", true);
 
@@ -151,7 +151,7 @@ public class Producer {
 }
 
 
-class StatsBenchmark {
+class StatsBenchmarkProducer {
     // 1
     private final AtomicLong sendRequestSuccessCount = new AtomicLong(0L);
     // 2

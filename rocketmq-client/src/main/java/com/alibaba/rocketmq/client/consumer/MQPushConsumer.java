@@ -42,10 +42,9 @@ public interface MQPushConsumer extends MQConsumer {
      * @param topic
      *            消息主题
      * @param subExpression
-     *            订阅过滤表达式字符串，broker依据此表达式进行过滤。<br>
+     *            订阅过滤表达式字符串，broker依据此表达式进行过滤。目前只支持或运算<br>
      *            eg: "tag1 || tag2 || tag3"<br>
-     *            "tag1 || (tag2 && tag3)"<br>
-     *            如果subExpression=null, 则表示全部订阅
+     *            如果subExpression等于null或者*，则表示全部订阅
      * @param listener
      *            消息回调监听器
      * @throws MQClientException
