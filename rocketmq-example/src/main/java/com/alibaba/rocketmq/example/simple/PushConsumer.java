@@ -11,6 +11,7 @@ import com.alibaba.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext;
 import com.alibaba.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
 import com.alibaba.rocketmq.client.consumer.listener.MessageListenerConcurrently;
 import com.alibaba.rocketmq.client.exception.MQClientException;
+import com.alibaba.rocketmq.common.consumer.ConsumeFromWhere;
 import com.alibaba.rocketmq.common.message.MessageExt;
 
 
@@ -25,7 +26,7 @@ public class PushConsumer {
     public static void main(String[] args) throws InterruptedException, MQClientException {
         DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("example_consumer_group4");
 
-        // consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_MIN_OFFSET);
+        consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_MIN_OFFSET);
 
         consumer.subscribe("TopicTest", "TagA || TagC || TagD");
 
@@ -39,7 +40,7 @@ public class PushConsumer {
                 System.out.println("Receive New Messages: " + msgs);
                 // 模拟消费失败情况
                 if ((this.consumeTimes.getAndIncrement() % 2) == 0) {
-                    return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
+                    return ConsumeConcurrentlyStatus.RECONSUME_LATER;
                 }
 
                 return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;

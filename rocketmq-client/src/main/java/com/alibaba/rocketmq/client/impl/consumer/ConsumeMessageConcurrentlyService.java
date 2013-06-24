@@ -162,6 +162,9 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
                 delayLevel += delayLevel / 3;
             }
         }
+        else {
+            delayLevel = context.getDelayLevelWhenNextConsume();
+        }
 
         try {
             this.defaultMQPushConsumerImpl.sendMessageBack(msg, delayLevel);
