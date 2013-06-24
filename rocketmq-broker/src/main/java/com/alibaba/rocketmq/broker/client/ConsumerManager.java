@@ -24,6 +24,13 @@ public class ConsumerManager {
     private final ConcurrentHashMap<String/* Group */, ConsumerGroupInfo> consumerTable =
             new ConcurrentHashMap<String, ConsumerGroupInfo>(1024);
 
+    private final ConsumerIdsChangeListener consumerIdsChangeListener;
+
+
+    public ConsumerManager(final ConsumerIdsChangeListener consumerIdsChangeListener) {
+        this.consumerIdsChangeListener = consumerIdsChangeListener;
+    }
+
 
     public ConsumerGroupInfo getConsumerGroupInfo(final String group) {
         return this.consumerTable.get(group);
@@ -45,6 +52,7 @@ public class ConsumerManager {
             final ConsumerGroupInfo info = this.consumerTable.get(group);
             if (info != null) {
                 info.doChannelCloseEvent(remoteAddr, channel);
+                this.consumerIdsChangeListener.consumerIdsChanged(group, info.getAllChannel());
             }
         }
     }
@@ -67,6 +75,11 @@ public class ConsumerManager {
                 consumerGroupInfo.updateChannel(clientChannelInfo, consumeType, messageModel,
                     consumeFromWhere);
         boolean r2 = consumerGroupInfo.updateSubscription(subList);
+
+        if (r1 || r2) {
+            this.consumerIdsChangeListener.consumerIdsChanged(group, consumerGroupInfo.getAllChannel());
+        }
+
         return r1 || r2;
     }
 
@@ -75,6 +88,7 @@ public class ConsumerManager {
         ConsumerGroupInfo consumerGroupInfo = this.consumerTable.get(group);
         if (null != consumerGroupInfo) {
             consumerGroupInfo.unregisterChannel(clientChannelInfo);
+            this.consumerIdsChangeListener.consumerIdsChanged(group, consumerGroupInfo.getAllChannel());
         }
     }
 }

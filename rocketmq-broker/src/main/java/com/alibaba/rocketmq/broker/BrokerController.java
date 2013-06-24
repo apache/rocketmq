@@ -17,7 +17,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.alibaba.rocketmq.broker.client.ClientHousekeepingService;
+import com.alibaba.rocketmq.broker.client.ConsumerIdsChangeListener;
 import com.alibaba.rocketmq.broker.client.ConsumerManager;
+import com.alibaba.rocketmq.broker.client.DefaultConsumerIdsChangeListener;
 import com.alibaba.rocketmq.broker.client.ProducerManager;
 import com.alibaba.rocketmq.broker.client.net.Broker2Client;
 import com.alibaba.rocketmq.broker.longpolling.PullRequestHoldService;
@@ -106,6 +108,8 @@ public class BrokerController {
     // ∂©‘ƒ◊È≈‰÷√π‹¿Ì
     private final SubscriptionGroupManager subscriptionGroupManager;
 
+    private final ConsumerIdsChangeListener consumerIdsChangeListener;
+
 
     public BrokerController(final BrokerConfig brokerConfig, final NettyServerConfig nettyServerConfig,
             final MessageStoreConfig messageStoreConfig) {
@@ -116,7 +120,8 @@ public class BrokerController {
         this.topicConfigManager = new TopicConfigManager(this);
         this.pullMessageProcessor = new PullMessageProcessor(this);
         this.pullRequestHoldService = new PullRequestHoldService(this);
-        this.consumerManager = new ConsumerManager();
+        this.consumerIdsChangeListener = new DefaultConsumerIdsChangeListener(this);
+        this.consumerManager = new ConsumerManager(this.consumerIdsChangeListener);
         this.producerManager = new ProducerManager();
         this.clientHousekeepingService = new ClientHousekeepingService(this);
         this.defaultTransactionCheckExecuter = new DefaultTransactionCheckExecuter(this);

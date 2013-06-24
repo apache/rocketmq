@@ -3,7 +3,6 @@
  */
 package com.alibaba.rocketmq.broker.processor;
 
-import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 
 import java.util.List;
@@ -164,19 +163,6 @@ public class ClientManageProcessor implements NettyRequestProcessor {
                 RemotingHelper.parseChannelRemoteAddr(ctx.channel()),//
                 changed//
             );
-
-            // 通知当前订阅组下的所有Consumer，Consumer Id列表发生变化，立刻rebalance
-            if (changed) {
-                ConsumerGroupInfo consumerGroupInfo =
-                        this.brokerController.getConsumerManager().getConsumerGroupInfo(data.getGroupName());
-                if (consumerGroupInfo != null) {
-                    List<Channel> channels = consumerGroupInfo.getAllChannel();
-                    for (Channel chl : channels) {
-                        this.brokerController.getBroker2Client().notifyConsumerIdsChanged(chl,
-                            data.getGroupName());
-                    }
-                }
-            }
         }
 
         // 注册Producer
