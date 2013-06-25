@@ -104,10 +104,19 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
             synchronized (objLock) {
                 // 保证在Consumer集群，同一队列串行消费
                 if (this.processQueue.isLocked()) {
-                    for (boolean continueConsume = true; continueConsume;) {
+                    int consumeTimesContinuously = 0;
+                    for (boolean continueConsume = true; continueConsume; consumeTimesContinuously++) {
                         if (this.processQueue.isDroped()) {
                             log.info("the message queue not be able to consume, because it's droped {}",
                                 this.messageQueue);
+                            break;
+                        }
+
+                        // 在线程数小于队列数情况下，防止个别队列被饿死
+                        if (consumeTimesContinuously > 32) {
+                            // 过10ms后再消费
+                            ConsumeMessageOrderlyService.this.submitConsumeRequestLater(processQueue,
+                                messageQueue, 10);
                             break;
                         }
 
