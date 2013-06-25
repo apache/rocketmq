@@ -55,7 +55,7 @@ public class BrokerConfig {
 
     private int flushConsumerOffsetHistoryInterval = 1000 * 60;
 
-    // 查询消息最大时间跨度，单位消息
+    // 查询消息最大时间跨度，单位小时
     private long queryMessageMaxTimeSpan = 2;
 
 
