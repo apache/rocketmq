@@ -203,6 +203,27 @@ public class ProcessQueue {
     }
 
 
+    public void makeMessageToCosumeAgain(List<MessageExt> msgs) {
+        try {
+            this.lockTreeMap.writeLock().lockInterruptibly();
+            try {
+                // 临时Table删除
+                // 正常Table增加
+                for (MessageExt msg : msgs) {
+                    this.msgTreeMapTemp.remove(msg.getQueueOffset());
+                    this.msgTreeMap.put(msg.getQueueOffset(), msg);
+                }
+            }
+            finally {
+                this.lockTreeMap.writeLock().unlock();
+            }
+        }
+        catch (InterruptedException e) {
+            log.error("makeMessageToCosumeAgain exception", e);
+        }
+    }
+
+
     /**
      * 如果取不到消息，则将正在消费状态置为false
      * 

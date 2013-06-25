@@ -113,7 +113,7 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
                         }
 
                         // 在线程数小于队列数情况下，防止个别队列被饿死
-                        if (consumeTimesContinuously > 32) {
+                        if (consumeTimesContinuously > 2048) {
                             // 过10ms后再消费
                             ConsumeMessageOrderlyService.this.submitConsumeRequestLater(processQueue,
                                 messageQueue, 10);
@@ -193,6 +193,7 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
                 commitOffset = consumeRequest.getProcessQueue().commit();
                 break;
             case SUSPEND_CURRENT_QUEUE_A_MOMENT:
+                consumeRequest.getProcessQueue().makeMessageToCosumeAgain(msgs);
                 this.submitConsumeRequestLater(//
                     consumeRequest.getProcessQueue(), //
                     consumeRequest.getMessageQueue(), //
@@ -214,7 +215,14 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
             case ROLLBACK:
                 // 如果Rollback后，最好suspend一会儿再消费，防止应用无限Rollback下去
                 consumeRequest.getProcessQueue().rollback();
+                this.submitConsumeRequestLater(//
+                    consumeRequest.getProcessQueue(), //
+                    consumeRequest.getMessageQueue(), //
+                    context.getSuspendCurrentQueueTimeMillis());
+                continueConsume = false;
+                break;
             case SUSPEND_CURRENT_QUEUE_A_MOMENT:
+                consumeRequest.getProcessQueue().makeMessageToCosumeAgain(msgs);
                 this.submitConsumeRequestLater(//
                     consumeRequest.getProcessQueue(), //
                     consumeRequest.getMessageQueue(), //
