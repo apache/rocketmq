@@ -14,8 +14,6 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.slf4j.Logger;
 
 import com.alibaba.rocketmq.client.consumer.DefaultMQPushConsumer;
-import com.alibaba.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext;
-import com.alibaba.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
 import com.alibaba.rocketmq.client.consumer.listener.ConsumeOrderlyContext;
 import com.alibaba.rocketmq.client.consumer.listener.ConsumeOrderlyStatus;
 import com.alibaba.rocketmq.client.consumer.listener.MessageListenerOrderly;
@@ -153,6 +151,16 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
                 }
             }
         }
+
+
+        public ProcessQueue getProcessQueue() {
+            return processQueue;
+        }
+
+
+        public MessageQueue getMessageQueue() {
+            return messageQueue;
+        }
     }
 
 
@@ -162,7 +170,57 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
             final ConsumeOrderlyContext context, //
             final ConsumeRequest consumeRequest//
     ) {
-        boolean continueConsume = false;
+        boolean continueConsume = true;
+        long commitOffset = -1L;
+        // 非事务方式，自动提交
+        if (context.isAutoCommit()) {
+            switch (status) {
+            case COMMIT:
+            case ROLLBACK:
+                log.warn(
+                    "the message queue consume result is illegal, we think you want to ack these message {}",
+                    consumeRequest.getMessageQueue());
+            case SUCCESS:
+                commitOffset = consumeRequest.getProcessQueue().commit();
+                break;
+            case SUSPEND_CURRENT_QUEUE_A_MOMENT:
+                this.submitConsumeRequestLater(//
+                    consumeRequest.getProcessQueue(), //
+                    consumeRequest.getMessageQueue(), //
+                    context.getSuspendCurrentQueueTimeMillis());
+                continueConsume = false;
+                break;
+            default:
+                break;
+            }
+        }
+        // 事务方式，由用户来控制提交回滚
+        else {
+            switch (status) {
+            case SUCCESS:
+                break;
+            case COMMIT:
+                commitOffset = consumeRequest.getProcessQueue().commit();
+                break;
+            case ROLLBACK:
+                // 如果Rollback后，最好suspend一会儿再消费，防止应用无限Rollback下去
+                consumeRequest.getProcessQueue().rollback();
+            case SUSPEND_CURRENT_QUEUE_A_MOMENT:
+                this.submitConsumeRequestLater(//
+                    consumeRequest.getProcessQueue(), //
+                    consumeRequest.getMessageQueue(), //
+                    context.getSuspendCurrentQueueTimeMillis());
+                continueConsume = false;
+                break;
+            default:
+                break;
+            }
+        }
+
+        if (commitOffset >= 0) {
+            this.defaultMQPushConsumerImpl
+                .updateConsumeOffset(consumeRequest.getMessageQueue(), commitOffset);
+        }
 
         return continueConsume;
     }
@@ -173,8 +231,16 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
      */
     private void submitConsumeRequestLater(//
             final ProcessQueue processQueue, //
-            final MessageQueue messageQueue//
+            final MessageQueue messageQueue,//
+            final long suspendTimeMillis//
     ) {
+        long timeMillis = suspendTimeMillis;
+        if (timeMillis < 1000) {
+            timeMillis = 1000;
+        }
+        else if (timeMillis > 30000) {
+            timeMillis = 30000;
+        }
 
         this.scheduledExecutorService.schedule(new Runnable() {
 
@@ -183,7 +249,7 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
                 ConsumeMessageOrderlyService.this
                     .submitConsumeRequest(null, processQueue, messageQueue, true);
             }
-        }, 5000, TimeUnit.MILLISECONDS);
+        }, timeMillis, TimeUnit.MILLISECONDS);
     }
 
 
