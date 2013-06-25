@@ -1,6 +1,9 @@
 package com.alibaba.rocketmq.client.impl.consumer;
 
+import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReadWriteLock;
@@ -27,16 +30,54 @@ public class ProcessQueue {
     // 当前Q是否被rebalance丢弃
     private volatile boolean droped = false;
 
+    // 是否正在被消费
+    private volatile boolean consuming = false;
+
 
     public boolean isLocked() {
         return locked;
     }
 
 
-    public void putMessage(final List<MessageExt> msgs) {
+    public List<MessageExt> takeMessags(final int batchSize) {
+        List<MessageExt> result = new ArrayList<MessageExt>(batchSize);
+        try {
+            this.lockTreeMap.readLock().lockInterruptibly();
+            try {
+                if (!this.msgTreeMap.isEmpty()) {
+                    for (int i = 0; i < batchSize; i++) {
+                        Map.Entry<Long, MessageExt> entry = this.msgTreeMap.pollFirstEntry();
+                        if (entry != null) {
+                            result.add(entry.getValue());
+                            consuming = true;
+                        }
+                        else {
+                            break;
+                        }
+                    }
+                }
+            }
+            finally {
+                this.lockTreeMap.readLock().unlock();
+            }
+        }
+        catch (InterruptedException e) {
+            log.error("takeMessags exception", e);
+        }
+
+        return result;
+    }
+
+
+    /**
+     * @return 是否正在被消费
+     */
+    public boolean putMessage(final List<MessageExt> msgs) {
+        boolean isEmptyBefore = false;
         try {
             this.lockTreeMap.writeLock().lockInterruptibly();
             try {
+                isEmptyBefore = msgTreeMap.isEmpty();
                 for (MessageExt msg : msgs) {
                     msgTreeMap.put(msg.getQueueOffset(), msg);
                 }
@@ -49,6 +90,8 @@ public class ProcessQueue {
         catch (InterruptedException e) {
             log.error("putMessage exception", e);
         }
+
+        return isEmptyBefore;
     }
 
 

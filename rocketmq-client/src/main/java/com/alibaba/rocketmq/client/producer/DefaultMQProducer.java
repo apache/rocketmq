@@ -53,7 +53,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     /**
      * 最大消息大小，默认512K
      */
-    private int maxMessageSize = 1024 * 512;
+    private int maxMessageSize = 1024 * 128;
 
     protected final transient DefaultMQProducerImpl defaultMQProducerImpl = new DefaultMQProducerImpl(this);
 
