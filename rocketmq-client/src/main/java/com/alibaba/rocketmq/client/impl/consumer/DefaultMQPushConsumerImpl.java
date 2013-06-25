@@ -453,12 +453,12 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
 
                     switch (pullResult.getPullStatus()) {
                     case FOUND:
-                        boolean isEmptyBefore = processQueue.putMessage(pullResult.getMsgFoundList());
+                        boolean dispathToConsume = processQueue.putMessage(pullResult.getMsgFoundList());
                         DefaultMQPushConsumerImpl.this.consumeMessageService.submitConsumeRequest(//
                             pullResult.getMsgFoundList(), //
                             processQueue, //
                             pullRequest.getMessageQueue(), //
-                            isEmptyBefore);
+                            dispathToConsume);
 
                         // Á÷¿Ø
                         if (DefaultMQPushConsumerImpl.this.defaultMQPushConsumer.getPullInterval() > 0) {

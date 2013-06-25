@@ -40,18 +40,22 @@ public class ProcessQueue {
 
 
     /**
-     * @return 是否正在被消费
+     * @return 是否需要分发当前队列到消费线程池
      */
     public boolean putMessage(final List<MessageExt> msgs) {
-        boolean isEmptyBefore = false;
+        boolean dispathToConsume = false;
         try {
             this.lockTreeMap.writeLock().lockInterruptibly();
             try {
-                isEmptyBefore = msgTreeMap.isEmpty();
                 for (MessageExt msg : msgs) {
                     msgTreeMap.put(msg.getQueueOffset(), msg);
                 }
                 msgCount.addAndGet(msgs.size());
+
+                if (!msgTreeMap.isEmpty() && !this.consuming) {
+                    dispathToConsume = true;
+                    this.consuming = true;
+                }
             }
             finally {
                 this.lockTreeMap.writeLock().unlock();
@@ -61,7 +65,7 @@ public class ProcessQueue {
             log.error("putMessage exception", e);
         }
 
-        return isEmptyBefore;
+        return dispathToConsume;
     }
 
 
@@ -181,6 +185,7 @@ public class ProcessQueue {
             this.lockTreeMap.writeLock().lockInterruptibly();
             try {
                 Long offset = this.msgTreeMapTemp.lastKey();
+                msgCount.addAndGet(this.msgTreeMapTemp.size() * (-1));
                 this.msgTreeMapTemp.clear();
                 if (offset != null) {
                     return offset + 1;
@@ -198,6 +203,12 @@ public class ProcessQueue {
     }
 
 
+    /**
+     * 如果取不到消息，则将正在消费状态置为false
+     * 
+     * @param batchSize
+     * @return
+     */
     public List<MessageExt> takeMessags(final int batchSize) {
         List<MessageExt> result = new ArrayList<MessageExt>(batchSize);
         try {
@@ -214,6 +225,10 @@ public class ProcessQueue {
                             break;
                         }
                     }
+
+                    if (result.isEmpty()) {
+                        consuming = false;
+                    }
                 }
             }
             finally {
@@ -226,5 +241,4 @@ public class ProcessQueue {
 
         return result;
     }
-
 }

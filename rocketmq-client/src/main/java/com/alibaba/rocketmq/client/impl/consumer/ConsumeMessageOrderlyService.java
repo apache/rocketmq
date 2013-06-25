@@ -235,8 +235,8 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
             final long suspendTimeMillis//
     ) {
         long timeMillis = suspendTimeMillis;
-        if (timeMillis < 1000) {
-            timeMillis = 1000;
+        if (timeMillis < 10) {
+            timeMillis = 10;
         }
         else if (timeMillis > 30000) {
             timeMillis = 30000;
@@ -258,8 +258,8 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
             final List<MessageExt> msgs, //
             final ProcessQueue processQueue, //
             final MessageQueue messageQueue, //
-            final boolean isEmptyBefore) {
-        if (isEmptyBefore) {
+            final boolean dispathToConsume) {
+        if (dispathToConsume) {
             ConsumeRequest consumeRequest = new ConsumeRequest(processQueue, messageQueue);
             this.consumeExecutor.submit(consumeRequest);
         }

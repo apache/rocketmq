@@ -20,5 +20,5 @@ public interface ConsumeMessageService {
             final List<MessageExt> msgs, //
             final ProcessQueue processQueue, //
             final MessageQueue messageQueue, //
-            final boolean isEmptyBefore);
+            final boolean dispathToConsume);
 }
