@@ -125,11 +125,11 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
                 }
                 // 当前订阅组在服务器没有对应的Offset
                 catch (MQBrokerException e) {
-                    log.warn("fetchConsumeOffsetFromBroker exception, " + mq, e);
                     return -1;
                 }
                 // 其他通信错误
                 catch (Exception e) {
+                    log.warn("fetchConsumeOffsetFromBroker exception, " + mq, e);
                     return -2;
                 }
 

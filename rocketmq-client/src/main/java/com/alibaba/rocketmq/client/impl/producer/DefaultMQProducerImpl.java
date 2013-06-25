@@ -246,12 +246,20 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
 
     private void checkMessage(Message msg) throws MQClientException {
-        // topic TODO
-        // tags TODO
-        // keys TODO
-        // body TODO
+        if (null == msg) {
+            throw new MQClientException("the message is null", null);
+        }
+        // topic
+        if (null == msg.getTopic()) {
+            throw new MQClientException("the message topic is null", null);
+        }
+        // body
         if (null == msg.getBody()) {
             throw new MQClientException("the message body is null", null);
+        }
+
+        if (0 == msg.getBody().length) {
+            throw new MQClientException("the message body length is zero", null);
         }
 
         if (msg.getBody().length > this.defaultMQProducer.getMaxMessageSize()) {
