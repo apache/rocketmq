@@ -55,6 +55,9 @@ public abstract class RebalanceImpl {
     }
 
 
+    public abstract void removeUnnecessaryMessageQueue(final MessageQueue mq, final ProcessQueue pq);
+
+
     public abstract void dispatchPullRequest(final List<PullRequest> pullRequestList);
 
 
@@ -171,6 +174,7 @@ public abstract class RebalanceImpl {
                     if (pq != null) {
                         pq.setDroped(true);
                         log.info("doRebalance, {}, remove unnecessary mq, {}", consumerGroup, mq);
+                        this.removeUnnecessaryMessageQueue(mq, pq);
                     }
                 }
             }

@@ -98,4 +98,9 @@ public class RebalancePushImpl extends RebalanceImpl {
     @Override
     public void messageQueueChanged(String topic, Set<MessageQueue> mqAll, Set<MessageQueue> mqDivided) {
     }
+
+
+    @Override
+    public void removeUnnecessaryMessageQueue(MessageQueue mq, ProcessQueue pq) {
+    }
 }

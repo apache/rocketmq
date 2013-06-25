@@ -24,10 +24,6 @@ public class ConsumeOrderlyContext {
      * 将当前队列挂起时间，单位毫秒
      */
     private long suspendCurrentQueueTimeMillis = 1000;
-    /**
-     * 对于批量消费，ack至哪条消息，默认全部ack，至最后一条消息
-     */
-    private int ackIndex = Integer.MAX_VALUE;
 
 
     public ConsumeOrderlyContext(MessageQueue messageQueue) {
@@ -57,15 +53,5 @@ public class ConsumeOrderlyContext {
 
     public void setSuspendCurrentQueueTimeMillis(long suspendCurrentQueueTimeMillis) {
         this.suspendCurrentQueueTimeMillis = suspendCurrentQueueTimeMillis;
-    }
-
-
-    public int getAckIndex() {
-        return ackIndex;
-    }
-
-
-    public void setAckIndex(int ackIndex) {
-        this.ackIndex = ackIndex;
     }
 }
