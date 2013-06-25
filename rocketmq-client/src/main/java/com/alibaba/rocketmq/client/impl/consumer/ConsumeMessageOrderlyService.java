@@ -37,6 +37,9 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
     private final String consumerGroup;
     private final MessageQueueLock messageQueueLock = new MessageQueueLock();
 
+    private final static long MaxTimeConsumeContinuously = Long.parseLong(System.getProperty(
+        "rocketmq.client.maxTimeConsumeContinuously", "60000"));
+
     // 定时线程
     private final ScheduledExecutorService scheduledExecutorService;
 
@@ -104,8 +107,8 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
             synchronized (objLock) {
                 // 保证在Consumer集群，同一队列串行消费
                 if (this.processQueue.isLocked()) {
-                    int consumeTimesContinuously = 0;
-                    for (boolean continueConsume = true; continueConsume; consumeTimesContinuously++) {
+                    final long beginTime = System.currentTimeMillis();
+                    for (boolean continueConsume = true; continueConsume;) {
                         if (this.processQueue.isDroped()) {
                             log.info("the message queue not be able to consume, because it's droped {}",
                                 this.messageQueue);
@@ -113,7 +116,8 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
                         }
 
                         // 在线程数小于队列数情况下，防止个别队列被饿死
-                        if (consumeTimesContinuously > 2048) {
+                        long interval = System.currentTimeMillis() - beginTime;
+                        if (interval > MaxTimeConsumeContinuously) {
                             // 过10ms后再消费
                             ConsumeMessageOrderlyService.this.submitConsumeRequestLater(processQueue,
                                 messageQueue, 10);
