@@ -212,7 +212,7 @@ public class ProcessQueue {
     public List<MessageExt> takeMessags(final int batchSize) {
         List<MessageExt> result = new ArrayList<MessageExt>(batchSize);
         try {
-            this.lockTreeMap.readLock().lockInterruptibly();
+            this.lockTreeMap.writeLock().lockInterruptibly();
             try {
                 if (!this.msgTreeMap.isEmpty()) {
                     for (int i = 0; i < batchSize; i++) {
@@ -232,7 +232,7 @@ public class ProcessQueue {
                 }
             }
             finally {
-                this.lockTreeMap.readLock().unlock();
+                this.lockTreeMap.writeLock().unlock();
             }
         }
         catch (InterruptedException e) {
