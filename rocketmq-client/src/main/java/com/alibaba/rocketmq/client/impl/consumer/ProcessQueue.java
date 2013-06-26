@@ -20,6 +20,9 @@ import com.alibaba.rocketmq.common.message.MessageExt;
  * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public class ProcessQueue {
+    private final static long RebalanceLockMaxLiveTime = Long.parseLong(System.getProperty(
+        "rocketmq.client.rebalance.lockMaxLiveTime", "30000"));
+
     private final Logger log = ClientLogger.getLog();
     private final ReadWriteLock lockTreeMap = new ReentrantReadWriteLock();
     private final TreeMap<Long, MessageExt> msgTreeMap = new TreeMap<Long, MessageExt>();
@@ -39,6 +42,12 @@ public class ProcessQueue {
     private volatile boolean consuming = false;
     // 事务方式消费，未提交的消息
     private final TreeMap<Long, MessageExt> msgTreeMapTemp = new TreeMap<Long, MessageExt>();
+
+
+    public boolean isLockExpired() {
+        boolean result = (System.currentTimeMillis() - this.lastLockTimestamp) > RebalanceLockMaxLiveTime;
+        return result;
+    }
 
 
     /**

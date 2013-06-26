@@ -29,6 +29,11 @@ import com.alibaba.rocketmq.common.message.MessageQueue;
  */
 public class ConsumeMessageOrderlyService implements ConsumeMessageService {
     private static final Logger log = ClientLogger.getLog();
+    private final static long MaxTimeConsumeContinuously = Long.parseLong(System.getProperty(
+        "rocketmq.client.maxTimeConsumeContinuously", "60000"));
+
+    private volatile boolean stoped = false;
+
     private final DefaultMQPushConsumerImpl defaultMQPushConsumerImpl;
     private final DefaultMQPushConsumer defaultMQPushConsumer;
     private final MessageListenerOrderly messageListener;
@@ -36,9 +41,6 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
     private final ExecutorService consumeExecutor;
     private final String consumerGroup;
     private final MessageQueueLock messageQueueLock = new MessageQueueLock();
-
-    private final static long MaxTimeConsumeContinuously = Long.parseLong(System.getProperty(
-        "rocketmq.client.maxTimeConsumeContinuously", "60000"));
 
     // 定时线程
     private final ScheduledExecutorService scheduledExecutorService;
@@ -81,12 +83,50 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
 
 
     public void start() {
+        // 启动定时lock队列服务
+        this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
+            @Override
+            public void run() {
+                ConsumeMessageOrderlyService.this.lockMQPeriodically();
+            }
+        }, 1000 * 1, 1000 * 20, TimeUnit.MILLISECONDS);
     }
 
 
     public void shutdown() {
+        this.stoped = true;
         this.scheduledExecutorService.shutdown();
         this.consumeExecutor.shutdown();
+        this.unlockAllMQ();
+    }
+
+
+    public synchronized void unlockAllMQ() {
+        this.defaultMQPushConsumerImpl.getRebalanceImpl().unlockAll(false);
+    }
+
+
+    public synchronized void lockMQPeriodically() {
+        if (!this.stoped) {
+            this.defaultMQPushConsumerImpl.getRebalanceImpl().lockAll();
+        }
+    }
+
+
+    public synchronized void lockOneMQ(final MessageQueue mq) {
+        if (!this.stoped) {
+            this.defaultMQPushConsumerImpl.getRebalanceImpl().lock(mq);
+        }
+    }
+
+
+    public void lockLater(final MessageQueue mq, final long delayMills) {
+        this.scheduledExecutorService.schedule(new Runnable() {
+            @Override
+            public void run() {
+                ConsumeMessageOrderlyService.this.lockOneMQ(mq);
+            }
+        }, delayMills, TimeUnit.MILLISECONDS);
     }
 
     class ConsumeRequest implements Runnable {
@@ -97,6 +137,15 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
         public ConsumeRequest(ProcessQueue processQueue, MessageQueue messageQueue) {
             this.processQueue = processQueue;
             this.messageQueue = messageQueue;
+        }
+
+
+        private void tryLockAndReconsumeLater() {
+            ConsumeMessageOrderlyService.this.lockLater(this.messageQueue, 10);
+            ConsumeMessageOrderlyService.this.submitConsumeRequestLater(//
+                this.processQueue, //
+                this.messageQueue, //
+                3000L);
         }
 
 
@@ -115,8 +164,8 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
                             break;
                         }
 
-                        if (!this.processQueue.isLocked()) {
-                            // TODO 停止消费
+                        if (!this.processQueue.isLocked() || this.processQueue.isLockExpired()) {
+                            this.tryLockAndReconsumeLater();
                             break;
                         }
 
@@ -165,7 +214,7 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
                 }
                 // 没有拿到当前队列的锁，稍后再消费
                 else {
-                    // TODO
+                    this.tryLockAndReconsumeLater();
                 }
             }
         }
