@@ -115,6 +115,11 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
                             break;
                         }
 
+                        if (!this.processQueue.isLocked()) {
+                            // TODO 停止消费
+                            break;
+                        }
+
                         // 在线程数小于队列数情况下，防止个别队列被饿死
                         long interval = System.currentTimeMillis() - beginTime;
                         if (interval > MaxTimeConsumeContinuously) {
