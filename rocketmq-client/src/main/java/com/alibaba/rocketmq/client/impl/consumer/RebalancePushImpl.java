@@ -102,5 +102,6 @@ public class RebalancePushImpl extends RebalanceImpl {
 
     @Override
     public void removeUnnecessaryMessageQueue(MessageQueue mq, ProcessQueue pq) {
+        this.unlock(mq, true);
     }
 }

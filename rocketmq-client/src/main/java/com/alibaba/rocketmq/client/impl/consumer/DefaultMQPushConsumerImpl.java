@@ -67,7 +67,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
     private ConsumeMessageService consumeMessageService;
 
     // Rebalance实现
-    private RebalanceImpl rebalanceImpl = new RebalancePushImpl(this);
+    private final RebalanceImpl rebalanceImpl = new RebalancePushImpl(this);
 
     // 拉消息异常时，延迟一段时间再拉
     private static final long PullTimeDelayMillsWhenException = 3000;
@@ -742,5 +742,10 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
     public MessageExt viewMessage(String msgId) throws RemotingException, MQBrokerException,
             InterruptedException, MQClientException {
         return this.mQClientFactory.getMQAdminImpl().viewMessage(msgId);
+    }
+
+
+    public RebalanceImpl getRebalanceImpl() {
+        return rebalanceImpl;
     }
 }
