@@ -20,7 +20,7 @@ import com.alibaba.rocketmq.common.message.MessageQueue;
 public class RebalanceLockManager {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.RebalanceLockLoggerName);
     private final static long RebalanceLockMaxLiveTime = Long.parseLong(System.getProperty(
-        "rocketmq.broker.rebalanceLockMaxLiveTime", "60000"));
+        "rocketmq.broker.rebalance.lockMaxLiveTime", "60000"));
     private final Lock lock = new ReentrantLock();
     private final ConcurrentHashMap<String/* group */, ConcurrentHashMap<MessageQueue, LockEntry>> mqLockTable =
             new ConcurrentHashMap<String, ConcurrentHashMap<MessageQueue, LockEntry>>(1024);
@@ -244,21 +244,23 @@ public class RebalanceLockManager {
     }
 
 
-    public void unlock(final String group, final MessageQueue mq, final String clientId) {
+    public void unlockBatch(final String group, final Set<MessageQueue> mqs, final String clientId) {
         try {
             this.lock.lockInterruptibly();
             try {
                 ConcurrentHashMap<MessageQueue, LockEntry> groupValue = this.mqLockTable.get(group);
                 if (null != groupValue) {
-                    LockEntry lockEntry = groupValue.get(mq);
-                    if (null != lockEntry) {
-                        boolean locked = lockEntry.isLocked(clientId);
-                        groupValue.remove(mq);
-                        log.info("unlock, Group: {} {} {} {}",//
-                            group, //
-                            mq, //
-                            clientId, //
-                            locked);
+                    for (MessageQueue mq : mqs) {
+                        LockEntry lockEntry = groupValue.get(mq);
+                        if (null != lockEntry) {
+                            if (lockEntry.getClientId().equals(clientId)) {
+                                groupValue.remove(mq);
+                                log.info("unlockBatch, Group: {} {} {}",//
+                                    group, //
+                                    mq, //
+                                    clientId);
+                            }
+                        }
                     }
                 }
             }

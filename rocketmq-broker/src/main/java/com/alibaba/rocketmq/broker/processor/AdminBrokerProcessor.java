@@ -7,6 +7,7 @@ import io.netty.channel.ChannelHandlerContext;
 
 import java.io.UnsupportedEncodingException;
 import java.util.Properties;
+import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,8 +16,12 @@ import com.alibaba.rocketmq.broker.BrokerController;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.TopicConfig;
 import com.alibaba.rocketmq.common.constant.LoggerName;
+import com.alibaba.rocketmq.common.message.MessageQueue;
 import com.alibaba.rocketmq.common.protocol.MQProtos.MQRequestCode;
 import com.alibaba.rocketmq.common.protocol.MQProtos.MQResponseCode;
+import com.alibaba.rocketmq.common.protocol.body.LockBatchRequestBody;
+import com.alibaba.rocketmq.common.protocol.body.LockBatchResponseBody;
+import com.alibaba.rocketmq.common.protocol.body.UnlockBatchRequestBody;
 import com.alibaba.rocketmq.common.protocol.header.CreateTopicRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.DeleteTopicRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.GetAllTopicConfigResponseHeader;
@@ -58,8 +63,6 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
     public RemotingCommand processRequest(ChannelHandlerContext ctx, RemotingCommand request)
             throws RemotingCommandException {
         MQRequestCode code = MQRequestCode.valueOf(request.getCode());
-        log.info("broker receive admin [" + code + "] request, " + request + " client: "
-                + ctx.channel().remoteAddress());
         switch (code) {
         // 更新创建Topic
         case UPDATE_AND_CREATE_TOPIC:
@@ -98,6 +101,12 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         case GET_BROKER_RUNTIME_INFO:
             break;
 
+        // 锁队列与解锁队列
+        case LOCK_BATCH_MQ:
+            return this.lockBatchMQ(ctx, request);
+        case UNLOCK_BATCH_MQ:
+            return this.unlockBatchMQ(ctx, request);
+
         case PULL_ALL_CONSUMER_OFFSET:
             break;
         case QUERY_BROKER_OFFSET:
@@ -125,6 +134,44 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         }
 
         return null;
+    }
+
+
+    private RemotingCommand lockBatchMQ(ChannelHandlerContext ctx, RemotingCommand request)
+            throws RemotingCommandException {
+        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
+        LockBatchRequestBody requestBody =
+                LockBatchRequestBody.decode(request.getBody(), LockBatchRequestBody.class);
+
+        Set<MessageQueue> mqLocked = this.brokerController.getRebalanceLockManager().tryLockBatch(//
+            requestBody.getConsumerGroup(),//
+            requestBody.getMqSet(),//
+            requestBody.getClientId());
+
+        LockBatchResponseBody responseBody = new LockBatchResponseBody();
+        responseBody.setMqSet(mqLocked);
+
+        response.setBody(responseBody.encode());
+        response.setCode(ResponseCode.SUCCESS_VALUE);
+        response.setRemark(null);
+        return response;
+    }
+
+
+    private RemotingCommand unlockBatchMQ(ChannelHandlerContext ctx, RemotingCommand request)
+            throws RemotingCommandException {
+        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
+        UnlockBatchRequestBody requestBody =
+                UnlockBatchRequestBody.decode(request.getBody(), UnlockBatchRequestBody.class);
+
+        this.brokerController.getRebalanceLockManager().unlockBatch(//
+            requestBody.getConsumerGroup(),//
+            requestBody.getMqSet(),//
+            requestBody.getClientId());
+
+        response.setCode(ResponseCode.SUCCESS_VALUE);
+        response.setRemark(null);
+        return response;
     }
 
 
