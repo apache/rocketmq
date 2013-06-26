@@ -33,6 +33,8 @@ public class ProcessQueue {
      */
     // 是否从Broker锁定
     private volatile boolean locked = false;
+    // 最后一次锁定成功时间戳
+    private volatile long lastLockTimestamp = System.currentTimeMillis();
     // 是否正在被消费
     private volatile boolean consuming = false;
     // 事务方式消费，未提交的消息
@@ -261,5 +263,15 @@ public class ProcessQueue {
         }
 
         return result;
+    }
+
+
+    public long getLastLockTimestamp() {
+        return lastLockTimestamp;
+    }
+
+
+    public void setLastLockTimestamp(long lastLockTimestamp) {
+        this.lastLockTimestamp = lastLockTimestamp;
     }
 }
