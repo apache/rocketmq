@@ -121,7 +121,7 @@ public abstract class RebalanceImpl {
                         ProcessQueue processQueue = this.processQueueTable.get(mq);
                         if (processQueue != null) {
                             processQueue.setLocked(false);
-                            log.warn("the message queue unlock OK, Group: {} {}", this.consumerGroup, mq);
+                            log.info("the message queue unlock OK, Group: {} {}", this.consumerGroup, mq);
                         }
                     }
                 }
