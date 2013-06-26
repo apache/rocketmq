@@ -143,13 +143,13 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         LockBatchRequestBody requestBody =
                 LockBatchRequestBody.decode(request.getBody(), LockBatchRequestBody.class);
 
-        Set<MessageQueue> mqLocked = this.brokerController.getRebalanceLockManager().tryLockBatch(//
+        Set<MessageQueue> lockOKMQSet = this.brokerController.getRebalanceLockManager().tryLockBatch(//
             requestBody.getConsumerGroup(),//
             requestBody.getMqSet(),//
             requestBody.getClientId());
 
         LockBatchResponseBody responseBody = new LockBatchResponseBody();
-        responseBody.setMqSet(mqLocked);
+        responseBody.setLockOKMQSet(lockOKMQSet);
 
         response.setBody(responseBody.encode());
         response.setCode(ResponseCode.SUCCESS_VALUE);
