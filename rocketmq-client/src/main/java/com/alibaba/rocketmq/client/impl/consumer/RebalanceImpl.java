@@ -2,6 +2,7 @@ package com.alibaba.rocketmq.client.impl.consumer;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -11,10 +12,14 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
 
 import com.alibaba.rocketmq.client.consumer.AllocateMessageQueueStrategy;
+import com.alibaba.rocketmq.client.consumer.ConsumeFromWhichNode;
+import com.alibaba.rocketmq.client.impl.FindBrokerResult;
 import com.alibaba.rocketmq.client.impl.factory.MQClientFactory;
 import com.alibaba.rocketmq.client.log.ClientLogger;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.message.MessageQueue;
+import com.alibaba.rocketmq.common.protocol.body.LockBatchRequestBody;
+import com.alibaba.rocketmq.common.protocol.body.UnlockBatchRequestBody;
 import com.alibaba.rocketmq.common.protocol.heartbeat.MessageModel;
 import com.alibaba.rocketmq.common.protocol.heartbeat.SubscriptionData;
 
@@ -66,6 +71,171 @@ public abstract class RebalanceImpl {
 
     public abstract void messageQueueChanged(final String topic, final Set<MessageQueue> mqAll,
             final Set<MessageQueue> mqDivided);
+
+
+    public void unlock(final MessageQueue mq, final boolean oneway) {
+        FindBrokerResult findBrokerResult =
+                this.mQClientFactory.findBrokerAddressInSubscribe(mq.getBrokerName(),
+                    ConsumeFromWhichNode.CONSUME_FROM_MASTER_ONLY);
+        if (findBrokerResult != null) {
+            UnlockBatchRequestBody requestBody = new UnlockBatchRequestBody();
+            requestBody.setConsumerGroup(this.consumerGroup);
+            requestBody.setClientId(this.mQClientFactory.getClientId());
+            requestBody.getMqSet().add(mq);
+
+            try {
+                this.mQClientFactory.getMQClientAPIImpl().unlockBatchMQ(findBrokerResult.getBrokerAddr(),
+                    requestBody, 1000, oneway);
+            }
+            catch (Exception e) {
+                log.error("unlockBatchMQ exception, " + mq, e);
+            }
+        }
+    }
+
+
+    public void unlockAll(final boolean oneway) {
+        HashMap<String, Set<MessageQueue>> brokerMqs = this.buildProcessQueueTableByBrokerName();
+
+        for (final Map.Entry<String, Set<MessageQueue>> entry : brokerMqs.entrySet()) {
+            final String brokerName = entry.getKey();
+            final Set<MessageQueue> mqs = entry.getValue();
+
+            if (mqs.isEmpty())
+                continue;
+
+            FindBrokerResult findBrokerResult =
+                    this.mQClientFactory.findBrokerAddressInSubscribe(brokerName,
+                        ConsumeFromWhichNode.CONSUME_FROM_MASTER_ONLY);
+            if (findBrokerResult != null) {
+                UnlockBatchRequestBody requestBody = new UnlockBatchRequestBody();
+                requestBody.setConsumerGroup(this.consumerGroup);
+                requestBody.setClientId(this.mQClientFactory.getClientId());
+                requestBody.setMqSet(mqs);
+
+                try {
+                    this.mQClientFactory.getMQClientAPIImpl().unlockBatchMQ(findBrokerResult.getBrokerAddr(),
+                        requestBody, 1000, oneway);
+
+                    for (MessageQueue mq : mqs) {
+                        ProcessQueue processQueue = this.processQueueTable.get(mq);
+                        if (processQueue != null) {
+                            processQueue.setLocked(false);
+                            log.warn("the message queue unlock OK, Group: {} {}", this.consumerGroup, mq);
+                        }
+                    }
+                }
+                catch (Exception e) {
+                    log.error("unlockBatchMQ exception, " + mqs, e);
+                }
+            }
+        }
+    }
+
+
+    public boolean lock(final MessageQueue mq) {
+        FindBrokerResult findBrokerResult =
+                this.mQClientFactory.findBrokerAddressInSubscribe(mq.getBrokerName(),
+                    ConsumeFromWhichNode.CONSUME_FROM_MASTER_ONLY);
+        if (findBrokerResult != null) {
+            LockBatchRequestBody requestBody = new LockBatchRequestBody();
+            requestBody.setConsumerGroup(this.consumerGroup);
+            requestBody.setClientId(this.mQClientFactory.getClientId());
+            requestBody.getMqSet().add(mq);
+
+            try {
+                Set<MessageQueue> lockedMq =
+                        this.mQClientFactory.getMQClientAPIImpl().lockBatchMQ(
+                            findBrokerResult.getBrokerAddr(), requestBody, 1000);
+                for (MessageQueue mmqq : lockedMq) {
+                    ProcessQueue processQueue = this.processQueueTable.get(mmqq);
+                    if (processQueue != null) {
+                        processQueue.setLocked(true);
+                        processQueue.setLastLockTimestamp(System.currentTimeMillis());
+                    }
+                }
+
+                return lockedMq.contains(mq);
+            }
+            catch (Exception e) {
+                log.error("lockBatchMQ exception, " + mq, e);
+            }
+        }
+
+        return false;
+    }
+
+
+    private HashMap<String/* brokerName */, Set<MessageQueue>> buildProcessQueueTableByBrokerName() {
+        HashMap<String, Set<MessageQueue>> result = new HashMap<String, Set<MessageQueue>>();
+        for (MessageQueue mq : this.processQueueTable.keySet()) {
+            Set<MessageQueue> mqs = result.get(mq.getBrokerName());
+            if (null == mqs) {
+                mqs = new HashSet<MessageQueue>();
+                result.put(mq.getBrokerName(), mqs);
+            }
+
+            mqs.add(mq);
+        }
+
+        return result;
+    }
+
+
+    public void lockAll() {
+        HashMap<String, Set<MessageQueue>> brokerMqs = this.buildProcessQueueTableByBrokerName();
+
+        for (final Map.Entry<String, Set<MessageQueue>> entry : brokerMqs.entrySet()) {
+            final String brokerName = entry.getKey();
+            final Set<MessageQueue> mqs = entry.getValue();
+
+            if (mqs.isEmpty())
+                continue;
+
+            FindBrokerResult findBrokerResult =
+                    this.mQClientFactory.findBrokerAddressInSubscribe(brokerName,
+                        ConsumeFromWhichNode.CONSUME_FROM_MASTER_ONLY);
+            if (findBrokerResult != null) {
+                LockBatchRequestBody requestBody = new LockBatchRequestBody();
+                requestBody.setConsumerGroup(this.consumerGroup);
+                requestBody.setClientId(this.mQClientFactory.getClientId());
+                requestBody.setMqSet(mqs);
+
+                try {
+                    Set<MessageQueue> lockOKMQSet =
+                            this.mQClientFactory.getMQClientAPIImpl().lockBatchMQ(
+                                findBrokerResult.getBrokerAddr(), requestBody, 1000);
+
+                    // 锁定成功的队列
+                    for (MessageQueue mq : lockOKMQSet) {
+                        ProcessQueue processQueue = this.processQueueTable.get(mq);
+                        if (processQueue != null) {
+                            if (!processQueue.isLocked()) {
+                                log.info("the message queue locked OK, Group: {} {}", this.consumerGroup, mq);
+                            }
+
+                            processQueue.setLocked(true);
+                            processQueue.setLastLockTimestamp(System.currentTimeMillis());
+                        }
+                    }
+                    // 锁定失败的队列
+                    for (MessageQueue mq : mqs) {
+                        if (!lockOKMQSet.contains(mq)) {
+                            ProcessQueue processQueue = this.processQueueTable.get(mq);
+                            if (processQueue != null) {
+                                processQueue.setLocked(false);
+                                log.warn("the message queue locked Failed, Group: {} {}", this.consumerGroup,
+                                    mq);
+                            }
+                        }
+                    }
+                }
+                catch (Exception e) {
+                    log.error("lockBatchMQ exception, " + mqs, e);
+                }
+            }
+        }
+    }
 
 
     public void doRebalance() {

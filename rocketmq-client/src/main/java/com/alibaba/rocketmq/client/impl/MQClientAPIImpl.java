@@ -820,20 +820,28 @@ public class MQClientAPIImpl {
     public void unlockBatchMQ(//
             final String addr,//
             final UnlockBatchRequestBody requestBody,//
-            final long timeoutMillis) throws RemotingException, MQBrokerException, InterruptedException {
+            final long timeoutMillis,//
+            final boolean oneway//
+    ) throws RemotingException, MQBrokerException, InterruptedException {
         RemotingCommand request =
                 RemotingCommand.createRequestCommand(MQRequestCode.UNLOCK_BATCH_MQ_VALUE, null);
         request.setBody(requestBody.encode());
-        RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
-        switch (response.getCode()) {
-        case ResponseCode.SUCCESS_VALUE: {
-            return;
-        }
-        default:
-            break;
-        }
 
-        throw new MQBrokerException(response.getCode(), response.getRemark());
+        if (oneway) {
+            this.remotingClient.invokeOneway(addr, request, timeoutMillis);
+        }
+        else {
+            RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
+            switch (response.getCode()) {
+            case ResponseCode.SUCCESS_VALUE: {
+                return;
+            }
+            default:
+                break;
+            }
+
+            throw new MQBrokerException(response.getCode(), response.getRemark());
+        }
     }
 
 
