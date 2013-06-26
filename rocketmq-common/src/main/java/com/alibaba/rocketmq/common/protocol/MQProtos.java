@@ -4,9265 +4,8024 @@
 package com.alibaba.rocketmq.common.protocol;
 
 public final class MQProtos {
-    private MQProtos() {
-    }
-
-
-    public static void registerAllExtensions(com.google.protobuf.ExtensionRegistry registry) {
-    }
-
+  private MQProtos() {}
+  public static void registerAllExtensions(
+      com.google.protobuf.ExtensionRegistry registry) {
+  }
+  /**
+   * Protobuf enum {@code rocketmq.MQRequestCode}
+   *
+   * <pre>
+   * RPC请求代码
+   * </pre>
+   */
+  public enum MQRequestCode
+      implements com.google.protobuf.ProtocolMessageEnum {
     /**
-     * Protobuf enum {@code rocketmq.MQRequestCode}
-     * 
+     * <code>SEND_MESSAGE = 10;</code>
+     *
      * <pre>
-     * RPC请求代码
+     * Broker 发送消息
      * </pre>
      */
-    public enum MQRequestCode implements com.google.protobuf.ProtocolMessageEnum {
-        /**
-         * <code>SEND_MESSAGE = 10;</code>
-         * 
-         * <pre>
-         * Broker 发送消息
-         * </pre>
-         */
-        SEND_MESSAGE(0, 10),
-        /**
-         * <code>PULL_MESSAGE = 11;</code>
-         * 
-         * <pre>
-         * Broker 订阅消息
-         * </pre>
-         */
-        PULL_MESSAGE(1, 11),
-        /**
-         * <code>QUERY_MESSAGE = 12;</code>
-         * 
-         * <pre>
-         * Broker 查询消息
-         * </pre>
-         */
-        QUERY_MESSAGE(2, 12),
-        /**
-         * <code>QUERY_BROKER_OFFSET = 13;</code>
-         * 
-         * <pre>
-         * Broker 查询Broker Offset
-         * </pre>
-         */
-        QUERY_BROKER_OFFSET(3, 13),
-        /**
-         * <code>QUERY_CONSUMER_OFFSET = 14;</code>
-         * 
-         * <pre>
-         * Broker 查询Consumer Offset
-         * </pre>
-         */
-        QUERY_CONSUMER_OFFSET(4, 14),
-        /**
-         * <code>UPDATE_CONSUMER_OFFSET = 15;</code>
-         * 
-         * <pre>
-         * Broker 更新Consumer Offset
-         * </pre>
-         */
-        UPDATE_CONSUMER_OFFSET(5, 15),
-        /**
-         * <code>UPDATE_AND_CREATE_TOPIC = 17;</code>
-         * 
-         * <pre>
-         * Broker 更新或者增加一个Topic
-         * </pre>
-         */
-        UPDATE_AND_CREATE_TOPIC(6, 17),
-        /**
-         * <code>DELETE_TOPIC = 19;</code>
-         * 
-         * <pre>
-         * Broker 删除一个Topic，包含数据与配置
-         * </pre>
-         */
-        DELETE_TOPIC(7, 19),
-        /**
-         * <code>GET_ALL_TOPIC_CONFIG = 21;</code>
-         * 
-         * <pre>
-         * Broker 获取所有Topic的配置（Slave和Namesrv都会向Master请求此配置）
-         * </pre>
-         */
-        GET_ALL_TOPIC_CONFIG(8, 21),
-        /**
-         * <code>GET_TOPIC_CONFIG_LIST = 22;</code>
-         * 
-         * <pre>
-         * Broker 获取所有Topic配置（Slave和Namesrv都会向Master请求此配置）
-         * </pre>
-         */
-        GET_TOPIC_CONFIG_LIST(9, 22),
-        /**
-         * <code>GET_TOPIC_NAME_LIST = 23;</code>
-         * 
-         * <pre>
-         * Broker 获取所有Topic名称列表
-         * </pre>
-         */
-        GET_TOPIC_NAME_LIST(10, 23),
-        /**
-         * <code>PULL_ALL_CONSUMER_OFFSET = 24;</code>
-         * 
-         * <pre>
-         * Broker Slave获取Master所有Consumer消费进度
-         * </pre>
-         */
-        PULL_ALL_CONSUMER_OFFSET(11, 24),
-        /**
-         * <code>UPDATE_BROKER_CONFIG = 25;</code>
-         * 
-         * <pre>
-         * Broker 更新Broker上的配置
-         * </pre>
-         */
-        UPDATE_BROKER_CONFIG(12, 25),
-        /**
-         * <code>GET_BROKER_CONFIG = 26;</code>
-         * 
-         * <pre>
-         * Broker 获取Broker上的配置
-         * </pre>
-         */
-        GET_BROKER_CONFIG(13, 26),
-        /**
-         * <code>TRIGGER_DELETE_FILES = 27;</code>
-         * 
-         * <pre>
-         * Broker 触发Broker删除文件
-         * </pre>
-         */
-        TRIGGER_DELETE_FILES(14, 27),
-        /**
-         * <code>GET_BROKER_RUNTIME_INFO = 28;</code>
-         * 
-         * <pre>
-         * Broker 获取Broker运行时信息
-         * </pre>
-         */
-        GET_BROKER_RUNTIME_INFO(15, 28),
-        /**
-         * <code>SEARCH_OFFSET_BY_TIMESTAMP = 29;</code>
-         * 
-         * <pre>
-         * Broker 根据时间查询队列的Offset
-         * </pre>
-         */
-        SEARCH_OFFSET_BY_TIMESTAMP(16, 29),
-        /**
-         * <code>GET_MAX_OFFSET = 30;</code>
-         * 
-         * <pre>
-         * Broker 查询队列最大Offset
-         * </pre>
-         */
-        GET_MAX_OFFSET(17, 30),
-        /**
-         * <code>GET_MIN_OFFSET = 31;</code>
-         * 
-         * <pre>
-         * Broker 查询队列最小Offset
-         * </pre>
-         */
-        GET_MIN_OFFSET(18, 31),
-        /**
-         * <code>GET_EARLIEST_MSG_STORETIME = 32;</code>
-         * 
-         * <pre>
-         * Broker 查询队列最早消息对应时间
-         * </pre>
-         */
-        GET_EARLIEST_MSG_STORETIME(19, 32),
-        /**
-         * <code>VIEW_MESSAGE_BY_ID = 33;</code>
-         * 
-         * <pre>
-         * Broker 根据消息ID来查询消息
-         * </pre>
-         */
-        VIEW_MESSAGE_BY_ID(20, 33),
-        /**
-         * <code>HEART_BEAT = 34;</code>
-         * 
-         * <pre>
-         * Broker Client向Client发送心跳，并注册自身
-         * </pre>
-         */
-        HEART_BEAT(21, 34),
-        /**
-         * <code>UNREGISTER_CLIENT = 35;</code>
-         * 
-         * <pre>
-         * Broker Client注销
-         * </pre>
-         */
-        UNREGISTER_CLIENT(22, 35),
-        /**
-         * <code>CONSUMER_SEND_MSG_BACK = 36;</code>
-         * 
-         * <pre>
-         * Broker Consumer将处理不了的消息发回服务器
-         * </pre>
-         */
-        CONSUMER_SEND_MSG_BACK(23, 36),
-        /**
-         * <code>END_TRANSACTION = 37;</code>
-         * 
-         * <pre>
-         * Broker Commit或者Rollback事务
-         * </pre>
-         */
-        END_TRANSACTION(24, 37),
-        /**
-         * <code>GET_CONSUMER_LIST_BY_GROUP = 38;</code>
-         * 
-         * <pre>
-         * Broker 获取ConsumerId列表通过GroupName
-         * </pre>
-         */
-        GET_CONSUMER_LIST_BY_GROUP(25, 38),
-        /**
-         * <code>CHECK_TRANSACTION_STATE = 39;</code>
-         * 
-         * <pre>
-         * Broker 主动向Producer回查事务状态
-         * </pre>
-         */
-        CHECK_TRANSACTION_STATE(26, 39),
-        /**
-         * <code>NOTIFY_CONSUMER_IDS_CHANGED = 40;</code>
-         * 
-         * <pre>
-         * Broker Broker通知Consumer列表变化
-         * </pre>
-         */
-        NOTIFY_CONSUMER_IDS_CHANGED(27, 40),
-        /**
-         * <code>REGISTER_BROKER = 100;</code>
-         * 
-         * <pre>
-         * Namesrv 注册一个Broker，数据都是持久化的，如果存在则覆盖配置
-         * </pre>
-         */
-        REGISTER_BROKER(28, 100),
-        /**
-         * <code>UNREGISTER_BROKER = 101;</code>
-         * 
-         * <pre>
-         * Namesrv 卸载一个Broker，数据都是持久化的
-         * </pre>
-         */
-        UNREGISTER_BROKER(29, 101),
-        /**
-         * <code>GET_BROKER_LIST = 102;</code>
-         * 
-         * <pre>
-         * Namesrv 获取注册的Broker列表
-         * </pre>
-         */
-        GET_BROKER_LIST(30, 102),
-        /**
-         * <code>REGISTER_ORDER_TOPIC = 103;</code>
-         * 
-         * <pre>
-         * Namesrv 注册一个严格顺序Topic，数据都是持久化的，如果存在则覆盖配置
-         * </pre>
-         */
-        REGISTER_ORDER_TOPIC(31, 103),
-        /**
-         * <code>UNREGISTER_ORDER_TOPIC = 104;</code>
-         * 
-         * <pre>
-         * Namesrv 卸载一个严格顺序Topic，数据都是持久化的
-         * </pre>
-         */
-        UNREGISTER_ORDER_TOPIC(32, 104),
-        /**
-         * <code>GET_ORDER_TOPIC_LIST = 105;</code>
-         * 
-         * <pre>
-         * Namesrv 获取注册的严格顺序Topic列表
-         * </pre>
-         */
-        GET_ORDER_TOPIC_LIST(33, 105),
-        /**
-         * <code>UPDATE_NAMESRV_CONFIG = 106;</code>
-         * 
-         * <pre>
-         * Namesrv 更新Namesrv上的配置
-         * </pre>
-         */
-        UPDATE_NAMESRV_CONFIG(34, 106),
-        /**
-         * <code>GET_NAMESRV_CONFIG = 107;</code>
-         * 
-         * <pre>
-         * Namesrv 获取Namesrv上的配置
-         * </pre>
-         */
-        GET_NAMESRV_CONFIG(35, 107),
-        /**
-         * <code>GET_NAMESRV_RUNTIME_INFO = 108;</code>
-         * 
-         * <pre>
-         * Namesrv 获取Namesrv运行时信息
-         * </pre>
-         */
-        GET_NAMESRV_RUNTIME_INFO(36, 108),
-        /**
-         * <code>GET_ROUTEINTO_BY_TOPIC = 109;</code>
-         * 
-         * <pre>
-         * Namesrv 根据Topic获取Broker Name、队列数(包含读队列与写队列)
-         * </pre>
-         */
-        GET_ROUTEINTO_BY_TOPIC(37, 109),
-        /**
-         * <code>SYNC_NAMESRV_RUNTIME_CONF = 110;</code>
-         * 
-         * <pre>
-         * Namesrv 同步Namesrv节点间的运行时topic相关路由信息数据
-         * </pre>
-         */
-        SYNC_NAMESRV_RUNTIME_CONF(38, 110),
-        /**
-         * <code>REGISTER_BROKER_SINGLE = 111;</code>
-         * 
-         * <pre>
-         * Namesrv 向其他的Namesrv结点扩散broker注册的信息
-         * </pre>
-         */
-        REGISTER_BROKER_SINGLE(39, 111),
-        /**
-         * <code>UNREGISTER_BROKER_SINGLE = 112;</code>
-         * 
-         * <pre>
-         * Namesrv 向其他的Namesrv结点扩散broker注销的信息
-         * </pre>
-         */
-        UNREGISTER_BROKER_SINGLE(40, 112),
-        /**
-         * <code>REGISTER_ORDER_TOPIC_SINGLE = 113;</code>
-         * 
-         * <pre>
-         * Namesrv 向其他的Namesrv结点扩散order topic注册的信息
-         * </pre>
-         */
-        REGISTER_ORDER_TOPIC_SINGLE(41, 113),
-        /**
-         * <code>UNREGISTER_ORDER_TOPIC_SINGLE = 114;</code>
-         * 
-         * <pre>
-         * Namesrv 向其他的Namesrv结点扩散order topic注销的信息
-         * </pre>
-         */
-        UNREGISTER_ORDER_TOPIC_SINGLE(42, 114), ;
-
-        /**
-         * <code>SEND_MESSAGE = 10;</code>
-         * 
-         * <pre>
-         * Broker 发送消息
-         * </pre>
-         */
-        public static final int SEND_MESSAGE_VALUE = 10;
-        /**
-         * <code>PULL_MESSAGE = 11;</code>
-         * 
-         * <pre>
-         * Broker 订阅消息
-         * </pre>
-         */
-        public static final int PULL_MESSAGE_VALUE = 11;
-        /**
-         * <code>QUERY_MESSAGE = 12;</code>
-         * 
-         * <pre>
-         * Broker 查询消息
-         * </pre>
-         */
-        public static final int QUERY_MESSAGE_VALUE = 12;
-        /**
-         * <code>QUERY_BROKER_OFFSET = 13;</code>
-         * 
-         * <pre>
-         * Broker 查询Broker Offset
-         * </pre>
-         */
-        public static final int QUERY_BROKER_OFFSET_VALUE = 13;
-        /**
-         * <code>QUERY_CONSUMER_OFFSET = 14;</code>
-         * 
-         * <pre>
-         * Broker 查询Consumer Offset
-         * </pre>
-         */
-        public static final int QUERY_CONSUMER_OFFSET_VALUE = 14;
-        /**
-         * <code>UPDATE_CONSUMER_OFFSET = 15;</code>
-         * 
-         * <pre>
-         * Broker 更新Consumer Offset
-         * </pre>
-         */
-        public static final int UPDATE_CONSUMER_OFFSET_VALUE = 15;
-        /**
-         * <code>UPDATE_AND_CREATE_TOPIC = 17;</code>
-         * 
-         * <pre>
-         * Broker 更新或者增加一个Topic
-         * </pre>
-         */
-        public static final int UPDATE_AND_CREATE_TOPIC_VALUE = 17;
-        /**
-         * <code>DELETE_TOPIC = 19;</code>
-         * 
-         * <pre>
-         * Broker 删除一个Topic，包含数据与配置
-         * </pre>
-         */
-        public static final int DELETE_TOPIC_VALUE = 19;
-        /**
-         * <code>GET_ALL_TOPIC_CONFIG = 21;</code>
-         * 
-         * <pre>
-         * Broker 获取所有Topic的配置（Slave和Namesrv都会向Master请求此配置）
-         * </pre>
-         */
-        public static final int GET_ALL_TOPIC_CONFIG_VALUE = 21;
-        /**
-         * <code>GET_TOPIC_CONFIG_LIST = 22;</code>
-         * 
-         * <pre>
-         * Broker 获取所有Topic配置（Slave和Namesrv都会向Master请求此配置）
-         * </pre>
-         */
-        public static final int GET_TOPIC_CONFIG_LIST_VALUE = 22;
-        /**
-         * <code>GET_TOPIC_NAME_LIST = 23;</code>
-         * 
-         * <pre>
-         * Broker 获取所有Topic名称列表
-         * </pre>
-         */
-        public static final int GET_TOPIC_NAME_LIST_VALUE = 23;
-        /**
-         * <code>PULL_ALL_CONSUMER_OFFSET = 24;</code>
-         * 
-         * <pre>
-         * Broker Slave获取Master所有Consumer消费进度
-         * </pre>
-         */
-        public static final int PULL_ALL_CONSUMER_OFFSET_VALUE = 24;
-        /**
-         * <code>UPDATE_BROKER_CONFIG = 25;</code>
-         * 
-         * <pre>
-         * Broker 更新Broker上的配置
-         * </pre>
-         */
-        public static final int UPDATE_BROKER_CONFIG_VALUE = 25;
-        /**
-         * <code>GET_BROKER_CONFIG = 26;</code>
-         * 
-         * <pre>
-         * Broker 获取Broker上的配置
-         * </pre>
-         */
-        public static final int GET_BROKER_CONFIG_VALUE = 26;
-        /**
-         * <code>TRIGGER_DELETE_FILES = 27;</code>
-         * 
-         * <pre>
-         * Broker 触发Broker删除文件
-         * </pre>
-         */
-        public static final int TRIGGER_DELETE_FILES_VALUE = 27;
-        /**
-         * <code>GET_BROKER_RUNTIME_INFO = 28;</code>
-         * 
-         * <pre>
-         * Broker 获取Broker运行时信息
-         * </pre>
-         */
-        public static final int GET_BROKER_RUNTIME_INFO_VALUE = 28;
-        /**
-         * <code>SEARCH_OFFSET_BY_TIMESTAMP = 29;</code>
-         * 
-         * <pre>
-         * Broker 根据时间查询队列的Offset
-         * </pre>
-         */
-        public static final int SEARCH_OFFSET_BY_TIMESTAMP_VALUE = 29;
-        /**
-         * <code>GET_MAX_OFFSET = 30;</code>
-         * 
-         * <pre>
-         * Broker 查询队列最大Offset
-         * </pre>
-         */
-        public static final int GET_MAX_OFFSET_VALUE = 30;
-        /**
-         * <code>GET_MIN_OFFSET = 31;</code>
-         * 
-         * <pre>
-         * Broker 查询队列最小Offset
-         * </pre>
-         */
-        public static final int GET_MIN_OFFSET_VALUE = 31;
-        /**
-         * <code>GET_EARLIEST_MSG_STORETIME = 32;</code>
-         * 
-         * <pre>
-         * Broker 查询队列最早消息对应时间
-         * </pre>
-         */
-        public static final int GET_EARLIEST_MSG_STORETIME_VALUE = 32;
-        /**
-         * <code>VIEW_MESSAGE_BY_ID = 33;</code>
-         * 
-         * <pre>
-         * Broker 根据消息ID来查询消息
-         * </pre>
-         */
-        public static final int VIEW_MESSAGE_BY_ID_VALUE = 33;
-        /**
-         * <code>HEART_BEAT = 34;</code>
-         * 
-         * <pre>
-         * Broker Client向Client发送心跳，并注册自身
-         * </pre>
-         */
-        public static final int HEART_BEAT_VALUE = 34;
-        /**
-         * <code>UNREGISTER_CLIENT = 35;</code>
-         * 
-         * <pre>
-         * Broker Client注销
-         * </pre>
-         */
-        public static final int UNREGISTER_CLIENT_VALUE = 35;
-        /**
-         * <code>CONSUMER_SEND_MSG_BACK = 36;</code>
-         * 
-         * <pre>
-         * Broker Consumer将处理不了的消息发回服务器
-         * </pre>
-         */
-        public static final int CONSUMER_SEND_MSG_BACK_VALUE = 36;
-        /**
-         * <code>END_TRANSACTION = 37;</code>
-         * 
-         * <pre>
-         * Broker Commit或者Rollback事务
-         * </pre>
-         */
-        public static final int END_TRANSACTION_VALUE = 37;
-        /**
-         * <code>GET_CONSUMER_LIST_BY_GROUP = 38;</code>
-         * 
-         * <pre>
-         * Broker 获取ConsumerId列表通过GroupName
-         * </pre>
-         */
-        public static final int GET_CONSUMER_LIST_BY_GROUP_VALUE = 38;
-        /**
-         * <code>CHECK_TRANSACTION_STATE = 39;</code>
-         * 
-         * <pre>
-         * Broker 主动向Producer回查事务状态
-         * </pre>
-         */
-        public static final int CHECK_TRANSACTION_STATE_VALUE = 39;
-        /**
-         * <code>NOTIFY_CONSUMER_IDS_CHANGED = 40;</code>
-         * 
-         * <pre>
-         * Broker Broker通知Consumer列表变化
-         * </pre>
-         */
-        public static final int NOTIFY_CONSUMER_IDS_CHANGED_VALUE = 40;
-        /**
-         * <code>REGISTER_BROKER = 100;</code>
-         * 
-         * <pre>
-         * Namesrv 注册一个Broker，数据都是持久化的，如果存在则覆盖配置
-         * </pre>
-         */
-        public static final int REGISTER_BROKER_VALUE = 100;
-        /**
-         * <code>UNREGISTER_BROKER = 101;</code>
-         * 
-         * <pre>
-         * Namesrv 卸载一个Broker，数据都是持久化的
-         * </pre>
-         */
-        public static final int UNREGISTER_BROKER_VALUE = 101;
-        /**
-         * <code>GET_BROKER_LIST = 102;</code>
-         * 
-         * <pre>
-         * Namesrv 获取注册的Broker列表
-         * </pre>
-         */
-        public static final int GET_BROKER_LIST_VALUE = 102;
-        /**
-         * <code>REGISTER_ORDER_TOPIC = 103;</code>
-         * 
-         * <pre>
-         * Namesrv 注册一个严格顺序Topic，数据都是持久化的，如果存在则覆盖配置
-         * </pre>
-         */
-        public static final int REGISTER_ORDER_TOPIC_VALUE = 103;
-        /**
-         * <code>UNREGISTER_ORDER_TOPIC = 104;</code>
-         * 
-         * <pre>
-         * Namesrv 卸载一个严格顺序Topic，数据都是持久化的
-         * </pre>
-         */
-        public static final int UNREGISTER_ORDER_TOPIC_VALUE = 104;
-        /**
-         * <code>GET_ORDER_TOPIC_LIST = 105;</code>
-         * 
-         * <pre>
-         * Namesrv 获取注册的严格顺序Topic列表
-         * </pre>
-         */
-        public static final int GET_ORDER_TOPIC_LIST_VALUE = 105;
-        /**
-         * <code>UPDATE_NAMESRV_CONFIG = 106;</code>
-         * 
-         * <pre>
-         * Namesrv 更新Namesrv上的配置
-         * </pre>
-         */
-        public static final int UPDATE_NAMESRV_CONFIG_VALUE = 106;
-        /**
-         * <code>GET_NAMESRV_CONFIG = 107;</code>
-         * 
-         * <pre>
-         * Namesrv 获取Namesrv上的配置
-         * </pre>
-         */
-        public static final int GET_NAMESRV_CONFIG_VALUE = 107;
-        /**
-         * <code>GET_NAMESRV_RUNTIME_INFO = 108;</code>
-         * 
-         * <pre>
-         * Namesrv 获取Namesrv运行时信息
-         * </pre>
-         */
-        public static final int GET_NAMESRV_RUNTIME_INFO_VALUE = 108;
-        /**
-         * <code>GET_ROUTEINTO_BY_TOPIC = 109;</code>
-         * 
-         * <pre>
-         * Namesrv 根据Topic获取Broker Name、队列数(包含读队列与写队列)
-         * </pre>
-         */
-        public static final int GET_ROUTEINTO_BY_TOPIC_VALUE = 109;
-        /**
-         * <code>SYNC_NAMESRV_RUNTIME_CONF = 110;</code>
-         * 
-         * <pre>
-         * Namesrv 同步Namesrv节点间的运行时topic相关路由信息数据
-         * </pre>
-         */
-        public static final int SYNC_NAMESRV_RUNTIME_CONF_VALUE = 110;
-        /**
-         * <code>REGISTER_BROKER_SINGLE = 111;</code>
-         * 
-         * <pre>
-         * Namesrv 向其他的Namesrv结点扩散broker注册的信息
-         * </pre>
-         */
-        public static final int REGISTER_BROKER_SINGLE_VALUE = 111;
-        /**
-         * <code>UNREGISTER_BROKER_SINGLE = 112;</code>
-         * 
-         * <pre>
-         * Namesrv 向其他的Namesrv结点扩散broker注销的信息
-         * </pre>
-         */
-        public static final int UNREGISTER_BROKER_SINGLE_VALUE = 112;
-        /**
-         * <code>REGISTER_ORDER_TOPIC_SINGLE = 113;</code>
-         * 
-         * <pre>
-         * Namesrv 向其他的Namesrv结点扩散order topic注册的信息
-         * </pre>
-         */
-        public static final int REGISTER_ORDER_TOPIC_SINGLE_VALUE = 113;
-        /**
-         * <code>UNREGISTER_ORDER_TOPIC_SINGLE = 114;</code>
-         * 
-         * <pre>
-         * Namesrv 向其他的Namesrv结点扩散order topic注销的信息
-         * </pre>
-         */
-        public static final int UNREGISTER_ORDER_TOPIC_SINGLE_VALUE = 114;
-
-
-        public final int getNumber() {
-            return value;
-        }
-
-
-        public static MQRequestCode valueOf(int value) {
-            switch (value) {
-            case 10:
-                return SEND_MESSAGE;
-            case 11:
-                return PULL_MESSAGE;
-            case 12:
-                return QUERY_MESSAGE;
-            case 13:
-                return QUERY_BROKER_OFFSET;
-            case 14:
-                return QUERY_CONSUMER_OFFSET;
-            case 15:
-                return UPDATE_CONSUMER_OFFSET;
-            case 17:
-                return UPDATE_AND_CREATE_TOPIC;
-            case 19:
-                return DELETE_TOPIC;
-            case 21:
-                return GET_ALL_TOPIC_CONFIG;
-            case 22:
-                return GET_TOPIC_CONFIG_LIST;
-            case 23:
-                return GET_TOPIC_NAME_LIST;
-            case 24:
-                return PULL_ALL_CONSUMER_OFFSET;
-            case 25:
-                return UPDATE_BROKER_CONFIG;
-            case 26:
-                return GET_BROKER_CONFIG;
-            case 27:
-                return TRIGGER_DELETE_FILES;
-            case 28:
-                return GET_BROKER_RUNTIME_INFO;
-            case 29:
-                return SEARCH_OFFSET_BY_TIMESTAMP;
-            case 30:
-                return GET_MAX_OFFSET;
-            case 31:
-                return GET_MIN_OFFSET;
-            case 32:
-                return GET_EARLIEST_MSG_STORETIME;
-            case 33:
-                return VIEW_MESSAGE_BY_ID;
-            case 34:
-                return HEART_BEAT;
-            case 35:
-                return UNREGISTER_CLIENT;
-            case 36:
-                return CONSUMER_SEND_MSG_BACK;
-            case 37:
-                return END_TRANSACTION;
-            case 38:
-                return GET_CONSUMER_LIST_BY_GROUP;
-            case 39:
-                return CHECK_TRANSACTION_STATE;
-            case 40:
-                return NOTIFY_CONSUMER_IDS_CHANGED;
-            case 100:
-                return REGISTER_BROKER;
-            case 101:
-                return UNREGISTER_BROKER;
-            case 102:
-                return GET_BROKER_LIST;
-            case 103:
-                return REGISTER_ORDER_TOPIC;
-            case 104:
-                return UNREGISTER_ORDER_TOPIC;
-            case 105:
-                return GET_ORDER_TOPIC_LIST;
-            case 106:
-                return UPDATE_NAMESRV_CONFIG;
-            case 107:
-                return GET_NAMESRV_CONFIG;
-            case 108:
-                return GET_NAMESRV_RUNTIME_INFO;
-            case 109:
-                return GET_ROUTEINTO_BY_TOPIC;
-            case 110:
-                return SYNC_NAMESRV_RUNTIME_CONF;
-            case 111:
-                return REGISTER_BROKER_SINGLE;
-            case 112:
-                return UNREGISTER_BROKER_SINGLE;
-            case 113:
-                return REGISTER_ORDER_TOPIC_SINGLE;
-            case 114:
-                return UNREGISTER_ORDER_TOPIC_SINGLE;
-            default:
-                return null;
-            }
-        }
-
-
-        public static com.google.protobuf.Internal.EnumLiteMap<MQRequestCode> internalGetValueMap() {
-            return internalValueMap;
-        }
-
-        private static com.google.protobuf.Internal.EnumLiteMap<MQRequestCode> internalValueMap =
-                new com.google.protobuf.Internal.EnumLiteMap<MQRequestCode>() {
-                    public MQRequestCode findValueByNumber(int number) {
-                        return MQRequestCode.valueOf(number);
-                    }
-                };
-
-
-        public final com.google.protobuf.Descriptors.EnumValueDescriptor getValueDescriptor() {
-            return getDescriptor().getValues().get(index);
-        }
-
-
-        public final com.google.protobuf.Descriptors.EnumDescriptor getDescriptorForType() {
-            return getDescriptor();
-        }
-
-
-        public static final com.google.protobuf.Descriptors.EnumDescriptor getDescriptor() {
-            return com.alibaba.rocketmq.common.protocol.MQProtos.getDescriptor().getEnumTypes().get(0);
-        }
-
-        private static final MQRequestCode[] VALUES = values();
-
-
-        public static MQRequestCode valueOf(com.google.protobuf.Descriptors.EnumValueDescriptor desc) {
-            if (desc.getType() != getDescriptor()) {
-                throw new java.lang.IllegalArgumentException("EnumValueDescriptor is not for this type.");
-            }
-            return VALUES[desc.getIndex()];
-        }
-
-        private final int index;
-        private final int value;
-
-
-        private MQRequestCode(int index, int value) {
-            this.index = index;
-            this.value = value;
-        }
-
-        // @@protoc_insertion_point(enum_scope:rocketmq.MQRequestCode)
-    }
-
+    SEND_MESSAGE(0, 10),
     /**
-     * Protobuf enum {@code rocketmq.MQResponseCode}
-     * 
+     * <code>PULL_MESSAGE = 11;</code>
+     *
      * <pre>
-     * RPC应答代码
+     * Broker 订阅消息
      * </pre>
      */
-    public enum MQResponseCode implements com.google.protobuf.ProtocolMessageEnum {
-        /**
-         * <code>FLUSH_DISK_TIMEOUT = 10;</code>
-         * 
-         * <pre>
-         * Broker 刷盘超时
-         * </pre>
-         */
-        FLUSH_DISK_TIMEOUT(0, 10),
-        /**
-         * <code>SLAVE_NOT_AVAILABLE = 11;</code>
-         * 
-         * <pre>
-         * Broker 同步双写，Slave不可用
-         * </pre>
-         */
-        SLAVE_NOT_AVAILABLE(1, 11),
-        /**
-         * <code>FLUSH_SLAVE_TIMEOUT = 12;</code>
-         * 
-         * <pre>
-         * Broker 同步双写，等待Slave应答超时
-         * </pre>
-         */
-        FLUSH_SLAVE_TIMEOUT(2, 12),
-        /**
-         * <code>MESSAGE_ILLEGAL = 13;</code>
-         * 
-         * <pre>
-         * Broker 消息非法
-         * </pre>
-         */
-        MESSAGE_ILLEGAL(3, 13),
-        /**
-         * <code>SERVICE_NOT_AVAILABLE = 14;</code>
-         * 
-         * <pre>
-         * Broker, Namesrv 服务不可用，可能是正在关闭或者权限问题
-         * </pre>
-         */
-        SERVICE_NOT_AVAILABLE(4, 14),
-        /**
-         * <code>VERSION_NOT_SUPPORTED = 15;</code>
-         * 
-         * <pre>
-         * Broker, Namesrv 版本号不支持
-         * </pre>
-         */
-        VERSION_NOT_SUPPORTED(5, 15),
-        /**
-         * <code>NO_PERMISSION = 16;</code>
-         * 
-         * <pre>
-         * Broker, Namesrv 无权限执行此操作，可能是发、收、或者其他操作
-         * </pre>
-         */
-        NO_PERMISSION(6, 16),
-        /**
-         * <code>TOPIC_NOT_EXIST = 17;</code>
-         * 
-         * <pre>
-         * Broker, Topic不存在
-         * </pre>
-         */
-        TOPIC_NOT_EXIST(7, 17),
-        /**
-         * <code>TOPIC_EXIST_ALREADY = 18;</code>
-         * 
-         * <pre>
-         * Broker, Topic已经存在，创建Topic
-         * </pre>
-         */
-        TOPIC_EXIST_ALREADY(8, 18),
-        /**
-         * <code>PULL_NOT_FOUND = 19;</code>
-         * 
-         * <pre>
-         * Broker 拉消息未找到（请求的Offset等于最大Offset，最大Offset无对应消息）
-         * </pre>
-         */
-        PULL_NOT_FOUND(9, 19),
-        /**
-         * <code>PULL_RETRY_IMMEDIATELY = 20;</code>
-         * 
-         * <pre>
-         * Broker 可能被过滤，或者误通知等
-         * </pre>
-         */
-        PULL_RETRY_IMMEDIATELY(10, 20),
-        /**
-         * <code>PULL_OFFSET_MOVED = 21;</code>
-         * 
-         * <pre>
-         * Broker 拉消息请求的Offset不合法，太小或太大
-         * </pre>
-         */
-        PULL_OFFSET_MOVED(11, 21),
-        /**
-         * <code>QUERY_NOT_FOUND = 22;</code>
-         * 
-         * <pre>
-         * Broker 查询消息未找到
-         * </pre>
-         */
-        QUERY_NOT_FOUND(12, 22),
-        /**
-         * <code>SUBSCRIPTION_PARSE_FAILED = 23;</code>
-         * 
-         * <pre>
-         * Broker 订阅关系解析失败
-         * </pre>
-         */
-        SUBSCRIPTION_PARSE_FAILED(13, 23),
-        /**
-         * <code>SUBSCRIPTION_NOT_EXIST = 24;</code>
-         * 
-         * <pre>
-         * Broker 订阅关系不存在
-         * </pre>
-         */
-        SUBSCRIPTION_NOT_EXIST(14, 24),
-        /**
-         * <code>SUBSCRIPTION_NOT_LATEST = 25;</code>
-         * 
-         * <pre>
-         * Broker 订阅关系不是最新的
-         * </pre>
-         */
-        SUBSCRIPTION_NOT_LATEST(15, 25),
-        /**
-         * <code>SUBSCRIPTION_GROUP_NOT_EXIST = 26;</code>
-         * 
-         * <pre>
-         * Broker 订阅组不存在
-         * </pre>
-         */
-        SUBSCRIPTION_GROUP_NOT_EXIST(16, 26),
-        /**
-         * <code>DELETE_INVALID_CONF = 100;</code>
-         * 
-         * <pre>
-         * Namesrv 同步数据时出现两个节点间数据不一致，删除不一致的数据
-         * </pre>
-         */
-        DELETE_INVALID_CONF(17, 100),
-        /**
-         * <code>NOT_MERGE_CONF = 101;</code>
-         * 
-         * <pre>
-         * Namesrv 两节点之间的数据一致没有做修改
-         * </pre>
-         */
-        NOT_MERGE_CONF(18, 101),
-        /**
-         * <code>REGISTER_BROKER_FAIL = 102;</code>
-         * 
-         * <pre>
-         * Namesrv 注册broker信息失败
-         * </pre>
-         */
-        REGISTER_BROKER_FAIL(19, 102),
-        /**
-         * <code>REGISTER_BROKER_TIMEOUT = 103;</code>
-         * 
-         * <pre>
-         * Namesrv 注册broker信息超时
-         * </pre>
-         */
-        REGISTER_BROKER_TIMEOUT(20, 103),
-        /**
-         * <code>REGISTER_ORDER_TOPIC_FAIL = 104;</code>
-         * 
-         * <pre>
-         * Namesrv 注册order topic的配置失败
-         * </pre>
-         */
-        REGISTER_ORDER_TOPIC_FAIL(21, 104),
-        /**
-         * <code>REGISTER_ORDER_TOPIC_TIMEOUT = 105;</code>
-         * 
-         * <pre>
-         * Namesrv 注册order topic的配置超时
-         * </pre>
-         */
-        REGISTER_ORDER_TOPIC_TIMEOUT(22, 105),
-        /**
-         * <code>UNREGISTER_BROKER_FAIL = 106;</code>
-         * 
-         * <pre>
-         * Namesrv 注销broker信息失败
-         * </pre>
-         */
-        UNREGISTER_BROKER_FAIL(23, 106),
-        /**
-         * <code>UNREGISTER_BROKER_TIMEOUT = 107;</code>
-         * 
-         * <pre>
-         * Namesrv 注销broker超时
-         * </pre>
-         */
-        UNREGISTER_BROKER_TIMEOUT(24, 107),
-        /**
-         * <code>UNREGISTER_ORDER_TOPIC_TIMEOUT = 108;</code>
-         * 
-         * <pre>
-         * Namesrv 注销order topic的配置超时
-         * </pre>
-         */
-        UNREGISTER_ORDER_TOPIC_TIMEOUT(25, 108),
-        /**
-         * <code>TRANSACTION_SHOULD_COMMIT = 200;</code>
-         * 
-         * <pre>
-         * Producer 事务应该被提交
-         * </pre>
-         */
-        TRANSACTION_SHOULD_COMMIT(26, 200),
-        /**
-         * <code>TRANSACTION_SHOULD_ROLLBACK = 201;</code>
-         * 
-         * <pre>
-         * Producer 事务应该被回滚
-         * </pre>
-         */
-        TRANSACTION_SHOULD_ROLLBACK(27, 201),
-        /**
-         * <code>TRANSACTION_STATE_UNKNOW = 202;</code>
-         * 
-         * <pre>
-         * Producer 事务状态未知
-         * </pre>
-         */
-        TRANSACTION_STATE_UNKNOW(28, 202),
-        /**
-         * <code>TRANSACTION_STATE_GROUP_WRONG = 203;</code>
-         * 
-         * <pre>
-         * Producer ProducerGroup错误
-         * </pre>
-         */
-        TRANSACTION_STATE_GROUP_WRONG(29, 203), ;
+    PULL_MESSAGE(1, 11),
+    /**
+     * <code>QUERY_MESSAGE = 12;</code>
+     *
+     * <pre>
+     * Broker 查询消息
+     * </pre>
+     */
+    QUERY_MESSAGE(2, 12),
+    /**
+     * <code>QUERY_BROKER_OFFSET = 13;</code>
+     *
+     * <pre>
+     * Broker 查询Broker Offset
+     * </pre>
+     */
+    QUERY_BROKER_OFFSET(3, 13),
+    /**
+     * <code>QUERY_CONSUMER_OFFSET = 14;</code>
+     *
+     * <pre>
+     * Broker 查询Consumer Offset
+     * </pre>
+     */
+    QUERY_CONSUMER_OFFSET(4, 14),
+    /**
+     * <code>UPDATE_CONSUMER_OFFSET = 15;</code>
+     *
+     * <pre>
+     * Broker 更新Consumer Offset
+     * </pre>
+     */
+    UPDATE_CONSUMER_OFFSET(5, 15),
+    /**
+     * <code>UPDATE_AND_CREATE_TOPIC = 17;</code>
+     *
+     * <pre>
+     * Broker 更新或者增加一个Topic
+     * </pre>
+     */
+    UPDATE_AND_CREATE_TOPIC(6, 17),
+    /**
+     * <code>DELETE_TOPIC = 19;</code>
+     *
+     * <pre>
+     * Broker 删除一个Topic，包含数据与配置
+     * </pre>
+     */
+    DELETE_TOPIC(7, 19),
+    /**
+     * <code>GET_ALL_TOPIC_CONFIG = 21;</code>
+     *
+     * <pre>
+     * Broker 获取所有Topic的配置（Slave和Namesrv都会向Master请求此配置）
+     * </pre>
+     */
+    GET_ALL_TOPIC_CONFIG(8, 21),
+    /**
+     * <code>GET_TOPIC_CONFIG_LIST = 22;</code>
+     *
+     * <pre>
+     * Broker 获取所有Topic配置（Slave和Namesrv都会向Master请求此配置）
+     * </pre>
+     */
+    GET_TOPIC_CONFIG_LIST(9, 22),
+    /**
+     * <code>GET_TOPIC_NAME_LIST = 23;</code>
+     *
+     * <pre>
+     * Broker 获取所有Topic名称列表
+     * </pre>
+     */
+    GET_TOPIC_NAME_LIST(10, 23),
+    /**
+     * <code>PULL_ALL_CONSUMER_OFFSET = 24;</code>
+     *
+     * <pre>
+     * Broker Slave获取Master所有Consumer消费进度
+     * </pre>
+     */
+    PULL_ALL_CONSUMER_OFFSET(11, 24),
+    /**
+     * <code>UPDATE_BROKER_CONFIG = 25;</code>
+     *
+     * <pre>
+     * Broker 更新Broker上的配置
+     * </pre>
+     */
+    UPDATE_BROKER_CONFIG(12, 25),
+    /**
+     * <code>GET_BROKER_CONFIG = 26;</code>
+     *
+     * <pre>
+     * Broker 获取Broker上的配置
+     * </pre>
+     */
+    GET_BROKER_CONFIG(13, 26),
+    /**
+     * <code>TRIGGER_DELETE_FILES = 27;</code>
+     *
+     * <pre>
+     * Broker 触发Broker删除文件
+     * </pre>
+     */
+    TRIGGER_DELETE_FILES(14, 27),
+    /**
+     * <code>GET_BROKER_RUNTIME_INFO = 28;</code>
+     *
+     * <pre>
+     * Broker 获取Broker运行时信息
+     * </pre>
+     */
+    GET_BROKER_RUNTIME_INFO(15, 28),
+    /**
+     * <code>SEARCH_OFFSET_BY_TIMESTAMP = 29;</code>
+     *
+     * <pre>
+     * Broker 根据时间查询队列的Offset
+     * </pre>
+     */
+    SEARCH_OFFSET_BY_TIMESTAMP(16, 29),
+    /**
+     * <code>GET_MAX_OFFSET = 30;</code>
+     *
+     * <pre>
+     * Broker 查询队列最大Offset
+     * </pre>
+     */
+    GET_MAX_OFFSET(17, 30),
+    /**
+     * <code>GET_MIN_OFFSET = 31;</code>
+     *
+     * <pre>
+     * Broker 查询队列最小Offset
+     * </pre>
+     */
+    GET_MIN_OFFSET(18, 31),
+    /**
+     * <code>GET_EARLIEST_MSG_STORETIME = 32;</code>
+     *
+     * <pre>
+     * Broker 查询队列最早消息对应时间
+     * </pre>
+     */
+    GET_EARLIEST_MSG_STORETIME(19, 32),
+    /**
+     * <code>VIEW_MESSAGE_BY_ID = 33;</code>
+     *
+     * <pre>
+     * Broker 根据消息ID来查询消息
+     * </pre>
+     */
+    VIEW_MESSAGE_BY_ID(20, 33),
+    /**
+     * <code>HEART_BEAT = 34;</code>
+     *
+     * <pre>
+     * Broker Client向Client发送心跳，并注册自身
+     * </pre>
+     */
+    HEART_BEAT(21, 34),
+    /**
+     * <code>UNREGISTER_CLIENT = 35;</code>
+     *
+     * <pre>
+     * Broker Client注销
+     * </pre>
+     */
+    UNREGISTER_CLIENT(22, 35),
+    /**
+     * <code>CONSUMER_SEND_MSG_BACK = 36;</code>
+     *
+     * <pre>
+     * Broker Consumer将处理不了的消息发回服务器
+     * </pre>
+     */
+    CONSUMER_SEND_MSG_BACK(23, 36),
+    /**
+     * <code>END_TRANSACTION = 37;</code>
+     *
+     * <pre>
+     * Broker Commit或者Rollback事务
+     * </pre>
+     */
+    END_TRANSACTION(24, 37),
+    /**
+     * <code>GET_CONSUMER_LIST_BY_GROUP = 38;</code>
+     *
+     * <pre>
+     * Broker 获取ConsumerId列表通过GroupName
+     * </pre>
+     */
+    GET_CONSUMER_LIST_BY_GROUP(25, 38),
+    /**
+     * <code>CHECK_TRANSACTION_STATE = 39;</code>
+     *
+     * <pre>
+     * Broker 主动向Producer回查事务状态
+     * </pre>
+     */
+    CHECK_TRANSACTION_STATE(26, 39),
+    /**
+     * <code>NOTIFY_CONSUMER_IDS_CHANGED = 40;</code>
+     *
+     * <pre>
+     * Broker Broker通知Consumer列表变化
+     * </pre>
+     */
+    NOTIFY_CONSUMER_IDS_CHANGED(27, 40),
+    /**
+     * <code>LOCK_BATCH_MQ = 41;</code>
+     *
+     * <pre>
+     * Broker Consumer向Master锁定队列
+     * </pre>
+     */
+    LOCK_BATCH_MQ(28, 41),
+    /**
+     * <code>UNLOCK_BATCH_MQ = 42;</code>
+     *
+     * <pre>
+     * Broker Consumer向Master解锁队列
+     * </pre>
+     */
+    UNLOCK_BATCH_MQ(29, 42),
+    /**
+     * <code>REGISTER_BROKER = 100;</code>
+     *
+     * <pre>
+     * Namesrv 注册一个Broker，数据都是持久化的，如果存在则覆盖配置
+     * </pre>
+     */
+    REGISTER_BROKER(30, 100),
+    /**
+     * <code>UNREGISTER_BROKER = 101;</code>
+     *
+     * <pre>
+     * Namesrv 卸载一个Broker，数据都是持久化的
+     * </pre>
+     */
+    UNREGISTER_BROKER(31, 101),
+    /**
+     * <code>GET_BROKER_LIST = 102;</code>
+     *
+     * <pre>
+     * Namesrv 获取注册的Broker列表
+     * </pre>
+     */
+    GET_BROKER_LIST(32, 102),
+    /**
+     * <code>REGISTER_ORDER_TOPIC = 103;</code>
+     *
+     * <pre>
+     * Namesrv 注册一个严格顺序Topic，数据都是持久化的，如果存在则覆盖配置
+     * </pre>
+     */
+    REGISTER_ORDER_TOPIC(33, 103),
+    /**
+     * <code>UNREGISTER_ORDER_TOPIC = 104;</code>
+     *
+     * <pre>
+     * Namesrv 卸载一个严格顺序Topic，数据都是持久化的
+     * </pre>
+     */
+    UNREGISTER_ORDER_TOPIC(34, 104),
+    /**
+     * <code>GET_ORDER_TOPIC_LIST = 105;</code>
+     *
+     * <pre>
+     * Namesrv 获取注册的严格顺序Topic列表
+     * </pre>
+     */
+    GET_ORDER_TOPIC_LIST(35, 105),
+    /**
+     * <code>UPDATE_NAMESRV_CONFIG = 106;</code>
+     *
+     * <pre>
+     * Namesrv 更新Namesrv上的配置
+     * </pre>
+     */
+    UPDATE_NAMESRV_CONFIG(36, 106),
+    /**
+     * <code>GET_NAMESRV_CONFIG = 107;</code>
+     *
+     * <pre>
+     * Namesrv 获取Namesrv上的配置
+     * </pre>
+     */
+    GET_NAMESRV_CONFIG(37, 107),
+    /**
+     * <code>GET_NAMESRV_RUNTIME_INFO = 108;</code>
+     *
+     * <pre>
+     * Namesrv 获取Namesrv运行时信息
+     * </pre>
+     */
+    GET_NAMESRV_RUNTIME_INFO(38, 108),
+    /**
+     * <code>GET_ROUTEINTO_BY_TOPIC = 109;</code>
+     *
+     * <pre>
+     * Namesrv 根据Topic获取Broker Name、队列数(包含读队列与写队列)
+     * </pre>
+     */
+    GET_ROUTEINTO_BY_TOPIC(39, 109),
+    /**
+     * <code>SYNC_NAMESRV_RUNTIME_CONF = 110;</code>
+     *
+     * <pre>
+     * Namesrv 同步Namesrv节点间的运行时topic相关路由信息数据
+     * </pre>
+     */
+    SYNC_NAMESRV_RUNTIME_CONF(40, 110),
+    /**
+     * <code>REGISTER_BROKER_SINGLE = 111;</code>
+     *
+     * <pre>
+     * Namesrv 向其他的Namesrv结点扩散broker注册的信息
+     * </pre>
+     */
+    REGISTER_BROKER_SINGLE(41, 111),
+    /**
+     * <code>UNREGISTER_BROKER_SINGLE = 112;</code>
+     *
+     * <pre>
+     * Namesrv 向其他的Namesrv结点扩散broker注销的信息
+     * </pre>
+     */
+    UNREGISTER_BROKER_SINGLE(42, 112),
+    /**
+     * <code>REGISTER_ORDER_TOPIC_SINGLE = 113;</code>
+     *
+     * <pre>
+     * Namesrv 向其他的Namesrv结点扩散order topic注册的信息
+     * </pre>
+     */
+    REGISTER_ORDER_TOPIC_SINGLE(43, 113),
+    /**
+     * <code>UNREGISTER_ORDER_TOPIC_SINGLE = 114;</code>
+     *
+     * <pre>
+     * Namesrv 向其他的Namesrv结点扩散order topic注销的信息
+     * </pre>
+     */
+    UNREGISTER_ORDER_TOPIC_SINGLE(44, 114),
+    ;
 
-        /**
-         * <code>FLUSH_DISK_TIMEOUT = 10;</code>
-         * 
-         * <pre>
-         * Broker 刷盘超时
-         * </pre>
-         */
-        public static final int FLUSH_DISK_TIMEOUT_VALUE = 10;
-        /**
-         * <code>SLAVE_NOT_AVAILABLE = 11;</code>
-         * 
-         * <pre>
-         * Broker 同步双写，Slave不可用
-         * </pre>
-         */
-        public static final int SLAVE_NOT_AVAILABLE_VALUE = 11;
-        /**
-         * <code>FLUSH_SLAVE_TIMEOUT = 12;</code>
-         * 
-         * <pre>
-         * Broker 同步双写，等待Slave应答超时
-         * </pre>
-         */
-        public static final int FLUSH_SLAVE_TIMEOUT_VALUE = 12;
-        /**
-         * <code>MESSAGE_ILLEGAL = 13;</code>
-         * 
-         * <pre>
-         * Broker 消息非法
-         * </pre>
-         */
-        public static final int MESSAGE_ILLEGAL_VALUE = 13;
-        /**
-         * <code>SERVICE_NOT_AVAILABLE = 14;</code>
-         * 
-         * <pre>
-         * Broker, Namesrv 服务不可用，可能是正在关闭或者权限问题
-         * </pre>
-         */
-        public static final int SERVICE_NOT_AVAILABLE_VALUE = 14;
-        /**
-         * <code>VERSION_NOT_SUPPORTED = 15;</code>
-         * 
-         * <pre>
-         * Broker, Namesrv 版本号不支持
-         * </pre>
-         */
-        public static final int VERSION_NOT_SUPPORTED_VALUE = 15;
-        /**
-         * <code>NO_PERMISSION = 16;</code>
-         * 
-         * <pre>
-         * Broker, Namesrv 无权限执行此操作，可能是发、收、或者其他操作
-         * </pre>
-         */
-        public static final int NO_PERMISSION_VALUE = 16;
-        /**
-         * <code>TOPIC_NOT_EXIST = 17;</code>
-         * 
-         * <pre>
-         * Broker, Topic不存在
-         * </pre>
-         */
-        public static final int TOPIC_NOT_EXIST_VALUE = 17;
-        /**
-         * <code>TOPIC_EXIST_ALREADY = 18;</code>
-         * 
-         * <pre>
-         * Broker, Topic已经存在，创建Topic
-         * </pre>
-         */
-        public static final int TOPIC_EXIST_ALREADY_VALUE = 18;
-        /**
-         * <code>PULL_NOT_FOUND = 19;</code>
-         * 
-         * <pre>
-         * Broker 拉消息未找到（请求的Offset等于最大Offset，最大Offset无对应消息）
-         * </pre>
-         */
-        public static final int PULL_NOT_FOUND_VALUE = 19;
-        /**
-         * <code>PULL_RETRY_IMMEDIATELY = 20;</code>
-         * 
-         * <pre>
-         * Broker 可能被过滤，或者误通知等
-         * </pre>
-         */
-        public static final int PULL_RETRY_IMMEDIATELY_VALUE = 20;
-        /**
-         * <code>PULL_OFFSET_MOVED = 21;</code>
-         * 
-         * <pre>
-         * Broker 拉消息请求的Offset不合法，太小或太大
-         * </pre>
-         */
-        public static final int PULL_OFFSET_MOVED_VALUE = 21;
-        /**
-         * <code>QUERY_NOT_FOUND = 22;</code>
-         * 
-         * <pre>
-         * Broker 查询消息未找到
-         * </pre>
-         */
-        public static final int QUERY_NOT_FOUND_VALUE = 22;
-        /**
-         * <code>SUBSCRIPTION_PARSE_FAILED = 23;</code>
-         * 
-         * <pre>
-         * Broker 订阅关系解析失败
-         * </pre>
-         */
-        public static final int SUBSCRIPTION_PARSE_FAILED_VALUE = 23;
-        /**
-         * <code>SUBSCRIPTION_NOT_EXIST = 24;</code>
-         * 
-         * <pre>
-         * Broker 订阅关系不存在
-         * </pre>
-         */
-        public static final int SUBSCRIPTION_NOT_EXIST_VALUE = 24;
-        /**
-         * <code>SUBSCRIPTION_NOT_LATEST = 25;</code>
-         * 
-         * <pre>
-         * Broker 订阅关系不是最新的
-         * </pre>
-         */
-        public static final int SUBSCRIPTION_NOT_LATEST_VALUE = 25;
-        /**
-         * <code>SUBSCRIPTION_GROUP_NOT_EXIST = 26;</code>
-         * 
-         * <pre>
-         * Broker 订阅组不存在
-         * </pre>
-         */
-        public static final int SUBSCRIPTION_GROUP_NOT_EXIST_VALUE = 26;
-        /**
-         * <code>DELETE_INVALID_CONF = 100;</code>
-         * 
-         * <pre>
-         * Namesrv 同步数据时出现两个节点间数据不一致，删除不一致的数据
-         * </pre>
-         */
-        public static final int DELETE_INVALID_CONF_VALUE = 100;
-        /**
-         * <code>NOT_MERGE_CONF = 101;</code>
-         * 
-         * <pre>
-         * Namesrv 两节点之间的数据一致没有做修改
-         * </pre>
-         */
-        public static final int NOT_MERGE_CONF_VALUE = 101;
-        /**
-         * <code>REGISTER_BROKER_FAIL = 102;</code>
-         * 
-         * <pre>
-         * Namesrv 注册broker信息失败
-         * </pre>
-         */
-        public static final int REGISTER_BROKER_FAIL_VALUE = 102;
-        /**
-         * <code>REGISTER_BROKER_TIMEOUT = 103;</code>
-         * 
-         * <pre>
-         * Namesrv 注册broker信息超时
-         * </pre>
-         */
-        public static final int REGISTER_BROKER_TIMEOUT_VALUE = 103;
-        /**
-         * <code>REGISTER_ORDER_TOPIC_FAIL = 104;</code>
-         * 
-         * <pre>
-         * Namesrv 注册order topic的配置失败
-         * </pre>
-         */
-        public static final int REGISTER_ORDER_TOPIC_FAIL_VALUE = 104;
-        /**
-         * <code>REGISTER_ORDER_TOPIC_TIMEOUT = 105;</code>
-         * 
-         * <pre>
-         * Namesrv 注册order topic的配置超时
-         * </pre>
-         */
-        public static final int REGISTER_ORDER_TOPIC_TIMEOUT_VALUE = 105;
-        /**
-         * <code>UNREGISTER_BROKER_FAIL = 106;</code>
-         * 
-         * <pre>
-         * Namesrv 注销broker信息失败
-         * </pre>
-         */
-        public static final int UNREGISTER_BROKER_FAIL_VALUE = 106;
-        /**
-         * <code>UNREGISTER_BROKER_TIMEOUT = 107;</code>
-         * 
-         * <pre>
-         * Namesrv 注销broker超时
-         * </pre>
-         */
-        public static final int UNREGISTER_BROKER_TIMEOUT_VALUE = 107;
-        /**
-         * <code>UNREGISTER_ORDER_TOPIC_TIMEOUT = 108;</code>
-         * 
-         * <pre>
-         * Namesrv 注销order topic的配置超时
-         * </pre>
-         */
-        public static final int UNREGISTER_ORDER_TOPIC_TIMEOUT_VALUE = 108;
-        /**
-         * <code>TRANSACTION_SHOULD_COMMIT = 200;</code>
-         * 
-         * <pre>
-         * Producer 事务应该被提交
-         * </pre>
-         */
-        public static final int TRANSACTION_SHOULD_COMMIT_VALUE = 200;
-        /**
-         * <code>TRANSACTION_SHOULD_ROLLBACK = 201;</code>
-         * 
-         * <pre>
-         * Producer 事务应该被回滚
-         * </pre>
-         */
-        public static final int TRANSACTION_SHOULD_ROLLBACK_VALUE = 201;
-        /**
-         * <code>TRANSACTION_STATE_UNKNOW = 202;</code>
-         * 
-         * <pre>
-         * Producer 事务状态未知
-         * </pre>
-         */
-        public static final int TRANSACTION_STATE_UNKNOW_VALUE = 202;
-        /**
-         * <code>TRANSACTION_STATE_GROUP_WRONG = 203;</code>
-         * 
-         * <pre>
-         * Producer ProducerGroup错误
-         * </pre>
-         */
-        public static final int TRANSACTION_STATE_GROUP_WRONG_VALUE = 203;
+    /**
+     * <code>SEND_MESSAGE = 10;</code>
+     *
+     * <pre>
+     * Broker 发送消息
+     * </pre>
+     */
+    public static final int SEND_MESSAGE_VALUE = 10;
+    /**
+     * <code>PULL_MESSAGE = 11;</code>
+     *
+     * <pre>
+     * Broker 订阅消息
+     * </pre>
+     */
+    public static final int PULL_MESSAGE_VALUE = 11;
+    /**
+     * <code>QUERY_MESSAGE = 12;</code>
+     *
+     * <pre>
+     * Broker 查询消息
+     * </pre>
+     */
+    public static final int QUERY_MESSAGE_VALUE = 12;
+    /**
+     * <code>QUERY_BROKER_OFFSET = 13;</code>
+     *
+     * <pre>
+     * Broker 查询Broker Offset
+     * </pre>
+     */
+    public static final int QUERY_BROKER_OFFSET_VALUE = 13;
+    /**
+     * <code>QUERY_CONSUMER_OFFSET = 14;</code>
+     *
+     * <pre>
+     * Broker 查询Consumer Offset
+     * </pre>
+     */
+    public static final int QUERY_CONSUMER_OFFSET_VALUE = 14;
+    /**
+     * <code>UPDATE_CONSUMER_OFFSET = 15;</code>
+     *
+     * <pre>
+     * Broker 更新Consumer Offset
+     * </pre>
+     */
+    public static final int UPDATE_CONSUMER_OFFSET_VALUE = 15;
+    /**
+     * <code>UPDATE_AND_CREATE_TOPIC = 17;</code>
+     *
+     * <pre>
+     * Broker 更新或者增加一个Topic
+     * </pre>
+     */
+    public static final int UPDATE_AND_CREATE_TOPIC_VALUE = 17;
+    /**
+     * <code>DELETE_TOPIC = 19;</code>
+     *
+     * <pre>
+     * Broker 删除一个Topic，包含数据与配置
+     * </pre>
+     */
+    public static final int DELETE_TOPIC_VALUE = 19;
+    /**
+     * <code>GET_ALL_TOPIC_CONFIG = 21;</code>
+     *
+     * <pre>
+     * Broker 获取所有Topic的配置（Slave和Namesrv都会向Master请求此配置）
+     * </pre>
+     */
+    public static final int GET_ALL_TOPIC_CONFIG_VALUE = 21;
+    /**
+     * <code>GET_TOPIC_CONFIG_LIST = 22;</code>
+     *
+     * <pre>
+     * Broker 获取所有Topic配置（Slave和Namesrv都会向Master请求此配置）
+     * </pre>
+     */
+    public static final int GET_TOPIC_CONFIG_LIST_VALUE = 22;
+    /**
+     * <code>GET_TOPIC_NAME_LIST = 23;</code>
+     *
+     * <pre>
+     * Broker 获取所有Topic名称列表
+     * </pre>
+     */
+    public static final int GET_TOPIC_NAME_LIST_VALUE = 23;
+    /**
+     * <code>PULL_ALL_CONSUMER_OFFSET = 24;</code>
+     *
+     * <pre>
+     * Broker Slave获取Master所有Consumer消费进度
+     * </pre>
+     */
+    public static final int PULL_ALL_CONSUMER_OFFSET_VALUE = 24;
+    /**
+     * <code>UPDATE_BROKER_CONFIG = 25;</code>
+     *
+     * <pre>
+     * Broker 更新Broker上的配置
+     * </pre>
+     */
+    public static final int UPDATE_BROKER_CONFIG_VALUE = 25;
+    /**
+     * <code>GET_BROKER_CONFIG = 26;</code>
+     *
+     * <pre>
+     * Broker 获取Broker上的配置
+     * </pre>
+     */
+    public static final int GET_BROKER_CONFIG_VALUE = 26;
+    /**
+     * <code>TRIGGER_DELETE_FILES = 27;</code>
+     *
+     * <pre>
+     * Broker 触发Broker删除文件
+     * </pre>
+     */
+    public static final int TRIGGER_DELETE_FILES_VALUE = 27;
+    /**
+     * <code>GET_BROKER_RUNTIME_INFO = 28;</code>
+     *
+     * <pre>
+     * Broker 获取Broker运行时信息
+     * </pre>
+     */
+    public static final int GET_BROKER_RUNTIME_INFO_VALUE = 28;
+    /**
+     * <code>SEARCH_OFFSET_BY_TIMESTAMP = 29;</code>
+     *
+     * <pre>
+     * Broker 根据时间查询队列的Offset
+     * </pre>
+     */
+    public static final int SEARCH_OFFSET_BY_TIMESTAMP_VALUE = 29;
+    /**
+     * <code>GET_MAX_OFFSET = 30;</code>
+     *
+     * <pre>
+     * Broker 查询队列最大Offset
+     * </pre>
+     */
+    public static final int GET_MAX_OFFSET_VALUE = 30;
+    /**
+     * <code>GET_MIN_OFFSET = 31;</code>
+     *
+     * <pre>
+     * Broker 查询队列最小Offset
+     * </pre>
+     */
+    public static final int GET_MIN_OFFSET_VALUE = 31;
+    /**
+     * <code>GET_EARLIEST_MSG_STORETIME = 32;</code>
+     *
+     * <pre>
+     * Broker 查询队列最早消息对应时间
+     * </pre>
+     */
+    public static final int GET_EARLIEST_MSG_STORETIME_VALUE = 32;
+    /**
+     * <code>VIEW_MESSAGE_BY_ID = 33;</code>
+     *
+     * <pre>
+     * Broker 根据消息ID来查询消息
+     * </pre>
+     */
+    public static final int VIEW_MESSAGE_BY_ID_VALUE = 33;
+    /**
+     * <code>HEART_BEAT = 34;</code>
+     *
+     * <pre>
+     * Broker Client向Client发送心跳，并注册自身
+     * </pre>
+     */
+    public static final int HEART_BEAT_VALUE = 34;
+    /**
+     * <code>UNREGISTER_CLIENT = 35;</code>
+     *
+     * <pre>
+     * Broker Client注销
+     * </pre>
+     */
+    public static final int UNREGISTER_CLIENT_VALUE = 35;
+    /**
+     * <code>CONSUMER_SEND_MSG_BACK = 36;</code>
+     *
+     * <pre>
+     * Broker Consumer将处理不了的消息发回服务器
+     * </pre>
+     */
+    public static final int CONSUMER_SEND_MSG_BACK_VALUE = 36;
+    /**
+     * <code>END_TRANSACTION = 37;</code>
+     *
+     * <pre>
+     * Broker Commit或者Rollback事务
+     * </pre>
+     */
+    public static final int END_TRANSACTION_VALUE = 37;
+    /**
+     * <code>GET_CONSUMER_LIST_BY_GROUP = 38;</code>
+     *
+     * <pre>
+     * Broker 获取ConsumerId列表通过GroupName
+     * </pre>
+     */
+    public static final int GET_CONSUMER_LIST_BY_GROUP_VALUE = 38;
+    /**
+     * <code>CHECK_TRANSACTION_STATE = 39;</code>
+     *
+     * <pre>
+     * Broker 主动向Producer回查事务状态
+     * </pre>
+     */
+    public static final int CHECK_TRANSACTION_STATE_VALUE = 39;
+    /**
+     * <code>NOTIFY_CONSUMER_IDS_CHANGED = 40;</code>
+     *
+     * <pre>
+     * Broker Broker通知Consumer列表变化
+     * </pre>
+     */
+    public static final int NOTIFY_CONSUMER_IDS_CHANGED_VALUE = 40;
+    /**
+     * <code>LOCK_BATCH_MQ = 41;</code>
+     *
+     * <pre>
+     * Broker Consumer向Master锁定队列
+     * </pre>
+     */
+    public static final int LOCK_BATCH_MQ_VALUE = 41;
+    /**
+     * <code>UNLOCK_BATCH_MQ = 42;</code>
+     *
+     * <pre>
+     * Broker Consumer向Master解锁队列
+     * </pre>
+     */
+    public static final int UNLOCK_BATCH_MQ_VALUE = 42;
+    /**
+     * <code>REGISTER_BROKER = 100;</code>
+     *
+     * <pre>
+     * Namesrv 注册一个Broker，数据都是持久化的，如果存在则覆盖配置
+     * </pre>
+     */
+    public static final int REGISTER_BROKER_VALUE = 100;
+    /**
+     * <code>UNREGISTER_BROKER = 101;</code>
+     *
+     * <pre>
+     * Namesrv 卸载一个Broker，数据都是持久化的
+     * </pre>
+     */
+    public static final int UNREGISTER_BROKER_VALUE = 101;
+    /**
+     * <code>GET_BROKER_LIST = 102;</code>
+     *
+     * <pre>
+     * Namesrv 获取注册的Broker列表
+     * </pre>
+     */
+    public static final int GET_BROKER_LIST_VALUE = 102;
+    /**
+     * <code>REGISTER_ORDER_TOPIC = 103;</code>
+     *
+     * <pre>
+     * Namesrv 注册一个严格顺序Topic，数据都是持久化的，如果存在则覆盖配置
+     * </pre>
+     */
+    public static final int REGISTER_ORDER_TOPIC_VALUE = 103;
+    /**
+     * <code>UNREGISTER_ORDER_TOPIC = 104;</code>
+     *
+     * <pre>
+     * Namesrv 卸载一个严格顺序Topic，数据都是持久化的
+     * </pre>
+     */
+    public static final int UNREGISTER_ORDER_TOPIC_VALUE = 104;
+    /**
+     * <code>GET_ORDER_TOPIC_LIST = 105;</code>
+     *
+     * <pre>
+     * Namesrv 获取注册的严格顺序Topic列表
+     * </pre>
+     */
+    public static final int GET_ORDER_TOPIC_LIST_VALUE = 105;
+    /**
+     * <code>UPDATE_NAMESRV_CONFIG = 106;</code>
+     *
+     * <pre>
+     * Namesrv 更新Namesrv上的配置
+     * </pre>
+     */
+    public static final int UPDATE_NAMESRV_CONFIG_VALUE = 106;
+    /**
+     * <code>GET_NAMESRV_CONFIG = 107;</code>
+     *
+     * <pre>
+     * Namesrv 获取Namesrv上的配置
+     * </pre>
+     */
+    public static final int GET_NAMESRV_CONFIG_VALUE = 107;
+    /**
+     * <code>GET_NAMESRV_RUNTIME_INFO = 108;</code>
+     *
+     * <pre>
+     * Namesrv 获取Namesrv运行时信息
+     * </pre>
+     */
+    public static final int GET_NAMESRV_RUNTIME_INFO_VALUE = 108;
+    /**
+     * <code>GET_ROUTEINTO_BY_TOPIC = 109;</code>
+     *
+     * <pre>
+     * Namesrv 根据Topic获取Broker Name、队列数(包含读队列与写队列)
+     * </pre>
+     */
+    public static final int GET_ROUTEINTO_BY_TOPIC_VALUE = 109;
+    /**
+     * <code>SYNC_NAMESRV_RUNTIME_CONF = 110;</code>
+     *
+     * <pre>
+     * Namesrv 同步Namesrv节点间的运行时topic相关路由信息数据
+     * </pre>
+     */
+    public static final int SYNC_NAMESRV_RUNTIME_CONF_VALUE = 110;
+    /**
+     * <code>REGISTER_BROKER_SINGLE = 111;</code>
+     *
+     * <pre>
+     * Namesrv 向其他的Namesrv结点扩散broker注册的信息
+     * </pre>
+     */
+    public static final int REGISTER_BROKER_SINGLE_VALUE = 111;
+    /**
+     * <code>UNREGISTER_BROKER_SINGLE = 112;</code>
+     *
+     * <pre>
+     * Namesrv 向其他的Namesrv结点扩散broker注销的信息
+     * </pre>
+     */
+    public static final int UNREGISTER_BROKER_SINGLE_VALUE = 112;
+    /**
+     * <code>REGISTER_ORDER_TOPIC_SINGLE = 113;</code>
+     *
+     * <pre>
+     * Namesrv 向其他的Namesrv结点扩散order topic注册的信息
+     * </pre>
+     */
+    public static final int REGISTER_ORDER_TOPIC_SINGLE_VALUE = 113;
+    /**
+     * <code>UNREGISTER_ORDER_TOPIC_SINGLE = 114;</code>
+     *
+     * <pre>
+     * Namesrv 向其他的Namesrv结点扩散order topic注销的信息
+     * </pre>
+     */
+    public static final int UNREGISTER_ORDER_TOPIC_SINGLE_VALUE = 114;
 
 
-        public final int getNumber() {
-            return value;
-        }
+    public final int getNumber() { return value; }
 
-
-        public static MQResponseCode valueOf(int value) {
-            switch (value) {
-            case 10:
-                return FLUSH_DISK_TIMEOUT;
-            case 11:
-                return SLAVE_NOT_AVAILABLE;
-            case 12:
-                return FLUSH_SLAVE_TIMEOUT;
-            case 13:
-                return MESSAGE_ILLEGAL;
-            case 14:
-                return SERVICE_NOT_AVAILABLE;
-            case 15:
-                return VERSION_NOT_SUPPORTED;
-            case 16:
-                return NO_PERMISSION;
-            case 17:
-                return TOPIC_NOT_EXIST;
-            case 18:
-                return TOPIC_EXIST_ALREADY;
-            case 19:
-                return PULL_NOT_FOUND;
-            case 20:
-                return PULL_RETRY_IMMEDIATELY;
-            case 21:
-                return PULL_OFFSET_MOVED;
-            case 22:
-                return QUERY_NOT_FOUND;
-            case 23:
-                return SUBSCRIPTION_PARSE_FAILED;
-            case 24:
-                return SUBSCRIPTION_NOT_EXIST;
-            case 25:
-                return SUBSCRIPTION_NOT_LATEST;
-            case 26:
-                return SUBSCRIPTION_GROUP_NOT_EXIST;
-            case 100:
-                return DELETE_INVALID_CONF;
-            case 101:
-                return NOT_MERGE_CONF;
-            case 102:
-                return REGISTER_BROKER_FAIL;
-            case 103:
-                return REGISTER_BROKER_TIMEOUT;
-            case 104:
-                return REGISTER_ORDER_TOPIC_FAIL;
-            case 105:
-                return REGISTER_ORDER_TOPIC_TIMEOUT;
-            case 106:
-                return UNREGISTER_BROKER_FAIL;
-            case 107:
-                return UNREGISTER_BROKER_TIMEOUT;
-            case 108:
-                return UNREGISTER_ORDER_TOPIC_TIMEOUT;
-            case 200:
-                return TRANSACTION_SHOULD_COMMIT;
-            case 201:
-                return TRANSACTION_SHOULD_ROLLBACK;
-            case 202:
-                return TRANSACTION_STATE_UNKNOW;
-            case 203:
-                return TRANSACTION_STATE_GROUP_WRONG;
-            default:
-                return null;
-            }
-        }
-
-
-        public static com.google.protobuf.Internal.EnumLiteMap<MQResponseCode> internalGetValueMap() {
-            return internalValueMap;
-        }
-
-        private static com.google.protobuf.Internal.EnumLiteMap<MQResponseCode> internalValueMap =
-                new com.google.protobuf.Internal.EnumLiteMap<MQResponseCode>() {
-                    public MQResponseCode findValueByNumber(int number) {
-                        return MQResponseCode.valueOf(number);
-                    }
-                };
-
-
-        public final com.google.protobuf.Descriptors.EnumValueDescriptor getValueDescriptor() {
-            return getDescriptor().getValues().get(index);
-        }
-
-
-        public final com.google.protobuf.Descriptors.EnumDescriptor getDescriptorForType() {
-            return getDescriptor();
-        }
-
-
-        public static final com.google.protobuf.Descriptors.EnumDescriptor getDescriptor() {
-            return com.alibaba.rocketmq.common.protocol.MQProtos.getDescriptor().getEnumTypes().get(1);
-        }
-
-        private static final MQResponseCode[] VALUES = values();
-
-
-        public static MQResponseCode valueOf(com.google.protobuf.Descriptors.EnumValueDescriptor desc) {
-            if (desc.getType() != getDescriptor()) {
-                throw new java.lang.IllegalArgumentException("EnumValueDescriptor is not for this type.");
-            }
-            return VALUES[desc.getIndex()];
-        }
-
-        private final int index;
-        private final int value;
-
-
-        private MQResponseCode(int index, int value) {
-            this.index = index;
-            this.value = value;
-        }
-
-        // @@protoc_insertion_point(enum_scope:rocketmq.MQResponseCode)
+    public static MQRequestCode valueOf(int value) {
+      switch (value) {
+        case 10: return SEND_MESSAGE;
+        case 11: return PULL_MESSAGE;
+        case 12: return QUERY_MESSAGE;
+        case 13: return QUERY_BROKER_OFFSET;
+        case 14: return QUERY_CONSUMER_OFFSET;
+        case 15: return UPDATE_CONSUMER_OFFSET;
+        case 17: return UPDATE_AND_CREATE_TOPIC;
+        case 19: return DELETE_TOPIC;
+        case 21: return GET_ALL_TOPIC_CONFIG;
+        case 22: return GET_TOPIC_CONFIG_LIST;
+        case 23: return GET_TOPIC_NAME_LIST;
+        case 24: return PULL_ALL_CONSUMER_OFFSET;
+        case 25: return UPDATE_BROKER_CONFIG;
+        case 26: return GET_BROKER_CONFIG;
+        case 27: return TRIGGER_DELETE_FILES;
+        case 28: return GET_BROKER_RUNTIME_INFO;
+        case 29: return SEARCH_OFFSET_BY_TIMESTAMP;
+        case 30: return GET_MAX_OFFSET;
+        case 31: return GET_MIN_OFFSET;
+        case 32: return GET_EARLIEST_MSG_STORETIME;
+        case 33: return VIEW_MESSAGE_BY_ID;
+        case 34: return HEART_BEAT;
+        case 35: return UNREGISTER_CLIENT;
+        case 36: return CONSUMER_SEND_MSG_BACK;
+        case 37: return END_TRANSACTION;
+        case 38: return GET_CONSUMER_LIST_BY_GROUP;
+        case 39: return CHECK_TRANSACTION_STATE;
+        case 40: return NOTIFY_CONSUMER_IDS_CHANGED;
+        case 41: return LOCK_BATCH_MQ;
+        case 42: return UNLOCK_BATCH_MQ;
+        case 100: return REGISTER_BROKER;
+        case 101: return UNREGISTER_BROKER;
+        case 102: return GET_BROKER_LIST;
+        case 103: return REGISTER_ORDER_TOPIC;
+        case 104: return UNREGISTER_ORDER_TOPIC;
+        case 105: return GET_ORDER_TOPIC_LIST;
+        case 106: return UPDATE_NAMESRV_CONFIG;
+        case 107: return GET_NAMESRV_CONFIG;
+        case 108: return GET_NAMESRV_RUNTIME_INFO;
+        case 109: return GET_ROUTEINTO_BY_TOPIC;
+        case 110: return SYNC_NAMESRV_RUNTIME_CONF;
+        case 111: return REGISTER_BROKER_SINGLE;
+        case 112: return UNREGISTER_BROKER_SINGLE;
+        case 113: return REGISTER_ORDER_TOPIC_SINGLE;
+        case 114: return UNREGISTER_ORDER_TOPIC_SINGLE;
+        default: return null;
+      }
     }
 
-    public interface BrokerInfoOrBuilder extends com.google.protobuf.MessageOrBuilder {
+    public static com.google.protobuf.Internal.EnumLiteMap<MQRequestCode>
+        internalGetValueMap() {
+      return internalValueMap;
+    }
+    private static com.google.protobuf.Internal.EnumLiteMap<MQRequestCode>
+        internalValueMap =
+          new com.google.protobuf.Internal.EnumLiteMap<MQRequestCode>() {
+            public MQRequestCode findValueByNumber(int number) {
+              return MQRequestCode.valueOf(number);
+            }
+          };
 
-        // required string brokerName = 1;
-        /**
-         * <code>required string brokerName = 1;</code>
-         */
-        boolean hasBrokerName();
-
-
-        /**
-         * <code>required string brokerName = 1;</code>
-         */
-        java.lang.String getBrokerName();
-
-
-        /**
-         * <code>required string brokerName = 1;</code>
-         */
-        com.google.protobuf.ByteString getBrokerNameBytes();
-
-
-        // repeated .rocketmq.BrokerInfo.BrokerAddr brokerAddrs = 2;
-        /**
-         * <code>repeated .rocketmq.BrokerInfo.BrokerAddr brokerAddrs = 2;</code>
-         */
-        java.util.List<com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr> getBrokerAddrsList();
-
-
-        /**
-         * <code>repeated .rocketmq.BrokerInfo.BrokerAddr brokerAddrs = 2;</code>
-         */
-        com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr getBrokerAddrs(int index);
-
-
-        /**
-         * <code>repeated .rocketmq.BrokerInfo.BrokerAddr brokerAddrs = 2;</code>
-         */
-        int getBrokerAddrsCount();
-
-
-        /**
-         * <code>repeated .rocketmq.BrokerInfo.BrokerAddr brokerAddrs = 2;</code>
-         */
-        java.util.List<? extends com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddrOrBuilder> getBrokerAddrsOrBuilderList();
-
-
-        /**
-         * <code>repeated .rocketmq.BrokerInfo.BrokerAddr brokerAddrs = 2;</code>
-         */
-        com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddrOrBuilder getBrokerAddrsOrBuilder(
-                int index);
+    public final com.google.protobuf.Descriptors.EnumValueDescriptor
+        getValueDescriptor() {
+      return getDescriptor().getValues().get(index);
+    }
+    public final com.google.protobuf.Descriptors.EnumDescriptor
+        getDescriptorForType() {
+      return getDescriptor();
+    }
+    public static final com.google.protobuf.Descriptors.EnumDescriptor
+        getDescriptor() {
+      return com.alibaba.rocketmq.common.protocol.MQProtos.getDescriptor().getEnumTypes().get(0);
     }
 
+    private static final MQRequestCode[] VALUES = values();
+
+    public static MQRequestCode valueOf(
+        com.google.protobuf.Descriptors.EnumValueDescriptor desc) {
+      if (desc.getType() != getDescriptor()) {
+        throw new java.lang.IllegalArgumentException(
+          "EnumValueDescriptor is not for this type.");
+      }
+      return VALUES[desc.getIndex()];
+    }
+
+    private final int index;
+    private final int value;
+
+    private MQRequestCode(int index, int value) {
+      this.index = index;
+      this.value = value;
+    }
+
+    // @@protoc_insertion_point(enum_scope:rocketmq.MQRequestCode)
+  }
+
+  /**
+   * Protobuf enum {@code rocketmq.MQResponseCode}
+   *
+   * <pre>
+   * RPC应答代码
+   * </pre>
+   */
+  public enum MQResponseCode
+      implements com.google.protobuf.ProtocolMessageEnum {
+    /**
+     * <code>FLUSH_DISK_TIMEOUT = 10;</code>
+     *
+     * <pre>
+     * Broker 刷盘超时
+     * </pre>
+     */
+    FLUSH_DISK_TIMEOUT(0, 10),
+    /**
+     * <code>SLAVE_NOT_AVAILABLE = 11;</code>
+     *
+     * <pre>
+     * Broker 同步双写，Slave不可用
+     * </pre>
+     */
+    SLAVE_NOT_AVAILABLE(1, 11),
+    /**
+     * <code>FLUSH_SLAVE_TIMEOUT = 12;</code>
+     *
+     * <pre>
+     * Broker 同步双写，等待Slave应答超时
+     * </pre>
+     */
+    FLUSH_SLAVE_TIMEOUT(2, 12),
+    /**
+     * <code>MESSAGE_ILLEGAL = 13;</code>
+     *
+     * <pre>
+     * Broker 消息非法
+     * </pre>
+     */
+    MESSAGE_ILLEGAL(3, 13),
+    /**
+     * <code>SERVICE_NOT_AVAILABLE = 14;</code>
+     *
+     * <pre>
+     * Broker, Namesrv 服务不可用，可能是正在关闭或者权限问题
+     * </pre>
+     */
+    SERVICE_NOT_AVAILABLE(4, 14),
+    /**
+     * <code>VERSION_NOT_SUPPORTED = 15;</code>
+     *
+     * <pre>
+     * Broker, Namesrv 版本号不支持
+     * </pre>
+     */
+    VERSION_NOT_SUPPORTED(5, 15),
+    /**
+     * <code>NO_PERMISSION = 16;</code>
+     *
+     * <pre>
+     * Broker, Namesrv 无权限执行此操作，可能是发、收、或者其他操作
+     * </pre>
+     */
+    NO_PERMISSION(6, 16),
+    /**
+     * <code>TOPIC_NOT_EXIST = 17;</code>
+     *
+     * <pre>
+     * Broker, Topic不存在
+     * </pre>
+     */
+    TOPIC_NOT_EXIST(7, 17),
+    /**
+     * <code>TOPIC_EXIST_ALREADY = 18;</code>
+     *
+     * <pre>
+     * Broker, Topic已经存在，创建Topic
+     * </pre>
+     */
+    TOPIC_EXIST_ALREADY(8, 18),
+    /**
+     * <code>PULL_NOT_FOUND = 19;</code>
+     *
+     * <pre>
+     * Broker 拉消息未找到（请求的Offset等于最大Offset，最大Offset无对应消息）
+     * </pre>
+     */
+    PULL_NOT_FOUND(9, 19),
+    /**
+     * <code>PULL_RETRY_IMMEDIATELY = 20;</code>
+     *
+     * <pre>
+     * Broker 可能被过滤，或者误通知等
+     * </pre>
+     */
+    PULL_RETRY_IMMEDIATELY(10, 20),
+    /**
+     * <code>PULL_OFFSET_MOVED = 21;</code>
+     *
+     * <pre>
+     * Broker 拉消息请求的Offset不合法，太小或太大
+     * </pre>
+     */
+    PULL_OFFSET_MOVED(11, 21),
+    /**
+     * <code>QUERY_NOT_FOUND = 22;</code>
+     *
+     * <pre>
+     * Broker 查询消息未找到
+     * </pre>
+     */
+    QUERY_NOT_FOUND(12, 22),
+    /**
+     * <code>SUBSCRIPTION_PARSE_FAILED = 23;</code>
+     *
+     * <pre>
+     * Broker 订阅关系解析失败
+     * </pre>
+     */
+    SUBSCRIPTION_PARSE_FAILED(13, 23),
+    /**
+     * <code>SUBSCRIPTION_NOT_EXIST = 24;</code>
+     *
+     * <pre>
+     * Broker 订阅关系不存在
+     * </pre>
+     */
+    SUBSCRIPTION_NOT_EXIST(14, 24),
+    /**
+     * <code>SUBSCRIPTION_NOT_LATEST = 25;</code>
+     *
+     * <pre>
+     * Broker 订阅关系不是最新的
+     * </pre>
+     */
+    SUBSCRIPTION_NOT_LATEST(15, 25),
+    /**
+     * <code>SUBSCRIPTION_GROUP_NOT_EXIST = 26;</code>
+     *
+     * <pre>
+     * Broker 订阅组不存在
+     * </pre>
+     */
+    SUBSCRIPTION_GROUP_NOT_EXIST(16, 26),
+    /**
+     * <code>DELETE_INVALID_CONF = 100;</code>
+     *
+     * <pre>
+     * Namesrv 同步数据时出现两个节点间数据不一致，删除不一致的数据
+     * </pre>
+     */
+    DELETE_INVALID_CONF(17, 100),
+    /**
+     * <code>NOT_MERGE_CONF = 101;</code>
+     *
+     * <pre>
+     * Namesrv 两节点之间的数据一致没有做修改
+     * </pre>
+     */
+    NOT_MERGE_CONF(18, 101),
+    /**
+     * <code>REGISTER_BROKER_FAIL = 102;</code>
+     *
+     * <pre>
+     * Namesrv 注册broker信息失败
+     * </pre>
+     */
+    REGISTER_BROKER_FAIL(19, 102),
+    /**
+     * <code>REGISTER_BROKER_TIMEOUT = 103;</code>
+     *
+     * <pre>
+     * Namesrv 注册broker信息超时
+     * </pre>
+     */
+    REGISTER_BROKER_TIMEOUT(20, 103),
+    /**
+     * <code>REGISTER_ORDER_TOPIC_FAIL = 104;</code>
+     *
+     * <pre>
+     * Namesrv 注册order topic的配置失败
+     * </pre>
+     */
+    REGISTER_ORDER_TOPIC_FAIL(21, 104),
+    /**
+     * <code>REGISTER_ORDER_TOPIC_TIMEOUT = 105;</code>
+     *
+     * <pre>
+     * Namesrv 注册order topic的配置超时
+     * </pre>
+     */
+    REGISTER_ORDER_TOPIC_TIMEOUT(22, 105),
+    /**
+     * <code>UNREGISTER_BROKER_FAIL = 106;</code>
+     *
+     * <pre>
+     * Namesrv 注销broker信息失败
+     * </pre>
+     */
+    UNREGISTER_BROKER_FAIL(23, 106),
+    /**
+     * <code>UNREGISTER_BROKER_TIMEOUT = 107;</code>
+     *
+     * <pre>
+     * Namesrv 注销broker超时
+     * </pre>
+     */
+    UNREGISTER_BROKER_TIMEOUT(24, 107),
+    /**
+     * <code>UNREGISTER_ORDER_TOPIC_TIMEOUT = 108;</code>
+     *
+     * <pre>
+     * Namesrv 注销order topic的配置超时
+     * </pre>
+     */
+    UNREGISTER_ORDER_TOPIC_TIMEOUT(25, 108),
+    /**
+     * <code>TRANSACTION_SHOULD_COMMIT = 200;</code>
+     *
+     * <pre>
+     * Producer 事务应该被提交
+     * </pre>
+     */
+    TRANSACTION_SHOULD_COMMIT(26, 200),
+    /**
+     * <code>TRANSACTION_SHOULD_ROLLBACK = 201;</code>
+     *
+     * <pre>
+     * Producer 事务应该被回滚
+     * </pre>
+     */
+    TRANSACTION_SHOULD_ROLLBACK(27, 201),
+    /**
+     * <code>TRANSACTION_STATE_UNKNOW = 202;</code>
+     *
+     * <pre>
+     * Producer 事务状态未知
+     * </pre>
+     */
+    TRANSACTION_STATE_UNKNOW(28, 202),
+    /**
+     * <code>TRANSACTION_STATE_GROUP_WRONG = 203;</code>
+     *
+     * <pre>
+     * Producer ProducerGroup错误
+     * </pre>
+     */
+    TRANSACTION_STATE_GROUP_WRONG(29, 203),
+    ;
+
+    /**
+     * <code>FLUSH_DISK_TIMEOUT = 10;</code>
+     *
+     * <pre>
+     * Broker 刷盘超时
+     * </pre>
+     */
+    public static final int FLUSH_DISK_TIMEOUT_VALUE = 10;
+    /**
+     * <code>SLAVE_NOT_AVAILABLE = 11;</code>
+     *
+     * <pre>
+     * Broker 同步双写，Slave不可用
+     * </pre>
+     */
+    public static final int SLAVE_NOT_AVAILABLE_VALUE = 11;
+    /**
+     * <code>FLUSH_SLAVE_TIMEOUT = 12;</code>
+     *
+     * <pre>
+     * Broker 同步双写，等待Slave应答超时
+     * </pre>
+     */
+    public static final int FLUSH_SLAVE_TIMEOUT_VALUE = 12;
+    /**
+     * <code>MESSAGE_ILLEGAL = 13;</code>
+     *
+     * <pre>
+     * Broker 消息非法
+     * </pre>
+     */
+    public static final int MESSAGE_ILLEGAL_VALUE = 13;
+    /**
+     * <code>SERVICE_NOT_AVAILABLE = 14;</code>
+     *
+     * <pre>
+     * Broker, Namesrv 服务不可用，可能是正在关闭或者权限问题
+     * </pre>
+     */
+    public static final int SERVICE_NOT_AVAILABLE_VALUE = 14;
+    /**
+     * <code>VERSION_NOT_SUPPORTED = 15;</code>
+     *
+     * <pre>
+     * Broker, Namesrv 版本号不支持
+     * </pre>
+     */
+    public static final int VERSION_NOT_SUPPORTED_VALUE = 15;
+    /**
+     * <code>NO_PERMISSION = 16;</code>
+     *
+     * <pre>
+     * Broker, Namesrv 无权限执行此操作，可能是发、收、或者其他操作
+     * </pre>
+     */
+    public static final int NO_PERMISSION_VALUE = 16;
+    /**
+     * <code>TOPIC_NOT_EXIST = 17;</code>
+     *
+     * <pre>
+     * Broker, Topic不存在
+     * </pre>
+     */
+    public static final int TOPIC_NOT_EXIST_VALUE = 17;
+    /**
+     * <code>TOPIC_EXIST_ALREADY = 18;</code>
+     *
+     * <pre>
+     * Broker, Topic已经存在，创建Topic
+     * </pre>
+     */
+    public static final int TOPIC_EXIST_ALREADY_VALUE = 18;
+    /**
+     * <code>PULL_NOT_FOUND = 19;</code>
+     *
+     * <pre>
+     * Broker 拉消息未找到（请求的Offset等于最大Offset，最大Offset无对应消息）
+     * </pre>
+     */
+    public static final int PULL_NOT_FOUND_VALUE = 19;
+    /**
+     * <code>PULL_RETRY_IMMEDIATELY = 20;</code>
+     *
+     * <pre>
+     * Broker 可能被过滤，或者误通知等
+     * </pre>
+     */
+    public static final int PULL_RETRY_IMMEDIATELY_VALUE = 20;
+    /**
+     * <code>PULL_OFFSET_MOVED = 21;</code>
+     *
+     * <pre>
+     * Broker 拉消息请求的Offset不合法，太小或太大
+     * </pre>
+     */
+    public static final int PULL_OFFSET_MOVED_VALUE = 21;
+    /**
+     * <code>QUERY_NOT_FOUND = 22;</code>
+     *
+     * <pre>
+     * Broker 查询消息未找到
+     * </pre>
+     */
+    public static final int QUERY_NOT_FOUND_VALUE = 22;
+    /**
+     * <code>SUBSCRIPTION_PARSE_FAILED = 23;</code>
+     *
+     * <pre>
+     * Broker 订阅关系解析失败
+     * </pre>
+     */
+    public static final int SUBSCRIPTION_PARSE_FAILED_VALUE = 23;
+    /**
+     * <code>SUBSCRIPTION_NOT_EXIST = 24;</code>
+     *
+     * <pre>
+     * Broker 订阅关系不存在
+     * </pre>
+     */
+    public static final int SUBSCRIPTION_NOT_EXIST_VALUE = 24;
+    /**
+     * <code>SUBSCRIPTION_NOT_LATEST = 25;</code>
+     *
+     * <pre>
+     * Broker 订阅关系不是最新的
+     * </pre>
+     */
+    public static final int SUBSCRIPTION_NOT_LATEST_VALUE = 25;
+    /**
+     * <code>SUBSCRIPTION_GROUP_NOT_EXIST = 26;</code>
+     *
+     * <pre>
+     * Broker 订阅组不存在
+     * </pre>
+     */
+    public static final int SUBSCRIPTION_GROUP_NOT_EXIST_VALUE = 26;
+    /**
+     * <code>DELETE_INVALID_CONF = 100;</code>
+     *
+     * <pre>
+     * Namesrv 同步数据时出现两个节点间数据不一致，删除不一致的数据
+     * </pre>
+     */
+    public static final int DELETE_INVALID_CONF_VALUE = 100;
+    /**
+     * <code>NOT_MERGE_CONF = 101;</code>
+     *
+     * <pre>
+     * Namesrv 两节点之间的数据一致没有做修改
+     * </pre>
+     */
+    public static final int NOT_MERGE_CONF_VALUE = 101;
+    /**
+     * <code>REGISTER_BROKER_FAIL = 102;</code>
+     *
+     * <pre>
+     * Namesrv 注册broker信息失败
+     * </pre>
+     */
+    public static final int REGISTER_BROKER_FAIL_VALUE = 102;
+    /**
+     * <code>REGISTER_BROKER_TIMEOUT = 103;</code>
+     *
+     * <pre>
+     * Namesrv 注册broker信息超时
+     * </pre>
+     */
+    public static final int REGISTER_BROKER_TIMEOUT_VALUE = 103;
+    /**
+     * <code>REGISTER_ORDER_TOPIC_FAIL = 104;</code>
+     *
+     * <pre>
+     * Namesrv 注册order topic的配置失败
+     * </pre>
+     */
+    public static final int REGISTER_ORDER_TOPIC_FAIL_VALUE = 104;
+    /**
+     * <code>REGISTER_ORDER_TOPIC_TIMEOUT = 105;</code>
+     *
+     * <pre>
+     * Namesrv 注册order topic的配置超时
+     * </pre>
+     */
+    public static final int REGISTER_ORDER_TOPIC_TIMEOUT_VALUE = 105;
+    /**
+     * <code>UNREGISTER_BROKER_FAIL = 106;</code>
+     *
+     * <pre>
+     * Namesrv 注销broker信息失败
+     * </pre>
+     */
+    public static final int UNREGISTER_BROKER_FAIL_VALUE = 106;
+    /**
+     * <code>UNREGISTER_BROKER_TIMEOUT = 107;</code>
+     *
+     * <pre>
+     * Namesrv 注销broker超时
+     * </pre>
+     */
+    public static final int UNREGISTER_BROKER_TIMEOUT_VALUE = 107;
+    /**
+     * <code>UNREGISTER_ORDER_TOPIC_TIMEOUT = 108;</code>
+     *
+     * <pre>
+     * Namesrv 注销order topic的配置超时
+     * </pre>
+     */
+    public static final int UNREGISTER_ORDER_TOPIC_TIMEOUT_VALUE = 108;
+    /**
+     * <code>TRANSACTION_SHOULD_COMMIT = 200;</code>
+     *
+     * <pre>
+     * Producer 事务应该被提交
+     * </pre>
+     */
+    public static final int TRANSACTION_SHOULD_COMMIT_VALUE = 200;
+    /**
+     * <code>TRANSACTION_SHOULD_ROLLBACK = 201;</code>
+     *
+     * <pre>
+     * Producer 事务应该被回滚
+     * </pre>
+     */
+    public static final int TRANSACTION_SHOULD_ROLLBACK_VALUE = 201;
+    /**
+     * <code>TRANSACTION_STATE_UNKNOW = 202;</code>
+     *
+     * <pre>
+     * Producer 事务状态未知
+     * </pre>
+     */
+    public static final int TRANSACTION_STATE_UNKNOW_VALUE = 202;
+    /**
+     * <code>TRANSACTION_STATE_GROUP_WRONG = 203;</code>
+     *
+     * <pre>
+     * Producer ProducerGroup错误
+     * </pre>
+     */
+    public static final int TRANSACTION_STATE_GROUP_WRONG_VALUE = 203;
+
+
+    public final int getNumber() { return value; }
+
+    public static MQResponseCode valueOf(int value) {
+      switch (value) {
+        case 10: return FLUSH_DISK_TIMEOUT;
+        case 11: return SLAVE_NOT_AVAILABLE;
+        case 12: return FLUSH_SLAVE_TIMEOUT;
+        case 13: return MESSAGE_ILLEGAL;
+        case 14: return SERVICE_NOT_AVAILABLE;
+        case 15: return VERSION_NOT_SUPPORTED;
+        case 16: return NO_PERMISSION;
+        case 17: return TOPIC_NOT_EXIST;
+        case 18: return TOPIC_EXIST_ALREADY;
+        case 19: return PULL_NOT_FOUND;
+        case 20: return PULL_RETRY_IMMEDIATELY;
+        case 21: return PULL_OFFSET_MOVED;
+        case 22: return QUERY_NOT_FOUND;
+        case 23: return SUBSCRIPTION_PARSE_FAILED;
+        case 24: return SUBSCRIPTION_NOT_EXIST;
+        case 25: return SUBSCRIPTION_NOT_LATEST;
+        case 26: return SUBSCRIPTION_GROUP_NOT_EXIST;
+        case 100: return DELETE_INVALID_CONF;
+        case 101: return NOT_MERGE_CONF;
+        case 102: return REGISTER_BROKER_FAIL;
+        case 103: return REGISTER_BROKER_TIMEOUT;
+        case 104: return REGISTER_ORDER_TOPIC_FAIL;
+        case 105: return REGISTER_ORDER_TOPIC_TIMEOUT;
+        case 106: return UNREGISTER_BROKER_FAIL;
+        case 107: return UNREGISTER_BROKER_TIMEOUT;
+        case 108: return UNREGISTER_ORDER_TOPIC_TIMEOUT;
+        case 200: return TRANSACTION_SHOULD_COMMIT;
+        case 201: return TRANSACTION_SHOULD_ROLLBACK;
+        case 202: return TRANSACTION_STATE_UNKNOW;
+        case 203: return TRANSACTION_STATE_GROUP_WRONG;
+        default: return null;
+      }
+    }
+
+    public static com.google.protobuf.Internal.EnumLiteMap<MQResponseCode>
+        internalGetValueMap() {
+      return internalValueMap;
+    }
+    private static com.google.protobuf.Internal.EnumLiteMap<MQResponseCode>
+        internalValueMap =
+          new com.google.protobuf.Internal.EnumLiteMap<MQResponseCode>() {
+            public MQResponseCode findValueByNumber(int number) {
+              return MQResponseCode.valueOf(number);
+            }
+          };
+
+    public final com.google.protobuf.Descriptors.EnumValueDescriptor
+        getValueDescriptor() {
+      return getDescriptor().getValues().get(index);
+    }
+    public final com.google.protobuf.Descriptors.EnumDescriptor
+        getDescriptorForType() {
+      return getDescriptor();
+    }
+    public static final com.google.protobuf.Descriptors.EnumDescriptor
+        getDescriptor() {
+      return com.alibaba.rocketmq.common.protocol.MQProtos.getDescriptor().getEnumTypes().get(1);
+    }
+
+    private static final MQResponseCode[] VALUES = values();
+
+    public static MQResponseCode valueOf(
+        com.google.protobuf.Descriptors.EnumValueDescriptor desc) {
+      if (desc.getType() != getDescriptor()) {
+        throw new java.lang.IllegalArgumentException(
+          "EnumValueDescriptor is not for this type.");
+      }
+      return VALUES[desc.getIndex()];
+    }
+
+    private final int index;
+    private final int value;
+
+    private MQResponseCode(int index, int value) {
+      this.index = index;
+      this.value = value;
+    }
+
+    // @@protoc_insertion_point(enum_scope:rocketmq.MQResponseCode)
+  }
+
+  public interface BrokerInfoOrBuilder
+      extends com.google.protobuf.MessageOrBuilder {
+
+    // required string brokerName = 1;
+    /**
+     * <code>required string brokerName = 1;</code>
+     */
+    boolean hasBrokerName();
+    /**
+     * <code>required string brokerName = 1;</code>
+     */
+    java.lang.String getBrokerName();
+    /**
+     * <code>required string brokerName = 1;</code>
+     */
+    com.google.protobuf.ByteString
+        getBrokerNameBytes();
+
+    // repeated .rocketmq.BrokerInfo.BrokerAddr brokerAddrs = 2;
+    /**
+     * <code>repeated .rocketmq.BrokerInfo.BrokerAddr brokerAddrs = 2;</code>
+     */
+    java.util.List<com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr> 
+        getBrokerAddrsList();
+    /**
+     * <code>repeated .rocketmq.BrokerInfo.BrokerAddr brokerAddrs = 2;</code>
+     */
+    com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr getBrokerAddrs(int index);
+    /**
+     * <code>repeated .rocketmq.BrokerInfo.BrokerAddr brokerAddrs = 2;</code>
+     */
+    int getBrokerAddrsCount();
+    /**
+     * <code>repeated .rocketmq.BrokerInfo.BrokerAddr brokerAddrs = 2;</code>
+     */
+    java.util.List<? extends com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddrOrBuilder> 
+        getBrokerAddrsOrBuilderList();
+    /**
+     * <code>repeated .rocketmq.BrokerInfo.BrokerAddr brokerAddrs = 2;</code>
+     */
+    com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddrOrBuilder getBrokerAddrsOrBuilder(
+        int index);
+  }
+  /**
+   * Protobuf type {@code rocketmq.BrokerInfo}
+   *
+   * <pre>
+   *
+   * Name Server Route
+   * </pre>
+   */
+  public static final class BrokerInfo extends
+      com.google.protobuf.GeneratedMessage
+      implements BrokerInfoOrBuilder {
+    // Use BrokerInfo.newBuilder() to construct.
+    private BrokerInfo(com.google.protobuf.GeneratedMessage.Builder<?> builder) {
+      super(builder);
+      this.unknownFields = builder.getUnknownFields();
+    }
+    private BrokerInfo(boolean noInit) { this.unknownFields = com.google.protobuf.UnknownFieldSet.getDefaultInstance(); }
+
+    private static final BrokerInfo defaultInstance;
+    public static BrokerInfo getDefaultInstance() {
+      return defaultInstance;
+    }
+
+    public BrokerInfo getDefaultInstanceForType() {
+      return defaultInstance;
+    }
+
+    private final com.google.protobuf.UnknownFieldSet unknownFields;
+    @java.lang.Override
+    public final com.google.protobuf.UnknownFieldSet
+        getUnknownFields() {
+      return this.unknownFields;
+    }
+    private BrokerInfo(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      initFields();
+      int mutable_bitField0_ = 0;
+      com.google.protobuf.UnknownFieldSet.Builder unknownFields =
+          com.google.protobuf.UnknownFieldSet.newBuilder();
+      try {
+        boolean done = false;
+        while (!done) {
+          int tag = input.readTag();
+          switch (tag) {
+            case 0:
+              done = true;
+              break;
+            default: {
+              if (!parseUnknownField(input, unknownFields,
+                                     extensionRegistry, tag)) {
+                done = true;
+              }
+              break;
+            }
+            case 10: {
+              bitField0_ |= 0x00000001;
+              brokerName_ = input.readBytes();
+              break;
+            }
+            case 18: {
+              if (!((mutable_bitField0_ & 0x00000002) == 0x00000002)) {
+                brokerAddrs_ = new java.util.ArrayList<com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr>();
+                mutable_bitField0_ |= 0x00000002;
+              }
+              brokerAddrs_.add(input.readMessage(com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr.PARSER, extensionRegistry));
+              break;
+            }
+          }
+        }
+      } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+        throw e.setUnfinishedMessage(this);
+      } catch (java.io.IOException e) {
+        throw new com.google.protobuf.InvalidProtocolBufferException(
+            e.getMessage()).setUnfinishedMessage(this);
+      } finally {
+        if (((mutable_bitField0_ & 0x00000002) == 0x00000002)) {
+          brokerAddrs_ = java.util.Collections.unmodifiableList(brokerAddrs_);
+        }
+        this.unknownFields = unknownFields.build();
+        makeExtensionsImmutable();
+      }
+    }
+    public static final com.google.protobuf.Descriptors.Descriptor
+        getDescriptor() {
+      return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_rocketmq_BrokerInfo_descriptor;
+    }
+
+    protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
+        internalGetFieldAccessorTable() {
+      return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_rocketmq_BrokerInfo_fieldAccessorTable
+          .ensureFieldAccessorsInitialized(
+              com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.class, com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.Builder.class);
+    }
+
+    public static com.google.protobuf.Parser<BrokerInfo> PARSER =
+        new com.google.protobuf.AbstractParser<BrokerInfo>() {
+      public BrokerInfo parsePartialFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        return new BrokerInfo(input, extensionRegistry);
+      }
+    };
+
+    @java.lang.Override
+    public com.google.protobuf.Parser<BrokerInfo> getParserForType() {
+      return PARSER;
+    }
+
+    public interface BrokerAddrOrBuilder
+        extends com.google.protobuf.MessageOrBuilder {
+
+      // required int64 id = 1;
+      /**
+       * <code>required int64 id = 1;</code>
+       */
+      boolean hasId();
+      /**
+       * <code>required int64 id = 1;</code>
+       */
+      long getId();
+
+      // required string addr = 2;
+      /**
+       * <code>required string addr = 2;</code>
+       */
+      boolean hasAddr();
+      /**
+       * <code>required string addr = 2;</code>
+       */
+      java.lang.String getAddr();
+      /**
+       * <code>required string addr = 2;</code>
+       */
+      com.google.protobuf.ByteString
+          getAddrBytes();
+    }
+    /**
+     * Protobuf type {@code rocketmq.BrokerInfo.BrokerAddr}
+     */
+    public static final class BrokerAddr extends
+        com.google.protobuf.GeneratedMessage
+        implements BrokerAddrOrBuilder {
+      // Use BrokerAddr.newBuilder() to construct.
+      private BrokerAddr(com.google.protobuf.GeneratedMessage.Builder<?> builder) {
+        super(builder);
+        this.unknownFields = builder.getUnknownFields();
+      }
+      private BrokerAddr(boolean noInit) { this.unknownFields = com.google.protobuf.UnknownFieldSet.getDefaultInstance(); }
+
+      private static final BrokerAddr defaultInstance;
+      public static BrokerAddr getDefaultInstance() {
+        return defaultInstance;
+      }
+
+      public BrokerAddr getDefaultInstanceForType() {
+        return defaultInstance;
+      }
+
+      private final com.google.protobuf.UnknownFieldSet unknownFields;
+      @java.lang.Override
+      public final com.google.protobuf.UnknownFieldSet
+          getUnknownFields() {
+        return this.unknownFields;
+      }
+      private BrokerAddr(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        initFields();
+        int mutable_bitField0_ = 0;
+        com.google.protobuf.UnknownFieldSet.Builder unknownFields =
+            com.google.protobuf.UnknownFieldSet.newBuilder();
+        try {
+          boolean done = false;
+          while (!done) {
+            int tag = input.readTag();
+            switch (tag) {
+              case 0:
+                done = true;
+                break;
+              default: {
+                if (!parseUnknownField(input, unknownFields,
+                                       extensionRegistry, tag)) {
+                  done = true;
+                }
+                break;
+              }
+              case 8: {
+                bitField0_ |= 0x00000001;
+                id_ = input.readInt64();
+                break;
+              }
+              case 18: {
+                bitField0_ |= 0x00000002;
+                addr_ = input.readBytes();
+                break;
+              }
+            }
+          }
+        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+          throw e.setUnfinishedMessage(this);
+        } catch (java.io.IOException e) {
+          throw new com.google.protobuf.InvalidProtocolBufferException(
+              e.getMessage()).setUnfinishedMessage(this);
+        } finally {
+          this.unknownFields = unknownFields.build();
+          makeExtensionsImmutable();
+        }
+      }
+      public static final com.google.protobuf.Descriptors.Descriptor
+          getDescriptor() {
+        return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_rocketmq_BrokerInfo_BrokerAddr_descriptor;
+      }
+
+      protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
+          internalGetFieldAccessorTable() {
+        return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_rocketmq_BrokerInfo_BrokerAddr_fieldAccessorTable
+            .ensureFieldAccessorsInitialized(
+                com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr.class, com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr.Builder.class);
+      }
+
+      public static com.google.protobuf.Parser<BrokerAddr> PARSER =
+          new com.google.protobuf.AbstractParser<BrokerAddr>() {
+        public BrokerAddr parsePartialFrom(
+            com.google.protobuf.CodedInputStream input,
+            com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+            throws com.google.protobuf.InvalidProtocolBufferException {
+          return new BrokerAddr(input, extensionRegistry);
+        }
+      };
+
+      @java.lang.Override
+      public com.google.protobuf.Parser<BrokerAddr> getParserForType() {
+        return PARSER;
+      }
+
+      private int bitField0_;
+      // required int64 id = 1;
+      public static final int ID_FIELD_NUMBER = 1;
+      private long id_;
+      /**
+       * <code>required int64 id = 1;</code>
+       */
+      public boolean hasId() {
+        return ((bitField0_ & 0x00000001) == 0x00000001);
+      }
+      /**
+       * <code>required int64 id = 1;</code>
+       */
+      public long getId() {
+        return id_;
+      }
+
+      // required string addr = 2;
+      public static final int ADDR_FIELD_NUMBER = 2;
+      private java.lang.Object addr_;
+      /**
+       * <code>required string addr = 2;</code>
+       */
+      public boolean hasAddr() {
+        return ((bitField0_ & 0x00000002) == 0x00000002);
+      }
+      /**
+       * <code>required string addr = 2;</code>
+       */
+      public java.lang.String getAddr() {
+        java.lang.Object ref = addr_;
+        if (ref instanceof java.lang.String) {
+          return (java.lang.String) ref;
+        } else {
+          com.google.protobuf.ByteString bs = 
+              (com.google.protobuf.ByteString) ref;
+          java.lang.String s = bs.toStringUtf8();
+          if (bs.isValidUtf8()) {
+            addr_ = s;
+          }
+          return s;
+        }
+      }
+      /**
+       * <code>required string addr = 2;</code>
+       */
+      public com.google.protobuf.ByteString
+          getAddrBytes() {
+        java.lang.Object ref = addr_;
+        if (ref instanceof java.lang.String) {
+          com.google.protobuf.ByteString b = 
+              com.google.protobuf.ByteString.copyFromUtf8(
+                  (java.lang.String) ref);
+          addr_ = b;
+          return b;
+        } else {
+          return (com.google.protobuf.ByteString) ref;
+        }
+      }
+
+      private void initFields() {
+        id_ = 0L;
+        addr_ = "";
+      }
+      private byte memoizedIsInitialized = -1;
+      public final boolean isInitialized() {
+        byte isInitialized = memoizedIsInitialized;
+        if (isInitialized != -1) return isInitialized == 1;
+
+        if (!hasId()) {
+          memoizedIsInitialized = 0;
+          return false;
+        }
+        if (!hasAddr()) {
+          memoizedIsInitialized = 0;
+          return false;
+        }
+        memoizedIsInitialized = 1;
+        return true;
+      }
+
+      public void writeTo(com.google.protobuf.CodedOutputStream output)
+                          throws java.io.IOException {
+        getSerializedSize();
+        if (((bitField0_ & 0x00000001) == 0x00000001)) {
+          output.writeInt64(1, id_);
+        }
+        if (((bitField0_ & 0x00000002) == 0x00000002)) {
+          output.writeBytes(2, getAddrBytes());
+        }
+        getUnknownFields().writeTo(output);
+      }
+
+      private int memoizedSerializedSize = -1;
+      public int getSerializedSize() {
+        int size = memoizedSerializedSize;
+        if (size != -1) return size;
+
+        size = 0;
+        if (((bitField0_ & 0x00000001) == 0x00000001)) {
+          size += com.google.protobuf.CodedOutputStream
+            .computeInt64Size(1, id_);
+        }
+        if (((bitField0_ & 0x00000002) == 0x00000002)) {
+          size += com.google.protobuf.CodedOutputStream
+            .computeBytesSize(2, getAddrBytes());
+        }
+        size += getUnknownFields().getSerializedSize();
+        memoizedSerializedSize = size;
+        return size;
+      }
+
+      private static final long serialVersionUID = 0L;
+      @java.lang.Override
+      protected java.lang.Object writeReplace()
+          throws java.io.ObjectStreamException {
+        return super.writeReplace();
+      }
+
+      public static com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr parseFrom(
+          com.google.protobuf.ByteString data)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        return PARSER.parseFrom(data);
+      }
+      public static com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr parseFrom(
+          com.google.protobuf.ByteString data,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        return PARSER.parseFrom(data, extensionRegistry);
+      }
+      public static com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr parseFrom(byte[] data)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        return PARSER.parseFrom(data);
+      }
+      public static com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr parseFrom(
+          byte[] data,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        return PARSER.parseFrom(data, extensionRegistry);
+      }
+      public static com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr parseFrom(java.io.InputStream input)
+          throws java.io.IOException {
+        return PARSER.parseFrom(input);
+      }
+      public static com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr parseFrom(
+          java.io.InputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws java.io.IOException {
+        return PARSER.parseFrom(input, extensionRegistry);
+      }
+      public static com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr parseDelimitedFrom(java.io.InputStream input)
+          throws java.io.IOException {
+        return PARSER.parseDelimitedFrom(input);
+      }
+      public static com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr parseDelimitedFrom(
+          java.io.InputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws java.io.IOException {
+        return PARSER.parseDelimitedFrom(input, extensionRegistry);
+      }
+      public static com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr parseFrom(
+          com.google.protobuf.CodedInputStream input)
+          throws java.io.IOException {
+        return PARSER.parseFrom(input);
+      }
+      public static com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr parseFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws java.io.IOException {
+        return PARSER.parseFrom(input, extensionRegistry);
+      }
+
+      public static Builder newBuilder() { return Builder.create(); }
+      public Builder newBuilderForType() { return newBuilder(); }
+      public static Builder newBuilder(com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr prototype) {
+        return newBuilder().mergeFrom(prototype);
+      }
+      public Builder toBuilder() { return newBuilder(this); }
+
+      @java.lang.Override
+      protected Builder newBuilderForType(
+          com.google.protobuf.GeneratedMessage.BuilderParent parent) {
+        Builder builder = new Builder(parent);
+        return builder;
+      }
+      /**
+       * Protobuf type {@code rocketmq.BrokerInfo.BrokerAddr}
+       */
+      public static final class Builder extends
+          com.google.protobuf.GeneratedMessage.Builder<Builder>
+         implements com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddrOrBuilder {
+        public static final com.google.protobuf.Descriptors.Descriptor
+            getDescriptor() {
+          return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_rocketmq_BrokerInfo_BrokerAddr_descriptor;
+        }
+
+        protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
+            internalGetFieldAccessorTable() {
+          return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_rocketmq_BrokerInfo_BrokerAddr_fieldAccessorTable
+              .ensureFieldAccessorsInitialized(
+                  com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr.class, com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr.Builder.class);
+        }
+
+        // Construct using com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr.newBuilder()
+        private Builder() {
+          maybeForceBuilderInitialization();
+        }
+
+        private Builder(
+            com.google.protobuf.GeneratedMessage.BuilderParent parent) {
+          super(parent);
+          maybeForceBuilderInitialization();
+        }
+        private void maybeForceBuilderInitialization() {
+          if (com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders) {
+          }
+        }
+        private static Builder create() {
+          return new Builder();
+        }
+
+        public Builder clear() {
+          super.clear();
+          id_ = 0L;
+          bitField0_ = (bitField0_ & ~0x00000001);
+          addr_ = "";
+          bitField0_ = (bitField0_ & ~0x00000002);
+          return this;
+        }
+
+        public Builder clone() {
+          return create().mergeFrom(buildPartial());
+        }
+
+        public com.google.protobuf.Descriptors.Descriptor
+            getDescriptorForType() {
+          return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_rocketmq_BrokerInfo_BrokerAddr_descriptor;
+        }
+
+        public com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr getDefaultInstanceForType() {
+          return com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr.getDefaultInstance();
+        }
+
+        public com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr build() {
+          com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr result = buildPartial();
+          if (!result.isInitialized()) {
+            throw newUninitializedMessageException(result);
+          }
+          return result;
+        }
+
+        public com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr buildPartial() {
+          com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr result = new com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr(this);
+          int from_bitField0_ = bitField0_;
+          int to_bitField0_ = 0;
+          if (((from_bitField0_ & 0x00000001) == 0x00000001)) {
+            to_bitField0_ |= 0x00000001;
+          }
+          result.id_ = id_;
+          if (((from_bitField0_ & 0x00000002) == 0x00000002)) {
+            to_bitField0_ |= 0x00000002;
+          }
+          result.addr_ = addr_;
+          result.bitField0_ = to_bitField0_;
+          onBuilt();
+          return result;
+        }
+
+        public Builder mergeFrom(com.google.protobuf.Message other) {
+          if (other instanceof com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr) {
+            return mergeFrom((com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr)other);
+          } else {
+            super.mergeFrom(other);
+            return this;
+          }
+        }
+
+        public Builder mergeFrom(com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr other) {
+          if (other == com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr.getDefaultInstance()) return this;
+          if (other.hasId()) {
+            setId(other.getId());
+          }
+          if (other.hasAddr()) {
+            bitField0_ |= 0x00000002;
+            addr_ = other.addr_;
+            onChanged();
+          }
+          this.mergeUnknownFields(other.getUnknownFields());
+          return this;
+        }
+
+        public final boolean isInitialized() {
+          if (!hasId()) {
+            
+            return false;
+          }
+          if (!hasAddr()) {
+            
+            return false;
+          }
+          return true;
+        }
+
+        public Builder mergeFrom(
+            com.google.protobuf.CodedInputStream input,
+            com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+            throws java.io.IOException {
+          com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr parsedMessage = null;
+          try {
+            parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
+          } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+            parsedMessage = (com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr) e.getUnfinishedMessage();
+            throw e;
+          } finally {
+            if (parsedMessage != null) {
+              mergeFrom(parsedMessage);
+            }
+          }
+          return this;
+        }
+        private int bitField0_;
+
+        // required int64 id = 1;
+        private long id_ ;
+        /**
+         * <code>required int64 id = 1;</code>
+         */
+        public boolean hasId() {
+          return ((bitField0_ & 0x00000001) == 0x00000001);
+        }
+        /**
+         * <code>required int64 id = 1;</code>
+         */
+        public long getId() {
+          return id_;
+        }
+        /**
+         * <code>required int64 id = 1;</code>
+         */
+        public Builder setId(long value) {
+          bitField0_ |= 0x00000001;
+          id_ = value;
+          onChanged();
+          return this;
+        }
+        /**
+         * <code>required int64 id = 1;</code>
+         */
+        public Builder clearId() {
+          bitField0_ = (bitField0_ & ~0x00000001);
+          id_ = 0L;
+          onChanged();
+          return this;
+        }
+
+        // required string addr = 2;
+        private java.lang.Object addr_ = "";
+        /**
+         * <code>required string addr = 2;</code>
+         */
+        public boolean hasAddr() {
+          return ((bitField0_ & 0x00000002) == 0x00000002);
+        }
+        /**
+         * <code>required string addr = 2;</code>
+         */
+        public java.lang.String getAddr() {
+          java.lang.Object ref = addr_;
+          if (!(ref instanceof java.lang.String)) {
+            java.lang.String s = ((com.google.protobuf.ByteString) ref)
+                .toStringUtf8();
+            addr_ = s;
+            return s;
+          } else {
+            return (java.lang.String) ref;
+          }
+        }
+        /**
+         * <code>required string addr = 2;</code>
+         */
+        public com.google.protobuf.ByteString
+            getAddrBytes() {
+          java.lang.Object ref = addr_;
+          if (ref instanceof String) {
+            com.google.protobuf.ByteString b = 
+                com.google.protobuf.ByteString.copyFromUtf8(
+                    (java.lang.String) ref);
+            addr_ = b;
+            return b;
+          } else {
+            return (com.google.protobuf.ByteString) ref;
+          }
+        }
+        /**
+         * <code>required string addr = 2;</code>
+         */
+        public Builder setAddr(
+            java.lang.String value) {
+          if (value == null) {
+    throw new NullPointerException();
+  }
+  bitField0_ |= 0x00000002;
+          addr_ = value;
+          onChanged();
+          return this;
+        }
+        /**
+         * <code>required string addr = 2;</code>
+         */
+        public Builder clearAddr() {
+          bitField0_ = (bitField0_ & ~0x00000002);
+          addr_ = getDefaultInstance().getAddr();
+          onChanged();
+          return this;
+        }
+        /**
+         * <code>required string addr = 2;</code>
+         */
+        public Builder setAddrBytes(
+            com.google.protobuf.ByteString value) {
+          if (value == null) {
+    throw new NullPointerException();
+  }
+  bitField0_ |= 0x00000002;
+          addr_ = value;
+          onChanged();
+          return this;
+        }
+
+        // @@protoc_insertion_point(builder_scope:rocketmq.BrokerInfo.BrokerAddr)
+      }
+
+      static {
+        defaultInstance = new BrokerAddr(true);
+        defaultInstance.initFields();
+      }
+
+      // @@protoc_insertion_point(class_scope:rocketmq.BrokerInfo.BrokerAddr)
+    }
+
+    private int bitField0_;
+    // required string brokerName = 1;
+    public static final int BROKERNAME_FIELD_NUMBER = 1;
+    private java.lang.Object brokerName_;
+    /**
+     * <code>required string brokerName = 1;</code>
+     */
+    public boolean hasBrokerName() {
+      return ((bitField0_ & 0x00000001) == 0x00000001);
+    }
+    /**
+     * <code>required string brokerName = 1;</code>
+     */
+    public java.lang.String getBrokerName() {
+      java.lang.Object ref = brokerName_;
+      if (ref instanceof java.lang.String) {
+        return (java.lang.String) ref;
+      } else {
+        com.google.protobuf.ByteString bs = 
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        if (bs.isValidUtf8()) {
+          brokerName_ = s;
+        }
+        return s;
+      }
+    }
+    /**
+     * <code>required string brokerName = 1;</code>
+     */
+    public com.google.protobuf.ByteString
+        getBrokerNameBytes() {
+      java.lang.Object ref = brokerName_;
+      if (ref instanceof java.lang.String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        brokerName_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+
+    // repeated .rocketmq.BrokerInfo.BrokerAddr brokerAddrs = 2;
+    public static final int BROKERADDRS_FIELD_NUMBER = 2;
+    private java.util.List<com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr> brokerAddrs_;
+    /**
+     * <code>repeated .rocketmq.BrokerInfo.BrokerAddr brokerAddrs = 2;</code>
+     */
+    public java.util.List<com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr> getBrokerAddrsList() {
+      return brokerAddrs_;
+    }
+    /**
+     * <code>repeated .rocketmq.BrokerInfo.BrokerAddr brokerAddrs = 2;</code>
+     */
+    public java.util.List<? extends com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddrOrBuilder> 
+        getBrokerAddrsOrBuilderList() {
+      return brokerAddrs_;
+    }
+    /**
+     * <code>repeated .rocketmq.BrokerInfo.BrokerAddr brokerAddrs = 2;</code>
+     */
+    public int getBrokerAddrsCount() {
+      return brokerAddrs_.size();
+    }
+    /**
+     * <code>repeated .rocketmq.BrokerInfo.BrokerAddr brokerAddrs = 2;</code>
+     */
+    public com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr getBrokerAddrs(int index) {
+      return brokerAddrs_.get(index);
+    }
+    /**
+     * <code>repeated .rocketmq.BrokerInfo.BrokerAddr brokerAddrs = 2;</code>
+     */
+    public com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddrOrBuilder getBrokerAddrsOrBuilder(
+        int index) {
+      return brokerAddrs_.get(index);
+    }
+
+    private void initFields() {
+      brokerName_ = "";
+      brokerAddrs_ = java.util.Collections.emptyList();
+    }
+    private byte memoizedIsInitialized = -1;
+    public final boolean isInitialized() {
+      byte isInitialized = memoizedIsInitialized;
+      if (isInitialized != -1) return isInitialized == 1;
+
+      if (!hasBrokerName()) {
+        memoizedIsInitialized = 0;
+        return false;
+      }
+      for (int i = 0; i < getBrokerAddrsCount(); i++) {
+        if (!getBrokerAddrs(i).isInitialized()) {
+          memoizedIsInitialized = 0;
+          return false;
+        }
+      }
+      memoizedIsInitialized = 1;
+      return true;
+    }
+
+    public void writeTo(com.google.protobuf.CodedOutputStream output)
+                        throws java.io.IOException {
+      getSerializedSize();
+      if (((bitField0_ & 0x00000001) == 0x00000001)) {
+        output.writeBytes(1, getBrokerNameBytes());
+      }
+      for (int i = 0; i < brokerAddrs_.size(); i++) {
+        output.writeMessage(2, brokerAddrs_.get(i));
+      }
+      getUnknownFields().writeTo(output);
+    }
+
+    private int memoizedSerializedSize = -1;
+    public int getSerializedSize() {
+      int size = memoizedSerializedSize;
+      if (size != -1) return size;
+
+      size = 0;
+      if (((bitField0_ & 0x00000001) == 0x00000001)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeBytesSize(1, getBrokerNameBytes());
+      }
+      for (int i = 0; i < brokerAddrs_.size(); i++) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeMessageSize(2, brokerAddrs_.get(i));
+      }
+      size += getUnknownFields().getSerializedSize();
+      memoizedSerializedSize = size;
+      return size;
+    }
+
+    private static final long serialVersionUID = 0L;
+    @java.lang.Override
+    protected java.lang.Object writeReplace()
+        throws java.io.ObjectStreamException {
+      return super.writeReplace();
+    }
+
+    public static com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data);
+    }
+    public static com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data, extensionRegistry);
+    }
+    public static com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data);
+    }
+    public static com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data, extensionRegistry);
+    }
+    public static com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return PARSER.parseFrom(input);
+    }
+    public static com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return PARSER.parseFrom(input, extensionRegistry);
+    }
+    public static com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return PARSER.parseDelimitedFrom(input);
+    }
+    public static com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo parseDelimitedFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return PARSER.parseDelimitedFrom(input, extensionRegistry);
+    }
+    public static com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return PARSER.parseFrom(input);
+    }
+    public static com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return PARSER.parseFrom(input, extensionRegistry);
+    }
+
+    public static Builder newBuilder() { return Builder.create(); }
+    public Builder newBuilderForType() { return newBuilder(); }
+    public static Builder newBuilder(com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo prototype) {
+      return newBuilder().mergeFrom(prototype);
+    }
+    public Builder toBuilder() { return newBuilder(this); }
+
+    @java.lang.Override
+    protected Builder newBuilderForType(
+        com.google.protobuf.GeneratedMessage.BuilderParent parent) {
+      Builder builder = new Builder(parent);
+      return builder;
+    }
     /**
      * Protobuf type {@code rocketmq.BrokerInfo}
-     * 
+     *
      * <pre>
-     * 
+     *
      * Name Server Route
      * </pre>
      */
-    public static final class BrokerInfo extends com.google.protobuf.GeneratedMessage implements
-            BrokerInfoOrBuilder {
-        // Use BrokerInfo.newBuilder() to construct.
-        private BrokerInfo(com.google.protobuf.GeneratedMessage.Builder<?> builder) {
-            super(builder);
-            this.unknownFields = builder.getUnknownFields();
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessage.Builder<Builder>
+       implements com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfoOrBuilder {
+      public static final com.google.protobuf.Descriptors.Descriptor
+          getDescriptor() {
+        return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_rocketmq_BrokerInfo_descriptor;
+      }
+
+      protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
+          internalGetFieldAccessorTable() {
+        return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_rocketmq_BrokerInfo_fieldAccessorTable
+            .ensureFieldAccessorsInitialized(
+                com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.class, com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.Builder.class);
+      }
+
+      // Construct using com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.newBuilder()
+      private Builder() {
+        maybeForceBuilderInitialization();
+      }
+
+      private Builder(
+          com.google.protobuf.GeneratedMessage.BuilderParent parent) {
+        super(parent);
+        maybeForceBuilderInitialization();
+      }
+      private void maybeForceBuilderInitialization() {
+        if (com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders) {
+          getBrokerAddrsFieldBuilder();
         }
+      }
+      private static Builder create() {
+        return new Builder();
+      }
 
-
-        private BrokerInfo(boolean noInit) {
-            this.unknownFields = com.google.protobuf.UnknownFieldSet.getDefaultInstance();
+      public Builder clear() {
+        super.clear();
+        brokerName_ = "";
+        bitField0_ = (bitField0_ & ~0x00000001);
+        if (brokerAddrsBuilder_ == null) {
+          brokerAddrs_ = java.util.Collections.emptyList();
+          bitField0_ = (bitField0_ & ~0x00000002);
+        } else {
+          brokerAddrsBuilder_.clear();
         }
+        return this;
+      }
 
-        private static final BrokerInfo defaultInstance;
+      public Builder clone() {
+        return create().mergeFrom(buildPartial());
+      }
 
+      public com.google.protobuf.Descriptors.Descriptor
+          getDescriptorForType() {
+        return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_rocketmq_BrokerInfo_descriptor;
+      }
 
-        public static BrokerInfo getDefaultInstance() {
-            return defaultInstance;
+      public com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo getDefaultInstanceForType() {
+        return com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.getDefaultInstance();
+      }
+
+      public com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo build() {
+        com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo result = buildPartial();
+        if (!result.isInitialized()) {
+          throw newUninitializedMessageException(result);
         }
+        return result;
+      }
 
-
-        public BrokerInfo getDefaultInstanceForType() {
-            return defaultInstance;
+      public com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo buildPartial() {
+        com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo result = new com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo(this);
+        int from_bitField0_ = bitField0_;
+        int to_bitField0_ = 0;
+        if (((from_bitField0_ & 0x00000001) == 0x00000001)) {
+          to_bitField0_ |= 0x00000001;
         }
-
-        private final com.google.protobuf.UnknownFieldSet unknownFields;
-
-
-        @java.lang.Override
-        public final com.google.protobuf.UnknownFieldSet getUnknownFields() {
-            return this.unknownFields;
+        result.brokerName_ = brokerName_;
+        if (brokerAddrsBuilder_ == null) {
+          if (((bitField0_ & 0x00000002) == 0x00000002)) {
+            brokerAddrs_ = java.util.Collections.unmodifiableList(brokerAddrs_);
+            bitField0_ = (bitField0_ & ~0x00000002);
+          }
+          result.brokerAddrs_ = brokerAddrs_;
+        } else {
+          result.brokerAddrs_ = brokerAddrsBuilder_.build();
         }
+        result.bitField0_ = to_bitField0_;
+        onBuilt();
+        return result;
+      }
 
-
-        private BrokerInfo(com.google.protobuf.CodedInputStream input,
-                com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-                throws com.google.protobuf.InvalidProtocolBufferException {
-            initFields();
-            int mutable_bitField0_ = 0;
-            com.google.protobuf.UnknownFieldSet.Builder unknownFields =
-                    com.google.protobuf.UnknownFieldSet.newBuilder();
-            try {
-                boolean done = false;
-                while (!done) {
-                    int tag = input.readTag();
-                    switch (tag) {
-                    case 0:
-                        done = true;
-                        break;
-                    default: {
-                        if (!parseUnknownField(input, unknownFields, extensionRegistry, tag)) {
-                            done = true;
-                        }
-                        break;
-                    }
-                    case 10: {
-                        bitField0_ |= 0x00000001;
-                        brokerName_ = input.readBytes();
-                        break;
-                    }
-                    case 18: {
-                        if (!((mutable_bitField0_ & 0x00000002) == 0x00000002)) {
-                            brokerAddrs_ =
-                                    new java.util.ArrayList<com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr>();
-                            mutable_bitField0_ |= 0x00000002;
-                        }
-                        brokerAddrs_.add(input.readMessage(
-                            com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr.PARSER,
-                            extensionRegistry));
-                        break;
-                    }
-                    }
-                }
-            }
-            catch (com.google.protobuf.InvalidProtocolBufferException e) {
-                throw e.setUnfinishedMessage(this);
-            }
-            catch (java.io.IOException e) {
-                throw new com.google.protobuf.InvalidProtocolBufferException(e.getMessage())
-                    .setUnfinishedMessage(this);
-            }
-            finally {
-                if (((mutable_bitField0_ & 0x00000002) == 0x00000002)) {
-                    brokerAddrs_ = java.util.Collections.unmodifiableList(brokerAddrs_);
-                }
-                this.unknownFields = unknownFields.build();
-                makeExtensionsImmutable();
-            }
+      public Builder mergeFrom(com.google.protobuf.Message other) {
+        if (other instanceof com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo) {
+          return mergeFrom((com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo)other);
+        } else {
+          super.mergeFrom(other);
+          return this;
         }
+      }
 
-
-        public static final com.google.protobuf.Descriptors.Descriptor getDescriptor() {
-            return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_rocketmq_BrokerInfo_descriptor;
+      public Builder mergeFrom(com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo other) {
+        if (other == com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.getDefaultInstance()) return this;
+        if (other.hasBrokerName()) {
+          bitField0_ |= 0x00000001;
+          brokerName_ = other.brokerName_;
+          onChanged();
         }
-
-
-        protected com.google.protobuf.GeneratedMessage.FieldAccessorTable internalGetFieldAccessorTable() {
-            return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_rocketmq_BrokerInfo_fieldAccessorTable
-                .ensureFieldAccessorsInitialized(
-                    com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.class,
-                    com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.Builder.class);
+        if (brokerAddrsBuilder_ == null) {
+          if (!other.brokerAddrs_.isEmpty()) {
+            if (brokerAddrs_.isEmpty()) {
+              brokerAddrs_ = other.brokerAddrs_;
+              bitField0_ = (bitField0_ & ~0x00000002);
+            } else {
+              ensureBrokerAddrsIsMutable();
+              brokerAddrs_.addAll(other.brokerAddrs_);
+            }
+            onChanged();
+          }
+        } else {
+          if (!other.brokerAddrs_.isEmpty()) {
+            if (brokerAddrsBuilder_.isEmpty()) {
+              brokerAddrsBuilder_.dispose();
+              brokerAddrsBuilder_ = null;
+              brokerAddrs_ = other.brokerAddrs_;
+              bitField0_ = (bitField0_ & ~0x00000002);
+              brokerAddrsBuilder_ = 
+                com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
+                   getBrokerAddrsFieldBuilder() : null;
+            } else {
+              brokerAddrsBuilder_.addAllMessages(other.brokerAddrs_);
+            }
+          }
         }
+        this.mergeUnknownFields(other.getUnknownFields());
+        return this;
+      }
 
-        public static com.google.protobuf.Parser<BrokerInfo> PARSER =
-                new com.google.protobuf.AbstractParser<BrokerInfo>() {
-                    public BrokerInfo parsePartialFrom(com.google.protobuf.CodedInputStream input,
-                            com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-                            throws com.google.protobuf.InvalidProtocolBufferException {
-                        return new BrokerInfo(input, extensionRegistry);
-                    }
-                };
-
-
-        @java.lang.Override
-        public com.google.protobuf.Parser<BrokerInfo> getParserForType() {
-            return PARSER;
+      public final boolean isInitialized() {
+        if (!hasBrokerName()) {
+          
+          return false;
         }
-
-        public interface BrokerAddrOrBuilder extends com.google.protobuf.MessageOrBuilder {
-
-            // required int64 id = 1;
-            /**
-             * <code>required int64 id = 1;</code>
-             */
-            boolean hasId();
-
-
-            /**
-             * <code>required int64 id = 1;</code>
-             */
-            long getId();
-
-
-            // required string addr = 2;
-            /**
-             * <code>required string addr = 2;</code>
-             */
-            boolean hasAddr();
-
-
-            /**
-             * <code>required string addr = 2;</code>
-             */
-            java.lang.String getAddr();
-
-
-            /**
-             * <code>required string addr = 2;</code>
-             */
-            com.google.protobuf.ByteString getAddrBytes();
+        for (int i = 0; i < getBrokerAddrsCount(); i++) {
+          if (!getBrokerAddrs(i).isInitialized()) {
+            
+            return false;
+          }
         }
+        return true;
+      }
 
-        /**
-         * Protobuf type {@code rocketmq.BrokerInfo.BrokerAddr}
-         */
-        public static final class BrokerAddr extends com.google.protobuf.GeneratedMessage implements
-                BrokerAddrOrBuilder {
-            // Use BrokerAddr.newBuilder() to construct.
-            private BrokerAddr(com.google.protobuf.GeneratedMessage.Builder<?> builder) {
-                super(builder);
-                this.unknownFields = builder.getUnknownFields();
+      public Builder mergeFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws java.io.IOException {
+        com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo parsedMessage = null;
+        try {
+          parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
+        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+          parsedMessage = (com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo) e.getUnfinishedMessage();
+          throw e;
+        } finally {
+          if (parsedMessage != null) {
+            mergeFrom(parsedMessage);
+          }
+        }
+        return this;
+      }
+      private int bitField0_;
+
+      // required string brokerName = 1;
+      private java.lang.Object brokerName_ = "";
+      /**
+       * <code>required string brokerName = 1;</code>
+       */
+      public boolean hasBrokerName() {
+        return ((bitField0_ & 0x00000001) == 0x00000001);
+      }
+      /**
+       * <code>required string brokerName = 1;</code>
+       */
+      public java.lang.String getBrokerName() {
+        java.lang.Object ref = brokerName_;
+        if (!(ref instanceof java.lang.String)) {
+          java.lang.String s = ((com.google.protobuf.ByteString) ref)
+              .toStringUtf8();
+          brokerName_ = s;
+          return s;
+        } else {
+          return (java.lang.String) ref;
+        }
+      }
+      /**
+       * <code>required string brokerName = 1;</code>
+       */
+      public com.google.protobuf.ByteString
+          getBrokerNameBytes() {
+        java.lang.Object ref = brokerName_;
+        if (ref instanceof String) {
+          com.google.protobuf.ByteString b = 
+              com.google.protobuf.ByteString.copyFromUtf8(
+                  (java.lang.String) ref);
+          brokerName_ = b;
+          return b;
+        } else {
+          return (com.google.protobuf.ByteString) ref;
+        }
+      }
+      /**
+       * <code>required string brokerName = 1;</code>
+       */
+      public Builder setBrokerName(
+          java.lang.String value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  bitField0_ |= 0x00000001;
+        brokerName_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>required string brokerName = 1;</code>
+       */
+      public Builder clearBrokerName() {
+        bitField0_ = (bitField0_ & ~0x00000001);
+        brokerName_ = getDefaultInstance().getBrokerName();
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>required string brokerName = 1;</code>
+       */
+      public Builder setBrokerNameBytes(
+          com.google.protobuf.ByteString value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  bitField0_ |= 0x00000001;
+        brokerName_ = value;
+        onChanged();
+        return this;
+      }
+
+      // repeated .rocketmq.BrokerInfo.BrokerAddr brokerAddrs = 2;
+      private java.util.List<com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr> brokerAddrs_ =
+        java.util.Collections.emptyList();
+      private void ensureBrokerAddrsIsMutable() {
+        if (!((bitField0_ & 0x00000002) == 0x00000002)) {
+          brokerAddrs_ = new java.util.ArrayList<com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr>(brokerAddrs_);
+          bitField0_ |= 0x00000002;
+         }
+      }
+
+      private com.google.protobuf.RepeatedFieldBuilder<
+          com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr, com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr.Builder, com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddrOrBuilder> brokerAddrsBuilder_;
+
+      /**
+       * <code>repeated .rocketmq.BrokerInfo.BrokerAddr brokerAddrs = 2;</code>
+       */
+      public java.util.List<com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr> getBrokerAddrsList() {
+        if (brokerAddrsBuilder_ == null) {
+          return java.util.Collections.unmodifiableList(brokerAddrs_);
+        } else {
+          return brokerAddrsBuilder_.getMessageList();
+        }
+      }
+      /**
+       * <code>repeated .rocketmq.BrokerInfo.BrokerAddr brokerAddrs = 2;</code>
+       */
+      public int getBrokerAddrsCount() {
+        if (brokerAddrsBuilder_ == null) {
+          return brokerAddrs_.size();
+        } else {
+          return brokerAddrsBuilder_.getCount();
+        }
+      }
+      /**
+       * <code>repeated .rocketmq.BrokerInfo.BrokerAddr brokerAddrs = 2;</code>
+       */
+      public com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr getBrokerAddrs(int index) {
+        if (brokerAddrsBuilder_ == null) {
+          return brokerAddrs_.get(index);
+        } else {
+          return brokerAddrsBuilder_.getMessage(index);
+        }
+      }
+      /**
+       * <code>repeated .rocketmq.BrokerInfo.BrokerAddr brokerAddrs = 2;</code>
+       */
+      public Builder setBrokerAddrs(
+          int index, com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr value) {
+        if (brokerAddrsBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          ensureBrokerAddrsIsMutable();
+          brokerAddrs_.set(index, value);
+          onChanged();
+        } else {
+          brokerAddrsBuilder_.setMessage(index, value);
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .rocketmq.BrokerInfo.BrokerAddr brokerAddrs = 2;</code>
+       */
+      public Builder setBrokerAddrs(
+          int index, com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr.Builder builderForValue) {
+        if (brokerAddrsBuilder_ == null) {
+          ensureBrokerAddrsIsMutable();
+          brokerAddrs_.set(index, builderForValue.build());
+          onChanged();
+        } else {
+          brokerAddrsBuilder_.setMessage(index, builderForValue.build());
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .rocketmq.BrokerInfo.BrokerAddr brokerAddrs = 2;</code>
+       */
+      public Builder addBrokerAddrs(com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr value) {
+        if (brokerAddrsBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          ensureBrokerAddrsIsMutable();
+          brokerAddrs_.add(value);
+          onChanged();
+        } else {
+          brokerAddrsBuilder_.addMessage(value);
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .rocketmq.BrokerInfo.BrokerAddr brokerAddrs = 2;</code>
+       */
+      public Builder addBrokerAddrs(
+          int index, com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr value) {
+        if (brokerAddrsBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          ensureBrokerAddrsIsMutable();
+          brokerAddrs_.add(index, value);
+          onChanged();
+        } else {
+          brokerAddrsBuilder_.addMessage(index, value);
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .rocketmq.BrokerInfo.BrokerAddr brokerAddrs = 2;</code>
+       */
+      public Builder addBrokerAddrs(
+          com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr.Builder builderForValue) {
+        if (brokerAddrsBuilder_ == null) {
+          ensureBrokerAddrsIsMutable();
+          brokerAddrs_.add(builderForValue.build());
+          onChanged();
+        } else {
+          brokerAddrsBuilder_.addMessage(builderForValue.build());
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .rocketmq.BrokerInfo.BrokerAddr brokerAddrs = 2;</code>
+       */
+      public Builder addBrokerAddrs(
+          int index, com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr.Builder builderForValue) {
+        if (brokerAddrsBuilder_ == null) {
+          ensureBrokerAddrsIsMutable();
+          brokerAddrs_.add(index, builderForValue.build());
+          onChanged();
+        } else {
+          brokerAddrsBuilder_.addMessage(index, builderForValue.build());
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .rocketmq.BrokerInfo.BrokerAddr brokerAddrs = 2;</code>
+       */
+      public Builder addAllBrokerAddrs(
+          java.lang.Iterable<? extends com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr> values) {
+        if (brokerAddrsBuilder_ == null) {
+          ensureBrokerAddrsIsMutable();
+          super.addAll(values, brokerAddrs_);
+          onChanged();
+        } else {
+          brokerAddrsBuilder_.addAllMessages(values);
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .rocketmq.BrokerInfo.BrokerAddr brokerAddrs = 2;</code>
+       */
+      public Builder clearBrokerAddrs() {
+        if (brokerAddrsBuilder_ == null) {
+          brokerAddrs_ = java.util.Collections.emptyList();
+          bitField0_ = (bitField0_ & ~0x00000002);
+          onChanged();
+        } else {
+          brokerAddrsBuilder_.clear();
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .rocketmq.BrokerInfo.BrokerAddr brokerAddrs = 2;</code>
+       */
+      public Builder removeBrokerAddrs(int index) {
+        if (brokerAddrsBuilder_ == null) {
+          ensureBrokerAddrsIsMutable();
+          brokerAddrs_.remove(index);
+          onChanged();
+        } else {
+          brokerAddrsBuilder_.remove(index);
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .rocketmq.BrokerInfo.BrokerAddr brokerAddrs = 2;</code>
+       */
+      public com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr.Builder getBrokerAddrsBuilder(
+          int index) {
+        return getBrokerAddrsFieldBuilder().getBuilder(index);
+      }
+      /**
+       * <code>repeated .rocketmq.BrokerInfo.BrokerAddr brokerAddrs = 2;</code>
+       */
+      public com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddrOrBuilder getBrokerAddrsOrBuilder(
+          int index) {
+        if (brokerAddrsBuilder_ == null) {
+          return brokerAddrs_.get(index);  } else {
+          return brokerAddrsBuilder_.getMessageOrBuilder(index);
+        }
+      }
+      /**
+       * <code>repeated .rocketmq.BrokerInfo.BrokerAddr brokerAddrs = 2;</code>
+       */
+      public java.util.List<? extends com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddrOrBuilder> 
+           getBrokerAddrsOrBuilderList() {
+        if (brokerAddrsBuilder_ != null) {
+          return brokerAddrsBuilder_.getMessageOrBuilderList();
+        } else {
+          return java.util.Collections.unmodifiableList(brokerAddrs_);
+        }
+      }
+      /**
+       * <code>repeated .rocketmq.BrokerInfo.BrokerAddr brokerAddrs = 2;</code>
+       */
+      public com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr.Builder addBrokerAddrsBuilder() {
+        return getBrokerAddrsFieldBuilder().addBuilder(
+            com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr.getDefaultInstance());
+      }
+      /**
+       * <code>repeated .rocketmq.BrokerInfo.BrokerAddr brokerAddrs = 2;</code>
+       */
+      public com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr.Builder addBrokerAddrsBuilder(
+          int index) {
+        return getBrokerAddrsFieldBuilder().addBuilder(
+            index, com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr.getDefaultInstance());
+      }
+      /**
+       * <code>repeated .rocketmq.BrokerInfo.BrokerAddr brokerAddrs = 2;</code>
+       */
+      public java.util.List<com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr.Builder> 
+           getBrokerAddrsBuilderList() {
+        return getBrokerAddrsFieldBuilder().getBuilderList();
+      }
+      private com.google.protobuf.RepeatedFieldBuilder<
+          com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr, com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr.Builder, com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddrOrBuilder> 
+          getBrokerAddrsFieldBuilder() {
+        if (brokerAddrsBuilder_ == null) {
+          brokerAddrsBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
+              com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr, com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr.Builder, com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddrOrBuilder>(
+                  brokerAddrs_,
+                  ((bitField0_ & 0x00000002) == 0x00000002),
+                  getParentForChildren(),
+                  isClean());
+          brokerAddrs_ = null;
+        }
+        return brokerAddrsBuilder_;
+      }
+
+      // @@protoc_insertion_point(builder_scope:rocketmq.BrokerInfo)
+    }
+
+    static {
+      defaultInstance = new BrokerInfo(true);
+      defaultInstance.initFields();
+    }
+
+    // @@protoc_insertion_point(class_scope:rocketmq.BrokerInfo)
+  }
+
+  public interface QueueInfoOrBuilder
+      extends com.google.protobuf.MessageOrBuilder {
+
+    // required string brokerName = 1;
+    /**
+     * <code>required string brokerName = 1;</code>
+     */
+    boolean hasBrokerName();
+    /**
+     * <code>required string brokerName = 1;</code>
+     */
+    java.lang.String getBrokerName();
+    /**
+     * <code>required string brokerName = 1;</code>
+     */
+    com.google.protobuf.ByteString
+        getBrokerNameBytes();
+
+    // required int32 readQueueNums = 2;
+    /**
+     * <code>required int32 readQueueNums = 2;</code>
+     */
+    boolean hasReadQueueNums();
+    /**
+     * <code>required int32 readQueueNums = 2;</code>
+     */
+    int getReadQueueNums();
+
+    // required int32 writeQueueNums = 3;
+    /**
+     * <code>required int32 writeQueueNums = 3;</code>
+     */
+    boolean hasWriteQueueNums();
+    /**
+     * <code>required int32 writeQueueNums = 3;</code>
+     */
+    int getWriteQueueNums();
+
+    // required int32 perm = 4;
+    /**
+     * <code>required int32 perm = 4;</code>
+     */
+    boolean hasPerm();
+    /**
+     * <code>required int32 perm = 4;</code>
+     */
+    int getPerm();
+  }
+  /**
+   * Protobuf type {@code rocketmq.QueueInfo}
+   */
+  public static final class QueueInfo extends
+      com.google.protobuf.GeneratedMessage
+      implements QueueInfoOrBuilder {
+    // Use QueueInfo.newBuilder() to construct.
+    private QueueInfo(com.google.protobuf.GeneratedMessage.Builder<?> builder) {
+      super(builder);
+      this.unknownFields = builder.getUnknownFields();
+    }
+    private QueueInfo(boolean noInit) { this.unknownFields = com.google.protobuf.UnknownFieldSet.getDefaultInstance(); }
+
+    private static final QueueInfo defaultInstance;
+    public static QueueInfo getDefaultInstance() {
+      return defaultInstance;
+    }
+
+    public QueueInfo getDefaultInstanceForType() {
+      return defaultInstance;
+    }
+
+    private final com.google.protobuf.UnknownFieldSet unknownFields;
+    @java.lang.Override
+    public final com.google.protobuf.UnknownFieldSet
+        getUnknownFields() {
+      return this.unknownFields;
+    }
+    private QueueInfo(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      initFields();
+      int mutable_bitField0_ = 0;
+      com.google.protobuf.UnknownFieldSet.Builder unknownFields =
+          com.google.protobuf.UnknownFieldSet.newBuilder();
+      try {
+        boolean done = false;
+        while (!done) {
+          int tag = input.readTag();
+          switch (tag) {
+            case 0:
+              done = true;
+              break;
+            default: {
+              if (!parseUnknownField(input, unknownFields,
+                                     extensionRegistry, tag)) {
+                done = true;
+              }
+              break;
             }
-
-
-            private BrokerAddr(boolean noInit) {
-                this.unknownFields = com.google.protobuf.UnknownFieldSet.getDefaultInstance();
+            case 10: {
+              bitField0_ |= 0x00000001;
+              brokerName_ = input.readBytes();
+              break;
             }
-
-            private static final BrokerAddr defaultInstance;
-
-
-            public static BrokerAddr getDefaultInstance() {
-                return defaultInstance;
+            case 16: {
+              bitField0_ |= 0x00000002;
+              readQueueNums_ = input.readInt32();
+              break;
             }
-
-
-            public BrokerAddr getDefaultInstanceForType() {
-                return defaultInstance;
+            case 24: {
+              bitField0_ |= 0x00000004;
+              writeQueueNums_ = input.readInt32();
+              break;
             }
-
-            private final com.google.protobuf.UnknownFieldSet unknownFields;
-
-
-            @java.lang.Override
-            public final com.google.protobuf.UnknownFieldSet getUnknownFields() {
-                return this.unknownFields;
+            case 32: {
+              bitField0_ |= 0x00000008;
+              perm_ = input.readInt32();
+              break;
             }
-
-
-            private BrokerAddr(com.google.protobuf.CodedInputStream input,
-                    com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-                    throws com.google.protobuf.InvalidProtocolBufferException {
-                initFields();
-                int mutable_bitField0_ = 0;
-                com.google.protobuf.UnknownFieldSet.Builder unknownFields =
-                        com.google.protobuf.UnknownFieldSet.newBuilder();
-                try {
-                    boolean done = false;
-                    while (!done) {
-                        int tag = input.readTag();
-                        switch (tag) {
-                        case 0:
-                            done = true;
-                            break;
-                        default: {
-                            if (!parseUnknownField(input, unknownFields, extensionRegistry, tag)) {
-                                done = true;
-                            }
-                            break;
-                        }
-                        case 8: {
-                            bitField0_ |= 0x00000001;
-                            id_ = input.readInt64();
-                            break;
-                        }
-                        case 18: {
-                            bitField0_ |= 0x00000002;
-                            addr_ = input.readBytes();
-                            break;
-                        }
-                        }
-                    }
-                }
-                catch (com.google.protobuf.InvalidProtocolBufferException e) {
-                    throw e.setUnfinishedMessage(this);
-                }
-                catch (java.io.IOException e) {
-                    throw new com.google.protobuf.InvalidProtocolBufferException(e.getMessage())
-                        .setUnfinishedMessage(this);
-                }
-                finally {
-                    this.unknownFields = unknownFields.build();
-                    makeExtensionsImmutable();
-                }
-            }
-
-
-            public static final com.google.protobuf.Descriptors.Descriptor getDescriptor() {
-                return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_rocketmq_BrokerInfo_BrokerAddr_descriptor;
-            }
-
-
-            protected com.google.protobuf.GeneratedMessage.FieldAccessorTable internalGetFieldAccessorTable() {
-                return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_rocketmq_BrokerInfo_BrokerAddr_fieldAccessorTable
-                    .ensureFieldAccessorsInitialized(
-                        com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr.class,
-                        com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr.Builder.class);
-            }
-
-            public static com.google.protobuf.Parser<BrokerAddr> PARSER =
-                    new com.google.protobuf.AbstractParser<BrokerAddr>() {
-                        public BrokerAddr parsePartialFrom(com.google.protobuf.CodedInputStream input,
-                                com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-                                throws com.google.protobuf.InvalidProtocolBufferException {
-                            return new BrokerAddr(input, extensionRegistry);
-                        }
-                    };
-
-
-            @java.lang.Override
-            public com.google.protobuf.Parser<BrokerAddr> getParserForType() {
-                return PARSER;
-            }
-
-            private int bitField0_;
-            // required int64 id = 1;
-            public static final int ID_FIELD_NUMBER = 1;
-            private long id_;
-
-
-            /**
-             * <code>required int64 id = 1;</code>
-             */
-            public boolean hasId() {
-                return ((bitField0_ & 0x00000001) == 0x00000001);
-            }
-
-
-            /**
-             * <code>required int64 id = 1;</code>
-             */
-            public long getId() {
-                return id_;
-            }
-
-            // required string addr = 2;
-            public static final int ADDR_FIELD_NUMBER = 2;
-            private java.lang.Object addr_;
-
-
-            /**
-             * <code>required string addr = 2;</code>
-             */
-            public boolean hasAddr() {
-                return ((bitField0_ & 0x00000002) == 0x00000002);
-            }
-
-
-            /**
-             * <code>required string addr = 2;</code>
-             */
-            public java.lang.String getAddr() {
-                java.lang.Object ref = addr_;
-                if (ref instanceof java.lang.String) {
-                    return (java.lang.String) ref;
-                }
-                else {
-                    com.google.protobuf.ByteString bs = (com.google.protobuf.ByteString) ref;
-                    java.lang.String s = bs.toStringUtf8();
-                    if (bs.isValidUtf8()) {
-                        addr_ = s;
-                    }
-                    return s;
-                }
-            }
-
-
-            /**
-             * <code>required string addr = 2;</code>
-             */
-            public com.google.protobuf.ByteString getAddrBytes() {
-                java.lang.Object ref = addr_;
-                if (ref instanceof java.lang.String) {
-                    com.google.protobuf.ByteString b =
-                            com.google.protobuf.ByteString.copyFromUtf8((java.lang.String) ref);
-                    addr_ = b;
-                    return b;
-                }
-                else {
-                    return (com.google.protobuf.ByteString) ref;
-                }
-            }
-
-
-            private void initFields() {
-                id_ = 0L;
-                addr_ = "";
-            }
-
-            private byte memoizedIsInitialized = -1;
-
-
-            public final boolean isInitialized() {
-                byte isInitialized = memoizedIsInitialized;
-                if (isInitialized != -1)
-                    return isInitialized == 1;
-
-                if (!hasId()) {
-                    memoizedIsInitialized = 0;
-                    return false;
-                }
-                if (!hasAddr()) {
-                    memoizedIsInitialized = 0;
-                    return false;
-                }
-                memoizedIsInitialized = 1;
-                return true;
-            }
-
-
-            public void writeTo(com.google.protobuf.CodedOutputStream output) throws java.io.IOException {
-                getSerializedSize();
-                if (((bitField0_ & 0x00000001) == 0x00000001)) {
-                    output.writeInt64(1, id_);
-                }
-                if (((bitField0_ & 0x00000002) == 0x00000002)) {
-                    output.writeBytes(2, getAddrBytes());
-                }
-                getUnknownFields().writeTo(output);
-            }
-
-            private int memoizedSerializedSize = -1;
-
-
-            public int getSerializedSize() {
-                int size = memoizedSerializedSize;
-                if (size != -1)
-                    return size;
-
-                size = 0;
-                if (((bitField0_ & 0x00000001) == 0x00000001)) {
-                    size += com.google.protobuf.CodedOutputStream.computeInt64Size(1, id_);
-                }
-                if (((bitField0_ & 0x00000002) == 0x00000002)) {
-                    size += com.google.protobuf.CodedOutputStream.computeBytesSize(2, getAddrBytes());
-                }
-                size += getUnknownFields().getSerializedSize();
-                memoizedSerializedSize = size;
-                return size;
-            }
-
-            private static final long serialVersionUID = 0L;
-
-
-            @java.lang.Override
-            protected java.lang.Object writeReplace() throws java.io.ObjectStreamException {
-                return super.writeReplace();
-            }
-
-
-            public static com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr parseFrom(
-                    com.google.protobuf.ByteString data)
-                    throws com.google.protobuf.InvalidProtocolBufferException {
-                return PARSER.parseFrom(data);
-            }
-
-
-            public static com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr parseFrom(
-                    com.google.protobuf.ByteString data,
-                    com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-                    throws com.google.protobuf.InvalidProtocolBufferException {
-                return PARSER.parseFrom(data, extensionRegistry);
-            }
-
-
-            public static com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr parseFrom(
-                    byte[] data) throws com.google.protobuf.InvalidProtocolBufferException {
-                return PARSER.parseFrom(data);
-            }
-
-
-            public static com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr parseFrom(
-                    byte[] data, com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-                    throws com.google.protobuf.InvalidProtocolBufferException {
-                return PARSER.parseFrom(data, extensionRegistry);
-            }
-
-
-            public static com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr parseFrom(
-                    java.io.InputStream input) throws java.io.IOException {
-                return PARSER.parseFrom(input);
-            }
-
-
-            public static com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr parseFrom(
-                    java.io.InputStream input, com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-                    throws java.io.IOException {
-                return PARSER.parseFrom(input, extensionRegistry);
-            }
-
-
-            public static com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr parseDelimitedFrom(
-                    java.io.InputStream input) throws java.io.IOException {
-                return PARSER.parseDelimitedFrom(input);
-            }
-
-
-            public static com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr parseDelimitedFrom(
-                    java.io.InputStream input, com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-                    throws java.io.IOException {
-                return PARSER.parseDelimitedFrom(input, extensionRegistry);
-            }
-
-
-            public static com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr parseFrom(
-                    com.google.protobuf.CodedInputStream input) throws java.io.IOException {
-                return PARSER.parseFrom(input);
-            }
-
-
-            public static com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr parseFrom(
-                    com.google.protobuf.CodedInputStream input,
-                    com.google.protobuf.ExtensionRegistryLite extensionRegistry) throws java.io.IOException {
-                return PARSER.parseFrom(input, extensionRegistry);
-            }
-
-
-            public static Builder newBuilder() {
-                return Builder.create();
-            }
-
-
-            public Builder newBuilderForType() {
-                return newBuilder();
-            }
-
-
-            public static Builder newBuilder(
-                    com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr prototype) {
-                return newBuilder().mergeFrom(prototype);
-            }
-
-
-            public Builder toBuilder() {
-                return newBuilder(this);
-            }
-
-
-            @java.lang.Override
-            protected Builder newBuilderForType(com.google.protobuf.GeneratedMessage.BuilderParent parent) {
-                Builder builder = new Builder(parent);
-                return builder;
-            }
-
-            /**
-             * Protobuf type {@code rocketmq.BrokerInfo.BrokerAddr}
-             */
-            public static final class Builder extends com.google.protobuf.GeneratedMessage.Builder<Builder>
-                    implements com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddrOrBuilder {
-                public static final com.google.protobuf.Descriptors.Descriptor getDescriptor() {
-                    return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_rocketmq_BrokerInfo_BrokerAddr_descriptor;
-                }
-
-
-                protected com.google.protobuf.GeneratedMessage.FieldAccessorTable internalGetFieldAccessorTable() {
-                    return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_rocketmq_BrokerInfo_BrokerAddr_fieldAccessorTable
-                        .ensureFieldAccessorsInitialized(
-                            com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr.class,
-                            com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr.Builder.class);
-                }
-
-
-                // Construct using
-                // com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr.newBuilder()
-                private Builder() {
-                    maybeForceBuilderInitialization();
-                }
-
-
-                private Builder(com.google.protobuf.GeneratedMessage.BuilderParent parent) {
-                    super(parent);
-                    maybeForceBuilderInitialization();
-                }
-
-
-                private void maybeForceBuilderInitialization() {
-                    if (com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders) {
-                    }
-                }
-
-
-                private static Builder create() {
-                    return new Builder();
-                }
-
-
-                public Builder clear() {
-                    super.clear();
-                    id_ = 0L;
-                    bitField0_ = (bitField0_ & ~0x00000001);
-                    addr_ = "";
-                    bitField0_ = (bitField0_ & ~0x00000002);
-                    return this;
-                }
-
-
-                public Builder clone() {
-                    return create().mergeFrom(buildPartial());
-                }
-
-
-                public com.google.protobuf.Descriptors.Descriptor getDescriptorForType() {
-                    return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_rocketmq_BrokerInfo_BrokerAddr_descriptor;
-                }
-
-
-                public com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr getDefaultInstanceForType() {
-                    return com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr
-                        .getDefaultInstance();
-                }
-
-
-                public com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr build() {
-                    com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr result =
-                            buildPartial();
-                    if (!result.isInitialized()) {
-                        throw newUninitializedMessageException(result);
-                    }
-                    return result;
-                }
-
-
-                public com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr buildPartial() {
-                    com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr result =
-                            new com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr(this);
-                    int from_bitField0_ = bitField0_;
-                    int to_bitField0_ = 0;
-                    if (((from_bitField0_ & 0x00000001) == 0x00000001)) {
-                        to_bitField0_ |= 0x00000001;
-                    }
-                    result.id_ = id_;
-                    if (((from_bitField0_ & 0x00000002) == 0x00000002)) {
-                        to_bitField0_ |= 0x00000002;
-                    }
-                    result.addr_ = addr_;
-                    result.bitField0_ = to_bitField0_;
-                    onBuilt();
-                    return result;
-                }
-
-
-                public Builder mergeFrom(com.google.protobuf.Message other) {
-                    if (other instanceof com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr) {
-                        return mergeFrom((com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr) other);
-                    }
-                    else {
-                        super.mergeFrom(other);
-                        return this;
-                    }
-                }
-
-
-                public Builder mergeFrom(
-                        com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr other) {
-                    if (other == com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr
-                        .getDefaultInstance())
-                        return this;
-                    if (other.hasId()) {
-                        setId(other.getId());
-                    }
-                    if (other.hasAddr()) {
-                        bitField0_ |= 0x00000002;
-                        addr_ = other.addr_;
-                        onChanged();
-                    }
-                    this.mergeUnknownFields(other.getUnknownFields());
-                    return this;
-                }
-
-
-                public final boolean isInitialized() {
-                    if (!hasId()) {
-
-                        return false;
-                    }
-                    if (!hasAddr()) {
-
-                        return false;
-                    }
-                    return true;
-                }
-
-
-                public Builder mergeFrom(com.google.protobuf.CodedInputStream input,
-                        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          }
+        }
+      } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+        throw e.setUnfinishedMessage(this);
+      } catch (java.io.IOException e) {
+        throw new com.google.protobuf.InvalidProtocolBufferException(
+            e.getMessage()).setUnfinishedMessage(this);
+      } finally {
+        this.unknownFields = unknownFields.build();
+        makeExtensionsImmutable();
+      }
+    }
+    public static final com.google.protobuf.Descriptors.Descriptor
+        getDescriptor() {
+      return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_rocketmq_QueueInfo_descriptor;
+    }
+
+    protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
+        internalGetFieldAccessorTable() {
+      return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_rocketmq_QueueInfo_fieldAccessorTable
+          .ensureFieldAccessorsInitialized(
+              com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo.class, com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo.Builder.class);
+    }
+
+    public static com.google.protobuf.Parser<QueueInfo> PARSER =
+        new com.google.protobuf.AbstractParser<QueueInfo>() {
+      public QueueInfo parsePartialFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        return new QueueInfo(input, extensionRegistry);
+      }
+    };
+
+    @java.lang.Override
+    public com.google.protobuf.Parser<QueueInfo> getParserForType() {
+      return PARSER;
+    }
+
+    private int bitField0_;
+    // required string brokerName = 1;
+    public static final int BROKERNAME_FIELD_NUMBER = 1;
+    private java.lang.Object brokerName_;
+    /**
+     * <code>required string brokerName = 1;</code>
+     */
+    public boolean hasBrokerName() {
+      return ((bitField0_ & 0x00000001) == 0x00000001);
+    }
+    /**
+     * <code>required string brokerName = 1;</code>
+     */
+    public java.lang.String getBrokerName() {
+      java.lang.Object ref = brokerName_;
+      if (ref instanceof java.lang.String) {
+        return (java.lang.String) ref;
+      } else {
+        com.google.protobuf.ByteString bs = 
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        if (bs.isValidUtf8()) {
+          brokerName_ = s;
+        }
+        return s;
+      }
+    }
+    /**
+     * <code>required string brokerName = 1;</code>
+     */
+    public com.google.protobuf.ByteString
+        getBrokerNameBytes() {
+      java.lang.Object ref = brokerName_;
+      if (ref instanceof java.lang.String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        brokerName_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+
+    // required int32 readQueueNums = 2;
+    public static final int READQUEUENUMS_FIELD_NUMBER = 2;
+    private int readQueueNums_;
+    /**
+     * <code>required int32 readQueueNums = 2;</code>
+     */
+    public boolean hasReadQueueNums() {
+      return ((bitField0_ & 0x00000002) == 0x00000002);
+    }
+    /**
+     * <code>required int32 readQueueNums = 2;</code>
+     */
+    public int getReadQueueNums() {
+      return readQueueNums_;
+    }
+
+    // required int32 writeQueueNums = 3;
+    public static final int WRITEQUEUENUMS_FIELD_NUMBER = 3;
+    private int writeQueueNums_;
+    /**
+     * <code>required int32 writeQueueNums = 3;</code>
+     */
+    public boolean hasWriteQueueNums() {
+      return ((bitField0_ & 0x00000004) == 0x00000004);
+    }
+    /**
+     * <code>required int32 writeQueueNums = 3;</code>
+     */
+    public int getWriteQueueNums() {
+      return writeQueueNums_;
+    }
+
+    // required int32 perm = 4;
+    public static final int PERM_FIELD_NUMBER = 4;
+    private int perm_;
+    /**
+     * <code>required int32 perm = 4;</code>
+     */
+    public boolean hasPerm() {
+      return ((bitField0_ & 0x00000008) == 0x00000008);
+    }
+    /**
+     * <code>required int32 perm = 4;</code>
+     */
+    public int getPerm() {
+      return perm_;
+    }
+
+    private void initFields() {
+      brokerName_ = "";
+      readQueueNums_ = 0;
+      writeQueueNums_ = 0;
+      perm_ = 0;
+    }
+    private byte memoizedIsInitialized = -1;
+    public final boolean isInitialized() {
+      byte isInitialized = memoizedIsInitialized;
+      if (isInitialized != -1) return isInitialized == 1;
+
+      if (!hasBrokerName()) {
+        memoizedIsInitialized = 0;
+        return false;
+      }
+      if (!hasReadQueueNums()) {
+        memoizedIsInitialized = 0;
+        return false;
+      }
+      if (!hasWriteQueueNums()) {
+        memoizedIsInitialized = 0;
+        return false;
+      }
+      if (!hasPerm()) {
+        memoizedIsInitialized = 0;
+        return false;
+      }
+      memoizedIsInitialized = 1;
+      return true;
+    }
+
+    public void writeTo(com.google.protobuf.CodedOutputStream output)
                         throws java.io.IOException {
-                    com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr parsedMessage = null;
-                    try {
-                        parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
-                    }
-                    catch (com.google.protobuf.InvalidProtocolBufferException e) {
-                        parsedMessage =
-                                (com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr) e
-                                    .getUnfinishedMessage();
-                        throw e;
-                    }
-                    finally {
-                        if (parsedMessage != null) {
-                            mergeFrom(parsedMessage);
-                        }
-                    }
-                    return this;
-                }
-
-                private int bitField0_;
-
-                // required int64 id = 1;
-                private long id_;
-
-
-                /**
-                 * <code>required int64 id = 1;</code>
-                 */
-                public boolean hasId() {
-                    return ((bitField0_ & 0x00000001) == 0x00000001);
-                }
-
-
-                /**
-                 * <code>required int64 id = 1;</code>
-                 */
-                public long getId() {
-                    return id_;
-                }
-
-
-                /**
-                 * <code>required int64 id = 1;</code>
-                 */
-                public Builder setId(long value) {
-                    bitField0_ |= 0x00000001;
-                    id_ = value;
-                    onChanged();
-                    return this;
-                }
-
-
-                /**
-                 * <code>required int64 id = 1;</code>
-                 */
-                public Builder clearId() {
-                    bitField0_ = (bitField0_ & ~0x00000001);
-                    id_ = 0L;
-                    onChanged();
-                    return this;
-                }
-
-                // required string addr = 2;
-                private java.lang.Object addr_ = "";
-
-
-                /**
-                 * <code>required string addr = 2;</code>
-                 */
-                public boolean hasAddr() {
-                    return ((bitField0_ & 0x00000002) == 0x00000002);
-                }
-
-
-                /**
-                 * <code>required string addr = 2;</code>
-                 */
-                public java.lang.String getAddr() {
-                    java.lang.Object ref = addr_;
-                    if (!(ref instanceof java.lang.String)) {
-                        java.lang.String s = ((com.google.protobuf.ByteString) ref).toStringUtf8();
-                        addr_ = s;
-                        return s;
-                    }
-                    else {
-                        return (java.lang.String) ref;
-                    }
-                }
-
-
-                /**
-                 * <code>required string addr = 2;</code>
-                 */
-                public com.google.protobuf.ByteString getAddrBytes() {
-                    java.lang.Object ref = addr_;
-                    if (ref instanceof String) {
-                        com.google.protobuf.ByteString b =
-                                com.google.protobuf.ByteString.copyFromUtf8((java.lang.String) ref);
-                        addr_ = b;
-                        return b;
-                    }
-                    else {
-                        return (com.google.protobuf.ByteString) ref;
-                    }
-                }
-
-
-                /**
-                 * <code>required string addr = 2;</code>
-                 */
-                public Builder setAddr(java.lang.String value) {
-                    if (value == null) {
-                        throw new NullPointerException();
-                    }
-                    bitField0_ |= 0x00000002;
-                    addr_ = value;
-                    onChanged();
-                    return this;
-                }
-
-
-                /**
-                 * <code>required string addr = 2;</code>
-                 */
-                public Builder clearAddr() {
-                    bitField0_ = (bitField0_ & ~0x00000002);
-                    addr_ = getDefaultInstance().getAddr();
-                    onChanged();
-                    return this;
-                }
-
-
-                /**
-                 * <code>required string addr = 2;</code>
-                 */
-                public Builder setAddrBytes(com.google.protobuf.ByteString value) {
-                    if (value == null) {
-                        throw new NullPointerException();
-                    }
-                    bitField0_ |= 0x00000002;
-                    addr_ = value;
-                    onChanged();
-                    return this;
-                }
-
-                // @@protoc_insertion_point(builder_scope:rocketmq.BrokerInfo.BrokerAddr)
-            }
-
-            static {
-                defaultInstance = new BrokerAddr(true);
-                defaultInstance.initFields();
-            }
-
-            // @@protoc_insertion_point(class_scope:rocketmq.BrokerInfo.BrokerAddr)
-        }
-
-        private int bitField0_;
-        // required string brokerName = 1;
-        public static final int BROKERNAME_FIELD_NUMBER = 1;
-        private java.lang.Object brokerName_;
-
-
-        /**
-         * <code>required string brokerName = 1;</code>
-         */
-        public boolean hasBrokerName() {
-            return ((bitField0_ & 0x00000001) == 0x00000001);
-        }
-
-
-        /**
-         * <code>required string brokerName = 1;</code>
-         */
-        public java.lang.String getBrokerName() {
-            java.lang.Object ref = brokerName_;
-            if (ref instanceof java.lang.String) {
-                return (java.lang.String) ref;
-            }
-            else {
-                com.google.protobuf.ByteString bs = (com.google.protobuf.ByteString) ref;
-                java.lang.String s = bs.toStringUtf8();
-                if (bs.isValidUtf8()) {
-                    brokerName_ = s;
-                }
-                return s;
-            }
-        }
-
-
-        /**
-         * <code>required string brokerName = 1;</code>
-         */
-        public com.google.protobuf.ByteString getBrokerNameBytes() {
-            java.lang.Object ref = brokerName_;
-            if (ref instanceof java.lang.String) {
-                com.google.protobuf.ByteString b =
-                        com.google.protobuf.ByteString.copyFromUtf8((java.lang.String) ref);
-                brokerName_ = b;
-                return b;
-            }
-            else {
-                return (com.google.protobuf.ByteString) ref;
-            }
-        }
-
-        // repeated .rocketmq.BrokerInfo.BrokerAddr brokerAddrs = 2;
-        public static final int BROKERADDRS_FIELD_NUMBER = 2;
-        private java.util.List<com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr> brokerAddrs_;
-
-
-        /**
-         * <code>repeated .rocketmq.BrokerInfo.BrokerAddr brokerAddrs = 2;</code>
-         */
-        public java.util.List<com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr> getBrokerAddrsList() {
-            return brokerAddrs_;
-        }
-
-
-        /**
-         * <code>repeated .rocketmq.BrokerInfo.BrokerAddr brokerAddrs = 2;</code>
-         */
-        public java.util.List<? extends com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddrOrBuilder> getBrokerAddrsOrBuilderList() {
-            return brokerAddrs_;
-        }
-
-
-        /**
-         * <code>repeated .rocketmq.BrokerInfo.BrokerAddr brokerAddrs = 2;</code>
-         */
-        public int getBrokerAddrsCount() {
-            return brokerAddrs_.size();
-        }
-
-
-        /**
-         * <code>repeated .rocketmq.BrokerInfo.BrokerAddr brokerAddrs = 2;</code>
-         */
-        public com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr getBrokerAddrs(int index) {
-            return brokerAddrs_.get(index);
-        }
-
-
-        /**
-         * <code>repeated .rocketmq.BrokerInfo.BrokerAddr brokerAddrs = 2;</code>
-         */
-        public com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddrOrBuilder getBrokerAddrsOrBuilder(
-                int index) {
-            return brokerAddrs_.get(index);
-        }
-
-
-        private void initFields() {
-            brokerName_ = "";
-            brokerAddrs_ = java.util.Collections.emptyList();
-        }
-
-        private byte memoizedIsInitialized = -1;
-
-
-        public final boolean isInitialized() {
-            byte isInitialized = memoizedIsInitialized;
-            if (isInitialized != -1)
-                return isInitialized == 1;
-
-            if (!hasBrokerName()) {
-                memoizedIsInitialized = 0;
-                return false;
-            }
-            for (int i = 0; i < getBrokerAddrsCount(); i++) {
-                if (!getBrokerAddrs(i).isInitialized()) {
-                    memoizedIsInitialized = 0;
-                    return false;
-                }
-            }
-            memoizedIsInitialized = 1;
-            return true;
-        }
-
-
-        public void writeTo(com.google.protobuf.CodedOutputStream output) throws java.io.IOException {
-            getSerializedSize();
-            if (((bitField0_ & 0x00000001) == 0x00000001)) {
-                output.writeBytes(1, getBrokerNameBytes());
-            }
-            for (int i = 0; i < brokerAddrs_.size(); i++) {
-                output.writeMessage(2, brokerAddrs_.get(i));
-            }
-            getUnknownFields().writeTo(output);
-        }
-
-        private int memoizedSerializedSize = -1;
-
-
-        public int getSerializedSize() {
-            int size = memoizedSerializedSize;
-            if (size != -1)
-                return size;
-
-            size = 0;
-            if (((bitField0_ & 0x00000001) == 0x00000001)) {
-                size += com.google.protobuf.CodedOutputStream.computeBytesSize(1, getBrokerNameBytes());
-            }
-            for (int i = 0; i < brokerAddrs_.size(); i++) {
-                size += com.google.protobuf.CodedOutputStream.computeMessageSize(2, brokerAddrs_.get(i));
-            }
-            size += getUnknownFields().getSerializedSize();
-            memoizedSerializedSize = size;
-            return size;
-        }
-
-        private static final long serialVersionUID = 0L;
-
-
-        @java.lang.Override
-        protected java.lang.Object writeReplace() throws java.io.ObjectStreamException {
-            return super.writeReplace();
-        }
-
-
-        public static com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo parseFrom(
-                com.google.protobuf.ByteString data)
-                throws com.google.protobuf.InvalidProtocolBufferException {
-            return PARSER.parseFrom(data);
-        }
-
-
-        public static com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo parseFrom(
-                com.google.protobuf.ByteString data,
-                com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-                throws com.google.protobuf.InvalidProtocolBufferException {
-            return PARSER.parseFrom(data, extensionRegistry);
-        }
-
-
-        public static com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo parseFrom(byte[] data)
-                throws com.google.protobuf.InvalidProtocolBufferException {
-            return PARSER.parseFrom(data);
-        }
-
-
-        public static com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo parseFrom(byte[] data,
-                com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-                throws com.google.protobuf.InvalidProtocolBufferException {
-            return PARSER.parseFrom(data, extensionRegistry);
-        }
-
-
-        public static com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo parseFrom(
-                java.io.InputStream input) throws java.io.IOException {
-            return PARSER.parseFrom(input);
-        }
-
-
-        public static com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo parseFrom(
-                java.io.InputStream input, com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-                throws java.io.IOException {
-            return PARSER.parseFrom(input, extensionRegistry);
-        }
-
-
-        public static com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo parseDelimitedFrom(
-                java.io.InputStream input) throws java.io.IOException {
-            return PARSER.parseDelimitedFrom(input);
-        }
-
-
-        public static com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo parseDelimitedFrom(
-                java.io.InputStream input, com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-                throws java.io.IOException {
-            return PARSER.parseDelimitedFrom(input, extensionRegistry);
-        }
-
-
-        public static com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo parseFrom(
-                com.google.protobuf.CodedInputStream input) throws java.io.IOException {
-            return PARSER.parseFrom(input);
-        }
-
-
-        public static com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo parseFrom(
-                com.google.protobuf.CodedInputStream input,
-                com.google.protobuf.ExtensionRegistryLite extensionRegistry) throws java.io.IOException {
-            return PARSER.parseFrom(input, extensionRegistry);
-        }
-
-
-        public static Builder newBuilder() {
-            return Builder.create();
-        }
-
-
-        public Builder newBuilderForType() {
-            return newBuilder();
-        }
-
-
-        public static Builder newBuilder(com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo prototype) {
-            return newBuilder().mergeFrom(prototype);
-        }
-
-
-        public Builder toBuilder() {
-            return newBuilder(this);
-        }
-
-
-        @java.lang.Override
-        protected Builder newBuilderForType(com.google.protobuf.GeneratedMessage.BuilderParent parent) {
-            Builder builder = new Builder(parent);
-            return builder;
-        }
-
-        /**
-         * Protobuf type {@code rocketmq.BrokerInfo}
-         * 
-         * <pre>
-         * 
-         * Name Server Route
-         * </pre>
-         */
-        public static final class Builder extends com.google.protobuf.GeneratedMessage.Builder<Builder>
-                implements com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfoOrBuilder {
-            public static final com.google.protobuf.Descriptors.Descriptor getDescriptor() {
-                return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_rocketmq_BrokerInfo_descriptor;
-            }
-
-
-            protected com.google.protobuf.GeneratedMessage.FieldAccessorTable internalGetFieldAccessorTable() {
-                return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_rocketmq_BrokerInfo_fieldAccessorTable
-                    .ensureFieldAccessorsInitialized(
-                        com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.class,
-                        com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.Builder.class);
-            }
-
-
-            // Construct using
-            // com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.newBuilder()
-            private Builder() {
-                maybeForceBuilderInitialization();
-            }
-
-
-            private Builder(com.google.protobuf.GeneratedMessage.BuilderParent parent) {
-                super(parent);
-                maybeForceBuilderInitialization();
-            }
-
-
-            private void maybeForceBuilderInitialization() {
-                if (com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders) {
-                    getBrokerAddrsFieldBuilder();
-                }
-            }
-
-
-            private static Builder create() {
-                return new Builder();
-            }
-
-
-            public Builder clear() {
-                super.clear();
-                brokerName_ = "";
-                bitField0_ = (bitField0_ & ~0x00000001);
-                if (brokerAddrsBuilder_ == null) {
-                    brokerAddrs_ = java.util.Collections.emptyList();
-                    bitField0_ = (bitField0_ & ~0x00000002);
-                }
-                else {
-                    brokerAddrsBuilder_.clear();
-                }
-                return this;
-            }
-
-
-            public Builder clone() {
-                return create().mergeFrom(buildPartial());
-            }
-
-
-            public com.google.protobuf.Descriptors.Descriptor getDescriptorForType() {
-                return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_rocketmq_BrokerInfo_descriptor;
-            }
-
-
-            public com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo getDefaultInstanceForType() {
-                return com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.getDefaultInstance();
-            }
-
-
-            public com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo build() {
-                com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo result = buildPartial();
-                if (!result.isInitialized()) {
-                    throw newUninitializedMessageException(result);
-                }
-                return result;
-            }
-
-
-            public com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo buildPartial() {
-                com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo result =
-                        new com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo(this);
-                int from_bitField0_ = bitField0_;
-                int to_bitField0_ = 0;
-                if (((from_bitField0_ & 0x00000001) == 0x00000001)) {
-                    to_bitField0_ |= 0x00000001;
-                }
-                result.brokerName_ = brokerName_;
-                if (brokerAddrsBuilder_ == null) {
-                    if (((bitField0_ & 0x00000002) == 0x00000002)) {
-                        brokerAddrs_ = java.util.Collections.unmodifiableList(brokerAddrs_);
-                        bitField0_ = (bitField0_ & ~0x00000002);
-                    }
-                    result.brokerAddrs_ = brokerAddrs_;
-                }
-                else {
-                    result.brokerAddrs_ = brokerAddrsBuilder_.build();
-                }
-                result.bitField0_ = to_bitField0_;
-                onBuilt();
-                return result;
-            }
-
-
-            public Builder mergeFrom(com.google.protobuf.Message other) {
-                if (other instanceof com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo) {
-                    return mergeFrom((com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo) other);
-                }
-                else {
-                    super.mergeFrom(other);
-                    return this;
-                }
-            }
-
-
-            public Builder mergeFrom(com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo other) {
-                if (other == com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.getDefaultInstance())
-                    return this;
-                if (other.hasBrokerName()) {
-                    bitField0_ |= 0x00000001;
-                    brokerName_ = other.brokerName_;
-                    onChanged();
-                }
-                if (brokerAddrsBuilder_ == null) {
-                    if (!other.brokerAddrs_.isEmpty()) {
-                        if (brokerAddrs_.isEmpty()) {
-                            brokerAddrs_ = other.brokerAddrs_;
-                            bitField0_ = (bitField0_ & ~0x00000002);
-                        }
-                        else {
-                            ensureBrokerAddrsIsMutable();
-                            brokerAddrs_.addAll(other.brokerAddrs_);
-                        }
-                        onChanged();
-                    }
-                }
-                else {
-                    if (!other.brokerAddrs_.isEmpty()) {
-                        if (brokerAddrsBuilder_.isEmpty()) {
-                            brokerAddrsBuilder_.dispose();
-                            brokerAddrsBuilder_ = null;
-                            brokerAddrs_ = other.brokerAddrs_;
-                            bitField0_ = (bitField0_ & ~0x00000002);
-                            brokerAddrsBuilder_ =
-                                    com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ? getBrokerAddrsFieldBuilder()
-                                            : null;
-                        }
-                        else {
-                            brokerAddrsBuilder_.addAllMessages(other.brokerAddrs_);
-                        }
-                    }
-                }
-                this.mergeUnknownFields(other.getUnknownFields());
-                return this;
-            }
-
-
-            public final boolean isInitialized() {
-                if (!hasBrokerName()) {
-
-                    return false;
-                }
-                for (int i = 0; i < getBrokerAddrsCount(); i++) {
-                    if (!getBrokerAddrs(i).isInitialized()) {
-
-                        return false;
-                    }
-                }
-                return true;
-            }
-
-
-            public Builder mergeFrom(com.google.protobuf.CodedInputStream input,
-                    com.google.protobuf.ExtensionRegistryLite extensionRegistry) throws java.io.IOException {
-                com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo parsedMessage = null;
-                try {
-                    parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
-                }
-                catch (com.google.protobuf.InvalidProtocolBufferException e) {
-                    parsedMessage =
-                            (com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo) e
-                                .getUnfinishedMessage();
-                    throw e;
-                }
-                finally {
-                    if (parsedMessage != null) {
-                        mergeFrom(parsedMessage);
-                    }
-                }
-                return this;
-            }
-
-            private int bitField0_;
-
-            // required string brokerName = 1;
-            private java.lang.Object brokerName_ = "";
-
-
-            /**
-             * <code>required string brokerName = 1;</code>
-             */
-            public boolean hasBrokerName() {
-                return ((bitField0_ & 0x00000001) == 0x00000001);
-            }
-
-
-            /**
-             * <code>required string brokerName = 1;</code>
-             */
-            public java.lang.String getBrokerName() {
-                java.lang.Object ref = brokerName_;
-                if (!(ref instanceof java.lang.String)) {
-                    java.lang.String s = ((com.google.protobuf.ByteString) ref).toStringUtf8();
-                    brokerName_ = s;
-                    return s;
-                }
-                else {
-                    return (java.lang.String) ref;
-                }
-            }
-
-
-            /**
-             * <code>required string brokerName = 1;</code>
-             */
-            public com.google.protobuf.ByteString getBrokerNameBytes() {
-                java.lang.Object ref = brokerName_;
-                if (ref instanceof String) {
-                    com.google.protobuf.ByteString b =
-                            com.google.protobuf.ByteString.copyFromUtf8((java.lang.String) ref);
-                    brokerName_ = b;
-                    return b;
-                }
-                else {
-                    return (com.google.protobuf.ByteString) ref;
-                }
-            }
-
-
-            /**
-             * <code>required string brokerName = 1;</code>
-             */
-            public Builder setBrokerName(java.lang.String value) {
-                if (value == null) {
-                    throw new NullPointerException();
-                }
-                bitField0_ |= 0x00000001;
-                brokerName_ = value;
-                onChanged();
-                return this;
-            }
-
-
-            /**
-             * <code>required string brokerName = 1;</code>
-             */
-            public Builder clearBrokerName() {
-                bitField0_ = (bitField0_ & ~0x00000001);
-                brokerName_ = getDefaultInstance().getBrokerName();
-                onChanged();
-                return this;
-            }
-
-
-            /**
-             * <code>required string brokerName = 1;</code>
-             */
-            public Builder setBrokerNameBytes(com.google.protobuf.ByteString value) {
-                if (value == null) {
-                    throw new NullPointerException();
-                }
-                bitField0_ |= 0x00000001;
-                brokerName_ = value;
-                onChanged();
-                return this;
-            }
-
-            // repeated .rocketmq.BrokerInfo.BrokerAddr brokerAddrs = 2;
-            private java.util.List<com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr> brokerAddrs_ =
-                    java.util.Collections.emptyList();
-
-
-            private void ensureBrokerAddrsIsMutable() {
-                if (!((bitField0_ & 0x00000002) == 0x00000002)) {
-                    brokerAddrs_ =
-                            new java.util.ArrayList<com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr>(
-                                brokerAddrs_);
-                    bitField0_ |= 0x00000002;
-                }
-            }
-
-            private com.google.protobuf.RepeatedFieldBuilder<com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr, com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr.Builder, com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddrOrBuilder> brokerAddrsBuilder_;
-
-
-            /**
-             * <code>repeated .rocketmq.BrokerInfo.BrokerAddr brokerAddrs = 2;</code>
-             */
-            public java.util.List<com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr> getBrokerAddrsList() {
-                if (brokerAddrsBuilder_ == null) {
-                    return java.util.Collections.unmodifiableList(brokerAddrs_);
-                }
-                else {
-                    return brokerAddrsBuilder_.getMessageList();
-                }
-            }
-
-
-            /**
-             * <code>repeated .rocketmq.BrokerInfo.BrokerAddr brokerAddrs = 2;</code>
-             */
-            public int getBrokerAddrsCount() {
-                if (brokerAddrsBuilder_ == null) {
-                    return brokerAddrs_.size();
-                }
-                else {
-                    return brokerAddrsBuilder_.getCount();
-                }
-            }
-
-
-            /**
-             * <code>repeated .rocketmq.BrokerInfo.BrokerAddr brokerAddrs = 2;</code>
-             */
-            public com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr getBrokerAddrs(
-                    int index) {
-                if (brokerAddrsBuilder_ == null) {
-                    return brokerAddrs_.get(index);
-                }
-                else {
-                    return brokerAddrsBuilder_.getMessage(index);
-                }
-            }
-
-
-            /**
-             * <code>repeated .rocketmq.BrokerInfo.BrokerAddr brokerAddrs = 2;</code>
-             */
-            public Builder setBrokerAddrs(int index,
-                    com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr value) {
-                if (brokerAddrsBuilder_ == null) {
-                    if (value == null) {
-                        throw new NullPointerException();
-                    }
-                    ensureBrokerAddrsIsMutable();
-                    brokerAddrs_.set(index, value);
-                    onChanged();
-                }
-                else {
-                    brokerAddrsBuilder_.setMessage(index, value);
-                }
-                return this;
-            }
-
-
-            /**
-             * <code>repeated .rocketmq.BrokerInfo.BrokerAddr brokerAddrs = 2;</code>
-             */
-            public Builder setBrokerAddrs(
-                    int index,
-                    com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr.Builder builderForValue) {
-                if (brokerAddrsBuilder_ == null) {
-                    ensureBrokerAddrsIsMutable();
-                    brokerAddrs_.set(index, builderForValue.build());
-                    onChanged();
-                }
-                else {
-                    brokerAddrsBuilder_.setMessage(index, builderForValue.build());
-                }
-                return this;
-            }
-
-
-            /**
-             * <code>repeated .rocketmq.BrokerInfo.BrokerAddr brokerAddrs = 2;</code>
-             */
-            public Builder addBrokerAddrs(
-                    com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr value) {
-                if (brokerAddrsBuilder_ == null) {
-                    if (value == null) {
-                        throw new NullPointerException();
-                    }
-                    ensureBrokerAddrsIsMutable();
-                    brokerAddrs_.add(value);
-                    onChanged();
-                }
-                else {
-                    brokerAddrsBuilder_.addMessage(value);
-                }
-                return this;
-            }
-
-
-            /**
-             * <code>repeated .rocketmq.BrokerInfo.BrokerAddr brokerAddrs = 2;</code>
-             */
-            public Builder addBrokerAddrs(int index,
-                    com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr value) {
-                if (brokerAddrsBuilder_ == null) {
-                    if (value == null) {
-                        throw new NullPointerException();
-                    }
-                    ensureBrokerAddrsIsMutable();
-                    brokerAddrs_.add(index, value);
-                    onChanged();
-                }
-                else {
-                    brokerAddrsBuilder_.addMessage(index, value);
-                }
-                return this;
-            }
-
-
-            /**
-             * <code>repeated .rocketmq.BrokerInfo.BrokerAddr brokerAddrs = 2;</code>
-             */
-            public Builder addBrokerAddrs(
-                    com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr.Builder builderForValue) {
-                if (brokerAddrsBuilder_ == null) {
-                    ensureBrokerAddrsIsMutable();
-                    brokerAddrs_.add(builderForValue.build());
-                    onChanged();
-                }
-                else {
-                    brokerAddrsBuilder_.addMessage(builderForValue.build());
-                }
-                return this;
-            }
-
-
-            /**
-             * <code>repeated .rocketmq.BrokerInfo.BrokerAddr brokerAddrs = 2;</code>
-             */
-            public Builder addBrokerAddrs(
-                    int index,
-                    com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr.Builder builderForValue) {
-                if (brokerAddrsBuilder_ == null) {
-                    ensureBrokerAddrsIsMutable();
-                    brokerAddrs_.add(index, builderForValue.build());
-                    onChanged();
-                }
-                else {
-                    brokerAddrsBuilder_.addMessage(index, builderForValue.build());
-                }
-                return this;
-            }
-
-
-            /**
-             * <code>repeated .rocketmq.BrokerInfo.BrokerAddr brokerAddrs = 2;</code>
-             */
-            public Builder addAllBrokerAddrs(
-                    java.lang.Iterable<? extends com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr> values) {
-                if (brokerAddrsBuilder_ == null) {
-                    ensureBrokerAddrsIsMutable();
-                    super.addAll(values, brokerAddrs_);
-                    onChanged();
-                }
-                else {
-                    brokerAddrsBuilder_.addAllMessages(values);
-                }
-                return this;
-            }
-
-
-            /**
-             * <code>repeated .rocketmq.BrokerInfo.BrokerAddr brokerAddrs = 2;</code>
-             */
-            public Builder clearBrokerAddrs() {
-                if (brokerAddrsBuilder_ == null) {
-                    brokerAddrs_ = java.util.Collections.emptyList();
-                    bitField0_ = (bitField0_ & ~0x00000002);
-                    onChanged();
-                }
-                else {
-                    brokerAddrsBuilder_.clear();
-                }
-                return this;
-            }
-
-
-            /**
-             * <code>repeated .rocketmq.BrokerInfo.BrokerAddr brokerAddrs = 2;</code>
-             */
-            public Builder removeBrokerAddrs(int index) {
-                if (brokerAddrsBuilder_ == null) {
-                    ensureBrokerAddrsIsMutable();
-                    brokerAddrs_.remove(index);
-                    onChanged();
-                }
-                else {
-                    brokerAddrsBuilder_.remove(index);
-                }
-                return this;
-            }
-
-
-            /**
-             * <code>repeated .rocketmq.BrokerInfo.BrokerAddr brokerAddrs = 2;</code>
-             */
-            public com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr.Builder getBrokerAddrsBuilder(
-                    int index) {
-                return getBrokerAddrsFieldBuilder().getBuilder(index);
-            }
-
-
-            /**
-             * <code>repeated .rocketmq.BrokerInfo.BrokerAddr brokerAddrs = 2;</code>
-             */
-            public com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddrOrBuilder getBrokerAddrsOrBuilder(
-                    int index) {
-                if (brokerAddrsBuilder_ == null) {
-                    return brokerAddrs_.get(index);
-                }
-                else {
-                    return brokerAddrsBuilder_.getMessageOrBuilder(index);
-                }
-            }
-
-
-            /**
-             * <code>repeated .rocketmq.BrokerInfo.BrokerAddr brokerAddrs = 2;</code>
-             */
-            public java.util.List<? extends com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddrOrBuilder> getBrokerAddrsOrBuilderList() {
-                if (brokerAddrsBuilder_ != null) {
-                    return brokerAddrsBuilder_.getMessageOrBuilderList();
-                }
-                else {
-                    return java.util.Collections.unmodifiableList(brokerAddrs_);
-                }
-            }
-
-
-            /**
-             * <code>repeated .rocketmq.BrokerInfo.BrokerAddr brokerAddrs = 2;</code>
-             */
-            public com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr.Builder addBrokerAddrsBuilder() {
-                return getBrokerAddrsFieldBuilder().addBuilder(
-                    com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr.getDefaultInstance());
-            }
-
-
-            /**
-             * <code>repeated .rocketmq.BrokerInfo.BrokerAddr brokerAddrs = 2;</code>
-             */
-            public com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr.Builder addBrokerAddrsBuilder(
-                    int index) {
-                return getBrokerAddrsFieldBuilder().addBuilder(index,
-                    com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr.getDefaultInstance());
-            }
-
-
-            /**
-             * <code>repeated .rocketmq.BrokerInfo.BrokerAddr brokerAddrs = 2;</code>
-             */
-            public java.util.List<com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr.Builder> getBrokerAddrsBuilderList() {
-                return getBrokerAddrsFieldBuilder().getBuilderList();
-            }
-
-
-            private com.google.protobuf.RepeatedFieldBuilder<com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr, com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr.Builder, com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddrOrBuilder> getBrokerAddrsFieldBuilder() {
-                if (brokerAddrsBuilder_ == null) {
-                    brokerAddrsBuilder_ =
-                            new com.google.protobuf.RepeatedFieldBuilder<com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr, com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddr.Builder, com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.BrokerAddrOrBuilder>(
-                                brokerAddrs_, ((bitField0_ & 0x00000002) == 0x00000002),
-                                getParentForChildren(), isClean());
-                    brokerAddrs_ = null;
-                }
-                return brokerAddrsBuilder_;
-            }
-
-            // @@protoc_insertion_point(builder_scope:rocketmq.BrokerInfo)
-        }
-
-        static {
-            defaultInstance = new BrokerInfo(true);
-            defaultInstance.initFields();
-        }
-
-        // @@protoc_insertion_point(class_scope:rocketmq.BrokerInfo)
+      getSerializedSize();
+      if (((bitField0_ & 0x00000001) == 0x00000001)) {
+        output.writeBytes(1, getBrokerNameBytes());
+      }
+      if (((bitField0_ & 0x00000002) == 0x00000002)) {
+        output.writeInt32(2, readQueueNums_);
+      }
+      if (((bitField0_ & 0x00000004) == 0x00000004)) {
+        output.writeInt32(3, writeQueueNums_);
+      }
+      if (((bitField0_ & 0x00000008) == 0x00000008)) {
+        output.writeInt32(4, perm_);
+      }
+      getUnknownFields().writeTo(output);
     }
 
-    public interface QueueInfoOrBuilder extends com.google.protobuf.MessageOrBuilder {
+    private int memoizedSerializedSize = -1;
+    public int getSerializedSize() {
+      int size = memoizedSerializedSize;
+      if (size != -1) return size;
 
-        // required string brokerName = 1;
-        /**
-         * <code>required string brokerName = 1;</code>
-         */
-        boolean hasBrokerName();
-
-
-        /**
-         * <code>required string brokerName = 1;</code>
-         */
-        java.lang.String getBrokerName();
-
-
-        /**
-         * <code>required string brokerName = 1;</code>
-         */
-        com.google.protobuf.ByteString getBrokerNameBytes();
-
-
-        // required int32 readQueueNums = 2;
-        /**
-         * <code>required int32 readQueueNums = 2;</code>
-         */
-        boolean hasReadQueueNums();
-
-
-        /**
-         * <code>required int32 readQueueNums = 2;</code>
-         */
-        int getReadQueueNums();
-
-
-        // required int32 writeQueueNums = 3;
-        /**
-         * <code>required int32 writeQueueNums = 3;</code>
-         */
-        boolean hasWriteQueueNums();
-
-
-        /**
-         * <code>required int32 writeQueueNums = 3;</code>
-         */
-        int getWriteQueueNums();
-
-
-        // required int32 perm = 4;
-        /**
-         * <code>required int32 perm = 4;</code>
-         */
-        boolean hasPerm();
-
-
-        /**
-         * <code>required int32 perm = 4;</code>
-         */
-        int getPerm();
+      size = 0;
+      if (((bitField0_ & 0x00000001) == 0x00000001)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeBytesSize(1, getBrokerNameBytes());
+      }
+      if (((bitField0_ & 0x00000002) == 0x00000002)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeInt32Size(2, readQueueNums_);
+      }
+      if (((bitField0_ & 0x00000004) == 0x00000004)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeInt32Size(3, writeQueueNums_);
+      }
+      if (((bitField0_ & 0x00000008) == 0x00000008)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeInt32Size(4, perm_);
+      }
+      size += getUnknownFields().getSerializedSize();
+      memoizedSerializedSize = size;
+      return size;
     }
 
+    private static final long serialVersionUID = 0L;
+    @java.lang.Override
+    protected java.lang.Object writeReplace()
+        throws java.io.ObjectStreamException {
+      return super.writeReplace();
+    }
+
+    public static com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data);
+    }
+    public static com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data, extensionRegistry);
+    }
+    public static com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data);
+    }
+    public static com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data, extensionRegistry);
+    }
+    public static com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return PARSER.parseFrom(input);
+    }
+    public static com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return PARSER.parseFrom(input, extensionRegistry);
+    }
+    public static com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return PARSER.parseDelimitedFrom(input);
+    }
+    public static com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo parseDelimitedFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return PARSER.parseDelimitedFrom(input, extensionRegistry);
+    }
+    public static com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return PARSER.parseFrom(input);
+    }
+    public static com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return PARSER.parseFrom(input, extensionRegistry);
+    }
+
+    public static Builder newBuilder() { return Builder.create(); }
+    public Builder newBuilderForType() { return newBuilder(); }
+    public static Builder newBuilder(com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo prototype) {
+      return newBuilder().mergeFrom(prototype);
+    }
+    public Builder toBuilder() { return newBuilder(this); }
+
+    @java.lang.Override
+    protected Builder newBuilderForType(
+        com.google.protobuf.GeneratedMessage.BuilderParent parent) {
+      Builder builder = new Builder(parent);
+      return builder;
+    }
     /**
      * Protobuf type {@code rocketmq.QueueInfo}
      */
-    public static final class QueueInfo extends com.google.protobuf.GeneratedMessage implements
-            QueueInfoOrBuilder {
-        // Use QueueInfo.newBuilder() to construct.
-        private QueueInfo(com.google.protobuf.GeneratedMessage.Builder<?> builder) {
-            super(builder);
-            this.unknownFields = builder.getUnknownFields();
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessage.Builder<Builder>
+       implements com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfoOrBuilder {
+      public static final com.google.protobuf.Descriptors.Descriptor
+          getDescriptor() {
+        return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_rocketmq_QueueInfo_descriptor;
+      }
+
+      protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
+          internalGetFieldAccessorTable() {
+        return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_rocketmq_QueueInfo_fieldAccessorTable
+            .ensureFieldAccessorsInitialized(
+                com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo.class, com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo.Builder.class);
+      }
+
+      // Construct using com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo.newBuilder()
+      private Builder() {
+        maybeForceBuilderInitialization();
+      }
+
+      private Builder(
+          com.google.protobuf.GeneratedMessage.BuilderParent parent) {
+        super(parent);
+        maybeForceBuilderInitialization();
+      }
+      private void maybeForceBuilderInitialization() {
+        if (com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders) {
         }
+      }
+      private static Builder create() {
+        return new Builder();
+      }
 
+      public Builder clear() {
+        super.clear();
+        brokerName_ = "";
+        bitField0_ = (bitField0_ & ~0x00000001);
+        readQueueNums_ = 0;
+        bitField0_ = (bitField0_ & ~0x00000002);
+        writeQueueNums_ = 0;
+        bitField0_ = (bitField0_ & ~0x00000004);
+        perm_ = 0;
+        bitField0_ = (bitField0_ & ~0x00000008);
+        return this;
+      }
 
-        private QueueInfo(boolean noInit) {
-            this.unknownFields = com.google.protobuf.UnknownFieldSet.getDefaultInstance();
+      public Builder clone() {
+        return create().mergeFrom(buildPartial());
+      }
+
+      public com.google.protobuf.Descriptors.Descriptor
+          getDescriptorForType() {
+        return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_rocketmq_QueueInfo_descriptor;
+      }
+
+      public com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo getDefaultInstanceForType() {
+        return com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo.getDefaultInstance();
+      }
+
+      public com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo build() {
+        com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo result = buildPartial();
+        if (!result.isInitialized()) {
+          throw newUninitializedMessageException(result);
         }
+        return result;
+      }
 
-        private static final QueueInfo defaultInstance;
-
-
-        public static QueueInfo getDefaultInstance() {
-            return defaultInstance;
+      public com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo buildPartial() {
+        com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo result = new com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo(this);
+        int from_bitField0_ = bitField0_;
+        int to_bitField0_ = 0;
+        if (((from_bitField0_ & 0x00000001) == 0x00000001)) {
+          to_bitField0_ |= 0x00000001;
         }
-
-
-        public QueueInfo getDefaultInstanceForType() {
-            return defaultInstance;
+        result.brokerName_ = brokerName_;
+        if (((from_bitField0_ & 0x00000002) == 0x00000002)) {
+          to_bitField0_ |= 0x00000002;
         }
-
-        private final com.google.protobuf.UnknownFieldSet unknownFields;
-
-
-        @java.lang.Override
-        public final com.google.protobuf.UnknownFieldSet getUnknownFields() {
-            return this.unknownFields;
+        result.readQueueNums_ = readQueueNums_;
+        if (((from_bitField0_ & 0x00000004) == 0x00000004)) {
+          to_bitField0_ |= 0x00000004;
         }
-
-
-        private QueueInfo(com.google.protobuf.CodedInputStream input,
-                com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-                throws com.google.protobuf.InvalidProtocolBufferException {
-            initFields();
-            int mutable_bitField0_ = 0;
-            com.google.protobuf.UnknownFieldSet.Builder unknownFields =
-                    com.google.protobuf.UnknownFieldSet.newBuilder();
-            try {
-                boolean done = false;
-                while (!done) {
-                    int tag = input.readTag();
-                    switch (tag) {
-                    case 0:
-                        done = true;
-                        break;
-                    default: {
-                        if (!parseUnknownField(input, unknownFields, extensionRegistry, tag)) {
-                            done = true;
-                        }
-                        break;
-                    }
-                    case 10: {
-                        bitField0_ |= 0x00000001;
-                        brokerName_ = input.readBytes();
-                        break;
-                    }
-                    case 16: {
-                        bitField0_ |= 0x00000002;
-                        readQueueNums_ = input.readInt32();
-                        break;
-                    }
-                    case 24: {
-                        bitField0_ |= 0x00000004;
-                        writeQueueNums_ = input.readInt32();
-                        break;
-                    }
-                    case 32: {
-                        bitField0_ |= 0x00000008;
-                        perm_ = input.readInt32();
-                        break;
-                    }
-                    }
-                }
-            }
-            catch (com.google.protobuf.InvalidProtocolBufferException e) {
-                throw e.setUnfinishedMessage(this);
-            }
-            catch (java.io.IOException e) {
-                throw new com.google.protobuf.InvalidProtocolBufferException(e.getMessage())
-                    .setUnfinishedMessage(this);
-            }
-            finally {
-                this.unknownFields = unknownFields.build();
-                makeExtensionsImmutable();
-            }
+        result.writeQueueNums_ = writeQueueNums_;
+        if (((from_bitField0_ & 0x00000008) == 0x00000008)) {
+          to_bitField0_ |= 0x00000008;
         }
+        result.perm_ = perm_;
+        result.bitField0_ = to_bitField0_;
+        onBuilt();
+        return result;
+      }
 
-
-        public static final com.google.protobuf.Descriptors.Descriptor getDescriptor() {
-            return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_rocketmq_QueueInfo_descriptor;
+      public Builder mergeFrom(com.google.protobuf.Message other) {
+        if (other instanceof com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo) {
+          return mergeFrom((com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo)other);
+        } else {
+          super.mergeFrom(other);
+          return this;
         }
+      }
 
-
-        protected com.google.protobuf.GeneratedMessage.FieldAccessorTable internalGetFieldAccessorTable() {
-            return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_rocketmq_QueueInfo_fieldAccessorTable
-                .ensureFieldAccessorsInitialized(
-                    com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo.class,
-                    com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo.Builder.class);
+      public Builder mergeFrom(com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo other) {
+        if (other == com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo.getDefaultInstance()) return this;
+        if (other.hasBrokerName()) {
+          bitField0_ |= 0x00000001;
+          brokerName_ = other.brokerName_;
+          onChanged();
         }
-
-        public static com.google.protobuf.Parser<QueueInfo> PARSER =
-                new com.google.protobuf.AbstractParser<QueueInfo>() {
-                    public QueueInfo parsePartialFrom(com.google.protobuf.CodedInputStream input,
-                            com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-                            throws com.google.protobuf.InvalidProtocolBufferException {
-                        return new QueueInfo(input, extensionRegistry);
-                    }
-                };
-
-
-        @java.lang.Override
-        public com.google.protobuf.Parser<QueueInfo> getParserForType() {
-            return PARSER;
+        if (other.hasReadQueueNums()) {
+          setReadQueueNums(other.getReadQueueNums());
         }
-
-        private int bitField0_;
-        // required string brokerName = 1;
-        public static final int BROKERNAME_FIELD_NUMBER = 1;
-        private java.lang.Object brokerName_;
-
-
-        /**
-         * <code>required string brokerName = 1;</code>
-         */
-        public boolean hasBrokerName() {
-            return ((bitField0_ & 0x00000001) == 0x00000001);
+        if (other.hasWriteQueueNums()) {
+          setWriteQueueNums(other.getWriteQueueNums());
         }
-
-
-        /**
-         * <code>required string brokerName = 1;</code>
-         */
-        public java.lang.String getBrokerName() {
-            java.lang.Object ref = brokerName_;
-            if (ref instanceof java.lang.String) {
-                return (java.lang.String) ref;
-            }
-            else {
-                com.google.protobuf.ByteString bs = (com.google.protobuf.ByteString) ref;
-                java.lang.String s = bs.toStringUtf8();
-                if (bs.isValidUtf8()) {
-                    brokerName_ = s;
-                }
-                return s;
-            }
+        if (other.hasPerm()) {
+          setPerm(other.getPerm());
         }
+        this.mergeUnknownFields(other.getUnknownFields());
+        return this;
+      }
 
-
-        /**
-         * <code>required string brokerName = 1;</code>
-         */
-        public com.google.protobuf.ByteString getBrokerNameBytes() {
-            java.lang.Object ref = brokerName_;
-            if (ref instanceof java.lang.String) {
-                com.google.protobuf.ByteString b =
-                        com.google.protobuf.ByteString.copyFromUtf8((java.lang.String) ref);
-                brokerName_ = b;
-                return b;
-            }
-            else {
-                return (com.google.protobuf.ByteString) ref;
-            }
+      public final boolean isInitialized() {
+        if (!hasBrokerName()) {
+          
+          return false;
         }
-
-        // required int32 readQueueNums = 2;
-        public static final int READQUEUENUMS_FIELD_NUMBER = 2;
-        private int readQueueNums_;
-
-
-        /**
-         * <code>required int32 readQueueNums = 2;</code>
-         */
-        public boolean hasReadQueueNums() {
-            return ((bitField0_ & 0x00000002) == 0x00000002);
+        if (!hasReadQueueNums()) {
+          
+          return false;
         }
-
-
-        /**
-         * <code>required int32 readQueueNums = 2;</code>
-         */
-        public int getReadQueueNums() {
-            return readQueueNums_;
+        if (!hasWriteQueueNums()) {
+          
+          return false;
         }
-
-        // required int32 writeQueueNums = 3;
-        public static final int WRITEQUEUENUMS_FIELD_NUMBER = 3;
-        private int writeQueueNums_;
-
-
-        /**
-         * <code>required int32 writeQueueNums = 3;</code>
-         */
-        public boolean hasWriteQueueNums() {
-            return ((bitField0_ & 0x00000004) == 0x00000004);
+        if (!hasPerm()) {
+          
+          return false;
         }
+        return true;
+      }
 
-
-        /**
-         * <code>required int32 writeQueueNums = 3;</code>
-         */
-        public int getWriteQueueNums() {
-            return writeQueueNums_;
+      public Builder mergeFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws java.io.IOException {
+        com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo parsedMessage = null;
+        try {
+          parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
+        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+          parsedMessage = (com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo) e.getUnfinishedMessage();
+          throw e;
+        } finally {
+          if (parsedMessage != null) {
+            mergeFrom(parsedMessage);
+          }
         }
+        return this;
+      }
+      private int bitField0_;
 
-        // required int32 perm = 4;
-        public static final int PERM_FIELD_NUMBER = 4;
-        private int perm_;
-
-
-        /**
-         * <code>required int32 perm = 4;</code>
-         */
-        public boolean hasPerm() {
-            return ((bitField0_ & 0x00000008) == 0x00000008);
+      // required string brokerName = 1;
+      private java.lang.Object brokerName_ = "";
+      /**
+       * <code>required string brokerName = 1;</code>
+       */
+      public boolean hasBrokerName() {
+        return ((bitField0_ & 0x00000001) == 0x00000001);
+      }
+      /**
+       * <code>required string brokerName = 1;</code>
+       */
+      public java.lang.String getBrokerName() {
+        java.lang.Object ref = brokerName_;
+        if (!(ref instanceof java.lang.String)) {
+          java.lang.String s = ((com.google.protobuf.ByteString) ref)
+              .toStringUtf8();
+          brokerName_ = s;
+          return s;
+        } else {
+          return (java.lang.String) ref;
         }
-
-
-        /**
-         * <code>required int32 perm = 4;</code>
-         */
-        public int getPerm() {
-            return perm_;
+      }
+      /**
+       * <code>required string brokerName = 1;</code>
+       */
+      public com.google.protobuf.ByteString
+          getBrokerNameBytes() {
+        java.lang.Object ref = brokerName_;
+        if (ref instanceof String) {
+          com.google.protobuf.ByteString b = 
+              com.google.protobuf.ByteString.copyFromUtf8(
+                  (java.lang.String) ref);
+          brokerName_ = b;
+          return b;
+        } else {
+          return (com.google.protobuf.ByteString) ref;
         }
-
-
-        private void initFields() {
-            brokerName_ = "";
-            readQueueNums_ = 0;
-            writeQueueNums_ = 0;
-            perm_ = 0;
-        }
-
-        private byte memoizedIsInitialized = -1;
-
-
-        public final boolean isInitialized() {
-            byte isInitialized = memoizedIsInitialized;
-            if (isInitialized != -1)
-                return isInitialized == 1;
-
-            if (!hasBrokerName()) {
-                memoizedIsInitialized = 0;
-                return false;
-            }
-            if (!hasReadQueueNums()) {
-                memoizedIsInitialized = 0;
-                return false;
-            }
-            if (!hasWriteQueueNums()) {
-                memoizedIsInitialized = 0;
-                return false;
-            }
-            if (!hasPerm()) {
-                memoizedIsInitialized = 0;
-                return false;
-            }
-            memoizedIsInitialized = 1;
-            return true;
-        }
-
-
-        public void writeTo(com.google.protobuf.CodedOutputStream output) throws java.io.IOException {
-            getSerializedSize();
-            if (((bitField0_ & 0x00000001) == 0x00000001)) {
-                output.writeBytes(1, getBrokerNameBytes());
-            }
-            if (((bitField0_ & 0x00000002) == 0x00000002)) {
-                output.writeInt32(2, readQueueNums_);
-            }
-            if (((bitField0_ & 0x00000004) == 0x00000004)) {
-                output.writeInt32(3, writeQueueNums_);
-            }
-            if (((bitField0_ & 0x00000008) == 0x00000008)) {
-                output.writeInt32(4, perm_);
-            }
-            getUnknownFields().writeTo(output);
-        }
-
-        private int memoizedSerializedSize = -1;
-
-
-        public int getSerializedSize() {
-            int size = memoizedSerializedSize;
-            if (size != -1)
-                return size;
-
-            size = 0;
-            if (((bitField0_ & 0x00000001) == 0x00000001)) {
-                size += com.google.protobuf.CodedOutputStream.computeBytesSize(1, getBrokerNameBytes());
-            }
-            if (((bitField0_ & 0x00000002) == 0x00000002)) {
-                size += com.google.protobuf.CodedOutputStream.computeInt32Size(2, readQueueNums_);
-            }
-            if (((bitField0_ & 0x00000004) == 0x00000004)) {
-                size += com.google.protobuf.CodedOutputStream.computeInt32Size(3, writeQueueNums_);
-            }
-            if (((bitField0_ & 0x00000008) == 0x00000008)) {
-                size += com.google.protobuf.CodedOutputStream.computeInt32Size(4, perm_);
-            }
-            size += getUnknownFields().getSerializedSize();
-            memoizedSerializedSize = size;
-            return size;
-        }
-
-        private static final long serialVersionUID = 0L;
-
-
-        @java.lang.Override
-        protected java.lang.Object writeReplace() throws java.io.ObjectStreamException {
-            return super.writeReplace();
-        }
-
-
-        public static com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo parseFrom(
-                com.google.protobuf.ByteString data)
-                throws com.google.protobuf.InvalidProtocolBufferException {
-            return PARSER.parseFrom(data);
-        }
-
-
-        public static com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo parseFrom(
-                com.google.protobuf.ByteString data,
-                com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-                throws com.google.protobuf.InvalidProtocolBufferException {
-            return PARSER.parseFrom(data, extensionRegistry);
-        }
-
-
-        public static com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo parseFrom(byte[] data)
-                throws com.google.protobuf.InvalidProtocolBufferException {
-            return PARSER.parseFrom(data);
-        }
-
-
-        public static com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo parseFrom(byte[] data,
-                com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-                throws com.google.protobuf.InvalidProtocolBufferException {
-            return PARSER.parseFrom(data, extensionRegistry);
-        }
-
-
-        public static com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo parseFrom(
-                java.io.InputStream input) throws java.io.IOException {
-            return PARSER.parseFrom(input);
-        }
-
-
-        public static com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo parseFrom(
-                java.io.InputStream input, com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-                throws java.io.IOException {
-            return PARSER.parseFrom(input, extensionRegistry);
-        }
-
-
-        public static com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo parseDelimitedFrom(
-                java.io.InputStream input) throws java.io.IOException {
-            return PARSER.parseDelimitedFrom(input);
-        }
-
-
-        public static com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo parseDelimitedFrom(
-                java.io.InputStream input, com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-                throws java.io.IOException {
-            return PARSER.parseDelimitedFrom(input, extensionRegistry);
-        }
-
-
-        public static com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo parseFrom(
-                com.google.protobuf.CodedInputStream input) throws java.io.IOException {
-            return PARSER.parseFrom(input);
-        }
-
-
-        public static com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo parseFrom(
-                com.google.protobuf.CodedInputStream input,
-                com.google.protobuf.ExtensionRegistryLite extensionRegistry) throws java.io.IOException {
-            return PARSER.parseFrom(input, extensionRegistry);
-        }
-
-
-        public static Builder newBuilder() {
-            return Builder.create();
-        }
-
-
-        public Builder newBuilderForType() {
-            return newBuilder();
-        }
-
-
-        public static Builder newBuilder(com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo prototype) {
-            return newBuilder().mergeFrom(prototype);
-        }
-
-
-        public Builder toBuilder() {
-            return newBuilder(this);
-        }
-
-
-        @java.lang.Override
-        protected Builder newBuilderForType(com.google.protobuf.GeneratedMessage.BuilderParent parent) {
-            Builder builder = new Builder(parent);
-            return builder;
-        }
-
-        /**
-         * Protobuf type {@code rocketmq.QueueInfo}
-         */
-        public static final class Builder extends com.google.protobuf.GeneratedMessage.Builder<Builder>
-                implements com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfoOrBuilder {
-            public static final com.google.protobuf.Descriptors.Descriptor getDescriptor() {
-                return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_rocketmq_QueueInfo_descriptor;
-            }
-
-
-            protected com.google.protobuf.GeneratedMessage.FieldAccessorTable internalGetFieldAccessorTable() {
-                return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_rocketmq_QueueInfo_fieldAccessorTable
-                    .ensureFieldAccessorsInitialized(
-                        com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo.class,
-                        com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo.Builder.class);
-            }
-
-
-            // Construct using
-            // com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo.newBuilder()
-            private Builder() {
-                maybeForceBuilderInitialization();
-            }
-
-
-            private Builder(com.google.protobuf.GeneratedMessage.BuilderParent parent) {
-                super(parent);
-                maybeForceBuilderInitialization();
-            }
-
-
-            private void maybeForceBuilderInitialization() {
-                if (com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders) {
-                }
-            }
-
-
-            private static Builder create() {
-                return new Builder();
-            }
-
-
-            public Builder clear() {
-                super.clear();
-                brokerName_ = "";
-                bitField0_ = (bitField0_ & ~0x00000001);
-                readQueueNums_ = 0;
-                bitField0_ = (bitField0_ & ~0x00000002);
-                writeQueueNums_ = 0;
-                bitField0_ = (bitField0_ & ~0x00000004);
-                perm_ = 0;
-                bitField0_ = (bitField0_ & ~0x00000008);
-                return this;
-            }
-
-
-            public Builder clone() {
-                return create().mergeFrom(buildPartial());
-            }
-
-
-            public com.google.protobuf.Descriptors.Descriptor getDescriptorForType() {
-                return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_rocketmq_QueueInfo_descriptor;
-            }
-
-
-            public com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo getDefaultInstanceForType() {
-                return com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo.getDefaultInstance();
-            }
-
-
-            public com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo build() {
-                com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo result = buildPartial();
-                if (!result.isInitialized()) {
-                    throw newUninitializedMessageException(result);
-                }
-                return result;
-            }
-
-
-            public com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo buildPartial() {
-                com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo result =
-                        new com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo(this);
-                int from_bitField0_ = bitField0_;
-                int to_bitField0_ = 0;
-                if (((from_bitField0_ & 0x00000001) == 0x00000001)) {
-                    to_bitField0_ |= 0x00000001;
-                }
-                result.brokerName_ = brokerName_;
-                if (((from_bitField0_ & 0x00000002) == 0x00000002)) {
-                    to_bitField0_ |= 0x00000002;
-                }
-                result.readQueueNums_ = readQueueNums_;
-                if (((from_bitField0_ & 0x00000004) == 0x00000004)) {
-                    to_bitField0_ |= 0x00000004;
-                }
-                result.writeQueueNums_ = writeQueueNums_;
-                if (((from_bitField0_ & 0x00000008) == 0x00000008)) {
-                    to_bitField0_ |= 0x00000008;
-                }
-                result.perm_ = perm_;
-                result.bitField0_ = to_bitField0_;
-                onBuilt();
-                return result;
-            }
-
-
-            public Builder mergeFrom(com.google.protobuf.Message other) {
-                if (other instanceof com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo) {
-                    return mergeFrom((com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo) other);
-                }
-                else {
-                    super.mergeFrom(other);
-                    return this;
-                }
-            }
-
-
-            public Builder mergeFrom(com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo other) {
-                if (other == com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo.getDefaultInstance())
-                    return this;
-                if (other.hasBrokerName()) {
-                    bitField0_ |= 0x00000001;
-                    brokerName_ = other.brokerName_;
-                    onChanged();
-                }
-                if (other.hasReadQueueNums()) {
-                    setReadQueueNums(other.getReadQueueNums());
-                }
-                if (other.hasWriteQueueNums()) {
-                    setWriteQueueNums(other.getWriteQueueNums());
-                }
-                if (other.hasPerm()) {
-                    setPerm(other.getPerm());
-                }
-                this.mergeUnknownFields(other.getUnknownFields());
-                return this;
-            }
-
-
-            public final boolean isInitialized() {
-                if (!hasBrokerName()) {
-
-                    return false;
-                }
-                if (!hasReadQueueNums()) {
-
-                    return false;
-                }
-                if (!hasWriteQueueNums()) {
-
-                    return false;
-                }
-                if (!hasPerm()) {
-
-                    return false;
-                }
-                return true;
-            }
-
-
-            public Builder mergeFrom(com.google.protobuf.CodedInputStream input,
-                    com.google.protobuf.ExtensionRegistryLite extensionRegistry) throws java.io.IOException {
-                com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo parsedMessage = null;
-                try {
-                    parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
-                }
-                catch (com.google.protobuf.InvalidProtocolBufferException e) {
-                    parsedMessage =
-                            (com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo) e
-                                .getUnfinishedMessage();
-                    throw e;
-                }
-                finally {
-                    if (parsedMessage != null) {
-                        mergeFrom(parsedMessage);
-                    }
-                }
-                return this;
-            }
-
-            private int bitField0_;
-
-            // required string brokerName = 1;
-            private java.lang.Object brokerName_ = "";
-
-
-            /**
-             * <code>required string brokerName = 1;</code>
-             */
-            public boolean hasBrokerName() {
-                return ((bitField0_ & 0x00000001) == 0x00000001);
-            }
-
-
-            /**
-             * <code>required string brokerName = 1;</code>
-             */
-            public java.lang.String getBrokerName() {
-                java.lang.Object ref = brokerName_;
-                if (!(ref instanceof java.lang.String)) {
-                    java.lang.String s = ((com.google.protobuf.ByteString) ref).toStringUtf8();
-                    brokerName_ = s;
-                    return s;
-                }
-                else {
-                    return (java.lang.String) ref;
-                }
-            }
-
-
-            /**
-             * <code>required string brokerName = 1;</code>
-             */
-            public com.google.protobuf.ByteString getBrokerNameBytes() {
-                java.lang.Object ref = brokerName_;
-                if (ref instanceof String) {
-                    com.google.protobuf.ByteString b =
-                            com.google.protobuf.ByteString.copyFromUtf8((java.lang.String) ref);
-                    brokerName_ = b;
-                    return b;
-                }
-                else {
-                    return (com.google.protobuf.ByteString) ref;
-                }
-            }
-
-
-            /**
-             * <code>required string brokerName = 1;</code>
-             */
-            public Builder setBrokerName(java.lang.String value) {
-                if (value == null) {
-                    throw new NullPointerException();
-                }
-                bitField0_ |= 0x00000001;
-                brokerName_ = value;
-                onChanged();
-                return this;
-            }
-
-
-            /**
-             * <code>required string brokerName = 1;</code>
-             */
-            public Builder clearBrokerName() {
-                bitField0_ = (bitField0_ & ~0x00000001);
-                brokerName_ = getDefaultInstance().getBrokerName();
-                onChanged();
-                return this;
-            }
-
-
-            /**
-             * <code>required string brokerName = 1;</code>
-             */
-            public Builder setBrokerNameBytes(com.google.protobuf.ByteString value) {
-                if (value == null) {
-                    throw new NullPointerException();
-                }
-                bitField0_ |= 0x00000001;
-                brokerName_ = value;
-                onChanged();
-                return this;
-            }
-
-            // required int32 readQueueNums = 2;
-            private int readQueueNums_;
-
-
-            /**
-             * <code>required int32 readQueueNums = 2;</code>
-             */
-            public boolean hasReadQueueNums() {
-                return ((bitField0_ & 0x00000002) == 0x00000002);
-            }
-
-
-            /**
-             * <code>required int32 readQueueNums = 2;</code>
-             */
-            public int getReadQueueNums() {
-                return readQueueNums_;
-            }
-
-
-            /**
-             * <code>required int32 readQueueNums = 2;</code>
-             */
-            public Builder setReadQueueNums(int value) {
-                bitField0_ |= 0x00000002;
-                readQueueNums_ = value;
-                onChanged();
-                return this;
-            }
-
-
-            /**
-             * <code>required int32 readQueueNums = 2;</code>
-             */
-            public Builder clearReadQueueNums() {
-                bitField0_ = (bitField0_ & ~0x00000002);
-                readQueueNums_ = 0;
-                onChanged();
-                return this;
-            }
-
-            // required int32 writeQueueNums = 3;
-            private int writeQueueNums_;
-
-
-            /**
-             * <code>required int32 writeQueueNums = 3;</code>
-             */
-            public boolean hasWriteQueueNums() {
-                return ((bitField0_ & 0x00000004) == 0x00000004);
-            }
-
-
-            /**
-             * <code>required int32 writeQueueNums = 3;</code>
-             */
-            public int getWriteQueueNums() {
-                return writeQueueNums_;
-            }
-
-
-            /**
-             * <code>required int32 writeQueueNums = 3;</code>
-             */
-            public Builder setWriteQueueNums(int value) {
-                bitField0_ |= 0x00000004;
-                writeQueueNums_ = value;
-                onChanged();
-                return this;
-            }
-
-
-            /**
-             * <code>required int32 writeQueueNums = 3;</code>
-             */
-            public Builder clearWriteQueueNums() {
-                bitField0_ = (bitField0_ & ~0x00000004);
-                writeQueueNums_ = 0;
-                onChanged();
-                return this;
-            }
-
-            // required int32 perm = 4;
-            private int perm_;
-
-
-            /**
-             * <code>required int32 perm = 4;</code>
-             */
-            public boolean hasPerm() {
-                return ((bitField0_ & 0x00000008) == 0x00000008);
-            }
-
-
-            /**
-             * <code>required int32 perm = 4;</code>
-             */
-            public int getPerm() {
-                return perm_;
-            }
-
-
-            /**
-             * <code>required int32 perm = 4;</code>
-             */
-            public Builder setPerm(int value) {
-                bitField0_ |= 0x00000008;
-                perm_ = value;
-                onChanged();
-                return this;
-            }
-
-
-            /**
-             * <code>required int32 perm = 4;</code>
-             */
-            public Builder clearPerm() {
-                bitField0_ = (bitField0_ & ~0x00000008);
-                perm_ = 0;
-                onChanged();
-                return this;
-            }
-
-            // @@protoc_insertion_point(builder_scope:rocketmq.QueueInfo)
-        }
-
-        static {
-            defaultInstance = new QueueInfo(true);
-            defaultInstance.initFields();
-        }
-
-        // @@protoc_insertion_point(class_scope:rocketmq.QueueInfo)
+      }
+      /**
+       * <code>required string brokerName = 1;</code>
+       */
+      public Builder setBrokerName(
+          java.lang.String value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  bitField0_ |= 0x00000001;
+        brokerName_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>required string brokerName = 1;</code>
+       */
+      public Builder clearBrokerName() {
+        bitField0_ = (bitField0_ & ~0x00000001);
+        brokerName_ = getDefaultInstance().getBrokerName();
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>required string brokerName = 1;</code>
+       */
+      public Builder setBrokerNameBytes(
+          com.google.protobuf.ByteString value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  bitField0_ |= 0x00000001;
+        brokerName_ = value;
+        onChanged();
+        return this;
+      }
+
+      // required int32 readQueueNums = 2;
+      private int readQueueNums_ ;
+      /**
+       * <code>required int32 readQueueNums = 2;</code>
+       */
+      public boolean hasReadQueueNums() {
+        return ((bitField0_ & 0x00000002) == 0x00000002);
+      }
+      /**
+       * <code>required int32 readQueueNums = 2;</code>
+       */
+      public int getReadQueueNums() {
+        return readQueueNums_;
+      }
+      /**
+       * <code>required int32 readQueueNums = 2;</code>
+       */
+      public Builder setReadQueueNums(int value) {
+        bitField0_ |= 0x00000002;
+        readQueueNums_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>required int32 readQueueNums = 2;</code>
+       */
+      public Builder clearReadQueueNums() {
+        bitField0_ = (bitField0_ & ~0x00000002);
+        readQueueNums_ = 0;
+        onChanged();
+        return this;
+      }
+
+      // required int32 writeQueueNums = 3;
+      private int writeQueueNums_ ;
+      /**
+       * <code>required int32 writeQueueNums = 3;</code>
+       */
+      public boolean hasWriteQueueNums() {
+        return ((bitField0_ & 0x00000004) == 0x00000004);
+      }
+      /**
+       * <code>required int32 writeQueueNums = 3;</code>
+       */
+      public int getWriteQueueNums() {
+        return writeQueueNums_;
+      }
+      /**
+       * <code>required int32 writeQueueNums = 3;</code>
+       */
+      public Builder setWriteQueueNums(int value) {
+        bitField0_ |= 0x00000004;
+        writeQueueNums_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>required int32 writeQueueNums = 3;</code>
+       */
+      public Builder clearWriteQueueNums() {
+        bitField0_ = (bitField0_ & ~0x00000004);
+        writeQueueNums_ = 0;
+        onChanged();
+        return this;
+      }
+
+      // required int32 perm = 4;
+      private int perm_ ;
+      /**
+       * <code>required int32 perm = 4;</code>
+       */
+      public boolean hasPerm() {
+        return ((bitField0_ & 0x00000008) == 0x00000008);
+      }
+      /**
+       * <code>required int32 perm = 4;</code>
+       */
+      public int getPerm() {
+        return perm_;
+      }
+      /**
+       * <code>required int32 perm = 4;</code>
+       */
+      public Builder setPerm(int value) {
+        bitField0_ |= 0x00000008;
+        perm_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>required int32 perm = 4;</code>
+       */
+      public Builder clearPerm() {
+        bitField0_ = (bitField0_ & ~0x00000008);
+        perm_ = 0;
+        onChanged();
+        return this;
+      }
+
+      // @@protoc_insertion_point(builder_scope:rocketmq.QueueInfo)
     }
 
-    public interface TopicRouteInfoOrBuilder extends com.google.protobuf.MessageOrBuilder {
-
-        // repeated .rocketmq.QueueInfo queueInfos = 1;
-        /**
-         * <code>repeated .rocketmq.QueueInfo queueInfos = 1;</code>
-         */
-        java.util.List<com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo> getQueueInfosList();
-
-
-        /**
-         * <code>repeated .rocketmq.QueueInfo queueInfos = 1;</code>
-         */
-        com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo getQueueInfos(int index);
-
-
-        /**
-         * <code>repeated .rocketmq.QueueInfo queueInfos = 1;</code>
-         */
-        int getQueueInfosCount();
-
-
-        /**
-         * <code>repeated .rocketmq.QueueInfo queueInfos = 1;</code>
-         */
-        java.util.List<? extends com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfoOrBuilder> getQueueInfosOrBuilderList();
-
-
-        /**
-         * <code>repeated .rocketmq.QueueInfo queueInfos = 1;</code>
-         */
-        com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfoOrBuilder getQueueInfosOrBuilder(int index);
-
-
-        // repeated .rocketmq.BrokerInfo brokerInfos = 2;
-        /**
-         * <code>repeated .rocketmq.BrokerInfo brokerInfos = 2;</code>
-         */
-        java.util.List<com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo> getBrokerInfosList();
-
-
-        /**
-         * <code>repeated .rocketmq.BrokerInfo brokerInfos = 2;</code>
-         */
-        com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo getBrokerInfos(int index);
-
-
-        /**
-         * <code>repeated .rocketmq.BrokerInfo brokerInfos = 2;</code>
-         */
-        int getBrokerInfosCount();
-
-
-        /**
-         * <code>repeated .rocketmq.BrokerInfo brokerInfos = 2;</code>
-         */
-        java.util.List<? extends com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfoOrBuilder> getBrokerInfosOrBuilderList();
-
-
-        /**
-         * <code>repeated .rocketmq.BrokerInfo brokerInfos = 2;</code>
-         */
-        com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfoOrBuilder getBrokerInfosOrBuilder(int index);
-
-
-        // optional string orderTopicConf = 3;
-        /**
-         * <code>optional string orderTopicConf = 3;</code>
-         */
-        boolean hasOrderTopicConf();
-
-
-        /**
-         * <code>optional string orderTopicConf = 3;</code>
-         */
-        java.lang.String getOrderTopicConf();
-
-
-        /**
-         * <code>optional string orderTopicConf = 3;</code>
-         */
-        com.google.protobuf.ByteString getOrderTopicConfBytes();
+    static {
+      defaultInstance = new QueueInfo(true);
+      defaultInstance.initFields();
     }
 
+    // @@protoc_insertion_point(class_scope:rocketmq.QueueInfo)
+  }
+
+  public interface TopicRouteInfoOrBuilder
+      extends com.google.protobuf.MessageOrBuilder {
+
+    // repeated .rocketmq.QueueInfo queueInfos = 1;
+    /**
+     * <code>repeated .rocketmq.QueueInfo queueInfos = 1;</code>
+     */
+    java.util.List<com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo> 
+        getQueueInfosList();
+    /**
+     * <code>repeated .rocketmq.QueueInfo queueInfos = 1;</code>
+     */
+    com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo getQueueInfos(int index);
+    /**
+     * <code>repeated .rocketmq.QueueInfo queueInfos = 1;</code>
+     */
+    int getQueueInfosCount();
+    /**
+     * <code>repeated .rocketmq.QueueInfo queueInfos = 1;</code>
+     */
+    java.util.List<? extends com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfoOrBuilder> 
+        getQueueInfosOrBuilderList();
+    /**
+     * <code>repeated .rocketmq.QueueInfo queueInfos = 1;</code>
+     */
+    com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfoOrBuilder getQueueInfosOrBuilder(
+        int index);
+
+    // repeated .rocketmq.BrokerInfo brokerInfos = 2;
+    /**
+     * <code>repeated .rocketmq.BrokerInfo brokerInfos = 2;</code>
+     */
+    java.util.List<com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo> 
+        getBrokerInfosList();
+    /**
+     * <code>repeated .rocketmq.BrokerInfo brokerInfos = 2;</code>
+     */
+    com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo getBrokerInfos(int index);
+    /**
+     * <code>repeated .rocketmq.BrokerInfo brokerInfos = 2;</code>
+     */
+    int getBrokerInfosCount();
+    /**
+     * <code>repeated .rocketmq.BrokerInfo brokerInfos = 2;</code>
+     */
+    java.util.List<? extends com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfoOrBuilder> 
+        getBrokerInfosOrBuilderList();
+    /**
+     * <code>repeated .rocketmq.BrokerInfo brokerInfos = 2;</code>
+     */
+    com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfoOrBuilder getBrokerInfosOrBuilder(
+        int index);
+
+    // optional string orderTopicConf = 3;
+    /**
+     * <code>optional string orderTopicConf = 3;</code>
+     */
+    boolean hasOrderTopicConf();
+    /**
+     * <code>optional string orderTopicConf = 3;</code>
+     */
+    java.lang.String getOrderTopicConf();
+    /**
+     * <code>optional string orderTopicConf = 3;</code>
+     */
+    com.google.protobuf.ByteString
+        getOrderTopicConfBytes();
+  }
+  /**
+   * Protobuf type {@code rocketmq.TopicRouteInfo}
+   */
+  public static final class TopicRouteInfo extends
+      com.google.protobuf.GeneratedMessage
+      implements TopicRouteInfoOrBuilder {
+    // Use TopicRouteInfo.newBuilder() to construct.
+    private TopicRouteInfo(com.google.protobuf.GeneratedMessage.Builder<?> builder) {
+      super(builder);
+      this.unknownFields = builder.getUnknownFields();
+    }
+    private TopicRouteInfo(boolean noInit) { this.unknownFields = com.google.protobuf.UnknownFieldSet.getDefaultInstance(); }
+
+    private static final TopicRouteInfo defaultInstance;
+    public static TopicRouteInfo getDefaultInstance() {
+      return defaultInstance;
+    }
+
+    public TopicRouteInfo getDefaultInstanceForType() {
+      return defaultInstance;
+    }
+
+    private final com.google.protobuf.UnknownFieldSet unknownFields;
+    @java.lang.Override
+    public final com.google.protobuf.UnknownFieldSet
+        getUnknownFields() {
+      return this.unknownFields;
+    }
+    private TopicRouteInfo(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      initFields();
+      int mutable_bitField0_ = 0;
+      com.google.protobuf.UnknownFieldSet.Builder unknownFields =
+          com.google.protobuf.UnknownFieldSet.newBuilder();
+      try {
+        boolean done = false;
+        while (!done) {
+          int tag = input.readTag();
+          switch (tag) {
+            case 0:
+              done = true;
+              break;
+            default: {
+              if (!parseUnknownField(input, unknownFields,
+                                     extensionRegistry, tag)) {
+                done = true;
+              }
+              break;
+            }
+            case 10: {
+              if (!((mutable_bitField0_ & 0x00000001) == 0x00000001)) {
+                queueInfos_ = new java.util.ArrayList<com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo>();
+                mutable_bitField0_ |= 0x00000001;
+              }
+              queueInfos_.add(input.readMessage(com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo.PARSER, extensionRegistry));
+              break;
+            }
+            case 18: {
+              if (!((mutable_bitField0_ & 0x00000002) == 0x00000002)) {
+                brokerInfos_ = new java.util.ArrayList<com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo>();
+                mutable_bitField0_ |= 0x00000002;
+              }
+              brokerInfos_.add(input.readMessage(com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.PARSER, extensionRegistry));
+              break;
+            }
+            case 26: {
+              bitField0_ |= 0x00000001;
+              orderTopicConf_ = input.readBytes();
+              break;
+            }
+          }
+        }
+      } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+        throw e.setUnfinishedMessage(this);
+      } catch (java.io.IOException e) {
+        throw new com.google.protobuf.InvalidProtocolBufferException(
+            e.getMessage()).setUnfinishedMessage(this);
+      } finally {
+        if (((mutable_bitField0_ & 0x00000001) == 0x00000001)) {
+          queueInfos_ = java.util.Collections.unmodifiableList(queueInfos_);
+        }
+        if (((mutable_bitField0_ & 0x00000002) == 0x00000002)) {
+          brokerInfos_ = java.util.Collections.unmodifiableList(brokerInfos_);
+        }
+        this.unknownFields = unknownFields.build();
+        makeExtensionsImmutable();
+      }
+    }
+    public static final com.google.protobuf.Descriptors.Descriptor
+        getDescriptor() {
+      return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_rocketmq_TopicRouteInfo_descriptor;
+    }
+
+    protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
+        internalGetFieldAccessorTable() {
+      return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_rocketmq_TopicRouteInfo_fieldAccessorTable
+          .ensureFieldAccessorsInitialized(
+              com.alibaba.rocketmq.common.protocol.MQProtos.TopicRouteInfo.class, com.alibaba.rocketmq.common.protocol.MQProtos.TopicRouteInfo.Builder.class);
+    }
+
+    public static com.google.protobuf.Parser<TopicRouteInfo> PARSER =
+        new com.google.protobuf.AbstractParser<TopicRouteInfo>() {
+      public TopicRouteInfo parsePartialFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        return new TopicRouteInfo(input, extensionRegistry);
+      }
+    };
+
+    @java.lang.Override
+    public com.google.protobuf.Parser<TopicRouteInfo> getParserForType() {
+      return PARSER;
+    }
+
+    private int bitField0_;
+    // repeated .rocketmq.QueueInfo queueInfos = 1;
+    public static final int QUEUEINFOS_FIELD_NUMBER = 1;
+    private java.util.List<com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo> queueInfos_;
+    /**
+     * <code>repeated .rocketmq.QueueInfo queueInfos = 1;</code>
+     */
+    public java.util.List<com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo> getQueueInfosList() {
+      return queueInfos_;
+    }
+    /**
+     * <code>repeated .rocketmq.QueueInfo queueInfos = 1;</code>
+     */
+    public java.util.List<? extends com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfoOrBuilder> 
+        getQueueInfosOrBuilderList() {
+      return queueInfos_;
+    }
+    /**
+     * <code>repeated .rocketmq.QueueInfo queueInfos = 1;</code>
+     */
+    public int getQueueInfosCount() {
+      return queueInfos_.size();
+    }
+    /**
+     * <code>repeated .rocketmq.QueueInfo queueInfos = 1;</code>
+     */
+    public com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo getQueueInfos(int index) {
+      return queueInfos_.get(index);
+    }
+    /**
+     * <code>repeated .rocketmq.QueueInfo queueInfos = 1;</code>
+     */
+    public com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfoOrBuilder getQueueInfosOrBuilder(
+        int index) {
+      return queueInfos_.get(index);
+    }
+
+    // repeated .rocketmq.BrokerInfo brokerInfos = 2;
+    public static final int BROKERINFOS_FIELD_NUMBER = 2;
+    private java.util.List<com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo> brokerInfos_;
+    /**
+     * <code>repeated .rocketmq.BrokerInfo brokerInfos = 2;</code>
+     */
+    public java.util.List<com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo> getBrokerInfosList() {
+      return brokerInfos_;
+    }
+    /**
+     * <code>repeated .rocketmq.BrokerInfo brokerInfos = 2;</code>
+     */
+    public java.util.List<? extends com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfoOrBuilder> 
+        getBrokerInfosOrBuilderList() {
+      return brokerInfos_;
+    }
+    /**
+     * <code>repeated .rocketmq.BrokerInfo brokerInfos = 2;</code>
+     */
+    public int getBrokerInfosCount() {
+      return brokerInfos_.size();
+    }
+    /**
+     * <code>repeated .rocketmq.BrokerInfo brokerInfos = 2;</code>
+     */
+    public com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo getBrokerInfos(int index) {
+      return brokerInfos_.get(index);
+    }
+    /**
+     * <code>repeated .rocketmq.BrokerInfo brokerInfos = 2;</code>
+     */
+    public com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfoOrBuilder getBrokerInfosOrBuilder(
+        int index) {
+      return brokerInfos_.get(index);
+    }
+
+    // optional string orderTopicConf = 3;
+    public static final int ORDERTOPICCONF_FIELD_NUMBER = 3;
+    private java.lang.Object orderTopicConf_;
+    /**
+     * <code>optional string orderTopicConf = 3;</code>
+     */
+    public boolean hasOrderTopicConf() {
+      return ((bitField0_ & 0x00000001) == 0x00000001);
+    }
+    /**
+     * <code>optional string orderTopicConf = 3;</code>
+     */
+    public java.lang.String getOrderTopicConf() {
+      java.lang.Object ref = orderTopicConf_;
+      if (ref instanceof java.lang.String) {
+        return (java.lang.String) ref;
+      } else {
+        com.google.protobuf.ByteString bs = 
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        if (bs.isValidUtf8()) {
+          orderTopicConf_ = s;
+        }
+        return s;
+      }
+    }
+    /**
+     * <code>optional string orderTopicConf = 3;</code>
+     */
+    public com.google.protobuf.ByteString
+        getOrderTopicConfBytes() {
+      java.lang.Object ref = orderTopicConf_;
+      if (ref instanceof java.lang.String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        orderTopicConf_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+
+    private void initFields() {
+      queueInfos_ = java.util.Collections.emptyList();
+      brokerInfos_ = java.util.Collections.emptyList();
+      orderTopicConf_ = "";
+    }
+    private byte memoizedIsInitialized = -1;
+    public final boolean isInitialized() {
+      byte isInitialized = memoizedIsInitialized;
+      if (isInitialized != -1) return isInitialized == 1;
+
+      for (int i = 0; i < getQueueInfosCount(); i++) {
+        if (!getQueueInfos(i).isInitialized()) {
+          memoizedIsInitialized = 0;
+          return false;
+        }
+      }
+      for (int i = 0; i < getBrokerInfosCount(); i++) {
+        if (!getBrokerInfos(i).isInitialized()) {
+          memoizedIsInitialized = 0;
+          return false;
+        }
+      }
+      memoizedIsInitialized = 1;
+      return true;
+    }
+
+    public void writeTo(com.google.protobuf.CodedOutputStream output)
+                        throws java.io.IOException {
+      getSerializedSize();
+      for (int i = 0; i < queueInfos_.size(); i++) {
+        output.writeMessage(1, queueInfos_.get(i));
+      }
+      for (int i = 0; i < brokerInfos_.size(); i++) {
+        output.writeMessage(2, brokerInfos_.get(i));
+      }
+      if (((bitField0_ & 0x00000001) == 0x00000001)) {
+        output.writeBytes(3, getOrderTopicConfBytes());
+      }
+      getUnknownFields().writeTo(output);
+    }
+
+    private int memoizedSerializedSize = -1;
+    public int getSerializedSize() {
+      int size = memoizedSerializedSize;
+      if (size != -1) return size;
+
+      size = 0;
+      for (int i = 0; i < queueInfos_.size(); i++) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeMessageSize(1, queueInfos_.get(i));
+      }
+      for (int i = 0; i < brokerInfos_.size(); i++) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeMessageSize(2, brokerInfos_.get(i));
+      }
+      if (((bitField0_ & 0x00000001) == 0x00000001)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeBytesSize(3, getOrderTopicConfBytes());
+      }
+      size += getUnknownFields().getSerializedSize();
+      memoizedSerializedSize = size;
+      return size;
+    }
+
+    private static final long serialVersionUID = 0L;
+    @java.lang.Override
+    protected java.lang.Object writeReplace()
+        throws java.io.ObjectStreamException {
+      return super.writeReplace();
+    }
+
+    public static com.alibaba.rocketmq.common.protocol.MQProtos.TopicRouteInfo parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data);
+    }
+    public static com.alibaba.rocketmq.common.protocol.MQProtos.TopicRouteInfo parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data, extensionRegistry);
+    }
+    public static com.alibaba.rocketmq.common.protocol.MQProtos.TopicRouteInfo parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data);
+    }
+    public static com.alibaba.rocketmq.common.protocol.MQProtos.TopicRouteInfo parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data, extensionRegistry);
+    }
+    public static com.alibaba.rocketmq.common.protocol.MQProtos.TopicRouteInfo parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return PARSER.parseFrom(input);
+    }
+    public static com.alibaba.rocketmq.common.protocol.MQProtos.TopicRouteInfo parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return PARSER.parseFrom(input, extensionRegistry);
+    }
+    public static com.alibaba.rocketmq.common.protocol.MQProtos.TopicRouteInfo parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return PARSER.parseDelimitedFrom(input);
+    }
+    public static com.alibaba.rocketmq.common.protocol.MQProtos.TopicRouteInfo parseDelimitedFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return PARSER.parseDelimitedFrom(input, extensionRegistry);
+    }
+    public static com.alibaba.rocketmq.common.protocol.MQProtos.TopicRouteInfo parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return PARSER.parseFrom(input);
+    }
+    public static com.alibaba.rocketmq.common.protocol.MQProtos.TopicRouteInfo parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return PARSER.parseFrom(input, extensionRegistry);
+    }
+
+    public static Builder newBuilder() { return Builder.create(); }
+    public Builder newBuilderForType() { return newBuilder(); }
+    public static Builder newBuilder(com.alibaba.rocketmq.common.protocol.MQProtos.TopicRouteInfo prototype) {
+      return newBuilder().mergeFrom(prototype);
+    }
+    public Builder toBuilder() { return newBuilder(this); }
+
+    @java.lang.Override
+    protected Builder newBuilderForType(
+        com.google.protobuf.GeneratedMessage.BuilderParent parent) {
+      Builder builder = new Builder(parent);
+      return builder;
+    }
     /**
      * Protobuf type {@code rocketmq.TopicRouteInfo}
      */
-    public static final class TopicRouteInfo extends com.google.protobuf.GeneratedMessage implements
-            TopicRouteInfoOrBuilder {
-        // Use TopicRouteInfo.newBuilder() to construct.
-        private TopicRouteInfo(com.google.protobuf.GeneratedMessage.Builder<?> builder) {
-            super(builder);
-            this.unknownFields = builder.getUnknownFields();
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessage.Builder<Builder>
+       implements com.alibaba.rocketmq.common.protocol.MQProtos.TopicRouteInfoOrBuilder {
+      public static final com.google.protobuf.Descriptors.Descriptor
+          getDescriptor() {
+        return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_rocketmq_TopicRouteInfo_descriptor;
+      }
+
+      protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
+          internalGetFieldAccessorTable() {
+        return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_rocketmq_TopicRouteInfo_fieldAccessorTable
+            .ensureFieldAccessorsInitialized(
+                com.alibaba.rocketmq.common.protocol.MQProtos.TopicRouteInfo.class, com.alibaba.rocketmq.common.protocol.MQProtos.TopicRouteInfo.Builder.class);
+      }
+
+      // Construct using com.alibaba.rocketmq.common.protocol.MQProtos.TopicRouteInfo.newBuilder()
+      private Builder() {
+        maybeForceBuilderInitialization();
+      }
+
+      private Builder(
+          com.google.protobuf.GeneratedMessage.BuilderParent parent) {
+        super(parent);
+        maybeForceBuilderInitialization();
+      }
+      private void maybeForceBuilderInitialization() {
+        if (com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders) {
+          getQueueInfosFieldBuilder();
+          getBrokerInfosFieldBuilder();
         }
+      }
+      private static Builder create() {
+        return new Builder();
+      }
 
-
-        private TopicRouteInfo(boolean noInit) {
-            this.unknownFields = com.google.protobuf.UnknownFieldSet.getDefaultInstance();
+      public Builder clear() {
+        super.clear();
+        if (queueInfosBuilder_ == null) {
+          queueInfos_ = java.util.Collections.emptyList();
+          bitField0_ = (bitField0_ & ~0x00000001);
+        } else {
+          queueInfosBuilder_.clear();
         }
-
-        private static final TopicRouteInfo defaultInstance;
-
-
-        public static TopicRouteInfo getDefaultInstance() {
-            return defaultInstance;
+        if (brokerInfosBuilder_ == null) {
+          brokerInfos_ = java.util.Collections.emptyList();
+          bitField0_ = (bitField0_ & ~0x00000002);
+        } else {
+          brokerInfosBuilder_.clear();
         }
+        orderTopicConf_ = "";
+        bitField0_ = (bitField0_ & ~0x00000004);
+        return this;
+      }
 
+      public Builder clone() {
+        return create().mergeFrom(buildPartial());
+      }
 
-        public TopicRouteInfo getDefaultInstanceForType() {
-            return defaultInstance;
+      public com.google.protobuf.Descriptors.Descriptor
+          getDescriptorForType() {
+        return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_rocketmq_TopicRouteInfo_descriptor;
+      }
+
+      public com.alibaba.rocketmq.common.protocol.MQProtos.TopicRouteInfo getDefaultInstanceForType() {
+        return com.alibaba.rocketmq.common.protocol.MQProtos.TopicRouteInfo.getDefaultInstance();
+      }
+
+      public com.alibaba.rocketmq.common.protocol.MQProtos.TopicRouteInfo build() {
+        com.alibaba.rocketmq.common.protocol.MQProtos.TopicRouteInfo result = buildPartial();
+        if (!result.isInitialized()) {
+          throw newUninitializedMessageException(result);
         }
+        return result;
+      }
 
-        private final com.google.protobuf.UnknownFieldSet unknownFields;
-
-
-        @java.lang.Override
-        public final com.google.protobuf.UnknownFieldSet getUnknownFields() {
-            return this.unknownFields;
+      public com.alibaba.rocketmq.common.protocol.MQProtos.TopicRouteInfo buildPartial() {
+        com.alibaba.rocketmq.common.protocol.MQProtos.TopicRouteInfo result = new com.alibaba.rocketmq.common.protocol.MQProtos.TopicRouteInfo(this);
+        int from_bitField0_ = bitField0_;
+        int to_bitField0_ = 0;
+        if (queueInfosBuilder_ == null) {
+          if (((bitField0_ & 0x00000001) == 0x00000001)) {
+            queueInfos_ = java.util.Collections.unmodifiableList(queueInfos_);
+            bitField0_ = (bitField0_ & ~0x00000001);
+          }
+          result.queueInfos_ = queueInfos_;
+        } else {
+          result.queueInfos_ = queueInfosBuilder_.build();
         }
-
-
-        private TopicRouteInfo(com.google.protobuf.CodedInputStream input,
-                com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-                throws com.google.protobuf.InvalidProtocolBufferException {
-            initFields();
-            int mutable_bitField0_ = 0;
-            com.google.protobuf.UnknownFieldSet.Builder unknownFields =
-                    com.google.protobuf.UnknownFieldSet.newBuilder();
-            try {
-                boolean done = false;
-                while (!done) {
-                    int tag = input.readTag();
-                    switch (tag) {
-                    case 0:
-                        done = true;
-                        break;
-                    default: {
-                        if (!parseUnknownField(input, unknownFields, extensionRegistry, tag)) {
-                            done = true;
-                        }
-                        break;
-                    }
-                    case 10: {
-                        if (!((mutable_bitField0_ & 0x00000001) == 0x00000001)) {
-                            queueInfos_ =
-                                    new java.util.ArrayList<com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo>();
-                            mutable_bitField0_ |= 0x00000001;
-                        }
-                        queueInfos_.add(input
-                            .readMessage(com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo.PARSER,
-                                extensionRegistry));
-                        break;
-                    }
-                    case 18: {
-                        if (!((mutable_bitField0_ & 0x00000002) == 0x00000002)) {
-                            brokerInfos_ =
-                                    new java.util.ArrayList<com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo>();
-                            mutable_bitField0_ |= 0x00000002;
-                        }
-                        brokerInfos_.add(input.readMessage(
-                            com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.PARSER,
-                            extensionRegistry));
-                        break;
-                    }
-                    case 26: {
-                        bitField0_ |= 0x00000001;
-                        orderTopicConf_ = input.readBytes();
-                        break;
-                    }
-                    }
-                }
-            }
-            catch (com.google.protobuf.InvalidProtocolBufferException e) {
-                throw e.setUnfinishedMessage(this);
-            }
-            catch (java.io.IOException e) {
-                throw new com.google.protobuf.InvalidProtocolBufferException(e.getMessage())
-                    .setUnfinishedMessage(this);
-            }
-            finally {
-                if (((mutable_bitField0_ & 0x00000001) == 0x00000001)) {
-                    queueInfos_ = java.util.Collections.unmodifiableList(queueInfos_);
-                }
-                if (((mutable_bitField0_ & 0x00000002) == 0x00000002)) {
-                    brokerInfos_ = java.util.Collections.unmodifiableList(brokerInfos_);
-                }
-                this.unknownFields = unknownFields.build();
-                makeExtensionsImmutable();
-            }
+        if (brokerInfosBuilder_ == null) {
+          if (((bitField0_ & 0x00000002) == 0x00000002)) {
+            brokerInfos_ = java.util.Collections.unmodifiableList(brokerInfos_);
+            bitField0_ = (bitField0_ & ~0x00000002);
+          }
+          result.brokerInfos_ = brokerInfos_;
+        } else {
+          result.brokerInfos_ = brokerInfosBuilder_.build();
         }
-
-
-        public static final com.google.protobuf.Descriptors.Descriptor getDescriptor() {
-            return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_rocketmq_TopicRouteInfo_descriptor;
+        if (((from_bitField0_ & 0x00000004) == 0x00000004)) {
+          to_bitField0_ |= 0x00000001;
         }
+        result.orderTopicConf_ = orderTopicConf_;
+        result.bitField0_ = to_bitField0_;
+        onBuilt();
+        return result;
+      }
 
-
-        protected com.google.protobuf.GeneratedMessage.FieldAccessorTable internalGetFieldAccessorTable() {
-            return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_rocketmq_TopicRouteInfo_fieldAccessorTable
-                .ensureFieldAccessorsInitialized(
-                    com.alibaba.rocketmq.common.protocol.MQProtos.TopicRouteInfo.class,
-                    com.alibaba.rocketmq.common.protocol.MQProtos.TopicRouteInfo.Builder.class);
+      public Builder mergeFrom(com.google.protobuf.Message other) {
+        if (other instanceof com.alibaba.rocketmq.common.protocol.MQProtos.TopicRouteInfo) {
+          return mergeFrom((com.alibaba.rocketmq.common.protocol.MQProtos.TopicRouteInfo)other);
+        } else {
+          super.mergeFrom(other);
+          return this;
         }
+      }
 
-        public static com.google.protobuf.Parser<TopicRouteInfo> PARSER =
-                new com.google.protobuf.AbstractParser<TopicRouteInfo>() {
-                    public TopicRouteInfo parsePartialFrom(com.google.protobuf.CodedInputStream input,
-                            com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-                            throws com.google.protobuf.InvalidProtocolBufferException {
-                        return new TopicRouteInfo(input, extensionRegistry);
-                    }
-                };
-
-
-        @java.lang.Override
-        public com.google.protobuf.Parser<TopicRouteInfo> getParserForType() {
-            return PARSER;
+      public Builder mergeFrom(com.alibaba.rocketmq.common.protocol.MQProtos.TopicRouteInfo other) {
+        if (other == com.alibaba.rocketmq.common.protocol.MQProtos.TopicRouteInfo.getDefaultInstance()) return this;
+        if (queueInfosBuilder_ == null) {
+          if (!other.queueInfos_.isEmpty()) {
+            if (queueInfos_.isEmpty()) {
+              queueInfos_ = other.queueInfos_;
+              bitField0_ = (bitField0_ & ~0x00000001);
+            } else {
+              ensureQueueInfosIsMutable();
+              queueInfos_.addAll(other.queueInfos_);
+            }
+            onChanged();
+          }
+        } else {
+          if (!other.queueInfos_.isEmpty()) {
+            if (queueInfosBuilder_.isEmpty()) {
+              queueInfosBuilder_.dispose();
+              queueInfosBuilder_ = null;
+              queueInfos_ = other.queueInfos_;
+              bitField0_ = (bitField0_ & ~0x00000001);
+              queueInfosBuilder_ = 
+                com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
+                   getQueueInfosFieldBuilder() : null;
+            } else {
+              queueInfosBuilder_.addAllMessages(other.queueInfos_);
+            }
+          }
         }
-
-        private int bitField0_;
-        // repeated .rocketmq.QueueInfo queueInfos = 1;
-        public static final int QUEUEINFOS_FIELD_NUMBER = 1;
-        private java.util.List<com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo> queueInfos_;
-
-
-        /**
-         * <code>repeated .rocketmq.QueueInfo queueInfos = 1;</code>
-         */
-        public java.util.List<com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo> getQueueInfosList() {
-            return queueInfos_;
+        if (brokerInfosBuilder_ == null) {
+          if (!other.brokerInfos_.isEmpty()) {
+            if (brokerInfos_.isEmpty()) {
+              brokerInfos_ = other.brokerInfos_;
+              bitField0_ = (bitField0_ & ~0x00000002);
+            } else {
+              ensureBrokerInfosIsMutable();
+              brokerInfos_.addAll(other.brokerInfos_);
+            }
+            onChanged();
+          }
+        } else {
+          if (!other.brokerInfos_.isEmpty()) {
+            if (brokerInfosBuilder_.isEmpty()) {
+              brokerInfosBuilder_.dispose();
+              brokerInfosBuilder_ = null;
+              brokerInfos_ = other.brokerInfos_;
+              bitField0_ = (bitField0_ & ~0x00000002);
+              brokerInfosBuilder_ = 
+                com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
+                   getBrokerInfosFieldBuilder() : null;
+            } else {
+              brokerInfosBuilder_.addAllMessages(other.brokerInfos_);
+            }
+          }
         }
-
-
-        /**
-         * <code>repeated .rocketmq.QueueInfo queueInfos = 1;</code>
-         */
-        public java.util.List<? extends com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfoOrBuilder> getQueueInfosOrBuilderList() {
-            return queueInfos_;
+        if (other.hasOrderTopicConf()) {
+          bitField0_ |= 0x00000004;
+          orderTopicConf_ = other.orderTopicConf_;
+          onChanged();
         }
+        this.mergeUnknownFields(other.getUnknownFields());
+        return this;
+      }
 
-
-        /**
-         * <code>repeated .rocketmq.QueueInfo queueInfos = 1;</code>
-         */
-        public int getQueueInfosCount() {
-            return queueInfos_.size();
+      public final boolean isInitialized() {
+        for (int i = 0; i < getQueueInfosCount(); i++) {
+          if (!getQueueInfos(i).isInitialized()) {
+            
+            return false;
+          }
         }
-
-
-        /**
-         * <code>repeated .rocketmq.QueueInfo queueInfos = 1;</code>
-         */
-        public com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo getQueueInfos(int index) {
-            return queueInfos_.get(index);
+        for (int i = 0; i < getBrokerInfosCount(); i++) {
+          if (!getBrokerInfos(i).isInitialized()) {
+            
+            return false;
+          }
         }
+        return true;
+      }
 
-
-        /**
-         * <code>repeated .rocketmq.QueueInfo queueInfos = 1;</code>
-         */
-        public com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfoOrBuilder getQueueInfosOrBuilder(
-                int index) {
-            return queueInfos_.get(index);
+      public Builder mergeFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws java.io.IOException {
+        com.alibaba.rocketmq.common.protocol.MQProtos.TopicRouteInfo parsedMessage = null;
+        try {
+          parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
+        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+          parsedMessage = (com.alibaba.rocketmq.common.protocol.MQProtos.TopicRouteInfo) e.getUnfinishedMessage();
+          throw e;
+        } finally {
+          if (parsedMessage != null) {
+            mergeFrom(parsedMessage);
+          }
         }
+        return this;
+      }
+      private int bitField0_;
 
-        // repeated .rocketmq.BrokerInfo brokerInfos = 2;
-        public static final int BROKERINFOS_FIELD_NUMBER = 2;
-        private java.util.List<com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo> brokerInfos_;
+      // repeated .rocketmq.QueueInfo queueInfos = 1;
+      private java.util.List<com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo> queueInfos_ =
+        java.util.Collections.emptyList();
+      private void ensureQueueInfosIsMutable() {
+        if (!((bitField0_ & 0x00000001) == 0x00000001)) {
+          queueInfos_ = new java.util.ArrayList<com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo>(queueInfos_);
+          bitField0_ |= 0x00000001;
+         }
+      }
 
+      private com.google.protobuf.RepeatedFieldBuilder<
+          com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo, com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo.Builder, com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfoOrBuilder> queueInfosBuilder_;
 
-        /**
-         * <code>repeated .rocketmq.BrokerInfo brokerInfos = 2;</code>
-         */
-        public java.util.List<com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo> getBrokerInfosList() {
-            return brokerInfos_;
+      /**
+       * <code>repeated .rocketmq.QueueInfo queueInfos = 1;</code>
+       */
+      public java.util.List<com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo> getQueueInfosList() {
+        if (queueInfosBuilder_ == null) {
+          return java.util.Collections.unmodifiableList(queueInfos_);
+        } else {
+          return queueInfosBuilder_.getMessageList();
         }
-
-
-        /**
-         * <code>repeated .rocketmq.BrokerInfo brokerInfos = 2;</code>
-         */
-        public java.util.List<? extends com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfoOrBuilder> getBrokerInfosOrBuilderList() {
-            return brokerInfos_;
+      }
+      /**
+       * <code>repeated .rocketmq.QueueInfo queueInfos = 1;</code>
+       */
+      public int getQueueInfosCount() {
+        if (queueInfosBuilder_ == null) {
+          return queueInfos_.size();
+        } else {
+          return queueInfosBuilder_.getCount();
         }
-
-
-        /**
-         * <code>repeated .rocketmq.BrokerInfo brokerInfos = 2;</code>
-         */
-        public int getBrokerInfosCount() {
-            return brokerInfos_.size();
+      }
+      /**
+       * <code>repeated .rocketmq.QueueInfo queueInfos = 1;</code>
+       */
+      public com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo getQueueInfos(int index) {
+        if (queueInfosBuilder_ == null) {
+          return queueInfos_.get(index);
+        } else {
+          return queueInfosBuilder_.getMessage(index);
         }
-
-
-        /**
-         * <code>repeated .rocketmq.BrokerInfo brokerInfos = 2;</code>
-         */
-        public com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo getBrokerInfos(int index) {
-            return brokerInfos_.get(index);
+      }
+      /**
+       * <code>repeated .rocketmq.QueueInfo queueInfos = 1;</code>
+       */
+      public Builder setQueueInfos(
+          int index, com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo value) {
+        if (queueInfosBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          ensureQueueInfosIsMutable();
+          queueInfos_.set(index, value);
+          onChanged();
+        } else {
+          queueInfosBuilder_.setMessage(index, value);
         }
-
-
-        /**
-         * <code>repeated .rocketmq.BrokerInfo brokerInfos = 2;</code>
-         */
-        public com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfoOrBuilder getBrokerInfosOrBuilder(
-                int index) {
-            return brokerInfos_.get(index);
+        return this;
+      }
+      /**
+       * <code>repeated .rocketmq.QueueInfo queueInfos = 1;</code>
+       */
+      public Builder setQueueInfos(
+          int index, com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo.Builder builderForValue) {
+        if (queueInfosBuilder_ == null) {
+          ensureQueueInfosIsMutable();
+          queueInfos_.set(index, builderForValue.build());
+          onChanged();
+        } else {
+          queueInfosBuilder_.setMessage(index, builderForValue.build());
         }
-
-        // optional string orderTopicConf = 3;
-        public static final int ORDERTOPICCONF_FIELD_NUMBER = 3;
-        private java.lang.Object orderTopicConf_;
-
-
-        /**
-         * <code>optional string orderTopicConf = 3;</code>
-         */
-        public boolean hasOrderTopicConf() {
-            return ((bitField0_ & 0x00000001) == 0x00000001);
+        return this;
+      }
+      /**
+       * <code>repeated .rocketmq.QueueInfo queueInfos = 1;</code>
+       */
+      public Builder addQueueInfos(com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo value) {
+        if (queueInfosBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          ensureQueueInfosIsMutable();
+          queueInfos_.add(value);
+          onChanged();
+        } else {
+          queueInfosBuilder_.addMessage(value);
         }
-
-
-        /**
-         * <code>optional string orderTopicConf = 3;</code>
-         */
-        public java.lang.String getOrderTopicConf() {
-            java.lang.Object ref = orderTopicConf_;
-            if (ref instanceof java.lang.String) {
-                return (java.lang.String) ref;
-            }
-            else {
-                com.google.protobuf.ByteString bs = (com.google.protobuf.ByteString) ref;
-                java.lang.String s = bs.toStringUtf8();
-                if (bs.isValidUtf8()) {
-                    orderTopicConf_ = s;
-                }
-                return s;
-            }
+        return this;
+      }
+      /**
+       * <code>repeated .rocketmq.QueueInfo queueInfos = 1;</code>
+       */
+      public Builder addQueueInfos(
+          int index, com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo value) {
+        if (queueInfosBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          ensureQueueInfosIsMutable();
+          queueInfos_.add(index, value);
+          onChanged();
+        } else {
+          queueInfosBuilder_.addMessage(index, value);
         }
-
-
-        /**
-         * <code>optional string orderTopicConf = 3;</code>
-         */
-        public com.google.protobuf.ByteString getOrderTopicConfBytes() {
-            java.lang.Object ref = orderTopicConf_;
-            if (ref instanceof java.lang.String) {
-                com.google.protobuf.ByteString b =
-                        com.google.protobuf.ByteString.copyFromUtf8((java.lang.String) ref);
-                orderTopicConf_ = b;
-                return b;
-            }
-            else {
-                return (com.google.protobuf.ByteString) ref;
-            }
+        return this;
+      }
+      /**
+       * <code>repeated .rocketmq.QueueInfo queueInfos = 1;</code>
+       */
+      public Builder addQueueInfos(
+          com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo.Builder builderForValue) {
+        if (queueInfosBuilder_ == null) {
+          ensureQueueInfosIsMutable();
+          queueInfos_.add(builderForValue.build());
+          onChanged();
+        } else {
+          queueInfosBuilder_.addMessage(builderForValue.build());
         }
-
-
-        private void initFields() {
-            queueInfos_ = java.util.Collections.emptyList();
-            brokerInfos_ = java.util.Collections.emptyList();
-            orderTopicConf_ = "";
+        return this;
+      }
+      /**
+       * <code>repeated .rocketmq.QueueInfo queueInfos = 1;</code>
+       */
+      public Builder addQueueInfos(
+          int index, com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo.Builder builderForValue) {
+        if (queueInfosBuilder_ == null) {
+          ensureQueueInfosIsMutable();
+          queueInfos_.add(index, builderForValue.build());
+          onChanged();
+        } else {
+          queueInfosBuilder_.addMessage(index, builderForValue.build());
         }
-
-        private byte memoizedIsInitialized = -1;
-
-
-        public final boolean isInitialized() {
-            byte isInitialized = memoizedIsInitialized;
-            if (isInitialized != -1)
-                return isInitialized == 1;
-
-            for (int i = 0; i < getQueueInfosCount(); i++) {
-                if (!getQueueInfos(i).isInitialized()) {
-                    memoizedIsInitialized = 0;
-                    return false;
-                }
-            }
-            for (int i = 0; i < getBrokerInfosCount(); i++) {
-                if (!getBrokerInfos(i).isInitialized()) {
-                    memoizedIsInitialized = 0;
-                    return false;
-                }
-            }
-            memoizedIsInitialized = 1;
-            return true;
+        return this;
+      }
+      /**
+       * <code>repeated .rocketmq.QueueInfo queueInfos = 1;</code>
+       */
+      public Builder addAllQueueInfos(
+          java.lang.Iterable<? extends com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo> values) {
+        if (queueInfosBuilder_ == null) {
+          ensureQueueInfosIsMutable();
+          super.addAll(values, queueInfos_);
+          onChanged();
+        } else {
+          queueInfosBuilder_.addAllMessages(values);
         }
-
-
-        public void writeTo(com.google.protobuf.CodedOutputStream output) throws java.io.IOException {
-            getSerializedSize();
-            for (int i = 0; i < queueInfos_.size(); i++) {
-                output.writeMessage(1, queueInfos_.get(i));
-            }
-            for (int i = 0; i < brokerInfos_.size(); i++) {
-                output.writeMessage(2, brokerInfos_.get(i));
-            }
-            if (((bitField0_ & 0x00000001) == 0x00000001)) {
-                output.writeBytes(3, getOrderTopicConfBytes());
-            }
-            getUnknownFields().writeTo(output);
+        return this;
+      }
+      /**
+       * <code>repeated .rocketmq.QueueInfo queueInfos = 1;</code>
+       */
+      public Builder clearQueueInfos() {
+        if (queueInfosBuilder_ == null) {
+          queueInfos_ = java.util.Collections.emptyList();
+          bitField0_ = (bitField0_ & ~0x00000001);
+          onChanged();
+        } else {
+          queueInfosBuilder_.clear();
         }
-
-        private int memoizedSerializedSize = -1;
-
-
-        public int getSerializedSize() {
-            int size = memoizedSerializedSize;
-            if (size != -1)
-                return size;
-
-            size = 0;
-            for (int i = 0; i < queueInfos_.size(); i++) {
-                size += com.google.protobuf.CodedOutputStream.computeMessageSize(1, queueInfos_.get(i));
-            }
-            for (int i = 0; i < brokerInfos_.size(); i++) {
-                size += com.google.protobuf.CodedOutputStream.computeMessageSize(2, brokerInfos_.get(i));
-            }
-            if (((bitField0_ & 0x00000001) == 0x00000001)) {
-                size += com.google.protobuf.CodedOutputStream.computeBytesSize(3, getOrderTopicConfBytes());
-            }
-            size += getUnknownFields().getSerializedSize();
-            memoizedSerializedSize = size;
-            return size;
+        return this;
+      }
+      /**
+       * <code>repeated .rocketmq.QueueInfo queueInfos = 1;</code>
+       */
+      public Builder removeQueueInfos(int index) {
+        if (queueInfosBuilder_ == null) {
+          ensureQueueInfosIsMutable();
+          queueInfos_.remove(index);
+          onChanged();
+        } else {
+          queueInfosBuilder_.remove(index);
         }
-
-        private static final long serialVersionUID = 0L;
-
-
-        @java.lang.Override
-        protected java.lang.Object writeReplace() throws java.io.ObjectStreamException {
-            return super.writeReplace();
+        return this;
+      }
+      /**
+       * <code>repeated .rocketmq.QueueInfo queueInfos = 1;</code>
+       */
+      public com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo.Builder getQueueInfosBuilder(
+          int index) {
+        return getQueueInfosFieldBuilder().getBuilder(index);
+      }
+      /**
+       * <code>repeated .rocketmq.QueueInfo queueInfos = 1;</code>
+       */
+      public com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfoOrBuilder getQueueInfosOrBuilder(
+          int index) {
+        if (queueInfosBuilder_ == null) {
+          return queueInfos_.get(index);  } else {
+          return queueInfosBuilder_.getMessageOrBuilder(index);
         }
-
-
-        public static com.alibaba.rocketmq.common.protocol.MQProtos.TopicRouteInfo parseFrom(
-                com.google.protobuf.ByteString data)
-                throws com.google.protobuf.InvalidProtocolBufferException {
-            return PARSER.parseFrom(data);
+      }
+      /**
+       * <code>repeated .rocketmq.QueueInfo queueInfos = 1;</code>
+       */
+      public java.util.List<? extends com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfoOrBuilder> 
+           getQueueInfosOrBuilderList() {
+        if (queueInfosBuilder_ != null) {
+          return queueInfosBuilder_.getMessageOrBuilderList();
+        } else {
+          return java.util.Collections.unmodifiableList(queueInfos_);
         }
-
-
-        public static com.alibaba.rocketmq.common.protocol.MQProtos.TopicRouteInfo parseFrom(
-                com.google.protobuf.ByteString data,
-                com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-                throws com.google.protobuf.InvalidProtocolBufferException {
-            return PARSER.parseFrom(data, extensionRegistry);
+      }
+      /**
+       * <code>repeated .rocketmq.QueueInfo queueInfos = 1;</code>
+       */
+      public com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo.Builder addQueueInfosBuilder() {
+        return getQueueInfosFieldBuilder().addBuilder(
+            com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo.getDefaultInstance());
+      }
+      /**
+       * <code>repeated .rocketmq.QueueInfo queueInfos = 1;</code>
+       */
+      public com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo.Builder addQueueInfosBuilder(
+          int index) {
+        return getQueueInfosFieldBuilder().addBuilder(
+            index, com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo.getDefaultInstance());
+      }
+      /**
+       * <code>repeated .rocketmq.QueueInfo queueInfos = 1;</code>
+       */
+      public java.util.List<com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo.Builder> 
+           getQueueInfosBuilderList() {
+        return getQueueInfosFieldBuilder().getBuilderList();
+      }
+      private com.google.protobuf.RepeatedFieldBuilder<
+          com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo, com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo.Builder, com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfoOrBuilder> 
+          getQueueInfosFieldBuilder() {
+        if (queueInfosBuilder_ == null) {
+          queueInfosBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
+              com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo, com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo.Builder, com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfoOrBuilder>(
+                  queueInfos_,
+                  ((bitField0_ & 0x00000001) == 0x00000001),
+                  getParentForChildren(),
+                  isClean());
+          queueInfos_ = null;
         }
+        return queueInfosBuilder_;
+      }
 
+      // repeated .rocketmq.BrokerInfo brokerInfos = 2;
+      private java.util.List<com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo> brokerInfos_ =
+        java.util.Collections.emptyList();
+      private void ensureBrokerInfosIsMutable() {
+        if (!((bitField0_ & 0x00000002) == 0x00000002)) {
+          brokerInfos_ = new java.util.ArrayList<com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo>(brokerInfos_);
+          bitField0_ |= 0x00000002;
+         }
+      }
 
-        public static com.alibaba.rocketmq.common.protocol.MQProtos.TopicRouteInfo parseFrom(byte[] data)
-                throws com.google.protobuf.InvalidProtocolBufferException {
-            return PARSER.parseFrom(data);
+      private com.google.protobuf.RepeatedFieldBuilder<
+          com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo, com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.Builder, com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfoOrBuilder> brokerInfosBuilder_;
+
+      /**
+       * <code>repeated .rocketmq.BrokerInfo brokerInfos = 2;</code>
+       */
+      public java.util.List<com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo> getBrokerInfosList() {
+        if (brokerInfosBuilder_ == null) {
+          return java.util.Collections.unmodifiableList(brokerInfos_);
+        } else {
+          return brokerInfosBuilder_.getMessageList();
         }
-
-
-        public static com.alibaba.rocketmq.common.protocol.MQProtos.TopicRouteInfo parseFrom(byte[] data,
-                com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-                throws com.google.protobuf.InvalidProtocolBufferException {
-            return PARSER.parseFrom(data, extensionRegistry);
+      }
+      /**
+       * <code>repeated .rocketmq.BrokerInfo brokerInfos = 2;</code>
+       */
+      public int getBrokerInfosCount() {
+        if (brokerInfosBuilder_ == null) {
+          return brokerInfos_.size();
+        } else {
+          return brokerInfosBuilder_.getCount();
         }
-
-
-        public static com.alibaba.rocketmq.common.protocol.MQProtos.TopicRouteInfo parseFrom(
-                java.io.InputStream input) throws java.io.IOException {
-            return PARSER.parseFrom(input);
+      }
+      /**
+       * <code>repeated .rocketmq.BrokerInfo brokerInfos = 2;</code>
+       */
+      public com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo getBrokerInfos(int index) {
+        if (brokerInfosBuilder_ == null) {
+          return brokerInfos_.get(index);
+        } else {
+          return brokerInfosBuilder_.getMessage(index);
         }
-
-
-        public static com.alibaba.rocketmq.common.protocol.MQProtos.TopicRouteInfo parseFrom(
-                java.io.InputStream input, com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-                throws java.io.IOException {
-            return PARSER.parseFrom(input, extensionRegistry);
+      }
+      /**
+       * <code>repeated .rocketmq.BrokerInfo brokerInfos = 2;</code>
+       */
+      public Builder setBrokerInfos(
+          int index, com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo value) {
+        if (brokerInfosBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          ensureBrokerInfosIsMutable();
+          brokerInfos_.set(index, value);
+          onChanged();
+        } else {
+          brokerInfosBuilder_.setMessage(index, value);
         }
-
-
-        public static com.alibaba.rocketmq.common.protocol.MQProtos.TopicRouteInfo parseDelimitedFrom(
-                java.io.InputStream input) throws java.io.IOException {
-            return PARSER.parseDelimitedFrom(input);
+        return this;
+      }
+      /**
+       * <code>repeated .rocketmq.BrokerInfo brokerInfos = 2;</code>
+       */
+      public Builder setBrokerInfos(
+          int index, com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.Builder builderForValue) {
+        if (brokerInfosBuilder_ == null) {
+          ensureBrokerInfosIsMutable();
+          brokerInfos_.set(index, builderForValue.build());
+          onChanged();
+        } else {
+          brokerInfosBuilder_.setMessage(index, builderForValue.build());
         }
-
-
-        public static com.alibaba.rocketmq.common.protocol.MQProtos.TopicRouteInfo parseDelimitedFrom(
-                java.io.InputStream input, com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-                throws java.io.IOException {
-            return PARSER.parseDelimitedFrom(input, extensionRegistry);
+        return this;
+      }
+      /**
+       * <code>repeated .rocketmq.BrokerInfo brokerInfos = 2;</code>
+       */
+      public Builder addBrokerInfos(com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo value) {
+        if (brokerInfosBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          ensureBrokerInfosIsMutable();
+          brokerInfos_.add(value);
+          onChanged();
+        } else {
+          brokerInfosBuilder_.addMessage(value);
         }
-
-
-        public static com.alibaba.rocketmq.common.protocol.MQProtos.TopicRouteInfo parseFrom(
-                com.google.protobuf.CodedInputStream input) throws java.io.IOException {
-            return PARSER.parseFrom(input);
+        return this;
+      }
+      /**
+       * <code>repeated .rocketmq.BrokerInfo brokerInfos = 2;</code>
+       */
+      public Builder addBrokerInfos(
+          int index, com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo value) {
+        if (brokerInfosBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          ensureBrokerInfosIsMutable();
+          brokerInfos_.add(index, value);
+          onChanged();
+        } else {
+          brokerInfosBuilder_.addMessage(index, value);
         }
-
-
-        public static com.alibaba.rocketmq.common.protocol.MQProtos.TopicRouteInfo parseFrom(
-                com.google.protobuf.CodedInputStream input,
-                com.google.protobuf.ExtensionRegistryLite extensionRegistry) throws java.io.IOException {
-            return PARSER.parseFrom(input, extensionRegistry);
+        return this;
+      }
+      /**
+       * <code>repeated .rocketmq.BrokerInfo brokerInfos = 2;</code>
+       */
+      public Builder addBrokerInfos(
+          com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.Builder builderForValue) {
+        if (brokerInfosBuilder_ == null) {
+          ensureBrokerInfosIsMutable();
+          brokerInfos_.add(builderForValue.build());
+          onChanged();
+        } else {
+          brokerInfosBuilder_.addMessage(builderForValue.build());
         }
-
-
-        public static Builder newBuilder() {
-            return Builder.create();
+        return this;
+      }
+      /**
+       * <code>repeated .rocketmq.BrokerInfo brokerInfos = 2;</code>
+       */
+      public Builder addBrokerInfos(
+          int index, com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.Builder builderForValue) {
+        if (brokerInfosBuilder_ == null) {
+          ensureBrokerInfosIsMutable();
+          brokerInfos_.add(index, builderForValue.build());
+          onChanged();
+        } else {
+          brokerInfosBuilder_.addMessage(index, builderForValue.build());
         }
-
-
-        public Builder newBuilderForType() {
-            return newBuilder();
+        return this;
+      }
+      /**
+       * <code>repeated .rocketmq.BrokerInfo brokerInfos = 2;</code>
+       */
+      public Builder addAllBrokerInfos(
+          java.lang.Iterable<? extends com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo> values) {
+        if (brokerInfosBuilder_ == null) {
+          ensureBrokerInfosIsMutable();
+          super.addAll(values, brokerInfos_);
+          onChanged();
+        } else {
+          brokerInfosBuilder_.addAllMessages(values);
         }
-
-
-        public static Builder newBuilder(
-                com.alibaba.rocketmq.common.protocol.MQProtos.TopicRouteInfo prototype) {
-            return newBuilder().mergeFrom(prototype);
+        return this;
+      }
+      /**
+       * <code>repeated .rocketmq.BrokerInfo brokerInfos = 2;</code>
+       */
+      public Builder clearBrokerInfos() {
+        if (brokerInfosBuilder_ == null) {
+          brokerInfos_ = java.util.Collections.emptyList();
+          bitField0_ = (bitField0_ & ~0x00000002);
+          onChanged();
+        } else {
+          brokerInfosBuilder_.clear();
         }
-
-
-        public Builder toBuilder() {
-            return newBuilder(this);
+        return this;
+      }
+      /**
+       * <code>repeated .rocketmq.BrokerInfo brokerInfos = 2;</code>
+       */
+      public Builder removeBrokerInfos(int index) {
+        if (brokerInfosBuilder_ == null) {
+          ensureBrokerInfosIsMutable();
+          brokerInfos_.remove(index);
+          onChanged();
+        } else {
+          brokerInfosBuilder_.remove(index);
         }
-
-
-        @java.lang.Override
-        protected Builder newBuilderForType(com.google.protobuf.GeneratedMessage.BuilderParent parent) {
-            Builder builder = new Builder(parent);
-            return builder;
+        return this;
+      }
+      /**
+       * <code>repeated .rocketmq.BrokerInfo brokerInfos = 2;</code>
+       */
+      public com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.Builder getBrokerInfosBuilder(
+          int index) {
+        return getBrokerInfosFieldBuilder().getBuilder(index);
+      }
+      /**
+       * <code>repeated .rocketmq.BrokerInfo brokerInfos = 2;</code>
+       */
+      public com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfoOrBuilder getBrokerInfosOrBuilder(
+          int index) {
+        if (brokerInfosBuilder_ == null) {
+          return brokerInfos_.get(index);  } else {
+          return brokerInfosBuilder_.getMessageOrBuilder(index);
         }
-
-        /**
-         * Protobuf type {@code rocketmq.TopicRouteInfo}
-         */
-        public static final class Builder extends com.google.protobuf.GeneratedMessage.Builder<Builder>
-                implements com.alibaba.rocketmq.common.protocol.MQProtos.TopicRouteInfoOrBuilder {
-            public static final com.google.protobuf.Descriptors.Descriptor getDescriptor() {
-                return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_rocketmq_TopicRouteInfo_descriptor;
-            }
-
-
-            protected com.google.protobuf.GeneratedMessage.FieldAccessorTable internalGetFieldAccessorTable() {
-                return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_rocketmq_TopicRouteInfo_fieldAccessorTable
-                    .ensureFieldAccessorsInitialized(
-                        com.alibaba.rocketmq.common.protocol.MQProtos.TopicRouteInfo.class,
-                        com.alibaba.rocketmq.common.protocol.MQProtos.TopicRouteInfo.Builder.class);
-            }
-
-
-            // Construct using
-            // com.alibaba.rocketmq.common.protocol.MQProtos.TopicRouteInfo.newBuilder()
-            private Builder() {
-                maybeForceBuilderInitialization();
-            }
-
-
-            private Builder(com.google.protobuf.GeneratedMessage.BuilderParent parent) {
-                super(parent);
-                maybeForceBuilderInitialization();
-            }
-
-
-            private void maybeForceBuilderInitialization() {
-                if (com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders) {
-                    getQueueInfosFieldBuilder();
-                    getBrokerInfosFieldBuilder();
-                }
-            }
-
-
-            private static Builder create() {
-                return new Builder();
-            }
-
-
-            public Builder clear() {
-                super.clear();
-                if (queueInfosBuilder_ == null) {
-                    queueInfos_ = java.util.Collections.emptyList();
-                    bitField0_ = (bitField0_ & ~0x00000001);
-                }
-                else {
-                    queueInfosBuilder_.clear();
-                }
-                if (brokerInfosBuilder_ == null) {
-                    brokerInfos_ = java.util.Collections.emptyList();
-                    bitField0_ = (bitField0_ & ~0x00000002);
-                }
-                else {
-                    brokerInfosBuilder_.clear();
-                }
-                orderTopicConf_ = "";
-                bitField0_ = (bitField0_ & ~0x00000004);
-                return this;
-            }
-
-
-            public Builder clone() {
-                return create().mergeFrom(buildPartial());
-            }
-
-
-            public com.google.protobuf.Descriptors.Descriptor getDescriptorForType() {
-                return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_rocketmq_TopicRouteInfo_descriptor;
-            }
-
-
-            public com.alibaba.rocketmq.common.protocol.MQProtos.TopicRouteInfo getDefaultInstanceForType() {
-                return com.alibaba.rocketmq.common.protocol.MQProtos.TopicRouteInfo.getDefaultInstance();
-            }
-
-
-            public com.alibaba.rocketmq.common.protocol.MQProtos.TopicRouteInfo build() {
-                com.alibaba.rocketmq.common.protocol.MQProtos.TopicRouteInfo result = buildPartial();
-                if (!result.isInitialized()) {
-                    throw newUninitializedMessageException(result);
-                }
-                return result;
-            }
-
-
-            public com.alibaba.rocketmq.common.protocol.MQProtos.TopicRouteInfo buildPartial() {
-                com.alibaba.rocketmq.common.protocol.MQProtos.TopicRouteInfo result =
-                        new com.alibaba.rocketmq.common.protocol.MQProtos.TopicRouteInfo(this);
-                int from_bitField0_ = bitField0_;
-                int to_bitField0_ = 0;
-                if (queueInfosBuilder_ == null) {
-                    if (((bitField0_ & 0x00000001) == 0x00000001)) {
-                        queueInfos_ = java.util.Collections.unmodifiableList(queueInfos_);
-                        bitField0_ = (bitField0_ & ~0x00000001);
-                    }
-                    result.queueInfos_ = queueInfos_;
-                }
-                else {
-                    result.queueInfos_ = queueInfosBuilder_.build();
-                }
-                if (brokerInfosBuilder_ == null) {
-                    if (((bitField0_ & 0x00000002) == 0x00000002)) {
-                        brokerInfos_ = java.util.Collections.unmodifiableList(brokerInfos_);
-                        bitField0_ = (bitField0_ & ~0x00000002);
-                    }
-                    result.brokerInfos_ = brokerInfos_;
-                }
-                else {
-                    result.brokerInfos_ = brokerInfosBuilder_.build();
-                }
-                if (((from_bitField0_ & 0x00000004) == 0x00000004)) {
-                    to_bitField0_ |= 0x00000001;
-                }
-                result.orderTopicConf_ = orderTopicConf_;
-                result.bitField0_ = to_bitField0_;
-                onBuilt();
-                return result;
-            }
-
-
-            public Builder mergeFrom(com.google.protobuf.Message other) {
-                if (other instanceof com.alibaba.rocketmq.common.protocol.MQProtos.TopicRouteInfo) {
-                    return mergeFrom((com.alibaba.rocketmq.common.protocol.MQProtos.TopicRouteInfo) other);
-                }
-                else {
-                    super.mergeFrom(other);
-                    return this;
-                }
-            }
-
-
-            public Builder mergeFrom(com.alibaba.rocketmq.common.protocol.MQProtos.TopicRouteInfo other) {
-                if (other == com.alibaba.rocketmq.common.protocol.MQProtos.TopicRouteInfo
-                    .getDefaultInstance())
-                    return this;
-                if (queueInfosBuilder_ == null) {
-                    if (!other.queueInfos_.isEmpty()) {
-                        if (queueInfos_.isEmpty()) {
-                            queueInfos_ = other.queueInfos_;
-                            bitField0_ = (bitField0_ & ~0x00000001);
-                        }
-                        else {
-                            ensureQueueInfosIsMutable();
-                            queueInfos_.addAll(other.queueInfos_);
-                        }
-                        onChanged();
-                    }
-                }
-                else {
-                    if (!other.queueInfos_.isEmpty()) {
-                        if (queueInfosBuilder_.isEmpty()) {
-                            queueInfosBuilder_.dispose();
-                            queueInfosBuilder_ = null;
-                            queueInfos_ = other.queueInfos_;
-                            bitField0_ = (bitField0_ & ~0x00000001);
-                            queueInfosBuilder_ =
-                                    com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ? getQueueInfosFieldBuilder()
-                                            : null;
-                        }
-                        else {
-                            queueInfosBuilder_.addAllMessages(other.queueInfos_);
-                        }
-                    }
-                }
-                if (brokerInfosBuilder_ == null) {
-                    if (!other.brokerInfos_.isEmpty()) {
-                        if (brokerInfos_.isEmpty()) {
-                            brokerInfos_ = other.brokerInfos_;
-                            bitField0_ = (bitField0_ & ~0x00000002);
-                        }
-                        else {
-                            ensureBrokerInfosIsMutable();
-                            brokerInfos_.addAll(other.brokerInfos_);
-                        }
-                        onChanged();
-                    }
-                }
-                else {
-                    if (!other.brokerInfos_.isEmpty()) {
-                        if (brokerInfosBuilder_.isEmpty()) {
-                            brokerInfosBuilder_.dispose();
-                            brokerInfosBuilder_ = null;
-                            brokerInfos_ = other.brokerInfos_;
-                            bitField0_ = (bitField0_ & ~0x00000002);
-                            brokerInfosBuilder_ =
-                                    com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ? getBrokerInfosFieldBuilder()
-                                            : null;
-                        }
-                        else {
-                            brokerInfosBuilder_.addAllMessages(other.brokerInfos_);
-                        }
-                    }
-                }
-                if (other.hasOrderTopicConf()) {
-                    bitField0_ |= 0x00000004;
-                    orderTopicConf_ = other.orderTopicConf_;
-                    onChanged();
-                }
-                this.mergeUnknownFields(other.getUnknownFields());
-                return this;
-            }
-
-
-            public final boolean isInitialized() {
-                for (int i = 0; i < getQueueInfosCount(); i++) {
-                    if (!getQueueInfos(i).isInitialized()) {
-
-                        return false;
-                    }
-                }
-                for (int i = 0; i < getBrokerInfosCount(); i++) {
-                    if (!getBrokerInfos(i).isInitialized()) {
-
-                        return false;
-                    }
-                }
-                return true;
-            }
-
-
-            public Builder mergeFrom(com.google.protobuf.CodedInputStream input,
-                    com.google.protobuf.ExtensionRegistryLite extensionRegistry) throws java.io.IOException {
-                com.alibaba.rocketmq.common.protocol.MQProtos.TopicRouteInfo parsedMessage = null;
-                try {
-                    parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
-                }
-                catch (com.google.protobuf.InvalidProtocolBufferException e) {
-                    parsedMessage =
-                            (com.alibaba.rocketmq.common.protocol.MQProtos.TopicRouteInfo) e
-                                .getUnfinishedMessage();
-                    throw e;
-                }
-                finally {
-                    if (parsedMessage != null) {
-                        mergeFrom(parsedMessage);
-                    }
-                }
-                return this;
-            }
-
-            private int bitField0_;
-
-            // repeated .rocketmq.QueueInfo queueInfos = 1;
-            private java.util.List<com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo> queueInfos_ =
-                    java.util.Collections.emptyList();
-
-
-            private void ensureQueueInfosIsMutable() {
-                if (!((bitField0_ & 0x00000001) == 0x00000001)) {
-                    queueInfos_ =
-                            new java.util.ArrayList<com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo>(
-                                queueInfos_);
-                    bitField0_ |= 0x00000001;
-                }
-            }
-
-            private com.google.protobuf.RepeatedFieldBuilder<com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo, com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo.Builder, com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfoOrBuilder> queueInfosBuilder_;
-
-
-            /**
-             * <code>repeated .rocketmq.QueueInfo queueInfos = 1;</code>
-             */
-            public java.util.List<com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo> getQueueInfosList() {
-                if (queueInfosBuilder_ == null) {
-                    return java.util.Collections.unmodifiableList(queueInfos_);
-                }
-                else {
-                    return queueInfosBuilder_.getMessageList();
-                }
-            }
-
-
-            /**
-             * <code>repeated .rocketmq.QueueInfo queueInfos = 1;</code>
-             */
-            public int getQueueInfosCount() {
-                if (queueInfosBuilder_ == null) {
-                    return queueInfos_.size();
-                }
-                else {
-                    return queueInfosBuilder_.getCount();
-                }
-            }
-
-
-            /**
-             * <code>repeated .rocketmq.QueueInfo queueInfos = 1;</code>
-             */
-            public com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo getQueueInfos(int index) {
-                if (queueInfosBuilder_ == null) {
-                    return queueInfos_.get(index);
-                }
-                else {
-                    return queueInfosBuilder_.getMessage(index);
-                }
-            }
-
-
-            /**
-             * <code>repeated .rocketmq.QueueInfo queueInfos = 1;</code>
-             */
-            public Builder setQueueInfos(int index,
-                    com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo value) {
-                if (queueInfosBuilder_ == null) {
-                    if (value == null) {
-                        throw new NullPointerException();
-                    }
-                    ensureQueueInfosIsMutable();
-                    queueInfos_.set(index, value);
-                    onChanged();
-                }
-                else {
-                    queueInfosBuilder_.setMessage(index, value);
-                }
-                return this;
-            }
-
-
-            /**
-             * <code>repeated .rocketmq.QueueInfo queueInfos = 1;</code>
-             */
-            public Builder setQueueInfos(int index,
-                    com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo.Builder builderForValue) {
-                if (queueInfosBuilder_ == null) {
-                    ensureQueueInfosIsMutable();
-                    queueInfos_.set(index, builderForValue.build());
-                    onChanged();
-                }
-                else {
-                    queueInfosBuilder_.setMessage(index, builderForValue.build());
-                }
-                return this;
-            }
-
-
-            /**
-             * <code>repeated .rocketmq.QueueInfo queueInfos = 1;</code>
-             */
-            public Builder addQueueInfos(com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo value) {
-                if (queueInfosBuilder_ == null) {
-                    if (value == null) {
-                        throw new NullPointerException();
-                    }
-                    ensureQueueInfosIsMutable();
-                    queueInfos_.add(value);
-                    onChanged();
-                }
-                else {
-                    queueInfosBuilder_.addMessage(value);
-                }
-                return this;
-            }
-
-
-            /**
-             * <code>repeated .rocketmq.QueueInfo queueInfos = 1;</code>
-             */
-            public Builder addQueueInfos(int index,
-                    com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo value) {
-                if (queueInfosBuilder_ == null) {
-                    if (value == null) {
-                        throw new NullPointerException();
-                    }
-                    ensureQueueInfosIsMutable();
-                    queueInfos_.add(index, value);
-                    onChanged();
-                }
-                else {
-                    queueInfosBuilder_.addMessage(index, value);
-                }
-                return this;
-            }
-
-
-            /**
-             * <code>repeated .rocketmq.QueueInfo queueInfos = 1;</code>
-             */
-            public Builder addQueueInfos(
-                    com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo.Builder builderForValue) {
-                if (queueInfosBuilder_ == null) {
-                    ensureQueueInfosIsMutable();
-                    queueInfos_.add(builderForValue.build());
-                    onChanged();
-                }
-                else {
-                    queueInfosBuilder_.addMessage(builderForValue.build());
-                }
-                return this;
-            }
-
-
-            /**
-             * <code>repeated .rocketmq.QueueInfo queueInfos = 1;</code>
-             */
-            public Builder addQueueInfos(int index,
-                    com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo.Builder builderForValue) {
-                if (queueInfosBuilder_ == null) {
-                    ensureQueueInfosIsMutable();
-                    queueInfos_.add(index, builderForValue.build());
-                    onChanged();
-                }
-                else {
-                    queueInfosBuilder_.addMessage(index, builderForValue.build());
-                }
-                return this;
-            }
-
-
-            /**
-             * <code>repeated .rocketmq.QueueInfo queueInfos = 1;</code>
-             */
-            public Builder addAllQueueInfos(
-                    java.lang.Iterable<? extends com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo> values) {
-                if (queueInfosBuilder_ == null) {
-                    ensureQueueInfosIsMutable();
-                    super.addAll(values, queueInfos_);
-                    onChanged();
-                }
-                else {
-                    queueInfosBuilder_.addAllMessages(values);
-                }
-                return this;
-            }
-
-
-            /**
-             * <code>repeated .rocketmq.QueueInfo queueInfos = 1;</code>
-             */
-            public Builder clearQueueInfos() {
-                if (queueInfosBuilder_ == null) {
-                    queueInfos_ = java.util.Collections.emptyList();
-                    bitField0_ = (bitField0_ & ~0x00000001);
-                    onChanged();
-                }
-                else {
-                    queueInfosBuilder_.clear();
-                }
-                return this;
-            }
-
-
-            /**
-             * <code>repeated .rocketmq.QueueInfo queueInfos = 1;</code>
-             */
-            public Builder removeQueueInfos(int index) {
-                if (queueInfosBuilder_ == null) {
-                    ensureQueueInfosIsMutable();
-                    queueInfos_.remove(index);
-                    onChanged();
-                }
-                else {
-                    queueInfosBuilder_.remove(index);
-                }
-                return this;
-            }
-
-
-            /**
-             * <code>repeated .rocketmq.QueueInfo queueInfos = 1;</code>
-             */
-            public com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo.Builder getQueueInfosBuilder(
-                    int index) {
-                return getQueueInfosFieldBuilder().getBuilder(index);
-            }
-
-
-            /**
-             * <code>repeated .rocketmq.QueueInfo queueInfos = 1;</code>
-             */
-            public com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfoOrBuilder getQueueInfosOrBuilder(
-                    int index) {
-                if (queueInfosBuilder_ == null) {
-                    return queueInfos_.get(index);
-                }
-                else {
-                    return queueInfosBuilder_.getMessageOrBuilder(index);
-                }
-            }
-
-
-            /**
-             * <code>repeated .rocketmq.QueueInfo queueInfos = 1;</code>
-             */
-            public java.util.List<? extends com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfoOrBuilder> getQueueInfosOrBuilderList() {
-                if (queueInfosBuilder_ != null) {
-                    return queueInfosBuilder_.getMessageOrBuilderList();
-                }
-                else {
-                    return java.util.Collections.unmodifiableList(queueInfos_);
-                }
-            }
-
-
-            /**
-             * <code>repeated .rocketmq.QueueInfo queueInfos = 1;</code>
-             */
-            public com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo.Builder addQueueInfosBuilder() {
-                return getQueueInfosFieldBuilder().addBuilder(
-                    com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo.getDefaultInstance());
-            }
-
-
-            /**
-             * <code>repeated .rocketmq.QueueInfo queueInfos = 1;</code>
-             */
-            public com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo.Builder addQueueInfosBuilder(
-                    int index) {
-                return getQueueInfosFieldBuilder().addBuilder(index,
-                    com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo.getDefaultInstance());
-            }
-
-
-            /**
-             * <code>repeated .rocketmq.QueueInfo queueInfos = 1;</code>
-             */
-            public java.util.List<com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo.Builder> getQueueInfosBuilderList() {
-                return getQueueInfosFieldBuilder().getBuilderList();
-            }
-
-
-            private com.google.protobuf.RepeatedFieldBuilder<com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo, com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo.Builder, com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfoOrBuilder> getQueueInfosFieldBuilder() {
-                if (queueInfosBuilder_ == null) {
-                    queueInfosBuilder_ =
-                            new com.google.protobuf.RepeatedFieldBuilder<com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo, com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo.Builder, com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfoOrBuilder>(
-                                queueInfos_, ((bitField0_ & 0x00000001) == 0x00000001),
-                                getParentForChildren(), isClean());
-                    queueInfos_ = null;
-                }
-                return queueInfosBuilder_;
-            }
-
-            // repeated .rocketmq.BrokerInfo brokerInfos = 2;
-            private java.util.List<com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo> brokerInfos_ =
-                    java.util.Collections.emptyList();
-
-
-            private void ensureBrokerInfosIsMutable() {
-                if (!((bitField0_ & 0x00000002) == 0x00000002)) {
-                    brokerInfos_ =
-                            new java.util.ArrayList<com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo>(
-                                brokerInfos_);
-                    bitField0_ |= 0x00000002;
-                }
-            }
-
-            private com.google.protobuf.RepeatedFieldBuilder<com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo, com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.Builder, com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfoOrBuilder> brokerInfosBuilder_;
-
-
-            /**
-             * <code>repeated .rocketmq.BrokerInfo brokerInfos = 2;</code>
-             */
-            public java.util.List<com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo> getBrokerInfosList() {
-                if (brokerInfosBuilder_ == null) {
-                    return java.util.Collections.unmodifiableList(brokerInfos_);
-                }
-                else {
-                    return brokerInfosBuilder_.getMessageList();
-                }
-            }
-
-
-            /**
-             * <code>repeated .rocketmq.BrokerInfo brokerInfos = 2;</code>
-             */
-            public int getBrokerInfosCount() {
-                if (brokerInfosBuilder_ == null) {
-                    return brokerInfos_.size();
-                }
-                else {
-                    return brokerInfosBuilder_.getCount();
-                }
-            }
-
-
-            /**
-             * <code>repeated .rocketmq.BrokerInfo brokerInfos = 2;</code>
-             */
-            public com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo getBrokerInfos(int index) {
-                if (brokerInfosBuilder_ == null) {
-                    return brokerInfos_.get(index);
-                }
-                else {
-                    return brokerInfosBuilder_.getMessage(index);
-                }
-            }
-
-
-            /**
-             * <code>repeated .rocketmq.BrokerInfo brokerInfos = 2;</code>
-             */
-            public Builder setBrokerInfos(int index,
-                    com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo value) {
-                if (brokerInfosBuilder_ == null) {
-                    if (value == null) {
-                        throw new NullPointerException();
-                    }
-                    ensureBrokerInfosIsMutable();
-                    brokerInfos_.set(index, value);
-                    onChanged();
-                }
-                else {
-                    brokerInfosBuilder_.setMessage(index, value);
-                }
-                return this;
-            }
-
-
-            /**
-             * <code>repeated .rocketmq.BrokerInfo brokerInfos = 2;</code>
-             */
-            public Builder setBrokerInfos(int index,
-                    com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.Builder builderForValue) {
-                if (brokerInfosBuilder_ == null) {
-                    ensureBrokerInfosIsMutable();
-                    brokerInfos_.set(index, builderForValue.build());
-                    onChanged();
-                }
-                else {
-                    brokerInfosBuilder_.setMessage(index, builderForValue.build());
-                }
-                return this;
-            }
-
-
-            /**
-             * <code>repeated .rocketmq.BrokerInfo brokerInfos = 2;</code>
-             */
-            public Builder addBrokerInfos(com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo value) {
-                if (brokerInfosBuilder_ == null) {
-                    if (value == null) {
-                        throw new NullPointerException();
-                    }
-                    ensureBrokerInfosIsMutable();
-                    brokerInfos_.add(value);
-                    onChanged();
-                }
-                else {
-                    brokerInfosBuilder_.addMessage(value);
-                }
-                return this;
-            }
-
-
-            /**
-             * <code>repeated .rocketmq.BrokerInfo brokerInfos = 2;</code>
-             */
-            public Builder addBrokerInfos(int index,
-                    com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo value) {
-                if (brokerInfosBuilder_ == null) {
-                    if (value == null) {
-                        throw new NullPointerException();
-                    }
-                    ensureBrokerInfosIsMutable();
-                    brokerInfos_.add(index, value);
-                    onChanged();
-                }
-                else {
-                    brokerInfosBuilder_.addMessage(index, value);
-                }
-                return this;
-            }
-
-
-            /**
-             * <code>repeated .rocketmq.BrokerInfo brokerInfos = 2;</code>
-             */
-            public Builder addBrokerInfos(
-                    com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.Builder builderForValue) {
-                if (brokerInfosBuilder_ == null) {
-                    ensureBrokerInfosIsMutable();
-                    brokerInfos_.add(builderForValue.build());
-                    onChanged();
-                }
-                else {
-                    brokerInfosBuilder_.addMessage(builderForValue.build());
-                }
-                return this;
-            }
-
-
-            /**
-             * <code>repeated .rocketmq.BrokerInfo brokerInfos = 2;</code>
-             */
-            public Builder addBrokerInfos(int index,
-                    com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.Builder builderForValue) {
-                if (brokerInfosBuilder_ == null) {
-                    ensureBrokerInfosIsMutable();
-                    brokerInfos_.add(index, builderForValue.build());
-                    onChanged();
-                }
-                else {
-                    brokerInfosBuilder_.addMessage(index, builderForValue.build());
-                }
-                return this;
-            }
-
-
-            /**
-             * <code>repeated .rocketmq.BrokerInfo brokerInfos = 2;</code>
-             */
-            public Builder addAllBrokerInfos(
-                    java.lang.Iterable<? extends com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo> values) {
-                if (brokerInfosBuilder_ == null) {
-                    ensureBrokerInfosIsMutable();
-                    super.addAll(values, brokerInfos_);
-                    onChanged();
-                }
-                else {
-                    brokerInfosBuilder_.addAllMessages(values);
-                }
-                return this;
-            }
-
-
-            /**
-             * <code>repeated .rocketmq.BrokerInfo brokerInfos = 2;</code>
-             */
-            public Builder clearBrokerInfos() {
-                if (brokerInfosBuilder_ == null) {
-                    brokerInfos_ = java.util.Collections.emptyList();
-                    bitField0_ = (bitField0_ & ~0x00000002);
-                    onChanged();
-                }
-                else {
-                    brokerInfosBuilder_.clear();
-                }
-                return this;
-            }
-
-
-            /**
-             * <code>repeated .rocketmq.BrokerInfo brokerInfos = 2;</code>
-             */
-            public Builder removeBrokerInfos(int index) {
-                if (brokerInfosBuilder_ == null) {
-                    ensureBrokerInfosIsMutable();
-                    brokerInfos_.remove(index);
-                    onChanged();
-                }
-                else {
-                    brokerInfosBuilder_.remove(index);
-                }
-                return this;
-            }
-
-
-            /**
-             * <code>repeated .rocketmq.BrokerInfo brokerInfos = 2;</code>
-             */
-            public com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.Builder getBrokerInfosBuilder(
-                    int index) {
-                return getBrokerInfosFieldBuilder().getBuilder(index);
-            }
-
-
-            /**
-             * <code>repeated .rocketmq.BrokerInfo brokerInfos = 2;</code>
-             */
-            public com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfoOrBuilder getBrokerInfosOrBuilder(
-                    int index) {
-                if (brokerInfosBuilder_ == null) {
-                    return brokerInfos_.get(index);
-                }
-                else {
-                    return brokerInfosBuilder_.getMessageOrBuilder(index);
-                }
-            }
-
-
-            /**
-             * <code>repeated .rocketmq.BrokerInfo brokerInfos = 2;</code>
-             */
-            public java.util.List<? extends com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfoOrBuilder> getBrokerInfosOrBuilderList() {
-                if (brokerInfosBuilder_ != null) {
-                    return brokerInfosBuilder_.getMessageOrBuilderList();
-                }
-                else {
-                    return java.util.Collections.unmodifiableList(brokerInfos_);
-                }
-            }
-
-
-            /**
-             * <code>repeated .rocketmq.BrokerInfo brokerInfos = 2;</code>
-             */
-            public com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.Builder addBrokerInfosBuilder() {
-                return getBrokerInfosFieldBuilder().addBuilder(
-                    com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.getDefaultInstance());
-            }
-
-
-            /**
-             * <code>repeated .rocketmq.BrokerInfo brokerInfos = 2;</code>
-             */
-            public com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.Builder addBrokerInfosBuilder(
-                    int index) {
-                return getBrokerInfosFieldBuilder().addBuilder(index,
-                    com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.getDefaultInstance());
-            }
-
-
-            /**
-             * <code>repeated .rocketmq.BrokerInfo brokerInfos = 2;</code>
-             */
-            public java.util.List<com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.Builder> getBrokerInfosBuilderList() {
-                return getBrokerInfosFieldBuilder().getBuilderList();
-            }
-
-
-            private com.google.protobuf.RepeatedFieldBuilder<com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo, com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.Builder, com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfoOrBuilder> getBrokerInfosFieldBuilder() {
-                if (brokerInfosBuilder_ == null) {
-                    brokerInfosBuilder_ =
-                            new com.google.protobuf.RepeatedFieldBuilder<com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo, com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.Builder, com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfoOrBuilder>(
-                                brokerInfos_, ((bitField0_ & 0x00000002) == 0x00000002),
-                                getParentForChildren(), isClean());
-                    brokerInfos_ = null;
-                }
-                return brokerInfosBuilder_;
-            }
-
-            // optional string orderTopicConf = 3;
-            private java.lang.Object orderTopicConf_ = "";
-
-
-            /**
-             * <code>optional string orderTopicConf = 3;</code>
-             */
-            public boolean hasOrderTopicConf() {
-                return ((bitField0_ & 0x00000004) == 0x00000004);
-            }
-
-
-            /**
-             * <code>optional string orderTopicConf = 3;</code>
-             */
-            public java.lang.String getOrderTopicConf() {
-                java.lang.Object ref = orderTopicConf_;
-                if (!(ref instanceof java.lang.String)) {
-                    java.lang.String s = ((com.google.protobuf.ByteString) ref).toStringUtf8();
-                    orderTopicConf_ = s;
-                    return s;
-                }
-                else {
-                    return (java.lang.String) ref;
-                }
-            }
-
-
-            /**
-             * <code>optional string orderTopicConf = 3;</code>
-             */
-            public com.google.protobuf.ByteString getOrderTopicConfBytes() {
-                java.lang.Object ref = orderTopicConf_;
-                if (ref instanceof String) {
-                    com.google.protobuf.ByteString b =
-                            com.google.protobuf.ByteString.copyFromUtf8((java.lang.String) ref);
-                    orderTopicConf_ = b;
-                    return b;
-                }
-                else {
-                    return (com.google.protobuf.ByteString) ref;
-                }
-            }
-
-
-            /**
-             * <code>optional string orderTopicConf = 3;</code>
-             */
-            public Builder setOrderTopicConf(java.lang.String value) {
-                if (value == null) {
-                    throw new NullPointerException();
-                }
-                bitField0_ |= 0x00000004;
-                orderTopicConf_ = value;
-                onChanged();
-                return this;
-            }
-
-
-            /**
-             * <code>optional string orderTopicConf = 3;</code>
-             */
-            public Builder clearOrderTopicConf() {
-                bitField0_ = (bitField0_ & ~0x00000004);
-                orderTopicConf_ = getDefaultInstance().getOrderTopicConf();
-                onChanged();
-                return this;
-            }
-
-
-            /**
-             * <code>optional string orderTopicConf = 3;</code>
-             */
-            public Builder setOrderTopicConfBytes(com.google.protobuf.ByteString value) {
-                if (value == null) {
-                    throw new NullPointerException();
-                }
-                bitField0_ |= 0x00000004;
-                orderTopicConf_ = value;
-                onChanged();
-                return this;
-            }
-
-            // @@protoc_insertion_point(builder_scope:rocketmq.TopicRouteInfo)
+      }
+      /**
+       * <code>repeated .rocketmq.BrokerInfo brokerInfos = 2;</code>
+       */
+      public java.util.List<? extends com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfoOrBuilder> 
+           getBrokerInfosOrBuilderList() {
+        if (brokerInfosBuilder_ != null) {
+          return brokerInfosBuilder_.getMessageOrBuilderList();
+        } else {
+          return java.util.Collections.unmodifiableList(brokerInfos_);
         }
-
-        static {
-            defaultInstance = new TopicRouteInfo(true);
-            defaultInstance.initFields();
+      }
+      /**
+       * <code>repeated .rocketmq.BrokerInfo brokerInfos = 2;</code>
+       */
+      public com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.Builder addBrokerInfosBuilder() {
+        return getBrokerInfosFieldBuilder().addBuilder(
+            com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.getDefaultInstance());
+      }
+      /**
+       * <code>repeated .rocketmq.BrokerInfo brokerInfos = 2;</code>
+       */
+      public com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.Builder addBrokerInfosBuilder(
+          int index) {
+        return getBrokerInfosFieldBuilder().addBuilder(
+            index, com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.getDefaultInstance());
+      }
+      /**
+       * <code>repeated .rocketmq.BrokerInfo brokerInfos = 2;</code>
+       */
+      public java.util.List<com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.Builder> 
+           getBrokerInfosBuilderList() {
+        return getBrokerInfosFieldBuilder().getBuilderList();
+      }
+      private com.google.protobuf.RepeatedFieldBuilder<
+          com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo, com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.Builder, com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfoOrBuilder> 
+          getBrokerInfosFieldBuilder() {
+        if (brokerInfosBuilder_ == null) {
+          brokerInfosBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
+              com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo, com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.Builder, com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfoOrBuilder>(
+                  brokerInfos_,
+                  ((bitField0_ & 0x00000002) == 0x00000002),
+                  getParentForChildren(),
+                  isClean());
+          brokerInfos_ = null;
         }
+        return brokerInfosBuilder_;
+      }
 
-        // @@protoc_insertion_point(class_scope:rocketmq.TopicRouteInfo)
+      // optional string orderTopicConf = 3;
+      private java.lang.Object orderTopicConf_ = "";
+      /**
+       * <code>optional string orderTopicConf = 3;</code>
+       */
+      public boolean hasOrderTopicConf() {
+        return ((bitField0_ & 0x00000004) == 0x00000004);
+      }
+      /**
+       * <code>optional string orderTopicConf = 3;</code>
+       */
+      public java.lang.String getOrderTopicConf() {
+        java.lang.Object ref = orderTopicConf_;
+        if (!(ref instanceof java.lang.String)) {
+          java.lang.String s = ((com.google.protobuf.ByteString) ref)
+              .toStringUtf8();
+          orderTopicConf_ = s;
+          return s;
+        } else {
+          return (java.lang.String) ref;
+        }
+      }
+      /**
+       * <code>optional string orderTopicConf = 3;</code>
+       */
+      public com.google.protobuf.ByteString
+          getOrderTopicConfBytes() {
+        java.lang.Object ref = orderTopicConf_;
+        if (ref instanceof String) {
+          com.google.protobuf.ByteString b = 
+              com.google.protobuf.ByteString.copyFromUtf8(
+                  (java.lang.String) ref);
+          orderTopicConf_ = b;
+          return b;
+        } else {
+          return (com.google.protobuf.ByteString) ref;
+        }
+      }
+      /**
+       * <code>optional string orderTopicConf = 3;</code>
+       */
+      public Builder setOrderTopicConf(
+          java.lang.String value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  bitField0_ |= 0x00000004;
+        orderTopicConf_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional string orderTopicConf = 3;</code>
+       */
+      public Builder clearOrderTopicConf() {
+        bitField0_ = (bitField0_ & ~0x00000004);
+        orderTopicConf_ = getDefaultInstance().getOrderTopicConf();
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional string orderTopicConf = 3;</code>
+       */
+      public Builder setOrderTopicConfBytes(
+          com.google.protobuf.ByteString value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  bitField0_ |= 0x00000004;
+        orderTopicConf_ = value;
+        onChanged();
+        return this;
+      }
+
+      // @@protoc_insertion_point(builder_scope:rocketmq.TopicRouteInfo)
     }
 
-    public interface TopicQueuePairOrBuilder extends com.google.protobuf.MessageOrBuilder {
-
-        // required string topic = 1;
-        /**
-         * <code>required string topic = 1;</code>
-         */
-        boolean hasTopic();
-
-
-        /**
-         * <code>required string topic = 1;</code>
-         */
-        java.lang.String getTopic();
-
-
-        /**
-         * <code>required string topic = 1;</code>
-         */
-        com.google.protobuf.ByteString getTopicBytes();
-
-
-        // repeated .rocketmq.QueueInfo queueInfo = 2;
-        /**
-         * <code>repeated .rocketmq.QueueInfo queueInfo = 2;</code>
-         */
-        java.util.List<com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo> getQueueInfoList();
-
-
-        /**
-         * <code>repeated .rocketmq.QueueInfo queueInfo = 2;</code>
-         */
-        com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo getQueueInfo(int index);
-
-
-        /**
-         * <code>repeated .rocketmq.QueueInfo queueInfo = 2;</code>
-         */
-        int getQueueInfoCount();
-
-
-        /**
-         * <code>repeated .rocketmq.QueueInfo queueInfo = 2;</code>
-         */
-        java.util.List<? extends com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfoOrBuilder> getQueueInfoOrBuilderList();
-
-
-        /**
-         * <code>repeated .rocketmq.QueueInfo queueInfo = 2;</code>
-         */
-        com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfoOrBuilder getQueueInfoOrBuilder(int index);
+    static {
+      defaultInstance = new TopicRouteInfo(true);
+      defaultInstance.initFields();
     }
 
+    // @@protoc_insertion_point(class_scope:rocketmq.TopicRouteInfo)
+  }
+
+  public interface TopicQueuePairOrBuilder
+      extends com.google.protobuf.MessageOrBuilder {
+
+    // required string topic = 1;
+    /**
+     * <code>required string topic = 1;</code>
+     */
+    boolean hasTopic();
+    /**
+     * <code>required string topic = 1;</code>
+     */
+    java.lang.String getTopic();
+    /**
+     * <code>required string topic = 1;</code>
+     */
+    com.google.protobuf.ByteString
+        getTopicBytes();
+
+    // repeated .rocketmq.QueueInfo queueInfo = 2;
+    /**
+     * <code>repeated .rocketmq.QueueInfo queueInfo = 2;</code>
+     */
+    java.util.List<com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo> 
+        getQueueInfoList();
+    /**
+     * <code>repeated .rocketmq.QueueInfo queueInfo = 2;</code>
+     */
+    com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo getQueueInfo(int index);
+    /**
+     * <code>repeated .rocketmq.QueueInfo queueInfo = 2;</code>
+     */
+    int getQueueInfoCount();
+    /**
+     * <code>repeated .rocketmq.QueueInfo queueInfo = 2;</code>
+     */
+    java.util.List<? extends com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfoOrBuilder> 
+        getQueueInfoOrBuilderList();
+    /**
+     * <code>repeated .rocketmq.QueueInfo queueInfo = 2;</code>
+     */
+    com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfoOrBuilder getQueueInfoOrBuilder(
+        int index);
+  }
+  /**
+   * Protobuf type {@code rocketmq.TopicQueuePair}
+   *
+   * <pre>
+   * TODO 暂时不使用
+   * </pre>
+   */
+  public static final class TopicQueuePair extends
+      com.google.protobuf.GeneratedMessage
+      implements TopicQueuePairOrBuilder {
+    // Use TopicQueuePair.newBuilder() to construct.
+    private TopicQueuePair(com.google.protobuf.GeneratedMessage.Builder<?> builder) {
+      super(builder);
+      this.unknownFields = builder.getUnknownFields();
+    }
+    private TopicQueuePair(boolean noInit) { this.unknownFields = com.google.protobuf.UnknownFieldSet.getDefaultInstance(); }
+
+    private static final TopicQueuePair defaultInstance;
+    public static TopicQueuePair getDefaultInstance() {
+      return defaultInstance;
+    }
+
+    public TopicQueuePair getDefaultInstanceForType() {
+      return defaultInstance;
+    }
+
+    private final com.google.protobuf.UnknownFieldSet unknownFields;
+    @java.lang.Override
+    public final com.google.protobuf.UnknownFieldSet
+        getUnknownFields() {
+      return this.unknownFields;
+    }
+    private TopicQueuePair(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      initFields();
+      int mutable_bitField0_ = 0;
+      com.google.protobuf.UnknownFieldSet.Builder unknownFields =
+          com.google.protobuf.UnknownFieldSet.newBuilder();
+      try {
+        boolean done = false;
+        while (!done) {
+          int tag = input.readTag();
+          switch (tag) {
+            case 0:
+              done = true;
+              break;
+            default: {
+              if (!parseUnknownField(input, unknownFields,
+                                     extensionRegistry, tag)) {
+                done = true;
+              }
+              break;
+            }
+            case 10: {
+              bitField0_ |= 0x00000001;
+              topic_ = input.readBytes();
+              break;
+            }
+            case 18: {
+              if (!((mutable_bitField0_ & 0x00000002) == 0x00000002)) {
+                queueInfo_ = new java.util.ArrayList<com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo>();
+                mutable_bitField0_ |= 0x00000002;
+              }
+              queueInfo_.add(input.readMessage(com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo.PARSER, extensionRegistry));
+              break;
+            }
+          }
+        }
+      } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+        throw e.setUnfinishedMessage(this);
+      } catch (java.io.IOException e) {
+        throw new com.google.protobuf.InvalidProtocolBufferException(
+            e.getMessage()).setUnfinishedMessage(this);
+      } finally {
+        if (((mutable_bitField0_ & 0x00000002) == 0x00000002)) {
+          queueInfo_ = java.util.Collections.unmodifiableList(queueInfo_);
+        }
+        this.unknownFields = unknownFields.build();
+        makeExtensionsImmutable();
+      }
+    }
+    public static final com.google.protobuf.Descriptors.Descriptor
+        getDescriptor() {
+      return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_rocketmq_TopicQueuePair_descriptor;
+    }
+
+    protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
+        internalGetFieldAccessorTable() {
+      return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_rocketmq_TopicQueuePair_fieldAccessorTable
+          .ensureFieldAccessorsInitialized(
+              com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair.class, com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair.Builder.class);
+    }
+
+    public static com.google.protobuf.Parser<TopicQueuePair> PARSER =
+        new com.google.protobuf.AbstractParser<TopicQueuePair>() {
+      public TopicQueuePair parsePartialFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        return new TopicQueuePair(input, extensionRegistry);
+      }
+    };
+
+    @java.lang.Override
+    public com.google.protobuf.Parser<TopicQueuePair> getParserForType() {
+      return PARSER;
+    }
+
+    private int bitField0_;
+    // required string topic = 1;
+    public static final int TOPIC_FIELD_NUMBER = 1;
+    private java.lang.Object topic_;
+    /**
+     * <code>required string topic = 1;</code>
+     */
+    public boolean hasTopic() {
+      return ((bitField0_ & 0x00000001) == 0x00000001);
+    }
+    /**
+     * <code>required string topic = 1;</code>
+     */
+    public java.lang.String getTopic() {
+      java.lang.Object ref = topic_;
+      if (ref instanceof java.lang.String) {
+        return (java.lang.String) ref;
+      } else {
+        com.google.protobuf.ByteString bs = 
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        if (bs.isValidUtf8()) {
+          topic_ = s;
+        }
+        return s;
+      }
+    }
+    /**
+     * <code>required string topic = 1;</code>
+     */
+    public com.google.protobuf.ByteString
+        getTopicBytes() {
+      java.lang.Object ref = topic_;
+      if (ref instanceof java.lang.String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        topic_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+
+    // repeated .rocketmq.QueueInfo queueInfo = 2;
+    public static final int QUEUEINFO_FIELD_NUMBER = 2;
+    private java.util.List<com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo> queueInfo_;
+    /**
+     * <code>repeated .rocketmq.QueueInfo queueInfo = 2;</code>
+     */
+    public java.util.List<com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo> getQueueInfoList() {
+      return queueInfo_;
+    }
+    /**
+     * <code>repeated .rocketmq.QueueInfo queueInfo = 2;</code>
+     */
+    public java.util.List<? extends com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfoOrBuilder> 
+        getQueueInfoOrBuilderList() {
+      return queueInfo_;
+    }
+    /**
+     * <code>repeated .rocketmq.QueueInfo queueInfo = 2;</code>
+     */
+    public int getQueueInfoCount() {
+      return queueInfo_.size();
+    }
+    /**
+     * <code>repeated .rocketmq.QueueInfo queueInfo = 2;</code>
+     */
+    public com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo getQueueInfo(int index) {
+      return queueInfo_.get(index);
+    }
+    /**
+     * <code>repeated .rocketmq.QueueInfo queueInfo = 2;</code>
+     */
+    public com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfoOrBuilder getQueueInfoOrBuilder(
+        int index) {
+      return queueInfo_.get(index);
+    }
+
+    private void initFields() {
+      topic_ = "";
+      queueInfo_ = java.util.Collections.emptyList();
+    }
+    private byte memoizedIsInitialized = -1;
+    public final boolean isInitialized() {
+      byte isInitialized = memoizedIsInitialized;
+      if (isInitialized != -1) return isInitialized == 1;
+
+      if (!hasTopic()) {
+        memoizedIsInitialized = 0;
+        return false;
+      }
+      for (int i = 0; i < getQueueInfoCount(); i++) {
+        if (!getQueueInfo(i).isInitialized()) {
+          memoizedIsInitialized = 0;
+          return false;
+        }
+      }
+      memoizedIsInitialized = 1;
+      return true;
+    }
+
+    public void writeTo(com.google.protobuf.CodedOutputStream output)
+                        throws java.io.IOException {
+      getSerializedSize();
+      if (((bitField0_ & 0x00000001) == 0x00000001)) {
+        output.writeBytes(1, getTopicBytes());
+      }
+      for (int i = 0; i < queueInfo_.size(); i++) {
+        output.writeMessage(2, queueInfo_.get(i));
+      }
+      getUnknownFields().writeTo(output);
+    }
+
+    private int memoizedSerializedSize = -1;
+    public int getSerializedSize() {
+      int size = memoizedSerializedSize;
+      if (size != -1) return size;
+
+      size = 0;
+      if (((bitField0_ & 0x00000001) == 0x00000001)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeBytesSize(1, getTopicBytes());
+      }
+      for (int i = 0; i < queueInfo_.size(); i++) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeMessageSize(2, queueInfo_.get(i));
+      }
+      size += getUnknownFields().getSerializedSize();
+      memoizedSerializedSize = size;
+      return size;
+    }
+
+    private static final long serialVersionUID = 0L;
+    @java.lang.Override
+    protected java.lang.Object writeReplace()
+        throws java.io.ObjectStreamException {
+      return super.writeReplace();
+    }
+
+    public static com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data);
+    }
+    public static com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data, extensionRegistry);
+    }
+    public static com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data);
+    }
+    public static com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data, extensionRegistry);
+    }
+    public static com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return PARSER.parseFrom(input);
+    }
+    public static com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return PARSER.parseFrom(input, extensionRegistry);
+    }
+    public static com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return PARSER.parseDelimitedFrom(input);
+    }
+    public static com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair parseDelimitedFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return PARSER.parseDelimitedFrom(input, extensionRegistry);
+    }
+    public static com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return PARSER.parseFrom(input);
+    }
+    public static com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return PARSER.parseFrom(input, extensionRegistry);
+    }
+
+    public static Builder newBuilder() { return Builder.create(); }
+    public Builder newBuilderForType() { return newBuilder(); }
+    public static Builder newBuilder(com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair prototype) {
+      return newBuilder().mergeFrom(prototype);
+    }
+    public Builder toBuilder() { return newBuilder(this); }
+
+    @java.lang.Override
+    protected Builder newBuilderForType(
+        com.google.protobuf.GeneratedMessage.BuilderParent parent) {
+      Builder builder = new Builder(parent);
+      return builder;
+    }
     /**
      * Protobuf type {@code rocketmq.TopicQueuePair}
-     * 
+     *
      * <pre>
      * TODO 暂时不使用
      * </pre>
      */
-    public static final class TopicQueuePair extends com.google.protobuf.GeneratedMessage implements
-            TopicQueuePairOrBuilder {
-        // Use TopicQueuePair.newBuilder() to construct.
-        private TopicQueuePair(com.google.protobuf.GeneratedMessage.Builder<?> builder) {
-            super(builder);
-            this.unknownFields = builder.getUnknownFields();
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessage.Builder<Builder>
+       implements com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePairOrBuilder {
+      public static final com.google.protobuf.Descriptors.Descriptor
+          getDescriptor() {
+        return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_rocketmq_TopicQueuePair_descriptor;
+      }
+
+      protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
+          internalGetFieldAccessorTable() {
+        return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_rocketmq_TopicQueuePair_fieldAccessorTable
+            .ensureFieldAccessorsInitialized(
+                com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair.class, com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair.Builder.class);
+      }
+
+      // Construct using com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair.newBuilder()
+      private Builder() {
+        maybeForceBuilderInitialization();
+      }
+
+      private Builder(
+          com.google.protobuf.GeneratedMessage.BuilderParent parent) {
+        super(parent);
+        maybeForceBuilderInitialization();
+      }
+      private void maybeForceBuilderInitialization() {
+        if (com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders) {
+          getQueueInfoFieldBuilder();
         }
+      }
+      private static Builder create() {
+        return new Builder();
+      }
 
-
-        private TopicQueuePair(boolean noInit) {
-            this.unknownFields = com.google.protobuf.UnknownFieldSet.getDefaultInstance();
+      public Builder clear() {
+        super.clear();
+        topic_ = "";
+        bitField0_ = (bitField0_ & ~0x00000001);
+        if (queueInfoBuilder_ == null) {
+          queueInfo_ = java.util.Collections.emptyList();
+          bitField0_ = (bitField0_ & ~0x00000002);
+        } else {
+          queueInfoBuilder_.clear();
         }
+        return this;
+      }
 
-        private static final TopicQueuePair defaultInstance;
+      public Builder clone() {
+        return create().mergeFrom(buildPartial());
+      }
 
+      public com.google.protobuf.Descriptors.Descriptor
+          getDescriptorForType() {
+        return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_rocketmq_TopicQueuePair_descriptor;
+      }
 
-        public static TopicQueuePair getDefaultInstance() {
-            return defaultInstance;
+      public com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair getDefaultInstanceForType() {
+        return com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair.getDefaultInstance();
+      }
+
+      public com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair build() {
+        com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair result = buildPartial();
+        if (!result.isInitialized()) {
+          throw newUninitializedMessageException(result);
         }
+        return result;
+      }
 
-
-        public TopicQueuePair getDefaultInstanceForType() {
-            return defaultInstance;
+      public com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair buildPartial() {
+        com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair result = new com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair(this);
+        int from_bitField0_ = bitField0_;
+        int to_bitField0_ = 0;
+        if (((from_bitField0_ & 0x00000001) == 0x00000001)) {
+          to_bitField0_ |= 0x00000001;
         }
-
-        private final com.google.protobuf.UnknownFieldSet unknownFields;
-
-
-        @java.lang.Override
-        public final com.google.protobuf.UnknownFieldSet getUnknownFields() {
-            return this.unknownFields;
+        result.topic_ = topic_;
+        if (queueInfoBuilder_ == null) {
+          if (((bitField0_ & 0x00000002) == 0x00000002)) {
+            queueInfo_ = java.util.Collections.unmodifiableList(queueInfo_);
+            bitField0_ = (bitField0_ & ~0x00000002);
+          }
+          result.queueInfo_ = queueInfo_;
+        } else {
+          result.queueInfo_ = queueInfoBuilder_.build();
         }
+        result.bitField0_ = to_bitField0_;
+        onBuilt();
+        return result;
+      }
 
-
-        private TopicQueuePair(com.google.protobuf.CodedInputStream input,
-                com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-                throws com.google.protobuf.InvalidProtocolBufferException {
-            initFields();
-            int mutable_bitField0_ = 0;
-            com.google.protobuf.UnknownFieldSet.Builder unknownFields =
-                    com.google.protobuf.UnknownFieldSet.newBuilder();
-            try {
-                boolean done = false;
-                while (!done) {
-                    int tag = input.readTag();
-                    switch (tag) {
-                    case 0:
-                        done = true;
-                        break;
-                    default: {
-                        if (!parseUnknownField(input, unknownFields, extensionRegistry, tag)) {
-                            done = true;
-                        }
-                        break;
-                    }
-                    case 10: {
-                        bitField0_ |= 0x00000001;
-                        topic_ = input.readBytes();
-                        break;
-                    }
-                    case 18: {
-                        if (!((mutable_bitField0_ & 0x00000002) == 0x00000002)) {
-                            queueInfo_ =
-                                    new java.util.ArrayList<com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo>();
-                            mutable_bitField0_ |= 0x00000002;
-                        }
-                        queueInfo_.add(input
-                            .readMessage(com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo.PARSER,
-                                extensionRegistry));
-                        break;
-                    }
-                    }
-                }
-            }
-            catch (com.google.protobuf.InvalidProtocolBufferException e) {
-                throw e.setUnfinishedMessage(this);
-            }
-            catch (java.io.IOException e) {
-                throw new com.google.protobuf.InvalidProtocolBufferException(e.getMessage())
-                    .setUnfinishedMessage(this);
-            }
-            finally {
-                if (((mutable_bitField0_ & 0x00000002) == 0x00000002)) {
-                    queueInfo_ = java.util.Collections.unmodifiableList(queueInfo_);
-                }
-                this.unknownFields = unknownFields.build();
-                makeExtensionsImmutable();
-            }
+      public Builder mergeFrom(com.google.protobuf.Message other) {
+        if (other instanceof com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair) {
+          return mergeFrom((com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair)other);
+        } else {
+          super.mergeFrom(other);
+          return this;
         }
+      }
 
-
-        public static final com.google.protobuf.Descriptors.Descriptor getDescriptor() {
-            return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_rocketmq_TopicQueuePair_descriptor;
+      public Builder mergeFrom(com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair other) {
+        if (other == com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair.getDefaultInstance()) return this;
+        if (other.hasTopic()) {
+          bitField0_ |= 0x00000001;
+          topic_ = other.topic_;
+          onChanged();
         }
-
-
-        protected com.google.protobuf.GeneratedMessage.FieldAccessorTable internalGetFieldAccessorTable() {
-            return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_rocketmq_TopicQueuePair_fieldAccessorTable
-                .ensureFieldAccessorsInitialized(
-                    com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair.class,
-                    com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair.Builder.class);
+        if (queueInfoBuilder_ == null) {
+          if (!other.queueInfo_.isEmpty()) {
+            if (queueInfo_.isEmpty()) {
+              queueInfo_ = other.queueInfo_;
+              bitField0_ = (bitField0_ & ~0x00000002);
+            } else {
+              ensureQueueInfoIsMutable();
+              queueInfo_.addAll(other.queueInfo_);
+            }
+            onChanged();
+          }
+        } else {
+          if (!other.queueInfo_.isEmpty()) {
+            if (queueInfoBuilder_.isEmpty()) {
+              queueInfoBuilder_.dispose();
+              queueInfoBuilder_ = null;
+              queueInfo_ = other.queueInfo_;
+              bitField0_ = (bitField0_ & ~0x00000002);
+              queueInfoBuilder_ = 
+                com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
+                   getQueueInfoFieldBuilder() : null;
+            } else {
+              queueInfoBuilder_.addAllMessages(other.queueInfo_);
+            }
+          }
         }
+        this.mergeUnknownFields(other.getUnknownFields());
+        return this;
+      }
 
-        public static com.google.protobuf.Parser<TopicQueuePair> PARSER =
-                new com.google.protobuf.AbstractParser<TopicQueuePair>() {
-                    public TopicQueuePair parsePartialFrom(com.google.protobuf.CodedInputStream input,
-                            com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-                            throws com.google.protobuf.InvalidProtocolBufferException {
-                        return new TopicQueuePair(input, extensionRegistry);
-                    }
-                };
-
-
-        @java.lang.Override
-        public com.google.protobuf.Parser<TopicQueuePair> getParserForType() {
-            return PARSER;
+      public final boolean isInitialized() {
+        if (!hasTopic()) {
+          
+          return false;
         }
-
-        private int bitField0_;
-        // required string topic = 1;
-        public static final int TOPIC_FIELD_NUMBER = 1;
-        private java.lang.Object topic_;
-
-
-        /**
-         * <code>required string topic = 1;</code>
-         */
-        public boolean hasTopic() {
-            return ((bitField0_ & 0x00000001) == 0x00000001);
+        for (int i = 0; i < getQueueInfoCount(); i++) {
+          if (!getQueueInfo(i).isInitialized()) {
+            
+            return false;
+          }
         }
+        return true;
+      }
 
-
-        /**
-         * <code>required string topic = 1;</code>
-         */
-        public java.lang.String getTopic() {
-            java.lang.Object ref = topic_;
-            if (ref instanceof java.lang.String) {
-                return (java.lang.String) ref;
-            }
-            else {
-                com.google.protobuf.ByteString bs = (com.google.protobuf.ByteString) ref;
-                java.lang.String s = bs.toStringUtf8();
-                if (bs.isValidUtf8()) {
-                    topic_ = s;
-                }
-                return s;
-            }
+      public Builder mergeFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws java.io.IOException {
+        com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair parsedMessage = null;
+        try {
+          parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
+        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+          parsedMessage = (com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair) e.getUnfinishedMessage();
+          throw e;
+        } finally {
+          if (parsedMessage != null) {
+            mergeFrom(parsedMessage);
+          }
         }
+        return this;
+      }
+      private int bitField0_;
 
-
-        /**
-         * <code>required string topic = 1;</code>
-         */
-        public com.google.protobuf.ByteString getTopicBytes() {
-            java.lang.Object ref = topic_;
-            if (ref instanceof java.lang.String) {
-                com.google.protobuf.ByteString b =
-                        com.google.protobuf.ByteString.copyFromUtf8((java.lang.String) ref);
-                topic_ = b;
-                return b;
-            }
-            else {
-                return (com.google.protobuf.ByteString) ref;
-            }
+      // required string topic = 1;
+      private java.lang.Object topic_ = "";
+      /**
+       * <code>required string topic = 1;</code>
+       */
+      public boolean hasTopic() {
+        return ((bitField0_ & 0x00000001) == 0x00000001);
+      }
+      /**
+       * <code>required string topic = 1;</code>
+       */
+      public java.lang.String getTopic() {
+        java.lang.Object ref = topic_;
+        if (!(ref instanceof java.lang.String)) {
+          java.lang.String s = ((com.google.protobuf.ByteString) ref)
+              .toStringUtf8();
+          topic_ = s;
+          return s;
+        } else {
+          return (java.lang.String) ref;
         }
-
-        // repeated .rocketmq.QueueInfo queueInfo = 2;
-        public static final int QUEUEINFO_FIELD_NUMBER = 2;
-        private java.util.List<com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo> queueInfo_;
-
-
-        /**
-         * <code>repeated .rocketmq.QueueInfo queueInfo = 2;</code>
-         */
-        public java.util.List<com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo> getQueueInfoList() {
-            return queueInfo_;
+      }
+      /**
+       * <code>required string topic = 1;</code>
+       */
+      public com.google.protobuf.ByteString
+          getTopicBytes() {
+        java.lang.Object ref = topic_;
+        if (ref instanceof String) {
+          com.google.protobuf.ByteString b = 
+              com.google.protobuf.ByteString.copyFromUtf8(
+                  (java.lang.String) ref);
+          topic_ = b;
+          return b;
+        } else {
+          return (com.google.protobuf.ByteString) ref;
         }
+      }
+      /**
+       * <code>required string topic = 1;</code>
+       */
+      public Builder setTopic(
+          java.lang.String value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  bitField0_ |= 0x00000001;
+        topic_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>required string topic = 1;</code>
+       */
+      public Builder clearTopic() {
+        bitField0_ = (bitField0_ & ~0x00000001);
+        topic_ = getDefaultInstance().getTopic();
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>required string topic = 1;</code>
+       */
+      public Builder setTopicBytes(
+          com.google.protobuf.ByteString value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  bitField0_ |= 0x00000001;
+        topic_ = value;
+        onChanged();
+        return this;
+      }
 
+      // repeated .rocketmq.QueueInfo queueInfo = 2;
+      private java.util.List<com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo> queueInfo_ =
+        java.util.Collections.emptyList();
+      private void ensureQueueInfoIsMutable() {
+        if (!((bitField0_ & 0x00000002) == 0x00000002)) {
+          queueInfo_ = new java.util.ArrayList<com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo>(queueInfo_);
+          bitField0_ |= 0x00000002;
+         }
+      }
 
-        /**
-         * <code>repeated .rocketmq.QueueInfo queueInfo = 2;</code>
-         */
-        public java.util.List<? extends com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfoOrBuilder> getQueueInfoOrBuilderList() {
-            return queueInfo_;
+      private com.google.protobuf.RepeatedFieldBuilder<
+          com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo, com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo.Builder, com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfoOrBuilder> queueInfoBuilder_;
+
+      /**
+       * <code>repeated .rocketmq.QueueInfo queueInfo = 2;</code>
+       */
+      public java.util.List<com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo> getQueueInfoList() {
+        if (queueInfoBuilder_ == null) {
+          return java.util.Collections.unmodifiableList(queueInfo_);
+        } else {
+          return queueInfoBuilder_.getMessageList();
         }
-
-
-        /**
-         * <code>repeated .rocketmq.QueueInfo queueInfo = 2;</code>
-         */
-        public int getQueueInfoCount() {
-            return queueInfo_.size();
+      }
+      /**
+       * <code>repeated .rocketmq.QueueInfo queueInfo = 2;</code>
+       */
+      public int getQueueInfoCount() {
+        if (queueInfoBuilder_ == null) {
+          return queueInfo_.size();
+        } else {
+          return queueInfoBuilder_.getCount();
         }
-
-
-        /**
-         * <code>repeated .rocketmq.QueueInfo queueInfo = 2;</code>
-         */
-        public com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo getQueueInfo(int index) {
-            return queueInfo_.get(index);
+      }
+      /**
+       * <code>repeated .rocketmq.QueueInfo queueInfo = 2;</code>
+       */
+      public com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo getQueueInfo(int index) {
+        if (queueInfoBuilder_ == null) {
+          return queueInfo_.get(index);
+        } else {
+          return queueInfoBuilder_.getMessage(index);
         }
-
-
-        /**
-         * <code>repeated .rocketmq.QueueInfo queueInfo = 2;</code>
-         */
-        public com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfoOrBuilder getQueueInfoOrBuilder(
-                int index) {
-            return queueInfo_.get(index);
+      }
+      /**
+       * <code>repeated .rocketmq.QueueInfo queueInfo = 2;</code>
+       */
+      public Builder setQueueInfo(
+          int index, com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo value) {
+        if (queueInfoBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          ensureQueueInfoIsMutable();
+          queueInfo_.set(index, value);
+          onChanged();
+        } else {
+          queueInfoBuilder_.setMessage(index, value);
         }
-
-
-        private void initFields() {
-            topic_ = "";
-            queueInfo_ = java.util.Collections.emptyList();
+        return this;
+      }
+      /**
+       * <code>repeated .rocketmq.QueueInfo queueInfo = 2;</code>
+       */
+      public Builder setQueueInfo(
+          int index, com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo.Builder builderForValue) {
+        if (queueInfoBuilder_ == null) {
+          ensureQueueInfoIsMutable();
+          queueInfo_.set(index, builderForValue.build());
+          onChanged();
+        } else {
+          queueInfoBuilder_.setMessage(index, builderForValue.build());
         }
-
-        private byte memoizedIsInitialized = -1;
-
-
-        public final boolean isInitialized() {
-            byte isInitialized = memoizedIsInitialized;
-            if (isInitialized != -1)
-                return isInitialized == 1;
-
-            if (!hasTopic()) {
-                memoizedIsInitialized = 0;
-                return false;
-            }
-            for (int i = 0; i < getQueueInfoCount(); i++) {
-                if (!getQueueInfo(i).isInitialized()) {
-                    memoizedIsInitialized = 0;
-                    return false;
-                }
-            }
-            memoizedIsInitialized = 1;
-            return true;
+        return this;
+      }
+      /**
+       * <code>repeated .rocketmq.QueueInfo queueInfo = 2;</code>
+       */
+      public Builder addQueueInfo(com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo value) {
+        if (queueInfoBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          ensureQueueInfoIsMutable();
+          queueInfo_.add(value);
+          onChanged();
+        } else {
+          queueInfoBuilder_.addMessage(value);
         }
-
-
-        public void writeTo(com.google.protobuf.CodedOutputStream output) throws java.io.IOException {
-            getSerializedSize();
-            if (((bitField0_ & 0x00000001) == 0x00000001)) {
-                output.writeBytes(1, getTopicBytes());
-            }
-            for (int i = 0; i < queueInfo_.size(); i++) {
-                output.writeMessage(2, queueInfo_.get(i));
-            }
-            getUnknownFields().writeTo(output);
+        return this;
+      }
+      /**
+       * <code>repeated .rocketmq.QueueInfo queueInfo = 2;</code>
+       */
+      public Builder addQueueInfo(
+          int index, com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo value) {
+        if (queueInfoBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          ensureQueueInfoIsMutable();
+          queueInfo_.add(index, value);
+          onChanged();
+        } else {
+          queueInfoBuilder_.addMessage(index, value);
         }
-
-        private int memoizedSerializedSize = -1;
-
-
-        public int getSerializedSize() {
-            int size = memoizedSerializedSize;
-            if (size != -1)
-                return size;
-
-            size = 0;
-            if (((bitField0_ & 0x00000001) == 0x00000001)) {
-                size += com.google.protobuf.CodedOutputStream.computeBytesSize(1, getTopicBytes());
-            }
-            for (int i = 0; i < queueInfo_.size(); i++) {
-                size += com.google.protobuf.CodedOutputStream.computeMessageSize(2, queueInfo_.get(i));
-            }
-            size += getUnknownFields().getSerializedSize();
-            memoizedSerializedSize = size;
-            return size;
+        return this;
+      }
+      /**
+       * <code>repeated .rocketmq.QueueInfo queueInfo = 2;</code>
+       */
+      public Builder addQueueInfo(
+          com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo.Builder builderForValue) {
+        if (queueInfoBuilder_ == null) {
+          ensureQueueInfoIsMutable();
+          queueInfo_.add(builderForValue.build());
+          onChanged();
+        } else {
+          queueInfoBuilder_.addMessage(builderForValue.build());
         }
-
-        private static final long serialVersionUID = 0L;
-
-
-        @java.lang.Override
-        protected java.lang.Object writeReplace() throws java.io.ObjectStreamException {
-            return super.writeReplace();
+        return this;
+      }
+      /**
+       * <code>repeated .rocketmq.QueueInfo queueInfo = 2;</code>
+       */
+      public Builder addQueueInfo(
+          int index, com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo.Builder builderForValue) {
+        if (queueInfoBuilder_ == null) {
+          ensureQueueInfoIsMutable();
+          queueInfo_.add(index, builderForValue.build());
+          onChanged();
+        } else {
+          queueInfoBuilder_.addMessage(index, builderForValue.build());
         }
-
-
-        public static com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair parseFrom(
-                com.google.protobuf.ByteString data)
-                throws com.google.protobuf.InvalidProtocolBufferException {
-            return PARSER.parseFrom(data);
+        return this;
+      }
+      /**
+       * <code>repeated .rocketmq.QueueInfo queueInfo = 2;</code>
+       */
+      public Builder addAllQueueInfo(
+          java.lang.Iterable<? extends com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo> values) {
+        if (queueInfoBuilder_ == null) {
+          ensureQueueInfoIsMutable();
+          super.addAll(values, queueInfo_);
+          onChanged();
+        } else {
+          queueInfoBuilder_.addAllMessages(values);
         }
-
-
-        public static com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair parseFrom(
-                com.google.protobuf.ByteString data,
-                com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-                throws com.google.protobuf.InvalidProtocolBufferException {
-            return PARSER.parseFrom(data, extensionRegistry);
+        return this;
+      }
+      /**
+       * <code>repeated .rocketmq.QueueInfo queueInfo = 2;</code>
+       */
+      public Builder clearQueueInfo() {
+        if (queueInfoBuilder_ == null) {
+          queueInfo_ = java.util.Collections.emptyList();
+          bitField0_ = (bitField0_ & ~0x00000002);
+          onChanged();
+        } else {
+          queueInfoBuilder_.clear();
         }
-
-
-        public static com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair parseFrom(byte[] data)
-                throws com.google.protobuf.InvalidProtocolBufferException {
-            return PARSER.parseFrom(data);
+        return this;
+      }
+      /**
+       * <code>repeated .rocketmq.QueueInfo queueInfo = 2;</code>
+       */
+      public Builder removeQueueInfo(int index) {
+        if (queueInfoBuilder_ == null) {
+          ensureQueueInfoIsMutable();
+          queueInfo_.remove(index);
+          onChanged();
+        } else {
+          queueInfoBuilder_.remove(index);
         }
-
-
-        public static com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair parseFrom(byte[] data,
-                com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-                throws com.google.protobuf.InvalidProtocolBufferException {
-            return PARSER.parseFrom(data, extensionRegistry);
+        return this;
+      }
+      /**
+       * <code>repeated .rocketmq.QueueInfo queueInfo = 2;</code>
+       */
+      public com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo.Builder getQueueInfoBuilder(
+          int index) {
+        return getQueueInfoFieldBuilder().getBuilder(index);
+      }
+      /**
+       * <code>repeated .rocketmq.QueueInfo queueInfo = 2;</code>
+       */
+      public com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfoOrBuilder getQueueInfoOrBuilder(
+          int index) {
+        if (queueInfoBuilder_ == null) {
+          return queueInfo_.get(index);  } else {
+          return queueInfoBuilder_.getMessageOrBuilder(index);
         }
-
-
-        public static com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair parseFrom(
-                java.io.InputStream input) throws java.io.IOException {
-            return PARSER.parseFrom(input);
+      }
+      /**
+       * <code>repeated .rocketmq.QueueInfo queueInfo = 2;</code>
+       */
+      public java.util.List<? extends com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfoOrBuilder> 
+           getQueueInfoOrBuilderList() {
+        if (queueInfoBuilder_ != null) {
+          return queueInfoBuilder_.getMessageOrBuilderList();
+        } else {
+          return java.util.Collections.unmodifiableList(queueInfo_);
         }
-
-
-        public static com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair parseFrom(
-                java.io.InputStream input, com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-                throws java.io.IOException {
-            return PARSER.parseFrom(input, extensionRegistry);
+      }
+      /**
+       * <code>repeated .rocketmq.QueueInfo queueInfo = 2;</code>
+       */
+      public com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo.Builder addQueueInfoBuilder() {
+        return getQueueInfoFieldBuilder().addBuilder(
+            com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo.getDefaultInstance());
+      }
+      /**
+       * <code>repeated .rocketmq.QueueInfo queueInfo = 2;</code>
+       */
+      public com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo.Builder addQueueInfoBuilder(
+          int index) {
+        return getQueueInfoFieldBuilder().addBuilder(
+            index, com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo.getDefaultInstance());
+      }
+      /**
+       * <code>repeated .rocketmq.QueueInfo queueInfo = 2;</code>
+       */
+      public java.util.List<com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo.Builder> 
+           getQueueInfoBuilderList() {
+        return getQueueInfoFieldBuilder().getBuilderList();
+      }
+      private com.google.protobuf.RepeatedFieldBuilder<
+          com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo, com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo.Builder, com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfoOrBuilder> 
+          getQueueInfoFieldBuilder() {
+        if (queueInfoBuilder_ == null) {
+          queueInfoBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
+              com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo, com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo.Builder, com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfoOrBuilder>(
+                  queueInfo_,
+                  ((bitField0_ & 0x00000002) == 0x00000002),
+                  getParentForChildren(),
+                  isClean());
+          queueInfo_ = null;
         }
+        return queueInfoBuilder_;
+      }
 
-
-        public static com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair parseDelimitedFrom(
-                java.io.InputStream input) throws java.io.IOException {
-            return PARSER.parseDelimitedFrom(input);
-        }
-
-
-        public static com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair parseDelimitedFrom(
-                java.io.InputStream input, com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-                throws java.io.IOException {
-            return PARSER.parseDelimitedFrom(input, extensionRegistry);
-        }
-
-
-        public static com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair parseFrom(
-                com.google.protobuf.CodedInputStream input) throws java.io.IOException {
-            return PARSER.parseFrom(input);
-        }
-
-
-        public static com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair parseFrom(
-                com.google.protobuf.CodedInputStream input,
-                com.google.protobuf.ExtensionRegistryLite extensionRegistry) throws java.io.IOException {
-            return PARSER.parseFrom(input, extensionRegistry);
-        }
-
-
-        public static Builder newBuilder() {
-            return Builder.create();
-        }
-
-
-        public Builder newBuilderForType() {
-            return newBuilder();
-        }
-
-
-        public static Builder newBuilder(
-                com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair prototype) {
-            return newBuilder().mergeFrom(prototype);
-        }
-
-
-        public Builder toBuilder() {
-            return newBuilder(this);
-        }
-
-
-        @java.lang.Override
-        protected Builder newBuilderForType(com.google.protobuf.GeneratedMessage.BuilderParent parent) {
-            Builder builder = new Builder(parent);
-            return builder;
-        }
-
-        /**
-         * Protobuf type {@code rocketmq.TopicQueuePair}
-         * 
-         * <pre>
-         * TODO 暂时不使用
-         * </pre>
-         */
-        public static final class Builder extends com.google.protobuf.GeneratedMessage.Builder<Builder>
-                implements com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePairOrBuilder {
-            public static final com.google.protobuf.Descriptors.Descriptor getDescriptor() {
-                return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_rocketmq_TopicQueuePair_descriptor;
-            }
-
-
-            protected com.google.protobuf.GeneratedMessage.FieldAccessorTable internalGetFieldAccessorTable() {
-                return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_rocketmq_TopicQueuePair_fieldAccessorTable
-                    .ensureFieldAccessorsInitialized(
-                        com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair.class,
-                        com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair.Builder.class);
-            }
-
-
-            // Construct using
-            // com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair.newBuilder()
-            private Builder() {
-                maybeForceBuilderInitialization();
-            }
-
-
-            private Builder(com.google.protobuf.GeneratedMessage.BuilderParent parent) {
-                super(parent);
-                maybeForceBuilderInitialization();
-            }
-
-
-            private void maybeForceBuilderInitialization() {
-                if (com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders) {
-                    getQueueInfoFieldBuilder();
-                }
-            }
-
-
-            private static Builder create() {
-                return new Builder();
-            }
-
-
-            public Builder clear() {
-                super.clear();
-                topic_ = "";
-                bitField0_ = (bitField0_ & ~0x00000001);
-                if (queueInfoBuilder_ == null) {
-                    queueInfo_ = java.util.Collections.emptyList();
-                    bitField0_ = (bitField0_ & ~0x00000002);
-                }
-                else {
-                    queueInfoBuilder_.clear();
-                }
-                return this;
-            }
-
-
-            public Builder clone() {
-                return create().mergeFrom(buildPartial());
-            }
-
-
-            public com.google.protobuf.Descriptors.Descriptor getDescriptorForType() {
-                return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_rocketmq_TopicQueuePair_descriptor;
-            }
-
-
-            public com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair getDefaultInstanceForType() {
-                return com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair.getDefaultInstance();
-            }
-
-
-            public com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair build() {
-                com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair result = buildPartial();
-                if (!result.isInitialized()) {
-                    throw newUninitializedMessageException(result);
-                }
-                return result;
-            }
-
-
-            public com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair buildPartial() {
-                com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair result =
-                        new com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair(this);
-                int from_bitField0_ = bitField0_;
-                int to_bitField0_ = 0;
-                if (((from_bitField0_ & 0x00000001) == 0x00000001)) {
-                    to_bitField0_ |= 0x00000001;
-                }
-                result.topic_ = topic_;
-                if (queueInfoBuilder_ == null) {
-                    if (((bitField0_ & 0x00000002) == 0x00000002)) {
-                        queueInfo_ = java.util.Collections.unmodifiableList(queueInfo_);
-                        bitField0_ = (bitField0_ & ~0x00000002);
-                    }
-                    result.queueInfo_ = queueInfo_;
-                }
-                else {
-                    result.queueInfo_ = queueInfoBuilder_.build();
-                }
-                result.bitField0_ = to_bitField0_;
-                onBuilt();
-                return result;
-            }
-
-
-            public Builder mergeFrom(com.google.protobuf.Message other) {
-                if (other instanceof com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair) {
-                    return mergeFrom((com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair) other);
-                }
-                else {
-                    super.mergeFrom(other);
-                    return this;
-                }
-            }
-
-
-            public Builder mergeFrom(com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair other) {
-                if (other == com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair
-                    .getDefaultInstance())
-                    return this;
-                if (other.hasTopic()) {
-                    bitField0_ |= 0x00000001;
-                    topic_ = other.topic_;
-                    onChanged();
-                }
-                if (queueInfoBuilder_ == null) {
-                    if (!other.queueInfo_.isEmpty()) {
-                        if (queueInfo_.isEmpty()) {
-                            queueInfo_ = other.queueInfo_;
-                            bitField0_ = (bitField0_ & ~0x00000002);
-                        }
-                        else {
-                            ensureQueueInfoIsMutable();
-                            queueInfo_.addAll(other.queueInfo_);
-                        }
-                        onChanged();
-                    }
-                }
-                else {
-                    if (!other.queueInfo_.isEmpty()) {
-                        if (queueInfoBuilder_.isEmpty()) {
-                            queueInfoBuilder_.dispose();
-                            queueInfoBuilder_ = null;
-                            queueInfo_ = other.queueInfo_;
-                            bitField0_ = (bitField0_ & ~0x00000002);
-                            queueInfoBuilder_ =
-                                    com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ? getQueueInfoFieldBuilder()
-                                            : null;
-                        }
-                        else {
-                            queueInfoBuilder_.addAllMessages(other.queueInfo_);
-                        }
-                    }
-                }
-                this.mergeUnknownFields(other.getUnknownFields());
-                return this;
-            }
-
-
-            public final boolean isInitialized() {
-                if (!hasTopic()) {
-
-                    return false;
-                }
-                for (int i = 0; i < getQueueInfoCount(); i++) {
-                    if (!getQueueInfo(i).isInitialized()) {
-
-                        return false;
-                    }
-                }
-                return true;
-            }
-
-
-            public Builder mergeFrom(com.google.protobuf.CodedInputStream input,
-                    com.google.protobuf.ExtensionRegistryLite extensionRegistry) throws java.io.IOException {
-                com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair parsedMessage = null;
-                try {
-                    parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
-                }
-                catch (com.google.protobuf.InvalidProtocolBufferException e) {
-                    parsedMessage =
-                            (com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair) e
-                                .getUnfinishedMessage();
-                    throw e;
-                }
-                finally {
-                    if (parsedMessage != null) {
-                        mergeFrom(parsedMessage);
-                    }
-                }
-                return this;
-            }
-
-            private int bitField0_;
-
-            // required string topic = 1;
-            private java.lang.Object topic_ = "";
-
-
-            /**
-             * <code>required string topic = 1;</code>
-             */
-            public boolean hasTopic() {
-                return ((bitField0_ & 0x00000001) == 0x00000001);
-            }
-
-
-            /**
-             * <code>required string topic = 1;</code>
-             */
-            public java.lang.String getTopic() {
-                java.lang.Object ref = topic_;
-                if (!(ref instanceof java.lang.String)) {
-                    java.lang.String s = ((com.google.protobuf.ByteString) ref).toStringUtf8();
-                    topic_ = s;
-                    return s;
-                }
-                else {
-                    return (java.lang.String) ref;
-                }
-            }
-
-
-            /**
-             * <code>required string topic = 1;</code>
-             */
-            public com.google.protobuf.ByteString getTopicBytes() {
-                java.lang.Object ref = topic_;
-                if (ref instanceof String) {
-                    com.google.protobuf.ByteString b =
-                            com.google.protobuf.ByteString.copyFromUtf8((java.lang.String) ref);
-                    topic_ = b;
-                    return b;
-                }
-                else {
-                    return (com.google.protobuf.ByteString) ref;
-                }
-            }
-
-
-            /**
-             * <code>required string topic = 1;</code>
-             */
-            public Builder setTopic(java.lang.String value) {
-                if (value == null) {
-                    throw new NullPointerException();
-                }
-                bitField0_ |= 0x00000001;
-                topic_ = value;
-                onChanged();
-                return this;
-            }
-
-
-            /**
-             * <code>required string topic = 1;</code>
-             */
-            public Builder clearTopic() {
-                bitField0_ = (bitField0_ & ~0x00000001);
-                topic_ = getDefaultInstance().getTopic();
-                onChanged();
-                return this;
-            }
-
-
-            /**
-             * <code>required string topic = 1;</code>
-             */
-            public Builder setTopicBytes(com.google.protobuf.ByteString value) {
-                if (value == null) {
-                    throw new NullPointerException();
-                }
-                bitField0_ |= 0x00000001;
-                topic_ = value;
-                onChanged();
-                return this;
-            }
-
-            // repeated .rocketmq.QueueInfo queueInfo = 2;
-            private java.util.List<com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo> queueInfo_ =
-                    java.util.Collections.emptyList();
-
-
-            private void ensureQueueInfoIsMutable() {
-                if (!((bitField0_ & 0x00000002) == 0x00000002)) {
-                    queueInfo_ =
-                            new java.util.ArrayList<com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo>(
-                                queueInfo_);
-                    bitField0_ |= 0x00000002;
-                }
-            }
-
-            private com.google.protobuf.RepeatedFieldBuilder<com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo, com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo.Builder, com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfoOrBuilder> queueInfoBuilder_;
-
-
-            /**
-             * <code>repeated .rocketmq.QueueInfo queueInfo = 2;</code>
-             */
-            public java.util.List<com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo> getQueueInfoList() {
-                if (queueInfoBuilder_ == null) {
-                    return java.util.Collections.unmodifiableList(queueInfo_);
-                }
-                else {
-                    return queueInfoBuilder_.getMessageList();
-                }
-            }
-
-
-            /**
-             * <code>repeated .rocketmq.QueueInfo queueInfo = 2;</code>
-             */
-            public int getQueueInfoCount() {
-                if (queueInfoBuilder_ == null) {
-                    return queueInfo_.size();
-                }
-                else {
-                    return queueInfoBuilder_.getCount();
-                }
-            }
-
-
-            /**
-             * <code>repeated .rocketmq.QueueInfo queueInfo = 2;</code>
-             */
-            public com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo getQueueInfo(int index) {
-                if (queueInfoBuilder_ == null) {
-                    return queueInfo_.get(index);
-                }
-                else {
-                    return queueInfoBuilder_.getMessage(index);
-                }
-            }
-
-
-            /**
-             * <code>repeated .rocketmq.QueueInfo queueInfo = 2;</code>
-             */
-            public Builder setQueueInfo(int index,
-                    com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo value) {
-                if (queueInfoBuilder_ == null) {
-                    if (value == null) {
-                        throw new NullPointerException();
-                    }
-                    ensureQueueInfoIsMutable();
-                    queueInfo_.set(index, value);
-                    onChanged();
-                }
-                else {
-                    queueInfoBuilder_.setMessage(index, value);
-                }
-                return this;
-            }
-
-
-            /**
-             * <code>repeated .rocketmq.QueueInfo queueInfo = 2;</code>
-             */
-            public Builder setQueueInfo(int index,
-                    com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo.Builder builderForValue) {
-                if (queueInfoBuilder_ == null) {
-                    ensureQueueInfoIsMutable();
-                    queueInfo_.set(index, builderForValue.build());
-                    onChanged();
-                }
-                else {
-                    queueInfoBuilder_.setMessage(index, builderForValue.build());
-                }
-                return this;
-            }
-
-
-            /**
-             * <code>repeated .rocketmq.QueueInfo queueInfo = 2;</code>
-             */
-            public Builder addQueueInfo(com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo value) {
-                if (queueInfoBuilder_ == null) {
-                    if (value == null) {
-                        throw new NullPointerException();
-                    }
-                    ensureQueueInfoIsMutable();
-                    queueInfo_.add(value);
-                    onChanged();
-                }
-                else {
-                    queueInfoBuilder_.addMessage(value);
-                }
-                return this;
-            }
-
-
-            /**
-             * <code>repeated .rocketmq.QueueInfo queueInfo = 2;</code>
-             */
-            public Builder addQueueInfo(int index,
-                    com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo value) {
-                if (queueInfoBuilder_ == null) {
-                    if (value == null) {
-                        throw new NullPointerException();
-                    }
-                    ensureQueueInfoIsMutable();
-                    queueInfo_.add(index, value);
-                    onChanged();
-                }
-                else {
-                    queueInfoBuilder_.addMessage(index, value);
-                }
-                return this;
-            }
-
-
-            /**
-             * <code>repeated .rocketmq.QueueInfo queueInfo = 2;</code>
-             */
-            public Builder addQueueInfo(
-                    com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo.Builder builderForValue) {
-                if (queueInfoBuilder_ == null) {
-                    ensureQueueInfoIsMutable();
-                    queueInfo_.add(builderForValue.build());
-                    onChanged();
-                }
-                else {
-                    queueInfoBuilder_.addMessage(builderForValue.build());
-                }
-                return this;
-            }
-
-
-            /**
-             * <code>repeated .rocketmq.QueueInfo queueInfo = 2;</code>
-             */
-            public Builder addQueueInfo(int index,
-                    com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo.Builder builderForValue) {
-                if (queueInfoBuilder_ == null) {
-                    ensureQueueInfoIsMutable();
-                    queueInfo_.add(index, builderForValue.build());
-                    onChanged();
-                }
-                else {
-                    queueInfoBuilder_.addMessage(index, builderForValue.build());
-                }
-                return this;
-            }
-
-
-            /**
-             * <code>repeated .rocketmq.QueueInfo queueInfo = 2;</code>
-             */
-            public Builder addAllQueueInfo(
-                    java.lang.Iterable<? extends com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo> values) {
-                if (queueInfoBuilder_ == null) {
-                    ensureQueueInfoIsMutable();
-                    super.addAll(values, queueInfo_);
-                    onChanged();
-                }
-                else {
-                    queueInfoBuilder_.addAllMessages(values);
-                }
-                return this;
-            }
-
-
-            /**
-             * <code>repeated .rocketmq.QueueInfo queueInfo = 2;</code>
-             */
-            public Builder clearQueueInfo() {
-                if (queueInfoBuilder_ == null) {
-                    queueInfo_ = java.util.Collections.emptyList();
-                    bitField0_ = (bitField0_ & ~0x00000002);
-                    onChanged();
-                }
-                else {
-                    queueInfoBuilder_.clear();
-                }
-                return this;
-            }
-
-
-            /**
-             * <code>repeated .rocketmq.QueueInfo queueInfo = 2;</code>
-             */
-            public Builder removeQueueInfo(int index) {
-                if (queueInfoBuilder_ == null) {
-                    ensureQueueInfoIsMutable();
-                    queueInfo_.remove(index);
-                    onChanged();
-                }
-                else {
-                    queueInfoBuilder_.remove(index);
-                }
-                return this;
-            }
-
-
-            /**
-             * <code>repeated .rocketmq.QueueInfo queueInfo = 2;</code>
-             */
-            public com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo.Builder getQueueInfoBuilder(
-                    int index) {
-                return getQueueInfoFieldBuilder().getBuilder(index);
-            }
-
-
-            /**
-             * <code>repeated .rocketmq.QueueInfo queueInfo = 2;</code>
-             */
-            public com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfoOrBuilder getQueueInfoOrBuilder(
-                    int index) {
-                if (queueInfoBuilder_ == null) {
-                    return queueInfo_.get(index);
-                }
-                else {
-                    return queueInfoBuilder_.getMessageOrBuilder(index);
-                }
-            }
-
-
-            /**
-             * <code>repeated .rocketmq.QueueInfo queueInfo = 2;</code>
-             */
-            public java.util.List<? extends com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfoOrBuilder> getQueueInfoOrBuilderList() {
-                if (queueInfoBuilder_ != null) {
-                    return queueInfoBuilder_.getMessageOrBuilderList();
-                }
-                else {
-                    return java.util.Collections.unmodifiableList(queueInfo_);
-                }
-            }
-
-
-            /**
-             * <code>repeated .rocketmq.QueueInfo queueInfo = 2;</code>
-             */
-            public com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo.Builder addQueueInfoBuilder() {
-                return getQueueInfoFieldBuilder().addBuilder(
-                    com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo.getDefaultInstance());
-            }
-
-
-            /**
-             * <code>repeated .rocketmq.QueueInfo queueInfo = 2;</code>
-             */
-            public com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo.Builder addQueueInfoBuilder(
-                    int index) {
-                return getQueueInfoFieldBuilder().addBuilder(index,
-                    com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo.getDefaultInstance());
-            }
-
-
-            /**
-             * <code>repeated .rocketmq.QueueInfo queueInfo = 2;</code>
-             */
-            public java.util.List<com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo.Builder> getQueueInfoBuilderList() {
-                return getQueueInfoFieldBuilder().getBuilderList();
-            }
-
-
-            private com.google.protobuf.RepeatedFieldBuilder<com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo, com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo.Builder, com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfoOrBuilder> getQueueInfoFieldBuilder() {
-                if (queueInfoBuilder_ == null) {
-                    queueInfoBuilder_ =
-                            new com.google.protobuf.RepeatedFieldBuilder<com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo, com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfo.Builder, com.alibaba.rocketmq.common.protocol.MQProtos.QueueInfoOrBuilder>(
-                                queueInfo_, ((bitField0_ & 0x00000002) == 0x00000002),
-                                getParentForChildren(), isClean());
-                    queueInfo_ = null;
-                }
-                return queueInfoBuilder_;
-            }
-
-            // @@protoc_insertion_point(builder_scope:rocketmq.TopicQueuePair)
-        }
-
-        static {
-            defaultInstance = new TopicQueuePair(true);
-            defaultInstance.initFields();
-        }
-
-        // @@protoc_insertion_point(class_scope:rocketmq.TopicQueuePair)
+      // @@protoc_insertion_point(builder_scope:rocketmq.TopicQueuePair)
     }
 
-    public interface BrokerDataPairOrBuilder extends com.google.protobuf.MessageOrBuilder {
-
-        // required string brokerName = 1;
-        /**
-         * <code>required string brokerName = 1;</code>
-         */
-        boolean hasBrokerName();
-
-
-        /**
-         * <code>required string brokerName = 1;</code>
-         */
-        java.lang.String getBrokerName();
-
-
-        /**
-         * <code>required string brokerName = 1;</code>
-         */
-        com.google.protobuf.ByteString getBrokerNameBytes();
-
-
-        // required .rocketmq.BrokerInfo brokerInfo = 2;
-        /**
-         * <code>required .rocketmq.BrokerInfo brokerInfo = 2;</code>
-         */
-        boolean hasBrokerInfo();
-
-
-        /**
-         * <code>required .rocketmq.BrokerInfo brokerInfo = 2;</code>
-         */
-        com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo getBrokerInfo();
-
-
-        /**
-         * <code>required .rocketmq.BrokerInfo brokerInfo = 2;</code>
-         */
-        com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfoOrBuilder getBrokerInfoOrBuilder();
+    static {
+      defaultInstance = new TopicQueuePair(true);
+      defaultInstance.initFields();
     }
 
+    // @@protoc_insertion_point(class_scope:rocketmq.TopicQueuePair)
+  }
+
+  public interface BrokerDataPairOrBuilder
+      extends com.google.protobuf.MessageOrBuilder {
+
+    // required string brokerName = 1;
+    /**
+     * <code>required string brokerName = 1;</code>
+     */
+    boolean hasBrokerName();
+    /**
+     * <code>required string brokerName = 1;</code>
+     */
+    java.lang.String getBrokerName();
+    /**
+     * <code>required string brokerName = 1;</code>
+     */
+    com.google.protobuf.ByteString
+        getBrokerNameBytes();
+
+    // required .rocketmq.BrokerInfo brokerInfo = 2;
+    /**
+     * <code>required .rocketmq.BrokerInfo brokerInfo = 2;</code>
+     */
+    boolean hasBrokerInfo();
+    /**
+     * <code>required .rocketmq.BrokerInfo brokerInfo = 2;</code>
+     */
+    com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo getBrokerInfo();
+    /**
+     * <code>required .rocketmq.BrokerInfo brokerInfo = 2;</code>
+     */
+    com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfoOrBuilder getBrokerInfoOrBuilder();
+  }
+  /**
+   * Protobuf type {@code rocketmq.BrokerDataPair}
+   *
+   * <pre>
+   * TODO 暂时不使用
+   * </pre>
+   */
+  public static final class BrokerDataPair extends
+      com.google.protobuf.GeneratedMessage
+      implements BrokerDataPairOrBuilder {
+    // Use BrokerDataPair.newBuilder() to construct.
+    private BrokerDataPair(com.google.protobuf.GeneratedMessage.Builder<?> builder) {
+      super(builder);
+      this.unknownFields = builder.getUnknownFields();
+    }
+    private BrokerDataPair(boolean noInit) { this.unknownFields = com.google.protobuf.UnknownFieldSet.getDefaultInstance(); }
+
+    private static final BrokerDataPair defaultInstance;
+    public static BrokerDataPair getDefaultInstance() {
+      return defaultInstance;
+    }
+
+    public BrokerDataPair getDefaultInstanceForType() {
+      return defaultInstance;
+    }
+
+    private final com.google.protobuf.UnknownFieldSet unknownFields;
+    @java.lang.Override
+    public final com.google.protobuf.UnknownFieldSet
+        getUnknownFields() {
+      return this.unknownFields;
+    }
+    private BrokerDataPair(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      initFields();
+      int mutable_bitField0_ = 0;
+      com.google.protobuf.UnknownFieldSet.Builder unknownFields =
+          com.google.protobuf.UnknownFieldSet.newBuilder();
+      try {
+        boolean done = false;
+        while (!done) {
+          int tag = input.readTag();
+          switch (tag) {
+            case 0:
+              done = true;
+              break;
+            default: {
+              if (!parseUnknownField(input, unknownFields,
+                                     extensionRegistry, tag)) {
+                done = true;
+              }
+              break;
+            }
+            case 10: {
+              bitField0_ |= 0x00000001;
+              brokerName_ = input.readBytes();
+              break;
+            }
+            case 18: {
+              com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.Builder subBuilder = null;
+              if (((bitField0_ & 0x00000002) == 0x00000002)) {
+                subBuilder = brokerInfo_.toBuilder();
+              }
+              brokerInfo_ = input.readMessage(com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.PARSER, extensionRegistry);
+              if (subBuilder != null) {
+                subBuilder.mergeFrom(brokerInfo_);
+                brokerInfo_ = subBuilder.buildPartial();
+              }
+              bitField0_ |= 0x00000002;
+              break;
+            }
+          }
+        }
+      } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+        throw e.setUnfinishedMessage(this);
+      } catch (java.io.IOException e) {
+        throw new com.google.protobuf.InvalidProtocolBufferException(
+            e.getMessage()).setUnfinishedMessage(this);
+      } finally {
+        this.unknownFields = unknownFields.build();
+        makeExtensionsImmutable();
+      }
+    }
+    public static final com.google.protobuf.Descriptors.Descriptor
+        getDescriptor() {
+      return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_rocketmq_BrokerDataPair_descriptor;
+    }
+
+    protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
+        internalGetFieldAccessorTable() {
+      return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_rocketmq_BrokerDataPair_fieldAccessorTable
+          .ensureFieldAccessorsInitialized(
+              com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair.class, com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair.Builder.class);
+    }
+
+    public static com.google.protobuf.Parser<BrokerDataPair> PARSER =
+        new com.google.protobuf.AbstractParser<BrokerDataPair>() {
+      public BrokerDataPair parsePartialFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        return new BrokerDataPair(input, extensionRegistry);
+      }
+    };
+
+    @java.lang.Override
+    public com.google.protobuf.Parser<BrokerDataPair> getParserForType() {
+      return PARSER;
+    }
+
+    private int bitField0_;
+    // required string brokerName = 1;
+    public static final int BROKERNAME_FIELD_NUMBER = 1;
+    private java.lang.Object brokerName_;
+    /**
+     * <code>required string brokerName = 1;</code>
+     */
+    public boolean hasBrokerName() {
+      return ((bitField0_ & 0x00000001) == 0x00000001);
+    }
+    /**
+     * <code>required string brokerName = 1;</code>
+     */
+    public java.lang.String getBrokerName() {
+      java.lang.Object ref = brokerName_;
+      if (ref instanceof java.lang.String) {
+        return (java.lang.String) ref;
+      } else {
+        com.google.protobuf.ByteString bs = 
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        if (bs.isValidUtf8()) {
+          brokerName_ = s;
+        }
+        return s;
+      }
+    }
+    /**
+     * <code>required string brokerName = 1;</code>
+     */
+    public com.google.protobuf.ByteString
+        getBrokerNameBytes() {
+      java.lang.Object ref = brokerName_;
+      if (ref instanceof java.lang.String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        brokerName_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+
+    // required .rocketmq.BrokerInfo brokerInfo = 2;
+    public static final int BROKERINFO_FIELD_NUMBER = 2;
+    private com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo brokerInfo_;
+    /**
+     * <code>required .rocketmq.BrokerInfo brokerInfo = 2;</code>
+     */
+    public boolean hasBrokerInfo() {
+      return ((bitField0_ & 0x00000002) == 0x00000002);
+    }
+    /**
+     * <code>required .rocketmq.BrokerInfo brokerInfo = 2;</code>
+     */
+    public com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo getBrokerInfo() {
+      return brokerInfo_;
+    }
+    /**
+     * <code>required .rocketmq.BrokerInfo brokerInfo = 2;</code>
+     */
+    public com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfoOrBuilder getBrokerInfoOrBuilder() {
+      return brokerInfo_;
+    }
+
+    private void initFields() {
+      brokerName_ = "";
+      brokerInfo_ = com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.getDefaultInstance();
+    }
+    private byte memoizedIsInitialized = -1;
+    public final boolean isInitialized() {
+      byte isInitialized = memoizedIsInitialized;
+      if (isInitialized != -1) return isInitialized == 1;
+
+      if (!hasBrokerName()) {
+        memoizedIsInitialized = 0;
+        return false;
+      }
+      if (!hasBrokerInfo()) {
+        memoizedIsInitialized = 0;
+        return false;
+      }
+      if (!getBrokerInfo().isInitialized()) {
+        memoizedIsInitialized = 0;
+        return false;
+      }
+      memoizedIsInitialized = 1;
+      return true;
+    }
+
+    public void writeTo(com.google.protobuf.CodedOutputStream output)
+                        throws java.io.IOException {
+      getSerializedSize();
+      if (((bitField0_ & 0x00000001) == 0x00000001)) {
+        output.writeBytes(1, getBrokerNameBytes());
+      }
+      if (((bitField0_ & 0x00000002) == 0x00000002)) {
+        output.writeMessage(2, brokerInfo_);
+      }
+      getUnknownFields().writeTo(output);
+    }
+
+    private int memoizedSerializedSize = -1;
+    public int getSerializedSize() {
+      int size = memoizedSerializedSize;
+      if (size != -1) return size;
+
+      size = 0;
+      if (((bitField0_ & 0x00000001) == 0x00000001)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeBytesSize(1, getBrokerNameBytes());
+      }
+      if (((bitField0_ & 0x00000002) == 0x00000002)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeMessageSize(2, brokerInfo_);
+      }
+      size += getUnknownFields().getSerializedSize();
+      memoizedSerializedSize = size;
+      return size;
+    }
+
+    private static final long serialVersionUID = 0L;
+    @java.lang.Override
+    protected java.lang.Object writeReplace()
+        throws java.io.ObjectStreamException {
+      return super.writeReplace();
+    }
+
+    public static com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data);
+    }
+    public static com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data, extensionRegistry);
+    }
+    public static com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data);
+    }
+    public static com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data, extensionRegistry);
+    }
+    public static com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return PARSER.parseFrom(input);
+    }
+    public static com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return PARSER.parseFrom(input, extensionRegistry);
+    }
+    public static com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return PARSER.parseDelimitedFrom(input);
+    }
+    public static com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair parseDelimitedFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return PARSER.parseDelimitedFrom(input, extensionRegistry);
+    }
+    public static com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return PARSER.parseFrom(input);
+    }
+    public static com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return PARSER.parseFrom(input, extensionRegistry);
+    }
+
+    public static Builder newBuilder() { return Builder.create(); }
+    public Builder newBuilderForType() { return newBuilder(); }
+    public static Builder newBuilder(com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair prototype) {
+      return newBuilder().mergeFrom(prototype);
+    }
+    public Builder toBuilder() { return newBuilder(this); }
+
+    @java.lang.Override
+    protected Builder newBuilderForType(
+        com.google.protobuf.GeneratedMessage.BuilderParent parent) {
+      Builder builder = new Builder(parent);
+      return builder;
+    }
     /**
      * Protobuf type {@code rocketmq.BrokerDataPair}
-     * 
+     *
      * <pre>
      * TODO 暂时不使用
      * </pre>
      */
-    public static final class BrokerDataPair extends com.google.protobuf.GeneratedMessage implements
-            BrokerDataPairOrBuilder {
-        // Use BrokerDataPair.newBuilder() to construct.
-        private BrokerDataPair(com.google.protobuf.GeneratedMessage.Builder<?> builder) {
-            super(builder);
-            this.unknownFields = builder.getUnknownFields();
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessage.Builder<Builder>
+       implements com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPairOrBuilder {
+      public static final com.google.protobuf.Descriptors.Descriptor
+          getDescriptor() {
+        return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_rocketmq_BrokerDataPair_descriptor;
+      }
+
+      protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
+          internalGetFieldAccessorTable() {
+        return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_rocketmq_BrokerDataPair_fieldAccessorTable
+            .ensureFieldAccessorsInitialized(
+                com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair.class, com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair.Builder.class);
+      }
+
+      // Construct using com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair.newBuilder()
+      private Builder() {
+        maybeForceBuilderInitialization();
+      }
+
+      private Builder(
+          com.google.protobuf.GeneratedMessage.BuilderParent parent) {
+        super(parent);
+        maybeForceBuilderInitialization();
+      }
+      private void maybeForceBuilderInitialization() {
+        if (com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders) {
+          getBrokerInfoFieldBuilder();
         }
+      }
+      private static Builder create() {
+        return new Builder();
+      }
 
-
-        private BrokerDataPair(boolean noInit) {
-            this.unknownFields = com.google.protobuf.UnknownFieldSet.getDefaultInstance();
+      public Builder clear() {
+        super.clear();
+        brokerName_ = "";
+        bitField0_ = (bitField0_ & ~0x00000001);
+        if (brokerInfoBuilder_ == null) {
+          brokerInfo_ = com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.getDefaultInstance();
+        } else {
+          brokerInfoBuilder_.clear();
         }
+        bitField0_ = (bitField0_ & ~0x00000002);
+        return this;
+      }
 
-        private static final BrokerDataPair defaultInstance;
+      public Builder clone() {
+        return create().mergeFrom(buildPartial());
+      }
 
+      public com.google.protobuf.Descriptors.Descriptor
+          getDescriptorForType() {
+        return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_rocketmq_BrokerDataPair_descriptor;
+      }
 
-        public static BrokerDataPair getDefaultInstance() {
-            return defaultInstance;
+      public com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair getDefaultInstanceForType() {
+        return com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair.getDefaultInstance();
+      }
+
+      public com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair build() {
+        com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair result = buildPartial();
+        if (!result.isInitialized()) {
+          throw newUninitializedMessageException(result);
         }
+        return result;
+      }
 
-
-        public BrokerDataPair getDefaultInstanceForType() {
-            return defaultInstance;
+      public com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair buildPartial() {
+        com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair result = new com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair(this);
+        int from_bitField0_ = bitField0_;
+        int to_bitField0_ = 0;
+        if (((from_bitField0_ & 0x00000001) == 0x00000001)) {
+          to_bitField0_ |= 0x00000001;
         }
-
-        private final com.google.protobuf.UnknownFieldSet unknownFields;
-
-
-        @java.lang.Override
-        public final com.google.protobuf.UnknownFieldSet getUnknownFields() {
-            return this.unknownFields;
+        result.brokerName_ = brokerName_;
+        if (((from_bitField0_ & 0x00000002) == 0x00000002)) {
+          to_bitField0_ |= 0x00000002;
         }
-
-
-        private BrokerDataPair(com.google.protobuf.CodedInputStream input,
-                com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-                throws com.google.protobuf.InvalidProtocolBufferException {
-            initFields();
-            int mutable_bitField0_ = 0;
-            com.google.protobuf.UnknownFieldSet.Builder unknownFields =
-                    com.google.protobuf.UnknownFieldSet.newBuilder();
-            try {
-                boolean done = false;
-                while (!done) {
-                    int tag = input.readTag();
-                    switch (tag) {
-                    case 0:
-                        done = true;
-                        break;
-                    default: {
-                        if (!parseUnknownField(input, unknownFields, extensionRegistry, tag)) {
-                            done = true;
-                        }
-                        break;
-                    }
-                    case 10: {
-                        bitField0_ |= 0x00000001;
-                        brokerName_ = input.readBytes();
-                        break;
-                    }
-                    case 18: {
-                        com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.Builder subBuilder = null;
-                        if (((bitField0_ & 0x00000002) == 0x00000002)) {
-                            subBuilder = brokerInfo_.toBuilder();
-                        }
-                        brokerInfo_ =
-                                input.readMessage(
-                                    com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.PARSER,
-                                    extensionRegistry);
-                        if (subBuilder != null) {
-                            subBuilder.mergeFrom(brokerInfo_);
-                            brokerInfo_ = subBuilder.buildPartial();
-                        }
-                        bitField0_ |= 0x00000002;
-                        break;
-                    }
-                    }
-                }
-            }
-            catch (com.google.protobuf.InvalidProtocolBufferException e) {
-                throw e.setUnfinishedMessage(this);
-            }
-            catch (java.io.IOException e) {
-                throw new com.google.protobuf.InvalidProtocolBufferException(e.getMessage())
-                    .setUnfinishedMessage(this);
-            }
-            finally {
-                this.unknownFields = unknownFields.build();
-                makeExtensionsImmutable();
-            }
+        if (brokerInfoBuilder_ == null) {
+          result.brokerInfo_ = brokerInfo_;
+        } else {
+          result.brokerInfo_ = brokerInfoBuilder_.build();
         }
+        result.bitField0_ = to_bitField0_;
+        onBuilt();
+        return result;
+      }
 
-
-        public static final com.google.protobuf.Descriptors.Descriptor getDescriptor() {
-            return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_rocketmq_BrokerDataPair_descriptor;
+      public Builder mergeFrom(com.google.protobuf.Message other) {
+        if (other instanceof com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair) {
+          return mergeFrom((com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair)other);
+        } else {
+          super.mergeFrom(other);
+          return this;
         }
+      }
 
-
-        protected com.google.protobuf.GeneratedMessage.FieldAccessorTable internalGetFieldAccessorTable() {
-            return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_rocketmq_BrokerDataPair_fieldAccessorTable
-                .ensureFieldAccessorsInitialized(
-                    com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair.class,
-                    com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair.Builder.class);
+      public Builder mergeFrom(com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair other) {
+        if (other == com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair.getDefaultInstance()) return this;
+        if (other.hasBrokerName()) {
+          bitField0_ |= 0x00000001;
+          brokerName_ = other.brokerName_;
+          onChanged();
         }
-
-        public static com.google.protobuf.Parser<BrokerDataPair> PARSER =
-                new com.google.protobuf.AbstractParser<BrokerDataPair>() {
-                    public BrokerDataPair parsePartialFrom(com.google.protobuf.CodedInputStream input,
-                            com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-                            throws com.google.protobuf.InvalidProtocolBufferException {
-                        return new BrokerDataPair(input, extensionRegistry);
-                    }
-                };
-
-
-        @java.lang.Override
-        public com.google.protobuf.Parser<BrokerDataPair> getParserForType() {
-            return PARSER;
+        if (other.hasBrokerInfo()) {
+          mergeBrokerInfo(other.getBrokerInfo());
         }
+        this.mergeUnknownFields(other.getUnknownFields());
+        return this;
+      }
 
-        private int bitField0_;
-        // required string brokerName = 1;
-        public static final int BROKERNAME_FIELD_NUMBER = 1;
-        private java.lang.Object brokerName_;
-
-
-        /**
-         * <code>required string brokerName = 1;</code>
-         */
-        public boolean hasBrokerName() {
-            return ((bitField0_ & 0x00000001) == 0x00000001);
+      public final boolean isInitialized() {
+        if (!hasBrokerName()) {
+          
+          return false;
         }
-
-
-        /**
-         * <code>required string brokerName = 1;</code>
-         */
-        public java.lang.String getBrokerName() {
-            java.lang.Object ref = brokerName_;
-            if (ref instanceof java.lang.String) {
-                return (java.lang.String) ref;
-            }
-            else {
-                com.google.protobuf.ByteString bs = (com.google.protobuf.ByteString) ref;
-                java.lang.String s = bs.toStringUtf8();
-                if (bs.isValidUtf8()) {
-                    brokerName_ = s;
-                }
-                return s;
-            }
+        if (!hasBrokerInfo()) {
+          
+          return false;
         }
-
-
-        /**
-         * <code>required string brokerName = 1;</code>
-         */
-        public com.google.protobuf.ByteString getBrokerNameBytes() {
-            java.lang.Object ref = brokerName_;
-            if (ref instanceof java.lang.String) {
-                com.google.protobuf.ByteString b =
-                        com.google.protobuf.ByteString.copyFromUtf8((java.lang.String) ref);
-                brokerName_ = b;
-                return b;
-            }
-            else {
-                return (com.google.protobuf.ByteString) ref;
-            }
+        if (!getBrokerInfo().isInitialized()) {
+          
+          return false;
         }
+        return true;
+      }
 
-        // required .rocketmq.BrokerInfo brokerInfo = 2;
-        public static final int BROKERINFO_FIELD_NUMBER = 2;
-        private com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo brokerInfo_;
-
-
-        /**
-         * <code>required .rocketmq.BrokerInfo brokerInfo = 2;</code>
-         */
-        public boolean hasBrokerInfo() {
-            return ((bitField0_ & 0x00000002) == 0x00000002);
+      public Builder mergeFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws java.io.IOException {
+        com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair parsedMessage = null;
+        try {
+          parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
+        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+          parsedMessage = (com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair) e.getUnfinishedMessage();
+          throw e;
+        } finally {
+          if (parsedMessage != null) {
+            mergeFrom(parsedMessage);
+          }
         }
+        return this;
+      }
+      private int bitField0_;
 
-
-        /**
-         * <code>required .rocketmq.BrokerInfo brokerInfo = 2;</code>
-         */
-        public com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo getBrokerInfo() {
-            return brokerInfo_;
+      // required string brokerName = 1;
+      private java.lang.Object brokerName_ = "";
+      /**
+       * <code>required string brokerName = 1;</code>
+       */
+      public boolean hasBrokerName() {
+        return ((bitField0_ & 0x00000001) == 0x00000001);
+      }
+      /**
+       * <code>required string brokerName = 1;</code>
+       */
+      public java.lang.String getBrokerName() {
+        java.lang.Object ref = brokerName_;
+        if (!(ref instanceof java.lang.String)) {
+          java.lang.String s = ((com.google.protobuf.ByteString) ref)
+              .toStringUtf8();
+          brokerName_ = s;
+          return s;
+        } else {
+          return (java.lang.String) ref;
         }
-
-
-        /**
-         * <code>required .rocketmq.BrokerInfo brokerInfo = 2;</code>
-         */
-        public com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfoOrBuilder getBrokerInfoOrBuilder() {
-            return brokerInfo_;
+      }
+      /**
+       * <code>required string brokerName = 1;</code>
+       */
+      public com.google.protobuf.ByteString
+          getBrokerNameBytes() {
+        java.lang.Object ref = brokerName_;
+        if (ref instanceof String) {
+          com.google.protobuf.ByteString b = 
+              com.google.protobuf.ByteString.copyFromUtf8(
+                  (java.lang.String) ref);
+          brokerName_ = b;
+          return b;
+        } else {
+          return (com.google.protobuf.ByteString) ref;
         }
+      }
+      /**
+       * <code>required string brokerName = 1;</code>
+       */
+      public Builder setBrokerName(
+          java.lang.String value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  bitField0_ |= 0x00000001;
+        brokerName_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>required string brokerName = 1;</code>
+       */
+      public Builder clearBrokerName() {
+        bitField0_ = (bitField0_ & ~0x00000001);
+        brokerName_ = getDefaultInstance().getBrokerName();
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>required string brokerName = 1;</code>
+       */
+      public Builder setBrokerNameBytes(
+          com.google.protobuf.ByteString value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  bitField0_ |= 0x00000001;
+        brokerName_ = value;
+        onChanged();
+        return this;
+      }
 
-
-        private void initFields() {
-            brokerName_ = "";
-            brokerInfo_ = com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.getDefaultInstance();
+      // required .rocketmq.BrokerInfo brokerInfo = 2;
+      private com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo brokerInfo_ = com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.getDefaultInstance();
+      private com.google.protobuf.SingleFieldBuilder<
+          com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo, com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.Builder, com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfoOrBuilder> brokerInfoBuilder_;
+      /**
+       * <code>required .rocketmq.BrokerInfo brokerInfo = 2;</code>
+       */
+      public boolean hasBrokerInfo() {
+        return ((bitField0_ & 0x00000002) == 0x00000002);
+      }
+      /**
+       * <code>required .rocketmq.BrokerInfo brokerInfo = 2;</code>
+       */
+      public com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo getBrokerInfo() {
+        if (brokerInfoBuilder_ == null) {
+          return brokerInfo_;
+        } else {
+          return brokerInfoBuilder_.getMessage();
         }
-
-        private byte memoizedIsInitialized = -1;
-
-
-        public final boolean isInitialized() {
-            byte isInitialized = memoizedIsInitialized;
-            if (isInitialized != -1)
-                return isInitialized == 1;
-
-            if (!hasBrokerName()) {
-                memoizedIsInitialized = 0;
-                return false;
-            }
-            if (!hasBrokerInfo()) {
-                memoizedIsInitialized = 0;
-                return false;
-            }
-            if (!getBrokerInfo().isInitialized()) {
-                memoizedIsInitialized = 0;
-                return false;
-            }
-            memoizedIsInitialized = 1;
-            return true;
+      }
+      /**
+       * <code>required .rocketmq.BrokerInfo brokerInfo = 2;</code>
+       */
+      public Builder setBrokerInfo(com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo value) {
+        if (brokerInfoBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          brokerInfo_ = value;
+          onChanged();
+        } else {
+          brokerInfoBuilder_.setMessage(value);
         }
-
-
-        public void writeTo(com.google.protobuf.CodedOutputStream output) throws java.io.IOException {
-            getSerializedSize();
-            if (((bitField0_ & 0x00000001) == 0x00000001)) {
-                output.writeBytes(1, getBrokerNameBytes());
-            }
-            if (((bitField0_ & 0x00000002) == 0x00000002)) {
-                output.writeMessage(2, brokerInfo_);
-            }
-            getUnknownFields().writeTo(output);
+        bitField0_ |= 0x00000002;
+        return this;
+      }
+      /**
+       * <code>required .rocketmq.BrokerInfo brokerInfo = 2;</code>
+       */
+      public Builder setBrokerInfo(
+          com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.Builder builderForValue) {
+        if (brokerInfoBuilder_ == null) {
+          brokerInfo_ = builderForValue.build();
+          onChanged();
+        } else {
+          brokerInfoBuilder_.setMessage(builderForValue.build());
         }
-
-        private int memoizedSerializedSize = -1;
-
-
-        public int getSerializedSize() {
-            int size = memoizedSerializedSize;
-            if (size != -1)
-                return size;
-
-            size = 0;
-            if (((bitField0_ & 0x00000001) == 0x00000001)) {
-                size += com.google.protobuf.CodedOutputStream.computeBytesSize(1, getBrokerNameBytes());
-            }
-            if (((bitField0_ & 0x00000002) == 0x00000002)) {
-                size += com.google.protobuf.CodedOutputStream.computeMessageSize(2, brokerInfo_);
-            }
-            size += getUnknownFields().getSerializedSize();
-            memoizedSerializedSize = size;
-            return size;
+        bitField0_ |= 0x00000002;
+        return this;
+      }
+      /**
+       * <code>required .rocketmq.BrokerInfo brokerInfo = 2;</code>
+       */
+      public Builder mergeBrokerInfo(com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo value) {
+        if (brokerInfoBuilder_ == null) {
+          if (((bitField0_ & 0x00000002) == 0x00000002) &&
+              brokerInfo_ != com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.getDefaultInstance()) {
+            brokerInfo_ =
+              com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.newBuilder(brokerInfo_).mergeFrom(value).buildPartial();
+          } else {
+            brokerInfo_ = value;
+          }
+          onChanged();
+        } else {
+          brokerInfoBuilder_.mergeFrom(value);
         }
-
-        private static final long serialVersionUID = 0L;
-
-
-        @java.lang.Override
-        protected java.lang.Object writeReplace() throws java.io.ObjectStreamException {
-            return super.writeReplace();
+        bitField0_ |= 0x00000002;
+        return this;
+      }
+      /**
+       * <code>required .rocketmq.BrokerInfo brokerInfo = 2;</code>
+       */
+      public Builder clearBrokerInfo() {
+        if (brokerInfoBuilder_ == null) {
+          brokerInfo_ = com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.getDefaultInstance();
+          onChanged();
+        } else {
+          brokerInfoBuilder_.clear();
         }
-
-
-        public static com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair parseFrom(
-                com.google.protobuf.ByteString data)
-                throws com.google.protobuf.InvalidProtocolBufferException {
-            return PARSER.parseFrom(data);
+        bitField0_ = (bitField0_ & ~0x00000002);
+        return this;
+      }
+      /**
+       * <code>required .rocketmq.BrokerInfo brokerInfo = 2;</code>
+       */
+      public com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.Builder getBrokerInfoBuilder() {
+        bitField0_ |= 0x00000002;
+        onChanged();
+        return getBrokerInfoFieldBuilder().getBuilder();
+      }
+      /**
+       * <code>required .rocketmq.BrokerInfo brokerInfo = 2;</code>
+       */
+      public com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfoOrBuilder getBrokerInfoOrBuilder() {
+        if (brokerInfoBuilder_ != null) {
+          return brokerInfoBuilder_.getMessageOrBuilder();
+        } else {
+          return brokerInfo_;
         }
-
-
-        public static com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair parseFrom(
-                com.google.protobuf.ByteString data,
-                com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-                throws com.google.protobuf.InvalidProtocolBufferException {
-            return PARSER.parseFrom(data, extensionRegistry);
+      }
+      /**
+       * <code>required .rocketmq.BrokerInfo brokerInfo = 2;</code>
+       */
+      private com.google.protobuf.SingleFieldBuilder<
+          com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo, com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.Builder, com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfoOrBuilder> 
+          getBrokerInfoFieldBuilder() {
+        if (brokerInfoBuilder_ == null) {
+          brokerInfoBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+              com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo, com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.Builder, com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfoOrBuilder>(
+                  brokerInfo_,
+                  getParentForChildren(),
+                  isClean());
+          brokerInfo_ = null;
         }
+        return brokerInfoBuilder_;
+      }
 
-
-        public static com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair parseFrom(byte[] data)
-                throws com.google.protobuf.InvalidProtocolBufferException {
-            return PARSER.parseFrom(data);
-        }
-
-
-        public static com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair parseFrom(byte[] data,
-                com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-                throws com.google.protobuf.InvalidProtocolBufferException {
-            return PARSER.parseFrom(data, extensionRegistry);
-        }
-
-
-        public static com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair parseFrom(
-                java.io.InputStream input) throws java.io.IOException {
-            return PARSER.parseFrom(input);
-        }
-
-
-        public static com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair parseFrom(
-                java.io.InputStream input, com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-                throws java.io.IOException {
-            return PARSER.parseFrom(input, extensionRegistry);
-        }
-
-
-        public static com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair parseDelimitedFrom(
-                java.io.InputStream input) throws java.io.IOException {
-            return PARSER.parseDelimitedFrom(input);
-        }
-
-
-        public static com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair parseDelimitedFrom(
-                java.io.InputStream input, com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-                throws java.io.IOException {
-            return PARSER.parseDelimitedFrom(input, extensionRegistry);
-        }
-
-
-        public static com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair parseFrom(
-                com.google.protobuf.CodedInputStream input) throws java.io.IOException {
-            return PARSER.parseFrom(input);
-        }
-
-
-        public static com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair parseFrom(
-                com.google.protobuf.CodedInputStream input,
-                com.google.protobuf.ExtensionRegistryLite extensionRegistry) throws java.io.IOException {
-            return PARSER.parseFrom(input, extensionRegistry);
-        }
-
-
-        public static Builder newBuilder() {
-            return Builder.create();
-        }
-
-
-        public Builder newBuilderForType() {
-            return newBuilder();
-        }
-
-
-        public static Builder newBuilder(
-                com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair prototype) {
-            return newBuilder().mergeFrom(prototype);
-        }
-
-
-        public Builder toBuilder() {
-            return newBuilder(this);
-        }
-
-
-        @java.lang.Override
-        protected Builder newBuilderForType(com.google.protobuf.GeneratedMessage.BuilderParent parent) {
-            Builder builder = new Builder(parent);
-            return builder;
-        }
-
-        /**
-         * Protobuf type {@code rocketmq.BrokerDataPair}
-         * 
-         * <pre>
-         * TODO 暂时不使用
-         * </pre>
-         */
-        public static final class Builder extends com.google.protobuf.GeneratedMessage.Builder<Builder>
-                implements com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPairOrBuilder {
-            public static final com.google.protobuf.Descriptors.Descriptor getDescriptor() {
-                return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_rocketmq_BrokerDataPair_descriptor;
-            }
-
-
-            protected com.google.protobuf.GeneratedMessage.FieldAccessorTable internalGetFieldAccessorTable() {
-                return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_rocketmq_BrokerDataPair_fieldAccessorTable
-                    .ensureFieldAccessorsInitialized(
-                        com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair.class,
-                        com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair.Builder.class);
-            }
-
-
-            // Construct using
-            // com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair.newBuilder()
-            private Builder() {
-                maybeForceBuilderInitialization();
-            }
-
-
-            private Builder(com.google.protobuf.GeneratedMessage.BuilderParent parent) {
-                super(parent);
-                maybeForceBuilderInitialization();
-            }
-
-
-            private void maybeForceBuilderInitialization() {
-                if (com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders) {
-                    getBrokerInfoFieldBuilder();
-                }
-            }
-
-
-            private static Builder create() {
-                return new Builder();
-            }
-
-
-            public Builder clear() {
-                super.clear();
-                brokerName_ = "";
-                bitField0_ = (bitField0_ & ~0x00000001);
-                if (brokerInfoBuilder_ == null) {
-                    brokerInfo_ =
-                            com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.getDefaultInstance();
-                }
-                else {
-                    brokerInfoBuilder_.clear();
-                }
-                bitField0_ = (bitField0_ & ~0x00000002);
-                return this;
-            }
-
-
-            public Builder clone() {
-                return create().mergeFrom(buildPartial());
-            }
-
-
-            public com.google.protobuf.Descriptors.Descriptor getDescriptorForType() {
-                return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_rocketmq_BrokerDataPair_descriptor;
-            }
-
-
-            public com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair getDefaultInstanceForType() {
-                return com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair.getDefaultInstance();
-            }
-
-
-            public com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair build() {
-                com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair result = buildPartial();
-                if (!result.isInitialized()) {
-                    throw newUninitializedMessageException(result);
-                }
-                return result;
-            }
-
-
-            public com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair buildPartial() {
-                com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair result =
-                        new com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair(this);
-                int from_bitField0_ = bitField0_;
-                int to_bitField0_ = 0;
-                if (((from_bitField0_ & 0x00000001) == 0x00000001)) {
-                    to_bitField0_ |= 0x00000001;
-                }
-                result.brokerName_ = brokerName_;
-                if (((from_bitField0_ & 0x00000002) == 0x00000002)) {
-                    to_bitField0_ |= 0x00000002;
-                }
-                if (brokerInfoBuilder_ == null) {
-                    result.brokerInfo_ = brokerInfo_;
-                }
-                else {
-                    result.brokerInfo_ = brokerInfoBuilder_.build();
-                }
-                result.bitField0_ = to_bitField0_;
-                onBuilt();
-                return result;
-            }
-
-
-            public Builder mergeFrom(com.google.protobuf.Message other) {
-                if (other instanceof com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair) {
-                    return mergeFrom((com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair) other);
-                }
-                else {
-                    super.mergeFrom(other);
-                    return this;
-                }
-            }
-
-
-            public Builder mergeFrom(com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair other) {
-                if (other == com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair
-                    .getDefaultInstance())
-                    return this;
-                if (other.hasBrokerName()) {
-                    bitField0_ |= 0x00000001;
-                    brokerName_ = other.brokerName_;
-                    onChanged();
-                }
-                if (other.hasBrokerInfo()) {
-                    mergeBrokerInfo(other.getBrokerInfo());
-                }
-                this.mergeUnknownFields(other.getUnknownFields());
-                return this;
-            }
-
-
-            public final boolean isInitialized() {
-                if (!hasBrokerName()) {
-
-                    return false;
-                }
-                if (!hasBrokerInfo()) {
-
-                    return false;
-                }
-                if (!getBrokerInfo().isInitialized()) {
-
-                    return false;
-                }
-                return true;
-            }
-
-
-            public Builder mergeFrom(com.google.protobuf.CodedInputStream input,
-                    com.google.protobuf.ExtensionRegistryLite extensionRegistry) throws java.io.IOException {
-                com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair parsedMessage = null;
-                try {
-                    parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
-                }
-                catch (com.google.protobuf.InvalidProtocolBufferException e) {
-                    parsedMessage =
-                            (com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair) e
-                                .getUnfinishedMessage();
-                    throw e;
-                }
-                finally {
-                    if (parsedMessage != null) {
-                        mergeFrom(parsedMessage);
-                    }
-                }
-                return this;
-            }
-
-            private int bitField0_;
-
-            // required string brokerName = 1;
-            private java.lang.Object brokerName_ = "";
-
-
-            /**
-             * <code>required string brokerName = 1;</code>
-             */
-            public boolean hasBrokerName() {
-                return ((bitField0_ & 0x00000001) == 0x00000001);
-            }
-
-
-            /**
-             * <code>required string brokerName = 1;</code>
-             */
-            public java.lang.String getBrokerName() {
-                java.lang.Object ref = brokerName_;
-                if (!(ref instanceof java.lang.String)) {
-                    java.lang.String s = ((com.google.protobuf.ByteString) ref).toStringUtf8();
-                    brokerName_ = s;
-                    return s;
-                }
-                else {
-                    return (java.lang.String) ref;
-                }
-            }
-
-
-            /**
-             * <code>required string brokerName = 1;</code>
-             */
-            public com.google.protobuf.ByteString getBrokerNameBytes() {
-                java.lang.Object ref = brokerName_;
-                if (ref instanceof String) {
-                    com.google.protobuf.ByteString b =
-                            com.google.protobuf.ByteString.copyFromUtf8((java.lang.String) ref);
-                    brokerName_ = b;
-                    return b;
-                }
-                else {
-                    return (com.google.protobuf.ByteString) ref;
-                }
-            }
-
-
-            /**
-             * <code>required string brokerName = 1;</code>
-             */
-            public Builder setBrokerName(java.lang.String value) {
-                if (value == null) {
-                    throw new NullPointerException();
-                }
-                bitField0_ |= 0x00000001;
-                brokerName_ = value;
-                onChanged();
-                return this;
-            }
-
-
-            /**
-             * <code>required string brokerName = 1;</code>
-             */
-            public Builder clearBrokerName() {
-                bitField0_ = (bitField0_ & ~0x00000001);
-                brokerName_ = getDefaultInstance().getBrokerName();
-                onChanged();
-                return this;
-            }
-
-
-            /**
-             * <code>required string brokerName = 1;</code>
-             */
-            public Builder setBrokerNameBytes(com.google.protobuf.ByteString value) {
-                if (value == null) {
-                    throw new NullPointerException();
-                }
-                bitField0_ |= 0x00000001;
-                brokerName_ = value;
-                onChanged();
-                return this;
-            }
-
-            // required .rocketmq.BrokerInfo brokerInfo = 2;
-            private com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo brokerInfo_ =
-                    com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.getDefaultInstance();
-            private com.google.protobuf.SingleFieldBuilder<com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo, com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.Builder, com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfoOrBuilder> brokerInfoBuilder_;
-
-
-            /**
-             * <code>required .rocketmq.BrokerInfo brokerInfo = 2;</code>
-             */
-            public boolean hasBrokerInfo() {
-                return ((bitField0_ & 0x00000002) == 0x00000002);
-            }
-
-
-            /**
-             * <code>required .rocketmq.BrokerInfo brokerInfo = 2;</code>
-             */
-            public com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo getBrokerInfo() {
-                if (brokerInfoBuilder_ == null) {
-                    return brokerInfo_;
-                }
-                else {
-                    return brokerInfoBuilder_.getMessage();
-                }
-            }
-
-
-            /**
-             * <code>required .rocketmq.BrokerInfo brokerInfo = 2;</code>
-             */
-            public Builder setBrokerInfo(com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo value) {
-                if (brokerInfoBuilder_ == null) {
-                    if (value == null) {
-                        throw new NullPointerException();
-                    }
-                    brokerInfo_ = value;
-                    onChanged();
-                }
-                else {
-                    brokerInfoBuilder_.setMessage(value);
-                }
-                bitField0_ |= 0x00000002;
-                return this;
-            }
-
-
-            /**
-             * <code>required .rocketmq.BrokerInfo brokerInfo = 2;</code>
-             */
-            public Builder setBrokerInfo(
-                    com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.Builder builderForValue) {
-                if (brokerInfoBuilder_ == null) {
-                    brokerInfo_ = builderForValue.build();
-                    onChanged();
-                }
-                else {
-                    brokerInfoBuilder_.setMessage(builderForValue.build());
-                }
-                bitField0_ |= 0x00000002;
-                return this;
-            }
-
-
-            /**
-             * <code>required .rocketmq.BrokerInfo brokerInfo = 2;</code>
-             */
-            public Builder mergeBrokerInfo(com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo value) {
-                if (brokerInfoBuilder_ == null) {
-                    if (((bitField0_ & 0x00000002) == 0x00000002)
-                            && brokerInfo_ != com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo
-                                .getDefaultInstance()) {
-                        brokerInfo_ =
-                                com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo
-                                    .newBuilder(brokerInfo_).mergeFrom(value).buildPartial();
-                    }
-                    else {
-                        brokerInfo_ = value;
-                    }
-                    onChanged();
-                }
-                else {
-                    brokerInfoBuilder_.mergeFrom(value);
-                }
-                bitField0_ |= 0x00000002;
-                return this;
-            }
-
-
-            /**
-             * <code>required .rocketmq.BrokerInfo brokerInfo = 2;</code>
-             */
-            public Builder clearBrokerInfo() {
-                if (brokerInfoBuilder_ == null) {
-                    brokerInfo_ =
-                            com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.getDefaultInstance();
-                    onChanged();
-                }
-                else {
-                    brokerInfoBuilder_.clear();
-                }
-                bitField0_ = (bitField0_ & ~0x00000002);
-                return this;
-            }
-
-
-            /**
-             * <code>required .rocketmq.BrokerInfo brokerInfo = 2;</code>
-             */
-            public com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.Builder getBrokerInfoBuilder() {
-                bitField0_ |= 0x00000002;
-                onChanged();
-                return getBrokerInfoFieldBuilder().getBuilder();
-            }
-
-
-            /**
-             * <code>required .rocketmq.BrokerInfo brokerInfo = 2;</code>
-             */
-            public com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfoOrBuilder getBrokerInfoOrBuilder() {
-                if (brokerInfoBuilder_ != null) {
-                    return brokerInfoBuilder_.getMessageOrBuilder();
-                }
-                else {
-                    return brokerInfo_;
-                }
-            }
-
-
-            /**
-             * <code>required .rocketmq.BrokerInfo brokerInfo = 2;</code>
-             */
-            private com.google.protobuf.SingleFieldBuilder<com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo, com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.Builder, com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfoOrBuilder> getBrokerInfoFieldBuilder() {
-                if (brokerInfoBuilder_ == null) {
-                    brokerInfoBuilder_ =
-                            new com.google.protobuf.SingleFieldBuilder<com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo, com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfo.Builder, com.alibaba.rocketmq.common.protocol.MQProtos.BrokerInfoOrBuilder>(
-                                brokerInfo_, getParentForChildren(), isClean());
-                    brokerInfo_ = null;
-                }
-                return brokerInfoBuilder_;
-            }
-
-            // @@protoc_insertion_point(builder_scope:rocketmq.BrokerDataPair)
-        }
-
-        static {
-            defaultInstance = new BrokerDataPair(true);
-            defaultInstance.initFields();
-        }
-
-        // @@protoc_insertion_point(class_scope:rocketmq.BrokerDataPair)
+      // @@protoc_insertion_point(builder_scope:rocketmq.BrokerDataPair)
     }
 
-    public interface TopicRuntimeInfoOrBuilder extends com.google.protobuf.MessageOrBuilder {
-
-        // repeated .rocketmq.TopicQueuePair topicBrokers = 1;
-        /**
-         * <code>repeated .rocketmq.TopicQueuePair topicBrokers = 1;</code>
-         */
-        java.util.List<com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair> getTopicBrokersList();
-
-
-        /**
-         * <code>repeated .rocketmq.TopicQueuePair topicBrokers = 1;</code>
-         */
-        com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair getTopicBrokers(int index);
-
-
-        /**
-         * <code>repeated .rocketmq.TopicQueuePair topicBrokers = 1;</code>
-         */
-        int getTopicBrokersCount();
-
-
-        /**
-         * <code>repeated .rocketmq.TopicQueuePair topicBrokers = 1;</code>
-         */
-        java.util.List<? extends com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePairOrBuilder> getTopicBrokersOrBuilderList();
-
-
-        /**
-         * <code>repeated .rocketmq.TopicQueuePair topicBrokers = 1;</code>
-         */
-        com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePairOrBuilder getTopicBrokersOrBuilder(
-                int index);
-
-
-        // required .remoting.NVPairList topicOrderConfs = 2;
-        /**
-         * <code>required .remoting.NVPairList topicOrderConfs = 2;</code>
-         */
-        boolean hasTopicOrderConfs();
-
-
-        /**
-         * <code>required .remoting.NVPairList topicOrderConfs = 2;</code>
-         */
-        com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairList getTopicOrderConfs();
-
-
-        /**
-         * <code>required .remoting.NVPairList topicOrderConfs = 2;</code>
-         */
-        com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairListOrBuilder getTopicOrderConfsOrBuilder();
-
-
-        // repeated .rocketmq.BrokerDataPair brokers = 3;
-        /**
-         * <code>repeated .rocketmq.BrokerDataPair brokers = 3;</code>
-         */
-        java.util.List<com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair> getBrokersList();
-
-
-        /**
-         * <code>repeated .rocketmq.BrokerDataPair brokers = 3;</code>
-         */
-        com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair getBrokers(int index);
-
-
-        /**
-         * <code>repeated .rocketmq.BrokerDataPair brokers = 3;</code>
-         */
-        int getBrokersCount();
-
-
-        /**
-         * <code>repeated .rocketmq.BrokerDataPair brokers = 3;</code>
-         */
-        java.util.List<? extends com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPairOrBuilder> getBrokersOrBuilderList();
-
-
-        /**
-         * <code>repeated .rocketmq.BrokerDataPair brokers = 3;</code>
-         */
-        com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPairOrBuilder getBrokersOrBuilder(int index);
-
-
-        // required .remoting.StringList brokerList = 4;
-        /**
-         * <code>required .remoting.StringList brokerList = 4;</code>
-         */
-        boolean hasBrokerList();
-
-
-        /**
-         * <code>required .remoting.StringList brokerList = 4;</code>
-         */
-        com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringList getBrokerList();
-
-
-        /**
-         * <code>required .remoting.StringList brokerList = 4;</code>
-         */
-        com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringListOrBuilder getBrokerListOrBuilder();
+    static {
+      defaultInstance = new BrokerDataPair(true);
+      defaultInstance.initFields();
     }
 
+    // @@protoc_insertion_point(class_scope:rocketmq.BrokerDataPair)
+  }
+
+  public interface TopicRuntimeInfoOrBuilder
+      extends com.google.protobuf.MessageOrBuilder {
+
+    // repeated .rocketmq.TopicQueuePair topicBrokers = 1;
+    /**
+     * <code>repeated .rocketmq.TopicQueuePair topicBrokers = 1;</code>
+     */
+    java.util.List<com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair> 
+        getTopicBrokersList();
+    /**
+     * <code>repeated .rocketmq.TopicQueuePair topicBrokers = 1;</code>
+     */
+    com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair getTopicBrokers(int index);
+    /**
+     * <code>repeated .rocketmq.TopicQueuePair topicBrokers = 1;</code>
+     */
+    int getTopicBrokersCount();
+    /**
+     * <code>repeated .rocketmq.TopicQueuePair topicBrokers = 1;</code>
+     */
+    java.util.List<? extends com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePairOrBuilder> 
+        getTopicBrokersOrBuilderList();
+    /**
+     * <code>repeated .rocketmq.TopicQueuePair topicBrokers = 1;</code>
+     */
+    com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePairOrBuilder getTopicBrokersOrBuilder(
+        int index);
+
+    // required .remoting.NVPairList topicOrderConfs = 2;
+    /**
+     * <code>required .remoting.NVPairList topicOrderConfs = 2;</code>
+     */
+    boolean hasTopicOrderConfs();
+    /**
+     * <code>required .remoting.NVPairList topicOrderConfs = 2;</code>
+     */
+    com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairList getTopicOrderConfs();
+    /**
+     * <code>required .remoting.NVPairList topicOrderConfs = 2;</code>
+     */
+    com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairListOrBuilder getTopicOrderConfsOrBuilder();
+
+    // repeated .rocketmq.BrokerDataPair brokers = 3;
+    /**
+     * <code>repeated .rocketmq.BrokerDataPair brokers = 3;</code>
+     */
+    java.util.List<com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair> 
+        getBrokersList();
+    /**
+     * <code>repeated .rocketmq.BrokerDataPair brokers = 3;</code>
+     */
+    com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair getBrokers(int index);
+    /**
+     * <code>repeated .rocketmq.BrokerDataPair brokers = 3;</code>
+     */
+    int getBrokersCount();
+    /**
+     * <code>repeated .rocketmq.BrokerDataPair brokers = 3;</code>
+     */
+    java.util.List<? extends com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPairOrBuilder> 
+        getBrokersOrBuilderList();
+    /**
+     * <code>repeated .rocketmq.BrokerDataPair brokers = 3;</code>
+     */
+    com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPairOrBuilder getBrokersOrBuilder(
+        int index);
+
+    // required .remoting.StringList brokerList = 4;
+    /**
+     * <code>required .remoting.StringList brokerList = 4;</code>
+     */
+    boolean hasBrokerList();
+    /**
+     * <code>required .remoting.StringList brokerList = 4;</code>
+     */
+    com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringList getBrokerList();
+    /**
+     * <code>required .remoting.StringList brokerList = 4;</code>
+     */
+    com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringListOrBuilder getBrokerListOrBuilder();
+  }
+  /**
+   * Protobuf type {@code rocketmq.TopicRuntimeInfo}
+   *
+   * <pre>
+   * TODO 暂时不使用
+   * </pre>
+   */
+  public static final class TopicRuntimeInfo extends
+      com.google.protobuf.GeneratedMessage
+      implements TopicRuntimeInfoOrBuilder {
+    // Use TopicRuntimeInfo.newBuilder() to construct.
+    private TopicRuntimeInfo(com.google.protobuf.GeneratedMessage.Builder<?> builder) {
+      super(builder);
+      this.unknownFields = builder.getUnknownFields();
+    }
+    private TopicRuntimeInfo(boolean noInit) { this.unknownFields = com.google.protobuf.UnknownFieldSet.getDefaultInstance(); }
+
+    private static final TopicRuntimeInfo defaultInstance;
+    public static TopicRuntimeInfo getDefaultInstance() {
+      return defaultInstance;
+    }
+
+    public TopicRuntimeInfo getDefaultInstanceForType() {
+      return defaultInstance;
+    }
+
+    private final com.google.protobuf.UnknownFieldSet unknownFields;
+    @java.lang.Override
+    public final com.google.protobuf.UnknownFieldSet
+        getUnknownFields() {
+      return this.unknownFields;
+    }
+    private TopicRuntimeInfo(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      initFields();
+      int mutable_bitField0_ = 0;
+      com.google.protobuf.UnknownFieldSet.Builder unknownFields =
+          com.google.protobuf.UnknownFieldSet.newBuilder();
+      try {
+        boolean done = false;
+        while (!done) {
+          int tag = input.readTag();
+          switch (tag) {
+            case 0:
+              done = true;
+              break;
+            default: {
+              if (!parseUnknownField(input, unknownFields,
+                                     extensionRegistry, tag)) {
+                done = true;
+              }
+              break;
+            }
+            case 10: {
+              if (!((mutable_bitField0_ & 0x00000001) == 0x00000001)) {
+                topicBrokers_ = new java.util.ArrayList<com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair>();
+                mutable_bitField0_ |= 0x00000001;
+              }
+              topicBrokers_.add(input.readMessage(com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair.PARSER, extensionRegistry));
+              break;
+            }
+            case 18: {
+              com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairList.Builder subBuilder = null;
+              if (((bitField0_ & 0x00000001) == 0x00000001)) {
+                subBuilder = topicOrderConfs_.toBuilder();
+              }
+              topicOrderConfs_ = input.readMessage(com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairList.PARSER, extensionRegistry);
+              if (subBuilder != null) {
+                subBuilder.mergeFrom(topicOrderConfs_);
+                topicOrderConfs_ = subBuilder.buildPartial();
+              }
+              bitField0_ |= 0x00000001;
+              break;
+            }
+            case 26: {
+              if (!((mutable_bitField0_ & 0x00000004) == 0x00000004)) {
+                brokers_ = new java.util.ArrayList<com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair>();
+                mutable_bitField0_ |= 0x00000004;
+              }
+              brokers_.add(input.readMessage(com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair.PARSER, extensionRegistry));
+              break;
+            }
+            case 34: {
+              com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringList.Builder subBuilder = null;
+              if (((bitField0_ & 0x00000002) == 0x00000002)) {
+                subBuilder = brokerList_.toBuilder();
+              }
+              brokerList_ = input.readMessage(com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringList.PARSER, extensionRegistry);
+              if (subBuilder != null) {
+                subBuilder.mergeFrom(brokerList_);
+                brokerList_ = subBuilder.buildPartial();
+              }
+              bitField0_ |= 0x00000002;
+              break;
+            }
+          }
+        }
+      } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+        throw e.setUnfinishedMessage(this);
+      } catch (java.io.IOException e) {
+        throw new com.google.protobuf.InvalidProtocolBufferException(
+            e.getMessage()).setUnfinishedMessage(this);
+      } finally {
+        if (((mutable_bitField0_ & 0x00000001) == 0x00000001)) {
+          topicBrokers_ = java.util.Collections.unmodifiableList(topicBrokers_);
+        }
+        if (((mutable_bitField0_ & 0x00000004) == 0x00000004)) {
+          brokers_ = java.util.Collections.unmodifiableList(brokers_);
+        }
+        this.unknownFields = unknownFields.build();
+        makeExtensionsImmutable();
+      }
+    }
+    public static final com.google.protobuf.Descriptors.Descriptor
+        getDescriptor() {
+      return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_rocketmq_TopicRuntimeInfo_descriptor;
+    }
+
+    protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
+        internalGetFieldAccessorTable() {
+      return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_rocketmq_TopicRuntimeInfo_fieldAccessorTable
+          .ensureFieldAccessorsInitialized(
+              com.alibaba.rocketmq.common.protocol.MQProtos.TopicRuntimeInfo.class, com.alibaba.rocketmq.common.protocol.MQProtos.TopicRuntimeInfo.Builder.class);
+    }
+
+    public static com.google.protobuf.Parser<TopicRuntimeInfo> PARSER =
+        new com.google.protobuf.AbstractParser<TopicRuntimeInfo>() {
+      public TopicRuntimeInfo parsePartialFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        return new TopicRuntimeInfo(input, extensionRegistry);
+      }
+    };
+
+    @java.lang.Override
+    public com.google.protobuf.Parser<TopicRuntimeInfo> getParserForType() {
+      return PARSER;
+    }
+
+    private int bitField0_;
+    // repeated .rocketmq.TopicQueuePair topicBrokers = 1;
+    public static final int TOPICBROKERS_FIELD_NUMBER = 1;
+    private java.util.List<com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair> topicBrokers_;
+    /**
+     * <code>repeated .rocketmq.TopicQueuePair topicBrokers = 1;</code>
+     */
+    public java.util.List<com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair> getTopicBrokersList() {
+      return topicBrokers_;
+    }
+    /**
+     * <code>repeated .rocketmq.TopicQueuePair topicBrokers = 1;</code>
+     */
+    public java.util.List<? extends com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePairOrBuilder> 
+        getTopicBrokersOrBuilderList() {
+      return topicBrokers_;
+    }
+    /**
+     * <code>repeated .rocketmq.TopicQueuePair topicBrokers = 1;</code>
+     */
+    public int getTopicBrokersCount() {
+      return topicBrokers_.size();
+    }
+    /**
+     * <code>repeated .rocketmq.TopicQueuePair topicBrokers = 1;</code>
+     */
+    public com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair getTopicBrokers(int index) {
+      return topicBrokers_.get(index);
+    }
+    /**
+     * <code>repeated .rocketmq.TopicQueuePair topicBrokers = 1;</code>
+     */
+    public com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePairOrBuilder getTopicBrokersOrBuilder(
+        int index) {
+      return topicBrokers_.get(index);
+    }
+
+    // required .remoting.NVPairList topicOrderConfs = 2;
+    public static final int TOPICORDERCONFS_FIELD_NUMBER = 2;
+    private com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairList topicOrderConfs_;
+    /**
+     * <code>required .remoting.NVPairList topicOrderConfs = 2;</code>
+     */
+    public boolean hasTopicOrderConfs() {
+      return ((bitField0_ & 0x00000001) == 0x00000001);
+    }
+    /**
+     * <code>required .remoting.NVPairList topicOrderConfs = 2;</code>
+     */
+    public com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairList getTopicOrderConfs() {
+      return topicOrderConfs_;
+    }
+    /**
+     * <code>required .remoting.NVPairList topicOrderConfs = 2;</code>
+     */
+    public com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairListOrBuilder getTopicOrderConfsOrBuilder() {
+      return topicOrderConfs_;
+    }
+
+    // repeated .rocketmq.BrokerDataPair brokers = 3;
+    public static final int BROKERS_FIELD_NUMBER = 3;
+    private java.util.List<com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair> brokers_;
+    /**
+     * <code>repeated .rocketmq.BrokerDataPair brokers = 3;</code>
+     */
+    public java.util.List<com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair> getBrokersList() {
+      return brokers_;
+    }
+    /**
+     * <code>repeated .rocketmq.BrokerDataPair brokers = 3;</code>
+     */
+    public java.util.List<? extends com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPairOrBuilder> 
+        getBrokersOrBuilderList() {
+      return brokers_;
+    }
+    /**
+     * <code>repeated .rocketmq.BrokerDataPair brokers = 3;</code>
+     */
+    public int getBrokersCount() {
+      return brokers_.size();
+    }
+    /**
+     * <code>repeated .rocketmq.BrokerDataPair brokers = 3;</code>
+     */
+    public com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair getBrokers(int index) {
+      return brokers_.get(index);
+    }
+    /**
+     * <code>repeated .rocketmq.BrokerDataPair brokers = 3;</code>
+     */
+    public com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPairOrBuilder getBrokersOrBuilder(
+        int index) {
+      return brokers_.get(index);
+    }
+
+    // required .remoting.StringList brokerList = 4;
+    public static final int BROKERLIST_FIELD_NUMBER = 4;
+    private com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringList brokerList_;
+    /**
+     * <code>required .remoting.StringList brokerList = 4;</code>
+     */
+    public boolean hasBrokerList() {
+      return ((bitField0_ & 0x00000002) == 0x00000002);
+    }
+    /**
+     * <code>required .remoting.StringList brokerList = 4;</code>
+     */
+    public com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringList getBrokerList() {
+      return brokerList_;
+    }
+    /**
+     * <code>required .remoting.StringList brokerList = 4;</code>
+     */
+    public com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringListOrBuilder getBrokerListOrBuilder() {
+      return brokerList_;
+    }
+
+    private void initFields() {
+      topicBrokers_ = java.util.Collections.emptyList();
+      topicOrderConfs_ = com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairList.getDefaultInstance();
+      brokers_ = java.util.Collections.emptyList();
+      brokerList_ = com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringList.getDefaultInstance();
+    }
+    private byte memoizedIsInitialized = -1;
+    public final boolean isInitialized() {
+      byte isInitialized = memoizedIsInitialized;
+      if (isInitialized != -1) return isInitialized == 1;
+
+      if (!hasTopicOrderConfs()) {
+        memoizedIsInitialized = 0;
+        return false;
+      }
+      if (!hasBrokerList()) {
+        memoizedIsInitialized = 0;
+        return false;
+      }
+      for (int i = 0; i < getTopicBrokersCount(); i++) {
+        if (!getTopicBrokers(i).isInitialized()) {
+          memoizedIsInitialized = 0;
+          return false;
+        }
+      }
+      if (!getTopicOrderConfs().isInitialized()) {
+        memoizedIsInitialized = 0;
+        return false;
+      }
+      for (int i = 0; i < getBrokersCount(); i++) {
+        if (!getBrokers(i).isInitialized()) {
+          memoizedIsInitialized = 0;
+          return false;
+        }
+      }
+      memoizedIsInitialized = 1;
+      return true;
+    }
+
+    public void writeTo(com.google.protobuf.CodedOutputStream output)
+                        throws java.io.IOException {
+      getSerializedSize();
+      for (int i = 0; i < topicBrokers_.size(); i++) {
+        output.writeMessage(1, topicBrokers_.get(i));
+      }
+      if (((bitField0_ & 0x00000001) == 0x00000001)) {
+        output.writeMessage(2, topicOrderConfs_);
+      }
+      for (int i = 0; i < brokers_.size(); i++) {
+        output.writeMessage(3, brokers_.get(i));
+      }
+      if (((bitField0_ & 0x00000002) == 0x00000002)) {
+        output.writeMessage(4, brokerList_);
+      }
+      getUnknownFields().writeTo(output);
+    }
+
+    private int memoizedSerializedSize = -1;
+    public int getSerializedSize() {
+      int size = memoizedSerializedSize;
+      if (size != -1) return size;
+
+      size = 0;
+      for (int i = 0; i < topicBrokers_.size(); i++) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeMessageSize(1, topicBrokers_.get(i));
+      }
+      if (((bitField0_ & 0x00000001) == 0x00000001)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeMessageSize(2, topicOrderConfs_);
+      }
+      for (int i = 0; i < brokers_.size(); i++) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeMessageSize(3, brokers_.get(i));
+      }
+      if (((bitField0_ & 0x00000002) == 0x00000002)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeMessageSize(4, brokerList_);
+      }
+      size += getUnknownFields().getSerializedSize();
+      memoizedSerializedSize = size;
+      return size;
+    }
+
+    private static final long serialVersionUID = 0L;
+    @java.lang.Override
+    protected java.lang.Object writeReplace()
+        throws java.io.ObjectStreamException {
+      return super.writeReplace();
+    }
+
+    public static com.alibaba.rocketmq.common.protocol.MQProtos.TopicRuntimeInfo parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data);
+    }
+    public static com.alibaba.rocketmq.common.protocol.MQProtos.TopicRuntimeInfo parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data, extensionRegistry);
+    }
+    public static com.alibaba.rocketmq.common.protocol.MQProtos.TopicRuntimeInfo parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data);
+    }
+    public static com.alibaba.rocketmq.common.protocol.MQProtos.TopicRuntimeInfo parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data, extensionRegistry);
+    }
+    public static com.alibaba.rocketmq.common.protocol.MQProtos.TopicRuntimeInfo parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return PARSER.parseFrom(input);
+    }
+    public static com.alibaba.rocketmq.common.protocol.MQProtos.TopicRuntimeInfo parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return PARSER.parseFrom(input, extensionRegistry);
+    }
+    public static com.alibaba.rocketmq.common.protocol.MQProtos.TopicRuntimeInfo parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return PARSER.parseDelimitedFrom(input);
+    }
+    public static com.alibaba.rocketmq.common.protocol.MQProtos.TopicRuntimeInfo parseDelimitedFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return PARSER.parseDelimitedFrom(input, extensionRegistry);
+    }
+    public static com.alibaba.rocketmq.common.protocol.MQProtos.TopicRuntimeInfo parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return PARSER.parseFrom(input);
+    }
+    public static com.alibaba.rocketmq.common.protocol.MQProtos.TopicRuntimeInfo parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return PARSER.parseFrom(input, extensionRegistry);
+    }
+
+    public static Builder newBuilder() { return Builder.create(); }
+    public Builder newBuilderForType() { return newBuilder(); }
+    public static Builder newBuilder(com.alibaba.rocketmq.common.protocol.MQProtos.TopicRuntimeInfo prototype) {
+      return newBuilder().mergeFrom(prototype);
+    }
+    public Builder toBuilder() { return newBuilder(this); }
+
+    @java.lang.Override
+    protected Builder newBuilderForType(
+        com.google.protobuf.GeneratedMessage.BuilderParent parent) {
+      Builder builder = new Builder(parent);
+      return builder;
+    }
     /**
      * Protobuf type {@code rocketmq.TopicRuntimeInfo}
-     * 
+     *
      * <pre>
      * TODO 暂时不使用
      * </pre>
      */
-    public static final class TopicRuntimeInfo extends com.google.protobuf.GeneratedMessage implements
-            TopicRuntimeInfoOrBuilder {
-        // Use TopicRuntimeInfo.newBuilder() to construct.
-        private TopicRuntimeInfo(com.google.protobuf.GeneratedMessage.Builder<?> builder) {
-            super(builder);
-            this.unknownFields = builder.getUnknownFields();
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessage.Builder<Builder>
+       implements com.alibaba.rocketmq.common.protocol.MQProtos.TopicRuntimeInfoOrBuilder {
+      public static final com.google.protobuf.Descriptors.Descriptor
+          getDescriptor() {
+        return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_rocketmq_TopicRuntimeInfo_descriptor;
+      }
+
+      protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
+          internalGetFieldAccessorTable() {
+        return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_rocketmq_TopicRuntimeInfo_fieldAccessorTable
+            .ensureFieldAccessorsInitialized(
+                com.alibaba.rocketmq.common.protocol.MQProtos.TopicRuntimeInfo.class, com.alibaba.rocketmq.common.protocol.MQProtos.TopicRuntimeInfo.Builder.class);
+      }
+
+      // Construct using com.alibaba.rocketmq.common.protocol.MQProtos.TopicRuntimeInfo.newBuilder()
+      private Builder() {
+        maybeForceBuilderInitialization();
+      }
+
+      private Builder(
+          com.google.protobuf.GeneratedMessage.BuilderParent parent) {
+        super(parent);
+        maybeForceBuilderInitialization();
+      }
+      private void maybeForceBuilderInitialization() {
+        if (com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders) {
+          getTopicBrokersFieldBuilder();
+          getTopicOrderConfsFieldBuilder();
+          getBrokersFieldBuilder();
+          getBrokerListFieldBuilder();
         }
+      }
+      private static Builder create() {
+        return new Builder();
+      }
 
-
-        private TopicRuntimeInfo(boolean noInit) {
-            this.unknownFields = com.google.protobuf.UnknownFieldSet.getDefaultInstance();
+      public Builder clear() {
+        super.clear();
+        if (topicBrokersBuilder_ == null) {
+          topicBrokers_ = java.util.Collections.emptyList();
+          bitField0_ = (bitField0_ & ~0x00000001);
+        } else {
+          topicBrokersBuilder_.clear();
         }
-
-        private static final TopicRuntimeInfo defaultInstance;
-
-
-        public static TopicRuntimeInfo getDefaultInstance() {
-            return defaultInstance;
+        if (topicOrderConfsBuilder_ == null) {
+          topicOrderConfs_ = com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairList.getDefaultInstance();
+        } else {
+          topicOrderConfsBuilder_.clear();
         }
-
-
-        public TopicRuntimeInfo getDefaultInstanceForType() {
-            return defaultInstance;
+        bitField0_ = (bitField0_ & ~0x00000002);
+        if (brokersBuilder_ == null) {
+          brokers_ = java.util.Collections.emptyList();
+          bitField0_ = (bitField0_ & ~0x00000004);
+        } else {
+          brokersBuilder_.clear();
         }
-
-        private final com.google.protobuf.UnknownFieldSet unknownFields;
-
-
-        @java.lang.Override
-        public final com.google.protobuf.UnknownFieldSet getUnknownFields() {
-            return this.unknownFields;
+        if (brokerListBuilder_ == null) {
+          brokerList_ = com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringList.getDefaultInstance();
+        } else {
+          brokerListBuilder_.clear();
         }
+        bitField0_ = (bitField0_ & ~0x00000008);
+        return this;
+      }
 
+      public Builder clone() {
+        return create().mergeFrom(buildPartial());
+      }
 
-        private TopicRuntimeInfo(com.google.protobuf.CodedInputStream input,
-                com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-                throws com.google.protobuf.InvalidProtocolBufferException {
-            initFields();
-            int mutable_bitField0_ = 0;
-            com.google.protobuf.UnknownFieldSet.Builder unknownFields =
-                    com.google.protobuf.UnknownFieldSet.newBuilder();
-            try {
-                boolean done = false;
-                while (!done) {
-                    int tag = input.readTag();
-                    switch (tag) {
-                    case 0:
-                        done = true;
-                        break;
-                    default: {
-                        if (!parseUnknownField(input, unknownFields, extensionRegistry, tag)) {
-                            done = true;
-                        }
-                        break;
-                    }
-                    case 10: {
-                        if (!((mutable_bitField0_ & 0x00000001) == 0x00000001)) {
-                            topicBrokers_ =
-                                    new java.util.ArrayList<com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair>();
-                            mutable_bitField0_ |= 0x00000001;
-                        }
-                        topicBrokers_.add(input.readMessage(
-                            com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair.PARSER,
-                            extensionRegistry));
-                        break;
-                    }
-                    case 18: {
-                        com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairList.Builder subBuilder =
-                                null;
-                        if (((bitField0_ & 0x00000001) == 0x00000001)) {
-                            subBuilder = topicOrderConfs_.toBuilder();
-                        }
-                        topicOrderConfs_ =
-                                input.readMessage(
-                                    com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairList.PARSER,
-                                    extensionRegistry);
-                        if (subBuilder != null) {
-                            subBuilder.mergeFrom(topicOrderConfs_);
-                            topicOrderConfs_ = subBuilder.buildPartial();
-                        }
-                        bitField0_ |= 0x00000001;
-                        break;
-                    }
-                    case 26: {
-                        if (!((mutable_bitField0_ & 0x00000004) == 0x00000004)) {
-                            brokers_ =
-                                    new java.util.ArrayList<com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair>();
-                            mutable_bitField0_ |= 0x00000004;
-                        }
-                        brokers_.add(input.readMessage(
-                            com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair.PARSER,
-                            extensionRegistry));
-                        break;
-                    }
-                    case 34: {
-                        com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringList.Builder subBuilder =
-                                null;
-                        if (((bitField0_ & 0x00000002) == 0x00000002)) {
-                            subBuilder = brokerList_.toBuilder();
-                        }
-                        brokerList_ =
-                                input.readMessage(
-                                    com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringList.PARSER,
-                                    extensionRegistry);
-                        if (subBuilder != null) {
-                            subBuilder.mergeFrom(brokerList_);
-                            brokerList_ = subBuilder.buildPartial();
-                        }
-                        bitField0_ |= 0x00000002;
-                        break;
-                    }
-                    }
-                }
+      public com.google.protobuf.Descriptors.Descriptor
+          getDescriptorForType() {
+        return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_rocketmq_TopicRuntimeInfo_descriptor;
+      }
+
+      public com.alibaba.rocketmq.common.protocol.MQProtos.TopicRuntimeInfo getDefaultInstanceForType() {
+        return com.alibaba.rocketmq.common.protocol.MQProtos.TopicRuntimeInfo.getDefaultInstance();
+      }
+
+      public com.alibaba.rocketmq.common.protocol.MQProtos.TopicRuntimeInfo build() {
+        com.alibaba.rocketmq.common.protocol.MQProtos.TopicRuntimeInfo result = buildPartial();
+        if (!result.isInitialized()) {
+          throw newUninitializedMessageException(result);
+        }
+        return result;
+      }
+
+      public com.alibaba.rocketmq.common.protocol.MQProtos.TopicRuntimeInfo buildPartial() {
+        com.alibaba.rocketmq.common.protocol.MQProtos.TopicRuntimeInfo result = new com.alibaba.rocketmq.common.protocol.MQProtos.TopicRuntimeInfo(this);
+        int from_bitField0_ = bitField0_;
+        int to_bitField0_ = 0;
+        if (topicBrokersBuilder_ == null) {
+          if (((bitField0_ & 0x00000001) == 0x00000001)) {
+            topicBrokers_ = java.util.Collections.unmodifiableList(topicBrokers_);
+            bitField0_ = (bitField0_ & ~0x00000001);
+          }
+          result.topicBrokers_ = topicBrokers_;
+        } else {
+          result.topicBrokers_ = topicBrokersBuilder_.build();
+        }
+        if (((from_bitField0_ & 0x00000002) == 0x00000002)) {
+          to_bitField0_ |= 0x00000001;
+        }
+        if (topicOrderConfsBuilder_ == null) {
+          result.topicOrderConfs_ = topicOrderConfs_;
+        } else {
+          result.topicOrderConfs_ = topicOrderConfsBuilder_.build();
+        }
+        if (brokersBuilder_ == null) {
+          if (((bitField0_ & 0x00000004) == 0x00000004)) {
+            brokers_ = java.util.Collections.unmodifiableList(brokers_);
+            bitField0_ = (bitField0_ & ~0x00000004);
+          }
+          result.brokers_ = brokers_;
+        } else {
+          result.brokers_ = brokersBuilder_.build();
+        }
+        if (((from_bitField0_ & 0x00000008) == 0x00000008)) {
+          to_bitField0_ |= 0x00000002;
+        }
+        if (brokerListBuilder_ == null) {
+          result.brokerList_ = brokerList_;
+        } else {
+          result.brokerList_ = brokerListBuilder_.build();
+        }
+        result.bitField0_ = to_bitField0_;
+        onBuilt();
+        return result;
+      }
+
+      public Builder mergeFrom(com.google.protobuf.Message other) {
+        if (other instanceof com.alibaba.rocketmq.common.protocol.MQProtos.TopicRuntimeInfo) {
+          return mergeFrom((com.alibaba.rocketmq.common.protocol.MQProtos.TopicRuntimeInfo)other);
+        } else {
+          super.mergeFrom(other);
+          return this;
+        }
+      }
+
+      public Builder mergeFrom(com.alibaba.rocketmq.common.protocol.MQProtos.TopicRuntimeInfo other) {
+        if (other == com.alibaba.rocketmq.common.protocol.MQProtos.TopicRuntimeInfo.getDefaultInstance()) return this;
+        if (topicBrokersBuilder_ == null) {
+          if (!other.topicBrokers_.isEmpty()) {
+            if (topicBrokers_.isEmpty()) {
+              topicBrokers_ = other.topicBrokers_;
+              bitField0_ = (bitField0_ & ~0x00000001);
+            } else {
+              ensureTopicBrokersIsMutable();
+              topicBrokers_.addAll(other.topicBrokers_);
             }
-            catch (com.google.protobuf.InvalidProtocolBufferException e) {
-                throw e.setUnfinishedMessage(this);
+            onChanged();
+          }
+        } else {
+          if (!other.topicBrokers_.isEmpty()) {
+            if (topicBrokersBuilder_.isEmpty()) {
+              topicBrokersBuilder_.dispose();
+              topicBrokersBuilder_ = null;
+              topicBrokers_ = other.topicBrokers_;
+              bitField0_ = (bitField0_ & ~0x00000001);
+              topicBrokersBuilder_ = 
+                com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
+                   getTopicBrokersFieldBuilder() : null;
+            } else {
+              topicBrokersBuilder_.addAllMessages(other.topicBrokers_);
             }
-            catch (java.io.IOException e) {
-                throw new com.google.protobuf.InvalidProtocolBufferException(e.getMessage())
-                    .setUnfinishedMessage(this);
+          }
+        }
+        if (other.hasTopicOrderConfs()) {
+          mergeTopicOrderConfs(other.getTopicOrderConfs());
+        }
+        if (brokersBuilder_ == null) {
+          if (!other.brokers_.isEmpty()) {
+            if (brokers_.isEmpty()) {
+              brokers_ = other.brokers_;
+              bitField0_ = (bitField0_ & ~0x00000004);
+            } else {
+              ensureBrokersIsMutable();
+              brokers_.addAll(other.brokers_);
             }
-            finally {
-                if (((mutable_bitField0_ & 0x00000001) == 0x00000001)) {
-                    topicBrokers_ = java.util.Collections.unmodifiableList(topicBrokers_);
-                }
-                if (((mutable_bitField0_ & 0x00000004) == 0x00000004)) {
-                    brokers_ = java.util.Collections.unmodifiableList(brokers_);
-                }
-                this.unknownFields = unknownFields.build();
-                makeExtensionsImmutable();
+            onChanged();
+          }
+        } else {
+          if (!other.brokers_.isEmpty()) {
+            if (brokersBuilder_.isEmpty()) {
+              brokersBuilder_.dispose();
+              brokersBuilder_ = null;
+              brokers_ = other.brokers_;
+              bitField0_ = (bitField0_ & ~0x00000004);
+              brokersBuilder_ = 
+                com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
+                   getBrokersFieldBuilder() : null;
+            } else {
+              brokersBuilder_.addAllMessages(other.brokers_);
             }
+          }
         }
-
-
-        public static final com.google.protobuf.Descriptors.Descriptor getDescriptor() {
-            return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_rocketmq_TopicRuntimeInfo_descriptor;
+        if (other.hasBrokerList()) {
+          mergeBrokerList(other.getBrokerList());
         }
+        this.mergeUnknownFields(other.getUnknownFields());
+        return this;
+      }
 
-
-        protected com.google.protobuf.GeneratedMessage.FieldAccessorTable internalGetFieldAccessorTable() {
-            return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_rocketmq_TopicRuntimeInfo_fieldAccessorTable
-                .ensureFieldAccessorsInitialized(
-                    com.alibaba.rocketmq.common.protocol.MQProtos.TopicRuntimeInfo.class,
-                    com.alibaba.rocketmq.common.protocol.MQProtos.TopicRuntimeInfo.Builder.class);
+      public final boolean isInitialized() {
+        if (!hasTopicOrderConfs()) {
+          
+          return false;
         }
-
-        public static com.google.protobuf.Parser<TopicRuntimeInfo> PARSER =
-                new com.google.protobuf.AbstractParser<TopicRuntimeInfo>() {
-                    public TopicRuntimeInfo parsePartialFrom(com.google.protobuf.CodedInputStream input,
-                            com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-                            throws com.google.protobuf.InvalidProtocolBufferException {
-                        return new TopicRuntimeInfo(input, extensionRegistry);
-                    }
-                };
-
-
-        @java.lang.Override
-        public com.google.protobuf.Parser<TopicRuntimeInfo> getParserForType() {
-            return PARSER;
+        if (!hasBrokerList()) {
+          
+          return false;
         }
-
-        private int bitField0_;
-        // repeated .rocketmq.TopicQueuePair topicBrokers = 1;
-        public static final int TOPICBROKERS_FIELD_NUMBER = 1;
-        private java.util.List<com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair> topicBrokers_;
-
-
-        /**
-         * <code>repeated .rocketmq.TopicQueuePair topicBrokers = 1;</code>
-         */
-        public java.util.List<com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair> getTopicBrokersList() {
-            return topicBrokers_;
+        for (int i = 0; i < getTopicBrokersCount(); i++) {
+          if (!getTopicBrokers(i).isInitialized()) {
+            
+            return false;
+          }
         }
-
-
-        /**
-         * <code>repeated .rocketmq.TopicQueuePair topicBrokers = 1;</code>
-         */
-        public java.util.List<? extends com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePairOrBuilder> getTopicBrokersOrBuilderList() {
-            return topicBrokers_;
+        if (!getTopicOrderConfs().isInitialized()) {
+          
+          return false;
         }
-
-
-        /**
-         * <code>repeated .rocketmq.TopicQueuePair topicBrokers = 1;</code>
-         */
-        public int getTopicBrokersCount() {
-            return topicBrokers_.size();
+        for (int i = 0; i < getBrokersCount(); i++) {
+          if (!getBrokers(i).isInitialized()) {
+            
+            return false;
+          }
         }
+        return true;
+      }
 
-
-        /**
-         * <code>repeated .rocketmq.TopicQueuePair topicBrokers = 1;</code>
-         */
-        public com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair getTopicBrokers(int index) {
-            return topicBrokers_.get(index);
+      public Builder mergeFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws java.io.IOException {
+        com.alibaba.rocketmq.common.protocol.MQProtos.TopicRuntimeInfo parsedMessage = null;
+        try {
+          parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
+        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+          parsedMessage = (com.alibaba.rocketmq.common.protocol.MQProtos.TopicRuntimeInfo) e.getUnfinishedMessage();
+          throw e;
+        } finally {
+          if (parsedMessage != null) {
+            mergeFrom(parsedMessage);
+          }
         }
+        return this;
+      }
+      private int bitField0_;
 
+      // repeated .rocketmq.TopicQueuePair topicBrokers = 1;
+      private java.util.List<com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair> topicBrokers_ =
+        java.util.Collections.emptyList();
+      private void ensureTopicBrokersIsMutable() {
+        if (!((bitField0_ & 0x00000001) == 0x00000001)) {
+          topicBrokers_ = new java.util.ArrayList<com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair>(topicBrokers_);
+          bitField0_ |= 0x00000001;
+         }
+      }
 
-        /**
-         * <code>repeated .rocketmq.TopicQueuePair topicBrokers = 1;</code>
-         */
-        public com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePairOrBuilder getTopicBrokersOrBuilder(
-                int index) {
-            return topicBrokers_.get(index);
+      private com.google.protobuf.RepeatedFieldBuilder<
+          com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair, com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair.Builder, com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePairOrBuilder> topicBrokersBuilder_;
+
+      /**
+       * <code>repeated .rocketmq.TopicQueuePair topicBrokers = 1;</code>
+       */
+      public java.util.List<com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair> getTopicBrokersList() {
+        if (topicBrokersBuilder_ == null) {
+          return java.util.Collections.unmodifiableList(topicBrokers_);
+        } else {
+          return topicBrokersBuilder_.getMessageList();
         }
-
-        // required .remoting.NVPairList topicOrderConfs = 2;
-        public static final int TOPICORDERCONFS_FIELD_NUMBER = 2;
-        private com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairList topicOrderConfs_;
-
-
-        /**
-         * <code>required .remoting.NVPairList topicOrderConfs = 2;</code>
-         */
-        public boolean hasTopicOrderConfs() {
-            return ((bitField0_ & 0x00000001) == 0x00000001);
+      }
+      /**
+       * <code>repeated .rocketmq.TopicQueuePair topicBrokers = 1;</code>
+       */
+      public int getTopicBrokersCount() {
+        if (topicBrokersBuilder_ == null) {
+          return topicBrokers_.size();
+        } else {
+          return topicBrokersBuilder_.getCount();
         }
-
-
-        /**
-         * <code>required .remoting.NVPairList topicOrderConfs = 2;</code>
-         */
-        public com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairList getTopicOrderConfs() {
-            return topicOrderConfs_;
+      }
+      /**
+       * <code>repeated .rocketmq.TopicQueuePair topicBrokers = 1;</code>
+       */
+      public com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair getTopicBrokers(int index) {
+        if (topicBrokersBuilder_ == null) {
+          return topicBrokers_.get(index);
+        } else {
+          return topicBrokersBuilder_.getMessage(index);
         }
-
-
-        /**
-         * <code>required .remoting.NVPairList topicOrderConfs = 2;</code>
-         */
-        public com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairListOrBuilder getTopicOrderConfsOrBuilder() {
-            return topicOrderConfs_;
+      }
+      /**
+       * <code>repeated .rocketmq.TopicQueuePair topicBrokers = 1;</code>
+       */
+      public Builder setTopicBrokers(
+          int index, com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair value) {
+        if (topicBrokersBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          ensureTopicBrokersIsMutable();
+          topicBrokers_.set(index, value);
+          onChanged();
+        } else {
+          topicBrokersBuilder_.setMessage(index, value);
         }
-
-        // repeated .rocketmq.BrokerDataPair brokers = 3;
-        public static final int BROKERS_FIELD_NUMBER = 3;
-        private java.util.List<com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair> brokers_;
-
-
-        /**
-         * <code>repeated .rocketmq.BrokerDataPair brokers = 3;</code>
-         */
-        public java.util.List<com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair> getBrokersList() {
-            return brokers_;
+        return this;
+      }
+      /**
+       * <code>repeated .rocketmq.TopicQueuePair topicBrokers = 1;</code>
+       */
+      public Builder setTopicBrokers(
+          int index, com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair.Builder builderForValue) {
+        if (topicBrokersBuilder_ == null) {
+          ensureTopicBrokersIsMutable();
+          topicBrokers_.set(index, builderForValue.build());
+          onChanged();
+        } else {
+          topicBrokersBuilder_.setMessage(index, builderForValue.build());
         }
-
-
-        /**
-         * <code>repeated .rocketmq.BrokerDataPair brokers = 3;</code>
-         */
-        public java.util.List<? extends com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPairOrBuilder> getBrokersOrBuilderList() {
-            return brokers_;
+        return this;
+      }
+      /**
+       * <code>repeated .rocketmq.TopicQueuePair topicBrokers = 1;</code>
+       */
+      public Builder addTopicBrokers(com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair value) {
+        if (topicBrokersBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          ensureTopicBrokersIsMutable();
+          topicBrokers_.add(value);
+          onChanged();
+        } else {
+          topicBrokersBuilder_.addMessage(value);
         }
-
-
-        /**
-         * <code>repeated .rocketmq.BrokerDataPair brokers = 3;</code>
-         */
-        public int getBrokersCount() {
-            return brokers_.size();
+        return this;
+      }
+      /**
+       * <code>repeated .rocketmq.TopicQueuePair topicBrokers = 1;</code>
+       */
+      public Builder addTopicBrokers(
+          int index, com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair value) {
+        if (topicBrokersBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          ensureTopicBrokersIsMutable();
+          topicBrokers_.add(index, value);
+          onChanged();
+        } else {
+          topicBrokersBuilder_.addMessage(index, value);
         }
-
-
-        /**
-         * <code>repeated .rocketmq.BrokerDataPair brokers = 3;</code>
-         */
-        public com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair getBrokers(int index) {
-            return brokers_.get(index);
+        return this;
+      }
+      /**
+       * <code>repeated .rocketmq.TopicQueuePair topicBrokers = 1;</code>
+       */
+      public Builder addTopicBrokers(
+          com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair.Builder builderForValue) {
+        if (topicBrokersBuilder_ == null) {
+          ensureTopicBrokersIsMutable();
+          topicBrokers_.add(builderForValue.build());
+          onChanged();
+        } else {
+          topicBrokersBuilder_.addMessage(builderForValue.build());
         }
-
-
-        /**
-         * <code>repeated .rocketmq.BrokerDataPair brokers = 3;</code>
-         */
-        public com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPairOrBuilder getBrokersOrBuilder(
-                int index) {
-            return brokers_.get(index);
+        return this;
+      }
+      /**
+       * <code>repeated .rocketmq.TopicQueuePair topicBrokers = 1;</code>
+       */
+      public Builder addTopicBrokers(
+          int index, com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair.Builder builderForValue) {
+        if (topicBrokersBuilder_ == null) {
+          ensureTopicBrokersIsMutable();
+          topicBrokers_.add(index, builderForValue.build());
+          onChanged();
+        } else {
+          topicBrokersBuilder_.addMessage(index, builderForValue.build());
         }
-
-        // required .remoting.StringList brokerList = 4;
-        public static final int BROKERLIST_FIELD_NUMBER = 4;
-        private com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringList brokerList_;
-
-
-        /**
-         * <code>required .remoting.StringList brokerList = 4;</code>
-         */
-        public boolean hasBrokerList() {
-            return ((bitField0_ & 0x00000002) == 0x00000002);
+        return this;
+      }
+      /**
+       * <code>repeated .rocketmq.TopicQueuePair topicBrokers = 1;</code>
+       */
+      public Builder addAllTopicBrokers(
+          java.lang.Iterable<? extends com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair> values) {
+        if (topicBrokersBuilder_ == null) {
+          ensureTopicBrokersIsMutable();
+          super.addAll(values, topicBrokers_);
+          onChanged();
+        } else {
+          topicBrokersBuilder_.addAllMessages(values);
         }
-
-
-        /**
-         * <code>required .remoting.StringList brokerList = 4;</code>
-         */
-        public com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringList getBrokerList() {
-            return brokerList_;
+        return this;
+      }
+      /**
+       * <code>repeated .rocketmq.TopicQueuePair topicBrokers = 1;</code>
+       */
+      public Builder clearTopicBrokers() {
+        if (topicBrokersBuilder_ == null) {
+          topicBrokers_ = java.util.Collections.emptyList();
+          bitField0_ = (bitField0_ & ~0x00000001);
+          onChanged();
+        } else {
+          topicBrokersBuilder_.clear();
         }
-
-
-        /**
-         * <code>required .remoting.StringList brokerList = 4;</code>
-         */
-        public com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringListOrBuilder getBrokerListOrBuilder() {
-            return brokerList_;
+        return this;
+      }
+      /**
+       * <code>repeated .rocketmq.TopicQueuePair topicBrokers = 1;</code>
+       */
+      public Builder removeTopicBrokers(int index) {
+        if (topicBrokersBuilder_ == null) {
+          ensureTopicBrokersIsMutable();
+          topicBrokers_.remove(index);
+          onChanged();
+        } else {
+          topicBrokersBuilder_.remove(index);
         }
+        return this;
+      }
+      /**
+       * <code>repeated .rocketmq.TopicQueuePair topicBrokers = 1;</code>
+       */
+      public com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair.Builder getTopicBrokersBuilder(
+          int index) {
+        return getTopicBrokersFieldBuilder().getBuilder(index);
+      }
+      /**
+       * <code>repeated .rocketmq.TopicQueuePair topicBrokers = 1;</code>
+       */
+      public com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePairOrBuilder getTopicBrokersOrBuilder(
+          int index) {
+        if (topicBrokersBuilder_ == null) {
+          return topicBrokers_.get(index);  } else {
+          return topicBrokersBuilder_.getMessageOrBuilder(index);
+        }
+      }
+      /**
+       * <code>repeated .rocketmq.TopicQueuePair topicBrokers = 1;</code>
+       */
+      public java.util.List<? extends com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePairOrBuilder> 
+           getTopicBrokersOrBuilderList() {
+        if (topicBrokersBuilder_ != null) {
+          return topicBrokersBuilder_.getMessageOrBuilderList();
+        } else {
+          return java.util.Collections.unmodifiableList(topicBrokers_);
+        }
+      }
+      /**
+       * <code>repeated .rocketmq.TopicQueuePair topicBrokers = 1;</code>
+       */
+      public com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair.Builder addTopicBrokersBuilder() {
+        return getTopicBrokersFieldBuilder().addBuilder(
+            com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair.getDefaultInstance());
+      }
+      /**
+       * <code>repeated .rocketmq.TopicQueuePair topicBrokers = 1;</code>
+       */
+      public com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair.Builder addTopicBrokersBuilder(
+          int index) {
+        return getTopicBrokersFieldBuilder().addBuilder(
+            index, com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair.getDefaultInstance());
+      }
+      /**
+       * <code>repeated .rocketmq.TopicQueuePair topicBrokers = 1;</code>
+       */
+      public java.util.List<com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair.Builder> 
+           getTopicBrokersBuilderList() {
+        return getTopicBrokersFieldBuilder().getBuilderList();
+      }
+      private com.google.protobuf.RepeatedFieldBuilder<
+          com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair, com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair.Builder, com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePairOrBuilder> 
+          getTopicBrokersFieldBuilder() {
+        if (topicBrokersBuilder_ == null) {
+          topicBrokersBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
+              com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair, com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair.Builder, com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePairOrBuilder>(
+                  topicBrokers_,
+                  ((bitField0_ & 0x00000001) == 0x00000001),
+                  getParentForChildren(),
+                  isClean());
+          topicBrokers_ = null;
+        }
+        return topicBrokersBuilder_;
+      }
 
-
-        private void initFields() {
-            topicBrokers_ = java.util.Collections.emptyList();
+      // required .remoting.NVPairList topicOrderConfs = 2;
+      private com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairList topicOrderConfs_ = com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairList.getDefaultInstance();
+      private com.google.protobuf.SingleFieldBuilder<
+          com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairList, com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairList.Builder, com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairListOrBuilder> topicOrderConfsBuilder_;
+      /**
+       * <code>required .remoting.NVPairList topicOrderConfs = 2;</code>
+       */
+      public boolean hasTopicOrderConfs() {
+        return ((bitField0_ & 0x00000002) == 0x00000002);
+      }
+      /**
+       * <code>required .remoting.NVPairList topicOrderConfs = 2;</code>
+       */
+      public com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairList getTopicOrderConfs() {
+        if (topicOrderConfsBuilder_ == null) {
+          return topicOrderConfs_;
+        } else {
+          return topicOrderConfsBuilder_.getMessage();
+        }
+      }
+      /**
+       * <code>required .remoting.NVPairList topicOrderConfs = 2;</code>
+       */
+      public Builder setTopicOrderConfs(com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairList value) {
+        if (topicOrderConfsBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          topicOrderConfs_ = value;
+          onChanged();
+        } else {
+          topicOrderConfsBuilder_.setMessage(value);
+        }
+        bitField0_ |= 0x00000002;
+        return this;
+      }
+      /**
+       * <code>required .remoting.NVPairList topicOrderConfs = 2;</code>
+       */
+      public Builder setTopicOrderConfs(
+          com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairList.Builder builderForValue) {
+        if (topicOrderConfsBuilder_ == null) {
+          topicOrderConfs_ = builderForValue.build();
+          onChanged();
+        } else {
+          topicOrderConfsBuilder_.setMessage(builderForValue.build());
+        }
+        bitField0_ |= 0x00000002;
+        return this;
+      }
+      /**
+       * <code>required .remoting.NVPairList topicOrderConfs = 2;</code>
+       */
+      public Builder mergeTopicOrderConfs(com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairList value) {
+        if (topicOrderConfsBuilder_ == null) {
+          if (((bitField0_ & 0x00000002) == 0x00000002) &&
+              topicOrderConfs_ != com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairList.getDefaultInstance()) {
             topicOrderConfs_ =
-                    com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairList.getDefaultInstance();
-            brokers_ = java.util.Collections.emptyList();
+              com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairList.newBuilder(topicOrderConfs_).mergeFrom(value).buildPartial();
+          } else {
+            topicOrderConfs_ = value;
+          }
+          onChanged();
+        } else {
+          topicOrderConfsBuilder_.mergeFrom(value);
+        }
+        bitField0_ |= 0x00000002;
+        return this;
+      }
+      /**
+       * <code>required .remoting.NVPairList topicOrderConfs = 2;</code>
+       */
+      public Builder clearTopicOrderConfs() {
+        if (topicOrderConfsBuilder_ == null) {
+          topicOrderConfs_ = com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairList.getDefaultInstance();
+          onChanged();
+        } else {
+          topicOrderConfsBuilder_.clear();
+        }
+        bitField0_ = (bitField0_ & ~0x00000002);
+        return this;
+      }
+      /**
+       * <code>required .remoting.NVPairList topicOrderConfs = 2;</code>
+       */
+      public com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairList.Builder getTopicOrderConfsBuilder() {
+        bitField0_ |= 0x00000002;
+        onChanged();
+        return getTopicOrderConfsFieldBuilder().getBuilder();
+      }
+      /**
+       * <code>required .remoting.NVPairList topicOrderConfs = 2;</code>
+       */
+      public com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairListOrBuilder getTopicOrderConfsOrBuilder() {
+        if (topicOrderConfsBuilder_ != null) {
+          return topicOrderConfsBuilder_.getMessageOrBuilder();
+        } else {
+          return topicOrderConfs_;
+        }
+      }
+      /**
+       * <code>required .remoting.NVPairList topicOrderConfs = 2;</code>
+       */
+      private com.google.protobuf.SingleFieldBuilder<
+          com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairList, com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairList.Builder, com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairListOrBuilder> 
+          getTopicOrderConfsFieldBuilder() {
+        if (topicOrderConfsBuilder_ == null) {
+          topicOrderConfsBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+              com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairList, com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairList.Builder, com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairListOrBuilder>(
+                  topicOrderConfs_,
+                  getParentForChildren(),
+                  isClean());
+          topicOrderConfs_ = null;
+        }
+        return topicOrderConfsBuilder_;
+      }
+
+      // repeated .rocketmq.BrokerDataPair brokers = 3;
+      private java.util.List<com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair> brokers_ =
+        java.util.Collections.emptyList();
+      private void ensureBrokersIsMutable() {
+        if (!((bitField0_ & 0x00000004) == 0x00000004)) {
+          brokers_ = new java.util.ArrayList<com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair>(brokers_);
+          bitField0_ |= 0x00000004;
+         }
+      }
+
+      private com.google.protobuf.RepeatedFieldBuilder<
+          com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair, com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair.Builder, com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPairOrBuilder> brokersBuilder_;
+
+      /**
+       * <code>repeated .rocketmq.BrokerDataPair brokers = 3;</code>
+       */
+      public java.util.List<com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair> getBrokersList() {
+        if (brokersBuilder_ == null) {
+          return java.util.Collections.unmodifiableList(brokers_);
+        } else {
+          return brokersBuilder_.getMessageList();
+        }
+      }
+      /**
+       * <code>repeated .rocketmq.BrokerDataPair brokers = 3;</code>
+       */
+      public int getBrokersCount() {
+        if (brokersBuilder_ == null) {
+          return brokers_.size();
+        } else {
+          return brokersBuilder_.getCount();
+        }
+      }
+      /**
+       * <code>repeated .rocketmq.BrokerDataPair brokers = 3;</code>
+       */
+      public com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair getBrokers(int index) {
+        if (brokersBuilder_ == null) {
+          return brokers_.get(index);
+        } else {
+          return brokersBuilder_.getMessage(index);
+        }
+      }
+      /**
+       * <code>repeated .rocketmq.BrokerDataPair brokers = 3;</code>
+       */
+      public Builder setBrokers(
+          int index, com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair value) {
+        if (brokersBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          ensureBrokersIsMutable();
+          brokers_.set(index, value);
+          onChanged();
+        } else {
+          brokersBuilder_.setMessage(index, value);
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .rocketmq.BrokerDataPair brokers = 3;</code>
+       */
+      public Builder setBrokers(
+          int index, com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair.Builder builderForValue) {
+        if (brokersBuilder_ == null) {
+          ensureBrokersIsMutable();
+          brokers_.set(index, builderForValue.build());
+          onChanged();
+        } else {
+          brokersBuilder_.setMessage(index, builderForValue.build());
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .rocketmq.BrokerDataPair brokers = 3;</code>
+       */
+      public Builder addBrokers(com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair value) {
+        if (brokersBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          ensureBrokersIsMutable();
+          brokers_.add(value);
+          onChanged();
+        } else {
+          brokersBuilder_.addMessage(value);
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .rocketmq.BrokerDataPair brokers = 3;</code>
+       */
+      public Builder addBrokers(
+          int index, com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair value) {
+        if (brokersBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          ensureBrokersIsMutable();
+          brokers_.add(index, value);
+          onChanged();
+        } else {
+          brokersBuilder_.addMessage(index, value);
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .rocketmq.BrokerDataPair brokers = 3;</code>
+       */
+      public Builder addBrokers(
+          com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair.Builder builderForValue) {
+        if (brokersBuilder_ == null) {
+          ensureBrokersIsMutable();
+          brokers_.add(builderForValue.build());
+          onChanged();
+        } else {
+          brokersBuilder_.addMessage(builderForValue.build());
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .rocketmq.BrokerDataPair brokers = 3;</code>
+       */
+      public Builder addBrokers(
+          int index, com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair.Builder builderForValue) {
+        if (brokersBuilder_ == null) {
+          ensureBrokersIsMutable();
+          brokers_.add(index, builderForValue.build());
+          onChanged();
+        } else {
+          brokersBuilder_.addMessage(index, builderForValue.build());
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .rocketmq.BrokerDataPair brokers = 3;</code>
+       */
+      public Builder addAllBrokers(
+          java.lang.Iterable<? extends com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair> values) {
+        if (brokersBuilder_ == null) {
+          ensureBrokersIsMutable();
+          super.addAll(values, brokers_);
+          onChanged();
+        } else {
+          brokersBuilder_.addAllMessages(values);
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .rocketmq.BrokerDataPair brokers = 3;</code>
+       */
+      public Builder clearBrokers() {
+        if (brokersBuilder_ == null) {
+          brokers_ = java.util.Collections.emptyList();
+          bitField0_ = (bitField0_ & ~0x00000004);
+          onChanged();
+        } else {
+          brokersBuilder_.clear();
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .rocketmq.BrokerDataPair brokers = 3;</code>
+       */
+      public Builder removeBrokers(int index) {
+        if (brokersBuilder_ == null) {
+          ensureBrokersIsMutable();
+          brokers_.remove(index);
+          onChanged();
+        } else {
+          brokersBuilder_.remove(index);
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .rocketmq.BrokerDataPair brokers = 3;</code>
+       */
+      public com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair.Builder getBrokersBuilder(
+          int index) {
+        return getBrokersFieldBuilder().getBuilder(index);
+      }
+      /**
+       * <code>repeated .rocketmq.BrokerDataPair brokers = 3;</code>
+       */
+      public com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPairOrBuilder getBrokersOrBuilder(
+          int index) {
+        if (brokersBuilder_ == null) {
+          return brokers_.get(index);  } else {
+          return brokersBuilder_.getMessageOrBuilder(index);
+        }
+      }
+      /**
+       * <code>repeated .rocketmq.BrokerDataPair brokers = 3;</code>
+       */
+      public java.util.List<? extends com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPairOrBuilder> 
+           getBrokersOrBuilderList() {
+        if (brokersBuilder_ != null) {
+          return brokersBuilder_.getMessageOrBuilderList();
+        } else {
+          return java.util.Collections.unmodifiableList(brokers_);
+        }
+      }
+      /**
+       * <code>repeated .rocketmq.BrokerDataPair brokers = 3;</code>
+       */
+      public com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair.Builder addBrokersBuilder() {
+        return getBrokersFieldBuilder().addBuilder(
+            com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair.getDefaultInstance());
+      }
+      /**
+       * <code>repeated .rocketmq.BrokerDataPair brokers = 3;</code>
+       */
+      public com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair.Builder addBrokersBuilder(
+          int index) {
+        return getBrokersFieldBuilder().addBuilder(
+            index, com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair.getDefaultInstance());
+      }
+      /**
+       * <code>repeated .rocketmq.BrokerDataPair brokers = 3;</code>
+       */
+      public java.util.List<com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair.Builder> 
+           getBrokersBuilderList() {
+        return getBrokersFieldBuilder().getBuilderList();
+      }
+      private com.google.protobuf.RepeatedFieldBuilder<
+          com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair, com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair.Builder, com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPairOrBuilder> 
+          getBrokersFieldBuilder() {
+        if (brokersBuilder_ == null) {
+          brokersBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
+              com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair, com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair.Builder, com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPairOrBuilder>(
+                  brokers_,
+                  ((bitField0_ & 0x00000004) == 0x00000004),
+                  getParentForChildren(),
+                  isClean());
+          brokers_ = null;
+        }
+        return brokersBuilder_;
+      }
+
+      // required .remoting.StringList brokerList = 4;
+      private com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringList brokerList_ = com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringList.getDefaultInstance();
+      private com.google.protobuf.SingleFieldBuilder<
+          com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringList, com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringList.Builder, com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringListOrBuilder> brokerListBuilder_;
+      /**
+       * <code>required .remoting.StringList brokerList = 4;</code>
+       */
+      public boolean hasBrokerList() {
+        return ((bitField0_ & 0x00000008) == 0x00000008);
+      }
+      /**
+       * <code>required .remoting.StringList brokerList = 4;</code>
+       */
+      public com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringList getBrokerList() {
+        if (brokerListBuilder_ == null) {
+          return brokerList_;
+        } else {
+          return brokerListBuilder_.getMessage();
+        }
+      }
+      /**
+       * <code>required .remoting.StringList brokerList = 4;</code>
+       */
+      public Builder setBrokerList(com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringList value) {
+        if (brokerListBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          brokerList_ = value;
+          onChanged();
+        } else {
+          brokerListBuilder_.setMessage(value);
+        }
+        bitField0_ |= 0x00000008;
+        return this;
+      }
+      /**
+       * <code>required .remoting.StringList brokerList = 4;</code>
+       */
+      public Builder setBrokerList(
+          com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringList.Builder builderForValue) {
+        if (brokerListBuilder_ == null) {
+          brokerList_ = builderForValue.build();
+          onChanged();
+        } else {
+          brokerListBuilder_.setMessage(builderForValue.build());
+        }
+        bitField0_ |= 0x00000008;
+        return this;
+      }
+      /**
+       * <code>required .remoting.StringList brokerList = 4;</code>
+       */
+      public Builder mergeBrokerList(com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringList value) {
+        if (brokerListBuilder_ == null) {
+          if (((bitField0_ & 0x00000008) == 0x00000008) &&
+              brokerList_ != com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringList.getDefaultInstance()) {
             brokerList_ =
-                    com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringList.getDefaultInstance();
+              com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringList.newBuilder(brokerList_).mergeFrom(value).buildPartial();
+          } else {
+            brokerList_ = value;
+          }
+          onChanged();
+        } else {
+          brokerListBuilder_.mergeFrom(value);
         }
-
-        private byte memoizedIsInitialized = -1;
-
-
-        public final boolean isInitialized() {
-            byte isInitialized = memoizedIsInitialized;
-            if (isInitialized != -1)
-                return isInitialized == 1;
-
-            if (!hasTopicOrderConfs()) {
-                memoizedIsInitialized = 0;
-                return false;
-            }
-            if (!hasBrokerList()) {
-                memoizedIsInitialized = 0;
-                return false;
-            }
-            for (int i = 0; i < getTopicBrokersCount(); i++) {
-                if (!getTopicBrokers(i).isInitialized()) {
-                    memoizedIsInitialized = 0;
-                    return false;
-                }
-            }
-            if (!getTopicOrderConfs().isInitialized()) {
-                memoizedIsInitialized = 0;
-                return false;
-            }
-            for (int i = 0; i < getBrokersCount(); i++) {
-                if (!getBrokers(i).isInitialized()) {
-                    memoizedIsInitialized = 0;
-                    return false;
-                }
-            }
-            memoizedIsInitialized = 1;
-            return true;
+        bitField0_ |= 0x00000008;
+        return this;
+      }
+      /**
+       * <code>required .remoting.StringList brokerList = 4;</code>
+       */
+      public Builder clearBrokerList() {
+        if (brokerListBuilder_ == null) {
+          brokerList_ = com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringList.getDefaultInstance();
+          onChanged();
+        } else {
+          brokerListBuilder_.clear();
         }
-
-
-        public void writeTo(com.google.protobuf.CodedOutputStream output) throws java.io.IOException {
-            getSerializedSize();
-            for (int i = 0; i < topicBrokers_.size(); i++) {
-                output.writeMessage(1, topicBrokers_.get(i));
-            }
-            if (((bitField0_ & 0x00000001) == 0x00000001)) {
-                output.writeMessage(2, topicOrderConfs_);
-            }
-            for (int i = 0; i < brokers_.size(); i++) {
-                output.writeMessage(3, brokers_.get(i));
-            }
-            if (((bitField0_ & 0x00000002) == 0x00000002)) {
-                output.writeMessage(4, brokerList_);
-            }
-            getUnknownFields().writeTo(output);
+        bitField0_ = (bitField0_ & ~0x00000008);
+        return this;
+      }
+      /**
+       * <code>required .remoting.StringList brokerList = 4;</code>
+       */
+      public com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringList.Builder getBrokerListBuilder() {
+        bitField0_ |= 0x00000008;
+        onChanged();
+        return getBrokerListFieldBuilder().getBuilder();
+      }
+      /**
+       * <code>required .remoting.StringList brokerList = 4;</code>
+       */
+      public com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringListOrBuilder getBrokerListOrBuilder() {
+        if (brokerListBuilder_ != null) {
+          return brokerListBuilder_.getMessageOrBuilder();
+        } else {
+          return brokerList_;
         }
-
-        private int memoizedSerializedSize = -1;
-
-
-        public int getSerializedSize() {
-            int size = memoizedSerializedSize;
-            if (size != -1)
-                return size;
-
-            size = 0;
-            for (int i = 0; i < topicBrokers_.size(); i++) {
-                size += com.google.protobuf.CodedOutputStream.computeMessageSize(1, topicBrokers_.get(i));
-            }
-            if (((bitField0_ & 0x00000001) == 0x00000001)) {
-                size += com.google.protobuf.CodedOutputStream.computeMessageSize(2, topicOrderConfs_);
-            }
-            for (int i = 0; i < brokers_.size(); i++) {
-                size += com.google.protobuf.CodedOutputStream.computeMessageSize(3, brokers_.get(i));
-            }
-            if (((bitField0_ & 0x00000002) == 0x00000002)) {
-                size += com.google.protobuf.CodedOutputStream.computeMessageSize(4, brokerList_);
-            }
-            size += getUnknownFields().getSerializedSize();
-            memoizedSerializedSize = size;
-            return size;
+      }
+      /**
+       * <code>required .remoting.StringList brokerList = 4;</code>
+       */
+      private com.google.protobuf.SingleFieldBuilder<
+          com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringList, com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringList.Builder, com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringListOrBuilder> 
+          getBrokerListFieldBuilder() {
+        if (brokerListBuilder_ == null) {
+          brokerListBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+              com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringList, com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringList.Builder, com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringListOrBuilder>(
+                  brokerList_,
+                  getParentForChildren(),
+                  isClean());
+          brokerList_ = null;
         }
+        return brokerListBuilder_;
+      }
 
-        private static final long serialVersionUID = 0L;
-
-
-        @java.lang.Override
-        protected java.lang.Object writeReplace() throws java.io.ObjectStreamException {
-            return super.writeReplace();
-        }
-
-
-        public static com.alibaba.rocketmq.common.protocol.MQProtos.TopicRuntimeInfo parseFrom(
-                com.google.protobuf.ByteString data)
-                throws com.google.protobuf.InvalidProtocolBufferException {
-            return PARSER.parseFrom(data);
-        }
-
-
-        public static com.alibaba.rocketmq.common.protocol.MQProtos.TopicRuntimeInfo parseFrom(
-                com.google.protobuf.ByteString data,
-                com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-                throws com.google.protobuf.InvalidProtocolBufferException {
-            return PARSER.parseFrom(data, extensionRegistry);
-        }
-
-
-        public static com.alibaba.rocketmq.common.protocol.MQProtos.TopicRuntimeInfo parseFrom(byte[] data)
-                throws com.google.protobuf.InvalidProtocolBufferException {
-            return PARSER.parseFrom(data);
-        }
-
-
-        public static com.alibaba.rocketmq.common.protocol.MQProtos.TopicRuntimeInfo parseFrom(byte[] data,
-                com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-                throws com.google.protobuf.InvalidProtocolBufferException {
-            return PARSER.parseFrom(data, extensionRegistry);
-        }
-
-
-        public static com.alibaba.rocketmq.common.protocol.MQProtos.TopicRuntimeInfo parseFrom(
-                java.io.InputStream input) throws java.io.IOException {
-            return PARSER.parseFrom(input);
-        }
-
-
-        public static com.alibaba.rocketmq.common.protocol.MQProtos.TopicRuntimeInfo parseFrom(
-                java.io.InputStream input, com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-                throws java.io.IOException {
-            return PARSER.parseFrom(input, extensionRegistry);
-        }
-
-
-        public static com.alibaba.rocketmq.common.protocol.MQProtos.TopicRuntimeInfo parseDelimitedFrom(
-                java.io.InputStream input) throws java.io.IOException {
-            return PARSER.parseDelimitedFrom(input);
-        }
-
-
-        public static com.alibaba.rocketmq.common.protocol.MQProtos.TopicRuntimeInfo parseDelimitedFrom(
-                java.io.InputStream input, com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-                throws java.io.IOException {
-            return PARSER.parseDelimitedFrom(input, extensionRegistry);
-        }
-
-
-        public static com.alibaba.rocketmq.common.protocol.MQProtos.TopicRuntimeInfo parseFrom(
-                com.google.protobuf.CodedInputStream input) throws java.io.IOException {
-            return PARSER.parseFrom(input);
-        }
-
-
-        public static com.alibaba.rocketmq.common.protocol.MQProtos.TopicRuntimeInfo parseFrom(
-                com.google.protobuf.CodedInputStream input,
-                com.google.protobuf.ExtensionRegistryLite extensionRegistry) throws java.io.IOException {
-            return PARSER.parseFrom(input, extensionRegistry);
-        }
-
-
-        public static Builder newBuilder() {
-            return Builder.create();
-        }
-
-
-        public Builder newBuilderForType() {
-            return newBuilder();
-        }
-
-
-        public static Builder newBuilder(
-                com.alibaba.rocketmq.common.protocol.MQProtos.TopicRuntimeInfo prototype) {
-            return newBuilder().mergeFrom(prototype);
-        }
-
-
-        public Builder toBuilder() {
-            return newBuilder(this);
-        }
-
-
-        @java.lang.Override
-        protected Builder newBuilderForType(com.google.protobuf.GeneratedMessage.BuilderParent parent) {
-            Builder builder = new Builder(parent);
-            return builder;
-        }
-
-        /**
-         * Protobuf type {@code rocketmq.TopicRuntimeInfo}
-         * 
-         * <pre>
-         * TODO 暂时不使用
-         * </pre>
-         */
-        public static final class Builder extends com.google.protobuf.GeneratedMessage.Builder<Builder>
-                implements com.alibaba.rocketmq.common.protocol.MQProtos.TopicRuntimeInfoOrBuilder {
-            public static final com.google.protobuf.Descriptors.Descriptor getDescriptor() {
-                return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_rocketmq_TopicRuntimeInfo_descriptor;
-            }
-
-
-            protected com.google.protobuf.GeneratedMessage.FieldAccessorTable internalGetFieldAccessorTable() {
-                return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_rocketmq_TopicRuntimeInfo_fieldAccessorTable
-                    .ensureFieldAccessorsInitialized(
-                        com.alibaba.rocketmq.common.protocol.MQProtos.TopicRuntimeInfo.class,
-                        com.alibaba.rocketmq.common.protocol.MQProtos.TopicRuntimeInfo.Builder.class);
-            }
-
-
-            // Construct using
-            // com.alibaba.rocketmq.common.protocol.MQProtos.TopicRuntimeInfo.newBuilder()
-            private Builder() {
-                maybeForceBuilderInitialization();
-            }
-
-
-            private Builder(com.google.protobuf.GeneratedMessage.BuilderParent parent) {
-                super(parent);
-                maybeForceBuilderInitialization();
-            }
-
-
-            private void maybeForceBuilderInitialization() {
-                if (com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders) {
-                    getTopicBrokersFieldBuilder();
-                    getTopicOrderConfsFieldBuilder();
-                    getBrokersFieldBuilder();
-                    getBrokerListFieldBuilder();
-                }
-            }
-
-
-            private static Builder create() {
-                return new Builder();
-            }
-
-
-            public Builder clear() {
-                super.clear();
-                if (topicBrokersBuilder_ == null) {
-                    topicBrokers_ = java.util.Collections.emptyList();
-                    bitField0_ = (bitField0_ & ~0x00000001);
-                }
-                else {
-                    topicBrokersBuilder_.clear();
-                }
-                if (topicOrderConfsBuilder_ == null) {
-                    topicOrderConfs_ =
-                            com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairList
-                                .getDefaultInstance();
-                }
-                else {
-                    topicOrderConfsBuilder_.clear();
-                }
-                bitField0_ = (bitField0_ & ~0x00000002);
-                if (brokersBuilder_ == null) {
-                    brokers_ = java.util.Collections.emptyList();
-                    bitField0_ = (bitField0_ & ~0x00000004);
-                }
-                else {
-                    brokersBuilder_.clear();
-                }
-                if (brokerListBuilder_ == null) {
-                    brokerList_ =
-                            com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringList
-                                .getDefaultInstance();
-                }
-                else {
-                    brokerListBuilder_.clear();
-                }
-                bitField0_ = (bitField0_ & ~0x00000008);
-                return this;
-            }
-
-
-            public Builder clone() {
-                return create().mergeFrom(buildPartial());
-            }
-
-
-            public com.google.protobuf.Descriptors.Descriptor getDescriptorForType() {
-                return com.alibaba.rocketmq.common.protocol.MQProtos.internal_static_rocketmq_TopicRuntimeInfo_descriptor;
-            }
-
-
-            public com.alibaba.rocketmq.common.protocol.MQProtos.TopicRuntimeInfo getDefaultInstanceForType() {
-                return com.alibaba.rocketmq.common.protocol.MQProtos.TopicRuntimeInfo.getDefaultInstance();
-            }
-
-
-            public com.alibaba.rocketmq.common.protocol.MQProtos.TopicRuntimeInfo build() {
-                com.alibaba.rocketmq.common.protocol.MQProtos.TopicRuntimeInfo result = buildPartial();
-                if (!result.isInitialized()) {
-                    throw newUninitializedMessageException(result);
-                }
-                return result;
-            }
-
-
-            public com.alibaba.rocketmq.common.protocol.MQProtos.TopicRuntimeInfo buildPartial() {
-                com.alibaba.rocketmq.common.protocol.MQProtos.TopicRuntimeInfo result =
-                        new com.alibaba.rocketmq.common.protocol.MQProtos.TopicRuntimeInfo(this);
-                int from_bitField0_ = bitField0_;
-                int to_bitField0_ = 0;
-                if (topicBrokersBuilder_ == null) {
-                    if (((bitField0_ & 0x00000001) == 0x00000001)) {
-                        topicBrokers_ = java.util.Collections.unmodifiableList(topicBrokers_);
-                        bitField0_ = (bitField0_ & ~0x00000001);
-                    }
-                    result.topicBrokers_ = topicBrokers_;
-                }
-                else {
-                    result.topicBrokers_ = topicBrokersBuilder_.build();
-                }
-                if (((from_bitField0_ & 0x00000002) == 0x00000002)) {
-                    to_bitField0_ |= 0x00000001;
-                }
-                if (topicOrderConfsBuilder_ == null) {
-                    result.topicOrderConfs_ = topicOrderConfs_;
-                }
-                else {
-                    result.topicOrderConfs_ = topicOrderConfsBuilder_.build();
-                }
-                if (brokersBuilder_ == null) {
-                    if (((bitField0_ & 0x00000004) == 0x00000004)) {
-                        brokers_ = java.util.Collections.unmodifiableList(brokers_);
-                        bitField0_ = (bitField0_ & ~0x00000004);
-                    }
-                    result.brokers_ = brokers_;
-                }
-                else {
-                    result.brokers_ = brokersBuilder_.build();
-                }
-                if (((from_bitField0_ & 0x00000008) == 0x00000008)) {
-                    to_bitField0_ |= 0x00000002;
-                }
-                if (brokerListBuilder_ == null) {
-                    result.brokerList_ = brokerList_;
-                }
-                else {
-                    result.brokerList_ = brokerListBuilder_.build();
-                }
-                result.bitField0_ = to_bitField0_;
-                onBuilt();
-                return result;
-            }
-
-
-            public Builder mergeFrom(com.google.protobuf.Message other) {
-                if (other instanceof com.alibaba.rocketmq.common.protocol.MQProtos.TopicRuntimeInfo) {
-                    return mergeFrom((com.alibaba.rocketmq.common.protocol.MQProtos.TopicRuntimeInfo) other);
-                }
-                else {
-                    super.mergeFrom(other);
-                    return this;
-                }
-            }
-
-
-            public Builder mergeFrom(com.alibaba.rocketmq.common.protocol.MQProtos.TopicRuntimeInfo other) {
-                if (other == com.alibaba.rocketmq.common.protocol.MQProtos.TopicRuntimeInfo
-                    .getDefaultInstance())
-                    return this;
-                if (topicBrokersBuilder_ == null) {
-                    if (!other.topicBrokers_.isEmpty()) {
-                        if (topicBrokers_.isEmpty()) {
-                            topicBrokers_ = other.topicBrokers_;
-                            bitField0_ = (bitField0_ & ~0x00000001);
-                        }
-                        else {
-                            ensureTopicBrokersIsMutable();
-                            topicBrokers_.addAll(other.topicBrokers_);
-                        }
-                        onChanged();
-                    }
-                }
-                else {
-                    if (!other.topicBrokers_.isEmpty()) {
-                        if (topicBrokersBuilder_.isEmpty()) {
-                            topicBrokersBuilder_.dispose();
-                            topicBrokersBuilder_ = null;
-                            topicBrokers_ = other.topicBrokers_;
-                            bitField0_ = (bitField0_ & ~0x00000001);
-                            topicBrokersBuilder_ =
-                                    com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ? getTopicBrokersFieldBuilder()
-                                            : null;
-                        }
-                        else {
-                            topicBrokersBuilder_.addAllMessages(other.topicBrokers_);
-                        }
-                    }
-                }
-                if (other.hasTopicOrderConfs()) {
-                    mergeTopicOrderConfs(other.getTopicOrderConfs());
-                }
-                if (brokersBuilder_ == null) {
-                    if (!other.brokers_.isEmpty()) {
-                        if (brokers_.isEmpty()) {
-                            brokers_ = other.brokers_;
-                            bitField0_ = (bitField0_ & ~0x00000004);
-                        }
-                        else {
-                            ensureBrokersIsMutable();
-                            brokers_.addAll(other.brokers_);
-                        }
-                        onChanged();
-                    }
-                }
-                else {
-                    if (!other.brokers_.isEmpty()) {
-                        if (brokersBuilder_.isEmpty()) {
-                            brokersBuilder_.dispose();
-                            brokersBuilder_ = null;
-                            brokers_ = other.brokers_;
-                            bitField0_ = (bitField0_ & ~0x00000004);
-                            brokersBuilder_ =
-                                    com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ? getBrokersFieldBuilder()
-                                            : null;
-                        }
-                        else {
-                            brokersBuilder_.addAllMessages(other.brokers_);
-                        }
-                    }
-                }
-                if (other.hasBrokerList()) {
-                    mergeBrokerList(other.getBrokerList());
-                }
-                this.mergeUnknownFields(other.getUnknownFields());
-                return this;
-            }
-
-
-            public final boolean isInitialized() {
-                if (!hasTopicOrderConfs()) {
-
-                    return false;
-                }
-                if (!hasBrokerList()) {
-
-                    return false;
-                }
-                for (int i = 0; i < getTopicBrokersCount(); i++) {
-                    if (!getTopicBrokers(i).isInitialized()) {
-
-                        return false;
-                    }
-                }
-                if (!getTopicOrderConfs().isInitialized()) {
-
-                    return false;
-                }
-                for (int i = 0; i < getBrokersCount(); i++) {
-                    if (!getBrokers(i).isInitialized()) {
-
-                        return false;
-                    }
-                }
-                return true;
-            }
-
-
-            public Builder mergeFrom(com.google.protobuf.CodedInputStream input,
-                    com.google.protobuf.ExtensionRegistryLite extensionRegistry) throws java.io.IOException {
-                com.alibaba.rocketmq.common.protocol.MQProtos.TopicRuntimeInfo parsedMessage = null;
-                try {
-                    parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
-                }
-                catch (com.google.protobuf.InvalidProtocolBufferException e) {
-                    parsedMessage =
-                            (com.alibaba.rocketmq.common.protocol.MQProtos.TopicRuntimeInfo) e
-                                .getUnfinishedMessage();
-                    throw e;
-                }
-                finally {
-                    if (parsedMessage != null) {
-                        mergeFrom(parsedMessage);
-                    }
-                }
-                return this;
-            }
-
-            private int bitField0_;
-
-            // repeated .rocketmq.TopicQueuePair topicBrokers = 1;
-            private java.util.List<com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair> topicBrokers_ =
-                    java.util.Collections.emptyList();
-
-
-            private void ensureTopicBrokersIsMutable() {
-                if (!((bitField0_ & 0x00000001) == 0x00000001)) {
-                    topicBrokers_ =
-                            new java.util.ArrayList<com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair>(
-                                topicBrokers_);
-                    bitField0_ |= 0x00000001;
-                }
-            }
-
-            private com.google.protobuf.RepeatedFieldBuilder<com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair, com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair.Builder, com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePairOrBuilder> topicBrokersBuilder_;
-
-
-            /**
-             * <code>repeated .rocketmq.TopicQueuePair topicBrokers = 1;</code>
-             */
-            public java.util.List<com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair> getTopicBrokersList() {
-                if (topicBrokersBuilder_ == null) {
-                    return java.util.Collections.unmodifiableList(topicBrokers_);
-                }
-                else {
-                    return topicBrokersBuilder_.getMessageList();
-                }
-            }
-
-
-            /**
-             * <code>repeated .rocketmq.TopicQueuePair topicBrokers = 1;</code>
-             */
-            public int getTopicBrokersCount() {
-                if (topicBrokersBuilder_ == null) {
-                    return topicBrokers_.size();
-                }
-                else {
-                    return topicBrokersBuilder_.getCount();
-                }
-            }
-
-
-            /**
-             * <code>repeated .rocketmq.TopicQueuePair topicBrokers = 1;</code>
-             */
-            public com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair getTopicBrokers(int index) {
-                if (topicBrokersBuilder_ == null) {
-                    return topicBrokers_.get(index);
-                }
-                else {
-                    return topicBrokersBuilder_.getMessage(index);
-                }
-            }
-
-
-            /**
-             * <code>repeated .rocketmq.TopicQueuePair topicBrokers = 1;</code>
-             */
-            public Builder setTopicBrokers(int index,
-                    com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair value) {
-                if (topicBrokersBuilder_ == null) {
-                    if (value == null) {
-                        throw new NullPointerException();
-                    }
-                    ensureTopicBrokersIsMutable();
-                    topicBrokers_.set(index, value);
-                    onChanged();
-                }
-                else {
-                    topicBrokersBuilder_.setMessage(index, value);
-                }
-                return this;
-            }
-
-
-            /**
-             * <code>repeated .rocketmq.TopicQueuePair topicBrokers = 1;</code>
-             */
-            public Builder setTopicBrokers(int index,
-                    com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair.Builder builderForValue) {
-                if (topicBrokersBuilder_ == null) {
-                    ensureTopicBrokersIsMutable();
-                    topicBrokers_.set(index, builderForValue.build());
-                    onChanged();
-                }
-                else {
-                    topicBrokersBuilder_.setMessage(index, builderForValue.build());
-                }
-                return this;
-            }
-
-
-            /**
-             * <code>repeated .rocketmq.TopicQueuePair topicBrokers = 1;</code>
-             */
-            public Builder addTopicBrokers(com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair value) {
-                if (topicBrokersBuilder_ == null) {
-                    if (value == null) {
-                        throw new NullPointerException();
-                    }
-                    ensureTopicBrokersIsMutable();
-                    topicBrokers_.add(value);
-                    onChanged();
-                }
-                else {
-                    topicBrokersBuilder_.addMessage(value);
-                }
-                return this;
-            }
-
-
-            /**
-             * <code>repeated .rocketmq.TopicQueuePair topicBrokers = 1;</code>
-             */
-            public Builder addTopicBrokers(int index,
-                    com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair value) {
-                if (topicBrokersBuilder_ == null) {
-                    if (value == null) {
-                        throw new NullPointerException();
-                    }
-                    ensureTopicBrokersIsMutable();
-                    topicBrokers_.add(index, value);
-                    onChanged();
-                }
-                else {
-                    topicBrokersBuilder_.addMessage(index, value);
-                }
-                return this;
-            }
-
-
-            /**
-             * <code>repeated .rocketmq.TopicQueuePair topicBrokers = 1;</code>
-             */
-            public Builder addTopicBrokers(
-                    com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair.Builder builderForValue) {
-                if (topicBrokersBuilder_ == null) {
-                    ensureTopicBrokersIsMutable();
-                    topicBrokers_.add(builderForValue.build());
-                    onChanged();
-                }
-                else {
-                    topicBrokersBuilder_.addMessage(builderForValue.build());
-                }
-                return this;
-            }
-
-
-            /**
-             * <code>repeated .rocketmq.TopicQueuePair topicBrokers = 1;</code>
-             */
-            public Builder addTopicBrokers(int index,
-                    com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair.Builder builderForValue) {
-                if (topicBrokersBuilder_ == null) {
-                    ensureTopicBrokersIsMutable();
-                    topicBrokers_.add(index, builderForValue.build());
-                    onChanged();
-                }
-                else {
-                    topicBrokersBuilder_.addMessage(index, builderForValue.build());
-                }
-                return this;
-            }
-
-
-            /**
-             * <code>repeated .rocketmq.TopicQueuePair topicBrokers = 1;</code>
-             */
-            public Builder addAllTopicBrokers(
-                    java.lang.Iterable<? extends com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair> values) {
-                if (topicBrokersBuilder_ == null) {
-                    ensureTopicBrokersIsMutable();
-                    super.addAll(values, topicBrokers_);
-                    onChanged();
-                }
-                else {
-                    topicBrokersBuilder_.addAllMessages(values);
-                }
-                return this;
-            }
-
-
-            /**
-             * <code>repeated .rocketmq.TopicQueuePair topicBrokers = 1;</code>
-             */
-            public Builder clearTopicBrokers() {
-                if (topicBrokersBuilder_ == null) {
-                    topicBrokers_ = java.util.Collections.emptyList();
-                    bitField0_ = (bitField0_ & ~0x00000001);
-                    onChanged();
-                }
-                else {
-                    topicBrokersBuilder_.clear();
-                }
-                return this;
-            }
-
-
-            /**
-             * <code>repeated .rocketmq.TopicQueuePair topicBrokers = 1;</code>
-             */
-            public Builder removeTopicBrokers(int index) {
-                if (topicBrokersBuilder_ == null) {
-                    ensureTopicBrokersIsMutable();
-                    topicBrokers_.remove(index);
-                    onChanged();
-                }
-                else {
-                    topicBrokersBuilder_.remove(index);
-                }
-                return this;
-            }
-
-
-            /**
-             * <code>repeated .rocketmq.TopicQueuePair topicBrokers = 1;</code>
-             */
-            public com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair.Builder getTopicBrokersBuilder(
-                    int index) {
-                return getTopicBrokersFieldBuilder().getBuilder(index);
-            }
-
-
-            /**
-             * <code>repeated .rocketmq.TopicQueuePair topicBrokers = 1;</code>
-             */
-            public com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePairOrBuilder getTopicBrokersOrBuilder(
-                    int index) {
-                if (topicBrokersBuilder_ == null) {
-                    return topicBrokers_.get(index);
-                }
-                else {
-                    return topicBrokersBuilder_.getMessageOrBuilder(index);
-                }
-            }
-
-
-            /**
-             * <code>repeated .rocketmq.TopicQueuePair topicBrokers = 1;</code>
-             */
-            public java.util.List<? extends com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePairOrBuilder> getTopicBrokersOrBuilderList() {
-                if (topicBrokersBuilder_ != null) {
-                    return topicBrokersBuilder_.getMessageOrBuilderList();
-                }
-                else {
-                    return java.util.Collections.unmodifiableList(topicBrokers_);
-                }
-            }
-
-
-            /**
-             * <code>repeated .rocketmq.TopicQueuePair topicBrokers = 1;</code>
-             */
-            public com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair.Builder addTopicBrokersBuilder() {
-                return getTopicBrokersFieldBuilder().addBuilder(
-                    com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair.getDefaultInstance());
-            }
-
-
-            /**
-             * <code>repeated .rocketmq.TopicQueuePair topicBrokers = 1;</code>
-             */
-            public com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair.Builder addTopicBrokersBuilder(
-                    int index) {
-                return getTopicBrokersFieldBuilder().addBuilder(index,
-                    com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair.getDefaultInstance());
-            }
-
-
-            /**
-             * <code>repeated .rocketmq.TopicQueuePair topicBrokers = 1;</code>
-             */
-            public java.util.List<com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair.Builder> getTopicBrokersBuilderList() {
-                return getTopicBrokersFieldBuilder().getBuilderList();
-            }
-
-
-            private com.google.protobuf.RepeatedFieldBuilder<com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair, com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair.Builder, com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePairOrBuilder> getTopicBrokersFieldBuilder() {
-                if (topicBrokersBuilder_ == null) {
-                    topicBrokersBuilder_ =
-                            new com.google.protobuf.RepeatedFieldBuilder<com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair, com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePair.Builder, com.alibaba.rocketmq.common.protocol.MQProtos.TopicQueuePairOrBuilder>(
-                                topicBrokers_, ((bitField0_ & 0x00000001) == 0x00000001),
-                                getParentForChildren(), isClean());
-                    topicBrokers_ = null;
-                }
-                return topicBrokersBuilder_;
-            }
-
-            // required .remoting.NVPairList topicOrderConfs = 2;
-            private com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairList topicOrderConfs_ =
-                    com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairList.getDefaultInstance();
-            private com.google.protobuf.SingleFieldBuilder<com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairList, com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairList.Builder, com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairListOrBuilder> topicOrderConfsBuilder_;
-
-
-            /**
-             * <code>required .remoting.NVPairList topicOrderConfs = 2;</code>
-             */
-            public boolean hasTopicOrderConfs() {
-                return ((bitField0_ & 0x00000002) == 0x00000002);
-            }
-
-
-            /**
-             * <code>required .remoting.NVPairList topicOrderConfs = 2;</code>
-             */
-            public com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairList getTopicOrderConfs() {
-                if (topicOrderConfsBuilder_ == null) {
-                    return topicOrderConfs_;
-                }
-                else {
-                    return topicOrderConfsBuilder_.getMessage();
-                }
-            }
-
-
-            /**
-             * <code>required .remoting.NVPairList topicOrderConfs = 2;</code>
-             */
-            public Builder setTopicOrderConfs(
-                    com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairList value) {
-                if (topicOrderConfsBuilder_ == null) {
-                    if (value == null) {
-                        throw new NullPointerException();
-                    }
-                    topicOrderConfs_ = value;
-                    onChanged();
-                }
-                else {
-                    topicOrderConfsBuilder_.setMessage(value);
-                }
-                bitField0_ |= 0x00000002;
-                return this;
-            }
-
-
-            /**
-             * <code>required .remoting.NVPairList topicOrderConfs = 2;</code>
-             */
-            public Builder setTopicOrderConfs(
-                    com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairList.Builder builderForValue) {
-                if (topicOrderConfsBuilder_ == null) {
-                    topicOrderConfs_ = builderForValue.build();
-                    onChanged();
-                }
-                else {
-                    topicOrderConfsBuilder_.setMessage(builderForValue.build());
-                }
-                bitField0_ |= 0x00000002;
-                return this;
-            }
-
-
-            /**
-             * <code>required .remoting.NVPairList topicOrderConfs = 2;</code>
-             */
-            public Builder mergeTopicOrderConfs(
-                    com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairList value) {
-                if (topicOrderConfsBuilder_ == null) {
-                    if (((bitField0_ & 0x00000002) == 0x00000002)
-                            && topicOrderConfs_ != com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairList
-                                .getDefaultInstance()) {
-                        topicOrderConfs_ =
-                                com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairList
-                                    .newBuilder(topicOrderConfs_).mergeFrom(value).buildPartial();
-                    }
-                    else {
-                        topicOrderConfs_ = value;
-                    }
-                    onChanged();
-                }
-                else {
-                    topicOrderConfsBuilder_.mergeFrom(value);
-                }
-                bitField0_ |= 0x00000002;
-                return this;
-            }
-
-
-            /**
-             * <code>required .remoting.NVPairList topicOrderConfs = 2;</code>
-             */
-            public Builder clearTopicOrderConfs() {
-                if (topicOrderConfsBuilder_ == null) {
-                    topicOrderConfs_ =
-                            com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairList
-                                .getDefaultInstance();
-                    onChanged();
-                }
-                else {
-                    topicOrderConfsBuilder_.clear();
-                }
-                bitField0_ = (bitField0_ & ~0x00000002);
-                return this;
-            }
-
-
-            /**
-             * <code>required .remoting.NVPairList topicOrderConfs = 2;</code>
-             */
-            public com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairList.Builder getTopicOrderConfsBuilder() {
-                bitField0_ |= 0x00000002;
-                onChanged();
-                return getTopicOrderConfsFieldBuilder().getBuilder();
-            }
-
-
-            /**
-             * <code>required .remoting.NVPairList topicOrderConfs = 2;</code>
-             */
-            public com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairListOrBuilder getTopicOrderConfsOrBuilder() {
-                if (topicOrderConfsBuilder_ != null) {
-                    return topicOrderConfsBuilder_.getMessageOrBuilder();
-                }
-                else {
-                    return topicOrderConfs_;
-                }
-            }
-
-
-            /**
-             * <code>required .remoting.NVPairList topicOrderConfs = 2;</code>
-             */
-            private com.google.protobuf.SingleFieldBuilder<com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairList, com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairList.Builder, com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairListOrBuilder> getTopicOrderConfsFieldBuilder() {
-                if (topicOrderConfsBuilder_ == null) {
-                    topicOrderConfsBuilder_ =
-                            new com.google.protobuf.SingleFieldBuilder<com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairList, com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairList.Builder, com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairListOrBuilder>(
-                                topicOrderConfs_, getParentForChildren(), isClean());
-                    topicOrderConfs_ = null;
-                }
-                return topicOrderConfsBuilder_;
-            }
-
-            // repeated .rocketmq.BrokerDataPair brokers = 3;
-            private java.util.List<com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair> brokers_ =
-                    java.util.Collections.emptyList();
-
-
-            private void ensureBrokersIsMutable() {
-                if (!((bitField0_ & 0x00000004) == 0x00000004)) {
-                    brokers_ =
-                            new java.util.ArrayList<com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair>(
-                                brokers_);
-                    bitField0_ |= 0x00000004;
-                }
-            }
-
-            private com.google.protobuf.RepeatedFieldBuilder<com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair, com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair.Builder, com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPairOrBuilder> brokersBuilder_;
-
-
-            /**
-             * <code>repeated .rocketmq.BrokerDataPair brokers = 3;</code>
-             */
-            public java.util.List<com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair> getBrokersList() {
-                if (brokersBuilder_ == null) {
-                    return java.util.Collections.unmodifiableList(brokers_);
-                }
-                else {
-                    return brokersBuilder_.getMessageList();
-                }
-            }
-
-
-            /**
-             * <code>repeated .rocketmq.BrokerDataPair brokers = 3;</code>
-             */
-            public int getBrokersCount() {
-                if (brokersBuilder_ == null) {
-                    return brokers_.size();
-                }
-                else {
-                    return brokersBuilder_.getCount();
-                }
-            }
-
-
-            /**
-             * <code>repeated .rocketmq.BrokerDataPair brokers = 3;</code>
-             */
-            public com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair getBrokers(int index) {
-                if (brokersBuilder_ == null) {
-                    return brokers_.get(index);
-                }
-                else {
-                    return brokersBuilder_.getMessage(index);
-                }
-            }
-
-
-            /**
-             * <code>repeated .rocketmq.BrokerDataPair brokers = 3;</code>
-             */
-            public Builder setBrokers(int index,
-                    com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair value) {
-                if (brokersBuilder_ == null) {
-                    if (value == null) {
-                        throw new NullPointerException();
-                    }
-                    ensureBrokersIsMutable();
-                    brokers_.set(index, value);
-                    onChanged();
-                }
-                else {
-                    brokersBuilder_.setMessage(index, value);
-                }
-                return this;
-            }
-
-
-            /**
-             * <code>repeated .rocketmq.BrokerDataPair brokers = 3;</code>
-             */
-            public Builder setBrokers(int index,
-                    com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair.Builder builderForValue) {
-                if (brokersBuilder_ == null) {
-                    ensureBrokersIsMutable();
-                    brokers_.set(index, builderForValue.build());
-                    onChanged();
-                }
-                else {
-                    brokersBuilder_.setMessage(index, builderForValue.build());
-                }
-                return this;
-            }
-
-
-            /**
-             * <code>repeated .rocketmq.BrokerDataPair brokers = 3;</code>
-             */
-            public Builder addBrokers(com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair value) {
-                if (brokersBuilder_ == null) {
-                    if (value == null) {
-                        throw new NullPointerException();
-                    }
-                    ensureBrokersIsMutable();
-                    brokers_.add(value);
-                    onChanged();
-                }
-                else {
-                    brokersBuilder_.addMessage(value);
-                }
-                return this;
-            }
-
-
-            /**
-             * <code>repeated .rocketmq.BrokerDataPair brokers = 3;</code>
-             */
-            public Builder addBrokers(int index,
-                    com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair value) {
-                if (brokersBuilder_ == null) {
-                    if (value == null) {
-                        throw new NullPointerException();
-                    }
-                    ensureBrokersIsMutable();
-                    brokers_.add(index, value);
-                    onChanged();
-                }
-                else {
-                    brokersBuilder_.addMessage(index, value);
-                }
-                return this;
-            }
-
-
-            /**
-             * <code>repeated .rocketmq.BrokerDataPair brokers = 3;</code>
-             */
-            public Builder addBrokers(
-                    com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair.Builder builderForValue) {
-                if (brokersBuilder_ == null) {
-                    ensureBrokersIsMutable();
-                    brokers_.add(builderForValue.build());
-                    onChanged();
-                }
-                else {
-                    brokersBuilder_.addMessage(builderForValue.build());
-                }
-                return this;
-            }
-
-
-            /**
-             * <code>repeated .rocketmq.BrokerDataPair brokers = 3;</code>
-             */
-            public Builder addBrokers(int index,
-                    com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair.Builder builderForValue) {
-                if (brokersBuilder_ == null) {
-                    ensureBrokersIsMutable();
-                    brokers_.add(index, builderForValue.build());
-                    onChanged();
-                }
-                else {
-                    brokersBuilder_.addMessage(index, builderForValue.build());
-                }
-                return this;
-            }
-
-
-            /**
-             * <code>repeated .rocketmq.BrokerDataPair brokers = 3;</code>
-             */
-            public Builder addAllBrokers(
-                    java.lang.Iterable<? extends com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair> values) {
-                if (brokersBuilder_ == null) {
-                    ensureBrokersIsMutable();
-                    super.addAll(values, brokers_);
-                    onChanged();
-                }
-                else {
-                    brokersBuilder_.addAllMessages(values);
-                }
-                return this;
-            }
-
-
-            /**
-             * <code>repeated .rocketmq.BrokerDataPair brokers = 3;</code>
-             */
-            public Builder clearBrokers() {
-                if (brokersBuilder_ == null) {
-                    brokers_ = java.util.Collections.emptyList();
-                    bitField0_ = (bitField0_ & ~0x00000004);
-                    onChanged();
-                }
-                else {
-                    brokersBuilder_.clear();
-                }
-                return this;
-            }
-
-
-            /**
-             * <code>repeated .rocketmq.BrokerDataPair brokers = 3;</code>
-             */
-            public Builder removeBrokers(int index) {
-                if (brokersBuilder_ == null) {
-                    ensureBrokersIsMutable();
-                    brokers_.remove(index);
-                    onChanged();
-                }
-                else {
-                    brokersBuilder_.remove(index);
-                }
-                return this;
-            }
-
-
-            /**
-             * <code>repeated .rocketmq.BrokerDataPair brokers = 3;</code>
-             */
-            public com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair.Builder getBrokersBuilder(
-                    int index) {
-                return getBrokersFieldBuilder().getBuilder(index);
-            }
-
-
-            /**
-             * <code>repeated .rocketmq.BrokerDataPair brokers = 3;</code>
-             */
-            public com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPairOrBuilder getBrokersOrBuilder(
-                    int index) {
-                if (brokersBuilder_ == null) {
-                    return brokers_.get(index);
-                }
-                else {
-                    return brokersBuilder_.getMessageOrBuilder(index);
-                }
-            }
-
-
-            /**
-             * <code>repeated .rocketmq.BrokerDataPair brokers = 3;</code>
-             */
-            public java.util.List<? extends com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPairOrBuilder> getBrokersOrBuilderList() {
-                if (brokersBuilder_ != null) {
-                    return brokersBuilder_.getMessageOrBuilderList();
-                }
-                else {
-                    return java.util.Collections.unmodifiableList(brokers_);
-                }
-            }
-
-
-            /**
-             * <code>repeated .rocketmq.BrokerDataPair brokers = 3;</code>
-             */
-            public com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair.Builder addBrokersBuilder() {
-                return getBrokersFieldBuilder().addBuilder(
-                    com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair.getDefaultInstance());
-            }
-
-
-            /**
-             * <code>repeated .rocketmq.BrokerDataPair brokers = 3;</code>
-             */
-            public com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair.Builder addBrokersBuilder(
-                    int index) {
-                return getBrokersFieldBuilder().addBuilder(index,
-                    com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair.getDefaultInstance());
-            }
-
-
-            /**
-             * <code>repeated .rocketmq.BrokerDataPair brokers = 3;</code>
-             */
-            public java.util.List<com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair.Builder> getBrokersBuilderList() {
-                return getBrokersFieldBuilder().getBuilderList();
-            }
-
-
-            private com.google.protobuf.RepeatedFieldBuilder<com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair, com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair.Builder, com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPairOrBuilder> getBrokersFieldBuilder() {
-                if (brokersBuilder_ == null) {
-                    brokersBuilder_ =
-                            new com.google.protobuf.RepeatedFieldBuilder<com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair, com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPair.Builder, com.alibaba.rocketmq.common.protocol.MQProtos.BrokerDataPairOrBuilder>(
-                                brokers_, ((bitField0_ & 0x00000004) == 0x00000004), getParentForChildren(),
-                                isClean());
-                    brokers_ = null;
-                }
-                return brokersBuilder_;
-            }
-
-            // required .remoting.StringList brokerList = 4;
-            private com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringList brokerList_ =
-                    com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringList.getDefaultInstance();
-            private com.google.protobuf.SingleFieldBuilder<com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringList, com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringList.Builder, com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringListOrBuilder> brokerListBuilder_;
-
-
-            /**
-             * <code>required .remoting.StringList brokerList = 4;</code>
-             */
-            public boolean hasBrokerList() {
-                return ((bitField0_ & 0x00000008) == 0x00000008);
-            }
-
-
-            /**
-             * <code>required .remoting.StringList brokerList = 4;</code>
-             */
-            public com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringList getBrokerList() {
-                if (brokerListBuilder_ == null) {
-                    return brokerList_;
-                }
-                else {
-                    return brokerListBuilder_.getMessage();
-                }
-            }
-
-
-            /**
-             * <code>required .remoting.StringList brokerList = 4;</code>
-             */
-            public Builder setBrokerList(
-                    com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringList value) {
-                if (brokerListBuilder_ == null) {
-                    if (value == null) {
-                        throw new NullPointerException();
-                    }
-                    brokerList_ = value;
-                    onChanged();
-                }
-                else {
-                    brokerListBuilder_.setMessage(value);
-                }
-                bitField0_ |= 0x00000008;
-                return this;
-            }
-
-
-            /**
-             * <code>required .remoting.StringList brokerList = 4;</code>
-             */
-            public Builder setBrokerList(
-                    com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringList.Builder builderForValue) {
-                if (brokerListBuilder_ == null) {
-                    brokerList_ = builderForValue.build();
-                    onChanged();
-                }
-                else {
-                    brokerListBuilder_.setMessage(builderForValue.build());
-                }
-                bitField0_ |= 0x00000008;
-                return this;
-            }
-
-
-            /**
-             * <code>required .remoting.StringList brokerList = 4;</code>
-             */
-            public Builder mergeBrokerList(
-                    com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringList value) {
-                if (brokerListBuilder_ == null) {
-                    if (((bitField0_ & 0x00000008) == 0x00000008)
-                            && brokerList_ != com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringList
-                                .getDefaultInstance()) {
-                        brokerList_ =
-                                com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringList
-                                    .newBuilder(brokerList_).mergeFrom(value).buildPartial();
-                    }
-                    else {
-                        brokerList_ = value;
-                    }
-                    onChanged();
-                }
-                else {
-                    brokerListBuilder_.mergeFrom(value);
-                }
-                bitField0_ |= 0x00000008;
-                return this;
-            }
-
-
-            /**
-             * <code>required .remoting.StringList brokerList = 4;</code>
-             */
-            public Builder clearBrokerList() {
-                if (brokerListBuilder_ == null) {
-                    brokerList_ =
-                            com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringList
-                                .getDefaultInstance();
-                    onChanged();
-                }
-                else {
-                    brokerListBuilder_.clear();
-                }
-                bitField0_ = (bitField0_ & ~0x00000008);
-                return this;
-            }
-
-
-            /**
-             * <code>required .remoting.StringList brokerList = 4;</code>
-             */
-            public com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringList.Builder getBrokerListBuilder() {
-                bitField0_ |= 0x00000008;
-                onChanged();
-                return getBrokerListFieldBuilder().getBuilder();
-            }
-
-
-            /**
-             * <code>required .remoting.StringList brokerList = 4;</code>
-             */
-            public com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringListOrBuilder getBrokerListOrBuilder() {
-                if (brokerListBuilder_ != null) {
-                    return brokerListBuilder_.getMessageOrBuilder();
-                }
-                else {
-                    return brokerList_;
-                }
-            }
-
-
-            /**
-             * <code>required .remoting.StringList brokerList = 4;</code>
-             */
-            private com.google.protobuf.SingleFieldBuilder<com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringList, com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringList.Builder, com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringListOrBuilder> getBrokerListFieldBuilder() {
-                if (brokerListBuilder_ == null) {
-                    brokerListBuilder_ =
-                            new com.google.protobuf.SingleFieldBuilder<com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringList, com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringList.Builder, com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringListOrBuilder>(
-                                brokerList_, getParentForChildren(), isClean());
-                    brokerList_ = null;
-                }
-                return brokerListBuilder_;
-            }
-
-            // @@protoc_insertion_point(builder_scope:rocketmq.TopicRuntimeInfo)
-        }
-
-        static {
-            defaultInstance = new TopicRuntimeInfo(true);
-            defaultInstance.initFields();
-        }
-
-        // @@protoc_insertion_point(class_scope:rocketmq.TopicRuntimeInfo)
+      // @@protoc_insertion_point(builder_scope:rocketmq.TopicRuntimeInfo)
     }
 
-    private static com.google.protobuf.Descriptors.Descriptor internal_static_rocketmq_BrokerInfo_descriptor;
-    private static com.google.protobuf.GeneratedMessage.FieldAccessorTable internal_static_rocketmq_BrokerInfo_fieldAccessorTable;
-    private static com.google.protobuf.Descriptors.Descriptor internal_static_rocketmq_BrokerInfo_BrokerAddr_descriptor;
-    private static com.google.protobuf.GeneratedMessage.FieldAccessorTable internal_static_rocketmq_BrokerInfo_BrokerAddr_fieldAccessorTable;
-    private static com.google.protobuf.Descriptors.Descriptor internal_static_rocketmq_QueueInfo_descriptor;
-    private static com.google.protobuf.GeneratedMessage.FieldAccessorTable internal_static_rocketmq_QueueInfo_fieldAccessorTable;
-    private static com.google.protobuf.Descriptors.Descriptor internal_static_rocketmq_TopicRouteInfo_descriptor;
-    private static com.google.protobuf.GeneratedMessage.FieldAccessorTable internal_static_rocketmq_TopicRouteInfo_fieldAccessorTable;
-    private static com.google.protobuf.Descriptors.Descriptor internal_static_rocketmq_TopicQueuePair_descriptor;
-    private static com.google.protobuf.GeneratedMessage.FieldAccessorTable internal_static_rocketmq_TopicQueuePair_fieldAccessorTable;
-    private static com.google.protobuf.Descriptors.Descriptor internal_static_rocketmq_BrokerDataPair_descriptor;
-    private static com.google.protobuf.GeneratedMessage.FieldAccessorTable internal_static_rocketmq_BrokerDataPair_fieldAccessorTable;
-    private static com.google.protobuf.Descriptors.Descriptor internal_static_rocketmq_TopicRuntimeInfo_descriptor;
-    private static com.google.protobuf.GeneratedMessage.FieldAccessorTable internal_static_rocketmq_TopicRuntimeInfo_fieldAccessorTable;
-
-
-    public static com.google.protobuf.Descriptors.FileDescriptor getDescriptor() {
-        return descriptor;
-    }
-
-    private static com.google.protobuf.Descriptors.FileDescriptor descriptor;
     static {
-        java.lang.String[] descriptorData =
-                {
-                 "\n\010mq.proto\022\010rocketmq\032\016remoting.proto\"~\n\n"
-                         + "BrokerInfo\022\022\n\nbrokerName\030\001 \002(\t\0224\n\013broker"
-                         + "Addrs\030\002 \003(\0132\037.rocketmq.BrokerInfo.Broker"
-                         + "Addr\032&\n\nBrokerAddr\022\n\n\002id\030\001 \002(\003\022\014\n\004addr\030\002"
-                         + " \002(\t\"\\\n\tQueueInfo\022\022\n\nbrokerName\030\001 \002(\t\022\025\n"
-                         + "\rreadQueueNums\030\002 \002(\005\022\026\n\016writeQueueNums\030\003"
-                         + " \002(\005\022\014\n\004perm\030\004 \002(\005\"|\n\016TopicRouteInfo\022\'\n\n"
-                         + "queueInfos\030\001 \003(\0132\023.rocketmq.QueueInfo\022)\n"
-                         + "\013brokerInfos\030\002 \003(\0132\024.rocketmq.BrokerInfo"
-                         + "\022\026\n\016orderTopicConf\030\003 \001(\t\"G\n\016TopicQueuePa",
-                 "ir\022\r\n\005topic\030\001 \002(\t\022&\n\tqueueInfo\030\002 \003(\0132\023.r"
-                         + "ocketmq.QueueInfo\"N\n\016BrokerDataPair\022\022\n\nb"
-                         + "rokerName\030\001 \002(\t\022(\n\nbrokerInfo\030\002 \002(\0132\024.ro"
-                         + "cketmq.BrokerInfo\"\306\001\n\020TopicRuntimeInfo\022."
-                         + "\n\014topicBrokers\030\001 \003(\0132\030.rocketmq.TopicQue"
-                         + "uePair\022-\n\017topicOrderConfs\030\002 \002(\0132\024.remoti"
-                         + "ng.NVPairList\022)\n\007brokers\030\003 \003(\0132\030.rocketm"
-                         + "q.BrokerDataPair\022(\n\nbrokerList\030\004 \002(\0132\024.r"
-                         + "emoting.StringList*\352\010\n\rMQRequestCode\022\020\n\014"
-                         + "SEND_MESSAGE\020\n\022\020\n\014PULL_MESSAGE\020\013\022\021\n\rQUER",
-                 "Y_MESSAGE\020\014\022\027\n\023QUERY_BROKER_OFFSET\020\r\022\031\n\025"
-                         + "QUERY_CONSUMER_OFFSET\020\016\022\032\n\026UPDATE_CONSUM"
-                         + "ER_OFFSET\020\017\022\033\n\027UPDATE_AND_CREATE_TOPIC\020\021"
-                         + "\022\020\n\014DELETE_TOPIC\020\023\022\030\n\024GET_ALL_TOPIC_CONF"
-                         + "IG\020\025\022\031\n\025GET_TOPIC_CONFIG_LIST\020\026\022\027\n\023GET_T"
-                         + "OPIC_NAME_LIST\020\027\022\034\n\030PULL_ALL_CONSUMER_OF"
-                         + "FSET\020\030\022\030\n\024UPDATE_BROKER_CONFIG\020\031\022\025\n\021GET_"
-                         + "BROKER_CONFIG\020\032\022\030\n\024TRIGGER_DELETE_FILES\020"
-                         + "\033\022\033\n\027GET_BROKER_RUNTIME_INFO\020\034\022\036\n\032SEARCH"
-                         + "_OFFSET_BY_TIMESTAMP\020\035\022\022\n\016GET_MAX_OFFSET",
-                 "\020\036\022\022\n\016GET_MIN_OFFSET\020\037\022\036\n\032GET_EARLIEST_M"
-                         + "SG_STORETIME\020 \022\026\n\022VIEW_MESSAGE_BY_ID\020!\022\016"
-                         + "\n\nHEART_BEAT\020\"\022\025\n\021UNREGISTER_CLIENT\020#\022\032\n"
-                         + "\026CONSUMER_SEND_MSG_BACK\020$\022\023\n\017END_TRANSAC"
-                         + "TION\020%\022\036\n\032GET_CONSUMER_LIST_BY_GROUP\020&\022\033"
-                         + "\n\027CHECK_TRANSACTION_STATE\020\'\022\037\n\033NOTIFY_CO"
-                         + "NSUMER_IDS_CHANGED\020(\022\023\n\017REGISTER_BROKER\020"
-                         + "d\022\025\n\021UNREGISTER_BROKER\020e\022\023\n\017GET_BROKER_L"
-                         + "IST\020f\022\030\n\024REGISTER_ORDER_TOPIC\020g\022\032\n\026UNREG"
-                         + "ISTER_ORDER_TOPIC\020h\022\030\n\024GET_ORDER_TOPIC_L",
-                 "IST\020i\022\031\n\025UPDATE_NAMESRV_CONFIG\020j\022\026\n\022GET_"
-                         + "NAMESRV_CONFIG\020k\022\034\n\030GET_NAMESRV_RUNTIME_"
-                         + "INFO\020l\022\032\n\026GET_ROUTEINTO_BY_TOPIC\020m\022\035\n\031SY"
-                         + "NC_NAMESRV_RUNTIME_CONF\020n\022\032\n\026REGISTER_BR"
-                         + "OKER_SINGLE\020o\022\034\n\030UNREGISTER_BROKER_SINGL"
-                         + "E\020p\022\037\n\033REGISTER_ORDER_TOPIC_SINGLE\020q\022!\n\035"
-                         + "UNREGISTER_ORDER_TOPIC_SINGLE\020r*\305\006\n\016MQRe"
-                         + "sponseCode\022\026\n\022FLUSH_DISK_TIMEOUT\020\n\022\027\n\023SL"
-                         + "AVE_NOT_AVAILABLE\020\013\022\027\n\023FLUSH_SLAVE_TIMEO"
-                         + "UT\020\014\022\023\n\017MESSAGE_ILLEGAL\020\r\022\031\n\025SERVICE_NOT",
-                 "_AVAILABLE\020\016\022\031\n\025VERSION_NOT_SUPPORTED\020\017\022"
-                         + "\021\n\rNO_PERMISSION\020\020\022\023\n\017TOPIC_NOT_EXIST\020\021\022"
-                         + "\027\n\023TOPIC_EXIST_ALREADY\020\022\022\022\n\016PULL_NOT_FOU"
-                         + "ND\020\023\022\032\n\026PULL_RETRY_IMMEDIATELY\020\024\022\025\n\021PULL"
-                         + "_OFFSET_MOVED\020\025\022\023\n\017QUERY_NOT_FOUND\020\026\022\035\n\031"
-                         + "SUBSCRIPTION_PARSE_FAILED\020\027\022\032\n\026SUBSCRIPT"
-                         + "ION_NOT_EXIST\020\030\022\033\n\027SUBSCRIPTION_NOT_LATE"
-                         + "ST\020\031\022 \n\034SUBSCRIPTION_GROUP_NOT_EXIST\020\032\022\027"
-                         + "\n\023DELETE_INVALID_CONF\020d\022\022\n\016NOT_MERGE_CON"
-                         + "F\020e\022\030\n\024REGISTER_BROKER_FAIL\020f\022\033\n\027REGISTE",
-                 "R_BROKER_TIMEOUT\020g\022\035\n\031REGISTER_ORDER_TOP"
-                         + "IC_FAIL\020h\022 \n\034REGISTER_ORDER_TOPIC_TIMEOU"
-                         + "T\020i\022\032\n\026UNREGISTER_BROKER_FAIL\020j\022\035\n\031UNREG"
-                         + "ISTER_BROKER_TIMEOUT\020k\022\"\n\036UNREGISTER_ORD"
-                         + "ER_TOPIC_TIMEOUT\020l\022\036\n\031TRANSACTION_SHOULD"
-                         + "_COMMIT\020\310\001\022 \n\033TRANSACTION_SHOULD_ROLLBAC"
-                         + "K\020\311\001\022\035\n\030TRANSACTION_STATE_UNKNOW\020\312\001\022\"\n\035T"
-                         + "RANSACTION_STATE_GROUP_WRONG\020\313\001B2\n$com.a"
-                         + "libaba.rocketmq.common.protocolB\010MQProto" + "sH\001" };
-        com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
-                new com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner() {
-                    public com.google.protobuf.ExtensionRegistry assignDescriptors(
-                            com.google.protobuf.Descriptors.FileDescriptor root) {
-                        descriptor = root;
-                        internal_static_rocketmq_BrokerInfo_descriptor =
-                                getDescriptor().getMessageTypes().get(0);
-                        internal_static_rocketmq_BrokerInfo_fieldAccessorTable =
-                                new com.google.protobuf.GeneratedMessage.FieldAccessorTable(
-                                    internal_static_rocketmq_BrokerInfo_descriptor,
-                                    new java.lang.String[] { "BrokerName", "BrokerAddrs", });
-                        internal_static_rocketmq_BrokerInfo_BrokerAddr_descriptor =
-                                internal_static_rocketmq_BrokerInfo_descriptor.getNestedTypes().get(0);
-                        internal_static_rocketmq_BrokerInfo_BrokerAddr_fieldAccessorTable =
-                                new com.google.protobuf.GeneratedMessage.FieldAccessorTable(
-                                    internal_static_rocketmq_BrokerInfo_BrokerAddr_descriptor,
-                                    new java.lang.String[] { "Id", "Addr", });
-                        internal_static_rocketmq_QueueInfo_descriptor =
-                                getDescriptor().getMessageTypes().get(1);
-                        internal_static_rocketmq_QueueInfo_fieldAccessorTable =
-                                new com.google.protobuf.GeneratedMessage.FieldAccessorTable(
-                                    internal_static_rocketmq_QueueInfo_descriptor,
-                                    new java.lang.String[] { "BrokerName", "ReadQueueNums", "WriteQueueNums",
-                                                            "Perm", });
-                        internal_static_rocketmq_TopicRouteInfo_descriptor =
-                                getDescriptor().getMessageTypes().get(2);
-                        internal_static_rocketmq_TopicRouteInfo_fieldAccessorTable =
-                                new com.google.protobuf.GeneratedMessage.FieldAccessorTable(
-                                    internal_static_rocketmq_TopicRouteInfo_descriptor,
-                                    new java.lang.String[] { "QueueInfos", "BrokerInfos", "OrderTopicConf", });
-                        internal_static_rocketmq_TopicQueuePair_descriptor =
-                                getDescriptor().getMessageTypes().get(3);
-                        internal_static_rocketmq_TopicQueuePair_fieldAccessorTable =
-                                new com.google.protobuf.GeneratedMessage.FieldAccessorTable(
-                                    internal_static_rocketmq_TopicQueuePair_descriptor,
-                                    new java.lang.String[] { "Topic", "QueueInfo", });
-                        internal_static_rocketmq_BrokerDataPair_descriptor =
-                                getDescriptor().getMessageTypes().get(4);
-                        internal_static_rocketmq_BrokerDataPair_fieldAccessorTable =
-                                new com.google.protobuf.GeneratedMessage.FieldAccessorTable(
-                                    internal_static_rocketmq_BrokerDataPair_descriptor,
-                                    new java.lang.String[] { "BrokerName", "BrokerInfo", });
-                        internal_static_rocketmq_TopicRuntimeInfo_descriptor =
-                                getDescriptor().getMessageTypes().get(5);
-                        internal_static_rocketmq_TopicRuntimeInfo_fieldAccessorTable =
-                                new com.google.protobuf.GeneratedMessage.FieldAccessorTable(
-                                    internal_static_rocketmq_TopicRuntimeInfo_descriptor,
-                                    new java.lang.String[] { "TopicBrokers", "TopicOrderConfs", "Brokers",
-                                                            "BrokerList", });
-                        return null;
-                    }
-                };
-        com.google.protobuf.Descriptors.FileDescriptor
-            .internalBuildGeneratedFileFrom(
-                descriptorData,
-                new com.google.protobuf.Descriptors.FileDescriptor[] { com.alibaba.rocketmq.remoting.protocol.RemotingProtos
-                    .getDescriptor(), }, assigner);
+      defaultInstance = new TopicRuntimeInfo(true);
+      defaultInstance.initFields();
     }
 
-    // @@protoc_insertion_point(outer_class_scope)
+    // @@protoc_insertion_point(class_scope:rocketmq.TopicRuntimeInfo)
+  }
+
+  private static com.google.protobuf.Descriptors.Descriptor
+    internal_static_rocketmq_BrokerInfo_descriptor;
+  private static
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_rocketmq_BrokerInfo_fieldAccessorTable;
+  private static com.google.protobuf.Descriptors.Descriptor
+    internal_static_rocketmq_BrokerInfo_BrokerAddr_descriptor;
+  private static
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_rocketmq_BrokerInfo_BrokerAddr_fieldAccessorTable;
+  private static com.google.protobuf.Descriptors.Descriptor
+    internal_static_rocketmq_QueueInfo_descriptor;
+  private static
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_rocketmq_QueueInfo_fieldAccessorTable;
+  private static com.google.protobuf.Descriptors.Descriptor
+    internal_static_rocketmq_TopicRouteInfo_descriptor;
+  private static
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_rocketmq_TopicRouteInfo_fieldAccessorTable;
+  private static com.google.protobuf.Descriptors.Descriptor
+    internal_static_rocketmq_TopicQueuePair_descriptor;
+  private static
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_rocketmq_TopicQueuePair_fieldAccessorTable;
+  private static com.google.protobuf.Descriptors.Descriptor
+    internal_static_rocketmq_BrokerDataPair_descriptor;
+  private static
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_rocketmq_BrokerDataPair_fieldAccessorTable;
+  private static com.google.protobuf.Descriptors.Descriptor
+    internal_static_rocketmq_TopicRuntimeInfo_descriptor;
+  private static
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_rocketmq_TopicRuntimeInfo_fieldAccessorTable;
+
+  public static com.google.protobuf.Descriptors.FileDescriptor
+      getDescriptor() {
+    return descriptor;
+  }
+  private static com.google.protobuf.Descriptors.FileDescriptor
+      descriptor;
+  static {
+    java.lang.String[] descriptorData = {
+      "\n\010mq.proto\022\010rocketmq\032\016remoting.proto\"~\n\n" +
+      "BrokerInfo\022\022\n\nbrokerName\030\001 \002(\t\0224\n\013broker" +
+      "Addrs\030\002 \003(\0132\037.rocketmq.BrokerInfo.Broker" +
+      "Addr\032&\n\nBrokerAddr\022\n\n\002id\030\001 \002(\003\022\014\n\004addr\030\002" +
+      " \002(\t\"\\\n\tQueueInfo\022\022\n\nbrokerName\030\001 \002(\t\022\025\n" +
+      "\rreadQueueNums\030\002 \002(\005\022\026\n\016writeQueueNums\030\003" +
+      " \002(\005\022\014\n\004perm\030\004 \002(\005\"|\n\016TopicRouteInfo\022\'\n\n" +
+      "queueInfos\030\001 \003(\0132\023.rocketmq.QueueInfo\022)\n" +
+      "\013brokerInfos\030\002 \003(\0132\024.rocketmq.BrokerInfo" +
+      "\022\026\n\016orderTopicConf\030\003 \001(\t\"G\n\016TopicQueuePa",
+      "ir\022\r\n\005topic\030\001 \002(\t\022&\n\tqueueInfo\030\002 \003(\0132\023.r" +
+      "ocketmq.QueueInfo\"N\n\016BrokerDataPair\022\022\n\nb" +
+      "rokerName\030\001 \002(\t\022(\n\nbrokerInfo\030\002 \002(\0132\024.ro" +
+      "cketmq.BrokerInfo\"\306\001\n\020TopicRuntimeInfo\022." +
+      "\n\014topicBrokers\030\001 \003(\0132\030.rocketmq.TopicQue" +
+      "uePair\022-\n\017topicOrderConfs\030\002 \002(\0132\024.remoti" +
+      "ng.NVPairList\022)\n\007brokers\030\003 \003(\0132\030.rocketm" +
+      "q.BrokerDataPair\022(\n\nbrokerList\030\004 \002(\0132\024.r" +
+      "emoting.StringList*\222\t\n\rMQRequestCode\022\020\n\014" +
+      "SEND_MESSAGE\020\n\022\020\n\014PULL_MESSAGE\020\013\022\021\n\rQUER",
+      "Y_MESSAGE\020\014\022\027\n\023QUERY_BROKER_OFFSET\020\r\022\031\n\025" +
+      "QUERY_CONSUMER_OFFSET\020\016\022\032\n\026UPDATE_CONSUM" +
+      "ER_OFFSET\020\017\022\033\n\027UPDATE_AND_CREATE_TOPIC\020\021" +
+      "\022\020\n\014DELETE_TOPIC\020\023\022\030\n\024GET_ALL_TOPIC_CONF" +
+      "IG\020\025\022\031\n\025GET_TOPIC_CONFIG_LIST\020\026\022\027\n\023GET_T" +
+      "OPIC_NAME_LIST\020\027\022\034\n\030PULL_ALL_CONSUMER_OF" +
+      "FSET\020\030\022\030\n\024UPDATE_BROKER_CONFIG\020\031\022\025\n\021GET_" +
+      "BROKER_CONFIG\020\032\022\030\n\024TRIGGER_DELETE_FILES\020" +
+      "\033\022\033\n\027GET_BROKER_RUNTIME_INFO\020\034\022\036\n\032SEARCH" +
+      "_OFFSET_BY_TIMESTAMP\020\035\022\022\n\016GET_MAX_OFFSET",
+      "\020\036\022\022\n\016GET_MIN_OFFSET\020\037\022\036\n\032GET_EARLIEST_M" +
+      "SG_STORETIME\020 \022\026\n\022VIEW_MESSAGE_BY_ID\020!\022\016" +
+      "\n\nHEART_BEAT\020\"\022\025\n\021UNREGISTER_CLIENT\020#\022\032\n" +
+      "\026CONSUMER_SEND_MSG_BACK\020$\022\023\n\017END_TRANSAC" +
+      "TION\020%\022\036\n\032GET_CONSUMER_LIST_BY_GROUP\020&\022\033" +
+      "\n\027CHECK_TRANSACTION_STATE\020\'\022\037\n\033NOTIFY_CO" +
+      "NSUMER_IDS_CHANGED\020(\022\021\n\rLOCK_BATCH_MQ\020)\022" +
+      "\023\n\017UNLOCK_BATCH_MQ\020*\022\023\n\017REGISTER_BROKER\020" +
+      "d\022\025\n\021UNREGISTER_BROKER\020e\022\023\n\017GET_BROKER_L" +
+      "IST\020f\022\030\n\024REGISTER_ORDER_TOPIC\020g\022\032\n\026UNREG",
+      "ISTER_ORDER_TOPIC\020h\022\030\n\024GET_ORDER_TOPIC_L" +
+      "IST\020i\022\031\n\025UPDATE_NAMESRV_CONFIG\020j\022\026\n\022GET_" +
+      "NAMESRV_CONFIG\020k\022\034\n\030GET_NAMESRV_RUNTIME_" +
+      "INFO\020l\022\032\n\026GET_ROUTEINTO_BY_TOPIC\020m\022\035\n\031SY" +
+      "NC_NAMESRV_RUNTIME_CONF\020n\022\032\n\026REGISTER_BR" +
+      "OKER_SINGLE\020o\022\034\n\030UNREGISTER_BROKER_SINGL" +
+      "E\020p\022\037\n\033REGISTER_ORDER_TOPIC_SINGLE\020q\022!\n\035" +
+      "UNREGISTER_ORDER_TOPIC_SINGLE\020r*\305\006\n\016MQRe" +
+      "sponseCode\022\026\n\022FLUSH_DISK_TIMEOUT\020\n\022\027\n\023SL" +
+      "AVE_NOT_AVAILABLE\020\013\022\027\n\023FLUSH_SLAVE_TIMEO",
+      "UT\020\014\022\023\n\017MESSAGE_ILLEGAL\020\r\022\031\n\025SERVICE_NOT" +
+      "_AVAILABLE\020\016\022\031\n\025VERSION_NOT_SUPPORTED\020\017\022" +
+      "\021\n\rNO_PERMISSION\020\020\022\023\n\017TOPIC_NOT_EXIST\020\021\022" +
+      "\027\n\023TOPIC_EXIST_ALREADY\020\022\022\022\n\016PULL_NOT_FOU" +
+      "ND\020\023\022\032\n\026PULL_RETRY_IMMEDIATELY\020\024\022\025\n\021PULL" +
+      "_OFFSET_MOVED\020\025\022\023\n\017QUERY_NOT_FOUND\020\026\022\035\n\031" +
+      "SUBSCRIPTION_PARSE_FAILED\020\027\022\032\n\026SUBSCRIPT" +
+      "ION_NOT_EXIST\020\030\022\033\n\027SUBSCRIPTION_NOT_LATE" +
+      "ST\020\031\022 \n\034SUBSCRIPTION_GROUP_NOT_EXIST\020\032\022\027" +
+      "\n\023DELETE_INVALID_CONF\020d\022\022\n\016NOT_MERGE_CON",
+      "F\020e\022\030\n\024REGISTER_BROKER_FAIL\020f\022\033\n\027REGISTE" +
+      "R_BROKER_TIMEOUT\020g\022\035\n\031REGISTER_ORDER_TOP" +
+      "IC_FAIL\020h\022 \n\034REGISTER_ORDER_TOPIC_TIMEOU" +
+      "T\020i\022\032\n\026UNREGISTER_BROKER_FAIL\020j\022\035\n\031UNREG" +
+      "ISTER_BROKER_TIMEOUT\020k\022\"\n\036UNREGISTER_ORD" +
+      "ER_TOPIC_TIMEOUT\020l\022\036\n\031TRANSACTION_SHOULD" +
+      "_COMMIT\020\310\001\022 \n\033TRANSACTION_SHOULD_ROLLBAC" +
+      "K\020\311\001\022\035\n\030TRANSACTION_STATE_UNKNOW\020\312\001\022\"\n\035T" +
+      "RANSACTION_STATE_GROUP_WRONG\020\313\001B2\n$com.a" +
+      "libaba.rocketmq.common.protocolB\010MQProto",
+      "sH\001"
+    };
+    com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
+      new com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner() {
+        public com.google.protobuf.ExtensionRegistry assignDescriptors(
+            com.google.protobuf.Descriptors.FileDescriptor root) {
+          descriptor = root;
+          internal_static_rocketmq_BrokerInfo_descriptor =
+            getDescriptor().getMessageTypes().get(0);
+          internal_static_rocketmq_BrokerInfo_fieldAccessorTable = new
+            com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+              internal_static_rocketmq_BrokerInfo_descriptor,
+              new java.lang.String[] { "BrokerName", "BrokerAddrs", });
+          internal_static_rocketmq_BrokerInfo_BrokerAddr_descriptor =
+            internal_static_rocketmq_BrokerInfo_descriptor.getNestedTypes().get(0);
+          internal_static_rocketmq_BrokerInfo_BrokerAddr_fieldAccessorTable = new
+            com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+              internal_static_rocketmq_BrokerInfo_BrokerAddr_descriptor,
+              new java.lang.String[] { "Id", "Addr", });
+          internal_static_rocketmq_QueueInfo_descriptor =
+            getDescriptor().getMessageTypes().get(1);
+          internal_static_rocketmq_QueueInfo_fieldAccessorTable = new
+            com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+              internal_static_rocketmq_QueueInfo_descriptor,
+              new java.lang.String[] { "BrokerName", "ReadQueueNums", "WriteQueueNums", "Perm", });
+          internal_static_rocketmq_TopicRouteInfo_descriptor =
+            getDescriptor().getMessageTypes().get(2);
+          internal_static_rocketmq_TopicRouteInfo_fieldAccessorTable = new
+            com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+              internal_static_rocketmq_TopicRouteInfo_descriptor,
+              new java.lang.String[] { "QueueInfos", "BrokerInfos", "OrderTopicConf", });
+          internal_static_rocketmq_TopicQueuePair_descriptor =
+            getDescriptor().getMessageTypes().get(3);
+          internal_static_rocketmq_TopicQueuePair_fieldAccessorTable = new
+            com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+              internal_static_rocketmq_TopicQueuePair_descriptor,
+              new java.lang.String[] { "Topic", "QueueInfo", });
+          internal_static_rocketmq_BrokerDataPair_descriptor =
+            getDescriptor().getMessageTypes().get(4);
+          internal_static_rocketmq_BrokerDataPair_fieldAccessorTable = new
+            com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+              internal_static_rocketmq_BrokerDataPair_descriptor,
+              new java.lang.String[] { "BrokerName", "BrokerInfo", });
+          internal_static_rocketmq_TopicRuntimeInfo_descriptor =
+            getDescriptor().getMessageTypes().get(5);
+          internal_static_rocketmq_TopicRuntimeInfo_fieldAccessorTable = new
+            com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+              internal_static_rocketmq_TopicRuntimeInfo_descriptor,
+              new java.lang.String[] { "TopicBrokers", "TopicOrderConfs", "Brokers", "BrokerList", });
+          return null;
+        }
+      };
+    com.google.protobuf.Descriptors.FileDescriptor
+      .internalBuildGeneratedFileFrom(descriptorData,
+        new com.google.protobuf.Descriptors.FileDescriptor[] {
+          com.alibaba.rocketmq.remoting.protocol.RemotingProtos.getDescriptor(),
+        }, assigner);
+  }
+
+  // @@protoc_insertion_point(outer_class_scope)
 }

@@ -22,6 +22,7 @@ import com.alibaba.rocketmq.broker.client.ConsumerManager;
 import com.alibaba.rocketmq.broker.client.DefaultConsumerIdsChangeListener;
 import com.alibaba.rocketmq.broker.client.ProducerManager;
 import com.alibaba.rocketmq.broker.client.net.Broker2Client;
+import com.alibaba.rocketmq.broker.client.rebalance.RebalanceLockManager;
 import com.alibaba.rocketmq.broker.longpolling.PullRequestHoldService;
 import com.alibaba.rocketmq.broker.offset.ConsumerOffsetManager;
 import com.alibaba.rocketmq.broker.processor.AdminBrokerProcessor;
@@ -108,7 +109,11 @@ public class BrokerController {
     // 订阅组配置管理
     private final SubscriptionGroupManager subscriptionGroupManager;
 
+    // 订阅组内成员发生变化，立刻通知所有成员
     private final ConsumerIdsChangeListener consumerIdsChangeListener;
+
+    // 管理队列的锁分配
+    private final RebalanceLockManager rebalanceLockManager = new RebalanceLockManager();
 
 
     public BrokerController(final BrokerConfig brokerConfig, final NettyServerConfig nettyServerConfig,
@@ -534,5 +539,10 @@ public class BrokerController {
         MixAll.properties2Object(properties, messageStoreConfig);
         this.configDataVersion.nextVersion();
         this.flushAllConfig();
+    }
+
+
+    public RebalanceLockManager getRebalanceLockManager() {
+        return rebalanceLockManager;
     }
 }

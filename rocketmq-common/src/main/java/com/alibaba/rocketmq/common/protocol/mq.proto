@@ -48,6 +48,10 @@ enum MQRequestCode{
     CHECK_TRANSACTION_STATE = 39;                       // Broker 主动向Producer回查事务状态
     NOTIFY_CONSUMER_IDS_CHANGED = 40;                   // Broker Broker通知Consumer列表变化
 
+    LOCK_BATCH_MQ = 41;                                 // Broker Consumer向Master锁定队列
+    UNLOCK_BATCH_MQ = 42;                               // Broker Consumer向Master解锁队列
+
+
     REGISTER_BROKER = 100;                              // Namesrv 注册一个Broker，数据都是持久化的，如果存在则覆盖配置
     UNREGISTER_BROKER = 101;                            // Namesrv 卸载一个Broker，数据都是持久化的
     GET_BROKER_LIST = 102;                              // Namesrv 获取注册的Broker列表
