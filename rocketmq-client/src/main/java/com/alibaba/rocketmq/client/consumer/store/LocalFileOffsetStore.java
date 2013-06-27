@@ -73,17 +73,20 @@ public class LocalFileOffsetStore implements OffsetStore {
 
 
     @Override
-    public void updateOffset(MessageQueue mq, long offset) {
+    public void updateOffset(MessageQueue mq, long offset, boolean increaseOnly) {
         if (mq != null) {
             AtomicLong offsetOld = this.offsetTable.get(mq);
             if (null == offsetOld) {
-                AtomicLong offsetprev = this.offsetTable.putIfAbsent(mq, new AtomicLong(offset));
-                if (offsetprev != null) {
-                    offsetprev.set(offset);
-                }
+                offsetOld = this.offsetTable.putIfAbsent(mq, new AtomicLong(offset));
             }
-            else {
-                offsetOld.set(offset);
+
+            if (null != offsetOld) {
+                if (increaseOnly) {
+                    MixAll.compareAndIncreaseOnly(offsetOld, offset);
+                }
+                else {
+                    offsetOld.set(offset);
+                }
             }
         }
     }
@@ -103,7 +106,7 @@ public class LocalFileOffsetStore implements OffsetStore {
                 }
 
                 if (offset != null) {
-                    this.updateOffset(mq, offset.get());
+                    this.updateOffset(mq, offset.get(), false);
                     return offset.get();
                 }
             }

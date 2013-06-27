@@ -23,6 +23,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -509,5 +510,17 @@ public class MixAll {
             result.add(v);
         }
         return result;
+    }
+
+
+    public static void compareAndIncreaseOnly(final AtomicLong target, final long value) {
+        long prev = target.get();
+        while (value > prev) {
+            boolean updated = target.compareAndSet(prev, value);
+            if (updated)
+                break;
+
+            prev = target.get();
+        }
     }
 }

@@ -482,7 +482,7 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
 
     public void updateConsumeOffset(MessageQueue mq, long offset) throws MQClientException {
         this.makeSureStateOK();
-        this.offsetStore.updateOffset(mq, offset);
+        this.offsetStore.updateOffset(mq, offset, false);
     }
 
 

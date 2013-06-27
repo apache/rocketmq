@@ -18,7 +18,7 @@ public interface OffsetStore {
     /**
      * 更新消费进度，存储到内存
      */
-    public void updateOffset(final MessageQueue mq, final long offset);
+    public void updateOffset(final MessageQueue mq, final long offset, final boolean increaseOnly);
 
 
     /**

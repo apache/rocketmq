@@ -305,8 +305,8 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
         }
 
         if (commitOffset >= 0) {
-            this.defaultMQPushConsumerImpl
-                .updateConsumeOffset(consumeRequest.getMessageQueue(), commitOffset);
+            this.defaultMQPushConsumerImpl.getOffsetStore().updateOffset(consumeRequest.getMessageQueue(),
+                commitOffset, false);
         }
 
         return continueConsume;

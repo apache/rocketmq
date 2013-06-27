@@ -11,6 +11,7 @@ import com.alibaba.rocketmq.client.exception.MQClientException;
 import com.alibaba.rocketmq.client.impl.FindBrokerResult;
 import com.alibaba.rocketmq.client.impl.factory.MQClientFactory;
 import com.alibaba.rocketmq.client.log.ClientLogger;
+import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.message.MessageQueue;
 import com.alibaba.rocketmq.common.protocol.header.QueryConsumerOffsetRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.UpdateConsumerOffsetRequestHeader;
@@ -94,17 +95,20 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
 
 
     @Override
-    public void updateOffset(MessageQueue mq, long offset) {
+    public void updateOffset(MessageQueue mq, long offset, boolean increaseOnly) {
         if (mq != null) {
             AtomicLong offsetOld = this.offsetTable.get(mq);
             if (null == offsetOld) {
-                AtomicLong offsetprev = this.offsetTable.putIfAbsent(mq, new AtomicLong(offset));
-                if (offsetprev != null) {
-                    offsetprev.set(offset);
-                }
+                offsetOld = this.offsetTable.putIfAbsent(mq, new AtomicLong(offset));
             }
-            else {
-                offsetOld.set(offset);
+
+            if (null != offsetOld) {
+                if (increaseOnly) {
+                    MixAll.compareAndIncreaseOnly(offsetOld, offset);
+                }
+                else {
+                    offsetOld.set(offset);
+                }
             }
         }
     }

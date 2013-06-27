@@ -238,8 +238,9 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
         }
 
         long offset = consumeRequest.getProcessQueue().removeMessage(consumeRequest.getMsgs());
-        if (offset > 0) {
-            this.defaultMQPushConsumerImpl.updateConsumeOffset(consumeRequest.getMessageQueue(), offset);
+        if (offset >= 0) {
+            this.defaultMQPushConsumerImpl.getOffsetStore().updateOffset(consumeRequest.getMessageQueue(),
+                offset, true);
         }
     }
 

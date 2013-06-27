@@ -489,7 +489,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                         }
 
                         DefaultMQPushConsumerImpl.this.offsetStore.updateOffset(
-                            pullRequest.getMessageQueue(), pullRequest.getNextOffset());
+                            pullRequest.getMessageQueue(), pullRequest.getNextOffset(), false);
 
                         log.warn("fix the pull request offset, {}", pullRequest);
                         DefaultMQPushConsumerImpl.this.executePullRequestImmediately(pullRequest);
@@ -713,7 +713,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
 
 
     public void updateConsumeOffset(MessageQueue mq, long offset) {
-        this.offsetStore.updateOffset(mq, offset);
+        this.offsetStore.updateOffset(mq, offset, false);
     }
 
 
