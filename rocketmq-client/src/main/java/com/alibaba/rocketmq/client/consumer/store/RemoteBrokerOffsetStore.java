@@ -23,7 +23,7 @@ import com.alibaba.rocketmq.remoting.exception.RemotingException;
  * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public class RemoteBrokerOffsetStore implements OffsetStore {
-    private final Logger log = ClientLogger.getLog();
+    private final static Logger log = ClientLogger.getLog();
     private final MQClientFactory mQClientFactory;
     private final String groupName;
     private ConcurrentHashMap<MessageQueue, AtomicLong> offsetTable =
