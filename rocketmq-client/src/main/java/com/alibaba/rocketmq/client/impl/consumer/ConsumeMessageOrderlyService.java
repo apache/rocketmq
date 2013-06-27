@@ -113,18 +113,27 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
     }
 
 
-    public synchronized void lockOneMQ(final MessageQueue mq) {
+    public synchronized boolean lockOneMQ(final MessageQueue mq) {
         if (!this.stoped) {
-            this.defaultMQPushConsumerImpl.getRebalanceImpl().lock(mq);
+            return this.defaultMQPushConsumerImpl.getRebalanceImpl().lock(mq);
         }
+
+        return false;
     }
 
 
-    public void lockLater(final MessageQueue mq, final long delayMills) {
+    public void tryLockLaterAndReconsume(final MessageQueue mq, final ProcessQueue processQueue,
+            final long delayMills) {
         this.scheduledExecutorService.schedule(new Runnable() {
             @Override
             public void run() {
-                ConsumeMessageOrderlyService.this.lockOneMQ(mq);
+                boolean lockOK = ConsumeMessageOrderlyService.this.lockOneMQ(mq);
+                if (lockOK) {
+                    ConsumeMessageOrderlyService.this.submitConsumeRequestLater(processQueue, mq, 10);
+                }
+                else {
+                    ConsumeMessageOrderlyService.this.submitConsumeRequestLater(processQueue, mq, 3000);
+                }
             }
         }, delayMills, TimeUnit.MILLISECONDS);
     }
@@ -137,15 +146,6 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
         public ConsumeRequest(ProcessQueue processQueue, MessageQueue messageQueue) {
             this.processQueue = processQueue;
             this.messageQueue = messageQueue;
-        }
-
-
-        private void tryLockAndReconsumeLater() {
-            ConsumeMessageOrderlyService.this.lockLater(this.messageQueue, 10);
-            ConsumeMessageOrderlyService.this.submitConsumeRequestLater(//
-                this.processQueue, //
-                this.messageQueue, //
-                3000L);
         }
 
 
@@ -165,7 +165,8 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
                         }
 
                         if (!this.processQueue.isLocked() || this.processQueue.isLockExpired()) {
-                            this.tryLockAndReconsumeLater();
+                            ConsumeMessageOrderlyService.this.tryLockLaterAndReconsume(this.messageQueue,
+                                this.processQueue, 10);
                             break;
                         }
 
@@ -214,7 +215,8 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
                 }
                 // 没有拿到当前队列的锁，稍后再消费
                 else {
-                    this.tryLockAndReconsumeLater();
+                    ConsumeMessageOrderlyService.this.tryLockLaterAndReconsume(this.messageQueue,
+                        this.processQueue, 10);
                 }
             }
         }
