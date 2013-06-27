@@ -155,7 +155,12 @@ public abstract class RebalanceImpl {
                     }
                 }
 
-                return lockedMq.contains(mq);
+                boolean lockOK = lockedMq.contains(mq);
+                log.info("the message queue lock {}, {} {}",//
+                    (lockOK ? "OK" : "Failed"), //
+                    this.consumerGroup, //
+                    mq);
+                return lockOK;
             }
             catch (Exception e) {
                 log.error("lockBatchMQ exception, " + mq, e);
