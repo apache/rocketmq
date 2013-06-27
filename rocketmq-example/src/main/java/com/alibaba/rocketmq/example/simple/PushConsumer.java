@@ -25,11 +25,11 @@ import com.alibaba.rocketmq.common.protocol.heartbeat.MessageModel;
 public class PushConsumer {
 
     public static void main(String[] args) throws InterruptedException, MQClientException {
-        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("example_consumer_group4");
+        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("example_consumer_group7");
 
         consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET_AND_FROM_MIN_WHEN_BOOT_FIRST);
 
-        consumer.subscribe("TopicTest", "TagA || TagC || TagD");
+        consumer.subscribe("TopicTest", "*");
 
         consumer.registerMessageListener(new MessageListenerConcurrently() {
             AtomicLong consumeTimes = new AtomicLong(0);
@@ -41,7 +41,7 @@ public class PushConsumer {
                 System.out.println("Receive New Messages: " + msgs);
                 // 模拟消费失败情况
                 if ((this.consumeTimes.getAndIncrement() % 2) == 0) {
-                    return ConsumeConcurrentlyStatus.RECONSUME_LATER;
+                    return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
                 }
 
                 return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;

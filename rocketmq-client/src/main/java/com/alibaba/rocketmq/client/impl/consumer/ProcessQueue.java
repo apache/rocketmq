@@ -30,6 +30,7 @@ public class ProcessQueue {
     private final Logger log = ClientLogger.getLog();
     private final ReadWriteLock lockTreeMap = new ReentrantReadWriteLock();
     private final TreeMap<Long, MessageExt> msgTreeMap = new TreeMap<Long, MessageExt>();
+    private volatile long queueOffsetMax = 0L;
     private final AtomicLong msgCount = new AtomicLong();
 
     // 当前Q是否被rebalance丢弃
@@ -64,6 +65,7 @@ public class ProcessQueue {
             try {
                 for (MessageExt msg : msgs) {
                     msgTreeMap.put(msg.getQueueOffset(), msg);
+                    this.queueOffsetMax = msg.getQueueOffset();
                 }
                 msgCount.addAndGet(msgs.size());
 
@@ -120,7 +122,7 @@ public class ProcessQueue {
             this.lockTreeMap.writeLock().lockInterruptibly();
             try {
                 if (!msgTreeMap.isEmpty()) {
-                    result = msgTreeMap.lastKey() + 1;
+                    result = this.queueOffsetMax + 1;
                     for (MessageExt msg : msgs) {
                         msgTreeMap.remove(msg.getQueueOffset());
                     }
