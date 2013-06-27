@@ -14,6 +14,11 @@ public class MessageQueue implements Comparable<MessageQueue> {
     private int queueId;
 
 
+    public MessageQueue() {
+
+    }
+
+
     public MessageQueue(String topic, String brokerName, int queueId) {
         this.topic = topic;
         this.brokerName = brokerName;

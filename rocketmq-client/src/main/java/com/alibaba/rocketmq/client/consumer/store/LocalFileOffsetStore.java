@@ -11,7 +11,6 @@ import com.alibaba.rocketmq.client.impl.factory.MQClientFactory;
 import com.alibaba.rocketmq.client.log.ClientLogger;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.message.MessageQueue;
-import com.alibaba.rocketmq.remoting.protocol.RemotingSerializable;
 
 
 /**
@@ -32,21 +31,6 @@ public class LocalFileOffsetStore implements OffsetStore {
 
     // ±¾µØOffset´æ´¢Â·¾¶
     private final String storePath;
-
-    class OffsetSerializeWrapper extends RemotingSerializable {
-        private ConcurrentHashMap<MessageQueue, AtomicLong> offsetTable =
-                new ConcurrentHashMap<MessageQueue, AtomicLong>();
-
-
-        public ConcurrentHashMap<MessageQueue, AtomicLong> getOffsetTable() {
-            return offsetTable;
-        }
-
-
-        public void setOffsetTable(ConcurrentHashMap<MessageQueue, AtomicLong> offsetTable) {
-            this.offsetTable = offsetTable;
-        }
-    }
 
 
     public LocalFileOffsetStore(MQClientFactory mQClientFactory, String groupName) {
