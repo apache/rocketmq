@@ -572,12 +572,12 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
         case CREATE_JUST:
             break;
         case RUNNING:
-            this.serviceState = ServiceState.SHUTDOWN_ALREADY;
             this.consumeMessageService.shutdown();
             this.persistConsumerOffset();
             this.mQClientFactory.unregisterConsumer(this.defaultMQPushConsumer.getConsumerGroup());
             this.mQClientFactory.shutdown();
             log.info("the consumer [{}] shutdown OK", this.defaultMQPushConsumer.getConsumerGroup());
+            this.serviceState = ServiceState.SHUTDOWN_ALREADY;
             break;
         case SHUTDOWN_ALREADY:
             break;

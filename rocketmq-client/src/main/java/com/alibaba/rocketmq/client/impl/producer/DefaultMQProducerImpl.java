@@ -151,10 +151,10 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         case CREATE_JUST:
             break;
         case RUNNING:
-            this.serviceState = ServiceState.SHUTDOWN_ALREADY;
             this.mQClientFactory.unregisterProducer(this.defaultMQProducer.getProducerGroup());
             this.mQClientFactory.shutdown();
             log.info("the producer [{}] shutdown OK", this.defaultMQProducer.getProducerGroup());
+            this.serviceState = ServiceState.SHUTDOWN_ALREADY;
             break;
         case SHUTDOWN_ALREADY:
             break;
