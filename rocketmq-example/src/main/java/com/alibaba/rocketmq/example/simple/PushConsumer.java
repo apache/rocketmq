@@ -27,9 +27,7 @@ public class PushConsumer {
     public static void main(String[] args) throws InterruptedException, MQClientException {
         DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("example_consumer_group4");
 
-        consumer.setMessageModel(MessageModel.BROADCASTING);
-
-        consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_MIN_OFFSET);
+        consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET_AND_FROM_MIN_WHEN_BOOT_FIRST);
 
         consumer.subscribe("TopicTest", "TagA || TagC || TagD");
 
