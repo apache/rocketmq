@@ -198,7 +198,12 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
     public void persistConsumerOffset() {
         try {
             this.makeSureStateOK();
-            // TODO this.offsetStore.persistAll();
+            Set<MessageQueue> mqs = new HashSet<MessageQueue>();
+            Set<MessageQueue> allocateMq = this.rebalanceImpl.getProcessQueueTable().keySet();
+            if (allocateMq != null) {
+                mqs.addAll(allocateMq);
+            }
+            this.offsetStore.persistAll(mqs);
         }
         catch (Exception e) {
             log.error("group: " + this.defaultMQPullConsumer.getConsumerGroup()
@@ -397,11 +402,11 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
         case CREATE_JUST:
             break;
         case RUNNING:
-            this.serviceState = ServiceState.SHUTDOWN_ALREADY;
             this.persistConsumerOffset();
             this.mQClientFactory.unregisterConsumer(this.defaultMQPullConsumer.getConsumerGroup());
             this.mQClientFactory.shutdown();
             log.info("the consumer [{}] shutdown OK", this.defaultMQPullConsumer.getConsumerGroup());
+            this.serviceState = ServiceState.SHUTDOWN_ALREADY;
             break;
         case SHUTDOWN_ALREADY:
             break;
