@@ -23,9 +23,10 @@ import com.alibaba.rocketmq.common.message.MessageQueue;
 
 
 /**
- * 并发消费消息服务
+ * 顺序消费消息服务
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
+ * @since 2013-6-27
  */
 public class ConsumeMessageOrderlyService implements ConsumeMessageService {
     private static final Logger log = ClientLogger.getLog();
@@ -89,7 +90,7 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
             public void run() {
                 ConsumeMessageOrderlyService.this.lockMQPeriodically();
             }
-        }, 1000 * 1, 1000 * 20, TimeUnit.MILLISECONDS);
+        }, 1000 * 1, ProcessQueue.RebalanceLockInterval, TimeUnit.MILLISECONDS);
     }
 
 
@@ -164,7 +165,16 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
                             break;
                         }
 
-                        if (!this.processQueue.isLocked() || this.processQueue.isLockExpired()) {
+                        if (!this.processQueue.isLocked()) {
+                            log.warn("the message queue not locked, so consume later, {}", this.messageQueue);
+                            ConsumeMessageOrderlyService.this.tryLockLaterAndReconsume(this.messageQueue,
+                                this.processQueue, 10);
+                            break;
+                        }
+
+                        if (this.processQueue.isLockExpired()) {
+                            log.warn("the message queue lock expired, so consume later, {}",
+                                this.messageQueue);
                             ConsumeMessageOrderlyService.this.tryLockLaterAndReconsume(this.messageQueue,
                                 this.processQueue, 10);
                             break;

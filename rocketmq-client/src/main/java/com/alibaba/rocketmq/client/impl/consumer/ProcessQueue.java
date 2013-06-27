@@ -20,8 +20,12 @@ import com.alibaba.rocketmq.common.message.MessageExt;
  * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public class ProcessQueue {
-    private final static long RebalanceLockMaxLiveTime = Long.parseLong(System.getProperty(
+    // 客户端本地Lock存活最大时间，超过则自动过期，单位ms
+    public final static long RebalanceLockMaxLiveTime = Long.parseLong(System.getProperty(
         "rocketmq.client.rebalance.lockMaxLiveTime", "30000"));
+    // 定时Lock间隔时间，单位ms
+    public final static long RebalanceLockInterval = Long.parseLong(System.getProperty(
+        "rocketmq.client.rebalance.lockInterval", "20000"));
 
     private final Logger log = ClientLogger.getLog();
     private final ReadWriteLock lockTreeMap = new ReentrantReadWriteLock();
