@@ -52,6 +52,7 @@ enum MQRequestCode{
     UNLOCK_BATCH_MQ = 42;                               // Broker Consumer向Master解锁队列
 
 
+
     REGISTER_BROKER = 100;                              // Namesrv 注册一个Broker，数据都是持久化的，如果存在则覆盖配置
     UNREGISTER_BROKER = 101;                            // Namesrv 卸载一个Broker，数据都是持久化的
     GET_BROKER_LIST = 102;                              // Namesrv 获取注册的Broker列表
@@ -71,6 +72,9 @@ enum MQRequestCode{
     REGISTER_ORDER_TOPIC_SINGLE = 113;                  // Namesrv 向其他的Namesrv结点扩散order topic注册的信息
     UNREGISTER_ORDER_TOPIC_SINGLE = 114;                // Namesrv 向其他的Namesrv结点扩散order topic注销的信息
 
+    PUT_KV_CONFIG = 200;                                // Namesrv 向Namesrv追加KV配置
+    GET_KV_CONFIG = 201;                                // Namesrv 从Namesrv获取KV配置
+    DELETE_KV_CONFIG = 202;                             // Namesrv 从Namesrv获取KV配置
 }
 
 // RPC应答代码
