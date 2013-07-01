@@ -50,7 +50,7 @@ public class Broker2Client {
             FileRegion fileRegion =
                     new OneMessageTransfer(request.encodeHeader(selectMapedBufferResult.getSize()),
                         selectMapedBufferResult);
-            channel.sendFile(fileRegion).addListener(new ChannelFutureListener() {
+            channel.write(fileRegion).addListener(new ChannelFutureListener() {
                 @Override
                 public void operationComplete(ChannelFuture future) throws Exception {
                     selectMapedBufferResult.release();

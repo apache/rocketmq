@@ -20,30 +20,25 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
  * @author shijia.wxr<vintage.wang@gmail.com>
  * 
  */
-public class NettyEncoder extends MessageToByteEncoder<Object> {
+public class NettyEncoder extends MessageToByteEncoder<RemotingCommand> {
     private static final Logger log = LoggerFactory.getLogger(RemotingHelper.RemotingLogName);
 
 
     @Override
-    public void encode(ChannelHandlerContext ctx, Object msg, ByteBuf out) throws Exception {
-        RemotingCommand cmd = null;
+    public void encode(ChannelHandlerContext ctx, RemotingCommand remotingCommand, ByteBuf out) throws Exception {
         try {
-            if (msg instanceof RemotingCommand) {
-                cmd = (RemotingCommand) msg;
-                ByteBuffer header = cmd.encodeHeader();
-                out.writeBytes(header);
-                byte[] body = cmd.getBody();
-                if (body != null) {
-                    out.writeBytes(body);
-                }
+            ByteBuffer header = remotingCommand.encodeHeader();
+            out.writeBytes(header);
+            byte[] body = remotingCommand.getBody();
+            if (body != null) {
+                out.writeBytes(body);
             }
         }
         catch (Exception e) {
             log.error("encode exception, " + RemotingHelper.parseChannelRemoteAddr(ctx.channel()), e);
-            if (cmd != null) {
-                log.error(cmd.toString());
+            if (remotingCommand != null) {
+                log.error(remotingCommand.toString());
             }
-
             ctx.channel().close();
         }
     }
