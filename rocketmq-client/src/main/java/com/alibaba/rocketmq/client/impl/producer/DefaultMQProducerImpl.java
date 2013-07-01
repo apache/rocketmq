@@ -549,6 +549,10 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
         this.checkMessage(msg);
 
+        if (!msg.getTopic().equals(mq.getTopic())) {
+            throw new MQClientException("message's topic not equal mq's topic", null);
+        }
+
         return this.sendKernelImpl(msg, mq, CommunicationMode.SYNC, null);
     }
 
@@ -561,6 +565,10 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         this.makeSureStateOK();
 
         this.checkMessage(msg);
+
+        if (!msg.getTopic().equals(mq.getTopic())) {
+            throw new MQClientException("message's topic not equal mq's topic", null);
+        }
 
         try {
             this.sendKernelImpl(msg, mq, CommunicationMode.ASYNC, sendCallback);
