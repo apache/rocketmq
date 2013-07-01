@@ -9,11 +9,11 @@ import io.netty.channel.ChannelDuplexHandler;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.ChannelInboundMessageHandlerAdapter;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.ChannelPromise;
 import io.netty.channel.EventLoopGroup;
+import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
@@ -52,7 +52,7 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 
 /**
  * @author shijia.wxr<vintage.wang@gmail.com>
- * 
+ *
  */
 public class NettyRemotingClient extends NettyRemotingAbstract implements RemotingClient {
     private static final Logger log = LoggerFactory.getLogger(RemotingHelper.RemotingLogName);
@@ -107,7 +107,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
         }
     }
 
-    class NettyClientHandler extends ChannelInboundMessageHandlerAdapter<Object> {
+    class NettyClientHandler extends SimpleChannelInboundHandler<Object> {
 
         @Override
         public void messageReceived(ChannelHandlerContext ctx, Object msg) throws Exception {
@@ -156,18 +156,6 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                 NettyRemotingClient.this.putNettyEvent(new NettyEvent(NettyEventType.CLOSE, remoteAddress
                     .toString(), ctx.channel()));
             }
-        }
-
-
-        @Override
-        public void flush(ChannelHandlerContext ctx, ChannelPromise promise) throws Exception {
-            ctx.flush(promise);
-        }
-
-
-        @Override
-        public void inboundBufferUpdated(ChannelHandlerContext ctx) throws Exception {
-            ctx.fireInboundBufferUpdated();
         }
 
 
