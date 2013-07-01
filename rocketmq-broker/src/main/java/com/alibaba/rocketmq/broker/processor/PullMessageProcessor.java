@@ -284,7 +284,7 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                     FileRegion fileRegion =
                             new ManyMessageTransfer(response.encodeHeader(getMessageResult
                                 .getBufferTotalSize()), getMessageResult);
-                    channel.sendFile(fileRegion).addListener(new ChannelFutureListener() {
+                    channel.write(fileRegion).addListener(new ChannelFutureListener() {
                         @Override
                         public void operationComplete(ChannelFuture future) throws Exception {
                             getMessageResult.release();
