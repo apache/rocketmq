@@ -377,6 +377,30 @@ public final class MQProtos {
      * </pre>
      */
     UNREGISTER_ORDER_TOPIC_SINGLE(44, 114),
+    /**
+     * <code>PUT_KV_CONFIG = 200;</code>
+     *
+     * <pre>
+     * Namesrv 向Namesrv追加KV配置
+     * </pre>
+     */
+    PUT_KV_CONFIG(45, 200),
+    /**
+     * <code>GET_KV_CONFIG = 201;</code>
+     *
+     * <pre>
+     * Namesrv 从Namesrv获取KV配置
+     * </pre>
+     */
+    GET_KV_CONFIG(46, 201),
+    /**
+     * <code>DELETE_KV_CONFIG = 202;</code>
+     *
+     * <pre>
+     * Namesrv 从Namesrv获取KV配置
+     * </pre>
+     */
+    DELETE_KV_CONFIG(47, 202),
     ;
 
     /**
@@ -739,6 +763,30 @@ public final class MQProtos {
      * </pre>
      */
     public static final int UNREGISTER_ORDER_TOPIC_SINGLE_VALUE = 114;
+    /**
+     * <code>PUT_KV_CONFIG = 200;</code>
+     *
+     * <pre>
+     * Namesrv 向Namesrv追加KV配置
+     * </pre>
+     */
+    public static final int PUT_KV_CONFIG_VALUE = 200;
+    /**
+     * <code>GET_KV_CONFIG = 201;</code>
+     *
+     * <pre>
+     * Namesrv 从Namesrv获取KV配置
+     * </pre>
+     */
+    public static final int GET_KV_CONFIG_VALUE = 201;
+    /**
+     * <code>DELETE_KV_CONFIG = 202;</code>
+     *
+     * <pre>
+     * Namesrv 从Namesrv获取KV配置
+     * </pre>
+     */
+    public static final int DELETE_KV_CONFIG_VALUE = 202;
 
 
     public final int getNumber() { return value; }
@@ -790,6 +838,9 @@ public final class MQProtos {
         case 112: return UNREGISTER_BROKER_SINGLE;
         case 113: return REGISTER_ORDER_TOPIC_SINGLE;
         case 114: return UNREGISTER_ORDER_TOPIC_SINGLE;
+        case 200: return PUT_KV_CONFIG;
+        case 201: return GET_KV_CONFIG;
+        case 202: return DELETE_KV_CONFIG;
         default: return null;
       }
     }
@@ -7912,7 +7963,7 @@ public final class MQProtos {
       "uePair\022-\n\017topicOrderConfs\030\002 \002(\0132\024.remoti" +
       "ng.NVPairList\022)\n\007brokers\030\003 \003(\0132\030.rocketm" +
       "q.BrokerDataPair\022(\n\nbrokerList\030\004 \002(\0132\024.r" +
-      "emoting.StringList*\222\t\n\rMQRequestCode\022\020\n\014" +
+      "emoting.StringList*\321\t\n\rMQRequestCode\022\020\n\014" +
       "SEND_MESSAGE\020\n\022\020\n\014PULL_MESSAGE\020\013\022\021\n\rQUER",
       "Y_MESSAGE\020\014\022\027\n\023QUERY_BROKER_OFFSET\020\r\022\031\n\025" +
       "QUERY_CONSUMER_OFFSET\020\016\022\032\n\026UPDATE_CONSUM" +
@@ -7941,30 +7992,31 @@ public final class MQProtos {
       "NC_NAMESRV_RUNTIME_CONF\020n\022\032\n\026REGISTER_BR" +
       "OKER_SINGLE\020o\022\034\n\030UNREGISTER_BROKER_SINGL" +
       "E\020p\022\037\n\033REGISTER_ORDER_TOPIC_SINGLE\020q\022!\n\035" +
-      "UNREGISTER_ORDER_TOPIC_SINGLE\020r*\305\006\n\016MQRe" +
-      "sponseCode\022\026\n\022FLUSH_DISK_TIMEOUT\020\n\022\027\n\023SL" +
-      "AVE_NOT_AVAILABLE\020\013\022\027\n\023FLUSH_SLAVE_TIMEO",
-      "UT\020\014\022\023\n\017MESSAGE_ILLEGAL\020\r\022\031\n\025SERVICE_NOT" +
-      "_AVAILABLE\020\016\022\031\n\025VERSION_NOT_SUPPORTED\020\017\022" +
-      "\021\n\rNO_PERMISSION\020\020\022\023\n\017TOPIC_NOT_EXIST\020\021\022" +
-      "\027\n\023TOPIC_EXIST_ALREADY\020\022\022\022\n\016PULL_NOT_FOU" +
-      "ND\020\023\022\032\n\026PULL_RETRY_IMMEDIATELY\020\024\022\025\n\021PULL" +
-      "_OFFSET_MOVED\020\025\022\023\n\017QUERY_NOT_FOUND\020\026\022\035\n\031" +
-      "SUBSCRIPTION_PARSE_FAILED\020\027\022\032\n\026SUBSCRIPT" +
-      "ION_NOT_EXIST\020\030\022\033\n\027SUBSCRIPTION_NOT_LATE" +
-      "ST\020\031\022 \n\034SUBSCRIPTION_GROUP_NOT_EXIST\020\032\022\027" +
-      "\n\023DELETE_INVALID_CONF\020d\022\022\n\016NOT_MERGE_CON",
-      "F\020e\022\030\n\024REGISTER_BROKER_FAIL\020f\022\033\n\027REGISTE" +
-      "R_BROKER_TIMEOUT\020g\022\035\n\031REGISTER_ORDER_TOP" +
-      "IC_FAIL\020h\022 \n\034REGISTER_ORDER_TOPIC_TIMEOU" +
-      "T\020i\022\032\n\026UNREGISTER_BROKER_FAIL\020j\022\035\n\031UNREG" +
-      "ISTER_BROKER_TIMEOUT\020k\022\"\n\036UNREGISTER_ORD" +
-      "ER_TOPIC_TIMEOUT\020l\022\036\n\031TRANSACTION_SHOULD" +
-      "_COMMIT\020\310\001\022 \n\033TRANSACTION_SHOULD_ROLLBAC" +
-      "K\020\311\001\022\035\n\030TRANSACTION_STATE_UNKNOW\020\312\001\022\"\n\035T" +
-      "RANSACTION_STATE_GROUP_WRONG\020\313\001B2\n$com.a" +
-      "libaba.rocketmq.common.protocolB\010MQProto",
-      "sH\001"
+      "UNREGISTER_ORDER_TOPIC_SINGLE\020r\022\022\n\rPUT_K" +
+      "V_CONFIG\020\310\001\022\022\n\rGET_KV_CONFIG\020\311\001\022\025\n\020DELET" +
+      "E_KV_CONFIG\020\312\001*\305\006\n\016MQResponseCode\022\026\n\022FLU",
+      "SH_DISK_TIMEOUT\020\n\022\027\n\023SLAVE_NOT_AVAILABLE" +
+      "\020\013\022\027\n\023FLUSH_SLAVE_TIMEOUT\020\014\022\023\n\017MESSAGE_I" +
+      "LLEGAL\020\r\022\031\n\025SERVICE_NOT_AVAILABLE\020\016\022\031\n\025V" +
+      "ERSION_NOT_SUPPORTED\020\017\022\021\n\rNO_PERMISSION\020" +
+      "\020\022\023\n\017TOPIC_NOT_EXIST\020\021\022\027\n\023TOPIC_EXIST_AL" +
+      "READY\020\022\022\022\n\016PULL_NOT_FOUND\020\023\022\032\n\026PULL_RETR" +
+      "Y_IMMEDIATELY\020\024\022\025\n\021PULL_OFFSET_MOVED\020\025\022\023" +
+      "\n\017QUERY_NOT_FOUND\020\026\022\035\n\031SUBSCRIPTION_PARS" +
+      "E_FAILED\020\027\022\032\n\026SUBSCRIPTION_NOT_EXIST\020\030\022\033" +
+      "\n\027SUBSCRIPTION_NOT_LATEST\020\031\022 \n\034SUBSCRIPT",
+      "ION_GROUP_NOT_EXIST\020\032\022\027\n\023DELETE_INVALID_" +
+      "CONF\020d\022\022\n\016NOT_MERGE_CONF\020e\022\030\n\024REGISTER_B" +
+      "ROKER_FAIL\020f\022\033\n\027REGISTER_BROKER_TIMEOUT\020" +
+      "g\022\035\n\031REGISTER_ORDER_TOPIC_FAIL\020h\022 \n\034REGI" +
+      "STER_ORDER_TOPIC_TIMEOUT\020i\022\032\n\026UNREGISTER" +
+      "_BROKER_FAIL\020j\022\035\n\031UNREGISTER_BROKER_TIME" +
+      "OUT\020k\022\"\n\036UNREGISTER_ORDER_TOPIC_TIMEOUT\020" +
+      "l\022\036\n\031TRANSACTION_SHOULD_COMMIT\020\310\001\022 \n\033TRA" +
+      "NSACTION_SHOULD_ROLLBACK\020\311\001\022\035\n\030TRANSACTI" +
+      "ON_STATE_UNKNOW\020\312\001\022\"\n\035TRANSACTION_STATE_",
+      "GROUP_WRONG\020\313\001B2\n$com.alibaba.rocketmq.c" +
+      "ommon.protocolB\010MQProtosH\001"
     };
     com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
       new com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner() {

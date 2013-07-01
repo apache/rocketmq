@@ -22,7 +22,6 @@ import ch.qos.logback.classic.joran.JoranConfigurator;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.common.namesrv.NamesrvConfig;
-import com.alibaba.rocketmq.remoting.netty.NettyClientConfig;
 import com.alibaba.rocketmq.remoting.netty.NettyServerConfig;
 
 
@@ -65,7 +64,6 @@ public class NamesrvStartup {
             final NamesrvConfig namesrvConfig = new NamesrvConfig();
             final NettyServerConfig nettyServerConfig = new NettyServerConfig();
             nettyServerConfig.setListenPort(9876);
-            final NettyClientConfig nettyClientConfig = new NettyClientConfig();
             if (commandLine.hasOption('c')) {
                 String file = commandLine.getOptionValue('c');
                 if (file != null) {
@@ -74,7 +72,6 @@ public class NamesrvStartup {
                     properties.load(in);
                     MixAll.properties2Object(properties, namesrvConfig);
                     MixAll.properties2Object(properties, nettyServerConfig);
-                    MixAll.properties2Object(properties, nettyClientConfig);
                     System.out.println("load config properties file OK, " + file);
                     in.close();
                 }
@@ -84,7 +81,6 @@ public class NamesrvStartup {
             if (commandLine.hasOption('p')) {
                 MixAll.printObjectProperties(null, namesrvConfig);
                 MixAll.printObjectProperties(null, nettyServerConfig);
-                MixAll.printObjectProperties(null, nettyClientConfig);
                 System.exit(0);
             }
 
@@ -102,11 +98,10 @@ public class NamesrvStartup {
             configurator.setContext(lc);
             lc.reset();
             configurator.doConfigure(namesrvConfig.getRocketmqHome() + "/conf/log4j_namesrv.xml");
-
             final Logger log = LoggerFactory.getLogger(LoggerName.NamesrvLoggerName);
+
             // 初始化服务控制对象
-            final NamesrvController controller =
-                    new NamesrvController(namesrvConfig, nettyServerConfig, nettyClientConfig);
+            final NamesrvController2 controller = new NamesrvController2(namesrvConfig, nettyServerConfig);
             boolean initResult = controller.initialize();
             if (!initResult) {
                 controller.shutdown();

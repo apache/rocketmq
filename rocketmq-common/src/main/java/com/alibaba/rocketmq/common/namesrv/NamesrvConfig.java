@@ -43,6 +43,10 @@ public class NamesrvConfig {
 
     private final PropertyChangeSupport propertyChangeSupport = new PropertyChangeSupport(this);
 
+    // 通用的KV配置持久化地址
+    private String kvConfigPath = System.getProperty("user.home") + File.separator + "namesrv"
+            + File.separator + "kvConfig.json";
+
 
     public void addPropertyChangeListener(final String propertyName, final PropertyChangeListener listener) {
         this.propertyChangeSupport.addPropertyChangeListener(propertyName, listener);
@@ -156,6 +160,16 @@ public class NamesrvConfig {
 
     public void setBrokerAddrConfPath(String brokerAddrConfPath) {
         this.brokerAddrConfPath = brokerAddrConfPath;
+    }
+
+
+    public String getKvConfigPath() {
+        return kvConfigPath;
+    }
+
+
+    public void setKvConfigPath(String kvConfigPath) {
+        this.kvConfigPath = kvConfigPath;
     }
 
 }
