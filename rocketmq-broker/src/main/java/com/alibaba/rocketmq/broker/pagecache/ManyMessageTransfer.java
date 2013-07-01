@@ -4,6 +4,7 @@
 package com.alibaba.rocketmq.broker.pagecache;
 
 import io.netty.channel.FileRegion;
+import io.netty.util.AbstractReferenceCounted;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -11,7 +12,6 @@ import java.nio.channels.WritableByteChannel;
 import java.util.List;
 
 import com.alibaba.rocketmq.store.GetMessageResult;
-import io.netty.util.AbstractReferenceCounted;
 
 
 /**
@@ -21,7 +21,8 @@ import io.netty.util.AbstractReferenceCounted;
 public class ManyMessageTransfer extends AbstractReferenceCounted implements FileRegion {
     private final ByteBuffer byteBufferHeader;
     private final GetMessageResult getMessageResult;
-    private long transfered ; //the bytes which was transfered already
+    private long transfered; // the bytes which was transfered already
+
 
     public ManyMessageTransfer(ByteBuffer byteBufferHeader, GetMessageResult getMessageResult) {
         this.byteBufferHeader = byteBufferHeader;
@@ -49,14 +50,14 @@ public class ManyMessageTransfer extends AbstractReferenceCounted implements Fil
     @Override
     public long transferTo(WritableByteChannel target, long position) throws IOException {
         if (this.byteBufferHeader.hasRemaining()) {
-            transfered +=  target.write(this.byteBufferHeader);
+            transfered += target.write(this.byteBufferHeader);
             return transfered;
         }
         else {
             List<ByteBuffer> messageBufferList = this.getMessageResult.getMessageBufferList();
             for (ByteBuffer bb : messageBufferList) {
                 if (bb.hasRemaining()) {
-                    transfered +=  target.write(bb);
+                    transfered += target.write(bb);
                     return transfered;
                 }
             }
@@ -75,6 +76,7 @@ public class ManyMessageTransfer extends AbstractReferenceCounted implements Fil
     protected void deallocate() {
         this.getMessageResult.release();
     }
+
 
     @Override
     public long transfered() {

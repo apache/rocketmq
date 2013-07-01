@@ -112,6 +112,7 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
             super.channelUnregistered(ctx);
         }
 
+
         @Override
         public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
             final String remoteAddress = RemotingHelper.parseChannelRemoteAddr(ctx.channel());

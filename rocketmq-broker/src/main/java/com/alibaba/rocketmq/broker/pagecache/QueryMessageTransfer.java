@@ -4,6 +4,7 @@
 package com.alibaba.rocketmq.broker.pagecache;
 
 import io.netty.channel.FileRegion;
+import io.netty.util.AbstractReferenceCounted;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -11,7 +12,6 @@ import java.nio.channels.WritableByteChannel;
 import java.util.List;
 
 import com.alibaba.rocketmq.store.QueryMessageResult;
-import io.netty.util.AbstractReferenceCounted;
 
 
 /**
@@ -21,7 +21,8 @@ import io.netty.util.AbstractReferenceCounted;
 public class QueryMessageTransfer extends AbstractReferenceCounted implements FileRegion {
     private final ByteBuffer byteBufferHeader;
     private final QueryMessageResult queryMessageResult;
-    private long transfered ; //the bytes which was transfered already
+    private long transfered; // the bytes which was transfered already
+
 
     public QueryMessageTransfer(ByteBuffer byteBufferHeader, QueryMessageResult queryMessageResult) {
         this.byteBufferHeader = byteBufferHeader;
@@ -75,6 +76,7 @@ public class QueryMessageTransfer extends AbstractReferenceCounted implements Fi
     protected void deallocate() {
         this.queryMessageResult.release();
     }
+
 
     @Override
     public long transfered() {
