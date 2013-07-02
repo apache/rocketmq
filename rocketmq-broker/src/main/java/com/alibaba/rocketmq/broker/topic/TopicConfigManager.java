@@ -18,7 +18,7 @@ import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.TopicConfig;
 import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.common.constant.PermName;
-import com.alibaba.rocketmq.remoting.protocol.RemotingSerializable;
+import com.alibaba.rocketmq.common.protocol.body.TopicConfigSerializeWrapper;
 import com.alibaba.rocketmq.store.schedule.ScheduleMessageService;
 
 
@@ -232,17 +232,21 @@ public class TopicConfigManager extends ConfigManager {
 
     @Override
     public String encode() {
-        return RemotingSerializable.toJson(this);
+        TopicConfigSerializeWrapper topicConfigSerializeWrapper = new TopicConfigSerializeWrapper();
+        topicConfigSerializeWrapper.setTopicConfigTable(this.topicConfigTable);
+        topicConfigSerializeWrapper.setDataVersion(this.dataVersion);
+        return topicConfigSerializeWrapper.toJson();
     }
 
 
     @Override
     public void decode(String jsonString) {
         if (jsonString != null) {
-            TopicConfigManager obj = RemotingSerializable.fromJson(jsonString, TopicConfigManager.class);
-            if (obj != null) {
-                this.topicConfigTable.putAll(obj.topicConfigTable);
-                this.dataVersion.assignNewOne(obj.dataVersion);
+            TopicConfigSerializeWrapper topicConfigSerializeWrapper =
+                    TopicConfigSerializeWrapper.fromJson(jsonString, TopicConfigSerializeWrapper.class);
+            if (topicConfigSerializeWrapper != null) {
+                this.topicConfigTable.putAll(topicConfigSerializeWrapper.getTopicConfigTable());
+                this.dataVersion.assignNewOne(topicConfigSerializeWrapper.getDataVersion());
             }
         }
     }
