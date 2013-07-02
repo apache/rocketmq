@@ -28,7 +28,7 @@ import java.lang.annotation.Target;
  * @author shijia.wxr<vintage.wang@gmail.com>
  */
 @Documented
-@Retention(RetentionPolicy.CLASS)
+@Retention(RetentionPolicy.RUNTIME)
 @Target({ ElementType.FIELD, ElementType.METHOD, ElementType.PARAMETER, ElementType.LOCAL_VARIABLE })
 public @interface CFNotNull {
 }
