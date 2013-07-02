@@ -238,12 +238,9 @@ public class RemotingCommand {
 
                         // ¿ÕÖµ¼ì²é
                         if (null == value) {
-                            Annotation[] ann = field.getAnnotations();
-                            if (ann != null && ann.length > 0) {
-                                if (ann[0].annotationType().getSimpleName()
-                                    .equalsIgnoreCase(CFNotNull.class.getSimpleName())) {
-                                    throw new RemotingCommandException(name + " is null");
-                                }
+                            Annotation annotation = field.getAnnotation(CFNotNull.class);
+                            if (annotation != null) {
+                                throw new RemotingCommandException(name + " is null");
                             }
                         }
                     }
