@@ -265,7 +265,7 @@ public class MQAdminImpl {
         if (topicRouteData != null) {
             List<String> brokerAddrs = new LinkedList<String>();
             for (BrokerData brokerData : topicRouteData.getBrokerDatas()) {
-                String addr = brokerData.getOneBrokerAddr();
+                String addr = brokerData.selectBrokerAddr();
                 if (addr != null) {
                     brokerAddrs.add(addr);
                 }

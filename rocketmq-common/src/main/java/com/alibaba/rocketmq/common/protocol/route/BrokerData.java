@@ -5,7 +5,13 @@ package com.alibaba.rocketmq.common.protocol.route;
 
 import java.util.HashMap;
 
+import com.alibaba.rocketmq.common.MixAll;
 
+
+/**
+ * @author shijia.wxr<vintage.wang@gmail.com>
+ * @since 2013-7-2
+ */
 public class BrokerData implements Comparable<BrokerData> {
     private String brokerName;
     private HashMap<Long/* brokerId */, String/* broker address */> brokerAddrs;
@@ -14,8 +20,8 @@ public class BrokerData implements Comparable<BrokerData> {
     /**
      * 优先获取Master，如果没有Master尝试找Slave
      */
-    public String getOneBrokerAddr() {
-        String value = this.brokerAddrs.get(0);
+    public String selectBrokerAddr() {
+        String value = this.brokerAddrs.get(MixAll.MASTER_ID);
         if (null == value) {
             for (Long key : this.brokerAddrs.keySet()) {
                 return this.brokerAddrs.get(key);
