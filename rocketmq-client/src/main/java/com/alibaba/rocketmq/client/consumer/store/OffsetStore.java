@@ -31,4 +31,7 @@ public interface OffsetStore {
      * 持久化全部消费进度，可能持久化本地或者远端Broker
      */
     public void persistAll(final Set<MessageQueue> mqs);
+
+
+    public void persist(final MessageQueue mq);
 }
