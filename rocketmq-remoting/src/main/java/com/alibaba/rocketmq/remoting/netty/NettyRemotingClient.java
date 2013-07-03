@@ -676,4 +676,9 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
     public ChannelEventListener getChannelEventListener() {
         return channelEventListener;
     }
+
+
+    public List<String> getNamesrvAddrList() {
+        return namesrvAddrList.get();
+    }
 }
