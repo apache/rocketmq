@@ -643,7 +643,7 @@ public class MQClientFactory {
             List<BrokerData> brokers = topicRouteData.getBrokerDatas();
             if (!brokers.isEmpty()) {
                 BrokerData bd = brokers.get(0);
-                return bd.getOneBrokerAddr();
+                return bd.selectBrokerAddr();
             }
         }
 
