@@ -131,4 +131,9 @@ public class LocalFileOffsetStore implements OffsetStore {
             MixAll.string2File(jsonString, this.storePath);
         }
     }
+
+
+    @Override
+    public void persist(MessageQueue mq) {
+    }
 }
