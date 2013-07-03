@@ -2,7 +2,9 @@ package com.alibaba.rocketmq.namesrv;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.slf4j.Logger;
@@ -13,6 +15,7 @@ import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.common.namesrv.NamesrvConfig;
 import com.alibaba.rocketmq.namesrv.kvconfig.KVConfigManager;
 import com.alibaba.rocketmq.namesrv.processor.DefaultRequestProcessor;
+import com.alibaba.rocketmq.namesrv.routeinfo.RouteInfoManager;
 import com.alibaba.rocketmq.remoting.RemotingServer;
 import com.alibaba.rocketmq.remoting.netty.NettyRemotingServer;
 import com.alibaba.rocketmq.remoting.netty.NettyServerConfig;
@@ -34,16 +37,27 @@ public class NamesrvController2 {
     // 服务端网络请求处理线程池
     private ExecutorService remotingExecutor;
 
+    // 定时线程
+    private final ScheduledExecutorService scheduledExecutorService = Executors
+        .newSingleThreadScheduledExecutor(new ThreadFactory() {
+            @Override
+            public Thread newThread(Runnable r) {
+                return new Thread(r, "NamesrvControllerScheduledThread");
+            }
+        });
+
     /**
      * 核心数据结构
      */
     private final KVConfigManager kvConfigManager;
+    private final RouteInfoManager routeInfoManager;
 
 
     public NamesrvController2(NamesrvConfig namesrvConfig, NettyServerConfig nettyServerConfig) {
         this.namesrvConfig = namesrvConfig;
         this.nettyServerConfig = nettyServerConfig;
         this.kvConfigManager = new KVConfigManager(this);
+        this.routeInfoManager = new RouteInfoManager();
     }
 
 
@@ -71,6 +85,23 @@ public class NamesrvController2 {
 
         this.registerProcessor();
 
+        // 增加定时任务
+        this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
+
+            @Override
+            public void run() {
+                NamesrvController2.this.routeInfoManager.scanNotActiveBroker();
+            }
+        }, 1000 * 5, 1000 * 10, TimeUnit.MILLISECONDS);
+
+        this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
+
+            @Override
+            public void run() {
+                NamesrvController2.this.kvConfigManager.printConfig();
+            }
+        }, 1000 * 5, 1000 * 60, TimeUnit.MILLISECONDS);
+
         return true;
     }
 
@@ -88,6 +119,8 @@ public class NamesrvController2 {
 
     public void shutdown() {
         this.remotingServer.shutdown();
+        this.remotingExecutor.shutdown();
+        this.scheduledExecutorService.shutdown();
     }
 
 
@@ -103,5 +136,10 @@ public class NamesrvController2 {
 
     public KVConfigManager getKvConfigManager() {
         return kvConfigManager;
+    }
+
+
+    public RouteInfoManager getRouteInfoManager() {
+        return routeInfoManager;
     }
 }
