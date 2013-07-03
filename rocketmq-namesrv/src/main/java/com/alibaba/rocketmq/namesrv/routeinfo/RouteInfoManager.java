@@ -194,7 +194,11 @@ public class RouteInfoManager {
                 for (String brokerName : brokerNameSet) {
                     BrokerData brokerData = this.brokerAddrTable.get(brokerName);
                     if (null != brokerData) {
-                        brokerDataList.add(brokerData);
+                        BrokerData brokerDataClone = new BrokerData();
+                        brokerDataClone.setBrokerName(brokerData.getBrokerName());
+                        brokerDataClone.setBrokerAddrs((HashMap<Long, String>) brokerData.getBrokerAddrs()
+                            .clone());
+                        brokerDataList.add(brokerDataClone);
                         foundBrokerData = true;
                     }
                 }
