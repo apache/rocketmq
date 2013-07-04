@@ -240,7 +240,7 @@ public class RemotingCommand {
                         if (null == value) {
                             Annotation annotation = field.getAnnotation(CFNotNull.class);
                             if (annotation != null) {
-                                throw new RemotingCommandException(name + " is null");
+                                throw new RemotingCommandException("the custom field <" + name + "> is null");
                             }
                         }
                     }
