@@ -144,7 +144,7 @@ public class AllocateMessageQueueAveragelyTest {
 
 
     @Test
-    public void testConsumer() {
+    public void testConsumer6() { // consumerList大小为6
         currentCID = "1";
         createConsumerIdList(2);
         createMessageQueueList(6);
@@ -157,7 +157,7 @@ public class AllocateMessageQueueAveragelyTest {
 
 
     @Test
-    public void testCurrentCIDNotExists() {
+    public void testCurrentCIDNotExists() { // CurrentCID不存在
         currentCID = String.valueOf(Integer.MAX_VALUE);
         createConsumerIdList(2);
         createMessageQueueList(6);
@@ -169,7 +169,7 @@ public class AllocateMessageQueueAveragelyTest {
 
 
     @Test(expected = IllegalArgumentException.class)
-    public void testCurrentCIDIllegalArgument() {
+    public void testCurrentCIDIllegalArgument() {   //  currentCID是空
         createConsumerIdList(2);
         createMessageQueueList(6);
         allocateMessageQueueAveragely.allocate("", getMessageQueueList(), getConsumerIdList());
@@ -177,7 +177,7 @@ public class AllocateMessageQueueAveragelyTest {
 
 
     @Test(expected = IllegalArgumentException.class)
-    public void testMessageQueueIllegalArgument() {
+    public void testMessageQueueIllegalArgument() {   //MessageQueue为空
         currentCID = "0";
         createConsumerIdList(2);
         allocateMessageQueueAveragely.allocate(currentCID, null, getConsumerIdList());
@@ -185,7 +185,7 @@ public class AllocateMessageQueueAveragelyTest {
 
 
     @Test(expected = IllegalArgumentException.class)
-    public void testConsumerIdIllegalArgument() {
+    public void testConsumerIdIllegalArgument() {    //ConsumerIdList为空
         currentCID = "0";
         createMessageQueueList(6);
         allocateMessageQueueAveragely.allocate(currentCID, getMessageQueueList(), null);
