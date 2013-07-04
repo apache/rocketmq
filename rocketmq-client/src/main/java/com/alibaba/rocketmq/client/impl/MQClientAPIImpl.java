@@ -851,7 +851,7 @@ public class MQClientAPIImpl {
     /**
      * Name Server: 从Name Server获取Topic路由信息
      */
-    public TopicRouteData getTopicRouteInfoFromNameServer_real(final String topic, final long timeoutMillis)
+    public TopicRouteData getTopicRouteInfoFromNameServer(final String topic, final long timeoutMillis)
             throws RemotingException, MQClientException, InterruptedException, InvalidProtocolBufferException {
         GetRouteInfoRequestHeader requestHeader = new GetRouteInfoRequestHeader();
         requestHeader.setTopic(topic);
@@ -884,7 +884,7 @@ public class MQClientAPIImpl {
     /**
      * Name Server: 仅仅为测试服务，可以绕过Name Server
      */
-    public TopicRouteData getTopicRouteInfoFromNameServer(final String topic, final long timeoutMillis)
+    public TopicRouteData getTopicRouteInfoFromNameServer_test(final String topic, final long timeoutMillis)
             throws RemotingException, MQClientException, InterruptedException, InvalidProtocolBufferException {
         TopicRouteData topicRouteData = new TopicRouteData();
         topicRouteData.setOrderTopicConf("dev170021.sqa.cm6:4;");

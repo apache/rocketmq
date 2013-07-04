@@ -92,6 +92,11 @@ public class BrokerOuterAPI {
     ) throws RemotingCommandException, MQBrokerException, RemotingConnectException,
             RemotingSendRequestException, RemotingTimeoutException, InterruptedException {
         RegisterBrokerRequestHeader requestHeader = new RegisterBrokerRequestHeader();
+        requestHeader.setBrokerAddr(brokerAddr);
+        requestHeader.setBrokerId(brokerId);
+        requestHeader.setBrokerName(brokerName);
+        requestHeader.setClusterName(clusterName);
+        requestHeader.setHaServerAddr(haServerAddr);
         RemotingCommand request =
                 RemotingCommand.createRequestCommand(MQRequestCode.REGISTER_BROKER_VALUE, requestHeader);
         request.setBody(topicConfigWrapper.encode());
