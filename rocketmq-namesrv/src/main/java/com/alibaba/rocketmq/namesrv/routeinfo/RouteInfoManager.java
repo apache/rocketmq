@@ -103,15 +103,20 @@ public class RouteInfoManager {
     }
 
 
-    public void registerBroker(//
-            final String clusterName,//
-            final String brokerAddr,//
-            final String brokerName,//
-            final long brokerId,//
-            final String haServerAddr,//
-            final TopicConfigSerializeWrapper topicConfigWrapper,//
-            final Channel channel//
+    /**
+     * 
+     * @return 如果是slave，则返回master的ha地址
+     */
+    public String registerBroker(//
+            final String clusterName,// 1
+            final String brokerAddr,// 2
+            final String brokerName,// 3
+            final long brokerId,// 4
+            final String haServerAddr,// 5
+            final TopicConfigSerializeWrapper topicConfigWrapper,// 6
+            final Channel channel// 7
     ) {
+        String masterHAServer = null;
         try {
             try {
                 this.lock.writeLock().lockInterruptibly();
@@ -163,6 +168,17 @@ public class RouteInfoManager {
                         }
                     }
                 }
+
+                // 返回值
+                if (MixAll.MASTER_ID != brokerId) {
+                    String masterAddr = brokerData.getBrokerAddrs().get(MixAll.MASTER_ID);
+                    if (masterAddr != null) {
+                        BrokerLiveInfo brokerLiveInfo = this.brokerLiveTable.get(masterAddr);
+                        if (brokerLiveInfo != null) {
+                            masterHAServer = brokerLiveInfo.getHaServerAddr();
+                        }
+                    }
+                }
             }
             finally {
                 this.lock.writeLock().unlock();
@@ -171,6 +187,8 @@ public class RouteInfoManager {
         catch (Exception e) {
             log.error("registerBroker Exception", e);
         }
+
+        return masterHAServer;
     }
 
 
