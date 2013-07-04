@@ -289,9 +289,6 @@ public class BrokerController {
         MixAll.printObjectProperties(log, this.nettyServerConfig);
         MixAll.printObjectProperties(log, this.messageStoreConfig);
 
-        // 注册到Name Server
-        // result = result && this.registerToNameServer();
-        registerToNameServer();
         // 加载Topic配置
         result = result && this.topicConfigManager.load();
 
@@ -388,6 +385,27 @@ public class BrokerController {
                     }
                 }
             }, 1000 * 10, this.brokerConfig.getFlushConsumerOffsetHistoryInterval(), TimeUnit.MILLISECONDS);
+
+            // 先获取Name Server地址
+            if (null == this.brokerConfig.getNamesrvAddr()) {
+                this.brokerConfig.setNamesrvAddr(this.brokerOuterAPI.fetchNameServerAddr());
+            }
+
+            // 定时获取Name Server地址
+            if (null == this.brokerConfig.getNamesrvAddr()) {
+                this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
+
+                    @Override
+                    public void run() {
+                        try {
+                            BrokerController.this.brokerOuterAPI.fetchNameServerAddr();
+                        }
+                        catch (Exception e) {
+                            log.error("ScheduledTask fetchNameServerAddr exception", e);
+                        }
+                    }
+                }, 1000 * 10, 1000 * 60 * 2, TimeUnit.MILLISECONDS);
+            }
 
             // 如果是slave
             if (BrokerRole.SLAVE == this.messageStoreConfig.getBrokerRole()) {
