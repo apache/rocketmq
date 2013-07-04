@@ -41,8 +41,8 @@ public class PullConsumer {
 
 
     public static void main(String[] args) throws MQClientException {
-        MQPullConsumer consumer = new DefaultMQPullConsumer("example.consumer.active");
-
+        DefaultMQPullConsumer consumer = new DefaultMQPullConsumer("example.consumer.active");
+        consumer.setNamesrvAddr("127.0.0.1:9876");
         consumer.start();
 
         Set<MessageQueue> mqs = consumer.fetchSubscribeMessageQueues("TopicTest");

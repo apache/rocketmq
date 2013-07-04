@@ -1,5 +1,8 @@
 package com.alibaba.rocketmq.research.gson;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+
 /**
  * @author shijia.wxr<vintage.wang@gmail.com>
  */
@@ -19,18 +22,18 @@ public class TestGson {
         contactBook.getContactList().add(new Contact("张惠妹", 41, 52.69, "研究生", SexType.GIRL));
         contactBook.getContactList().add(new Contact("周星驰", 54, 61.22, "博士", SexType.BOY));
 
-        // GsonBuilder builder = new GsonBuilder();
+         GsonBuilder builder = new GsonBuilder();
         // // builder.excludeFieldsWithoutExposeAnnotation();
         //
-        // Gson gson = builder.create();
-        //
-        // String json = gson.toJson(contactBook);
-        // System.out.println(json);
-        //
-        // ContactBook cb = gson.fromJson(json, ContactBook.class);
-        // System.out.println(cb);
-        // String json2 = gson.toJson(cb);
-        // System.out.println(json2);
+         Gson gson = builder.create();
+        
+         String json = gson.toJson(contactBook);
+         System.out.println(json);
+        
+         ContactBook cb = gson.fromJson(json, ContactBook.class);
+         System.out.println(cb);
+         String json2 = gson.toJson(cb);
+         System.out.println(json2);
 
     }
 }
