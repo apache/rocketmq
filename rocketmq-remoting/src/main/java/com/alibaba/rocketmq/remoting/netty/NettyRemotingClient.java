@@ -404,50 +404,57 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
     }
 
 
-    private Channel createChannel(final String addr) throws InterruptedException {
-        // 加锁，尝试创建连接
+    private Channel createChannel(final String addr) throws InterruptedException  {
+        ChannelWrapper cw = this.channelTables.get(addr);
+        if (cw != null) {
+            cw.setLastActiveTimestamp(System.currentTimeMillis());
+            return cw.getChannel();
+        }
+
+        ChannelFuture channelFuture =
+                this.bootstrap.connect(RemotingHelper.string2SocketAddress(addr));
+        Channel channel = null;
+        if (channelFuture.awaitUninterruptibly(this.nettyClientConfig.getConnectTimeoutMillis())) {
+            channel = channelFuture.channel();
+            if (!channel.isActive()) {
+                log.warn("connect {} in {}ms ok, but channel not active", addr,
+                    this.nettyClientConfig.getConnectTimeoutMillis());
+                channel.close();
+                return null;
+            }
+        }
+        else {
+            log.error("connect {} in {}ms timeout", addr,
+                this.nettyClientConfig.getConnectTimeoutMillis());
+            channelFuture.channel().close();
+            return null;
+        }
+
+        
         if (this.lockChannelTables.tryLock(LockTimeoutMillis, TimeUnit.MILLISECONDS)) {
             try {
-                ChannelWrapper cw = this.channelTables.get(addr);
-                if (cw != null) {
-                    cw.setLastActiveTimestamp(System.currentTimeMillis());
-                    return cw.getChannel();
+                ChannelWrapper channelWrapper = channelTables.get(addr);
+                if(null==channelWrapper){
+                    this.channelTables.put(addr, new ChannelWrapper(channel));
+                    log.info("connect {} success, and add to the channel table", addr);
+                    return channel;
+                }else{
+                    log.warn("channelTables exist addr {}", addr );
+                    channel.close();
+                    return channelTables.get(addr).getChannel();
                 }
-
-                ChannelFuture channelFuture =
-                        this.bootstrap.connect(RemotingHelper.string2SocketAddress(addr));
-                Channel channel = null;
-                if (channelFuture.awaitUninterruptibly(this.nettyClientConfig.getConnectTimeoutMillis())) {
-                    channel = channelFuture.channel();
-                    if (!channel.isActive()) {
-                        log.warn("connect {} in {}ms ok, but channel not active", addr,
-                            this.nettyClientConfig.getConnectTimeoutMillis());
-                        channel.close();
-                        return null;
-                    }
-                }
-                else {
-                    log.error("connect {} in {}ms timeout", addr,
-                        this.nettyClientConfig.getConnectTimeoutMillis());
-                    channelFuture.channel().close();
-                    return null;
-                }
-
-                log.info("connect {} success, and add to the channel table", addr);
-                this.channelTables.put(addr, new ChannelWrapper(channel));
-                return channel;
             }
             catch (Exception e) {
                 log.error("createChannel: create channel exception", e);
             }
             finally {
-                this.lockChannelTables.unlock();
+              this.lockChannelTables.unlock();
             }
         }
         else {
-            log.warn("createChannel: try to lock channel table, but timeout, {}ms", LockTimeoutMillis);
+             log.warn("createChannel: try to lock channel table, but timeout, {}ms", LockTimeoutMillis);
+             channel.close();
         }
-
         return null;
     }
 
