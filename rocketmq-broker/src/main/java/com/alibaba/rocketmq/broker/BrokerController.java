@@ -121,6 +121,9 @@ public class BrokerController {
             }
         });
 
+    // 是否需要定期更新HA Master地址
+    private boolean updateMasterHAServerAddrPeriodically = false;
+
 
     public BrokerController(//
             final BrokerConfig brokerConfig, //
@@ -144,140 +147,6 @@ public class BrokerController {
         this.broker2Client = new Broker2Client(this);
         this.subscriptionGroupManager = new SubscriptionGroupManager(this);
         this.brokerOuterAPI = new BrokerOuterAPI(nettyClientConfig);
-    }
-
-
-    public String encodeAllConfig() {
-        StringBuilder sb = new StringBuilder();
-        {
-            Properties properties = MixAll.object2Properties(this.brokerConfig);
-            if (properties != null) {
-                sb.append(MixAll.properties2String(properties));
-            }
-            else {
-                log.error("encodeAllConfig object2Properties error");
-            }
-        }
-
-        {
-            Properties properties = MixAll.object2Properties(this.messageStoreConfig);
-            if (properties != null) {
-                sb.append(MixAll.properties2String(properties));
-            }
-            else {
-                log.error("encodeAllConfig object2Properties error");
-            }
-        }
-
-        {
-            Properties properties = MixAll.object2Properties(this.nettyServerConfig);
-            if (properties != null) {
-                sb.append(MixAll.properties2String(properties));
-            }
-            else {
-                log.error("encodeAllConfig object2Properties error");
-            }
-        }
-
-        {
-            Properties properties = MixAll.object2Properties(this.nettyClientConfig);
-            if (properties != null) {
-                sb.append(MixAll.properties2String(properties));
-            }
-            else {
-                log.error("encodeAllConfig object2Properties error");
-            }
-        }
-        return sb.toString();
-    }
-
-
-    private void flushAllConfig() {
-        String allConfig = this.encodeAllConfig();
-        boolean result = MixAll.string2File(allConfig, this.brokerConfig.getBrokerConfigPath());
-        log.info("flush topic config, " + this.brokerConfig.getBrokerConfigPath()
-                + (result ? " OK" : " Failed"));
-    }
-
-
-    public Broker2Client getBroker2Client() {
-        return broker2Client;
-    }
-
-
-    public String getBrokerAddr() {
-        String addr = this.brokerConfig.getBrokerIP1() + ":" + this.nettyServerConfig.getListenPort();
-        return addr;
-    }
-
-
-    public BrokerConfig getBrokerConfig() {
-        return brokerConfig;
-    }
-
-
-    public String getConfigDataVersion() {
-        return this.configDataVersion.toJson();
-    }
-
-
-    public ConsumerManager getConsumerManager() {
-        return consumerManager;
-    }
-
-
-    public ConsumerOffsetManager getConsumerOffsetManager() {
-        return consumerOffsetManager;
-    }
-
-
-    public DefaultTransactionCheckExecuter getDefaultTransactionCheckExecuter() {
-        return defaultTransactionCheckExecuter;
-    }
-
-
-    public MessageStore getMessageStore() {
-        return messageStore;
-    }
-
-
-    public MessageStoreConfig getMessageStoreConfig() {
-        return messageStoreConfig;
-    }
-
-
-    public NettyServerConfig getNettyServerConfig() {
-        return nettyServerConfig;
-    }
-
-
-    public ProducerManager getProducerManager() {
-        return producerManager;
-    }
-
-
-    public PullMessageProcessor getPullMessageProcessor() {
-        return pullMessageProcessor;
-    }
-
-
-    public PullRequestHoldService getPullRequestHoldService() {
-        return pullRequestHoldService;
-    }
-
-
-    public RemotingServer getRemotingServer() {
-        return remotingServer;
-    }
-
-
-    public SubscriptionGroupManager getSubscriptionGroupManager() {
-        return subscriptionGroupManager;
-    }
-
-
-    public TopicConfigManager getTopicConfigManager() {
-        return topicConfigManager;
     }
 
 
@@ -412,14 +281,149 @@ public class BrokerController {
                 if (this.messageStoreConfig.getMasterAddress() != null
                         && this.messageStoreConfig.getMasterAddress().length() >= 6) {
                     this.messageStore.updateMasterAddress(this.messageStoreConfig.getMasterAddress());
+                    this.updateMasterHAServerAddrPeriodically = false;
                 }
                 else {
-                    // TODO 定时去更新地址
+                    this.updateMasterHAServerAddrPeriodically = true;
                 }
             }
         }
 
         return result;
+    }
+
+
+    public String encodeAllConfig() {
+        StringBuilder sb = new StringBuilder();
+        {
+            Properties properties = MixAll.object2Properties(this.brokerConfig);
+            if (properties != null) {
+                sb.append(MixAll.properties2String(properties));
+            }
+            else {
+                log.error("encodeAllConfig object2Properties error");
+            }
+        }
+
+        {
+            Properties properties = MixAll.object2Properties(this.messageStoreConfig);
+            if (properties != null) {
+                sb.append(MixAll.properties2String(properties));
+            }
+            else {
+                log.error("encodeAllConfig object2Properties error");
+            }
+        }
+
+        {
+            Properties properties = MixAll.object2Properties(this.nettyServerConfig);
+            if (properties != null) {
+                sb.append(MixAll.properties2String(properties));
+            }
+            else {
+                log.error("encodeAllConfig object2Properties error");
+            }
+        }
+
+        {
+            Properties properties = MixAll.object2Properties(this.nettyClientConfig);
+            if (properties != null) {
+                sb.append(MixAll.properties2String(properties));
+            }
+            else {
+                log.error("encodeAllConfig object2Properties error");
+            }
+        }
+        return sb.toString();
+    }
+
+
+    private void flushAllConfig() {
+        String allConfig = this.encodeAllConfig();
+        boolean result = MixAll.string2File(allConfig, this.brokerConfig.getBrokerConfigPath());
+        log.info("flush topic config, " + this.brokerConfig.getBrokerConfigPath()
+                + (result ? " OK" : " Failed"));
+    }
+
+
+    public Broker2Client getBroker2Client() {
+        return broker2Client;
+    }
+
+
+    public String getBrokerAddr() {
+        String addr = this.brokerConfig.getBrokerIP1() + ":" + this.nettyServerConfig.getListenPort();
+        return addr;
+    }
+
+
+    public BrokerConfig getBrokerConfig() {
+        return brokerConfig;
+    }
+
+
+    public String getConfigDataVersion() {
+        return this.configDataVersion.toJson();
+    }
+
+
+    public ConsumerManager getConsumerManager() {
+        return consumerManager;
+    }
+
+
+    public ConsumerOffsetManager getConsumerOffsetManager() {
+        return consumerOffsetManager;
+    }
+
+
+    public DefaultTransactionCheckExecuter getDefaultTransactionCheckExecuter() {
+        return defaultTransactionCheckExecuter;
+    }
+
+
+    public MessageStore getMessageStore() {
+        return messageStore;
+    }
+
+
+    public MessageStoreConfig getMessageStoreConfig() {
+        return messageStoreConfig;
+    }
+
+
+    public NettyServerConfig getNettyServerConfig() {
+        return nettyServerConfig;
+    }
+
+
+    public ProducerManager getProducerManager() {
+        return producerManager;
+    }
+
+
+    public PullMessageProcessor getPullMessageProcessor() {
+        return pullMessageProcessor;
+    }
+
+
+    public PullRequestHoldService getPullRequestHoldService() {
+        return pullRequestHoldService;
+    }
+
+
+    public RemotingServer getRemotingServer() {
+        return remotingServer;
+    }
+
+
+    public SubscriptionGroupManager getSubscriptionGroupManager() {
+        return subscriptionGroupManager;
+    }
+
+
+    public TopicConfigManager getTopicConfigManager() {
+        return topicConfigManager;
     }
 
 
