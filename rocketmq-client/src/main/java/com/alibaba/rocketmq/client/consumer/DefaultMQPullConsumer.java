@@ -9,6 +9,7 @@ import java.util.Set;
 import com.alibaba.rocketmq.client.ClientConfig;
 import com.alibaba.rocketmq.client.QueryResult;
 import com.alibaba.rocketmq.client.consumer.rebalance.AllocateMessageQueueAveragely;
+import com.alibaba.rocketmq.client.consumer.store.OffsetStore;
 import com.alibaba.rocketmq.client.exception.MQBrokerException;
 import com.alibaba.rocketmq.client.exception.MQClientException;
 import com.alibaba.rocketmq.client.impl.consumer.DefaultMQPullConsumerImpl;
@@ -49,6 +50,10 @@ public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsume
      * 队列变化监听器
      */
     private MessageQueueListener messageQueueListener;
+    /**
+     * Offset存储，系统会根据客户端配置自动创建相应的实现，如果应用配置了，则以应用配置的为主
+     */
+    private OffsetStore offsetStore;
     /**
      * 需要监听哪些Topic的队列变化
      */
@@ -274,5 +279,15 @@ public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsume
     public MessageExt viewMessage(String msgId) throws RemotingException, MQBrokerException,
             InterruptedException, MQClientException {
         return this.defaultMQPullConsumerImpl.viewMessage(msgId);
+    }
+
+
+    public OffsetStore getOffsetStore() {
+        return offsetStore;
+    }
+
+
+    public void setOffsetStore(OffsetStore offsetStore) {
+        this.offsetStore = offsetStore;
     }
 }

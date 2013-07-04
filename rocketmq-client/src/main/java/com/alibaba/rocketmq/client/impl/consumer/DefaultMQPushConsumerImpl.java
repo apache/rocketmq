@@ -611,22 +611,26 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                 mQClientFactory,//
                 this.defaultMQPushConsumer.getConsumerGroup());
 
-            // 广播消费/集群消费
-            switch (this.defaultMQPushConsumer.getMessageModel()) {
-            case BROADCASTING:
-                this.offsetStore =
-                        new LocalFileOffsetStore(this.mQClientFactory,
-                            this.defaultMQPushConsumer.getConsumerGroup());
-                break;
-            case CLUSTERING:
-                this.offsetStore =
-                        new RemoteBrokerOffsetStore(this.mQClientFactory,
-                            this.defaultMQPushConsumer.getConsumerGroup());
-                break;
-            default:
-                break;
+            if (this.defaultMQPushConsumer.getOffsetStore() != null) {
+                this.offsetStore = this.defaultMQPushConsumer.getOffsetStore();
             }
-
+            else {
+                // 广播消费/集群消费
+                switch (this.defaultMQPushConsumer.getMessageModel()) {
+                case BROADCASTING:
+                    this.offsetStore =
+                            new LocalFileOffsetStore(this.mQClientFactory,
+                                this.defaultMQPushConsumer.getConsumerGroup());
+                    break;
+                case CLUSTERING:
+                    this.offsetStore =
+                            new RemoteBrokerOffsetStore(this.mQClientFactory,
+                                this.defaultMQPushConsumer.getConsumerGroup());
+                    break;
+                default:
+                    break;
+                }
+            }
             // 加载消费进度
             this.offsetStore.load();
 

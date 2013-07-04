@@ -89,7 +89,7 @@ public class ClientHousekeepingService implements ChannelEventListener {
 
     @Override
     public void onChannelIdle(String remoteAddr, Channel channel) {
-        // TODO Auto-generated method stub
-
+        this.brokerController.getProducerManager().doChannelCloseEvent(remoteAddr, channel);
+        this.brokerController.getConsumerManager().doChannelCloseEvent(remoteAddr, channel);
     }
 }
