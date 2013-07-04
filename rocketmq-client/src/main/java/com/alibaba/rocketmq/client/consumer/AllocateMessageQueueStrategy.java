@@ -16,7 +16,7 @@ import com.alibaba.rocketmq.common.message.MessageQueue;
  */
 public interface AllocateMessageQueueStrategy {
     /**
-     * 队列分配算法
+     * 给当前的ConsumerId分配队列
      * 
      * @param currentCID
      *            当前ConsumerId
