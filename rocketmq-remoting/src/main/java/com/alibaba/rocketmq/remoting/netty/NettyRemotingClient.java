@@ -681,4 +681,10 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
     public List<String> getNamesrvAddrList() {
         return namesrvAddrList.get();
     }
+
+
+    @Override
+    public List<String> getNameServerAddressList() {
+        return this.namesrvAddrList.get();
+    }
 }
