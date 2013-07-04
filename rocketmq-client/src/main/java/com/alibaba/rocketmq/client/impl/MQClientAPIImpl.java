@@ -9,12 +9,15 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
 
+import org.slf4j.Logger;
+
 import com.alibaba.rocketmq.client.consumer.PullCallback;
 import com.alibaba.rocketmq.client.consumer.PullResult;
 import com.alibaba.rocketmq.client.consumer.PullStatus;
 import com.alibaba.rocketmq.client.exception.MQBrokerException;
 import com.alibaba.rocketmq.client.exception.MQClientException;
 import com.alibaba.rocketmq.client.impl.consumer.PullResultExt;
+import com.alibaba.rocketmq.client.log.ClientLogger;
 import com.alibaba.rocketmq.client.producer.SendCallback;
 import com.alibaba.rocketmq.client.producer.SendResult;
 import com.alibaba.rocketmq.client.producer.SendStatus;
@@ -82,6 +85,7 @@ import com.google.protobuf.InvalidProtocolBufferException;
  * 
  */
 public class MQClientAPIImpl {
+    private final static Logger log = ClientLogger.getLog();
     private final RemotingClient remotingClient;
     private final TopAddressing topAddressing = new TopAddressing();
     private String nameSrvAddr = null;
@@ -119,8 +123,7 @@ public class MQClientAPIImpl {
             String addrs = this.topAddressing.fetchNSAddr();
             if (addrs != null) {
                 if (!addrs.equals(this.nameSrvAddr)) {
-                    // log.info("name server address changed, old: " +
-                    // this.nameSrvAddr + " new: " + addrs);
+                    log.info("name server address changed, old: " + this.nameSrvAddr + " new: " + addrs);
                     this.updateNameServerAddressList(addrs);
                     this.nameSrvAddr = addrs;
                     return nameSrvAddr;
@@ -128,19 +131,9 @@ public class MQClientAPIImpl {
             }
         }
         catch (Exception e) {
-            // log.error(e);
+            log.error("fetchNameServerAddr Exception", e);
         }
         return nameSrvAddr;
-    }
-
-
-    public void start() {
-        this.remotingClient.start();
-    }
-
-
-    public void shutdown() {
-        this.remotingClient.shutdown();
     }
 
 
@@ -154,6 +147,16 @@ public class MQClientAPIImpl {
 
             this.remotingClient.updateNameServerAddressList(lst);
         }
+    }
+
+
+    public void start() {
+        this.remotingClient.start();
+    }
+
+
+    public void shutdown() {
+        this.remotingClient.shutdown();
     }
 
 

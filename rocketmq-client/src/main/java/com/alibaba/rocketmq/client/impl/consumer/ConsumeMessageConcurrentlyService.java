@@ -114,6 +114,12 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
 
         @Override
         public void run() {
+            if (this.processQueue.isDroped()) {
+                log.info("the message queue not be able to consume, because it's droped {}",
+                    this.messageQueue);
+                return;
+            }
+
             MessageListenerConcurrently listener = ConsumeMessageConcurrentlyService.this.messageListener;
             ConsumeConcurrentlyContext context = new ConsumeConcurrentlyContext(messageQueue);
             ConsumeConcurrentlyStatus status = null;

@@ -26,8 +26,11 @@ import com.alibaba.rocketmq.store.config.MessageStoreConfig;
 public class SendMessageTest {
     @Test
     public void test_sendMessage() throws Exception {
-        BrokerController brokerController =
-                new BrokerController(new BrokerConfig(), new NettyServerConfig(), new MessageStoreConfig());
+        BrokerController brokerController = new BrokerController(//
+            new BrokerConfig(), //
+            new NettyServerConfig(), //
+            new NettyClientConfig(), //
+            new MessageStoreConfig());
         boolean initResult = brokerController.initialize();
         System.out.println("initialize " + initResult);
 
