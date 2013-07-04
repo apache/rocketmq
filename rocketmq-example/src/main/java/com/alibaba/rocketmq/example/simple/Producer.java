@@ -19,7 +19,7 @@ public class Producer {
     public static void main(String[] args) {
         try {
             DefaultMQProducer producer = new DefaultMQProducer("example.producer");
-            producer.setNamesrvAddr("127.0.0.1:9876");
+            // producer.setNamesrvAddr("127.0.0.1:9876");
             producer.start();
 
             String[] tags = new String[] { "TagA", "TagB", "TagC", "TagD", "TagE" };

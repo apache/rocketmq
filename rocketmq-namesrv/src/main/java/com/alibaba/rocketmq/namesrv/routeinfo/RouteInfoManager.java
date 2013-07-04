@@ -83,7 +83,7 @@ public class RouteInfoManager {
             queueDataList = new LinkedList<QueueData>();
             queueDataList.add(queueData);
             this.topicQueueTable.put(topicConfig.getTopicName(), queueDataList);
-            log.info("new topic registerd, {}", queueData);
+            log.info("new topic registerd, {} {}", topicConfig.getTopicName(), queueData);
         }
         else {
             Iterator<QueueData> it = queueDataList.iterator();
@@ -91,7 +91,8 @@ public class RouteInfoManager {
                 QueueData qd = it.next();
                 if (qd.getBrokerName().equals(brokerName)) {
                     if (!qd.equals(queueData)) {
-                        log.info("topic changed, OLD: {} NEW: {}", qd, queueData);
+                        log.info("topic changed, {} OLD: {} NEW: {}", topicConfig.getTopicName(), qd,
+                            queueData);
                         it.remove();
                         queueDataList.add(queueData);
                     }
@@ -240,6 +241,11 @@ public class RouteInfoManager {
         catch (Exception e) {
             log.error("pickupTopicRouteData Exception", e);
         }
+
+        // TODO 上线前要去掉日志
+        // if (log.isDebugEnabled()) {
+        log.info("pickupTopicRouteData {} {}", topic, topicRouteData);
+        // }
 
         if (foundBrokerData && foundQueueData) {
             return topicRouteData;
