@@ -11,6 +11,7 @@ import com.alibaba.rocketmq.client.ClientConfig;
 import com.alibaba.rocketmq.client.QueryResult;
 import com.alibaba.rocketmq.client.consumer.listener.MessageListener;
 import com.alibaba.rocketmq.client.consumer.rebalance.AllocateMessageQueueAveragely;
+import com.alibaba.rocketmq.client.consumer.store.OffsetStore;
 import com.alibaba.rocketmq.client.exception.MQBrokerException;
 import com.alibaba.rocketmq.client.exception.MQClientException;
 import com.alibaba.rocketmq.client.impl.consumer.DefaultMQPushConsumerImpl;
@@ -53,6 +54,10 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
      * 消息监听器
      */
     private MessageListener messageListener;
+    /**
+     * Offset存储，系统会根据客户端配置自动创建相应的实现，如果应用配置了，则以应用配置的为主
+     */
+    private OffsetStore offsetStore;
     /**
      * 消费消息线程，最小数目
      */
@@ -329,5 +334,15 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
     public MessageExt viewMessage(String msgId) throws RemotingException, MQBrokerException,
             InterruptedException, MQClientException {
         return this.defaultMQPushConsumerImpl.viewMessage(msgId);
+    }
+
+
+    public OffsetStore getOffsetStore() {
+        return offsetStore;
+    }
+
+
+    public void setOffsetStore(OffsetStore offsetStore) {
+        this.offsetStore = offsetStore;
     }
 }
