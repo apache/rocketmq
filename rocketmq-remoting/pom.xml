@@ -27,9 +27,15 @@
 			<groupId>com.google.protobuf</groupId>
 			<artifactId>protobuf-java</artifactId>
 		</dependency>
+		<!--
 		<dependency>
 			<groupId>com.alibaba.platform.shared</groupId>
 			<artifactId>fastjson</artifactId>
+		</dependency>
+		-->
+		<dependency>
+		  <groupId>com.google.code.gson</groupId>
+		  <artifactId>gson</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>io.netty</groupId>
