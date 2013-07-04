@@ -213,24 +213,24 @@ public class RouteInfoManager {
                 if (queueDataList != null) {
                     topicRouteData.setQueueDatas(queueDataList);
                     foundQueueData = true;
-                }
 
-                // BrokerName去重
-                Iterator<QueueData> it = queueDataList.iterator();
-                while (it.hasNext()) {
-                    QueueData qd = it.next();
-                    brokerNameSet.add(qd.getBrokerName());
-                }
+                    // BrokerName去重
+                    Iterator<QueueData> it = queueDataList.iterator();
+                    while (it.hasNext()) {
+                        QueueData qd = it.next();
+                        brokerNameSet.add(qd.getBrokerName());
+                    }
 
-                for (String brokerName : brokerNameSet) {
-                    BrokerData brokerData = this.brokerAddrTable.get(brokerName);
-                    if (null != brokerData) {
-                        BrokerData brokerDataClone = new BrokerData();
-                        brokerDataClone.setBrokerName(brokerData.getBrokerName());
-                        brokerDataClone.setBrokerAddrs((HashMap<Long, String>) brokerData.getBrokerAddrs()
-                            .clone());
-                        brokerDataList.add(brokerDataClone);
-                        foundBrokerData = true;
+                    for (String brokerName : brokerNameSet) {
+                        BrokerData brokerData = this.brokerAddrTable.get(brokerName);
+                        if (null != brokerData) {
+                            BrokerData brokerDataClone = new BrokerData();
+                            brokerDataClone.setBrokerName(brokerData.getBrokerName());
+                            brokerDataClone.setBrokerAddrs((HashMap<Long, String>) brokerData
+                                .getBrokerAddrs().clone());
+                            brokerDataList.add(brokerDataClone);
+                            foundBrokerData = true;
+                        }
                     }
                 }
             }

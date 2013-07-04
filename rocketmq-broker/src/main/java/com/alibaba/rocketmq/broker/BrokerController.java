@@ -300,7 +300,7 @@ public class BrokerController {
     }
 
 
-    private synchronized void registerBrokerAll() {
+    public synchronized void registerBrokerAll() {
         TopicConfigSerializeWrapper topicConfigWrapper =
                 this.getTopicConfigManager().buildTopicConfigSerializeWrapper();
 

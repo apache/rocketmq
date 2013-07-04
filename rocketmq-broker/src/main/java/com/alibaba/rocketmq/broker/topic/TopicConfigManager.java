@@ -108,10 +108,13 @@ public class TopicConfigManager extends ConfigManager {
      */
     public TopicConfig createTopicInSendMessageMethod(final String topic, final String defaultTopic,
             final String remoteAddress, final int clientDefaultTopicQueueNums) {
+        TopicConfig topicConfig = null;
+        boolean createNew = false;
+
         try {
             if (this.lockTopicConfigTable.tryLock(LockTimeoutMillis, TimeUnit.MILLISECONDS)) {
                 try {
-                    TopicConfig topicConfig = this.topicConfigTable.get(topic);
+                    topicConfig = this.topicConfigTable.get(topic);
                     if (topicConfig != null)
                         return topicConfig;
 
@@ -152,10 +155,10 @@ public class TopicConfigManager extends ConfigManager {
 
                         this.topicConfigTable.put(topic, topicConfig);
 
+                        createNew = true;
+
                         this.persist();
                     }
-
-                    return topicConfig;
                 }
                 finally {
                     this.lockTopicConfigTable.unlock();
@@ -166,7 +169,11 @@ public class TopicConfigManager extends ConfigManager {
             log.error("createTopicInSendMessageMethod exception", e);
         }
 
-        return null;
+        if (createNew) {
+            this.brokerController.registerBrokerAll();
+        }
+
+        return topicConfig;
     }
 
 
@@ -176,6 +183,8 @@ public class TopicConfigManager extends ConfigManager {
         TopicConfig topicConfig = this.topicConfigTable.get(topic);
         if (topicConfig != null)
             return topicConfig;
+
+        boolean createNew = false;
 
         try {
             if (this.lockTopicConfigTable.tryLock(LockTimeoutMillis, TimeUnit.MILLISECONDS)) {
@@ -190,6 +199,7 @@ public class TopicConfigManager extends ConfigManager {
 
                     log.info("create new topic {}", topicConfig);
                     this.topicConfigTable.put(topic, topicConfig);
+                    createNew = true;
                     this.persist();
                 }
                 finally {
@@ -199,6 +209,10 @@ public class TopicConfigManager extends ConfigManager {
         }
         catch (InterruptedException e) {
             log.error("createTopicInSendMessageBackMethod exception", e);
+        }
+
+        if (createNew) {
+            this.brokerController.registerBrokerAll();
         }
 
         return topicConfig;
@@ -213,6 +227,8 @@ public class TopicConfigManager extends ConfigManager {
         else {
             log.info("create new topic, " + topicConfig);
         }
+
+        this.brokerController.registerBrokerAll();
 
         this.persist();
     }
