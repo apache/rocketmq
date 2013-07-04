@@ -226,10 +226,17 @@
 				<type>jar</type>
 				<scope>compile</scope>
 			</dependency>
+			<!--
 			<dependency>
 				<groupId>com.alibaba.platform.shared</groupId>
 				<artifactId>fastjson</artifactId>
 				<version>1.1.25</version>
+			</dependency>
+			-->
+			<dependency>
+			  <groupId>com.google.code.gson</groupId>
+			  <artifactId>gson</artifactId>
+			  <version>2.2.4</version>
 			</dependency>
 		</dependencies>
 	</dependencyManagement>
