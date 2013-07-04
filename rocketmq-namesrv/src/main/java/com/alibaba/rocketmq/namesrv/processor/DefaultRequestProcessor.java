@@ -150,7 +150,7 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
     public RemotingCommand registerBroker(ChannelHandlerContext ctx, RemotingCommand request)
             throws RemotingCommandException {
         final RemotingCommand response =
-                RemotingCommand.createResponseCommand(GetKVConfigResponseHeader.class);
+                RemotingCommand.createResponseCommand(RegisterBrokerResponseHeader.class);
         final RegisterBrokerResponseHeader responseHeader =
                 (RegisterBrokerResponseHeader) response.getCustomHeader();
         final RegisterBrokerRequestHeader requestHeader =

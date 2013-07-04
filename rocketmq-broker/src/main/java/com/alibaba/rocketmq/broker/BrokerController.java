@@ -507,36 +507,6 @@ public class BrokerController {
     }
 
 
-    private boolean registerToNameServer() {
-        TopAddressing topAddressing = new TopAddressing();
-        String addrs =
-                (null == this.brokerConfig.getNamesrvAddr()) ? topAddressing.fetchNSAddr()
-                        : this.brokerConfig.getNamesrvAddr();
-        if (addrs != null) {
-            String[] addrArray = addrs.split(";");
-
-            if (addrArray != null && addrArray.length > 0) {
-                Random r = new Random();
-                int begin = Math.abs(r.nextInt()) % 1000000;
-                for (int i = 0; i < addrArray.length; i++) {
-                    String addr = addrArray[begin++ % addrArray.length];
-                    boolean result =
-                            MQProtosHelper.registerBrokerToNameServer(addr, this.getBrokerAddr(), 1000 * 10);
-                    final String info =
-                            "register broker[" + this.getBrokerAddr() + "] to name server[" + addr + "] "
-                                    + (result ? " success" : " failed");
-                    log.info(info);
-                    System.out.println(info);
-                    if (result)
-                        return true;
-                }
-            }
-        }
-
-        return false;
-    }
-
-
     public void setMessageStore(MessageStore messageStore) {
         this.messageStore = messageStore;
     }
@@ -583,6 +553,10 @@ public class BrokerController {
             this.adminBrokerExecutor.shutdown();
         }
 
+        if (this.brokerOuterAPI != null) {
+            this.brokerOuterAPI.shutdown();
+        }
+
         this.consumerOffsetManager.persist();
     }
 
@@ -594,6 +568,10 @@ public class BrokerController {
 
         if (this.remotingServer != null) {
             this.remotingServer.start();
+        }
+
+        if (this.brokerOuterAPI != null) {
+            this.brokerOuterAPI.start();
         }
 
         if (this.pullRequestHoldService != null) {
