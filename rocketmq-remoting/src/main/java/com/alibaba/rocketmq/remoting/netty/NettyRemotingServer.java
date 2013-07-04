@@ -135,7 +135,7 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
                 if (evnet.state().equals(IdleState.ALL_IDLE)) {
                     log.warn("channel idle exception {}",
                         RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
-                    ctx.channel().close().sync();
+                    ctx.channel().close();
                 }
             }
             ctx.fireUserEventTriggered(evt);
