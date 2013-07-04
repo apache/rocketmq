@@ -5,6 +5,7 @@ package com.alibaba.rocketmq.common.protocol.header;
 
 import com.alibaba.rocketmq.remoting.CommandCustomHeader;
 import com.alibaba.rocketmq.remoting.annotation.CFNotNull;
+import com.alibaba.rocketmq.remoting.annotation.CFNullable;
 import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
 
 
@@ -29,10 +30,10 @@ public class PullMessageRequestHeader implements CommandCustomHeader {
     private Long commitOffset;
     @CFNotNull
     private Long suspendTimeoutMillis;
-    @CFNotNull
+    @CFNullable
     private String subscription;
     @CFNotNull
-    private long subVersion;
+    private Long subVersion;
 
 
     @Override
@@ -130,12 +131,12 @@ public class PullMessageRequestHeader implements CommandCustomHeader {
     }
 
 
-    public long getSubVersion() {
+    public Long getSubVersion() {
         return subVersion;
     }
 
 
-    public void setSubVersion(long subVersion) {
+    public void setSubVersion(Long subVersion) {
         this.subVersion = subVersion;
     }
 }
