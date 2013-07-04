@@ -18,6 +18,7 @@ import com.alibaba.rocketmq.common.protocol.header.namesrv.RegisterBrokerRequest
 import com.alibaba.rocketmq.common.protocol.header.namesrv.RegisterBrokerResponseHeader;
 import com.alibaba.rocketmq.common.protocol.route.TopicRouteData;
 import com.alibaba.rocketmq.namesrv.NamesrvController2;
+import com.alibaba.rocketmq.remoting.common.RemotingHelper;
 import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
 import com.alibaba.rocketmq.remoting.netty.NettyRequestProcessor;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
@@ -39,6 +40,13 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
     public RemotingCommand processRequest(ChannelHandlerContext ctx, RemotingCommand request)
             throws RemotingCommandException {
         MQRequestCode code = MQRequestCode.valueOf(request.getCode());
+        if (log.isDebugEnabled()) {
+            log.debug("receive request, {} {} {}",//
+                code, //
+                RemotingHelper.parseChannelRemoteAddr(ctx.channel()), //
+                request);
+        }
+
         switch (code) {
         case PUT_KV_CONFIG:
             return this.putKVConfig(ctx, request);

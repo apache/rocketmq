@@ -82,6 +82,10 @@ public class NamesrvClient extends ServiceThread {
                 unRegisterBrokerTopic(remoteAddr);
             }
 
+
+            @Override
+            public void onChannelIdle(String remoteAddr, Channel channel) {
+            }
         });
 
         reqTaskGroup = createTaskGroup();

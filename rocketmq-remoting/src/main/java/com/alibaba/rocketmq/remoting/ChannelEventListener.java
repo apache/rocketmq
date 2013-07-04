@@ -31,4 +31,7 @@ public interface ChannelEventListener {
 
 
     public void onChannelException(final String remoteAddr, final Channel channel);
+
+
+    public void onChannelIdle(final String remoteAddr, final Channel channel);
 }
