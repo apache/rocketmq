@@ -23,6 +23,7 @@ import com.alibaba.rocketmq.common.BrokerConfig;
 import com.alibaba.rocketmq.common.MQVersion;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.constant.LoggerName;
+import com.alibaba.rocketmq.remoting.netty.NettyClientConfig;
 import com.alibaba.rocketmq.remoting.netty.NettyServerConfig;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 import com.alibaba.rocketmq.store.config.MessageStoreConfig;
@@ -70,6 +71,7 @@ public class BrokerStartup {
             // 初始化配置文件
             final BrokerConfig brokerConfig = new BrokerConfig();
             final NettyServerConfig nettyServerConfig = new NettyServerConfig();
+            final NettyClientConfig nettyClientConfig = new NettyClientConfig();
             nettyServerConfig.setListenPort(10911);
             final MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
 
@@ -77,6 +79,7 @@ public class BrokerStartup {
             if (commandLine.hasOption('p')) {
                 MixAll.printObjectProperties(null, brokerConfig);
                 MixAll.printObjectProperties(null, nettyServerConfig);
+                MixAll.printObjectProperties(null, nettyClientConfig);
                 MixAll.printObjectProperties(null, messageStoreConfig);
                 System.exit(0);
             }
@@ -90,6 +93,7 @@ public class BrokerStartup {
                     properties.load(in);
                     MixAll.properties2Object(properties, brokerConfig);
                     MixAll.properties2Object(properties, nettyServerConfig);
+                    MixAll.properties2Object(properties, nettyClientConfig);
                     MixAll.properties2Object(properties, messageStoreConfig);
 
                     brokerConfig.setBrokerConfigPath(file);
@@ -146,11 +150,15 @@ public class BrokerStartup {
             // 打印启动参数
             MixAll.printObjectProperties(log, brokerConfig);
             MixAll.printObjectProperties(log, nettyServerConfig);
+            MixAll.printObjectProperties(log, nettyClientConfig);
             MixAll.printObjectProperties(log, messageStoreConfig);
 
             // 初始化服务控制对象
-            final BrokerController controller =
-                    new BrokerController(brokerConfig, nettyServerConfig, messageStoreConfig);
+            final BrokerController controller = new BrokerController(//
+                brokerConfig, //
+                nettyServerConfig, //
+                nettyClientConfig, //
+                messageStoreConfig);
             boolean initResult = controller.initialize();
             if (!initResult) {
                 controller.shutdown();

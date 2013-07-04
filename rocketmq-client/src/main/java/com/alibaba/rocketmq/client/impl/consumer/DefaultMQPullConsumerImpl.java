@@ -507,4 +507,14 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
     public DefaultMQPullConsumer getDefaultMQPullConsumer() {
         return defaultMQPullConsumer;
     }
+
+
+    public OffsetStore getOffsetStore() {
+        return offsetStore;
+    }
+
+
+    public void setOffsetStore(OffsetStore offsetStore) {
+        this.offsetStore = offsetStore;
+    }
 }

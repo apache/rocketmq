@@ -748,4 +748,14 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
     public RebalanceImpl getRebalanceImpl() {
         return rebalanceImpl;
     }
+
+
+    public boolean isConsumeOrderly() {
+        return consumeOrderly;
+    }
+
+
+    public void setConsumeOrderly(boolean consumeOrderly) {
+        this.consumeOrderly = consumeOrderly;
+    }
 }

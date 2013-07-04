@@ -18,6 +18,7 @@ import com.alibaba.rocketmq.common.BrokerConfig;
 import com.alibaba.rocketmq.common.MQVersion;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.constant.LoggerName;
+import com.alibaba.rocketmq.remoting.netty.NettyClientConfig;
 import com.alibaba.rocketmq.remoting.netty.NettyServerConfig;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 import com.alibaba.rocketmq.store.config.MessageStoreConfig;
@@ -85,7 +86,9 @@ public abstract class BaseTest extends TestCase {
             MixAll.printObjectProperties(log, messageStoreConfig);
 
             // 初始化服务控制对象
-            brokerController = new BrokerController(brokerConfig, nettyServerConfig, messageStoreConfig);
+            brokerController =
+                    new BrokerController(brokerConfig, nettyServerConfig, new NettyClientConfig(),
+                        messageStoreConfig);
             boolean initResult = brokerController.initialize();
             if (!initResult) {
                 brokerController.shutdown();

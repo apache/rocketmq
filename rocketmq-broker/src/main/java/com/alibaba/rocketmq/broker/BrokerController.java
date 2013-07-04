@@ -25,6 +25,7 @@ import com.alibaba.rocketmq.broker.client.net.Broker2Client;
 import com.alibaba.rocketmq.broker.client.rebalance.RebalanceLockManager;
 import com.alibaba.rocketmq.broker.longpolling.PullRequestHoldService;
 import com.alibaba.rocketmq.broker.offset.ConsumerOffsetManager;
+import com.alibaba.rocketmq.broker.out.BrokerOuterAPI;
 import com.alibaba.rocketmq.broker.processor.AdminBrokerProcessor;
 import com.alibaba.rocketmq.broker.processor.ClientManageProcessor;
 import com.alibaba.rocketmq.broker.processor.EndTransactionProcessor;
@@ -42,6 +43,7 @@ import com.alibaba.rocketmq.common.namesrv.TopAddressing;
 import com.alibaba.rocketmq.common.protocol.MQProtos;
 import com.alibaba.rocketmq.common.protocol.MQProtosHelper;
 import com.alibaba.rocketmq.remoting.RemotingServer;
+import com.alibaba.rocketmq.remoting.netty.NettyClientConfig;
 import com.alibaba.rocketmq.remoting.netty.NettyRemotingServer;
 import com.alibaba.rocketmq.remoting.netty.NettyRequestProcessor;
 import com.alibaba.rocketmq.remoting.netty.NettyServerConfig;
@@ -62,6 +64,7 @@ public class BrokerController {
     private final BrokerConfig brokerConfig;
     // 通信层配置
     private final NettyServerConfig nettyServerConfig;
+    private final NettyClientConfig nettyClientConfig;
     // 存储层配置
     private final MessageStoreConfig messageStoreConfig;
     // 配置文件版本号
@@ -95,14 +98,6 @@ public class BrokerController {
     private final PullMessageProcessor pullMessageProcessor;
     private final PullRequestHoldService pullRequestHoldService;
 
-    private ScheduledExecutorService scheduledExecutorService = Executors
-        .newSingleThreadScheduledExecutor(new ThreadFactory() {
-            @Override
-            public Thread newThread(Runnable r) {
-                return new Thread(r, "BrokerControllerScheduledThread");
-            }
-        });
-
     // Broker主动调用Client
     private final Broker2Client broker2Client;
 
@@ -115,11 +110,27 @@ public class BrokerController {
     // 管理队列的锁分配
     private final RebalanceLockManager rebalanceLockManager = new RebalanceLockManager();
 
+    // Broker的通信层客户端
+    private final BrokerOuterAPI brokerOuterAPI;
 
-    public BrokerController(final BrokerConfig brokerConfig, final NettyServerConfig nettyServerConfig,
-            final MessageStoreConfig messageStoreConfig) {
+    private final ScheduledExecutorService scheduledExecutorService = Executors
+        .newSingleThreadScheduledExecutor(new ThreadFactory() {
+            @Override
+            public Thread newThread(Runnable r) {
+                return new Thread(r, "BrokerControllerScheduledThread");
+            }
+        });
+
+
+    public BrokerController(//
+            final BrokerConfig brokerConfig, //
+            final NettyServerConfig nettyServerConfig, //
+            final NettyClientConfig nettyClientConfig, //
+            final MessageStoreConfig messageStoreConfig //
+    ) {
         this.brokerConfig = brokerConfig;
         this.nettyServerConfig = nettyServerConfig;
+        this.nettyClientConfig = nettyClientConfig;
         this.messageStoreConfig = messageStoreConfig;
         this.consumerOffsetManager = new ConsumerOffsetManager(this);
         this.topicConfigManager = new TopicConfigManager(this);
@@ -132,6 +143,7 @@ public class BrokerController {
         this.defaultTransactionCheckExecuter = new DefaultTransactionCheckExecuter(this);
         this.broker2Client = new Broker2Client(this);
         this.subscriptionGroupManager = new SubscriptionGroupManager(this);
+        this.brokerOuterAPI = new BrokerOuterAPI(nettyClientConfig);
     }
 
 
@@ -167,6 +179,15 @@ public class BrokerController {
             }
         }
 
+        {
+            Properties properties = MixAll.object2Properties(this.nettyClientConfig);
+            if (properties != null) {
+                sb.append(MixAll.properties2String(properties));
+            }
+            else {
+                log.error("encodeAllConfig object2Properties error");
+            }
+        }
         return sb.toString();
     }
 
@@ -536,6 +557,7 @@ public class BrokerController {
     public void updateAllConfig(Properties properties) {
         MixAll.properties2Object(properties, brokerConfig);
         MixAll.properties2Object(properties, nettyServerConfig);
+        MixAll.properties2Object(properties, nettyClientConfig);
         MixAll.properties2Object(properties, messageStoreConfig);
         this.configDataVersion.nextVersion();
         this.flushAllConfig();

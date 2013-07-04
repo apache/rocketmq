@@ -59,7 +59,6 @@ public class RebalancePullImpl extends RebalanceImpl {
 
     @Override
     public void removeUnnecessaryMessageQueue(MessageQueue mq, ProcessQueue pq) {
-        // TODO Auto-generated method stub
-
+        this.defaultMQPullConsumerImpl.getOffsetStore().persist(mq);
     }
 }
