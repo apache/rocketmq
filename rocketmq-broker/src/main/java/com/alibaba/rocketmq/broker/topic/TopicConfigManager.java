@@ -230,6 +230,14 @@ public class TopicConfigManager extends ConfigManager {
     }
 
 
+    public TopicConfigSerializeWrapper buildTopicConfigSerializeWrapper() {
+        TopicConfigSerializeWrapper topicConfigSerializeWrapper = new TopicConfigSerializeWrapper();
+        topicConfigSerializeWrapper.setTopicConfigTable(this.topicConfigTable);
+        topicConfigSerializeWrapper.setDataVersion(this.dataVersion);
+        return topicConfigSerializeWrapper;
+    }
+
+
     @Override
     public String encode() {
         TopicConfigSerializeWrapper topicConfigSerializeWrapper = new TopicConfigSerializeWrapper();

@@ -42,6 +42,7 @@ import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.common.namesrv.TopAddressing;
 import com.alibaba.rocketmq.common.protocol.MQProtos;
 import com.alibaba.rocketmq.common.protocol.MQProtosHelper;
+import com.alibaba.rocketmq.common.protocol.body.TopicConfigSerializeWrapper;
 import com.alibaba.rocketmq.remoting.RemotingServer;
 import com.alibaba.rocketmq.remoting.netty.NettyClientConfig;
 import com.alibaba.rocketmq.remoting.netty.NettyRemotingServer;
@@ -121,6 +122,9 @@ public class BrokerController {
             }
         });
 
+    // 是否需要定期更新HA Master地址
+    private boolean updateMasterHAServerAddrPeriodically = false;
+
 
     public BrokerController(//
             final BrokerConfig brokerConfig, //
@@ -144,140 +148,11 @@ public class BrokerController {
         this.broker2Client = new Broker2Client(this);
         this.subscriptionGroupManager = new SubscriptionGroupManager(this);
         this.brokerOuterAPI = new BrokerOuterAPI(nettyClientConfig);
-    }
 
-
-    public String encodeAllConfig() {
-        StringBuilder sb = new StringBuilder();
-        {
-            Properties properties = MixAll.object2Properties(this.brokerConfig);
-            if (properties != null) {
-                sb.append(MixAll.properties2String(properties));
-            }
-            else {
-                log.error("encodeAllConfig object2Properties error");
-            }
+        if (this.brokerConfig.getNamesrvAddr() != null) {
+            this.brokerOuterAPI.updateNameServerAddressList(this.brokerConfig.getNamesrvAddr());
+            log.info("user specfied name server address: {}", this.brokerConfig.getNamesrvAddr());
         }
-
-        {
-            Properties properties = MixAll.object2Properties(this.messageStoreConfig);
-            if (properties != null) {
-                sb.append(MixAll.properties2String(properties));
-            }
-            else {
-                log.error("encodeAllConfig object2Properties error");
-            }
-        }
-
-        {
-            Properties properties = MixAll.object2Properties(this.nettyServerConfig);
-            if (properties != null) {
-                sb.append(MixAll.properties2String(properties));
-            }
-            else {
-                log.error("encodeAllConfig object2Properties error");
-            }
-        }
-
-        {
-            Properties properties = MixAll.object2Properties(this.nettyClientConfig);
-            if (properties != null) {
-                sb.append(MixAll.properties2String(properties));
-            }
-            else {
-                log.error("encodeAllConfig object2Properties error");
-            }
-        }
-        return sb.toString();
-    }
-
-
-    private void flushAllConfig() {
-        String allConfig = this.encodeAllConfig();
-        boolean result = MixAll.string2File(allConfig, this.brokerConfig.getBrokerConfigPath());
-        log.info("flush topic config, " + this.brokerConfig.getBrokerConfigPath()
-                + (result ? " OK" : " Failed"));
-    }
-
-
-    public Broker2Client getBroker2Client() {
-        return broker2Client;
-    }
-
-
-    public String getBrokerAddr() {
-        String addr = this.brokerConfig.getBrokerIP1() + ":" + this.nettyServerConfig.getListenPort();
-        return addr;
-    }
-
-
-    public BrokerConfig getBrokerConfig() {
-        return brokerConfig;
-    }
-
-
-    public String getConfigDataVersion() {
-        return this.configDataVersion.toJson();
-    }
-
-
-    public ConsumerManager getConsumerManager() {
-        return consumerManager;
-    }
-
-
-    public ConsumerOffsetManager getConsumerOffsetManager() {
-        return consumerOffsetManager;
-    }
-
-
-    public DefaultTransactionCheckExecuter getDefaultTransactionCheckExecuter() {
-        return defaultTransactionCheckExecuter;
-    }
-
-
-    public MessageStore getMessageStore() {
-        return messageStore;
-    }
-
-
-    public MessageStoreConfig getMessageStoreConfig() {
-        return messageStoreConfig;
-    }
-
-
-    public NettyServerConfig getNettyServerConfig() {
-        return nettyServerConfig;
-    }
-
-
-    public ProducerManager getProducerManager() {
-        return producerManager;
-    }
-
-
-    public PullMessageProcessor getPullMessageProcessor() {
-        return pullMessageProcessor;
-    }
-
-
-    public PullRequestHoldService getPullRequestHoldService() {
-        return pullRequestHoldService;
-    }
-
-
-    public RemotingServer getRemotingServer() {
-        return remotingServer;
-    }
-
-
-    public SubscriptionGroupManager getSubscriptionGroupManager() {
-        return subscriptionGroupManager;
-    }
-
-
-    public TopicConfigManager getTopicConfigManager() {
-        return topicConfigManager;
     }
 
 
@@ -412,14 +287,173 @@ public class BrokerController {
                 if (this.messageStoreConfig.getMasterAddress() != null
                         && this.messageStoreConfig.getMasterAddress().length() >= 6) {
                     this.messageStore.updateMasterAddress(this.messageStoreConfig.getMasterAddress());
+                    this.updateMasterHAServerAddrPeriodically = false;
                 }
                 else {
-                    // TODO 定时去更新地址
+                    this.updateMasterHAServerAddrPeriodically = true;
                 }
             }
+
         }
 
         return result;
+    }
+
+
+    private synchronized void registerBrokerAll() {
+        TopicConfigSerializeWrapper topicConfigWrapper =
+                this.getTopicConfigManager().buildTopicConfigSerializeWrapper();
+
+        String haServerAddr = this.brokerOuterAPI.registerBrokerAll(//
+            this.brokerConfig.getBrokerClusterName(), //
+            this.getBrokerAddr(), //
+            this.brokerConfig.getBrokerName(), //
+            this.brokerConfig.getBrokerId(), //
+            this.getHAServerAddr(), topicConfigWrapper);
+
+        if (this.updateMasterHAServerAddrPeriodically && haServerAddr != null) {
+            this.messageStore.updateMasterAddress(haServerAddr);
+        }
+    }
+
+
+    public String encodeAllConfig() {
+        StringBuilder sb = new StringBuilder();
+        {
+            Properties properties = MixAll.object2Properties(this.brokerConfig);
+            if (properties != null) {
+                sb.append(MixAll.properties2String(properties));
+            }
+            else {
+                log.error("encodeAllConfig object2Properties error");
+            }
+        }
+
+        {
+            Properties properties = MixAll.object2Properties(this.messageStoreConfig);
+            if (properties != null) {
+                sb.append(MixAll.properties2String(properties));
+            }
+            else {
+                log.error("encodeAllConfig object2Properties error");
+            }
+        }
+
+        {
+            Properties properties = MixAll.object2Properties(this.nettyServerConfig);
+            if (properties != null) {
+                sb.append(MixAll.properties2String(properties));
+            }
+            else {
+                log.error("encodeAllConfig object2Properties error");
+            }
+        }
+
+        {
+            Properties properties = MixAll.object2Properties(this.nettyClientConfig);
+            if (properties != null) {
+                sb.append(MixAll.properties2String(properties));
+            }
+            else {
+                log.error("encodeAllConfig object2Properties error");
+            }
+        }
+        return sb.toString();
+    }
+
+
+    private void flushAllConfig() {
+        String allConfig = this.encodeAllConfig();
+        boolean result = MixAll.string2File(allConfig, this.brokerConfig.getBrokerConfigPath());
+        log.info("flush topic config, " + this.brokerConfig.getBrokerConfigPath()
+                + (result ? " OK" : " Failed"));
+    }
+
+
+    public Broker2Client getBroker2Client() {
+        return broker2Client;
+    }
+
+
+    public String getBrokerAddr() {
+        String addr = this.brokerConfig.getBrokerIP1() + ":" + this.nettyServerConfig.getListenPort();
+        return addr;
+    }
+
+
+    public String getHAServerAddr() {
+        String addr = this.brokerConfig.getBrokerIP2() + ":" + this.messageStoreConfig.getHaListenPort();
+        return addr;
+    }
+
+
+    public BrokerConfig getBrokerConfig() {
+        return brokerConfig;
+    }
+
+
+    public String getConfigDataVersion() {
+        return this.configDataVersion.toJson();
+    }
+
+
+    public ConsumerManager getConsumerManager() {
+        return consumerManager;
+    }
+
+
+    public ConsumerOffsetManager getConsumerOffsetManager() {
+        return consumerOffsetManager;
+    }
+
+
+    public DefaultTransactionCheckExecuter getDefaultTransactionCheckExecuter() {
+        return defaultTransactionCheckExecuter;
+    }
+
+
+    public MessageStore getMessageStore() {
+        return messageStore;
+    }
+
+
+    public MessageStoreConfig getMessageStoreConfig() {
+        return messageStoreConfig;
+    }
+
+
+    public NettyServerConfig getNettyServerConfig() {
+        return nettyServerConfig;
+    }
+
+
+    public ProducerManager getProducerManager() {
+        return producerManager;
+    }
+
+
+    public PullMessageProcessor getPullMessageProcessor() {
+        return pullMessageProcessor;
+    }
+
+
+    public PullRequestHoldService getPullRequestHoldService() {
+        return pullRequestHoldService;
+    }
+
+
+    public RemotingServer getRemotingServer() {
+        return remotingServer;
+    }
+
+
+    public SubscriptionGroupManager getSubscriptionGroupManager() {
+        return subscriptionGroupManager;
+    }
+
+
+    public TopicConfigManager getTopicConfigManager() {
+        return topicConfigManager;
     }
 
 
@@ -473,36 +507,6 @@ public class BrokerController {
     }
 
 
-    private boolean registerToNameServer() {
-        TopAddressing topAddressing = new TopAddressing();
-        String addrs =
-                (null == this.brokerConfig.getNamesrvAddr()) ? topAddressing.fetchNSAddr()
-                        : this.brokerConfig.getNamesrvAddr();
-        if (addrs != null) {
-            String[] addrArray = addrs.split(";");
-
-            if (addrArray != null && addrArray.length > 0) {
-                Random r = new Random();
-                int begin = Math.abs(r.nextInt()) % 1000000;
-                for (int i = 0; i < addrArray.length; i++) {
-                    String addr = addrArray[begin++ % addrArray.length];
-                    boolean result =
-                            MQProtosHelper.registerBrokerToNameServer(addr, this.getBrokerAddr(), 1000 * 10);
-                    final String info =
-                            "register broker[" + this.getBrokerAddr() + "] to name server[" + addr + "] "
-                                    + (result ? " success" : " failed");
-                    log.info(info);
-                    System.out.println(info);
-                    if (result)
-                        return true;
-                }
-            }
-        }
-
-        return false;
-    }
-
-
     public void setMessageStore(MessageStore messageStore) {
         this.messageStore = messageStore;
     }
@@ -549,6 +553,10 @@ public class BrokerController {
             this.adminBrokerExecutor.shutdown();
         }
 
+        if (this.brokerOuterAPI != null) {
+            this.brokerOuterAPI.shutdown();
+        }
+
         this.consumerOffsetManager.persist();
     }
 
@@ -562,6 +570,10 @@ public class BrokerController {
             this.remotingServer.start();
         }
 
+        if (this.brokerOuterAPI != null) {
+            this.brokerOuterAPI.start();
+        }
+
         if (this.pullRequestHoldService != null) {
             this.pullRequestHoldService.start();
         }
@@ -569,6 +581,23 @@ public class BrokerController {
         if (this.clientHousekeepingService != null) {
             this.clientHousekeepingService.start();
         }
+
+        // 启动时，强制注册
+        this.registerBrokerAll();
+
+        // 定时注册Broker到Name Server
+        this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
+
+            @Override
+            public void run() {
+                try {
+                    BrokerController.this.registerBrokerAll();
+                }
+                catch (Exception e) {
+                    log.error("registerBrokerAll Exception", e);
+                }
+            }
+        }, 1000 * 10, 1000 * 30, TimeUnit.MILLISECONDS);
     }
 
 
