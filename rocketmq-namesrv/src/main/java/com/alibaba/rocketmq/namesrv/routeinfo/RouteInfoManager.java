@@ -52,17 +52,17 @@ public class RouteInfoManager {
      * 判断Topic配置信息是否发生变更
      */
     private boolean isBrokerTopicConfigChanged(final String brokerAddr, final DataVersion dataVersion,
-            final Channel channel) {
+            final Channel channel, final String haServerAddr) {
         BrokerLiveInfo prev = this.brokerLiveTable.get(brokerAddr);
         if (null == prev) {
             this.brokerLiveTable.put(brokerAddr, new BrokerLiveInfo(System.currentTimeMillis(), dataVersion,
-                channel));
+                channel, haServerAddr));
             return true;
         }
         else {
             if (!prev.equals(dataVersion)) {
                 this.brokerLiveTable.put(brokerAddr, new BrokerLiveInfo(System.currentTimeMillis(),
-                    dataVersion, channel));
+                    dataVersion, channel, haServerAddr));
                 return true;
             }
         }
@@ -104,6 +104,7 @@ public class RouteInfoManager {
             final String brokerAddr,//
             final String brokerName,//
             final long brokerId,//
+            final String haServerAddr,//
             final TopicConfigSerializeWrapper topicConfigWrapper,//
             final Channel channel//
     ) {
@@ -112,8 +113,11 @@ public class RouteInfoManager {
                 this.lock.writeLock().lockInterruptibly();
                 // 更新最后变更时间
                 this.brokerLiveTable.put(brokerAddr, //
-                    new BrokerLiveInfo(System.currentTimeMillis(), topicConfigWrapper.getDataVersion(),
-                        channel));
+                    new BrokerLiveInfo(//
+                        System.currentTimeMillis(), //
+                        topicConfigWrapper.getDataVersion(),//
+                        channel, //
+                        haServerAddr));
 
                 // 更新集群信息
                 Set<String> brokerNames = this.clusterAddrTable.get(clusterName);
@@ -140,7 +144,8 @@ public class RouteInfoManager {
                         && MixAll.MASTER_ID == brokerId) {
                     if (this.isBrokerTopicConfigChanged(brokerAddr,//
                         topicConfigWrapper.getDataVersion(),//
-                        channel)) {
+                        channel,//
+                        haServerAddr)) {
                         ConcurrentHashMap<String, TopicConfig> tcTable =
                                 topicConfigWrapper.getTopicConfigTable();
                         if (tcTable != null) {
@@ -228,12 +233,15 @@ class BrokerLiveInfo {
     private long lastUpdateTimestamp;
     private DataVersion dataVersion;
     private Channel channel;
+    private String haServerAddr;
 
 
-    public BrokerLiveInfo(long lastUpdateTimestamp, DataVersion dataVersion, Channel channel) {
+    public BrokerLiveInfo(long lastUpdateTimestamp, DataVersion dataVersion, Channel channel,
+            String haServerAddr) {
         this.lastUpdateTimestamp = lastUpdateTimestamp;
         this.dataVersion = dataVersion;
         this.channel = channel;
+        this.haServerAddr = haServerAddr;
     }
 
 
@@ -265,4 +273,15 @@ class BrokerLiveInfo {
     public void setChannel(Channel channel) {
         this.channel = channel;
     }
+
+
+    public String getHaServerAddr() {
+        return haServerAddr;
+    }
+
+
+    public void setHaServerAddr(String haServerAddr) {
+        this.haServerAddr = haServerAddr;
+    }
+
 }
