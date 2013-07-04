@@ -39,8 +39,9 @@ public class NettyRPCTest {
 
     public static RemotingServer createRemotingServer() throws InterruptedException {
         NettyServerConfig config = new NettyServerConfig();
-        RemotingServer client = new NettyRemotingServer(config);
-        client.registerProcessor(RequestCode.DEMO_REQUEST_VALUE, new NettyRequestProcessor() {
+        config.setListenPort(10911);
+        RemotingServer remotingServer = new NettyRemotingServer(config);
+        remotingServer.registerProcessor(RequestCode.DEMO_REQUEST_VALUE, new NettyRequestProcessor() {
             private int i = 0;
 
 
@@ -51,8 +52,8 @@ public class NettyRPCTest {
                 return request;
             }
         }, Executors.newCachedThreadPool());
-        client.start();
-        return client;
+        remotingServer.start();
+        return remotingServer;
     }
 
 
@@ -168,4 +169,6 @@ public class NettyRPCTest {
         server.shutdown();
         System.out.println("-----------------------------------------------------------------");
     }
+
+
 }
