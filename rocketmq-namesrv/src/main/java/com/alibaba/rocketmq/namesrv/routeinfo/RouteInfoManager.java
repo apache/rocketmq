@@ -83,18 +83,22 @@ public class RouteInfoManager {
             queueDataList = new LinkedList<QueueData>();
             queueDataList.add(queueData);
             this.topicQueueTable.put(topicConfig.getTopicName(), queueDataList);
+            log.info("new topic registerd, {}", queueData);
         }
         else {
             Iterator<QueueData> it = queueDataList.iterator();
             while (it.hasNext()) {
                 QueueData qd = it.next();
                 if (qd.getBrokerName().equals(brokerName)) {
-                    it.remove();
+                    if (!qd.equals(queueData)) {
+                        log.info("topic changed, OLD: {} NEW: {}", qd, queueData);
+                        it.remove();
+                        queueDataList.add(queueData);
+                    }
+
                     break;
                 }
             }
-
-            queueDataList.add(queueData);
         }
     }
 
@@ -112,12 +116,15 @@ public class RouteInfoManager {
             try {
                 this.lock.writeLock().lockInterruptibly();
                 // 更新最后变更时间
-                this.brokerLiveTable.put(brokerAddr, //
+                BrokerLiveInfo prevBrokerLiveInfo = this.brokerLiveTable.put(brokerAddr, //
                     new BrokerLiveInfo(//
                         System.currentTimeMillis(), //
                         topicConfigWrapper.getDataVersion(),//
                         channel, //
                         haServerAddr));
+                if (null == prevBrokerLiveInfo) {
+                    log.info("new broker registerd, {} HAServer: {}", brokerAddr, haServerAddr);
+                }
 
                 // 更新集群信息
                 Set<String> brokerNames = this.clusterAddrTable.get(clusterName);
