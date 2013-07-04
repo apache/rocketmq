@@ -42,6 +42,7 @@ import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.common.namesrv.TopAddressing;
 import com.alibaba.rocketmq.common.protocol.MQProtos;
 import com.alibaba.rocketmq.common.protocol.MQProtosHelper;
+import com.alibaba.rocketmq.common.protocol.body.TopicConfigSerializeWrapper;
 import com.alibaba.rocketmq.remoting.RemotingServer;
 import com.alibaba.rocketmq.remoting.netty.NettyClientConfig;
 import com.alibaba.rocketmq.remoting.netty.NettyRemotingServer;
@@ -147,6 +148,11 @@ public class BrokerController {
         this.broker2Client = new Broker2Client(this);
         this.subscriptionGroupManager = new SubscriptionGroupManager(this);
         this.brokerOuterAPI = new BrokerOuterAPI(nettyClientConfig);
+
+        if (this.brokerConfig.getNamesrvAddr() != null) {
+            this.brokerOuterAPI.updateNameServerAddressList(this.brokerConfig.getNamesrvAddr());
+            log.info("user specfied name server address: {}", this.brokerConfig.getNamesrvAddr());
+        }
     }
 
 
@@ -287,9 +293,27 @@ public class BrokerController {
                     this.updateMasterHAServerAddrPeriodically = true;
                 }
             }
+
         }
 
         return result;
+    }
+
+
+    private synchronized void registerBrokerAll() {
+        TopicConfigSerializeWrapper topicConfigWrapper =
+                this.getTopicConfigManager().buildTopicConfigSerializeWrapper();
+
+        String haServerAddr = this.brokerOuterAPI.registerBrokerAll(//
+            this.brokerConfig.getBrokerClusterName(), //
+            this.getBrokerAddr(), //
+            this.brokerConfig.getBrokerName(), //
+            this.brokerConfig.getBrokerId(), //
+            this.getHAServerAddr(), topicConfigWrapper);
+
+        if (this.updateMasterHAServerAddrPeriodically && haServerAddr != null) {
+            this.messageStore.updateMasterAddress(haServerAddr);
+        }
     }
 
 
@@ -353,6 +377,12 @@ public class BrokerController {
 
     public String getBrokerAddr() {
         String addr = this.brokerConfig.getBrokerIP1() + ":" + this.nettyServerConfig.getListenPort();
+        return addr;
+    }
+
+
+    public String getHAServerAddr() {
+        String addr = this.brokerConfig.getBrokerIP2() + ":" + this.messageStoreConfig.getHaListenPort();
         return addr;
     }
 
@@ -573,6 +603,23 @@ public class BrokerController {
         if (this.clientHousekeepingService != null) {
             this.clientHousekeepingService.start();
         }
+
+        // 启动时，强制注册
+        this.registerBrokerAll();
+
+        // 定时注册Broker到Name Server
+        this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
+
+            @Override
+            public void run() {
+                try {
+                    BrokerController.this.registerBrokerAll();
+                }
+                catch (Exception e) {
+                    log.error("registerBrokerAll Exception", e);
+                }
+            }
+        }, 1000 * 10, 1000 * 30, TimeUnit.MILLISECONDS);
     }
 
 
