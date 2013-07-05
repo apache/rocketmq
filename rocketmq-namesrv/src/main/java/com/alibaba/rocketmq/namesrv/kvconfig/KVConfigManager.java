@@ -148,8 +148,21 @@ public class KVConfigManager {
     }
 
 
-    public void printConfig() {
+    public void printAllPeriodically() {
+        try {
+            this.lock.readLock().lockInterruptibly();
+            try {
+                log.info("--------------------------------------------------------");
 
+                log.info("{}", this.configTable);
+            }
+            finally {
+                this.lock.readLock().unlock();
+            }
+        }
+        catch (InterruptedException e) {
+            log.error("printAllPeriodically InterruptedException", e);
+        }
     }
 }
 

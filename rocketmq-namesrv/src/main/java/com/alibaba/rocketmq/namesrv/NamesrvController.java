@@ -99,9 +99,17 @@ public class NamesrvController {
 
             @Override
             public void run() {
-                NamesrvController.this.kvConfigManager.printConfig();
+                NamesrvController.this.kvConfigManager.printAllPeriodically();
             }
-        }, 1000 * 5, 1000 * 60, TimeUnit.MILLISECONDS);
+        }, 1000 * 10, 1000 * 120, TimeUnit.MILLISECONDS);
+
+        this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
+
+            @Override
+            public void run() {
+                NamesrvController.this.routeInfoManager.printAllPeriodically();
+            }
+        }, 1000 * 10, 1000 * 120, TimeUnit.MILLISECONDS);
 
         return true;
     }

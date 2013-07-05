@@ -6,6 +6,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.alibaba.rocketmq.common.constant.LoggerName;
+import com.alibaba.rocketmq.common.help.FAQUrl;
 import com.alibaba.rocketmq.common.namesrv.NamesrvUtil;
 import com.alibaba.rocketmq.common.protocol.MQProtos.MQRequestCode;
 import com.alibaba.rocketmq.common.protocol.MQProtos.MQResponseCode;
@@ -99,7 +100,8 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
         }
 
         response.setCode(MQResponseCode.TOPIC_NOT_EXIST_VALUE);
-        response.setRemark("No topic route info for this topic: " + requestHeader.getTopic());
+        response.setRemark("No topic route info for this topic: " + requestHeader.getTopic()
+                + FAQUrl.suggestTodo(FAQUrl.APPLY_TOPIC_URL));
         return response;
     }
 
