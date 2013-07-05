@@ -337,6 +337,33 @@ public class RouteInfoManager {
 
     public void scanNotActiveBroker() {
     }
+
+
+    /**
+     * 定期打印当前类的数据结构
+     */
+    public void printAllPeriodically() {
+        try {
+            try {
+                this.lock.readLock().lockInterruptibly();
+                log.info("--------------------------------------------------------");
+
+                log.info("{}", this.topicQueueTable);
+
+                log.info("{}", this.brokerAddrTable);
+
+                log.info("{}", this.brokerLiveTable);
+
+                log.info("{}", this.clusterAddrTable);
+            }
+            finally {
+                this.lock.readLock().unlock();
+            }
+        }
+        catch (Exception e) {
+            log.error("printAllPeriodically Exception", e);
+        }
+    }
 }
 
 
@@ -395,4 +422,10 @@ class BrokerLiveInfo {
         this.haServerAddr = haServerAddr;
     }
 
+
+    @Override
+    public String toString() {
+        return "BrokerLiveInfo [lastUpdateTimestamp=" + lastUpdateTimestamp + ", dataVersion=" + dataVersion
+                + ", channel=" + channel + ", haServerAddr=" + haServerAddr + "]";
+    }
 }
