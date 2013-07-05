@@ -17,6 +17,7 @@ import com.alibaba.rocketmq.common.protocol.header.namesrv.GetRouteInfoRequestHe
 import com.alibaba.rocketmq.common.protocol.header.namesrv.PutKVConfigRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.namesrv.RegisterBrokerRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.namesrv.RegisterBrokerResponseHeader;
+import com.alibaba.rocketmq.common.protocol.header.namesrv.UnRegisterBrokerRequestHeader;
 import com.alibaba.rocketmq.common.protocol.route.TopicRouteData;
 import com.alibaba.rocketmq.namesrv.NamesrvController2;
 import com.alibaba.rocketmq.remoting.common.RemotingHelper;
@@ -194,6 +195,19 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
 
     public RemotingCommand unregisterBroker(ChannelHandlerContext ctx, RemotingCommand request)
             throws RemotingCommandException {
-        return null;
+        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
+        final UnRegisterBrokerRequestHeader requestHeader =
+                (UnRegisterBrokerRequestHeader) request
+                    .decodeCommandCustomHeader(UnRegisterBrokerRequestHeader.class);
+
+        this.namesrvController.getRouteInfoManager().unregisterBroker(//
+            requestHeader.getClusterName(), // 1
+            requestHeader.getBrokerAddr(), // 2
+            requestHeader.getBrokerName(), // 3
+            requestHeader.getBrokerId());
+
+        response.setCode(ResponseCode.SUCCESS_VALUE);
+        response.setRemark(null);
+        return response;
     }
 }

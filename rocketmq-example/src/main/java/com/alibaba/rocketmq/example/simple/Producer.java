@@ -20,7 +20,7 @@ public class Producer {
 
         String[] tags = new String[] { "TagA", "TagB", "TagC", "TagD", "TagE" };
 
-        for (int i = 0; i < 1000; i++) {
+        for (int i = 0; i < 100; i++) {
             try {
                 Message msg =
                         new Message("TopicTest", tags[i % tags.length], "KEY" + i,
