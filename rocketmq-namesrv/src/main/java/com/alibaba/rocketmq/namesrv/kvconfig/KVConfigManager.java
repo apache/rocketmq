@@ -154,7 +154,7 @@ public class KVConfigManager {
             try {
                 log.info("--------------------------------------------------------");
 
-                log.info("{}", this.configTable);
+                log.info("KVConfigManager {}", this.configTable);
             }
             finally {
                 this.lock.readLock().unlock();

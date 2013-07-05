@@ -348,13 +348,13 @@ public class RouteInfoManager {
                 this.lock.readLock().lockInterruptibly();
                 log.info("--------------------------------------------------------");
 
-                log.info("{}", this.topicQueueTable);
+                log.info("topicQueueTable {}", this.topicQueueTable);
 
-                log.info("{}", this.brokerAddrTable);
+                log.info("brokerAddrTable {}", this.brokerAddrTable);
 
-                log.info("{}", this.brokerLiveTable);
+                log.info("brokerLiveTable {}", this.brokerLiveTable);
 
-                log.info("{}", this.clusterAddrTable);
+                log.info("clusterAddrTable {}", this.clusterAddrTable);
             }
             finally {
                 this.lock.readLock().unlock();
