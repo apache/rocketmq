@@ -541,10 +541,14 @@ public class CommitLog {
     }
 
 
-    public int deleteExpiredFile(final long expiredTime, final int deleteFilesInterval,
-            final long intervalForcibly) {
-        return this.mapedFileQueue
-            .deleteExpiredFileByTime(expiredTime, deleteFilesInterval, intervalForcibly);
+    public int deleteExpiredFile(//
+            final long expiredTime, //
+            final int deleteFilesInterval, //
+            final long intervalForcibly,//
+            final boolean cleanImmediately//
+    ) {
+        return this.mapedFileQueue.deleteExpiredFileByTime(expiredTime, deleteFilesInterval,
+            intervalForcibly, cleanImmediately);
     }
 
 

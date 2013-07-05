@@ -229,8 +229,12 @@ public class MapedFileQueue {
     /**
      * 根据文件过期时间来删除物理队列文件
      */
-    public int deleteExpiredFileByTime(final long expiredTime, final int deleteFilesInterval,
-            final long intervalForcibly) {
+    public int deleteExpiredFileByTime(//
+            final long expiredTime, //
+            final int deleteFilesInterval, //
+            final long intervalForcibly,//
+            final boolean cleanImmediately//
+    ) {
         Object[] mfs = this.copyMapedFiles(0);
 
         if (null == mfs)
@@ -244,7 +248,8 @@ public class MapedFileQueue {
             for (int i = 0; i < mfsLength; i++) {
                 MapedFile mapedFile = (MapedFile) mfs[i];
                 long liveMaxTimestamp = mapedFile.getLastModifiedTimestamp() + expiredTime;
-                if (System.currentTimeMillis() >= liveMaxTimestamp) {
+                if (System.currentTimeMillis() >= liveMaxTimestamp//
+                        || cleanImmediately) {
                     if (mapedFile.destroy(intervalForcibly)) {
                         files.add(mapedFile);
                         deleteCount++;

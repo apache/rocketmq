@@ -252,7 +252,9 @@ public abstract class RebalanceImpl {
                     this.rebalanceByTopic(topic);
                 }
                 catch (Exception e) {
-                    log.warn("rebalanceByTopic Exception", e);
+                    if (!topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
+                        log.warn("rebalanceByTopic Exception", e);
+                    }
                 }
             }
         }
@@ -291,7 +293,7 @@ public abstract class RebalanceImpl {
             }
 
             if (null == cidAll) {
-                log.warn("doRebalance, {}, get consumer id list failed", consumerGroup);
+                log.warn("doRebalance, {} {}, get consumer id list failed", consumerGroup, topic);
             }
 
             if (mqSet != null && cidAll != null) {
