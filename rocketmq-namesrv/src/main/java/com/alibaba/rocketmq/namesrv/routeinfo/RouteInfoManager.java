@@ -7,6 +7,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReadWriteLock;
@@ -193,8 +194,88 @@ public class RouteInfoManager {
     }
 
 
-    public void unregisterBroker() {
+    public void unregisterBroker(//
+            final String clusterName,// 1
+            final String brokerAddr,// 2
+            final String brokerName,// 3
+            final long brokerId// 4
+    ) {
+        try {
+            try {
+                this.lock.writeLock().lockInterruptibly();
+                BrokerLiveInfo brokerLiveInfo = this.brokerLiveTable.remove(brokerAddr);
+                if (brokerLiveInfo != null) {
+                    log.info("unregisterBroker, remove from brokerLiveTable {}, {}", //
+                        (brokerLiveInfo != null ? "OK" : "Failed"),//
+                        brokerAddr//
+                    );
+                }
 
+                boolean removeBrokerName = false;
+                BrokerData brokerData = this.brokerAddrTable.get(brokerName);
+                if (null != brokerData) {
+                    String addr = brokerData.getBrokerAddrs().remove(brokerId);
+                    log.info("unregisterBroker, remove addr from brokerAddrTable {}, {}", //
+                        (addr != null ? "OK" : "Failed"),//
+                        brokerAddr//
+                    );
+
+                    if (brokerData.getBrokerAddrs().isEmpty()) {
+                        this.brokerAddrTable.remove(brokerName);
+                        log.info("unregisterBroker, remove name from brokerAddrTable OK, {}", //
+                            brokerName//
+                        );
+
+                        removeBrokerName = true;
+                    }
+                }
+
+                if (removeBrokerName) {
+                    Set<String> nameSet = this.clusterAddrTable.get(clusterName);
+                    if (nameSet != null) {
+                        boolean removed = nameSet.remove(brokerName);
+                        log.info("unregisterBroker, remove name from clusterAddrTable {}, {}", //
+                            (removed ? "OK" : "Failed"),//
+                            brokerName//
+                        );
+                    }
+
+                    // 删除相应的topic
+                    this.removeTopicByBrokerName(brokerName);
+                }
+
+            }
+            finally {
+                this.lock.writeLock().unlock();
+            }
+        }
+        catch (Exception e) {
+            log.error("unregisterBroker Exception", e);
+        }
+    }
+
+
+    private void removeTopicByBrokerName(final String brokerName) {
+        Iterator<Entry<String, List<QueueData>>> itMap = this.topicQueueTable.entrySet().iterator();
+        while (itMap.hasNext()) {
+            Entry<String, List<QueueData>> entry = itMap.next();
+
+            String topic = entry.getKey();
+            List<QueueData> queueDataList = entry.getValue();
+            Iterator<QueueData> it = queueDataList.iterator();
+            while (it.hasNext()) {
+                QueueData qd = it.next();
+                if (qd.getBrokerName().equals(brokerName)) {
+                    log.info("removeTopicByBrokerName, remove one broker's topic {} {}", topic, qd);
+                    it.remove();
+                }
+            }
+
+            if (queueDataList.isEmpty()) {
+                log.info("removeTopicByBrokerName, remove the topic all queue {}", topic);
+                itMap.remove();
+            }
+        }
     }
 
 
@@ -242,10 +323,9 @@ public class RouteInfoManager {
             log.error("pickupTopicRouteData Exception", e);
         }
 
-        // TODO 上线前要去掉日志
-        // if (log.isDebugEnabled()) {
-        log.info("pickupTopicRouteData {} {}", topic, topicRouteData);
-        // }
+        if (log.isDebugEnabled()) {
+            log.debug("pickupTopicRouteData {} {}", topic, topicRouteData);
+        }
 
         if (foundBrokerData && foundQueueData) {
             return topicRouteData;
