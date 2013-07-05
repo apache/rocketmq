@@ -335,6 +335,9 @@ public class RemotingHelper {
 
 
     public static String parseChannelRemoteAddr(final Channel channel) {
+        if(null == channel){
+            return "";
+        }
         final SocketAddress remote = channel.remoteAddress();
         final String addr = remote != null ? remote.toString() : "";
 
