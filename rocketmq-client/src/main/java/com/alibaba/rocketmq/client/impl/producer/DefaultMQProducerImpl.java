@@ -306,8 +306,21 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             for (int times = 0; times < 3
                     && (endTimestamp - beginTimestamp) < this.defaultMQProducer.getSendMsgTimeout(); times++) {
                 String lastBrokerName = null == mq ? null : mq.getBrokerName();
-                mq = topicPublishInfo.selectOneMessageQueue(lastBrokerName);
-                if (mq != null) {
+                MessageQueue tmpmq = topicPublishInfo.selectOneMessageQueue(lastBrokerName);
+                if (tmpmq != null) {
+                    // 对于根据默认Topic创建Topic的情况，需要进行队列数纠正
+                    if (!tmpmq.getTopic().equals(msg.getTopic())) {
+                        if (tmpmq.getQueueId() >= this.defaultMQProducer.getDefaultTopicQueueNums()) {
+                            mq = new MessageQueue();
+                            mq.setBrokerName(tmpmq.getBrokerName());
+                            mq.setQueueId(-1);
+                            mq.setTopic(msg.getTopic());
+                        }
+                        else {
+                            mq = tmpmq;
+                        }
+                    }
+
                     try {
                         sendResult = this.sendKernelImpl(msg, mq, communicationMode, sendCallback);
                         endTimestamp = System.currentTimeMillis();
