@@ -33,8 +33,6 @@ import com.alibaba.rocketmq.remoting.exception.RemotingConnectException;
 import com.alibaba.rocketmq.remoting.exception.RemotingSendRequestException;
 import com.alibaba.rocketmq.remoting.exception.RemotingTimeoutException;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
-import com.alibaba.rocketmq.remoting.protocol.RemotingProtos.KVPair;
-import com.alibaba.rocketmq.remoting.protocol.RemotingProtos.KVPairList;
 import com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair;
 import com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairList;
 import com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringList;
@@ -87,58 +85,6 @@ public class RemotingHelper {
         }
         StringList stringList = StringList.parseFrom(data);
         return stringList.getNameList();
-    }
-
-
-    /**
-     * 序列化名值对
-     */
-    public static byte[] hashMap2Bytes(final HashMap<Integer/* key */, String/* value */> nms) {
-        if (null == nms || nms.isEmpty()) {
-            return null;
-        }
-
-        KVPairList.Builder builder = KVPairList.newBuilder();
-
-        Iterator<Entry<Integer, String>> it = nms.entrySet().iterator();
-        for (int index = 0; it.hasNext(); index++) {
-            Entry<Integer, String> entry = (Entry<Integer, String>) it.next();
-            int key = entry.getKey();
-            String val = entry.getValue();
-
-            KVPair.Builder kvb = KVPair.newBuilder();
-            kvb.setKey(key);
-            kvb.setValue(val);
-            builder.addFields(index, kvb.build());
-        }
-
-        return builder.build().toByteArray();
-    }
-
-
-    /**
-     * 反序列化名值对
-     * 
-     * @throws InvalidProtocolBufferException
-     */
-    public static HashMap<Integer/* key */, String/* value */> bytes2HashMap(final byte[] data)
-            throws InvalidProtocolBufferException {
-        if (null == data) {
-            return null;
-        }
-
-        HashMap<Integer/* key */, String/* value */> result =
-                new HashMap<Integer/* key */, String/* value */>();
-
-        KVPairList kvList = KVPairList.parseFrom(data);
-
-        List<KVPair> kvList2 = kvList.getFieldsList();
-
-        for (KVPair kv : kvList2) {
-            result.put(kv.getKey(), kv.getValue());
-        }
-
-        return result;
     }
 
 
@@ -335,7 +281,7 @@ public class RemotingHelper {
 
 
     public static String parseChannelRemoteAddr(final Channel channel) {
-        if(null == channel){
+        if (null == channel) {
             return "";
         }
         final SocketAddress remote = channel.remoteAddress();

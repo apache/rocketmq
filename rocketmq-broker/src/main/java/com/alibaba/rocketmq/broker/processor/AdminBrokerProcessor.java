@@ -106,28 +106,6 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         case UNLOCK_BATCH_MQ:
             return this.unlockBatchMQ(ctx, request);
 
-        case PULL_ALL_CONSUMER_OFFSET:
-            break;
-        case QUERY_BROKER_OFFSET:
-            break;
-
-        case QUERY_MESSAGE:
-            break;
-        case REGISTER_BROKER:
-            break;
-        case REGISTER_ORDER_TOPIC:
-            break;
-        case SEND_MESSAGE:
-            break;
-        case TRIGGER_DELETE_FILES:
-            break;
-        case UNREGISTER_BROKER:
-            break;
-        case UNREGISTER_ORDER_TOPIC:
-            break;
-
-        case UPDATE_NAMESRV_CONFIG:
-            break;
         default:
             break;
         }
