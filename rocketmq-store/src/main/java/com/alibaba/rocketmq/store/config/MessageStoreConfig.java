@@ -123,6 +123,9 @@ public class MessageStoreConfig {
     // 事务回查定时间隔时间
     private long checkTransactionMessageTimerInterval = 1000 * 20;
 
+    // 磁盘空间超过90%警戒水位，自动开始删除文件
+    private boolean cleanFileForciblyEnable = true;
+
 
     public int getMapedFileSizeCommitLog() {
         return mapedFileSizeCommitLog;
@@ -654,5 +657,15 @@ public class MessageStoreConfig {
 
     public void setCheckTransactionMessageTimerInterval(long checkTransactionMessageTimerInterval) {
         this.checkTransactionMessageTimerInterval = checkTransactionMessageTimerInterval;
+    }
+
+
+    public boolean isCleanFileForciblyEnable() {
+        return cleanFileForciblyEnable;
+    }
+
+
+    public void setCleanFileForciblyEnable(boolean cleanFileForciblyEnable) {
+        this.cleanFileForciblyEnable = cleanFileForciblyEnable;
     }
 }

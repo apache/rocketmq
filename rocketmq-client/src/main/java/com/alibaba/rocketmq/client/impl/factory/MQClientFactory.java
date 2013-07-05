@@ -806,7 +806,9 @@ public class MQClientFactory {
                     }
                 }
                 catch (Exception e) {
-                    log.warn("updateTopicRouteInfoFromNameServer Exception", e);
+                    if (!topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
+                        log.warn("updateTopicRouteInfoFromNameServer Exception", e);
+                    }
                 }
                 finally {
                     this.lockNamesrv.unlock();

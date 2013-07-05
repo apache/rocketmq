@@ -134,7 +134,10 @@ public class DefaultMessageStore implements MessageStore {
      */
     class CleanCommitLogService extends ServiceThread {
         // 磁盘空间警戒水位，超过，则停止接收新消息（出于保护自身目的）
-        private final double DiskSpaveWarningLevelRatio = 0.90;
+        private final double DiskSpaceWarningLevelRatio = 0.95;
+
+        // 磁盘空间强制删除文件水位
+        private final double DiskSpaceCleanForciblyRatio = 0.90;
 
         private long lastRedeleteTimestamp = 0;
 
@@ -143,6 +146,9 @@ public class DefaultMessageStore implements MessageStore {
 
         // 手工触发删除消息
         private volatile int manualDeleteFileSeveralTimes = 0;
+
+        // 立刻开始强制删除文件
+        private volatile boolean cleanImmediately = false;
 
 
         public void excuteDeleteFilesManualy() {
@@ -172,18 +178,25 @@ public class DefaultMessageStore implements MessageStore {
             double ratio =
                     DefaultMessageStore.this.getMessageStoreConfig().getDiskMaxUsedSpaceRatio() / 100.0;
 
+            cleanImmediately = false;
+
             // 检测物理文件磁盘空间
             {
                 String storePathPhysic =
                         DefaultMessageStore.this.getMessageStoreConfig().getStorePathCommitLog();
                 double physicRatio = UtilALl.getDiskPartitionSpaceUsedPercent(storePathPhysic);
-                if (physicRatio > DiskSpaveWarningLevelRatio) {
+                if (physicRatio > DiskSpaceWarningLevelRatio) {
                     boolean diskok = DefaultMessageStore.this.runningFlags.getAndMakeDiskFull();
                     if (diskok) {
                         DefaultMessageStore.log.error("physic disk maybe full soon " + physicRatio
                                 + ", so mark disk full");
                         System.gc();
                     }
+
+                    cleanImmediately = true;
+                }
+                else if (physicRatio > DiskSpaceCleanForciblyRatio) {
+                    cleanImmediately = true;
                 }
                 else {
                     boolean diskok = DefaultMessageStore.this.runningFlags.getAndMakeDiskOK();
@@ -205,13 +218,18 @@ public class DefaultMessageStore implements MessageStore {
                 String storePathLogics =
                         DefaultMessageStore.this.getMessageStoreConfig().getStorePathConsumeQueue();
                 double logicsRatio = UtilALl.getDiskPartitionSpaceUsedPercent(storePathLogics);
-                if (logicsRatio > DiskSpaveWarningLevelRatio) {
+                if (logicsRatio > DiskSpaceWarningLevelRatio) {
                     boolean diskok = DefaultMessageStore.this.runningFlags.getAndMakeDiskFull();
                     if (diskok) {
                         DefaultMessageStore.log.error("logics disk maybe full soon " + logicsRatio
                                 + ", so mark disk full");
                         System.gc();
                     }
+
+                    cleanImmediately = true;
+                }
+                else if (logicsRatio > DiskSpaceCleanForciblyRatio) {
+                    cleanImmediately = true;
                 }
                 else {
                     boolean diskok = DefaultMessageStore.this.runningFlags.getAndMakeDiskOK();
@@ -227,6 +245,7 @@ public class DefaultMessageStore implements MessageStore {
                     return true;
                 }
             }
+
             return false;
         }
 
@@ -254,9 +273,15 @@ public class DefaultMessageStore implements MessageStore {
 
                 // 小时转化成毫秒
                 fileReservedTime *= 60 * 60 * 1000;
+
+                // 是否立刻强制删除文件
+                boolean cleanAtOnce =
+                        DefaultMessageStore.this.getMessageStoreConfig().isCleanFileForciblyEnable()
+                                && this.cleanImmediately;
+
                 deleteCount =
                         DefaultMessageStore.this.commitLog.deleteExpiredFile(fileReservedTime,
-                            deletePhysicFilesInterval, destroyMapedFileIntervalForcibly);
+                            deletePhysicFilesInterval, destroyMapedFileIntervalForcibly, cleanAtOnce);
                 if (deleteCount > 0) {
                     DefaultMessageStore.this.cleanConsumeQueueService.wakeup();
                 }
