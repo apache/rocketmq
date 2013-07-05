@@ -9,7 +9,7 @@ import org.slf4j.LoggerFactory;
 
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.constant.LoggerName;
-import com.alibaba.rocketmq.namesrv.NamesrvController2;
+import com.alibaba.rocketmq.namesrv.NamesrvController;
 import com.alibaba.rocketmq.remoting.protocol.RemotingSerializable;
 
 
@@ -22,14 +22,14 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingSerializable;
 public class KVConfigManager {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.NamesrvLoggerName);
 
-    private final NamesrvController2 namesrvController;
+    private final NamesrvController namesrvController;
 
     private final ReadWriteLock lock = new ReentrantReadWriteLock();
     private final HashMap<String/* Namespace */, HashMap<String/* Key */, String/* Value */>> configTable =
             new HashMap<String, HashMap<String, String>>();
 
 
-    public KVConfigManager(NamesrvController2 namesrvController) {
+    public KVConfigManager(NamesrvController namesrvController) {
         this.namesrvController = namesrvController;
     }
 
