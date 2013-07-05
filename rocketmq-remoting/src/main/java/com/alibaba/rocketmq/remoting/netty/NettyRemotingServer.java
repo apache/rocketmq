@@ -36,6 +36,7 @@ import com.alibaba.rocketmq.remoting.InvokeCallback;
 import com.alibaba.rocketmq.remoting.RemotingServer;
 import com.alibaba.rocketmq.remoting.common.Pair;
 import com.alibaba.rocketmq.remoting.common.RemotingHelper;
+import com.alibaba.rocketmq.remoting.common.RemotingUtil;
 import com.alibaba.rocketmq.remoting.exception.RemotingSendRequestException;
 import com.alibaba.rocketmq.remoting.exception.RemotingTimeoutException;
 import com.alibaba.rocketmq.remoting.exception.RemotingTooMuchRequestException;
@@ -124,7 +125,7 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
                     .toString(), ctx.channel()));
             }
 
-            ctx.channel().close();
+            RemotingUtil.closeChannel(ctx.channel());
         }
 
 
@@ -135,7 +136,7 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
                 if (evnet.state().equals(IdleState.ALL_IDLE)) {
                     log.warn("channel idle exception {}",
                         RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
-                    ctx.channel().close();
+                    RemotingUtil.closeChannel(ctx.channel());
                 }
             }
             ctx.fireUserEventTriggered(evt);

@@ -13,6 +13,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.alibaba.rocketmq.remoting.common.RemotingHelper;
+import com.alibaba.rocketmq.remoting.common.RemotingUtil;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 
 
@@ -40,7 +41,7 @@ public class NettyEncoder extends MessageToByteEncoder<RemotingCommand> {
             if (remotingCommand != null) {
                 log.error(remotingCommand.toString());
             }
-            ctx.channel().close();
+            RemotingUtil.closeChannel(ctx.channel());
         }
     }
 }

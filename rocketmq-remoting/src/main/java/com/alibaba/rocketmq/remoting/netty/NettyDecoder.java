@@ -11,6 +11,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.alibaba.rocketmq.remoting.common.RemotingHelper;
+import com.alibaba.rocketmq.remoting.common.RemotingUtil;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 
 
@@ -40,7 +41,7 @@ public class NettyDecoder extends LengthFieldBasedFrameDecoder {
         }
         catch (Exception e) {
             log.error("decode exception, " + RemotingHelper.parseChannelRemoteAddr(ctx.channel()), e);
-            ctx.channel().close();
+            RemotingUtil.closeChannel(ctx.channel());
         }
 
         return null;

@@ -15,6 +15,10 @@
  */
 package com.alibaba.rocketmq.remoting.common;
 
+import io.netty.channel.Channel;
+import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelFutureListener;
+
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.net.Inet6Address;
@@ -29,6 +33,9 @@ import java.nio.channels.SocketChannel;
 import java.nio.channels.spi.SelectorProvider;
 import java.util.Enumeration;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 
 /**
  * 网络相关方法
@@ -36,6 +43,7 @@ import java.util.Enumeration;
  * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public class RemotingUtil {
+    private static final Logger log = LoggerFactory.getLogger(RemotingHelper.RemotingLogName);
     public static final String OS_NAME = System.getProperty("os.name");
 
     private static boolean isLinuxPlatform = false;
@@ -185,5 +193,15 @@ public class RemotingUtil {
         }
 
         return null;
+    }
+    public static void closeChannel(Channel channel){
+        final String addrRemote=RemotingHelper.parseChannelRemoteAddr(channel);
+        channel.close().addListener(new ChannelFutureListener() {
+            @Override
+            public void operationComplete(ChannelFuture future) throws Exception {
+                log.info("closeChannel: close the connection to remote address[{}] result: {}",
+                    addrRemote, future.isSuccess());
+            }
+        });
     }
 }
