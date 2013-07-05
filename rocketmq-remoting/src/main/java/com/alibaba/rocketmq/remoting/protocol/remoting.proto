@@ -15,17 +15,6 @@ option optimize_for = SPEED;
 option java_package = "com.alibaba.rocketmq.remoting.protocol";
 option java_outer_classname = "RemotingProtos";
 
-// KV对
-message KVPair{
-    required int32 key=1;
-    required string value=2;
-}
-
-// KV对集合
-message KVPairList{
-    repeated KVPair fields=1;
-}
-
 // NV对
 message NVPair{
     required string name=1;

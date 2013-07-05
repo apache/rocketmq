@@ -4,5823 +4,3698 @@
 package com.alibaba.rocketmq.remoting.protocol;
 
 public final class RemotingProtos {
-    private RemotingProtos() {
-    }
-
-
-    public static void registerAllExtensions(com.google.protobuf.ExtensionRegistry registry) {
-    }
+  private RemotingProtos() {}
+  public static void registerAllExtensions(
+      com.google.protobuf.ExtensionRegistry registry) {
+  }
+  /**
+   * Protobuf enum {@code remoting.LanguageCode}
+   *
+   * <pre>
+   * 编程语言
+   * </pre>
+   */
+  public enum LanguageCode
+      implements com.google.protobuf.ProtocolMessageEnum {
+    /**
+     * <code>JAVA = 0;</code>
+     */
+    JAVA(0, 0),
+    /**
+     * <code>CPP = 1;</code>
+     */
+    CPP(1, 1),
+    /**
+     * <code>DOTNET = 2;</code>
+     */
+    DOTNET(2, 2),
+    /**
+     * <code>PYTHON = 3;</code>
+     */
+    PYTHON(3, 3),
+    /**
+     * <code>DELPHI = 4;</code>
+     */
+    DELPHI(4, 4),
+    /**
+     * <code>ERLANG = 5;</code>
+     */
+    ERLANG(5, 5),
+    /**
+     * <code>RUBY = 6;</code>
+     */
+    RUBY(6, 6),
+    /**
+     * <code>OTHER = 7;</code>
+     */
+    OTHER(7, 7),
+    ;
 
     /**
-     * Protobuf enum {@code remoting.LanguageCode}
-     * 
+     * <code>JAVA = 0;</code>
+     */
+    public static final int JAVA_VALUE = 0;
+    /**
+     * <code>CPP = 1;</code>
+     */
+    public static final int CPP_VALUE = 1;
+    /**
+     * <code>DOTNET = 2;</code>
+     */
+    public static final int DOTNET_VALUE = 2;
+    /**
+     * <code>PYTHON = 3;</code>
+     */
+    public static final int PYTHON_VALUE = 3;
+    /**
+     * <code>DELPHI = 4;</code>
+     */
+    public static final int DELPHI_VALUE = 4;
+    /**
+     * <code>ERLANG = 5;</code>
+     */
+    public static final int ERLANG_VALUE = 5;
+    /**
+     * <code>RUBY = 6;</code>
+     */
+    public static final int RUBY_VALUE = 6;
+    /**
+     * <code>OTHER = 7;</code>
+     */
+    public static final int OTHER_VALUE = 7;
+
+
+    public final int getNumber() { return value; }
+
+    public static LanguageCode valueOf(int value) {
+      switch (value) {
+        case 0: return JAVA;
+        case 1: return CPP;
+        case 2: return DOTNET;
+        case 3: return PYTHON;
+        case 4: return DELPHI;
+        case 5: return ERLANG;
+        case 6: return RUBY;
+        case 7: return OTHER;
+        default: return null;
+      }
+    }
+
+    public static com.google.protobuf.Internal.EnumLiteMap<LanguageCode>
+        internalGetValueMap() {
+      return internalValueMap;
+    }
+    private static com.google.protobuf.Internal.EnumLiteMap<LanguageCode>
+        internalValueMap =
+          new com.google.protobuf.Internal.EnumLiteMap<LanguageCode>() {
+            public LanguageCode findValueByNumber(int number) {
+              return LanguageCode.valueOf(number);
+            }
+          };
+
+    public final com.google.protobuf.Descriptors.EnumValueDescriptor
+        getValueDescriptor() {
+      return getDescriptor().getValues().get(index);
+    }
+    public final com.google.protobuf.Descriptors.EnumDescriptor
+        getDescriptorForType() {
+      return getDescriptor();
+    }
+    public static final com.google.protobuf.Descriptors.EnumDescriptor
+        getDescriptor() {
+      return com.alibaba.rocketmq.remoting.protocol.RemotingProtos.getDescriptor().getEnumTypes().get(0);
+    }
+
+    private static final LanguageCode[] VALUES = values();
+
+    public static LanguageCode valueOf(
+        com.google.protobuf.Descriptors.EnumValueDescriptor desc) {
+      if (desc.getType() != getDescriptor()) {
+        throw new java.lang.IllegalArgumentException(
+          "EnumValueDescriptor is not for this type.");
+      }
+      return VALUES[desc.getIndex()];
+    }
+
+    private final int index;
+    private final int value;
+
+    private LanguageCode(int index, int value) {
+      this.index = index;
+      this.value = value;
+    }
+
+    // @@protoc_insertion_point(enum_scope:remoting.LanguageCode)
+  }
+
+  /**
+   * Protobuf enum {@code remoting.FlagBit}
+   *
+   * <pre>
+   * Flag标记位
+   * </pre>
+   */
+  public enum FlagBit
+      implements com.google.protobuf.ProtocolMessageEnum {
+    /**
+     * <code>RPC_TYPE = 0;</code>
+     *
      * <pre>
-     * 编程语言
+     * 0, REQUEST_COMMAND
      * </pre>
      */
-    public enum LanguageCode implements com.google.protobuf.ProtocolMessageEnum {
-        /**
-         * <code>JAVA = 0;</code>
-         */
-        JAVA(0, 0),
-        /**
-         * <code>CPP = 1;</code>
-         */
-        CPP(1, 1),
-        /**
-         * <code>DOTNET = 2;</code>
-         */
-        DOTNET(2, 2),
-        /**
-         * <code>PYTHON = 3;</code>
-         */
-        PYTHON(3, 3),
-        /**
-         * <code>DELPHI = 4;</code>
-         */
-        DELPHI(4, 4),
-        /**
-         * <code>ERLANG = 5;</code>
-         */
-        ERLANG(5, 5),
-        /**
-         * <code>RUBY = 6;</code>
-         */
-        RUBY(6, 6),
-        /**
-         * <code>OTHER = 7;</code>
-         */
-        OTHER(7, 7), ;
+    RPC_TYPE(0, 0),
+    /**
+     * <code>RPC_ONEWAY = 1;</code>
+     *
+     * <pre>
+     * 0, RPC
+     * </pre>
+     */
+    RPC_ONEWAY(1, 1),
+    ;
 
-        /**
-         * <code>JAVA = 0;</code>
-         */
-        public static final int JAVA_VALUE = 0;
-        /**
-         * <code>CPP = 1;</code>
-         */
-        public static final int CPP_VALUE = 1;
-        /**
-         * <code>DOTNET = 2;</code>
-         */
-        public static final int DOTNET_VALUE = 2;
-        /**
-         * <code>PYTHON = 3;</code>
-         */
-        public static final int PYTHON_VALUE = 3;
-        /**
-         * <code>DELPHI = 4;</code>
-         */
-        public static final int DELPHI_VALUE = 4;
-        /**
-         * <code>ERLANG = 5;</code>
-         */
-        public static final int ERLANG_VALUE = 5;
-        /**
-         * <code>RUBY = 6;</code>
-         */
-        public static final int RUBY_VALUE = 6;
-        /**
-         * <code>OTHER = 7;</code>
-         */
-        public static final int OTHER_VALUE = 7;
+    /**
+     * <code>RPC_TYPE = 0;</code>
+     *
+     * <pre>
+     * 0, REQUEST_COMMAND
+     * </pre>
+     */
+    public static final int RPC_TYPE_VALUE = 0;
+    /**
+     * <code>RPC_ONEWAY = 1;</code>
+     *
+     * <pre>
+     * 0, RPC
+     * </pre>
+     */
+    public static final int RPC_ONEWAY_VALUE = 1;
 
 
-        public final int getNumber() {
-            return value;
-        }
+    public final int getNumber() { return value; }
+
+    public static FlagBit valueOf(int value) {
+      switch (value) {
+        case 0: return RPC_TYPE;
+        case 1: return RPC_ONEWAY;
+        default: return null;
+      }
+    }
+
+    public static com.google.protobuf.Internal.EnumLiteMap<FlagBit>
+        internalGetValueMap() {
+      return internalValueMap;
+    }
+    private static com.google.protobuf.Internal.EnumLiteMap<FlagBit>
+        internalValueMap =
+          new com.google.protobuf.Internal.EnumLiteMap<FlagBit>() {
+            public FlagBit findValueByNumber(int number) {
+              return FlagBit.valueOf(number);
+            }
+          };
+
+    public final com.google.protobuf.Descriptors.EnumValueDescriptor
+        getValueDescriptor() {
+      return getDescriptor().getValues().get(index);
+    }
+    public final com.google.protobuf.Descriptors.EnumDescriptor
+        getDescriptorForType() {
+      return getDescriptor();
+    }
+    public static final com.google.protobuf.Descriptors.EnumDescriptor
+        getDescriptor() {
+      return com.alibaba.rocketmq.remoting.protocol.RemotingProtos.getDescriptor().getEnumTypes().get(1);
+    }
+
+    private static final FlagBit[] VALUES = values();
+
+    public static FlagBit valueOf(
+        com.google.protobuf.Descriptors.EnumValueDescriptor desc) {
+      if (desc.getType() != getDescriptor()) {
+        throw new java.lang.IllegalArgumentException(
+          "EnumValueDescriptor is not for this type.");
+      }
+      return VALUES[desc.getIndex()];
+    }
+
+    private final int index;
+    private final int value;
+
+    private FlagBit(int index, int value) {
+      this.index = index;
+      this.value = value;
+    }
+
+    // @@protoc_insertion_point(enum_scope:remoting.FlagBit)
+  }
+
+  /**
+   * Protobuf enum {@code remoting.RequestCode}
+   *
+   * <pre>
+   * RPC请求代码
+   * </pre>
+   */
+  public enum RequestCode
+      implements com.google.protobuf.ProtocolMessageEnum {
+    /**
+     * <code>DEMO_REQUEST = 0;</code>
+     */
+    DEMO_REQUEST(0, 0),
+    ;
+
+    /**
+     * <code>DEMO_REQUEST = 0;</code>
+     */
+    public static final int DEMO_REQUEST_VALUE = 0;
 
 
-        public static LanguageCode valueOf(int value) {
-            switch (value) {
+    public final int getNumber() { return value; }
+
+    public static RequestCode valueOf(int value) {
+      switch (value) {
+        case 0: return DEMO_REQUEST;
+        default: return null;
+      }
+    }
+
+    public static com.google.protobuf.Internal.EnumLiteMap<RequestCode>
+        internalGetValueMap() {
+      return internalValueMap;
+    }
+    private static com.google.protobuf.Internal.EnumLiteMap<RequestCode>
+        internalValueMap =
+          new com.google.protobuf.Internal.EnumLiteMap<RequestCode>() {
+            public RequestCode findValueByNumber(int number) {
+              return RequestCode.valueOf(number);
+            }
+          };
+
+    public final com.google.protobuf.Descriptors.EnumValueDescriptor
+        getValueDescriptor() {
+      return getDescriptor().getValues().get(index);
+    }
+    public final com.google.protobuf.Descriptors.EnumDescriptor
+        getDescriptorForType() {
+      return getDescriptor();
+    }
+    public static final com.google.protobuf.Descriptors.EnumDescriptor
+        getDescriptor() {
+      return com.alibaba.rocketmq.remoting.protocol.RemotingProtos.getDescriptor().getEnumTypes().get(2);
+    }
+
+    private static final RequestCode[] VALUES = values();
+
+    public static RequestCode valueOf(
+        com.google.protobuf.Descriptors.EnumValueDescriptor desc) {
+      if (desc.getType() != getDescriptor()) {
+        throw new java.lang.IllegalArgumentException(
+          "EnumValueDescriptor is not for this type.");
+      }
+      return VALUES[desc.getIndex()];
+    }
+
+    private final int index;
+    private final int value;
+
+    private RequestCode(int index, int value) {
+      this.index = index;
+      this.value = value;
+    }
+
+    // @@protoc_insertion_point(enum_scope:remoting.RequestCode)
+  }
+
+  /**
+   * Protobuf enum {@code remoting.ResponseCode}
+   *
+   * <pre>
+   * RPC应答代码
+   * </pre>
+   */
+  public enum ResponseCode
+      implements com.google.protobuf.ProtocolMessageEnum {
+    /**
+     * <code>SUCCESS = 0;</code>
+     *
+     * <pre>
+     * 成功
+     * </pre>
+     */
+    SUCCESS(0, 0),
+    /**
+     * <code>SYSTEM_ERROR = 1;</code>
+     *
+     * <pre>
+     * 发生了未捕获异常
+     * </pre>
+     */
+    SYSTEM_ERROR(1, 1),
+    /**
+     * <code>SYSTEM_BUSY = 2;</code>
+     *
+     * <pre>
+     * 由于线程池拥堵，系统繁忙
+     * </pre>
+     */
+    SYSTEM_BUSY(2, 2),
+    /**
+     * <code>REQUEST_CODE_NOT_SUPPORTED = 3;</code>
+     *
+     * <pre>
+     * 请求代码不支持
+     * </pre>
+     */
+    REQUEST_CODE_NOT_SUPPORTED(3, 3),
+    ;
+
+    /**
+     * <code>SUCCESS = 0;</code>
+     *
+     * <pre>
+     * 成功
+     * </pre>
+     */
+    public static final int SUCCESS_VALUE = 0;
+    /**
+     * <code>SYSTEM_ERROR = 1;</code>
+     *
+     * <pre>
+     * 发生了未捕获异常
+     * </pre>
+     */
+    public static final int SYSTEM_ERROR_VALUE = 1;
+    /**
+     * <code>SYSTEM_BUSY = 2;</code>
+     *
+     * <pre>
+     * 由于线程池拥堵，系统繁忙
+     * </pre>
+     */
+    public static final int SYSTEM_BUSY_VALUE = 2;
+    /**
+     * <code>REQUEST_CODE_NOT_SUPPORTED = 3;</code>
+     *
+     * <pre>
+     * 请求代码不支持
+     * </pre>
+     */
+    public static final int REQUEST_CODE_NOT_SUPPORTED_VALUE = 3;
+
+
+    public final int getNumber() { return value; }
+
+    public static ResponseCode valueOf(int value) {
+      switch (value) {
+        case 0: return SUCCESS;
+        case 1: return SYSTEM_ERROR;
+        case 2: return SYSTEM_BUSY;
+        case 3: return REQUEST_CODE_NOT_SUPPORTED;
+        default: return null;
+      }
+    }
+
+    public static com.google.protobuf.Internal.EnumLiteMap<ResponseCode>
+        internalGetValueMap() {
+      return internalValueMap;
+    }
+    private static com.google.protobuf.Internal.EnumLiteMap<ResponseCode>
+        internalValueMap =
+          new com.google.protobuf.Internal.EnumLiteMap<ResponseCode>() {
+            public ResponseCode findValueByNumber(int number) {
+              return ResponseCode.valueOf(number);
+            }
+          };
+
+    public final com.google.protobuf.Descriptors.EnumValueDescriptor
+        getValueDescriptor() {
+      return getDescriptor().getValues().get(index);
+    }
+    public final com.google.protobuf.Descriptors.EnumDescriptor
+        getDescriptorForType() {
+      return getDescriptor();
+    }
+    public static final com.google.protobuf.Descriptors.EnumDescriptor
+        getDescriptor() {
+      return com.alibaba.rocketmq.remoting.protocol.RemotingProtos.getDescriptor().getEnumTypes().get(3);
+    }
+
+    private static final ResponseCode[] VALUES = values();
+
+    public static ResponseCode valueOf(
+        com.google.protobuf.Descriptors.EnumValueDescriptor desc) {
+      if (desc.getType() != getDescriptor()) {
+        throw new java.lang.IllegalArgumentException(
+          "EnumValueDescriptor is not for this type.");
+      }
+      return VALUES[desc.getIndex()];
+    }
+
+    private final int index;
+    private final int value;
+
+    private ResponseCode(int index, int value) {
+      this.index = index;
+      this.value = value;
+    }
+
+    // @@protoc_insertion_point(enum_scope:remoting.ResponseCode)
+  }
+
+  public interface NVPairOrBuilder
+      extends com.google.protobuf.MessageOrBuilder {
+
+    // required string name = 1;
+    /**
+     * <code>required string name = 1;</code>
+     */
+    boolean hasName();
+    /**
+     * <code>required string name = 1;</code>
+     */
+    java.lang.String getName();
+    /**
+     * <code>required string name = 1;</code>
+     */
+    com.google.protobuf.ByteString
+        getNameBytes();
+
+    // required string value = 2;
+    /**
+     * <code>required string value = 2;</code>
+     */
+    boolean hasValue();
+    /**
+     * <code>required string value = 2;</code>
+     */
+    java.lang.String getValue();
+    /**
+     * <code>required string value = 2;</code>
+     */
+    com.google.protobuf.ByteString
+        getValueBytes();
+  }
+  /**
+   * Protobuf type {@code remoting.NVPair}
+   *
+   * <pre>
+   * NV对
+   * </pre>
+   */
+  public static final class NVPair extends
+      com.google.protobuf.GeneratedMessage
+      implements NVPairOrBuilder {
+    // Use NVPair.newBuilder() to construct.
+    private NVPair(com.google.protobuf.GeneratedMessage.Builder<?> builder) {
+      super(builder);
+      this.unknownFields = builder.getUnknownFields();
+    }
+    private NVPair(boolean noInit) { this.unknownFields = com.google.protobuf.UnknownFieldSet.getDefaultInstance(); }
+
+    private static final NVPair defaultInstance;
+    public static NVPair getDefaultInstance() {
+      return defaultInstance;
+    }
+
+    public NVPair getDefaultInstanceForType() {
+      return defaultInstance;
+    }
+
+    private final com.google.protobuf.UnknownFieldSet unknownFields;
+    @java.lang.Override
+    public final com.google.protobuf.UnknownFieldSet
+        getUnknownFields() {
+      return this.unknownFields;
+    }
+    private NVPair(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      initFields();
+      int mutable_bitField0_ = 0;
+      com.google.protobuf.UnknownFieldSet.Builder unknownFields =
+          com.google.protobuf.UnknownFieldSet.newBuilder();
+      try {
+        boolean done = false;
+        while (!done) {
+          int tag = input.readTag();
+          switch (tag) {
             case 0:
-                return JAVA;
-            case 1:
-                return CPP;
-            case 2:
-                return DOTNET;
-            case 3:
-                return PYTHON;
-            case 4:
-                return DELPHI;
-            case 5:
-                return ERLANG;
-            case 6:
-                return RUBY;
-            case 7:
-                return OTHER;
-            default:
-                return null;
+              done = true;
+              break;
+            default: {
+              if (!parseUnknownField(input, unknownFields,
+                                     extensionRegistry, tag)) {
+                done = true;
+              }
+              break;
             }
-        }
-
-
-        public static com.google.protobuf.Internal.EnumLiteMap<LanguageCode> internalGetValueMap() {
-            return internalValueMap;
-        }
-
-        private static com.google.protobuf.Internal.EnumLiteMap<LanguageCode> internalValueMap =
-                new com.google.protobuf.Internal.EnumLiteMap<LanguageCode>() {
-                    public LanguageCode findValueByNumber(int number) {
-                        return LanguageCode.valueOf(number);
-                    }
-                };
-
-
-        public final com.google.protobuf.Descriptors.EnumValueDescriptor getValueDescriptor() {
-            return getDescriptor().getValues().get(index);
-        }
-
-
-        public final com.google.protobuf.Descriptors.EnumDescriptor getDescriptorForType() {
-            return getDescriptor();
-        }
-
-
-        public static final com.google.protobuf.Descriptors.EnumDescriptor getDescriptor() {
-            return com.alibaba.rocketmq.remoting.protocol.RemotingProtos.getDescriptor().getEnumTypes()
-                .get(0);
-        }
-
-        private static final LanguageCode[] VALUES = values();
-
-
-        public static LanguageCode valueOf(com.google.protobuf.Descriptors.EnumValueDescriptor desc) {
-            if (desc.getType() != getDescriptor()) {
-                throw new java.lang.IllegalArgumentException("EnumValueDescriptor is not for this type.");
+            case 10: {
+              bitField0_ |= 0x00000001;
+              name_ = input.readBytes();
+              break;
             }
-            return VALUES[desc.getIndex()];
+            case 18: {
+              bitField0_ |= 0x00000002;
+              value_ = input.readBytes();
+              break;
+            }
+          }
         }
-
-        private final int index;
-        private final int value;
-
-
-        private LanguageCode(int index, int value) {
-            this.index = index;
-            this.value = value;
-        }
-
-        // @@protoc_insertion_point(enum_scope:remoting.LanguageCode)
+      } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+        throw e.setUnfinishedMessage(this);
+      } catch (java.io.IOException e) {
+        throw new com.google.protobuf.InvalidProtocolBufferException(
+            e.getMessage()).setUnfinishedMessage(this);
+      } finally {
+        this.unknownFields = unknownFields.build();
+        makeExtensionsImmutable();
+      }
+    }
+    public static final com.google.protobuf.Descriptors.Descriptor
+        getDescriptor() {
+      return com.alibaba.rocketmq.remoting.protocol.RemotingProtos.internal_static_remoting_NVPair_descriptor;
     }
 
+    protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
+        internalGetFieldAccessorTable() {
+      return com.alibaba.rocketmq.remoting.protocol.RemotingProtos.internal_static_remoting_NVPair_fieldAccessorTable
+          .ensureFieldAccessorsInitialized(
+              com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair.class, com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair.Builder.class);
+    }
+
+    public static com.google.protobuf.Parser<NVPair> PARSER =
+        new com.google.protobuf.AbstractParser<NVPair>() {
+      public NVPair parsePartialFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        return new NVPair(input, extensionRegistry);
+      }
+    };
+
+    @java.lang.Override
+    public com.google.protobuf.Parser<NVPair> getParserForType() {
+      return PARSER;
+    }
+
+    private int bitField0_;
+    // required string name = 1;
+    public static final int NAME_FIELD_NUMBER = 1;
+    private java.lang.Object name_;
     /**
-     * Protobuf enum {@code remoting.FlagBit}
-     * 
-     * <pre>
-     * Flag标记位
-     * </pre>
+     * <code>required string name = 1;</code>
      */
-    public enum FlagBit implements com.google.protobuf.ProtocolMessageEnum {
-        /**
-         * <code>RPC_TYPE = 0;</code>
-         * 
-         * <pre>
-         * 0, REQUEST_COMMAND
-         * </pre>
-         */
-        RPC_TYPE(0, 0),
-        /**
-         * <code>RPC_ONEWAY = 1;</code>
-         * 
-         * <pre>
-         * 0, RPC
-         * </pre>
-         */
-        RPC_ONEWAY(1, 1), ;
-
-        /**
-         * <code>RPC_TYPE = 0;</code>
-         * 
-         * <pre>
-         * 0, REQUEST_COMMAND
-         * </pre>
-         */
-        public static final int RPC_TYPE_VALUE = 0;
-        /**
-         * <code>RPC_ONEWAY = 1;</code>
-         * 
-         * <pre>
-         * 0, RPC
-         * </pre>
-         */
-        public static final int RPC_ONEWAY_VALUE = 1;
-
-
-        public final int getNumber() {
-            return value;
-        }
-
-
-        public static FlagBit valueOf(int value) {
-            switch (value) {
-            case 0:
-                return RPC_TYPE;
-            case 1:
-                return RPC_ONEWAY;
-            default:
-                return null;
-            }
-        }
-
-
-        public static com.google.protobuf.Internal.EnumLiteMap<FlagBit> internalGetValueMap() {
-            return internalValueMap;
-        }
-
-        private static com.google.protobuf.Internal.EnumLiteMap<FlagBit> internalValueMap =
-                new com.google.protobuf.Internal.EnumLiteMap<FlagBit>() {
-                    public FlagBit findValueByNumber(int number) {
-                        return FlagBit.valueOf(number);
-                    }
-                };
-
-
-        public final com.google.protobuf.Descriptors.EnumValueDescriptor getValueDescriptor() {
-            return getDescriptor().getValues().get(index);
-        }
-
-
-        public final com.google.protobuf.Descriptors.EnumDescriptor getDescriptorForType() {
-            return getDescriptor();
-        }
-
-
-        public static final com.google.protobuf.Descriptors.EnumDescriptor getDescriptor() {
-            return com.alibaba.rocketmq.remoting.protocol.RemotingProtos.getDescriptor().getEnumTypes()
-                .get(1);
-        }
-
-        private static final FlagBit[] VALUES = values();
-
-
-        public static FlagBit valueOf(com.google.protobuf.Descriptors.EnumValueDescriptor desc) {
-            if (desc.getType() != getDescriptor()) {
-                throw new java.lang.IllegalArgumentException("EnumValueDescriptor is not for this type.");
-            }
-            return VALUES[desc.getIndex()];
-        }
-
-        private final int index;
-        private final int value;
-
-
-        private FlagBit(int index, int value) {
-            this.index = index;
-            this.value = value;
-        }
-
-        // @@protoc_insertion_point(enum_scope:remoting.FlagBit)
+    public boolean hasName() {
+      return ((bitField0_ & 0x00000001) == 0x00000001);
     }
-
     /**
-     * Protobuf enum {@code remoting.RequestCode}
-     * 
-     * <pre>
-     * RPC请求代码
-     * </pre>
+     * <code>required string name = 1;</code>
      */
-    public enum RequestCode implements com.google.protobuf.ProtocolMessageEnum {
-        /**
-         * <code>DEMO_REQUEST = 0;</code>
-         */
-        DEMO_REQUEST(0, 0), ;
-
-        /**
-         * <code>DEMO_REQUEST = 0;</code>
-         */
-        public static final int DEMO_REQUEST_VALUE = 0;
-
-
-        public final int getNumber() {
-            return value;
+    public java.lang.String getName() {
+      java.lang.Object ref = name_;
+      if (ref instanceof java.lang.String) {
+        return (java.lang.String) ref;
+      } else {
+        com.google.protobuf.ByteString bs = 
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        if (bs.isValidUtf8()) {
+          name_ = s;
         }
-
-
-        public static RequestCode valueOf(int value) {
-            switch (value) {
-            case 0:
-                return DEMO_REQUEST;
-            default:
-                return null;
-            }
-        }
-
-
-        public static com.google.protobuf.Internal.EnumLiteMap<RequestCode> internalGetValueMap() {
-            return internalValueMap;
-        }
-
-        private static com.google.protobuf.Internal.EnumLiteMap<RequestCode> internalValueMap =
-                new com.google.protobuf.Internal.EnumLiteMap<RequestCode>() {
-                    public RequestCode findValueByNumber(int number) {
-                        return RequestCode.valueOf(number);
-                    }
-                };
-
-
-        public final com.google.protobuf.Descriptors.EnumValueDescriptor getValueDescriptor() {
-            return getDescriptor().getValues().get(index);
-        }
-
-
-        public final com.google.protobuf.Descriptors.EnumDescriptor getDescriptorForType() {
-            return getDescriptor();
-        }
-
-
-        public static final com.google.protobuf.Descriptors.EnumDescriptor getDescriptor() {
-            return com.alibaba.rocketmq.remoting.protocol.RemotingProtos.getDescriptor().getEnumTypes()
-                .get(2);
-        }
-
-        private static final RequestCode[] VALUES = values();
-
-
-        public static RequestCode valueOf(com.google.protobuf.Descriptors.EnumValueDescriptor desc) {
-            if (desc.getType() != getDescriptor()) {
-                throw new java.lang.IllegalArgumentException("EnumValueDescriptor is not for this type.");
-            }
-            return VALUES[desc.getIndex()];
-        }
-
-        private final int index;
-        private final int value;
-
-
-        private RequestCode(int index, int value) {
-            this.index = index;
-            this.value = value;
-        }
-
-        // @@protoc_insertion_point(enum_scope:remoting.RequestCode)
+        return s;
+      }
     }
-
     /**
-     * Protobuf enum {@code remoting.ResponseCode}
-     * 
-     * <pre>
-     * RPC应答代码
-     * </pre>
+     * <code>required string name = 1;</code>
      */
-    public enum ResponseCode implements com.google.protobuf.ProtocolMessageEnum {
-        /**
-         * <code>SUCCESS = 0;</code>
-         * 
-         * <pre>
-         * 成功
-         * </pre>
-         */
-        SUCCESS(0, 0),
-        /**
-         * <code>SYSTEM_ERROR = 1;</code>
-         * 
-         * <pre>
-         * 发生了未捕获异常
-         * </pre>
-         */
-        SYSTEM_ERROR(1, 1),
-        /**
-         * <code>SYSTEM_BUSY = 2;</code>
-         * 
-         * <pre>
-         * 由于线程池拥堵，系统繁忙
-         * </pre>
-         */
-        SYSTEM_BUSY(2, 2),
-        /**
-         * <code>REQUEST_CODE_NOT_SUPPORTED = 3;</code>
-         * 
-         * <pre>
-         * 请求代码不支持
-         * </pre>
-         */
-        REQUEST_CODE_NOT_SUPPORTED(3, 3), ;
-
-        /**
-         * <code>SUCCESS = 0;</code>
-         * 
-         * <pre>
-         * 成功
-         * </pre>
-         */
-        public static final int SUCCESS_VALUE = 0;
-        /**
-         * <code>SYSTEM_ERROR = 1;</code>
-         * 
-         * <pre>
-         * 发生了未捕获异常
-         * </pre>
-         */
-        public static final int SYSTEM_ERROR_VALUE = 1;
-        /**
-         * <code>SYSTEM_BUSY = 2;</code>
-         * 
-         * <pre>
-         * 由于线程池拥堵，系统繁忙
-         * </pre>
-         */
-        public static final int SYSTEM_BUSY_VALUE = 2;
-        /**
-         * <code>REQUEST_CODE_NOT_SUPPORTED = 3;</code>
-         * 
-         * <pre>
-         * 请求代码不支持
-         * </pre>
-         */
-        public static final int REQUEST_CODE_NOT_SUPPORTED_VALUE = 3;
-
-
-        public final int getNumber() {
-            return value;
-        }
-
-
-        public static ResponseCode valueOf(int value) {
-            switch (value) {
-            case 0:
-                return SUCCESS;
-            case 1:
-                return SYSTEM_ERROR;
-            case 2:
-                return SYSTEM_BUSY;
-            case 3:
-                return REQUEST_CODE_NOT_SUPPORTED;
-            default:
-                return null;
-            }
-        }
-
-
-        public static com.google.protobuf.Internal.EnumLiteMap<ResponseCode> internalGetValueMap() {
-            return internalValueMap;
-        }
-
-        private static com.google.protobuf.Internal.EnumLiteMap<ResponseCode> internalValueMap =
-                new com.google.protobuf.Internal.EnumLiteMap<ResponseCode>() {
-                    public ResponseCode findValueByNumber(int number) {
-                        return ResponseCode.valueOf(number);
-                    }
-                };
-
-
-        public final com.google.protobuf.Descriptors.EnumValueDescriptor getValueDescriptor() {
-            return getDescriptor().getValues().get(index);
-        }
-
-
-        public final com.google.protobuf.Descriptors.EnumDescriptor getDescriptorForType() {
-            return getDescriptor();
-        }
-
-
-        public static final com.google.protobuf.Descriptors.EnumDescriptor getDescriptor() {
-            return com.alibaba.rocketmq.remoting.protocol.RemotingProtos.getDescriptor().getEnumTypes()
-                .get(3);
-        }
-
-        private static final ResponseCode[] VALUES = values();
-
-
-        public static ResponseCode valueOf(com.google.protobuf.Descriptors.EnumValueDescriptor desc) {
-            if (desc.getType() != getDescriptor()) {
-                throw new java.lang.IllegalArgumentException("EnumValueDescriptor is not for this type.");
-            }
-            return VALUES[desc.getIndex()];
-        }
-
-        private final int index;
-        private final int value;
-
-
-        private ResponseCode(int index, int value) {
-            this.index = index;
-            this.value = value;
-        }
-
-        // @@protoc_insertion_point(enum_scope:remoting.ResponseCode)
+    public com.google.protobuf.ByteString
+        getNameBytes() {
+      java.lang.Object ref = name_;
+      if (ref instanceof java.lang.String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        name_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
     }
 
-    public interface KVPairOrBuilder extends com.google.protobuf.MessageOrBuilder {
-
-        // required int32 key = 1;
-        /**
-         * <code>required int32 key = 1;</code>
-         */
-        boolean hasKey();
-
-
-        /**
-         * <code>required int32 key = 1;</code>
-         */
-        int getKey();
-
-
-        // required string value = 2;
-        /**
-         * <code>required string value = 2;</code>
-         */
-        boolean hasValue();
-
-
-        /**
-         * <code>required string value = 2;</code>
-         */
-        java.lang.String getValue();
-
-
-        /**
-         * <code>required string value = 2;</code>
-         */
-        com.google.protobuf.ByteString getValueBytes();
-    }
-
+    // required string value = 2;
+    public static final int VALUE_FIELD_NUMBER = 2;
+    private java.lang.Object value_;
     /**
-     * Protobuf type {@code remoting.KVPair}
-     * 
-     * <pre>
-     * KV对
-     * </pre>
+     * <code>required string value = 2;</code>
      */
-    public static final class KVPair extends com.google.protobuf.GeneratedMessage implements KVPairOrBuilder {
-        // Use KVPair.newBuilder() to construct.
-        private KVPair(com.google.protobuf.GeneratedMessage.Builder<?> builder) {
-            super(builder);
-            this.unknownFields = builder.getUnknownFields();
-        }
-
-
-        private KVPair(boolean noInit) {
-            this.unknownFields = com.google.protobuf.UnknownFieldSet.getDefaultInstance();
-        }
-
-        private static final KVPair defaultInstance;
-
-
-        public static KVPair getDefaultInstance() {
-            return defaultInstance;
-        }
-
-
-        public KVPair getDefaultInstanceForType() {
-            return defaultInstance;
-        }
-
-        private final com.google.protobuf.UnknownFieldSet unknownFields;
-
-
-        @java.lang.Override
-        public final com.google.protobuf.UnknownFieldSet getUnknownFields() {
-            return this.unknownFields;
-        }
-
-
-        private KVPair(com.google.protobuf.CodedInputStream input,
-                com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-                throws com.google.protobuf.InvalidProtocolBufferException {
-            initFields();
-            int mutable_bitField0_ = 0;
-            com.google.protobuf.UnknownFieldSet.Builder unknownFields =
-                    com.google.protobuf.UnknownFieldSet.newBuilder();
-            try {
-                boolean done = false;
-                while (!done) {
-                    int tag = input.readTag();
-                    switch (tag) {
-                    case 0:
-                        done = true;
-                        break;
-                    default: {
-                        if (!parseUnknownField(input, unknownFields, extensionRegistry, tag)) {
-                            done = true;
-                        }
-                        break;
-                    }
-                    case 8: {
-                        bitField0_ |= 0x00000001;
-                        key_ = input.readInt32();
-                        break;
-                    }
-                    case 18: {
-                        bitField0_ |= 0x00000002;
-                        value_ = input.readBytes();
-                        break;
-                    }
-                    }
-                }
-            }
-            catch (com.google.protobuf.InvalidProtocolBufferException e) {
-                throw e.setUnfinishedMessage(this);
-            }
-            catch (java.io.IOException e) {
-                throw new com.google.protobuf.InvalidProtocolBufferException(e.getMessage())
-                    .setUnfinishedMessage(this);
-            }
-            finally {
-                this.unknownFields = unknownFields.build();
-                makeExtensionsImmutable();
-            }
-        }
-
-
-        public static final com.google.protobuf.Descriptors.Descriptor getDescriptor() {
-            return com.alibaba.rocketmq.remoting.protocol.RemotingProtos.internal_static_remoting_KVPair_descriptor;
-        }
-
-
-        protected com.google.protobuf.GeneratedMessage.FieldAccessorTable internalGetFieldAccessorTable() {
-            return com.alibaba.rocketmq.remoting.protocol.RemotingProtos.internal_static_remoting_KVPair_fieldAccessorTable
-                .ensureFieldAccessorsInitialized(
-                    com.alibaba.rocketmq.remoting.protocol.RemotingProtos.KVPair.class,
-                    com.alibaba.rocketmq.remoting.protocol.RemotingProtos.KVPair.Builder.class);
-        }
-
-        public static com.google.protobuf.Parser<KVPair> PARSER =
-                new com.google.protobuf.AbstractParser<KVPair>() {
-                    public KVPair parsePartialFrom(com.google.protobuf.CodedInputStream input,
-                            com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-                            throws com.google.protobuf.InvalidProtocolBufferException {
-                        return new KVPair(input, extensionRegistry);
-                    }
-                };
-
-
-        @java.lang.Override
-        public com.google.protobuf.Parser<KVPair> getParserForType() {
-            return PARSER;
-        }
-
-        private int bitField0_;
-        // required int32 key = 1;
-        public static final int KEY_FIELD_NUMBER = 1;
-        private int key_;
-
-
-        /**
-         * <code>required int32 key = 1;</code>
-         */
-        public boolean hasKey() {
-            return ((bitField0_ & 0x00000001) == 0x00000001);
-        }
-
-
-        /**
-         * <code>required int32 key = 1;</code>
-         */
-        public int getKey() {
-            return key_;
-        }
-
-        // required string value = 2;
-        public static final int VALUE_FIELD_NUMBER = 2;
-        private java.lang.Object value_;
-
-
-        /**
-         * <code>required string value = 2;</code>
-         */
-        public boolean hasValue() {
-            return ((bitField0_ & 0x00000002) == 0x00000002);
-        }
-
-
-        /**
-         * <code>required string value = 2;</code>
-         */
-        public java.lang.String getValue() {
-            java.lang.Object ref = value_;
-            if (ref instanceof java.lang.String) {
-                return (java.lang.String) ref;
-            }
-            else {
-                com.google.protobuf.ByteString bs = (com.google.protobuf.ByteString) ref;
-                java.lang.String s = bs.toStringUtf8();
-                if (bs.isValidUtf8()) {
-                    value_ = s;
-                }
-                return s;
-            }
-        }
-
-
-        /**
-         * <code>required string value = 2;</code>
-         */
-        public com.google.protobuf.ByteString getValueBytes() {
-            java.lang.Object ref = value_;
-            if (ref instanceof java.lang.String) {
-                com.google.protobuf.ByteString b =
-                        com.google.protobuf.ByteString.copyFromUtf8((java.lang.String) ref);
-                value_ = b;
-                return b;
-            }
-            else {
-                return (com.google.protobuf.ByteString) ref;
-            }
-        }
-
-
-        private void initFields() {
-            key_ = 0;
-            value_ = "";
-        }
-
-        private byte memoizedIsInitialized = -1;
-
-
-        public final boolean isInitialized() {
-            byte isInitialized = memoizedIsInitialized;
-            if (isInitialized != -1)
-                return isInitialized == 1;
-
-            if (!hasKey()) {
-                memoizedIsInitialized = 0;
-                return false;
-            }
-            if (!hasValue()) {
-                memoizedIsInitialized = 0;
-                return false;
-            }
-            memoizedIsInitialized = 1;
-            return true;
-        }
-
-
-        public void writeTo(com.google.protobuf.CodedOutputStream output) throws java.io.IOException {
-            getSerializedSize();
-            if (((bitField0_ & 0x00000001) == 0x00000001)) {
-                output.writeInt32(1, key_);
-            }
-            if (((bitField0_ & 0x00000002) == 0x00000002)) {
-                output.writeBytes(2, getValueBytes());
-            }
-            getUnknownFields().writeTo(output);
-        }
-
-        private int memoizedSerializedSize = -1;
-
-
-        public int getSerializedSize() {
-            int size = memoizedSerializedSize;
-            if (size != -1)
-                return size;
-
-            size = 0;
-            if (((bitField0_ & 0x00000001) == 0x00000001)) {
-                size += com.google.protobuf.CodedOutputStream.computeInt32Size(1, key_);
-            }
-            if (((bitField0_ & 0x00000002) == 0x00000002)) {
-                size += com.google.protobuf.CodedOutputStream.computeBytesSize(2, getValueBytes());
-            }
-            size += getUnknownFields().getSerializedSize();
-            memoizedSerializedSize = size;
-            return size;
-        }
-
-        private static final long serialVersionUID = 0L;
-
-
-        @java.lang.Override
-        protected java.lang.Object writeReplace() throws java.io.ObjectStreamException {
-            return super.writeReplace();
-        }
-
-
-        public static com.alibaba.rocketmq.remoting.protocol.RemotingProtos.KVPair parseFrom(
-                com.google.protobuf.ByteString data)
-                throws com.google.protobuf.InvalidProtocolBufferException {
-            return PARSER.parseFrom(data);
-        }
-
-
-        public static com.alibaba.rocketmq.remoting.protocol.RemotingProtos.KVPair parseFrom(
-                com.google.protobuf.ByteString data,
-                com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-                throws com.google.protobuf.InvalidProtocolBufferException {
-            return PARSER.parseFrom(data, extensionRegistry);
-        }
-
-
-        public static com.alibaba.rocketmq.remoting.protocol.RemotingProtos.KVPair parseFrom(byte[] data)
-                throws com.google.protobuf.InvalidProtocolBufferException {
-            return PARSER.parseFrom(data);
-        }
-
-
-        public static com.alibaba.rocketmq.remoting.protocol.RemotingProtos.KVPair parseFrom(byte[] data,
-                com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-                throws com.google.protobuf.InvalidProtocolBufferException {
-            return PARSER.parseFrom(data, extensionRegistry);
-        }
-
-
-        public static com.alibaba.rocketmq.remoting.protocol.RemotingProtos.KVPair parseFrom(
-                java.io.InputStream input) throws java.io.IOException {
-            return PARSER.parseFrom(input);
-        }
-
-
-        public static com.alibaba.rocketmq.remoting.protocol.RemotingProtos.KVPair parseFrom(
-                java.io.InputStream input, com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-                throws java.io.IOException {
-            return PARSER.parseFrom(input, extensionRegistry);
-        }
-
-
-        public static com.alibaba.rocketmq.remoting.protocol.RemotingProtos.KVPair parseDelimitedFrom(
-                java.io.InputStream input) throws java.io.IOException {
-            return PARSER.parseDelimitedFrom(input);
-        }
-
-
-        public static com.alibaba.rocketmq.remoting.protocol.RemotingProtos.KVPair parseDelimitedFrom(
-                java.io.InputStream input, com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-                throws java.io.IOException {
-            return PARSER.parseDelimitedFrom(input, extensionRegistry);
-        }
-
-
-        public static com.alibaba.rocketmq.remoting.protocol.RemotingProtos.KVPair parseFrom(
-                com.google.protobuf.CodedInputStream input) throws java.io.IOException {
-            return PARSER.parseFrom(input);
-        }
-
-
-        public static com.alibaba.rocketmq.remoting.protocol.RemotingProtos.KVPair parseFrom(
-                com.google.protobuf.CodedInputStream input,
-                com.google.protobuf.ExtensionRegistryLite extensionRegistry) throws java.io.IOException {
-            return PARSER.parseFrom(input, extensionRegistry);
-        }
-
-
-        public static Builder newBuilder() {
-            return Builder.create();
-        }
-
-
-        public Builder newBuilderForType() {
-            return newBuilder();
-        }
-
-
-        public static Builder newBuilder(
-                com.alibaba.rocketmq.remoting.protocol.RemotingProtos.KVPair prototype) {
-            return newBuilder().mergeFrom(prototype);
-        }
-
-
-        public Builder toBuilder() {
-            return newBuilder(this);
-        }
-
-
-        @java.lang.Override
-        protected Builder newBuilderForType(com.google.protobuf.GeneratedMessage.BuilderParent parent) {
-            Builder builder = new Builder(parent);
-            return builder;
-        }
-
-        /**
-         * Protobuf type {@code remoting.KVPair}
-         * 
-         * <pre>
-         * KV对
-         * </pre>
-         */
-        public static final class Builder extends com.google.protobuf.GeneratedMessage.Builder<Builder>
-                implements com.alibaba.rocketmq.remoting.protocol.RemotingProtos.KVPairOrBuilder {
-            public static final com.google.protobuf.Descriptors.Descriptor getDescriptor() {
-                return com.alibaba.rocketmq.remoting.protocol.RemotingProtos.internal_static_remoting_KVPair_descriptor;
-            }
-
-
-            protected com.google.protobuf.GeneratedMessage.FieldAccessorTable internalGetFieldAccessorTable() {
-                return com.alibaba.rocketmq.remoting.protocol.RemotingProtos.internal_static_remoting_KVPair_fieldAccessorTable
-                    .ensureFieldAccessorsInitialized(
-                        com.alibaba.rocketmq.remoting.protocol.RemotingProtos.KVPair.class,
-                        com.alibaba.rocketmq.remoting.protocol.RemotingProtos.KVPair.Builder.class);
-            }
-
-
-            // Construct using
-            // com.alibaba.rocketmq.remoting.protocol.RemotingProtos.KVPair.newBuilder()
-            private Builder() {
-                maybeForceBuilderInitialization();
-            }
-
-
-            private Builder(com.google.protobuf.GeneratedMessage.BuilderParent parent) {
-                super(parent);
-                maybeForceBuilderInitialization();
-            }
-
-
-            private void maybeForceBuilderInitialization() {
-                if (com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders) {
-                }
-            }
-
-
-            private static Builder create() {
-                return new Builder();
-            }
-
-
-            public Builder clear() {
-                super.clear();
-                key_ = 0;
-                bitField0_ = (bitField0_ & ~0x00000001);
-                value_ = "";
-                bitField0_ = (bitField0_ & ~0x00000002);
-                return this;
-            }
-
-
-            public Builder clone() {
-                return create().mergeFrom(buildPartial());
-            }
-
-
-            public com.google.protobuf.Descriptors.Descriptor getDescriptorForType() {
-                return com.alibaba.rocketmq.remoting.protocol.RemotingProtos.internal_static_remoting_KVPair_descriptor;
-            }
-
-
-            public com.alibaba.rocketmq.remoting.protocol.RemotingProtos.KVPair getDefaultInstanceForType() {
-                return com.alibaba.rocketmq.remoting.protocol.RemotingProtos.KVPair.getDefaultInstance();
-            }
-
-
-            public com.alibaba.rocketmq.remoting.protocol.RemotingProtos.KVPair build() {
-                com.alibaba.rocketmq.remoting.protocol.RemotingProtos.KVPair result = buildPartial();
-                if (!result.isInitialized()) {
-                    throw newUninitializedMessageException(result);
-                }
-                return result;
-            }
-
-
-            public com.alibaba.rocketmq.remoting.protocol.RemotingProtos.KVPair buildPartial() {
-                com.alibaba.rocketmq.remoting.protocol.RemotingProtos.KVPair result =
-                        new com.alibaba.rocketmq.remoting.protocol.RemotingProtos.KVPair(this);
-                int from_bitField0_ = bitField0_;
-                int to_bitField0_ = 0;
-                if (((from_bitField0_ & 0x00000001) == 0x00000001)) {
-                    to_bitField0_ |= 0x00000001;
-                }
-                result.key_ = key_;
-                if (((from_bitField0_ & 0x00000002) == 0x00000002)) {
-                    to_bitField0_ |= 0x00000002;
-                }
-                result.value_ = value_;
-                result.bitField0_ = to_bitField0_;
-                onBuilt();
-                return result;
-            }
-
-
-            public Builder mergeFrom(com.google.protobuf.Message other) {
-                if (other instanceof com.alibaba.rocketmq.remoting.protocol.RemotingProtos.KVPair) {
-                    return mergeFrom((com.alibaba.rocketmq.remoting.protocol.RemotingProtos.KVPair) other);
-                }
-                else {
-                    super.mergeFrom(other);
-                    return this;
-                }
-            }
-
-
-            public Builder mergeFrom(com.alibaba.rocketmq.remoting.protocol.RemotingProtos.KVPair other) {
-                if (other == com.alibaba.rocketmq.remoting.protocol.RemotingProtos.KVPair
-                    .getDefaultInstance())
-                    return this;
-                if (other.hasKey()) {
-                    setKey(other.getKey());
-                }
-                if (other.hasValue()) {
-                    bitField0_ |= 0x00000002;
-                    value_ = other.value_;
-                    onChanged();
-                }
-                this.mergeUnknownFields(other.getUnknownFields());
-                return this;
-            }
-
-
-            public final boolean isInitialized() {
-                if (!hasKey()) {
-
-                    return false;
-                }
-                if (!hasValue()) {
-
-                    return false;
-                }
-                return true;
-            }
-
-
-            public Builder mergeFrom(com.google.protobuf.CodedInputStream input,
-                    com.google.protobuf.ExtensionRegistryLite extensionRegistry) throws java.io.IOException {
-                com.alibaba.rocketmq.remoting.protocol.RemotingProtos.KVPair parsedMessage = null;
-                try {
-                    parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
-                }
-                catch (com.google.protobuf.InvalidProtocolBufferException e) {
-                    parsedMessage =
-                            (com.alibaba.rocketmq.remoting.protocol.RemotingProtos.KVPair) e
-                                .getUnfinishedMessage();
-                    throw e;
-                }
-                finally {
-                    if (parsedMessage != null) {
-                        mergeFrom(parsedMessage);
-                    }
-                }
-                return this;
-            }
-
-            private int bitField0_;
-
-            // required int32 key = 1;
-            private int key_;
-
-
-            /**
-             * <code>required int32 key = 1;</code>
-             */
-            public boolean hasKey() {
-                return ((bitField0_ & 0x00000001) == 0x00000001);
-            }
-
-
-            /**
-             * <code>required int32 key = 1;</code>
-             */
-            public int getKey() {
-                return key_;
-            }
-
-
-            /**
-             * <code>required int32 key = 1;</code>
-             */
-            public Builder setKey(int value) {
-                bitField0_ |= 0x00000001;
-                key_ = value;
-                onChanged();
-                return this;
-            }
-
-
-            /**
-             * <code>required int32 key = 1;</code>
-             */
-            public Builder clearKey() {
-                bitField0_ = (bitField0_ & ~0x00000001);
-                key_ = 0;
-                onChanged();
-                return this;
-            }
-
-            // required string value = 2;
-            private java.lang.Object value_ = "";
-
-
-            /**
-             * <code>required string value = 2;</code>
-             */
-            public boolean hasValue() {
-                return ((bitField0_ & 0x00000002) == 0x00000002);
-            }
-
-
-            /**
-             * <code>required string value = 2;</code>
-             */
-            public java.lang.String getValue() {
-                java.lang.Object ref = value_;
-                if (!(ref instanceof java.lang.String)) {
-                    java.lang.String s = ((com.google.protobuf.ByteString) ref).toStringUtf8();
-                    value_ = s;
-                    return s;
-                }
-                else {
-                    return (java.lang.String) ref;
-                }
-            }
-
-
-            /**
-             * <code>required string value = 2;</code>
-             */
-            public com.google.protobuf.ByteString getValueBytes() {
-                java.lang.Object ref = value_;
-                if (ref instanceof String) {
-                    com.google.protobuf.ByteString b =
-                            com.google.protobuf.ByteString.copyFromUtf8((java.lang.String) ref);
-                    value_ = b;
-                    return b;
-                }
-                else {
-                    return (com.google.protobuf.ByteString) ref;
-                }
-            }
-
-
-            /**
-             * <code>required string value = 2;</code>
-             */
-            public Builder setValue(java.lang.String value) {
-                if (value == null) {
-                    throw new NullPointerException();
-                }
-                bitField0_ |= 0x00000002;
-                value_ = value;
-                onChanged();
-                return this;
-            }
-
-
-            /**
-             * <code>required string value = 2;</code>
-             */
-            public Builder clearValue() {
-                bitField0_ = (bitField0_ & ~0x00000002);
-                value_ = getDefaultInstance().getValue();
-                onChanged();
-                return this;
-            }
-
-
-            /**
-             * <code>required string value = 2;</code>
-             */
-            public Builder setValueBytes(com.google.protobuf.ByteString value) {
-                if (value == null) {
-                    throw new NullPointerException();
-                }
-                bitField0_ |= 0x00000002;
-                value_ = value;
-                onChanged();
-                return this;
-            }
-
-            // @@protoc_insertion_point(builder_scope:remoting.KVPair)
-        }
-
-        static {
-            defaultInstance = new KVPair(true);
-            defaultInstance.initFields();
-        }
-
-        // @@protoc_insertion_point(class_scope:remoting.KVPair)
+    public boolean hasValue() {
+      return ((bitField0_ & 0x00000002) == 0x00000002);
     }
-
-    public interface KVPairListOrBuilder extends com.google.protobuf.MessageOrBuilder {
-
-        // repeated .remoting.KVPair fields = 1;
-        /**
-         * <code>repeated .remoting.KVPair fields = 1;</code>
-         */
-        java.util.List<com.alibaba.rocketmq.remoting.protocol.RemotingProtos.KVPair> getFieldsList();
-
-
-        /**
-         * <code>repeated .remoting.KVPair fields = 1;</code>
-         */
-        com.alibaba.rocketmq.remoting.protocol.RemotingProtos.KVPair getFields(int index);
-
-
-        /**
-         * <code>repeated .remoting.KVPair fields = 1;</code>
-         */
-        int getFieldsCount();
-
-
-        /**
-         * <code>repeated .remoting.KVPair fields = 1;</code>
-         */
-        java.util.List<? extends com.alibaba.rocketmq.remoting.protocol.RemotingProtos.KVPairOrBuilder> getFieldsOrBuilderList();
-
-
-        /**
-         * <code>repeated .remoting.KVPair fields = 1;</code>
-         */
-        com.alibaba.rocketmq.remoting.protocol.RemotingProtos.KVPairOrBuilder getFieldsOrBuilder(int index);
-    }
-
     /**
-     * Protobuf type {@code remoting.KVPairList}
-     * 
-     * <pre>
-     * KV对集合
-     * </pre>
+     * <code>required string value = 2;</code>
      */
-    public static final class KVPairList extends com.google.protobuf.GeneratedMessage implements
-            KVPairListOrBuilder {
-        // Use KVPairList.newBuilder() to construct.
-        private KVPairList(com.google.protobuf.GeneratedMessage.Builder<?> builder) {
-            super(builder);
-            this.unknownFields = builder.getUnknownFields();
+    public java.lang.String getValue() {
+      java.lang.Object ref = value_;
+      if (ref instanceof java.lang.String) {
+        return (java.lang.String) ref;
+      } else {
+        com.google.protobuf.ByteString bs = 
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        if (bs.isValidUtf8()) {
+          value_ = s;
         }
-
-
-        private KVPairList(boolean noInit) {
-            this.unknownFields = com.google.protobuf.UnknownFieldSet.getDefaultInstance();
-        }
-
-        private static final KVPairList defaultInstance;
-
-
-        public static KVPairList getDefaultInstance() {
-            return defaultInstance;
-        }
-
-
-        public KVPairList getDefaultInstanceForType() {
-            return defaultInstance;
-        }
-
-        private final com.google.protobuf.UnknownFieldSet unknownFields;
-
-
-        @java.lang.Override
-        public final com.google.protobuf.UnknownFieldSet getUnknownFields() {
-            return this.unknownFields;
-        }
-
-
-        private KVPairList(com.google.protobuf.CodedInputStream input,
-                com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-                throws com.google.protobuf.InvalidProtocolBufferException {
-            initFields();
-            int mutable_bitField0_ = 0;
-            com.google.protobuf.UnknownFieldSet.Builder unknownFields =
-                    com.google.protobuf.UnknownFieldSet.newBuilder();
-            try {
-                boolean done = false;
-                while (!done) {
-                    int tag = input.readTag();
-                    switch (tag) {
-                    case 0:
-                        done = true;
-                        break;
-                    default: {
-                        if (!parseUnknownField(input, unknownFields, extensionRegistry, tag)) {
-                            done = true;
-                        }
-                        break;
-                    }
-                    case 10: {
-                        if (!((mutable_bitField0_ & 0x00000001) == 0x00000001)) {
-                            fields_ =
-                                    new java.util.ArrayList<com.alibaba.rocketmq.remoting.protocol.RemotingProtos.KVPair>();
-                            mutable_bitField0_ |= 0x00000001;
-                        }
-                        fields_.add(input.readMessage(
-                            com.alibaba.rocketmq.remoting.protocol.RemotingProtos.KVPair.PARSER,
-                            extensionRegistry));
-                        break;
-                    }
-                    }
-                }
-            }
-            catch (com.google.protobuf.InvalidProtocolBufferException e) {
-                throw e.setUnfinishedMessage(this);
-            }
-            catch (java.io.IOException e) {
-                throw new com.google.protobuf.InvalidProtocolBufferException(e.getMessage())
-                    .setUnfinishedMessage(this);
-            }
-            finally {
-                if (((mutable_bitField0_ & 0x00000001) == 0x00000001)) {
-                    fields_ = java.util.Collections.unmodifiableList(fields_);
-                }
-                this.unknownFields = unknownFields.build();
-                makeExtensionsImmutable();
-            }
-        }
-
-
-        public static final com.google.protobuf.Descriptors.Descriptor getDescriptor() {
-            return com.alibaba.rocketmq.remoting.protocol.RemotingProtos.internal_static_remoting_KVPairList_descriptor;
-        }
-
-
-        protected com.google.protobuf.GeneratedMessage.FieldAccessorTable internalGetFieldAccessorTable() {
-            return com.alibaba.rocketmq.remoting.protocol.RemotingProtos.internal_static_remoting_KVPairList_fieldAccessorTable
-                .ensureFieldAccessorsInitialized(
-                    com.alibaba.rocketmq.remoting.protocol.RemotingProtos.KVPairList.class,
-                    com.alibaba.rocketmq.remoting.protocol.RemotingProtos.KVPairList.Builder.class);
-        }
-
-        public static com.google.protobuf.Parser<KVPairList> PARSER =
-                new com.google.protobuf.AbstractParser<KVPairList>() {
-                    public KVPairList parsePartialFrom(com.google.protobuf.CodedInputStream input,
-                            com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-                            throws com.google.protobuf.InvalidProtocolBufferException {
-                        return new KVPairList(input, extensionRegistry);
-                    }
-                };
-
-
-        @java.lang.Override
-        public com.google.protobuf.Parser<KVPairList> getParserForType() {
-            return PARSER;
-        }
-
-        // repeated .remoting.KVPair fields = 1;
-        public static final int FIELDS_FIELD_NUMBER = 1;
-        private java.util.List<com.alibaba.rocketmq.remoting.protocol.RemotingProtos.KVPair> fields_;
-
-
-        /**
-         * <code>repeated .remoting.KVPair fields = 1;</code>
-         */
-        public java.util.List<com.alibaba.rocketmq.remoting.protocol.RemotingProtos.KVPair> getFieldsList() {
-            return fields_;
-        }
-
-
-        /**
-         * <code>repeated .remoting.KVPair fields = 1;</code>
-         */
-        public java.util.List<? extends com.alibaba.rocketmq.remoting.protocol.RemotingProtos.KVPairOrBuilder> getFieldsOrBuilderList() {
-            return fields_;
-        }
-
-
-        /**
-         * <code>repeated .remoting.KVPair fields = 1;</code>
-         */
-        public int getFieldsCount() {
-            return fields_.size();
-        }
-
-
-        /**
-         * <code>repeated .remoting.KVPair fields = 1;</code>
-         */
-        public com.alibaba.rocketmq.remoting.protocol.RemotingProtos.KVPair getFields(int index) {
-            return fields_.get(index);
-        }
-
-
-        /**
-         * <code>repeated .remoting.KVPair fields = 1;</code>
-         */
-        public com.alibaba.rocketmq.remoting.protocol.RemotingProtos.KVPairOrBuilder getFieldsOrBuilder(
-                int index) {
-            return fields_.get(index);
-        }
-
-
-        private void initFields() {
-            fields_ = java.util.Collections.emptyList();
-        }
-
-        private byte memoizedIsInitialized = -1;
-
-
-        public final boolean isInitialized() {
-            byte isInitialized = memoizedIsInitialized;
-            if (isInitialized != -1)
-                return isInitialized == 1;
-
-            for (int i = 0; i < getFieldsCount(); i++) {
-                if (!getFields(i).isInitialized()) {
-                    memoizedIsInitialized = 0;
-                    return false;
-                }
-            }
-            memoizedIsInitialized = 1;
-            return true;
-        }
-
-
-        public void writeTo(com.google.protobuf.CodedOutputStream output) throws java.io.IOException {
-            getSerializedSize();
-            for (int i = 0; i < fields_.size(); i++) {
-                output.writeMessage(1, fields_.get(i));
-            }
-            getUnknownFields().writeTo(output);
-        }
-
-        private int memoizedSerializedSize = -1;
-
-
-        public int getSerializedSize() {
-            int size = memoizedSerializedSize;
-            if (size != -1)
-                return size;
-
-            size = 0;
-            for (int i = 0; i < fields_.size(); i++) {
-                size += com.google.protobuf.CodedOutputStream.computeMessageSize(1, fields_.get(i));
-            }
-            size += getUnknownFields().getSerializedSize();
-            memoizedSerializedSize = size;
-            return size;
-        }
-
-        private static final long serialVersionUID = 0L;
-
-
-        @java.lang.Override
-        protected java.lang.Object writeReplace() throws java.io.ObjectStreamException {
-            return super.writeReplace();
-        }
-
-
-        public static com.alibaba.rocketmq.remoting.protocol.RemotingProtos.KVPairList parseFrom(
-                com.google.protobuf.ByteString data)
-                throws com.google.protobuf.InvalidProtocolBufferException {
-            return PARSER.parseFrom(data);
-        }
-
-
-        public static com.alibaba.rocketmq.remoting.protocol.RemotingProtos.KVPairList parseFrom(
-                com.google.protobuf.ByteString data,
-                com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-                throws com.google.protobuf.InvalidProtocolBufferException {
-            return PARSER.parseFrom(data, extensionRegistry);
-        }
-
-
-        public static com.alibaba.rocketmq.remoting.protocol.RemotingProtos.KVPairList parseFrom(byte[] data)
-                throws com.google.protobuf.InvalidProtocolBufferException {
-            return PARSER.parseFrom(data);
-        }
-
-
-        public static com.alibaba.rocketmq.remoting.protocol.RemotingProtos.KVPairList parseFrom(byte[] data,
-                com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-                throws com.google.protobuf.InvalidProtocolBufferException {
-            return PARSER.parseFrom(data, extensionRegistry);
-        }
-
-
-        public static com.alibaba.rocketmq.remoting.protocol.RemotingProtos.KVPairList parseFrom(
-                java.io.InputStream input) throws java.io.IOException {
-            return PARSER.parseFrom(input);
-        }
-
-
-        public static com.alibaba.rocketmq.remoting.protocol.RemotingProtos.KVPairList parseFrom(
-                java.io.InputStream input, com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-                throws java.io.IOException {
-            return PARSER.parseFrom(input, extensionRegistry);
-        }
-
-
-        public static com.alibaba.rocketmq.remoting.protocol.RemotingProtos.KVPairList parseDelimitedFrom(
-                java.io.InputStream input) throws java.io.IOException {
-            return PARSER.parseDelimitedFrom(input);
-        }
-
-
-        public static com.alibaba.rocketmq.remoting.protocol.RemotingProtos.KVPairList parseDelimitedFrom(
-                java.io.InputStream input, com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-                throws java.io.IOException {
-            return PARSER.parseDelimitedFrom(input, extensionRegistry);
-        }
-
-
-        public static com.alibaba.rocketmq.remoting.protocol.RemotingProtos.KVPairList parseFrom(
-                com.google.protobuf.CodedInputStream input) throws java.io.IOException {
-            return PARSER.parseFrom(input);
-        }
-
-
-        public static com.alibaba.rocketmq.remoting.protocol.RemotingProtos.KVPairList parseFrom(
-                com.google.protobuf.CodedInputStream input,
-                com.google.protobuf.ExtensionRegistryLite extensionRegistry) throws java.io.IOException {
-            return PARSER.parseFrom(input, extensionRegistry);
-        }
-
-
-        public static Builder newBuilder() {
-            return Builder.create();
-        }
-
-
-        public Builder newBuilderForType() {
-            return newBuilder();
-        }
-
-
-        public static Builder newBuilder(
-                com.alibaba.rocketmq.remoting.protocol.RemotingProtos.KVPairList prototype) {
-            return newBuilder().mergeFrom(prototype);
-        }
-
-
-        public Builder toBuilder() {
-            return newBuilder(this);
-        }
-
-
-        @java.lang.Override
-        protected Builder newBuilderForType(com.google.protobuf.GeneratedMessage.BuilderParent parent) {
-            Builder builder = new Builder(parent);
-            return builder;
-        }
-
-        /**
-         * Protobuf type {@code remoting.KVPairList}
-         * 
-         * <pre>
-         * KV对集合
-         * </pre>
-         */
-        public static final class Builder extends com.google.protobuf.GeneratedMessage.Builder<Builder>
-                implements com.alibaba.rocketmq.remoting.protocol.RemotingProtos.KVPairListOrBuilder {
-            public static final com.google.protobuf.Descriptors.Descriptor getDescriptor() {
-                return com.alibaba.rocketmq.remoting.protocol.RemotingProtos.internal_static_remoting_KVPairList_descriptor;
-            }
-
-
-            protected com.google.protobuf.GeneratedMessage.FieldAccessorTable internalGetFieldAccessorTable() {
-                return com.alibaba.rocketmq.remoting.protocol.RemotingProtos.internal_static_remoting_KVPairList_fieldAccessorTable
-                    .ensureFieldAccessorsInitialized(
-                        com.alibaba.rocketmq.remoting.protocol.RemotingProtos.KVPairList.class,
-                        com.alibaba.rocketmq.remoting.protocol.RemotingProtos.KVPairList.Builder.class);
-            }
-
-
-            // Construct using
-            // com.alibaba.rocketmq.remoting.protocol.RemotingProtos.KVPairList.newBuilder()
-            private Builder() {
-                maybeForceBuilderInitialization();
-            }
-
-
-            private Builder(com.google.protobuf.GeneratedMessage.BuilderParent parent) {
-                super(parent);
-                maybeForceBuilderInitialization();
-            }
-
-
-            private void maybeForceBuilderInitialization() {
-                if (com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders) {
-                    getFieldsFieldBuilder();
-                }
-            }
-
-
-            private static Builder create() {
-                return new Builder();
-            }
-
-
-            public Builder clear() {
-                super.clear();
-                if (fieldsBuilder_ == null) {
-                    fields_ = java.util.Collections.emptyList();
-                    bitField0_ = (bitField0_ & ~0x00000001);
-                }
-                else {
-                    fieldsBuilder_.clear();
-                }
-                return this;
-            }
-
-
-            public Builder clone() {
-                return create().mergeFrom(buildPartial());
-            }
-
-
-            public com.google.protobuf.Descriptors.Descriptor getDescriptorForType() {
-                return com.alibaba.rocketmq.remoting.protocol.RemotingProtos.internal_static_remoting_KVPairList_descriptor;
-            }
-
-
-            public com.alibaba.rocketmq.remoting.protocol.RemotingProtos.KVPairList getDefaultInstanceForType() {
-                return com.alibaba.rocketmq.remoting.protocol.RemotingProtos.KVPairList.getDefaultInstance();
-            }
-
-
-            public com.alibaba.rocketmq.remoting.protocol.RemotingProtos.KVPairList build() {
-                com.alibaba.rocketmq.remoting.protocol.RemotingProtos.KVPairList result = buildPartial();
-                if (!result.isInitialized()) {
-                    throw newUninitializedMessageException(result);
-                }
-                return result;
-            }
-
-
-            public com.alibaba.rocketmq.remoting.protocol.RemotingProtos.KVPairList buildPartial() {
-                com.alibaba.rocketmq.remoting.protocol.RemotingProtos.KVPairList result =
-                        new com.alibaba.rocketmq.remoting.protocol.RemotingProtos.KVPairList(this);
-                int from_bitField0_ = bitField0_;
-                if (fieldsBuilder_ == null) {
-                    if (((bitField0_ & 0x00000001) == 0x00000001)) {
-                        fields_ = java.util.Collections.unmodifiableList(fields_);
-                        bitField0_ = (bitField0_ & ~0x00000001);
-                    }
-                    result.fields_ = fields_;
-                }
-                else {
-                    result.fields_ = fieldsBuilder_.build();
-                }
-                onBuilt();
-                return result;
-            }
-
-
-            public Builder mergeFrom(com.google.protobuf.Message other) {
-                if (other instanceof com.alibaba.rocketmq.remoting.protocol.RemotingProtos.KVPairList) {
-                    return mergeFrom((com.alibaba.rocketmq.remoting.protocol.RemotingProtos.KVPairList) other);
-                }
-                else {
-                    super.mergeFrom(other);
-                    return this;
-                }
-            }
-
-
-            public Builder mergeFrom(com.alibaba.rocketmq.remoting.protocol.RemotingProtos.KVPairList other) {
-                if (other == com.alibaba.rocketmq.remoting.protocol.RemotingProtos.KVPairList
-                    .getDefaultInstance())
-                    return this;
-                if (fieldsBuilder_ == null) {
-                    if (!other.fields_.isEmpty()) {
-                        if (fields_.isEmpty()) {
-                            fields_ = other.fields_;
-                            bitField0_ = (bitField0_ & ~0x00000001);
-                        }
-                        else {
-                            ensureFieldsIsMutable();
-                            fields_.addAll(other.fields_);
-                        }
-                        onChanged();
-                    }
-                }
-                else {
-                    if (!other.fields_.isEmpty()) {
-                        if (fieldsBuilder_.isEmpty()) {
-                            fieldsBuilder_.dispose();
-                            fieldsBuilder_ = null;
-                            fields_ = other.fields_;
-                            bitField0_ = (bitField0_ & ~0x00000001);
-                            fieldsBuilder_ =
-                                    com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ? getFieldsFieldBuilder()
-                                            : null;
-                        }
-                        else {
-                            fieldsBuilder_.addAllMessages(other.fields_);
-                        }
-                    }
-                }
-                this.mergeUnknownFields(other.getUnknownFields());
-                return this;
-            }
-
-
-            public final boolean isInitialized() {
-                for (int i = 0; i < getFieldsCount(); i++) {
-                    if (!getFields(i).isInitialized()) {
-
-                        return false;
-                    }
-                }
-                return true;
-            }
-
-
-            public Builder mergeFrom(com.google.protobuf.CodedInputStream input,
-                    com.google.protobuf.ExtensionRegistryLite extensionRegistry) throws java.io.IOException {
-                com.alibaba.rocketmq.remoting.protocol.RemotingProtos.KVPairList parsedMessage = null;
-                try {
-                    parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
-                }
-                catch (com.google.protobuf.InvalidProtocolBufferException e) {
-                    parsedMessage =
-                            (com.alibaba.rocketmq.remoting.protocol.RemotingProtos.KVPairList) e
-                                .getUnfinishedMessage();
-                    throw e;
-                }
-                finally {
-                    if (parsedMessage != null) {
-                        mergeFrom(parsedMessage);
-                    }
-                }
-                return this;
-            }
-
-            private int bitField0_;
-
-            // repeated .remoting.KVPair fields = 1;
-            private java.util.List<com.alibaba.rocketmq.remoting.protocol.RemotingProtos.KVPair> fields_ =
-                    java.util.Collections.emptyList();
-
-
-            private void ensureFieldsIsMutable() {
-                if (!((bitField0_ & 0x00000001) == 0x00000001)) {
-                    fields_ =
-                            new java.util.ArrayList<com.alibaba.rocketmq.remoting.protocol.RemotingProtos.KVPair>(
-                                fields_);
-                    bitField0_ |= 0x00000001;
-                }
-            }
-
-            private com.google.protobuf.RepeatedFieldBuilder<com.alibaba.rocketmq.remoting.protocol.RemotingProtos.KVPair, com.alibaba.rocketmq.remoting.protocol.RemotingProtos.KVPair.Builder, com.alibaba.rocketmq.remoting.protocol.RemotingProtos.KVPairOrBuilder> fieldsBuilder_;
-
-
-            /**
-             * <code>repeated .remoting.KVPair fields = 1;</code>
-             */
-            public java.util.List<com.alibaba.rocketmq.remoting.protocol.RemotingProtos.KVPair> getFieldsList() {
-                if (fieldsBuilder_ == null) {
-                    return java.util.Collections.unmodifiableList(fields_);
-                }
-                else {
-                    return fieldsBuilder_.getMessageList();
-                }
-            }
-
-
-            /**
-             * <code>repeated .remoting.KVPair fields = 1;</code>
-             */
-            public int getFieldsCount() {
-                if (fieldsBuilder_ == null) {
-                    return fields_.size();
-                }
-                else {
-                    return fieldsBuilder_.getCount();
-                }
-            }
-
-
-            /**
-             * <code>repeated .remoting.KVPair fields = 1;</code>
-             */
-            public com.alibaba.rocketmq.remoting.protocol.RemotingProtos.KVPair getFields(int index) {
-                if (fieldsBuilder_ == null) {
-                    return fields_.get(index);
-                }
-                else {
-                    return fieldsBuilder_.getMessage(index);
-                }
-            }
-
-
-            /**
-             * <code>repeated .remoting.KVPair fields = 1;</code>
-             */
-            public Builder setFields(int index,
-                    com.alibaba.rocketmq.remoting.protocol.RemotingProtos.KVPair value) {
-                if (fieldsBuilder_ == null) {
-                    if (value == null) {
-                        throw new NullPointerException();
-                    }
-                    ensureFieldsIsMutable();
-                    fields_.set(index, value);
-                    onChanged();
-                }
-                else {
-                    fieldsBuilder_.setMessage(index, value);
-                }
-                return this;
-            }
-
-
-            /**
-             * <code>repeated .remoting.KVPair fields = 1;</code>
-             */
-            public Builder setFields(int index,
-                    com.alibaba.rocketmq.remoting.protocol.RemotingProtos.KVPair.Builder builderForValue) {
-                if (fieldsBuilder_ == null) {
-                    ensureFieldsIsMutable();
-                    fields_.set(index, builderForValue.build());
-                    onChanged();
-                }
-                else {
-                    fieldsBuilder_.setMessage(index, builderForValue.build());
-                }
-                return this;
-            }
-
-
-            /**
-             * <code>repeated .remoting.KVPair fields = 1;</code>
-             */
-            public Builder addFields(com.alibaba.rocketmq.remoting.protocol.RemotingProtos.KVPair value) {
-                if (fieldsBuilder_ == null) {
-                    if (value == null) {
-                        throw new NullPointerException();
-                    }
-                    ensureFieldsIsMutable();
-                    fields_.add(value);
-                    onChanged();
-                }
-                else {
-                    fieldsBuilder_.addMessage(value);
-                }
-                return this;
-            }
-
-
-            /**
-             * <code>repeated .remoting.KVPair fields = 1;</code>
-             */
-            public Builder addFields(int index,
-                    com.alibaba.rocketmq.remoting.protocol.RemotingProtos.KVPair value) {
-                if (fieldsBuilder_ == null) {
-                    if (value == null) {
-                        throw new NullPointerException();
-                    }
-                    ensureFieldsIsMutable();
-                    fields_.add(index, value);
-                    onChanged();
-                }
-                else {
-                    fieldsBuilder_.addMessage(index, value);
-                }
-                return this;
-            }
-
-
-            /**
-             * <code>repeated .remoting.KVPair fields = 1;</code>
-             */
-            public Builder addFields(
-                    com.alibaba.rocketmq.remoting.protocol.RemotingProtos.KVPair.Builder builderForValue) {
-                if (fieldsBuilder_ == null) {
-                    ensureFieldsIsMutable();
-                    fields_.add(builderForValue.build());
-                    onChanged();
-                }
-                else {
-                    fieldsBuilder_.addMessage(builderForValue.build());
-                }
-                return this;
-            }
-
-
-            /**
-             * <code>repeated .remoting.KVPair fields = 1;</code>
-             */
-            public Builder addFields(int index,
-                    com.alibaba.rocketmq.remoting.protocol.RemotingProtos.KVPair.Builder builderForValue) {
-                if (fieldsBuilder_ == null) {
-                    ensureFieldsIsMutable();
-                    fields_.add(index, builderForValue.build());
-                    onChanged();
-                }
-                else {
-                    fieldsBuilder_.addMessage(index, builderForValue.build());
-                }
-                return this;
-            }
-
-
-            /**
-             * <code>repeated .remoting.KVPair fields = 1;</code>
-             */
-            public Builder addAllFields(
-                    java.lang.Iterable<? extends com.alibaba.rocketmq.remoting.protocol.RemotingProtos.KVPair> values) {
-                if (fieldsBuilder_ == null) {
-                    ensureFieldsIsMutable();
-                    super.addAll(values, fields_);
-                    onChanged();
-                }
-                else {
-                    fieldsBuilder_.addAllMessages(values);
-                }
-                return this;
-            }
-
-
-            /**
-             * <code>repeated .remoting.KVPair fields = 1;</code>
-             */
-            public Builder clearFields() {
-                if (fieldsBuilder_ == null) {
-                    fields_ = java.util.Collections.emptyList();
-                    bitField0_ = (bitField0_ & ~0x00000001);
-                    onChanged();
-                }
-                else {
-                    fieldsBuilder_.clear();
-                }
-                return this;
-            }
-
-
-            /**
-             * <code>repeated .remoting.KVPair fields = 1;</code>
-             */
-            public Builder removeFields(int index) {
-                if (fieldsBuilder_ == null) {
-                    ensureFieldsIsMutable();
-                    fields_.remove(index);
-                    onChanged();
-                }
-                else {
-                    fieldsBuilder_.remove(index);
-                }
-                return this;
-            }
-
-
-            /**
-             * <code>repeated .remoting.KVPair fields = 1;</code>
-             */
-            public com.alibaba.rocketmq.remoting.protocol.RemotingProtos.KVPair.Builder getFieldsBuilder(
-                    int index) {
-                return getFieldsFieldBuilder().getBuilder(index);
-            }
-
-
-            /**
-             * <code>repeated .remoting.KVPair fields = 1;</code>
-             */
-            public com.alibaba.rocketmq.remoting.protocol.RemotingProtos.KVPairOrBuilder getFieldsOrBuilder(
-                    int index) {
-                if (fieldsBuilder_ == null) {
-                    return fields_.get(index);
-                }
-                else {
-                    return fieldsBuilder_.getMessageOrBuilder(index);
-                }
-            }
-
-
-            /**
-             * <code>repeated .remoting.KVPair fields = 1;</code>
-             */
-            public java.util.List<? extends com.alibaba.rocketmq.remoting.protocol.RemotingProtos.KVPairOrBuilder> getFieldsOrBuilderList() {
-                if (fieldsBuilder_ != null) {
-                    return fieldsBuilder_.getMessageOrBuilderList();
-                }
-                else {
-                    return java.util.Collections.unmodifiableList(fields_);
-                }
-            }
-
-
-            /**
-             * <code>repeated .remoting.KVPair fields = 1;</code>
-             */
-            public com.alibaba.rocketmq.remoting.protocol.RemotingProtos.KVPair.Builder addFieldsBuilder() {
-                return getFieldsFieldBuilder().addBuilder(
-                    com.alibaba.rocketmq.remoting.protocol.RemotingProtos.KVPair.getDefaultInstance());
-            }
-
-
-            /**
-             * <code>repeated .remoting.KVPair fields = 1;</code>
-             */
-            public com.alibaba.rocketmq.remoting.protocol.RemotingProtos.KVPair.Builder addFieldsBuilder(
-                    int index) {
-                return getFieldsFieldBuilder().addBuilder(index,
-                    com.alibaba.rocketmq.remoting.protocol.RemotingProtos.KVPair.getDefaultInstance());
-            }
-
-
-            /**
-             * <code>repeated .remoting.KVPair fields = 1;</code>
-             */
-            public java.util.List<com.alibaba.rocketmq.remoting.protocol.RemotingProtos.KVPair.Builder> getFieldsBuilderList() {
-                return getFieldsFieldBuilder().getBuilderList();
-            }
-
-
-            private com.google.protobuf.RepeatedFieldBuilder<com.alibaba.rocketmq.remoting.protocol.RemotingProtos.KVPair, com.alibaba.rocketmq.remoting.protocol.RemotingProtos.KVPair.Builder, com.alibaba.rocketmq.remoting.protocol.RemotingProtos.KVPairOrBuilder> getFieldsFieldBuilder() {
-                if (fieldsBuilder_ == null) {
-                    fieldsBuilder_ =
-                            new com.google.protobuf.RepeatedFieldBuilder<com.alibaba.rocketmq.remoting.protocol.RemotingProtos.KVPair, com.alibaba.rocketmq.remoting.protocol.RemotingProtos.KVPair.Builder, com.alibaba.rocketmq.remoting.protocol.RemotingProtos.KVPairOrBuilder>(
-                                fields_, ((bitField0_ & 0x00000001) == 0x00000001), getParentForChildren(),
-                                isClean());
-                    fields_ = null;
-                }
-                return fieldsBuilder_;
-            }
-
-            // @@protoc_insertion_point(builder_scope:remoting.KVPairList)
-        }
-
-        static {
-            defaultInstance = new KVPairList(true);
-            defaultInstance.initFields();
-        }
-
-        // @@protoc_insertion_point(class_scope:remoting.KVPairList)
+        return s;
+      }
+    }
+    /**
+     * <code>required string value = 2;</code>
+     */
+    public com.google.protobuf.ByteString
+        getValueBytes() {
+      java.lang.Object ref = value_;
+      if (ref instanceof java.lang.String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        value_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
     }
 
-    public interface NVPairOrBuilder extends com.google.protobuf.MessageOrBuilder {
+    private void initFields() {
+      name_ = "";
+      value_ = "";
+    }
+    private byte memoizedIsInitialized = -1;
+    public final boolean isInitialized() {
+      byte isInitialized = memoizedIsInitialized;
+      if (isInitialized != -1) return isInitialized == 1;
 
-        // required string name = 1;
-        /**
-         * <code>required string name = 1;</code>
-         */
-        boolean hasName();
-
-
-        /**
-         * <code>required string name = 1;</code>
-         */
-        java.lang.String getName();
-
-
-        /**
-         * <code>required string name = 1;</code>
-         */
-        com.google.protobuf.ByteString getNameBytes();
-
-
-        // required string value = 2;
-        /**
-         * <code>required string value = 2;</code>
-         */
-        boolean hasValue();
-
-
-        /**
-         * <code>required string value = 2;</code>
-         */
-        java.lang.String getValue();
-
-
-        /**
-         * <code>required string value = 2;</code>
-         */
-        com.google.protobuf.ByteString getValueBytes();
+      if (!hasName()) {
+        memoizedIsInitialized = 0;
+        return false;
+      }
+      if (!hasValue()) {
+        memoizedIsInitialized = 0;
+        return false;
+      }
+      memoizedIsInitialized = 1;
+      return true;
     }
 
+    public void writeTo(com.google.protobuf.CodedOutputStream output)
+                        throws java.io.IOException {
+      getSerializedSize();
+      if (((bitField0_ & 0x00000001) == 0x00000001)) {
+        output.writeBytes(1, getNameBytes());
+      }
+      if (((bitField0_ & 0x00000002) == 0x00000002)) {
+        output.writeBytes(2, getValueBytes());
+      }
+      getUnknownFields().writeTo(output);
+    }
+
+    private int memoizedSerializedSize = -1;
+    public int getSerializedSize() {
+      int size = memoizedSerializedSize;
+      if (size != -1) return size;
+
+      size = 0;
+      if (((bitField0_ & 0x00000001) == 0x00000001)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeBytesSize(1, getNameBytes());
+      }
+      if (((bitField0_ & 0x00000002) == 0x00000002)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeBytesSize(2, getValueBytes());
+      }
+      size += getUnknownFields().getSerializedSize();
+      memoizedSerializedSize = size;
+      return size;
+    }
+
+    private static final long serialVersionUID = 0L;
+    @java.lang.Override
+    protected java.lang.Object writeReplace()
+        throws java.io.ObjectStreamException {
+      return super.writeReplace();
+    }
+
+    public static com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data);
+    }
+    public static com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data, extensionRegistry);
+    }
+    public static com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data);
+    }
+    public static com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data, extensionRegistry);
+    }
+    public static com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return PARSER.parseFrom(input);
+    }
+    public static com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return PARSER.parseFrom(input, extensionRegistry);
+    }
+    public static com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return PARSER.parseDelimitedFrom(input);
+    }
+    public static com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair parseDelimitedFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return PARSER.parseDelimitedFrom(input, extensionRegistry);
+    }
+    public static com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return PARSER.parseFrom(input);
+    }
+    public static com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return PARSER.parseFrom(input, extensionRegistry);
+    }
+
+    public static Builder newBuilder() { return Builder.create(); }
+    public Builder newBuilderForType() { return newBuilder(); }
+    public static Builder newBuilder(com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair prototype) {
+      return newBuilder().mergeFrom(prototype);
+    }
+    public Builder toBuilder() { return newBuilder(this); }
+
+    @java.lang.Override
+    protected Builder newBuilderForType(
+        com.google.protobuf.GeneratedMessage.BuilderParent parent) {
+      Builder builder = new Builder(parent);
+      return builder;
+    }
     /**
      * Protobuf type {@code remoting.NVPair}
-     * 
+     *
      * <pre>
      * NV对
      * </pre>
      */
-    public static final class NVPair extends com.google.protobuf.GeneratedMessage implements NVPairOrBuilder {
-        // Use NVPair.newBuilder() to construct.
-        private NVPair(com.google.protobuf.GeneratedMessage.Builder<?> builder) {
-            super(builder);
-            this.unknownFields = builder.getUnknownFields();
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessage.Builder<Builder>
+       implements com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairOrBuilder {
+      public static final com.google.protobuf.Descriptors.Descriptor
+          getDescriptor() {
+        return com.alibaba.rocketmq.remoting.protocol.RemotingProtos.internal_static_remoting_NVPair_descriptor;
+      }
+
+      protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
+          internalGetFieldAccessorTable() {
+        return com.alibaba.rocketmq.remoting.protocol.RemotingProtos.internal_static_remoting_NVPair_fieldAccessorTable
+            .ensureFieldAccessorsInitialized(
+                com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair.class, com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair.Builder.class);
+      }
+
+      // Construct using com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair.newBuilder()
+      private Builder() {
+        maybeForceBuilderInitialization();
+      }
+
+      private Builder(
+          com.google.protobuf.GeneratedMessage.BuilderParent parent) {
+        super(parent);
+        maybeForceBuilderInitialization();
+      }
+      private void maybeForceBuilderInitialization() {
+        if (com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders) {
         }
+      }
+      private static Builder create() {
+        return new Builder();
+      }
 
+      public Builder clear() {
+        super.clear();
+        name_ = "";
+        bitField0_ = (bitField0_ & ~0x00000001);
+        value_ = "";
+        bitField0_ = (bitField0_ & ~0x00000002);
+        return this;
+      }
 
-        private NVPair(boolean noInit) {
-            this.unknownFields = com.google.protobuf.UnknownFieldSet.getDefaultInstance();
+      public Builder clone() {
+        return create().mergeFrom(buildPartial());
+      }
+
+      public com.google.protobuf.Descriptors.Descriptor
+          getDescriptorForType() {
+        return com.alibaba.rocketmq.remoting.protocol.RemotingProtos.internal_static_remoting_NVPair_descriptor;
+      }
+
+      public com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair getDefaultInstanceForType() {
+        return com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair.getDefaultInstance();
+      }
+
+      public com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair build() {
+        com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair result = buildPartial();
+        if (!result.isInitialized()) {
+          throw newUninitializedMessageException(result);
         }
+        return result;
+      }
 
-        private static final NVPair defaultInstance;
-
-
-        public static NVPair getDefaultInstance() {
-            return defaultInstance;
+      public com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair buildPartial() {
+        com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair result = new com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair(this);
+        int from_bitField0_ = bitField0_;
+        int to_bitField0_ = 0;
+        if (((from_bitField0_ & 0x00000001) == 0x00000001)) {
+          to_bitField0_ |= 0x00000001;
         }
-
-
-        public NVPair getDefaultInstanceForType() {
-            return defaultInstance;
+        result.name_ = name_;
+        if (((from_bitField0_ & 0x00000002) == 0x00000002)) {
+          to_bitField0_ |= 0x00000002;
         }
+        result.value_ = value_;
+        result.bitField0_ = to_bitField0_;
+        onBuilt();
+        return result;
+      }
 
-        private final com.google.protobuf.UnknownFieldSet unknownFields;
-
-
-        @java.lang.Override
-        public final com.google.protobuf.UnknownFieldSet getUnknownFields() {
-            return this.unknownFields;
+      public Builder mergeFrom(com.google.protobuf.Message other) {
+        if (other instanceof com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair) {
+          return mergeFrom((com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair)other);
+        } else {
+          super.mergeFrom(other);
+          return this;
         }
+      }
 
-
-        private NVPair(com.google.protobuf.CodedInputStream input,
-                com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-                throws com.google.protobuf.InvalidProtocolBufferException {
-            initFields();
-            int mutable_bitField0_ = 0;
-            com.google.protobuf.UnknownFieldSet.Builder unknownFields =
-                    com.google.protobuf.UnknownFieldSet.newBuilder();
-            try {
-                boolean done = false;
-                while (!done) {
-                    int tag = input.readTag();
-                    switch (tag) {
-                    case 0:
-                        done = true;
-                        break;
-                    default: {
-                        if (!parseUnknownField(input, unknownFields, extensionRegistry, tag)) {
-                            done = true;
-                        }
-                        break;
-                    }
-                    case 10: {
-                        bitField0_ |= 0x00000001;
-                        name_ = input.readBytes();
-                        break;
-                    }
-                    case 18: {
-                        bitField0_ |= 0x00000002;
-                        value_ = input.readBytes();
-                        break;
-                    }
-                    }
-                }
-            }
-            catch (com.google.protobuf.InvalidProtocolBufferException e) {
-                throw e.setUnfinishedMessage(this);
-            }
-            catch (java.io.IOException e) {
-                throw new com.google.protobuf.InvalidProtocolBufferException(e.getMessage())
-                    .setUnfinishedMessage(this);
-            }
-            finally {
-                this.unknownFields = unknownFields.build();
-                makeExtensionsImmutable();
-            }
+      public Builder mergeFrom(com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair other) {
+        if (other == com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair.getDefaultInstance()) return this;
+        if (other.hasName()) {
+          bitField0_ |= 0x00000001;
+          name_ = other.name_;
+          onChanged();
         }
-
-
-        public static final com.google.protobuf.Descriptors.Descriptor getDescriptor() {
-            return com.alibaba.rocketmq.remoting.protocol.RemotingProtos.internal_static_remoting_NVPair_descriptor;
+        if (other.hasValue()) {
+          bitField0_ |= 0x00000002;
+          value_ = other.value_;
+          onChanged();
         }
+        this.mergeUnknownFields(other.getUnknownFields());
+        return this;
+      }
 
-
-        protected com.google.protobuf.GeneratedMessage.FieldAccessorTable internalGetFieldAccessorTable() {
-            return com.alibaba.rocketmq.remoting.protocol.RemotingProtos.internal_static_remoting_NVPair_fieldAccessorTable
-                .ensureFieldAccessorsInitialized(
-                    com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair.class,
-                    com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair.Builder.class);
+      public final boolean isInitialized() {
+        if (!hasName()) {
+          
+          return false;
         }
-
-        public static com.google.protobuf.Parser<NVPair> PARSER =
-                new com.google.protobuf.AbstractParser<NVPair>() {
-                    public NVPair parsePartialFrom(com.google.protobuf.CodedInputStream input,
-                            com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-                            throws com.google.protobuf.InvalidProtocolBufferException {
-                        return new NVPair(input, extensionRegistry);
-                    }
-                };
-
-
-        @java.lang.Override
-        public com.google.protobuf.Parser<NVPair> getParserForType() {
-            return PARSER;
+        if (!hasValue()) {
+          
+          return false;
         }
+        return true;
+      }
 
-        private int bitField0_;
-        // required string name = 1;
-        public static final int NAME_FIELD_NUMBER = 1;
-        private java.lang.Object name_;
-
-
-        /**
-         * <code>required string name = 1;</code>
-         */
-        public boolean hasName() {
-            return ((bitField0_ & 0x00000001) == 0x00000001);
+      public Builder mergeFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws java.io.IOException {
+        com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair parsedMessage = null;
+        try {
+          parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
+        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+          parsedMessage = (com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair) e.getUnfinishedMessage();
+          throw e;
+        } finally {
+          if (parsedMessage != null) {
+            mergeFrom(parsedMessage);
+          }
         }
+        return this;
+      }
+      private int bitField0_;
 
-
-        /**
-         * <code>required string name = 1;</code>
-         */
-        public java.lang.String getName() {
-            java.lang.Object ref = name_;
-            if (ref instanceof java.lang.String) {
-                return (java.lang.String) ref;
-            }
-            else {
-                com.google.protobuf.ByteString bs = (com.google.protobuf.ByteString) ref;
-                java.lang.String s = bs.toStringUtf8();
-                if (bs.isValidUtf8()) {
-                    name_ = s;
-                }
-                return s;
-            }
+      // required string name = 1;
+      private java.lang.Object name_ = "";
+      /**
+       * <code>required string name = 1;</code>
+       */
+      public boolean hasName() {
+        return ((bitField0_ & 0x00000001) == 0x00000001);
+      }
+      /**
+       * <code>required string name = 1;</code>
+       */
+      public java.lang.String getName() {
+        java.lang.Object ref = name_;
+        if (!(ref instanceof java.lang.String)) {
+          java.lang.String s = ((com.google.protobuf.ByteString) ref)
+              .toStringUtf8();
+          name_ = s;
+          return s;
+        } else {
+          return (java.lang.String) ref;
         }
-
-
-        /**
-         * <code>required string name = 1;</code>
-         */
-        public com.google.protobuf.ByteString getNameBytes() {
-            java.lang.Object ref = name_;
-            if (ref instanceof java.lang.String) {
-                com.google.protobuf.ByteString b =
-                        com.google.protobuf.ByteString.copyFromUtf8((java.lang.String) ref);
-                name_ = b;
-                return b;
-            }
-            else {
-                return (com.google.protobuf.ByteString) ref;
-            }
+      }
+      /**
+       * <code>required string name = 1;</code>
+       */
+      public com.google.protobuf.ByteString
+          getNameBytes() {
+        java.lang.Object ref = name_;
+        if (ref instanceof String) {
+          com.google.protobuf.ByteString b = 
+              com.google.protobuf.ByteString.copyFromUtf8(
+                  (java.lang.String) ref);
+          name_ = b;
+          return b;
+        } else {
+          return (com.google.protobuf.ByteString) ref;
         }
+      }
+      /**
+       * <code>required string name = 1;</code>
+       */
+      public Builder setName(
+          java.lang.String value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  bitField0_ |= 0x00000001;
+        name_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>required string name = 1;</code>
+       */
+      public Builder clearName() {
+        bitField0_ = (bitField0_ & ~0x00000001);
+        name_ = getDefaultInstance().getName();
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>required string name = 1;</code>
+       */
+      public Builder setNameBytes(
+          com.google.protobuf.ByteString value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  bitField0_ |= 0x00000001;
+        name_ = value;
+        onChanged();
+        return this;
+      }
 
-        // required string value = 2;
-        public static final int VALUE_FIELD_NUMBER = 2;
-        private java.lang.Object value_;
-
-
-        /**
-         * <code>required string value = 2;</code>
-         */
-        public boolean hasValue() {
-            return ((bitField0_ & 0x00000002) == 0x00000002);
+      // required string value = 2;
+      private java.lang.Object value_ = "";
+      /**
+       * <code>required string value = 2;</code>
+       */
+      public boolean hasValue() {
+        return ((bitField0_ & 0x00000002) == 0x00000002);
+      }
+      /**
+       * <code>required string value = 2;</code>
+       */
+      public java.lang.String getValue() {
+        java.lang.Object ref = value_;
+        if (!(ref instanceof java.lang.String)) {
+          java.lang.String s = ((com.google.protobuf.ByteString) ref)
+              .toStringUtf8();
+          value_ = s;
+          return s;
+        } else {
+          return (java.lang.String) ref;
         }
-
-
-        /**
-         * <code>required string value = 2;</code>
-         */
-        public java.lang.String getValue() {
-            java.lang.Object ref = value_;
-            if (ref instanceof java.lang.String) {
-                return (java.lang.String) ref;
-            }
-            else {
-                com.google.protobuf.ByteString bs = (com.google.protobuf.ByteString) ref;
-                java.lang.String s = bs.toStringUtf8();
-                if (bs.isValidUtf8()) {
-                    value_ = s;
-                }
-                return s;
-            }
+      }
+      /**
+       * <code>required string value = 2;</code>
+       */
+      public com.google.protobuf.ByteString
+          getValueBytes() {
+        java.lang.Object ref = value_;
+        if (ref instanceof String) {
+          com.google.protobuf.ByteString b = 
+              com.google.protobuf.ByteString.copyFromUtf8(
+                  (java.lang.String) ref);
+          value_ = b;
+          return b;
+        } else {
+          return (com.google.protobuf.ByteString) ref;
         }
-
-
-        /**
-         * <code>required string value = 2;</code>
-         */
-        public com.google.protobuf.ByteString getValueBytes() {
-            java.lang.Object ref = value_;
-            if (ref instanceof java.lang.String) {
-                com.google.protobuf.ByteString b =
-                        com.google.protobuf.ByteString.copyFromUtf8((java.lang.String) ref);
-                value_ = b;
-                return b;
-            }
-            else {
-                return (com.google.protobuf.ByteString) ref;
-            }
-        }
-
-
-        private void initFields() {
-            name_ = "";
-            value_ = "";
-        }
-
-        private byte memoizedIsInitialized = -1;
-
-
-        public final boolean isInitialized() {
-            byte isInitialized = memoizedIsInitialized;
-            if (isInitialized != -1)
-                return isInitialized == 1;
-
-            if (!hasName()) {
-                memoizedIsInitialized = 0;
-                return false;
-            }
-            if (!hasValue()) {
-                memoizedIsInitialized = 0;
-                return false;
-            }
-            memoizedIsInitialized = 1;
-            return true;
-        }
-
-
-        public void writeTo(com.google.protobuf.CodedOutputStream output) throws java.io.IOException {
-            getSerializedSize();
-            if (((bitField0_ & 0x00000001) == 0x00000001)) {
-                output.writeBytes(1, getNameBytes());
-            }
-            if (((bitField0_ & 0x00000002) == 0x00000002)) {
-                output.writeBytes(2, getValueBytes());
-            }
-            getUnknownFields().writeTo(output);
-        }
-
-        private int memoizedSerializedSize = -1;
-
-
-        public int getSerializedSize() {
-            int size = memoizedSerializedSize;
-            if (size != -1)
-                return size;
-
-            size = 0;
-            if (((bitField0_ & 0x00000001) == 0x00000001)) {
-                size += com.google.protobuf.CodedOutputStream.computeBytesSize(1, getNameBytes());
-            }
-            if (((bitField0_ & 0x00000002) == 0x00000002)) {
-                size += com.google.protobuf.CodedOutputStream.computeBytesSize(2, getValueBytes());
-            }
-            size += getUnknownFields().getSerializedSize();
-            memoizedSerializedSize = size;
-            return size;
-        }
-
-        private static final long serialVersionUID = 0L;
-
-
-        @java.lang.Override
-        protected java.lang.Object writeReplace() throws java.io.ObjectStreamException {
-            return super.writeReplace();
-        }
-
-
-        public static com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair parseFrom(
-                com.google.protobuf.ByteString data)
-                throws com.google.protobuf.InvalidProtocolBufferException {
-            return PARSER.parseFrom(data);
-        }
-
-
-        public static com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair parseFrom(
-                com.google.protobuf.ByteString data,
-                com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-                throws com.google.protobuf.InvalidProtocolBufferException {
-            return PARSER.parseFrom(data, extensionRegistry);
-        }
-
-
-        public static com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair parseFrom(byte[] data)
-                throws com.google.protobuf.InvalidProtocolBufferException {
-            return PARSER.parseFrom(data);
-        }
-
-
-        public static com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair parseFrom(byte[] data,
-                com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-                throws com.google.protobuf.InvalidProtocolBufferException {
-            return PARSER.parseFrom(data, extensionRegistry);
-        }
-
-
-        public static com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair parseFrom(
-                java.io.InputStream input) throws java.io.IOException {
-            return PARSER.parseFrom(input);
-        }
-
-
-        public static com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair parseFrom(
-                java.io.InputStream input, com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-                throws java.io.IOException {
-            return PARSER.parseFrom(input, extensionRegistry);
-        }
-
-
-        public static com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair parseDelimitedFrom(
-                java.io.InputStream input) throws java.io.IOException {
-            return PARSER.parseDelimitedFrom(input);
-        }
-
-
-        public static com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair parseDelimitedFrom(
-                java.io.InputStream input, com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-                throws java.io.IOException {
-            return PARSER.parseDelimitedFrom(input, extensionRegistry);
-        }
-
-
-        public static com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair parseFrom(
-                com.google.protobuf.CodedInputStream input) throws java.io.IOException {
-            return PARSER.parseFrom(input);
-        }
-
-
-        public static com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair parseFrom(
-                com.google.protobuf.CodedInputStream input,
-                com.google.protobuf.ExtensionRegistryLite extensionRegistry) throws java.io.IOException {
-            return PARSER.parseFrom(input, extensionRegistry);
-        }
-
-
-        public static Builder newBuilder() {
-            return Builder.create();
-        }
-
-
-        public Builder newBuilderForType() {
-            return newBuilder();
-        }
-
-
-        public static Builder newBuilder(
-                com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair prototype) {
-            return newBuilder().mergeFrom(prototype);
-        }
-
-
-        public Builder toBuilder() {
-            return newBuilder(this);
-        }
-
-
-        @java.lang.Override
-        protected Builder newBuilderForType(com.google.protobuf.GeneratedMessage.BuilderParent parent) {
-            Builder builder = new Builder(parent);
-            return builder;
-        }
-
-        /**
-         * Protobuf type {@code remoting.NVPair}
-         * 
-         * <pre>
-         * NV对
-         * </pre>
-         */
-        public static final class Builder extends com.google.protobuf.GeneratedMessage.Builder<Builder>
-                implements com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairOrBuilder {
-            public static final com.google.protobuf.Descriptors.Descriptor getDescriptor() {
-                return com.alibaba.rocketmq.remoting.protocol.RemotingProtos.internal_static_remoting_NVPair_descriptor;
-            }
-
-
-            protected com.google.protobuf.GeneratedMessage.FieldAccessorTable internalGetFieldAccessorTable() {
-                return com.alibaba.rocketmq.remoting.protocol.RemotingProtos.internal_static_remoting_NVPair_fieldAccessorTable
-                    .ensureFieldAccessorsInitialized(
-                        com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair.class,
-                        com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair.Builder.class);
-            }
-
-
-            // Construct using
-            // com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair.newBuilder()
-            private Builder() {
-                maybeForceBuilderInitialization();
-            }
-
-
-            private Builder(com.google.protobuf.GeneratedMessage.BuilderParent parent) {
-                super(parent);
-                maybeForceBuilderInitialization();
-            }
-
-
-            private void maybeForceBuilderInitialization() {
-                if (com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders) {
-                }
-            }
-
-
-            private static Builder create() {
-                return new Builder();
-            }
-
-
-            public Builder clear() {
-                super.clear();
-                name_ = "";
-                bitField0_ = (bitField0_ & ~0x00000001);
-                value_ = "";
-                bitField0_ = (bitField0_ & ~0x00000002);
-                return this;
-            }
-
-
-            public Builder clone() {
-                return create().mergeFrom(buildPartial());
-            }
-
-
-            public com.google.protobuf.Descriptors.Descriptor getDescriptorForType() {
-                return com.alibaba.rocketmq.remoting.protocol.RemotingProtos.internal_static_remoting_NVPair_descriptor;
-            }
-
-
-            public com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair getDefaultInstanceForType() {
-                return com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair.getDefaultInstance();
-            }
-
-
-            public com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair build() {
-                com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair result = buildPartial();
-                if (!result.isInitialized()) {
-                    throw newUninitializedMessageException(result);
-                }
-                return result;
-            }
-
-
-            public com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair buildPartial() {
-                com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair result =
-                        new com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair(this);
-                int from_bitField0_ = bitField0_;
-                int to_bitField0_ = 0;
-                if (((from_bitField0_ & 0x00000001) == 0x00000001)) {
-                    to_bitField0_ |= 0x00000001;
-                }
-                result.name_ = name_;
-                if (((from_bitField0_ & 0x00000002) == 0x00000002)) {
-                    to_bitField0_ |= 0x00000002;
-                }
-                result.value_ = value_;
-                result.bitField0_ = to_bitField0_;
-                onBuilt();
-                return result;
-            }
-
-
-            public Builder mergeFrom(com.google.protobuf.Message other) {
-                if (other instanceof com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair) {
-                    return mergeFrom((com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair) other);
-                }
-                else {
-                    super.mergeFrom(other);
-                    return this;
-                }
-            }
-
-
-            public Builder mergeFrom(com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair other) {
-                if (other == com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair
-                    .getDefaultInstance())
-                    return this;
-                if (other.hasName()) {
-                    bitField0_ |= 0x00000001;
-                    name_ = other.name_;
-                    onChanged();
-                }
-                if (other.hasValue()) {
-                    bitField0_ |= 0x00000002;
-                    value_ = other.value_;
-                    onChanged();
-                }
-                this.mergeUnknownFields(other.getUnknownFields());
-                return this;
-            }
-
-
-            public final boolean isInitialized() {
-                if (!hasName()) {
-
-                    return false;
-                }
-                if (!hasValue()) {
-
-                    return false;
-                }
-                return true;
-            }
-
-
-            public Builder mergeFrom(com.google.protobuf.CodedInputStream input,
-                    com.google.protobuf.ExtensionRegistryLite extensionRegistry) throws java.io.IOException {
-                com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair parsedMessage = null;
-                try {
-                    parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
-                }
-                catch (com.google.protobuf.InvalidProtocolBufferException e) {
-                    parsedMessage =
-                            (com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair) e
-                                .getUnfinishedMessage();
-                    throw e;
-                }
-                finally {
-                    if (parsedMessage != null) {
-                        mergeFrom(parsedMessage);
-                    }
-                }
-                return this;
-            }
-
-            private int bitField0_;
-
-            // required string name = 1;
-            private java.lang.Object name_ = "";
-
-
-            /**
-             * <code>required string name = 1;</code>
-             */
-            public boolean hasName() {
-                return ((bitField0_ & 0x00000001) == 0x00000001);
-            }
-
-
-            /**
-             * <code>required string name = 1;</code>
-             */
-            public java.lang.String getName() {
-                java.lang.Object ref = name_;
-                if (!(ref instanceof java.lang.String)) {
-                    java.lang.String s = ((com.google.protobuf.ByteString) ref).toStringUtf8();
-                    name_ = s;
-                    return s;
-                }
-                else {
-                    return (java.lang.String) ref;
-                }
-            }
-
-
-            /**
-             * <code>required string name = 1;</code>
-             */
-            public com.google.protobuf.ByteString getNameBytes() {
-                java.lang.Object ref = name_;
-                if (ref instanceof String) {
-                    com.google.protobuf.ByteString b =
-                            com.google.protobuf.ByteString.copyFromUtf8((java.lang.String) ref);
-                    name_ = b;
-                    return b;
-                }
-                else {
-                    return (com.google.protobuf.ByteString) ref;
-                }
-            }
-
-
-            /**
-             * <code>required string name = 1;</code>
-             */
-            public Builder setName(java.lang.String value) {
-                if (value == null) {
-                    throw new NullPointerException();
-                }
-                bitField0_ |= 0x00000001;
-                name_ = value;
-                onChanged();
-                return this;
-            }
-
-
-            /**
-             * <code>required string name = 1;</code>
-             */
-            public Builder clearName() {
-                bitField0_ = (bitField0_ & ~0x00000001);
-                name_ = getDefaultInstance().getName();
-                onChanged();
-                return this;
-            }
-
-
-            /**
-             * <code>required string name = 1;</code>
-             */
-            public Builder setNameBytes(com.google.protobuf.ByteString value) {
-                if (value == null) {
-                    throw new NullPointerException();
-                }
-                bitField0_ |= 0x00000001;
-                name_ = value;
-                onChanged();
-                return this;
-            }
-
-            // required string value = 2;
-            private java.lang.Object value_ = "";
-
-
-            /**
-             * <code>required string value = 2;</code>
-             */
-            public boolean hasValue() {
-                return ((bitField0_ & 0x00000002) == 0x00000002);
-            }
-
-
-            /**
-             * <code>required string value = 2;</code>
-             */
-            public java.lang.String getValue() {
-                java.lang.Object ref = value_;
-                if (!(ref instanceof java.lang.String)) {
-                    java.lang.String s = ((com.google.protobuf.ByteString) ref).toStringUtf8();
-                    value_ = s;
-                    return s;
-                }
-                else {
-                    return (java.lang.String) ref;
-                }
-            }
-
-
-            /**
-             * <code>required string value = 2;</code>
-             */
-            public com.google.protobuf.ByteString getValueBytes() {
-                java.lang.Object ref = value_;
-                if (ref instanceof String) {
-                    com.google.protobuf.ByteString b =
-                            com.google.protobuf.ByteString.copyFromUtf8((java.lang.String) ref);
-                    value_ = b;
-                    return b;
-                }
-                else {
-                    return (com.google.protobuf.ByteString) ref;
-                }
-            }
-
-
-            /**
-             * <code>required string value = 2;</code>
-             */
-            public Builder setValue(java.lang.String value) {
-                if (value == null) {
-                    throw new NullPointerException();
-                }
-                bitField0_ |= 0x00000002;
-                value_ = value;
-                onChanged();
-                return this;
-            }
-
-
-            /**
-             * <code>required string value = 2;</code>
-             */
-            public Builder clearValue() {
-                bitField0_ = (bitField0_ & ~0x00000002);
-                value_ = getDefaultInstance().getValue();
-                onChanged();
-                return this;
-            }
-
-
-            /**
-             * <code>required string value = 2;</code>
-             */
-            public Builder setValueBytes(com.google.protobuf.ByteString value) {
-                if (value == null) {
-                    throw new NullPointerException();
-                }
-                bitField0_ |= 0x00000002;
-                value_ = value;
-                onChanged();
-                return this;
-            }
-
-            // @@protoc_insertion_point(builder_scope:remoting.NVPair)
-        }
-
-        static {
-            defaultInstance = new NVPair(true);
-            defaultInstance.initFields();
-        }
-
-        // @@protoc_insertion_point(class_scope:remoting.NVPair)
+      }
+      /**
+       * <code>required string value = 2;</code>
+       */
+      public Builder setValue(
+          java.lang.String value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  bitField0_ |= 0x00000002;
+        value_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>required string value = 2;</code>
+       */
+      public Builder clearValue() {
+        bitField0_ = (bitField0_ & ~0x00000002);
+        value_ = getDefaultInstance().getValue();
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>required string value = 2;</code>
+       */
+      public Builder setValueBytes(
+          com.google.protobuf.ByteString value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  bitField0_ |= 0x00000002;
+        value_ = value;
+        onChanged();
+        return this;
+      }
+
+      // @@protoc_insertion_point(builder_scope:remoting.NVPair)
     }
 
-    public interface NVPairListOrBuilder extends com.google.protobuf.MessageOrBuilder {
-
-        // repeated .remoting.NVPair fields = 1;
-        /**
-         * <code>repeated .remoting.NVPair fields = 1;</code>
-         */
-        java.util.List<com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair> getFieldsList();
-
-
-        /**
-         * <code>repeated .remoting.NVPair fields = 1;</code>
-         */
-        com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair getFields(int index);
-
-
-        /**
-         * <code>repeated .remoting.NVPair fields = 1;</code>
-         */
-        int getFieldsCount();
-
-
-        /**
-         * <code>repeated .remoting.NVPair fields = 1;</code>
-         */
-        java.util.List<? extends com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairOrBuilder> getFieldsOrBuilderList();
-
-
-        /**
-         * <code>repeated .remoting.NVPair fields = 1;</code>
-         */
-        com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairOrBuilder getFieldsOrBuilder(int index);
+    static {
+      defaultInstance = new NVPair(true);
+      defaultInstance.initFields();
     }
 
+    // @@protoc_insertion_point(class_scope:remoting.NVPair)
+  }
+
+  public interface NVPairListOrBuilder
+      extends com.google.protobuf.MessageOrBuilder {
+
+    // repeated .remoting.NVPair fields = 1;
+    /**
+     * <code>repeated .remoting.NVPair fields = 1;</code>
+     */
+    java.util.List<com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair> 
+        getFieldsList();
+    /**
+     * <code>repeated .remoting.NVPair fields = 1;</code>
+     */
+    com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair getFields(int index);
+    /**
+     * <code>repeated .remoting.NVPair fields = 1;</code>
+     */
+    int getFieldsCount();
+    /**
+     * <code>repeated .remoting.NVPair fields = 1;</code>
+     */
+    java.util.List<? extends com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairOrBuilder> 
+        getFieldsOrBuilderList();
+    /**
+     * <code>repeated .remoting.NVPair fields = 1;</code>
+     */
+    com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairOrBuilder getFieldsOrBuilder(
+        int index);
+  }
+  /**
+   * Protobuf type {@code remoting.NVPairList}
+   *
+   * <pre>
+   * NV对集合
+   * </pre>
+   */
+  public static final class NVPairList extends
+      com.google.protobuf.GeneratedMessage
+      implements NVPairListOrBuilder {
+    // Use NVPairList.newBuilder() to construct.
+    private NVPairList(com.google.protobuf.GeneratedMessage.Builder<?> builder) {
+      super(builder);
+      this.unknownFields = builder.getUnknownFields();
+    }
+    private NVPairList(boolean noInit) { this.unknownFields = com.google.protobuf.UnknownFieldSet.getDefaultInstance(); }
+
+    private static final NVPairList defaultInstance;
+    public static NVPairList getDefaultInstance() {
+      return defaultInstance;
+    }
+
+    public NVPairList getDefaultInstanceForType() {
+      return defaultInstance;
+    }
+
+    private final com.google.protobuf.UnknownFieldSet unknownFields;
+    @java.lang.Override
+    public final com.google.protobuf.UnknownFieldSet
+        getUnknownFields() {
+      return this.unknownFields;
+    }
+    private NVPairList(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      initFields();
+      int mutable_bitField0_ = 0;
+      com.google.protobuf.UnknownFieldSet.Builder unknownFields =
+          com.google.protobuf.UnknownFieldSet.newBuilder();
+      try {
+        boolean done = false;
+        while (!done) {
+          int tag = input.readTag();
+          switch (tag) {
+            case 0:
+              done = true;
+              break;
+            default: {
+              if (!parseUnknownField(input, unknownFields,
+                                     extensionRegistry, tag)) {
+                done = true;
+              }
+              break;
+            }
+            case 10: {
+              if (!((mutable_bitField0_ & 0x00000001) == 0x00000001)) {
+                fields_ = new java.util.ArrayList<com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair>();
+                mutable_bitField0_ |= 0x00000001;
+              }
+              fields_.add(input.readMessage(com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair.PARSER, extensionRegistry));
+              break;
+            }
+          }
+        }
+      } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+        throw e.setUnfinishedMessage(this);
+      } catch (java.io.IOException e) {
+        throw new com.google.protobuf.InvalidProtocolBufferException(
+            e.getMessage()).setUnfinishedMessage(this);
+      } finally {
+        if (((mutable_bitField0_ & 0x00000001) == 0x00000001)) {
+          fields_ = java.util.Collections.unmodifiableList(fields_);
+        }
+        this.unknownFields = unknownFields.build();
+        makeExtensionsImmutable();
+      }
+    }
+    public static final com.google.protobuf.Descriptors.Descriptor
+        getDescriptor() {
+      return com.alibaba.rocketmq.remoting.protocol.RemotingProtos.internal_static_remoting_NVPairList_descriptor;
+    }
+
+    protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
+        internalGetFieldAccessorTable() {
+      return com.alibaba.rocketmq.remoting.protocol.RemotingProtos.internal_static_remoting_NVPairList_fieldAccessorTable
+          .ensureFieldAccessorsInitialized(
+              com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairList.class, com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairList.Builder.class);
+    }
+
+    public static com.google.protobuf.Parser<NVPairList> PARSER =
+        new com.google.protobuf.AbstractParser<NVPairList>() {
+      public NVPairList parsePartialFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        return new NVPairList(input, extensionRegistry);
+      }
+    };
+
+    @java.lang.Override
+    public com.google.protobuf.Parser<NVPairList> getParserForType() {
+      return PARSER;
+    }
+
+    // repeated .remoting.NVPair fields = 1;
+    public static final int FIELDS_FIELD_NUMBER = 1;
+    private java.util.List<com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair> fields_;
+    /**
+     * <code>repeated .remoting.NVPair fields = 1;</code>
+     */
+    public java.util.List<com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair> getFieldsList() {
+      return fields_;
+    }
+    /**
+     * <code>repeated .remoting.NVPair fields = 1;</code>
+     */
+    public java.util.List<? extends com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairOrBuilder> 
+        getFieldsOrBuilderList() {
+      return fields_;
+    }
+    /**
+     * <code>repeated .remoting.NVPair fields = 1;</code>
+     */
+    public int getFieldsCount() {
+      return fields_.size();
+    }
+    /**
+     * <code>repeated .remoting.NVPair fields = 1;</code>
+     */
+    public com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair getFields(int index) {
+      return fields_.get(index);
+    }
+    /**
+     * <code>repeated .remoting.NVPair fields = 1;</code>
+     */
+    public com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairOrBuilder getFieldsOrBuilder(
+        int index) {
+      return fields_.get(index);
+    }
+
+    private void initFields() {
+      fields_ = java.util.Collections.emptyList();
+    }
+    private byte memoizedIsInitialized = -1;
+    public final boolean isInitialized() {
+      byte isInitialized = memoizedIsInitialized;
+      if (isInitialized != -1) return isInitialized == 1;
+
+      for (int i = 0; i < getFieldsCount(); i++) {
+        if (!getFields(i).isInitialized()) {
+          memoizedIsInitialized = 0;
+          return false;
+        }
+      }
+      memoizedIsInitialized = 1;
+      return true;
+    }
+
+    public void writeTo(com.google.protobuf.CodedOutputStream output)
+                        throws java.io.IOException {
+      getSerializedSize();
+      for (int i = 0; i < fields_.size(); i++) {
+        output.writeMessage(1, fields_.get(i));
+      }
+      getUnknownFields().writeTo(output);
+    }
+
+    private int memoizedSerializedSize = -1;
+    public int getSerializedSize() {
+      int size = memoizedSerializedSize;
+      if (size != -1) return size;
+
+      size = 0;
+      for (int i = 0; i < fields_.size(); i++) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeMessageSize(1, fields_.get(i));
+      }
+      size += getUnknownFields().getSerializedSize();
+      memoizedSerializedSize = size;
+      return size;
+    }
+
+    private static final long serialVersionUID = 0L;
+    @java.lang.Override
+    protected java.lang.Object writeReplace()
+        throws java.io.ObjectStreamException {
+      return super.writeReplace();
+    }
+
+    public static com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairList parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data);
+    }
+    public static com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairList parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data, extensionRegistry);
+    }
+    public static com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairList parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data);
+    }
+    public static com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairList parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data, extensionRegistry);
+    }
+    public static com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairList parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return PARSER.parseFrom(input);
+    }
+    public static com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairList parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return PARSER.parseFrom(input, extensionRegistry);
+    }
+    public static com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairList parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return PARSER.parseDelimitedFrom(input);
+    }
+    public static com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairList parseDelimitedFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return PARSER.parseDelimitedFrom(input, extensionRegistry);
+    }
+    public static com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairList parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return PARSER.parseFrom(input);
+    }
+    public static com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairList parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return PARSER.parseFrom(input, extensionRegistry);
+    }
+
+    public static Builder newBuilder() { return Builder.create(); }
+    public Builder newBuilderForType() { return newBuilder(); }
+    public static Builder newBuilder(com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairList prototype) {
+      return newBuilder().mergeFrom(prototype);
+    }
+    public Builder toBuilder() { return newBuilder(this); }
+
+    @java.lang.Override
+    protected Builder newBuilderForType(
+        com.google.protobuf.GeneratedMessage.BuilderParent parent) {
+      Builder builder = new Builder(parent);
+      return builder;
+    }
     /**
      * Protobuf type {@code remoting.NVPairList}
-     * 
+     *
      * <pre>
      * NV对集合
      * </pre>
      */
-    public static final class NVPairList extends com.google.protobuf.GeneratedMessage implements
-            NVPairListOrBuilder {
-        // Use NVPairList.newBuilder() to construct.
-        private NVPairList(com.google.protobuf.GeneratedMessage.Builder<?> builder) {
-            super(builder);
-            this.unknownFields = builder.getUnknownFields();
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessage.Builder<Builder>
+       implements com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairListOrBuilder {
+      public static final com.google.protobuf.Descriptors.Descriptor
+          getDescriptor() {
+        return com.alibaba.rocketmq.remoting.protocol.RemotingProtos.internal_static_remoting_NVPairList_descriptor;
+      }
+
+      protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
+          internalGetFieldAccessorTable() {
+        return com.alibaba.rocketmq.remoting.protocol.RemotingProtos.internal_static_remoting_NVPairList_fieldAccessorTable
+            .ensureFieldAccessorsInitialized(
+                com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairList.class, com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairList.Builder.class);
+      }
+
+      // Construct using com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairList.newBuilder()
+      private Builder() {
+        maybeForceBuilderInitialization();
+      }
+
+      private Builder(
+          com.google.protobuf.GeneratedMessage.BuilderParent parent) {
+        super(parent);
+        maybeForceBuilderInitialization();
+      }
+      private void maybeForceBuilderInitialization() {
+        if (com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders) {
+          getFieldsFieldBuilder();
         }
+      }
+      private static Builder create() {
+        return new Builder();
+      }
 
-
-        private NVPairList(boolean noInit) {
-            this.unknownFields = com.google.protobuf.UnknownFieldSet.getDefaultInstance();
+      public Builder clear() {
+        super.clear();
+        if (fieldsBuilder_ == null) {
+          fields_ = java.util.Collections.emptyList();
+          bitField0_ = (bitField0_ & ~0x00000001);
+        } else {
+          fieldsBuilder_.clear();
         }
+        return this;
+      }
 
-        private static final NVPairList defaultInstance;
+      public Builder clone() {
+        return create().mergeFrom(buildPartial());
+      }
 
+      public com.google.protobuf.Descriptors.Descriptor
+          getDescriptorForType() {
+        return com.alibaba.rocketmq.remoting.protocol.RemotingProtos.internal_static_remoting_NVPairList_descriptor;
+      }
 
-        public static NVPairList getDefaultInstance() {
-            return defaultInstance;
+      public com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairList getDefaultInstanceForType() {
+        return com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairList.getDefaultInstance();
+      }
+
+      public com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairList build() {
+        com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairList result = buildPartial();
+        if (!result.isInitialized()) {
+          throw newUninitializedMessageException(result);
         }
+        return result;
+      }
 
-
-        public NVPairList getDefaultInstanceForType() {
-            return defaultInstance;
+      public com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairList buildPartial() {
+        com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairList result = new com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairList(this);
+        int from_bitField0_ = bitField0_;
+        if (fieldsBuilder_ == null) {
+          if (((bitField0_ & 0x00000001) == 0x00000001)) {
+            fields_ = java.util.Collections.unmodifiableList(fields_);
+            bitField0_ = (bitField0_ & ~0x00000001);
+          }
+          result.fields_ = fields_;
+        } else {
+          result.fields_ = fieldsBuilder_.build();
         }
+        onBuilt();
+        return result;
+      }
 
-        private final com.google.protobuf.UnknownFieldSet unknownFields;
-
-
-        @java.lang.Override
-        public final com.google.protobuf.UnknownFieldSet getUnknownFields() {
-            return this.unknownFields;
+      public Builder mergeFrom(com.google.protobuf.Message other) {
+        if (other instanceof com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairList) {
+          return mergeFrom((com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairList)other);
+        } else {
+          super.mergeFrom(other);
+          return this;
         }
+      }
 
-
-        private NVPairList(com.google.protobuf.CodedInputStream input,
-                com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-                throws com.google.protobuf.InvalidProtocolBufferException {
-            initFields();
-            int mutable_bitField0_ = 0;
-            com.google.protobuf.UnknownFieldSet.Builder unknownFields =
-                    com.google.protobuf.UnknownFieldSet.newBuilder();
-            try {
-                boolean done = false;
-                while (!done) {
-                    int tag = input.readTag();
-                    switch (tag) {
-                    case 0:
-                        done = true;
-                        break;
-                    default: {
-                        if (!parseUnknownField(input, unknownFields, extensionRegistry, tag)) {
-                            done = true;
-                        }
-                        break;
-                    }
-                    case 10: {
-                        if (!((mutable_bitField0_ & 0x00000001) == 0x00000001)) {
-                            fields_ =
-                                    new java.util.ArrayList<com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair>();
-                            mutable_bitField0_ |= 0x00000001;
-                        }
-                        fields_.add(input.readMessage(
-                            com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair.PARSER,
-                            extensionRegistry));
-                        break;
-                    }
-                    }
-                }
+      public Builder mergeFrom(com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairList other) {
+        if (other == com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairList.getDefaultInstance()) return this;
+        if (fieldsBuilder_ == null) {
+          if (!other.fields_.isEmpty()) {
+            if (fields_.isEmpty()) {
+              fields_ = other.fields_;
+              bitField0_ = (bitField0_ & ~0x00000001);
+            } else {
+              ensureFieldsIsMutable();
+              fields_.addAll(other.fields_);
             }
-            catch (com.google.protobuf.InvalidProtocolBufferException e) {
-                throw e.setUnfinishedMessage(this);
+            onChanged();
+          }
+        } else {
+          if (!other.fields_.isEmpty()) {
+            if (fieldsBuilder_.isEmpty()) {
+              fieldsBuilder_.dispose();
+              fieldsBuilder_ = null;
+              fields_ = other.fields_;
+              bitField0_ = (bitField0_ & ~0x00000001);
+              fieldsBuilder_ = 
+                com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
+                   getFieldsFieldBuilder() : null;
+            } else {
+              fieldsBuilder_.addAllMessages(other.fields_);
             }
-            catch (java.io.IOException e) {
-                throw new com.google.protobuf.InvalidProtocolBufferException(e.getMessage())
-                    .setUnfinishedMessage(this);
-            }
-            finally {
-                if (((mutable_bitField0_ & 0x00000001) == 0x00000001)) {
-                    fields_ = java.util.Collections.unmodifiableList(fields_);
-                }
-                this.unknownFields = unknownFields.build();
-                makeExtensionsImmutable();
-            }
+          }
         }
+        this.mergeUnknownFields(other.getUnknownFields());
+        return this;
+      }
 
-
-        public static final com.google.protobuf.Descriptors.Descriptor getDescriptor() {
-            return com.alibaba.rocketmq.remoting.protocol.RemotingProtos.internal_static_remoting_NVPairList_descriptor;
+      public final boolean isInitialized() {
+        for (int i = 0; i < getFieldsCount(); i++) {
+          if (!getFields(i).isInitialized()) {
+            
+            return false;
+          }
         }
+        return true;
+      }
 
-
-        protected com.google.protobuf.GeneratedMessage.FieldAccessorTable internalGetFieldAccessorTable() {
-            return com.alibaba.rocketmq.remoting.protocol.RemotingProtos.internal_static_remoting_NVPairList_fieldAccessorTable
-                .ensureFieldAccessorsInitialized(
-                    com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairList.class,
-                    com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairList.Builder.class);
+      public Builder mergeFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws java.io.IOException {
+        com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairList parsedMessage = null;
+        try {
+          parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
+        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+          parsedMessage = (com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairList) e.getUnfinishedMessage();
+          throw e;
+        } finally {
+          if (parsedMessage != null) {
+            mergeFrom(parsedMessage);
+          }
         }
+        return this;
+      }
+      private int bitField0_;
 
-        public static com.google.protobuf.Parser<NVPairList> PARSER =
-                new com.google.protobuf.AbstractParser<NVPairList>() {
-                    public NVPairList parsePartialFrom(com.google.protobuf.CodedInputStream input,
-                            com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-                            throws com.google.protobuf.InvalidProtocolBufferException {
-                        return new NVPairList(input, extensionRegistry);
-                    }
-                };
+      // repeated .remoting.NVPair fields = 1;
+      private java.util.List<com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair> fields_ =
+        java.util.Collections.emptyList();
+      private void ensureFieldsIsMutable() {
+        if (!((bitField0_ & 0x00000001) == 0x00000001)) {
+          fields_ = new java.util.ArrayList<com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair>(fields_);
+          bitField0_ |= 0x00000001;
+         }
+      }
 
+      private com.google.protobuf.RepeatedFieldBuilder<
+          com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair, com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair.Builder, com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairOrBuilder> fieldsBuilder_;
 
-        @java.lang.Override
-        public com.google.protobuf.Parser<NVPairList> getParserForType() {
-            return PARSER;
+      /**
+       * <code>repeated .remoting.NVPair fields = 1;</code>
+       */
+      public java.util.List<com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair> getFieldsList() {
+        if (fieldsBuilder_ == null) {
+          return java.util.Collections.unmodifiableList(fields_);
+        } else {
+          return fieldsBuilder_.getMessageList();
         }
-
-        // repeated .remoting.NVPair fields = 1;
-        public static final int FIELDS_FIELD_NUMBER = 1;
-        private java.util.List<com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair> fields_;
-
-
-        /**
-         * <code>repeated .remoting.NVPair fields = 1;</code>
-         */
-        public java.util.List<com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair> getFieldsList() {
-            return fields_;
+      }
+      /**
+       * <code>repeated .remoting.NVPair fields = 1;</code>
+       */
+      public int getFieldsCount() {
+        if (fieldsBuilder_ == null) {
+          return fields_.size();
+        } else {
+          return fieldsBuilder_.getCount();
         }
-
-
-        /**
-         * <code>repeated .remoting.NVPair fields = 1;</code>
-         */
-        public java.util.List<? extends com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairOrBuilder> getFieldsOrBuilderList() {
-            return fields_;
+      }
+      /**
+       * <code>repeated .remoting.NVPair fields = 1;</code>
+       */
+      public com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair getFields(int index) {
+        if (fieldsBuilder_ == null) {
+          return fields_.get(index);
+        } else {
+          return fieldsBuilder_.getMessage(index);
         }
-
-
-        /**
-         * <code>repeated .remoting.NVPair fields = 1;</code>
-         */
-        public int getFieldsCount() {
-            return fields_.size();
+      }
+      /**
+       * <code>repeated .remoting.NVPair fields = 1;</code>
+       */
+      public Builder setFields(
+          int index, com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair value) {
+        if (fieldsBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          ensureFieldsIsMutable();
+          fields_.set(index, value);
+          onChanged();
+        } else {
+          fieldsBuilder_.setMessage(index, value);
         }
-
-
-        /**
-         * <code>repeated .remoting.NVPair fields = 1;</code>
-         */
-        public com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair getFields(int index) {
-            return fields_.get(index);
+        return this;
+      }
+      /**
+       * <code>repeated .remoting.NVPair fields = 1;</code>
+       */
+      public Builder setFields(
+          int index, com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair.Builder builderForValue) {
+        if (fieldsBuilder_ == null) {
+          ensureFieldsIsMutable();
+          fields_.set(index, builderForValue.build());
+          onChanged();
+        } else {
+          fieldsBuilder_.setMessage(index, builderForValue.build());
         }
-
-
-        /**
-         * <code>repeated .remoting.NVPair fields = 1;</code>
-         */
-        public com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairOrBuilder getFieldsOrBuilder(
-                int index) {
-            return fields_.get(index);
+        return this;
+      }
+      /**
+       * <code>repeated .remoting.NVPair fields = 1;</code>
+       */
+      public Builder addFields(com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair value) {
+        if (fieldsBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          ensureFieldsIsMutable();
+          fields_.add(value);
+          onChanged();
+        } else {
+          fieldsBuilder_.addMessage(value);
         }
-
-
-        private void initFields() {
-            fields_ = java.util.Collections.emptyList();
+        return this;
+      }
+      /**
+       * <code>repeated .remoting.NVPair fields = 1;</code>
+       */
+      public Builder addFields(
+          int index, com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair value) {
+        if (fieldsBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          ensureFieldsIsMutable();
+          fields_.add(index, value);
+          onChanged();
+        } else {
+          fieldsBuilder_.addMessage(index, value);
         }
-
-        private byte memoizedIsInitialized = -1;
-
-
-        public final boolean isInitialized() {
-            byte isInitialized = memoizedIsInitialized;
-            if (isInitialized != -1)
-                return isInitialized == 1;
-
-            for (int i = 0; i < getFieldsCount(); i++) {
-                if (!getFields(i).isInitialized()) {
-                    memoizedIsInitialized = 0;
-                    return false;
-                }
-            }
-            memoizedIsInitialized = 1;
-            return true;
+        return this;
+      }
+      /**
+       * <code>repeated .remoting.NVPair fields = 1;</code>
+       */
+      public Builder addFields(
+          com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair.Builder builderForValue) {
+        if (fieldsBuilder_ == null) {
+          ensureFieldsIsMutable();
+          fields_.add(builderForValue.build());
+          onChanged();
+        } else {
+          fieldsBuilder_.addMessage(builderForValue.build());
         }
-
-
-        public void writeTo(com.google.protobuf.CodedOutputStream output) throws java.io.IOException {
-            getSerializedSize();
-            for (int i = 0; i < fields_.size(); i++) {
-                output.writeMessage(1, fields_.get(i));
-            }
-            getUnknownFields().writeTo(output);
+        return this;
+      }
+      /**
+       * <code>repeated .remoting.NVPair fields = 1;</code>
+       */
+      public Builder addFields(
+          int index, com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair.Builder builderForValue) {
+        if (fieldsBuilder_ == null) {
+          ensureFieldsIsMutable();
+          fields_.add(index, builderForValue.build());
+          onChanged();
+        } else {
+          fieldsBuilder_.addMessage(index, builderForValue.build());
         }
-
-        private int memoizedSerializedSize = -1;
-
-
-        public int getSerializedSize() {
-            int size = memoizedSerializedSize;
-            if (size != -1)
-                return size;
-
-            size = 0;
-            for (int i = 0; i < fields_.size(); i++) {
-                size += com.google.protobuf.CodedOutputStream.computeMessageSize(1, fields_.get(i));
-            }
-            size += getUnknownFields().getSerializedSize();
-            memoizedSerializedSize = size;
-            return size;
+        return this;
+      }
+      /**
+       * <code>repeated .remoting.NVPair fields = 1;</code>
+       */
+      public Builder addAllFields(
+          java.lang.Iterable<? extends com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair> values) {
+        if (fieldsBuilder_ == null) {
+          ensureFieldsIsMutable();
+          super.addAll(values, fields_);
+          onChanged();
+        } else {
+          fieldsBuilder_.addAllMessages(values);
         }
-
-        private static final long serialVersionUID = 0L;
-
-
-        @java.lang.Override
-        protected java.lang.Object writeReplace() throws java.io.ObjectStreamException {
-            return super.writeReplace();
+        return this;
+      }
+      /**
+       * <code>repeated .remoting.NVPair fields = 1;</code>
+       */
+      public Builder clearFields() {
+        if (fieldsBuilder_ == null) {
+          fields_ = java.util.Collections.emptyList();
+          bitField0_ = (bitField0_ & ~0x00000001);
+          onChanged();
+        } else {
+          fieldsBuilder_.clear();
         }
-
-
-        public static com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairList parseFrom(
-                com.google.protobuf.ByteString data)
-                throws com.google.protobuf.InvalidProtocolBufferException {
-            return PARSER.parseFrom(data);
+        return this;
+      }
+      /**
+       * <code>repeated .remoting.NVPair fields = 1;</code>
+       */
+      public Builder removeFields(int index) {
+        if (fieldsBuilder_ == null) {
+          ensureFieldsIsMutable();
+          fields_.remove(index);
+          onChanged();
+        } else {
+          fieldsBuilder_.remove(index);
         }
-
-
-        public static com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairList parseFrom(
-                com.google.protobuf.ByteString data,
-                com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-                throws com.google.protobuf.InvalidProtocolBufferException {
-            return PARSER.parseFrom(data, extensionRegistry);
+        return this;
+      }
+      /**
+       * <code>repeated .remoting.NVPair fields = 1;</code>
+       */
+      public com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair.Builder getFieldsBuilder(
+          int index) {
+        return getFieldsFieldBuilder().getBuilder(index);
+      }
+      /**
+       * <code>repeated .remoting.NVPair fields = 1;</code>
+       */
+      public com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairOrBuilder getFieldsOrBuilder(
+          int index) {
+        if (fieldsBuilder_ == null) {
+          return fields_.get(index);  } else {
+          return fieldsBuilder_.getMessageOrBuilder(index);
         }
-
-
-        public static com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairList parseFrom(byte[] data)
-                throws com.google.protobuf.InvalidProtocolBufferException {
-            return PARSER.parseFrom(data);
+      }
+      /**
+       * <code>repeated .remoting.NVPair fields = 1;</code>
+       */
+      public java.util.List<? extends com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairOrBuilder> 
+           getFieldsOrBuilderList() {
+        if (fieldsBuilder_ != null) {
+          return fieldsBuilder_.getMessageOrBuilderList();
+        } else {
+          return java.util.Collections.unmodifiableList(fields_);
         }
-
-
-        public static com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairList parseFrom(byte[] data,
-                com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-                throws com.google.protobuf.InvalidProtocolBufferException {
-            return PARSER.parseFrom(data, extensionRegistry);
+      }
+      /**
+       * <code>repeated .remoting.NVPair fields = 1;</code>
+       */
+      public com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair.Builder addFieldsBuilder() {
+        return getFieldsFieldBuilder().addBuilder(
+            com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair.getDefaultInstance());
+      }
+      /**
+       * <code>repeated .remoting.NVPair fields = 1;</code>
+       */
+      public com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair.Builder addFieldsBuilder(
+          int index) {
+        return getFieldsFieldBuilder().addBuilder(
+            index, com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair.getDefaultInstance());
+      }
+      /**
+       * <code>repeated .remoting.NVPair fields = 1;</code>
+       */
+      public java.util.List<com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair.Builder> 
+           getFieldsBuilderList() {
+        return getFieldsFieldBuilder().getBuilderList();
+      }
+      private com.google.protobuf.RepeatedFieldBuilder<
+          com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair, com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair.Builder, com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairOrBuilder> 
+          getFieldsFieldBuilder() {
+        if (fieldsBuilder_ == null) {
+          fieldsBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
+              com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair, com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair.Builder, com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairOrBuilder>(
+                  fields_,
+                  ((bitField0_ & 0x00000001) == 0x00000001),
+                  getParentForChildren(),
+                  isClean());
+          fields_ = null;
         }
+        return fieldsBuilder_;
+      }
 
-
-        public static com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairList parseFrom(
-                java.io.InputStream input) throws java.io.IOException {
-            return PARSER.parseFrom(input);
-        }
-
-
-        public static com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairList parseFrom(
-                java.io.InputStream input, com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-                throws java.io.IOException {
-            return PARSER.parseFrom(input, extensionRegistry);
-        }
-
-
-        public static com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairList parseDelimitedFrom(
-                java.io.InputStream input) throws java.io.IOException {
-            return PARSER.parseDelimitedFrom(input);
-        }
-
-
-        public static com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairList parseDelimitedFrom(
-                java.io.InputStream input, com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-                throws java.io.IOException {
-            return PARSER.parseDelimitedFrom(input, extensionRegistry);
-        }
-
-
-        public static com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairList parseFrom(
-                com.google.protobuf.CodedInputStream input) throws java.io.IOException {
-            return PARSER.parseFrom(input);
-        }
-
-
-        public static com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairList parseFrom(
-                com.google.protobuf.CodedInputStream input,
-                com.google.protobuf.ExtensionRegistryLite extensionRegistry) throws java.io.IOException {
-            return PARSER.parseFrom(input, extensionRegistry);
-        }
-
-
-        public static Builder newBuilder() {
-            return Builder.create();
-        }
-
-
-        public Builder newBuilderForType() {
-            return newBuilder();
-        }
-
-
-        public static Builder newBuilder(
-                com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairList prototype) {
-            return newBuilder().mergeFrom(prototype);
-        }
-
-
-        public Builder toBuilder() {
-            return newBuilder(this);
-        }
-
-
-        @java.lang.Override
-        protected Builder newBuilderForType(com.google.protobuf.GeneratedMessage.BuilderParent parent) {
-            Builder builder = new Builder(parent);
-            return builder;
-        }
-
-        /**
-         * Protobuf type {@code remoting.NVPairList}
-         * 
-         * <pre>
-         * NV对集合
-         * </pre>
-         */
-        public static final class Builder extends com.google.protobuf.GeneratedMessage.Builder<Builder>
-                implements com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairListOrBuilder {
-            public static final com.google.protobuf.Descriptors.Descriptor getDescriptor() {
-                return com.alibaba.rocketmq.remoting.protocol.RemotingProtos.internal_static_remoting_NVPairList_descriptor;
-            }
-
-
-            protected com.google.protobuf.GeneratedMessage.FieldAccessorTable internalGetFieldAccessorTable() {
-                return com.alibaba.rocketmq.remoting.protocol.RemotingProtos.internal_static_remoting_NVPairList_fieldAccessorTable
-                    .ensureFieldAccessorsInitialized(
-                        com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairList.class,
-                        com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairList.Builder.class);
-            }
-
-
-            // Construct using
-            // com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairList.newBuilder()
-            private Builder() {
-                maybeForceBuilderInitialization();
-            }
-
-
-            private Builder(com.google.protobuf.GeneratedMessage.BuilderParent parent) {
-                super(parent);
-                maybeForceBuilderInitialization();
-            }
-
-
-            private void maybeForceBuilderInitialization() {
-                if (com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders) {
-                    getFieldsFieldBuilder();
-                }
-            }
-
-
-            private static Builder create() {
-                return new Builder();
-            }
-
-
-            public Builder clear() {
-                super.clear();
-                if (fieldsBuilder_ == null) {
-                    fields_ = java.util.Collections.emptyList();
-                    bitField0_ = (bitField0_ & ~0x00000001);
-                }
-                else {
-                    fieldsBuilder_.clear();
-                }
-                return this;
-            }
-
-
-            public Builder clone() {
-                return create().mergeFrom(buildPartial());
-            }
-
-
-            public com.google.protobuf.Descriptors.Descriptor getDescriptorForType() {
-                return com.alibaba.rocketmq.remoting.protocol.RemotingProtos.internal_static_remoting_NVPairList_descriptor;
-            }
-
-
-            public com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairList getDefaultInstanceForType() {
-                return com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairList.getDefaultInstance();
-            }
-
-
-            public com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairList build() {
-                com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairList result = buildPartial();
-                if (!result.isInitialized()) {
-                    throw newUninitializedMessageException(result);
-                }
-                return result;
-            }
-
-
-            public com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairList buildPartial() {
-                com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairList result =
-                        new com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairList(this);
-                int from_bitField0_ = bitField0_;
-                if (fieldsBuilder_ == null) {
-                    if (((bitField0_ & 0x00000001) == 0x00000001)) {
-                        fields_ = java.util.Collections.unmodifiableList(fields_);
-                        bitField0_ = (bitField0_ & ~0x00000001);
-                    }
-                    result.fields_ = fields_;
-                }
-                else {
-                    result.fields_ = fieldsBuilder_.build();
-                }
-                onBuilt();
-                return result;
-            }
-
-
-            public Builder mergeFrom(com.google.protobuf.Message other) {
-                if (other instanceof com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairList) {
-                    return mergeFrom((com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairList) other);
-                }
-                else {
-                    super.mergeFrom(other);
-                    return this;
-                }
-            }
-
-
-            public Builder mergeFrom(com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairList other) {
-                if (other == com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairList
-                    .getDefaultInstance())
-                    return this;
-                if (fieldsBuilder_ == null) {
-                    if (!other.fields_.isEmpty()) {
-                        if (fields_.isEmpty()) {
-                            fields_ = other.fields_;
-                            bitField0_ = (bitField0_ & ~0x00000001);
-                        }
-                        else {
-                            ensureFieldsIsMutable();
-                            fields_.addAll(other.fields_);
-                        }
-                        onChanged();
-                    }
-                }
-                else {
-                    if (!other.fields_.isEmpty()) {
-                        if (fieldsBuilder_.isEmpty()) {
-                            fieldsBuilder_.dispose();
-                            fieldsBuilder_ = null;
-                            fields_ = other.fields_;
-                            bitField0_ = (bitField0_ & ~0x00000001);
-                            fieldsBuilder_ =
-                                    com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ? getFieldsFieldBuilder()
-                                            : null;
-                        }
-                        else {
-                            fieldsBuilder_.addAllMessages(other.fields_);
-                        }
-                    }
-                }
-                this.mergeUnknownFields(other.getUnknownFields());
-                return this;
-            }
-
-
-            public final boolean isInitialized() {
-                for (int i = 0; i < getFieldsCount(); i++) {
-                    if (!getFields(i).isInitialized()) {
-
-                        return false;
-                    }
-                }
-                return true;
-            }
-
-
-            public Builder mergeFrom(com.google.protobuf.CodedInputStream input,
-                    com.google.protobuf.ExtensionRegistryLite extensionRegistry) throws java.io.IOException {
-                com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairList parsedMessage = null;
-                try {
-                    parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
-                }
-                catch (com.google.protobuf.InvalidProtocolBufferException e) {
-                    parsedMessage =
-                            (com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairList) e
-                                .getUnfinishedMessage();
-                    throw e;
-                }
-                finally {
-                    if (parsedMessage != null) {
-                        mergeFrom(parsedMessage);
-                    }
-                }
-                return this;
-            }
-
-            private int bitField0_;
-
-            // repeated .remoting.NVPair fields = 1;
-            private java.util.List<com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair> fields_ =
-                    java.util.Collections.emptyList();
-
-
-            private void ensureFieldsIsMutable() {
-                if (!((bitField0_ & 0x00000001) == 0x00000001)) {
-                    fields_ =
-                            new java.util.ArrayList<com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair>(
-                                fields_);
-                    bitField0_ |= 0x00000001;
-                }
-            }
-
-            private com.google.protobuf.RepeatedFieldBuilder<com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair, com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair.Builder, com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairOrBuilder> fieldsBuilder_;
-
-
-            /**
-             * <code>repeated .remoting.NVPair fields = 1;</code>
-             */
-            public java.util.List<com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair> getFieldsList() {
-                if (fieldsBuilder_ == null) {
-                    return java.util.Collections.unmodifiableList(fields_);
-                }
-                else {
-                    return fieldsBuilder_.getMessageList();
-                }
-            }
-
-
-            /**
-             * <code>repeated .remoting.NVPair fields = 1;</code>
-             */
-            public int getFieldsCount() {
-                if (fieldsBuilder_ == null) {
-                    return fields_.size();
-                }
-                else {
-                    return fieldsBuilder_.getCount();
-                }
-            }
-
-
-            /**
-             * <code>repeated .remoting.NVPair fields = 1;</code>
-             */
-            public com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair getFields(int index) {
-                if (fieldsBuilder_ == null) {
-                    return fields_.get(index);
-                }
-                else {
-                    return fieldsBuilder_.getMessage(index);
-                }
-            }
-
-
-            /**
-             * <code>repeated .remoting.NVPair fields = 1;</code>
-             */
-            public Builder setFields(int index,
-                    com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair value) {
-                if (fieldsBuilder_ == null) {
-                    if (value == null) {
-                        throw new NullPointerException();
-                    }
-                    ensureFieldsIsMutable();
-                    fields_.set(index, value);
-                    onChanged();
-                }
-                else {
-                    fieldsBuilder_.setMessage(index, value);
-                }
-                return this;
-            }
-
-
-            /**
-             * <code>repeated .remoting.NVPair fields = 1;</code>
-             */
-            public Builder setFields(int index,
-                    com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair.Builder builderForValue) {
-                if (fieldsBuilder_ == null) {
-                    ensureFieldsIsMutable();
-                    fields_.set(index, builderForValue.build());
-                    onChanged();
-                }
-                else {
-                    fieldsBuilder_.setMessage(index, builderForValue.build());
-                }
-                return this;
-            }
-
-
-            /**
-             * <code>repeated .remoting.NVPair fields = 1;</code>
-             */
-            public Builder addFields(com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair value) {
-                if (fieldsBuilder_ == null) {
-                    if (value == null) {
-                        throw new NullPointerException();
-                    }
-                    ensureFieldsIsMutable();
-                    fields_.add(value);
-                    onChanged();
-                }
-                else {
-                    fieldsBuilder_.addMessage(value);
-                }
-                return this;
-            }
-
-
-            /**
-             * <code>repeated .remoting.NVPair fields = 1;</code>
-             */
-            public Builder addFields(int index,
-                    com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair value) {
-                if (fieldsBuilder_ == null) {
-                    if (value == null) {
-                        throw new NullPointerException();
-                    }
-                    ensureFieldsIsMutable();
-                    fields_.add(index, value);
-                    onChanged();
-                }
-                else {
-                    fieldsBuilder_.addMessage(index, value);
-                }
-                return this;
-            }
-
-
-            /**
-             * <code>repeated .remoting.NVPair fields = 1;</code>
-             */
-            public Builder addFields(
-                    com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair.Builder builderForValue) {
-                if (fieldsBuilder_ == null) {
-                    ensureFieldsIsMutable();
-                    fields_.add(builderForValue.build());
-                    onChanged();
-                }
-                else {
-                    fieldsBuilder_.addMessage(builderForValue.build());
-                }
-                return this;
-            }
-
-
-            /**
-             * <code>repeated .remoting.NVPair fields = 1;</code>
-             */
-            public Builder addFields(int index,
-                    com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair.Builder builderForValue) {
-                if (fieldsBuilder_ == null) {
-                    ensureFieldsIsMutable();
-                    fields_.add(index, builderForValue.build());
-                    onChanged();
-                }
-                else {
-                    fieldsBuilder_.addMessage(index, builderForValue.build());
-                }
-                return this;
-            }
-
-
-            /**
-             * <code>repeated .remoting.NVPair fields = 1;</code>
-             */
-            public Builder addAllFields(
-                    java.lang.Iterable<? extends com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair> values) {
-                if (fieldsBuilder_ == null) {
-                    ensureFieldsIsMutable();
-                    super.addAll(values, fields_);
-                    onChanged();
-                }
-                else {
-                    fieldsBuilder_.addAllMessages(values);
-                }
-                return this;
-            }
-
-
-            /**
-             * <code>repeated .remoting.NVPair fields = 1;</code>
-             */
-            public Builder clearFields() {
-                if (fieldsBuilder_ == null) {
-                    fields_ = java.util.Collections.emptyList();
-                    bitField0_ = (bitField0_ & ~0x00000001);
-                    onChanged();
-                }
-                else {
-                    fieldsBuilder_.clear();
-                }
-                return this;
-            }
-
-
-            /**
-             * <code>repeated .remoting.NVPair fields = 1;</code>
-             */
-            public Builder removeFields(int index) {
-                if (fieldsBuilder_ == null) {
-                    ensureFieldsIsMutable();
-                    fields_.remove(index);
-                    onChanged();
-                }
-                else {
-                    fieldsBuilder_.remove(index);
-                }
-                return this;
-            }
-
-
-            /**
-             * <code>repeated .remoting.NVPair fields = 1;</code>
-             */
-            public com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair.Builder getFieldsBuilder(
-                    int index) {
-                return getFieldsFieldBuilder().getBuilder(index);
-            }
-
-
-            /**
-             * <code>repeated .remoting.NVPair fields = 1;</code>
-             */
-            public com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairOrBuilder getFieldsOrBuilder(
-                    int index) {
-                if (fieldsBuilder_ == null) {
-                    return fields_.get(index);
-                }
-                else {
-                    return fieldsBuilder_.getMessageOrBuilder(index);
-                }
-            }
-
-
-            /**
-             * <code>repeated .remoting.NVPair fields = 1;</code>
-             */
-            public java.util.List<? extends com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairOrBuilder> getFieldsOrBuilderList() {
-                if (fieldsBuilder_ != null) {
-                    return fieldsBuilder_.getMessageOrBuilderList();
-                }
-                else {
-                    return java.util.Collections.unmodifiableList(fields_);
-                }
-            }
-
-
-            /**
-             * <code>repeated .remoting.NVPair fields = 1;</code>
-             */
-            public com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair.Builder addFieldsBuilder() {
-                return getFieldsFieldBuilder().addBuilder(
-                    com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair.getDefaultInstance());
-            }
-
-
-            /**
-             * <code>repeated .remoting.NVPair fields = 1;</code>
-             */
-            public com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair.Builder addFieldsBuilder(
-                    int index) {
-                return getFieldsFieldBuilder().addBuilder(index,
-                    com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair.getDefaultInstance());
-            }
-
-
-            /**
-             * <code>repeated .remoting.NVPair fields = 1;</code>
-             */
-            public java.util.List<com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair.Builder> getFieldsBuilderList() {
-                return getFieldsFieldBuilder().getBuilderList();
-            }
-
-
-            private com.google.protobuf.RepeatedFieldBuilder<com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair, com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair.Builder, com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairOrBuilder> getFieldsFieldBuilder() {
-                if (fieldsBuilder_ == null) {
-                    fieldsBuilder_ =
-                            new com.google.protobuf.RepeatedFieldBuilder<com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair, com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair.Builder, com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairOrBuilder>(
-                                fields_, ((bitField0_ & 0x00000001) == 0x00000001), getParentForChildren(),
-                                isClean());
-                    fields_ = null;
-                }
-                return fieldsBuilder_;
-            }
-
-            // @@protoc_insertion_point(builder_scope:remoting.NVPairList)
-        }
-
-        static {
-            defaultInstance = new NVPairList(true);
-            defaultInstance.initFields();
-        }
-
-        // @@protoc_insertion_point(class_scope:remoting.NVPairList)
+      // @@protoc_insertion_point(builder_scope:remoting.NVPairList)
     }
 
-    public interface StringListOrBuilder extends com.google.protobuf.MessageOrBuilder {
-
-        // repeated string name = 1;
-        /**
-         * <code>repeated string name = 1;</code>
-         */
-        java.util.List<java.lang.String> getNameList();
-
-
-        /**
-         * <code>repeated string name = 1;</code>
-         */
-        int getNameCount();
-
-
-        /**
-         * <code>repeated string name = 1;</code>
-         */
-        java.lang.String getName(int index);
-
-
-        /**
-         * <code>repeated string name = 1;</code>
-         */
-        com.google.protobuf.ByteString getNameBytes(int index);
+    static {
+      defaultInstance = new NVPairList(true);
+      defaultInstance.initFields();
     }
 
+    // @@protoc_insertion_point(class_scope:remoting.NVPairList)
+  }
+
+  public interface StringListOrBuilder
+      extends com.google.protobuf.MessageOrBuilder {
+
+    // repeated string name = 1;
+    /**
+     * <code>repeated string name = 1;</code>
+     */
+    java.util.List<java.lang.String>
+    getNameList();
+    /**
+     * <code>repeated string name = 1;</code>
+     */
+    int getNameCount();
+    /**
+     * <code>repeated string name = 1;</code>
+     */
+    java.lang.String getName(int index);
+    /**
+     * <code>repeated string name = 1;</code>
+     */
+    com.google.protobuf.ByteString
+        getNameBytes(int index);
+  }
+  /**
+   * Protobuf type {@code remoting.StringList}
+   *
+   * <pre>
+   * 字符串集合
+   * </pre>
+   */
+  public static final class StringList extends
+      com.google.protobuf.GeneratedMessage
+      implements StringListOrBuilder {
+    // Use StringList.newBuilder() to construct.
+    private StringList(com.google.protobuf.GeneratedMessage.Builder<?> builder) {
+      super(builder);
+      this.unknownFields = builder.getUnknownFields();
+    }
+    private StringList(boolean noInit) { this.unknownFields = com.google.protobuf.UnknownFieldSet.getDefaultInstance(); }
+
+    private static final StringList defaultInstance;
+    public static StringList getDefaultInstance() {
+      return defaultInstance;
+    }
+
+    public StringList getDefaultInstanceForType() {
+      return defaultInstance;
+    }
+
+    private final com.google.protobuf.UnknownFieldSet unknownFields;
+    @java.lang.Override
+    public final com.google.protobuf.UnknownFieldSet
+        getUnknownFields() {
+      return this.unknownFields;
+    }
+    private StringList(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      initFields();
+      int mutable_bitField0_ = 0;
+      com.google.protobuf.UnknownFieldSet.Builder unknownFields =
+          com.google.protobuf.UnknownFieldSet.newBuilder();
+      try {
+        boolean done = false;
+        while (!done) {
+          int tag = input.readTag();
+          switch (tag) {
+            case 0:
+              done = true;
+              break;
+            default: {
+              if (!parseUnknownField(input, unknownFields,
+                                     extensionRegistry, tag)) {
+                done = true;
+              }
+              break;
+            }
+            case 10: {
+              if (!((mutable_bitField0_ & 0x00000001) == 0x00000001)) {
+                name_ = new com.google.protobuf.LazyStringArrayList();
+                mutable_bitField0_ |= 0x00000001;
+              }
+              name_.add(input.readBytes());
+              break;
+            }
+          }
+        }
+      } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+        throw e.setUnfinishedMessage(this);
+      } catch (java.io.IOException e) {
+        throw new com.google.protobuf.InvalidProtocolBufferException(
+            e.getMessage()).setUnfinishedMessage(this);
+      } finally {
+        if (((mutable_bitField0_ & 0x00000001) == 0x00000001)) {
+          name_ = new com.google.protobuf.UnmodifiableLazyStringList(name_);
+        }
+        this.unknownFields = unknownFields.build();
+        makeExtensionsImmutable();
+      }
+    }
+    public static final com.google.protobuf.Descriptors.Descriptor
+        getDescriptor() {
+      return com.alibaba.rocketmq.remoting.protocol.RemotingProtos.internal_static_remoting_StringList_descriptor;
+    }
+
+    protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
+        internalGetFieldAccessorTable() {
+      return com.alibaba.rocketmq.remoting.protocol.RemotingProtos.internal_static_remoting_StringList_fieldAccessorTable
+          .ensureFieldAccessorsInitialized(
+              com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringList.class, com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringList.Builder.class);
+    }
+
+    public static com.google.protobuf.Parser<StringList> PARSER =
+        new com.google.protobuf.AbstractParser<StringList>() {
+      public StringList parsePartialFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        return new StringList(input, extensionRegistry);
+      }
+    };
+
+    @java.lang.Override
+    public com.google.protobuf.Parser<StringList> getParserForType() {
+      return PARSER;
+    }
+
+    // repeated string name = 1;
+    public static final int NAME_FIELD_NUMBER = 1;
+    private com.google.protobuf.LazyStringList name_;
+    /**
+     * <code>repeated string name = 1;</code>
+     */
+    public java.util.List<java.lang.String>
+        getNameList() {
+      return name_;
+    }
+    /**
+     * <code>repeated string name = 1;</code>
+     */
+    public int getNameCount() {
+      return name_.size();
+    }
+    /**
+     * <code>repeated string name = 1;</code>
+     */
+    public java.lang.String getName(int index) {
+      return name_.get(index);
+    }
+    /**
+     * <code>repeated string name = 1;</code>
+     */
+    public com.google.protobuf.ByteString
+        getNameBytes(int index) {
+      return name_.getByteString(index);
+    }
+
+    private void initFields() {
+      name_ = com.google.protobuf.LazyStringArrayList.EMPTY;
+    }
+    private byte memoizedIsInitialized = -1;
+    public final boolean isInitialized() {
+      byte isInitialized = memoizedIsInitialized;
+      if (isInitialized != -1) return isInitialized == 1;
+
+      memoizedIsInitialized = 1;
+      return true;
+    }
+
+    public void writeTo(com.google.protobuf.CodedOutputStream output)
+                        throws java.io.IOException {
+      getSerializedSize();
+      for (int i = 0; i < name_.size(); i++) {
+        output.writeBytes(1, name_.getByteString(i));
+      }
+      getUnknownFields().writeTo(output);
+    }
+
+    private int memoizedSerializedSize = -1;
+    public int getSerializedSize() {
+      int size = memoizedSerializedSize;
+      if (size != -1) return size;
+
+      size = 0;
+      {
+        int dataSize = 0;
+        for (int i = 0; i < name_.size(); i++) {
+          dataSize += com.google.protobuf.CodedOutputStream
+            .computeBytesSizeNoTag(name_.getByteString(i));
+        }
+        size += dataSize;
+        size += 1 * getNameList().size();
+      }
+      size += getUnknownFields().getSerializedSize();
+      memoizedSerializedSize = size;
+      return size;
+    }
+
+    private static final long serialVersionUID = 0L;
+    @java.lang.Override
+    protected java.lang.Object writeReplace()
+        throws java.io.ObjectStreamException {
+      return super.writeReplace();
+    }
+
+    public static com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringList parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data);
+    }
+    public static com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringList parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data, extensionRegistry);
+    }
+    public static com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringList parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data);
+    }
+    public static com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringList parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data, extensionRegistry);
+    }
+    public static com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringList parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return PARSER.parseFrom(input);
+    }
+    public static com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringList parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return PARSER.parseFrom(input, extensionRegistry);
+    }
+    public static com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringList parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return PARSER.parseDelimitedFrom(input);
+    }
+    public static com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringList parseDelimitedFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return PARSER.parseDelimitedFrom(input, extensionRegistry);
+    }
+    public static com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringList parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return PARSER.parseFrom(input);
+    }
+    public static com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringList parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return PARSER.parseFrom(input, extensionRegistry);
+    }
+
+    public static Builder newBuilder() { return Builder.create(); }
+    public Builder newBuilderForType() { return newBuilder(); }
+    public static Builder newBuilder(com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringList prototype) {
+      return newBuilder().mergeFrom(prototype);
+    }
+    public Builder toBuilder() { return newBuilder(this); }
+
+    @java.lang.Override
+    protected Builder newBuilderForType(
+        com.google.protobuf.GeneratedMessage.BuilderParent parent) {
+      Builder builder = new Builder(parent);
+      return builder;
+    }
     /**
      * Protobuf type {@code remoting.StringList}
-     * 
+     *
      * <pre>
      * 字符串集合
      * </pre>
      */
-    public static final class StringList extends com.google.protobuf.GeneratedMessage implements
-            StringListOrBuilder {
-        // Use StringList.newBuilder() to construct.
-        private StringList(com.google.protobuf.GeneratedMessage.Builder<?> builder) {
-            super(builder);
-            this.unknownFields = builder.getUnknownFields();
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessage.Builder<Builder>
+       implements com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringListOrBuilder {
+      public static final com.google.protobuf.Descriptors.Descriptor
+          getDescriptor() {
+        return com.alibaba.rocketmq.remoting.protocol.RemotingProtos.internal_static_remoting_StringList_descriptor;
+      }
+
+      protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
+          internalGetFieldAccessorTable() {
+        return com.alibaba.rocketmq.remoting.protocol.RemotingProtos.internal_static_remoting_StringList_fieldAccessorTable
+            .ensureFieldAccessorsInitialized(
+                com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringList.class, com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringList.Builder.class);
+      }
+
+      // Construct using com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringList.newBuilder()
+      private Builder() {
+        maybeForceBuilderInitialization();
+      }
+
+      private Builder(
+          com.google.protobuf.GeneratedMessage.BuilderParent parent) {
+        super(parent);
+        maybeForceBuilderInitialization();
+      }
+      private void maybeForceBuilderInitialization() {
+        if (com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders) {
         }
+      }
+      private static Builder create() {
+        return new Builder();
+      }
 
+      public Builder clear() {
+        super.clear();
+        name_ = com.google.protobuf.LazyStringArrayList.EMPTY;
+        bitField0_ = (bitField0_ & ~0x00000001);
+        return this;
+      }
 
-        private StringList(boolean noInit) {
-            this.unknownFields = com.google.protobuf.UnknownFieldSet.getDefaultInstance();
+      public Builder clone() {
+        return create().mergeFrom(buildPartial());
+      }
+
+      public com.google.protobuf.Descriptors.Descriptor
+          getDescriptorForType() {
+        return com.alibaba.rocketmq.remoting.protocol.RemotingProtos.internal_static_remoting_StringList_descriptor;
+      }
+
+      public com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringList getDefaultInstanceForType() {
+        return com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringList.getDefaultInstance();
+      }
+
+      public com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringList build() {
+        com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringList result = buildPartial();
+        if (!result.isInitialized()) {
+          throw newUninitializedMessageException(result);
         }
+        return result;
+      }
 
-        private static final StringList defaultInstance;
-
-
-        public static StringList getDefaultInstance() {
-            return defaultInstance;
+      public com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringList buildPartial() {
+        com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringList result = new com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringList(this);
+        int from_bitField0_ = bitField0_;
+        if (((bitField0_ & 0x00000001) == 0x00000001)) {
+          name_ = new com.google.protobuf.UnmodifiableLazyStringList(
+              name_);
+          bitField0_ = (bitField0_ & ~0x00000001);
         }
+        result.name_ = name_;
+        onBuilt();
+        return result;
+      }
 
-
-        public StringList getDefaultInstanceForType() {
-            return defaultInstance;
+      public Builder mergeFrom(com.google.protobuf.Message other) {
+        if (other instanceof com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringList) {
+          return mergeFrom((com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringList)other);
+        } else {
+          super.mergeFrom(other);
+          return this;
         }
+      }
 
-        private final com.google.protobuf.UnknownFieldSet unknownFields;
-
-
-        @java.lang.Override
-        public final com.google.protobuf.UnknownFieldSet getUnknownFields() {
-            return this.unknownFields;
+      public Builder mergeFrom(com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringList other) {
+        if (other == com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringList.getDefaultInstance()) return this;
+        if (!other.name_.isEmpty()) {
+          if (name_.isEmpty()) {
+            name_ = other.name_;
+            bitField0_ = (bitField0_ & ~0x00000001);
+          } else {
+            ensureNameIsMutable();
+            name_.addAll(other.name_);
+          }
+          onChanged();
         }
+        this.mergeUnknownFields(other.getUnknownFields());
+        return this;
+      }
 
+      public final boolean isInitialized() {
+        return true;
+      }
 
-        private StringList(com.google.protobuf.CodedInputStream input,
-                com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-                throws com.google.protobuf.InvalidProtocolBufferException {
-            initFields();
-            int mutable_bitField0_ = 0;
-            com.google.protobuf.UnknownFieldSet.Builder unknownFields =
-                    com.google.protobuf.UnknownFieldSet.newBuilder();
-            try {
-                boolean done = false;
-                while (!done) {
-                    int tag = input.readTag();
-                    switch (tag) {
-                    case 0:
-                        done = true;
-                        break;
-                    default: {
-                        if (!parseUnknownField(input, unknownFields, extensionRegistry, tag)) {
-                            done = true;
-                        }
-                        break;
-                    }
-                    case 10: {
-                        if (!((mutable_bitField0_ & 0x00000001) == 0x00000001)) {
-                            name_ = new com.google.protobuf.LazyStringArrayList();
-                            mutable_bitField0_ |= 0x00000001;
-                        }
-                        name_.add(input.readBytes());
-                        break;
-                    }
-                    }
-                }
-            }
-            catch (com.google.protobuf.InvalidProtocolBufferException e) {
-                throw e.setUnfinishedMessage(this);
-            }
-            catch (java.io.IOException e) {
-                throw new com.google.protobuf.InvalidProtocolBufferException(e.getMessage())
-                    .setUnfinishedMessage(this);
-            }
-            finally {
-                if (((mutable_bitField0_ & 0x00000001) == 0x00000001)) {
-                    name_ = new com.google.protobuf.UnmodifiableLazyStringList(name_);
-                }
-                this.unknownFields = unknownFields.build();
-                makeExtensionsImmutable();
-            }
+      public Builder mergeFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws java.io.IOException {
+        com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringList parsedMessage = null;
+        try {
+          parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
+        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+          parsedMessage = (com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringList) e.getUnfinishedMessage();
+          throw e;
+        } finally {
+          if (parsedMessage != null) {
+            mergeFrom(parsedMessage);
+          }
         }
-
-
-        public static final com.google.protobuf.Descriptors.Descriptor getDescriptor() {
-            return com.alibaba.rocketmq.remoting.protocol.RemotingProtos.internal_static_remoting_StringList_descriptor;
-        }
-
-
-        protected com.google.protobuf.GeneratedMessage.FieldAccessorTable internalGetFieldAccessorTable() {
-            return com.alibaba.rocketmq.remoting.protocol.RemotingProtos.internal_static_remoting_StringList_fieldAccessorTable
-                .ensureFieldAccessorsInitialized(
-                    com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringList.class,
-                    com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringList.Builder.class);
-        }
-
-        public static com.google.protobuf.Parser<StringList> PARSER =
-                new com.google.protobuf.AbstractParser<StringList>() {
-                    public StringList parsePartialFrom(com.google.protobuf.CodedInputStream input,
-                            com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-                            throws com.google.protobuf.InvalidProtocolBufferException {
-                        return new StringList(input, extensionRegistry);
-                    }
-                };
-
-
-        @java.lang.Override
-        public com.google.protobuf.Parser<StringList> getParserForType() {
-            return PARSER;
-        }
-
-        // repeated string name = 1;
-        public static final int NAME_FIELD_NUMBER = 1;
-        private com.google.protobuf.LazyStringList name_;
-
-
-        /**
-         * <code>repeated string name = 1;</code>
-         */
-        public java.util.List<java.lang.String> getNameList() {
-            return name_;
-        }
-
-
-        /**
-         * <code>repeated string name = 1;</code>
-         */
-        public int getNameCount() {
-            return name_.size();
-        }
-
-
-        /**
-         * <code>repeated string name = 1;</code>
-         */
-        public java.lang.String getName(int index) {
-            return name_.get(index);
-        }
-
-
-        /**
-         * <code>repeated string name = 1;</code>
-         */
-        public com.google.protobuf.ByteString getNameBytes(int index) {
-            return name_.getByteString(index);
-        }
-
-
-        private void initFields() {
-            name_ = com.google.protobuf.LazyStringArrayList.EMPTY;
-        }
-
-        private byte memoizedIsInitialized = -1;
-
-
-        public final boolean isInitialized() {
-            byte isInitialized = memoizedIsInitialized;
-            if (isInitialized != -1)
-                return isInitialized == 1;
-
-            memoizedIsInitialized = 1;
-            return true;
-        }
-
-
-        public void writeTo(com.google.protobuf.CodedOutputStream output) throws java.io.IOException {
-            getSerializedSize();
-            for (int i = 0; i < name_.size(); i++) {
-                output.writeBytes(1, name_.getByteString(i));
-            }
-            getUnknownFields().writeTo(output);
-        }
-
-        private int memoizedSerializedSize = -1;
-
-
-        public int getSerializedSize() {
-            int size = memoizedSerializedSize;
-            if (size != -1)
-                return size;
-
-            size = 0;
-            {
-                int dataSize = 0;
-                for (int i = 0; i < name_.size(); i++) {
-                    dataSize +=
-                            com.google.protobuf.CodedOutputStream.computeBytesSizeNoTag(name_
-                                .getByteString(i));
-                }
-                size += dataSize;
-                size += 1 * getNameList().size();
-            }
-            size += getUnknownFields().getSerializedSize();
-            memoizedSerializedSize = size;
-            return size;
-        }
-
-        private static final long serialVersionUID = 0L;
-
-
-        @java.lang.Override
-        protected java.lang.Object writeReplace() throws java.io.ObjectStreamException {
-            return super.writeReplace();
-        }
-
-
-        public static com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringList parseFrom(
-                com.google.protobuf.ByteString data)
-                throws com.google.protobuf.InvalidProtocolBufferException {
-            return PARSER.parseFrom(data);
-        }
-
-
-        public static com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringList parseFrom(
-                com.google.protobuf.ByteString data,
-                com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-                throws com.google.protobuf.InvalidProtocolBufferException {
-            return PARSER.parseFrom(data, extensionRegistry);
-        }
-
-
-        public static com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringList parseFrom(byte[] data)
-                throws com.google.protobuf.InvalidProtocolBufferException {
-            return PARSER.parseFrom(data);
-        }
-
-
-        public static com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringList parseFrom(byte[] data,
-                com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-                throws com.google.protobuf.InvalidProtocolBufferException {
-            return PARSER.parseFrom(data, extensionRegistry);
-        }
-
-
-        public static com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringList parseFrom(
-                java.io.InputStream input) throws java.io.IOException {
-            return PARSER.parseFrom(input);
-        }
-
-
-        public static com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringList parseFrom(
-                java.io.InputStream input, com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-                throws java.io.IOException {
-            return PARSER.parseFrom(input, extensionRegistry);
-        }
-
-
-        public static com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringList parseDelimitedFrom(
-                java.io.InputStream input) throws java.io.IOException {
-            return PARSER.parseDelimitedFrom(input);
-        }
-
-
-        public static com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringList parseDelimitedFrom(
-                java.io.InputStream input, com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-                throws java.io.IOException {
-            return PARSER.parseDelimitedFrom(input, extensionRegistry);
-        }
-
-
-        public static com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringList parseFrom(
-                com.google.protobuf.CodedInputStream input) throws java.io.IOException {
-            return PARSER.parseFrom(input);
-        }
-
-
-        public static com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringList parseFrom(
-                com.google.protobuf.CodedInputStream input,
-                com.google.protobuf.ExtensionRegistryLite extensionRegistry) throws java.io.IOException {
-            return PARSER.parseFrom(input, extensionRegistry);
-        }
-
-
-        public static Builder newBuilder() {
-            return Builder.create();
-        }
-
-
-        public Builder newBuilderForType() {
-            return newBuilder();
-        }
-
-
-        public static Builder newBuilder(
-                com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringList prototype) {
-            return newBuilder().mergeFrom(prototype);
-        }
-
-
-        public Builder toBuilder() {
-            return newBuilder(this);
-        }
-
-
-        @java.lang.Override
-        protected Builder newBuilderForType(com.google.protobuf.GeneratedMessage.BuilderParent parent) {
-            Builder builder = new Builder(parent);
-            return builder;
-        }
-
-        /**
-         * Protobuf type {@code remoting.StringList}
-         * 
-         * <pre>
-         * 字符串集合
-         * </pre>
-         */
-        public static final class Builder extends com.google.protobuf.GeneratedMessage.Builder<Builder>
-                implements com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringListOrBuilder {
-            public static final com.google.protobuf.Descriptors.Descriptor getDescriptor() {
-                return com.alibaba.rocketmq.remoting.protocol.RemotingProtos.internal_static_remoting_StringList_descriptor;
-            }
-
-
-            protected com.google.protobuf.GeneratedMessage.FieldAccessorTable internalGetFieldAccessorTable() {
-                return com.alibaba.rocketmq.remoting.protocol.RemotingProtos.internal_static_remoting_StringList_fieldAccessorTable
-                    .ensureFieldAccessorsInitialized(
-                        com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringList.class,
-                        com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringList.Builder.class);
-            }
-
-
-            // Construct using
-            // com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringList.newBuilder()
-            private Builder() {
-                maybeForceBuilderInitialization();
-            }
-
-
-            private Builder(com.google.protobuf.GeneratedMessage.BuilderParent parent) {
-                super(parent);
-                maybeForceBuilderInitialization();
-            }
-
-
-            private void maybeForceBuilderInitialization() {
-                if (com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders) {
-                }
-            }
-
-
-            private static Builder create() {
-                return new Builder();
-            }
-
-
-            public Builder clear() {
-                super.clear();
-                name_ = com.google.protobuf.LazyStringArrayList.EMPTY;
-                bitField0_ = (bitField0_ & ~0x00000001);
-                return this;
-            }
-
-
-            public Builder clone() {
-                return create().mergeFrom(buildPartial());
-            }
-
-
-            public com.google.protobuf.Descriptors.Descriptor getDescriptorForType() {
-                return com.alibaba.rocketmq.remoting.protocol.RemotingProtos.internal_static_remoting_StringList_descriptor;
-            }
-
-
-            public com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringList getDefaultInstanceForType() {
-                return com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringList.getDefaultInstance();
-            }
-
-
-            public com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringList build() {
-                com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringList result = buildPartial();
-                if (!result.isInitialized()) {
-                    throw newUninitializedMessageException(result);
-                }
-                return result;
-            }
-
-
-            public com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringList buildPartial() {
-                com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringList result =
-                        new com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringList(this);
-                int from_bitField0_ = bitField0_;
-                if (((bitField0_ & 0x00000001) == 0x00000001)) {
-                    name_ = new com.google.protobuf.UnmodifiableLazyStringList(name_);
-                    bitField0_ = (bitField0_ & ~0x00000001);
-                }
-                result.name_ = name_;
-                onBuilt();
-                return result;
-            }
-
-
-            public Builder mergeFrom(com.google.protobuf.Message other) {
-                if (other instanceof com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringList) {
-                    return mergeFrom((com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringList) other);
-                }
-                else {
-                    super.mergeFrom(other);
-                    return this;
-                }
-            }
-
-
-            public Builder mergeFrom(com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringList other) {
-                if (other == com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringList
-                    .getDefaultInstance())
-                    return this;
-                if (!other.name_.isEmpty()) {
-                    if (name_.isEmpty()) {
-                        name_ = other.name_;
-                        bitField0_ = (bitField0_ & ~0x00000001);
-                    }
-                    else {
-                        ensureNameIsMutable();
-                        name_.addAll(other.name_);
-                    }
-                    onChanged();
-                }
-                this.mergeUnknownFields(other.getUnknownFields());
-                return this;
-            }
-
-
-            public final boolean isInitialized() {
-                return true;
-            }
-
-
-            public Builder mergeFrom(com.google.protobuf.CodedInputStream input,
-                    com.google.protobuf.ExtensionRegistryLite extensionRegistry) throws java.io.IOException {
-                com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringList parsedMessage = null;
-                try {
-                    parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
-                }
-                catch (com.google.protobuf.InvalidProtocolBufferException e) {
-                    parsedMessage =
-                            (com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringList) e
-                                .getUnfinishedMessage();
-                    throw e;
-                }
-                finally {
-                    if (parsedMessage != null) {
-                        mergeFrom(parsedMessage);
-                    }
-                }
-                return this;
-            }
-
-            private int bitField0_;
-
-            // repeated string name = 1;
-            private com.google.protobuf.LazyStringList name_ = com.google.protobuf.LazyStringArrayList.EMPTY;
-
-
-            private void ensureNameIsMutable() {
-                if (!((bitField0_ & 0x00000001) == 0x00000001)) {
-                    name_ = new com.google.protobuf.LazyStringArrayList(name_);
-                    bitField0_ |= 0x00000001;
-                }
-            }
-
-
-            /**
-             * <code>repeated string name = 1;</code>
-             */
-            public java.util.List<java.lang.String> getNameList() {
-                return java.util.Collections.unmodifiableList(name_);
-            }
-
-
-            /**
-             * <code>repeated string name = 1;</code>
-             */
-            public int getNameCount() {
-                return name_.size();
-            }
-
-
-            /**
-             * <code>repeated string name = 1;</code>
-             */
-            public java.lang.String getName(int index) {
-                return name_.get(index);
-            }
-
-
-            /**
-             * <code>repeated string name = 1;</code>
-             */
-            public com.google.protobuf.ByteString getNameBytes(int index) {
-                return name_.getByteString(index);
-            }
-
-
-            /**
-             * <code>repeated string name = 1;</code>
-             */
-            public Builder setName(int index, java.lang.String value) {
-                if (value == null) {
-                    throw new NullPointerException();
-                }
-                ensureNameIsMutable();
-                name_.set(index, value);
-                onChanged();
-                return this;
-            }
-
-
-            /**
-             * <code>repeated string name = 1;</code>
-             */
-            public Builder addName(java.lang.String value) {
-                if (value == null) {
-                    throw new NullPointerException();
-                }
-                ensureNameIsMutable();
-                name_.add(value);
-                onChanged();
-                return this;
-            }
-
-
-            /**
-             * <code>repeated string name = 1;</code>
-             */
-            public Builder addAllName(java.lang.Iterable<java.lang.String> values) {
-                ensureNameIsMutable();
-                super.addAll(values, name_);
-                onChanged();
-                return this;
-            }
-
-
-            /**
-             * <code>repeated string name = 1;</code>
-             */
-            public Builder clearName() {
-                name_ = com.google.protobuf.LazyStringArrayList.EMPTY;
-                bitField0_ = (bitField0_ & ~0x00000001);
-                onChanged();
-                return this;
-            }
-
-
-            /**
-             * <code>repeated string name = 1;</code>
-             */
-            public Builder addNameBytes(com.google.protobuf.ByteString value) {
-                if (value == null) {
-                    throw new NullPointerException();
-                }
-                ensureNameIsMutable();
-                name_.add(value);
-                onChanged();
-                return this;
-            }
-
-            // @@protoc_insertion_point(builder_scope:remoting.StringList)
-        }
-
-        static {
-            defaultInstance = new StringList(true);
-            defaultInstance.initFields();
-        }
-
-        // @@protoc_insertion_point(class_scope:remoting.StringList)
+        return this;
+      }
+      private int bitField0_;
+
+      // repeated string name = 1;
+      private com.google.protobuf.LazyStringList name_ = com.google.protobuf.LazyStringArrayList.EMPTY;
+      private void ensureNameIsMutable() {
+        if (!((bitField0_ & 0x00000001) == 0x00000001)) {
+          name_ = new com.google.protobuf.LazyStringArrayList(name_);
+          bitField0_ |= 0x00000001;
+         }
+      }
+      /**
+       * <code>repeated string name = 1;</code>
+       */
+      public java.util.List<java.lang.String>
+          getNameList() {
+        return java.util.Collections.unmodifiableList(name_);
+      }
+      /**
+       * <code>repeated string name = 1;</code>
+       */
+      public int getNameCount() {
+        return name_.size();
+      }
+      /**
+       * <code>repeated string name = 1;</code>
+       */
+      public java.lang.String getName(int index) {
+        return name_.get(index);
+      }
+      /**
+       * <code>repeated string name = 1;</code>
+       */
+      public com.google.protobuf.ByteString
+          getNameBytes(int index) {
+        return name_.getByteString(index);
+      }
+      /**
+       * <code>repeated string name = 1;</code>
+       */
+      public Builder setName(
+          int index, java.lang.String value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  ensureNameIsMutable();
+        name_.set(index, value);
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>repeated string name = 1;</code>
+       */
+      public Builder addName(
+          java.lang.String value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  ensureNameIsMutable();
+        name_.add(value);
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>repeated string name = 1;</code>
+       */
+      public Builder addAllName(
+          java.lang.Iterable<java.lang.String> values) {
+        ensureNameIsMutable();
+        super.addAll(values, name_);
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>repeated string name = 1;</code>
+       */
+      public Builder clearName() {
+        name_ = com.google.protobuf.LazyStringArrayList.EMPTY;
+        bitField0_ = (bitField0_ & ~0x00000001);
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>repeated string name = 1;</code>
+       */
+      public Builder addNameBytes(
+          com.google.protobuf.ByteString value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  ensureNameIsMutable();
+        name_.add(value);
+        onChanged();
+        return this;
+      }
+
+      // @@protoc_insertion_point(builder_scope:remoting.StringList)
     }
 
-    public interface CommandHeaderOrBuilder extends com.google.protobuf.MessageOrBuilder {
-
-        // required int32 code = 1;
-        /**
-         * <code>required int32 code = 1;</code>
-         */
-        boolean hasCode();
-
-
-        /**
-         * <code>required int32 code = 1;</code>
-         */
-        int getCode();
-
-
-        // required .remoting.LanguageCode language = 2;
-        /**
-         * <code>required .remoting.LanguageCode language = 2;</code>
-         */
-        boolean hasLanguage();
-
-
-        /**
-         * <code>required .remoting.LanguageCode language = 2;</code>
-         */
-        com.alibaba.rocketmq.remoting.protocol.RemotingProtos.LanguageCode getLanguage();
-
-
-        // required int32 version = 3;
-        /**
-         * <code>required int32 version = 3;</code>
-         */
-        boolean hasVersion();
-
-
-        /**
-         * <code>required int32 version = 3;</code>
-         */
-        int getVersion();
-
-
-        // required int32 opaque = 4;
-        /**
-         * <code>required int32 opaque = 4;</code>
-         */
-        boolean hasOpaque();
-
-
-        /**
-         * <code>required int32 opaque = 4;</code>
-         */
-        int getOpaque();
-
-
-        // required int32 flag = 5;
-        /**
-         * <code>required int32 flag = 5;</code>
-         */
-        boolean hasFlag();
-
-
-        /**
-         * <code>required int32 flag = 5;</code>
-         */
-        int getFlag();
-
-
-        // optional string remark = 6;
-        /**
-         * <code>optional string remark = 6;</code>
-         */
-        boolean hasRemark();
-
-
-        /**
-         * <code>optional string remark = 6;</code>
-         */
-        java.lang.String getRemark();
-
-
-        /**
-         * <code>optional string remark = 6;</code>
-         */
-        com.google.protobuf.ByteString getRemarkBytes();
-
-
-        // repeated .remoting.NVPair extFields = 7;
-        /**
-         * <code>repeated .remoting.NVPair extFields = 7;</code>
-         */
-        java.util.List<com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair> getExtFieldsList();
-
-
-        /**
-         * <code>repeated .remoting.NVPair extFields = 7;</code>
-         */
-        com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair getExtFields(int index);
-
-
-        /**
-         * <code>repeated .remoting.NVPair extFields = 7;</code>
-         */
-        int getExtFieldsCount();
-
-
-        /**
-         * <code>repeated .remoting.NVPair extFields = 7;</code>
-         */
-        java.util.List<? extends com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairOrBuilder> getExtFieldsOrBuilderList();
-
-
-        /**
-         * <code>repeated .remoting.NVPair extFields = 7;</code>
-         */
-        com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairOrBuilder getExtFieldsOrBuilder(int index);
+    static {
+      defaultInstance = new StringList(true);
+      defaultInstance.initFields();
     }
 
+    // @@protoc_insertion_point(class_scope:remoting.StringList)
+  }
+
+  public interface CommandHeaderOrBuilder
+      extends com.google.protobuf.MessageOrBuilder {
+
+    // required int32 code = 1;
+    /**
+     * <code>required int32 code = 1;</code>
+     */
+    boolean hasCode();
+    /**
+     * <code>required int32 code = 1;</code>
+     */
+    int getCode();
+
+    // required .remoting.LanguageCode language = 2;
+    /**
+     * <code>required .remoting.LanguageCode language = 2;</code>
+     */
+    boolean hasLanguage();
+    /**
+     * <code>required .remoting.LanguageCode language = 2;</code>
+     */
+    com.alibaba.rocketmq.remoting.protocol.RemotingProtos.LanguageCode getLanguage();
+
+    // required int32 version = 3;
+    /**
+     * <code>required int32 version = 3;</code>
+     */
+    boolean hasVersion();
+    /**
+     * <code>required int32 version = 3;</code>
+     */
+    int getVersion();
+
+    // required int32 opaque = 4;
+    /**
+     * <code>required int32 opaque = 4;</code>
+     */
+    boolean hasOpaque();
+    /**
+     * <code>required int32 opaque = 4;</code>
+     */
+    int getOpaque();
+
+    // required int32 flag = 5;
+    /**
+     * <code>required int32 flag = 5;</code>
+     */
+    boolean hasFlag();
+    /**
+     * <code>required int32 flag = 5;</code>
+     */
+    int getFlag();
+
+    // optional string remark = 6;
+    /**
+     * <code>optional string remark = 6;</code>
+     */
+    boolean hasRemark();
+    /**
+     * <code>optional string remark = 6;</code>
+     */
+    java.lang.String getRemark();
+    /**
+     * <code>optional string remark = 6;</code>
+     */
+    com.google.protobuf.ByteString
+        getRemarkBytes();
+
+    // repeated .remoting.NVPair extFields = 7;
+    /**
+     * <code>repeated .remoting.NVPair extFields = 7;</code>
+     */
+    java.util.List<com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair> 
+        getExtFieldsList();
+    /**
+     * <code>repeated .remoting.NVPair extFields = 7;</code>
+     */
+    com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair getExtFields(int index);
+    /**
+     * <code>repeated .remoting.NVPair extFields = 7;</code>
+     */
+    int getExtFieldsCount();
+    /**
+     * <code>repeated .remoting.NVPair extFields = 7;</code>
+     */
+    java.util.List<? extends com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairOrBuilder> 
+        getExtFieldsOrBuilderList();
+    /**
+     * <code>repeated .remoting.NVPair extFields = 7;</code>
+     */
+    com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairOrBuilder getExtFieldsOrBuilder(
+        int index);
+  }
+  /**
+   * Protobuf type {@code remoting.CommandHeader}
+   */
+  public static final class CommandHeader extends
+      com.google.protobuf.GeneratedMessage
+      implements CommandHeaderOrBuilder {
+    // Use CommandHeader.newBuilder() to construct.
+    private CommandHeader(com.google.protobuf.GeneratedMessage.Builder<?> builder) {
+      super(builder);
+      this.unknownFields = builder.getUnknownFields();
+    }
+    private CommandHeader(boolean noInit) { this.unknownFields = com.google.protobuf.UnknownFieldSet.getDefaultInstance(); }
+
+    private static final CommandHeader defaultInstance;
+    public static CommandHeader getDefaultInstance() {
+      return defaultInstance;
+    }
+
+    public CommandHeader getDefaultInstanceForType() {
+      return defaultInstance;
+    }
+
+    private final com.google.protobuf.UnknownFieldSet unknownFields;
+    @java.lang.Override
+    public final com.google.protobuf.UnknownFieldSet
+        getUnknownFields() {
+      return this.unknownFields;
+    }
+    private CommandHeader(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      initFields();
+      int mutable_bitField0_ = 0;
+      com.google.protobuf.UnknownFieldSet.Builder unknownFields =
+          com.google.protobuf.UnknownFieldSet.newBuilder();
+      try {
+        boolean done = false;
+        while (!done) {
+          int tag = input.readTag();
+          switch (tag) {
+            case 0:
+              done = true;
+              break;
+            default: {
+              if (!parseUnknownField(input, unknownFields,
+                                     extensionRegistry, tag)) {
+                done = true;
+              }
+              break;
+            }
+            case 8: {
+              bitField0_ |= 0x00000001;
+              code_ = input.readInt32();
+              break;
+            }
+            case 16: {
+              int rawValue = input.readEnum();
+              com.alibaba.rocketmq.remoting.protocol.RemotingProtos.LanguageCode value = com.alibaba.rocketmq.remoting.protocol.RemotingProtos.LanguageCode.valueOf(rawValue);
+              if (value == null) {
+                unknownFields.mergeVarintField(2, rawValue);
+              } else {
+                bitField0_ |= 0x00000002;
+                language_ = value;
+              }
+              break;
+            }
+            case 24: {
+              bitField0_ |= 0x00000004;
+              version_ = input.readInt32();
+              break;
+            }
+            case 32: {
+              bitField0_ |= 0x00000008;
+              opaque_ = input.readInt32();
+              break;
+            }
+            case 40: {
+              bitField0_ |= 0x00000010;
+              flag_ = input.readInt32();
+              break;
+            }
+            case 50: {
+              bitField0_ |= 0x00000020;
+              remark_ = input.readBytes();
+              break;
+            }
+            case 58: {
+              if (!((mutable_bitField0_ & 0x00000040) == 0x00000040)) {
+                extFields_ = new java.util.ArrayList<com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair>();
+                mutable_bitField0_ |= 0x00000040;
+              }
+              extFields_.add(input.readMessage(com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair.PARSER, extensionRegistry));
+              break;
+            }
+          }
+        }
+      } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+        throw e.setUnfinishedMessage(this);
+      } catch (java.io.IOException e) {
+        throw new com.google.protobuf.InvalidProtocolBufferException(
+            e.getMessage()).setUnfinishedMessage(this);
+      } finally {
+        if (((mutable_bitField0_ & 0x00000040) == 0x00000040)) {
+          extFields_ = java.util.Collections.unmodifiableList(extFields_);
+        }
+        this.unknownFields = unknownFields.build();
+        makeExtensionsImmutable();
+      }
+    }
+    public static final com.google.protobuf.Descriptors.Descriptor
+        getDescriptor() {
+      return com.alibaba.rocketmq.remoting.protocol.RemotingProtos.internal_static_remoting_CommandHeader_descriptor;
+    }
+
+    protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
+        internalGetFieldAccessorTable() {
+      return com.alibaba.rocketmq.remoting.protocol.RemotingProtos.internal_static_remoting_CommandHeader_fieldAccessorTable
+          .ensureFieldAccessorsInitialized(
+              com.alibaba.rocketmq.remoting.protocol.RemotingProtos.CommandHeader.class, com.alibaba.rocketmq.remoting.protocol.RemotingProtos.CommandHeader.Builder.class);
+    }
+
+    public static com.google.protobuf.Parser<CommandHeader> PARSER =
+        new com.google.protobuf.AbstractParser<CommandHeader>() {
+      public CommandHeader parsePartialFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        return new CommandHeader(input, extensionRegistry);
+      }
+    };
+
+    @java.lang.Override
+    public com.google.protobuf.Parser<CommandHeader> getParserForType() {
+      return PARSER;
+    }
+
+    private int bitField0_;
+    // required int32 code = 1;
+    public static final int CODE_FIELD_NUMBER = 1;
+    private int code_;
+    /**
+     * <code>required int32 code = 1;</code>
+     */
+    public boolean hasCode() {
+      return ((bitField0_ & 0x00000001) == 0x00000001);
+    }
+    /**
+     * <code>required int32 code = 1;</code>
+     */
+    public int getCode() {
+      return code_;
+    }
+
+    // required .remoting.LanguageCode language = 2;
+    public static final int LANGUAGE_FIELD_NUMBER = 2;
+    private com.alibaba.rocketmq.remoting.protocol.RemotingProtos.LanguageCode language_;
+    /**
+     * <code>required .remoting.LanguageCode language = 2;</code>
+     */
+    public boolean hasLanguage() {
+      return ((bitField0_ & 0x00000002) == 0x00000002);
+    }
+    /**
+     * <code>required .remoting.LanguageCode language = 2;</code>
+     */
+    public com.alibaba.rocketmq.remoting.protocol.RemotingProtos.LanguageCode getLanguage() {
+      return language_;
+    }
+
+    // required int32 version = 3;
+    public static final int VERSION_FIELD_NUMBER = 3;
+    private int version_;
+    /**
+     * <code>required int32 version = 3;</code>
+     */
+    public boolean hasVersion() {
+      return ((bitField0_ & 0x00000004) == 0x00000004);
+    }
+    /**
+     * <code>required int32 version = 3;</code>
+     */
+    public int getVersion() {
+      return version_;
+    }
+
+    // required int32 opaque = 4;
+    public static final int OPAQUE_FIELD_NUMBER = 4;
+    private int opaque_;
+    /**
+     * <code>required int32 opaque = 4;</code>
+     */
+    public boolean hasOpaque() {
+      return ((bitField0_ & 0x00000008) == 0x00000008);
+    }
+    /**
+     * <code>required int32 opaque = 4;</code>
+     */
+    public int getOpaque() {
+      return opaque_;
+    }
+
+    // required int32 flag = 5;
+    public static final int FLAG_FIELD_NUMBER = 5;
+    private int flag_;
+    /**
+     * <code>required int32 flag = 5;</code>
+     */
+    public boolean hasFlag() {
+      return ((bitField0_ & 0x00000010) == 0x00000010);
+    }
+    /**
+     * <code>required int32 flag = 5;</code>
+     */
+    public int getFlag() {
+      return flag_;
+    }
+
+    // optional string remark = 6;
+    public static final int REMARK_FIELD_NUMBER = 6;
+    private java.lang.Object remark_;
+    /**
+     * <code>optional string remark = 6;</code>
+     */
+    public boolean hasRemark() {
+      return ((bitField0_ & 0x00000020) == 0x00000020);
+    }
+    /**
+     * <code>optional string remark = 6;</code>
+     */
+    public java.lang.String getRemark() {
+      java.lang.Object ref = remark_;
+      if (ref instanceof java.lang.String) {
+        return (java.lang.String) ref;
+      } else {
+        com.google.protobuf.ByteString bs = 
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        if (bs.isValidUtf8()) {
+          remark_ = s;
+        }
+        return s;
+      }
+    }
+    /**
+     * <code>optional string remark = 6;</code>
+     */
+    public com.google.protobuf.ByteString
+        getRemarkBytes() {
+      java.lang.Object ref = remark_;
+      if (ref instanceof java.lang.String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        remark_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+
+    // repeated .remoting.NVPair extFields = 7;
+    public static final int EXTFIELDS_FIELD_NUMBER = 7;
+    private java.util.List<com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair> extFields_;
+    /**
+     * <code>repeated .remoting.NVPair extFields = 7;</code>
+     */
+    public java.util.List<com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair> getExtFieldsList() {
+      return extFields_;
+    }
+    /**
+     * <code>repeated .remoting.NVPair extFields = 7;</code>
+     */
+    public java.util.List<? extends com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairOrBuilder> 
+        getExtFieldsOrBuilderList() {
+      return extFields_;
+    }
+    /**
+     * <code>repeated .remoting.NVPair extFields = 7;</code>
+     */
+    public int getExtFieldsCount() {
+      return extFields_.size();
+    }
+    /**
+     * <code>repeated .remoting.NVPair extFields = 7;</code>
+     */
+    public com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair getExtFields(int index) {
+      return extFields_.get(index);
+    }
+    /**
+     * <code>repeated .remoting.NVPair extFields = 7;</code>
+     */
+    public com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairOrBuilder getExtFieldsOrBuilder(
+        int index) {
+      return extFields_.get(index);
+    }
+
+    private void initFields() {
+      code_ = 0;
+      language_ = com.alibaba.rocketmq.remoting.protocol.RemotingProtos.LanguageCode.JAVA;
+      version_ = 0;
+      opaque_ = 0;
+      flag_ = 0;
+      remark_ = "";
+      extFields_ = java.util.Collections.emptyList();
+    }
+    private byte memoizedIsInitialized = -1;
+    public final boolean isInitialized() {
+      byte isInitialized = memoizedIsInitialized;
+      if (isInitialized != -1) return isInitialized == 1;
+
+      if (!hasCode()) {
+        memoizedIsInitialized = 0;
+        return false;
+      }
+      if (!hasLanguage()) {
+        memoizedIsInitialized = 0;
+        return false;
+      }
+      if (!hasVersion()) {
+        memoizedIsInitialized = 0;
+        return false;
+      }
+      if (!hasOpaque()) {
+        memoizedIsInitialized = 0;
+        return false;
+      }
+      if (!hasFlag()) {
+        memoizedIsInitialized = 0;
+        return false;
+      }
+      for (int i = 0; i < getExtFieldsCount(); i++) {
+        if (!getExtFields(i).isInitialized()) {
+          memoizedIsInitialized = 0;
+          return false;
+        }
+      }
+      memoizedIsInitialized = 1;
+      return true;
+    }
+
+    public void writeTo(com.google.protobuf.CodedOutputStream output)
+                        throws java.io.IOException {
+      getSerializedSize();
+      if (((bitField0_ & 0x00000001) == 0x00000001)) {
+        output.writeInt32(1, code_);
+      }
+      if (((bitField0_ & 0x00000002) == 0x00000002)) {
+        output.writeEnum(2, language_.getNumber());
+      }
+      if (((bitField0_ & 0x00000004) == 0x00000004)) {
+        output.writeInt32(3, version_);
+      }
+      if (((bitField0_ & 0x00000008) == 0x00000008)) {
+        output.writeInt32(4, opaque_);
+      }
+      if (((bitField0_ & 0x00000010) == 0x00000010)) {
+        output.writeInt32(5, flag_);
+      }
+      if (((bitField0_ & 0x00000020) == 0x00000020)) {
+        output.writeBytes(6, getRemarkBytes());
+      }
+      for (int i = 0; i < extFields_.size(); i++) {
+        output.writeMessage(7, extFields_.get(i));
+      }
+      getUnknownFields().writeTo(output);
+    }
+
+    private int memoizedSerializedSize = -1;
+    public int getSerializedSize() {
+      int size = memoizedSerializedSize;
+      if (size != -1) return size;
+
+      size = 0;
+      if (((bitField0_ & 0x00000001) == 0x00000001)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeInt32Size(1, code_);
+      }
+      if (((bitField0_ & 0x00000002) == 0x00000002)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeEnumSize(2, language_.getNumber());
+      }
+      if (((bitField0_ & 0x00000004) == 0x00000004)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeInt32Size(3, version_);
+      }
+      if (((bitField0_ & 0x00000008) == 0x00000008)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeInt32Size(4, opaque_);
+      }
+      if (((bitField0_ & 0x00000010) == 0x00000010)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeInt32Size(5, flag_);
+      }
+      if (((bitField0_ & 0x00000020) == 0x00000020)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeBytesSize(6, getRemarkBytes());
+      }
+      for (int i = 0; i < extFields_.size(); i++) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeMessageSize(7, extFields_.get(i));
+      }
+      size += getUnknownFields().getSerializedSize();
+      memoizedSerializedSize = size;
+      return size;
+    }
+
+    private static final long serialVersionUID = 0L;
+    @java.lang.Override
+    protected java.lang.Object writeReplace()
+        throws java.io.ObjectStreamException {
+      return super.writeReplace();
+    }
+
+    public static com.alibaba.rocketmq.remoting.protocol.RemotingProtos.CommandHeader parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data);
+    }
+    public static com.alibaba.rocketmq.remoting.protocol.RemotingProtos.CommandHeader parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data, extensionRegistry);
+    }
+    public static com.alibaba.rocketmq.remoting.protocol.RemotingProtos.CommandHeader parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data);
+    }
+    public static com.alibaba.rocketmq.remoting.protocol.RemotingProtos.CommandHeader parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data, extensionRegistry);
+    }
+    public static com.alibaba.rocketmq.remoting.protocol.RemotingProtos.CommandHeader parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return PARSER.parseFrom(input);
+    }
+    public static com.alibaba.rocketmq.remoting.protocol.RemotingProtos.CommandHeader parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return PARSER.parseFrom(input, extensionRegistry);
+    }
+    public static com.alibaba.rocketmq.remoting.protocol.RemotingProtos.CommandHeader parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return PARSER.parseDelimitedFrom(input);
+    }
+    public static com.alibaba.rocketmq.remoting.protocol.RemotingProtos.CommandHeader parseDelimitedFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return PARSER.parseDelimitedFrom(input, extensionRegistry);
+    }
+    public static com.alibaba.rocketmq.remoting.protocol.RemotingProtos.CommandHeader parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return PARSER.parseFrom(input);
+    }
+    public static com.alibaba.rocketmq.remoting.protocol.RemotingProtos.CommandHeader parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return PARSER.parseFrom(input, extensionRegistry);
+    }
+
+    public static Builder newBuilder() { return Builder.create(); }
+    public Builder newBuilderForType() { return newBuilder(); }
+    public static Builder newBuilder(com.alibaba.rocketmq.remoting.protocol.RemotingProtos.CommandHeader prototype) {
+      return newBuilder().mergeFrom(prototype);
+    }
+    public Builder toBuilder() { return newBuilder(this); }
+
+    @java.lang.Override
+    protected Builder newBuilderForType(
+        com.google.protobuf.GeneratedMessage.BuilderParent parent) {
+      Builder builder = new Builder(parent);
+      return builder;
+    }
     /**
      * Protobuf type {@code remoting.CommandHeader}
      */
-    public static final class CommandHeader extends com.google.protobuf.GeneratedMessage implements
-            CommandHeaderOrBuilder {
-        // Use CommandHeader.newBuilder() to construct.
-        private CommandHeader(com.google.protobuf.GeneratedMessage.Builder<?> builder) {
-            super(builder);
-            this.unknownFields = builder.getUnknownFields();
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessage.Builder<Builder>
+       implements com.alibaba.rocketmq.remoting.protocol.RemotingProtos.CommandHeaderOrBuilder {
+      public static final com.google.protobuf.Descriptors.Descriptor
+          getDescriptor() {
+        return com.alibaba.rocketmq.remoting.protocol.RemotingProtos.internal_static_remoting_CommandHeader_descriptor;
+      }
+
+      protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
+          internalGetFieldAccessorTable() {
+        return com.alibaba.rocketmq.remoting.protocol.RemotingProtos.internal_static_remoting_CommandHeader_fieldAccessorTable
+            .ensureFieldAccessorsInitialized(
+                com.alibaba.rocketmq.remoting.protocol.RemotingProtos.CommandHeader.class, com.alibaba.rocketmq.remoting.protocol.RemotingProtos.CommandHeader.Builder.class);
+      }
+
+      // Construct using com.alibaba.rocketmq.remoting.protocol.RemotingProtos.CommandHeader.newBuilder()
+      private Builder() {
+        maybeForceBuilderInitialization();
+      }
+
+      private Builder(
+          com.google.protobuf.GeneratedMessage.BuilderParent parent) {
+        super(parent);
+        maybeForceBuilderInitialization();
+      }
+      private void maybeForceBuilderInitialization() {
+        if (com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders) {
+          getExtFieldsFieldBuilder();
         }
+      }
+      private static Builder create() {
+        return new Builder();
+      }
 
-
-        private CommandHeader(boolean noInit) {
-            this.unknownFields = com.google.protobuf.UnknownFieldSet.getDefaultInstance();
+      public Builder clear() {
+        super.clear();
+        code_ = 0;
+        bitField0_ = (bitField0_ & ~0x00000001);
+        language_ = com.alibaba.rocketmq.remoting.protocol.RemotingProtos.LanguageCode.JAVA;
+        bitField0_ = (bitField0_ & ~0x00000002);
+        version_ = 0;
+        bitField0_ = (bitField0_ & ~0x00000004);
+        opaque_ = 0;
+        bitField0_ = (bitField0_ & ~0x00000008);
+        flag_ = 0;
+        bitField0_ = (bitField0_ & ~0x00000010);
+        remark_ = "";
+        bitField0_ = (bitField0_ & ~0x00000020);
+        if (extFieldsBuilder_ == null) {
+          extFields_ = java.util.Collections.emptyList();
+          bitField0_ = (bitField0_ & ~0x00000040);
+        } else {
+          extFieldsBuilder_.clear();
         }
+        return this;
+      }
 
-        private static final CommandHeader defaultInstance;
+      public Builder clone() {
+        return create().mergeFrom(buildPartial());
+      }
 
+      public com.google.protobuf.Descriptors.Descriptor
+          getDescriptorForType() {
+        return com.alibaba.rocketmq.remoting.protocol.RemotingProtos.internal_static_remoting_CommandHeader_descriptor;
+      }
 
-        public static CommandHeader getDefaultInstance() {
-            return defaultInstance;
+      public com.alibaba.rocketmq.remoting.protocol.RemotingProtos.CommandHeader getDefaultInstanceForType() {
+        return com.alibaba.rocketmq.remoting.protocol.RemotingProtos.CommandHeader.getDefaultInstance();
+      }
+
+      public com.alibaba.rocketmq.remoting.protocol.RemotingProtos.CommandHeader build() {
+        com.alibaba.rocketmq.remoting.protocol.RemotingProtos.CommandHeader result = buildPartial();
+        if (!result.isInitialized()) {
+          throw newUninitializedMessageException(result);
         }
+        return result;
+      }
 
-
-        public CommandHeader getDefaultInstanceForType() {
-            return defaultInstance;
+      public com.alibaba.rocketmq.remoting.protocol.RemotingProtos.CommandHeader buildPartial() {
+        com.alibaba.rocketmq.remoting.protocol.RemotingProtos.CommandHeader result = new com.alibaba.rocketmq.remoting.protocol.RemotingProtos.CommandHeader(this);
+        int from_bitField0_ = bitField0_;
+        int to_bitField0_ = 0;
+        if (((from_bitField0_ & 0x00000001) == 0x00000001)) {
+          to_bitField0_ |= 0x00000001;
         }
-
-        private final com.google.protobuf.UnknownFieldSet unknownFields;
-
-
-        @java.lang.Override
-        public final com.google.protobuf.UnknownFieldSet getUnknownFields() {
-            return this.unknownFields;
+        result.code_ = code_;
+        if (((from_bitField0_ & 0x00000002) == 0x00000002)) {
+          to_bitField0_ |= 0x00000002;
         }
-
-
-        private CommandHeader(com.google.protobuf.CodedInputStream input,
-                com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-                throws com.google.protobuf.InvalidProtocolBufferException {
-            initFields();
-            int mutable_bitField0_ = 0;
-            com.google.protobuf.UnknownFieldSet.Builder unknownFields =
-                    com.google.protobuf.UnknownFieldSet.newBuilder();
-            try {
-                boolean done = false;
-                while (!done) {
-                    int tag = input.readTag();
-                    switch (tag) {
-                    case 0:
-                        done = true;
-                        break;
-                    default: {
-                        if (!parseUnknownField(input, unknownFields, extensionRegistry, tag)) {
-                            done = true;
-                        }
-                        break;
-                    }
-                    case 8: {
-                        bitField0_ |= 0x00000001;
-                        code_ = input.readInt32();
-                        break;
-                    }
-                    case 16: {
-                        int rawValue = input.readEnum();
-                        com.alibaba.rocketmq.remoting.protocol.RemotingProtos.LanguageCode value =
-                                com.alibaba.rocketmq.remoting.protocol.RemotingProtos.LanguageCode
-                                    .valueOf(rawValue);
-                        if (value == null) {
-                            unknownFields.mergeVarintField(2, rawValue);
-                        }
-                        else {
-                            bitField0_ |= 0x00000002;
-                            language_ = value;
-                        }
-                        break;
-                    }
-                    case 24: {
-                        bitField0_ |= 0x00000004;
-                        version_ = input.readInt32();
-                        break;
-                    }
-                    case 32: {
-                        bitField0_ |= 0x00000008;
-                        opaque_ = input.readInt32();
-                        break;
-                    }
-                    case 40: {
-                        bitField0_ |= 0x00000010;
-                        flag_ = input.readInt32();
-                        break;
-                    }
-                    case 50: {
-                        bitField0_ |= 0x00000020;
-                        remark_ = input.readBytes();
-                        break;
-                    }
-                    case 58: {
-                        if (!((mutable_bitField0_ & 0x00000040) == 0x00000040)) {
-                            extFields_ =
-                                    new java.util.ArrayList<com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair>();
-                            mutable_bitField0_ |= 0x00000040;
-                        }
-                        extFields_.add(input.readMessage(
-                            com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair.PARSER,
-                            extensionRegistry));
-                        break;
-                    }
-                    }
-                }
-            }
-            catch (com.google.protobuf.InvalidProtocolBufferException e) {
-                throw e.setUnfinishedMessage(this);
-            }
-            catch (java.io.IOException e) {
-                throw new com.google.protobuf.InvalidProtocolBufferException(e.getMessage())
-                    .setUnfinishedMessage(this);
-            }
-            finally {
-                if (((mutable_bitField0_ & 0x00000040) == 0x00000040)) {
-                    extFields_ = java.util.Collections.unmodifiableList(extFields_);
-                }
-                this.unknownFields = unknownFields.build();
-                makeExtensionsImmutable();
-            }
+        result.language_ = language_;
+        if (((from_bitField0_ & 0x00000004) == 0x00000004)) {
+          to_bitField0_ |= 0x00000004;
         }
-
-
-        public static final com.google.protobuf.Descriptors.Descriptor getDescriptor() {
-            return com.alibaba.rocketmq.remoting.protocol.RemotingProtos.internal_static_remoting_CommandHeader_descriptor;
+        result.version_ = version_;
+        if (((from_bitField0_ & 0x00000008) == 0x00000008)) {
+          to_bitField0_ |= 0x00000008;
         }
-
-
-        protected com.google.protobuf.GeneratedMessage.FieldAccessorTable internalGetFieldAccessorTable() {
-            return com.alibaba.rocketmq.remoting.protocol.RemotingProtos.internal_static_remoting_CommandHeader_fieldAccessorTable
-                .ensureFieldAccessorsInitialized(
-                    com.alibaba.rocketmq.remoting.protocol.RemotingProtos.CommandHeader.class,
-                    com.alibaba.rocketmq.remoting.protocol.RemotingProtos.CommandHeader.Builder.class);
+        result.opaque_ = opaque_;
+        if (((from_bitField0_ & 0x00000010) == 0x00000010)) {
+          to_bitField0_ |= 0x00000010;
         }
-
-        public static com.google.protobuf.Parser<CommandHeader> PARSER =
-                new com.google.protobuf.AbstractParser<CommandHeader>() {
-                    public CommandHeader parsePartialFrom(com.google.protobuf.CodedInputStream input,
-                            com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-                            throws com.google.protobuf.InvalidProtocolBufferException {
-                        return new CommandHeader(input, extensionRegistry);
-                    }
-                };
-
-
-        @java.lang.Override
-        public com.google.protobuf.Parser<CommandHeader> getParserForType() {
-            return PARSER;
+        result.flag_ = flag_;
+        if (((from_bitField0_ & 0x00000020) == 0x00000020)) {
+          to_bitField0_ |= 0x00000020;
         }
-
-        private int bitField0_;
-        // required int32 code = 1;
-        public static final int CODE_FIELD_NUMBER = 1;
-        private int code_;
-
-
-        /**
-         * <code>required int32 code = 1;</code>
-         */
-        public boolean hasCode() {
-            return ((bitField0_ & 0x00000001) == 0x00000001);
+        result.remark_ = remark_;
+        if (extFieldsBuilder_ == null) {
+          if (((bitField0_ & 0x00000040) == 0x00000040)) {
+            extFields_ = java.util.Collections.unmodifiableList(extFields_);
+            bitField0_ = (bitField0_ & ~0x00000040);
+          }
+          result.extFields_ = extFields_;
+        } else {
+          result.extFields_ = extFieldsBuilder_.build();
         }
+        result.bitField0_ = to_bitField0_;
+        onBuilt();
+        return result;
+      }
 
-
-        /**
-         * <code>required int32 code = 1;</code>
-         */
-        public int getCode() {
-            return code_;
+      public Builder mergeFrom(com.google.protobuf.Message other) {
+        if (other instanceof com.alibaba.rocketmq.remoting.protocol.RemotingProtos.CommandHeader) {
+          return mergeFrom((com.alibaba.rocketmq.remoting.protocol.RemotingProtos.CommandHeader)other);
+        } else {
+          super.mergeFrom(other);
+          return this;
         }
+      }
 
-        // required .remoting.LanguageCode language = 2;
-        public static final int LANGUAGE_FIELD_NUMBER = 2;
-        private com.alibaba.rocketmq.remoting.protocol.RemotingProtos.LanguageCode language_;
-
-
-        /**
-         * <code>required .remoting.LanguageCode language = 2;</code>
-         */
-        public boolean hasLanguage() {
-            return ((bitField0_ & 0x00000002) == 0x00000002);
+      public Builder mergeFrom(com.alibaba.rocketmq.remoting.protocol.RemotingProtos.CommandHeader other) {
+        if (other == com.alibaba.rocketmq.remoting.protocol.RemotingProtos.CommandHeader.getDefaultInstance()) return this;
+        if (other.hasCode()) {
+          setCode(other.getCode());
         }
-
-
-        /**
-         * <code>required .remoting.LanguageCode language = 2;</code>
-         */
-        public com.alibaba.rocketmq.remoting.protocol.RemotingProtos.LanguageCode getLanguage() {
-            return language_;
+        if (other.hasLanguage()) {
+          setLanguage(other.getLanguage());
         }
-
-        // required int32 version = 3;
-        public static final int VERSION_FIELD_NUMBER = 3;
-        private int version_;
-
-
-        /**
-         * <code>required int32 version = 3;</code>
-         */
-        public boolean hasVersion() {
-            return ((bitField0_ & 0x00000004) == 0x00000004);
+        if (other.hasVersion()) {
+          setVersion(other.getVersion());
         }
-
-
-        /**
-         * <code>required int32 version = 3;</code>
-         */
-        public int getVersion() {
-            return version_;
+        if (other.hasOpaque()) {
+          setOpaque(other.getOpaque());
         }
-
-        // required int32 opaque = 4;
-        public static final int OPAQUE_FIELD_NUMBER = 4;
-        private int opaque_;
-
-
-        /**
-         * <code>required int32 opaque = 4;</code>
-         */
-        public boolean hasOpaque() {
-            return ((bitField0_ & 0x00000008) == 0x00000008);
+        if (other.hasFlag()) {
+          setFlag(other.getFlag());
         }
-
-
-        /**
-         * <code>required int32 opaque = 4;</code>
-         */
-        public int getOpaque() {
-            return opaque_;
+        if (other.hasRemark()) {
+          bitField0_ |= 0x00000020;
+          remark_ = other.remark_;
+          onChanged();
         }
-
-        // required int32 flag = 5;
-        public static final int FLAG_FIELD_NUMBER = 5;
-        private int flag_;
-
-
-        /**
-         * <code>required int32 flag = 5;</code>
-         */
-        public boolean hasFlag() {
-            return ((bitField0_ & 0x00000010) == 0x00000010);
+        if (extFieldsBuilder_ == null) {
+          if (!other.extFields_.isEmpty()) {
+            if (extFields_.isEmpty()) {
+              extFields_ = other.extFields_;
+              bitField0_ = (bitField0_ & ~0x00000040);
+            } else {
+              ensureExtFieldsIsMutable();
+              extFields_.addAll(other.extFields_);
+            }
+            onChanged();
+          }
+        } else {
+          if (!other.extFields_.isEmpty()) {
+            if (extFieldsBuilder_.isEmpty()) {
+              extFieldsBuilder_.dispose();
+              extFieldsBuilder_ = null;
+              extFields_ = other.extFields_;
+              bitField0_ = (bitField0_ & ~0x00000040);
+              extFieldsBuilder_ = 
+                com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
+                   getExtFieldsFieldBuilder() : null;
+            } else {
+              extFieldsBuilder_.addAllMessages(other.extFields_);
+            }
+          }
         }
+        this.mergeUnknownFields(other.getUnknownFields());
+        return this;
+      }
 
-
-        /**
-         * <code>required int32 flag = 5;</code>
-         */
-        public int getFlag() {
-            return flag_;
+      public final boolean isInitialized() {
+        if (!hasCode()) {
+          
+          return false;
         }
-
-        // optional string remark = 6;
-        public static final int REMARK_FIELD_NUMBER = 6;
-        private java.lang.Object remark_;
-
-
-        /**
-         * <code>optional string remark = 6;</code>
-         */
-        public boolean hasRemark() {
-            return ((bitField0_ & 0x00000020) == 0x00000020);
+        if (!hasLanguage()) {
+          
+          return false;
         }
-
-
-        /**
-         * <code>optional string remark = 6;</code>
-         */
-        public java.lang.String getRemark() {
-            java.lang.Object ref = remark_;
-            if (ref instanceof java.lang.String) {
-                return (java.lang.String) ref;
-            }
-            else {
-                com.google.protobuf.ByteString bs = (com.google.protobuf.ByteString) ref;
-                java.lang.String s = bs.toStringUtf8();
-                if (bs.isValidUtf8()) {
-                    remark_ = s;
-                }
-                return s;
-            }
+        if (!hasVersion()) {
+          
+          return false;
         }
-
-
-        /**
-         * <code>optional string remark = 6;</code>
-         */
-        public com.google.protobuf.ByteString getRemarkBytes() {
-            java.lang.Object ref = remark_;
-            if (ref instanceof java.lang.String) {
-                com.google.protobuf.ByteString b =
-                        com.google.protobuf.ByteString.copyFromUtf8((java.lang.String) ref);
-                remark_ = b;
-                return b;
-            }
-            else {
-                return (com.google.protobuf.ByteString) ref;
-            }
+        if (!hasOpaque()) {
+          
+          return false;
         }
-
-        // repeated .remoting.NVPair extFields = 7;
-        public static final int EXTFIELDS_FIELD_NUMBER = 7;
-        private java.util.List<com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair> extFields_;
-
-
-        /**
-         * <code>repeated .remoting.NVPair extFields = 7;</code>
-         */
-        public java.util.List<com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair> getExtFieldsList() {
-            return extFields_;
+        if (!hasFlag()) {
+          
+          return false;
         }
-
-
-        /**
-         * <code>repeated .remoting.NVPair extFields = 7;</code>
-         */
-        public java.util.List<? extends com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairOrBuilder> getExtFieldsOrBuilderList() {
-            return extFields_;
+        for (int i = 0; i < getExtFieldsCount(); i++) {
+          if (!getExtFields(i).isInitialized()) {
+            
+            return false;
+          }
         }
+        return true;
+      }
 
-
-        /**
-         * <code>repeated .remoting.NVPair extFields = 7;</code>
-         */
-        public int getExtFieldsCount() {
-            return extFields_.size();
+      public Builder mergeFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws java.io.IOException {
+        com.alibaba.rocketmq.remoting.protocol.RemotingProtos.CommandHeader parsedMessage = null;
+        try {
+          parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
+        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+          parsedMessage = (com.alibaba.rocketmq.remoting.protocol.RemotingProtos.CommandHeader) e.getUnfinishedMessage();
+          throw e;
+        } finally {
+          if (parsedMessage != null) {
+            mergeFrom(parsedMessage);
+          }
         }
+        return this;
+      }
+      private int bitField0_;
 
+      // required int32 code = 1;
+      private int code_ ;
+      /**
+       * <code>required int32 code = 1;</code>
+       */
+      public boolean hasCode() {
+        return ((bitField0_ & 0x00000001) == 0x00000001);
+      }
+      /**
+       * <code>required int32 code = 1;</code>
+       */
+      public int getCode() {
+        return code_;
+      }
+      /**
+       * <code>required int32 code = 1;</code>
+       */
+      public Builder setCode(int value) {
+        bitField0_ |= 0x00000001;
+        code_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>required int32 code = 1;</code>
+       */
+      public Builder clearCode() {
+        bitField0_ = (bitField0_ & ~0x00000001);
+        code_ = 0;
+        onChanged();
+        return this;
+      }
 
-        /**
-         * <code>repeated .remoting.NVPair extFields = 7;</code>
-         */
-        public com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair getExtFields(int index) {
-            return extFields_.get(index);
+      // required .remoting.LanguageCode language = 2;
+      private com.alibaba.rocketmq.remoting.protocol.RemotingProtos.LanguageCode language_ = com.alibaba.rocketmq.remoting.protocol.RemotingProtos.LanguageCode.JAVA;
+      /**
+       * <code>required .remoting.LanguageCode language = 2;</code>
+       */
+      public boolean hasLanguage() {
+        return ((bitField0_ & 0x00000002) == 0x00000002);
+      }
+      /**
+       * <code>required .remoting.LanguageCode language = 2;</code>
+       */
+      public com.alibaba.rocketmq.remoting.protocol.RemotingProtos.LanguageCode getLanguage() {
+        return language_;
+      }
+      /**
+       * <code>required .remoting.LanguageCode language = 2;</code>
+       */
+      public Builder setLanguage(com.alibaba.rocketmq.remoting.protocol.RemotingProtos.LanguageCode value) {
+        if (value == null) {
+          throw new NullPointerException();
         }
+        bitField0_ |= 0x00000002;
+        language_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>required .remoting.LanguageCode language = 2;</code>
+       */
+      public Builder clearLanguage() {
+        bitField0_ = (bitField0_ & ~0x00000002);
+        language_ = com.alibaba.rocketmq.remoting.protocol.RemotingProtos.LanguageCode.JAVA;
+        onChanged();
+        return this;
+      }
 
+      // required int32 version = 3;
+      private int version_ ;
+      /**
+       * <code>required int32 version = 3;</code>
+       */
+      public boolean hasVersion() {
+        return ((bitField0_ & 0x00000004) == 0x00000004);
+      }
+      /**
+       * <code>required int32 version = 3;</code>
+       */
+      public int getVersion() {
+        return version_;
+      }
+      /**
+       * <code>required int32 version = 3;</code>
+       */
+      public Builder setVersion(int value) {
+        bitField0_ |= 0x00000004;
+        version_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>required int32 version = 3;</code>
+       */
+      public Builder clearVersion() {
+        bitField0_ = (bitField0_ & ~0x00000004);
+        version_ = 0;
+        onChanged();
+        return this;
+      }
 
-        /**
-         * <code>repeated .remoting.NVPair extFields = 7;</code>
-         */
-        public com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairOrBuilder getExtFieldsOrBuilder(
-                int index) {
-            return extFields_.get(index);
+      // required int32 opaque = 4;
+      private int opaque_ ;
+      /**
+       * <code>required int32 opaque = 4;</code>
+       */
+      public boolean hasOpaque() {
+        return ((bitField0_ & 0x00000008) == 0x00000008);
+      }
+      /**
+       * <code>required int32 opaque = 4;</code>
+       */
+      public int getOpaque() {
+        return opaque_;
+      }
+      /**
+       * <code>required int32 opaque = 4;</code>
+       */
+      public Builder setOpaque(int value) {
+        bitField0_ |= 0x00000008;
+        opaque_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>required int32 opaque = 4;</code>
+       */
+      public Builder clearOpaque() {
+        bitField0_ = (bitField0_ & ~0x00000008);
+        opaque_ = 0;
+        onChanged();
+        return this;
+      }
+
+      // required int32 flag = 5;
+      private int flag_ ;
+      /**
+       * <code>required int32 flag = 5;</code>
+       */
+      public boolean hasFlag() {
+        return ((bitField0_ & 0x00000010) == 0x00000010);
+      }
+      /**
+       * <code>required int32 flag = 5;</code>
+       */
+      public int getFlag() {
+        return flag_;
+      }
+      /**
+       * <code>required int32 flag = 5;</code>
+       */
+      public Builder setFlag(int value) {
+        bitField0_ |= 0x00000010;
+        flag_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>required int32 flag = 5;</code>
+       */
+      public Builder clearFlag() {
+        bitField0_ = (bitField0_ & ~0x00000010);
+        flag_ = 0;
+        onChanged();
+        return this;
+      }
+
+      // optional string remark = 6;
+      private java.lang.Object remark_ = "";
+      /**
+       * <code>optional string remark = 6;</code>
+       */
+      public boolean hasRemark() {
+        return ((bitField0_ & 0x00000020) == 0x00000020);
+      }
+      /**
+       * <code>optional string remark = 6;</code>
+       */
+      public java.lang.String getRemark() {
+        java.lang.Object ref = remark_;
+        if (!(ref instanceof java.lang.String)) {
+          java.lang.String s = ((com.google.protobuf.ByteString) ref)
+              .toStringUtf8();
+          remark_ = s;
+          return s;
+        } else {
+          return (java.lang.String) ref;
         }
-
-
-        private void initFields() {
-            code_ = 0;
-            language_ = com.alibaba.rocketmq.remoting.protocol.RemotingProtos.LanguageCode.JAVA;
-            version_ = 0;
-            opaque_ = 0;
-            flag_ = 0;
-            remark_ = "";
-            extFields_ = java.util.Collections.emptyList();
+      }
+      /**
+       * <code>optional string remark = 6;</code>
+       */
+      public com.google.protobuf.ByteString
+          getRemarkBytes() {
+        java.lang.Object ref = remark_;
+        if (ref instanceof String) {
+          com.google.protobuf.ByteString b = 
+              com.google.protobuf.ByteString.copyFromUtf8(
+                  (java.lang.String) ref);
+          remark_ = b;
+          return b;
+        } else {
+          return (com.google.protobuf.ByteString) ref;
         }
+      }
+      /**
+       * <code>optional string remark = 6;</code>
+       */
+      public Builder setRemark(
+          java.lang.String value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  bitField0_ |= 0x00000020;
+        remark_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional string remark = 6;</code>
+       */
+      public Builder clearRemark() {
+        bitField0_ = (bitField0_ & ~0x00000020);
+        remark_ = getDefaultInstance().getRemark();
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional string remark = 6;</code>
+       */
+      public Builder setRemarkBytes(
+          com.google.protobuf.ByteString value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  bitField0_ |= 0x00000020;
+        remark_ = value;
+        onChanged();
+        return this;
+      }
 
-        private byte memoizedIsInitialized = -1;
+      // repeated .remoting.NVPair extFields = 7;
+      private java.util.List<com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair> extFields_ =
+        java.util.Collections.emptyList();
+      private void ensureExtFieldsIsMutable() {
+        if (!((bitField0_ & 0x00000040) == 0x00000040)) {
+          extFields_ = new java.util.ArrayList<com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair>(extFields_);
+          bitField0_ |= 0x00000040;
+         }
+      }
 
+      private com.google.protobuf.RepeatedFieldBuilder<
+          com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair, com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair.Builder, com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairOrBuilder> extFieldsBuilder_;
 
-        public final boolean isInitialized() {
-            byte isInitialized = memoizedIsInitialized;
-            if (isInitialized != -1)
-                return isInitialized == 1;
-
-            if (!hasCode()) {
-                memoizedIsInitialized = 0;
-                return false;
-            }
-            if (!hasLanguage()) {
-                memoizedIsInitialized = 0;
-                return false;
-            }
-            if (!hasVersion()) {
-                memoizedIsInitialized = 0;
-                return false;
-            }
-            if (!hasOpaque()) {
-                memoizedIsInitialized = 0;
-                return false;
-            }
-            if (!hasFlag()) {
-                memoizedIsInitialized = 0;
-                return false;
-            }
-            for (int i = 0; i < getExtFieldsCount(); i++) {
-                if (!getExtFields(i).isInitialized()) {
-                    memoizedIsInitialized = 0;
-                    return false;
-                }
-            }
-            memoizedIsInitialized = 1;
-            return true;
+      /**
+       * <code>repeated .remoting.NVPair extFields = 7;</code>
+       */
+      public java.util.List<com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair> getExtFieldsList() {
+        if (extFieldsBuilder_ == null) {
+          return java.util.Collections.unmodifiableList(extFields_);
+        } else {
+          return extFieldsBuilder_.getMessageList();
         }
-
-
-        public void writeTo(com.google.protobuf.CodedOutputStream output) throws java.io.IOException {
-            getSerializedSize();
-            if (((bitField0_ & 0x00000001) == 0x00000001)) {
-                output.writeInt32(1, code_);
-            }
-            if (((bitField0_ & 0x00000002) == 0x00000002)) {
-                output.writeEnum(2, language_.getNumber());
-            }
-            if (((bitField0_ & 0x00000004) == 0x00000004)) {
-                output.writeInt32(3, version_);
-            }
-            if (((bitField0_ & 0x00000008) == 0x00000008)) {
-                output.writeInt32(4, opaque_);
-            }
-            if (((bitField0_ & 0x00000010) == 0x00000010)) {
-                output.writeInt32(5, flag_);
-            }
-            if (((bitField0_ & 0x00000020) == 0x00000020)) {
-                output.writeBytes(6, getRemarkBytes());
-            }
-            for (int i = 0; i < extFields_.size(); i++) {
-                output.writeMessage(7, extFields_.get(i));
-            }
-            getUnknownFields().writeTo(output);
+      }
+      /**
+       * <code>repeated .remoting.NVPair extFields = 7;</code>
+       */
+      public int getExtFieldsCount() {
+        if (extFieldsBuilder_ == null) {
+          return extFields_.size();
+        } else {
+          return extFieldsBuilder_.getCount();
         }
-
-        private int memoizedSerializedSize = -1;
-
-
-        public int getSerializedSize() {
-            int size = memoizedSerializedSize;
-            if (size != -1)
-                return size;
-
-            size = 0;
-            if (((bitField0_ & 0x00000001) == 0x00000001)) {
-                size += com.google.protobuf.CodedOutputStream.computeInt32Size(1, code_);
-            }
-            if (((bitField0_ & 0x00000002) == 0x00000002)) {
-                size += com.google.protobuf.CodedOutputStream.computeEnumSize(2, language_.getNumber());
-            }
-            if (((bitField0_ & 0x00000004) == 0x00000004)) {
-                size += com.google.protobuf.CodedOutputStream.computeInt32Size(3, version_);
-            }
-            if (((bitField0_ & 0x00000008) == 0x00000008)) {
-                size += com.google.protobuf.CodedOutputStream.computeInt32Size(4, opaque_);
-            }
-            if (((bitField0_ & 0x00000010) == 0x00000010)) {
-                size += com.google.protobuf.CodedOutputStream.computeInt32Size(5, flag_);
-            }
-            if (((bitField0_ & 0x00000020) == 0x00000020)) {
-                size += com.google.protobuf.CodedOutputStream.computeBytesSize(6, getRemarkBytes());
-            }
-            for (int i = 0; i < extFields_.size(); i++) {
-                size += com.google.protobuf.CodedOutputStream.computeMessageSize(7, extFields_.get(i));
-            }
-            size += getUnknownFields().getSerializedSize();
-            memoizedSerializedSize = size;
-            return size;
+      }
+      /**
+       * <code>repeated .remoting.NVPair extFields = 7;</code>
+       */
+      public com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair getExtFields(int index) {
+        if (extFieldsBuilder_ == null) {
+          return extFields_.get(index);
+        } else {
+          return extFieldsBuilder_.getMessage(index);
         }
-
-        private static final long serialVersionUID = 0L;
-
-
-        @java.lang.Override
-        protected java.lang.Object writeReplace() throws java.io.ObjectStreamException {
-            return super.writeReplace();
+      }
+      /**
+       * <code>repeated .remoting.NVPair extFields = 7;</code>
+       */
+      public Builder setExtFields(
+          int index, com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair value) {
+        if (extFieldsBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          ensureExtFieldsIsMutable();
+          extFields_.set(index, value);
+          onChanged();
+        } else {
+          extFieldsBuilder_.setMessage(index, value);
         }
-
-
-        public static com.alibaba.rocketmq.remoting.protocol.RemotingProtos.CommandHeader parseFrom(
-                com.google.protobuf.ByteString data)
-                throws com.google.protobuf.InvalidProtocolBufferException {
-            return PARSER.parseFrom(data);
+        return this;
+      }
+      /**
+       * <code>repeated .remoting.NVPair extFields = 7;</code>
+       */
+      public Builder setExtFields(
+          int index, com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair.Builder builderForValue) {
+        if (extFieldsBuilder_ == null) {
+          ensureExtFieldsIsMutable();
+          extFields_.set(index, builderForValue.build());
+          onChanged();
+        } else {
+          extFieldsBuilder_.setMessage(index, builderForValue.build());
         }
-
-
-        public static com.alibaba.rocketmq.remoting.protocol.RemotingProtos.CommandHeader parseFrom(
-                com.google.protobuf.ByteString data,
-                com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-                throws com.google.protobuf.InvalidProtocolBufferException {
-            return PARSER.parseFrom(data, extensionRegistry);
+        return this;
+      }
+      /**
+       * <code>repeated .remoting.NVPair extFields = 7;</code>
+       */
+      public Builder addExtFields(com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair value) {
+        if (extFieldsBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          ensureExtFieldsIsMutable();
+          extFields_.add(value);
+          onChanged();
+        } else {
+          extFieldsBuilder_.addMessage(value);
         }
-
-
-        public static com.alibaba.rocketmq.remoting.protocol.RemotingProtos.CommandHeader parseFrom(
-                byte[] data) throws com.google.protobuf.InvalidProtocolBufferException {
-            return PARSER.parseFrom(data);
+        return this;
+      }
+      /**
+       * <code>repeated .remoting.NVPair extFields = 7;</code>
+       */
+      public Builder addExtFields(
+          int index, com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair value) {
+        if (extFieldsBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          ensureExtFieldsIsMutable();
+          extFields_.add(index, value);
+          onChanged();
+        } else {
+          extFieldsBuilder_.addMessage(index, value);
         }
-
-
-        public static com.alibaba.rocketmq.remoting.protocol.RemotingProtos.CommandHeader parseFrom(
-                byte[] data, com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-                throws com.google.protobuf.InvalidProtocolBufferException {
-            return PARSER.parseFrom(data, extensionRegistry);
+        return this;
+      }
+      /**
+       * <code>repeated .remoting.NVPair extFields = 7;</code>
+       */
+      public Builder addExtFields(
+          com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair.Builder builderForValue) {
+        if (extFieldsBuilder_ == null) {
+          ensureExtFieldsIsMutable();
+          extFields_.add(builderForValue.build());
+          onChanged();
+        } else {
+          extFieldsBuilder_.addMessage(builderForValue.build());
         }
-
-
-        public static com.alibaba.rocketmq.remoting.protocol.RemotingProtos.CommandHeader parseFrom(
-                java.io.InputStream input) throws java.io.IOException {
-            return PARSER.parseFrom(input);
+        return this;
+      }
+      /**
+       * <code>repeated .remoting.NVPair extFields = 7;</code>
+       */
+      public Builder addExtFields(
+          int index, com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair.Builder builderForValue) {
+        if (extFieldsBuilder_ == null) {
+          ensureExtFieldsIsMutable();
+          extFields_.add(index, builderForValue.build());
+          onChanged();
+        } else {
+          extFieldsBuilder_.addMessage(index, builderForValue.build());
         }
-
-
-        public static com.alibaba.rocketmq.remoting.protocol.RemotingProtos.CommandHeader parseFrom(
-                java.io.InputStream input, com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-                throws java.io.IOException {
-            return PARSER.parseFrom(input, extensionRegistry);
+        return this;
+      }
+      /**
+       * <code>repeated .remoting.NVPair extFields = 7;</code>
+       */
+      public Builder addAllExtFields(
+          java.lang.Iterable<? extends com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair> values) {
+        if (extFieldsBuilder_ == null) {
+          ensureExtFieldsIsMutable();
+          super.addAll(values, extFields_);
+          onChanged();
+        } else {
+          extFieldsBuilder_.addAllMessages(values);
         }
-
-
-        public static com.alibaba.rocketmq.remoting.protocol.RemotingProtos.CommandHeader parseDelimitedFrom(
-                java.io.InputStream input) throws java.io.IOException {
-            return PARSER.parseDelimitedFrom(input);
+        return this;
+      }
+      /**
+       * <code>repeated .remoting.NVPair extFields = 7;</code>
+       */
+      public Builder clearExtFields() {
+        if (extFieldsBuilder_ == null) {
+          extFields_ = java.util.Collections.emptyList();
+          bitField0_ = (bitField0_ & ~0x00000040);
+          onChanged();
+        } else {
+          extFieldsBuilder_.clear();
         }
-
-
-        public static com.alibaba.rocketmq.remoting.protocol.RemotingProtos.CommandHeader parseDelimitedFrom(
-                java.io.InputStream input, com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-                throws java.io.IOException {
-            return PARSER.parseDelimitedFrom(input, extensionRegistry);
+        return this;
+      }
+      /**
+       * <code>repeated .remoting.NVPair extFields = 7;</code>
+       */
+      public Builder removeExtFields(int index) {
+        if (extFieldsBuilder_ == null) {
+          ensureExtFieldsIsMutable();
+          extFields_.remove(index);
+          onChanged();
+        } else {
+          extFieldsBuilder_.remove(index);
         }
-
-
-        public static com.alibaba.rocketmq.remoting.protocol.RemotingProtos.CommandHeader parseFrom(
-                com.google.protobuf.CodedInputStream input) throws java.io.IOException {
-            return PARSER.parseFrom(input);
+        return this;
+      }
+      /**
+       * <code>repeated .remoting.NVPair extFields = 7;</code>
+       */
+      public com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair.Builder getExtFieldsBuilder(
+          int index) {
+        return getExtFieldsFieldBuilder().getBuilder(index);
+      }
+      /**
+       * <code>repeated .remoting.NVPair extFields = 7;</code>
+       */
+      public com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairOrBuilder getExtFieldsOrBuilder(
+          int index) {
+        if (extFieldsBuilder_ == null) {
+          return extFields_.get(index);  } else {
+          return extFieldsBuilder_.getMessageOrBuilder(index);
         }
-
-
-        public static com.alibaba.rocketmq.remoting.protocol.RemotingProtos.CommandHeader parseFrom(
-                com.google.protobuf.CodedInputStream input,
-                com.google.protobuf.ExtensionRegistryLite extensionRegistry) throws java.io.IOException {
-            return PARSER.parseFrom(input, extensionRegistry);
+      }
+      /**
+       * <code>repeated .remoting.NVPair extFields = 7;</code>
+       */
+      public java.util.List<? extends com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairOrBuilder> 
+           getExtFieldsOrBuilderList() {
+        if (extFieldsBuilder_ != null) {
+          return extFieldsBuilder_.getMessageOrBuilderList();
+        } else {
+          return java.util.Collections.unmodifiableList(extFields_);
         }
-
-
-        public static Builder newBuilder() {
-            return Builder.create();
+      }
+      /**
+       * <code>repeated .remoting.NVPair extFields = 7;</code>
+       */
+      public com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair.Builder addExtFieldsBuilder() {
+        return getExtFieldsFieldBuilder().addBuilder(
+            com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair.getDefaultInstance());
+      }
+      /**
+       * <code>repeated .remoting.NVPair extFields = 7;</code>
+       */
+      public com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair.Builder addExtFieldsBuilder(
+          int index) {
+        return getExtFieldsFieldBuilder().addBuilder(
+            index, com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair.getDefaultInstance());
+      }
+      /**
+       * <code>repeated .remoting.NVPair extFields = 7;</code>
+       */
+      public java.util.List<com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair.Builder> 
+           getExtFieldsBuilderList() {
+        return getExtFieldsFieldBuilder().getBuilderList();
+      }
+      private com.google.protobuf.RepeatedFieldBuilder<
+          com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair, com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair.Builder, com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairOrBuilder> 
+          getExtFieldsFieldBuilder() {
+        if (extFieldsBuilder_ == null) {
+          extFieldsBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
+              com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair, com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair.Builder, com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairOrBuilder>(
+                  extFields_,
+                  ((bitField0_ & 0x00000040) == 0x00000040),
+                  getParentForChildren(),
+                  isClean());
+          extFields_ = null;
         }
+        return extFieldsBuilder_;
+      }
 
-
-        public Builder newBuilderForType() {
-            return newBuilder();
-        }
-
-
-        public static Builder newBuilder(
-                com.alibaba.rocketmq.remoting.protocol.RemotingProtos.CommandHeader prototype) {
-            return newBuilder().mergeFrom(prototype);
-        }
-
-
-        public Builder toBuilder() {
-            return newBuilder(this);
-        }
-
-
-        @java.lang.Override
-        protected Builder newBuilderForType(com.google.protobuf.GeneratedMessage.BuilderParent parent) {
-            Builder builder = new Builder(parent);
-            return builder;
-        }
-
-        /**
-         * Protobuf type {@code remoting.CommandHeader}
-         */
-        public static final class Builder extends com.google.protobuf.GeneratedMessage.Builder<Builder>
-                implements com.alibaba.rocketmq.remoting.protocol.RemotingProtos.CommandHeaderOrBuilder {
-            public static final com.google.protobuf.Descriptors.Descriptor getDescriptor() {
-                return com.alibaba.rocketmq.remoting.protocol.RemotingProtos.internal_static_remoting_CommandHeader_descriptor;
-            }
-
-
-            protected com.google.protobuf.GeneratedMessage.FieldAccessorTable internalGetFieldAccessorTable() {
-                return com.alibaba.rocketmq.remoting.protocol.RemotingProtos.internal_static_remoting_CommandHeader_fieldAccessorTable
-                    .ensureFieldAccessorsInitialized(
-                        com.alibaba.rocketmq.remoting.protocol.RemotingProtos.CommandHeader.class,
-                        com.alibaba.rocketmq.remoting.protocol.RemotingProtos.CommandHeader.Builder.class);
-            }
-
-
-            // Construct using
-            // com.alibaba.rocketmq.remoting.protocol.RemotingProtos.CommandHeader.newBuilder()
-            private Builder() {
-                maybeForceBuilderInitialization();
-            }
-
-
-            private Builder(com.google.protobuf.GeneratedMessage.BuilderParent parent) {
-                super(parent);
-                maybeForceBuilderInitialization();
-            }
-
-
-            private void maybeForceBuilderInitialization() {
-                if (com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders) {
-                    getExtFieldsFieldBuilder();
-                }
-            }
-
-
-            private static Builder create() {
-                return new Builder();
-            }
-
-
-            public Builder clear() {
-                super.clear();
-                code_ = 0;
-                bitField0_ = (bitField0_ & ~0x00000001);
-                language_ = com.alibaba.rocketmq.remoting.protocol.RemotingProtos.LanguageCode.JAVA;
-                bitField0_ = (bitField0_ & ~0x00000002);
-                version_ = 0;
-                bitField0_ = (bitField0_ & ~0x00000004);
-                opaque_ = 0;
-                bitField0_ = (bitField0_ & ~0x00000008);
-                flag_ = 0;
-                bitField0_ = (bitField0_ & ~0x00000010);
-                remark_ = "";
-                bitField0_ = (bitField0_ & ~0x00000020);
-                if (extFieldsBuilder_ == null) {
-                    extFields_ = java.util.Collections.emptyList();
-                    bitField0_ = (bitField0_ & ~0x00000040);
-                }
-                else {
-                    extFieldsBuilder_.clear();
-                }
-                return this;
-            }
-
-
-            public Builder clone() {
-                return create().mergeFrom(buildPartial());
-            }
-
-
-            public com.google.protobuf.Descriptors.Descriptor getDescriptorForType() {
-                return com.alibaba.rocketmq.remoting.protocol.RemotingProtos.internal_static_remoting_CommandHeader_descriptor;
-            }
-
-
-            public com.alibaba.rocketmq.remoting.protocol.RemotingProtos.CommandHeader getDefaultInstanceForType() {
-                return com.alibaba.rocketmq.remoting.protocol.RemotingProtos.CommandHeader
-                    .getDefaultInstance();
-            }
-
-
-            public com.alibaba.rocketmq.remoting.protocol.RemotingProtos.CommandHeader build() {
-                com.alibaba.rocketmq.remoting.protocol.RemotingProtos.CommandHeader result = buildPartial();
-                if (!result.isInitialized()) {
-                    throw newUninitializedMessageException(result);
-                }
-                return result;
-            }
-
-
-            public com.alibaba.rocketmq.remoting.protocol.RemotingProtos.CommandHeader buildPartial() {
-                com.alibaba.rocketmq.remoting.protocol.RemotingProtos.CommandHeader result =
-                        new com.alibaba.rocketmq.remoting.protocol.RemotingProtos.CommandHeader(this);
-                int from_bitField0_ = bitField0_;
-                int to_bitField0_ = 0;
-                if (((from_bitField0_ & 0x00000001) == 0x00000001)) {
-                    to_bitField0_ |= 0x00000001;
-                }
-                result.code_ = code_;
-                if (((from_bitField0_ & 0x00000002) == 0x00000002)) {
-                    to_bitField0_ |= 0x00000002;
-                }
-                result.language_ = language_;
-                if (((from_bitField0_ & 0x00000004) == 0x00000004)) {
-                    to_bitField0_ |= 0x00000004;
-                }
-                result.version_ = version_;
-                if (((from_bitField0_ & 0x00000008) == 0x00000008)) {
-                    to_bitField0_ |= 0x00000008;
-                }
-                result.opaque_ = opaque_;
-                if (((from_bitField0_ & 0x00000010) == 0x00000010)) {
-                    to_bitField0_ |= 0x00000010;
-                }
-                result.flag_ = flag_;
-                if (((from_bitField0_ & 0x00000020) == 0x00000020)) {
-                    to_bitField0_ |= 0x00000020;
-                }
-                result.remark_ = remark_;
-                if (extFieldsBuilder_ == null) {
-                    if (((bitField0_ & 0x00000040) == 0x00000040)) {
-                        extFields_ = java.util.Collections.unmodifiableList(extFields_);
-                        bitField0_ = (bitField0_ & ~0x00000040);
-                    }
-                    result.extFields_ = extFields_;
-                }
-                else {
-                    result.extFields_ = extFieldsBuilder_.build();
-                }
-                result.bitField0_ = to_bitField0_;
-                onBuilt();
-                return result;
-            }
-
-
-            public Builder mergeFrom(com.google.protobuf.Message other) {
-                if (other instanceof com.alibaba.rocketmq.remoting.protocol.RemotingProtos.CommandHeader) {
-                    return mergeFrom((com.alibaba.rocketmq.remoting.protocol.RemotingProtos.CommandHeader) other);
-                }
-                else {
-                    super.mergeFrom(other);
-                    return this;
-                }
-            }
-
-
-            public Builder mergeFrom(com.alibaba.rocketmq.remoting.protocol.RemotingProtos.CommandHeader other) {
-                if (other == com.alibaba.rocketmq.remoting.protocol.RemotingProtos.CommandHeader
-                    .getDefaultInstance())
-                    return this;
-                if (other.hasCode()) {
-                    setCode(other.getCode());
-                }
-                if (other.hasLanguage()) {
-                    setLanguage(other.getLanguage());
-                }
-                if (other.hasVersion()) {
-                    setVersion(other.getVersion());
-                }
-                if (other.hasOpaque()) {
-                    setOpaque(other.getOpaque());
-                }
-                if (other.hasFlag()) {
-                    setFlag(other.getFlag());
-                }
-                if (other.hasRemark()) {
-                    bitField0_ |= 0x00000020;
-                    remark_ = other.remark_;
-                    onChanged();
-                }
-                if (extFieldsBuilder_ == null) {
-                    if (!other.extFields_.isEmpty()) {
-                        if (extFields_.isEmpty()) {
-                            extFields_ = other.extFields_;
-                            bitField0_ = (bitField0_ & ~0x00000040);
-                        }
-                        else {
-                            ensureExtFieldsIsMutable();
-                            extFields_.addAll(other.extFields_);
-                        }
-                        onChanged();
-                    }
-                }
-                else {
-                    if (!other.extFields_.isEmpty()) {
-                        if (extFieldsBuilder_.isEmpty()) {
-                            extFieldsBuilder_.dispose();
-                            extFieldsBuilder_ = null;
-                            extFields_ = other.extFields_;
-                            bitField0_ = (bitField0_ & ~0x00000040);
-                            extFieldsBuilder_ =
-                                    com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ? getExtFieldsFieldBuilder()
-                                            : null;
-                        }
-                        else {
-                            extFieldsBuilder_.addAllMessages(other.extFields_);
-                        }
-                    }
-                }
-                this.mergeUnknownFields(other.getUnknownFields());
-                return this;
-            }
-
-
-            public final boolean isInitialized() {
-                if (!hasCode()) {
-
-                    return false;
-                }
-                if (!hasLanguage()) {
-
-                    return false;
-                }
-                if (!hasVersion()) {
-
-                    return false;
-                }
-                if (!hasOpaque()) {
-
-                    return false;
-                }
-                if (!hasFlag()) {
-
-                    return false;
-                }
-                for (int i = 0; i < getExtFieldsCount(); i++) {
-                    if (!getExtFields(i).isInitialized()) {
-
-                        return false;
-                    }
-                }
-                return true;
-            }
-
-
-            public Builder mergeFrom(com.google.protobuf.CodedInputStream input,
-                    com.google.protobuf.ExtensionRegistryLite extensionRegistry) throws java.io.IOException {
-                com.alibaba.rocketmq.remoting.protocol.RemotingProtos.CommandHeader parsedMessage = null;
-                try {
-                    parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
-                }
-                catch (com.google.protobuf.InvalidProtocolBufferException e) {
-                    parsedMessage =
-                            (com.alibaba.rocketmq.remoting.protocol.RemotingProtos.CommandHeader) e
-                                .getUnfinishedMessage();
-                    throw e;
-                }
-                finally {
-                    if (parsedMessage != null) {
-                        mergeFrom(parsedMessage);
-                    }
-                }
-                return this;
-            }
-
-            private int bitField0_;
-
-            // required int32 code = 1;
-            private int code_;
-
-
-            /**
-             * <code>required int32 code = 1;</code>
-             */
-            public boolean hasCode() {
-                return ((bitField0_ & 0x00000001) == 0x00000001);
-            }
-
-
-            /**
-             * <code>required int32 code = 1;</code>
-             */
-            public int getCode() {
-                return code_;
-            }
-
-
-            /**
-             * <code>required int32 code = 1;</code>
-             */
-            public Builder setCode(int value) {
-                bitField0_ |= 0x00000001;
-                code_ = value;
-                onChanged();
-                return this;
-            }
-
-
-            /**
-             * <code>required int32 code = 1;</code>
-             */
-            public Builder clearCode() {
-                bitField0_ = (bitField0_ & ~0x00000001);
-                code_ = 0;
-                onChanged();
-                return this;
-            }
-
-            // required .remoting.LanguageCode language = 2;
-            private com.alibaba.rocketmq.remoting.protocol.RemotingProtos.LanguageCode language_ =
-                    com.alibaba.rocketmq.remoting.protocol.RemotingProtos.LanguageCode.JAVA;
-
-
-            /**
-             * <code>required .remoting.LanguageCode language = 2;</code>
-             */
-            public boolean hasLanguage() {
-                return ((bitField0_ & 0x00000002) == 0x00000002);
-            }
-
-
-            /**
-             * <code>required .remoting.LanguageCode language = 2;</code>
-             */
-            public com.alibaba.rocketmq.remoting.protocol.RemotingProtos.LanguageCode getLanguage() {
-                return language_;
-            }
-
-
-            /**
-             * <code>required .remoting.LanguageCode language = 2;</code>
-             */
-            public Builder setLanguage(
-                    com.alibaba.rocketmq.remoting.protocol.RemotingProtos.LanguageCode value) {
-                if (value == null) {
-                    throw new NullPointerException();
-                }
-                bitField0_ |= 0x00000002;
-                language_ = value;
-                onChanged();
-                return this;
-            }
-
-
-            /**
-             * <code>required .remoting.LanguageCode language = 2;</code>
-             */
-            public Builder clearLanguage() {
-                bitField0_ = (bitField0_ & ~0x00000002);
-                language_ = com.alibaba.rocketmq.remoting.protocol.RemotingProtos.LanguageCode.JAVA;
-                onChanged();
-                return this;
-            }
-
-            // required int32 version = 3;
-            private int version_;
-
-
-            /**
-             * <code>required int32 version = 3;</code>
-             */
-            public boolean hasVersion() {
-                return ((bitField0_ & 0x00000004) == 0x00000004);
-            }
-
-
-            /**
-             * <code>required int32 version = 3;</code>
-             */
-            public int getVersion() {
-                return version_;
-            }
-
-
-            /**
-             * <code>required int32 version = 3;</code>
-             */
-            public Builder setVersion(int value) {
-                bitField0_ |= 0x00000004;
-                version_ = value;
-                onChanged();
-                return this;
-            }
-
-
-            /**
-             * <code>required int32 version = 3;</code>
-             */
-            public Builder clearVersion() {
-                bitField0_ = (bitField0_ & ~0x00000004);
-                version_ = 0;
-                onChanged();
-                return this;
-            }
-
-            // required int32 opaque = 4;
-            private int opaque_;
-
-
-            /**
-             * <code>required int32 opaque = 4;</code>
-             */
-            public boolean hasOpaque() {
-                return ((bitField0_ & 0x00000008) == 0x00000008);
-            }
-
-
-            /**
-             * <code>required int32 opaque = 4;</code>
-             */
-            public int getOpaque() {
-                return opaque_;
-            }
-
-
-            /**
-             * <code>required int32 opaque = 4;</code>
-             */
-            public Builder setOpaque(int value) {
-                bitField0_ |= 0x00000008;
-                opaque_ = value;
-                onChanged();
-                return this;
-            }
-
-
-            /**
-             * <code>required int32 opaque = 4;</code>
-             */
-            public Builder clearOpaque() {
-                bitField0_ = (bitField0_ & ~0x00000008);
-                opaque_ = 0;
-                onChanged();
-                return this;
-            }
-
-            // required int32 flag = 5;
-            private int flag_;
-
-
-            /**
-             * <code>required int32 flag = 5;</code>
-             */
-            public boolean hasFlag() {
-                return ((bitField0_ & 0x00000010) == 0x00000010);
-            }
-
-
-            /**
-             * <code>required int32 flag = 5;</code>
-             */
-            public int getFlag() {
-                return flag_;
-            }
-
-
-            /**
-             * <code>required int32 flag = 5;</code>
-             */
-            public Builder setFlag(int value) {
-                bitField0_ |= 0x00000010;
-                flag_ = value;
-                onChanged();
-                return this;
-            }
-
-
-            /**
-             * <code>required int32 flag = 5;</code>
-             */
-            public Builder clearFlag() {
-                bitField0_ = (bitField0_ & ~0x00000010);
-                flag_ = 0;
-                onChanged();
-                return this;
-            }
-
-            // optional string remark = 6;
-            private java.lang.Object remark_ = "";
-
-
-            /**
-             * <code>optional string remark = 6;</code>
-             */
-            public boolean hasRemark() {
-                return ((bitField0_ & 0x00000020) == 0x00000020);
-            }
-
-
-            /**
-             * <code>optional string remark = 6;</code>
-             */
-            public java.lang.String getRemark() {
-                java.lang.Object ref = remark_;
-                if (!(ref instanceof java.lang.String)) {
-                    java.lang.String s = ((com.google.protobuf.ByteString) ref).toStringUtf8();
-                    remark_ = s;
-                    return s;
-                }
-                else {
-                    return (java.lang.String) ref;
-                }
-            }
-
-
-            /**
-             * <code>optional string remark = 6;</code>
-             */
-            public com.google.protobuf.ByteString getRemarkBytes() {
-                java.lang.Object ref = remark_;
-                if (ref instanceof String) {
-                    com.google.protobuf.ByteString b =
-                            com.google.protobuf.ByteString.copyFromUtf8((java.lang.String) ref);
-                    remark_ = b;
-                    return b;
-                }
-                else {
-                    return (com.google.protobuf.ByteString) ref;
-                }
-            }
-
-
-            /**
-             * <code>optional string remark = 6;</code>
-             */
-            public Builder setRemark(java.lang.String value) {
-                if (value == null) {
-                    throw new NullPointerException();
-                }
-                bitField0_ |= 0x00000020;
-                remark_ = value;
-                onChanged();
-                return this;
-            }
-
-
-            /**
-             * <code>optional string remark = 6;</code>
-             */
-            public Builder clearRemark() {
-                bitField0_ = (bitField0_ & ~0x00000020);
-                remark_ = getDefaultInstance().getRemark();
-                onChanged();
-                return this;
-            }
-
-
-            /**
-             * <code>optional string remark = 6;</code>
-             */
-            public Builder setRemarkBytes(com.google.protobuf.ByteString value) {
-                if (value == null) {
-                    throw new NullPointerException();
-                }
-                bitField0_ |= 0x00000020;
-                remark_ = value;
-                onChanged();
-                return this;
-            }
-
-            // repeated .remoting.NVPair extFields = 7;
-            private java.util.List<com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair> extFields_ =
-                    java.util.Collections.emptyList();
-
-
-            private void ensureExtFieldsIsMutable() {
-                if (!((bitField0_ & 0x00000040) == 0x00000040)) {
-                    extFields_ =
-                            new java.util.ArrayList<com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair>(
-                                extFields_);
-                    bitField0_ |= 0x00000040;
-                }
-            }
-
-            private com.google.protobuf.RepeatedFieldBuilder<com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair, com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair.Builder, com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairOrBuilder> extFieldsBuilder_;
-
-
-            /**
-             * <code>repeated .remoting.NVPair extFields = 7;</code>
-             */
-            public java.util.List<com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair> getExtFieldsList() {
-                if (extFieldsBuilder_ == null) {
-                    return java.util.Collections.unmodifiableList(extFields_);
-                }
-                else {
-                    return extFieldsBuilder_.getMessageList();
-                }
-            }
-
-
-            /**
-             * <code>repeated .remoting.NVPair extFields = 7;</code>
-             */
-            public int getExtFieldsCount() {
-                if (extFieldsBuilder_ == null) {
-                    return extFields_.size();
-                }
-                else {
-                    return extFieldsBuilder_.getCount();
-                }
-            }
-
-
-            /**
-             * <code>repeated .remoting.NVPair extFields = 7;</code>
-             */
-            public com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair getExtFields(int index) {
-                if (extFieldsBuilder_ == null) {
-                    return extFields_.get(index);
-                }
-                else {
-                    return extFieldsBuilder_.getMessage(index);
-                }
-            }
-
-
-            /**
-             * <code>repeated .remoting.NVPair extFields = 7;</code>
-             */
-            public Builder setExtFields(int index,
-                    com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair value) {
-                if (extFieldsBuilder_ == null) {
-                    if (value == null) {
-                        throw new NullPointerException();
-                    }
-                    ensureExtFieldsIsMutable();
-                    extFields_.set(index, value);
-                    onChanged();
-                }
-                else {
-                    extFieldsBuilder_.setMessage(index, value);
-                }
-                return this;
-            }
-
-
-            /**
-             * <code>repeated .remoting.NVPair extFields = 7;</code>
-             */
-            public Builder setExtFields(int index,
-                    com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair.Builder builderForValue) {
-                if (extFieldsBuilder_ == null) {
-                    ensureExtFieldsIsMutable();
-                    extFields_.set(index, builderForValue.build());
-                    onChanged();
-                }
-                else {
-                    extFieldsBuilder_.setMessage(index, builderForValue.build());
-                }
-                return this;
-            }
-
-
-            /**
-             * <code>repeated .remoting.NVPair extFields = 7;</code>
-             */
-            public Builder addExtFields(com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair value) {
-                if (extFieldsBuilder_ == null) {
-                    if (value == null) {
-                        throw new NullPointerException();
-                    }
-                    ensureExtFieldsIsMutable();
-                    extFields_.add(value);
-                    onChanged();
-                }
-                else {
-                    extFieldsBuilder_.addMessage(value);
-                }
-                return this;
-            }
-
-
-            /**
-             * <code>repeated .remoting.NVPair extFields = 7;</code>
-             */
-            public Builder addExtFields(int index,
-                    com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair value) {
-                if (extFieldsBuilder_ == null) {
-                    if (value == null) {
-                        throw new NullPointerException();
-                    }
-                    ensureExtFieldsIsMutable();
-                    extFields_.add(index, value);
-                    onChanged();
-                }
-                else {
-                    extFieldsBuilder_.addMessage(index, value);
-                }
-                return this;
-            }
-
-
-            /**
-             * <code>repeated .remoting.NVPair extFields = 7;</code>
-             */
-            public Builder addExtFields(
-                    com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair.Builder builderForValue) {
-                if (extFieldsBuilder_ == null) {
-                    ensureExtFieldsIsMutable();
-                    extFields_.add(builderForValue.build());
-                    onChanged();
-                }
-                else {
-                    extFieldsBuilder_.addMessage(builderForValue.build());
-                }
-                return this;
-            }
-
-
-            /**
-             * <code>repeated .remoting.NVPair extFields = 7;</code>
-             */
-            public Builder addExtFields(int index,
-                    com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair.Builder builderForValue) {
-                if (extFieldsBuilder_ == null) {
-                    ensureExtFieldsIsMutable();
-                    extFields_.add(index, builderForValue.build());
-                    onChanged();
-                }
-                else {
-                    extFieldsBuilder_.addMessage(index, builderForValue.build());
-                }
-                return this;
-            }
-
-
-            /**
-             * <code>repeated .remoting.NVPair extFields = 7;</code>
-             */
-            public Builder addAllExtFields(
-                    java.lang.Iterable<? extends com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair> values) {
-                if (extFieldsBuilder_ == null) {
-                    ensureExtFieldsIsMutable();
-                    super.addAll(values, extFields_);
-                    onChanged();
-                }
-                else {
-                    extFieldsBuilder_.addAllMessages(values);
-                }
-                return this;
-            }
-
-
-            /**
-             * <code>repeated .remoting.NVPair extFields = 7;</code>
-             */
-            public Builder clearExtFields() {
-                if (extFieldsBuilder_ == null) {
-                    extFields_ = java.util.Collections.emptyList();
-                    bitField0_ = (bitField0_ & ~0x00000040);
-                    onChanged();
-                }
-                else {
-                    extFieldsBuilder_.clear();
-                }
-                return this;
-            }
-
-
-            /**
-             * <code>repeated .remoting.NVPair extFields = 7;</code>
-             */
-            public Builder removeExtFields(int index) {
-                if (extFieldsBuilder_ == null) {
-                    ensureExtFieldsIsMutable();
-                    extFields_.remove(index);
-                    onChanged();
-                }
-                else {
-                    extFieldsBuilder_.remove(index);
-                }
-                return this;
-            }
-
-
-            /**
-             * <code>repeated .remoting.NVPair extFields = 7;</code>
-             */
-            public com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair.Builder getExtFieldsBuilder(
-                    int index) {
-                return getExtFieldsFieldBuilder().getBuilder(index);
-            }
-
-
-            /**
-             * <code>repeated .remoting.NVPair extFields = 7;</code>
-             */
-            public com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairOrBuilder getExtFieldsOrBuilder(
-                    int index) {
-                if (extFieldsBuilder_ == null) {
-                    return extFields_.get(index);
-                }
-                else {
-                    return extFieldsBuilder_.getMessageOrBuilder(index);
-                }
-            }
-
-
-            /**
-             * <code>repeated .remoting.NVPair extFields = 7;</code>
-             */
-            public java.util.List<? extends com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairOrBuilder> getExtFieldsOrBuilderList() {
-                if (extFieldsBuilder_ != null) {
-                    return extFieldsBuilder_.getMessageOrBuilderList();
-                }
-                else {
-                    return java.util.Collections.unmodifiableList(extFields_);
-                }
-            }
-
-
-            /**
-             * <code>repeated .remoting.NVPair extFields = 7;</code>
-             */
-            public com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair.Builder addExtFieldsBuilder() {
-                return getExtFieldsFieldBuilder().addBuilder(
-                    com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair.getDefaultInstance());
-            }
-
-
-            /**
-             * <code>repeated .remoting.NVPair extFields = 7;</code>
-             */
-            public com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair.Builder addExtFieldsBuilder(
-                    int index) {
-                return getExtFieldsFieldBuilder().addBuilder(index,
-                    com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair.getDefaultInstance());
-            }
-
-
-            /**
-             * <code>repeated .remoting.NVPair extFields = 7;</code>
-             */
-            public java.util.List<com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair.Builder> getExtFieldsBuilderList() {
-                return getExtFieldsFieldBuilder().getBuilderList();
-            }
-
-
-            private com.google.protobuf.RepeatedFieldBuilder<com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair, com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair.Builder, com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairOrBuilder> getExtFieldsFieldBuilder() {
-                if (extFieldsBuilder_ == null) {
-                    extFieldsBuilder_ =
-                            new com.google.protobuf.RepeatedFieldBuilder<com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair, com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair.Builder, com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairOrBuilder>(
-                                extFields_, ((bitField0_ & 0x00000040) == 0x00000040),
-                                getParentForChildren(), isClean());
-                    extFields_ = null;
-                }
-                return extFieldsBuilder_;
-            }
-
-            // @@protoc_insertion_point(builder_scope:remoting.CommandHeader)
-        }
-
-        static {
-            defaultInstance = new CommandHeader(true);
-            defaultInstance.initFields();
-        }
-
-        // @@protoc_insertion_point(class_scope:remoting.CommandHeader)
+      // @@protoc_insertion_point(builder_scope:remoting.CommandHeader)
     }
 
-    private static com.google.protobuf.Descriptors.Descriptor internal_static_remoting_KVPair_descriptor;
-    private static com.google.protobuf.GeneratedMessage.FieldAccessorTable internal_static_remoting_KVPair_fieldAccessorTable;
-    private static com.google.protobuf.Descriptors.Descriptor internal_static_remoting_KVPairList_descriptor;
-    private static com.google.protobuf.GeneratedMessage.FieldAccessorTable internal_static_remoting_KVPairList_fieldAccessorTable;
-    private static com.google.protobuf.Descriptors.Descriptor internal_static_remoting_NVPair_descriptor;
-    private static com.google.protobuf.GeneratedMessage.FieldAccessorTable internal_static_remoting_NVPair_fieldAccessorTable;
-    private static com.google.protobuf.Descriptors.Descriptor internal_static_remoting_NVPairList_descriptor;
-    private static com.google.protobuf.GeneratedMessage.FieldAccessorTable internal_static_remoting_NVPairList_fieldAccessorTable;
-    private static com.google.protobuf.Descriptors.Descriptor internal_static_remoting_StringList_descriptor;
-    private static com.google.protobuf.GeneratedMessage.FieldAccessorTable internal_static_remoting_StringList_fieldAccessorTable;
-    private static com.google.protobuf.Descriptors.Descriptor internal_static_remoting_CommandHeader_descriptor;
-    private static com.google.protobuf.GeneratedMessage.FieldAccessorTable internal_static_remoting_CommandHeader_fieldAccessorTable;
-
-
-    public static com.google.protobuf.Descriptors.FileDescriptor getDescriptor() {
-        return descriptor;
-    }
-
-    private static com.google.protobuf.Descriptors.FileDescriptor descriptor;
     static {
-        java.lang.String[] descriptorData =
-                {
-                 "\n\016remoting.proto\022\010remoting\"$\n\006KVPair\022\013\n\003"
-                         + "key\030\001 \002(\005\022\r\n\005value\030\002 \002(\t\".\n\nKVPairList\022 "
-                         + "\n\006fields\030\001 \003(\0132\020.remoting.KVPair\"%\n\006NVPa"
-                         + "ir\022\014\n\004name\030\001 \002(\t\022\r\n\005value\030\002 \002(\t\".\n\nNVPai"
-                         + "rList\022 \n\006fields\030\001 \003(\0132\020.remoting.NVPair\""
-                         + "\032\n\nStringList\022\014\n\004name\030\001 \003(\t\"\253\001\n\rCommandH"
-                         + "eader\022\014\n\004code\030\001 \002(\005\022(\n\010language\030\002 \002(\0162\026."
-                         + "remoting.LanguageCode\022\017\n\007version\030\003 \002(\005\022\016"
-                         + "\n\006opaque\030\004 \002(\005\022\014\n\004flag\030\005 \002(\005\022\016\n\006remark\030\006"
-                         + " \001(\t\022#\n\textFields\030\007 \003(\0132\020.remoting.NVPai",
-                 "r*f\n\014LanguageCode\022\010\n\004JAVA\020\000\022\007\n\003CPP\020\001\022\n\n\006"
-                         + "DOTNET\020\002\022\n\n\006PYTHON\020\003\022\n\n\006DELPHI\020\004\022\n\n\006ERLA"
-                         + "NG\020\005\022\010\n\004RUBY\020\006\022\t\n\005OTHER\020\007*\'\n\007FlagBit\022\014\n\010"
-                         + "RPC_TYPE\020\000\022\016\n\nRPC_ONEWAY\020\001*\037\n\013RequestCod"
-                         + "e\022\020\n\014DEMO_REQUEST\020\000*^\n\014ResponseCode\022\013\n\007S"
-                         + "UCCESS\020\000\022\020\n\014SYSTEM_ERROR\020\001\022\017\n\013SYSTEM_BUS"
-                         + "Y\020\002\022\036\n\032REQUEST_CODE_NOT_SUPPORTED\020\003B:\n&c"
-                         + "om.alibaba.rocketmq.remoting.protocolB\016R" + "emotingProtosH\001" };
-        com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
-                new com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner() {
-                    public com.google.protobuf.ExtensionRegistry assignDescriptors(
-                            com.google.protobuf.Descriptors.FileDescriptor root) {
-                        descriptor = root;
-                        internal_static_remoting_KVPair_descriptor = getDescriptor().getMessageTypes().get(0);
-                        internal_static_remoting_KVPair_fieldAccessorTable =
-                                new com.google.protobuf.GeneratedMessage.FieldAccessorTable(
-                                    internal_static_remoting_KVPair_descriptor,
-                                    new java.lang.String[] { "Key", "Value", });
-                        internal_static_remoting_KVPairList_descriptor =
-                                getDescriptor().getMessageTypes().get(1);
-                        internal_static_remoting_KVPairList_fieldAccessorTable =
-                                new com.google.protobuf.GeneratedMessage.FieldAccessorTable(
-                                    internal_static_remoting_KVPairList_descriptor,
-                                    new java.lang.String[] { "Fields", });
-                        internal_static_remoting_NVPair_descriptor = getDescriptor().getMessageTypes().get(2);
-                        internal_static_remoting_NVPair_fieldAccessorTable =
-                                new com.google.protobuf.GeneratedMessage.FieldAccessorTable(
-                                    internal_static_remoting_NVPair_descriptor,
-                                    new java.lang.String[] { "Name", "Value", });
-                        internal_static_remoting_NVPairList_descriptor =
-                                getDescriptor().getMessageTypes().get(3);
-                        internal_static_remoting_NVPairList_fieldAccessorTable =
-                                new com.google.protobuf.GeneratedMessage.FieldAccessorTable(
-                                    internal_static_remoting_NVPairList_descriptor,
-                                    new java.lang.String[] { "Fields", });
-                        internal_static_remoting_StringList_descriptor =
-                                getDescriptor().getMessageTypes().get(4);
-                        internal_static_remoting_StringList_fieldAccessorTable =
-                                new com.google.protobuf.GeneratedMessage.FieldAccessorTable(
-                                    internal_static_remoting_StringList_descriptor,
-                                    new java.lang.String[] { "Name", });
-                        internal_static_remoting_CommandHeader_descriptor =
-                                getDescriptor().getMessageTypes().get(5);
-                        internal_static_remoting_CommandHeader_fieldAccessorTable =
-                                new com.google.protobuf.GeneratedMessage.FieldAccessorTable(
-                                    internal_static_remoting_CommandHeader_descriptor,
-                                    new java.lang.String[] { "Code", "Language", "Version", "Opaque", "Flag",
-                                                            "Remark", "ExtFields", });
-                        return null;
-                    }
-                };
-        com.google.protobuf.Descriptors.FileDescriptor.internalBuildGeneratedFileFrom(descriptorData,
-            new com.google.protobuf.Descriptors.FileDescriptor[] {}, assigner);
+      defaultInstance = new CommandHeader(true);
+      defaultInstance.initFields();
     }
 
-    // @@protoc_insertion_point(outer_class_scope)
+    // @@protoc_insertion_point(class_scope:remoting.CommandHeader)
+  }
+
+  private static com.google.protobuf.Descriptors.Descriptor
+    internal_static_remoting_NVPair_descriptor;
+  private static
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_remoting_NVPair_fieldAccessorTable;
+  private static com.google.protobuf.Descriptors.Descriptor
+    internal_static_remoting_NVPairList_descriptor;
+  private static
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_remoting_NVPairList_fieldAccessorTable;
+  private static com.google.protobuf.Descriptors.Descriptor
+    internal_static_remoting_StringList_descriptor;
+  private static
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_remoting_StringList_fieldAccessorTable;
+  private static com.google.protobuf.Descriptors.Descriptor
+    internal_static_remoting_CommandHeader_descriptor;
+  private static
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_remoting_CommandHeader_fieldAccessorTable;
+
+  public static com.google.protobuf.Descriptors.FileDescriptor
+      getDescriptor() {
+    return descriptor;
+  }
+  private static com.google.protobuf.Descriptors.FileDescriptor
+      descriptor;
+  static {
+    java.lang.String[] descriptorData = {
+      "\n\016remoting.proto\022\010remoting\"%\n\006NVPair\022\014\n\004" +
+      "name\030\001 \002(\t\022\r\n\005value\030\002 \002(\t\".\n\nNVPairList\022" +
+      " \n\006fields\030\001 \003(\0132\020.remoting.NVPair\"\032\n\nStr" +
+      "ingList\022\014\n\004name\030\001 \003(\t\"\253\001\n\rCommandHeader\022" +
+      "\014\n\004code\030\001 \002(\005\022(\n\010language\030\002 \002(\0162\026.remoti" +
+      "ng.LanguageCode\022\017\n\007version\030\003 \002(\005\022\016\n\006opaq" +
+      "ue\030\004 \002(\005\022\014\n\004flag\030\005 \002(\005\022\016\n\006remark\030\006 \001(\t\022#" +
+      "\n\textFields\030\007 \003(\0132\020.remoting.NVPair*f\n\014L" +
+      "anguageCode\022\010\n\004JAVA\020\000\022\007\n\003CPP\020\001\022\n\n\006DOTNET" +
+      "\020\002\022\n\n\006PYTHON\020\003\022\n\n\006DELPHI\020\004\022\n\n\006ERLANG\020\005\022\010",
+      "\n\004RUBY\020\006\022\t\n\005OTHER\020\007*\'\n\007FlagBit\022\014\n\010RPC_TY" +
+      "PE\020\000\022\016\n\nRPC_ONEWAY\020\001*\037\n\013RequestCode\022\020\n\014D" +
+      "EMO_REQUEST\020\000*^\n\014ResponseCode\022\013\n\007SUCCESS" +
+      "\020\000\022\020\n\014SYSTEM_ERROR\020\001\022\017\n\013SYSTEM_BUSY\020\002\022\036\n" +
+      "\032REQUEST_CODE_NOT_SUPPORTED\020\003B:\n&com.ali" +
+      "baba.rocketmq.remoting.protocolB\016Remotin" +
+      "gProtosH\001"
+    };
+    com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
+      new com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner() {
+        public com.google.protobuf.ExtensionRegistry assignDescriptors(
+            com.google.protobuf.Descriptors.FileDescriptor root) {
+          descriptor = root;
+          internal_static_remoting_NVPair_descriptor =
+            getDescriptor().getMessageTypes().get(0);
+          internal_static_remoting_NVPair_fieldAccessorTable = new
+            com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+              internal_static_remoting_NVPair_descriptor,
+              new java.lang.String[] { "Name", "Value", });
+          internal_static_remoting_NVPairList_descriptor =
+            getDescriptor().getMessageTypes().get(1);
+          internal_static_remoting_NVPairList_fieldAccessorTable = new
+            com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+              internal_static_remoting_NVPairList_descriptor,
+              new java.lang.String[] { "Fields", });
+          internal_static_remoting_StringList_descriptor =
+            getDescriptor().getMessageTypes().get(2);
+          internal_static_remoting_StringList_fieldAccessorTable = new
+            com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+              internal_static_remoting_StringList_descriptor,
+              new java.lang.String[] { "Name", });
+          internal_static_remoting_CommandHeader_descriptor =
+            getDescriptor().getMessageTypes().get(3);
+          internal_static_remoting_CommandHeader_fieldAccessorTable = new
+            com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+              internal_static_remoting_CommandHeader_descriptor,
+              new java.lang.String[] { "Code", "Language", "Version", "Opaque", "Flag", "Remark", "ExtFields", });
+          return null;
+        }
+      };
+    com.google.protobuf.Descriptors.FileDescriptor
+      .internalBuildGeneratedFileFrom(descriptorData,
+        new com.google.protobuf.Descriptors.FileDescriptor[] {
+        }, assigner);
+  }
+
+  // @@protoc_insertion_point(outer_class_scope)
 }
