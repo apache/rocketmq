@@ -260,8 +260,26 @@ public class RebalanceLockManager {
                                     mq, //
                                     clientId);
                             }
+                            else {
+                                log.warn("unlockBatch, but mq locked by other client: {}, Group: {} {} {}",//
+                                    lockEntry.getClientId(), //
+                                    group, //
+                                    mq, //
+                                    clientId);
+                            }
+                        }
+                        else {
+                            log.warn("unlockBatch, but mq not locked, Group: {} {} {}",//
+                                group, //
+                                mq, //
+                                clientId);
                         }
                     }
+                }
+                else {
+                    log.warn("unlockBatch, group not exist, Group: {} {}",//
+                        group, //
+                        clientId);
                 }
             }
             finally {
