@@ -56,8 +56,7 @@ public class MQAdminImpl {
     }
 
 
-    public void createTopic(String key, String newTopic, int queueNum, boolean order)
-            throws MQClientException {
+    public void createTopic(String key, String newTopic, int queueNum) throws MQClientException {
         try {
             TopicRouteData topicRouteData =
                     this.mQClientFactory.getMQClientAPIImpl().getTopicRouteInfoFromNameServer(key, 1000 * 3);
@@ -94,12 +93,6 @@ public class MQAdminImpl {
 
                 if (exception != null) {
                     throw exception;
-                }
-
-                if (order) {
-                    // ÏòName Server×¢²áË³ÐòÏûÏ¢
-                    this.mQClientFactory.getMQClientAPIImpl().registerOrderTopic(newTopic,
-                        orderTopicString.toString(), 1000 * 10);
                 }
             }
             else {

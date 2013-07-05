@@ -102,9 +102,8 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
 
 
     @Override
-    public void createTopic(String key, String newTopic, int queueNum, boolean order)
-            throws MQClientException {
-        this.defaultMQPushConsumerImpl.createTopic(key, newTopic, queueNum, order);
+    public void createTopic(String key, String newTopic, int queueNum) throws MQClientException {
+        this.defaultMQPushConsumerImpl.createTopic(key, newTopic, queueNum);
     }
 
 
