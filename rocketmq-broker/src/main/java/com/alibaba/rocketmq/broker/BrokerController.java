@@ -546,6 +546,13 @@ public class BrokerController {
         }
 
         this.scheduledExecutorService.shutdown();
+        try {
+            this.scheduledExecutorService.awaitTermination(5000, TimeUnit.MILLISECONDS);
+        }
+        catch (InterruptedException e) {
+        }
+
+        this.unregisterBrokerAll();
 
         if (this.sendMessageExecutor != null) {
             this.sendMessageExecutor.shutdown();
@@ -560,7 +567,6 @@ public class BrokerController {
         }
 
         if (this.brokerOuterAPI != null) {
-            this.unregisterBrokerAll();
             this.brokerOuterAPI.shutdown();
         }
 
