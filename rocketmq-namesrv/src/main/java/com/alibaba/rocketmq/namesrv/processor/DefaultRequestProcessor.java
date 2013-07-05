@@ -19,7 +19,7 @@ import com.alibaba.rocketmq.common.protocol.header.namesrv.RegisterBrokerRequest
 import com.alibaba.rocketmq.common.protocol.header.namesrv.RegisterBrokerResponseHeader;
 import com.alibaba.rocketmq.common.protocol.header.namesrv.UnRegisterBrokerRequestHeader;
 import com.alibaba.rocketmq.common.protocol.route.TopicRouteData;
-import com.alibaba.rocketmq.namesrv.NamesrvController2;
+import com.alibaba.rocketmq.namesrv.NamesrvController;
 import com.alibaba.rocketmq.remoting.common.RemotingHelper;
 import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
 import com.alibaba.rocketmq.remoting.netty.NettyRequestProcessor;
@@ -27,13 +27,19 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 import com.alibaba.rocketmq.remoting.protocol.RemotingProtos.ResponseCode;
 
 
+/**
+ * Name ServerÕ¯¬Á«Î«Û¥¶¿Ì
+ * 
+ * @author shijia.wxr<vintage.wang@gmail.com>
+ * @since 2013-7-5
+ */
 public class DefaultRequestProcessor implements NettyRequestProcessor {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.NamesrvLoggerName);
 
-    private final NamesrvController2 namesrvController;
+    private final NamesrvController namesrvController;
 
 
-    public DefaultRequestProcessor(NamesrvController2 namesrvController) {
+    public DefaultRequestProcessor(NamesrvController namesrvController) {
         this.namesrvController = namesrvController;
     }
 

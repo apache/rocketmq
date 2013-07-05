@@ -22,11 +22,12 @@ import com.alibaba.rocketmq.remoting.netty.NettyServerConfig;
 
 
 /**
+ * Name Server∑˛ŒÒøÿ÷∆
+ * 
  * @author shijia.wxr<vintage.wang@gmail.com>
- * @author lansheng.zj@taobao.com
- * @since 2013-7-1
+ * @since 2013-7-5
  */
-public class NamesrvController2 {
+public class NamesrvController {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.NamesrvLoggerName);
     // Name Server≈‰÷√
     private final NamesrvConfig namesrvConfig;
@@ -53,7 +54,7 @@ public class NamesrvController2 {
     private final RouteInfoManager routeInfoManager;
 
 
-    public NamesrvController2(NamesrvConfig namesrvConfig, NettyServerConfig nettyServerConfig) {
+    public NamesrvController(NamesrvConfig namesrvConfig, NettyServerConfig nettyServerConfig) {
         this.namesrvConfig = namesrvConfig;
         this.nettyServerConfig = nettyServerConfig;
         this.kvConfigManager = new KVConfigManager(this);
@@ -90,7 +91,7 @@ public class NamesrvController2 {
 
             @Override
             public void run() {
-                NamesrvController2.this.routeInfoManager.scanNotActiveBroker();
+                NamesrvController.this.routeInfoManager.scanNotActiveBroker();
             }
         }, 1000 * 5, 1000 * 10, TimeUnit.MILLISECONDS);
 
@@ -98,7 +99,7 @@ public class NamesrvController2 {
 
             @Override
             public void run() {
-                NamesrvController2.this.kvConfigManager.printConfig();
+                NamesrvController.this.kvConfigManager.printConfig();
             }
         }, 1000 * 5, 1000 * 60, TimeUnit.MILLISECONDS);
 

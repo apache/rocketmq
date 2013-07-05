@@ -25,13 +25,11 @@ import com.alibaba.rocketmq.common.namesrv.NamesrvConfig;
 import com.alibaba.rocketmq.remoting.netty.NettyServerConfig;
 
 
-//import org.apache.log4j.xml.DOMConfigurator;
-
 /**
  * Name server 启动入口
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
- * 
+ * @since 2013-7-5
  */
 public class NamesrvStartup {
 
@@ -101,7 +99,7 @@ public class NamesrvStartup {
             final Logger log = LoggerFactory.getLogger(LoggerName.NamesrvLoggerName);
 
             // 初始化服务控制对象
-            final NamesrvController2 controller = new NamesrvController2(namesrvConfig, nettyServerConfig);
+            final NamesrvController controller = new NamesrvController(namesrvConfig, nettyServerConfig);
             boolean initResult = controller.initialize();
             if (!initResult) {
                 controller.shutdown();
