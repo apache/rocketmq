@@ -27,7 +27,7 @@ public class PushConsumer {
         DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("example_consumer_group7");
         consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET_AND_FROM_MIN_WHEN_BOOT_FIRST);
 
-        consumer.subscribe("TopicTest", "TagA || TagC || TagD");
+        consumer.subscribe("TopicTest4", "TagA || TagC || TagD");
 
         consumer.registerMessageListener(new MessageListenerConcurrently() {
             AtomicLong consumeTimes = new AtomicLong(0);
