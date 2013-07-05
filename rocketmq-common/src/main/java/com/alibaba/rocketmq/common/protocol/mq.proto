@@ -51,30 +51,13 @@ enum MQRequestCode{
     LOCK_BATCH_MQ = 41;                                 // Broker Consumer向Master锁定队列
     UNLOCK_BATCH_MQ = 42;                               // Broker Consumer向Master解锁队列
 
-
-
-    REGISTER_BROKER = 100;                              // Namesrv 注册一个Broker，数据都是持久化的，如果存在则覆盖配置
-    UNREGISTER_BROKER = 101;                            // Namesrv 卸载一个Broker，数据都是持久化的
-    GET_BROKER_LIST = 102;                              // Namesrv 获取注册的Broker列表
-    REGISTER_ORDER_TOPIC = 103;                         // Namesrv 注册一个严格顺序Topic，数据都是持久化的，如果存在则覆盖配置
-    UNREGISTER_ORDER_TOPIC = 104;                       // Namesrv 卸载一个严格顺序Topic，数据都是持久化的
-    GET_ORDER_TOPIC_LIST = 105;                         // Namesrv 获取注册的严格顺序Topic列表
-    UPDATE_NAMESRV_CONFIG = 106;                        // Namesrv 更新Namesrv上的配置
-    GET_NAMESRV_CONFIG = 107;                           // Namesrv 获取Namesrv上的配置
-    GET_NAMESRV_RUNTIME_INFO = 108;                     // Namesrv 获取Namesrv运行时信息
-
-    GET_ROUTEINTO_BY_TOPIC = 109;                       // Namesrv 根据Topic获取Broker Name、队列数(包含读队列与写队列)
+    PUT_KV_CONFIG = 100;                                // Namesrv 向Namesrv追加KV配置
+    GET_KV_CONFIG = 101;                                // Namesrv 从Namesrv获取KV配置
+    DELETE_KV_CONFIG = 102;                             // Namesrv 从Namesrv获取KV配置
+    REGISTER_BROKER = 103;                              // Namesrv 注册一个Broker，数据都是持久化的，如果存在则覆盖配置
+    UNREGISTER_BROKER = 104;                            // Namesrv 卸载一个Broker，数据都是持久化的
+    GET_ROUTEINTO_BY_TOPIC = 105;                       // Namesrv 根据Topic获取Broker Name、队列数(包含读队列与写队列)
                                                         // 如果是Producer，Namesrv会检索是否有顺序消息配置，一并返回。
-
-    SYNC_NAMESRV_RUNTIME_CONF = 110;                    // Namesrv 同步Namesrv节点间的运行时topic相关路由信息数据
-    REGISTER_BROKER_SINGLE = 111;                       // Namesrv 向其他的Namesrv结点扩散broker注册的信息
-    UNREGISTER_BROKER_SINGLE = 112;                     // Namesrv 向其他的Namesrv结点扩散broker注销的信息
-    REGISTER_ORDER_TOPIC_SINGLE = 113;                  // Namesrv 向其他的Namesrv结点扩散order topic注册的信息
-    UNREGISTER_ORDER_TOPIC_SINGLE = 114;                // Namesrv 向其他的Namesrv结点扩散order topic注销的信息
-
-    PUT_KV_CONFIG = 200;                                // Namesrv 向Namesrv追加KV配置
-    GET_KV_CONFIG = 201;                                // Namesrv 从Namesrv获取KV配置
-    DELETE_KV_CONFIG = 202;                             // Namesrv 从Namesrv获取KV配置
 }
 
 // RPC应答代码
@@ -97,96 +80,10 @@ enum MQResponseCode{
     SUBSCRIPTION_PARSE_FAILED = 23;                     // Broker 订阅关系解析失败
     SUBSCRIPTION_NOT_EXIST = 24;                        // Broker 订阅关系不存在
     SUBSCRIPTION_NOT_LATEST = 25;                       // Broker 订阅关系不是最新的
-
     SUBSCRIPTION_GROUP_NOT_EXIST = 26;                  // Broker 订阅组不存在
-
-
-    DELETE_INVALID_CONF = 100;                          // Namesrv 同步数据时出现两个节点间数据不一致，删除不一致的数据
-    NOT_MERGE_CONF = 101;                               // Namesrv 两节点之间的数据一致没有做修改
-    REGISTER_BROKER_FAIL = 102;                         // Namesrv 注册broker信息失败
-    REGISTER_BROKER_TIMEOUT = 103;                      // Namesrv 注册broker信息超时
-    REGISTER_ORDER_TOPIC_FAIL = 104;                    // Namesrv 注册order topic的配置失败
-    REGISTER_ORDER_TOPIC_TIMEOUT = 105;                 // Namesrv 注册order topic的配置超时
-    UNREGISTER_BROKER_FAIL = 106;                       // Namesrv 注销broker信息失败
-    UNREGISTER_BROKER_TIMEOUT = 107;                    // Namesrv 注销broker超时
-    UNREGISTER_ORDER_TOPIC_TIMEOUT = 108;               // Namesrv 注销order topic的配置超时
 
     TRANSACTION_SHOULD_COMMIT = 200;                    // Producer 事务应该被提交
     TRANSACTION_SHOULD_ROLLBACK = 201;                  // Producer 事务应该被回滚
     TRANSACTION_STATE_UNKNOW = 202;                     // Producer 事务状态未知
     TRANSACTION_STATE_GROUP_WRONG = 203;                // Producer ProducerGroup错误
-}
-
-//
-// Name Server Route
-//
- message BrokerInfo {
-     required string brokerName = 1;
-
-     message BrokerAddr{
-         required int64 id = 1;
-         required string addr = 2;
-     }
-
-     repeated BrokerAddr brokerAddrs = 2;
- }
-
- message QueueInfo{
-     required string brokerName = 1;
-     required int32 readQueueNums = 2;
-     required int32 writeQueueNums = 3;
-     required int32 perm = 4;
- }
-
- message TopicRouteInfo {
-     repeated QueueInfo queueInfos = 1;
-     repeated BrokerInfo brokerInfos = 2;
-     optional string orderTopicConf = 3;
- }
-//
-//
-// Heart Beat
-//
-// message ProducerInfo {
-//     required string groupName = 1;
-// }
-//
-// message SubscriptionInfo {
-//     required string topic = 1;
-//     required string subString = 2;
-//     required string subNumfmt = 3;
-//     required bool hasAndOperator = 4;
-// }
-//
-// message ConsumerInfo {
-//     required string groupName = 1;
-//     required string consumeType = 2;
-//     required string messageModel = 3;
-//     repeated SubscriptionInfo subscriptionInfos = 4;
-// }
-//
-// message HeartbeatInfo {
-//     required string clientID = 1;
-//  repeated ProducerInfo producerInfos = 2;
-//     repeated ConsumerInfo consumerInfos = 3;
-// }
-
-// TODO 暂时不使用
-message TopicQueuePair {
-    required string topic = 1;
-    repeated QueueInfo queueInfo = 2;
-}
-
-// TODO 暂时不使用
-message BrokerDataPair {
-    required string brokerName = 1;
-    required BrokerInfo brokerInfo = 2;
-}
-
-// TODO 暂时不使用
-message TopicRuntimeInfo {
-    repeated TopicQueuePair topicBrokers = 1;
-    required remoting.NVPairList topicOrderConfs = 2;
-    repeated BrokerDataPair brokers = 3;
-    required remoting.StringList brokerList = 4;
 }

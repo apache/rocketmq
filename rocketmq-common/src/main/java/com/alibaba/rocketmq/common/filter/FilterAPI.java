@@ -8,9 +8,6 @@ import com.alibaba.rocketmq.common.protocol.heartbeat.SubscriptionData;
  * @since 2013-6-15
  */
 public class FilterAPI {
-    private static final String TAG_SEPRATOR = "||";
-
-
     public static SubscriptionData buildSubscriptionData(String topic, String subString) throws Exception {
         SubscriptionData subscriptionData = new SubscriptionData();
         subscriptionData.setTopic(topic);
