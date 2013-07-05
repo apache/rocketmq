@@ -4,9 +4,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.alibaba.rocketmq.client.exception.MQBrokerException;
-import com.alibaba.rocketmq.client.log.ClientLogger;
+import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.common.namesrv.TopAddressing;
 import com.alibaba.rocketmq.common.protocol.MQProtos.MQRequestCode;
 import com.alibaba.rocketmq.common.protocol.body.TopicConfigSerializeWrapper;
@@ -29,7 +30,7 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingProtos.ResponseCode;
  * @since 2013-7-3
  */
 public class BrokerOuterAPI {
-    private final static Logger log = ClientLogger.getLog();
+    private static final Logger log = LoggerFactory.getLogger(LoggerName.BrokerLoggerName);
     private final RemotingClient remotingClient;
     private final TopAddressing topAddressing = new TopAddressing();
     private String nameSrvAddr = null;

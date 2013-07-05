@@ -23,10 +23,12 @@ public class Producer {
         for (int i = 0; i < 100; i++) {
             try {
                 Message msg =
-                        new Message("TopicTest", tags[i % tags.length], "KEY" + i,
+                        new Message("TopicTest4", tags[i % tags.length], "KEY" + i,
                             ("Hello RocketMQ " + i).getBytes());
                 SendResult sendResult = producer.send(msg);
                 System.out.println(sendResult);
+
+                Thread.sleep(100);
             }
             catch (Exception e) {
                 e.printStackTrace();

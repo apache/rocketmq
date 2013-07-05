@@ -194,7 +194,7 @@ public class MQClientFactory {
                     log.error("ScheduledTask updateTopicRouteInfoFromNameServer exception", e);
                 }
             }
-        }, 0, this.clientConfig.getPollNameServerInteval(), TimeUnit.MILLISECONDS);
+        }, 10, this.clientConfig.getPollNameServerInteval(), TimeUnit.MILLISECONDS);
 
         // 向所有Broker发送心跳信息（包含订阅关系等）
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
@@ -237,8 +237,8 @@ public class MQClientFactory {
                     this.clientConfig.setNamesrvAddr(this.mQClientAPIImpl.fetchNameServerAddr());
                 }
 
-                this.startScheduledTask();
                 this.mQClientAPIImpl.start();
+                this.startScheduledTask();
                 this.pullMessageService.start();
                 this.rebalanceService.start();
                 log.info("the client factory [{}] start OK", this.clientId);
