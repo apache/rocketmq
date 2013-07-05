@@ -317,6 +317,15 @@ public class BrokerController {
     }
 
 
+    private void unregisterBrokerAll() {
+        this.brokerOuterAPI.unregisterBrokerAll(//
+            this.brokerConfig.getBrokerClusterName(), //
+            this.getBrokerAddr(), //
+            this.brokerConfig.getBrokerName(), //
+            this.brokerConfig.getBrokerId());
+    }
+
+
     public String encodeAllConfig() {
         StringBuilder sb = new StringBuilder();
         {
@@ -554,6 +563,7 @@ public class BrokerController {
         }
 
         if (this.brokerOuterAPI != null) {
+            this.unregisterBrokerAll();
             this.brokerOuterAPI.shutdown();
         }
 

@@ -12,9 +12,19 @@ import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
  * @author lansheng.zj@taobao.com
  */
 public class UnRegisterBrokerRequestHeader implements CommandCustomHeader {
-
     @CFNotNull
     private String brokerName;
+    @CFNotNull
+    private String brokerAddr;
+    @CFNotNull
+    private String clusterName;
+    @CFNotNull
+    private Long brokerId;
+
+
+    @Override
+    public void checkFields() throws RemotingCommandException {
+    }
 
 
     public String getBrokerName() {
@@ -27,10 +37,32 @@ public class UnRegisterBrokerRequestHeader implements CommandCustomHeader {
     }
 
 
-    @Override
-    public void checkFields() throws RemotingCommandException {
-        // TODO Auto-generated method stub
-
+    public String getBrokerAddr() {
+        return brokerAddr;
     }
 
+
+    public void setBrokerAddr(String brokerAddr) {
+        this.brokerAddr = brokerAddr;
+    }
+
+
+    public String getClusterName() {
+        return clusterName;
+    }
+
+
+    public void setClusterName(String clusterName) {
+        this.clusterName = clusterName;
+    }
+
+
+    public Long getBrokerId() {
+        return brokerId;
+    }
+
+
+    public void setBrokerId(Long brokerId) {
+        this.brokerId = brokerId;
+    }
 }
