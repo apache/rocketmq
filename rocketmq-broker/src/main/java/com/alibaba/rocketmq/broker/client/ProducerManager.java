@@ -19,6 +19,7 @@ import org.slf4j.LoggerFactory;
 
 import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.remoting.common.RemotingHelper;
+import com.alibaba.rocketmq.remoting.common.RemotingUtil;
 
 
 /**
@@ -110,7 +111,7 @@ public class ProducerManager {
                                     "SCAN: remove expired channel[{}] from ProducerManager hashcodeChannelTable, producer group hash code: {}",
                                     RemotingHelper.parseChannelRemoteAddr(clientChannelInfo.getChannel()),
                                     groupHashCode);
-                                clientChannelInfo.getChannel().close();
+                                    RemotingUtil.closeChannel(clientChannelInfo.getChannel());
                             }
                         }
                     }
@@ -146,7 +147,7 @@ public class ProducerManager {
                                     log.warn(
                                         "SCAN: remove expired channel[{}] from ProducerManager groupChannelTable, producer group name: {}",
                                         RemotingHelper.parseChannelRemoteAddr(info.getChannel()), group);
-                                    info.getChannel().close();
+                                    RemotingUtil.closeChannel(info.getChannel());
                                 }
                             }
                         }

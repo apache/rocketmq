@@ -43,6 +43,7 @@ import com.alibaba.rocketmq.remoting.InvokeCallback;
 import com.alibaba.rocketmq.remoting.RemotingClient;
 import com.alibaba.rocketmq.remoting.common.Pair;
 import com.alibaba.rocketmq.remoting.common.RemotingHelper;
+import com.alibaba.rocketmq.remoting.common.RemotingUtil;
 import com.alibaba.rocketmq.remoting.exception.RemotingConnectException;
 import com.alibaba.rocketmq.remoting.exception.RemotingSendRequestException;
 import com.alibaba.rocketmq.remoting.exception.RemotingTimeoutException;
@@ -419,14 +420,14 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
             if (!channel.isActive()) {
                 log.warn("connect {} in {}ms ok, but channel not active", addr,
                     this.nettyClientConfig.getConnectTimeoutMillis());
-                channel.close();
+                RemotingUtil.closeChannel(channel);
                 return null;
             }
         }
         else {
             log.error("connect {} in {}ms timeout", addr,
                 this.nettyClientConfig.getConnectTimeoutMillis());
-            channelFuture.channel().close();
+            RemotingUtil.closeChannel(channelFuture.channel());
             return null;
         }
 
@@ -434,14 +435,14 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
         if (this.lockChannelTables.tryLock(LockTimeoutMillis, TimeUnit.MILLISECONDS)) {
             try {
                 ChannelWrapper channelWrapper = channelTables.get(addr);
-                if(null==channelWrapper){
+                if(null != channelWrapper && null != channelWrapper.getChannel() && channelWrapper.getChannel().isActive()){
+                    log.warn("channelTables exist addr {}", addr );
+                    RemotingUtil.closeChannel(channel);
+                    return channelTables.get(addr).getChannel();
+                }else{
                     this.channelTables.put(addr, new ChannelWrapper(channel));
                     log.info("connect {} success, and add to the channel table", addr);
                     return channel;
-                }else{
-                    log.warn("channelTables exist addr {}", addr );
-                    channel.close();
-                    return channelTables.get(addr).getChannel();
                 }
             }
             catch (Exception e) {
@@ -453,7 +454,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
         }
         else {
              log.warn("createChannel: try to lock channel table, but timeout, {}ms", LockTimeoutMillis);
-             channel.close();
+             RemotingUtil.closeChannel(channel);
         }
         return null;
     }
@@ -492,13 +493,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                         log.info("closeChannel: the channel[{}] was removed from channel table", addrRemote);
                     }
 
-                    channel.close().addListener(new ChannelFutureListener() {
-                        @Override
-                        public void operationComplete(ChannelFuture future) throws Exception {
-                            log.info("closeChannel: close the connection to remote address[{}] result: {}",
-                                addrRemote, future.isSuccess());
-                        }
-                    });
+                    RemotingUtil.closeChannel(channel);
                 }
                 catch (Exception e) {
                     log.error("closeChannel: close the channel exception", e);
@@ -546,7 +541,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                     if (removeItemFromTable) {
                         this.channelTables.remove(addrRemote);
                         log.info("closeChannel: the channel[{}] was removed from channel table", addrRemote);
-                        // channel.close().sync();
+                        RemotingUtil.closeChannel(channel);
                     }
                 }
                 catch (Exception e) {
