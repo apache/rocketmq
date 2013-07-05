@@ -12,6 +12,7 @@ import com.alibaba.rocketmq.common.protocol.MQProtos.MQRequestCode;
 import com.alibaba.rocketmq.common.protocol.body.TopicConfigSerializeWrapper;
 import com.alibaba.rocketmq.common.protocol.header.namesrv.RegisterBrokerRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.namesrv.RegisterBrokerResponseHeader;
+import com.alibaba.rocketmq.common.protocol.header.namesrv.UnRegisterBrokerRequestHeader;
 import com.alibaba.rocketmq.remoting.RemotingClient;
 import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
 import com.alibaba.rocketmq.remoting.exception.RemotingConnectException;
@@ -149,6 +150,53 @@ public class BrokerOuterAPI {
     }
 
 
-    public void unregisterBroker() {
+    public void unregisterBroker(//
+            final String namesrvAddr,//
+            final String clusterName,// 1
+            final String brokerAddr,// 2
+            final String brokerName,// 3
+            final long brokerId// 4
+    ) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException,
+            InterruptedException, MQBrokerException {
+        UnRegisterBrokerRequestHeader requestHeader = new UnRegisterBrokerRequestHeader();
+        requestHeader.setBrokerAddr(brokerAddr);
+        requestHeader.setBrokerId(brokerId);
+        requestHeader.setBrokerName(brokerName);
+        requestHeader.setClusterName(clusterName);
+        RemotingCommand request =
+                RemotingCommand.createRequestCommand(MQRequestCode.UNREGISTER_BROKER_VALUE, requestHeader);
+
+        RemotingCommand response = this.remotingClient.invokeSync(namesrvAddr, request, 3000);
+        assert response != null;
+        switch (response.getCode()) {
+        case ResponseCode.SUCCESS_VALUE: {
+            return;
+        }
+        default:
+            break;
+        }
+
+        throw new MQBrokerException(response.getCode(), response.getRemark());
+    }
+
+
+    public void unregisterBrokerAll(//
+            final String clusterName,// 1
+            final String brokerAddr,// 2
+            final String brokerName,// 3
+            final long brokerId// 4
+    ) {
+        List<String> nameServerAddressList = this.remotingClient.getNameServerAddressList();
+        if (nameServerAddressList != null) {
+            for (String namesrvAddr : nameServerAddressList) {
+                try {
+                    this.unregisterBroker(namesrvAddr, clusterName, brokerAddr, brokerName, brokerId);
+                    log.info("unregisterBroker OK, NamesrvAddr: {}", namesrvAddr);
+                }
+                catch (Exception e) {
+                    log.warn("unregisterBroker Exception, " + namesrvAddr, e);
+                }
+            }
+        }
     }
 }
