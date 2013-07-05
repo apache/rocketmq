@@ -258,9 +258,8 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
     }
 
 
-    public void createTopic(String key, String newTopic, int queueNum, boolean order)
-            throws MQClientException {
-        this.mQClientFactory.getMQAdminImpl().createTopic(key, newTopic, queueNum, order);
+    public void createTopic(String key, String newTopic, int queueNum) throws MQClientException {
+        this.mQClientFactory.getMQAdminImpl().createTopic(key, newTopic, queueNum);
     }
 
 

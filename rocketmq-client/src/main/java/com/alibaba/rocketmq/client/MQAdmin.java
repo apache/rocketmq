@@ -29,7 +29,7 @@ public interface MQAdmin {
      *            是否是严格的顺序消息
      * @throws MQClientException
      */
-    public void createTopic(final String key, final String newTopic, final int queueNum, final boolean order)
+    public void createTopic(final String key, final String newTopic, final int queueNum)
             throws MQClientException;
 
 

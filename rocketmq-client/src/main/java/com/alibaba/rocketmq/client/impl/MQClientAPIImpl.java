@@ -57,7 +57,6 @@ import com.alibaba.rocketmq.common.protocol.header.UnregisterClientRequestHeader
 import com.alibaba.rocketmq.common.protocol.header.UpdateConsumerOffsetRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.ViewMessageRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.namesrv.GetRouteInfoRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.namesrv.RegisterOrderTopicRequestHeader;
 import com.alibaba.rocketmq.common.protocol.heartbeat.HeartbeatData;
 import com.alibaba.rocketmq.common.protocol.route.BrokerData;
 import com.alibaba.rocketmq.common.protocol.route.QueueData;
@@ -912,30 +911,4 @@ public class MQClientAPIImpl {
 
         return topicRouteData;
     }
-
-
-    /**
-     * Name Server: œÚName Server◊¢≤·À≥–Úœ˚œ¢≈‰÷√
-     */
-    public void registerOrderTopic(final String topic, final String orderTopicString, final long timeoutMillis)
-            throws RemotingException, MQClientException, InterruptedException {
-        RegisterOrderTopicRequestHeader requestHeader = new RegisterOrderTopicRequestHeader();
-        requestHeader.setTopic(topic);
-        requestHeader.setOrderTopicString(orderTopicString);
-        RemotingCommand request =
-                RemotingCommand.createRequestCommand(MQRequestCode.REGISTER_ORDER_TOPIC_VALUE, requestHeader);
-
-        RemotingCommand response = this.remotingClient.invokeSync(null, request, timeoutMillis);
-        assert response != null;
-        switch (response.getCode()) {
-        case ResponseCode.SUCCESS_VALUE: {
-            return;
-        }
-        default:
-            break;
-        }
-
-        throw new MQClientException(response.getCode(), response.getRemark());
-    }
-
 }

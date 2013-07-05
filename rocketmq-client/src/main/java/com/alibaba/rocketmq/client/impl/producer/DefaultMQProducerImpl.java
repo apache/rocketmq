@@ -193,10 +193,9 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     }
 
 
-    public void createTopic(String key, String newTopic, int queueNum, boolean order)
-            throws MQClientException {
+    public void createTopic(String key, String newTopic, int queueNum) throws MQClientException {
         this.makeSureStateOK();
-        this.mQClientFactory.getMQAdminImpl().createTopic(key, newTopic, queueNum, order);
+        this.mQClientFactory.getMQAdminImpl().createTopic(key, newTopic, queueNum);
     }
 
 
