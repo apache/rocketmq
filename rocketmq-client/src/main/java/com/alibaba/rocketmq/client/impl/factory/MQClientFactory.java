@@ -732,24 +732,32 @@ public class MQClientFactory {
         Set<String> topicList = new HashSet<String>();
 
         // Consumer
-        for (String g : this.consumerTable.keySet()) {
-            MQConsumerInner impl = this.consumerTable.get(g);
-            if (impl != null) {
-                Set<SubscriptionData> subList = impl.subscriptions();
-                if (subList != null) {
-                    for (SubscriptionData subData : subList) {
-                        topicList.add(subData.getTopic());
+        {
+            Iterator<Entry<String, MQConsumerInner>> it = this.consumerTable.entrySet().iterator();
+            while (it.hasNext()) {
+                Entry<String, MQConsumerInner> entry = it.next();
+                MQConsumerInner impl = entry.getValue();
+                if (impl != null) {
+                    Set<SubscriptionData> subList = impl.subscriptions();
+                    if (subList != null) {
+                        for (SubscriptionData subData : subList) {
+                            topicList.add(subData.getTopic());
+                        }
                     }
                 }
             }
         }
 
         // Producer
-        for (String g : this.producerTable.keySet()) {
-            MQProducerInner impl = this.producerTable.get(g);
-            if (impl != null) {
-                Set<String> lst = impl.getPublishTopicList();
-                topicList.addAll(lst);
+        {
+            Iterator<Entry<String, MQProducerInner>> it = this.producerTable.entrySet().iterator();
+            while (it.hasNext()) {
+                Entry<String, MQProducerInner> entry = it.next();
+                MQProducerInner impl = entry.getValue();
+                if (impl != null) {
+                    Set<String> lst = impl.getPublishTopicList();
+                    topicList.addAll(lst);
+                }
             }
         }
 
