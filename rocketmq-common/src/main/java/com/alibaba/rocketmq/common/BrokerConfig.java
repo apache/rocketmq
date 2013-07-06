@@ -35,8 +35,8 @@ public class BrokerConfig {
     // 自动创建订阅组功能是否开启（线上建议关闭）
     private boolean autoCreateSubscriptionGroup = true;
 
-    private int sendMessageThreadPoolNums = Runtime.getRuntime().availableProcessors() * 6;
-    private int pullMessageThreadPoolNums = Runtime.getRuntime().availableProcessors() * 6;
+    private int sendMessageThreadPoolNums = 32 + Runtime.getRuntime().availableProcessors() * 4;
+    private int pullMessageThreadPoolNums = 32 + Runtime.getRuntime().availableProcessors() * 4;
     private int adminBrokerThreadPoolNums = 8;
 
     private String topicConfigPath = System.getProperty("user.home") + File.separator + "store"
