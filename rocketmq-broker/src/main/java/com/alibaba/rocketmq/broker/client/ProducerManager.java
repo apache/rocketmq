@@ -7,8 +7,10 @@ import io.netty.channel.Channel;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
@@ -91,27 +93,27 @@ public class ProducerManager {
         try {
             if (this.hashcodeChannelLock.tryLock(LockTimeoutMillis, TimeUnit.MILLISECONDS)) {
                 try {
-                    for (final Map.Entry<Integer, List<ClientChannelInfo>> entry : this.hashcodeChannelTable
-                        .entrySet()) {
+                    Iterator<Entry<Integer, List<ClientChannelInfo>>> it =
+                            this.hashcodeChannelTable.entrySet().iterator();
+
+                    while (it.hasNext()) {
+                        Entry<Integer, List<ClientChannelInfo>> entry = it.next();
+
                         final Integer groupHashCode = entry.getKey();
                         final List<ClientChannelInfo> clientChannelInfoList = entry.getValue();
-                        final List<ClientChannelInfo> willRemoveChannel = new ArrayList<ClientChannelInfo>();
-                        for (ClientChannelInfo clientChannelInfo : clientChannelInfoList) {
+
+                        Iterator<ClientChannelInfo> itChannelInfo = clientChannelInfoList.iterator();
+                        while (itChannelInfo.hasNext()) {
+                            ClientChannelInfo clientChannelInfo = itChannelInfo.next();
                             long diff =
                                     System.currentTimeMillis() - clientChannelInfo.getLastUpdateTimestamp();
                             if (diff > ChannelExpiredTimeout) {
-                                willRemoveChannel.add(clientChannelInfo);
-                            }
-                        }
-
-                        for (ClientChannelInfo clientChannelInfo : willRemoveChannel) {
-                            boolean result = clientChannelInfoList.remove(clientChannelInfo);
-                            if (result) {
                                 log.warn(
                                     "SCAN: remove expired channel[{}] from ProducerManager hashcodeChannelTable, producer group hash code: {}",
                                     RemotingHelper.parseChannelRemoteAddr(clientChannelInfo.getChannel()),
                                     groupHashCode);
                                 RemotingUtil.closeChannel(clientChannelInfo.getChannel());
+                                itChannelInfo.remove();
                             }
                         }
                     }
@@ -136,19 +138,19 @@ public class ProducerManager {
                         final String group = entry.getKey();
                         final HashMap<Integer, ClientChannelInfo> chlMap = entry.getValue();
 
-                        for (final Map.Entry<Integer, ClientChannelInfo> item : chlMap.entrySet()) {
+                        Iterator<Entry<Integer, ClientChannelInfo>> it = chlMap.entrySet().iterator();
+                        while (it.hasNext()) {
+                            Entry<Integer, ClientChannelInfo> item = it.next();
                             final Integer id = item.getKey();
                             final ClientChannelInfo info = item.getValue();
 
                             long diff = System.currentTimeMillis() - info.getLastUpdateTimestamp();
                             if (diff > ChannelExpiredTimeout) {
-                                ClientChannelInfo old = chlMap.remove(id);
-                                if (old != null) {
-                                    log.warn(
-                                        "SCAN: remove expired channel[{}] from ProducerManager groupChannelTable, producer group name: {}",
-                                        RemotingHelper.parseChannelRemoteAddr(info.getChannel()), group);
-                                    RemotingUtil.closeChannel(info.getChannel());
-                                }
+                                it.remove();
+                                log.warn(
+                                    "SCAN: remove expired channel[{}] from ProducerManager groupChannelTable, producer group name: {}",
+                                    RemotingHelper.parseChannelRemoteAddr(info.getChannel()), group);
+                                RemotingUtil.closeChannel(info.getChannel());
                             }
                         }
                     }
