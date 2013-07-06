@@ -144,7 +144,32 @@ public class MixAll {
     }
 
 
+    /**
+     * 安全的写文件
+     */
     public static final void string2File(final String str, final String fileName) throws IOException {
+        // 先写入临时文件
+        String tmpFile = fileName + ".tmp";
+        string2FileNotSafe(str, tmpFile);
+
+        // 备份之前的文件
+        String bakFile = fileName + ".bak";
+        String prevContent = file2String(fileName);
+        if (prevContent != null) {
+            string2FileNotSafe(prevContent, bakFile);
+        }
+
+        // 删除正式文件
+        File file = new File(fileName);
+        file.delete();
+
+        // 临时文件改为正式文件
+        file = new File(tmpFile);
+        file.renameTo(new File(fileName));
+    }
+
+
+    public static final void string2FileNotSafe(final String str, final String fileName) throws IOException {
         File file = new File(fileName);
         File fileParent = file.getParentFile();
         if (fileParent != null) {
