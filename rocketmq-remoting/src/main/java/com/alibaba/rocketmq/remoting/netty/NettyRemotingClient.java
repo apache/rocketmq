@@ -7,7 +7,6 @@ import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelDuplexHandler;
 import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
@@ -17,6 +16,9 @@ import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
+import io.netty.handler.timeout.IdleState;
+import io.netty.handler.timeout.IdleStateEvent;
+import io.netty.handler.timeout.IdleStateHandler;
 import io.netty.util.concurrent.DefaultEventExecutorGroup;
 
 import java.net.SocketAddress;
@@ -84,27 +86,26 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
     private final ChannelEventListener channelEventListener;
 
     class ChannelWrapper {
-        private final Channel channel;
-        private volatile long lastActiveTimestamp = System.currentTimeMillis();
+        private final ChannelFuture channelFuture;
 
 
-        public ChannelWrapper(Channel channel) {
-            this.channel = channel;
+        public ChannelWrapper(ChannelFuture channelFuture) {
+            this.channelFuture = channelFuture;
         }
 
 
-        public long getLastActiveTimestamp() {
-            return lastActiveTimestamp;
+        public boolean isOK() {
+            return (this.channelFuture.channel() != null && this.channelFuture.channel().isActive());
         }
 
 
-        public void setLastActiveTimestamp(long lastActiveTimestamp) {
-            this.lastActiveTimestamp = lastActiveTimestamp;
+        private Channel getChannel() {
+            return this.channelFuture.channel();
         }
 
 
-        public Channel getChannel() {
-            return channel;
+        public ChannelFuture getChannelFuture() {
+            return channelFuture;
         }
     }
 
@@ -171,6 +172,25 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                     .toString(), ctx.channel()));
             }
         }
+
+
+        @Override
+        public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
+            if (evt instanceof IdleStateEvent) {
+                IdleStateEvent evnet = (IdleStateEvent) evt;
+                if (evnet.state().equals(IdleState.ALL_IDLE)) {
+                    final String remoteAddress = RemotingHelper.parseChannelRemoteAddr(ctx.channel());
+                    log.warn("NETTY CLIENT PIPELINE: IDLE exception [{}]", remoteAddress);
+                    closeChannel(ctx.channel());
+                    if (NettyRemotingClient.this.channelEventListener != null) {
+                        NettyRemotingClient.this.putNettyEvent(new NettyEvent(NettyEventType.IDLE,
+                            remoteAddress.toString(), ctx.channel()));
+                    }
+                }
+            }
+
+            ctx.fireUserEventTriggered(evt);
+        }
     }
 
 
@@ -212,35 +232,6 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
     }
 
 
-    private void scanNotActiveChannel() throws InterruptedException {
-        // 加锁，尝试扫描过期连接
-        if (this.lockChannelTables.tryLock(LockTimeoutMillis, TimeUnit.MILLISECONDS)) {
-            try {
-                for (String addr : this.channelTables.keySet()) {
-                    ChannelWrapper cw = this.channelTables.get(addr);
-                    if (cw != null) {
-                        long diff = System.currentTimeMillis() - cw.getLastActiveTimestamp();
-                        if (diff > this.nettyClientConfig.getChannelNotActiveInterval()) {
-                            log.warn("the channel[{}] not active for a while[{}ms], close it forcibly", addr,
-                                diff);
-                            this.closeChannel(addr, cw.getChannel());
-                        }
-                    }
-                }
-            }
-            catch (Exception e) {
-                log.error("scanNotActiveChannel: close channel exception", e);
-            }
-            finally {
-                this.lockChannelTables.unlock();
-            }
-        }
-        else {
-            log.warn("scanNotActiveChannel: try to lock channel table, but timeout, {}ms", LockTimeoutMillis);
-        }
-    }
-
-
     @Override
     public void start() {
         this.defaultEventExecutorGroup = new DefaultEventExecutorGroup(//
@@ -264,7 +255,9 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                         defaultEventExecutorGroup, //
                         new NettyEncoder(), //
                         new NettyDecoder(), //
-                        new NettyConnetManageHandler(), new NettyClientHandler());
+                        new IdleStateHandler(0, 0, nettyClientConfig.getClientChannelMaxIdleTimeSeconds()),//
+                        new NettyConnetManageHandler(), //
+                        new NettyClientHandler());
                 }
             });
 
@@ -281,20 +274,6 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                 }
             }
         }, 1000 * 3, 1000);
-
-        // 每隔10秒扫描下不活动的连接
-        this.timer.scheduleAtFixedRate(new TimerTask() {
-
-            @Override
-            public void run() {
-                try {
-                    NettyRemotingClient.this.scanNotActiveChannel();
-                }
-                catch (Exception e) {
-                    log.error("scanNotActiveChannel exception", e);
-                }
-            }
-        }, 1000 * 10, 1000 * 10);
 
         if (this.channelEventListener != null) {
             this.nettyEventExecuter.start();
@@ -343,8 +322,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
             return getAndCreateNameserverChannel();
 
         ChannelWrapper cw = this.channelTables.get(addr);
-        if (cw != null) {
-            cw.setLastActiveTimestamp(System.currentTimeMillis());
+        if (cw != null && cw.isOK()) {
             return cw.getChannel();
         }
 
@@ -356,8 +334,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
         String addr = this.namesrvAddrChoosed.get();
         if (addr != null) {
             ChannelWrapper cw = this.channelTables.get(addr);
-            if (cw != null) {
-                cw.setLastActiveTimestamp(System.currentTimeMillis());
+            if (cw != null && cw.isOK()) {
                 return cw.getChannel();
             }
         }
@@ -369,8 +346,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                 addr = this.namesrvAddrChoosed.get();
                 if (addr != null) {
                     ChannelWrapper cw = this.channelTables.get(addr);
-                    if (cw != null) {
-                        cw.setLastActiveTimestamp(System.currentTimeMillis());
+                    if (cw != null && cw.isOK()) {
                         return cw.getChannel();
                     }
                 }
@@ -405,57 +381,73 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
     }
 
 
-    private Channel createChannel(final String addr) throws InterruptedException  {
+    private Channel createChannel(final String addr) throws InterruptedException {
         ChannelWrapper cw = this.channelTables.get(addr);
-        if (cw != null) {
-            cw.setLastActiveTimestamp(System.currentTimeMillis());
+        if (cw != null && cw.isOK()) {
             return cw.getChannel();
         }
 
-        ChannelFuture channelFuture =
-                this.bootstrap.connect(RemotingHelper.string2SocketAddress(addr));
-        Channel channel = null;
-        if (channelFuture.awaitUninterruptibly(this.nettyClientConfig.getConnectTimeoutMillis())) {
-            channel = channelFuture.channel();
-            if (!channel.isActive()) {
-                log.warn("connect {} in {}ms ok, but channel not active", addr,
-                    this.nettyClientConfig.getConnectTimeoutMillis());
-                RemotingUtil.closeChannel(channel);
-                return null;
-            }
-        }
-        else {
-            log.error("connect {} in {}ms timeout", addr,
-                this.nettyClientConfig.getConnectTimeoutMillis());
-            RemotingUtil.closeChannel(channelFuture.channel());
-            return null;
-        }
-
-        
+        // 进入临界区后，不能有阻塞操作，网络连接采用异步方式
         if (this.lockChannelTables.tryLock(LockTimeoutMillis, TimeUnit.MILLISECONDS)) {
             try {
-                ChannelWrapper channelWrapper = channelTables.get(addr);
-                if(null != channelWrapper && null != channelWrapper.getChannel() && channelWrapper.getChannel().isActive()){
-                    log.warn("channelTables exist addr {}", addr );
-                    RemotingUtil.closeChannel(channel);
-                    return channelTables.get(addr).getChannel();
-                }else{
-                    this.channelTables.put(addr, new ChannelWrapper(channel));
-                    log.info("connect {} success, and add to the channel table", addr);
-                    return channel;
+                boolean createNewConnection = false;
+                cw = this.channelTables.get(addr);
+                if (cw != null) {
+                    // channel正常
+                    if (cw.isOK()) {
+                        return cw.getChannel();
+                    }
+                    // 正在连接，退出锁等待
+                    else if (!cw.getChannelFuture().isDone()) {
+                        createNewConnection = false;
+                    }
+                    // 说明连接不成功
+                    else {
+                        this.channelTables.remove(addr);
+                        createNewConnection = true;
+                    }
+                }
+                // ChannelWrapper不存在
+                else {
+                    createNewConnection = true;
+                }
+
+                if (createNewConnection) {
+                    ChannelFuture channelFuture =
+                            this.bootstrap.connect(RemotingHelper.string2SocketAddress(addr));
+                    log.info("createChannel: begin to connect remote host[{}] asynchronously", addr);
+                    cw = new ChannelWrapper(channelFuture);
+                    this.channelTables.put(addr, cw);
                 }
             }
             catch (Exception e) {
                 log.error("createChannel: create channel exception", e);
             }
             finally {
-              this.lockChannelTables.unlock();
+                this.lockChannelTables.unlock();
             }
         }
         else {
-             log.warn("createChannel: try to lock channel table, but timeout, {}ms", LockTimeoutMillis);
-             RemotingUtil.closeChannel(channel);
+            log.warn("createChannel: try to lock channel table, but timeout, {}ms", LockTimeoutMillis);
         }
+
+        if (cw != null) {
+            ChannelFuture channelFuture = cw.getChannelFuture();
+            if (channelFuture.awaitUninterruptibly(this.nettyClientConfig.getConnectTimeoutMillis())) {
+                if (cw.isOK()) {
+                    log.info("createChannel: connect remote host[{}] success", addr);
+                    return cw.getChannel();
+                }
+                else {
+                    log.warn("createChannel: connect remote host[{}] failed", addr);
+                }
+            }
+            else {
+                log.warn("createChannel: connect remote host[{}] timeout {}ms", addr,
+                    this.nettyClientConfig.getConnectTimeoutMillis());
+            }
+        }
+
         return null;
     }
 
@@ -524,10 +516,12 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                     String addrRemote = null;
                     for (String key : channelTables.keySet()) {
                         ChannelWrapper prev = this.channelTables.get(key);
-                        if (prev.channel.equals(channel)) {
-                            prevCW = prev;
-                            addrRemote = key;
-                            break;
+                        if (prev.getChannel() != null) {
+                            if (prev.getChannel().id().equals(channel.id())) {
+                                prevCW = prev;
+                                addrRemote = key;
+                                break;
+                            }
                         }
                     }
 

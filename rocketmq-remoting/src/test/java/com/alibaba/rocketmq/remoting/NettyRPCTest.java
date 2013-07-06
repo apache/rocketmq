@@ -39,7 +39,6 @@ public class NettyRPCTest {
 
     public static RemotingServer createRemotingServer() throws InterruptedException {
         NettyServerConfig config = new NettyServerConfig();
-        config.setListenPort(10911);
         RemotingServer remotingServer = new NettyRemotingServer(config);
         remotingServer.registerProcessor(RequestCode.DEMO_REQUEST_VALUE, new NettyRequestProcessor() {
             private int i = 0;
@@ -66,7 +65,7 @@ public class NettyRPCTest {
         for (int i = 0; i < 100; i++) {
             RemotingCommand request =
                     RemotingCommand.createRequestCommand(RequestCode.DEMO_REQUEST_VALUE, null);
-            RemotingCommand response = client.invokeSync("127.0.0.1:10911", request, 1000 * 3);
+            RemotingCommand response = client.invokeSync("127.0.0.1:8888", request, 1000 * 3);
             System.out.println("invoke result = " + response);
             assertTrue(response != null);
         }
@@ -87,7 +86,7 @@ public class NettyRPCTest {
             RemotingCommand request =
                     RemotingCommand.createRequestCommand(RequestCode.DEMO_REQUEST_VALUE, null);
             request.setRemark(String.valueOf(i));
-            client.invokeOneway("127.0.0.1:10911", request, 1000 * 3);
+            client.invokeOneway("127.0.0.1:8888", request, 1000 * 3);
         }
 
         client.shutdown();
@@ -106,7 +105,7 @@ public class NettyRPCTest {
             RemotingCommand request =
                     RemotingCommand.createRequestCommand(RequestCode.DEMO_REQUEST_VALUE, null);
             request.setRemark(String.valueOf(i));
-            client.invokeAsync("127.0.0.1:10911", request, 1000 * 3, new InvokeCallback() {
+            client.invokeAsync("127.0.0.1:8888", request, 1000 * 3, new InvokeCallback() {
                 @Override
                 public void operationComplete(ResponseFuture responseFuture) {
                     System.out.println(responseFuture.getResponseCommand());
@@ -160,7 +159,7 @@ public class NettyRPCTest {
         for (int i = 0; i < 3; i++) {
             RemotingCommand request =
                     RemotingCommand.createRequestCommand(RequestCode.DEMO_REQUEST_VALUE, null);
-            RemotingCommand response = client.invokeSync("127.0.0.1:10911", request, 1000 * 3);
+            RemotingCommand response = client.invokeSync("127.0.0.1:8888", request, 1000 * 3);
             System.out.println("invoke result = " + response);
             assertTrue(response != null);
         }
@@ -169,6 +168,5 @@ public class NettyRPCTest {
         server.shutdown();
         System.out.println("-----------------------------------------------------------------");
     }
-
 
 }

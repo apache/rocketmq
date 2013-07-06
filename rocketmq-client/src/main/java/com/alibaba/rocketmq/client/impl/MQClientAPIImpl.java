@@ -220,8 +220,8 @@ public class MQClientAPIImpl {
                             .getCause()));
                     }
                     else if (responseFuture.isTimeout()) {
-                        sendCallback.onException(new MQClientException("wait response timeout",
-                            responseFuture.getCause()));
+                        sendCallback.onException(new MQClientException("wait response timeout "
+                                + responseFuture.getTimeoutMillis() + "ms", responseFuture.getCause()));
                     }
                     else {
                         sendCallback.onException(new MQClientException("unknow reseaon", responseFuture
@@ -396,8 +396,8 @@ public class MQClientAPIImpl {
                             .getCause()));
                     }
                     else if (responseFuture.isTimeout()) {
-                        pullCallback.onException(new MQClientException("wait response timeout",
-                            responseFuture.getCause()));
+                        pullCallback.onException(new MQClientException("wait response timeout "
+                                + responseFuture.getTimeoutMillis() + "ms", responseFuture.getCause()));
                     }
                     else {
                         pullCallback.onException(new MQClientException("unknow reseaon", responseFuture
