@@ -8,8 +8,10 @@ import java.net.SocketException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
@@ -781,22 +783,32 @@ public class MQClientFactory {
                             }
 
                             // 更新发布队列信息
-                            TopicPublishInfo publishInfo =
-                                    topicRouteData2TopicPublishInfo(topic, topicRouteData);
-                            for (String g : this.producerTable.keySet()) {
-                                MQProducerInner impl = this.producerTable.get(g);
-                                if (impl != null) {
-                                    impl.updateTopicPublishInfo(topic, publishInfo);
+                            {
+                                TopicPublishInfo publishInfo =
+                                        topicRouteData2TopicPublishInfo(topic, topicRouteData);
+                                Iterator<Entry<String, MQProducerInner>> it =
+                                        this.producerTable.entrySet().iterator();
+                                while (it.hasNext()) {
+                                    Entry<String, MQProducerInner> entry = it.next();
+                                    MQProducerInner impl = entry.getValue();
+                                    if (impl != null) {
+                                        impl.updateTopicPublishInfo(topic, publishInfo);
+                                    }
                                 }
                             }
 
                             // 更新订阅队列信息
-                            Set<MessageQueue> subscribeInfo =
-                                    topicRouteData2TopicSubscribeInfo(topic, topicRouteData);
-                            for (String g : this.consumerTable.keySet()) {
-                                MQConsumerInner impl = this.consumerTable.get(g);
-                                if (impl != null) {
-                                    impl.updateTopicSubscribeInfo(topic, subscribeInfo);
+                            {
+                                Set<MessageQueue> subscribeInfo =
+                                        topicRouteData2TopicSubscribeInfo(topic, topicRouteData);
+                                Iterator<Entry<String, MQConsumerInner>> it =
+                                        this.consumerTable.entrySet().iterator();
+                                while (it.hasNext()) {
+                                    Entry<String, MQConsumerInner> entry = it.next();
+                                    MQConsumerInner impl = entry.getValue();
+                                    if (impl != null) {
+                                        impl.updateTopicSubscribeInfo(topic, subscribeInfo);
+                                    }
                                 }
                             }
 
