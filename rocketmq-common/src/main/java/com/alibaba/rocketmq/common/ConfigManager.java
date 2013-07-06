@@ -34,10 +34,12 @@ public abstract class ConfigManager {
             String jsonString = MixAll.file2String(fileName);
             if (jsonString != null) {
                 this.decode(jsonString);
+                plog.error("load " + fileName + " OK");
                 return true;
             }
         }
         catch (Exception e) {
+            plog.error("load " + fileName + " Failed", e);
             return false;
         }
 

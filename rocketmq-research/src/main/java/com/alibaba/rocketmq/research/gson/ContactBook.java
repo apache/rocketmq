@@ -9,7 +9,7 @@ import java.util.Map;
 public class ContactBook extends Convert {
     private String name;
     private List<Contact> contactList = new ArrayList<Contact>();
-    private Map<String, String> customField = new HashMap<String, String>();
+    private Map<Contact, String> customField = new HashMap<Contact, String>();
 
     private int code;
 
@@ -34,16 +34,6 @@ public class ContactBook extends Convert {
     }
 
 
-    public Map<String, String> getCustomField() {
-        return customField;
-    }
-
-
-    public void setCustomField(Map<String, String> customField) {
-        this.customField = customField;
-    }
-
-
     public int getCode() {
         return code;
     }
@@ -51,6 +41,16 @@ public class ContactBook extends Convert {
 
     public void setCode(int code) {
         this.code = code;
+    }
+
+
+    public Map<Contact, String> getCustomField() {
+        return customField;
+    }
+
+
+    public void setCustomField(Map<Contact, String> customField) {
+        this.customField = customField;
     }
 
 
