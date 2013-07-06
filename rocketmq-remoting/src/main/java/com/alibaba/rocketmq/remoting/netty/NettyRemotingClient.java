@@ -18,6 +18,7 @@ import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.timeout.IdleState;
 import io.netty.handler.timeout.IdleStateEvent;
+import io.netty.handler.timeout.IdleStateHandler;
 import io.netty.util.concurrent.DefaultEventExecutorGroup;
 
 import java.net.SocketAddress;
@@ -180,7 +181,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                 IdleStateEvent evnet = (IdleStateEvent) evt;
                 if (evnet.state().equals(IdleState.ALL_IDLE)) {
                     final String remoteAddress = RemotingHelper.parseChannelRemoteAddr(ctx.channel());
-                    log.warn("NETTY CLIENT PIPELINE: IDLE exception.", remoteAddress);
+                    log.warn("NETTY CLIENT PIPELINE: IDLE exception [{}]", remoteAddress);
                     closeChannel(ctx.channel());
                     if (NettyRemotingClient.this.channelEventListener != null) {
                         NettyRemotingClient.this.putNettyEvent(new NettyEvent(NettyEventType.IDLE,
@@ -232,35 +233,6 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
     }
 
 
-    private void scanNotActiveChannel() throws InterruptedException {
-        // 加锁，尝试扫描过期连接
-        if (this.lockChannelTables.tryLock(LockTimeoutMillis, TimeUnit.MILLISECONDS)) {
-            try {
-                for (String addr : this.channelTables.keySet()) {
-                    ChannelWrapper cw = this.channelTables.get(addr);
-                    if (cw != null) {
-                        long diff = System.currentTimeMillis() - cw.getLastActiveTimestamp();
-                        if (diff > this.nettyClientConfig.getChannelNotActiveInterval()) {
-                            log.warn("the channel[{}] not active for a while[{}ms], close it forcibly", addr,
-                                diff);
-                            this.closeChannel(addr, cw.getChannel());
-                        }
-                    }
-                }
-            }
-            catch (Exception e) {
-                log.error("scanNotActiveChannel: close channel exception", e);
-            }
-            finally {
-                this.lockChannelTables.unlock();
-            }
-        }
-        else {
-            log.warn("scanNotActiveChannel: try to lock channel table, but timeout, {}ms", LockTimeoutMillis);
-        }
-    }
-
-
     @Override
     public void start() {
         this.defaultEventExecutorGroup = new DefaultEventExecutorGroup(//
@@ -284,7 +256,9 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                         defaultEventExecutorGroup, //
                         new NettyEncoder(), //
                         new NettyDecoder(), //
-                        new NettyConnetManageHandler(), new NettyClientHandler());
+                        new IdleStateHandler(0, 0, nettyClientConfig.getClientChannelMaxIdleTimeSeconds()),//
+                        new NettyConnetManageHandler(), //
+                        new NettyClientHandler());
                 }
             });
 
@@ -301,20 +275,6 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                 }
             }
         }, 1000 * 3, 1000);
-
-        // 每隔10秒扫描下不活动的连接
-        this.timer.scheduleAtFixedRate(new TimerTask() {
-
-            @Override
-            public void run() {
-                try {
-                    NettyRemotingClient.this.scanNotActiveChannel();
-                }
-                catch (Exception e) {
-                    log.error("scanNotActiveChannel exception", e);
-                }
-            }
-        }, 1000 * 10, 1000 * 10);
 
         if (this.channelEventListener != null) {
             this.nettyEventExecuter.start();

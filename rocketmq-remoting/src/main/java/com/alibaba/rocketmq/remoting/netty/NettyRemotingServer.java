@@ -135,7 +135,7 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
                 IdleStateEvent evnet = (IdleStateEvent) evt;
                 if (evnet.state().equals(IdleState.ALL_IDLE)) {
                     final String remoteAddress = RemotingHelper.parseChannelRemoteAddr(ctx.channel());
-                    log.warn("NETTY SERVER PIPELINE: IDLE exception.", remoteAddress);
+                    log.warn("NETTY SERVER PIPELINE: IDLE exception [{}]", remoteAddress);
                     RemotingUtil.closeChannel(ctx.channel());
                     if (NettyRemotingServer.this.channelEventListener != null) {
                         NettyRemotingServer.this.putNettyEvent(new NettyEvent(NettyEventType.IDLE,
@@ -204,12 +204,13 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
                 @Override
                 public void initChannel(SocketChannel ch) throws Exception {
                     ch.pipeline().addLast(
-                        //
+                    //
                         defaultEventExecutorGroup, //
                         new NettyEncoder(), //
                         new NettyDecoder(), //
-                        new IdleStateHandler(0, 0, nettyServerConfig.getServerChannelMaxIdleTimeSeconds()),
-                        new NettyConnetManageHandler(), new NettyServerHandler());
+                        new IdleStateHandler(0, 0, nettyServerConfig.getServerChannelMaxIdleTimeSeconds()),//
+                        new NettyConnetManageHandler(), //
+                        new NettyServerHandler());
                 }
             });
 
