@@ -26,7 +26,7 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingProtos.RequestCode;
 
 /**
  * @author shijia.wxr<vintage.wang@gmail.com>
- *
+ * 
  */
 public class NettyRPCTest {
     public static RemotingClient createRemotingClient() {
