@@ -15,7 +15,7 @@ CLASSPATH=.:${BASE_DIR}/conf:${CLASSPATH}
 
 JAVA_OPT_1="-server -Xms1g -Xmx1g -Xmn256m -XX:PermSize=128m -XX:MaxPermSize=320m"
 JAVA_OPT_2="-XX:+UseConcMarkSweepGC -XX:+UseCMSCompactAtFullCollection -XX:CMSInitiatingOccupancyFraction=70 -XX:+CMSParallelRemarkEnabled -XX:SoftRefLRUPolicyMSPerMB=0 -XX:+CMSClassUnloadingEnabled -XX:SurvivorRatio=8 -XX:+DisableExplicitGC"
-JAVA_OPT_3="-verbose:gc -Xloggc:${HOME}/metaq_gc.log -XX:+PrintGCDetails -XX:+PrintGCDateStamps"
+JAVA_OPT_3="-verbose:gc -Xloggc:${HOME}/rocketmq_client_gc.log -XX:+PrintGCDetails -XX:+PrintGCDateStamps"
 JAVA_OPT_4="-XX:-OmitStackTraceInFastThrow"
 JAVA_OPT_5="-Djava.ext.dirs=${BASE_DIR}/lib"
 JAVA_OPT_6="-cp ${CLASSPATH}"
