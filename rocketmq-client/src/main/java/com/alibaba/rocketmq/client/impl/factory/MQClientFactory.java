@@ -816,6 +816,11 @@ public class MQClientFactory {
                             return true;
                         }
                     }
+                    else {
+                        log.warn(
+                            "updateTopicRouteInfoFromNameServer, getTopicRouteInfoFromNameServer return null, Topic: {}",
+                            topic);
+                    }
                 }
                 catch (Exception e) {
                     if (!topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
