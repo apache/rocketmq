@@ -1,9 +1,8 @@
 package com.alibaba.rocketmq.remoting.protocol;
 
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 
-
-//import com.google.gson.GsonBuilder;
 
 /**
  * 复杂对象的序列化，利用json来实现
@@ -11,10 +10,9 @@ import com.google.gson.Gson;
  * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public abstract class RemotingSerializable {
-    private static Gson gson = new Gson();
+    protected final static GsonBuilder builder = new GsonBuilder();
+    protected final static Gson gson = builder.create();
 
-
-    // private GsonBuilder gsonBuilder = new GsonBuilder();
 
     public String toJson() {
         return gson.toJson(this);
