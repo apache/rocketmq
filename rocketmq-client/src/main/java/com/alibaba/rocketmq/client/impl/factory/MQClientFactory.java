@@ -814,6 +814,9 @@ public class MQClientFactory {
                     this.lockNamesrv.unlock();
                 }
             }
+            else {
+                log.warn("updateTopicRouteInfoFromNameServer tryLock timeout {}ms", LockTimeoutMillis);
+            }
         }
         catch (InterruptedException e) {
             log.warn("updateTopicRouteInfoFromNameServer Exception", e);

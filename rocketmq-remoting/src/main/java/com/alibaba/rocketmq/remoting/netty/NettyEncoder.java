@@ -41,6 +41,7 @@ public class NettyEncoder extends MessageToByteEncoder<RemotingCommand> {
             if (remotingCommand != null) {
                 log.error(remotingCommand.toString());
             }
+            // 这里关闭后， 会在pipeline中产生事件，通过具体的close事件来清理数据结构
             RemotingUtil.closeChannel(ctx.channel());
         }
     }
