@@ -111,7 +111,7 @@ public class ProducerManager {
                                     "SCAN: remove expired channel[{}] from ProducerManager hashcodeChannelTable, producer group hash code: {}",
                                     RemotingHelper.parseChannelRemoteAddr(clientChannelInfo.getChannel()),
                                     groupHashCode);
-                                    RemotingUtil.closeChannel(clientChannelInfo.getChannel());
+                                RemotingUtil.closeChannel(clientChannelInfo.getChannel());
                             }
                         }
                     }
