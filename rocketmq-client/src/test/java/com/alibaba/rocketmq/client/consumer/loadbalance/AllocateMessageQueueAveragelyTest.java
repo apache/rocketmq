@@ -169,7 +169,7 @@ public class AllocateMessageQueueAveragelyTest {
 
 
     @Test(expected = IllegalArgumentException.class)
-    public void testCurrentCIDIllegalArgument() {   //  currentCID是空
+    public void testCurrentCIDIllegalArgument() { // currentCID是空
         createConsumerIdList(2);
         createMessageQueueList(6);
         allocateMessageQueueAveragely.allocate("", getMessageQueueList(), getConsumerIdList());
@@ -177,7 +177,7 @@ public class AllocateMessageQueueAveragelyTest {
 
 
     @Test(expected = IllegalArgumentException.class)
-    public void testMessageQueueIllegalArgument() {   //MessageQueue为空
+    public void testMessageQueueIllegalArgument() { // MessageQueue为空
         currentCID = "0";
         createConsumerIdList(2);
         allocateMessageQueueAveragely.allocate(currentCID, null, getConsumerIdList());
@@ -185,7 +185,7 @@ public class AllocateMessageQueueAveragelyTest {
 
 
     @Test(expected = IllegalArgumentException.class)
-    public void testConsumerIdIllegalArgument() {    //ConsumerIdList为空
+    public void testConsumerIdIllegalArgument() { // ConsumerIdList为空
         currentCID = "0";
         createMessageQueueList(6);
         allocateMessageQueueAveragely.allocate(currentCID, getMessageQueueList(), null);

@@ -19,13 +19,13 @@ import com.alibaba.rocketmq.common.message.MessageQueue;
 public class AllocateMessageQueueAveragely implements AllocateMessageQueueStrategy {
     @Override
     public List<MessageQueue> allocate(String currentCID, List<MessageQueue> mqAll, List<String> cidAll) {
-        if(currentCID==null||currentCID.length()<1){
+        if (currentCID == null || currentCID.length() < 1) {
             throw new IllegalArgumentException("currentCID is empty");
         }
-        if(mqAll==null||mqAll.size()<1){
+        if (mqAll == null || mqAll.size() < 1) {
             throw new IllegalArgumentException("mqAll is null or  mqAll'size  less one");
         }
-        if(cidAll==null||cidAll.size()<1){
+        if (cidAll == null || cidAll.size() < 1) {
             throw new IllegalArgumentException("cidAll is null or  cidAll'size less one");
         }
 
@@ -44,7 +44,7 @@ public class AllocateMessageQueueAveragely implements AllocateMessageQueueStrate
         }
 
         // 如果当前的consumerId最后一个且还有剩下的队列，应该把最后队列都放到当前consumerId队列里
-        boolean isAddRemainQueue = (index == cidAll.size()-1)&&mod > 0;
+        boolean isAddRemainQueue = (index == cidAll.size() - 1) && mod > 0;
         if (isAddRemainQueue) {
             int messageQueueSize = mqAll.size();
             for (int i = endIndex; i < messageQueueSize; i++) {

@@ -8,7 +8,6 @@ import java.util.Map;
 import java.util.Set;
 
 import com.alibaba.rocketmq.client.consumer.DefaultMQPullConsumer;
-import com.alibaba.rocketmq.client.consumer.MQPullConsumer;
 import com.alibaba.rocketmq.client.consumer.PullResult;
 import com.alibaba.rocketmq.client.exception.MQBrokerException;
 import com.alibaba.rocketmq.client.exception.MQClientException;
