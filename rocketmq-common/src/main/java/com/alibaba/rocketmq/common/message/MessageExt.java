@@ -122,6 +122,14 @@ public class MessageExt extends Message {
 
         return null;
     }
+    public String getBornHostNameString() {
+        if (this.bornHost != null) {
+            InetSocketAddress inetSocketAddress = (InetSocketAddress) this.bornHost;
+            return inetSocketAddress.getAddress().getHostName();
+        }
+
+        return null;
+    }
 
 
     public void setBornHost(SocketAddress bornHost) {
