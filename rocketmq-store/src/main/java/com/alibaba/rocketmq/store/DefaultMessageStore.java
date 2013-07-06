@@ -134,10 +134,10 @@ public class DefaultMessageStore implements MessageStore {
      */
     class CleanCommitLogService extends ServiceThread {
         // 磁盘空间警戒水位，超过，则停止接收新消息（出于保护自身目的）
-        private final double DiskSpaceWarningLevelRatio = 0.95;
+        private final double DiskSpaceWarningLevelRatio = 0.90;
 
         // 磁盘空间强制删除文件水位
-        private final double DiskSpaceCleanForciblyRatio = 0.90;
+        private final double DiskSpaceCleanForciblyRatio = 0.85;
 
         private long lastRedeleteTimestamp = 0;
 
