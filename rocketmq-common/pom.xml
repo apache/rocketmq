@@ -20,6 +20,10 @@
 			<scope>test</scope>
 		</dependency>
 		<dependency>
+			<groupId>${project.groupId}</groupId>
+			<artifactId>rocketmq-remoting</artifactId>
+		</dependency>
+		<dependency>
 			<groupId>ch.qos.logback</groupId>
 			<artifactId>logback-classic</artifactId>
 		</dependency>
@@ -48,10 +52,7 @@
 			<artifactId>protobuf-java</artifactId>
 		</dependency>
 
-		<dependency>
-			<groupId>${project.groupId}</groupId>
-			<artifactId>rocketmq-remoting</artifactId>
-		</dependency>
+
 
 	</dependencies>
 </project>
