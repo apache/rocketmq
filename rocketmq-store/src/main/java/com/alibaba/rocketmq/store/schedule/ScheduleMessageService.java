@@ -3,6 +3,7 @@
  */
 package com.alibaba.rocketmq.store.schedule;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Properties;
 import java.util.Set;
@@ -326,10 +327,13 @@ public class ScheduleMessageService {
         if (sb.toString().length() == 0)
             return;
 
-        boolean result =
-                MixAll.string2File(sb.toString(), this.defaultMessageStore.getMessageStoreConfig()
-                    .getDelayOffsetStorePath());
-        log.info("flush delay offset table, {}", (result ? "SUCCESS" : "FAILED"));
+        try {
+            MixAll.string2File(sb.toString(), this.defaultMessageStore.getMessageStoreConfig()
+                .getDelayOffsetStorePath());
+        }
+        catch (IOException e) {
+            log.error("flush delay offset table, IOException", e);
+        }
     }
 
 

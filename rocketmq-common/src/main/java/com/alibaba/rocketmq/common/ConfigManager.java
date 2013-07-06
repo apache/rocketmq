@@ -1,5 +1,13 @@
 package com.alibaba.rocketmq.common;
 
+import java.io.IOException;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.alibaba.rocketmq.common.constant.LoggerName;
+
+
 /**
  * 各种配置的管理接口
  * 
@@ -7,6 +15,9 @@ package com.alibaba.rocketmq.common;
  * @since 2013-6-18
  */
 public abstract class ConfigManager {
+    private static final Logger plog = LoggerFactory.getLogger(LoggerName.CommonLoggerName);
+
+
     public abstract String encode();
 
 
@@ -38,7 +49,12 @@ public abstract class ConfigManager {
         String jsonString = this.encode();
         if (jsonString != null) {
             String fileName = this.configFilePath();
-            MixAll.string2File(jsonString, fileName);
+            try {
+                MixAll.string2File(jsonString, fileName);
+            }
+            catch (IOException e) {
+                plog.error("persist file Exception, " + fileName, e);
+            }
         }
     }
 }

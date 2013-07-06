@@ -5,19 +5,23 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
+
 public class TransationStatsMoniter {
     static final Log log = LogFactory.getLog(TransationStatsMoniter.class);
-    private ConcurrentHashMap<String/* topic,partition,cliHostName*/,TransationStatsInfo> TransationStatsInfos = new ConcurrentHashMap<String,TransationStatsInfo> ();
+    private ConcurrentHashMap<String/* topic,partition,cliHostName */, TransationStatsInfo> TransationStatsInfos =
+            new ConcurrentHashMap<String, TransationStatsInfo>();
 
-    public void append(String cliHostName,
-                       long beginCount, long commitOneCount,long commitTwoCount,long forgetCount,
-                       long rollbackCount,long recoverCount, long endCount,
-                       long prepareCount){
+
+    public void append(String cliHostName, long beginCount, long commitOneCount, long commitTwoCount,
+            long forgetCount, long rollbackCount, long recoverCount, long endCount, long prepareCount) {
         TransationStatsInfo transationStatsInfo = TransationStatsInfos.get(cliHostName);
-        if(null==transationStatsInfo){
-            transationStatsInfo = new TransationStatsInfo(cliHostName,beginCount, commitOneCount,commitTwoCount, forgetCount,rollbackCount,recoverCount, endCount,prepareCount);
+        if (null == transationStatsInfo) {
+            transationStatsInfo =
+                    new TransationStatsInfo(cliHostName, beginCount, commitOneCount, commitTwoCount,
+                        forgetCount, rollbackCount, recoverCount, endCount, prepareCount);
             TransationStatsInfos.put(cliHostName, transationStatsInfo);
-        }else{
+        }
+        else {
             transationStatsInfo.getBeginCount().addAndGet(beginCount);
             transationStatsInfo.getCommitOneCount().addAndGet(commitOneCount);
             transationStatsInfo.getCommitTwoCount().addAndGet(commitTwoCount);
@@ -29,10 +33,12 @@ public class TransationStatsMoniter {
 
         }
     }
-    public void tolog(){
-        for(TransationStatsInfo transationStatsInfo: TransationStatsInfos.values()){
-            if(!transationStatsInfo.isNull()){
-                if(log.isInfoEnabled()){
+
+
+    public void tolog() {
+        for (TransationStatsInfo transationStatsInfo : TransationStatsInfos.values()) {
+            if (!transationStatsInfo.isNull()) {
+                if (log.isInfoEnabled()) {
                     log.info(transationStatsInfo.tolog());
                 }
                 transationStatsInfo.dispose();

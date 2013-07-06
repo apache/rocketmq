@@ -93,13 +93,13 @@ public class ProducerTest extends BaseTest {
 
     @Test
     public void testClientCreateTopicIsOrder() throws MQClientException {
-        producer.createTopic("TopicTest", "newTopicTest", 1, true);
+        producer.createTopic("TopicTest", "newTopicTest", 1);
     }
 
 
     @Test
     public void testClientCreateTopicNoOrder() throws MQClientException {
-        producer.createTopic("TopicTest", "newTopicTest", 1, false);
+        producer.createTopic("TopicTest", "newTopicTest", 1);
     }
 
 

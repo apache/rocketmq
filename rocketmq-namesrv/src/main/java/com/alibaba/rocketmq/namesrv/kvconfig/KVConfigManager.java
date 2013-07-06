@@ -1,5 +1,6 @@
 package com.alibaba.rocketmq.namesrv.kvconfig;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -136,6 +137,10 @@ public class KVConfigManager {
                 if (null != content) {
                     MixAll.string2File(content, this.namesrvController.getNamesrvConfig().getKvConfigPath());
                 }
+            }
+            catch (IOException e) {
+                log.error("persist kvconfig Exception, "
+                        + this.namesrvController.getNamesrvConfig().getKvConfigPath(), e);
             }
             finally {
                 this.lock.readLock().unlock();

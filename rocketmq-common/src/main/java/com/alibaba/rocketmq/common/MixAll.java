@@ -144,7 +144,7 @@ public class MixAll {
     }
 
 
-    public static final boolean string2File(final String str, final String fileName) {
+    public static final void string2File(final String str, final String fileName) throws IOException {
         File file = new File(fileName);
         File fileParent = file.getParentFile();
         if (fileParent != null) {
@@ -155,22 +155,20 @@ public class MixAll {
         try {
             fileWriter = new FileWriter(file);
             fileWriter.write(str);
-            return true;
         }
         catch (IOException e) {
-            e.printStackTrace();
+            throw e;
         }
         finally {
-            if (fileWriter != null)
+            if (fileWriter != null) {
                 try {
                     fileWriter.close();
                 }
                 catch (IOException e) {
-                    e.printStackTrace();
+                    throw e;
                 }
+            }
         }
-
-        return false;
     }
 
 
@@ -406,55 +404,6 @@ public class MixAll {
         return p1.equals(p2);
     }
 
-
-    //
-    // public static Logger createLogger(final String loggerName) {
-    // Logger logger = LoggerFactory.getLogger(loggerName);
-    // LoggerContext loggerContext = (LoggerContext)
-    // LoggerFactory.getILoggerFactory();
-    //
-    // ch.qos.logback.classic.Logger newLogger = (ch.qos.logback.classic.Logger)
-    // logger;
-    // // Remove all previously added appenders from this logger instance.
-    // newLogger.detachAndStopAllAppenders();
-    //
-    // // define appender
-    // RollingFileAppender<ILoggingEvent> appender = new
-    // RollingFileAppender<ILoggingEvent>();
-    //
-    // // policy
-    // TimeBasedRollingPolicy<ILoggingEvent> rollingPolicy = new
-    // TimeBasedRollingPolicy<ILoggingEvent>();
-    // rollingPolicy.setContext(loggerContext);
-    // rollingPolicy.setFileNamePattern(System.getProperty("user.home") +
-    // File.separator
-    // + "rocketmqlogs/rocketmq_" + loggerName + "-%d{yyyy-MM-dd}.log");
-    // rollingPolicy.setParent(appender);
-    // rollingPolicy.start();
-    //
-    // // encoder
-    // PatternLayoutEncoder encoder = new PatternLayoutEncoder();
-    // encoder.setContext(loggerContext);
-    // encoder.setPattern("%d{yyy-MM-dd HH:mm:ss,GMT+8} %p %t - %m%n");
-    // encoder.setCharset(Charset.forName("UTF-8"));
-    // encoder.start();
-    //
-    // // start appender
-    // appender.setRollingPolicy(rollingPolicy);
-    // appender.setContext(loggerContext);
-    // appender.setEncoder(encoder);
-    // appender.setPrudent(true); // support that multiple JVMs can safely
-    // // write to the same file.
-    // appender.start();
-    //
-    // newLogger.addAppender(appender);
-    //
-    // // setup level
-    // newLogger.setLevel(Level.INFO);
-    // // remove the appenders that inherited 'ROOT'.
-    // newLogger.setAdditive(true);
-    // return newLogger;
-    // }
 
     public static List<String> getLocalInetAddress() {
         List<String> inetAddressList = new ArrayList<String>();
