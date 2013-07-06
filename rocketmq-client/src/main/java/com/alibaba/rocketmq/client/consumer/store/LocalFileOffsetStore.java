@@ -1,6 +1,7 @@
 package com.alibaba.rocketmq.client.consumer.store;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
@@ -128,7 +129,12 @@ public class LocalFileOffsetStore implements OffsetStore {
 
         String jsonString = offsetSerializeWrapper.toJson();
         if (jsonString != null) {
-            MixAll.string2File(jsonString, this.storePath);
+            try {
+                MixAll.string2File(jsonString, this.storePath);
+            }
+            catch (IOException e) {
+                log.error("persistAll consumer offset Exception, " + this.storePath, e);
+            }
         }
     }
 

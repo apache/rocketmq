@@ -124,7 +124,8 @@ public class BrokerController {
     private boolean updateMasterHAServerAddrPeriodically = false;
 
     private final DigestLogManager digestLogManager;
-    
+
+
     public BrokerController(//
             final BrokerConfig brokerConfig, //
             final NettyServerConfig nettyServerConfig, //
@@ -373,9 +374,13 @@ public class BrokerController {
 
     private void flushAllConfig() {
         String allConfig = this.encodeAllConfig();
-        boolean result = MixAll.string2File(allConfig, this.brokerConfig.getBrokerConfigPath());
-        log.info("flush topic config, " + this.brokerConfig.getBrokerConfigPath()
-                + (result ? " OK" : " Failed"));
+        try {
+            MixAll.string2File(allConfig, this.brokerConfig.getBrokerConfigPath());
+            log.info("flush broker config, {} OK", this.brokerConfig.getBrokerConfigPath());
+        }
+        catch (IOException e) {
+            log.info("flush broker config Exception, " + this.brokerConfig.getBrokerConfigPath(), e);
+        }
     }
 
 
@@ -578,7 +583,7 @@ public class BrokerController {
             this.brokerOuterAPI.shutdown();
         }
         this.digestLogManager.dispose();
-        
+
         this.consumerOffsetManager.persist();
     }
 
@@ -603,8 +608,8 @@ public class BrokerController {
         if (this.clientHousekeepingService != null) {
             this.clientHousekeepingService.start();
         }
-        
-        //启动统计日志
+
+        // 启动统计日志
         this.digestLogManager.start();
         // 启动时，强制注册
         this.registerBrokerAll();

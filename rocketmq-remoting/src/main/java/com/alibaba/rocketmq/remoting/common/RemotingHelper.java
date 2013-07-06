@@ -293,7 +293,8 @@ public class RemotingHelper {
 
         return "";
     }
-    
+
+
     public static String parseChannelRemoteName(final Channel channel) {
         if (null == channel) {
             return "";
@@ -316,14 +317,15 @@ public class RemotingHelper {
         }
         return "";
     }
-    
+
+
     public static String parseSocketAddressName(SocketAddress socketAddress) {
-        
+
         final InetSocketAddress addrs = (InetSocketAddress) socketAddress;
         if (addrs != null) {
             return addrs.getAddress().getHostName();
         }
         return "";
     }
-    
+
 }

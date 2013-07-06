@@ -3,55 +3,62 @@ package com.alibaba.rocketmq.broker.digestlog;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 
 public class StoreStatsMoniter {
-//    static final Log log = LogFactory.getLog(StoreStatsMoniter.class);
-    private ConcurrentHashMap<String/* topic,partition,cliHostName*/,StoreStatsInfo> storeStatsInfos = new ConcurrentHashMap<String,StoreStatsInfo> ();
+    // static final Log log = LogFactory.getLog(StoreStatsMoniter.class);
+    private ConcurrentHashMap<String/* topic,partition,cliHostName */, StoreStatsInfo> storeStatsInfos =
+            new ConcurrentHashMap<String, StoreStatsInfo>();
 
-    public void putAppend(String topic, String partition, long putOffset){
-        StoreStatsInfo storeStatsInfo = storeStatsInfos.get(topic+partition);
-        if(null==storeStatsInfo){
+
+    public void putAppend(String topic, String partition, long putOffset) {
+        StoreStatsInfo storeStatsInfo = storeStatsInfos.get(topic + partition);
+        if (null == storeStatsInfo) {
             storeStatsInfo = new StoreStatsInfo(topic, partition, putOffset);
-            storeStatsInfos.put(topic+partition, storeStatsInfo);
-        }else if(putOffset>0){
+            storeStatsInfos.put(topic + partition, storeStatsInfo);
+        }
+        else if (putOffset > 0) {
             storeStatsInfo.getPutOffset().set(putOffset);
         }
     }
-    public void getAppend(String topic, String partition, String group,long getOffset){
-        StoreStatsInfo storeStatsInfo = storeStatsInfos.get(topic+partition);
-        if(null==storeStatsInfo){
+
+
+    public void getAppend(String topic, String partition, String group, long getOffset) {
+        StoreStatsInfo storeStatsInfo = storeStatsInfos.get(topic + partition);
+        if (null == storeStatsInfo) {
             storeStatsInfo = new StoreStatsInfo(topic, partition, 0);
-            storeStatsInfos.put(topic+partition, storeStatsInfo);
-        }else{
-            if(getOffset>0){
-                if(null==storeStatsInfo.getGetGroupinfo().get(group)){
+            storeStatsInfos.put(topic + partition, storeStatsInfo);
+        }
+        else {
+            if (getOffset > 0) {
+                if (null == storeStatsInfo.getGetGroupinfo().get(group)) {
                     storeStatsInfo.getGetGroupinfo().put(group, new AtomicLong(getOffset));
-                }else{
+                }
+                else {
                     storeStatsInfo.getGetGroupinfo().get(group).set(getOffset);
                 }
             }
         }
     }
-    public void tolog(){
-        for(StoreStatsInfo storeStatsInfo: storeStatsInfos.values()){
-            if(!storeStatsInfo.isNull()){
-                if(storeStatsInfo.getGetGroupinfo().size()>0){
+
+
+    public void tolog() {
+        for (StoreStatsInfo storeStatsInfo : storeStatsInfos.values()) {
+            if (!storeStatsInfo.isNull()) {
+                if (storeStatsInfo.getGetGroupinfo().size() > 0) {
                     storeStatsInfo.tolog();
-//                    if(log.isInfoEnabled()){
-//                    log.info(storeStatsInfo.tolog());
-//                    }
-                }else{
+                    // if(log.isInfoEnabled()){
+                    // log.info(storeStatsInfo.tolog());
+                    // }
+                }
+                else {
                     storeStatsInfo.toPutlog();
-//                    if(log.isInfoEnabled()){
-//                    log.info(storeStatsInfo.toPutlog());
-//                    }
+                    // if(log.isInfoEnabled()){
+                    // log.info(storeStatsInfo.toPutlog());
+                    // }
                 }
                 storeStatsInfo.dispose();
             }
         }
     }
-
 
 }
