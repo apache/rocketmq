@@ -22,6 +22,7 @@ import com.alibaba.rocketmq.broker.client.DefaultConsumerIdsChangeListener;
 import com.alibaba.rocketmq.broker.client.ProducerManager;
 import com.alibaba.rocketmq.broker.client.net.Broker2Client;
 import com.alibaba.rocketmq.broker.client.rebalance.RebalanceLockManager;
+import com.alibaba.rocketmq.broker.digestlog.DigestLogManager;
 import com.alibaba.rocketmq.broker.longpolling.PullRequestHoldService;
 import com.alibaba.rocketmq.broker.offset.ConsumerOffsetManager;
 import com.alibaba.rocketmq.broker.out.BrokerOuterAPI;
@@ -122,7 +123,8 @@ public class BrokerController {
     // 是否需要定期更新HA Master地址
     private boolean updateMasterHAServerAddrPeriodically = false;
 
-
+    private final DigestLogManager digestLogManager;
+    
     public BrokerController(//
             final BrokerConfig brokerConfig, //
             final NettyServerConfig nettyServerConfig, //
@@ -150,6 +152,7 @@ public class BrokerController {
             this.brokerOuterAPI.updateNameServerAddressList(this.brokerConfig.getNamesrvAddr());
             log.info("user specfied name server address: {}", this.brokerConfig.getNamesrvAddr());
         }
+        this.digestLogManager = new DigestLogManager();
     }
 
 
@@ -463,6 +466,11 @@ public class BrokerController {
     }
 
 
+    public DigestLogManager getDigestLogManager() {
+        return digestLogManager;
+    }
+
+
     public void registerProcessor() {
         /**
          * SendMessageProcessor
@@ -569,7 +577,8 @@ public class BrokerController {
         if (this.brokerOuterAPI != null) {
             this.brokerOuterAPI.shutdown();
         }
-
+        this.digestLogManager.dispose();
+        
         this.consumerOffsetManager.persist();
     }
 
@@ -594,7 +603,9 @@ public class BrokerController {
         if (this.clientHousekeepingService != null) {
             this.clientHousekeepingService.start();
         }
-
+        
+        //启动统计日志
+        this.digestLogManager.start();
         // 启动时，强制注册
         this.registerBrokerAll();
 
