@@ -439,7 +439,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                     return cw.getChannel();
                 }
                 else {
-                    log.warn("createChannel: connect remote host[{}] failed", addr);
+                    log.warn("createChannel: connect remote host[" + addr + "] failed", channelFuture.cause());
                 }
             }
             else {
