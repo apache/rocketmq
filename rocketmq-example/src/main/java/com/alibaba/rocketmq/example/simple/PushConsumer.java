@@ -24,11 +24,11 @@ import com.alibaba.rocketmq.common.message.MessageExt;
 public class PushConsumer {
 
     public static void main(String[] args) throws InterruptedException, MQClientException {
-        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("example_consumer_group7");
+        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("example_consumer_group8");
 
         consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET_AND_FROM_MIN_WHEN_BOOT_FIRST);
 
-        consumer.subscribe("BenchmarkTest", "*");
+        consumer.subscribe("TopicTest4", "*");
 
         consumer.registerMessageListener(new MessageListenerConcurrently() {
             AtomicLong consumeTimes = new AtomicLong(0);

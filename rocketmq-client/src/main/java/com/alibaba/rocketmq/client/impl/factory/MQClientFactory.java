@@ -39,6 +39,7 @@ import com.alibaba.rocketmq.client.impl.producer.DefaultMQProducerImpl;
 import com.alibaba.rocketmq.client.impl.producer.MQProducerInner;
 import com.alibaba.rocketmq.client.impl.producer.TopicPublishInfo;
 import com.alibaba.rocketmq.client.log.ClientLogger;
+import com.alibaba.rocketmq.client.producer.DefaultMQProducer;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.ServiceState;
 import com.alibaba.rocketmq.common.constant.PermName;
@@ -116,6 +117,9 @@ public class MQClientFactory {
     // Rebalance服务
     private final RebalanceService rebalanceService;
 
+    // 内置Producer对象
+    private final DefaultMQProducer defaultMQProducer;
+
 
     public MQClientFactory(ClientConfig clientConfig, int factoryIndex, String clientId) {
         this.clientConfig = clientConfig;
@@ -138,6 +142,8 @@ public class MQClientFactory {
         this.pullMessageService = new PullMessageService(this);
 
         this.rebalanceService = new RebalanceService(this);
+
+        this.defaultMQProducer = new DefaultMQProducer(MixAll.CLIENT_INNER_PRODUCER_GROUP);
 
         log.info("created a new client fatory, FactoryIndex: {} ClinetID: {} {}",//
             this.factoryIndex, //
@@ -243,6 +249,8 @@ public class MQClientFactory {
                 this.startScheduledTask();
                 this.pullMessageService.start();
                 this.rebalanceService.start();
+
+                this.defaultMQProducer.getDefaultMQProducerImpl().start(false);
                 log.info("the client factory [{}] start OK", this.clientId);
                 break;
             case RUNNING:
@@ -257,12 +265,12 @@ public class MQClientFactory {
 
 
     public void shutdown() {
-        // Producer
-        if (!this.producerTable.isEmpty())
-            return;
-
         // Consumer
         if (!this.consumerTable.isEmpty())
+            return;
+
+        // Producer
+        if (this.producerTable.size() > 1)
             return;
 
         synchronized (this) {
@@ -270,6 +278,8 @@ public class MQClientFactory {
             case CREATE_JUST:
                 break;
             case RUNNING:
+                this.defaultMQProducer.getDefaultMQProducerImpl().shutdown(false);
+
                 this.serviceState = ServiceState.SHUTDOWN_ALREADY;
                 this.pullMessageService.shutdown(true);
                 this.scheduledExecutorService.shutdown();

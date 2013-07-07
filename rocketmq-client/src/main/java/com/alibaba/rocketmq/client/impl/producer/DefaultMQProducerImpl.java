@@ -111,6 +111,11 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
 
     public void start() throws MQClientException {
+        this.start(true);
+    }
+
+
+    public void start(final boolean startFactory) throws MQClientException {
         switch (this.serviceState) {
         case CREATE_JUST:
             this.checkConfig();
@@ -133,7 +138,10 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             this.topicPublishInfoTable
                 .put(this.defaultMQProducer.getCreateTopicKey(), new TopicPublishInfo());
 
-            mQClientFactory.start();
+            if (startFactory) {
+                mQClientFactory.start();
+            }
+
             log.info("the producer [{}] start OK", this.defaultMQProducer.getProducerGroup());
             break;
         case RUNNING:
@@ -147,12 +155,20 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
 
     public void shutdown() {
+        this.shutdown(true);
+    }
+
+
+    public void shutdown(final boolean shutdownFactory) {
         switch (this.serviceState) {
         case CREATE_JUST:
             break;
         case RUNNING:
             this.mQClientFactory.unregisterProducer(this.defaultMQProducer.getProducerGroup());
-            this.mQClientFactory.shutdown();
+            if (shutdownFactory) {
+                this.mQClientFactory.shutdown();
+            }
+
             log.info("the producer [{}] shutdown OK", this.defaultMQProducer.getProducerGroup());
             this.serviceState = ServiceState.SHUTDOWN_ALREADY;
             break;
