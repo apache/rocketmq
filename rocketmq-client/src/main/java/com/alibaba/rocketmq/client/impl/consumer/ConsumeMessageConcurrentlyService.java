@@ -19,6 +19,7 @@ import com.alibaba.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext;
 import com.alibaba.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
 import com.alibaba.rocketmq.client.consumer.listener.MessageListenerConcurrently;
 import com.alibaba.rocketmq.client.log.ClientLogger;
+import com.alibaba.rocketmq.client.stat.ConsumerStat;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.message.Message;
 import com.alibaba.rocketmq.common.message.MessageExt;
@@ -88,6 +89,11 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
         this.consumeExecutor.shutdown();
     }
 
+
+    public ConsumerStat getConsumerStat() {
+        return this.defaultMQPushConsumerImpl.getConsumerStatManager().getConsumertat();
+    }
+
     class ConsumeRequest implements Runnable {
         private final List<MessageExt> msgs;
         private final ProcessQueue processQueue;
@@ -123,6 +129,9 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
             MessageListenerConcurrently listener = ConsumeMessageConcurrentlyService.this.messageListener;
             ConsumeConcurrentlyContext context = new ConsumeConcurrentlyContext(messageQueue);
             ConsumeConcurrentlyStatus status = null;
+
+            long beginTimestamp = System.currentTimeMillis();
+
             try {
                 this.resetRetryTopic(msgs);
                 status = listener.consumeMessage(msgs, context);
@@ -134,9 +143,17 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
                         + " " + messageQueue, e);
             }
 
+            long consumeRT = System.currentTimeMillis() - beginTimestamp;
+
             if (null == status) {
                 status = ConsumeConcurrentlyStatus.RECONSUME_LATER;
             }
+
+            // 记录统计信息
+            ConsumeMessageConcurrentlyService.this.getConsumerStat().getConsumeMsgRTTotal()
+                .addAndGet(consumeRT);
+            MixAll.compareAndIncreaseOnly(ConsumeMessageConcurrentlyService.this.getConsumerStat()
+                .getConsumeMsgRTMax(), consumeRT);
 
             ConsumeMessageConcurrentlyService.this.processConsumeResult(status, context, this);
         }
@@ -201,9 +218,16 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
             if (ackIndex >= consumeRequest.getMsgs().size()) {
                 ackIndex = consumeRequest.getMsgs().size() - 1;
             }
+            int ok = ackIndex + 1;
+            int failed = consumeRequest.getMsgs().size() - ok;
+            // 统计信息
+            this.getConsumerStat().getConsumeMsgOKTotal().addAndGet(ok);
+            this.getConsumerStat().getConsumeMsgFailedTotal().addAndGet(failed);
             break;
         case RECONSUME_LATER:
             ackIndex = -1;
+            // 统计信息
+            this.getConsumerStat().getConsumeMsgFailedTotal().addAndGet(consumeRequest.getMsgs().size());
             break;
         default:
             break;
