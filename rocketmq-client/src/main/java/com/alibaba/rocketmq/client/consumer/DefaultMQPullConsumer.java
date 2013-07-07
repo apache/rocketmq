@@ -211,8 +211,9 @@ public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsume
 
 
     @Override
-    public void sendMessageBack(MessageExt msg, int delayLevel) {
-        this.sendMessageBack(msg, delayLevel);
+    public void sendMessageBack(MessageExt msg, int delayLevel) throws RemotingException, MQBrokerException,
+            InterruptedException, MQClientException {
+        this.defaultMQPullConsumerImpl.sendMessageBack(msg, delayLevel);
     }
 
 

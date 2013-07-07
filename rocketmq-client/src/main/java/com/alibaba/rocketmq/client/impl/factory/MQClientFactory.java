@@ -889,4 +889,9 @@ public class MQClientFactory {
     public PullMessageService getPullMessageService() {
         return pullMessageService;
     }
+
+
+    public DefaultMQProducer getDefaultMQProducer() {
+        return defaultMQProducer;
+    }
 }
