@@ -12,8 +12,8 @@ public class NettyClientConfig {
     private int clientWorkerThreads = 4;
     private int clientCallbackExecutorThreads = 4;
     private int clientSelectorThreads = 1;
-    private int clientOnewaySemaphoreValue = 64;
-    private int clientAsyncSemaphoreValue = 32;
+    private int clientOnewaySemaphoreValue = 128;
+    private int clientAsyncSemaphoreValue = 256;
     private long connectTimeoutMillis = 3000;
     // channel超过1分钟不被访问 就关闭
     private long channelNotActiveInterval = 1000 * 60;

@@ -48,29 +48,47 @@ public class ConsumerStatManager {
             ConsumerStat first = this.snapshotList.getFirst();
             ConsumerStat last = this.snapshotList.getLast();
 
-            double avgRT = (last.getConsumeMsgRTTotal().get() - first.getConsumeMsgRTTotal().get()) //
-                    / //
-                    (double) ((last.getConsumeMsgOKTotal().get() + last.getConsumeMsgFailedTotal().get()) //
-                    - //
-                    (first.getConsumeMsgOKTotal().get() + first.getConsumeMsgFailedTotal().get()));
+            // 消费情况
+            {
+                double avgRT = (last.getConsumeMsgRTTotal().get() - first.getConsumeMsgRTTotal().get()) //
+                        / //
+                        (double) ((last.getConsumeMsgOKTotal().get() + last.getConsumeMsgFailedTotal().get()) //
+                        - //
+                        (first.getConsumeMsgOKTotal().get() + first.getConsumeMsgFailedTotal().get()));
 
-            double tps = ((last.getConsumeMsgOKTotal().get() + last.getConsumeMsgFailedTotal().get()) //
-                    - //
-                    (first.getConsumeMsgOKTotal().get() + first.getConsumeMsgFailedTotal().get()))//
-                    / //
-                    (double) (last.getCreateTimestamp() - first.getCreateTimestamp());
+                double tps = ((last.getConsumeMsgOKTotal().get() + last.getConsumeMsgFailedTotal().get()) //
+                        - //
+                        (first.getConsumeMsgOKTotal().get() + first.getConsumeMsgFailedTotal().get()))//
+                        / //
+                        (double) (last.getCreateTimestamp() - first.getCreateTimestamp());
 
-            tps *= 1000;
+                tps *= 1000;
 
-            log.info("Consumer, {} {}, AvgRT: {} MaxRT: {} TotalOKMsg: {} TotalFailedMsg: {} consumeTPS: {}",//
-                group, //
-                clientId, //
-                avgRT, //
-                last.getConsumeMsgRTMax(), //
-                last.getConsumeMsgOKTotal(), //
-                last.getConsumeMsgFailedTotal(), //
-                tps//
-            );
+                log.info(
+                    "Consumer, {} {}, ConsumeAvgRT: {} ConsumeMaxRT: {} TotalOKMsg: {} TotalFailedMsg: {} consumeTPS: {}",//
+                    group, //
+                    clientId, //
+                    avgRT, //
+                    last.getConsumeMsgRTMax(), //
+                    last.getConsumeMsgOKTotal(), //
+                    last.getConsumeMsgFailedTotal(), //
+                    tps//
+                );
+            }
+
+            // 拉消息情况
+            {
+                double avgRT = (last.getPullRTTotal().get() - first.getPullRTTotal().get()) //
+                        / //
+                        (double) (last.getPullTimesTotal().get() - first.getPullTimesTotal().get());
+
+                log.info("Consumer, {} {}, PullAvgRT: {}  PullTimesTotal: {}",//
+                    group, //
+                    clientId, //
+                    avgRT, //
+                    last.getPullTimesTotal() //
+                );
+            }
         }
     }
 }

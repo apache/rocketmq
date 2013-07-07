@@ -434,6 +434,8 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
             return;
         }
 
+        final long beginTimestamp = System.currentTimeMillis();
+
         PullCallback pullCallback = new PullCallback() {
             @Override
             public void onException(Throwable e) {
@@ -456,6 +458,12 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
 
                     switch (pullResult.getPullStatus()) {
                     case FOUND:
+                        long pullRT = System.currentTimeMillis() - beginTimestamp;
+                        DefaultMQPushConsumerImpl.this.getConsumerStatManager().getConsumertat()
+                            .getPullTimesTotal().incrementAndGet();
+                        DefaultMQPushConsumerImpl.this.getConsumerStatManager().getConsumertat()
+                            .getPullRTTotal().addAndGet(pullRT);
+
                         boolean dispathToConsume = processQueue.putMessage(pullResult.getMsgFoundList());
                         DefaultMQPushConsumerImpl.this.consumeMessageService.submitConsumeRequest(//
                             pullResult.getMsgFoundList(), //
