@@ -29,9 +29,10 @@ public interface MQConsumer extends MQAdmin {
      * @throws InterruptedException
      * @throws MQBrokerException
      * @throws RemotingException
+     * @throws MQClientException
      */
     public void sendMessageBack(final MessageExt msg, final int delayLevel) throws RemotingException,
-            MQBrokerException, InterruptedException;
+            MQBrokerException, InterruptedException, MQClientException;
 
 
     /**

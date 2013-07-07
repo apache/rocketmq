@@ -31,6 +31,7 @@ import com.alibaba.rocketmq.common.ServiceState;
 import com.alibaba.rocketmq.common.consumer.ConsumeFromWhere;
 import com.alibaba.rocketmq.common.filter.FilterAPI;
 import com.alibaba.rocketmq.common.help.FAQUrl;
+import com.alibaba.rocketmq.common.message.Message;
 import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.common.message.MessageQueue;
 import com.alibaba.rocketmq.common.protocol.heartbeat.ConsumeType;
@@ -550,9 +551,24 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
 
 
     public void sendMessageBack(MessageExt msg, int delayLevel) throws RemotingException, MQBrokerException,
-            InterruptedException {
-        this.mQClientFactory.getMQClientAPIImpl().consumerSendMessageBack(msg,
-            this.defaultMQPushConsumer.getConsumerGroup(), delayLevel, 3000);
+            InterruptedException, MQClientException {
+        try {
+            this.mQClientFactory.getMQClientAPIImpl().consumerSendMessageBack(msg,
+                this.defaultMQPushConsumer.getConsumerGroup(), delayLevel, 3000);
+        }
+        catch (Exception e) {
+            log.error("sendMessageBack Exception, " + this.defaultMQPushConsumer.getConsumerGroup(), e);
+
+            Message newMsg =
+                    new Message(MixAll.getRetryTopic(this.defaultMQPushConsumer.getConsumerGroup()),
+                        msg.getBody());
+
+            newMsg.setFlag(msg.getFlag());
+            newMsg.setProperties(msg.getProperties());
+            newMsg.putProperty(Message.PROPERTY_RETRY_TOPIC, msg.getTopic());
+
+            this.mQClientFactory.getDefaultMQProducer().send(newMsg);
+        }
     }
 
 
