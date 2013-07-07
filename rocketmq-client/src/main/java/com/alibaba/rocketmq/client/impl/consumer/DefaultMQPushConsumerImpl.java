@@ -26,6 +26,7 @@ import com.alibaba.rocketmq.client.impl.CommunicationMode;
 import com.alibaba.rocketmq.client.impl.MQClientManager;
 import com.alibaba.rocketmq.client.impl.factory.MQClientFactory;
 import com.alibaba.rocketmq.client.log.ClientLogger;
+import com.alibaba.rocketmq.client.stat.ConsumerStatManager;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.ServiceState;
 import com.alibaba.rocketmq.common.consumer.ConsumeFromWhere;
@@ -69,6 +70,8 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
 
     // Rebalance实现
     private final RebalanceImpl rebalanceImpl = new RebalancePushImpl(this);
+
+    private final ConsumerStatManager consumerStatManager = new ConsumerStatManager();
 
     // 拉消息异常时，延迟一段时间再拉
     private static final long PullTimeDelayMillsWhenException = 3000;
@@ -776,5 +779,10 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
 
     public void setConsumeOrderly(boolean consumeOrderly) {
         this.consumeOrderly = consumeOrderly;
+    }
+
+
+    public ConsumerStatManager getConsumerStatManager() {
+        return consumerStatManager;
     }
 }

@@ -32,6 +32,7 @@ import com.alibaba.rocketmq.client.impl.FindBrokerResult;
 import com.alibaba.rocketmq.client.impl.MQAdminImpl;
 import com.alibaba.rocketmq.client.impl.MQClientAPIImpl;
 import com.alibaba.rocketmq.client.impl.MQClientManager;
+import com.alibaba.rocketmq.client.impl.consumer.DefaultMQPushConsumerImpl;
 import com.alibaba.rocketmq.client.impl.consumer.MQConsumerInner;
 import com.alibaba.rocketmq.client.impl.consumer.PullMessageService;
 import com.alibaba.rocketmq.client.impl.consumer.RebalanceService;
@@ -227,10 +228,37 @@ public class MQClientFactory {
                     MQClientFactory.this.persistAllConsumerOffset();
                 }
                 catch (Exception e) {
-                    log.error("ScheduledTask uploadConsumerOffsets exception", e);
+                    log.error("ScheduledTask persistAllConsumerOffset exception", e);
                 }
             }
         }, 1000 * 10, this.clientConfig.getPersistConsumerOffsetInterval(), TimeUnit.MILLISECONDS);
+
+        // 统计信息打点
+        this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
+
+            @Override
+            public void run() {
+                try {
+                    MQClientFactory.this.recordSnapshotPeriodically();
+                }
+                catch (Exception e) {
+                    log.error("ScheduledTask uploadConsumerOffsets exception", e);
+                }
+            }
+        }, 1000 * 10, 1000, TimeUnit.MILLISECONDS);
+
+        this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
+
+            @Override
+            public void run() {
+                try {
+                    MQClientFactory.this.logStatsPeriodically();
+                }
+                catch (Exception e) {
+                    log.error("ScheduledTask uploadConsumerOffsets exception", e);
+                }
+            }
+        }, 1000 * 10, 1000 * 60, TimeUnit.MILLISECONDS);
     }
 
 
@@ -302,9 +330,42 @@ public class MQClientFactory {
     }
 
 
+    private void recordSnapshotPeriodically() {
+        Iterator<Entry<String, MQConsumerInner>> it = this.consumerTable.entrySet().iterator();
+        while (it.hasNext()) {
+            Entry<String, MQConsumerInner> entry = it.next();
+            MQConsumerInner impl = entry.getValue();
+            if (impl != null) {
+                if (impl instanceof DefaultMQPushConsumerImpl) {
+                    DefaultMQPushConsumerImpl consumer = (DefaultMQPushConsumerImpl) impl;
+                    consumer.getConsumerStatManager().recordSnapshotPeriodically();
+                }
+            }
+        }
+    }
+
+
+    private void logStatsPeriodically() {
+        Iterator<Entry<String, MQConsumerInner>> it = this.consumerTable.entrySet().iterator();
+        while (it.hasNext()) {
+            Entry<String, MQConsumerInner> entry = it.next();
+            MQConsumerInner impl = entry.getValue();
+            if (impl != null) {
+                if (impl instanceof DefaultMQPushConsumerImpl) {
+                    DefaultMQPushConsumerImpl consumer = (DefaultMQPushConsumerImpl) impl;
+                    consumer.getConsumerStatManager().logStatsPeriodically(entry.getKey(), this.clientId);
+                }
+            }
+        }
+    }
+
+
     private void persistAllConsumerOffset() {
-        for (MQConsumerInner consumer : this.consumerTable.values()) {
-            consumer.persistConsumerOffset();
+        Iterator<Entry<String, MQConsumerInner>> it = this.consumerTable.entrySet().iterator();
+        while (it.hasNext()) {
+            Entry<String, MQConsumerInner> entry = it.next();
+            MQConsumerInner impl = entry.getValue();
+            impl.persistConsumerOffset();
         }
     }
 

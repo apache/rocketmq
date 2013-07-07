@@ -24,11 +24,11 @@ import com.alibaba.rocketmq.common.message.MessageExt;
 public class PushConsumer {
 
     public static void main(String[] args) throws InterruptedException, MQClientException {
-        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("example_consumer_group8");
+        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("example_consumer_group9");
 
-        consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET_AND_FROM_MIN_WHEN_BOOT_FIRST);
+        consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_MIN_OFFSET);
 
-        consumer.subscribe("TopicTest4", "*");
+        consumer.subscribe("BenchmarkTest", "*");
 
         consumer.registerMessageListener(new MessageListenerConcurrently() {
             AtomicLong consumeTimes = new AtomicLong(0);
@@ -37,7 +37,13 @@ public class PushConsumer {
             @Override
             public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> msgs,
                     ConsumeConcurrentlyContext context) {
-                System.out.println("Receive New Messages: " + msgs);
+                System.out.println(Thread.currentThread().getName() + " Receive New Messages: " + msgs);
+                try {
+                    Thread.sleep(20);
+                }
+                catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
                 if ((this.consumeTimes.getAndIncrement() % 2) == 0) {
                     return ConsumeConcurrentlyStatus.RECONSUME_LATER;
                 }
