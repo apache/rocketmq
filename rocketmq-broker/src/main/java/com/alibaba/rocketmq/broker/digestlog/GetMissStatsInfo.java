@@ -29,7 +29,6 @@ public class GetMissStatsInfo {
     public String tolog() {
         StringBuffer sb = new StringBuffer();
         sb.append("客户端GetMiss执行统计").append(",");
-        sb.append("服务端[").append(System.getProperty("HOST_NAME")).append("],");
         sb.append("Topic[").append(topic).append("],");
         sb.append("Partition[").append(partition).append("],");
         sb.append("客户端[").append(cliHostName).append("],");

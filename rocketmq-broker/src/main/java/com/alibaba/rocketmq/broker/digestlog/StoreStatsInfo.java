@@ -38,34 +38,28 @@ public class StoreStatsInfo {
 
 
     public void tolog() {
-        // List<String> ls = new ArrayList<String>();
         for (String key : getGroupinfo.keySet()) {
             StringBuffer sb = new StringBuffer();
             sb.append("客户端Put消息和get消息执行统计").append(",");
-            sb.append("服务端[").append(System.getProperty("HOST_NAME")).append("],");
             sb.append("Topic[").append(topic).append("],");
             sb.append("Partition[").append(partition).append("],");
             sb.append("PutOffset[").append(putOffset.get()).append("],");
             sb.append("消费group[").append(key).append("],");
             sb.append("GetOffset[").append(getGroupinfo.get(key).get()).append("]");
             log.info(sb.toString());
-            // ls.add(sb.toString());
         }
-        // return ls;
     }
 
 
     public void toPutlog() {
         StringBuffer sb = new StringBuffer();
         sb.append("客户端Put消息和get消息执行统计").append(",");
-        sb.append("服务端[").append(System.getProperty("HOST_NAME")).append("],");
         sb.append("Topic[").append(topic).append("],");
         sb.append("Partition[").append(partition).append("],");
         sb.append("PutOffset[").append(putOffset.get()).append("],");
         sb.append("消费group[").append("*").append("],");
         sb.append("GetOffset[").append(0).append("]");
         log.info(sb.toString());
-        // return sb.toString();
     }
 
 
