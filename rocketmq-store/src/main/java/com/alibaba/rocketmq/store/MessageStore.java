@@ -142,7 +142,7 @@ public interface MessageStore {
             final long begin, final long end);
 
 
-    public void updateMasterAddress(final String newAddr);
+    public void updateHaMasterAddress(final String newAddr);
 
 
     public long now();

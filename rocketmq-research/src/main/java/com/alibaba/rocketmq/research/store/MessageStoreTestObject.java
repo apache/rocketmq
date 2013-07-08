@@ -86,7 +86,7 @@ public class MessageStoreTestObject {
 
 
     public void updateMasterAddress(final String addr) {
-        this.messageStore.updateMasterAddress(addr);
+        this.messageStore.updateHaMasterAddress(addr);
     }
 
 

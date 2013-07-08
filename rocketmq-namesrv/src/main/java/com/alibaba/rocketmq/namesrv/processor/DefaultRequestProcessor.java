@@ -8,6 +8,7 @@ import org.slf4j.LoggerFactory;
 import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.common.help.FAQUrl;
 import com.alibaba.rocketmq.common.namesrv.NamesrvUtil;
+import com.alibaba.rocketmq.common.namesrv.RegisterBrokerResult;
 import com.alibaba.rocketmq.common.protocol.MQProtos.MQRequestCode;
 import com.alibaba.rocketmq.common.protocol.MQProtos.MQResponseCode;
 import com.alibaba.rocketmq.common.protocol.body.TopicConfigSerializeWrapper;
@@ -183,7 +184,7 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
         TopicConfigSerializeWrapper topicConfigWrapper =
                 TopicConfigSerializeWrapper.decode(request.getBody(), TopicConfigSerializeWrapper.class);
 
-        String masterHAServer = this.namesrvController.getRouteInfoManager().registerBroker(//
+        RegisterBrokerResult result = this.namesrvController.getRouteInfoManager().registerBroker(//
             requestHeader.getClusterName(), // 1
             requestHeader.getBrokerAddr(), // 2
             requestHeader.getBrokerName(), // 3
@@ -193,7 +194,8 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
             ctx.channel()// 7
             );
 
-        responseHeader.setHaServerAddr(masterHAServer);
+        responseHeader.setHaServerAddr(result.getHaServerAddr());
+        responseHeader.setMasterAddr(result.getMasterAddr());
 
         response.setCode(ResponseCode.SUCCESS_VALUE);
         response.setRemark(null);
