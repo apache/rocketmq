@@ -91,8 +91,8 @@ public class MessageStoreConfig {
     private int haSendHeartbeatInterval = 1000 * 5;
     private int haHousekeepingInterval = 1000 * 20;
     private int haTransferBatchSize = 1024 * 32;
-    // 如果不设置，则从NameServer获取Master服务地址，然后通过服务地址找到HA地址
-    private String masterAddress = null;
+    // 如果不设置，则从NameServer获取Master HA服务地址
+    private String haMasterAddress = null;
 
     // Slave落后Master超过此值，则认为存在异常
     private int haSlaveFallbehindMax = 1024 * 1024 * 256;
@@ -560,13 +560,13 @@ public class MessageStoreConfig {
     }
 
 
-    public String getMasterAddress() {
-        return masterAddress;
+    public String getHaMasterAddress() {
+        return haMasterAddress;
     }
 
 
-    public void setMasterAddress(String masterAddress) {
-        this.masterAddress = masterAddress;
+    public void setHaMasterAddress(String haMasterAddress) {
+        this.haMasterAddress = haMasterAddress;
     }
 
 

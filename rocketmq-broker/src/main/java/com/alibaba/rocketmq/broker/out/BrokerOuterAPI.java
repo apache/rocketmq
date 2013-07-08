@@ -8,6 +8,7 @@ import org.slf4j.LoggerFactory;
 
 import com.alibaba.rocketmq.client.exception.MQBrokerException;
 import com.alibaba.rocketmq.common.constant.LoggerName;
+import com.alibaba.rocketmq.common.namesrv.RegisterBrokerResult;
 import com.alibaba.rocketmq.common.namesrv.TopAddressing;
 import com.alibaba.rocketmq.common.protocol.MQProtos.MQRequestCode;
 import com.alibaba.rocketmq.common.protocol.body.TopicConfigSerializeWrapper;
@@ -83,7 +84,7 @@ public class BrokerOuterAPI {
     }
 
 
-    private String registerBroker(//
+    private RegisterBrokerResult registerBroker(//
             final String namesrvAddr,//
             final String clusterName,// 1
             final String brokerAddr,// 2
@@ -110,7 +111,10 @@ public class BrokerOuterAPI {
             RegisterBrokerResponseHeader responseHeader =
                     (RegisterBrokerResponseHeader) response
                         .decodeCommandCustomHeader(RegisterBrokerResponseHeader.class);
-            return responseHeader.getHaServerAddr();
+            RegisterBrokerResult result = new RegisterBrokerResult();
+            result.setMasterAddr(responseHeader.getMasterAddr());
+            result.setHaServerAddr(responseHeader.getHaServerAddr());
+            return result;
         }
         default:
             break;
@@ -120,7 +124,7 @@ public class BrokerOuterAPI {
     }
 
 
-    public String registerBrokerAll(//
+    public RegisterBrokerResult registerBrokerAll(//
             final String clusterName,// 1
             final String brokerAddr,// 2
             final String brokerName,// 3
@@ -128,17 +132,17 @@ public class BrokerOuterAPI {
             final String haServerAddr,// 5
             final TopicConfigSerializeWrapper topicConfigWrapper// 6
     ) {
-        String masterHAServer = null;
+        RegisterBrokerResult registerBrokerResult = null;
 
         List<String> nameServerAddressList = this.remotingClient.getNameServerAddressList();
         if (nameServerAddressList != null) {
             for (String namesrvAddr : nameServerAddressList) {
                 try {
-                    String addr =
+                    RegisterBrokerResult result =
                             this.registerBroker(namesrvAddr, clusterName, brokerAddr, brokerName, brokerId,
                                 haServerAddr, topicConfigWrapper);
-                    if (addr != null) {
-                        masterHAServer = addr;
+                    if (result != null) {
+                        registerBrokerResult = result;
                     }
                 }
                 catch (Exception e) {
@@ -147,7 +151,7 @@ public class BrokerOuterAPI {
             }
         }
 
-        return masterHAServer;
+        return registerBrokerResult;
     }
 
 

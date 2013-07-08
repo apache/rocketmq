@@ -1602,7 +1602,7 @@ public class DefaultMessageStore implements MessageStore {
 
 
     @Override
-    public void updateMasterAddress(String newAddr) {
+    public void updateHaMasterAddress(String newAddr) {
         this.haService.updateMasterAddress(newAddr);
     }
 

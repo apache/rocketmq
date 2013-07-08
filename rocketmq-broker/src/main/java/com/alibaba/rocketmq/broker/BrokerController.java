@@ -39,6 +39,7 @@ import com.alibaba.rocketmq.common.BrokerConfig;
 import com.alibaba.rocketmq.common.DataVersion;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.constant.LoggerName;
+import com.alibaba.rocketmq.common.namesrv.RegisterBrokerResult;
 import com.alibaba.rocketmq.common.protocol.MQProtos;
 import com.alibaba.rocketmq.common.protocol.body.TopicConfigSerializeWrapper;
 import com.alibaba.rocketmq.remoting.RemotingServer;
@@ -263,12 +264,11 @@ public class BrokerController {
             }, 1000 * 10, this.brokerConfig.getFlushConsumerOffsetHistoryInterval(), TimeUnit.MILLISECONDS);
 
             // 先获取Name Server地址
-            if (null == this.brokerConfig.getNamesrvAddr()) {
-                this.brokerConfig.setNamesrvAddr(this.brokerOuterAPI.fetchNameServerAddr());
+            if (this.brokerConfig.getNamesrvAddr() != null) {
+                this.brokerOuterAPI.updateNameServerAddressList(this.brokerConfig.getNamesrvAddr());
             }
-
             // 定时获取Name Server地址
-            if (null == this.brokerConfig.getNamesrvAddr()) {
+            else {
                 this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 
                     @Override
@@ -285,16 +285,15 @@ public class BrokerController {
 
             // 如果是slave
             if (BrokerRole.SLAVE == this.messageStoreConfig.getBrokerRole()) {
-                if (this.messageStoreConfig.getMasterAddress() != null
-                        && this.messageStoreConfig.getMasterAddress().length() >= 6) {
-                    this.messageStore.updateMasterAddress(this.messageStoreConfig.getMasterAddress());
+                if (this.messageStoreConfig.getHaMasterAddress() != null
+                        && this.messageStoreConfig.getHaMasterAddress().length() >= 6) {
+                    this.messageStore.updateHaMasterAddress(this.messageStoreConfig.getHaMasterAddress());
                     this.updateMasterHAServerAddrPeriodically = false;
                 }
                 else {
                     this.updateMasterHAServerAddrPeriodically = true;
                 }
             }
-
         }
 
         return result;
@@ -305,15 +304,17 @@ public class BrokerController {
         TopicConfigSerializeWrapper topicConfigWrapper =
                 this.getTopicConfigManager().buildTopicConfigSerializeWrapper();
 
-        String haServerAddr = this.brokerOuterAPI.registerBrokerAll(//
+        RegisterBrokerResult registerBrokerResult = this.brokerOuterAPI.registerBrokerAll(//
             this.brokerConfig.getBrokerClusterName(), //
             this.getBrokerAddr(), //
             this.brokerConfig.getBrokerName(), //
             this.brokerConfig.getBrokerId(), //
             this.getHAServerAddr(), topicConfigWrapper);
 
-        if (this.updateMasterHAServerAddrPeriodically && haServerAddr != null) {
-            this.messageStore.updateMasterAddress(haServerAddr);
+        if (this.updateMasterHAServerAddrPeriodically && registerBrokerResult != null) {
+            if (registerBrokerResult.getHaServerAddr() != null) {
+                this.messageStore.updateHaMasterAddress(registerBrokerResult.getHaServerAddr());
+            }
         }
     }
 
