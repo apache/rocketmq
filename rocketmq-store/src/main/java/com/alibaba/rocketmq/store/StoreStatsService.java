@@ -6,6 +6,7 @@ package com.alibaba.rocketmq.store;
 import java.text.MessageFormat;
 import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -59,7 +60,10 @@ public class StoreStatsService extends ServiceThread {
     // putMessage，失败次数
     private final AtomicLong putMessageFailedTimes = new AtomicLong(0);
     // putMessage，调用总数
-    private final AtomicLong putMessageTimesTotal = new AtomicLong(0);
+    private final Map <String,AtomicLong>putMessageTopicTimesTotal = new HashMap<String,AtomicLong>();
+   
+
+
     // getMessage，调用总数
     private final AtomicLong getMessageTimesTotalFound = new AtomicLong(0);
     private final AtomicLong getMessageTransferedMsgCount = new AtomicLong(0);
@@ -156,9 +160,9 @@ public class StoreStatsService extends ServiceThread {
     }
 
 
-    public AtomicLong getPutMessageTimesTotal() {
-        return putMessageTimesTotal;
-    }
+//    public AtomicLong getPutMessageTimesTotal() {
+//        return putMessageTimesTotal;
+//    }
 
 
     public AtomicLong getPutMessageSizeTotal() {
@@ -210,7 +214,7 @@ public class StoreStatsService extends ServiceThread {
     @Override
     public String toString() {
         final StringBuilder sb = new StringBuilder(1024);
-        Long totalTimes = this.putMessageTimesTotal.get();
+        Long totalTimes = getPutMessageTimesTotal();
         if (0 == totalTimes) {
             totalTimes = 1L;
         }
@@ -237,7 +241,7 @@ public class StoreStatsService extends ServiceThread {
     public HashMap<String, String> getRuntimeInfo() {
         HashMap<String, String> result = new HashMap<String, String>(64);
 
-        Long totalTimes = this.putMessageTimesTotal.get();
+        Long totalTimes = getPutMessageTimesTotal();
         if (0 == totalTimes) {
             totalTimes = 1L;
         }
@@ -256,7 +260,7 @@ public class StoreStatsService extends ServiceThread {
     private void sampling() {
         this.lockSampling.lock();
 
-        this.putTimesList.add(new CallSnapshot(System.currentTimeMillis(), this.putMessageTimesTotal.get()));
+        this.putTimesList.add(new CallSnapshot(System.currentTimeMillis(), getPutMessageTimesTotal()));
         if (this.putTimesList.size() > (MaxRecordsOfSampling + 1)) {
             this.putTimesList.removeFirst();
         }
@@ -523,5 +527,16 @@ public class StoreStatsService extends ServiceThread {
 
     public AtomicLong getPutMessageFailedTimes() {
         return putMessageFailedTimes;
+    }
+    public Map<String, AtomicLong> getPutMessageTopicTimesTotal() {
+        return putMessageTopicTimesTotal;
+    }
+    
+    public long getPutMessageTimesTotal() {
+        long rs=0;
+        for (AtomicLong data:putMessageTopicTimesTotal.values()){
+            rs+=data.get();
+        } 
+        return rs;
     }
 }

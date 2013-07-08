@@ -725,8 +725,8 @@ public class DefaultMessageStore implements MessageStore {
 
                                 this.reputFromOffset += size;
                                 readSize += size;
-                                DefaultMessageStore.this.storeStatsService.getPutMessageTimesTotal()
-                                    .incrementAndGet();
+                                DefaultMessageStore.this.storeStatsService.getPutMessageTopicTimesTotal()
+                                    .get(dispatchRequest.getTopic()).incrementAndGet();
                                 DefaultMessageStore.this.storeStatsService.getPutMessageSizeTotal()
                                     .addAndGet(dispatchRequest.getMsgSize());
                             }
@@ -1079,7 +1079,7 @@ public class DefaultMessageStore implements MessageStore {
             log.warn("putMessage not in lock eclipse time(ms) " + eclipseTime);
         }
         this.storeStatsService.setPutMessageEntireTimeMax(eclipseTime);
-        this.storeStatsService.getPutMessageTimesTotal().incrementAndGet();
+        this.storeStatsService.getPutMessageTopicTimesTotal().get(msg.getTopic()).incrementAndGet();
 
         if (null == result || !result.isOk()) {
             this.storeStatsService.getPutMessageFailedTimes().incrementAndGet();

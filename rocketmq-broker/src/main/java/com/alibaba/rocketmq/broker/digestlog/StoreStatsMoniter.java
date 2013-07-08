@@ -3,11 +3,19 @@ package com.alibaba.rocketmq.broker.digestlog;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
+import com.alibaba.rocketmq.broker.BrokerController;
+
 
 public class StoreStatsMoniter {
     // static final Log log = LogFactory.getLog(StoreStatsMoniter.class);
     private ConcurrentHashMap<String/* topic,partition,cliHostName */, StoreStatsInfo> storeStatsInfos =
             new ConcurrentHashMap<String, StoreStatsInfo>();
+    private BrokerController brokerController;
+
+
+    public StoreStatsMoniter(BrokerController brokerController) {
+        this.brokerController = brokerController;
+    }
 
 
     public void putAppend(String topic, String partition, long putOffset) {
