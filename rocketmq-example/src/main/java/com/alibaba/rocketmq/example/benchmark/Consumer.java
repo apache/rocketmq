@@ -89,7 +89,7 @@ public class Consumer {
 
         DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("benchmark_consumer");
 
-        consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET_AND_FROM_MIN_WHEN_BOOT_FIRST);
+        consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_MAX_OFFSET);
 
         consumer.subscribe("BenchmarkTest", "*");
 
