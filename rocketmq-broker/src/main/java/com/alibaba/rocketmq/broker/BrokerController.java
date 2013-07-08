@@ -32,6 +32,7 @@ import com.alibaba.rocketmq.broker.processor.EndTransactionProcessor;
 import com.alibaba.rocketmq.broker.processor.PullMessageProcessor;
 import com.alibaba.rocketmq.broker.processor.QueryMessageProcessor;
 import com.alibaba.rocketmq.broker.processor.SendMessageProcessor;
+import com.alibaba.rocketmq.broker.slave.SlaveSynchronize;
 import com.alibaba.rocketmq.broker.subscription.SubscriptionGroupManager;
 import com.alibaba.rocketmq.broker.topic.TopicConfigManager;
 import com.alibaba.rocketmq.broker.transaction.DefaultTransactionCheckExecuter;
@@ -124,6 +125,9 @@ public class BrokerController {
     // 是否需要定期更新HA Master地址
     private boolean updateMasterHAServerAddrPeriodically = false;
 
+    // Slave定期从Master同步信息
+    private final SlaveSynchronize slaveSynchronize;
+
     private final DigestLogManager digestLogManager;
 
 
@@ -154,6 +158,8 @@ public class BrokerController {
             this.brokerOuterAPI.updateNameServerAddressList(this.brokerConfig.getNamesrvAddr());
             log.info("user specfied name server address: {}", this.brokerConfig.getNamesrvAddr());
         }
+
+        this.slaveSynchronize = new SlaveSynchronize(this);
         this.digestLogManager = new DigestLogManager(this);
     }
 
@@ -293,6 +299,20 @@ public class BrokerController {
                 else {
                     this.updateMasterHAServerAddrPeriodically = true;
                 }
+
+                // Slave定时从Master同步配置信息
+                this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
+
+                    @Override
+                    public void run() {
+                        try {
+                            BrokerController.this.slaveSynchronize.syncAll();
+                        }
+                        catch (Exception e) {
+                            log.error("ScheduledTask syncAll slave exception", e);
+                        }
+                    }
+                }, 1000 * 10, 1000 * 60, TimeUnit.MILLISECONDS);
             }
         }
 
@@ -311,10 +331,12 @@ public class BrokerController {
             this.brokerConfig.getBrokerId(), //
             this.getHAServerAddr(), topicConfigWrapper);
 
-        if (this.updateMasterHAServerAddrPeriodically && registerBrokerResult != null) {
-            if (registerBrokerResult.getHaServerAddr() != null) {
+        if (registerBrokerResult != null) {
+            if (this.updateMasterHAServerAddrPeriodically && registerBrokerResult.getHaServerAddr() != null) {
                 this.messageStore.updateHaMasterAddress(registerBrokerResult.getHaServerAddr());
             }
+
+            this.slaveSynchronize.setMasterAddr(registerBrokerResult.getMasterAddr());
         }
     }
 
@@ -643,5 +665,10 @@ public class BrokerController {
 
     public RebalanceLockManager getRebalanceLockManager() {
         return rebalanceLockManager;
+    }
+
+
+    public SlaveSynchronize getSlaveSynchronize() {
+        return slaveSynchronize;
     }
 }
