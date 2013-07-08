@@ -5,11 +5,21 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
+import com.alibaba.rocketmq.broker.BrokerController;
+
 
 public class PutStatsMoniter {
     static final Log log = LogFactory.getLog(PutStatsMoniter.class);
+    private BrokerController brokerController;
     private ConcurrentHashMap<String/* topic,partition,cliHostName */, PutStatsInfor> putStatsInfors =
             new ConcurrentHashMap<String, PutStatsInfor>();
+
+
+    public PutStatsMoniter(BrokerController brokerController) {
+        this.brokerController = brokerController;
+    }
+
+
 
 
     public void append(String topic, String partition, String cliHostName, long succesCount, long faileCount,
