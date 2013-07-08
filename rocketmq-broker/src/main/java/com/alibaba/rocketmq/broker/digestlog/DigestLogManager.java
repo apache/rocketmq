@@ -8,6 +8,8 @@ import java.util.concurrent.TimeUnit;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
+import com.alibaba.rocketmq.broker.BrokerController;
+
 
 /**
  * 统计管理器
@@ -19,7 +21,10 @@ import org.apache.commons.logging.LogFactory;
  * 
  */
 public class DigestLogManager {
+    
+
     private static final Log log = LogFactory.getLog(DigestLogManager.class);
+    private BrokerController brokerController;
     private final boolean startRealTimeStat = Boolean.valueOf(System
         .getProperty("meta.realtime.stat", "true"));
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1,
@@ -29,13 +34,14 @@ public class DigestLogManager {
                 return new Thread(r, "DigestLogPrintSchedule");
             }
         });
-    private final GetMissStatsMoniter getMissStatsMoniter = new GetMissStatsMoniter();
-    private final GetStatsMoniter getStatsMoniter = new GetStatsMoniter();
-    private final PutStatsMoniter putStatsMoniter = new PutStatsMoniter();
-    private final SlavePutStatsMoniter slavePutStatsMoniter = new SlavePutStatsMoniter();
-    private final StoreStatsMoniter storeStatsMoniter = new StoreStatsMoniter();
+    private final PutStatsMoniter putStatsMoniter = new PutStatsMoniter(brokerController);
+//    private final SlavePutStatsMoniter slavePutStatsMoniter = new SlavePutStatsMoniter();
+    private final StoreStatsMoniter storeStatsMoniter = new StoreStatsMoniter(brokerController);
     private final TransationStatsMoniter transationStatsMoniter = new TransationStatsMoniter();
 
+    public DigestLogManager(BrokerController brokerController) {
+        this.brokerController = brokerController;
+    }
 
     public void start() {
         if (startRealTimeStat) {
@@ -58,25 +64,12 @@ public class DigestLogManager {
     class DigestPrintOut implements Runnable {
         @Override
         public void run() {
-            getStatsMoniter.tolog();
             putStatsMoniter.tolog();
-            slavePutStatsMoniter.tolog();
-            getMissStatsMoniter.tolog();
+//            slavePutStatsMoniter.tolog();
             storeStatsMoniter.tolog();
             transationStatsMoniter.tolog();
         }
     }
-
-
-    public GetMissStatsMoniter getGetMissStatsMoniter() {
-        return getMissStatsMoniter;
-    }
-
-
-    public GetStatsMoniter getGetStatsMoniter() {
-        return getStatsMoniter;
-    }
-
 
     public PutStatsMoniter getPutStatsMoniter() {
         return putStatsMoniter;
@@ -90,10 +83,5 @@ public class DigestLogManager {
 
     public TransationStatsMoniter getTransationStatsMoniter() {
         return transationStatsMoniter;
-    }
-
-
-    public SlavePutStatsMoniter getSlavePutStatsMoniter() {
-        return slavePutStatsMoniter;
     }
 }

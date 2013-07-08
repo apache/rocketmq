@@ -369,34 +369,34 @@ public class SendMessageProcessor implements NettyRequestProcessor {
                 this.brokerController.getPullRequestHoldService().notifyMessageArriving(
                     requestHeader.getTopic(), queueIdInt,
                     putMessageResult.getAppendMessageResult().getLogicsOffset());
-                this.brokerController
-                    .getDigestLogManager()
-                    .getPutStatsMoniter()
-                    .append(
-                        msgInner.getTopic(),
-                        this.brokerController.getBrokerConfig().getBrokerName() + "-" + msgInner.getQueueId(),
-                        msgInner.getBornHostNameString(), 1, 0, 0,
-                        System.currentTimeMillis() - msgInner.getBornTimestamp(), msgInner.getBody().length);
-                this.brokerController
-                    .getDigestLogManager()
-                    .getStoreStatsMoniter()
-                    .putAppend(
-                        msgInner.getTopic(),
-                        this.brokerController.getBrokerConfig().getBrokerName() + "-" + msgInner.getQueueId(),
-                        putMessageResult.getAppendMessageResult().getLogicsOffset());
+//                this.brokerController
+//                    .getDigestLogManager()
+//                    .getPutStatsMoniter()
+//                    .append(
+//                        msgInner.getTopic(),
+//                        this.brokerController.getBrokerConfig().getBrokerName() + "-" + msgInner.getQueueId(),
+//                        msgInner.getBornHostNameString(), 1, 0, 0,
+//                        System.currentTimeMillis() - msgInner.getBornTimestamp(), msgInner.getBody().length);
+//                this.brokerController
+//                    .getDigestLogManager()
+//                    .getStoreStatsMoniter()
+//                    .putAppend(
+//                        msgInner.getTopic(),
+//                        this.brokerController.getBrokerConfig().getBrokerName() + "-" + msgInner.getQueueId(),
+//                        putMessageResult.getAppendMessageResult().getLogicsOffset());
                 return null;
             }
         }
         else {
             response.setCode(ResponseCode.SYSTEM_ERROR_VALUE);
             response.setRemark("store putMessage return null");
-            this.brokerController
-                .getDigestLogManager()
-                .getPutStatsMoniter()
-                .append(msgInner.getTopic(),
-                    this.brokerController.getBrokerConfig().getBrokerName() + "-" + msgInner.getQueueId(),
-                    msgInner.getBornHostNameString(), 0, 1, 0,
-                    System.currentTimeMillis() - msgInner.getBornTimestamp(), msgInner.getBody().length);
+//            this.brokerController
+//                .getDigestLogManager()
+//                .getPutStatsMoniter()
+//                .append(msgInner.getTopic(),
+//                    this.brokerController.getBrokerConfig().getBrokerName() + "-" + msgInner.getQueueId(),
+//                    msgInner.getBornHostNameString(), 0, 1, 0,
+//                    System.currentTimeMillis() - msgInner.getBornTimestamp(), msgInner.getBody().length);
         }
 
         return response;

@@ -153,7 +153,7 @@ public class BrokerController {
             this.brokerOuterAPI.updateNameServerAddressList(this.brokerConfig.getNamesrvAddr());
             log.info("user specfied name server address: {}", this.brokerConfig.getNamesrvAddr());
         }
-        this.digestLogManager = new DigestLogManager();
+        this.digestLogManager = new DigestLogManager(this);
     }
 
 
