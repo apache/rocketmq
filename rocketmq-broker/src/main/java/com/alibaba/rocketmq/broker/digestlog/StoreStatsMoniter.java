@@ -46,15 +46,9 @@ public class StoreStatsMoniter {
             if (!storeStatsInfo.isNull()) {
                 if (storeStatsInfo.getGetGroupinfo().size() > 0) {
                     storeStatsInfo.tolog();
-                    // if(log.isInfoEnabled()){
-                    // log.info(storeStatsInfo.tolog());
-                    // }
                 }
                 else {
                     storeStatsInfo.toPutlog();
-                    // if(log.isInfoEnabled()){
-                    // log.info(storeStatsInfo.toPutlog());
-                    // }
                 }
                 storeStatsInfo.dispose();
             }

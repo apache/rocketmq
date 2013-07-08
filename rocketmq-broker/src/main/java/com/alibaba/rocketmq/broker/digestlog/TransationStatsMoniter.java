@@ -12,25 +12,17 @@ public class TransationStatsMoniter {
             new ConcurrentHashMap<String, TransationStatsInfo>();
 
 
-    public void append(String cliHostName, long beginCount, long commitOneCount, long commitTwoCount,
-            long forgetCount, long rollbackCount, long recoverCount, long endCount, long prepareCount) {
+    public void append(String topic,String partition,String cliHostName, long prepareCount, long commitCount, long rollbackCount) {
         TransationStatsInfo transationStatsInfo = TransationStatsInfos.get(cliHostName);
         if (null == transationStatsInfo) {
             transationStatsInfo =
-                    new TransationStatsInfo(cliHostName, beginCount, commitOneCount, commitTwoCount,
-                        forgetCount, rollbackCount, recoverCount, endCount, prepareCount);
+                    new TransationStatsInfo(cliHostName, prepareCount, commitCount, rollbackCount);
             TransationStatsInfos.put(cliHostName, transationStatsInfo);
         }
         else {
-            transationStatsInfo.getBeginCount().addAndGet(beginCount);
-            transationStatsInfo.getCommitOneCount().addAndGet(commitOneCount);
-            transationStatsInfo.getCommitTwoCount().addAndGet(commitTwoCount);
-            transationStatsInfo.getForgetCount().addAndGet(forgetCount);
-            transationStatsInfo.getRollbackCount().addAndGet(rollbackCount);
-            transationStatsInfo.getRecoverCount().addAndGet(recoverCount);
-            transationStatsInfo.getEndCount().addAndGet(endCount);
             transationStatsInfo.getPrepareCount().addAndGet(prepareCount);
-
+            transationStatsInfo.getCommitCount().addAndGet(commitCount);
+            transationStatsInfo.getRollbackCount().addAndGet(rollbackCount);
         }
     }
 
