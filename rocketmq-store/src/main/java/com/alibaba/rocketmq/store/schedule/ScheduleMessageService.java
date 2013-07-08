@@ -3,24 +3,21 @@
  */
 package com.alibaba.rocketmq.store.schedule;
 
-import java.io.IOException;
 import java.util.HashMap;
-import java.util.Properties;
-import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.alibaba.rocketmq.common.MixAll;
+import com.alibaba.rocketmq.common.ConfigManager;
 import com.alibaba.rocketmq.common.TopicFilterType;
 import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.common.message.Message;
 import com.alibaba.rocketmq.common.message.MessageDecoder;
 import com.alibaba.rocketmq.common.message.MessageExt;
+import com.alibaba.rocketmq.remoting.protocol.RemotingSerializable;
 import com.alibaba.rocketmq.store.ConsumeQueue;
 import com.alibaba.rocketmq.store.DefaultMessageStore;
 import com.alibaba.rocketmq.store.MessageExtBrokerInner;
@@ -35,7 +32,7 @@ import com.alibaba.rocketmq.store.SelectMapedBufferResult;
  * @author shijia.wxr<vintage.wang@gmail.com>
  * 
  */
-public class ScheduleMessageService {
+public class ScheduleMessageService extends ConfigManager {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.StoreLoggerName);
     public static final String SCHEDULE_TOPIC = "SCHEDULE_TOPIC_XXXX";
     private static final long FIRST_DELAY_TIME = 1000L;
@@ -258,31 +255,6 @@ public class ScheduleMessageService {
     }
 
 
-    public boolean load() {
-        boolean result = this.parseDelayLevel();
-        if (result) {
-            String str =
-                    MixAll.file2String(this.defaultMessageStore.getMessageStoreConfig()
-                        .getDelayOffsetStorePath());
-            if (str != null) {
-                Properties prop = MixAll.string2Properties(str);
-                if (prop != null) {
-                    Set<Object> keyset = prop.keySet();
-                    for (Object object : keyset) {
-                        String propValue = prop.getProperty(object.toString());
-                        if (propValue != null) {
-                            this.updateOffset(Integer.parseInt(object.toString()), Long.parseLong(propValue));
-                            log.info("load delay offset table, LEVEL: {} OFFSET {}", object.toString(),
-                                propValue);
-                        }
-                    }
-                }
-            }
-        }
-        return result;
-    }
-
-
     public void start() {
         // 为每个延时队列增加定时器
         for (Integer level : this.delayLevelTable.keySet()) {
@@ -303,37 +275,13 @@ public class ScheduleMessageService {
             @Override
             public void run() {
                 try {
-                    ScheduleMessageService.this.flush();
+                    ScheduleMessageService.this.persist();
                 }
                 catch (Exception e) {
                     log.error("scheduleAtFixedRate flush exception", e);
                 }
             }
         }, 10000, this.defaultMessageStore.getMessageStoreConfig().getFlushDelayOffsetInterval());
-    }
-
-
-    private void flush() {
-        StringBuilder sb = new StringBuilder();
-        for (Integer level : this.offsetTable.keySet()) {
-            Long offset = this.offsetTable.get(level);
-            if (null == offset) {
-                offset = 0L;
-            }
-
-            sb.append(level + "=" + offset + IOUtils.LINE_SEPARATOR);
-        }
-
-        if (sb.toString().length() == 0)
-            return;
-
-        try {
-            MixAll.string2File(sb.toString(), this.defaultMessageStore.getMessageStoreConfig()
-                .getDelayOffsetStorePath());
-        }
-        catch (IOException e) {
-            log.error("flush delay offset table, IOException", e);
-        }
     }
 
 
@@ -344,5 +292,47 @@ public class ScheduleMessageService {
 
     public int getMaxDelayLevel() {
         return maxDelayLevel;
+    }
+
+
+    @Override
+    public String encode() {
+        DelayOffsetSerializeWrapper delayOffsetSerializeWrapper = new DelayOffsetSerializeWrapper();
+        delayOffsetSerializeWrapper.setOffsetTable(this.offsetTable);
+        return delayOffsetSerializeWrapper.toJson();
+    }
+
+
+    @Override
+    public void decode(String jsonString) {
+        if (jsonString != null) {
+            DelayOffsetSerializeWrapper delayOffsetSerializeWrapper =
+                    DelayOffsetSerializeWrapper.fromJson(jsonString, DelayOffsetSerializeWrapper.class);
+            if (delayOffsetSerializeWrapper != null) {
+                this.offsetTable.putAll(delayOffsetSerializeWrapper.getOffsetTable());
+            }
+        }
+    }
+
+
+    @Override
+    public String configFilePath() {
+        return this.defaultMessageStore.getMessageStoreConfig().getDelayOffsetStorePath();
+    }
+}
+
+
+class DelayOffsetSerializeWrapper extends RemotingSerializable {
+    private ConcurrentHashMap<Integer /* level */, Long/* offset */> offsetTable =
+            new ConcurrentHashMap<Integer, Long>(32);
+
+
+    public ConcurrentHashMap<Integer, Long> getOffsetTable() {
+        return offsetTable;
+    }
+
+
+    public void setOffsetTable(ConcurrentHashMap<Integer, Long> offsetTable) {
+        this.offsetTable = offsetTable;
     }
 }
