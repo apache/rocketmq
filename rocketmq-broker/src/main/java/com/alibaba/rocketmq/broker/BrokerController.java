@@ -264,7 +264,7 @@ public class BrokerController {
                         BrokerController.this.consumerOffsetManager.recordPullTPS();
                     }
                     catch (Exception e) {
-                        log.error("", e);
+                        log.error("recordPullTPS Exception", e);
                     }
                 }
             }, 1000 * 10, this.brokerConfig.getFlushConsumerOffsetHistoryInterval(), TimeUnit.MILLISECONDS);
@@ -670,5 +670,10 @@ public class BrokerController {
 
     public SlaveSynchronize getSlaveSynchronize() {
         return slaveSynchronize;
+    }
+
+
+    public BrokerOuterAPI getBrokerOuterAPI() {
+        return brokerOuterAPI;
     }
 }
