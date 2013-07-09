@@ -1004,7 +1004,7 @@ public class CommitLog {
         PutMessageResult putMessageResult = new PutMessageResult(PutMessageStatus.PUT_OK, result);
 
         // 统计消息SIZE
-        storeStatsService.getPutMessageSizeTotal().addAndGet(result.getWroteBytes());
+        storeStatsService.getSinglePutMessageTopicSizeTotal(topic).addAndGet(result.getWroteBytes());
 
         GroupCommitRequest request = null;
 

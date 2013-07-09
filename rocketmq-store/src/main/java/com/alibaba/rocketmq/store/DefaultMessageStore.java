@@ -725,10 +725,8 @@ public class DefaultMessageStore implements MessageStore {
 
                                 this.reputFromOffset += size;
                                 readSize += size;
-                                DefaultMessageStore.this.storeStatsService.getPutMessageTopicTimesTotal()
-                                    .get(dispatchRequest.getTopic()).incrementAndGet();
-                                DefaultMessageStore.this.storeStatsService.getPutMessageSizeTotal()
-                                    .addAndGet(dispatchRequest.getMsgSize());
+                                DefaultMessageStore.this.storeStatsService.getSinglePutMessageTopicTimesTotal(dispatchRequest.getTopic()).incrementAndGet();
+                                DefaultMessageStore.this.storeStatsService.getSinglePutMessageTopicSizeTotal(dispatchRequest.getTopic()).addAndGet(dispatchRequest.getMsgSize());
                             }
                             // 文件中间读到错误
                             else if (size == -1) {
@@ -1079,7 +1077,7 @@ public class DefaultMessageStore implements MessageStore {
             log.warn("putMessage not in lock eclipse time(ms) " + eclipseTime);
         }
         this.storeStatsService.setPutMessageEntireTimeMax(eclipseTime);
-        this.storeStatsService.getPutMessageTopicTimesTotal().get(msg.getTopic()).incrementAndGet();
+        this.storeStatsService.getSinglePutMessageTopicTimesTotal(msg.getTopic()).incrementAndGet();
 
         if (null == result || !result.isOk()) {
             this.storeStatsService.getPutMessageFailedTimes().incrementAndGet();

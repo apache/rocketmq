@@ -35,9 +35,8 @@ public class DigestLogManager {
             }
         });
     private final PutStatsMoniter putStatsMoniter = new PutStatsMoniter(brokerController);
-//    private final SlavePutStatsMoniter slavePutStatsMoniter = new SlavePutStatsMoniter();
+    private final GetStatsMoniter getStatsMoniter = new GetStatsMoniter(brokerController);
     private final StoreStatsMoniter storeStatsMoniter = new StoreStatsMoniter(brokerController);
-    private final TransationStatsMoniter transationStatsMoniter = new TransationStatsMoniter();
 
     public DigestLogManager(BrokerController brokerController) {
         this.brokerController = brokerController;
@@ -65,9 +64,9 @@ public class DigestLogManager {
         @Override
         public void run() {
             putStatsMoniter.tolog();
-//            slavePutStatsMoniter.tolog();
+            getStatsMoniter.tolog();
             storeStatsMoniter.tolog();
-            transationStatsMoniter.tolog();
+//            transationStatsMoniter.tolog();
         }
     }
 
@@ -80,8 +79,8 @@ public class DigestLogManager {
         return storeStatsMoniter;
     }
 
-
-    public TransationStatsMoniter getTransationStatsMoniter() {
-        return transationStatsMoniter;
+    public GetStatsMoniter getGetStatsMoniter() {
+        return getStatsMoniter;
     }
+
 }
