@@ -20,6 +20,7 @@ import com.alibaba.rocketmq.common.DataVersion;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.TopicConfig;
 import com.alibaba.rocketmq.common.constant.LoggerName;
+import com.alibaba.rocketmq.common.namesrv.RegisterBrokerResult;
 import com.alibaba.rocketmq.common.protocol.body.TopicConfigSerializeWrapper;
 import com.alibaba.rocketmq.common.protocol.route.BrokerData;
 import com.alibaba.rocketmq.common.protocol.route.QueueData;
@@ -106,10 +107,9 @@ public class RouteInfoManager {
 
 
     /**
-     * 
      * @return 如果是slave，则返回master的ha地址
      */
-    public String registerBroker(//
+    public RegisterBrokerResult registerBroker(//
             final String clusterName,// 1
             final String brokerAddr,// 2
             final String brokerName,// 3
@@ -118,7 +118,7 @@ public class RouteInfoManager {
             final TopicConfigSerializeWrapper topicConfigWrapper,// 6
             final Channel channel// 7
     ) {
-        String masterHAServer = null;
+        RegisterBrokerResult result = new RegisterBrokerResult();
         try {
             try {
                 this.lock.writeLock().lockInterruptibly();
@@ -177,7 +177,8 @@ public class RouteInfoManager {
                     if (masterAddr != null) {
                         BrokerLiveInfo brokerLiveInfo = this.brokerLiveTable.get(masterAddr);
                         if (brokerLiveInfo != null) {
-                            masterHAServer = brokerLiveInfo.getHaServerAddr();
+                            result.setHaServerAddr(brokerLiveInfo.getHaServerAddr());
+                            result.setMasterAddr(masterAddr);
                         }
                     }
                 }
@@ -190,7 +191,7 @@ public class RouteInfoManager {
             log.error("registerBroker Exception", e);
         }
 
-        return masterHAServer;
+        return result;
     }
 
 

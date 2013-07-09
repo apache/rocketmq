@@ -1,24 +1,12 @@
-package com.alibaba.rocketmq.common.protocol.header.namesrv;
-
-import com.alibaba.rocketmq.remoting.CommandCustomHeader;
-import com.alibaba.rocketmq.remoting.annotation.CFNullable;
-import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
-
+package com.alibaba.rocketmq.common.namesrv;
 
 /**
  * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2013-7-4
+ * @since 2013-7-8
  */
-public class RegisterBrokerResponseHeader implements CommandCustomHeader {
-    @CFNullable
+public class RegisterBrokerResult {
     private String haServerAddr;
-    @CFNullable
     private String masterAddr;
-
-
-    @Override
-    public void checkFields() throws RemotingCommandException {
-    }
 
 
     public String getHaServerAddr() {
