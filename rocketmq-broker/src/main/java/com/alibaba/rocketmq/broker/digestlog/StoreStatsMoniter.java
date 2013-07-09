@@ -1,65 +1,45 @@
 package com.alibaba.rocketmq.broker.digestlog;
 
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 import com.alibaba.rocketmq.broker.BrokerController;
+import com.alibaba.rocketmq.store.DefaultMessageStore;
 
 
 public class StoreStatsMoniter {
-    // static final Log log = LogFactory.getLog(StoreStatsMoniter.class);
-    private ConcurrentHashMap<String/* topic,partition,cliHostName */, StoreStatsInfo> storeStatsInfos =
-            new ConcurrentHashMap<String, StoreStatsInfo>();
+    static final Log log = LogFactory.getLog(StoreStatsMoniter.class);
+    private static final String TOPIC_GROUP_SEPARATOR = "@";
     private BrokerController brokerController;
-
+//   
 
     public StoreStatsMoniter(BrokerController brokerController) {
         this.brokerController = brokerController;
     }
 
-
-    public void putAppend(String topic, String partition, long putOffset) {
-        StoreStatsInfo storeStatsInfo = storeStatsInfos.get(topic + partition);
-        if (null == storeStatsInfo) {
-            storeStatsInfo = new StoreStatsInfo(topic, partition, putOffset);
-            storeStatsInfos.put(topic + partition, storeStatsInfo);
-        }
-        else if (putOffset > 0) {
-            storeStatsInfo.getPutOffset().set(putOffset);
-        }
-    }
-
-
-    public void getAppend(String topic, String partition, String group, long getOffset) {
-        StoreStatsInfo storeStatsInfo = storeStatsInfos.get(topic + partition);
-        if (null == storeStatsInfo) {
-            storeStatsInfo = new StoreStatsInfo(topic, partition, 0);
-            storeStatsInfos.put(topic + partition, storeStatsInfo);
-        }
-        else {
-            if (getOffset > 0) {
-                if (null == storeStatsInfo.getGetGroupinfo().get(group)) {
-                    storeStatsInfo.getGetGroupinfo().put(group, new AtomicLong(getOffset));
-                }
-                else {
-                    storeStatsInfo.getGetGroupinfo().get(group).set(getOffset);
-                }
-            }
-        }
-    }
-
-
     public void tolog() {
-        for (StoreStatsInfo storeStatsInfo : storeStatsInfos.values()) {
-            if (!storeStatsInfo.isNull()) {
-                if (storeStatsInfo.getGetGroupinfo().size() > 0) {
-                    storeStatsInfo.tolog();
-                }
-                else {
-                    storeStatsInfo.toPutlog();
-                }
-                storeStatsInfo.dispose();
+        Map<String/* topic@group */, ConcurrentHashMap<Integer, Long>> offsetTable = brokerController.getConsumerOffsetManager().getOffsetTable();
+        DefaultMessageStore defaultMessageStore = (DefaultMessageStore) brokerController.getMessageStore();
+        for(String key:offsetTable.keySet()){
+            String [] strs = key.split(TOPIC_GROUP_SEPARATOR);
+            String topic = strs[0];
+            String group = strs[1];
+            for(Integer queueId:offsetTable.get(key).keySet()){
+                long maxoffsize = defaultMessageStore.getMessageTotalInQueue(topic, queueId);
+                StringBuffer sb = new StringBuffer();
+                sb.append("客户端Put消息和get消息执行统计").append(",");
+                sb.append("Topic[").append(topic).append("],");
+                sb.append("Partition[").append(brokerController.getBrokerConfig().getBrokerName()+"-"+queueId).append("],");
+                sb.append("PutOffset[").append(maxoffsize).append("],");
+                sb.append("消费group[").append(group).append("],");
+                sb.append("GetOffset[").append(offsetTable.get(key).get(queueId)).append("]");
+                log.info(sb.toString());
             }
+            
         }
     }
 

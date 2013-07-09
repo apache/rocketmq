@@ -7,6 +7,7 @@ import java.text.MessageFormat;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -60,16 +61,16 @@ public class StoreStatsService extends ServiceThread {
     // putMessage，失败次数
     private final AtomicLong putMessageFailedTimes = new AtomicLong(0);
     // putMessage，调用总数
-    private final Map <String,AtomicLong>putMessageTopicTimesTotal = new HashMap<String,AtomicLong>();
-   
+    private final Map <String,AtomicLong>putMessageTopicTimesTotal = new ConcurrentHashMap<String,AtomicLong>();
+    // putMessage，Message Size Total
+    private final Map <String,AtomicLong> putMessageTopicSizeTotal = new ConcurrentHashMap<String,AtomicLong>();
 
 
     // getMessage，调用总数
     private final AtomicLong getMessageTimesTotalFound = new AtomicLong(0);
     private final AtomicLong getMessageTransferedMsgCount = new AtomicLong(0);
     private final AtomicLong getMessageTimesTotalMiss = new AtomicLong(0);
-    // putMessage，Message Size Total
-    private final AtomicLong putMessageSizeTotal = new AtomicLong(0);
+   
     // putMessage，耗时分布
     private final AtomicLong[] putMessageDistributeTime = new AtomicLong[7];
     // DispatchMessageService，缓冲区最大值
@@ -160,16 +161,6 @@ public class StoreStatsService extends ServiceThread {
     }
 
 
-//    public AtomicLong getPutMessageTimesTotal() {
-//        return putMessageTimesTotal;
-//    }
-
-
-    public AtomicLong getPutMessageSizeTotal() {
-        return putMessageSizeTotal;
-    }
-
-
     public long getDispatchMaxBuffer() {
         return dispatchMaxBuffer;
     }
@@ -222,10 +213,10 @@ public class StoreStatsService extends ServiceThread {
         sb.append("\truntime: " + this.getFormatRuntime() + "\r\n");
         sb.append("\tputMessageEntireTimeMax: " + this.putMessageEntireTimeMax + "\r\n");
         sb.append("\tputMessageTimesTotal: " + totalTimes + "\r\n");
-        sb.append("\tputMessageSizeTotal: " + this.putMessageSizeTotal.get() + "\r\n");
+        sb.append("\tputMessageSizeTotal: " + this.getPutMessageSizeTotal() + "\r\n");
         sb.append("\tputMessageDistributeTime: " + this.getPutMessageDistributeTimeStringInfo(totalTimes)
                 + "\r\n");
-        sb.append("\tputMessageAverageSize: " + (this.putMessageSizeTotal.get() / totalTimes.doubleValue())
+        sb.append("\tputMessageAverageSize: " + (this.getPutMessageSizeTotal() / totalTimes.doubleValue())
                 + "\r\n");
         sb.append("\tdispatchMaxBuffer: " + this.dispatchMaxBuffer + "\r\n");
         sb.append("\tgetMessageEntireTimeMax: " + this.getMessageEntireTimeMax + "\r\n");
@@ -250,7 +241,7 @@ public class StoreStatsService extends ServiceThread {
         result.put("runtime", this.getFormatRuntime());
         result.put("putMessageEntireTimeMax", String.valueOf(this.putMessageEntireTimeMax));
         result.put("putMessageAverageSize",
-            String.valueOf((this.putMessageSizeTotal.get() / totalTimes.doubleValue())));
+            String.valueOf((this.getPutMessageSizeTotal() / totalTimes.doubleValue())));
         result.put("dispatchMaxBuffer", String.valueOf(this.dispatchMaxBuffer));
 
         return result;
@@ -528,9 +519,7 @@ public class StoreStatsService extends ServiceThread {
     public AtomicLong getPutMessageFailedTimes() {
         return putMessageFailedTimes;
     }
-    public Map<String, AtomicLong> getPutMessageTopicTimesTotal() {
-        return putMessageTopicTimesTotal;
-    }
+    
     
     public long getPutMessageTimesTotal() {
         long rs=0;
@@ -538,5 +527,40 @@ public class StoreStatsService extends ServiceThread {
             rs+=data.get();
         } 
         return rs;
+    }
+    public long getPutMessageSizeTotal() {
+        long rs=0;
+        for (AtomicLong data:putMessageTopicSizeTotal.values()){
+            rs+=data.get();
+        } 
+        return rs;
+    }
+
+
+    public AtomicLong getSinglePutMessageTopicSizeTotal(String topic) {
+        AtomicLong rs = putMessageTopicSizeTotal.get(topic);
+        if(null==rs){
+            rs = new AtomicLong(0);
+            putMessageTopicSizeTotal.put(topic, rs);
+        }
+        return rs;
+    }
+    public AtomicLong getSinglePutMessageTopicTimesTotal(String topic) {
+        AtomicLong rs = putMessageTopicTimesTotal.get(topic);
+        if(null==rs){
+            rs = new AtomicLong(0);
+            putMessageTopicTimesTotal.put(topic, rs);
+        }
+        return rs;
+    }
+
+
+    public Map<String, AtomicLong> getPutMessageTopicTimesTotal() {
+        return putMessageTopicTimesTotal;
+    }
+
+
+    public Map<String, AtomicLong> getPutMessageTopicSizeTotal() {
+        return putMessageTopicSizeTotal;
     }
 }
