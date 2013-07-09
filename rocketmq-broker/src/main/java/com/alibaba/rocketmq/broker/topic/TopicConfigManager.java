@@ -72,11 +72,6 @@ public class TopicConfigManager extends ConfigManager {
     }
 
 
-    public String currentDataVersion() {
-        return this.dataVersion.toJson();
-    }
-
-
     public boolean isSystemTopic(final String topic) {
         boolean res = //
                 topic.equals(MixAll.DEFAULT_TOPIC)//

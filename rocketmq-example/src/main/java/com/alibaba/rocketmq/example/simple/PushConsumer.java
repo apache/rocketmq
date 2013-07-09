@@ -26,7 +26,7 @@ public class PushConsumer {
     public static void main(String[] args) throws InterruptedException, MQClientException {
         DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("example_consumer_group9");
 
-        consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_MIN_OFFSET);
+        consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_MAX_OFFSET);
 
         consumer.subscribe("BenchmarkTest", "*");
 
@@ -38,14 +38,14 @@ public class PushConsumer {
             public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> msgs,
                     ConsumeConcurrentlyContext context) {
                 System.out.println(Thread.currentThread().getName() + " Receive New Messages: " + msgs);
-                try {
-                    Thread.sleep(20);
-                }
-                catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
+                // try {
+                // Thread.sleep(20);
+                // }
+                // catch (InterruptedException e) {
+                // e.printStackTrace();
+                // }
                 if ((this.consumeTimes.getAndIncrement() % 2) == 0) {
-                    return ConsumeConcurrentlyStatus.RECONSUME_LATER;
+                    // return ConsumeConcurrentlyStatus.RECONSUME_LATER;
                 }
                 return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
             }
