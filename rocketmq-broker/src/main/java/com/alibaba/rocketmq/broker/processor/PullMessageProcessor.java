@@ -291,57 +291,15 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                         public void operationComplete(ChannelFuture future) throws Exception {
                             getMessageResult.release();
                             if (!future.isSuccess()) {
-//                                brokerController
-//                                    .getDigestLogManager()
-//                                    .getGetStatsMoniter()
-//                                    .append(
-//                                        requestHeader.getTopic(),
-//                                        brokerController.getBrokerConfig().getBrokerName() + "-"
-//                                                + requestHeader.getQueueId(),
-//                                        RemotingHelper.parseChannelRemoteName(channel),
-//                                        requestHeader.getConsumerGroup(), 0, 1, 0,
-//                                        System.currentTimeMillis() - startTime,
-//                                        getMessageResult.getBufferTotalSize());
                                 log.error(
                                     "transfer many message by pagecache failed, " + channel.remoteAddress(),
                                     future.cause());
-                            }
-                            else {
-//                                brokerController
-//                                    .getDigestLogManager()
-//                                    .getGetStatsMoniter()
-//                                    .append(
-//                                        requestHeader.getTopic(),
-//                                        brokerController.getBrokerConfig().getBrokerName() + "-"
-//                                                + requestHeader.getQueueId(),
-//                                        RemotingHelper.parseChannelRemoteName(channel),
-//                                        requestHeader.getConsumerGroup(), 1, 0, 0,
-//                                        System.currentTimeMillis() - startTime,
-//                                        getMessageResult.getBufferTotalSize());
-//                                brokerController
-//                                    .getDigestLogManager()
-//                                    .getStoreStatsMoniter()
-//                                    .getAppend(
-//                                        requestHeader.getTopic(),
-//                                        brokerController.getBrokerConfig().getBrokerName() + "-"
-//                                                + requestHeader.getQueueId(),
-//                                        requestHeader.getConsumerGroup(), getMessageResult.getMaxOffset());
                             }
                         }
                     });
                 }
                 catch (Throwable e) {
                     log.error("", e);
-//                    brokerController
-//                        .getDigestLogManager()
-//                        .getGetStatsMoniter()
-//                        .append(
-//                            requestHeader.getTopic(),
-//                            brokerController.getBrokerConfig().getBrokerName() + "-"
-//                                    + requestHeader.getQueueId(),
-//                            RemotingHelper.parseChannelRemoteName(channel), requestHeader.getConsumerGroup(),
-//                            0, 1, 0, System.currentTimeMillis() - startTime,
-//                            getMessageResult.getBufferTotalSize());
                     getMessageResult.release();
                 }
 
@@ -356,28 +314,12 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                     this.brokerController.getPullRequestHoldService().suspendPullRequest(
                         requestHeader.getTopic(), requestHeader.getQueueId(), pullRequest);
                     response = null;
-//                    brokerController
-//                        .getDigestLogManager()
-//                        .getGetMissStatsMoniter()
-//                        .append(
-//                            requestHeader.getTopic(),
-//                            brokerController.getBrokerConfig().getBrokerName() + "-"
-//                                    + requestHeader.getQueueId(),
-//                            RemotingHelper.parseChannelRemoteName(channel), requestHeader.getConsumerGroup(),
-//                            1);
                     break;
                 }
 
                 // 向Consumer返回应答
             case MQResponseCode.PULL_RETRY_IMMEDIATELY_VALUE:
             case MQResponseCode.PULL_OFFSET_MOVED_VALUE:
-//                brokerController
-//                    .getDigestLogManager()
-//                    .getGetMissStatsMoniter()
-//                    .append(
-//                        requestHeader.getTopic(),
-//                        brokerController.getBrokerConfig().getBrokerName() + "-" + requestHeader.getQueueId(),
-//                        RemotingHelper.parseChannelRemoteName(channel), requestHeader.getConsumerGroup(), 1);
                 break;
             default:
                 assert false;
@@ -386,14 +328,6 @@ public class PullMessageProcessor implements NettyRequestProcessor {
         else {
             response.setCode(ResponseCode.SYSTEM_ERROR_VALUE);
             response.setRemark("store getMessage return null");
-//            brokerController
-//                .getDigestLogManager()
-//                .getGetStatsMoniter()
-//                .append(requestHeader.getTopic(),
-//                    brokerController.getBrokerConfig().getBrokerName() + "-" + requestHeader.getQueueId(),
-//                    RemotingHelper.parseChannelRemoteName(channel), requestHeader.getConsumerGroup(), 0, 1,
-//                    0, System.currentTimeMillis() - startTime, 0);
-
         }
 
         // 存储Consumer消费进度

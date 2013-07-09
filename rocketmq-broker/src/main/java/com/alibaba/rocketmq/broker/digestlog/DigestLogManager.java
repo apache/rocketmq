@@ -24,7 +24,7 @@ public class DigestLogManager {
     
 
     private static final Log log = LogFactory.getLog(DigestLogManager.class);
-    private BrokerController brokerController;
+    private final BrokerController brokerController;
     private final boolean startRealTimeStat = Boolean.valueOf(System
         .getProperty("meta.realtime.stat", "true"));
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1,
@@ -34,14 +34,20 @@ public class DigestLogManager {
                 return new Thread(r, "DigestLogPrintSchedule");
             }
         });
-    private final PutStatsMoniter putStatsMoniter = new PutStatsMoniter(brokerController);
-    private final GetStatsMoniter getStatsMoniter = new GetStatsMoniter(brokerController);
-    private final StoreStatsMoniter storeStatsMoniter = new StoreStatsMoniter(brokerController);
+    private  final PutStatsMoniter putStatsMoniter ;
+    private  final GetStatsMoniter getStatsMoniter ;
+    private  final StoreStatsMoniter storeStatsMoniter;
 
     public DigestLogManager(BrokerController brokerController) {
         this.brokerController = brokerController;
+        putStatsMoniter = new PutStatsMoniter(brokerController);
+        getStatsMoniter = new GetStatsMoniter(brokerController);
+        storeStatsMoniter = new StoreStatsMoniter(brokerController);
     }
-
+    
+    public void init(){
+        
+    }
     public void start() {
         if (startRealTimeStat) {
             scheduler.scheduleWithFixedDelay(new DigestPrintOut(), 10, 20, TimeUnit.SECONDS);
