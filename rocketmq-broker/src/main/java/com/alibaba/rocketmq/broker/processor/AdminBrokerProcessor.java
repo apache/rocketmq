@@ -207,16 +207,10 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         }
         else {
             log.error("No topic in this broker, client: " + ctx.channel().remoteAddress());
-
             response.setCode(ResponseCode.SYSTEM_ERROR_VALUE);
             response.setRemark("No topic in this broker");
             return response;
         }
-
-        responseHeader.setVersion(brokerController.getTopicConfigManager().currentDataVersion());
-        responseHeader.setBrokerName(brokerController.getBrokerConfig().getBrokerName());
-        responseHeader.setBrokerId(brokerController.getBrokerConfig().getBrokerId());
-        responseHeader.setClusterName(brokerController.getBrokerConfig().getBrokerClusterName());
 
         response.setCode(ResponseCode.SUCCESS_VALUE);
         response.setRemark(null);

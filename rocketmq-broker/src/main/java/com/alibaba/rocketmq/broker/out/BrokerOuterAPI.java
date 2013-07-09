@@ -204,4 +204,23 @@ public class BrokerOuterAPI {
             }
         }
     }
+
+
+    public TopicConfigSerializeWrapper getAllTopicConfig(final String addr) throws RemotingConnectException,
+            RemotingSendRequestException, RemotingTimeoutException, InterruptedException, MQBrokerException {
+        RemotingCommand request =
+                RemotingCommand.createRequestCommand(MQRequestCode.UNREGISTER_BROKER_VALUE, null);
+
+        RemotingCommand response = this.remotingClient.invokeSync(addr, request, 3000);
+        assert response != null;
+        switch (response.getCode()) {
+        case ResponseCode.SUCCESS_VALUE: {
+            return TopicConfigSerializeWrapper.decode(response.getBody(), TopicConfigSerializeWrapper.class);
+        }
+        default:
+            break;
+        }
+
+        throw new MQBrokerException(response.getCode(), response.getRemark());
+    }
 }
