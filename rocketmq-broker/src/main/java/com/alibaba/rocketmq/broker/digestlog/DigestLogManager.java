@@ -23,7 +23,6 @@ import com.alibaba.rocketmq.broker.BrokerController;
 public class DigestLogManager {
     
 
-    private static final Log log = LogFactory.getLog(DigestLogManager.class);
     private final BrokerController brokerController;
     private final boolean startRealTimeStat = Boolean.valueOf(System
         .getProperty("meta.realtime.stat", "true"));
@@ -57,7 +56,6 @@ public class DigestLogManager {
                     scheduler.shutdown();
                 }
             });
-            log.warn("实时统计启动...");
         }
     }
 
@@ -72,7 +70,6 @@ public class DigestLogManager {
             putStatsMoniter.tolog();
             getStatsMoniter.tolog();
             storeStatsMoniter.tolog();
-//            transationStatsMoniter.tolog();
         }
     }
 
