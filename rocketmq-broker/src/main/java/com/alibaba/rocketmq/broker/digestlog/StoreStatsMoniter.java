@@ -12,7 +12,7 @@ import com.alibaba.rocketmq.store.DefaultMessageStore;
 
 
 public class StoreStatsMoniter {
-    static final Log log = LogFactory.getLog(StoreStatsMoniter.class);
+    static final Log log = LogFactory.getLog("StoreStatsMoniter");
     private static final String TOPIC_GROUP_SEPARATOR = "@";
     private BrokerController brokerController;
 //   
@@ -31,11 +31,11 @@ public class StoreStatsMoniter {
             for(Integer queueId:offsetTable.get(key).keySet()){
                 long maxoffsize = defaultMessageStore.getMessageTotalInQueue(topic, queueId);
                 StringBuffer sb = new StringBuffer();
-                sb.append("客户端Put消息和get消息执行统计").append(",");
+                sb.append("Client Put And get Count").append(",");
                 sb.append("Topic[").append(topic).append("],");
                 sb.append("Partition[").append(brokerController.getBrokerConfig().getBrokerName()+"-"+queueId).append("],");
                 sb.append("PutOffset[").append(maxoffsize).append("],");
-                sb.append("消费group[").append(group).append("],");
+                sb.append("group[").append(group).append("],");
                 sb.append("GetOffset[").append(offsetTable.get(key).get(queueId)).append("]");
                 log.info(sb.toString());
             }

@@ -12,7 +12,7 @@ import com.alibaba.rocketmq.store.DefaultMessageStore;
 
 
 public class PutStatsMoniter {
-    static final Log log = LogFactory.getLog(PutStatsMoniter.class);
+    static final Log log = LogFactory.getLog("PutStatsMoniter");
     private BrokerController brokerController;
     
     private final Map <String,Long> putMessageTopicTimesTotalLast = new HashMap<String,Long>();
@@ -26,19 +26,21 @@ public class PutStatsMoniter {
         DefaultMessageStore defaultMessageStore = (DefaultMessageStore) brokerController.getMessageStore();
         Map <String,AtomicLong> putMessageTopicTimesTotal = defaultMessageStore.getStoreStatsService().getPutMessageTopicTimesTotal();
         Map <String,AtomicLong> putMessageTopicSizeTotal = defaultMessageStore.getStoreStatsService().getPutMessageTopicSizeTotal();
-        for(String topic:putMessageTopicTimesTotalLast.keySet()){
+        for(String topic:putMessageTopicTimesTotal.keySet()){
             long putMessageTopicTimesTotalValue = putMessageTopicTimesTotal.get(topic).get();
             long putMessageTopicSizeTotalValue = putMessageTopicSizeTotal.get(topic).get();
             long putMessageTopicTimesTotalValueLast =putMessageTopicTimesTotalLast.get(topic)==null?0:putMessageTopicTimesTotalLast.get(topic);
             long putMessageTopicSizeTotalValueLast = putMessageTopicSizeTotalLast.get(topic)==null?0:putMessageTopicSizeTotalLast.get(topic);
             putMessageTopicTimesTotalLast.put(topic, putMessageTopicTimesTotalValue);
             putMessageTopicSizeTotalLast.put(topic, putMessageTopicSizeTotalValue);
-            StringBuffer sb = new StringBuffer();
-            sb.append("客户端Put消息执行统计").append(",");
-            sb.append("Topic[").append(topic).append("],");
-            sb.append("成功数[").append(putMessageTopicTimesTotalValue-putMessageTopicTimesTotalValueLast).append("],");
-            sb.append("消息流量[").append(putMessageTopicSizeTotalValue-putMessageTopicSizeTotalValueLast).append("]");
-            log.info(sb.toString());
+                if((putMessageTopicTimesTotalValue-putMessageTopicTimesTotalValueLast+putMessageTopicSizeTotalValue-putMessageTopicSizeTotalValueLast)>0){
+                StringBuffer sb = new StringBuffer();
+                sb.append("ClientPutCount").append(",");
+                sb.append("Topic[").append(topic).append("],");
+                sb.append("Total[").append(putMessageTopicTimesTotalValue-putMessageTopicTimesTotalValueLast).append("],");
+                sb.append("TotalSize[").append(putMessageTopicSizeTotalValue-putMessageTopicSizeTotalValueLast).append("]");
+                log.info(sb.toString());
+            }
         }
     }
 

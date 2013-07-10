@@ -12,7 +12,7 @@ import com.alibaba.rocketmq.store.DefaultMessageStore;
 
 
 public class GetStatsMoniter {
-    static final Log log = LogFactory.getLog(GetStatsMoniter.class);
+    static final Log log = LogFactory.getLog("GetStatsMoniter");
     private BrokerController brokerController;
     private static final String TOPIC_GROUP_SEPARATOR = "@";
     private Map<String, HashMap<Integer, Long>> offsetTableLast=new HashMap<String, HashMap<Integer, Long>>();
@@ -29,13 +29,15 @@ public class GetStatsMoniter {
             for(Integer queueId:offsetTable.get(key).keySet()){
                 long nowvalue = offsetTable.get(key).get(queueId);
                 long lastvalue = getLastValue(key,queueId,nowvalue);
-                StringBuffer sb = new StringBuffer();
-                sb.append("客户端Get消息执行统计").append(",");
-                sb.append("Topic[").append(topic).append("],");
-                sb.append("Partition[").append(brokerController.getBrokerConfig().getBrokerName()+"-"+queueId).append("],");
-                sb.append("Group[").append(group).append(",");
-                sb.append("消息数[").append(nowvalue-lastvalue).append("]");
-                log.info(sb.toString());
+                if((nowvalue-lastvalue)>0){
+                    StringBuffer sb = new StringBuffer();
+                    sb.append("ClientGetConut").append(",");
+                    sb.append("Topic[").append(topic).append("],");
+                    sb.append("Partition[").append(brokerController.getBrokerConfig().getBrokerName()+"-"+queueId).append("],");
+                    sb.append("Group[").append(group).append(",");
+                    sb.append("Total[").append(nowvalue-lastvalue).append("]");
+                    log.info(sb.toString());
+                }
             }
             
         }
