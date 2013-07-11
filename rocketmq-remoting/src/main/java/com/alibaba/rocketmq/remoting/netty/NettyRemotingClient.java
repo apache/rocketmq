@@ -435,16 +435,19 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
             ChannelFuture channelFuture = cw.getChannelFuture();
             if (channelFuture.awaitUninterruptibly(this.nettyClientConfig.getConnectTimeoutMillis())) {
                 if (cw.isOK()) {
-                    log.info("createChannel: connect remote host[{}] success", addr);
+                    log.info("createChannel: connect remote host[{}] success, {}", addr,
+                        channelFuture.toString());
                     return cw.getChannel();
                 }
                 else {
-                    log.warn("createChannel: connect remote host[" + addr + "] failed", channelFuture.cause());
+                    log.warn(
+                        "createChannel: connect remote host[" + addr + "] failed, "
+                                + channelFuture.toString(), channelFuture.cause());
                 }
             }
             else {
-                log.warn("createChannel: connect remote host[{}] timeout {}ms", addr,
-                    this.nettyClientConfig.getConnectTimeoutMillis());
+                log.warn("createChannel: connect remote host[{}] timeout {}ms, {}", addr,
+                    this.nettyClientConfig.getConnectTimeoutMillis(), channelFuture.toString());
             }
         }
 
