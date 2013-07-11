@@ -15,8 +15,17 @@ import com.alibaba.rocketmq.common.message.Message;
  */
 public class TransactionMQProducer extends DefaultMQProducer {
     private TransactionCheckListener transactionCheckListener;
+    /**
+     * 事务回查最小并发数
+     */
     private int checkThreadPoolMinSize = 1;
+    /**
+     * 事务回查最大并发数
+     */
     private int checkThreadPoolMaxSize = 1;
+    /**
+     * 事务回查队列数
+     */
     private int checkRequestHoldMax = 2000;
 
 
