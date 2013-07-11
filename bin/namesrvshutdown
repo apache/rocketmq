@@ -14,4 +14,4 @@ echo "The mqbroker(${pid}) is running..."
 
 kill ${pid}
 
-echo "Send shutdown request to mqbroker(${pid}) OK"
+echo "Send shutdown request to mqamesrvShutdown(${pid}) OK"
