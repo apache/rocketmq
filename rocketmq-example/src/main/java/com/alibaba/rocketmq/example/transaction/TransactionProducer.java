@@ -19,6 +19,12 @@ public class TransactionProducer {
 
         TransactionCheckListener transactionCheckListener = new TransactionCheckListenerImpl();
         TransactionMQProducer producer = new TransactionMQProducer("example.producer");
+        //事务回查最小并发数
+        producer.setCheckThreadPoolMinSize(2);
+        //事务回查最大并发数
+        producer.setCheckThreadPoolMaxSize(2);
+        //队列数
+        producer.setCheckRequestHoldMax(2000);
         producer.setTransactionCheckListener(transactionCheckListener);
         producer.start();
 
