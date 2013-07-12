@@ -10,7 +10,7 @@ if [ -z "$pid" ] ; then
         exit -1;
 fi
 
-echo "The mqbroker(${pid}) is running..."
+echo "The mqamesrvShutdown(${pid}) is running..."
 
 kill ${pid}
 
