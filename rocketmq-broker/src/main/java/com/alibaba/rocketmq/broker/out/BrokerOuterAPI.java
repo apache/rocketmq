@@ -209,7 +209,7 @@ public class BrokerOuterAPI {
     public TopicConfigSerializeWrapper getAllTopicConfig(final String addr) throws RemotingConnectException,
             RemotingSendRequestException, RemotingTimeoutException, InterruptedException, MQBrokerException {
         RemotingCommand request =
-                RemotingCommand.createRequestCommand(MQRequestCode.UNREGISTER_BROKER_VALUE, null);
+                RemotingCommand.createRequestCommand(MQRequestCode.GET_ALL_TOPIC_CONFIG_VALUE, null);
 
         RemotingCommand response = this.remotingClient.invokeSync(addr, request, 3000);
         assert response != null;
