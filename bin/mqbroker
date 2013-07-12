@@ -31,4 +31,4 @@ fi
 
 export ROCKETMQ_HOME
 
-nohup sh ${ROCKETMQ_HOME}/bin/runbroker.sh com.alibaba.rocketmq.broker.BrokerStartup $@ &
+ sh ${ROCKETMQ_HOME}/bin/runbroker.sh com.alibaba.rocketmq.broker.BrokerStartup $@ 
