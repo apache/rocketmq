@@ -51,6 +51,10 @@ enum MQRequestCode{
     LOCK_BATCH_MQ = 41;                                 // Broker Consumer向Master锁定队列
     UNLOCK_BATCH_MQ = 42;                               // Broker Consumer向Master解锁队列
 
+    GET_ALL_CONSUMER_OFFSET = 43;                       // Broker 获取所有Consumer Offset
+    GET_ALL_SUBSCRIPTION_GROUP_CONFIG = 44;             // Broker 获取所有订阅组配置
+    GET_ALL_DELAY_OFFSET = 45;                          // Broker 获取所有定时进度
+
     PUT_KV_CONFIG = 100;                                // Namesrv 向Namesrv追加KV配置
     GET_KV_CONFIG = 101;                                // Namesrv 从Namesrv获取KV配置
     DELETE_KV_CONFIG = 102;                             // Namesrv 从Namesrv获取KV配置
