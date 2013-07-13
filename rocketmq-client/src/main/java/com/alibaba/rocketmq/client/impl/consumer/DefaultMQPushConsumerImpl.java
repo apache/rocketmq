@@ -758,6 +758,11 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
     }
 
 
+    public void updateCorePoolSize(int corePoolSize) {
+        this.consumeMessageService.updateCorePoolSize(corePoolSize);
+    }
+
+
     private void updateTopicSubscribeInfoWhenSubscriptionChanged() {
         Map<String, SubscriptionData> subTable = this.getSubscriptionInner();
         if (subTable != null) {

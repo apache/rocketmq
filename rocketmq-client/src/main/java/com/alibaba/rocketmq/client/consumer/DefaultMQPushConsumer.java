@@ -330,6 +330,12 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
 
 
     @Override
+    public void updateCorePoolSize(int corePoolSize) {
+        this.defaultMQPushConsumerImpl.updateCorePoolSize(corePoolSize);
+    }
+
+
+    @Override
     public MessageExt viewMessage(String msgId) throws RemotingException, MQBrokerException,
             InterruptedException, MQClientException {
         return this.defaultMQPushConsumerImpl.viewMessage(msgId);
@@ -344,4 +350,5 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
     public void setOffsetStore(OffsetStore offsetStore) {
         this.offsetStore = offsetStore;
     }
+
 }

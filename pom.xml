@@ -213,6 +213,11 @@
 				<artifactId>gson</artifactId>
 				<version>2.2.4</version>
 			</dependency>
+<dependency>
+  <groupId>com.alibaba</groupId>
+  <artifactId>fastjson</artifactId>
+  <version>1.1.33</version>
+</dependency>
 		</dependencies>
 	</dependencyManagement>
 </project>

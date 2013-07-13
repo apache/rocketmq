@@ -62,6 +62,14 @@ public interface MQPushConsumer extends MQConsumer {
 
 
     /**
+     * 动态调整消费线程池线程数量
+     * 
+     * @param corePoolSize
+     */
+    public void updateCorePoolSize(int corePoolSize);
+
+
+    /**
      * 消费线程挂起，暂停消费
      */
     public void suspend();
