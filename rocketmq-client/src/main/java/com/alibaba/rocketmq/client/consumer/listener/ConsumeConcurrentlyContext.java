@@ -17,7 +17,10 @@ public class ConsumeConcurrentlyContext {
      */
     private final MessageQueue messageQueue;
     /**
-     * 0，表示由客户端决定
+     * 下次消息重试延时时间<br>
+     * -1，表示不重试，直接进入死信队列<br>
+     * 0，表示由服务器根据重试次数自动叠加<br>
+     * >0，表示客户端强制指定延时Level
      */
     private int delayLevelWhenNextConsume = 0;
     /**

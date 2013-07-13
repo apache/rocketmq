@@ -133,8 +133,12 @@ public class SendMessageProcessor implements NettyRequestProcessor {
         }
         msgExt.setWaitStoreMsgOK(false);
 
+        // 客户端自动决定定时级别
+        int delayLevel = requestHeader.getDelayLevel();
+
         // 死信消息处理
-        if (msgExt.getReconsumeTimes() >= subscriptionGroupConfig.getRetryMaxTimes()) {
+        if (msgExt.getReconsumeTimes() >= subscriptionGroupConfig.getRetryMaxTimes()//
+                || delayLevel < 0) {
             newTopic = MixAll.getDLQTopic(requestHeader.getGroup());
             queueIdInt = Math.abs(this.random.nextInt()) % DLQ_NUMS_PER_GROUP;
 
@@ -149,7 +153,11 @@ public class SendMessageProcessor implements NettyRequestProcessor {
         }
         // 继续重试
         else {
-            msgExt.setDelayTimeLevel(requestHeader.getDelayLevel());
+            if (0 == delayLevel) {
+                delayLevel = 3 + msgExt.getReconsumeTimes();
+            }
+
+            msgExt.setDelayTimeLevel(delayLevel);
         }
 
         MessageExtBrokerInner msgInner = new MessageExtBrokerInner();
