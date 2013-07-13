@@ -175,19 +175,8 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
 
 
     public boolean sendMessageBack(final MessageExt msg, final ConsumeConcurrentlyContext context) {
-        // 客户端自动决定定时级别
-        int delayLevel = 3;
-
-        if (context.getDelayLevelWhenNextConsume() <= 0) {
-            int reconsumeTimes = msg.getReconsumeTimes();
-            if (reconsumeTimes > 0) {
-                // 每个级别重试若干次
-                delayLevel += delayLevel / 3;
-            }
-        }
-        else {
-            delayLevel = context.getDelayLevelWhenNextConsume();
-        }
+        // 如果用户没有设置，服务器会根据重试次数自动叠加延时时间
+        int delayLevel = context.getDelayLevelWhenNextConsume();
 
         try {
             this.defaultMQPushConsumerImpl.sendMessageBack(msg, delayLevel);
