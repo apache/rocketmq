@@ -23,6 +23,7 @@ import org.slf4j.LoggerFactory;
  * 后台服务线程基类
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
+ * @since 2013-7-13
  */
 public abstract class ServiceThread implements Runnable {
     private static final Logger stlog = LoggerFactory.getLogger(RemotingHelper.RemotingLogName);
