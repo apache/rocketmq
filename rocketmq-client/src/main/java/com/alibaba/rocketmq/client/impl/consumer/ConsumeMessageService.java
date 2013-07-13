@@ -16,6 +16,9 @@ public interface ConsumeMessageService {
     public void shutdown();
 
 
+    public void updateCorePoolSize(int corePoolSize);
+
+
     public void submitConsumeRequest(//
             final List<MessageExt> msgs, //
             final ProcessQueue processQueue, //

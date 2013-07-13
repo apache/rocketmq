@@ -243,6 +243,9 @@ public abstract class RebalanceImpl {
     }
 
 
+
+
+
     public void doRebalance() {
         Map<String, SubscriptionData> subTable = this.getSubscriptionInner();
         if (subTable != null) {

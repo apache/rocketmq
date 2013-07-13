@@ -3,7 +3,6 @@ package com.alibaba.rocketmq.client.impl.consumer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
@@ -37,7 +36,7 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
     private final DefaultMQPushConsumer defaultMQPushConsumer;
     private final MessageListenerConcurrently messageListener;
     private final BlockingQueue<Runnable> consumeRequestQueue;
-    private final ExecutorService consumeExecutor;
+    private final ThreadPoolExecutor consumeExecutor;
     private final String consumerGroup;
 
     // 定时线程
@@ -321,6 +320,14 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
                 ConsumeRequest consumeRequest = new ConsumeRequest(msgThis, processQueue, messageQueue);
                 this.consumeExecutor.submit(consumeRequest);
             }
+        }
+    }
+
+
+    @Override
+    public void updateCorePoolSize(int corePoolSize) {
+        if (corePoolSize > 0 && corePoolSize <= Short.MAX_VALUE) {
+            this.consumeExecutor.setCorePoolSize(corePoolSize);
         }
     }
 }
