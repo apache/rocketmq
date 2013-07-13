@@ -244,6 +244,16 @@ public class SendMessageProcessor implements NettyRequestProcessor {
                 requestHeader.getDefaultTopic(), //
                 RemotingHelper.parseChannelRemoteAddr(ctx.channel()), //
                 requestHeader.getDefaultTopicQueueNums());
+
+            // 尝试看下是否是失败消息发回
+            if (null == topicConfig) {
+                if (requestHeader.getTopic().startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
+                    topicConfig =
+                            this.brokerController.getTopicConfigManager().createTopicInSendMessageBackMethod(
+                                requestHeader.getTopic(), 1);
+                }
+            }
+
             if (null == topicConfig) {
                 response.setCode(MQResponseCode.TOPIC_NOT_EXIST_VALUE);
                 response.setRemark("topic[" + requestHeader.getTopic() + "] not exist, apply first please!"
