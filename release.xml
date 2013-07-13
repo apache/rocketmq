@@ -12,7 +12,6 @@
 				<include>conf/*</include>
 				<include>test/*</include>
 				<include>benchmark/*</include>
-				<include>webroot/*/*/*</include>
 			</includes>
 		</fileSet>
 	</fileSets>
@@ -26,7 +25,6 @@
 				<include>com.alibaba.rocketmq:rocketmq-client</include>
 				<include>com.alibaba.rocketmq:rocketmq-research</include>
 				<include>com.alibaba.rocketmq:rocketmq-namesrv</include>
-				<include>com.alibaba.rocketmq:rocketmq-console</include>
 				<include>com.alibaba.rocketmq:rocketmq-example</include>
 			</includes>
 			<binaries>
