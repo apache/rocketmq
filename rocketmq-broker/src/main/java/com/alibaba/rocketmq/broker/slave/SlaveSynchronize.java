@@ -39,6 +39,7 @@ public class SlaveSynchronize {
         this.syncTopicConfig();
         this.syncConsumerOffset();
         this.syncDelayOffset();
+        this.syncSubscriptionGroupConfig();
     }
 
 
@@ -76,6 +77,14 @@ public class SlaveSynchronize {
 
 
     private void syncDelayOffset() {
+        String masterAddrBak = this.masterAddr;
+        if (masterAddrBak != null) {
+
+        }
+    }
+
+
+    private void syncSubscriptionGroupConfig() {
         String masterAddrBak = this.masterAddr;
         if (masterAddrBak != null) {
 
