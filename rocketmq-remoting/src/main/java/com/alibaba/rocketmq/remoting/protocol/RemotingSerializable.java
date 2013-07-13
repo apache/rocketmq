@@ -1,7 +1,6 @@
 package com.alibaba.rocketmq.remoting.protocol;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
+import com.alibaba.fastjson.JSON;
 
 
 /**
@@ -10,22 +9,18 @@ import com.google.gson.GsonBuilder;
  * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public abstract class RemotingSerializable {
-    protected final static GsonBuilder builder = new GsonBuilder();
-    protected final static Gson gson = builder.create();
-
-
     public String toJson() {
-        return gson.toJson(this);
+        return toJson(this);
     }
 
 
     public static String toJson(final Object obj) {
-        return gson.toJson(obj);
+        return JSON.toJSONString(obj);
     }
 
 
     public static <T> T fromJson(String json, Class<T> classOfT) {
-        return gson.fromJson(json, classOfT);
+        return JSON.parseObject(json, classOfT);
     }
 
 

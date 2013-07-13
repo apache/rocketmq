@@ -4,8 +4,6 @@
 package com.alibaba.rocketmq.store.schedule;
 
 import java.util.HashMap;
-import java.util.Properties;
-import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
@@ -14,13 +12,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.alibaba.rocketmq.common.ConfigManager;
-import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.TopicFilterType;
 import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.common.message.Message;
 import com.alibaba.rocketmq.common.message.MessageDecoder;
 import com.alibaba.rocketmq.common.message.MessageExt;
-import com.alibaba.rocketmq.remoting.protocol.RemotingSerializable;
 import com.alibaba.rocketmq.store.ConsumeQueue;
 import com.alibaba.rocketmq.store.DefaultMessageStore;
 import com.alibaba.rocketmq.store.MessageExtBrokerInner;
@@ -259,29 +255,12 @@ public class ScheduleMessageService extends ConfigManager {
 
 
     public boolean load() {
-        super.load();
-        boolean result = this.parseDelayLevel();
-//        if (result) {
-//            String str =
-//                    MixAll.file2String(this.defaultMessageStore.getMessageStoreConfig()
-//                        .getDelayOffsetStorePath());
-//            if (str != null) {
-//                Properties prop = MixAll.string2Properties(str);
-//                if (prop != null) {
-//                    Set<Object> keyset = prop.keySet();
-//                    for (Object object : keyset) {
-//                        String propValue = prop.getProperty(object.toString());
-//                        if (propValue != null) {
-//                            this.updateOffset(Integer.parseInt(object.toString()), Long.parseLong(propValue));
-//                            log.info("load delay offset table, LEVEL: {} OFFSET {}", object.toString(),
-//                                propValue);
-//                        }
-//                    }
-//                }
-//            }
-//        }
+        boolean result = super.load();
+        result = result && this.parseDelayLevel();
         return result;
     }
+
+
     public void start() {
         // 为每个延时队列增加定时器
         for (Integer level : this.delayLevelTable.keySet()) {
@@ -345,21 +324,5 @@ public class ScheduleMessageService extends ConfigManager {
     @Override
     public String configFilePath() {
         return this.defaultMessageStore.getMessageStoreConfig().getDelayOffsetStorePath();
-    }
-}
-
-
-class DelayOffsetSerializeWrapper extends RemotingSerializable {
-    private ConcurrentHashMap<Integer /* level */, Long/* offset */> offsetTable =
-            new ConcurrentHashMap<Integer, Long>(32);
-
-
-    public ConcurrentHashMap<Integer, Long> getOffsetTable() {
-        return offsetTable;
-    }
-
-
-    public void setOffsetTable(ConcurrentHashMap<Integer, Long> offsetTable) {
-        this.offsetTable = offsetTable;
     }
 }

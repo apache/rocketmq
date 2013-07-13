@@ -11,7 +11,6 @@ import org.slf4j.LoggerFactory;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.namesrv.NamesrvController;
-import com.alibaba.rocketmq.remoting.protocol.RemotingSerializable;
 
 
 /**
@@ -168,20 +167,5 @@ public class KVConfigManager {
         catch (InterruptedException e) {
             log.error("printAllPeriodically InterruptedException", e);
         }
-    }
-}
-
-
-class KVConfigSerializeWrapper extends RemotingSerializable {
-    private HashMap<String/* Namespace */, HashMap<String/* Key */, String/* Value */>> configTable;
-
-
-    public HashMap<String, HashMap<String, String>> getConfigTable() {
-        return configTable;
-    }
-
-
-    public void setConfigTable(HashMap<String, HashMap<String, String>> configTable) {
-        this.configTable = configTable;
     }
 }
