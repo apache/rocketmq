@@ -41,6 +41,7 @@ import org.slf4j.LoggerFactory;
  * 网络相关方法
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
+ * @since 2013-7-13
  */
 public class RemotingUtil {
     private static final Logger log = LoggerFactory.getLogger(RemotingHelper.RemotingLogName);

@@ -19,6 +19,7 @@ package com.alibaba.rocketmq.remoting.exception;
  * 通信层异常父类
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
+ * @since 2013-7-13
  */
 public class RemotingException extends Exception {
     private static final long serialVersionUID = -5690687334570505110L;

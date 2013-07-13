@@ -20,9 +20,10 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 
 /**
- * 信号量保证只释放一次
+ * 使用布尔原子变量，信号量保证只释放一次
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
+ * @since 2013-7-13
  */
 public class SemaphoreReleaseOnlyOnce {
     private final AtomicBoolean released = new AtomicBoolean(false);

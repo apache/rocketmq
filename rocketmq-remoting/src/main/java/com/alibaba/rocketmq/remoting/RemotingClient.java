@@ -30,6 +30,7 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
  * 远程通信，Client接口
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
+ * @since 2013-7-13
  */
 public interface RemotingClient {
     public void start();
