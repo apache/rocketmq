@@ -122,6 +122,8 @@ public class MessageStoreConfig {
     private long checkTransactionMessageAtleastInterval = 1000 * 40;
     // 事务回查定时间隔时间
     private long checkTransactionMessageTimerInterval = 1000 * 20;
+    // 是否开启事务Check过程，双十一时，可以关闭
+    private boolean checkTransactionMessageEnable = true;
 
     // 磁盘空间超过90%警戒水位，自动开始删除文件
     private boolean cleanFileForciblyEnable = true;
@@ -667,5 +669,15 @@ public class MessageStoreConfig {
 
     public void setCleanFileForciblyEnable(boolean cleanFileForciblyEnable) {
         this.cleanFileForciblyEnable = cleanFileForciblyEnable;
+    }
+
+
+    public boolean isCheckTransactionMessageEnable() {
+        return checkTransactionMessageEnable;
+    }
+
+
+    public void setCheckTransactionMessageEnable(boolean checkTransactionMessageEnable) {
+        this.checkTransactionMessageEnable = checkTransactionMessageEnable;
     }
 }

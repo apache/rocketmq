@@ -290,6 +290,12 @@ public class TransactionStateService {
                 if (slave)
                     return;
 
+                // Check功能是否开启
+                if (!TransactionStateService.this.defaultMessageStore.getMessageStoreConfig()
+                    .isCheckTransactionMessageEnable()) {
+                    return;
+                }
+
                 try {
                     SelectMapedBufferResult selectMapedBufferResult = mapedFile.selectMapedBuffer(0);
                     if (selectMapedBufferResult != null) {
