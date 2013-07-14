@@ -1,6 +1,7 @@
 package com.alibaba.rocketmq.tools.admin;
 
 import com.alibaba.rocketmq.client.MQAdmin;
+import com.alibaba.rocketmq.common.TopicConfig;
 import com.alibaba.rocketmq.common.admin.ConsumerProgress;
 import com.alibaba.rocketmq.common.admin.TopicOffsetTable;
 import com.alibaba.rocketmq.common.subscription.SubscriptionGroupConfig;
@@ -21,12 +22,40 @@ public interface MQAdminExt extends MQAdmin {
 
 
     /**
+     * 向指定Broker集群创建或者更新Topic配置
+     * 
+     * @param cluster
+     * @param config
+     */
+    public void createAndUpdateTopicConfigByCluster(final String cluster, final TopicConfig config);
+
+
+    /**
+     * 向指定Broker创建或者更新Topic配置
+     * 
+     * @param addr
+     * @param config
+     */
+    public void createAndUpdateTopicConfigByAddr(final String addr, final TopicConfig config);
+
+
+    /**
      * 向指定Broker集群创建或者更新订阅组配置
      * 
      * @param cluster
      * @param config
      */
-    public void createAndUpdateSubscriptionGroupConfig(final String cluster,
+    public void createAndUpdateSubscriptionGroupConfigByCluster(final String cluster,
+            final SubscriptionGroupConfig config);
+
+
+    /**
+     * 向指定Broker创建或者更新订阅组配置
+     * 
+     * @param addr
+     * @param config
+     */
+    public void createAndUpdateSubscriptionGroupConfigByAddr(final String addr,
             final SubscriptionGroupConfig config);
 
 
