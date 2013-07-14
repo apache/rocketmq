@@ -1,10 +1,10 @@
-package com.alibaba.rocketmq.tools.topic;
+package com.alibaba.rocketmq.tools.command.topic;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 
-import com.alibaba.rocketmq.tools.SubCommand;
+import com.alibaba.rocketmq.tools.command.SubCommand;
 
 
 /**

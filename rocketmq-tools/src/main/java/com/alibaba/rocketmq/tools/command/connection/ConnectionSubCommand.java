@@ -1,25 +1,28 @@
-package com.alibaba.rocketmq.tools.cluster;
+/**
+ * 
+ */
+package com.alibaba.rocketmq.tools.command.connection;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Options;
 
-import com.alibaba.rocketmq.tools.SubCommand;
+import com.alibaba.rocketmq.tools.command.SubCommand;
 
 
 /**
  * @author shijia.wxr<vintage.wang@gmail.com>
  */
-public class ClusterSubCommand implements SubCommand {
+public class ConnectionSubCommand implements SubCommand {
 
     @Override
     public String commandName() {
-        return "cluster";
+        return "connection";
     }
 
 
     @Override
     public String commandDesc() {
-        return "List all of clusters or someone";
+        return "List connections of producer or consumer";
     }
 
 
@@ -35,4 +38,5 @@ public class ClusterSubCommand implements SubCommand {
         // TODO Auto-generated method stub
 
     }
+
 }

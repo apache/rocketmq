@@ -1,7 +1,4 @@
-/**
- * 
- */
-package com.alibaba.rocketmq.tools;
+package com.alibaba.rocketmq.tools.command;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Options;
