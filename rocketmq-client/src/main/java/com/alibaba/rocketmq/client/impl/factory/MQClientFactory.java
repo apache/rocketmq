@@ -24,6 +24,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import org.slf4j.Logger;
 
 import com.alibaba.rocketmq.client.ClientConfig;
+import com.alibaba.rocketmq.client.admin.MQAdminExtInner;
 import com.alibaba.rocketmq.client.consumer.ConsumeFromWhichNode;
 import com.alibaba.rocketmq.client.exception.MQBrokerException;
 import com.alibaba.rocketmq.client.exception.MQClientException;
@@ -77,6 +78,10 @@ public class MQClientFactory {
     // Consumer对象
     private final ConcurrentHashMap<String/* group */, MQConsumerInner> consumerTable =
             new ConcurrentHashMap<String, MQConsumerInner>();
+    // AdminExt对象
+    private final ConcurrentHashMap<String/* group */, MQAdminExtInner> adminExtTable =
+            new ConcurrentHashMap<String, MQAdminExtInner>();
+
     // Netty客户端配置
     private final NettyClientConfig nettyClientConfig;
     // RPC调用的封装类
@@ -513,6 +518,27 @@ public class MQClientFactory {
     }
 
 
+    public boolean registerConsumer(final String group, final MQConsumerInner consumer) {
+        if (null == group || null == consumer) {
+            return false;
+        }
+
+        MQConsumerInner prev = this.consumerTable.putIfAbsent(group, consumer);
+        if (prev != null) {
+            log.warn("the consumer group[" + group + "] exist already.");
+            return false;
+        }
+
+        return true;
+    }
+
+
+    public void unregisterConsumer(final String group) {
+        this.consumerTable.remove(group);
+        this.unregisterClientWithLock(null, group);
+    }
+
+
     public boolean registerProducer(final String group, final DefaultMQProducerImpl producer) {
         if (null == group || null == producer) {
             return false;
@@ -524,9 +550,33 @@ public class MQClientFactory {
             return false;
         }
 
-        this.sendHeartbeatToAllBrokerWithLock();
+        return true;
+    }
+
+
+    public void unregisterProducer(final String group) {
+        this.producerTable.remove(group);
+        this.unregisterClientWithLock(group, null);
+    }
+
+
+    public boolean registerAdminExt(final String group, final MQAdminExtInner admin) {
+        if (null == group || null == admin) {
+            return false;
+        }
+
+        MQAdminExtInner prev = this.adminExtTable.putIfAbsent(group, admin);
+        if (prev != null) {
+            log.warn("the admin group[{}] exist already.", group);
+            return false;
+        }
 
         return true;
+    }
+
+
+    public void unregisterAdminExt(final String group) {
+        this.adminExtTable.remove(group);
     }
 
 
@@ -557,35 +607,6 @@ public class MQClientFactory {
 
     public MQConsumerInner selectConsumer(final String group) {
         return this.consumerTable.get(group);
-    }
-
-
-    public void unregisterProducer(final String group) {
-        this.producerTable.remove(group);
-        this.unregisterClientWithLock(group, null);
-    }
-
-
-    public boolean registerConsumer(final String group, final MQConsumerInner consumer) {
-        if (null == group || null == consumer) {
-            return false;
-        }
-
-        MQConsumerInner prev = this.consumerTable.putIfAbsent(group, consumer);
-        if (prev != null) {
-            log.warn("the consumer group[" + group + "] exist already.");
-            return false;
-        }
-
-        this.sendHeartbeatToAllBrokerWithLock();
-
-        return true;
-    }
-
-
-    public void unregisterConsumer(final String group) {
-        this.consumerTable.remove(group);
-        this.unregisterClientWithLock(null, group);
     }
 
 
