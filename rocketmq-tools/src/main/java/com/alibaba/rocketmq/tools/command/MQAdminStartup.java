@@ -1,4 +1,4 @@
-package com.alibaba.rocketmq.tools;
+package com.alibaba.rocketmq.tools.command;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -15,15 +15,15 @@ import ch.qos.logback.core.joran.spi.JoranException;
 import com.alibaba.rocketmq.common.MQVersion;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
-import com.alibaba.rocketmq.tools.broker.BrokerSubCommand;
-import com.alibaba.rocketmq.tools.cluster.ClusterSubCommand;
-import com.alibaba.rocketmq.tools.connection.ConnectionSubCommand;
-import com.alibaba.rocketmq.tools.consumer.ConsumerSubCommand;
-import com.alibaba.rocketmq.tools.message.MessageSubCommand;
-import com.alibaba.rocketmq.tools.namesrv.NamesrvSubCommand;
-import com.alibaba.rocketmq.tools.producer.ProducerSubCommand;
-import com.alibaba.rocketmq.tools.stats.StatsSubCommand;
-import com.alibaba.rocketmq.tools.topic.TopicSubCommand;
+import com.alibaba.rocketmq.tools.command.broker.BrokerSubCommand;
+import com.alibaba.rocketmq.tools.command.cluster.ClusterSubCommand;
+import com.alibaba.rocketmq.tools.command.connection.ConnectionSubCommand;
+import com.alibaba.rocketmq.tools.command.consumer.ConsumerSubCommand;
+import com.alibaba.rocketmq.tools.command.message.MessageSubCommand;
+import com.alibaba.rocketmq.tools.command.namesrv.NamesrvSubCommand;
+import com.alibaba.rocketmq.tools.command.producer.ProducerSubCommand;
+import com.alibaba.rocketmq.tools.command.stats.StatsSubCommand;
+import com.alibaba.rocketmq.tools.command.topic.TopicSubCommand;
 
 
 /**

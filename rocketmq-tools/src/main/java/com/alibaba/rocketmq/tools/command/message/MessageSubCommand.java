@@ -1,28 +1,25 @@
-/**
- * 
- */
-package com.alibaba.rocketmq.tools.broker;
+package com.alibaba.rocketmq.tools.command.message;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Options;
 
-import com.alibaba.rocketmq.tools.SubCommand;
+import com.alibaba.rocketmq.tools.command.SubCommand;
 
 
 /**
  * @author shijia.wxr<vintage.wang@gmail.com>
  */
-public class BrokerSubCommand implements SubCommand {
+public class MessageSubCommand implements SubCommand {
 
     @Override
     public String commandName() {
-        return "broker";
+        return "message";
     }
 
 
     @Override
     public String commandDesc() {
-        return "Inspect the broker's data and update";
+        return "Query message by id or by key";
     }
 
 
@@ -38,5 +35,4 @@ public class BrokerSubCommand implements SubCommand {
         // TODO Auto-generated method stub
 
     }
-
 }

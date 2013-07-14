@@ -1,25 +1,25 @@
-package com.alibaba.rocketmq.tools.producer;
+package com.alibaba.rocketmq.tools.command.namesrv;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Options;
 
-import com.alibaba.rocketmq.tools.SubCommand;
+import com.alibaba.rocketmq.tools.command.SubCommand;
 
 
 /**
  * @author shijia.wxr<vintage.wang@gmail.com>
  */
-public class ProducerSubCommand implements SubCommand {
+public class NamesrvSubCommand implements SubCommand {
 
     @Override
     public String commandName() {
-        return "producer";
+        return "namesrv";
     }
 
 
     @Override
     public String commandDesc() {
-        return "Inspect data of producer";
+        return "List the name servers and manage config of the name server";
     }
 
 
@@ -35,4 +35,5 @@ public class ProducerSubCommand implements SubCommand {
         // TODO Auto-generated method stub
 
     }
+
 }

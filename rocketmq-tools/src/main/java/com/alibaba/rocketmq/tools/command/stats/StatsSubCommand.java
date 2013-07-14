@@ -1,28 +1,25 @@
-/**
- * 
- */
-package com.alibaba.rocketmq.tools.connection;
+package com.alibaba.rocketmq.tools.command.stats;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Options;
 
-import com.alibaba.rocketmq.tools.SubCommand;
+import com.alibaba.rocketmq.tools.command.SubCommand;
 
 
 /**
  * @author shijia.wxr<vintage.wang@gmail.com>
  */
-public class ConnectionSubCommand implements SubCommand {
+public class StatsSubCommand implements SubCommand {
 
     @Override
     public String commandName() {
-        return "connection";
+        return "stats";
     }
 
 
     @Override
     public String commandDesc() {
-        return "List connections of producer or consumer";
+        return "Print the stats of broker, producer or consumer";
     }
 
 
@@ -38,5 +35,4 @@ public class ConnectionSubCommand implements SubCommand {
         // TODO Auto-generated method stub
 
     }
-
 }

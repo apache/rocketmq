@@ -1,25 +1,28 @@
-package com.alibaba.rocketmq.tools.stats;
+/**
+ * 
+ */
+package com.alibaba.rocketmq.tools.command.broker;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Options;
 
-import com.alibaba.rocketmq.tools.SubCommand;
+import com.alibaba.rocketmq.tools.command.SubCommand;
 
 
 /**
  * @author shijia.wxr<vintage.wang@gmail.com>
  */
-public class StatsSubCommand implements SubCommand {
+public class BrokerSubCommand implements SubCommand {
 
     @Override
     public String commandName() {
-        return "stats";
+        return "broker";
     }
 
 
     @Override
     public String commandDesc() {
-        return "Print the stats of broker, producer or consumer";
+        return "Inspect the broker's data and update";
     }
 
 
@@ -35,4 +38,5 @@ public class StatsSubCommand implements SubCommand {
         // TODO Auto-generated method stub
 
     }
+
 }

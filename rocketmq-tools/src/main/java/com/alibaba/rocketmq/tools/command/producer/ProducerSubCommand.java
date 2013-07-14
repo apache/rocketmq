@@ -1,25 +1,25 @@
-package com.alibaba.rocketmq.tools.message;
+package com.alibaba.rocketmq.tools.command.producer;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Options;
 
-import com.alibaba.rocketmq.tools.SubCommand;
+import com.alibaba.rocketmq.tools.command.SubCommand;
 
 
 /**
  * @author shijia.wxr<vintage.wang@gmail.com>
  */
-public class MessageSubCommand implements SubCommand {
+public class ProducerSubCommand implements SubCommand {
 
     @Override
     public String commandName() {
-        return "message";
+        return "producer";
     }
 
 
     @Override
     public String commandDesc() {
-        return "Query message by id or by key";
+        return "Inspect data of producer";
     }
 
 
