@@ -113,7 +113,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt {
 
 
     @Override
-    public SubscriptionGroupConfig examineSubscriptionGroupConfig(String cluster, String group) {
+    public SubscriptionGroupConfig examineSubscriptionGroupConfig(String addr, String group) {
         // TODO Auto-generated method stub
         return null;
     }
@@ -142,6 +142,13 @@ public class DefaultMQAdminExtImpl implements MQAdminExt {
 
     @Override
     public String getKVConfig(String namespace, String key) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+
+    @Override
+    public TopicConfig examineTopicConfig(String addr, String topic) {
         // TODO Auto-generated method stub
         return null;
     }
