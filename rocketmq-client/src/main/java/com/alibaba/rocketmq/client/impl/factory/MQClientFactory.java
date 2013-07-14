@@ -302,6 +302,10 @@ public class MQClientFactory {
         if (!this.consumerTable.isEmpty())
             return;
 
+        // AdminExt
+        if (!this.adminExtTable.isEmpty())
+            return;
+
         // Producer
         if (this.producerTable.size() > 1)
             return;
