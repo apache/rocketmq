@@ -7,6 +7,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
+import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -36,6 +37,7 @@ import org.slf4j.Logger;
 
 import sun.management.ManagementFactory;
 
+import com.alibaba.rocketmq.common.annotation.ImportantField;
 import com.sun.management.OperatingSystemMXBean;
 
 
@@ -265,6 +267,12 @@ public class MixAll {
 
 
     public static void printObjectProperties(final Logger log, final Object object) {
+        printObjectProperties(log, object, false);
+    }
+
+
+    public static void printObjectProperties(final Logger log, final Object object,
+            final boolean onlyImportantField) {
         Field[] fields = object.getClass().getDeclaredFields();
         for (Field field : fields) {
             if (!Modifier.isStatic(field.getModifiers())) {
@@ -284,6 +292,14 @@ public class MixAll {
                     catch (IllegalAccessException e) {
                         System.out.println(e);
                     }
+
+                    if (onlyImportantField) {
+                        Annotation annotation = field.getAnnotation(ImportantField.class);
+                        if (null == annotation) {
+                            continue;
+                        }
+                    }
+
                     if (log != null) {
                         log.info(name + "=" + value);
                     }
