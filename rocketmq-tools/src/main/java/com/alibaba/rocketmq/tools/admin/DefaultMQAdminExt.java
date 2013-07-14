@@ -103,8 +103,8 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
 
 
     @Override
-    public SubscriptionGroupConfig examineSubscriptionGroupConfig(String cluster, String group) {
-        return defaultMQAdminExtImpl.examineSubscriptionGroupConfig(cluster, group);
+    public SubscriptionGroupConfig examineSubscriptionGroupConfig(String addr, String group) {
+        return defaultMQAdminExtImpl.examineSubscriptionGroupConfig(addr, group);
     }
 
 
@@ -129,5 +129,11 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
     @Override
     public String getKVConfig(String namespace, String key) {
         return defaultMQAdminExtImpl.getKVConfig(namespace, key);
+    }
+
+
+    @Override
+    public TopicConfig examineTopicConfig(String addr, String topic) {
+        return defaultMQAdminExtImpl.examineTopicConfig(addr, topic);
     }
 }

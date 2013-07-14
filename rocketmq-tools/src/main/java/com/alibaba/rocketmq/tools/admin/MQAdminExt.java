@@ -60,13 +60,23 @@ public interface MQAdminExt extends MQAdmin {
 
 
     /**
-     * 查询指定集群的订阅组配置
+     * 查询指定Broker的订阅组配置
      * 
-     * @param cluster
+     * @param addr
      * @param group
      * @return
      */
-    public SubscriptionGroupConfig examineSubscriptionGroupConfig(final String cluster, final String group);
+    public SubscriptionGroupConfig examineSubscriptionGroupConfig(final String addr, final String group);
+
+
+    /**
+     * 查询指定Broker的Topic配置
+     * 
+     * @param addr
+     * @param group
+     * @return
+     */
+    public TopicConfig examineTopicConfig(final String addr, final String topic);
 
 
     /**
