@@ -5,6 +5,7 @@ package com.alibaba.rocketmq.store.config;
 
 import java.io.File;
 
+import com.alibaba.rocketmq.common.annotation.ImportantField;
 import com.alibaba.rocketmq.store.ConsumeQueue;
 import com.alibaba.rocketmq.store.transaction.TransactionStateService;
 
@@ -16,18 +17,23 @@ import com.alibaba.rocketmq.store.transaction.TransactionStateService;
  */
 public class MessageStoreConfig {
     // CommitLog存储目录
+    @ImportantField
     private String storePathCommitLog = System.getProperty("user.home") + File.separator + "store"
             + File.separator + "commitlog";
     // ConsumeQueue存储目录
+    @ImportantField
     private String storePathConsumeQueue = System.getProperty("user.home") + File.separator + "store"
             + File.separator + "consumequeue";
     // 索引文件存储目录
+    @ImportantField
     private String storePathIndex = System.getProperty("user.home") + File.separator + "store"
             + File.separator + "index";
     // 异常退出产生的文件
+    @ImportantField
     private String storeCheckpoint = System.getProperty("user.home") + File.separator + "store"
             + File.separator + "storeCheckpoint";
     // 异常退出产生的文件
+    @ImportantField
     private String abortFile = System.getProperty("user.home") + File.separator + "store" + File.separator
             + "storeAbort";
     // CommitLog每个文件大小 1G
@@ -49,10 +55,12 @@ public class MessageStoreConfig {
     // 定期检查Hanged文件间隔时间（单位毫秒）
     private int redeleteHangedFileInterval = 1000 * 120;
     // 何时触发删除文件, 默认凌晨4点删除文件
+    @ImportantField
     private String deleteWhen = "04";
     // 磁盘空间最大使用率
     private int diskMaxUsedSpaceRatio = 75;
     // 文件保留时间（单位小时）
+    @ImportantField
     private int fileReservedTime = 12;
 
     // 写消息索引到ConsumeQueue，缓冲区高水位，超过则开始流控
@@ -70,17 +78,23 @@ public class MessageStoreConfig {
     // 刷ConsumeQueue，彻底刷盘间隔时间
     private int flushConsumeQueueThoroughInterval = 1000 * 60;
     // 最大被拉取的消息字节数，消息在内存
+    @ImportantField
     private int maxTransferBytesOnMessageInMemory = 1024 * 256;
     // 最大被拉取的消息个数，消息在内存
+    @ImportantField
     private int maxTransferCountOnMessageInMemory = 32;
     // 最大被拉取的消息字节数，消息在磁盘
+    @ImportantField
     private int maxTransferBytesOnMessageInDisk = 1024 * 64;
     // 最大被拉取的消息个数，消息在磁盘
+    @ImportantField
     private int maxTransferCountOnMessageInDisk = 8;
     // 命中消息在内存的最大比例
+    @ImportantField
     private int accessMessageInMemoryMaxRatio = 30;
 
     // 是否开启消息索引功能
+    @ImportantField
     private boolean messageIndexEnable = true;
     private int maxHashSlotNum = 5000000;
     private int maxIndexNum = 5000000 * 4;
@@ -92,12 +106,15 @@ public class MessageStoreConfig {
     private int haHousekeepingInterval = 1000 * 20;
     private int haTransferBatchSize = 1024 * 32;
     // 如果不设置，则从NameServer获取Master HA服务地址
+    @ImportantField
     private String haMasterAddress = null;
 
     // Slave落后Master超过此值，则认为存在异常
     private int haSlaveFallbehindMax = 1024 * 1024 * 256;
 
+    @ImportantField
     private BrokerRole brokerRole = BrokerRole.ASYNC_MASTER;
+    @ImportantField
     private FlushDiskType flushDiskType = FlushDiskType.ASYNC_FLUSH;
 
     // 同步刷盘超时时间

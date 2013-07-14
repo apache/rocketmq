@@ -7,6 +7,7 @@ import java.io.File;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 
+import com.alibaba.rocketmq.common.annotation.ImportantField;
 import com.alibaba.rocketmq.common.constant.PermName;
 import com.alibaba.rocketmq.remoting.common.RemotingUtil;
 
@@ -23,16 +24,21 @@ public class BrokerConfig {
         System.getenv(MixAll.NAMESRV_ADDR_ENV));
     private String brokerIP1 = RemotingUtil.getLocalAddress();
     private String brokerIP2 = RemotingUtil.getLocalAddress();
+    @ImportantField
     private String brokerName = localHostName();
+    @ImportantField
     private String brokerClusterName = "C01";
+    @ImportantField
     private long brokerId = MixAll.MASTER_ID;
     private int brokerPermission = PermName.PERM_READ | PermName.PERM_WRITE;
     private int defaultTopicQueueNums = 8;
     // 自动创建Topic功能是否开启（线上建议关闭）
+    @ImportantField
     private boolean autoCreateTopicEnable = true;
     // 自动创建以集群名字命名的Topic功能是否开启
     private boolean clusterTopicEnable = true;
     // 自动创建订阅组功能是否开启（线上建议关闭）
+    @ImportantField
     private boolean autoCreateSubscriptionGroup = true;
 
     private int sendMessageThreadPoolNums = 32 + Runtime.getRuntime().availableProcessors() * 4;
@@ -56,7 +62,7 @@ public class BrokerConfig {
     private int flushConsumerOffsetHistoryInterval = 1000 * 60;
 
     // 查询消息最大时间跨度，单位小时
-    private long queryMessageMaxTimeSpan = 2;
+    private long queryMessageMaxTimeSpan = 3;
 
 
     public static String localHostName() {

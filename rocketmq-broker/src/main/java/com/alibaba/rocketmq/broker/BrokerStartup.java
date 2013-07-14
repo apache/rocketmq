@@ -41,11 +41,15 @@ public class BrokerStartup {
         opt.setRequired(false);
         options.addOption(opt);
 
-        opt = new Option("t", "topicProperties", true, "Topic config properties file");
+        opt = new Option("t", "topicConfig", true, "Topic config json file");
         opt.setRequired(false);
         options.addOption(opt);
 
         opt = new Option("p", "printConfigItem", false, "Print all config item");
+        opt.setRequired(false);
+        options.addOption(opt);
+
+        opt = new Option("m", "printImportantConfig", false, "Print important config item");
         opt.setRequired(false);
         options.addOption(opt);
 
@@ -81,6 +85,13 @@ public class BrokerStartup {
                 MixAll.printObjectProperties(null, nettyServerConfig);
                 MixAll.printObjectProperties(null, nettyClientConfig);
                 MixAll.printObjectProperties(null, messageStoreConfig);
+                System.exit(0);
+            }
+            else if (commandLine.hasOption('m')) {
+                MixAll.printObjectProperties(null, brokerConfig, true);
+                MixAll.printObjectProperties(null, nettyServerConfig, true);
+                MixAll.printObjectProperties(null, nettyClientConfig, true);
+                MixAll.printObjectProperties(null, messageStoreConfig, true);
                 System.exit(0);
             }
 
