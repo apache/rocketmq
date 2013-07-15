@@ -150,6 +150,7 @@ public class MQClientFactory {
         this.rebalanceService = new RebalanceService(this);
 
         this.defaultMQProducer = new DefaultMQProducer(MixAll.CLIENT_INNER_PRODUCER_GROUP);
+        this.defaultMQProducer.resetClientConfig(clientConfig);
 
         log.info("created a new client fatory, FactoryIndex: {} ClinetID: {} {}",//
             this.factoryIndex, //

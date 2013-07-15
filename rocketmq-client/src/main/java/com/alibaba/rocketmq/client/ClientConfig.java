@@ -34,6 +34,17 @@ public class ClientConfig {
     }
 
 
+    public void resetClientConfig(final ClientConfig cc) {
+        this.namesrvAddr = cc.namesrvAddr;
+        this.clientIP = cc.clientIP;
+        this.instanceName = cc.instanceName;
+        this.clientCallbackExecutorThreads = cc.clientCallbackExecutorThreads;
+        this.pollNameServerInteval = cc.pollNameServerInteval;
+        this.heartbeatBrokerInterval = cc.heartbeatBrokerInterval;
+        this.persistConsumerOffsetInterval = cc.persistConsumerOffsetInterval;
+    }
+
+
     public ClientConfig cloneClientConfig() {
         ClientConfig cc = new ClientConfig();
         cc.namesrvAddr = namesrvAddr;
