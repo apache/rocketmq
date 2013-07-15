@@ -15,6 +15,7 @@ import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.common.namesrv.NamesrvConfig;
 import com.alibaba.rocketmq.namesrv.kvconfig.KVConfigManager;
 import com.alibaba.rocketmq.namesrv.processor.DefaultRequestProcessor;
+import com.alibaba.rocketmq.namesrv.routeinfo.BrokerHousekeepingService;
 import com.alibaba.rocketmq.namesrv.routeinfo.RouteInfoManager;
 import com.alibaba.rocketmq.remoting.RemotingServer;
 import com.alibaba.rocketmq.remoting.netty.NettyRemotingServer;
@@ -35,6 +36,8 @@ public class NamesrvController {
     private final NettyServerConfig nettyServerConfig;
     // 服务端通信层对象
     private RemotingServer remotingServer;
+    // 接收Broker连接事件
+    private BrokerHousekeepingService brokerHousekeepingService;
     // 服务端网络请求处理线程池
     private ExecutorService remotingExecutor;
 
@@ -59,6 +62,7 @@ public class NamesrvController {
         this.nettyServerConfig = nettyServerConfig;
         this.kvConfigManager = new KVConfigManager(this);
         this.routeInfoManager = new RouteInfoManager();
+        this.brokerHousekeepingService = new BrokerHousekeepingService(this);
     }
 
 
@@ -70,7 +74,7 @@ public class NamesrvController {
         this.kvConfigManager.load();
 
         // 初始化通信层
-        this.remotingServer = new NettyRemotingServer(this.nettyServerConfig);
+        this.remotingServer = new NettyRemotingServer(this.nettyServerConfig, this.brokerHousekeepingService);
 
         // 初始化线程池
         this.remotingExecutor =
