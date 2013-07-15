@@ -24,6 +24,10 @@ public class TopicConfig {
     private TopicFilterType topicFilterType = TopicFilterType.SINGLE_TAG;
 
 
+    public TopicConfig() {
+    }
+
+
     public TopicConfig(String topicName) {
         this.topicName = topicName;
     }
