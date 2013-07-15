@@ -341,6 +341,134 @@ public class RouteInfoManager {
 
 
     /**
+     * Channel被关闭，或者Channel Idle时间超限
+     */
+    public void onChannelDestroy(String remoteAddr, Channel channel) {
+        String brokerAddrFound = null;
+
+        // 加读锁，寻找断开连接的Broker
+        try {
+            try {
+                this.lock.readLock().lockInterruptibly();
+                Iterator<Entry<String, BrokerLiveInfo>> itBrokerLiveTable =
+                        this.brokerLiveTable.entrySet().iterator();
+                while (itBrokerLiveTable.hasNext()) {
+                    Entry<String, BrokerLiveInfo> entry = itBrokerLiveTable.next();
+                    if (entry.getValue().getChannel().id().equals(channel.id())) {
+                        brokerAddrFound = entry.getKey();
+                        break;
+                    }
+                }
+            }
+            finally {
+                this.lock.readLock().unlock();
+            }
+        }
+        catch (Exception e) {
+            log.error("onChannelDestroy Exception", e);
+        }
+
+        // 加写锁，删除相关数据结构
+        if (brokerAddrFound != null) {
+            log.info("the broker's channel destroyed, {}, clean it's data structure at once", brokerAddrFound);
+
+            try {
+                try {
+                    this.lock.writeLock().lockInterruptibly();
+                    // 清理brokerLiveTable
+                    this.brokerLiveTable.remove(brokerAddrFound);
+
+                    // 清理brokerAddrTable
+                    String brokerNameFound = null;
+                    boolean brokerNameDisappear = false;
+                    Iterator<Entry<String, BrokerData>> itBrokerAddrTable =
+                            this.brokerAddrTable.entrySet().iterator();
+                    while (itBrokerAddrTable.hasNext() && (null == brokerNameFound)) {
+                        BrokerData brokerData = itBrokerAddrTable.next().getValue();
+
+                        // 遍历Master/Slave
+                        Iterator<Entry<Long, String>> it = brokerData.getBrokerAddrs().entrySet().iterator();
+                        while (it.hasNext()) {
+                            Entry<Long, String> entry = it.next();
+                            Long brokerId = entry.getKey();
+                            String brokerAddr = entry.getValue();
+                            if (brokerAddr.equals(brokerAddrFound)) {
+                                brokerNameFound = brokerData.getBrokerName();
+                                it.remove();
+                                log.info(
+                                    "remove brokerAddr[{}, {}] from brokerAddrTable, because channel destroyed",
+                                    brokerId, brokerAddr);
+                                break;
+                            }
+                        }
+
+                        // BrokerName无关联BrokerAddr
+                        if (brokerData.getBrokerAddrs().isEmpty()) {
+                            brokerNameDisappear = true;
+                            itBrokerAddrTable.remove();
+                            log.info("remove brokerName[{}] from brokerAddrTable, because channel destroyed",
+                                brokerData.getBrokerName());
+                        }
+                    }
+
+                    // 清理clusterAddrTable
+                    if (brokerNameFound != null) {
+                        Iterator<Entry<String, Set<String>>> it = this.clusterAddrTable.entrySet().iterator();
+                        while (it.hasNext()) {
+                            Entry<String, Set<String>> entry = it.next();
+                            String clusterName = entry.getKey();
+                            Set<String> brokerNames = entry.getValue();
+                            boolean removed = brokerNames.remove(brokerNameFound);
+                            if (removed) {
+                                log.info(
+                                    "remove brokerName[{}], clusterName[{}] from clusterAddrTable, because channel destroyed",
+                                    brokerNameFound, clusterName);
+                                break;
+                            }
+                        }
+                    }
+
+                    // 清理topicQueueTable
+                    if (brokerNameDisappear) {
+                        Iterator<Entry<String, List<QueueData>>> itTopicQueueTable =
+                                this.topicQueueTable.entrySet().iterator();
+                        while (itTopicQueueTable.hasNext()) {
+                            Entry<String, List<QueueData>> entry = itTopicQueueTable.next();
+                            String topic = entry.getKey();
+                            List<QueueData> queueDataList = entry.getValue();
+
+                            Iterator<QueueData> itQueueData = queueDataList.iterator();
+                            while (itQueueData.hasNext()) {
+                                QueueData queueData = itQueueData.next();
+                                if (queueData.getBrokerName().equals(brokerNameFound)) {
+                                    itQueueData.remove();
+                                    log.info(
+                                        "remove topic[{} {}], from topicQueueTable, because channel destroyed",
+                                        topic, queueData);
+                                }
+                            }
+
+                            if (queueDataList.isEmpty()) {
+                                itTopicQueueTable.remove();
+                                log.info(
+                                    "remove topic[{}] all queue, from topicQueueTable, because channel destroyed",
+                                    topic);
+                            }
+                        }
+                    }
+                }
+                finally {
+                    this.lock.writeLock().unlock();
+                }
+            }
+            catch (Exception e) {
+                log.error("onChannelDestroy Exception", e);
+            }
+        }
+    }
+
+
+    /**
      * 定期打印当前类的数据结构
      */
     public void printAllPeriodically() {
