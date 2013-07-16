@@ -4,15 +4,15 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.alibaba.rocketmq.broker.BrokerController;
 import com.alibaba.rocketmq.store.DefaultMessageStore;
 
 
 public class PutStatsMoniter {
-    static final Log log = LogFactory.getLog("PutStatsMoniter");
+    private static final Logger log = LoggerFactory.getLogger("PutStatsMoniter");
     private BrokerController brokerController;
     
     private final Map <String,Long> putMessageTopicTimesTotalLast = new HashMap<String,Long>();
