@@ -354,7 +354,7 @@ public class RouteInfoManager {
                         this.brokerLiveTable.entrySet().iterator();
                 while (itBrokerLiveTable.hasNext()) {
                     Entry<String, BrokerLiveInfo> entry = itBrokerLiveTable.next();
-                    if (entry.getValue().getChannel().id().equals(channel.id())) {
+                    if (entry.getValue().getChannel() == channel) {
                         brokerAddrFound = entry.getKey();
                         break;
                     }

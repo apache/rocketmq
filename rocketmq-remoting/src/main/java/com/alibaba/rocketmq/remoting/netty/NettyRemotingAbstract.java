@@ -308,8 +308,8 @@ public abstract class NettyRemotingAbstract {
     }
 
 
-    public void processMessageReceived(ChannelHandlerContext ctx, Object msg) throws Exception {
-        final RemotingCommand cmd = (RemotingCommand) msg;
+    public void processMessageReceived(ChannelHandlerContext ctx, RemotingCommand msg) throws Exception {
+        final RemotingCommand cmd = msg;
         if (cmd != null) {
             switch (cmd.getType()) {
             case REQUEST_COMMAND:

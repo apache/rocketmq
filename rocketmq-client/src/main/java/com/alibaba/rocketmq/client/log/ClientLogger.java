@@ -1,7 +1,5 @@
 package com.alibaba.rocketmq.client.log;
 
-import java.io.File;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -12,48 +10,37 @@ import com.alibaba.rocketmq.common.constant.LoggerName;
 
 
 public class ClientLogger {
-    private static String logFilePath;
     private static Logger log;
 
     static {
-        // 确认日志默认存储路径
-        logFilePath =
-                System.getProperty("rocketmq.client.log.path", System.getenv("ROCKETMQ_CLIENT_LOG_PATH"));
-        if (null == logFilePath) {
-            logFilePath = System.getProperty("user.home") + File.separator + "rocketmqlogs";
+        String logConfigFilePath =
+                System.getProperty("rocketmq.client.log.configFile",
+                    System.getenv("ROCKETMQ_CLIENT_LOG_CONFIGFILE"));
+        if (null == logConfigFilePath) {
+            // 如果应用没有配置，则使用jar包内置配置
+            logConfigFilePath = "logback_rocketmq_client.xml";
         }
 
         // 初始化Logger
-        log = createLogger(LoggerName.ClientLoggerName, "rocketmq_client.log");
+        log = createLogger(LoggerName.ClientLoggerName, logConfigFilePath);
     }
 
 
-    private static Logger createLogger(final String loggerName, final String fileName) {
+    private static Logger createLogger(final String loggerName, final String logConfigFile) {
         try {
             LoggerContext lc = new LoggerContext();
             JoranConfigurator configurator = new JoranConfigurator();
             configurator.setContext(lc);
             lc.reset();
             // 配置文件已经打包到Client Jar包
-            configurator.doConfigure("logback_rocketmq_client.xml");
+            configurator.doConfigure(logConfigFile);
             return lc.getLogger(LoggerName.ClientLoggerName);
         }
         catch (Exception e) {
             System.err.println(e);
         }
 
-        final Logger logger = LoggerFactory.getLogger(LoggerName.ClientLoggerName);
-        return logger;
-    }
-
-
-    public static String getLogFilePath() {
-        return logFilePath;
-    }
-
-
-    public static void setLogFilePath(String logFilePath) {
-        ClientLogger.logFilePath = logFilePath;
+        return LoggerFactory.getLogger(LoggerName.ClientLoggerName);
     }
 
 
