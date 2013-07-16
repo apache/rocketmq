@@ -2,17 +2,16 @@ package com.alibaba.rocketmq.broker.digestlog;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicLong;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.alibaba.rocketmq.broker.BrokerController;
 import com.alibaba.rocketmq.store.DefaultMessageStore;
 
 
 public class StoreStatsMoniter {
-    static final Log log = LogFactory.getLog("StoreStatsMoniter");
+    private static final Logger log = LoggerFactory.getLogger(StoreStatsMoniter.class);
     private static final String TOPIC_GROUP_SEPARATOR = "@";
     private BrokerController brokerController;
 //   

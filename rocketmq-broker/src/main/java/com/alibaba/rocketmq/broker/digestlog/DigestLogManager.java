@@ -5,11 +5,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
 import com.alibaba.rocketmq.broker.BrokerController;
-
 
 /**
  * 统计管理器
@@ -22,8 +18,6 @@ import com.alibaba.rocketmq.broker.BrokerController;
  */
 public class DigestLogManager {
     
-
-    private final BrokerController brokerController;
     private final boolean startRealTimeStat = Boolean.valueOf(System
         .getProperty("meta.realtime.stat", "true"));
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1,
@@ -38,7 +32,6 @@ public class DigestLogManager {
     private  final StoreStatsMoniter storeStatsMoniter;
 
     public DigestLogManager(BrokerController brokerController) {
-        this.brokerController = brokerController;
         putStatsMoniter = new PutStatsMoniter(brokerController);
         getStatsMoniter = new GetStatsMoniter(brokerController);
         storeStatsMoniter = new StoreStatsMoniter(brokerController);
