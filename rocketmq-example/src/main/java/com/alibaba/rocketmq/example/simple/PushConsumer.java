@@ -11,24 +11,21 @@ import com.alibaba.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext;
 import com.alibaba.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
 import com.alibaba.rocketmq.client.consumer.listener.MessageListenerConcurrently;
 import com.alibaba.rocketmq.client.exception.MQClientException;
-import com.alibaba.rocketmq.common.consumer.ConsumeFromWhere;
 import com.alibaba.rocketmq.common.message.MessageExt;
 
 
 /**
- * 被动接收Broker Push消息的Consumer
+ * PushConsumer，订阅消息
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
- * 
+ * @since 2013-7-16
  */
 public class PushConsumer {
 
     public static void main(String[] args) throws InterruptedException, MQClientException {
-        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("example_consumer_group9");
+        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("example_push_consumer_group");
 
-        consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_MAX_OFFSET);
-
-        consumer.subscribe("BenchmarkTest", "*");
+        consumer.subscribe("TopicTest", "TagA || TagC || TagD");
 
         consumer.registerMessageListener(new MessageListenerConcurrently() {
             AtomicLong consumeTimes = new AtomicLong(0);
@@ -38,15 +35,10 @@ public class PushConsumer {
             public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> msgs,
                     ConsumeConcurrentlyContext context) {
                 System.out.println(Thread.currentThread().getName() + " Receive New Messages: " + msgs);
-                // try {
-                // Thread.sleep(20);
-                // }
-                // catch (InterruptedException e) {
-                // e.printStackTrace();
-                // }
                 if ((this.consumeTimes.getAndIncrement() % 2) == 0) {
-                    // return ConsumeConcurrentlyStatus.RECONSUME_LATER;
+                    return ConsumeConcurrentlyStatus.RECONSUME_LATER;
                 }
+
                 return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
             }
         });
