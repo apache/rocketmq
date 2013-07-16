@@ -13,7 +13,6 @@ import java.util.concurrent.atomic.AtomicLong;
 import com.alibaba.rocketmq.client.exception.MQBrokerException;
 import com.alibaba.rocketmq.client.exception.MQClientException;
 import com.alibaba.rocketmq.client.producer.DefaultMQProducer;
-import com.alibaba.rocketmq.client.producer.SendResult;
 import com.alibaba.rocketmq.common.message.Message;
 import com.alibaba.rocketmq.remoting.exception.RemotingException;
 
@@ -22,7 +21,7 @@ import com.alibaba.rocketmq.remoting.exception.RemotingException;
  * 性能测试，多线程同步发送消息
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
- * 
+ * @since 2013-7-16
  */
 public class Producer {
     private static Message buildMessage(final int messageSize) {
@@ -109,9 +108,8 @@ public class Producer {
                 public void run() {
                     while (true) {
                         try {
-                            // Thread.sleep(1000);
                             final long beginTimestamp = System.currentTimeMillis();
-                            final SendResult sendResult = producer.send(msg);
+                            producer.send(msg);
                             statsBenchmark.getSendRequestSuccessCount().incrementAndGet();
                             statsBenchmark.getReceiveResponseSuccessCount().incrementAndGet();
                             final long currentRT = System.currentTimeMillis() - beginTimestamp;
