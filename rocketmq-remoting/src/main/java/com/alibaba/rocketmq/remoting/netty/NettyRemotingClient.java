@@ -123,10 +123,10 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
         }
     }
 
-    class NettyClientHandler extends SimpleChannelInboundHandler<Object> {
+    class NettyClientHandler extends SimpleChannelInboundHandler<RemotingCommand> {
 
         @Override
-        public void messageReceived(ChannelHandlerContext ctx, Object msg) throws Exception {
+        protected void channelRead0(ChannelHandlerContext ctx, RemotingCommand msg) throws Exception {
             processMessageReceived(ctx, msg);
         }
     }
@@ -534,7 +534,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                     for (String key : channelTables.keySet()) {
                         ChannelWrapper prev = this.channelTables.get(key);
                         if (prev.getChannel() != null) {
-                            if (prev.getChannel().id().equals(channel.id())) {
+                            if (prev.getChannel() == channel) {
                                 prevCW = prev;
                                 addrRemote = key;
                                 break;

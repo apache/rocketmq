@@ -77,10 +77,10 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
     // ¶¨Ê±Æ÷
     private final Timer timer = new Timer("ServerHouseKeepingService", true);
 
-    class NettyServerHandler extends SimpleChannelInboundHandler<Object> {
+    class NettyServerHandler extends SimpleChannelInboundHandler<RemotingCommand> {
 
         @Override
-        public void messageReceived(final ChannelHandlerContext ctx, Object msg) throws Exception {
+        protected void channelRead0(ChannelHandlerContext ctx, RemotingCommand msg) throws Exception {
             processMessageReceived(ctx, msg);
         }
     }

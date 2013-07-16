@@ -9,20 +9,18 @@ import java.util.Set;
 
 import com.alibaba.rocketmq.client.consumer.DefaultMQPullConsumer;
 import com.alibaba.rocketmq.client.consumer.PullResult;
-import com.alibaba.rocketmq.client.exception.MQBrokerException;
 import com.alibaba.rocketmq.client.exception.MQClientException;
 import com.alibaba.rocketmq.common.message.MessageQueue;
-import com.alibaba.rocketmq.remoting.exception.RemotingException;
 
 
 /**
- * 主动拉消息方式的Consumer
+ * PullConsumer，订阅消息
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
- * 
+ * @since 2013-7-16
  */
 public class PullConsumer {
-    private static Map<MessageQueue, Long> offseTable = new HashMap<MessageQueue, Long>();
+    private static final Map<MessageQueue, Long> offseTable = new HashMap<MessageQueue, Long>();
 
 
     private static long getMessageQueueOffset(MessageQueue mq) {
@@ -40,8 +38,8 @@ public class PullConsumer {
 
 
     public static void main(String[] args) throws MQClientException {
-        DefaultMQPullConsumer consumer = new DefaultMQPullConsumer("example.consumer.active");
-        consumer.setNamesrvAddr("127.0.0.1:9876");
+        DefaultMQPullConsumer consumer = new DefaultMQPullConsumer("example_pull_consumer_group");
+
         consumer.start();
 
         Set<MessageQueue> mqs = consumer.fetchSubscribeMessageQueues("TopicTest");
@@ -51,20 +49,24 @@ public class PullConsumer {
             try {
                 pullResult = consumer.pullBlockIfNotFound(mq, null, getMessageQueueOffset(mq), 32);
                 System.out.println(pullResult);
+                putMessageQueueOffset(mq, pullResult.getNextBeginOffset());
+                switch (pullResult.getPullStatus()) {
+                case FOUND:
+                    // TODO
+                    break;
+                case NO_MATCHED_MSG:
+                    break;
+                case NO_NEW_MSG:
+                    break;
+                case OFFSET_ILLEGAL:
+                    break;
+                default:
+                    break;
+                }
             }
-            catch (RemotingException e) {
-                // TODO Auto-generated catch block
+            catch (Exception e) {
                 e.printStackTrace();
             }
-            catch (MQBrokerException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
-            }
-            catch (InterruptedException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
-            }
-
         }
 
         consumer.shutdown();

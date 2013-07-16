@@ -6,7 +6,9 @@ package com.alibaba.rocketmq.broker.client;
 import io.netty.channel.Channel;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -35,8 +37,8 @@ public class ConsumerGroupInfo {
     private volatile ConsumeFromWhere consumeFromWhere;
     private final ConcurrentHashMap<String/* Topic */, SubscriptionData> subscriptionTable =
             new ConcurrentHashMap<String, SubscriptionData>();
-    private final ConcurrentHashMap<Integer/* channel id */, ClientChannelInfo> channelInfoTable =
-            new ConcurrentHashMap<Integer/* channel id */, ClientChannelInfo>(16);
+    private final ConcurrentHashMap<Channel, ClientChannelInfo> channelInfoTable =
+            new ConcurrentHashMap<Channel, ClientChannelInfo>(16);
 
     private volatile long lastUpdateTimestamp = System.currentTimeMillis();
 
@@ -53,12 +55,7 @@ public class ConsumerGroupInfo {
     public List<Channel> getAllChannel() {
         List<Channel> result = new ArrayList<Channel>();
 
-        for (Integer id : this.channelInfoTable.keySet()) {
-            ClientChannelInfo info = this.channelInfoTable.get(id);
-            if (info != null) {
-                result.add(info.getChannel());
-            }
-        }
+        result.addAll(this.channelInfoTable.keySet());
 
         return result;
     }
@@ -67,11 +64,12 @@ public class ConsumerGroupInfo {
     public List<String> getAllClientId() {
         List<String> result = new ArrayList<String>();
 
-        for (Integer id : this.channelInfoTable.keySet()) {
-            ClientChannelInfo info = this.channelInfoTable.get(id);
-            if (info != null) {
-                result.add(info.getClientId());
-            }
+        Iterator<Entry<Channel, ClientChannelInfo>> it = this.channelInfoTable.entrySet().iterator();
+
+        while (it.hasNext()) {
+            Entry<Channel, ClientChannelInfo> entry = it.next();
+            ClientChannelInfo clientChannelInfo = entry.getValue();
+            result.add(clientChannelInfo.getClientId());
         }
 
         return result;
@@ -79,7 +77,7 @@ public class ConsumerGroupInfo {
 
 
     public void unregisterChannel(final ClientChannelInfo clientChannelInfo) {
-        ClientChannelInfo old = this.channelInfoTable.remove(clientChannelInfo.getChannel().id());
+        ClientChannelInfo old = this.channelInfoTable.remove(clientChannelInfo.getChannel().hashCode());
         if (old != null) {
             log.info("unregister a consumer[{}] from consumerGroupInfo {}", this.groupName, old.toString());
         }
@@ -87,7 +85,7 @@ public class ConsumerGroupInfo {
 
 
     public void doChannelCloseEvent(final String remoteAddr, final Channel channel) {
-        final ClientChannelInfo info = this.channelInfoTable.remove(channel.id());
+        final ClientChannelInfo info = this.channelInfoTable.remove(channel);
         if (info != null) {
             log.warn(
                 "NETTY EVENT: remove not active channel[{}] from ConsumerGroupInfo groupChannelTable, consumer group: {}",
@@ -106,10 +104,10 @@ public class ConsumerGroupInfo {
         this.messageModel = messageModel;
         this.consumeFromWhere = consumeFromWhere;
 
-        ClientChannelInfo info = this.channelInfoTable.get(clientChannelInfo.getChannel().id());
+        ClientChannelInfo info = this.channelInfoTable.get(clientChannelInfo.getChannel());
         if (null == info) {
             ClientChannelInfo prev =
-                    this.channelInfoTable.put(clientChannelInfo.getChannel().id(), clientChannelInfo);
+                    this.channelInfoTable.put(clientChannelInfo.getChannel(), clientChannelInfo);
             if (null == prev) {
                 log.info("new consumer connected, group: {} {} {} channel: {}", this.groupName, consumeType,
                     messageModel, clientChannelInfo.toString());
