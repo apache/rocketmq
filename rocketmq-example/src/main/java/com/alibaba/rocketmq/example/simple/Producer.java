@@ -10,11 +10,14 @@ import com.alibaba.rocketmq.common.message.Message;
 
 
 /**
+ * Producer£¬·¢ËÍÏûÏ¢
+ * 
  * @author shijia.wxr<vintage.wang@gmail.com>
+ * @since 2013-7-16
  */
 public class Producer {
     public static void main(String[] args) throws MQClientException, InterruptedException {
-        DefaultMQProducer producer = new DefaultMQProducer("example.producer");
+        DefaultMQProducer producer = new DefaultMQProducer("example_producer_group");
 
         producer.start();
 
@@ -23,7 +26,7 @@ public class Producer {
         for (int i = 0; i < 100; i++) {
             try {
                 Message msg =
-                        new Message("TopicTest4", tags[i % tags.length], "KEY" + i,
+                        new Message("TopicTest", tags[i % tags.length], "KEY" + i,
                             ("Hello RocketMQ " + i).getBytes());
                 SendResult sendResult = producer.send(msg);
                 System.out.println(sendResult);
