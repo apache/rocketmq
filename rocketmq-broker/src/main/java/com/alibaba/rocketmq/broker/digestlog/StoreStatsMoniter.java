@@ -11,7 +11,7 @@ import com.alibaba.rocketmq.store.DefaultMessageStore;
 
 
 public class StoreStatsMoniter {
-    private static final Logger log = LoggerFactory.getLogger(StoreStatsMoniter.class);
+    private static final Logger log = LoggerFactory.getLogger("StoreStatsMoniter");
     private static final String TOPIC_GROUP_SEPARATOR = "@";
     private BrokerController brokerController;
 //   
