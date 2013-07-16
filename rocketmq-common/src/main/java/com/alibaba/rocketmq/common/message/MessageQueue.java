@@ -3,12 +3,15 @@
  */
 package com.alibaba.rocketmq.common.message;
 
+import java.io.Serializable;
+
 /**
  * 消息队列数据结构，对外提供
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  */
-public class MessageQueue implements Comparable<MessageQueue> {
+public class MessageQueue implements Comparable<MessageQueue>,Serializable {
+    private static final long serialVersionUID = 1L;
     private String topic;
     private String brokerName;
     private int queueId;
