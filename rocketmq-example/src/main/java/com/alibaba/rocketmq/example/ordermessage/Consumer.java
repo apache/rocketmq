@@ -31,17 +31,19 @@ public class Consumer {
             @Override
             public ConsumeOrderlyStatus consumeMessage(List<MessageExt> msgs, ConsumeOrderlyContext context) {
                 context.setAutoCommit(false);
-                if ((this.consumeTimes.getAndIncrement() % 2) == 0) {
+                System.out.println(Thread.currentThread().getName() + " Receive New Messages: " + msgs);
+                this.consumeTimes.incrementAndGet();
+                if ((this.consumeTimes.get() % 2) == 0) {
                     return ConsumeOrderlyStatus.SUCCESS;
                 }
-                else if ((this.consumeTimes.getAndIncrement() % 3) == 0) {
+                else if ((this.consumeTimes.get() % 3) == 0) {
                     return ConsumeOrderlyStatus.ROLLBACK;
                 }
-                else if ((this.consumeTimes.getAndIncrement() % 4) == 0) {
+                else if ((this.consumeTimes.get() % 4) == 0) {
                     return ConsumeOrderlyStatus.COMMIT;
                 }
-                else if ((this.consumeTimes.getAndIncrement() % 5) == 0) {
-                    context.setSuspendCurrentQueueTimeMillis(1000);
+                else if ((this.consumeTimes.get() % 5) == 0) {
+                    context.setSuspendCurrentQueueTimeMillis(3000);
                     return ConsumeOrderlyStatus.SUSPEND_CURRENT_QUEUE_A_MOMENT;
                 }
 
