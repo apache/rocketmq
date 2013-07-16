@@ -21,6 +21,7 @@ import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.TopicConfig;
 import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.common.namesrv.RegisterBrokerResult;
+import com.alibaba.rocketmq.common.protocol.body.ClusterInfoSerializeWrapper;
 import com.alibaba.rocketmq.common.protocol.body.TopicConfigSerializeWrapper;
 import com.alibaba.rocketmq.common.protocol.route.BrokerData;
 import com.alibaba.rocketmq.common.protocol.route.QueueData;
@@ -47,6 +48,14 @@ public class RouteInfoManager {
         this.brokerAddrTable = new HashMap<String, BrokerData>(128);
         this.clusterAddrTable = new HashMap<String, Set<String>>(32);
         this.brokerLiveTable = new HashMap<String, BrokerLiveInfo>(256);
+    }
+
+
+    public byte[] getAllClusterInfo() {
+        ClusterInfoSerializeWrapper clusterInfoSerializeWrapper = new ClusterInfoSerializeWrapper();
+        clusterInfoSerializeWrapper.setBrokerAddrTable(this.brokerAddrTable);
+        clusterInfoSerializeWrapper.setClusterAddrTable(this.clusterAddrTable);
+        return clusterInfoSerializeWrapper.encode();
     }
 
 

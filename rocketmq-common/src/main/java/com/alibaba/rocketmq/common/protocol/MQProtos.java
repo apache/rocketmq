@@ -329,6 +329,14 @@ public final class MQProtos {
      * </pre>
      */
     GET_ROUTEINTO_BY_TOPIC(38, 105),
+    /**
+     * <code>GET_BROKER_CLUSTER_INFO = 106;</code>
+     *
+     * <pre>
+     * Namesrv 获取注册到Name Server的所有Broker集群信息
+     * </pre>
+     */
+    GET_BROKER_CLUSTER_INFO(39, 106),
     ;
 
     /**
@@ -643,6 +651,14 @@ public final class MQProtos {
      * </pre>
      */
     public static final int GET_ROUTEINTO_BY_TOPIC_VALUE = 105;
+    /**
+     * <code>GET_BROKER_CLUSTER_INFO = 106;</code>
+     *
+     * <pre>
+     * Namesrv 获取注册到Name Server的所有Broker集群信息
+     * </pre>
+     */
+    public static final int GET_BROKER_CLUSTER_INFO_VALUE = 106;
 
 
     public final int getNumber() { return value; }
@@ -688,6 +704,7 @@ public final class MQProtos {
         case 103: return REGISTER_BROKER;
         case 104: return UNREGISTER_BROKER;
         case 105: return GET_ROUTEINTO_BY_TOPIC;
+        case 106: return GET_BROKER_CLUSTER_INFO;
         default: return null;
       }
     }
@@ -1173,7 +1190,7 @@ public final class MQProtos {
       descriptor;
   static {
     java.lang.String[] descriptorData = {
-      "\n\010mq.proto\022\010rocketmq\032\016remoting.proto*\331\007\n" +
+      "\n\010mq.proto\022\010rocketmq\032\016remoting.proto*\366\007\n" +
       "\rMQRequestCode\022\020\n\014SEND_MESSAGE\020\n\022\020\n\014PULL" +
       "_MESSAGE\020\013\022\021\n\rQUERY_MESSAGE\020\014\022\027\n\023QUERY_B" +
       "ROKER_OFFSET\020\r\022\031\n\025QUERY_CONSUMER_OFFSET\020" +
@@ -1198,23 +1215,24 @@ public final class MQProtos {
       "LAY_OFFSET\020-\022\021\n\rPUT_KV_CONFIG\020d\022\021\n\rGET_K" +
       "V_CONFIG\020e\022\024\n\020DELETE_KV_CONFIG\020f\022\023\n\017REGI" +
       "STER_BROKER\020g\022\025\n\021UNREGISTER_BROKER\020h\022\032\n\026" +
-      "GET_ROUTEINTO_BY_TOPIC\020i*\301\004\n\016MQResponseC" +
-      "ode\022\026\n\022FLUSH_DISK_TIMEOUT\020\n\022\027\n\023SLAVE_NOT" +
-      "_AVAILABLE\020\013\022\027\n\023FLUSH_SLAVE_TIMEOUT\020\014\022\023\n" +
-      "\017MESSAGE_ILLEGAL\020\r\022\031\n\025SERVICE_NOT_AVAILA" +
-      "BLE\020\016\022\031\n\025VERSION_NOT_SUPPORTED\020\017\022\021\n\rNO_P",
-      "ERMISSION\020\020\022\023\n\017TOPIC_NOT_EXIST\020\021\022\027\n\023TOPI" +
-      "C_EXIST_ALREADY\020\022\022\022\n\016PULL_NOT_FOUND\020\023\022\032\n" +
-      "\026PULL_RETRY_IMMEDIATELY\020\024\022\025\n\021PULL_OFFSET" +
-      "_MOVED\020\025\022\023\n\017QUERY_NOT_FOUND\020\026\022\035\n\031SUBSCRI" +
-      "PTION_PARSE_FAILED\020\027\022\032\n\026SUBSCRIPTION_NOT" +
-      "_EXIST\020\030\022\033\n\027SUBSCRIPTION_NOT_LATEST\020\031\022 \n" +
-      "\034SUBSCRIPTION_GROUP_NOT_EXIST\020\032\022\036\n\031TRANS" +
-      "ACTION_SHOULD_COMMIT\020\310\001\022 \n\033TRANSACTION_S" +
-      "HOULD_ROLLBACK\020\311\001\022\035\n\030TRANSACTION_STATE_U" +
-      "NKNOW\020\312\001\022\"\n\035TRANSACTION_STATE_GROUP_WRON",
-      "G\020\313\001B2\n$com.alibaba.rocketmq.common.prot" +
-      "ocolB\010MQProtosH\001"
+      "GET_ROUTEINTO_BY_TOPIC\020i\022\033\n\027GET_BROKER_C" +
+      "LUSTER_INFO\020j*\301\004\n\016MQResponseCode\022\026\n\022FLUS" +
+      "H_DISK_TIMEOUT\020\n\022\027\n\023SLAVE_NOT_AVAILABLE\020" +
+      "\013\022\027\n\023FLUSH_SLAVE_TIMEOUT\020\014\022\023\n\017MESSAGE_IL" +
+      "LEGAL\020\r\022\031\n\025SERVICE_NOT_AVAILABLE\020\016\022\031\n\025VE",
+      "RSION_NOT_SUPPORTED\020\017\022\021\n\rNO_PERMISSION\020\020" +
+      "\022\023\n\017TOPIC_NOT_EXIST\020\021\022\027\n\023TOPIC_EXIST_ALR" +
+      "EADY\020\022\022\022\n\016PULL_NOT_FOUND\020\023\022\032\n\026PULL_RETRY" +
+      "_IMMEDIATELY\020\024\022\025\n\021PULL_OFFSET_MOVED\020\025\022\023\n" +
+      "\017QUERY_NOT_FOUND\020\026\022\035\n\031SUBSCRIPTION_PARSE" +
+      "_FAILED\020\027\022\032\n\026SUBSCRIPTION_NOT_EXIST\020\030\022\033\n" +
+      "\027SUBSCRIPTION_NOT_LATEST\020\031\022 \n\034SUBSCRIPTI" +
+      "ON_GROUP_NOT_EXIST\020\032\022\036\n\031TRANSACTION_SHOU" +
+      "LD_COMMIT\020\310\001\022 \n\033TRANSACTION_SHOULD_ROLLB" +
+      "ACK\020\311\001\022\035\n\030TRANSACTION_STATE_UNKNOW\020\312\001\022\"\n",
+      "\035TRANSACTION_STATE_GROUP_WRONG\020\313\001B2\n$com" +
+      ".alibaba.rocketmq.common.protocolB\010MQPro" +
+      "tosH\001"
     };
     com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
       new com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner() {

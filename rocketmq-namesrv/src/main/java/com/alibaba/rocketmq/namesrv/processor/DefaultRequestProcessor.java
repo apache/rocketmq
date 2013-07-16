@@ -70,10 +70,24 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
             return this.unregisterBroker(ctx, request);
         case GET_ROUTEINTO_BY_TOPIC:
             return this.getRouteInfoByTopic(ctx, request);
+        case GET_BROKER_CLUSTER_INFO:
+            return this.getBrokerClusterInfo(ctx, request);
         default:
             break;
         }
         return null;
+    }
+
+
+    private RemotingCommand getBrokerClusterInfo(ChannelHandlerContext ctx, RemotingCommand request) {
+        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
+
+        byte[] content = this.namesrvController.getRouteInfoManager().getAllClusterInfo();
+        response.setBody(content);
+
+        response.setCode(ResponseCode.SUCCESS_VALUE);
+        response.setRemark(null);
+        return response;
     }
 
 
