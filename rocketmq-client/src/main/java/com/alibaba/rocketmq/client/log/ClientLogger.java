@@ -36,15 +36,15 @@ public class ClientLogger {
 
 
     private static Logger createLogger(final String loggerName, final String fileName) {
-        LoggerContext lc = (LoggerContext) LoggerFactory.getILoggerFactory();
-        JoranConfigurator configurator = new JoranConfigurator();
-        configurator.setContext(lc);
-        lc.reset();
         try {
+            LoggerContext lc = (LoggerContext) LoggerFactory.getILoggerFactory();
+            JoranConfigurator configurator = new JoranConfigurator();
+            configurator.setContext(lc);
+            lc.reset();
             // 配置文件已经打包到Client Jar包
             configurator.doConfigure("logback_rocketmq_client.xml");
         }
-        catch (JoranException e) {
+        catch (Exception e) {
             System.err.println(e);
         }
 
