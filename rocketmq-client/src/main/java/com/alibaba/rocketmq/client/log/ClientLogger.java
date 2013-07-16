@@ -9,7 +9,9 @@ import org.slf4j.LoggerFactory;
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.encoder.PatternLayoutEncoder;
+import ch.qos.logback.classic.joran.JoranConfigurator;
 import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.joran.spi.JoranException;
 import ch.qos.logback.core.rolling.RollingFileAppender;
 import ch.qos.logback.core.rolling.TimeBasedRollingPolicy;
 
@@ -34,6 +36,25 @@ public class ClientLogger {
 
 
     private static Logger createLogger(final String loggerName, final String fileName) {
+        LoggerContext lc = (LoggerContext) LoggerFactory.getILoggerFactory();
+        JoranConfigurator configurator = new JoranConfigurator();
+        configurator.setContext(lc);
+        lc.reset();
+        try {
+            // 配置文件已经打包到Client Jar包
+            configurator.doConfigure("logback_rocketmq_client.xml");
+        }
+        catch (JoranException e) {
+            System.err.println(e);
+        }
+
+        final Logger logger = LoggerFactory.getLogger(LoggerName.BrokerLoggerName);
+
+        return logger;
+    }
+
+
+    private static Logger createLogger_old(final String loggerName, final String fileName) {
         Logger logger = LoggerFactory.getLogger(loggerName);
         LoggerContext loggerContext = (LoggerContext) LoggerFactory.getILoggerFactory();
 

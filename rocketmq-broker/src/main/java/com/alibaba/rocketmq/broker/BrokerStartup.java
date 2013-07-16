@@ -155,7 +155,7 @@ public class BrokerStartup {
             JoranConfigurator configurator = new JoranConfigurator();
             configurator.setContext(lc);
             lc.reset();
-            configurator.doConfigure(brokerConfig.getRocketmqHome() + "/conf/log4j_broker.xml");
+            configurator.doConfigure(brokerConfig.getRocketmqHome() + "/conf/logback_broker.xml");
             final Logger log = LoggerFactory.getLogger(LoggerName.BrokerLoggerName);
 
             // 打印启动参数

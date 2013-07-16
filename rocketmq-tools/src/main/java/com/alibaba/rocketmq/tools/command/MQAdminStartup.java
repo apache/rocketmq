@@ -88,7 +88,7 @@ public class MQAdminStartup {
         JoranConfigurator configurator = new JoranConfigurator();
         configurator.setContext(lc);
         lc.reset();
-        configurator.doConfigure(rocketmqHome + "/conf/log4j_tools.xml");
+        configurator.doConfigure(rocketmqHome + "/conf/logback_tools.xml");
     }
 
 

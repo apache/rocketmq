@@ -95,7 +95,7 @@ public class NamesrvStartup {
             JoranConfigurator configurator = new JoranConfigurator();
             configurator.setContext(lc);
             lc.reset();
-            configurator.doConfigure(namesrvConfig.getRocketmqHome() + "/conf/log4j_namesrv.xml");
+            configurator.doConfigure(namesrvConfig.getRocketmqHome() + "/conf/logback_namesrv.xml");
             final Logger log = LoggerFactory.getLogger(LoggerName.NamesrvLoggerName);
 
             // 初始化服务控制对象
