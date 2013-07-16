@@ -1,17 +1,34 @@
 #!/bin/sh
 
-#
-# $Id: mqshutdown 1831 2013-05-16 01:39:51Z shijia.wxr $
-#
+case $1 in
+    broker)
 
-pid=`ps ax | grep -i 'com.alibaba.rocketmq.broker.BrokerStartup' |grep java | grep -v grep | awk '{print $1}'`
-if [ -z "$pid" ] ; then
-        echo "No mqbroker running."
-        exit -1;
-fi
+    pid=`ps ax | grep -i 'com.alibaba.rocketmq.broker.BrokerStartup' |grep java | grep -v grep | awk '{print $1}'`
+    if [ -z "$pid" ] ; then
+            echo "No mqbroker running."
+            exit -1;
+    fi
 
-echo "The mqbroker(${pid}) is running..."
+    echo "The mqbroker(${pid}) is running..."
 
-kill ${pid}
+    kill ${pid}
 
-echo "Send shutdown request to mqbroker(${pid}) OK"
+    echo "Send shutdown request to mqbroker(${pid}) OK"
+    ;;
+    namesrv)
+
+    pid=`ps ax | grep -i 'com.alibaba.rocketmq.namesrv.NamesrvStartup' |grep java | grep -v grep | awk '{print $1}'`
+    if [ -z "$pid" ] ; then
+            echo "No mqnamesrv running."
+            exit -1;
+    fi
+
+    echo "The mqnamesrv(${pid}) is running..."
+
+    kill ${pid}
+
+    echo "Send shutdown request to mqnamesrv(${pid}) OK"
+    ;;
+    *)
+    echo "Useage: mqshutdown broker | namesrv"
+esac
