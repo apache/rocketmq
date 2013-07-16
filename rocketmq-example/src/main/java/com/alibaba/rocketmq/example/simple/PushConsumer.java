@@ -38,6 +38,10 @@ public class PushConsumer {
                 if ((this.consumeTimes.getAndIncrement() % 2) == 0) {
                     return ConsumeConcurrentlyStatus.RECONSUME_LATER;
                 }
+                else if ((this.consumeTimes.getAndIncrement() % 3) == 0) {
+                    context.setDelayLevelWhenNextConsume(5);
+                    return ConsumeConcurrentlyStatus.RECONSUME_LATER;
+                }
 
                 return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
             }
