@@ -61,6 +61,53 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
     }
 
 
+    private void checkConfig() throws MQClientException {
+        // consumerGroup
+        if (null == this.defaultMQPullConsumer.getConsumerGroup()) {
+            throw new MQClientException("consumerGroup is null" //
+                    + FAQUrl.suggestTodo(FAQUrl.CLIENT_PARAMETER_CHECK_URL), //
+                null);
+        }
+
+        // consumerGroup
+        if (this.defaultMQPullConsumer.getConsumerGroup().equals(MixAll.DEFAULT_CONSUMER_GROUP)) {
+            throw new MQClientException("consumerGroup can not equal "//
+                    + MixAll.DEFAULT_CONSUMER_GROUP //
+                    + ", please specify another one."//
+                    + FAQUrl.suggestTodo(FAQUrl.CLIENT_PARAMETER_CHECK_URL), //
+                null);
+        }
+
+        // messageModel
+        if (null == this.defaultMQPullConsumer.getMessageModel()) {
+            throw new MQClientException("messageModel is null" //
+                    + FAQUrl.suggestTodo(FAQUrl.CLIENT_PARAMETER_CHECK_URL), //
+                null);
+        }
+
+        // messageQueueListener
+        if (null == this.defaultMQPullConsumer.getMessageQueueListener()) {
+            throw new MQClientException("messageQueueListener is null" //
+                    + FAQUrl.suggestTodo(FAQUrl.CLIENT_PARAMETER_CHECK_URL), //
+                null);
+        }
+
+        // offsetStore
+        if (null == this.defaultMQPullConsumer.getOffsetStore()) {
+            throw new MQClientException("offsetStore is null" //
+                    + FAQUrl.suggestTodo(FAQUrl.CLIENT_PARAMETER_CHECK_URL), //
+                null);
+        }
+
+        // allocateMessageQueueStrategy
+        if (null == this.defaultMQPullConsumer.getAllocateMessageQueueStrategy()) {
+            throw new MQClientException("allocateMessageQueueStrategy is null" //
+                    + FAQUrl.suggestTodo(FAQUrl.CLIENT_PARAMETER_CHECK_URL), //
+                null);
+        }
+    }
+
+
     private void copySubscription() throws MQClientException {
         try {
             // 复制用户初始设置的订阅关系
@@ -435,6 +482,7 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
     public void start() throws MQClientException {
         switch (this.serviceState) {
         case CREATE_JUST:
+            this.checkConfig();
 
             this.copySubscription();
 
