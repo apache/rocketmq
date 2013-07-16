@@ -62,6 +62,8 @@ enum MQRequestCode{
     UNREGISTER_BROKER = 104;                            // Namesrv 卸载一个Broker，数据都是持久化的
     GET_ROUTEINTO_BY_TOPIC = 105;                       // Namesrv 根据Topic获取Broker Name、队列数(包含读队列与写队列)
                                                         // 如果是Producer，Namesrv会检索是否有顺序消息配置，一并返回。
+
+    GET_BROKER_CLUSTER_INFO = 106;                      // Namesrv 获取注册到Name Server的所有Broker集群信息
 }
 
 // RPC应答代码
