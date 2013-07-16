@@ -35,10 +35,11 @@ public class PushConsumer {
             public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> msgs,
                     ConsumeConcurrentlyContext context) {
                 System.out.println(Thread.currentThread().getName() + " Receive New Messages: " + msgs);
-                if ((this.consumeTimes.getAndIncrement() % 2) == 0) {
+                this.consumeTimes.incrementAndGet();
+                if ((this.consumeTimes.get() % 2) == 0) {
                     return ConsumeConcurrentlyStatus.RECONSUME_LATER;
                 }
-                else if ((this.consumeTimes.getAndIncrement() % 3) == 0) {
+                else if ((this.consumeTimes.get() % 3) == 0) {
                     context.setDelayLevelWhenNextConsume(5);
                     return ConsumeConcurrentlyStatus.RECONSUME_LATER;
                 }
