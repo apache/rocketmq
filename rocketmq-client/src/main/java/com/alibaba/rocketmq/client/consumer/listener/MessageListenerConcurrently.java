@@ -23,5 +23,5 @@ public interface MessageListenerConcurrently extends MessageListener {
      * @return
      */
     public ConsumeConcurrentlyStatus consumeMessage(final List<MessageExt> msgs,
-            final ConsumeConcurrentlyContext context) throws Exception;
+            final ConsumeConcurrentlyContext context);
 }
