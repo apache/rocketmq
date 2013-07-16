@@ -22,5 +22,9 @@
 			<groupId>${project.groupId}</groupId>
 			<artifactId>rocketmq-common</artifactId>
 		</dependency>
+		<dependency>
+			<groupId>ch.qos.logback</groupId>
+			<artifactId>logback-classic</artifactId>
+		</dependency>
 	</dependencies>
 </project>
