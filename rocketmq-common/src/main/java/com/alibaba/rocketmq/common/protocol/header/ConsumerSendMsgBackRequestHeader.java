@@ -20,9 +20,7 @@ public class ConsumerSendMsgBackRequestHeader implements CommandCustomHeader {
 
     @Override
     public void checkFields() throws RemotingCommandException {
-        if (this.delayLevel <= 0) {
-            throw new RemotingCommandException("delayLevel <= 0");
-        }
+
     }
 
 
