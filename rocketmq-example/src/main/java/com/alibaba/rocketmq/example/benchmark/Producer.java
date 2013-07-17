@@ -43,6 +43,8 @@ public class Producer {
         final int threadCount = args.length >= 1 ? Integer.parseInt(args[0]) : 32;
         final int messageSize = args.length >= 2 ? Integer.parseInt(args[1]) : 1024 * 2;
 
+        System.out.printf("threadCount %d messageSize %d\n", threadCount, messageSize);
+
         final Message msg = buildMessage(messageSize);
 
         final ExecutorService sendThreadPool = Executors.newFixedThreadPool(threadCount);

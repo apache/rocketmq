@@ -3,6 +3,7 @@
  */
 package com.alibaba.rocketmq.common.message;
 
+import java.io.Serializable;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
@@ -16,7 +17,9 @@ import com.alibaba.rocketmq.common.sysflag.MessageSysFlag;
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  */
-public class MessageExt extends Message {
+public class MessageExt extends Message implements Serializable {
+    private static final long serialVersionUID = 8319216613151969646L;
+
     // 队列ID <PUT>
     private int queueId;
     // 存储记录大小
