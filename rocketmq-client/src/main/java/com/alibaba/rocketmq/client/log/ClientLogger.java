@@ -1,5 +1,7 @@
 package com.alibaba.rocketmq.client.log;
 
+import java.net.URL;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -13,27 +15,31 @@ public class ClientLogger {
     private static Logger log;
 
     static {
-        String logConfigFilePath =
-                System.getProperty("rocketmq.client.log.configFile",
-                    System.getenv("ROCKETMQ_CLIENT_LOG_CONFIGFILE"));
-        if (null == logConfigFilePath) {
-            // 如果应用没有配置，则使用jar包内置配置
-            logConfigFilePath = "logback_rocketmq_client.xml";
-        }
-
         // 初始化Logger
-        log = createLogger(LoggerName.ClientLoggerName, logConfigFilePath);
+        log = createLogger(LoggerName.ClientLoggerName);
     }
 
 
-    private static Logger createLogger(final String loggerName, final String logConfigFile) {
+    private static Logger createLogger(final String loggerName) {
+        String logConfigFilePath =
+                System.getProperty("rocketmq.client.log.configFile",
+                    System.getenv("ROCKETMQ_CLIENT_LOG_CONFIGFILE"));
+
         try {
             LoggerContext lc = new LoggerContext();
             JoranConfigurator configurator = new JoranConfigurator();
             configurator.setContext(lc);
             lc.reset();
-            // 配置文件已经打包到Client Jar包
-            configurator.doConfigure(logConfigFile);
+
+            if (null == logConfigFilePath) {
+                // 如果应用没有配置，则使用jar包内置配置
+                URL url = ClientLogger.class.getClassLoader().getResource("logback_rocketmq_client.xml");
+                configurator.doConfigure(url);
+            }
+            else {
+                configurator.doConfigure(logConfigFilePath);
+            }
+
             return lc.getLogger(LoggerName.ClientLoggerName);
         }
         catch (Exception e) {
