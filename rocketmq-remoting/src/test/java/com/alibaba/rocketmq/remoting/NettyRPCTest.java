@@ -21,7 +21,6 @@ import com.alibaba.rocketmq.remoting.netty.NettyRequestProcessor;
 import com.alibaba.rocketmq.remoting.netty.NettyServerConfig;
 import com.alibaba.rocketmq.remoting.netty.ResponseFuture;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
-import com.alibaba.rocketmq.remoting.protocol.RemotingProtos.RequestCode;
 
 
 /**
@@ -40,7 +39,7 @@ public class NettyRPCTest {
     public static RemotingServer createRemotingServer() throws InterruptedException {
         NettyServerConfig config = new NettyServerConfig();
         RemotingServer remotingServer = new NettyRemotingServer(config);
-        remotingServer.registerProcessor(RequestCode.DEMO_REQUEST_VALUE, new NettyRequestProcessor() {
+        remotingServer.registerProcessor(0, new NettyRequestProcessor() {
             private int i = 0;
 
 
@@ -66,8 +65,7 @@ public class NettyRPCTest {
             TestRequestHeader requestHeader = new TestRequestHeader();
             requestHeader.setCount(i);
             requestHeader.setMessageTitle("HelloMessageTitle");
-            RemotingCommand request =
-                    RemotingCommand.createRequestCommand(RequestCode.DEMO_REQUEST_VALUE, requestHeader);
+            RemotingCommand request = RemotingCommand.createRequestCommand(0, requestHeader);
             RemotingCommand response = client.invokeSync("127.0.0.1:8888", request, 1000 * 3);
             System.out.println("invoke result = " + response);
             assertTrue(response != null);
@@ -86,8 +84,7 @@ public class NettyRPCTest {
         RemotingClient client = createRemotingClient();
 
         for (int i = 0; i < 100; i++) {
-            RemotingCommand request =
-                    RemotingCommand.createRequestCommand(RequestCode.DEMO_REQUEST_VALUE, null);
+            RemotingCommand request = RemotingCommand.createRequestCommand(0, null);
             request.setRemark(String.valueOf(i));
             client.invokeOneway("127.0.0.1:8888", request, 1000 * 3);
         }
@@ -105,8 +102,7 @@ public class NettyRPCTest {
         RemotingClient client = createRemotingClient();
 
         for (int i = 0; i < 100; i++) {
-            RemotingCommand request =
-                    RemotingCommand.createRequestCommand(RequestCode.DEMO_REQUEST_VALUE, null);
+            RemotingCommand request = RemotingCommand.createRequestCommand(0, null);
             request.setRemark(String.valueOf(i));
             client.invokeAsync("127.0.0.1:8888", request, 1000 * 3, new InvokeCallback() {
                 @Override
@@ -130,7 +126,7 @@ public class NettyRPCTest {
         final RemotingServer server = createRemotingServer();
         final RemotingClient client = createRemotingClient();
 
-        server.registerProcessor(RequestCode.DEMO_REQUEST_VALUE, new NettyRequestProcessor() {
+        server.registerProcessor(0, new NettyRequestProcessor() {
             @Override
             public RemotingCommand processRequest(ChannelHandlerContext ctx, RemotingCommand request) {
                 try {
@@ -150,7 +146,7 @@ public class NettyRPCTest {
             }
         }, Executors.newCachedThreadPool());
 
-        client.registerProcessor(RequestCode.DEMO_REQUEST_VALUE, new NettyRequestProcessor() {
+        client.registerProcessor(0, new NettyRequestProcessor() {
             @Override
             public RemotingCommand processRequest(ChannelHandlerContext ctx, RemotingCommand request) {
                 System.out.println("client receive server request = " + request);
@@ -160,8 +156,7 @@ public class NettyRPCTest {
         }, Executors.newCachedThreadPool());
 
         for (int i = 0; i < 3; i++) {
-            RemotingCommand request =
-                    RemotingCommand.createRequestCommand(RequestCode.DEMO_REQUEST_VALUE, null);
+            RemotingCommand request = RemotingCommand.createRequestCommand(0, null);
             RemotingCommand response = client.invokeSync("127.0.0.1:8888", request, 1000 * 3);
             System.out.println("invoke result = " + response);
             assertTrue(response != null);

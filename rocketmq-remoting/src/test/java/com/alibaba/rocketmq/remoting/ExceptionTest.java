@@ -19,7 +19,6 @@ import com.alibaba.rocketmq.remoting.netty.NettyRemotingServer;
 import com.alibaba.rocketmq.remoting.netty.NettyRequestProcessor;
 import com.alibaba.rocketmq.remoting.netty.NettyServerConfig;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
-import com.alibaba.rocketmq.remoting.protocol.RemotingProtos.RequestCode;
 
 
 /**
@@ -38,7 +37,7 @@ public class ExceptionTest {
     private static RemotingServer createRemotingServer() throws InterruptedException {
         NettyServerConfig config = new NettyServerConfig();
         RemotingServer client = new NettyRemotingServer(config);
-        client.registerProcessor(RequestCode.DEMO_REQUEST_VALUE, new NettyRequestProcessor() {
+        client.registerProcessor(0, new NettyRequestProcessor() {
             private int i = 0;
 
 
@@ -58,7 +57,7 @@ public class ExceptionTest {
     public void test_CONNECT_EXCEPTION() {
         RemotingClient client = createRemotingClient();
 
-        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.DEMO_REQUEST_VALUE, null);
+        RemotingCommand request = RemotingCommand.createRequestCommand(0, null);
         RemotingCommand response = null;
         try {
             response = client.invokeSync("127.0.0.1:10911", request, 1000 * 3);

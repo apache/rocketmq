@@ -16,7 +16,6 @@ import com.alibaba.rocketmq.remoting.netty.NettyRemotingServer;
 import com.alibaba.rocketmq.remoting.netty.NettyRequestProcessor;
 import com.alibaba.rocketmq.remoting.netty.NettyServerConfig;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
-import com.alibaba.rocketmq.remoting.protocol.RemotingProtos.RequestCode;
 
 
 /**
@@ -37,7 +36,7 @@ public class NettyIdleTest {
         NettyServerConfig config = new NettyServerConfig();
         config.setServerChannelMaxIdleTimeSeconds(30);
         RemotingServer remotingServer = new NettyRemotingServer(config);
-        remotingServer.registerProcessor(RequestCode.DEMO_REQUEST_VALUE, new NettyRequestProcessor() {
+        remotingServer.registerProcessor(0, new NettyRequestProcessor() {
             private int i = 0;
 
 
@@ -61,7 +60,7 @@ public class NettyIdleTest {
 
         for (int i = 0; i < 10000; i++) {
             RemotingCommand request =
-                    RemotingCommand.createRequestCommand(RequestCode.DEMO_REQUEST_VALUE, null);
+                    RemotingCommand.createRequestCommand(0, null);
             RemotingCommand response = client.invokeSync("127.0.0.1:8888", request, 1000 * 3);
             System.out.println(i + " invoke result = " + response);
             assertTrue(response != null);
