@@ -19,17 +19,16 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import com.alibaba.rocketmq.remoting.CommandCustomHeader;
 import com.alibaba.rocketmq.remoting.annotation.CFNotNull;
 import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
-import com.alibaba.rocketmq.remoting.protocol.RemotingProtos.CommandHeader;
 import com.alibaba.rocketmq.remoting.protocol.RemotingProtos.FlagBit;
 import com.alibaba.rocketmq.remoting.protocol.RemotingProtos.LanguageCode;
-import com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair;
 import com.alibaba.rocketmq.remoting.protocol.RemotingProtos.ResponseCode;
 import com.google.protobuf.InvalidProtocolBufferException;
 
@@ -54,13 +53,14 @@ public class RemotingCommand {
     private int opaque = RequestId.getAndIncrement();
     private int flag = 0;
     private String remark;
-    private List<NVPair> extFields;
-    private CommandCustomHeader customHeader;
+    private HashMap<String, String> extFields;
+
+    private transient CommandCustomHeader customHeader;
 
     /**
      * Body 部分
      */
-    private byte[] body;
+    private transient byte[] body;
 
 
     protected RemotingCommand() {
@@ -136,7 +136,7 @@ public class RemotingCommand {
     private void makeCustomHeaderToNet() {
         if (this.customHeader != null) {
             Field[] fields = this.customHeader.getClass().getDeclaredFields();
-            this.extFields = new ArrayList<NVPair>(fields.length);
+            this.extFields = new HashMap<String, String>();
             for (Field field : fields) {
                 if (!Modifier.isStatic(field.getModifiers())) {
                     String name = field.getName();
@@ -152,10 +152,7 @@ public class RemotingCommand {
                         }
 
                         if (value != null) {
-                            NVPair.Builder nvb = NVPair.newBuilder();
-                            nvb.setName(name);
-                            nvb.setValue(value.toString());
-                            this.extFields.add(nvb.build());
+                            this.extFields.put(name, value.toString());
                         }
                     }
                 }
@@ -183,9 +180,11 @@ public class RemotingCommand {
                 return null;
             }
 
-            for (NVPair nvp : this.extFields) {
-                String name = nvp.getName();
-                String value = nvp.getValue();
+            Iterator<Entry<String, String>> it = this.extFields.entrySet().iterator();
+            while (it.hasNext()) {
+                Entry<String, String> entry = it.next();
+                String name = entry.getKey();
+                String value = entry.getValue();
 
                 try {
                     Field field = objectHeader.getClass().getDeclaredField(name);
@@ -269,40 +268,18 @@ public class RemotingCommand {
     }
 
 
-    private CommandHeader buildHeader() {
-        CommandHeader.Builder builder = CommandHeader.newBuilder();
-        builder.setCode(this.code);
-        builder.setLanguage(this.language);
-        builder.setVersion(this.version);
-        builder.setOpaque(this.opaque);
-        builder.setFlag(this.flag);
-        if (this.remark != null) {
-            builder.setRemark(this.remark);
-        }
-
-        // customHeader
+    private byte[] buildHeader() {
         this.makeCustomHeaderToNet();
-
-        // extFields
-        if (this.extFields != null) {
-            int i = 0;
-            for (NVPair nv : this.extFields) {
-                builder.addExtFields(i++, nv);
-            }
-        }
-
-        return builder.build();
+        return RemotingSerializable.encode(this);
     }
 
 
     public ByteBuffer encode() {
-        CommandHeader header = this.buildHeader();
-
         // 1> header length size
         int length = 4;
 
         // 2> header data length
-        byte[] headerData = header.toByteArray();
+        byte[] headerData = this.buildHeader();
         length += headerData.length;
 
         // 3> body data length
@@ -341,13 +318,11 @@ public class RemotingCommand {
      * 只打包Header，body部分独立传输
      */
     public ByteBuffer encodeHeader(final int bodyLength) {
-        CommandHeader header = this.buildHeader();
-
         // 1> header length size
         int length = 4;
 
         // 2> header data length
-        byte[] headerData = header.toByteArray();
+        byte[] headerData = this.buildHeader();
         length += headerData.length;
 
         // 3> body data length
@@ -390,19 +365,7 @@ public class RemotingCommand {
             byteBuffer.get(bodyData);
         }
 
-        RemotingCommand cmd = new RemotingCommand();
-        CommandHeader header = CommandHeader.parseFrom(headerData);
-
-        cmd.code = header.getCode();
-        cmd.language = header.getLanguage();
-        cmd.version = header.getVersion();
-        cmd.opaque = header.getOpaque();
-        cmd.flag = header.getFlag();
-        if (header.hasRemark())
-            cmd.remark = header.getRemark();
-
-        cmd.extFields = header.getExtFieldsList();
-
+        RemotingCommand cmd = RemotingSerializable.decode(headerData, RemotingCommand.class);
         cmd.body = bodyData;
 
         return cmd;
@@ -512,12 +475,12 @@ public class RemotingCommand {
     }
 
 
-    public List<NVPair> getExtFields() {
+    public HashMap<String, String> getExtFields() {
         return extFields;
     }
 
 
-    public void setExtFields(List<NVPair> extFields) {
+    public void setExtFields(HashMap<String, String> extFields) {
         this.extFields = extFields;
     }
 
@@ -528,14 +491,4 @@ public class RemotingCommand {
                 + ", opaque=" + opaque + ", flag(B)=" + Integer.toBinaryString(flag) + ", remark=" + remark
                 + ", extFields=" + extFields + "]";
     }
-
-    // public CommandCustomHeader getCustomHeader() {
-    // return customHeader;
-    // }
-    //
-    //
-    // public void setCustomHeader(CommandCustomHeader customHeader) {
-    // this.customHeader = customHeader;
-    // }
-
 }
