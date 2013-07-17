@@ -74,7 +74,6 @@ import com.alibaba.rocketmq.remoting.netty.NettyRemotingClient;
 import com.alibaba.rocketmq.remoting.netty.ResponseFuture;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 import com.alibaba.rocketmq.remoting.protocol.RemotingProtos.ResponseCode;
-import com.google.protobuf.InvalidProtocolBufferException;
 
 
 /**
@@ -851,7 +850,7 @@ public class MQClientAPIImpl {
      * Name Server: 从Name Server获取Topic路由信息
      */
     public TopicRouteData getTopicRouteInfoFromNameServer(final String topic, final long timeoutMillis)
-            throws RemotingException, MQClientException, InterruptedException, InvalidProtocolBufferException {
+            throws RemotingException, MQClientException, InterruptedException {
         GetRouteInfoRequestHeader requestHeader = new GetRouteInfoRequestHeader();
         requestHeader.setTopic(topic);
 
@@ -884,7 +883,7 @@ public class MQClientAPIImpl {
      * Name Server: 仅仅为测试服务，可以绕过Name Server
      */
     public TopicRouteData getTopicRouteInfoFromNameServer_test(final String topic, final long timeoutMillis)
-            throws RemotingException, MQClientException, InterruptedException, InvalidProtocolBufferException {
+            throws RemotingException, MQClientException, InterruptedException {
         TopicRouteData topicRouteData = new TopicRouteData();
         topicRouteData.setOrderTopicConf("dev170021.sqa.cm6:4;");
         List<BrokerData> brokerDatas = new ArrayList<BrokerData>();
