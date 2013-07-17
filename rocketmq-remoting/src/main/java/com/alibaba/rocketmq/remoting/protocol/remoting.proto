@@ -14,44 +14,7 @@ package remoting;
 option optimize_for = SPEED;
 option java_package = "com.alibaba.rocketmq.remoting.protocol";
 option java_outer_classname = "RemotingProtos";
-
-// NV对
-message NVPair{
-    required string name=1;
-    required string value=2;
-}
-
-// NV对集合
-message NVPairList{
-    repeated NVPair fields=1;
-}
-
-// 字符串集合
-message StringList{
-    repeated string name=1;
-}
-
-// 编程语言
-enum LanguageCode{
-    JAVA = 0;
-    CPP = 1;
-    DOTNET = 2;
-    PYTHON = 3;
-    DELPHI = 4;
-    ERLANG = 5;
-    RUBY = 6;
-    OTHER = 7;
-}
-
-// Flag标记位
-enum FlagBit{
-    RPC_TYPE = 0;                       // 0, REQUEST_COMMAND
-                                        // 1, RESPONSE_COMMAND
-
-    RPC_ONEWAY = 1;                     // 0, RPC
-                                        // 1, Oneway
-}
-
+ 
 // RPC请求代码
 enum RequestCode{
     DEMO_REQUEST = 0;
@@ -64,14 +27,4 @@ enum ResponseCode{
     SYSTEM_BUSY = 2;                    // 由于线程池拥堵，系统繁忙
     REQUEST_CODE_NOT_SUPPORTED = 3;     // 请求代码不支持
 }
-
-
-message CommandHeader {
-    required int32 code = 1;
-    required LanguageCode language = 2;
-    required int32 version = 3;
-    required int32 opaque = 4;
-    required int32 flag = 5;
-    optional string remark = 6;
-    repeated NVPair extFields=7;
-}
+ 

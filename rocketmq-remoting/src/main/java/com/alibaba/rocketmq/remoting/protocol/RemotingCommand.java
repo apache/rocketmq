@@ -27,10 +27,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import com.alibaba.rocketmq.remoting.CommandCustomHeader;
 import com.alibaba.rocketmq.remoting.annotation.CFNotNull;
 import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
-import com.alibaba.rocketmq.remoting.protocol.RemotingProtos.FlagBit;
-import com.alibaba.rocketmq.remoting.protocol.RemotingProtos.LanguageCode;
 import com.alibaba.rocketmq.remoting.protocol.RemotingProtos.ResponseCode;
-import com.google.protobuf.InvalidProtocolBufferException;
 
 
 /**
@@ -43,6 +40,12 @@ public class RemotingCommand {
     public static String RemotingVersionKey = "rocketmq.remoting.version";
     private static volatile int ConfigVersion = -1;
     private static AtomicInteger RequestId = new AtomicInteger(0);
+
+    private static final int RPC_TYPE = 0; // 0, REQUEST_COMMAND
+    // 1, RESPONSE_COMMAND
+
+    private static final int RPC_ONEWAY = 1; // 0, RPC
+    // 1, Oneway
 
     /**
      * Header ²¿·Ö
@@ -345,13 +348,13 @@ public class RemotingCommand {
     }
 
 
-    public static RemotingCommand decode(final byte[] array) throws InvalidProtocolBufferException {
+    public static RemotingCommand decode(final byte[] array) {
         ByteBuffer byteBuffer = ByteBuffer.wrap(array);
         return decode(byteBuffer);
     }
 
 
-    public static RemotingCommand decode(final ByteBuffer byteBuffer) throws InvalidProtocolBufferException {
+    public static RemotingCommand decode(final ByteBuffer byteBuffer) {
         int length = byteBuffer.limit();
         int headerLength = byteBuffer.getInt();
 
@@ -373,25 +376,25 @@ public class RemotingCommand {
 
 
     public void markResponseType() {
-        int bits = 1 << FlagBit.RPC_TYPE_VALUE;
+        int bits = 1 << RPC_TYPE;
         this.flag |= bits;
     }
 
 
     public boolean isResponseType() {
-        int bits = 1 << FlagBit.RPC_TYPE_VALUE;
+        int bits = 1 << RPC_TYPE;
         return (this.flag & bits) == bits;
     }
 
 
     public void markOnewayRPC() {
-        int bits = 1 << FlagBit.RPC_ONEWAY_VALUE;
+        int bits = 1 << RPC_ONEWAY;
         this.flag |= bits;
     }
 
 
     public boolean isOnewayRPC() {
-        int bits = 1 << FlagBit.RPC_ONEWAY_VALUE;
+        int bits = 1 << RPC_ONEWAY;
         return (this.flag & bits) == bits;
     }
 

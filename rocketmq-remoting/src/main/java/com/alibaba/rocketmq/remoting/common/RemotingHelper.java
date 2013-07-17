@@ -22,21 +22,11 @@ import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map.Entry;
-import java.util.Properties;
-import java.util.Set;
 
 import com.alibaba.rocketmq.remoting.exception.RemotingConnectException;
 import com.alibaba.rocketmq.remoting.exception.RemotingSendRequestException;
 import com.alibaba.rocketmq.remoting.exception.RemotingTimeoutException;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
-import com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPair;
-import com.alibaba.rocketmq.remoting.protocol.RemotingProtos.NVPairList;
-import com.alibaba.rocketmq.remoting.protocol.RemotingProtos.StringList;
-import com.google.protobuf.InvalidProtocolBufferException;
 
 
 /**
@@ -56,114 +46,6 @@ public class RemotingHelper {
         String[] s = addr.split(":");
         InetSocketAddress isa = new InetSocketAddress(s[0], Integer.valueOf(s[1]));
         return isa;
-    }
-
-
-    /**
-     * 序列化字符串列表
-     */
-    public static byte[] stringList2Bytes(final List<String> strs) {
-        if (null == strs || strs.isEmpty()) {
-            return null;
-        }
-
-        StringList.Builder builder = StringList.newBuilder();
-
-        for (String str : strs) {
-            builder.addName(str);
-        }
-
-        return builder.build().toByteArray();
-    }
-
-
-    /**
-     * 反序列化字符串列表
-     */
-    public static List<String> bytes2StringList(final byte[] data) throws InvalidProtocolBufferException {
-        if (null == data) {
-            return null;
-        }
-        StringList stringList = StringList.parseFrom(data);
-        return stringList.getNameList();
-    }
-
-
-    /**
-     * 序列化名值对
-     */
-    public static byte[] hashMapString2Bytes(final HashMap<String/* name */, String/* value */> nms) {
-        if (null == nms || nms.isEmpty()) {
-            return null;
-        }
-
-        NVPairList.Builder builder = NVPairList.newBuilder();
-
-        Iterator<Entry<String, String>> it = nms.entrySet().iterator();
-        for (int index = 0; it.hasNext(); index++) {
-            Entry<String, String> entry = (Entry<String, String>) it.next();
-            String key = entry.getKey();
-            String val = entry.getValue();
-
-            NVPair.Builder kvb = NVPair.newBuilder();
-            kvb.setName(key);
-            kvb.setValue(val);
-            builder.addFields(index, kvb.build());
-        }
-
-        return builder.build().toByteArray();
-    }
-
-
-    /**
-     * 序列化名值对
-     */
-    public static byte[] properties2Bytes(final Properties nms) {
-        if (null == nms || nms.isEmpty()) {
-            return null;
-        }
-
-        NVPairList.Builder builder = NVPairList.newBuilder();
-
-        Set<Object> keyset = nms.keySet();
-        int index = 0;
-        for (Object object : keyset) {
-            String key = object.toString();
-            String val = nms.getProperty(key);
-
-            NVPair.Builder kvb = NVPair.newBuilder();
-            kvb.setName(key);
-            kvb.setValue(val);
-            builder.addFields(index++, kvb.build());
-        }
-
-        return builder.build().toByteArray();
-    }
-
-
-    /**
-     * 反序列化名值对
-     * 
-     * @throws InvalidProtocolBufferException
-     */
-    public static HashMap<String/* name */, String/* value */> bytes2HashMapString(final byte[] data)
-            throws InvalidProtocolBufferException {
-        if (null == data) {
-            return null;
-        }
-
-        HashMap<String/* name */, String/* value */> result =
-                new HashMap<String/* name */, String/* value */>();
-
-        NVPairList ps = NVPairList.parseFrom(data);
-
-        List<NVPair> ps2 = ps.getFieldsList();
-
-        for (NVPair kv : ps2) {
-            result.put(kv.getName(), kv.getValue());
-        }
-
-        return result;
     }
 
 
