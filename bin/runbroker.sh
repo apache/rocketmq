@@ -29,4 +29,10 @@ JAVA="$JAVA_HOME/bin/java"
 
 JAVA_OPTS="${JAVA_OPT_1} ${JAVA_OPT_2} ${JAVA_OPT_3} ${JAVA_OPT_4} ${JAVA_OPT_5} ${JAVA_OPT_6} ${JAVA_OPT_7}"
 
-numactl --interleave=all $JAVA $JAVA_OPTS $@
+numactl --interleave=all pwd > /dev/null
+if [ $? -eq 0 ]
+then
+    numactl --interleave=all $JAVA $JAVA_OPTS $@
+else
+    $JAVA $JAVA_OPTS $@
+fi
