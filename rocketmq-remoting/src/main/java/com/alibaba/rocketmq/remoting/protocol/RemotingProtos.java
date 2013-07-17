@@ -8,51 +8,6 @@ public final class RemotingProtos {
     }
 
     /**
-     * Protobuf enum {@code remoting.RequestCode}
-     * 
-     * <pre>
-     * RPCÇëÇó´úÂë
-     * </pre>
-     */
-    public enum RequestCode {
-        /**
-         * <code>DEMO_REQUEST = 0;</code>
-         */
-        DEMO_REQUEST(0, 0), ;
-
-        /**
-         * <code>DEMO_REQUEST = 0;</code>
-         */
-        public static final int DEMO_REQUEST_VALUE = 0;
-
-
-        public final int getNumber() {
-            return value;
-        }
-
-
-        public static RequestCode valueOf(int value) {
-            switch (value) {
-            case 0:
-                return DEMO_REQUEST;
-            default:
-                return null;
-            }
-        }
-
-        private final int index;
-        private final int value;
-
-
-        private RequestCode(int index, int value) {
-            this.index = index;
-            this.value = value;
-        }
-
-        // @@protoc_insertion_point(enum_scope:remoting.RequestCode)
-    }
-
-    /**
      * Protobuf enum {@code remoting.ResponseCode}
      * 
      * <pre>

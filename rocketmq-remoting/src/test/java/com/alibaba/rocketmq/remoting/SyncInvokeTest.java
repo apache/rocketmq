@@ -8,7 +8,6 @@ import static org.junit.Assert.assertTrue;
 import org.junit.Test;
 
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
-import com.alibaba.rocketmq.remoting.protocol.RemotingProtos.RequestCode;
 
 
 /**
@@ -24,7 +23,7 @@ public class SyncInvokeTest {
         for (int i = 0; i < 1000000; i++) {
             try {
                 RemotingCommand request =
-                        RemotingCommand.createRequestCommand(RequestCode.DEMO_REQUEST_VALUE, null);
+                        RemotingCommand.createRequestCommand(0, null);
                 RemotingCommand response = client.invokeSync("127.0.0.1:10911", request, 1000 * 3);
                 System.out.println(i + "\t" + "invoke result = " + response);
                 assertTrue(response != null);
