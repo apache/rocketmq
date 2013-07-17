@@ -7,660 +7,168 @@ public final class MQProtos {
     private MQProtos() {
     }
 
-    /**
-     * Protobuf enum {@code rocketmq.MQRequestCode}
-     * 
-     * <pre>
-     * RPC请求代码
-     * </pre>
-     */
     public enum MQRequestCode {
-        /**
-         * <code>SEND_MESSAGE = 10;</code>
-         * 
-         * <pre>
-         * Broker 发送消息
-         * </pre>
-         */
+        // Broker 发送消息
         SEND_MESSAGE(0, 10),
-        /**
-         * <code>PULL_MESSAGE = 11;</code>
-         * 
-         * <pre>
-         * Broker 订阅消息
-         * </pre>
-         */
+        // Broker 订阅消息
         PULL_MESSAGE(1, 11),
-        /**
-         * <code>QUERY_MESSAGE = 12;</code>
-         * 
-         * <pre>
-         * Broker 查询消息
-         * </pre>
-         */
+        // Broker 查询消息
         QUERY_MESSAGE(2, 12),
-        /**
-         * <code>QUERY_BROKER_OFFSET = 13;</code>
-         * 
-         * <pre>
-         * Broker 查询Broker Offset
-         * </pre>
-         */
+        // Broker 查询Broker Offset
         QUERY_BROKER_OFFSET(3, 13),
-        /**
-         * <code>QUERY_CONSUMER_OFFSET = 14;</code>
-         * 
-         * <pre>
-         * Broker 查询Consumer Offset
-         * </pre>
-         */
+        // Broker 查询Consumer Offset
         QUERY_CONSUMER_OFFSET(4, 14),
-        /**
-         * <code>UPDATE_CONSUMER_OFFSET = 15;</code>
-         * 
-         * <pre>
-         * Broker 更新Consumer Offset
-         * </pre>
-         */
+        // Broker 更新Consumer Offset
         UPDATE_CONSUMER_OFFSET(5, 15),
-        /**
-         * <code>UPDATE_AND_CREATE_TOPIC = 17;</code>
-         * 
-         * <pre>
-         * Broker 更新或者增加一个Topic
-         * </pre>
-         */
+        // Broker 更新或者增加一个Topic
         UPDATE_AND_CREATE_TOPIC(6, 17),
-        /**
-         * <code>DELETE_TOPIC = 19;</code>
-         * 
-         * <pre>
-         * Broker 删除一个Topic，包含数据与配置
-         * </pre>
-         */
+        // Broker 删除一个Topic，包含数据与配置
         DELETE_TOPIC(7, 19),
-        /**
-         * <code>GET_ALL_TOPIC_CONFIG = 21;</code>
-         * 
-         * <pre>
-         * Broker 获取所有Topic的配置（Slave和Namesrv都会向Master请求此配置）
-         * </pre>
-         */
+        // Broker 获取所有Topic的配置（Slave和Namesrv都会向Master请求此配置）
         GET_ALL_TOPIC_CONFIG(8, 21),
-        /**
-         * <code>GET_TOPIC_CONFIG_LIST = 22;</code>
-         * 
-         * <pre>
-         * Broker 获取所有Topic配置（Slave和Namesrv都会向Master请求此配置）
-         * </pre>
-         */
+        // Broker 获取所有Topic配置（Slave和Namesrv都会向Master请求此配置）
         GET_TOPIC_CONFIG_LIST(9, 22),
-        /**
-         * <code>GET_TOPIC_NAME_LIST = 23;</code>
-         * 
-         * <pre>
-         * Broker 获取所有Topic名称列表
-         * </pre>
-         */
+        // Broker 获取所有Topic名称列表
         GET_TOPIC_NAME_LIST(10, 23),
-        /**
-         * <code>PULL_ALL_CONSUMER_OFFSET = 24;</code>
-         * 
-         * <pre>
-         * Broker Slave获取Master所有Consumer消费进度
-         * </pre>
-         */
+        // Broker Slave获取Master所有Consumer消费进度
         PULL_ALL_CONSUMER_OFFSET(11, 24),
-        /**
-         * <code>UPDATE_BROKER_CONFIG = 25;</code>
-         * 
-         * <pre>
-         * Broker 更新Broker上的配置
-         * </pre>
-         */
+        // Broker 更新Broker上的配置
         UPDATE_BROKER_CONFIG(12, 25),
-        /**
-         * <code>GET_BROKER_CONFIG = 26;</code>
-         * 
-         * <pre>
-         * Broker 获取Broker上的配置
-         * </pre>
-         */
+        // Broker 获取Broker上的配置
         GET_BROKER_CONFIG(13, 26),
-        /**
-         * <code>TRIGGER_DELETE_FILES = 27;</code>
-         * 
-         * <pre>
-         * Broker 触发Broker删除文件
-         * </pre>
-         */
+        // Broker 触发Broker删除文件
         TRIGGER_DELETE_FILES(14, 27),
-        /**
-         * <code>GET_BROKER_RUNTIME_INFO = 28;</code>
-         * 
-         * <pre>
-         * Broker 获取Broker运行时信息
-         * </pre>
-         */
+        // Broker 获取Broker运行时信息
         GET_BROKER_RUNTIME_INFO(15, 28),
-        /**
-         * <code>SEARCH_OFFSET_BY_TIMESTAMP = 29;</code>
-         * 
-         * <pre>
-         * Broker 根据时间查询队列的Offset
-         * </pre>
-         */
+        // Broker 根据时间查询队列的Offset
         SEARCH_OFFSET_BY_TIMESTAMP(16, 29),
-        /**
-         * <code>GET_MAX_OFFSET = 30;</code>
-         * 
-         * <pre>
-         * Broker 查询队列最大Offset
-         * </pre>
-         */
+        // Broker 查询队列最大Offset
         GET_MAX_OFFSET(17, 30),
-        /**
-         * <code>GET_MIN_OFFSET = 31;</code>
-         * 
-         * <pre>
-         * Broker 查询队列最小Offset
-         * </pre>
-         */
+        // Broker 查询队列最小Offset
         GET_MIN_OFFSET(18, 31),
-        /**
-         * <code>GET_EARLIEST_MSG_STORETIME = 32;</code>
-         * 
-         * <pre>
-         * Broker 查询队列最早消息对应时间
-         * </pre>
-         */
+        // Broker 查询队列最早消息对应时间
         GET_EARLIEST_MSG_STORETIME(19, 32),
-        /**
-         * <code>VIEW_MESSAGE_BY_ID = 33;</code>
-         * 
-         * <pre>
-         * Broker 根据消息ID来查询消息
-         * </pre>
-         */
+        // Broker 根据消息ID来查询消息
         VIEW_MESSAGE_BY_ID(20, 33),
-        /**
-         * <code>HEART_BEAT = 34;</code>
-         * 
-         * <pre>
-         * Broker Client向Client发送心跳，并注册自身
-         * </pre>
-         */
+        // Broker Client向Client发送心跳，并注册自身
         HEART_BEAT(21, 34),
-        /**
-         * <code>UNREGISTER_CLIENT = 35;</code>
-         * 
-         * <pre>
-         * Broker Client注销
-         * </pre>
-         */
+        // Broker Client注销
         UNREGISTER_CLIENT(22, 35),
-        /**
-         * <code>CONSUMER_SEND_MSG_BACK = 36;</code>
-         * 
-         * <pre>
-         * Broker Consumer将处理不了的消息发回服务器
-         * </pre>
-         */
+        // Broker Consumer将处理不了的消息发回服务器
         CONSUMER_SEND_MSG_BACK(23, 36),
-        /**
-         * <code>END_TRANSACTION = 37;</code>
-         * 
-         * <pre>
-         * Broker Commit或者Rollback事务
-         * </pre>
-         */
+        // Broker Commit或者Rollback事务
         END_TRANSACTION(24, 37),
-        /**
-         * <code>GET_CONSUMER_LIST_BY_GROUP = 38;</code>
-         * 
-         * <pre>
-         * Broker 获取ConsumerId列表通过GroupName
-         * </pre>
-         */
+        // Broker 获取ConsumerId列表通过GroupName
         GET_CONSUMER_LIST_BY_GROUP(25, 38),
-        /**
-         * <code>CHECK_TRANSACTION_STATE = 39;</code>
-         * 
-         * <pre>
-         * Broker 主动向Producer回查事务状态
-         * </pre>
-         */
+        // Broker 主动向Producer回查事务状态
         CHECK_TRANSACTION_STATE(26, 39),
-        /**
-         * <code>NOTIFY_CONSUMER_IDS_CHANGED = 40;</code>
-         * 
-         * <pre>
-         * Broker Broker通知Consumer列表变化
-         * </pre>
-         */
+        // Broker Broker通知Consumer列表变化
         NOTIFY_CONSUMER_IDS_CHANGED(27, 40),
-        /**
-         * <code>LOCK_BATCH_MQ = 41;</code>
-         * 
-         * <pre>
-         * Broker Consumer向Master锁定队列
-         * </pre>
-         */
+        // Broker Consumer向Master锁定队列
         LOCK_BATCH_MQ(28, 41),
-        /**
-         * <code>UNLOCK_BATCH_MQ = 42;</code>
-         * 
-         * <pre>
-         * Broker Consumer向Master解锁队列
-         * </pre>
-         */
+        // Broker Consumer向Master解锁队列
         UNLOCK_BATCH_MQ(29, 42),
-        /**
-         * <code>GET_ALL_CONSUMER_OFFSET = 43;</code>
-         * 
-         * <pre>
-         * Broker 获取所有Consumer Offset
-         * </pre>
-         */
+        // Broker 获取所有Consumer Offset
         GET_ALL_CONSUMER_OFFSET(30, 43),
-        /**
-         * <code>GET_ALL_SUBSCRIPTION_GROUP_CONFIG = 44;</code>
-         * 
-         * <pre>
-         * Broker 获取所有订阅组配置
-         * </pre>
-         */
+        // Broker 获取所有订阅组配置
         GET_ALL_SUBSCRIPTION_GROUP_CONFIG(31, 44),
-        /**
-         * <code>GET_ALL_DELAY_OFFSET = 45;</code>
-         * 
-         * <pre>
-         * Broker 获取所有定时进度
-         * </pre>
-         */
+        // Broker 获取所有定时进度
         GET_ALL_DELAY_OFFSET(32, 45),
-        /**
-         * <code>PUT_KV_CONFIG = 100;</code>
-         * 
-         * <pre>
-         * Namesrv 向Namesrv追加KV配置
-         * </pre>
-         */
+        // Namesrv 向Namesrv追加KV配置
         PUT_KV_CONFIG(33, 100),
-        /**
-         * <code>GET_KV_CONFIG = 101;</code>
-         * 
-         * <pre>
-         * Namesrv 从Namesrv获取KV配置
-         * </pre>
-         */
+        // Namesrv 从Namesrv获取KV配置
         GET_KV_CONFIG(34, 101),
-        /**
-         * <code>DELETE_KV_CONFIG = 102;</code>
-         * 
-         * <pre>
-         * Namesrv 从Namesrv获取KV配置
-         * </pre>
-         */
+        // Namesrv 从Namesrv获取KV配置
         DELETE_KV_CONFIG(35, 102),
-        /**
-         * <code>REGISTER_BROKER = 103;</code>
-         * 
-         * <pre>
-         * Namesrv 注册一个Broker，数据都是持久化的，如果存在则覆盖配置
-         * </pre>
-         */
+        // Namesrv 注册一个Broker，数据都是持久化的，如果存在则覆盖配置
         REGISTER_BROKER(36, 103),
-        /**
-         * <code>UNREGISTER_BROKER = 104;</code>
-         * 
-         * <pre>
-         * Namesrv 卸载一个Broker，数据都是持久化的
-         * </pre>
-         */
+        // Namesrv 卸载一个Broker，数据都是持久化的
         UNREGISTER_BROKER(37, 104),
-        /**
-         * <code>GET_ROUTEINTO_BY_TOPIC = 105;</code>
-         * 
-         * <pre>
-         * Namesrv 根据Topic获取Broker Name、队列数(包含读队列与写队列)
-         * </pre>
-         */
+        // Namesrv 根据Topic获取Broker Name、队列数(包含读队列与写队列)
         GET_ROUTEINTO_BY_TOPIC(38, 105),
-        /**
-         * <code>GET_BROKER_CLUSTER_INFO = 106;</code>
-         * 
-         * <pre>
-         * Namesrv 获取注册到Name Server的所有Broker集群信息
-         * </pre>
-         */
+        // Namesrv 获取注册到Name Server的所有Broker集群信息
         GET_BROKER_CLUSTER_INFO(39, 106), ;
 
-        /**
-         * <code>SEND_MESSAGE = 10;</code>
-         * 
-         * <pre>
-         * Broker 发送消息
-         * </pre>
-         */
+        // Broker 发送消息
         public static final int SEND_MESSAGE_VALUE = 10;
-        /**
-         * <code>PULL_MESSAGE = 11;</code>
-         * 
-         * <pre>
-         * Broker 订阅消息
-         * </pre>
-         */
+        // Broker 订阅消息
         public static final int PULL_MESSAGE_VALUE = 11;
-        /**
-         * <code>QUERY_MESSAGE = 12;</code>
-         * 
-         * <pre>
-         * Broker 查询消息
-         * </pre>
-         */
+        // Broker 查询消息
         public static final int QUERY_MESSAGE_VALUE = 12;
-        /**
-         * <code>QUERY_BROKER_OFFSET = 13;</code>
-         * 
-         * <pre>
-         * Broker 查询Broker Offset
-         * </pre>
-         */
+        // Broker 查询Broker Offset
         public static final int QUERY_BROKER_OFFSET_VALUE = 13;
-        /**
-         * <code>QUERY_CONSUMER_OFFSET = 14;</code>
-         * 
-         * <pre>
-         * Broker 查询Consumer Offset
-         * </pre>
-         */
+        // Broker 查询Consumer Offset
         public static final int QUERY_CONSUMER_OFFSET_VALUE = 14;
-        /**
-         * <code>UPDATE_CONSUMER_OFFSET = 15;</code>
-         * 
-         * <pre>
-         * Broker 更新Consumer Offset
-         * </pre>
-         */
+        // Broker 更新Consumer Offset
         public static final int UPDATE_CONSUMER_OFFSET_VALUE = 15;
-        /**
-         * <code>UPDATE_AND_CREATE_TOPIC = 17;</code>
-         * 
-         * <pre>
-         * Broker 更新或者增加一个Topic
-         * </pre>
-         */
+        // Broker 更新或者增加一个Topic
         public static final int UPDATE_AND_CREATE_TOPIC_VALUE = 17;
-        /**
-         * <code>DELETE_TOPIC = 19;</code>
-         * 
-         * <pre>
-         * Broker 删除一个Topic，包含数据与配置
-         * </pre>
-         */
+        // Broker 删除一个Topic，包含数据与配置
         public static final int DELETE_TOPIC_VALUE = 19;
-        /**
-         * <code>GET_ALL_TOPIC_CONFIG = 21;</code>
-         * 
-         * <pre>
-         * Broker 获取所有Topic的配置（Slave和Namesrv都会向Master请求此配置）
-         * </pre>
-         */
+        // Broker 获取所有Topic的配置（Slave和Namesrv都会向Master请求此配置）
         public static final int GET_ALL_TOPIC_CONFIG_VALUE = 21;
-        /**
-         * <code>GET_TOPIC_CONFIG_LIST = 22;</code>
-         * 
-         * <pre>
-         * Broker 获取所有Topic配置（Slave和Namesrv都会向Master请求此配置）
-         * </pre>
-         */
+        // Broker 获取所有Topic配置（Slave和Namesrv都会向Master请求此配置）
         public static final int GET_TOPIC_CONFIG_LIST_VALUE = 22;
-        /**
-         * <code>GET_TOPIC_NAME_LIST = 23;</code>
-         * 
-         * <pre>
-         * Broker 获取所有Topic名称列表
-         * </pre>
-         */
+        // Broker 获取所有Topic名称列表
         public static final int GET_TOPIC_NAME_LIST_VALUE = 23;
-        /**
-         * <code>PULL_ALL_CONSUMER_OFFSET = 24;</code>
-         * 
-         * <pre>
-         * Broker Slave获取Master所有Consumer消费进度
-         * </pre>
-         */
+        // Broker Slave获取Master所有Consumer消费进度
         public static final int PULL_ALL_CONSUMER_OFFSET_VALUE = 24;
-        /**
-         * <code>UPDATE_BROKER_CONFIG = 25;</code>
-         * 
-         * <pre>
-         * Broker 更新Broker上的配置
-         * </pre>
-         */
+        // Broker 更新Broker上的配置
         public static final int UPDATE_BROKER_CONFIG_VALUE = 25;
-        /**
-         * <code>GET_BROKER_CONFIG = 26;</code>
-         * 
-         * <pre>
-         * Broker 获取Broker上的配置
-         * </pre>
-         */
+        // Broker 获取Broker上的配置
         public static final int GET_BROKER_CONFIG_VALUE = 26;
-        /**
-         * <code>TRIGGER_DELETE_FILES = 27;</code>
-         * 
-         * <pre>
-         * Broker 触发Broker删除文件
-         * </pre>
-         */
+        // Broker 触发Broker删除文件
         public static final int TRIGGER_DELETE_FILES_VALUE = 27;
-        /**
-         * <code>GET_BROKER_RUNTIME_INFO = 28;</code>
-         * 
-         * <pre>
-         * Broker 获取Broker运行时信息
-         * </pre>
-         */
+        // Broker 获取Broker运行时信息
         public static final int GET_BROKER_RUNTIME_INFO_VALUE = 28;
-        /**
-         * <code>SEARCH_OFFSET_BY_TIMESTAMP = 29;</code>
-         * 
-         * <pre>
-         * Broker 根据时间查询队列的Offset
-         * </pre>
-         */
+        // Broker 根据时间查询队列的Offset
         public static final int SEARCH_OFFSET_BY_TIMESTAMP_VALUE = 29;
-        /**
-         * <code>GET_MAX_OFFSET = 30;</code>
-         * 
-         * <pre>
-         * Broker 查询队列最大Offset
-         * </pre>
-         */
+        // Broker 查询队列最大Offset
         public static final int GET_MAX_OFFSET_VALUE = 30;
-        /**
-         * <code>GET_MIN_OFFSET = 31;</code>
-         * 
-         * <pre>
-         * Broker 查询队列最小Offset
-         * </pre>
-         */
+        // Broker 查询队列最小Offset
         public static final int GET_MIN_OFFSET_VALUE = 31;
-        /**
-         * <code>GET_EARLIEST_MSG_STORETIME = 32;</code>
-         * 
-         * <pre>
-         * Broker 查询队列最早消息对应时间
-         * </pre>
-         */
+        // Broker 查询队列最早消息对应时间
         public static final int GET_EARLIEST_MSG_STORETIME_VALUE = 32;
-        /**
-         * <code>VIEW_MESSAGE_BY_ID = 33;</code>
-         * 
-         * <pre>
-         * Broker 根据消息ID来查询消息
-         * </pre>
-         */
+        // Broker 根据消息ID来查询消息
         public static final int VIEW_MESSAGE_BY_ID_VALUE = 33;
-        /**
-         * <code>HEART_BEAT = 34;</code>
-         * 
-         * <pre>
-         * Broker Client向Client发送心跳，并注册自身
-         * </pre>
-         */
+        // Broker Client向Client发送心跳，并注册自身
         public static final int HEART_BEAT_VALUE = 34;
-        /**
-         * <code>UNREGISTER_CLIENT = 35;</code>
-         * 
-         * <pre>
-         * Broker Client注销
-         * </pre>
-         */
+        // Broker Client注销
         public static final int UNREGISTER_CLIENT_VALUE = 35;
-        /**
-         * <code>CONSUMER_SEND_MSG_BACK = 36;</code>
-         * 
-         * <pre>
-         * Broker Consumer将处理不了的消息发回服务器
-         * </pre>
-         */
+        // Broker Consumer将处理不了的消息发回服务器
         public static final int CONSUMER_SEND_MSG_BACK_VALUE = 36;
-        /**
-         * <code>END_TRANSACTION = 37;</code>
-         * 
-         * <pre>
-         * Broker Commit或者Rollback事务
-         * </pre>
-         */
+        // Broker Commit或者Rollback事务
         public static final int END_TRANSACTION_VALUE = 37;
-        /**
-         * <code>GET_CONSUMER_LIST_BY_GROUP = 38;</code>
-         * 
-         * <pre>
-         * Broker 获取ConsumerId列表通过GroupName
-         * </pre>
-         */
+        // Broker 获取ConsumerId列表通过GroupName
         public static final int GET_CONSUMER_LIST_BY_GROUP_VALUE = 38;
-        /**
-         * <code>CHECK_TRANSACTION_STATE = 39;</code>
-         * 
-         * <pre>
-         * Broker 主动向Producer回查事务状态
-         * </pre>
-         */
+        // Broker 主动向Producer回查事务状态
         public static final int CHECK_TRANSACTION_STATE_VALUE = 39;
-        /**
-         * <code>NOTIFY_CONSUMER_IDS_CHANGED = 40;</code>
-         * 
-         * <pre>
-         * Broker Broker通知Consumer列表变化
-         * </pre>
-         */
+        // Broker Broker通知Consumer列表变化
         public static final int NOTIFY_CONSUMER_IDS_CHANGED_VALUE = 40;
-        /**
-         * <code>LOCK_BATCH_MQ = 41;</code>
-         * 
-         * <pre>
-         * Broker Consumer向Master锁定队列
-         * </pre>
-         */
+        // Broker Consumer向Master锁定队列
         public static final int LOCK_BATCH_MQ_VALUE = 41;
-        /**
-         * <code>UNLOCK_BATCH_MQ = 42;</code>
-         * 
-         * <pre>
-         * Broker Consumer向Master解锁队列
-         * </pre>
-         */
+        // Broker Consumer向Master解锁队列
         public static final int UNLOCK_BATCH_MQ_VALUE = 42;
-        /**
-         * <code>GET_ALL_CONSUMER_OFFSET = 43;</code>
-         * 
-         * <pre>
-         * Broker 获取所有Consumer Offset
-         * </pre>
-         */
+        // Broker 获取所有Consumer Offset
         public static final int GET_ALL_CONSUMER_OFFSET_VALUE = 43;
-        /**
-         * <code>GET_ALL_SUBSCRIPTION_GROUP_CONFIG = 44;</code>
-         * 
-         * <pre>
-         * Broker 获取所有订阅组配置
-         * </pre>
-         */
+        // Broker 获取所有订阅组配置
         public static final int GET_ALL_SUBSCRIPTION_GROUP_CONFIG_VALUE = 44;
-        /**
-         * <code>GET_ALL_DELAY_OFFSET = 45;</code>
-         * 
-         * <pre>
-         * Broker 获取所有定时进度
-         * </pre>
-         */
+        // Broker 获取所有定时进度
         public static final int GET_ALL_DELAY_OFFSET_VALUE = 45;
-        /**
-         * <code>PUT_KV_CONFIG = 100;</code>
-         * 
-         * <pre>
-         * Namesrv 向Namesrv追加KV配置
-         * </pre>
-         */
+        // Namesrv 向Namesrv追加KV配置
         public static final int PUT_KV_CONFIG_VALUE = 100;
-        /**
-         * <code>GET_KV_CONFIG = 101;</code>
-         * 
-         * <pre>
-         * Namesrv 从Namesrv获取KV配置
-         * </pre>
-         */
+        // Namesrv 从Namesrv获取KV配置
         public static final int GET_KV_CONFIG_VALUE = 101;
-        /**
-         * <code>DELETE_KV_CONFIG = 102;</code>
-         * 
-         * <pre>
-         * Namesrv 从Namesrv获取KV配置
-         * </pre>
-         */
+        // Namesrv 从Namesrv获取KV配置
         public static final int DELETE_KV_CONFIG_VALUE = 102;
-        /**
-         * <code>REGISTER_BROKER = 103;</code>
-         * 
-         * <pre>
-         * Namesrv 注册一个Broker，数据都是持久化的，如果存在则覆盖配置
-         * </pre>
-         */
+        // Namesrv 注册一个Broker，数据都是持久化的，如果存在则覆盖配置
         public static final int REGISTER_BROKER_VALUE = 103;
-        /**
-         * <code>UNREGISTER_BROKER = 104;</code>
-         * 
-         * <pre>
-         * Namesrv 卸载一个Broker，数据都是持久化的
-         * </pre>
-         */
+        // Namesrv 卸载一个Broker，数据都是持久化的
         public static final int UNREGISTER_BROKER_VALUE = 104;
-        /**
-         * <code>GET_ROUTEINTO_BY_TOPIC = 105;</code>
-         * 
-         * <pre>
-         * Namesrv 根据Topic获取Broker Name、队列数(包含读队列与写队列)
-         * </pre>
-         */
+        // Namesrv 根据Topic获取Broker Name、队列数(包含读队列与写队列)
         public static final int GET_ROUTEINTO_BY_TOPIC_VALUE = 105;
-        /**
-         * <code>GET_BROKER_CLUSTER_INFO = 106;</code>
-         * 
-         * <pre>
-         * Namesrv 获取注册到Name Server的所有Broker集群信息
-         * </pre>
-         */
+        // Namesrv 获取注册到Name Server的所有Broker集群信息
         public static final int GET_BROKER_CLUSTER_INFO_VALUE = 106;
-
-
-        public final int getNumber() {
-            return value;
-        }
 
 
         public static MQRequestCode valueOf(int value) {
@@ -754,364 +262,108 @@ public final class MQProtos {
         private final int value;
 
 
-        private MQRequestCode(int index, int value) {
-            this.index = index;
-            this.value = value;
+        public int getIndex() {
+            return index;
         }
-
-        // @@protoc_insertion_point(enum_scope:rocketmq.MQRequestCode)
-    }
-
-    /**
-     * Protobuf enum {@code rocketmq.MQResponseCode}
-     * 
-     * <pre>
-     * RPC应答代码
-     * </pre>
-     */
-    public enum MQResponseCode {
-        /**
-         * <code>FLUSH_DISK_TIMEOUT = 10;</code>
-         * 
-         * <pre>
-         * Broker 刷盘超时
-         * </pre>
-         */
-        FLUSH_DISK_TIMEOUT(0, 10),
-        /**
-         * <code>SLAVE_NOT_AVAILABLE = 11;</code>
-         * 
-         * <pre>
-         * Broker 同步双写，Slave不可用
-         * </pre>
-         */
-        SLAVE_NOT_AVAILABLE(1, 11),
-        /**
-         * <code>FLUSH_SLAVE_TIMEOUT = 12;</code>
-         * 
-         * <pre>
-         * Broker 同步双写，等待Slave应答超时
-         * </pre>
-         */
-        FLUSH_SLAVE_TIMEOUT(2, 12),
-        /**
-         * <code>MESSAGE_ILLEGAL = 13;</code>
-         * 
-         * <pre>
-         * Broker 消息非法
-         * </pre>
-         */
-        MESSAGE_ILLEGAL(3, 13),
-        /**
-         * <code>SERVICE_NOT_AVAILABLE = 14;</code>
-         * 
-         * <pre>
-         * Broker, Namesrv 服务不可用，可能是正在关闭或者权限问题
-         * </pre>
-         */
-        SERVICE_NOT_AVAILABLE(4, 14),
-        /**
-         * <code>VERSION_NOT_SUPPORTED = 15;</code>
-         * 
-         * <pre>
-         * Broker, Namesrv 版本号不支持
-         * </pre>
-         */
-        VERSION_NOT_SUPPORTED(5, 15),
-        /**
-         * <code>NO_PERMISSION = 16;</code>
-         * 
-         * <pre>
-         * Broker, Namesrv 无权限执行此操作，可能是发、收、或者其他操作
-         * </pre>
-         */
-        NO_PERMISSION(6, 16),
-        /**
-         * <code>TOPIC_NOT_EXIST = 17;</code>
-         * 
-         * <pre>
-         * Broker, Topic不存在
-         * </pre>
-         */
-        TOPIC_NOT_EXIST(7, 17),
-        /**
-         * <code>TOPIC_EXIST_ALREADY = 18;</code>
-         * 
-         * <pre>
-         * Broker, Topic已经存在，创建Topic
-         * </pre>
-         */
-        TOPIC_EXIST_ALREADY(8, 18),
-        /**
-         * <code>PULL_NOT_FOUND = 19;</code>
-         * 
-         * <pre>
-         * Broker 拉消息未找到（请求的Offset等于最大Offset，最大Offset无对应消息）
-         * </pre>
-         */
-        PULL_NOT_FOUND(9, 19),
-        /**
-         * <code>PULL_RETRY_IMMEDIATELY = 20;</code>
-         * 
-         * <pre>
-         * Broker 可能被过滤，或者误通知等
-         * </pre>
-         */
-        PULL_RETRY_IMMEDIATELY(10, 20),
-        /**
-         * <code>PULL_OFFSET_MOVED = 21;</code>
-         * 
-         * <pre>
-         * Broker 拉消息请求的Offset不合法，太小或太大
-         * </pre>
-         */
-        PULL_OFFSET_MOVED(11, 21),
-        /**
-         * <code>QUERY_NOT_FOUND = 22;</code>
-         * 
-         * <pre>
-         * Broker 查询消息未找到
-         * </pre>
-         */
-        QUERY_NOT_FOUND(12, 22),
-        /**
-         * <code>SUBSCRIPTION_PARSE_FAILED = 23;</code>
-         * 
-         * <pre>
-         * Broker 订阅关系解析失败
-         * </pre>
-         */
-        SUBSCRIPTION_PARSE_FAILED(13, 23),
-        /**
-         * <code>SUBSCRIPTION_NOT_EXIST = 24;</code>
-         * 
-         * <pre>
-         * Broker 订阅关系不存在
-         * </pre>
-         */
-        SUBSCRIPTION_NOT_EXIST(14, 24),
-        /**
-         * <code>SUBSCRIPTION_NOT_LATEST = 25;</code>
-         * 
-         * <pre>
-         * Broker 订阅关系不是最新的
-         * </pre>
-         */
-        SUBSCRIPTION_NOT_LATEST(15, 25),
-        /**
-         * <code>SUBSCRIPTION_GROUP_NOT_EXIST = 26;</code>
-         * 
-         * <pre>
-         * Broker 订阅组不存在
-         * </pre>
-         */
-        SUBSCRIPTION_GROUP_NOT_EXIST(16, 26),
-        /**
-         * <code>TRANSACTION_SHOULD_COMMIT = 200;</code>
-         * 
-         * <pre>
-         * Producer 事务应该被提交
-         * </pre>
-         */
-        TRANSACTION_SHOULD_COMMIT(17, 200),
-        /**
-         * <code>TRANSACTION_SHOULD_ROLLBACK = 201;</code>
-         * 
-         * <pre>
-         * Producer 事务应该被回滚
-         * </pre>
-         */
-        TRANSACTION_SHOULD_ROLLBACK(18, 201),
-        /**
-         * <code>TRANSACTION_STATE_UNKNOW = 202;</code>
-         * 
-         * <pre>
-         * Producer 事务状态未知
-         * </pre>
-         */
-        TRANSACTION_STATE_UNKNOW(19, 202),
-        /**
-         * <code>TRANSACTION_STATE_GROUP_WRONG = 203;</code>
-         * 
-         * <pre>
-         * Producer ProducerGroup错误
-         * </pre>
-         */
-        TRANSACTION_STATE_GROUP_WRONG(20, 203), ;
-
-        /**
-         * <code>FLUSH_DISK_TIMEOUT = 10;</code>
-         * 
-         * <pre>
-         * Broker 刷盘超时
-         * </pre>
-         */
-        public static final int FLUSH_DISK_TIMEOUT_VALUE = 10;
-        /**
-         * <code>SLAVE_NOT_AVAILABLE = 11;</code>
-         * 
-         * <pre>
-         * Broker 同步双写，Slave不可用
-         * </pre>
-         */
-        public static final int SLAVE_NOT_AVAILABLE_VALUE = 11;
-        /**
-         * <code>FLUSH_SLAVE_TIMEOUT = 12;</code>
-         * 
-         * <pre>
-         * Broker 同步双写，等待Slave应答超时
-         * </pre>
-         */
-        public static final int FLUSH_SLAVE_TIMEOUT_VALUE = 12;
-        /**
-         * <code>MESSAGE_ILLEGAL = 13;</code>
-         * 
-         * <pre>
-         * Broker 消息非法
-         * </pre>
-         */
-        public static final int MESSAGE_ILLEGAL_VALUE = 13;
-        /**
-         * <code>SERVICE_NOT_AVAILABLE = 14;</code>
-         * 
-         * <pre>
-         * Broker, Namesrv 服务不可用，可能是正在关闭或者权限问题
-         * </pre>
-         */
-        public static final int SERVICE_NOT_AVAILABLE_VALUE = 14;
-        /**
-         * <code>VERSION_NOT_SUPPORTED = 15;</code>
-         * 
-         * <pre>
-         * Broker, Namesrv 版本号不支持
-         * </pre>
-         */
-        public static final int VERSION_NOT_SUPPORTED_VALUE = 15;
-        /**
-         * <code>NO_PERMISSION = 16;</code>
-         * 
-         * <pre>
-         * Broker, Namesrv 无权限执行此操作，可能是发、收、或者其他操作
-         * </pre>
-         */
-        public static final int NO_PERMISSION_VALUE = 16;
-        /**
-         * <code>TOPIC_NOT_EXIST = 17;</code>
-         * 
-         * <pre>
-         * Broker, Topic不存在
-         * </pre>
-         */
-        public static final int TOPIC_NOT_EXIST_VALUE = 17;
-        /**
-         * <code>TOPIC_EXIST_ALREADY = 18;</code>
-         * 
-         * <pre>
-         * Broker, Topic已经存在，创建Topic
-         * </pre>
-         */
-        public static final int TOPIC_EXIST_ALREADY_VALUE = 18;
-        /**
-         * <code>PULL_NOT_FOUND = 19;</code>
-         * 
-         * <pre>
-         * Broker 拉消息未找到（请求的Offset等于最大Offset，最大Offset无对应消息）
-         * </pre>
-         */
-        public static final int PULL_NOT_FOUND_VALUE = 19;
-        /**
-         * <code>PULL_RETRY_IMMEDIATELY = 20;</code>
-         * 
-         * <pre>
-         * Broker 可能被过滤，或者误通知等
-         * </pre>
-         */
-        public static final int PULL_RETRY_IMMEDIATELY_VALUE = 20;
-        /**
-         * <code>PULL_OFFSET_MOVED = 21;</code>
-         * 
-         * <pre>
-         * Broker 拉消息请求的Offset不合法，太小或太大
-         * </pre>
-         */
-        public static final int PULL_OFFSET_MOVED_VALUE = 21;
-        /**
-         * <code>QUERY_NOT_FOUND = 22;</code>
-         * 
-         * <pre>
-         * Broker 查询消息未找到
-         * </pre>
-         */
-        public static final int QUERY_NOT_FOUND_VALUE = 22;
-        /**
-         * <code>SUBSCRIPTION_PARSE_FAILED = 23;</code>
-         * 
-         * <pre>
-         * Broker 订阅关系解析失败
-         * </pre>
-         */
-        public static final int SUBSCRIPTION_PARSE_FAILED_VALUE = 23;
-        /**
-         * <code>SUBSCRIPTION_NOT_EXIST = 24;</code>
-         * 
-         * <pre>
-         * Broker 订阅关系不存在
-         * </pre>
-         */
-        public static final int SUBSCRIPTION_NOT_EXIST_VALUE = 24;
-        /**
-         * <code>SUBSCRIPTION_NOT_LATEST = 25;</code>
-         * 
-         * <pre>
-         * Broker 订阅关系不是最新的
-         * </pre>
-         */
-        public static final int SUBSCRIPTION_NOT_LATEST_VALUE = 25;
-        /**
-         * <code>SUBSCRIPTION_GROUP_NOT_EXIST = 26;</code>
-         * 
-         * <pre>
-         * Broker 订阅组不存在
-         * </pre>
-         */
-        public static final int SUBSCRIPTION_GROUP_NOT_EXIST_VALUE = 26;
-        /**
-         * <code>TRANSACTION_SHOULD_COMMIT = 200;</code>
-         * 
-         * <pre>
-         * Producer 事务应该被提交
-         * </pre>
-         */
-        public static final int TRANSACTION_SHOULD_COMMIT_VALUE = 200;
-        /**
-         * <code>TRANSACTION_SHOULD_ROLLBACK = 201;</code>
-         * 
-         * <pre>
-         * Producer 事务应该被回滚
-         * </pre>
-         */
-        public static final int TRANSACTION_SHOULD_ROLLBACK_VALUE = 201;
-        /**
-         * <code>TRANSACTION_STATE_UNKNOW = 202;</code>
-         * 
-         * <pre>
-         * Producer 事务状态未知
-         * </pre>
-         */
-        public static final int TRANSACTION_STATE_UNKNOW_VALUE = 202;
-        /**
-         * <code>TRANSACTION_STATE_GROUP_WRONG = 203;</code>
-         * 
-         * <pre>
-         * Producer ProducerGroup错误
-         * </pre>
-         */
-        public static final int TRANSACTION_STATE_GROUP_WRONG_VALUE = 203;
 
 
         public final int getNumber() {
             return value;
         }
+
+
+        private MQRequestCode(int index, int value) {
+            this.index = index;
+            this.value = value;
+        }
+    }
+
+    public enum MQResponseCode {
+        // Broker 刷盘超时
+        FLUSH_DISK_TIMEOUT(0, 10),
+        // Broker 同步双写，Slave不可用
+        SLAVE_NOT_AVAILABLE(1, 11),
+        // Broker 同步双写，等待Slave应答超时
+        FLUSH_SLAVE_TIMEOUT(2, 12),
+        // Broker 消息非法
+        MESSAGE_ILLEGAL(3, 13),
+        // Broker, Namesrv 服务不可用，可能是正在关闭或者权限问题
+        SERVICE_NOT_AVAILABLE(4, 14),
+        // Broker, Namesrv 版本号不支持
+        VERSION_NOT_SUPPORTED(5, 15),
+        // Broker, Namesrv 无权限执行此操作，可能是发、收、或者其他操作
+        NO_PERMISSION(6, 16),
+        // Broker, Topic不存在
+        TOPIC_NOT_EXIST(7, 17),
+        // Broker, Topic已经存在，创建Topic
+        TOPIC_EXIST_ALREADY(8, 18),
+        // Broker 拉消息未找到（请求的Offset等于最大Offset，最大Offset无对应消息）
+        PULL_NOT_FOUND(9, 19),
+        // Broker 可能被过滤，或者误通知等
+        PULL_RETRY_IMMEDIATELY(10, 20),
+        // Broker 拉消息请求的Offset不合法，太小或太大
+        PULL_OFFSET_MOVED(11, 21),
+        // Broker 查询消息未找到
+        QUERY_NOT_FOUND(12, 22),
+        // Broker 订阅关系解析失败
+        SUBSCRIPTION_PARSE_FAILED(13, 23),
+        // Broker 订阅关系不存在
+        SUBSCRIPTION_NOT_EXIST(14, 24),
+        // Broker 订阅关系不是最新的
+        SUBSCRIPTION_NOT_LATEST(15, 25),
+        // Broker 订阅组不存在
+        SUBSCRIPTION_GROUP_NOT_EXIST(16, 26),
+        // Producer 事务应该被提交
+        TRANSACTION_SHOULD_COMMIT(17, 200),
+        // Producer 事务应该被回滚
+        TRANSACTION_SHOULD_ROLLBACK(18, 201),
+        // Producer 事务状态未知
+        TRANSACTION_STATE_UNKNOW(19, 202),
+        // Producer ProducerGroup错误
+        TRANSACTION_STATE_GROUP_WRONG(20, 203), ;
+
+        // Broker 刷盘超时
+        public static final int FLUSH_DISK_TIMEOUT_VALUE = 10;
+        // Broker 同步双写，Slave不可用
+        public static final int SLAVE_NOT_AVAILABLE_VALUE = 11;
+        // Broker 同步双写，等待Slave应答超时
+        public static final int FLUSH_SLAVE_TIMEOUT_VALUE = 12;
+        // Broker 消息非法
+        public static final int MESSAGE_ILLEGAL_VALUE = 13;
+        // Broker, Namesrv 服务不可用，可能是正在关闭或者权限问题
+        public static final int SERVICE_NOT_AVAILABLE_VALUE = 14;
+        // Broker, Namesrv 版本号不支持
+        public static final int VERSION_NOT_SUPPORTED_VALUE = 15;
+        // Broker, Namesrv 无权限执行此操作，可能是发、收、或者其他操作
+        public static final int NO_PERMISSION_VALUE = 16;
+        // Broker, Topic不存在
+        public static final int TOPIC_NOT_EXIST_VALUE = 17;
+        // Broker, Topic已经存在，创建Topic
+        public static final int TOPIC_EXIST_ALREADY_VALUE = 18;
+        // Broker 拉消息未找到（请求的Offset等于最大Offset，最大Offset无对应消息）
+        public static final int PULL_NOT_FOUND_VALUE = 19;
+        // Broker 可能被过滤，或者误通知等
+        public static final int PULL_RETRY_IMMEDIATELY_VALUE = 20;
+        // Broker 拉消息请求的Offset不合法，太小或太大
+        public static final int PULL_OFFSET_MOVED_VALUE = 21;
+        // Broker 查询消息未找到
+        public static final int QUERY_NOT_FOUND_VALUE = 22;
+        // Broker 订阅关系解析失败
+        public static final int SUBSCRIPTION_PARSE_FAILED_VALUE = 23;
+        // Broker 订阅关系不存在
+        public static final int SUBSCRIPTION_NOT_EXIST_VALUE = 24;
+        // Broker 订阅关系不是最新的
+        public static final int SUBSCRIPTION_NOT_LATEST_VALUE = 25;
+        // Broker 订阅组不存在
+        public static final int SUBSCRIPTION_GROUP_NOT_EXIST_VALUE = 26;
+        // Producer 事务应该被提交
+        public static final int TRANSACTION_SHOULD_COMMIT_VALUE = 200;
+        // Producer 事务应该被回滚
+        public static final int TRANSACTION_SHOULD_ROLLBACK_VALUE = 201;
+        // Producer 事务状态未知
+        public static final int TRANSACTION_STATE_UNKNOW_VALUE = 202;
+        // Producer ProducerGroup错误
+        public static final int TRANSACTION_STATE_GROUP_WRONG_VALUE = 203;
 
 
         public static MQResponseCode valueOf(int value) {
@@ -1167,11 +419,19 @@ public final class MQProtos {
         private final int value;
 
 
+        public final int getNumber() {
+            return value;
+        }
+
+
+        public int getIndex() {
+            return index;
+        }
+
+
         private MQResponseCode(int index, int value) {
             this.index = index;
             this.value = value;
         }
-
-        // @@protoc_insertion_point(enum_scope:rocketmq.MQResponseCode)
     }
 }
