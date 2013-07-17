@@ -80,7 +80,7 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
     class NettyServerHandler extends SimpleChannelInboundHandler<RemotingCommand> {
 
         @Override
-        protected void channelRead0(ChannelHandlerContext ctx, RemotingCommand msg) throws Exception {
+        protected void messageReceived(ChannelHandlerContext ctx, RemotingCommand msg) throws Exception {
             processMessageReceived(ctx, msg);
         }
     }
