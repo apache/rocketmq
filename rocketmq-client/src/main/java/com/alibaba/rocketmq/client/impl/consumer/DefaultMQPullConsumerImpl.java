@@ -85,20 +85,6 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
                 null);
         }
 
-        // messageQueueListener
-        if (null == this.defaultMQPullConsumer.getMessageQueueListener()) {
-            throw new MQClientException("messageQueueListener is null" //
-                    + FAQUrl.suggestTodo(FAQUrl.CLIENT_PARAMETER_CHECK_URL), //
-                null);
-        }
-
-        // offsetStore
-        if (null == this.defaultMQPullConsumer.getOffsetStore()) {
-            throw new MQClientException("offsetStore is null" //
-                    + FAQUrl.suggestTodo(FAQUrl.CLIENT_PARAMETER_CHECK_URL), //
-                null);
-        }
-
         // allocateMessageQueueStrategy
         if (null == this.defaultMQPullConsumer.getAllocateMessageQueueStrategy()) {
             throw new MQClientException("allocateMessageQueueStrategy is null" //

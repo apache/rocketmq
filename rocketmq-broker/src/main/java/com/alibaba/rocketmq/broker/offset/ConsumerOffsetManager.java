@@ -12,6 +12,7 @@ import com.alibaba.rocketmq.broker.BrokerController;
 import com.alibaba.rocketmq.common.ConfigManager;
 import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.remoting.protocol.RemotingSerializable;
+import com.alibaba.rocketmq.store.schedule.DelayOffsetSerializeWrapper;
 
 
 /**
@@ -141,9 +142,13 @@ public class ConsumerOffsetManager extends ConfigManager {
     }
 
 
-    @Override
     public String encode() {
-        return RemotingSerializable.toJson(this);
+        return this.encode(false);
+    }
+
+
+    public String encode(final boolean prettyFormat) {
+        return RemotingSerializable.toJson(this, prettyFormat);
     }
 
 

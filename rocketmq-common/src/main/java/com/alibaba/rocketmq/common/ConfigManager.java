@@ -21,6 +21,9 @@ public abstract class ConfigManager {
     public abstract String encode();
 
 
+    public abstract String encode(final boolean prettyFormat);
+
+
     public abstract void decode(final String jsonString);
 
 
@@ -48,7 +51,7 @@ public abstract class ConfigManager {
 
 
     public synchronized void persist() {
-        String jsonString = this.encode();
+        String jsonString = this.encode(true);
         if (jsonString != null) {
             String fileName = this.configFilePath();
             try {

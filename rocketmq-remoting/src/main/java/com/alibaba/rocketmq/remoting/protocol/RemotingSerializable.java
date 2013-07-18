@@ -26,11 +26,16 @@ import com.alibaba.fastjson.JSON;
  */
 public abstract class RemotingSerializable {
     public String toJson() {
-        return toJson(this);
+        return toJson(false);
     }
 
 
-    public static String toJson(final Object obj) {
+    public String toJson(final boolean prettyFormat) {
+        return toJson(this, prettyFormat);
+    }
+
+
+    public static String toJson(final Object obj, boolean prettyFormat) {
         return JSON.toJSONString(obj);
     }
 
@@ -50,7 +55,7 @@ public abstract class RemotingSerializable {
 
 
     public static byte[] encode(final Object obj) {
-        final String json = toJson(obj);
+        final String json = toJson(obj, false);
         if (json != null) {
             return json.getBytes();
         }
