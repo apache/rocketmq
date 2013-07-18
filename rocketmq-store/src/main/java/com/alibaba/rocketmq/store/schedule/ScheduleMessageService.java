@@ -17,6 +17,7 @@ import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.common.message.Message;
 import com.alibaba.rocketmq.common.message.MessageDecoder;
 import com.alibaba.rocketmq.common.message.MessageExt;
+import com.alibaba.rocketmq.remoting.protocol.RemotingSerializable;
 import com.alibaba.rocketmq.store.ConsumeQueue;
 import com.alibaba.rocketmq.store.DefaultMessageStore;
 import com.alibaba.rocketmq.store.MessageExtBrokerInner;
@@ -301,11 +302,15 @@ public class ScheduleMessageService extends ConfigManager {
     }
 
 
-    @Override
     public String encode() {
+        return this.encode(false);
+    }
+
+
+    public String encode(final boolean prettyFormat) {
         DelayOffsetSerializeWrapper delayOffsetSerializeWrapper = new DelayOffsetSerializeWrapper();
         delayOffsetSerializeWrapper.setOffsetTable(this.offsetTable);
-        return delayOffsetSerializeWrapper.toJson();
+        return delayOffsetSerializeWrapper.toJson(prettyFormat);
     }
 
 
