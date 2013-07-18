@@ -101,16 +101,12 @@ public class RouteInfoManager {
             while (it.hasNext()) {
                 QueueData qd = it.next();
                 if (qd.getBrokerName().equals(brokerName)) {
-                    if (!qd.equals(queueData)) {
                         log.info("topic changed, {} OLD: {} NEW: {}", topicConfig.getTopicName(), qd,
                             queueData);
                         it.remove();
-                        queueDataList.add(queueData);
-                    }
-
-                    break;
-                }
+                 }
             }
+            queueDataList.add(queueData);
         }
     }
 
