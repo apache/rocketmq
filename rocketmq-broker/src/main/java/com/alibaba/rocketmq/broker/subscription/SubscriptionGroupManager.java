@@ -56,7 +56,12 @@ public class SubscriptionGroupManager extends ConfigManager {
 
     @Override
     public String encode() {
-        return RemotingSerializable.toJson(this);
+        return this.encode(false);
+    }
+
+
+    public String encode(final boolean prettyFormat) {
+        return RemotingSerializable.toJson(this, prettyFormat);
     }
 
 
