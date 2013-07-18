@@ -97,16 +97,26 @@ public class RouteInfoManager {
             log.info("new topic registerd, {} {}", topicConfig.getTopicName(), queueData);
         }
         else {
+            boolean addNewOne = true;
+
             Iterator<QueueData> it = queueDataList.iterator();
             while (it.hasNext()) {
                 QueueData qd = it.next();
                 if (qd.getBrokerName().equals(brokerName)) {
+                    if (qd.equals(queueData)) {
+                        addNewOne = false;
+                    }
+                    else {
                         log.info("topic changed, {} OLD: {} NEW: {}", topicConfig.getTopicName(), qd,
                             queueData);
                         it.remove();
-                 }
+                    }
+                }
             }
-            queueDataList.add(queueData);
+
+            if (addNewOne) {
+                queueDataList.add(queueData);
+            }
         }
     }
 
