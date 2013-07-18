@@ -42,7 +42,7 @@ public class StoreStatsMoniter {
                 StringBuffer sb = new StringBuffer();
                 sb.append("Client Put And get Count").append(",");
                 sb.append("Topic[").append(topic).append("],");
-                sb.append("Partition[")
+                sb.append("Mq[")
                     .append(brokerController.getBrokerConfig().getBrokerName() + "-" + queueId).append("],");
                 sb.append("PutOffset[").append(maxoffsize).append("],");
                 sb.append("group[").append(group).append("],");

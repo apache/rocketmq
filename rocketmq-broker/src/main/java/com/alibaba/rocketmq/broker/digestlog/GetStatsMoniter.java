@@ -45,10 +45,10 @@ public class GetStatsMoniter {
                     StringBuffer sb = new StringBuffer();
                     sb.append("ClientGetConut").append(",");
                     sb.append("Topic[").append(topic).append("],");
-                    sb.append("Partition[")
+                    sb.append("Mq[")
                         .append(brokerController.getBrokerConfig().getBrokerName() + "-" + queueId)
                         .append("],");
-                    sb.append("Group[").append(group).append(",");
+                    sb.append("Group[").append(group).append("],");
                     sb.append("Total[").append(nowvalue - lastvalue).append("]");
                     log.info(sb.toString());
                 }
