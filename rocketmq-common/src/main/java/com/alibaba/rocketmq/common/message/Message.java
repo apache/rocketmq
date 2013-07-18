@@ -3,6 +3,7 @@
  */
 package com.alibaba.rocketmq.common.message;
 
+import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -11,8 +12,11 @@ import java.util.Map;
  * 消息，Producer与Consumer使用
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
+ * @since 2013-7-18
  */
-public class Message {
+public class Message implements Serializable {
+    private static final long serialVersionUID = 8445773977080406428L;
+
     /**
      * 消息主题
      */
