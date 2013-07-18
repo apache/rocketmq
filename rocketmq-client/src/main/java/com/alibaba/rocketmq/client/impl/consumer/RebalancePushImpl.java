@@ -6,6 +6,7 @@ import java.util.Set;
 import com.alibaba.rocketmq.client.consumer.AllocateMessageQueueStrategy;
 import com.alibaba.rocketmq.client.consumer.store.OffsetStore;
 import com.alibaba.rocketmq.client.impl.factory.MQClientFactory;
+import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.consumer.ConsumeFromWhere;
 import com.alibaba.rocketmq.common.message.MessageQueue;
 import com.alibaba.rocketmq.common.protocol.heartbeat.MessageModel;
@@ -57,7 +58,14 @@ public class RebalancePushImpl extends RebalanceImpl {
             // 当前订阅组在服务器没有对应的Offset
             // 说明是第一次启动
             else if (-1 == lastOffset) {
-                result = Long.MAX_VALUE;
+                // 如果是重试队列，需要从0开始
+                if (mq.getTopic().startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
+                    result = 0L;
+                }
+                // 正常队列则从末尾开始
+                else {
+                    result = Long.MAX_VALUE;
+                }
             }
             // 发生其他错误
             else {
