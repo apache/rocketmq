@@ -36,7 +36,7 @@ public abstract class RemotingSerializable {
 
 
     public static String toJson(final Object obj, boolean prettyFormat) {
-        return JSON.toJSONString(obj);
+        return JSON.toJSONString(obj, prettyFormat);
     }
 
 
