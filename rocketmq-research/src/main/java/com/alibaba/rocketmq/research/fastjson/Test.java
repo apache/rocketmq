@@ -44,7 +44,7 @@ public class Test {
         testTable.getTestTable().get("consumer1").put("B", 200L);
         testTable.getTestTable().get("consumer1").put("C", 300L);
 
-        String jsonString = RemotingSerializable.toJson(testTable);
+        String jsonString = RemotingSerializable.toJson(testTable, true);
 
         String jsonStringFmt = JSON.toJSONString(testTable, true);
 
