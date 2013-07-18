@@ -17,7 +17,7 @@ public class ClientConfig {
         System.getenv(MixAll.NAMESRV_ADDR_ENV));
     private String clientIP = RemotingUtil.getLocalAddress();
     private String instanceName = System.getProperty("rocketmq.client.name", "DEFAULT");
-    private int clientCallbackExecutorThreads = 5;
+    private int clientCallbackExecutorThreads = Runtime.getRuntime().availableProcessors();
     private int pollNameServerInteval = 1000 * 30;
     private int heartbeatBrokerInterval = 1000 * 30;
     private int persistConsumerOffsetInterval = 1000 * 5;

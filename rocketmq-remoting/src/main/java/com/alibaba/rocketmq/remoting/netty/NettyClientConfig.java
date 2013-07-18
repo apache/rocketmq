@@ -24,7 +24,7 @@ package com.alibaba.rocketmq.remoting.netty;
 public class NettyClientConfig {
     // ¥¶¿ÌServer Response/Request
     private int clientWorkerThreads = 4;
-    private int clientCallbackExecutorThreads = 4;
+    private int clientCallbackExecutorThreads = Runtime.getRuntime().availableProcessors();
     private int clientSelectorThreads = 1;
     private int clientOnewaySemaphoreValue = 256;
     private int clientAsyncSemaphoreValue = 128;

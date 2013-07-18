@@ -17,7 +17,7 @@ package com.alibaba.rocketmq.remoting;
 
 import io.netty.channel.Channel;
 
-import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
 
 import com.alibaba.rocketmq.remoting.exception.RemotingSendRequestException;
 import com.alibaba.rocketmq.remoting.exception.RemotingTimeoutException;
@@ -37,10 +37,10 @@ public interface RemotingServer {
 
 
     public void registerProcessor(final int requestCode, final NettyRequestProcessor processor,
-            final Executor executor);
+            final ExecutorService executor);
 
 
-    public void registerDefaultProcessor(final NettyRequestProcessor processor, final Executor executor);
+    public void registerDefaultProcessor(final NettyRequestProcessor processor, final ExecutorService executor);
 
 
     public RemotingCommand invokeSync(final Channel channel, final RemotingCommand request,
