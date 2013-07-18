@@ -16,7 +16,7 @@
 package com.alibaba.rocketmq.remoting;
 
 import java.util.List;
-import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
 
 import com.alibaba.rocketmq.remoting.exception.RemotingConnectException;
 import com.alibaba.rocketmq.remoting.exception.RemotingSendRequestException;
@@ -58,7 +58,7 @@ public interface RemotingClient {
 
 
     public void registerProcessor(final int requestCode, final NettyRequestProcessor processor,
-            final Executor executor);
+            final ExecutorService executor);
 
 
     public void shutdown();

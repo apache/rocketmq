@@ -24,7 +24,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.Semaphore;
@@ -66,11 +66,11 @@ public abstract class NettyRemotingAbstract {
             new ConcurrentHashMap<Integer, ResponseFuture>(256);
 
     // 默认请求代码处理器
-    protected Pair<NettyRequestProcessor, Executor> defaultRequestProcessor;
+    protected Pair<NettyRequestProcessor, ExecutorService> defaultRequestProcessor;
 
     // 注册的各个RPC处理器
-    protected final HashMap<Integer/* request code */, Pair<NettyRequestProcessor, Executor>> processorTable =
-            new HashMap<Integer, Pair<NettyRequestProcessor, Executor>>(64);
+    protected final HashMap<Integer/* request code */, Pair<NettyRequestProcessor, ExecutorService>> processorTable =
+            new HashMap<Integer, Pair<NettyRequestProcessor, ExecutorService>>(64);
 
     protected final NettyEventExecuter nettyEventExecuter = new NettyEventExecuter();
 
@@ -150,8 +150,8 @@ public abstract class NettyRemotingAbstract {
 
 
     public void processRequestCommand(final ChannelHandlerContext ctx, final RemotingCommand cmd) {
-        final Pair<NettyRequestProcessor, Executor> matched = this.processorTable.get(cmd.getCode());
-        final Pair<NettyRequestProcessor, Executor> pair =
+        final Pair<NettyRequestProcessor, ExecutorService> matched = this.processorTable.get(cmd.getCode());
+        final Pair<NettyRequestProcessor, ExecutorService> pair =
                 null == matched ? this.defaultRequestProcessor : matched;
 
         if (pair != null) {
@@ -209,7 +209,8 @@ public abstract class NettyRemotingAbstract {
             boolean executed = false;
             for (int retry = 0; retry < 3 && !executed; retry++) {
                 try {
-                    pair.getObject2().execute(run);
+                    // TODO 这里需要做流控
+                    pair.getObject2().submit(run);
                     executed = true;
                     break;
                 }
@@ -260,10 +261,10 @@ public abstract class NettyRemotingAbstract {
             // 异步调用
             if (responseFuture.getInvokeCallback() != null) {
                 boolean runInThisThread = false;
-                Executor executor = this.getCallbackExecutor();
+                ExecutorService executor = this.getCallbackExecutor();
                 if (executor != null) {
                     try {
-                        executor.execute(new Runnable() {
+                        executor.submit(new Runnable() {
                             @Override
                             public void run() {
                                 try {
@@ -325,7 +326,7 @@ public abstract class NettyRemotingAbstract {
     }
 
 
-    abstract public Executor getCallbackExecutor();
+    abstract public ExecutorService getCallbackExecutor();
 
 
     public void scanResponseTable() {

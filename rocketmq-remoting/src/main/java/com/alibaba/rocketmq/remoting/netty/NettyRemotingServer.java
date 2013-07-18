@@ -34,7 +34,6 @@ import io.netty.util.concurrent.DefaultEventExecutorGroup;
 import java.net.InetSocketAddress;
 import java.util.Timer;
 import java.util.TimerTask;
-import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
@@ -283,14 +282,14 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
 
 
     @Override
-    public void registerProcessor(int requestCode, NettyRequestProcessor processor, Executor executor) {
-        Executor executorThis = executor;
+    public void registerProcessor(int requestCode, NettyRequestProcessor processor, ExecutorService executor) {
+        ExecutorService executorThis = executor;
         if (null == executor) {
             executorThis = this.publicExecutor;
         }
 
-        Pair<NettyRequestProcessor, Executor> pair =
-                new Pair<NettyRequestProcessor, Executor>(processor, executorThis);
+        Pair<NettyRequestProcessor, ExecutorService> pair =
+                new Pair<NettyRequestProcessor, ExecutorService>(processor, executorThis);
         this.processorTable.put(requestCode, pair);
     }
 
@@ -320,14 +319,14 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
 
 
     @Override
-    public Executor getCallbackExecutor() {
+    public ExecutorService getCallbackExecutor() {
         return this.publicExecutor;
     }
 
 
     @Override
-    public void registerDefaultProcessor(NettyRequestProcessor processor, Executor executor) {
-        this.defaultRequestProcessor = new Pair<NettyRequestProcessor, Executor>(processor, executor);
+    public void registerDefaultProcessor(NettyRequestProcessor processor, ExecutorService executor) {
+        this.defaultRequestProcessor = new Pair<NettyRequestProcessor, ExecutorService>(processor, executor);
     }
 
 
