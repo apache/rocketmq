@@ -36,13 +36,15 @@ public class FAQUrl {
     public static final String UNEXPECTED_EXCEPTION_URL = //
             "https://github.com/alibaba/RocketMQ/issues/64";
 
-    private static final String TipString = "\nFor more infomation, please visit the url, ";
+    private static final String TipStringBegin = "\nSee ";
+    private static final String TipStringEnd = " for further details.";
 
 
     public static String suggestTodo(final String url) {
         StringBuilder sb = new StringBuilder();
-        sb.append(TipString);
+        sb.append(TipStringBegin);
         sb.append(url);
+        sb.append(TipStringEnd);
         return sb.toString();
     }
 
@@ -52,7 +54,7 @@ public class FAQUrl {
      */
     public static String attachDefaultURL(final String errorMessage) {
         if (errorMessage != null) {
-            int index = errorMessage.indexOf(TipString);
+            int index = errorMessage.indexOf(TipStringBegin);
             if (-1 == index) {
                 StringBuilder sb = new StringBuilder();
                 sb.append(errorMessage);
