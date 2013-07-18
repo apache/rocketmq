@@ -11,34 +11,51 @@ import com.alibaba.rocketmq.broker.BrokerController;
 import com.alibaba.rocketmq.store.DefaultMessageStore;
 
 
+/**
+ * 发消息统计
+ * 
+ * @author 菱叶<jin.qian@alipay.com>
+ * @since 2013-7-18
+ */
 public class PutStatsMoniter {
     private static final Logger log = LoggerFactory.getLogger("PutStatsMoniter");
     private BrokerController brokerController;
-    
-    private final Map <String,Long> putMessageTopicTimesTotalLast = new HashMap<String,Long>();
-    private final Map <String,Long> putMessageTopicSizeTotalLast = new HashMap<String,Long>();
-    
+
+    private final Map<String, Long> putMessageTopicTimesTotalLast = new HashMap<String, Long>();
+    private final Map<String, Long> putMessageTopicSizeTotalLast = new HashMap<String, Long>();
+
+
     public PutStatsMoniter(BrokerController brokerController) {
         this.brokerController = brokerController;
     }
 
+
     public void tolog() {
         DefaultMessageStore defaultMessageStore = (DefaultMessageStore) brokerController.getMessageStore();
-        Map <String,AtomicLong> putMessageTopicTimesTotal = defaultMessageStore.getStoreStatsService().getPutMessageTopicTimesTotal();
-        Map <String,AtomicLong> putMessageTopicSizeTotal = defaultMessageStore.getStoreStatsService().getPutMessageTopicSizeTotal();
-        for(String topic:putMessageTopicTimesTotal.keySet()){
+        Map<String, AtomicLong> putMessageTopicTimesTotal =
+                defaultMessageStore.getStoreStatsService().getPutMessageTopicTimesTotal();
+        Map<String, AtomicLong> putMessageTopicSizeTotal =
+                defaultMessageStore.getStoreStatsService().getPutMessageTopicSizeTotal();
+        for (String topic : putMessageTopicTimesTotal.keySet()) {
             long putMessageTopicTimesTotalValue = putMessageTopicTimesTotal.get(topic).get();
             long putMessageTopicSizeTotalValue = putMessageTopicSizeTotal.get(topic).get();
-            long putMessageTopicTimesTotalValueLast =putMessageTopicTimesTotalLast.get(topic)==null?0:putMessageTopicTimesTotalLast.get(topic);
-            long putMessageTopicSizeTotalValueLast = putMessageTopicSizeTotalLast.get(topic)==null?0:putMessageTopicSizeTotalLast.get(topic);
+            long putMessageTopicTimesTotalValueLast =
+                    putMessageTopicTimesTotalLast.get(topic) == null ? 0 : putMessageTopicTimesTotalLast
+                        .get(topic);
+            long putMessageTopicSizeTotalValueLast =
+                    putMessageTopicSizeTotalLast.get(topic) == null ? 0 : putMessageTopicSizeTotalLast
+                        .get(topic);
             putMessageTopicTimesTotalLast.put(topic, putMessageTopicTimesTotalValue);
             putMessageTopicSizeTotalLast.put(topic, putMessageTopicSizeTotalValue);
-                if((putMessageTopicTimesTotalValue-putMessageTopicTimesTotalValueLast+putMessageTopicSizeTotalValue-putMessageTopicSizeTotalValueLast)>0){
+            if ((putMessageTopicTimesTotalValue - putMessageTopicTimesTotalValueLast
+                    + putMessageTopicSizeTotalValue - putMessageTopicSizeTotalValueLast) > 0) {
                 StringBuffer sb = new StringBuffer();
                 sb.append("ClientPutCount").append(",");
                 sb.append("Topic[").append(topic).append("],");
-                sb.append("Total[").append(putMessageTopicTimesTotalValue-putMessageTopicTimesTotalValueLast).append("],");
-                sb.append("TotalSize[").append(putMessageTopicSizeTotalValue-putMessageTopicSizeTotalValueLast).append("]");
+                sb.append("Total[")
+                    .append(putMessageTopicTimesTotalValue - putMessageTopicTimesTotalValueLast).append("],");
+                sb.append("TotalSize[")
+                    .append(putMessageTopicSizeTotalValue - putMessageTopicSizeTotalValueLast).append("]");
                 log.info(sb.toString());
             }
         }

@@ -7,17 +7,15 @@ import java.util.concurrent.TimeUnit;
 
 import com.alibaba.rocketmq.broker.BrokerController;
 
+
 /**
  * 统计管理器
  * 
- * @author boyan
- * @Date 2011-4-22
- * @author wuhua
- * @Date 2011-9-9
- * 
+ * @author 菱叶<jin.qian@alipay.com>
+ * @since 2013-7-18
  */
 public class DigestLogManager {
-    
+
     private final boolean startRealTimeStat = Boolean.valueOf(System
         .getProperty("meta.realtime.stat", "true"));
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1,
@@ -27,19 +25,23 @@ public class DigestLogManager {
                 return new Thread(r, "DigestLogPrintSchedule");
             }
         });
-    private  final PutStatsMoniter putStatsMoniter ;
-    private  final GetStatsMoniter getStatsMoniter ;
-    private  final StoreStatsMoniter storeStatsMoniter;
+    private final PutStatsMoniter putStatsMoniter;
+    private final GetStatsMoniter getStatsMoniter;
+    private final StoreStatsMoniter storeStatsMoniter;
+
 
     public DigestLogManager(BrokerController brokerController) {
         putStatsMoniter = new PutStatsMoniter(brokerController);
         getStatsMoniter = new GetStatsMoniter(brokerController);
         storeStatsMoniter = new StoreStatsMoniter(brokerController);
     }
-    
-    public void init(){
-        
+
+
+    public void init() {
+
     }
+
+
     public void start() {
         if (startRealTimeStat) {
             scheduler.scheduleWithFixedDelay(new DigestPrintOut(), 10, 20, TimeUnit.SECONDS);
@@ -66,6 +68,7 @@ public class DigestLogManager {
         }
     }
 
+
     public PutStatsMoniter getPutStatsMoniter() {
         return putStatsMoniter;
     }
@@ -74,6 +77,7 @@ public class DigestLogManager {
     public StoreStatsMoniter getStoreStatsMoniter() {
         return storeStatsMoniter;
     }
+
 
     public GetStatsMoniter getGetStatsMoniter() {
         return getStatsMoniter;
