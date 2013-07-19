@@ -365,7 +365,7 @@ public class SendMessageProcessor implements NettyRequestProcessor {
                 // Ö±½Ó·µ»Ø
                 if (!request.isOnewayRPC()) {
                     try {
-                        ctx.write(response).addListener(new ChannelFutureListener() {
+                        ctx.writeAndFlush(response).addListener(new ChannelFutureListener() {
                             @Override
                             public void operationComplete(ChannelFuture future) throws Exception {
                                 if (!future.isSuccess()) {

@@ -68,7 +68,7 @@ public class NettyRPCTest {
             requestHeader.setCount(i);
             requestHeader.setMessageTitle("HelloMessageTitle");
             RemotingCommand request = RemotingCommand.createRequestCommand(0, requestHeader);
-            RemotingCommand response = client.invokeSync("127.0.0.1:8888", request, 1000 * 3);
+            RemotingCommand response = client.invokeSync("127.0.0.1:8888", request, 1000 * 3000);
             System.out.println("invoke result = " + response);
             assertTrue(response != null);
         }
