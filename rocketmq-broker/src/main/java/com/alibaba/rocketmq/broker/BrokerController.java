@@ -676,4 +676,14 @@ public class BrokerController {
     public BrokerOuterAPI getBrokerOuterAPI() {
         return brokerOuterAPI;
     }
+
+
+    public ExecutorService getPullMessageExecutor() {
+        return pullMessageExecutor;
+    }
+
+
+    public void setPullMessageExecutor(ExecutorService pullMessageExecutor) {
+        this.pullMessageExecutor = pullMessageExecutor;
+    }
 }
