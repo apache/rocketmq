@@ -166,7 +166,7 @@ public abstract class NettyRemotingAbstract {
                                 response.setOpaque(cmd.getOpaque());
                                 response.markResponseType();
                                 try {
-                                    ctx.write(response).addListener(new ChannelFutureListener() {
+                                    ctx.writeAndFlush(response).addListener(new ChannelFutureListener() {
                                         @Override
                                         public void operationComplete(ChannelFuture future) throws Exception {
                                             if (!future.isSuccess()) {
@@ -200,7 +200,7 @@ public abstract class NettyRemotingAbstract {
                                     RemotingCommand.createResponseCommand(ResponseCode.SYSTEM_ERROR_VALUE,
                                         e.getMessage());
                             response.setOpaque(cmd.getOpaque());
-                            ctx.write(response);
+                            ctx.writeAndFlush(response);
                         }
                     }
                 }
@@ -235,7 +235,7 @@ public abstract class NettyRemotingAbstract {
                             RemotingCommand.createResponseCommand(ResponseCode.SYSTEM_BUSY_VALUE,
                                 "system busy now, please try another node");
                     response.setOpaque(cmd.getOpaque());
-                    ctx.write(response);
+                    ctx.writeAndFlush(response);
                 }
             }
         }
@@ -245,7 +245,7 @@ public abstract class NettyRemotingAbstract {
                     RemotingCommand.createResponseCommand(ResponseCode.REQUEST_CODE_NOT_SUPPORTED_VALUE,
                         error);
             response.setOpaque(cmd.getOpaque());
-            ctx.write(response);
+            ctx.writeAndFlush(response);
             plog.error(RemotingHelper.parseChannelRemoteAddr(ctx.channel()) + error);
         }
     }
@@ -361,7 +361,7 @@ public abstract class NettyRemotingAbstract {
             final ResponseFuture responseFuture =
                     new ResponseFuture(request.getOpaque(), timeoutMillis, null, null);
             this.responseTable.put(request.getOpaque(), responseFuture);
-            channel.write(request).addListener(new ChannelFutureListener() {
+            channel.writeAndFlush(request).addListener(new ChannelFutureListener() {
                 @Override
                 public void operationComplete(ChannelFuture f) throws Exception {
                     if (f.isSuccess()) {
@@ -413,7 +413,7 @@ public abstract class NettyRemotingAbstract {
                     new ResponseFuture(request.getOpaque(), timeoutMillis, invokeCallback, once);
             this.responseTable.put(request.getOpaque(), responseFuture);
             try {
-                channel.write(request).addListener(new ChannelFutureListener() {
+                channel.writeAndFlush(request).addListener(new ChannelFutureListener() {
                     @Override
                     public void operationComplete(ChannelFuture f) throws Exception {
                         if (f.isSuccess()) {
@@ -463,7 +463,7 @@ public abstract class NettyRemotingAbstract {
         if (acquired) {
             final SemaphoreReleaseOnlyOnce once = new SemaphoreReleaseOnlyOnce(this.semaphoreOneway);
             try {
-                channel.write(request).addListener(new ChannelFutureListener() {
+                channel.writeAndFlush(request).addListener(new ChannelFutureListener() {
                     @Override
                     public void operationComplete(ChannelFuture f) throws Exception {
                         once.release();

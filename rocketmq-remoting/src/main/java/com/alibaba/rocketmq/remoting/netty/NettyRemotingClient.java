@@ -124,9 +124,15 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
 
     class NettyClientHandler extends SimpleChannelInboundHandler<RemotingCommand> {
 
+//        @Override
+//        protected void messageReceived(ChannelHandlerContext ctx, RemotingCommand msg) throws Exception {
+//            processMessageReceived(ctx, msg);
+//        }
+
         @Override
-        protected void messageReceived(ChannelHandlerContext ctx, RemotingCommand msg) throws Exception {
+        protected void channelRead0(ChannelHandlerContext ctx, RemotingCommand msg) throws Exception {
             processMessageReceived(ctx, msg);
+            
         }
     }
 
