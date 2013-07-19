@@ -50,10 +50,10 @@ public class NettyDecoder extends LengthFieldBasedFrameDecoder {
             if (frame == null) {
                 return null;
             }
-            
+
             byte[] tmpBuf = new byte[frame.capacity()];
-            
             frame.getBytes(0, tmpBuf);
+            frame.release();
 
             return RemotingCommand.decode(tmpBuf);
         }
