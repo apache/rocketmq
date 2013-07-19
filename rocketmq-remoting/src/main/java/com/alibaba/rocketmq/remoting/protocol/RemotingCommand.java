@@ -24,6 +24,7 @@ import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import com.alibaba.fastjson.annotation.JSONField;
 import com.alibaba.rocketmq.remoting.CommandCustomHeader;
 import com.alibaba.rocketmq.remoting.annotation.CFNotNull;
 import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
@@ -381,6 +382,7 @@ public class RemotingCommand {
     }
 
 
+    @JSONField(serialize = false)
     public boolean isResponseType() {
         int bits = 1 << RPC_TYPE;
         return (this.flag & bits) == bits;
@@ -393,6 +395,7 @@ public class RemotingCommand {
     }
 
 
+    @JSONField(serialize = false)
     public boolean isOnewayRPC() {
         int bits = 1 << RPC_ONEWAY;
         return (this.flag & bits) == bits;
@@ -409,6 +412,7 @@ public class RemotingCommand {
     }
 
 
+    @JSONField(serialize = false)
     public RemotingCommandType getType() {
         if (this.isResponseType()) {
             return RemotingCommandType.RESPONSE_COMMAND;
