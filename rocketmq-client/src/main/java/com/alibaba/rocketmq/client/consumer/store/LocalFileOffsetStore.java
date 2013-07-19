@@ -127,7 +127,7 @@ public class LocalFileOffsetStore implements OffsetStore {
             }
         }
 
-        String jsonString = offsetSerializeWrapper.toJson();
+        String jsonString = offsetSerializeWrapper.toJson(true);
         if (jsonString != null) {
             try {
                 MixAll.string2File(jsonString, this.storePath);
