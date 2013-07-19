@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
+	<!--  
 	<appender name="DefaultAppender"
 		class="ch.qos.logback.core.rolling.RollingFileAppender">
 		<file>${user.home}/rocketmqlogs/rocketmq_default.log</file>
@@ -17,7 +18,7 @@
 			<charset class="java.nio.charset.Charset">UTF-8</charset>
 		</encoder>
 	</appender>
-
+	-->
 	<appender name="RocketmqClientAppender"
 		class="ch.qos.logback.core.rolling.RollingFileAppender">
 		<file>${user.home}/rocketmqlogs/rocketmq_client.log</file>
@@ -61,9 +62,10 @@
 		<appender-ref ref="RocketmqClientAppender" />
 	</logger>
 
-
+	<!--  
 	<root>
 		<level value="INFO" />
 		<appender-ref ref="DefaultAppender" />
 	</root>
+	-->
 </configuration>
