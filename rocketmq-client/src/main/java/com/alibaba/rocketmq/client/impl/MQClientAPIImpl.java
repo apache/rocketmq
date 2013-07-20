@@ -354,7 +354,7 @@ public class MQClientAPIImpl {
 
         return new PullResultExt(pullStatus, responseHeader.getNextBeginOffset(),
             responseHeader.getMinOffset(), responseHeader.getMaxOffset(), null,
-            responseHeader.getSuggestPullingFromSlave(), response.getBody());
+            responseHeader.getSuggestWhichBrokerId(), response.getBody());
     }
 
 

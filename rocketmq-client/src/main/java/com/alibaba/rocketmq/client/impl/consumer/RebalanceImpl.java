@@ -4,15 +4,16 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.slf4j.Logger;
 
 import com.alibaba.rocketmq.client.consumer.AllocateMessageQueueStrategy;
-import com.alibaba.rocketmq.client.consumer.ConsumeFromWhichNode;
 import com.alibaba.rocketmq.client.impl.FindBrokerResult;
 import com.alibaba.rocketmq.client.impl.factory.MQClientFactory;
 import com.alibaba.rocketmq.client.log.ClientLogger;
@@ -75,8 +76,7 @@ public abstract class RebalanceImpl {
 
     public void unlock(final MessageQueue mq, final boolean oneway) {
         FindBrokerResult findBrokerResult =
-                this.mQClientFactory.findBrokerAddressInSubscribe(mq.getBrokerName(),
-                    ConsumeFromWhichNode.CONSUME_FROM_MASTER_ONLY);
+                this.mQClientFactory.findBrokerAddressInSubscribe(mq.getBrokerName(), MixAll.MASTER_ID, true);
         if (findBrokerResult != null) {
             UnlockBatchRequestBody requestBody = new UnlockBatchRequestBody();
             requestBody.setConsumerGroup(this.consumerGroup);
@@ -105,8 +105,7 @@ public abstract class RebalanceImpl {
                 continue;
 
             FindBrokerResult findBrokerResult =
-                    this.mQClientFactory.findBrokerAddressInSubscribe(brokerName,
-                        ConsumeFromWhichNode.CONSUME_FROM_MASTER_ONLY);
+                    this.mQClientFactory.findBrokerAddressInSubscribe(brokerName, MixAll.MASTER_ID, true);
             if (findBrokerResult != null) {
                 UnlockBatchRequestBody requestBody = new UnlockBatchRequestBody();
                 requestBody.setConsumerGroup(this.consumerGroup);
@@ -135,8 +134,7 @@ public abstract class RebalanceImpl {
 
     public boolean lock(final MessageQueue mq) {
         FindBrokerResult findBrokerResult =
-                this.mQClientFactory.findBrokerAddressInSubscribe(mq.getBrokerName(),
-                    ConsumeFromWhichNode.CONSUME_FROM_MASTER_ONLY);
+                this.mQClientFactory.findBrokerAddressInSubscribe(mq.getBrokerName(), MixAll.MASTER_ID, true);
         if (findBrokerResult != null) {
             LockBatchRequestBody requestBody = new LockBatchRequestBody();
             requestBody.setConsumerGroup(this.consumerGroup);
@@ -190,7 +188,9 @@ public abstract class RebalanceImpl {
     public void lockAll() {
         HashMap<String, Set<MessageQueue>> brokerMqs = this.buildProcessQueueTableByBrokerName();
 
-        for (final Map.Entry<String, Set<MessageQueue>> entry : brokerMqs.entrySet()) {
+        Iterator<Entry<String, Set<MessageQueue>>> it = brokerMqs.entrySet().iterator();
+        while (it.hasNext()) {
+            Entry<String, Set<MessageQueue>> entry = it.next();
             final String brokerName = entry.getKey();
             final Set<MessageQueue> mqs = entry.getValue();
 
@@ -198,8 +198,7 @@ public abstract class RebalanceImpl {
                 continue;
 
             FindBrokerResult findBrokerResult =
-                    this.mQClientFactory.findBrokerAddressInSubscribe(brokerName,
-                        ConsumeFromWhichNode.CONSUME_FROM_MASTER_ONLY);
+                    this.mQClientFactory.findBrokerAddressInSubscribe(brokerName, MixAll.MASTER_ID, true);
             if (findBrokerResult != null) {
                 LockBatchRequestBody requestBody = new LockBatchRequestBody();
                 requestBody.setConsumerGroup(this.consumerGroup);
@@ -241,9 +240,6 @@ public abstract class RebalanceImpl {
             }
         }
     }
-
-
-
 
 
     public void doRebalance() {

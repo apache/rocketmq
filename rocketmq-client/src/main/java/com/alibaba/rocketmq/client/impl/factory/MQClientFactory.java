@@ -25,7 +25,6 @@ import org.slf4j.Logger;
 
 import com.alibaba.rocketmq.client.ClientConfig;
 import com.alibaba.rocketmq.client.admin.MQAdminExtInner;
-import com.alibaba.rocketmq.client.consumer.ConsumeFromWhichNode;
 import com.alibaba.rocketmq.client.exception.MQBrokerException;
 import com.alibaba.rocketmq.client.exception.MQClientException;
 import com.alibaba.rocketmq.client.impl.ClientRemotingProcessor;
@@ -673,7 +672,8 @@ public class MQClientFactory {
      */
     public FindBrokerResult findBrokerAddressInSubscribe(//
             final String brokerName,//
-            final ConsumeFromWhichNode consumeFromWhichNode//
+            final long brokerId,//
+            final boolean onlyThisBroker//
     ) {
         String brokerAddr = null;
         boolean slave = false;
@@ -681,51 +681,17 @@ public class MQClientFactory {
 
         HashMap<Long/* brokerId */, String/* address */> map = this.brokerAddrTable.get(brokerName);
         if (map != null && !map.isEmpty()) {
-            // TODO 如果有多个Slave，可能会每次都选中相同的Slave，这里需要优化
-            FOR_SEG: for (Map.Entry<Long, String> entry : map.entrySet()) {
-                Long id = entry.getKey();
+            brokerAddr = map.get(brokerId);
+            slave = (brokerId != MixAll.MASTER_ID);
+            found = (brokerAddr != null);
+
+            // 尝试寻找其他Broker
+            if (!found && !onlyThisBroker) {
+                Entry<Long, String> entry = map.entrySet().iterator().next();
                 brokerAddr = entry.getValue();
-                if (brokerAddr != null) {
-                    switch (consumeFromWhichNode) {
-                    case CONSUME_FROM_MASTER_FIRST:
-                        found = true;
-                        if (MixAll.MASTER_ID == id) {
-                            slave = false;
-                            break FOR_SEG;
-                        }
-                        else {
-                            slave = true;
-                        }
-                        break;
-                    case CONSUME_FROM_SLAVE_FIRST:
-                        found = true;
-                        if (MixAll.MASTER_ID != id) {
-                            slave = true;
-                            break FOR_SEG;
-                        }
-                        else {
-                            slave = false;
-                        }
-                        break;
-                    case CONSUME_FROM_MASTER_ONLY:
-                        if (MixAll.MASTER_ID == id) {
-                            found = true;
-                            slave = false;
-                            break FOR_SEG;
-                        }
-                        break;
-                    case CONSUME_FROM_SLAVE_ONLY:
-                        if (MixAll.MASTER_ID != id) {
-                            found = true;
-                            slave = true;
-                            break FOR_SEG;
-                        }
-                        break;
-                    default:
-                        break;
-                    }
-                }
-            } // end of for
+                slave = (entry.getKey() != MixAll.MASTER_ID);
+                found = true;
+            }
         }
 
         if (found) {

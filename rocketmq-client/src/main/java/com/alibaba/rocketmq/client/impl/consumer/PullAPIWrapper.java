@@ -7,9 +7,8 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 
-import com.alibaba.rocketmq.client.consumer.ConsumeFromWhichNode;
 import com.alibaba.rocketmq.client.consumer.PullCallback;
 import com.alibaba.rocketmq.client.consumer.PullResult;
 import com.alibaba.rocketmq.client.consumer.PullStatus;
@@ -18,6 +17,7 @@ import com.alibaba.rocketmq.client.exception.MQClientException;
 import com.alibaba.rocketmq.client.impl.CommunicationMode;
 import com.alibaba.rocketmq.client.impl.FindBrokerResult;
 import com.alibaba.rocketmq.client.impl.factory.MQClientFactory;
+import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.message.Message;
 import com.alibaba.rocketmq.common.message.MessageDecoder;
 import com.alibaba.rocketmq.common.message.MessageExt;
@@ -35,8 +35,8 @@ import com.alibaba.rocketmq.remoting.exception.RemotingException;
  * 
  */
 public class PullAPIWrapper {
-    private ConcurrentHashMap<MessageQueue, AtomicBoolean/* suggestPullingFromSlave */> pullFromWhichNodeTable =
-            new ConcurrentHashMap<MessageQueue, AtomicBoolean>(32);
+    private ConcurrentHashMap<MessageQueue, AtomicLong/* brokerId */> pullFromWhichNodeTable =
+            new ConcurrentHashMap<MessageQueue, AtomicLong>(32);
 
     private final MQClientFactory mQClientFactory;
     private final String consumerGroup;
@@ -48,13 +48,13 @@ public class PullAPIWrapper {
     }
 
 
-    public void updatePullFromWhichNode(final MessageQueue mq, final boolean suggestPullingFromSlave) {
-        AtomicBoolean suggest = this.pullFromWhichNodeTable.get(mq);
+    public void updatePullFromWhichNode(final MessageQueue mq, final long brokerId) {
+        AtomicLong suggest = this.pullFromWhichNodeTable.get(mq);
         if (null == suggest) {
-            this.pullFromWhichNodeTable.put(mq, new AtomicBoolean(suggestPullingFromSlave));
+            this.pullFromWhichNodeTable.put(mq, new AtomicLong(brokerId));
         }
         else {
-            suggest.set(suggestPullingFromSlave);
+            suggest.set(brokerId);
         }
     }
 
@@ -66,7 +66,7 @@ public class PullAPIWrapper {
             final SubscriptionData subscriptionData) {
         PullResultExt pullResultExt = (PullResultExt) pullResult;
 
-        this.updatePullFromWhichNode(mq, pullResultExt.isSuggestPullingFromSlave());
+        this.updatePullFromWhichNode(mq, pullResultExt.getSuggestWhichBrokerId());
         if (PullStatus.FOUND == pullResult.getPullStatus()) {
             ByteBuffer byteBuffer = ByteBuffer.wrap(pullResultExt.getMessageBinary());
             List<MessageExt> msgList = MessageDecoder.decodes(byteBuffer);
@@ -104,15 +104,13 @@ public class PullAPIWrapper {
     /**
      * 每个队列都应该有相应的变量来保存从哪个服务器拉
      */
-    public ConsumeFromWhichNode recalculatePullFromWhichNode(final MessageQueue mq) {
-        AtomicBoolean suggest = this.pullFromWhichNodeTable.get(mq);
+    public long recalculatePullFromWhichNode(final MessageQueue mq) {
+        AtomicLong suggest = this.pullFromWhichNodeTable.get(mq);
         if (suggest != null) {
-            if (suggest.get()) {
-                return ConsumeFromWhichNode.CONSUME_FROM_SLAVE_FIRST;
-            }
+            return suggest.get();
         }
 
-        return ConsumeFromWhichNode.CONSUME_FROM_MASTER_FIRST;
+        return MixAll.MASTER_ID;
     }
 
 
@@ -131,13 +129,13 @@ public class PullAPIWrapper {
     ) throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
         FindBrokerResult findBrokerResult =
                 this.mQClientFactory.findBrokerAddressInSubscribe(mq.getBrokerName(),
-                    this.recalculatePullFromWhichNode(mq));
+                    this.recalculatePullFromWhichNode(mq), false);
         if (null == findBrokerResult) {
             // TODO 此处可能对Name Server压力过大，需要调优
             this.mQClientFactory.updateTopicRouteInfoFromNameServer(mq.getTopic());
             findBrokerResult =
                     this.mQClientFactory.findBrokerAddressInSubscribe(mq.getBrokerName(),
-                        this.recalculatePullFromWhichNode(mq));
+                        this.recalculatePullFromWhichNode(mq), false);
         }
 
         if (findBrokerResult != null) {
