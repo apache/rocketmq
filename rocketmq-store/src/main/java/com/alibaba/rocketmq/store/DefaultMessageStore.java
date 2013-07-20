@@ -725,8 +725,11 @@ public class DefaultMessageStore implements MessageStore {
 
                                 this.reputFromOffset += size;
                                 readSize += size;
-                                DefaultMessageStore.this.storeStatsService.getSinglePutMessageTopicTimesTotal(dispatchRequest.getTopic()).incrementAndGet();
-                                DefaultMessageStore.this.storeStatsService.getSinglePutMessageTopicSizeTotal(dispatchRequest.getTopic()).addAndGet(dispatchRequest.getMsgSize());
+                                DefaultMessageStore.this.storeStatsService
+                                    .getSinglePutMessageTopicTimesTotal(dispatchRequest.getTopic())
+                                    .incrementAndGet();
+                                DefaultMessageStore.this.storeStatsService.getSinglePutMessageTopicSizeTotal(
+                                    dispatchRequest.getTopic()).addAndGet(dispatchRequest.getMsgSize());
                             }
                             // 文件中间读到错误
                             else if (size == -1) {
@@ -1240,7 +1243,7 @@ public class DefaultMessageStore implements MessageStore {
 
                         nextBeginOffset = offset + (i / ConsumeQueue.CQStoreUnitSize);
 
-                        long diff = this.getMaxPhyOffset() - maxPhyOffsetPulling;
+                        long diff = maxOffset - maxPhyOffsetPulling;
                         long memory =
                                 (long) (MixAll.TotalPhysicalMemorySize * (this.messageStoreConfig
                                     .getAccessMessageInMemoryMaxRatio() / 100.0));
