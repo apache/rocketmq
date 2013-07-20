@@ -20,6 +20,8 @@ public class SubscriptionGroupConfig {
     private int retryMaxTimes = 15;
     // 从哪个Broker开始消费
     private long brokerId = MixAll.MASTER_ID;
+    // 发现消息堆积后，将Consumer的消费请求重定向到另外一台Slave机器
+    private long whichBrokerWhenConsumeSlowly = 1;
 
 
     public String getGroupName() {
@@ -82,6 +84,16 @@ public class SubscriptionGroupConfig {
     }
 
 
+    public long getWhichBrokerWhenConsumeSlowly() {
+        return whichBrokerWhenConsumeSlowly;
+    }
+
+
+    public void setWhichBrokerWhenConsumeSlowly(long whichBrokerWhenConsumeSlowly) {
+        this.whichBrokerWhenConsumeSlowly = whichBrokerWhenConsumeSlowly;
+    }
+
+
     @Override
     public int hashCode() {
         final int prime = 31;
@@ -92,6 +104,8 @@ public class SubscriptionGroupConfig {
         result = prime * result + ((groupName == null) ? 0 : groupName.hashCode());
         result = prime * result + retryMaxTimes;
         result = prime * result + retryQueueNums;
+        result =
+                prime * result + (int) (whichBrokerWhenConsumeSlowly ^ (whichBrokerWhenConsumeSlowly >>> 32));
         return result;
     }
 
@@ -121,6 +135,8 @@ public class SubscriptionGroupConfig {
             return false;
         if (retryQueueNums != other.retryQueueNums)
             return false;
+        if (whichBrokerWhenConsumeSlowly != other.whichBrokerWhenConsumeSlowly)
+            return false;
         return true;
     }
 
@@ -129,6 +145,7 @@ public class SubscriptionGroupConfig {
     public String toString() {
         return "SubscriptionGroupConfig [groupName=" + groupName + ", consumeEnable=" + consumeEnable
                 + ", consumeFromMinEnable=" + consumeFromMinEnable + ", retryQueueNums=" + retryQueueNums
-                + ", retryMaxTimes=" + retryMaxTimes + ", brokerId=" + brokerId + "]";
+                + ", retryMaxTimes=" + retryMaxTimes + ", brokerId=" + brokerId
+                + ", whichBrokerWhenConsumeSlowly=" + whichBrokerWhenConsumeSlowly + "]";
     }
 }

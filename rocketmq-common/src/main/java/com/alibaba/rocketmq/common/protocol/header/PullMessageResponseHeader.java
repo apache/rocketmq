@@ -14,7 +14,7 @@ import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
  */
 public class PullMessageResponseHeader implements CommandCustomHeader {
     @CFNotNull
-    private Boolean suggestPullingFromSlave;
+    private Long suggestWhichBrokerId;
     @CFNotNull
     private Long nextBeginOffset;
     @CFNotNull
@@ -25,16 +25,6 @@ public class PullMessageResponseHeader implements CommandCustomHeader {
 
     @Override
     public void checkFields() throws RemotingCommandException {
-    }
-
-
-    public Boolean getSuggestPullingFromSlave() {
-        return suggestPullingFromSlave;
-    }
-
-
-    public void setSuggestPullingFromSlave(Boolean suggestPullingFromSlave) {
-        this.suggestPullingFromSlave = suggestPullingFromSlave;
     }
 
 
@@ -65,5 +55,15 @@ public class PullMessageResponseHeader implements CommandCustomHeader {
 
     public void setMaxOffset(Long maxOffset) {
         this.maxOffset = maxOffset;
+    }
+
+
+    public Long getSuggestWhichBrokerId() {
+        return suggestWhichBrokerId;
+    }
+
+
+    public void setSuggestWhichBrokerId(Long suggestWhichBrokerId) {
+        this.suggestWhichBrokerId = suggestWhichBrokerId;
     }
 }

@@ -104,7 +104,6 @@ public class PullMessageProcessor implements NettyRequestProcessor {
 
     private RemotingCommand processRequest(final Channel channel, RemotingCommand request,
             boolean brokerAllowSuspend) throws RemotingCommandException {
-        final long startTime = System.currentTimeMillis();
         RemotingCommand response = RemotingCommand.createResponseCommand(PullMessageResponseHeader.class);
         final PullMessageResponseHeader responseHeader =
                 (PullMessageResponseHeader) response.getCustomHeader();
@@ -251,11 +250,19 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                     requestHeader.getMaxMsgNums(), subscriptionData);
         if (getMessageResult != null) {
             response.setRemark(getMessageResult.getStatus().name());
-
             responseHeader.setNextBeginOffset(getMessageResult.getNextBeginOffset());
-            responseHeader.setSuggestPullingFromSlave(getMessageResult.isSuggestPullingFromSlave());
             responseHeader.setMinOffset(getMessageResult.getMinOffset());
             responseHeader.setMaxOffset(getMessageResult.getMaxOffset());
+
+            // 消费较慢，重定向到另外一台机器
+            if (getMessageResult.isSuggestPullingFromSlave()) {
+                responseHeader.setSuggestWhichBrokerId(subscriptionGroupConfig
+                    .getWhichBrokerWhenConsumeSlowly());
+            }
+            // 消费正常，按照订阅组配置重定向
+            else {
+                responseHeader.setSuggestWhichBrokerId(subscriptionGroupConfig.getBrokerId());
+            }
 
             switch (getMessageResult.getStatus()) {
             case FOUND:
@@ -267,7 +274,21 @@ public class PullMessageProcessor implements NettyRequestProcessor {
             // 这两个返回值都表示服务器暂时没有这个队列，应该立刻将客户端Offset重置为0
             case NO_MATCHED_LOGIC_QUEUE:
             case NO_MESSAGE_IN_QUEUE:
-                response.setCode(MQResponseCode.PULL_NOT_FOUND_VALUE);
+                if (0 != requestHeader.getQueueOffset()) {
+                    response.setCode(MQResponseCode.PULL_OFFSET_MOVED_VALUE);
+
+                    log.info(
+                        "the broker store no queue data, fix the request offset {} to {}, Topic: {} QueueId: {} Consumer Group: {}",//
+                        requestHeader.getQueueOffset(), //
+                        getMessageResult.getNextBeginOffset(), //
+                        requestHeader.getTopic(),//
+                        requestHeader.getQueueId(),//
+                        requestHeader.getConsumerGroup()//
+                    );
+                }
+                else {
+                    response.setCode(MQResponseCode.PULL_NOT_FOUND_VALUE);
+                }
                 break;
             case NO_MATCHED_MESSAGE:
                 response.setCode(MQResponseCode.PULL_RETRY_IMMEDIATELY_VALUE);
