@@ -17,20 +17,15 @@ import com.alibaba.rocketmq.common.message.MessageExt;
  * 
  */
 public class PullResultExt extends PullResult {
-    private final boolean suggestPullingFromSlave;
+    private final long suggestWhichBrokerId;
     private byte[] messageBinary;
 
 
     public PullResultExt(PullStatus pullStatus, long nextBeginOffset, long minOffset, long maxOffset,
-            List<MessageExt> msgFoundList, final boolean suggestPullingFromSlave, final byte[] messageBinary) {
+            List<MessageExt> msgFoundList, final long suggestWhichBrokerId, final byte[] messageBinary) {
         super(pullStatus, nextBeginOffset, minOffset, maxOffset, msgFoundList);
-        this.suggestPullingFromSlave = suggestPullingFromSlave;
+        this.suggestWhichBrokerId = suggestWhichBrokerId;
         this.messageBinary = messageBinary;
-    }
-
-
-    public boolean isSuggestPullingFromSlave() {
-        return suggestPullingFromSlave;
     }
 
 
@@ -41,5 +36,10 @@ public class PullResultExt extends PullResult {
 
     public void setMessageBinary(byte[] messageBinary) {
         this.messageBinary = messageBinary;
+    }
+
+
+    public long getSuggestWhichBrokerId() {
+        return suggestWhichBrokerId;
     }
 }

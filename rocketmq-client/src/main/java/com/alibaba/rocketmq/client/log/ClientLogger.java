@@ -1,14 +1,11 @@
 package com.alibaba.rocketmq.client.log;
 
-import java.net.URL;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.alibaba.rocketmq.common.constant.LoggerName;
 //import ch.qos.logback.classic.LoggerContext;
 //import ch.qos.logback.classic.joran.JoranConfigurator;
-
-import com.alibaba.rocketmq.common.constant.LoggerName;
 
 
 public class ClientLogger {
