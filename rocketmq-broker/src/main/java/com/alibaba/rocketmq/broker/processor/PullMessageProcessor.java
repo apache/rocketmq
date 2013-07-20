@@ -24,6 +24,7 @@ import com.alibaba.rocketmq.common.help.FAQUrl;
 import com.alibaba.rocketmq.common.protocol.MQProtos.MQResponseCode;
 import com.alibaba.rocketmq.common.protocol.header.PullMessageRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.PullMessageResponseHeader;
+import com.alibaba.rocketmq.common.protocol.heartbeat.MessageModel;
 import com.alibaba.rocketmq.common.protocol.heartbeat.SubscriptionData;
 import com.alibaba.rocketmq.common.subscription.SubscriptionGroupConfig;
 import com.alibaba.rocketmq.common.sysflag.PullSysFlag;
@@ -223,7 +224,14 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                 break;
             default:
                 break;
+            }
 
+            if (!subscriptionGroupConfig.isConsumeBroadcastEnable() //
+                    && consumerGroupInfo.getMessageModel() == MessageModel.BROADCASTING) {
+                response.setCode(MQResponseCode.NO_PERMISSION_VALUE);
+                response.setRemark("the consumer group[" + requestHeader.getConsumerGroup()
+                        + "] can not consume by broadcast way");
+                return response;
             }
 
             subscriptionData = consumerGroupInfo.findSubscriptionData(requestHeader.getTopic());

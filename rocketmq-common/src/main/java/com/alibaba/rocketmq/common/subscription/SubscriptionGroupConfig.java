@@ -14,6 +14,8 @@ public class SubscriptionGroupConfig {
     private boolean consumeEnable = true;
     // 是否允许从队列最小位置开始消费，线上默认会设置为false
     private boolean consumeFromMinEnable = true;
+    // 是否允许广播方式消费
+    private boolean consumeBroadcastEnable = true;
     // 消费失败的消息放到一个重试队列，每个订阅组配置几个重试队列
     private int retryQueueNums = 1;
     // 重试消费最大次数，超过则投递到死信队列，不再投递，并报警
@@ -51,6 +53,16 @@ public class SubscriptionGroupConfig {
 
     public void setConsumeFromMinEnable(boolean consumeFromMinEnable) {
         this.consumeFromMinEnable = consumeFromMinEnable;
+    }
+
+
+    public boolean isConsumeBroadcastEnable() {
+        return consumeBroadcastEnable;
+    }
+
+
+    public void setConsumeBroadcastEnable(boolean consumeBroadcastEnable) {
+        this.consumeBroadcastEnable = consumeBroadcastEnable;
     }
 
 
@@ -99,6 +111,7 @@ public class SubscriptionGroupConfig {
         final int prime = 31;
         int result = 1;
         result = prime * result + (int) (brokerId ^ (brokerId >>> 32));
+        result = prime * result + (consumeBroadcastEnable ? 1231 : 1237);
         result = prime * result + (consumeEnable ? 1231 : 1237);
         result = prime * result + (consumeFromMinEnable ? 1231 : 1237);
         result = prime * result + ((groupName == null) ? 0 : groupName.hashCode());
@@ -120,6 +133,8 @@ public class SubscriptionGroupConfig {
             return false;
         SubscriptionGroupConfig other = (SubscriptionGroupConfig) obj;
         if (brokerId != other.brokerId)
+            return false;
+        if (consumeBroadcastEnable != other.consumeBroadcastEnable)
             return false;
         if (consumeEnable != other.consumeEnable)
             return false;
@@ -144,8 +159,9 @@ public class SubscriptionGroupConfig {
     @Override
     public String toString() {
         return "SubscriptionGroupConfig [groupName=" + groupName + ", consumeEnable=" + consumeEnable
-                + ", consumeFromMinEnable=" + consumeFromMinEnable + ", retryQueueNums=" + retryQueueNums
-                + ", retryMaxTimes=" + retryMaxTimes + ", brokerId=" + brokerId
-                + ", whichBrokerWhenConsumeSlowly=" + whichBrokerWhenConsumeSlowly + "]";
+                + ", consumeFromMinEnable=" + consumeFromMinEnable + ", consumeBroadcastEnable="
+                + consumeBroadcastEnable + ", retryQueueNums=" + retryQueueNums + ", retryMaxTimes="
+                + retryMaxTimes + ", brokerId=" + brokerId + ", whichBrokerWhenConsumeSlowly="
+                + whichBrokerWhenConsumeSlowly + "]";
     }
 }
