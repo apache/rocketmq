@@ -1,5 +1,17 @@
 /**
- * $Id: StoreStatsService.java 1831 2013-05-16 01:39:51Z shijia.wxr $
+ * Copyright (C) 2010-2013 Alibaba Group Holding Limited
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package com.alibaba.rocketmq.store;
 
@@ -22,6 +34,7 @@ import com.alibaba.rocketmq.common.constant.LoggerName;
  * 存储层内部统计服务
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
+ * @since 2013-7-21
  */
 public class StoreStatsService extends ServiceThread {
     static class CallSnapshot {
@@ -61,16 +74,17 @@ public class StoreStatsService extends ServiceThread {
     // putMessage，失败次数
     private final AtomicLong putMessageFailedTimes = new AtomicLong(0);
     // putMessage，调用总数
-    private final Map <String,AtomicLong>putMessageTopicTimesTotal = new ConcurrentHashMap<String,AtomicLong>();
+    private final Map<String, AtomicLong> putMessageTopicTimesTotal =
+            new ConcurrentHashMap<String, AtomicLong>();
     // putMessage，Message Size Total
-    private final Map <String,AtomicLong> putMessageTopicSizeTotal = new ConcurrentHashMap<String,AtomicLong>();
-
+    private final Map<String, AtomicLong> putMessageTopicSizeTotal =
+            new ConcurrentHashMap<String, AtomicLong>();
 
     // getMessage，调用总数
     private final AtomicLong getMessageTimesTotalFound = new AtomicLong(0);
     private final AtomicLong getMessageTransferedMsgCount = new AtomicLong(0);
     private final AtomicLong getMessageTimesTotalMiss = new AtomicLong(0);
-   
+
     // putMessage，耗时分布
     private final AtomicLong[] putMessageDistributeTime = new AtomicLong[7];
     // DispatchMessageService，缓冲区最大值
@@ -519,35 +533,39 @@ public class StoreStatsService extends ServiceThread {
     public AtomicLong getPutMessageFailedTimes() {
         return putMessageFailedTimes;
     }
-    
-    
+
+
     public long getPutMessageTimesTotal() {
-        long rs=0;
-        for (AtomicLong data:putMessageTopicTimesTotal.values()){
-            rs+=data.get();
-        } 
+        long rs = 0;
+        for (AtomicLong data : putMessageTopicTimesTotal.values()) {
+            rs += data.get();
+        }
         return rs;
     }
+
+
     public long getPutMessageSizeTotal() {
-        long rs=0;
-        for (AtomicLong data:putMessageTopicSizeTotal.values()){
-            rs+=data.get();
-        } 
+        long rs = 0;
+        for (AtomicLong data : putMessageTopicSizeTotal.values()) {
+            rs += data.get();
+        }
         return rs;
     }
 
 
     public AtomicLong getSinglePutMessageTopicSizeTotal(String topic) {
         AtomicLong rs = putMessageTopicSizeTotal.get(topic);
-        if(null==rs){
+        if (null == rs) {
             rs = new AtomicLong(0);
             putMessageTopicSizeTotal.put(topic, rs);
         }
         return rs;
     }
+
+
     public AtomicLong getSinglePutMessageTopicTimesTotal(String topic) {
         AtomicLong rs = putMessageTopicTimesTotal.get(topic);
-        if(null==rs){
+        if (null == rs) {
             rs = new AtomicLong(0);
             putMessageTopicTimesTotal.put(topic, rs);
         }
