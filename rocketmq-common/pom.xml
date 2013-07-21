@@ -23,18 +23,14 @@
 			<groupId>${project.groupId}</groupId>
 			<artifactId>rocketmq-remoting</artifactId>
 		</dependency>
-		<!--  
+		<!-- <dependency> <groupId>ch.qos.logback</groupId> <artifactId>logback-classic</artifactId> 
+			</dependency> -->
 		<dependency>
-			<groupId>ch.qos.logback</groupId>
-			<artifactId>logback-classic</artifactId>
-		</dependency>
-		-->
-		<dependency>
-			<groupId>apache-httpclient</groupId>
+			<groupId>commons-httpclient</groupId>
 			<artifactId>commons-httpclient</artifactId>
 		</dependency>
 		<dependency>
-			<groupId>apache-codec</groupId>
+			<groupId>commons-codec</groupId>
 			<artifactId>commons-codec</artifactId>
 		</dependency>
 		<dependency>
