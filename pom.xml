@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
-	<!-- -->
+	<!-- 
 	<parent>
 		<groupId>com.taobao</groupId>
 		<artifactId>parent</artifactId>
 		<version>1.0.2</version>
 	</parent>
-	
+	-->
 
 	<modelVersion>4.0.0</modelVersion>
 	<inceptionYear>2012</inceptionYear>
@@ -163,8 +163,8 @@
 				<version>1.0.13</version>
 			</dependency>
 			<dependency>
-	      		<groupId>ch.qos.logback</groupId>
-	      		<artifactId>logback-core</artifactId>
+				<groupId>ch.qos.logback</groupId>
+				<artifactId>logback-core</artifactId>
 				<version>1.0.13</version>
 			</dependency>
 			<dependency>
@@ -173,12 +173,12 @@
 				<version>1.2</version>
 			</dependency>
 			<dependency>
-				<groupId>apache-httpclient</groupId>
+				<groupId>commons-httpclient</groupId>
 				<artifactId>commons-httpclient</artifactId>
 				<version>3.1</version>
 			</dependency>
 			<dependency>
-				<groupId>apache-codec</groupId>
+				<groupId>commons-codec</groupId>
 				<artifactId>commons-codec</artifactId>
 				<version>1.2</version>
 			</dependency>
