@@ -43,7 +43,7 @@ public class MQAdminStartup {
         System.out.println("The most commonly used mqadmin commands are:");
 
         for (SubCommand cmd : subCommandList) {
-            System.out.printf("   %-11s %s\n", cmd.commandName(), cmd.commandDesc());
+            System.out.printf("   %-16s %s\n", cmd.commandName(), cmd.commandDesc());
         }
 
         System.out.println("\nSee 'mqadmin help <command>' for more information on a specific command.");
