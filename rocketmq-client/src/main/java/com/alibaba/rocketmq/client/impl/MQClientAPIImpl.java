@@ -61,6 +61,7 @@ import com.alibaba.rocketmq.common.protocol.heartbeat.HeartbeatData;
 import com.alibaba.rocketmq.common.protocol.route.BrokerData;
 import com.alibaba.rocketmq.common.protocol.route.QueueData;
 import com.alibaba.rocketmq.common.protocol.route.TopicRouteData;
+import com.alibaba.rocketmq.common.subscription.SubscriptionGroupConfig;
 import com.alibaba.rocketmq.remoting.InvokeCallback;
 import com.alibaba.rocketmq.remoting.RemotingClient;
 import com.alibaba.rocketmq.remoting.common.RemotingHelper;
@@ -69,11 +70,13 @@ import com.alibaba.rocketmq.remoting.exception.RemotingConnectException;
 import com.alibaba.rocketmq.remoting.exception.RemotingException;
 import com.alibaba.rocketmq.remoting.exception.RemotingSendRequestException;
 import com.alibaba.rocketmq.remoting.exception.RemotingTimeoutException;
+import com.alibaba.rocketmq.remoting.exception.RemotingTooMuchRequestException;
 import com.alibaba.rocketmq.remoting.netty.NettyClientConfig;
 import com.alibaba.rocketmq.remoting.netty.NettyRemotingClient;
 import com.alibaba.rocketmq.remoting.netty.ResponseFuture;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 import com.alibaba.rocketmq.remoting.protocol.RemotingProtos.ResponseCode;
+import com.alibaba.rocketmq.remoting.protocol.RemotingSerializable;
 
 
 /**
@@ -155,6 +158,31 @@ public class MQClientAPIImpl {
 
     public void shutdown() {
         this.remotingClient.shutdown();
+    }
+
+
+    public void createSubscriptionGroup(final String addr, final SubscriptionGroupConfig config,
+            final long timeoutMillis) throws RemotingException, MQBrokerException, InterruptedException,
+            MQClientException {
+        RemotingCommand request =
+                RemotingCommand.createRequestCommand(MQRequestCode.UPDATE_AND_CREATE_SUBSCRIPTIONGROUP_VALUE,
+                    null);
+
+        byte[] body = RemotingSerializable.encode(config);
+        request.setBody(body);
+
+        RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
+        assert response != null;
+        switch (response.getCode()) {
+        case ResponseCode.SUCCESS_VALUE: {
+            return;
+        }
+        default:
+            break;
+        }
+
+        throw new MQClientException(response.getCode(), response.getRemark());
+
     }
 
 
@@ -666,6 +694,28 @@ public class MQClientAPIImpl {
         }
 
         throw new MQBrokerException(response.getCode(), response.getRemark());
+    }
+
+
+    /**
+     * 更新Consumer消费进度
+     * 
+     * @throws InterruptedException
+     * @throws RemotingSendRequestException
+     * @throws RemotingTimeoutException
+     * @throws RemotingTooMuchRequestException
+     * @throws RemotingConnectException
+     */
+    public void updateConsumerOffsetOneway(//
+            final String addr,//
+            final UpdateConsumerOffsetRequestHeader requestHeader,//
+            final long timeoutMillis//
+    ) throws RemotingConnectException, RemotingTooMuchRequestException, RemotingTimeoutException,
+            RemotingSendRequestException, InterruptedException {
+        RemotingCommand request =
+                RemotingCommand.createRequestCommand(MQRequestCode.UPDATE_CONSUMER_OFFSET_VALUE,
+                    requestHeader);
+        this.remotingClient.invokeOneway(addr, request, timeoutMillis);
     }
 
 

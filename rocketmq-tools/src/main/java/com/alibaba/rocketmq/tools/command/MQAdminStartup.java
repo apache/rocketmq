@@ -23,7 +23,7 @@ import com.alibaba.rocketmq.tools.command.message.MessageSubCommand;
 import com.alibaba.rocketmq.tools.command.namesrv.NamesrvSubCommand;
 import com.alibaba.rocketmq.tools.command.producer.ProducerSubCommand;
 import com.alibaba.rocketmq.tools.command.stats.StatsSubCommand;
-import com.alibaba.rocketmq.tools.command.topic.TopicSubCommand;
+import com.alibaba.rocketmq.tools.command.topic.UpdateTopicSubCommand;
 
 
 /**
@@ -33,15 +33,15 @@ public class MQAdminStartup {
     private static List<SubCommand> subCommandList = new ArrayList<SubCommand>();
 
     static {
-        subCommandList.add(new TopicSubCommand());
-        subCommandList.add(new ClusterSubCommand());
-        subCommandList.add(new BrokerSubCommand());
-        subCommandList.add(new NamesrvSubCommand());
-        subCommandList.add(new ProducerSubCommand());
-        subCommandList.add(new ConsumerSubCommand());
-        subCommandList.add(new ConnectionSubCommand());
-        subCommandList.add(new MessageSubCommand());
-        subCommandList.add(new StatsSubCommand());
+        subCommandList.add(new UpdateTopicSubCommand());
+//        subCommandList.add(new ClusterSubCommand());
+//        subCommandList.add(new BrokerSubCommand());
+//        subCommandList.add(new NamesrvSubCommand());
+//        subCommandList.add(new ProducerSubCommand());
+//        subCommandList.add(new ConsumerSubCommand());
+//        subCommandList.add(new ConnectionSubCommand());
+//        subCommandList.add(new MessageSubCommand());
+//        subCommandList.add(new StatsSubCommand());
     }
 
 

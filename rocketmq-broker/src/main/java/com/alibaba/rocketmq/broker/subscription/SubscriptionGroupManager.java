@@ -37,6 +37,19 @@ public class SubscriptionGroupManager extends ConfigManager {
     }
 
 
+    public void updateSubscriptionGroupConfig(final SubscriptionGroupConfig config) {
+        SubscriptionGroupConfig old = this.subscriptionGroupTable.put(config.getGroupName(), config);
+        if (old != null) {
+            log.info("update subscription group config, old: " + old + " new: " + config);
+        }
+        else {
+            log.info("create new subscription group, " + config);
+        }
+
+        this.persist();
+    }
+
+
     public SubscriptionGroupConfig findSubscriptionGroupConfig(final String group) {
         SubscriptionGroupConfig subscriptionGroupConfig = this.subscriptionGroupTable.get(group);
         if (null == subscriptionGroupConfig) {
