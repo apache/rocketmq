@@ -56,8 +56,9 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
             requestHeader.setQueueId(mq.getQueueId());
             requestHeader.setCommitOffset(offset);
 
-            this.mQClientFactory.getMQClientAPIImpl().updateConsumerOffset(findBrokerResult.getBrokerAddr(),
-                requestHeader, 1000 * 5);
+            // 使用oneway形式，原因是服务器在删除文件时，这个调用可能会超时
+            this.mQClientFactory.getMQClientAPIImpl().updateConsumerOffsetOneway(
+                findBrokerResult.getBrokerAddr(), requestHeader, 1000 * 5);
         }
         else {
             throw new MQClientException("The broker[" + mq.getBrokerName() + "] not exist", null);

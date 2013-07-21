@@ -4,6 +4,7 @@ import com.alibaba.rocketmq.client.ClientConfig;
 import com.alibaba.rocketmq.client.QueryResult;
 import com.alibaba.rocketmq.client.exception.MQBrokerException;
 import com.alibaba.rocketmq.client.exception.MQClientException;
+import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.TopicConfig;
 import com.alibaba.rocketmq.common.admin.ConsumerProgress;
 import com.alibaba.rocketmq.common.admin.TopicOffsetTable;
@@ -18,8 +19,20 @@ import com.alibaba.rocketmq.remoting.exception.RemotingException;
  * @since 2013-7-14
  */
 public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
+    private String adminExtGroup = "admin_ext_group";
+
+    private String createTopicKey = MixAll.DEFAULT_TOPIC;
 
     private final DefaultMQAdminExtImpl defaultMQAdminExtImpl = new DefaultMQAdminExtImpl(this);
+
+
+    public DefaultMQAdminExt() {
+    }
+
+
+    public DefaultMQAdminExt(final String adminExtGroup) {
+        this.adminExtGroup = adminExtGroup;
+    }
 
 
     @Override
@@ -67,7 +80,7 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
 
 
     @Override
-    public void start() {
+    public void start() throws MQClientException {
         defaultMQAdminExtImpl.start();
     }
 
@@ -85,7 +98,8 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
 
 
     @Override
-    public void createAndUpdateTopicConfigByAddr(String addr, TopicConfig config) {
+    public void createAndUpdateTopicConfigByAddr(String addr, TopicConfig config) throws RemotingException,
+            MQBrokerException, InterruptedException, MQClientException {
         defaultMQAdminExtImpl.createAndUpdateTopicConfigByAddr(addr, config);
     }
 
@@ -97,7 +111,8 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
 
 
     @Override
-    public void createAndUpdateSubscriptionGroupConfigByAddr(String addr, SubscriptionGroupConfig config) {
+    public void createAndUpdateSubscriptionGroupConfigByAddr(String addr, SubscriptionGroupConfig config)
+            throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
         defaultMQAdminExtImpl.createAndUpdateSubscriptionGroupConfigByAddr(addr, config);
     }
 
@@ -135,5 +150,25 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
     @Override
     public TopicConfig examineTopicConfig(String addr, String topic) {
         return defaultMQAdminExtImpl.examineTopicConfig(addr, topic);
+    }
+
+
+    public String getAdminExtGroup() {
+        return adminExtGroup;
+    }
+
+
+    public void setAdminExtGroup(String adminExtGroup) {
+        this.adminExtGroup = adminExtGroup;
+    }
+
+
+    public String getCreateTopicKey() {
+        return createTopicKey;
+    }
+
+
+    public void setCreateTopicKey(String createTopicKey) {
+        this.createTopicKey = createTopicKey;
     }
 }

@@ -1,10 +1,13 @@
 package com.alibaba.rocketmq.tools.admin;
 
 import com.alibaba.rocketmq.client.MQAdmin;
+import com.alibaba.rocketmq.client.exception.MQBrokerException;
+import com.alibaba.rocketmq.client.exception.MQClientException;
 import com.alibaba.rocketmq.common.TopicConfig;
 import com.alibaba.rocketmq.common.admin.ConsumerProgress;
 import com.alibaba.rocketmq.common.admin.TopicOffsetTable;
 import com.alibaba.rocketmq.common.subscription.SubscriptionGroupConfig;
+import com.alibaba.rocketmq.remoting.exception.RemotingException;
 
 
 /**
@@ -15,7 +18,7 @@ import com.alibaba.rocketmq.common.subscription.SubscriptionGroupConfig;
  * @since 2013-7-14
  */
 public interface MQAdminExt extends MQAdmin {
-    public void start();
+    public void start() throws MQClientException;
 
 
     public void shutdown();
@@ -35,8 +38,13 @@ public interface MQAdminExt extends MQAdmin {
      * 
      * @param addr
      * @param config
+     * @throws MQClientException
+     * @throws InterruptedException
+     * @throws MQBrokerException
+     * @throws RemotingException
      */
-    public void createAndUpdateTopicConfigByAddr(final String addr, final TopicConfig config);
+    public void createAndUpdateTopicConfigByAddr(final String addr, final TopicConfig config)
+            throws RemotingException, MQBrokerException, InterruptedException, MQClientException;
 
 
     /**
@@ -54,9 +62,14 @@ public interface MQAdminExt extends MQAdmin {
      * 
      * @param addr
      * @param config
+     * @throws MQClientException
+     * @throws InterruptedException
+     * @throws MQBrokerException
+     * @throws RemotingException
      */
     public void createAndUpdateSubscriptionGroupConfigByAddr(final String addr,
-            final SubscriptionGroupConfig config);
+            final SubscriptionGroupConfig config) throws RemotingException, MQBrokerException,
+            InterruptedException, MQClientException;
 
 
     /**

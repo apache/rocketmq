@@ -38,10 +38,12 @@ import com.alibaba.rocketmq.common.protocol.header.SearchOffsetRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.SearchOffsetResponseHeader;
 import com.alibaba.rocketmq.common.protocol.header.UpdateConsumerOffsetRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.UpdateConsumerOffsetResponseHeader;
+import com.alibaba.rocketmq.common.subscription.SubscriptionGroupConfig;
 import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
 import com.alibaba.rocketmq.remoting.netty.NettyRequestProcessor;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 import com.alibaba.rocketmq.remoting.protocol.RemotingProtos.ResponseCode;
+import com.alibaba.rocketmq.remoting.protocol.RemotingSerializable;
 
 
 /**
@@ -105,12 +107,62 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             return this.lockBatchMQ(ctx, request);
         case UNLOCK_BATCH_MQ:
             return this.unlockBatchMQ(ctx, request);
-
+            // ¶©ÔÄ×éÅäÖÃ
+        case UPDATE_AND_CREATE_SUBSCRIPTIONGROUP:
+            return this.updateAndCreateSubscriptionGroup(ctx, request);
+        case GET_ALL_SUBSCRIPTIONGROUP_CONFIG:
+            return this.getAllSubscriptionGroup(ctx, request);
         default:
             break;
         }
 
         return null;
+    }
+
+
+    private RemotingCommand updateAndCreateSubscriptionGroup(ChannelHandlerContext ctx,
+            RemotingCommand request) throws RemotingCommandException {
+        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
+
+        SubscriptionGroupConfig config =
+                RemotingSerializable.decode(request.getBody(), SubscriptionGroupConfig.class);
+        if (config != null) {
+            this.brokerController.getSubscriptionGroupManager().updateSubscriptionGroupConfig(config);
+        }
+
+        response.setCode(ResponseCode.SUCCESS_VALUE);
+        response.setRemark(null);
+        return response;
+    }
+
+
+    private RemotingCommand getAllSubscriptionGroup(ChannelHandlerContext ctx, RemotingCommand request)
+            throws RemotingCommandException {
+        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
+        String content = this.brokerController.getSubscriptionGroupManager().encode();
+        if (content != null && content.length() > 0) {
+            try {
+                response.setBody(content.getBytes(MixAll.DEFAULT_CHARSET));
+            }
+            catch (UnsupportedEncodingException e) {
+                log.error("", e);
+
+                response.setCode(ResponseCode.SYSTEM_ERROR_VALUE);
+                response.setRemark("UnsupportedEncodingException " + e);
+                return response;
+            }
+        }
+        else {
+            log.error("No subscription group in this broker, client: " + ctx.channel().remoteAddress());
+            response.setCode(ResponseCode.SYSTEM_ERROR_VALUE);
+            response.setRemark("No subscription group in this broker");
+            return response;
+        }
+
+        response.setCode(ResponseCode.SUCCESS_VALUE);
+        response.setRemark(null);
+
+        return response;
     }
 
 

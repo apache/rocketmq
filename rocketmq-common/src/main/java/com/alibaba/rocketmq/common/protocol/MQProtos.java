@@ -70,8 +70,6 @@ public final class MQProtos {
         UNLOCK_BATCH_MQ(29, 42),
         // Broker 获取所有Consumer Offset
         GET_ALL_CONSUMER_OFFSET(30, 43),
-        // Broker 获取所有订阅组配置
-        GET_ALL_SUBSCRIPTION_GROUP_CONFIG(31, 44),
         // Broker 获取所有定时进度
         GET_ALL_DELAY_OFFSET(32, 45),
         // Namesrv 向Namesrv追加KV配置
@@ -87,7 +85,11 @@ public final class MQProtos {
         // Namesrv 根据Topic获取Broker Name、队列数(包含读队列与写队列)
         GET_ROUTEINTO_BY_TOPIC(38, 105),
         // Namesrv 获取注册到Name Server的所有Broker集群信息
-        GET_BROKER_CLUSTER_INFO(39, 106), ;
+        GET_BROKER_CLUSTER_INFO(39, 106),
+
+        // Broker 更新或者增加一个订阅组
+        UPDATE_AND_CREATE_SUBSCRIPTIONGROUP(40, 200),
+        GET_ALL_SUBSCRIPTIONGROUP_CONFIG(41, 201), ;
 
         // Broker 发送消息
         public static final int SEND_MESSAGE_VALUE = 10;
@@ -151,8 +153,6 @@ public final class MQProtos {
         public static final int UNLOCK_BATCH_MQ_VALUE = 42;
         // Broker 获取所有Consumer Offset
         public static final int GET_ALL_CONSUMER_OFFSET_VALUE = 43;
-        // Broker 获取所有订阅组配置
-        public static final int GET_ALL_SUBSCRIPTION_GROUP_CONFIG_VALUE = 44;
         // Broker 获取所有定时进度
         public static final int GET_ALL_DELAY_OFFSET_VALUE = 45;
         // Namesrv 向Namesrv追加KV配置
@@ -169,6 +169,9 @@ public final class MQProtos {
         public static final int GET_ROUTEINTO_BY_TOPIC_VALUE = 105;
         // Namesrv 获取注册到Name Server的所有Broker集群信息
         public static final int GET_BROKER_CLUSTER_INFO_VALUE = 106;
+
+        public static final int UPDATE_AND_CREATE_SUBSCRIPTIONGROUP_VALUE = 200;
+        public static final int GET_ALL_SUBSCRIPTIONGROUP_CONFIG_VALUE = 201;
 
 
         public static MQRequestCode valueOf(int value) {
@@ -235,8 +238,6 @@ public final class MQProtos {
                 return UNLOCK_BATCH_MQ;
             case 43:
                 return GET_ALL_CONSUMER_OFFSET;
-            case 44:
-                return GET_ALL_SUBSCRIPTION_GROUP_CONFIG;
             case 45:
                 return GET_ALL_DELAY_OFFSET;
             case 100:
@@ -253,6 +254,11 @@ public final class MQProtos {
                 return GET_ROUTEINTO_BY_TOPIC;
             case 106:
                 return GET_BROKER_CLUSTER_INFO;
+
+            case 200:
+                return UPDATE_AND_CREATE_SUBSCRIPTIONGROUP;
+            case 201:
+                return GET_ALL_SUBSCRIPTIONGROUP_CONFIG;
             default:
                 return null;
             }
