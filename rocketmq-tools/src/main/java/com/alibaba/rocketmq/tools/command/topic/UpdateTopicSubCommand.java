@@ -10,6 +10,8 @@ import com.alibaba.rocketmq.tools.command.SubCommand;
 
 
 /**
+ * –ﬁ∏ƒ°¢¥¥Ω®Topic≈‰÷√√¸¡Ó
+ * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-21
  */
@@ -29,11 +31,11 @@ public class UpdateTopicSubCommand implements SubCommand {
 
     @Override
     public Options buildCommandlineOptions(Options options) {
-        Option opt = new Option("t", "topic", true, "topic name");
+        Option opt = new Option("b", "brokerAddr", true, "create topic to which broker");
         opt.setRequired(false);
         options.addOption(opt);
 
-        opt = new Option("b", "brokerAddr", true, "create topic to which broker");
+        opt = new Option("t", "topic", true, "topic name");
         opt.setRequired(false);
         options.addOption(opt);
 

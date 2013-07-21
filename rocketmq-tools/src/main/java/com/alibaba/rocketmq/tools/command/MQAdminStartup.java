@@ -15,14 +15,7 @@ import ch.qos.logback.core.joran.spi.JoranException;
 import com.alibaba.rocketmq.common.MQVersion;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
-import com.alibaba.rocketmq.tools.command.broker.BrokerSubCommand;
-import com.alibaba.rocketmq.tools.command.cluster.ClusterSubCommand;
-import com.alibaba.rocketmq.tools.command.connection.ConnectionSubCommand;
-import com.alibaba.rocketmq.tools.command.consumer.ConsumerSubCommand;
-import com.alibaba.rocketmq.tools.command.message.MessageSubCommand;
-import com.alibaba.rocketmq.tools.command.namesrv.NamesrvSubCommand;
-import com.alibaba.rocketmq.tools.command.producer.ProducerSubCommand;
-import com.alibaba.rocketmq.tools.command.stats.StatsSubCommand;
+import com.alibaba.rocketmq.tools.command.consumer.UpdateSubGroupSubCommand;
 import com.alibaba.rocketmq.tools.command.topic.UpdateTopicSubCommand;
 
 
@@ -34,14 +27,15 @@ public class MQAdminStartup {
 
     static {
         subCommandList.add(new UpdateTopicSubCommand());
-//        subCommandList.add(new ClusterSubCommand());
-//        subCommandList.add(new BrokerSubCommand());
-//        subCommandList.add(new NamesrvSubCommand());
-//        subCommandList.add(new ProducerSubCommand());
-//        subCommandList.add(new ConsumerSubCommand());
-//        subCommandList.add(new ConnectionSubCommand());
-//        subCommandList.add(new MessageSubCommand());
-//        subCommandList.add(new StatsSubCommand());
+        subCommandList.add(new UpdateSubGroupSubCommand());
+        // subCommandList.add(new ClusterSubCommand());
+        // subCommandList.add(new BrokerSubCommand());
+        // subCommandList.add(new NamesrvSubCommand());
+        // subCommandList.add(new ProducerSubCommand());
+        // subCommandList.add(new ConsumerSubCommand());
+        // subCommandList.add(new ConnectionSubCommand());
+        // subCommandList.add(new MessageSubCommand());
+        // subCommandList.add(new StatsSubCommand());
     }
 
 
