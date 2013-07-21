@@ -64,6 +64,10 @@ public class BrokerConfig {
     // 查询消息最大时间跨度，单位小时
     private long queryMessageMaxTimeSpan = 3;
 
+    // 是否拒接接收事务消息
+    @ImportantField
+    private boolean rejectTransactionMessage = false;
+
 
     public static String localHostName() {
         try {
@@ -294,5 +298,15 @@ public class BrokerConfig {
 
     public void setQueryMessageMaxTimeSpan(long queryMessageMaxTimeSpan) {
         this.queryMessageMaxTimeSpan = queryMessageMaxTimeSpan;
+    }
+
+
+    public boolean isRejectTransactionMessage() {
+        return rejectTransactionMessage;
+    }
+
+
+    public void setRejectTransactionMessage(boolean rejectTransactionMessage) {
+        this.rejectTransactionMessage = rejectTransactionMessage;
     }
 }
