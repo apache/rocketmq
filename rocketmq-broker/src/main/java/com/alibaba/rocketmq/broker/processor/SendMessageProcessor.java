@@ -309,6 +309,17 @@ public class SendMessageProcessor implements NettyRequestProcessor {
 
         msgInner.setReconsumeTimes(0);
 
+        // 检查事务消息
+        if (this.brokerController.getBrokerConfig().isRejectTransactionMessage()) {
+            String traFlag = msgInner.getProperty(Message.PROPERTY_TRANSACTION_PREPARED);
+            if (traFlag != null) {
+                response.setCode(MQResponseCode.NO_PERMISSION_VALUE);
+                response.setRemark("the broker[" + this.brokerController.getBrokerConfig().getBrokerIP1()
+                        + "] sending transaction message is forbidden");
+                return response;
+            }
+        }
+
         PutMessageResult putMessageResult = this.brokerController.getMessageStore().putMessage(msgInner);
         if (putMessageResult != null) {
             boolean sendOK = false;
