@@ -61,6 +61,8 @@ public class UpdateTopicSubCommand implements SubCommand {
 
             String addr = null;
             TopicConfig topicConfig = new TopicConfig();
+            topicConfig.setReadQueueNums(8);
+            topicConfig.setWriteQueueNums(8);
 
             // brokerAddr
             if (commandLine.hasOption('b')) {
