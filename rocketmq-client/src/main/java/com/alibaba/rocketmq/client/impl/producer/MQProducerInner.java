@@ -31,6 +31,9 @@ public interface MQProducerInner {
     public Set<String> getPublishTopicList();
 
 
+    public boolean isPublishTopicNeedUpdate(final String topic);
+
+
     public TransactionCheckListener checkListener();
 
 
