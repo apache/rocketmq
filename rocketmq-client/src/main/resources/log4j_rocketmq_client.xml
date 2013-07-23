@@ -17,7 +17,7 @@
 	
 	<appender name="ROCKETMQ-CLIENT-APPENDER"
 		class="org.apache.log4j.DailyRollingFileAppender">
-		<param name="file" value="${user.home}/rocketmqlogs/rocketmq_client.log" />
+		<param name="file" value="${user.home}/logs/rocketmqlogs/rocketmq_client.log" />
 		<param name="append" value="true" />
 		<param name="encoding" value="GBK" />
 		<param name="DatePattern" value="'.'yyyy-MM-dd-HH" />
