@@ -847,6 +847,36 @@ public class MQClientFactory {
     }
 
 
+    private boolean isNeedUpdateTopicRouteInfo(final String topic) {
+        boolean result = false;
+        // 查看发布队列是否需要更新
+        {
+            Iterator<Entry<String, MQProducerInner>> it = this.producerTable.entrySet().iterator();
+            while (it.hasNext() && !result) {
+                Entry<String, MQProducerInner> entry = it.next();
+                MQProducerInner impl = entry.getValue();
+                if (impl != null) {
+                    result = impl.isPublishTopicNeedUpdate(topic);
+                }
+            }
+        }
+
+        // 查看订阅队列是否需要更新
+        {
+            Iterator<Entry<String, MQConsumerInner>> it = this.consumerTable.entrySet().iterator();
+            while (it.hasNext() && !result) {
+                Entry<String, MQConsumerInner> entry = it.next();
+                MQConsumerInner impl = entry.getValue();
+                if (impl != null) {
+                    result = impl.isSubscribeTopicNeedUpdate(topic);
+                }
+            }
+        }
+
+        return result;
+    }
+
+
     /**
      * 调用Name Server接口，根据Topic获取路由信息
      */
@@ -858,8 +888,15 @@ public class MQClientFactory {
                             this.mQClientAPIImpl.getTopicRouteInfoFromNameServer(topic, 1000 * 3);
                     if (topicRouteData != null) {
                         TopicRouteData old = this.topicRouteTable.get(topic);
-                        if (null == old || !old.equals(topicRouteData)) {
-                            log.info("the topic[" + topic + "] route info changed, " + topicRouteData);
+                        boolean changed = null == old || !old.equals(topicRouteData);
+                        if (!changed) {
+                            changed = this.isNeedUpdateTopicRouteInfo(topic);
+                        }
+                        else {
+                            log.info("the topic[{}] route info changed, {}", topic, topicRouteData);
+                        }
+
+                        if (changed) {
                             // 更新Broker地址信息
                             for (BrokerData bd : topicRouteData.getBrokerDatas()) {
                                 this.brokerAddrTable.put(bd.getBrokerName(), bd.getBrokerAddrs());

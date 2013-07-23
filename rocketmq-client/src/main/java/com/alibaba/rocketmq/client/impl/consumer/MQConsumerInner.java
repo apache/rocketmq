@@ -50,4 +50,7 @@ public interface MQConsumerInner {
 
 
     public void updateTopicSubscribeInfo(final String topic, final Set<MessageQueue> info);
+
+
+    public boolean isSubscribeTopicNeedUpdate(final String topic);
 }
