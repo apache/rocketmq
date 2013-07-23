@@ -1,1 +1,1 @@
-mvn -U -Dtest -DfailIfNoTests=false clean package assembly:assembly
+mvn -Dmaven.test.skip=true deploy
