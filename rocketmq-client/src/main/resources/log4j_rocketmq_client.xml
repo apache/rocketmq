@@ -17,7 +17,7 @@
 	
 	<appender name="ROCKETMQ-CLIENT-APPENDER"
 		class="org.apache.log4j.DailyRollingFileAppender">
-		<param name="file" value="${user.home}/rocketmqlogs/rocketmq_client.log" />
+		<param name="file" value="${user.home}/logs/rocketmq_client.log" />
 		<param name="append" value="true" />
 		<param name="encoding" value="GBK" />
 		<param name="DatePattern" value="'.'yyyy-MM-dd-HH" />
@@ -33,12 +33,20 @@
 		<level value="INFO" />
 		<appender-ref ref="ROCKETMQ-CLIENT-APPENDER" />
 	</logger>
+	<logger name="RocketmqCommon" additivity="true">
+		<level value="INFO" />
+		<appender-ref ref="ROCKETMQ-CLIENT-APPENDER" />
+	</logger>
+	<logger name="RocketmqRemoting" additivity="true">
+		<level value="INFO" />
+		<appender-ref ref="ROCKETMQ-CLIENT-APPENDER" />
+	</logger>
 	<!--
 		Root logger
 	
 	<root>
-		<level value="info" />
-		<appender-ref ref="STDOUT-APPENDER" />
+		<level value="debug" />
+		<appender-ref ref="ROCKETMQ-CLIENT-APPENDER" />
 	</root>
 	-->
 </log4j:configuration>

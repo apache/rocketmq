@@ -21,10 +21,10 @@
 	-->
 	<appender name="RocketmqClientAppender"
 		class="ch.qos.logback.core.rolling.RollingFileAppender">
-		<file>${user.home}/rocketmqlogs/rocketmq_client.log</file>
+		<file>${user.home}/logs/rocketmq_client.log</file>
 		<append>true</append>
 		<rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-			<fileNamePattern>${user.home}/rocketmqlogs/otherdays/rocketmq_client-%d{yyyy-MM-dd}.%i.log
+			<fileNamePattern>${user.home}/logs/otherdays/rocketmq_client-%d{yyyy-MM-dd}.%i.log
 			</fileNamePattern>
 			<timeBasedFileNamingAndTriggeringPolicy
 				class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
