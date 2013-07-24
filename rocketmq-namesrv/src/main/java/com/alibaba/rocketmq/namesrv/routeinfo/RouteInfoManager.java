@@ -62,20 +62,10 @@ public class RouteInfoManager {
     /**
      * 判断Topic配置信息是否发生变更
      */
-    private boolean isBrokerTopicConfigChanged(final String brokerAddr, final DataVersion dataVersion,
-            final Channel channel, final String haServerAddr) {
+    private boolean isBrokerTopicConfigChanged(final String brokerAddr, final DataVersion dataVersion) {
         BrokerLiveInfo prev = this.brokerLiveTable.get(brokerAddr);
-        if (null == prev) {
-            this.brokerLiveTable.put(brokerAddr, new BrokerLiveInfo(System.currentTimeMillis(), dataVersion,
-                channel, haServerAddr));
+        if (null == prev || !prev.getDataVersion().equals(dataVersion)) {
             return true;
-        }
-        else {
-            if (!prev.equals(dataVersion)) {
-                this.brokerLiveTable.put(brokerAddr, new BrokerLiveInfo(System.currentTimeMillis(),
-                    dataVersion, channel, haServerAddr));
-                return true;
-            }
         }
 
         return false;
@@ -137,16 +127,6 @@ public class RouteInfoManager {
         try {
             try {
                 this.lock.writeLock().lockInterruptibly();
-                // 更新最后变更时间
-                BrokerLiveInfo prevBrokerLiveInfo = this.brokerLiveTable.put(brokerAddr, //
-                    new BrokerLiveInfo(//
-                        System.currentTimeMillis(), //
-                        topicConfigWrapper.getDataVersion(),//
-                        channel, //
-                        haServerAddr));
-                if (null == prevBrokerLiveInfo) {
-                    log.info("new broker registerd, {} HAServer: {}", brokerAddr, haServerAddr);
-                }
 
                 // 更新集群信息
                 Set<String> brokerNames = this.clusterAddrTable.get(clusterName);
@@ -172,9 +152,7 @@ public class RouteInfoManager {
                 if (null != topicConfigWrapper //
                         && MixAll.MASTER_ID == brokerId) {
                     if (this.isBrokerTopicConfigChanged(brokerAddr,//
-                        topicConfigWrapper.getDataVersion(),//
-                        channel,//
-                        haServerAddr)) {
+                        topicConfigWrapper.getDataVersion())) {
                         ConcurrentHashMap<String, TopicConfig> tcTable =
                                 topicConfigWrapper.getTopicConfigTable();
                         if (tcTable != null) {
@@ -184,6 +162,17 @@ public class RouteInfoManager {
                             }
                         }
                     }
+                }
+
+                // 更新最后变更时间
+                BrokerLiveInfo prevBrokerLiveInfo = this.brokerLiveTable.put(brokerAddr, //
+                    new BrokerLiveInfo(//
+                        System.currentTimeMillis(), //
+                        topicConfigWrapper.getDataVersion(),//
+                        channel, //
+                        haServerAddr));
+                if (null == prevBrokerLiveInfo) {
+                    log.info("new broker registerd, {} HAServer: {}", brokerAddr, haServerAddr);
                 }
 
                 // 返回值
@@ -254,12 +243,18 @@ public class RouteInfoManager {
                             (removed ? "OK" : "Failed"),//
                             brokerName//
                         );
+
+                        if (nameSet.isEmpty()) {
+                            this.clusterAddrTable.remove(clusterName);
+                            log.info("unregisterBroker, remove cluster from clusterAddrTable {}", //
+                                clusterName//
+                            );
+                        }
                     }
 
                     // 删除相应的topic
                     this.removeTopicByBrokerName(brokerName);
                 }
-
             }
             finally {
                 this.lock.writeLock().unlock();

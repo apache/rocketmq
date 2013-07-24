@@ -150,6 +150,8 @@ public class TopicConfigManager extends ConfigManager {
 
                         this.topicConfigTable.put(topic, topicConfig);
 
+                        this.dataVersion.nextVersion();
+
                         createNew = true;
 
                         this.persist();
@@ -195,6 +197,7 @@ public class TopicConfigManager extends ConfigManager {
                     log.info("create new topic {}", topicConfig);
                     this.topicConfigTable.put(topic, topicConfig);
                     createNew = true;
+                    this.dataVersion.nextVersion();
                     this.persist();
                 }
                 finally {
@@ -222,6 +225,8 @@ public class TopicConfigManager extends ConfigManager {
         else {
             log.info("create new topic, " + topicConfig);
         }
+
+        this.dataVersion.nextVersion();
 
         this.brokerController.registerBrokerAll();
 
