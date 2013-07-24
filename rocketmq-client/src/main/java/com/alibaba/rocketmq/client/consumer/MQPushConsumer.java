@@ -23,6 +23,7 @@ import com.alibaba.rocketmq.client.exception.MQClientException;
  * 消费者，被动方式消费
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
+ * @since 2013-7-24
  */
 public interface MQPushConsumer extends MQConsumer {
     /**

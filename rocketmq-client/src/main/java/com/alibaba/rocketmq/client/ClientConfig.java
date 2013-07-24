@@ -23,6 +23,7 @@ import com.alibaba.rocketmq.remoting.common.RemotingUtil;
  * Producer与Consumer的公共配置
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
+ * @since 2013-7-24
  */
 public class ClientConfig {
     private String namesrvAddr = System.getProperty(MixAll.NAMESRV_ADDR_PROPERTY,
