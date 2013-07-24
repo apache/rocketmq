@@ -24,7 +24,7 @@ import com.alibaba.rocketmq.common.message.MessageQueue;
  * Consumer队列自动分配策略
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
- * 
+ * @since 2013-7-24
  */
 public interface AllocateMessageQueueStrategy {
     /**

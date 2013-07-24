@@ -19,7 +19,7 @@ public class ClusterSubCommand implements SubCommand {
 
     @Override
     public String commandDesc() {
-        return "List all of clusters or someone";
+        return "List all of clusters";
     }
 
 
