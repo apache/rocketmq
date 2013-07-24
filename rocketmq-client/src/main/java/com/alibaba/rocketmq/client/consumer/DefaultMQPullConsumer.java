@@ -33,9 +33,10 @@ import com.alibaba.rocketmq.remoting.exception.RemotingException;
 
 
 /**
- * 消息消费者，主动消费
+ * 消费者，主动拉取方式消费
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
+ * @since 2013-7-24
  */
 public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsumer {
     /**

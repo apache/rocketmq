@@ -26,8 +26,10 @@ import com.alibaba.rocketmq.remoting.exception.RemotingException;
 
 
 /**
- * @author shijia.wxr<vintage.wang@gmail.com>
+ * Consumer½Ó¿Ú
  * 
+ * @author shijia.wxr<vintage.wang@gmail.com>
+ * @since 2013-7-24
  */
 public interface MQConsumer extends MQAdmin {
     /**

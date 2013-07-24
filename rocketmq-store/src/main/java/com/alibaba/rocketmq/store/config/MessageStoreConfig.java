@@ -44,11 +44,11 @@ public class MessageStoreConfig {
     // 异常退出产生的文件
     @ImportantField
     private String storeCheckpoint = System.getProperty("user.home") + File.separator + "store"
-            + File.separator + "storeCheckpoint";
+            + File.separator + "checkpoint";
     // 异常退出产生的文件
     @ImportantField
     private String abortFile = System.getProperty("user.home") + File.separator + "store" + File.separator
-            + "storeAbort";
+            + "abort";
     // CommitLog每个文件大小 1G
     private int mapedFileSizeCommitLog = 1024 * 1024 * 1024;
     // ConsumeQueue每个文件大小 默认存储50W条消息
@@ -151,9 +151,9 @@ public class MessageStoreConfig {
     private int tranRedoLogMapedFileSize = 2000000 * ConsumeQueue.CQStoreUnitSize;
 
     // 事务回查至少间隔时间
-    private long checkTransactionMessageAtleastInterval = 1000 * 40;
+    private long checkTransactionMessageAtleastInterval = 1000 * 60;
     // 事务回查定时间隔时间
-    private long checkTransactionMessageTimerInterval = 1000 * 20;
+    private long checkTransactionMessageTimerInterval = 1000 * 60;
     // 是否开启事务Check过程，双十一时，可以关闭
     private boolean checkTransactionMessageEnable = true;
 
