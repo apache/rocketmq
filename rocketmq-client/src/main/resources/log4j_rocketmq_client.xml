@@ -2,11 +2,8 @@
 <!DOCTYPE log4j:configuration SYSTEM "log4j.dtd">
 
 
-<!--
-	- Log4j配置文件。
--->
 <log4j:configuration xmlns:log4j="http://jakarta.apache.org/log4j/">
-	<!-- [公共Appender] 控制台STDOUT -->
+
 	<appender name="STDOUT-APPENDER" class="org.apache.log4j.ConsoleAppender">
 		<param name="encoding" value="GBK" />
 		<param name="target" value="System.out" />
@@ -14,9 +11,8 @@
 			<param name="ConversionPattern" value="%-5p %c{2} , %m%n" />
 		</layout>
 	</appender>
-	
-	<appender name="ROCKETMQ-CLIENT-APPENDER"
-		class="org.apache.log4j.DailyRollingFileAppender">
+
+	<appender name="RocketmqClientAppender" class="org.apache.log4j.DailyRollingFileAppender">
 		<param name="file" value="${user.home}/logs/rocketmq_client.log" />
 		<param name="append" value="true" />
 		<param name="encoding" value="GBK" />
@@ -29,25 +25,19 @@
 			<param name="LevelMax" value="WARN" />
 		</filter>
 	</appender>
+
 	<logger name="RocketmqClient" additivity="true">
 		<level value="INFO" />
-		<appender-ref ref="ROCKETMQ-CLIENT-APPENDER" />
+		<appender-ref ref="RocketmqClientAppender" />
 	</logger>
 	<logger name="RocketmqCommon" additivity="true">
 		<level value="INFO" />
-		<appender-ref ref="ROCKETMQ-CLIENT-APPENDER" />
+		<appender-ref ref="RocketmqClientAppender" />
 	</logger>
 	<logger name="RocketmqRemoting" additivity="true">
 		<level value="INFO" />
-		<appender-ref ref="ROCKETMQ-CLIENT-APPENDER" />
+		<appender-ref ref="RocketmqClientAppender" />
 	</logger>
-	<!--
-		Root logger
-	
-	<root>
-		<level value="debug" />
-		<appender-ref ref="ROCKETMQ-CLIENT-APPENDER" />
-	</root>
-	-->
+
 </log4j:configuration>
 
