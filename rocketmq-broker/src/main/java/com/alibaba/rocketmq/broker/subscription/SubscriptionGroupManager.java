@@ -46,6 +46,8 @@ public class SubscriptionGroupManager extends ConfigManager {
             log.info("create new subscription group, " + config);
         }
 
+        this.dataVersion.nextVersion();
+
         this.persist();
     }
 
