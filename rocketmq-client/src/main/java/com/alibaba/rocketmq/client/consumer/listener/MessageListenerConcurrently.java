@@ -28,7 +28,8 @@ import com.alibaba.rocketmq.common.message.MessageExt;
  */
 public interface MessageListenerConcurrently extends MessageListener {
     /**
-     * 方法抛出异常等同于返回 ConsumeConcurrentlyStatus.RECONSUME_LATER
+     * 方法抛出异常等同于返回 ConsumeConcurrentlyStatus.RECONSUME_LATER<br>
+     * P.S: 建议应用不要抛出异常
      * 
      * @param msgs
      * @param context

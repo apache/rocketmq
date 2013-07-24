@@ -24,6 +24,7 @@ import com.alibaba.rocketmq.common.message.MessageExt;
  * 拉消息返回结果
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
+ * @since 2013-7-24
  */
 public class PullResult {
     private final PullStatus pullStatus;

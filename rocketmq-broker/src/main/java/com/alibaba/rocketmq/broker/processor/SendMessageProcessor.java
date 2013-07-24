@@ -101,8 +101,10 @@ public class SendMessageProcessor implements NettyRequestProcessor {
 
         // ºÏ≤Ètopic «∑Ò¥Ê‘⁄
         TopicConfig topicConfig =
-                this.brokerController.getTopicConfigManager().createTopicInSendMessageBackMethod(newTopic,
-                    subscriptionGroupConfig.getRetryQueueNums());
+                this.brokerController.getTopicConfigManager().createTopicInSendMessageBackMethod(//
+                    newTopic,//
+                    subscriptionGroupConfig.getRetryQueueNums(), //
+                    PermName.PERM_WRITE | PermName.PERM_READ);
         if (null == topicConfig) {
             response.setCode(ResponseCode.SYSTEM_ERROR_VALUE);
             response.setRemark("topic[" + newTopic + "] not exist");
@@ -144,7 +146,9 @@ public class SendMessageProcessor implements NettyRequestProcessor {
 
             topicConfig =
                     this.brokerController.getTopicConfigManager().createTopicInSendMessageBackMethod(
-                        newTopic, DLQ_NUMS_PER_GROUP);
+                        newTopic, //
+                        DLQ_NUMS_PER_GROUP,//
+                        PermName.PERM_WRITE);
             if (null == topicConfig) {
                 response.setCode(ResponseCode.SYSTEM_ERROR_VALUE);
                 response.setRemark("topic[" + newTopic + "] not exist");
@@ -250,7 +254,7 @@ public class SendMessageProcessor implements NettyRequestProcessor {
                 if (requestHeader.getTopic().startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
                     topicConfig =
                             this.brokerController.getTopicConfigManager().createTopicInSendMessageBackMethod(
-                                requestHeader.getTopic(), 1);
+                                requestHeader.getTopic(), 1, PermName.PERM_WRITE | PermName.PERM_READ);
                 }
             }
 

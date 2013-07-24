@@ -1,5 +1,17 @@
 /**
- * $Id: Producer.java 1831 2013-05-16 01:39:51Z shijia.wxr $
+ * Copyright (C) 2010-2013 Alibaba Group Holding Limited
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package com.alibaba.rocketmq.example.benchmark;
 
@@ -21,17 +33,18 @@ import com.alibaba.rocketmq.common.message.MessageExt;
 
 
 /**
- * 性能测试，多线程同步发送消息
+ * 性能测试，多线程同步发送事务消息
  * 
- * @author shijia.wxr<vintage.wang@gmail.com>
- * 
+ * @author 菱叶<jin.qian@alipay.com>
+ * @since 2013-7-24
  */
 public class TransactionProducer {
     private static int threadCount;
     private static int messageSize;
     private static boolean ischeck;
     private static boolean ischeckffalse;
-    
+
+
     private static Message buildMessage(final int messageSize) {
         Message msg = new Message();
         msg.setTopic("BenchmarkTest");
@@ -50,8 +63,8 @@ public class TransactionProducer {
     public static void main(String[] args) throws MQClientException {
         threadCount = args.length >= 1 ? Integer.parseInt(args[0]) : 32;
         messageSize = args.length >= 2 ? Integer.parseInt(args[1]) : 1024 * 2;
-        ischeck = args.length >= 3 ?Boolean.parseBoolean(args[2]):false;
-        ischeckffalse = args.length >= 4 ?Boolean.parseBoolean(args[3]):false;
+        ischeck = args.length >= 3 ? Boolean.parseBoolean(args[2]) : false;
+        ischeckffalse = args.length >= 4 ? Boolean.parseBoolean(args[3]) : false;
 
         final Message msg = buildMessage(messageSize);
 
@@ -90,8 +103,7 @@ public class TransactionProducer {
                         , averageRT//
                         , end[2]//
                         , end[4]//
-                         ,end[6]
-                        );
+                        , end[6]);
                 }
             }
 
@@ -106,15 +118,15 @@ public class TransactionProducer {
                 }
             }
         }, 10000, 10000);
-        
-        final TransactionCheckListener transactionCheckListener = new TransactionCheckListenerBImpl(ischeckffalse,statsBenchmark);
+
+        final TransactionCheckListener transactionCheckListener =
+                new TransactionCheckListenerBImpl(ischeckffalse, statsBenchmark);
         final TransactionMQProducer producer = new TransactionMQProducer("benchmark_transaction_producer");
         producer.setTransactionCheckListener(transactionCheckListener);
         producer.setDefaultTopicQueueNums(1000);
         producer.start();
-        
+
         final TransactionExecuterBImpl tranExecuter = new TransactionExecuterBImpl(ischeck);
-        
 
         for (int i = 0; i < threadCount; i++) {
             sendThreadPool.execute(new Runnable() {
@@ -125,11 +137,11 @@ public class TransactionProducer {
                             // Thread.sleep(1000);
                             final long beginTimestamp = System.currentTimeMillis();
                             SendResult sendResult = producer.sendMessageInTransaction(msg, tranExecuter);
-                            if(sendResult!=null){
+                            if (sendResult != null) {
                                 statsBenchmark.getSendRequestSuccessCount().incrementAndGet();
                                 statsBenchmark.getReceiveResponseSuccessCount().incrementAndGet();
                             }
-                            
+
                             final long currentRT = System.currentTimeMillis() - beginTimestamp;
                             statsBenchmark.getSendMessageSuccessTimeTotal().addAndGet(currentRT);
                             long prevMaxRT = statsBenchmark.getSendMessageMaxRT().get();
@@ -142,7 +154,8 @@ public class TransactionProducer {
 
                                 prevMaxRT = statsBenchmark.getSendMessageMaxRT().get();
                             }
-                        } catch (MQClientException e) {
+                        }
+                        catch (MQClientException e) {
                             statsBenchmark.getSendRequestFailedCount().incrementAndGet();
                         }
                     }
@@ -151,28 +164,35 @@ public class TransactionProducer {
         }
     }
 }
+
+
 class TransactionExecuterBImpl implements LocalTransactionExecuter {
-    
+
     private boolean ischeck;
+
 
     public TransactionExecuterBImpl(boolean ischeck) {
         this.ischeck = ischeck;
     }
 
+
     @Override
     public LocalTransactionState executeLocalTransactionBranch(Message msg) {
-        if(ischeck){
+        if (ischeck) {
             return LocalTransactionState.UNKNOW;
         }
         return LocalTransactionState.COMMIT_MESSAGE;
     }
 }
 
+
 class TransactionCheckListenerBImpl implements TransactionCheckListener {
     private boolean ischeckffalse;
     private StatsBenchmarkTProducer statsBenchmarkTProducer;
 
-    public TransactionCheckListenerBImpl(boolean ischeckffalse,StatsBenchmarkTProducer statsBenchmarkTProducer) {
+
+    public TransactionCheckListenerBImpl(boolean ischeckffalse,
+            StatsBenchmarkTProducer statsBenchmarkTProducer) {
         this.ischeckffalse = ischeckffalse;
         this.statsBenchmarkTProducer = statsBenchmarkTProducer;
     }
@@ -180,16 +200,18 @@ class TransactionCheckListenerBImpl implements TransactionCheckListener {
 
     @Override
     public LocalTransactionState checkLocalTransactionState(MessageExt msg) {
-//        System.out.println("server checking TrMsg " + msg.toString());
+        // System.out.println("server checking TrMsg " + msg.toString());
         statsBenchmarkTProducer.getCheckRequestSuccessCount().incrementAndGet();
         if (ischeckffalse) {
-            
+
             return LocalTransactionState.ROLLBACK_MESSAGE;
         }
 
         return LocalTransactionState.COMMIT_MESSAGE;
     }
 }
+
+
 class StatsBenchmarkTProducer {
     // 1
     private final AtomicLong sendRequestSuccessCount = new AtomicLong(0L);
@@ -203,7 +225,7 @@ class StatsBenchmarkTProducer {
     private final AtomicLong sendMessageSuccessTimeTotal = new AtomicLong(0L);
     // 6
     private final AtomicLong sendMessageMaxRT = new AtomicLong(0L);
-    //7
+    // 7
     private final AtomicLong checkRequestSuccessCount = new AtomicLong(0L);
 
 
@@ -215,8 +237,7 @@ class StatsBenchmarkTProducer {
                         this.receiveResponseSuccessCount.get(),//
                         this.receiveResponseFailedCount.get(),//
                         this.sendMessageSuccessTimeTotal.get(), //
-                        this.checkRequestSuccessCount.get(), 
-                };
+                        this.checkRequestSuccessCount.get(), };
 
         return snap;
     }

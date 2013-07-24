@@ -28,7 +28,8 @@ import com.alibaba.rocketmq.common.message.MessageExt;
  */
 public interface MessageListenerOrderly extends MessageListener {
     /**
-     * 方法抛出异常等同于返回 ConsumeOrderlyStatus.SUSPEND_CURRENT_QUEUE_A_MOMENT
+     * 方法抛出异常等同于返回 ConsumeOrderlyStatus.SUSPEND_CURRENT_QUEUE_A_MOMENT<br>
+     * P.S: 建议应用不要抛出异常
      * 
      * @param msgs
      *            msgs.size() >= 1

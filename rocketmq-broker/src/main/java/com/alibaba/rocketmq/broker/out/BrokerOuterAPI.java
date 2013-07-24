@@ -2,7 +2,6 @@ package com.alibaba.rocketmq.broker.out;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicLong;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -124,8 +123,6 @@ public class BrokerOuterAPI {
         throw new MQBrokerException(response.getCode(), response.getRemark());
     }
 
-    private AtomicLong printRegisterLogTimes = new AtomicLong(0);
-
 
     public RegisterBrokerResult registerBrokerAll(//
             final String clusterName,// 1
@@ -148,9 +145,7 @@ public class BrokerOuterAPI {
                         registerBrokerResult = result;
                     }
 
-                    if (printRegisterLogTimes.getAndIncrement() < 30) {
-                        log.info("register broker to name server {} OK", namesrvAddr);
-                    }
+                    log.info("register broker to name server {} OK", namesrvAddr);
                 }
                 catch (Exception e) {
                     log.warn("registerBroker Exception, " + namesrvAddr, e);
