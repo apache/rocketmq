@@ -176,7 +176,9 @@ public class TopicConfigManager extends ConfigManager {
 
     public TopicConfig createTopicInSendMessageBackMethod(//
             final String topic, //
-            final int clientDefaultTopicQueueNums) {
+            final int clientDefaultTopicQueueNums,//
+            final int perm//
+    ) {
         TopicConfig topicConfig = this.topicConfigTable.get(topic);
         if (topicConfig != null)
             return topicConfig;
@@ -193,6 +195,7 @@ public class TopicConfigManager extends ConfigManager {
                     topicConfig = new TopicConfig(topic);
                     topicConfig.setReadQueueNums(clientDefaultTopicQueueNums);
                     topicConfig.setWriteQueueNums(clientDefaultTopicQueueNums);
+                    topicConfig.setPerm(perm);
 
                     log.info("create new topic {}", topicConfig);
                     this.topicConfigTable.put(topic, topicConfig);
