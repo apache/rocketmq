@@ -44,6 +44,7 @@ import com.alibaba.rocketmq.common.message.MessageQueue;
  * 并发消费消息服务
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
+ * @since 2013-7-24
  */
 public class ConsumeMessageConcurrentlyService implements ConsumeMessageService {
     private static final Logger log = ClientLogger.getLog();

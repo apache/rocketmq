@@ -22,6 +22,7 @@ import com.alibaba.rocketmq.common.message.MessageQueue;
  * 消费消息上下文，同一队列的消息会并行消费，消息无顺序性
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
+ * @since 2013-7-24
  */
 public class ConsumeConcurrentlyContext {
     /**

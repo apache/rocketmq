@@ -44,7 +44,7 @@ import com.alibaba.rocketmq.remoting.exception.RemotingException;
  * 对Pull接口进行进一步的封装
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
- * 
+ * @since 2013-7-24
  */
 public class PullAPIWrapper {
     private ConcurrentHashMap<MessageQueue, AtomicLong/* brokerId */> pullFromWhichNodeTable =

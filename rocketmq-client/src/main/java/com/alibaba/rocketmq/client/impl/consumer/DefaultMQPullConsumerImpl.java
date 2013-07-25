@@ -52,7 +52,10 @@ import com.alibaba.rocketmq.remoting.exception.RemotingException;
 
 
 /**
+ * Pull方式的Consumer实现
+ * 
  * @author shijia.wxr<vintage.wang@gmail.com>
+ * @since 2013-7-24
  */
 public class DefaultMQPullConsumerImpl implements MQConsumerInner {
     private final Logger log = ClientLogger.getLog();

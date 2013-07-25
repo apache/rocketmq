@@ -22,7 +22,10 @@ import com.alibaba.rocketmq.common.message.MessageQueue;
 
 
 /**
+ * 消费消息服务，公共接口
+ * 
  * @author shijia.wxr<vintage.wang@gmail.com>
+ * @since 2013-7-24
  */
 public interface ConsumeMessageService {
     public void start();

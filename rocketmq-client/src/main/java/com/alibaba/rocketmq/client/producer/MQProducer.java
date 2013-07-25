@@ -29,6 +29,7 @@ import com.alibaba.rocketmq.remoting.exception.RemotingException;
  * 消息生产者
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
+ * @since 2013-7-25
  */
 public interface MQProducer extends MQAdmin {
     /**

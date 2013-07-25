@@ -26,7 +26,7 @@ import com.alibaba.rocketmq.common.message.MessageQueue;
  * 平均分配队列算法
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
- * 
+ * @since 2013-7-24
  */
 public class AllocateMessageQueueAveragely implements AllocateMessageQueueStrategy {
     @Override

@@ -40,6 +40,7 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
  * Client接收Broker的回调操作，例如事务回调，或者其他管理类命令回调
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
+ * @since 2013-7-24
  */
 public class ClientRemotingProcessor implements NettyRequestProcessor {
     private final Logger log = ClientLogger.getLog();

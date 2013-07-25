@@ -26,6 +26,7 @@ import com.alibaba.rocketmq.common.protocol.header.CheckTransactionStateRequestH
  * Producer内部接口
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
+ * @since 2013-7-24
  */
 public interface MQProducerInner {
     public Set<String> getPublishTopicList();

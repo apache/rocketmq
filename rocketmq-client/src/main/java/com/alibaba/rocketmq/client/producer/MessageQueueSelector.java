@@ -25,6 +25,7 @@ import com.alibaba.rocketmq.common.message.MessageQueue;
  * ¶ÓÁÐÑ¡ÔñÆ÷
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
+ * @since 2013-7-25
  */
 public interface MessageQueueSelector {
     public MessageQueue select(final List<MessageQueue> mqs, final Message msg, final Object arg);

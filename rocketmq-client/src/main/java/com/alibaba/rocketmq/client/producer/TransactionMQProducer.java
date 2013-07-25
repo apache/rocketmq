@@ -23,7 +23,7 @@ import com.alibaba.rocketmq.common.message.Message;
  * 支持分布式事务Producer
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
- * 
+ * @since 2013-7-25
  */
 public class TransactionMQProducer extends DefaultMQProducer {
     private TransactionCheckListener transactionCheckListener;

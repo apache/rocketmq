@@ -23,8 +23,10 @@ import com.alibaba.rocketmq.common.message.MessageQueue;
 
 
 /**
- * @author shijia.wxr<vintage.wang@gmail.com>
+ * 发布Topic用到的路由信息
  * 
+ * @author shijia.wxr<vintage.wang@gmail.com>
+ * @since 2013-7-24
  */
 public class TopicPublishInfo {
     private boolean orderTopic = false;

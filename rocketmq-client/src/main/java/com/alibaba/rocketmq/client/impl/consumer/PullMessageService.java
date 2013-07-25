@@ -32,6 +32,7 @@ import com.alibaba.rocketmq.common.ServiceThread;
  * 长轮询拉消息服务，单线程异步拉取
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
+ * @since 2013-7-24
  */
 public class PullMessageService extends ServiceThread {
     private final Logger log = ClientLogger.getLog();

@@ -24,7 +24,7 @@ import com.alibaba.rocketmq.common.message.MessageExt;
  * 同一队列的消息并行消费
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
- * 
+ * @since 2013-7-24
  */
 public interface MessageListenerConcurrently extends MessageListener {
     /**
@@ -32,6 +32,7 @@ public interface MessageListenerConcurrently extends MessageListener {
      * P.S: 建议应用不要抛出异常
      * 
      * @param msgs
+     *            msgs.size() >= 1
      * @param context
      * @return
      */
