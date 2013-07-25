@@ -24,7 +24,7 @@ import com.alibaba.rocketmq.common.message.MessageExt;
  * 同一队列的消息同一时刻只能一个线程消费，可保证消息在同一队列严格有序消费
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
- * 
+ * @since 2013-7-24
  */
 public interface MessageListenerOrderly extends MessageListener {
     /**

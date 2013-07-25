@@ -22,6 +22,7 @@ import com.alibaba.rocketmq.common.message.MessageQueue;
  * 发送消息结果
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
+ * @since 2013-7-25
  */
 public class SendResult {
     private final SendStatus sendStatus;

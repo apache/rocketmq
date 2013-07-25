@@ -27,7 +27,7 @@ import com.alibaba.rocketmq.common.message.MessageQueue;
  * 根据机房来选择发往哪个队列，支付宝逻辑机房使用
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
- * 
+ * @since 2013-7-25
  */
 public class SelectMessageQueueByMachineRoom implements MessageQueueSelector {
     private Set<String> consumeridcs;

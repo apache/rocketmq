@@ -95,7 +95,7 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingSerializable;
  * 封装所有与服务器通信部分API
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
- * 
+ * @since 2013-7-24
  */
 public class MQClientAPIImpl {
     private final static Logger log = ClientLogger.getLog();

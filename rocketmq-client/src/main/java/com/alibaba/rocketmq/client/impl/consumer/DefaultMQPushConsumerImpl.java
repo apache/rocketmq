@@ -55,6 +55,8 @@ import com.alibaba.rocketmq.remoting.exception.RemotingException;
 
 
 /**
+ * Push方式的Consumer实现
+ * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-6-15
  */

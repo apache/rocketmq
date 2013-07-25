@@ -19,9 +19,12 @@ package com.alibaba.rocketmq.client.producer;
  * Producer本地事务执行状态
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
+ * @since 2013-7-25
  */
 public enum LocalTransactionState {
+    // 提交事务
     COMMIT_MESSAGE,
+    // 回滚事务
     ROLLBACK_MESSAGE,
     UNKNOW,
 }

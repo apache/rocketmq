@@ -33,6 +33,7 @@ import com.alibaba.rocketmq.common.message.MessageQueue;
  * 消费进度存储到Consumer本地
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
+ * @since 2013-7-24
  */
 public class LocalFileOffsetStore implements OffsetStore {
     private final static Logger log = ClientLogger.getLog();

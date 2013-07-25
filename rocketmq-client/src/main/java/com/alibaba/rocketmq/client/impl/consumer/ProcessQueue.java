@@ -33,6 +33,7 @@ import com.alibaba.rocketmq.common.message.MessageExt;
  * 正在被消费的队列，含消息
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
+ * @since 2013-7-24
  */
 public class ProcessQueue {
     // 客户端本地Lock存活最大时间，超过则自动过期，单位ms

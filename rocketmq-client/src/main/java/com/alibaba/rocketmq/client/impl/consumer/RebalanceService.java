@@ -23,7 +23,10 @@ import com.alibaba.rocketmq.common.ServiceThread;
 
 
 /**
+ * Rebalance·þÎñ
+ * 
  * @author shijia.wxr<vintage.wang@gmail.com>
+ * @since 2013-7-24
  */
 public class RebalanceService extends ServiceThread {
     private final Logger log = ClientLogger.getLog();

@@ -16,9 +16,10 @@
 package com.alibaba.rocketmq.client.consumer.listener;
 
 /**
+ * 顺序消费，消费结果
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
- * 
+ * @since 2013-7-24
  */
 public enum ConsumeOrderlyStatus {
     // 消息处理成功

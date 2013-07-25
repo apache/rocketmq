@@ -37,6 +37,7 @@ import com.alibaba.rocketmq.remoting.exception.RemotingException;
  * 消费进度存储到远端Broker，比较可靠
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
+ * @since 2013-7-24
  */
 public class RemoteBrokerOffsetStore implements OffsetStore {
     private final static Logger log = ClientLogger.getLog();

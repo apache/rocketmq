@@ -25,7 +25,10 @@ import com.alibaba.rocketmq.common.protocol.heartbeat.SubscriptionData;
 
 
 /**
+ * Consumer内部接口，供MQClientFactory使用
+ * 
  * @author shijia.wxr<vintage.wang@gmail.com>
+ * @since 2013-7-24
  */
 public interface MQConsumerInner {
     public String groupName();

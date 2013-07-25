@@ -26,7 +26,7 @@ import com.alibaba.rocketmq.client.impl.factory.MQClientFactory;
  * Clientµ¥Àı¹ÜÀí
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
- * 
+ * @since 2013-7-24
  */
 public class MQClientManager {
     private static MQClientManager instance = new MQClientManager();

@@ -19,7 +19,10 @@ import com.alibaba.rocketmq.common.message.MessageQueue;
 
 
 /**
+ * 拉消息请求
+ * 
  * @author shijia.wxr<vintage.wang@gmail.com>
+ * @since 2013-7-24
  */
 public class PullRequest {
     private String consumerGroup;

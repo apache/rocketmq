@@ -21,7 +21,10 @@ import com.alibaba.rocketmq.common.message.MessageQueue;
 
 
 /**
+ * Consumer Offset´æ´¢½Ó¿Ú
+ * 
  * @author shijia.wxr<vintage.wang@gmail.com>
+ * @since 2013-7-25
  */
 public interface OffsetStore {
     /**

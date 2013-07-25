@@ -16,10 +16,14 @@
 package com.alibaba.rocketmq.client.consumer.listener;
 
 /**
- * @author shijia.wxr<vintage.wang@gmail.com>
+ * 并行消费，消费结果
  * 
+ * @author shijia.wxr<vintage.wang@gmail.com>
+ * @since 2013-7-24
  */
 public enum ConsumeConcurrentlyStatus {
+    // 表示消费成功
     CONSUME_SUCCESS,
+    // 表示消费失败，但是稍后还会重新消费这批消息
     RECONSUME_LATER,
 }
