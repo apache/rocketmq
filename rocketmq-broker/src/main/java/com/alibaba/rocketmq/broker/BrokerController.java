@@ -177,6 +177,8 @@ public class BrokerController {
 
         // 加载Consumer Offset
         result = result && this.consumerOffsetManager.load();
+        // 加载Consumer subscription
+        result = result && this.subscriptionGroupManager.load();
 
         // 初始化存储层
         if (result) {
