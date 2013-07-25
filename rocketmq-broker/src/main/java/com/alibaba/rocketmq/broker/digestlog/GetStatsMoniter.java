@@ -41,6 +41,7 @@ public class GetStatsMoniter {
             for (Integer queueId : offsetTable.get(key).keySet()) {
                 long nowvalue = offsetTable.get(key).get(queueId);
                 long lastvalue = getLastValue(key, queueId, nowvalue);
+                offsetTableLast.get(key).put(queueId, nowvalue);
                 if ((nowvalue - lastvalue) > 0) {
                     StringBuffer sb = new StringBuffer();
                     sb.append("ClientGetConut").append(",");
@@ -52,6 +53,7 @@ public class GetStatsMoniter {
                     sb.append("Total[").append(nowvalue - lastvalue).append("]");
                     log.info(sb.toString());
                 }
+                
             }
 
         }
