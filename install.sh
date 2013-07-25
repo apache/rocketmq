@@ -1,5 +1,7 @@
 git pull
 
+git checkout develop
+
 rm -rf target
 rm -f devenv
 
