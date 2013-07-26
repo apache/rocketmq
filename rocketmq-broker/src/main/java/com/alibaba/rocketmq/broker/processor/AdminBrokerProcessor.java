@@ -39,6 +39,7 @@ import com.alibaba.rocketmq.common.protocol.header.SearchOffsetResponseHeader;
 import com.alibaba.rocketmq.common.protocol.header.UpdateConsumerOffsetRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.UpdateConsumerOffsetResponseHeader;
 import com.alibaba.rocketmq.common.subscription.SubscriptionGroupConfig;
+import com.alibaba.rocketmq.remoting.common.RemotingHelper;
 import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
 import com.alibaba.rocketmq.remoting.netty.NettyRequestProcessor;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
@@ -123,6 +124,9 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
     private RemotingCommand updateAndCreateSubscriptionGroup(ChannelHandlerContext ctx,
             RemotingCommand request) throws RemotingCommandException {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
+
+        log.info("updateAndCreateSubscriptionGroup called by {}",
+            RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
 
         SubscriptionGroupConfig config =
                 RemotingSerializable.decode(request.getBody(), SubscriptionGroupConfig.class);
@@ -210,6 +214,8 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         final CreateTopicRequestHeader requestHeader =
                 (CreateTopicRequestHeader) request.decodeCommandCustomHeader(CreateTopicRequestHeader.class);
 
+        log.info("updateAndCreateTopic called by {}", RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
+
         TopicConfig topicConfig = new TopicConfig(requestHeader.getTopic());
         topicConfig.setReadQueueNums(requestHeader.getReadQueueNums());
         topicConfig.setWriteQueueNums(requestHeader.getWriteQueueNums());
@@ -229,6 +235,8 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
         DeleteTopicRequestHeader requestHeader =
                 (DeleteTopicRequestHeader) request.decodeCommandCustomHeader(DeleteTopicRequestHeader.class);
+
+        log.info("deleteTopic called by {}", RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
 
         this.brokerController.getTopicConfigManager().deleteTopicConfig(requestHeader.getTopic());
 
@@ -273,6 +281,8 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
 
     private RemotingCommand updateBrokerConfig(ChannelHandlerContext ctx, RemotingCommand request) {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
+
+        log.info("updateBrokerConfig called by {}", RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
 
         byte[] body = request.getBody();
         if (body != null) {
