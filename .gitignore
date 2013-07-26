@@ -1,2 +1,7 @@
 target/mvn-eclipse-cache.properties
 target/
+
+# eclipse
+.classpath
+.project
+.settings
