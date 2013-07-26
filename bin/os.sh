@@ -1,47 +1,39 @@
 #!/bin/sh
 
-sudo sysctl vm.overcommit_memory=1
-sudo sysctl vm.min_free_kbytes=5000000
-sudo sysctl vm.drop_caches=1
-sudo sysctl vm.zone_reclaim_mode=0
-sudo sysctl vm.max_map_count=655360
-sudo sysctl vm.dirty_background_ratio=50
-sudo sysctl vm.dirty_ratio=50
-sudo sysctl vm.page-cluster=3
-sudo sysctl vm.dirty_writeback_centisecs=360000
-sudo sysctl vm.swappiness=10
+#
+# 此脚本只允许运行一次
+#
 
-NOFILE=`ulimit -n`
-echo "nofile=${NOFILE}"
+echo 'vm.overcommit_memory=1' >> /etc/sysctl.conf
+echo 'vm.min_free_kbytes=5000000' >> /etc/sysctl.conf
+echo 'vm.drop_caches=1' >> /etc/sysctl.conf
+echo 'vm.zone_reclaim_mode=0' >> /etc/sysctl.conf
+echo 'vm.max_map_count=655360' >> /etc/sysctl.conf
+echo 'vm.dirty_background_ratio=50' >> /etc/sysctl.conf
+echo 'vm.dirty_ratio=50' >> /etc/sysctl.conf
+echo 'vm.page-cluster=3' >> /etc/sysctl.conf
+echo 'vm.dirty_writeback_centisecs=360000' >> /etc/sysctl.conf
+echo 'vm.swappiness=10' >> /etc/sysctl.conf
+sysctl -p
 
-if [ -d /sys/block/sda ]; then
-	SCHEDULER=`cat /sys/block/sda/queue/scheduler`
-	READ_AHEAD_KB=`cat /sys/block/sda/queue/read_ahead_kb`
-	echo "/sys/block/sda/queue/scheduler=${SCHEDULER}"
-	echo "/sys/block/sda/queue/read_ahead_kb=${READ_AHEAD_KB}"
-fi
+ulimit -n 655350
+echo 'ulimit -n 655350' >> /etc/profile
 
-if [ -d /sys/block/sdb ]; then
-	SCHEDULER=`cat /sys/block/sdb/queue/scheduler`
-	READ_AHEAD_KB=`cat /sys/block/sdb/queue/read_ahead_kb`
-	echo "/sys/block/sdb/queue/scheduler=${SCHEDULER}"
-	echo "/sys/block/sdb/queue/read_ahead_kb=${READ_AHEAD_KB}"
-fi
+DISK=`df -k | sort -n -r -k 2 | awk -F/ 'NR==1 {gsub(/[0-9].*/,"",$3); print $3}'`
+[ "$DISK" = 'cciss' ] && DISK='cciss!c0d0'
+echo 'deadline' > /sys/block/$DISK/queue/scheduler
 
-if [ -d /sys/block/sdc ]; then
-	SCHEDULER=`cat /sys/block/sdc/queue/scheduler`
-	READ_AHEAD_KB=`cat /sys/block/sdc/queue/read_ahead_kb`
-	echo "/sys/block/sdc/queue/scheduler=${SCHEDULER}"
-	echo "/sys/block/sdc/queue/read_ahead_kb=${READ_AHEAD_KB}"
-fi
 
-if [ -d /sys/block/sdd ]; then
-	SCHEDULER=`cat /sys/block/sdd/queue/scheduler`
-	READ_AHEAD_KB=`cat /sys/block/sdd/queue/read_ahead_kb`
-	echo "/sys/block/sdd/queue/scheduler=${SCHEDULER}"
-	echo "/sys/block/sdd/queue/read_ahead_kb=${READ_AHEAD_KB}"
-fi
-
-echo
-echo "TODO: Change 'nofile' value in /etc/security/limits.conf"
-echo "TODO: Change io scheduler value to deadline"
+echo "---------------------------------------------------------------"
+sysctl vm.overcommit_memory
+sysctl vm.min_free_kbytes
+sysctl vm.drop_caches
+sysctl vm.zone_reclaim_mode
+sysctl vm.max_map_count
+sysctl vm.dirty_background_ratio
+sysctl vm.dirty_ratio
+sysctl vm.page-cluster
+sysctl vm.dirty_writeback_centisecs
+sysctl vm.swappiness
+ulimit -n
+cat /sys/block/$DISK/queue/scheduler

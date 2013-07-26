@@ -1,1 +1,34 @@
-在生产环境部署前，必须要执行os.sh，对操作系统进行调优
+### 鎿嶄綔绯荤粺璋冧紭
+鍦ㄧ敓浜х幆澧冮儴缃睟roker鍓嶏紝蹇呴』瑕佹墽琛宱s.sh锛屽鎿嶄綔绯荤粺杩涜璋冧紭
+
+**P.S: os.sh鍙兘鎵ц涓�娆★紝闇�瑕乻udo root鏉冮檺**
+
+### 鍚姩broker
+* Unix骞冲彴
+
+	`nohup sh mqbroker &`
+
+* Windows骞冲彴锛堜粎鏀寔64浣嶏級
+
+	`mqbroker.exe`
+
+### 鍏抽棴broker
+	sh mqshutdown broker
+
+### 鍚姩Name Server
+* Unix骞冲彴
+
+	`nohup sh mqnamesrv &`
+
+* Windows骞冲彴锛堜粎鏀寔64浣嶏級
+
+	`mqnamesrv.exe`
+
+### 鍏抽棴Name Server
+	sh mqshutdown namesrv
+
+### 鏇存柊鎴栧垱寤篢opic
+	sh mqadmin updateTopic -b 127.0.0.1:10911 -t TopicA
+
+### 鏇存柊鎴栧垱寤鸿闃呯粍
+	sh mqadmin updateSubGroup -b 127.0.0.1:10911 -g SubGroupA
