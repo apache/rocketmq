@@ -89,6 +89,9 @@ public class UpdateSubGroupSubCommand implements SubCommand {
     @Override
     public void execute(CommandLine commandLine) {
         DefaultMQAdminExt defaultMQAdminExt = new DefaultMQAdminExt();
+
+        defaultMQAdminExt.setInstanceName(Long.toString(System.currentTimeMillis()));
+
         try {
             defaultMQAdminExt.start();
 
