@@ -143,7 +143,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             if (!registerOK) {
                 this.serviceState = ServiceState.CREATE_JUST;
                 throw new MQClientException("The producer group[" + this.defaultMQProducer.getProducerGroup()
-                        + "] has created already, specifed another name please."//
+                        + "] has been created before, specify another name please."
                         + FAQUrl.suggestTodo(FAQUrl.GROUP_NAME_DUPLICATE_URL), null);
             }
 
