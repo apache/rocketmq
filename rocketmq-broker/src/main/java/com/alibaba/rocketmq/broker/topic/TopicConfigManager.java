@@ -61,6 +61,12 @@ public class TopicConfigManager extends ConfigManager {
         topicConfig.setWriteQueueNums(1);
         this.topicConfigTable.put(topicConfig.getTopicName(), topicConfig);
 
+        // MixAll.BENCHMARK_TOPIC
+        topicConfig = new TopicConfig(MixAll.BENCHMARK_TOPIC);
+        topicConfig.setReadQueueNums(1024);
+        topicConfig.setWriteQueueNums(1024);
+        this.topicConfigTable.put(topicConfig.getTopicName(), topicConfig);
+
         // ¼¯ÈºÃû×Ö
         topicConfig = new TopicConfig(this.brokerController.getBrokerConfig().getBrokerClusterName());
         perm = PermName.PERM_INHERIT;

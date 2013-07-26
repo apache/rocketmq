@@ -112,7 +112,6 @@ public class Producer {
 
         final DefaultMQProducer producer = new DefaultMQProducer("benchmark_producer");
 
-        producer.setDefaultTopicQueueNums(1000);
         producer.setCompressMsgBodyOverHowmuch(Integer.MAX_VALUE);
 
         producer.start();
