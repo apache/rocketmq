@@ -531,9 +531,10 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
                     mQClientFactory.registerConsumer(this.defaultMQPullConsumer.getConsumerGroup(), this);
             if (!registerOK) {
                 this.serviceState = ServiceState.CREATE_JUST;
+
                 throw new MQClientException("The consumer group["
                         + this.defaultMQPullConsumer.getConsumerGroup()
-                        + "] has created already, specifed another name please."//
+                        + "] has been created before, specify another name please."
                         + FAQUrl.suggestTodo(FAQUrl.GROUP_NAME_DUPLICATE_URL), null);
             }
 

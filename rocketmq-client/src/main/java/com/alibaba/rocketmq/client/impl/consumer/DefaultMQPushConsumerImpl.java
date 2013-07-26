@@ -701,7 +701,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                 this.consumeMessageService.shutdown();
                 throw new MQClientException("The consumer group["
                         + this.defaultMQPushConsumer.getConsumerGroup()
-                        + "] has created already, specifed another name please."
+                        + "] has been created before, specify another name please."
                         + FAQUrl.suggestTodo(FAQUrl.GROUP_NAME_DUPLICATE_URL), null);
             }
 
