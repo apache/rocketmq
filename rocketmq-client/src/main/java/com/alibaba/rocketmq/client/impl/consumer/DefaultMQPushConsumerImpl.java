@@ -468,10 +468,11 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                     pullResult =
                             DefaultMQPushConsumerImpl.this.pullAPIWrapper.processPullResult(
                                 pullRequest.getMessageQueue(), pullResult, subscriptionData);
-                    pullRequest.setNextOffset(pullResult.getNextBeginOffset());
 
                     switch (pullResult.getPullStatus()) {
                     case FOUND:
+                        pullRequest.setNextOffset(pullResult.getNextBeginOffset());
+
                         long pullRT = System.currentTimeMillis() - beginTimestamp;
                         DefaultMQPushConsumerImpl.this.getConsumerStatManager().getConsumertat()
                             .getPullTimesTotal().incrementAndGet();
@@ -497,10 +498,13 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
 
                         break;
                     case NO_NEW_MSG:
+                        pullRequest.setNextOffset(pullResult.getNextBeginOffset());
+
                         DefaultMQPushConsumerImpl.this.executePullRequestImmediately(pullRequest);
                         break;
                     case NO_MATCHED_MSG:
                         pullRequest.setNextOffset(pullResult.getNextBeginOffset());
+
                         DefaultMQPushConsumerImpl.this.executePullRequestImmediately(pullRequest);
                         break;
                     case OFFSET_ILLEGAL:
