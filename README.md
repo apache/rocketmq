@@ -13,6 +13,8 @@
 
 ### 如何快速开始？
 
+* [Quick Start](https://github.com/alibaba/RocketMQ/wiki/Quick-Start)
+
 ----------
 
 ### 开源协议
