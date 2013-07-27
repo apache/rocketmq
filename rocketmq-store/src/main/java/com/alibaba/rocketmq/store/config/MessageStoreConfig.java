@@ -15,16 +15,16 @@
  */
 package com.alibaba.rocketmq.store.config;
 
-import java.io.File;
-
 import com.alibaba.rocketmq.common.annotation.ImportantField;
 import com.alibaba.rocketmq.store.ConsumeQueue;
 import com.alibaba.rocketmq.store.transaction.TransactionStateService;
 
+import java.io.File;
+
 
 /**
  * 存储层配置文件类
- * 
+ *
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-21
  */

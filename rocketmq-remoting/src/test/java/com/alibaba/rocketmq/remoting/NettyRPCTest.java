@@ -3,31 +3,20 @@
  */
 package com.alibaba.rocketmq.remoting;
 
-import static org.junit.Assert.assertTrue;
+import com.alibaba.rocketmq.remoting.annotation.CFNullable;
+import com.alibaba.rocketmq.remoting.exception.*;
+import com.alibaba.rocketmq.remoting.netty.*;
+import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 import io.netty.channel.ChannelHandlerContext;
+import org.junit.Test;
 
 import java.util.concurrent.Executors;
 
-import org.junit.Test;
-
-import com.alibaba.rocketmq.remoting.annotation.CFNullable;
-import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
-import com.alibaba.rocketmq.remoting.exception.RemotingConnectException;
-import com.alibaba.rocketmq.remoting.exception.RemotingSendRequestException;
-import com.alibaba.rocketmq.remoting.exception.RemotingTimeoutException;
-import com.alibaba.rocketmq.remoting.exception.RemotingTooMuchRequestException;
-import com.alibaba.rocketmq.remoting.netty.NettyClientConfig;
-import com.alibaba.rocketmq.remoting.netty.NettyRemotingClient;
-import com.alibaba.rocketmq.remoting.netty.NettyRemotingServer;
-import com.alibaba.rocketmq.remoting.netty.NettyRequestProcessor;
-import com.alibaba.rocketmq.remoting.netty.NettyServerConfig;
-import com.alibaba.rocketmq.remoting.netty.ResponseFuture;
-import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
+import static org.junit.Assert.assertTrue;
 
 
 /**
  * @author shijia.wxr<vintage.wang@gmail.com>
- * 
  */
 public class NettyRPCTest {
     public static RemotingClient createRemotingClient() {
@@ -133,14 +122,11 @@ public class NettyRPCTest {
             public RemotingCommand processRequest(ChannelHandlerContext ctx, RemotingCommand request) {
                 try {
                     return server.invokeSync(ctx.channel(), request, 1000 * 10);
-                }
-                catch (InterruptedException e) {
+                } catch (InterruptedException e) {
                     e.printStackTrace();
-                }
-                catch (RemotingSendRequestException e) {
+                } catch (RemotingSendRequestException e) {
                     e.printStackTrace();
-                }
-                catch (RemotingTimeoutException e) {
+                } catch (RemotingTimeoutException e) {
                     e.printStackTrace();
                 }
 

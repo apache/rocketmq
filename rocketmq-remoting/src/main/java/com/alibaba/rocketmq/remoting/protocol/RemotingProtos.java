@@ -12,7 +12,7 @@ public final class RemotingProtos {
         // 由于线程池拥堵，系统繁忙
         SYSTEM_BUSY(2, 2),
         // 请求代码不支持
-        REQUEST_CODE_NOT_SUPPORTED(3, 3), ;
+        REQUEST_CODE_NOT_SUPPORTED(3, 3),;
 
         // /////////////////////////////////////////////////////////////////////
 
@@ -28,16 +28,16 @@ public final class RemotingProtos {
 
         public static ResponseCode valueOf(int value) {
             switch (value) {
-            case 0:
-                return SUCCESS;
-            case 1:
-                return SYSTEM_ERROR;
-            case 2:
-                return SYSTEM_BUSY;
-            case 3:
-                return REQUEST_CODE_NOT_SUPPORTED;
-            default:
-                return null;
+                case 0:
+                    return SUCCESS;
+                case 1:
+                    return SYSTEM_ERROR;
+                case 2:
+                    return SYSTEM_BUSY;
+                case 3:
+                    return REQUEST_CODE_NOT_SUPPORTED;
+                default:
+                    return null;
             }
         }
 

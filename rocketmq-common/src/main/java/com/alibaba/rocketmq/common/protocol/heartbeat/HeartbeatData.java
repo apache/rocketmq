@@ -3,15 +3,14 @@
  */
 package com.alibaba.rocketmq.common.protocol.heartbeat;
 
+import com.alibaba.rocketmq.remoting.protocol.RemotingSerializable;
+
 import java.util.HashSet;
 import java.util.Set;
-
-import com.alibaba.rocketmq.remoting.protocol.RemotingSerializable;
 
 
 /**
  * @author shijia.wxr<vintage.wang@gmail.com>
- * 
  */
 public class HeartbeatData extends RemotingSerializable {
     private String clientID;

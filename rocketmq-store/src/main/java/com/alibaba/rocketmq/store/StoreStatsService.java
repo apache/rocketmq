@@ -15,6 +15,11 @@
  */
 package com.alibaba.rocketmq.store;
 
+import com.alibaba.rocketmq.common.ServiceThread;
+import com.alibaba.rocketmq.common.constant.LoggerName;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.text.MessageFormat;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -23,16 +28,10 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.alibaba.rocketmq.common.ServiceThread;
-import com.alibaba.rocketmq.common.constant.LoggerName;
-
 
 /**
  * 存储层内部统计服务
- * 
+ *
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-21
  */
@@ -212,7 +211,7 @@ public class StoreStatsService extends ServiceThread {
         long hours = (time % DAY) / HOUR;
         long minutes = (time % HOUR) / MINUTE;
         long seconds = (time % MINUTE) / SECOND;
-        return TIME.format(new Long[] { days, hours, minutes, seconds });
+        return TIME.format(new Long[]{days, hours, minutes, seconds});
     }
 
 
@@ -255,7 +254,7 @@ public class StoreStatsService extends ServiceThread {
         result.put("runtime", this.getFormatRuntime());
         result.put("putMessageEntireTimeMax", String.valueOf(this.putMessageEntireTimeMax));
         result.put("putMessageAverageSize",
-            String.valueOf((this.getPutMessageSizeTotal() / totalTimes.doubleValue())));
+                String.valueOf((this.getPutMessageSizeTotal() / totalTimes.doubleValue())));
         result.put("dispatchMaxBuffer", String.valueOf(this.dispatchMaxBuffer));
 
         return result;
@@ -271,19 +270,19 @@ public class StoreStatsService extends ServiceThread {
         }
 
         this.getTimesFoundList.add(new CallSnapshot(System.currentTimeMillis(),
-            this.getMessageTimesTotalFound.get()));
+                this.getMessageTimesTotalFound.get()));
         if (this.getTimesFoundList.size() > (MaxRecordsOfSampling + 1)) {
             this.getTimesFoundList.removeFirst();
         }
 
         this.getTimesMissList.add(new CallSnapshot(System.currentTimeMillis(), this.getMessageTimesTotalMiss
-            .get()));
+                .get()));
         if (this.getTimesMissList.size() > (MaxRecordsOfSampling + 1)) {
             this.getTimesMissList.removeFirst();
         }
 
         this.transferedMsgCountList.add(new CallSnapshot(System.currentTimeMillis(),
-            this.getMessageTransferedMsgCount.get()));
+                this.getMessageTransferedMsgCount.get()));
         if (this.transferedMsgCountList.size() > (MaxRecordsOfSampling + 1)) {
             this.transferedMsgCountList.removeFirst();
         }
@@ -499,8 +498,7 @@ public class StoreStatsService extends ServiceThread {
                 this.sampling();
 
                 this.printTps();
-            }
-            catch (Exception e) {
+            } catch (Exception e) {
                 log.warn(this.getServiceName() + " service has exception. ", e);
             }
         }

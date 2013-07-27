@@ -11,7 +11,6 @@ import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
 
 /**
  * @author shijia.wxr<vintage.wang@gmail.com>
- * 
  */
 public class CheckTransactionStateResponseHeader implements CommandCustomHeader {
     @CFNotNull
@@ -22,7 +21,7 @@ public class CheckTransactionStateResponseHeader implements CommandCustomHeader 
     private Long commitLogOffset;
     @CFNotNull
     private Integer commitOrRollback; // TransactionCommitType
-                                      // TransactionRollbackType
+    // TransactionRollbackType
 
 
     @Override

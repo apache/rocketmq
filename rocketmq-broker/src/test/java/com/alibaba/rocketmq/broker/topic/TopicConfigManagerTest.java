@@ -3,10 +3,6 @@
  */
 package com.alibaba.rocketmq.broker.topic;
 
-import static org.junit.Assert.assertTrue;
-
-import org.junit.Test;
-
 import com.alibaba.rocketmq.broker.BrokerController;
 import com.alibaba.rocketmq.common.BrokerConfig;
 import com.alibaba.rocketmq.common.MixAll;
@@ -14,20 +10,22 @@ import com.alibaba.rocketmq.common.TopicConfig;
 import com.alibaba.rocketmq.remoting.netty.NettyClientConfig;
 import com.alibaba.rocketmq.remoting.netty.NettyServerConfig;
 import com.alibaba.rocketmq.store.config.MessageStoreConfig;
+import org.junit.Test;
+
+import static org.junit.Assert.assertTrue;
 
 
 /**
  * @author shijia.wxr<vintage.wang@gmail.com>
- * 
  */
 public class TopicConfigManagerTest {
     @Test
     public void test_flushTopicConfig() throws Exception {
         BrokerController brokerController = new BrokerController(//
-            new BrokerConfig(), //
-            new NettyServerConfig(), //
-            new NettyClientConfig(), //
-            new MessageStoreConfig());
+                new BrokerConfig(), //
+                new NettyServerConfig(), //
+                new NettyClientConfig(), //
+                new MessageStoreConfig());
         boolean initResult = brokerController.initialize();
         System.out.println("initialize " + initResult);
         brokerController.start();
@@ -36,7 +34,7 @@ public class TopicConfigManagerTest {
 
         TopicConfig topicConfig =
                 topicConfigManager.createTopicInSendMessageMethod("TestTopic_SEND", MixAll.DEFAULT_TOPIC,
-                    null, 4);
+                        null, 4);
         assertTrue(topicConfig != null);
 
         System.out.println(topicConfig);

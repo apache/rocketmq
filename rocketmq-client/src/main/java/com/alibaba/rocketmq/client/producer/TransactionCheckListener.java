@@ -20,7 +20,7 @@ import com.alibaba.rocketmq.common.message.MessageExt;
 
 /**
  * 服务器回调Producer，检查本地事务分支成功还是失败
- * 
+ *
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-25
  */

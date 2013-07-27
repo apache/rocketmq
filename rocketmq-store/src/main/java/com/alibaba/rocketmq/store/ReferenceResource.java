@@ -20,7 +20,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * 引用计数基类，类似于C++智能指针实现
- * 
+ *
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-21
  */
@@ -38,8 +38,7 @@ public abstract class ReferenceResource {
         if (this.isAvailable()) {
             if (this.refCount.getAndIncrement() > 0) {
                 return true;
-            }
-            else {
+            } else {
                 this.refCount.getAndDecrement();
             }
         }

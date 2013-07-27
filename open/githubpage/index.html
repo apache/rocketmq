@@ -1,79 +1,99 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+        "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
-<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<META name="keywords" content="metaq/官方/Metamorphosis/LinkedIn/Kafka/淘宝/开源消息中间件/java中间件/jms/开源/消息中间件/高性能/高可靠/ha/producer/consumer/broker/"> 
-<META name="description" content="METAQ是一款完全的队列模型消息中间件，服务器使用Java语言编写，可在多种软硬件平台上部署。客户端支持Java、C++编程语言。单台服务器可支持1万以上个消息队列，通过扩容服务器，队列数几乎可任意横向扩展。每个队列都是持久化、长度无限（取决于磁盘空间大小）、并且可从队列任意位置开始消费。METAQ在阿里巴巴各个子公司被广泛应用，每天转发250亿+条消息。主要应用于异步解耦，Mysql数据复制，收集日志等场景。"> 
-<title>淘宝METAQ开源消息中间件</title>
-<link rel="shortcut icon" href="favicon.ico" type="image/x-icon">
-<style type="text/css">
-.divheader {
-	background-color: #F27A04;
-	border-top-style: none;
-	border-right-style: none;
-	border-bottom-style: none;
-	border-left-style: none;
-	margin: 0px;
-	padding: 0px;
-	height: 100%;
-	width: 100%;
-}
-.bodystyle {
-	margin:0px;
-	padding:px;
-	font-size: 16px;
-	font-family: Georgia, verdana, 微软雅黑, Pmingliu, arial, sans-serif;
-	background-color: #FFF;
-}
-.container {
-	width: 960px;
-	margin: 0 auto;
-	padding: 0 10px;
-	text-align: left;
-}
-.footer {
-	clear: both;
-	margin-top: 22px;
-	border-top: 1px solid #D4DADF;
-	font-size: 16px;
-	text-align: center;
-	color: #D8D8D8;
-	padding-top: 23px;
-	padding-right: 0;
-	padding-bottom: 4px;
-	padding-left: 0;
-}
-</style>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+    <META name="keywords"
+          content="metaq/官方/Metamorphosis/LinkedIn/Kafka/淘宝/开源消息中间件/java中间件/jms/开源/消息中间件/高性能/高可靠/ha/producer/consumer/broker/">
+    <META name="description"
+          content="METAQ是一款完全的队列模型消息中间件，服务器使用Java语言编写，可在多种软硬件平台上部署。客户端支持Java、C++编程语言。单台服务器可支持1万以上个消息队列，通过扩容服务器，队列数几乎可任意横向扩展。每个队列都是持久化、长度无限（取决于磁盘空间大小）、并且可从队列任意位置开始消费。METAQ在阿里巴巴各个子公司被广泛应用，每天转发250亿+条消息。主要应用于异步解耦，Mysql数据复制，收集日志等场景。">
+    <title>淘宝METAQ开源消息中间件</title>
+    <link rel="shortcut icon" href="favicon.ico" type="image/x-icon">
+    <style type="text/css">
+        .divheader {
+            background-color: #F27A04;
+            border-top-style: none;
+            border-right-style: none;
+            border-bottom-style: none;
+            border-left-style: none;
+            margin: 0px;
+            padding: 0px;
+            height: 100%;
+            width: 100%;
+        }
+
+        .bodystyle {
+            margin: 0px;
+            padding: px;
+            font-size: 16px;
+            font-family: Georgia, verdana, 微 软 雅 黑, Pmingliu, arial, sans-serif;
+            background-color: #FFF;
+        }
+
+        .container {
+            width: 960px;
+            margin: 0 auto;
+            padding: 0 10px;
+            text-align: left;
+        }
+
+        .footer {
+            clear: both;
+            margin-top: 22px;
+            border-top: 1px solid #D4DADF;
+            font-size: 16px;
+            text-align: center;
+            color: #D8D8D8;
+            padding-top: 23px;
+            padding-right: 0;
+            padding-bottom: 4px;
+            padding-left: 0;
+        }
+    </style>
 </head>
 <body class="bodystyle">
-<div align="center" class="divheader"> <img src="metaq_logo_header.png" border="0" usemap="#Map" />
-  <map name="Map" id="Map">
-    <area shape="rect" coords="2,11,249,83" href="http://metaq.taobao.org" target="_self"/>
-    <area shape="rect" coords="656,57,721,106" href="https://github.com/alibaba/metaq" target="_blank" alt="到Github上关注" />
-	<area shape="rect" coords="723,57,778,106" href="https://github.com/alibaba/metaq/wiki" target="_blank" alt="查看Metaq文档" />
-	
-    <area shape="rect" coords="780,57,858,106" href="https://github.com/alibaba/metaq/wiki/download" target="_blank" alt="下载安装包" />
-    <area shape="rect" coords="863,57,959,106" href="https://github.com/alibaba/metaq#readme" target="_blank" alt="联系我们" />
-  </map>
+<div align="center" class="divheader"><img src="metaq_logo_header.png" border="0" usemap="#Map"/>
+    <map name="Map" id="Map">
+        <area shape="rect" coords="2,11,249,83" href="http://metaq.taobao.org" target="_self"/>
+        <area shape="rect" coords="656,57,721,106" href="https://github.com/alibaba/metaq" target="_blank"
+              alt="到Github上关注"/>
+        <area shape="rect" coords="723,57,778,106" href="https://github.com/alibaba/metaq/wiki" target="_blank"
+              alt="查看Metaq文档"/>
+
+        <area shape="rect" coords="780,57,858,106" href="https://github.com/alibaba/metaq/wiki/download"
+              target="_blank" alt="下载安装包"/>
+        <area shape="rect" coords="863,57,959,106" href="https://github.com/alibaba/metaq#readme" target="_blank"
+              alt="联系我们"/>
+    </map>
 </div>
-<div style="height:10px"> </div>
+<div style="height:10px"></div>
 <div class="container">
-  <div>
-    <table width="100%"  border="0">
-      <tr>
-        <td valign="top"> METAQ是一款完全的队列模型消息中间件，服务器使用Java语言编写，可在多种软硬件平台上部署。客户端支持Java、C++编程语言。单台服务器可支持1万以上个消息队列，通过扩容服务器，队列数几乎可任意横向扩展。每个队列都是持久化、长度无限（取决于磁盘空间大小）、并且可从队列任意位置开始消费。
-          <div align="center" style="padding-top:20px"><img src="metaq_jiagou.png" width="80%" height="80%" border="0"/></div>
-          <div align="left" style="padding-top:20px">METAQ在阿里巴巴各个子公司被广泛应用，每天转发250亿+条消息。主要应用于异步解耦，Mysql数据复制，收集日志等场景。下面是使用METAQ的各个公司或项目名，阿里以外的公司通过与开发者交流得知，如有误请告知我们。如果您正在使用METAQ，也请告知。</div></td>
-        <td width="300" ><iframe width="100%" height="530" class="share_self"  frameborder="0" scrolling="no" src="http://widget.weibo.com/weiboshow/index.php?language=&width=0&height=550&fansRow=2&ptype=1&speed=0&skin=1&isTitle=1&noborder=1&isWeibo=1&isFans=1&uid=3205684741&verifier=9b6687b2&dpc=1"></iframe></td>
-      </tr>
-    </table>
-  </div>
-  <div><img src="customer.png" width="960" height="60" alt="这些公司在使用Metaq" /> </div>
-  <div class="footer" style="padding:10px 0;">
-    <div style="float:left;text-align:left;"><a href="http://www.taobao.com" target="_blank">关于淘宝</a><span class="graytext"> | </span><a href="http://rdc.taobao.com/team/jm/" target="_blank">关于淘宝Java中间件</a>
-      <p>2012 Taobao Inc. All Rights Reserved</p>
+    <div>
+        <table width="100%" border="0">
+            <tr>
+                <td valign="top">
+                    METAQ是一款完全的队列模型消息中间件，服务器使用Java语言编写，可在多种软硬件平台上部署。客户端支持Java、C++编程语言。单台服务器可支持1万以上个消息队列，通过扩容服务器，队列数几乎可任意横向扩展。每个队列都是持久化、长度无限（取决于磁盘空间大小）、并且可从队列任意位置开始消费。
+                    <div align="center" style="padding-top:20px"><img src="metaq_jiagou.png" width="80%"
+                                                                      height="80%" border="0"/></div>
+                    <div align="left" style="padding-top:20px">
+                        METAQ在阿里巴巴各个子公司被广泛应用，每天转发250亿+条消息。主要应用于异步解耦，Mysql数据复制，收集日志等场景。下面是使用METAQ的各个公司或项目名，阿里以外的公司通过与开发者交流得知，如有误请告知我们。如果您正在使用METAQ，也请告知。
+                    </div>
+                </td>
+                <td width="300">
+                    <iframe width="100%" height="530" class="share_self" frameborder="0" scrolling="no"
+                            src="http://widget.weibo.com/weiboshow/index.php?language=&width=0&height=550&fansRow=2&ptype=1&speed=0&skin=1&isTitle=1&noborder=1&isWeibo=1&isFans=1&uid=3205684741&verifier=9b6687b2&dpc=1"></iframe>
+                </td>
+            </tr>
+        </table>
     </div>
-  </div>
+    <div><img src="customer.png" width="960" height="60" alt="这些公司在使用Metaq"/></div>
+    <div class="footer" style="padding:10px 0;">
+        <div style="float:left;text-align:left;"><a href="http://www.taobao.com" target="_blank">关于淘宝</a><span
+                class="graytext"> | </span><a href="http://rdc.taobao.com/team/jm/" target="_blank">关于淘宝Java中间件</a>
+
+            <p>2012 Taobao Inc. All Rights Reserved</p>
+        </div>
+    </div>
 </div>
 </body>
 </html>

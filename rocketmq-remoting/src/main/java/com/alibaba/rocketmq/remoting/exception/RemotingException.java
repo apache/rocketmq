@@ -17,7 +17,7 @@ package com.alibaba.rocketmq.remoting.exception;
 
 /**
  * 通信层异常父类
- * 
+ *
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-13
  */

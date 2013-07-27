@@ -1,11 +1,10 @@
 package com.alibaba.rocketmq.common;
 
+import junit.framework.Assert;
+import org.junit.Test;
+
 import java.net.InetAddress;
 import java.util.List;
-
-import junit.framework.Assert;
-
-import org.junit.Test;
 
 
 /**

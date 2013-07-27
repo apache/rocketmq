@@ -1,58 +1,58 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
-	<appender name="DefaultAppender" class="ch.qos.logback.core.rolling.RollingFileAppender">
-		<file>${user.home}/rocketmqlogs/rocketmq_default.log</file>
-		<append>true</append>
-		<rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-			<fileNamePattern>rocketmq_default-%d{yyyy-MM-dd}.%i.log</fileNamePattern>
-			<timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
-				<maxFileSize>104857600</maxFileSize>
-			</timeBasedFileNamingAndTriggeringPolicy>
-		</rollingPolicy>
-		<encoder>
-			<pattern>%d{yyy-MM-dd HH:mm:ss,GMT+8} %p %t - %m%n</pattern>
-			<charset class="java.nio.charset.Charset">UTF-8</charset>
-		</encoder>
-	</appender>
+    <appender name="DefaultAppender" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${user.home}/rocketmqlogs/rocketmq_default.log</file>
+        <append>true</append>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>rocketmq_default-%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
+                <maxFileSize>104857600</maxFileSize>
+            </timeBasedFileNamingAndTriggeringPolicy>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%d{yyy-MM-dd HH:mm:ss,GMT+8} %p %t - %m%n</pattern>
+            <charset class="java.nio.charset.Charset">UTF-8</charset>
+        </encoder>
+    </appender>
 
-	<appender name="RocketmqNamesrvAppender" class="ch.qos.logback.core.rolling.RollingFileAppender">
-		<file>${user.home}/rocketmqlogs/rocketmq_namesrv.log</file>
-		<append>true</append>
-		<rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-			<fileNamePattern>rocketmq_namesrv-%d{yyyy-MM-dd}.%i.log</fileNamePattern>
-			<timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
-				<maxFileSize>104857600</maxFileSize>
-			</timeBasedFileNamingAndTriggeringPolicy>
-		</rollingPolicy>
-		<encoder>
-			<pattern>%d{yyy-MM-dd HH:mm:ss,GMT+8} %p %t - %m%n</pattern>
-			<charset class="java.nio.charset.Charset">UTF-8</charset>
-		</encoder>
-	</appender>
-	<appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
-		<append>true</append>
-		<encoder>
-			<pattern>%d{yyy-MM-dd HH\:mm\:ss,SSS} %p %t - %m%n</pattern>
-			<charset class="java.nio.charset.Charset">UTF-8</charset>
-		</encoder>
-	</appender>
-	<logger name="RocketmqNamesrv" additivity="false">
-		<level value="DEBUG" />
-		<appender-ref ref="RocketmqNamesrvAppender" />
-	</logger>
+    <appender name="RocketmqNamesrvAppender" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${user.home}/rocketmqlogs/rocketmq_namesrv.log</file>
+        <append>true</append>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>rocketmq_namesrv-%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
+                <maxFileSize>104857600</maxFileSize>
+            </timeBasedFileNamingAndTriggeringPolicy>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%d{yyy-MM-dd HH:mm:ss,GMT+8} %p %t - %m%n</pattern>
+            <charset class="java.nio.charset.Charset">UTF-8</charset>
+        </encoder>
+    </appender>
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <append>true</append>
+        <encoder>
+            <pattern>%d{yyy-MM-dd HH\:mm\:ss,SSS} %p %t - %m%n</pattern>
+            <charset class="java.nio.charset.Charset">UTF-8</charset>
+        </encoder>
+    </appender>
+    <logger name="RocketmqNamesrv" additivity="false">
+        <level value="DEBUG"/>
+        <appender-ref ref="RocketmqNamesrvAppender"/>
+    </logger>
 
-	<logger name="RocketmqCommon" additivity="false">
-		<level value="INFO" />
-		<appender-ref ref="RocketmqNamesrvAppender" />
-	</logger>
+    <logger name="RocketmqCommon" additivity="false">
+        <level value="INFO"/>
+        <appender-ref ref="RocketmqNamesrvAppender"/>
+    </logger>
 
-	<logger name="RocketmqRemoting" additivity="false">
-		<level value="INFO" />
-		<appender-ref ref="RocketmqNamesrvAppender" />
-	</logger>
+    <logger name="RocketmqRemoting" additivity="false">
+        <level value="INFO"/>
+        <appender-ref ref="RocketmqNamesrvAppender"/>
+    </logger>
 
-	<root>
-		<level value="INFO" />
-		<appender-ref ref="DefaultAppender" />
-	</root>
+    <root>
+        <level value="INFO"/>
+        <appender-ref ref="DefaultAppender"/>
+    </root>
 </configuration>

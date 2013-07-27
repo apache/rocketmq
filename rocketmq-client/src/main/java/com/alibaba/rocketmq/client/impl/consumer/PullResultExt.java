@@ -15,16 +15,16 @@
  */
 package com.alibaba.rocketmq.client.impl.consumer;
 
-import java.util.List;
-
 import com.alibaba.rocketmq.client.consumer.PullResult;
 import com.alibaba.rocketmq.client.consumer.PullStatus;
 import com.alibaba.rocketmq.common.message.MessageExt;
 
+import java.util.List;
+
 
 /**
  * 只在内部使用，不对外公开
- * 
+ *
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-24
  */
@@ -34,7 +34,7 @@ public class PullResultExt extends PullResult {
 
 
     public PullResultExt(PullStatus pullStatus, long nextBeginOffset, long minOffset, long maxOffset,
-            List<MessageExt> msgFoundList, final long suggestWhichBrokerId, final byte[] messageBinary) {
+                         List<MessageExt> msgFoundList, final long suggestWhichBrokerId, final byte[] messageBinary) {
         super(pullStatus, nextBeginOffset, minOffset, maxOffset, msgFoundList);
         this.suggestWhichBrokerId = suggestWhichBrokerId;
         this.messageBinary = messageBinary;

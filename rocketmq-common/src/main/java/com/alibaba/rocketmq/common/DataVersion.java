@@ -15,16 +15,15 @@
  */
 package com.alibaba.rocketmq.common;
 
-import java.util.concurrent.atomic.AtomicLong;
-
 import com.alibaba.rocketmq.remoting.protocol.RemotingSerializable;
+
+import java.util.concurrent.atomic.AtomicLong;
 
 
 /**
  * 用来标识数据的版本号
- * 
+ *
  * @author shijia.wxr<vintage.wang@gmail.com>
- * 
  */
 public class DataVersion extends RemotingSerializable {
     private long timestatmp = System.currentTimeMillis();

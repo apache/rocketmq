@@ -21,7 +21,7 @@ import com.alibaba.rocketmq.common.help.FAQUrl;
 
 /**
  * MQ异常类
- * 
+ *
  * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public class MQClientException extends Exception {

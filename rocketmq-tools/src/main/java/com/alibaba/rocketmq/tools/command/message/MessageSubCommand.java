@@ -15,10 +15,9 @@
  */
 package com.alibaba.rocketmq.tools.command.message;
 
+import com.alibaba.rocketmq.tools.command.SubCommand;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Options;
-
-import com.alibaba.rocketmq.tools.command.SubCommand;
 
 
 /**

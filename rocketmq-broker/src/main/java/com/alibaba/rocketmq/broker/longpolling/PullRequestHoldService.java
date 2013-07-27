@@ -15,22 +15,21 @@
  */
 package com.alibaba.rocketmq.broker.longpolling;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.ConcurrentHashMap;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.alibaba.rocketmq.broker.BrokerController;
 import com.alibaba.rocketmq.common.ServiceThread;
 import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
 
 
 /**
  * 拉消息请求管理，如果拉不到消息，则在这里Hold住，等待消息到来
- * 
+ *
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-26
  */
@@ -100,9 +99,8 @@ public class PullRequestHoldService extends ServiceThread {
                     if (offset >= request.getPullFromThisOffset()) {
                         try {
                             this.brokerController.getPullMessageProcessor().excuteRequestWhenWakeup(
-                                request.getClientChannel(), request.getRequestCommand());
-                        }
-                        catch (RemotingCommandException e) {
+                                    request.getClientChannel(), request.getRequestCommand());
+                        } catch (RemotingCommandException e) {
                             log.error("", e);
                         }
                         continue;
@@ -114,9 +112,8 @@ public class PullRequestHoldService extends ServiceThread {
                         if (newestOffset >= request.getPullFromThisOffset()) {
                             try {
                                 this.brokerController.getPullMessageProcessor().excuteRequestWhenWakeup(
-                                    request.getClientChannel(), request.getRequestCommand());
-                            }
-                            catch (RemotingCommandException e) {
+                                        request.getClientChannel(), request.getRequestCommand());
+                            } catch (RemotingCommandException e) {
                                 log.error("", e);
                             }
                             continue;
@@ -125,12 +122,11 @@ public class PullRequestHoldService extends ServiceThread {
 
                     // 查看是否超时
                     if (System.currentTimeMillis() >= (request.getSuspendTimestamp() + request
-                        .getTimeoutMillis())) {
+                            .getTimeoutMillis())) {
                         try {
                             this.brokerController.getPullMessageProcessor().excuteRequestWhenWakeup(
-                                request.getClientChannel(), request.getRequestCommand());
-                        }
-                        catch (RemotingCommandException e) {
+                                    request.getClientChannel(), request.getRequestCommand());
+                        } catch (RemotingCommandException e) {
                             log.error("", e);
                         }
                         continue;
@@ -155,8 +151,7 @@ public class PullRequestHoldService extends ServiceThread {
             try {
                 this.waitForRunning(1000);
                 this.checkHoldRequest();
-            }
-            catch (Exception e) {
+            } catch (Exception e) {
                 log.warn(this.getServiceName() + " service has exception. ", e);
             }
         }

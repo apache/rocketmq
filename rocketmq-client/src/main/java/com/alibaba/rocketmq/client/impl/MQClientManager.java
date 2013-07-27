@@ -15,16 +15,16 @@
  */
 package com.alibaba.rocketmq.client.impl;
 
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
-
 import com.alibaba.rocketmq.client.ClientConfig;
 import com.alibaba.rocketmq.client.impl.factory.MQClientFactory;
+
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
 
 /**
  * Client单例管理
- * 
+ *
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-24
  */
@@ -52,12 +52,11 @@ public class MQClientManager {
         if (null == factory) {
             factory =
                     new MQClientFactory(clientConfig.cloneClientConfig(),
-                        this.factoryIndexGenerator.getAndIncrement(), clientId);
+                            this.factoryIndexGenerator.getAndIncrement(), clientId);
             MQClientFactory prev = this.factoryTable.putIfAbsent(clientId, factory);
             if (prev != null) {
                 factory = prev;
-            }
-            else {
+            } else {
                 // TODO log
             }
         }

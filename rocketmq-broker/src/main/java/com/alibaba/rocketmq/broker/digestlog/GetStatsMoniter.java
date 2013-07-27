@@ -15,20 +15,19 @@
  */
 package com.alibaba.rocketmq.broker.digestlog;
 
+import com.alibaba.rocketmq.broker.BrokerController;
+import com.alibaba.rocketmq.store.DefaultMessageStore;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.alibaba.rocketmq.broker.BrokerController;
-import com.alibaba.rocketmq.store.DefaultMessageStore;
-
 
 /**
  * 拉消息统计
- * 
+ *
  * @author 菱叶<jin.qian@alipay.com>
  * @since 2013-7-18
  */
@@ -62,8 +61,8 @@ public class GetStatsMoniter {
                     sb.append("ClientGetConut").append(",");
                     sb.append("Topic[").append(topic).append("],");
                     sb.append("Mq[")
-                        .append(brokerController.getBrokerConfig().getBrokerName() + "-" + queueId)
-                        .append("],");
+                            .append(brokerController.getBrokerConfig().getBrokerName() + "-" + queueId)
+                            .append("],");
                     sb.append("Group[").append(group).append("],");
                     sb.append("Total[").append(nowvalue - lastvalue).append("]");
                     log.info(sb.toString());
@@ -80,8 +79,7 @@ public class GetStatsMoniter {
             this.offsetTableLast.put(key, new HashMap());
             this.offsetTableLast.get(key).put(queueId, nowValue);
             return 0;
-        }
-        else if (this.offsetTableLast.get(key).get(queueId) == null) {
+        } else if (this.offsetTableLast.get(key).get(queueId) == null) {
             offsetTableLast.get(key).put(queueId, nowValue);
             return 0;
         }

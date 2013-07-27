@@ -15,22 +15,21 @@
  */
 package com.alibaba.rocketmq.namesrv.kvconfig;
 
+import com.alibaba.rocketmq.common.MixAll;
+import com.alibaba.rocketmq.common.constant.LoggerName;
+import com.alibaba.rocketmq.namesrv.NamesrvController;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.alibaba.rocketmq.common.MixAll;
-import com.alibaba.rocketmq.common.constant.LoggerName;
-import com.alibaba.rocketmq.namesrv.NamesrvController;
-
 
 /**
  * KV配置管理
- * 
+ *
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-1
  */
@@ -76,18 +75,15 @@ public class KVConfigManager {
                 final String prev = kvTable.put(key, value);
                 if (null != prev) {
                     log.info("putKVConfig update config item, Namespace: {} Key: {} Value: {}", //
-                        namespace, key, value);
-                }
-                else {
+                            namespace, key, value);
+                } else {
                     log.info("putKVConfig create new config item, Namespace: {} Key: {} Value: {}", //
-                        namespace, key, value);
+                            namespace, key, value);
                 }
-            }
-            finally {
+            } finally {
                 this.lock.writeLock().unlock();
             }
-        }
-        catch (InterruptedException e) {
+        } catch (InterruptedException e) {
             log.error("putKVConfig InterruptedException", e);
         }
 
@@ -103,14 +99,12 @@ public class KVConfigManager {
                 if (null != kvTable) {
                     String value = kvTable.remove(key);
                     log.info("deleteKVConfig delete a config item, Namespace: {} Key: {} Value: {}", //
-                        namespace, key, value);
+                            namespace, key, value);
                 }
-            }
-            finally {
+            } finally {
                 this.lock.writeLock().unlock();
             }
-        }
-        catch (InterruptedException e) {
+        } catch (InterruptedException e) {
             log.error("deleteKVConfig InterruptedException", e);
         }
 
@@ -126,12 +120,10 @@ public class KVConfigManager {
                 if (null != kvTable) {
                     return kvTable.get(key);
                 }
-            }
-            finally {
+            } finally {
                 this.lock.readLock().unlock();
             }
-        }
-        catch (InterruptedException e) {
+        } catch (InterruptedException e) {
             log.error("getKVConfig InterruptedException", e);
         }
 
@@ -151,16 +143,13 @@ public class KVConfigManager {
                 if (null != content) {
                     MixAll.string2File(content, this.namesrvController.getNamesrvConfig().getKvConfigPath());
                 }
-            }
-            catch (IOException e) {
+            } catch (IOException e) {
                 log.error("persist kvconfig Exception, "
                         + this.namesrvController.getNamesrvConfig().getKvConfigPath(), e);
-            }
-            finally {
+            } finally {
                 this.lock.readLock().unlock();
             }
-        }
-        catch (InterruptedException e) {
+        } catch (InterruptedException e) {
             log.error("persist InterruptedException", e);
         }
 
@@ -174,12 +163,10 @@ public class KVConfigManager {
                 log.info("--------------------------------------------------------");
 
                 log.info("KVConfigManager {}", this.configTable);
-            }
-            finally {
+            } finally {
                 this.lock.readLock().unlock();
             }
-        }
-        catch (InterruptedException e) {
+        } catch (InterruptedException e) {
             log.error("printAllPeriodically InterruptedException", e);
         }
     }

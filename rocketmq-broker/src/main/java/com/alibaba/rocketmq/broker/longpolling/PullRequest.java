@@ -15,14 +15,13 @@
  */
 package com.alibaba.rocketmq.broker.longpolling;
 
-import io.netty.channel.Channel;
-
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
+import io.netty.channel.Channel;
 
 
 /**
  * 一个拉消息请求
- * 
+ *
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-26
  */
@@ -35,7 +34,7 @@ public class PullRequest {
 
 
     public PullRequest(RemotingCommand requestCommand, Channel clientChannel, long timeoutMillis,
-            long suspendTimestamp, long pullFromThisOffset) {
+                       long suspendTimestamp, long pullFromThisOffset) {
         this.requestCommand = requestCommand;
         this.clientChannel = clientChannel;
         this.timeoutMillis = timeoutMillis;

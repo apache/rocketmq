@@ -3,7 +3,12 @@
  */
 package com.alibaba.rocketmq.store;
 
-import static org.junit.Assert.assertTrue;
+import com.alibaba.rocketmq.common.message.MessageDecoder;
+import com.alibaba.rocketmq.common.message.MessageExt;
+import com.alibaba.rocketmq.store.config.MessageStoreConfig;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -12,13 +17,7 @@ import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
-
-import com.alibaba.rocketmq.common.message.MessageDecoder;
-import com.alibaba.rocketmq.common.message.MessageExt;
-import com.alibaba.rocketmq.store.config.MessageStoreConfig;
+import static org.junit.Assert.assertTrue;
 
 
 public class RecoverTest {
@@ -111,8 +110,7 @@ public class RecoverTest {
         MessageStore messageStore = new DefaultMessageStore(messageStoreConfig);
         if (first) {
             this.storeWrite1 = messageStore;
-        }
-        else {
+        } else {
             this.storeWrite2 = messageStore;
         }
 
@@ -178,7 +176,7 @@ public class RecoverTest {
         // 第三步，收消息
         long readCnt = 0;
         for (int queueId = 0; queueId < QUEUE_TOTAL; queueId++) {
-            for (long offset = 0;;) {
+            for (long offset = 0; ; ) {
                 GetMessageResult result = storeRead.getMessage("TOPIC_A", queueId, offset, 1024 * 1024, null);
                 if (result.getStatus() == GetMessageStatus.FOUND) {
                     System.out.println(queueId + "\t" + result.getMessageCount());
@@ -186,8 +184,7 @@ public class RecoverTest {
                     offset += result.getMessageCount();
                     readCnt += result.getMessageCount();
                     result.release();
-                }
-                else {
+                } else {
                     break;
                 }
             }

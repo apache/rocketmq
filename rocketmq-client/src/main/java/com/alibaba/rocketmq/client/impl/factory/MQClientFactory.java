@@ -15,35 +15,11 @@
  */
 package com.alibaba.rocketmq.client.impl.factory;
 
-import java.net.DatagramSocket;
-import java.net.SocketException;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
-
-import org.slf4j.Logger;
-
 import com.alibaba.rocketmq.client.ClientConfig;
 import com.alibaba.rocketmq.client.admin.MQAdminExtInner;
 import com.alibaba.rocketmq.client.exception.MQBrokerException;
 import com.alibaba.rocketmq.client.exception.MQClientException;
-import com.alibaba.rocketmq.client.impl.ClientRemotingProcessor;
-import com.alibaba.rocketmq.client.impl.FindBrokerResult;
-import com.alibaba.rocketmq.client.impl.MQAdminImpl;
-import com.alibaba.rocketmq.client.impl.MQClientAPIImpl;
-import com.alibaba.rocketmq.client.impl.MQClientManager;
+import com.alibaba.rocketmq.client.impl.*;
 import com.alibaba.rocketmq.client.impl.consumer.DefaultMQPushConsumerImpl;
 import com.alibaba.rocketmq.client.impl.consumer.MQConsumerInner;
 import com.alibaba.rocketmq.client.impl.consumer.PullMessageService;
@@ -67,11 +43,20 @@ import com.alibaba.rocketmq.common.protocol.route.QueueData;
 import com.alibaba.rocketmq.common.protocol.route.TopicRouteData;
 import com.alibaba.rocketmq.remoting.exception.RemotingException;
 import com.alibaba.rocketmq.remoting.netty.NettyClientConfig;
+import org.slf4j.Logger;
+
+import java.net.DatagramSocket;
+import java.net.SocketException;
+import java.util.*;
+import java.util.Map.Entry;
+import java.util.concurrent.*;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 
 /**
  * 客户端Factory类，用来管理Producer与Consumer
- * 
+ *
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-6-15
  */
@@ -115,12 +100,12 @@ public class MQClientFactory {
 
     // 定时线程
     private final ScheduledExecutorService scheduledExecutorService = Executors
-        .newSingleThreadScheduledExecutor(new ThreadFactory() {
-            @Override
-            public Thread newThread(Runnable r) {
-                return new Thread(r, "MQClientFactoryScheduledThread");
-            }
-        });
+            .newSingleThreadScheduledExecutor(new ThreadFactory() {
+                @Override
+                public Thread newThread(Runnable r) {
+                    return new Thread(r, "MQClientFactoryScheduledThread");
+                }
+            });
 
     // 处理服务器主动发来的请求
     private final ClientRemotingProcessor clientRemotingProcessor;
@@ -143,7 +128,7 @@ public class MQClientFactory {
         this.factoryIndex = factoryIndex;
         this.nettyClientConfig = new NettyClientConfig();
         this.nettyClientConfig.setClientCallbackExecutorThreads(clientConfig
-            .getClientCallbackExecutorThreads());
+                .getClientCallbackExecutorThreads());
         this.clientRemotingProcessor = new ClientRemotingProcessor(this);
         this.mQClientAPIImpl = new MQClientAPIImpl(this.nettyClientConfig, this.clientRemotingProcessor);
 
@@ -164,9 +149,9 @@ public class MQClientFactory {
         this.defaultMQProducer.resetClientConfig(clientConfig);
 
         log.info("created a new client fatory, FactoryIndex: {} ClinetID: {} {}",//
-            this.factoryIndex, //
-            this.clientId, //
-            this.clientConfig);
+                this.factoryIndex, //
+                this.clientId, //
+                this.clientConfig);
     }
 
 
@@ -182,8 +167,7 @@ public class MQClientFactory {
 
         try {
             this.datagramSocket = new DatagramSocket(udpPort);
-        }
-        catch (SocketException e) {
+        } catch (SocketException e) {
             throw new MQClientException("instance name is a duplicate one[" + udpPort
                     + "], please set a new name"
                     + FAQUrl.suggestTodo(FAQUrl.CLIENT_INSTACNCE_NAME_DUPLICATE_URL), e);
@@ -200,8 +184,7 @@ public class MQClientFactory {
                 public void run() {
                     try {
                         MQClientFactory.this.mQClientAPIImpl.fetchNameServerAddr();
-                    }
-                    catch (Exception e) {
+                    } catch (Exception e) {
                         log.error("ScheduledTask fetchNameServerAddr exception", e);
                     }
                 }
@@ -215,8 +198,7 @@ public class MQClientFactory {
             public void run() {
                 try {
                     MQClientFactory.this.updateTopicRouteInfoFromNameServer();
-                }
-                catch (Exception e) {
+                } catch (Exception e) {
                     log.error("ScheduledTask updateTopicRouteInfoFromNameServer exception", e);
                 }
             }
@@ -229,8 +211,7 @@ public class MQClientFactory {
             public void run() {
                 try {
                     MQClientFactory.this.sendHeartbeatToAllBrokerWithLock();
-                }
-                catch (Exception e) {
+                } catch (Exception e) {
                     log.error("ScheduledTask sendHeartbeatToAllBroker exception", e);
                 }
             }
@@ -243,8 +224,7 @@ public class MQClientFactory {
             public void run() {
                 try {
                     MQClientFactory.this.persistAllConsumerOffset();
-                }
-                catch (Exception e) {
+                } catch (Exception e) {
                     log.error("ScheduledTask persistAllConsumerOffset exception", e);
                 }
             }
@@ -257,8 +237,7 @@ public class MQClientFactory {
             public void run() {
                 try {
                     MQClientFactory.this.recordSnapshotPeriodically();
-                }
-                catch (Exception e) {
+                } catch (Exception e) {
                     log.error("ScheduledTask uploadConsumerOffsets exception", e);
                 }
             }
@@ -270,8 +249,7 @@ public class MQClientFactory {
             public void run() {
                 try {
                     MQClientFactory.this.logStatsPeriodically();
-                }
-                catch (Exception e) {
+                } catch (Exception e) {
                     log.error("ScheduledTask uploadConsumerOffsets exception", e);
                 }
             }
@@ -282,28 +260,28 @@ public class MQClientFactory {
     public void start() throws MQClientException {
         synchronized (this) {
             switch (this.serviceState) {
-            case CREATE_JUST:
-                this.makesureInstanceNameIsOnly(this.clientConfig.getInstanceName());
+                case CREATE_JUST:
+                    this.makesureInstanceNameIsOnly(this.clientConfig.getInstanceName());
 
-                this.serviceState = ServiceState.RUNNING;
-                if (null == this.clientConfig.getNamesrvAddr()) {
-                    this.clientConfig.setNamesrvAddr(this.mQClientAPIImpl.fetchNameServerAddr());
-                }
+                    this.serviceState = ServiceState.RUNNING;
+                    if (null == this.clientConfig.getNamesrvAddr()) {
+                        this.clientConfig.setNamesrvAddr(this.mQClientAPIImpl.fetchNameServerAddr());
+                    }
 
-                this.mQClientAPIImpl.start();
-                this.startScheduledTask();
-                this.pullMessageService.start();
-                this.rebalanceService.start();
+                    this.mQClientAPIImpl.start();
+                    this.startScheduledTask();
+                    this.pullMessageService.start();
+                    this.rebalanceService.start();
 
-                this.defaultMQProducer.getDefaultMQProducerImpl().start(false);
-                log.info("the client factory [{}] start OK", this.clientId);
-                break;
-            case RUNNING:
-                break;
-            case SHUTDOWN_ALREADY:
-                break;
-            default:
-                break;
+                    this.defaultMQProducer.getDefaultMQProducerImpl().start(false);
+                    log.info("the client factory [{}] start OK", this.clientId);
+                    break;
+                case RUNNING:
+                    break;
+                case SHUTDOWN_ALREADY:
+                    break;
+                default:
+                    break;
             }
         }
     }
@@ -324,28 +302,28 @@ public class MQClientFactory {
 
         synchronized (this) {
             switch (this.serviceState) {
-            case CREATE_JUST:
-                break;
-            case RUNNING:
-                this.defaultMQProducer.getDefaultMQProducerImpl().shutdown(false);
+                case CREATE_JUST:
+                    break;
+                case RUNNING:
+                    this.defaultMQProducer.getDefaultMQProducerImpl().shutdown(false);
 
-                this.serviceState = ServiceState.SHUTDOWN_ALREADY;
-                this.pullMessageService.shutdown(true);
-                this.scheduledExecutorService.shutdown();
-                this.mQClientAPIImpl.shutdown();
-                this.rebalanceService.shutdown();
+                    this.serviceState = ServiceState.SHUTDOWN_ALREADY;
+                    this.pullMessageService.shutdown(true);
+                    this.scheduledExecutorService.shutdown();
+                    this.mQClientAPIImpl.shutdown();
+                    this.rebalanceService.shutdown();
 
-                if (this.datagramSocket != null) {
-                    this.datagramSocket.close();
-                    this.datagramSocket = null;
-                }
-                MQClientManager.getInstance().removeClientFactory(this.clientId);
-                log.info("the client factory [{}] shutdown OK", this.clientId);
-                break;
-            case SHUTDOWN_ALREADY:
-                break;
-            default:
-                break;
+                    if (this.datagramSocket != null) {
+                        this.datagramSocket.close();
+                        this.datagramSocket = null;
+                    }
+                    MQClientManager.getInstance().removeClientFactory(this.clientId);
+                    log.info("the client factory [{}] shutdown OK", this.clientId);
+                    break;
+                case SHUTDOWN_ALREADY:
+                    break;
+                default:
+                    break;
             }
         }
     }
@@ -396,19 +374,15 @@ public class MQClientFactory {
             if (this.lockHeartbeat.tryLock(LockTimeoutMillis, TimeUnit.MILLISECONDS)) {
                 try {
                     this.unregisterClient(producerGroup, consumerGroup);
-                }
-                catch (Exception e) {
+                } catch (Exception e) {
                     log.error("unregisterClient exception", e);
-                }
-                finally {
+                } finally {
                     this.lockHeartbeat.unlock();
                 }
-            }
-            else {
+            } else {
                 log.warn("lock heartBeat, but failed.");
             }
-        }
-        catch (InterruptedException e) {
+        } catch (InterruptedException e) {
             log.warn("unregisterClientWithLock exception", e);
         }
     }
@@ -423,18 +397,15 @@ public class MQClientFactory {
                     if (addr != null) {
                         try {
                             this.mQClientAPIImpl.unregisterClient(addr, this.clientId, producerGroup,
-                                consumerGroup, 3000);
+                                    consumerGroup, 3000);
                             log.info(
-                                "unregister client[Producer: {} Consumer: {}] from broker[{} {} {}] success",
-                                producerGroup, consumerGroup, name, id, addr);
-                        }
-                        catch (RemotingException e) {
+                                    "unregister client[Producer: {} Consumer: {}] from broker[{} {} {}] success",
+                                    producerGroup, consumerGroup, name, id, addr);
+                        } catch (RemotingException e) {
                             log.error("unregister client exception from broker: " + addr, e);
-                        }
-                        catch (MQBrokerException e) {
+                        } catch (MQBrokerException e) {
                             log.error("unregister client exception from broker: " + addr, e);
-                        }
-                        catch (InterruptedException e) {
+                        } catch (InterruptedException e) {
                             log.error("unregister client exception from broker: " + addr, e);
                         }
                     }
@@ -484,15 +455,12 @@ public class MQClientFactory {
         if (this.lockHeartbeat.tryLock()) {
             try {
                 this.sendHeartbeatToAllBroker();
-            }
-            catch (final Exception e) {
+            } catch (final Exception e) {
                 log.error("sendHeartbeatToAllBroker exception", e);
-            }
-            finally {
+            } finally {
                 this.lockHeartbeat.unlock();
             }
-        }
-        else {
+        } else {
             log.warn("lock heartBeat, but failed.");
         }
     }
@@ -523,8 +491,7 @@ public class MQClientFactory {
                             this.mQClientAPIImpl.sendHearbeat(addr, heartbeatData, 3000);
                             log.debug("send heart beat to broker[{} {} {}] success", name, id, addr);
                             log.debug(heartbeatData.toString());
-                        }
-                        catch (Exception e) {
+                        } catch (Exception e) {
                             log.error("send heart beat to broker exception", e);
                         }
                     }
@@ -607,8 +574,7 @@ public class MQClientFactory {
             if (impl != null) {
                 try {
                     impl.doRebalance();
-                }
-                catch (Exception e) {
+                } catch (Exception e) {
                     log.error("doRebalance exception", e);
                 }
             }
@@ -628,7 +594,7 @@ public class MQClientFactory {
 
     /**
      * 管理类的接口查询Broker地址，Master优先
-     * 
+     *
      * @param brokerName
      * @return
      */
@@ -640,7 +606,8 @@ public class MQClientFactory {
         HashMap<Long/* brokerId */, String/* address */> map = this.brokerAddrTable.get(brokerName);
         if (map != null && !map.isEmpty()) {
             // TODO 如果有多个Slave，可能会每次都选中相同的Slave，这里需要优化
-            FOR_SEG: for (Map.Entry<Long, String> entry : map.entrySet()) {
+            FOR_SEG:
+            for (Map.Entry<Long, String> entry : map.entrySet()) {
                 Long id = entry.getKey();
                 brokerAddr = entry.getValue();
                 if (brokerAddr != null) {
@@ -648,8 +615,7 @@ public class MQClientFactory {
                     if (MixAll.MASTER_ID == id) {
                         slave = false;
                         break FOR_SEG;
-                    }
-                    else {
+                    } else {
                         slave = true;
                     }
                     break;
@@ -683,9 +649,9 @@ public class MQClientFactory {
      * 订阅消息过程中，寻找Broker地址，取Master还是Slave由参数决定
      */
     public FindBrokerResult findBrokerAddressInSubscribe(//
-            final String brokerName,//
-            final long brokerId,//
-            final boolean onlyThisBroker//
+                                                         final String brokerName,//
+                                                         final long brokerId,//
+                                                         final boolean onlyThisBroker//
     ) {
         String brokerAddr = null;
         boolean slave = false;
@@ -738,8 +704,7 @@ public class MQClientFactory {
         if (null != brokerAddr) {
             try {
                 return this.mQClientAPIImpl.getConsumerIdListByGroup(brokerAddr, group, 3000);
-            }
-            catch (Exception e) {
+            } catch (Exception e) {
                 log.warn("getConsumerIdListByGroup exception, " + brokerAddr + " " + group, e);
             }
         }
@@ -749,7 +714,7 @@ public class MQClientFactory {
 
 
     public static TopicPublishInfo topicRouteData2TopicPublishInfo(final String topic,
-            final TopicRouteData route) {
+                                                                   final TopicRouteData route) {
         TopicPublishInfo info = new TopicPublishInfo();
         // 顺序消息
         if (route.getOrderTopicConf() != null && route.getOrderTopicConf().length() > 0) {
@@ -787,7 +752,7 @@ public class MQClientFactory {
 
 
     public static Set<MessageQueue> topicRouteData2TopicSubscribeInfo(final String topic,
-            final TopicRouteData route) {
+                                                                      final TopicRouteData route) {
         Set<MessageQueue> mqList = new HashSet<MessageQueue>();
         List<QueueData> qds = route.getQueueDatas();
         for (QueueData qd : qds) {
@@ -891,8 +856,7 @@ public class MQClientFactory {
                         boolean changed = null == old || !old.equals(topicRouteData);
                         if (!changed) {
                             changed = this.isNeedUpdateTopicRouteInfo(topic);
-                        }
-                        else {
+                        } else {
                             log.info("the topic[{}] route info changed, {}", topic, topicRouteData);
                         }
 
@@ -935,27 +899,22 @@ public class MQClientFactory {
                             this.topicRouteTable.put(topic, topicRouteData);
                             return true;
                         }
-                    }
-                    else {
+                    } else {
                         log.warn(
-                            "updateTopicRouteInfoFromNameServer, getTopicRouteInfoFromNameServer return null, Topic: {}",
-                            topic);
+                                "updateTopicRouteInfoFromNameServer, getTopicRouteInfoFromNameServer return null, Topic: {}",
+                                topic);
                     }
-                }
-                catch (Exception e) {
+                } catch (Exception e) {
                     if (!topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
                         log.warn("updateTopicRouteInfoFromNameServer Exception", e);
                     }
-                }
-                finally {
+                } finally {
                     this.lockNamesrv.unlock();
                 }
-            }
-            else {
+            } else {
                 log.warn("updateTopicRouteInfoFromNameServer tryLock timeout {}ms", LockTimeoutMillis);
             }
-        }
-        catch (InterruptedException e) {
+        } catch (InterruptedException e) {
             log.warn("updateTopicRouteInfoFromNameServer Exception", e);
         }
 

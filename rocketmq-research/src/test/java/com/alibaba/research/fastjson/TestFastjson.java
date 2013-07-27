@@ -1,12 +1,11 @@
 package com.alibaba.research.fastjson;
 
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicLong;
-
-import org.junit.Test;
-
 import com.alibaba.fastjson.JSON;
 import com.alibaba.rocketmq.common.message.MessageQueue;
+import org.junit.Test;
+
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 
 
 /**
@@ -73,8 +72,7 @@ class OffsetSerializeWrapper {
         if (offsetTable == null) {
             if (other.offsetTable != null)
                 return false;
-        }
-        else if (!offsetTable.equals(other.offsetTable))
+        } else if (!offsetTable.equals(other.offsetTable))
             return false;
         return true;
     }

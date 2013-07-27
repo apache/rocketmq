@@ -15,14 +15,14 @@
  */
 package com.alibaba.rocketmq.client.consumer.store;
 
-import java.util.Set;
-
 import com.alibaba.rocketmq.common.message.MessageQueue;
+
+import java.util.Set;
 
 
 /**
  * Consumer Offset存储接口
- * 
+ *
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-25
  */

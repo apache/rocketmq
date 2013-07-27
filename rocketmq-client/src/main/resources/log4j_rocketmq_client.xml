@@ -4,40 +4,40 @@
 
 <log4j:configuration xmlns:log4j="http://jakarta.apache.org/log4j/">
 
-	<appender name="STDOUT-APPENDER" class="org.apache.log4j.ConsoleAppender">
-		<param name="encoding" value="GBK" />
-		<param name="target" value="System.out" />
-		<layout class="org.apache.log4j.PatternLayout">
-			<param name="ConversionPattern" value="%-5p %c{2} , %m%n" />
-		</layout>
-	</appender>
+    <appender name="STDOUT-APPENDER" class="org.apache.log4j.ConsoleAppender">
+        <param name="encoding" value="GBK"/>
+        <param name="target" value="System.out"/>
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="%-5p %c{2} , %m%n"/>
+        </layout>
+    </appender>
 
-	<appender name="RocketmqClientAppender" class="org.apache.log4j.DailyRollingFileAppender">
-		<param name="file" value="${user.home}/logs/rocketmq_client.log" />
-		<param name="append" value="true" />
-		<param name="encoding" value="GBK" />
-		<param name="DatePattern" value="'.'yyyy-MM-dd-HH" />
-		<layout class="org.apache.log4j.PatternLayout">
-			<param name="ConversionPattern" value="%d %-5p %c{2} , %m%n" />
-		</layout>
-		<filter class="org.apache.log4j.varia.LevelRangeFilter">
-			<param name="LevelMin" value="INFO" />
-			<param name="LevelMax" value="WARN" />
-		</filter>
-	</appender>
+    <appender name="RocketmqClientAppender" class="org.apache.log4j.DailyRollingFileAppender">
+        <param name="file" value="${user.home}/logs/rocketmq_client.log"/>
+        <param name="append" value="true"/>
+        <param name="encoding" value="GBK"/>
+        <param name="DatePattern" value="'.'yyyy-MM-dd-HH"/>
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="%d %-5p %c{2} , %m%n"/>
+        </layout>
+        <filter class="org.apache.log4j.varia.LevelRangeFilter">
+            <param name="LevelMin" value="INFO"/>
+            <param name="LevelMax" value="WARN"/>
+        </filter>
+    </appender>
 
-	<logger name="RocketmqClient" additivity="true">
-		<level value="INFO" />
-		<appender-ref ref="RocketmqClientAppender" />
-	</logger>
-	<logger name="RocketmqCommon" additivity="true">
-		<level value="INFO" />
-		<appender-ref ref="RocketmqClientAppender" />
-	</logger>
-	<logger name="RocketmqRemoting" additivity="true">
-		<level value="INFO" />
-		<appender-ref ref="RocketmqClientAppender" />
-	</logger>
+    <logger name="RocketmqClient" additivity="true">
+        <level value="INFO"/>
+        <appender-ref ref="RocketmqClientAppender"/>
+    </logger>
+    <logger name="RocketmqCommon" additivity="true">
+        <level value="INFO"/>
+        <appender-ref ref="RocketmqClientAppender"/>
+    </logger>
+    <logger name="RocketmqRemoting" additivity="true">
+        <level value="INFO"/>
+        <appender-ref ref="RocketmqClientAppender"/>
+    </logger>
 
 </log4j:configuration>
 

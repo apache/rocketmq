@@ -20,7 +20,7 @@ import java.io.Serializable;
 
 /**
  * 消息队列数据结构，对外提供
- * 
+ *
  * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public class MessageQueue implements Comparable<MessageQueue>, Serializable {
@@ -102,16 +102,14 @@ public class MessageQueue implements Comparable<MessageQueue>, Serializable {
         if (brokerName == null) {
             if (other.brokerName != null)
                 return false;
-        }
-        else if (!brokerName.equals(other.brokerName))
+        } else if (!brokerName.equals(other.brokerName))
             return false;
         if (queueId != other.queueId)
             return false;
         if (topic == null) {
             if (other.topic != null)
                 return false;
-        }
-        else if (!topic.equals(other.topic))
+        } else if (!topic.equals(other.topic))
             return false;
         return true;
     }

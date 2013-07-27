@@ -17,7 +17,7 @@ package com.alibaba.rocketmq.store;
 
 /**
  * 向物理队列写入消息返回结果
- * 
+ *
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-21
  */
@@ -37,7 +37,7 @@ public class AppendMessageResult {
 
 
     public AppendMessageResult(AppendMessageStatus status, long wroteOffset, int wroteBytes, String msgId,
-            long storeTimestamp, long logicsOffset) {
+                               long storeTimestamp, long logicsOffset) {
         this.status = status;
         this.wroteOffset = wroteOffset;
         this.wroteBytes = wroteBytes;

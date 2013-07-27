@@ -15,18 +15,18 @@
  */
 package com.alibaba.rocketmq.client.consumer;
 
-import java.util.Set;
-
 import com.alibaba.rocketmq.common.message.MessageQueue;
+
+import java.util.Set;
 
 
 /**
  * 队列变化监听器
- * 
+ *
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-24
  */
 public interface MessageQueueListener {
     public void messageQueueChanged(final String topic, final Set<MessageQueue> mqAll,
-            final Set<MessageQueue> mqDivided);
+                                    final Set<MessageQueue> mqDivided);
 }

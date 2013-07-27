@@ -15,32 +15,29 @@
  */
 package com.alibaba.rocketmq.client.consumer;
 
-import java.util.List;
-
 import com.alibaba.rocketmq.common.message.MessageQueue;
+
+import java.util.List;
 
 
 /**
  * Consumer队列自动分配策略
- * 
+ *
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-24
  */
 public interface AllocateMessageQueueStrategy {
     /**
      * 给当前的ConsumerId分配队列
-     * 
-     * @param currentCID
-     *            当前ConsumerId
-     * @param mqAll
-     *            当前Topic的所有队列集合，无重复数据，且有序
-     * @param cidAll
-     *            当前订阅组的所有Consumer集合，无重复数据，且有序
+     *
+     * @param currentCID 当前ConsumerId
+     * @param mqAll      当前Topic的所有队列集合，无重复数据，且有序
+     * @param cidAll     当前订阅组的所有Consumer集合，无重复数据，且有序
      * @return 分配结果，无重复数据
      */
     public List<MessageQueue> allocate(//
-            final String currentCID,//
-            final List<MessageQueue> mqAll,//
-            final List<String> cidAll//
+                                       final String currentCID,//
+                                       final List<MessageQueue> mqAll,//
+                                       final List<String> cidAll//
     );
 }

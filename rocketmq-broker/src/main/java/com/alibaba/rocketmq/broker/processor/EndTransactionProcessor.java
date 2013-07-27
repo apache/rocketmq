@@ -15,11 +15,6 @@
  */
 package com.alibaba.rocketmq.broker.processor;
 
-import io.netty.channel.ChannelHandlerContext;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.alibaba.rocketmq.broker.BrokerController;
 import com.alibaba.rocketmq.common.TopicFilterType;
 import com.alibaba.rocketmq.common.constant.LoggerName;
@@ -37,11 +32,14 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingProtos.ResponseCode;
 import com.alibaba.rocketmq.store.MessageExtBrokerInner;
 import com.alibaba.rocketmq.store.MessageStore;
 import com.alibaba.rocketmq.store.PutMessageResult;
+import io.netty.channel.ChannelHandlerContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 /**
  * Commit或Rollback事务
- * 
+ *
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-26
  */
@@ -93,80 +91,80 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
         final EndTransactionRequestHeader requestHeader =
                 (EndTransactionRequestHeader) request
-                    .decodeCommandCustomHeader(EndTransactionRequestHeader.class);
+                        .decodeCommandCustomHeader(EndTransactionRequestHeader.class);
 
         // 回查应答
         if (requestHeader.getFromTransactionCheck()) {
             switch (requestHeader.getCommitOrRollback()) {
-            // 不提交也不回滚
-            case MessageSysFlag.TransactionNotType: {
-                logTransaction.warn("check producer[{}] transaction state, but it's pending status.\n"//
-                        + "RequestHeader: {} Remark: {}",//
-                    RemotingHelper.parseChannelRemoteAddr(ctx.channel()), //
-                    requestHeader.toString(),//
-                    request.getRemark());
-                return null;
-            }
-            // 提交
-            case MessageSysFlag.TransactionCommitType: {
-                logTransaction.warn(
-                    "check producer[{}] transaction state, the producer commit the message.\n"//
+                // 不提交也不回滚
+                case MessageSysFlag.TransactionNotType: {
+                    logTransaction.warn("check producer[{}] transaction state, but it's pending status.\n"//
                             + "RequestHeader: {} Remark: {}",//
-                    RemotingHelper.parseChannelRemoteAddr(ctx.channel()), //
-                    requestHeader.toString(),//
-                    request.getRemark());
+                            RemotingHelper.parseChannelRemoteAddr(ctx.channel()), //
+                            requestHeader.toString(),//
+                            request.getRemark());
+                    return null;
+                }
+                // 提交
+                case MessageSysFlag.TransactionCommitType: {
+                    logTransaction.warn(
+                            "check producer[{}] transaction state, the producer commit the message.\n"//
+                                    + "RequestHeader: {} Remark: {}",//
+                            RemotingHelper.parseChannelRemoteAddr(ctx.channel()), //
+                            requestHeader.toString(),//
+                            request.getRemark());
 
-                break;
-            }
-            // 回滚
-            case MessageSysFlag.TransactionRollbackType: {
-                logTransaction.warn(
-                    "check producer[{}] transaction state, the producer rollback the message.\n"//
-                            + "RequestHeader: {} Remark: {}",//
-                    RemotingHelper.parseChannelRemoteAddr(ctx.channel()), //
-                    requestHeader.toString(),//
-                    request.getRemark());
-                break;
-            }
-            default:
-                return null;
+                    break;
+                }
+                // 回滚
+                case MessageSysFlag.TransactionRollbackType: {
+                    logTransaction.warn(
+                            "check producer[{}] transaction state, the producer rollback the message.\n"//
+                                    + "RequestHeader: {} Remark: {}",//
+                            RemotingHelper.parseChannelRemoteAddr(ctx.channel()), //
+                            requestHeader.toString(),//
+                            request.getRemark());
+                    break;
+                }
+                default:
+                    return null;
             }
         }
         // 正常提交回滚
         else {
             switch (requestHeader.getCommitOrRollback()) {
-            // 不提交也不回滚
-            case MessageSysFlag.TransactionNotType: {
-                logTransaction.warn(
-                    "the producer[{}] end transaction in sending message,  and it's pending status.\n"//
-                            + "RequestHeader: {} Remark: {}",//
-                    RemotingHelper.parseChannelRemoteAddr(ctx.channel()), //
-                    requestHeader.toString(),//
-                    request.getRemark());
-                return null;
-            }
-            // 提交
-            case MessageSysFlag.TransactionCommitType: {
-                break;
-            }
-            // 回滚
-            case MessageSysFlag.TransactionRollbackType: {
-                logTransaction.warn(
-                    "the producer[{}] end transaction in sending message, rollback the message.\n"//
-                            + "RequestHeader: {} Remark: {}",//
-                    RemotingHelper.parseChannelRemoteAddr(ctx.channel()), //
-                    requestHeader.toString(),//
-                    request.getRemark());
-                break;
-            }
-            default:
-                return null;
+                // 不提交也不回滚
+                case MessageSysFlag.TransactionNotType: {
+                    logTransaction.warn(
+                            "the producer[{}] end transaction in sending message,  and it's pending status.\n"//
+                                    + "RequestHeader: {} Remark: {}",//
+                            RemotingHelper.parseChannelRemoteAddr(ctx.channel()), //
+                            requestHeader.toString(),//
+                            request.getRemark());
+                    return null;
+                }
+                // 提交
+                case MessageSysFlag.TransactionCommitType: {
+                    break;
+                }
+                // 回滚
+                case MessageSysFlag.TransactionRollbackType: {
+                    logTransaction.warn(
+                            "the producer[{}] end transaction in sending message, rollback the message.\n"//
+                                    + "RequestHeader: {} Remark: {}",//
+                            RemotingHelper.parseChannelRemoteAddr(ctx.channel()), //
+                            requestHeader.toString(),//
+                            request.getRemark());
+                    break;
+                }
+                default:
+                    return null;
             }
         }
 
         final MessageExt msgExt =
                 this.brokerController.getMessageStore().lookMessageByOffset(
-                    requestHeader.getCommitLogOffset());
+                        requestHeader.getCommitLogOffset());
         if (msgExt != null) {
             // 校验Producer Group
             final String pgroupRead = msgExt.getProperty(Message.PROPERTY_PRODUCER_GROUP);
@@ -192,7 +190,7 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
 
             MessageExtBrokerInner msgInner = this.endMessageTransaction(msgExt);
             msgInner.setSysFlag(MessageSysFlag.resetTransactionValue(msgInner.getSysFlag(),
-                requestHeader.getCommitOrRollback()));
+                    requestHeader.getCommitOrRollback()));
 
             msgInner.setQueueOffset(requestHeader.getTranStateTableOffset());
             msgInner.setPreparedTransactionOffset(requestHeader.getCommitLogOffset());
@@ -205,46 +203,44 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
             final PutMessageResult putMessageResult = messageStore.putMessage(msgInner);
             if (putMessageResult != null) {
                 switch (putMessageResult.getPutMessageStatus()) {
-                // Success
-                case PUT_OK:
-                case FLUSH_DISK_TIMEOUT:
-                case FLUSH_SLAVE_TIMEOUT:
-                case SLAVE_NOT_AVAILABLE:
-                    response.setCode(ResponseCode.SUCCESS_VALUE);
-                    response.setRemark(null);
-                    break;
+                    // Success
+                    case PUT_OK:
+                    case FLUSH_DISK_TIMEOUT:
+                    case FLUSH_SLAVE_TIMEOUT:
+                    case SLAVE_NOT_AVAILABLE:
+                        response.setCode(ResponseCode.SUCCESS_VALUE);
+                        response.setRemark(null);
+                        break;
 
-                // Failed
-                case CREATE_MAPEDFILE_FAILED:
-                    response.setCode(ResponseCode.SYSTEM_ERROR_VALUE);
-                    response.setRemark("create maped file failed.");
-                    break;
-                case MESSAGE_ILLEGAL:
-                    response.setCode(MQResponseCode.MESSAGE_ILLEGAL_VALUE);
-                    response.setRemark("the message is illegal, maybe length not matched.");
-                    break;
-                case SERVICE_NOT_AVAILABLE:
-                    response.setCode(MQResponseCode.SERVICE_NOT_AVAILABLE_VALUE);
-                    response.setRemark("service not available now.");
-                    break;
-                case UNKNOWN_ERROR:
-                    response.setCode(ResponseCode.SYSTEM_ERROR_VALUE);
-                    response.setRemark("UNKNOWN_ERROR");
-                    break;
-                default:
-                    response.setCode(ResponseCode.SYSTEM_ERROR_VALUE);
-                    response.setRemark("UNKNOWN_ERROR DEFAULT");
-                    break;
+                    // Failed
+                    case CREATE_MAPEDFILE_FAILED:
+                        response.setCode(ResponseCode.SYSTEM_ERROR_VALUE);
+                        response.setRemark("create maped file failed.");
+                        break;
+                    case MESSAGE_ILLEGAL:
+                        response.setCode(MQResponseCode.MESSAGE_ILLEGAL_VALUE);
+                        response.setRemark("the message is illegal, maybe length not matched.");
+                        break;
+                    case SERVICE_NOT_AVAILABLE:
+                        response.setCode(MQResponseCode.SERVICE_NOT_AVAILABLE_VALUE);
+                        response.setRemark("service not available now.");
+                        break;
+                    case UNKNOWN_ERROR:
+                        response.setCode(ResponseCode.SYSTEM_ERROR_VALUE);
+                        response.setRemark("UNKNOWN_ERROR");
+                        break;
+                    default:
+                        response.setCode(ResponseCode.SYSTEM_ERROR_VALUE);
+                        response.setRemark("UNKNOWN_ERROR DEFAULT");
+                        break;
                 }
 
                 return response;
-            }
-            else {
+            } else {
                 response.setCode(ResponseCode.SYSTEM_ERROR_VALUE);
                 response.setRemark("store putMessage return null");
             }
-        }
-        else {
+        } else {
             response.setCode(ResponseCode.SYSTEM_ERROR_VALUE);
             response.setRemark("find prepared transaction message failed");
             return response;

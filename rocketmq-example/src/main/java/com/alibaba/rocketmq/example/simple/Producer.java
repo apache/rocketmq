@@ -23,7 +23,7 @@ import com.alibaba.rocketmq.common.message.Message;
 
 /**
  * Producer，发送消息
- * 
+ *
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-16
  */
@@ -33,17 +33,16 @@ public class Producer {
 
         producer.start();
 
-        String[] tags = new String[] { "TagA", "TagB", "TagC", "TagD", "TagE" };
+        String[] tags = new String[]{"TagA", "TagB", "TagC", "TagD", "TagE"};
 
         for (int i = 0; i < 1000; i++) {
             try {
                 Message msg =
                         new Message("TopicTest", tags[i % tags.length], "KEY" + i,
-                            ("Hello RocketMQ " + i).getBytes());
+                                ("Hello RocketMQ " + i).getBytes());
                 SendResult sendResult = producer.send(msg);
                 System.out.println(sendResult);
-            }
-            catch (Exception e) {
+            } catch (Exception e) {
                 e.printStackTrace();
                 Thread.sleep(1000);
             }

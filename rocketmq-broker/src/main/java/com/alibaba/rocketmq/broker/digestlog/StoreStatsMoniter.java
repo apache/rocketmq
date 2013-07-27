@@ -15,19 +15,18 @@
  */
 package com.alibaba.rocketmq.broker.digestlog;
 
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-
+import com.alibaba.rocketmq.broker.BrokerController;
+import com.alibaba.rocketmq.store.DefaultMessageStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.alibaba.rocketmq.broker.BrokerController;
-import com.alibaba.rocketmq.store.DefaultMessageStore;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 
 /**
  * 存储统计
- * 
+ *
  * @author 菱叶<jin.qian@alipay.com>
  * @since 2013-7-18
  */
@@ -58,7 +57,7 @@ public class StoreStatsMoniter {
                 sb.append("Client Put And get Count").append(",");
                 sb.append("Topic[").append(topic).append("],");
                 sb.append("Mq[").append(brokerController.getBrokerConfig().getBrokerName() + "-" + queueId)
-                    .append("],");
+                        .append("],");
                 sb.append("PutOffset[").append(maxoffsize).append("],");
                 sb.append("group[").append(group).append("],");
                 sb.append("GetOffset[").append(offsetTable.get(key).get(queueId)).append("]");

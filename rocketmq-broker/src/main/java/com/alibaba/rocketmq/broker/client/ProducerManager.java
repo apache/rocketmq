@@ -15,30 +15,23 @@
  */
 package com.alibaba.rocketmq.broker.client;
 
+import com.alibaba.rocketmq.common.constant.LoggerName;
+import com.alibaba.rocketmq.remoting.common.RemotingHelper;
+import com.alibaba.rocketmq.remoting.common.RemotingUtil;
 import io.netty.channel.Channel;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Random;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.alibaba.rocketmq.common.constant.LoggerName;
-import com.alibaba.rocketmq.remoting.common.RemotingHelper;
-import com.alibaba.rocketmq.remoting.common.RemotingUtil;
-
 
 /**
  * 管理Producer组及各个Producer连接
- * 
+ *
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-26
  */
@@ -85,16 +78,13 @@ public class ProducerManager {
                         ClientChannelInfo info = channelInfoList.get(index);
                         return info;
                     }
-                }
-                finally {
+                } finally {
                     this.hashcodeChannelLock.unlock();
                 }
-            }
-            else {
+            } else {
                 log.warn("ProducerManager pickProducerChannelRandomly lock timeout");
             }
-        }
-        catch (InterruptedException e) {
+        } catch (InterruptedException e) {
             log.error("", e);
         }
 
@@ -122,24 +112,21 @@ public class ProducerManager {
                                     System.currentTimeMillis() - clientChannelInfo.getLastUpdateTimestamp();
                             if (diff > ChannelExpiredTimeout) {
                                 log.warn(
-                                    "SCAN: remove expired channel[{}] from ProducerManager hashcodeChannelTable, producer group hash code: {}",
-                                    RemotingHelper.parseChannelRemoteAddr(clientChannelInfo.getChannel()),
-                                    groupHashCode);
+                                        "SCAN: remove expired channel[{}] from ProducerManager hashcodeChannelTable, producer group hash code: {}",
+                                        RemotingHelper.parseChannelRemoteAddr(clientChannelInfo.getChannel()),
+                                        groupHashCode);
                                 RemotingUtil.closeChannel(clientChannelInfo.getChannel());
                                 itChannelInfo.remove();
                             }
                         }
                     }
-                }
-                finally {
+                } finally {
                     this.hashcodeChannelLock.unlock();
                 }
-            }
-            else {
+            } else {
                 log.warn("ProducerManager scanNotActiveChannel lock timeout");
             }
-        }
-        catch (InterruptedException e) {
+        } catch (InterruptedException e) {
             log.error("", e);
         }
 
@@ -147,7 +134,7 @@ public class ProducerManager {
             if (this.groupChannelLock.tryLock(LockTimeoutMillis, TimeUnit.MILLISECONDS)) {
                 try {
                     for (final Map.Entry<String, HashMap<Channel, ClientChannelInfo>> entry : this.groupChannelTable
-                        .entrySet()) {
+                            .entrySet()) {
                         final String group = entry.getKey();
                         final HashMap<Channel, ClientChannelInfo> chlMap = entry.getValue();
 
@@ -161,22 +148,19 @@ public class ProducerManager {
                             if (diff > ChannelExpiredTimeout) {
                                 it.remove();
                                 log.warn(
-                                    "SCAN: remove expired channel[{}] from ProducerManager groupChannelTable, producer group name: {}",
-                                    RemotingHelper.parseChannelRemoteAddr(info.getChannel()), group);
+                                        "SCAN: remove expired channel[{}] from ProducerManager groupChannelTable, producer group name: {}",
+                                        RemotingHelper.parseChannelRemoteAddr(info.getChannel()), group);
                                 RemotingUtil.closeChannel(info.getChannel());
                             }
                         }
                     }
-                }
-                finally {
+                } finally {
                     this.groupChannelLock.unlock();
                 }
-            }
-            else {
+            } else {
                 log.warn("ProducerManager scanNotActiveChannel lock timeout");
             }
-        }
-        catch (InterruptedException e) {
+        } catch (InterruptedException e) {
             log.error("", e);
         }
     }
@@ -188,26 +172,23 @@ public class ProducerManager {
                 if (this.hashcodeChannelLock.tryLock(LockTimeoutMillis, TimeUnit.MILLISECONDS)) {
                     try {
                         for (final Map.Entry<Integer, List<ClientChannelInfo>> entry : this.hashcodeChannelTable
-                            .entrySet()) {
+                                .entrySet()) {
                             final Integer groupHashCode = entry.getKey();
                             final List<ClientChannelInfo> clientChannelInfoList = entry.getValue();
                             boolean result = clientChannelInfoList.remove(new ClientChannelInfo(channel));
                             if (result) {
                                 log.info(
-                                    "NETTY EVENT: remove channel[{}][{}] from ProducerManager hashcodeChannelTable, producer group hash code: {}",
-                                    RemotingHelper.parseChannelRemoteAddr(channel), remoteAddr, groupHashCode);
+                                        "NETTY EVENT: remove channel[{}][{}] from ProducerManager hashcodeChannelTable, producer group hash code: {}",
+                                        RemotingHelper.parseChannelRemoteAddr(channel), remoteAddr, groupHashCode);
                             }
                         }
-                    }
-                    finally {
+                    } finally {
                         this.hashcodeChannelLock.unlock();
                     }
-                }
-                else {
+                } else {
                     log.warn("ProducerManager doChannelCloseEvent lock timeout");
                 }
-            }
-            catch (InterruptedException e) {
+            } catch (InterruptedException e) {
                 log.error("", e);
             }
 
@@ -215,7 +196,7 @@ public class ProducerManager {
                 if (this.groupChannelLock.tryLock(LockTimeoutMillis, TimeUnit.MILLISECONDS)) {
                     try {
                         for (final Map.Entry<String, HashMap<Channel, ClientChannelInfo>> entry : this.groupChannelTable
-                            .entrySet()) {
+                                .entrySet()) {
                             final String group = entry.getKey();
                             final HashMap<Channel, ClientChannelInfo> clientChannelInfoTable =
                                     entry.getValue();
@@ -223,20 +204,17 @@ public class ProducerManager {
                                     clientChannelInfoTable.remove(channel);
                             if (clientChannelInfo != null) {
                                 log.info(
-                                    "NETTY EVENT: remove channel[{}][{}] from ProducerManager groupChannelTable, producer group: {}",
-                                    clientChannelInfo.toString(), remoteAddr, group);
+                                        "NETTY EVENT: remove channel[{}][{}] from ProducerManager groupChannelTable, producer group: {}",
+                                        clientChannelInfo.toString(), remoteAddr, group);
                             }
                         }
-                    }
-                    finally {
+                    } finally {
                         this.groupChannelLock.unlock();
                     }
-                }
-                else {
+                } else {
                     log.warn("ProducerManager doChannelCloseEvent lock timeout");
                 }
-            }
-            catch (InterruptedException e) {
+            } catch (InterruptedException e) {
                 log.error("", e);
             }
         }
@@ -263,20 +241,17 @@ public class ProducerManager {
                     if (null == clientChannelInfoFound) {
                         clientChannelInfoList.add(clientChannelInfo);
                     }
-                }
-                finally {
+                } finally {
                     this.hashcodeChannelLock.unlock();
                 }
 
                 if (clientChannelInfoFound != null) {
                     clientChannelInfoFound.setLastUpdateTimestamp(System.currentTimeMillis());
                 }
-            }
-            else {
+            } else {
                 log.warn("ProducerManager registerProducer lock timeout");
             }
-        }
-        catch (InterruptedException e) {
+        } catch (InterruptedException e) {
             log.error("", e);
         }
 
@@ -295,22 +270,19 @@ public class ProducerManager {
                     if (null == clientChannelInfoFound) {
                         channelTable.put(clientChannelInfo.getChannel(), clientChannelInfo);
                         log.info("new producer connected, group: {} channel: {}", group,
-                            clientChannelInfo.toString());
+                                clientChannelInfo.toString());
                     }
-                }
-                finally {
+                } finally {
                     this.groupChannelLock.unlock();
                 }
 
                 if (clientChannelInfoFound != null) {
                     clientChannelInfoFound.setLastUpdateTimestamp(System.currentTimeMillis());
                 }
-            }
-            else {
+            } else {
                 log.warn("ProducerManager registerProducer lock timeout");
             }
-        }
-        catch (InterruptedException e) {
+        } catch (InterruptedException e) {
             log.error("", e);
         }
     }
@@ -326,7 +298,7 @@ public class ProducerManager {
                         boolean result = clientChannelInfoList.remove(clientChannelInfo);
                         if (result) {
                             log.info("unregister a producer[{}] from hashcodeChannelTable {}", group,
-                                clientChannelInfo.toString());
+                                    clientChannelInfo.toString());
                         }
 
                         if (clientChannelInfoList.isEmpty()) {
@@ -334,16 +306,13 @@ public class ProducerManager {
                             log.info("unregister a producer group[{}] from hashcodeChannelTable", group);
                         }
                     }
-                }
-                finally {
+                } finally {
                     this.hashcodeChannelLock.unlock();
                 }
-            }
-            else {
+            } else {
                 log.warn("ProducerManager unregisterProducer lock timeout");
             }
-        }
-        catch (InterruptedException e) {
+        } catch (InterruptedException e) {
             log.error("", e);
         }
 
@@ -355,7 +324,7 @@ public class ProducerManager {
                         ClientChannelInfo old = channelTable.remove(clientChannelInfo.getChannel());
                         if (old != null) {
                             log.info("unregister a producer[{}] from groupChannelTable {}", group,
-                                clientChannelInfo.toString());
+                                    clientChannelInfo.toString());
                         }
 
                         if (channelTable.isEmpty()) {
@@ -363,16 +332,13 @@ public class ProducerManager {
                             log.info("unregister a producer group[{}] from groupChannelTable", group);
                         }
                     }
-                }
-                finally {
+                } finally {
                     this.groupChannelLock.unlock();
                 }
-            }
-            else {
+            } else {
                 log.warn("ProducerManager unregisterProducer lock timeout");
             }
-        }
-        catch (InterruptedException e) {
+        } catch (InterruptedException e) {
             log.error("", e);
         }
     }

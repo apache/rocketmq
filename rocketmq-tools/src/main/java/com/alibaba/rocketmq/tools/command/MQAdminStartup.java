@@ -15,28 +15,26 @@
  */
 package com.alibaba.rocketmq.tools.command;
 
-import java.util.ArrayList;
-import java.util.List;
-
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.Options;
-import org.apache.commons.cli.PosixParser;
-import org.slf4j.LoggerFactory;
-
 import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.joran.JoranConfigurator;
 import ch.qos.logback.core.joran.spi.JoranException;
-
 import com.alibaba.rocketmq.common.MQVersion;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 import com.alibaba.rocketmq.tools.command.consumer.UpdateSubGroupSubCommand;
 import com.alibaba.rocketmq.tools.command.topic.UpdateTopicSubCommand;
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.Options;
+import org.apache.commons.cli.PosixParser;
+import org.slf4j.LoggerFactory;
+
+import java.util.ArrayList;
+import java.util.List;
 
 
 /**
  * mqadmin启动程序
- * 
+ *
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-25
  */
@@ -110,47 +108,46 @@ public class MQAdminStartup {
 
         try {
             switch (args.length) {
-            case 0:
-            case 1:
-                printHelp();
-                break;
-            case 2:
-                if (args[0].equals("help")) {
-                    SubCommand cmd = findSubCommand(args[1]);
-                    if (cmd != null) {
-                        Options options = MixAll.buildCommandlineOptions(new Options());
-                        options = cmd.buildCommandlineOptions(options);
-                        if (options != null) {
-                            MixAll.printCommandLineHelp("mqadmin " + cmd.commandName(), options);
+                case 0:
+                case 1:
+                    printHelp();
+                    break;
+                case 2:
+                    if (args[0].equals("help")) {
+                        SubCommand cmd = findSubCommand(args[1]);
+                        if (cmd != null) {
+                            Options options = MixAll.buildCommandlineOptions(new Options());
+                            options = cmd.buildCommandlineOptions(options);
+                            if (options != null) {
+                                MixAll.printCommandLineHelp("mqadmin " + cmd.commandName(), options);
+                            }
                         }
+                        break;
+                    }
+                default:
+                    SubCommand cmd = findSubCommand(args[0]);
+                    if (cmd != null) {
+                        // 初始化日志
+                        initLogback();
+
+                        // 将main中的args转化为子命令的args（去除第一个参数）
+                        String[] subargs = parseSubArgs(args);
+
+                        // 解析命令行
+                        Options options = MixAll.buildCommandlineOptions(new Options());
+                        final CommandLine commandLine =
+                                MixAll.parseCmdLine("mqadmin " + cmd.commandName(), subargs,
+                                        cmd.buildCommandlineOptions(options), new PosixParser());
+                        if (null == commandLine) {
+                            System.exit(-1);
+                            return;
+                        }
+
+                        cmd.execute(commandLine);
                     }
                     break;
-                }
-            default:
-                SubCommand cmd = findSubCommand(args[0]);
-                if (cmd != null) {
-                    // 初始化日志
-                    initLogback();
-
-                    // 将main中的args转化为子命令的args（去除第一个参数）
-                    String[] subargs = parseSubArgs(args);
-
-                    // 解析命令行
-                    Options options = MixAll.buildCommandlineOptions(new Options());
-                    final CommandLine commandLine =
-                            MixAll.parseCmdLine("mqadmin " + cmd.commandName(), subargs,
-                                cmd.buildCommandlineOptions(options), new PosixParser());
-                    if (null == commandLine) {
-                        System.exit(-1);
-                        return;
-                    }
-
-                    cmd.execute(commandLine);
-                }
-                break;
             }
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }

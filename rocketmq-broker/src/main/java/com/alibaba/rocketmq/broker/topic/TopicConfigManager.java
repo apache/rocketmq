@@ -15,14 +15,6 @@
  */
 package com.alibaba.rocketmq.broker.topic;
 
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.alibaba.rocketmq.broker.BrokerController;
 import com.alibaba.rocketmq.common.ConfigManager;
 import com.alibaba.rocketmq.common.DataVersion;
@@ -32,11 +24,18 @@ import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.common.constant.PermName;
 import com.alibaba.rocketmq.common.protocol.body.TopicConfigSerializeWrapper;
 import com.alibaba.rocketmq.store.schedule.ScheduleMessageService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 
 /**
  * Topic配置管理
- * 
+ *
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @author lansheng.zj@taobao.com
  * @since 2013-7-26
@@ -123,7 +122,7 @@ public class TopicConfigManager extends ConfigManager {
      * 发消息时，如果Topic不存在，尝试创建
      */
     public TopicConfig createTopicInSendMessageMethod(final String topic, final String defaultTopic,
-            final String remoteAddress, final int clientDefaultTopicQueueNums) {
+                                                      final String remoteAddress, final int clientDefaultTopicQueueNums) {
         TopicConfig topicConfig = null;
         boolean createNew = false;
 
@@ -141,7 +140,7 @@ public class TopicConfigManager extends ConfigManager {
 
                             int queueNums =
                                     clientDefaultTopicQueueNums > defaultTopicConfig.getWriteQueueNums() ? defaultTopicConfig
-                                        .getWriteQueueNums() : clientDefaultTopicQueueNums;
+                                            .getWriteQueueNums() : clientDefaultTopicQueueNums;
 
                             if (queueNums < 0) {
                                 queueNums = 0;
@@ -153,14 +152,12 @@ public class TopicConfigManager extends ConfigManager {
                             perm &= ~PermName.PERM_INHERIT;
                             topicConfig.setPerm(perm);
                             topicConfig.setTopicFilterType(defaultTopicConfig.getTopicFilterType());
-                        }
-                        else {
+                        } else {
                             log.warn("create new topic failed, because the default topic[" + defaultTopic
                                     + "] no perm, " + defaultTopicConfig.getPerm() + " producer: "
                                     + remoteAddress);
                         }
-                    }
-                    else {
+                    } else {
                         log.warn("create new topic failed, because the default topic[" + defaultTopic
                                 + "] not exist." + " producer: " + remoteAddress);
                     }
@@ -177,13 +174,11 @@ public class TopicConfigManager extends ConfigManager {
 
                         this.persist();
                     }
-                }
-                finally {
+                } finally {
                     this.lockTopicConfigTable.unlock();
                 }
             }
-        }
-        catch (InterruptedException e) {
+        } catch (InterruptedException e) {
             log.error("createTopicInSendMessageMethod exception", e);
         }
 
@@ -196,9 +191,9 @@ public class TopicConfigManager extends ConfigManager {
 
 
     public TopicConfig createTopicInSendMessageBackMethod(//
-            final String topic, //
-            final int clientDefaultTopicQueueNums,//
-            final int perm//
+                                                          final String topic, //
+                                                          final int clientDefaultTopicQueueNums,//
+                                                          final int perm//
     ) {
         TopicConfig topicConfig = this.topicConfigTable.get(topic);
         if (topicConfig != null)
@@ -223,13 +218,11 @@ public class TopicConfigManager extends ConfigManager {
                     createNew = true;
                     this.dataVersion.nextVersion();
                     this.persist();
-                }
-                finally {
+                } finally {
                     this.lockTopicConfigTable.unlock();
                 }
             }
-        }
-        catch (InterruptedException e) {
+        } catch (InterruptedException e) {
             log.error("createTopicInSendMessageBackMethod exception", e);
         }
 
@@ -245,8 +238,7 @@ public class TopicConfigManager extends ConfigManager {
         TopicConfig old = this.topicConfigTable.put(topicConfig.getTopicName(), topicConfig);
         if (old != null) {
             log.info("update topic config, old: " + old + " new: " + topicConfig);
-        }
-        else {
+        } else {
             log.info("create new topic, " + topicConfig);
         }
 
@@ -263,8 +255,7 @@ public class TopicConfigManager extends ConfigManager {
         if (old != null) {
             log.info("delete topic config OK, topic: " + old);
             this.persist();
-        }
-        else {
+        } else {
             log.warn("delete topic config failed, topic: " + topic + " not exist");
         }
     }

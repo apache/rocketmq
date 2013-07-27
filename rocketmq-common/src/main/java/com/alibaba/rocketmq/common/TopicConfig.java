@@ -20,7 +20,7 @@ import com.alibaba.rocketmq.common.constant.PermName;
 
 /**
  * Topic配置
- * 
+ *
  * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public class TopicConfig {

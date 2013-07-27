@@ -1,5 +1,5 @@
 /**
- * 
+ *
  */
 package com.alibaba.rocketmq.common.protocol.header;
 

@@ -1,9 +1,8 @@
 package com.alibaba.rocketmq.test;
 
+import com.alibaba.rocketmq.test.producer.ProducerTest;
 import junit.framework.Test;
 import junit.framework.TestSuite;
-
-import com.alibaba.rocketmq.test.producer.ProducerTest;
 
 
 public class TestAll {

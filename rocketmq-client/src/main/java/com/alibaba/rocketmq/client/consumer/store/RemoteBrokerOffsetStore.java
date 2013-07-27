@@ -15,12 +15,6 @@
  */
 package com.alibaba.rocketmq.client.consumer.store;
 
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicLong;
-
-import org.slf4j.Logger;
-
 import com.alibaba.rocketmq.client.exception.MQBrokerException;
 import com.alibaba.rocketmq.client.exception.MQClientException;
 import com.alibaba.rocketmq.client.impl.FindBrokerResult;
@@ -31,11 +25,16 @@ import com.alibaba.rocketmq.common.message.MessageQueue;
 import com.alibaba.rocketmq.common.protocol.header.QueryConsumerOffsetRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.UpdateConsumerOffsetRequestHeader;
 import com.alibaba.rocketmq.remoting.exception.RemotingException;
+import org.slf4j.Logger;
+
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 
 
 /**
  * 消费进度存储到远端Broker，比较可靠
- * 
+ *
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-24
  */
@@ -74,9 +73,8 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
 
             // 使用oneway形式，原因是服务器在删除文件时，这个调用可能会超时
             this.mQClientFactory.getMQClientAPIImpl().updateConsumerOffsetOneway(
-                findBrokerResult.getBrokerAddr(), requestHeader, 1000 * 5);
-        }
-        else {
+                    findBrokerResult.getBrokerAddr(), requestHeader, 1000 * 5);
+        } else {
             throw new MQClientException("The broker[" + mq.getBrokerName() + "] not exist", null);
         }
     }
@@ -98,9 +96,8 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
             requestHeader.setQueueId(mq.getQueueId());
 
             return this.mQClientFactory.getMQClientAPIImpl().queryConsumerOffset(
-                findBrokerResult.getBrokerAddr(), requestHeader, 1000 * 5);
-        }
-        else {
+                    findBrokerResult.getBrokerAddr(), requestHeader, 1000 * 5);
+        } else {
             throw new MQClientException("The broker[" + mq.getBrokerName() + "] not exist", null);
         }
     }
@@ -122,8 +119,7 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
             if (null != offsetOld) {
                 if (increaseOnly) {
                     MixAll.compareAndIncreaseOnly(offsetOld, offset);
-                }
-                else {
+                } else {
                     offsetOld.set(offset);
                 }
             }
@@ -171,8 +167,7 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
                         try {
                             this.updateConsumeOffsetToBroker(mq, offset.get());
                             log.debug("updateConsumeOffsetToBroker {} {}", mq, offset.get());
-                        }
-                        catch (Exception e) {
+                        } catch (Exception e) {
                             log.error("updateConsumeOffsetToBroker exception, " + mq.toString(), e);
                         }
                     }
@@ -189,8 +184,7 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
             try {
                 this.updateConsumeOffsetToBroker(mq, offset.get());
                 log.debug("updateConsumeOffsetToBroker {} {}", mq, offset.get());
-            }
-            catch (Exception e) {
+            } catch (Exception e) {
                 log.error("updateConsumeOffsetToBroker exception, " + mq.toString(), e);
             }
         }

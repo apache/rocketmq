@@ -15,18 +15,18 @@
  */
 package com.alibaba.rocketmq.client.impl.consumer;
 
-import java.util.Set;
-
 import com.alibaba.rocketmq.common.consumer.ConsumeFromWhere;
 import com.alibaba.rocketmq.common.message.MessageQueue;
 import com.alibaba.rocketmq.common.protocol.heartbeat.ConsumeType;
 import com.alibaba.rocketmq.common.protocol.heartbeat.MessageModel;
 import com.alibaba.rocketmq.common.protocol.heartbeat.SubscriptionData;
 
+import java.util.Set;
+
 
 /**
  * Consumer内部接口，供MQClientFactory使用
- * 
+ *
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-24
  */

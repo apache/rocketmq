@@ -15,15 +15,15 @@
  */
 package com.alibaba.rocketmq.client.consumer.rebalance;
 
-import java.util.List;
-
 import com.alibaba.rocketmq.client.consumer.AllocateMessageQueueStrategy;
 import com.alibaba.rocketmq.common.message.MessageQueue;
+
+import java.util.List;
 
 
 /**
  * 按照配置来分配队列，建议应用使用Spring来初始化
- * 
+ *
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-24
  */

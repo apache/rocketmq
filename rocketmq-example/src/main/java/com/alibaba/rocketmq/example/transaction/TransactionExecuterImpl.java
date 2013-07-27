@@ -15,16 +15,16 @@
  */
 package com.alibaba.rocketmq.example.transaction;
 
-import java.util.concurrent.atomic.AtomicInteger;
-
 import com.alibaba.rocketmq.client.producer.LocalTransactionExecuter;
 import com.alibaba.rocketmq.client.producer.LocalTransactionState;
 import com.alibaba.rocketmq.common.message.Message;
 
+import java.util.concurrent.atomic.AtomicInteger;
+
 
 /**
  * 执行本地事务
- * 
+ *
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-24
  */
@@ -38,11 +38,9 @@ public class TransactionExecuterImpl implements LocalTransactionExecuter {
 
         if (value == 0) {
             throw new RuntimeException("Could not find db");
-        }
-        else if ((value % 5) == 0) {
+        } else if ((value % 5) == 0) {
             return LocalTransactionState.ROLLBACK_MESSAGE;
-        }
-        else if ((value % 4) == 0) {
+        } else if ((value % 4) == 0) {
             return LocalTransactionState.COMMIT_MESSAGE;
         }
 

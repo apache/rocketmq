@@ -3,19 +3,19 @@
  */
 package com.alibaba.rocketmq.research.rpc.benchmark;
 
+import com.alibaba.rocketmq.research.rpc.DefaultRPCClient;
+import com.alibaba.rocketmq.research.rpc.RPCClient;
+
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicLong;
 
-import com.alibaba.rocketmq.research.rpc.DefaultRPCClient;
-import com.alibaba.rocketmq.research.rpc.RPCClient;
-
 
 /**
  * 多线程客户端，做性能压测
- * 
+ *
  * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public class MTClient {
@@ -33,7 +33,7 @@ public class MTClient {
     public static void main(String[] args) {
         if (args.length < 2) {
             System.err
-                .println("Useage: mtclient remoteHost remotePort [messageSize] [threadCnt] [connectionCnt]");
+                    .println("Useage: mtclient remoteHost remotePort [messageSize] [threadCnt] [connectionCnt]");
             return;
         }
 
@@ -69,12 +69,10 @@ public class MTClient {
                             ByteBuffer repdata = rpcClient.call(message);
                             if (repdata != null) {
                                 callTimesOK.incrementAndGet();
-                            }
-                            else {
+                            } else {
                                 callTimesFailed.incrementAndGet();
                             }
-                        }
-                        catch (InterruptedException e) {
+                        } catch (InterruptedException e) {
                             e.printStackTrace();
                         }
                     }
@@ -96,15 +94,14 @@ public class MTClient {
                     double interval = (timestamp - this.lastTimestamp) / 1000;
 
                     System.out.printf("call OK QPS: %.2f Failed Times: %d\n",
-                        (thisCallTimesOK - this.lastCallTimesOK) / interval, callTimesFailed.get());
+                            (thisCallTimesOK - this.lastCallTimesOK) / interval, callTimesFailed.get());
 
                     this.lastTimestamp = timestamp;
                     this.lastCallTimesOK = thisCallTimesOK;
 
                     try {
                         Thread.sleep(3000);
-                    }
-                    catch (InterruptedException e) {
+                    } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
                 }

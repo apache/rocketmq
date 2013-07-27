@@ -20,7 +20,7 @@ import java.util.List;
 
 /**
  * 根据索引查询消息，返回结果
- * 
+ *
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-21
  */
@@ -31,7 +31,7 @@ public class QueryOffsetResult {
 
 
     public QueryOffsetResult(List<Long> phyOffsets, long indexLastUpdateTimestamp,
-            long indexLastUpdatePhyoffset) {
+                             long indexLastUpdatePhyoffset) {
         this.phyOffsets = phyOffsets;
         this.indexLastUpdateTimestamp = indexLastUpdateTimestamp;
         this.indexLastUpdatePhyoffset = indexLastUpdatePhyoffset;

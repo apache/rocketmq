@@ -15,15 +15,14 @@
  */
 package com.alibaba.rocketmq.remoting.netty;
 
-import io.netty.channel.ChannelHandlerContext;
-
 import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
+import io.netty.channel.ChannelHandlerContext;
 
 
 /**
  * 接收请求处理器，服务器与客户端通用
- * 
+ *
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-13
  */

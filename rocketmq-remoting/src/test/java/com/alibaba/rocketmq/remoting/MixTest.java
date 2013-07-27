@@ -8,7 +8,6 @@ import org.junit.Test;
 
 /**
  * @author shijia.wxr<vintage.wang@gmail.com>
- * 
  */
 public class MixTest {
     @Test

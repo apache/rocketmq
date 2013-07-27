@@ -17,7 +17,7 @@ package com.alibaba.rocketmq.store;
 
 /**
  * 分发消息位置信息到逻辑队列和索引服务
- * 
+ *
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-21
  */
@@ -41,24 +41,24 @@ public class DispatchRequest {
 
 
     public DispatchRequest(//
-            final String topic,// 1
-            final int queueId,// 2
-            final long commitLogOffset,// 3
-            final int msgSize,// 4
-            final long tagsCode,// 5
-            final long storeTimestamp,// 6
-            final long consumeQueueOffset,// 7
-            final String keys,// 8
-            /**
-             * 事务相关部分
-             */
-            final int sysFlag,// 9
-            final long tranStateTableOffset,// 10
-            final long preparedTransactionOffset,// 11
-            final String producerGroup// 12
-                                      // 如果producerGroup为空，表示是recover过程，所以不更新
-                                      // Transaction state
-                                      // table
+                           final String topic,// 1
+                           final int queueId,// 2
+                           final long commitLogOffset,// 3
+                           final int msgSize,// 4
+                           final long tagsCode,// 5
+                           final long storeTimestamp,// 6
+                           final long consumeQueueOffset,// 7
+                           final String keys,// 8
+                           /**
+                            * 事务相关部分
+                            */
+                           final int sysFlag,// 9
+                           final long tranStateTableOffset,// 10
+                           final long preparedTransactionOffset,// 11
+                           final String producerGroup// 12
+                           // 如果producerGroup为空，表示是recover过程，所以不更新
+                           // Transaction state
+                           // table
     ) {
         this.topic = topic;
         this.queueId = queueId;

@@ -15,14 +15,14 @@
  */
 package com.alibaba.rocketmq.client.consumer;
 
-import java.util.List;
-
 import com.alibaba.rocketmq.common.message.MessageExt;
+
+import java.util.List;
 
 
 /**
  * 拉消息返回结果
- * 
+ *
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-24
  */
@@ -35,7 +35,7 @@ public class PullResult {
 
 
     public PullResult(PullStatus pullStatus, long nextBeginOffset, long minOffset, long maxOffset,
-            List<MessageExt> msgFoundList) {
+                      List<MessageExt> msgFoundList) {
         super();
         this.pullStatus = pullStatus;
         this.nextBeginOffset = nextBeginOffset;

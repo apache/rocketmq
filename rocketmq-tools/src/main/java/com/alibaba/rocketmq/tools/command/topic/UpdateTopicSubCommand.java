@@ -15,18 +15,17 @@
  */
 package com.alibaba.rocketmq.tools.command.topic;
 
+import com.alibaba.rocketmq.common.TopicConfig;
+import com.alibaba.rocketmq.tools.admin.DefaultMQAdminExt;
+import com.alibaba.rocketmq.tools.command.SubCommand;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 
-import com.alibaba.rocketmq.common.TopicConfig;
-import com.alibaba.rocketmq.tools.admin.DefaultMQAdminExt;
-import com.alibaba.rocketmq.tools.command.SubCommand;
-
 
 /**
  * 修改、创建Topic配置命令
- * 
+ *
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-21
  */
@@ -87,8 +86,7 @@ public class UpdateTopicSubCommand implements SubCommand {
             // brokerAddr
             if (commandLine.hasOption('b')) {
                 addr = commandLine.getOptionValue('b');
-            }
-            else {
+            } else {
                 System.out.println("please tell us broker's addr");
                 return;
             }
@@ -96,8 +94,7 @@ public class UpdateTopicSubCommand implements SubCommand {
             // topic
             if (commandLine.hasOption('t')) {
                 topicConfig.setTopicName(commandLine.getOptionValue('t'));
-            }
-            else {
+            } else {
                 System.out.println("please tell us topic name");
                 return;
             }
@@ -120,11 +117,9 @@ public class UpdateTopicSubCommand implements SubCommand {
             defaultMQAdminExt.createAndUpdateTopicConfigByAddr(addr, topicConfig);
             System.out.println("create topic success.");
             System.out.println(topicConfig);
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             e.printStackTrace();
-        }
-        finally {
+        } finally {
             defaultMQAdminExt.shutdown();
         }
     }
