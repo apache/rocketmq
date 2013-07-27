@@ -30,7 +30,6 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class MQClientManager {
     private static MQClientManager instance = new MQClientManager();
-
     private AtomicInteger factoryIndexGenerator = new AtomicInteger();
     private ConcurrentHashMap<String/* clientId */, MQClientFactory> factoryTable = new ConcurrentHashMap<String, MQClientFactory>();
 
@@ -39,11 +38,9 @@ public class MQClientManager {
 
     }
 
-
     public static MQClientManager getInstance() {
         return instance;
     }
-
 
     public MQClientFactory getAndCreateMQClientFactory(final ClientConfig clientConfig) {
         String clientId = clientConfig.buildMQClientId();
@@ -60,7 +57,6 @@ public class MQClientManager {
 
         return factory;
     }
-
 
     public void removeClientFactory(final String clientId) {
         this.factoryTable.remove(clientId);

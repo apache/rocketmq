@@ -43,36 +43,29 @@ public class PullResult {
         this.msgFoundList = msgFoundList;
     }
 
-
     public PullStatus getPullStatus() {
         return pullStatus;
     }
-
 
     public long getNextBeginOffset() {
         return nextBeginOffset;
     }
 
-
     public long getMinOffset() {
         return minOffset;
     }
-
 
     public long getMaxOffset() {
         return maxOffset;
     }
 
-
     public List<MessageExt> getMsgFoundList() {
         return msgFoundList;
     }
 
-
     public void setMsgFoundList(List<MessageExt> msgFoundList) {
         this.msgFoundList = msgFoundList;
     }
-
 
     @Override
     public String toString() {

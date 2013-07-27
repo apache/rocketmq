@@ -24,6 +24,5 @@ package com.alibaba.rocketmq.client.consumer;
 public interface PullCallback {
     public void onSuccess(final PullResult pullResult);
 
-
     public void onException(final Throwable e);
 }

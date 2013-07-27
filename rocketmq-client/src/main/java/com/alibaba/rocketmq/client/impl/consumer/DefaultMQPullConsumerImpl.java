@@ -58,14 +58,12 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class DefaultMQPullConsumerImpl implements MQConsumerInner {
     private final Logger log = ClientLogger.getLog();
-    private ServiceState serviceState = ServiceState.CREATE_JUST;
     private final DefaultMQPullConsumer defaultMQPullConsumer;
+    private ServiceState serviceState = ServiceState.CREATE_JUST;
     private MQClientFactory mQClientFactory;
     private PullAPIWrapper pullAPIWrapper;
-
     // 消费进度存储
     private OffsetStore offsetStore;
-
     // Rebalance实现
     private RebalanceImpl rebalanceImpl = new RebalancePullImpl(this);
 
@@ -74,75 +72,21 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
         this.defaultMQPullConsumer = defaultMQPullConsumer;
     }
 
-
-    private void checkConfig() throws MQClientException {
-        // consumerGroup
-        if (null == this.defaultMQPullConsumer.getConsumerGroup()) {
-            throw new MQClientException("consumerGroup is null" //
-                    + FAQUrl.suggestTodo(FAQUrl.CLIENT_PARAMETER_CHECK_URL), //
-                    null);
-        }
-
-        // consumerGroup
-        if (this.defaultMQPullConsumer.getConsumerGroup().equals(MixAll.DEFAULT_CONSUMER_GROUP)) {
-            throw new MQClientException("consumerGroup can not equal "//
-                    + MixAll.DEFAULT_CONSUMER_GROUP //
-                    + ", please specify another one."//
-                    + FAQUrl.suggestTodo(FAQUrl.CLIENT_PARAMETER_CHECK_URL), //
-                    null);
-        }
-
-        // messageModel
-        if (null == this.defaultMQPullConsumer.getMessageModel()) {
-            throw new MQClientException("messageModel is null" //
-                    + FAQUrl.suggestTodo(FAQUrl.CLIENT_PARAMETER_CHECK_URL), //
-                    null);
-        }
-
-        // allocateMessageQueueStrategy
-        if (null == this.defaultMQPullConsumer.getAllocateMessageQueueStrategy()) {
-            throw new MQClientException("allocateMessageQueueStrategy is null" //
-                    + FAQUrl.suggestTodo(FAQUrl.CLIENT_PARAMETER_CHECK_URL), //
-                    null);
-        }
-    }
-
-
-    private void copySubscription() throws MQClientException {
-        try {
-            // 复制用户初始设置的订阅关系
-            Set<String> registerTopics = this.defaultMQPullConsumer.getRegisterTopics();
-            if (registerTopics != null) {
-                for (final String topic : registerTopics) {
-                    SubscriptionData subscriptionData = FilterAPI.buildSubscriptionData(topic, SubscriptionData.SUB_ALL);
-                    this.rebalanceImpl.getSubscriptionInner().put(topic, subscriptionData);
-                }
-            }
-        } catch (Exception e) {
-            throw new MQClientException("subscription exception", e);
-        }
-    }
-
-
     public void createTopic(String key, String newTopic, int queueNum) throws MQClientException {
         this.makeSureStateOK();
         this.mQClientFactory.getMQAdminImpl().createTopic(key, newTopic, queueNum);
     }
 
-
-    @Override
-    public void doRebalance() {
-        if (this.rebalanceImpl != null) {
-            this.rebalanceImpl.doRebalance();
+    private void makeSureStateOK() throws MQClientException {
+        if (this.serviceState != ServiceState.RUNNING) {
+            throw new MQClientException("The consumer service state not OK, " + this.serviceState, null);
         }
     }
-
 
     public long fetchConsumeOffset(MessageQueue mq, boolean fromStore) throws MQClientException {
         this.makeSureStateOK();
         return this.offsetStore.readOffset(mq, fromStore);
     }
-
 
     public Set<MessageQueue> fetchMessageQueuesInBalance(String topic) throws MQClientException {
         this.makeSureStateOK();
@@ -161,59 +105,39 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
         return mqResult;
     }
 
-
     public List<MessageQueue> fetchPublishMessageQueues(String topic) throws MQClientException {
         this.makeSureStateOK();
         return this.mQClientFactory.getMQAdminImpl().fetchPublishMessageQueues(topic);
     }
 
-
     public Set<MessageQueue> fetchSubscribeMessageQueues(String topic) throws MQClientException {
         return this.mQClientFactory.getMQAdminImpl().fetchSubscribeMessageQueues(topic);
     }
-
-
-    @Override
-    public ConsumeFromWhere consumeFromWhere() {
-        return ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET;
-    }
-
-
-    @Override
-    public ConsumeType consumeType() {
-        return ConsumeType.CONSUME_ACTIVELY;
-    }
-
 
     public long earliestMsgStoreTime(MessageQueue mq) throws MQClientException {
         this.makeSureStateOK();
         return this.mQClientFactory.getMQAdminImpl().earliestMsgStoreTime(mq);
     }
 
-
     @Override
     public String groupName() {
         return this.defaultMQPullConsumer.getConsumerGroup();
     }
-
-
-    public long maxOffset(MessageQueue mq) throws MQClientException {
-        this.makeSureStateOK();
-        return this.mQClientFactory.getMQAdminImpl().maxOffset(mq);
-    }
-
 
     @Override
     public MessageModel messageModel() {
         return this.defaultMQPullConsumer.getMessageModel();
     }
 
-
-    public long minOffset(MessageQueue mq) throws MQClientException {
-        this.makeSureStateOK();
-        return this.mQClientFactory.getMQAdminImpl().minOffset(mq);
+    @Override
+    public ConsumeType consumeType() {
+        return ConsumeType.CONSUME_ACTIVELY;
     }
 
+    @Override
+    public ConsumeFromWhere consumeFromWhere() {
+        return ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET;
+    }
 
     @Override
     public Set<SubscriptionData> subscriptions() {
@@ -232,13 +156,12 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
         return result;
     }
 
-
-    private void makeSureStateOK() throws MQClientException {
-        if (this.serviceState != ServiceState.RUNNING) {
-            throw new MQClientException("The consumer service state not OK, " + this.serviceState, null);
+    @Override
+    public void doRebalance() {
+        if (this.rebalanceImpl != null) {
+            this.rebalanceImpl.doRebalance();
         }
     }
-
 
     @Override
     public void persistConsumerOffset() {
@@ -255,16 +178,101 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
         }
     }
 
+    @Override
+    public void updateTopicSubscribeInfo(String topic, Set<MessageQueue> info) {
+        Map<String, SubscriptionData> subTable = this.rebalanceImpl.getSubscriptionInner();
+        if (subTable != null) {
+            if (subTable.containsKey(topic)) {
+                this.rebalanceImpl.getTopicSubscribeInfoTable().put(topic, info);
+            }
+        }
+    }
+
+    @Override
+    public boolean isSubscribeTopicNeedUpdate(String topic) {
+        Map<String, SubscriptionData> subTable = this.rebalanceImpl.getSubscriptionInner();
+        if (subTable != null) {
+            if (subTable.containsKey(topic)) {
+                return !this.rebalanceImpl.topicSubscribeInfoTable.containsKey(topic);
+            }
+        }
+
+        return false;
+    }
+
+    public long maxOffset(MessageQueue mq) throws MQClientException {
+        this.makeSureStateOK();
+        return this.mQClientFactory.getMQAdminImpl().maxOffset(mq);
+    }
+
+    public long minOffset(MessageQueue mq) throws MQClientException {
+        this.makeSureStateOK();
+        return this.mQClientFactory.getMQAdminImpl().minOffset(mq);
+    }
 
     public PullResult pull(MessageQueue mq, String subExpression, long offset, int maxNums) throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
         return this.pullSyncImpl(mq, subExpression, offset, maxNums, false);
     }
 
+    private PullResult pullSyncImpl(MessageQueue mq, String subExpression, long offset, int maxNums, boolean block) throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
+        this.makeSureStateOK();
+
+        if (null == mq) {
+            throw new MQClientException("mq is null", null);
+        }
+
+        if (offset < 0) {
+            throw new MQClientException("offset < 0", null);
+        }
+
+        if (maxNums <= 0) {
+            throw new MQClientException("maxNums <= 0", null);
+        }
+
+        // 自动订阅
+        this.subscriptionAutomatically(mq.getTopic());
+
+        int sysFlag = PullSysFlag.buildSysFlag(false, block, true);
+
+        SubscriptionData subscriptionData;
+        try {
+            subscriptionData = FilterAPI.buildSubscriptionData(mq.getTopic(), subExpression);
+        } catch (Exception e) {
+            throw new MQClientException("parse subscription error", e);
+        }
+
+        long timeoutMillis = block ? this.defaultMQPullConsumer.getConsumerTimeoutMillisWhenSuspend() : this.defaultMQPullConsumer.getConsumerPullTimeoutMillis();
+
+        PullResult pullResult = this.pullAPIWrapper.pullKernelImpl(//
+                mq, // 1
+                subscriptionData.getSubString(), // 2
+                0L, // 3
+                offset, // 4
+                maxNums, // 5
+                sysFlag, // 6
+                0, // 7
+                this.defaultMQPullConsumer.getBrokerSuspendMaxTimeMillis(), // 8
+                timeoutMillis, // 9
+                CommunicationMode.SYNC, // 10
+                null// 11
+        );
+
+        return this.pullAPIWrapper.processPullResult(mq, pullResult, subscriptionData);
+    }
+
+    private void subscriptionAutomatically(final String topic) {
+        if (!this.rebalanceImpl.getSubscriptionInner().containsKey(topic)) {
+            try {
+                SubscriptionData subscriptionData = FilterAPI.buildSubscriptionData(topic, SubscriptionData.SUB_ALL);
+                this.rebalanceImpl.subscriptionInner.putIfAbsent(topic, subscriptionData);
+            } catch (Exception e) {
+            }
+        }
+    }
 
     public void pull(MessageQueue mq, String subExpression, long offset, int maxNums, PullCallback pullCallback) throws MQClientException, RemotingException, InterruptedException {
         this.pullAsyncImpl(mq, subExpression, offset, maxNums, pullCallback, false);
     }
-
 
     private void pullAsyncImpl(//
                                final MessageQueue mq,//
@@ -336,86 +344,23 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
         }
     }
 
-
     public PullResult pullBlockIfNotFound(MessageQueue mq, String subExpression, long offset, int maxNums) throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
         return this.pullSyncImpl(mq, subExpression, offset, maxNums, true);
     }
 
-
     public void pullBlockIfNotFound(MessageQueue mq, String subExpression, long offset, int maxNums, PullCallback pullCallback) throws MQClientException, RemotingException, InterruptedException {
         this.pullAsyncImpl(mq, subExpression, offset, maxNums, pullCallback, true);
     }
-
-
-    private void subscriptionAutomatically(final String topic) {
-        if (!this.rebalanceImpl.getSubscriptionInner().containsKey(topic)) {
-            try {
-                SubscriptionData subscriptionData = FilterAPI.buildSubscriptionData(topic, SubscriptionData.SUB_ALL);
-                this.rebalanceImpl.subscriptionInner.putIfAbsent(topic, subscriptionData);
-            } catch (Exception e) {
-            }
-        }
-    }
-
-
-    private PullResult pullSyncImpl(MessageQueue mq, String subExpression, long offset, int maxNums, boolean block) throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
-        this.makeSureStateOK();
-
-        if (null == mq) {
-            throw new MQClientException("mq is null", null);
-        }
-
-        if (offset < 0) {
-            throw new MQClientException("offset < 0", null);
-        }
-
-        if (maxNums <= 0) {
-            throw new MQClientException("maxNums <= 0", null);
-        }
-
-        // 自动订阅
-        this.subscriptionAutomatically(mq.getTopic());
-
-        int sysFlag = PullSysFlag.buildSysFlag(false, block, true);
-
-        SubscriptionData subscriptionData;
-        try {
-            subscriptionData = FilterAPI.buildSubscriptionData(mq.getTopic(), subExpression);
-        } catch (Exception e) {
-            throw new MQClientException("parse subscription error", e);
-        }
-
-        long timeoutMillis = block ? this.defaultMQPullConsumer.getConsumerTimeoutMillisWhenSuspend() : this.defaultMQPullConsumer.getConsumerPullTimeoutMillis();
-
-        PullResult pullResult = this.pullAPIWrapper.pullKernelImpl(//
-                mq, // 1
-                subscriptionData.getSubString(), // 2
-                0L, // 3
-                offset, // 4
-                maxNums, // 5
-                sysFlag, // 6
-                0, // 7
-                this.defaultMQPullConsumer.getBrokerSuspendMaxTimeMillis(), // 8
-                timeoutMillis, // 9
-                CommunicationMode.SYNC, // 10
-                null// 11
-        );
-
-        return this.pullAPIWrapper.processPullResult(mq, pullResult, subscriptionData);
-    }
-
 
     public QueryResult queryMessage(String topic, String key, int maxNum, long begin, long end) throws MQClientException, InterruptedException {
         this.makeSureStateOK();
         return this.mQClientFactory.getMQAdminImpl().queryMessage(topic, key, maxNum, begin, end);
     }
 
-
     public long searchOffset(MessageQueue mq, long timestamp) throws MQClientException {
         this.makeSureStateOK();
         return this.mQClientFactory.getMQAdminImpl().searchOffset(mq, timestamp);
     }
-
 
     public void sendMessageBack(MessageExt msg, int delayLevel) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
         try {
@@ -432,7 +377,6 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
             this.mQClientFactory.getDefaultMQProducer().send(newMsg);
         }
     }
-
 
     public void shutdown() {
         switch (this.serviceState) {
@@ -451,7 +395,6 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
                 break;
         }
     }
-
 
     public void start() throws MQClientException {
         switch (this.serviceState) {
@@ -512,54 +455,72 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
         }
     }
 
+    private void copySubscription() throws MQClientException {
+        try {
+            // 复制用户初始设置的订阅关系
+            Set<String> registerTopics = this.defaultMQPullConsumer.getRegisterTopics();
+            if (registerTopics != null) {
+                for (final String topic : registerTopics) {
+                    SubscriptionData subscriptionData = FilterAPI.buildSubscriptionData(topic, SubscriptionData.SUB_ALL);
+                    this.rebalanceImpl.getSubscriptionInner().put(topic, subscriptionData);
+                }
+            }
+        } catch (Exception e) {
+            throw new MQClientException("subscription exception", e);
+        }
+    }
+
+    private void checkConfig() throws MQClientException {
+        // consumerGroup
+        if (null == this.defaultMQPullConsumer.getConsumerGroup()) {
+            throw new MQClientException("consumerGroup is null" //
+                    + FAQUrl.suggestTodo(FAQUrl.CLIENT_PARAMETER_CHECK_URL), //
+                    null);
+        }
+
+        // consumerGroup
+        if (this.defaultMQPullConsumer.getConsumerGroup().equals(MixAll.DEFAULT_CONSUMER_GROUP)) {
+            throw new MQClientException("consumerGroup can not equal "//
+                    + MixAll.DEFAULT_CONSUMER_GROUP //
+                    + ", please specify another one."//
+                    + FAQUrl.suggestTodo(FAQUrl.CLIENT_PARAMETER_CHECK_URL), //
+                    null);
+        }
+
+        // messageModel
+        if (null == this.defaultMQPullConsumer.getMessageModel()) {
+            throw new MQClientException("messageModel is null" //
+                    + FAQUrl.suggestTodo(FAQUrl.CLIENT_PARAMETER_CHECK_URL), //
+                    null);
+        }
+
+        // allocateMessageQueueStrategy
+        if (null == this.defaultMQPullConsumer.getAllocateMessageQueueStrategy()) {
+            throw new MQClientException("allocateMessageQueueStrategy is null" //
+                    + FAQUrl.suggestTodo(FAQUrl.CLIENT_PARAMETER_CHECK_URL), //
+                    null);
+        }
+    }
 
     public void updateConsumeOffset(MessageQueue mq, long offset) throws MQClientException {
         this.makeSureStateOK();
         this.offsetStore.updateOffset(mq, offset, false);
     }
 
-
-    @Override
-    public void updateTopicSubscribeInfo(String topic, Set<MessageQueue> info) {
-        Map<String, SubscriptionData> subTable = this.rebalanceImpl.getSubscriptionInner();
-        if (subTable != null) {
-            if (subTable.containsKey(topic)) {
-                this.rebalanceImpl.getTopicSubscribeInfoTable().put(topic, info);
-            }
-        }
-    }
-
-
     public MessageExt viewMessage(String msgId) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
         this.makeSureStateOK();
         return this.mQClientFactory.getMQAdminImpl().viewMessage(msgId);
     }
 
-
     public DefaultMQPullConsumer getDefaultMQPullConsumer() {
         return defaultMQPullConsumer;
     }
-
 
     public OffsetStore getOffsetStore() {
         return offsetStore;
     }
 
-
     public void setOffsetStore(OffsetStore offsetStore) {
         this.offsetStore = offsetStore;
-    }
-
-
-    @Override
-    public boolean isSubscribeTopicNeedUpdate(String topic) {
-        Map<String, SubscriptionData> subTable = this.rebalanceImpl.getSubscriptionInner();
-        if (subTable != null) {
-            if (subTable.containsKey(topic)) {
-                return !this.rebalanceImpl.topicSubscribeInfoTable.containsKey(topic);
-            }
-        }
-
-        return false;
     }
 }

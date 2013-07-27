@@ -31,11 +31,9 @@ import java.util.concurrent.atomic.AtomicLong;
 public class OffsetSerializeWrapper extends RemotingSerializable {
     private ConcurrentHashMap<MessageQueue, AtomicLong> offsetTable = new ConcurrentHashMap<MessageQueue, AtomicLong>();
 
-
     public ConcurrentHashMap<MessageQueue, AtomicLong> getOffsetTable() {
         return offsetTable;
     }
-
 
     public void setOffsetTable(ConcurrentHashMap<MessageQueue, AtomicLong> offsetTable) {
         this.offsetTable = offsetTable;
