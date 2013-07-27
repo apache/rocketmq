@@ -61,38 +61,31 @@ import java.util.concurrent.locks.ReentrantLock;
  * @since 2013-6-15
  */
 public class MQClientFactory {
-    private ServiceState serviceState = ServiceState.CREATE_JUST;
+    private final static long LockTimeoutMillis = 3000;
     private final Logger log = ClientLogger.getLog();
     private final ClientConfig clientConfig;
     private final int factoryIndex;
     private final String clientId;
     private final long bootTimestamp = System.currentTimeMillis();
-
     // Producer对象
     private final ConcurrentHashMap<String/* group */, MQProducerInner> producerTable = new ConcurrentHashMap<String, MQProducerInner>();
     // Consumer对象
     private final ConcurrentHashMap<String/* group */, MQConsumerInner> consumerTable = new ConcurrentHashMap<String, MQConsumerInner>();
     // AdminExt对象
     private final ConcurrentHashMap<String/* group */, MQAdminExtInner> adminExtTable = new ConcurrentHashMap<String, MQAdminExtInner>();
-
     // Netty客户端配置
     private final NettyClientConfig nettyClientConfig;
     // RPC调用的封装类
     private final MQClientAPIImpl mQClientAPIImpl;
     private final MQAdminImpl mQAdminImpl;
-
     // 存储从Name Server拿到的Topic路由信息
     private final ConcurrentHashMap<String/* Topic */, TopicRouteData> topicRouteTable = new ConcurrentHashMap<String, TopicRouteData>();
     // 调用Name Server获取Topic路由信息时，加锁
     private final Lock lockNamesrv = new ReentrantLock();
-    private final static long LockTimeoutMillis = 3000;
-
     // 心跳与注销动作加锁
     private final Lock lockHeartbeat = new ReentrantLock();
-
     // 存储Broker Name 与Broker Address的对应关系
     private final ConcurrentHashMap<String/* Broker Name */, HashMap<Long/* brokerId */, String/* address */>> brokerAddrTable = new ConcurrentHashMap<String, HashMap<Long, String>>();
-
     // 定时线程
     private final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactory() {
         @Override
@@ -100,21 +93,17 @@ public class MQClientFactory {
             return new Thread(r, "MQClientFactoryScheduledThread");
         }
     });
-
     // 处理服务器主动发来的请求
     private final ClientRemotingProcessor clientRemotingProcessor;
-
-    // 监听一个UDP端口，用来防止同一个Factory启动多份（有可能分布在多个JVM中）
-    private DatagramSocket datagramSocket;
-
     // 拉消息服务
     private final PullMessageService pullMessageService;
-
     // Rebalance服务
     private final RebalanceService rebalanceService;
-
     // 内置Producer对象
     private final DefaultMQProducer defaultMQProducer;
+    private ServiceState serviceState = ServiceState.CREATE_JUST;
+    // 监听一个UDP端口，用来防止同一个Factory启动多份（有可能分布在多个JVM中）
+    private DatagramSocket datagramSocket;
 
 
     public MQClientFactory(ClientConfig clientConfig, int factoryIndex, String clientId) {
@@ -147,24 +136,34 @@ public class MQClientFactory {
                 this.clientConfig);
     }
 
+    public void start() throws MQClientException {
+        synchronized (this) {
+            switch (this.serviceState) {
+                case CREATE_JUST:
+                    this.makesureInstanceNameIsOnly(this.clientConfig.getInstanceName());
 
-    private void makesureInstanceNameIsOnly(final String instanceName) throws MQClientException {
-        int udpPort = 33333;
+                    this.serviceState = ServiceState.RUNNING;
+                    if (null == this.clientConfig.getNamesrvAddr()) {
+                        this.clientConfig.setNamesrvAddr(this.mQClientAPIImpl.fetchNameServerAddr());
+                    }
 
-        int value = instanceName.hashCode();
-        if (value < 0) {
-            value = Math.abs(value);
-        }
+                    this.mQClientAPIImpl.start();
+                    this.startScheduledTask();
+                    this.pullMessageService.start();
+                    this.rebalanceService.start();
 
-        udpPort += value % 10000;
-
-        try {
-            this.datagramSocket = new DatagramSocket(udpPort);
-        } catch (SocketException e) {
-            throw new MQClientException("instance name is a duplicate one[" + udpPort + "], please set a new name" + FAQUrl.suggestTodo(FAQUrl.CLIENT_INSTACNCE_NAME_DUPLICATE_URL), e);
+                    this.defaultMQProducer.getDefaultMQProducerImpl().start(false);
+                    log.info("the client factory [{}] start OK", this.clientId);
+                    break;
+                case RUNNING:
+                    break;
+                case SHUTDOWN_ALREADY:
+                    break;
+                default:
+                    break;
+            }
         }
     }
-
 
     private void startScheduledTask() {
         // 定时获取Name Server地址
@@ -247,517 +246,10 @@ public class MQClientFactory {
         }, 1000 * 10, 1000 * 60, TimeUnit.MILLISECONDS);
     }
 
-
-    public void start() throws MQClientException {
-        synchronized (this) {
-            switch (this.serviceState) {
-                case CREATE_JUST:
-                    this.makesureInstanceNameIsOnly(this.clientConfig.getInstanceName());
-
-                    this.serviceState = ServiceState.RUNNING;
-                    if (null == this.clientConfig.getNamesrvAddr()) {
-                        this.clientConfig.setNamesrvAddr(this.mQClientAPIImpl.fetchNameServerAddr());
-                    }
-
-                    this.mQClientAPIImpl.start();
-                    this.startScheduledTask();
-                    this.pullMessageService.start();
-                    this.rebalanceService.start();
-
-                    this.defaultMQProducer.getDefaultMQProducerImpl().start(false);
-                    log.info("the client factory [{}] start OK", this.clientId);
-                    break;
-                case RUNNING:
-                    break;
-                case SHUTDOWN_ALREADY:
-                    break;
-                default:
-                    break;
-            }
-        }
-    }
-
-
-    public void shutdown() {
-        // Consumer
-        if (!this.consumerTable.isEmpty())
-            return;
-
-        // AdminExt
-        if (!this.adminExtTable.isEmpty())
-            return;
-
-        // Producer
-        if (this.producerTable.size() > 1)
-            return;
-
-        synchronized (this) {
-            switch (this.serviceState) {
-                case CREATE_JUST:
-                    break;
-                case RUNNING:
-                    this.defaultMQProducer.getDefaultMQProducerImpl().shutdown(false);
-
-                    this.serviceState = ServiceState.SHUTDOWN_ALREADY;
-                    this.pullMessageService.shutdown(true);
-                    this.scheduledExecutorService.shutdown();
-                    this.mQClientAPIImpl.shutdown();
-                    this.rebalanceService.shutdown();
-
-                    if (this.datagramSocket != null) {
-                        this.datagramSocket.close();
-                        this.datagramSocket = null;
-                    }
-                    MQClientManager.getInstance().removeClientFactory(this.clientId);
-                    log.info("the client factory [{}] shutdown OK", this.clientId);
-                    break;
-                case SHUTDOWN_ALREADY:
-                    break;
-                default:
-                    break;
-            }
-        }
-    }
-
-
-    private void recordSnapshotPeriodically() {
-        Iterator<Entry<String, MQConsumerInner>> it = this.consumerTable.entrySet().iterator();
-        while (it.hasNext()) {
-            Entry<String, MQConsumerInner> entry = it.next();
-            MQConsumerInner impl = entry.getValue();
-            if (impl != null) {
-                if (impl instanceof DefaultMQPushConsumerImpl) {
-                    DefaultMQPushConsumerImpl consumer = (DefaultMQPushConsumerImpl) impl;
-                    consumer.getConsumerStatManager().recordSnapshotPeriodically();
-                }
-            }
-        }
-    }
-
-
-    private void logStatsPeriodically() {
-        Iterator<Entry<String, MQConsumerInner>> it = this.consumerTable.entrySet().iterator();
-        while (it.hasNext()) {
-            Entry<String, MQConsumerInner> entry = it.next();
-            MQConsumerInner impl = entry.getValue();
-            if (impl != null) {
-                if (impl instanceof DefaultMQPushConsumerImpl) {
-                    DefaultMQPushConsumerImpl consumer = (DefaultMQPushConsumerImpl) impl;
-                    consumer.getConsumerStatManager().logStatsPeriodically(entry.getKey(), this.clientId);
-                }
-            }
-        }
-    }
-
-
-    private void persistAllConsumerOffset() {
-        Iterator<Entry<String, MQConsumerInner>> it = this.consumerTable.entrySet().iterator();
-        while (it.hasNext()) {
-            Entry<String, MQConsumerInner> entry = it.next();
-            MQConsumerInner impl = entry.getValue();
-            impl.persistConsumerOffset();
-        }
-    }
-
-
-    private void unregisterClientWithLock(final String producerGroup, final String consumerGroup) {
-        try {
-            if (this.lockHeartbeat.tryLock(LockTimeoutMillis, TimeUnit.MILLISECONDS)) {
-                try {
-                    this.unregisterClient(producerGroup, consumerGroup);
-                } catch (Exception e) {
-                    log.error("unregisterClient exception", e);
-                } finally {
-                    this.lockHeartbeat.unlock();
-                }
-            } else {
-                log.warn("lock heartBeat, but failed.");
-            }
-        } catch (InterruptedException e) {
-            log.warn("unregisterClientWithLock exception", e);
-        }
-    }
-
-
-    private void unregisterClient(final String producerGroup, final String consumerGroup) {
-        for (String name : this.brokerAddrTable.keySet()) {
-            final HashMap<Long, String> oneTable = this.brokerAddrTable.get(name);
-            if (oneTable != null) {
-                for (Long id : oneTable.keySet()) {
-                    String addr = oneTable.get(id);
-                    if (addr != null) {
-                        try {
-                            this.mQClientAPIImpl.unregisterClient(addr, this.clientId, producerGroup, consumerGroup, 3000);
-                            log.info("unregister client[Producer: {} Consumer: {}] from broker[{} {} {}] success", producerGroup, consumerGroup, name, id, addr);
-                        } catch (RemotingException e) {
-                            log.error("unregister client exception from broker: " + addr, e);
-                        } catch (MQBrokerException e) {
-                            log.error("unregister client exception from broker: " + addr, e);
-                        } catch (InterruptedException e) {
-                            log.error("unregister client exception from broker: " + addr, e);
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-
-    private HeartbeatData prepareHeartbeatData() {
-        HeartbeatData heartbeatData = new HeartbeatData();
-
-        // clientID
-        heartbeatData.setClientID(this.clientId);
-
-        // Consumer
-        for (String group : this.consumerTable.keySet()) {
-            MQConsumerInner impl = this.consumerTable.get(group);
-            if (impl != null) {
-                ConsumerData consumerData = new ConsumerData();
-                consumerData.setGroupName(impl.groupName());
-                consumerData.setConsumeType(impl.consumeType());
-                consumerData.setMessageModel(impl.messageModel());
-                consumerData.setConsumeFromWhere(impl.consumeFromWhere());
-                consumerData.getSubscriptionDataSet().addAll(impl.subscriptions());
-
-                heartbeatData.getConsumerDataSet().add(consumerData);
-            }
-        }
-
-        // Producer
-        for (String group : this.producerTable.keySet()) {
-            MQProducerInner impl = this.producerTable.get(group);
-            if (impl != null) {
-                ProducerData producerData = new ProducerData();
-                producerData.setGroupName(group);
-
-                heartbeatData.getProducerDataSet().add(producerData);
-            }
-        }
-
-        return heartbeatData;
-    }
-
-
-    public void sendHeartbeatToAllBrokerWithLock() {
-        if (this.lockHeartbeat.tryLock()) {
-            try {
-                this.sendHeartbeatToAllBroker();
-            } catch (final Exception e) {
-                log.error("sendHeartbeatToAllBroker exception", e);
-            } finally {
-                this.lockHeartbeat.unlock();
-            }
-        } else {
-            log.warn("lock heartBeat, but failed.");
-        }
-    }
-
-
-    private void sendHeartbeatToAllBroker() {
-        final HeartbeatData heartbeatData = this.prepareHeartbeatData();
-        final boolean producerEmpty = heartbeatData.getProducerDataSet().isEmpty();
-        final boolean consumerEmpty = heartbeatData.getConsumerDataSet().isEmpty();
-        if (producerEmpty && consumerEmpty) {
-            log.warn("sending hearbeat, but no consumer and no producer");
-            return;
-        }
-
-        for (String name : this.brokerAddrTable.keySet()) {
-            final HashMap<Long, String> oneTable = this.brokerAddrTable.get(name);
-            if (oneTable != null) {
-                for (Long id : oneTable.keySet()) {
-                    String addr = oneTable.get(id);
-                    if (addr != null) {
-                        // 说明只有Producer，则不向Slave发心跳
-                        if (consumerEmpty) {
-                            if (id != MixAll.MASTER_ID)
-                                continue;
-                        }
-
-                        try {
-                            this.mQClientAPIImpl.sendHearbeat(addr, heartbeatData, 3000);
-                            log.debug("send heart beat to broker[{} {} {}] success", name, id, addr);
-                            log.debug(heartbeatData.toString());
-                        } catch (Exception e) {
-                            log.error("send heart beat to broker exception", e);
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-
-    public boolean registerConsumer(final String group, final MQConsumerInner consumer) {
-        if (null == group || null == consumer) {
-            return false;
-        }
-
-        MQConsumerInner prev = this.consumerTable.putIfAbsent(group, consumer);
-        if (prev != null) {
-            log.warn("the consumer group[" + group + "] exist already.");
-            return false;
-        }
-
-        return true;
-    }
-
-
-    public void unregisterConsumer(final String group) {
-        this.consumerTable.remove(group);
-        this.unregisterClientWithLock(null, group);
-    }
-
-
-    public boolean registerProducer(final String group, final DefaultMQProducerImpl producer) {
-        if (null == group || null == producer) {
-            return false;
-        }
-
-        MQProducerInner prev = this.producerTable.putIfAbsent(group, producer);
-        if (prev != null) {
-            log.warn("the producer group[{}] exist already.", group);
-            return false;
-        }
-
-        return true;
-    }
-
-
-    public void unregisterProducer(final String group) {
-        this.producerTable.remove(group);
-        this.unregisterClientWithLock(group, null);
-    }
-
-
-    public boolean registerAdminExt(final String group, final MQAdminExtInner admin) {
-        if (null == group || null == admin) {
-            return false;
-        }
-
-        MQAdminExtInner prev = this.adminExtTable.putIfAbsent(group, admin);
-        if (prev != null) {
-            log.warn("the admin group[{}] exist already.", group);
-            return false;
-        }
-
-        return true;
-    }
-
-
-    public void unregisterAdminExt(final String group) {
-        this.adminExtTable.remove(group);
-    }
-
-
-    public void rebalanceImmediately() {
-        this.rebalanceService.wakeup();
-    }
-
-
-    public void doRebalance() {
-        for (String group : this.consumerTable.keySet()) {
-            MQConsumerInner impl = this.consumerTable.get(group);
-            if (impl != null) {
-                try {
-                    impl.doRebalance();
-                } catch (Exception e) {
-                    log.error("doRebalance exception", e);
-                }
-            }
-        }
-    }
-
-
-    public MQProducerInner selectProducer(final String group) {
-        return this.producerTable.get(group);
-    }
-
-
-    public MQConsumerInner selectConsumer(final String group) {
-        return this.consumerTable.get(group);
-    }
-
-
-    /**
-     * 管理类的接口查询Broker地址，Master优先
-     *
-     * @param brokerName
-     * @return
-     */
-    public FindBrokerResult findBrokerAddressInAdmin(final String brokerName) {
-        String brokerAddr = null;
-        boolean slave = false;
-        boolean found = false;
-
-        HashMap<Long/* brokerId */, String/* address */> map = this.brokerAddrTable.get(brokerName);
-        if (map != null && !map.isEmpty()) {
-            // TODO 如果有多个Slave，可能会每次都选中相同的Slave，这里需要优化
-            FOR_SEG:
-            for (Map.Entry<Long, String> entry : map.entrySet()) {
-                Long id = entry.getKey();
-                brokerAddr = entry.getValue();
-                if (brokerAddr != null) {
-                    found = true;
-                    if (MixAll.MASTER_ID == id) {
-                        slave = false;
-                        break FOR_SEG;
-                    } else {
-                        slave = true;
-                    }
-                    break;
-
-                }
-            } // end of for
-        }
-
-        if (found) {
-            return new FindBrokerResult(brokerAddr, slave);
-        }
-
-        return null;
-    }
-
-
-    /**
-     * 发布消息过程中，寻找Broker地址，一定是找Master
-     */
-    public String findBrokerAddressInPublish(final String brokerName) {
-        HashMap<Long/* brokerId */, String/* address */> map = this.brokerAddrTable.get(brokerName);
-        if (map != null && !map.isEmpty()) {
-            return map.get(MixAll.MASTER_ID);
-        }
-
-        return null;
-    }
-
-
-    /**
-     * 订阅消息过程中，寻找Broker地址，取Master还是Slave由参数决定
-     */
-    public FindBrokerResult findBrokerAddressInSubscribe(//
-                                                         final String brokerName,//
-                                                         final long brokerId,//
-                                                         final boolean onlyThisBroker//
-    ) {
-        String brokerAddr = null;
-        boolean slave = false;
-        boolean found = false;
-
-        HashMap<Long/* brokerId */, String/* address */> map = this.brokerAddrTable.get(brokerName);
-        if (map != null && !map.isEmpty()) {
-            brokerAddr = map.get(brokerId);
-            slave = (brokerId != MixAll.MASTER_ID);
-            found = (brokerAddr != null);
-
-            // 尝试寻找其他Broker
-            if (!found && !onlyThisBroker) {
-                Entry<Long, String> entry = map.entrySet().iterator().next();
-                brokerAddr = entry.getValue();
-                slave = (entry.getKey() != MixAll.MASTER_ID);
-                found = true;
-            }
-        }
-
-        if (found) {
-            return new FindBrokerResult(brokerAddr, slave);
-        }
-
-        return null;
-    }
-
-
-    public String findBrokerAddrByTopic(final String topic) {
-        TopicRouteData topicRouteData = this.topicRouteTable.get(topic);
-        if (topicRouteData != null) {
-            List<BrokerData> brokers = topicRouteData.getBrokerDatas();
-            if (!brokers.isEmpty()) {
-                BrokerData bd = brokers.get(0);
-                return bd.selectBrokerAddr();
-            }
-        }
-
-        return null;
-    }
-
-
-    public List<String> findConsumerIdList(final String topic, final String group) {
-        String brokerAddr = this.findBrokerAddrByTopic(topic);
-        if (null == brokerAddr) {
-            this.updateTopicRouteInfoFromNameServer(topic);
-            brokerAddr = this.findBrokerAddrByTopic(topic);
-        }
-
-        if (null != brokerAddr) {
-            try {
-                return this.mQClientAPIImpl.getConsumerIdListByGroup(brokerAddr, group, 3000);
-            } catch (Exception e) {
-                log.warn("getConsumerIdListByGroup exception, " + brokerAddr + " " + group, e);
-            }
-        }
-
-        return null;
-    }
-
-
-    public static TopicPublishInfo topicRouteData2TopicPublishInfo(final String topic, final TopicRouteData route) {
-        TopicPublishInfo info = new TopicPublishInfo();
-        // 顺序消息
-        if (route.getOrderTopicConf() != null && route.getOrderTopicConf().length() > 0) {
-            String[] brokers = route.getOrderTopicConf().split(";");
-            for (String broker : brokers) {
-                String[] item = broker.split(":");
-                int nums = Integer.parseInt(item[1]);
-                for (int i = 0; i < nums; i++) {
-                    MessageQueue mq = new MessageQueue(topic, item[0], i);
-                    info.getMessageQueueList().add(mq);
-                }
-            }
-
-            info.setOrderTopic(true);
-        }
-        // 非顺序消息
-        else {
-            List<QueueData> qds = route.getQueueDatas();
-            // 排序原因：即使没有配置顺序消息模式，默认队列的顺序同配置的一致。
-            Collections.sort(qds);
-            for (QueueData qd : qds) {
-                if (PermName.isWriteable(qd.getPerm())) {
-                    for (int i = 0; i < qd.getWriteQueueNums(); i++) {
-                        MessageQueue mq = new MessageQueue(topic, qd.getBrokerName(), i);
-                        info.getMessageQueueList().add(mq);
-                    }
-                }
-            }
-
-            info.setOrderTopic(false);
-        }
-
-        return info;
-    }
-
-
-    public static Set<MessageQueue> topicRouteData2TopicSubscribeInfo(final String topic, final TopicRouteData route) {
-        Set<MessageQueue> mqList = new HashSet<MessageQueue>();
-        List<QueueData> qds = route.getQueueDatas();
-        for (QueueData qd : qds) {
-            if (PermName.isReadable(qd.getPerm())) {
-                for (int i = 0; i < qd.getReadQueueNums(); i++) {
-                    MessageQueue mq = new MessageQueue(topic, qd.getBrokerName(), i);
-                    mqList.add(mq);
-                }
-            }
-        }
-
-        return mqList;
-    }
-
-
     private void updateTopicRouteInfoFromNameServer() {
         Set<String> topicList = new HashSet<String>();
 
-        // Consumer
+        // Consumer对象
         {
             Iterator<Entry<String, MQConsumerInner>> it = this.consumerTable.entrySet().iterator();
             while (it.hasNext()) {
@@ -791,42 +283,6 @@ public class MQClientFactory {
             this.updateTopicRouteInfoFromNameServer(topic);
         }
     }
-
-
-    public TopicRouteData getAnExistTopicRouteData(final String topic) {
-        return this.topicRouteTable.get(topic);
-    }
-
-
-    private boolean isNeedUpdateTopicRouteInfo(final String topic) {
-        boolean result = false;
-        // 查看发布队列是否需要更新
-        {
-            Iterator<Entry<String, MQProducerInner>> it = this.producerTable.entrySet().iterator();
-            while (it.hasNext() && !result) {
-                Entry<String, MQProducerInner> entry = it.next();
-                MQProducerInner impl = entry.getValue();
-                if (impl != null) {
-                    result = impl.isPublishTopicNeedUpdate(topic);
-                }
-            }
-        }
-
-        // 查看订阅队列是否需要更新
-        {
-            Iterator<Entry<String, MQConsumerInner>> it = this.consumerTable.entrySet().iterator();
-            while (it.hasNext() && !result) {
-                Entry<String, MQConsumerInner> entry = it.next();
-                MQConsumerInner impl = entry.getValue();
-                if (impl != null) {
-                    result = impl.isSubscribeTopicNeedUpdate(topic);
-                }
-            }
-        }
-
-        return result;
-    }
-
 
     /**
      * 调用Name Server接口，根据Topic获取路由信息
@@ -900,36 +356,529 @@ public class MQClientFactory {
         return false;
     }
 
+    private boolean isNeedUpdateTopicRouteInfo(final String topic) {
+        boolean result = false;
+        // 查看发布队列是否需要更新
+        {
+            Iterator<Entry<String, MQProducerInner>> it = this.producerTable.entrySet().iterator();
+            while (it.hasNext() && !result) {
+                Entry<String, MQProducerInner> entry = it.next();
+                MQProducerInner impl = entry.getValue();
+                if (impl != null) {
+                    result = impl.isPublishTopicNeedUpdate(topic);
+                }
+            }
+        }
+
+        // 查看订阅队列是否需要更新
+        {
+            Iterator<Entry<String, MQConsumerInner>> it = this.consumerTable.entrySet().iterator();
+            while (it.hasNext() && !result) {
+                Entry<String, MQConsumerInner> entry = it.next();
+                MQConsumerInner impl = entry.getValue();
+                if (impl != null) {
+                    result = impl.isSubscribeTopicNeedUpdate(topic);
+                }
+            }
+        }
+
+        return result;
+    }
+
+    public static Set<MessageQueue> topicRouteData2TopicSubscribeInfo(final String topic, final TopicRouteData route) {
+        Set<MessageQueue> mqList = new HashSet<MessageQueue>();
+        List<QueueData> qds = route.getQueueDatas();
+        for (QueueData qd : qds) {
+            if (PermName.isReadable(qd.getPerm())) {
+                for (int i = 0; i < qd.getReadQueueNums(); i++) {
+                    MessageQueue mq = new MessageQueue(topic, qd.getBrokerName(), i);
+                    mqList.add(mq);
+                }
+            }
+        }
+
+        return mqList;
+    }
+
+    public static TopicPublishInfo topicRouteData2TopicPublishInfo(final String topic, final TopicRouteData route) {
+        TopicPublishInfo info = new TopicPublishInfo();
+        // 顺序消息
+        if (route.getOrderTopicConf() != null && route.getOrderTopicConf().length() > 0) {
+            String[] brokers = route.getOrderTopicConf().split(";");
+            for (String broker : brokers) {
+                String[] item = broker.split(":");
+                int nums = Integer.parseInt(item[1]);
+                for (int i = 0; i < nums; i++) {
+                    MessageQueue mq = new MessageQueue(topic, item[0], i);
+                    info.getMessageQueueList().add(mq);
+                }
+            }
+
+            info.setOrderTopic(true);
+        }
+        // 非顺序消息
+        else {
+            List<QueueData> qds = route.getQueueDatas();
+            // 排序原因：即使没有配置顺序消息模式，默认队列的顺序同配置的一致。
+            Collections.sort(qds);
+            for (QueueData qd : qds) {
+                if (PermName.isWriteable(qd.getPerm())) {
+                    for (int i = 0; i < qd.getWriteQueueNums(); i++) {
+                        MessageQueue mq = new MessageQueue(topic, qd.getBrokerName(), i);
+                        info.getMessageQueueList().add(mq);
+                    }
+                }
+            }
+
+            info.setOrderTopic(false);
+        }
+
+        return info;
+    }
+
+    public void sendHeartbeatToAllBrokerWithLock() {
+        if (this.lockHeartbeat.tryLock()) {
+            try {
+                this.sendHeartbeatToAllBroker();
+            } catch (final Exception e) {
+                log.error("sendHeartbeatToAllBroker exception", e);
+            } finally {
+                this.lockHeartbeat.unlock();
+            }
+        } else {
+            log.warn("lock heartBeat, but failed.");
+        }
+    }
+
+    private void sendHeartbeatToAllBroker() {
+        final HeartbeatData heartbeatData = this.prepareHeartbeatData();
+        final boolean producerEmpty = heartbeatData.getProducerDataSet().isEmpty();
+        final boolean consumerEmpty = heartbeatData.getConsumerDataSet().isEmpty();
+        if (producerEmpty && consumerEmpty) {
+            log.warn("sending hearbeat, but no consumer and no producer");
+            return;
+        }
+
+        for (String name : this.brokerAddrTable.keySet()) {
+            final HashMap<Long, String> oneTable = this.brokerAddrTable.get(name);
+            if (oneTable != null) {
+                for (Long id : oneTable.keySet()) {
+                    String addr = oneTable.get(id);
+                    if (addr != null) {
+                        // 说明只有Producer，则不向Slave发心跳
+                        if (consumerEmpty) {
+                            if (id != MixAll.MASTER_ID)
+                                continue;
+                        }
+
+                        try {
+                            this.mQClientAPIImpl.sendHearbeat(addr, heartbeatData, 3000);
+                            log.info("send heart beat to broker[{} {} {}] success", name, id, addr);
+                            log.info(heartbeatData.toString());
+                        } catch (Exception e) {
+                            log.error("send heart beat to broker exception", e);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private HeartbeatData prepareHeartbeatData() {
+        HeartbeatData heartbeatData = new HeartbeatData();
+
+        // clientID
+        heartbeatData.setClientID(this.clientId);
+
+        // Consumer
+        for (String group : this.consumerTable.keySet()) {
+            MQConsumerInner impl = this.consumerTable.get(group);
+            if (impl != null) {
+                ConsumerData consumerData = new ConsumerData();
+                consumerData.setGroupName(impl.groupName());
+                consumerData.setConsumeType(impl.consumeType());
+                consumerData.setMessageModel(impl.messageModel());
+                consumerData.setConsumeFromWhere(impl.consumeFromWhere());
+                consumerData.getSubscriptionDataSet().addAll(impl.subscriptions());
+
+                heartbeatData.getConsumerDataSet().add(consumerData);
+            }
+        }
+
+        // Producer
+        for (String group : this.producerTable.keySet()) {
+            MQProducerInner impl = this.producerTable.get(group);
+            if (impl != null) {
+                ProducerData producerData = new ProducerData();
+                producerData.setGroupName(group);
+
+                heartbeatData.getProducerDataSet().add(producerData);
+            }
+        }
+
+        return heartbeatData;
+    }
+
+    private void persistAllConsumerOffset() {
+        Iterator<Entry<String, MQConsumerInner>> it = this.consumerTable.entrySet().iterator();
+        while (it.hasNext()) {
+            Entry<String, MQConsumerInner> entry = it.next();
+            MQConsumerInner impl = entry.getValue();
+            impl.persistConsumerOffset();
+        }
+    }
+
+    private void logStatsPeriodically() {
+        Iterator<Entry<String, MQConsumerInner>> it = this.consumerTable.entrySet().iterator();
+        while (it.hasNext()) {
+            Entry<String, MQConsumerInner> entry = it.next();
+            MQConsumerInner impl = entry.getValue();
+            if (impl != null) {
+                if (impl instanceof DefaultMQPushConsumerImpl) {
+                    DefaultMQPushConsumerImpl consumer = (DefaultMQPushConsumerImpl) impl;
+                    consumer.getConsumerStatManager().logStatsPeriodically(entry.getKey(), this.clientId);
+                }
+            }
+        }
+    }
+
+    private void recordSnapshotPeriodically() {
+        Iterator<Entry<String, MQConsumerInner>> it = this.consumerTable.entrySet().iterator();
+        while (it.hasNext()) {
+            Entry<String, MQConsumerInner> entry = it.next();
+            MQConsumerInner impl = entry.getValue();
+            if (impl != null) {
+                if (impl instanceof DefaultMQPushConsumerImpl) {
+                    DefaultMQPushConsumerImpl consumer = (DefaultMQPushConsumerImpl) impl;
+                    consumer.getConsumerStatManager().recordSnapshotPeriodically();
+                }
+            }
+        }
+    }
+
+    private void makesureInstanceNameIsOnly(final String instanceName) throws MQClientException {
+        int udpPort = 33333;
+
+        int value = instanceName.hashCode();
+        if (value < 0) {
+            value = Math.abs(value);
+        }
+
+        udpPort += value % 10000;
+
+        try {
+            this.datagramSocket = new DatagramSocket(udpPort);
+        } catch (SocketException e) {
+            throw new MQClientException("instance name is a duplicate one[" + udpPort + "], please set a new name" + FAQUrl.suggestTodo(FAQUrl.CLIENT_INSTACNCE_NAME_DUPLICATE_URL), e);
+        }
+    }
+
+    public void shutdown() {
+        // Consumer
+        if (!this.consumerTable.isEmpty())
+            return;
+
+        // AdminExt
+        if (!this.adminExtTable.isEmpty())
+            return;
+
+        // Producer
+        if (this.producerTable.size() > 1)
+            return;
+
+        synchronized (this) {
+            switch (this.serviceState) {
+                case CREATE_JUST:
+                    break;
+                case RUNNING:
+                    this.defaultMQProducer.getDefaultMQProducerImpl().shutdown(false);
+
+                    this.serviceState = ServiceState.SHUTDOWN_ALREADY;
+                    this.pullMessageService.shutdown(true);
+                    this.scheduledExecutorService.shutdown();
+                    this.mQClientAPIImpl.shutdown();
+                    this.rebalanceService.shutdown();
+
+                    if (this.datagramSocket != null) {
+                        this.datagramSocket.close();
+                        this.datagramSocket = null;
+                    }
+                    MQClientManager.getInstance().removeClientFactory(this.clientId);
+                    log.info("the client factory [{}] shutdown OK", this.clientId);
+                    break;
+                case SHUTDOWN_ALREADY:
+                    break;
+                default:
+                    break;
+            }
+        }
+    }
+
+    public boolean registerConsumer(final String group, final MQConsumerInner consumer) {
+        if (null == group || null == consumer) {
+            return false;
+        }
+
+        MQConsumerInner prev = this.consumerTable.putIfAbsent(group, consumer);
+        if (prev != null) {
+            log.warn("the consumer group[" + group + "] exist already.");
+            return false;
+        }
+
+        return true;
+    }
+
+    public void unregisterConsumer(final String group) {
+        this.consumerTable.remove(group);
+        this.unregisterClientWithLock(null, group);
+    }
+
+    private void unregisterClientWithLock(final String producerGroup, final String consumerGroup) {
+        try {
+            if (this.lockHeartbeat.tryLock(LockTimeoutMillis, TimeUnit.MILLISECONDS)) {
+                try {
+                    this.unregisterClient(producerGroup, consumerGroup);
+                } catch (Exception e) {
+                    log.error("unregisterClient exception", e);
+                } finally {
+                    this.lockHeartbeat.unlock();
+                }
+            } else {
+                log.warn("lock heartBeat, but failed.");
+            }
+        } catch (InterruptedException e) {
+            log.warn("unregisterClientWithLock exception", e);
+        }
+    }
+
+    private void unregisterClient(final String producerGroup, final String consumerGroup) {
+        for (String name : this.brokerAddrTable.keySet()) {
+            final HashMap<Long, String> oneTable = this.brokerAddrTable.get(name);
+            if (oneTable != null) {
+                for (Long id : oneTable.keySet()) {
+                    String addr = oneTable.get(id);
+                    if (addr != null) {
+                        try {
+                            this.mQClientAPIImpl.unregisterClient(addr, this.clientId, producerGroup, consumerGroup, 3000);
+                            log.info("unregister client[Producer: {} Consumer: {}] from broker[{} {} {}] success", producerGroup, consumerGroup, name, id, addr);
+                        } catch (RemotingException e) {
+                            log.error("unregister client exception from broker: " + addr, e);
+                        } catch (MQBrokerException e) {
+                            log.error("unregister client exception from broker: " + addr, e);
+                        } catch (InterruptedException e) {
+                            log.error("unregister client exception from broker: " + addr, e);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    public boolean registerProducer(final String group, final DefaultMQProducerImpl producer) {
+        if (null == group || null == producer) {
+            return false;
+        }
+
+        MQProducerInner prev = this.producerTable.putIfAbsent(group, producer);
+        if (prev != null) {
+            log.warn("the producer group[{}] exist already.", group);
+            return false;
+        }
+
+        return true;
+    }
+
+    public void unregisterProducer(final String group) {
+        this.producerTable.remove(group);
+        this.unregisterClientWithLock(group, null);
+    }
+
+    public boolean registerAdminExt(final String group, final MQAdminExtInner admin) {
+        if (null == group || null == admin) {
+            return false;
+        }
+
+        MQAdminExtInner prev = this.adminExtTable.putIfAbsent(group, admin);
+        if (prev != null) {
+            log.warn("the admin group[{}] exist already.", group);
+            return false;
+        }
+
+        return true;
+    }
+
+    public void unregisterAdminExt(final String group) {
+        this.adminExtTable.remove(group);
+    }
+
+    public void rebalanceImmediately() {
+        this.rebalanceService.wakeup();
+    }
+
+    public void doRebalance() {
+        for (String group : this.consumerTable.keySet()) {
+            MQConsumerInner impl = this.consumerTable.get(group);
+            if (impl != null) {
+                try {
+                    impl.doRebalance();
+                } catch (Exception e) {
+                    log.error("doRebalance exception", e);
+                }
+            }
+        }
+    }
+
+    public MQProducerInner selectProducer(final String group) {
+        return this.producerTable.get(group);
+    }
+
+    public MQConsumerInner selectConsumer(final String group) {
+        return this.consumerTable.get(group);
+    }
+
+    /**
+     * 管理类的接口查询Broker地址，Master优先
+     *
+     * @param brokerName
+     * @return
+     */
+    public FindBrokerResult findBrokerAddressInAdmin(final String brokerName) {
+        String brokerAddr = null;
+        boolean slave = false;
+        boolean found = false;
+
+        HashMap<Long/* brokerId */, String/* address */> map = this.brokerAddrTable.get(brokerName);
+        if (map != null && !map.isEmpty()) {
+            // TODO 如果有多个Slave，可能会每次都选中相同的Slave，这里需要优化
+            FOR_SEG:
+            for (Map.Entry<Long, String> entry : map.entrySet()) {
+                Long id = entry.getKey();
+                brokerAddr = entry.getValue();
+                if (brokerAddr != null) {
+                    found = true;
+                    if (MixAll.MASTER_ID == id) {
+                        slave = false;
+                        break FOR_SEG;
+                    } else {
+                        slave = true;
+                    }
+                    break;
+
+                }
+            } // end of for
+        }
+
+        if (found) {
+            return new FindBrokerResult(brokerAddr, slave);
+        }
+
+        return null;
+    }
+
+    /**
+     * 发布消息过程中，寻找Broker地址，一定是找Master
+     */
+    public String findBrokerAddressInPublish(final String brokerName) {
+        HashMap<Long/* brokerId */, String/* address */> map = this.brokerAddrTable.get(brokerName);
+        if (map != null && !map.isEmpty()) {
+            return map.get(MixAll.MASTER_ID);
+        }
+
+        return null;
+    }
+
+    /**
+     * 订阅消息过程中，寻找Broker地址，取Master还是Slave由参数决定
+     */
+    public FindBrokerResult findBrokerAddressInSubscribe(//
+                                                         final String brokerName,//
+                                                         final long brokerId,//
+                                                         final boolean onlyThisBroker//
+    ) {
+        String brokerAddr = null;
+        boolean slave = false;
+        boolean found = false;
+
+        HashMap<Long/* brokerId */, String/* address */> map = this.brokerAddrTable.get(brokerName);
+        if (map != null && !map.isEmpty()) {
+            brokerAddr = map.get(brokerId);
+            slave = (brokerId != MixAll.MASTER_ID);
+            found = (brokerAddr != null);
+
+            // 尝试寻找其他Broker
+            if (!found && !onlyThisBroker) {
+                Entry<Long, String> entry = map.entrySet().iterator().next();
+                brokerAddr = entry.getValue();
+                slave = (entry.getKey() != MixAll.MASTER_ID);
+                found = true;
+            }
+        }
+
+        if (found) {
+            return new FindBrokerResult(brokerAddr, slave);
+        }
+
+        return null;
+    }
+
+    public List<String> findConsumerIdList(final String topic, final String group) {
+        String brokerAddr = this.findBrokerAddrByTopic(topic);
+        if (null == brokerAddr) {
+            this.updateTopicRouteInfoFromNameServer(topic);
+            brokerAddr = this.findBrokerAddrByTopic(topic);
+        }
+
+        if (null != brokerAddr) {
+            try {
+                return this.mQClientAPIImpl.getConsumerIdListByGroup(brokerAddr, group, 3000);
+            } catch (Exception e) {
+                log.warn("getConsumerIdListByGroup exception, " + brokerAddr + " " + group, e);
+            }
+        }
+
+        return null;
+    }
+
+    public String findBrokerAddrByTopic(final String topic) {
+        TopicRouteData topicRouteData = this.topicRouteTable.get(topic);
+        if (topicRouteData != null) {
+            List<BrokerData> brokers = topicRouteData.getBrokerDatas();
+            if (!brokers.isEmpty()) {
+                BrokerData bd = brokers.get(0);
+                return bd.selectBrokerAddr();
+            }
+        }
+
+        return null;
+    }
+
+    public TopicRouteData getAnExistTopicRouteData(final String topic) {
+        return this.topicRouteTable.get(topic);
+    }
 
     public MQClientAPIImpl getMQClientAPIImpl() {
         return mQClientAPIImpl;
     }
 
-
     public MQAdminImpl getMQAdminImpl() {
         return mQAdminImpl;
     }
-
 
     public String getClientId() {
         return clientId;
     }
 
-
     public long getBootTimestamp() {
         return bootTimestamp;
     }
-
 
     public ScheduledExecutorService getScheduledExecutorService() {
         return scheduledExecutorService;
     }
 
-
     public PullMessageService getPullMessageService() {
         return pullMessageService;
     }
-
 
     public DefaultMQProducer getDefaultMQProducer() {
         return defaultMQProducer;
