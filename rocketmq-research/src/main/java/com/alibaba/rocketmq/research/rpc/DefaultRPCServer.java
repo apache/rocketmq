@@ -50,11 +50,8 @@ public class DefaultRPCServer implements RPCServer {
                     for (SelectionKey k : selectedList) {
                         if ((k.readyOps() & SelectionKey.OP_ACCEPT) != 0) {
                             SocketChannel sc = ((ServerSocketChannel) k.channel()).accept();
-                            System.out.println("receive new connection, "
-                                    + sc.socket().getRemoteSocketAddress());
-                            Connection newConnection =
-                                    new Connection(sc, DefaultRPCServer.this.rpcServerProcessor,
-                                            DefaultRPCServer.this.executor);
+                            System.out.println("receive new connection, " + sc.socket().getRemoteSocketAddress());
+                            Connection newConnection = new Connection(sc, DefaultRPCServer.this.rpcServerProcessor, DefaultRPCServer.this.executor);
 
                             // if (DefaultRPCServer.this.clientConnection !=
                             // null) {
@@ -92,8 +89,7 @@ public class DefaultRPCServer implements RPCServer {
     }
 
 
-    public DefaultRPCServer(final int listenPort, final int minPoolSize, final int maxPoolSize)
-            throws IOException {
+    public DefaultRPCServer(final int listenPort, final int minPoolSize, final int maxPoolSize) throws IOException {
         this.listenPort = listenPort;
         this.socketAddressListen = new InetSocketAddress(this.listenPort);
         this.serverSocketChannel = ServerSocketChannel.open();
@@ -103,17 +99,15 @@ public class DefaultRPCServer implements RPCServer {
         this.serverSocketChannel.configureBlocking(false);
         this.serverSocketChannel.register(this.selector, SelectionKey.OP_ACCEPT);
 
-        this.executor =
-                new ThreadPoolExecutor(minPoolSize, maxPoolSize, 60L, TimeUnit.SECONDS,
-                        new SynchronousQueue<Runnable>(), new ThreadFactory() {
-                    private volatile long threadCnt = 0;
+        this.executor = new ThreadPoolExecutor(minPoolSize, maxPoolSize, 60L, TimeUnit.SECONDS, new SynchronousQueue<Runnable>(), new ThreadFactory() {
+            private volatile long threadCnt = 0;
 
 
-                    @Override
-                    public Thread newThread(Runnable r) {
-                        return new Thread(r, "RPCHandleThreadPool_" + String.valueOf(this.threadCnt++));
-                    }
-                });
+            @Override
+            public Thread newThread(Runnable r) {
+                return new Thread(r, "RPCHandleThreadPool_" + String.valueOf(this.threadCnt++));
+            }
+        });
     }
 
 

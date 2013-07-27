@@ -57,15 +57,12 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
             case CREATE_JUST:
                 this.serviceState = ServiceState.RUNNING;
 
-                this.mQClientFactory =
-                        MQClientManager.getInstance().getAndCreateMQClientFactory(this.defaultMQAdminExt);
+                this.mQClientFactory = MQClientManager.getInstance().getAndCreateMQClientFactory(this.defaultMQAdminExt);
 
-                boolean registerOK =
-                        mQClientFactory.registerAdminExt(this.defaultMQAdminExt.getAdminExtGroup(), this);
+                boolean registerOK = mQClientFactory.registerAdminExt(this.defaultMQAdminExt.getAdminExtGroup(), this);
                 if (!registerOK) {
                     this.serviceState = ServiceState.CREATE_JUST;
-                    throw new MQClientException("The adminExt group[" + this.defaultMQAdminExt.getAdminExtGroup()
-                            + "] has created already, specifed another name please."//
+                    throw new MQClientException("The adminExt group[" + this.defaultMQAdminExt.getAdminExtGroup() + "] has created already, specifed another name please."//
                             + FAQUrl.suggestTodo(FAQUrl.GROUP_NAME_DUPLICATE_URL), null);
                 }
 
@@ -108,10 +105,8 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
     }
 
     @Override
-    public void createAndUpdateTopicConfigByAddr(String addr, TopicConfig config) throws RemotingException,
-            MQBrokerException, InterruptedException, MQClientException {
-        this.mQClientFactory.getMQClientAPIImpl().createTopic(addr,
-                this.defaultMQAdminExt.getCreateTopicKey(), config, 3000);
+    public void createAndUpdateTopicConfigByAddr(String addr, TopicConfig config) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
+        this.mQClientFactory.getMQClientAPIImpl().createTopic(addr, this.defaultMQAdminExt.getCreateTopicKey(), config, 3000);
     }
 
     @Override
@@ -121,8 +116,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
     }
 
     @Override
-    public void createAndUpdateSubscriptionGroupConfigByAddr(String addr, SubscriptionGroupConfig config)
-            throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
+    public void createAndUpdateSubscriptionGroupConfigByAddr(String addr, SubscriptionGroupConfig config) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
         this.mQClientFactory.getMQClientAPIImpl().createSubscriptionGroup(addr, config, 3000);
     }
 
@@ -188,14 +182,12 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
     }
 
     @Override
-    public MessageExt viewMessage(String msgId) throws RemotingException, MQBrokerException,
-            InterruptedException, MQClientException {
+    public MessageExt viewMessage(String msgId) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
         return this.mQClientFactory.getMQAdminImpl().viewMessage(msgId);
     }
 
     @Override
-    public QueryResult queryMessage(String topic, String key, int maxNum, long begin, long end)
-            throws MQClientException, InterruptedException {
+    public QueryResult queryMessage(String topic, String key, int maxNum, long begin, long end) throws MQClientException, InterruptedException {
         return this.mQClientFactory.getMQAdminImpl().queryMessage(topic, key, maxNum, begin, end);
     }
 }

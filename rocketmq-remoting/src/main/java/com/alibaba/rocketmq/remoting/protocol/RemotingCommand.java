@@ -81,9 +81,7 @@ public class RemotingCommand {
 
 
     public static RemotingCommand createResponseCommand(Class<? extends CommandCustomHeader> classHeader) {
-        RemotingCommand cmd =
-                createResponseCommand(ResponseCode.SYSTEM_ERROR_VALUE, "not set any response code",
-                        classHeader);
+        RemotingCommand cmd = createResponseCommand(ResponseCode.SYSTEM_ERROR_VALUE, "not set any response code", classHeader);
 
         return cmd;
     }
@@ -97,8 +95,7 @@ public class RemotingCommand {
     /**
      * 只有通信层内部会调用，业务不会调用
      */
-    public static RemotingCommand createResponseCommand(int code, String remark,
-                                                        Class<? extends CommandCustomHeader> classHeader) {
+    public static RemotingCommand createResponseCommand(int code, String remark, Class<? extends CommandCustomHeader> classHeader) {
         RemotingCommand cmd = new RemotingCommand();
         cmd.markResponseType();
         cmd.setCode(code);
@@ -165,8 +162,7 @@ public class RemotingCommand {
     }
 
 
-    public CommandCustomHeader decodeCommandCustomHeader(Class<? extends CommandCustomHeader> classHeader)
-            throws RemotingCommandException {
+    public CommandCustomHeader decodeCommandCustomHeader(Class<? extends CommandCustomHeader> classHeader) throws RemotingCommandException {
         if (this.extFields != null) {
             CommandCustomHeader objectHeader;
             try {
@@ -473,8 +469,6 @@ public class RemotingCommand {
 
     @Override
     public String toString() {
-        return "RemotingCommand [code=" + code + ", language=" + language + ", version=" + version
-                + ", opaque=" + opaque + ", flag(B)=" + Integer.toBinaryString(flag) + ", remark=" + remark
-                + ", extFields=" + extFields + "]";
+        return "RemotingCommand [code=" + code + ", language=" + language + ", version=" + version + ", opaque=" + opaque + ", flag(B)=" + Integer.toBinaryString(flag) + ", remark=" + remark + ", extFields=" + extFields + "]";
     }
 }

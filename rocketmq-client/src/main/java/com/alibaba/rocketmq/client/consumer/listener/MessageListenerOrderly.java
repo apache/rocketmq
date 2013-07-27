@@ -36,6 +36,5 @@ public interface MessageListenerOrderly extends MessageListener {
      * @param context
      * @return
      */
-    public ConsumeOrderlyStatus consumeMessage(final List<MessageExt> msgs,
-                                               final ConsumeOrderlyContext context);
+    public ConsumeOrderlyStatus consumeMessage(final List<MessageExt> msgs, final ConsumeOrderlyContext context);
 }

@@ -82,8 +82,7 @@ public class IndexService extends ServiceThread {
                     f.load();
 
                     if (!lastExitOK) {
-                        if (f.getEndTimestamp() > this.defaultMessageStore.getStoreCheckpoint()
-                                .getIndexMsgTimestamp()) {
+                        if (f.getEndTimestamp() > this.defaultMessageStore.getStoreCheckpoint().getIndexMsgTimestamp()) {
                             f.destroy(0);
                             continue;
                         }
@@ -131,12 +130,8 @@ public class IndexService extends ServiceThread {
         // 如果没找到，使用写锁创建文件
         if (indexFile == null) {
             try {
-                String fileName =
-                        this.storePath + File.separator
-                                + UtilALl.timeMillisToHumanString(System.currentTimeMillis());
-                indexFile =
-                        new IndexFile(fileName, this.hashSlotNum, this.indexNum, lastUpdateEndPhyOffset,
-                                lastUpdateIndexTimestamp);
+                String fileName = this.storePath + File.separator + UtilALl.timeMillisToHumanString(System.currentTimeMillis());
+                indexFile = new IndexFile(fileName, this.hashSlotNum, this.indexNum, lastUpdateEndPhyOffset, lastUpdateIndexTimestamp);
                 this.readWriteLock.writeLock().lock();
                 this.indexFileList.add(indexFile);
             } catch (Exception e) {
@@ -396,9 +391,7 @@ public class IndexService extends ServiceThread {
                     for (String key : keyset) {
                         // TODO 是否需要TRIM
                         if (key.length() > 0) {
-                            for (boolean ok =
-                                         indexFile.putKey(buildKey(topic, key), msg.getCommitLogOffset(),
-                                                 msg.getStoreTimestamp()); !ok; ) {
+                            for (boolean ok = indexFile.putKey(buildKey(topic, key), msg.getCommitLogOffset(), msg.getStoreTimestamp()); !ok; ) {
                                 log.warn("index file full, so create another one, " + indexFile.getFileName());
                                 indexFile = retryGetAndCreateIndexFile();
                                 if (null == indexFile) {
@@ -406,9 +399,7 @@ public class IndexService extends ServiceThread {
                                     break MSG_WHILE;
                                 }
 
-                                ok =
-                                        indexFile.putKey(buildKey(topic, key), msg.getCommitLogOffset(),
-                                                msg.getStoreTimestamp());
+                                ok = indexFile.putKey(buildKey(topic, key), msg.getCommitLogOffset(), msg.getStoreTimestamp());
                             }
                         }
                     }

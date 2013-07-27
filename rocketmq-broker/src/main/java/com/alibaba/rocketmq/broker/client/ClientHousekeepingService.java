@@ -38,13 +38,12 @@ public class ClientHousekeepingService implements ChannelEventListener {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.BrokerLoggerName);
     private final BrokerController brokerController;
 
-    private ScheduledExecutorService scheduledExecutorService = Executors
-            .newSingleThreadScheduledExecutor(new ThreadFactory() {
-                @Override
-                public Thread newThread(Runnable r) {
-                    return new Thread(r, "ClientHousekeepingScheduledThread");
-                }
-            });
+    private ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactory() {
+        @Override
+        public Thread newThread(Runnable r) {
+            return new Thread(r, "ClientHousekeepingScheduledThread");
+        }
+    });
 
 
     public ClientHousekeepingService(final BrokerController brokerController) {

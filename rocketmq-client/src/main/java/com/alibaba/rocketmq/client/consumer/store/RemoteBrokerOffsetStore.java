@@ -42,8 +42,7 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
     private final static Logger log = ClientLogger.getLog();
     private final MQClientFactory mQClientFactory;
     private final String groupName;
-    private ConcurrentHashMap<MessageQueue, AtomicLong> offsetTable =
-            new ConcurrentHashMap<MessageQueue, AtomicLong>();
+    private ConcurrentHashMap<MessageQueue, AtomicLong> offsetTable = new ConcurrentHashMap<MessageQueue, AtomicLong>();
 
 
     public RemoteBrokerOffsetStore(MQClientFactory mQClientFactory, String groupName) {
@@ -55,8 +54,7 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
     /**
      * 更新Consumer Offset，在Master断网期间，可能会更新到Slave，这里需要优化，或者在Slave端优化， TODO
      */
-    private void updateConsumeOffsetToBroker(MessageQueue mq, long offset) throws RemotingException,
-            MQBrokerException, InterruptedException, MQClientException {
+    private void updateConsumeOffsetToBroker(MessageQueue mq, long offset) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
         FindBrokerResult findBrokerResult = this.mQClientFactory.findBrokerAddressInAdmin(mq.getBrokerName());
         if (null == findBrokerResult) {
             // TODO 此处可能对Name Server压力过大，需要调优
@@ -72,16 +70,14 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
             requestHeader.setCommitOffset(offset);
 
             // 使用oneway形式，原因是服务器在删除文件时，这个调用可能会超时
-            this.mQClientFactory.getMQClientAPIImpl().updateConsumerOffsetOneway(
-                    findBrokerResult.getBrokerAddr(), requestHeader, 1000 * 5);
+            this.mQClientFactory.getMQClientAPIImpl().updateConsumerOffsetOneway(findBrokerResult.getBrokerAddr(), requestHeader, 1000 * 5);
         } else {
             throw new MQClientException("The broker[" + mq.getBrokerName() + "] not exist", null);
         }
     }
 
 
-    private long fetchConsumeOffsetFromBroker(MessageQueue mq) throws RemotingException, MQBrokerException,
-            InterruptedException, MQClientException {
+    private long fetchConsumeOffsetFromBroker(MessageQueue mq) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
         FindBrokerResult findBrokerResult = this.mQClientFactory.findBrokerAddressInAdmin(mq.getBrokerName());
         if (null == findBrokerResult) {
             // TODO 此处可能对Name Server压力过大，需要调优
@@ -95,8 +91,7 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
             requestHeader.setConsumerGroup(this.groupName);
             requestHeader.setQueueId(mq.getQueueId());
 
-            return this.mQClientFactory.getMQClientAPIImpl().queryConsumerOffset(
-                    findBrokerResult.getBrokerAddr(), requestHeader, 1000 * 5);
+            return this.mQClientFactory.getMQClientAPIImpl().queryConsumerOffset(findBrokerResult.getBrokerAddr(), requestHeader, 1000 * 5);
         } else {
             throw new MQClientException("The broker[" + mq.getBrokerName() + "] not exist", null);
         }

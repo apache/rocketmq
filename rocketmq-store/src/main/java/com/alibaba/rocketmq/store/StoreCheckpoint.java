@@ -59,10 +59,8 @@ public class StoreCheckpoint {
             this.physicMsgTimestamp = this.mappedByteBuffer.getLong(0);
             this.logicsMsgTimestamp = this.mappedByteBuffer.getLong(8);
 
-            log.info("store checkpoint file physicMsgTimestamp " + this.physicMsgTimestamp + ", "
-                    + UtilALl.timeMillisToHumanString(this.physicMsgTimestamp));
-            log.info("store checkpoint file logicsMsgTimestamp " + this.logicsMsgTimestamp + ", "
-                    + UtilALl.timeMillisToHumanString(this.logicsMsgTimestamp));
+            log.info("store checkpoint file physicMsgTimestamp " + this.physicMsgTimestamp + ", " + UtilALl.timeMillisToHumanString(this.physicMsgTimestamp));
+            log.info("store checkpoint file logicsMsgTimestamp " + this.logicsMsgTimestamp + ", " + UtilALl.timeMillisToHumanString(this.logicsMsgTimestamp));
         } else {
             log.info("store checkpoint file not exists, " + scpPath);
         }

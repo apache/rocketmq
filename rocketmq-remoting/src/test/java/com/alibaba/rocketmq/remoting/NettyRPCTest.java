@@ -47,8 +47,7 @@ public class NettyRPCTest {
 
 
     @Test
-    public void test_RPC_Sync() throws InterruptedException, RemotingConnectException,
-            RemotingSendRequestException, RemotingTimeoutException {
+    public void test_RPC_Sync() throws InterruptedException, RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException {
         RemotingServer server = createRemotingServer();
         RemotingClient client = createRemotingClient();
 
@@ -69,8 +68,7 @@ public class NettyRPCTest {
 
 
     @Test
-    public void test_RPC_Oneway() throws InterruptedException, RemotingConnectException,
-            RemotingTimeoutException, RemotingTooMuchRequestException, RemotingSendRequestException {
+    public void test_RPC_Oneway() throws InterruptedException, RemotingConnectException, RemotingTimeoutException, RemotingTooMuchRequestException, RemotingSendRequestException {
         RemotingServer server = createRemotingServer();
         RemotingClient client = createRemotingClient();
 
@@ -87,8 +85,7 @@ public class NettyRPCTest {
 
 
     @Test
-    public void test_RPC_Async() throws InterruptedException, RemotingConnectException,
-            RemotingTimeoutException, RemotingTooMuchRequestException, RemotingSendRequestException {
+    public void test_RPC_Async() throws InterruptedException, RemotingConnectException, RemotingTimeoutException, RemotingTooMuchRequestException, RemotingSendRequestException {
         RemotingServer server = createRemotingServer();
         RemotingClient client = createRemotingClient();
 
@@ -112,8 +109,7 @@ public class NettyRPCTest {
 
 
     @Test
-    public void test_server_call_client() throws InterruptedException, RemotingConnectException,
-            RemotingSendRequestException, RemotingTimeoutException {
+    public void test_server_call_client() throws InterruptedException, RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException {
         final RemotingServer server = createRemotingServer();
         final RemotingClient client = createRemotingClient();
 

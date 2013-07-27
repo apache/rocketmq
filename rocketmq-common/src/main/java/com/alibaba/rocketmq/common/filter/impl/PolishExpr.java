@@ -30,15 +30,12 @@ public class PolishExpr {
         for (int i = 0; i < size; i++) {
             int chValue = (int) expression.charAt(i);
 
-            if ((97 <= chValue && chValue <= 122) || (65 <= chValue && chValue <= 90)
-                    || (49 <= chValue && chValue <= 57) || 95 == chValue) {
+            if ((97 <= chValue && chValue <= 122) || (65 <= chValue && chValue <= 90) || (49 <= chValue && chValue <= 57) || 95 == chValue) {
                 // 操作数
 
-                if (Type.OPERATOR == preType || Type.SEPAERATOR == preType || Type.NULL == preType
-                        || Type.PARENTHESIS == preType) {
+                if (Type.OPERATOR == preType || Type.SEPAERATOR == preType || Type.NULL == preType || Type.PARENTHESIS == preType) {
                     if (Type.OPERATOR == preType) {
-                        segments.add(createOperator(expression.substring(wordStartIndex, wordStartIndex
-                                + wordLen)));
+                        segments.add(createOperator(expression.substring(wordStartIndex, wordStartIndex + wordLen)));
                     }
                     wordStartIndex = i;
                     wordLen = 0;
@@ -49,8 +46,7 @@ public class PolishExpr {
                 // 括号
 
                 if (Type.OPERATOR == preType) {
-                    segments.add(createOperator(expression
-                            .substring(wordStartIndex, wordStartIndex + wordLen)));
+                    segments.add(createOperator(expression.substring(wordStartIndex, wordStartIndex + wordLen)));
                     wordStartIndex = -1;
                     wordLen = 0;
                 } else if (Type.OPERAND == preType) {
@@ -65,8 +61,7 @@ public class PolishExpr {
                 // 操作符
                 if (Type.OPERAND == preType || Type.SEPAERATOR == preType || Type.PARENTHESIS == preType) {
                     if (Type.OPERAND == preType) {
-                        segments.add(new Operand(expression.substring(wordStartIndex, wordStartIndex
-                                + wordLen)));
+                        segments.add(new Operand(expression.substring(wordStartIndex, wordStartIndex + wordLen)));
                     }
                     wordStartIndex = i;
                     wordLen = 0;
@@ -77,8 +72,7 @@ public class PolishExpr {
                 // 单词分隔符
 
                 if (Type.OPERATOR == preType) {
-                    segments.add(createOperator(expression
-                            .substring(wordStartIndex, wordStartIndex + wordLen)));
+                    segments.add(createOperator(expression.substring(wordStartIndex, wordStartIndex + wordLen)));
                     wordStartIndex = -1;
                     wordLen = 0;
                 } else if (Type.OPERAND == preType) {

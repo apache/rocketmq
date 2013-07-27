@@ -76,8 +76,7 @@ public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsume
      */
     private AllocateMessageQueueStrategy allocateMessageQueueStrategy = new AllocateMessageQueueAveragely();
 
-    private final transient DefaultMQPullConsumerImpl defaultMQPullConsumerImpl =
-            new DefaultMQPullConsumerImpl(this);
+    private final transient DefaultMQPullConsumerImpl defaultMQPullConsumerImpl = new DefaultMQPullConsumerImpl(this);
 
 
     public DefaultMQPullConsumer() {
@@ -172,36 +171,31 @@ public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsume
 
 
     @Override
-    public PullResult pull(MessageQueue mq, String subExpression, long offset, int maxNums)
-            throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
+    public PullResult pull(MessageQueue mq, String subExpression, long offset, int maxNums) throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
         return this.defaultMQPullConsumerImpl.pull(mq, subExpression, offset, maxNums);
     }
 
 
     @Override
-    public void pull(MessageQueue mq, String subExpression, long offset, int maxNums,
-                     PullCallback pullCallback) throws MQClientException, RemotingException, InterruptedException {
+    public void pull(MessageQueue mq, String subExpression, long offset, int maxNums, PullCallback pullCallback) throws MQClientException, RemotingException, InterruptedException {
         this.defaultMQPullConsumerImpl.pull(mq, subExpression, offset, maxNums, pullCallback);
     }
 
 
     @Override
-    public PullResult pullBlockIfNotFound(MessageQueue mq, String subExpression, long offset, int maxNums)
-            throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
+    public PullResult pullBlockIfNotFound(MessageQueue mq, String subExpression, long offset, int maxNums) throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
         return this.defaultMQPullConsumerImpl.pullBlockIfNotFound(mq, subExpression, offset, maxNums);
     }
 
 
     @Override
-    public void pullBlockIfNotFound(MessageQueue mq, String subExpression, long offset, int maxNums,
-                                    PullCallback pullCallback) throws MQClientException, RemotingException, InterruptedException {
+    public void pullBlockIfNotFound(MessageQueue mq, String subExpression, long offset, int maxNums, PullCallback pullCallback) throws MQClientException, RemotingException, InterruptedException {
         this.defaultMQPullConsumerImpl.pullBlockIfNotFound(mq, subExpression, offset, maxNums, pullCallback);
     }
 
 
     @Override
-    public QueryResult queryMessage(String topic, String key, int maxNum, long begin, long end)
-            throws MQClientException, InterruptedException {
+    public QueryResult queryMessage(String topic, String key, int maxNum, long begin, long end) throws MQClientException, InterruptedException {
         return this.defaultMQPullConsumerImpl.queryMessage(topic, key, maxNum, begin, end);
     }
 
@@ -224,8 +218,7 @@ public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsume
 
 
     @Override
-    public void sendMessageBack(MessageExt msg, int delayLevel) throws RemotingException, MQBrokerException,
-            InterruptedException, MQClientException {
+    public void sendMessageBack(MessageExt msg, int delayLevel) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
         this.defaultMQPullConsumerImpl.sendMessageBack(msg, delayLevel);
     }
 
@@ -289,8 +282,7 @@ public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsume
 
 
     @Override
-    public MessageExt viewMessage(String msgId) throws RemotingException, MQBrokerException,
-            InterruptedException, MQClientException {
+    public MessageExt viewMessage(String msgId) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
         return this.defaultMQPullConsumerImpl.viewMessage(msgId);
     }
 

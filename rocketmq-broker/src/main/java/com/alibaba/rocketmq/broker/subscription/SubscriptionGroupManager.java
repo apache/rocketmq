@@ -38,8 +38,7 @@ public class SubscriptionGroupManager extends ConfigManager {
     private transient BrokerController brokerController;
 
     // 订阅组
-    private final ConcurrentHashMap<String, SubscriptionGroupConfig> subscriptionGroupTable =
-            new ConcurrentHashMap<String, SubscriptionGroupConfig>(1024);
+    private final ConcurrentHashMap<String, SubscriptionGroupConfig> subscriptionGroupTable = new ConcurrentHashMap<String, SubscriptionGroupConfig>(1024);
     private final DataVersion dataVersion = new DataVersion();
 
 
@@ -97,8 +96,7 @@ public class SubscriptionGroupManager extends ConfigManager {
     @Override
     public void decode(String jsonString) {
         if (jsonString != null) {
-            SubscriptionGroupManager obj =
-                    RemotingSerializable.fromJson(jsonString, SubscriptionGroupManager.class);
+            SubscriptionGroupManager obj = RemotingSerializable.fromJson(jsonString, SubscriptionGroupManager.class);
             if (obj != null) {
                 this.subscriptionGroupTable.putAll(obj.subscriptionGroupTable);
                 this.dataVersion.assignNewOne(obj.dataVersion);

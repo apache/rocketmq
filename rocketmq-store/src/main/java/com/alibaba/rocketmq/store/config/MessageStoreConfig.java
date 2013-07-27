@@ -31,24 +31,19 @@ import java.io.File;
 public class MessageStoreConfig {
     // CommitLog存储目录
     @ImportantField
-    private String storePathCommitLog = System.getProperty("user.home") + File.separator + "store"
-            + File.separator + "commitlog";
+    private String storePathCommitLog = System.getProperty("user.home") + File.separator + "store" + File.separator + "commitlog";
     // ConsumeQueue存储目录
     @ImportantField
-    private String storePathConsumeQueue = System.getProperty("user.home") + File.separator + "store"
-            + File.separator + "consumequeue";
+    private String storePathConsumeQueue = System.getProperty("user.home") + File.separator + "store" + File.separator + "consumequeue";
     // 索引文件存储目录
     @ImportantField
-    private String storePathIndex = System.getProperty("user.home") + File.separator + "store"
-            + File.separator + "index";
+    private String storePathIndex = System.getProperty("user.home") + File.separator + "store" + File.separator + "index";
     // 异常退出产生的文件
     @ImportantField
-    private String storeCheckpoint = System.getProperty("user.home") + File.separator + "store"
-            + File.separator + "checkpoint";
+    private String storeCheckpoint = System.getProperty("user.home") + File.separator + "store" + File.separator + "checkpoint";
     // 异常退出产生的文件
     @ImportantField
-    private String abortFile = System.getProperty("user.home") + File.separator + "store" + File.separator
-            + "abort";
+    private String abortFile = System.getProperty("user.home") + File.separator + "store" + File.separator + "abort";
     // CommitLog每个文件大小 1G
     private int mapedFileSizeCommitLog = 1024 * 1024 * 1024;
     // ConsumeQueue每个文件大小 默认存储50W条消息
@@ -134,20 +129,16 @@ public class MessageStoreConfig {
     private int syncFlushTimeout = 1000 * 5;
 
     // 定时消息相关
-    private String messageDelayLevel =
-            "1s 5s 10s 30s 1m 2m 3m 4m 5m 6m 7m 8m 9m 10m 20m 30m 40m 50m 1h 2h 6h 12h 1d";
+    private String messageDelayLevel = "1s 5s 10s 30s 1m 2m 3m 4m 5m 6m 7m 8m 9m 10m 20m 30m 40m 50m 1h 2h 6h 12h 1d";
 
     private long flushDelayOffsetInterval = 1000 * 10;
-    private String delayOffsetStorePath = System.getProperty("user.home") + File.separator + "store"
-            + File.separator + "config" + File.separator + "delayOffset.json";
+    private String delayOffsetStorePath = System.getProperty("user.home") + File.separator + "store" + File.separator + "config" + File.separator + "delayOffset.json";
 
     // 分布式事务配置
-    private String tranStateTableStorePath = System.getProperty("user.home") + File.separator + "store"
-            + File.separator + "transaction" + File.separator + "statetable";
+    private String tranStateTableStorePath = System.getProperty("user.home") + File.separator + "store" + File.separator + "transaction" + File.separator + "statetable";
     private int tranStateTableMapedFileSize = 2000000 * TransactionStateService.TSStoreUnitSize;
 
-    private String tranRedoLogStorePath = System.getProperty("user.home") + File.separator + "store"
-            + File.separator + "transaction" + File.separator + "redolog";
+    private String tranRedoLogStorePath = System.getProperty("user.home") + File.separator + "store" + File.separator + "transaction" + File.separator + "redolog";
     private int tranRedoLogMapedFileSize = 2000000 * ConsumeQueue.CQStoreUnitSize;
 
     // 事务回查至少间隔时间

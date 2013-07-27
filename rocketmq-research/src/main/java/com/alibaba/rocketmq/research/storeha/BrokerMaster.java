@@ -40,8 +40,7 @@ public class BrokerMaster {
             System.out.println("wait over");
 
             // Thread pool
-            final ThreadPoolExecutor executorSend =
-                    (ThreadPoolExecutor) Executors.newFixedThreadPool(ThreadSize);
+            final ThreadPoolExecutor executorSend = (ThreadPoolExecutor) Executors.newFixedThreadPool(ThreadSize);
 
             final AtomicLong maxResponseTime = new AtomicLong(0);
             final AtomicLong sendTotalCnt = new AtomicLong(0);
@@ -100,8 +99,7 @@ public class BrokerMaster {
                         lastTime = now;
                         lastTotal = currentTotal;
                         double avtRT = 1000 / ((tps / ThreadSize) * 1.0);
-                        System.out.println("send tps = " + tps.longValue() + " maxResponseTime(ms) = "
-                                + maxResponseTime + " avgRT(ms) = " + avtRT);
+                        System.out.println("send tps = " + tps.longValue() + " maxResponseTime(ms) = " + maxResponseTime + " avgRT(ms) = " + avtRT);
                     }
                 }
             }).start();

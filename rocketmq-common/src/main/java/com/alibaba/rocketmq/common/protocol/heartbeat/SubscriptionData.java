@@ -121,7 +121,6 @@ public class SubscriptionData {
 
     @Override
     public String toString() {
-        return "SubscriptionData [topic=" + topic + ", subString=" + subString + ", tagsSet=" + tagsSet
-                + ", codeSet=" + codeSet + ", subVersion=" + subVersion + "]";
+        return "SubscriptionData [topic=" + topic + ", subString=" + subString + ", tagsSet=" + tagsSet + ", codeSet=" + codeSet + ", subVersion=" + subVersion + "]";
     }
 }

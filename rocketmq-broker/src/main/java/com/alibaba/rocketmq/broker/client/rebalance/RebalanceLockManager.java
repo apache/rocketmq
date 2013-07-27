@@ -35,11 +35,9 @@ import java.util.concurrent.locks.ReentrantLock;
  */
 public class RebalanceLockManager {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.RebalanceLockLoggerName);
-    private final static long RebalanceLockMaxLiveTime = Long.parseLong(System.getProperty(
-            "rocketmq.broker.rebalance.lockMaxLiveTime", "60000"));
+    private final static long RebalanceLockMaxLiveTime = Long.parseLong(System.getProperty("rocketmq.broker.rebalance.lockMaxLiveTime", "60000"));
     private final Lock lock = new ReentrantLock();
-    private final ConcurrentHashMap<String/* group */, ConcurrentHashMap<MessageQueue, LockEntry>> mqLockTable =
-            new ConcurrentHashMap<String, ConcurrentHashMap<MessageQueue, LockEntry>>(1024);
+    private final ConcurrentHashMap<String/* group */, ConcurrentHashMap<MessageQueue, LockEntry>> mqLockTable = new ConcurrentHashMap<String, ConcurrentHashMap<MessageQueue, LockEntry>>(1024);
 
     class LockEntry {
         private String clientId;
@@ -67,8 +65,7 @@ public class RebalanceLockManager {
 
 
         public boolean isExpired() {
-            boolean expired =
-                    (System.currentTimeMillis() - this.lastUpdateTimestamp) > RebalanceLockMaxLiveTime;
+            boolean expired = (System.currentTimeMillis() - this.lastUpdateTimestamp) > RebalanceLockMaxLiveTime;
 
             return expired;
         }
@@ -138,8 +135,7 @@ public class RebalanceLockManager {
                     if (lockEntry.isExpired()) {
                         lockEntry.setClientId(clientId);
                         lockEntry.setLastUpdateTimestamp(System.currentTimeMillis());
-                        log.warn(
-                                "tryLock, message queue lock expired, I got it. Group: {} OldClientId: {} NewClientId: {} {}", //
+                        log.warn("tryLock, message queue lock expired, I got it. Group: {} OldClientId: {} NewClientId: {} {}", //
                                 group, //
                                 oldClientId, //
                                 clientId, //
@@ -148,8 +144,7 @@ public class RebalanceLockManager {
                     }
 
                     // 锁被别的Client占用
-                    log.warn(
-                            "tryLock, message queue locked by other client. Group: {} OtherClientId: {} NewClientId: {} {}", //
+                    log.warn("tryLock, message queue locked by other client. Group: {} OtherClientId: {} NewClientId: {} {}", //
                             group, //
                             oldClientId, //
                             clientId, //
@@ -176,8 +171,7 @@ public class RebalanceLockManager {
      *
      * @return 是否lock成功
      */
-    public Set<MessageQueue> tryLockBatch(final String group, final Set<MessageQueue> mqs,
-                                          final String clientId) {
+    public Set<MessageQueue> tryLockBatch(final String group, final Set<MessageQueue> mqs, final String clientId) {
         Set<MessageQueue> lockedMqs = new HashSet<MessageQueue>(mqs.size());
         Set<MessageQueue> notLockedMqs = new HashSet<MessageQueue>(mqs.size());
 
@@ -207,8 +201,7 @@ public class RebalanceLockManager {
                             lockEntry = new LockEntry();
                             lockEntry.setClientId(clientId);
                             groupValue.put(mq, lockEntry);
-                            log.info(
-                                    "tryLockBatch, message queue not locked, I got it. Group: {} NewClientId: {} {}", //
+                            log.info("tryLockBatch, message queue not locked, I got it. Group: {} NewClientId: {} {}", //
                                     group, //
                                     clientId, //
                                     mq);
@@ -226,8 +219,7 @@ public class RebalanceLockManager {
                         if (lockEntry.isExpired()) {
                             lockEntry.setClientId(clientId);
                             lockEntry.setLastUpdateTimestamp(System.currentTimeMillis());
-                            log.warn(
-                                    "tryLockBatch, message queue lock expired, I got it. Group: {} OldClientId: {} NewClientId: {} {}", //
+                            log.warn("tryLockBatch, message queue lock expired, I got it. Group: {} OldClientId: {} NewClientId: {} {}", //
                                     group, //
                                     oldClientId, //
                                     clientId, //
@@ -236,8 +228,7 @@ public class RebalanceLockManager {
                         }
 
                         // 锁被别的Client占用
-                        log.warn(
-                                "tryLockBatch, message queue locked by other client. Group: {} OtherClientId: {} NewClientId: {} {}", //
+                        log.warn("tryLockBatch, message queue locked by other client. Group: {} OtherClientId: {} NewClientId: {} {}", //
                                 group, //
                                 oldClientId, //
                                 clientId, //

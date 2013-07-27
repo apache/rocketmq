@@ -25,8 +25,7 @@ public class DefaultRPCClient implements RPCClient {
     private List<Connection> connectionList = new ArrayList<Connection>();
     private final AtomicInteger requestId = new AtomicInteger(0);
 
-    private final ConcurrentHashMap<Integer, CallResponse> callRepTable =
-            new ConcurrentHashMap<Integer, CallResponse>(1000000);
+    private final ConcurrentHashMap<Integer, CallResponse> callRepTable = new ConcurrentHashMap<Integer, CallResponse>(1000000);
 
     private final ClientRPCProcessor clientRPCProcessor = new ClientRPCProcessor();
 

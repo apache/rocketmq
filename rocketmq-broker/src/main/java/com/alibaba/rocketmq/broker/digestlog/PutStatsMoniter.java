@@ -46,30 +46,21 @@ public class PutStatsMoniter {
 
     public void tolog() {
         DefaultMessageStore defaultMessageStore = (DefaultMessageStore) brokerController.getMessageStore();
-        Map<String, AtomicLong> putMessageTopicTimesTotal =
-                defaultMessageStore.getStoreStatsService().getPutMessageTopicTimesTotal();
-        Map<String, AtomicLong> putMessageTopicSizeTotal =
-                defaultMessageStore.getStoreStatsService().getPutMessageTopicSizeTotal();
+        Map<String, AtomicLong> putMessageTopicTimesTotal = defaultMessageStore.getStoreStatsService().getPutMessageTopicTimesTotal();
+        Map<String, AtomicLong> putMessageTopicSizeTotal = defaultMessageStore.getStoreStatsService().getPutMessageTopicSizeTotal();
         for (String topic : putMessageTopicTimesTotal.keySet()) {
             long putMessageTopicTimesTotalValue = putMessageTopicTimesTotal.get(topic).get();
             long putMessageTopicSizeTotalValue = putMessageTopicSizeTotal.get(topic).get();
-            long putMessageTopicTimesTotalValueLast =
-                    putMessageTopicTimesTotalLast.get(topic) == null ? 0 : putMessageTopicTimesTotalLast
-                            .get(topic);
-            long putMessageTopicSizeTotalValueLast =
-                    putMessageTopicSizeTotalLast.get(topic) == null ? 0 : putMessageTopicSizeTotalLast
-                            .get(topic);
+            long putMessageTopicTimesTotalValueLast = putMessageTopicTimesTotalLast.get(topic) == null ? 0 : putMessageTopicTimesTotalLast.get(topic);
+            long putMessageTopicSizeTotalValueLast = putMessageTopicSizeTotalLast.get(topic) == null ? 0 : putMessageTopicSizeTotalLast.get(topic);
             putMessageTopicTimesTotalLast.put(topic, putMessageTopicTimesTotalValue);
             putMessageTopicSizeTotalLast.put(topic, putMessageTopicSizeTotalValue);
-            if ((putMessageTopicTimesTotalValue - putMessageTopicTimesTotalValueLast
-                    + putMessageTopicSizeTotalValue - putMessageTopicSizeTotalValueLast) > 0) {
+            if ((putMessageTopicTimesTotalValue - putMessageTopicTimesTotalValueLast + putMessageTopicSizeTotalValue - putMessageTopicSizeTotalValueLast) > 0) {
                 StringBuffer sb = new StringBuffer();
                 sb.append("ClientPutCount").append(",");
                 sb.append("Topic[").append(topic).append("],");
-                sb.append("Total[")
-                        .append(putMessageTopicTimesTotalValue - putMessageTopicTimesTotalValueLast).append("],");
-                sb.append("TotalSize[")
-                        .append(putMessageTopicSizeTotalValue - putMessageTopicSizeTotalValueLast).append("]");
+                sb.append("Total[").append(putMessageTopicTimesTotalValue - putMessageTopicTimesTotalValueLast).append("],");
+                sb.append("TotalSize[").append(putMessageTopicSizeTotalValue - putMessageTopicSizeTotalValueLast).append("]");
                 log.info(sb.toString());
             }
         }

@@ -58,8 +58,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
     private final DefaultMQProducer defaultMQProducer;
 
-    private final ConcurrentHashMap<String/* topic */, TopicPublishInfo> topicPublishInfoTable =
-            new ConcurrentHashMap<String, TopicPublishInfo>();
+    private final ConcurrentHashMap<String/* topic */, TopicPublishInfo> topicPublishInfoTable = new ConcurrentHashMap<String, TopicPublishInfo>();
 
     private MQClientFactory mQClientFactory;
 
@@ -99,8 +98,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         }
 
         if (this.defaultMQProducer.getProducerGroup().equals(MixAll.DEFAULT_PRODUCER_GROUP)) {
-            throw new MQClientException("producerGroup can not equal " + MixAll.DEFAULT_PRODUCER_GROUP
-                    + ", please specify another one.", null);
+            throw new MQClientException("producerGroup can not equal " + MixAll.DEFAULT_PRODUCER_GROUP + ", please specify another one.", null);
         }
     }
 
@@ -117,21 +115,16 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
                 this.serviceState = ServiceState.RUNNING;
 
-                this.mQClientFactory =
-                        MQClientManager.getInstance().getAndCreateMQClientFactory(this.defaultMQProducer);
+                this.mQClientFactory = MQClientManager.getInstance().getAndCreateMQClientFactory(this.defaultMQProducer);
 
-                boolean registerOK =
-                        mQClientFactory.registerProducer(this.defaultMQProducer.getProducerGroup(), this);
+                boolean registerOK = mQClientFactory.registerProducer(this.defaultMQProducer.getProducerGroup(), this);
                 if (!registerOK) {
                     this.serviceState = ServiceState.CREATE_JUST;
-                    throw new MQClientException("The producer group[" + this.defaultMQProducer.getProducerGroup()
-                            + "] has been created before, specify another name please."
-                            + FAQUrl.suggestTodo(FAQUrl.GROUP_NAME_DUPLICATE_URL), null);
+                    throw new MQClientException("The producer group[" + this.defaultMQProducer.getProducerGroup() + "] has been created before, specify another name please." + FAQUrl.suggestTodo(FAQUrl.GROUP_NAME_DUPLICATE_URL), null);
                 }
 
                 // 默认Topic注册
-                this.topicPublishInfoTable
-                        .put(this.defaultMQProducer.getCreateTopicKey(), new TopicPublishInfo());
+                this.topicPublishInfoTable.put(this.defaultMQProducer.getCreateTopicKey(), new TopicPublishInfo());
 
                 if (startFactory) {
                     mQClientFactory.start();
@@ -242,16 +235,14 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     }
 
 
-    public MessageExt viewMessage(String msgId) throws RemotingException, MQBrokerException,
-            InterruptedException, MQClientException {
+    public MessageExt viewMessage(String msgId) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
         this.makeSureStateOK();
 
         return this.mQClientFactory.getMQAdminImpl().viewMessage(msgId);
     }
 
 
-    public QueryResult queryMessage(String topic, String key, int maxNum, long begin, long end)
-            throws MQClientException, InterruptedException {
+    public QueryResult queryMessage(String topic, String key, int maxNum, long begin, long end) throws MQClientException, InterruptedException {
         this.makeSureStateOK();
         return this.mQClientFactory.getMQAdminImpl().queryMessage(topic, key, maxNum, begin, end);
     }
@@ -275,8 +266,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         }
 
         if (msg.getBody().length > this.defaultMQProducer.getMaxMessageSize()) {
-            throw new MQClientException("the message body size over max value, MAX: "
-                    + this.defaultMQProducer.getMaxMessageSize(), null);
+            throw new MQClientException("the message body size over max value, MAX: " + this.defaultMQProducer.getMaxMessageSize(), null);
         }
     }
 
@@ -314,8 +304,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             MessageQueue mq = null;
             Exception exception = null;
             SendResult sendResult = null;
-            for (int times = 0; times < 3
-                    && (endTimestamp - beginTimestamp) < this.defaultMQProducer.getSendMsgTimeout(); times++) {
+            for (int times = 0; times < 3 && (endTimestamp - beginTimestamp) < this.defaultMQProducer.getSendMsgTimeout(); times++) {
                 String lastBrokerName = null == mq ? null : mq.getBrokerName();
                 MessageQueue tmpmq = topicPublishInfo.selectOneMessageQueue(lastBrokerName);
                 if (tmpmq != null) {
@@ -409,8 +398,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         if (null == brokerAddr) {
             // TODO 此处可能对Name Server压力过大，需要调优
             this.mQClientFactory.updateTopicRouteInfoFromNameServer(mq.getTopic());
-            this.mQClientFactory.updateTopicRouteInfoFromNameServer(this.defaultMQProducer
-                    .getCreateTopicKey());
+            this.mQClientFactory.updateTopicRouteInfoFromNameServer(this.defaultMQProducer.getCreateTopicKey());
             brokerAddr = this.mQClientFactory.findBrokerAddressInPublish(mq.getBrokerName());
         }
 
@@ -493,8 +481,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         if (null == topicPublishInfo || !topicPublishInfo.ok()) {
             this.topicPublishInfoTable.putIfAbsent(topic, new TopicPublishInfo());
             this.mQClientFactory.updateTopicRouteInfoFromNameServer(topic);
-            this.mQClientFactory.updateTopicRouteInfoFromNameServer(this.defaultMQProducer
-                    .getCreateTopicKey());
+            this.mQClientFactory.updateTopicRouteInfoFromNameServer(this.defaultMQProducer.getCreateTopicKey());
             topicPublishInfo = this.topicPublishInfoTable.get(topic);
         }
 
@@ -509,8 +496,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     /**
      * DEFAULT SYNC -------------------------------------------------------
      */
-    public SendResult send(Message msg) throws MQClientException, RemotingException, MQBrokerException,
-            InterruptedException {
+    public SendResult send(Message msg) throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
         this.makeSureStateOK();
 
         this.checkMessage(msg);
@@ -522,8 +508,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     /**
      * DEFAULT ASYNC -------------------------------------------------------
      */
-    public void send(Message msg, SendCallback sendCallback) throws MQClientException, RemotingException,
-            InterruptedException {
+    public void send(Message msg, SendCallback sendCallback) throws MQClientException, RemotingException, InterruptedException {
         this.makeSureStateOK();
 
         this.checkMessage(msg);
@@ -555,8 +540,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     /**
      * KERNEL SYNC -------------------------------------------------------
      */
-    public SendResult send(Message msg, MessageQueue mq) throws MQClientException, RemotingException,
-            MQBrokerException, InterruptedException {
+    public SendResult send(Message msg, MessageQueue mq) throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
         this.makeSureStateOK();
 
         this.checkMessage(msg);
@@ -572,8 +556,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     /**
      * KERNEL ASYNC -------------------------------------------------------
      */
-    public void send(Message msg, MessageQueue mq, SendCallback sendCallback) throws MQClientException,
-            RemotingException, InterruptedException {
+    public void send(Message msg, MessageQueue mq, SendCallback sendCallback) throws MQClientException, RemotingException, InterruptedException {
         this.makeSureStateOK();
 
         this.checkMessage(msg);
@@ -593,8 +576,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     /**
      * KERNEL ONEWAY -------------------------------------------------------
      */
-    public void sendOneway(Message msg, MessageQueue mq) throws MQClientException, RemotingException,
-            InterruptedException {
+    public void sendOneway(Message msg, MessageQueue mq) throws MQClientException, RemotingException, InterruptedException {
         this.makeSureStateOK();
 
         this.checkMessage(msg);
@@ -610,8 +592,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     /**
      * SELECT SYNC -------------------------------------------------------
      */
-    public SendResult send(Message msg, MessageQueueSelector selector, Object arg) throws MQClientException,
-            RemotingException, MQBrokerException, InterruptedException {
+    public SendResult send(Message msg, MessageQueueSelector selector, Object arg) throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
         return this.sendSelectImpl(msg, selector, arg, CommunicationMode.SYNC, null);
     }
 
@@ -619,8 +600,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     /**
      * SELECT ASYNC -------------------------------------------------------
      */
-    public void send(Message msg, MessageQueueSelector selector, Object arg, SendCallback sendCallback)
-            throws MQClientException, RemotingException, InterruptedException {
+    public void send(Message msg, MessageQueueSelector selector, Object arg, SendCallback sendCallback) throws MQClientException, RemotingException, InterruptedException {
         try {
             this.sendSelectImpl(msg, selector, arg, CommunicationMode.ASYNC, sendCallback);
         } catch (MQBrokerException e) {
@@ -632,8 +612,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     /**
      * SELECT ONEWAY -------------------------------------------------------
      */
-    public void sendOneway(Message msg, MessageQueueSelector selector, Object arg) throws MQClientException,
-            RemotingException, InterruptedException {
+    public void sendOneway(Message msg, MessageQueueSelector selector, Object arg) throws MQClientException, RemotingException, InterruptedException {
         try {
             this.sendSelectImpl(msg, selector, arg, CommunicationMode.ONEWAY, null);
         } catch (MQBrokerException e) {
@@ -645,8 +624,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     private void endTransaction(//
                                 final SendResult sendResult, //
                                 final LocalTransactionState localTransactionState, //
-                                final Throwable localException) throws RemotingException, MQBrokerException,
-            InterruptedException, UnknownHostException {
+                                final Throwable localException) throws RemotingException, MQBrokerException, InterruptedException, UnknownHostException {
         final MessageId id = MessageDecoder.decodeMessageId(sendResult.getMsgId());
         final String addr = RemotingUtil.socketAddress2String(id.getAddress());
         EndTransactionRequestHeader requestHeader = new EndTransactionRequestHeader();
@@ -668,16 +646,12 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         requestHeader.setProducerGroup(this.defaultMQProducer.getProducerGroup());
         requestHeader.setTranStateTableOffset(sendResult.getQueueOffset());
         requestHeader.setMsgId(sendResult.getMsgId());
-        String remark =
-                localException != null ? ("executeLocalTransactionBranch exception: " + localException
-                        .toString()) : null;
-        this.mQClientFactory.getMQClientAPIImpl().endTransactionOneway(addr, requestHeader, remark,
-                this.defaultMQProducer.getSendMsgTimeout());
+        String remark = localException != null ? ("executeLocalTransactionBranch exception: " + localException.toString()) : null;
+        this.mQClientFactory.getMQClientAPIImpl().endTransactionOneway(addr, requestHeader, remark, this.defaultMQProducer.getSendMsgTimeout());
     }
 
 
-    public SendResult sendMessageInTransaction(final Message msg, final LocalTransactionExecuter tranExecuter)
-            throws MQClientException {
+    public SendResult sendMessageInTransaction(final Message msg, final LocalTransactionExecuter tranExecuter) throws MQClientException {
         if (null == msg) {
             throw new MQClientException("msg is null", null);
         }
@@ -719,8 +693,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         try {
             this.endTransaction(sendResult, localTransactionState, localException);
         } catch (Exception e) {
-            log.warn("local transaction execute " + localTransactionState
-                    + ", but end broker transaction failed", e);
+            log.warn("local transaction execute " + localTransactionState + ", but end broker transaction failed", e);
         }
 
         return sendResult;
@@ -739,8 +712,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
 
     @Override
-    public void checkTransactionState(final String addr, final MessageExt msg,
-                                      final CheckTransactionStateRequestHeader header) {
+    public void checkTransactionState(final String addr, final MessageExt msg, final CheckTransactionStateRequestHeader header) {
         Runnable request = new Runnable() {
             private final String brokerAddr = addr;
             private final MessageExt message = msg;
@@ -780,8 +752,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                 }
 
                 try {
-                    DefaultMQProducerImpl.this.mQClientFactory.getMQClientAPIImpl().endTransactionOneway(
-                            brokerAddr, thisHeader, remark, 3000);
+                    DefaultMQProducerImpl.this.mQClientFactory.getMQClientAPIImpl().endTransactionOneway(brokerAddr, thisHeader, remark, 3000);
                 } catch (Exception e) {
                     log.error("endTransactionOneway exception", e);
                 }
@@ -790,16 +761,14 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
             @Override
             public void run() {
-                TransactionCheckListener transactionCheckListener =
-                        DefaultMQProducerImpl.this.checkListener();
+                TransactionCheckListener transactionCheckListener = DefaultMQProducerImpl.this.checkListener();
                 if (transactionCheckListener != null) {
                     LocalTransactionState localTransactionState = LocalTransactionState.UNKNOW;
                     Throwable exception = null;
                     try {
                         localTransactionState = transactionCheckListener.checkLocalTransactionState(message);
                     } catch (Throwable e) {
-                        log.error(
-                                "Broker call checkTransactionState, but checkLocalTransactionState exception", e);
+                        log.error("Broker call checkTransactionState, but checkLocalTransactionState exception", e);
                         exception = e;
                     }
 
@@ -808,8 +777,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                             group, //
                             exception);
                 } else {
-                    log.warn("checkTransactionState, pick transactionCheckListener by group[{}] failed",
-                            group);
+                    log.warn("checkTransactionState, pick transactionCheckListener by group[{}] failed", group);
                 }
             }
         };

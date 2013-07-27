@@ -32,8 +32,7 @@ public class MQBrokerException extends Exception {
 
 
     public MQBrokerException(int responseCode, String errorMessage) {
-        super(FAQUrl.attachDefaultURL("CODE: " + UtilALl.responseCode2String(responseCode) + "  DESC: "
-                + errorMessage));
+        super(FAQUrl.attachDefaultURL("CODE: " + UtilALl.responseCode2String(responseCode) + "  DESC: " + errorMessage));
         this.responseCode = responseCode;
         this.errorMessage = errorMessage;
     }

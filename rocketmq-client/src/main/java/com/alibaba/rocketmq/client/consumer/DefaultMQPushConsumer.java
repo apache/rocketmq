@@ -100,8 +100,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
      */
     private int pullBatchSize = 32;
 
-    private final transient DefaultMQPushConsumerImpl defaultMQPushConsumerImpl =
-            new DefaultMQPushConsumerImpl(this);
+    private final transient DefaultMQPushConsumerImpl defaultMQPushConsumerImpl = new DefaultMQPushConsumerImpl(this);
 
 
     public DefaultMQPushConsumer() {
@@ -215,8 +214,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
 
 
     @Override
-    public QueryResult queryMessage(String topic, String key, int maxNum, long begin, long end)
-            throws MQClientException, InterruptedException {
+    public QueryResult queryMessage(String topic, String key, int maxNum, long begin, long end) throws MQClientException, InterruptedException {
         return this.defaultMQPushConsumerImpl.queryMessage(topic, key, maxNum, begin, end);
     }
 
@@ -241,8 +239,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
 
 
     @Override
-    public void sendMessageBack(MessageExt msg, int delayLevel) throws RemotingException, MQBrokerException,
-            InterruptedException, MQClientException {
+    public void sendMessageBack(MessageExt msg, int delayLevel) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
         this.defaultMQPushConsumerImpl.sendMessageBack(msg, delayLevel);
     }
 
@@ -349,8 +346,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
 
 
     @Override
-    public MessageExt viewMessage(String msgId) throws RemotingException, MQBrokerException,
-            InterruptedException, MQClientException {
+    public MessageExt viewMessage(String msgId) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
         return this.defaultMQPushConsumerImpl.viewMessage(msgId);
     }
 

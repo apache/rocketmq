@@ -19,13 +19,11 @@ public class MQProtosHelper {
     /**
      * 将Broker地址注册到Name Server
      */
-    public static boolean registerBrokerToNameServer(final String nsaddr, final String brokerAddr,
-                                                     final long timeoutMillis) {
+    public static boolean registerBrokerToNameServer(final String nsaddr, final String brokerAddr, final long timeoutMillis) {
         RegisterBrokerRequestHeader requestHeader = new RegisterBrokerRequestHeader();
         requestHeader.setBrokerAddr(brokerAddr);
 
-        RemotingCommand request =
-                RemotingCommand.createRequestCommand(MQRequestCode.REGISTER_BROKER_VALUE, requestHeader);
+        RemotingCommand request = RemotingCommand.createRequestCommand(MQRequestCode.REGISTER_BROKER_VALUE, requestHeader);
 
         try {
             RemotingCommand response = RemotingHelper.invokeSync(nsaddr, request, timeoutMillis);

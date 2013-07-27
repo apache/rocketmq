@@ -30,10 +30,8 @@ import java.net.UnknownHostException;
  * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public class BrokerConfig {
-    private String rocketmqHome = System.getProperty(MixAll.ROCKETMQ_HOME_PROPERTY,
-            System.getenv(MixAll.ROCKETMQ_HOME_ENV));
-    private String namesrvAddr = System.getProperty(MixAll.NAMESRV_ADDR_PROPERTY,
-            System.getenv(MixAll.NAMESRV_ADDR_ENV));
+    private String rocketmqHome = System.getProperty(MixAll.ROCKETMQ_HOME_PROPERTY, System.getenv(MixAll.ROCKETMQ_HOME_ENV));
+    private String namesrvAddr = System.getProperty(MixAll.NAMESRV_ADDR_PROPERTY, System.getenv(MixAll.NAMESRV_ADDR_ENV));
     private String brokerIP1 = RemotingUtil.getLocalAddress();
     private String brokerIP2 = RemotingUtil.getLocalAddress();
     @ImportantField
@@ -57,17 +55,13 @@ public class BrokerConfig {
     private int pullMessageThreadPoolNums = 32 + Runtime.getRuntime().availableProcessors() * 4;
     private int adminBrokerThreadPoolNums = 8;
 
-    private String topicConfigPath = System.getProperty("user.home") + File.separator + "store"
-            + File.separator + "config" + File.separator + "topics.json";
+    private String topicConfigPath = System.getProperty("user.home") + File.separator + "store" + File.separator + "config" + File.separator + "topics.json";
 
-    private String consumerOffsetPath = System.getProperty("user.home") + File.separator + "store"
-            + File.separator + "config" + File.separator + "consumerOffset.json";
+    private String consumerOffsetPath = System.getProperty("user.home") + File.separator + "store" + File.separator + "config" + File.separator + "consumerOffset.json";
 
-    private String brokerConfigPath = System.getProperty("user.home") + File.separator + "store"
-            + File.separator + "config" + File.separator + "broker.properties";
+    private String brokerConfigPath = System.getProperty("user.home") + File.separator + "store" + File.separator + "config" + File.separator + "broker.properties";
 
-    private String subscriptionGroupPath = System.getProperty("user.home") + File.separator + "store"
-            + File.separator + "config" + File.separator + "subscriptionGroup.json";
+    private String subscriptionGroupPath = System.getProperty("user.home") + File.separator + "store" + File.separator + "config" + File.separator + "subscriptionGroup.json";
 
     private int flushConsumerOffsetInterval = 1000 * 5;
 

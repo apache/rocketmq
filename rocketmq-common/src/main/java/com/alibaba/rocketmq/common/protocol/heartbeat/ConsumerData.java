@@ -72,8 +72,6 @@ public class ConsumerData {
 
     @Override
     public String toString() {
-        return "ConsumerData [groupName=" + groupName + ", consumeType=" + consumeType + ", messageModel="
-                + messageModel + ", consumeFromWhere=" + consumeFromWhere + ", subscriptionDataSet="
-                + subscriptionDataSet + "]";
+        return "ConsumerData [groupName=" + groupName + ", consumeType=" + consumeType + ", messageModel=" + messageModel + ", consumeFromWhere=" + consumeFromWhere + ", subscriptionDataSet=" + subscriptionDataSet + "]";
     }
 }

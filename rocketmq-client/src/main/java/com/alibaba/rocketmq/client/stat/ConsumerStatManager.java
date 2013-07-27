@@ -78,8 +78,7 @@ public class ConsumerStatManager {
 
                 tps *= 1000;
 
-                log.info(
-                        "Consumer, {} {}, ConsumeAvgRT: {} ConsumeMaxRT: {} TotalOKMsg: {} TotalFailedMsg: {} consumeTPS: {}",//
+                log.info("Consumer, {} {}, ConsumeAvgRT: {} ConsumeMaxRT: {} TotalOKMsg: {} TotalFailedMsg: {} consumeTPS: {}",//
                         group, //
                         clientId, //
                         avgRT, //

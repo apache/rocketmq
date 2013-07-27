@@ -49,10 +49,8 @@ public class IndexFile {
     private final IndexHeader indexHeader;
 
 
-    public IndexFile(final String fileName, final int hashSlotNum, final int indexNum,
-                     final long endPhyOffset, final long endTimestamp) throws IOException {
-        int fileTotalSize =
-                IndexHeader.INDEX_HEADER_SIZE + (hashSlotNum * HASH_SLOT_SIZE) + (indexNum * INDEX_SIZE);
+    public IndexFile(final String fileName, final int hashSlotNum, final int indexNum, final long endPhyOffset, final long endTimestamp) throws IOException {
+        int fileTotalSize = IndexHeader.INDEX_HEADER_SIZE + (hashSlotNum * HASH_SLOT_SIZE) + (indexNum * INDEX_SIZE);
         this.mapedFile = new MapedFile(fileName, fileTotalSize);
         this.fileChannel = this.mapedFile.getFileChannel();
         this.mappedByteBuffer = this.mapedFile.getMappedByteBuffer();
@@ -136,9 +134,7 @@ public class IndexFile {
                     timeDiff = 0;
                 }
 
-                int absIndexPos =
-                        IndexHeader.INDEX_HEADER_SIZE + this.hashSlotNum * HASH_SLOT_SIZE
-                                + this.indexHeader.getIndexCount() * INDEX_SIZE;
+                int absIndexPos = IndexHeader.INDEX_HEADER_SIZE + this.hashSlotNum * HASH_SLOT_SIZE + this.indexHeader.getIndexCount() * INDEX_SIZE;
 
                 // 写入真正索引
                 this.mappedByteBuffer.putInt(absIndexPos, keyHash);
@@ -173,8 +169,7 @@ public class IndexFile {
                 }
             }
         } else {
-            log.warn("putKey index count " + this.indexHeader.getIndexCount() + " index max num "
-                    + this.indexNum);
+            log.warn("putKey index count " + this.indexHeader.getIndexCount() + " index max num " + this.indexNum);
         }
 
         return false;
@@ -200,18 +195,11 @@ public class IndexFile {
      * 时间区间是否匹配
      */
     public boolean isTimeMatched(final long begin, final long end) {
-        boolean result =
-                begin < this.indexHeader.getBeginTimestamp() && end > this.indexHeader.getEndTimestamp();
+        boolean result = begin < this.indexHeader.getBeginTimestamp() && end > this.indexHeader.getEndTimestamp();
 
-        result =
-                result
-                        || (begin >= this.indexHeader.getBeginTimestamp() && begin <= this.indexHeader
-                        .getEndTimestamp());
+        result = result || (begin >= this.indexHeader.getBeginTimestamp() && begin <= this.indexHeader.getEndTimestamp());
 
-        result =
-                result
-                        || (end >= this.indexHeader.getBeginTimestamp() && end <= this.indexHeader
-                        .getEndTimestamp());
+        result = result || (end >= this.indexHeader.getBeginTimestamp() && end <= this.indexHeader.getEndTimestamp());
         return result;
     }
 
@@ -219,8 +207,7 @@ public class IndexFile {
     /**
      * 前提：入参时间区间在调用前已经匹配了当前索引文件的起始结束时间
      */
-    public void selectPhyOffset(final List<Long> phyOffsets, final String key, final int maxNum,
-                                final long begin, final long end, boolean lock) {
+    public void selectPhyOffset(final List<Long> phyOffsets, final String key, final int maxNum, final long begin, final long end, boolean lock) {
         if (this.mapedFile.hold()) {
             int keyHash = key.hashCode();
             int slotPos = Math.abs(keyHash) % this.hashSlotNum;
@@ -238,8 +225,7 @@ public class IndexFile {
                     fileLock = null;
                 }
 
-                if (slotValue <= INVALID_INDEX || slotValue > this.indexHeader.getIndexCount()
-                        || this.indexHeader.getIndexCount() <= 1) {
+                if (slotValue <= INVALID_INDEX || slotValue > this.indexHeader.getIndexCount() || this.indexHeader.getIndexCount() <= 1) {
                     // TODO NOTFOUND
                 } else {
                     for (int nextIndexToRead = slotValue; ; ) {
@@ -247,9 +233,7 @@ public class IndexFile {
                             break;
                         }
 
-                        int absIndexPos =
-                                IndexHeader.INDEX_HEADER_SIZE + this.hashSlotNum * HASH_SLOT_SIZE
-                                        + nextIndexToRead * INDEX_SIZE;
+                        int absIndexPos = IndexHeader.INDEX_HEADER_SIZE + this.hashSlotNum * HASH_SLOT_SIZE + nextIndexToRead * INDEX_SIZE;
 
                         int keyHashRead = this.mappedByteBuffer.getInt(absIndexPos);
                         long phyOffsetRead = this.mappedByteBuffer.getLong(absIndexPos + 4);
@@ -268,9 +252,7 @@ public class IndexFile {
                             phyOffsets.add(phyOffsetRead);
                         }
 
-                        if (prevIndexRead <= INVALID_INDEX
-                                || prevIndexRead > this.indexHeader.getIndexCount()
-                                || prevIndexRead == nextIndexToRead || timeRead < begin) {
+                        if (prevIndexRead <= INVALID_INDEX || prevIndexRead > this.indexHeader.getIndexCount() || prevIndexRead == nextIndexToRead || timeRead < begin) {
                             break;
                         }
 

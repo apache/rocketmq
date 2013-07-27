@@ -60,9 +60,7 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
         msgInner.setFlag(msgExt.getFlag());
         msgInner.setProperties(msgExt.getProperties());
 
-        TopicFilterType topicFilterType =
-                (msgInner.getSysFlag() & MessageSysFlag.MultiTagsFlag) == MessageSysFlag.MultiTagsFlag ? TopicFilterType.MULTI_TAG
-                        : TopicFilterType.SINGLE_TAG;
+        TopicFilterType topicFilterType = (msgInner.getSysFlag() & MessageSysFlag.MultiTagsFlag) == MessageSysFlag.MultiTagsFlag ? TopicFilterType.MULTI_TAG : TopicFilterType.SINGLE_TAG;
         long tagsCodeValue = MessageExtBrokerInner.tagsString2tagsCode(topicFilterType, msgInner.getTags());
         msgInner.setTagsCode(tagsCodeValue);
         msgInner.setPropertiesString(MessageDecoder.messageProperties2String(msgExt.getProperties()));
@@ -86,12 +84,9 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
 
 
     @Override
-    public RemotingCommand processRequest(ChannelHandlerContext ctx, RemotingCommand request)
-            throws RemotingCommandException {
+    public RemotingCommand processRequest(ChannelHandlerContext ctx, RemotingCommand request) throws RemotingCommandException {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
-        final EndTransactionRequestHeader requestHeader =
-                (EndTransactionRequestHeader) request
-                        .decodeCommandCustomHeader(EndTransactionRequestHeader.class);
+        final EndTransactionRequestHeader requestHeader = (EndTransactionRequestHeader) request.decodeCommandCustomHeader(EndTransactionRequestHeader.class);
 
         // 回查应答
         if (requestHeader.getFromTransactionCheck()) {
@@ -107,9 +102,8 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
                 }
                 // 提交
                 case MessageSysFlag.TransactionCommitType: {
-                    logTransaction.warn(
-                            "check producer[{}] transaction state, the producer commit the message.\n"//
-                                    + "RequestHeader: {} Remark: {}",//
+                    logTransaction.warn("check producer[{}] transaction state, the producer commit the message.\n"//
+                            + "RequestHeader: {} Remark: {}",//
                             RemotingHelper.parseChannelRemoteAddr(ctx.channel()), //
                             requestHeader.toString(),//
                             request.getRemark());
@@ -118,9 +112,8 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
                 }
                 // 回滚
                 case MessageSysFlag.TransactionRollbackType: {
-                    logTransaction.warn(
-                            "check producer[{}] transaction state, the producer rollback the message.\n"//
-                                    + "RequestHeader: {} Remark: {}",//
+                    logTransaction.warn("check producer[{}] transaction state, the producer rollback the message.\n"//
+                            + "RequestHeader: {} Remark: {}",//
                             RemotingHelper.parseChannelRemoteAddr(ctx.channel()), //
                             requestHeader.toString(),//
                             request.getRemark());
@@ -135,9 +128,8 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
             switch (requestHeader.getCommitOrRollback()) {
                 // 不提交也不回滚
                 case MessageSysFlag.TransactionNotType: {
-                    logTransaction.warn(
-                            "the producer[{}] end transaction in sending message,  and it's pending status.\n"//
-                                    + "RequestHeader: {} Remark: {}",//
+                    logTransaction.warn("the producer[{}] end transaction in sending message,  and it's pending status.\n"//
+                            + "RequestHeader: {} Remark: {}",//
                             RemotingHelper.parseChannelRemoteAddr(ctx.channel()), //
                             requestHeader.toString(),//
                             request.getRemark());
@@ -149,9 +141,8 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
                 }
                 // 回滚
                 case MessageSysFlag.TransactionRollbackType: {
-                    logTransaction.warn(
-                            "the producer[{}] end transaction in sending message, rollback the message.\n"//
-                                    + "RequestHeader: {} Remark: {}",//
+                    logTransaction.warn("the producer[{}] end transaction in sending message, rollback the message.\n"//
+                            + "RequestHeader: {} Remark: {}",//
                             RemotingHelper.parseChannelRemoteAddr(ctx.channel()), //
                             requestHeader.toString(),//
                             request.getRemark());
@@ -162,9 +153,7 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
             }
         }
 
-        final MessageExt msgExt =
-                this.brokerController.getMessageStore().lookMessageByOffset(
-                        requestHeader.getCommitLogOffset());
+        final MessageExt msgExt = this.brokerController.getMessageStore().lookMessageByOffset(requestHeader.getCommitLogOffset());
         if (msgExt != null) {
             // 校验Producer Group
             final String pgroupRead = msgExt.getProperty(Message.PROPERTY_PRODUCER_GROUP);
@@ -189,8 +178,7 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
             }
 
             MessageExtBrokerInner msgInner = this.endMessageTransaction(msgExt);
-            msgInner.setSysFlag(MessageSysFlag.resetTransactionValue(msgInner.getSysFlag(),
-                    requestHeader.getCommitOrRollback()));
+            msgInner.setSysFlag(MessageSysFlag.resetTransactionValue(msgInner.getSysFlag(), requestHeader.getCommitOrRollback()));
 
             msgInner.setQueueOffset(requestHeader.getTranStateTableOffset());
             msgInner.setPreparedTransactionOffset(requestHeader.getCommitLogOffset());

@@ -94,7 +94,6 @@ public class TopicPublishInfo {
 
     @Override
     public String toString() {
-        return "TopicPublishInfo [orderTopic=" + orderTopic + ", messageQueueList=" + messageQueueList
-                + ", sendWhichQueue=" + sendWhichQueue + "]";
+        return "TopicPublishInfo [orderTopic=" + orderTopic + ", messageQueueList=" + messageQueueList + ", sendWhichQueue=" + sendWhichQueue + "]";
     }
 }

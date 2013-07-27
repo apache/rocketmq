@@ -33,8 +33,7 @@ public class PullRequest {
     private final long pullFromThisOffset;
 
 
-    public PullRequest(RemotingCommand requestCommand, Channel clientChannel, long timeoutMillis,
-                       long suspendTimestamp, long pullFromThisOffset) {
+    public PullRequest(RemotingCommand requestCommand, Channel clientChannel, long timeoutMillis, long suspendTimestamp, long pullFromThisOffset) {
         this.requestCommand = requestCommand;
         this.clientChannel = clientChannel;
         this.timeoutMillis = timeoutMillis;

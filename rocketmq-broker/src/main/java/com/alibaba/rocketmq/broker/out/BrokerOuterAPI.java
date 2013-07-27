@@ -107,25 +107,21 @@ public class BrokerOuterAPI {
                                                 final long brokerId,// 4
                                                 final String haServerAddr,// 5
                                                 final TopicConfigSerializeWrapper topicConfigWrapper// 6
-    ) throws RemotingCommandException, MQBrokerException, RemotingConnectException,
-            RemotingSendRequestException, RemotingTimeoutException, InterruptedException {
+    ) throws RemotingCommandException, MQBrokerException, RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, InterruptedException {
         RegisterBrokerRequestHeader requestHeader = new RegisterBrokerRequestHeader();
         requestHeader.setBrokerAddr(brokerAddr);
         requestHeader.setBrokerId(brokerId);
         requestHeader.setBrokerName(brokerName);
         requestHeader.setClusterName(clusterName);
         requestHeader.setHaServerAddr(haServerAddr);
-        RemotingCommand request =
-                RemotingCommand.createRequestCommand(MQRequestCode.REGISTER_BROKER_VALUE, requestHeader);
+        RemotingCommand request = RemotingCommand.createRequestCommand(MQRequestCode.REGISTER_BROKER_VALUE, requestHeader);
         request.setBody(topicConfigWrapper.encode());
 
         RemotingCommand response = this.remotingClient.invokeSync(namesrvAddr, request, 3000);
         assert response != null;
         switch (response.getCode()) {
             case ResponseCode.SUCCESS_VALUE: {
-                RegisterBrokerResponseHeader responseHeader =
-                        (RegisterBrokerResponseHeader) response
-                                .decodeCommandCustomHeader(RegisterBrokerResponseHeader.class);
+                RegisterBrokerResponseHeader responseHeader = (RegisterBrokerResponseHeader) response.decodeCommandCustomHeader(RegisterBrokerResponseHeader.class);
                 RegisterBrokerResult result = new RegisterBrokerResult();
                 result.setMasterAddr(responseHeader.getMasterAddr());
                 result.setHaServerAddr(responseHeader.getHaServerAddr());
@@ -153,9 +149,7 @@ public class BrokerOuterAPI {
         if (nameServerAddressList != null) {
             for (String namesrvAddr : nameServerAddressList) {
                 try {
-                    RegisterBrokerResult result =
-                            this.registerBroker(namesrvAddr, clusterName, brokerAddr, brokerName, brokerId,
-                                    haServerAddr, topicConfigWrapper);
+                    RegisterBrokerResult result = this.registerBroker(namesrvAddr, clusterName, brokerAddr, brokerName, brokerId, haServerAddr, topicConfigWrapper);
                     if (result != null) {
                         registerBrokerResult = result;
                     }
@@ -177,15 +171,13 @@ public class BrokerOuterAPI {
                                  final String brokerAddr,// 2
                                  final String brokerName,// 3
                                  final long brokerId// 4
-    ) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException,
-            InterruptedException, MQBrokerException {
+    ) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, InterruptedException, MQBrokerException {
         UnRegisterBrokerRequestHeader requestHeader = new UnRegisterBrokerRequestHeader();
         requestHeader.setBrokerAddr(brokerAddr);
         requestHeader.setBrokerId(brokerId);
         requestHeader.setBrokerName(brokerName);
         requestHeader.setClusterName(clusterName);
-        RemotingCommand request =
-                RemotingCommand.createRequestCommand(MQRequestCode.UNREGISTER_BROKER_VALUE, requestHeader);
+        RemotingCommand request = RemotingCommand.createRequestCommand(MQRequestCode.UNREGISTER_BROKER_VALUE, requestHeader);
 
         RemotingCommand response = this.remotingClient.invokeSync(namesrvAddr, request, 3000);
         assert response != null;
@@ -221,10 +213,8 @@ public class BrokerOuterAPI {
     }
 
 
-    public TopicConfigSerializeWrapper getAllTopicConfig(final String addr) throws RemotingConnectException,
-            RemotingSendRequestException, RemotingTimeoutException, InterruptedException, MQBrokerException {
-        RemotingCommand request =
-                RemotingCommand.createRequestCommand(MQRequestCode.GET_ALL_TOPIC_CONFIG_VALUE, null);
+    public TopicConfigSerializeWrapper getAllTopicConfig(final String addr) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, InterruptedException, MQBrokerException {
+        RemotingCommand request = RemotingCommand.createRequestCommand(MQRequestCode.GET_ALL_TOPIC_CONFIG_VALUE, null);
 
         RemotingCommand response = this.remotingClient.invokeSync(addr, request, 3000);
         assert response != null;

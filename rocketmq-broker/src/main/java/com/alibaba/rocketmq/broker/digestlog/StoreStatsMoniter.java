@@ -44,8 +44,7 @@ public class StoreStatsMoniter {
 
 
     public void tolog() {
-        Map<String/* topic@group */, ConcurrentHashMap<Integer, Long>> offsetTable =
-                brokerController.getConsumerOffsetManager().getOffsetTable();
+        Map<String/* topic@group */, ConcurrentHashMap<Integer, Long>> offsetTable = brokerController.getConsumerOffsetManager().getOffsetTable();
         DefaultMessageStore defaultMessageStore = (DefaultMessageStore) brokerController.getMessageStore();
         for (String key : offsetTable.keySet()) {
             String[] strs = key.split(TOPIC_GROUP_SEPARATOR);
@@ -56,8 +55,7 @@ public class StoreStatsMoniter {
                 StringBuffer sb = new StringBuffer();
                 sb.append("Client Put And get Count").append(",");
                 sb.append("Topic[").append(topic).append("],");
-                sb.append("Mq[").append(brokerController.getBrokerConfig().getBrokerName() + "-" + queueId)
-                        .append("],");
+                sb.append("Mq[").append(brokerController.getBrokerConfig().getBrokerName() + "-" + queueId).append("],");
                 sb.append("PutOffset[").append(maxoffsize).append("],");
                 sb.append("group[").append(group).append("],");
                 sb.append("GetOffset[").append(offsetTable.get(key).get(queueId)).append("]");

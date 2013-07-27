@@ -61,7 +61,6 @@ public class SendResult {
 
     @Override
     public String toString() {
-        return "SendResult [sendStatus=" + sendStatus + ", msgId=" + msgId + ", messageQueue=" + messageQueue
-                + ", queueOffset=" + queueOffset + "]";
+        return "SendResult [sendStatus=" + sendStatus + ", msgId=" + msgId + ", messageQueue=" + messageQueue + ", queueOffset=" + queueOffset + "]";
     }
 }

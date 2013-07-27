@@ -26,8 +26,7 @@ import com.alibaba.rocketmq.remoting.common.RemotingUtil;
  * @since 2013-7-24
  */
 public class ClientConfig {
-    private String namesrvAddr = System.getProperty(MixAll.NAMESRV_ADDR_PROPERTY,
-            System.getenv(MixAll.NAMESRV_ADDR_ENV));
+    private String namesrvAddr = System.getProperty(MixAll.NAMESRV_ADDR_PROPERTY, System.getenv(MixAll.NAMESRV_ADDR_ENV));
     private String clientIP = RemotingUtil.getLocalAddress();
     private String instanceName = System.getProperty("rocketmq.client.name", "DEFAULT");
     private int clientCallbackExecutorThreads = Runtime.getRuntime().availableProcessors();
@@ -143,10 +142,6 @@ public class ClientConfig {
 
     @Override
     public String toString() {
-        return "ClientConfig [namesrvAddr=" + namesrvAddr + ", clientIP=" + clientIP + ", instanceName="
-                + instanceName + ", clientCallbackExecutorThreads=" + clientCallbackExecutorThreads
-                + ", pollNameServerInteval=" + pollNameServerInteval + ", heartbeatBrokerInterval="
-                + heartbeatBrokerInterval + ", persistConsumerOffsetInterval="
-                + persistConsumerOffsetInterval + "]";
+        return "ClientConfig [namesrvAddr=" + namesrvAddr + ", clientIP=" + clientIP + ", instanceName=" + instanceName + ", clientCallbackExecutorThreads=" + clientCallbackExecutorThreads + ", pollNameServerInteval=" + pollNameServerInteval + ", heartbeatBrokerInterval=" + heartbeatBrokerInterval + ", persistConsumerOffsetInterval=" + persistConsumerOffsetInterval + "]";
     }
 }

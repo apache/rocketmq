@@ -31,15 +31,13 @@ import java.util.concurrent.TimeUnit;
  */
 public class DigestLogManager {
 
-    private final boolean startRealTimeStat = Boolean.valueOf(System
-            .getProperty("meta.realtime.stat", "true"));
-    private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1,
-            new ThreadFactory() {
-                @Override
-                public Thread newThread(Runnable r) {
-                    return new Thread(r, "DigestLogPrintSchedule");
-                }
-            });
+    private final boolean startRealTimeStat = Boolean.valueOf(System.getProperty("meta.realtime.stat", "true"));
+    private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1, new ThreadFactory() {
+        @Override
+        public Thread newThread(Runnable r) {
+            return new Thread(r, "DigestLogPrintSchedule");
+        }
+    });
     private final PutStatsMoniter putStatsMoniter;
     private final GetStatsMoniter getStatsMoniter;
     private final StoreStatsMoniter storeStatsMoniter;

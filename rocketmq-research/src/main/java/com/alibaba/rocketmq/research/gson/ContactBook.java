@@ -56,7 +56,6 @@ public class ContactBook extends Convert {
 
     @Override
     public String toString() {
-        return "ContactBook [name=" + name + ", contactList=" + contactList + ", customField=" + customField
-                + ", code=" + code + "]";
+        return "ContactBook [name=" + name + ", contactList=" + contactList + ", customField=" + customField + ", code=" + code + "]";
     }
 }

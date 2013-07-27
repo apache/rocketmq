@@ -32,17 +32,14 @@ public class TopicConfigManagerTest {
 
         TopicConfigManager topicConfigManager = new TopicConfigManager(brokerController);
 
-        TopicConfig topicConfig =
-                topicConfigManager.createTopicInSendMessageMethod("TestTopic_SEND", MixAll.DEFAULT_TOPIC,
-                        null, 4);
+        TopicConfig topicConfig = topicConfigManager.createTopicInSendMessageMethod("TestTopic_SEND", MixAll.DEFAULT_TOPIC, null, 4);
         assertTrue(topicConfig != null);
 
         System.out.println(topicConfig);
 
         for (int i = 0; i < 10; i++) {
             String topic = "UNITTEST-" + i;
-            topicConfig =
-                    topicConfigManager.createTopicInSendMessageMethod(topic, MixAll.DEFAULT_TOPIC, null, 4);
+            topicConfig = topicConfigManager.createTopicInSendMessageMethod(topic, MixAll.DEFAULT_TOPIC, null, 4);
             assertTrue(topicConfig != null);
         }
 

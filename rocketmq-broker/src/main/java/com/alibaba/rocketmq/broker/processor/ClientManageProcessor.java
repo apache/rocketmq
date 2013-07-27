@@ -54,8 +54,7 @@ public class ClientManageProcessor implements NettyRequestProcessor {
 
 
     @Override
-    public RemotingCommand processRequest(ChannelHandlerContext ctx, RemotingCommand request)
-            throws RemotingCommandException {
+    public RemotingCommand processRequest(ChannelHandlerContext ctx, RemotingCommand request) throws RemotingCommandException {
         MQRequestCode code = MQRequestCode.valueOf(request.getCode());
         switch (code) {
             case HEART_BEAT:
@@ -71,17 +70,11 @@ public class ClientManageProcessor implements NettyRequestProcessor {
     }
 
 
-    public RemotingCommand getConsumerListByGroup(ChannelHandlerContext ctx, RemotingCommand request)
-            throws RemotingCommandException {
-        final RemotingCommand response =
-                RemotingCommand.createResponseCommand(GetConsumerListByGroupResponseHeader.class);
-        final GetConsumerListByGroupRequestHeader requestHeader =
-                (GetConsumerListByGroupRequestHeader) request
-                        .decodeCommandCustomHeader(GetConsumerListByGroupRequestHeader.class);
+    public RemotingCommand getConsumerListByGroup(ChannelHandlerContext ctx, RemotingCommand request) throws RemotingCommandException {
+        final RemotingCommand response = RemotingCommand.createResponseCommand(GetConsumerListByGroupResponseHeader.class);
+        final GetConsumerListByGroupRequestHeader requestHeader = (GetConsumerListByGroupRequestHeader) request.decodeCommandCustomHeader(GetConsumerListByGroupRequestHeader.class);
 
-        ConsumerGroupInfo consumerGroupInfo =
-                this.brokerController.getConsumerManager().getConsumerGroupInfo(
-                        requestHeader.getConsumerGroup());
+        ConsumerGroupInfo consumerGroupInfo = this.brokerController.getConsumerManager().getConsumerGroupInfo(requestHeader.getConsumerGroup());
         if (consumerGroupInfo != null) {
             List<String> clientIds = consumerGroupInfo.getAllClientId();
             if (!clientIds.isEmpty()) {
@@ -92,12 +85,10 @@ public class ClientManageProcessor implements NettyRequestProcessor {
                 response.setRemark(null);
                 return response;
             } else {
-                log.warn("getAllClientId failed, {} {}", requestHeader.getConsumerGroup(),
-                        RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
+                log.warn("getAllClientId failed, {} {}", requestHeader.getConsumerGroup(), RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
             }
         } else {
-            log.warn("getConsumerGroupInfo failed, {} {}", requestHeader.getConsumerGroup(),
-                    RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
+            log.warn("getConsumerGroupInfo failed, {} {}", requestHeader.getConsumerGroup(), RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
         }
 
         response.setCode(ResponseCode.SYSTEM_ERROR_VALUE);
@@ -106,13 +97,9 @@ public class ClientManageProcessor implements NettyRequestProcessor {
     }
 
 
-    public RemotingCommand unregisterClient(ChannelHandlerContext ctx, RemotingCommand request)
-            throws RemotingCommandException {
-        final RemotingCommand response =
-                RemotingCommand.createResponseCommand(UnregisterClientResponseHeader.class);
-        final UnregisterClientRequestHeader requestHeader =
-                (UnregisterClientRequestHeader) request
-                        .decodeCommandCustomHeader(UnregisterClientRequestHeader.class);
+    public RemotingCommand unregisterClient(ChannelHandlerContext ctx, RemotingCommand request) throws RemotingCommandException {
+        final RemotingCommand response = RemotingCommand.createResponseCommand(UnregisterClientResponseHeader.class);
+        final UnregisterClientRequestHeader requestHeader = (UnregisterClientRequestHeader) request.decodeCommandCustomHeader(UnregisterClientRequestHeader.class);
 
         ClientChannelInfo clientChannelInfo = new ClientChannelInfo(//
                 ctx.channel(),//
@@ -171,8 +158,7 @@ public class ClientManageProcessor implements NettyRequestProcessor {
 
         // 注册Producer
         for (ProducerData data : heartbeatData.getProducerDataSet()) {
-            this.brokerController.getProducerManager().registerProducer(data.getGroupName(),
-                    clientChannelInfo);
+            this.brokerController.getProducerManager().registerProducer(data.getGroupName(), clientChannelInfo);
         }
 
         response.setCode(ResponseCode.SUCCESS_VALUE);

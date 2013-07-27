@@ -13,8 +13,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class Test {
 
     public static class TestTable {
-        private final ConcurrentHashMap<String, ConcurrentHashMap<String, Long>> testTable =
-                new ConcurrentHashMap<String, ConcurrentHashMap<String, Long>>();
+        private final ConcurrentHashMap<String, ConcurrentHashMap<String, Long>> testTable = new ConcurrentHashMap<String, ConcurrentHashMap<String, Long>>();
         private String remark = "abc";
 
 

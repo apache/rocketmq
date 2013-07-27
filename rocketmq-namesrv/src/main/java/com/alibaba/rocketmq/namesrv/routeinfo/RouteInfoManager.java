@@ -103,8 +103,7 @@ public class RouteInfoManager {
                     if (qd.equals(queueData)) {
                         addNewOne = false;
                     } else {
-                        log.info("topic changed, {} OLD: {} NEW: {}", topicConfig.getTopicName(), qd,
-                                queueData);
+                        log.info("topic changed, {} OLD: {} NEW: {}", topicConfig.getTopicName(), qd, queueData);
                         it.remove();
                     }
                 }
@@ -159,8 +158,7 @@ public class RouteInfoManager {
                         && MixAll.MASTER_ID == brokerId) {
                     if (this.isBrokerTopicConfigChanged(brokerAddr,//
                             topicConfigWrapper.getDataVersion())) {
-                        ConcurrentHashMap<String, TopicConfig> tcTable =
-                                topicConfigWrapper.getTopicConfigTable();
+                        ConcurrentHashMap<String, TopicConfig> tcTable = topicConfigWrapper.getTopicConfigTable();
                         if (tcTable != null) {
                             for (String topic : tcTable.keySet()) {
                                 TopicConfig topicConfig = tcTable.get(topic);
@@ -320,8 +318,7 @@ public class RouteInfoManager {
                         if (null != brokerData) {
                             BrokerData brokerDataClone = new BrokerData();
                             brokerDataClone.setBrokerName(brokerData.getBrokerName());
-                            brokerDataClone.setBrokerAddrs((HashMap<Long, String>) brokerData
-                                    .getBrokerAddrs().clone());
+                            brokerDataClone.setBrokerAddrs((HashMap<Long, String>) brokerData.getBrokerAddrs().clone());
                             brokerDataList.add(brokerDataClone);
                             foundBrokerData = true;
                         }
@@ -360,8 +357,7 @@ public class RouteInfoManager {
         try {
             try {
                 this.lock.readLock().lockInterruptibly();
-                Iterator<Entry<String, BrokerLiveInfo>> itBrokerLiveTable =
-                        this.brokerLiveTable.entrySet().iterator();
+                Iterator<Entry<String, BrokerLiveInfo>> itBrokerLiveTable = this.brokerLiveTable.entrySet().iterator();
                 while (itBrokerLiveTable.hasNext()) {
                     Entry<String, BrokerLiveInfo> entry = itBrokerLiveTable.next();
                     if (entry.getValue().getChannel() == channel) {
@@ -389,8 +385,7 @@ public class RouteInfoManager {
                     // 清理brokerAddrTable
                     String brokerNameFound = null;
                     boolean brokerNameDisappear = false;
-                    Iterator<Entry<String, BrokerData>> itBrokerAddrTable =
-                            this.brokerAddrTable.entrySet().iterator();
+                    Iterator<Entry<String, BrokerData>> itBrokerAddrTable = this.brokerAddrTable.entrySet().iterator();
                     while (itBrokerAddrTable.hasNext() && (null == brokerNameFound)) {
                         BrokerData brokerData = itBrokerAddrTable.next().getValue();
 
@@ -403,9 +398,7 @@ public class RouteInfoManager {
                             if (brokerAddr.equals(brokerAddrFound)) {
                                 brokerNameFound = brokerData.getBrokerName();
                                 it.remove();
-                                log.info(
-                                        "remove brokerAddr[{}, {}] from brokerAddrTable, because channel destroyed",
-                                        brokerId, brokerAddr);
+                                log.info("remove brokerAddr[{}, {}] from brokerAddrTable, because channel destroyed", brokerId, brokerAddr);
                                 break;
                             }
                         }
@@ -414,8 +407,7 @@ public class RouteInfoManager {
                         if (brokerData.getBrokerAddrs().isEmpty()) {
                             brokerNameDisappear = true;
                             itBrokerAddrTable.remove();
-                            log.info("remove brokerName[{}] from brokerAddrTable, because channel destroyed",
-                                    brokerData.getBrokerName());
+                            log.info("remove brokerName[{}] from brokerAddrTable, because channel destroyed", brokerData.getBrokerName());
                         }
                     }
 
@@ -428,9 +420,7 @@ public class RouteInfoManager {
                             Set<String> brokerNames = entry.getValue();
                             boolean removed = brokerNames.remove(brokerNameFound);
                             if (removed) {
-                                log.info(
-                                        "remove brokerName[{}], clusterName[{}] from clusterAddrTable, because channel destroyed",
-                                        brokerNameFound, clusterName);
+                                log.info("remove brokerName[{}], clusterName[{}] from clusterAddrTable, because channel destroyed", brokerNameFound, clusterName);
                                 break;
                             }
                         }
@@ -438,8 +428,7 @@ public class RouteInfoManager {
 
                     // 清理topicQueueTable
                     if (brokerNameDisappear) {
-                        Iterator<Entry<String, List<QueueData>>> itTopicQueueTable =
-                                this.topicQueueTable.entrySet().iterator();
+                        Iterator<Entry<String, List<QueueData>>> itTopicQueueTable = this.topicQueueTable.entrySet().iterator();
                         while (itTopicQueueTable.hasNext()) {
                             Entry<String, List<QueueData>> entry = itTopicQueueTable.next();
                             String topic = entry.getKey();
@@ -450,17 +439,13 @@ public class RouteInfoManager {
                                 QueueData queueData = itQueueData.next();
                                 if (queueData.getBrokerName().equals(brokerNameFound)) {
                                     itQueueData.remove();
-                                    log.info(
-                                            "remove topic[{} {}], from topicQueueTable, because channel destroyed",
-                                            topic, queueData);
+                                    log.info("remove topic[{} {}], from topicQueueTable, because channel destroyed", topic, queueData);
                                 }
                             }
 
                             if (queueDataList.isEmpty()) {
                                 itTopicQueueTable.remove();
-                                log.info(
-                                        "remove topic[{}] all queue, from topicQueueTable, because channel destroyed",
-                                        topic);
+                                log.info("remove topic[{}] all queue, from topicQueueTable, because channel destroyed", topic);
                             }
                         }
                     }
@@ -507,8 +492,7 @@ class BrokerLiveInfo {
     private String haServerAddr;
 
 
-    public BrokerLiveInfo(long lastUpdateTimestamp, DataVersion dataVersion, Channel channel,
-                          String haServerAddr) {
+    public BrokerLiveInfo(long lastUpdateTimestamp, DataVersion dataVersion, Channel channel, String haServerAddr) {
         this.lastUpdateTimestamp = lastUpdateTimestamp;
         this.dataVersion = dataVersion;
         this.channel = channel;
@@ -558,7 +542,6 @@ class BrokerLiveInfo {
 
     @Override
     public String toString() {
-        return "BrokerLiveInfo [lastUpdateTimestamp=" + lastUpdateTimestamp + ", dataVersion=" + dataVersion
-                + ", channel=" + channel + ", haServerAddr=" + haServerAddr + "]";
+        return "BrokerLiveInfo [lastUpdateTimestamp=" + lastUpdateTimestamp + ", dataVersion=" + dataVersion + ", channel=" + channel + ", haServerAddr=" + haServerAddr + "]";
     }
 }

@@ -36,8 +36,7 @@ public class TestMultiConsumerProducer {
         final AtomicLong consumeTimes = new AtomicLong(0);
 
         consumer.registerMessageListener(new MessageListenerConcurrently() {
-            public ConsumeConcurrentlyStatus consumeMessage(final List<MessageExt> msgs,
-                                                            final ConsumeConcurrentlyContext context) {
+            public ConsumeConcurrentlyStatus consumeMessage(final List<MessageExt> msgs, final ConsumeConcurrentlyContext context) {
                 System.out.println("接收了" + consumeTimes.incrementAndGet() + "条消息!");
 
                 lastReceivedMills.set(System.currentTimeMillis());

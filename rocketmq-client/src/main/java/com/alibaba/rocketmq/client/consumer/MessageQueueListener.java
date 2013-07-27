@@ -27,6 +27,5 @@ import java.util.Set;
  * @since 2013-7-24
  */
 public interface MessageQueueListener {
-    public void messageQueueChanged(final String topic, final Set<MessageQueue> mqAll,
-                                    final Set<MessageQueue> mqDivided);
+    public void messageQueueChanged(final String topic, final Set<MessageQueue> mqAll, final Set<MessageQueue> mqDivided);
 }

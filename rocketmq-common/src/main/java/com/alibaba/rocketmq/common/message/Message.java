@@ -227,7 +227,6 @@ public class Message implements Serializable {
 
     @Override
     public String toString() {
-        return "Message [topic=" + topic + ", flag=" + flag + ", properties=" + properties + ", body="
-                + (body != null ? body.length : 0) + "]";
+        return "Message [topic=" + topic + ", flag=" + flag + ", properties=" + properties + ", body=" + (body != null ? body.length : 0) + "]";
     }
 }

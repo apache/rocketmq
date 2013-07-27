@@ -39,8 +39,7 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 public class ConsumeMessageOrderlyService implements ConsumeMessageService {
     private static final Logger log = ClientLogger.getLog();
-    private final static long MaxTimeConsumeContinuously = Long.parseLong(System.getProperty(
-            "rocketmq.client.maxTimeConsumeContinuously", "60000"));
+    private final static long MaxTimeConsumeContinuously = Long.parseLong(System.getProperty("rocketmq.client.maxTimeConsumeContinuously", "60000"));
 
     private volatile boolean stoped = false;
 
@@ -56,8 +55,7 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
     private final ScheduledExecutorService scheduledExecutorService;
 
 
-    public ConsumeMessageOrderlyService(DefaultMQPushConsumerImpl defaultMQPushConsumerImpl,
-                                        MessageListenerOrderly messageListener) {
+    public ConsumeMessageOrderlyService(DefaultMQPushConsumerImpl defaultMQPushConsumerImpl, MessageListenerOrderly messageListener) {
         this.defaultMQPushConsumerImpl = defaultMQPushConsumerImpl;
         this.messageListener = messageListener;
 
@@ -132,8 +130,7 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
     }
 
 
-    public void tryLockLaterAndReconsume(final MessageQueue mq, final ProcessQueue processQueue,
-                                         final long delayMills) {
+    public void tryLockLaterAndReconsume(final MessageQueue mq, final ProcessQueue processQueue, final long delayMills) {
         this.scheduledExecutorService.schedule(new Runnable() {
             @Override
             public void run() {
@@ -173,23 +170,19 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
                     final long beginTime = System.currentTimeMillis();
                     for (boolean continueConsume = true; continueConsume; ) {
                         if (this.processQueue.isDroped()) {
-                            log.info("the message queue not be able to consume, because it's droped {}",
-                                    this.messageQueue);
+                            log.info("the message queue not be able to consume, because it's droped {}", this.messageQueue);
                             break;
                         }
 
                         if (!this.processQueue.isLocked()) {
                             log.warn("the message queue not locked, so consume later, {}", this.messageQueue);
-                            ConsumeMessageOrderlyService.this.tryLockLaterAndReconsume(this.messageQueue,
-                                    this.processQueue, 10);
+                            ConsumeMessageOrderlyService.this.tryLockLaterAndReconsume(this.messageQueue, this.processQueue, 10);
                             break;
                         }
 
                         if (this.processQueue.isLockExpired()) {
-                            log.warn("the message queue lock expired, so consume later, {}",
-                                    this.messageQueue);
-                            ConsumeMessageOrderlyService.this.tryLockLaterAndReconsume(this.messageQueue,
-                                    this.processQueue, 10);
+                            log.warn("the message queue lock expired, so consume later, {}", this.messageQueue);
+                            ConsumeMessageOrderlyService.this.tryLockLaterAndReconsume(this.messageQueue, this.processQueue, 10);
                             break;
                         }
 
@@ -197,19 +190,15 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
                         long interval = System.currentTimeMillis() - beginTime;
                         if (interval > MaxTimeConsumeContinuously) {
                             // 过10ms后再消费
-                            ConsumeMessageOrderlyService.this.submitConsumeRequestLater(processQueue,
-                                    messageQueue, 10);
+                            ConsumeMessageOrderlyService.this.submitConsumeRequestLater(processQueue, messageQueue, 10);
                             break;
                         }
 
-                        final int consumeBatchSize =
-                                ConsumeMessageOrderlyService.this.defaultMQPushConsumer
-                                        .getConsumeMessageBatchMaxSize();
+                        final int consumeBatchSize = ConsumeMessageOrderlyService.this.defaultMQPushConsumer.getConsumeMessageBatchMaxSize();
 
                         List<MessageExt> msgs = this.processQueue.takeMessags(consumeBatchSize);
                         if (!msgs.isEmpty()) {
-                            final ConsumeOrderlyContext context =
-                                    new ConsumeOrderlyContext(this.messageQueue);
+                            final ConsumeOrderlyContext context = new ConsumeOrderlyContext(this.messageQueue);
 
                             ConsumeOrderlyStatus status = null;
 
@@ -218,8 +207,7 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
                             try {
                                 status = messageListener.consumeMessage(msgs, context);
                             } catch (Throwable e) {
-                                log.warn("consumeMessage exception, Group: "
-                                        + ConsumeMessageOrderlyService.this.consumerGroup//
+                                log.warn("consumeMessage exception, Group: " + ConsumeMessageOrderlyService.this.consumerGroup//
                                         + " " + msgs//
                                         + " " + messageQueue, e);
                             }
@@ -232,14 +220,10 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
                             }
 
                             // 记录统计信息
-                            ConsumeMessageOrderlyService.this.getConsumerStat().getConsumeMsgRTTotal()
-                                    .addAndGet(consumeRT);
-                            MixAll.compareAndIncreaseOnly(ConsumeMessageOrderlyService.this.getConsumerStat()
-                                    .getConsumeMsgRTMax(), consumeRT);
+                            ConsumeMessageOrderlyService.this.getConsumerStat().getConsumeMsgRTTotal().addAndGet(consumeRT);
+                            MixAll.compareAndIncreaseOnly(ConsumeMessageOrderlyService.this.getConsumerStat().getConsumeMsgRTMax(), consumeRT);
 
-                            continueConsume =
-                                    ConsumeMessageOrderlyService.this.processConsumeResult(msgs, status,
-                                            context, this);
+                            continueConsume = ConsumeMessageOrderlyService.this.processConsumeResult(msgs, status, context, this);
                         } else {
                             continueConsume = false;
                         }
@@ -247,8 +231,7 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
                 }
                 // 没有拿到当前队列的锁，稍后再消费
                 else {
-                    ConsumeMessageOrderlyService.this.tryLockLaterAndReconsume(this.messageQueue,
-                            this.processQueue, 10);
+                    ConsumeMessageOrderlyService.this.tryLockLaterAndReconsume(this.messageQueue, this.processQueue, 10);
                 }
             }
         }
@@ -278,9 +261,7 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
             switch (status) {
                 case COMMIT:
                 case ROLLBACK:
-                    log.warn(
-                            "the message queue consume result is illegal, we think you want to ack these message {}",
-                            consumeRequest.getMessageQueue());
+                    log.warn("the message queue consume result is illegal, we think you want to ack these message {}", consumeRequest.getMessageQueue());
                 case SUCCESS:
                     commitOffset = consumeRequest.getProcessQueue().commit();
                     // 统计信息
@@ -340,8 +321,7 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
         }
 
         if (commitOffset >= 0) {
-            this.defaultMQPushConsumerImpl.getOffsetStore().updateOffset(consumeRequest.getMessageQueue(),
-                    commitOffset, false);
+            this.defaultMQPushConsumerImpl.getOffsetStore().updateOffset(consumeRequest.getMessageQueue(), commitOffset, false);
         }
 
         return continueConsume;
@@ -367,8 +347,7 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
 
             @Override
             public void run() {
-                ConsumeMessageOrderlyService.this
-                        .submitConsumeRequest(null, processQueue, messageQueue, true);
+                ConsumeMessageOrderlyService.this.submitConsumeRequest(null, processQueue, messageQueue, true);
             }
         }, timeMillis, TimeUnit.MILLISECONDS);
     }

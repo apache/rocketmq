@@ -75,14 +75,12 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
     }
 
     @Override
-    public MessageExt viewMessage(String msgId) throws RemotingException, MQBrokerException,
-            InterruptedException, MQClientException {
+    public MessageExt viewMessage(String msgId) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
         return defaultMQAdminExtImpl.viewMessage(msgId);
     }
 
     @Override
-    public QueryResult queryMessage(String topic, String key, int maxNum, long begin, long end)
-            throws MQClientException, InterruptedException {
+    public QueryResult queryMessage(String topic, String key, int maxNum, long begin, long end) throws MQClientException, InterruptedException {
         return defaultMQAdminExtImpl.queryMessage(topic, key, maxNum, begin, end);
     }
 
@@ -102,8 +100,7 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
     }
 
     @Override
-    public void createAndUpdateTopicConfigByAddr(String addr, TopicConfig config) throws RemotingException,
-            MQBrokerException, InterruptedException, MQClientException {
+    public void createAndUpdateTopicConfigByAddr(String addr, TopicConfig config) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
         defaultMQAdminExtImpl.createAndUpdateTopicConfigByAddr(addr, config);
     }
 
@@ -113,8 +110,7 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
     }
 
     @Override
-    public void createAndUpdateSubscriptionGroupConfigByAddr(String addr, SubscriptionGroupConfig config)
-            throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
+    public void createAndUpdateSubscriptionGroupConfigByAddr(String addr, SubscriptionGroupConfig config) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
         defaultMQAdminExtImpl.createAndUpdateSubscriptionGroupConfigByAddr(addr, config);
     }
 

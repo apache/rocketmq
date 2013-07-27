@@ -117,20 +117,17 @@ public class UpdateSubGroupSubCommand implements SubCommand {
 
             // consumeEnable
             if (commandLine.hasOption('c')) {
-                subscriptionGroupConfig
-                        .setConsumeEnable(Boolean.parseBoolean(commandLine.getOptionValue('c')));
+                subscriptionGroupConfig.setConsumeEnable(Boolean.parseBoolean(commandLine.getOptionValue('c')));
             }
 
             // consumeFromMinEnable
             if (commandLine.hasOption('m')) {
-                subscriptionGroupConfig.setConsumeFromMinEnable(Boolean.parseBoolean(commandLine
-                        .getOptionValue('m')));
+                subscriptionGroupConfig.setConsumeFromMinEnable(Boolean.parseBoolean(commandLine.getOptionValue('m')));
             }
 
             // consumeBroadcastEnable
             if (commandLine.hasOption('d')) {
-                subscriptionGroupConfig.setConsumeBroadcastEnable(Boolean.parseBoolean(commandLine
-                        .getOptionValue('d')));
+                subscriptionGroupConfig.setConsumeBroadcastEnable(Boolean.parseBoolean(commandLine.getOptionValue('d')));
             }
 
             // retryQueueNums
@@ -150,8 +147,7 @@ public class UpdateSubGroupSubCommand implements SubCommand {
 
             // whichBrokerWhenConsumeSlowly
             if (commandLine.hasOption('w')) {
-                subscriptionGroupConfig.setWhichBrokerWhenConsumeSlowly(Long.parseLong(commandLine
-                        .getOptionValue('w')));
+                subscriptionGroupConfig.setWhichBrokerWhenConsumeSlowly(Long.parseLong(commandLine.getOptionValue('w')));
             }
 
             defaultMQAdminExt.createAndUpdateSubscriptionGroupConfigByAddr(addr, subscriptionGroupConfig);
