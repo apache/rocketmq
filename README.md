@@ -11,9 +11,10 @@
 
 ----------
 
-### 如何快速开始？
+### 如何开始？
 
 * [Quick Start](https://github.com/alibaba/RocketMQ/wiki/Quick-Start)
+* [通过Wiki了解更多](https://github.com/alibaba/RocketMQ/wiki)
 
 ----------
 
@@ -25,6 +26,6 @@
 ### 联系我们
 
 * [向我们提交建议、BUG、寻求技术帮助](https://github.com/alibaba/RocketMQ/issues/new)
-* 参与RocketMQ项目，在Github上fork、pull request即可
+* 欢迎参与RocketMQ项目，只需在Github上fork、pull request即可
 
 ----------
