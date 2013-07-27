@@ -54,54 +54,6 @@ public class MQAdminStartup {
         // subCommandList.add(new StatsSubCommand());
     }
 
-
-    private static void printHelp() {
-        System.out.println("The most commonly used mqadmin commands are:");
-
-        for (SubCommand cmd : subCommandList) {
-            System.out.printf("   %-16s %s\n", cmd.commandName(), cmd.commandDesc());
-        }
-
-        System.out.println("\nSee 'mqadmin help <command>' for more information on a specific command.");
-    }
-
-
-    private static SubCommand findSubCommand(final String name) {
-        for (SubCommand cmd : subCommandList) {
-            if (cmd.commandName().equals(name)) {
-                return cmd;
-            }
-        }
-
-        return null;
-    }
-
-
-    private static String[] parseSubArgs(String[] args) {
-        if (args.length > 1) {
-            String[] result = new String[args.length - 1];
-            for (int i = 0; i < args.length - 1; i++) {
-                result[i] = args[i + 1];
-            }
-            return result;
-        }
-        return null;
-    }
-
-
-    private static void initLogback() throws JoranException {
-        String rocketmqHome =
-                System.getProperty(MixAll.ROCKETMQ_HOME_PROPERTY, System.getenv(MixAll.ROCKETMQ_HOME_ENV));
-
-        // 初始化Logback
-        LoggerContext lc = (LoggerContext) LoggerFactory.getILoggerFactory();
-        JoranConfigurator configurator = new JoranConfigurator();
-        configurator.setContext(lc);
-        lc.reset();
-        configurator.doConfigure(rocketmqHome + "/conf/logback_tools.xml");
-    }
-
-
     public static void main(String[] args) {
         // 设置当前程序版本号，每次发布版本时，都要修改CurrentVersion
         System.setProperty(RemotingCommand.RemotingVersionKey, Integer.toString(MQVersion.CurrentVersion));
@@ -127,17 +79,12 @@ public class MQAdminStartup {
                 default:
                     SubCommand cmd = findSubCommand(args[0]);
                     if (cmd != null) {
-                        // 初始化日志
-                        initLogback();
-
                         // 将main中的args转化为子命令的args（去除第一个参数）
                         String[] subargs = parseSubArgs(args);
 
                         // 解析命令行
                         Options options = MixAll.buildCommandlineOptions(new Options());
-                        final CommandLine commandLine =
-                                MixAll.parseCmdLine("mqadmin " + cmd.commandName(), subargs,
-                                        cmd.buildCommandlineOptions(options), new PosixParser());
+                        final CommandLine commandLine = MixAll.parseCmdLine("mqadmin " + cmd.commandName(), subargs, cmd.buildCommandlineOptions(options), new PosixParser());
                         if (null == commandLine) {
                             System.exit(-1);
                             return;
@@ -150,5 +97,47 @@ public class MQAdminStartup {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    private static String[] parseSubArgs(String[] args) {
+        if (args.length > 1) {
+            String[] result = new String[args.length - 1];
+            for (int i = 0; i < args.length - 1; i++) {
+                result[i] = args[i + 1];
+            }
+            return result;
+        }
+        return null;
+    }
+
+    private static SubCommand findSubCommand(final String name) {
+        for (SubCommand cmd : subCommandList) {
+            if (cmd.commandName().equals(name)) {
+                return cmd;
+            }
+        }
+
+        return null;
+    }
+
+    private static void printHelp() {
+        System.out.println("The most commonly used mqadmin commands are:");
+
+        for (SubCommand cmd : subCommandList) {
+            System.out.printf("   %-16s %s\n", cmd.commandName(), cmd.commandDesc());
+        }
+
+        System.out.println("\nSee 'mqadmin help <command>' for more information on a specific command.");
+    }
+
+    private static void initLogback() throws JoranException {
+        String rocketmqHome = System.getProperty(MixAll.ROCKETMQ_HOME_PROPERTY, System.getenv(MixAll.ROCKETMQ_HOME_ENV));
+
+        // 初始化Logback
+        LoggerContext lc = (LoggerContext) LoggerFactory.getILoggerFactory();
+        JoranConfigurator configurator = new JoranConfigurator();
+        configurator.setContext(lc);
+        lc.reset();
+        configurator.doConfigure(rocketmqHome + "/conf/logback_tools.xml");
     }
 }

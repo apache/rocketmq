@@ -31,7 +31,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class TransactionExecuterImpl implements LocalTransactionExecuter {
     private AtomicInteger transactionIndex = new AtomicInteger(1);
 
-
     @Override
     public LocalTransactionState executeLocalTransactionBranch(Message msg) {
         int value = transactionIndex.getAndIncrement();

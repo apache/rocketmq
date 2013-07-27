@@ -31,7 +31,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class TransactionCheckListenerImpl implements TransactionCheckListener {
     private AtomicInteger transactionIndex = new AtomicInteger(0);
 
-
     @Override
     public LocalTransactionState checkLocalTransactionState(MessageExt msg) {
         System.out.println("server checking TrMsg " + msg.toString());

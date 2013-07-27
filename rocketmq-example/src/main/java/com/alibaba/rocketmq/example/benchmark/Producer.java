@@ -36,21 +36,6 @@ import java.util.concurrent.atomic.AtomicLong;
  * @since 2013-7-16
  */
 public class Producer {
-    private static Message buildMessage(final int messageSize) {
-        Message msg = new Message();
-        msg.setTopic("BenchmarkTest");
-
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < messageSize; i += 10) {
-            sb.append("hello baby");
-        }
-
-        msg.setBody(sb.toString().getBytes());
-
-        return msg;
-    }
-
-
     public static void main(String[] args) throws MQClientException {
         final int threadCount = args.length >= 1 ? Integer.parseInt(args[0]) : 32;
         final int messageSize = args.length >= 2 ? Integer.parseInt(args[1]) : 1024 * 2;
@@ -83,12 +68,10 @@ public class Producer {
                     Long[] begin = snapshotList.getFirst();
                     Long[] end = snapshotList.getLast();
 
-                    final long sendTps =
-                            (long) (((end[3] - begin[3]) / (double) (end[0] - begin[0])) * 1000L);
+                    final long sendTps = (long) (((end[3] - begin[3]) / (double) (end[0] - begin[0])) * 1000L);
                     final double averageRT = ((end[5] - begin[5]) / (double) (end[3] - begin[3]));
 
-                    System.out.printf(
-                            "Send TPS: %d Max RT: %d Average RT: %7.3f Send Failed: %d Response Failed: %d\n"//
+                    System.out.printf("Send TPS: %d Max RT: %d Average RT: %7.3f Send Failed: %d Response Failed: %d\n"//
                             , sendTps//
                             , statsBenchmark.getSendMessageMaxRT().get()//
                             , averageRT//
@@ -129,9 +112,7 @@ public class Producer {
                             statsBenchmark.getSendMessageSuccessTimeTotal().addAndGet(currentRT);
                             long prevMaxRT = statsBenchmark.getSendMessageMaxRT().get();
                             while (currentRT > prevMaxRT) {
-                                boolean updated =
-                                        statsBenchmark.getSendMessageMaxRT().compareAndSet(prevMaxRT,
-                                                currentRT);
+                                boolean updated = statsBenchmark.getSendMessageMaxRT().compareAndSet(prevMaxRT, currentRT);
                                 if (updated)
                                     break;
 
@@ -155,8 +136,21 @@ public class Producer {
             });
         }
     }
-}
 
+    private static Message buildMessage(final int messageSize) {
+        Message msg = new Message();
+        msg.setTopic("BenchmarkTest");
+
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < messageSize; i += 10) {
+            sb.append("hello baby");
+        }
+
+        msg.setBody(sb.toString().getBytes());
+
+        return msg;
+    }
+}
 
 class StatsBenchmarkProducer {
     // 1
@@ -172,7 +166,6 @@ class StatsBenchmarkProducer {
     // 6
     private final AtomicLong sendMessageMaxRT = new AtomicLong(0L);
 
-
     public Long[] createSnapshot() {
         Long[] snap = new Long[]{//
                 System.currentTimeMillis(),//
@@ -186,31 +179,25 @@ class StatsBenchmarkProducer {
         return snap;
     }
 
-
     public AtomicLong getSendRequestSuccessCount() {
         return sendRequestSuccessCount;
     }
-
 
     public AtomicLong getSendRequestFailedCount() {
         return sendRequestFailedCount;
     }
 
-
     public AtomicLong getReceiveResponseSuccessCount() {
         return receiveResponseSuccessCount;
     }
-
 
     public AtomicLong getReceiveResponseFailedCount() {
         return receiveResponseFailedCount;
     }
 
-
     public AtomicLong getSendMessageSuccessTimeTotal() {
         return sendMessageSuccessTimeTotal;
     }
-
 
     public AtomicLong getSendMessageMaxRT() {
         return sendMessageMaxRT;

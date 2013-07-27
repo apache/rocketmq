@@ -38,18 +38,6 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 public class Consumer {
 
-    public static void compareAndSetMax(final AtomicLong target, final long value) {
-        long prev = target.get();
-        while (value > prev) {
-            boolean updated = target.compareAndSet(prev, value);
-            if (updated)
-                break;
-
-            prev = target.get();
-        }
-    }
-
-
     public static void main(String[] args) throws MQClientException {
         final StatsBenchmarkConsumer statsBenchmarkConsumer = new StatsBenchmarkConsumer();
 
@@ -73,13 +61,11 @@ public class Consumer {
                     Long[] begin = snapshotList.getFirst();
                     Long[] end = snapshotList.getLast();
 
-                    final long consumeTps =
-                            (long) (((end[1] - begin[1]) / (double) (end[0] - begin[0])) * 1000L);
+                    final long consumeTps = (long) (((end[1] - begin[1]) / (double) (end[0] - begin[0])) * 1000L);
                     final double averageB2CRT = ((end[2] - begin[2]) / (double) (end[1] - begin[1]));
                     final double averageS2CRT = ((end[3] - begin[3]) / (double) (end[1] - begin[1]));
 
-                    System.out.printf(
-                            "Consume TPS: %d Average(B2C) RT: %7.3f Average(S2C) RT: %7.3f MAX(B2C) RT: %d MAX(S2C) RT: %d\n"//
+                    System.out.printf("Consume TPS: %d Average(B2C) RT: %7.3f Average(S2C) RT: %7.3f MAX(B2C) RT: %d MAX(S2C) RT: %d\n"//
                             , consumeTps//
                             , averageB2CRT//
                             , averageS2CRT//
@@ -108,8 +94,7 @@ public class Consumer {
 
         consumer.registerMessageListener(new MessageListenerConcurrently() {
             @Override
-            public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> msgs,
-                                                            ConsumeConcurrentlyContext context) {
+            public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> msgs, ConsumeConcurrentlyContext context) {
                 MessageExt msg = msgs.get(0);
                 long now = System.currentTimeMillis();
 
@@ -138,8 +123,18 @@ public class Consumer {
 
         System.out.println("Consumer Started.");
     }
-}
 
+    public static void compareAndSetMax(final AtomicLong target, final long value) {
+        long prev = target.get();
+        while (value > prev) {
+            boolean updated = target.compareAndSet(prev, value);
+            if (updated)
+                break;
+
+            prev = target.get();
+        }
+    }
+}
 
 class StatsBenchmarkConsumer {
     // 1
@@ -152,7 +147,6 @@ class StatsBenchmarkConsumer {
     private final AtomicLong born2ConsumerMaxRT = new AtomicLong(0L);
     // 5
     private final AtomicLong store2ConsumerMaxRT = new AtomicLong(0L);
-
 
     public Long[] createSnapshot() {
         Long[] snap = new Long[]{//
@@ -167,26 +161,21 @@ class StatsBenchmarkConsumer {
         return snap;
     }
 
-
     public AtomicLong getReceiveMessageTotalCount() {
         return receiveMessageTotalCount;
     }
-
 
     public AtomicLong getBorn2ConsumerTotalRT() {
         return born2ConsumerTotalRT;
     }
 
-
     public AtomicLong getStore2ConsumerTotalRT() {
         return store2ConsumerTotalRT;
     }
 
-
     public AtomicLong getBorn2ConsumerMaxRT() {
         return born2ConsumerMaxRT;
     }
-
 
     public AtomicLong getStore2ConsumerMaxRT() {
         return store2ConsumerMaxRT;

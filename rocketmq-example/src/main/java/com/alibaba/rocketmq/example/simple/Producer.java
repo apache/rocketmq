@@ -37,9 +37,11 @@ public class Producer {
 
         for (int i = 0; i < 1000; i++) {
             try {
-                Message msg =
-                        new Message("TopicTest", tags[i % tags.length], "KEY" + i,
-                                ("Hello RocketMQ " + i).getBytes());
+                Message msg = new Message("TopicTest",// topic
+                        tags[i % tags.length],// tag
+                        "KEY" + i,// key
+                        ("Hello RocketMQ " + i).getBytes()// body
+                );
                 SendResult sendResult = producer.send(msg);
                 System.out.println(sendResult);
             } catch (Exception e) {

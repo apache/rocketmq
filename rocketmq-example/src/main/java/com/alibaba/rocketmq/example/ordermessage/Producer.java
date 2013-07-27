@@ -46,9 +46,7 @@ public class Producer {
             for (int i = 0; i < 100; i++) {
                 // 订单ID相同的消息要有序
                 int orderId = i % 10;
-                Message msg =
-                        new Message("TopicTest", tags[i % tags.length], "KEY" + i,
-                                ("Hello RocketMQ " + i).getBytes());
+                Message msg = new Message("TopicTest", tags[i % tags.length], "KEY" + i, ("Hello RocketMQ " + i).getBytes());
 
                 SendResult sendResult = producer.send(msg, new MessageQueueSelector() {
                     @Override

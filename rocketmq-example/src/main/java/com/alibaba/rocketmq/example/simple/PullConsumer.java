@@ -34,21 +34,6 @@ import java.util.Set;
 public class PullConsumer {
     private static final Map<MessageQueue, Long> offseTable = new HashMap<MessageQueue, Long>();
 
-
-    private static long getMessageQueueOffset(MessageQueue mq) {
-        Long offset = offseTable.get(mq);
-        if (offset != null)
-            return offset;
-
-        return 0;
-    }
-
-
-    private static void putMessageQueueOffset(MessageQueue mq, long offset) {
-        offseTable.put(mq, offset);
-    }
-
-
     public static void main(String[] args) throws MQClientException {
         DefaultMQPullConsumer consumer = new DefaultMQPullConsumer("example_pull_consumer_group");
 
@@ -81,6 +66,18 @@ public class PullConsumer {
         }
 
         consumer.shutdown();
+    }
+
+    private static void putMessageQueueOffset(MessageQueue mq, long offset) {
+        offseTable.put(mq, offset);
+    }
+
+    private static long getMessageQueueOffset(MessageQueue mq) {
+        Long offset = offseTable.get(mq);
+        if (offset != null)
+            return offset;
+
+        return 0;
     }
 
 }
