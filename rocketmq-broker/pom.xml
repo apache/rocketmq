@@ -8,7 +8,6 @@
 
     <modelVersion>4.0.0</modelVersion>
     <packaging>jar</packaging>
-    <groupId>com.alibaba.rocketmq</groupId>
     <artifactId>rocketmq-broker</artifactId>
     <name>rocketmq-broker ${project.version}</name>
 
