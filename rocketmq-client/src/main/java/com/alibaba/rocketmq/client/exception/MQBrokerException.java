@@ -37,11 +37,9 @@ public class MQBrokerException extends Exception {
         this.errorMessage = errorMessage;
     }
 
-
     public int getResponseCode() {
         return responseCode;
     }
-
 
     public String getErrorMessage() {
         return errorMessage;

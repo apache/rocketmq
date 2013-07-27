@@ -32,7 +32,6 @@ import java.util.Set;
 public class AllocateMessageQueueByMachineRoom implements AllocateMessageQueueStrategy {
     private Set<String> consumeridcs;
 
-
     @Override
     public List<MessageQueue> allocate(String currentCID, List<MessageQueue> mqAll, List<String> cidAll) {
         List<MessageQueue> result = new ArrayList<MessageQueue>();
@@ -61,11 +60,9 @@ public class AllocateMessageQueueByMachineRoom implements AllocateMessageQueueSt
         return result;
     }
 
-
     public Set<String> getConsumeridcs() {
         return consumeridcs;
     }
-
 
     public void setConsumeridcs(Set<String> consumeridcs) {
         this.consumeridcs = consumeridcs;

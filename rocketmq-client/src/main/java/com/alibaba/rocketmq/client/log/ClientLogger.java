@@ -38,7 +38,6 @@ public class ClientLogger {
         log = createLogger(LoggerName.ClientLoggerName);
     }
 
-
     private static Logger createLogger(final String loggerName) {
         String logConfigFilePath = System.getProperty("rocketmq.client.log.configFile", System.getenv("ROCKETMQ_CLIENT_LOG_CONFIGFILE"));
         try {
@@ -84,11 +83,9 @@ public class ClientLogger {
         return LoggerFactory.getLogger(LoggerName.ClientLoggerName);
     }
 
-
     public static Logger getLog() {
         return log;
     }
-
 
     public static void setLog(Logger log) {
         ClientLogger.log = log;

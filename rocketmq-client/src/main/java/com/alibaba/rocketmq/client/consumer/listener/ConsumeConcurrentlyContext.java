@@ -46,26 +46,21 @@ public class ConsumeConcurrentlyContext {
         this.messageQueue = messageQueue;
     }
 
-
     public int getDelayLevelWhenNextConsume() {
         return delayLevelWhenNextConsume;
     }
-
 
     public void setDelayLevelWhenNextConsume(int delayLevelWhenNextConsume) {
         this.delayLevelWhenNextConsume = delayLevelWhenNextConsume;
     }
 
-
     public MessageQueue getMessageQueue() {
         return messageQueue;
     }
 
-
     public int getAckIndex() {
         return ackIndex;
     }
-
 
     public void setAckIndex(int ackIndex) {
         this.ackIndex = ackIndex;

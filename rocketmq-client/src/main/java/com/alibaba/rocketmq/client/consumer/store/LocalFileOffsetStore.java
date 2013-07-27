@@ -35,16 +35,14 @@ import java.util.concurrent.atomic.AtomicLong;
  * @since 2013-7-24
  */
 public class LocalFileOffsetStore implements OffsetStore {
-    private final static Logger log = ClientLogger.getLog();
     public final static String LocalOffsetStoreDir = System.getProperty("rocketmq.client.localOffsetStoreDir", //
             System.getProperty("user.home") + File.separator + ".rocketmq_offsets");
-
+    private final static Logger log = ClientLogger.getLog();
     private final MQClientFactory mQClientFactory;
     private final String groupName;
-    private ConcurrentHashMap<MessageQueue, AtomicLong> offsetTable = new ConcurrentHashMap<MessageQueue, AtomicLong>();
-
     // 本地Offset存储路径
     private final String storePath;
+    private ConcurrentHashMap<MessageQueue, AtomicLong> offsetTable = new ConcurrentHashMap<MessageQueue, AtomicLong>();
 
 
     public LocalFileOffsetStore(MQClientFactory mQClientFactory, String groupName) {
@@ -55,18 +53,6 @@ public class LocalFileOffsetStore implements OffsetStore {
                 this.groupName + File.separator + //
                 "offsets.json";
     }
-
-
-    private OffsetSerializeWrapper readLocalOffset() {
-        String content = MixAll.file2String(this.storePath);
-        if (content != null) {
-            OffsetSerializeWrapper offsetSerializeWrapper = OffsetSerializeWrapper.fromJson(content, OffsetSerializeWrapper.class);
-            return offsetSerializeWrapper;
-        }
-
-        return null;
-    }
-
 
     @Override
     public void load() {
@@ -83,7 +69,6 @@ public class LocalFileOffsetStore implements OffsetStore {
             }
         }
     }
-
 
     @Override
     public void updateOffset(MessageQueue mq, long offset, boolean increaseOnly) {
@@ -102,7 +87,6 @@ public class LocalFileOffsetStore implements OffsetStore {
             }
         }
     }
-
 
     @Override
     public long readOffset(MessageQueue mq, boolean fromStore) {
@@ -127,7 +111,6 @@ public class LocalFileOffsetStore implements OffsetStore {
         return -1;
     }
 
-
     @Override
     public void persistAll(Set<MessageQueue> mqs) {
         OffsetSerializeWrapper offsetSerializeWrapper = new OffsetSerializeWrapper();
@@ -148,8 +131,17 @@ public class LocalFileOffsetStore implements OffsetStore {
         }
     }
 
-
     @Override
     public void persist(MessageQueue mq) {
+    }
+
+    private OffsetSerializeWrapper readLocalOffset() {
+        String content = MixAll.file2String(this.storePath);
+        if (content != null) {
+            OffsetSerializeWrapper offsetSerializeWrapper = OffsetSerializeWrapper.fromJson(content, OffsetSerializeWrapper.class);
+            return offsetSerializeWrapper;
+        }
+
+        return null;
     }
 }
