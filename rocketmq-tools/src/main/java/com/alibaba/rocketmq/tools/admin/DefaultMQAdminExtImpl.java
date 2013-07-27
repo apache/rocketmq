@@ -51,7 +51,6 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
         this.defaultMQAdminExt = defaultMQAdminExt;
     }
 
-
     @Override
     public void start() throws MQClientException {
         switch (this.serviceState) {
@@ -83,7 +82,6 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
         }
     }
 
-
     @Override
     public void shutdown() {
         switch (this.serviceState) {
@@ -103,57 +101,11 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
         }
     }
 
-
-    @Override
-    public void createTopic(String key, String newTopic, int queueNum) throws MQClientException {
-        this.mQClientFactory.getMQAdminImpl().createTopic(key, newTopic, queueNum);
-    }
-
-
-    @Override
-    public long searchOffset(MessageQueue mq, long timestamp) throws MQClientException {
-        return this.mQClientFactory.getMQAdminImpl().searchOffset(mq, timestamp);
-    }
-
-
-    @Override
-    public long maxOffset(MessageQueue mq) throws MQClientException {
-        return this.mQClientFactory.getMQAdminImpl().maxOffset(mq);
-    }
-
-
-    @Override
-    public long minOffset(MessageQueue mq) throws MQClientException {
-        return this.mQClientFactory.getMQAdminImpl().minOffset(mq);
-    }
-
-
-    @Override
-    public long earliestMsgStoreTime(MessageQueue mq) throws MQClientException {
-        return this.mQClientFactory.getMQAdminImpl().earliestMsgStoreTime(mq);
-    }
-
-
-    @Override
-    public MessageExt viewMessage(String msgId) throws RemotingException, MQBrokerException,
-            InterruptedException, MQClientException {
-        return this.mQClientFactory.getMQAdminImpl().viewMessage(msgId);
-    }
-
-
-    @Override
-    public QueryResult queryMessage(String topic, String key, int maxNum, long begin, long end)
-            throws MQClientException, InterruptedException {
-        return this.mQClientFactory.getMQAdminImpl().queryMessage(topic, key, maxNum, begin, end);
-    }
-
-
     @Override
     public void createAndUpdateTopicConfigByCluster(String cluster, TopicConfig config) {
         // TODO Auto-generated method stub
 
     }
-
 
     @Override
     public void createAndUpdateTopicConfigByAddr(String addr, TopicConfig config) throws RemotingException,
@@ -162,13 +114,11 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
                 this.defaultMQAdminExt.getCreateTopicKey(), config, 3000);
     }
 
-
     @Override
     public void createAndUpdateSubscriptionGroupConfigByCluster(String cluster, SubscriptionGroupConfig config) {
         // TODO Auto-generated method stub
 
     }
-
 
     @Override
     public void createAndUpdateSubscriptionGroupConfigByAddr(String addr, SubscriptionGroupConfig config)
@@ -176,13 +126,17 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
         this.mQClientFactory.getMQClientAPIImpl().createSubscriptionGroup(addr, config, 3000);
     }
 
-
     @Override
     public SubscriptionGroupConfig examineSubscriptionGroupConfig(String addr, String group) {
         // TODO Auto-generated method stub
         return null;
     }
 
+    @Override
+    public TopicConfig examineTopicConfig(String addr, String topic) {
+        // TODO Auto-generated method stub
+        return null;
+    }
 
     @Override
     public TopicOffsetTable examineTopicOffset(String topic) {
@@ -190,13 +144,11 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
         return null;
     }
 
-
     @Override
     public ConsumerProgress examineConsumerProgress(String consumerGroup, String topic) {
         // TODO Auto-generated method stub
         return null;
     }
-
 
     @Override
     public void putKVConfig(String namespace, String key, String value) {
@@ -204,17 +156,46 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
 
     }
 
-
     @Override
     public String getKVConfig(String namespace, String key) {
         // TODO Auto-generated method stub
         return null;
     }
 
+    @Override
+    public void createTopic(String key, String newTopic, int queueNum) throws MQClientException {
+        this.mQClientFactory.getMQAdminImpl().createTopic(key, newTopic, queueNum);
+    }
 
     @Override
-    public TopicConfig examineTopicConfig(String addr, String topic) {
-        // TODO Auto-generated method stub
-        return null;
+    public long searchOffset(MessageQueue mq, long timestamp) throws MQClientException {
+        return this.mQClientFactory.getMQAdminImpl().searchOffset(mq, timestamp);
+    }
+
+    @Override
+    public long maxOffset(MessageQueue mq) throws MQClientException {
+        return this.mQClientFactory.getMQAdminImpl().maxOffset(mq);
+    }
+
+    @Override
+    public long minOffset(MessageQueue mq) throws MQClientException {
+        return this.mQClientFactory.getMQAdminImpl().minOffset(mq);
+    }
+
+    @Override
+    public long earliestMsgStoreTime(MessageQueue mq) throws MQClientException {
+        return this.mQClientFactory.getMQAdminImpl().earliestMsgStoreTime(mq);
+    }
+
+    @Override
+    public MessageExt viewMessage(String msgId) throws RemotingException, MQBrokerException,
+            InterruptedException, MQClientException {
+        return this.mQClientFactory.getMQAdminImpl().viewMessage(msgId);
+    }
+
+    @Override
+    public QueryResult queryMessage(String topic, String key, int maxNum, long begin, long end)
+            throws MQClientException, InterruptedException {
+        return this.mQClientFactory.getMQAdminImpl().queryMessage(topic, key, maxNum, begin, end);
     }
 }

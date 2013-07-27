@@ -28,12 +28,9 @@ import org.apache.commons.cli.Options;
 public interface SubCommand {
     public String commandName();
 
-
     public String commandDesc();
 
-
     public Options buildCommandlineOptions(final Options options);
-
 
     public void execute(CommandLine commandLine);
 }

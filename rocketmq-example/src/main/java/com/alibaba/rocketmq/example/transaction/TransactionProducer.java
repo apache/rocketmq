@@ -46,9 +46,7 @@ public class TransactionProducer {
         TransactionExecuterImpl tranExecuter = new TransactionExecuterImpl();
         for (int i = 0; i < 100; i++) {
             try {
-                Message msg =
-                        new Message("TopicTest", tags[i % tags.length], "KEY" + i,
-                                ("Hello RocketMQ " + i).getBytes());
+                Message msg = new Message("TopicTest", tags[i % tags.length], "KEY" + i, ("Hello RocketMQ " + i).getBytes());
                 SendResult sendResult = producer.sendMessageInTransaction(msg, tranExecuter);
                 System.out.println(sendResult);
 

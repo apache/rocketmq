@@ -40,22 +40,6 @@ public class TransactionProducer {
     private static boolean ischeck;
     private static boolean ischeckffalse;
 
-
-    private static Message buildMessage(final int messageSize) {
-        Message msg = new Message();
-        msg.setTopic("BenchmarkTest");
-
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < messageSize; i += 10) {
-            sb.append("hello baby");
-        }
-
-        msg.setBody(sb.toString().getBytes());
-
-        return msg;
-    }
-
-
     public static void main(String[] args) throws MQClientException {
         threadCount = args.length >= 1 ? Integer.parseInt(args[0]) : 32;
         messageSize = args.length >= 2 ? Integer.parseInt(args[1]) : 1024 * 2;
@@ -88,12 +72,10 @@ public class TransactionProducer {
                     Long[] begin = snapshotList.getFirst();
                     Long[] end = snapshotList.getLast();
 
-                    final long sendTps =
-                            (long) (((end[3] - begin[3]) / (double) (end[0] - begin[0])) * 1000L);
+                    final long sendTps = (long) (((end[3] - begin[3]) / (double) (end[0] - begin[0])) * 1000L);
                     final double averageRT = ((end[5] - begin[5]) / (double) (end[3] - begin[3]));
 
-                    System.out.printf(
-                            "Send TPS: %d Max RT: %d Average RT: %7.3f Send Failed: %d Response Failed: %d transaction checkCount: %d \n"//
+                    System.out.printf("Send TPS: %d Max RT: %d Average RT: %7.3f Send Failed: %d Response Failed: %d transaction checkCount: %d \n"//
                             , sendTps//
                             , statsBenchmark.getSendMessageMaxRT().get()//
                             , averageRT//
@@ -114,8 +96,7 @@ public class TransactionProducer {
             }
         }, 10000, 10000);
 
-        final TransactionCheckListener transactionCheckListener =
-                new TransactionCheckListenerBImpl(ischeckffalse, statsBenchmark);
+        final TransactionCheckListener transactionCheckListener = new TransactionCheckListenerBImpl(ischeckffalse, statsBenchmark);
         final TransactionMQProducer producer = new TransactionMQProducer("benchmark_transaction_producer");
         producer.setTransactionCheckListener(transactionCheckListener);
         producer.setDefaultTopicQueueNums(1000);
@@ -141,9 +122,7 @@ public class TransactionProducer {
                             statsBenchmark.getSendMessageSuccessTimeTotal().addAndGet(currentRT);
                             long prevMaxRT = statsBenchmark.getSendMessageMaxRT().get();
                             while (currentRT > prevMaxRT) {
-                                boolean updated =
-                                        statsBenchmark.getSendMessageMaxRT().compareAndSet(prevMaxRT,
-                                                currentRT);
+                                boolean updated = statsBenchmark.getSendMessageMaxRT().compareAndSet(prevMaxRT, currentRT);
                                 if (updated)
                                     break;
 
@@ -157,8 +136,21 @@ public class TransactionProducer {
             });
         }
     }
-}
 
+    private static Message buildMessage(final int messageSize) {
+        Message msg = new Message();
+        msg.setTopic("BenchmarkTest");
+
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < messageSize; i += 10) {
+            sb.append("hello baby");
+        }
+
+        msg.setBody(sb.toString().getBytes());
+
+        return msg;
+    }
+}
 
 class TransactionExecuterBImpl implements LocalTransactionExecuter {
 
@@ -169,7 +161,6 @@ class TransactionExecuterBImpl implements LocalTransactionExecuter {
         this.ischeck = ischeck;
     }
 
-
     @Override
     public LocalTransactionState executeLocalTransactionBranch(Message msg) {
         if (ischeck) {
@@ -179,18 +170,15 @@ class TransactionExecuterBImpl implements LocalTransactionExecuter {
     }
 }
 
-
 class TransactionCheckListenerBImpl implements TransactionCheckListener {
     private boolean ischeckffalse;
     private StatsBenchmarkTProducer statsBenchmarkTProducer;
 
 
-    public TransactionCheckListenerBImpl(boolean ischeckffalse,
-                                         StatsBenchmarkTProducer statsBenchmarkTProducer) {
+    public TransactionCheckListenerBImpl(boolean ischeckffalse, StatsBenchmarkTProducer statsBenchmarkTProducer) {
         this.ischeckffalse = ischeckffalse;
         this.statsBenchmarkTProducer = statsBenchmarkTProducer;
     }
-
 
     @Override
     public LocalTransactionState checkLocalTransactionState(MessageExt msg) {
@@ -204,7 +192,6 @@ class TransactionCheckListenerBImpl implements TransactionCheckListener {
         return LocalTransactionState.COMMIT_MESSAGE;
     }
 }
-
 
 class StatsBenchmarkTProducer {
     // 1
@@ -222,7 +209,6 @@ class StatsBenchmarkTProducer {
     // 7
     private final AtomicLong checkRequestSuccessCount = new AtomicLong(0L);
 
-
     public Long[] createSnapshot() {
         Long[] snap = new Long[]{//
                 System.currentTimeMillis(),//
@@ -236,36 +222,29 @@ class StatsBenchmarkTProducer {
         return snap;
     }
 
-
     public AtomicLong getSendRequestSuccessCount() {
         return sendRequestSuccessCount;
     }
-
 
     public AtomicLong getSendRequestFailedCount() {
         return sendRequestFailedCount;
     }
 
-
     public AtomicLong getReceiveResponseSuccessCount() {
         return receiveResponseSuccessCount;
     }
-
 
     public AtomicLong getReceiveResponseFailedCount() {
         return receiveResponseFailedCount;
     }
 
-
     public AtomicLong getSendMessageSuccessTimeTotal() {
         return sendMessageSuccessTimeTotal;
     }
 
-
     public AtomicLong getSendMessageMaxRT() {
         return sendMessageMaxRT;
     }
-
 
     public AtomicLong getCheckRequestSuccessCount() {
         return checkRequestSuccessCount;
