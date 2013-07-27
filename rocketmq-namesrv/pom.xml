@@ -8,7 +8,6 @@
 
     <modelVersion>4.0.0</modelVersion>
     <packaging>jar</packaging>
-    <groupId>com.alibaba.rocketmq</groupId>
     <artifactId>rocketmq-namesrv</artifactId>
     <name>rocketmq-namesrv ${project.version}</name>
 
