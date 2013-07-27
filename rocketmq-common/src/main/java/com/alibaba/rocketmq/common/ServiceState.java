@@ -16,7 +16,7 @@
 package com.alibaba.rocketmq.common;
 
 /**
- * 服务对象的状态，通常需要start，shutdown
+ * 鏈嶅姟瀵硅薄鐨勭姸鎬侊紝閫氬父闇�瑕乻tart锛宻hutdown
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * 

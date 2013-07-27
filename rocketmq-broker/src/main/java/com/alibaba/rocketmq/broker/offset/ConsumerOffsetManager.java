@@ -27,7 +27,7 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingSerializable;
 
 
 /**
- * Consumer消费进度管理
+ * Consumer娑堣垂杩涘害绠＄悊
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-26

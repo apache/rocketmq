@@ -45,7 +45,7 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingProtos.ResponseCode;
 
 
 /**
- * Name ServerÍøÂçÇëÇó´¦Àí
+ * Name Serverç½‘ç»œè¯·æ±‚å¤„ç†
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-5

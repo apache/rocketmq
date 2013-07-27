@@ -20,7 +20,7 @@ import com.alibaba.rocketmq.common.message.MessageExt;
 
 
 /**
- * 存储内部使用的Message对象
+ * 瀛樺偍鍐呴儴浣跨敤鐨凪essage瀵硅薄
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-21
@@ -53,7 +53,7 @@ public class MessageExtBrokerInner extends MessageExt {
 
 
     /**
-     * 目前只支持单个标签的过滤
+     * 鐩墠鍙敮鎸佸崟涓爣绛剧殑杩囨护
      */
     public static long tagsString2tagsCode(final TopicFilterType filter, final String tags) {
         if (null == tags || tags.length() == 0)

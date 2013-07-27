@@ -19,7 +19,7 @@ import java.io.Serializable;
 
 
 /**
- * ÏûÏ¢¶ÓÁĞÊı¾İ½á¹¹£¬¶ÔÍâÌá¹©
+ * æ¶ˆæ¯é˜Ÿåˆ—æ•°æ®ç»“æ„ï¼Œå¯¹å¤–æä¾›
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  */

@@ -41,7 +41,7 @@ import com.alibaba.rocketmq.remoting.exception.RemotingException;
 
 
 /**
- * ¶ÔPull½Ó¿Ú½øĞĞ½øÒ»²½µÄ·â×°
+ * å¯¹Pullæ¥å£è¿›è¡Œè¿›ä¸€æ­¥çš„å°è£…
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-24
@@ -72,7 +72,7 @@ public class PullAPIWrapper {
 
 
     /**
-     * ¶ÔÀ­È¡½á¹û½øĞĞ´¦Àí£¬Ö÷ÒªÊÇÏûÏ¢·´ĞòÁĞ»¯
+     * å¯¹æ‹‰å–ç»“æœè¿›è¡Œå¤„ç†ï¼Œä¸»è¦æ˜¯æ¶ˆæ¯ååºåˆ—åŒ–
      */
     public PullResult processPullResult(final MessageQueue mq, final PullResult pullResult,
             final SubscriptionData subscriptionData) {
@@ -83,7 +83,7 @@ public class PullAPIWrapper {
             ByteBuffer byteBuffer = ByteBuffer.wrap(pullResultExt.getMessageBinary());
             List<MessageExt> msgList = MessageDecoder.decodes(byteBuffer);
 
-            // ÏûÏ¢ÔÙ´Î¹ıÂË
+            // æ¶ˆæ¯å†æ¬¡è¿‡æ»¤
             List<MessageExt> msgListFilterAgain = msgList;
             if (!subscriptionData.getTagsSet().isEmpty()) {
                 msgListFilterAgain = new ArrayList<MessageExt>(msgList.size());
@@ -97,7 +97,7 @@ public class PullAPIWrapper {
                 }
             }
 
-            // ÏûÏ¢ÖĞ·ÅÈë¶ÓÁĞµÄ×î´ó×îĞ¡Offset£¬·½±ãÓ¦ÓÃÀ´¸ĞÖªÏûÏ¢¶Ñ»ı³Ì¶È
+            // æ¶ˆæ¯ä¸­æ”¾å…¥é˜Ÿåˆ—çš„æœ€å¤§æœ€å°Offsetï¼Œæ–¹ä¾¿åº”ç”¨æ¥æ„ŸçŸ¥æ¶ˆæ¯å †ç§¯ç¨‹åº¦
             for (MessageExt msg : msgListFilterAgain) {
                 msg.putProperty(Message.PROPERTY_MIN_OFFSET, Long.toString(pullResult.getMinOffset()));
                 msg.putProperty(Message.PROPERTY_MAX_OFFSET, Long.toString(pullResult.getMaxOffset()));
@@ -106,7 +106,7 @@ public class PullAPIWrapper {
             pullResultExt.setMsgFoundList(msgListFilterAgain);
         }
 
-        // ÁîGCÊÍ·ÅÄÚ´æ
+        // ä»¤GCé‡Šæ”¾å†…å­˜
         pullResultExt.setMessageBinary(null);
 
         return pullResult;
@@ -114,7 +114,7 @@ public class PullAPIWrapper {
 
 
     /**
-     * Ã¿¸ö¶ÓÁĞ¶¼Ó¦¸ÃÓĞÏàÓ¦µÄ±äÁ¿À´±£´æ´ÓÄÄ¸ö·şÎñÆ÷À­
+     * æ¯ä¸ªé˜Ÿåˆ—éƒ½åº”è¯¥æœ‰ç›¸åº”çš„å˜é‡æ¥ä¿å­˜ä»å“ªä¸ªæœåŠ¡å™¨æ‹‰
      */
     public long recalculatePullFromWhichNode(final MessageQueue mq) {
         AtomicLong suggest = this.pullFromWhichNodeTable.get(mq);
@@ -143,7 +143,7 @@ public class PullAPIWrapper {
                 this.mQClientFactory.findBrokerAddressInSubscribe(mq.getBrokerName(),
                     this.recalculatePullFromWhichNode(mq), false);
         if (null == findBrokerResult) {
-            // TODO ´Ë´¦¿ÉÄÜ¶ÔName ServerÑ¹Á¦¹ı´ó£¬ĞèÒªµ÷ÓÅ
+            // TODO æ­¤å¤„å¯èƒ½å¯¹Name Serverå‹åŠ›è¿‡å¤§ï¼Œéœ€è¦è°ƒä¼˜
             this.mQClientFactory.updateTopicRouteInfoFromNameServer(mq.getTopic());
             findBrokerResult =
                     this.mQClientFactory.findBrokerAddressInSubscribe(mq.getBrokerName(),
@@ -153,7 +153,7 @@ public class PullAPIWrapper {
         if (findBrokerResult != null) {
             int sysFlagInner = sysFlag;
 
-            // Slave²»ÔÊĞíÊµÊ±Ìá½»Ïû·Ñ½ø¶È£¬¿ÉÒÔ¶¨Ê±Ìá½»
+            // Slaveä¸å…è®¸å®æ—¶æäº¤æ¶ˆè´¹è¿›åº¦ï¼Œå¯ä»¥å®šæ—¶æäº¤
             if (findBrokerResult.isSlave()) {
                 sysFlagInner = PullSysFlag.clearCommitOffsetFlag(sysFlagInner);
             }

@@ -26,7 +26,7 @@ import com.alibaba.rocketmq.common.message.MessageQueue;
 
 
 /**
- * PullConsumer£¬¶©ÔÄÏûÏ¢
+ * PullConsumerï¼Œè®¢é˜…æ¶ˆæ¯
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-16

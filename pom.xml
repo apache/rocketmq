@@ -39,7 +39,7 @@
 				<configuration>
 					<source>1.6</source>
 					<target>1.6</target>
-					<encoding>GBK</encoding>
+					<encoding>UTF-8</encoding>
 					<showDeprecation>true</showDeprecation>
 					<showWarnings>true</showWarnings>
 				</configuration>
@@ -84,8 +84,8 @@
 				<artifactId>maven-site-plugin</artifactId>
 				<configuration>
 					<locales>zh_CN</locales>
-					<outputEncoding>GBK</outputEncoding>
-					<inputEncoding>GBK</inputEncoding>
+					<outputEncoding>UTF-8</outputEncoding>
+					<inputEncoding>UTF-8</inputEncoding>
 				</configuration>
 			</plugin>
 

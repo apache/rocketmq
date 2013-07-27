@@ -16,7 +16,7 @@
 package com.alibaba.rocketmq.store;
 
 /**
- * 写入消息返回结果
+ * 鍐欏叆娑堟伅杩斿洖缁撴灉
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-21

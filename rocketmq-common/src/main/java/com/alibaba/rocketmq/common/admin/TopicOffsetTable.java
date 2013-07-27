@@ -21,7 +21,7 @@ import com.alibaba.rocketmq.common.message.MessageQueue;
 
 
 /**
- * Topic所有队列的Offset
+ * Topic鎵�鏈夐槦鍒楃殑Offset
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-14

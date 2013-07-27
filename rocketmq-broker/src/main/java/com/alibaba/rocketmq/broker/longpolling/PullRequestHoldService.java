@@ -29,7 +29,7 @@ import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
 
 
 /**
- * À­ÏûÏ¢ÇëÇó¹ÜÀí£¬Èç¹ûÀ­²»µ½ÏûÏ¢£¬ÔòÔÚÕâÀïHold×¡£¬µÈ´ıÏûÏ¢µ½À´
+ * æ‹‰æ¶ˆæ¯è¯·æ±‚ç®¡ç†ï¼Œå¦‚æœæ‹‰ä¸åˆ°æ¶ˆæ¯ï¼Œåˆ™åœ¨è¿™é‡ŒHoldä½ï¼Œç­‰å¾…æ¶ˆæ¯åˆ°æ¥
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-26
@@ -96,7 +96,7 @@ public class PullRequestHoldService extends ServiceThread {
                 List<PullRequest> replayList = new ArrayList<PullRequest>();
 
                 for (PullRequest request : requestList) {
-                    // ²é¿´ÊÇ·ñoffset OK
+                    // æŸ¥çœ‹æ˜¯å¦offset OK
                     if (offset >= request.getPullFromThisOffset()) {
                         try {
                             this.brokerController.getPullMessageProcessor().excuteRequestWhenWakeup(
@@ -107,7 +107,7 @@ public class PullRequestHoldService extends ServiceThread {
                         }
                         continue;
                     }
-                    // ³¢ÊÔÈ¡×îĞÂOffset
+                    // å°è¯•å–æœ€æ–°Offset
                     else {
                         final long newestOffset =
                                 this.brokerController.getMessageStore().getMaxOffsetInQuque(topic, queueId);
@@ -123,7 +123,7 @@ public class PullRequestHoldService extends ServiceThread {
                         }
                     }
 
-                    // ²é¿´ÊÇ·ñ³¬Ê±
+                    // æŸ¥çœ‹æ˜¯å¦è¶…æ—¶
                     if (System.currentTimeMillis() >= (request.getSuspendTimestamp() + request
                         .getTimeoutMillis())) {
                         try {
@@ -136,7 +136,7 @@ public class PullRequestHoldService extends ServiceThread {
                         continue;
                     }
 
-                    // µ±Ç°²»Âú×ãÒªÇó£¬ÖØĞÂ·Å»ØHoldÁĞ±íÖĞ
+                    // å½“å‰ä¸æ»¡è¶³è¦æ±‚ï¼Œé‡æ–°æ”¾å›Holdåˆ—è¡¨ä¸­
                     replayList.add(request);
                 }
 

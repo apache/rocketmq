@@ -41,7 +41,7 @@ import com.alibaba.rocketmq.common.protocol.heartbeat.SubscriptionData;
 
 
 /**
- * RebalanceµÄ¾ßÌåÊµÏÖ
+ * Rebalanceçš„å…·ä½“å®ç°
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-6-22
@@ -49,15 +49,15 @@ import com.alibaba.rocketmq.common.protocol.heartbeat.SubscriptionData;
 public abstract class RebalanceImpl {
     protected static final Logger log = ClientLogger.getLog();
 
-    // ·ÖÅäºÃµÄ¶ÓÁĞ£¬ÏûÏ¢´æ´¢Ò²ÔÚÕâÀï
+    // åˆ†é…å¥½çš„é˜Ÿåˆ—ï¼Œæ¶ˆæ¯å­˜å‚¨ä¹Ÿåœ¨è¿™é‡Œ
     protected final ConcurrentHashMap<MessageQueue, ProcessQueue> processQueueTable =
             new ConcurrentHashMap<MessageQueue, ProcessQueue>(64);
 
-    // ¿ÉÒÔ¶©ÔÄµÄËùÓĞ¶ÓÁĞ£¨¶¨Ê±´ÓName Server¸üĞÂ×îĞÂ°æ±¾£©
+    // å¯ä»¥è®¢é˜…çš„æ‰€æœ‰é˜Ÿåˆ—ï¼ˆå®šæ—¶ä»Name Serveræ›´æ–°æœ€æ–°ç‰ˆæœ¬ï¼‰
     protected final ConcurrentHashMap<String/* topic */, Set<MessageQueue>> topicSubscribeInfoTable =
             new ConcurrentHashMap<String, Set<MessageQueue>>();
 
-    // ¶©ÔÄ¹ØÏµ£¬ÓÃ»§ÅäÖÃµÄÔ­Ê¼Êı¾İ
+    // è®¢é˜…å…³ç³»ï¼Œç”¨æˆ·é…ç½®çš„åŸå§‹æ•°æ®
     protected final ConcurrentHashMap<String /* topic */, SubscriptionData> subscriptionInner =
             new ConcurrentHashMap<String, SubscriptionData>();
 
@@ -225,7 +225,7 @@ public abstract class RebalanceImpl {
                             this.mQClientFactory.getMQClientAPIImpl().lockBatchMQ(
                                 findBrokerResult.getBrokerAddr(), requestBody, 1000);
 
-                    // Ëø¶¨³É¹¦µÄ¶ÓÁĞ
+                    // é”å®šæˆåŠŸçš„é˜Ÿåˆ—
                     for (MessageQueue mq : lockOKMQSet) {
                         ProcessQueue processQueue = this.processQueueTable.get(mq);
                         if (processQueue != null) {
@@ -237,7 +237,7 @@ public abstract class RebalanceImpl {
                             processQueue.setLastLockTimestamp(System.currentTimeMillis());
                         }
                     }
-                    // Ëø¶¨Ê§°ÜµÄ¶ÓÁĞ
+                    // é”å®šå¤±è´¥çš„é˜Ÿåˆ—
                     for (MessageQueue mq : mqs) {
                         if (!lockOKMQSet.contains(mq)) {
                             ProcessQueue processQueue = this.processQueueTable.get(mq);
@@ -314,13 +314,13 @@ public abstract class RebalanceImpl {
                 List<MessageQueue> mqAll = new ArrayList<MessageQueue>();
                 mqAll.addAll(mqSet);
 
-                // ÅÅĞò
+                // æ’åº
                 Collections.sort(mqAll);
                 Collections.sort(cidAll);
 
                 AllocateMessageQueueStrategy strategy = this.allocateMessageQueueStrategy;
 
-                // Ö´ĞĞ·ÖÅäËã·¨
+                // æ‰§è¡Œåˆ†é…ç®—æ³•
                 List<MessageQueue> allocateResult = null;
                 try {
                     allocateResult = strategy.allocate(this.mQClientFactory.getClientId(), mqAll, cidAll);
@@ -334,7 +334,7 @@ public abstract class RebalanceImpl {
                     allocateResultSet.addAll(allocateResult);
                 }
 
-                // ¸üĞÂ±¾µØ¶ÓÁĞ
+                // æ›´æ–°æœ¬åœ°é˜Ÿåˆ—
                 boolean changed = this.updateProcessQueueTableInRebalance(topic, allocateResultSet);
                 if (changed) {
                     this.messageQueueChanged(topic, mqSet, allocateResultSet);
@@ -356,7 +356,7 @@ public abstract class RebalanceImpl {
     private boolean updateProcessQueueTableInRebalance(final String topic, final Set<MessageQueue> mqSet) {
         boolean changed = false;
 
-        // ½«¶àÓàµÄ¶ÓÁĞÉ¾³ı
+        // å°†å¤šä½™çš„é˜Ÿåˆ—åˆ é™¤
         for (MessageQueue mq : this.processQueueTable.keySet()) {
             if (mq.getTopic().equals(topic)) {
                 if (!mqSet.contains(mq)) {
@@ -371,7 +371,7 @@ public abstract class RebalanceImpl {
             }
         }
 
-        // Ôö¼ÓĞÂÔöµÄ¶ÓÁĞ
+        // å¢åŠ æ–°å¢çš„é˜Ÿåˆ—
         List<PullRequest> pullRequestList = new ArrayList<PullRequest>();
         for (MessageQueue mq : mqSet) {
             if (!this.processQueueTable.containsKey(mq)) {
@@ -380,7 +380,7 @@ public abstract class RebalanceImpl {
                 pullRequest.setMessageQueue(mq);
                 pullRequest.setProcessQueue(new ProcessQueue());
 
-                // Õâ¸öĞèÒª¸ù¾İ²ßÂÔÀ´ÉèÖÃ
+                // è¿™ä¸ªéœ€è¦æ ¹æ®ç­–ç•¥æ¥è®¾ç½®
                 long nextOffset = this.computePullFromWhere(mq);
                 if (nextOffset >= 0) {
                     pullRequest.setNextOffset(nextOffset);
@@ -390,7 +390,7 @@ public abstract class RebalanceImpl {
                     log.info("doRebalance, {}, add a new mq, {}", consumerGroup, mq);
                 }
                 else {
-                    // µÈ´ı´Ë´ÎRebalance×öÖØÊÔ
+                    // ç­‰å¾…æ­¤æ¬¡Rebalanceåšé‡è¯•
                     log.warn("doRebalance, {}, add new mq failed, {}", consumerGroup, mq);
                 }
             }

@@ -16,7 +16,7 @@
 package com.alibaba.rocketmq.remoting.protocol;
 
 /**
- * ±êÊ¶RemotingCommandÊÇÇëÇó»¹ÊÇÓ¦´ğÀàĞÍ
+ * æ ‡è¯†RemotingCommandæ˜¯è¯·æ±‚è¿˜æ˜¯åº”ç­”ç±»å‹
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-13

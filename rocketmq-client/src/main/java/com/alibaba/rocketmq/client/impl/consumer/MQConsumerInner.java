@@ -25,7 +25,7 @@ import com.alibaba.rocketmq.common.protocol.heartbeat.SubscriptionData;
 
 
 /**
- * Consumer内部接口，供MQClientFactory使用
+ * Consumer鍐呴儴鎺ュ彛锛屼緵MQClientFactory浣跨敤
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-24

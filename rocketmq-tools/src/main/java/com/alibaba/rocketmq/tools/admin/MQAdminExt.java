@@ -26,8 +26,8 @@ import com.alibaba.rocketmq.remoting.exception.RemotingException;
 
 
 /**
- * MQ¹ÜÀíÀà½Ó¿Ú£¬Éæ¼°ËùÓĞÓëMQ¹ÜÀíÏà¹ØµÄ¶ÔÍâ½Ó¿Ú<br>
- * °üÀ¨Topic´´½¨¡¢¶©ÔÄ×é´´½¨¡¢ÅäÖÃĞŞ¸ÄµÈ
+ * MQç®¡ç†ç±»æ¥å£ï¼Œæ¶‰åŠæ‰€æœ‰ä¸MQç®¡ç†ç›¸å…³çš„å¯¹å¤–æ¥å£<br>
+ * åŒ…æ‹¬Topicåˆ›å»ºã€è®¢é˜…ç»„åˆ›å»ºã€é…ç½®ä¿®æ”¹ç­‰
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-14
@@ -40,7 +40,7 @@ public interface MQAdminExt extends MQAdmin {
 
 
     /**
-     * ÏòÖ¸¶¨Broker¼¯Èº´´½¨»òÕß¸üĞÂTopicÅäÖÃ
+     * å‘æŒ‡å®šBrokeré›†ç¾¤åˆ›å»ºæˆ–è€…æ›´æ–°Topicé…ç½®
      * 
      * @param cluster
      * @param config
@@ -49,7 +49,7 @@ public interface MQAdminExt extends MQAdmin {
 
 
     /**
-     * ÏòÖ¸¶¨Broker´´½¨»òÕß¸üĞÂTopicÅäÖÃ
+     * å‘æŒ‡å®šBrokeråˆ›å»ºæˆ–è€…æ›´æ–°Topicé…ç½®
      * 
      * @param addr
      * @param config
@@ -63,7 +63,7 @@ public interface MQAdminExt extends MQAdmin {
 
 
     /**
-     * ÏòÖ¸¶¨Broker¼¯Èº´´½¨»òÕß¸üĞÂ¶©ÔÄ×éÅäÖÃ
+     * å‘æŒ‡å®šBrokeré›†ç¾¤åˆ›å»ºæˆ–è€…æ›´æ–°è®¢é˜…ç»„é…ç½®
      * 
      * @param cluster
      * @param config
@@ -73,7 +73,7 @@ public interface MQAdminExt extends MQAdmin {
 
 
     /**
-     * ÏòÖ¸¶¨Broker´´½¨»òÕß¸üĞÂ¶©ÔÄ×éÅäÖÃ
+     * å‘æŒ‡å®šBrokeråˆ›å»ºæˆ–è€…æ›´æ–°è®¢é˜…ç»„é…ç½®
      * 
      * @param addr
      * @param config
@@ -88,7 +88,7 @@ public interface MQAdminExt extends MQAdmin {
 
 
     /**
-     * ²éÑ¯Ö¸¶¨BrokerµÄ¶©ÔÄ×éÅäÖÃ
+     * æŸ¥è¯¢æŒ‡å®šBrokerçš„è®¢é˜…ç»„é…ç½®
      * 
      * @param addr
      * @param group
@@ -98,7 +98,7 @@ public interface MQAdminExt extends MQAdmin {
 
 
     /**
-     * ²éÑ¯Ö¸¶¨BrokerµÄTopicÅäÖÃ
+     * æŸ¥è¯¢æŒ‡å®šBrokerçš„Topicé…ç½®
      * 
      * @param addr
      * @param group
@@ -108,7 +108,7 @@ public interface MQAdminExt extends MQAdmin {
 
 
     /**
-     * ²éÑ¯Topic OffsetĞÅÏ¢
+     * æŸ¥è¯¢Topic Offsetä¿¡æ¯
      * 
      * @param topic
      * @return
@@ -117,7 +117,7 @@ public interface MQAdminExt extends MQAdmin {
 
 
     /**
-     * ²éÑ¯Ïû·Ñ½ø¶È
+     * æŸ¥è¯¢æ¶ˆè´¹è¿›åº¦
      * 
      * @param consumerGroup
      * @param topic
@@ -127,7 +127,7 @@ public interface MQAdminExt extends MQAdmin {
 
 
     /**
-     * ÏòName ServerÔö¼ÓÒ»¸öÅäÖÃÏî
+     * å‘Name Serverå¢åŠ ä¸€ä¸ªé…ç½®é¡¹
      * 
      * @param namespace
      * @param key
@@ -137,7 +137,7 @@ public interface MQAdminExt extends MQAdmin {
 
 
     /**
-     * ´ÓName Server»ñÈ¡Ò»¸öÅäÖÃÏî
+     * ä»Name Serverè·å–ä¸€ä¸ªé…ç½®é¡¹
      * 
      * @param namespace
      * @param key

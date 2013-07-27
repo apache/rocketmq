@@ -45,19 +45,19 @@ public class MapedFileTest {
             System.out.println("Read: " + readString);
             assertTrue(readString.equals(StoreMessage));
 
-            // ½ûÖ¹Buffer¶ÁĞ´
+            // ç¦æ­¢Bufferè¯»å†™
             mapedFile.shutdown(1000);
 
-            // mapedFile¶ÔÏó²»¿ÉÓÃ
+            // mapedFileå¯¹è±¡ä¸å¯ç”¨
             assertTrue(!mapedFile.isAvailable());
 
-            // ÊÍ·Å¶Áµ½µÄBuffer
+            // é‡Šæ”¾è¯»åˆ°çš„Buffer
             selectMapedBufferResult.release();
 
-            // ÄÚ´æÕæÕıÊÍ·Åµô
+            // å†…å­˜çœŸæ­£é‡Šæ”¾æ‰
             assertTrue(mapedFile.isCleanupOver());
 
-            // ÎÄ¼şÉ¾³ı³É¹¦
+            // æ–‡ä»¶åˆ é™¤æˆåŠŸ
             assertTrue(mapedFile.destroy(1000));
         }
         catch (IOException e) {
@@ -67,7 +67,7 @@ public class MapedFileTest {
 
 
     /**
-     * µ±Ç°²âÊÔÓÃÀıÓÉÓÚ¶Ômmap²Ù×÷´íÎó£¬»áµ¼ÖÂJVM CRASHED
+     * å½“å‰æµ‹è¯•ç”¨ä¾‹ç”±äºå¯¹mmapæ“ä½œé”™è¯¯ï¼Œä¼šå¯¼è‡´JVM CRASHED
      */
     @Ignore
     public void test_jvm_crashed() {

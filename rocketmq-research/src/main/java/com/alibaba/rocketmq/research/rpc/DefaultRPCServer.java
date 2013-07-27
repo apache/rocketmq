@@ -24,7 +24,7 @@ import com.alibaba.rocketmq.common.ServiceThread;
 
 
 /**
- * ·şÎñ¶ËÊµÏÖ
+ * æœåŠ¡ç«¯å®ç°
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  */
@@ -72,7 +72,7 @@ public class DefaultRPCServer implements RPCServer {
                             DefaultRPCServer.this.connectionList.add(newConnection);
                             newConnection.start();
                         }
-                        // TODO£¬ CLOSE SOCKET
+                        // TODOï¼Œ CLOSE SOCKET
                         else {
                             System.out.println("Unexpected ops in select " + k.readyOps());
                         }

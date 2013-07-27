@@ -11,14 +11,14 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingProtos.ResponseCode;
 
 
 /**
- * Ğ­Òé¸¨ÖúÀà
+ * åè®®è¾…åŠ©ç±»
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * 
  */
 public class MQProtosHelper {
     /**
-     * ½«BrokerµØÖ·×¢²áµ½Name Server
+     * å°†Brokeråœ°å€æ³¨å†Œåˆ°Name Server
      */
     public static boolean registerBrokerToNameServer(final String nsaddr, final String brokerAddr,
             final long timeoutMillis) {

@@ -16,7 +16,7 @@
 package com.alibaba.rocketmq.remoting.exception;
 
 /**
- * Client连接Server失败，抛出此异常
+ * Client杩炴帴Server澶辫触锛屾姏鍑烘寮傚父
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-13

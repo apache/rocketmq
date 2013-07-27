@@ -27,7 +27,7 @@ import com.alibaba.rocketmq.common.protocol.heartbeat.SubscriptionData;
 
 
 /**
- * ConsumerÁ¬½Ó¡¢¶©ÔÄ¹ØÏµ¹ÜÀí
+ * Consumerè¿æ¥ã€è®¢é˜…å…³ç³»ç®¡ç†
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-26
@@ -71,7 +71,7 @@ public class ConsumerManager {
 
 
     /**
-     * ·µ»ØÊÇ·ñÓĞ±ä»¯
+     * è¿”å›æ˜¯å¦æœ‰å˜åŒ–
      */
     public boolean registerConsumer(final String group, final ClientChannelInfo clientChannelInfo,
             ConsumeType consumeType, MessageModel messageModel, ConsumeFromWhere consumeFromWhere,

@@ -14,23 +14,23 @@ import com.alibaba.rocketmq.store.config.MessageStoreConfig;
 
 
 /**
- * ²âÊÔ´æ´¢²ã£¬¼òµ¥·â×°
+ * æµ‹è¯•å­˜å‚¨å±‚ï¼Œç®€å•å°è£…
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * 
  */
 public class MessageStoreTestObject {
-    // ÏûÏ¢´óĞ¡
+    // æ¶ˆæ¯å¤§å°
     protected int MessageSize = 1024 * 2;
-    // ¶ÓÁĞ¸öÊı
+    // é˜Ÿåˆ—ä¸ªæ•°
     protected int QUEUE_TOTAL = 1024;
-    // ·¢ÍùÄÄ¸ö¶ÓÁĞ
+    // å‘å¾€å“ªä¸ªé˜Ÿåˆ—
     protected AtomicInteger queueId = new AtomicInteger(0);
-    // ·¢ËÍÖ÷»úµØÖ·
+    // å‘é€ä¸»æœºåœ°å€
     protected SocketAddress bornHost;
-    // ´æ´¢Ö÷»úµØÖ·
+    // å­˜å‚¨ä¸»æœºåœ°å€
     protected SocketAddress storeHost;
-    // ÏûÏ¢Ìå
+    // æ¶ˆæ¯ä½“
     protected byte[] messageBody;
 
     //

@@ -27,9 +27,9 @@ import com.alibaba.rocketmq.store.DefaultMessageStore;
 
 
 /**
- * ·¢ÏûÏ¢Í³¼Æ
+ * å‘æ¶ˆæ¯ç»Ÿè®¡
  * 
- * @author ÁâÒ¶<jin.qian@alipay.com>
+ * @author è±å¶<jin.qian@alipay.com>
  * @since 2013-7-18
  */
 public class PutStatsMoniter {

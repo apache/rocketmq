@@ -23,7 +23,7 @@ import com.alibaba.rocketmq.common.message.Message;
 
 
 /**
- * ·¢ËÍÊÂÎñÏûÏ¢Àı×Ó
+ * å‘é€äº‹åŠ¡æ¶ˆæ¯ä¾‹å­
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-24
@@ -33,11 +33,11 @@ public class TransactionProducer {
 
         TransactionCheckListener transactionCheckListener = new TransactionCheckListenerImpl();
         TransactionMQProducer producer = new TransactionMQProducer("example_transaction_producer");
-        // ÊÂÎñ»Ø²é×îĞ¡²¢·¢Êı
+        // äº‹åŠ¡å›æŸ¥æœ€å°å¹¶å‘æ•°
         producer.setCheckThreadPoolMinSize(2);
-        // ÊÂÎñ»Ø²é×î´ó²¢·¢Êı
+        // äº‹åŠ¡å›æŸ¥æœ€å¤§å¹¶å‘æ•°
         producer.setCheckThreadPoolMaxSize(2);
-        // ¶ÓÁĞÊı
+        // é˜Ÿåˆ—æ•°
         producer.setCheckRequestHoldMax(2000);
         producer.setTransactionCheckListener(transactionCheckListener);
         producer.start();

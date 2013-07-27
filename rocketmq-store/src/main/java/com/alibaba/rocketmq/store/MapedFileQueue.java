@@ -31,29 +31,29 @@ import com.alibaba.rocketmq.common.constant.LoggerName;
 
 
 /**
- * ´æ´¢¶ÓÁĞ£¬Êı¾İ¶¨Ê±É¾³ı£¬ÎŞÏŞÔö³¤<br>
- * ¶ÓÁĞÊÇÓÉ¶à¸öÎÄ¼ş×é³É
+ * å­˜å‚¨é˜Ÿåˆ—ï¼Œæ•°æ®å®šæ—¶åˆ é™¤ï¼Œæ— é™å¢é•¿<br>
+ * é˜Ÿåˆ—æ˜¯ç”±å¤šä¸ªæ–‡ä»¶ç»„æˆ
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-21
  */
 public class MapedFileQueue {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.StoreLoggerName);
-    // Ã¿´Î´¥·¢É¾³ıÎÄ¼ş£¬×î¶àÉ¾³ı¶àÉÙ¸öÎÄ¼ş
+    // æ¯æ¬¡è§¦å‘åˆ é™¤æ–‡ä»¶ï¼Œæœ€å¤šåˆ é™¤å¤šå°‘ä¸ªæ–‡ä»¶
     private static final int DeleteFilesBatchMax = 30;
-    // ÎÄ¼ş´æ´¢Î»ÖÃ
+    // æ–‡ä»¶å­˜å‚¨ä½ç½®
     private final String storePath;
-    // Ã¿¸öÎÄ¼şµÄ´óĞ¡
+    // æ¯ä¸ªæ–‡ä»¶çš„å¤§å°
     private final int mapedFileSize;
-    // Ë¢ÅÌË¢µ½ÄÄÀï
+    // åˆ·ç›˜åˆ·åˆ°å“ªé‡Œ
     private long committedWhere = 0;
-    // ¸÷¸öÎÄ¼ş
+    // å„ä¸ªæ–‡ä»¶
     private final List<MapedFile> mapedFiles = new ArrayList<MapedFile>();
-    // ¶ÁĞ´Ëø£¨Õë¶ÔmapedFiles£©
+    // è¯»å†™é”ï¼ˆé’ˆå¯¹mapedFilesï¼‰
     private final ReadWriteLock readWriteLock = new ReentrantReadWriteLock();
-    // Ô¤·ÖÅäMapedFile¶ÔÏó·şÎñ
+    // é¢„åˆ†é…MapedFileå¯¹è±¡æœåŠ¡
     private final AllocateMapedFileService allocateMapedFileService;
-    // ×îºóÒ»ÌõÏûÏ¢´æ´¢Ê±¼ä
+    // æœ€åä¸€æ¡æ¶ˆæ¯å­˜å‚¨æ—¶é—´
     private volatile long storeTimestamp = 0;
 
 
@@ -83,7 +83,7 @@ public class MapedFileQueue {
 
 
     /**
-     * recoverÊ±µ÷ÓÃ£¬²»ĞèÒª¼ÓËø
+     * recoveræ—¶è°ƒç”¨ï¼Œä¸éœ€è¦åŠ é”
      */
     public void truncateDirtyFiles(long offset) {
         List<MapedFile> willRemoveFiles = new ArrayList<MapedFile>();
@@ -96,7 +96,7 @@ public class MapedFileQueue {
                     file.setCommittedPosition((int) (offset % this.mapedFileSize));
                 }
                 else {
-                    // ½«ÎÄ¼şÉ¾³ıµô
+                    // å°†æ–‡ä»¶åˆ é™¤æ‰
                     file.destroy(1000);
                     willRemoveFiles.add(file);
                 }
@@ -114,14 +114,14 @@ public class MapedFileQueue {
             // ascending order
             Arrays.sort(files);
             for (File file : files) {
-                // Ğ£ÑéÎÄ¼ş´óĞ¡ÊÇ·ñÆ¥Åä
+                // æ ¡éªŒæ–‡ä»¶å¤§å°æ˜¯å¦åŒ¹é…
                 if (file.length() != this.mapedFileSize) {
                     log.warn(file + "\t" + file.length()
                             + " length not matched message store config value, ignore it");
                     return true;
                 }
 
-                // »Ö¸´¶ÓÁĞ
+                // æ¢å¤é˜Ÿåˆ—
                 try {
                     MapedFile mapedFile = new MapedFile(file.getPath(), mapedFileSize);
 
@@ -142,7 +142,7 @@ public class MapedFileQueue {
 
 
     /**
-     * Ë¢ÅÌ½ø¶ÈÂäºóÁË¶àÉÙ
+     * åˆ·ç›˜è¿›åº¦è½åäº†å¤šå°‘
      */
     public long howMuchFallBehind() {
         if (this.mapedFiles.isEmpty())
@@ -161,7 +161,7 @@ public class MapedFileQueue {
 
 
     /**
-     * »ñÈ¡¶ÓÁĞµÄ×îĞ¡Offset£¬Èç¹û¶ÓÁĞÎª¿Õ£¬Ôò·µ»Ø-1
+     * è·å–é˜Ÿåˆ—çš„æœ€å°Offsetï¼Œå¦‚æœé˜Ÿåˆ—ä¸ºç©ºï¼Œåˆ™è¿”å›-1
      */
     public long getMinOffset() {
         try {
@@ -202,7 +202,7 @@ public class MapedFileQueue {
 
 
     /**
-     * »Ö¸´Ê±µ÷ÓÃ
+     * æ¢å¤æ—¶è°ƒç”¨
      */
     public void deleteLastMapedFile() {
         if (!this.mapedFiles.isEmpty()) {
@@ -216,7 +216,7 @@ public class MapedFileQueue {
 
 
     /**
-     * É¾³ıÎÄ¼şÖ»ÄÜ´ÓÍ·¿ªÊ¼É¾
+     * åˆ é™¤æ–‡ä»¶åªèƒ½ä»å¤´å¼€å§‹åˆ 
      */
     private void deleteExpiredFile(List<MapedFile> files) {
         if (!files.isEmpty()) {
@@ -240,7 +240,7 @@ public class MapedFileQueue {
 
 
     /**
-     * ¸ù¾İÎÄ¼ş¹ıÆÚÊ±¼äÀ´É¾³ıÎïÀí¶ÓÁĞÎÄ¼ş
+     * æ ¹æ®æ–‡ä»¶è¿‡æœŸæ—¶é—´æ¥åˆ é™¤ç‰©ç†é˜Ÿåˆ—æ–‡ä»¶
      */
     public int deleteExpiredFileByTime(//
             final long expiredTime, //
@@ -253,7 +253,7 @@ public class MapedFileQueue {
         if (null == mfs)
             return 0;
 
-        // ×îºóÒ»¸öÎÄ¼ş´¦ÓÚĞ´×´Ì¬£¬²»ÄÜÉ¾³ı
+        // æœ€åä¸€ä¸ªæ–‡ä»¶å¤„äºå†™çŠ¶æ€ï¼Œä¸èƒ½åˆ é™¤
         int mfsLength = mfs.length - 1;
         int deleteCount = 0;
         List<MapedFile> files = new ArrayList<MapedFile>();
@@ -294,10 +294,10 @@ public class MapedFileQueue {
 
 
     /**
-     * ¸ù¾İÎïÀí¶ÓÁĞ×îĞ¡OffsetÀ´É¾³ıÂß¼­¶ÓÁĞ
+     * æ ¹æ®ç‰©ç†é˜Ÿåˆ—æœ€å°Offsetæ¥åˆ é™¤é€»è¾‘é˜Ÿåˆ—
      * 
      * @param offset
-     *            ÎïÀí¶ÓÁĞ×îĞ¡offset
+     *            ç‰©ç†é˜Ÿåˆ—æœ€å°offset
      */
     public int deleteExpiredFileByOffset(long offset, int unitSize) {
         Object[] mfs = this.copyMapedFiles(0);
@@ -305,10 +305,10 @@ public class MapedFileQueue {
         List<MapedFile> files = new ArrayList<MapedFile>();
         int deleteCount = 0;
         if (null != mfs) {
-            // ×îºóÒ»¸öÎÄ¼ş´¦ÓÚĞ´×´Ì¬£¬²»ÄÜÉ¾³ı
+            // æœ€åä¸€ä¸ªæ–‡ä»¶å¤„äºå†™çŠ¶æ€ï¼Œä¸èƒ½åˆ é™¤
             int mfsLength = mfs.length - 1;
 
-            // ÕâÀï±éÀú·¶Î§ 0 ... last - 1
+            // è¿™é‡Œéå†èŒƒå›´ 0 ... last - 1
             for (int i = 0; i < mfsLength; i++) {
                 boolean destroy = true;
                 MapedFile mapedFile = (MapedFile) mfs[i];
@@ -316,7 +316,7 @@ public class MapedFileQueue {
                 if (result != null) {
                     long maxOffsetInLogicQueue = result.getByteBuffer().getLong();
                     result.release();
-                    // µ±Ç°ÎÄ¼şÊÇ·ñ¿ÉÒÔÉ¾³ı
+                    // å½“å‰æ–‡ä»¶æ˜¯å¦å¯ä»¥åˆ é™¤
                     destroy = (maxOffsetInLogicQueue < offset);
                     if (destroy) {
                         log.info("physic min offset " + offset + ", logics in current mapedfile max offset "
@@ -345,7 +345,7 @@ public class MapedFileQueue {
 
 
     /**
-     * ·µ»ØÖµ±íÊ¾ÊÇ·ñÈ«²¿Ë¢ÅÌÍê³É
+     * è¿”å›å€¼è¡¨ç¤ºæ˜¯å¦å…¨éƒ¨åˆ·ç›˜å®Œæˆ
      * 
      * @return
      */
@@ -381,10 +381,10 @@ public class MapedFileQueue {
 
 
     /**
-     * »ñÈ¡×îºóÒ»¸öMapedFile¶ÔÏó£¬Èç¹ûÒ»¸ö¶¼Ã»ÓĞ£¬ÔòĞÂ´´½¨Ò»¸ö£¬Èç¹û×îºóÒ»¸öĞ´ÂúÁË£¬ÔòĞÂ´´½¨Ò»¸ö
+     * è·å–æœ€åä¸€ä¸ªMapedFileå¯¹è±¡ï¼Œå¦‚æœä¸€ä¸ªéƒ½æ²¡æœ‰ï¼Œåˆ™æ–°åˆ›å»ºä¸€ä¸ªï¼Œå¦‚æœæœ€åä¸€ä¸ªå†™æ»¡äº†ï¼Œåˆ™æ–°åˆ›å»ºä¸€ä¸ª
      * 
      * @param startOffset
-     *            Èç¹û´´½¨ĞÂµÄÎÄ¼ş£¬ÆğÊ¼offset
+     *            å¦‚æœåˆ›å»ºæ–°çš„æ–‡ä»¶ï¼Œèµ·å§‹offset
      * @return
      */
     public MapedFile getLastMapedFile(final long startOffset) {
@@ -564,7 +564,7 @@ public class MapedFileQueue {
 
 
     /**
-     * ¹Ø±Õ¶ÓÁĞ£¬¶ÓÁĞÊı¾İ»¹ÔÚ£¬µ«ÊÇ²»ÄÜ·ÃÎÊ
+     * å…³é—­é˜Ÿåˆ—ï¼Œé˜Ÿåˆ—æ•°æ®è¿˜åœ¨ï¼Œä½†æ˜¯ä¸èƒ½è®¿é—®
      */
     public void shutdown(final long intervalForcibly) {
         this.readWriteLock.readLock().lock();
@@ -576,7 +576,7 @@ public class MapedFileQueue {
 
 
     /**
-     * Ïú»Ù¶ÓÁĞ£¬¶ÓÁĞÊı¾İ±»É¾³ı£¬´Ëº¯ÊıÓĞ¿ÉÄÜ²»³É¹¦
+     * é”€æ¯é˜Ÿåˆ—ï¼Œé˜Ÿåˆ—æ•°æ®è¢«åˆ é™¤ï¼Œæ­¤å‡½æ•°æœ‰å¯èƒ½ä¸æˆåŠŸ
      */
     public void destroy() {
         this.readWriteLock.writeLock().lock();

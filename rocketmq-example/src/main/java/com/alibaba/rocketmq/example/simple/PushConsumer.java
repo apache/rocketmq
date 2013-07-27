@@ -27,7 +27,7 @@ import com.alibaba.rocketmq.common.message.MessageExt;
 
 
 /**
- * PushConsumer£¬¶©ÔÄÏûÏ¢
+ * PushConsumerï¼Œè®¢é˜…æ¶ˆæ¯
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-16

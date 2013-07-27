@@ -22,7 +22,7 @@ import com.alibaba.rocketmq.tools.command.SubCommand;
 
 
 /**
- * 查看集群信息
+ * 鏌ョ湅闆嗙兢淇℃伅
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-25

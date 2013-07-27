@@ -19,7 +19,7 @@ import com.alibaba.fastjson.JSON;
 
 
 /**
- * ¸´ÔÓ¶ÔÏóµÄĞòÁĞ»¯£¬ÀûÓÃjsonÀ´ÊµÏÖ
+ * å¤æ‚å¯¹è±¡çš„åºåˆ—åŒ–ï¼Œåˆ©ç”¨jsonæ¥å®ç°
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-13

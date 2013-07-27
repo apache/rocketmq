@@ -53,7 +53,7 @@ import com.alibaba.rocketmq.store.PutMessageResult;
 
 
 /**
- * ´¦Àí¿Í»§¶Ë·¢ËÍÏûÏ¢µÄÇëÇó
+ * å¤„ç†å®¢æˆ·ç«¯å‘é€æ¶ˆæ¯çš„è¯·æ±‚
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-26
@@ -98,7 +98,7 @@ public class SendMessageProcessor implements NettyRequestProcessor {
                 (ConsumerSendMsgBackRequestHeader) request
                     .decodeCommandCustomHeader(ConsumerSendMsgBackRequestHeader.class);
 
-        // È·±£¶©ÔÄ×é´æÔÚ
+        // ç¡®ä¿è®¢é˜…ç»„å­˜åœ¨
         SubscriptionGroupConfig subscriptionGroupConfig =
                 this.brokerController.getSubscriptionGroupManager().findSubscriptionGroupConfig(
                     requestHeader.getGroup());
@@ -112,7 +112,7 @@ public class SendMessageProcessor implements NettyRequestProcessor {
         String newTopic = MixAll.getRetryTopic(requestHeader.getGroup());
         int queueIdInt = Math.abs(this.random.nextInt()) % subscriptionGroupConfig.getRetryQueueNums();
 
-        // ¼ì²étopicÊÇ·ñ´æÔÚ
+        // æ£€æŸ¥topicæ˜¯å¦å­˜åœ¨
         TopicConfig topicConfig =
                 this.brokerController.getTopicConfigManager().createTopicInSendMessageBackMethod(//
                     newTopic,//
@@ -124,15 +124,15 @@ public class SendMessageProcessor implements NettyRequestProcessor {
             return response;
         }
 
-        // ¼ì²étopicÈ¨ÏŞ
+        // æ£€æŸ¥topicæƒé™
         if (!PermName.isWriteable(topicConfig.getPerm())) {
             response.setCode(MQResponseCode.NO_PERMISSION_VALUE);
             response.setRemark("the topic[" + newTopic + "] sending message is forbidden");
             return response;
         }
 
-        // ²éÑ¯ÏûÏ¢£¬ÕâÀïÈç¹û¶Ñ»ıÏûÏ¢¹ı¶à£¬»á·ÃÎÊ´ÅÅÌ
-        // ÁíÍâÈç¹ûÆµ·±µ÷ÓÃ£¬ÊÇ·ñ»áÒıÆğgcÎÊÌâ£¬ĞèÒª¹Ø×¢ TODO
+        // æŸ¥è¯¢æ¶ˆæ¯ï¼Œè¿™é‡Œå¦‚æœå †ç§¯æ¶ˆæ¯è¿‡å¤šï¼Œä¼šè®¿é—®ç£ç›˜
+        // å¦å¤–å¦‚æœé¢‘ç¹è°ƒç”¨ï¼Œæ˜¯å¦ä¼šå¼•èµ·gcé—®é¢˜ï¼Œéœ€è¦å…³æ³¨ TODO
         MessageExt msgExt =
                 this.brokerController.getMessageStore().lookMessageByOffset(requestHeader.getOffset());
         if (null == msgExt) {
@@ -141,17 +141,17 @@ public class SendMessageProcessor implements NettyRequestProcessor {
             return response;
         }
 
-        // ¹¹ÔìÏûÏ¢
+        // æ„é€ æ¶ˆæ¯
         final String retryTopic = msgExt.getProperty(Message.PROPERTY_RETRY_TOPIC);
         if (null == retryTopic) {
             msgExt.putProperty(Message.PROPERTY_RETRY_TOPIC, msgExt.getTopic());
         }
         msgExt.setWaitStoreMsgOK(false);
 
-        // ¿Í»§¶Ë×Ô¶¯¾ö¶¨¶¨Ê±¼¶±ğ
+        // å®¢æˆ·ç«¯è‡ªåŠ¨å†³å®šå®šæ—¶çº§åˆ«
         int delayLevel = requestHeader.getDelayLevel();
 
-        // ËÀĞÅÏûÏ¢´¦Àí
+        // æ­»ä¿¡æ¶ˆæ¯å¤„ç†
         if (msgExt.getReconsumeTimes() >= subscriptionGroupConfig.getRetryMaxTimes()//
                 || delayLevel < 0) {
             newTopic = MixAll.getDLQTopic(requestHeader.getGroup());
@@ -168,7 +168,7 @@ public class SendMessageProcessor implements NettyRequestProcessor {
                 return response;
             }
         }
-        // ¼ÌĞøÖØÊÔ
+        // ç»§ç»­é‡è¯•
         else {
             if (0 == delayLevel) {
                 delayLevel = 3 + msgExt.getReconsumeTimes();
@@ -223,14 +223,14 @@ public class SendMessageProcessor implements NettyRequestProcessor {
         final SendMessageRequestHeader requestHeader =
                 (SendMessageRequestHeader) request.decodeCommandCustomHeader(SendMessageRequestHeader.class);
 
-        // ÓÉÓÚÓĞÖ±½Ó·µ»ØµÄÂß¼­£¬ËùÒÔ±ØĞëÒªÉèÖÃ
+        // ç”±äºæœ‰ç›´æ¥è¿”å›çš„é€»è¾‘ï¼Œæ‰€ä»¥å¿…é¡»è¦è®¾ç½®
         response.setOpaque(request.getOpaque());
 
         if (log.isDebugEnabled()) {
             log.debug("receive SendMessage request command, " + request);
         }
 
-        // ¼ì²éBrokerÈ¨ÏŞ
+        // æ£€æŸ¥Brokeræƒé™
         if (!PermName.isWriteable(this.brokerController.getBrokerConfig().getBrokerPermission())) {
             response.setCode(MQResponseCode.NO_PERMISSION_VALUE);
             response.setRemark("the broker[" + this.brokerController.getBrokerConfig().getBrokerIP1()
@@ -240,7 +240,7 @@ public class SendMessageProcessor implements NettyRequestProcessor {
 
         final byte[] body = request.getBody();
 
-        // TopicÃû×ÖÊÇ·ñÓë±£Áô×Ö¶Î³åÍ»
+        // Topicåå­—æ˜¯å¦ä¸ä¿ç•™å­—æ®µå†²çª
         if (!this.brokerController.getTopicConfigManager().isTopicCanSendMessage(requestHeader.getTopic())) {
             String errorMsg =
                     "the topic[" + requestHeader.getTopic() + "] is conflict with system reserved words.";
@@ -250,7 +250,7 @@ public class SendMessageProcessor implements NettyRequestProcessor {
             return response;
         }
 
-        // ¼ì²étopicÊÇ·ñ´æÔÚ
+        // æ£€æŸ¥topicæ˜¯å¦å­˜åœ¨
         TopicConfig topicConfig =
                 this.brokerController.getTopicConfigManager().selectTopicConfig(requestHeader.getTopic());
         if (null == topicConfig) {
@@ -262,7 +262,7 @@ public class SendMessageProcessor implements NettyRequestProcessor {
                 RemotingHelper.parseChannelRemoteAddr(ctx.channel()), //
                 requestHeader.getDefaultTopicQueueNums());
 
-            // ³¢ÊÔ¿´ÏÂÊÇ·ñÊÇÊ§°ÜÏûÏ¢·¢»Ø
+            // å°è¯•çœ‹ä¸‹æ˜¯å¦æ˜¯å¤±è´¥æ¶ˆæ¯å‘å›
             if (null == topicConfig) {
                 if (requestHeader.getTopic().startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
                     topicConfig =
@@ -279,14 +279,14 @@ public class SendMessageProcessor implements NettyRequestProcessor {
             }
         }
 
-        // ¼ì²étopicÈ¨ÏŞ
+        // æ£€æŸ¥topicæƒé™
         if (!PermName.isWriteable(topicConfig.getPerm())) {
             response.setCode(MQResponseCode.NO_PERMISSION_VALUE);
             response.setRemark("the topic[" + requestHeader.getTopic() + "] sending message is forbidden");
             return response;
         }
 
-        // ¼ì²é¶ÓÁĞÓĞĞ§ĞÔ
+        // æ£€æŸ¥é˜Ÿåˆ—æœ‰æ•ˆæ€§
         int queueIdInt = requestHeader.getQueueId();
         if (queueIdInt >= topicConfig.getWriteQueueNums()) {
             String errorInfo =
@@ -298,13 +298,13 @@ public class SendMessageProcessor implements NettyRequestProcessor {
             return response;
         }
 
-        // Ëæ»úÖ¸¶¨Ò»¸ö¶ÓÁĞ
+        // éšæœºæŒ‡å®šä¸€ä¸ªé˜Ÿåˆ—
         if (queueIdInt < 0) {
             queueIdInt = Math.abs(this.random.nextInt()) % topicConfig.getWriteQueueNums();
         }
 
         int sysFlag = requestHeader.getSysFlag();
-        // ¶à±êÇ©¹ıÂËĞèÒªÖÃÎ»
+        // å¤šæ ‡ç­¾è¿‡æ»¤éœ€è¦ç½®ä½
         if (TopicFilterType.MULTI_TAG == topicConfig.getTopicFilterType()) {
             sysFlag |= MessageSysFlag.MultiTagsFlag;
         }
@@ -326,7 +326,7 @@ public class SendMessageProcessor implements NettyRequestProcessor {
 
         msgInner.setReconsumeTimes(0);
 
-        // ¼ì²éÊÂÎñÏûÏ¢
+        // æ£€æŸ¥äº‹åŠ¡æ¶ˆæ¯
         if (this.brokerController.getBrokerConfig().isRejectTransactionMessage()) {
             String traFlag = msgInner.getProperty(Message.PROPERTY_TRANSACTION_PREPARED);
             if (traFlag != null) {
@@ -390,7 +390,7 @@ public class SendMessageProcessor implements NettyRequestProcessor {
                 responseHeader.setQueueId(queueIdInt);
                 responseHeader.setQueueOffset(putMessageResult.getAppendMessageResult().getLogicsOffset());
 
-                // Ö±½Ó·µ»Ø
+                // ç›´æ¥è¿”å›
                 if (!request.isOnewayRPC()) {
                     try {
                         ctx.writeAndFlush(response).addListener(new ChannelFutureListener() {

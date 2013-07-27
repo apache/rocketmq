@@ -21,7 +21,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 
 /**
- * Ë÷ÒýÎÄ¼þÍ·
+ * ç´¢å¼•æ–‡ä»¶å¤´
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-21
@@ -34,7 +34,7 @@ public class IndexHeader {
     private AtomicLong beginPhyOffset = new AtomicLong(0);
     private AtomicLong endPhyOffset = new AtomicLong(0);
     private AtomicInteger hashSlotCount = new AtomicInteger(0);
-    // µÚÒ»¸öË÷ÒýÊÇÎÞÐ§Ë÷Òý
+    // ç¬¬ä¸€ä¸ªç´¢å¼•æ˜¯æ— æ•ˆç´¢å¼•
     private AtomicInteger indexCount = new AtomicInteger(1);
 
     private static int BEGINTIMESTAMP_INDEX = 0;
@@ -68,7 +68,7 @@ public class IndexHeader {
 
 
     /**
-     * ¸üÐÂbyteBuffer
+     * æ›´æ–°byteBuffer
      */
     public void updateByteBuffer() {
         this.byteBuffer.putLong(BEGINTIMESTAMP_INDEX, this.beginTimestamp.get());

@@ -23,7 +23,7 @@ import com.alibaba.rocketmq.broker.BrokerController;
 
 
 /**
- * ConsumerId列表变化，通知所有Consumer
+ * ConsumerId鍒楄〃鍙樺寲锛岄�氱煡鎵�鏈塁onsumer
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-26

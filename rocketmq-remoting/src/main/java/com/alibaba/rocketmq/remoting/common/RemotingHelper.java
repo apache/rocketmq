@@ -30,7 +30,7 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 
 
 /**
- * Í¨ĞÅ²ãÒ»Ğ©¸¨Öú·½·¨
+ * é€šä¿¡å±‚ä¸€äº›è¾…åŠ©æ–¹æ³•
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-13
@@ -50,7 +50,7 @@ public class RemotingHelper {
 
 
     /**
-     * ¶ÌÁ¬½Óµ÷ÓÃ TODO
+     * çŸ­è¿æ¥è°ƒç”¨ TODO
      */
     public static RemotingCommand invokeSync(final String addr, final RemotingCommand request,
             final long timeoutMillis) throws InterruptedException, RemotingConnectException,
@@ -62,7 +62,7 @@ public class RemotingHelper {
             boolean sendRequestOK = false;
 
             try {
-                // Ê¹ÓÃ×èÈûÄ£Ê½
+                // ä½¿ç”¨é˜»å¡æ¨¡å¼
                 socketChannel.configureBlocking(true);
                 /*
                  * FIXME The read methods in SocketChannel (and DatagramChannel)
@@ -71,14 +71,14 @@ public class RemotingHelper {
                  */
                 socketChannel.socket().setSoTimeout((int) timeoutMillis);
 
-                // ·¢ËÍÊı¾İ
+                // å‘é€æ•°æ®
                 ByteBuffer byteBufferRequest = request.encode();
                 while (byteBufferRequest.hasRemaining()) {
                     int length = socketChannel.write(byteBufferRequest);
                     if (length > 0) {
                         if (byteBufferRequest.hasRemaining()) {
                             if ((System.currentTimeMillis() - beginTime) > timeoutMillis) {
-                                // ·¢ËÍÇëÇó³¬Ê±
+                                // å‘é€è¯·æ±‚è¶…æ—¶
                                 throw new RemotingSendRequestException(addr);
                             }
                         }
@@ -87,20 +87,20 @@ public class RemotingHelper {
                         throw new RemotingSendRequestException(addr);
                     }
 
-                    // ±È½ÏÍÁ
+                    // æ¯”è¾ƒåœŸ
                     Thread.sleep(1);
                 }
 
                 sendRequestOK = true;
 
-                // ½ÓÊÕÓ¦´ğ SIZE
+                // æ¥æ”¶åº”ç­” SIZE
                 ByteBuffer byteBufferSize = ByteBuffer.allocate(4);
                 while (byteBufferSize.hasRemaining()) {
                     int length = socketChannel.read(byteBufferSize);
                     if (length > 0) {
                         if (byteBufferSize.hasRemaining()) {
                             if ((System.currentTimeMillis() - beginTime) > timeoutMillis) {
-                                // ½ÓÊÕÓ¦´ğ³¬Ê±
+                                // æ¥æ”¶åº”ç­”è¶…æ—¶
                                 throw new RemotingTimeoutException(addr, timeoutMillis);
                             }
                         }
@@ -109,11 +109,11 @@ public class RemotingHelper {
                         throw new RemotingTimeoutException(addr, timeoutMillis);
                     }
 
-                    // ±È½ÏÍÁ
+                    // æ¯”è¾ƒåœŸ
                     Thread.sleep(1);
                 }
 
-                // ½ÓÊÕÓ¦´ğ BODY
+                // æ¥æ”¶åº”ç­” BODY
                 int size = byteBufferSize.getInt(0);
                 ByteBuffer byteBufferBody = ByteBuffer.allocate(size);
                 while (byteBufferBody.hasRemaining()) {
@@ -121,7 +121,7 @@ public class RemotingHelper {
                     if (length > 0) {
                         if (byteBufferBody.hasRemaining()) {
                             if ((System.currentTimeMillis() - beginTime) > timeoutMillis) {
-                                // ½ÓÊÕÓ¦´ğ³¬Ê±
+                                // æ¥æ”¶åº”ç­”è¶…æ—¶
                                 throw new RemotingTimeoutException(addr, timeoutMillis);
                             }
                         }
@@ -130,11 +130,11 @@ public class RemotingHelper {
                         throw new RemotingTimeoutException(addr, timeoutMillis);
                     }
 
-                    // ±È½ÏÍÁ
+                    // æ¯”è¾ƒåœŸ
                     Thread.sleep(1);
                 }
 
-                // ¶ÔÓ¦´ğÊı¾İ½âÂë
+                // å¯¹åº”ç­”æ•°æ®è§£ç 
                 byteBufferBody.flip();
                 return RemotingCommand.decode(byteBufferBody);
             }

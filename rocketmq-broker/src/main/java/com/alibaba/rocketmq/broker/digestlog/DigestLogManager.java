@@ -24,9 +24,9 @@ import com.alibaba.rocketmq.broker.BrokerController;
 
 
 /**
- * Í³¼Æ¹ÜÀíÆ÷
+ * ç»Ÿè®¡ç®¡ç†å™¨
  * 
- * @author ÁâÒ¶<jin.qian@alipay.com>
+ * @author è±å¶<jin.qian@alipay.com>
  * @since 2013-7-18
  */
 public class DigestLogManager {

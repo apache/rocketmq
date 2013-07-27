@@ -41,7 +41,7 @@ import com.alibaba.rocketmq.common.message.MessageQueue;
 
 
 /**
- * ²¢·¢Ïû·ÑÏûÏ¢·şÎñ
+ * å¹¶å‘æ¶ˆè´¹æ¶ˆæ¯æœåŠ¡
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-24
@@ -55,7 +55,7 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
     private final ThreadPoolExecutor consumeExecutor;
     private final String consumerGroup;
 
-    // ¶¨Ê±Ïß³Ì
+    // å®šæ—¶çº¿ç¨‹
     private final ScheduledExecutorService scheduledExecutorService;
 
 
@@ -164,7 +164,7 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
                 status = ConsumeConcurrentlyStatus.RECONSUME_LATER;
             }
 
-            // ¼ÇÂ¼Í³¼ÆĞÅÏ¢
+            // è®°å½•ç»Ÿè®¡ä¿¡æ¯
             ConsumeMessageConcurrentlyService.this.getConsumerStat().getConsumeMsgRTTotal()
                 .addAndGet(consumeRT);
             MixAll.compareAndIncreaseOnly(ConsumeMessageConcurrentlyService.this.getConsumerStat()
@@ -191,7 +191,7 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
 
 
     public boolean sendMessageBack(final MessageExt msg, final ConsumeConcurrentlyContext context) {
-        // Èç¹ûÓÃ»§Ã»ÓĞÉèÖÃ£¬·şÎñÆ÷»á¸ù¾İÖØÊÔ´ÎÊı×Ô¶¯µş¼ÓÑÓÊ±Ê±¼ä
+        // å¦‚æœç”¨æˆ·æ²¡æœ‰è®¾ç½®ï¼ŒæœåŠ¡å™¨ä¼šæ ¹æ®é‡è¯•æ¬¡æ•°è‡ªåŠ¨å åŠ å»¶æ—¶æ—¶é—´
         int delayLevel = context.getDelayLevelWhenNextConsume();
 
         try {
@@ -224,13 +224,13 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
             }
             int ok = ackIndex + 1;
             int failed = consumeRequest.getMsgs().size() - ok;
-            // Í³¼ÆĞÅÏ¢
+            // ç»Ÿè®¡ä¿¡æ¯
             this.getConsumerStat().getConsumeMsgOKTotal().addAndGet(ok);
             this.getConsumerStat().getConsumeMsgFailedTotal().addAndGet(failed);
             break;
         case RECONSUME_LATER:
             ackIndex = -1;
-            // Í³¼ÆĞÅÏ¢
+            // ç»Ÿè®¡ä¿¡æ¯
             this.getConsumerStat().getConsumeMsgFailedTotal().addAndGet(consumeRequest.getMsgs().size());
             break;
         default:
@@ -239,15 +239,15 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
 
         switch (this.defaultMQPushConsumer.getMessageModel()) {
         case BROADCASTING:
-            // Èç¹ûÊÇ¹ã²¥Ä£Ê½£¬Ö±½Ó¶ªÆúÊ§°ÜÏûÏ¢£¬ĞèÒªÔÚÎÄµµÖĞ¸æÖªÓÃ»§
-            // ÕâÑù×öµÄÔ­Òò£º¹ã²¥Ä£Ê½¶ÔÓÚÊ§°ÜÖØÊÔ´ú¼Û¹ı¸ß£¬¶ÔÕû¸ö¼¯ÈºĞÔÄÜ»áÓĞ½Ï´óÓ°Ïì£¬Ê§°ÜÖØÊÔ¹¦ÄÜ½»ÓÉÓ¦ÓÃ´¦Àí
+            // å¦‚æœæ˜¯å¹¿æ’­æ¨¡å¼ï¼Œç›´æ¥ä¸¢å¼ƒå¤±è´¥æ¶ˆæ¯ï¼Œéœ€è¦åœ¨æ–‡æ¡£ä¸­å‘ŠçŸ¥ç”¨æˆ·
+            // è¿™æ ·åšçš„åŸå› ï¼šå¹¿æ’­æ¨¡å¼å¯¹äºå¤±è´¥é‡è¯•ä»£ä»·è¿‡é«˜ï¼Œå¯¹æ•´ä¸ªé›†ç¾¤æ€§èƒ½ä¼šæœ‰è¾ƒå¤§å½±å“ï¼Œå¤±è´¥é‡è¯•åŠŸèƒ½äº¤ç”±åº”ç”¨å¤„ç†
             for (int i = ackIndex + 1; i < consumeRequest.getMsgs().size(); i++) {
                 MessageExt msg = consumeRequest.getMsgs().get(i);
                 log.warn("BROADCASTING, the message consume failed, drop it, {}", msg.toString());
             }
             break;
         case CLUSTERING:
-            // ´¦ÀíÏû·ÑÊ§°ÜµÄÏûÏ¢£¬Ö±½Ó·¢»Øµ½Broker
+            // å¤„ç†æ¶ˆè´¹å¤±è´¥çš„æ¶ˆæ¯ï¼Œç›´æ¥å‘å›åˆ°Broker
             List<MessageExt> msgBackFailed = new ArrayList<MessageExt>(consumeRequest.getMsgs().size());
             for (int i = ackIndex + 1; i < consumeRequest.getMsgs().size(); i++) {
                 MessageExt msg = consumeRequest.getMsgs().get(i);
@@ -259,10 +259,10 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
             }
 
             if (!msgBackFailed.isEmpty()) {
-                // ·¢»ØÊ§°ÜµÄÏûÏ¢ÈÔÈ»Òª±£Áô
+                // å‘å›å¤±è´¥çš„æ¶ˆæ¯ä»ç„¶è¦ä¿ç•™
                 consumeRequest.getMsgs().removeAll(msgBackFailed);
 
-                // ´Ë¹ı³Ì´¦ÀíÊ§°ÜµÄÏûÏ¢£¬ĞèÒªÔÚClientÖĞ×ö¶¨Ê±Ïû·Ñ£¬Ö±µ½³É¹¦
+                // æ­¤è¿‡ç¨‹å¤„ç†å¤±è´¥çš„æ¶ˆæ¯ï¼Œéœ€è¦åœ¨Clientä¸­åšå®šæ—¶æ¶ˆè´¹ï¼Œç›´åˆ°æˆåŠŸ
                 this.submitConsumeRequestLater(msgBackFailed, consumeRequest.getProcessQueue(),
                     consumeRequest.getMessageQueue());
             }
@@ -280,7 +280,7 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
 
 
     /**
-     * ÔÚConsumer±¾µØ¶¨Ê±Ïß³ÌÖĞ¶¨Ê±ÖØÊÔ
+     * åœ¨Consumeræœ¬åœ°å®šæ—¶çº¿ç¨‹ä¸­å®šæ—¶é‡è¯•
      */
     private void submitConsumeRequestLater(//
             final List<MessageExt> msgs, //

@@ -23,7 +23,7 @@ import com.alibaba.rocketmq.common.message.MessageQueue;
 
 
 /**
- * 使用哈希算法来选择队列，顺序消息通常都这样做<br>
+ * 浣跨敤鍝堝笇绠楁硶鏉ラ�夋嫨闃熷垪锛岄『搴忔秷鎭�氬父閮借繖鏍峰仛<br>
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-6-27

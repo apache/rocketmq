@@ -25,7 +25,7 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 
 
 /**
- * 异步请求应答封装
+ * 寮傛璇锋眰搴旂瓟灏佽
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-13

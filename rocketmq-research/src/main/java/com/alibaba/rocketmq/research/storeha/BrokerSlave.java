@@ -9,7 +9,7 @@ import com.alibaba.rocketmq.store.config.MessageStoreConfig;
 
 
 /**
- * HA²âÊÔ
+ * HAæµ‹è¯•
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * 

@@ -15,7 +15,7 @@ import java.util.Stack;
 public class PolishExpr {
 
     /**
-     * ²ğ·Öµ¥´Ê
+     * æ‹†åˆ†å•è¯
      * 
      * @param expression
      * @return
@@ -34,7 +34,7 @@ public class PolishExpr {
 
             if ((97 <= chValue && chValue <= 122) || (65 <= chValue && chValue <= 90)
                     || (49 <= chValue && chValue <= 57) || 95 == chValue) {
-                // ²Ù×÷Êı
+                // æ“ä½œæ•°
 
                 if (Type.OPERATOR == preType || Type.SEPAERATOR == preType || Type.NULL == preType
                         || Type.PARENTHESIS == preType) {
@@ -49,7 +49,7 @@ public class PolishExpr {
                 wordLen++;
             }
             else if (40 == chValue || 41 == chValue) {
-                // À¨ºÅ
+                // æ‹¬å·
 
                 if (Type.OPERATOR == preType) {
                     segments.add(createOperator(expression
@@ -67,7 +67,7 @@ public class PolishExpr {
                 segments.add(createOperator((char) chValue + ""));
             }
             else if (38 == chValue || 124 == chValue) {
-                // ²Ù×÷·û
+                // æ“ä½œç¬¦
                 if (Type.OPERAND == preType || Type.SEPAERATOR == preType || Type.PARENTHESIS == preType) {
                     if (Type.OPERAND == preType) {
                         segments.add(new Operand(expression.substring(wordStartIndex, wordStartIndex
@@ -80,7 +80,7 @@ public class PolishExpr {
                 wordLen++;
             }
             else if (32 == chValue || 9 == chValue) {
-                // µ¥´Ê·Ö¸ô·û
+                // å•è¯åˆ†éš”ç¬¦
 
                 if (Type.OPERATOR == preType) {
                     segments.add(createOperator(expression
@@ -96,7 +96,7 @@ public class PolishExpr {
                 preType = Type.SEPAERATOR;
             }
             else {
-                // ·Ç·¨×Ö·û
+                // éæ³•å­—ç¬¦
                 throw new IllegalArgumentException("illegal expression, at index " + i + " " + (char) chValue);
             }
 
@@ -110,7 +110,7 @@ public class PolishExpr {
 
 
     /**
-     * ½«ÖĞ×º±í´ïÊ½×ª»»³ÉÄæ²¨À¼±í´ïÊ½
+     * å°†ä¸­ç¼€è¡¨è¾¾å¼è½¬æ¢æˆé€†æ³¢å…°è¡¨è¾¾å¼
      * 
      * @param expression
      * @return
@@ -121,7 +121,7 @@ public class PolishExpr {
 
 
     /**
-     * ½«ÖĞ×º±í´ïÊ½×ª»»³ÉÄæ²¨À¼±í´ïÊ½<br/>
+     * å°†ä¸­ç¼€è¡¨è¾¾å¼è½¬æ¢æˆé€†æ³¢å…°è¡¨è¾¾å¼<br/>
      * Shunting-yard algorithm <br/>
      * http://en.wikipedia.org/wiki/Shunting_yard_algorithm
      * 
@@ -135,15 +135,15 @@ public class PolishExpr {
         for (int i = 0; i < tokens.size(); i++) {
             Op token = tokens.get(i);
             if (isOperand(token)) {
-                // ²Ù×÷Êı
+                // æ“ä½œæ•°
                 segments.add(token);
             }
             else if (isLeftParenthesis(token)) {
-                // ×óÀ¨ºÅ
+                // å·¦æ‹¬å·
                 operatorStack.push((Operator) token);
             }
             else if (isRightParenthesis(token)) {
-                // ÓÒÀ¨ºÅ
+                // å³æ‹¬å·
                 Operator opNew = null;
                 while (!operatorStack.empty() && LEFTPARENTHESIS != (opNew = operatorStack.pop())) {
                     segments.add(opNew);
@@ -152,7 +152,7 @@ public class PolishExpr {
                     throw new IllegalArgumentException("mismatched parentheses");
             }
             else if (isOperator(token)) {
-                // ²Ù×÷·û,Ôİ²»¿¼ÂÇ½áºÏĞÔ(×ó½áºÏ,ÓÒ½áºÏ),Ö§³ÖµÄ²Ù×÷·û¶¼ÊÇ×ó½áºÏµÄ
+                // æ“ä½œç¬¦,æš‚ä¸è€ƒè™‘ç»“åˆæ€§(å·¦ç»“åˆ,å³ç»“åˆ),æ”¯æŒçš„æ“ä½œç¬¦éƒ½æ˜¯å·¦ç»“åˆçš„
                 Operator opNew = (Operator) token;
                 if (!operatorStack.empty()) {
                     Operator opOld = operatorStack.peek();

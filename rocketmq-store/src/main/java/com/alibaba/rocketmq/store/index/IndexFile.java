@@ -30,7 +30,7 @@ import com.alibaba.rocketmq.store.MapedFile;
 
 
 /**
- * ´æ´¢¾ßÌåÏûÏ¢Ë÷ÒıĞÅÏ¢µÄÎÄ¼ş
+ * å­˜å‚¨å…·ä½“æ¶ˆæ¯ç´¢å¼•ä¿¡æ¯çš„æ–‡ä»¶
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-21
@@ -97,7 +97,7 @@ public class IndexFile {
 
 
     /**
-     * µ±Ç°Ë÷ÒıÎÄ¼şÊÇ·ñĞ´Âú
+     * å½“å‰ç´¢å¼•æ–‡ä»¶æ˜¯å¦å†™æ»¡
      */
     public boolean isWriteFull() {
         return this.indexHeader.getIndexCount() >= this.indexNum;
@@ -110,7 +110,7 @@ public class IndexFile {
 
 
     /**
-     * Èç¹û·µ»Øfalse£¬±íÊ¾ĞèÒª´´½¨ĞÂµÄË÷ÒıÎÄ¼ş
+     * å¦‚æœè¿”å›falseï¼Œè¡¨ç¤ºéœ€è¦åˆ›å»ºæ–°çš„ç´¢å¼•æ–‡ä»¶
      */
     public boolean putKey(final String key, final long phyOffset, final long storeTimestamp) {
         if (this.indexHeader.getIndexCount() < this.indexNum) {
@@ -121,7 +121,7 @@ public class IndexFile {
             FileLock fileLock = null;
 
             try {
-                // TODO ÊÇ·ñÊÇ¶ÁĞ´Ëø
+                // TODO æ˜¯å¦æ˜¯è¯»å†™é”
                 fileLock = this.fileChannel.lock(absSlotPos, HASH_SLOT_SIZE, false);
                 int slotValue = this.mappedByteBuffer.getInt(absSlotPos);
                 if (slotValue <= INVALID_INDEX || slotValue > this.indexHeader.getIndexCount()) {
@@ -143,16 +143,16 @@ public class IndexFile {
                         IndexHeader.INDEX_HEADER_SIZE + this.hashSlotNum * HASH_SLOT_SIZE
                                 + this.indexHeader.getIndexCount() * INDEX_SIZE;
 
-                // Ğ´ÈëÕæÕıË÷Òı
+                // å†™å…¥çœŸæ­£ç´¢å¼•
                 this.mappedByteBuffer.putInt(absIndexPos, keyHash);
                 this.mappedByteBuffer.putLong(absIndexPos + 4, phyOffset);
                 this.mappedByteBuffer.putInt(absIndexPos + 4 + 8, (int) timeDiff);
                 this.mappedByteBuffer.putInt(absIndexPos + 4 + 8 + 4, slotValue);
 
-                // ¸üĞÂ¹şÏ£²Û
+                // æ›´æ–°å“ˆå¸Œæ§½
                 this.mappedByteBuffer.putInt(absSlotPos, this.indexHeader.getIndexCount());
 
-                // µÚÒ»´ÎĞ´Èë
+                // ç¬¬ä¸€æ¬¡å†™å…¥
                 if (this.indexHeader.getIndexCount() <= 1) {
                     this.indexHeader.setBeginPhyOffset(phyOffset);
                     this.indexHeader.setBeginTimestamp(storeTimestamp);
@@ -204,7 +204,7 @@ public class IndexFile {
 
 
     /**
-     * Ê±¼äÇø¼äÊÇ·ñÆ¥Åä
+     * æ—¶é—´åŒºé—´æ˜¯å¦åŒ¹é…
      */
     public boolean isTimeMatched(final long begin, final long end) {
         boolean result =
@@ -224,7 +224,7 @@ public class IndexFile {
 
 
     /**
-     * Ç°Ìá£ºÈë²ÎÊ±¼äÇø¼äÔÚµ÷ÓÃÇ°ÒÑ¾­Æ¥ÅäÁËµ±Ç°Ë÷ÒıÎÄ¼şµÄÆğÊ¼½áÊøÊ±¼ä
+     * å‰æï¼šå…¥å‚æ—¶é—´åŒºé—´åœ¨è°ƒç”¨å‰å·²ç»åŒ¹é…äº†å½“å‰ç´¢å¼•æ–‡ä»¶çš„èµ·å§‹ç»“æŸæ—¶é—´
      */
     public void selectPhyOffset(final List<Long> phyOffsets, final String key, final int maxNum,
             final long begin, final long end, boolean lock) {
@@ -264,7 +264,7 @@ public class IndexFile {
                         int timeDiff = this.mappedByteBuffer.getInt(absIndexPos + 4 + 8);
                         int prevIndexRead = this.mappedByteBuffer.getInt(absIndexPos + 4 + 8 + 4);
 
-                        // ¶Áµ½ÁËÎ´ÖªÊı¾İ
+                        // è¯»åˆ°äº†æœªçŸ¥æ•°æ®
                         if (timeDiff < 0) {
                             break;
                         }

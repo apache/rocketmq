@@ -44,7 +44,7 @@ import com.alibaba.rocketmq.common.protocol.route.TopicRouteData;
 
 
 /**
- * ÔËĞĞ¹ı³ÌÖĞµÄÂ·ÓÉĞÅÏ¢£¬Êı¾İÖ»ÔÚÄÚ´æ£¬å´»úºóÊı¾İÏûÊ§£¬µ«ÊÇBroker»á¶¨ÆÚÍÆËÍ×îĞÂÊı¾İ
+ * è¿è¡Œè¿‡ç¨‹ä¸­çš„è·¯ç”±ä¿¡æ¯ï¼Œæ•°æ®åªåœ¨å†…å­˜ï¼Œå®•æœºåæ•°æ®æ¶ˆå¤±ï¼Œä½†æ˜¯Brokerä¼šå®šæœŸæ¨é€æœ€æ–°æ•°æ®
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-2
@@ -75,7 +75,7 @@ public class RouteInfoManager {
 
 
     /**
-     * ÅĞ¶ÏTopicÅäÖÃĞÅÏ¢ÊÇ·ñ·¢Éú±ä¸ü
+     * åˆ¤æ–­Topicé…ç½®ä¿¡æ¯æ˜¯å¦å‘ç”Ÿå˜æ›´
      */
     private boolean isBrokerTopicConfigChanged(final String brokerAddr, final DataVersion dataVersion) {
         BrokerLiveInfo prev = this.brokerLiveTable.get(brokerAddr);
@@ -127,7 +127,7 @@ public class RouteInfoManager {
 
 
     /**
-     * @return Èç¹ûÊÇslave£¬Ôò·µ»ØmasterµÄhaµØÖ·
+     * @return å¦‚æœæ˜¯slaveï¼Œåˆ™è¿”å›masterçš„haåœ°å€
      */
     public RegisterBrokerResult registerBroker(//
             final String clusterName,// 1
@@ -143,7 +143,7 @@ public class RouteInfoManager {
             try {
                 this.lock.writeLock().lockInterruptibly();
 
-                // ¸üĞÂ¼¯ÈºĞÅÏ¢
+                // æ›´æ–°é›†ç¾¤ä¿¡æ¯
                 Set<String> brokerNames = this.clusterAddrTable.get(clusterName);
                 if (null == brokerNames) {
                     brokerNames = new HashSet<String>();
@@ -151,7 +151,7 @@ public class RouteInfoManager {
                 }
                 brokerNames.add(brokerName);
 
-                // ¸üĞÂÖ÷±¸ĞÅÏ¢
+                // æ›´æ–°ä¸»å¤‡ä¿¡æ¯
                 BrokerData brokerData = this.brokerAddrTable.get(brokerName);
                 if (null == brokerData) {
                     brokerData = new BrokerData();
@@ -163,7 +163,7 @@ public class RouteInfoManager {
                 }
                 brokerData.getBrokerAddrs().put(brokerId, brokerAddr);
 
-                // ¸üĞÂTopicĞÅÏ¢
+                // æ›´æ–°Topicä¿¡æ¯
                 if (null != topicConfigWrapper //
                         && MixAll.MASTER_ID == brokerId) {
                     if (this.isBrokerTopicConfigChanged(brokerAddr,//
@@ -179,7 +179,7 @@ public class RouteInfoManager {
                     }
                 }
 
-                // ¸üĞÂ×îºó±ä¸üÊ±¼ä
+                // æ›´æ–°æœ€åå˜æ›´æ—¶é—´
                 BrokerLiveInfo prevBrokerLiveInfo = this.brokerLiveTable.put(brokerAddr, //
                     new BrokerLiveInfo(//
                         System.currentTimeMillis(), //
@@ -190,7 +190,7 @@ public class RouteInfoManager {
                     log.info("new broker registerd, {} HAServer: {}", brokerAddr, haServerAddr);
                 }
 
-                // ·µ»ØÖµ
+                // è¿”å›å€¼
                 if (MixAll.MASTER_ID != brokerId) {
                     String masterAddr = brokerData.getBrokerAddrs().get(MixAll.MASTER_ID);
                     if (masterAddr != null) {
@@ -267,7 +267,7 @@ public class RouteInfoManager {
                         }
                     }
 
-                    // É¾³ıÏàÓ¦µÄtopic
+                    // åˆ é™¤ç›¸åº”çš„topic
                     this.removeTopicByBrokerName(brokerName);
                 }
             }
@@ -321,7 +321,7 @@ public class RouteInfoManager {
                     topicRouteData.setQueueDatas(queueDataList);
                     foundQueueData = true;
 
-                    // BrokerNameÈ¥ÖØ
+                    // BrokerNameå»é‡
                     Iterator<QueueData> it = queueDataList.iterator();
                     while (it.hasNext()) {
                         QueueData qd = it.next();
@@ -366,12 +366,12 @@ public class RouteInfoManager {
 
 
     /**
-     * Channel±»¹Ø±Õ£¬»òÕßChannel IdleÊ±¼ä³¬ÏŞ
+     * Channelè¢«å…³é—­ï¼Œæˆ–è€…Channel Idleæ—¶é—´è¶…é™
      */
     public void onChannelDestroy(String remoteAddr, Channel channel) {
         String brokerAddrFound = null;
 
-        // ¼Ó¶ÁËø£¬Ñ°ÕÒ¶Ï¿ªÁ¬½ÓµÄBroker
+        // åŠ è¯»é”ï¼Œå¯»æ‰¾æ–­å¼€è¿æ¥çš„Broker
         try {
             try {
                 this.lock.readLock().lockInterruptibly();
@@ -393,17 +393,17 @@ public class RouteInfoManager {
             log.error("onChannelDestroy Exception", e);
         }
 
-        // ¼ÓĞ´Ëø£¬É¾³ıÏà¹ØÊı¾İ½á¹¹
+        // åŠ å†™é”ï¼Œåˆ é™¤ç›¸å…³æ•°æ®ç»“æ„
         if (brokerAddrFound != null) {
             log.info("the broker's channel destroyed, {}, clean it's data structure at once", brokerAddrFound);
 
             try {
                 try {
                     this.lock.writeLock().lockInterruptibly();
-                    // ÇåÀíbrokerLiveTable
+                    // æ¸…ç†brokerLiveTable
                     this.brokerLiveTable.remove(brokerAddrFound);
 
-                    // ÇåÀíbrokerAddrTable
+                    // æ¸…ç†brokerAddrTable
                     String brokerNameFound = null;
                     boolean brokerNameDisappear = false;
                     Iterator<Entry<String, BrokerData>> itBrokerAddrTable =
@@ -411,7 +411,7 @@ public class RouteInfoManager {
                     while (itBrokerAddrTable.hasNext() && (null == brokerNameFound)) {
                         BrokerData brokerData = itBrokerAddrTable.next().getValue();
 
-                        // ±éÀúMaster/Slave
+                        // éå†Master/Slave
                         Iterator<Entry<Long, String>> it = brokerData.getBrokerAddrs().entrySet().iterator();
                         while (it.hasNext()) {
                             Entry<Long, String> entry = it.next();
@@ -427,7 +427,7 @@ public class RouteInfoManager {
                             }
                         }
 
-                        // BrokerNameÎŞ¹ØÁªBrokerAddr
+                        // BrokerNameæ— å…³è”BrokerAddr
                         if (brokerData.getBrokerAddrs().isEmpty()) {
                             brokerNameDisappear = true;
                             itBrokerAddrTable.remove();
@@ -436,7 +436,7 @@ public class RouteInfoManager {
                         }
                     }
 
-                    // ÇåÀíclusterAddrTable
+                    // æ¸…ç†clusterAddrTable
                     if (brokerNameFound != null) {
                         Iterator<Entry<String, Set<String>>> it = this.clusterAddrTable.entrySet().iterator();
                         while (it.hasNext()) {
@@ -453,7 +453,7 @@ public class RouteInfoManager {
                         }
                     }
 
-                    // ÇåÀítopicQueueTable
+                    // æ¸…ç†topicQueueTable
                     if (brokerNameDisappear) {
                         Iterator<Entry<String, List<QueueData>>> itTopicQueueTable =
                                 this.topicQueueTable.entrySet().iterator();
@@ -494,7 +494,7 @@ public class RouteInfoManager {
 
 
     /**
-     * ¶¨ÆÚ´òÓ¡µ±Ç°ÀàµÄÊı¾İ½á¹¹
+     * å®šæœŸæ‰“å°å½“å‰ç±»çš„æ•°æ®ç»“æ„
      */
     public void printAllPeriodically() {
         try {

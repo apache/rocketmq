@@ -21,7 +21,7 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingSerializable;
 
 
 /**
- * KV配置序列化，json包装
+ * KV閰嶇疆搴忓垪鍖栵紝json鍖呰
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-25

@@ -37,7 +37,7 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 
 
 /**
- * Client½ÓÊÕBrokerµÄ»Øµ÷²Ù×÷£¬ÀıÈçÊÂÎñ»Øµ÷£¬»òÕßÆäËû¹ÜÀíÀàÃüÁî»Øµ÷
+ * Clientæ¥æ”¶Brokerçš„å›è°ƒæ“ä½œï¼Œä¾‹å¦‚äº‹åŠ¡å›è°ƒï¼Œæˆ–è€…å…¶ä»–ç®¡ç†ç±»å‘½ä»¤å›è°ƒ
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-24
@@ -69,7 +69,7 @@ public class ClientRemotingProcessor implements NettyRequestProcessor {
 
 
     /**
-     * Onewayµ÷ÓÃ£¬ÎŞ·µ»ØÖµ
+     * Onewayè°ƒç”¨ï¼Œæ— è¿”å›å€¼
      */
     public RemotingCommand notifyConsumerIdsChanged(ChannelHandlerContext ctx, RemotingCommand request)
             throws RemotingCommandException {
@@ -85,7 +85,7 @@ public class ClientRemotingProcessor implements NettyRequestProcessor {
 
 
     /**
-     * Onewayµ÷ÓÃ£¬ÎŞ·µ»ØÖµ
+     * Onewayè°ƒç”¨ï¼Œæ— è¿”å›å€¼
      */
     public RemotingCommand checkTransactionState(ChannelHandlerContext ctx, RemotingCommand request)
             throws RemotingCommandException {

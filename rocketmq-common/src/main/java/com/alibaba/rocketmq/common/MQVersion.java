@@ -16,12 +16,12 @@
 package com.alibaba.rocketmq.common;
 
 /**
- * ¶¨Òå¸÷¸ö°æ±¾ĞÅÏ¢
+ * å®šä¹‰å„ä¸ªç‰ˆæœ¬ä¿¡æ¯
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public class MQVersion {
-    // TODO Ã¿´Î·¢²¼°æ±¾¶¼ÒªĞŞ¸Ä´Ë´¦°æ±¾ºÅ
+    // TODO æ¯æ¬¡å‘å¸ƒç‰ˆæœ¬éƒ½è¦ä¿®æ”¹æ­¤å¤„ç‰ˆæœ¬å·
     public static final int CurrentVersion = Version.V3_0_0_SNAPSHOT.ordinal();
 
     enum Version {

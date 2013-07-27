@@ -52,7 +52,7 @@ public class AllocateMessageQueueAveragelyTest {
 
 
     @Test
-    public void testConsumer1() { // consumerList´óĞ¡Îª1
+    public void testConsumer1() { // consumerListå¤§å°ä¸º1
         currentCID = "0";
         createConsumerIdList(1);
         createMessageQueueList(5);
@@ -65,7 +65,7 @@ public class AllocateMessageQueueAveragelyTest {
 
 
     @Test
-    public void testConsumer2() { // consumerList´óĞ¡Îª2
+    public void testConsumer2() { // consumerListå¤§å°ä¸º2
         currentCID = "1";
         createConsumerIdList(2);
         createMessageQueueList(5);
@@ -79,7 +79,7 @@ public class AllocateMessageQueueAveragelyTest {
 
 
     @Test
-    public void testConsumer3CurrentCID0() { // consumerList´óĞ¡Îª3
+    public void testConsumer3CurrentCID0() { // consumerListå¤§å°ä¸º3
         currentCID = "0";
         createConsumerIdList(3);
         createMessageQueueList(5);
@@ -92,7 +92,7 @@ public class AllocateMessageQueueAveragelyTest {
 
 
     @Test
-    public void testConsumer3CurrentCID1() { // consumerList´óĞ¡Îª3
+    public void testConsumer3CurrentCID1() { // consumerListå¤§å°ä¸º3
         currentCID = "1";
         createConsumerIdList(3);
         createMessageQueueList(5);
@@ -105,7 +105,7 @@ public class AllocateMessageQueueAveragelyTest {
 
 
     @Test
-    public void testConsumer3CurrentCID2() { // consumerList´óĞ¡Îª3
+    public void testConsumer3CurrentCID2() { // consumerListå¤§å°ä¸º3
         currentCID = "2";
         createConsumerIdList(3);
         createMessageQueueList(5);
@@ -118,7 +118,7 @@ public class AllocateMessageQueueAveragelyTest {
 
 
     @Test
-    public void testConsumer4() { // consumerList´óĞ¡Îª4
+    public void testConsumer4() { // consumerListå¤§å°ä¸º4
         currentCID = "1";
         createConsumerIdList(4);
         createMessageQueueList(5);
@@ -131,7 +131,7 @@ public class AllocateMessageQueueAveragelyTest {
 
 
     @Test
-    public void testConsumer5() { // consumerList´óĞ¡Îª5
+    public void testConsumer5() { // consumerListå¤§å°ä¸º5
         currentCID = "1";
         createConsumerIdList(5);
         createMessageQueueList(5);
@@ -144,7 +144,7 @@ public class AllocateMessageQueueAveragelyTest {
 
 
     @Test
-    public void testConsumer6() { // consumerList´óĞ¡Îª6
+    public void testConsumer6() { // consumerListå¤§å°ä¸º6
         currentCID = "1";
         createConsumerIdList(2);
         createMessageQueueList(6);
@@ -157,7 +157,7 @@ public class AllocateMessageQueueAveragelyTest {
 
 
     @Test
-    public void testCurrentCIDNotExists() { // CurrentCID²»´æÔÚ
+    public void testCurrentCIDNotExists() { // CurrentCIDä¸å­˜åœ¨
         currentCID = String.valueOf(Integer.MAX_VALUE);
         createConsumerIdList(2);
         createMessageQueueList(6);
@@ -169,7 +169,7 @@ public class AllocateMessageQueueAveragelyTest {
 
 
     @Test(expected = IllegalArgumentException.class)
-    public void testCurrentCIDIllegalArgument() { // currentCIDÊÇ¿Õ
+    public void testCurrentCIDIllegalArgument() { // currentCIDæ˜¯ç©º
         createConsumerIdList(2);
         createMessageQueueList(6);
         allocateMessageQueueAveragely.allocate("", getMessageQueueList(), getConsumerIdList());
@@ -177,7 +177,7 @@ public class AllocateMessageQueueAveragelyTest {
 
 
     @Test(expected = IllegalArgumentException.class)
-    public void testMessageQueueIllegalArgument() { // MessageQueueÎª¿Õ
+    public void testMessageQueueIllegalArgument() { // MessageQueueä¸ºç©º
         currentCID = "0";
         createConsumerIdList(2);
         allocateMessageQueueAveragely.allocate(currentCID, null, getConsumerIdList());
@@ -185,7 +185,7 @@ public class AllocateMessageQueueAveragelyTest {
 
 
     @Test(expected = IllegalArgumentException.class)
-    public void testConsumerIdIllegalArgument() { // ConsumerIdListÎª¿Õ
+    public void testConsumerIdIllegalArgument() { // ConsumerIdListä¸ºç©º
         currentCID = "0";
         createMessageQueueList(6);
         allocateMessageQueueAveragely.allocate(currentCID, getMessageQueueList(), null);

@@ -19,27 +19,27 @@ import java.util.concurrent.atomic.AtomicLong;
 
 
 /**
- * ConsumerÄÚ²¿ÔËĞĞÊ±Í³¼ÆĞÅÏ¢
+ * Consumerå†…éƒ¨è¿è¡Œæ—¶ç»Ÿè®¡ä¿¡æ¯
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-7
  */
 public class ConsumerStat {
-    // ´òµãÊ±¼ä´Á
+    // æ‰“ç‚¹æ—¶é—´æˆ³
     private long createTimestamp = System.currentTimeMillis();
 
-    // Ò»´ÎÏû·ÑÏûÏ¢µÄ×î´óRT
+    // ä¸€æ¬¡æ¶ˆè´¹æ¶ˆæ¯çš„æœ€å¤§RT
     private final AtomicLong consumeMsgRTMax = new AtomicLong(0);
-    // Ã¿´ÎÏû·ÑÏûÏ¢RTµş¼Ó×ÜºÍ
+    // æ¯æ¬¡æ¶ˆè´¹æ¶ˆæ¯RTå åŠ æ€»å’Œ
     private final AtomicLong consumeMsgRTTotal = new AtomicLong(0);
-    // Ïû·ÑÏûÏ¢³É¹¦´ÎÊı×ÜºÍ
+    // æ¶ˆè´¹æ¶ˆæ¯æˆåŠŸæ¬¡æ•°æ€»å’Œ
     private final AtomicLong consumeMsgOKTotal = new AtomicLong(0);
-    // Ïû·ÑÏûÏ¢Ê§°Ü´ÎÊı×ÜºÍ
+    // æ¶ˆè´¹æ¶ˆæ¯å¤±è´¥æ¬¡æ•°æ€»å’Œ
     private final AtomicLong consumeMsgFailedTotal = new AtomicLong(0);
 
-    // À­ÏûÏ¢RTµş¼Ó×ÜºÍ£¨Ö»°üº¬³É¹¦À­µ½µÄ£©
+    // æ‹‰æ¶ˆæ¯RTå åŠ æ€»å’Œï¼ˆåªåŒ…å«æˆåŠŸæ‹‰åˆ°çš„ï¼‰
     private final AtomicLong pullRTTotal = new AtomicLong(0);
-    // À­ÏûÏ¢´ÎÊı£¨Ö»°üº¬³É¹¦À­µ½µÄ£©
+    // æ‹‰æ¶ˆæ¯æ¬¡æ•°ï¼ˆåªåŒ…å«æˆåŠŸæ‹‰åˆ°çš„ï¼‰
     private final AtomicLong pullTimesTotal = new AtomicLong(0);
 
 

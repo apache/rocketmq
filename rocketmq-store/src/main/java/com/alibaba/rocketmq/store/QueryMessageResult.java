@@ -21,7 +21,7 @@ import java.util.List;
 
 
 /**
- * Í¨¹ıKey²éÑ¯ÏûÏ¢£¬·µ»Ø½á¹û
+ * é€šè¿‡KeyæŸ¥è¯¢æ¶ˆæ¯ï¼Œè¿”å›ç»“æœ
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-21
@@ -29,12 +29,12 @@ import java.util.List;
 public class QueryMessageResult {
     private long indexLastUpdateTimestamp;
     private long indexLastUpdatePhyoffset;
-    // ¶à¸öÁ¬ĞøµÄÏûÏ¢¼¯ºÏ
+    // å¤šä¸ªè¿ç»­çš„æ¶ˆæ¯é›†åˆ
     private final List<SelectMapedBufferResult> messageMapedList =
             new ArrayList<SelectMapedBufferResult>(100);
-    // ÓÃÀ´ÏòConsumer´«ËÍÏûÏ¢
+    // ç”¨æ¥å‘Consumerä¼ é€æ¶ˆæ¯
     private final List<ByteBuffer> messageBufferList = new ArrayList<ByteBuffer>(100);
-    // ByteBuffer ×Ü×Ö½ÚÊı
+    // ByteBuffer æ€»å­—èŠ‚æ•°
     private int bufferTotalSize = 0;
 
 

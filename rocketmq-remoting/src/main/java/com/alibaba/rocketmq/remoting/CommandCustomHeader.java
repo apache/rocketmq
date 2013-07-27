@@ -19,7 +19,7 @@ import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
 
 
 /**
- * RemotingCommandÖĞ×Ô¶¨Òå×Ö¶Î·´Éä¶ÔÏóµÄ¹«¹²½Ó¿Ú
+ * RemotingCommandä¸­è‡ªå®šä¹‰å­—æ®µåå°„å¯¹è±¡çš„å…¬å…±æ¥å£
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-13

@@ -39,8 +39,8 @@ import com.alibaba.rocketmq.store.config.BrokerRole;
 
 
 /**
- * ÊÂÎñ·şÎñ£¬´æ´¢Ã¿ÌõÊÂÎñµÄ×´Ì¬£¨Prepared£¬Commited£¬Rollbacked£©<br>
- * Ãû´Ê½âÊÍ£º<br>
+ * äº‹åŠ¡æœåŠ¡ï¼Œå­˜å‚¨æ¯æ¡äº‹åŠ¡çš„çŠ¶æ€ï¼ˆPreparedï¼ŒCommitedï¼ŒRollbackedï¼‰<br>
+ * åè¯è§£é‡Šï¼š<br>
  * clOffset - Commit Log Offset<br>
  * tsOffset - Transaction State Table Offset
  * 
@@ -49,29 +49,29 @@ import com.alibaba.rocketmq.store.config.BrokerRole;
  */
 public class TransactionStateService {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.StoreLoggerName);
-    // ´æ´¢µ¥Ôª´óĞ¡
+    // å­˜å‚¨å•å…ƒå¤§å°
     public static final int TSStoreUnitSize = 24;
-    // ÓÃÀ´»Ö¸´ÊÂÎñ×´Ì¬±íµÄredolog
+    // ç”¨æ¥æ¢å¤äº‹åŠ¡çŠ¶æ€è¡¨çš„redolog
     public static final String TRANSACTION_REDOLOG_TOPIC = "TRANSACTION_REDOLOG_TOPIC_XXXX";
     public static final int TRANSACTION_REDOLOG_TOPIC_QUEUEID = 0;
-    // ´æ´¢¶¥²ã¶ÔÏó
+    // å­˜å‚¨é¡¶å±‚å¯¹è±¡
     private final DefaultMessageStore defaultMessageStore;
-    // ´æ´¢ÊÂÎñ×´Ì¬µÄ±í¸ñ
+    // å­˜å‚¨äº‹åŠ¡çŠ¶æ€çš„è¡¨æ ¼
     private MapedFileQueue tranStateTable;
-    // ÖØ¸´ÀûÓÃÄÚ´æBuffer
+    // é‡å¤åˆ©ç”¨å†…å­˜Buffer
     private final ByteBuffer byteBufferAppend = ByteBuffer.allocate(TSStoreUnitSize);
-    // ÊÂÎñ×´Ì¬µÄRedolog£¬µ±½ø³ÌÒâÍâå´µô£¬¿ÉÍ¨¹ıredolog»Ö¸´ËùÓĞÊÂÎñµÄ×´Ì¬
-    // RedologµÄÊµÏÖÀûÓÃÁËÏû·Ñ¶ÓÁĞ£¬Ö÷ÒªÎªÁË»Ö¸´·½±ã
+    // äº‹åŠ¡çŠ¶æ€çš„Redologï¼Œå½“è¿›ç¨‹æ„å¤–å®•æ‰ï¼Œå¯é€šè¿‡redologæ¢å¤æ‰€æœ‰äº‹åŠ¡çš„çŠ¶æ€
+    // Redologçš„å®ç°åˆ©ç”¨äº†æ¶ˆè´¹é˜Ÿåˆ—ï¼Œä¸»è¦ä¸ºäº†æ¢å¤æ–¹ä¾¿
     private final ConsumeQueue tranRedoLog;
     public final static long PreparedMessageTagsCode = -1;
 
-    // ¸ü¸ÄÊÂÎñ×´Ì¬£¬¾ßÌå¸ü¸ÄÎ»ÖÃ
+    // æ›´æ”¹äº‹åŠ¡çŠ¶æ€ï¼Œå…·ä½“æ›´æ”¹ä½ç½®
     private final static int TS_STATE_POS = 20;
 
-    // State Table Offset£¬ÖØÆôÊ±£¬±ØĞë¾ÀÕı
+    // State Table Offsetï¼Œé‡å¯æ—¶ï¼Œå¿…é¡»çº æ­£
     private final AtomicLong tranStateTableOffset = new AtomicLong(0);
 
-    // ¶¨Ê±»Ø²éÏß³Ì
+    // å®šæ—¶å›æŸ¥çº¿ç¨‹
     private final Timer timer = new Timer("CheckTransactionMessageTimer", true);
 
 
@@ -127,9 +127,9 @@ public class TransactionStateService {
             this.recoverStateTableNormal();
         }
         else {
-            // µÚÒ»²½£¬É¾³ıState Table
+            // ç¬¬ä¸€æ­¥ï¼Œåˆ é™¤State Table
             this.tranStateTable.destroy();
-            // µÚ¶ş²½£¬Í¨¹ıRedoLogÈ«Á¿»Ö¸´StateTable
+            // ç¬¬äºŒæ­¥ï¼Œé€šè¿‡RedoLogå…¨é‡æ¢å¤StateTable
             this.recreateStateTable();
         }
     }
@@ -142,7 +142,7 @@ public class TransactionStateService {
 
         final TreeSet<Long> preparedItemSet = new TreeSet<Long>();
 
-        // µÚÒ»²½£¬ÖØÍ·É¨ÃèRedoLog
+        // ç¬¬ä¸€æ­¥ï¼Œé‡å¤´æ‰«æRedoLog
         final long minOffset = this.tranRedoLog.getMinOffsetInQuque();
         long processOffset = minOffset;
         while (true) {
@@ -168,7 +168,7 @@ public class TransactionStateService {
                     processOffset += i;
                 }
                 finally {
-                    // ±ØĞëÊÍ·Å×ÊÔ´
+                    // å¿…é¡»é‡Šæ”¾èµ„æº
                     bufferConsumeQueue.release();
                 }
             }
@@ -179,7 +179,7 @@ public class TransactionStateService {
 
         log.info("scan transaction redolog over, End offset: {},  Prepared Transaction Count: {}",
             processOffset, preparedItemSet.size());
-        // µÚ¶ş²½£¬ÖØ½¨StateTable
+        // ç¬¬äºŒæ­¥ï¼Œé‡å»ºStateTable
         Iterator<Long> it = preparedItemSet.iterator();
         while (it.hasNext()) {
             Long offset = it.next();
@@ -197,7 +197,7 @@ public class TransactionStateService {
     private void recoverStateTableNormal() {
         final List<MapedFile> mapedFiles = this.tranStateTable.getMapedFiles();
         if (!mapedFiles.isEmpty()) {
-            // ´Óµ¹ÊıµÚÈı¸öÎÄ¼ş¿ªÊ¼»Ö¸´
+            // ä»å€’æ•°ç¬¬ä¸‰ä¸ªæ–‡ä»¶å¼€å§‹æ¢å¤
             int index = mapedFiles.size() - 3;
             if (index < 0)
                 index = 0;
@@ -227,8 +227,8 @@ public class TransactionStateService {
                         break;
                     }
 
-                    // ËµÃ÷µ±Ç°´æ´¢µ¥ÔªÓĞĞ§
-                    // TODO ÕâÑùÅĞ¶ÏÓĞĞ§ÊÇ·ñºÏÀí£¿
+                    // è¯´æ˜å½“å‰å­˜å‚¨å•å…ƒæœ‰æ•ˆ
+                    // TODO è¿™æ ·åˆ¤æ–­æœ‰æ•ˆæ˜¯å¦åˆç†ï¼Ÿ
                     if (clOffset_read >= 0 && size_read > 0 && stateOK) {
                         mapedFileOffset = i + TSStoreUnitSize;
                     }
@@ -240,11 +240,11 @@ public class TransactionStateService {
                     }
                 }
 
-                // ×ßµ½ÎÄ¼şÄ©Î²£¬ÇĞ»»ÖÁÏÂÒ»¸öÎÄ¼ş
+                // èµ°åˆ°æ–‡ä»¶æœ«å°¾ï¼Œåˆ‡æ¢è‡³ä¸‹ä¸€ä¸ªæ–‡ä»¶
                 if (mapedFileOffset == mapedFileSizeLogics) {
                     index++;
                     if (index >= mapedFiles.size()) {
-                        // µ±Ç°Ìõ¼ş·ÖÖ§²»¿ÉÄÜ·¢Éú
+                        // å½“å‰æ¡ä»¶åˆ†æ”¯ä¸å¯èƒ½å‘ç”Ÿ
                         log.info("recover last transaction state table file over, last maped file "
                                 + mapedFile.getFileName());
                         break;
@@ -298,11 +298,11 @@ public class TransactionStateService {
 
             @Override
             public void run() {
-                // Slave²»ĞèÒª»Ø²éÊÂÎñ×´Ì¬
+                // Slaveä¸éœ€è¦å›æŸ¥äº‹åŠ¡çŠ¶æ€
                 if (slave)
                     return;
 
-                // Check¹¦ÄÜÊÇ·ñ¿ªÆô
+                // CheckåŠŸèƒ½æ˜¯å¦å¼€å¯
                 if (!TransactionStateService.this.defaultMessageStore.getMessageStoreConfig()
                     .isCheckTransactionMessageEnable()) {
                     return;
@@ -329,12 +329,12 @@ public class TransactionStateService {
                                 // Transaction State
                                 int tranType = selectMapedBufferResult.getByteBuffer().getInt();
 
-                                // ÒÑ¾­Ìá½»»òÕß»Ø¹öµÄÏûÏ¢Ìø¹ı
+                                // å·²ç»æäº¤æˆ–è€…å›æ»šçš„æ¶ˆæ¯è·³è¿‡
                                 if (tranType != MessageSysFlag.TransactionPreparedType) {
                                     continue;
                                 }
 
-                                // Óöµ½Ê±¼ä²»·ûºÏ£¬ÖÕÖ¹
+                                // é‡åˆ°æ—¶é—´ä¸ç¬¦åˆï¼Œç»ˆæ­¢
                                 long timestampLong = timestamp * 1000;
                                 long diff = System.currentTimeMillis() - timestampLong;
                                 if (diff < checkTransactionMessageAtleastInterval) {
@@ -355,7 +355,7 @@ public class TransactionStateService {
                                 }
                             }
 
-                            // ÎŞPreparedÏûÏ¢£¬ÇÒ±éÀúÍê£¬ÔòÖÕÖ¹¶¨Ê±ÈÎÎñ
+                            // æ— Preparedæ¶ˆæ¯ï¼Œä¸”éå†å®Œï¼Œåˆ™ç»ˆæ­¢å®šæ—¶ä»»åŠ¡
                             if (0 == preparedMessageCountInThisMapedFile //
                                     && i == mapedFile.getFileSize()) {
                                 tranlog
@@ -395,7 +395,7 @@ public class TransactionStateService {
 
 
     /**
-     * µ¥Ïß³Ìµ÷ÓÃ
+     * å•çº¿ç¨‹è°ƒç”¨
      */
     public boolean appendPreparedTransaction(//
             final long clOffset,//
@@ -409,7 +409,7 @@ public class TransactionStateService {
             return false;
         }
 
-        // Ê×´Î´´½¨£¬¼ÓÈë¶¨Ê±ÈÎÎñÖĞ
+        // é¦–æ¬¡åˆ›å»ºï¼ŒåŠ å…¥å®šæ—¶ä»»åŠ¡ä¸­
         if (0 == mapedFile.getWrotePostion()) {
             this.addTimerTask(mapedFile);
         }
@@ -433,7 +433,7 @@ public class TransactionStateService {
 
 
     /**
-     * µ¥Ïß³Ìµ÷ÓÃ
+     * å•çº¿ç¨‹è°ƒç”¨
      */
     public boolean updateTransactionState(//
             final long tsOffset,//
@@ -450,27 +450,27 @@ public class TransactionStateService {
                 final int groupHashCode_read = selectMapedBufferResult.getByteBuffer().getInt();
                 final int state_read = selectMapedBufferResult.getByteBuffer().getInt();
 
-                // Ğ£ÑéÊı¾İÕıÈ·ĞÔ
+                // æ ¡éªŒæ•°æ®æ­£ç¡®æ€§
                 if (clOffset != clOffset_read) {
                     log.error("updateTransactionState error clOffset: {} clOffset_read: {}", clOffset,
                         clOffset_read);
                     return false;
                 }
 
-                // Ğ£ÑéÊı¾İÕıÈ·ĞÔ
+                // æ ¡éªŒæ•°æ®æ­£ç¡®æ€§
                 if (groupHashCode != groupHashCode_read) {
                     log.error("updateTransactionState error groupHashCode: {} groupHashCode_read: {}",
                         groupHashCode, groupHashCode_read);
                     return false;
                 }
 
-                // ÅĞ¶ÏÊÇ·ñÒÑ¾­¸üĞÂ¹ı
+                // åˆ¤æ–­æ˜¯å¦å·²ç»æ›´æ–°è¿‡
                 if (MessageSysFlag.TransactionPreparedType != state_read) {
                     log.warn("updateTransactionState error, the transaction is updated before.");
                     return true;
                 }
 
-                // ¸üĞÂÊÂÎñ×´Ì¬
+                // æ›´æ–°äº‹åŠ¡çŠ¶æ€
                 selectMapedBufferResult.getByteBuffer().putInt(TS_STATE_POS, state);
             }
             catch (Exception e) {

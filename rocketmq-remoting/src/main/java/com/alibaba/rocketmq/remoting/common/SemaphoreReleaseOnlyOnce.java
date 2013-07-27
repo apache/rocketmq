@@ -20,7 +20,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 
 /**
- * й╧сц╡╪╤Шт╜вс╠Да©ё╛пе╨еа©╠ёж╓ж╩йм╥ер╩╢н
+ * Д╫©Г■╗Е╦┐Е╟■Е▌÷Е╜░Е▐≤И┤▐О╪▄Д©║Е▐╥И┤▐Д©²Х╞│Е▐╙И┤┼Ф■╬Д╦─Ф╛║
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-13

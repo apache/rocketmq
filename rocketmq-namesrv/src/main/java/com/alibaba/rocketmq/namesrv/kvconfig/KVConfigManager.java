@@ -29,7 +29,7 @@ import com.alibaba.rocketmq.namesrv.NamesrvController;
 
 
 /**
- * KVÅäÖÃ¹ÜÀí
+ * KVé…ç½®ç®¡ç†
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-1

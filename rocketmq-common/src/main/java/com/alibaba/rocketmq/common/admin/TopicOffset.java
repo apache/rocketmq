@@ -16,7 +16,7 @@
 package com.alibaba.rocketmq.common.admin;
 
 /**
- * Topic Offset–≈œ¢
+ * Topic Offset‰ø°ÊÅØ
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-14

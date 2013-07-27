@@ -16,15 +16,15 @@
 package com.alibaba.rocketmq.store.config;
 
 /**
- * Broker角色
+ * Broker瑙掕壊
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-21
  */
 public enum BrokerRole {
-    // 异步复制Master
+    // 寮傛澶嶅埗Master
     ASYNC_MASTER,
-    // 同步双写Master
+    // 鍚屾鍙屽啓Master
     SYNC_MASTER,
     // Slave
     SLAVE

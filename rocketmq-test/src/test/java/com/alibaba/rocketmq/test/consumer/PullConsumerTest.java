@@ -114,7 +114,7 @@ public class PullConsumerTest extends BaseTest {
             InterruptedException {
         Set<MessageQueue> mqs = consumer.fetchSubscribeMessageQueues("TopicTest");
         for (MessageQueue mq : mqs) {
-            // TODO ÉèÖÃ×èÈûÊ±¼ä
+            // TODO è®¾ç½®é˜»å¡æ—¶é—´
             PullResult pullResult = consumer.pullBlockIfNotFound(mq, null, 0, 32);
             System.out.println(pullResult);
         }
@@ -141,7 +141,7 @@ public class PullConsumerTest extends BaseTest {
         };
         Set<MessageQueue> mqs = consumer.fetchSubscribeMessageQueues("TopicTest");
         for (MessageQueue mq : mqs) {
-            // TODO ÉèÖÃ×èÈûÊ±¼ä
+            // TODO è®¾ç½®é˜»å¡æ—¶é—´
             consumer.pullBlockIfNotFound(mq, null, 0, 32, pullCallback);
         }
     }
@@ -217,35 +217,35 @@ public class PullConsumerTest extends BaseTest {
 
 
     // @Test
-    // ÂÒĞò·½Ê½¶©ÔÄÏûÏ¢
+    // ä¹±åºæ–¹å¼è®¢é˜…æ¶ˆæ¯
     // @Test
-    // Ë³Ğò·½Ê½¶©ÔÄÏûÏ¢
+    // é¡ºåºæ–¹å¼è®¢é˜…æ¶ˆæ¯
     // @Test
-    // ÊÂÎñ·½Ê½Ïû·ÑÏûÏ¢
+    // äº‹åŠ¡æ–¹å¼æ¶ˆè´¹æ¶ˆæ¯
     // @Test
-    // ±í´ïÊ½¹ıÂËÏûÏ¢
+    // è¡¨è¾¾å¼è¿‡æ»¤æ¶ˆæ¯
     // @Test
-    // ¹ã²¥·½Ê½Ïû·Ñ
+    // å¹¿æ’­æ–¹å¼æ¶ˆè´¹
     // @Test
-    // ¼¯Èº·½Ê½Ïû·Ñ
+    // é›†ç¾¤æ–¹å¼æ¶ˆè´¹
     // @Test
-    // ¸ºÔØ¾ùºâÊµÊ±ĞÔ
+    // è´Ÿè½½å‡è¡¡å®æ—¶æ€§
     // @Test
-    // ÏûÏ¢Ïû·ÑÊ§°Ü£¬·¢»ØBroker¶Ë£¬ÑÓÊ±ÖØÊÔ
+    // æ¶ˆæ¯æ¶ˆè´¹å¤±è´¥ï¼Œå‘å›Brokerç«¯ï¼Œå»¶æ—¶é‡è¯•
     // @Test
-    // µ¥¶ÓÁĞ²¢ĞĞÏû·Ñ
+    // å•é˜Ÿåˆ—å¹¶è¡Œæ¶ˆè´¹
     // @Test
-    // Consumer¿É×ÔÓÉÑ¡Ôñ´ÓÄÄ¸öÏû·Ñ½ø¶È¿ªÊ¼Ïû·Ñ
+    // Consumerå¯è‡ªç”±é€‰æ‹©ä»å“ªä¸ªæ¶ˆè´¹è¿›åº¦å¼€å§‹æ¶ˆè´¹
     // @Test
-    // Consumer¿É×ÔÓÉÑ¡Ôñ´ÓMaster»¹ÊÇSlaveÏû·Ñ
+    // Consumerå¯è‡ªç”±é€‰æ‹©ä»Masterè¿˜æ˜¯Slaveæ¶ˆè´¹
     // @Test
-    // Pull·½Ê½×ÔÓÉÀ­ÏûÏ¢
+    // Pullæ–¹å¼è‡ªç”±æ‹‰æ¶ˆæ¯
     // @Test
-    // ¶©ÔÄÏûÏ¢µÍÑÓÊ±£¬²»¶Ñ»ıÇé¿öÏÂ¿É±£Ö¤ÑÓÊ±ÔÚ10msÒÔÄÚ»ò×óÓÒ£¨³¤ÂÖÑ¯£©
+    // è®¢é˜…æ¶ˆæ¯ä½å»¶æ—¶ï¼Œä¸å †ç§¯æƒ…å†µä¸‹å¯ä¿è¯å»¶æ—¶åœ¨10msä»¥å†…æˆ–å·¦å³ï¼ˆé•¿è½®è¯¢ï¼‰
 
     @Test
-    // ÏûÏ¢²éÑ¯
-    // ¸ù¾İÏûÏ¢ID²éÑ¯ÏûÏ¢
+    // æ¶ˆæ¯æŸ¥è¯¢
+    // æ ¹æ®æ¶ˆæ¯IDæŸ¥è¯¢æ¶ˆæ¯
     public void testSearcMsgbyId() throws MQClientException, RemotingException, MQBrokerException,
             InterruptedException {
         Set<MessageQueue> mqs = consumer.fetchSubscribeMessageQueues("TopicTest");
@@ -276,18 +276,18 @@ public class PullConsumerTest extends BaseTest {
 
 
     @Test
-    // ¸ù¾İÏûÏ¢Key²éÑ¯ÏûÏ¢
+    // æ ¹æ®æ¶ˆæ¯KeyæŸ¥è¯¢æ¶ˆæ¯
     public void testSearcMsgbyKey() {
-        // µ¥TagÏûÏ¢·şÎñ¶Ë¹ıÂË
+        // å•Tagæ¶ˆæ¯æœåŠ¡ç«¯è¿‡æ»¤
 
-        // ¶àTagÏûÏ¢·şÎñ¶Ë¹ıÂË
+        // å¤šTagæ¶ˆæ¯æœåŠ¡ç«¯è¿‡æ»¤
 
-        // ¶àTagÏûÏ¢ÈÎÒâtag·şÎñ¶Ë¹ıÂË
+        // å¤šTagæ¶ˆæ¯ä»»æ„tagæœåŠ¡ç«¯è¿‡æ»¤
 
     }
 
 
-    // ÊÂÎñÏûÏ¢ÉèÖÃKey£¬¿ÉÒÔÍ¨¹ıKeyÀ´¸ú×ÙÏûÏ¢Ìá½»»Ø¹ö×´¿ö
+    // äº‹åŠ¡æ¶ˆæ¯è®¾ç½®Keyï¼Œå¯ä»¥é€šè¿‡Keyæ¥è·Ÿè¸ªæ¶ˆæ¯æäº¤å›æ»šçŠ¶å†µ
 
     @AfterClass
     @Override

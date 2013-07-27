@@ -29,7 +29,7 @@ import com.alibaba.rocketmq.common.message.MessageQueue;
 
 
 /**
- * Ë³ĞòÏûÏ¢ÕùÇÀ¶ÓÁĞËø
+ * é¡ºåºæ¶ˆæ¯äº‰æŠ¢é˜Ÿåˆ—é”
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-6-26
@@ -101,12 +101,12 @@ public class RebalanceLockManager {
 
 
     /**
-     * ³¢ÊÔËø¶ÓÁĞ
+     * å°è¯•é”é˜Ÿåˆ—
      * 
-     * @return ÊÇ·ñlock³É¹¦
+     * @return æ˜¯å¦lockæˆåŠŸ
      */
     public boolean tryLock(final String group, final MessageQueue mq, final String clientId) {
-        // Ã»ÓĞ±»Ëø×¡
+        // æ²¡æœ‰è¢«é”ä½
         if (!this.isLocked(group, mq, clientId)) {
             try {
                 this.lock.lockInterruptibly();
@@ -135,7 +135,7 @@ public class RebalanceLockManager {
 
                     String oldClientId = lockEntry.getClientId();
 
-                    // ËøÒÑ¾­¹ıÆÚ£¬ÇÀÕ¼Ëü
+                    // é”å·²ç»è¿‡æœŸï¼ŒæŠ¢å å®ƒ
                     if (lockEntry.isExpired()) {
                         lockEntry.setClientId(clientId);
                         lockEntry.setLastUpdateTimestamp(System.currentTimeMillis());
@@ -148,7 +148,7 @@ public class RebalanceLockManager {
                         return true;
                     }
 
-                    // Ëø±»±ğµÄClientÕ¼ÓÃ
+                    // é”è¢«åˆ«çš„Clientå ç”¨
                     log.warn(
                         "tryLock, message queue locked by other client. Group: {} OtherClientId: {} NewClientId: {} {}", //
                         group, //
@@ -165,9 +165,9 @@ public class RebalanceLockManager {
                 log.error("putMessage exception", e);
             }
         }
-        // ÒÑ¾­Ëø×¡£¬³¢ÊÔ¸üĞÂÊ±¼ä
+        // å·²ç»é”ä½ï¼Œå°è¯•æ›´æ–°æ—¶é—´
         else {
-            // isLocked ÖĞÒÑ¾­¸üĞÂÁËÊ±¼ä£¬ÕâÀï²»ĞèÒªÔÙ¸üĞÂ
+            // isLocked ä¸­å·²ç»æ›´æ–°äº†æ—¶é—´ï¼Œè¿™é‡Œä¸éœ€è¦å†æ›´æ–°
         }
 
         return true;
@@ -175,16 +175,16 @@ public class RebalanceLockManager {
 
 
     /**
-     * ÅúÁ¿·½Ê½Ëø¶ÓÁĞ£¬·µ»ØËø¶¨³É¹¦µÄ¶ÓÁĞ¼¯ºÏ
+     * æ‰¹é‡æ–¹å¼é”é˜Ÿåˆ—ï¼Œè¿”å›é”å®šæˆåŠŸçš„é˜Ÿåˆ—é›†åˆ
      * 
-     * @return ÊÇ·ñlock³É¹¦
+     * @return æ˜¯å¦lockæˆåŠŸ
      */
     public Set<MessageQueue> tryLockBatch(final String group, final Set<MessageQueue> mqs,
             final String clientId) {
         Set<MessageQueue> lockedMqs = new HashSet<MessageQueue>(mqs.size());
         Set<MessageQueue> notLockedMqs = new HashSet<MessageQueue>(mqs.size());
 
-        // ÏÈÍ¨¹ı²»¼ÓËøµÄ·½Ê½³¢ÊÔ²é¿´ÄÄĞ©Ëø¶¨£¬ÄÄĞ©Ã»Ëø¶¨
+        // å…ˆé€šè¿‡ä¸åŠ é”çš„æ–¹å¼å°è¯•æŸ¥çœ‹å“ªäº›é”å®šï¼Œå“ªäº›æ²¡é”å®š
         for (MessageQueue mq : mqs) {
             if (this.isLocked(group, mq, clientId)) {
                 lockedMqs.add(mq);
@@ -204,7 +204,7 @@ public class RebalanceLockManager {
                         this.mqLockTable.put(group, groupValue);
                     }
 
-                    // ±éÀúÃ»ÓĞËø×¡µÄ¶ÓÁĞ
+                    // éå†æ²¡æœ‰é”ä½çš„é˜Ÿåˆ—
                     for (MessageQueue mq : notLockedMqs) {
                         LockEntry lockEntry = groupValue.get(mq);
                         if (null == lockEntry) {
@@ -218,7 +218,7 @@ public class RebalanceLockManager {
                                 mq);
                         }
 
-                        // ÒÑ¾­Ëø¶¨
+                        // å·²ç»é”å®š
                         if (lockEntry.isLocked(clientId)) {
                             lockEntry.setLastUpdateTimestamp(System.currentTimeMillis());
                             lockedMqs.add(mq);
@@ -226,7 +226,7 @@ public class RebalanceLockManager {
 
                         String oldClientId = lockEntry.getClientId();
 
-                        // ËøÒÑ¾­¹ıÆÚ£¬ÇÀÕ¼Ëü
+                        // é”å·²ç»è¿‡æœŸï¼ŒæŠ¢å å®ƒ
                         if (lockEntry.isExpired()) {
                             lockEntry.setClientId(clientId);
                             lockEntry.setLastUpdateTimestamp(System.currentTimeMillis());
@@ -239,7 +239,7 @@ public class RebalanceLockManager {
                             lockedMqs.add(mq);
                         }
 
-                        // Ëø±»±ğµÄClientÕ¼ÓÃ
+                        // é”è¢«åˆ«çš„Clientå ç”¨
                         log.warn(
                             "tryLockBatch, message queue locked by other client. Group: {} OtherClientId: {} NewClientId: {} {}", //
                             group, //

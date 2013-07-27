@@ -39,7 +39,7 @@ import com.alibaba.rocketmq.store.DispatchRequest;
 
 
 /**
- * ÏûÏ¢Ë÷Òı·şÎñ
+ * æ¶ˆæ¯ç´¢å¼•æœåŠ¡
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-21
@@ -52,14 +52,14 @@ public class IndexService extends ServiceThread {
 
     private final DefaultMessageStore defaultMessageStore;
 
-    // Ë÷ÒıÅäÖÃ
+    // ç´¢å¼•é…ç½®
     private final int hashSlotNum;
     private final int indexNum;
     private final String storePath;
 
-    // Ë÷ÒıÎÄ¼ş¼¯ºÏ
+    // ç´¢å¼•æ–‡ä»¶é›†åˆ
     private final ArrayList<IndexFile> indexFileList = new ArrayList<IndexFile>();
-    // ¶ÁĞ´Ëø£¨Õë¶ÔindexFileList£©
+    // è¯»å†™é”ï¼ˆé’ˆå¯¹indexFileListï¼‰
     private final ReadWriteLock readWriteLock = new ReentrantReadWriteLock();
 
 
@@ -105,15 +105,15 @@ public class IndexService extends ServiceThread {
 
 
     /**
-     * »ñÈ¡×îºóÒ»¸öË÷ÒıÎÄ¼ş£¬Èç¹û¼¯ºÏÎª¿Õ»òÕß×îºóÒ»¸öÎÄ¼şĞ´ÂúÁË£¬ÔòĞÂ½¨Ò»¸öÎÄ¼ş<br>
-     * Ö»ÓĞÒ»¸öÏß³Ìµ÷ÓÃ£¬ËùÒÔ²»´æÔÚĞ´¾¹ÕùÎÊÌâ
+     * è·å–æœ€åä¸€ä¸ªç´¢å¼•æ–‡ä»¶ï¼Œå¦‚æœé›†åˆä¸ºç©ºæˆ–è€…æœ€åä¸€ä¸ªæ–‡ä»¶å†™æ»¡äº†ï¼Œåˆ™æ–°å»ºä¸€ä¸ªæ–‡ä»¶<br>
+     * åªæœ‰ä¸€ä¸ªçº¿ç¨‹è°ƒç”¨ï¼Œæ‰€ä»¥ä¸å­˜åœ¨å†™ç«Ÿäº‰é—®é¢˜
      */
     public IndexFile getAndCreateLastIndexFile() {
         IndexFile indexFile = null;
         IndexFile prevIndexFile = null;
         long lastUpdateEndPhyOffset = 0;
         long lastUpdateIndexTimestamp = 0;
-        // ÏÈ³¢ÊÔÊ¹ÓÃ¶ÁËø
+        // å…ˆå°è¯•ä½¿ç”¨è¯»é”
         {
             this.readWriteLock.readLock().lock();
             if (!this.indexFileList.isEmpty()) {
@@ -131,7 +131,7 @@ public class IndexService extends ServiceThread {
             this.readWriteLock.readLock().unlock();
         }
 
-        // Èç¹ûÃ»ÕÒµ½£¬Ê¹ÓÃĞ´Ëø´´½¨ÎÄ¼ş
+        // å¦‚æœæ²¡æ‰¾åˆ°ï¼Œä½¿ç”¨å†™é”åˆ›å»ºæ–‡ä»¶
         if (indexFile == null) {
             try {
                 String fileName =
@@ -150,7 +150,7 @@ public class IndexService extends ServiceThread {
                 this.readWriteLock.writeLock().unlock();
             }
 
-            // Ã¿´´½¨Ò»¸öĞÂÎÄ¼ş£¬Ö®Ç°ÎÄ¼şÒªË¢ÅÌ
+            // æ¯åˆ›å»ºä¸€ä¸ªæ–°æ–‡ä»¶ï¼Œä¹‹å‰æ–‡ä»¶è¦åˆ·ç›˜
             if (indexFile != null) {
                 final IndexFile flushThisFile = prevIndexFile;
                 Thread flushThread = new Thread(new Runnable() {
@@ -170,7 +170,7 @@ public class IndexService extends ServiceThread {
 
 
     /**
-     * É¾³ıÎÄ¼şÖ»ÄÜ´ÓÍ·¿ªÊ¼É¾
+     * åˆ é™¤æ–‡ä»¶åªèƒ½ä»å¤´å¼€å§‹åˆ 
      */
     private void deleteExpiredFile(List<IndexFile> files) {
         if (!files.isEmpty()) {
@@ -194,7 +194,7 @@ public class IndexService extends ServiceThread {
 
 
     /**
-     * É¾³ıË÷ÒıÎÄ¼ş
+     * åˆ é™¤ç´¢å¼•æ–‡ä»¶
      */
     public void deleteExpiredFile(long offset) {
         Object[] files = null;
@@ -298,7 +298,7 @@ public class IndexService extends ServiceThread {
 
     public QueryOffsetResult queryOffset(String topic, String key, int maxNum, long begin, long end) {
         List<Long> phyOffsets = new ArrayList<Long>(maxNum);
-        // TODO ¿ÉÄÜĞèÒª·µ»Ø¸ø×îÖÕÓÃ»§
+        // TODO å¯èƒ½éœ€è¦è¿”å›ç»™æœ€ç»ˆç”¨æˆ·
         long indexLastUpdateTimestamp = 0;
         long indexLastUpdatePhyoffset = 0;
         maxNum = Math.min(maxNum, this.defaultMessageStore.getMessageStoreConfig().getMaxMsgsNumBatch());
@@ -314,11 +314,11 @@ public class IndexService extends ServiceThread {
                     }
 
                     if (f.isTimeMatched(begin, end)) {
-                        // ×îºóÒ»¸öÎÄ¼şĞèÒª¼ÓËø
+                        // æœ€åä¸€ä¸ªæ–‡ä»¶éœ€è¦åŠ é”
                         f.selectPhyOffset(phyOffsets, this.buildKey(topic, key), maxNum, begin, end, lastFile);
                     }
 
-                    // ÔÙÍùÇ°±éÀúÊ±¼ä¸ü²»·ûºÏ
+                    // å†å¾€å‰éå†æ—¶é—´æ›´ä¸ç¬¦åˆ
                     if (f.getBeginTimestamp() > end) {
                         break;
                     }
@@ -341,7 +341,7 @@ public class IndexService extends ServiceThread {
 
 
     /**
-     * ×·¼ÓÇëÇó£¬·µ»Ø¶ÓÁĞÖĞ¶Ñ»ıµÄÇëÇóÊı
+     * è¿½åŠ è¯·æ±‚ï¼Œè¿”å›é˜Ÿåˆ—ä¸­å †ç§¯çš„è¯·æ±‚æ•°
      */
     public int putRequest(final Object[] reqs) {
         this.requestQueue.add(reqs);
@@ -357,7 +357,7 @@ public class IndexService extends ServiceThread {
     public IndexFile retryGetAndCreateIndexFile() {
         IndexFile indexFile = null;
 
-        // Èç¹û´´½¨Ê§°Ü£¬³¢ÊÔÖØ½¨3´Î
+        // å¦‚æœåˆ›å»ºå¤±è´¥ï¼Œå°è¯•é‡å»º3æ¬¡
         for (int times = 0; null == indexFile && times < 3; times++) {
             indexFile = this.getAndCreateLastIndexFile();
             if (null != indexFile)
@@ -372,7 +372,7 @@ public class IndexService extends ServiceThread {
             }
         }
 
-        // ÖØÊÔ¶à´Î£¬ÈÔÈ»ÎŞ·¨´´½¨Ë÷ÒıÎÄ¼ş
+        // é‡è¯•å¤šæ¬¡ï¼Œä»ç„¶æ— æ³•åˆ›å»ºç´¢å¼•æ–‡ä»¶
         if (null == indexFile) {
             this.defaultMessageStore.getAccessRights().makeIndexFileError();
             log.error("mark index file can not build flag");
@@ -408,7 +408,7 @@ public class IndexService extends ServiceThread {
                 if (keys != null && keys.length() > 0) {
                     String[] keyset = keys.split(Message.KEY_SEPARATOR);
                     for (String key : keyset) {
-                        // TODO ÊÇ·ñĞèÒªTRIM
+                        // TODO æ˜¯å¦éœ€è¦TRIM
                         if (key.length() > 0) {
                             for (boolean ok =
                                     indexFile.putKey(buildKey(topic, key), msg.getCommitLogOffset(),
@@ -429,7 +429,7 @@ public class IndexService extends ServiceThread {
                 }
             }
         }
-        // IO·¢Éú¹ÊÕÏ£¬buildË÷Òı¹ı³ÌÖĞ¶Ï£¬ĞèÒªÈË¹¤²ÎÓë´¦Àí
+        // IOå‘ç”Ÿæ•…éšœï¼Œbuildç´¢å¼•è¿‡ç¨‹ä¸­æ–­ï¼Œéœ€è¦äººå·¥å‚ä¸å¤„ç†
         else {
             breakdown = true;
         }

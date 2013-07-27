@@ -11,7 +11,7 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 
 
 /**
- * Á¬½Ó³¬Ê±²âÊÔ
+ * è¿žæŽ¥è¶…æ—¶æµ‹è¯•
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-6

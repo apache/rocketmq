@@ -21,7 +21,7 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingSerializable;
 
 
 /**
- * 用来标识数据的版本号
+ * 鐢ㄦ潵鏍囪瘑鏁版嵁鐨勭増鏈彿
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * 

@@ -20,7 +20,7 @@ import org.apache.commons.cli.Options;
 
 
 /**
- * 各个子命令的接口
+ * 鍚勪釜瀛愬懡浠ょ殑鎺ュ彛
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-25

@@ -67,64 +67,64 @@ import com.alibaba.rocketmq.store.config.MessageStoreConfig;
 
 
 /**
- * Broker¸÷¸ö·şÎñ¿ØÖÆÆ÷
+ * Brokerå„ä¸ªæœåŠ¡æ§åˆ¶å™¨
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-26
  */
 public class BrokerController {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.BrokerLoggerName);
-    // ·şÎñÆ÷ÅäÖÃ
+    // æœåŠ¡å™¨é…ç½®
     private final BrokerConfig brokerConfig;
-    // Í¨ĞÅ²ãÅäÖÃ
+    // é€šä¿¡å±‚é…ç½®
     private final NettyServerConfig nettyServerConfig;
     private final NettyClientConfig nettyClientConfig;
-    // ´æ´¢²ãÅäÖÃ
+    // å­˜å‚¨å±‚é…ç½®
     private final MessageStoreConfig messageStoreConfig;
-    // ÅäÖÃÎÄ¼ş°æ±¾ºÅ
+    // é…ç½®æ–‡ä»¶ç‰ˆæœ¬å·
     private final DataVersion configDataVersion = new DataVersion();
 
-    // ´æ´¢²ã¶ÔÏó
+    // å­˜å‚¨å±‚å¯¹è±¡
     private MessageStore messageStore;
-    // Í¨ĞÅ²ã¶ÔÏó
+    // é€šä¿¡å±‚å¯¹è±¡
     private RemotingServer remotingServer;
 
-    // Ïû·Ñ½ø¶È´æ´¢
+    // æ¶ˆè´¹è¿›åº¦å­˜å‚¨
     private final ConsumerOffsetManager consumerOffsetManager;
-    // ConsumerÁ¬½Ó¡¢¶©ÔÄ¹ØÏµ¹ÜÀí
+    // Consumerè¿æ¥ã€è®¢é˜…å…³ç³»ç®¡ç†
     private final ConsumerManager consumerManager;
-    // ProducerÁ¬½Ó¹ÜÀí
+    // Producerè¿æ¥ç®¡ç†
     private final ProducerManager producerManager;
-    // ¼ì²âËùÓĞ¿Í»§¶ËÁ¬½Ó
+    // æ£€æµ‹æ‰€æœ‰å®¢æˆ·ç«¯è¿æ¥
     private final ClientHousekeepingService clientHousekeepingService;
-    // BrokerÖ÷¶¯»Ø²éProducerÊÂÎñ×´Ì¬
+    // Brokerä¸»åŠ¨å›æŸ¥Produceräº‹åŠ¡çŠ¶æ€
     private final DefaultTransactionCheckExecuter defaultTransactionCheckExecuter;
 
-    // TopicÅäÖÃ
+    // Topicé…ç½®
     private TopicConfigManager topicConfigManager;
-    // ´¦Àí·¢ËÍÏûÏ¢Ïß³Ì³Ø
+    // å¤„ç†å‘é€æ¶ˆæ¯çº¿ç¨‹æ± 
     private ExecutorService sendMessageExecutor;
-    // ´¦ÀíÀ­È¡ÏûÏ¢Ïß³Ì³Ø
+    // å¤„ç†æ‹‰å–æ¶ˆæ¯çº¿ç¨‹æ± 
     private ExecutorService pullMessageExecutor;
-    // ´¦Àí¹ÜÀíBrokerÏß³Ì³Ø
+    // å¤„ç†ç®¡ç†Brokerçº¿ç¨‹æ± 
     private ExecutorService adminBrokerExecutor;
 
     private final PullMessageProcessor pullMessageProcessor;
     private final PullRequestHoldService pullRequestHoldService;
 
-    // BrokerÖ÷¶¯µ÷ÓÃClient
+    // Brokerä¸»åŠ¨è°ƒç”¨Client
     private final Broker2Client broker2Client;
 
-    // ¶©ÔÄ×éÅäÖÃ¹ÜÀí
+    // è®¢é˜…ç»„é…ç½®ç®¡ç†
     private final SubscriptionGroupManager subscriptionGroupManager;
 
-    // ¶©ÔÄ×éÄÚ³ÉÔ±·¢Éú±ä»¯£¬Á¢¿ÌÍ¨ÖªËùÓĞ³ÉÔ±
+    // è®¢é˜…ç»„å†…æˆå‘˜å‘ç”Ÿå˜åŒ–ï¼Œç«‹åˆ»é€šçŸ¥æ‰€æœ‰æˆå‘˜
     private final ConsumerIdsChangeListener consumerIdsChangeListener;
 
-    // ¹ÜÀí¶ÓÁĞµÄËø·ÖÅä
+    // ç®¡ç†é˜Ÿåˆ—çš„é”åˆ†é…
     private final RebalanceLockManager rebalanceLockManager = new RebalanceLockManager();
 
-    // BrokerµÄÍ¨ĞÅ²ã¿Í»§¶Ë
+    // Brokerçš„é€šä¿¡å±‚å®¢æˆ·ç«¯
     private final BrokerOuterAPI brokerOuterAPI;
 
     private final ScheduledExecutorService scheduledExecutorService = Executors
@@ -135,10 +135,10 @@ public class BrokerController {
             }
         });
 
-    // ÊÇ·ñĞèÒª¶¨ÆÚ¸üĞÂHA MasterµØÖ·
+    // æ˜¯å¦éœ€è¦å®šæœŸæ›´æ–°HA Masteråœ°å€
     private boolean updateMasterHAServerAddrPeriodically = false;
 
-    // Slave¶¨ÆÚ´ÓMasterÍ¬²½ĞÅÏ¢
+    // Slaveå®šæœŸä»MasteråŒæ­¥ä¿¡æ¯
     private final SlaveSynchronize slaveSynchronize;
 
     private final DigestLogManager digestLogManager;
@@ -180,20 +180,20 @@ public class BrokerController {
     public boolean initialize() {
         boolean result = true;
 
-        // ´òÓ¡·şÎñÆ÷ÅäÖÃ²ÎÊı
+        // æ‰“å°æœåŠ¡å™¨é…ç½®å‚æ•°
         MixAll.printObjectProperties(log, this.brokerConfig);
         MixAll.printObjectProperties(log, this.nettyServerConfig);
         MixAll.printObjectProperties(log, this.messageStoreConfig);
 
-        // ¼ÓÔØTopicÅäÖÃ
+        // åŠ è½½Topicé…ç½®
         result = result && this.topicConfigManager.load();
 
-        // ¼ÓÔØConsumer Offset
+        // åŠ è½½Consumer Offset
         result = result && this.consumerOffsetManager.load();
-        // ¼ÓÔØConsumer subscription
+        // åŠ è½½Consumer subscription
         result = result && this.subscriptionGroupManager.load();
 
-        // ³õÊ¼»¯´æ´¢²ã
+        // åˆå§‹åŒ–å­˜å‚¨å±‚
         if (result) {
             try {
                 this.messageStore =
@@ -205,15 +205,15 @@ public class BrokerController {
             }
         }
 
-        // ¼ÓÔØ±¾µØÏûÏ¢Êı¾İ
+        // åŠ è½½æœ¬åœ°æ¶ˆæ¯æ•°æ®
         result = result && this.messageStore.load();
 
         if (result) {
-            // ³õÊ¼»¯Í¨ĞÅ²ã
+            // åˆå§‹åŒ–é€šä¿¡å±‚
             this.remotingServer =
                     new NettyRemotingServer(this.nettyServerConfig, this.clientHousekeepingService);
 
-            // ³õÊ¼»¯Ïß³Ì³Ø
+            // åˆå§‹åŒ–çº¿ç¨‹æ± 
             this.sendMessageExecutor =
                     Executors.newFixedThreadPool(this.brokerConfig.getSendMessageThreadPoolNums(),
                         new ThreadFactory() {
@@ -258,7 +258,7 @@ public class BrokerController {
 
             this.registerProcessor();
 
-            // ¶¨Ê±Ë¢Ïû·Ñ½ø¶È
+            // å®šæ—¶åˆ·æ¶ˆè´¹è¿›åº¦
             this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
                 @Override
                 public void run() {
@@ -271,7 +271,7 @@ public class BrokerController {
                 }
             }, 1000 * 10, this.brokerConfig.getFlushConsumerOffsetInterval(), TimeUnit.MILLISECONDS);
 
-            // ¶¨Ê±´òÓ¡¸÷¸öÏû·Ñ×éµÄÏû·ÑËÙ¶È
+            // å®šæ—¶æ‰“å°å„ä¸ªæ¶ˆè´¹ç»„çš„æ¶ˆè´¹é€Ÿåº¦
             this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
                 @Override
                 public void run() {
@@ -284,11 +284,11 @@ public class BrokerController {
                 }
             }, 1000 * 10, this.brokerConfig.getFlushConsumerOffsetHistoryInterval(), TimeUnit.MILLISECONDS);
 
-            // ÏÈ»ñÈ¡Name ServerµØÖ·
+            // å…ˆè·å–Name Serveråœ°å€
             if (this.brokerConfig.getNamesrvAddr() != null) {
                 this.brokerOuterAPI.updateNameServerAddressList(this.brokerConfig.getNamesrvAddr());
             }
-            // ¶¨Ê±»ñÈ¡Name ServerµØÖ·
+            // å®šæ—¶è·å–Name Serveråœ°å€
             else {
                 this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 
@@ -304,7 +304,7 @@ public class BrokerController {
                 }, 1000 * 10, 1000 * 60 * 2, TimeUnit.MILLISECONDS);
             }
 
-            // Èç¹ûÊÇslave
+            // å¦‚æœæ˜¯slave
             if (BrokerRole.SLAVE == this.messageStoreConfig.getBrokerRole()) {
                 if (this.messageStoreConfig.getHaMasterAddress() != null
                         && this.messageStoreConfig.getHaMasterAddress().length() >= 6) {
@@ -315,7 +315,7 @@ public class BrokerController {
                     this.updateMasterHAServerAddrPeriodically = true;
                 }
 
-                // Slave¶¨Ê±´ÓMasterÍ¬²½ÅäÖÃĞÅÏ¢
+                // Slaveå®šæ—¶ä»MasteråŒæ­¥é…ç½®ä¿¡æ¯
                 this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 
                     @Override
@@ -647,12 +647,12 @@ public class BrokerController {
             this.clientHousekeepingService.start();
         }
 
-        // Æô¶¯Í³¼ÆÈÕÖ¾
+        // å¯åŠ¨ç»Ÿè®¡æ—¥å¿—
         this.digestLogManager.start();
-        // Æô¶¯Ê±£¬Ç¿ÖÆ×¢²á
+        // å¯åŠ¨æ—¶ï¼Œå¼ºåˆ¶æ³¨å†Œ
         this.registerBrokerAll();
 
-        // ¶¨Ê±×¢²áBrokerµ½Name Server
+        // å®šæ—¶æ³¨å†ŒBrokeråˆ°Name Server
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 
             @Override

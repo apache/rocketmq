@@ -19,7 +19,7 @@ import com.alibaba.rocketmq.common.message.MessageQueue;
 
 
 /**
- * À­ÏûÏ¢ÇëÇó
+ * æ‹‰æ¶ˆæ¯è¯·æ±‚
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-24
@@ -28,7 +28,7 @@ public class PullRequest {
     private String consumerGroup;
     private MessageQueue messageQueue;
     private ProcessQueue processQueue;
-    // hashCodeÓëequals·½·¨²»°üº¬´Ë×Ö¶Î
+    // hashCodeä¸equalsæ–¹æ³•ä¸åŒ…å«æ­¤å­—æ®µ
     private long nextOffset;
 
 

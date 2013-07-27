@@ -11,12 +11,12 @@ public class TestFastjson {
     public static void main(String[] args) {
         ContactBook contactBook = new ContactBook();
 
-        contactBook.setName("ÕÅÈıµÄÍ¨ĞÅÂ¼");
+        contactBook.setName("å¼ ä¸‰çš„é€šä¿¡å½•");
         contactBook.setCode(100);
 
-        contactBook.getContactList().add(new Contact("ÁõµÂ»ª", 54, 60.56, "±¾¿Æ\"", SexType.BOY));
-        contactBook.getContactList().add(new Contact("ÕÅ»İÃÃ", 41, 52.69, "ÑĞ¾¿Éú", SexType.GIRL));
-        contactBook.getContactList().add(new Contact("ÖÜĞÇ³Û", 54, 61.22, "²©Ê¿", SexType.BOY));
+        contactBook.getContactList().add(new Contact("åˆ˜å¾·å", 54, 60.56, "æœ¬ç§‘\"", SexType.BOY));
+        contactBook.getContactList().add(new Contact("å¼ æƒ å¦¹", 41, 52.69, "ç ”ç©¶ç”Ÿ", SexType.GIRL));
+        contactBook.getContactList().add(new Contact("å‘¨æ˜Ÿé©°", 54, 61.22, "åšå£«", SexType.BOY));
 
         // String json = JSON.toJSONString(contactBook,
         // SerializerFeature.WriteClassName);

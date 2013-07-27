@@ -65,7 +65,7 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingProtos.ResponseCode;
 
 
 /**
- * Éú²úÕßÄ¬ÈÏÊµÏÖ
+ * ç”Ÿäº§è€…é»˜è®¤å®ç°
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-24
@@ -82,7 +82,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     private MQClientFactory mQClientFactory;
 
     /**
-     * ÊÂÎñÏà¹Ø
+     * äº‹åŠ¡ç›¸å…³
      */
     protected BlockingQueue<Runnable> checkRequestQueue;
     protected ExecutorService checkExecutor;
@@ -147,7 +147,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                         + FAQUrl.suggestTodo(FAQUrl.GROUP_NAME_DUPLICATE_URL), null);
             }
 
-            // Ä¬ÈÏTopic×¢²á
+            // é»˜è®¤Topicæ³¨å†Œ
             this.topicPublishInfoTable
                 .put(this.defaultMQProducer.getCreateTopicKey(), new TopicPublishInfo());
 
@@ -338,7 +338,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                 String lastBrokerName = null == mq ? null : mq.getBrokerName();
                 MessageQueue tmpmq = topicPublishInfo.selectOneMessageQueue(lastBrokerName);
                 if (tmpmq != null) {
-                    // ¶ÔÓÚ¸ù¾İÄ¬ÈÏTopic´´½¨TopicµÄÇé¿ö£¬ĞèÒª½øĞĞ¶ÓÁĞÊı¾ÀÕı
+                    // å¯¹äºæ ¹æ®é»˜è®¤Topicåˆ›å»ºTopicçš„æƒ…å†µï¼Œéœ€è¦è¿›è¡Œé˜Ÿåˆ—æ•°çº æ­£
                     if (!tmpmq.getTopic().equals(msg.getTopic())//
                             && (tmpmq.getQueueId() >= this.defaultMQProducer.getDefaultTopicQueueNums())) {
                         mq = new MessageQueue();
@@ -432,7 +432,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     ) throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
         String brokerAddr = this.mQClientFactory.findBrokerAddressInPublish(mq.getBrokerName());
         if (null == brokerAddr) {
-            // TODO ´Ë´¦¿ÉÄÜ¶ÔName ServerÑ¹Á¦¹ı´ó£¬ĞèÒªµ÷ÓÅ
+            // TODO æ­¤å¤„å¯èƒ½å¯¹Name Serverå‹åŠ›è¿‡å¤§ï¼Œéœ€è¦è°ƒä¼˜
             this.mQClientFactory.updateTopicRouteInfoFromNameServer(mq.getTopic());
             this.mQClientFactory.updateTopicRouteInfoFromNameServer(this.defaultMQProducer
                 .getCreateTopicKey());
@@ -514,7 +514,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
 
     /**
-     * ³¢ÊÔÑ°ÕÒTopicÂ·ÓÉĞÅÏ¢£¬Èç¹ûÃ»ÓĞÔòµ½Name ServerÉÏÕÒ£¬ÔÙÃ»ÓĞ£¬ÔòÈ¡Ä¬ÈÏTopic
+     * å°è¯•å¯»æ‰¾Topicè·¯ç”±ä¿¡æ¯ï¼Œå¦‚æœæ²¡æœ‰åˆ™åˆ°Name Serverä¸Šæ‰¾ï¼Œå†æ²¡æœ‰ï¼Œåˆ™å–é»˜è®¤Topic
      */
     private TopicPublishInfo tryToFindTopicPublishInfo(final String topic) {
         TopicPublishInfo topicPublishInfo = this.topicPublishInfoTable.get(topic);
@@ -720,7 +720,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             throw new MQClientException("tranExecuter is null", null);
         }
 
-        // µÚÒ»²½£¬ÏòBroker·¢ËÍÒ»ÌõPreparedÏûÏ¢
+        // ç¬¬ä¸€æ­¥ï¼Œå‘Brokerå‘é€ä¸€æ¡Preparedæ¶ˆæ¯
         SendResult sendResult = null;
         msg.putProperty(Message.PROPERTY_TRANSACTION_PREPARED, "true");
         msg.putProperty(Message.PROPERTY_PRODUCER_GROUP, this.defaultMQProducer.getProducerGroup());
@@ -731,7 +731,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             throw new MQClientException("send message Exception", e);
         }
 
-        // µÚ¶ş²½£¬»Øµ÷±¾µØÊÂÎñ
+        // ç¬¬äºŒæ­¥ï¼Œå›è°ƒæœ¬åœ°äº‹åŠ¡
         LocalTransactionState localTransactionState = LocalTransactionState.UNKNOW;
         Throwable localException = null;
         try {
@@ -751,7 +751,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             localException = e;
         }
 
-        // µÚÈı²½£¬Ìá½»»òÕß»Ø¹öBroker¶ËÏûÏ¢
+        // ç¬¬ä¸‰æ­¥ï¼Œæäº¤æˆ–è€…å›æ»šBrokerç«¯æ¶ˆæ¯
         try {
             this.endTransaction(sendResult, localTransactionState, localException);
         }

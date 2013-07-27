@@ -22,7 +22,7 @@ import com.alibaba.rocketmq.common.protocol.heartbeat.SubscriptionData;
 
 
 /**
- * ´æ´¢²ã¶ÔÍâÌá¹©µÄ½Ó¿Ú
+ * å­˜å‚¨å±‚å¯¹å¤–æä¾›çš„æ¥å£
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-21
@@ -30,69 +30,69 @@ import com.alibaba.rocketmq.common.protocol.heartbeat.SubscriptionData;
 public interface MessageStore {
 
     /**
-     * ÖØÆôÊ±£¬¼ÓÔØÊı¾İ
+     * é‡å¯æ—¶ï¼ŒåŠ è½½æ•°æ®
      */
     public boolean load();
 
 
     /**
-     * Æô¶¯·şÎñ
+     * å¯åŠ¨æœåŠ¡
      */
     public void start() throws Exception;
 
 
     /**
-     * ¹Ø±Õ·şÎñ
+     * å…³é—­æœåŠ¡
      */
     public void shutdown();
 
 
     /**
-     * É¾³ıËùÓĞÎÄ¼ş£¬µ¥Ôª²âÊÔ»áÊ¹ÓÃ
+     * åˆ é™¤æ‰€æœ‰æ–‡ä»¶ï¼Œå•å…ƒæµ‹è¯•ä¼šä½¿ç”¨
      */
     public void destroy();
 
 
     /**
-     * ´æ´¢ÏûÏ¢
+     * å­˜å‚¨æ¶ˆæ¯
      */
     public PutMessageResult putMessage(final MessageExtBrokerInner msg);
 
 
     /**
-     * ¶ÁÈ¡ÏûÏ¢£¬Èç¹ûtypesÎªnull£¬Ôò²»×ö¹ıÂË
+     * è¯»å–æ¶ˆæ¯ï¼Œå¦‚æœtypesä¸ºnullï¼Œåˆ™ä¸åšè¿‡æ»¤
      */
     public GetMessageResult getMessage(final String topic, final int queueId, final long offset,
             final int maxMsgNums, final SubscriptionData subscriptionData);
 
 
     /**
-     * »ñÈ¡Ö¸¶¨¶ÓÁĞ×î´óOffset Èç¹û¶ÓÁĞ²»´æÔÚ£¬·µ»Ø-1
+     * è·å–æŒ‡å®šé˜Ÿåˆ—æœ€å¤§Offset å¦‚æœé˜Ÿåˆ—ä¸å­˜åœ¨ï¼Œè¿”å›-1
      */
     public long getMaxOffsetInQuque(final String topic, final int queueId);
 
 
     /**
-     * »ñÈ¡Ö¸¶¨¶ÓÁĞ×îĞ¡Offset Èç¹û¶ÓÁĞ²»´æÔÚ£¬·µ»Ø-1
+     * è·å–æŒ‡å®šé˜Ÿåˆ—æœ€å°Offset å¦‚æœé˜Ÿåˆ—ä¸å­˜åœ¨ï¼Œè¿”å›-1
      */
     public long getMinOffsetInQuque(final String topic, final int queueId);
 
 
     /**
-     * ¸ù¾İÏûÏ¢Ê±¼ä»ñÈ¡Ä³¸ö¶ÓÁĞÖĞ¶ÔÓ¦µÄoffset 1¡¢Èç¹ûÖ¸¶¨Ê±¼ä£¨°üº¬Ö®Ç°Ö®ºó£©ÓĞ¶ÔÓ¦µÄÏûÏ¢£¬Ôò»ñÈ¡¾àÀë´ËÊ±¼ä×î½üµÄoffset£¨ÓÅÏÈÑ¡ÔñÖ®Ç°£©
-     * 2¡¢Èç¹ûÖ¸¶¨Ê±¼äÎŞ¶ÔÓ¦ÏûÏ¢£¬Ôò·µ»Ø0
+     * æ ¹æ®æ¶ˆæ¯æ—¶é—´è·å–æŸä¸ªé˜Ÿåˆ—ä¸­å¯¹åº”çš„offset 1ã€å¦‚æœæŒ‡å®šæ—¶é—´ï¼ˆåŒ…å«ä¹‹å‰ä¹‹åï¼‰æœ‰å¯¹åº”çš„æ¶ˆæ¯ï¼Œåˆ™è·å–è·ç¦»æ­¤æ—¶é—´æœ€è¿‘çš„offsetï¼ˆä¼˜å…ˆé€‰æ‹©ä¹‹å‰ï¼‰
+     * 2ã€å¦‚æœæŒ‡å®šæ—¶é—´æ— å¯¹åº”æ¶ˆæ¯ï¼Œåˆ™è¿”å›0
      */
     public long getOffsetInQueueByTime(final String topic, final int queueId, final long timestamp);
 
 
     /**
-     * Í¨¹ıÎïÀí¶ÓÁĞOffset£¬²éÑ¯ÏûÏ¢¡£ Èç¹û·¢Éú´íÎó£¬Ôò·µ»Ønull
+     * é€šè¿‡ç‰©ç†é˜Ÿåˆ—Offsetï¼ŒæŸ¥è¯¢æ¶ˆæ¯ã€‚ å¦‚æœå‘ç”Ÿé”™è¯¯ï¼Œåˆ™è¿”å›null
      */
     public MessageExt lookMessageByOffset(final long commitLogOffset);
 
 
     /**
-     * Í¨¹ıÎïÀí¶ÓÁĞOffset£¬²éÑ¯ÏûÏ¢¡£ Èç¹û·¢Éú´íÎó£¬Ôò·µ»Ønull
+     * é€šè¿‡ç‰©ç†é˜Ÿåˆ—Offsetï¼ŒæŸ¥è¯¢æ¶ˆæ¯ã€‚ å¦‚æœå‘ç”Ÿé”™è¯¯ï¼Œåˆ™è¿”å›null
      */
     public SelectMapedBufferResult selectOneMessageByOffset(final long commitLogOffset);
 
@@ -101,55 +101,55 @@ public interface MessageStore {
 
 
     /**
-     * »ñÈ¡ÔËĞĞÊ±Í³¼ÆÊı¾İ
+     * è·å–è¿è¡Œæ—¶ç»Ÿè®¡æ•°æ®
      */
     public String getRunningDataInfo();
 
 
     /**
-     * »ñÈ¡ÔËĞĞÊ±Í³¼ÆÊı¾İ
+     * è·å–è¿è¡Œæ—¶ç»Ÿè®¡æ•°æ®
      */
     public HashMap<String, String> getRuntimeInfo();
 
 
     /**
-     * »ñÈ¡ÎïÀí¶ÓÁĞ×î´óoffset
+     * è·å–ç‰©ç†é˜Ÿåˆ—æœ€å¤§offset
      */
     public long getMaxPhyOffset();
 
 
     /**
-     * »ñÈ¡¶ÓÁĞÖĞ×îÔçµÄÏûÏ¢Ê±¼ä
+     * è·å–é˜Ÿåˆ—ä¸­æœ€æ—©çš„æ¶ˆæ¯æ—¶é—´
      */
     public long getEarliestMessageTime(final String topic, final int queueId);
 
 
     /**
-     * »ñÈ¡¶ÓÁĞÖĞµÄÏûÏ¢×ÜÊı
+     * è·å–é˜Ÿåˆ—ä¸­çš„æ¶ˆæ¯æ€»æ•°
      */
     public long getMessageTotalInQueue(final String topic, final int queueId);
 
 
     /**
-     * Êı¾İ¸´ÖÆÊ¹ÓÃ£º»ñÈ¡CommitLogÊı¾İ
+     * æ•°æ®å¤åˆ¶ä½¿ç”¨ï¼šè·å–CommitLogæ•°æ®
      */
     public SelectMapedBufferResult getCommitLogData(final long offset);
 
 
     /**
-     * Êı¾İ¸´ÖÆÊ¹ÓÃ£ºÏòCommitLog×·¼ÓÊı¾İ£¬²¢·Ö·¢ÖÁ¸÷¸öConsume Queue
+     * æ•°æ®å¤åˆ¶ä½¿ç”¨ï¼šå‘CommitLogè¿½åŠ æ•°æ®ï¼Œå¹¶åˆ†å‘è‡³å„ä¸ªConsume Queue
      */
     public boolean appendToCommitLog(final long startOffset, final byte[] data);
 
 
     /**
-     * ÊÖ¶¯´¥·¢É¾³ıÎÄ¼ş
+     * æ‰‹åŠ¨è§¦å‘åˆ é™¤æ–‡ä»¶
      */
     public void excuteDeleteFilesManualy();
 
 
     /**
-     * ¸ù¾İÏûÏ¢Key²éÑ¯ÏûÏ¢
+     * æ ¹æ®æ¶ˆæ¯KeyæŸ¥è¯¢æ¶ˆæ¯
      */
     public QueryMessageResult queryMessage(final String topic, final String key, final int maxNum,
             final long begin, final long end);

@@ -52,7 +52,7 @@ import com.alibaba.rocketmq.remoting.exception.RemotingException;
 
 
 /**
- * Pull·½Ê½µÄConsumerÊµÏÖ
+ * Pullæ–¹å¼çš„Consumerå®ç°
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-24
@@ -64,10 +64,10 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
     private MQClientFactory mQClientFactory;
     private PullAPIWrapper pullAPIWrapper;
 
-    // Ïû·Ñ½ø¶È´æ´¢
+    // æ¶ˆè´¹è¿›åº¦å­˜å‚¨
     private OffsetStore offsetStore;
 
-    // RebalanceÊµÏÖ
+    // Rebalanceå®ç°
     private RebalanceImpl rebalanceImpl = new RebalancePullImpl(this);
 
 
@@ -111,7 +111,7 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
 
     private void copySubscription() throws MQClientException {
         try {
-            // ¸´ÖÆÓÃ»§³õÊ¼ÉèÖÃµÄ¶©ÔÄ¹ØÏµ
+            // å¤åˆ¶ç”¨æˆ·åˆå§‹è®¾ç½®çš„è®¢é˜…å…³ç³»
             Set<String> registerTopics = this.defaultMQPullConsumer.getRegisterTopics();
             if (registerTopics != null) {
                 for (final String topic : registerTopics) {
@@ -299,7 +299,7 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
             throw new MQClientException("pullCallback is null", null);
         }
 
-        // ×Ô¶¯¶©ÔÄ
+        // è‡ªåŠ¨è®¢é˜…
         this.subscriptionAutomatically(mq.getTopic());
 
         try {
@@ -391,7 +391,7 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
             throw new MQClientException("maxNums <= 0", null);
         }
 
-        // ×Ô¶¯¶©ÔÄ
+        // è‡ªåŠ¨è®¢é˜…
         this.subscriptionAutomatically(mq.getTopic());
 
         int sysFlag = PullSysFlag.buildSysFlag(false, block, true);
@@ -492,7 +492,7 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
             this.mQClientFactory =
                     MQClientManager.getInstance().getAndCreateMQClientFactory(this.defaultMQPullConsumer);
 
-            // ³õÊ¼»¯Rebalance±äÁ¿
+            // åˆå§‹åŒ–Rebalanceå˜é‡
             this.rebalanceImpl.setConsumerGroup(this.defaultMQPullConsumer.getConsumerGroup());
             this.rebalanceImpl.setMessageModel(this.defaultMQPullConsumer.getMessageModel());
             this.rebalanceImpl.setAllocateMessageQueueStrategy(this.defaultMQPullConsumer
@@ -507,7 +507,7 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
                 this.offsetStore = this.defaultMQPullConsumer.getOffsetStore();
             }
             else {
-                // ¹ã²¥Ïû·Ñ/¼¯ÈºÏû·Ñ
+                // å¹¿æ’­æ¶ˆè´¹/é›†ç¾¤æ¶ˆè´¹
                 switch (this.defaultMQPullConsumer.getMessageModel()) {
                 case BROADCASTING:
                     this.offsetStore =
@@ -524,7 +524,7 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
                 }
             }
 
-            // ¼ÓÔØÏû·Ñ½ø¶È
+            // åŠ è½½æ¶ˆè´¹è¿›åº¦
             this.offsetStore.load();
 
             boolean registerOK =

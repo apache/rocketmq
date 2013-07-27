@@ -28,7 +28,7 @@ public class MessageSysFlag {
 
     /**
      * 7 6 5 4 3 2 1 0<br>
-     * SysFlag ÊÂÎñÏà¹Ø£¬´Ó×óÊô£¬2Óë3
+     * SysFlag äº‹åŠ¡ç›¸å…³ï¼Œä»å·¦å±ï¼Œ2ä¸3
      */
     public final static int TransactionNotType = (0x0 << 2);
     public final static int TransactionPreparedType = (0x1 << 2);

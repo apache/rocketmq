@@ -23,7 +23,7 @@ import java.lang.annotation.Target;
 
 
 /**
- * ±íÊ¾×Ö¶Î²»ÔÊĞíÎª¿Õ
+ * è¡¨ç¤ºå­—æ®µä¸å…è®¸ä¸ºç©º
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-13

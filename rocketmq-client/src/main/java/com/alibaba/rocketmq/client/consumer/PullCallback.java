@@ -16,7 +16,7 @@
 package com.alibaba.rocketmq.client.consumer;
 
 /**
- * Òì²½À­ÏûÏ¢»Øµ÷½Ó¿Ú
+ * å¼‚æ­¥æ‹‰æ¶ˆæ¯å›è°ƒæ¥å£
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-24

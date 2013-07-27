@@ -16,7 +16,7 @@
 package com.alibaba.rocketmq.remoting.common;
 
 /**
- * °ü×°2¸ö¶ÔÏó
+ * åŒ…è£…2ä¸ªå¯¹è±¡
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-13

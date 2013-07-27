@@ -65,7 +65,7 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 
 
 /**
- * Remoting¿Í»§¶ËÊµÏÖ
+ * Remotingå®¢æˆ·ç«¯å®ç°
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-13
@@ -84,16 +84,16 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
     private final ConcurrentHashMap<String /* addr */, ChannelWrapper> channelTables =
             new ConcurrentHashMap<String, ChannelWrapper>();
 
-    // ¶¨Ê±Æ÷
+    // å®šæ—¶å™¨
     private final Timer timer = new Timer("ClientHouseKeepingService", true);
 
-    // Name serverÏà¹Ø
+    // Name serverç›¸å…³
     private final AtomicReference<List<String>> namesrvAddrList = new AtomicReference<List<String>>();
     private final AtomicReference<String> namesrvAddrChoosed = new AtomicReference<String>();
     private final AtomicInteger namesrvIndex = new AtomicInteger(initValueIndex());
     private final Lock lockNamesrvChannel = new ReentrantLock();
 
-    // ´¦ÀíCallbackÓ¦´ğÆ÷
+    // å¤„ç†Callbackåº”ç­”å™¨
     private final ExecutorService publicExecutor;
 
     private final ChannelEventListener channelEventListener;
@@ -280,7 +280,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                 }
             });
 
-        // Ã¿¸ô1ÃëÉ¨ÃèÏÂÒì²½µ÷ÓÃ³¬Ê±Çé¿ö
+        // æ¯éš”1ç§’æ‰«æä¸‹å¼‚æ­¥è°ƒç”¨è¶…æ—¶æƒ…å†µ
         this.timer.scheduleAtFixedRate(new TimerTask() {
 
             @Override
@@ -359,7 +359,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
         }
 
         final List<String> addrList = this.namesrvAddrList.get();
-        // ¼ÓËø£¬³¢ÊÔ´´½¨Á¬½Ó
+        // åŠ é”ï¼Œå°è¯•åˆ›å»ºè¿æ¥
         if (this.lockNamesrvChannel.tryLock(LockTimeoutMillis, TimeUnit.MILLISECONDS)) {
             try {
                 addr = this.namesrvAddrChoosed.get();
@@ -406,27 +406,27 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
             return cw.getChannel();
         }
 
-        // ½øÈëÁÙ½çÇøºó£¬²»ÄÜÓĞ×èÈû²Ù×÷£¬ÍøÂçÁ¬½Ó²ÉÓÃÒì²½·½Ê½
+        // è¿›å…¥ä¸´ç•ŒåŒºåï¼Œä¸èƒ½æœ‰é˜»å¡æ“ä½œï¼Œç½‘ç»œè¿æ¥é‡‡ç”¨å¼‚æ­¥æ–¹å¼
         if (this.lockChannelTables.tryLock(LockTimeoutMillis, TimeUnit.MILLISECONDS)) {
             try {
                 boolean createNewConnection = false;
                 cw = this.channelTables.get(addr);
                 if (cw != null) {
-                    // channelÕı³£
+                    // channelæ­£å¸¸
                     if (cw.isOK()) {
                         return cw.getChannel();
                     }
-                    // ÕıÔÚÁ¬½Ó£¬ÍË³öËøµÈ´ı
+                    // æ­£åœ¨è¿æ¥ï¼Œé€€å‡ºé”ç­‰å¾…
                     else if (!cw.getChannelFuture().isDone()) {
                         createNewConnection = false;
                     }
-                    // ËµÃ÷Á¬½Ó²»³É¹¦
+                    // è¯´æ˜è¿æ¥ä¸æˆåŠŸ
                     else {
                         this.channelTables.remove(addr);
                         createNewConnection = true;
                     }
                 }
-                // ChannelWrapper²»´æÔÚ
+                // ChannelWrapperä¸å­˜åœ¨
                 else {
                     createNewConnection = true;
                 }
@@ -670,7 +670,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
     @Override
     public void updateNameServerAddressList(List<String> addrs) {
         List<String> old = this.namesrvAddrList.get();
-        // ÏàµÈÇé¿öÏÂ£¬²»ĞèÒª¸üĞÂ
+        // ç›¸ç­‰æƒ…å†µä¸‹ï¼Œä¸éœ€è¦æ›´æ–°
         if (!addrs.isEmpty() && old != null) {
             if (old.size() == addrs.size()) {
                 boolean equal = true;

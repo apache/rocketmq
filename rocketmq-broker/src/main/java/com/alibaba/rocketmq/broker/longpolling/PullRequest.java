@@ -21,7 +21,7 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 
 
 /**
- * 一个拉消息请求
+ * 涓�涓媺娑堟伅璇锋眰
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-26

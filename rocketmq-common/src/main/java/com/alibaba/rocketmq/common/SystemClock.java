@@ -23,7 +23,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 
 /**
- * ºóÌ¨¶¨Ê±¸üĞÂÊ±ÖÓ£¬JVMÍË³öÊ±£¬Ïß³Ì×Ô¶¯»ØÊÕ
+ * åå°å®šæ—¶æ›´æ–°æ—¶é’Ÿï¼ŒJVMé€€å‡ºæ—¶ï¼Œçº¿ç¨‹è‡ªåŠ¨å›æ”¶
  * 
  * @see 
  *      <A>https://github.com/zhongl/jtoolkit/blob/master/common/src/main/java/com

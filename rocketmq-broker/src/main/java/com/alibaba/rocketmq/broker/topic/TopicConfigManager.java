@@ -35,7 +35,7 @@ import com.alibaba.rocketmq.store.schedule.ScheduleMessageService;
 
 
 /**
- * Topic配置管理
+ * Topic閰嶇疆绠＄悊
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @author lansheng.zj@taobao.com
@@ -47,7 +47,7 @@ public class TopicConfigManager extends ConfigManager {
     private transient final Lock lockTopicConfigTable = new ReentrantLock();
     private transient BrokerController brokerController;
 
-    // Topic配置
+    // Topic閰嶇疆
     private final ConcurrentHashMap<String, TopicConfig> topicConfigTable =
             new ConcurrentHashMap<String, TopicConfig>(1024);
     private final DataVersion dataVersion = new DataVersion();
@@ -82,7 +82,7 @@ public class TopicConfigManager extends ConfigManager {
         topicConfig.setWriteQueueNums(1024);
         this.topicConfigTable.put(topicConfig.getTopicName(), topicConfig);
 
-        // 集群名字
+        // 闆嗙兢鍚嶅瓧
         topicConfig = new TopicConfig(this.brokerController.getBrokerConfig().getBrokerClusterName());
         perm = PermName.PERM_INHERIT;
         if (this.brokerController.getBrokerConfig().isClusterTopicEnable()) {
@@ -120,7 +120,7 @@ public class TopicConfigManager extends ConfigManager {
 
 
     /**
-     * 发消息时，如果Topic不存在，尝试创建
+     * 鍙戞秷鎭椂锛屽鏋淭opic涓嶅瓨鍦紝灏濊瘯鍒涘缓
      */
     public TopicConfig createTopicInSendMessageMethod(final String topic, final String defaultTopic,
             final String remoteAddress, final int clientDefaultTopicQueueNums) {

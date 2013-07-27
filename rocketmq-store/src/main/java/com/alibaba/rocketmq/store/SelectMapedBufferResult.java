@@ -19,19 +19,19 @@ import java.nio.ByteBuffer;
 
 
 /**
- * ²éÑ¯Pagecache·µ»Ø½á¹û
+ * æŸ¥è¯¢Pagecacheè¿”å›ç»“æœ
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-21
  */
 public class SelectMapedBufferResult {
-    // ´Ó¶ÓÁĞÖĞÄÄ¸ö¾ø¶ÔOffset¿ªÊ¼
+    // ä»é˜Ÿåˆ—ä¸­å“ªä¸ªç»å¯¹Offsetå¼€å§‹
     private final long startOffset;
-    // position´Ó0¿ªÊ¼
+    // positionä»0å¼€å§‹
     private final ByteBuffer byteBuffer;
-    // ÓĞĞ§Êı¾İ´óĞ¡
+    // æœ‰æ•ˆæ•°æ®å¤§å°
     private int size;
-    // ÓÃÀ´ÊÍ·ÅÄÚ´æ
+    // ç”¨æ¥é‡Šæ”¾å†…å­˜
     private MapedFile mapedFile;
 
 
@@ -65,7 +65,7 @@ public class SelectMapedBufferResult {
 
 
     /**
-     * ´Ë·½·¨Ö»ÄÜ±»µ÷ÓÃÒ»´Î£¬ÖØ¸´µ÷ÓÃÎŞĞ§
+     * æ­¤æ–¹æ³•åªèƒ½è¢«è°ƒç”¨ä¸€æ¬¡ï¼Œé‡å¤è°ƒç”¨æ— æ•ˆ
      */
     public synchronized void release() {
         if (this.mapedFile != null) {

@@ -23,7 +23,7 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingSerializable;
 
 
 /**
- * Offset³Ö¾Ã»¯£¬json°ü×°Àà
+ * OffsetæŒä¹…åŒ–ï¼ŒjsonåŒ…è£…ç±»
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-25

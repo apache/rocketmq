@@ -23,7 +23,7 @@ import java.lang.annotation.Target;
 
 
 /**
- * 标识字段可以非空
+ * 鏍囪瘑瀛楁鍙互闈炵┖
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-13

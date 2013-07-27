@@ -23,7 +23,7 @@ import com.alibaba.rocketmq.common.protocol.header.CheckTransactionStateRequestH
 
 
 /**
- * Producer内部接口
+ * Producer鍐呴儴鎺ュ彛
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-24

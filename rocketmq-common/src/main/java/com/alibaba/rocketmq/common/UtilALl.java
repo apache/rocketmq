@@ -35,7 +35,7 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingProtos.ResponseCode;
 
 
 /**
- * ¸÷ÖÖ·½·¨´óÔÓ»â
+ * å„ç§æ–¹æ³•å¤§æ‚çƒ©
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  */
@@ -53,8 +53,8 @@ public class UtilALl {
 
 
     /**
-     * ½«offset×ª»¯³É×Ö·û´®ĞÎÊ½<br>
-     * ×ó²¹Áã¶ÔÆëÖÁ20Î»
+     * å°†offsetè½¬åŒ–æˆå­—ç¬¦ä¸²å½¢å¼<br>
+     * å·¦è¡¥é›¶å¯¹é½è‡³20ä½
      */
     public static String offset2FileName(final long offset) {
         final NumberFormat nf = NumberFormat.getInstance();
@@ -66,7 +66,7 @@ public class UtilALl {
 
 
     /**
-     * ¼ÆËãºÄÊ±²Ù×÷£¬µ¥Î»ms
+     * è®¡ç®—è€—æ—¶æ“ä½œï¼Œå•ä½ms
      */
     public static long computeEclipseTimeMilliseconds(final long beginTime) {
         return (System.currentTimeMillis() - beginTime);
@@ -104,7 +104,7 @@ public class UtilALl {
 
 
     /**
-     * »ñÈ¡´ÅÅÌ·ÖÇø¿Õ¼äÊ¹ÓÃÂÊ
+     * è·å–ç£ç›˜åˆ†åŒºç©ºé—´ä½¿ç”¨ç‡
      */
     public static double getDiskPartitionSpaceUsedPercent(final String path) {
         if (null == path || path.isEmpty())
@@ -151,7 +151,7 @@ public class UtilALl {
 
 
     /**
-     * ×Ö½ÚÊı×é×ª»¯³É16½øÖÆĞÎÊ½
+     * å­—èŠ‚æ•°ç»„è½¬åŒ–æˆ16è¿›åˆ¶å½¢å¼
      */
     public static String bytes2string(byte[] src) {
         StringBuilder sb = new StringBuilder();
@@ -171,7 +171,7 @@ public class UtilALl {
 
 
     /**
-     * 16½øÖÆ×Ö·û´®×ª»¯³É×Ö½ÚÊı×é
+     * 16è¿›åˆ¶å­—ç¬¦ä¸²è½¬åŒ–æˆå­—èŠ‚æ•°ç»„
      */
     public static byte[] string2bytes(String hexString) {
         if (hexString == null || hexString.equals("")) {

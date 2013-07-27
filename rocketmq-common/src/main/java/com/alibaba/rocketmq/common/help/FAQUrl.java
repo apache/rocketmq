@@ -16,37 +16,37 @@
 package com.alibaba.rocketmq.common.help;
 
 /**
- * ¼ÇÂ¼Ò»Ğ©ÎÊÌâ¶ÔÓ¦µÄ½â¾ö·½°¸£¬¼õÉÙ´ğÒÉ¹¤×÷Á¿
+ * è®°å½•ä¸€äº›é—®é¢˜å¯¹åº”çš„è§£å†³æ–¹æ¡ˆï¼Œå‡å°‘ç­”ç–‘å·¥ä½œé‡
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public class FAQUrl {
-    // FAQ: Topic²»´æÔÚÈçºÎ½â¾ö
+    // FAQ: Topicä¸å­˜åœ¨å¦‚ä½•è§£å†³
     public static final String APPLY_TOPIC_URL = //
             "https://github.com/alibaba/RocketMQ/issues/55";
 
-    // FAQ: Í¬Ò»Ì¨»úÆ÷ÎŞ·¨Æô¶¯¶à¸öÊµÀı£¨ÔÚ¶à¸öJVM½ø³ÌÖĞ£©
+    // FAQ: åŒä¸€å°æœºå™¨æ— æ³•å¯åŠ¨å¤šä¸ªå®ä¾‹ï¼ˆåœ¨å¤šä¸ªJVMè¿›ç¨‹ä¸­ï¼‰
     public static final String CLIENT_INSTACNCE_NAME_DUPLICATE_URL = //
             "https://github.com/alibaba/RocketMQ/issues/56";
 
-    // FAQ: Name ServerµØÖ·²»´æÔÚ
+    // FAQ: Name Serveråœ°å€ä¸å­˜åœ¨
     public static final String NAME_SERVER_ADDR_NOT_EXIST_URL = //
             "https://github.com/alibaba/RocketMQ/issues/57";
 
-    // FAQ: Æô¶¯Producer¡¢ConsumerÊ§°Ü£¬Group NameÖØ¸´
+    // FAQ: å¯åŠ¨Producerã€Consumerå¤±è´¥ï¼ŒGroup Nameé‡å¤
     public static final String GROUP_NAME_DUPLICATE_URL = //
             "https://github.com/alibaba/RocketMQ/issues/63";
 
-    // FAQ: ¿Í»§¶Ë¶ÔÏó²ÎÊıĞ£ÑéºÏ·¨ĞÔ
+    // FAQ: å®¢æˆ·ç«¯å¯¹è±¡å‚æ•°æ ¡éªŒåˆæ³•æ€§
     public static final String CLIENT_PARAMETER_CHECK_URL = //
             "https://github.com/alibaba/RocketMQ/issues/73";
 
-    // FAQ: ¶©ÔÄ×é²»´æÔÚÈçºÎ½â¾ö
+    // FAQ: è®¢é˜…ç»„ä¸å­˜åœ¨å¦‚ä½•è§£å†³
     public static final String SUBSCRIPTION_GROUP_NOT_EXIST = //
             "https://github.com/alibaba/RocketMQ/issues/75";
 
     //
-    // FAQ: Î´ÊÕÂ¼Òì³£´¦Àí°ì·¨
+    // FAQ: æœªæ”¶å½•å¼‚å¸¸å¤„ç†åŠæ³•
     //
     public static final String UNEXPECTED_EXCEPTION_URL = //
             "https://github.com/alibaba/RocketMQ/issues/64";
@@ -65,7 +65,7 @@ public class FAQUrl {
 
 
     /**
-     * ¶ÔÓÚÃ»ÓĞÎ´Òì³£Ô­ÒòÖ¸¶¨FAQµÄÇé¿ö£¬×·¼ÓÄ¬ÈÏFAQ
+     * å¯¹äºæ²¡æœ‰æœªå¼‚å¸¸åŸå› æŒ‡å®šFAQçš„æƒ…å†µï¼Œè¿½åŠ é»˜è®¤FAQ
      */
     public static String attachDefaultURL(final String errorMessage) {
         if (errorMessage != null) {

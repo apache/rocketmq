@@ -19,15 +19,15 @@ import com.alibaba.rocketmq.store.config.MessageStoreConfig;
  * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public class DefaultMessageStoreTest {
-    // ¶ÓÁĞ¸öÊı
+    // é˜Ÿåˆ—ä¸ªæ•°
     private static int QUEUE_TOTAL = 100;
-    // ·¢ÍùÄÄ¸ö¶ÓÁĞ
+    // å‘å¾€å“ªä¸ªé˜Ÿåˆ—
     private static AtomicInteger QueueId = new AtomicInteger(0);
-    // ·¢ËÍÖ÷»úµØÖ·
+    // å‘é€ä¸»æœºåœ°å€
     private static SocketAddress BornHost;
-    // ´æ´¢Ö÷»úµØÖ·
+    // å­˜å‚¨ä¸»æœºåœ°å€
     private static SocketAddress StoreHost;
-    // ÏûÏ¢Ìå
+    // æ¶ˆæ¯ä½“
     private static byte[] MessageBody;
 
     private static final String StoreMessage = "Once, there was a chance for me!";
@@ -69,22 +69,22 @@ public class DefaultMessageStoreTest {
         long totalMsgs = 10000;
         QUEUE_TOTAL = 1;
 
-        // ¹¹ÔìÏûÏ¢Ìå
+        // æ„é€ æ¶ˆæ¯ä½“
         MessageBody = StoreMessage.getBytes();
 
         MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
-        // Ã¿¸öÎïÀíÓ³ÉäÎÄ¼ş 4K
+        // æ¯ä¸ªç‰©ç†æ˜ å°„æ–‡ä»¶ 4K
         messageStoreConfig.setMapedFileSizeCommitLog(1024 * 8);
         messageStoreConfig.setMapedFileSizeConsumeQueue(1024 * 4);
         messageStoreConfig.setMaxHashSlotNum(100);
         messageStoreConfig.setMaxIndexNum(100 * 10);
 
         MessageStore master = new DefaultMessageStore(messageStoreConfig);
-        // µÚÒ»²½£¬loadÒÑÓĞÊı¾İ
+        // ç¬¬ä¸€æ­¥ï¼Œloadå·²æœ‰æ•°æ®
         boolean load = master.load();
         assertTrue(load);
 
-        // µÚ¶ş²½£¬Æô¶¯·şÎñ
+        // ç¬¬äºŒæ­¥ï¼Œå¯åŠ¨æœåŠ¡
         master.start();
         for (long i = 0; i < totalMsgs; i++) {
             PutMessageResult result = master.putMessage(buildMessage());
@@ -92,7 +92,7 @@ public class DefaultMessageStoreTest {
             System.out.println(i + "\t" + result.getAppendMessageResult().getMsgId());
         }
 
-        // ¿ªÊ¼¶ÁÎÄ¼ş
+        // å¼€å§‹è¯»æ–‡ä»¶
         for (long i = 0; i < totalMsgs; i++) {
             try {
                 GetMessageResult result = master.getMessage("TOPIC_A", 0, i, 1024 * 1024, null);
@@ -109,10 +109,10 @@ public class DefaultMessageStoreTest {
 
         }
 
-        // ¹Ø±Õ´æ´¢·şÎñ
+        // å…³é—­å­˜å‚¨æœåŠ¡
         master.shutdown();
 
-        // É¾³ıÎÄ¼ş
+        // åˆ é™¤æ–‡ä»¶
         master.destroy();
         System.out.println("================================================================");
     }
@@ -124,22 +124,22 @@ public class DefaultMessageStoreTest {
         long totalMsgs = 10000;
         QUEUE_TOTAL = 1;
 
-        // ¹¹ÔìÏûÏ¢Ìå
+        // æ„é€ æ¶ˆæ¯ä½“
         MessageBody = StoreMessage.getBytes();
 
         MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
-        // Ã¿¸öÎïÀíÓ³ÉäÎÄ¼ş 4K
+        // æ¯ä¸ªç‰©ç†æ˜ å°„æ–‡ä»¶ 4K
         messageStoreConfig.setMapedFileSizeCommitLog(1024 * 8);
 
-        // ¿ªÆôGroupCommit¹¦ÄÜ
+        // å¼€å¯GroupCommitåŠŸèƒ½
         messageStoreConfig.setFlushDiskType(FlushDiskType.SYNC_FLUSH);
 
         MessageStore master = new DefaultMessageStore(messageStoreConfig);
-        // µÚÒ»²½£¬loadÒÑÓĞÊı¾İ
+        // ç¬¬ä¸€æ­¥ï¼Œloadå·²æœ‰æ•°æ®
         boolean load = master.load();
         assertTrue(load);
 
-        // µÚ¶ş²½£¬Æô¶¯·şÎñ
+        // ç¬¬äºŒæ­¥ï¼Œå¯åŠ¨æœåŠ¡
         master.start();
         for (long i = 0; i < totalMsgs; i++) {
             PutMessageResult result = master.putMessage(buildMessage());
@@ -147,7 +147,7 @@ public class DefaultMessageStoreTest {
             System.out.println(i + "\t" + result.getAppendMessageResult().getMsgId());
         }
 
-        // ¿ªÊ¼¶ÁÎÄ¼ş
+        // å¼€å§‹è¯»æ–‡ä»¶
         for (long i = 0; i < totalMsgs; i++) {
             try {
                 GetMessageResult result = master.getMessage("TOPIC_A", 0, i, 1024 * 1024, null);
@@ -164,10 +164,10 @@ public class DefaultMessageStoreTest {
 
         }
 
-        // ¹Ø±Õ´æ´¢·şÎñ
+        // å…³é—­å­˜å‚¨æœåŠ¡
         master.shutdown();
 
-        // É¾³ıÎÄ¼ş
+        // åˆ é™¤æ–‡ä»¶
         master.destroy();
         System.out.println("================================================================");
     }

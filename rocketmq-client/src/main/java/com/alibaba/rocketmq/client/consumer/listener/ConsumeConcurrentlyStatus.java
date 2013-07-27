@@ -16,14 +16,14 @@
 package com.alibaba.rocketmq.client.consumer.listener;
 
 /**
- * ²¢ĞĞÏû·Ñ£¬Ïû·Ñ½á¹û
+ * å¹¶è¡Œæ¶ˆè´¹ï¼Œæ¶ˆè´¹ç»“æœ
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-24
  */
 public enum ConsumeConcurrentlyStatus {
-    // ±íÊ¾Ïû·Ñ³É¹¦
+    // è¡¨ç¤ºæ¶ˆè´¹æˆåŠŸ
     CONSUME_SUCCESS,
-    // ±íÊ¾Ïû·ÑÊ§°Ü£¬µ«ÊÇÉÔºó»¹»áÖØĞÂÏû·ÑÕâÅúÏûÏ¢
+    // è¡¨ç¤ºæ¶ˆè´¹å¤±è´¥ï¼Œä½†æ˜¯ç¨åè¿˜ä¼šé‡æ–°æ¶ˆè´¹è¿™æ‰¹æ¶ˆæ¯
     RECONSUME_LATER,
 }

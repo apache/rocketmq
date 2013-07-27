@@ -4,18 +4,18 @@
 package com.alibaba.rocketmq.common.protocol.heartbeat;
 
 /**
- * 消费类型
+ * 娑堣垂绫诲瀷
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * 
  */
 public enum ConsumeType {
     /**
-     * 主动方式消费
+     * 涓诲姩鏂瑰紡娑堣垂
      */
     CONSUME_ACTIVELY,
     /**
-     * 被动方式消费
+     * 琚姩鏂瑰紡娑堣垂
      */
     CONSUME_PASSIVELY,
 }

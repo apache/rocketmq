@@ -22,15 +22,15 @@ import com.alibaba.rocketmq.store.config.MessageStoreConfig;
 
 
 public class RecoverTest {
-    // ¶ÓÁĞ¸öÊı
+    // é˜Ÿåˆ—ä¸ªæ•°
     private static int QUEUE_TOTAL = 10;
-    // ·¢ÍùÄÄ¸ö¶ÓÁĞ
+    // å‘å¾€å“ªä¸ªé˜Ÿåˆ—
     private static AtomicInteger QueueId = new AtomicInteger(0);
-    // ·¢ËÍÖ÷»úµØÖ·
+    // å‘é€ä¸»æœºåœ°å€
     private static SocketAddress BornHost;
-    // ´æ´¢Ö÷»úµØÖ·
+    // å­˜å‚¨ä¸»æœºåœ°å€
     private static SocketAddress StoreHost;
-    // ÏûÏ¢Ìå
+    // æ¶ˆæ¯ä½“
     private static byte[] MessageBody;
 
     private static final String StoreMessage = "Once, there was a chance for me!aaaaaaaaaaaaaaaaaaaaaaaa";
@@ -71,23 +71,23 @@ public class RecoverTest {
 
     private void destroy() {
         if (storeWrite1 != null) {
-            // ¹Ø±Õ´æ´¢·şÎñ
+            // å…³é—­å­˜å‚¨æœåŠ¡
             storeWrite1.shutdown();
-            // É¾³ıÎÄ¼ş
+            // åˆ é™¤æ–‡ä»¶
             storeWrite1.destroy();
         }
 
         if (storeWrite2 != null) {
-            // ¹Ø±Õ´æ´¢·şÎñ
+            // å…³é—­å­˜å‚¨æœåŠ¡
             storeWrite2.shutdown();
-            // É¾³ıÎÄ¼ş
+            // åˆ é™¤æ–‡ä»¶
             storeWrite2.destroy();
         }
 
         if (storeRead != null) {
-            // ¹Ø±Õ´æ´¢·şÎñ
+            // å…³é—­å­˜å‚¨æœåŠ¡
             storeRead.shutdown();
-            // É¾³ıÎÄ¼ş
+            // åˆ é™¤æ–‡ä»¶
             storeRead.destroy();
         }
     }
@@ -98,13 +98,13 @@ public class RecoverTest {
         long totalMsgs = 1000;
         QUEUE_TOTAL = 3;
 
-        // ¹¹ÔìÏûÏ¢Ìå
+        // æ„é€ æ¶ˆæ¯ä½“
         MessageBody = StoreMessage.getBytes();
 
         MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
-        // Ã¿¸öÎïÀíÓ³ÉäÎÄ¼ş
+        // æ¯ä¸ªç‰©ç†æ˜ å°„æ–‡ä»¶
         messageStoreConfig.setMapedFileSizeCommitLog(1024 * 32);
-        // Ã¿¸öÂß¼­Ó³ÉäÎÄ¼ş
+        // æ¯ä¸ªé€»è¾‘æ˜ å°„æ–‡ä»¶
         messageStoreConfig.setMapedFileSizeConsumeQueue(100 * 20);
         messageStoreConfig.setMessageIndexEnable(false);
 
@@ -116,14 +116,14 @@ public class RecoverTest {
             this.storeWrite2 = messageStore;
         }
 
-        // µÚÒ»²½£¬loadÒÑÓĞÊı¾İ
+        // ç¬¬ä¸€æ­¥ï¼Œloadå·²æœ‰æ•°æ®
         boolean loadResult = messageStore.load();
         assertTrue(loadResult);
 
-        // µÚ¶ş²½£¬Æô¶¯·şÎñ
+        // ç¬¬äºŒæ­¥ï¼Œå¯åŠ¨æœåŠ¡
         messageStore.start();
 
-        // µÚÈı²½£¬·¢ÏûÏ¢
+        // ç¬¬ä¸‰æ­¥ï¼Œå‘æ¶ˆæ¯
         for (long i = 0; i < totalMsgs; i++) {
 
             PutMessageResult result = messageStore.putMessage(buildMessage());
@@ -132,7 +132,7 @@ public class RecoverTest {
         }
 
         if (normal) {
-            // ¹Ø±Õ´æ´¢·şÎñ
+            // å…³é—­å­˜å‚¨æœåŠ¡
             messageStore.shutdown();
         }
 
@@ -157,25 +157,25 @@ public class RecoverTest {
         System.out.println("================================================================");
         QUEUE_TOTAL = 3;
 
-        // ¹¹ÔìÏûÏ¢Ìå
+        // æ„é€ æ¶ˆæ¯ä½“
         MessageBody = StoreMessage.getBytes();
 
         MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
-        // Ã¿¸öÎïÀíÓ³ÉäÎÄ¼ş
+        // æ¯ä¸ªç‰©ç†æ˜ å°„æ–‡ä»¶
         messageStoreConfig.setMapedFileSizeCommitLog(1024 * 32);
-        // Ã¿¸öÂß¼­Ó³ÉäÎÄ¼ş
+        // æ¯ä¸ªé€»è¾‘æ˜ å°„æ–‡ä»¶
         messageStoreConfig.setMapedFileSizeConsumeQueue(100 * 20);
         messageStoreConfig.setMessageIndexEnable(false);
 
         storeRead = new DefaultMessageStore(messageStoreConfig);
-        // µÚÒ»²½£¬loadÒÑÓĞÊı¾İ
+        // ç¬¬ä¸€æ­¥ï¼Œloadå·²æœ‰æ•°æ®
         boolean loadResult = storeRead.load();
         assertTrue(loadResult);
 
-        // µÚ¶ş²½£¬Æô¶¯·şÎñ
+        // ç¬¬äºŒæ­¥ï¼Œå¯åŠ¨æœåŠ¡
         storeRead.start();
 
-        // µÚÈı²½£¬ÊÕÏûÏ¢
+        // ç¬¬ä¸‰æ­¥ï¼Œæ”¶æ¶ˆæ¯
         long readCnt = 0;
         for (int queueId = 0; queueId < QUEUE_TOTAL; queueId++) {
             for (long offset = 0;;) {
@@ -201,7 +201,7 @@ public class RecoverTest {
 
 
     /**
-     * Õı³£¹Ø±Õºó£¬ÖØÆô»Ö¸´ÏûÏ¢£¬ÑéÖ¤ÊÇ·ñÓĞÏûÏ¢¶ªÊ§
+     * æ­£å¸¸å…³é—­åï¼Œé‡å¯æ¢å¤æ¶ˆæ¯ï¼ŒéªŒè¯æ˜¯å¦æœ‰æ¶ˆæ¯ä¸¢å¤±
      */
     @Test
     public void test_recover_normally() throws Exception {
@@ -213,7 +213,7 @@ public class RecoverTest {
 
 
     /**
-     * Õı³£¹Ø±Õºó£¬ÖØÆô»Ö¸´ÏûÏ¢£¬²¢ÔÙ´ÎĞ´ÈëÏûÏ¢£¬ÑéÖ¤ÊÇ·ñÓĞÏûÏ¢¶ªÊ§
+     * æ­£å¸¸å…³é—­åï¼Œé‡å¯æ¢å¤æ¶ˆæ¯ï¼Œå¹¶å†æ¬¡å†™å…¥æ¶ˆæ¯ï¼ŒéªŒè¯æ˜¯å¦æœ‰æ¶ˆæ¯ä¸¢å¤±
      */
     @Test
     public void test_recover_normally_write() throws Exception {
@@ -227,7 +227,7 @@ public class RecoverTest {
 
 
     /**
-     * Òì³£¹Ø±Õºó£¬ÖØÆô»Ö¸´ÏûÏ¢£¬ÑéÖ¤ÊÇ·ñÓĞÏûÏ¢¶ªÊ§
+     * å¼‚å¸¸å…³é—­åï¼Œé‡å¯æ¢å¤æ¶ˆæ¯ï¼ŒéªŒè¯æ˜¯å¦æœ‰æ¶ˆæ¯ä¸¢å¤±
      */
     @Test
     public void test_recover_abnormally() throws Exception {
@@ -239,7 +239,7 @@ public class RecoverTest {
 
 
     /**
-     * Òì³£¹Ø±Õºó£¬ÖØÆô»Ö¸´ÏûÏ¢£¬²¢ÔÙ´ÎĞ´ÈëÏûÏ¢£¬ÑéÖ¤ÊÇ·ñÓĞÏûÏ¢¶ªÊ§
+     * å¼‚å¸¸å…³é—­åï¼Œé‡å¯æ¢å¤æ¶ˆæ¯ï¼Œå¹¶å†æ¬¡å†™å…¥æ¶ˆæ¯ï¼ŒéªŒè¯æ˜¯å¦æœ‰æ¶ˆæ¯ä¸¢å¤±
      */
     @Test
     public void test_recover_abnormally_write() throws Exception {

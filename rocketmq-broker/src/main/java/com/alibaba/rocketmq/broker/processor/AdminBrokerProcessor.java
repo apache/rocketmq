@@ -60,7 +60,7 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingSerializable;
 
 
 /**
- * ¹ÜÀíÀàÇëÇó´¦Àí
+ * ç®¡ç†ç±»è¯·æ±‚å¤„ç†
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-26
@@ -81,24 +81,24 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             throws RemotingCommandException {
         MQRequestCode code = MQRequestCode.valueOf(request.getCode());
         switch (code) {
-        // ¸üĞÂ´´½¨Topic
+        // æ›´æ–°åˆ›å»ºTopic
         case UPDATE_AND_CREATE_TOPIC:
             return this.updateAndCreateTopic(ctx, request);
-            // É¾³ıTopic
+            // åˆ é™¤Topic
         case DELETE_TOPIC:
             return this.deleteTopic(ctx, request);
-            // »ñÈ¡TopicÅäÖÃ
+            // è·å–Topicé…ç½®
         case GET_ALL_TOPIC_CONFIG:
             return this.getAllTopicConfig(ctx, request);
 
-            // ¸üĞÂBrokerÅäÖÃ TODO ¿ÉÄÜ´æÔÚ²¢·¢ÎÊÌâ
+            // æ›´æ–°Brokeré…ç½® TODO å¯èƒ½å­˜åœ¨å¹¶å‘é—®é¢˜
         case UPDATE_BROKER_CONFIG:
             return this.updateBrokerConfig(ctx, request);
-            // »ñÈ¡BrokerÅäÖÃ
+            // è·å–Brokeré…ç½®
         case GET_BROKER_CONFIG:
             return this.getBrokerConfig(ctx, request);
 
-            // ¸ù¾İÊ±¼ä²éÑ¯Offset
+            // æ ¹æ®æ—¶é—´æŸ¥è¯¢Offset
         case SEARCH_OFFSET_BY_TIMESTAMP:
             return this.searchOffsetByTimestamp(ctx, request);
         case GET_MAX_OFFSET:
@@ -108,22 +108,22 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         case GET_EARLIEST_MSG_STORETIME:
             return this.getEarliestMsgStoretime(ctx, request);
 
-            // ¸üĞÂConsumer Offset
+            // æ›´æ–°Consumer Offset
         case UPDATE_CONSUMER_OFFSET:
             return this.updateConsumerOffset(ctx, request);
         case QUERY_CONSUMER_OFFSET:
             return this.queryConsumerOffset(ctx, request);
 
-            // »ñÈ¡BrokerÔËĞĞÊ±ĞÅÏ¢
+            // è·å–Brokerè¿è¡Œæ—¶ä¿¡æ¯
         case GET_BROKER_RUNTIME_INFO:
             break;
 
-        // Ëø¶ÓÁĞÓë½âËø¶ÓÁĞ
+        // é”é˜Ÿåˆ—ä¸è§£é”é˜Ÿåˆ—
         case LOCK_BATCH_MQ:
             return this.lockBatchMQ(ctx, request);
         case UNLOCK_BATCH_MQ:
             return this.unlockBatchMQ(ctx, request);
-            // ¶©ÔÄ×éÅäÖÃ
+            // è®¢é˜…ç»„é…ç½®
         case UPDATE_AND_CREATE_SUBSCRIPTIONGROUP:
             return this.updateAndCreateSubscriptionGroup(ctx, request);
         case GET_ALL_SUBSCRIPTIONGROUP_CONFIG:

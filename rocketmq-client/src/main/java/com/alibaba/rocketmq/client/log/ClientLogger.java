@@ -26,16 +26,16 @@ import com.alibaba.rocketmq.common.constant.LoggerName;
 
 
 /**
- * ClientÍ¨¹ı·´ÉäÀ´³õÊ¼»¯¿Í»§¶ËÈÕÖ¾
+ * Clienté€šè¿‡åå°„æ¥åˆå§‹åŒ–å®¢æˆ·ç«¯æ—¥å¿—
  * 
- * @author ÁâÒ¶<jin.qian@alipay.com>
+ * @author è±å¶<jin.qian@alipay.com>
  * @since 2013-7-24
  */
 public class ClientLogger {
     private static Logger log;
 
     static {
-        // ³õÊ¼»¯Logger
+        // åˆå§‹åŒ–Logger
         log = createLogger(LoggerName.ClientLoggerName);
     }
 
@@ -53,7 +53,7 @@ public class ClientLogger {
                 DOMConfigurator = Class.forName("org.apache.log4j.xml.DOMConfigurator");
                 DOMConfiguratorObj = DOMConfigurator.newInstance();
                 if (null == logConfigFilePath) {
-                    // Èç¹ûÓ¦ÓÃÃ»ÓĞÅäÖÃ£¬ÔòÊ¹ÓÃjar°üÄÚÖÃÅäÖÃ
+                    // å¦‚æœåº”ç”¨æ²¡æœ‰é…ç½®ï¼Œåˆ™ä½¿ç”¨jaråŒ…å†…ç½®é…ç½®
                     Method configure = DOMConfiguratorObj.getClass().getMethod("configure", URL.class);
                     URL url = ClientLogger.class.getClassLoader().getResource("log4j_rocketmq_client.xml");
                     configure.invoke(DOMConfiguratorObj, url);
@@ -73,7 +73,7 @@ public class ClientLogger {
                 Method setContext = joranConfiguratoroObj.getClass().getMethod("setContext", context);
                 setContext.invoke(joranConfiguratoroObj, iLoggerFactory);
                 if (null == logConfigFilePath) {
-                    // Èç¹ûÓ¦ÓÃÃ»ÓĞÅäÖÃ£¬ÔòÊ¹ÓÃjar°üÄÚÖÃÅäÖÃ
+                    // å¦‚æœåº”ç”¨æ²¡æœ‰é…ç½®ï¼Œåˆ™ä½¿ç”¨jaråŒ…å†…ç½®é…ç½®
                     URL url = ClientLogger.class.getClassLoader().getResource("logback_rocketmq_client.xml");
                     Method doConfigure = joranConfiguratoroObj.getClass().getMethod("doConfigure", URL.class);
                     doConfigure.invoke(joranConfiguratoroObj, url);

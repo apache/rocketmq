@@ -21,7 +21,7 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingSerializable;
 
 
 /**
- * 延时消息进度，序列化包装
+ * 寤舵椂娑堟伅杩涘害锛屽簭鍒楀寲鍖呰
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-21

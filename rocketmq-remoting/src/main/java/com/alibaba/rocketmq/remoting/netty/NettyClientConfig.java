@@ -16,20 +16,20 @@
 package com.alibaba.rocketmq.remoting.netty;
 
 /**
- * Netty¿Í»§¶ËÅäÖÃÀà
+ * Nettyå®¢æˆ·ç«¯é…ç½®ç±»
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-13
  */
 public class NettyClientConfig {
-    // ´¦ÀíServer Response/Request
+    // å¤„ç†Server Response/Request
     private int clientWorkerThreads = 4;
     private int clientCallbackExecutorThreads = Runtime.getRuntime().availableProcessors();
     private int clientSelectorThreads = 1;
     private int clientOnewaySemaphoreValue = 256;
     private int clientAsyncSemaphoreValue = 128;
     private long connectTimeoutMillis = 3000;
-    // channel³¬¹ı1·ÖÖÓ²»±»·ÃÎÊ ¾Í¹Ø±Õ
+    // channelè¶…è¿‡1åˆ†é’Ÿä¸è¢«è®¿é—® å°±å…³é—­
     private long channelNotActiveInterval = 1000 * 60;
 
     private int clientChannelMaxIdleTimeSeconds = 120;

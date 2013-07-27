@@ -24,7 +24,7 @@ import com.alibaba.rocketmq.common.message.MessageQueue;
 
 
 /**
- * 按照机房来分配队列，例如支付宝逻辑机房
+ * 鎸夌収鏈烘埧鏉ュ垎閰嶉槦鍒楋紝渚嬪鏀粯瀹濋�昏緫鏈烘埧
  * 
  * @author linye<jin.qian@alipay.com>
  * @since 2013-7-24

@@ -15,9 +15,9 @@ import com.alibaba.rocketmq.test.BaseTest;
 public class ClientRunTimer extends BaseTest {
 
     @Test
-    // µ¥»ú¿ÉÒÔÆô¶¯¶à¸öJVM£¬ĞèÒªÖ¸¶¨²»Í¬µÄÊµÀıÃû
-    // Í¨¹ıÔÚ´úÂëÀïÖ¸¶¨instanceName
-    // Í¨¹ıÔÚJavaÆô¶¯²ÎÊıÖĞÖ¸¶¨-Drocketmq.client.name=
+    // å•æœºå¯ä»¥å¯åŠ¨å¤šä¸ªJVMï¼Œéœ€è¦æŒ‡å®šä¸åŒçš„å®ä¾‹å
+    // é€šè¿‡åœ¨ä»£ç é‡ŒæŒ‡å®šinstanceName
+    // é€šè¿‡åœ¨Javaå¯åŠ¨å‚æ•°ä¸­æŒ‡å®š-Drocketmq.client.name=
     public void testMultiClient() throws MQClientException {
         DefaultMQPullConsumer consumer1 = new DefaultMQPullConsumer("example.consumer.active");
         consumer1.setInstanceName("DEFAULT1");
@@ -52,26 +52,26 @@ public class ClientRunTimer extends BaseTest {
 
 
     @Test
-    // ¿Í»§¶ËÌá¹©ËÄÖÖÑ°Ö··½Ê½£¨·¢ÏÖName ServerµØÖ·µÄ·½Ê½£©
-    // Ö¸¶¨Í¨¹ıÔÚ´úÂëÀïÖ¸¶¨Name ServerµØÖ·
+    // å®¢æˆ·ç«¯æä¾›å››ç§å¯»å€æ–¹å¼ï¼ˆå‘ç°Name Serveråœ°å€çš„æ–¹å¼ï¼‰
+    // æŒ‡å®šé€šè¿‡åœ¨ä»£ç é‡ŒæŒ‡å®šName Serveråœ°å€
     public void testClientFindNameServer() throws MQClientException {
 
-        // Ö¸¶¨Í¨¹ıÔÚ´úÂëÀïÖ¸¶¨Name ServerµØÖ·
+        // æŒ‡å®šé€šè¿‡åœ¨ä»£ç é‡ŒæŒ‡å®šName Serveråœ°å€
         DefaultMQPullConsumer consumer2 = new DefaultMQPullConsumer("example.consumer2.active");
         consumer2.setNamesrvAddr("127.0.0.2:9876");
         consumer2.setInstanceName("DEFAULT2");
         consumer2.start();
         Assert.assertEquals(consumer2.getNamesrvAddr(), "127.0.0.2:9876");
 
-        // //Í¨¹ıÉèÖÃ»·¾³±äÁ¿NAMESRV_ADDR
+        // //é€šè¿‡è®¾ç½®ç¯å¢ƒå˜é‡NAMESRV_ADDR
         // DefaultMQPullConsumer consumer3=new
         // DefaultMQPullConsumer("example.consumer3.active");
         // consumer3.getClientConfig().setInstanceName("DEFAULT3");
         // consumer3.start();
         // Assert.assertEquals(consumer3.getClientConfig().getNamesrvAddr(),"10.235.136.47:9876;127.0.0.1:9876");
 
-        // ÓÉ³ÌĞò×Ô¶¯·ÃÎÊ http://diamondserver.tbsite.net:8080/rocketmq/nsaddr »ñÈ¡Name
-        // ServerµØÖ·£¨ÍÆ¼öÊ¹ÓÃ£©
+        // ç”±ç¨‹åºè‡ªåŠ¨è®¿é—® http://diamondserver.tbsite.net:8080/rocketmq/nsaddr è·å–Name
+        // Serveråœ°å€ï¼ˆæ¨èä½¿ç”¨ï¼‰
         DefaultMQPullConsumer consumer4 = new DefaultMQPullConsumer("example.consumer4.active");
         consumer4.setInstanceName("DEFAULT4");
         consumer4.start();
@@ -79,7 +79,7 @@ public class ClientRunTimer extends BaseTest {
         String nameSrvAddr = topAddressing.fetchNSAddr();
         Assert.assertEquals(consumer4.getNamesrvAddr(), nameSrvAddr);
 
-        // Í¨¹ıÔÚJavaÆô¶¯²ÎÊıÖĞÖ¸¶¨-Drocketmq.namesrv.addr
+        // é€šè¿‡åœ¨Javaå¯åŠ¨å‚æ•°ä¸­æŒ‡å®š-Drocketmq.namesrv.addr
         System.setProperty(MixAll.NAMESRV_ADDR_PROPERTY, "127.0.0.1:9876");
         DefaultMQPullConsumer consumer1 = new DefaultMQPullConsumer("example.consumer1.active");
         consumer1.setInstanceName("DEFAULT1");

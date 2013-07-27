@@ -4,22 +4,22 @@
 package com.alibaba.rocketmq.common.protocol.heartbeat;
 
 /**
- * 消息模型
+ * 娑堟伅妯″瀷
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * 
  */
 public enum MessageModel {
     /**
-     * 广播模型
+     * 骞挎挱妯″瀷
      */
     BROADCASTING,
     /**
-     * 集群模型
+     * 闆嗙兢妯″瀷
      */
     CLUSTERING,
     // /**
-    // * 未知，如果是主动消费，很难确定应用的消息模型
+    // * 鏈煡锛屽鏋滄槸涓诲姩娑堣垂锛屽緢闅剧‘瀹氬簲鐢ㄧ殑娑堟伅妯″瀷
     // */
     // UNKNOWNS,
 }

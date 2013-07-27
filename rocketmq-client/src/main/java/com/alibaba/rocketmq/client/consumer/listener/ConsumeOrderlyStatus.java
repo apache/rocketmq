@@ -16,18 +16,18 @@
 package com.alibaba.rocketmq.client.consumer.listener;
 
 /**
- * Ë³ĞòÏû·Ñ£¬Ïû·Ñ½á¹û
+ * é¡ºåºæ¶ˆè´¹ï¼Œæ¶ˆè´¹ç»“æœ
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-24
  */
 public enum ConsumeOrderlyStatus {
-    // ÏûÏ¢´¦Àí³É¹¦
+    // æ¶ˆæ¯å¤„ç†æˆåŠŸ
     SUCCESS,
-    // »Ø¹öÏûÏ¢
+    // å›æ»šæ¶ˆæ¯
     ROLLBACK,
-    // Ìá½»ÏûÏ¢
+    // æäº¤æ¶ˆæ¯
     COMMIT,
-    // ½«µ±Ç°¶ÓÁĞ¹ÒÆğÒ»Ğ¡»á¶ù
+    // å°†å½“å‰é˜Ÿåˆ—æŒ‚èµ·ä¸€å°ä¼šå„¿
     SUSPEND_CURRENT_QUEUE_A_MOMENT,
 }

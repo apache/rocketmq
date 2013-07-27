@@ -31,7 +31,7 @@ import com.alibaba.rocketmq.common.constant.LoggerName;
 
 
 /**
- * ´æ´¢²ãÄÚ²¿Í³¼Æ·şÎñ
+ * å­˜å‚¨å±‚å†…éƒ¨ç»Ÿè®¡æœåŠ¡
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-21
@@ -59,11 +59,11 @@ public class StoreStatsService extends ServiceThread {
     }
 
     private static final Logger log = LoggerFactory.getLogger(LoggerName.StoreLoggerName);
-    // Æô¶¯Ê±¼ä
+    // å¯åŠ¨æ—¶é—´
     private long messageStoreBootTimestamp = System.currentTimeMillis();
-    // putMessage£¬Ğ´ÈëÕû¸öÏûÏ¢ºÄÊ±£¬º¬¼ÓËø¾¹ÕùÊ±¼ä£¨µ¥Î»ºÁÃë£©
+    // putMessageï¼Œå†™å…¥æ•´ä¸ªæ¶ˆæ¯è€—æ—¶ï¼Œå«åŠ é”ç«Ÿäº‰æ—¶é—´ï¼ˆå•ä½æ¯«ç§’ï¼‰
     private volatile long putMessageEntireTimeMax = 0;
-    // getMessage£¬¶ÁÈ¡Ò»ÅúÏûÏ¢ºÄÊ±£¬º¬¼ÓËø¾¹ÕùÊ±¼ä£¨µ¥Î»ºÁÃë£©
+    // getMessageï¼Œè¯»å–ä¸€æ‰¹æ¶ˆæ¯è€—æ—¶ï¼Œå«åŠ é”ç«Ÿäº‰æ—¶é—´ï¼ˆå•ä½æ¯«ç§’ï¼‰
     private volatile long getMessageEntireTimeMax = 0;
 
     // for putMessageEntireTimeMax
@@ -71,40 +71,40 @@ public class StoreStatsService extends ServiceThread {
     // for getMessageEntireTimeMax
     private ReentrantLock lockGet = new ReentrantLock();
 
-    // putMessage£¬Ê§°Ü´ÎÊı
+    // putMessageï¼Œå¤±è´¥æ¬¡æ•°
     private final AtomicLong putMessageFailedTimes = new AtomicLong(0);
-    // putMessage£¬µ÷ÓÃ×ÜÊı
+    // putMessageï¼Œè°ƒç”¨æ€»æ•°
     private final Map<String, AtomicLong> putMessageTopicTimesTotal =
             new ConcurrentHashMap<String, AtomicLong>();
-    // putMessage£¬Message Size Total
+    // putMessageï¼ŒMessage Size Total
     private final Map<String, AtomicLong> putMessageTopicSizeTotal =
             new ConcurrentHashMap<String, AtomicLong>();
 
-    // getMessage£¬µ÷ÓÃ×ÜÊı
+    // getMessageï¼Œè°ƒç”¨æ€»æ•°
     private final AtomicLong getMessageTimesTotalFound = new AtomicLong(0);
     private final AtomicLong getMessageTransferedMsgCount = new AtomicLong(0);
     private final AtomicLong getMessageTimesTotalMiss = new AtomicLong(0);
 
-    // putMessage£¬ºÄÊ±·Ö²¼
+    // putMessageï¼Œè€—æ—¶åˆ†å¸ƒ
     private final AtomicLong[] putMessageDistributeTime = new AtomicLong[7];
-    // DispatchMessageService£¬»º³åÇø×î´óÖµ
+    // DispatchMessageServiceï¼Œç¼“å†²åŒºæœ€å¤§å€¼
     private volatile long dispatchMaxBuffer = 0;
 
-    // ²ÉÑùÆµÂÊ£¬1ÃëÖÓ²ÉÑùÒ»´Î
+    // é‡‡æ ·é¢‘ç‡ï¼Œ1ç§’é’Ÿé‡‡æ ·ä¸€æ¬¡
     private static final int FrequencyOfSampling = 1000;
-    // ²ÉÑù×î´ó¼ÇÂ¼Êı£¬³¬¹ıÔò½«Ö®Ç°µÄÉ¾³ıµô
+    // é‡‡æ ·æœ€å¤§è®°å½•æ•°ï¼Œè¶…è¿‡åˆ™å°†ä¹‹å‰çš„åˆ é™¤æ‰
     private static final int MaxRecordsOfSampling = 60 * 10;
-    // Õë¶Ô²ÉÑùÏß³Ì¼ÓËø
+    // é’ˆå¯¹é‡‡æ ·çº¿ç¨‹åŠ é”
     private ReentrantLock lockSampling = new ReentrantLock();
 
-    // put×î½ü10·ÖÖÓ²ÉÑù
+    // putæœ€è¿‘10åˆ†é’Ÿé‡‡æ ·
     private final LinkedList<CallSnapshot> putTimesList = new LinkedList<CallSnapshot>();
-    // get×î½ü10·ÖÖÓ²ÉÑù
+    // getæœ€è¿‘10åˆ†é’Ÿé‡‡æ ·
     private final LinkedList<CallSnapshot> getTimesFoundList = new LinkedList<CallSnapshot>();
     private final LinkedList<CallSnapshot> getTimesMissList = new LinkedList<CallSnapshot>();
     private final LinkedList<CallSnapshot> transferedMsgCountList = new LinkedList<CallSnapshot>();
 
-    // ´òÓ¡TPSÊı¾İ¼ä¸ôÊ±¼ä£¬µ¥Î»Ãë£¬1·ÖÖÓ
+    // æ‰“å°TPSæ•°æ®é—´éš”æ—¶é—´ï¼Œå•ä½ç§’ï¼Œ1åˆ†é’Ÿ
     private static int PrintTPSInterval = 60 * 1;
     private long lastPrintTimestamp = System.currentTimeMillis();
 
@@ -122,31 +122,31 @@ public class StoreStatsService extends ServiceThread {
 
 
     public void setPutMessageEntireTimeMax(long value) {
-        // Î¢Ãë
+        // å¾®ç§’
         if (value <= 0) {
             this.putMessageDistributeTime[0].incrementAndGet();
         }
-        // ¼¸ºÁÃë
+        // å‡ æ¯«ç§’
         else if (value < 10) {
             this.putMessageDistributeTime[1].incrementAndGet();
         }
-        // ¼¸Ê®ºÁÃë
+        // å‡ åæ¯«ç§’
         else if (value < 100) {
             this.putMessageDistributeTime[2].incrementAndGet();
         }
-        // ¼¸°ÙºÁÃë£¨500ºÁÃëÒÔÄÚ£©
+        // å‡ ç™¾æ¯«ç§’ï¼ˆ500æ¯«ç§’ä»¥å†…ï¼‰
         else if (value < 500) {
             this.putMessageDistributeTime[3].incrementAndGet();
         }
-        // ¼¸°ÙºÁÃë£¨500ºÁÃëÒÔÉÏ£©
+        // å‡ ç™¾æ¯«ç§’ï¼ˆ500æ¯«ç§’ä»¥ä¸Šï¼‰
         else if (value < 1000) {
             this.putMessageDistributeTime[4].incrementAndGet();
         }
-        // ¼¸Ãë
+        // å‡ ç§’
         else if (value < 10000) {
             this.putMessageDistributeTime[5].incrementAndGet();
         }
-        // ´óµÈÓÚ10Ãë
+        // å¤§ç­‰äº10ç§’
         else {
             this.putMessageDistributeTime[6].incrementAndGet();
         }
@@ -310,15 +310,15 @@ public class StoreStatsService extends ServiceThread {
 
     private String getPutTps() {
         StringBuilder sb = new StringBuilder();
-        // 10ÃëÖÓ
+        // 10ç§’é’Ÿ
         sb.append(this.getPutTps(10));
         sb.append(" ");
 
-        // 1·ÖÖÓ
+        // 1åˆ†é’Ÿ
         sb.append(this.getPutTps(60));
         sb.append(" ");
 
-        // 10·ÖÖÓ
+        // 10åˆ†é’Ÿ
         sb.append(this.getPutTps(600));
 
         return sb.toString();
@@ -343,15 +343,15 @@ public class StoreStatsService extends ServiceThread {
 
     private String getGetFoundTps() {
         StringBuilder sb = new StringBuilder();
-        // 10ÃëÖÓ
+        // 10ç§’é’Ÿ
         sb.append(this.getGetFoundTps(10));
         sb.append(" ");
 
-        // 1·ÖÖÓ
+        // 1åˆ†é’Ÿ
         sb.append(this.getGetFoundTps(60));
         sb.append(" ");
 
-        // 10·ÖÖÓ
+        // 10åˆ†é’Ÿ
         sb.append(this.getGetFoundTps(600));
 
         return sb.toString();
@@ -376,15 +376,15 @@ public class StoreStatsService extends ServiceThread {
 
     private String getGetMissTps() {
         StringBuilder sb = new StringBuilder();
-        // 10ÃëÖÓ
+        // 10ç§’é’Ÿ
         sb.append(this.getGetMissTps(10));
         sb.append(" ");
 
-        // 1·ÖÖÓ
+        // 1åˆ†é’Ÿ
         sb.append(this.getGetMissTps(60));
         sb.append(" ");
 
-        // 10·ÖÖÓ
+        // 10åˆ†é’Ÿ
         sb.append(this.getGetMissTps(600));
 
         return sb.toString();
@@ -410,15 +410,15 @@ public class StoreStatsService extends ServiceThread {
 
     private String getGetTransferedTps() {
         StringBuilder sb = new StringBuilder();
-        // 10ÃëÖÓ
+        // 10ç§’é’Ÿ
         sb.append(this.getGetTransferedTps(10));
         sb.append(" ");
 
-        // 1·ÖÖÓ
+        // 1åˆ†é’Ÿ
         sb.append(this.getGetTransferedTps(60));
         sb.append(" ");
 
-        // 10·ÖÖÓ
+        // 10åˆ†é’Ÿ
         sb.append(this.getGetTransferedTps(600));
 
         return sb.toString();
@@ -456,15 +456,15 @@ public class StoreStatsService extends ServiceThread {
 
     private String getGetTotalTps() {
         StringBuilder sb = new StringBuilder();
-        // 10ÃëÖÓ
+        // 10ç§’é’Ÿ
         sb.append(this.getGetTotalTps(10));
         sb.append(" ");
 
-        // 1·ÖÖÓ
+        // 1åˆ†é’Ÿ
         sb.append(this.getGetTotalTps(60));
         sb.append(" ");
 
-        // 10·ÖÖÓ
+        // 10åˆ†é’Ÿ
         sb.append(this.getGetTotalTps(600));
 
         return sb.toString();
@@ -472,7 +472,7 @@ public class StoreStatsService extends ServiceThread {
 
 
     /**
-     * 1·ÖÖÓ´òÓ¡Ò»´ÎTPS
+     * 1åˆ†é’Ÿæ‰“å°ä¸€æ¬¡TPS
      */
     private void printTps() {
         if (System.currentTimeMillis() > (this.lastPrintTimestamp + PrintTPSInterval * 1000)) {

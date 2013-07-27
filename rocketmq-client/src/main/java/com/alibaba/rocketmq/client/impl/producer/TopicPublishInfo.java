@@ -23,7 +23,7 @@ import com.alibaba.rocketmq.common.message.MessageQueue;
 
 
 /**
- * ·¢²¼TopicÓÃµ½µÄÂ·ÓÉĞÅÏ¢
+ * å‘å¸ƒTopicç”¨åˆ°çš„è·¯ç”±ä¿¡æ¯
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-24
@@ -70,7 +70,7 @@ public class TopicPublishInfo {
 
 
     /**
-     * Èç¹ûlastBrokerName²»Îªnull£¬ÔòÑ°ÕÒÓëÆä²»Í¬µÄMessageQueue
+     * å¦‚æœlastBrokerNameä¸ä¸ºnullï¼Œåˆ™å¯»æ‰¾ä¸å…¶ä¸åŒçš„MessageQueue
      */
     public MessageQueue selectOneMessageQueue(final String lastBrokerName) {
         if (lastBrokerName != null) {

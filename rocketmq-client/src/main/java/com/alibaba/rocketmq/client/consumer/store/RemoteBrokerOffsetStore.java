@@ -34,7 +34,7 @@ import com.alibaba.rocketmq.remoting.exception.RemotingException;
 
 
 /**
- * Ïû·Ñ½ø¶È´æ´¢µ½Ô¶¶ËBroker£¬±È½Ï¿É¿¿
+ * æ¶ˆè´¹è¿›åº¦å­˜å‚¨åˆ°è¿œç«¯Brokerï¼Œæ¯”è¾ƒå¯é 
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-24
@@ -54,13 +54,13 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
 
 
     /**
-     * ¸üĞÂConsumer Offset£¬ÔÚMaster¶ÏÍøÆÚ¼ä£¬¿ÉÄÜ»á¸üĞÂµ½Slave£¬ÕâÀïĞèÒªÓÅ»¯£¬»òÕßÔÚSlave¶ËÓÅ»¯£¬ TODO
+     * æ›´æ–°Consumer Offsetï¼Œåœ¨Masteræ–­ç½‘æœŸé—´ï¼Œå¯èƒ½ä¼šæ›´æ–°åˆ°Slaveï¼Œè¿™é‡Œéœ€è¦ä¼˜åŒ–ï¼Œæˆ–è€…åœ¨Slaveç«¯ä¼˜åŒ–ï¼Œ TODO
      */
     private void updateConsumeOffsetToBroker(MessageQueue mq, long offset) throws RemotingException,
             MQBrokerException, InterruptedException, MQClientException {
         FindBrokerResult findBrokerResult = this.mQClientFactory.findBrokerAddressInAdmin(mq.getBrokerName());
         if (null == findBrokerResult) {
-            // TODO ´Ë´¦¿ÉÄÜ¶ÔName ServerÑ¹Á¦¹ı´ó£¬ĞèÒªµ÷ÓÅ
+            // TODO æ­¤å¤„å¯èƒ½å¯¹Name Serverå‹åŠ›è¿‡å¤§ï¼Œéœ€è¦è°ƒä¼˜
             this.mQClientFactory.updateTopicRouteInfoFromNameServer(mq.getTopic());
             findBrokerResult = this.mQClientFactory.findBrokerAddressInAdmin(mq.getBrokerName());
         }
@@ -72,7 +72,7 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
             requestHeader.setQueueId(mq.getQueueId());
             requestHeader.setCommitOffset(offset);
 
-            // Ê¹ÓÃonewayĞÎÊ½£¬Ô­ÒòÊÇ·şÎñÆ÷ÔÚÉ¾³ıÎÄ¼şÊ±£¬Õâ¸öµ÷ÓÃ¿ÉÄÜ»á³¬Ê±
+            // ä½¿ç”¨onewayå½¢å¼ï¼ŒåŸå› æ˜¯æœåŠ¡å™¨åœ¨åˆ é™¤æ–‡ä»¶æ—¶ï¼Œè¿™ä¸ªè°ƒç”¨å¯èƒ½ä¼šè¶…æ—¶
             this.mQClientFactory.getMQClientAPIImpl().updateConsumerOffsetOneway(
                 findBrokerResult.getBrokerAddr(), requestHeader, 1000 * 5);
         }
@@ -86,7 +86,7 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
             InterruptedException, MQClientException {
         FindBrokerResult findBrokerResult = this.mQClientFactory.findBrokerAddressInAdmin(mq.getBrokerName());
         if (null == findBrokerResult) {
-            // TODO ´Ë´¦¿ÉÄÜ¶ÔName ServerÑ¹Á¦¹ı´ó£¬ĞèÒªµ÷ÓÅ
+            // TODO æ­¤å¤„å¯èƒ½å¯¹Name Serverå‹åŠ›è¿‡å¤§ï¼Œéœ€è¦è°ƒä¼˜
             this.mQClientFactory.updateTopicRouteInfoFromNameServer(mq.getTopic());
             findBrokerResult = this.mQClientFactory.findBrokerAddressInAdmin(mq.getBrokerName());
         }
@@ -144,11 +144,11 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
                     offset = new AtomicLong(brokerOffset);
                     this.offsetTable.putIfAbsent(mq, offset);
                 }
-                // µ±Ç°¶©ÔÄ×éÔÚ·şÎñÆ÷Ã»ÓĞ¶ÔÓ¦µÄOffset
+                // å½“å‰è®¢é˜…ç»„åœ¨æœåŠ¡å™¨æ²¡æœ‰å¯¹åº”çš„Offset
                 catch (MQBrokerException e) {
                     return -1;
                 }
-                // ÆäËûÍ¨ĞÅ´íÎó
+                // å…¶ä»–é€šä¿¡é”™è¯¯
                 catch (Exception e) {
                     log.warn("fetchConsumeOffsetFromBroker exception, " + mq, e);
                     return -2;

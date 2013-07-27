@@ -9,7 +9,7 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingSerializable;
 
 
 /**
- * Topic路由数据，从Name Server获取
+ * Topic璺敱鏁版嵁锛屼粠Name Server鑾峰彇
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * 

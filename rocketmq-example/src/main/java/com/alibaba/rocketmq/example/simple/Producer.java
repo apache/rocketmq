@@ -22,7 +22,7 @@ import com.alibaba.rocketmq.common.message.Message;
 
 
 /**
- * Producer£¬·¢ËÍÏûÏ¢
+ * Producerï¼Œå‘é€æ¶ˆæ¯
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-16

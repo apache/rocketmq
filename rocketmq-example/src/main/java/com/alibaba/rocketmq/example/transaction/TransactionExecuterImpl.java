@@ -23,7 +23,7 @@ import com.alibaba.rocketmq.common.message.Message;
 
 
 /**
- * 执行本地事务
+ * 鎵ц鏈湴浜嬪姟
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-24

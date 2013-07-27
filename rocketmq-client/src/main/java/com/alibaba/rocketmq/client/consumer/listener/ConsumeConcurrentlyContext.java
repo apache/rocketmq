@@ -19,25 +19,25 @@ import com.alibaba.rocketmq.common.message.MessageQueue;
 
 
 /**
- * Ïû·ÑÏûÏ¢ÉÏÏÂÎÄ£¬Í¬Ò»¶ÓÁÐµÄÏûÏ¢»á²¢ÐÐÏû·Ñ£¬ÏûÏ¢ÎÞË³ÐòÐÔ
+ * æ¶ˆè´¹æ¶ˆæ¯ä¸Šä¸‹æ–‡ï¼ŒåŒä¸€é˜Ÿåˆ—çš„æ¶ˆæ¯ä¼šå¹¶è¡Œæ¶ˆè´¹ï¼Œæ¶ˆæ¯æ— é¡ºåºæ€§
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-24
  */
 public class ConsumeConcurrentlyContext {
     /**
-     * ÒªÏû·ÑµÄÏûÏ¢ÊôÓÚÄÄ¸ö¶ÓÁÐ
+     * è¦æ¶ˆè´¹çš„æ¶ˆæ¯å±žäºŽå“ªä¸ªé˜Ÿåˆ—
      */
     private final MessageQueue messageQueue;
     /**
-     * ÏÂ´ÎÏûÏ¢ÖØÊÔÑÓÊ±Ê±¼ä<br>
-     * -1£¬±íÊ¾²»ÖØÊÔ£¬Ö±½Ó½øÈëËÀÐÅ¶ÓÁÐ<br>
-     * 0£¬±íÊ¾ÓÉ·þÎñÆ÷¸ù¾ÝÖØÊÔ´ÎÊý×Ô¶¯µþ¼Ó<br>
-     * >0£¬±íÊ¾¿Í»§¶ËÇ¿ÖÆÖ¸¶¨ÑÓÊ±Level
+     * ä¸‹æ¬¡æ¶ˆæ¯é‡è¯•å»¶æ—¶æ—¶é—´<br>
+     * -1ï¼Œè¡¨ç¤ºä¸é‡è¯•ï¼Œç›´æŽ¥è¿›å…¥æ­»ä¿¡é˜Ÿåˆ—<br>
+     * 0ï¼Œè¡¨ç¤ºç”±æœåŠ¡å™¨æ ¹æ®é‡è¯•æ¬¡æ•°è‡ªåŠ¨å åŠ <br>
+     * >0ï¼Œè¡¨ç¤ºå®¢æˆ·ç«¯å¼ºåˆ¶æŒ‡å®šå»¶æ—¶Level
      */
     private int delayLevelWhenNextConsume = 0;
     /**
-     * ¶ÔÓÚÅúÁ¿Ïû·Ñ£¬ackÖÁÄÄÌõÏûÏ¢£¬Ä¬ÈÏÈ«²¿ack£¬ÖÁ×îºóÒ»ÌõÏûÏ¢
+     * å¯¹äºŽæ‰¹é‡æ¶ˆè´¹ï¼Œackè‡³å“ªæ¡æ¶ˆæ¯ï¼Œé»˜è®¤å…¨éƒ¨ackï¼Œè‡³æœ€åŽä¸€æ¡æ¶ˆæ¯
      */
     private int ackIndex = Integer.MAX_VALUE;
 

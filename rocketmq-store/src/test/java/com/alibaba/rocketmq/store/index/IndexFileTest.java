@@ -22,17 +22,17 @@ public class IndexFileTest {
         try {
             IndexFile indexFile = new IndexFile("100", hashSlotNum, indexNum, 0, 0);
 
-            // Ð´ÈëË÷Òý
+            // å†™å…¥ç´¢å¼•
             for (long i = 0; i < (indexNum - 1); i++) {
                 boolean putResult = indexFile.putKey(Long.toString(i), i, System.currentTimeMillis());
                 assertTrue(putResult);
             }
 
-            // Ë÷ÒýÎÄ¼þÒÑ¾­ÂúÁË£¬ ÔÙÐ´Èë»áÊ§°Ü
+            // ç´¢å¼•æ–‡ä»¶å·²ç»æ»¡äº†ï¼Œ å†å†™å…¥ä¼šå¤±è´¥
             boolean putResult = indexFile.putKey(Long.toString(400), 400, System.currentTimeMillis());
             assertFalse(putResult);
 
-            // É¾³ýÎÄ¼þ
+            // åˆ é™¤æ–‡ä»¶
             indexFile.destroy(0);
         }
         catch (Exception e) {
@@ -47,17 +47,17 @@ public class IndexFileTest {
         try {
             IndexFile indexFile = new IndexFile("200", hashSlotNum, indexNum, 0, 0);
 
-            // Ð´ÈëË÷Òý
+            // å†™å…¥ç´¢å¼•
             for (long i = 0; i < (indexNum - 1); i++) {
                 boolean putResult = indexFile.putKey(Long.toString(i), i, System.currentTimeMillis());
                 assertTrue(putResult);
             }
 
-            // Ë÷ÒýÎÄ¼þÒÑ¾­ÂúÁË£¬ ÔÙÐ´Èë»áÊ§°Ü
+            // ç´¢å¼•æ–‡ä»¶å·²ç»æ»¡äº†ï¼Œ å†å†™å…¥ä¼šå¤±è´¥
             boolean putResult = indexFile.putKey(Long.toString(400), 400, System.currentTimeMillis());
             assertFalse(putResult);
 
-            // ¶ÁË÷Òý
+            // è¯»ç´¢å¼•
             final List<Long> phyOffsets = new ArrayList<Long>();
             indexFile.selectPhyOffset(phyOffsets, "60", 10, 0, Long.MAX_VALUE, true);
             for (Long offset : phyOffsets) {
@@ -66,7 +66,7 @@ public class IndexFileTest {
 
             assertFalse(phyOffsets.isEmpty());
 
-            // É¾³ýÎÄ¼þ
+            // åˆ é™¤æ–‡ä»¶
             indexFile.destroy(0);
         }
         catch (Exception e) {
