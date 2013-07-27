@@ -35,26 +35,19 @@ public interface RemotingServer {
     public void start() throws InterruptedException;
 
 
-    public void registerProcessor(final int requestCode, final NettyRequestProcessor processor,
-                                  final ExecutorService executor);
+    public void registerProcessor(final int requestCode, final NettyRequestProcessor processor, final ExecutorService executor);
 
 
     public void registerDefaultProcessor(final NettyRequestProcessor processor, final ExecutorService executor);
 
 
-    public RemotingCommand invokeSync(final Channel channel, final RemotingCommand request,
-                                      final long timeoutMillis) throws InterruptedException, RemotingSendRequestException,
-            RemotingTimeoutException;
+    public RemotingCommand invokeSync(final Channel channel, final RemotingCommand request, final long timeoutMillis) throws InterruptedException, RemotingSendRequestException, RemotingTimeoutException;
 
 
-    public void invokeAsync(final Channel channel, final RemotingCommand request, final long timeoutMillis,
-                            final InvokeCallback invokeCallback) throws InterruptedException,
-            RemotingTooMuchRequestException, RemotingTimeoutException, RemotingSendRequestException;
+    public void invokeAsync(final Channel channel, final RemotingCommand request, final long timeoutMillis, final InvokeCallback invokeCallback) throws InterruptedException, RemotingTooMuchRequestException, RemotingTimeoutException, RemotingSendRequestException;
 
 
-    public void invokeOneway(final Channel channel, final RemotingCommand request, final long timeoutMillis)
-            throws InterruptedException, RemotingTooMuchRequestException, RemotingTimeoutException,
-            RemotingSendRequestException;
+    public void invokeOneway(final Channel channel, final RemotingCommand request, final long timeoutMillis) throws InterruptedException, RemotingTooMuchRequestException, RemotingTimeoutException, RemotingSendRequestException;
 
 
     public void shutdown();

@@ -26,14 +26,12 @@ public class NettyConnectionTest {
 
 
     @Test
-    public void test_connect_timeout() throws InterruptedException, RemotingConnectException,
-            RemotingSendRequestException, RemotingTimeoutException {
+    public void test_connect_timeout() throws InterruptedException, RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException {
         RemotingClient client = createRemotingClient();
 
         for (int i = 0; i < 100; i++) {
             try {
-                RemotingCommand request =
-                        RemotingCommand.createRequestCommand(0, null);
+                RemotingCommand request = RemotingCommand.createRequestCommand(0, null);
                 RemotingCommand response = client.invokeSync("127.0.0.1:8888", request, 1000 * 3);
             } catch (Exception e) {
                 e.printStackTrace();

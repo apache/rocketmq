@@ -52,13 +52,12 @@ public class NamesrvController {
     private ExecutorService remotingExecutor;
 
     // 定时线程
-    private final ScheduledExecutorService scheduledExecutorService = Executors
-            .newSingleThreadScheduledExecutor(new ThreadFactory() {
-                @Override
-                public Thread newThread(Runnable r) {
-                    return new Thread(r, "NamesrvControllerScheduledThread");
-                }
-            });
+    private final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactory() {
+        @Override
+        public Thread newThread(Runnable r) {
+            return new Thread(r, "NamesrvControllerScheduledThread");
+        }
+    });
 
     /**
      * 核心数据结构
@@ -87,16 +86,15 @@ public class NamesrvController {
         this.remotingServer = new NettyRemotingServer(this.nettyServerConfig, this.brokerHousekeepingService);
 
         // 初始化线程池
-        this.remotingExecutor =
-                Executors.newFixedThreadPool(nettyServerConfig.getServerWorkerThreads(), new ThreadFactory() {
-                    private AtomicInteger threadIndex = new AtomicInteger(0);
+        this.remotingExecutor = Executors.newFixedThreadPool(nettyServerConfig.getServerWorkerThreads(), new ThreadFactory() {
+            private AtomicInteger threadIndex = new AtomicInteger(0);
 
 
-                    @Override
-                    public Thread newThread(Runnable r) {
-                        return new Thread(r, "RemotingExecutorThread_" + threadIndex.incrementAndGet());
-                    }
-                });
+            @Override
+            public Thread newThread(Runnable r) {
+                return new Thread(r, "RemotingExecutorThread_" + threadIndex.incrementAndGet());
+            }
+        });
 
         this.registerProcessor();
 
@@ -130,8 +128,7 @@ public class NamesrvController {
 
 
     private void registerProcessor() {
-        this.remotingServer
-                .registerDefaultProcessor(new DefaultRequestProcessor(this), this.remotingExecutor);
+        this.remotingServer.registerDefaultProcessor(new DefaultRequestProcessor(this), this.remotingExecutor);
     }
 
 

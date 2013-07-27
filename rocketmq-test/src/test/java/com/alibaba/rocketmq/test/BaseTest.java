@@ -44,8 +44,7 @@ public abstract class BaseTest extends TestCase {
             // "store");
 
             if (null == brokerConfig.getRocketmqHome()) {
-                System.out.println("Please set the " + MixAll.ROCKETMQ_HOME_ENV
-                        + " variable in your environment to match the location of the RocketMQ installation");
+                System.out.println("Please set the " + MixAll.ROCKETMQ_HOME_ENV + " variable in your environment to match the location of the RocketMQ installation");
                 System.exit(-2);
             }
 
@@ -58,8 +57,7 @@ public abstract class BaseTest extends TestCase {
                     break;
                 case SLAVE:
                     // Slave Id由Slave监听IP、端口决定
-                    long id =
-                            MixAll.createBrokerId(brokerConfig.getBrokerIP1(), nettyServerConfig.getListenPort());
+                    long id = MixAll.createBrokerId(brokerConfig.getBrokerIP1(), nettyServerConfig.getListenPort());
                     brokerConfig.setBrokerId(id);
                     break;
                 default:
@@ -83,9 +81,7 @@ public abstract class BaseTest extends TestCase {
             MixAll.printObjectProperties(log, messageStoreConfig);
 
             // 初始化服务控制对象
-            brokerController =
-                    new BrokerController(brokerConfig, nettyServerConfig, new NettyClientConfig(),
-                            messageStoreConfig);
+            brokerController = new BrokerController(brokerConfig, nettyServerConfig, new NettyClientConfig(), messageStoreConfig);
             boolean initResult = brokerController.initialize();
             if (!initResult) {
                 brokerController.shutdown();
@@ -114,9 +110,7 @@ public abstract class BaseTest extends TestCase {
 
             // 启动服务控制对象
             brokerController.start();
-            String tip =
-                    "The broker[" + brokerController.getBrokerConfig().getBrokerName() + ", "
-                            + brokerController.getBrokerAddr() + "] boot success.";
+            String tip = "The broker[" + brokerController.getBrokerConfig().getBrokerName() + ", " + brokerController.getBrokerAddr() + "] boot success.";
             log.info(tip);
             System.out.println(tip);
         } catch (Throwable e) {

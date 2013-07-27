@@ -51,8 +51,7 @@ public class ClientRemotingProcessor implements NettyRequestProcessor {
 
 
     @Override
-    public RemotingCommand processRequest(ChannelHandlerContext ctx, RemotingCommand request)
-            throws RemotingCommandException {
+    public RemotingCommand processRequest(ChannelHandlerContext ctx, RemotingCommand request) throws RemotingCommandException {
         MQRequestCode code = MQRequestCode.valueOf(request.getCode());
         switch (code) {
             case CHECK_TRANSACTION_STATE:
@@ -69,11 +68,8 @@ public class ClientRemotingProcessor implements NettyRequestProcessor {
     /**
      * Oneway调用，无返回值
      */
-    public RemotingCommand notifyConsumerIdsChanged(ChannelHandlerContext ctx, RemotingCommand request)
-            throws RemotingCommandException {
-        final NotifyConsumerIdsChangedRequestHeader requestHeader =
-                (NotifyConsumerIdsChangedRequestHeader) request
-                        .decodeCommandCustomHeader(NotifyConsumerIdsChangedRequestHeader.class);
+    public RemotingCommand notifyConsumerIdsChanged(ChannelHandlerContext ctx, RemotingCommand request) throws RemotingCommandException {
+        final NotifyConsumerIdsChangedRequestHeader requestHeader = (NotifyConsumerIdsChangedRequestHeader) request.decodeCommandCustomHeader(NotifyConsumerIdsChangedRequestHeader.class);
         log.info("receive broker's notification[{}], the consumer group: {} changed, rebalance immediately",//
                 RemotingHelper.parseChannelRemoteAddr(ctx.channel()),//
                 requestHeader.getConsumerGroup());
@@ -85,11 +81,8 @@ public class ClientRemotingProcessor implements NettyRequestProcessor {
     /**
      * Oneway调用，无返回值
      */
-    public RemotingCommand checkTransactionState(ChannelHandlerContext ctx, RemotingCommand request)
-            throws RemotingCommandException {
-        final CheckTransactionStateRequestHeader requestHeader =
-                (CheckTransactionStateRequestHeader) request
-                        .decodeCommandCustomHeader(CheckTransactionStateRequestHeader.class);
+    public RemotingCommand checkTransactionState(ChannelHandlerContext ctx, RemotingCommand request) throws RemotingCommandException {
+        final CheckTransactionStateRequestHeader requestHeader = (CheckTransactionStateRequestHeader) request.decodeCommandCustomHeader(CheckTransactionStateRequestHeader.class);
         final ByteBuffer byteBuffer = ByteBuffer.wrap(request.getBody());
         final MessageExt messageExt = MessageDecoder.decode(byteBuffer);
         if (messageExt != null) {

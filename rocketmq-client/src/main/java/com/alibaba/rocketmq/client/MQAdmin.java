@@ -38,8 +38,7 @@ public interface MQAdmin {
      * @param order    是否是严格的顺序消息
      * @throws MQClientException
      */
-    public void createTopic(final String key, final String newTopic, final int queueNum)
-            throws MQClientException;
+    public void createTopic(final String key, final String newTopic, final int queueNum) throws MQClientException;
 
 
     /**
@@ -94,8 +93,7 @@ public interface MQAdmin {
      * @throws RemotingException
      * @throws MQClientException
      */
-    public MessageExt viewMessage(final String msgId) throws RemotingException, MQBrokerException,
-            InterruptedException, MQClientException;
+    public MessageExt viewMessage(final String msgId) throws RemotingException, MQBrokerException, InterruptedException, MQClientException;
 
 
     /**
@@ -110,6 +108,5 @@ public interface MQAdmin {
      * @throws MQClientException
      * @throws InterruptedException
      */
-    public QueryResult queryMessage(final String topic, final String key, final int maxNum, final long begin,
-                                    final long end) throws MQClientException, InterruptedException;
+    public QueryResult queryMessage(final String topic, final String key, final int maxNum, final long begin, final long end) throws MQClientException, InterruptedException;
 }

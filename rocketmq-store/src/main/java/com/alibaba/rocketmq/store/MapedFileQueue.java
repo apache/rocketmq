@@ -56,8 +56,7 @@ public class MapedFileQueue {
     private volatile long storeTimestamp = 0;
 
 
-    public MapedFileQueue(final String storePath, int mapedFileSize,
-                          AllocateMapedFileService allocateMapedFileService) {
+    public MapedFileQueue(final String storePath, int mapedFileSize, AllocateMapedFileService allocateMapedFileService) {
         this.storePath = storePath;
         this.mapedFileSize = mapedFileSize;
         this.allocateMapedFileService = allocateMapedFileService;
@@ -114,8 +113,7 @@ public class MapedFileQueue {
             for (File file : files) {
                 // 校验文件大小是否匹配
                 if (file.length() != this.mapedFileSize) {
-                    log.warn(file + "\t" + file.length()
-                            + " length not matched message store config value, ignore it");
+                    log.warn(file + "\t" + file.length() + " length not matched message store config value, ignore it");
                     return true;
                 }
 
@@ -307,8 +305,7 @@ public class MapedFileQueue {
                     // 当前文件是否可以删除
                     destroy = (maxOffsetInLogicQueue < offset);
                     if (destroy) {
-                        log.info("physic min offset " + offset + ", logics in current mapedfile max offset "
-                                + maxOffsetInLogicQueue + ", delete it");
+                        log.info("physic min offset " + offset + ", logics in current mapedfile max offset " + maxOffsetInLogicQueue + ", delete it");
                     }
                 } else {
                     log.warn("this being not excuted forever.");
@@ -391,15 +388,11 @@ public class MapedFileQueue {
 
         if (createOffset != -1) {
             String nextFilePath = this.storePath + File.separator + UtilALl.offset2FileName(createOffset);
-            String nextNextFilePath =
-                    this.storePath + File.separator
-                            + UtilALl.offset2FileName(createOffset + this.mapedFileSize);
+            String nextNextFilePath = this.storePath + File.separator + UtilALl.offset2FileName(createOffset + this.mapedFileSize);
             MapedFile mapedFile = null;
 
             if (this.allocateMapedFileService != null) {
-                mapedFile =
-                        this.allocateMapedFileService.putRequestAndReturnMapedFile(nextFilePath,
-                                nextNextFilePath, this.mapedFileSize);
+                mapedFile = this.allocateMapedFileService.putRequestAndReturnMapedFile(nextFilePath, nextNextFilePath, this.mapedFileSize);
             } else {
                 try {
                     mapedFile = new MapedFile(nextFilePath, this.mapedFileSize);
@@ -454,12 +447,9 @@ public class MapedFileQueue {
             MapedFile mapedFile = this.getFirstMapedFile();
 
             if (mapedFile != null) {
-                int index =
-                        (int) ((offset / this.mapedFileSize) - (mapedFile.getFileFromOffset() / this.mapedFileSize));
+                int index = (int) ((offset / this.mapedFileSize) - (mapedFile.getFileFromOffset() / this.mapedFileSize));
                 if (index < 0 || index >= this.mapedFiles.size()) {
-                    log.warn("findMapedFileByOffset offset not matched, request Offset: " + offset
-                            + ", index: " + index + ", mapedFileSize: " + this.mapedFileSize
-                            + ", mapedFiles count: " + this.mapedFiles.size());
+                    log.warn("findMapedFileByOffset offset not matched, request Offset: " + offset + ", index: " + index + ", mapedFileSize: " + this.mapedFileSize + ", mapedFiles count: " + this.mapedFiles.size());
                 }
 
                 try {

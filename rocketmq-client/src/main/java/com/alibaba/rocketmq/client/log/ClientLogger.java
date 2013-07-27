@@ -40,9 +40,7 @@ public class ClientLogger {
 
 
     private static Logger createLogger(final String loggerName) {
-        String logConfigFilePath =
-                System.getProperty("rocketmq.client.log.configFile",
-                        System.getenv("ROCKETMQ_CLIENT_LOG_CONFIGFILE"));
+        String logConfigFilePath = System.getProperty("rocketmq.client.log.configFile", System.getenv("ROCKETMQ_CLIENT_LOG_CONFIGFILE"));
         try {
             ILoggerFactory iLoggerFactory = LoggerFactory.getILoggerFactory();
             Class classType = iLoggerFactory.getClass();
@@ -75,8 +73,7 @@ public class ClientLogger {
                     Method doConfigure = joranConfiguratoroObj.getClass().getMethod("doConfigure", URL.class);
                     doConfigure.invoke(joranConfiguratoroObj, url);
                 } else {
-                    Method doConfigure =
-                            joranConfiguratoroObj.getClass().getMethod("doConfigure", String.class);
+                    Method doConfigure = joranConfiguratoroObj.getClass().getMethod("doConfigure", String.class);
                     doConfigure.invoke(joranConfiguratoroObj, logConfigFilePath);
                 }
 

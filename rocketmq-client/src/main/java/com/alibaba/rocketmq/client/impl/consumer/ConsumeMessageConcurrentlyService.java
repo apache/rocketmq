@@ -52,8 +52,7 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
     private final ScheduledExecutorService scheduledExecutorService;
 
 
-    public ConsumeMessageConcurrentlyService(DefaultMQPushConsumerImpl defaultMQPushConsumerImpl,
-                                             MessageListenerConcurrently messageListener) {
+    public ConsumeMessageConcurrentlyService(DefaultMQPushConsumerImpl defaultMQPushConsumerImpl, MessageListenerConcurrently messageListener) {
         this.defaultMQPushConsumerImpl = defaultMQPushConsumerImpl;
         this.messageListener = messageListener;
 
@@ -129,8 +128,7 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
         @Override
         public void run() {
             if (this.processQueue.isDroped()) {
-                log.info("the message queue not be able to consume, because it's droped {}",
-                        this.messageQueue);
+                log.info("the message queue not be able to consume, because it's droped {}", this.messageQueue);
                 return;
             }
 
@@ -144,8 +142,7 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
                 this.resetRetryTopic(msgs);
                 status = listener.consumeMessage(msgs, context);
             } catch (Throwable e) {
-                log.warn("consumeMessage exception, Group: "
-                        + ConsumeMessageConcurrentlyService.this.consumerGroup//
+                log.warn("consumeMessage exception, Group: " + ConsumeMessageConcurrentlyService.this.consumerGroup//
                         + " " + msgs//
                         + " " + messageQueue, e);
             }
@@ -157,10 +154,8 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
             }
 
             // 记录统计信息
-            ConsumeMessageConcurrentlyService.this.getConsumerStat().getConsumeMsgRTTotal()
-                    .addAndGet(consumeRT);
-            MixAll.compareAndIncreaseOnly(ConsumeMessageConcurrentlyService.this.getConsumerStat()
-                    .getConsumeMsgRTMax(), consumeRT);
+            ConsumeMessageConcurrentlyService.this.getConsumerStat().getConsumeMsgRTTotal().addAndGet(consumeRT);
+            MixAll.compareAndIncreaseOnly(ConsumeMessageConcurrentlyService.this.getConsumerStat().getConsumeMsgRTMax(), consumeRT);
 
             ConsumeMessageConcurrentlyService.this.processConsumeResult(status, context, this);
         }
@@ -190,8 +185,7 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
             this.defaultMQPushConsumerImpl.sendMessageBack(msg, delayLevel);
             return true;
         } catch (Exception e) {
-            log.error("sendMessageBack exception, group: " + this.consumerGroup + " msg: " + msg.toString(),
-                    e);
+            log.error("sendMessageBack exception, group: " + this.consumerGroup + " msg: " + msg.toString(), e);
         }
 
         return false;
@@ -254,8 +248,7 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
                     consumeRequest.getMsgs().removeAll(msgBackFailed);
 
                     // 此过程处理失败的消息，需要在Client中做定时消费，直到成功
-                    this.submitConsumeRequestLater(msgBackFailed, consumeRequest.getProcessQueue(),
-                            consumeRequest.getMessageQueue());
+                    this.submitConsumeRequestLater(msgBackFailed, consumeRequest.getProcessQueue(), consumeRequest.getMessageQueue());
                 }
                 break;
             default:
@@ -264,8 +257,7 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
 
         long offset = consumeRequest.getProcessQueue().removeMessage(consumeRequest.getMsgs());
         if (offset >= 0) {
-            this.defaultMQPushConsumerImpl.getOffsetStore().updateOffset(consumeRequest.getMessageQueue(),
-                    offset, true);
+            this.defaultMQPushConsumerImpl.getOffsetStore().updateOffset(consumeRequest.getMessageQueue(), offset, true);
         }
     }
 
@@ -283,8 +275,7 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
 
             @Override
             public void run() {
-                ConsumeMessageConcurrentlyService.this.submitConsumeRequest(msgs, processQueue, messageQueue,
-                        true);
+                ConsumeMessageConcurrentlyService.this.submitConsumeRequest(msgs, processQueue, messageQueue, true);
             }
         }, 5000, TimeUnit.MILLISECONDS);
     }

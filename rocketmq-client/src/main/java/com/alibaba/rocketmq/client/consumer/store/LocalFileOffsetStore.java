@@ -36,14 +36,12 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 public class LocalFileOffsetStore implements OffsetStore {
     private final static Logger log = ClientLogger.getLog();
-    public final static String LocalOffsetStoreDir = System.getProperty(
-            "rocketmq.client.localOffsetStoreDir", //
+    public final static String LocalOffsetStoreDir = System.getProperty("rocketmq.client.localOffsetStoreDir", //
             System.getProperty("user.home") + File.separator + ".rocketmq_offsets");
 
     private final MQClientFactory mQClientFactory;
     private final String groupName;
-    private ConcurrentHashMap<MessageQueue, AtomicLong> offsetTable =
-            new ConcurrentHashMap<MessageQueue, AtomicLong>();
+    private ConcurrentHashMap<MessageQueue, AtomicLong> offsetTable = new ConcurrentHashMap<MessageQueue, AtomicLong>();
 
     // 本地Offset存储路径
     private final String storePath;
@@ -62,8 +60,7 @@ public class LocalFileOffsetStore implements OffsetStore {
     private OffsetSerializeWrapper readLocalOffset() {
         String content = MixAll.file2String(this.storePath);
         if (content != null) {
-            OffsetSerializeWrapper offsetSerializeWrapper =
-                    OffsetSerializeWrapper.fromJson(content, OffsetSerializeWrapper.class);
+            OffsetSerializeWrapper offsetSerializeWrapper = OffsetSerializeWrapper.fromJson(content, OffsetSerializeWrapper.class);
             return offsetSerializeWrapper;
         }
 

@@ -38,9 +38,7 @@ public class RebalancePullImpl extends RebalanceImpl {
     }
 
 
-    public RebalancePullImpl(String consumerGroup, MessageModel messageModel,
-                             AllocateMessageQueueStrategy allocateMessageQueueStrategy, MQClientFactory mQClientFactory,
-                             DefaultMQPullConsumerImpl defaultMQPullConsumerImpl) {
+    public RebalancePullImpl(String consumerGroup, MessageModel messageModel, AllocateMessageQueueStrategy allocateMessageQueueStrategy, MQClientFactory mQClientFactory, DefaultMQPullConsumerImpl defaultMQPullConsumerImpl) {
         super(consumerGroup, messageModel, allocateMessageQueueStrategy, mQClientFactory);
         this.defaultMQPullConsumerImpl = defaultMQPullConsumerImpl;
     }
@@ -59,8 +57,7 @@ public class RebalancePullImpl extends RebalanceImpl {
 
     @Override
     public void messageQueueChanged(String topic, Set<MessageQueue> mqAll, Set<MessageQueue> mqDivided) {
-        MessageQueueListener messageQueueListener =
-                this.defaultMQPullConsumerImpl.getDefaultMQPullConsumer().getMessageQueueListener();
+        MessageQueueListener messageQueueListener = this.defaultMQPullConsumerImpl.getDefaultMQPullConsumer().getMessageQueueListener();
         if (messageQueueListener != null) {
             try {
                 messageQueueListener.messageQueueChanged(topic, mqAll, mqDivided);

@@ -91,13 +91,12 @@ public class BrokerController {
     private final RebalanceLockManager rebalanceLockManager = new RebalanceLockManager();
     // Broker的通信层客户端
     private final BrokerOuterAPI brokerOuterAPI;
-    private final ScheduledExecutorService scheduledExecutorService = Executors
-            .newSingleThreadScheduledExecutor(new ThreadFactory() {
-                @Override
-                public Thread newThread(Runnable r) {
-                    return new Thread(r, "BrokerControllerScheduledThread");
-                }
-            });
+    private final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactory() {
+        @Override
+        public Thread newThread(Runnable r) {
+            return new Thread(r, "BrokerControllerScheduledThread");
+        }
+    });
     // Slave定期从Master同步信息
     private final SlaveSynchronize slaveSynchronize;
     private final DigestLogManager digestLogManager;
@@ -168,8 +167,7 @@ public class BrokerController {
         // 初始化存储层
         if (result) {
             try {
-                this.messageStore =
-                        new DefaultMessageStore(this.messageStoreConfig, this.defaultTransactionCheckExecuter);
+                this.messageStore = new DefaultMessageStore(this.messageStoreConfig, this.defaultTransactionCheckExecuter);
             } catch (IOException e) {
                 result = false;
                 e.printStackTrace();
@@ -181,51 +179,41 @@ public class BrokerController {
 
         if (result) {
             // 初始化通信层
-            this.remotingServer =
-                    new NettyRemotingServer(this.nettyServerConfig, this.clientHousekeepingService);
+            this.remotingServer = new NettyRemotingServer(this.nettyServerConfig, this.clientHousekeepingService);
 
             // 初始化线程池
-            this.sendMessageExecutor =
-                    Executors.newFixedThreadPool(this.brokerConfig.getSendMessageThreadPoolNums(),
-                            new ThreadFactory() {
+            this.sendMessageExecutor = Executors.newFixedThreadPool(this.brokerConfig.getSendMessageThreadPoolNums(), new ThreadFactory() {
 
-                                private AtomicInteger threadIndex = new AtomicInteger(0);
+                private AtomicInteger threadIndex = new AtomicInteger(0);
 
 
-                                @Override
-                                public Thread newThread(Runnable r) {
-                                    return new Thread(r, "SendMessageThread_"
-                                            + this.threadIndex.incrementAndGet());
-                                }
-                            });
+                @Override
+                public Thread newThread(Runnable r) {
+                    return new Thread(r, "SendMessageThread_" + this.threadIndex.incrementAndGet());
+                }
+            });
 
-            this.pullMessageExecutor =
-                    Executors.newFixedThreadPool(this.brokerConfig.getPullMessageThreadPoolNums(),
-                            new ThreadFactory() {
+            this.pullMessageExecutor = Executors.newFixedThreadPool(this.brokerConfig.getPullMessageThreadPoolNums(), new ThreadFactory() {
 
-                                private AtomicInteger threadIndex = new AtomicInteger(0);
+                private AtomicInteger threadIndex = new AtomicInteger(0);
 
 
-                                @Override
-                                public Thread newThread(Runnable r) {
-                                    return new Thread(r, "PullMessageThread_"
-                                            + this.threadIndex.incrementAndGet());
-                                }
-                            });
+                @Override
+                public Thread newThread(Runnable r) {
+                    return new Thread(r, "PullMessageThread_" + this.threadIndex.incrementAndGet());
+                }
+            });
 
-            this.adminBrokerExecutor =
-                    Executors.newFixedThreadPool(this.brokerConfig.getAdminBrokerThreadPoolNums(),
-                            new ThreadFactory() {
+            this.adminBrokerExecutor = Executors.newFixedThreadPool(this.brokerConfig.getAdminBrokerThreadPoolNums(), new ThreadFactory() {
 
-                                private AtomicInteger threadIndex = new AtomicInteger(0);
+                private AtomicInteger threadIndex = new AtomicInteger(0);
 
 
-                                @Override
-                                public Thread newThread(Runnable r) {
-                                    return new Thread(r, "AdminBrokerThread_"
-                                            + this.threadIndex.incrementAndGet());
-                                }
-                            });
+                @Override
+                public Thread newThread(Runnable r) {
+                    return new Thread(r, "AdminBrokerThread_" + this.threadIndex.incrementAndGet());
+                }
+            });
 
             this.registerProcessor();
 
@@ -274,8 +262,7 @@ public class BrokerController {
 
             // 如果是slave
             if (BrokerRole.SLAVE == this.messageStoreConfig.getBrokerRole()) {
-                if (this.messageStoreConfig.getHaMasterAddress() != null
-                        && this.messageStoreConfig.getHaMasterAddress().length() >= 6) {
+                if (this.messageStoreConfig.getHaMasterAddress() != null && this.messageStoreConfig.getHaMasterAddress().length() >= 6) {
                     this.messageStore.updateHaMasterAddress(this.messageStoreConfig.getHaMasterAddress());
                     this.updateMasterHAServerAddrPeriodically = false;
                 } else {
@@ -305,48 +292,38 @@ public class BrokerController {
          * SendMessageProcessor
          */
         NettyRequestProcessor sendProcessor = new SendMessageProcessor(this);
-        this.remotingServer.registerProcessor(MQProtos.MQRequestCode.SEND_MESSAGE_VALUE, sendProcessor,
-                this.sendMessageExecutor);
-        this.remotingServer.registerProcessor(MQProtos.MQRequestCode.CONSUMER_SEND_MSG_BACK_VALUE,
-                sendProcessor, this.sendMessageExecutor);
+        this.remotingServer.registerProcessor(MQProtos.MQRequestCode.SEND_MESSAGE_VALUE, sendProcessor, this.sendMessageExecutor);
+        this.remotingServer.registerProcessor(MQProtos.MQRequestCode.CONSUMER_SEND_MSG_BACK_VALUE, sendProcessor, this.sendMessageExecutor);
 
         /**
          * PullMessageProcessor
          */
-        this.remotingServer.registerProcessor(MQProtos.MQRequestCode.PULL_MESSAGE_VALUE,
-                this.pullMessageProcessor, this.pullMessageExecutor);
+        this.remotingServer.registerProcessor(MQProtos.MQRequestCode.PULL_MESSAGE_VALUE, this.pullMessageProcessor, this.pullMessageExecutor);
 
         /**
          * QueryMessageProcessor
          */
         NettyRequestProcessor queryProcessor = new QueryMessageProcessor(this);
-        this.remotingServer.registerProcessor(MQProtos.MQRequestCode.QUERY_MESSAGE_VALUE, queryProcessor,
-                this.pullMessageExecutor);
-        this.remotingServer.registerProcessor(MQProtos.MQRequestCode.VIEW_MESSAGE_BY_ID_VALUE,
-                queryProcessor, this.pullMessageExecutor);
+        this.remotingServer.registerProcessor(MQProtos.MQRequestCode.QUERY_MESSAGE_VALUE, queryProcessor, this.pullMessageExecutor);
+        this.remotingServer.registerProcessor(MQProtos.MQRequestCode.VIEW_MESSAGE_BY_ID_VALUE, queryProcessor, this.pullMessageExecutor);
 
         /**
          * ClientManageProcessor
          */
         NettyRequestProcessor clientProcessor = new ClientManageProcessor(this);
-        this.remotingServer.registerProcessor(MQProtos.MQRequestCode.HEART_BEAT_VALUE, clientProcessor,
-                this.adminBrokerExecutor);
-        this.remotingServer.registerProcessor(MQProtos.MQRequestCode.UNREGISTER_CLIENT_VALUE,
-                clientProcessor, this.adminBrokerExecutor);
-        this.remotingServer.registerProcessor(MQProtos.MQRequestCode.GET_CONSUMER_LIST_BY_GROUP_VALUE,
-                clientProcessor, this.adminBrokerExecutor);
+        this.remotingServer.registerProcessor(MQProtos.MQRequestCode.HEART_BEAT_VALUE, clientProcessor, this.adminBrokerExecutor);
+        this.remotingServer.registerProcessor(MQProtos.MQRequestCode.UNREGISTER_CLIENT_VALUE, clientProcessor, this.adminBrokerExecutor);
+        this.remotingServer.registerProcessor(MQProtos.MQRequestCode.GET_CONSUMER_LIST_BY_GROUP_VALUE, clientProcessor, this.adminBrokerExecutor);
 
         /**
          * EndTransactionProcessor
          */
-        this.remotingServer.registerProcessor(MQProtos.MQRequestCode.END_TRANSACTION_VALUE,
-                new EndTransactionProcessor(this), this.sendMessageExecutor);
+        this.remotingServer.registerProcessor(MQProtos.MQRequestCode.END_TRANSACTION_VALUE, new EndTransactionProcessor(this), this.sendMessageExecutor);
 
         /**
          * Default
          */
-        this.remotingServer
-                .registerDefaultProcessor(new AdminBrokerProcessor(this), this.adminBrokerExecutor);
+        this.remotingServer.registerDefaultProcessor(new AdminBrokerProcessor(this), this.adminBrokerExecutor);
     }
 
     public Broker2Client getBroker2Client() {
@@ -516,8 +493,7 @@ public class BrokerController {
     }
 
     public synchronized void registerBrokerAll() {
-        TopicConfigSerializeWrapper topicConfigWrapper =
-                this.getTopicConfigManager().buildTopicConfigSerializeWrapper();
+        TopicConfigSerializeWrapper topicConfigWrapper = this.getTopicConfigManager().buildTopicConfigSerializeWrapper();
 
         RegisterBrokerResult registerBrokerResult = this.brokerOuterAPI.registerBrokerAll(//
                 this.brokerConfig.getBrokerClusterName(), //

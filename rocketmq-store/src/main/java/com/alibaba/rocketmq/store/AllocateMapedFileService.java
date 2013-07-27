@@ -100,10 +100,8 @@ public class AllocateMapedFileService extends ServiceThread {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.StoreLoggerName);
     private static int WaitTimeOut = 1000 * 5;
 
-    private ConcurrentHashMap<String, AllocateRequest> requestTable =
-            new ConcurrentHashMap<String, AllocateRequest>();
-    private PriorityBlockingQueue<AllocateRequest> requestQueue =
-            new PriorityBlockingQueue<AllocateRequest>();
+    private ConcurrentHashMap<String, AllocateRequest> requestTable = new ConcurrentHashMap<String, AllocateRequest>();
+    private PriorityBlockingQueue<AllocateRequest> requestQueue = new PriorityBlockingQueue<AllocateRequest>();
     private volatile boolean hasException = false;
 
 
@@ -179,8 +177,7 @@ public class AllocateMapedFileService extends ServiceThread {
         try {
             req = this.requestQueue.take();
             if (null == this.requestTable.get(req.getFilePath())) {
-                log.warn("this mmap request expired, maybe cause timeout " + req.getFilePath() + " "
-                        + req.getFileSize());
+                log.warn("this mmap request expired, maybe cause timeout " + req.getFilePath() + " " + req.getFileSize());
                 return true;
             }
 
@@ -191,8 +188,7 @@ public class AllocateMapedFileService extends ServiceThread {
                 // 记录大于10ms的
                 if (eclipseTime > 10) {
                     int queueSize = this.requestQueue.size();
-                    log.warn("create mapedFile spent time(ms) " + eclipseTime + " queue size " + queueSize
-                            + " " + req.getFilePath() + " " + req.getFileSize());
+                    log.warn("create mapedFile spent time(ms) " + eclipseTime + " queue size " + queueSize + " " + req.getFilePath() + " " + req.getFileSize());
                 }
 
                 req.setMapedFile(mapedFile);

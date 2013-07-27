@@ -42,24 +42,18 @@ public class DefaultTransactionCheckExecuter implements TransactionCheckExecuter
 
 
     @Override
-    public void gotoCheck(int producerGroupHashCode, long tranStateTableOffset, long commitLogOffset,
-                          int msgSize) {
+    public void gotoCheck(int producerGroupHashCode, long tranStateTableOffset, long commitLogOffset, int msgSize) {
         // 第一步、查询Producer
-        final ClientChannelInfo clientChannelInfo =
-                this.brokerController.getProducerManager().pickProducerChannelRandomly(producerGroupHashCode);
+        final ClientChannelInfo clientChannelInfo = this.brokerController.getProducerManager().pickProducerChannelRandomly(producerGroupHashCode);
         if (null == clientChannelInfo) {
-            log.warn("check a producer transaction state, but not find any channel of this group[{}]",
-                    producerGroupHashCode);
+            log.warn("check a producer transaction state, but not find any channel of this group[{}]", producerGroupHashCode);
             return;
         }
 
         // 第二步、查询消息
-        SelectMapedBufferResult selectMapedBufferResult =
-                this.brokerController.getMessageStore().selectOneMessageByOffset(commitLogOffset, msgSize);
+        SelectMapedBufferResult selectMapedBufferResult = this.brokerController.getMessageStore().selectOneMessageByOffset(commitLogOffset, msgSize);
         if (null == selectMapedBufferResult) {
-            log.warn(
-                    "check a producer transaction state, but not find message by commitLogOffset: {}, msgSize: ",
-                    commitLogOffset, msgSize);
+            log.warn("check a producer transaction state, but not find message by commitLogOffset: {}, msgSize: ", commitLogOffset, msgSize);
             return;
         }
 
@@ -67,7 +61,6 @@ public class DefaultTransactionCheckExecuter implements TransactionCheckExecuter
         final CheckTransactionStateRequestHeader requestHeader = new CheckTransactionStateRequestHeader();
         requestHeader.setCommitLogOffset(commitLogOffset);
         requestHeader.setTranStateTableOffset(tranStateTableOffset);
-        this.brokerController.getBroker2Client().checkProducerTransactionState(
-                clientChannelInfo.getChannel(), requestHeader, selectMapedBufferResult);
+        this.brokerController.getBroker2Client().checkProducerTransactionState(clientChannelInfo.getChannel(), requestHeader, selectMapedBufferResult);
     }
 }

@@ -75,9 +75,7 @@ public class BrokerStartup {
         try {
             // 解析命令行
             Options options = MixAll.buildCommandlineOptions(new Options());
-            final CommandLine commandLine =
-                    MixAll
-                            .parseCmdLine("mqbroker", args, buildCommandlineOptions(options), new PosixParser());
+            final CommandLine commandLine = MixAll.parseCmdLine("mqbroker", args, buildCommandlineOptions(options), new PosixParser());
             if (null == commandLine) {
                 System.exit(-1);
                 return;
@@ -134,8 +132,7 @@ public class BrokerStartup {
             MixAll.properties2Object(MixAll.commandLine2Properties(commandLine), brokerConfig);
 
             if (null == brokerConfig.getRocketmqHome()) {
-                System.out.println("Please set the " + MixAll.ROCKETMQ_HOME_ENV
-                        + " variable in your environment to match the location of the RocketMQ installation");
+                System.out.println("Please set the " + MixAll.ROCKETMQ_HOME_ENV + " variable in your environment to match the location of the RocketMQ installation");
                 System.exit(-2);
             }
 
@@ -208,9 +205,7 @@ public class BrokerStartup {
 
             // 启动服务控制对象
             controller.start();
-            String tip =
-                    "The broker[" + controller.getBrokerConfig().getBrokerName() + ", "
-                            + controller.getBrokerAddr() + "] boot success.";
+            String tip = "The broker[" + controller.getBrokerConfig().getBrokerName() + ", " + controller.getBrokerAddr() + "] boot success.";
             log.info(tip);
             System.out.println(tip);
         } catch (Throwable e) {

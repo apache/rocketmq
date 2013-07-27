@@ -62,8 +62,7 @@ public interface MessageStore {
     /**
      * 读取消息，如果types为null，则不做过滤
      */
-    public GetMessageResult getMessage(final String topic, final int queueId, final long offset,
-                                       final int maxMsgNums, final SubscriptionData subscriptionData);
+    public GetMessageResult getMessage(final String topic, final int queueId, final long offset, final int maxMsgNums, final SubscriptionData subscriptionData);
 
 
     /**
@@ -151,8 +150,7 @@ public interface MessageStore {
     /**
      * 根据消息Key查询消息
      */
-    public QueryMessageResult queryMessage(final String topic, final String key, final int maxNum,
-                                           final long begin, final long end);
+    public QueryMessageResult queryMessage(final String topic, final String key, final int maxNum, final long begin, final long end);
 
 
     public void updateHaMasterAddress(final String newAddr);

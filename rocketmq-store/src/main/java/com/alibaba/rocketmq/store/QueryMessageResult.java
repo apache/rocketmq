@@ -30,8 +30,7 @@ public class QueryMessageResult {
     private long indexLastUpdateTimestamp;
     private long indexLastUpdatePhyoffset;
     // 多个连续的消息集合
-    private final List<SelectMapedBufferResult> messageMapedList =
-            new ArrayList<SelectMapedBufferResult>(100);
+    private final List<SelectMapedBufferResult> messageMapedList = new ArrayList<SelectMapedBufferResult>(100);
     // 用来向Consumer传送消息
     private final List<ByteBuffer> messageBufferList = new ArrayList<ByteBuffer>(100);
     // ByteBuffer 总字节数

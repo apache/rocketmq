@@ -46,8 +46,7 @@ public class MixAll {
     public static final String NAMESRV_ADDR_ENV = "NAMESRV_ADDR";
     public static final String NAMESRV_ADDR_PROPERTY = "rocketmq.namesrv.addr";
 
-    public static final String WS_DOMAIN_NAME = System.getProperty("rocketmq.namesrv.domain",
-            "jmenv.tbsite.net");
+    public static final String WS_DOMAIN_NAME = System.getProperty("rocketmq.namesrv.domain", "jmenv.tbsite.net");
     // http://jmenv.tbsite.net:8080/rocketmq/nsaddr
     public static final String WS_ADDR = "http://" + WS_DOMAIN_NAME + ":8080/rocketmq/nsaddr";
     public static final String DEFAULT_TOPIC = "TBW102";
@@ -197,9 +196,7 @@ public class MixAll {
         opt.setRequired(false);
         options.addOption(opt);
 
-        opt =
-                new Option("n", "namesrvAddr", true,
-                        "Name server address list, eg: 192.168.1.100:9876;192.168.1.101:9876");
+        opt = new Option("n", "namesrvAddr", true, "Name server address list, eg: 192.168.1.100:9876;192.168.1.101:9876");
         opt.setRequired(false);
         options.addOption(opt);
 
@@ -207,8 +204,7 @@ public class MixAll {
     }
 
 
-    public static CommandLine parseCmdLine(final String appName, String[] args, Options options,
-                                           CommandLineParser parser) {
+    public static CommandLine parseCmdLine(final String appName, String[] args, Options options, CommandLineParser parser) {
         HelpFormatter hf = new HelpFormatter();
         hf.setWidth(110);
         CommandLine commandLine = null;
@@ -256,8 +252,7 @@ public class MixAll {
     }
 
 
-    public static void printObjectProperties(final Logger log, final Object object,
-                                             final boolean onlyImportantField) {
+    public static void printObjectProperties(final Logger log, final Object object, final boolean onlyImportantField) {
         Field[] fields = object.getClass().getDeclaredFields();
         for (Field field : fields) {
             if (!Modifier.isStatic(field.getModifiers())) {

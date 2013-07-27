@@ -153,9 +153,7 @@ public class TopicConfig {
     public boolean equals(Object obj) {
         TopicConfig other = (TopicConfig) obj;
         if (other != null) {
-            return this.topicName.equals(other.topicName) && this.readQueueNums == other.readQueueNums
-                    && this.writeQueueNums == other.writeQueueNums && this.perm == other.perm
-                    && this.topicFilterType == other.topicFilterType;
+            return this.topicName.equals(other.topicName) && this.readQueueNums == other.readQueueNums && this.writeQueueNums == other.writeQueueNums && this.perm == other.perm && this.topicFilterType == other.topicFilterType;
         }
 
         return false;
@@ -164,8 +162,6 @@ public class TopicConfig {
 
     @Override
     public String toString() {
-        return "TopicConfig [topicName=" + topicName + ", readQueueNums=" + readQueueNums
-                + ", writeQueueNums=" + writeQueueNums + ", perm=" + PermName.perm2String(perm)
-                + ", topicFilterType=" + topicFilterType + "]";
+        return "TopicConfig [topicName=" + topicName + ", readQueueNums=" + readQueueNums + ", writeQueueNums=" + writeQueueNums + ", perm=" + PermName.perm2String(perm) + ", topicFilterType=" + topicFilterType + "]";
     }
 }

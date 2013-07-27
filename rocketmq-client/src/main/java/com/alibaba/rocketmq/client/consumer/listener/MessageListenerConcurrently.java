@@ -36,6 +36,5 @@ public interface MessageListenerConcurrently extends MessageListener {
      * @param context
      * @return
      */
-    public ConsumeConcurrentlyStatus consumeMessage(final List<MessageExt> msgs,
-                                                    final ConsumeConcurrentlyContext context);
+    public ConsumeConcurrentlyStatus consumeMessage(final List<MessageExt> msgs, final ConsumeConcurrentlyContext context);
 }

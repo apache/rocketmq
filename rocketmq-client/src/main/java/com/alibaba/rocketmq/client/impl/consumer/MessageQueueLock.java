@@ -27,8 +27,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * @since 2013-6-25
  */
 public class MessageQueueLock {
-    private ConcurrentHashMap<MessageQueue, Object> mqLockTable =
-            new ConcurrentHashMap<MessageQueue, Object>();
+    private ConcurrentHashMap<MessageQueue, Object> mqLockTable = new ConcurrentHashMap<MessageQueue, Object>();
 
 
     public Object fetchLockObject(final MessageQueue mq) {

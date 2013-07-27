@@ -31,8 +31,7 @@ public class TestFastjson {
 
 
 class OffsetSerializeWrapper {
-    private ConcurrentHashMap<MessageQueue, AtomicLong> offsetTable =
-            new ConcurrentHashMap<MessageQueue, AtomicLong>();
+    private ConcurrentHashMap<MessageQueue, AtomicLong> offsetTable = new ConcurrentHashMap<MessageQueue, AtomicLong>();
 
 
     public ConcurrentHashMap<MessageQueue, AtomicLong> getOffsetTable() {

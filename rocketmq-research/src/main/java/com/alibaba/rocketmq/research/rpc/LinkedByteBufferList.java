@@ -94,8 +94,7 @@ public class LinkedByteBufferList {
     private volatile int nodeTotal = 0;
     private ByteBufferNode currentWriteNode;
     private ByteBufferNode currentReadNode;
-    private final LinkedBlockingDeque<ByteBufferNode> bbnIdleList =
-            new LinkedBlockingDeque<LinkedByteBufferList.ByteBufferNode>();
+    private final LinkedBlockingDeque<ByteBufferNode> bbnIdleList = new LinkedBlockingDeque<LinkedByteBufferList.ByteBufferNode>();
 
     // 是否已经被Notify过
     protected volatile boolean hasNotified = false;
@@ -147,8 +146,7 @@ public class LinkedByteBufferList {
                 int remainHeaderPut = HEADER_SIZE - minHeader;
                 int remainDataPut = data.length - minData;
                 if (remainHeaderPut > 0) {
-                    this.currentWriteNode.getByteBufferWrite()
-                            .put(header.array(), minHeader, remainHeaderPut);
+                    this.currentWriteNode.getByteBufferWrite().put(header.array(), minHeader, remainHeaderPut);
                     this.currentWriteNode.getWriteOffset().addAndGet(remainHeaderPut);
                 }
 

@@ -43,8 +43,7 @@ public class ResponseFuture {
     private final AtomicBoolean executeCallbackOnlyOnce = new AtomicBoolean(false);
 
 
-    public ResponseFuture(int opaque, long timeoutMillis, InvokeCallback invokeCallback,
-                          SemaphoreReleaseOnlyOnce once) {
+    public ResponseFuture(int opaque, long timeoutMillis, InvokeCallback invokeCallback, SemaphoreReleaseOnlyOnce once) {
         this.opaque = opaque;
         this.timeoutMillis = timeoutMillis;
         this.invokeCallback = invokeCallback;
@@ -138,9 +137,6 @@ public class ResponseFuture {
 
     @Override
     public String toString() {
-        return "ResponseFuture [responseCommand=" + responseCommand + ", sendRequestOK=" + sendRequestOK
-                + ", cause=" + cause + ", opaque=" + opaque + ", timeoutMillis=" + timeoutMillis
-                + ", invokeCallback=" + invokeCallback + ", beginTimestamp=" + beginTimestamp
-                + ", countDownLatch=" + countDownLatch + "]";
+        return "ResponseFuture [responseCommand=" + responseCommand + ", sendRequestOK=" + sendRequestOK + ", cause=" + cause + ", opaque=" + opaque + ", timeoutMillis=" + timeoutMillis + ", invokeCallback=" + invokeCallback + ", beginTimestamp=" + beginTimestamp + ", countDownLatch=" + countDownLatch + "]";
     }
 }

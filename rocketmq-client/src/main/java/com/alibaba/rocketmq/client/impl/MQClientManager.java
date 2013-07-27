@@ -32,8 +32,7 @@ public class MQClientManager {
     private static MQClientManager instance = new MQClientManager();
 
     private AtomicInteger factoryIndexGenerator = new AtomicInteger();
-    private ConcurrentHashMap<String/* clientId */, MQClientFactory> factoryTable =
-            new ConcurrentHashMap<String, MQClientFactory>();
+    private ConcurrentHashMap<String/* clientId */, MQClientFactory> factoryTable = new ConcurrentHashMap<String, MQClientFactory>();
 
 
     private MQClientManager() {
@@ -50,9 +49,7 @@ public class MQClientManager {
         String clientId = clientConfig.buildMQClientId();
         MQClientFactory factory = this.factoryTable.get(clientId);
         if (null == factory) {
-            factory =
-                    new MQClientFactory(clientConfig.cloneClientConfig(),
-                            this.factoryIndexGenerator.getAndIncrement(), clientId);
+            factory = new MQClientFactory(clientConfig.cloneClientConfig(), this.factoryIndexGenerator.getAndIncrement(), clientId);
             MQClientFactory prev = this.factoryTable.putIfAbsent(clientId, factory);
             if (prev != null) {
                 factory = prev;

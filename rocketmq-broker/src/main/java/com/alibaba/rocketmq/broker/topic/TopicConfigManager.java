@@ -47,8 +47,7 @@ public class TopicConfigManager extends ConfigManager {
     private transient BrokerController brokerController;
 
     // Topic配置
-    private final ConcurrentHashMap<String, TopicConfig> topicConfigTable =
-            new ConcurrentHashMap<String, TopicConfig>(1024);
+    private final ConcurrentHashMap<String, TopicConfig> topicConfigTable = new ConcurrentHashMap<String, TopicConfig>(1024);
     private final DataVersion dataVersion = new DataVersion();
 
 
@@ -63,8 +62,7 @@ public class TopicConfigManager extends ConfigManager {
         TopicConfig topicConfig = new TopicConfig(MixAll.DEFAULT_TOPIC);
         topicConfig.setReadQueueNums(this.brokerController.getBrokerConfig().getDefaultTopicQueueNums());
         topicConfig.setWriteQueueNums(this.brokerController.getBrokerConfig().getDefaultTopicQueueNums());
-        int perm =
-                this.brokerController.getBrokerConfig().isAutoCreateTopicEnable() ? PermName.PERM_INHERIT : 0;
+        int perm = this.brokerController.getBrokerConfig().isAutoCreateTopicEnable() ? PermName.PERM_INHERIT : 0;
         perm |= PermName.PERM_READ | PermName.PERM_WRITE;
         topicConfig.setPerm(perm);
         this.topicConfigTable.put(topicConfig.getTopicName(), topicConfig);
@@ -105,9 +103,7 @@ public class TopicConfigManager extends ConfigManager {
 
 
     public boolean isTopicCanSendMessage(final String topic) {
-        boolean reservedWords =
-                topic.equals(MixAll.DEFAULT_TOPIC)
-                        || topic.equals(this.brokerController.getBrokerConfig().getBrokerClusterName());
+        boolean reservedWords = topic.equals(MixAll.DEFAULT_TOPIC) || topic.equals(this.brokerController.getBrokerConfig().getBrokerClusterName());
 
         return !reservedWords;
     }
@@ -121,8 +117,7 @@ public class TopicConfigManager extends ConfigManager {
     /**
      * 发消息时，如果Topic不存在，尝试创建
      */
-    public TopicConfig createTopicInSendMessageMethod(final String topic, final String defaultTopic,
-                                                      final String remoteAddress, final int clientDefaultTopicQueueNums) {
+    public TopicConfig createTopicInSendMessageMethod(final String topic, final String defaultTopic, final String remoteAddress, final int clientDefaultTopicQueueNums) {
         TopicConfig topicConfig = null;
         boolean createNew = false;
 
@@ -138,9 +133,7 @@ public class TopicConfigManager extends ConfigManager {
                         if (PermName.isInherited(defaultTopicConfig.getPerm())) {
                             topicConfig = new TopicConfig(topic);
 
-                            int queueNums =
-                                    clientDefaultTopicQueueNums > defaultTopicConfig.getWriteQueueNums() ? defaultTopicConfig
-                                            .getWriteQueueNums() : clientDefaultTopicQueueNums;
+                            int queueNums = clientDefaultTopicQueueNums > defaultTopicConfig.getWriteQueueNums() ? defaultTopicConfig.getWriteQueueNums() : clientDefaultTopicQueueNums;
 
                             if (queueNums < 0) {
                                 queueNums = 0;
@@ -153,18 +146,14 @@ public class TopicConfigManager extends ConfigManager {
                             topicConfig.setPerm(perm);
                             topicConfig.setTopicFilterType(defaultTopicConfig.getTopicFilterType());
                         } else {
-                            log.warn("create new topic failed, because the default topic[" + defaultTopic
-                                    + "] no perm, " + defaultTopicConfig.getPerm() + " producer: "
-                                    + remoteAddress);
+                            log.warn("create new topic failed, because the default topic[" + defaultTopic + "] no perm, " + defaultTopicConfig.getPerm() + " producer: " + remoteAddress);
                         }
                     } else {
-                        log.warn("create new topic failed, because the default topic[" + defaultTopic
-                                + "] not exist." + " producer: " + remoteAddress);
+                        log.warn("create new topic failed, because the default topic[" + defaultTopic + "] not exist." + " producer: " + remoteAddress);
                     }
 
                     if (topicConfig != null) {
-                        log.info("create new topic by default topic[" + defaultTopic + "], " + topicConfig
-                                + " producer: " + remoteAddress);
+                        log.info("create new topic by default topic[" + defaultTopic + "], " + topicConfig + " producer: " + remoteAddress);
 
                         this.topicConfigTable.put(topic, topicConfig);
 
@@ -286,8 +275,7 @@ public class TopicConfigManager extends ConfigManager {
     @Override
     public void decode(String jsonString) {
         if (jsonString != null) {
-            TopicConfigSerializeWrapper topicConfigSerializeWrapper =
-                    TopicConfigSerializeWrapper.fromJson(jsonString, TopicConfigSerializeWrapper.class);
+            TopicConfigSerializeWrapper topicConfigSerializeWrapper = TopicConfigSerializeWrapper.fromJson(jsonString, TopicConfigSerializeWrapper.class);
             if (topicConfigSerializeWrapper != null) {
                 this.topicConfigTable.putAll(topicConfigSerializeWrapper.getTopicConfigTable());
                 this.dataVersion.assignNewOne(topicConfigSerializeWrapper.getDataVersion());

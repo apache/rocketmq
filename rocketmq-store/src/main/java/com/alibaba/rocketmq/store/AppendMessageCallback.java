@@ -34,6 +34,5 @@ public interface AppendMessageCallback {
      * @param msg        要写入的message
      * @return 写入多少字节
      */
-    public AppendMessageResult doAppend(final long fileFromOffset, final ByteBuffer byteBuffer,
-                                        final int maxBlank, final Object msg);
+    public AppendMessageResult doAppend(final long fileFromOffset, final ByteBuffer byteBuffer, final int maxBlank, final Object msg);
 }

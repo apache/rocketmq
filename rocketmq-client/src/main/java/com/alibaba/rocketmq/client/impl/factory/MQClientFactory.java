@@ -69,14 +69,11 @@ public class MQClientFactory {
     private final long bootTimestamp = System.currentTimeMillis();
 
     // Producer对象
-    private final ConcurrentHashMap<String/* group */, MQProducerInner> producerTable =
-            new ConcurrentHashMap<String, MQProducerInner>();
+    private final ConcurrentHashMap<String/* group */, MQProducerInner> producerTable = new ConcurrentHashMap<String, MQProducerInner>();
     // Consumer对象
-    private final ConcurrentHashMap<String/* group */, MQConsumerInner> consumerTable =
-            new ConcurrentHashMap<String, MQConsumerInner>();
+    private final ConcurrentHashMap<String/* group */, MQConsumerInner> consumerTable = new ConcurrentHashMap<String, MQConsumerInner>();
     // AdminExt对象
-    private final ConcurrentHashMap<String/* group */, MQAdminExtInner> adminExtTable =
-            new ConcurrentHashMap<String, MQAdminExtInner>();
+    private final ConcurrentHashMap<String/* group */, MQAdminExtInner> adminExtTable = new ConcurrentHashMap<String, MQAdminExtInner>();
 
     // Netty客户端配置
     private final NettyClientConfig nettyClientConfig;
@@ -85,8 +82,7 @@ public class MQClientFactory {
     private final MQAdminImpl mQAdminImpl;
 
     // 存储从Name Server拿到的Topic路由信息
-    private final ConcurrentHashMap<String/* Topic */, TopicRouteData> topicRouteTable =
-            new ConcurrentHashMap<String, TopicRouteData>();
+    private final ConcurrentHashMap<String/* Topic */, TopicRouteData> topicRouteTable = new ConcurrentHashMap<String, TopicRouteData>();
     // 调用Name Server获取Topic路由信息时，加锁
     private final Lock lockNamesrv = new ReentrantLock();
     private final static long LockTimeoutMillis = 3000;
@@ -95,17 +91,15 @@ public class MQClientFactory {
     private final Lock lockHeartbeat = new ReentrantLock();
 
     // 存储Broker Name 与Broker Address的对应关系
-    private final ConcurrentHashMap<String/* Broker Name */, HashMap<Long/* brokerId */, String/* address */>> brokerAddrTable =
-            new ConcurrentHashMap<String, HashMap<Long, String>>();
+    private final ConcurrentHashMap<String/* Broker Name */, HashMap<Long/* brokerId */, String/* address */>> brokerAddrTable = new ConcurrentHashMap<String, HashMap<Long, String>>();
 
     // 定时线程
-    private final ScheduledExecutorService scheduledExecutorService = Executors
-            .newSingleThreadScheduledExecutor(new ThreadFactory() {
-                @Override
-                public Thread newThread(Runnable r) {
-                    return new Thread(r, "MQClientFactoryScheduledThread");
-                }
-            });
+    private final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactory() {
+        @Override
+        public Thread newThread(Runnable r) {
+            return new Thread(r, "MQClientFactoryScheduledThread");
+        }
+    });
 
     // 处理服务器主动发来的请求
     private final ClientRemotingProcessor clientRemotingProcessor;
@@ -127,8 +121,7 @@ public class MQClientFactory {
         this.clientConfig = clientConfig;
         this.factoryIndex = factoryIndex;
         this.nettyClientConfig = new NettyClientConfig();
-        this.nettyClientConfig.setClientCallbackExecutorThreads(clientConfig
-                .getClientCallbackExecutorThreads());
+        this.nettyClientConfig.setClientCallbackExecutorThreads(clientConfig.getClientCallbackExecutorThreads());
         this.clientRemotingProcessor = new ClientRemotingProcessor(this);
         this.mQClientAPIImpl = new MQClientAPIImpl(this.nettyClientConfig, this.clientRemotingProcessor);
 
@@ -168,9 +161,7 @@ public class MQClientFactory {
         try {
             this.datagramSocket = new DatagramSocket(udpPort);
         } catch (SocketException e) {
-            throw new MQClientException("instance name is a duplicate one[" + udpPort
-                    + "], please set a new name"
-                    + FAQUrl.suggestTodo(FAQUrl.CLIENT_INSTACNCE_NAME_DUPLICATE_URL), e);
+            throw new MQClientException("instance name is a duplicate one[" + udpPort + "], please set a new name" + FAQUrl.suggestTodo(FAQUrl.CLIENT_INSTACNCE_NAME_DUPLICATE_URL), e);
         }
     }
 
@@ -396,11 +387,8 @@ public class MQClientFactory {
                     String addr = oneTable.get(id);
                     if (addr != null) {
                         try {
-                            this.mQClientAPIImpl.unregisterClient(addr, this.clientId, producerGroup,
-                                    consumerGroup, 3000);
-                            log.info(
-                                    "unregister client[Producer: {} Consumer: {}] from broker[{} {} {}] success",
-                                    producerGroup, consumerGroup, name, id, addr);
+                            this.mQClientAPIImpl.unregisterClient(addr, this.clientId, producerGroup, consumerGroup, 3000);
+                            log.info("unregister client[Producer: {} Consumer: {}] from broker[{} {} {}] success", producerGroup, consumerGroup, name, id, addr);
                         } catch (RemotingException e) {
                             log.error("unregister client exception from broker: " + addr, e);
                         } catch (MQBrokerException e) {
@@ -713,8 +701,7 @@ public class MQClientFactory {
     }
 
 
-    public static TopicPublishInfo topicRouteData2TopicPublishInfo(final String topic,
-                                                                   final TopicRouteData route) {
+    public static TopicPublishInfo topicRouteData2TopicPublishInfo(final String topic, final TopicRouteData route) {
         TopicPublishInfo info = new TopicPublishInfo();
         // 顺序消息
         if (route.getOrderTopicConf() != null && route.getOrderTopicConf().length() > 0) {
@@ -751,8 +738,7 @@ public class MQClientFactory {
     }
 
 
-    public static Set<MessageQueue> topicRouteData2TopicSubscribeInfo(final String topic,
-                                                                      final TopicRouteData route) {
+    public static Set<MessageQueue> topicRouteData2TopicSubscribeInfo(final String topic, final TopicRouteData route) {
         Set<MessageQueue> mqList = new HashSet<MessageQueue>();
         List<QueueData> qds = route.getQueueDatas();
         for (QueueData qd : qds) {
@@ -849,8 +835,7 @@ public class MQClientFactory {
         try {
             if (this.lockNamesrv.tryLock(LockTimeoutMillis, TimeUnit.MILLISECONDS)) {
                 try {
-                    TopicRouteData topicRouteData =
-                            this.mQClientAPIImpl.getTopicRouteInfoFromNameServer(topic, 1000 * 3);
+                    TopicRouteData topicRouteData = this.mQClientAPIImpl.getTopicRouteInfoFromNameServer(topic, 1000 * 3);
                     if (topicRouteData != null) {
                         TopicRouteData old = this.topicRouteTable.get(topic);
                         boolean changed = null == old || !old.equals(topicRouteData);
@@ -868,10 +853,8 @@ public class MQClientFactory {
 
                             // 更新发布队列信息
                             {
-                                TopicPublishInfo publishInfo =
-                                        topicRouteData2TopicPublishInfo(topic, topicRouteData);
-                                Iterator<Entry<String, MQProducerInner>> it =
-                                        this.producerTable.entrySet().iterator();
+                                TopicPublishInfo publishInfo = topicRouteData2TopicPublishInfo(topic, topicRouteData);
+                                Iterator<Entry<String, MQProducerInner>> it = this.producerTable.entrySet().iterator();
                                 while (it.hasNext()) {
                                     Entry<String, MQProducerInner> entry = it.next();
                                     MQProducerInner impl = entry.getValue();
@@ -883,10 +866,8 @@ public class MQClientFactory {
 
                             // 更新订阅队列信息
                             {
-                                Set<MessageQueue> subscribeInfo =
-                                        topicRouteData2TopicSubscribeInfo(topic, topicRouteData);
-                                Iterator<Entry<String, MQConsumerInner>> it =
-                                        this.consumerTable.entrySet().iterator();
+                                Set<MessageQueue> subscribeInfo = topicRouteData2TopicSubscribeInfo(topic, topicRouteData);
+                                Iterator<Entry<String, MQConsumerInner>> it = this.consumerTable.entrySet().iterator();
                                 while (it.hasNext()) {
                                     Entry<String, MQConsumerInner> entry = it.next();
                                     MQConsumerInner impl = entry.getValue();
@@ -900,9 +881,7 @@ public class MQClientFactory {
                             return true;
                         }
                     } else {
-                        log.warn(
-                                "updateTopicRouteInfoFromNameServer, getTopicRouteInfoFromNameServer return null, Topic: {}",
-                                topic);
+                        log.warn("updateTopicRouteInfoFromNameServer, getTopicRouteInfoFromNameServer return null, Topic: {}", topic);
                     }
                 } catch (Exception e) {
                     if (!topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {

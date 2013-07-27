@@ -37,12 +37,10 @@ public interface MQPullConsumer extends MQConsumer {
      */
     public void start() throws MQClientException;
 
-
     /**
      * 关闭服务
      */
     public void shutdown();
-
 
     /**
      * 注册监听队列变化的listener对象
@@ -51,7 +49,6 @@ public interface MQPullConsumer extends MQConsumer {
      * @param listener 一旦发生变化，客户端会主动回调listener对象
      */
     public void registerMessageQueueListener(final String topic, final MessageQueueListener listener);
-
 
     /**
      * 指定队列，主动拉取消息，即使没有消息，也立刻返回
@@ -68,15 +65,9 @@ public interface MQPullConsumer extends MQConsumer {
      * @throws MQBrokerException
      * @throws RemotingException
      */
-    public PullResult pull(final MessageQueue mq, final String subExpression, final long offset,
-                           final int maxNums) throws MQClientException, RemotingException, MQBrokerException,
-            InterruptedException;
+    public PullResult pull(final MessageQueue mq, final String subExpression, final long offset, final int maxNums) throws MQClientException, RemotingException, MQBrokerException, InterruptedException;
 
-
-    public void pull(final MessageQueue mq, final String subExpression, final long offset, final int maxNums,
-                     final PullCallback pullCallback) throws MQClientException, RemotingException,
-            InterruptedException;
-
+    public void pull(final MessageQueue mq, final String subExpression, final long offset, final int maxNums, final PullCallback pullCallback) throws MQClientException, RemotingException, InterruptedException;
 
     /**
      * 指定队列，主动拉取消息，如果没有消息，则broker阻塞一段时间再返回（时间可配置）<br>
@@ -94,15 +85,9 @@ public interface MQPullConsumer extends MQConsumer {
      * @throws RemotingException
      * @throws MQClientException
      */
-    public PullResult pullBlockIfNotFound(final MessageQueue mq, final String subExpression,
-                                          final long offset, final int maxNums) throws MQClientException, RemotingException,
-            MQBrokerException, InterruptedException;
+    public PullResult pullBlockIfNotFound(final MessageQueue mq, final String subExpression, final long offset, final int maxNums) throws MQClientException, RemotingException, MQBrokerException, InterruptedException;
 
-
-    public void pullBlockIfNotFound(final MessageQueue mq, final String subExpression, final long offset,
-                                    final int maxNums, final PullCallback pullCallback) throws MQClientException, RemotingException,
-            InterruptedException;
-
+    public void pullBlockIfNotFound(final MessageQueue mq, final String subExpression, final long offset, final int maxNums, final PullCallback pullCallback) throws MQClientException, RemotingException, InterruptedException;
 
     /**
      * 更新消费进度<br>
@@ -117,7 +102,6 @@ public interface MQPullConsumer extends MQConsumer {
      */
     public void updateConsumeOffset(final MessageQueue mq, final long offset) throws MQClientException;
 
-
     /**
      * 获取消费进度，返回-1表示出错
      *
@@ -127,7 +111,6 @@ public interface MQPullConsumer extends MQConsumer {
      * @throws MQClientException
      */
     public long fetchConsumeOffset(final MessageQueue mq, final boolean fromStore) throws MQClientException;
-
 
     /**
      * 根据topic获取MessageQueue，以均衡方式在组内多个成员之间分配

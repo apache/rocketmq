@@ -35,8 +35,7 @@ public class GetStatsMoniter {
     private static final Logger log = LoggerFactory.getLogger("GetStatsMoniter");
     private BrokerController brokerController;
     private static final String TOPIC_GROUP_SEPARATOR = "@";
-    private Map<String, HashMap<Integer, Long>> offsetTableLast =
-            new HashMap<String, HashMap<Integer, Long>>();
+    private Map<String, HashMap<Integer, Long>> offsetTableLast = new HashMap<String, HashMap<Integer, Long>>();
 
 
     public GetStatsMoniter(BrokerController brokerController) {
@@ -45,8 +44,7 @@ public class GetStatsMoniter {
 
 
     public void tolog() {
-        Map<String/* topic@group */, ConcurrentHashMap<Integer, Long>> offsetTable =
-                brokerController.getConsumerOffsetManager().getOffsetTable();
+        Map<String/* topic@group */, ConcurrentHashMap<Integer, Long>> offsetTable = brokerController.getConsumerOffsetManager().getOffsetTable();
         DefaultMessageStore defaultMessageStore = (DefaultMessageStore) brokerController.getMessageStore();
         for (String key : offsetTable.keySet()) {
             String[] strs = key.split(TOPIC_GROUP_SEPARATOR);
@@ -60,9 +58,7 @@ public class GetStatsMoniter {
                     StringBuffer sb = new StringBuffer();
                     sb.append("ClientGetConut").append(",");
                     sb.append("Topic[").append(topic).append("],");
-                    sb.append("Mq[")
-                            .append(brokerController.getBrokerConfig().getBrokerName() + "-" + queueId)
-                            .append("],");
+                    sb.append("Mq[").append(brokerController.getBrokerConfig().getBrokerName() + "-" + queueId).append("],");
                     sb.append("Group[").append(group).append("],");
                     sb.append("Total[").append(nowvalue - lastvalue).append("]");
                     log.info(sb.toString());

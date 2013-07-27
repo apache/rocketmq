@@ -160,8 +160,7 @@ public class Connection {
     }
 
 
-    public Connection(final SocketChannel socketChannel, final RPCProcessor rpcServerProcessor,
-                      final ThreadPoolExecutor executor) {
+    public Connection(final SocketChannel socketChannel, final RPCProcessor rpcServerProcessor, final ThreadPoolExecutor executor) {
         this.socketChannel = socketChannel;
         this.rpcServerProcessor = rpcServerProcessor;
         this.executor = executor;
@@ -257,8 +256,7 @@ public class Connection {
                                 @Override
                                 public void run() {
                                     try {
-                                        byte[] response =
-                                                Connection.this.rpcServerProcessor.process(reqId, request);
+                                        byte[] response = Connection.this.rpcServerProcessor.process(reqId, request);
                                         if (response != null) {
                                             Connection.this.linkeByteBufferList.putData(reqId, response);
                                         }
@@ -307,8 +305,7 @@ public class Connection {
                             for (ByteBuffer request : requestList) {
                                 try {
                                     final int reqId = request.getInt(request.position() - 4);
-                                    byte[] response =
-                                            Connection.this.rpcServerProcessor.process(reqId, request);
+                                    byte[] response = Connection.this.rpcServerProcessor.process(reqId, request);
                                     if (response != null) {
                                         Connection.this.linkeByteBufferList.putData(reqId, response);
                                     }

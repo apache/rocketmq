@@ -42,23 +42,16 @@ public interface RemotingClient {
     public List<String> getNameServerAddressList();
 
 
-    public RemotingCommand invokeSync(final String addr, final RemotingCommand request,
-                                      final long timeoutMillis) throws InterruptedException, RemotingConnectException,
-            RemotingSendRequestException, RemotingTimeoutException;
+    public RemotingCommand invokeSync(final String addr, final RemotingCommand request, final long timeoutMillis) throws InterruptedException, RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException;
 
 
-    public void invokeAsync(final String addr, final RemotingCommand request, final long timeoutMillis,
-                            final InvokeCallback invokeCallback) throws InterruptedException, RemotingConnectException,
-            RemotingTooMuchRequestException, RemotingTimeoutException, RemotingSendRequestException;
+    public void invokeAsync(final String addr, final RemotingCommand request, final long timeoutMillis, final InvokeCallback invokeCallback) throws InterruptedException, RemotingConnectException, RemotingTooMuchRequestException, RemotingTimeoutException, RemotingSendRequestException;
 
 
-    public void invokeOneway(final String addr, final RemotingCommand request, final long timeoutMillis)
-            throws InterruptedException, RemotingConnectException, RemotingTooMuchRequestException,
-            RemotingTimeoutException, RemotingSendRequestException;
+    public void invokeOneway(final String addr, final RemotingCommand request, final long timeoutMillis) throws InterruptedException, RemotingConnectException, RemotingTooMuchRequestException, RemotingTimeoutException, RemotingSendRequestException;
 
 
-    public void registerProcessor(final int requestCode, final NettyRequestProcessor processor,
-                                  final ExecutorService executor);
+    public void registerProcessor(final int requestCode, final NettyRequestProcessor processor, final ExecutorService executor);
 
 
     public void shutdown();

@@ -141,8 +141,7 @@ public class RecoverTest {
     private void veryReadMessage(int queueId, long queueOffset, List<ByteBuffer> byteBuffers) {
         for (ByteBuffer byteBuffer : byteBuffers) {
             MessageExt msg = MessageDecoder.decode(byteBuffer);
-            System.out.println("request queueId " + queueId + ", request queueOffset " + queueOffset
-                    + " msg queue offset " + msg.getQueueOffset());
+            System.out.println("request queueId " + queueId + ", request queueOffset " + queueOffset + " msg queue offset " + msg.getQueueOffset());
 
             assertTrue(msg.getQueueOffset() == queueOffset);
 

@@ -55,15 +55,11 @@ public class Broker2Client {
                                               final CheckTransactionStateRequestHeader requestHeader,//
                                               final SelectMapedBufferResult selectMapedBufferResult//
     ) {
-        RemotingCommand request =
-                RemotingCommand.createRequestCommand(MQRequestCode.CHECK_TRANSACTION_STATE_VALUE,
-                        requestHeader);
+        RemotingCommand request = RemotingCommand.createRequestCommand(MQRequestCode.CHECK_TRANSACTION_STATE_VALUE, requestHeader);
         request.markOnewayRPC();
 
         try {
-            FileRegion fileRegion =
-                    new OneMessageTransfer(request.encodeHeader(selectMapedBufferResult.getSize()),
-                            selectMapedBufferResult);
+            FileRegion fileRegion = new OneMessageTransfer(request.encodeHeader(selectMapedBufferResult.getSize()), selectMapedBufferResult);
             channel.writeAndFlush(fileRegion).addListener(new ChannelFutureListener() {
                 @Override
                 public void operationComplete(ChannelFuture future) throws Exception {
@@ -89,9 +85,7 @@ public class Broker2Client {
     ) {
         NotifyConsumerIdsChangedRequestHeader requestHeader = new NotifyConsumerIdsChangedRequestHeader();
         requestHeader.setConsumerGroup(consumerGroup);
-        RemotingCommand request =
-                RemotingCommand.createRequestCommand(MQRequestCode.NOTIFY_CONSUMER_IDS_CHANGED_VALUE,
-                        requestHeader);
+        RemotingCommand request = RemotingCommand.createRequestCommand(MQRequestCode.NOTIFY_CONSUMER_IDS_CHANGED_VALUE, requestHeader);
 
         try {
             this.brokerController.getRemotingServer().invokeOneway(channel, request, 1000);
