@@ -41,7 +41,7 @@ import com.alibaba.rocketmq.store.SelectMapedBufferResult;
 
 
 /**
- * 查询消息请求处理
+ * 鏌ヨ娑堟伅璇锋眰澶勭悊
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-26
@@ -84,7 +84,7 @@ public class QueryMessageProcessor implements NettyRequestProcessor {
                 (QueryMessageRequestHeader) request
                     .decodeCommandCustomHeader(QueryMessageRequestHeader.class);
 
-        // 校验查询时间范围
+        // 鏍￠獙鏌ヨ鏃堕棿鑼冨洿
         long maxTimeSpan =
                 this.brokerController.getBrokerConfig().getQueryMessageMaxTimeSpan() * 60 * 60 * 1000;
         long diff = requestHeader.getEndTimestamp() - requestHeader.getBeginTimestamp();
@@ -94,7 +94,7 @@ public class QueryMessageProcessor implements NettyRequestProcessor {
             return response;
         }
 
-        // 由于使用sendfile，所以必须要设置
+        // 鐢变簬浣跨敤sendfile锛屾墍浠ュ繀椤昏璁剧疆
         response.setOpaque(request.getOpaque());
 
         final QueryMessageResult queryMessageResult =
@@ -106,7 +106,7 @@ public class QueryMessageProcessor implements NettyRequestProcessor {
         responseHeader.setIndexLastUpdatePhyoffset(queryMessageResult.getIndexLastUpdatePhyoffset());
         responseHeader.setIndexLastUpdateTimestamp(queryMessageResult.getIndexLastUpdateTimestamp());
 
-        // 说明找到消息
+        // 璇存槑鎵惧埌娑堟伅
         if (queryMessageResult.getBufferTotalSize() > 0) {
             response.setCode(ResponseCode.SUCCESS_VALUE);
             response.setRemark(null);
@@ -145,7 +145,7 @@ public class QueryMessageProcessor implements NettyRequestProcessor {
         final ViewMessageRequestHeader requestHeader =
                 (ViewMessageRequestHeader) request.decodeCommandCustomHeader(ViewMessageRequestHeader.class);
 
-        // 由于使用sendfile，所以必须要设置
+        // 鐢变簬浣跨敤sendfile锛屾墍浠ュ繀椤昏璁剧疆
         response.setOpaque(request.getOpaque());
 
         final SelectMapedBufferResult selectMapedBufferResult =

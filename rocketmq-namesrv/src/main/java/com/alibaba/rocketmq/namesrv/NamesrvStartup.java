@@ -38,7 +38,7 @@ import com.alibaba.rocketmq.remoting.netty.NettyServerConfig;
 
 
 /**
- * Name server Æô¶¯Èë¿Ú
+ * Name server å¯åŠ¨å…¥å£
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-5
@@ -60,7 +60,7 @@ public class NamesrvStartup {
 
     public static void main(String[] args) {
         try {
-            // ½âÎöÃüÁîĞĞ
+            // è§£æå‘½ä»¤è¡Œ
             Options options = MixAll.buildCommandlineOptions(new Options());
             final CommandLine commandLine =
                     MixAll.parseCmdLine("mqnamesrv", args, buildCommandlineOptions(options),
@@ -70,7 +70,7 @@ public class NamesrvStartup {
                 return;
             }
 
-            // ³õÊ¼»¯ÅäÖÃÎÄ¼ş
+            // åˆå§‹åŒ–é…ç½®æ–‡ä»¶
             final NamesrvConfig namesrvConfig = new NamesrvConfig();
             final NettyServerConfig nettyServerConfig = new NettyServerConfig();
             nettyServerConfig.setListenPort(9876);
@@ -87,7 +87,7 @@ public class NamesrvStartup {
                 }
             }
 
-            // ´òÓ¡Ä¬ÈÏÅäÖÃ
+            // æ‰“å°é»˜è®¤é…ç½®
             if (commandLine.hasOption('p')) {
                 MixAll.printObjectProperties(null, namesrvConfig);
                 MixAll.printObjectProperties(null, nettyServerConfig);
@@ -102,7 +102,7 @@ public class NamesrvStartup {
                 System.exit(-2);
             }
 
-            // ³õÊ¼»¯Logback
+            // åˆå§‹åŒ–Logback
             LoggerContext lc = (LoggerContext) LoggerFactory.getILoggerFactory();
             JoranConfigurator configurator = new JoranConfigurator();
             configurator.setContext(lc);
@@ -110,7 +110,7 @@ public class NamesrvStartup {
             configurator.doConfigure(namesrvConfig.getRocketmqHome() + "/conf/logback_namesrv.xml");
             final Logger log = LoggerFactory.getLogger(LoggerName.NamesrvLoggerName);
 
-            // ³õÊ¼»¯·şÎñ¿ØÖÆ¶ÔÏó
+            // åˆå§‹åŒ–æœåŠ¡æ§åˆ¶å¯¹è±¡
             final NamesrvController controller = new NamesrvController(namesrvConfig, nettyServerConfig);
             boolean initResult = controller.initialize();
             if (!initResult) {
@@ -138,7 +138,7 @@ public class NamesrvStartup {
                 }
             }, "ShutdownHook"));
 
-            // Æô¶¯·şÎñ
+            // å¯åŠ¨æœåŠ¡
             controller.start();
 
             String tip = "The Name Server boot success.";

@@ -37,7 +37,7 @@ import com.alibaba.rocketmq.remoting.common.RemotingUtil;
 
 
 /**
- * 管理Producer组及各个Producer连接
+ * 绠＄悊Producer缁勫強鍚勪釜Producer杩炴帴
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-26

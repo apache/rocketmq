@@ -27,7 +27,7 @@ import com.alibaba.rocketmq.common.message.MessageExt;
 
 
 /**
- * 顺序消息消费，带事务方式（应用可控制Offset什么时候提交）
+ * 椤哄簭娑堟伅娑堣垂锛屽甫浜嬪姟鏂瑰紡锛堝簲鐢ㄥ彲鎺у埗Offset浠�涔堟椂鍊欐彁浜わ級
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-16

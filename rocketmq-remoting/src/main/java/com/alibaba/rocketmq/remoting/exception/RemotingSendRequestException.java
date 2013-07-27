@@ -16,7 +16,7 @@
 package com.alibaba.rocketmq.remoting.exception;
 
 /**
- * RPCµ÷ÓÃÖĞ£¬¿Í»§¶Ë·¢ËÍÇëÇóÊ§°Ü£¬Å×³ö´ËÒì³£
+ * RPCè°ƒç”¨ä¸­ï¼Œå®¢æˆ·ç«¯å‘é€è¯·æ±‚å¤±è´¥ï¼ŒæŠ›å‡ºæ­¤å¼‚å¸¸
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-13

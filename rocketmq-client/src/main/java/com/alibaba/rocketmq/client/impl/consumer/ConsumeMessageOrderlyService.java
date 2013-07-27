@@ -39,7 +39,7 @@ import com.alibaba.rocketmq.common.message.MessageQueue;
 
 
 /**
- * Ë³ĞòÏû·ÑÏûÏ¢·şÎñ
+ * é¡ºåºæ¶ˆè´¹æ¶ˆæ¯æœåŠ¡
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-6-27
@@ -59,7 +59,7 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
     private final String consumerGroup;
     private final MessageQueueLock messageQueueLock = new MessageQueueLock();
 
-    // ¶¨Ê±Ïß³Ì
+    // å®šæ—¶çº¿ç¨‹
     private final ScheduledExecutorService scheduledExecutorService;
 
 
@@ -100,7 +100,7 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
 
 
     public void start() {
-        // Æô¶¯¶¨Ê±lock¶ÓÁĞ·şÎñ
+        // å¯åŠ¨å®šæ—¶locké˜Ÿåˆ—æœåŠ¡
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
             @Override
             public void run() {
@@ -173,10 +173,10 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
 
         @Override
         public void run() {
-            // ±£Ö¤ÔÚµ±Ç°ConsumerÄÚ£¬Í¬Ò»¶ÓÁĞ´®ĞĞÏû·Ñ
+            // ä¿è¯åœ¨å½“å‰Consumerå†…ï¼ŒåŒä¸€é˜Ÿåˆ—ä¸²è¡Œæ¶ˆè´¹
             final Object objLock = messageQueueLock.fetchLockObject(this.messageQueue);
             synchronized (objLock) {
-                // ±£Ö¤ÔÚConsumer¼¯Èº£¬Í¬Ò»¶ÓÁĞ´®ĞĞÏû·Ñ
+                // ä¿è¯åœ¨Consumeré›†ç¾¤ï¼ŒåŒä¸€é˜Ÿåˆ—ä¸²è¡Œæ¶ˆè´¹
                 if (this.processQueue.isLocked() || !this.processQueue.isLockExpired()) {
                     final long beginTime = System.currentTimeMillis();
                     for (boolean continueConsume = true; continueConsume;) {
@@ -201,10 +201,10 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
                             break;
                         }
 
-                        // ÔÚÏß³ÌÊıĞ¡ÓÚ¶ÓÁĞÊıÇé¿öÏÂ£¬·ÀÖ¹¸ö±ğ¶ÓÁĞ±»¶öËÀ
+                        // åœ¨çº¿ç¨‹æ•°å°äºé˜Ÿåˆ—æ•°æƒ…å†µä¸‹ï¼Œé˜²æ­¢ä¸ªåˆ«é˜Ÿåˆ—è¢«é¥¿æ­»
                         long interval = System.currentTimeMillis() - beginTime;
                         if (interval > MaxTimeConsumeContinuously) {
-                            // ¹ı10msºóÔÙÏû·Ñ
+                            // è¿‡10msåå†æ¶ˆè´¹
                             ConsumeMessageOrderlyService.this.submitConsumeRequestLater(processQueue,
                                 messageQueue, 10);
                             break;
@@ -235,12 +235,12 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
 
                             long consumeRT = System.currentTimeMillis() - beginTimestamp;
 
-                            // ÓÃ»§Å×³öÒì³£»òÕß·µ»Ønull£¬¶¼¹ÒÆğ¶ÓÁĞ
+                            // ç”¨æˆ·æŠ›å‡ºå¼‚å¸¸æˆ–è€…è¿”å›nullï¼Œéƒ½æŒ‚èµ·é˜Ÿåˆ—
                             if (null == status) {
                                 status = ConsumeOrderlyStatus.SUSPEND_CURRENT_QUEUE_A_MOMENT;
                             }
 
-                            // ¼ÇÂ¼Í³¼ÆĞÅÏ¢
+                            // è®°å½•ç»Ÿè®¡ä¿¡æ¯
                             ConsumeMessageOrderlyService.this.getConsumerStat().getConsumeMsgRTTotal()
                                 .addAndGet(consumeRT);
                             MixAll.compareAndIncreaseOnly(ConsumeMessageOrderlyService.this.getConsumerStat()
@@ -255,7 +255,7 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
                         }
                     }
                 }
-                // Ã»ÓĞÄÃµ½µ±Ç°¶ÓÁĞµÄËø£¬ÉÔºóÔÙÏû·Ñ
+                // æ²¡æœ‰æ‹¿åˆ°å½“å‰é˜Ÿåˆ—çš„é”ï¼Œç¨åå†æ¶ˆè´¹
                 else {
                     ConsumeMessageOrderlyService.this.tryLockLaterAndReconsume(this.messageQueue,
                         this.processQueue, 10);
@@ -283,7 +283,7 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
     ) {
         boolean continueConsume = true;
         long commitOffset = -1L;
-        // ·ÇÊÂÎñ·½Ê½£¬×Ô¶¯Ìá½»
+        // éäº‹åŠ¡æ–¹å¼ï¼Œè‡ªåŠ¨æäº¤
         if (context.isAutoCommit()) {
             switch (status) {
             case COMMIT:
@@ -293,7 +293,7 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
                     consumeRequest.getMessageQueue());
             case SUCCESS:
                 commitOffset = consumeRequest.getProcessQueue().commit();
-                // Í³¼ÆĞÅÏ¢
+                // ç»Ÿè®¡ä¿¡æ¯
                 this.getConsumerStat().getConsumeMsgOKTotal().addAndGet(msgs.size());
                 break;
             case SUSPEND_CURRENT_QUEUE_A_MOMENT:
@@ -304,34 +304,34 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
                     context.getSuspendCurrentQueueTimeMillis());
                 continueConsume = false;
 
-                // Í³¼ÆĞÅÏ¢
+                // ç»Ÿè®¡ä¿¡æ¯
                 this.getConsumerStat().getConsumeMsgFailedTotal().addAndGet(msgs.size());
                 break;
             default:
                 break;
             }
         }
-        // ÊÂÎñ·½Ê½£¬ÓÉÓÃ»§À´¿ØÖÆÌá½»»Ø¹ö
+        // äº‹åŠ¡æ–¹å¼ï¼Œç”±ç”¨æˆ·æ¥æ§åˆ¶æäº¤å›æ»š
         else {
             switch (status) {
             case SUCCESS:
-                // Í³¼ÆĞÅÏ¢
+                // ç»Ÿè®¡ä¿¡æ¯
                 this.getConsumerStat().getConsumeMsgOKTotal().addAndGet(msgs.size());
                 break;
             case COMMIT:
                 commitOffset = consumeRequest.getProcessQueue().commit();
-                // Í³¼ÆĞÅÏ¢
+                // ç»Ÿè®¡ä¿¡æ¯
                 this.getConsumerStat().getConsumeMsgOKTotal().addAndGet(msgs.size());
                 break;
             case ROLLBACK:
-                // Èç¹ûRollbackºó£¬×îºÃsuspendÒ»»á¶ùÔÙÏû·Ñ£¬·ÀÖ¹Ó¦ÓÃÎŞÏŞRollbackÏÂÈ¥
+                // å¦‚æœRollbackåï¼Œæœ€å¥½suspendä¸€ä¼šå„¿å†æ¶ˆè´¹ï¼Œé˜²æ­¢åº”ç”¨æ— é™Rollbackä¸‹å»
                 consumeRequest.getProcessQueue().rollback();
                 this.submitConsumeRequestLater(//
                     consumeRequest.getProcessQueue(), //
                     consumeRequest.getMessageQueue(), //
                     context.getSuspendCurrentQueueTimeMillis());
                 continueConsume = false;
-                // Í³¼ÆĞÅÏ¢
+                // ç»Ÿè®¡ä¿¡æ¯
                 this.getConsumerStat().getConsumeMsgFailedTotal().addAndGet(msgs.size());
                 break;
             case SUSPEND_CURRENT_QUEUE_A_MOMENT:
@@ -341,7 +341,7 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
                     consumeRequest.getMessageQueue(), //
                     context.getSuspendCurrentQueueTimeMillis());
                 continueConsume = false;
-                // Í³¼ÆĞÅÏ¢
+                // ç»Ÿè®¡ä¿¡æ¯
                 this.getConsumerStat().getConsumeMsgFailedTotal().addAndGet(msgs.size());
                 break;
             default:
@@ -359,7 +359,7 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
 
 
     /**
-     * ÔÚConsumer±¾µØ¶¨Ê±Ïß³ÌÖĞ¶¨Ê±ÖØÊÔ
+     * åœ¨Consumeræœ¬åœ°å®šæ—¶çº¿ç¨‹ä¸­å®šæ—¶é‡è¯•
      */
     private void submitConsumeRequestLater(//
             final ProcessQueue processQueue, //

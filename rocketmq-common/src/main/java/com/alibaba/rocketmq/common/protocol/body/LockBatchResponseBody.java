@@ -12,7 +12,7 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingSerializable;
  * @since 2013-6-26
  */
 public class LockBatchResponseBody extends RemotingSerializable {
-    // Lock³É¹¦µÄ¶ÓÁĞ¼¯ºÏ
+    // LockæˆåŠŸçš„é˜Ÿåˆ—é›†åˆ
     private Set<MessageQueue> lockOKMQSet = new HashSet<MessageQueue>();
 
 

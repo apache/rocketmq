@@ -19,7 +19,7 @@ import com.alibaba.rocketmq.common.message.MessageQueue;
 
 
 /**
- * ·¢ËÍÏûÏ¢½á¹û
+ * å‘é€æ¶ˆæ¯ç»“æœ
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-25

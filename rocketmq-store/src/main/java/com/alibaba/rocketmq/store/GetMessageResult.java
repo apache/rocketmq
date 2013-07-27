@@ -21,28 +21,28 @@ import java.util.List;
 
 
 /**
- * ·ÃÎÊÏûÏ¢·µ»Ø½á¹û
+ * è®¿é—®æ¶ˆæ¯è¿”å›ç»“æœ
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-21
  */
 public class GetMessageResult {
-    // Ã¶¾Ù±äÁ¿£¬È¡ÏûÏ¢½á¹û
+    // æšä¸¾å˜é‡ï¼Œå–æ¶ˆæ¯ç»“æœ
     private GetMessageStatus status;
-    // µ±±»¹ıÂËºó£¬·µ»ØÏÂÒ»´Î¿ªÊ¼µÄOffset
+    // å½“è¢«è¿‡æ»¤åï¼Œè¿”å›ä¸‹ä¸€æ¬¡å¼€å§‹çš„Offset
     private long nextBeginOffset;
-    // Âß¼­¶ÓÁĞÖĞµÄ×îĞ¡Offset
+    // é€»è¾‘é˜Ÿåˆ—ä¸­çš„æœ€å°Offset
     private long minOffset;
-    // Âß¼­¶ÓÁĞÖĞµÄ×î´óOffset
+    // é€»è¾‘é˜Ÿåˆ—ä¸­çš„æœ€å¤§Offset
     private long maxOffset;
-    // ¶à¸öÁ¬ĞøµÄÏûÏ¢¼¯ºÏ
+    // å¤šä¸ªè¿ç»­çš„æ¶ˆæ¯é›†åˆ
     private final List<SelectMapedBufferResult> messageMapedList =
             new ArrayList<SelectMapedBufferResult>(100);
-    // ÓÃÀ´ÏòConsumer´«ËÍÏûÏ¢
+    // ç”¨æ¥å‘Consumerä¼ é€æ¶ˆæ¯
     private final List<ByteBuffer> messageBufferList = new ArrayList<ByteBuffer>(100);
-    // ByteBuffer ×Ü×Ö½ÚÊı
+    // ByteBuffer æ€»å­—èŠ‚æ•°
     private int bufferTotalSize = 0;
-    // ÊÇ·ñ½¨Òé´ÓslaveÀ­ÏûÏ¢
+    // æ˜¯å¦å»ºè®®ä»slaveæ‹‰æ¶ˆæ¯
     private boolean suggestPullingFromSlave = false;
 
 

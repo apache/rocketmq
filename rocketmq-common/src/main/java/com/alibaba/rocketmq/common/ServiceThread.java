@@ -22,19 +22,19 @@ import com.alibaba.rocketmq.common.constant.LoggerName;
 
 
 /**
- * ºóÌ¨·şÎñÏß³Ì»ùÀà
+ * åå°æœåŠ¡çº¿ç¨‹åŸºç±»
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public abstract class ServiceThread implements Runnable {
     private static final Logger stlog = LoggerFactory.getLogger(LoggerName.CommonLoggerName);
-    // Ö´ĞĞÏß³Ì
+    // æ‰§è¡Œçº¿ç¨‹
     protected final Thread thread;
-    // Ïß³Ì»ØÊÕÊ±¼ä£¬Ä¬ÈÏ90S
+    // çº¿ç¨‹å›æ”¶æ—¶é—´ï¼Œé»˜è®¤90S
     private static final long JoinTime = 90 * 1000;
-    // ÊÇ·ñÒÑ¾­±»Notify¹ı
+    // æ˜¯å¦å·²ç»è¢«Notifyè¿‡
     protected volatile boolean hasNotified = false;
-    // Ïß³ÌÊÇ·ñÒÑ¾­Í£Ö¹
+    // çº¿ç¨‹æ˜¯å¦å·²ç»åœæ­¢
     protected volatile boolean stoped = false;
 
 

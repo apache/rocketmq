@@ -16,23 +16,23 @@
 package com.alibaba.rocketmq.store;
 
 /**
- * ÏòÎïÀí¶ÓÁĞĞ´ÈëÏûÏ¢·µ»Ø½á¹û
+ * å‘ç‰©ç†é˜Ÿåˆ—å†™å…¥æ¶ˆæ¯è¿”å›ç»“æœ
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-21
  */
 public class AppendMessageResult {
-    // ·µ»ØÂë
+    // è¿”å›ç 
     private AppendMessageStatus status;
-    // ´ÓÄÄÀï¿ªÊ¼Ğ´Èë
+    // ä»å“ªé‡Œå¼€å§‹å†™å…¥
     private long wroteOffset;
-    // Ğ´Èë×Ö½ÚÊı
+    // å†™å…¥å­—èŠ‚æ•°
     private int wroteBytes;
-    // ÏûÏ¢ID
+    // æ¶ˆæ¯ID
     private String msgId;
-    // ÏûÏ¢´æ´¢Ê±¼ä
+    // æ¶ˆæ¯å­˜å‚¨æ—¶é—´
     private long storeTimestamp;
-    // Ğ´ÈëÂß¼­¶ÓÁĞµÄoffset£¨µİ½ø1£©
+    // å†™å…¥é€»è¾‘é˜Ÿåˆ—çš„offsetï¼ˆé€’è¿›1ï¼‰
     private long logicsOffset;
 
 

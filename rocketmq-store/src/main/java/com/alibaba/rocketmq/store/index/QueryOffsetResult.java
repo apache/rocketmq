@@ -19,7 +19,7 @@ import java.util.List;
 
 
 /**
- * ¸ù¾İË÷Òı²éÑ¯ÏûÏ¢£¬·µ»Ø½á¹û
+ * æ ¹æ®ç´¢å¼•æŸ¥è¯¢æ¶ˆæ¯ï¼Œè¿”å›ç»“æœ
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-21

@@ -38,7 +38,7 @@ import org.slf4j.LoggerFactory;
 
 
 /**
- * ÍøÂçÏà¹Ø·½·¨
+ * ç½‘ç»œç›¸å…³æ–¹æ³•
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-13
@@ -63,7 +63,7 @@ public class RemotingUtil {
 
     public static Selector openSelector() throws IOException {
         Selector result = null;
-        // ÔÚlinuxÆ½Ì¨£¬¾¡Á¿ÆôÓÃepollÊµÏÖ
+        // åœ¨linuxå¹³å°ï¼Œå°½é‡å¯ç”¨epollå®ç°
         if (isLinuxPlatform()) {
             try {
                 final Class<?> providerClazz = Class.forName("sun.nio.ch.EPollSelectorProvider");
@@ -97,7 +97,7 @@ public class RemotingUtil {
 
     public static String getLocalAddress() {
         try {
-            // ±éÀúÍø¿¨£¬²éÕÒÒ»¸ö·Ç»ØÂ·ipµØÖ·²¢·µ»Ø
+            // éå†ç½‘å¡ï¼ŒæŸ¥æ‰¾ä¸€ä¸ªéå›è·¯ipåœ°å€å¹¶è¿”å›
             Enumeration<NetworkInterface> enumeration = NetworkInterface.getNetworkInterfaces();
             InetAddress ipv6Address = null;
             while (enumeration.hasMoreElements()) {
@@ -110,13 +110,13 @@ public class RemotingUtil {
                             ipv6Address = address;
                         }
                         else {
-                            // ÓÅÏÈÊ¹ÓÃipv4
+                            // ä¼˜å…ˆä½¿ç”¨ipv4
                             return normalizeHostAddress(address);
                         }
                     }
                 }
             }
-            // Ã»ÓĞipv4£¬ÔÙÊ¹ÓÃipv6
+            // æ²¡æœ‰ipv4ï¼Œå†ä½¿ç”¨ipv6
             if (ipv6Address != null) {
                 return normalizeHostAddress(ipv6Address);
             }

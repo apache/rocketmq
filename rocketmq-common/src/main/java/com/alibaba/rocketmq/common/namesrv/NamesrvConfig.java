@@ -9,7 +9,7 @@ import com.alibaba.rocketmq.common.MixAll;
 
 
 /**
- * Name server 的配置类
+ * Name server 鐨勯厤缃被
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @author lansheng.zj@taobao.com
@@ -18,10 +18,10 @@ import com.alibaba.rocketmq.common.MixAll;
 public class NamesrvConfig {
     private String rocketmqHome = System.getProperty(MixAll.ROCKETMQ_HOME_PROPERTY,
         System.getenv(MixAll.ROCKETMQ_HOME_ENV));
-    // namesrv 集群地址
+    // namesrv 闆嗙兢鍦板潃
     private String namesrvAddr = System.getProperty(MixAll.NAMESRV_ADDR_PROPERTY,
         System.getenv(MixAll.NAMESRV_ADDR_ENV));
-    // 通用的KV配置持久化地址
+    // 閫氱敤鐨凨V閰嶇疆鎸佷箙鍖栧湴鍧�
     private String kvConfigPath = System.getProperty("user.home") + File.separator + "namesrv"
             + File.separator + "kvConfig.json";
 

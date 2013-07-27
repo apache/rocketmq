@@ -43,29 +43,29 @@ import com.alibaba.rocketmq.store.DefaultMessageStore;
 
 
 /**
- * HA·şÎñ£¬¸ºÔğÍ¬²½Ë«Ğ´£¬Òì²½¸´ÖÆ¹¦ÄÜ
+ * HAæœåŠ¡ï¼Œè´Ÿè´£åŒæ­¥åŒå†™ï¼Œå¼‚æ­¥å¤åˆ¶åŠŸèƒ½
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-21
  */
 public class HAService {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.StoreLoggerName);
-    // ¿Í»§¶ËÁ¬½Ó¼ÆÊı
+    // å®¢æˆ·ç«¯è¿æ¥è®¡æ•°
     private final AtomicInteger connectionCount = new AtomicInteger(0);
-    // ´æ´¢¿Í»§¶ËÁ¬½Ó
+    // å­˜å‚¨å®¢æˆ·ç«¯è¿æ¥
     private final List<HAConnection> connectionList = new LinkedList<HAConnection>();
-    // ½ÓÊÕĞÂµÄSocketÁ¬½Ó
+    // æ¥æ”¶æ–°çš„Socketè¿æ¥
     private final AcceptSocketService acceptSocketService;
-    // ¶¥²ã´æ´¢¶ÔÏó
+    // é¡¶å±‚å­˜å‚¨å¯¹è±¡
     private final DefaultMessageStore defaultMessageStore;
-    // Òì²½Í¨Öª
+    // å¼‚æ­¥é€šçŸ¥
     private final WaitNotifyObject waitNotifyObject = new WaitNotifyObject();
-    // Ğ´Èëµ½SlaveµÄ×î´óOffset
+    // å†™å…¥åˆ°Slaveçš„æœ€å¤§Offset
     private final AtomicLong push2SlaveMaxOffset = new AtomicLong(0);
-    // Ö÷´Ó¸´ÖÆÍ¨Öª·şÎñ
+    // ä¸»ä»å¤åˆ¶é€šçŸ¥æœåŠ¡
     private final GroupTransferService groupTransferService;
 
-    // Slave¶©ÔÄ¶ÔÏó
+    // Slaveè®¢é˜…å¯¹è±¡
     private final HAClient haClient;
 
     class AcceptSocketService extends ServiceThread {
@@ -150,7 +150,7 @@ public class HAService {
     class GroupTransferService extends ServiceThread {
         private volatile List<GroupCommitRequest> requestsWrite = new ArrayList<GroupCommitRequest>();
         private volatile List<GroupCommitRequest> requestsRead = new ArrayList<GroupCommitRequest>();
-        // Òì²½Í¨Öª
+        // å¼‚æ­¥é€šçŸ¥
         private final WaitNotifyObject notifyTransferObject = new WaitNotifyObject();
 
 
@@ -168,9 +168,9 @@ public class HAService {
                     this.hasNotified = true;
                     this.notify();
 
-                    // TODO ÕâÀïÒªNotifyÁ½¸öÏß³Ì 1¡¢GroupTransferService
-                    // 2¡¢WriteSocketService
-                    // ÔÚµ÷ÓÃputRequestºó£¬ÒÑ¾­NotifyÁËWriteSocketService
+                    // TODO è¿™é‡Œè¦Notifyä¸¤ä¸ªçº¿ç¨‹ 1ã€GroupTransferService
+                    // 2ã€WriteSocketService
+                    // åœ¨è°ƒç”¨putRequeståï¼Œå·²ç»Notifyäº†WriteSocketService
                 }
             }
         }
@@ -232,22 +232,22 @@ public class HAService {
     }
 
     class HAClient extends ServiceThread {
-        // Ö÷½ÚµãIP:PORT
+        // ä¸»èŠ‚ç‚¹IP:PORT
         private final AtomicReference<String> masterAddress = new AtomicReference<String>();
         private SocketChannel socketChannel;
         private Selector selector;
 
         private long lastWriteTimestamp = System.currentTimeMillis();
 
-        // SlaveÏòMaster»ã±¨Offset£¬»ã±¨µ½ÄÄÀï
+        // Slaveå‘Masteræ±‡æŠ¥Offsetï¼Œæ±‡æŠ¥åˆ°å“ªé‡Œ
         private long currentReportedOffset = 0;
 
-        // ÏòMaster»ã±¨Slave×î´óOffset
+        // å‘Masteræ±‡æŠ¥Slaveæœ€å¤§Offset
         private final ByteBuffer reportOffset = ByteBuffer.allocate(8);
 
         private static final int ReadMaxBufferSize = 1024 * 1024 * 4;
         private int dispatchPostion = 0;
-        // ´ÓMaster½ÓÊÕÊı¾İBuffer
+        // ä»Masteræ¥æ”¶æ•°æ®Buffer
         private ByteBuffer byteBufferRead = ByteBuffer.allocate(ReadMaxBufferSize);
         private ByteBuffer byteBufferBackup = ByteBuffer.allocate(ReadMaxBufferSize);
 
@@ -307,7 +307,7 @@ public class HAService {
         // this.byteBufferRead = bb;
         // }
         /**
-         * BufferÂúÁËÒÔºó£¬ÖØĞÂÕûÀíÒ»´Î
+         * Bufferæ»¡äº†ä»¥åï¼Œé‡æ–°æ•´ç†ä¸€æ¬¡
          */
         private void reallocateByteBuffer() {
             int remain = ReadMaxBufferSize - this.dispatchPostion;
@@ -381,7 +381,7 @@ public class HAService {
 
                     long slavePhyOffset = HAService.this.defaultMessageStore.getMaxPhyOffset();
 
-                    // ·¢ÉúÖØ´ó´íÎó
+                    // å‘ç”Ÿé‡å¤§é”™è¯¯
                     if (slavePhyOffset != 0) {
                         if (slavePhyOffset != masterPhyOffset) {
                             log.error("master pushed offset not equal the max phy offset in slave, SLAVE: "
@@ -390,13 +390,13 @@ public class HAService {
                         }
                     }
 
-                    // ¿ÉÒÔ´Õ¹»Ò»¸öÇëÇó
+                    // å¯ä»¥å‡‘å¤Ÿä¸€ä¸ªè¯·æ±‚
                     if (diff >= (MSG_HEADER_SIZE + bodySize)) {
                         byte[] bodyData = new byte[bodySize];
                         this.byteBufferRead.position(this.dispatchPostion + MSG_HEADER_SIZE);
                         this.byteBufferRead.get(bodyData);
 
-                        // TODO ½á¹ûÊÇ·ñĞèÒª´¦Àí£¬ÔİÊ±²»´¦Àí
+                        // TODO ç»“æœæ˜¯å¦éœ€è¦å¤„ç†ï¼Œæš‚æ—¶ä¸å¤„ç†
                         HAService.this.defaultMessageStore.appendToCommitLog(masterPhyOffset, bodyData);
 
                         this.byteBufferRead.position(readSocketPos);
@@ -423,7 +423,7 @@ public class HAService {
 
         private boolean reportSlaveMaxOffsetPlus() {
             boolean result = true;
-            // Ö»Òª±¾µØÓĞ¸üĞÂ£¬¾Í»ã±¨×î´óÎïÀíOffset
+            // åªè¦æœ¬åœ°æœ‰æ›´æ–°ï¼Œå°±æ±‡æŠ¥æœ€å¤§ç‰©ç†Offset
             long currentPhyOffset = HAService.this.defaultMessageStore.getMaxPhyOffset();
             if (currentPhyOffset > this.currentReportedOffset) {
                 this.currentReportedOffset = currentPhyOffset;
@@ -445,7 +445,7 @@ public class HAService {
             while (!this.isStoped()) {
                 try {
                     if (this.connectMaster()) {
-                        // ÏÈ»ã±¨×î´óÎïÀíOffset || ¶¨Ê±ĞÄÌø·½Ê½»ã±¨
+                        // å…ˆæ±‡æŠ¥æœ€å¤§ç‰©ç†Offset || å®šæ—¶å¿ƒè·³æ–¹å¼æ±‡æŠ¥
                         if (this.isTimeToReportOffset()) {
                             boolean result = this.reportSlaveMaxOffset(this.currentReportedOffset);
                             if (!result) {
@@ -453,21 +453,21 @@ public class HAService {
                             }
                         }
 
-                        // µÈ´ıÓ¦´ğ
+                        // ç­‰å¾…åº”ç­”
                         this.selector.select(1000);
 
-                        // ½ÓÊÕÊı¾İ
+                        // æ¥æ”¶æ•°æ®
                         boolean ok = this.processReadEvent();
                         if (!ok) {
                             this.closeMaster();
                         }
 
-                        // Ö»Òª±¾µØÓĞ¸üĞÂ£¬¾Í»ã±¨×î´óÎïÀíOffset
+                        // åªè¦æœ¬åœ°æœ‰æ›´æ–°ï¼Œå°±æ±‡æŠ¥æœ€å¤§ç‰©ç†Offset
                         if (!reportSlaveMaxOffsetPlus()) {
                             continue;
                         }
 
-                        // ¼ì²éMasterµÄ·´ÏòĞÄÌø
+                        // æ£€æŸ¥Masterçš„åå‘å¿ƒè·³
                         long interval =
                                 HAService.this.getDefaultMessageStore().getSystemClock().now()
                                         - this.lastWriteTimestamp;
@@ -507,7 +507,7 @@ public class HAService {
                     }
                 }
 
-                // Ã¿´ÎÁ¬½ÓÊ±£¬ÒªÖØĞÂÄÃµ½×î´óµÄOffset
+                // æ¯æ¬¡è¿æ¥æ—¶ï¼Œè¦é‡æ–°æ‹¿åˆ°æœ€å¤§çš„Offset
                 this.currentReportedOffset = HAService.this.defaultMessageStore.getMaxPhyOffset();
 
                 this.lastWriteTimestamp = System.currentTimeMillis();
@@ -603,7 +603,7 @@ public class HAService {
     // }
 
     /**
-     * ÅĞ¶ÏÖ÷´ÓÖ®¼äÊı¾İ´«ÊäÊÇ·ñÕı³£
+     * åˆ¤æ–­ä¸»ä»ä¹‹é—´æ•°æ®ä¼ è¾“æ˜¯å¦æ­£å¸¸
      * 
      * @return
      */
@@ -618,7 +618,7 @@ public class HAService {
 
 
     /**
-     * Í¨Öª¸´ÖÆÁË²¿·ÖÊı¾İ
+     * é€šçŸ¥å¤åˆ¶äº†éƒ¨åˆ†æ•°æ®
      */
     public void notifyTransferSome(final long offset) {
         for (long value = this.push2SlaveMaxOffset.get(); offset > value;) {

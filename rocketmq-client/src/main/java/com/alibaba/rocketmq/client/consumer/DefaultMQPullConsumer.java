@@ -33,46 +33,46 @@ import com.alibaba.rocketmq.remoting.exception.RemotingException;
 
 
 /**
- * Ïû·ÑÕß£¬Ö÷¶¯À­È¡·½Ê½Ïû·Ñ
+ * æ¶ˆè´¹è€…ï¼Œä¸»åŠ¨æ‹‰å–æ–¹å¼æ¶ˆè´¹
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-24
  */
 public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsumer {
     /**
-     * ×öÍ¬ÑùÊÂÇéµÄConsumer¹éÎªÍ¬Ò»¸öGroup£¬Ó¦ÓÃ±ØĞëÉèÖÃ£¬²¢±£Ö¤ÃüÃûÎ¨Ò»
+     * åšåŒæ ·äº‹æƒ…çš„Consumerå½’ä¸ºåŒä¸€ä¸ªGroupï¼Œåº”ç”¨å¿…é¡»è®¾ç½®ï¼Œå¹¶ä¿è¯å‘½åå”¯ä¸€
      */
     private String consumerGroup = MixAll.DEFAULT_CONSUMER_GROUP;
     /**
-     * ³¤ÂÖÑ¯Ä£Ê½£¬ConsumerÁ¬½ÓÔÚBroker¹ÒÆğ×î³¤Ê±¼ä£¬²»½¨ÒéĞŞ¸Ä
+     * é•¿è½®è¯¢æ¨¡å¼ï¼ŒConsumerè¿æ¥åœ¨BrokeræŒ‚èµ·æœ€é•¿æ—¶é—´ï¼Œä¸å»ºè®®ä¿®æ”¹
      */
     private long brokerSuspendMaxTimeMillis = 1000 * 20;
     /**
-     * ³¤ÂÖÑ¯Ä£Ê½£¬Consumer³¬Ê±Ê±¼ä£¨±ØĞëÒª´óÓÚbrokerSuspendMaxTimeMillis£©£¬²»½¨ÒéĞŞ¸Ä
+     * é•¿è½®è¯¢æ¨¡å¼ï¼ŒConsumerè¶…æ—¶æ—¶é—´ï¼ˆå¿…é¡»è¦å¤§äºbrokerSuspendMaxTimeMillisï¼‰ï¼Œä¸å»ºè®®ä¿®æ”¹
      */
     private long consumerTimeoutMillisWhenSuspend = 1000 * 30;
     /**
-     * ·Ç×èÈûÀ­Ä£Ê½£¬Consumer³¬Ê±Ê±¼ä£¬²»½¨ÒéĞŞ¸Ä
+     * éé˜»å¡æ‹‰æ¨¡å¼ï¼ŒConsumerè¶…æ—¶æ—¶é—´ï¼Œä¸å»ºè®®ä¿®æ”¹
      */
     private long consumerPullTimeoutMillis = 1000 * 10;
     /**
-     * ¼¯ÈºÏû·Ñ/¹ã²¥Ïû·Ñ
+     * é›†ç¾¤æ¶ˆè´¹/å¹¿æ’­æ¶ˆè´¹
      */
     private MessageModel messageModel = MessageModel.BROADCASTING;
     /**
-     * ¶ÓÁĞ±ä»¯¼àÌıÆ÷
+     * é˜Ÿåˆ—å˜åŒ–ç›‘å¬å™¨
      */
     private MessageQueueListener messageQueueListener;
     /**
-     * Offset´æ´¢£¬ÏµÍ³»á¸ù¾İ¿Í»§¶ËÅäÖÃ×Ô¶¯´´½¨ÏàÓ¦µÄÊµÏÖ£¬Èç¹ûÓ¦ÓÃÅäÖÃÁË£¬ÔòÒÔÓ¦ÓÃÅäÖÃµÄÎªÖ÷
+     * Offsetå­˜å‚¨ï¼Œç³»ç»Ÿä¼šæ ¹æ®å®¢æˆ·ç«¯é…ç½®è‡ªåŠ¨åˆ›å»ºç›¸åº”çš„å®ç°ï¼Œå¦‚æœåº”ç”¨é…ç½®äº†ï¼Œåˆ™ä»¥åº”ç”¨é…ç½®çš„ä¸ºä¸»
      */
     private OffsetStore offsetStore;
     /**
-     * ĞèÒª¼àÌıÄÄĞ©TopicµÄ¶ÓÁĞ±ä»¯
+     * éœ€è¦ç›‘å¬å“ªäº›Topicçš„é˜Ÿåˆ—å˜åŒ–
      */
     private Set<String> registerTopics = new HashSet<String>();
     /**
-     * ¶ÓÁĞ·ÖÅäËã·¨£¬Ó¦ÓÃ¿ÉÖØĞ´
+     * é˜Ÿåˆ—åˆ†é…ç®—æ³•ï¼Œåº”ç”¨å¯é‡å†™
      */
     private AllocateMessageQueueStrategy allocateMessageQueueStrategy = new AllocateMessageQueueAveragely();
 

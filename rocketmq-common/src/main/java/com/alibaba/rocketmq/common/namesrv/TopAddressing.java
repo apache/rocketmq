@@ -19,7 +19,7 @@ import com.alibaba.rocketmq.common.help.FAQUrl;
 
 
 /**
- * Ñ°Ö··şÎñ
+ * å¯»å€æœåŠ¡
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * 

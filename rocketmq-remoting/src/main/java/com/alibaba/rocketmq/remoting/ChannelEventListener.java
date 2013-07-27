@@ -19,7 +19,7 @@ import io.netty.channel.Channel;
 
 
 /**
- * ¼àÌýChannelµÄÊÂ¼þ£¬°üÀ¨Á¬½Ó¶Ï¿ª¡¢Á¬½Ó½¨Á¢¡¢Á¬½ÓÒì³££¬´«ËÍÕâÐ©ÊÂ¼þµ½Ó¦ÓÃ²ã
+ * ç›‘å¬Channelçš„äº‹ä»¶ï¼ŒåŒ…æ‹¬è¿žæŽ¥æ–­å¼€ã€è¿žæŽ¥å»ºç«‹ã€è¿žæŽ¥å¼‚å¸¸ï¼Œä¼ é€è¿™äº›äº‹ä»¶åˆ°åº”ç”¨å±‚
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-13

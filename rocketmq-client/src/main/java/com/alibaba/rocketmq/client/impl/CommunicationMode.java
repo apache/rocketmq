@@ -16,7 +16,7 @@
 package com.alibaba.rocketmq.client.impl;
 
 /**
- * 通信方式
+ * 閫氫俊鏂瑰紡
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-24

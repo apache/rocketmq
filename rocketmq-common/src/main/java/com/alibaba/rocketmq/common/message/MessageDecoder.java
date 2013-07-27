@@ -31,18 +31,18 @@ import com.alibaba.rocketmq.common.sysflag.MessageSysFlag;
 
 
 /**
- * ÏûÏ¢½âÂë
+ * æ¶ˆæ¯è§£ç 
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public class MessageDecoder {
     /**
-     * ÏûÏ¢ID¶¨³¤
+     * æ¶ˆæ¯IDå®šé•¿
      */
     public final static int MSG_ID_LENGTH = 8 + 8;
 
     /**
-     * ´æ´¢¼ÇÂ¼¸÷¸ö×Ö¶ÎÎ»ÖÃ
+     * å­˜å‚¨è®°å½•å„ä¸ªå­—æ®µä½ç½®
      */
     public final static int MessageMagicCodePostion = 4;
     public final static int MessageFlagPostion = 16;
@@ -54,9 +54,9 @@ public class MessageDecoder {
         input.flip();
         input.limit(MessageDecoder.MSG_ID_LENGTH);
 
-        // ÏûÏ¢´æ´¢Ö÷»úµØÖ· IP PORT 8
+        // æ¶ˆæ¯å­˜å‚¨ä¸»æœºåœ°å€ IP PORT 8
         input.put(addr);
-        // ÏûÏ¢¶ÔÓ¦µÄÎïÀí·ÖÇø OFFSET 8
+        // æ¶ˆæ¯å¯¹åº”çš„ç‰©ç†åˆ†åŒº OFFSET 8
         input.putLong(offset);
 
         return UtilALl.bytes2string(input.array());
@@ -67,7 +67,7 @@ public class MessageDecoder {
         SocketAddress address;
         long offset;
 
-        // µØÖ·
+        // åœ°å€
         byte[] ip = UtilALl.string2bytes(msgId.substring(0, 8));
         byte[] port = UtilALl.string2bytes(msgId.substring(8, 16));
         ByteBuffer bb = ByteBuffer.wrap(port);
@@ -89,7 +89,7 @@ public class MessageDecoder {
 
 
     /**
-     * ¿Í»§¶ËÊ¹ÓÃ£¬SLAVEÒ²»áÊ¹ÓÃ
+     * å®¢æˆ·ç«¯ä½¿ç”¨ï¼ŒSLAVEä¹Ÿä¼šä½¿ç”¨
      */
     public static MessageExt decode(java.nio.ByteBuffer byteBuffer, final boolean readBody) {
         try {
@@ -189,7 +189,7 @@ public class MessageDecoder {
                 msgExt.setProperties(map);
             }
 
-            // ÏûÏ¢ID
+            // æ¶ˆæ¯ID
             ByteBuffer byteBufferMsgId = ByteBuffer.allocate(MSG_ID_LENGTH);
             String msgId =
                     createMessageId(byteBufferMsgId, msgExt.getStoreHostBytes(), msgExt.getCommitLogOffset());
@@ -217,7 +217,7 @@ public class MessageDecoder {
 
 
     /**
-     * ¿Í»§¶ËÊ¹ÓÃ
+     * å®¢æˆ·ç«¯ä½¿ç”¨
      */
     public static List<MessageExt> decodes(java.nio.ByteBuffer byteBuffer, final boolean readBody) {
         List<MessageExt> msgExts = new ArrayList<MessageExt>();
@@ -234,7 +234,7 @@ public class MessageDecoder {
     }
 
     /**
-     * ĞòÁĞ»¯ÏûÏ¢ÊôĞÔ
+     * åºåˆ—åŒ–æ¶ˆæ¯å±æ€§
      */
     public static final char NAME_VALUE_SEPARATOR = 1;
     public static final char PROPERTY_SEPARATOR = 2;

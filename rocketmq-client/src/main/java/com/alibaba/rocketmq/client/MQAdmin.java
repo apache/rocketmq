@@ -23,23 +23,23 @@ import com.alibaba.rocketmq.remoting.exception.RemotingException;
 
 
 /**
- * MQ¹ÜÀíÀà½Ó¿Ú
+ * MQç®¡ç†ç±»æ¥å£
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-24
  */
 public interface MQAdmin {
     /**
-     * ´´½¨topic
+     * åˆ›å»ºtopic
      * 
      * @param key
-     *            ÇëÏòÔËÎ¬ÈËÔ±ÉêÇë
+     *            è¯·å‘è¿ç»´äººå‘˜ç”³è¯·
      * @param newTopic
-     *            Òª´´½¨µÄĞÂtopic
+     *            è¦åˆ›å»ºçš„æ–°topic
      * @param queueNum
-     *            ĞÂtopic¶ÓÁĞÊı
+     *            æ–°topicé˜Ÿåˆ—æ•°
      * @param order
-     *            ÊÇ·ñÊÇÑÏ¸ñµÄË³ĞòÏûÏ¢
+     *            æ˜¯å¦æ˜¯ä¸¥æ ¼çš„é¡ºåºæ¶ˆæ¯
      * @throws MQClientException
      */
     public void createTopic(final String key, final String newTopic, final int queueNum)
@@ -47,57 +47,57 @@ public interface MQAdmin {
 
 
     /**
-     * ¸ù¾İÊ±¼ä²éÑ¯¶ÔÓ¦µÄoffset£¬¾«È·µ½ºÁÃë<br>
-     * P.S. µ±Ç°½Ó¿ÚÓĞ½Ï¶àIO¿ªÏú£¬ÇëÎğÆµ·±µ÷ÓÃ
+     * æ ¹æ®æ—¶é—´æŸ¥è¯¢å¯¹åº”çš„offsetï¼Œç²¾ç¡®åˆ°æ¯«ç§’<br>
+     * P.S. å½“å‰æ¥å£æœ‰è¾ƒå¤šIOå¼€é”€ï¼Œè¯·å‹¿é¢‘ç¹è°ƒç”¨
      * 
      * @param mq
-     *            ¶ÓÁĞ
+     *            é˜Ÿåˆ—
      * @param timestamp
-     *            ºÁÃëĞÎÊ½Ê±¼ä´Á
-     * @return Ö¸¶¨Ê±¼ä¶ÔÓ¦µÄoffset
+     *            æ¯«ç§’å½¢å¼æ—¶é—´æˆ³
+     * @return æŒ‡å®šæ—¶é—´å¯¹åº”çš„offset
      * @throws MQClientException
      */
     public long searchOffset(final MessageQueue mq, final long timestamp) throws MQClientException;
 
 
     /**
-     * Ïò·şÎñÆ÷²éÑ¯¶ÓÁĞ×î´óOffset PS: ×î´óOffsetÎŞ¶ÔÓ¦ÏûÏ¢£¬¼õ1ÓĞÏûÏ¢
+     * å‘æœåŠ¡å™¨æŸ¥è¯¢é˜Ÿåˆ—æœ€å¤§Offset PS: æœ€å¤§Offsetæ— å¯¹åº”æ¶ˆæ¯ï¼Œå‡1æœ‰æ¶ˆæ¯
      * 
      * @param mq
-     *            ¶ÓÁĞ
-     * @return ¶ÓÁĞµÄ×î´óOffset
+     *            é˜Ÿåˆ—
+     * @return é˜Ÿåˆ—çš„æœ€å¤§Offset
      * @throws MQClientException
      */
     public long maxOffset(final MessageQueue mq) throws MQClientException;
 
 
     /**
-     * Ïò·şÎñÆ÷²éÑ¯¶ÓÁĞ×îĞ¡Offset PS: ×îĞ¡OffsetÓĞ¶ÔÓ¦ÏûÏ¢
+     * å‘æœåŠ¡å™¨æŸ¥è¯¢é˜Ÿåˆ—æœ€å°Offset PS: æœ€å°Offsetæœ‰å¯¹åº”æ¶ˆæ¯
      * 
      * @param mq
-     *            ¶ÓÁĞ
-     * @return ¶ÓÁĞµÄ×îĞ¡Offset
+     *            é˜Ÿåˆ—
+     * @return é˜Ÿåˆ—çš„æœ€å°Offset
      * @throws MQClientException
      */
     public long minOffset(final MessageQueue mq) throws MQClientException;
 
 
     /**
-     * Ïò·şÎñÆ÷²éÑ¯¶ÓÁĞ±£´æµÄ×îÔçÏûÏ¢¶ÔÓ¦µÄ´æ´¢Ê±¼ä
+     * å‘æœåŠ¡å™¨æŸ¥è¯¢é˜Ÿåˆ—ä¿å­˜çš„æœ€æ—©æ¶ˆæ¯å¯¹åº”çš„å­˜å‚¨æ—¶é—´
      * 
      * @param mq
-     *            ¶ÓÁĞ
-     * @return ×îÔçÏûÏ¢¶ÔÓ¦µÄ´æ´¢Ê±¼ä£¬¾«È·µ½ºÁÃë
+     *            é˜Ÿåˆ—
+     * @return æœ€æ—©æ¶ˆæ¯å¯¹åº”çš„å­˜å‚¨æ—¶é—´ï¼Œç²¾ç¡®åˆ°æ¯«ç§’
      * @throws MQClientException
      */
     public long earliestMsgStoreTime(final MessageQueue mq) throws MQClientException;
 
 
     /**
-     * ¸ù¾İÏûÏ¢ID£¬´Ó·şÎñÆ÷»ñÈ¡ÍêÕûµÄÏûÏ¢
+     * æ ¹æ®æ¶ˆæ¯IDï¼Œä»æœåŠ¡å™¨è·å–å®Œæ•´çš„æ¶ˆæ¯
      * 
      * @param msgId
-     * @return ÍêÕûÏûÏ¢
+     * @return å®Œæ•´æ¶ˆæ¯
      * @throws InterruptedException
      * @throws MQBrokerException
      * @throws RemotingException
@@ -108,19 +108,19 @@ public interface MQAdmin {
 
 
     /**
-     * ¸ù¾İÏûÏ¢Key²éÑ¯ÏûÏ¢
+     * æ ¹æ®æ¶ˆæ¯KeyæŸ¥è¯¢æ¶ˆæ¯
      * 
      * @param topic
-     *            ÏûÏ¢Ö÷Ìâ
+     *            æ¶ˆæ¯ä¸»é¢˜
      * @param key
-     *            ÏûÏ¢¹Ø¼ü´Ê
+     *            æ¶ˆæ¯å…³é”®è¯
      * @param maxNum
-     *            ²éÑ¯×î´óÌõÊı
+     *            æŸ¥è¯¢æœ€å¤§æ¡æ•°
      * @param begin
-     *            ÆğÊ¼Ê±¼ä´Á
+     *            èµ·å§‹æ—¶é—´æˆ³
      * @param end
-     *            ½áÊøÊ±¼ä´Á
-     * @return ²éÑ¯½á¹û
+     *            ç»“æŸæ—¶é—´æˆ³
+     * @return æŸ¥è¯¢ç»“æœ
      * @throws MQClientException
      * @throws InterruptedException
      */

@@ -16,18 +16,18 @@
 package com.alibaba.rocketmq.store;
 
 /**
- * ÏòÎïÀí¶ÓÁĞĞ´ÏûÏ¢·µ»Ø½á¹ûÂë
+ * å‘ç‰©ç†é˜Ÿåˆ—å†™æ¶ˆæ¯è¿”å›ç»“æœç 
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-21
  */
 public enum AppendMessageStatus {
-    // ³É¹¦×·¼ÓÏûÏ¢
+    // æˆåŠŸè¿½åŠ æ¶ˆæ¯
     PUT_OK,
-    // ×ßµ½ÎÄ¼şÄ©Î²
+    // èµ°åˆ°æ–‡ä»¶æœ«å°¾
     END_OF_FILE,
-    // ÏûÏ¢´óĞ¡³¬ÏŞ
+    // æ¶ˆæ¯å¤§å°è¶…é™
     MESSAGE_SIZE_EXCEEDED,
-    // Î´Öª´íÎó
+    // æœªçŸ¥é”™è¯¯
     UNKNOWN_ERROR,
 }

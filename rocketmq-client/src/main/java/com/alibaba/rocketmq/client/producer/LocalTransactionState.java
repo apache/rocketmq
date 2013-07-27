@@ -16,15 +16,15 @@
 package com.alibaba.rocketmq.client.producer;
 
 /**
- * Producer±¾µØÊÂÎñÖ´ĞĞ×´Ì¬
+ * Produceræœ¬åœ°äº‹åŠ¡æ‰§è¡ŒçŠ¶æ€
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-25
  */
 public enum LocalTransactionState {
-    // Ìá½»ÊÂÎñ
+    // æäº¤äº‹åŠ¡
     COMMIT_MESSAGE,
-    // »Ø¹öÊÂÎñ
+    // å›æ»šäº‹åŠ¡
     ROLLBACK_MESSAGE,
     UNKNOW,
 }

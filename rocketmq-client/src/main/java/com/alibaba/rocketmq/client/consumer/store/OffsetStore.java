@@ -21,32 +21,32 @@ import com.alibaba.rocketmq.common.message.MessageQueue;
 
 
 /**
- * Consumer Offset´æ´¢½Ó¿Ú
+ * Consumer Offsetå­˜å‚¨æ¥å£
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-25
  */
 public interface OffsetStore {
     /**
-     * ¼ÓÔØOffset
+     * åŠ è½½Offset
      */
     public void load();
 
 
     /**
-     * ¸üĞÂÏû·Ñ½ø¶È£¬´æ´¢µ½ÄÚ´æ
+     * æ›´æ–°æ¶ˆè´¹è¿›åº¦ï¼Œå­˜å‚¨åˆ°å†…å­˜
      */
     public void updateOffset(final MessageQueue mq, final long offset, final boolean increaseOnly);
 
 
     /**
-     * ´Ó±¾µØ»º´æ¶ÁÈ¡Ïû·Ñ½ø¶È
+     * ä»æœ¬åœ°ç¼“å­˜è¯»å–æ¶ˆè´¹è¿›åº¦
      */
     public long readOffset(final MessageQueue mq, final boolean fromStore);
 
 
     /**
-     * ³Ö¾Ã»¯È«²¿Ïû·Ñ½ø¶È£¬¿ÉÄÜ³Ö¾Ã»¯±¾µØ»òÕßÔ¶¶ËBroker
+     * æŒä¹…åŒ–å…¨éƒ¨æ¶ˆè´¹è¿›åº¦ï¼Œå¯èƒ½æŒä¹…åŒ–æœ¬åœ°æˆ–è€…è¿œç«¯Broker
      */
     public void persistAll(final Set<MessageQueue> mqs);
 

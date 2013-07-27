@@ -24,14 +24,14 @@ import com.alibaba.rocketmq.remoting.exception.RemotingException;
 
 
 /**
- * Ïû·ÑÕß£¬Ö÷¶¯·½Ê½Ïû·Ñ
+ * æ¶ˆè´¹è€…ï¼Œä¸»åŠ¨æ–¹å¼æ¶ˆè´¹
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-24
  */
 public interface MQPullConsumer extends MQConsumer {
     /**
-     * Æô¶¯·şÎñ
+     * å¯åŠ¨æœåŠ¡
      * 
      * @throws MQClientException
      */
@@ -39,35 +39,35 @@ public interface MQPullConsumer extends MQConsumer {
 
 
     /**
-     * ¹Ø±Õ·şÎñ
+     * å…³é—­æœåŠ¡
      */
     public void shutdown();
 
 
     /**
-     * ×¢²á¼àÌı¶ÓÁĞ±ä»¯µÄlistener¶ÔÏó
+     * æ³¨å†Œç›‘å¬é˜Ÿåˆ—å˜åŒ–çš„listenerå¯¹è±¡
      * 
      * @param topic
      * @param listener
-     *            Ò»µ©·¢Éú±ä»¯£¬¿Í»§¶Ë»áÖ÷¶¯»Øµ÷listener¶ÔÏó
+     *            ä¸€æ—¦å‘ç”Ÿå˜åŒ–ï¼Œå®¢æˆ·ç«¯ä¼šä¸»åŠ¨å›è°ƒlistenerå¯¹è±¡
      */
     public void registerMessageQueueListener(final String topic, final MessageQueueListener listener);
 
 
     /**
-     * Ö¸¶¨¶ÓÁĞ£¬Ö÷¶¯À­È¡ÏûÏ¢£¬¼´Ê¹Ã»ÓĞÏûÏ¢£¬Ò²Á¢¿Ì·µ»Ø
+     * æŒ‡å®šé˜Ÿåˆ—ï¼Œä¸»åŠ¨æ‹‰å–æ¶ˆæ¯ï¼Œå³ä½¿æ²¡æœ‰æ¶ˆæ¯ï¼Œä¹Ÿç«‹åˆ»è¿”å›
      * 
      * @param mq
-     *            Ö¸¶¨¾ßÌåÒªÀ­È¡µÄ¶ÓÁĞ
+     *            æŒ‡å®šå…·ä½“è¦æ‹‰å–çš„é˜Ÿåˆ—
      * @param subExpression
-     *            ¶©ÔÄ¹ıÂË±í´ïÊ½×Ö·û´®£¬brokerÒÀ¾İ´Ë±í´ïÊ½½øĞĞ¹ıÂË¡£Ä¿Ç°Ö»Ö§³Ö»òÔËËã<br>
+     *            è®¢é˜…è¿‡æ»¤è¡¨è¾¾å¼å­—ç¬¦ä¸²ï¼Œbrokerä¾æ®æ­¤è¡¨è¾¾å¼è¿›è¡Œè¿‡æ»¤ã€‚ç›®å‰åªæ”¯æŒæˆ–è¿ç®—<br>
      *            eg: "tag1 || tag2 || tag3"<br>
-     *            Èç¹ûsubExpressionµÈÓÚnull»òÕß*£¬Ôò±íÊ¾È«²¿¶©ÔÄ
+     *            å¦‚æœsubExpressionç­‰äºnullæˆ–è€…*ï¼Œåˆ™è¡¨ç¤ºå…¨éƒ¨è®¢é˜…
      * @param offset
-     *            ´ÓÖ¸¶¨¶ÓÁĞÄÄ¸öÎ»ÖÃ¿ªÊ¼À­È¡
+     *            ä»æŒ‡å®šé˜Ÿåˆ—å“ªä¸ªä½ç½®å¼€å§‹æ‹‰å–
      * @param maxNums
-     *            Ò»´Î×î¶àÀ­È¡ÌõÊı
-     * @return ²Î¼ûPullResult
+     *            ä¸€æ¬¡æœ€å¤šæ‹‰å–æ¡æ•°
+     * @return å‚è§PullResult
      * @throws MQClientException
      * @throws InterruptedException
      * @throws MQBrokerException
@@ -84,20 +84,20 @@ public interface MQPullConsumer extends MQConsumer {
 
 
     /**
-     * Ö¸¶¨¶ÓÁĞ£¬Ö÷¶¯À­È¡ÏûÏ¢£¬Èç¹ûÃ»ÓĞÏûÏ¢£¬Ôòbroker×èÈûÒ»¶ÎÊ±¼äÔÙ·µ»Ø£¨Ê±¼ä¿ÉÅäÖÃ£©<br>
-     * broker×èÈûÆÚ¼ä£¬Èç¹ûÓĞÏûÏ¢£¬ÔòÁ¢¿Ì½«ÏûÏ¢·µ»Ø
+     * æŒ‡å®šé˜Ÿåˆ—ï¼Œä¸»åŠ¨æ‹‰å–æ¶ˆæ¯ï¼Œå¦‚æœæ²¡æœ‰æ¶ˆæ¯ï¼Œåˆ™brokeré˜»å¡ä¸€æ®µæ—¶é—´å†è¿”å›ï¼ˆæ—¶é—´å¯é…ç½®ï¼‰<br>
+     * brokeré˜»å¡æœŸé—´ï¼Œå¦‚æœæœ‰æ¶ˆæ¯ï¼Œåˆ™ç«‹åˆ»å°†æ¶ˆæ¯è¿”å›
      * 
      * @param mq
-     *            Ö¸¶¨¾ßÌåÒªÀ­È¡µÄ¶ÓÁĞ
+     *            æŒ‡å®šå…·ä½“è¦æ‹‰å–çš„é˜Ÿåˆ—
      * @param subExpression
-     *            ¶©ÔÄ¹ıÂË±í´ïÊ½×Ö·û´®£¬brokerÒÀ¾İ´Ë±í´ïÊ½½øĞĞ¹ıÂË¡£Ä¿Ç°Ö»Ö§³Ö»òÔËËã<br>
+     *            è®¢é˜…è¿‡æ»¤è¡¨è¾¾å¼å­—ç¬¦ä¸²ï¼Œbrokerä¾æ®æ­¤è¡¨è¾¾å¼è¿›è¡Œè¿‡æ»¤ã€‚ç›®å‰åªæ”¯æŒæˆ–è¿ç®—<br>
      *            eg: "tag1 || tag2 || tag3"<br>
-     *            Èç¹ûsubExpressionµÈÓÚnull»òÕß*£¬Ôò±íÊ¾È«²¿¶©ÔÄ
+     *            å¦‚æœsubExpressionç­‰äºnullæˆ–è€…*ï¼Œåˆ™è¡¨ç¤ºå…¨éƒ¨è®¢é˜…
      * @param offset
-     *            ´ÓÖ¸¶¨¶ÓÁĞÄÄ¸öÎ»ÖÃ¿ªÊ¼À­È¡
+     *            ä»æŒ‡å®šé˜Ÿåˆ—å“ªä¸ªä½ç½®å¼€å§‹æ‹‰å–
      * @param maxNums
-     *            Ò»´Î×î¶àÀ­È¡ÌõÊı
-     * @return ²Î¼ûPullResult
+     *            ä¸€æ¬¡æœ€å¤šæ‹‰å–æ¡æ•°
+     * @return å‚è§PullResult
      * @throws InterruptedException
      * @throws MQBrokerException
      * @throws RemotingException
@@ -114,11 +114,11 @@ public interface MQPullConsumer extends MQConsumer {
 
 
     /**
-     * ¸üĞÂÏû·Ñ½ø¶È<br>
-     * Ö»ÊÇ¸üĞÂConsumer»º´æÖĞµÄÊı¾İ£¬Èç¹ûÊÇ¹ã²¥Ä£Ê½£¬Ôò¶¨Ê±¸üĞÂµ½±¾µØ´æ´¢<br>
-     * Èç¹ûÊÇ¼¯ÈºÄ£Ê½£¬Ôò¶¨Ê±¸üĞÂµ½Ô¶¶ËBroker<br>
+     * æ›´æ–°æ¶ˆè´¹è¿›åº¦<br>
+     * åªæ˜¯æ›´æ–°Consumerç¼“å­˜ä¸­çš„æ•°æ®ï¼Œå¦‚æœæ˜¯å¹¿æ’­æ¨¡å¼ï¼Œåˆ™å®šæ—¶æ›´æ–°åˆ°æœ¬åœ°å­˜å‚¨<br>
+     * å¦‚æœæ˜¯é›†ç¾¤æ¨¡å¼ï¼Œåˆ™å®šæ—¶æ›´æ–°åˆ°è¿œç«¯Broker<br>
      * 
-     * P.S. ¿ÉÆµ·±µ÷ÓÃ£¬ÎŞĞÔÄÜ¿ªÏú
+     * P.S. å¯é¢‘ç¹è°ƒç”¨ï¼Œæ— æ€§èƒ½å¼€é”€
      * 
      * @param mq
      * @param offset
@@ -128,7 +128,7 @@ public interface MQPullConsumer extends MQConsumer {
 
 
     /**
-     * »ñÈ¡Ïû·Ñ½ø¶È£¬·µ»Ø-1±íÊ¾³ö´í
+     * è·å–æ¶ˆè´¹è¿›åº¦ï¼Œè¿”å›-1è¡¨ç¤ºå‡ºé”™
      * 
      * @param mq
      * @param fromStore
@@ -139,11 +139,11 @@ public interface MQPullConsumer extends MQConsumer {
 
 
     /**
-     * ¸ù¾İtopic»ñÈ¡MessageQueue£¬ÒÔ¾ùºâ·½Ê½ÔÚ×éÄÚ¶à¸ö³ÉÔ±Ö®¼ä·ÖÅä
+     * æ ¹æ®topicè·å–MessageQueueï¼Œä»¥å‡è¡¡æ–¹å¼åœ¨ç»„å†…å¤šä¸ªæˆå‘˜ä¹‹é—´åˆ†é…
      * 
      * @param topic
-     *            ÏûÏ¢Topic
-     * @return ·µ»Ø¶ÓÁĞ¼¯ºÏ
+     *            æ¶ˆæ¯Topic
+     * @return è¿”å›é˜Ÿåˆ—é›†åˆ
      * @throws MQClientException
      * 
      */

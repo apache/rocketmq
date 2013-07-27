@@ -26,17 +26,17 @@ import com.alibaba.rocketmq.remoting.exception.RemotingException;
 
 
 /**
- * Consumer½Ó¿Ú
+ * Consumeræ¥å£
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-24
  */
 public interface MQConsumer extends MQAdmin {
     /**
-     * ConsumerÏû·ÑÊ§°ÜµÄÏûÏ¢¿ÉÒÔÑ¡ÔñÖØĞÂ·¢»Øµ½·şÎñÆ÷¶Ë£¬²¢ÑÓÊ±Ïû·Ñ<br>
-     * »áÊ×ÏÈ³¢ÊÔ½«ÏûÏ¢·¢»Øµ½ÏûÏ¢Ö®Ç°´æ´¢µÄÖ÷»ú£¬´ËÊ±Ö»´«ËÍÏûÏ¢Offset£¬ÏûÏ¢Ìå²»´«ËÍ£¬²»»áÕ¼ÓÃÍøÂç´ø¿í<br>
-     * Èç¹û·¢ËÍÊ§°Ü£¬»á×Ô¶¯ÖØÊÔ·¢ÍùÆäËûÖ÷»ú£¬´ËÊ±ÏûÏ¢ÌåÒ²»á´«ËÍ<br>
-     * ÖØ´«»ØÈ¥µÄÏûÏ¢Ö»»á±»µ±Ç°Consumer GroupÏû·Ñ¡£
+     * Consumeræ¶ˆè´¹å¤±è´¥çš„æ¶ˆæ¯å¯ä»¥é€‰æ‹©é‡æ–°å‘å›åˆ°æœåŠ¡å™¨ç«¯ï¼Œå¹¶å»¶æ—¶æ¶ˆè´¹<br>
+     * ä¼šé¦–å…ˆå°è¯•å°†æ¶ˆæ¯å‘å›åˆ°æ¶ˆæ¯ä¹‹å‰å­˜å‚¨çš„ä¸»æœºï¼Œæ­¤æ—¶åªä¼ é€æ¶ˆæ¯Offsetï¼Œæ¶ˆæ¯ä½“ä¸ä¼ é€ï¼Œä¸ä¼šå ç”¨ç½‘ç»œå¸¦å®½<br>
+     * å¦‚æœå‘é€å¤±è´¥ï¼Œä¼šè‡ªåŠ¨é‡è¯•å‘å¾€å…¶ä»–ä¸»æœºï¼Œæ­¤æ—¶æ¶ˆæ¯ä½“ä¹Ÿä¼šä¼ é€<br>
+     * é‡ä¼ å›å»çš„æ¶ˆæ¯åªä¼šè¢«å½“å‰Consumer Groupæ¶ˆè´¹ã€‚
      * 
      * @param msg
      * @param delayLevel
@@ -50,12 +50,12 @@ public interface MQConsumer extends MQAdmin {
 
 
     /**
-     * ¸ù¾İtopic»ñÈ¡¶ÔÓ¦µÄMessageQueue£¬ÊÇ¿É±»¶©ÔÄµÄ¶ÓÁĞ<br>
-     * P.S ´ÓConsumer CacheÖĞÄÃÊı¾İ£¬¿ÉÒÔÆµ·±µ÷ÓÃ¡£CacheÖĞÊı¾İ´óÔ¼30Ãë¸üĞÂÒ»´Î
+     * æ ¹æ®topicè·å–å¯¹åº”çš„MessageQueueï¼Œæ˜¯å¯è¢«è®¢é˜…çš„é˜Ÿåˆ—<br>
+     * P.S ä»Consumer Cacheä¸­æ‹¿æ•°æ®ï¼Œå¯ä»¥é¢‘ç¹è°ƒç”¨ã€‚Cacheä¸­æ•°æ®å¤§çº¦30ç§’æ›´æ–°ä¸€æ¬¡
      * 
      * @param topic
-     *            ÏûÏ¢Topic
-     * @return ·µ»Ø¶ÓÁĞ¼¯ºÏ
+     *            æ¶ˆæ¯Topic
+     * @return è¿”å›é˜Ÿåˆ—é›†åˆ
      * @throws MQClientException
      */
     public Set<MessageQueue> fetchSubscribeMessageQueues(final String topic) throws MQClientException;

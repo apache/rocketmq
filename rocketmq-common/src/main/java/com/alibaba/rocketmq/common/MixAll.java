@@ -57,7 +57,7 @@ import com.sun.management.OperatingSystemMXBean;
 
 
 /**
- * ¸÷ÖÖ·½·¨´óÔÓ»â
+ * å„ç§æ–¹æ³•å¤§æ‚çƒ©
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @author lansheng.zj@taobao.com
@@ -86,9 +86,9 @@ public class MixAll {
     public static final long MASTER_ID = 0L;
     public static final long CURRENT_JVM_PID = getPID();
 
-    // ÎªÃ¿¸öConsumer Group½¨Á¢Ò»¸öÄ¬ÈÏµÄTopic£¬Ç°×º + GroupName£¬ÓÃÀ´±£´æ´¦ÀíÊ§°ÜĞèÒªÖØÊÔµÄÏûÏ¢
+    // ä¸ºæ¯ä¸ªConsumer Groupå»ºç«‹ä¸€ä¸ªé»˜è®¤çš„Topicï¼Œå‰ç¼€ + GroupNameï¼Œç”¨æ¥ä¿å­˜å¤„ç†å¤±è´¥éœ€è¦é‡è¯•çš„æ¶ˆæ¯
     public static final String RETRY_GROUP_TOPIC_PREFIX = "%RETRY%";
-    // ÎªÃ¿¸öConsumer Group½¨Á¢Ò»¸öÄ¬ÈÏµÄTopic£¬Ç°×º + GroupName£¬ÓÃÀ´±£´æÖØÊÔ¶à´Î¶¼Ê§°Ü£¬½ÓÏÂÀ´²»ÔÙÖØÊÔµÄÏûÏ¢
+    // ä¸ºæ¯ä¸ªConsumer Groupå»ºç«‹ä¸€ä¸ªé»˜è®¤çš„Topicï¼Œå‰ç¼€ + GroupNameï¼Œç”¨æ¥ä¿å­˜é‡è¯•å¤šæ¬¡éƒ½å¤±è´¥ï¼Œæ¥ä¸‹æ¥ä¸å†é‡è¯•çš„æ¶ˆæ¯
     public static final String DLQ_GROUP_TOPIC_PREFIX = "%DLQ%";
 
 
@@ -164,25 +164,25 @@ public class MixAll {
 
 
     /**
-     * °²È«µÄĞ´ÎÄ¼ş
+     * å®‰å…¨çš„å†™æ–‡ä»¶
      */
     public static final void string2File(final String str, final String fileName) throws IOException {
-        // ÏÈĞ´ÈëÁÙÊ±ÎÄ¼ş
+        // å…ˆå†™å…¥ä¸´æ—¶æ–‡ä»¶
         String tmpFile = fileName + ".tmp";
         string2FileNotSafe(str, tmpFile);
 
-        // ±¸·İÖ®Ç°µÄÎÄ¼ş
+        // å¤‡ä»½ä¹‹å‰çš„æ–‡ä»¶
         String bakFile = fileName + ".bak";
         String prevContent = file2String(fileName);
         if (prevContent != null) {
             string2FileNotSafe(prevContent, bakFile);
         }
 
-        // É¾³ıÕıÊ½ÎÄ¼ş
+        // åˆ é™¤æ­£å¼æ–‡ä»¶
         File file = new File(fileName);
         file.delete();
 
-        // ÁÙÊ±ÎÄ¼ş¸ÄÎªÕıÊ½ÎÄ¼ş
+        // ä¸´æ—¶æ–‡ä»¶æ”¹ä¸ºæ­£å¼æ–‡ä»¶
         file = new File(tmpFile);
         file.renameTo(new File(fileName));
     }
@@ -329,9 +329,9 @@ public class MixAll {
 
 
     /**
-     * »ñÈ¡»úÆ÷µÄÎïÀíÄÚ´æ
+     * è·å–æœºå™¨çš„ç‰©ç†å†…å­˜
      * 
-     * @return µ¥Î»×Ö½Ú
+     * @return å•ä½å­—èŠ‚
      */
     public static long getTotalPhysicalMemorySize() {
         OperatingSystemMXBean osmxb = (OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean();
@@ -355,7 +355,7 @@ public class MixAll {
 
 
     /**
-     * ×Ö·û´®×ª»¯³ÉProperties ×Ö·û´®ºÍPropertiesÅäÖÃÎÄ¼ş¸ñÊ½Ò»Ñù
+     * å­—ç¬¦ä¸²è½¬åŒ–æˆProperties å­—ç¬¦ä¸²å’ŒPropertiesé…ç½®æ–‡ä»¶æ ¼å¼ä¸€æ ·
      */
     public static Properties string2Properties(final String str) {
         Properties properties = new Properties();
@@ -377,7 +377,7 @@ public class MixAll {
 
 
     /**
-     * ½«¶ÔÏó¸÷³ÉÔ±ÊôĞÔÖµ×ª»¯ÎªProperties
+     * å°†å¯¹è±¡å„æˆå‘˜å±æ€§å€¼è½¬åŒ–ä¸ºProperties
      */
     public static Properties object2Properties(final Object object) {
         Properties properties = new Properties();
@@ -411,7 +411,7 @@ public class MixAll {
 
 
     /**
-     * ½«PropertiesÖĞµÄÖµĞ´ÈëObject
+     * å°†Propertiesä¸­çš„å€¼å†™å…¥Object
      */
     public static void properties2Object(final Properties p, final Object object) {
         Method[] methods = object.getClass().getMethods();

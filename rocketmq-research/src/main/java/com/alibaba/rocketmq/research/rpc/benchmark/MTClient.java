@@ -14,7 +14,7 @@ import com.alibaba.rocketmq.research.rpc.RPCClient;
 
 
 /**
- * 多线程客户端，做性能压测
+ * 澶氱嚎绋嬪鎴风锛屽仛鎬ц兘鍘嬫祴
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  */

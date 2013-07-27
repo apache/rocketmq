@@ -23,7 +23,7 @@ import com.alibaba.rocketmq.client.log.ClientLogger;
 
 
 /**
- * ÓÃÀ´Í³¼ÆConsumerÔËĞĞ×´Ì¬
+ * ç”¨æ¥ç»Ÿè®¡Consumerè¿è¡ŒçŠ¶æ€
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-7
@@ -45,7 +45,7 @@ public class ConsumerStatManager {
 
 
     /**
-     * Ã¿¸ô1Ãë¼ÇÂ¼Ò»´Î
+     * æ¯éš”1ç§’è®°å½•ä¸€æ¬¡
      */
     public void recordSnapshotPeriodically() {
         snapshotList.addLast(consumertat.createSnapshot());
@@ -56,14 +56,14 @@ public class ConsumerStatManager {
 
 
     /**
-     * Ã¿¸ô1·ÖÖÓ¼ÇÂ¼Ò»´Î
+     * æ¯éš”1åˆ†é’Ÿè®°å½•ä¸€æ¬¡
      */
     public void logStatsPeriodically(final String group, final String clientId) {
         if (this.snapshotList.size() >= 60) {
             ConsumerStat first = this.snapshotList.getFirst();
             ConsumerStat last = this.snapshotList.getLast();
 
-            // Ïû·ÑÇé¿ö
+            // æ¶ˆè´¹æƒ…å†µ
             {
                 double avgRT = (last.getConsumeMsgRTTotal().get() - first.getConsumeMsgRTTotal().get()) //
                         / //
@@ -91,7 +91,7 @@ public class ConsumerStatManager {
                 );
             }
 
-            // À­ÏûÏ¢Çé¿ö
+            // æ‹‰æ¶ˆæ¯æƒ…å†µ
             {
                 double avgRT = (last.getPullRTTotal().get() - first.getPullRTTotal().get()) //
                         / //

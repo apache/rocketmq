@@ -21,7 +21,7 @@ import java.util.Map;
 
 
 /**
- * ��Ϣ��Producer��Consumerʹ��
+ * 消息，Producer与Consumer使用
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-18
@@ -30,41 +30,41 @@ public class Message implements Serializable {
     private static final long serialVersionUID = 8445773977080406428L;
 
     /**
-     * ��Ϣ����
+     * 消息主题
      */
     private String topic;
     /**
-     * ��Ϣ��־��ϵͳ������Ԥ����ȫ��Ӧ�þ������ʹ��
+     * 消息标志，系统不做干预，完全由应用决定如何使用
      */
     private int flag;
     /**
-     * ��Ϣ���ԣ�ϵͳ�б������ԣ�Ӧ��Ҳ�����Զ�������
+     * 消息属性，系统有保留属性，应用也可以自定义属性
      */
     private Map<String, String> properties;
     /**
-     * ��Ϣ��
+     * 消息体
      */
     private byte[] body;
 
     /**
-     * ��Ϣ�ؼ��ʣ����Key��KEY_SEPARATOR��������ѯ��Ϣʹ�ã�
+     * 消息关键词，多个Key用KEY_SEPARATOR隔开（查询消息使用）
      */
     public static final String PROPERTY_KEYS = "KEYS";
     /**
-     * ��Ϣ��ǩ��ֻ֧������һ��Tag���������Ϣ����ʹ�ã�
+     * 消息标签，只支持设置一个Tag（服务端消息过滤使用）
      */
     public static final String PROPERTY_TAGS = "TAGS";
     /**
-     * �Ƿ�ȴ�����������Ϣ�洢����ٷ��أ������ǵȴ�ˢ����ɻ��ߵȴ�ͬ�����Ƶ�������������
+     * 是否等待服务器将消息存储完毕再返回（可能是等待刷盘完成或者等待同步复制到其他服务器）
      */
     public static final String PROPERTY_WAIT_STORE_MSG_OK = "WAIT";
     /**
-     * ��Ϣ��ʱͶ��ʱ�伶��0��ʾ����ʱ������0��ʾ�ض���ʱ���𣨾��弶���ڷ������˶��壩
+     * 消息延时投递时间级别，0表示不延时，大于0表示特定延时级别（具体级别在服务器端定义）
      */
     public static final String PROPERTY_DELAY_TIME_LEVEL = "DELAY";
 
     /**
-     * �ڲ�ʹ��
+     * 内部使用
      */
     public static final String PROPERTY_RETRY_TOPIC = "RETRY_TOPIC";
     public static final String PROPERTY_REAL_TOPIC = "REAL_TOPIC";

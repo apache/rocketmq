@@ -39,7 +39,7 @@ public class TestMultiConsumerProducer {
         consumer.registerMessageListener(new MessageListenerConcurrently() {
             public ConsumeConcurrentlyStatus consumeMessage(final List<MessageExt> msgs,
                     final ConsumeConcurrentlyContext context) {
-                System.out.println("½ÓÊÕÁË" + consumeTimes.incrementAndGet() + "ÌõÏûÏ¢!");
+                System.out.println("æ¥æ”¶äº†" + consumeTimes.incrementAndGet() + "æ¡æ¶ˆæ¯!");
 
                 lastReceivedMills.set(System.currentTimeMillis());
 

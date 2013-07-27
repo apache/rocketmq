@@ -33,9 +33,9 @@ import com.alibaba.rocketmq.common.message.MessageExt;
 
 
 /**
- * ĞÔÄÜ²âÊÔ£¬¶àÏß³ÌÍ¬²½·¢ËÍÊÂÎñÏûÏ¢
+ * æ€§èƒ½æµ‹è¯•ï¼Œå¤šçº¿ç¨‹åŒæ­¥å‘é€äº‹åŠ¡æ¶ˆæ¯
  * 
- * @author ÁâÒ¶<jin.qian@alipay.com>
+ * @author è±å¶<jin.qian@alipay.com>
  * @since 2013-7-24
  */
 public class TransactionProducer {

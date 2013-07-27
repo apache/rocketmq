@@ -16,7 +16,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 
 /**
- * ¿Í»§¶ËÊµÏÖ
+ * å®¢æˆ·ç«¯å®ç°
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  */

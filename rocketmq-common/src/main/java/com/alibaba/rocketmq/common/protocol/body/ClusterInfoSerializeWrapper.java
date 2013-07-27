@@ -8,7 +8,7 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingSerializable;
 
 
 /**
- * Ğ­ÒéÖĞ´«Êä¶ÔÏó£¬ÄÚÈİÎª¼¯ÈºĞÅÏ¢
+ * åè®®ä¸­ä¼ è¾“å¯¹è±¡ï¼Œå†…å®¹ä¸ºé›†ç¾¤ä¿¡æ¯
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-16

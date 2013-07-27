@@ -43,7 +43,7 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingProtos.ResponseCode;
 
 
 /**
- * Client×¢²áÓë×¢Ïú¹ÜÀí
+ * Clientæ³¨å†Œä¸æ³¨é”€ç®¡ç†
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-26
@@ -129,13 +129,13 @@ public class ClientManageProcessor implements NettyRequestProcessor {
             request.getVersion()//
                 );
 
-        // ×¢ÏúProducer
+        // æ³¨é”€Producer
         final String producerGroup = requestHeader.getProducerGroup();
         if (producerGroup != null) {
             this.brokerController.getProducerManager().unregisterProducer(producerGroup, clientChannelInfo);
         }
 
-        // ×¢ÏúConsumer
+        // æ³¨é”€Consumer
         final String consumerGroup = requestHeader.getProducerGroup();
         if (consumerGroup != null) {
             this.brokerController.getConsumerManager().unregisterConsumer(consumerGroup, clientChannelInfo);
@@ -159,7 +159,7 @@ public class ClientManageProcessor implements NettyRequestProcessor {
             request.getVersion()//
                 );
 
-        // ×¢²áConsumer
+        // æ³¨å†ŒConsumer
         for (ConsumerData data : heartbeatData.getConsumerDataSet()) {
             boolean changed = this.brokerController.getConsumerManager().registerConsumer(//
                 data.getGroupName(),//
@@ -177,7 +177,7 @@ public class ClientManageProcessor implements NettyRequestProcessor {
             );
         }
 
-        // ×¢²áProducer
+        // æ³¨å†ŒProducer
         for (ProducerData data : heartbeatData.getProducerDataSet()) {
             this.brokerController.getProducerManager().registerProducer(data.getGroupName(),
                 clientChannelInfo);

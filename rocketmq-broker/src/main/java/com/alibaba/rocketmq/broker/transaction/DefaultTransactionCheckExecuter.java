@@ -27,7 +27,7 @@ import com.alibaba.rocketmq.store.transaction.TransactionCheckExecuter;
 
 
 /**
- * ´æ´¢²ã»Øµ÷´Ë½Ó¿Ú£¬ÓÃÀ´Ö÷¶¯»Ø²éProducerµÄÊÂÎñ×´Ì¬
+ * å­˜å‚¨å±‚å›è°ƒæ­¤æ¥å£ï¼Œç”¨æ¥ä¸»åŠ¨å›æŸ¥Producerçš„äº‹åŠ¡çŠ¶æ€
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-26
@@ -45,7 +45,7 @@ public class DefaultTransactionCheckExecuter implements TransactionCheckExecuter
     @Override
     public void gotoCheck(int producerGroupHashCode, long tranStateTableOffset, long commitLogOffset,
             int msgSize) {
-        // µÚÒ»²½¡¢²éÑ¯Producer
+        // ç¬¬ä¸€æ­¥ã€æŸ¥è¯¢Producer
         final ClientChannelInfo clientChannelInfo =
                 this.brokerController.getProducerManager().pickProducerChannelRandomly(producerGroupHashCode);
         if (null == clientChannelInfo) {
@@ -54,7 +54,7 @@ public class DefaultTransactionCheckExecuter implements TransactionCheckExecuter
             return;
         }
 
-        // µÚ¶ş²½¡¢²éÑ¯ÏûÏ¢
+        // ç¬¬äºŒæ­¥ã€æŸ¥è¯¢æ¶ˆæ¯
         SelectMapedBufferResult selectMapedBufferResult =
                 this.brokerController.getMessageStore().selectOneMessageByOffset(commitLogOffset, msgSize);
         if (null == selectMapedBufferResult) {
@@ -64,7 +64,7 @@ public class DefaultTransactionCheckExecuter implements TransactionCheckExecuter
             return;
         }
 
-        // µÚÈı²½¡¢ÏòProducer·¢ÆğÇëÇó
+        // ç¬¬ä¸‰æ­¥ã€å‘Producerå‘èµ·è¯·æ±‚
         final CheckTransactionStateRequestHeader requestHeader = new CheckTransactionStateRequestHeader();
         requestHeader.setCommitLogOffset(commitLogOffset);
         requestHeader.setTranStateTableOffset(tranStateTableOffset);

@@ -20,7 +20,7 @@ import com.alibaba.rocketmq.remoting.common.RemotingUtil;
 
 
 /**
- * ProducerÓëConsumerµÄ¹«¹²ÅäÖÃ
+ * Producerä¸Consumerçš„å…¬å…±é…ç½®
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-24

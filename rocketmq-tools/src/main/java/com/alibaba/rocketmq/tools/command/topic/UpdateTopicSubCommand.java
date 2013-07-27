@@ -25,7 +25,7 @@ import com.alibaba.rocketmq.tools.command.SubCommand;
 
 
 /**
- * 修改、创建Topic配置命令
+ * 淇敼銆佸垱寤篢opic閰嶇疆鍛戒护
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-21

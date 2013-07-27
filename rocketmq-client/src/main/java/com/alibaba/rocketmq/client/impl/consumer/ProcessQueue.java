@@ -30,16 +30,16 @@ import com.alibaba.rocketmq.common.message.MessageExt;
 
 
 /**
- * ÕıÔÚ±»Ïû·ÑµÄ¶ÓÁĞ£¬º¬ÏûÏ¢
+ * æ­£åœ¨è¢«æ¶ˆè´¹çš„é˜Ÿåˆ—ï¼Œå«æ¶ˆæ¯
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-24
  */
 public class ProcessQueue {
-    // ¿Í»§¶Ë±¾µØLock´æ»î×î´óÊ±¼ä£¬³¬¹ıÔò×Ô¶¯¹ıÆÚ£¬µ¥Î»ms
+    // å®¢æˆ·ç«¯æœ¬åœ°Lockå­˜æ´»æœ€å¤§æ—¶é—´ï¼Œè¶…è¿‡åˆ™è‡ªåŠ¨è¿‡æœŸï¼Œå•ä½ms
     public final static long RebalanceLockMaxLiveTime = Long.parseLong(System.getProperty(
         "rocketmq.client.rebalance.lockMaxLiveTime", "30000"));
-    // ¶¨Ê±Lock¼ä¸ôÊ±¼ä£¬µ¥Î»ms
+    // å®šæ—¶Locké—´éš”æ—¶é—´ï¼Œå•ä½ms
     public final static long RebalanceLockInterval = Long.parseLong(System.getProperty(
         "rocketmq.client.rebalance.lockInterval", "20000"));
 
@@ -49,19 +49,19 @@ public class ProcessQueue {
     private volatile long queueOffsetMax = 0L;
     private final AtomicLong msgCount = new AtomicLong();
 
-    // µ±Ç°QÊÇ·ñ±»rebalance¶ªÆú
+    // å½“å‰Qæ˜¯å¦è¢«rebalanceä¸¢å¼ƒ
     private volatile boolean droped = false;
 
     /**
-     * Ë³ĞòÏûÏ¢×¨ÓÃ
+     * é¡ºåºæ¶ˆæ¯ä¸“ç”¨
      */
-    // ÊÇ·ñ´ÓBrokerËø¶¨
+    // æ˜¯å¦ä»Brokeré”å®š
     private volatile boolean locked = false;
-    // ×îºóÒ»´ÎËø¶¨³É¹¦Ê±¼ä´Á
+    // æœ€åä¸€æ¬¡é”å®šæˆåŠŸæ—¶é—´æˆ³
     private volatile long lastLockTimestamp = System.currentTimeMillis();
-    // ÊÇ·ñÕıÔÚ±»Ïû·Ñ
+    // æ˜¯å¦æ­£åœ¨è¢«æ¶ˆè´¹
     private volatile boolean consuming = false;
-    // ÊÂÎñ·½Ê½Ïû·Ñ£¬Î´Ìá½»µÄÏûÏ¢
+    // äº‹åŠ¡æ–¹å¼æ¶ˆè´¹ï¼Œæœªæäº¤çš„æ¶ˆæ¯
     private final TreeMap<Long, MessageExt> msgTreeMapTemp = new TreeMap<Long, MessageExt>();
 
 
@@ -72,7 +72,7 @@ public class ProcessQueue {
 
 
     /**
-     * @return ÊÇ·ñĞèÒª·Ö·¢µ±Ç°¶ÓÁĞµ½Ïû·ÑÏß³Ì³Ø
+     * @return æ˜¯å¦éœ€è¦åˆ†å‘å½“å‰é˜Ÿåˆ—åˆ°æ¶ˆè´¹çº¿ç¨‹æ± 
      */
     public boolean putMessage(final List<MessageExt> msgs) {
         boolean dispathToConsume = false;
@@ -103,7 +103,7 @@ public class ProcessQueue {
 
 
     /**
-     * »ñÈ¡µ±Ç°¶ÓÁĞµÄ×î´ó¿ç¶È
+     * è·å–å½“å‰é˜Ÿåˆ—çš„æœ€å¤§è·¨åº¦
      */
     public long getMaxSpan() {
         try {
@@ -126,7 +126,7 @@ public class ProcessQueue {
 
 
     /**
-     * É¾³ıÒÑ¾­Ïû·Ñ¹ıµÄÏûÏ¢£¬·µ»Ø×îĞ¡Offset£¬Õâ¸öOffset¶ÔÓ¦µÄÏûÏ¢Î´Ïû·Ñ
+     * åˆ é™¤å·²ç»æ¶ˆè´¹è¿‡çš„æ¶ˆæ¯ï¼Œè¿”å›æœ€å°Offsetï¼Œè¿™ä¸ªOffsetå¯¹åº”çš„æ¶ˆæ¯æœªæ¶ˆè´¹
      * 
      * @param msgs
      * @return
@@ -183,7 +183,7 @@ public class ProcessQueue {
 
     /**
      * ========================================================================
-     * ÒÔÏÂ²¿·ÖÎªË³ĞòÏûÏ¢×¨ÓĞ²Ù×÷
+     * ä»¥ä¸‹éƒ¨åˆ†ä¸ºé¡ºåºæ¶ˆæ¯ä¸“æœ‰æ“ä½œ
      */
 
     public void setLocked(boolean locked) {
@@ -240,8 +240,8 @@ public class ProcessQueue {
         try {
             this.lockTreeMap.writeLock().lockInterruptibly();
             try {
-                // ÁÙÊ±TableÉ¾³ı
-                // Õı³£TableÔö¼Ó
+                // ä¸´æ—¶Tableåˆ é™¤
+                // æ­£å¸¸Tableå¢åŠ 
                 for (MessageExt msg : msgs) {
                     this.msgTreeMapTemp.remove(msg.getQueueOffset());
                     this.msgTreeMap.put(msg.getQueueOffset(), msg);
@@ -258,7 +258,7 @@ public class ProcessQueue {
 
 
     /**
-     * Èç¹ûÈ¡²»µ½ÏûÏ¢£¬Ôò½«ÕıÔÚÏû·Ñ×´Ì¬ÖÃÎªfalse
+     * å¦‚æœå–ä¸åˆ°æ¶ˆæ¯ï¼Œåˆ™å°†æ­£åœ¨æ¶ˆè´¹çŠ¶æ€ç½®ä¸ºfalse
      * 
      * @param batchSize
      * @return

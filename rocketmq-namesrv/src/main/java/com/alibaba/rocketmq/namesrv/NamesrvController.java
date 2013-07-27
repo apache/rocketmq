@@ -38,25 +38,25 @@ import com.alibaba.rocketmq.remoting.netty.NettyServerConfig;
 
 
 /**
- * Name Server·şÎñ¿ØÖÆ
+ * Name ServeræœåŠ¡æ§åˆ¶
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-5
  */
 public class NamesrvController {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.NamesrvLoggerName);
-    // Name ServerÅäÖÃ
+    // Name Serveré…ç½®
     private final NamesrvConfig namesrvConfig;
-    // Í¨ĞÅ²ãÅäÖÃ
+    // é€šä¿¡å±‚é…ç½®
     private final NettyServerConfig nettyServerConfig;
-    // ·şÎñ¶ËÍ¨ĞÅ²ã¶ÔÏó
+    // æœåŠ¡ç«¯é€šä¿¡å±‚å¯¹è±¡
     private RemotingServer remotingServer;
-    // ½ÓÊÕBrokerÁ¬½ÓÊÂ¼ş
+    // æ¥æ”¶Brokerè¿æ¥äº‹ä»¶
     private BrokerHousekeepingService brokerHousekeepingService;
-    // ·şÎñ¶ËÍøÂçÇëÇó´¦ÀíÏß³Ì³Ø
+    // æœåŠ¡ç«¯ç½‘ç»œè¯·æ±‚å¤„ç†çº¿ç¨‹æ± 
     private ExecutorService remotingExecutor;
 
-    // ¶¨Ê±Ïß³Ì
+    // å®šæ—¶çº¿ç¨‹
     private final ScheduledExecutorService scheduledExecutorService = Executors
         .newSingleThreadScheduledExecutor(new ThreadFactory() {
             @Override
@@ -66,7 +66,7 @@ public class NamesrvController {
         });
 
     /**
-     * ºËĞÄÊı¾İ½á¹¹
+     * æ ¸å¿ƒæ•°æ®ç»“æ„
      */
     private final KVConfigManager kvConfigManager;
     private final RouteInfoManager routeInfoManager;
@@ -82,16 +82,16 @@ public class NamesrvController {
 
 
     public boolean initialize() {
-        // ´òÓ¡·şÎñÆ÷ÅäÖÃ²ÎÊı
+        // æ‰“å°æœåŠ¡å™¨é…ç½®å‚æ•°
         MixAll.printObjectProperties(log, this.namesrvConfig);
 
-        // ¼ÓÔØKVÅäÖÃ
+        // åŠ è½½KVé…ç½®
         this.kvConfigManager.load();
 
-        // ³õÊ¼»¯Í¨ĞÅ²ã
+        // åˆå§‹åŒ–é€šä¿¡å±‚
         this.remotingServer = new NettyRemotingServer(this.nettyServerConfig, this.brokerHousekeepingService);
 
-        // ³õÊ¼»¯Ïß³Ì³Ø
+        // åˆå§‹åŒ–çº¿ç¨‹æ± 
         this.remotingExecutor =
                 Executors.newFixedThreadPool(nettyServerConfig.getServerWorkerThreads(), new ThreadFactory() {
                     private AtomicInteger threadIndex = new AtomicInteger(0);
@@ -105,7 +105,7 @@ public class NamesrvController {
 
         this.registerProcessor();
 
-        // Ôö¼Ó¶¨Ê±ÈÎÎñ
+        // å¢åŠ å®šæ—¶ä»»åŠ¡
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 
             @Override

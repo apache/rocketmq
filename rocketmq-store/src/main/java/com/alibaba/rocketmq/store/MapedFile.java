@@ -37,7 +37,7 @@ import com.alibaba.rocketmq.common.constant.LoggerName;
 
 
 /**
- * PagecacheÎÄ¼ş·ÃÎÊ·â×°
+ * Pagecacheæ–‡ä»¶è®¿é—®å°è£…
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-21
@@ -45,28 +45,28 @@ import com.alibaba.rocketmq.common.constant.LoggerName;
 public class MapedFile extends ReferenceResource {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.StoreLoggerName);
     public static final int OS_PAGE_SIZE = 1024 * 4;
-    // µ±Ç°JVMÖĞÓ³ÉäµÄĞéÄâÄÚ´æ×Ü´óĞ¡
+    // å½“å‰JVMä¸­æ˜ å°„çš„è™šæ‹Ÿå†…å­˜æ€»å¤§å°
     private static final AtomicLong TotalMapedVitualMemory = new AtomicLong(0);
-    // µ±Ç°JVMÖĞmmap¾ä±úÊıÁ¿
+    // å½“å‰JVMä¸­mmapå¥æŸ„æ•°é‡
     private static final AtomicInteger TotalMapedFiles = new AtomicInteger(0);
 
-    // Ó³ÉäµÄÎÄ¼şÃû
+    // æ˜ å°„çš„æ–‡ä»¶å
     private final String fileName;
-    // Ó³ÉäµÄÆğÊ¼Æ«ÒÆÁ¿
+    // æ˜ å°„çš„èµ·å§‹åç§»é‡
     private final long fileFromOffset;
-    // Ó³ÉäµÄÎÄ¼ş´óĞ¡£¬¶¨³¤
+    // æ˜ å°„çš„æ–‡ä»¶å¤§å°ï¼Œå®šé•¿
     private final int fileSize;
-    // Ó³ÉäµÄÎÄ¼ş
+    // æ˜ å°„çš„æ–‡ä»¶
     private final File file;
-    // Ó³ÉäµÄFileChannel¶ÔÏó
+    // æ˜ å°„çš„FileChannelå¯¹è±¡
     private final FileChannel fileChannel;
-    // Ó³ÉäµÄÄÚ´æ¶ÔÏó£¬positionÓÀÔ¶²»±ä
+    // æ˜ å°„çš„å†…å­˜å¯¹è±¡ï¼Œpositionæ°¸è¿œä¸å˜
     private final MappedByteBuffer mappedByteBuffer;
-    // µ±Ç°Ğ´µ½Ê²Ã´Î»ÖÃ
+    // å½“å‰å†™åˆ°ä»€ä¹ˆä½ç½®
     private final AtomicInteger wrotePostion = new AtomicInteger(0);
-    // Flushµ½Ê²Ã´Î»ÖÃ
+    // Flushåˆ°ä»€ä¹ˆä½ç½®
     private final AtomicInteger committedPosition = new AtomicInteger(0);
-    // ×îºóÒ»ÌõÏûÏ¢´æ´¢Ê±¼ä
+    // æœ€åä¸€æ¡æ¶ˆæ¯å­˜å‚¨æ—¶é—´
     private volatile long storeTimestamp = 0;
 
     private boolean firstCreateInQueue = false;
@@ -126,7 +126,7 @@ public class MapedFile extends ReferenceResource {
 
 
     /**
-     * ÎÄ¼şÆğÊ¼Æ«ÒÆÁ¿
+     * æ–‡ä»¶èµ·å§‹åç§»é‡
      */
     public long getFileFromOffset() {
         return this.fileFromOffset;
@@ -134,7 +134,7 @@ public class MapedFile extends ReferenceResource {
 
 
     /**
-     * »ñÈ¡ÎÄ¼ş´óĞ¡
+     * è·å–æ–‡ä»¶å¤§å°
      */
     public int getFileSize() {
         return fileSize;
@@ -152,13 +152,13 @@ public class MapedFile extends ReferenceResource {
 
 
     /**
-     * ÏòMapedBuffer×·¼ÓÏûÏ¢<br>
+     * å‘MapedBufferè¿½åŠ æ¶ˆæ¯<br>
      * 
      * @param msg
-     *            Òª×·¼ÓµÄÏûÏ¢
+     *            è¦è¿½åŠ çš„æ¶ˆæ¯
      * @param cb
-     *            ÓÃÀ´¶ÔÏûÏ¢½øĞĞĞòÁĞ»¯£¬ÓÈÆä¶ÔÓÚÒÀÀµMapedFile OffsetµÄÊôĞÔ½øĞĞ¶¯Ì¬ĞòÁĞ»¯
-     * @return ÊÇ·ñ³É¹¦£¬Ğ´Èë¶àÉÙÊı¾İ
+     *            ç”¨æ¥å¯¹æ¶ˆæ¯è¿›è¡Œåºåˆ—åŒ–ï¼Œå°¤å…¶å¯¹äºä¾èµ–MapedFile Offsetçš„å±æ€§è¿›è¡ŒåŠ¨æ€åºåˆ—åŒ–
+     * @return æ˜¯å¦æˆåŠŸï¼Œå†™å…¥å¤šå°‘æ•°æ®
      */
     public AppendMessageResult appendMessage(final Object msg, final AppendMessageCallback cb) {
         assert msg != null;
@@ -166,7 +166,7 @@ public class MapedFile extends ReferenceResource {
 
         int currentPos = this.wrotePostion.get();
 
-        // ±íÊ¾ÓĞ¿ÕÓà¿Õ¼ä
+        // è¡¨ç¤ºæœ‰ç©ºä½™ç©ºé—´
         if (currentPos < this.fileSize) {
             ByteBuffer byteBuffer = this.mappedByteBuffer.slice();
             byteBuffer.position(currentPos);
@@ -177,7 +177,7 @@ public class MapedFile extends ReferenceResource {
             return result;
         }
 
-        // ÉÏ²ãÓ¦ÓÃÓ¦¸Ã±£Ö¤²»»á×ßµ½ÕâÀï
+        // ä¸Šå±‚åº”ç”¨åº”è¯¥ä¿è¯ä¸ä¼šèµ°åˆ°è¿™é‡Œ
         log.error("MapedFile.appendMessage return null, wrotePostion: " + currentPos + " fileSize: "
                 + this.fileSize);
         return new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR);
@@ -185,14 +185,14 @@ public class MapedFile extends ReferenceResource {
 
 
     /**
-     * Ïò´æ´¢²ã×·¼ÓÊı¾İ£¬Ò»°ãÔÚSLAVE´æ´¢½á¹¹ÖĞÊ¹ÓÃ
+     * å‘å­˜å‚¨å±‚è¿½åŠ æ•°æ®ï¼Œä¸€èˆ¬åœ¨SLAVEå­˜å‚¨ç»“æ„ä¸­ä½¿ç”¨
      * 
-     * @return ·µ»ØĞ´ÈëÁË¶àÉÙÊı¾İ
+     * @return è¿”å›å†™å…¥äº†å¤šå°‘æ•°æ®
      */
     public boolean appendMessage(final byte[] data) {
         int currentPos = this.wrotePostion.get();
 
-        // ±íÊ¾ÓĞ¿ÕÓà¿Õ¼ä
+        // è¡¨ç¤ºæœ‰ç©ºä½™ç©ºé—´
         if ((currentPos + data.length) <= this.fileSize) {
             ByteBuffer byteBuffer = this.mappedByteBuffer.slice();
             byteBuffer.position(currentPos);
@@ -209,12 +209,12 @@ public class MapedFile extends ReferenceResource {
         int flush = this.committedPosition.get();
         int write = this.wrotePostion.get();
 
-        // Èç¹ûµ±Ç°ÎÄ¼şÒÑ¾­Ğ´Âú£¬Ó¦¸ÃÁ¢¿ÌË¢ÅÌ
+        // å¦‚æœå½“å‰æ–‡ä»¶å·²ç»å†™æ»¡ï¼Œåº”è¯¥ç«‹åˆ»åˆ·ç›˜
         if (this.isFull()) {
             return true;
         }
 
-        // Ö»ÓĞÎ´Ë¢ÅÌÊı¾İÂú×ãÖ¸¶¨pageÊıÄ¿²ÅË¢ÅÌ
+        // åªæœ‰æœªåˆ·ç›˜æ•°æ®æ»¡è¶³æŒ‡å®špageæ•°ç›®æ‰åˆ·ç›˜
         if (flushLeastPages > 0) {
             return ((write / OS_PAGE_SIZE) - (flush / OS_PAGE_SIZE)) >= flushLeastPages;
         }
@@ -224,10 +224,10 @@ public class MapedFile extends ReferenceResource {
 
 
     /**
-     * ÏûÏ¢Ë¢ÅÌ
+     * æ¶ˆæ¯åˆ·ç›˜
      * 
      * @param flushLeastPages
-     *            ÖÁÉÙË¢¼¸¸öpage
+     *            è‡³å°‘åˆ·å‡ ä¸ªpage
      * @return
      */
     public int commit(final int flushLeastPages) {
@@ -249,9 +249,9 @@ public class MapedFile extends ReferenceResource {
 
 
     public SelectMapedBufferResult selectMapedBuffer(int pos, int size) {
-        // ÓĞÏûÏ¢
+        // æœ‰æ¶ˆæ¯
         if ((pos + size) <= this.wrotePostion.get()) {
-            // ´ÓMapedBuffer¶Á
+            // ä»MapedBufferè¯»
             if (this.hold()) {
                 ByteBuffer byteBuffer = this.mappedByteBuffer.slice();
                 byteBuffer.position(pos);
@@ -264,19 +264,19 @@ public class MapedFile extends ReferenceResource {
                         + this.fileFromOffset);
             }
         }
-        // ÇëÇó²ÎÊı·Ç·¨
+        // è¯·æ±‚å‚æ•°éæ³•
         else {
             log.warn("selectMapedBuffer request pos invalid, request pos: " + pos + ", size: " + size
                     + ", fileFromOffset: " + this.fileFromOffset);
         }
 
-        // ·Ç·¨²ÎÊı»òÕßmmap×ÊÔ´ÒÑ¾­±»ÊÍ·Å
+        // éæ³•å‚æ•°æˆ–è€…mmapèµ„æºå·²ç»è¢«é‡Šæ”¾
         return null;
     }
 
 
     /**
-     * ¶ÁÂß¼­·ÖÇø
+     * è¯»é€»è¾‘åˆ†åŒº
      */
     public SelectMapedBufferResult selectMapedBuffer(int pos) {
         if (pos < this.wrotePostion.get() && pos >= 0) {
@@ -290,7 +290,7 @@ public class MapedFile extends ReferenceResource {
             }
         }
 
-        // ·Ç·¨²ÎÊı»òÕßmmap×ÊÔ´ÒÑ¾­±»ÊÍ·Å
+        // éæ³•å‚æ•°æˆ–è€…mmapèµ„æºå·²ç»è¢«é‡Šæ”¾
         return null;
     }
 
@@ -340,18 +340,18 @@ public class MapedFile extends ReferenceResource {
 
     @Override
     public boolean cleanup(final long currentRef) {
-        // Èç¹ûÃ»ÓĞ±»shutdown£¬Ôò²»¿ÉÒÔunmapÎÄ¼ş£¬·ñÔò»ácrash
+        // å¦‚æœæ²¡æœ‰è¢«shutdownï¼Œåˆ™ä¸å¯ä»¥unmapæ–‡ä»¶ï¼Œå¦åˆ™ä¼šcrash
         if (this.isAvailable()) {
             log.error("this file[REF:" + currentRef + "] " + this.fileName
                     + " have not shutdown, stop unmaping.");
             return false;
         }
 
-        // Èç¹ûÒÑ¾­cleanup£¬ÔÙ´Î²Ù×÷»áÒıÆğcrash
+        // å¦‚æœå·²ç»cleanupï¼Œå†æ¬¡æ“ä½œä¼šå¼•èµ·crash
         if (this.isCleanupOver()) {
             log.error("this file[REF:" + currentRef + "] " + this.fileName
                     + " have cleanup, do not do it again.");
-            // ±ØĞë·µ»Øtrue
+            // å¿…é¡»è¿”å›true
             return true;
         }
 
@@ -364,9 +364,9 @@ public class MapedFile extends ReferenceResource {
 
 
     /**
-     * ÇåÀí×ÊÔ´£¬destroyÓëµ÷ÓÃshutdownµÄÏß³Ì±ØĞëÊÇÍ¬Ò»¸ö
+     * æ¸…ç†èµ„æºï¼Œdestroyä¸è°ƒç”¨shutdownçš„çº¿ç¨‹å¿…é¡»æ˜¯åŒä¸€ä¸ª
      * 
-     * @return ÊÇ·ñ±»destory³É¹¦£¬ÉÏ²ãµ÷ÓÃĞèÒª¶ÔÊ§°ÜÇé¿ö´¦Àí£¬Ê§°Üºó³¢ÊÔÖØÊÔ
+     * @return æ˜¯å¦è¢«destoryæˆåŠŸï¼Œä¸Šå±‚è°ƒç”¨éœ€è¦å¯¹å¤±è´¥æƒ…å†µå¤„ç†ï¼Œå¤±è´¥åå°è¯•é‡è¯•
      */
     public boolean destroy(final long intervalForcibly) {
         this.shutdown(intervalForcibly);
@@ -434,7 +434,7 @@ public class MapedFile extends ReferenceResource {
 
 
     /**
-     * ·½·¨²»ÄÜÔÚÔËĞĞÊ±µ÷ÓÃ£¬²»°²È«¡£Ö»ÔÚÆô¶¯Ê±£¬reloadÒÑÓĞÊı¾İÊ±µ÷ÓÃ
+     * æ–¹æ³•ä¸èƒ½åœ¨è¿è¡Œæ—¶è°ƒç”¨ï¼Œä¸å®‰å…¨ã€‚åªåœ¨å¯åŠ¨æ—¶ï¼Œreloadå·²æœ‰æ•°æ®æ—¶è°ƒç”¨
      */
     public ByteBuffer sliceByteBuffer() {
         return this.mappedByteBuffer.slice();

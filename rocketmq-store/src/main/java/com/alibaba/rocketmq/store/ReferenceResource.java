@@ -19,7 +19,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 
 /**
- * ÒıÓÃ¼ÆÊı»ùÀà£¬ÀàËÆÓÚC++ÖÇÄÜÖ¸ÕëÊµÏÖ
+ * å¼•ç”¨è®¡æ•°åŸºç±»ï¼Œç±»ä¼¼äºC++æ™ºèƒ½æŒ‡é’ˆå®ç°
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-21
@@ -32,7 +32,7 @@ public abstract class ReferenceResource {
 
 
     /**
-     * ×ÊÔ´ÊÇ·ñÄÜHOLD×¡
+     * èµ„æºæ˜¯å¦èƒ½HOLDä½
      */
     public synchronized boolean hold() {
         if (this.isAvailable()) {
@@ -49,7 +49,7 @@ public abstract class ReferenceResource {
 
 
     /**
-     * ÊÍ·Å×ÊÔ´
+     * é‡Šæ”¾èµ„æº
      */
     public void release() {
         long value = this.refCount.decrementAndGet();
@@ -57,14 +57,14 @@ public abstract class ReferenceResource {
             return;
 
         synchronized (this) {
-            // cleanupÄÚ²¿Òª¶ÔÊÇ·ñclean×ö´¦Àí
+            // cleanupå†…éƒ¨è¦å¯¹æ˜¯å¦cleanåšå¤„ç†
             this.cleanupOver = this.cleanup(value);
         }
     }
 
 
     /**
-     * ½ûÖ¹×ÊÔ´±»·ÃÎÊ shutdown²»ÔÊĞíµ÷ÓÃ¶à´Î£¬×îºÃÊÇÓÉ¹ÜÀíÏß³Ìµ÷ÓÃ
+     * ç¦æ­¢èµ„æºè¢«è®¿é—® shutdownä¸å…è®¸è°ƒç”¨å¤šæ¬¡ï¼Œæœ€å¥½æ˜¯ç”±ç®¡ç†çº¿ç¨‹è°ƒç”¨
      */
     public void shutdown(final long intervalForcibly) {
         if (this.available) {
@@ -72,7 +72,7 @@ public abstract class ReferenceResource {
             this.firstShutdownTimestamp = System.currentTimeMillis();
             this.release();
         }
-        // Ç¿ÖÆshutdown
+        // å¼ºåˆ¶shutdown
         else if (this.getRefCount() > 0) {
             if ((System.currentTimeMillis() - this.firstShutdownTimestamp) >= intervalForcibly) {
                 this.refCount.set(-1000 - this.getRefCount());
@@ -83,7 +83,7 @@ public abstract class ReferenceResource {
 
 
     /**
-     * ×ÊÔ´ÊÇ·ñ¿ÉÓÃ£¬¼´ÊÇ·ñ¿É±»HOLD
+     * èµ„æºæ˜¯å¦å¯ç”¨ï¼Œå³æ˜¯å¦å¯è¢«HOLD
      */
     public boolean isAvailable() {
         return this.available;
@@ -91,7 +91,7 @@ public abstract class ReferenceResource {
 
 
     /**
-     * ×ÊÔ´ÊÇ·ñ±»ÇåÀíÍê³É
+     * èµ„æºæ˜¯å¦è¢«æ¸…ç†å®Œæˆ
      */
     public boolean isCleanupOver() {
         return this.refCount.get() <= 0 && this.cleanupOver;

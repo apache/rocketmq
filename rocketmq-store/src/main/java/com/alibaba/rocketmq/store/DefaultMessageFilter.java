@@ -19,7 +19,7 @@ import com.alibaba.rocketmq.common.protocol.heartbeat.SubscriptionData;
 
 
 /**
- * 消息过滤规则实现
+ * 娑堟伅杩囨护瑙勫垯瀹炵幇
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-21

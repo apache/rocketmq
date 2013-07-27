@@ -21,19 +21,19 @@ import com.alibaba.rocketmq.common.message.MessageExt;
 
 
 /**
- * Í¬Ò»¶ÓÁĞµÄÏûÏ¢²¢ĞĞÏû·Ñ
+ * åŒä¸€é˜Ÿåˆ—çš„æ¶ˆæ¯å¹¶è¡Œæ¶ˆè´¹
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-24
  */
 public interface MessageListenerConcurrently extends MessageListener {
     /**
-     * ·½·¨Å×³öÒì³£µÈÍ¬ÓÚ·µ»Ø ConsumeConcurrentlyStatus.RECONSUME_LATER<br>
-     * P.S: ½¨ÒéÓ¦ÓÃ²»ÒªÅ×³öÒì³£
+     * æ–¹æ³•æŠ›å‡ºå¼‚å¸¸ç­‰åŒäºè¿”å› ConsumeConcurrentlyStatus.RECONSUME_LATER<br>
+     * P.S: å»ºè®®åº”ç”¨ä¸è¦æŠ›å‡ºå¼‚å¸¸
      * 
      * @param msgs
      *            msgs.size() >= 1<br>
-     *            DefaultMQPushConsumer.consumeMessageBatchMaxSize=1£¬Ä¬ÈÏÏûÏ¢ÊıÎª1
+     *            DefaultMQPushConsumer.consumeMessageBatchMaxSize=1ï¼Œé»˜è®¤æ¶ˆæ¯æ•°ä¸º1
      * @param context
      * @return
      */

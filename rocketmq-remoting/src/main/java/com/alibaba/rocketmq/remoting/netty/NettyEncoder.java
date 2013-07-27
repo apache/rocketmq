@@ -30,7 +30,7 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 
 
 /**
- * Ğ­Òé±àÂëÆ÷
+ * åè®®ç¼–ç å™¨
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-13
@@ -55,7 +55,7 @@ public class NettyEncoder extends MessageToByteEncoder<RemotingCommand> {
             if (remotingCommand != null) {
                 log.error(remotingCommand.toString());
             }
-            // ÕâÀï¹Ø±Õºó£¬ »áÔÚpipelineÖĞ²úÉúÊÂ¼ş£¬Í¨¹ı¾ßÌåµÄcloseÊÂ¼şÀ´ÇåÀíÊı¾İ½á¹¹
+            // è¿™é‡Œå…³é—­åï¼Œ ä¼šåœ¨pipelineä¸­äº§ç”Ÿäº‹ä»¶ï¼Œé€šè¿‡å…·ä½“çš„closeäº‹ä»¶æ¥æ¸…ç†æ•°æ®ç»“æ„
             RemotingUtil.closeChannel(ctx.channel());
         }
     }

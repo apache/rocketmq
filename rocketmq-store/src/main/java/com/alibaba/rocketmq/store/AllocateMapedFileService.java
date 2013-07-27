@@ -30,18 +30,18 @@ import com.alibaba.rocketmq.common.constant.LoggerName;
 
 
 /**
- * Ô¤·ÖÅäMapedFile·şÎñ
+ * é¢„åˆ†é…MapedFileæœåŠ¡
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-21
  */
 public class AllocateMapedFileService extends ServiceThread {
     class AllocateRequest implements Comparable<AllocateRequest> {
-        // ÎÄ¼şÈ«Â·¾¶
+        // æ–‡ä»¶å…¨è·¯å¾„
         private String filePath;
-        // ÎÄ¼ş´óĞ¡
+        // æ–‡ä»¶å¤§å°
         private int fileSize;
-        // ¼ÆÊıÆ÷
+        // è®¡æ•°å™¨
         private CountDownLatch countDownLatch = new CountDownLatch(1);
         // MapedFile
         private volatile MapedFile mapedFile = null;
@@ -176,7 +176,7 @@ public class AllocateMapedFileService extends ServiceThread {
 
 
     /**
-     * Ö»ÓĞ±»Íâ²¿Ïß³ÌÖĞ¶Ï£¬²Å»á·µ»Øfalse
+     * åªæœ‰è¢«å¤–éƒ¨çº¿ç¨‹ä¸­æ–­ï¼Œæ‰ä¼šè¿”å›false
      */
     private boolean mmapOperation() {
         AllocateRequest req = null;
@@ -192,7 +192,7 @@ public class AllocateMapedFileService extends ServiceThread {
                 long beginTime = System.currentTimeMillis();
                 MapedFile mapedFile = new MapedFile(req.getFilePath(), req.getFileSize());
                 long eclipseTime = UtilALl.computeEclipseTimeMilliseconds(beginTime);
-                // ¼ÇÂ¼´óÓÚ10msµÄ
+                // è®°å½•å¤§äº10msçš„
                 if (eclipseTime > 10) {
                     int queueSize = this.requestQueue.size();
                     log.warn("create mapedFile spent time(ms) " + eclipseTime + " queue size " + queueSize

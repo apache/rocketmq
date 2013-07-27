@@ -141,7 +141,7 @@ public class MapedFileQueueTest {
             assertTrue(result);
         }
 
-        // ²»¶Ï³¢ÊÔÌá½»
+        // ä¸æ–­å°è¯•æäº¤
         boolean result = mapedFileQueue.commit(0);
         assertFalse(result);
         assertEquals(1024 * 1, mapedFileQueue.getCommittedWhere());

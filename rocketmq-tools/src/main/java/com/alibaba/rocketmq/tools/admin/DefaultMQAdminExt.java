@@ -30,7 +30,7 @@ import com.alibaba.rocketmq.remoting.exception.RemotingException;
 
 
 /**
- * ËùÓĞÔËÎ¬½Ó¿Ú¶¼ÔÚÕâÀïÊµÏÖ
+ * æ‰€æœ‰è¿ç»´æ¥å£éƒ½åœ¨è¿™é‡Œå®ç°
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-14

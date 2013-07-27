@@ -16,7 +16,7 @@
 package com.alibaba.rocketmq.common.sysflag;
 
 /**
- * Pull接口用到的flag定义
+ * Pull鎺ュ彛鐢ㄥ埌鐨刦lag瀹氫箟
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * 

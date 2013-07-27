@@ -24,7 +24,7 @@ import com.alibaba.rocketmq.common.protocol.body.TopicConfigSerializeWrapper;
 
 
 /**
- * Slave´ÓMasterÍ¬²½ĞÅÏ¢£¨·ÇÏûÏ¢£©
+ * Slaveä»MasteråŒæ­¥ä¿¡æ¯ï¼ˆéæ¶ˆæ¯ï¼‰
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-8

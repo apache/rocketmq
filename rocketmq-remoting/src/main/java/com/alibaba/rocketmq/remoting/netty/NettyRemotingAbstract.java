@@ -47,7 +47,7 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingProtos.ResponseCode;
 
 
 /**
- * ServerÓëClient¹«ÓÃ³éÏóÀà
+ * Serverä¸Clientå…¬ç”¨æŠ½è±¡ç±»
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-13
@@ -55,20 +55,20 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingProtos.ResponseCode;
 public abstract class NettyRemotingAbstract {
     private static final Logger plog = LoggerFactory.getLogger(RemotingHelper.RemotingLogName);
 
-    // ĞÅºÅÁ¿£¬OnewayÇé¿ö»áÊ¹ÓÃ£¬·ÀÖ¹±¾µØNetty»º´æÇëÇó¹ı¶à
+    // ä¿¡å·é‡ï¼ŒOnewayæƒ…å†µä¼šä½¿ç”¨ï¼Œé˜²æ­¢æœ¬åœ°Nettyç¼“å­˜è¯·æ±‚è¿‡å¤š
     protected final Semaphore semaphoreOneway;
 
-    // ĞÅºÅÁ¿£¬Òì²½µ÷ÓÃÇé¿ö»áÊ¹ÓÃ£¬·ÀÖ¹±¾µØNetty»º´æÇëÇó¹ı¶à
+    // ä¿¡å·é‡ï¼Œå¼‚æ­¥è°ƒç”¨æƒ…å†µä¼šä½¿ç”¨ï¼Œé˜²æ­¢æœ¬åœ°Nettyç¼“å­˜è¯·æ±‚è¿‡å¤š
     protected final Semaphore semaphoreAsync;
 
-    // »º´æËùÓĞ¶ÔÍâÇëÇó
+    // ç¼“å­˜æ‰€æœ‰å¯¹å¤–è¯·æ±‚
     protected final ConcurrentHashMap<Integer /* opaque */, ResponseFuture> responseTable =
             new ConcurrentHashMap<Integer, ResponseFuture>(256);
 
-    // Ä¬ÈÏÇëÇó´úÂë´¦ÀíÆ÷
+    // é»˜è®¤è¯·æ±‚ä»£ç å¤„ç†å™¨
     protected Pair<NettyRequestProcessor, ExecutorService> defaultRequestProcessor;
 
-    // ×¢²áµÄ¸÷¸öRPC´¦ÀíÆ÷
+    // æ³¨å†Œçš„å„ä¸ªRPCå¤„ç†å™¨
     protected final HashMap<Integer/* request code */, Pair<NettyRequestProcessor, ExecutorService>> processorTable =
             new HashMap<Integer, Pair<NettyRequestProcessor, ExecutorService>>(64);
 
@@ -160,7 +160,7 @@ public abstract class NettyRemotingAbstract {
                 public void run() {
                     try {
                         final RemotingCommand response = pair.getObject1().processRequest(ctx, cmd);
-                        // OnewayĞÎÊ½ºöÂÔÓ¦´ğ½á¹û
+                        // Onewayå½¢å¼å¿½ç•¥åº”ç­”ç»“æœ
                         if (!cmd.isOnewayRPC()) {
                             if (response != null) {
                                 response.setOpaque(cmd.getOpaque());
@@ -187,7 +187,7 @@ public abstract class NettyRemotingAbstract {
                                 }
                             }
                             else {
-                                // ÊÕµ½ÇëÇó£¬µ«ÊÇÃ»ÓĞ·µ»ØÓ¦´ğ£¬¿ÉÄÜÊÇprocessRequestÖĞ½øĞĞÁËÓ¦´ğ£¬ºöÂÔÕâÖÖÇé¿ö
+                                // æ”¶åˆ°è¯·æ±‚ï¼Œä½†æ˜¯æ²¡æœ‰è¿”å›åº”ç­”ï¼Œå¯èƒ½æ˜¯processRequestä¸­è¿›è¡Œäº†åº”ç­”ï¼Œå¿½ç•¥è¿™ç§æƒ…å†µ
                             }
                         }
                     }
@@ -209,7 +209,7 @@ public abstract class NettyRemotingAbstract {
             boolean executed = false;
             for (int retry = 0; retry < 3 && !executed; retry++) {
                 try {
-                    // TODO ÕâÀïĞèÒª×öÁ÷¿Ø
+                    // TODO è¿™é‡Œéœ€è¦åšæµæ§
                     pair.getObject2().submit(run);
                     executed = true;
                     break;
@@ -258,7 +258,7 @@ public abstract class NettyRemotingAbstract {
 
             responseFuture.release();
 
-            // Òì²½µ÷ÓÃ
+            // å¼‚æ­¥è°ƒç”¨
             if (responseFuture.getInvokeCallback() != null) {
                 boolean runInThisThread = false;
                 ExecutorService executor = this.getCallbackExecutor();
@@ -294,7 +294,7 @@ public abstract class NettyRemotingAbstract {
                     }
                 }
             }
-            // Í¬²½µ÷ÓÃ
+            // åŒæ­¥è°ƒç”¨
             else {
                 responseFuture.putResponse(cmd);
             }
@@ -382,12 +382,12 @@ public abstract class NettyRemotingAbstract {
 
             RemotingCommand responseCommand = responseFuture.waitResponse(timeoutMillis);
             if (null == responseCommand) {
-                // ·¢ËÍÇëÇó³É¹¦£¬¶ÁÈ¡Ó¦´ğ³¬Ê±
+                // å‘é€è¯·æ±‚æˆåŠŸï¼Œè¯»å–åº”ç­”è¶…æ—¶
                 if (responseFuture.isSendRequestOK()) {
                     throw new RemotingTimeoutException(RemotingHelper.parseChannelRemoteAddr(channel),
                         timeoutMillis, responseFuture.getCause());
                 }
-                // ·¢ËÍÇëÇóÊ§°Ü
+                // å‘é€è¯·æ±‚å¤±è´¥
                 else {
                     throw new RemotingSendRequestException(RemotingHelper.parseChannelRemoteAddr(channel),
                         responseFuture.getCause());

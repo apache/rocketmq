@@ -16,7 +16,7 @@
 package com.alibaba.rocketmq.remoting.exception;
 
 /**
- * RPC调用超时异常
+ * RPC璋冪敤瓒呮椂寮傚父
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-13

@@ -29,7 +29,7 @@ import com.alibaba.rocketmq.remoting.exception.RemotingException;
 
 
 /**
- * Producer£¬·¢ËÍË³ĞòÏûÏ¢
+ * Producerï¼Œå‘é€é¡ºåºæ¶ˆæ¯
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-16
@@ -44,7 +44,7 @@ public class Producer {
             String[] tags = new String[] { "TagA", "TagB", "TagC", "TagD", "TagE" };
 
             for (int i = 0; i < 100; i++) {
-                // ¶©µ¥IDÏàÍ¬µÄÏûÏ¢ÒªÓĞĞò
+                // è®¢å•IDç›¸åŒçš„æ¶ˆæ¯è¦æœ‰åº
                 int orderId = i % 10;
                 Message msg =
                         new Message("TopicTest", tags[i % tags.length], "KEY" + i,

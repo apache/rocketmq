@@ -41,34 +41,34 @@ import com.alibaba.rocketmq.store.schedule.ScheduleMessageService;
 
 
 /**
- * CommitLogÊµÏÖ
+ * CommitLogå®ç°
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-21
  */
 public class CommitLog {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.StoreLoggerName);
-    // ÓÃÀ´±£´æÃ¿¸öConsumeQueueµÄµ±Ç°×î´óOffsetĞÅÏ¢
+    // ç”¨æ¥ä¿å­˜æ¯ä¸ªConsumeQueueçš„å½“å‰æœ€å¤§Offsetä¿¡æ¯
     private HashMap<String/* topic-queueid */, Long/* offset */> topicQueueTable = new HashMap<String, Long>(
         1024);
-    // ´æ´¢ÏûÏ¢µÄ¶ÓÁĞ
+    // å­˜å‚¨æ¶ˆæ¯çš„é˜Ÿåˆ—
     private final MapedFileQueue mapedFileQueue;
-    // ´æ´¢¶¥²ã¶ÔÏó
+    // å­˜å‚¨é¡¶å±‚å¯¹è±¡
     private final DefaultMessageStore defaultMessageStore;
-    // CommitLogË¢ÅÌ·şÎñ
+    // CommitLogåˆ·ç›˜æœåŠ¡
     private final FlushCommitLogService flushCommitLogService;
-    // Ã¿¸öÏûÏ¢¶ÔÓ¦µÄMAGIC CODE daa320a7
+    // æ¯ä¸ªæ¶ˆæ¯å¯¹åº”çš„MAGIC CODE daa320a7
     private final static int MessageMagicCode = 0xAABBCCDD ^ 1880681586 + 8;
-    // ÎÄ¼şÄ©Î²¿Õ¶´¶ÔÓ¦µÄMAGIC CODE cbd43194
+    // æ–‡ä»¶æœ«å°¾ç©ºæ´å¯¹åº”çš„MAGIC CODE cbd43194
     private final static int BlankMagicCode = 0xBBCCDDEE ^ 1880681586 + 8;
-    // ´æ´¢ÏûÏ¢Ê±µÄ»Øµ÷½Ó¿Ú
+    // å­˜å‚¨æ¶ˆæ¯æ—¶çš„å›è°ƒæ¥å£
     private final AppendMessageCallback appendMessageCallback;
 
     abstract class FlushCommitLogService extends ServiceThread {
     }
 
     /**
-     * Òì²½ÊµÊ±Ë¢ÅÌ·şÎñ
+     * å¼‚æ­¥å®æ—¶åˆ·ç›˜æœåŠ¡
      */
     class FlushRealTimeService extends FlushCommitLogService {
         private static final int RetryTimesOver = 3;
@@ -99,7 +99,7 @@ public class CommitLog {
 
                 boolean printFlushProgress = false;
 
-                // ¶¨Ê±Ë¢ÅÌ£¬¶¨Ê±´òÓ¡Ë¢ÅÌ½ø¶È
+                // å®šæ—¶åˆ·ç›˜ï¼Œå®šæ—¶æ‰“å°åˆ·ç›˜è¿›åº¦
                 long currentTimeMillis = System.currentTimeMillis();
                 if (currentTimeMillis >= (this.lastFlushTimestamp + flushPhysicQueueThoroughInterval)) {
                     this.lastFlushTimestamp = currentTimeMillis;
@@ -127,7 +127,7 @@ public class CommitLog {
                 }
             }
 
-            // Õı³£shutdownÊ±£¬Òª±£Ö¤È«²¿Ë¢ÅÌ²ÅÍË³ö
+            // æ­£å¸¸shutdownæ—¶ï¼Œè¦ä¿è¯å…¨éƒ¨åˆ·ç›˜æ‰é€€å‡º
             boolean result = false;
             for (int i = 0; i < RetryTimesOver && !result; i++) {
                 result = CommitLog.this.mapedFileQueue.commit(0);
@@ -149,17 +149,17 @@ public class CommitLog {
 
         @Override
         public long getJointime() {
-            // ÓÉÓÚCommitLogÊı¾İÁ¿½Ï´ó£¬ËùÒÔ»ØÊÕÊ±¼äÒª¸ü³¤
+            // ç”±äºCommitLogæ•°æ®é‡è¾ƒå¤§ï¼Œæ‰€ä»¥å›æ”¶æ—¶é—´è¦æ›´é•¿
             return 1000 * 60 * 5;
         }
     }
 
     public class GroupCommitRequest {
-        // µ±Ç°ÏûÏ¢¶ÔÓ¦µÄÏÂÒ»¸öOffset
+        // å½“å‰æ¶ˆæ¯å¯¹åº”çš„ä¸‹ä¸€ä¸ªOffset
         private final long nextOffset;
-        // Òì²½Í¨Öª¶ÔÏó
+        // å¼‚æ­¥é€šçŸ¥å¯¹è±¡
         private final CountDownLatch countDownLatch = new CountDownLatch(1);
-        // Ë¢ÅÌÊÇ·ñ³É¹¦
+        // åˆ·ç›˜æ˜¯å¦æˆåŠŸ
         private volatile boolean flushOK = false;
 
 
@@ -220,7 +220,7 @@ public class CommitLog {
         private void doCommit() {
             if (!this.requestsRead.isEmpty()) {
                 for (GroupCommitRequest req : this.requestsRead) {
-                    // ÏûÏ¢ÓĞ¿ÉÄÜÔÚÏÂÒ»¸öÎÄ¼ş£¬ËùÒÔ×î¶àË¢ÅÌ2´Î
+                    // æ¶ˆæ¯æœ‰å¯èƒ½åœ¨ä¸‹ä¸€ä¸ªæ–‡ä»¶ï¼Œæ‰€ä»¥æœ€å¤šåˆ·ç›˜2æ¬¡
                     boolean flushOK = false;
                     for (int i = 0; (i < 2) && !flushOK; i++) {
                         flushOK = (CommitLog.this.mapedFileQueue.getCommittedWhere() >= req.getNextOffset());
@@ -242,7 +242,7 @@ public class CommitLog {
                 this.requestsRead.clear();
             }
             else {
-                // ÓÉÓÚ¸ö±ğÏûÏ¢ÉèÖÃÎª²»Í¬²½Ë¢ÅÌ£¬ËùÒÔ»á×ßµ½´ËÁ÷³Ì
+                // ç”±äºä¸ªåˆ«æ¶ˆæ¯è®¾ç½®ä¸ºä¸åŒæ­¥åˆ·ç›˜ï¼Œæ‰€ä»¥ä¼šèµ°åˆ°æ­¤æµç¨‹
                 CommitLog.this.mapedFileQueue.commit(0);
             }
         }
@@ -261,7 +261,7 @@ public class CommitLog {
                 }
             }
 
-            // ÔÚÕı³£shutdownÇé¿öÏÂ£¬µÈ´ıÇëÇóµ½À´£¬È»ºóÔÙË¢ÅÌ
+            // åœ¨æ­£å¸¸shutdownæƒ…å†µä¸‹ï¼Œç­‰å¾…è¯·æ±‚åˆ°æ¥ï¼Œç„¶åå†åˆ·ç›˜
             try {
                 Thread.sleep(10);
             }
@@ -293,20 +293,20 @@ public class CommitLog {
 
         @Override
         public long getJointime() {
-            // ÓÉÓÚCommitLogÊı¾İÁ¿½Ï´ó£¬ËùÒÔ»ØÊÕÊ±¼äÒª¸ü³¤
+            // ç”±äºCommitLogæ•°æ®é‡è¾ƒå¤§ï¼Œæ‰€ä»¥å›æ”¶æ—¶é—´è¦æ›´é•¿
             return 1000 * 60 * 5;
         }
     }
 
     class DefaultAppendMessageCallback implements AppendMessageCallback {
-        // ´æ´¢ÏûÏ¢ID
+        // å­˜å‚¨æ¶ˆæ¯ID
         private final ByteBuffer msgIdMemory;
-        // ´æ´¢ÏûÏ¢ÄÚÈİ
+        // å­˜å‚¨æ¶ˆæ¯å†…å®¹
         private final ByteBuffer msgStoreItemMemory;
-        // ÏûÏ¢µÄ×î´ó³¤¶È
+        // æ¶ˆæ¯çš„æœ€å¤§é•¿åº¦
         private final int maxMessageSize;
 
-        // ÎÄ¼şÄ©Î²¿Õ¶´×îĞ¡¶¨³¤
+        // æ–‡ä»¶æœ«å°¾ç©ºæ´æœ€å°å®šé•¿
         private static final int END_FILE_MIN_BLANK_LENGTH = 4 + 4;
 
 
@@ -331,7 +331,7 @@ public class CommitLog {
         public AppendMessageResult doAppend(final long fileFromOffset, final ByteBuffer byteBuffer,
                 final int maxBlank, final Object msg) {
             /**
-             * Éú³ÉÏûÏ¢ID STORETIMESTAMP + STOREHOSTADDRESS + OFFSET <br>
+             * ç”Ÿæˆæ¶ˆæ¯ID STORETIMESTAMP + STOREHOSTADDRESS + OFFSET <br>
              */
             MessageExtBrokerInner msgInner = (MessageExtBrokerInner) msg;
             // PHY OFFSET
@@ -341,7 +341,7 @@ public class CommitLog {
                         wroteOffset);
 
             /**
-             * ¼ÇÂ¼ConsumeQueueĞÅÏ¢
+             * è®°å½•ConsumeQueueä¿¡æ¯
              */
             String key = msgInner.getTopic() + "-" + msgInner.getQueueId();
             Long queueOffset = CommitLog.this.topicQueueTable.get(key);
@@ -351,7 +351,7 @@ public class CommitLog {
             }
 
             /**
-             * ÊÂÎñÏûÏ¢ĞèÒªÌØÊâ´¦Àí
+             * äº‹åŠ¡æ¶ˆæ¯éœ€è¦ç‰¹æ®Šå¤„ç†
              */
             final int tranType = MessageSysFlag.getTransactionValue(msgInner.getSysFlag());
             switch (tranType) {
@@ -370,7 +370,7 @@ public class CommitLog {
             }
 
             /**
-             * ĞòÁĞ»¯ÏûÏ¢
+             * åºåˆ—åŒ–æ¶ˆæ¯
              */
             final byte[] propertiesData =
                     msgInner.getPropertiesString() == null ? null : msgInner.getPropertiesString().getBytes();
@@ -400,30 +400,30 @@ public class CommitLog {
                     + 2 + propertiesLength // 16 propertiesLength
                     + 0;
 
-            // ÏûÏ¢³¬¹ıÉè¶¨µÄ×î´óÖµ
+            // æ¶ˆæ¯è¶…è¿‡è®¾å®šçš„æœ€å¤§å€¼
             if (msgLen > this.maxMessageSize) {
                 CommitLog.log.warn("message size exceeded, msg total size: " + msgLen + ", msg body size: "
                         + bodyLength + ", maxMessageSize: " + this.maxMessageSize);
                 return new AppendMessageResult(AppendMessageStatus.MESSAGE_SIZE_EXCEEDED);
             }
 
-            // ÅĞ¶ÏÊÇ·ñÓĞ×ã¹»¿ÕÓà¿Õ¼ä
+            // åˆ¤æ–­æ˜¯å¦æœ‰è¶³å¤Ÿç©ºä½™ç©ºé—´
             if ((msgLen + END_FILE_MIN_BLANK_LENGTH) > maxBlank) {
                 this.resetMsgStoreItemMemory(maxBlank);
                 // 1 TOTALSIZE
                 this.msgStoreItemMemory.putInt(maxBlank);
                 // 2 MAGICCODE
                 this.msgStoreItemMemory.putInt(CommitLog.BlankMagicCode);
-                // 3 Ê£Óà¿Õ¼ä¿ÉÄÜÊÇÈÎºÎÖµ
+                // 3 å‰©ä½™ç©ºé—´å¯èƒ½æ˜¯ä»»ä½•å€¼
                 //
 
-                // ´Ë´¦³¤¶ÈÌØÒâÉèÖÃÎªmaxBlank
+                // æ­¤å¤„é•¿åº¦ç‰¹æ„è®¾ç½®ä¸ºmaxBlank
                 byteBuffer.put(this.msgStoreItemMemory.array(), 0, maxBlank);
                 return new AppendMessageResult(AppendMessageStatus.END_OF_FILE, wroteOffset, maxBlank, msgId,
                     msgInner.getStoreTimestamp(), queueOffset);
             }
 
-            // ³õÊ¼»¯´æ´¢¿Õ¼ä
+            // åˆå§‹åŒ–å­˜å‚¨ç©ºé—´
             this.resetMsgStoreItemMemory(msgLen);
             // 1 TOTALSIZE
             this.msgStoreItemMemory.putInt(msgLen);
@@ -465,7 +465,7 @@ public class CommitLog {
             if (propertiesLength > 0)
                 this.msgStoreItemMemory.put(propertiesData);
 
-            // Ïò¶ÓÁĞ»º³åÇøĞ´ÈëÏûÏ¢
+            // å‘é˜Ÿåˆ—ç¼“å†²åŒºå†™å…¥æ¶ˆæ¯
             byteBuffer.put(this.msgStoreItemMemory.array(), 0, msgLen);
 
             AppendMessageResult result =
@@ -481,21 +481,21 @@ public class CommitLog {
                 break;
             case MessageSysFlag.TransactionNotType:
             case MessageSysFlag.TransactionCommitType:
-                // ¸üĞÂÏÂÒ»´ÎµÄConsumeQueueĞÅÏ¢
+                // æ›´æ–°ä¸‹ä¸€æ¬¡çš„ConsumeQueueä¿¡æ¯
                 CommitLog.this.topicQueueTable.put(key, ++queueOffset);
                 break;
             default:
                 break;
             }
 
-            // ·µ»Ø½á¹û
+            // è¿”å›ç»“æœ
             return result;
         }
     }
 
 
     /**
-     * ¹¹Ôìº¯Êı
+     * æ„é€ å‡½æ•°
      */
     public CommitLog(final DefaultMessageStore defaultMessageStore) {
         this.mapedFileQueue =
@@ -566,7 +566,7 @@ public class CommitLog {
 
 
     /**
-     * ¶ÁÈ¡ÏûÏ¢
+     * è¯»å–æ¶ˆæ¯
      */
     public SelectMapedBufferResult getMessage(final long offset, final int size) {
         int mapedFileSize = this.defaultMessageStore.getMessageStoreConfig().getMapedFileSizeCommitLog();
@@ -588,7 +588,7 @@ public class CommitLog {
 
 
     /**
-     * ¶ÁÈ¡CommitLogÊı¾İ£¬Êı¾İ¸´ÖÆÊ±Ê¹ÓÃ
+     * è¯»å–CommitLogæ•°æ®ï¼Œæ•°æ®å¤åˆ¶æ—¶ä½¿ç”¨
      */
     public SelectMapedBufferResult getData(final long offset) {
         return this.getData(offset, (0 == offset ? true : false));
@@ -614,9 +614,9 @@ public class CommitLog {
 
 
     /**
-     * ·şÎñ¶ËÊ¹ÓÃ ¼ì²éÏûÏ¢²¢·µ»ØÏûÏ¢´óĞ¡
+     * æœåŠ¡ç«¯ä½¿ç”¨ æ£€æŸ¥æ¶ˆæ¯å¹¶è¿”å›æ¶ˆæ¯å¤§å°
      * 
-     * @return 0 ±íÊ¾×ßµ½ÎÄ¼şÄ©Î² >0 Õı³£ÏûÏ¢ -1 ÏûÏ¢Ğ£ÑéÊ§°Ü
+     * @return 0 è¡¨ç¤ºèµ°åˆ°æ–‡ä»¶æœ«å°¾ >0 æ­£å¸¸æ¶ˆæ¯ -1 æ¶ˆæ¯æ ¡éªŒå¤±è´¥
      */
     public DispatchRequest checkMessageAndReturnSize(java.nio.ByteBuffer byteBuffer, final boolean checkCRC,
             final boolean readBody) {
@@ -663,13 +663,13 @@ public class CommitLog {
             long bornTimeStamp = byteBuffer.getLong();
             bornTimeStamp = bornTimeStamp + 0;
 
-            // 10 BORNHOST£¨IP+PORT£©
+            // 10 BORNHOSTï¼ˆIP+PORTï¼‰
             byteBuffer.get(bytesContent, 0, 8);
 
             // 11 STORETIMESTAMP
             long storeTimestamp = byteBuffer.getLong();
 
-            // 12 STOREHOST£¨IP+PORT£©
+            // 12 STOREHOSTï¼ˆIP+PORTï¼‰
             byteBuffer.get(bytesContent, 0, 8);
 
             // 13 RECONSUMETIMES
@@ -684,7 +684,7 @@ public class CommitLog {
                 if (readBody) {
                     byteBuffer.get(bytesContent, 0, bodyLen);
 
-                    // Ğ£ÑéCRC
+                    // æ ¡éªŒCRC
                     if (checkCRC) {
                         int crc = UtilALl.crc32(bytesContent, 0, bodyLen);
                         if (crc != bodyCRC) {
@@ -749,13 +749,13 @@ public class CommitLog {
 
 
     /**
-     * Õı³£ÍË³öÊ±£¬Êı¾İ»Ö¸´£¬ËùÓĞÄÚ´æÊı¾İ¶¼ÒÑ¾­Ë¢ÅÌ
+     * æ­£å¸¸é€€å‡ºæ—¶ï¼Œæ•°æ®æ¢å¤ï¼Œæ‰€æœ‰å†…å­˜æ•°æ®éƒ½å·²ç»åˆ·ç›˜
      */
     public void recoverNormally() {
         boolean checkCRCOnRecover = this.defaultMessageStore.getMessageStoreConfig().isCheckCRCOnRecover();
         final List<MapedFile> mapedFiles = this.mapedFileQueue.getMapedFiles();
         if (!mapedFiles.isEmpty()) {
-            // ´Óµ¹ÊıµÚÈı¸öÎÄ¼ş¿ªÊ¼»Ö¸´
+            // ä»å€’æ•°ç¬¬ä¸‰ä¸ªæ–‡ä»¶å¼€å§‹æ¢å¤
             int index = mapedFiles.size() - 3;
             if (index < 0)
                 index = 0;
@@ -768,21 +768,21 @@ public class CommitLog {
                 DispatchRequest dispatchRequest =
                         this.checkMessageAndReturnSize(byteBuffer, checkCRCOnRecover);
                 int size = dispatchRequest.getMsgSize();
-                // Õı³£Êı¾İ
+                // æ­£å¸¸æ•°æ®
                 if (size > 0) {
                     mapedFileOffset += size;
                 }
-                // ÎÄ¼şÖĞ¼ä¶Áµ½´íÎó
+                // æ–‡ä»¶ä¸­é—´è¯»åˆ°é”™è¯¯
                 else if (size == -1) {
                     log.info("recover physics file end, " + mapedFile.getFileName());
                     break;
                 }
-                // ×ßµ½ÎÄ¼şÄ©Î²£¬ÇĞ»»ÖÁÏÂÒ»¸öÎÄ¼ş
-                // ÓÉÓÚ·µ»Ø0´ú±íÊÇÓöµ½ÁË×îºóµÄ¿Õ¶´£¬Õâ¸ö¿ÉÒÔ²»¼ÆÈëtruncate offsetÖĞ
+                // èµ°åˆ°æ–‡ä»¶æœ«å°¾ï¼Œåˆ‡æ¢è‡³ä¸‹ä¸€ä¸ªæ–‡ä»¶
+                // ç”±äºè¿”å›0ä»£è¡¨æ˜¯é‡åˆ°äº†æœ€åçš„ç©ºæ´ï¼Œè¿™ä¸ªå¯ä»¥ä¸è®¡å…¥truncate offsetä¸­
                 else if (size == 0) {
                     index++;
                     if (index >= mapedFiles.size()) {
-                        // µ±Ç°Ìõ¼ş·ÖÖ§²»¿ÉÄÜ·¢Éú
+                        // å½“å‰æ¡ä»¶åˆ†æ”¯ä¸å¯èƒ½å‘ç”Ÿ
                         log.info("recover last 3 physics file over, last maped file "
                                 + mapedFile.getFileName());
                         break;
@@ -805,11 +805,11 @@ public class CommitLog {
 
 
     public void recoverAbnormally() {
-        // ¸ù¾İ×îĞ¡Ê±¼ä´ÁÀ´»Ö¸´
+        // æ ¹æ®æœ€å°æ—¶é—´æˆ³æ¥æ¢å¤
         boolean checkCRCOnRecover = this.defaultMessageStore.getMessageStoreConfig().isCheckCRCOnRecover();
         final List<MapedFile> mapedFiles = this.mapedFileQueue.getMapedFiles();
         if (!mapedFiles.isEmpty()) {
-            // Ñ°ÕÒ´ÓÄÄ¸öÎÄ¼ş¿ªÊ¼»Ö¸´
+            // å¯»æ‰¾ä»å“ªä¸ªæ–‡ä»¶å¼€å§‹æ¢å¤
             int index = mapedFiles.size() - 1;
             MapedFile mapedFile = null;
             for (; index >= 0; index--) {
@@ -832,22 +832,22 @@ public class CommitLog {
                 DispatchRequest dispatchRequest =
                         this.checkMessageAndReturnSize(byteBuffer, checkCRCOnRecover);
                 int size = dispatchRequest.getMsgSize();
-                // Õı³£Êı¾İ
+                // æ­£å¸¸æ•°æ®
                 if (size > 0) {
                     mapedFileOffset += size;
                     this.defaultMessageStore.putDispatchRequest(dispatchRequest);
                 }
-                // ÎÄ¼şÖĞ¼ä¶Áµ½´íÎó
+                // æ–‡ä»¶ä¸­é—´è¯»åˆ°é”™è¯¯
                 else if (size == -1) {
                     log.info("recover physics file end, " + mapedFile.getFileName());
                     break;
                 }
-                // ×ßµ½ÎÄ¼şÄ©Î²£¬ÇĞ»»ÖÁÏÂÒ»¸öÎÄ¼ş
-                // ÓÉÓÚ·µ»Ø0´ú±íÊÇÓöµ½ÁË×îºóµÄ¿Õ¶´£¬Õâ¸ö¿ÉÒÔ²»¼ÆÈëtruncate offsetÖĞ
+                // èµ°åˆ°æ–‡ä»¶æœ«å°¾ï¼Œåˆ‡æ¢è‡³ä¸‹ä¸€ä¸ªæ–‡ä»¶
+                // ç”±äºè¿”å›0ä»£è¡¨æ˜¯é‡åˆ°äº†æœ€åçš„ç©ºæ´ï¼Œè¿™ä¸ªå¯ä»¥ä¸è®¡å…¥truncate offsetä¸­
                 else if (size == 0) {
                     index++;
                     if (index >= mapedFiles.size()) {
-                        // µ±Ç°Ìõ¼ş·ÖÖ§Õı³£Çé¿öÏÂ²»Ó¦¸Ã·¢Éú
+                        // å½“å‰æ¡ä»¶åˆ†æ”¯æ­£å¸¸æƒ…å†µä¸‹ä¸åº”è¯¥å‘ç”Ÿ
                         log.info("recover physics file over, last maped file " + mapedFile.getFileName());
                         break;
                     }
@@ -865,10 +865,10 @@ public class CommitLog {
             this.mapedFileQueue.setCommittedWhere(processOffset);
             this.mapedFileQueue.truncateDirtyFiles(processOffset);
 
-            // Çå³ıConsumeQueueµÄ¶àÓàÊı¾İ
+            // æ¸…é™¤ConsumeQueueçš„å¤šä½™æ•°æ®
             this.defaultMessageStore.truncateDirtyLogicFiles(processOffset);
         }
-        // ÎïÀíÎÄ¼ş¶¼±»É¾³ıÇé¿öÏÂ
+        // ç‰©ç†æ–‡ä»¶éƒ½è¢«åˆ é™¤æƒ…å†µä¸‹
         else {
             this.mapedFileQueue.setCommittedWhere(0);
             this.defaultMessageStore.destroyLogics();
@@ -905,11 +905,11 @@ public class CommitLog {
 
 
     public PutMessageResult putMessage(final MessageExtBrokerInner msg) {
-        // ÉèÖÃ´æ´¢Ê±¼ä
+        // è®¾ç½®å­˜å‚¨æ—¶é—´
         msg.setStoreTimestamp(System.currentTimeMillis());
-        // ÉèÖÃÏûÏ¢ÌåBODY CRC£¨¿¼ÂÇÔÚ¿Í»§¶ËÉèÖÃ×îºÏÊÊ£©
+        // è®¾ç½®æ¶ˆæ¯ä½“BODY CRCï¼ˆè€ƒè™‘åœ¨å®¢æˆ·ç«¯è®¾ç½®æœ€åˆé€‚ï¼‰
         msg.setBodyCRC(UtilALl.crc32(msg.getBody()));
-        // ·µ»Ø½á¹û
+        // è¿”å›ç»“æœ
         AppendMessageResult result = null;
 
         StoreStatsService storeStatsService = this.defaultMessageStore.getStoreStatsService();
@@ -921,7 +921,7 @@ public class CommitLog {
         final int tranType = MessageSysFlag.getTransactionValue(msg.getSysFlag());
         if (tranType == MessageSysFlag.TransactionNotType//
                 || tranType == MessageSysFlag.TransactionCommitType) {
-            // ÑÓÊ±Í¶µİ
+            // å»¶æ—¶æŠ•é€’
             if (msg.getDelayTimeLevel() > 0) {
                 if (msg.getDelayTimeLevel() > this.defaultMessageStore.getScheduleMessageService()
                     .getMaxDelayLevel()) {
@@ -936,7 +936,7 @@ public class CommitLog {
                             msg.getDelayTimeLevel(), msg.getStoreTimestamp());
 
                 /**
-                 * ±¸·İÕæÊµµÄtopic£¬queueId
+                 * å¤‡ä»½çœŸå®çš„topicï¼ŒqueueId
                  */
                 msg.putProperty(Message.PROPERTY_REAL_TOPIC, msg.getTopic());
                 msg.putProperty(Message.PROPERTY_REAL_QUEUE_ID, String.valueOf(msg.getQueueId()));
@@ -947,14 +947,14 @@ public class CommitLog {
             }
         }
 
-        // Ğ´ÎÄ¼şÒª¼ÓËø
+        // å†™æ–‡ä»¶è¦åŠ é”
         synchronized (this) {
             long beginLockTimestamp = this.defaultMessageStore.getSystemClock().now();
 
-            // ÕâÀïÉèÖÃ´æ´¢Ê±¼ä´Á£¬²ÅÄÜ±£Ö¤È«¾ÖÓĞĞò
+            // è¿™é‡Œè®¾ç½®å­˜å‚¨æ—¶é—´æˆ³ï¼Œæ‰èƒ½ä¿è¯å…¨å±€æœ‰åº
             msg.setStoreTimestamp(beginLockTimestamp);
 
-            // ³¢ÊÔĞ´Èë
+            // å°è¯•å†™å…¥
             MapedFile mapedFile = this.mapedFileQueue.getLastMapedFile();
             if (null == mapedFile) {
                 log.error("create maped file1 error, topic: " + msg.getTopic() + " clientAddr: "
@@ -963,12 +963,12 @@ public class CommitLog {
             }
             result = mapedFile.appendMessage(msg, this.appendMessageCallback);
             switch (result.getStatus()) {
-            // ³É¹¦×·¼ÓÏûÏ¢
+            // æˆåŠŸè¿½åŠ æ¶ˆæ¯
             case PUT_OK:
                 break;
-            // ×ßµ½ÎÄ¼şÄ©Î²
+            // èµ°åˆ°æ–‡ä»¶æœ«å°¾
             case END_OF_FILE:
-                // ´´½¨ĞÂÎÄ¼ş£¬ÖØĞÂĞ´ÏûÏ¢
+                // åˆ›å»ºæ–°æ–‡ä»¶ï¼Œé‡æ–°å†™æ¶ˆæ¯
                 mapedFile = this.mapedFileQueue.getLastMapedFile();
                 if (null == mapedFile) {
                     log.error("create maped file2 error, topic: " + msg.getTopic() + " clientAddr: "
@@ -977,10 +977,10 @@ public class CommitLog {
                 }
                 result = mapedFile.appendMessage(msg, this.appendMessageCallback);
                 break;
-            // ÏûÏ¢´óĞ¡³¬ÏŞ
+            // æ¶ˆæ¯å¤§å°è¶…é™
             case MESSAGE_SIZE_EXCEEDED:
                 return new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, result);
-                // Î´Öª´íÎó
+                // æœªçŸ¥é”™è¯¯
             case UNKNOWN_ERROR:
                 return new PutMessageResult(PutMessageStatus.UNKNOWN_ERROR, result);
             default:
@@ -997,7 +997,7 @@ public class CommitLog {
                 result.getLogicsOffset(),// 7
                 msg.getKeys(),// 8
                 /**
-                 * ÊÂÎñ²¿·Ö
+                 * äº‹åŠ¡éƒ¨åˆ†
                  */
                 msg.getSysFlag(),// 9
                 msg.getQueueOffset(), // 10
@@ -1013,15 +1013,15 @@ public class CommitLog {
             }
         }
 
-        // ·µ»Ø½á¹û
+        // è¿”å›ç»“æœ
         PutMessageResult putMessageResult = new PutMessageResult(PutMessageStatus.PUT_OK, result);
 
-        // Í³¼ÆÏûÏ¢SIZE
+        // ç»Ÿè®¡æ¶ˆæ¯SIZE
         storeStatsService.getSinglePutMessageTopicSizeTotal(topic).addAndGet(result.getWroteBytes());
 
         GroupCommitRequest request = null;
 
-        // Í¬²½Ë¢ÅÌ
+        // åŒæ­¥åˆ·ç›˜
         if (FlushDiskType.SYNC_FLUSH == this.defaultMessageStore.getMessageStoreConfig().getFlushDiskType()) {
             GroupCommitService service = (GroupCommitService) this.flushCommitLogService;
             if (msg.isWaitStoreMsgOK()) {
@@ -1040,16 +1040,16 @@ public class CommitLog {
                 service.wakeup();
             }
         }
-        // Òì²½Ë¢ÅÌ
+        // å¼‚æ­¥åˆ·ç›˜
         else {
             this.flushCommitLogService.wakeup();
         }
 
-        // Í¬²½Ë«Ğ´
+        // åŒæ­¥åŒå†™
         if (BrokerRole.SYNC_MASTER == this.defaultMessageStore.getMessageStoreConfig().getBrokerRole()) {
             HAService service = this.defaultMessageStore.getHaService();
             if (msg.isWaitStoreMsgOK()) {
-                // ÅĞ¶ÏÊÇ·ñÒªµÈ´ı
+                // åˆ¤æ–­æ˜¯å¦è¦ç­‰å¾…
                 if (service.isSlaveOK(result.getWroteOffset() + result.getWroteBytes())) {
                     if (null == request) {
                         request = new GroupCommitRequest(result.getWroteOffset() + result.getWroteBytes());
@@ -1059,7 +1059,7 @@ public class CommitLog {
                     service.getWaitNotifyObject().wakeupAll();
 
                     boolean flushOK =
-                    // TODO ´Ë´¦²ÎÊıÓëË¢ÅÌ¹«ÓÃÊÇ·ñºÏÊÊ
+                    // TODO æ­¤å¤„å‚æ•°ä¸åˆ·ç›˜å…¬ç”¨æ˜¯å¦åˆé€‚
                             request.waitForFlush(this.defaultMessageStore.getMessageStoreConfig()
                                 .getSyncFlushTimeout());
                     if (!flushOK) {
@@ -1069,21 +1069,21 @@ public class CommitLog {
                         putMessageResult.setPutMessageStatus(PutMessageStatus.FLUSH_SLAVE_TIMEOUT);
                     }
                 }
-                // SlaveÒì³£
+                // Slaveå¼‚å¸¸
                 else {
-                    // ¸æËß·¢ËÍ·½£¬SlaveÒì³£
+                    // å‘Šè¯‰å‘é€æ–¹ï¼ŒSlaveå¼‚å¸¸
                     putMessageResult.setPutMessageStatus(PutMessageStatus.SLAVE_NOT_AVAILABLE);
                 }
             }
         }
 
-        // Ïò·¢ËÍ·½·µ»Ø½á¹û
+        // å‘å‘é€æ–¹è¿”å›ç»“æœ
         return putMessageResult;
     }
 
 
     /**
-     * ¸ù¾İoffset»ñÈ¡ÌØ¶¨ÏûÏ¢µÄ´æ´¢Ê±¼ä Èç¹û³ö´í£¬Ôò·µ»Ø-1
+     * æ ¹æ®offsetè·å–ç‰¹å®šæ¶ˆæ¯çš„å­˜å‚¨æ—¶é—´ å¦‚æœå‡ºé”™ï¼Œåˆ™è¿”å›-1
      */
     public long pickupStoretimestamp(final long offset, final int size) {
         SelectMapedBufferResult result = this.getMessage(offset, size);
@@ -1116,9 +1116,9 @@ public class CommitLog {
 
 
     public boolean appendData(long startOffset, byte[] data) {
-        // Ğ´ÎÄ¼şÒª¼ÓËø
+        // å†™æ–‡ä»¶è¦åŠ é”
         synchronized (this) {
-            // ³¢ÊÔĞ´Èë
+            // å°è¯•å†™å…¥
             MapedFile mapedFile = this.mapedFileQueue.getLastMapedFile(startOffset);
             if (null == mapedFile) {
                 log.error("appendData getLastMapedFile error  " + startOffset);

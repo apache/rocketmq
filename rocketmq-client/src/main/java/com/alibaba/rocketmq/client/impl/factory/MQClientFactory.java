@@ -70,7 +70,7 @@ import com.alibaba.rocketmq.remoting.netty.NettyClientConfig;
 
 
 /**
- * ¿Í»§¶ËFactoryÀà£¬ÓÃÀ´¹ÜÀíProducerÓëConsumer
+ * å®¢æˆ·ç«¯Factoryç±»ï¼Œç”¨æ¥ç®¡ç†Producerä¸Consumer
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-6-15
@@ -83,37 +83,37 @@ public class MQClientFactory {
     private final String clientId;
     private final long bootTimestamp = System.currentTimeMillis();
 
-    // Producer¶ÔÏó
+    // Producerå¯¹è±¡
     private final ConcurrentHashMap<String/* group */, MQProducerInner> producerTable =
             new ConcurrentHashMap<String, MQProducerInner>();
-    // Consumer¶ÔÏó
+    // Consumerå¯¹è±¡
     private final ConcurrentHashMap<String/* group */, MQConsumerInner> consumerTable =
             new ConcurrentHashMap<String, MQConsumerInner>();
-    // AdminExt¶ÔÏó
+    // AdminExtå¯¹è±¡
     private final ConcurrentHashMap<String/* group */, MQAdminExtInner> adminExtTable =
             new ConcurrentHashMap<String, MQAdminExtInner>();
 
-    // Netty¿Í»§¶ËÅäÖÃ
+    // Nettyå®¢æˆ·ç«¯é…ç½®
     private final NettyClientConfig nettyClientConfig;
-    // RPCµ÷ÓÃµÄ·â×°Àà
+    // RPCè°ƒç”¨çš„å°è£…ç±»
     private final MQClientAPIImpl mQClientAPIImpl;
     private final MQAdminImpl mQAdminImpl;
 
-    // ´æ´¢´ÓName ServerÄÃµ½µÄTopicÂ·ÓÉĞÅÏ¢
+    // å­˜å‚¨ä»Name Serveræ‹¿åˆ°çš„Topicè·¯ç”±ä¿¡æ¯
     private final ConcurrentHashMap<String/* Topic */, TopicRouteData> topicRouteTable =
             new ConcurrentHashMap<String, TopicRouteData>();
-    // µ÷ÓÃName Server»ñÈ¡TopicÂ·ÓÉĞÅÏ¢Ê±£¬¼ÓËø
+    // è°ƒç”¨Name Serverè·å–Topicè·¯ç”±ä¿¡æ¯æ—¶ï¼ŒåŠ é”
     private final Lock lockNamesrv = new ReentrantLock();
     private final static long LockTimeoutMillis = 3000;
 
-    // ĞÄÌøÓë×¢Ïú¶¯×÷¼ÓËø
+    // å¿ƒè·³ä¸æ³¨é”€åŠ¨ä½œåŠ é”
     private final Lock lockHeartbeat = new ReentrantLock();
 
-    // ´æ´¢Broker Name ÓëBroker AddressµÄ¶ÔÓ¦¹ØÏµ
+    // å­˜å‚¨Broker Name ä¸Broker Addressçš„å¯¹åº”å…³ç³»
     private final ConcurrentHashMap<String/* Broker Name */, HashMap<Long/* brokerId */, String/* address */>> brokerAddrTable =
             new ConcurrentHashMap<String, HashMap<Long, String>>();
 
-    // ¶¨Ê±Ïß³Ì
+    // å®šæ—¶çº¿ç¨‹
     private final ScheduledExecutorService scheduledExecutorService = Executors
         .newSingleThreadScheduledExecutor(new ThreadFactory() {
             @Override
@@ -122,19 +122,19 @@ public class MQClientFactory {
             }
         });
 
-    // ´¦Àí·şÎñÆ÷Ö÷¶¯·¢À´µÄÇëÇó
+    // å¤„ç†æœåŠ¡å™¨ä¸»åŠ¨å‘æ¥çš„è¯·æ±‚
     private final ClientRemotingProcessor clientRemotingProcessor;
 
-    // ¼àÌıÒ»¸öUDP¶Ë¿Ú£¬ÓÃÀ´·ÀÖ¹Í¬Ò»¸öFactoryÆô¶¯¶à·İ£¨ÓĞ¿ÉÄÜ·Ö²¼ÔÚ¶à¸öJVMÖĞ£©
+    // ç›‘å¬ä¸€ä¸ªUDPç«¯å£ï¼Œç”¨æ¥é˜²æ­¢åŒä¸€ä¸ªFactoryå¯åŠ¨å¤šä»½ï¼ˆæœ‰å¯èƒ½åˆ†å¸ƒåœ¨å¤šä¸ªJVMä¸­ï¼‰
     private DatagramSocket datagramSocket;
 
-    // À­ÏûÏ¢·şÎñ
+    // æ‹‰æ¶ˆæ¯æœåŠ¡
     private final PullMessageService pullMessageService;
 
-    // Rebalance·şÎñ
+    // RebalanceæœåŠ¡
     private final RebalanceService rebalanceService;
 
-    // ÄÚÖÃProducer¶ÔÏó
+    // å†…ç½®Producerå¯¹è±¡
     private final DefaultMQProducer defaultMQProducer;
 
 
@@ -192,7 +192,7 @@ public class MQClientFactory {
 
 
     private void startScheduledTask() {
-        // ¶¨Ê±»ñÈ¡Name ServerµØÖ·
+        // å®šæ—¶è·å–Name Serveråœ°å€
         if (null == this.clientConfig.getNamesrvAddr()) {
             this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 
@@ -208,7 +208,7 @@ public class MQClientFactory {
             }, 1000 * 10, 1000 * 60 * 2, TimeUnit.MILLISECONDS);
         }
 
-        // ¶¨Ê±´ÓName Server»ñÈ¡TopicÂ·ÓÉĞÅÏ¢
+        // å®šæ—¶ä»Name Serverè·å–Topicè·¯ç”±ä¿¡æ¯
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 
             @Override
@@ -222,7 +222,7 @@ public class MQClientFactory {
             }
         }, 10, this.clientConfig.getPollNameServerInteval(), TimeUnit.MILLISECONDS);
 
-        // ÏòËùÓĞBroker·¢ËÍĞÄÌøĞÅÏ¢£¨°üº¬¶©ÔÄ¹ØÏµµÈ£©
+        // å‘æ‰€æœ‰Brokerå‘é€å¿ƒè·³ä¿¡æ¯ï¼ˆåŒ…å«è®¢é˜…å…³ç³»ç­‰ï¼‰
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 
             @Override
@@ -236,7 +236,7 @@ public class MQClientFactory {
             }
         }, 1000, this.clientConfig.getHeartbeatBrokerInterval(), TimeUnit.MILLISECONDS);
 
-        // ¶¨Ê±³Ö¾Ã»¯ConsumerÏû·Ñ½ø¶È£¨¹ã²¥´æ´¢µ½±¾µØ£¬¼¯Èº´æ´¢µ½Broker£©
+        // å®šæ—¶æŒä¹…åŒ–Consumeræ¶ˆè´¹è¿›åº¦ï¼ˆå¹¿æ’­å­˜å‚¨åˆ°æœ¬åœ°ï¼Œé›†ç¾¤å­˜å‚¨åˆ°Brokerï¼‰
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 
             @Override
@@ -250,7 +250,7 @@ public class MQClientFactory {
             }
         }, 1000 * 10, this.clientConfig.getPersistConsumerOffsetInterval(), TimeUnit.MILLISECONDS);
 
-        // Í³¼ÆĞÅÏ¢´òµã
+        // ç»Ÿè®¡ä¿¡æ¯æ‰“ç‚¹
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 
             @Override
@@ -513,7 +513,7 @@ public class MQClientFactory {
                 for (Long id : oneTable.keySet()) {
                     String addr = oneTable.get(id);
                     if (addr != null) {
-                        // ËµÃ÷Ö»ÓĞProducer£¬Ôò²»ÏòSlave·¢ĞÄÌø
+                        // è¯´æ˜åªæœ‰Producerï¼Œåˆ™ä¸å‘Slaveå‘å¿ƒè·³
                         if (consumerEmpty) {
                             if (id != MixAll.MASTER_ID)
                                 continue;
@@ -627,7 +627,7 @@ public class MQClientFactory {
 
 
     /**
-     * ¹ÜÀíÀàµÄ½Ó¿Ú²éÑ¯BrokerµØÖ·£¬MasterÓÅÏÈ
+     * ç®¡ç†ç±»çš„æ¥å£æŸ¥è¯¢Brokeråœ°å€ï¼ŒMasterä¼˜å…ˆ
      * 
      * @param brokerName
      * @return
@@ -639,7 +639,7 @@ public class MQClientFactory {
 
         HashMap<Long/* brokerId */, String/* address */> map = this.brokerAddrTable.get(brokerName);
         if (map != null && !map.isEmpty()) {
-            // TODO Èç¹ûÓĞ¶à¸öSlave£¬¿ÉÄÜ»áÃ¿´Î¶¼Ñ¡ÖĞÏàÍ¬µÄSlave£¬ÕâÀïĞèÒªÓÅ»¯
+            // TODO å¦‚æœæœ‰å¤šä¸ªSlaveï¼Œå¯èƒ½ä¼šæ¯æ¬¡éƒ½é€‰ä¸­ç›¸åŒçš„Slaveï¼Œè¿™é‡Œéœ€è¦ä¼˜åŒ–
             FOR_SEG: for (Map.Entry<Long, String> entry : map.entrySet()) {
                 Long id = entry.getKey();
                 brokerAddr = entry.getValue();
@@ -667,7 +667,7 @@ public class MQClientFactory {
 
 
     /**
-     * ·¢²¼ÏûÏ¢¹ı³ÌÖĞ£¬Ñ°ÕÒBrokerµØÖ·£¬Ò»¶¨ÊÇÕÒMaster
+     * å‘å¸ƒæ¶ˆæ¯è¿‡ç¨‹ä¸­ï¼Œå¯»æ‰¾Brokeråœ°å€ï¼Œä¸€å®šæ˜¯æ‰¾Master
      */
     public String findBrokerAddressInPublish(final String brokerName) {
         HashMap<Long/* brokerId */, String/* address */> map = this.brokerAddrTable.get(brokerName);
@@ -680,7 +680,7 @@ public class MQClientFactory {
 
 
     /**
-     * ¶©ÔÄÏûÏ¢¹ı³ÌÖĞ£¬Ñ°ÕÒBrokerµØÖ·£¬È¡Master»¹ÊÇSlaveÓÉ²ÎÊı¾ö¶¨
+     * è®¢é˜…æ¶ˆæ¯è¿‡ç¨‹ä¸­ï¼Œå¯»æ‰¾Brokeråœ°å€ï¼Œå–Masterè¿˜æ˜¯Slaveç”±å‚æ•°å†³å®š
      */
     public FindBrokerResult findBrokerAddressInSubscribe(//
             final String brokerName,//
@@ -697,7 +697,7 @@ public class MQClientFactory {
             slave = (brokerId != MixAll.MASTER_ID);
             found = (brokerAddr != null);
 
-            // ³¢ÊÔÑ°ÕÒÆäËûBroker
+            // å°è¯•å¯»æ‰¾å…¶ä»–Broker
             if (!found && !onlyThisBroker) {
                 Entry<Long, String> entry = map.entrySet().iterator().next();
                 brokerAddr = entry.getValue();
@@ -751,7 +751,7 @@ public class MQClientFactory {
     public static TopicPublishInfo topicRouteData2TopicPublishInfo(final String topic,
             final TopicRouteData route) {
         TopicPublishInfo info = new TopicPublishInfo();
-        // Ë³ĞòÏûÏ¢
+        // é¡ºåºæ¶ˆæ¯
         if (route.getOrderTopicConf() != null && route.getOrderTopicConf().length() > 0) {
             String[] brokers = route.getOrderTopicConf().split(";");
             for (String broker : brokers) {
@@ -765,10 +765,10 @@ public class MQClientFactory {
 
             info.setOrderTopic(true);
         }
-        // ·ÇË³ĞòÏûÏ¢
+        // éé¡ºåºæ¶ˆæ¯
         else {
             List<QueueData> qds = route.getQueueDatas();
-            // ÅÅĞòÔ­Òò£º¼´Ê¹Ã»ÓĞÅäÖÃË³ĞòÏûÏ¢Ä£Ê½£¬Ä¬ÈÏ¶ÓÁĞµÄË³ĞòÍ¬ÅäÖÃµÄÒ»ÖÂ¡£
+            // æ’åºåŸå› ï¼šå³ä½¿æ²¡æœ‰é…ç½®é¡ºåºæ¶ˆæ¯æ¨¡å¼ï¼Œé»˜è®¤é˜Ÿåˆ—çš„é¡ºåºåŒé…ç½®çš„ä¸€è‡´ã€‚
             Collections.sort(qds);
             for (QueueData qd : qds) {
                 if (PermName.isWriteable(qd.getPerm())) {
@@ -849,7 +849,7 @@ public class MQClientFactory {
 
     private boolean isNeedUpdateTopicRouteInfo(final String topic) {
         boolean result = false;
-        // ²é¿´·¢²¼¶ÓÁĞÊÇ·ñĞèÒª¸üĞÂ
+        // æŸ¥çœ‹å‘å¸ƒé˜Ÿåˆ—æ˜¯å¦éœ€è¦æ›´æ–°
         {
             Iterator<Entry<String, MQProducerInner>> it = this.producerTable.entrySet().iterator();
             while (it.hasNext() && !result) {
@@ -861,7 +861,7 @@ public class MQClientFactory {
             }
         }
 
-        // ²é¿´¶©ÔÄ¶ÓÁĞÊÇ·ñĞèÒª¸üĞÂ
+        // æŸ¥çœ‹è®¢é˜…é˜Ÿåˆ—æ˜¯å¦éœ€è¦æ›´æ–°
         {
             Iterator<Entry<String, MQConsumerInner>> it = this.consumerTable.entrySet().iterator();
             while (it.hasNext() && !result) {
@@ -878,7 +878,7 @@ public class MQClientFactory {
 
 
     /**
-     * µ÷ÓÃName Server½Ó¿Ú£¬¸ù¾İTopic»ñÈ¡Â·ÓÉĞÅÏ¢
+     * è°ƒç”¨Name Serveræ¥å£ï¼Œæ ¹æ®Topicè·å–è·¯ç”±ä¿¡æ¯
      */
     public boolean updateTopicRouteInfoFromNameServer(final String topic) {
         try {
@@ -897,12 +897,12 @@ public class MQClientFactory {
                         }
 
                         if (changed) {
-                            // ¸üĞÂBrokerµØÖ·ĞÅÏ¢
+                            // æ›´æ–°Brokeråœ°å€ä¿¡æ¯
                             for (BrokerData bd : topicRouteData.getBrokerDatas()) {
                                 this.brokerAddrTable.put(bd.getBrokerName(), bd.getBrokerAddrs());
                             }
 
-                            // ¸üĞÂ·¢²¼¶ÓÁĞĞÅÏ¢
+                            // æ›´æ–°å‘å¸ƒé˜Ÿåˆ—ä¿¡æ¯
                             {
                                 TopicPublishInfo publishInfo =
                                         topicRouteData2TopicPublishInfo(topic, topicRouteData);
@@ -917,7 +917,7 @@ public class MQClientFactory {
                                 }
                             }
 
-                            // ¸üĞÂ¶©ÔÄ¶ÓÁĞĞÅÏ¢
+                            // æ›´æ–°è®¢é˜…é˜Ÿåˆ—ä¿¡æ¯
                             {
                                 Set<MessageQueue> subscribeInfo =
                                         topicRouteData2TopicSubscribeInfo(topic, topicRouteData);

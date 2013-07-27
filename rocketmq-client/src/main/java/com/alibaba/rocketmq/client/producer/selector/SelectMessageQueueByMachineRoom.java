@@ -24,7 +24,7 @@ import com.alibaba.rocketmq.common.message.MessageQueue;
 
 
 /**
- * 根据机房来选择发往哪个队列，支付宝逻辑机房使用
+ * 鏍规嵁鏈烘埧鏉ラ�夋嫨鍙戝線鍝釜闃熷垪锛屾敮浠樺疂閫昏緫鏈烘埧浣跨敤
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-25

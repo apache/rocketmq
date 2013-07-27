@@ -23,7 +23,7 @@ import com.alibaba.rocketmq.common.message.MessageQueue;
 
 
 /**
- * Æ½¾ù·ÖÅä¶ÓÁĞËã·¨
+ * å¹³å‡åˆ†é…é˜Ÿåˆ—ç®—æ³•
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-24
@@ -42,7 +42,7 @@ public class AllocateMessageQueueAveragely implements AllocateMessageQueueStrate
         }
 
         List<MessageQueue> result = new ArrayList<MessageQueue>();
-        if (!cidAll.contains(currentCID)) { // ²»´æÔÚ´ËConsumerId ,Ö±½Ó·µ»Ø
+        if (!cidAll.contains(currentCID)) { // ä¸å­˜åœ¨æ­¤ConsumerId ,ç›´æ¥è¿”å›
             return result;
         }
 
@@ -55,7 +55,7 @@ public class AllocateMessageQueueAveragely implements AllocateMessageQueueStrate
             result.add(mqAll.get(i));
         }
 
-        // Èç¹ûµ±Ç°µÄconsumerId×îºóÒ»¸öÇÒ»¹ÓĞÊ£ÏÂµÄ¶ÓÁĞ£¬Ó¦¸Ã°Ñ×îºó¶ÓÁĞ¶¼·Åµ½µ±Ç°consumerId¶ÓÁĞÀï
+        // å¦‚æœå½“å‰çš„consumerIdæœ€åä¸€ä¸ªä¸”è¿˜æœ‰å‰©ä¸‹çš„é˜Ÿåˆ—ï¼Œåº”è¯¥æŠŠæœ€åé˜Ÿåˆ—éƒ½æ”¾åˆ°å½“å‰consumerIdé˜Ÿåˆ—é‡Œ
         boolean isAddRemainQueue = (index == cidAll.size() - 1) && mod > 0;
         if (isAddRemainQueue) {
             int messageQueueSize = mqAll.size();

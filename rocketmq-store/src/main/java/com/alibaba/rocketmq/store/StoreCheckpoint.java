@@ -30,7 +30,7 @@ import com.alibaba.rocketmq.common.constant.LoggerName;
 
 
 /**
- * ¼ÇÂ¼´æ´¢Ä£ÐÍ×îÖÕÒ»ÖÂµÄÊ±¼äµã
+ * è®°å½•å­˜å‚¨æ¨¡åž‹æœ€ç»ˆä¸€è‡´çš„æ—¶é—´ç‚¹
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-21

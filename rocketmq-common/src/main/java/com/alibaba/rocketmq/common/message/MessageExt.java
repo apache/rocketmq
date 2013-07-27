@@ -24,7 +24,7 @@ import com.alibaba.rocketmq.common.sysflag.MessageSysFlag;
 
 
 /**
- * ÏûÏ¢À©Õ¹ÊôĞÔ£¬ÔÚ·şÎñÆ÷ÉÏ²úÉú´Ë¶ÔÏó
+ * æ¶ˆæ¯æ‰©å±•å±æ€§ï¼Œåœ¨æœåŠ¡å™¨ä¸Šäº§ç”Ÿæ­¤å¯¹è±¡
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-18
@@ -32,29 +32,29 @@ import com.alibaba.rocketmq.common.sysflag.MessageSysFlag;
 public class MessageExt extends Message {
     private static final long serialVersionUID = 5720810158625748049L;
 
-    // ¶ÓÁĞID <PUT>
+    // é˜Ÿåˆ—ID <PUT>
     private int queueId;
-    // ´æ´¢¼ÇÂ¼´óĞ¡
+    // å­˜å‚¨è®°å½•å¤§å°
     private int storeSize;
-    // ¶ÓÁĞÆ«ÒÆÁ¿
+    // é˜Ÿåˆ—åç§»é‡
     private long queueOffset;
-    // ÏûÏ¢±êÖ¾Î» <PUT>
+    // æ¶ˆæ¯æ ‡å¿—ä½ <PUT>
     private int sysFlag;
-    // ÏûÏ¢ÔÚ¿Í»§¶Ë´´½¨Ê±¼ä´Á <PUT>
+    // æ¶ˆæ¯åœ¨å®¢æˆ·ç«¯åˆ›å»ºæ—¶é—´æˆ³ <PUT>
     private long bornTimestamp;
-    // ÏûÏ¢À´×ÔÄÄÀï <PUT>
+    // æ¶ˆæ¯æ¥è‡ªå“ªé‡Œ <PUT>
     private SocketAddress bornHost;
-    // ÏûÏ¢ÔÚ·şÎñÆ÷´æ´¢Ê±¼ä´Á
+    // æ¶ˆæ¯åœ¨æœåŠ¡å™¨å­˜å‚¨æ—¶é—´æˆ³
     private long storeTimestamp;
-    // ÏûÏ¢´æ´¢ÔÚÄÄ¸ö·şÎñÆ÷ <PUT>
+    // æ¶ˆæ¯å­˜å‚¨åœ¨å“ªä¸ªæœåŠ¡å™¨ <PUT>
     private SocketAddress storeHost;
-    // ÏûÏ¢ID
+    // æ¶ˆæ¯ID
     private String msgId;
-    // ÏûÏ¢¶ÔÓ¦µÄCommit Log Offset
+    // æ¶ˆæ¯å¯¹åº”çš„Commit Log Offset
     private long commitLogOffset;
-    // ÏûÏ¢ÌåCRC
+    // æ¶ˆæ¯ä½“CRC
     private int bodyCRC;
-    // µ±Ç°ÏûÏ¢±»Ä³¸ö¶©ÔÄ×éÖØĞÂÏû·ÑÁË¼¸´Î£¨¶©ÔÄ×éÖ®¼ä¶ÀÁ¢¼ÆÊı£©
+    // å½“å‰æ¶ˆæ¯è¢«æŸä¸ªè®¢é˜…ç»„é‡æ–°æ¶ˆè´¹äº†å‡ æ¬¡ï¼ˆè®¢é˜…ç»„ä¹‹é—´ç‹¬ç«‹è®¡æ•°ï¼‰
     private int reconsumeTimes;
 
     private long preparedTransactionOffset;
@@ -76,7 +76,7 @@ public class MessageExt extends Message {
 
 
     /**
-     * SocketAddress ----> ByteBuffer ×ª»¯³É8¸ö×Ö½Ú
+     * SocketAddress ----> ByteBuffer è½¬åŒ–æˆ8ä¸ªå­—èŠ‚
      */
     public static ByteBuffer SocketAddress2ByteBuffer(SocketAddress socketAddress) {
         ByteBuffer byteBuffer = ByteBuffer.allocate(8);
@@ -89,7 +89,7 @@ public class MessageExt extends Message {
 
 
     /**
-     * »ñÈ¡bornHost×Ö½ÚĞÎÊ½£¬8¸ö×Ö½Ú HOST + PORT
+     * è·å–bornHostå­—èŠ‚å½¢å¼ï¼Œ8ä¸ªå­—èŠ‚ HOST + PORT
      */
     public ByteBuffer getBornHostBytes() {
         return SocketAddress2ByteBuffer(this.bornHost);
@@ -97,7 +97,7 @@ public class MessageExt extends Message {
 
 
     /**
-     * »ñÈ¡storehost×Ö½ÚĞÎÊ½£¬8¸ö×Ö½Ú HOST + PORT
+     * è·å–storehostå­—èŠ‚å½¢å¼ï¼Œ8ä¸ªå­—èŠ‚ HOST + PORT
      */
     public ByteBuffer getStoreHostBytes() {
         return SocketAddress2ByteBuffer(this.storeHost);

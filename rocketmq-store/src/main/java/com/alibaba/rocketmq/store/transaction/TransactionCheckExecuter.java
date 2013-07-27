@@ -16,7 +16,7 @@
 package com.alibaba.rocketmq.store.transaction;
 
 /**
- * ´æ´¢²ãÏòProducer»Ø²éÊÂÎñ×´Ì¬
+ * å­˜å‚¨å±‚å‘Producerå›æŸ¥äº‹åŠ¡çŠ¶æ€
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-21

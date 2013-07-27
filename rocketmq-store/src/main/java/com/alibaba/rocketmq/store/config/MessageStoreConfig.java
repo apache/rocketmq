@@ -23,106 +23,106 @@ import com.alibaba.rocketmq.store.transaction.TransactionStateService;
 
 
 /**
- * ´æ´¢²ãÅäÖÃÎÄ¼şÀà
+ * å­˜å‚¨å±‚é…ç½®æ–‡ä»¶ç±»
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-21
  */
 public class MessageStoreConfig {
-    // CommitLog´æ´¢Ä¿Â¼
+    // CommitLogå­˜å‚¨ç›®å½•
     @ImportantField
     private String storePathCommitLog = System.getProperty("user.home") + File.separator + "store"
             + File.separator + "commitlog";
-    // ConsumeQueue´æ´¢Ä¿Â¼
+    // ConsumeQueueå­˜å‚¨ç›®å½•
     @ImportantField
     private String storePathConsumeQueue = System.getProperty("user.home") + File.separator + "store"
             + File.separator + "consumequeue";
-    // Ë÷ÒıÎÄ¼ş´æ´¢Ä¿Â¼
+    // ç´¢å¼•æ–‡ä»¶å­˜å‚¨ç›®å½•
     @ImportantField
     private String storePathIndex = System.getProperty("user.home") + File.separator + "store"
             + File.separator + "index";
-    // Òì³£ÍË³ö²úÉúµÄÎÄ¼ş
+    // å¼‚å¸¸é€€å‡ºäº§ç”Ÿçš„æ–‡ä»¶
     @ImportantField
     private String storeCheckpoint = System.getProperty("user.home") + File.separator + "store"
             + File.separator + "checkpoint";
-    // Òì³£ÍË³ö²úÉúµÄÎÄ¼ş
+    // å¼‚å¸¸é€€å‡ºäº§ç”Ÿçš„æ–‡ä»¶
     @ImportantField
     private String abortFile = System.getProperty("user.home") + File.separator + "store" + File.separator
             + "abort";
-    // CommitLogÃ¿¸öÎÄ¼ş´óĞ¡ 1G
+    // CommitLogæ¯ä¸ªæ–‡ä»¶å¤§å° 1G
     private int mapedFileSizeCommitLog = 1024 * 1024 * 1024;
-    // ConsumeQueueÃ¿¸öÎÄ¼ş´óĞ¡ Ä¬ÈÏ´æ´¢50WÌõÏûÏ¢
+    // ConsumeQueueæ¯ä¸ªæ–‡ä»¶å¤§å° é»˜è®¤å­˜å‚¨50Wæ¡æ¶ˆæ¯
     private int mapedFileSizeConsumeQueue = 500000 * ConsumeQueue.CQStoreUnitSize;
-    // CommitLogË¢ÅÌ¼ä¸ôÊ±¼ä£¨µ¥Î»ºÁÃë£©
+    // CommitLogåˆ·ç›˜é—´éš”æ—¶é—´ï¼ˆå•ä½æ¯«ç§’ï¼‰
     private int flushIntervalCommitLog = 1000;
-    // ConsumeQueueË¢ÅÌ¼ä¸ôÊ±¼ä£¨µ¥Î»ºÁÃë£©
+    // ConsumeQueueåˆ·ç›˜é—´éš”æ—¶é—´ï¼ˆå•ä½æ¯«ç§’ï¼‰
     private int flushIntervalConsumeQueue = 1000;
-    // ÇåÀí×ÊÔ´¼ä¸ôÊ±¼ä£¨µ¥Î»ºÁÃë£©
+    // æ¸…ç†èµ„æºé—´éš”æ—¶é—´ï¼ˆå•ä½æ¯«ç§’ï¼‰
     private int cleanResourceInterval = 10000;
-    // É¾³ı¶à¸öCommitLogÎÄ¼şµÄ¼ä¸ôÊ±¼ä£¨µ¥Î»ºÁÃë£©
+    // åˆ é™¤å¤šä¸ªCommitLogæ–‡ä»¶çš„é—´éš”æ—¶é—´ï¼ˆå•ä½æ¯«ç§’ï¼‰
     private int deleteCommitLogFilesInterval = 100;
-    // É¾³ı¶à¸öConsumeQueueÎÄ¼şµÄ¼ä¸ôÊ±¼ä£¨µ¥Î»ºÁÃë£©
+    // åˆ é™¤å¤šä¸ªConsumeQueueæ–‡ä»¶çš„é—´éš”æ—¶é—´ï¼ˆå•ä½æ¯«ç§’ï¼‰
     private int deleteConsumeQueueFilesInterval = 100;
-    // Ç¿ÖÆÉ¾³ıÎÄ¼ş¼ä¸ôÊ±¼ä£¨µ¥Î»ºÁÃë£©
+    // å¼ºåˆ¶åˆ é™¤æ–‡ä»¶é—´éš”æ—¶é—´ï¼ˆå•ä½æ¯«ç§’ï¼‰
     private int destroyMapedFileIntervalForcibly = 1000 * 120;
-    // ¶¨ÆÚ¼ì²éHangedÎÄ¼ş¼ä¸ôÊ±¼ä£¨µ¥Î»ºÁÃë£©
+    // å®šæœŸæ£€æŸ¥Hangedæ–‡ä»¶é—´éš”æ—¶é—´ï¼ˆå•ä½æ¯«ç§’ï¼‰
     private int redeleteHangedFileInterval = 1000 * 120;
-    // ºÎÊ±´¥·¢É¾³ıÎÄ¼ş, Ä¬ÈÏÁè³¿4µãÉ¾³ıÎÄ¼ş
+    // ä½•æ—¶è§¦å‘åˆ é™¤æ–‡ä»¶, é»˜è®¤å‡Œæ™¨4ç‚¹åˆ é™¤æ–‡ä»¶
     @ImportantField
     private String deleteWhen = "04";
-    // ´ÅÅÌ¿Õ¼ä×î´óÊ¹ÓÃÂÊ
+    // ç£ç›˜ç©ºé—´æœ€å¤§ä½¿ç”¨ç‡
     private int diskMaxUsedSpaceRatio = 75;
-    // ÎÄ¼ş±£ÁôÊ±¼ä£¨µ¥Î»Ğ¡Ê±£©
+    // æ–‡ä»¶ä¿ç•™æ—¶é—´ï¼ˆå•ä½å°æ—¶ï¼‰
     @ImportantField
     private int fileReservedTime = 12;
 
-    // Ğ´ÏûÏ¢Ë÷Òıµ½ConsumeQueue£¬»º³åÇø¸ßË®Î»£¬³¬¹ıÔò¿ªÊ¼Á÷¿Ø
+    // å†™æ¶ˆæ¯ç´¢å¼•åˆ°ConsumeQueueï¼Œç¼“å†²åŒºé«˜æ°´ä½ï¼Œè¶…è¿‡åˆ™å¼€å§‹æµæ§
     private int putMsgIndexHightWater = 600000;
-    // ×î´óÏûÏ¢´óĞ¡£¬Ä¬ÈÏ512K
+    // æœ€å¤§æ¶ˆæ¯å¤§å°ï¼Œé»˜è®¤512K
     private int maxMessageSize = 1024 * 512;
-    // ÖØÆôÊ±£¬ÊÇ·ñĞ£ÑéCRC
+    // é‡å¯æ—¶ï¼Œæ˜¯å¦æ ¡éªŒCRC
     private boolean checkCRCOnRecover = true;
-    // Ë¢CommitLog£¬ÖÁÉÙË¢¼¸¸öPAGE
+    // åˆ·CommitLogï¼Œè‡³å°‘åˆ·å‡ ä¸ªPAGE
     private int flushCommitLogLeastPages = 4;
-    // Ë¢ConsumeQueue£¬ÖÁÉÙË¢¼¸¸öPAGE
+    // åˆ·ConsumeQueueï¼Œè‡³å°‘åˆ·å‡ ä¸ªPAGE
     private int flushConsumeQueueLeastPages = 2;
-    // Ë¢CommitLog£¬³¹µ×Ë¢ÅÌ¼ä¸ôÊ±¼ä
+    // åˆ·CommitLogï¼Œå½»åº•åˆ·ç›˜é—´éš”æ—¶é—´
     private int flushCommitLogThoroughInterval = 1000 * 10;
-    // Ë¢ConsumeQueue£¬³¹µ×Ë¢ÅÌ¼ä¸ôÊ±¼ä
+    // åˆ·ConsumeQueueï¼Œå½»åº•åˆ·ç›˜é—´éš”æ—¶é—´
     private int flushConsumeQueueThoroughInterval = 1000 * 60;
-    // ×î´ó±»À­È¡µÄÏûÏ¢×Ö½ÚÊı£¬ÏûÏ¢ÔÚÄÚ´æ
+    // æœ€å¤§è¢«æ‹‰å–çš„æ¶ˆæ¯å­—èŠ‚æ•°ï¼Œæ¶ˆæ¯åœ¨å†…å­˜
     @ImportantField
     private int maxTransferBytesOnMessageInMemory = 1024 * 256;
-    // ×î´ó±»À­È¡µÄÏûÏ¢¸öÊı£¬ÏûÏ¢ÔÚÄÚ´æ
+    // æœ€å¤§è¢«æ‹‰å–çš„æ¶ˆæ¯ä¸ªæ•°ï¼Œæ¶ˆæ¯åœ¨å†…å­˜
     @ImportantField
     private int maxTransferCountOnMessageInMemory = 32;
-    // ×î´ó±»À­È¡µÄÏûÏ¢×Ö½ÚÊı£¬ÏûÏ¢ÔÚ´ÅÅÌ
+    // æœ€å¤§è¢«æ‹‰å–çš„æ¶ˆæ¯å­—èŠ‚æ•°ï¼Œæ¶ˆæ¯åœ¨ç£ç›˜
     @ImportantField
     private int maxTransferBytesOnMessageInDisk = 1024 * 64;
-    // ×î´ó±»À­È¡µÄÏûÏ¢¸öÊı£¬ÏûÏ¢ÔÚ´ÅÅÌ
+    // æœ€å¤§è¢«æ‹‰å–çš„æ¶ˆæ¯ä¸ªæ•°ï¼Œæ¶ˆæ¯åœ¨ç£ç›˜
     @ImportantField
     private int maxTransferCountOnMessageInDisk = 8;
-    // ÃüÖĞÏûÏ¢ÔÚÄÚ´æµÄ×î´ó±ÈÀı
+    // å‘½ä¸­æ¶ˆæ¯åœ¨å†…å­˜çš„æœ€å¤§æ¯”ä¾‹
     @ImportantField
     private int accessMessageInMemoryMaxRatio = 30;
 
-    // ÊÇ·ñ¿ªÆôÏûÏ¢Ë÷Òı¹¦ÄÜ
+    // æ˜¯å¦å¼€å¯æ¶ˆæ¯ç´¢å¼•åŠŸèƒ½
     @ImportantField
     private boolean messageIndexEnable = true;
     private int maxHashSlotNum = 5000000;
     private int maxIndexNum = 5000000 * 4;
     private int maxMsgsNumBatch = 32;
 
-    // HA¹¦ÄÜ
+    // HAåŠŸèƒ½
     private int haListenPort = 10912;
     private int haSendHeartbeatInterval = 1000 * 5;
     private int haHousekeepingInterval = 1000 * 20;
     private int haTransferBatchSize = 1024 * 32;
-    // Èç¹û²»ÉèÖÃ£¬Ôò´ÓNameServer»ñÈ¡Master HA·şÎñµØÖ·
+    // å¦‚æœä¸è®¾ç½®ï¼Œåˆ™ä»NameServerè·å–Master HAæœåŠ¡åœ°å€
     @ImportantField
     private String haMasterAddress = null;
 
-    // SlaveÂäºóMaster³¬¹ı´ËÖµ£¬ÔòÈÏÎª´æÔÚÒì³£
+    // Slaveè½åMasterè¶…è¿‡æ­¤å€¼ï¼Œåˆ™è®¤ä¸ºå­˜åœ¨å¼‚å¸¸
     private int haSlaveFallbehindMax = 1024 * 1024 * 256;
 
     @ImportantField
@@ -130,10 +130,10 @@ public class MessageStoreConfig {
     @ImportantField
     private FlushDiskType flushDiskType = FlushDiskType.ASYNC_FLUSH;
 
-    // Í¬²½Ë¢ÅÌ³¬Ê±Ê±¼ä
+    // åŒæ­¥åˆ·ç›˜è¶…æ—¶æ—¶é—´
     private int syncFlushTimeout = 1000 * 5;
 
-    // ¶¨Ê±ÏûÏ¢Ïà¹Ø
+    // å®šæ—¶æ¶ˆæ¯ç›¸å…³
     private String messageDelayLevel =
             "1s 5s 10s 30s 1m 2m 3m 4m 5m 6m 7m 8m 9m 10m 20m 30m 40m 50m 1h 2h 6h 12h 1d";
 
@@ -141,7 +141,7 @@ public class MessageStoreConfig {
     private String delayOffsetStorePath = System.getProperty("user.home") + File.separator + "store"
             + File.separator + "config" + File.separator + "delayOffset.json";
 
-    // ·Ö²¼Ê½ÊÂÎñÅäÖÃ
+    // åˆ†å¸ƒå¼äº‹åŠ¡é…ç½®
     private String tranStateTableStorePath = System.getProperty("user.home") + File.separator + "store"
             + File.separator + "transaction" + File.separator + "statetable";
     private int tranStateTableMapedFileSize = 2000000 * TransactionStateService.TSStoreUnitSize;
@@ -150,14 +150,14 @@ public class MessageStoreConfig {
             + File.separator + "transaction" + File.separator + "redolog";
     private int tranRedoLogMapedFileSize = 2000000 * ConsumeQueue.CQStoreUnitSize;
 
-    // ÊÂÎñ»Ø²éÖÁÉÙ¼ä¸ôÊ±¼ä
+    // äº‹åŠ¡å›æŸ¥è‡³å°‘é—´éš”æ—¶é—´
     private long checkTransactionMessageAtleastInterval = 1000 * 60;
-    // ÊÂÎñ»Ø²é¶¨Ê±¼ä¸ôÊ±¼ä
+    // äº‹åŠ¡å›æŸ¥å®šæ—¶é—´éš”æ—¶é—´
     private long checkTransactionMessageTimerInterval = 1000 * 60;
-    // ÊÇ·ñ¿ªÆôÊÂÎñCheck¹ı³Ì£¬Ë«Ê®Ò»Ê±£¬¿ÉÒÔ¹Ø±Õ
+    // æ˜¯å¦å¼€å¯äº‹åŠ¡Checkè¿‡ç¨‹ï¼ŒåŒåä¸€æ—¶ï¼Œå¯ä»¥å…³é—­
     private boolean checkTransactionMessageEnable = true;
 
-    // ´ÅÅÌ¿Õ¼ä³¬¹ı90%¾¯½äË®Î»£¬×Ô¶¯¿ªÊ¼É¾³ıÎÄ¼ş
+    // ç£ç›˜ç©ºé—´è¶…è¿‡90%è­¦æˆ’æ°´ä½ï¼Œè‡ªåŠ¨å¼€å§‹åˆ é™¤æ–‡ä»¶
     private boolean cleanFileForciblyEnable = true;
 
 
@@ -172,7 +172,7 @@ public class MessageStoreConfig {
 
 
     public int getMapedFileSizeConsumeQueue() {
-        // ´Ë´¦ĞèÒªÏòÉÏÈ¡Õû
+        // æ­¤å¤„éœ€è¦å‘ä¸Šå–æ•´
         int factor = (int) Math.ceil(this.mapedFileSizeConsumeQueue / (ConsumeQueue.CQStoreUnitSize * 1.0));
         return (int) (factor * ConsumeQueue.CQStoreUnitSize);
     }

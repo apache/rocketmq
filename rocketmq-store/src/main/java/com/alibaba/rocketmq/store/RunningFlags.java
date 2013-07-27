@@ -16,21 +16,21 @@
 package com.alibaba.rocketmq.store;
 
 /**
- * ´æ´¢Ä£ĞÍÔËĞĞ¹ı³ÌµÄ×´Ì¬Î»
+ * å­˜å‚¨æ¨¡å‹è¿è¡Œè¿‡ç¨‹çš„çŠ¶æ€ä½
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-21
  */
 public class RunningFlags {
-    // ½ûÖ¹¶ÁÈ¨ÏŞ
+    // ç¦æ­¢è¯»æƒé™
     private static final int NotReadableBit = 1;
-    // ½ûÖ¹Ğ´È¨ÏŞ
+    // ç¦æ­¢å†™æƒé™
     private static final int NotWriteableBit = 1 << 1;
-    // Âß¼­¶ÓÁĞÊÇ·ñ·¢Éú´íÎó
+    // é€»è¾‘é˜Ÿåˆ—æ˜¯å¦å‘ç”Ÿé”™è¯¯
     private static final int WriteLogicsQueueErrorBit = 1 << 2;
-    // Ë÷ÒıÎÄ¼şÊÇ·ñ·¢Éú´íÎó
+    // ç´¢å¼•æ–‡ä»¶æ˜¯å¦å‘ç”Ÿé”™è¯¯
     private static final int WriteIndexFileErrorBit = 1 << 3;
-    // ´ÅÅÌ¿Õ¼ä²»×ã
+    // ç£ç›˜ç©ºé—´ä¸è¶³
     private static final int DiskFullBit = 1 << 4;
 
     private volatile int flagBits = 0;
@@ -128,7 +128,7 @@ public class RunningFlags {
 
 
     /**
-     * ·µ»ØDiskÊÇ·ñÕı³£
+     * è¿”å›Diskæ˜¯å¦æ­£å¸¸
      */
     public boolean getAndMakeDiskFull() {
         boolean result = !((this.flagBits & DiskFullBit) == DiskFullBit);
@@ -138,7 +138,7 @@ public class RunningFlags {
 
 
     /**
-     * ·µ»ØDiskÊÇ·ñÕı³£
+     * è¿”å›Diskæ˜¯å¦æ­£å¸¸
      */
     public boolean getAndMakeDiskOK() {
         boolean result = !((this.flagBits & DiskFullBit) == DiskFullBit);

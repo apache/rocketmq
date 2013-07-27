@@ -16,7 +16,7 @@
 package com.alibaba.rocketmq.common.admin;
 
 /**
- * Offset°ü×°Àà£¬º¬Broker¡¢Consumer
+ * OffsetåŒ…è£…ç±»ï¼Œå«Brokerã€Consumer
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-14

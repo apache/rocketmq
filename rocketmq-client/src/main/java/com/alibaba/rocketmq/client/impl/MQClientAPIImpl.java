@@ -92,7 +92,7 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingSerializable;
 
 
 /**
- * ·â×°ËùÓĞÓë·şÎñÆ÷Í¨ĞÅ²¿·ÖAPI
+ * å°è£…æ‰€æœ‰ä¸æœåŠ¡å™¨é€šä¿¡éƒ¨åˆ†API
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-24
@@ -116,7 +116,7 @@ public class MQClientAPIImpl {
         this.clientRemotingProcessor = clientRemotingProcessor;
 
         /**
-         * ×¢²á¿Í»§¶ËÖ§³ÖµÄRPC CODE
+         * æ³¨å†Œå®¢æˆ·ç«¯æ”¯æŒçš„RPC CODE
          */
         this.remotingClient.registerProcessor(MQRequestCode.CHECK_TRANSACTION_STATE_VALUE,
             this.clientRemotingProcessor, null);
@@ -334,7 +334,7 @@ public class MQClientAPIImpl {
 
 
     /**
-     * ·¢ËÍÏûÏ¢
+     * å‘é€æ¶ˆæ¯
      */
     public SendResult sendMessage(//
             final String addr,// 1
@@ -449,7 +449,7 @@ public class MQClientAPIImpl {
 
 
     /**
-     * À­ÏûÏ¢½Ó¿Ú
+     * æ‹‰æ¶ˆæ¯æ¥å£
      */
     public PullResult pullMessage(//
             final String addr,//
@@ -480,7 +480,7 @@ public class MQClientAPIImpl {
 
 
     /**
-     * ¸ù¾İÊ±¼ä²éÑ¯Offset
+     * æ ¹æ®æ—¶é—´æŸ¥è¯¢Offset
      */
     public MessageExt viewMessage(final String addr, final long phyoffset, final long timeoutMillis)
             throws RemotingException, MQBrokerException, InterruptedException {
@@ -505,7 +505,7 @@ public class MQClientAPIImpl {
 
 
     /**
-     * ¸ù¾İÊ±¼ä²éÑ¯Offset
+     * æ ¹æ®æ—¶é—´æŸ¥è¯¢Offset
      */
     public long searchOffset(final String addr, final String topic, final int queueId, final long timestamp,
             final long timeoutMillis) throws RemotingException, MQBrokerException, InterruptedException {
@@ -535,7 +535,7 @@ public class MQClientAPIImpl {
 
 
     /**
-     * »ñÈ¡¶ÓÁĞµÄ×î´óOffset
+     * è·å–é˜Ÿåˆ—çš„æœ€å¤§Offset
      */
     public long getMaxOffset(final String addr, final String topic, final int queueId,
             final long timeoutMillis) throws RemotingException, MQBrokerException, InterruptedException {
@@ -564,7 +564,7 @@ public class MQClientAPIImpl {
 
 
     /**
-     * »ñÈ¡Ä³¸ö×éµÄConsumer IdÁĞ±í
+     * è·å–æŸä¸ªç»„çš„Consumer Idåˆ—è¡¨
      */
     public List<String> getConsumerIdListByGroup(//
             final String addr, //
@@ -596,7 +596,7 @@ public class MQClientAPIImpl {
 
 
     /**
-     * »ñÈ¡¶ÓÁĞµÄ×îĞ¡Offset
+     * è·å–é˜Ÿåˆ—çš„æœ€å°Offset
      */
     public long getMinOffset(final String addr, final String topic, final int queueId,
             final long timeoutMillis) throws RemotingException, MQBrokerException, InterruptedException {
@@ -625,7 +625,7 @@ public class MQClientAPIImpl {
 
 
     /**
-     * »ñÈ¡¶ÓÁĞµÄ×îÔçÊ±¼ä
+     * è·å–é˜Ÿåˆ—çš„æœ€æ—©æ—¶é—´
      */
     public long getEarliestMsgStoretime(final String addr, final String topic, final int queueId,
             final long timeoutMillis) throws RemotingException, MQBrokerException, InterruptedException {
@@ -656,7 +656,7 @@ public class MQClientAPIImpl {
 
 
     /**
-     * ²éÑ¯ConsumerÏû·Ñ½ø¶È
+     * æŸ¥è¯¢Consumeræ¶ˆè´¹è¿›åº¦
      */
     public long queryConsumerOffset(//
             final String addr,//
@@ -685,7 +685,7 @@ public class MQClientAPIImpl {
 
 
     /**
-     * ¸üĞÂConsumerÏû·Ñ½ø¶È
+     * æ›´æ–°Consumeræ¶ˆè´¹è¿›åº¦
      */
     public void updateConsumerOffset(//
             final String addr,//
@@ -710,7 +710,7 @@ public class MQClientAPIImpl {
 
 
     /**
-     * ¸üĞÂConsumerÏû·Ñ½ø¶È
+     * æ›´æ–°Consumeræ¶ˆè´¹è¿›åº¦
      * 
      * @throws InterruptedException
      * @throws RemotingSendRequestException
@@ -732,7 +732,7 @@ public class MQClientAPIImpl {
 
 
     /**
-     * ·¢ËÍĞÄÌø
+     * å‘é€å¿ƒè·³
      */
     public void sendHearbeat(//
             final String addr,//
@@ -756,7 +756,7 @@ public class MQClientAPIImpl {
 
 
     /**
-     * ·¢ËÍĞÄÌø
+     * å‘é€å¿ƒè·³
      */
     public void unregisterClient(//
             final String addr,//
@@ -786,7 +786,7 @@ public class MQClientAPIImpl {
 
 
     /**
-     * Ìá½»»òÕß»Ø¹öÊÂÎñ
+     * æäº¤æˆ–è€…å›æ»šäº‹åŠ¡
      */
     public void endTransactionOneway(//
             final String addr,//
@@ -802,7 +802,7 @@ public class MQClientAPIImpl {
 
 
     /**
-     * ²éÑ¯ÏûÏ¢
+     * æŸ¥è¯¢æ¶ˆæ¯
      */
     public void queryMessage(//
             final String addr,//
@@ -826,7 +826,7 @@ public class MQClientAPIImpl {
 
 
     /**
-     * Ê§°ÜµÄÏûÏ¢·¢»ØBroker
+     * å¤±è´¥çš„æ¶ˆæ¯å‘å›Broker
      */
     public void consumerSendMessageBack(//
             final MessageExt msg,//
@@ -909,7 +909,7 @@ public class MQClientAPIImpl {
 
 
     /**
-     * Name Server: ´ÓName Server»ñÈ¡TopicÂ·ÓÉĞÅÏ¢
+     * Name Server: ä»Name Serverè·å–Topicè·¯ç”±ä¿¡æ¯
      */
     public TopicRouteData getTopicRouteInfoFromNameServer(final String topic, final long timeoutMillis)
             throws RemotingException, MQClientException, InterruptedException {
@@ -942,7 +942,7 @@ public class MQClientAPIImpl {
 
 
     /**
-     * Name Server: ½ö½öÎª²âÊÔ·şÎñ£¬¿ÉÒÔÈÆ¹ıName Server
+     * Name Server: ä»…ä»…ä¸ºæµ‹è¯•æœåŠ¡ï¼Œå¯ä»¥ç»•è¿‡Name Server
      */
     public TopicRouteData getTopicRouteInfoFromNameServer_test(final String topic, final long timeoutMillis)
             throws RemotingException, MQClientException, InterruptedException {

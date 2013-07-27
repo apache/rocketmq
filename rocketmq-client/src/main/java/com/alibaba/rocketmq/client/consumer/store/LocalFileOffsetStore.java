@@ -30,7 +30,7 @@ import com.alibaba.rocketmq.common.message.MessageQueue;
 
 
 /**
- * 消费进度存储到Consumer本地
+ * 娑堣垂杩涘害瀛樺偍鍒癈onsumer鏈湴
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-24
@@ -46,7 +46,7 @@ public class LocalFileOffsetStore implements OffsetStore {
     private ConcurrentHashMap<MessageQueue, AtomicLong> offsetTable =
             new ConcurrentHashMap<MessageQueue, AtomicLong>();
 
-    // 本地Offset存储路径
+    // 鏈湴Offset瀛樺偍璺緞
     private final String storePath;
 
 

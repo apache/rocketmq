@@ -4,7 +4,7 @@
 package com.alibaba.rocketmq.research.rpc;
 
 /**
- * Ò»¸ö¼òµ¥RPC Server
+ * ä¸€ä¸ªç®€å•RPC Server
  * 
  * @author vintage.wang@gmail.com shijia.wxr@taobao.com
  */

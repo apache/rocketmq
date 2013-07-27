@@ -21,7 +21,7 @@ import com.alibaba.rocketmq.common.message.MessageQueue;
 
 
 /**
- * ÑÏ¸ñ±£Ö¤µ¥¸ö¶ÓÁĞÍ¬Ò»Ê±¿ÌÖ»ÓĞÒ»¸öÏß³ÌÏû·Ñ
+ * ä¸¥æ ¼ä¿è¯å•ä¸ªé˜Ÿåˆ—åŒä¸€æ—¶åˆ»åªæœ‰ä¸€ä¸ªçº¿ç¨‹æ¶ˆè´¹
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-6-25

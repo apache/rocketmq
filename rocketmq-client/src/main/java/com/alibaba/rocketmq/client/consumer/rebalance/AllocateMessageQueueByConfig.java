@@ -22,7 +22,7 @@ import com.alibaba.rocketmq.common.message.MessageQueue;
 
 
 /**
- * 按照配置来分配队列，建议应用使用Spring来初始化
+ * 鎸夌収閰嶇疆鏉ュ垎閰嶉槦鍒楋紝寤鸿搴旂敤浣跨敤Spring鏉ュ垵濮嬪寲
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-24

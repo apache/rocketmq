@@ -7,7 +7,7 @@ import java.nio.ByteBuffer;
 
 
 /**
- * Server与Client的读事件处理
+ * Server涓嶤lient鐨勮浜嬩欢澶勭悊
  * 
  * @author vintage.wang@gmail.com shijia.wxr@taobao.com
  */

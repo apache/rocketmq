@@ -23,7 +23,7 @@ import com.alibaba.rocketmq.common.ServiceThread;
 
 
 /**
- * Rebalance·şÎñ
+ * RebalanceæœåŠ¡
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-24

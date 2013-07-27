@@ -19,15 +19,15 @@ import java.util.HashMap;
 
 
 /**
- * ÓÃÀ´×öÏß³ÌÖ®¼äÒì²½Í¨Öª
+ * ç”¨æ¥åšçº¿ç¨‹ä¹‹é—´å¼‚æ­¥é€šçŸ¥
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-21
  */
 public class WaitNotifyObject {
-    // ÊÇ·ñÒÑ¾­±»Notify¹ı
+    // æ˜¯å¦å·²ç»è¢«Notifyè¿‡
     protected volatile boolean hasNotified = false;
-    // ÊÇ·ñÒÑ¾­±»Notify¹ı£¬¹ã²¥Ä£Ê½
+    // æ˜¯å¦å·²ç»è¢«Notifyè¿‡ï¼Œå¹¿æ’­æ¨¡å¼
     protected final HashMap<Long/* thread id */, Boolean/* notified */> waitingThreadTable =
             new HashMap<Long, Boolean>(16);
 
@@ -65,7 +65,7 @@ public class WaitNotifyObject {
 
 
     /**
-     * ¹ã²¥·½Ê½»½ĞÑ
+     * å¹¿æ’­æ–¹å¼å”¤é†’
      */
     public void wakeupAll() {
         synchronized (this) {
@@ -84,7 +84,7 @@ public class WaitNotifyObject {
 
 
     /**
-     * ¶à¸öÏß³Ìµ÷ÓÃwait
+     * å¤šä¸ªçº¿ç¨‹è°ƒç”¨wait
      */
     public void allWaitForRunning(long interval) {
         long currentThreadId = Thread.currentThread().getId();

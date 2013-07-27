@@ -55,7 +55,7 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 
 
 /**
- * Remoting·şÎñ¶ËÊµÏÖ
+ * RemotingæœåŠ¡ç«¯å®ç°
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-13
@@ -68,12 +68,12 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
     private final NettyServerConfig nettyServerConfig;
     private DefaultEventExecutorGroup defaultEventExecutorGroup;
 
-    // ´¦ÀíCallbackÓ¦´ğÆ÷
+    // å¤„ç†Callbackåº”ç­”å™¨
     private final ExecutorService publicExecutor;
 
     private final ChannelEventListener channelEventListener;
 
-    // ¶¨Ê±Æ÷
+    // å®šæ—¶å™¨
     private final Timer timer = new Timer("ServerHouseKeepingService", true);
 
     class NettyServerHandler extends SimpleChannelInboundHandler<RemotingCommand> {
@@ -239,7 +239,7 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
             this.nettyEventExecuter.start();
         }
 
-        // Ã¿¸ô1ÃëÉ¨ÃèÏÂÒì²½µ÷ÓÃ³¬Ê±Çé¿ö
+        // æ¯éš”1ç§’æ‰«æä¸‹å¼‚æ­¥è°ƒç”¨è¶…æ—¶æƒ…å†µ
         this.timer.scheduleAtFixedRate(new TimerTask() {
 
             @Override

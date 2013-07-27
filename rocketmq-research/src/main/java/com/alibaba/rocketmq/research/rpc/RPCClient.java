@@ -8,7 +8,7 @@ import java.nio.ByteBuffer;
 
 
 /**
- * �ͻ��˽ӿ�
+ * 客户端接口
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  */

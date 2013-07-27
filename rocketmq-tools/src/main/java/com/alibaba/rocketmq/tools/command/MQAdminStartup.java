@@ -35,7 +35,7 @@ import com.alibaba.rocketmq.tools.command.topic.UpdateTopicSubCommand;
 
 
 /**
- * mqadminÆô¶¯³ÌĞò
+ * mqadminå¯åŠ¨ç¨‹åº
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-25
@@ -95,7 +95,7 @@ public class MQAdminStartup {
         String rocketmqHome =
                 System.getProperty(MixAll.ROCKETMQ_HOME_PROPERTY, System.getenv(MixAll.ROCKETMQ_HOME_ENV));
 
-        // ³õÊ¼»¯Logback
+        // åˆå§‹åŒ–Logback
         LoggerContext lc = (LoggerContext) LoggerFactory.getILoggerFactory();
         JoranConfigurator configurator = new JoranConfigurator();
         configurator.setContext(lc);
@@ -105,7 +105,7 @@ public class MQAdminStartup {
 
 
     public static void main(String[] args) {
-        // ÉèÖÃµ±Ç°³ÌĞò°æ±¾ºÅ£¬Ã¿´Î·¢²¼°æ±¾Ê±£¬¶¼ÒªĞŞ¸ÄCurrentVersion
+        // è®¾ç½®å½“å‰ç¨‹åºç‰ˆæœ¬å·ï¼Œæ¯æ¬¡å‘å¸ƒç‰ˆæœ¬æ—¶ï¼Œéƒ½è¦ä¿®æ”¹CurrentVersion
         System.setProperty(RemotingCommand.RemotingVersionKey, Integer.toString(MQVersion.CurrentVersion));
 
         try {
@@ -129,13 +129,13 @@ public class MQAdminStartup {
             default:
                 SubCommand cmd = findSubCommand(args[0]);
                 if (cmd != null) {
-                    // ³õÊ¼»¯ÈÕÖ¾
+                    // åˆå§‹åŒ–æ—¥å¿—
                     initLogback();
 
-                    // ½«mainÖĞµÄargs×ª»¯Îª×ÓÃüÁîµÄargs£¨È¥³ıµÚÒ»¸ö²ÎÊı£©
+                    // å°†mainä¸­çš„argsè½¬åŒ–ä¸ºå­å‘½ä»¤çš„argsï¼ˆå»é™¤ç¬¬ä¸€ä¸ªå‚æ•°ï¼‰
                     String[] subargs = parseSubArgs(args);
 
-                    // ½âÎöÃüÁîĞĞ
+                    // è§£æå‘½ä»¤è¡Œ
                     Options options = MixAll.buildCommandlineOptions(new Options());
                     final CommandLine commandLine =
                             MixAll.parseCmdLine("mqadmin " + cmd.commandName(), subargs,

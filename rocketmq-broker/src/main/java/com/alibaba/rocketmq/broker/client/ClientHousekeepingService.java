@@ -31,7 +31,7 @@ import com.alibaba.rocketmq.remoting.ChannelEventListener;
 
 
 /**
- * ¶¨ÆÚ¼ì²â¿Í»§¶ËÁ¬½Ó£¬Çå³ı²»»î¶¯µÄÁ¬½Ó
+ * å®šæœŸæ£€æµ‹å®¢æˆ·ç«¯è¿æ¥ï¼Œæ¸…é™¤ä¸æ´»åŠ¨çš„è¿æ¥
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-26
@@ -55,7 +55,7 @@ public class ClientHousekeepingService implements ChannelEventListener {
 
 
     public void start() {
-        // ¶¨Ê±Ë¢Ïû·Ñ½ø¶È
+        // å®šæ—¶åˆ·æ¶ˆè´¹è¿›åº¦
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
             @Override
             public void run() {

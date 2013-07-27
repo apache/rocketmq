@@ -29,20 +29,20 @@ public abstract class BaseTest extends TestCase {
 
 
     @BeforeClass
-    // ²âÊÔ·½·¨Ö®Ç°Ö´ĞĞ
+    // æµ‹è¯•æ–¹æ³•ä¹‹å‰æ‰§è¡Œ
     public void testInit() throws Exception {
         System.out.println("before-----");
-        // ÉèÖÃµ±Ç°³ÌĞò°æ±¾ºÅ£¬Ã¿´Î·¢²¼°æ±¾Ê±£¬¶¼ÒªĞŞ¸ÄCurrentVersion
+        // è®¾ç½®å½“å‰ç¨‹åºç‰ˆæœ¬å·ï¼Œæ¯æ¬¡å‘å¸ƒç‰ˆæœ¬æ—¶ï¼Œéƒ½è¦ä¿®æ”¹CurrentVersion
         System.setProperty(RemotingCommand.RemotingVersionKey, Integer.toString(MQVersion.CurrentVersion));
 
         try {
 
-            // ³õÊ¼»¯ÅäÖÃÎÄ¼ş
+            // åˆå§‹åŒ–é…ç½®æ–‡ä»¶
             final BrokerConfig brokerConfig = new BrokerConfig();
             final NettyServerConfig nettyServerConfig = new NettyServerConfig();
             nettyServerConfig.setListenPort(10911);
             final MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
-            // ÇåÀí»·¾³
+            // æ¸…ç†ç¯å¢ƒ
             // deleteDir(System.getProperty("user.home") + File.separator +
             // "store");
 
@@ -52,15 +52,15 @@ public abstract class BaseTest extends TestCase {
                 System.exit(-2);
             }
 
-            // BrokerIdµÄ´¦Àí
+            // BrokerIdçš„å¤„ç†
             switch (messageStoreConfig.getBrokerRole()) {
             case ASYNC_MASTER:
             case SYNC_MASTER:
-                // Master Id±ØĞëÊÇ0
+                // Master Idå¿…é¡»æ˜¯0
                 brokerConfig.setBrokerId(MixAll.MASTER_ID);
                 break;
             case SLAVE:
-                // Slave IdÓÉSlave¼àÌıIP¡¢¶Ë¿Ú¾ö¶¨
+                // Slave Idç”±Slaveç›‘å¬IPã€ç«¯å£å†³å®š
                 long id =
                         MixAll.createBrokerId(brokerConfig.getBrokerIP1(), nettyServerConfig.getListenPort());
                 brokerConfig.setBrokerId(id);
@@ -69,10 +69,10 @@ public abstract class BaseTest extends TestCase {
                 break;
             }
 
-            // Master¼àÌıSlaveÇëÇóµÄ¶Ë¿Ú£¬Ä¬ÈÏÎª·şÎñ¶Ë¿Ú+1
+            // Masterç›‘å¬Slaveè¯·æ±‚çš„ç«¯å£ï¼Œé»˜è®¤ä¸ºæœåŠ¡ç«¯å£+1
             messageStoreConfig.setHaListenPort(nettyServerConfig.getListenPort() + 1);
 
-            // ³õÊ¼»¯Logback
+            // åˆå§‹åŒ–Logback
             LoggerContext lc = (LoggerContext) LoggerFactory.getILoggerFactory();
             JoranConfigurator configurator = new JoranConfigurator();
             configurator.setContext(lc);
@@ -80,12 +80,12 @@ public abstract class BaseTest extends TestCase {
             configurator.doConfigure(brokerConfig.getRocketmqHome() + "/conf/log4j_broker.xml");
             final Logger log = LoggerFactory.getLogger(LoggerName.BrokerLoggerName);
 
-            // ´òÓ¡Æô¶¯²ÎÊı
+            // æ‰“å°å¯åŠ¨å‚æ•°
             MixAll.printObjectProperties(log, brokerConfig);
             MixAll.printObjectProperties(log, nettyServerConfig);
             MixAll.printObjectProperties(log, messageStoreConfig);
 
-            // ³õÊ¼»¯·şÎñ¿ØÖÆ¶ÔÏó
+            // åˆå§‹åŒ–æœåŠ¡æ§åˆ¶å¯¹è±¡
             brokerController =
                     new BrokerController(brokerConfig, nettyServerConfig, new NettyClientConfig(),
                         messageStoreConfig);
@@ -115,7 +115,7 @@ public abstract class BaseTest extends TestCase {
                 }
             }, "ShutdownHook"));
 
-            // Æô¶¯·şÎñ¿ØÖÆ¶ÔÏó
+            // å¯åŠ¨æœåŠ¡æ§åˆ¶å¯¹è±¡
             brokerController.start();
             String tip =
                     "The broker[" + brokerController.getBrokerConfig().getBrokerName() + ", "
@@ -131,7 +131,7 @@ public abstract class BaseTest extends TestCase {
 
 
     @AfterClass
-    // ²âÊÔ·½·¨Ö®ºóÖ´ĞĞ
+    // æµ‹è¯•æ–¹æ³•ä¹‹åæ‰§è¡Œ
     public void testDown() throws Exception {
         System.out.println("after------");
         brokerController.shutdown();

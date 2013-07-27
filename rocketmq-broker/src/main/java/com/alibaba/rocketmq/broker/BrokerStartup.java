@@ -42,7 +42,7 @@ import com.alibaba.rocketmq.store.config.MessageStoreConfig;
 
 
 /**
- * BrokerÆô¶¯Èë¿Ú
+ * Brokerå¯åŠ¨å…¥å£
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-26
@@ -71,11 +71,11 @@ public class BrokerStartup {
 
 
     public static void main(String[] args) {
-        // ÉèÖÃµ±Ç°³ÌĞò°æ±¾ºÅ£¬Ã¿´Î·¢²¼°æ±¾Ê±£¬¶¼ÒªĞŞ¸ÄCurrentVersion
+        // è®¾ç½®å½“å‰ç¨‹åºç‰ˆæœ¬å·ï¼Œæ¯æ¬¡å‘å¸ƒç‰ˆæœ¬æ—¶ï¼Œéƒ½è¦ä¿®æ”¹CurrentVersion
         System.setProperty(RemotingCommand.RemotingVersionKey, Integer.toString(MQVersion.CurrentVersion));
 
         try {
-            // ½âÎöÃüÁîĞĞ
+            // è§£æå‘½ä»¤è¡Œ
             Options options = MixAll.buildCommandlineOptions(new Options());
             final CommandLine commandLine =
                     MixAll
@@ -85,14 +85,14 @@ public class BrokerStartup {
                 return;
             }
 
-            // ³õÊ¼»¯ÅäÖÃÎÄ¼ş
+            // åˆå§‹åŒ–é…ç½®æ–‡ä»¶
             final BrokerConfig brokerConfig = new BrokerConfig();
             final NettyServerConfig nettyServerConfig = new NettyServerConfig();
             final NettyClientConfig nettyClientConfig = new NettyClientConfig();
             nettyServerConfig.setListenPort(10911);
             final MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
 
-            // ´òÓ¡Ä¬ÈÏÅäÖÃ
+            // æ‰“å°é»˜è®¤é…ç½®
             if (commandLine.hasOption('p')) {
                 MixAll.printObjectProperties(null, brokerConfig);
                 MixAll.printObjectProperties(null, nettyServerConfig);
@@ -108,7 +108,7 @@ public class BrokerStartup {
                 System.exit(0);
             }
 
-            // Ö¸¶¨ÅäÖÃÎÄ¼ş
+            // æŒ‡å®šé…ç½®æ–‡ä»¶
             if (commandLine.hasOption('c')) {
                 String file = commandLine.getOptionValue('c');
                 if (file != null) {
@@ -126,7 +126,7 @@ public class BrokerStartup {
                 }
             }
 
-            // Ö¸¶¨TopicÅäÖÃÏî
+            // æŒ‡å®šTopicé…ç½®é¡¹
             if (commandLine.hasOption('t')) {
                 String file = commandLine.getOptionValue('t');
                 if (file != null) {
@@ -142,11 +142,11 @@ public class BrokerStartup {
                 System.exit(-2);
             }
 
-            // BrokerIdµÄ´¦Àí
+            // BrokerIdçš„å¤„ç†
             switch (messageStoreConfig.getBrokerRole()) {
             case ASYNC_MASTER:
             case SYNC_MASTER:
-                // Master Id±ØĞëÊÇ0
+                // Master Idå¿…é¡»æ˜¯0
                 brokerConfig.setBrokerId(MixAll.MASTER_ID);
                 break;
             case SLAVE:
@@ -160,10 +160,10 @@ public class BrokerStartup {
                 break;
             }
 
-            // Master¼àÌıSlaveÇëÇóµÄ¶Ë¿Ú£¬Ä¬ÈÏÎª·şÎñ¶Ë¿Ú+1
+            // Masterç›‘å¬Slaveè¯·æ±‚çš„ç«¯å£ï¼Œé»˜è®¤ä¸ºæœåŠ¡ç«¯å£+1
             messageStoreConfig.setHaListenPort(nettyServerConfig.getListenPort() + 1);
 
-            // ³õÊ¼»¯Logback
+            // åˆå§‹åŒ–Logback
             LoggerContext lc = (LoggerContext) LoggerFactory.getILoggerFactory();
             JoranConfigurator configurator = new JoranConfigurator();
             configurator.setContext(lc);
@@ -171,13 +171,13 @@ public class BrokerStartup {
             configurator.doConfigure(brokerConfig.getRocketmqHome() + "/conf/logback_broker.xml");
             final Logger log = LoggerFactory.getLogger(LoggerName.BrokerLoggerName);
 
-            // ´òÓ¡Æô¶¯²ÎÊı
+            // æ‰“å°å¯åŠ¨å‚æ•°
             MixAll.printObjectProperties(log, brokerConfig);
             MixAll.printObjectProperties(log, nettyServerConfig);
             MixAll.printObjectProperties(log, nettyClientConfig);
             MixAll.printObjectProperties(log, messageStoreConfig);
 
-            // ³õÊ¼»¯·şÎñ¿ØÖÆ¶ÔÏó
+            // åˆå§‹åŒ–æœåŠ¡æ§åˆ¶å¯¹è±¡
             final BrokerController controller = new BrokerController(//
                 brokerConfig, //
                 nettyServerConfig, //
@@ -209,7 +209,7 @@ public class BrokerStartup {
                 }
             }, "ShutdownHook"));
 
-            // Æô¶¯·şÎñ¿ØÖÆ¶ÔÏó
+            // å¯åŠ¨æœåŠ¡æ§åˆ¶å¯¹è±¡
             controller.start();
             String tip =
                     "The broker[" + controller.getBrokerConfig().getBrokerName() + ", "

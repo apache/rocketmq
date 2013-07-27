@@ -29,7 +29,7 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingSerializable;
 
 
 /**
- * ÓÃÀ´¹ÜÀí¶©ÔÄ×é£¬°üÀ¨¶©ÔÄÈ¨ÏŞµÈ
+ * ç”¨æ¥ç®¡ç†è®¢é˜…ç»„ï¼ŒåŒ…æ‹¬è®¢é˜…æƒé™ç­‰
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-26
@@ -38,7 +38,7 @@ public class SubscriptionGroupManager extends ConfigManager {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.BrokerLoggerName);
     private transient BrokerController brokerController;
 
-    // ¶©ÔÄ×é
+    // è®¢é˜…ç»„
     private final ConcurrentHashMap<String, SubscriptionGroupConfig> subscriptionGroupTable =
             new ConcurrentHashMap<String, SubscriptionGroupConfig>(1024);
     private final DataVersion dataVersion = new DataVersion();

@@ -20,7 +20,7 @@ import com.alibaba.rocketmq.common.message.Message;
 
 
 /**
- * Ö§³Ö·Ö²¼Ê½ÊÂÎñProducer
+ * æ”¯æŒåˆ†å¸ƒå¼äº‹åŠ¡Producer
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-25
@@ -28,15 +28,15 @@ import com.alibaba.rocketmq.common.message.Message;
 public class TransactionMQProducer extends DefaultMQProducer {
     private TransactionCheckListener transactionCheckListener;
     /**
-     * ÊÂÎñ»Ø²é×îĞ¡²¢·¢Êı
+     * äº‹åŠ¡å›æŸ¥æœ€å°å¹¶å‘æ•°
      */
     private int checkThreadPoolMinSize = 1;
     /**
-     * ÊÂÎñ»Ø²é×î´ó²¢·¢Êı
+     * äº‹åŠ¡å›æŸ¥æœ€å¤§å¹¶å‘æ•°
      */
     private int checkThreadPoolMaxSize = 1;
     /**
-     * ÊÂÎñ»Ø²é¶ÓÁĞÊı
+     * äº‹åŠ¡å›æŸ¥é˜Ÿåˆ—æ•°
      */
     private int checkRequestHoldMax = 2000;
 

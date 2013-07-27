@@ -34,7 +34,7 @@ import com.alibaba.rocketmq.store.SelectMapedBufferResult;
 
 
 /**
- * BrokerÖ÷¶¯µ÷ÓÃ¿Í»§¶Ë½Ó¿Ú
+ * Brokerä¸»åŠ¨è°ƒç”¨å®¢æˆ·ç«¯æ¥å£
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-26
@@ -50,7 +50,7 @@ public class Broker2Client {
 
 
     /**
-     * BrokerÖ÷¶¯»Ø²éProducerÊÂÎñ×´Ì¬£¬Oneway
+     * Brokerä¸»åŠ¨å›æŸ¥Produceräº‹åŠ¡çŠ¶æ€ï¼ŒOneway
      */
     public void checkProducerTransactionState(//
             final Channel channel,//
@@ -84,7 +84,7 @@ public class Broker2Client {
 
 
     /**
-     * BrokerÖ÷¶¯Í¨ÖªConsumer£¬IdÁĞ±í·¢Éú±ä»¯£¬Oneway
+     * Brokerä¸»åŠ¨é€šçŸ¥Consumerï¼ŒIdåˆ—è¡¨å‘ç”Ÿå˜åŒ–ï¼ŒOneway
      */
     public void notifyConsumerIdsChanged(//
             final Channel channel,//

@@ -9,7 +9,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 
 /**
- * Õë¶ÔĞ´ÓÅ»¯µÄByteBufferĞòÁĞ
+ * é’ˆå¯¹å†™ä¼˜åŒ–çš„ByteBufferåºåˆ—
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  */
@@ -97,7 +97,7 @@ public class LinkedByteBufferList {
     private final LinkedBlockingDeque<ByteBufferNode> bbnIdleList =
             new LinkedBlockingDeque<LinkedByteBufferList.ByteBufferNode>();
 
-    // ÊÇ·ñÒÑ¾­±»Notify¹ı
+    // æ˜¯å¦å·²ç»è¢«Notifyè¿‡
     protected volatile boolean hasNotified = false;
 
 
@@ -107,7 +107,7 @@ public class LinkedByteBufferList {
     }
 
 
-    // TODO ¿ÉÄÜĞèÒªÁ÷¿Ø
+    // TODO å¯èƒ½éœ€è¦æµæ§
     public void putData(final int reqId, final byte[] data) {
         final int HEADER_SIZE = 8;
         ByteBuffer header = ByteBuffer.allocate(HEADER_SIZE);
@@ -117,12 +117,12 @@ public class LinkedByteBufferList {
         synchronized (this) {
             int minHeader = Math.min(HEADER_SIZE, this.currentWriteNode.getByteBufferWrite().remaining());
             int minData = 0;
-            // ³¢ÊÔĞ´ÈëÍ·
+            // å°è¯•å†™å…¥å¤´
             if (minHeader > 0) {
                 this.currentWriteNode.getByteBufferWrite().put(header.array(), 0, minHeader);
                 this.currentWriteNode.getWriteOffset().addAndGet(minHeader);
             }
-            // ³¢ÊÔĞ´ÈëÌå
+            // å°è¯•å†™å…¥ä½“
             if (minHeader == HEADER_SIZE) {
                 minData = Math.min(data.length, this.currentWriteNode.getByteBufferWrite().remaining());
                 if (minData > 0) {
@@ -131,10 +131,10 @@ public class LinkedByteBufferList {
                 }
             }
 
-            // ĞèÒª´´½¨ĞÂµÄBuffer
+            // éœ€è¦åˆ›å»ºæ–°çš„Buffer
             if (!this.currentWriteNode.getByteBufferWrite().hasRemaining()) {
                 ByteBufferNode newNode = null;
-                // ³¢ÊÔ´Ó¿ÕÏĞ´¦È¡
+                // å°è¯•ä»ç©ºé—²å¤„å–
                 newNode = this.bbnIdleList.poll();
                 if (null == newNode) {
                     newNode = new ByteBufferNode();
@@ -143,7 +143,7 @@ public class LinkedByteBufferList {
                 this.currentWriteNode.setNextByteBufferNode(newNode.clearAndReturnNew());
                 this.currentWriteNode = newNode;
 
-                // ²¹³¥Header
+                // è¡¥å¿Header
                 int remainHeaderPut = HEADER_SIZE - minHeader;
                 int remainDataPut = data.length - minData;
                 if (remainHeaderPut > 0) {
@@ -152,7 +152,7 @@ public class LinkedByteBufferList {
                     this.currentWriteNode.getWriteOffset().addAndGet(remainHeaderPut);
                 }
 
-                // ²¹³¥Data
+                // è¡¥å¿Data
                 if (remainDataPut > 0) {
                     this.currentWriteNode.getByteBufferWrite().put(data, minData, remainDataPut);
                     this.currentWriteNode.getWriteOffset().addAndGet(remainDataPut);

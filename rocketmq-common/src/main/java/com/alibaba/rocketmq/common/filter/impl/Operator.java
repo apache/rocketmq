@@ -31,7 +31,7 @@ public class Operator extends Op {
     }
 
 
-    // -1 小于; 0 等于; 1大于
+    // -1 灏忎簬; 0 绛変簬; 1澶т簬
     public int compare(Operator operator) {
         if (this.priority > operator.priority)
             return 1;

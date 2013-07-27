@@ -53,7 +53,7 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingProtos.ResponseCode;
 
 
 /**
- * ¹ÜÀíÀà½Ó¿ÚÊµÏÖ
+ * ç®¡ç†ç±»æ¥å£å®ç°
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-24
@@ -74,14 +74,14 @@ public class MQAdminImpl {
                     this.mQClientFactory.getMQClientAPIImpl().getTopicRouteInfoFromNameServer(key, 1000 * 3);
             List<BrokerData> brokerDataList = topicRouteData.getBrokerDatas();
             if (brokerDataList != null && !brokerDataList.isEmpty()) {
-                // ÅÅĞòÔ­Òò£º¼´Ê¹Ã»ÓĞÅäÖÃË³ĞòÏûÏ¢Ä£Ê½£¬Ä¬ÈÏ¶ÓÁĞµÄË³ĞòÍ¬ÅäÖÃµÄÒ»ÖÂ¡£
+                // æ’åºåŸå› ï¼šå³ä½¿æ²¡æœ‰é…ç½®é¡ºåºæ¶ˆæ¯æ¨¡å¼ï¼Œé»˜è®¤é˜Ÿåˆ—çš„é¡ºåºåŒé…ç½®çš„ä¸€è‡´ã€‚
                 Collections.sort(brokerDataList);
 
                 MQClientException exception = null;
 
                 StringBuilder orderTopicString = new StringBuilder();
 
-                // ±éÀú¸÷¸öBroker
+                // éå†å„ä¸ªBroker
                 for (BrokerData brokerData : brokerDataList) {
                     String addr = brokerData.getBrokerAddrs().get(MixAll.MASTER_ID);
                     if (addr != null) {

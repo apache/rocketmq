@@ -8,166 +8,166 @@ public final class MQProtos {
     }
 
     public enum MQRequestCode {
-        // Broker ·¢ËÍÏûÏ¢
+        // Broker å‘é€æ¶ˆæ¯
         SEND_MESSAGE(0, 10),
-        // Broker ¶©ÔÄÏûÏ¢
+        // Broker è®¢é˜…æ¶ˆæ¯
         PULL_MESSAGE(1, 11),
-        // Broker ²éÑ¯ÏûÏ¢
+        // Broker æŸ¥è¯¢æ¶ˆæ¯
         QUERY_MESSAGE(2, 12),
-        // Broker ²éÑ¯Broker Offset
+        // Broker æŸ¥è¯¢Broker Offset
         QUERY_BROKER_OFFSET(3, 13),
-        // Broker ²éÑ¯Consumer Offset
+        // Broker æŸ¥è¯¢Consumer Offset
         QUERY_CONSUMER_OFFSET(4, 14),
-        // Broker ¸üĞÂConsumer Offset
+        // Broker æ›´æ–°Consumer Offset
         UPDATE_CONSUMER_OFFSET(5, 15),
-        // Broker ¸üĞÂ»òÕßÔö¼ÓÒ»¸öTopic
+        // Broker æ›´æ–°æˆ–è€…å¢åŠ ä¸€ä¸ªTopic
         UPDATE_AND_CREATE_TOPIC(6, 17),
-        // Broker É¾³ıÒ»¸öTopic£¬°üº¬Êı¾İÓëÅäÖÃ
+        // Broker åˆ é™¤ä¸€ä¸ªTopicï¼ŒåŒ…å«æ•°æ®ä¸é…ç½®
         DELETE_TOPIC(7, 19),
-        // Broker »ñÈ¡ËùÓĞTopicµÄÅäÖÃ£¨SlaveºÍNamesrv¶¼»áÏòMasterÇëÇó´ËÅäÖÃ£©
+        // Broker è·å–æ‰€æœ‰Topicçš„é…ç½®ï¼ˆSlaveå’ŒNamesrvéƒ½ä¼šå‘Masterè¯·æ±‚æ­¤é…ç½®ï¼‰
         GET_ALL_TOPIC_CONFIG(8, 21),
-        // Broker »ñÈ¡ËùÓĞTopicÅäÖÃ£¨SlaveºÍNamesrv¶¼»áÏòMasterÇëÇó´ËÅäÖÃ£©
+        // Broker è·å–æ‰€æœ‰Topicé…ç½®ï¼ˆSlaveå’ŒNamesrvéƒ½ä¼šå‘Masterè¯·æ±‚æ­¤é…ç½®ï¼‰
         GET_TOPIC_CONFIG_LIST(9, 22),
-        // Broker »ñÈ¡ËùÓĞTopicÃû³ÆÁĞ±í
+        // Broker è·å–æ‰€æœ‰Topicåç§°åˆ—è¡¨
         GET_TOPIC_NAME_LIST(10, 23),
-        // Broker Slave»ñÈ¡MasterËùÓĞConsumerÏû·Ñ½ø¶È
+        // Broker Slaveè·å–Masteræ‰€æœ‰Consumeræ¶ˆè´¹è¿›åº¦
         PULL_ALL_CONSUMER_OFFSET(11, 24),
-        // Broker ¸üĞÂBrokerÉÏµÄÅäÖÃ
+        // Broker æ›´æ–°Brokerä¸Šçš„é…ç½®
         UPDATE_BROKER_CONFIG(12, 25),
-        // Broker »ñÈ¡BrokerÉÏµÄÅäÖÃ
+        // Broker è·å–Brokerä¸Šçš„é…ç½®
         GET_BROKER_CONFIG(13, 26),
-        // Broker ´¥·¢BrokerÉ¾³ıÎÄ¼ş
+        // Broker è§¦å‘Brokeråˆ é™¤æ–‡ä»¶
         TRIGGER_DELETE_FILES(14, 27),
-        // Broker »ñÈ¡BrokerÔËĞĞÊ±ĞÅÏ¢
+        // Broker è·å–Brokerè¿è¡Œæ—¶ä¿¡æ¯
         GET_BROKER_RUNTIME_INFO(15, 28),
-        // Broker ¸ù¾İÊ±¼ä²éÑ¯¶ÓÁĞµÄOffset
+        // Broker æ ¹æ®æ—¶é—´æŸ¥è¯¢é˜Ÿåˆ—çš„Offset
         SEARCH_OFFSET_BY_TIMESTAMP(16, 29),
-        // Broker ²éÑ¯¶ÓÁĞ×î´óOffset
+        // Broker æŸ¥è¯¢é˜Ÿåˆ—æœ€å¤§Offset
         GET_MAX_OFFSET(17, 30),
-        // Broker ²éÑ¯¶ÓÁĞ×îĞ¡Offset
+        // Broker æŸ¥è¯¢é˜Ÿåˆ—æœ€å°Offset
         GET_MIN_OFFSET(18, 31),
-        // Broker ²éÑ¯¶ÓÁĞ×îÔçÏûÏ¢¶ÔÓ¦Ê±¼ä
+        // Broker æŸ¥è¯¢é˜Ÿåˆ—æœ€æ—©æ¶ˆæ¯å¯¹åº”æ—¶é—´
         GET_EARLIEST_MSG_STORETIME(19, 32),
-        // Broker ¸ù¾İÏûÏ¢IDÀ´²éÑ¯ÏûÏ¢
+        // Broker æ ¹æ®æ¶ˆæ¯IDæ¥æŸ¥è¯¢æ¶ˆæ¯
         VIEW_MESSAGE_BY_ID(20, 33),
-        // Broker ClientÏòClient·¢ËÍĞÄÌø£¬²¢×¢²á×ÔÉí
+        // Broker Clientå‘Clientå‘é€å¿ƒè·³ï¼Œå¹¶æ³¨å†Œè‡ªèº«
         HEART_BEAT(21, 34),
-        // Broker Client×¢Ïú
+        // Broker Clientæ³¨é”€
         UNREGISTER_CLIENT(22, 35),
-        // Broker Consumer½«´¦Àí²»ÁËµÄÏûÏ¢·¢»Ø·şÎñÆ÷
+        // Broker Consumerå°†å¤„ç†ä¸äº†çš„æ¶ˆæ¯å‘å›æœåŠ¡å™¨
         CONSUMER_SEND_MSG_BACK(23, 36),
-        // Broker Commit»òÕßRollbackÊÂÎñ
+        // Broker Commitæˆ–è€…Rollbackäº‹åŠ¡
         END_TRANSACTION(24, 37),
-        // Broker »ñÈ¡ConsumerIdÁĞ±íÍ¨¹ıGroupName
+        // Broker è·å–ConsumerIdåˆ—è¡¨é€šè¿‡GroupName
         GET_CONSUMER_LIST_BY_GROUP(25, 38),
-        // Broker Ö÷¶¯ÏòProducer»Ø²éÊÂÎñ×´Ì¬
+        // Broker ä¸»åŠ¨å‘Producerå›æŸ¥äº‹åŠ¡çŠ¶æ€
         CHECK_TRANSACTION_STATE(26, 39),
-        // Broker BrokerÍ¨ÖªConsumerÁĞ±í±ä»¯
+        // Broker Brokeré€šçŸ¥Consumeråˆ—è¡¨å˜åŒ–
         NOTIFY_CONSUMER_IDS_CHANGED(27, 40),
-        // Broker ConsumerÏòMasterËø¶¨¶ÓÁĞ
+        // Broker Consumerå‘Masteré”å®šé˜Ÿåˆ—
         LOCK_BATCH_MQ(28, 41),
-        // Broker ConsumerÏòMaster½âËø¶ÓÁĞ
+        // Broker Consumerå‘Masterè§£é”é˜Ÿåˆ—
         UNLOCK_BATCH_MQ(29, 42),
-        // Broker »ñÈ¡ËùÓĞConsumer Offset
+        // Broker è·å–æ‰€æœ‰Consumer Offset
         GET_ALL_CONSUMER_OFFSET(30, 43),
-        // Broker »ñÈ¡ËùÓĞ¶¨Ê±½ø¶È
+        // Broker è·å–æ‰€æœ‰å®šæ—¶è¿›åº¦
         GET_ALL_DELAY_OFFSET(32, 45),
-        // Namesrv ÏòNamesrv×·¼ÓKVÅäÖÃ
+        // Namesrv å‘Namesrvè¿½åŠ KVé…ç½®
         PUT_KV_CONFIG(33, 100),
-        // Namesrv ´ÓNamesrv»ñÈ¡KVÅäÖÃ
+        // Namesrv ä»Namesrvè·å–KVé…ç½®
         GET_KV_CONFIG(34, 101),
-        // Namesrv ´ÓNamesrv»ñÈ¡KVÅäÖÃ
+        // Namesrv ä»Namesrvè·å–KVé…ç½®
         DELETE_KV_CONFIG(35, 102),
-        // Namesrv ×¢²áÒ»¸öBroker£¬Êı¾İ¶¼ÊÇ³Ö¾Ã»¯µÄ£¬Èç¹û´æÔÚÔò¸²¸ÇÅäÖÃ
+        // Namesrv æ³¨å†Œä¸€ä¸ªBrokerï¼Œæ•°æ®éƒ½æ˜¯æŒä¹…åŒ–çš„ï¼Œå¦‚æœå­˜åœ¨åˆ™è¦†ç›–é…ç½®
         REGISTER_BROKER(36, 103),
-        // Namesrv Ğ¶ÔØÒ»¸öBroker£¬Êı¾İ¶¼ÊÇ³Ö¾Ã»¯µÄ
+        // Namesrv å¸è½½ä¸€ä¸ªBrokerï¼Œæ•°æ®éƒ½æ˜¯æŒä¹…åŒ–çš„
         UNREGISTER_BROKER(37, 104),
-        // Namesrv ¸ù¾İTopic»ñÈ¡Broker Name¡¢¶ÓÁĞÊı(°üº¬¶Á¶ÓÁĞÓëĞ´¶ÓÁĞ)
+        // Namesrv æ ¹æ®Topicè·å–Broker Nameã€é˜Ÿåˆ—æ•°(åŒ…å«è¯»é˜Ÿåˆ—ä¸å†™é˜Ÿåˆ—)
         GET_ROUTEINTO_BY_TOPIC(38, 105),
-        // Namesrv »ñÈ¡×¢²áµ½Name ServerµÄËùÓĞBroker¼¯ÈºĞÅÏ¢
+        // Namesrv è·å–æ³¨å†Œåˆ°Name Serverçš„æ‰€æœ‰Brokeré›†ç¾¤ä¿¡æ¯
         GET_BROKER_CLUSTER_INFO(39, 106),
 
-        // Broker ¸üĞÂ»òÕßÔö¼ÓÒ»¸ö¶©ÔÄ×é
+        // Broker æ›´æ–°æˆ–è€…å¢åŠ ä¸€ä¸ªè®¢é˜…ç»„
         UPDATE_AND_CREATE_SUBSCRIPTIONGROUP(40, 200),
         GET_ALL_SUBSCRIPTIONGROUP_CONFIG(41, 201), ;
 
-        // Broker ·¢ËÍÏûÏ¢
+        // Broker å‘é€æ¶ˆæ¯
         public static final int SEND_MESSAGE_VALUE = 10;
-        // Broker ¶©ÔÄÏûÏ¢
+        // Broker è®¢é˜…æ¶ˆæ¯
         public static final int PULL_MESSAGE_VALUE = 11;
-        // Broker ²éÑ¯ÏûÏ¢
+        // Broker æŸ¥è¯¢æ¶ˆæ¯
         public static final int QUERY_MESSAGE_VALUE = 12;
-        // Broker ²éÑ¯Broker Offset
+        // Broker æŸ¥è¯¢Broker Offset
         public static final int QUERY_BROKER_OFFSET_VALUE = 13;
-        // Broker ²éÑ¯Consumer Offset
+        // Broker æŸ¥è¯¢Consumer Offset
         public static final int QUERY_CONSUMER_OFFSET_VALUE = 14;
-        // Broker ¸üĞÂConsumer Offset
+        // Broker æ›´æ–°Consumer Offset
         public static final int UPDATE_CONSUMER_OFFSET_VALUE = 15;
-        // Broker ¸üĞÂ»òÕßÔö¼ÓÒ»¸öTopic
+        // Broker æ›´æ–°æˆ–è€…å¢åŠ ä¸€ä¸ªTopic
         public static final int UPDATE_AND_CREATE_TOPIC_VALUE = 17;
-        // Broker É¾³ıÒ»¸öTopic£¬°üº¬Êı¾İÓëÅäÖÃ
+        // Broker åˆ é™¤ä¸€ä¸ªTopicï¼ŒåŒ…å«æ•°æ®ä¸é…ç½®
         public static final int DELETE_TOPIC_VALUE = 19;
-        // Broker »ñÈ¡ËùÓĞTopicµÄÅäÖÃ£¨SlaveºÍNamesrv¶¼»áÏòMasterÇëÇó´ËÅäÖÃ£©
+        // Broker è·å–æ‰€æœ‰Topicçš„é…ç½®ï¼ˆSlaveå’ŒNamesrvéƒ½ä¼šå‘Masterè¯·æ±‚æ­¤é…ç½®ï¼‰
         public static final int GET_ALL_TOPIC_CONFIG_VALUE = 21;
-        // Broker »ñÈ¡ËùÓĞTopicÅäÖÃ£¨SlaveºÍNamesrv¶¼»áÏòMasterÇëÇó´ËÅäÖÃ£©
+        // Broker è·å–æ‰€æœ‰Topicé…ç½®ï¼ˆSlaveå’ŒNamesrvéƒ½ä¼šå‘Masterè¯·æ±‚æ­¤é…ç½®ï¼‰
         public static final int GET_TOPIC_CONFIG_LIST_VALUE = 22;
-        // Broker »ñÈ¡ËùÓĞTopicÃû³ÆÁĞ±í
+        // Broker è·å–æ‰€æœ‰Topicåç§°åˆ—è¡¨
         public static final int GET_TOPIC_NAME_LIST_VALUE = 23;
-        // Broker Slave»ñÈ¡MasterËùÓĞConsumerÏû·Ñ½ø¶È
+        // Broker Slaveè·å–Masteræ‰€æœ‰Consumeræ¶ˆè´¹è¿›åº¦
         public static final int PULL_ALL_CONSUMER_OFFSET_VALUE = 24;
-        // Broker ¸üĞÂBrokerÉÏµÄÅäÖÃ
+        // Broker æ›´æ–°Brokerä¸Šçš„é…ç½®
         public static final int UPDATE_BROKER_CONFIG_VALUE = 25;
-        // Broker »ñÈ¡BrokerÉÏµÄÅäÖÃ
+        // Broker è·å–Brokerä¸Šçš„é…ç½®
         public static final int GET_BROKER_CONFIG_VALUE = 26;
-        // Broker ´¥·¢BrokerÉ¾³ıÎÄ¼ş
+        // Broker è§¦å‘Brokeråˆ é™¤æ–‡ä»¶
         public static final int TRIGGER_DELETE_FILES_VALUE = 27;
-        // Broker »ñÈ¡BrokerÔËĞĞÊ±ĞÅÏ¢
+        // Broker è·å–Brokerè¿è¡Œæ—¶ä¿¡æ¯
         public static final int GET_BROKER_RUNTIME_INFO_VALUE = 28;
-        // Broker ¸ù¾İÊ±¼ä²éÑ¯¶ÓÁĞµÄOffset
+        // Broker æ ¹æ®æ—¶é—´æŸ¥è¯¢é˜Ÿåˆ—çš„Offset
         public static final int SEARCH_OFFSET_BY_TIMESTAMP_VALUE = 29;
-        // Broker ²éÑ¯¶ÓÁĞ×î´óOffset
+        // Broker æŸ¥è¯¢é˜Ÿåˆ—æœ€å¤§Offset
         public static final int GET_MAX_OFFSET_VALUE = 30;
-        // Broker ²éÑ¯¶ÓÁĞ×îĞ¡Offset
+        // Broker æŸ¥è¯¢é˜Ÿåˆ—æœ€å°Offset
         public static final int GET_MIN_OFFSET_VALUE = 31;
-        // Broker ²éÑ¯¶ÓÁĞ×îÔçÏûÏ¢¶ÔÓ¦Ê±¼ä
+        // Broker æŸ¥è¯¢é˜Ÿåˆ—æœ€æ—©æ¶ˆæ¯å¯¹åº”æ—¶é—´
         public static final int GET_EARLIEST_MSG_STORETIME_VALUE = 32;
-        // Broker ¸ù¾İÏûÏ¢IDÀ´²éÑ¯ÏûÏ¢
+        // Broker æ ¹æ®æ¶ˆæ¯IDæ¥æŸ¥è¯¢æ¶ˆæ¯
         public static final int VIEW_MESSAGE_BY_ID_VALUE = 33;
-        // Broker ClientÏòClient·¢ËÍĞÄÌø£¬²¢×¢²á×ÔÉí
+        // Broker Clientå‘Clientå‘é€å¿ƒè·³ï¼Œå¹¶æ³¨å†Œè‡ªèº«
         public static final int HEART_BEAT_VALUE = 34;
-        // Broker Client×¢Ïú
+        // Broker Clientæ³¨é”€
         public static final int UNREGISTER_CLIENT_VALUE = 35;
-        // Broker Consumer½«´¦Àí²»ÁËµÄÏûÏ¢·¢»Ø·şÎñÆ÷
+        // Broker Consumerå°†å¤„ç†ä¸äº†çš„æ¶ˆæ¯å‘å›æœåŠ¡å™¨
         public static final int CONSUMER_SEND_MSG_BACK_VALUE = 36;
-        // Broker Commit»òÕßRollbackÊÂÎñ
+        // Broker Commitæˆ–è€…Rollbackäº‹åŠ¡
         public static final int END_TRANSACTION_VALUE = 37;
-        // Broker »ñÈ¡ConsumerIdÁĞ±íÍ¨¹ıGroupName
+        // Broker è·å–ConsumerIdåˆ—è¡¨é€šè¿‡GroupName
         public static final int GET_CONSUMER_LIST_BY_GROUP_VALUE = 38;
-        // Broker Ö÷¶¯ÏòProducer»Ø²éÊÂÎñ×´Ì¬
+        // Broker ä¸»åŠ¨å‘Producerå›æŸ¥äº‹åŠ¡çŠ¶æ€
         public static final int CHECK_TRANSACTION_STATE_VALUE = 39;
-        // Broker BrokerÍ¨ÖªConsumerÁĞ±í±ä»¯
+        // Broker Brokeré€šçŸ¥Consumeråˆ—è¡¨å˜åŒ–
         public static final int NOTIFY_CONSUMER_IDS_CHANGED_VALUE = 40;
-        // Broker ConsumerÏòMasterËø¶¨¶ÓÁĞ
+        // Broker Consumerå‘Masteré”å®šé˜Ÿåˆ—
         public static final int LOCK_BATCH_MQ_VALUE = 41;
-        // Broker ConsumerÏòMaster½âËø¶ÓÁĞ
+        // Broker Consumerå‘Masterè§£é”é˜Ÿåˆ—
         public static final int UNLOCK_BATCH_MQ_VALUE = 42;
-        // Broker »ñÈ¡ËùÓĞConsumer Offset
+        // Broker è·å–æ‰€æœ‰Consumer Offset
         public static final int GET_ALL_CONSUMER_OFFSET_VALUE = 43;
-        // Broker »ñÈ¡ËùÓĞ¶¨Ê±½ø¶È
+        // Broker è·å–æ‰€æœ‰å®šæ—¶è¿›åº¦
         public static final int GET_ALL_DELAY_OFFSET_VALUE = 45;
-        // Namesrv ÏòNamesrv×·¼ÓKVÅäÖÃ
+        // Namesrv å‘Namesrvè¿½åŠ KVé…ç½®
         public static final int PUT_KV_CONFIG_VALUE = 100;
-        // Namesrv ´ÓNamesrv»ñÈ¡KVÅäÖÃ
+        // Namesrv ä»Namesrvè·å–KVé…ç½®
         public static final int GET_KV_CONFIG_VALUE = 101;
-        // Namesrv ´ÓNamesrv»ñÈ¡KVÅäÖÃ
+        // Namesrv ä»Namesrvè·å–KVé…ç½®
         public static final int DELETE_KV_CONFIG_VALUE = 102;
-        // Namesrv ×¢²áÒ»¸öBroker£¬Êı¾İ¶¼ÊÇ³Ö¾Ã»¯µÄ£¬Èç¹û´æÔÚÔò¸²¸ÇÅäÖÃ
+        // Namesrv æ³¨å†Œä¸€ä¸ªBrokerï¼Œæ•°æ®éƒ½æ˜¯æŒä¹…åŒ–çš„ï¼Œå¦‚æœå­˜åœ¨åˆ™è¦†ç›–é…ç½®
         public static final int REGISTER_BROKER_VALUE = 103;
-        // Namesrv Ğ¶ÔØÒ»¸öBroker£¬Êı¾İ¶¼ÊÇ³Ö¾Ã»¯µÄ
+        // Namesrv å¸è½½ä¸€ä¸ªBrokerï¼Œæ•°æ®éƒ½æ˜¯æŒä¹…åŒ–çš„
         public static final int UNREGISTER_BROKER_VALUE = 104;
-        // Namesrv ¸ù¾İTopic»ñÈ¡Broker Name¡¢¶ÓÁĞÊı(°üº¬¶Á¶ÓÁĞÓëĞ´¶ÓÁĞ)
+        // Namesrv æ ¹æ®Topicè·å–Broker Nameã€é˜Ÿåˆ—æ•°(åŒ…å«è¯»é˜Ÿåˆ—ä¸å†™é˜Ÿåˆ—)
         public static final int GET_ROUTEINTO_BY_TOPIC_VALUE = 105;
-        // Namesrv »ñÈ¡×¢²áµ½Name ServerµÄËùÓĞBroker¼¯ÈºĞÅÏ¢
+        // Namesrv è·å–æ³¨å†Œåˆ°Name Serverçš„æ‰€æœ‰Brokeré›†ç¾¤ä¿¡æ¯
         public static final int GET_BROKER_CLUSTER_INFO_VALUE = 106;
 
         public static final int UPDATE_AND_CREATE_SUBSCRIPTIONGROUP_VALUE = 200;
@@ -285,90 +285,90 @@ public final class MQProtos {
     }
 
     public enum MQResponseCode {
-        // Broker Ë¢ÅÌ³¬Ê±
+        // Broker åˆ·ç›˜è¶…æ—¶
         FLUSH_DISK_TIMEOUT(0, 10),
-        // Broker Í¬²½Ë«Ğ´£¬Slave²»¿ÉÓÃ
+        // Broker åŒæ­¥åŒå†™ï¼ŒSlaveä¸å¯ç”¨
         SLAVE_NOT_AVAILABLE(1, 11),
-        // Broker Í¬²½Ë«Ğ´£¬µÈ´ıSlaveÓ¦´ğ³¬Ê±
+        // Broker åŒæ­¥åŒå†™ï¼Œç­‰å¾…Slaveåº”ç­”è¶…æ—¶
         FLUSH_SLAVE_TIMEOUT(2, 12),
-        // Broker ÏûÏ¢·Ç·¨
+        // Broker æ¶ˆæ¯éæ³•
         MESSAGE_ILLEGAL(3, 13),
-        // Broker, Namesrv ·şÎñ²»¿ÉÓÃ£¬¿ÉÄÜÊÇÕıÔÚ¹Ø±Õ»òÕßÈ¨ÏŞÎÊÌâ
+        // Broker, Namesrv æœåŠ¡ä¸å¯ç”¨ï¼Œå¯èƒ½æ˜¯æ­£åœ¨å…³é—­æˆ–è€…æƒé™é—®é¢˜
         SERVICE_NOT_AVAILABLE(4, 14),
-        // Broker, Namesrv °æ±¾ºÅ²»Ö§³Ö
+        // Broker, Namesrv ç‰ˆæœ¬å·ä¸æ”¯æŒ
         VERSION_NOT_SUPPORTED(5, 15),
-        // Broker, Namesrv ÎŞÈ¨ÏŞÖ´ĞĞ´Ë²Ù×÷£¬¿ÉÄÜÊÇ·¢¡¢ÊÕ¡¢»òÕßÆäËû²Ù×÷
+        // Broker, Namesrv æ— æƒé™æ‰§è¡Œæ­¤æ“ä½œï¼Œå¯èƒ½æ˜¯å‘ã€æ”¶ã€æˆ–è€…å…¶ä»–æ“ä½œ
         NO_PERMISSION(6, 16),
-        // Broker, Topic²»´æÔÚ
+        // Broker, Topicä¸å­˜åœ¨
         TOPIC_NOT_EXIST(7, 17),
-        // Broker, TopicÒÑ¾­´æÔÚ£¬´´½¨Topic
+        // Broker, Topicå·²ç»å­˜åœ¨ï¼Œåˆ›å»ºTopic
         TOPIC_EXIST_ALREADY(8, 18),
-        // Broker À­ÏûÏ¢Î´ÕÒµ½£¨ÇëÇóµÄOffsetµÈÓÚ×î´óOffset£¬×î´óOffsetÎŞ¶ÔÓ¦ÏûÏ¢£©
+        // Broker æ‹‰æ¶ˆæ¯æœªæ‰¾åˆ°ï¼ˆè¯·æ±‚çš„Offsetç­‰äºæœ€å¤§Offsetï¼Œæœ€å¤§Offsetæ— å¯¹åº”æ¶ˆæ¯ï¼‰
         PULL_NOT_FOUND(9, 19),
-        // Broker ¿ÉÄÜ±»¹ıÂË£¬»òÕßÎóÍ¨ÖªµÈ
+        // Broker å¯èƒ½è¢«è¿‡æ»¤ï¼Œæˆ–è€…è¯¯é€šçŸ¥ç­‰
         PULL_RETRY_IMMEDIATELY(10, 20),
-        // Broker À­ÏûÏ¢ÇëÇóµÄOffset²»ºÏ·¨£¬Ì«Ğ¡»òÌ«´ó
+        // Broker æ‹‰æ¶ˆæ¯è¯·æ±‚çš„Offsetä¸åˆæ³•ï¼Œå¤ªå°æˆ–å¤ªå¤§
         PULL_OFFSET_MOVED(11, 21),
-        // Broker ²éÑ¯ÏûÏ¢Î´ÕÒµ½
+        // Broker æŸ¥è¯¢æ¶ˆæ¯æœªæ‰¾åˆ°
         QUERY_NOT_FOUND(12, 22),
-        // Broker ¶©ÔÄ¹ØÏµ½âÎöÊ§°Ü
+        // Broker è®¢é˜…å…³ç³»è§£æå¤±è´¥
         SUBSCRIPTION_PARSE_FAILED(13, 23),
-        // Broker ¶©ÔÄ¹ØÏµ²»´æÔÚ
+        // Broker è®¢é˜…å…³ç³»ä¸å­˜åœ¨
         SUBSCRIPTION_NOT_EXIST(14, 24),
-        // Broker ¶©ÔÄ¹ØÏµ²»ÊÇ×îĞÂµÄ
+        // Broker è®¢é˜…å…³ç³»ä¸æ˜¯æœ€æ–°çš„
         SUBSCRIPTION_NOT_LATEST(15, 25),
-        // Broker ¶©ÔÄ×é²»´æÔÚ
+        // Broker è®¢é˜…ç»„ä¸å­˜åœ¨
         SUBSCRIPTION_GROUP_NOT_EXIST(16, 26),
-        // Producer ÊÂÎñÓ¦¸Ã±»Ìá½»
+        // Producer äº‹åŠ¡åº”è¯¥è¢«æäº¤
         TRANSACTION_SHOULD_COMMIT(17, 200),
-        // Producer ÊÂÎñÓ¦¸Ã±»»Ø¹ö
+        // Producer äº‹åŠ¡åº”è¯¥è¢«å›æ»š
         TRANSACTION_SHOULD_ROLLBACK(18, 201),
-        // Producer ÊÂÎñ×´Ì¬Î´Öª
+        // Producer äº‹åŠ¡çŠ¶æ€æœªçŸ¥
         TRANSACTION_STATE_UNKNOW(19, 202),
-        // Producer ProducerGroup´íÎó
+        // Producer ProducerGroupé”™è¯¯
         TRANSACTION_STATE_GROUP_WRONG(20, 203), ;
 
-        // Broker Ë¢ÅÌ³¬Ê±
+        // Broker åˆ·ç›˜è¶…æ—¶
         public static final int FLUSH_DISK_TIMEOUT_VALUE = 10;
-        // Broker Í¬²½Ë«Ğ´£¬Slave²»¿ÉÓÃ
+        // Broker åŒæ­¥åŒå†™ï¼ŒSlaveä¸å¯ç”¨
         public static final int SLAVE_NOT_AVAILABLE_VALUE = 11;
-        // Broker Í¬²½Ë«Ğ´£¬µÈ´ıSlaveÓ¦´ğ³¬Ê±
+        // Broker åŒæ­¥åŒå†™ï¼Œç­‰å¾…Slaveåº”ç­”è¶…æ—¶
         public static final int FLUSH_SLAVE_TIMEOUT_VALUE = 12;
-        // Broker ÏûÏ¢·Ç·¨
+        // Broker æ¶ˆæ¯éæ³•
         public static final int MESSAGE_ILLEGAL_VALUE = 13;
-        // Broker, Namesrv ·şÎñ²»¿ÉÓÃ£¬¿ÉÄÜÊÇÕıÔÚ¹Ø±Õ»òÕßÈ¨ÏŞÎÊÌâ
+        // Broker, Namesrv æœåŠ¡ä¸å¯ç”¨ï¼Œå¯èƒ½æ˜¯æ­£åœ¨å…³é—­æˆ–è€…æƒé™é—®é¢˜
         public static final int SERVICE_NOT_AVAILABLE_VALUE = 14;
-        // Broker, Namesrv °æ±¾ºÅ²»Ö§³Ö
+        // Broker, Namesrv ç‰ˆæœ¬å·ä¸æ”¯æŒ
         public static final int VERSION_NOT_SUPPORTED_VALUE = 15;
-        // Broker, Namesrv ÎŞÈ¨ÏŞÖ´ĞĞ´Ë²Ù×÷£¬¿ÉÄÜÊÇ·¢¡¢ÊÕ¡¢»òÕßÆäËû²Ù×÷
+        // Broker, Namesrv æ— æƒé™æ‰§è¡Œæ­¤æ“ä½œï¼Œå¯èƒ½æ˜¯å‘ã€æ”¶ã€æˆ–è€…å…¶ä»–æ“ä½œ
         public static final int NO_PERMISSION_VALUE = 16;
-        // Broker, Topic²»´æÔÚ
+        // Broker, Topicä¸å­˜åœ¨
         public static final int TOPIC_NOT_EXIST_VALUE = 17;
-        // Broker, TopicÒÑ¾­´æÔÚ£¬´´½¨Topic
+        // Broker, Topicå·²ç»å­˜åœ¨ï¼Œåˆ›å»ºTopic
         public static final int TOPIC_EXIST_ALREADY_VALUE = 18;
-        // Broker À­ÏûÏ¢Î´ÕÒµ½£¨ÇëÇóµÄOffsetµÈÓÚ×î´óOffset£¬×î´óOffsetÎŞ¶ÔÓ¦ÏûÏ¢£©
+        // Broker æ‹‰æ¶ˆæ¯æœªæ‰¾åˆ°ï¼ˆè¯·æ±‚çš„Offsetç­‰äºæœ€å¤§Offsetï¼Œæœ€å¤§Offsetæ— å¯¹åº”æ¶ˆæ¯ï¼‰
         public static final int PULL_NOT_FOUND_VALUE = 19;
-        // Broker ¿ÉÄÜ±»¹ıÂË£¬»òÕßÎóÍ¨ÖªµÈ
+        // Broker å¯èƒ½è¢«è¿‡æ»¤ï¼Œæˆ–è€…è¯¯é€šçŸ¥ç­‰
         public static final int PULL_RETRY_IMMEDIATELY_VALUE = 20;
-        // Broker À­ÏûÏ¢ÇëÇóµÄOffset²»ºÏ·¨£¬Ì«Ğ¡»òÌ«´ó
+        // Broker æ‹‰æ¶ˆæ¯è¯·æ±‚çš„Offsetä¸åˆæ³•ï¼Œå¤ªå°æˆ–å¤ªå¤§
         public static final int PULL_OFFSET_MOVED_VALUE = 21;
-        // Broker ²éÑ¯ÏûÏ¢Î´ÕÒµ½
+        // Broker æŸ¥è¯¢æ¶ˆæ¯æœªæ‰¾åˆ°
         public static final int QUERY_NOT_FOUND_VALUE = 22;
-        // Broker ¶©ÔÄ¹ØÏµ½âÎöÊ§°Ü
+        // Broker è®¢é˜…å…³ç³»è§£æå¤±è´¥
         public static final int SUBSCRIPTION_PARSE_FAILED_VALUE = 23;
-        // Broker ¶©ÔÄ¹ØÏµ²»´æÔÚ
+        // Broker è®¢é˜…å…³ç³»ä¸å­˜åœ¨
         public static final int SUBSCRIPTION_NOT_EXIST_VALUE = 24;
-        // Broker ¶©ÔÄ¹ØÏµ²»ÊÇ×îĞÂµÄ
+        // Broker è®¢é˜…å…³ç³»ä¸æ˜¯æœ€æ–°çš„
         public static final int SUBSCRIPTION_NOT_LATEST_VALUE = 25;
-        // Broker ¶©ÔÄ×é²»´æÔÚ
+        // Broker è®¢é˜…ç»„ä¸å­˜åœ¨
         public static final int SUBSCRIPTION_GROUP_NOT_EXIST_VALUE = 26;
-        // Producer ÊÂÎñÓ¦¸Ã±»Ìá½»
+        // Producer äº‹åŠ¡åº”è¯¥è¢«æäº¤
         public static final int TRANSACTION_SHOULD_COMMIT_VALUE = 200;
-        // Producer ÊÂÎñÓ¦¸Ã±»»Ø¹ö
+        // Producer äº‹åŠ¡åº”è¯¥è¢«å›æ»š
         public static final int TRANSACTION_SHOULD_ROLLBACK_VALUE = 201;
-        // Producer ÊÂÎñ×´Ì¬Î´Öª
+        // Producer äº‹åŠ¡çŠ¶æ€æœªçŸ¥
         public static final int TRANSACTION_STATE_UNKNOW_VALUE = 202;
-        // Producer ProducerGroup´íÎó
+        // Producer ProducerGroupé”™è¯¯
         public static final int TRANSACTION_STATE_GROUP_WRONG_VALUE = 203;
 
 

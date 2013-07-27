@@ -35,7 +35,7 @@ import com.alibaba.rocketmq.common.protocol.heartbeat.SubscriptionData;
 
 
 /**
- * Õû¸öConsumer GroupĞÅÏ¢
+ * æ•´ä¸ªConsumer Groupä¿¡æ¯
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-26
@@ -107,7 +107,7 @@ public class ConsumerGroupInfo {
 
 
     /**
-     * ·µ»ØÖµ±íÊ¾ÊÇ·ñ·¢Éú±ä¸ü
+     * è¿”å›å€¼è¡¨ç¤ºæ˜¯å¦å‘ç”Ÿå˜æ›´
      */
     public boolean updateChannel(final ClientChannelInfo clientChannelInfo, ConsumeType consumeType,
             MessageModel messageModel, ConsumeFromWhere consumeFromWhere) {
@@ -133,7 +133,7 @@ public class ConsumerGroupInfo {
 
 
     /**
-     * ·µ»ØÖµ±íÊ¾ÊÇ·ñ·¢Éú±ä¸ü
+     * è¿”å›å€¼è¡¨ç¤ºæ˜¯å¦å‘ç”Ÿå˜æ›´
      */
     public boolean updateSubscription(final Set<SubscriptionData> subList) {
         boolean updated = false;
@@ -158,8 +158,8 @@ public class ConsumerGroupInfo {
             }
         }
 
-        // TODO ÊÇ·ñĞèÒªÉ¾³ı¶àÓàµÄ¶©ÔÄ¹ØÏµ£¬²»É¾³ıËÆºõÒ²Ã»É¶Ó°Ïì
-        // ÕâÀïÈç¹ûÈ·ÊµÓĞtopicÈ¡Ïû¶©ÔÄÁË£¬ Ó¦¸Ã·µ»Øtrue
+        // TODO æ˜¯å¦éœ€è¦åˆ é™¤å¤šä½™çš„è®¢é˜…å…³ç³»ï¼Œä¸åˆ é™¤ä¼¼ä¹ä¹Ÿæ²¡å•¥å½±å“
+        // è¿™é‡Œå¦‚æœç¡®å®æœ‰topicå–æ¶ˆè®¢é˜…äº†ï¼Œ åº”è¯¥è¿”å›true
 
         this.lastUpdateTimestamp = System.currentTimeMillis();
 

@@ -16,7 +16,7 @@
 package com.alibaba.rocketmq.store;
 
 /**
- * ·Ö·¢ÏûÏ¢Î»ÖÃĞÅÏ¢µ½Âß¼­¶ÓÁĞºÍË÷Òı·şÎñ
+ * åˆ†å‘æ¶ˆæ¯ä½ç½®ä¿¡æ¯åˆ°é€»è¾‘é˜Ÿåˆ—å’Œç´¢å¼•æœåŠ¡
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-21
@@ -32,7 +32,7 @@ public class DispatchRequest {
     private final String keys;
 
     /**
-     * ÊÂÎñÏà¹Ø²¿·Ö
+     * äº‹åŠ¡ç›¸å…³éƒ¨åˆ†
      */
     private final int sysFlag;
     private final long tranStateTableOffset;
@@ -50,13 +50,13 @@ public class DispatchRequest {
             final long consumeQueueOffset,// 7
             final String keys,// 8
             /**
-             * ÊÂÎñÏà¹Ø²¿·Ö
+             * äº‹åŠ¡ç›¸å…³éƒ¨åˆ†
              */
             final int sysFlag,// 9
             final long tranStateTableOffset,// 10
             final long preparedTransactionOffset,// 11
             final String producerGroup// 12
-                                      // Èç¹ûproducerGroupÎª¿Õ£¬±íÊ¾ÊÇrecover¹ı³Ì£¬ËùÒÔ²»¸üĞÂ
+                                      // å¦‚æœproducerGroupä¸ºç©ºï¼Œè¡¨ç¤ºæ˜¯recoverè¿‡ç¨‹ï¼Œæ‰€ä»¥ä¸æ›´æ–°
                                       // Transaction state
                                       // table
     ) {
@@ -70,7 +70,7 @@ public class DispatchRequest {
         this.keys = keys;
 
         /**
-         * ÊÂÎñÏà¹Ø²¿·Ö
+         * äº‹åŠ¡ç›¸å…³éƒ¨åˆ†
          */
         this.sysFlag = sysFlag;
         this.tranStateTableOffset = tranStateTableOffset;
@@ -98,7 +98,7 @@ public class DispatchRequest {
         this.keys = "";
 
         /**
-         * ÊÂÎñÏà¹Ø²¿·Ö
+         * äº‹åŠ¡ç›¸å…³éƒ¨åˆ†
          */
         this.sysFlag = 0;
         this.tranStateTableOffset = 0;

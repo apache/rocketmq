@@ -38,7 +38,7 @@ import com.alibaba.rocketmq.store.SelectMapedBufferResult;
 
 
 /**
- * ¶¨Ê±ÏûÏ¢·şÎñ
+ * å®šæ—¶æ¶ˆæ¯æœåŠ¡
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-21
@@ -50,21 +50,21 @@ public class ScheduleMessageService extends ConfigManager {
     private static final long DELAY_FOR_A_WHILE = 100L;
     private static final long DELAY_FOR_A_PERIOD = 10000L;
 
-    // Ã¿¸ölevel¶ÔÓ¦µÄÑÓÊ±Ê±¼ä
+    // æ¯ä¸ªlevelå¯¹åº”çš„å»¶æ—¶æ—¶é—´
     private final ConcurrentHashMap<Integer /* level */, Long/* delay timeMillis */> delayLevelTable =
             new ConcurrentHashMap<Integer, Long>(32);
 
-    // ÑÓÊ±¼ÆËãµ½ÁËÄÄÀï
+    // å»¶æ—¶è®¡ç®—åˆ°äº†å“ªé‡Œ
     private final ConcurrentHashMap<Integer /* level */, Long/* offset */> offsetTable =
             new ConcurrentHashMap<Integer, Long>(32);
 
-    // ×î´óÖµ
+    // æœ€å¤§å€¼
     private int maxDelayLevel;
 
-    // ¶¨Ê±Æ÷
+    // å®šæ—¶å™¨
     private final Timer timer = new Timer("ScheduleMessageTimerThread", true);
 
-    // ´æ´¢¶¥²ã¶ÔÏó
+    // å­˜å‚¨é¡¶å±‚å¯¹è±¡
     private final DefaultMessageStore defaultMessageStore;
 
     class DeliverDelayedMessageTimerTask extends TimerTask {
@@ -112,10 +112,10 @@ public class ScheduleMessageService extends ConfigManager {
             msgInner.setWaitStoreMsgOK(false);
             msgInner.clearProperty(Message.PROPERTY_DELAY_TIME_LEVEL);
 
-            // »Ö¸´Topic
+            // æ¢å¤Topic
             msgInner.setTopic(msgInner.getProperty(Message.PROPERTY_REAL_TOPIC));
 
-            // »Ö¸´QueueId
+            // æ¢å¤QueueId
             String queueIdStr = msgInner.getProperty(Message.PROPERTY_REAL_QUEUE_ID);
             int queueId = Integer.parseInt(queueIdStr);
             msgInner.setQueueId(queueId);
@@ -139,13 +139,13 @@ public class ScheduleMessageService extends ConfigManager {
                             int sizePy = bufferCQ.getByteBuffer().getInt();
                             long tagsCode = bufferCQ.getByteBuffer().getLong();
 
-                            // ¶ÓÁĞÀï´æ´¢µÄtagsCodeÊµ¼ÊÊÇÒ»¸öÊ±¼äµã
+                            // é˜Ÿåˆ—é‡Œå­˜å‚¨çš„tagsCodeå®é™…æ˜¯ä¸€ä¸ªæ—¶é—´ç‚¹
                             long deliverTimestamp = tagsCode;
 
                             nextOffset = offset + (i / ConsumeQueue.CQStoreUnitSize);
 
                             long countdown = deliverTimestamp - System.currentTimeMillis();
-                            // Ê±¼äµ½ÁË£¬¸ÃÍ¶µİ
+                            // æ—¶é—´åˆ°äº†ï¼Œè¯¥æŠ•é€’
                             if (countdown <= 0) {
                                 MessageExt msgExt =
                                         ScheduleMessageService.this.defaultMessageStore.lookMessageByOffset(
@@ -155,12 +155,12 @@ public class ScheduleMessageService extends ConfigManager {
                                     PutMessageResult putMessageResult =
                                             ScheduleMessageService.this.defaultMessageStore
                                                 .putMessage(msgInner);
-                                    // ³É¹¦
+                                    // æˆåŠŸ
                                     if (putMessageResult != null
                                             && putMessageResult.getPutMessageStatus() == PutMessageStatus.PUT_OK) {
                                         continue;
                                     }
-                                    // Ê§°Ü
+                                    // å¤±è´¥
                                     else {
                                         log.error(
                                             "a message time up, but reput it failed, topic: {} msgId {}",
@@ -173,7 +173,7 @@ public class ScheduleMessageService extends ConfigManager {
                                     }
                                 }
                             }
-                            // Ê±ºòÎ´µ½£¬¼ÌĞø¶¨Ê±
+                            // æ—¶å€™æœªåˆ°ï¼Œç»§ç»­å®šæ—¶
                             else {
                                 ScheduleMessageService.this.timer.schedule(
                                     new DeliverDelayedMessageTimerTask(this.delayLevel, nextOffset),
@@ -190,7 +190,7 @@ public class ScheduleMessageService extends ConfigManager {
                         return;
                     }
                     finally {
-                        // ±ØĞëÊÍ·Å×ÊÔ´
+                        // å¿…é¡»é‡Šæ”¾èµ„æº
                         bufferCQ.release();
                     }
                 } // end of if (bufferCQ != null)
@@ -274,7 +274,7 @@ public class ScheduleMessageService extends ConfigManager {
 
 
     public void start() {
-        // ÎªÃ¿¸öÑÓÊ±¶ÓÁĞÔö¼Ó¶¨Ê±Æ÷
+        // ä¸ºæ¯ä¸ªå»¶æ—¶é˜Ÿåˆ—å¢åŠ å®šæ—¶å™¨
         for (Integer level : this.delayLevelTable.keySet()) {
             Long timeDelay = this.delayLevelTable.get(level);
             Long offset = this.offsetTable.get(level);
@@ -287,7 +287,7 @@ public class ScheduleMessageService extends ConfigManager {
             }
         }
 
-        // ¶¨Ê±½«ÑÓÊ±½ø¶ÈË¢ÅÌ
+        // å®šæ—¶å°†å»¶æ—¶è¿›åº¦åˆ·ç›˜
         this.timer.scheduleAtFixedRate(new TimerTask() {
 
             @Override

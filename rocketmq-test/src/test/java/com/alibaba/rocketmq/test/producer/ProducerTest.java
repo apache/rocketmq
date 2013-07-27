@@ -104,12 +104,12 @@ public class ProducerTest extends BaseTest {
 
 
     // @Test
-    // ·¢ËÍÆÕÍ¨ÏûÏ¢Ê§°Üºó×Ô¶¯ÖØÊÔÏÂÒ»¸öBroker£¬×î¶àÖØÊÔ3´Î
+    // å‘é€æ™®é€šæ¶ˆæ¯å¤±è´¥åè‡ªåŠ¨é‡è¯•ä¸‹ä¸€ä¸ªBrokerï¼Œæœ€å¤šé‡è¯•3æ¬¡
     // public void TestClientCreateTopic() {
     // // TODO Auto-generated constructor stub
     // }
     @Test
-    // ·¢ËÍÏûÏ¢APIÖ§³ÖÈıÖÖÍ¨ĞÅ·½Ê½
+    // å‘é€æ¶ˆæ¯APIæ”¯æŒä¸‰ç§é€šä¿¡æ–¹å¼
     public void testProducerSynMsg() throws MQClientException, RemotingException, MQBrokerException,
             InterruptedException {
         Message msg =
@@ -120,7 +120,7 @@ public class ProducerTest extends BaseTest {
 
 
     @Test
-    // ·¢ËÍÏûÏ¢APIÖ§³ÖÈıÖÖÍ¨ĞÅ·½Ê½
+    // å‘é€æ¶ˆæ¯APIæ”¯æŒä¸‰ç§é€šä¿¡æ–¹å¼
     public void testProducerAsyMsg() throws MQClientException, RemotingException, InterruptedException {
         final SendCallback sendCallback = new SendCallback() {
 
@@ -143,7 +143,7 @@ public class ProducerTest extends BaseTest {
 
 
     @Test
-    // ·¢ËÍÏûÏ¢APIÖ§³ÖÈıÖÖÍ¨ĞÅ·½Ê½
+    // å‘é€æ¶ˆæ¯APIæ”¯æŒä¸‰ç§é€šä¿¡æ–¹å¼
     public void testProducerOneWayMsg() throws MQClientException, RemotingException, InterruptedException {
         Message msg =
                 new Message("TopicTest", "TagA", "TESTKEY", ("Hello RocketMQ from producerMsg").getBytes());

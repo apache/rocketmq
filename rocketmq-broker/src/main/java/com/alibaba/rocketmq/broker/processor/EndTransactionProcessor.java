@@ -40,7 +40,7 @@ import com.alibaba.rocketmq.store.PutMessageResult;
 
 
 /**
- * Commit»òRollbackÊÂÎñ
+ * Commitæˆ–Rollbackäº‹åŠ¡
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-26
@@ -95,10 +95,10 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
                 (EndTransactionRequestHeader) request
                     .decodeCommandCustomHeader(EndTransactionRequestHeader.class);
 
-        // »Ø²éÓ¦´ğ
+        // å›æŸ¥åº”ç­”
         if (requestHeader.getFromTransactionCheck()) {
             switch (requestHeader.getCommitOrRollback()) {
-            // ²»Ìá½»Ò²²»»Ø¹ö
+            // ä¸æäº¤ä¹Ÿä¸å›æ»š
             case MessageSysFlag.TransactionNotType: {
                 logTransaction.warn("check producer[{}] transaction state, but it's pending status.\n"//
                         + "RequestHeader: {} Remark: {}",//
@@ -107,7 +107,7 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
                     request.getRemark());
                 return null;
             }
-            // Ìá½»
+            // æäº¤
             case MessageSysFlag.TransactionCommitType: {
                 logTransaction.warn(
                     "check producer[{}] transaction state, the producer commit the message.\n"//
@@ -118,7 +118,7 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
 
                 break;
             }
-            // »Ø¹ö
+            // å›æ»š
             case MessageSysFlag.TransactionRollbackType: {
                 logTransaction.warn(
                     "check producer[{}] transaction state, the producer rollback the message.\n"//
@@ -132,10 +132,10 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
                 return null;
             }
         }
-        // Õı³£Ìá½»»Ø¹ö
+        // æ­£å¸¸æäº¤å›æ»š
         else {
             switch (requestHeader.getCommitOrRollback()) {
-            // ²»Ìá½»Ò²²»»Ø¹ö
+            // ä¸æäº¤ä¹Ÿä¸å›æ»š
             case MessageSysFlag.TransactionNotType: {
                 logTransaction.warn(
                     "the producer[{}] end transaction in sending message,  and it's pending status.\n"//
@@ -145,11 +145,11 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
                     request.getRemark());
                 return null;
             }
-            // Ìá½»
+            // æäº¤
             case MessageSysFlag.TransactionCommitType: {
                 break;
             }
-            // »Ø¹ö
+            // å›æ»š
             case MessageSysFlag.TransactionRollbackType: {
                 logTransaction.warn(
                     "the producer[{}] end transaction in sending message, rollback the message.\n"//
@@ -168,7 +168,7 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
                 this.brokerController.getMessageStore().lookMessageByOffset(
                     requestHeader.getCommitLogOffset());
         if (msgExt != null) {
-            // Ğ£ÑéProducer Group
+            // æ ¡éªŒProducer Group
             final String pgroupRead = msgExt.getProperty(Message.PROPERTY_PRODUCER_GROUP);
             if (!pgroupRead.equals(requestHeader.getProducerGroup())) {
                 response.setCode(ResponseCode.SYSTEM_ERROR_VALUE);
@@ -176,14 +176,14 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
                 return response;
             }
 
-            // Ğ£ÑéTransaction State Table Offset
+            // æ ¡éªŒTransaction State Table Offset
             if (msgExt.getQueueOffset() != requestHeader.getTranStateTableOffset()) {
                 response.setCode(ResponseCode.SYSTEM_ERROR_VALUE);
                 response.setRemark("the transaction state table offset wrong");
                 return response;
             }
 
-            // Ğ£ÑéCommit Log Offset
+            // æ ¡éªŒCommit Log Offset
             if (msgExt.getCommitLogOffset() != requestHeader.getCommitLogOffset()) {
                 response.setCode(ResponseCode.SYSTEM_ERROR_VALUE);
                 response.setRemark("the commit log offset wrong");

@@ -19,7 +19,7 @@ import java.nio.ByteBuffer;
 
 
 /**
- * Ğ´ÈëÏûÏ¢µÄ»Øµ÷½Ó¿Ú
+ * å†™å…¥æ¶ˆæ¯çš„å›è°ƒæ¥å£
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-21
@@ -27,15 +27,15 @@ import java.nio.ByteBuffer;
 public interface AppendMessageCallback {
 
     /**
-     * ĞòÁĞ»¯ÏûÏ¢ºó£¬Ğ´ÈëMapedByteBuffer
+     * åºåˆ—åŒ–æ¶ˆæ¯åï¼Œå†™å…¥MapedByteBuffer
      * 
      * @param byteBuffer
-     *            ÒªĞ´ÈëµÄtarget
+     *            è¦å†™å…¥çš„target
      * @param maxBlank
-     *            ÒªĞ´ÈëµÄtarget×î´ó¿Õ°×Çø
+     *            è¦å†™å…¥çš„targetæœ€å¤§ç©ºç™½åŒº
      * @param msg
-     *            ÒªĞ´ÈëµÄmessage
-     * @return Ğ´Èë¶àÉÙ×Ö½Ú
+     *            è¦å†™å…¥çš„message
+     * @return å†™å…¥å¤šå°‘å­—èŠ‚
      */
     public AppendMessageResult doAppend(final long fileFromOffset, final ByteBuffer byteBuffer,
             final int maxBlank, final Object msg);

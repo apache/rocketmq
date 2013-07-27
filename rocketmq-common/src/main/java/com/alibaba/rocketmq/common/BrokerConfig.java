@@ -25,7 +25,7 @@ import com.alibaba.rocketmq.remoting.common.RemotingUtil;
 
 
 /**
- * ·şÎñÆ÷ÅäÖÃ
+ * æœåŠ¡å™¨é…ç½®
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  */
@@ -44,12 +44,12 @@ public class BrokerConfig {
     private long brokerId = MixAll.MASTER_ID;
     private int brokerPermission = PermName.PERM_READ | PermName.PERM_WRITE;
     private int defaultTopicQueueNums = 8;
-    // ×Ô¶¯´´½¨Topic¹¦ÄÜÊÇ·ñ¿ªÆô£¨ÏßÉÏ½¨Òé¹Ø±Õ£©
+    // è‡ªåŠ¨åˆ›å»ºTopicåŠŸèƒ½æ˜¯å¦å¼€å¯ï¼ˆçº¿ä¸Šå»ºè®®å…³é—­ï¼‰
     @ImportantField
     private boolean autoCreateTopicEnable = true;
-    // ×Ô¶¯´´½¨ÒÔ¼¯ÈºÃû×ÖÃüÃûµÄTopic¹¦ÄÜÊÇ·ñ¿ªÆô
+    // è‡ªåŠ¨åˆ›å»ºä»¥é›†ç¾¤åå­—å‘½åçš„TopicåŠŸèƒ½æ˜¯å¦å¼€å¯
     private boolean clusterTopicEnable = true;
-    // ×Ô¶¯´´½¨¶©ÔÄ×é¹¦ÄÜÊÇ·ñ¿ªÆô£¨ÏßÉÏ½¨Òé¹Ø±Õ£©
+    // è‡ªåŠ¨åˆ›å»ºè®¢é˜…ç»„åŠŸèƒ½æ˜¯å¦å¼€å¯ï¼ˆçº¿ä¸Šå»ºè®®å…³é—­ï¼‰
     @ImportantField
     private boolean autoCreateSubscriptionGroup = true;
 
@@ -73,10 +73,10 @@ public class BrokerConfig {
 
     private int flushConsumerOffsetHistoryInterval = 1000 * 60;
 
-    // ²éÑ¯ÏûÏ¢×î´óÊ±¼ä¿ç¶È£¬µ¥Î»Ğ¡Ê±
+    // æŸ¥è¯¢æ¶ˆæ¯æœ€å¤§æ—¶é—´è·¨åº¦ï¼Œå•ä½å°æ—¶
     private long queryMessageMaxTimeSpan = 3;
 
-    // ÊÇ·ñ¾Ü½Ó½ÓÊÕÊÂÎñÏûÏ¢
+    // æ˜¯å¦æ‹’æ¥æ¥æ”¶äº‹åŠ¡æ¶ˆæ¯
     @ImportantField
     private boolean rejectTransactionMessage = false;
 

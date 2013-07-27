@@ -23,7 +23,7 @@ import com.alibaba.rocketmq.common.message.MessageExt;
 
 
 /**
- * 只在内部使用，不对外公开
+ * 鍙湪鍐呴儴浣跨敤锛屼笉瀵瑰鍏紑
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-24

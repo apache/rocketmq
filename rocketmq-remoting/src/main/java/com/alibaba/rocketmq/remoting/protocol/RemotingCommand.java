@@ -32,7 +32,7 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingProtos.ResponseCode;
 
 
 /**
- * RemotingÄ£¿éÖĞ£¬·şÎñÆ÷Óë¿Í»§¶ËÍ¨¹ı´«µİRemotingCommandÀ´½»»¥
+ * Remotingæ¨¡å—ä¸­ï¼ŒæœåŠ¡å™¨ä¸å®¢æˆ·ç«¯é€šè¿‡ä¼ é€’RemotingCommandæ¥äº¤äº’
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-13
@@ -49,7 +49,7 @@ public class RemotingCommand {
     // 1, Oneway
 
     /**
-     * Header ²¿·Ö
+     * Header éƒ¨åˆ†
      */
     private int code;
     private LanguageCode language = LanguageCode.JAVA;
@@ -62,7 +62,7 @@ public class RemotingCommand {
     private transient CommandCustomHeader customHeader;
 
     /**
-     * Body ²¿·Ö
+     * Body éƒ¨åˆ†
      */
     private transient byte[] body;
 
@@ -95,7 +95,7 @@ public class RemotingCommand {
 
 
     /**
-     * Ö»ÓĞÍ¨ĞÅ²ãÄÚ²¿»áµ÷ÓÃ£¬ÒµÎñ²»»áµ÷ÓÃ
+     * åªæœ‰é€šä¿¡å±‚å†…éƒ¨ä¼šè°ƒç”¨ï¼Œä¸šåŠ¡ä¸ä¼šè°ƒç”¨
      */
     public static RemotingCommand createResponseCommand(int code, String remark,
             Class<? extends CommandCustomHeader> classHeader) {
@@ -236,7 +236,7 @@ public class RemotingCommand {
                 }
             }
 
-            // ¼ì²é·µ»Ø¶ÔÏóÊÇ·ñÓĞĞ§
+            // æ£€æŸ¥è¿”å›å¯¹è±¡æ˜¯å¦æœ‰æ•ˆ
             Field[] fields = objectHeader.getClass().getDeclaredFields();
             for (Field field : fields) {
                 if (!Modifier.isStatic(field.getModifiers())) {
@@ -252,7 +252,7 @@ public class RemotingCommand {
                         catch (IllegalAccessException e) {
                         }
 
-                        // ¿ÕÖµ¼ì²é
+                        // ç©ºå€¼æ£€æŸ¥
                         if (null == value) {
                             Annotation annotation = field.getAnnotation(CFNotNull.class);
                             if (annotation != null) {
@@ -319,7 +319,7 @@ public class RemotingCommand {
 
 
     /**
-     * Ö»´ò°üHeader£¬body²¿·Ö¶ÀÁ¢´«Êä
+     * åªæ‰“åŒ…Headerï¼Œbodyéƒ¨åˆ†ç‹¬ç«‹ä¼ è¾“
      */
     public ByteBuffer encodeHeader(final int bodyLength) {
         // 1> header length size

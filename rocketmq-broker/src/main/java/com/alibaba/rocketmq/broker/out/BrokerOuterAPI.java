@@ -42,7 +42,7 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingProtos.ResponseCode;
 
 
 /**
- * Broker对外调用的API封装
+ * Broker瀵瑰璋冪敤鐨凙PI灏佽
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-3

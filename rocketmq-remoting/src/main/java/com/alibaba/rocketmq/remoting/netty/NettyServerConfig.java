@@ -16,7 +16,7 @@
 package com.alibaba.rocketmq.remoting.netty;
 
 /**
- * Netty·şÎñ¶ËÅäÖÃ
+ * NettyæœåŠ¡ç«¯é…ç½®
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-13

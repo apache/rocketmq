@@ -19,7 +19,7 @@ import com.alibaba.rocketmq.common.message.MessageExt;
 
 
 /**
- * ·şÎñÆ÷»Øµ÷Producer£¬¼ì²é±¾µØÊÂÎñ·ÖÖ§³É¹¦»¹ÊÇÊ§°Ü
+ * æœåŠ¡å™¨å›è°ƒProducerï¼Œæ£€æŸ¥æœ¬åœ°äº‹åŠ¡åˆ†æ”¯æˆåŠŸè¿˜æ˜¯å¤±è´¥
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-25

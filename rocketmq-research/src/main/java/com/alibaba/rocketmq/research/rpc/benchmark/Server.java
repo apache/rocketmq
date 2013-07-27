@@ -13,7 +13,7 @@ import com.alibaba.rocketmq.research.rpc.RPCServer;
 
 
 /**
- * ¼òµ¥¹¦ÄÜ²âÊÔ£¬Server¶Ë
+ * ç®€å•åŠŸèƒ½æµ‹è¯•ï¼ŒServerç«¯
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  */

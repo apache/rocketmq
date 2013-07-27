@@ -19,7 +19,7 @@ import com.alibaba.rocketmq.common.constant.PermName;
 
 
 /**
- * TopicÅäÖÃ
+ * Topicé…ç½®
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  */

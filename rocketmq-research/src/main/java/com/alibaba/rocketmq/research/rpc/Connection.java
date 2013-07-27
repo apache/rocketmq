@@ -18,7 +18,7 @@ import com.alibaba.rocketmq.research.rpc.LinkedByteBufferList.ByteBufferNode;
 
 
 /**
- * Ò»¸öSocketÁ¬½Ó¶ÔÏó£¬ClientÓëServerÍ¨ÓÃ
+ * ä¸€ä¸ªSocketè¿æ¥å¯¹è±¡ï¼ŒClientä¸Serveré€šç”¨
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  */
@@ -202,9 +202,9 @@ public class Connection {
 
 
     /**
-     * ´¦Àíselect¶ÁÊÂ¼ş
+     * å¤„ç†selectè¯»äº‹ä»¶
      * 
-     * @return ·µ»Ø´¦Àí½á¹û
+     * @return è¿”å›å¤„ç†ç»“æœ
      */
     public boolean processReadEvent() {
         int readSizeZeroTimes = 0;
@@ -238,16 +238,16 @@ public class Connection {
 
     private void dispatchReadRequest() {
         int writePostion = this.byteBufferRead.position();
-        // Õë¶ÔÏß³Ì³ØÓÅ»¯
+        // é’ˆå¯¹çº¿ç¨‹æ± ä¼˜åŒ–
         final List<ByteBuffer> requestList = new LinkedList<ByteBuffer>();
 
         while (true) {
             int diff = this.byteBufferRead.position() - this.dispatchPostion;
             if (diff >= 8) {
-                // msgSize²»°üº¬ÏûÏ¢reqId
+                // msgSizeä¸åŒ…å«æ¶ˆæ¯reqId
                 int msgSize = this.byteBufferRead.getInt(this.dispatchPostion);
                 final Integer reqId = this.byteBufferRead.getInt(this.dispatchPostion + 4);
-                // ¿ÉÒÔ´Õ¹»Ò»¸öÇëÇó
+                // å¯ä»¥å‡‘å¤Ÿä¸€ä¸ªè¯·æ±‚
                 if (diff >= (8 + msgSize)) {
                     this.byteBufferRead.position(0);
                     final ByteBuffer request = this.byteBufferRead.slice();
@@ -296,9 +296,9 @@ public class Connection {
 
                     continue;
                 }
-                // ÎŞ·¨´Õ¹»Ò»¸öÇëÇó
+                // æ— æ³•å‡‘å¤Ÿä¸€ä¸ªè¯·æ±‚
                 else {
-                    // ByteBufferÂúÁË£¬·ÖÅäĞÂµÄÄÚ´æ
+                    // ByteBufferæ»¡äº†ï¼Œåˆ†é…æ–°çš„å†…å­˜
                     if (!this.byteBufferRead.hasRemaining()) {
                         this.reallocateByteBuffer();
                     }
@@ -313,7 +313,7 @@ public class Connection {
             break;
         }
 
-        // Ò»¸öÏß³ÌÄÚÔËĞĞ¶à¸öÈÎÎñ
+        // ä¸€ä¸ªçº¿ç¨‹å†…è¿è¡Œå¤šä¸ªä»»åŠ¡
         for (boolean retry = true; retry;) {
             try {
                 if (!requestList.isEmpty()) {

@@ -11,7 +11,7 @@ import com.alibaba.rocketmq.research.rpc.RPCClient;
 
 
 /**
- * ¼òµ¥¹¦ÄÜ²âÊÔ£¬Client¶Ë
+ * ç®€å•åŠŸèƒ½æµ‹è¯•ï¼ŒClientç«¯
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  */

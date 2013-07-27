@@ -29,7 +29,7 @@ import com.alibaba.rocketmq.common.ServiceThread;
 
 
 /**
- * ³¤ÂÖÑ¯À­ÏûÏ¢·şÎñ£¬µ¥Ïß³ÌÒì²½À­È¡
+ * é•¿è½®è¯¢æ‹‰æ¶ˆæ¯æœåŠ¡ï¼Œå•çº¿ç¨‹å¼‚æ­¥æ‹‰å–
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-24
@@ -53,7 +53,7 @@ public class PullMessageService extends ServiceThread {
 
 
     /**
-     * Ö»¶¨Ê±Ò»´Î
+     * åªå®šæ—¶ä¸€æ¬¡
      */
     public void executePullRequestLater(final PullRequest pullRequest, final long timeDelay) {
         this.scheduledExecutorService.schedule(new Runnable() {
@@ -67,7 +67,7 @@ public class PullMessageService extends ServiceThread {
 
 
     /**
-     * Á¢¿ÌÖ´ĞĞPullRequest
+     * ç«‹åˆ»æ‰§è¡ŒPullRequest
      */
     public void executePullRequestImmediately(final PullRequest pullRequest) {
         try {

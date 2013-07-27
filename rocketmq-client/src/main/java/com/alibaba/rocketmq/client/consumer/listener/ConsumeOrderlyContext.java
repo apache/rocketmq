@@ -19,22 +19,22 @@ import com.alibaba.rocketmq.common.message.MessageQueue;
 
 
 /**
- * ������Ϣ�����ģ�ͬһ���е���Ϣͬһʱ��ֻ��һ���߳����ѣ��ɱ�֤ͬһ������Ϣ˳������
+ * 消费消息上下文，同一队列的消息同一时刻只有一个线程消费，可保证同一队列消息顺序消费
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-24
  */
 public class ConsumeOrderlyContext {
     /**
-     * Ҫ���ѵ���Ϣ�����ĸ�����
+     * 要消费的消息属于哪个队列
      */
     private final MessageQueue messageQueue;
     /**
-     * ��ϢOffset�Ƿ��Զ��ύ
+     * 消息Offset是否自动提交
      */
     private boolean autoCommit = true;
     /**
-     * ����ǰ���й���ʱ�䣬��λ����
+     * 将当前队列挂起时间，单位毫秒
      */
     private long suspendCurrentQueueTimeMillis = 1000;
 
