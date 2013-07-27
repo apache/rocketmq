@@ -5,7 +5,8 @@
 
     <jvmtype>server</jvmtype>
 
-    <mainclass>com.alibaba.rocketmq.tools.command.MQAdminStartup</mainclass>
+    <mainclass>com.alibaba.rocketmq.tools.command.MQAdminStartup
+    </mainclass>
 
     <properties>
         <java.ext.dirs>${cpd}/../lib</java.ext.dirs>
