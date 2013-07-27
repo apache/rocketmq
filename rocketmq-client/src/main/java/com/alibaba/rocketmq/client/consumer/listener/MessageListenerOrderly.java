@@ -32,7 +32,8 @@ public interface MessageListenerOrderly extends MessageListener {
      * P.S: 建议应用不要抛出异常
      * 
      * @param msgs
-     *            msgs.size() >= 1
+     *            msgs.size() >= 1<br>
+     *            DefaultMQPushConsumer.consumeMessageBatchMaxSize=1，默认消息数为1
      * @param context
      * @return
      */
