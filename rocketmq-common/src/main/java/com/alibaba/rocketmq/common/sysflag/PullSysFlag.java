@@ -17,9 +17,8 @@ package com.alibaba.rocketmq.common.sysflag;
 
 /**
  * Pull接口用到的flag定义
- * 
+ *
  * @author shijia.wxr<vintage.wang@gmail.com>
- * 
  */
 public class PullSysFlag {
     private final static int FLAG_COMMIT_OFFSET = 0x1 << 0;
@@ -28,7 +27,7 @@ public class PullSysFlag {
 
 
     public static int buildSysFlag(final boolean commitOffset, final boolean suspend,
-            final boolean subscription) {
+                                   final boolean subscription) {
         int flag = 0;
 
         if (commitOffset) {

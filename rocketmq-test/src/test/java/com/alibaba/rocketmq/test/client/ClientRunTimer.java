@@ -1,15 +1,13 @@
 package com.alibaba.rocketmq.test.client;
 
-import junit.framework.Assert;
-
-import org.junit.Test;
-
 import com.alibaba.rocketmq.client.consumer.DefaultMQPullConsumer;
 import com.alibaba.rocketmq.client.exception.MQClientException;
 import com.alibaba.rocketmq.client.impl.MQClientManager;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.namesrv.TopAddressing;
 import com.alibaba.rocketmq.test.BaseTest;
+import junit.framework.Assert;
+import org.junit.Test;
 
 
 public class ClientRunTimer extends BaseTest {

@@ -15,17 +15,6 @@
  */
 package com.alibaba.rocketmq.broker.processor;
 
-import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelFutureListener;
-import io.netty.channel.ChannelHandlerContext;
-
-import java.net.InetSocketAddress;
-import java.net.SocketAddress;
-import java.util.Random;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.alibaba.rocketmq.broker.BrokerController;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.TopicConfig;
@@ -50,11 +39,20 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 import com.alibaba.rocketmq.remoting.protocol.RemotingProtos.ResponseCode;
 import com.alibaba.rocketmq.store.MessageExtBrokerInner;
 import com.alibaba.rocketmq.store.PutMessageResult;
+import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelFutureListener;
+import io.netty.channel.ChannelHandlerContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.net.InetSocketAddress;
+import java.net.SocketAddress;
+import java.util.Random;
 
 
 /**
  * 处理客户端发送消息的请求
- * 
+ *
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-26
  */
@@ -71,7 +69,7 @@ public class SendMessageProcessor implements NettyRequestProcessor {
         this.brokerController = brokerController;
         this.storeHost =
                 new InetSocketAddress(brokerController.getBrokerConfig().getBrokerIP1(), brokerController
-                    .getNettyServerConfig().getListenPort());
+                        .getNettyServerConfig().getListenPort());
     }
 
 
@@ -80,12 +78,12 @@ public class SendMessageProcessor implements NettyRequestProcessor {
             throws RemotingCommandException {
         MQRequestCode code = MQRequestCode.valueOf(request.getCode());
         switch (code) {
-        case SEND_MESSAGE:
-            return this.sendMessage(ctx, request);
-        case CONSUMER_SEND_MSG_BACK:
-            return this.consumerSendMsgBack(ctx, request);
-        default:
-            break;
+            case SEND_MESSAGE:
+                return this.sendMessage(ctx, request);
+            case CONSUMER_SEND_MSG_BACK:
+                return this.consumerSendMsgBack(ctx, request);
+            default:
+                break;
         }
         return null;
     }
@@ -96,12 +94,12 @@ public class SendMessageProcessor implements NettyRequestProcessor {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
         final ConsumerSendMsgBackRequestHeader requestHeader =
                 (ConsumerSendMsgBackRequestHeader) request
-                    .decodeCommandCustomHeader(ConsumerSendMsgBackRequestHeader.class);
+                        .decodeCommandCustomHeader(ConsumerSendMsgBackRequestHeader.class);
 
         // 确保订阅组存在
         SubscriptionGroupConfig subscriptionGroupConfig =
                 this.brokerController.getSubscriptionGroupManager().findSubscriptionGroupConfig(
-                    requestHeader.getGroup());
+                        requestHeader.getGroup());
         if (null == subscriptionGroupConfig) {
             response.setCode(MQResponseCode.SUBSCRIPTION_GROUP_NOT_EXIST_VALUE);
             response.setRemark("subscription group not exist, " + requestHeader.getGroup() + " "
@@ -115,9 +113,9 @@ public class SendMessageProcessor implements NettyRequestProcessor {
         // 检查topic是否存在
         TopicConfig topicConfig =
                 this.brokerController.getTopicConfigManager().createTopicInSendMessageBackMethod(//
-                    newTopic,//
-                    subscriptionGroupConfig.getRetryQueueNums(), //
-                    PermName.PERM_WRITE | PermName.PERM_READ);
+                        newTopic,//
+                        subscriptionGroupConfig.getRetryQueueNums(), //
+                        PermName.PERM_WRITE | PermName.PERM_READ);
         if (null == topicConfig) {
             response.setCode(ResponseCode.SYSTEM_ERROR_VALUE);
             response.setRemark("topic[" + newTopic + "] not exist");
@@ -159,9 +157,9 @@ public class SendMessageProcessor implements NettyRequestProcessor {
 
             topicConfig =
                     this.brokerController.getTopicConfigManager().createTopicInSendMessageBackMethod(
-                        newTopic, //
-                        DLQ_NUMS_PER_GROUP,//
-                        PermName.PERM_WRITE);
+                            newTopic, //
+                            DLQ_NUMS_PER_GROUP,//
+                            PermName.PERM_WRITE);
             if (null == topicConfig) {
                 response.setCode(ResponseCode.SYSTEM_ERROR_VALUE);
                 response.setRemark("topic[" + newTopic + "] not exist");
@@ -195,12 +193,12 @@ public class SendMessageProcessor implements NettyRequestProcessor {
         PutMessageResult putMessageResult = this.brokerController.getMessageStore().putMessage(msgInner);
         if (putMessageResult != null) {
             switch (putMessageResult.getPutMessageStatus()) {
-            case PUT_OK:
-                response.setCode(ResponseCode.SUCCESS_VALUE);
-                response.setRemark(null);
-                return response;
-            default:
-                break;
+                case PUT_OK:
+                    response.setCode(ResponseCode.SUCCESS_VALUE);
+                    response.setRemark(null);
+                    return response;
+                default:
+                    break;
             }
 
             response.setCode(ResponseCode.SYSTEM_ERROR_VALUE);
@@ -257,17 +255,17 @@ public class SendMessageProcessor implements NettyRequestProcessor {
             log.warn("the topic " + requestHeader.getTopic() + " not exist, producer: "
                     + ctx.channel().remoteAddress());
             topicConfig = this.brokerController.getTopicConfigManager().createTopicInSendMessageMethod(//
-                requestHeader.getTopic(), //
-                requestHeader.getDefaultTopic(), //
-                RemotingHelper.parseChannelRemoteAddr(ctx.channel()), //
-                requestHeader.getDefaultTopicQueueNums());
+                    requestHeader.getTopic(), //
+                    requestHeader.getDefaultTopic(), //
+                    RemotingHelper.parseChannelRemoteAddr(ctx.channel()), //
+                    requestHeader.getDefaultTopicQueueNums());
 
             // 尝试看下是否是失败消息发回
             if (null == topicConfig) {
                 if (requestHeader.getTopic().startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
                     topicConfig =
                             this.brokerController.getTopicConfigManager().createTopicInSendMessageBackMethod(
-                                requestHeader.getTopic(), 1, PermName.PERM_WRITE | PermName.PERM_READ);
+                                    requestHeader.getTopic(), 1, PermName.PERM_WRITE | PermName.PERM_READ);
                 }
             }
 
@@ -316,7 +314,7 @@ public class SendMessageProcessor implements NettyRequestProcessor {
         msgInner.setProperties(MessageDecoder.string2messageProperties(requestHeader.getProperties()));
         msgInner.setPropertiesString(requestHeader.getProperties());
         msgInner.setTagsCode(MessageExtBrokerInner.tagsString2tagsCode(topicConfig.getTopicFilterType(),
-            msgInner.getTags()));
+                msgInner.getTags()));
 
         msgInner.setQueueId(queueIdInt);
         msgInner.setSysFlag(sysFlag);
@@ -342,45 +340,45 @@ public class SendMessageProcessor implements NettyRequestProcessor {
             boolean sendOK = false;
 
             switch (putMessageResult.getPutMessageStatus()) {
-            // Success
-            case PUT_OK:
-                sendOK = true;
-                response.setCode(ResponseCode.SUCCESS_VALUE);
-                break;
-            case FLUSH_DISK_TIMEOUT:
-                response.setCode(MQResponseCode.FLUSH_DISK_TIMEOUT_VALUE);
-                sendOK = true;
-                break;
-            case FLUSH_SLAVE_TIMEOUT:
-                response.setCode(MQResponseCode.FLUSH_SLAVE_TIMEOUT_VALUE);
-                sendOK = true;
-                break;
-            case SLAVE_NOT_AVAILABLE:
-                response.setCode(MQResponseCode.SLAVE_NOT_AVAILABLE_VALUE);
-                sendOK = true;
-                break;
+                // Success
+                case PUT_OK:
+                    sendOK = true;
+                    response.setCode(ResponseCode.SUCCESS_VALUE);
+                    break;
+                case FLUSH_DISK_TIMEOUT:
+                    response.setCode(MQResponseCode.FLUSH_DISK_TIMEOUT_VALUE);
+                    sendOK = true;
+                    break;
+                case FLUSH_SLAVE_TIMEOUT:
+                    response.setCode(MQResponseCode.FLUSH_SLAVE_TIMEOUT_VALUE);
+                    sendOK = true;
+                    break;
+                case SLAVE_NOT_AVAILABLE:
+                    response.setCode(MQResponseCode.SLAVE_NOT_AVAILABLE_VALUE);
+                    sendOK = true;
+                    break;
 
-            // Failed
-            case CREATE_MAPEDFILE_FAILED:
-                response.setCode(ResponseCode.SYSTEM_ERROR_VALUE);
-                response.setRemark("create maped file failed.");
-                break;
-            case MESSAGE_ILLEGAL:
-                response.setCode(MQResponseCode.MESSAGE_ILLEGAL_VALUE);
-                response.setRemark("the message is illegal, maybe length not matched.");
-                break;
-            case SERVICE_NOT_AVAILABLE:
-                response.setCode(MQResponseCode.SERVICE_NOT_AVAILABLE_VALUE);
-                response.setRemark("service not available now.");
-                break;
-            case UNKNOWN_ERROR:
-                response.setCode(ResponseCode.SYSTEM_ERROR_VALUE);
-                response.setRemark("UNKNOWN_ERROR");
-                break;
-            default:
-                response.setCode(ResponseCode.SYSTEM_ERROR_VALUE);
-                response.setRemark("UNKNOWN_ERROR DEFAULT");
-                break;
+                // Failed
+                case CREATE_MAPEDFILE_FAILED:
+                    response.setCode(ResponseCode.SYSTEM_ERROR_VALUE);
+                    response.setRemark("create maped file failed.");
+                    break;
+                case MESSAGE_ILLEGAL:
+                    response.setCode(MQResponseCode.MESSAGE_ILLEGAL_VALUE);
+                    response.setRemark("the message is illegal, maybe length not matched.");
+                    break;
+                case SERVICE_NOT_AVAILABLE:
+                    response.setCode(MQResponseCode.SERVICE_NOT_AVAILABLE_VALUE);
+                    response.setRemark("service not available now.");
+                    break;
+                case UNKNOWN_ERROR:
+                    response.setCode(ResponseCode.SYSTEM_ERROR_VALUE);
+                    response.setRemark("UNKNOWN_ERROR");
+                    break;
+                default:
+                    response.setCode(ResponseCode.SYSTEM_ERROR_VALUE);
+                    response.setRemark("UNKNOWN_ERROR DEFAULT");
+                    break;
             }
 
             if (sendOK) {
@@ -404,8 +402,7 @@ public class SendMessageProcessor implements NettyRequestProcessor {
                                 }
                             }
                         });
-                    }
-                    catch (Throwable e) {
+                    } catch (Throwable e) {
                         log.error("SendMessageProcessor process request over, but response failed", e);
                         log.error(request.toString());
                         log.error(response.toString());
@@ -413,12 +410,11 @@ public class SendMessageProcessor implements NettyRequestProcessor {
                 }
 
                 this.brokerController.getPullRequestHoldService().notifyMessageArriving(
-                    requestHeader.getTopic(), queueIdInt,
-                    putMessageResult.getAppendMessageResult().getLogicsOffset());
+                        requestHeader.getTopic(), queueIdInt,
+                        putMessageResult.getAppendMessageResult().getLogicsOffset());
                 return null;
             }
-        }
-        else {
+        } else {
             response.setCode(ResponseCode.SYSTEM_ERROR_VALUE);
             response.setRemark("store putMessage return null");
         }

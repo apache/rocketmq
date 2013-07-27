@@ -15,14 +15,6 @@
  */
 package com.alibaba.rocketmq.broker.client.net;
 
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelFutureListener;
-import io.netty.channel.FileRegion;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.alibaba.rocketmq.broker.BrokerController;
 import com.alibaba.rocketmq.broker.pagecache.OneMessageTransfer;
 import com.alibaba.rocketmq.common.constant.LoggerName;
@@ -31,11 +23,17 @@ import com.alibaba.rocketmq.common.protocol.header.CheckTransactionStateRequestH
 import com.alibaba.rocketmq.common.protocol.header.NotifyConsumerIdsChangedRequestHeader;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 import com.alibaba.rocketmq.store.SelectMapedBufferResult;
+import io.netty.channel.Channel;
+import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelFutureListener;
+import io.netty.channel.FileRegion;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 /**
  * Broker主动调用客户端接口
- * 
+ *
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-26
  */
@@ -53,19 +51,19 @@ public class Broker2Client {
      * Broker主动回查Producer事务状态，Oneway
      */
     public void checkProducerTransactionState(//
-            final Channel channel,//
-            final CheckTransactionStateRequestHeader requestHeader,//
-            final SelectMapedBufferResult selectMapedBufferResult//
+                                              final Channel channel,//
+                                              final CheckTransactionStateRequestHeader requestHeader,//
+                                              final SelectMapedBufferResult selectMapedBufferResult//
     ) {
         RemotingCommand request =
                 RemotingCommand.createRequestCommand(MQRequestCode.CHECK_TRANSACTION_STATE_VALUE,
-                    requestHeader);
+                        requestHeader);
         request.markOnewayRPC();
 
         try {
             FileRegion fileRegion =
                     new OneMessageTransfer(request.encodeHeader(selectMapedBufferResult.getSize()),
-                        selectMapedBufferResult);
+                            selectMapedBufferResult);
             channel.writeAndFlush(fileRegion).addListener(new ChannelFutureListener() {
                 @Override
                 public void operationComplete(ChannelFuture future) throws Exception {
@@ -75,8 +73,7 @@ public class Broker2Client {
                     }
                 }
             });
-        }
-        catch (Throwable e) {
+        } catch (Throwable e) {
             log.error("invokeProducer exception", e);
             selectMapedBufferResult.release();
         }
@@ -87,19 +84,18 @@ public class Broker2Client {
      * Broker主动通知Consumer，Id列表发生变化，Oneway
      */
     public void notifyConsumerIdsChanged(//
-            final Channel channel,//
-            final String consumerGroup//
+                                         final Channel channel,//
+                                         final String consumerGroup//
     ) {
         NotifyConsumerIdsChangedRequestHeader requestHeader = new NotifyConsumerIdsChangedRequestHeader();
         requestHeader.setConsumerGroup(consumerGroup);
         RemotingCommand request =
                 RemotingCommand.createRequestCommand(MQRequestCode.NOTIFY_CONSUMER_IDS_CHANGED_VALUE,
-                    requestHeader);
+                        requestHeader);
 
         try {
             this.brokerController.getRemotingServer().invokeOneway(channel, request, 1000);
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             log.error("notifyConsumerIdsChanged exception, " + consumerGroup, e);
         }
     }

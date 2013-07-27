@@ -15,9 +15,8 @@
  */
 package com.alibaba.rocketmq.broker.client;
 
-import io.netty.channel.Channel;
-
 import com.alibaba.rocketmq.remoting.protocol.LanguageCode;
+import io.netty.channel.Channel;
 
 
 /**
@@ -100,8 +99,7 @@ public class ClientChannelInfo {
         if (channel == null) {
             if (other.channel != null)
                 return false;
-        }
-        else if (this.channel != other.channel) {
+        } else if (this.channel != other.channel) {
             return false;
         }
 

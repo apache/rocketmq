@@ -10,7 +10,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * 针对写优化的ByteBuffer序列
- * 
+ *
  * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public class LinkedByteBufferList {
@@ -148,7 +148,7 @@ public class LinkedByteBufferList {
                 int remainDataPut = data.length - minData;
                 if (remainHeaderPut > 0) {
                     this.currentWriteNode.getByteBufferWrite()
-                        .put(header.array(), minHeader, remainHeaderPut);
+                            .put(header.array(), minHeader, remainHeaderPut);
                     this.currentWriteNode.getWriteOffset().addAndGet(remainHeaderPut);
                 }
 
@@ -202,11 +202,9 @@ public class LinkedByteBufferList {
             try {
                 this.wait(interval);
                 return this.findReadableNode();
-            }
-            catch (InterruptedException e) {
+            } catch (InterruptedException e) {
                 e.printStackTrace();
-            }
-            finally {
+            } finally {
                 this.hasNotified = false;
             }
         }

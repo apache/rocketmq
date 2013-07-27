@@ -3,19 +3,18 @@
  */
 package com.alibaba.rocketmq.research.storeha;
 
+import com.alibaba.rocketmq.research.store.MessageStoreTestObject;
+import com.alibaba.rocketmq.store.config.MessageStoreConfig;
+
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicLong;
 
-import com.alibaba.rocketmq.research.store.MessageStoreTestObject;
-import com.alibaba.rocketmq.store.config.MessageStoreConfig;
-
 
 /**
  * HA测试
- * 
+ *
  * @author shijia.wxr<vintage.wang@gmail.com>
- * 
  */
 public class BrokerMaster {
 
@@ -52,7 +51,7 @@ public class BrokerMaster {
 
                     @Override
                     public void run() {
-                        for (long k = 1;; k++) {
+                        for (long k = 1; ; k++) {
                             try {
                                 long beginTime = System.currentTimeMillis();
                                 boolean result = storeTestObject.sendMessage();
@@ -64,18 +63,15 @@ public class BrokerMaster {
                                 if (!result) {
                                     System.err.println(k + "\tSend message failed, error message:");
                                     Thread.sleep(1000);
-                                }
-                                else {
+                                } else {
                                     sendTotalCnt.incrementAndGet();
                                 }
-                            }
-                            catch (Exception e) {
+                            } catch (Exception e) {
                                 System.out.println("sendMessage exception -------------");
                                 e.printStackTrace();
                                 try {
                                     Thread.sleep(1000);
-                                }
-                                catch (InterruptedException e1) {
+                                } catch (InterruptedException e1) {
                                 }
                             }
                         }
@@ -91,8 +87,7 @@ public class BrokerMaster {
                     while (true) {
                         try {
                             Thread.sleep(1000 * 3);
-                        }
-                        catch (InterruptedException e) {
+                        } catch (InterruptedException e) {
                             e.printStackTrace();
                         }
 
@@ -112,8 +107,7 @@ public class BrokerMaster {
             }).start();
 
             System.out.println("start OK, " + messageStoreConfig.getBrokerRole());
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             e.printStackTrace();
             System.exit(-1);
         }

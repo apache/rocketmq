@@ -15,15 +15,14 @@
  */
 package com.alibaba.rocketmq.common;
 
+import com.alibaba.rocketmq.common.constant.LoggerName;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.alibaba.rocketmq.common.constant.LoggerName;
 
 
 /**
  * 后台服务线程基类
- * 
+ *
  * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public abstract class ServiceThread implements Runnable {
@@ -103,8 +102,7 @@ public abstract class ServiceThread implements Runnable {
             long eclipseTime = System.currentTimeMillis() - beginTime;
             stlog.info("join thread " + this.getServiceName() + " eclipse time(ms) " + eclipseTime + " "
                     + this.getJointime());
-        }
-        catch (InterruptedException e) {
+        } catch (InterruptedException e) {
             e.printStackTrace();
         }
     }
@@ -130,11 +128,9 @@ public abstract class ServiceThread implements Runnable {
 
             try {
                 this.wait(interval);
-            }
-            catch (InterruptedException e) {
+            } catch (InterruptedException e) {
                 e.printStackTrace();
-            }
-            finally {
+            } finally {
                 this.hasNotified = false;
                 this.onWaitEnd();
             }

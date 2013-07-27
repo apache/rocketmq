@@ -15,14 +15,14 @@
  */
 package com.alibaba.rocketmq.client.impl.consumer;
 
-import java.util.List;
-import java.util.Set;
-
 import com.alibaba.rocketmq.client.consumer.AllocateMessageQueueStrategy;
 import com.alibaba.rocketmq.client.consumer.MessageQueueListener;
 import com.alibaba.rocketmq.client.impl.factory.MQClientFactory;
 import com.alibaba.rocketmq.common.message.MessageQueue;
 import com.alibaba.rocketmq.common.protocol.heartbeat.MessageModel;
+
+import java.util.List;
+import java.util.Set;
 
 
 /**
@@ -39,8 +39,8 @@ public class RebalancePullImpl extends RebalanceImpl {
 
 
     public RebalancePullImpl(String consumerGroup, MessageModel messageModel,
-            AllocateMessageQueueStrategy allocateMessageQueueStrategy, MQClientFactory mQClientFactory,
-            DefaultMQPullConsumerImpl defaultMQPullConsumerImpl) {
+                             AllocateMessageQueueStrategy allocateMessageQueueStrategy, MQClientFactory mQClientFactory,
+                             DefaultMQPullConsumerImpl defaultMQPullConsumerImpl) {
         super(consumerGroup, messageModel, allocateMessageQueueStrategy, mQClientFactory);
         this.defaultMQPullConsumerImpl = defaultMQPullConsumerImpl;
     }
@@ -64,8 +64,7 @@ public class RebalancePullImpl extends RebalanceImpl {
         if (messageQueueListener != null) {
             try {
                 messageQueueListener.messageQueueChanged(topic, mqAll, mqDivided);
-            }
-            catch (Throwable e) {
+            } catch (Throwable e) {
                 log.error("messageQueueChanged exception", e);
             }
         }

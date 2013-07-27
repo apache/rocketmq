@@ -15,6 +15,11 @@
  */
 package com.alibaba.rocketmq.store;
 
+import com.alibaba.rocketmq.common.UtilALl;
+import com.alibaba.rocketmq.common.constant.LoggerName;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
@@ -22,16 +27,10 @@ import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.channels.FileChannel.MapMode;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.alibaba.rocketmq.common.UtilALl;
-import com.alibaba.rocketmq.common.constant.LoggerName;
-
 
 /**
  * 记录存储模型最终一致的时间点
- * 
+ *
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-21
  */
@@ -64,8 +63,7 @@ public class StoreCheckpoint {
                     + UtilALl.timeMillisToHumanString(this.physicMsgTimestamp));
             log.info("store checkpoint file logicsMsgTimestamp " + this.logicsMsgTimestamp + ", "
                     + UtilALl.timeMillisToHumanString(this.logicsMsgTimestamp));
-        }
-        else {
+        } else {
             log.info("store checkpoint file not exists, " + scpPath);
         }
     }
@@ -87,8 +85,7 @@ public class StoreCheckpoint {
 
         try {
             this.fileChannel.close();
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
             e.printStackTrace();
         }
     }

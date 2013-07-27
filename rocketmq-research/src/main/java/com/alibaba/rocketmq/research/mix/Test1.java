@@ -5,7 +5,6 @@ package com.alibaba.rocketmq.research.mix;
 
 /**
  * @author shijia.wxr<vintage.wang@gmail.com>
- * 
  */
 public class Test1 {
 

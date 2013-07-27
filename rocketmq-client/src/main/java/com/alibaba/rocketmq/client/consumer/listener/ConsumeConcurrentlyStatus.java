@@ -17,7 +17,7 @@ package com.alibaba.rocketmq.client.consumer.listener;
 
 /**
  * 并行消费，消费结果
- * 
+ *
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-24
  */

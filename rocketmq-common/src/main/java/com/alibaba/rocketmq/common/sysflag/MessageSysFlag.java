@@ -17,7 +17,6 @@ package com.alibaba.rocketmq.common.sysflag;
 
 /**
  * @author shijia.wxr<vintage.wang@gmail.com>
- * 
  */
 public class MessageSysFlag {
     /**

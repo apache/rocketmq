@@ -17,7 +17,7 @@ package com.alibaba.rocketmq.store;
 
 /**
  * 访问消息返回的状态码
- * 
+ *
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-21
  */

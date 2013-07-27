@@ -15,9 +15,6 @@
  */
 package com.alibaba.rocketmq.client.consumer;
 
-import java.util.HashSet;
-import java.util.Set;
-
 import com.alibaba.rocketmq.client.ClientConfig;
 import com.alibaba.rocketmq.client.QueryResult;
 import com.alibaba.rocketmq.client.consumer.rebalance.AllocateMessageQueueAveragely;
@@ -31,10 +28,13 @@ import com.alibaba.rocketmq.common.message.MessageQueue;
 import com.alibaba.rocketmq.common.protocol.heartbeat.MessageModel;
 import com.alibaba.rocketmq.remoting.exception.RemotingException;
 
+import java.util.HashSet;
+import java.util.Set;
+
 
 /**
  * 消费者，主动拉取方式消费
- * 
+ *
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-24
  */
@@ -180,7 +180,7 @@ public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsume
 
     @Override
     public void pull(MessageQueue mq, String subExpression, long offset, int maxNums,
-            PullCallback pullCallback) throws MQClientException, RemotingException, InterruptedException {
+                     PullCallback pullCallback) throws MQClientException, RemotingException, InterruptedException {
         this.defaultMQPullConsumerImpl.pull(mq, subExpression, offset, maxNums, pullCallback);
     }
 
@@ -194,7 +194,7 @@ public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsume
 
     @Override
     public void pullBlockIfNotFound(MessageQueue mq, String subExpression, long offset, int maxNums,
-            PullCallback pullCallback) throws MQClientException, RemotingException, InterruptedException {
+                                    PullCallback pullCallback) throws MQClientException, RemotingException, InterruptedException {
         this.defaultMQPullConsumerImpl.pullBlockIfNotFound(mq, subExpression, offset, maxNums, pullCallback);
     }
 

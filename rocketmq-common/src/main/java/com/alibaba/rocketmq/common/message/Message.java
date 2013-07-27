@@ -22,7 +22,7 @@ import java.util.Map;
 
 /**
  * 消息，Producer与Consumer使用
- * 
+ *
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-18
  */

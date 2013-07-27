@@ -17,7 +17,7 @@ package com.alibaba.rocketmq.client.consumer;
 
 /**
  * 异步拉消息回调接口
- * 
+ *
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-24
  */

@@ -15,14 +15,14 @@
  */
 package com.alibaba.rocketmq.client.impl.consumer;
 
-import java.util.concurrent.ConcurrentHashMap;
-
 import com.alibaba.rocketmq.common.message.MessageQueue;
+
+import java.util.concurrent.ConcurrentHashMap;
 
 
 /**
  * 严格保证单个队列同一时刻只有一个线程消费
- * 
+ *
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-6-25
  */

@@ -15,14 +15,14 @@
  */
 package com.alibaba.rocketmq.client;
 
-import java.util.List;
-
 import com.alibaba.rocketmq.common.message.MessageExt;
+
+import java.util.List;
 
 
 /**
  * 查询消息返回结果
- * 
+ *
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-24
  */

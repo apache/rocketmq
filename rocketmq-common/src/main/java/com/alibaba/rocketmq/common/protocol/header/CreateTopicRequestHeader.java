@@ -11,7 +11,6 @@ import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
 
 /**
  * @author shijia.wxr<vintage.wang@gmail.com>
- * 
  */
 public class CreateTopicRequestHeader implements CommandCustomHeader {
     @CFNotNull
@@ -32,8 +31,7 @@ public class CreateTopicRequestHeader implements CommandCustomHeader {
     public void checkFields() throws RemotingCommandException {
         try {
             TopicFilterType.valueOf(this.topicFilterType);
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             throw new RemotingCommandException("topicFilterType = [" + topicFilterType + "] value invalid", e);
         }
     }

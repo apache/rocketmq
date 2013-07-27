@@ -1,15 +1,15 @@
 package com.alibaba.rocketmq.common.protocol.body;
 
-import java.util.HashMap;
-import java.util.Set;
-
 import com.alibaba.rocketmq.common.protocol.route.BrokerData;
 import com.alibaba.rocketmq.remoting.protocol.RemotingSerializable;
+
+import java.util.HashMap;
+import java.util.Set;
 
 
 /**
  * 协议中传输对象，内容为集群信息
- * 
+ *
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-16
  */

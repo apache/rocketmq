@@ -15,14 +15,14 @@
  */
 package com.alibaba.rocketmq.store.schedule;
 
-import java.util.concurrent.ConcurrentHashMap;
-
 import com.alibaba.rocketmq.remoting.protocol.RemotingSerializable;
+
+import java.util.concurrent.ConcurrentHashMap;
 
 
 /**
  * 延时消息进度，序列化包装
- * 
+ *
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-21
  */

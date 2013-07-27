@@ -15,14 +15,12 @@
  */
 package com.alibaba.rocketmq.namesrv.routeinfo;
 
-import io.netty.channel.Channel;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.namesrv.NamesrvController;
 import com.alibaba.rocketmq.remoting.ChannelEventListener;
+import io.netty.channel.Channel;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 /**

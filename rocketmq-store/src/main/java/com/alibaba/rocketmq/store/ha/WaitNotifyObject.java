@@ -20,7 +20,7 @@ import java.util.HashMap;
 
 /**
  * 用来做线程之间异步通知
- * 
+ *
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-21
  */
@@ -52,11 +52,9 @@ public class WaitNotifyObject {
 
             try {
                 this.wait(interval);
-            }
-            catch (InterruptedException e) {
+            } catch (InterruptedException e) {
                 e.printStackTrace();
-            }
-            finally {
+            } finally {
                 this.hasNotified = false;
                 this.onWaitEnd();
             }
@@ -98,11 +96,9 @@ public class WaitNotifyObject {
 
             try {
                 this.wait(interval);
-            }
-            catch (InterruptedException e) {
+            } catch (InterruptedException e) {
                 e.printStackTrace();
-            }
-            finally {
+            } finally {
                 this.waitingThreadTable.put(currentThreadId, false);
                 this.onWaitEnd();
             }

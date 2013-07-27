@@ -15,17 +15,17 @@
  */
 package com.alibaba.rocketmq.client.producer.selector;
 
-import java.util.List;
-import java.util.Random;
-
 import com.alibaba.rocketmq.client.producer.MessageQueueSelector;
 import com.alibaba.rocketmq.common.message.Message;
 import com.alibaba.rocketmq.common.message.MessageQueue;
 
+import java.util.List;
+import java.util.Random;
+
 
 /**
  * 发送消息，随机选择队列
- * 
+ *
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-25
  */

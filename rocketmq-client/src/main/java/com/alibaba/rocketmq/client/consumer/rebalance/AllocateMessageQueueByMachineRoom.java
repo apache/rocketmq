@@ -15,17 +15,17 @@
  */
 package com.alibaba.rocketmq.client.consumer.rebalance;
 
+import com.alibaba.rocketmq.client.consumer.AllocateMessageQueueStrategy;
+import com.alibaba.rocketmq.common.message.MessageQueue;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
-import com.alibaba.rocketmq.client.consumer.AllocateMessageQueueStrategy;
-import com.alibaba.rocketmq.common.message.MessageQueue;
-
 
 /**
  * 按照机房来分配队列，例如支付宝逻辑机房
- * 
+ *
  * @author linye<jin.qian@alipay.com>
  * @since 2013-7-24
  */

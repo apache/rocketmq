@@ -9,7 +9,6 @@ import org.slf4j.LoggerFactory;
 
 /**
  * @author shijia.wxr<vintage.wang@gmail.com>
- * 
  */
 public class LogbackTest {
     public final static Logger log = LoggerFactory.getLogger(LogbackTest.class);

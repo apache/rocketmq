@@ -10,7 +10,6 @@ import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
 
 /**
  * @author shijia.wxr<vintage.wang@gmail.com>
- * 
  */
 public class GetMaxOffsetResponseHeader implements CommandCustomHeader {
     @CFNotNull

@@ -15,9 +15,6 @@
  */
 package com.alibaba.rocketmq.example.simple;
 
-import java.util.List;
-import java.util.concurrent.atomic.AtomicLong;
-
 import com.alibaba.rocketmq.client.consumer.DefaultMQPushConsumer;
 import com.alibaba.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext;
 import com.alibaba.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
@@ -25,10 +22,13 @@ import com.alibaba.rocketmq.client.consumer.listener.MessageListenerConcurrently
 import com.alibaba.rocketmq.client.exception.MQClientException;
 import com.alibaba.rocketmq.common.message.MessageExt;
 
+import java.util.List;
+import java.util.concurrent.atomic.AtomicLong;
+
 
 /**
  * PushConsumer，订阅消息
- * 
+ *
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-16
  */
@@ -45,13 +45,12 @@ public class PushConsumer {
 
             @Override
             public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> msgs,
-                    ConsumeConcurrentlyContext context) {
+                                                            ConsumeConcurrentlyContext context) {
                 System.out.println(Thread.currentThread().getName() + " Receive New Messages: " + msgs);
                 this.consumeTimes.incrementAndGet();
                 if ((this.consumeTimes.get() % 2) == 0) {
                     return ConsumeConcurrentlyStatus.RECONSUME_LATER;
-                }
-                else if ((this.consumeTimes.get() % 3) == 0) {
+                } else if ((this.consumeTimes.get() % 3) == 0) {
                     context.setDelayLevelWhenNextConsume(5);
                     return ConsumeConcurrentlyStatus.RECONSUME_LATER;
                 }

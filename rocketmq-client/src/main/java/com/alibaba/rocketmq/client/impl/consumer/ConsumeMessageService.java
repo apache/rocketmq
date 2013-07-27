@@ -15,15 +15,15 @@
  */
 package com.alibaba.rocketmq.client.impl.consumer;
 
-import java.util.List;
-
 import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.common.message.MessageQueue;
+
+import java.util.List;
 
 
 /**
  * 消费消息服务，公共接口
- * 
+ *
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-24
  */
@@ -38,8 +38,8 @@ public interface ConsumeMessageService {
 
 
     public void submitConsumeRequest(//
-            final List<MessageExt> msgs, //
-            final ProcessQueue processQueue, //
-            final MessageQueue messageQueue, //
-            final boolean dispathToConsume);
+                                     final List<MessageExt> msgs, //
+                                     final ProcessQueue processQueue, //
+                                     final MessageQueue messageQueue, //
+                                     final boolean dispathToConsume);
 }

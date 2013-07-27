@@ -20,7 +20,7 @@ import com.alibaba.rocketmq.common.message.MessageQueue;
 
 /**
  * 拉消息请求
- * 
+ *
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-24
  */
@@ -91,14 +91,12 @@ public class PullRequest {
         if (consumerGroup == null) {
             if (other.consumerGroup != null)
                 return false;
-        }
-        else if (!consumerGroup.equals(other.consumerGroup))
+        } else if (!consumerGroup.equals(other.consumerGroup))
             return false;
         if (messageQueue == null) {
             if (other.messageQueue != null)
                 return false;
-        }
-        else if (!messageQueue.equals(other.messageQueue))
+        } else if (!messageQueue.equals(other.messageQueue))
             return false;
         return true;
     }

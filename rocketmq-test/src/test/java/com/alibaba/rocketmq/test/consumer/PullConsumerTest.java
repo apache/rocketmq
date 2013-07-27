@@ -1,11 +1,5 @@
 package com.alibaba.rocketmq.test.consumer;
 
-import java.util.Set;
-
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
-
 import com.alibaba.rocketmq.client.consumer.DefaultMQPullConsumer;
 import com.alibaba.rocketmq.client.consumer.MessageQueueListener;
 import com.alibaba.rocketmq.client.consumer.PullCallback;
@@ -16,6 +10,11 @@ import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.common.message.MessageQueue;
 import com.alibaba.rocketmq.remoting.exception.RemotingException;
 import com.alibaba.rocketmq.test.BaseTest;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.junit.Test;
+
+import java.util.Set;
 
 
 public class PullConsumerTest extends BaseTest {
@@ -188,20 +187,20 @@ public class PullConsumerTest extends BaseTest {
             PullResult pullResult = consumer.pullBlockIfNotFound(mq, null, 0, 32);
             System.out.println(pullResult);
             switch (pullResult.getPullStatus()) {
-            case FOUND:
-                for (MessageExt mex : pullResult.getMsgFoundList()) {
-                    System.out.println(mex);
-                    consumer.sendMessageBack(mex, 4);
-                }
-                break;
-            case NO_MATCHED_MSG:
-                break;
-            case NO_NEW_MSG:
-                break;
-            case OFFSET_ILLEGAL:
-                break;
-            default:
-                break;
+                case FOUND:
+                    for (MessageExt mex : pullResult.getMsgFoundList()) {
+                        System.out.println(mex);
+                        consumer.sendMessageBack(mex, 4);
+                    }
+                    break;
+                case NO_MATCHED_MSG:
+                    break;
+                case NO_NEW_MSG:
+                    break;
+                case OFFSET_ILLEGAL:
+                    break;
+                default:
+                    break;
             }
         }
     }
@@ -254,21 +253,21 @@ public class PullConsumerTest extends BaseTest {
             PullResult pullResult = consumer.pullBlockIfNotFound(mq, null, 0, 32);
             System.out.println(pullResult);
             switch (pullResult.getPullStatus()) {
-            case FOUND:
-                for (MessageExt mex : pullResult.getMsgFoundList()) {
-                    System.out.println(mex);
-                    MessageExt data = consumer.viewMessage(mex.getMsgId());
-                    // Assert.assertEquals(mex.toString(), data.toString());
-                }
-                break;
-            case NO_MATCHED_MSG:
-                break;
-            case NO_NEW_MSG:
-                break;
-            case OFFSET_ILLEGAL:
-                break;
-            default:
-                break;
+                case FOUND:
+                    for (MessageExt mex : pullResult.getMsgFoundList()) {
+                        System.out.println(mex);
+                        MessageExt data = consumer.viewMessage(mex.getMsgId());
+                        // Assert.assertEquals(mex.toString(), data.toString());
+                    }
+                    break;
+                case NO_MATCHED_MSG:
+                    break;
+                case NO_NEW_MSG:
+                    break;
+                case OFFSET_ILLEGAL:
+                    break;
+                default:
+                    break;
             }
         }
 

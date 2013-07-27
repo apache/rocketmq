@@ -3,15 +3,14 @@
  */
 package com.alibaba.rocketmq.common.protocol.heartbeat;
 
+import com.alibaba.rocketmq.common.consumer.ConsumeFromWhere;
+
 import java.util.HashSet;
 import java.util.Set;
-
-import com.alibaba.rocketmq.common.consumer.ConsumeFromWhere;
 
 
 /**
  * @author shijia.wxr<vintage.wang@gmail.com>
- * 
  */
 public class ConsumerData {
     private String groupName;

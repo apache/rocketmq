@@ -15,15 +15,6 @@
  */
 package com.alibaba.rocketmq.broker.processor;
 
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelFutureListener;
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.FileRegion;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.alibaba.rocketmq.broker.BrokerController;
 import com.alibaba.rocketmq.broker.client.ConsumerGroupInfo;
 import com.alibaba.rocketmq.broker.longpolling.PullRequest;
@@ -46,11 +37,14 @@ import com.alibaba.rocketmq.remoting.netty.NettyRequestProcessor;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 import com.alibaba.rocketmq.remoting.protocol.RemotingProtos.ResponseCode;
 import com.alibaba.rocketmq.store.GetMessageResult;
+import io.netty.channel.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 /**
  * 拉消息请求处理
- * 
+ *
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-26
  */
@@ -91,21 +85,19 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                                     if (!future.isSuccess()) {
                                         log.error("processRequestWrapper response to "
                                                 + future.channel().remoteAddress() + " failed",
-                                            future.cause());
+                                                future.cause());
                                         log.error(request.toString());
                                         log.error(response.toString());
                                     }
                                 }
                             });
-                        }
-                        catch (Throwable e) {
+                        } catch (Throwable e) {
                             log.error("processRequestWrapper process request over, but response failed", e);
                             log.error(request.toString());
                             log.error(response.toString());
                         }
                     }
-                }
-                catch (RemotingCommandException e1) {
+                } catch (RemotingCommandException e1) {
                     log.error("excuteRequestWhenWakeup run", e1);
                 }
             }
@@ -116,7 +108,7 @@ public class PullMessageProcessor implements NettyRequestProcessor {
 
 
     private RemotingCommand processRequest(final Channel channel, RemotingCommand request,
-            boolean brokerAllowSuspend) throws RemotingCommandException {
+                                           boolean brokerAllowSuspend) throws RemotingCommandException {
         RemotingCommand response = RemotingCommand.createResponseCommand(PullMessageResponseHeader.class);
         final PullMessageResponseHeader responseHeader =
                 (PullMessageResponseHeader) response.getCustomHeader();
@@ -141,7 +133,7 @@ public class PullMessageProcessor implements NettyRequestProcessor {
         // 确保订阅组存在
         SubscriptionGroupConfig subscriptionGroupConfig =
                 this.brokerController.getSubscriptionGroupManager().findSubscriptionGroupConfig(
-                    requestHeader.getConsumerGroup());
+                        requestHeader.getConsumerGroup());
         if (null == subscriptionGroupConfig) {
             response.setCode(MQResponseCode.SUBSCRIPTION_GROUP_NOT_EXIST_VALUE);
             response.setRemark("subscription group not exist, " + requestHeader.getConsumerGroup() + " "
@@ -199,21 +191,19 @@ public class PullMessageProcessor implements NettyRequestProcessor {
             try {
                 subscriptionData =
                         FilterAPI.buildSubscriptionData(requestHeader.getTopic(),
-                            requestHeader.getSubscription());
-            }
-            catch (Exception e) {
+                                requestHeader.getSubscription());
+            } catch (Exception e) {
                 log.warn("parse the consumer's subscription[{}] failed, group: {}",
-                    requestHeader.getSubscription(),//
-                    requestHeader.getConsumerGroup());
+                        requestHeader.getSubscription(),//
+                        requestHeader.getConsumerGroup());
                 response.setCode(MQResponseCode.SUBSCRIPTION_PARSE_FAILED_VALUE);
                 response.setRemark("parse the consumer's subscription failed");
                 return response;
             }
-        }
-        else {
+        } else {
             ConsumerGroupInfo consumerGroupInfo =
                     this.brokerController.getConsumerManager().getConsumerGroupInfo(
-                        requestHeader.getConsumerGroup());
+                            requestHeader.getConsumerGroup());
             if (null == consumerGroupInfo) {
                 log.warn("the consumer's group info not exist, group: {}", requestHeader.getConsumerGroup());
                 response.setCode(MQResponseCode.SUBSCRIPTION_NOT_EXIST_VALUE);
@@ -222,20 +212,20 @@ public class PullMessageProcessor implements NettyRequestProcessor {
             }
 
             switch (consumerGroupInfo.getConsumeFromWhere()) {
-            case CONSUME_FROM_LAST_OFFSET:
-            case CONSUME_FROM_MAX_OFFSET:
-                break;
-            case CONSUME_FROM_LAST_OFFSET_AND_FROM_MIN_WHEN_BOOT_FIRST:
-            case CONSUME_FROM_MIN_OFFSET:
-                if (!subscriptionGroupConfig.isConsumeFromMinEnable()) {
-                    response.setCode(MQResponseCode.NO_PERMISSION_VALUE);
-                    response.setRemark("the consumer group[" + requestHeader.getConsumerGroup()
-                            + "] can not consume from min");
-                    return response;
-                }
-                break;
-            default:
-                break;
+                case CONSUME_FROM_LAST_OFFSET:
+                case CONSUME_FROM_MAX_OFFSET:
+                    break;
+                case CONSUME_FROM_LAST_OFFSET_AND_FROM_MIN_WHEN_BOOT_FIRST:
+                case CONSUME_FROM_MIN_OFFSET:
+                    if (!subscriptionGroupConfig.isConsumeFromMinEnable()) {
+                        response.setCode(MQResponseCode.NO_PERMISSION_VALUE);
+                        response.setRemark("the consumer group[" + requestHeader.getConsumerGroup()
+                                + "] can not consume from min");
+                        return response;
+                    }
+                    break;
+                default:
+                    break;
             }
 
             if (!subscriptionGroupConfig.isConsumeBroadcastEnable() //
@@ -257,7 +247,7 @@ public class PullMessageProcessor implements NettyRequestProcessor {
             // 判断Broker的订阅关系版本是否最新
             if (subscriptionData.getSubVersion() < requestHeader.getSubVersion()) {
                 log.warn("the broker's subscription is not latest, group: {} {}",
-                    requestHeader.getConsumerGroup(), subscriptionData.getSubString());
+                        requestHeader.getConsumerGroup(), subscriptionData.getSubString());
                 response.setCode(MQResponseCode.SUBSCRIPTION_NOT_LATEST_VALUE);
                 response.setRemark("the consumer's subscription not latest");
                 return response;
@@ -266,8 +256,8 @@ public class PullMessageProcessor implements NettyRequestProcessor {
 
         final GetMessageResult getMessageResult =
                 this.brokerController.getMessageStore().getMessage(requestHeader.getTopic(),
-                    requestHeader.getQueueId(), requestHeader.getQueueOffset(),
-                    requestHeader.getMaxMsgNums(), subscriptionData);
+                        requestHeader.getQueueId(), requestHeader.getQueueOffset(),
+                        requestHeader.getMaxMsgNums(), subscriptionData);
         if (getMessageResult != null) {
             response.setRemark(getMessageResult.getStatus().name());
             responseHeader.setNextBeginOffset(getMessageResult.getNextBeginOffset());
@@ -277,7 +267,7 @@ public class PullMessageProcessor implements NettyRequestProcessor {
             // 消费较慢，重定向到另外一台机器
             if (getMessageResult.isSuggestPullingFromSlave()) {
                 responseHeader.setSuggestWhichBrokerId(subscriptionGroupConfig
-                    .getWhichBrokerWhenConsumeSlowly());
+                        .getWhichBrokerWhenConsumeSlowly());
             }
             // 消费正常，按照订阅组配置重定向
             else {
@@ -285,103 +275,100 @@ public class PullMessageProcessor implements NettyRequestProcessor {
             }
 
             switch (getMessageResult.getStatus()) {
-            case FOUND:
-                response.setCode(ResponseCode.SUCCESS_VALUE);
-                break;
-            case MESSAGE_WAS_REMOVING:
-                response.setCode(MQResponseCode.PULL_RETRY_IMMEDIATELY_VALUE);
-                break;
-            // 这两个返回值都表示服务器暂时没有这个队列，应该立刻将客户端Offset重置为0
-            case NO_MATCHED_LOGIC_QUEUE:
-            case NO_MESSAGE_IN_QUEUE:
-                if (0 != requestHeader.getQueueOffset()) {
-                    response.setCode(MQResponseCode.PULL_OFFSET_MOVED_VALUE);
+                case FOUND:
+                    response.setCode(ResponseCode.SUCCESS_VALUE);
+                    break;
+                case MESSAGE_WAS_REMOVING:
+                    response.setCode(MQResponseCode.PULL_RETRY_IMMEDIATELY_VALUE);
+                    break;
+                // 这两个返回值都表示服务器暂时没有这个队列，应该立刻将客户端Offset重置为0
+                case NO_MATCHED_LOGIC_QUEUE:
+                case NO_MESSAGE_IN_QUEUE:
+                    if (0 != requestHeader.getQueueOffset()) {
+                        response.setCode(MQResponseCode.PULL_OFFSET_MOVED_VALUE);
 
-                    log.info(
-                        "the broker store no queue data, fix the request offset {} to {}, Topic: {} QueueId: {} Consumer Group: {}",//
-                        requestHeader.getQueueOffset(), //
-                        getMessageResult.getNextBeginOffset(), //
-                        requestHeader.getTopic(),//
-                        requestHeader.getQueueId(),//
-                        requestHeader.getConsumerGroup()//
-                    );
-                }
-                else {
+                        log.info(
+                                "the broker store no queue data, fix the request offset {} to {}, Topic: {} QueueId: {} Consumer Group: {}",//
+                                requestHeader.getQueueOffset(), //
+                                getMessageResult.getNextBeginOffset(), //
+                                requestHeader.getTopic(),//
+                                requestHeader.getQueueId(),//
+                                requestHeader.getConsumerGroup()//
+                        );
+                    } else {
+                        response.setCode(MQResponseCode.PULL_NOT_FOUND_VALUE);
+                    }
+                    break;
+                case NO_MATCHED_MESSAGE:
+                    response.setCode(MQResponseCode.PULL_RETRY_IMMEDIATELY_VALUE);
+                    break;
+                case OFFSET_FOUND_NULL:
                     response.setCode(MQResponseCode.PULL_NOT_FOUND_VALUE);
-                }
-                break;
-            case NO_MATCHED_MESSAGE:
-                response.setCode(MQResponseCode.PULL_RETRY_IMMEDIATELY_VALUE);
-                break;
-            case OFFSET_FOUND_NULL:
-                response.setCode(MQResponseCode.PULL_NOT_FOUND_VALUE);
-                break;
-            case OFFSET_OVERFLOW_BADLY:
-                response.setCode(MQResponseCode.PULL_OFFSET_MOVED_VALUE);
-                log.info("the request offset: " + requestHeader.getQueueOffset()
-                        + " over flow badly, broker max offset: " + getMessageResult.getMaxOffset()
-                        + ", consumer: " + channel.remoteAddress());
-                break;
-            case OFFSET_OVERFLOW_ONE:
-                response.setCode(MQResponseCode.PULL_NOT_FOUND_VALUE);
-                break;
-            case OFFSET_TOO_SMALL:
-                response.setCode(MQResponseCode.PULL_OFFSET_MOVED_VALUE);
-                log.info("the request offset: " + requestHeader.getQueueOffset()
-                        + " too small, broker min offset: " + getMessageResult.getMinOffset()
-                        + ", consumer: " + channel.remoteAddress());
-                break;
-            default:
-                assert false;
-                break;
+                    break;
+                case OFFSET_OVERFLOW_BADLY:
+                    response.setCode(MQResponseCode.PULL_OFFSET_MOVED_VALUE);
+                    log.info("the request offset: " + requestHeader.getQueueOffset()
+                            + " over flow badly, broker max offset: " + getMessageResult.getMaxOffset()
+                            + ", consumer: " + channel.remoteAddress());
+                    break;
+                case OFFSET_OVERFLOW_ONE:
+                    response.setCode(MQResponseCode.PULL_NOT_FOUND_VALUE);
+                    break;
+                case OFFSET_TOO_SMALL:
+                    response.setCode(MQResponseCode.PULL_OFFSET_MOVED_VALUE);
+                    log.info("the request offset: " + requestHeader.getQueueOffset()
+                            + " too small, broker min offset: " + getMessageResult.getMinOffset()
+                            + ", consumer: " + channel.remoteAddress());
+                    break;
+                default:
+                    assert false;
+                    break;
             }
 
             switch (response.getCode()) {
-            case ResponseCode.SUCCESS_VALUE:
-                try {
-                    FileRegion fileRegion =
-                            new ManyMessageTransfer(response.encodeHeader(getMessageResult
-                                .getBufferTotalSize()), getMessageResult);
-                    channel.writeAndFlush(fileRegion).addListener(new ChannelFutureListener() {
-                        @Override
-                        public void operationComplete(ChannelFuture future) throws Exception {
-                            getMessageResult.release();
-                            if (!future.isSuccess()) {
-                                log.error(
-                                    "transfer many message by pagecache failed, " + channel.remoteAddress(),
-                                    future.cause());
+                case ResponseCode.SUCCESS_VALUE:
+                    try {
+                        FileRegion fileRegion =
+                                new ManyMessageTransfer(response.encodeHeader(getMessageResult
+                                        .getBufferTotalSize()), getMessageResult);
+                        channel.writeAndFlush(fileRegion).addListener(new ChannelFutureListener() {
+                            @Override
+                            public void operationComplete(ChannelFuture future) throws Exception {
+                                getMessageResult.release();
+                                if (!future.isSuccess()) {
+                                    log.error(
+                                            "transfer many message by pagecache failed, " + channel.remoteAddress(),
+                                            future.cause());
+                                }
                             }
-                        }
-                    });
-                }
-                catch (Throwable e) {
-                    log.error("", e);
-                    getMessageResult.release();
-                }
+                        });
+                    } catch (Throwable e) {
+                        log.error("", e);
+                        getMessageResult.release();
+                    }
 
-                response = null;
-                break;
-            case MQResponseCode.PULL_NOT_FOUND_VALUE:
-                // 长轮询
-                if (brokerAllowSuspend && hasSuspendFlag) {
-                    PullRequest pullRequest =
-                            new PullRequest(request, channel, suspendTimeoutMillisLong, this.brokerController
-                                .getMessageStore().now(), requestHeader.getQueueOffset());
-                    this.brokerController.getPullRequestHoldService().suspendPullRequest(
-                        requestHeader.getTopic(), requestHeader.getQueueId(), pullRequest);
                     response = null;
                     break;
-                }
+                case MQResponseCode.PULL_NOT_FOUND_VALUE:
+                    // 长轮询
+                    if (brokerAllowSuspend && hasSuspendFlag) {
+                        PullRequest pullRequest =
+                                new PullRequest(request, channel, suspendTimeoutMillisLong, this.brokerController
+                                        .getMessageStore().now(), requestHeader.getQueueOffset());
+                        this.brokerController.getPullRequestHoldService().suspendPullRequest(
+                                requestHeader.getTopic(), requestHeader.getQueueId(), pullRequest);
+                        response = null;
+                        break;
+                    }
 
-                // 向Consumer返回应答
-            case MQResponseCode.PULL_RETRY_IMMEDIATELY_VALUE:
-            case MQResponseCode.PULL_OFFSET_MOVED_VALUE:
-                break;
-            default:
-                assert false;
+                    // 向Consumer返回应答
+                case MQResponseCode.PULL_RETRY_IMMEDIATELY_VALUE:
+                case MQResponseCode.PULL_OFFSET_MOVED_VALUE:
+                    break;
+                default:
+                    assert false;
             }
-        }
-        else {
+        } else {
             response.setCode(ResponseCode.SYSTEM_ERROR_VALUE);
             response.setRemark("store getMessage return null");
         }
@@ -390,8 +377,8 @@ public class PullMessageProcessor implements NettyRequestProcessor {
         if (brokerAllowSuspend) { // 说明是首次调用，相对于长轮询通知
             if (hasCommitOffsetFlag) {
                 this.brokerController.getConsumerOffsetManager().commitOffset(
-                    requestHeader.getConsumerGroup(), requestHeader.getTopic(), requestHeader.getQueueId(),
-                    requestHeader.getCommitOffset());
+                        requestHeader.getConsumerGroup(), requestHeader.getTopic(), requestHeader.getQueueId(),
+                        requestHeader.getCommitOffset());
             }
         }
 

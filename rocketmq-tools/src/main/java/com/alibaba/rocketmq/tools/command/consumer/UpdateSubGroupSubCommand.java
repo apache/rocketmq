@@ -15,18 +15,17 @@
  */
 package com.alibaba.rocketmq.tools.command.consumer;
 
+import com.alibaba.rocketmq.common.subscription.SubscriptionGroupConfig;
+import com.alibaba.rocketmq.tools.admin.DefaultMQAdminExt;
+import com.alibaba.rocketmq.tools.command.SubCommand;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 
-import com.alibaba.rocketmq.common.subscription.SubscriptionGroupConfig;
-import com.alibaba.rocketmq.tools.admin.DefaultMQAdminExt;
-import com.alibaba.rocketmq.tools.command.SubCommand;
-
 
 /**
  * 修改、创建订阅组配置命令
- * 
+ *
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-21
  */
@@ -103,8 +102,7 @@ public class UpdateSubGroupSubCommand implements SubCommand {
             // brokerAddr
             if (commandLine.hasOption('b')) {
                 addr = commandLine.getOptionValue('b');
-            }
-            else {
+            } else {
                 System.out.println("please tell us broker's addr");
                 return;
             }
@@ -112,8 +110,7 @@ public class UpdateSubGroupSubCommand implements SubCommand {
             // groupName
             if (commandLine.hasOption('g')) {
                 subscriptionGroupConfig.setGroupName(commandLine.getOptionValue('g'));
-            }
-            else {
+            } else {
                 System.out.println("please tell us consumer group name");
                 return;
             }
@@ -121,19 +118,19 @@ public class UpdateSubGroupSubCommand implements SubCommand {
             // consumeEnable
             if (commandLine.hasOption('c')) {
                 subscriptionGroupConfig
-                    .setConsumeEnable(Boolean.parseBoolean(commandLine.getOptionValue('c')));
+                        .setConsumeEnable(Boolean.parseBoolean(commandLine.getOptionValue('c')));
             }
 
             // consumeFromMinEnable
             if (commandLine.hasOption('m')) {
                 subscriptionGroupConfig.setConsumeFromMinEnable(Boolean.parseBoolean(commandLine
-                    .getOptionValue('m')));
+                        .getOptionValue('m')));
             }
 
             // consumeBroadcastEnable
             if (commandLine.hasOption('d')) {
                 subscriptionGroupConfig.setConsumeBroadcastEnable(Boolean.parseBoolean(commandLine
-                    .getOptionValue('d')));
+                        .getOptionValue('d')));
             }
 
             // retryQueueNums
@@ -154,17 +151,15 @@ public class UpdateSubGroupSubCommand implements SubCommand {
             // whichBrokerWhenConsumeSlowly
             if (commandLine.hasOption('w')) {
                 subscriptionGroupConfig.setWhichBrokerWhenConsumeSlowly(Long.parseLong(commandLine
-                    .getOptionValue('w')));
+                        .getOptionValue('w')));
             }
 
             defaultMQAdminExt.createAndUpdateSubscriptionGroupConfigByAddr(addr, subscriptionGroupConfig);
             System.out.println("create subscription group success.");
             System.out.println(subscriptionGroupConfig);
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             e.printStackTrace();
-        }
-        finally {
+        } finally {
             defaultMQAdminExt.shutdown();
         }
     }

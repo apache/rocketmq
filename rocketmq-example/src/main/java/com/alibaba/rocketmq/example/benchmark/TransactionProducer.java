@@ -15,6 +15,11 @@
  */
 package com.alibaba.rocketmq.example.benchmark;
 
+import com.alibaba.rocketmq.client.exception.MQClientException;
+import com.alibaba.rocketmq.client.producer.*;
+import com.alibaba.rocketmq.common.message.Message;
+import com.alibaba.rocketmq.common.message.MessageExt;
+
 import java.util.LinkedList;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -22,19 +27,10 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicLong;
 
-import com.alibaba.rocketmq.client.exception.MQClientException;
-import com.alibaba.rocketmq.client.producer.LocalTransactionExecuter;
-import com.alibaba.rocketmq.client.producer.LocalTransactionState;
-import com.alibaba.rocketmq.client.producer.SendResult;
-import com.alibaba.rocketmq.client.producer.TransactionCheckListener;
-import com.alibaba.rocketmq.client.producer.TransactionMQProducer;
-import com.alibaba.rocketmq.common.message.Message;
-import com.alibaba.rocketmq.common.message.MessageExt;
-
 
 /**
  * 性能测试，多线程同步发送事务消息
- * 
+ *
  * @author 菱叶<jin.qian@alipay.com>
  * @since 2013-7-24
  */
@@ -97,13 +93,13 @@ public class TransactionProducer {
                     final double averageRT = ((end[5] - begin[5]) / (double) (end[3] - begin[3]));
 
                     System.out.printf(
-                        "Send TPS: %d Max RT: %d Average RT: %7.3f Send Failed: %d Response Failed: %d transaction checkCount: %d \n"//
-                        , sendTps//
-                        , statsBenchmark.getSendMessageMaxRT().get()//
-                        , averageRT//
-                        , end[2]//
-                        , end[4]//
-                        , end[6]);
+                            "Send TPS: %d Max RT: %d Average RT: %7.3f Send Failed: %d Response Failed: %d transaction checkCount: %d \n"//
+                            , sendTps//
+                            , statsBenchmark.getSendMessageMaxRT().get()//
+                            , averageRT//
+                            , end[2]//
+                            , end[4]//
+                            , end[6]);
                 }
             }
 
@@ -112,8 +108,7 @@ public class TransactionProducer {
             public void run() {
                 try {
                     this.printStats();
-                }
-                catch (Exception e) {
+                } catch (Exception e) {
                     e.printStackTrace();
                 }
             }
@@ -148,14 +143,13 @@ public class TransactionProducer {
                             while (currentRT > prevMaxRT) {
                                 boolean updated =
                                         statsBenchmark.getSendMessageMaxRT().compareAndSet(prevMaxRT,
-                                            currentRT);
+                                                currentRT);
                                 if (updated)
                                     break;
 
                                 prevMaxRT = statsBenchmark.getSendMessageMaxRT().get();
                             }
-                        }
-                        catch (MQClientException e) {
+                        } catch (MQClientException e) {
                             statsBenchmark.getSendRequestFailedCount().incrementAndGet();
                         }
                     }
@@ -192,7 +186,7 @@ class TransactionCheckListenerBImpl implements TransactionCheckListener {
 
 
     public TransactionCheckListenerBImpl(boolean ischeckffalse,
-            StatsBenchmarkTProducer statsBenchmarkTProducer) {
+                                         StatsBenchmarkTProducer statsBenchmarkTProducer) {
         this.ischeckffalse = ischeckffalse;
         this.statsBenchmarkTProducer = statsBenchmarkTProducer;
     }
@@ -230,14 +224,14 @@ class StatsBenchmarkTProducer {
 
 
     public Long[] createSnapshot() {
-        Long[] snap = new Long[] {//
+        Long[] snap = new Long[]{//
                 System.currentTimeMillis(),//
-                        this.sendRequestSuccessCount.get(),//
-                        this.sendRequestFailedCount.get(),//
-                        this.receiveResponseSuccessCount.get(),//
-                        this.receiveResponseFailedCount.get(),//
-                        this.sendMessageSuccessTimeTotal.get(), //
-                        this.checkRequestSuccessCount.get(), };
+                this.sendRequestSuccessCount.get(),//
+                this.sendRequestFailedCount.get(),//
+                this.receiveResponseSuccessCount.get(),//
+                this.receiveResponseFailedCount.get(),//
+                this.sendMessageSuccessTimeTotal.get(), //
+                this.checkRequestSuccessCount.get(),};
 
         return snap;
     }

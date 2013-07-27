@@ -15,6 +15,12 @@
  */
 package com.alibaba.rocketmq.example.benchmark;
 
+import com.alibaba.rocketmq.client.exception.MQBrokerException;
+import com.alibaba.rocketmq.client.exception.MQClientException;
+import com.alibaba.rocketmq.client.producer.DefaultMQProducer;
+import com.alibaba.rocketmq.common.message.Message;
+import com.alibaba.rocketmq.remoting.exception.RemotingException;
+
 import java.util.LinkedList;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -22,16 +28,10 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicLong;
 
-import com.alibaba.rocketmq.client.exception.MQBrokerException;
-import com.alibaba.rocketmq.client.exception.MQClientException;
-import com.alibaba.rocketmq.client.producer.DefaultMQProducer;
-import com.alibaba.rocketmq.common.message.Message;
-import com.alibaba.rocketmq.remoting.exception.RemotingException;
-
 
 /**
  * 性能测试，多线程同步发送消息
- * 
+ *
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-16
  */
@@ -88,13 +88,13 @@ public class Producer {
                     final double averageRT = ((end[5] - begin[5]) / (double) (end[3] - begin[3]));
 
                     System.out.printf(
-                        "Send TPS: %d Max RT: %d Average RT: %7.3f Send Failed: %d Response Failed: %d\n"//
-                        , sendTps//
-                        , statsBenchmark.getSendMessageMaxRT().get()//
-                        , averageRT//
-                        , end[2]//
-                        , end[4]//
-                        );
+                            "Send TPS: %d Max RT: %d Average RT: %7.3f Send Failed: %d Response Failed: %d\n"//
+                            , sendTps//
+                            , statsBenchmark.getSendMessageMaxRT().get()//
+                            , averageRT//
+                            , end[2]//
+                            , end[4]//
+                    );
                 }
             }
 
@@ -103,8 +103,7 @@ public class Producer {
             public void run() {
                 try {
                     this.printStats();
-                }
-                catch (Exception e) {
+                } catch (Exception e) {
                     e.printStackTrace();
                 }
             }
@@ -132,26 +131,22 @@ public class Producer {
                             while (currentRT > prevMaxRT) {
                                 boolean updated =
                                         statsBenchmark.getSendMessageMaxRT().compareAndSet(prevMaxRT,
-                                            currentRT);
+                                                currentRT);
                                 if (updated)
                                     break;
 
                                 prevMaxRT = statsBenchmark.getSendMessageMaxRT().get();
                             }
-                        }
-                        catch (RemotingException e) {
+                        } catch (RemotingException e) {
                             statsBenchmark.getSendRequestFailedCount().incrementAndGet();
                             e.printStackTrace();
-                        }
-                        catch (InterruptedException e) {
+                        } catch (InterruptedException e) {
                             statsBenchmark.getSendRequestFailedCount().incrementAndGet();
                             e.printStackTrace();
-                        }
-                        catch (MQClientException e) {
+                        } catch (MQClientException e) {
                             statsBenchmark.getSendRequestFailedCount().incrementAndGet();
                             e.printStackTrace();
-                        }
-                        catch (MQBrokerException e) {
+                        } catch (MQBrokerException e) {
                             statsBenchmark.getReceiveResponseFailedCount().incrementAndGet();
                             e.printStackTrace();
                         }
@@ -179,14 +174,14 @@ class StatsBenchmarkProducer {
 
 
     public Long[] createSnapshot() {
-        Long[] snap = new Long[] {//
+        Long[] snap = new Long[]{//
                 System.currentTimeMillis(),//
-                        this.sendRequestSuccessCount.get(),//
-                        this.sendRequestFailedCount.get(),//
-                        this.receiveResponseSuccessCount.get(),//
-                        this.receiveResponseFailedCount.get(),//
-                        this.sendMessageSuccessTimeTotal.get(), //
-                };
+                this.sendRequestSuccessCount.get(),//
+                this.sendRequestFailedCount.get(),//
+                this.receiveResponseSuccessCount.get(),//
+                this.receiveResponseFailedCount.get(),//
+                this.sendMessageSuccessTimeTotal.get(), //
+        };
 
         return snap;
     }

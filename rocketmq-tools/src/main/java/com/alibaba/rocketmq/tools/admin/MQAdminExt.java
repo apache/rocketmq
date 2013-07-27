@@ -28,7 +28,7 @@ import com.alibaba.rocketmq.remoting.exception.RemotingException;
 /**
  * MQ管理类接口，涉及所有与MQ管理相关的对外接口<br>
  * 包括Topic创建、订阅组创建、配置修改等
- * 
+ *
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-14
  */
@@ -41,7 +41,7 @@ public interface MQAdminExt extends MQAdmin {
 
     /**
      * 向指定Broker集群创建或者更新Topic配置
-     * 
+     *
      * @param cluster
      * @param config
      */
@@ -50,7 +50,7 @@ public interface MQAdminExt extends MQAdmin {
 
     /**
      * 向指定Broker创建或者更新Topic配置
-     * 
+     *
      * @param addr
      * @param config
      * @throws MQClientException
@@ -64,17 +64,17 @@ public interface MQAdminExt extends MQAdmin {
 
     /**
      * 向指定Broker集群创建或者更新订阅组配置
-     * 
+     *
      * @param cluster
      * @param config
      */
     public void createAndUpdateSubscriptionGroupConfigByCluster(final String cluster,
-            final SubscriptionGroupConfig config);
+                                                                final SubscriptionGroupConfig config);
 
 
     /**
      * 向指定Broker创建或者更新订阅组配置
-     * 
+     *
      * @param addr
      * @param config
      * @throws MQClientException
@@ -83,13 +83,13 @@ public interface MQAdminExt extends MQAdmin {
      * @throws RemotingException
      */
     public void createAndUpdateSubscriptionGroupConfigByAddr(final String addr,
-            final SubscriptionGroupConfig config) throws RemotingException, MQBrokerException,
+                                                             final SubscriptionGroupConfig config) throws RemotingException, MQBrokerException,
             InterruptedException, MQClientException;
 
 
     /**
      * 查询指定Broker的订阅组配置
-     * 
+     *
      * @param addr
      * @param group
      * @return
@@ -99,7 +99,7 @@ public interface MQAdminExt extends MQAdmin {
 
     /**
      * 查询指定Broker的Topic配置
-     * 
+     *
      * @param addr
      * @param group
      * @return
@@ -109,7 +109,7 @@ public interface MQAdminExt extends MQAdmin {
 
     /**
      * 查询Topic Offset信息
-     * 
+     *
      * @param topic
      * @return
      */
@@ -118,7 +118,7 @@ public interface MQAdminExt extends MQAdmin {
 
     /**
      * 查询消费进度
-     * 
+     *
      * @param consumerGroup
      * @param topic
      * @return
@@ -128,7 +128,7 @@ public interface MQAdminExt extends MQAdmin {
 
     /**
      * 向Name Server增加一个配置项
-     * 
+     *
      * @param namespace
      * @param key
      * @param value
@@ -138,7 +138,7 @@ public interface MQAdminExt extends MQAdmin {
 
     /**
      * 从Name Server获取一个配置项
-     * 
+     *
      * @param namespace
      * @param key
      * @return

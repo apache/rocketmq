@@ -17,7 +17,7 @@ package com.alibaba.rocketmq.remoting.netty;
 
 /**
  * Netty客户端配置类
- * 
+ *
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-13
  */

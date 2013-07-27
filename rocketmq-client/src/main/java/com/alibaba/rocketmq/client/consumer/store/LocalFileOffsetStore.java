@@ -15,31 +15,30 @@
  */
 package com.alibaba.rocketmq.client.consumer.store;
 
+import com.alibaba.rocketmq.client.impl.factory.MQClientFactory;
+import com.alibaba.rocketmq.client.log.ClientLogger;
+import com.alibaba.rocketmq.common.MixAll;
+import com.alibaba.rocketmq.common.message.MessageQueue;
+import org.slf4j.Logger;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
-import org.slf4j.Logger;
-
-import com.alibaba.rocketmq.client.impl.factory.MQClientFactory;
-import com.alibaba.rocketmq.client.log.ClientLogger;
-import com.alibaba.rocketmq.common.MixAll;
-import com.alibaba.rocketmq.common.message.MessageQueue;
-
 
 /**
  * 消费进度存储到Consumer本地
- * 
+ *
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-24
  */
 public class LocalFileOffsetStore implements OffsetStore {
     private final static Logger log = ClientLogger.getLog();
     public final static String LocalOffsetStoreDir = System.getProperty(
-        "rocketmq.client.localOffsetStoreDir", //
-        System.getProperty("user.home") + File.separator + ".rocketmq_offsets");
+            "rocketmq.client.localOffsetStoreDir", //
+            System.getProperty("user.home") + File.separator + ".rocketmq_offsets");
 
     private final MQClientFactory mQClientFactory;
     private final String groupName;
@@ -81,9 +80,9 @@ public class LocalFileOffsetStore implements OffsetStore {
             for (MessageQueue mq : offsetSerializeWrapper.getOffsetTable().keySet()) {
                 AtomicLong offset = offsetSerializeWrapper.getOffsetTable().get(mq);
                 log.info("load consumer's offset, {} {} {}",//
-                    this.groupName,//
-                    mq,//
-                    offset.get());
+                        this.groupName,//
+                        mq,//
+                        offset.get());
             }
         }
     }
@@ -100,8 +99,7 @@ public class LocalFileOffsetStore implements OffsetStore {
             if (null != offsetOld) {
                 if (increaseOnly) {
                     MixAll.compareAndIncreaseOnly(offsetOld, offset);
-                }
-                else {
+                } else {
                     offsetOld.set(offset);
                 }
             }
@@ -147,8 +145,7 @@ public class LocalFileOffsetStore implements OffsetStore {
         if (jsonString != null) {
             try {
                 MixAll.string2File(jsonString, this.storePath);
-            }
-            catch (IOException e) {
+            } catch (IOException e) {
                 log.error("persistAll consumer offset Exception, " + this.storePath, e);
             }
         }

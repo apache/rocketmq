@@ -24,7 +24,7 @@ import com.alibaba.rocketmq.common.message.Message;
 
 /**
  * 发送事务消息例子
- * 
+ *
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-24
  */
@@ -42,19 +42,18 @@ public class TransactionProducer {
         producer.setTransactionCheckListener(transactionCheckListener);
         producer.start();
 
-        String[] tags = new String[] { "TagA", "TagB", "TagC", "TagD", "TagE" };
+        String[] tags = new String[]{"TagA", "TagB", "TagC", "TagD", "TagE"};
         TransactionExecuterImpl tranExecuter = new TransactionExecuterImpl();
         for (int i = 0; i < 100; i++) {
             try {
                 Message msg =
                         new Message("TopicTest", tags[i % tags.length], "KEY" + i,
-                            ("Hello RocketMQ " + i).getBytes());
+                                ("Hello RocketMQ " + i).getBytes());
                 SendResult sendResult = producer.sendMessageInTransaction(msg, tranExecuter);
                 System.out.println(sendResult);
 
                 Thread.sleep(10);
-            }
-            catch (MQClientException e) {
+            } catch (MQClientException e) {
                 e.printStackTrace();
             }
         }

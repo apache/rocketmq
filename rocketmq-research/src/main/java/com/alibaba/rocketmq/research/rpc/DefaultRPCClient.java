@@ -17,7 +17,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * 客户端实现
- * 
+ *
  * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public class DefaultRPCClient implements RPCClient {
@@ -123,8 +123,7 @@ public class DefaultRPCClient implements RPCClient {
         ByteBuffer result = null;
         if (waitOK) {
             result = response.getResponseBody();
-        }
-        else {
+        } else {
             System.out.println("timeout, reqId = " + id);
         }
 
@@ -146,19 +145,16 @@ public class DefaultRPCClient implements RPCClient {
                 sc.configureBlocking(false);
                 Connection c = new Connection(sc, this.clientRPCProcessor, null);
                 this.connectionList.add(c);
-            }
-            else {
+            } else {
                 sc.close();
             }
 
             return connected;
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
             if (sc != null) {
                 try {
                     sc.close();
-                }
-                catch (IOException e1) {
+                } catch (IOException e1) {
                     e1.printStackTrace();
                 }
             }

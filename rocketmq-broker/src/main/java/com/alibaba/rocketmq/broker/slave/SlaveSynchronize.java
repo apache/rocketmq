@@ -15,17 +15,16 @@
  */
 package com.alibaba.rocketmq.broker.slave;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.alibaba.rocketmq.broker.BrokerController;
 import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.common.protocol.body.TopicConfigSerializeWrapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 /**
  * Slave从Master同步信息（非消息）
- * 
+ *
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-8
  */
@@ -65,18 +64,17 @@ public class SlaveSynchronize {
                 TopicConfigSerializeWrapper topicWrapper =
                         this.brokerController.getBrokerOuterAPI().getAllTopicConfig(masterAddrBak);
                 if (!this.brokerController.getTopicConfigManager().getDataVersion()
-                    .equals(topicWrapper.getDataVersion())) {
+                        .equals(topicWrapper.getDataVersion())) {
 
                     this.brokerController.getTopicConfigManager().getDataVersion()
-                        .assignNewOne(topicWrapper.getDataVersion());
+                            .assignNewOne(topicWrapper.getDataVersion());
                     this.brokerController.getTopicConfigManager().getTopicConfigTable()
-                        .putAll(topicWrapper.getTopicConfigTable());
+                            .putAll(topicWrapper.getTopicConfigTable());
                     this.brokerController.getTopicConfigManager().persist();
 
                     log.info("update slave topic config from master, {}", masterAddrBak);
                 }
-            }
-            catch (Exception e) {
+            } catch (Exception e) {
                 log.error("syncTopicConfig Exception, " + masterAddrBak, e);
             }
         }

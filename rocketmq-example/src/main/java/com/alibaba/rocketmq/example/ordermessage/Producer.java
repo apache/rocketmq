@@ -15,8 +15,6 @@
  */
 package com.alibaba.rocketmq.example.ordermessage;
 
-import java.util.List;
-
 import com.alibaba.rocketmq.client.exception.MQBrokerException;
 import com.alibaba.rocketmq.client.exception.MQClientException;
 import com.alibaba.rocketmq.client.producer.DefaultMQProducer;
@@ -27,10 +25,12 @@ import com.alibaba.rocketmq.common.message.Message;
 import com.alibaba.rocketmq.common.message.MessageQueue;
 import com.alibaba.rocketmq.remoting.exception.RemotingException;
 
+import java.util.List;
+
 
 /**
  * Producer，发送顺序消息
- * 
+ *
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-16
  */
@@ -41,14 +41,14 @@ public class Producer {
 
             producer.start();
 
-            String[] tags = new String[] { "TagA", "TagB", "TagC", "TagD", "TagE" };
+            String[] tags = new String[]{"TagA", "TagB", "TagC", "TagD", "TagE"};
 
             for (int i = 0; i < 100; i++) {
                 // 订单ID相同的消息要有序
                 int orderId = i % 10;
                 Message msg =
                         new Message("TopicTest", tags[i % tags.length], "KEY" + i,
-                            ("Hello RocketMQ " + i).getBytes());
+                                ("Hello RocketMQ " + i).getBytes());
 
                 SendResult sendResult = producer.send(msg, new MessageQueueSelector() {
                     @Override
@@ -63,17 +63,13 @@ public class Producer {
             }
 
             producer.shutdown();
-        }
-        catch (MQClientException e) {
+        } catch (MQClientException e) {
             e.printStackTrace();
-        }
-        catch (RemotingException e) {
+        } catch (RemotingException e) {
             e.printStackTrace();
-        }
-        catch (MQBrokerException e) {
+        } catch (MQBrokerException e) {
             e.printStackTrace();
-        }
-        catch (InterruptedException e) {
+        } catch (InterruptedException e) {
             e.printStackTrace();
         }
     }

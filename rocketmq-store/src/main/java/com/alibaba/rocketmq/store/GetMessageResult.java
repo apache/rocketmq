@@ -22,7 +22,7 @@ import java.util.List;
 
 /**
  * 访问消息返回结果
- * 
+ *
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-21
  */

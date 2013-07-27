@@ -11,7 +11,6 @@ import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
 
 /**
  * @author shijia.wxr<vintage.wang@gmail.com>
- * 
  */
 public class PullMessageRequestHeader implements CommandCustomHeader {
     @CFNotNull
