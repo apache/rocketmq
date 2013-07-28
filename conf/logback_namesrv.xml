@@ -1,10 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
     <appender name="DefaultAppender" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>${user.home}/rocketmqlogs/rocketmq_default.log</file>
+        <file>${user.home}/rocketmqlogs/ns_default.log</file>
         <append>true</append>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-            <fileNamePattern>rocketmq_default-%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <fileNamePattern>${user.home}/rocketmqlogs/otherdays/ns_default-%d{yyyy-MM-dd}.%i.log
+            </fileNamePattern>
             <timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
                 <maxFileSize>104857600</maxFileSize>
             </timeBasedFileNamingAndTriggeringPolicy>
@@ -16,10 +17,12 @@
     </appender>
 
     <appender name="RocketmqNamesrvAppender" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>${user.home}/rocketmqlogs/rocketmq_namesrv.log</file>
+        <file>${user.home}/rocketmqlogs/namesrv.log</file>
         <append>true</append>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-            <fileNamePattern>rocketmq_namesrv-%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <fileNamePattern>${user.home}/rocketmqlogs/otherdays/namesrv-%d{yyyy-MM-dd}.%i.log
+            </fileNamePattern>
+
             <timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
                 <maxFileSize>104857600</maxFileSize>
             </timeBasedFileNamingAndTriggeringPolicy>
@@ -29,6 +32,7 @@
             <charset class="java.nio.charset.Charset">UTF-8</charset>
         </encoder>
     </appender>
+
     <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
         <append>true</append>
         <encoder>
@@ -36,6 +40,7 @@
             <charset class="java.nio.charset.Charset">UTF-8</charset>
         </encoder>
     </appender>
+
     <logger name="RocketmqNamesrv" additivity="false">
         <level value="DEBUG"/>
         <appender-ref ref="RocketmqNamesrvAppender"/>
