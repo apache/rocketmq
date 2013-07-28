@@ -9,6 +9,7 @@
             <timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
                 <maxFileSize>104857600</maxFileSize>
             </timeBasedFileNamingAndTriggeringPolicy>
+			<MaxHistory>10</MaxHistory>
         </rollingPolicy>
         <encoder>
             <pattern>%d{yyy-MM-dd HH:mm:ss,GMT+8} %p %t - %m%n</pattern>
@@ -25,6 +26,7 @@
             <timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
                 <maxFileSize>104857600</maxFileSize>
             </timeBasedFileNamingAndTriggeringPolicy>
+			<MaxHistory>10</MaxHistory>
         </rollingPolicy>
         <encoder>
             <pattern>%d{yyy-MM-dd HH:mm:ss,GMT+8} %p %t - %m%n</pattern>
