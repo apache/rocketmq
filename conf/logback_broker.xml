@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
     <appender name="DefaultAppender" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>${user.home}/rocketmqlogs/rocketmq_default.log</file>
+        <file>${user.home}/rocketmqlogs/bk_default.log</file>
         <append>true</append>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-            <fileNamePattern>${user.home}/rocketmqlogs/otherdays/rocketmq_default-%d{yyyy-MM-dd}.%i.log
+            <fileNamePattern>${user.home}/rocketmqlogs/otherdays/bk_default-%d{yyyy-MM-dd}.%i.log
             </fileNamePattern>
             <timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
                 <maxFileSize>104857600</maxFileSize>
@@ -17,10 +17,10 @@
     </appender>
 
     <appender name="RocketmqBrokerAppender" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>${user.home}/rocketmqlogs/rocketmq_broker.log</file>
+        <file>${user.home}/rocketmqlogs/broker.log</file>
         <append>true</append>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-            <fileNamePattern>${user.home}/rocketmqlogs/otherdays/rocketmq_broker-%d{yyyy-MM-dd}.%i.log
+            <fileNamePattern>${user.home}/rocketmqlogs/otherdays/broker-%d{yyyy-MM-dd}.%i.log
             </fileNamePattern>
             <timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
                 <maxFileSize>104857600</maxFileSize>
@@ -31,11 +31,12 @@
             <charset class="java.nio.charset.Charset">UTF-8</charset>
         </encoder>
     </appender>
+
     <appender name="RocketmqTransactionAppender" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>${user.home}/rocketmqlogs/rocketmq_transaction.log</file>
+        <file>${user.home}/rocketmqlogs/transaction.log</file>
         <append>true</append>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-            <fileNamePattern>${user.home}/rocketmqlogs/otherdays/rocketmq_transaction-%d{yyyy-MM-dd}.%i.log
+            <fileNamePattern>${user.home}/rocketmqlogs/otherdays/transaction-%d{yyyy-MM-dd}.%i.log
             </fileNamePattern>
             <timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
                 <maxFileSize>104857600</maxFileSize>
@@ -46,11 +47,12 @@
             <charset class="java.nio.charset.Charset">UTF-8</charset>
         </encoder>
     </appender>
+
     <appender name="RocketmqRebalanceLockAppender" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>${user.home}/rocketmqlogs/rocketmq_lock.log</file>
+        <file>${user.home}/rocketmqlogs/lock.log</file>
         <append>true</append>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-            <fileNamePattern>${user.home}/rocketmqlogs/otherdays/rocketmq_lock-%d{yyyy-MM-dd}.%i.log
+            <fileNamePattern>${user.home}/rocketmqlogs/otherdays/lock-%d{yyyy-MM-dd}.%i.log
             </fileNamePattern>
             <timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
                 <maxFileSize>104857600</maxFileSize>
@@ -77,6 +79,7 @@
             <charset class="java.nio.charset.Charset">UTF-8</charset>
         </encoder>
     </appender>
+
     <appender name="RocketmqGetStatsMoniterAppender" class="ch.qos.logback.core.rolling.RollingFileAppender">
         <file>${user.home}/rocketmqlogs/GetStatsMoniter.log</file>
         <append>true</append>
@@ -92,6 +95,7 @@
             <charset class="java.nio.charset.Charset">UTF-8</charset>
         </encoder>
     </appender>
+
     <appender name="RocketmqStoreStatsMoniterAppender" class="ch.qos.logback.core.rolling.RollingFileAppender">
         <file>${user.home}/rocketmqlogs/StoreStatsMoniter.log</file>
         <append>true</append>
@@ -107,6 +111,7 @@
             <charset class="java.nio.charset.Charset">UTF-8</charset>
         </encoder>
     </appender>
+
     <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
         <append>true</append>
         <encoder>
@@ -114,6 +119,7 @@
             <charset class="java.nio.charset.Charset">UTF-8</charset>
         </encoder>
     </appender>
+
     <logger name="RocketmqBroker" additivity="false">
         <level value="INFO"/>
         <appender-ref ref="RocketmqBrokerAppender"/>
@@ -148,10 +154,12 @@
         <level value="INFO"/>
         <appender-ref ref="RocketmqPutStatsMoniterAppender"/>
     </logger>
+
     <logger name="GetStatsMoniter" additivity="false">
         <level value="INFO"/>
         <appender-ref ref="RocketmqGetStatsMoniterAppender"/>
     </logger>
+
     <logger name="StoreStatsMoniter" additivity="false">
         <level value="INFO"/>
         <appender-ref ref="RocketmqStoreStatsMoniterAppender"/>

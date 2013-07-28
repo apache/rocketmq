@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
     <appender name="DefaultAppender" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>${user.home}/rocketmqlogs/rocketmq_default.log</file>
+        <file>${user.home}/rocketmqlogs/tl_default.log</file>
         <append>true</append>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-            <fileNamePattern>${user.home}/rocketmqlogs/otherdays/rocketmq_default-%d{yyyy-MM-dd}.%i.log
+            <fileNamePattern>${user.home}/rocketmqlogs/otherdays/tl_default-%d{yyyy-MM-dd}.%i.log
             </fileNamePattern>
             <timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
                 <maxFileSize>104857600</maxFileSize>
@@ -17,10 +17,10 @@
     </appender>
 
     <appender name="RocketmqToolsAppender" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>${user.home}/rocketmqlogs/rocketmq_tools.log</file>
+        <file>${user.home}/rocketmqlogs/tools.log</file>
         <append>true</append>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-            <fileNamePattern>${user.home}/rocketmqlogs/otherdays/rocketmq_tools-%d{yyyy-MM-dd}.%i.log
+            <fileNamePattern>${user.home}/rocketmqlogs/otherdays/tools-%d{yyyy-MM-dd}.%i.log
             </fileNamePattern>
             <timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
                 <maxFileSize>104857600</maxFileSize>
@@ -31,6 +31,7 @@
             <charset class="java.nio.charset.Charset">UTF-8</charset>
         </encoder>
     </appender>
+
     <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
         <append>true</append>
         <encoder>
@@ -38,10 +39,12 @@
             <charset class="java.nio.charset.Charset">UTF-8</charset>
         </encoder>
     </appender>
+
     <logger name="RocketmqTools" additivity="false">
         <level value="INFO"/>
         <appender-ref ref="RocketmqToolsAppender"/>
     </logger>
+
     <logger name="RocketmqCommon" additivity="false">
         <level value="INFO"/>
         <appender-ref ref="RocketmqBrokerAppender"/>
