@@ -31,26 +31,21 @@ public class PutMessageResult {
         this.appendMessageResult = appendMessageResult;
     }
 
-
     public boolean isOk() {
         return this.appendMessageResult.isOk();
     }
-
 
     public AppendMessageResult getAppendMessageResult() {
         return appendMessageResult;
     }
 
-
     public void setAppendMessageResult(AppendMessageResult appendMessageResult) {
         this.appendMessageResult = appendMessageResult;
     }
 
-
     public PutMessageStatus getPutMessageStatus() {
         return putMessageStatus;
     }
-
 
     public void setPutMessageStatus(PutMessageStatus putMessageStatus) {
         this.putMessageStatus = putMessageStatus;

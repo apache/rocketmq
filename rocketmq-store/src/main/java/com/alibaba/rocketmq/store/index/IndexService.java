@@ -45,21 +45,17 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  */
 public class IndexService extends ServiceThread {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.StoreLoggerName);
-
-    private LinkedBlockingQueue<Object[]> requestQueue = new LinkedBlockingQueue<Object[]>();
-    private AtomicInteger requestCount = new AtomicInteger(0);
-
     private final DefaultMessageStore defaultMessageStore;
-
     // 索引配置
     private final int hashSlotNum;
     private final int indexNum;
     private final String storePath;
-
     // 索引文件集合
     private final ArrayList<IndexFile> indexFileList = new ArrayList<IndexFile>();
     // 读写锁（针对indexFileList）
     private final ReadWriteLock readWriteLock = new ReentrantReadWriteLock();
+    private LinkedBlockingQueue<Object[]> requestQueue = new LinkedBlockingQueue<Object[]>();
+    private AtomicInteger requestCount = new AtomicInteger(0);
 
 
     public IndexService(final DefaultMessageStore store) {
@@ -68,7 +64,6 @@ public class IndexService extends ServiceThread {
         this.indexNum = store.getMessageStoreConfig().getMaxIndexNum();
         this.storePath = store.getMessageStoreConfig().getStorePathIndex();
     }
-
 
     public boolean load(final boolean lastExitOK) {
         File dir = new File(this.storePath);
@@ -99,87 +94,6 @@ public class IndexService extends ServiceThread {
 
         return true;
     }
-
-
-    /**
-     * 获取最后一个索引文件，如果集合为空或者最后一个文件写满了，则新建一个文件<br>
-     * 只有一个线程调用，所以不存在写竟争问题
-     */
-    public IndexFile getAndCreateLastIndexFile() {
-        IndexFile indexFile = null;
-        IndexFile prevIndexFile = null;
-        long lastUpdateEndPhyOffset = 0;
-        long lastUpdateIndexTimestamp = 0;
-        // 先尝试使用读锁
-        {
-            this.readWriteLock.readLock().lock();
-            if (!this.indexFileList.isEmpty()) {
-                IndexFile tmp = this.indexFileList.get(this.indexFileList.size() - 1);
-                if (!tmp.isWriteFull()) {
-                    indexFile = tmp;
-                } else {
-                    lastUpdateEndPhyOffset = tmp.getEndPhyOffset();
-                    lastUpdateIndexTimestamp = tmp.getEndTimestamp();
-                    prevIndexFile = tmp;
-                }
-            }
-
-            this.readWriteLock.readLock().unlock();
-        }
-
-        // 如果没找到，使用写锁创建文件
-        if (indexFile == null) {
-            try {
-                String fileName = this.storePath + File.separator + UtilALl.timeMillisToHumanString(System.currentTimeMillis());
-                indexFile = new IndexFile(fileName, this.hashSlotNum, this.indexNum, lastUpdateEndPhyOffset, lastUpdateIndexTimestamp);
-                this.readWriteLock.writeLock().lock();
-                this.indexFileList.add(indexFile);
-            } catch (Exception e) {
-                log.error("getLastIndexFile exception ", e);
-            } finally {
-                this.readWriteLock.writeLock().unlock();
-            }
-
-            // 每创建一个新文件，之前文件要刷盘
-            if (indexFile != null) {
-                final IndexFile flushThisFile = prevIndexFile;
-                Thread flushThread = new Thread(new Runnable() {
-                    @Override
-                    public void run() {
-                        IndexService.this.flush(flushThisFile);
-                    }
-                }, "FlushIndexFileThread");
-
-                flushThread.setDaemon(true);
-                flushThread.start();
-            }
-        }
-
-        return indexFile;
-    }
-
-
-    /**
-     * 删除文件只能从头开始删
-     */
-    private void deleteExpiredFile(List<IndexFile> files) {
-        if (!files.isEmpty()) {
-            try {
-                this.readWriteLock.writeLock().lock();
-                for (IndexFile file : files) {
-                    if (!this.indexFileList.remove(file)) {
-                        log.error("deleteExpiredFile remove failed.");
-                        break;
-                    }
-                }
-            } catch (Exception e) {
-                log.error("deleteExpiredFile has exception.", e);
-            } finally {
-                this.readWriteLock.writeLock().unlock();
-            }
-        }
-    }
-
 
     /**
      * 删除索引文件
@@ -217,6 +131,26 @@ public class IndexService extends ServiceThread {
         }
     }
 
+    /**
+     * 删除文件只能从头开始删
+     */
+    private void deleteExpiredFile(List<IndexFile> files) {
+        if (!files.isEmpty()) {
+            try {
+                this.readWriteLock.writeLock().lock();
+                for (IndexFile file : files) {
+                    if (!this.indexFileList.remove(file)) {
+                        log.error("deleteExpiredFile remove failed.");
+                        break;
+                    }
+                }
+            } catch (Exception e) {
+                log.error("deleteExpiredFile has exception.", e);
+            } finally {
+                this.readWriteLock.writeLock().unlock();
+            }
+        }
+    }
 
     public void destroy() {
         try {
@@ -231,53 +165,6 @@ public class IndexService extends ServiceThread {
             this.readWriteLock.readLock().unlock();
         }
     }
-
-
-    public void flush(final IndexFile f) {
-        if (null == f)
-            return;
-
-        long indexMsgTimestamp = 0;
-
-        if (f.isWriteFull()) {
-            indexMsgTimestamp = f.getEndTimestamp();
-        }
-
-        f.flush();
-
-        this.defaultMessageStore.getStoreCheckpoint().setIndexMsgTimestamp(indexMsgTimestamp);
-        this.defaultMessageStore.getStoreCheckpoint().flush();
-    }
-
-
-    // public void flush() {
-    // ArrayList<IndexFile> indexFileListClone = null;
-    // try {
-    // this.readWriteLock.readLock().lock();
-    // indexFileListClone = (ArrayList<IndexFile>) this.indexFileList.clone();
-    // }
-    // catch (Exception e) {
-    // log.error("flush exception", e);
-    // }
-    // finally {
-    // this.readWriteLock.readLock().unlock();
-    // }
-    //
-    // long indexMsgTimestamp = 0;
-    //
-    // if (indexFileListClone != null) {
-    // for (IndexFile f : indexFileListClone) {
-    // if (f.isWriteFull()) {
-    // indexMsgTimestamp = f.getEndTimestamp();
-    // }
-    //
-    // f.flush();
-    // }
-    // }
-    //
-    // this.defaultMessageStore.getStoreCheckpoint().setIndexMsgTimestamp(indexMsgTimestamp);
-    // this.defaultMessageStore.getStoreCheckpoint().flush();
-    // }
 
     public QueryOffsetResult queryOffset(String topic, String key, int maxNum, long begin, long end) {
         List<Long> phyOffsets = new ArrayList<Long>(maxNum);
@@ -320,6 +207,39 @@ public class IndexService extends ServiceThread {
         return new QueryOffsetResult(phyOffsets, indexLastUpdateTimestamp, indexLastUpdatePhyoffset);
     }
 
+    private String buildKey(final String topic, final String key) {
+        return topic + "#" + key;
+    }
+
+
+    // public void flush() {
+    // ArrayList<IndexFile> indexFileListClone = null;
+    // try {
+    // this.readWriteLock.readLock().lock();
+    // indexFileListClone = (ArrayList<IndexFile>) this.indexFileList.clone();
+    // }
+    // catch (Exception e) {
+    // log.error("flush exception", e);
+    // }
+    // finally {
+    // this.readWriteLock.readLock().unlock();
+    // }
+    //
+    // long indexMsgTimestamp = 0;
+    //
+    // if (indexFileListClone != null) {
+    // for (IndexFile f : indexFileListClone) {
+    // if (f.isWriteFull()) {
+    // indexMsgTimestamp = f.getEndTimestamp();
+    // }
+    //
+    // f.flush();
+    // }
+    // }
+    //
+    // this.defaultMessageStore.getStoreCheckpoint().setIndexMsgTimestamp(indexMsgTimestamp);
+    // this.defaultMessageStore.getStoreCheckpoint().flush();
+    // }
 
     /**
      * 追加请求，返回队列中堆积的请求数
@@ -329,38 +249,25 @@ public class IndexService extends ServiceThread {
         return this.requestCount.addAndGet(reqs.length);
     }
 
+    @Override
+    public void run() {
+        log.info(this.getServiceName() + " service started");
 
-    private String buildKey(final String topic, final String key) {
-        return topic + "#" + key;
-    }
-
-
-    public IndexFile retryGetAndCreateIndexFile() {
-        IndexFile indexFile = null;
-
-        // 如果创建失败，尝试重建3次
-        for (int times = 0; null == indexFile && times < 3; times++) {
-            indexFile = this.getAndCreateLastIndexFile();
-            if (null != indexFile)
-                break;
-
+        while (!this.isStoped()) {
             try {
-                log.error("try to create index file, " + times + " times");
-                Thread.sleep(1000);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
+                // Object[] req = this.requestQueue.take();
+                Object[] req = this.requestQueue.poll(3000, TimeUnit.MILLISECONDS);
+
+                if (req != null) {
+                    this.buildIndex(req);
+                }
+            } catch (Exception e) {
+                log.warn(this.getServiceName() + " service has exception. ", e);
             }
         }
 
-        // 重试多次，仍然无法创建索引文件
-        if (null == indexFile) {
-            this.defaultMessageStore.getAccessRights().makeIndexFileError();
-            log.error("mark index file can not build flag");
-        }
-
-        return indexFile;
+        log.info(this.getServiceName() + " service end");
     }
-
 
     public void buildIndex(Object[] req) {
         boolean breakdown = false;
@@ -419,27 +326,104 @@ public class IndexService extends ServiceThread {
         this.requestCount.addAndGet(req.length * (-1));
     }
 
+    public IndexFile retryGetAndCreateIndexFile() {
+        IndexFile indexFile = null;
 
-    @Override
-    public void run() {
-        log.info(this.getServiceName() + " service started");
+        // 如果创建失败，尝试重建3次
+        for (int times = 0; null == indexFile && times < 3; times++) {
+            indexFile = this.getAndCreateLastIndexFile();
+            if (null != indexFile)
+                break;
 
-        while (!this.isStoped()) {
             try {
-                // Object[] req = this.requestQueue.take();
-                Object[] req = this.requestQueue.poll(3000, TimeUnit.MILLISECONDS);
-
-                if (req != null) {
-                    this.buildIndex(req);
-                }
-            } catch (Exception e) {
-                log.warn(this.getServiceName() + " service has exception. ", e);
+                log.error("try to create index file, " + times + " times");
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
             }
         }
 
-        log.info(this.getServiceName() + " service end");
+        // 重试多次，仍然无法创建索引文件
+        if (null == indexFile) {
+            this.defaultMessageStore.getAccessRights().makeIndexFileError();
+            log.error("mark index file can not build flag");
+        }
+
+        return indexFile;
     }
 
+    /**
+     * 获取最后一个索引文件，如果集合为空或者最后一个文件写满了，则新建一个文件<br>
+     * 只有一个线程调用，所以不存在写竟争问题
+     */
+    public IndexFile getAndCreateLastIndexFile() {
+        IndexFile indexFile = null;
+        IndexFile prevIndexFile = null;
+        long lastUpdateEndPhyOffset = 0;
+        long lastUpdateIndexTimestamp = 0;
+        // 先尝试使用读锁
+        {
+            this.readWriteLock.readLock().lock();
+            if (!this.indexFileList.isEmpty()) {
+                IndexFile tmp = this.indexFileList.get(this.indexFileList.size() - 1);
+                if (!tmp.isWriteFull()) {
+                    indexFile = tmp;
+                } else {
+                    lastUpdateEndPhyOffset = tmp.getEndPhyOffset();
+                    lastUpdateIndexTimestamp = tmp.getEndTimestamp();
+                    prevIndexFile = tmp;
+                }
+            }
+
+            this.readWriteLock.readLock().unlock();
+        }
+
+        // 如果没找到，使用写锁创建文件
+        if (indexFile == null) {
+            try {
+                String fileName = this.storePath + File.separator + UtilALl.timeMillisToHumanString(System.currentTimeMillis());
+                indexFile = new IndexFile(fileName, this.hashSlotNum, this.indexNum, lastUpdateEndPhyOffset, lastUpdateIndexTimestamp);
+                this.readWriteLock.writeLock().lock();
+                this.indexFileList.add(indexFile);
+            } catch (Exception e) {
+                log.error("getLastIndexFile exception ", e);
+            } finally {
+                this.readWriteLock.writeLock().unlock();
+            }
+
+            // 每创建一个新文件，之前文件要刷盘
+            if (indexFile != null) {
+                final IndexFile flushThisFile = prevIndexFile;
+                Thread flushThread = new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        IndexService.this.flush(flushThisFile);
+                    }
+                }, "FlushIndexFileThread");
+
+                flushThread.setDaemon(true);
+                flushThread.start();
+            }
+        }
+
+        return indexFile;
+    }
+
+    public void flush(final IndexFile f) {
+        if (null == f)
+            return;
+
+        long indexMsgTimestamp = 0;
+
+        if (f.isWriteFull()) {
+            indexMsgTimestamp = f.getEndTimestamp();
+        }
+
+        f.flush();
+
+        this.defaultMessageStore.getStoreCheckpoint().setIndexMsgTimestamp(indexMsgTimestamp);
+        this.defaultMessageStore.getStoreCheckpoint().flush();
+    }
 
     @Override
     public String getServiceName() {

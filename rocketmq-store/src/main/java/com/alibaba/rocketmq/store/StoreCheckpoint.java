@@ -36,13 +36,12 @@ import java.nio.channels.FileChannel.MapMode;
  */
 public class StoreCheckpoint {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.StoreLoggerName);
-    private volatile long physicMsgTimestamp = 0;
-    private volatile long logicsMsgTimestamp = 0;
-    private volatile long indexMsgTimestamp = 0;
-
     private final RandomAccessFile randomAccessFile;
     private final FileChannel fileChannel;
     private final MappedByteBuffer mappedByteBuffer;
+    private volatile long physicMsgTimestamp = 0;
+    private volatile long logicsMsgTimestamp = 0;
+    private volatile long indexMsgTimestamp = 0;
 
 
     public StoreCheckpoint(final String scpPath) throws IOException {
@@ -66,15 +65,6 @@ public class StoreCheckpoint {
         }
     }
 
-
-    public void flush() {
-        this.mappedByteBuffer.putLong(0, this.physicMsgTimestamp);
-        this.mappedByteBuffer.putLong(8, this.logicsMsgTimestamp);
-        this.mappedByteBuffer.putLong(16, this.indexMsgTimestamp);
-        this.mappedByteBuffer.force();
-    }
-
-
     public void shutdown() {
         this.flush();
 
@@ -88,41 +78,40 @@ public class StoreCheckpoint {
         }
     }
 
+    public void flush() {
+        this.mappedByteBuffer.putLong(0, this.physicMsgTimestamp);
+        this.mappedByteBuffer.putLong(8, this.logicsMsgTimestamp);
+        this.mappedByteBuffer.putLong(16, this.indexMsgTimestamp);
+        this.mappedByteBuffer.force();
+    }
 
     public long getPhysicMsgTimestamp() {
         return physicMsgTimestamp;
     }
 
-
     public void setPhysicMsgTimestamp(long physicMsgTimestamp) {
         this.physicMsgTimestamp = physicMsgTimestamp;
     }
-
 
     public long getLogicsMsgTimestamp() {
         return logicsMsgTimestamp;
     }
 
-
     public void setLogicsMsgTimestamp(long logicsMsgTimestamp) {
         this.logicsMsgTimestamp = logicsMsgTimestamp;
     }
-
 
     public long getMinTimestampIndex() {
         return Math.min(Math.min(this.physicMsgTimestamp, this.logicsMsgTimestamp), this.indexMsgTimestamp);
     }
 
-
     public long getMinTimestamp() {
         return Math.min(this.physicMsgTimestamp, this.logicsMsgTimestamp);
     }
 
-
     public long getIndexMsgTimestamp() {
         return indexMsgTimestamp;
     }
-
 
     public void setIndexMsgTimestamp(long indexMsgTimestamp) {
         this.indexMsgTimestamp = indexMsgTimestamp;

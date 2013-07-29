@@ -42,27 +42,29 @@ public class SelectMapedBufferResult {
         this.mapedFile = mapedFile;
     }
 
+    public ByteBuffer getByteBuffer() {
+        return byteBuffer;
+    }
+
+    public int getSize() {
+        return size;
+    }
 
     public void setSize(final int s) {
         this.size = s;
         this.byteBuffer.limit(this.size);
     }
 
-
-    public ByteBuffer getByteBuffer() {
-        return byteBuffer;
-    }
-
-
-    public int getSize() {
-        return size;
-    }
-
-
     public MapedFile getMapedFile() {
         return mapedFile;
     }
 
+    @Override
+    protected void finalize() {
+        if (this.mapedFile != null) {
+            this.release();
+        }
+    }
 
     /**
      * 此方法只能被调用一次，重复调用无效
@@ -73,15 +75,6 @@ public class SelectMapedBufferResult {
             this.mapedFile = null;
         }
     }
-
-
-    @Override
-    protected void finalize() {
-        if (this.mapedFile != null) {
-            this.release();
-        }
-    }
-
 
     public long getStartOffset() {
         return startOffset;

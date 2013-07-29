@@ -32,36 +32,15 @@ public class RunningFlags {
     private static final int WriteIndexFileErrorBit = 1 << 3;
     // 磁盘空间不足
     private static final int DiskFullBit = 1 << 4;
-
     private volatile int flagBits = 0;
-
-
-    public int getFlagBits() {
-        return flagBits;
-    }
 
 
     public RunningFlags() {
     }
 
-
-    public boolean isReadable() {
-        if ((this.flagBits & NotReadableBit) == 0) {
-            return true;
-        }
-
-        return false;
+    public int getFlagBits() {
+        return flagBits;
     }
-
-
-    public boolean isWriteable() {
-        if ((this.flagBits & (NotWriteableBit | WriteLogicsQueueErrorBit | DiskFullBit | WriteIndexFileErrorBit)) == 0) {
-            return true;
-        }
-
-        return false;
-    }
-
 
     public boolean getAndMakeReadable() {
         boolean result = this.isReadable();
@@ -71,6 +50,13 @@ public class RunningFlags {
         return result;
     }
 
+    public boolean isReadable() {
+        if ((this.flagBits & NotReadableBit) == 0) {
+            return true;
+        }
+
+        return false;
+    }
 
     public boolean getAndMakeNotReadable() {
         boolean result = this.isReadable();
@@ -80,7 +66,6 @@ public class RunningFlags {
         return result;
     }
 
-
     public boolean getAndMakeWriteable() {
         boolean result = this.isWriteable();
         if (!result) {
@@ -89,6 +74,13 @@ public class RunningFlags {
         return result;
     }
 
+    public boolean isWriteable() {
+        if ((this.flagBits & (NotWriteableBit | WriteLogicsQueueErrorBit | DiskFullBit | WriteIndexFileErrorBit)) == 0) {
+            return true;
+        }
+
+        return false;
+    }
 
     public boolean getAndMakeNotWriteable() {
         boolean result = this.isWriteable();
@@ -98,11 +90,9 @@ public class RunningFlags {
         return result;
     }
 
-
     public void makeLogicsQueueError() {
         this.flagBits |= WriteLogicsQueueErrorBit;
     }
-
 
     public boolean isLogicsQueueError() {
         if ((this.flagBits & WriteLogicsQueueErrorBit) == WriteLogicsQueueErrorBit) {
@@ -112,11 +102,9 @@ public class RunningFlags {
         return false;
     }
 
-
     public void makeIndexFileError() {
         this.flagBits |= WriteIndexFileErrorBit;
     }
-
 
     public boolean isIndexFileError() {
         if ((this.flagBits & WriteIndexFileErrorBit) == WriteIndexFileErrorBit) {
@@ -126,7 +114,6 @@ public class RunningFlags {
         return false;
     }
 
-
     /**
      * 返回Disk是否正常
      */
@@ -135,7 +122,6 @@ public class RunningFlags {
         this.flagBits |= DiskFullBit;
         return result;
     }
-
 
     /**
      * 返回Disk是否正常

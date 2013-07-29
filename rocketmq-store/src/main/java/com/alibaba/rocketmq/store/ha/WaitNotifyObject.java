@@ -25,11 +25,10 @@ import java.util.HashMap;
  * @since 2013-7-21
  */
 public class WaitNotifyObject {
-    // 是否已经被Notify过
-    protected volatile boolean hasNotified = false;
     // 是否已经被Notify过，广播模式
     protected final HashMap<Long/* thread id */, Boolean/* notified */> waitingThreadTable = new HashMap<Long, Boolean>(16);
-
+    // 是否已经被Notify过
+    protected volatile boolean hasNotified = false;
 
     public void wakeup() {
         synchronized (this) {
@@ -39,7 +38,6 @@ public class WaitNotifyObject {
             }
         }
     }
-
 
     protected void waitForRunning(long interval) {
         synchronized (this) {
@@ -60,6 +58,8 @@ public class WaitNotifyObject {
         }
     }
 
+    protected void onWaitEnd() {
+    }
 
     /**
      * 广播方式唤醒
@@ -78,7 +78,6 @@ public class WaitNotifyObject {
             }
         }
     }
-
 
     /**
      * 多个线程调用wait
@@ -102,9 +101,5 @@ public class WaitNotifyObject {
                 this.onWaitEnd();
             }
         }
-    }
-
-
-    protected void onWaitEnd() {
     }
 }

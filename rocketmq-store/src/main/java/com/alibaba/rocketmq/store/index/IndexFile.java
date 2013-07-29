@@ -36,11 +36,9 @@ import java.util.List;
  */
 public class IndexFile {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.StoreLoggerName);
-
     private static int HASH_SLOT_SIZE = 4;
     private static int INDEX_SIZE = 20;
     private static int INVALID_INDEX = 0;
-
     private final int hashSlotNum;
     private final int indexNum;
     private final MapedFile mapedFile;
@@ -71,16 +69,13 @@ public class IndexFile {
         }
     }
 
-
     public String getFileName() {
         return this.mapedFile.getFileName();
     }
 
-
     public void load() {
         this.indexHeader.load();
     }
-
 
     public void flush() {
         long beginTime = System.currentTimeMillis();
@@ -92,7 +87,6 @@ public class IndexFile {
         }
     }
 
-
     /**
      * 当前索引文件是否写满
      */
@@ -100,11 +94,9 @@ public class IndexFile {
         return this.indexHeader.getIndexCount() >= this.indexNum;
     }
 
-
     public boolean destroy(final long intervalForcibly) {
         return this.mapedFile.destroy(intervalForcibly);
     }
-
 
     /**
      * 如果返回false，表示需要创建新的索引文件
@@ -175,21 +167,17 @@ public class IndexFile {
         return false;
     }
 
-
     public long getBeginTimestamp() {
         return this.indexHeader.getBeginTimestamp();
     }
-
 
     public long getEndTimestamp() {
         return this.indexHeader.getEndTimestamp();
     }
 
-
     public long getEndPhyOffset() {
         return this.indexHeader.getEndPhyOffset();
     }
-
 
     /**
      * 时间区间是否匹配
@@ -202,7 +190,6 @@ public class IndexFile {
         result = result || (end >= this.indexHeader.getBeginTimestamp() && end <= this.indexHeader.getEndTimestamp());
         return result;
     }
-
 
     /**
      * 前提：入参时间区间在调用前已经匹配了当前索引文件的起始结束时间

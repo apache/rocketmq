@@ -37,18 +37,59 @@ import java.nio.channels.SocketChannel;
  */
 public class HAConnection {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.StoreLoggerName);
-
     private final HAService haService;
     private final SocketChannel socketChannel;
     private final String clientAddr;
-
     private WriteSocketService writeSocketService;
     private ReadSocketService readSocketService;
-
     // Slave请求从哪里开始拉数据
     private volatile long slaveRequestOffset = -1;
     // Slave收到数据后，应答Offset
     private volatile long slaveAckOffset = -1;
+
+    public HAConnection(final HAService haService, final SocketChannel socketChannel) throws IOException {
+        this.haService = haService;
+        this.socketChannel = socketChannel;
+        this.clientAddr = this.socketChannel.socket().getRemoteSocketAddress().toString();
+        this.socketChannel.configureBlocking(false);
+        this.socketChannel.socket().setSoLinger(false, -1);
+        this.socketChannel.socket().setTcpNoDelay(true);
+        this.socketChannel.socket().setReceiveBufferSize(1024 * 64);
+        this.socketChannel.socket().setSendBufferSize(1024 * 64);
+        this.writeSocketService = new WriteSocketService(this.socketChannel);
+        this.readSocketService = new ReadSocketService(this.socketChannel);
+        this.haService.getConnectionCount().incrementAndGet();
+    }
+
+    /**
+     * 向Slave传输数据协议 <Phy Offset> <Body Size> <Body Data><br>
+     * 从Slave接收数据协议 <Phy Offset>
+     */
+
+    public void start() {
+        this.readSocketService.start();
+        this.writeSocketService.start();
+    }
+
+    public void shutdown() {
+        this.writeSocketService.shutdown(true);
+        this.readSocketService.shutdown(true);
+        this.close();
+    }
+
+    public void close() {
+        if (this.socketChannel != null) {
+            try {
+                this.socketChannel.close();
+            } catch (IOException e) {
+                HAConnection.log.error("", e);
+            }
+        }
+    }
+
+    public SocketChannel getSocketChannel() {
+        return socketChannel;
+    }
 
     /**
      * 读取Slave请求，一般为push ack
@@ -72,6 +113,50 @@ public class HAConnection {
             this.thread.setDaemon(true);
         }
 
+        @Override
+        public void run() {
+            HAConnection.log.info(this.getServiceName() + " service started");
+
+            while (!this.isStoped()) {
+                try {
+                    this.selector.select(1000);
+                    boolean ok = this.processReadEvent();
+                    if (!ok) {
+                        HAConnection.log.error("processReadEvent error");
+                        break;
+                    }
+
+                    // 检测心跳间隔时间，超过则强制断开
+                    long interval = HAConnection.this.haService.getDefaultMessageStore().getSystemClock().now() - this.lastReadTimestamp;
+                    if (interval > HAConnection.this.haService.getDefaultMessageStore().getMessageStoreConfig().getHaHousekeepingInterval()) {
+                        log.warn("ha housekeeping, found this connection[" + HAConnection.this.clientAddr + "] expired, " + interval);
+                        break;
+                    }
+                } catch (Exception e) {
+                    HAConnection.log.error(this.getServiceName() + " service has exception.", e);
+                    break;
+                }
+            }
+
+            this.makeStop();
+
+            // 只有读线程需要执行
+            HAConnection.this.haService.getConnectionCount().decrementAndGet();
+
+            SelectionKey sk = this.socketChannel.keyFor(this.selector);
+            if (sk != null) {
+                sk.cancel();
+            }
+
+            try {
+                this.selector.close();
+                this.socketChannel.close();
+            } catch (IOException e) {
+                HAConnection.log.error("", e);
+            }
+
+            HAConnection.log.info(this.getServiceName() + " service end");
+        }
 
         private boolean processReadEvent() {
             int readSizeZeroTimes = 0;
@@ -120,63 +205,12 @@ public class HAConnection {
             return true;
         }
 
-
-        @Override
-        public void run() {
-            HAConnection.log.info(this.getServiceName() + " service started");
-
-            while (!this.isStoped()) {
-                try {
-                    this.selector.select(1000);
-                    boolean ok = this.processReadEvent();
-                    if (!ok) {
-                        HAConnection.log.error("processReadEvent error");
-                        break;
-                    }
-
-                    // 检测心跳间隔时间，超过则强制断开
-                    long interval = HAConnection.this.haService.getDefaultMessageStore().getSystemClock().now() - this.lastReadTimestamp;
-                    if (interval > HAConnection.this.haService.getDefaultMessageStore().getMessageStoreConfig().getHaHousekeepingInterval()) {
-                        log.warn("ha housekeeping, found this connection[" + HAConnection.this.clientAddr + "] expired, " + interval);
-                        break;
-                    }
-                } catch (Exception e) {
-                    HAConnection.log.error(this.getServiceName() + " service has exception.", e);
-                    break;
-                }
-            }
-
-            this.makeStop();
-
-            // 只有读线程需要执行
-            HAConnection.this.haService.getConnectionCount().decrementAndGet();
-
-            SelectionKey sk = this.socketChannel.keyFor(this.selector);
-            if (sk != null) {
-                sk.cancel();
-            }
-
-            try {
-                this.selector.close();
-                this.socketChannel.close();
-            } catch (IOException e) {
-                HAConnection.log.error("", e);
-            }
-
-            HAConnection.log.info(this.getServiceName() + " service end");
-        }
-
-
         @Override
         public String getServiceName() {
             return ReadSocketService.class.getSimpleName();
         }
     }
 
-    /**
-     * 向Slave传输数据协议 <Phy Offset> <Body Size> <Body Data><br>
-     * 从Slave接收数据协议 <Phy Offset>
-     */
     /**
      * 向Slave写入数据
      *
@@ -185,13 +219,11 @@ public class HAConnection {
     class WriteSocketService extends ServiceThread {
         private final Selector selector;
         private final SocketChannel socketChannel;
-        private long nextTransferFromWhere = -1;
-
         // 要传输的数据
         private final int HEADER_SIZE = 8 + 4;
         private final ByteBuffer byteBufferHeader = ByteBuffer.allocate(HEADER_SIZE);
+        private long nextTransferFromWhere = -1;
         private SelectMapedBufferResult selectMapedBufferResult;
-
         private boolean lastWriteOver = true;
         private long lastWriteTimestamp = System.currentTimeMillis();
 
@@ -381,50 +413,6 @@ public class HAConnection {
         @Override
         public void shutdown() {
             super.shutdown();
-        }
-    }
-
-
-    public HAConnection(final HAService haService, final SocketChannel socketChannel) throws IOException {
-        this.haService = haService;
-        this.socketChannel = socketChannel;
-        this.clientAddr = this.socketChannel.socket().getRemoteSocketAddress().toString();
-        this.socketChannel.configureBlocking(false);
-        this.socketChannel.socket().setSoLinger(false, -1);
-        this.socketChannel.socket().setTcpNoDelay(true);
-        this.socketChannel.socket().setReceiveBufferSize(1024 * 64);
-        this.socketChannel.socket().setSendBufferSize(1024 * 64);
-        this.writeSocketService = new WriteSocketService(this.socketChannel);
-        this.readSocketService = new ReadSocketService(this.socketChannel);
-        this.haService.getConnectionCount().incrementAndGet();
-    }
-
-
-    public void start() {
-        this.readSocketService.start();
-        this.writeSocketService.start();
-    }
-
-
-    public void shutdown() {
-        this.writeSocketService.shutdown(true);
-        this.readSocketService.shutdown(true);
-        this.close();
-    }
-
-
-    public SocketChannel getSocketChannel() {
-        return socketChannel;
-    }
-
-
-    public void close() {
-        if (this.socketChannel != null) {
-            try {
-                this.socketChannel.close();
-            } catch (IOException e) {
-                HAConnection.log.error("", e);
-            }
         }
     }
 }

@@ -39,31 +39,29 @@ import java.util.concurrent.atomic.AtomicLong;
  * @since 2013-7-21
  */
 public class TransactionStateService {
-    private static final Logger log = LoggerFactory.getLogger(LoggerName.StoreLoggerName);
     // 存储单元大小
     public static final int TSStoreUnitSize = 24;
     // 用来恢复事务状态表的redolog
     public static final String TRANSACTION_REDOLOG_TOPIC = "TRANSACTION_REDOLOG_TOPIC_XXXX";
     public static final int TRANSACTION_REDOLOG_TOPIC_QUEUEID = 0;
+    public final static long PreparedMessageTagsCode = -1;
+    private static final Logger log = LoggerFactory.getLogger(LoggerName.StoreLoggerName);
+    // 更改事务状态，具体更改位置
+    private final static int TS_STATE_POS = 20;
+    private static final Logger tranlog = LoggerFactory.getLogger(LoggerName.TransactionLoggerName);
     // 存储顶层对象
     private final DefaultMessageStore defaultMessageStore;
-    // 存储事务状态的表格
-    private MapedFileQueue tranStateTable;
     // 重复利用内存Buffer
     private final ByteBuffer byteBufferAppend = ByteBuffer.allocate(TSStoreUnitSize);
     // 事务状态的Redolog，当进程意外宕掉，可通过redolog恢复所有事务的状态
     // Redolog的实现利用了消费队列，主要为了恢复方便
     private final ConsumeQueue tranRedoLog;
-    public final static long PreparedMessageTagsCode = -1;
-
-    // 更改事务状态，具体更改位置
-    private final static int TS_STATE_POS = 20;
-
     // State Table Offset，重启时，必须纠正
     private final AtomicLong tranStateTableOffset = new AtomicLong(0);
-
     // 定时回查线程
     private final Timer timer = new Timer("CheckTransactionMessageTimer", true);
+    // 存储事务状态的表格
+    private MapedFileQueue tranStateTable;
 
 
     public TransactionStateService(final DefaultMessageStore defaultMessageStore) {
@@ -78,7 +76,6 @@ public class TransactionStateService {
                 defaultMessageStore);
     }
 
-
     public boolean load() {
         boolean result = this.tranRedoLog.load();
         result = result && this.tranStateTable.load();
@@ -86,6 +83,9 @@ public class TransactionStateService {
         return result;
     }
 
+    public void start() {
+        this.initTimerTask();
+    }
 
     private void initTimerTask() {
         final List<MapedFile> mapedFiles = this.tranStateTable.getMapedFiles();
@@ -94,174 +94,12 @@ public class TransactionStateService {
         }
     }
 
-
-    public void start() {
-        this.initTimerTask();
-    }
-
-
-    public void shutdown() {
-        this.timer.cancel();
-    }
-
-
-    public int deleteExpiredStateFile(long offset) {
-        int cnt = this.tranStateTable.deleteExpiredFileByOffset(offset, TSStoreUnitSize);
-        return cnt;
-    }
-
-
-    public void recoverStateTable(final boolean lastExitOK) {
-        if (lastExitOK) {
-            this.recoverStateTableNormal();
-        } else {
-            // 第一步，删除State Table
-            this.tranStateTable.destroy();
-            // 第二步，通过RedoLog全量恢复StateTable
-            this.recreateStateTable();
-        }
-    }
-
-
-    private void recreateStateTable() {
-        this.tranStateTable = new MapedFileQueue(defaultMessageStore.getMessageStoreConfig().getTranStateTableStorePath(), defaultMessageStore.getMessageStoreConfig().getTranStateTableMapedFileSize(), null);
-
-        final TreeSet<Long> preparedItemSet = new TreeSet<Long>();
-
-        // 第一步，重头扫描RedoLog
-        final long minOffset = this.tranRedoLog.getMinOffsetInQuque();
-        long processOffset = minOffset;
-        while (true) {
-            SelectMapedBufferResult bufferConsumeQueue = this.tranRedoLog.getIndexBuffer(processOffset);
-            if (bufferConsumeQueue != null) {
-                try {
-                    long i = 0;
-                    for (; i < bufferConsumeQueue.getSize(); i += ConsumeQueue.CQStoreUnitSize) {
-                        long offsetMsg = bufferConsumeQueue.getByteBuffer().getLong();
-                        int sizeMsg = bufferConsumeQueue.getByteBuffer().getInt();
-                        long tagsCode = bufferConsumeQueue.getByteBuffer().getLong();
-
-                        // Prepared
-                        if (TransactionStateService.PreparedMessageTagsCode == tagsCode) {
-                            preparedItemSet.add(offsetMsg);
-                        }
-                        // Commit/Rollback
-                        else {
-                            preparedItemSet.remove(tagsCode);
-                        }
-                    }
-
-                    processOffset += i;
-                } finally {
-                    // 必须释放资源
-                    bufferConsumeQueue.release();
-                }
-            } else {
-                break;
-            }
-        }
-
-        log.info("scan transaction redolog over, End offset: {},  Prepared Transaction Count: {}", processOffset, preparedItemSet.size());
-        // 第二步，重建StateTable
-        Iterator<Long> it = preparedItemSet.iterator();
-        while (it.hasNext()) {
-            Long offset = it.next();
-            MessageExt msgExt = this.defaultMessageStore.lookMessageByOffset(offset);
-            if (msgExt != null) {
-                this.appendPreparedTransaction(msgExt.getCommitLogOffset(), msgExt.getStoreSize(), (int) (msgExt.getStoreTimestamp() / 1000), msgExt.getProperty(Message.PROPERTY_PRODUCER_GROUP).hashCode());
-                this.tranStateTableOffset.incrementAndGet();
-            }
-        }
-    }
-
-
-    private void recoverStateTableNormal() {
-        final List<MapedFile> mapedFiles = this.tranStateTable.getMapedFiles();
-        if (!mapedFiles.isEmpty()) {
-            // 从倒数第三个文件开始恢复
-            int index = mapedFiles.size() - 3;
-            if (index < 0)
-                index = 0;
-
-            int mapedFileSizeLogics = this.tranStateTable.getMapedFileSize();
-            MapedFile mapedFile = mapedFiles.get(index);
-            ByteBuffer byteBuffer = mapedFile.sliceByteBuffer();
-            long processOffset = mapedFile.getFileFromOffset();
-            long mapedFileOffset = 0;
-            while (true) {
-                for (int i = 0; i < mapedFileSizeLogics; i += TSStoreUnitSize) {
-
-                    final long clOffset_read = byteBuffer.getLong();
-                    final int size_read = byteBuffer.getInt();
-                    final int timestamp_read = byteBuffer.getInt();
-                    final int groupHashCode_read = byteBuffer.getInt();
-                    final int state_read = byteBuffer.getInt();
-
-                    boolean stateOK = false;
-                    switch (state_read) {
-                        case MessageSysFlag.TransactionPreparedType:
-                        case MessageSysFlag.TransactionCommitType:
-                        case MessageSysFlag.TransactionRollbackType:
-                            stateOK = true;
-                            break;
-                        default:
-                            break;
-                    }
-
-                    // 说明当前存储单元有效
-                    // TODO 这样判断有效是否合理？
-                    if (clOffset_read >= 0 && size_read > 0 && stateOK) {
-                        mapedFileOffset = i + TSStoreUnitSize;
-                    } else {
-                        log.info("recover current transaction state table file over,  " + mapedFile.getFileName() + " " + clOffset_read + " " + size_read + " " + timestamp_read);
-                        break;
-                    }
-                }
-
-                // 走到文件末尾，切换至下一个文件
-                if (mapedFileOffset == mapedFileSizeLogics) {
-                    index++;
-                    if (index >= mapedFiles.size()) {
-                        // 当前条件分支不可能发生
-                        log.info("recover last transaction state table file over, last maped file " + mapedFile.getFileName());
-                        break;
-                    } else {
-                        mapedFile = mapedFiles.get(index);
-                        byteBuffer = mapedFile.sliceByteBuffer();
-                        processOffset = mapedFile.getFileFromOffset();
-                        mapedFileOffset = 0;
-                        log.info("recover next transaction state table file, " + mapedFile.getFileName());
-                    }
-                } else {
-                    log.info("recover current transaction state table queue over " + mapedFile.getFileName() + " " + (processOffset + mapedFileOffset));
-                    break;
-                }
-            }
-
-            processOffset += mapedFileOffset;
-            this.tranStateTable.truncateDirtyFiles(processOffset);
-            this.tranStateTableOffset.set(this.tranStateTable.getMaxOffset() / TSStoreUnitSize);
-            log.info("recover normal over, transaction state table max offset: {}", this.tranStateTableOffset.get());
-        }
-    }
-
-    private static final Logger tranlog = LoggerFactory.getLogger(LoggerName.TransactionLoggerName);
-
-
     private void addTimerTask(final MapedFile mf) {
         this.timer.scheduleAtFixedRate(new TimerTask() {
             private final MapedFile mapedFile = mf;
             private final TransactionCheckExecuter transactionCheckExecuter = TransactionStateService.this.defaultMessageStore.getTransactionCheckExecuter();
             private final long checkTransactionMessageAtleastInterval = TransactionStateService.this.defaultMessageStore.getMessageStoreConfig().getCheckTransactionMessageAtleastInterval();
-
             private final boolean slave = TransactionStateService.this.defaultMessageStore.getMessageStoreConfig().getBrokerRole() == BrokerRole.SLAVE;
-
-
-            private long getTranStateOffset(final long currentIndex) {
-                long offset = (this.mapedFile.getFileFromOffset() + currentIndex) / TransactionStateService.TSStoreUnitSize;
-                return offset;
-            }
-
 
             @Override
             public void run() {
@@ -344,9 +182,84 @@ public class TransactionStateService {
                     log.error("check transaction timer task Exception", e);
                 }
             }
+
+            private long getTranStateOffset(final long currentIndex) {
+                long offset = (this.mapedFile.getFileFromOffset() + currentIndex) / TransactionStateService.TSStoreUnitSize;
+                return offset;
+            }
         }, 1000 * 60, this.defaultMessageStore.getMessageStoreConfig().getCheckTransactionMessageTimerInterval());
     }
 
+    public void shutdown() {
+        this.timer.cancel();
+    }
+
+    public int deleteExpiredStateFile(long offset) {
+        int cnt = this.tranStateTable.deleteExpiredFileByOffset(offset, TSStoreUnitSize);
+        return cnt;
+    }
+
+    public void recoverStateTable(final boolean lastExitOK) {
+        if (lastExitOK) {
+            this.recoverStateTableNormal();
+        } else {
+            // 第一步，删除State Table
+            this.tranStateTable.destroy();
+            // 第二步，通过RedoLog全量恢复StateTable
+            this.recreateStateTable();
+        }
+    }
+
+    private void recreateStateTable() {
+        this.tranStateTable = new MapedFileQueue(defaultMessageStore.getMessageStoreConfig().getTranStateTableStorePath(), defaultMessageStore.getMessageStoreConfig().getTranStateTableMapedFileSize(), null);
+
+        final TreeSet<Long> preparedItemSet = new TreeSet<Long>();
+
+        // 第一步，重头扫描RedoLog
+        final long minOffset = this.tranRedoLog.getMinOffsetInQuque();
+        long processOffset = minOffset;
+        while (true) {
+            SelectMapedBufferResult bufferConsumeQueue = this.tranRedoLog.getIndexBuffer(processOffset);
+            if (bufferConsumeQueue != null) {
+                try {
+                    long i = 0;
+                    for (; i < bufferConsumeQueue.getSize(); i += ConsumeQueue.CQStoreUnitSize) {
+                        long offsetMsg = bufferConsumeQueue.getByteBuffer().getLong();
+                        int sizeMsg = bufferConsumeQueue.getByteBuffer().getInt();
+                        long tagsCode = bufferConsumeQueue.getByteBuffer().getLong();
+
+                        // Prepared
+                        if (TransactionStateService.PreparedMessageTagsCode == tagsCode) {
+                            preparedItemSet.add(offsetMsg);
+                        }
+                        // Commit/Rollback
+                        else {
+                            preparedItemSet.remove(tagsCode);
+                        }
+                    }
+
+                    processOffset += i;
+                } finally {
+                    // 必须释放资源
+                    bufferConsumeQueue.release();
+                }
+            } else {
+                break;
+            }
+        }
+
+        log.info("scan transaction redolog over, End offset: {},  Prepared Transaction Count: {}", processOffset, preparedItemSet.size());
+        // 第二步，重建StateTable
+        Iterator<Long> it = preparedItemSet.iterator();
+        while (it.hasNext()) {
+            Long offset = it.next();
+            MessageExt msgExt = this.defaultMessageStore.lookMessageByOffset(offset);
+            if (msgExt != null) {
+                this.appendPreparedTransaction(msgExt.getCommitLogOffset(), msgExt.getStoreSize(), (int) (msgExt.getStoreTimestamp() / 1000), msgExt.getProperty(Message.PROPERTY_PRODUCER_GROUP).hashCode());
+                this.tranStateTableOffset.incrementAndGet();
+            }
+        }
+    }
 
     /**
      * 单线程调用
@@ -385,6 +298,75 @@ public class TransactionStateService {
         return mapedFile.appendMessage(this.byteBufferAppend.array());
     }
 
+    private void recoverStateTableNormal() {
+        final List<MapedFile> mapedFiles = this.tranStateTable.getMapedFiles();
+        if (!mapedFiles.isEmpty()) {
+            // 从倒数第三个文件开始恢复
+            int index = mapedFiles.size() - 3;
+            if (index < 0)
+                index = 0;
+
+            int mapedFileSizeLogics = this.tranStateTable.getMapedFileSize();
+            MapedFile mapedFile = mapedFiles.get(index);
+            ByteBuffer byteBuffer = mapedFile.sliceByteBuffer();
+            long processOffset = mapedFile.getFileFromOffset();
+            long mapedFileOffset = 0;
+            while (true) {
+                for (int i = 0; i < mapedFileSizeLogics; i += TSStoreUnitSize) {
+
+                    final long clOffset_read = byteBuffer.getLong();
+                    final int size_read = byteBuffer.getInt();
+                    final int timestamp_read = byteBuffer.getInt();
+                    final int groupHashCode_read = byteBuffer.getInt();
+                    final int state_read = byteBuffer.getInt();
+
+                    boolean stateOK = false;
+                    switch (state_read) {
+                        case MessageSysFlag.TransactionPreparedType:
+                        case MessageSysFlag.TransactionCommitType:
+                        case MessageSysFlag.TransactionRollbackType:
+                            stateOK = true;
+                            break;
+                        default:
+                            break;
+                    }
+
+                    // 说明当前存储单元有效
+                    // TODO 这样判断有效是否合理？
+                    if (clOffset_read >= 0 && size_read > 0 && stateOK) {
+                        mapedFileOffset = i + TSStoreUnitSize;
+                    } else {
+                        log.info("recover current transaction state table file over,  " + mapedFile.getFileName() + " " + clOffset_read + " " + size_read + " " + timestamp_read);
+                        break;
+                    }
+                }
+
+                // 走到文件末尾，切换至下一个文件
+                if (mapedFileOffset == mapedFileSizeLogics) {
+                    index++;
+                    if (index >= mapedFiles.size()) {
+                        // 当前条件分支不可能发生
+                        log.info("recover last transaction state table file over, last maped file " + mapedFile.getFileName());
+                        break;
+                    } else {
+                        mapedFile = mapedFiles.get(index);
+                        byteBuffer = mapedFile.sliceByteBuffer();
+                        processOffset = mapedFile.getFileFromOffset();
+                        mapedFileOffset = 0;
+                        log.info("recover next transaction state table file, " + mapedFile.getFileName());
+                    }
+                } else {
+                    log.info("recover current transaction state table queue over " + mapedFile.getFileName() + " " + (processOffset + mapedFileOffset));
+                    break;
+                }
+            }
+
+            processOffset += mapedFileOffset;
+            this.tranStateTable.truncateDirtyFiles(processOffset);
+            this.tranStateTableOffset.set(this.tranStateTable.getMaxOffset() / TSStoreUnitSize);
+            log.info("recover normal over, transaction state table max offset: {}", this.tranStateTableOffset.get());
+        }
+    }
 
     /**
      * 单线程调用
@@ -434,7 +416,6 @@ public class TransactionStateService {
         return false;
     }
 
-
     private SelectMapedBufferResult findTransactionBuffer(final long tsOffset) {
         final int mapedFileSize = this.defaultMessageStore.getMessageStoreConfig().getTranStateTableMapedFileSize();
         final long offset = tsOffset * TSStoreUnitSize;
@@ -447,11 +428,9 @@ public class TransactionStateService {
         return null;
     }
 
-
     public AtomicLong getTranStateTableOffset() {
         return tranStateTableOffset;
     }
-
 
     public ConsumeQueue getTranRedoLog() {
         return tranRedoLog;

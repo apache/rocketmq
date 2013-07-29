@@ -29,11 +29,9 @@ import java.util.concurrent.ConcurrentHashMap;
 public class DelayOffsetSerializeWrapper extends RemotingSerializable {
     private ConcurrentHashMap<Integer /* level */, Long/* offset */> offsetTable = new ConcurrentHashMap<Integer, Long>(32);
 
-
     public ConcurrentHashMap<Integer, Long> getOffsetTable() {
         return offsetTable;
     }
-
 
     public void setOffsetTable(ConcurrentHashMap<Integer, Long> offsetTable) {
         this.offsetTable = offsetTable;

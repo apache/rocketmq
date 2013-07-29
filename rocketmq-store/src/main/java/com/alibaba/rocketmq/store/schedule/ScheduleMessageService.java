@@ -38,26 +38,145 @@ import java.util.concurrent.ConcurrentHashMap;
  * @since 2013-7-21
  */
 public class ScheduleMessageService extends ConfigManager {
-    private static final Logger log = LoggerFactory.getLogger(LoggerName.StoreLoggerName);
     public static final String SCHEDULE_TOPIC = "SCHEDULE_TOPIC_XXXX";
+    private static final Logger log = LoggerFactory.getLogger(LoggerName.StoreLoggerName);
     private static final long FIRST_DELAY_TIME = 1000L;
     private static final long DELAY_FOR_A_WHILE = 100L;
     private static final long DELAY_FOR_A_PERIOD = 10000L;
-
     // 每个level对应的延时时间
     private final ConcurrentHashMap<Integer /* level */, Long/* delay timeMillis */> delayLevelTable = new ConcurrentHashMap<Integer, Long>(32);
-
     // 延时计算到了哪里
     private final ConcurrentHashMap<Integer /* level */, Long/* offset */> offsetTable = new ConcurrentHashMap<Integer, Long>(32);
-
+    // 定时器
+    private final Timer timer = new Timer("ScheduleMessageTimerThread", true);
+    // 存储顶层对象
+    private final DefaultMessageStore defaultMessageStore;
     // 最大值
     private int maxDelayLevel;
 
-    // 定时器
-    private final Timer timer = new Timer("ScheduleMessageTimerThread", true);
+    public ScheduleMessageService(final DefaultMessageStore defaultMessageStore) {
+        this.defaultMessageStore = defaultMessageStore;
+    }
 
-    // 存储顶层对象
-    private final DefaultMessageStore defaultMessageStore;
+    public static int queueId2DelayLevel(final int queueId) {
+        return queueId + 1;
+    }
+
+    public static int delayLevel2QueueId(final int delayLevel) {
+        return delayLevel - 1;
+    }
+
+    private void updateOffset(int delayLevel, long offset) {
+        this.offsetTable.put(delayLevel, offset);
+    }
+
+    public long computeDeliverTimestamp(final int delayLevel, final long storeTimestamp) {
+        Long time = this.delayLevelTable.get(delayLevel);
+        if (time != null) {
+            return time + storeTimestamp;
+        }
+
+        return storeTimestamp + 1000;
+    }
+
+    public void start() {
+        // 为每个延时队列增加定时器
+        for (Integer level : this.delayLevelTable.keySet()) {
+            Long timeDelay = this.delayLevelTable.get(level);
+            Long offset = this.offsetTable.get(level);
+            if (null == offset) {
+                offset = 0L;
+            }
+
+            if (timeDelay != null) {
+                this.timer.schedule(new DeliverDelayedMessageTimerTask(level, offset), FIRST_DELAY_TIME);
+            }
+        }
+
+        // 定时将延时进度刷盘
+        this.timer.scheduleAtFixedRate(new TimerTask() {
+
+            @Override
+            public void run() {
+                try {
+                    ScheduleMessageService.this.persist();
+                } catch (Exception e) {
+                    log.error("scheduleAtFixedRate flush exception", e);
+                }
+            }
+        }, 10000, this.defaultMessageStore.getMessageStoreConfig().getFlushDelayOffsetInterval());
+    }
+
+    public void shutdown() {
+        this.timer.cancel();
+    }
+
+    public int getMaxDelayLevel() {
+        return maxDelayLevel;
+    }
+
+    public String encode() {
+        return this.encode(false);
+    }
+
+    public String encode(final boolean prettyFormat) {
+        DelayOffsetSerializeWrapper delayOffsetSerializeWrapper = new DelayOffsetSerializeWrapper();
+        delayOffsetSerializeWrapper.setOffsetTable(this.offsetTable);
+        return delayOffsetSerializeWrapper.toJson(prettyFormat);
+    }
+
+    @Override
+    public void decode(String jsonString) {
+        if (jsonString != null) {
+            DelayOffsetSerializeWrapper delayOffsetSerializeWrapper = DelayOffsetSerializeWrapper.fromJson(jsonString, DelayOffsetSerializeWrapper.class);
+            if (delayOffsetSerializeWrapper != null) {
+                this.offsetTable.putAll(delayOffsetSerializeWrapper.getOffsetTable());
+            }
+        }
+    }
+
+    @Override
+    public String configFilePath() {
+        return this.defaultMessageStore.getMessageStoreConfig().getDelayOffsetStorePath();
+    }
+
+    public boolean load() {
+        boolean result = super.load();
+        result = result && this.parseDelayLevel();
+        return result;
+    }
+
+    public boolean parseDelayLevel() {
+        HashMap<String, Long> timeUnitTable = new HashMap<String, Long>();
+        timeUnitTable.put("s", 1000L);
+        timeUnitTable.put("m", 1000L * 60);
+        timeUnitTable.put("h", 1000L * 60 * 60);
+        timeUnitTable.put("d", 1000L * 60 * 60 * 24);
+
+        String levelString = this.defaultMessageStore.getMessageStoreConfig().getMessageDelayLevel();
+        try {
+            String[] levelArray = levelString.split(" ");
+            for (int i = 0; i < levelArray.length; i++) {
+                String value = levelArray[i];
+                String ch = value.substring(value.length() - 1);
+                Long tu = timeUnitTable.get(ch);
+
+                int level = i + 1;
+                if (level > this.maxDelayLevel) {
+                    this.maxDelayLevel = level;
+                }
+                long num = Long.parseLong(value.substring(0, value.length() - 1));
+                long delayTimeMillis = tu * num;
+                this.delayLevelTable.put(level, delayTimeMillis);
+            }
+        } catch (Exception e) {
+            log.error("parseDelayLevel exception", e);
+            log.info("levelString String = {}", levelString);
+            return false;
+        }
+
+        return true;
+    }
 
     class DeliverDelayedMessageTimerTask extends TimerTask {
         private final int delayLevel;
@@ -69,7 +188,6 @@ public class ScheduleMessageService extends ConfigManager {
             this.offset = offset;
         }
 
-
         @Override
         public void run() {
             try {
@@ -79,39 +197,6 @@ public class ScheduleMessageService extends ConfigManager {
                 ScheduleMessageService.this.timer.schedule(new DeliverDelayedMessageTimerTask(this.delayLevel, this.offset), DELAY_FOR_A_PERIOD);
             }
         }
-
-
-        private MessageExtBrokerInner messageTimeup(MessageExt msgExt) {
-            MessageExtBrokerInner msgInner = new MessageExtBrokerInner();
-            msgInner.setBody(msgExt.getBody());
-            msgInner.setFlag(msgExt.getFlag());
-            msgInner.setProperties(msgExt.getProperties());
-
-            TopicFilterType topicFilterType = MessageExt.parseTopicFilterType(msgInner.getSysFlag());
-            long tagsCodeValue = MessageExtBrokerInner.tagsString2tagsCode(topicFilterType, msgInner.getTags());
-            msgInner.setTagsCode(tagsCodeValue);
-            msgInner.setPropertiesString(MessageDecoder.messageProperties2String(msgExt.getProperties()));
-
-            msgInner.setSysFlag(msgExt.getSysFlag());
-            msgInner.setBornTimestamp(msgExt.getBornTimestamp());
-            msgInner.setBornHost(msgExt.getBornHost());
-            msgInner.setStoreHost(msgExt.getStoreHost());
-            msgInner.setReconsumeTimes(msgExt.getReconsumeTimes());
-
-            msgInner.setWaitStoreMsgOK(false);
-            msgInner.clearProperty(Message.PROPERTY_DELAY_TIME_LEVEL);
-
-            // 恢复Topic
-            msgInner.setTopic(msgInner.getProperty(Message.PROPERTY_REAL_TOPIC));
-
-            // 恢复QueueId
-            String queueIdStr = msgInner.getProperty(Message.PROPERTY_REAL_QUEUE_ID);
-            int queueId = Integer.parseInt(queueIdStr);
-            msgInner.setQueueId(queueId);
-
-            return msgInner;
-        }
-
 
         public void executeOnTimeup() {
             ConsumeQueue cq = ScheduleMessageService.this.defaultMessageStore.findConsumeQueue(SCHEDULE_TOPIC, delayLevel2QueueId(delayLevel));
@@ -172,143 +257,36 @@ public class ScheduleMessageService extends ConfigManager {
 
             ScheduleMessageService.this.timer.schedule(new DeliverDelayedMessageTimerTask(this.delayLevel, this.offset), DELAY_FOR_A_WHILE);
         }
-    }
 
+        private MessageExtBrokerInner messageTimeup(MessageExt msgExt) {
+            MessageExtBrokerInner msgInner = new MessageExtBrokerInner();
+            msgInner.setBody(msgExt.getBody());
+            msgInner.setFlag(msgExt.getFlag());
+            msgInner.setProperties(msgExt.getProperties());
 
-    private void updateOffset(int delayLevel, long offset) {
-        this.offsetTable.put(delayLevel, offset);
-    }
+            TopicFilterType topicFilterType = MessageExt.parseTopicFilterType(msgInner.getSysFlag());
+            long tagsCodeValue = MessageExtBrokerInner.tagsString2tagsCode(topicFilterType, msgInner.getTags());
+            msgInner.setTagsCode(tagsCodeValue);
+            msgInner.setPropertiesString(MessageDecoder.messageProperties2String(msgExt.getProperties()));
 
+            msgInner.setSysFlag(msgExt.getSysFlag());
+            msgInner.setBornTimestamp(msgExt.getBornTimestamp());
+            msgInner.setBornHost(msgExt.getBornHost());
+            msgInner.setStoreHost(msgExt.getStoreHost());
+            msgInner.setReconsumeTimes(msgExt.getReconsumeTimes());
 
-    public ScheduleMessageService(final DefaultMessageStore defaultMessageStore) {
-        this.defaultMessageStore = defaultMessageStore;
-    }
+            msgInner.setWaitStoreMsgOK(false);
+            msgInner.clearProperty(Message.PROPERTY_DELAY_TIME_LEVEL);
 
+            // 恢复Topic
+            msgInner.setTopic(msgInner.getProperty(Message.PROPERTY_REAL_TOPIC));
 
-    public static int queueId2DelayLevel(final int queueId) {
-        return queueId + 1;
-    }
+            // 恢复QueueId
+            String queueIdStr = msgInner.getProperty(Message.PROPERTY_REAL_QUEUE_ID);
+            int queueId = Integer.parseInt(queueIdStr);
+            msgInner.setQueueId(queueId);
 
-
-    public static int delayLevel2QueueId(final int delayLevel) {
-        return delayLevel - 1;
-    }
-
-
-    public long computeDeliverTimestamp(final int delayLevel, final long storeTimestamp) {
-        Long time = this.delayLevelTable.get(delayLevel);
-        if (time != null) {
-            return time + storeTimestamp;
+            return msgInner;
         }
-
-        return storeTimestamp + 1000;
-    }
-
-
-    public boolean parseDelayLevel() {
-        HashMap<String, Long> timeUnitTable = new HashMap<String, Long>();
-        timeUnitTable.put("s", 1000L);
-        timeUnitTable.put("m", 1000L * 60);
-        timeUnitTable.put("h", 1000L * 60 * 60);
-        timeUnitTable.put("d", 1000L * 60 * 60 * 24);
-
-        String levelString = this.defaultMessageStore.getMessageStoreConfig().getMessageDelayLevel();
-        try {
-            String[] levelArray = levelString.split(" ");
-            for (int i = 0; i < levelArray.length; i++) {
-                String value = levelArray[i];
-                String ch = value.substring(value.length() - 1);
-                Long tu = timeUnitTable.get(ch);
-
-                int level = i + 1;
-                if (level > this.maxDelayLevel) {
-                    this.maxDelayLevel = level;
-                }
-                long num = Long.parseLong(value.substring(0, value.length() - 1));
-                long delayTimeMillis = tu * num;
-                this.delayLevelTable.put(level, delayTimeMillis);
-            }
-        } catch (Exception e) {
-            log.error("parseDelayLevel exception", e);
-            log.info("levelString String = {}", levelString);
-            return false;
-        }
-
-        return true;
-    }
-
-
-    public boolean load() {
-        boolean result = super.load();
-        result = result && this.parseDelayLevel();
-        return result;
-    }
-
-
-    public void start() {
-        // 为每个延时队列增加定时器
-        for (Integer level : this.delayLevelTable.keySet()) {
-            Long timeDelay = this.delayLevelTable.get(level);
-            Long offset = this.offsetTable.get(level);
-            if (null == offset) {
-                offset = 0L;
-            }
-
-            if (timeDelay != null) {
-                this.timer.schedule(new DeliverDelayedMessageTimerTask(level, offset), FIRST_DELAY_TIME);
-            }
-        }
-
-        // 定时将延时进度刷盘
-        this.timer.scheduleAtFixedRate(new TimerTask() {
-
-            @Override
-            public void run() {
-                try {
-                    ScheduleMessageService.this.persist();
-                } catch (Exception e) {
-                    log.error("scheduleAtFixedRate flush exception", e);
-                }
-            }
-        }, 10000, this.defaultMessageStore.getMessageStoreConfig().getFlushDelayOffsetInterval());
-    }
-
-
-    public void shutdown() {
-        this.timer.cancel();
-    }
-
-
-    public int getMaxDelayLevel() {
-        return maxDelayLevel;
-    }
-
-
-    public String encode() {
-        return this.encode(false);
-    }
-
-
-    public String encode(final boolean prettyFormat) {
-        DelayOffsetSerializeWrapper delayOffsetSerializeWrapper = new DelayOffsetSerializeWrapper();
-        delayOffsetSerializeWrapper.setOffsetTable(this.offsetTable);
-        return delayOffsetSerializeWrapper.toJson(prettyFormat);
-    }
-
-
-    @Override
-    public void decode(String jsonString) {
-        if (jsonString != null) {
-            DelayOffsetSerializeWrapper delayOffsetSerializeWrapper = DelayOffsetSerializeWrapper.fromJson(jsonString, DelayOffsetSerializeWrapper.class);
-            if (delayOffsetSerializeWrapper != null) {
-                this.offsetTable.putAll(delayOffsetSerializeWrapper.getOffsetTable());
-            }
-        }
-    }
-
-
-    @Override
-    public String configFilePath() {
-        return this.defaultMessageStore.getMessageStoreConfig().getDelayOffsetStorePath();
     }
 }
