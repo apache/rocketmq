@@ -15,48 +15,55 @@
  */
 package com.alibaba.rocketmq.client.impl;
 
-import com.alibaba.rocketmq.client.ClientConfig;
-import com.alibaba.rocketmq.client.impl.factory.MQClientFactory;
-
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import com.alibaba.rocketmq.client.ClientConfig;
+import com.alibaba.rocketmq.client.impl.factory.MQClientFactory;
 
 
 /**
  * Client单例管理
- *
+ * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-24
  */
 public class MQClientManager {
     private static MQClientManager instance = new MQClientManager();
     private AtomicInteger factoryIndexGenerator = new AtomicInteger();
-    private ConcurrentHashMap<String/* clientId */, MQClientFactory> factoryTable = new ConcurrentHashMap<String, MQClientFactory>();
+    private ConcurrentHashMap<String/* clientId */, MQClientFactory> factoryTable =
+            new ConcurrentHashMap<String, MQClientFactory>();
 
 
     private MQClientManager() {
 
     }
 
+
     public static MQClientManager getInstance() {
         return instance;
     }
+
 
     public MQClientFactory getAndCreateMQClientFactory(final ClientConfig clientConfig) {
         String clientId = clientConfig.buildMQClientId();
         MQClientFactory factory = this.factoryTable.get(clientId);
         if (null == factory) {
-            factory = new MQClientFactory(clientConfig.cloneClientConfig(), this.factoryIndexGenerator.getAndIncrement(), clientId);
+            factory =
+                    new MQClientFactory(clientConfig.cloneClientConfig(),
+                        this.factoryIndexGenerator.getAndIncrement(), clientId);
             MQClientFactory prev = this.factoryTable.putIfAbsent(clientId, factory);
             if (prev != null) {
                 factory = prev;
-            } else {
+            }
+            else {
                 // TODO log
             }
         }
 
         return factory;
     }
+
 
     public void removeClientFactory(final String clientId) {
         this.factoryTable.remove(clientId);

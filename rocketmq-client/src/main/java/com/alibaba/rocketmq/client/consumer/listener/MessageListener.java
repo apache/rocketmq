@@ -18,7 +18,7 @@ package com.alibaba.rocketmq.client.consumer.listener;
 /**
  * 消息监听器，被动方式订阅消息使用，需要用户实现<br>
  * 应用不可以直接继承此接口
- *
+ * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-24
  */

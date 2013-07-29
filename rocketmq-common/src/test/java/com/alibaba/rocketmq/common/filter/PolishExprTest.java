@@ -1,11 +1,13 @@
 package com.alibaba.rocketmq.common.filter;
 
-import com.alibaba.rocketmq.common.filter.impl.Op;
-import com.alibaba.rocketmq.common.filter.impl.PolishExpr;
+import java.util.List;
+
 import junit.framework.Assert;
+
 import org.junit.Test;
 
-import java.util.List;
+import com.alibaba.rocketmq.common.filter.impl.Op;
+import com.alibaba.rocketmq.common.filter.impl.PolishExpr;
 
 
 /**

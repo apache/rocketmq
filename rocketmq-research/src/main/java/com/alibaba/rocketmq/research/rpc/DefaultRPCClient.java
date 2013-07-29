@@ -17,7 +17,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * 客户端实现
- *
+ * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public class DefaultRPCClient implements RPCClient {
@@ -25,7 +25,8 @@ public class DefaultRPCClient implements RPCClient {
     private List<Connection> connectionList = new ArrayList<Connection>();
     private final AtomicInteger requestId = new AtomicInteger(0);
 
-    private final ConcurrentHashMap<Integer, CallResponse> callRepTable = new ConcurrentHashMap<Integer, CallResponse>(1000000);
+    private final ConcurrentHashMap<Integer, CallResponse> callRepTable =
+            new ConcurrentHashMap<Integer, CallResponse>(1000000);
 
     private final ClientRPCProcessor clientRPCProcessor = new ClientRPCProcessor();
 
@@ -122,7 +123,8 @@ public class DefaultRPCClient implements RPCClient {
         ByteBuffer result = null;
         if (waitOK) {
             result = response.getResponseBody();
-        } else {
+        }
+        else {
             System.out.println("timeout, reqId = " + id);
         }
 
@@ -144,16 +146,19 @@ public class DefaultRPCClient implements RPCClient {
                 sc.configureBlocking(false);
                 Connection c = new Connection(sc, this.clientRPCProcessor, null);
                 this.connectionList.add(c);
-            } else {
+            }
+            else {
                 sc.close();
             }
 
             return connected;
-        } catch (IOException e) {
+        }
+        catch (IOException e) {
             if (sc != null) {
                 try {
                     sc.close();
-                } catch (IOException e1) {
+                }
+                catch (IOException e1) {
                     e1.printStackTrace();
                 }
             }

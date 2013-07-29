@@ -15,6 +15,9 @@
  */
 package com.alibaba.rocketmq.client.impl.consumer;
 
+import java.util.List;
+import java.util.Set;
+
 import com.alibaba.rocketmq.client.consumer.AllocateMessageQueueStrategy;
 import com.alibaba.rocketmq.client.consumer.store.OffsetStore;
 import com.alibaba.rocketmq.client.impl.factory.MQClientFactory;
@@ -22,9 +25,6 @@ import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.consumer.ConsumeFromWhere;
 import com.alibaba.rocketmq.common.message.MessageQueue;
 import com.alibaba.rocketmq.common.protocol.heartbeat.MessageModel;
-
-import java.util.List;
-import java.util.Set;
 
 
 /**
@@ -40,7 +40,9 @@ public class RebalancePushImpl extends RebalanceImpl {
     }
 
 
-    public RebalancePushImpl(String consumerGroup, MessageModel messageModel, AllocateMessageQueueStrategy allocateMessageQueueStrategy, MQClientFactory mQClientFactory, DefaultMQPushConsumerImpl defaultMQPushConsumerImpl) {
+    public RebalancePushImpl(String consumerGroup, MessageModel messageModel,
+            AllocateMessageQueueStrategy allocateMessageQueueStrategy, MQClientFactory mQClientFactory,
+            DefaultMQPushConsumerImpl defaultMQPushConsumerImpl) {
         super(consumerGroup, messageModel, allocateMessageQueueStrategy, mQClientFactory);
         this.defaultMQPushConsumerImpl = defaultMQPushConsumerImpl;
     }
@@ -59,56 +61,57 @@ public class RebalancePushImpl extends RebalanceImpl {
     @Override
     public long computePullFromWhere(MessageQueue mq) {
         long result = -1;
-        final ConsumeFromWhere consumeFromWhere = this.defaultMQPushConsumerImpl.getDefaultMQPushConsumer().getConsumeFromWhere();
+        final ConsumeFromWhere consumeFromWhere =
+                this.defaultMQPushConsumerImpl.getDefaultMQPushConsumer().getConsumeFromWhere();
         final OffsetStore offsetStore = this.defaultMQPushConsumerImpl.getOffsetStore();
         switch (consumeFromWhere) {
-            case CONSUME_FROM_LAST_OFFSET: {
-                long lastOffset = offsetStore.readOffset(mq, true);
-                if (lastOffset >= 0) {
-                    result = lastOffset;
-                }
-                // 当前订阅组在服务器没有对应的Offset
-                // 说明是第一次启动
-                else if (-1 == lastOffset) {
-                    // 如果是重试队列，需要从0开始
-                    if (mq.getTopic().startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
-                        result = 0L;
-                    }
-                    // 正常队列则从末尾开始
-                    else {
-                        result = Long.MAX_VALUE;
-                    }
-                }
-                // 发生其他错误
-                else {
-                    result = -1;
-                }
-                break;
+        case CONSUME_FROM_LAST_OFFSET: {
+            long lastOffset = offsetStore.readOffset(mq, true);
+            if (lastOffset >= 0) {
+                result = lastOffset;
             }
-            case CONSUME_FROM_LAST_OFFSET_AND_FROM_MIN_WHEN_BOOT_FIRST: {
-                long lastOffset = offsetStore.readOffset(mq, true);
-                if (lastOffset >= 0) {
-                    result = lastOffset;
-                }
-                // 当前订阅组在服务器没有对应的Offset
-                // 说明是第一次启动
-                else if (-1 == lastOffset) {
+            // 当前订阅组在服务器没有对应的Offset
+            // 说明是第一次启动
+            else if (-1 == lastOffset) {
+                // 如果是重试队列，需要从0开始
+                if (mq.getTopic().startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
                     result = 0L;
                 }
-                // 发生其他错误
+                // 正常队列则从末尾开始
                 else {
-                    result = -1;
+                    result = Long.MAX_VALUE;
                 }
-                break;
             }
-            case CONSUME_FROM_MAX_OFFSET:
-                result = Long.MAX_VALUE;
-                break;
-            case CONSUME_FROM_MIN_OFFSET:
+            // 发生其他错误
+            else {
+                result = -1;
+            }
+            break;
+        }
+        case CONSUME_FROM_LAST_OFFSET_AND_FROM_MIN_WHEN_BOOT_FIRST: {
+            long lastOffset = offsetStore.readOffset(mq, true);
+            if (lastOffset >= 0) {
+                result = lastOffset;
+            }
+            // 当前订阅组在服务器没有对应的Offset
+            // 说明是第一次启动
+            else if (-1 == lastOffset) {
                 result = 0L;
-                break;
-            default:
-                break;
+            }
+            // 发生其他错误
+            else {
+                result = -1;
+            }
+            break;
+        }
+        case CONSUME_FROM_MAX_OFFSET:
+            result = Long.MAX_VALUE;
+            break;
+        case CONSUME_FROM_MIN_OFFSET:
+            result = 0L;
+            break;
+        default:
+            break;
         }
 
         return result;

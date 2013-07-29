@@ -21,7 +21,7 @@ import com.alibaba.rocketmq.common.help.FAQUrl;
 
 /**
  * Broker异常
- *
+ * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-24
  */
@@ -32,14 +32,17 @@ public class MQBrokerException extends Exception {
 
 
     public MQBrokerException(int responseCode, String errorMessage) {
-        super(FAQUrl.attachDefaultURL("CODE: " + UtilALl.responseCode2String(responseCode) + "  DESC: " + errorMessage));
+        super(FAQUrl.attachDefaultURL("CODE: " + UtilALl.responseCode2String(responseCode) + "  DESC: "
+                + errorMessage));
         this.responseCode = responseCode;
         this.errorMessage = errorMessage;
     }
 
+
     public int getResponseCode() {
         return responseCode;
     }
+
 
     public String getErrorMessage() {
         return errorMessage;

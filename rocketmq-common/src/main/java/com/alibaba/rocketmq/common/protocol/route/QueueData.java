@@ -74,7 +74,8 @@ public class QueueData implements Comparable<QueueData> {
         if (brokerName == null) {
             if (other.brokerName != null)
                 return false;
-        } else if (!brokerName.equals(other.brokerName))
+        }
+        else if (!brokerName.equals(other.brokerName))
             return false;
         if (perm != other.perm)
             return false;
@@ -88,7 +89,8 @@ public class QueueData implements Comparable<QueueData> {
 
     @Override
     public String toString() {
-        return "QueueData [brokerName=" + brokerName + ", readQueueNums=" + readQueueNums + ", writeQueueNums=" + writeQueueNums + ", perm=" + perm + "]";
+        return "QueueData [brokerName=" + brokerName + ", readQueueNums=" + readQueueNums
+                + ", writeQueueNums=" + writeQueueNums + ", perm=" + perm + "]";
     }
 
 

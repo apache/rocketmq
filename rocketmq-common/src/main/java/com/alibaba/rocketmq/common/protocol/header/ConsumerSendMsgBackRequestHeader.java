@@ -56,6 +56,7 @@ public class ConsumerSendMsgBackRequestHeader implements CommandCustomHeader {
 
     @Override
     public String toString() {
-        return "ConsumerSendMsgBackRequestHeader [offset=" + offset + ", group=" + group + ", delayLevel=" + delayLevel + "]";
+        return "ConsumerSendMsgBackRequestHeader [offset=" + offset + ", group=" + group + ", delayLevel="
+                + delayLevel + "]";
     }
 }

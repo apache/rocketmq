@@ -15,21 +15,22 @@
  */
 package com.alibaba.rocketmq.broker.longpolling;
 
-import com.alibaba.rocketmq.broker.BrokerController;
-import com.alibaba.rocketmq.common.ServiceThread;
-import com.alibaba.rocketmq.common.constant.LoggerName;
-import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.alibaba.rocketmq.broker.BrokerController;
+import com.alibaba.rocketmq.common.ServiceThread;
+import com.alibaba.rocketmq.common.constant.LoggerName;
+import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
+
 
 /**
  * 拉消息请求管理，如果拉不到消息，则在这里Hold住，等待消息到来
- *
+ * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-26
  */
@@ -37,7 +38,8 @@ public class PullRequestHoldService extends ServiceThread {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.BrokerLoggerName);
     private static final String TOPIC_QUEUEID_SEPARATOR = "@";
 
-    private ConcurrentHashMap<String/* topic@queueid */, ManyPullRequest> pullRequestTable = new ConcurrentHashMap<String, ManyPullRequest>(1024);
+    private ConcurrentHashMap<String/* topic@queueid */, ManyPullRequest> pullRequestTable =
+            new ConcurrentHashMap<String, ManyPullRequest>(1024);
 
     private final BrokerController brokerController;
 
@@ -77,7 +79,8 @@ public class PullRequestHoldService extends ServiceThread {
             if (kArray != null && 2 == kArray.length) {
                 String topic = kArray[0];
                 int queueId = Integer.parseInt(kArray[1]);
-                final long offset = this.brokerController.getMessageStore().getMaxOffsetInQuque(topic, queueId);
+                final long offset =
+                        this.brokerController.getMessageStore().getMaxOffsetInQuque(topic, queueId);
                 this.notifyMessageArriving(topic, queueId, offset);
             }
         }
@@ -96,19 +99,24 @@ public class PullRequestHoldService extends ServiceThread {
                     // 查看是否offset OK
                     if (offset >= request.getPullFromThisOffset()) {
                         try {
-                            this.brokerController.getPullMessageProcessor().excuteRequestWhenWakeup(request.getClientChannel(), request.getRequestCommand());
-                        } catch (RemotingCommandException e) {
+                            this.brokerController.getPullMessageProcessor().excuteRequestWhenWakeup(
+                                request.getClientChannel(), request.getRequestCommand());
+                        }
+                        catch (RemotingCommandException e) {
                             log.error("", e);
                         }
                         continue;
                     }
                     // 尝试取最新Offset
                     else {
-                        final long newestOffset = this.brokerController.getMessageStore().getMaxOffsetInQuque(topic, queueId);
+                        final long newestOffset =
+                                this.brokerController.getMessageStore().getMaxOffsetInQuque(topic, queueId);
                         if (newestOffset >= request.getPullFromThisOffset()) {
                             try {
-                                this.brokerController.getPullMessageProcessor().excuteRequestWhenWakeup(request.getClientChannel(), request.getRequestCommand());
-                            } catch (RemotingCommandException e) {
+                                this.brokerController.getPullMessageProcessor().excuteRequestWhenWakeup(
+                                    request.getClientChannel(), request.getRequestCommand());
+                            }
+                            catch (RemotingCommandException e) {
                                 log.error("", e);
                             }
                             continue;
@@ -116,10 +124,13 @@ public class PullRequestHoldService extends ServiceThread {
                     }
 
                     // 查看是否超时
-                    if (System.currentTimeMillis() >= (request.getSuspendTimestamp() + request.getTimeoutMillis())) {
+                    if (System.currentTimeMillis() >= (request.getSuspendTimestamp() + request
+                        .getTimeoutMillis())) {
                         try {
-                            this.brokerController.getPullMessageProcessor().excuteRequestWhenWakeup(request.getClientChannel(), request.getRequestCommand());
-                        } catch (RemotingCommandException e) {
+                            this.brokerController.getPullMessageProcessor().excuteRequestWhenWakeup(
+                                request.getClientChannel(), request.getRequestCommand());
+                        }
+                        catch (RemotingCommandException e) {
                             log.error("", e);
                         }
                         continue;
@@ -144,7 +155,8 @@ public class PullRequestHoldService extends ServiceThread {
             try {
                 this.waitForRunning(1000);
                 this.checkHoldRequest();
-            } catch (Exception e) {
+            }
+            catch (Exception e) {
                 log.warn(this.getServiceName() + " service has exception. ", e);
             }
         }

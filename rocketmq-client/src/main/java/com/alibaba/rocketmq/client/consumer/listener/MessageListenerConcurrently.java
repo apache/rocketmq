@@ -15,14 +15,14 @@
  */
 package com.alibaba.rocketmq.client.consumer.listener;
 
-import com.alibaba.rocketmq.common.message.MessageExt;
-
 import java.util.List;
+
+import com.alibaba.rocketmq.common.message.MessageExt;
 
 
 /**
  * 同一队列的消息并行消费
- *
+ * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-24
  */
@@ -30,11 +30,13 @@ public interface MessageListenerConcurrently extends MessageListener {
     /**
      * 方法抛出异常等同于返回 ConsumeConcurrentlyStatus.RECONSUME_LATER<br>
      * P.S: 建议应用不要抛出异常
-     *
-     * @param msgs    msgs.size() >= 1<br>
-     *                DefaultMQPushConsumer.consumeMessageBatchMaxSize=1，默认消息数为1
+     * 
+     * @param msgs
+     *            msgs.size() >= 1<br>
+     *            DefaultMQPushConsumer.consumeMessageBatchMaxSize=1，默认消息数为1
      * @param context
      * @return
      */
-    public ConsumeConcurrentlyStatus consumeMessage(final List<MessageExt> msgs, final ConsumeConcurrentlyContext context);
+    public ConsumeConcurrentlyStatus consumeMessage(final List<MessageExt> msgs,
+            final ConsumeConcurrentlyContext context);
 }

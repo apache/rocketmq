@@ -1,21 +1,21 @@
 package com.alibaba.rocketmq.research.store;
 
-import com.alibaba.rocketmq.store.DefaultMessageStore;
-import com.alibaba.rocketmq.store.MessageExtBrokerInner;
-import com.alibaba.rocketmq.store.MessageStore;
-import com.alibaba.rocketmq.store.PutMessageResult;
-import com.alibaba.rocketmq.store.config.MessageStoreConfig;
-
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import com.alibaba.rocketmq.store.DefaultMessageStore;
+import com.alibaba.rocketmq.store.MessageExtBrokerInner;
+import com.alibaba.rocketmq.store.MessageStore;
+import com.alibaba.rocketmq.store.PutMessageResult;
+import com.alibaba.rocketmq.store.config.MessageStoreConfig;
+
 
 /**
  * 测试存储层，简单封装
- *
+ * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public class MessageStoreTestObject {

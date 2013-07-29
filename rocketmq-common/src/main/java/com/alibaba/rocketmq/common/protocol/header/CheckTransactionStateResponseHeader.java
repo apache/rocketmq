@@ -21,8 +21,9 @@ public class CheckTransactionStateResponseHeader implements CommandCustomHeader 
     private Long commitLogOffset;
     @CFNotNull
     private Integer commitOrRollback; // TransactionCommitType
-    // TransactionRollbackType
 
+
+    // TransactionRollbackType
 
     @Override
     public void checkFields() throws RemotingCommandException {

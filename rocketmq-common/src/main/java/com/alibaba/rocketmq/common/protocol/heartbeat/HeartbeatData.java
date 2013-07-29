@@ -3,10 +3,10 @@
  */
 package com.alibaba.rocketmq.common.protocol.heartbeat;
 
-import com.alibaba.rocketmq.remoting.protocol.RemotingSerializable;
-
 import java.util.HashSet;
 import java.util.Set;
+
+import com.alibaba.rocketmq.remoting.protocol.RemotingSerializable;
 
 
 /**
@@ -50,6 +50,7 @@ public class HeartbeatData extends RemotingSerializable {
 
     @Override
     public String toString() {
-        return "HeartbeatData [clientID=" + clientID + ", producerDataSet=" + producerDataSet + ", consumerDataSet=" + consumerDataSet + "]";
+        return "HeartbeatData [clientID=" + clientID + ", producerDataSet=" + producerDataSet
+                + ", consumerDataSet=" + consumerDataSet + "]";
     }
 }

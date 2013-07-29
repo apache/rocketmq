@@ -15,15 +15,16 @@
  */
 package com.alibaba.rocketmq.broker.client;
 
-import com.alibaba.rocketmq.broker.BrokerController;
 import io.netty.channel.Channel;
 
 import java.util.List;
 
+import com.alibaba.rocketmq.broker.BrokerController;
+
 
 /**
  * ConsumerId列表变化，通知所有Consumer
- *
+ * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-26
  */

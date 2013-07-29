@@ -15,16 +15,16 @@
  */
 package com.alibaba.rocketmq.client.impl.producer;
 
-import com.alibaba.rocketmq.common.message.MessageQueue;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import com.alibaba.rocketmq.common.message.MessageQueue;
+
 
 /**
  * 发布Topic用到的路由信息
- *
+ * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-24
  */
@@ -84,7 +84,8 @@ public class TopicPublishInfo {
             }
 
             return null;
-        } else {
+        }
+        else {
             int index = this.sendWhichQueue.getAndIncrement();
             int pos = Math.abs(index) % this.messageQueueList.size();
             return this.messageQueueList.get(pos);
@@ -94,6 +95,7 @@ public class TopicPublishInfo {
 
     @Override
     public String toString() {
-        return "TopicPublishInfo [orderTopic=" + orderTopic + ", messageQueueList=" + messageQueueList + ", sendWhichQueue=" + sendWhichQueue + "]";
+        return "TopicPublishInfo [orderTopic=" + orderTopic + ", messageQueueList=" + messageQueueList
+                + ", sendWhichQueue=" + sendWhichQueue + "]";
     }
 }

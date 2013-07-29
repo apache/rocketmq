@@ -17,7 +17,7 @@ package com.alibaba.rocketmq.remoting.exception;
 
 /**
  * 异步调用或者Oneway调用，堆积的请求超过信号量最大值
- *
+ * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-13
  */

@@ -17,7 +17,7 @@ package com.alibaba.rocketmq.store;
 
 /**
  * 写入消息返回结果
- *
+ * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-21
  */
@@ -31,21 +31,26 @@ public class PutMessageResult {
         this.appendMessageResult = appendMessageResult;
     }
 
+
     public boolean isOk() {
         return this.appendMessageResult.isOk();
     }
+
 
     public AppendMessageResult getAppendMessageResult() {
         return appendMessageResult;
     }
 
+
     public void setAppendMessageResult(AppendMessageResult appendMessageResult) {
         this.appendMessageResult = appendMessageResult;
     }
 
+
     public PutMessageStatus getPutMessageStatus() {
         return putMessageStatus;
     }
+
 
     public void setPutMessageStatus(PutMessageStatus putMessageStatus) {
         this.putMessageStatus = putMessageStatus;

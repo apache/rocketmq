@@ -21,7 +21,7 @@ import com.alibaba.rocketmq.common.help.FAQUrl;
 
 /**
  * MQ异常类
- *
+ * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public class MQClientException extends Exception {
@@ -38,14 +38,17 @@ public class MQClientException extends Exception {
 
 
     public MQClientException(int responseCode, String errorMessage) {
-        super(FAQUrl.attachDefaultURL("CODE: " + UtilALl.responseCode2String(responseCode) + "  DESC: " + errorMessage));
+        super(FAQUrl.attachDefaultURL("CODE: " + UtilALl.responseCode2String(responseCode) + "  DESC: "
+                + errorMessage));
         this.responseCode = responseCode;
         this.errorMessage = errorMessage;
     }
 
+
     public int getResponseCode() {
         return responseCode;
     }
+
 
     public String getErrorMessage() {
         return errorMessage;

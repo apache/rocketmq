@@ -15,6 +15,17 @@
  */
 package com.alibaba.rocketmq.client.impl;
 
+import java.net.UnknownHostException;
+import java.nio.ByteBuffer;
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+
+import org.slf4j.Logger;
+
 import com.alibaba.rocketmq.client.QueryResult;
 import com.alibaba.rocketmq.client.exception.MQBrokerException;
 import com.alibaba.rocketmq.client.exception.MQClientException;
@@ -23,7 +34,11 @@ import com.alibaba.rocketmq.client.impl.producer.TopicPublishInfo;
 import com.alibaba.rocketmq.client.log.ClientLogger;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.TopicConfig;
-import com.alibaba.rocketmq.common.message.*;
+import com.alibaba.rocketmq.common.message.Message;
+import com.alibaba.rocketmq.common.message.MessageDecoder;
+import com.alibaba.rocketmq.common.message.MessageExt;
+import com.alibaba.rocketmq.common.message.MessageId;
+import com.alibaba.rocketmq.common.message.MessageQueue;
 import com.alibaba.rocketmq.common.protocol.header.QueryMessageRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.QueryMessageResponseHeader;
 import com.alibaba.rocketmq.common.protocol.route.BrokerData;
@@ -35,21 +50,11 @@ import com.alibaba.rocketmq.remoting.exception.RemotingException;
 import com.alibaba.rocketmq.remoting.netty.ResponseFuture;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 import com.alibaba.rocketmq.remoting.protocol.RemotingProtos.ResponseCode;
-import org.slf4j.Logger;
-
-import java.net.UnknownHostException;
-import java.nio.ByteBuffer;
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
 
 
 /**
  * 管理类接口实现
- *
+ * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-24
  */
@@ -62,9 +67,11 @@ public class MQAdminImpl {
         this.mQClientFactory = mQClientFactory;
     }
 
+
     public void createTopic(String key, String newTopic, int queueNum) throws MQClientException {
         try {
-            TopicRouteData topicRouteData = this.mQClientFactory.getMQClientAPIImpl().getTopicRouteInfoFromNameServer(key, 1000 * 3);
+            TopicRouteData topicRouteData =
+                    this.mQClientFactory.getMQClientAPIImpl().getTopicRouteInfoFromNameServer(key, 1000 * 3);
             List<BrokerData> brokerDataList = topicRouteData.getBrokerDatas();
             if (brokerDataList != null && !brokerDataList.isEmpty()) {
                 // 排序原因：即使没有配置顺序消息模式，默认队列的顺序同配置的一致。
@@ -82,8 +89,10 @@ public class MQAdminImpl {
                         topicConfig.setReadQueueNums(queueNum);
                         topicConfig.setWriteQueueNums(queueNum);
                         try {
-                            this.mQClientFactory.getMQClientAPIImpl().createTopic(addr, key, topicConfig, 1000 * 3);
-                        } catch (Exception e) {
+                            this.mQClientFactory.getMQClientAPIImpl().createTopic(addr, key, topicConfig,
+                                1000 * 3);
+                        }
+                        catch (Exception e) {
                             exception = new MQClientException("create topic to broker exception", e);
                         }
 
@@ -97,47 +106,61 @@ public class MQAdminImpl {
                 if (exception != null) {
                     throw exception;
                 }
-            } else {
+            }
+            else {
                 throw new MQClientException("Not found broker, maybe key is wrong", null);
             }
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             throw new MQClientException("create new topic failed", e);
         }
     }
 
+
     public List<MessageQueue> fetchPublishMessageQueues(String topic) throws MQClientException {
         try {
-            TopicRouteData topicRouteData = this.mQClientFactory.getMQClientAPIImpl().getTopicRouteInfoFromNameServer(topic, 1000 * 3);
+            TopicRouteData topicRouteData =
+                    this.mQClientFactory.getMQClientAPIImpl()
+                        .getTopicRouteInfoFromNameServer(topic, 1000 * 3);
             if (topicRouteData != null) {
-                TopicPublishInfo topicPublishInfo = MQClientFactory.topicRouteData2TopicPublishInfo(topic, topicRouteData);
+                TopicPublishInfo topicPublishInfo =
+                        MQClientFactory.topicRouteData2TopicPublishInfo(topic, topicRouteData);
                 if (topicPublishInfo != null && topicPublishInfo.ok()) {
                     return topicPublishInfo.getMessageQueueList();
                 }
             }
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             throw new MQClientException("Can not find Message Queue for this topic, " + topic, e);
         }
 
         throw new MQClientException("Unknow why, Can not find Message Queue for this topic, " + topic, null);
     }
+
 
     public Set<MessageQueue> fetchSubscribeMessageQueues(String topic) throws MQClientException {
         try {
-            TopicRouteData topicRouteData = this.mQClientFactory.getMQClientAPIImpl().getTopicRouteInfoFromNameServer(topic, 1000 * 3);
+            TopicRouteData topicRouteData =
+                    this.mQClientFactory.getMQClientAPIImpl()
+                        .getTopicRouteInfoFromNameServer(topic, 1000 * 3);
             if (topicRouteData != null) {
-                Set<MessageQueue> mqList = MQClientFactory.topicRouteData2TopicSubscribeInfo(topic, topicRouteData);
+                Set<MessageQueue> mqList =
+                        MQClientFactory.topicRouteData2TopicSubscribeInfo(topic, topicRouteData);
                 if (!mqList.isEmpty()) {
                     return mqList;
-                } else {
+                }
+                else {
                     throw new MQClientException("Can not find Message Queue for this topic, " + topic, null);
                 }
             }
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             throw new MQClientException("Can not find Message Queue for this topic, " + topic, e);
         }
 
         throw new MQClientException("Unknow why, Can not find Message Queue for this topic, " + topic, null);
     }
+
 
     public long searchOffset(MessageQueue mq, long timestamp) throws MQClientException {
         String brokerAddr = this.mQClientFactory.findBrokerAddressInPublish(mq.getBrokerName());
@@ -148,14 +171,17 @@ public class MQAdminImpl {
 
         if (brokerAddr != null) {
             try {
-                return this.mQClientFactory.getMQClientAPIImpl().searchOffset(brokerAddr, mq.getTopic(), mq.getQueueId(), timestamp, 1000 * 3);
-            } catch (Exception e) {
+                return this.mQClientFactory.getMQClientAPIImpl().searchOffset(brokerAddr, mq.getTopic(),
+                    mq.getQueueId(), timestamp, 1000 * 3);
+            }
+            catch (Exception e) {
                 throw new MQClientException("Invoke Broker[" + brokerAddr + "] exception", e);
             }
         }
 
         throw new MQClientException("The broker[" + mq.getBrokerName() + "] not exist", null);
     }
+
 
     public long maxOffset(MessageQueue mq) throws MQClientException {
         String brokerAddr = this.mQClientFactory.findBrokerAddressInPublish(mq.getBrokerName());
@@ -166,14 +192,17 @@ public class MQAdminImpl {
 
         if (brokerAddr != null) {
             try {
-                return this.mQClientFactory.getMQClientAPIImpl().getMaxOffset(brokerAddr, mq.getTopic(), mq.getQueueId(), 1000 * 3);
-            } catch (Exception e) {
+                return this.mQClientFactory.getMQClientAPIImpl().getMaxOffset(brokerAddr, mq.getTopic(),
+                    mq.getQueueId(), 1000 * 3);
+            }
+            catch (Exception e) {
                 throw new MQClientException("Invoke Broker[" + brokerAddr + "] exception", e);
             }
         }
 
         throw new MQClientException("The broker[" + mq.getBrokerName() + "] not exist", null);
     }
+
 
     public long minOffset(MessageQueue mq) throws MQClientException {
         String brokerAddr = this.mQClientFactory.findBrokerAddressInPublish(mq.getBrokerName());
@@ -184,14 +213,17 @@ public class MQAdminImpl {
 
         if (brokerAddr != null) {
             try {
-                return this.mQClientFactory.getMQClientAPIImpl().getMinOffset(brokerAddr, mq.getTopic(), mq.getQueueId(), 1000 * 3);
-            } catch (Exception e) {
+                return this.mQClientFactory.getMQClientAPIImpl().getMinOffset(brokerAddr, mq.getTopic(),
+                    mq.getQueueId(), 1000 * 3);
+            }
+            catch (Exception e) {
                 throw new MQClientException("Invoke Broker[" + brokerAddr + "] exception", e);
             }
         }
 
         throw new MQClientException("The broker[" + mq.getBrokerName() + "] not exist", null);
     }
+
 
     public long earliestMsgStoreTime(MessageQueue mq) throws MQClientException {
         String brokerAddr = this.mQClientFactory.findBrokerAddressInPublish(mq.getBrokerName());
@@ -202,8 +234,10 @@ public class MQAdminImpl {
 
         if (brokerAddr != null) {
             try {
-                return this.mQClientFactory.getMQClientAPIImpl().getEarliestMsgStoretime(brokerAddr, mq.getTopic(), mq.getQueueId(), 1000 * 3);
-            } catch (Exception e) {
+                return this.mQClientFactory.getMQClientAPIImpl().getEarliestMsgStoretime(brokerAddr,
+                    mq.getTopic(), mq.getQueueId(), 1000 * 3);
+            }
+            catch (Exception e) {
                 throw new MQClientException("Invoke Broker[" + brokerAddr + "] exception", e);
             }
         }
@@ -211,16 +245,22 @@ public class MQAdminImpl {
         throw new MQClientException("The broker[" + mq.getBrokerName() + "] not exist", null);
     }
 
-    public MessageExt viewMessage(String msgId) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
+
+    public MessageExt viewMessage(String msgId) throws RemotingException, MQBrokerException,
+            InterruptedException, MQClientException {
         try {
             MessageId messageId = MessageDecoder.decodeMessageId(msgId);
-            return this.mQClientFactory.getMQClientAPIImpl().viewMessage(RemotingUtil.socketAddress2String(messageId.getAddress()), messageId.getOffset(), 1000 * 3);
-        } catch (UnknownHostException e) {
+            return this.mQClientFactory.getMQClientAPIImpl().viewMessage(
+                RemotingUtil.socketAddress2String(messageId.getAddress()), messageId.getOffset(), 1000 * 3);
+        }
+        catch (UnknownHostException e) {
             throw new MQClientException("message id illegal", e);
         }
     }
 
-    public QueryResult queryMessage(String topic, String key, int maxNum, long begin, long end) throws MQClientException, InterruptedException {
+
+    public QueryResult queryMessage(String topic, String key, int maxNum, long begin, long end)
+            throws MQClientException, InterruptedException {
         TopicRouteData topicRouteData = this.mQClientFactory.getAnExistTopicRouteData(topic);
         if (null == topicRouteData) {
             this.mQClientFactory.updateTopicRouteInfoFromNameServer(topic);
@@ -249,41 +289,53 @@ public class MQAdminImpl {
                         requestHeader.setBeginTimestamp(begin);
                         requestHeader.setEndTimestamp(end);
 
-                        this.mQClientFactory.getMQClientAPIImpl().queryMessage(addr, requestHeader, 1000 * 5, new InvokeCallback() {
-                            @Override
-                            public void operationComplete(ResponseFuture responseFuture) {
-                                try {
-                                    RemotingCommand response = responseFuture.getResponseCommand();
-                                    if (response != null) {
-                                        switch (response.getCode()) {
+                        this.mQClientFactory.getMQClientAPIImpl().queryMessage(addr, requestHeader, 1000 * 5,
+                            new InvokeCallback() {
+                                @Override
+                                public void operationComplete(ResponseFuture responseFuture) {
+                                    try {
+                                        RemotingCommand response = responseFuture.getResponseCommand();
+                                        if (response != null) {
+                                            switch (response.getCode()) {
                                             case ResponseCode.SUCCESS_VALUE: {
                                                 QueryMessageResponseHeader responseHeader = null;
                                                 try {
-                                                    responseHeader = (QueryMessageResponseHeader) response.decodeCommandCustomHeader(QueryMessageResponseHeader.class);
-                                                } catch (RemotingCommandException e) {
+                                                    responseHeader =
+                                                            (QueryMessageResponseHeader) response
+                                                                .decodeCommandCustomHeader(QueryMessageResponseHeader.class);
+                                                }
+                                                catch (RemotingCommandException e) {
                                                     log.error("decodeCommandCustomHeader exception", e);
                                                     return;
                                                 }
 
-                                                List<MessageExt> wrappers = MessageDecoder.decodes(ByteBuffer.wrap(response.getBody()), true);
+                                                List<MessageExt> wrappers =
+                                                        MessageDecoder.decodes(
+                                                            ByteBuffer.wrap(response.getBody()), true);
 
-                                                QueryResult qr = new QueryResult(responseHeader.getIndexLastUpdateTimestamp(), wrappers);
+                                                QueryResult qr =
+                                                        new QueryResult(responseHeader
+                                                            .getIndexLastUpdateTimestamp(), wrappers);
                                                 queryResultList.add(qr);
                                                 break;
                                             }
                                             default:
-                                                log.warn("getResponseCommand failed, {} {}", response.getCode(), response.getRemark());
+                                                log.warn("getResponseCommand failed, {} {}",
+                                                    response.getCode(), response.getRemark());
                                                 break;
+                                            }
                                         }
-                                    } else {
-                                        log.warn("getResponseCommand return null");
+                                        else {
+                                            log.warn("getResponseCommand return null");
+                                        }
                                     }
-                                } finally {
-                                    countDownLatch.countDown();
+                                    finally {
+                                        countDownLatch.countDown();
+                                    }
                                 }
-                            }
-                        });
-                    } catch (Exception e) {
+                            });
+                    }
+                    catch (Exception e) {
                         log.warn("queryMessage exception", e);
                     }// end of try
 
@@ -317,8 +369,10 @@ public class MQAdminImpl {
 
                             if (matched) {
                                 messageList.add(msgExt);
-                            } else {
-                                log.warn("queryMessage, client find not matched message {}", msgExt.toString());
+                            }
+                            else {
+                                log.warn("queryMessage, client find not matched message {}",
+                                    msgExt.toString());
                             }
                         }
                     }
@@ -326,7 +380,8 @@ public class MQAdminImpl {
 
                 if (!messageList.isEmpty()) {
                     return new QueryResult(indexLastUpdateTimestamp, messageList);
-                } else {
+                }
+                else {
                     throw new MQClientException("query operation over, but no message.", null);
                 }
             }

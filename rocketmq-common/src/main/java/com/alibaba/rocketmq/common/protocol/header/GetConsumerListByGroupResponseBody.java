@@ -1,8 +1,8 @@
 package com.alibaba.rocketmq.common.protocol.header;
 
-import com.alibaba.rocketmq.remoting.protocol.RemotingSerializable;
-
 import java.util.List;
+
+import com.alibaba.rocketmq.remoting.protocol.RemotingSerializable;
 
 
 /**

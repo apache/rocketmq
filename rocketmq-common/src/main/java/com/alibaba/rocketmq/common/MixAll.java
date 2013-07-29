@@ -15,27 +15,50 @@
  */
 package com.alibaba.rocketmq.common;
 
-import com.alibaba.rocketmq.common.annotation.ImportantField;
-import com.sun.management.OperatingSystemMXBean;
-import org.apache.commons.cli.*;
-import org.apache.commons.io.IOUtils;
-import org.slf4j.Logger;
-import sun.management.ManagementFactory;
-
-import java.io.*;
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
-import java.net.*;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.NetworkInterface;
+import java.net.SocketException;
+import java.net.URL;
+import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Enumeration;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Properties;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
+
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.HelpFormatter;
+import org.apache.commons.cli.Option;
+import org.apache.commons.cli.Options;
+import org.apache.commons.cli.ParseException;
+import org.apache.commons.io.IOUtils;
+import org.slf4j.Logger;
+
+import sun.management.ManagementFactory;
+
+import com.alibaba.rocketmq.common.annotation.ImportantField;
+import com.sun.management.OperatingSystemMXBean;
 
 
 /**
  * 各种方法大杂烩
- *
+ * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @author lansheng.zj@taobao.com
  */
@@ -46,7 +69,8 @@ public class MixAll {
     public static final String NAMESRV_ADDR_ENV = "NAMESRV_ADDR";
     public static final String NAMESRV_ADDR_PROPERTY = "rocketmq.namesrv.addr";
 
-    public static final String WS_DOMAIN_NAME = System.getProperty("rocketmq.namesrv.domain", "jmenv.tbsite.net");
+    public static final String WS_DOMAIN_NAME = System.getProperty("rocketmq.namesrv.domain",
+        "jmenv.tbsite.net");
     // http://jmenv.tbsite.net:8080/rocketmq/nsaddr
     public static final String WS_ADDR = "http://" + WS_DOMAIN_NAME + ":8080/rocketmq/nsaddr";
     public static final String DEFAULT_TOPIC = "TBW102";
@@ -83,7 +107,8 @@ public class MixAll {
         if (processName != null && processName.length() > 0) {
             try {
                 return Long.parseLong(processName.split("@")[0]);
-            } catch (Exception e) {
+            }
+            catch (Exception e) {
                 return 0;
             }
         }
@@ -103,13 +128,16 @@ public class MixAll {
                 fileReader = new FileReader(file);
                 int len = fileReader.read(data);
                 result = (len == data.length);
-            } catch (IOException e) {
+            }
+            catch (IOException e) {
                 // e.printStackTrace();
-            } finally {
+            }
+            finally {
                 if (fileReader != null) {
                     try {
                         fileReader.close();
-                    } catch (IOException e) {
+                    }
+                    catch (IOException e) {
                         e.printStackTrace();
                     }
                 }
@@ -171,13 +199,16 @@ public class MixAll {
         try {
             fileWriter = new FileWriter(file);
             fileWriter.write(str);
-        } catch (IOException e) {
+        }
+        catch (IOException e) {
             throw e;
-        } finally {
+        }
+        finally {
             if (fileWriter != null) {
                 try {
                     fileWriter.close();
-                } catch (IOException e) {
+                }
+                catch (IOException e) {
                     throw e;
                 }
             }
@@ -196,7 +227,9 @@ public class MixAll {
         opt.setRequired(false);
         options.addOption(opt);
 
-        opt = new Option("n", "namesrvAddr", true, "Name server address list, eg: 192.168.1.100:9876;192.168.1.101:9876");
+        opt =
+                new Option("n", "namesrvAddr", true,
+                    "Name server address list, eg: 192.168.1.100:9876;192.168.1.101:9876");
         opt.setRequired(false);
         options.addOption(opt);
 
@@ -204,7 +237,8 @@ public class MixAll {
     }
 
 
-    public static CommandLine parseCmdLine(final String appName, String[] args, Options options, CommandLineParser parser) {
+    public static CommandLine parseCmdLine(final String appName, String[] args, Options options,
+            CommandLineParser parser) {
         HelpFormatter hf = new HelpFormatter();
         hf.setWidth(110);
         CommandLine commandLine = null;
@@ -214,7 +248,8 @@ public class MixAll {
                 hf.printHelp(appName, options, true);
                 return null;
             }
-        } catch (ParseException e) {
+        }
+        catch (ParseException e) {
             hf.printHelp(appName, options, true);
         }
 
@@ -252,7 +287,8 @@ public class MixAll {
     }
 
 
-    public static void printObjectProperties(final Logger log, final Object object, final boolean onlyImportantField) {
+    public static void printObjectProperties(final Logger log, final Object object,
+            final boolean onlyImportantField) {
         Field[] fields = object.getClass().getDeclaredFields();
         for (Field field : fields) {
             if (!Modifier.isStatic(field.getModifiers())) {
@@ -265,9 +301,11 @@ public class MixAll {
                         if (null == value) {
                             value = "";
                         }
-                    } catch (IllegalArgumentException e) {
+                    }
+                    catch (IllegalArgumentException e) {
                         System.out.println(e);
-                    } catch (IllegalAccessException e) {
+                    }
+                    catch (IllegalAccessException e) {
                         System.out.println(e);
                     }
 
@@ -280,7 +318,8 @@ public class MixAll {
 
                     if (log != null) {
                         log.info(name + "=" + value);
-                    } else {
+                    }
+                    else {
                         System.out.println(name + "=" + value);
                     }
                 }
@@ -291,7 +330,7 @@ public class MixAll {
 
     /**
      * 获取机器的物理内存
-     *
+     * 
      * @return 单位字节
      */
     public static long getTotalPhysicalMemorySize() {
@@ -323,10 +362,12 @@ public class MixAll {
         try {
             InputStream in = new ByteArrayInputStream(str.getBytes(DEFAULT_CHARSET));
             properties.load(in);
-        } catch (UnsupportedEncodingException e) {
+        }
+        catch (UnsupportedEncodingException e) {
             e.printStackTrace();
             return null;
-        } catch (IOException e) {
+        }
+        catch (IOException e) {
             e.printStackTrace();
             return null;
         }
@@ -350,9 +391,11 @@ public class MixAll {
                     try {
                         field.setAccessible(true);
                         value = field.get(object);
-                    } catch (IllegalArgumentException e) {
+                    }
+                    catch (IllegalArgumentException e) {
                         System.out.println(e);
-                    } catch (IllegalAccessException e) {
+                    }
+                    catch (IllegalAccessException e) {
                         System.out.println(e);
                     }
 
@@ -388,21 +431,27 @@ public class MixAll {
                             Object arg = null;
                             if (cn.equals("int")) {
                                 arg = Integer.parseInt(property);
-                            } else if (cn.equals("long")) {
+                            }
+                            else if (cn.equals("long")) {
                                 arg = Long.parseLong(property);
-                            } else if (cn.equals("double")) {
+                            }
+                            else if (cn.equals("double")) {
                                 arg = Double.parseDouble(property);
-                            } else if (cn.equals("boolean")) {
+                            }
+                            else if (cn.equals("boolean")) {
                                 arg = Boolean.parseBoolean(property);
-                            } else if (cn.equals("String")) {
+                            }
+                            else if (cn.equals("String")) {
                                 arg = property;
-                            } else {
+                            }
+                            else {
                                 continue;
                             }
-                            method.invoke(object, new Object[]{arg});
+                            method.invoke(object, new Object[] { arg });
                         }
                     }
-                } catch (Throwable e) {
+                }
+                catch (Throwable e) {
                 }
             }
         }
@@ -425,7 +474,8 @@ public class MixAll {
                     inetAddressList.add(addrs.nextElement().getHostAddress());
                 }
             }
-        } catch (SocketException e) {
+        }
+        catch (SocketException e) {
             throw new RuntimeException("get local inet address fail", e);
         }
 
@@ -446,7 +496,8 @@ public class MixAll {
         try {
             InetAddress addr = InetAddress.getLocalHost();
             return addr.getHostAddress();
-        } catch (UnknownHostException e) {
+        }
+        catch (UnknownHostException e) {
             throw new RuntimeException("get localhost fail", e);
         }
     }

@@ -20,7 +20,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Consumer内部运行时统计信息
- *
+ * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-7
  */

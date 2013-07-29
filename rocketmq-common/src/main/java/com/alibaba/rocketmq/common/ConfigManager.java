@@ -15,16 +15,17 @@
  */
 package com.alibaba.rocketmq.common;
 
-import com.alibaba.rocketmq.common.constant.LoggerName;
+import java.io.IOException;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
+import com.alibaba.rocketmq.common.constant.LoggerName;
 
 
 /**
  * 各种配置的管理接口
- *
+ * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-6-18
  */
@@ -54,7 +55,8 @@ public abstract class ConfigManager {
                 plog.error("load " + fileName + " OK");
                 return true;
             }
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             plog.error("load " + fileName + " Failed", e);
             return false;
         }
@@ -69,7 +71,8 @@ public abstract class ConfigManager {
             String fileName = this.configFilePath();
             try {
                 MixAll.string2File(jsonString, fileName);
-            } catch (IOException e) {
+            }
+            catch (IOException e) {
                 plog.error("persist file Exception, " + fileName, e);
             }
         }

@@ -18,21 +18,28 @@ package com.alibaba.rocketmq.remoting.common;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.lang.reflect.Method;
-import java.net.*;
+import java.net.Inet6Address;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.NetworkInterface;
+import java.net.SocketAddress;
+import java.net.SocketException;
+import java.net.UnknownHostException;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
 import java.nio.channels.spi.SelectorProvider;
 import java.util.Enumeration;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 
 /**
  * 网络相关方法
- *
+ * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-13
  */
@@ -69,11 +76,13 @@ public class RemotingUtil {
                                 result = selectorProvider.openSelector();
                             }
                         }
-                    } catch (final Exception e) {
+                    }
+                    catch (final Exception e) {
                         // ignore
                     }
                 }
-            } catch (final Exception e) {
+            }
+            catch (final Exception e) {
                 // ignore
             }
         }
@@ -99,7 +108,8 @@ public class RemotingUtil {
                     if (!address.isLoopbackAddress()) {
                         if (address instanceof Inet6Address) {
                             ipv6Address = address;
-                        } else {
+                        }
+                        else {
                             // 优先使用ipv4
                             return normalizeHostAddress(address);
                         }
@@ -112,9 +122,11 @@ public class RemotingUtil {
             }
             final InetAddress localHost = InetAddress.getLocalHost();
             return normalizeHostAddress(localHost);
-        } catch (SocketException e) {
+        }
+        catch (SocketException e) {
             e.printStackTrace();
-        } catch (UnknownHostException e) {
+        }
+        catch (UnknownHostException e) {
             e.printStackTrace();
         }
 
@@ -125,7 +137,8 @@ public class RemotingUtil {
     public static String normalizeHostAddress(final InetAddress localHost) {
         if (localHost instanceof Inet6Address) {
             return "[" + localHost.getHostAddress() + "]";
-        } else {
+        }
+        else {
             return localHost.getHostAddress();
         }
     }
@@ -168,11 +181,13 @@ public class RemotingUtil {
             sc.socket().connect(remote, timeoutMillis);
             sc.configureBlocking(false);
             return sc;
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             if (sc != null) {
                 try {
                     sc.close();
-                } catch (IOException e1) {
+                }
+                catch (IOException e1) {
                     e1.printStackTrace();
                 }
             }
@@ -187,7 +202,8 @@ public class RemotingUtil {
         channel.close().addListener(new ChannelFutureListener() {
             @Override
             public void operationComplete(ChannelFuture future) throws Exception {
-                log.info("closeChannel: close the connection to remote address[{}] result: {}", addrRemote, future.isSuccess());
+                log.info("closeChannel: close the connection to remote address[{}] result: {}", addrRemote,
+                    future.isSuccess());
             }
         });
     }

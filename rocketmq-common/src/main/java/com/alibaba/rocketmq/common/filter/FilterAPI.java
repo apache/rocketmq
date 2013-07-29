@@ -30,7 +30,8 @@ public class FilterAPI {
 
         if (null == subString || subString.equals(SubscriptionData.SUB_ALL)) {
             subscriptionData.setSubString(SubscriptionData.SUB_ALL);
-        } else {
+        }
+        else {
             String[] tags = subString.split("\\|\\|");
             if (tags != null && tags.length > 0) {
                 for (String tag : tags) {
@@ -40,7 +41,8 @@ public class FilterAPI {
                         subscriptionData.getCodeSet().add(trimString.hashCode());
                     }
                 }
-            } else {
+            }
+            else {
                 throw new Exception("subString split error");
             }
         }

@@ -15,34 +15,37 @@
  */
 package com.alibaba.rocketmq.client.consumer.store;
 
-import com.alibaba.rocketmq.client.impl.factory.MQClientFactory;
-import com.alibaba.rocketmq.client.log.ClientLogger;
-import com.alibaba.rocketmq.common.MixAll;
-import com.alibaba.rocketmq.common.message.MessageQueue;
-import org.slf4j.Logger;
-
 import java.io.File;
 import java.io.IOException;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
+import org.slf4j.Logger;
+
+import com.alibaba.rocketmq.client.impl.factory.MQClientFactory;
+import com.alibaba.rocketmq.client.log.ClientLogger;
+import com.alibaba.rocketmq.common.MixAll;
+import com.alibaba.rocketmq.common.message.MessageQueue;
+
 
 /**
  * 消费进度存储到Consumer本地
- *
+ * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-24
  */
 public class LocalFileOffsetStore implements OffsetStore {
-    public final static String LocalOffsetStoreDir = System.getProperty("rocketmq.client.localOffsetStoreDir", //
-            System.getProperty("user.home") + File.separator + ".rocketmq_offsets");
+    public final static String LocalOffsetStoreDir = System.getProperty(
+        "rocketmq.client.localOffsetStoreDir", //
+        System.getProperty("user.home") + File.separator + ".rocketmq_offsets");
     private final static Logger log = ClientLogger.getLog();
     private final MQClientFactory mQClientFactory;
     private final String groupName;
     // 本地Offset存储路径
     private final String storePath;
-    private ConcurrentHashMap<MessageQueue, AtomicLong> offsetTable = new ConcurrentHashMap<MessageQueue, AtomicLong>();
+    private ConcurrentHashMap<MessageQueue, AtomicLong> offsetTable =
+            new ConcurrentHashMap<MessageQueue, AtomicLong>();
 
 
     public LocalFileOffsetStore(MQClientFactory mQClientFactory, String groupName) {
@@ -54,6 +57,7 @@ public class LocalFileOffsetStore implements OffsetStore {
                 "offsets.json";
     }
 
+
     @Override
     public void load() {
         OffsetSerializeWrapper offsetSerializeWrapper = this.readLocalOffset();
@@ -63,12 +67,13 @@ public class LocalFileOffsetStore implements OffsetStore {
             for (MessageQueue mq : offsetSerializeWrapper.getOffsetTable().keySet()) {
                 AtomicLong offset = offsetSerializeWrapper.getOffsetTable().get(mq);
                 log.info("load consumer's offset, {} {} {}",//
-                        this.groupName,//
-                        mq,//
-                        offset.get());
+                    this.groupName,//
+                    mq,//
+                    offset.get());
             }
         }
     }
+
 
     @Override
     public void updateOffset(MessageQueue mq, long offset, boolean increaseOnly) {
@@ -81,12 +86,14 @@ public class LocalFileOffsetStore implements OffsetStore {
             if (null != offsetOld) {
                 if (increaseOnly) {
                     MixAll.compareAndIncreaseOnly(offsetOld, offset);
-                } else {
+                }
+                else {
                     offsetOld.set(offset);
                 }
             }
         }
     }
+
 
     @Override
     public long readOffset(MessageQueue mq, boolean fromStore) {
@@ -111,6 +118,7 @@ public class LocalFileOffsetStore implements OffsetStore {
         return -1;
     }
 
+
     @Override
     public void persistAll(Set<MessageQueue> mqs) {
         OffsetSerializeWrapper offsetSerializeWrapper = new OffsetSerializeWrapper();
@@ -125,20 +133,24 @@ public class LocalFileOffsetStore implements OffsetStore {
         if (jsonString != null) {
             try {
                 MixAll.string2File(jsonString, this.storePath);
-            } catch (IOException e) {
+            }
+            catch (IOException e) {
                 log.error("persistAll consumer offset Exception, " + this.storePath, e);
             }
         }
     }
 
+
     @Override
     public void persist(MessageQueue mq) {
     }
 
+
     private OffsetSerializeWrapper readLocalOffset() {
         String content = MixAll.file2String(this.storePath);
         if (content != null) {
-            OffsetSerializeWrapper offsetSerializeWrapper = OffsetSerializeWrapper.fromJson(content, OffsetSerializeWrapper.class);
+            OffsetSerializeWrapper offsetSerializeWrapper =
+                    OffsetSerializeWrapper.fromJson(content, OffsetSerializeWrapper.class);
             return offsetSerializeWrapper;
         }
 

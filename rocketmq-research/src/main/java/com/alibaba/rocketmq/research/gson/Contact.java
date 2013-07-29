@@ -75,6 +75,7 @@ public class Contact {
 
     @Override
     public String toString() {
-        return "Contact [name=" + name + ", age=" + age + ", weight=" + weight + ", school=" + school + ", sex=" + sex + "]";
+        return "Contact [name=" + name + ", age=" + age + ", weight=" + weight + ", school=" + school
+                + ", sex=" + sex + "]";
     }
 }

@@ -17,7 +17,7 @@ package com.alibaba.rocketmq.common;
 
 /**
  * 定义各个版本信息
- *
+ * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public class MQVersion {

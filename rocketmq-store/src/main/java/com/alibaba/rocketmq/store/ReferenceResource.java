@@ -20,7 +20,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * 引用计数基类，类似于C++智能指针实现
- *
+ * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-21
  */
@@ -30,6 +30,7 @@ public abstract class ReferenceResource {
     protected volatile boolean cleanupOver = false;
     private volatile long firstShutdownTimestamp = 0;
 
+
     /**
      * 资源是否能HOLD住
      */
@@ -37,7 +38,8 @@ public abstract class ReferenceResource {
         if (this.isAvailable()) {
             if (this.refCount.getAndIncrement() > 0) {
                 return true;
-            } else {
+            }
+            else {
                 this.refCount.getAndDecrement();
             }
         }
@@ -45,12 +47,14 @@ public abstract class ReferenceResource {
         return false;
     }
 
+
     /**
      * 资源是否可用，即是否可被HOLD
      */
     public boolean isAvailable() {
         return this.available;
     }
+
 
     /**
      * 禁止资源被访问 shutdown不允许调用多次，最好是由管理线程调用
@@ -70,9 +74,11 @@ public abstract class ReferenceResource {
         }
     }
 
+
     public long getRefCount() {
         return this.refCount.get();
     }
+
 
     /**
      * 释放资源
@@ -88,7 +94,9 @@ public abstract class ReferenceResource {
         }
     }
 
+
     public abstract boolean cleanup(final long currentRef);
+
 
     /**
      * 资源是否被清理完成

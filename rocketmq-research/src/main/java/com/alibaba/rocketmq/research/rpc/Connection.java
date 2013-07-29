@@ -3,9 +3,6 @@
  */
 package com.alibaba.rocketmq.research.rpc;
 
-import com.alibaba.rocketmq.common.ServiceThread;
-import com.alibaba.rocketmq.research.rpc.LinkedByteBufferList.ByteBufferNode;
-
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
@@ -16,10 +13,13 @@ import java.util.List;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ThreadPoolExecutor;
 
+import com.alibaba.rocketmq.common.ServiceThread;
+import com.alibaba.rocketmq.research.rpc.LinkedByteBufferList.ByteBufferNode;
+
 
 /**
  * 一个Socket连接对象，Client与Server通用
- *
+ * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public class Connection {
@@ -61,17 +61,21 @@ public class Connection {
                             node.getByteBufferRead().limit(node.getWriteOffset().get());
                             int writeSize = this.socketChannel.write(node.getByteBufferRead());
                             if (writeSize > 0) {
-                            } else if (writeSize == 0) {
+                            }
+                            else if (writeSize == 0) {
                                 if (++writeSizeZeroTimes >= 3) {
                                     break;
                                 }
-                            } else {
                             }
-                        } else {
+                            else {
+                            }
+                        }
+                        else {
                             break;
                         }
                     }
-                } catch (Exception e) {
+                }
+                catch (Exception e) {
                     System.out.println(this.getServiceName() + " service has exception.");
                     System.out.println(e.getMessage());
                     break;
@@ -86,7 +90,8 @@ public class Connection {
             try {
                 this.selector.close();
                 this.socketChannel.close();
-            } catch (IOException e) {
+            }
+            catch (IOException e) {
                 e.printStackTrace();
             }
 
@@ -130,7 +135,8 @@ public class Connection {
                         System.out.println("processReadEvent error");
                         break;
                     }
-                } catch (Exception e) {
+                }
+                catch (Exception e) {
                     System.out.println(this.getServiceName() + " service has exception.");
                     System.out.println(e.getMessage());
                     break;
@@ -145,7 +151,8 @@ public class Connection {
             try {
                 this.selector.close();
                 this.socketChannel.close();
-            } catch (IOException e) {
+            }
+            catch (IOException e) {
                 e.printStackTrace();
             }
 
@@ -160,7 +167,8 @@ public class Connection {
     }
 
 
-    public Connection(final SocketChannel socketChannel, final RPCProcessor rpcServerProcessor, final ThreadPoolExecutor executor) {
+    public Connection(final SocketChannel socketChannel, final RPCProcessor rpcServerProcessor,
+            final ThreadPoolExecutor executor) {
         this.socketChannel = socketChannel;
         this.rpcServerProcessor = rpcServerProcessor;
         this.executor = executor;
@@ -173,7 +181,8 @@ public class Connection {
             this.socketChannel.socket().setSendBufferSize(1024 * 64);
             this.writeSocketService = new WriteSocketService(this.socketChannel);
             this.readSocketService = new ReadSocketService(this.socketChannel);
-        } catch (IOException e) {
+        }
+        catch (IOException e) {
             e.printStackTrace();
         }
     }
@@ -194,7 +203,7 @@ public class Connection {
 
     /**
      * 处理select读事件
-     *
+     * 
      * @return 返回处理结果
      */
     public boolean processReadEvent() {
@@ -205,16 +214,19 @@ public class Connection {
                 if (readSize > 0) {
                     readSizeZeroTimes = 0;
                     this.dispatchReadRequest();
-                } else if (readSize == 0) {
+                }
+                else if (readSize == 0) {
                     if (++readSizeZeroTimes >= 3) {
                         break;
                     }
-                } else {
+                }
+                else {
                     // TODO ERROR
                     System.out.println("read socket < 0");
                     return false;
                 }
-            } catch (IOException e) {
+            }
+            catch (IOException e) {
                 e.printStackTrace();
                 return false;
             }
@@ -256,21 +268,26 @@ public class Connection {
                                 @Override
                                 public void run() {
                                     try {
-                                        byte[] response = Connection.this.rpcServerProcessor.process(reqId, request);
+                                        byte[] response =
+                                                Connection.this.rpcServerProcessor.process(reqId, request);
                                         if (response != null) {
                                             Connection.this.linkeByteBufferList.putData(reqId, response);
                                         }
-                                    } catch (Throwable e) {
+                                    }
+                                    catch (Throwable e) {
                                         e.printStackTrace();
                                     }
                                 }
                             });
-                        } catch (RejectedExecutionException e) {
+                        }
+                        catch (RejectedExecutionException e) {
                             requestList.add(request);
-                        } catch (Exception e) {
+                        }
+                        catch (Exception e) {
                             e.printStackTrace();
                         }
-                    } else {
+                    }
+                    else {
                         byte[] response = Connection.this.rpcServerProcessor.process(reqId, request);
                         if (response != null) {
                             Connection.this.linkeByteBufferList.putData(reqId, response);
@@ -288,7 +305,8 @@ public class Connection {
 
                     break;
                 }
-            } else if (!this.byteBufferRead.hasRemaining()) {
+            }
+            else if (!this.byteBufferRead.hasRemaining()) {
                 this.reallocateByteBuffer();
             }
 
@@ -296,7 +314,7 @@ public class Connection {
         }
 
         // 一个线程内运行多个任务
-        for (boolean retry = true; retry; ) {
+        for (boolean retry = true; retry;) {
             try {
                 if (!requestList.isEmpty()) {
                     this.executor.execute(new Runnable() {
@@ -305,11 +323,13 @@ public class Connection {
                             for (ByteBuffer request : requestList) {
                                 try {
                                     final int reqId = request.getInt(request.position() - 4);
-                                    byte[] response = Connection.this.rpcServerProcessor.process(reqId, request);
+                                    byte[] response =
+                                            Connection.this.rpcServerProcessor.process(reqId, request);
                                     if (response != null) {
                                         Connection.this.linkeByteBufferList.putData(reqId, response);
                                     }
-                                } catch (Throwable e) {
+                                }
+                                catch (Throwable e) {
                                     e.printStackTrace();
                                 }
                             }
@@ -318,10 +338,12 @@ public class Connection {
                 }
 
                 retry = false;
-            } catch (RejectedExecutionException e) {
+            }
+            catch (RejectedExecutionException e) {
                 try {
                     Thread.sleep(1);
-                } catch (InterruptedException e1) {
+                }
+                catch (InterruptedException e1) {
                     e1.printStackTrace();
                 }
             }
@@ -371,7 +393,8 @@ public class Connection {
         if (this.socketChannel != null) {
             try {
                 this.socketChannel.close();
-            } catch (IOException e) {
+            }
+            catch (IOException e) {
                 e.printStackTrace();
             }
         }

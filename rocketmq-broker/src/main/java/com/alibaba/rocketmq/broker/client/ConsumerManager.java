@@ -15,24 +15,26 @@
  */
 package com.alibaba.rocketmq.broker.client;
 
-import com.alibaba.rocketmq.common.consumer.ConsumeFromWhere;
-import com.alibaba.rocketmq.common.protocol.heartbeat.ConsumeType;
-import com.alibaba.rocketmq.common.protocol.heartbeat.MessageModel;
-import com.alibaba.rocketmq.common.protocol.heartbeat.SubscriptionData;
 import io.netty.channel.Channel;
 
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+import com.alibaba.rocketmq.common.consumer.ConsumeFromWhere;
+import com.alibaba.rocketmq.common.protocol.heartbeat.ConsumeType;
+import com.alibaba.rocketmq.common.protocol.heartbeat.MessageModel;
+import com.alibaba.rocketmq.common.protocol.heartbeat.SubscriptionData;
+
 
 /**
  * Consumer连接、订阅关系管理
- *
+ * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-26
  */
 public class ConsumerManager {
-    private final ConcurrentHashMap<String/* Group */, ConsumerGroupInfo> consumerTable = new ConcurrentHashMap<String, ConsumerGroupInfo>(1024);
+    private final ConcurrentHashMap<String/* Group */, ConsumerGroupInfo> consumerTable =
+            new ConcurrentHashMap<String, ConsumerGroupInfo>(1024);
 
     private final ConsumerIdsChangeListener consumerIdsChangeListener;
 
@@ -71,7 +73,9 @@ public class ConsumerManager {
     /**
      * 返回是否有变化
      */
-    public boolean registerConsumer(final String group, final ClientChannelInfo clientChannelInfo, ConsumeType consumeType, MessageModel messageModel, ConsumeFromWhere consumeFromWhere, final Set<SubscriptionData> subList) {
+    public boolean registerConsumer(final String group, final ClientChannelInfo clientChannelInfo,
+            ConsumeType consumeType, MessageModel messageModel, ConsumeFromWhere consumeFromWhere,
+            final Set<SubscriptionData> subList) {
         ConsumerGroupInfo consumerGroupInfo = this.consumerTable.get(group);
         if (null == consumerGroupInfo) {
             ConsumerGroupInfo tmp = new ConsumerGroupInfo(group, consumeType, messageModel, consumeFromWhere);
@@ -79,7 +83,9 @@ public class ConsumerManager {
             consumerGroupInfo = prev != null ? prev : tmp;
         }
 
-        boolean r1 = consumerGroupInfo.updateChannel(clientChannelInfo, consumeType, messageModel, consumeFromWhere);
+        boolean r1 =
+                consumerGroupInfo.updateChannel(clientChannelInfo, consumeType, messageModel,
+                    consumeFromWhere);
         boolean r2 = consumerGroupInfo.updateSubscription(subList);
 
         if (r1 || r2) {

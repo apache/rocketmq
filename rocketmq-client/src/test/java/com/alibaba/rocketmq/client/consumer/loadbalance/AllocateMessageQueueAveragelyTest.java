@@ -4,15 +4,16 @@
  */
 package com.alibaba.rocketmq.client.consumer.loadbalance;
 
-import com.alibaba.rocketmq.client.consumer.AllocateMessageQueueStrategy;
-import com.alibaba.rocketmq.client.consumer.rebalance.AllocateMessageQueueAveragely;
-import com.alibaba.rocketmq.common.message.MessageQueue;
+import java.util.ArrayList;
+import java.util.List;
+
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.ArrayList;
-import java.util.List;
+import com.alibaba.rocketmq.client.consumer.AllocateMessageQueueStrategy;
+import com.alibaba.rocketmq.client.consumer.rebalance.AllocateMessageQueueAveragely;
+import com.alibaba.rocketmq.common.message.MessageQueue;
 
 
 /**
@@ -55,7 +56,8 @@ public class AllocateMessageQueueAveragelyTest {
         currentCID = "0";
         createConsumerIdList(1);
         createMessageQueueList(5);
-        List<MessageQueue> result = allocateMessageQueueAveragely.allocate(currentCID, messageQueueList, consumerIdList);
+        List<MessageQueue> result =
+                allocateMessageQueueAveragely.allocate(currentCID, messageQueueList, consumerIdList);
         printMessageQueue(result, "testConsumer1");
         Assert.assertEquals(result.size(), 5);
         Assert.assertEquals(result.containsAll(getMessageQueueList()), true);
@@ -67,7 +69,8 @@ public class AllocateMessageQueueAveragelyTest {
         currentCID = "1";
         createConsumerIdList(2);
         createMessageQueueList(5);
-        List<MessageQueue> result = allocateMessageQueueAveragely.allocate(currentCID, messageQueueList, consumerIdList);
+        List<MessageQueue> result =
+                allocateMessageQueueAveragely.allocate(currentCID, messageQueueList, consumerIdList);
         printMessageQueue(result, "testConsumer2");
         Assert.assertEquals(result.size(), 3);
         Assert.assertEquals(result.containsAll(getMessageQueueList().subList(2, 5)), true);
@@ -80,7 +83,8 @@ public class AllocateMessageQueueAveragelyTest {
         currentCID = "0";
         createConsumerIdList(3);
         createMessageQueueList(5);
-        List<MessageQueue> result = allocateMessageQueueAveragely.allocate(currentCID, messageQueueList, consumerIdList);
+        List<MessageQueue> result =
+                allocateMessageQueueAveragely.allocate(currentCID, messageQueueList, consumerIdList);
         printMessageQueue(result, "testConsumer3CurrentCID0");
         Assert.assertEquals(result.size(), 1);
         Assert.assertEquals(result.containsAll(getMessageQueueList().subList(0, 1)), true);
@@ -92,7 +96,8 @@ public class AllocateMessageQueueAveragelyTest {
         currentCID = "1";
         createConsumerIdList(3);
         createMessageQueueList(5);
-        List<MessageQueue> result = allocateMessageQueueAveragely.allocate(currentCID, messageQueueList, consumerIdList);
+        List<MessageQueue> result =
+                allocateMessageQueueAveragely.allocate(currentCID, messageQueueList, consumerIdList);
         printMessageQueue(result, "testConsumer3CurrentCID1");
         Assert.assertEquals(result.size(), 1);
         Assert.assertEquals(result.containsAll(getMessageQueueList().subList(1, 2)), true);
@@ -104,7 +109,8 @@ public class AllocateMessageQueueAveragelyTest {
         currentCID = "2";
         createConsumerIdList(3);
         createMessageQueueList(5);
-        List<MessageQueue> result = allocateMessageQueueAveragely.allocate(currentCID, messageQueueList, consumerIdList);
+        List<MessageQueue> result =
+                allocateMessageQueueAveragely.allocate(currentCID, messageQueueList, consumerIdList);
         printMessageQueue(result, "testConsumer3CurrentCID2");
         Assert.assertEquals(result.size(), 3);
         Assert.assertEquals(result.containsAll(getMessageQueueList().subList(2, 5)), true);
@@ -116,7 +122,8 @@ public class AllocateMessageQueueAveragelyTest {
         currentCID = "1";
         createConsumerIdList(4);
         createMessageQueueList(5);
-        List<MessageQueue> result = allocateMessageQueueAveragely.allocate(currentCID, messageQueueList, consumerIdList);
+        List<MessageQueue> result =
+                allocateMessageQueueAveragely.allocate(currentCID, messageQueueList, consumerIdList);
         printMessageQueue(result, "testConsumer4");
         Assert.assertEquals(result.size(), 1);
         Assert.assertEquals(result.containsAll(getMessageQueueList().subList(1, 2)), true);
@@ -128,7 +135,8 @@ public class AllocateMessageQueueAveragelyTest {
         currentCID = "1";
         createConsumerIdList(5);
         createMessageQueueList(5);
-        List<MessageQueue> result = allocateMessageQueueAveragely.allocate(currentCID, messageQueueList, consumerIdList);
+        List<MessageQueue> result =
+                allocateMessageQueueAveragely.allocate(currentCID, messageQueueList, consumerIdList);
         printMessageQueue(result, "testConsumer5");
         Assert.assertEquals(result.size(), 1);
         Assert.assertEquals(result.containsAll(getMessageQueueList().subList(1, 2)), true);
@@ -140,7 +148,8 @@ public class AllocateMessageQueueAveragelyTest {
         currentCID = "1";
         createConsumerIdList(2);
         createMessageQueueList(6);
-        List<MessageQueue> result = allocateMessageQueueAveragely.allocate(currentCID, messageQueueList, consumerIdList);
+        List<MessageQueue> result =
+                allocateMessageQueueAveragely.allocate(currentCID, messageQueueList, consumerIdList);
         printMessageQueue(result, "testConsumer");
         Assert.assertEquals(result.size(), 3);
         Assert.assertEquals(result.containsAll(getMessageQueueList().subList(3, 6)), true);
@@ -152,7 +161,8 @@ public class AllocateMessageQueueAveragelyTest {
         currentCID = String.valueOf(Integer.MAX_VALUE);
         createConsumerIdList(2);
         createMessageQueueList(6);
-        List<MessageQueue> result = allocateMessageQueueAveragely.allocate(currentCID, messageQueueList, consumerIdList);
+        List<MessageQueue> result =
+                allocateMessageQueueAveragely.allocate(currentCID, messageQueueList, consumerIdList);
         printMessageQueue(result, "testCurrentCIDNotExists");
         Assert.assertEquals(result.size(), 0);
     }

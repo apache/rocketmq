@@ -22,13 +22,14 @@ import java.util.List;
 
 /**
  * 通过Key查询消息，返回结果
- *
+ * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-21
  */
 public class QueryMessageResult {
     // 多个连续的消息集合
-    private final List<SelectMapedBufferResult> messageMapedList = new ArrayList<SelectMapedBufferResult>(100);
+    private final List<SelectMapedBufferResult> messageMapedList =
+            new ArrayList<SelectMapedBufferResult>(100);
     // 用来向Consumer传送消息
     private final List<ByteBuffer> messageBufferList = new ArrayList<ByteBuffer>(100);
     private long indexLastUpdateTimestamp;
@@ -36,11 +37,13 @@ public class QueryMessageResult {
     // ByteBuffer 总字节数
     private int bufferTotalSize = 0;
 
+
     public void addMessage(final SelectMapedBufferResult mapedBuffer) {
         this.messageMapedList.add(mapedBuffer);
         this.messageBufferList.add(mapedBuffer.getByteBuffer());
         this.bufferTotalSize += mapedBuffer.getSize();
     }
+
 
     public void release() {
         for (SelectMapedBufferResult select : this.messageMapedList) {
@@ -48,25 +51,31 @@ public class QueryMessageResult {
         }
     }
 
+
     public long getIndexLastUpdateTimestamp() {
         return indexLastUpdateTimestamp;
     }
+
 
     public void setIndexLastUpdateTimestamp(long indexLastUpdateTimestamp) {
         this.indexLastUpdateTimestamp = indexLastUpdateTimestamp;
     }
 
+
     public long getIndexLastUpdatePhyoffset() {
         return indexLastUpdatePhyoffset;
     }
+
 
     public void setIndexLastUpdatePhyoffset(long indexLastUpdatePhyoffset) {
         this.indexLastUpdatePhyoffset = indexLastUpdatePhyoffset;
     }
 
+
     public List<ByteBuffer> getMessageBufferList() {
         return messageBufferList;
     }
+
 
     public int getBufferTotalSize() {
         return bufferTotalSize;

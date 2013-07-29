@@ -15,12 +15,6 @@
  */
 package com.alibaba.rocketmq.example.benchmark;
 
-import com.alibaba.rocketmq.client.exception.MQBrokerException;
-import com.alibaba.rocketmq.client.exception.MQClientException;
-import com.alibaba.rocketmq.client.producer.DefaultMQProducer;
-import com.alibaba.rocketmq.common.message.Message;
-import com.alibaba.rocketmq.remoting.exception.RemotingException;
-
 import java.util.LinkedList;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -28,10 +22,16 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicLong;
 
+import com.alibaba.rocketmq.client.exception.MQBrokerException;
+import com.alibaba.rocketmq.client.exception.MQClientException;
+import com.alibaba.rocketmq.client.producer.DefaultMQProducer;
+import com.alibaba.rocketmq.common.message.Message;
+import com.alibaba.rocketmq.remoting.exception.RemotingException;
+
 
 /**
  * 性能测试，多线程同步发送消息
- *
+ * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-16
  */
@@ -68,16 +68,18 @@ public class Producer {
                     Long[] begin = snapshotList.getFirst();
                     Long[] end = snapshotList.getLast();
 
-                    final long sendTps = (long) (((end[3] - begin[3]) / (double) (end[0] - begin[0])) * 1000L);
+                    final long sendTps =
+                            (long) (((end[3] - begin[3]) / (double) (end[0] - begin[0])) * 1000L);
                     final double averageRT = ((end[5] - begin[5]) / (double) (end[3] - begin[3]));
 
-                    System.out.printf("Send TPS: %d Max RT: %d Average RT: %7.3f Send Failed: %d Response Failed: %d\n"//
-                            , sendTps//
-                            , statsBenchmark.getSendMessageMaxRT().get()//
-                            , averageRT//
-                            , end[2]//
-                            , end[4]//
-                    );
+                    System.out.printf(
+                        "Send TPS: %d Max RT: %d Average RT: %7.3f Send Failed: %d Response Failed: %d\n"//
+                        , sendTps//
+                        , statsBenchmark.getSendMessageMaxRT().get()//
+                        , averageRT//
+                        , end[2]//
+                        , end[4]//
+                        );
                 }
             }
 
@@ -86,7 +88,8 @@ public class Producer {
             public void run() {
                 try {
                     this.printStats();
-                } catch (Exception e) {
+                }
+                catch (Exception e) {
                     e.printStackTrace();
                 }
             }
@@ -112,22 +115,28 @@ public class Producer {
                             statsBenchmark.getSendMessageSuccessTimeTotal().addAndGet(currentRT);
                             long prevMaxRT = statsBenchmark.getSendMessageMaxRT().get();
                             while (currentRT > prevMaxRT) {
-                                boolean updated = statsBenchmark.getSendMessageMaxRT().compareAndSet(prevMaxRT, currentRT);
+                                boolean updated =
+                                        statsBenchmark.getSendMessageMaxRT().compareAndSet(prevMaxRT,
+                                            currentRT);
                                 if (updated)
                                     break;
 
                                 prevMaxRT = statsBenchmark.getSendMessageMaxRT().get();
                             }
-                        } catch (RemotingException e) {
+                        }
+                        catch (RemotingException e) {
                             statsBenchmark.getSendRequestFailedCount().incrementAndGet();
                             e.printStackTrace();
-                        } catch (InterruptedException e) {
+                        }
+                        catch (InterruptedException e) {
                             statsBenchmark.getSendRequestFailedCount().incrementAndGet();
                             e.printStackTrace();
-                        } catch (MQClientException e) {
+                        }
+                        catch (MQClientException e) {
                             statsBenchmark.getSendRequestFailedCount().incrementAndGet();
                             e.printStackTrace();
-                        } catch (MQBrokerException e) {
+                        }
+                        catch (MQBrokerException e) {
                             statsBenchmark.getReceiveResponseFailedCount().incrementAndGet();
                             e.printStackTrace();
                         }
@@ -136,6 +145,7 @@ public class Producer {
             });
         }
     }
+
 
     private static Message buildMessage(final int messageSize) {
         Message msg = new Message();
@@ -152,6 +162,7 @@ public class Producer {
     }
 }
 
+
 class StatsBenchmarkProducer {
     // 1
     private final AtomicLong sendRequestSuccessCount = new AtomicLong(0L);
@@ -166,38 +177,45 @@ class StatsBenchmarkProducer {
     // 6
     private final AtomicLong sendMessageMaxRT = new AtomicLong(0L);
 
+
     public Long[] createSnapshot() {
-        Long[] snap = new Long[]{//
+        Long[] snap = new Long[] {//
                 System.currentTimeMillis(),//
-                this.sendRequestSuccessCount.get(),//
-                this.sendRequestFailedCount.get(),//
-                this.receiveResponseSuccessCount.get(),//
-                this.receiveResponseFailedCount.get(),//
-                this.sendMessageSuccessTimeTotal.get(), //
-        };
+                        this.sendRequestSuccessCount.get(),//
+                        this.sendRequestFailedCount.get(),//
+                        this.receiveResponseSuccessCount.get(),//
+                        this.receiveResponseFailedCount.get(),//
+                        this.sendMessageSuccessTimeTotal.get(), //
+                };
 
         return snap;
     }
+
 
     public AtomicLong getSendRequestSuccessCount() {
         return sendRequestSuccessCount;
     }
 
+
     public AtomicLong getSendRequestFailedCount() {
         return sendRequestFailedCount;
     }
+
 
     public AtomicLong getReceiveResponseSuccessCount() {
         return receiveResponseSuccessCount;
     }
 
+
     public AtomicLong getReceiveResponseFailedCount() {
         return receiveResponseFailedCount;
     }
 
+
     public AtomicLong getSendMessageSuccessTimeTotal() {
         return sendMessageSuccessTimeTotal;
     }
+
 
     public AtomicLong getSendMessageMaxRT() {
         return sendMessageMaxRT;

@@ -15,19 +15,20 @@
  */
 package com.alibaba.rocketmq.remoting;
 
+import io.netty.channel.Channel;
+
+import java.util.concurrent.ExecutorService;
+
 import com.alibaba.rocketmq.remoting.exception.RemotingSendRequestException;
 import com.alibaba.rocketmq.remoting.exception.RemotingTimeoutException;
 import com.alibaba.rocketmq.remoting.exception.RemotingTooMuchRequestException;
 import com.alibaba.rocketmq.remoting.netty.NettyRequestProcessor;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
-import io.netty.channel.Channel;
-
-import java.util.concurrent.ExecutorService;
 
 
 /**
  * 远程通信，Server接口
- *
+ * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-13
  */
@@ -35,19 +36,26 @@ public interface RemotingServer {
     public void start() throws InterruptedException;
 
 
-    public void registerProcessor(final int requestCode, final NettyRequestProcessor processor, final ExecutorService executor);
+    public void registerProcessor(final int requestCode, final NettyRequestProcessor processor,
+            final ExecutorService executor);
 
 
     public void registerDefaultProcessor(final NettyRequestProcessor processor, final ExecutorService executor);
 
 
-    public RemotingCommand invokeSync(final Channel channel, final RemotingCommand request, final long timeoutMillis) throws InterruptedException, RemotingSendRequestException, RemotingTimeoutException;
+    public RemotingCommand invokeSync(final Channel channel, final RemotingCommand request,
+            final long timeoutMillis) throws InterruptedException, RemotingSendRequestException,
+            RemotingTimeoutException;
 
 
-    public void invokeAsync(final Channel channel, final RemotingCommand request, final long timeoutMillis, final InvokeCallback invokeCallback) throws InterruptedException, RemotingTooMuchRequestException, RemotingTimeoutException, RemotingSendRequestException;
+    public void invokeAsync(final Channel channel, final RemotingCommand request, final long timeoutMillis,
+            final InvokeCallback invokeCallback) throws InterruptedException,
+            RemotingTooMuchRequestException, RemotingTimeoutException, RemotingSendRequestException;
 
 
-    public void invokeOneway(final Channel channel, final RemotingCommand request, final long timeoutMillis) throws InterruptedException, RemotingTooMuchRequestException, RemotingTimeoutException, RemotingSendRequestException;
+    public void invokeOneway(final Channel channel, final RemotingCommand request, final long timeoutMillis)
+            throws InterruptedException, RemotingTooMuchRequestException, RemotingTimeoutException,
+            RemotingSendRequestException;
 
 
     public void shutdown();

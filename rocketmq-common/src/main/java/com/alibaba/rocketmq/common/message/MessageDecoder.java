@@ -15,9 +15,6 @@
  */
 package com.alibaba.rocketmq.common.message;
 
-import com.alibaba.rocketmq.common.UtilALl;
-import com.alibaba.rocketmq.common.sysflag.MessageSysFlag;
-
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
@@ -29,10 +26,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.alibaba.rocketmq.common.UtilALl;
+import com.alibaba.rocketmq.common.sysflag.MessageSysFlag;
+
 
 /**
  * 消息解码
- *
+ * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public class MessageDecoder {
@@ -167,7 +167,8 @@ public class MessageDecoder {
                     }
 
                     msgExt.setBody(body);
-                } else {
+                }
+                else {
                     byteBuffer.position(byteBuffer.position() + bodyLen);
                 }
             }
@@ -190,15 +191,19 @@ public class MessageDecoder {
 
             // 消息ID
             ByteBuffer byteBufferMsgId = ByteBuffer.allocate(MSG_ID_LENGTH);
-            String msgId = createMessageId(byteBufferMsgId, msgExt.getStoreHostBytes(), msgExt.getCommitLogOffset());
+            String msgId =
+                    createMessageId(byteBufferMsgId, msgExt.getStoreHostBytes(), msgExt.getCommitLogOffset());
             msgExt.setMsgId(msgId);
 
             return msgExt;
-        } catch (UnknownHostException e) {
+        }
+        catch (UnknownHostException e) {
             byteBuffer.position(byteBuffer.limit());
-        } catch (BufferUnderflowException e) {
+        }
+        catch (BufferUnderflowException e) {
             byteBuffer.position(byteBuffer.limit());
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             byteBuffer.position(byteBuffer.limit());
         }
 
@@ -220,7 +225,8 @@ public class MessageDecoder {
             MessageExt msgExt = decode(byteBuffer, readBody);
             if (null != msgExt) {
                 msgExts.add(msgExt);
-            } else {
+            }
+            else {
                 break;
             }
         }
