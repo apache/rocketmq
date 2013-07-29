@@ -20,15 +20,17 @@ import java.util.HashMap;
 
 /**
  * 用来做线程之间异步通知
- *
+ * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-21
  */
 public class WaitNotifyObject {
     // 是否已经被Notify过，广播模式
-    protected final HashMap<Long/* thread id */, Boolean/* notified */> waitingThreadTable = new HashMap<Long, Boolean>(16);
+    protected final HashMap<Long/* thread id */, Boolean/* notified */> waitingThreadTable =
+            new HashMap<Long, Boolean>(16);
     // 是否已经被Notify过
     protected volatile boolean hasNotified = false;
+
 
     public void wakeup() {
         synchronized (this) {
@@ -38,6 +40,7 @@ public class WaitNotifyObject {
             }
         }
     }
+
 
     protected void waitForRunning(long interval) {
         synchronized (this) {
@@ -49,17 +52,21 @@ public class WaitNotifyObject {
 
             try {
                 this.wait(interval);
-            } catch (InterruptedException e) {
+            }
+            catch (InterruptedException e) {
                 e.printStackTrace();
-            } finally {
+            }
+            finally {
                 this.hasNotified = false;
                 this.onWaitEnd();
             }
         }
     }
 
+
     protected void onWaitEnd() {
     }
+
 
     /**
      * 广播方式唤醒
@@ -79,6 +86,7 @@ public class WaitNotifyObject {
         }
     }
 
+
     /**
      * 多个线程调用wait
      */
@@ -94,9 +102,11 @@ public class WaitNotifyObject {
 
             try {
                 this.wait(interval);
-            } catch (InterruptedException e) {
+            }
+            catch (InterruptedException e) {
                 e.printStackTrace();
-            } finally {
+            }
+            finally {
                 this.waitingThreadTable.put(currentThreadId, false);
                 this.onWaitEnd();
             }

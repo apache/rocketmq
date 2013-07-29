@@ -15,15 +15,15 @@
  */
 package com.alibaba.rocketmq.common.admin;
 
+import java.util.HashMap;
+
 import com.alibaba.rocketmq.common.message.MessageQueue;
 import com.alibaba.rocketmq.remoting.protocol.RemotingSerializable;
-
-import java.util.HashMap;
 
 
 /**
  * Consumer消费进度
- *
+ * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-14
  */

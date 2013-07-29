@@ -117,7 +117,8 @@ public class SubscriptionGroupConfig {
         result = prime * result + ((groupName == null) ? 0 : groupName.hashCode());
         result = prime * result + retryMaxTimes;
         result = prime * result + retryQueueNums;
-        result = prime * result + (int) (whichBrokerWhenConsumeSlowly ^ (whichBrokerWhenConsumeSlowly >>> 32));
+        result =
+                prime * result + (int) (whichBrokerWhenConsumeSlowly ^ (whichBrokerWhenConsumeSlowly >>> 32));
         return result;
     }
 
@@ -142,7 +143,8 @@ public class SubscriptionGroupConfig {
         if (groupName == null) {
             if (other.groupName != null)
                 return false;
-        } else if (!groupName.equals(other.groupName))
+        }
+        else if (!groupName.equals(other.groupName))
             return false;
         if (retryMaxTimes != other.retryMaxTimes)
             return false;
@@ -156,6 +158,10 @@ public class SubscriptionGroupConfig {
 
     @Override
     public String toString() {
-        return "SubscriptionGroupConfig [groupName=" + groupName + ", consumeEnable=" + consumeEnable + ", consumeFromMinEnable=" + consumeFromMinEnable + ", consumeBroadcastEnable=" + consumeBroadcastEnable + ", retryQueueNums=" + retryQueueNums + ", retryMaxTimes=" + retryMaxTimes + ", brokerId=" + brokerId + ", whichBrokerWhenConsumeSlowly=" + whichBrokerWhenConsumeSlowly + "]";
+        return "SubscriptionGroupConfig [groupName=" + groupName + ", consumeEnable=" + consumeEnable
+                + ", consumeFromMinEnable=" + consumeFromMinEnable + ", consumeBroadcastEnable="
+                + consumeBroadcastEnable + ", retryQueueNums=" + retryQueueNums + ", retryMaxTimes="
+                + retryMaxTimes + ", brokerId=" + brokerId + ", whichBrokerWhenConsumeSlowly="
+                + whichBrokerWhenConsumeSlowly + "]";
     }
 }

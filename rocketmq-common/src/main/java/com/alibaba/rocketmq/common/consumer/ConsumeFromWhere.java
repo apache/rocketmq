@@ -17,7 +17,7 @@ package com.alibaba.rocketmq.common.consumer;
 
 /**
  * Consumer从哪里开始消费
- *
+ * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public enum ConsumeFromWhere {

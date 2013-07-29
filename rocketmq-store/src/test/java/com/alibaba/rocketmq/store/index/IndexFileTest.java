@@ -3,13 +3,13 @@
  */
 package com.alibaba.rocketmq.store.index;
 
-import org.junit.Test;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import org.junit.Test;
 
 
 public class IndexFileTest {
@@ -34,7 +34,8 @@ public class IndexFileTest {
 
             // 删除文件
             indexFile.destroy(0);
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             e.printStackTrace();
             assertTrue(false);
         }
@@ -67,7 +68,8 @@ public class IndexFileTest {
 
             // 删除文件
             indexFile.destroy(0);
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             e.printStackTrace();
             assertTrue(false);
         }

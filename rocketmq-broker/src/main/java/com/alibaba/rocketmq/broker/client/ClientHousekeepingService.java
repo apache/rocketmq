@@ -15,22 +15,24 @@
  */
 package com.alibaba.rocketmq.broker.client;
 
-import com.alibaba.rocketmq.broker.BrokerController;
-import com.alibaba.rocketmq.common.constant.LoggerName;
-import com.alibaba.rocketmq.remoting.ChannelEventListener;
 import io.netty.channel.Channel;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.alibaba.rocketmq.broker.BrokerController;
+import com.alibaba.rocketmq.common.constant.LoggerName;
+import com.alibaba.rocketmq.remoting.ChannelEventListener;
+
 
 /**
  * 定期检测客户端连接，清除不活动的连接
- *
+ * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-26
  */
@@ -38,12 +40,13 @@ public class ClientHousekeepingService implements ChannelEventListener {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.BrokerLoggerName);
     private final BrokerController brokerController;
 
-    private ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactory() {
-        @Override
-        public Thread newThread(Runnable r) {
-            return new Thread(r, "ClientHousekeepingScheduledThread");
-        }
-    });
+    private ScheduledExecutorService scheduledExecutorService = Executors
+        .newSingleThreadScheduledExecutor(new ThreadFactory() {
+            @Override
+            public Thread newThread(Runnable r) {
+                return new Thread(r, "ClientHousekeepingScheduledThread");
+            }
+        });
 
 
     public ClientHousekeepingService(final BrokerController brokerController) {
@@ -58,7 +61,8 @@ public class ClientHousekeepingService implements ChannelEventListener {
             public void run() {
                 try {
                     ClientHousekeepingService.this.scanExceptionChannel();
-                } catch (Exception e) {
+                }
+                catch (Exception e) {
                     log.error("", e);
                 }
             }

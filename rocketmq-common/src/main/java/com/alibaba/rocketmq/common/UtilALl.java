@@ -15,9 +15,6 @@
  */
 package com.alibaba.rocketmq.common;
 
-import com.alibaba.rocketmq.common.protocol.MQProtos.MQResponseCode;
-import com.alibaba.rocketmq.remoting.protocol.RemotingProtos.ResponseCode;
-
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -33,10 +30,13 @@ import java.util.zip.CRC32;
 import java.util.zip.DeflaterOutputStream;
 import java.util.zip.InflaterInputStream;
 
+import com.alibaba.rocketmq.common.protocol.MQProtos.MQResponseCode;
+import com.alibaba.rocketmq.remoting.protocol.RemotingProtos.ResponseCode;
+
 
 /**
  * 各种方法大杂烩
- *
+ * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public class UtilALl {
@@ -45,7 +45,8 @@ public class UtilALl {
         String name = runtime.getName(); // format: "pid@hostname"
         try {
             return Integer.parseInt(name.substring(0, name.indexOf('@')));
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             return -1;
         }
     }
@@ -96,7 +97,9 @@ public class UtilALl {
     public static String timeMillisToHumanString(final long t) {
         Calendar cal = Calendar.getInstance();
         cal.setTimeInMillis(t);
-        return String.format("%04d%02d%02d%02d%02d%02d%03d", cal.get(Calendar.YEAR), cal.get(Calendar.MONTH) + 1, cal.get(Calendar.DAY_OF_MONTH), cal.get(Calendar.HOUR_OF_DAY), cal.get(Calendar.MINUTE), cal.get(Calendar.SECOND), cal.get(Calendar.MILLISECOND));
+        return String.format("%04d%02d%02d%02d%02d%02d%03d", cal.get(Calendar.YEAR),
+            cal.get(Calendar.MONTH) + 1, cal.get(Calendar.DAY_OF_MONTH), cal.get(Calendar.HOUR_OF_DAY),
+            cal.get(Calendar.MINUTE), cal.get(Calendar.SECOND), cal.get(Calendar.MILLISECOND));
     }
 
 
@@ -122,7 +125,8 @@ public class UtilALl {
             if (totalSpace > 0) {
                 return usedSpace / (double) totalSpace;
             }
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             return -1;
         }
 
@@ -207,20 +211,25 @@ public class UtilALl {
             }
             byteArrayOutputStream.flush();
             result = byteArrayOutputStream.toByteArray();
-        } catch (IOException e) {
+        }
+        catch (IOException e) {
             throw e;
-        } finally {
+        }
+        finally {
             try {
                 byteArrayInputStream.close();
-            } catch (IOException e) {
+            }
+            catch (IOException e) {
             }
             try {
                 inflaterInputStream.close();
-            } catch (IOException e) {
+            }
+            catch (IOException e) {
             }
             try {
                 byteArrayOutputStream.close();
-            } catch (IOException e) {
+            }
+            catch (IOException e) {
             }
         }
 
@@ -238,13 +247,16 @@ public class UtilALl {
             deflaterOutputStream.finish();
             deflaterOutputStream.close();
             result = byteArrayOutputStream.toByteArray();
-        } catch (IOException e) {
+        }
+        catch (IOException e) {
             deflater.end();
             throw e;
-        } finally {
+        }
+        finally {
             try {
                 byteArrayOutputStream.close();
-            } catch (IOException e) {
+            }
+            catch (IOException e) {
             }
 
             deflater.end();
@@ -257,7 +269,8 @@ public class UtilALl {
     public static int asInt(String str, int defaultValue) {
         try {
             return Integer.parseInt(str);
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             return defaultValue;
         }
     }
@@ -266,7 +279,8 @@ public class UtilALl {
     public static long asLong(String str, long defaultValue) {
         try {
             return Long.parseLong(str);
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             return defaultValue;
         }
     }
@@ -285,7 +299,8 @@ public class UtilALl {
         SimpleDateFormat df = new SimpleDateFormat(pattern);
         try {
             return df.parse(date);
-        } catch (ParseException e) {
+        }
+        catch (ParseException e) {
             return null;
         }
     }

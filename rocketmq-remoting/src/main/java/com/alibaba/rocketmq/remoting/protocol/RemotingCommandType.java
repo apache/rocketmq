@@ -17,7 +17,7 @@ package com.alibaba.rocketmq.remoting.protocol;
 
 /**
  * 标识RemotingCommand是请求还是应答类型
- *
+ * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-13
  */

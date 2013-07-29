@@ -15,16 +15,16 @@
  */
 package com.alibaba.rocketmq.client.consumer.rebalance;
 
-import com.alibaba.rocketmq.client.consumer.AllocateMessageQueueStrategy;
-import com.alibaba.rocketmq.common.message.MessageQueue;
-
 import java.util.ArrayList;
 import java.util.List;
+
+import com.alibaba.rocketmq.client.consumer.AllocateMessageQueueStrategy;
+import com.alibaba.rocketmq.common.message.MessageQueue;
 
 
 /**
  * 平均分配队列算法
- *
+ * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-24
  */

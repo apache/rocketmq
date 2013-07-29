@@ -1,11 +1,11 @@
 package com.alibaba.rocketmq.common;
 
-import org.junit.Test;
+import static org.junit.Assert.assertTrue;
 
 import java.net.URL;
 import java.util.Properties;
 
-import static org.junit.Assert.assertTrue;
+import org.junit.Test;
 
 
 public class UtilAllTest {

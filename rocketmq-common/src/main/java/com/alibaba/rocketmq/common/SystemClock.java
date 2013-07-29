@@ -24,9 +24,10 @@ import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * 后台定时更新时钟，JVM退出时，线程自动回收
- *
+ * 
  * @author vintage.wang@gmail.com shijia.wxr@taobao.com
- * @see <A>https://github.com/zhongl/jtoolkit/blob/master/common/src/main/java/com
+ * @see 
+ *      <A>https://github.com/zhongl/jtoolkit/blob/master/common/src/main/java/com
  *      /github/zhongl/jtoolkit/SystemClock.java</A>
  */
 public class SystemClock {

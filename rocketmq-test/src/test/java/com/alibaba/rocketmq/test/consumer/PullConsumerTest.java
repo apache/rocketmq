@@ -1,5 +1,11 @@
 package com.alibaba.rocketmq.test.consumer;
 
+import java.util.Set;
+
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.junit.Test;
+
 import com.alibaba.rocketmq.client.consumer.DefaultMQPullConsumer;
 import com.alibaba.rocketmq.client.consumer.MessageQueueListener;
 import com.alibaba.rocketmq.client.consumer.PullCallback;
@@ -10,11 +16,6 @@ import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.common.message.MessageQueue;
 import com.alibaba.rocketmq.remoting.exception.RemotingException;
 import com.alibaba.rocketmq.test.BaseTest;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
-
-import java.util.Set;
 
 
 public class PullConsumerTest extends BaseTest {
@@ -71,7 +72,8 @@ public class PullConsumerTest extends BaseTest {
     //
     // }
     @Test
-    public void testPull() throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
+    public void testPull() throws MQClientException, RemotingException, MQBrokerException,
+            InterruptedException {
         Set<MessageQueue> mqs = consumer.fetchSubscribeMessageQueues("TopicTest");
         for (MessageQueue mq : mqs) {
             PullResult pullResult = consumer.pull(mq, null, 0, 32);
@@ -108,7 +110,8 @@ public class PullConsumerTest extends BaseTest {
 
 
     @Test
-    public void testPullBlockIfNotFound() throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
+    public void testPullBlockIfNotFound() throws MQClientException, RemotingException, MQBrokerException,
+            InterruptedException {
         Set<MessageQueue> mqs = consumer.fetchSubscribeMessageQueues("TopicTest");
         for (MessageQueue mq : mqs) {
             // TODO 设置阻塞时间
@@ -145,7 +148,8 @@ public class PullConsumerTest extends BaseTest {
 
 
     @Test
-    public void testUpdateConsumeOffset() throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
+    public void testUpdateConsumeOffset() throws MQClientException, RemotingException, MQBrokerException,
+            InterruptedException {
         Set<MessageQueue> mqs = consumer.fetchSubscribeMessageQueues("TopicTest");
         for (MessageQueue mq : mqs) {
             PullResult pullResult = consumer.pullBlockIfNotFound(mq, null, 0, 32);
@@ -156,7 +160,8 @@ public class PullConsumerTest extends BaseTest {
 
 
     @Test
-    public void testFetchConsumeOffset() throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
+    public void testFetchConsumeOffset() throws RemotingException, MQBrokerException, InterruptedException,
+            MQClientException {
         Set<MessageQueue> mqs = consumer.fetchSubscribeMessageQueues("TopicTest");
         for (MessageQueue mq : mqs) {
             long offset = consumer.fetchConsumeOffset(mq, true);
@@ -175,27 +180,28 @@ public class PullConsumerTest extends BaseTest {
 
 
     @Test
-    public void testSendMessageBack() throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
+    public void testSendMessageBack() throws MQClientException, RemotingException, MQBrokerException,
+            InterruptedException {
         Set<MessageQueue> mqs = consumer.fetchSubscribeMessageQueues("TopicTest");
         for (MessageQueue mq : mqs) {
             System.out.println("Consume from the queue: " + mq);
             PullResult pullResult = consumer.pullBlockIfNotFound(mq, null, 0, 32);
             System.out.println(pullResult);
             switch (pullResult.getPullStatus()) {
-                case FOUND:
-                    for (MessageExt mex : pullResult.getMsgFoundList()) {
-                        System.out.println(mex);
-                        consumer.sendMessageBack(mex, 4);
-                    }
-                    break;
-                case NO_MATCHED_MSG:
-                    break;
-                case NO_NEW_MSG:
-                    break;
-                case OFFSET_ILLEGAL:
-                    break;
-                default:
-                    break;
+            case FOUND:
+                for (MessageExt mex : pullResult.getMsgFoundList()) {
+                    System.out.println(mex);
+                    consumer.sendMessageBack(mex, 4);
+                }
+                break;
+            case NO_MATCHED_MSG:
+                break;
+            case NO_NEW_MSG:
+                break;
+            case OFFSET_ILLEGAL:
+                break;
+            default:
+                break;
             }
         }
     }
@@ -240,28 +246,29 @@ public class PullConsumerTest extends BaseTest {
     @Test
     // 消息查询
     // 根据消息ID查询消息
-    public void testSearcMsgbyId() throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
+    public void testSearcMsgbyId() throws MQClientException, RemotingException, MQBrokerException,
+            InterruptedException {
         Set<MessageQueue> mqs = consumer.fetchSubscribeMessageQueues("TopicTest");
         for (MessageQueue mq : mqs) {
             System.out.println("Consume from the queue: " + mq);
             PullResult pullResult = consumer.pullBlockIfNotFound(mq, null, 0, 32);
             System.out.println(pullResult);
             switch (pullResult.getPullStatus()) {
-                case FOUND:
-                    for (MessageExt mex : pullResult.getMsgFoundList()) {
-                        System.out.println(mex);
-                        MessageExt data = consumer.viewMessage(mex.getMsgId());
-                        // Assert.assertEquals(mex.toString(), data.toString());
-                    }
-                    break;
-                case NO_MATCHED_MSG:
-                    break;
-                case NO_NEW_MSG:
-                    break;
-                case OFFSET_ILLEGAL:
-                    break;
-                default:
-                    break;
+            case FOUND:
+                for (MessageExt mex : pullResult.getMsgFoundList()) {
+                    System.out.println(mex);
+                    MessageExt data = consumer.viewMessage(mex.getMsgId());
+                    // Assert.assertEquals(mex.toString(), data.toString());
+                }
+                break;
+            case NO_MATCHED_MSG:
+                break;
+            case NO_NEW_MSG:
+                break;
+            case OFFSET_ILLEGAL:
+                break;
+            default:
+                break;
             }
         }
 

@@ -17,7 +17,7 @@ package com.alibaba.rocketmq.remoting.exception;
 
 /**
  * 命令解析自定义字段时，校验字段有效性抛出异常
- *
+ * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-13
  */

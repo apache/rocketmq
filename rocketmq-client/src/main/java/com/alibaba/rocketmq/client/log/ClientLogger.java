@@ -15,18 +15,19 @@
  */
 package com.alibaba.rocketmq.client.log;
 
-import com.alibaba.rocketmq.common.constant.LoggerName;
+import java.lang.reflect.Method;
+import java.net.URL;
+
 import org.slf4j.ILoggerFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.lang.reflect.Method;
-import java.net.URL;
+import com.alibaba.rocketmq.common.constant.LoggerName;
 
 
 /**
  * Client通过反射来初始化客户端日志
- *
+ * 
  * @author 菱叶<jin.qian@alipay.com>
  * @since 2013-7-24
  */
@@ -38,8 +39,11 @@ public class ClientLogger {
         log = createLogger(LoggerName.ClientLoggerName);
     }
 
+
     private static Logger createLogger(final String loggerName) {
-        String logConfigFilePath = System.getProperty("rocketmq.client.log.configFile", System.getenv("ROCKETMQ_CLIENT_LOG_CONFIGFILE"));
+        String logConfigFilePath =
+                System.getProperty("rocketmq.client.log.configFile",
+                    System.getenv("ROCKETMQ_CLIENT_LOG_CONFIGFILE"));
         try {
             ILoggerFactory iLoggerFactory = LoggerFactory.getILoggerFactory();
             Class classType = iLoggerFactory.getClass();
@@ -53,12 +57,14 @@ public class ClientLogger {
                     Method configure = DOMConfiguratorObj.getClass().getMethod("configure", URL.class);
                     URL url = ClientLogger.class.getClassLoader().getResource("log4j_rocketmq_client.xml");
                     configure.invoke(DOMConfiguratorObj, url);
-                } else {
+                }
+                else {
                     Method configure = DOMConfiguratorObj.getClass().getMethod("configure", String.class);
                     configure.invoke(DOMConfiguratorObj, logConfigFilePath);
                 }
 
-            } else if (classType.getName().equals("ch.qos.logback.classic.LoggerContext")) {
+            }
+            else if (classType.getName().equals("ch.qos.logback.classic.LoggerContext")) {
                 Class<?> joranConfigurator = null;
                 Class<?> context = Class.forName("ch.qos.logback.core.Context");
                 Object joranConfiguratoroObj = null;
@@ -71,21 +77,26 @@ public class ClientLogger {
                     URL url = ClientLogger.class.getClassLoader().getResource("logback_rocketmq_client.xml");
                     Method doConfigure = joranConfiguratoroObj.getClass().getMethod("doConfigure", URL.class);
                     doConfigure.invoke(joranConfiguratoroObj, url);
-                } else {
-                    Method doConfigure = joranConfiguratoroObj.getClass().getMethod("doConfigure", String.class);
+                }
+                else {
+                    Method doConfigure =
+                            joranConfiguratoroObj.getClass().getMethod("doConfigure", String.class);
                     doConfigure.invoke(joranConfiguratoroObj, logConfigFilePath);
                 }
 
             }
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             System.err.println(e);
         }
         return LoggerFactory.getLogger(LoggerName.ClientLoggerName);
     }
 
+
     public static Logger getLog() {
         return log;
     }
+
 
     public static void setLog(Logger log) {
         ClientLogger.log = log;

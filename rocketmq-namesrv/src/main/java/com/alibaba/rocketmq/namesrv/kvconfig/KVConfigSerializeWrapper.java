@@ -15,14 +15,14 @@
  */
 package com.alibaba.rocketmq.namesrv.kvconfig;
 
-import com.alibaba.rocketmq.remoting.protocol.RemotingSerializable;
-
 import java.util.HashMap;
+
+import com.alibaba.rocketmq.remoting.protocol.RemotingSerializable;
 
 
 /**
  * KV配置序列化，json包装
- *
+ * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-25
  */

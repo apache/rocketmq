@@ -29,9 +29,11 @@ public class FindBrokerResult {
         this.slave = slave;
     }
 
+
     public String getBrokerAddr() {
         return brokerAddr;
     }
+
 
     public boolean isSlave() {
         return slave;

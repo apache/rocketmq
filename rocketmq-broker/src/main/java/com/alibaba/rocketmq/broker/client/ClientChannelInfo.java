@@ -15,8 +15,9 @@
  */
 package com.alibaba.rocketmq.broker.client;
 
-import com.alibaba.rocketmq.remoting.protocol.LanguageCode;
 import io.netty.channel.Channel;
+
+import com.alibaba.rocketmq.remoting.protocol.LanguageCode;
 
 
 /**
@@ -99,7 +100,8 @@ public class ClientChannelInfo {
         if (channel == null) {
             if (other.channel != null)
                 return false;
-        } else if (this.channel != other.channel) {
+        }
+        else if (this.channel != other.channel) {
             return false;
         }
 
@@ -109,6 +111,7 @@ public class ClientChannelInfo {
 
     @Override
     public String toString() {
-        return "ClientChannelInfo [channel=" + channel + ", clientId=" + clientId + ", language=" + language + ", version=" + version + ", lastUpdateTimestamp=" + lastUpdateTimestamp + "]";
+        return "ClientChannelInfo [channel=" + channel + ", clientId=" + clientId + ", language=" + language
+                + ", version=" + version + ", lastUpdateTimestamp=" + lastUpdateTimestamp + "]";
     }
 }

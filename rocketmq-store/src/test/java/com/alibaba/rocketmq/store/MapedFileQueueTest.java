@@ -3,9 +3,15 @@
  */
 package com.alibaba.rocketmq.store;
 
-import org.junit.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
-import static org.junit.Assert.*;
+import org.junit.After;
+import org.junit.AfterClass;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 
 public class MapedFileQueueTest {
@@ -39,7 +45,8 @@ public class MapedFileQueueTest {
         System.out.println("================================================================");
         AllocateMapedFileService allocateMapedFileService = new AllocateMapedFileService();
         allocateMapedFileService.start();
-        MapedFileQueue mapedFileQueue = new MapedFileQueue("./unit_test_store/a/", 1024, allocateMapedFileService);
+        MapedFileQueue mapedFileQueue =
+                new MapedFileQueue("./unit_test_store/a/", 1024, allocateMapedFileService);
 
         for (int i = 0; i < 1024; i++) {
             MapedFile mapedFile = mapedFileQueue.getLastMapedFile();
@@ -64,7 +71,8 @@ public class MapedFileQueueTest {
         System.out.println("================================================================");
         AllocateMapedFileService allocateMapedFileService = new AllocateMapedFileService();
         allocateMapedFileService.start();
-        MapedFileQueue mapedFileQueue = new MapedFileQueue("./unit_test_store/b/", 1024, allocateMapedFileService);
+        MapedFileQueue mapedFileQueue =
+                new MapedFileQueue("./unit_test_store/b/", 1024, allocateMapedFileService);
 
         for (int i = 0; i < 1024; i++) {
             MapedFile mapedFile = mapedFileQueue.getLastMapedFile();
@@ -123,7 +131,8 @@ public class MapedFileQueueTest {
         System.out.println("================================================================");
         AllocateMapedFileService allocateMapedFileService = new AllocateMapedFileService();
         allocateMapedFileService.start();
-        MapedFileQueue mapedFileQueue = new MapedFileQueue("./unit_test_store/c/", 1024, allocateMapedFileService);
+        MapedFileQueue mapedFileQueue =
+                new MapedFileQueue("./unit_test_store/c/", 1024, allocateMapedFileService);
 
         for (int i = 0; i < 1024; i++) {
             MapedFile mapedFile = mapedFileQueue.getLastMapedFile();
@@ -176,7 +185,8 @@ public class MapedFileQueueTest {
         System.out.println("================================================================");
         AllocateMapedFileService allocateMapedFileService = new AllocateMapedFileService();
         allocateMapedFileService.start();
-        MapedFileQueue mapedFileQueue = new MapedFileQueue("./unit_test_store/d/", 1024, allocateMapedFileService);
+        MapedFileQueue mapedFileQueue =
+                new MapedFileQueue("./unit_test_store/d/", 1024, allocateMapedFileService);
 
         for (int i = 0; i < 1024; i++) {
             MapedFile mapedFile = mapedFileQueue.getLastMapedFile();

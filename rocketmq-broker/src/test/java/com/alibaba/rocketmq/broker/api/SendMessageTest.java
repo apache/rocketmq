@@ -3,6 +3,8 @@
  */
 package com.alibaba.rocketmq.broker.api;
 
+import org.junit.Test;
+
 import com.alibaba.rocketmq.broker.BrokerController;
 import com.alibaba.rocketmq.client.impl.CommunicationMode;
 import com.alibaba.rocketmq.client.impl.MQClientAPIImpl;
@@ -15,7 +17,6 @@ import com.alibaba.rocketmq.common.protocol.header.SendMessageRequestHeader;
 import com.alibaba.rocketmq.remoting.netty.NettyClientConfig;
 import com.alibaba.rocketmq.remoting.netty.NettyServerConfig;
 import com.alibaba.rocketmq.store.config.MessageStoreConfig;
-import org.junit.Test;
 
 
 /**
@@ -25,10 +26,10 @@ public class SendMessageTest {
     @Test
     public void test_sendMessage() throws Exception {
         BrokerController brokerController = new BrokerController(//
-                new BrokerConfig(), //
-                new NettyServerConfig(), //
-                new NettyClientConfig(), //
-                new MessageStoreConfig());
+            new BrokerConfig(), //
+            new NettyServerConfig(), //
+            new NettyClientConfig(), //
+            new MessageStoreConfig());
         boolean initResult = brokerController.initialize();
         System.out.println("initialize " + initResult);
 
@@ -39,7 +40,8 @@ public class SendMessageTest {
 
         for (int i = 0; i < 100000; i++) {
             String topic = "UnitTestTopic_" + i % 3;
-            Message msg = new Message(topic, "TAG1 TAG2", "100200300", ("Hello, Nice world\t" + i).getBytes());
+            Message msg =
+                    new Message(topic, "TAG1 TAG2", "100200300", ("Hello, Nice world\t" + i).getBytes());
             msg.setDelayTimeLevel(i % 3 + 1);
 
             try {
@@ -54,9 +56,12 @@ public class SendMessageTest {
                 requestHeader.setFlag(msg.getFlag());
                 requestHeader.setProperties(MessageDecoder.messageProperties2String(msg.getProperties()));
 
-                SendResult result = client.sendMessage("127.0.0.1:10911", "brokerName", msg, requestHeader, 1000 * 5, CommunicationMode.SYNC, null);
+                SendResult result =
+                        client.sendMessage("127.0.0.1:10911", "brokerName", msg, requestHeader, 1000 * 5,
+                            CommunicationMode.SYNC, null);
                 System.out.println(i + "\t" + result);
-            } catch (Exception e) {
+            }
+            catch (Exception e) {
                 e.printStackTrace();
             }
         }

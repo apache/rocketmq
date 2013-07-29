@@ -3,9 +3,8 @@
  */
 package com.alibaba.rocketmq.common.namesrv;
 
-import com.alibaba.rocketmq.common.MixAll;
-import com.alibaba.rocketmq.common.constant.LoggerName;
-import com.alibaba.rocketmq.common.help.FAQUrl;
+import java.io.IOException;
+
 import org.apache.commons.httpclient.HttpClient;
 import org.apache.commons.httpclient.HttpException;
 import org.apache.commons.httpclient.HttpMethod;
@@ -14,12 +13,14 @@ import org.apache.commons.httpclient.params.HttpConnectionManagerParams;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
+import com.alibaba.rocketmq.common.MixAll;
+import com.alibaba.rocketmq.common.constant.LoggerName;
+import com.alibaba.rocketmq.common.help.FAQUrl;
 
 
 /**
  * 寻址服务
- *
+ * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public class TopAddressing {
@@ -62,23 +63,30 @@ public class TopAddressing {
                 if (responseBody != null) {
                     String responseStr = new String(responseBody);
                     return clearNewLine(responseStr);
-                } else {
+                }
+                else {
                     log.error("httpMethod.getResponseBody() return null");
                 }
-            } else {
+            }
+            else {
                 log.error("HttpClient.executeMethod return not OK, " + httpStatus);
             }
-        } catch (HttpException e) {
+        }
+        catch (HttpException e) {
             log.error("fetchZKAddr exception", e);
-        } catch (IOException e) {
+        }
+        catch (IOException e) {
             log.error("fetchZKAddr exception", e);
-        } finally {
+        }
+        finally {
             if (httpMethod != null) {
                 httpMethod.releaseConnection();
             }
         }
 
-        String errorMsg = "connect to " + MixAll.WS_ADDR + " failed, maybe the domain name " + MixAll.WS_DOMAIN_NAME + " not bind in /etc/hosts";
+        String errorMsg =
+                "connect to " + MixAll.WS_ADDR + " failed, maybe the domain name " + MixAll.WS_DOMAIN_NAME
+                        + " not bind in /etc/hosts";
         errorMsg += FAQUrl.suggestTodo(FAQUrl.NAME_SERVER_ADDR_NOT_EXIST_URL);
 
         log.warn(errorMsg);
@@ -100,7 +108,8 @@ public class TopAddressing {
                     this.doOnNSAddrChanged(newNSAddr);
                 }
             }
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             log.error("", e);
         }
     }

@@ -15,23 +15,26 @@
  */
 package com.alibaba.rocketmq.store.schedule;
 
-import com.alibaba.rocketmq.remoting.protocol.RemotingSerializable;
-
 import java.util.concurrent.ConcurrentHashMap;
+
+import com.alibaba.rocketmq.remoting.protocol.RemotingSerializable;
 
 
 /**
  * 延时消息进度，序列化包装
- *
+ * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-21
  */
 public class DelayOffsetSerializeWrapper extends RemotingSerializable {
-    private ConcurrentHashMap<Integer /* level */, Long/* offset */> offsetTable = new ConcurrentHashMap<Integer, Long>(32);
+    private ConcurrentHashMap<Integer /* level */, Long/* offset */> offsetTable =
+            new ConcurrentHashMap<Integer, Long>(32);
+
 
     public ConcurrentHashMap<Integer, Long> getOffsetTable() {
         return offsetTable;
     }
+
 
     public void setOffsetTable(ConcurrentHashMap<Integer, Long> offsetTable) {
         this.offsetTable = offsetTable;

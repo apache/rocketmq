@@ -15,18 +15,19 @@
  */
 package com.alibaba.rocketmq.broker.digestlog;
 
-import com.alibaba.rocketmq.broker.BrokerController;
-import com.alibaba.rocketmq.store.DefaultMessageStore;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import com.alibaba.rocketmq.broker.BrokerController;
+import com.alibaba.rocketmq.store.DefaultMessageStore;
 
 
 /**
  * 存储统计
- *
+ * 
  * @author 菱叶<jin.qian@alipay.com>
  * @since 2013-7-18
  */
@@ -44,7 +45,8 @@ public class StoreStatsMoniter {
 
 
     public void tolog() {
-        Map<String/* topic@group */, ConcurrentHashMap<Integer, Long>> offsetTable = brokerController.getConsumerOffsetManager().getOffsetTable();
+        Map<String/* topic@group */, ConcurrentHashMap<Integer, Long>> offsetTable =
+                brokerController.getConsumerOffsetManager().getOffsetTable();
         DefaultMessageStore defaultMessageStore = (DefaultMessageStore) brokerController.getMessageStore();
         for (String key : offsetTable.keySet()) {
             String[] strs = key.split(TOPIC_GROUP_SEPARATOR);
@@ -55,7 +57,8 @@ public class StoreStatsMoniter {
                 StringBuffer sb = new StringBuffer();
                 sb.append("Client Put And get Count").append(",");
                 sb.append("Topic[").append(topic).append("],");
-                sb.append("Mq[").append(brokerController.getBrokerConfig().getBrokerName() + "-" + queueId).append("],");
+                sb.append("Mq[").append(brokerController.getBrokerConfig().getBrokerName() + "-" + queueId)
+                    .append("],");
                 sb.append("PutOffset[").append(maxoffsize).append("],");
                 sb.append("group[").append(group).append("],");
                 sb.append("GetOffset[").append(offsetTable.get(key).get(queueId)).append("]");

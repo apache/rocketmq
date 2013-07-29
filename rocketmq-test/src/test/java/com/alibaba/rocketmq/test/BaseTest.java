@@ -1,7 +1,18 @@
 package com.alibaba.rocketmq.test;
 
+import java.io.File;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import junit.framework.TestCase;
+
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.joran.JoranConfigurator;
+
 import com.alibaba.rocketmq.broker.BrokerController;
 import com.alibaba.rocketmq.common.BrokerConfig;
 import com.alibaba.rocketmq.common.MQVersion;
@@ -11,14 +22,6 @@ import com.alibaba.rocketmq.remoting.netty.NettyClientConfig;
 import com.alibaba.rocketmq.remoting.netty.NettyServerConfig;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 import com.alibaba.rocketmq.store.config.MessageStoreConfig;
-import junit.framework.TestCase;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.io.File;
-import java.util.concurrent.atomic.AtomicInteger;
 
 
 public abstract class BaseTest extends TestCase {
@@ -44,24 +47,26 @@ public abstract class BaseTest extends TestCase {
             // "store");
 
             if (null == brokerConfig.getRocketmqHome()) {
-                System.out.println("Please set the " + MixAll.ROCKETMQ_HOME_ENV + " variable in your environment to match the location of the RocketMQ installation");
+                System.out.println("Please set the " + MixAll.ROCKETMQ_HOME_ENV
+                        + " variable in your environment to match the location of the RocketMQ installation");
                 System.exit(-2);
             }
 
             // BrokerId的处理
             switch (messageStoreConfig.getBrokerRole()) {
-                case ASYNC_MASTER:
-                case SYNC_MASTER:
-                    // Master Id必须是0
-                    brokerConfig.setBrokerId(MixAll.MASTER_ID);
-                    break;
-                case SLAVE:
-                    // Slave Id由Slave监听IP、端口决定
-                    long id = MixAll.createBrokerId(brokerConfig.getBrokerIP1(), nettyServerConfig.getListenPort());
-                    brokerConfig.setBrokerId(id);
-                    break;
-                default:
-                    break;
+            case ASYNC_MASTER:
+            case SYNC_MASTER:
+                // Master Id必须是0
+                brokerConfig.setBrokerId(MixAll.MASTER_ID);
+                break;
+            case SLAVE:
+                // Slave Id由Slave监听IP、端口决定
+                long id =
+                        MixAll.createBrokerId(brokerConfig.getBrokerIP1(), nettyServerConfig.getListenPort());
+                brokerConfig.setBrokerId(id);
+                break;
+            default:
+                break;
             }
 
             // Master监听Slave请求的端口，默认为服务端口+1
@@ -81,7 +86,9 @@ public abstract class BaseTest extends TestCase {
             MixAll.printObjectProperties(log, messageStoreConfig);
 
             // 初始化服务控制对象
-            brokerController = new BrokerController(brokerConfig, nettyServerConfig, new NettyClientConfig(), messageStoreConfig);
+            brokerController =
+                    new BrokerController(brokerConfig, nettyServerConfig, new NettyClientConfig(),
+                        messageStoreConfig);
             boolean initResult = brokerController.initialize();
             if (!initResult) {
                 brokerController.shutdown();
@@ -110,10 +117,13 @@ public abstract class BaseTest extends TestCase {
 
             // 启动服务控制对象
             brokerController.start();
-            String tip = "The broker[" + brokerController.getBrokerConfig().getBrokerName() + ", " + brokerController.getBrokerAddr() + "] boot success.";
+            String tip =
+                    "The broker[" + brokerController.getBrokerConfig().getBrokerName() + ", "
+                            + brokerController.getBrokerAddr() + "] boot success.";
             log.info(tip);
             System.out.println(tip);
-        } catch (Throwable e) {
+        }
+        catch (Throwable e) {
             e.printStackTrace();
             System.exit(-1);
         }

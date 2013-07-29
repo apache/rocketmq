@@ -3,18 +3,18 @@
  */
 package com.alibaba.rocketmq.research.rpc.benchmark;
 
-import com.alibaba.rocketmq.research.rpc.DefaultRPCServer;
-import com.alibaba.rocketmq.research.rpc.RPCProcessor;
-import com.alibaba.rocketmq.research.rpc.RPCServer;
-
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.concurrent.atomic.AtomicLong;
 
+import com.alibaba.rocketmq.research.rpc.DefaultRPCServer;
+import com.alibaba.rocketmq.research.rpc.RPCProcessor;
+import com.alibaba.rocketmq.research.rpc.RPCServer;
+
 
 /**
  * 简单功能测试，Server端
- *
+ * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public class Server {
@@ -60,7 +60,8 @@ public class Server {
             ServerRPCProcessor serverRPCProcessor = new ServerRPCProcessor();
             rpcServer.registerProcessor(serverRPCProcessor);
             rpcServer.start();
-        } catch (IOException e) {
+        }
+        catch (IOException e) {
             e.printStackTrace();
         }
     }

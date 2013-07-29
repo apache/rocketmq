@@ -15,6 +15,12 @@
  */
 package com.alibaba.rocketmq.example.benchmark;
 
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
+import java.util.concurrent.atomic.AtomicLong;
+
 import com.alibaba.rocketmq.client.consumer.DefaultMQPushConsumer;
 import com.alibaba.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext;
 import com.alibaba.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
@@ -23,16 +29,10 @@ import com.alibaba.rocketmq.client.exception.MQClientException;
 import com.alibaba.rocketmq.common.consumer.ConsumeFromWhere;
 import com.alibaba.rocketmq.common.message.MessageExt;
 
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Timer;
-import java.util.TimerTask;
-import java.util.concurrent.atomic.AtomicLong;
-
 
 /**
  * 性能测试，订阅消息
- *
+ * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-16
  */
@@ -61,17 +61,19 @@ public class Consumer {
                     Long[] begin = snapshotList.getFirst();
                     Long[] end = snapshotList.getLast();
 
-                    final long consumeTps = (long) (((end[1] - begin[1]) / (double) (end[0] - begin[0])) * 1000L);
+                    final long consumeTps =
+                            (long) (((end[1] - begin[1]) / (double) (end[0] - begin[0])) * 1000L);
                     final double averageB2CRT = ((end[2] - begin[2]) / (double) (end[1] - begin[1]));
                     final double averageS2CRT = ((end[3] - begin[3]) / (double) (end[1] - begin[1]));
 
-                    System.out.printf("Consume TPS: %d Average(B2C) RT: %7.3f Average(S2C) RT: %7.3f MAX(B2C) RT: %d MAX(S2C) RT: %d\n"//
-                            , consumeTps//
-                            , averageB2CRT//
-                            , averageS2CRT//
-                            , end[4]//
-                            , end[5]//
-                    );
+                    System.out.printf(
+                        "Consume TPS: %d Average(B2C) RT: %7.3f Average(S2C) RT: %7.3f MAX(B2C) RT: %d MAX(S2C) RT: %d\n"//
+                        , consumeTps//
+                        , averageB2CRT//
+                        , averageS2CRT//
+                        , end[4]//
+                        , end[5]//
+                        );
                 }
             }
 
@@ -80,7 +82,8 @@ public class Consumer {
             public void run() {
                 try {
                     this.printStats();
-                } catch (Exception e) {
+                }
+                catch (Exception e) {
                     e.printStackTrace();
                 }
             }
@@ -94,7 +97,8 @@ public class Consumer {
 
         consumer.registerMessageListener(new MessageListenerConcurrently() {
             @Override
-            public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> msgs, ConsumeConcurrentlyContext context) {
+            public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> msgs,
+                    ConsumeConcurrentlyContext context) {
                 MessageExt msg = msgs.get(0);
                 long now = System.currentTimeMillis();
 
@@ -124,6 +128,7 @@ public class Consumer {
         System.out.println("Consumer Started.");
     }
 
+
     public static void compareAndSetMax(final AtomicLong target, final long value) {
         long prev = target.get();
         while (value > prev) {
@@ -135,6 +140,7 @@ public class Consumer {
         }
     }
 }
+
 
 class StatsBenchmarkConsumer {
     // 1
@@ -148,34 +154,40 @@ class StatsBenchmarkConsumer {
     // 5
     private final AtomicLong store2ConsumerMaxRT = new AtomicLong(0L);
 
+
     public Long[] createSnapshot() {
-        Long[] snap = new Long[]{//
+        Long[] snap = new Long[] {//
                 System.currentTimeMillis(),//
-                this.receiveMessageTotalCount.get(),//
-                this.born2ConsumerTotalRT.get(),//
-                this.store2ConsumerTotalRT.get(),//
-                this.born2ConsumerMaxRT.get(),//
-                this.store2ConsumerMaxRT.get(), //
-        };
+                        this.receiveMessageTotalCount.get(),//
+                        this.born2ConsumerTotalRT.get(),//
+                        this.store2ConsumerTotalRT.get(),//
+                        this.born2ConsumerMaxRT.get(),//
+                        this.store2ConsumerMaxRT.get(), //
+                };
 
         return snap;
     }
+
 
     public AtomicLong getReceiveMessageTotalCount() {
         return receiveMessageTotalCount;
     }
 
+
     public AtomicLong getBorn2ConsumerTotalRT() {
         return born2ConsumerTotalRT;
     }
+
 
     public AtomicLong getStore2ConsumerTotalRT() {
         return store2ConsumerTotalRT;
     }
 
+
     public AtomicLong getBorn2ConsumerMaxRT() {
         return born2ConsumerMaxRT;
     }
+
 
     public AtomicLong getStore2ConsumerMaxRT() {
         return store2ConsumerMaxRT;

@@ -15,7 +15,6 @@
  */
 package com.alibaba.rocketmq.broker.pagecache;
 
-import com.alibaba.rocketmq.store.GetMessageResult;
 import io.netty.channel.FileRegion;
 import io.netty.util.AbstractReferenceCounted;
 
@@ -23,6 +22,8 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.WritableByteChannel;
 import java.util.List;
+
+import com.alibaba.rocketmq.store.GetMessageResult;
 
 
 /**
@@ -63,7 +64,8 @@ public class ManyMessageTransfer extends AbstractReferenceCounted implements Fil
         if (this.byteBufferHeader.hasRemaining()) {
             transfered += target.write(this.byteBufferHeader);
             return transfered;
-        } else {
+        }
+        else {
             List<ByteBuffer> messageBufferList = this.getMessageResult.getMessageBufferList();
             for (ByteBuffer bb : messageBufferList) {
                 if (bb.hasRemaining()) {

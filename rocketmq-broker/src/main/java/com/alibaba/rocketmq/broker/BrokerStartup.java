@@ -15,8 +15,22 @@
  */
 package com.alibaba.rocketmq.broker;
 
+import java.io.BufferedInputStream;
+import java.io.FileInputStream;
+import java.io.InputStream;
+import java.util.Properties;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.Option;
+import org.apache.commons.cli.Options;
+import org.apache.commons.cli.PosixParser;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.joran.JoranConfigurator;
+
 import com.alibaba.rocketmq.common.BrokerConfig;
 import com.alibaba.rocketmq.common.MQVersion;
 import com.alibaba.rocketmq.common.MixAll;
@@ -25,23 +39,11 @@ import com.alibaba.rocketmq.remoting.netty.NettyClientConfig;
 import com.alibaba.rocketmq.remoting.netty.NettyServerConfig;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 import com.alibaba.rocketmq.store.config.MessageStoreConfig;
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.Option;
-import org.apache.commons.cli.Options;
-import org.apache.commons.cli.PosixParser;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.io.BufferedInputStream;
-import java.io.FileInputStream;
-import java.io.InputStream;
-import java.util.Properties;
-import java.util.concurrent.atomic.AtomicInteger;
 
 
 /**
  * Broker启动入口
- *
+ * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-26
  */
@@ -75,7 +77,9 @@ public class BrokerStartup {
         try {
             // 解析命令行
             Options options = MixAll.buildCommandlineOptions(new Options());
-            final CommandLine commandLine = MixAll.parseCmdLine("mqbroker", args, buildCommandlineOptions(options), new PosixParser());
+            final CommandLine commandLine =
+                    MixAll
+                        .parseCmdLine("mqbroker", args, buildCommandlineOptions(options), new PosixParser());
             if (null == commandLine) {
                 System.exit(-1);
                 return;
@@ -95,7 +99,8 @@ public class BrokerStartup {
                 MixAll.printObjectProperties(null, nettyClientConfig);
                 MixAll.printObjectProperties(null, messageStoreConfig);
                 System.exit(0);
-            } else if (commandLine.hasOption('m')) {
+            }
+            else if (commandLine.hasOption('m')) {
                 MixAll.printObjectProperties(null, brokerConfig, true);
                 MixAll.printObjectProperties(null, nettyServerConfig, true);
                 MixAll.printObjectProperties(null, nettyClientConfig, true);
@@ -132,26 +137,27 @@ public class BrokerStartup {
             MixAll.properties2Object(MixAll.commandLine2Properties(commandLine), brokerConfig);
 
             if (null == brokerConfig.getRocketmqHome()) {
-                System.out.println("Please set the " + MixAll.ROCKETMQ_HOME_ENV + " variable in your environment to match the location of the RocketMQ installation");
+                System.out.println("Please set the " + MixAll.ROCKETMQ_HOME_ENV
+                        + " variable in your environment to match the location of the RocketMQ installation");
                 System.exit(-2);
             }
 
             // BrokerId的处理
             switch (messageStoreConfig.getBrokerRole()) {
-                case ASYNC_MASTER:
-                case SYNC_MASTER:
-                    // Master Id必须是0
-                    brokerConfig.setBrokerId(MixAll.MASTER_ID);
-                    break;
-                case SLAVE:
-                    if (brokerConfig.getBrokerId() <= 0) {
-                        System.out.println("Slave's brokerId must be > 0");
-                        System.exit(-3);
-                    }
+            case ASYNC_MASTER:
+            case SYNC_MASTER:
+                // Master Id必须是0
+                brokerConfig.setBrokerId(MixAll.MASTER_ID);
+                break;
+            case SLAVE:
+                if (brokerConfig.getBrokerId() <= 0) {
+                    System.out.println("Slave's brokerId must be > 0");
+                    System.exit(-3);
+                }
 
-                    break;
-                default:
-                    break;
+                break;
+            default:
+                break;
             }
 
             // Master监听Slave请求的端口，默认为服务端口+1
@@ -173,10 +179,10 @@ public class BrokerStartup {
 
             // 初始化服务控制对象
             final BrokerController controller = new BrokerController(//
-                    brokerConfig, //
-                    nettyServerConfig, //
-                    nettyClientConfig, //
-                    messageStoreConfig);
+                brokerConfig, //
+                nettyServerConfig, //
+                nettyClientConfig, //
+                messageStoreConfig);
             boolean initResult = controller.initialize();
             if (!initResult) {
                 controller.shutdown();
@@ -205,10 +211,13 @@ public class BrokerStartup {
 
             // 启动服务控制对象
             controller.start();
-            String tip = "The broker[" + controller.getBrokerConfig().getBrokerName() + ", " + controller.getBrokerAddr() + "] boot success.";
+            String tip =
+                    "The broker[" + controller.getBrokerConfig().getBrokerName() + ", "
+                            + controller.getBrokerAddr() + "] boot success.";
             log.info(tip);
             System.out.println(tip);
-        } catch (Throwable e) {
+        }
+        catch (Throwable e) {
             e.printStackTrace();
             System.exit(-1);
         }

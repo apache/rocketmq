@@ -1,9 +1,9 @@
 package com.alibaba.rocketmq.research.fastjson;
 
+import java.util.concurrent.ConcurrentHashMap;
+
 import com.alibaba.fastjson.JSON;
 import com.alibaba.rocketmq.remoting.protocol.RemotingSerializable;
-
-import java.util.concurrent.ConcurrentHashMap;
 
 
 /**
@@ -13,7 +13,8 @@ import java.util.concurrent.ConcurrentHashMap;
 public class Test {
 
     public static class TestTable {
-        private final ConcurrentHashMap<String, ConcurrentHashMap<String, Long>> testTable = new ConcurrentHashMap<String, ConcurrentHashMap<String, Long>>();
+        private final ConcurrentHashMap<String, ConcurrentHashMap<String, Long>> testTable =
+                new ConcurrentHashMap<String, ConcurrentHashMap<String, Long>>();
         private String remark = "abc";
 
 

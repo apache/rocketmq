@@ -15,17 +15,22 @@
  */
 package com.alibaba.rocketmq.client.impl.consumer;
 
+import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
+
+import org.slf4j.Logger;
+
 import com.alibaba.rocketmq.client.impl.factory.MQClientFactory;
 import com.alibaba.rocketmq.client.log.ClientLogger;
 import com.alibaba.rocketmq.common.ServiceThread;
-import org.slf4j.Logger;
-
-import java.util.concurrent.*;
 
 
 /**
  * 长轮询拉消息服务，单线程异步拉取
- *
+ * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-24
  */
@@ -33,13 +38,13 @@ public class PullMessageService extends ServiceThread {
     private final Logger log = ClientLogger.getLog();
     private final LinkedBlockingQueue<PullRequest> pullRequestQueue = new LinkedBlockingQueue<PullRequest>();
     private final MQClientFactory mQClientFactory;
-    private final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactory() {
-        @Override
-        public Thread newThread(Runnable r) {
-            return new Thread(r, "PullMessageServiceScheduledThread");
-        }
-    });
-    ;
+    private final ScheduledExecutorService scheduledExecutorService = Executors
+        .newSingleThreadScheduledExecutor(new ThreadFactory() {
+            @Override
+            public Thread newThread(Runnable r) {
+                return new Thread(r, "PullMessageServiceScheduledThread");
+            }
+        });;
 
 
     public PullMessageService(MQClientFactory mQClientFactory) {
@@ -67,7 +72,8 @@ public class PullMessageService extends ServiceThread {
     public void executePullRequestImmediately(final PullRequest pullRequest) {
         try {
             this.pullRequestQueue.put(pullRequest);
-        } catch (InterruptedException e) {
+        }
+        catch (InterruptedException e) {
             log.error("executePullRequestImmediately pullRequestQueue.put", e);
         }
     }
@@ -78,7 +84,8 @@ public class PullMessageService extends ServiceThread {
         if (consumer != null) {
             DefaultMQPushConsumerImpl impl = (DefaultMQPushConsumerImpl) consumer;
             impl.pullMessage(pullRequest);
-        } else {
+        }
+        else {
             log.warn("No matched consumer for the PullRequest {}, drop it", pullRequest);
         }
     }
@@ -94,8 +101,10 @@ public class PullMessageService extends ServiceThread {
                 if (pullRequest != null) {
                     this.pullMessage(pullRequest);
                 }
-            } catch (InterruptedException e) {
-            } catch (Exception e) {
+            }
+            catch (InterruptedException e) {
+            }
+            catch (Exception e) {
                 log.error("Pull Message Service Run Method exception", e);
             }
         }

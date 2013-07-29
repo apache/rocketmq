@@ -20,7 +20,7 @@ import java.nio.ByteBuffer;
 
 /**
  * 查询Pagecache返回结果
- *
+ * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-21
  */
@@ -42,22 +42,27 @@ public class SelectMapedBufferResult {
         this.mapedFile = mapedFile;
     }
 
+
     public ByteBuffer getByteBuffer() {
         return byteBuffer;
     }
 
+
     public int getSize() {
         return size;
     }
+
 
     public void setSize(final int s) {
         this.size = s;
         this.byteBuffer.limit(this.size);
     }
 
+
     public MapedFile getMapedFile() {
         return mapedFile;
     }
+
 
     @Override
     protected void finalize() {
@@ -65,6 +70,7 @@ public class SelectMapedBufferResult {
             this.release();
         }
     }
+
 
     /**
      * 此方法只能被调用一次，重复调用无效
@@ -75,6 +81,7 @@ public class SelectMapedBufferResult {
             this.mapedFile = null;
         }
     }
+
 
     public long getStartOffset() {
         return startOffset;

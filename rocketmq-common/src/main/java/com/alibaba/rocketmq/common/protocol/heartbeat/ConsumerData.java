@@ -3,10 +3,10 @@
  */
 package com.alibaba.rocketmq.common.protocol.heartbeat;
 
-import com.alibaba.rocketmq.common.consumer.ConsumeFromWhere;
-
 import java.util.HashSet;
 import java.util.Set;
+
+import com.alibaba.rocketmq.common.consumer.ConsumeFromWhere;
 
 
 /**
@@ -72,6 +72,8 @@ public class ConsumerData {
 
     @Override
     public String toString() {
-        return "ConsumerData [groupName=" + groupName + ", consumeType=" + consumeType + ", messageModel=" + messageModel + ", consumeFromWhere=" + consumeFromWhere + ", subscriptionDataSet=" + subscriptionDataSet + "]";
+        return "ConsumerData [groupName=" + groupName + ", consumeType=" + consumeType + ", messageModel="
+                + messageModel + ", consumeFromWhere=" + consumeFromWhere + ", subscriptionDataSet="
+                + subscriptionDataSet + "]";
     }
 }

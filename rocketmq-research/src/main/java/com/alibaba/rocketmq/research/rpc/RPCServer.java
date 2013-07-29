@@ -5,7 +5,7 @@ package com.alibaba.rocketmq.research.rpc;
 
 /**
  * 一个简单RPC Server
- *
+ * 
  * @author vintage.wang@gmail.com shijia.wxr@taobao.com
  */
 public interface RPCServer {

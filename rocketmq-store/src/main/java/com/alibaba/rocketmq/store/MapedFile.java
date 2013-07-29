@@ -15,11 +15,6 @@
  */
 package com.alibaba.rocketmq.store;
 
-import com.alibaba.rocketmq.common.UtilALl;
-import com.alibaba.rocketmq.common.constant.LoggerName;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -34,10 +29,16 @@ import java.security.PrivilegedAction;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.alibaba.rocketmq.common.UtilALl;
+import com.alibaba.rocketmq.common.constant.LoggerName;
+
 
 /**
  * Pagecache文件访问封装
- *
+ * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-21
  */
@@ -84,20 +85,24 @@ public class MapedFile extends ReferenceResource {
             TotalMapedVitualMemory.addAndGet(fileSize);
             TotalMapedFiles.incrementAndGet();
             ok = true;
-        } catch (FileNotFoundException e) {
+        }
+        catch (FileNotFoundException e) {
             this.fileChannel = null;
             log.error("create file channel " + this.fileName + " Failed. ", e);
             throw e;
-        } catch (IOException e) {
+        }
+        catch (IOException e) {
             this.fileChannel = null;
             log.error("map file " + this.fileName + " Failed. ", e);
             throw e;
-        } finally {
+        }
+        finally {
             if (!ok && this.fileChannel != null) {
                 this.fileChannel.close();
             }
         }
     }
+
 
     public static void ensureDirOK(final String dirName) {
         if (dirName != null) {
@@ -109,11 +114,13 @@ public class MapedFile extends ReferenceResource {
         }
     }
 
+
     public static void clean(final ByteBuffer buffer) {
         if (buffer == null || !buffer.isDirect() || buffer.capacity() == 0)
             return;
         invoke(invoke(viewed(buffer), "cleaner"), "clean");
     }
+
 
     private static Object invoke(final Object target, final String methodName, final Class<?>... args) {
         return AccessController.doPrivileged(new PrivilegedAction<Object>() {
@@ -122,20 +129,25 @@ public class MapedFile extends ReferenceResource {
                     Method method = method(target, methodName, args);
                     method.setAccessible(true);
                     return method.invoke(target);
-                } catch (Exception e) {
+                }
+                catch (Exception e) {
                     throw new IllegalStateException(e);
                 }
             }
         });
     }
 
-    private static Method method(Object target, String methodName, Class<?>[] args) throws NoSuchMethodException {
+
+    private static Method method(Object target, String methodName, Class<?>[] args)
+            throws NoSuchMethodException {
         try {
             return target.getClass().getMethod(methodName, args);
-        } catch (NoSuchMethodException e) {
+        }
+        catch (NoSuchMethodException e) {
             return target.getClass().getDeclaredMethod(methodName, args);
         }
     }
+
 
     private static ByteBuffer viewed(ByteBuffer buffer) {
         ByteBuffer viewedBuffer = (ByteBuffer) invoke(buffer, "viewedBuffer");
@@ -145,21 +157,26 @@ public class MapedFile extends ReferenceResource {
             return viewed(viewedBuffer);
     }
 
+
     public static int getTotalmapedfiles() {
         return TotalMapedFiles.get();
     }
+
 
     public static long getTotalMapedVitualMemory() {
         return TotalMapedVitualMemory.get();
     }
 
+
     public long getLastModifiedTimestamp() {
         return this.file.lastModified();
     }
 
+
     public String getFileName() {
         return fileName;
     }
+
 
     /**
      * 获取文件大小
@@ -168,15 +185,19 @@ public class MapedFile extends ReferenceResource {
         return fileSize;
     }
 
+
     public FileChannel getFileChannel() {
         return fileChannel;
     }
 
+
     /**
      * 向MapedBuffer追加消息<br>
-     *
-     * @param msg 要追加的消息
-     * @param cb  用来对消息进行序列化，尤其对于依赖MapedFile Offset的属性进行动态序列化
+     * 
+     * @param msg
+     *            要追加的消息
+     * @param cb
+     *            用来对消息进行序列化，尤其对于依赖MapedFile Offset的属性进行动态序列化
      * @return 是否成功，写入多少数据
      */
     public AppendMessageResult appendMessage(final Object msg, final AppendMessageCallback cb) {
@@ -189,16 +210,19 @@ public class MapedFile extends ReferenceResource {
         if (currentPos < this.fileSize) {
             ByteBuffer byteBuffer = this.mappedByteBuffer.slice();
             byteBuffer.position(currentPos);
-            AppendMessageResult result = cb.doAppend(this.getFileFromOffset(), byteBuffer, this.fileSize - currentPos, msg);
+            AppendMessageResult result =
+                    cb.doAppend(this.getFileFromOffset(), byteBuffer, this.fileSize - currentPos, msg);
             this.wrotePostion.addAndGet(result.getWroteBytes());
             this.storeTimestamp = result.getStoreTimestamp();
             return result;
         }
 
         // 上层应用应该保证不会走到这里
-        log.error("MapedFile.appendMessage return null, wrotePostion: " + currentPos + " fileSize: " + this.fileSize);
+        log.error("MapedFile.appendMessage return null, wrotePostion: " + currentPos + " fileSize: "
+                + this.fileSize);
         return new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR);
     }
+
 
     /**
      * 文件起始偏移量
@@ -207,9 +231,10 @@ public class MapedFile extends ReferenceResource {
         return this.fileFromOffset;
     }
 
+
     /**
      * 向存储层追加数据，一般在SLAVE存储结构中使用
-     *
+     * 
      * @return 返回写入了多少数据
      */
     public boolean appendMessage(final byte[] data) {
@@ -227,10 +252,12 @@ public class MapedFile extends ReferenceResource {
         return false;
     }
 
+
     /**
      * 消息刷盘
-     *
-     * @param flushLeastPages 至少刷几个page
+     * 
+     * @param flushLeastPages
+     *            至少刷几个page
      * @return
      */
     public int commit(final int flushLeastPages) {
@@ -240,7 +267,8 @@ public class MapedFile extends ReferenceResource {
                 this.mappedByteBuffer.force();
                 this.committedPosition.set(value);
                 this.release();
-            } else {
+            }
+            else {
                 log.warn("in commit, hold failed, commit offset = " + this.committedPosition.get());
                 this.committedPosition.set(this.wrotePostion.get());
             }
@@ -249,13 +277,16 @@ public class MapedFile extends ReferenceResource {
         return this.getCommittedPosition();
     }
 
+
     public int getCommittedPosition() {
         return committedPosition.get();
     }
 
+
     public void setCommittedPosition(int pos) {
         this.committedPosition.set(pos);
     }
+
 
     private boolean isAbleToFlush(final int flushLeastPages) {
         int flush = this.committedPosition.get();
@@ -274,9 +305,11 @@ public class MapedFile extends ReferenceResource {
         return write > flush;
     }
 
+
     public boolean isFull() {
         return this.fileSize == this.wrotePostion.get();
     }
+
 
     public SelectMapedBufferResult selectMapedBuffer(int pos, int size) {
         // 有消息
@@ -288,18 +321,22 @@ public class MapedFile extends ReferenceResource {
                 ByteBuffer byteBufferNew = byteBuffer.slice();
                 byteBufferNew.limit(size);
                 return new SelectMapedBufferResult(this.fileFromOffset + pos, byteBufferNew, size, this);
-            } else {
-                log.warn("matched, but hold failed, request pos: " + pos + ", fileFromOffset: " + this.fileFromOffset);
+            }
+            else {
+                log.warn("matched, but hold failed, request pos: " + pos + ", fileFromOffset: "
+                        + this.fileFromOffset);
             }
         }
         // 请求参数非法
         else {
-            log.warn("selectMapedBuffer request pos invalid, request pos: " + pos + ", size: " + size + ", fileFromOffset: " + this.fileFromOffset);
+            log.warn("selectMapedBuffer request pos invalid, request pos: " + pos + ", size: " + size
+                    + ", fileFromOffset: " + this.fileFromOffset);
         }
 
         // 非法参数或者mmap资源已经被释放
         return null;
     }
+
 
     /**
      * 读逻辑分区
@@ -320,17 +357,20 @@ public class MapedFile extends ReferenceResource {
         return null;
     }
 
+
     @Override
     public boolean cleanup(final long currentRef) {
         // 如果没有被shutdown，则不可以unmap文件，否则会crash
         if (this.isAvailable()) {
-            log.error("this file[REF:" + currentRef + "] " + this.fileName + " have not shutdown, stop unmaping.");
+            log.error("this file[REF:" + currentRef + "] " + this.fileName
+                    + " have not shutdown, stop unmaping.");
             return false;
         }
 
         // 如果已经cleanup，再次操作会引起crash
         if (this.isCleanupOver()) {
-            log.error("this file[REF:" + currentRef + "] " + this.fileName + " have cleanup, do not do it again.");
+            log.error("this file[REF:" + currentRef + "] " + this.fileName
+                    + " have cleanup, do not do it again.");
             // 必须返回true
             return true;
         }
@@ -342,9 +382,10 @@ public class MapedFile extends ReferenceResource {
         return true;
     }
 
+
     /**
      * 清理资源，destroy与调用shutdown的线程必须是同一个
-     *
+     * 
      * @return 是否被destory成功，上层调用需要对失败情况处理，失败后尝试重试
      */
     public boolean destroy(final long intervalForcibly) {
@@ -357,30 +398,40 @@ public class MapedFile extends ReferenceResource {
 
                 long beginTime = System.currentTimeMillis();
                 boolean result = this.file.delete();
-                log.info("delete file[REF:" + this.getRefCount() + "] " + this.fileName + (result ? " OK, " : " Failed, ") + "W:" + this.getWrotePostion() + " M:" + this.getCommittedPosition() + ", " + UtilALl.computeEclipseTimeMilliseconds(beginTime));
-            } catch (Exception e) {
+                log.info("delete file[REF:" + this.getRefCount() + "] " + this.fileName
+                        + (result ? " OK, " : " Failed, ") + "W:" + this.getWrotePostion() + " M:"
+                        + this.getCommittedPosition() + ", "
+                        + UtilALl.computeEclipseTimeMilliseconds(beginTime));
+            }
+            catch (Exception e) {
                 log.warn("close file channel " + this.fileName + " Failed. ", e);
             }
 
             return true;
-        } else {
-            log.warn("destroy maped file[REF:" + this.getRefCount() + "] " + this.fileName + " Failed. cleanupOver: " + this.cleanupOver);
+        }
+        else {
+            log.warn("destroy maped file[REF:" + this.getRefCount() + "] " + this.fileName
+                    + " Failed. cleanupOver: " + this.cleanupOver);
         }
 
         return false;
     }
 
+
     public int getWrotePostion() {
         return wrotePostion.get();
     }
+
 
     public void setWrotePostion(int pos) {
         this.wrotePostion.set(pos);
     }
 
+
     public MappedByteBuffer getMappedByteBuffer() {
         return mappedByteBuffer;
     }
+
 
     /**
      * 方法不能在运行时调用，不安全。只在启动时，reload已有数据时调用
@@ -389,13 +440,16 @@ public class MapedFile extends ReferenceResource {
         return this.mappedByteBuffer.slice();
     }
 
+
     public long getStoreTimestamp() {
         return storeTimestamp;
     }
 
+
     public boolean isFirstCreateInQueue() {
         return firstCreateInQueue;
     }
+
 
     public void setFirstCreateInQueue(boolean firstCreateInQueue) {
         this.firstCreateInQueue = firstCreateInQueue;

@@ -15,15 +15,16 @@
  */
 package com.alibaba.rocketmq.client.stat;
 
-import com.alibaba.rocketmq.client.log.ClientLogger;
+import java.util.LinkedList;
+
 import org.slf4j.Logger;
 
-import java.util.LinkedList;
+import com.alibaba.rocketmq.client.log.ClientLogger;
 
 
 /**
  * 用来统计Consumer运行状态
- *
+ * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-7
  */
@@ -67,8 +68,8 @@ public class ConsumerStatManager {
                 double avgRT = (last.getConsumeMsgRTTotal().get() - first.getConsumeMsgRTTotal().get()) //
                         / //
                         (double) ((last.getConsumeMsgOKTotal().get() + last.getConsumeMsgFailedTotal().get()) //
-                                - //
-                                (first.getConsumeMsgOKTotal().get() + first.getConsumeMsgFailedTotal().get()));
+                        - //
+                        (first.getConsumeMsgOKTotal().get() + first.getConsumeMsgFailedTotal().get()));
 
                 double tps = ((last.getConsumeMsgOKTotal().get() + last.getConsumeMsgFailedTotal().get()) //
                         - //
@@ -78,14 +79,15 @@ public class ConsumerStatManager {
 
                 tps *= 1000;
 
-                log.info("Consumer, {} {}, ConsumeAvgRT: {} ConsumeMaxRT: {} TotalOKMsg: {} TotalFailedMsg: {} consumeTPS: {}",//
-                        group, //
-                        clientId, //
-                        avgRT, //
-                        last.getConsumeMsgRTMax(), //
-                        last.getConsumeMsgOKTotal(), //
-                        last.getConsumeMsgFailedTotal(), //
-                        tps//
+                log.info(
+                    "Consumer, {} {}, ConsumeAvgRT: {} ConsumeMaxRT: {} TotalOKMsg: {} TotalFailedMsg: {} consumeTPS: {}",//
+                    group, //
+                    clientId, //
+                    avgRT, //
+                    last.getConsumeMsgRTMax(), //
+                    last.getConsumeMsgOKTotal(), //
+                    last.getConsumeMsgFailedTotal(), //
+                    tps//
                 );
             }
 
@@ -96,10 +98,10 @@ public class ConsumerStatManager {
                         (double) (last.getPullTimesTotal().get() - first.getPullTimesTotal().get());
 
                 log.info("Consumer, {} {}, PullAvgRT: {}  PullTimesTotal: {}",//
-                        group, //
-                        clientId, //
-                        avgRT, //
-                        last.getPullTimesTotal() //
+                    group, //
+                    clientId, //
+                    avgRT, //
+                    last.getPullTimesTotal() //
                 );
             }
         }

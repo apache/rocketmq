@@ -15,11 +15,6 @@
  */
 package com.alibaba.rocketmq.example.benchmark;
 
-import com.alibaba.rocketmq.client.exception.MQClientException;
-import com.alibaba.rocketmq.client.producer.*;
-import com.alibaba.rocketmq.common.message.Message;
-import com.alibaba.rocketmq.common.message.MessageExt;
-
 import java.util.LinkedList;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -27,10 +22,19 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicLong;
 
+import com.alibaba.rocketmq.client.exception.MQClientException;
+import com.alibaba.rocketmq.client.producer.LocalTransactionExecuter;
+import com.alibaba.rocketmq.client.producer.LocalTransactionState;
+import com.alibaba.rocketmq.client.producer.SendResult;
+import com.alibaba.rocketmq.client.producer.TransactionCheckListener;
+import com.alibaba.rocketmq.client.producer.TransactionMQProducer;
+import com.alibaba.rocketmq.common.message.Message;
+import com.alibaba.rocketmq.common.message.MessageExt;
+
 
 /**
  * 性能测试，多线程同步发送事务消息
- *
+ * 
  * @author 菱叶<jin.qian@alipay.com>
  * @since 2013-7-24
  */
@@ -39,6 +43,7 @@ public class TransactionProducer {
     private static int messageSize;
     private static boolean ischeck;
     private static boolean ischeckffalse;
+
 
     public static void main(String[] args) throws MQClientException {
         threadCount = args.length >= 1 ? Integer.parseInt(args[0]) : 32;
@@ -72,16 +77,18 @@ public class TransactionProducer {
                     Long[] begin = snapshotList.getFirst();
                     Long[] end = snapshotList.getLast();
 
-                    final long sendTps = (long) (((end[3] - begin[3]) / (double) (end[0] - begin[0])) * 1000L);
+                    final long sendTps =
+                            (long) (((end[3] - begin[3]) / (double) (end[0] - begin[0])) * 1000L);
                     final double averageRT = ((end[5] - begin[5]) / (double) (end[3] - begin[3]));
 
-                    System.out.printf("Send TPS: %d Max RT: %d Average RT: %7.3f Send Failed: %d Response Failed: %d transaction checkCount: %d \n"//
-                            , sendTps//
-                            , statsBenchmark.getSendMessageMaxRT().get()//
-                            , averageRT//
-                            , end[2]//
-                            , end[4]//
-                            , end[6]);
+                    System.out.printf(
+                        "Send TPS: %d Max RT: %d Average RT: %7.3f Send Failed: %d Response Failed: %d transaction checkCount: %d \n"//
+                        , sendTps//
+                        , statsBenchmark.getSendMessageMaxRT().get()//
+                        , averageRT//
+                        , end[2]//
+                        , end[4]//
+                        , end[6]);
                 }
             }
 
@@ -90,13 +97,15 @@ public class TransactionProducer {
             public void run() {
                 try {
                     this.printStats();
-                } catch (Exception e) {
+                }
+                catch (Exception e) {
                     e.printStackTrace();
                 }
             }
         }, 10000, 10000);
 
-        final TransactionCheckListener transactionCheckListener = new TransactionCheckListenerBImpl(ischeckffalse, statsBenchmark);
+        final TransactionCheckListener transactionCheckListener =
+                new TransactionCheckListenerBImpl(ischeckffalse, statsBenchmark);
         final TransactionMQProducer producer = new TransactionMQProducer("benchmark_transaction_producer");
         producer.setTransactionCheckListener(transactionCheckListener);
         producer.setDefaultTopicQueueNums(1000);
@@ -122,13 +131,16 @@ public class TransactionProducer {
                             statsBenchmark.getSendMessageSuccessTimeTotal().addAndGet(currentRT);
                             long prevMaxRT = statsBenchmark.getSendMessageMaxRT().get();
                             while (currentRT > prevMaxRT) {
-                                boolean updated = statsBenchmark.getSendMessageMaxRT().compareAndSet(prevMaxRT, currentRT);
+                                boolean updated =
+                                        statsBenchmark.getSendMessageMaxRT().compareAndSet(prevMaxRT,
+                                            currentRT);
                                 if (updated)
                                     break;
 
                                 prevMaxRT = statsBenchmark.getSendMessageMaxRT().get();
                             }
-                        } catch (MQClientException e) {
+                        }
+                        catch (MQClientException e) {
                             statsBenchmark.getSendRequestFailedCount().incrementAndGet();
                         }
                     }
@@ -136,6 +148,7 @@ public class TransactionProducer {
             });
         }
     }
+
 
     private static Message buildMessage(final int messageSize) {
         Message msg = new Message();
@@ -152,6 +165,7 @@ public class TransactionProducer {
     }
 }
 
+
 class TransactionExecuterBImpl implements LocalTransactionExecuter {
 
     private boolean ischeck;
@@ -160,6 +174,7 @@ class TransactionExecuterBImpl implements LocalTransactionExecuter {
     public TransactionExecuterBImpl(boolean ischeck) {
         this.ischeck = ischeck;
     }
+
 
     @Override
     public LocalTransactionState executeLocalTransactionBranch(Message msg) {
@@ -170,15 +185,18 @@ class TransactionExecuterBImpl implements LocalTransactionExecuter {
     }
 }
 
+
 class TransactionCheckListenerBImpl implements TransactionCheckListener {
     private boolean ischeckffalse;
     private StatsBenchmarkTProducer statsBenchmarkTProducer;
 
 
-    public TransactionCheckListenerBImpl(boolean ischeckffalse, StatsBenchmarkTProducer statsBenchmarkTProducer) {
+    public TransactionCheckListenerBImpl(boolean ischeckffalse,
+            StatsBenchmarkTProducer statsBenchmarkTProducer) {
         this.ischeckffalse = ischeckffalse;
         this.statsBenchmarkTProducer = statsBenchmarkTProducer;
     }
+
 
     @Override
     public LocalTransactionState checkLocalTransactionState(MessageExt msg) {
@@ -192,6 +210,7 @@ class TransactionCheckListenerBImpl implements TransactionCheckListener {
         return LocalTransactionState.COMMIT_MESSAGE;
     }
 }
+
 
 class StatsBenchmarkTProducer {
     // 1
@@ -209,42 +228,50 @@ class StatsBenchmarkTProducer {
     // 7
     private final AtomicLong checkRequestSuccessCount = new AtomicLong(0L);
 
+
     public Long[] createSnapshot() {
-        Long[] snap = new Long[]{//
+        Long[] snap = new Long[] {//
                 System.currentTimeMillis(),//
-                this.sendRequestSuccessCount.get(),//
-                this.sendRequestFailedCount.get(),//
-                this.receiveResponseSuccessCount.get(),//
-                this.receiveResponseFailedCount.get(),//
-                this.sendMessageSuccessTimeTotal.get(), //
-                this.checkRequestSuccessCount.get(),};
+                        this.sendRequestSuccessCount.get(),//
+                        this.sendRequestFailedCount.get(),//
+                        this.receiveResponseSuccessCount.get(),//
+                        this.receiveResponseFailedCount.get(),//
+                        this.sendMessageSuccessTimeTotal.get(), //
+                        this.checkRequestSuccessCount.get(), };
 
         return snap;
     }
+
 
     public AtomicLong getSendRequestSuccessCount() {
         return sendRequestSuccessCount;
     }
 
+
     public AtomicLong getSendRequestFailedCount() {
         return sendRequestFailedCount;
     }
+
 
     public AtomicLong getReceiveResponseSuccessCount() {
         return receiveResponseSuccessCount;
     }
 
+
     public AtomicLong getReceiveResponseFailedCount() {
         return receiveResponseFailedCount;
     }
+
 
     public AtomicLong getSendMessageSuccessTimeTotal() {
         return sendMessageSuccessTimeTotal;
     }
 
+
     public AtomicLong getSendMessageMaxRT() {
         return sendMessageMaxRT;
     }
+
 
     public AtomicLong getCheckRequestSuccessCount() {
         return checkRequestSuccessCount;

@@ -17,7 +17,7 @@ package com.alibaba.rocketmq.remoting.netty;
 
 /**
  * Netty产生的事件类型
- *
+ * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-13
  */

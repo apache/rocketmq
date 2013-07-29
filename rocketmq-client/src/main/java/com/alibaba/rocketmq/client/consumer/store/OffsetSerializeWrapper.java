@@ -15,25 +15,28 @@
  */
 package com.alibaba.rocketmq.client.consumer.store;
 
-import com.alibaba.rocketmq.common.message.MessageQueue;
-import com.alibaba.rocketmq.remoting.protocol.RemotingSerializable;
-
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
+
+import com.alibaba.rocketmq.common.message.MessageQueue;
+import com.alibaba.rocketmq.remoting.protocol.RemotingSerializable;
 
 
 /**
  * Offset持久化，json包装类
- *
+ * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-25
  */
 public class OffsetSerializeWrapper extends RemotingSerializable {
-    private ConcurrentHashMap<MessageQueue, AtomicLong> offsetTable = new ConcurrentHashMap<MessageQueue, AtomicLong>();
+    private ConcurrentHashMap<MessageQueue, AtomicLong> offsetTable =
+            new ConcurrentHashMap<MessageQueue, AtomicLong>();
+
 
     public ConcurrentHashMap<MessageQueue, AtomicLong> getOffsetTable() {
         return offsetTable;
     }
+
 
     public void setOffsetTable(ConcurrentHashMap<MessageQueue, AtomicLong> offsetTable) {
         this.offsetTable = offsetTable;

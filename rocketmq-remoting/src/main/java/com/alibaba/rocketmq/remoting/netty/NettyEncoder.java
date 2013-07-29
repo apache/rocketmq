@@ -15,21 +15,23 @@
  */
 package com.alibaba.rocketmq.remoting.netty;
 
-import com.alibaba.rocketmq.remoting.common.RemotingHelper;
-import com.alibaba.rocketmq.remoting.common.RemotingUtil;
-import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.MessageToByteEncoder;
+
+import java.nio.ByteBuffer;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.nio.ByteBuffer;
+import com.alibaba.rocketmq.remoting.common.RemotingHelper;
+import com.alibaba.rocketmq.remoting.common.RemotingUtil;
+import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 
 
 /**
  * 协议编码器
- *
+ * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-13
  */
@@ -38,7 +40,8 @@ public class NettyEncoder extends MessageToByteEncoder<RemotingCommand> {
 
 
     @Override
-    public void encode(ChannelHandlerContext ctx, RemotingCommand remotingCommand, ByteBuf out) throws Exception {
+    public void encode(ChannelHandlerContext ctx, RemotingCommand remotingCommand, ByteBuf out)
+            throws Exception {
         try {
             ByteBuffer header = remotingCommand.encodeHeader();
             out.writeBytes(header);
@@ -46,7 +49,8 @@ public class NettyEncoder extends MessageToByteEncoder<RemotingCommand> {
             if (body != null) {
                 out.writeBytes(body);
             }
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             log.error("encode exception, " + RemotingHelper.parseChannelRemoteAddr(ctx.channel()), e);
             if (remotingCommand != null) {
                 log.error(remotingCommand.toString());

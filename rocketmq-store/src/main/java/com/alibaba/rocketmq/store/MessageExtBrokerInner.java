@@ -21,7 +21,7 @@ import com.alibaba.rocketmq.common.message.MessageExt;
 
 /**
  * 存储内部使用的Message对象
- *
+ * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-21
  */
@@ -29,6 +29,7 @@ public class MessageExtBrokerInner extends MessageExt {
     private static final long serialVersionUID = 7256001576878700634L;
     private String propertiesString;
     private long tagsCode;
+
 
     /**
      * 目前只支持单个标签的过滤
@@ -40,17 +41,21 @@ public class MessageExtBrokerInner extends MessageExt {
         return tags.hashCode();
     }
 
+
     public String getPropertiesString() {
         return propertiesString;
     }
+
 
     public void setPropertiesString(String propertiesString) {
         this.propertiesString = propertiesString;
     }
 
+
     public long getTagsCode() {
         return tagsCode;
     }
+
 
     public void setTagsCode(long tagsCode) {
         this.tagsCode = tagsCode;

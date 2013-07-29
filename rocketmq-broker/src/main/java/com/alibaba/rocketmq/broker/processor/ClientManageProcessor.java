@@ -15,12 +15,23 @@
  */
 package com.alibaba.rocketmq.broker.processor;
 
+import io.netty.channel.ChannelHandlerContext;
+
+import java.util.List;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.alibaba.rocketmq.broker.BrokerController;
 import com.alibaba.rocketmq.broker.client.ClientChannelInfo;
 import com.alibaba.rocketmq.broker.client.ConsumerGroupInfo;
 import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.common.protocol.MQProtos.MQRequestCode;
-import com.alibaba.rocketmq.common.protocol.header.*;
+import com.alibaba.rocketmq.common.protocol.header.GetConsumerListByGroupRequestHeader;
+import com.alibaba.rocketmq.common.protocol.header.GetConsumerListByGroupResponseBody;
+import com.alibaba.rocketmq.common.protocol.header.GetConsumerListByGroupResponseHeader;
+import com.alibaba.rocketmq.common.protocol.header.UnregisterClientRequestHeader;
+import com.alibaba.rocketmq.common.protocol.header.UnregisterClientResponseHeader;
 import com.alibaba.rocketmq.common.protocol.heartbeat.ConsumerData;
 import com.alibaba.rocketmq.common.protocol.heartbeat.HeartbeatData;
 import com.alibaba.rocketmq.common.protocol.heartbeat.ProducerData;
@@ -29,16 +40,11 @@ import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
 import com.alibaba.rocketmq.remoting.netty.NettyRequestProcessor;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 import com.alibaba.rocketmq.remoting.protocol.RemotingProtos.ResponseCode;
-import io.netty.channel.ChannelHandlerContext;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.util.List;
 
 
 /**
  * Client注册与注销管理
- *
+ * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-26
  */
@@ -54,27 +60,34 @@ public class ClientManageProcessor implements NettyRequestProcessor {
 
 
     @Override
-    public RemotingCommand processRequest(ChannelHandlerContext ctx, RemotingCommand request) throws RemotingCommandException {
+    public RemotingCommand processRequest(ChannelHandlerContext ctx, RemotingCommand request)
+            throws RemotingCommandException {
         MQRequestCode code = MQRequestCode.valueOf(request.getCode());
         switch (code) {
-            case HEART_BEAT:
-                return this.heartBeat(ctx, request);
-            case UNREGISTER_CLIENT:
-                return this.unregisterClient(ctx, request);
-            case GET_CONSUMER_LIST_BY_GROUP:
-                return this.getConsumerListByGroup(ctx, request);
-            default:
-                break;
+        case HEART_BEAT:
+            return this.heartBeat(ctx, request);
+        case UNREGISTER_CLIENT:
+            return this.unregisterClient(ctx, request);
+        case GET_CONSUMER_LIST_BY_GROUP:
+            return this.getConsumerListByGroup(ctx, request);
+        default:
+            break;
         }
         return null;
     }
 
 
-    public RemotingCommand getConsumerListByGroup(ChannelHandlerContext ctx, RemotingCommand request) throws RemotingCommandException {
-        final RemotingCommand response = RemotingCommand.createResponseCommand(GetConsumerListByGroupResponseHeader.class);
-        final GetConsumerListByGroupRequestHeader requestHeader = (GetConsumerListByGroupRequestHeader) request.decodeCommandCustomHeader(GetConsumerListByGroupRequestHeader.class);
+    public RemotingCommand getConsumerListByGroup(ChannelHandlerContext ctx, RemotingCommand request)
+            throws RemotingCommandException {
+        final RemotingCommand response =
+                RemotingCommand.createResponseCommand(GetConsumerListByGroupResponseHeader.class);
+        final GetConsumerListByGroupRequestHeader requestHeader =
+                (GetConsumerListByGroupRequestHeader) request
+                    .decodeCommandCustomHeader(GetConsumerListByGroupRequestHeader.class);
 
-        ConsumerGroupInfo consumerGroupInfo = this.brokerController.getConsumerManager().getConsumerGroupInfo(requestHeader.getConsumerGroup());
+        ConsumerGroupInfo consumerGroupInfo =
+                this.brokerController.getConsumerManager().getConsumerGroupInfo(
+                    requestHeader.getConsumerGroup());
         if (consumerGroupInfo != null) {
             List<String> clientIds = consumerGroupInfo.getAllClientId();
             if (!clientIds.isEmpty()) {
@@ -84,11 +97,15 @@ public class ClientManageProcessor implements NettyRequestProcessor {
                 response.setCode(ResponseCode.SUCCESS_VALUE);
                 response.setRemark(null);
                 return response;
-            } else {
-                log.warn("getAllClientId failed, {} {}", requestHeader.getConsumerGroup(), RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
             }
-        } else {
-            log.warn("getConsumerGroupInfo failed, {} {}", requestHeader.getConsumerGroup(), RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
+            else {
+                log.warn("getAllClientId failed, {} {}", requestHeader.getConsumerGroup(),
+                    RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
+            }
+        }
+        else {
+            log.warn("getConsumerGroupInfo failed, {} {}", requestHeader.getConsumerGroup(),
+                RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
         }
 
         response.setCode(ResponseCode.SYSTEM_ERROR_VALUE);
@@ -97,16 +114,20 @@ public class ClientManageProcessor implements NettyRequestProcessor {
     }
 
 
-    public RemotingCommand unregisterClient(ChannelHandlerContext ctx, RemotingCommand request) throws RemotingCommandException {
-        final RemotingCommand response = RemotingCommand.createResponseCommand(UnregisterClientResponseHeader.class);
-        final UnregisterClientRequestHeader requestHeader = (UnregisterClientRequestHeader) request.decodeCommandCustomHeader(UnregisterClientRequestHeader.class);
+    public RemotingCommand unregisterClient(ChannelHandlerContext ctx, RemotingCommand request)
+            throws RemotingCommandException {
+        final RemotingCommand response =
+                RemotingCommand.createResponseCommand(UnregisterClientResponseHeader.class);
+        final UnregisterClientRequestHeader requestHeader =
+                (UnregisterClientRequestHeader) request
+                    .decodeCommandCustomHeader(UnregisterClientRequestHeader.class);
 
         ClientChannelInfo clientChannelInfo = new ClientChannelInfo(//
-                ctx.channel(),//
-                requestHeader.getClientID(),//
-                request.getLanguage(),//
-                request.getVersion()//
-        );
+            ctx.channel(),//
+            requestHeader.getClientID(),//
+            request.getLanguage(),//
+            request.getVersion()//
+                );
 
         // 注销Producer
         final String producerGroup = requestHeader.getProducerGroup();
@@ -132,33 +153,34 @@ public class ClientManageProcessor implements NettyRequestProcessor {
         HeartbeatData heartbeatData = HeartbeatData.decode(request.getBody(), HeartbeatData.class);
 
         ClientChannelInfo clientChannelInfo = new ClientChannelInfo(//
-                ctx.channel(),//
-                heartbeatData.getClientID(),//
-                request.getLanguage(),//
-                request.getVersion()//
-        );
+            ctx.channel(),//
+            heartbeatData.getClientID(),//
+            request.getLanguage(),//
+            request.getVersion()//
+                );
 
         // 注册Consumer
         for (ConsumerData data : heartbeatData.getConsumerDataSet()) {
             boolean changed = this.brokerController.getConsumerManager().registerConsumer(//
-                    data.getGroupName(),//
-                    clientChannelInfo,//
-                    data.getConsumeType(),//
-                    data.getMessageModel(),//
-                    data.getConsumeFromWhere(),//
-                    data.getSubscriptionDataSet()//
-            );
+                data.getGroupName(),//
+                clientChannelInfo,//
+                data.getConsumeType(),//
+                data.getMessageModel(),//
+                data.getConsumeFromWhere(),//
+                data.getSubscriptionDataSet()//
+                );
 
             log.debug("registerConsumer {} {} CHANGED: {}",//
-                    data.toString(),//
-                    RemotingHelper.parseChannelRemoteAddr(ctx.channel()),//
-                    changed//
+                data.toString(),//
+                RemotingHelper.parseChannelRemoteAddr(ctx.channel()),//
+                changed//
             );
         }
 
         // 注册Producer
         for (ProducerData data : heartbeatData.getProducerDataSet()) {
-            this.brokerController.getProducerManager().registerProducer(data.getGroupName(), clientChannelInfo);
+            this.brokerController.getProducerManager().registerProducer(data.getGroupName(),
+                clientChannelInfo);
         }
 
         response.setCode(ResponseCode.SUCCESS_VALUE);

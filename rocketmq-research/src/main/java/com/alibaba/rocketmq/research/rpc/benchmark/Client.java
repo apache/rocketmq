@@ -3,16 +3,16 @@
  */
 package com.alibaba.rocketmq.research.rpc.benchmark;
 
-import com.alibaba.rocketmq.research.rpc.DefaultRPCClient;
-import com.alibaba.rocketmq.research.rpc.RPCClient;
-
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
+
+import com.alibaba.rocketmq.research.rpc.DefaultRPCClient;
+import com.alibaba.rocketmq.research.rpc.RPCClient;
 
 
 /**
  * 简单功能测试，Client端
- *
+ * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public class Client {
@@ -22,17 +22,21 @@ public class Client {
         System.out.println("connect server " + (connectOK ? "OK" : "Failed"));
         rpcClient.start();
 
-        for (long i = 0; ; i++) {
+        for (long i = 0;; i++) {
             try {
                 String reqstr = "nice" + i;
                 ByteBuffer repdata = rpcClient.call(reqstr.getBytes());
                 if (repdata != null) {
-                    String repstr = new String(repdata.array(), repdata.position(), repdata.limit() - repdata.position());
+                    String repstr =
+                            new String(repdata.array(), repdata.position(), repdata.limit()
+                                    - repdata.position());
                     System.out.println("call result, " + repstr);
-                } else {
+                }
+                else {
                     return;
                 }
-            } catch (InterruptedException e) {
+            }
+            catch (InterruptedException e) {
                 e.printStackTrace();
             }
         }

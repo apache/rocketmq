@@ -22,7 +22,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * 索引文件头
- *
+ * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-21
  */
@@ -48,6 +48,7 @@ public class IndexHeader {
         this.byteBuffer = byteBuffer;
     }
 
+
     public void load() {
         this.beginTimestamp.set(byteBuffer.getLong(BEGINTIMESTAMP_INDEX));
         this.endTimestamp.set(byteBuffer.getLong(ENDTIMESTAMP_INDEX));
@@ -62,6 +63,7 @@ public class IndexHeader {
         }
     }
 
+
     /**
      * 更新byteBuffer
      */
@@ -74,54 +76,66 @@ public class IndexHeader {
         this.byteBuffer.putInt(INDEXCOUNT_INDEX, this.indexCount.get());
     }
 
+
     public long getBeginTimestamp() {
         return beginTimestamp.get();
     }
+
 
     public void setBeginTimestamp(long beginTimestamp) {
         this.beginTimestamp.set(beginTimestamp);
         this.byteBuffer.putLong(BEGINTIMESTAMP_INDEX, beginTimestamp);
     }
 
+
     public long getEndTimestamp() {
         return endTimestamp.get();
     }
+
 
     public void setEndTimestamp(long endTimestamp) {
         this.endTimestamp.set(endTimestamp);
         this.byteBuffer.putLong(ENDTIMESTAMP_INDEX, endTimestamp);
     }
 
+
     public long getBeginPhyOffset() {
         return beginPhyOffset.get();
     }
+
 
     public void setBeginPhyOffset(long beginPhyOffset) {
         this.beginPhyOffset.set(beginPhyOffset);
         this.byteBuffer.putLong(BEGINPHYOFFSET_INDEX, beginPhyOffset);
     }
 
+
     public long getEndPhyOffset() {
         return endPhyOffset.get();
     }
+
 
     public void setEndPhyOffset(long endPhyOffset) {
         this.endPhyOffset.set(endPhyOffset);
         this.byteBuffer.putLong(ENDPHYOFFSET_INDEX, endPhyOffset);
     }
 
+
     public AtomicInteger getHashSlotCount() {
         return hashSlotCount;
     }
+
 
     public void incHashSlotCount() {
         int value = this.hashSlotCount.incrementAndGet();
         this.byteBuffer.putInt(HASHSLOTCOUNT_INDEX, value);
     }
 
+
     public int getIndexCount() {
         return indexCount.get();
     }
+
 
     public void incIndexCount() {
         int value = this.indexCount.incrementAndGet();

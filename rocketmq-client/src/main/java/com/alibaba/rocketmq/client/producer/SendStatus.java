@@ -17,7 +17,7 @@ package com.alibaba.rocketmq.client.producer;
 
 /**
  * 这4种状态都表示消息已经成功到达Master
- *
+ * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-25
  */

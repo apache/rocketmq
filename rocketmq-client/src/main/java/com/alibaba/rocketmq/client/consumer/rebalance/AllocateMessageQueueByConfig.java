@@ -15,29 +15,32 @@
  */
 package com.alibaba.rocketmq.client.consumer.rebalance;
 
+import java.util.List;
+
 import com.alibaba.rocketmq.client.consumer.AllocateMessageQueueStrategy;
 import com.alibaba.rocketmq.common.message.MessageQueue;
-
-import java.util.List;
 
 
 /**
  * 按照配置来分配队列，建议应用使用Spring来初始化
- *
+ * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-24
  */
 public class AllocateMessageQueueByConfig implements AllocateMessageQueueStrategy {
     private List<MessageQueue> messageQueueList;
 
+
     @Override
     public List<MessageQueue> allocate(String currentCID, List<MessageQueue> mqAll, List<String> cidAll) {
         return this.messageQueueList;
     }
 
+
     public List<MessageQueue> getMessageQueueList() {
         return messageQueueList;
     }
+
 
     public void setMessageQueueList(List<MessageQueue> messageQueueList) {
         this.messageQueueList = messageQueueList;

@@ -10,7 +10,7 @@ import com.alibaba.rocketmq.store.config.MessageStoreConfig;
 
 /**
  * HA测试
- *
+ * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public class BrokerSlave {
@@ -32,7 +32,8 @@ public class BrokerSlave {
             storeTestObject.start();
 
             System.out.println("start OK, " + messageStoreConfig.getBrokerRole());
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             e.printStackTrace();
             System.exit(-1);
         }

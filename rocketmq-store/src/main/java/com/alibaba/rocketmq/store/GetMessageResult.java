@@ -22,13 +22,14 @@ import java.util.List;
 
 /**
  * 访问消息返回结果
- *
+ * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-21
  */
 public class GetMessageResult {
     // 多个连续的消息集合
-    private final List<SelectMapedBufferResult> messageMapedList = new ArrayList<SelectMapedBufferResult>(100);
+    private final List<SelectMapedBufferResult> messageMapedList =
+            new ArrayList<SelectMapedBufferResult>(100);
     // 用来向Consumer传送消息
     private final List<ByteBuffer> messageBufferList = new ArrayList<ByteBuffer>(100);
     // 枚举变量，取消息结果
@@ -48,45 +49,56 @@ public class GetMessageResult {
     public GetMessageResult() {
     }
 
+
     public GetMessageStatus getStatus() {
         return status;
     }
+
 
     public void setStatus(GetMessageStatus status) {
         this.status = status;
     }
 
+
     public long getNextBeginOffset() {
         return nextBeginOffset;
     }
+
 
     public void setNextBeginOffset(long nextBeginOffset) {
         this.nextBeginOffset = nextBeginOffset;
     }
 
+
     public long getMinOffset() {
         return minOffset;
     }
+
 
     public void setMinOffset(long minOffset) {
         this.minOffset = minOffset;
     }
 
+
     public long getMaxOffset() {
         return maxOffset;
     }
+
 
     public void setMaxOffset(long maxOffset) {
         this.maxOffset = maxOffset;
     }
 
+
     public List<SelectMapedBufferResult> getMessageMapedList() {
         return messageMapedList;
     }
 
+
     public List<ByteBuffer> getMessageBufferList() {
         return messageBufferList;
     }
+
 
     public void addMessage(final SelectMapedBufferResult mapedBuffer) {
         this.messageMapedList.add(mapedBuffer);
@@ -94,27 +106,33 @@ public class GetMessageResult {
         this.bufferTotalSize += mapedBuffer.getSize();
     }
 
+
     public void release() {
         for (SelectMapedBufferResult select : this.messageMapedList) {
             select.release();
         }
     }
 
+
     public int getBufferTotalSize() {
         return bufferTotalSize;
     }
+
 
     public void setBufferTotalSize(int bufferTotalSize) {
         this.bufferTotalSize = bufferTotalSize;
     }
 
+
     public int getMessageCount() {
         return this.messageMapedList.size();
     }
 
+
     public boolean isSuggestPullingFromSlave() {
         return suggestPullingFromSlave;
     }
+
 
     public void setSuggestPullingFromSlave(boolean suggestPullingFromSlave) {
         this.suggestPullingFromSlave = suggestPullingFromSlave;

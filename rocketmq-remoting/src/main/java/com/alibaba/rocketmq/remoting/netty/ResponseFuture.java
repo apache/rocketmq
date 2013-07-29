@@ -15,18 +15,18 @@
  */
 package com.alibaba.rocketmq.remoting.netty;
 
-import com.alibaba.rocketmq.remoting.InvokeCallback;
-import com.alibaba.rocketmq.remoting.common.SemaphoreReleaseOnlyOnce;
-import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
-
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import com.alibaba.rocketmq.remoting.InvokeCallback;
+import com.alibaba.rocketmq.remoting.common.SemaphoreReleaseOnlyOnce;
+import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
+
 
 /**
  * 异步请求应答封装
- *
+ * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-13
  */
@@ -43,7 +43,8 @@ public class ResponseFuture {
     private final AtomicBoolean executeCallbackOnlyOnce = new AtomicBoolean(false);
 
 
-    public ResponseFuture(int opaque, long timeoutMillis, InvokeCallback invokeCallback, SemaphoreReleaseOnlyOnce once) {
+    public ResponseFuture(int opaque, long timeoutMillis, InvokeCallback invokeCallback,
+            SemaphoreReleaseOnlyOnce once) {
         this.opaque = opaque;
         this.timeoutMillis = timeoutMillis;
         this.invokeCallback = invokeCallback;
@@ -137,6 +138,9 @@ public class ResponseFuture {
 
     @Override
     public String toString() {
-        return "ResponseFuture [responseCommand=" + responseCommand + ", sendRequestOK=" + sendRequestOK + ", cause=" + cause + ", opaque=" + opaque + ", timeoutMillis=" + timeoutMillis + ", invokeCallback=" + invokeCallback + ", beginTimestamp=" + beginTimestamp + ", countDownLatch=" + countDownLatch + "]";
+        return "ResponseFuture [responseCommand=" + responseCommand + ", sendRequestOK=" + sendRequestOK
+                + ", cause=" + cause + ", opaque=" + opaque + ", timeoutMillis=" + timeoutMillis
+                + ", invokeCallback=" + invokeCallback + ", beginTimestamp=" + beginTimestamp
+                + ", countDownLatch=" + countDownLatch + "]";
     }
 }

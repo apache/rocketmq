@@ -15,19 +15,20 @@
  */
 package com.alibaba.rocketmq.broker.offset;
 
+import java.util.concurrent.ConcurrentHashMap;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.alibaba.rocketmq.broker.BrokerController;
 import com.alibaba.rocketmq.common.ConfigManager;
 import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.remoting.protocol.RemotingSerializable;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.util.concurrent.ConcurrentHashMap;
 
 
 /**
  * Consumer消费进度管理
- *
+ * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-26
  */
@@ -35,7 +36,8 @@ public class ConsumerOffsetManager extends ConfigManager {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.BrokerLoggerName);
     private static final String TOPIC_GROUP_SEPARATOR = "@";
 
-    private ConcurrentHashMap<String/* topic@group */, ConcurrentHashMap<Integer, Long>> offsetTable = new ConcurrentHashMap<String, ConcurrentHashMap<Integer, Long>>(512);
+    private ConcurrentHashMap<String/* topic@group */, ConcurrentHashMap<Integer, Long>> offsetTable =
+            new ConcurrentHashMap<String, ConcurrentHashMap<Integer, Long>>(512);
 
     private transient volatile ConcurrentHashMap<String, ConcurrentHashMap<Integer, Long>> offsetTableLastLast;
     private transient volatile ConcurrentHashMap<String, ConcurrentHashMap<Integer, Long>> offsetTableLast;
@@ -51,8 +53,10 @@ public class ConsumerOffsetManager extends ConfigManager {
     }
 
 
-    private static ConcurrentHashMap<String, ConcurrentHashMap<Integer, Long>> cloneOffsetTable(final ConcurrentHashMap<String, ConcurrentHashMap<Integer, Long>> input) {
-        ConcurrentHashMap<String, ConcurrentHashMap<Integer, Long>> out = new ConcurrentHashMap<String, ConcurrentHashMap<Integer, Long>>(input.size());
+    private static ConcurrentHashMap<String, ConcurrentHashMap<Integer, Long>> cloneOffsetTable(
+            final ConcurrentHashMap<String, ConcurrentHashMap<Integer, Long>> input) {
+        ConcurrentHashMap<String, ConcurrentHashMap<Integer, Long>> out =
+                new ConcurrentHashMap<String, ConcurrentHashMap<Integer, Long>>(input.size());
 
         for (String topicgroup : input.keySet()) {
             ConcurrentHashMap<Integer, Long> map = input.get(topicgroup);
@@ -92,7 +96,8 @@ public class ConsumerOffsetManager extends ConfigManager {
         if (0 == totalMsgs)
             return 0;
 
-        double pullTps = totalMsgs / this.brokerController.getBrokerConfig().getFlushConsumerOffsetHistoryInterval();
+        double pullTps =
+                totalMsgs / this.brokerController.getBrokerConfig().getFlushConsumerOffsetHistoryInterval();
         pullTps *= 1000;
 
         return Double.valueOf(pullTps).longValue();
@@ -100,7 +105,8 @@ public class ConsumerOffsetManager extends ConfigManager {
 
 
     public void recordPullTPS() {
-        ConcurrentHashMap<String, ConcurrentHashMap<Integer, Long>> snapshotNow = cloneOffsetTable(this.offsetTable);
+        ConcurrentHashMap<String, ConcurrentHashMap<Integer, Long>> snapshotNow =
+                cloneOffsetTable(this.offsetTable);
         this.offsetTableLastLast = this.offsetTableLast;
         this.offsetTableLast = snapshotNow;
 
@@ -140,7 +146,8 @@ public class ConsumerOffsetManager extends ConfigManager {
             map = new ConcurrentHashMap<Integer, Long>(32);
             map.put(queueId, offset);
             this.offsetTable.put(key, map);
-        } else {
+        }
+        else {
             map.put(queueId, offset);
         }
     }
@@ -159,7 +166,8 @@ public class ConsumerOffsetManager extends ConfigManager {
     @Override
     public void decode(String jsonString) {
         if (jsonString != null) {
-            ConsumerOffsetManager obj = RemotingSerializable.fromJson(jsonString, ConsumerOffsetManager.class);
+            ConsumerOffsetManager obj =
+                    RemotingSerializable.fromJson(jsonString, ConsumerOffsetManager.class);
             if (obj != null) {
                 this.offsetTable = obj.offsetTable;
             }

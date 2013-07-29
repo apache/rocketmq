@@ -15,6 +15,12 @@
  */
 package com.alibaba.rocketmq.client.impl;
 
+import io.netty.channel.ChannelHandlerContext;
+
+import java.nio.ByteBuffer;
+
+import org.slf4j.Logger;
+
 import com.alibaba.rocketmq.client.impl.factory.MQClientFactory;
 import com.alibaba.rocketmq.client.impl.producer.MQProducerInner;
 import com.alibaba.rocketmq.client.log.ClientLogger;
@@ -28,15 +34,11 @@ import com.alibaba.rocketmq.remoting.common.RemotingHelper;
 import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
 import com.alibaba.rocketmq.remoting.netty.NettyRequestProcessor;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
-import io.netty.channel.ChannelHandlerContext;
-import org.slf4j.Logger;
-
-import java.nio.ByteBuffer;
 
 
 /**
  * Client接收Broker的回调操作，例如事务回调，或者其他管理类命令回调
- *
+ * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-24
  */
@@ -49,25 +51,31 @@ public class ClientRemotingProcessor implements NettyRequestProcessor {
         this.mqClientFactory = mqClientFactory;
     }
 
+
     @Override
-    public RemotingCommand processRequest(ChannelHandlerContext ctx, RemotingCommand request) throws RemotingCommandException {
+    public RemotingCommand processRequest(ChannelHandlerContext ctx, RemotingCommand request)
+            throws RemotingCommandException {
         MQRequestCode code = MQRequestCode.valueOf(request.getCode());
         switch (code) {
-            case CHECK_TRANSACTION_STATE:
-                return this.checkTransactionState(ctx, request);
-            case NOTIFY_CONSUMER_IDS_CHANGED:
-                return this.notifyConsumerIdsChanged(ctx, request);
-            default:
-                break;
+        case CHECK_TRANSACTION_STATE:
+            return this.checkTransactionState(ctx, request);
+        case NOTIFY_CONSUMER_IDS_CHANGED:
+            return this.notifyConsumerIdsChanged(ctx, request);
+        default:
+            break;
         }
         return null;
     }
 
+
     /**
      * Oneway调用，无返回值
      */
-    public RemotingCommand checkTransactionState(ChannelHandlerContext ctx, RemotingCommand request) throws RemotingCommandException {
-        final CheckTransactionStateRequestHeader requestHeader = (CheckTransactionStateRequestHeader) request.decodeCommandCustomHeader(CheckTransactionStateRequestHeader.class);
+    public RemotingCommand checkTransactionState(ChannelHandlerContext ctx, RemotingCommand request)
+            throws RemotingCommandException {
+        final CheckTransactionStateRequestHeader requestHeader =
+                (CheckTransactionStateRequestHeader) request
+                    .decodeCommandCustomHeader(CheckTransactionStateRequestHeader.class);
         final ByteBuffer byteBuffer = ByteBuffer.wrap(request.getBody());
         final MessageExt messageExt = MessageDecoder.decode(byteBuffer);
         if (messageExt != null) {
@@ -77,27 +85,34 @@ public class ClientRemotingProcessor implements NettyRequestProcessor {
                 if (producer != null) {
                     final String addr = RemotingHelper.parseChannelRemoteAddr(ctx.channel());
                     producer.checkTransactionState(addr, messageExt, requestHeader);
-                } else {
+                }
+                else {
                     log.debug("checkTransactionState, pick producer by group[{}] failed", group);
                 }
-            } else {
+            }
+            else {
                 log.warn("checkTransactionState, pick producer group failed");
             }
-        } else {
+        }
+        else {
             log.warn("checkTransactionState, decode message failed");
         }
 
         return null;
     }
 
+
     /**
      * Oneway调用，无返回值
      */
-    public RemotingCommand notifyConsumerIdsChanged(ChannelHandlerContext ctx, RemotingCommand request) throws RemotingCommandException {
-        final NotifyConsumerIdsChangedRequestHeader requestHeader = (NotifyConsumerIdsChangedRequestHeader) request.decodeCommandCustomHeader(NotifyConsumerIdsChangedRequestHeader.class);
+    public RemotingCommand notifyConsumerIdsChanged(ChannelHandlerContext ctx, RemotingCommand request)
+            throws RemotingCommandException {
+        final NotifyConsumerIdsChangedRequestHeader requestHeader =
+                (NotifyConsumerIdsChangedRequestHeader) request
+                    .decodeCommandCustomHeader(NotifyConsumerIdsChangedRequestHeader.class);
         log.info("receive broker's notification[{}], the consumer group: {} changed, rebalance immediately",//
-                RemotingHelper.parseChannelRemoteAddr(ctx.channel()),//
-                requestHeader.getConsumerGroup());
+            RemotingHelper.parseChannelRemoteAddr(ctx.channel()),//
+            requestHeader.getConsumerGroup());
         this.mqClientFactory.rebalanceImmediately();
         return null;
     }

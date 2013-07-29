@@ -3,9 +3,9 @@
  */
 package com.alibaba.rocketmq.common.protocol.route;
 
-import com.alibaba.rocketmq.common.MixAll;
-
 import java.util.HashMap;
+
+import com.alibaba.rocketmq.common.MixAll;
 
 
 /**
@@ -74,12 +74,14 @@ public class BrokerData implements Comparable<BrokerData> {
         if (brokerAddrs == null) {
             if (other.brokerAddrs != null)
                 return false;
-        } else if (!brokerAddrs.equals(other.brokerAddrs))
+        }
+        else if (!brokerAddrs.equals(other.brokerAddrs))
             return false;
         if (brokerName == null) {
             if (other.brokerName != null)
                 return false;
-        } else if (!brokerName.equals(other.brokerName))
+        }
+        else if (!brokerName.equals(other.brokerName))
             return false;
         return true;
     }

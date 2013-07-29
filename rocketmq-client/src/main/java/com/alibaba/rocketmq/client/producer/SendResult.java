@@ -20,7 +20,7 @@ import com.alibaba.rocketmq.common.message.MessageQueue;
 
 /**
  * 发送消息结果
- *
+ * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-25
  */
@@ -61,6 +61,7 @@ public class SendResult {
 
     @Override
     public String toString() {
-        return "SendResult [sendStatus=" + sendStatus + ", msgId=" + msgId + ", messageQueue=" + messageQueue + ", queueOffset=" + queueOffset + "]";
+        return "SendResult [sendStatus=" + sendStatus + ", msgId=" + msgId + ", messageQueue=" + messageQueue
+                + ", queueOffset=" + queueOffset + "]";
     }
 }

@@ -15,14 +15,14 @@
  */
 package com.alibaba.rocketmq.common.admin;
 
-import com.alibaba.rocketmq.common.message.MessageQueue;
-
 import java.util.HashMap;
+
+import com.alibaba.rocketmq.common.message.MessageQueue;
 
 
 /**
  * Topic所有队列的Offset
- *
+ * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-14
  */

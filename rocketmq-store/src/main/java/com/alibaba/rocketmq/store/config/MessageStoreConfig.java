@@ -15,35 +15,40 @@
  */
 package com.alibaba.rocketmq.store.config;
 
+import java.io.File;
+
 import com.alibaba.rocketmq.common.annotation.ImportantField;
 import com.alibaba.rocketmq.store.ConsumeQueue;
 import com.alibaba.rocketmq.store.transaction.TransactionStateService;
 
-import java.io.File;
-
 
 /**
  * 存储层配置文件类
- *
+ * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-21
  */
 public class MessageStoreConfig {
     // CommitLog存储目录
     @ImportantField
-    private String storePathCommitLog = System.getProperty("user.home") + File.separator + "store" + File.separator + "commitlog";
+    private String storePathCommitLog = System.getProperty("user.home") + File.separator + "store"
+            + File.separator + "commitlog";
     // ConsumeQueue存储目录
     @ImportantField
-    private String storePathConsumeQueue = System.getProperty("user.home") + File.separator + "store" + File.separator + "consumequeue";
+    private String storePathConsumeQueue = System.getProperty("user.home") + File.separator + "store"
+            + File.separator + "consumequeue";
     // 索引文件存储目录
     @ImportantField
-    private String storePathIndex = System.getProperty("user.home") + File.separator + "store" + File.separator + "index";
+    private String storePathIndex = System.getProperty("user.home") + File.separator + "store"
+            + File.separator + "index";
     // 异常退出产生的文件
     @ImportantField
-    private String storeCheckpoint = System.getProperty("user.home") + File.separator + "store" + File.separator + "checkpoint";
+    private String storeCheckpoint = System.getProperty("user.home") + File.separator + "store"
+            + File.separator + "checkpoint";
     // 异常退出产生的文件
     @ImportantField
-    private String abortFile = System.getProperty("user.home") + File.separator + "store" + File.separator + "abort";
+    private String abortFile = System.getProperty("user.home") + File.separator + "store" + File.separator
+            + "abort";
     // CommitLog每个文件大小 1G
     private int mapedFileSizeCommitLog = 1024 * 1024 * 1024;
     // ConsumeQueue每个文件大小 默认存储50W条消息
@@ -122,13 +127,17 @@ public class MessageStoreConfig {
     // 同步刷盘超时时间
     private int syncFlushTimeout = 1000 * 5;
     // 定时消息相关
-    private String messageDelayLevel = "1s 5s 10s 30s 1m 2m 3m 4m 5m 6m 7m 8m 9m 10m 20m 30m 40m 50m 1h 2h 6h 12h 1d";
+    private String messageDelayLevel =
+            "1s 5s 10s 30s 1m 2m 3m 4m 5m 6m 7m 8m 9m 10m 20m 30m 40m 50m 1h 2h 6h 12h 1d";
     private long flushDelayOffsetInterval = 1000 * 10;
-    private String delayOffsetStorePath = System.getProperty("user.home") + File.separator + "store" + File.separator + "config" + File.separator + "delayOffset.json";
+    private String delayOffsetStorePath = System.getProperty("user.home") + File.separator + "store"
+            + File.separator + "config" + File.separator + "delayOffset.json";
     // 分布式事务配置
-    private String tranStateTableStorePath = System.getProperty("user.home") + File.separator + "store" + File.separator + "transaction" + File.separator + "statetable";
+    private String tranStateTableStorePath = System.getProperty("user.home") + File.separator + "store"
+            + File.separator + "transaction" + File.separator + "statetable";
     private int tranStateTableMapedFileSize = 2000000 * TransactionStateService.TSStoreUnitSize;
-    private String tranRedoLogStorePath = System.getProperty("user.home") + File.separator + "store" + File.separator + "transaction" + File.separator + "redolog";
+    private String tranRedoLogStorePath = System.getProperty("user.home") + File.separator + "store"
+            + File.separator + "transaction" + File.separator + "redolog";
     private int tranRedoLogMapedFileSize = 2000000 * ConsumeQueue.CQStoreUnitSize;
     // 事务回查至少间隔时间
     private long checkTransactionMessageAtleastInterval = 1000 * 60;
@@ -139,13 +148,16 @@ public class MessageStoreConfig {
     // 磁盘空间超过90%警戒水位，自动开始删除文件
     private boolean cleanFileForciblyEnable = true;
 
+
     public int getMapedFileSizeCommitLog() {
         return mapedFileSizeCommitLog;
     }
 
+
     public void setMapedFileSizeCommitLog(int mapedFileSizeCommitLog) {
         this.mapedFileSizeCommitLog = mapedFileSizeCommitLog;
     }
+
 
     public int getMapedFileSizeConsumeQueue() {
         // 此处需要向上取整
@@ -153,93 +165,116 @@ public class MessageStoreConfig {
         return (int) (factor * ConsumeQueue.CQStoreUnitSize);
     }
 
+
     public void setMapedFileSizeConsumeQueue(int mapedFileSizeConsumeQueue) {
         this.mapedFileSizeConsumeQueue = mapedFileSizeConsumeQueue;
     }
+
 
     public int getFlushIntervalCommitLog() {
         return flushIntervalCommitLog;
     }
 
+
     public void setFlushIntervalCommitLog(int flushIntervalCommitLog) {
         this.flushIntervalCommitLog = flushIntervalCommitLog;
     }
+
 
     public int getFlushIntervalConsumeQueue() {
         return flushIntervalConsumeQueue;
     }
 
+
     public void setFlushIntervalConsumeQueue(int flushIntervalConsumeQueue) {
         this.flushIntervalConsumeQueue = flushIntervalConsumeQueue;
     }
+
 
     public int getPutMsgIndexHightWater() {
         return putMsgIndexHightWater;
     }
 
+
     public void setPutMsgIndexHightWater(int putMsgIndexHightWater) {
         this.putMsgIndexHightWater = putMsgIndexHightWater;
     }
+
 
     public int getCleanResourceInterval() {
         return cleanResourceInterval;
     }
 
+
     public void setCleanResourceInterval(int cleanResourceInterval) {
         this.cleanResourceInterval = cleanResourceInterval;
     }
+
 
     public int getMaxMessageSize() {
         return maxMessageSize;
     }
 
+
     public void setMaxMessageSize(int maxMessageSize) {
         this.maxMessageSize = maxMessageSize;
     }
+
 
     public boolean isCheckCRCOnRecover() {
         return checkCRCOnRecover;
     }
 
+
     public boolean getCheckCRCOnRecover() {
         return checkCRCOnRecover;
     }
+
 
     public void setCheckCRCOnRecover(boolean checkCRCOnRecover) {
         this.checkCRCOnRecover = checkCRCOnRecover;
     }
 
+
     public String getStorePathCommitLog() {
         return storePathCommitLog;
     }
+
 
     public void setStorePathCommitLog(String storePathCommitLog) {
         this.storePathCommitLog = storePathCommitLog;
     }
 
+
     public String getStorePathConsumeQueue() {
         return storePathConsumeQueue;
     }
+
 
     public void setStorePathConsumeQueue(String storePathConsumeQueue) {
         this.storePathConsumeQueue = storePathConsumeQueue;
     }
 
+
     public String getAbortFile() {
         return abortFile;
     }
+
 
     public void setAbortFile(String abortFile) {
         this.abortFile = abortFile;
     }
 
+
     public String getDeleteWhen() {
         return deleteWhen;
     }
 
+
     public void setDeleteWhen(String deleteWhen) {
         this.deleteWhen = deleteWhen;
     }
+
 
     public int getDiskMaxUsedSpaceRatio() {
         if (this.diskMaxUsedSpaceRatio < 10)
@@ -251,333 +286,416 @@ public class MessageStoreConfig {
         return diskMaxUsedSpaceRatio;
     }
 
+
     public void setDiskMaxUsedSpaceRatio(int diskMaxUsedSpaceRatio) {
         this.diskMaxUsedSpaceRatio = diskMaxUsedSpaceRatio;
     }
+
 
     public int getDeleteCommitLogFilesInterval() {
         return deleteCommitLogFilesInterval;
     }
 
+
     public void setDeleteCommitLogFilesInterval(int deleteCommitLogFilesInterval) {
         this.deleteCommitLogFilesInterval = deleteCommitLogFilesInterval;
     }
+
 
     public int getDeleteConsumeQueueFilesInterval() {
         return deleteConsumeQueueFilesInterval;
     }
 
+
     public void setDeleteConsumeQueueFilesInterval(int deleteConsumeQueueFilesInterval) {
         this.deleteConsumeQueueFilesInterval = deleteConsumeQueueFilesInterval;
     }
+
 
     public int getMaxTransferBytesOnMessageInMemory() {
         return maxTransferBytesOnMessageInMemory;
     }
 
+
     public void setMaxTransferBytesOnMessageInMemory(int maxTransferBytesOnMessageInMemory) {
         this.maxTransferBytesOnMessageInMemory = maxTransferBytesOnMessageInMemory;
     }
+
 
     public int getMaxTransferCountOnMessageInMemory() {
         return maxTransferCountOnMessageInMemory;
     }
 
+
     public void setMaxTransferCountOnMessageInMemory(int maxTransferCountOnMessageInMemory) {
         this.maxTransferCountOnMessageInMemory = maxTransferCountOnMessageInMemory;
     }
+
 
     public int getMaxTransferBytesOnMessageInDisk() {
         return maxTransferBytesOnMessageInDisk;
     }
 
+
     public void setMaxTransferBytesOnMessageInDisk(int maxTransferBytesOnMessageInDisk) {
         this.maxTransferBytesOnMessageInDisk = maxTransferBytesOnMessageInDisk;
     }
+
 
     public int getMaxTransferCountOnMessageInDisk() {
         return maxTransferCountOnMessageInDisk;
     }
 
+
     public void setMaxTransferCountOnMessageInDisk(int maxTransferCountOnMessageInDisk) {
         this.maxTransferCountOnMessageInDisk = maxTransferCountOnMessageInDisk;
     }
+
 
     public int getFlushCommitLogLeastPages() {
         return flushCommitLogLeastPages;
     }
 
+
     public void setFlushCommitLogLeastPages(int flushCommitLogLeastPages) {
         this.flushCommitLogLeastPages = flushCommitLogLeastPages;
     }
+
 
     public int getFlushConsumeQueueLeastPages() {
         return flushConsumeQueueLeastPages;
     }
 
+
     public void setFlushConsumeQueueLeastPages(int flushConsumeQueueLeastPages) {
         this.flushConsumeQueueLeastPages = flushConsumeQueueLeastPages;
     }
+
 
     public int getFlushCommitLogThoroughInterval() {
         return flushCommitLogThoroughInterval;
     }
 
+
     public void setFlushCommitLogThoroughInterval(int flushCommitLogThoroughInterval) {
         this.flushCommitLogThoroughInterval = flushCommitLogThoroughInterval;
     }
+
 
     public int getFlushConsumeQueueThoroughInterval() {
         return flushConsumeQueueThoroughInterval;
     }
 
+
     public void setFlushConsumeQueueThoroughInterval(int flushConsumeQueueThoroughInterval) {
         this.flushConsumeQueueThoroughInterval = flushConsumeQueueThoroughInterval;
     }
+
 
     public int getDestroyMapedFileIntervalForcibly() {
         return destroyMapedFileIntervalForcibly;
     }
 
+
     public void setDestroyMapedFileIntervalForcibly(int destroyMapedFileIntervalForcibly) {
         this.destroyMapedFileIntervalForcibly = destroyMapedFileIntervalForcibly;
     }
+
 
     public String getStoreCheckpoint() {
         return storeCheckpoint;
     }
 
+
     public void setStoreCheckpoint(String storeCheckpoint) {
         this.storeCheckpoint = storeCheckpoint;
     }
+
 
     public int getFileReservedTime() {
         return fileReservedTime;
     }
 
+
     public void setFileReservedTime(int fileReservedTime) {
         this.fileReservedTime = fileReservedTime;
     }
+
 
     public int getRedeleteHangedFileInterval() {
         return redeleteHangedFileInterval;
     }
 
+
     public void setRedeleteHangedFileInterval(int redeleteHangedFileInterval) {
         this.redeleteHangedFileInterval = redeleteHangedFileInterval;
     }
+
 
     public int getAccessMessageInMemoryMaxRatio() {
         return accessMessageInMemoryMaxRatio;
     }
 
+
     public void setAccessMessageInMemoryMaxRatio(int accessMessageInMemoryMaxRatio) {
         this.accessMessageInMemoryMaxRatio = accessMessageInMemoryMaxRatio;
     }
+
 
     public boolean isMessageIndexEnable() {
         return messageIndexEnable;
     }
 
+
     public void setMessageIndexEnable(boolean messageIndexEnable) {
         this.messageIndexEnable = messageIndexEnable;
     }
+
 
     public int getMaxHashSlotNum() {
         return maxHashSlotNum;
     }
 
+
     public void setMaxHashSlotNum(int maxHashSlotNum) {
         this.maxHashSlotNum = maxHashSlotNum;
     }
+
 
     public int getMaxIndexNum() {
         return maxIndexNum;
     }
 
+
     public void setMaxIndexNum(int maxIndexNum) {
         this.maxIndexNum = maxIndexNum;
     }
+
 
     public String getStorePathIndex() {
         return storePathIndex;
     }
 
+
     public void setStorePathIndex(String storePathIndex) {
         this.storePathIndex = storePathIndex;
     }
+
 
     public int getMaxMsgsNumBatch() {
         return maxMsgsNumBatch;
     }
 
+
     public void setMaxMsgsNumBatch(int maxMsgsNumBatch) {
         this.maxMsgsNumBatch = maxMsgsNumBatch;
     }
+
 
     public int getHaListenPort() {
         return haListenPort;
     }
 
+
     public void setHaListenPort(int haListenPort) {
         this.haListenPort = haListenPort;
     }
+
 
     public int getHaSendHeartbeatInterval() {
         return haSendHeartbeatInterval;
     }
 
+
     public void setHaSendHeartbeatInterval(int haSendHeartbeatInterval) {
         this.haSendHeartbeatInterval = haSendHeartbeatInterval;
     }
+
 
     public int getHaHousekeepingInterval() {
         return haHousekeepingInterval;
     }
 
+
     public void setHaHousekeepingInterval(int haHousekeepingInterval) {
         this.haHousekeepingInterval = haHousekeepingInterval;
     }
+
 
     public BrokerRole getBrokerRole() {
         return brokerRole;
     }
 
+
     public void setBrokerRole(BrokerRole brokerRole) {
         this.brokerRole = brokerRole;
     }
+
 
     public void setBrokerRole(String brokerRole) {
         this.brokerRole = BrokerRole.valueOf(brokerRole);
     }
 
+
     public int getHaTransferBatchSize() {
         return haTransferBatchSize;
     }
+
 
     public void setHaTransferBatchSize(int haTransferBatchSize) {
         this.haTransferBatchSize = haTransferBatchSize;
     }
 
+
     public int getHaSlaveFallbehindMax() {
         return haSlaveFallbehindMax;
     }
+
 
     public void setHaSlaveFallbehindMax(int haSlaveFallbehindMax) {
         this.haSlaveFallbehindMax = haSlaveFallbehindMax;
     }
 
+
     public FlushDiskType getFlushDiskType() {
         return flushDiskType;
     }
+
 
     public void setFlushDiskType(FlushDiskType flushDiskType) {
         this.flushDiskType = flushDiskType;
     }
 
+
     public void setFlushDiskType(String type) {
         this.flushDiskType = FlushDiskType.valueOf(type);
     }
+
 
     public int getSyncFlushTimeout() {
         return syncFlushTimeout;
     }
 
+
     public void setSyncFlushTimeout(int syncFlushTimeout) {
         this.syncFlushTimeout = syncFlushTimeout;
     }
+
 
     public String getHaMasterAddress() {
         return haMasterAddress;
     }
 
+
     public void setHaMasterAddress(String haMasterAddress) {
         this.haMasterAddress = haMasterAddress;
     }
+
 
     public String getMessageDelayLevel() {
         return messageDelayLevel;
     }
 
+
     public void setMessageDelayLevel(String messageDelayLevel) {
         this.messageDelayLevel = messageDelayLevel;
     }
+
 
     public long getFlushDelayOffsetInterval() {
         return flushDelayOffsetInterval;
     }
 
+
     public void setFlushDelayOffsetInterval(long flushDelayOffsetInterval) {
         this.flushDelayOffsetInterval = flushDelayOffsetInterval;
     }
+
 
     public String getDelayOffsetStorePath() {
         return delayOffsetStorePath;
     }
 
+
     public void setDelayOffsetStorePath(String delayOffsetStorePath) {
         this.delayOffsetStorePath = delayOffsetStorePath;
     }
+
 
     public String getTranStateTableStorePath() {
         return tranStateTableStorePath;
     }
 
+
     public void setTranStateTableStorePath(String tranStateTableStorePath) {
         this.tranStateTableStorePath = tranStateTableStorePath;
     }
+
 
     public int getTranStateTableMapedFileSize() {
         return tranStateTableMapedFileSize;
     }
 
+
     public void setTranStateTableMapedFileSize(int tranStateTableMapedFileSize) {
         this.tranStateTableMapedFileSize = tranStateTableMapedFileSize;
     }
+
 
     public String getTranRedoLogStorePath() {
         return tranRedoLogStorePath;
     }
 
+
     public void setTranRedoLogStorePath(String tranRedoLogStorePath) {
         this.tranRedoLogStorePath = tranRedoLogStorePath;
     }
+
 
     public int getTranRedoLogMapedFileSize() {
         return tranRedoLogMapedFileSize;
     }
 
+
     public void setTranRedoLogMapedFileSize(int tranRedoLogMapedFileSize) {
         this.tranRedoLogMapedFileSize = tranRedoLogMapedFileSize;
     }
+
 
     public long getCheckTransactionMessageAtleastInterval() {
         return checkTransactionMessageAtleastInterval;
     }
 
+
     public void setCheckTransactionMessageAtleastInterval(long checkTransactionMessageAtleastInterval) {
         this.checkTransactionMessageAtleastInterval = checkTransactionMessageAtleastInterval;
     }
+
 
     public long getCheckTransactionMessageTimerInterval() {
         return checkTransactionMessageTimerInterval;
     }
 
+
     public void setCheckTransactionMessageTimerInterval(long checkTransactionMessageTimerInterval) {
         this.checkTransactionMessageTimerInterval = checkTransactionMessageTimerInterval;
     }
+
 
     public boolean isCleanFileForciblyEnable() {
         return cleanFileForciblyEnable;
     }
 
+
     public void setCleanFileForciblyEnable(boolean cleanFileForciblyEnable) {
         this.cleanFileForciblyEnable = cleanFileForciblyEnable;
     }
 
+
     public boolean isCheckTransactionMessageEnable() {
         return checkTransactionMessageEnable;
     }
+
 
     public void setCheckTransactionMessageEnable(boolean checkTransactionMessageEnable) {
         this.checkTransactionMessageEnable = checkTransactionMessageEnable;

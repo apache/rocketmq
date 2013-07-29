@@ -5,7 +5,7 @@ package com.alibaba.rocketmq.common.protocol.heartbeat;
 
 /**
  * 消费类型
- *
+ * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public enum ConsumeType {
