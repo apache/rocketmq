@@ -28,26 +28,29 @@ import com.alibaba.rocketmq.remoting.exception.RemotingException;
 /**
  * MQ管理类接口，涉及所有与MQ管理相关的对外接口<br>
  * 包括Topic创建、订阅组创建、配置修改等
- *
+ * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-14
  */
 public interface MQAdminExt extends MQAdmin {
     public void start() throws MQClientException;
 
+
     public void shutdown();
+
 
     /**
      * 向指定Broker集群创建或者更新Topic配置
-     *
+     * 
      * @param cluster
      * @param config
      */
     public void createAndUpdateTopicConfigByCluster(final String cluster, final TopicConfig config);
 
+
     /**
      * 向指定Broker创建或者更新Topic配置
-     *
+     * 
      * @param addr
      * @param config
      * @throws MQClientException
@@ -55,19 +58,23 @@ public interface MQAdminExt extends MQAdmin {
      * @throws MQBrokerException
      * @throws RemotingException
      */
-    public void createAndUpdateTopicConfigByAddr(final String addr, final TopicConfig config) throws RemotingException, MQBrokerException, InterruptedException, MQClientException;
+    public void createAndUpdateTopicConfigByAddr(final String addr, final TopicConfig config)
+            throws RemotingException, MQBrokerException, InterruptedException, MQClientException;
+
 
     /**
      * 向指定Broker集群创建或者更新订阅组配置
-     *
+     * 
      * @param cluster
      * @param config
      */
-    public void createAndUpdateSubscriptionGroupConfigByCluster(final String cluster, final SubscriptionGroupConfig config);
+    public void createAndUpdateSubscriptionGroupConfigByCluster(final String cluster,
+            final SubscriptionGroupConfig config);
+
 
     /**
      * 向指定Broker创建或者更新订阅组配置
-     *
+     * 
      * @param addr
      * @param config
      * @throws MQClientException
@@ -75,55 +82,63 @@ public interface MQAdminExt extends MQAdmin {
      * @throws MQBrokerException
      * @throws RemotingException
      */
-    public void createAndUpdateSubscriptionGroupConfigByAddr(final String addr, final SubscriptionGroupConfig config) throws RemotingException, MQBrokerException, InterruptedException, MQClientException;
+    public void createAndUpdateSubscriptionGroupConfigByAddr(final String addr,
+            final SubscriptionGroupConfig config) throws RemotingException, MQBrokerException,
+            InterruptedException, MQClientException;
+
 
     /**
      * 查询指定Broker的订阅组配置
-     *
+     * 
      * @param addr
      * @param group
      * @return
      */
     public SubscriptionGroupConfig examineSubscriptionGroupConfig(final String addr, final String group);
 
+
     /**
      * 查询指定Broker的Topic配置
-     *
+     * 
      * @param addr
      * @param group
      * @return
      */
     public TopicConfig examineTopicConfig(final String addr, final String topic);
 
+
     /**
      * 查询Topic Offset信息
-     *
+     * 
      * @param topic
      * @return
      */
     public TopicOffsetTable examineTopicOffset(final String topic);
 
+
     /**
      * 查询消费进度
-     *
+     * 
      * @param consumerGroup
      * @param topic
      * @return
      */
     public ConsumerProgress examineConsumerProgress(final String consumerGroup, final String topic);
 
+
     /**
      * 向Name Server增加一个配置项
-     *
+     * 
      * @param namespace
      * @param key
      * @param value
      */
     public void putKVConfig(final String namespace, final String key, final String value);
 
+
     /**
      * 从Name Server获取一个配置项
-     *
+     * 
      * @param namespace
      * @param key
      * @return

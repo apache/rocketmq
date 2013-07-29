@@ -15,14 +15,15 @@
  */
 package com.alibaba.rocketmq.tools.command.cluster;
 
-import com.alibaba.rocketmq.tools.command.SubCommand;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Options;
+
+import com.alibaba.rocketmq.tools.command.SubCommand;
 
 
 /**
  * 查看集群信息
- *
+ * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-25
  */
