@@ -21,16 +21,19 @@ import org.apache.commons.cli.Options;
 
 /**
  * 各个子命令的接口
- *
+ * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-25
  */
 public interface SubCommand {
     public String commandName();
 
+
     public String commandDesc();
 
+
     public Options buildCommandlineOptions(final Options options);
+
 
     public void execute(CommandLine commandLine);
 }
