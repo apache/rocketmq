@@ -56,14 +56,14 @@ public class MapedFile extends ReferenceResource {
     private final int fileSize;
     // 映射的文件
     private final File file;
-    // 映射的FileChannel对象
-    private final FileChannel fileChannel;
     // 映射的内存对象，position永远不变
     private final MappedByteBuffer mappedByteBuffer;
     // 当前写到什么位置
     private final AtomicInteger wrotePostion = new AtomicInteger(0);
     // Flush到什么位置
     private final AtomicInteger committedPosition = new AtomicInteger(0);
+    // 映射的FileChannel对象
+    private FileChannel fileChannel;
     // 最后一条消息存储时间
     private volatile long storeTimestamp = 0;
     private boolean firstCreateInQueue = false;
@@ -85,9 +85,11 @@ public class MapedFile extends ReferenceResource {
             TotalMapedFiles.incrementAndGet();
             ok = true;
         } catch (FileNotFoundException e) {
+            this.fileChannel = null;
             log.error("create file channel " + this.fileName + " Failed. ", e);
             throw e;
         } catch (IOException e) {
+            this.fileChannel = null;
             log.error("map file " + this.fileName + " Failed. ", e);
             throw e;
         } finally {
@@ -247,6 +249,14 @@ public class MapedFile extends ReferenceResource {
         return this.getCommittedPosition();
     }
 
+    public int getCommittedPosition() {
+        return committedPosition.get();
+    }
+
+    public void setCommittedPosition(int pos) {
+        this.committedPosition.set(pos);
+    }
+
     private boolean isAbleToFlush(final int flushLeastPages) {
         int flush = this.committedPosition.get();
         int write = this.wrotePostion.get();
@@ -266,14 +276,6 @@ public class MapedFile extends ReferenceResource {
 
     public boolean isFull() {
         return this.fileSize == this.wrotePostion.get();
-    }
-
-    public int getCommittedPosition() {
-        return committedPosition.get();
-    }
-
-    public void setCommittedPosition(int pos) {
-        this.committedPosition.set(pos);
     }
 
     public SelectMapedBufferResult selectMapedBuffer(int pos, int size) {
