@@ -42,13 +42,12 @@ import java.util.concurrent.atomic.AtomicLong;
  * @since 2013-7-21
  */
 public class MapedFile extends ReferenceResource {
-    private static final Logger log = LoggerFactory.getLogger(LoggerName.StoreLoggerName);
     public static final int OS_PAGE_SIZE = 1024 * 4;
+    private static final Logger log = LoggerFactory.getLogger(LoggerName.StoreLoggerName);
     // 当前JVM中映射的虚拟内存总大小
     private static final AtomicLong TotalMapedVitualMemory = new AtomicLong(0);
     // 当前JVM中mmap句柄数量
     private static final AtomicInteger TotalMapedFiles = new AtomicInteger(0);
-
     // 映射的文件名
     private final String fileName;
     // 映射的起始偏移量
@@ -67,7 +66,6 @@ public class MapedFile extends ReferenceResource {
     private final AtomicInteger committedPosition = new AtomicInteger(0);
     // 最后一条消息存储时间
     private volatile long storeTimestamp = 0;
-
     private boolean firstCreateInQueue = false;
 
 
@@ -99,7 +97,6 @@ public class MapedFile extends ReferenceResource {
         }
     }
 
-
     public static void ensureDirOK(final String dirName) {
         if (dirName != null) {
             File f = new File(dirName);
@@ -110,24 +107,57 @@ public class MapedFile extends ReferenceResource {
         }
     }
 
+    public static void clean(final ByteBuffer buffer) {
+        if (buffer == null || !buffer.isDirect() || buffer.capacity() == 0)
+            return;
+        invoke(invoke(viewed(buffer), "cleaner"), "clean");
+    }
+
+    private static Object invoke(final Object target, final String methodName, final Class<?>... args) {
+        return AccessController.doPrivileged(new PrivilegedAction<Object>() {
+            public Object run() {
+                try {
+                    Method method = method(target, methodName, args);
+                    method.setAccessible(true);
+                    return method.invoke(target);
+                } catch (Exception e) {
+                    throw new IllegalStateException(e);
+                }
+            }
+        });
+    }
+
+    private static Method method(Object target, String methodName, Class<?>[] args) throws NoSuchMethodException {
+        try {
+            return target.getClass().getMethod(methodName, args);
+        } catch (NoSuchMethodException e) {
+            return target.getClass().getDeclaredMethod(methodName, args);
+        }
+    }
+
+    private static ByteBuffer viewed(ByteBuffer buffer) {
+        ByteBuffer viewedBuffer = (ByteBuffer) invoke(buffer, "viewedBuffer");
+        if (viewedBuffer == null)
+            return buffer;
+        else
+            return viewed(viewedBuffer);
+    }
+
+    public static int getTotalmapedfiles() {
+        return TotalMapedFiles.get();
+    }
+
+    public static long getTotalMapedVitualMemory() {
+        return TotalMapedVitualMemory.get();
+    }
 
     public long getLastModifiedTimestamp() {
         return this.file.lastModified();
     }
 
-
     public String getFileName() {
         return fileName;
     }
-
-
-    /**
-     * 文件起始偏移量
-     */
-    public long getFileFromOffset() {
-        return this.fileFromOffset;
-    }
-
 
     /**
      * 获取文件大小
@@ -136,16 +166,9 @@ public class MapedFile extends ReferenceResource {
         return fileSize;
     }
 
-
     public FileChannel getFileChannel() {
         return fileChannel;
     }
-
-
-    public boolean isFull() {
-        return this.fileSize == this.wrotePostion.get();
-    }
-
 
     /**
      * 向MapedBuffer追加消息<br>
@@ -175,6 +198,12 @@ public class MapedFile extends ReferenceResource {
         return new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR);
     }
 
+    /**
+     * 文件起始偏移量
+     */
+    public long getFileFromOffset() {
+        return this.fileFromOffset;
+    }
 
     /**
      * 向存储层追加数据，一般在SLAVE存储结构中使用
@@ -195,25 +224,6 @@ public class MapedFile extends ReferenceResource {
 
         return false;
     }
-
-
-    private boolean isAbleToFlush(final int flushLeastPages) {
-        int flush = this.committedPosition.get();
-        int write = this.wrotePostion.get();
-
-        // 如果当前文件已经写满，应该立刻刷盘
-        if (this.isFull()) {
-            return true;
-        }
-
-        // 只有未刷盘数据满足指定page数目才刷盘
-        if (flushLeastPages > 0) {
-            return ((write / OS_PAGE_SIZE) - (flush / OS_PAGE_SIZE)) >= flushLeastPages;
-        }
-
-        return write > flush;
-    }
-
 
     /**
      * 消息刷盘
@@ -237,6 +247,34 @@ public class MapedFile extends ReferenceResource {
         return this.getCommittedPosition();
     }
 
+    private boolean isAbleToFlush(final int flushLeastPages) {
+        int flush = this.committedPosition.get();
+        int write = this.wrotePostion.get();
+
+        // 如果当前文件已经写满，应该立刻刷盘
+        if (this.isFull()) {
+            return true;
+        }
+
+        // 只有未刷盘数据满足指定page数目才刷盘
+        if (flushLeastPages > 0) {
+            return ((write / OS_PAGE_SIZE) - (flush / OS_PAGE_SIZE)) >= flushLeastPages;
+        }
+
+        return write > flush;
+    }
+
+    public boolean isFull() {
+        return this.fileSize == this.wrotePostion.get();
+    }
+
+    public int getCommittedPosition() {
+        return committedPosition.get();
+    }
+
+    public void setCommittedPosition(int pos) {
+        this.committedPosition.set(pos);
+    }
 
     public SelectMapedBufferResult selectMapedBuffer(int pos, int size) {
         // 有消息
@@ -261,7 +299,6 @@ public class MapedFile extends ReferenceResource {
         return null;
     }
 
-
     /**
      * 读逻辑分区
      */
@@ -280,47 +317,6 @@ public class MapedFile extends ReferenceResource {
         // 非法参数或者mmap资源已经被释放
         return null;
     }
-
-
-    public static void clean(final ByteBuffer buffer) {
-        if (buffer == null || !buffer.isDirect() || buffer.capacity() == 0)
-            return;
-        invoke(invoke(viewed(buffer), "cleaner"), "clean");
-    }
-
-
-    private static Object invoke(final Object target, final String methodName, final Class<?>... args) {
-        return AccessController.doPrivileged(new PrivilegedAction<Object>() {
-            public Object run() {
-                try {
-                    Method method = method(target, methodName, args);
-                    method.setAccessible(true);
-                    return method.invoke(target);
-                } catch (Exception e) {
-                    throw new IllegalStateException(e);
-                }
-            }
-        });
-    }
-
-
-    private static Method method(Object target, String methodName, Class<?>[] args) throws NoSuchMethodException {
-        try {
-            return target.getClass().getMethod(methodName, args);
-        } catch (NoSuchMethodException e) {
-            return target.getClass().getDeclaredMethod(methodName, args);
-        }
-    }
-
-
-    private static ByteBuffer viewed(ByteBuffer buffer) {
-        ByteBuffer viewedBuffer = (ByteBuffer) invoke(buffer, "viewedBuffer");
-        if (viewedBuffer == null)
-            return buffer;
-        else
-            return viewed(viewedBuffer);
-    }
-
 
     @Override
     public boolean cleanup(final long currentRef) {
@@ -343,7 +339,6 @@ public class MapedFile extends ReferenceResource {
         log.info("unmap file[REF:" + currentRef + "] " + this.fileName + " OK");
         return true;
     }
-
 
     /**
      * 清理资源，destroy与调用shutdown的线程必须是同一个
@@ -373,41 +368,17 @@ public class MapedFile extends ReferenceResource {
         return false;
     }
 
-
     public int getWrotePostion() {
         return wrotePostion.get();
     }
-
-
-    public int getCommittedPosition() {
-        return committedPosition.get();
-    }
-
 
     public void setWrotePostion(int pos) {
         this.wrotePostion.set(pos);
     }
 
-
-    public void setCommittedPosition(int pos) {
-        this.committedPosition.set(pos);
-    }
-
-
-    public static int getTotalmapedfiles() {
-        return TotalMapedFiles.get();
-    }
-
-
-    public static long getTotalMapedVitualMemory() {
-        return TotalMapedVitualMemory.get();
-    }
-
-
     public MappedByteBuffer getMappedByteBuffer() {
         return mappedByteBuffer;
     }
-
 
     /**
      * 方法不能在运行时调用，不安全。只在启动时，reload已有数据时调用
@@ -416,16 +387,13 @@ public class MapedFile extends ReferenceResource {
         return this.mappedByteBuffer.slice();
     }
 
-
     public long getStoreTimestamp() {
         return storeTimestamp;
     }
 
-
     public boolean isFirstCreateInQueue() {
         return firstCreateInQueue;
     }
-
 
     public void setFirstCreateInQueue(boolean firstCreateInQueue) {
         this.firstCreateInQueue = firstCreateInQueue;

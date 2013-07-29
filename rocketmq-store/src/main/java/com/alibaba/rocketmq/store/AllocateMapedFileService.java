@@ -35,75 +35,11 @@ import java.util.concurrent.TimeUnit;
  * @since 2013-7-21
  */
 public class AllocateMapedFileService extends ServiceThread {
-    class AllocateRequest implements Comparable<AllocateRequest> {
-        // 文件全路径
-        private String filePath;
-        // 文件大小
-        private int fileSize;
-        // 计数器
-        private CountDownLatch countDownLatch = new CountDownLatch(1);
-        // MapedFile
-        private volatile MapedFile mapedFile = null;
-
-
-        public AllocateRequest(String filePath, int fileSize) {
-            this.filePath = filePath;
-            this.fileSize = fileSize;
-        }
-
-
-        public String getFilePath() {
-            return filePath;
-        }
-
-
-        public void setFilePath(String filePath) {
-            this.filePath = filePath;
-        }
-
-
-        public int getFileSize() {
-            return fileSize;
-        }
-
-
-        public void setFileSize(int fileSize) {
-            this.fileSize = fileSize;
-        }
-
-
-        public CountDownLatch getCountDownLatch() {
-            return countDownLatch;
-        }
-
-
-        public void setCountDownLatch(CountDownLatch countDownLatch) {
-            this.countDownLatch = countDownLatch;
-        }
-
-
-        public MapedFile getMapedFile() {
-            return mapedFile;
-        }
-
-
-        public void setMapedFile(MapedFile mapedFile) {
-            this.mapedFile = mapedFile;
-        }
-
-
-        public int compareTo(AllocateRequest other) {
-            return this.fileSize < other.fileSize ? 1 : this.fileSize > other.fileSize ? -1 : 0;
-        }
-    }
-
     private static final Logger log = LoggerFactory.getLogger(LoggerName.StoreLoggerName);
     private static int WaitTimeOut = 1000 * 5;
-
     private ConcurrentHashMap<String, AllocateRequest> requestTable = new ConcurrentHashMap<String, AllocateRequest>();
     private PriorityBlockingQueue<AllocateRequest> requestQueue = new PriorityBlockingQueue<AllocateRequest>();
     private volatile boolean hasException = false;
-
 
     public MapedFile putRequestAndReturnMapedFile(String nextFilePath, String nextNextFilePath, int fileSize) {
         AllocateRequest nextReq = new AllocateRequest(nextFilePath, fileSize);
@@ -149,6 +85,10 @@ public class AllocateMapedFileService extends ServiceThread {
         return null;
     }
 
+    @Override
+    public String getServiceName() {
+        return AllocateMapedFileService.class.getSimpleName();
+    }
 
     public void shutdown() {
         this.stoped = true;
@@ -168,6 +108,14 @@ public class AllocateMapedFileService extends ServiceThread {
         }
     }
 
+    public void run() {
+        log.info(this.getServiceName() + " service started");
+
+        while (!this.isStoped() && this.mmapOperation())
+            ;
+
+        log.info(this.getServiceName() + " service end");
+    }
 
     /**
      * 只有被外部线程中断，才会返回false
@@ -208,19 +156,56 @@ public class AllocateMapedFileService extends ServiceThread {
         return true;
     }
 
+    class AllocateRequest implements Comparable<AllocateRequest> {
+        // 文件全路径
+        private String filePath;
+        // 文件大小
+        private int fileSize;
+        // 计数器
+        private CountDownLatch countDownLatch = new CountDownLatch(1);
+        // MapedFile
+        private volatile MapedFile mapedFile = null;
 
-    public void run() {
-        log.info(this.getServiceName() + " service started");
 
-        while (!this.isStoped() && this.mmapOperation())
-            ;
+        public AllocateRequest(String filePath, int fileSize) {
+            this.filePath = filePath;
+            this.fileSize = fileSize;
+        }
 
-        log.info(this.getServiceName() + " service end");
-    }
+        public String getFilePath() {
+            return filePath;
+        }
 
+        public void setFilePath(String filePath) {
+            this.filePath = filePath;
+        }
 
-    @Override
-    public String getServiceName() {
-        return AllocateMapedFileService.class.getSimpleName();
+        public int getFileSize() {
+            return fileSize;
+        }
+
+        public void setFileSize(int fileSize) {
+            this.fileSize = fileSize;
+        }
+
+        public CountDownLatch getCountDownLatch() {
+            return countDownLatch;
+        }
+
+        public void setCountDownLatch(CountDownLatch countDownLatch) {
+            this.countDownLatch = countDownLatch;
+        }
+
+        public MapedFile getMapedFile() {
+            return mapedFile;
+        }
+
+        public void setMapedFile(MapedFile mapedFile) {
+            this.mapedFile = mapedFile;
+        }
+
+        public int compareTo(AllocateRequest other) {
+            return this.fileSize < other.fileSize ? 1 : this.fileSize > other.fileSize ? -1 : 0;
+        }
     }
 }

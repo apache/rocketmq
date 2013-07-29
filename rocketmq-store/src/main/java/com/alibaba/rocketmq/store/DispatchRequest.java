@@ -30,7 +30,6 @@ public class DispatchRequest {
     private final long storeTimestamp;
     private final long consumeQueueOffset;
     private final String keys;
-
     /**
      * 事务相关部分
      */
@@ -106,61 +105,49 @@ public class DispatchRequest {
         this.producerGroup = "";
     }
 
-
     public String getTopic() {
         return topic;
     }
-
 
     public int getQueueId() {
         return queueId;
     }
 
-
     public long getCommitLogOffset() {
         return commitLogOffset;
     }
-
 
     public int getMsgSize() {
         return msgSize;
     }
 
-
     public long getStoreTimestamp() {
         return storeTimestamp;
     }
-
 
     public long getConsumeQueueOffset() {
         return consumeQueueOffset;
     }
 
-
     public String getKeys() {
         return keys;
     }
-
 
     public long getTagsCode() {
         return tagsCode;
     }
 
-
     public int getSysFlag() {
         return sysFlag;
     }
-
 
     public long getTranStateTableOffset() {
         return tranStateTableOffset;
     }
 
-
     public long getPreparedTransactionOffset() {
         return preparedTransactionOffset;
     }
-
 
     public String getProducerGroup() {
         return producerGroup;

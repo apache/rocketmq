@@ -36,16 +36,13 @@ public class QueryOffsetResult {
         this.indexLastUpdatePhyoffset = indexLastUpdatePhyoffset;
     }
 
-
     public List<Long> getPhyOffsets() {
         return phyOffsets;
     }
 
-
     public long getIndexLastUpdateTimestamp() {
         return indexLastUpdateTimestamp;
     }
-
 
     public long getIndexLastUpdatePhyoffset() {
         return indexLastUpdatePhyoffset;
