@@ -3,6 +3,7 @@
  */
 package com.alibaba.rocketmq.common.protocol.route;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import com.alibaba.rocketmq.remoting.protocol.RemotingSerializable;
@@ -17,6 +18,24 @@ public class TopicRouteData extends RemotingSerializable {
     private String orderTopicConf;
     private List<QueueData> queueDatas;
     private List<BrokerData> brokerDatas;
+
+
+    public TopicRouteData cloneTopicRouteData() {
+        TopicRouteData topicRouteData = new TopicRouteData();
+        topicRouteData.setQueueDatas(new ArrayList<QueueData>());
+        topicRouteData.setBrokerDatas(new ArrayList<BrokerData>());
+        topicRouteData.setOrderTopicConf(this.orderTopicConf);
+
+        if (this.queueDatas != null) {
+            topicRouteData.getQueueDatas().addAll(this.queueDatas);
+        }
+
+        if (this.brokerDatas != null) {
+            topicRouteData.getBrokerDatas().addAll(this.brokerDatas);
+        }
+
+        return topicRouteData;
+    }
 
 
     public List<QueueData> getQueueDatas() {
@@ -46,13 +65,6 @@ public class TopicRouteData extends RemotingSerializable {
 
     public void setOrderTopicConf(String orderTopicConf) {
         this.orderTopicConf = orderTopicConf;
-    }
-
-
-    @Override
-    public String toString() {
-        return "TopicRouteData [queueDatas=" + queueDatas + ", brokerDatas=" + brokerDatas
-                + ", orderTopicConf=" + orderTopicConf + "]";
     }
 
 
@@ -95,5 +107,12 @@ public class TopicRouteData extends RemotingSerializable {
         else if (!queueDatas.equals(other.queueDatas))
             return false;
         return true;
+    }
+
+
+    @Override
+    public String toString() {
+        return "TopicRouteData [queueDatas=" + queueDatas + ", brokerDatas=" + brokerDatas
+                + ", orderTopicConf=" + orderTopicConf + "]";
     }
 }

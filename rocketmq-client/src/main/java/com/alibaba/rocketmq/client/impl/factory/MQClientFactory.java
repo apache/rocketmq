@@ -322,6 +322,9 @@ public class MQClientFactory {
                         }
 
                         if (changed) {
+                            // 后面排序会影响下次的equal逻辑判断，所以先clone一份
+                            TopicRouteData cloneTopicRouteData = topicRouteData.cloneTopicRouteData();
+
                             // 更新Broker地址信息
                             for (BrokerData bd : topicRouteData.getBrokerDatas()) {
                                 this.brokerAddrTable.put(bd.getBrokerName(), bd.getBrokerAddrs());
@@ -357,7 +360,7 @@ public class MQClientFactory {
                                 }
                             }
 
-                            this.topicRouteTable.put(topic, topicRouteData);
+                            this.topicRouteTable.put(topic, cloneTopicRouteData);
                             return true;
                         }
                     }
