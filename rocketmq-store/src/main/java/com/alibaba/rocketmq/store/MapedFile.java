@@ -87,12 +87,10 @@ public class MapedFile extends ReferenceResource {
             ok = true;
         }
         catch (FileNotFoundException e) {
-            this.fileChannel = null;
             log.error("create file channel " + this.fileName + " Failed. ", e);
             throw e;
         }
         catch (IOException e) {
-            this.fileChannel = null;
             log.error("map file " + this.fileName + " Failed. ", e);
             throw e;
         }
