@@ -15,11 +15,6 @@
  */
 package com.alibaba.rocketmq.broker.client.net;
 
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelFutureListener;
-import io.netty.channel.FileRegion;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,6 +26,11 @@ import com.alibaba.rocketmq.common.protocol.header.CheckTransactionStateRequestH
 import com.alibaba.rocketmq.common.protocol.header.NotifyConsumerIdsChangedRequestHeader;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 import com.alibaba.rocketmq.store.SelectMapedBufferResult;
+
+import io.netty.channel.Channel;
+import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelFutureListener;
+import io.netty.channel.FileRegion;
 
 
 /**

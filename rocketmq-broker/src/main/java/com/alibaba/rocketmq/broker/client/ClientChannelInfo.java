@@ -15,9 +15,8 @@
  */
 package com.alibaba.rocketmq.broker.client;
 
-import io.netty.channel.Channel;
-
 import com.alibaba.rocketmq.remoting.protocol.LanguageCode;
+import io.netty.channel.Channel;
 
 
 /**

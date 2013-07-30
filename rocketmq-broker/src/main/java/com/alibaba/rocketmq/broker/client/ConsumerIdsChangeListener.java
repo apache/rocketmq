@@ -15,9 +15,9 @@
  */
 package com.alibaba.rocketmq.broker.client;
 
-import io.netty.channel.Channel;
-
 import java.util.List;
+
+import io.netty.channel.Channel;
 
 
 /**

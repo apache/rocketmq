@@ -15,10 +15,9 @@
  */
 package com.alibaba.rocketmq.remoting.netty;
 
-import io.netty.channel.ChannelHandlerContext;
-
 import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
+import io.netty.channel.ChannelHandlerContext;
 
 
 /**

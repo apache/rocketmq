@@ -15,11 +15,10 @@
  */
 package com.alibaba.rocketmq.broker.client;
 
-import io.netty.channel.Channel;
-
 import java.util.List;
 
 import com.alibaba.rocketmq.broker.BrokerController;
+import io.netty.channel.Channel;
 
 
 /**

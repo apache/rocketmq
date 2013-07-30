@@ -15,15 +15,8 @@
  */
 package com.alibaba.rocketmq.namesrv.routeinfo;
 
-import io.netty.channel.Channel;
-
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -41,6 +34,7 @@ import com.alibaba.rocketmq.common.protocol.body.TopicConfigSerializeWrapper;
 import com.alibaba.rocketmq.common.protocol.route.BrokerData;
 import com.alibaba.rocketmq.common.protocol.route.QueueData;
 import com.alibaba.rocketmq.common.protocol.route.TopicRouteData;
+import io.netty.channel.Channel;
 
 
 /**
