@@ -14,11 +14,7 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import com.alibaba.rocketmq.store.DefaultMessageStore;
-import com.alibaba.rocketmq.store.GetMessageResult;
-import com.alibaba.rocketmq.store.MessageExtBrokerInner;
-import com.alibaba.rocketmq.store.MessageStore;
-import com.alibaba.rocketmq.store.PutMessageResult;
+import com.alibaba.rocketmq.store.*;
 import com.alibaba.rocketmq.store.config.MessageStoreConfig;
 
 

@@ -4,25 +4,16 @@
 package com.alibaba.rocketmq.remoting;
 
 import static org.junit.Assert.assertTrue;
-import io.netty.channel.ChannelHandlerContext;
 
 import java.util.concurrent.Executors;
 
 import org.junit.Test;
 
 import com.alibaba.rocketmq.remoting.annotation.CFNullable;
-import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
-import com.alibaba.rocketmq.remoting.exception.RemotingConnectException;
-import com.alibaba.rocketmq.remoting.exception.RemotingSendRequestException;
-import com.alibaba.rocketmq.remoting.exception.RemotingTimeoutException;
-import com.alibaba.rocketmq.remoting.exception.RemotingTooMuchRequestException;
-import com.alibaba.rocketmq.remoting.netty.NettyClientConfig;
-import com.alibaba.rocketmq.remoting.netty.NettyRemotingClient;
-import com.alibaba.rocketmq.remoting.netty.NettyRemotingServer;
-import com.alibaba.rocketmq.remoting.netty.NettyRequestProcessor;
-import com.alibaba.rocketmq.remoting.netty.NettyServerConfig;
-import com.alibaba.rocketmq.remoting.netty.ResponseFuture;
+import com.alibaba.rocketmq.remoting.exception.*;
+import com.alibaba.rocketmq.remoting.netty.*;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
+import io.netty.channel.ChannelHandlerContext;
 
 
 /**
