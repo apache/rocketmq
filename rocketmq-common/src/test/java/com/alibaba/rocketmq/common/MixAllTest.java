@@ -20,4 +20,10 @@ public class MixAllTest {
         Assert.assertTrue(localInetAddress.contains("127.0.0.1"));
         Assert.assertTrue(localInetAddress.contains(local));
     }
+
+
+    @Test
+    public void testGetTotalPhysicalMemorySize() {
+        Assert.assertTrue(MixAll.getTotalPhysicalMemorySize() > 0);
+    }
 }
