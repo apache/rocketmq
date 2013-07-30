@@ -66,7 +66,7 @@ public class ConsumerOffsetManager extends ConfigManager {
                     Long offset = map.get(queueId);
                     Integer queueIdNew = new Integer(queueId.intValue());
                     Long offsetNew = new Long(offset.longValue());
-                    map.put(queueIdNew, offsetNew);
+                    mapNew.put(queueIdNew, offsetNew);
                 }
 
                 String topicgroupNew = new String(topicgroup);
