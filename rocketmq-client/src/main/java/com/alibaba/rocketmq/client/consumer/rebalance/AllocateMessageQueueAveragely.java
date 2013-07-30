@@ -46,14 +46,14 @@ public class AllocateMessageQueueAveragely implements AllocateMessageQueueStrate
             return result;
         }
 
-        int index = cidAll.indexOf(currentCID);
-        int averageSize = mqAll.size() / cidAll.size();
-        int mod = mqAll.size() % cidAll.size();
-        int startIndex = index * averageSize;
-        int endIndex = (index + 1) * averageSize;
-        for (int i = startIndex; i < endIndex; i++) {
-            result.add(mqAll.get(i));
-        }
+	    int index = cidAll.indexOf(currentCID);
+	    int averageSize = (mqAll.size() <= cidAll.size()) ? 1 : mqAll.size() / cidAll.size();
+	    int mod = mqAll.size() % cidAll.size();
+	    int startIndex = index * averageSize;
+	    int endIndex = Math.min((index + 1) * averageSize, mqAll.size());
+	    for (int i = startIndex; i < endIndex; i++) {
+		    result.add(mqAll.get(i % mqAll.size()));
+	    }
 
         // 如果当前的consumerId最后一个且还有剩下的队列，应该把最后队列都放到当前consumerId队列里
         boolean isAddRemainQueue = (index == cidAll.size() - 1) && mod > 0;
