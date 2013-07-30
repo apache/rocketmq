@@ -74,7 +74,7 @@ public class FAQUrl {
                 StringBuilder sb = new StringBuilder();
                 sb.append(errorMessage);
                 sb.append("\n");
-                sb.append("For inquiries, please visit the url, ");
+                sb.append("For more information, please visit the url, ");
                 sb.append(UNEXPECTED_EXCEPTION_URL);
                 return sb.toString();
             }
