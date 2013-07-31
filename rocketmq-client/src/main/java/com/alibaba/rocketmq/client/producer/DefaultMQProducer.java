@@ -159,8 +159,9 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     }
 
 
-    public SendResult sendMessageInTransaction(Message msg, LocalTransactionExecuter tranExecuter)
-            throws MQClientException {
+    @Override
+    public TransactionSendResult sendMessageInTransaction(Message msg, LocalTransactionExecuter tranExecuter,
+            final Object arg) throws MQClientException {
         throw new NotImplementedException();
     }
 

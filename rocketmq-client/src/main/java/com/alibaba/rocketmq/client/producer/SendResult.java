@@ -25,10 +25,14 @@ import com.alibaba.rocketmq.common.message.MessageQueue;
  * @since 2013-7-25
  */
 public class SendResult {
-    private final SendStatus sendStatus;
-    private final String msgId;
-    private final MessageQueue messageQueue;
-    private final long queueOffset;
+    private SendStatus sendStatus;
+    private String msgId;
+    private MessageQueue messageQueue;
+    private long queueOffset;
+
+
+    public SendResult() {
+    }
 
 
     public SendResult(SendStatus sendStatus, String msgId, MessageQueue messageQueue, long queueOffset) {
@@ -39,13 +43,23 @@ public class SendResult {
     }
 
 
+    public String getMsgId() {
+        return msgId;
+    }
+
+
+    public void setMsgId(String msgId) {
+        this.msgId = msgId;
+    }
+
+
     public SendStatus getSendStatus() {
         return sendStatus;
     }
 
 
-    public String getMsgId() {
-        return msgId;
+    public void setSendStatus(SendStatus sendStatus) {
+        this.sendStatus = sendStatus;
     }
 
 
@@ -54,8 +68,18 @@ public class SendResult {
     }
 
 
+    public void setMessageQueue(MessageQueue messageQueue) {
+        this.messageQueue = messageQueue;
+    }
+
+
     public long getQueueOffset() {
         return queueOffset;
+    }
+
+
+    public void setQueueOffset(long queueOffset) {
+        this.queueOffset = queueOffset;
     }
 
 

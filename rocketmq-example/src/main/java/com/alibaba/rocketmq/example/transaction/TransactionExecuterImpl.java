@@ -33,7 +33,7 @@ public class TransactionExecuterImpl implements LocalTransactionExecuter {
 
 
     @Override
-    public LocalTransactionState executeLocalTransactionBranch(Message msg) {
+    public LocalTransactionState executeLocalTransactionBranch(final Message msg, final Object arg) {
         int value = transactionIndex.getAndIncrement();
 
         if (value == 0) {

@@ -375,30 +375,6 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     }
 
 
-    private void checkMessage(Message msg) throws MQClientException {
-        if (null == msg) {
-            throw new MQClientException("the message is null", null);
-        }
-        // topic
-        if (null == msg.getTopic()) {
-            throw new MQClientException("the message topic is null", null);
-        }
-        // body
-        if (null == msg.getBody()) {
-            throw new MQClientException("the message body is null", null);
-        }
-
-        if (0 == msg.getBody().length) {
-            throw new MQClientException("the message body length is zero", null);
-        }
-
-        if (msg.getBody().length > this.defaultMQProducer.getMaxMessageSize()) {
-            throw new MQClientException("the message body size over max value, MAX: "
-                    + this.defaultMQProducer.getMaxMessageSize(), null);
-        }
-    }
-
-
     private SendResult sendDefaultImpl(//
             Message msg,//
             final CommunicationMode communicationMode,//
@@ -503,6 +479,27 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     }
 
 
+    /**
+     * 尝试寻找Topic路由信息，如果没有则到Name Server上找，再没有，则取默认Topic
+     */
+    private TopicPublishInfo tryToFindTopicPublishInfo(final String topic) {
+        TopicPublishInfo topicPublishInfo = this.topicPublishInfoTable.get(topic);
+        if (null == topicPublishInfo || !topicPublishInfo.ok()) {
+            this.topicPublishInfoTable.putIfAbsent(topic, new TopicPublishInfo());
+            this.mQClientFactory.updateTopicRouteInfoFromNameServer(topic);
+            this.mQClientFactory.updateTopicRouteInfoFromNameServer(this.defaultMQProducer
+                .getCreateTopicKey());
+            topicPublishInfo = this.topicPublishInfoTable.get(topic);
+        }
+
+        if (topicPublishInfo != null && topicPublishInfo.ok()) {
+            return topicPublishInfo;
+        }
+
+        return this.topicPublishInfoTable.get(this.defaultMQProducer.getCreateTopicKey());
+    }
+
+
     private SendResult sendKernelImpl(final Message msg,//
             final MessageQueue mq,//
             final CommunicationMode communicationMode,//
@@ -584,24 +581,27 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     }
 
 
-    /**
-     * 尝试寻找Topic路由信息，如果没有则到Name Server上找，再没有，则取默认Topic
-     */
-    private TopicPublishInfo tryToFindTopicPublishInfo(final String topic) {
-        TopicPublishInfo topicPublishInfo = this.topicPublishInfoTable.get(topic);
-        if (null == topicPublishInfo || !topicPublishInfo.ok()) {
-            this.topicPublishInfoTable.putIfAbsent(topic, new TopicPublishInfo());
-            this.mQClientFactory.updateTopicRouteInfoFromNameServer(topic);
-            this.mQClientFactory.updateTopicRouteInfoFromNameServer(this.defaultMQProducer
-                .getCreateTopicKey());
-            topicPublishInfo = this.topicPublishInfoTable.get(topic);
+    private void checkMessage(Message msg) throws MQClientException {
+        if (null == msg) {
+            throw new MQClientException("the message is null", null);
+        }
+        // topic
+        if (null == msg.getTopic()) {
+            throw new MQClientException("the message topic is null", null);
+        }
+        // body
+        if (null == msg.getBody()) {
+            throw new MQClientException("the message body is null", null);
         }
 
-        if (topicPublishInfo != null && topicPublishInfo.ok()) {
-            return topicPublishInfo;
+        if (0 == msg.getBody().length) {
+            throw new MQClientException("the message body length is zero", null);
         }
 
-        return this.topicPublishInfoTable.get(this.defaultMQProducer.getCreateTopicKey());
+        if (msg.getBody().length > this.defaultMQProducer.getMaxMessageSize()) {
+            throw new MQClientException("the message body size over max value, MAX: "
+                    + this.defaultMQProducer.getMaxMessageSize(), null);
+        }
     }
 
 
@@ -745,8 +745,8 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     }
 
 
-    public SendResult sendMessageInTransaction(final Message msg, final LocalTransactionExecuter tranExecuter)
-            throws MQClientException {
+    public TransactionSendResult sendMessageInTransaction(final Message msg,
+            final LocalTransactionExecuter tranExecuter, final Object arg) throws MQClientException {
         if (null == msg) {
             throw new MQClientException("msg is null", null);
         }
@@ -770,7 +770,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         LocalTransactionState localTransactionState = LocalTransactionState.UNKNOW;
         Throwable localException = null;
         try {
-            localTransactionState = tranExecuter.executeLocalTransactionBranch(msg);
+            localTransactionState = tranExecuter.executeLocalTransactionBranch(msg, arg);
             if (null == localTransactionState) {
                 localTransactionState = LocalTransactionState.UNKNOW;
             }
@@ -795,20 +795,13 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                     + ", but end broker transaction failed", e);
         }
 
-        return sendResult;
-    }
-
-
-    /**
-     * DEFAULT SYNC -------------------------------------------------------
-     */
-    public SendResult send(Message msg) throws MQClientException, RemotingException, MQBrokerException,
-            InterruptedException {
-        this.makeSureStateOK();
-
-        this.checkMessage(msg);
-
-        return this.sendDefaultImpl(msg, CommunicationMode.SYNC, null);
+        TransactionSendResult transactionSendResult = new TransactionSendResult();
+        transactionSendResult.setSendStatus(sendResult.getSendStatus());
+        transactionSendResult.setMessageQueue(sendResult.getMessageQueue());
+        transactionSendResult.setMsgId(sendResult.getMsgId());
+        transactionSendResult.setQueueOffset(sendResult.getQueueOffset());
+        transactionSendResult.setLocalTransactionState(localTransactionState);
+        return transactionSendResult;
     }
 
 
@@ -843,5 +836,18 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                     .toString()) : null;
         this.mQClientFactory.getMQClientAPIImpl().endTransactionOneway(addr, requestHeader, remark,
             this.defaultMQProducer.getSendMsgTimeout());
+    }
+
+
+    /**
+     * DEFAULT SYNC -------------------------------------------------------
+     */
+    public SendResult send(Message msg) throws MQClientException, RemotingException, MQBrokerException,
+            InterruptedException {
+        this.makeSureStateOK();
+
+        this.checkMessage(msg);
+
+        return this.sendDefaultImpl(msg, CommunicationMode.SYNC, null);
     }
 }

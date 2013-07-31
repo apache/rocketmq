@@ -211,6 +211,6 @@ public interface MQProducer extends MQAdmin {
             throws MQClientException, RemotingException, InterruptedException;
 
 
-    public SendResult sendMessageInTransaction(final Message msg, final LocalTransactionExecuter tranExecuter)
-            throws MQClientException;
+    public TransactionSendResult sendMessageInTransaction(final Message msg,
+            final LocalTransactionExecuter tranExecuter, final Object arg) throws MQClientException;
 }
