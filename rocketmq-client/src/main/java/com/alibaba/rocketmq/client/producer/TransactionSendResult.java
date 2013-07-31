@@ -15,15 +15,26 @@
  */
 package com.alibaba.rocketmq.client.producer;
 
-import com.alibaba.rocketmq.common.message.Message;
-
-
 /**
- * 执行本地事务，由客户端回调
+ * 发送事务消息返回结果
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2013-7-25
+ * @since 2013-7-31
  */
-public interface LocalTransactionExecuter {
-    public LocalTransactionState executeLocalTransactionBranch(final Message msg, final Object arg);
+public class TransactionSendResult extends SendResult {
+    private LocalTransactionState localTransactionState;
+
+
+    public TransactionSendResult() {
+    }
+
+
+    public LocalTransactionState getLocalTransactionState() {
+        return localTransactionState;
+    }
+
+
+    public void setLocalTransactionState(LocalTransactionState localTransactionState) {
+        this.localTransactionState = localTransactionState;
+    }
 }

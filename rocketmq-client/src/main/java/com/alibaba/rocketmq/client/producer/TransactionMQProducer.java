@@ -64,13 +64,14 @@ public class TransactionMQProducer extends DefaultMQProducer {
     }
 
 
-    public SendResult sendMessageInTransaction(final Message msg, final LocalTransactionExecuter tranExecuter)
-            throws MQClientException {
+    @Override
+    public TransactionSendResult sendMessageInTransaction(final Message msg,
+            final LocalTransactionExecuter tranExecuter, final Object arg) throws MQClientException {
         if (null == this.transactionCheckListener) {
             throw new MQClientException("localTransactionBranchCheckListener is null", null);
         }
 
-        return this.defaultMQProducerImpl.sendMessageInTransaction(msg, tranExecuter);
+        return this.defaultMQProducerImpl.sendMessageInTransaction(msg, tranExecuter, arg);
     }
 
 

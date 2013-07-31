@@ -117,7 +117,8 @@ public class TransactionProducer {
                         try {
                             // Thread.sleep(1000);
                             final long beginTimestamp = System.currentTimeMillis();
-                            SendResult sendResult = producer.sendMessageInTransaction(msg, tranExecuter);
+                            SendResult sendResult =
+                                    producer.sendMessageInTransaction(msg, tranExecuter, null);
                             if (sendResult != null) {
                                 statsBenchmark.getSendRequestSuccessCount().incrementAndGet();
                                 statsBenchmark.getReceiveResponseSuccessCount().incrementAndGet();
@@ -173,7 +174,7 @@ class TransactionExecuterBImpl implements LocalTransactionExecuter {
 
 
     @Override
-    public LocalTransactionState executeLocalTransactionBranch(Message msg) {
+    public LocalTransactionState executeLocalTransactionBranch(final Message msg, final Object arg) {
         if (ischeck) {
             return LocalTransactionState.UNKNOW;
         }
