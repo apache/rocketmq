@@ -44,6 +44,8 @@ public class ClientLogger {
         String logConfigFilePath =
                 System.getProperty("rocketmq.client.log.configFile",
                     System.getenv("ROCKETMQ_CLIENT_LOG_CONFIGFILE"));
+        Boolean isloadconfig = Boolean.parseBoolean(System.getProperty("rocketmq.client.log.loadconfig","true"));
+        if(isloadconfig){
         try {
             ILoggerFactory iLoggerFactory = LoggerFactory.getILoggerFactory();
             Class classType = iLoggerFactory.getClass();
@@ -88,6 +90,7 @@ public class ClientLogger {
         }
         catch (Exception e) {
             System.err.println(e);
+        }
         }
         return LoggerFactory.getLogger(LoggerName.ClientLoggerName);
     }
