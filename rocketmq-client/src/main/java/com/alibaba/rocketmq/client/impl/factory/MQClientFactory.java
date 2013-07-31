@@ -464,7 +464,8 @@ public class MQClientFactory {
                             this.mQClientAPIImpl.getTopicRouteInfoFromNameServer(topic, 1000 * 3);
                     if (topicRouteData != null) {
                         TopicRouteData old = this.topicRouteTable.get(topic);
-                        boolean changed = null == old || !old.equals(topicRouteData);
+//                        boolean changed = null == old || !old.equals(topicRouteData);
+                        boolean changed = topicRouteDataIsChange(old ,topicRouteData);
                         if (!changed) {
                             changed = this.isNeedUpdateTopicRouteInfo(topic);
                         }
@@ -510,7 +511,6 @@ public class MQClientFactory {
                                     }
                                 }
                             }
-
                             this.topicRouteTable.put(topic, cloneTopicRouteData);
                             return true;
                         }
@@ -540,7 +540,19 @@ public class MQClientFactory {
 
         return false;
     }
-
+    private boolean topicRouteDataIsChange(TopicRouteData olddata ,TopicRouteData nowdata){
+        if(olddata ==null || nowdata ==null)
+            return true;
+        TopicRouteData old = olddata.cloneTopicRouteData();
+        TopicRouteData now  = nowdata.cloneTopicRouteData();
+        Collections.sort(old.getQueueDatas());
+        Collections.sort(old.getBrokerDatas());
+        Collections.sort(now.getQueueDatas());
+        Collections.sort(now.getBrokerDatas());
+        return !old.equals(now);
+        
+        
+    }
 
     public static TopicPublishInfo topicRouteData2TopicPublishInfo(final String topic,
             final TopicRouteData route) {
