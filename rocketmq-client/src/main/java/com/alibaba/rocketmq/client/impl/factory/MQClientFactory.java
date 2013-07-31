@@ -470,7 +470,7 @@ public class MQClientFactory {
                             changed = this.isNeedUpdateTopicRouteInfo(topic);
                         }
                         else {
-                            log.info("the topic[{}] route info changed, {}", topic, topicRouteData);
+                            log.info("the topic[{}] route info changed, odl[{}] ,new[{}]", topic,old, topicRouteData);
                         }
 
                         if (changed) {
@@ -511,6 +511,7 @@ public class MQClientFactory {
                                     }
                                 }
                             }
+                            log.info("topicRouteTable.put TopicRouteData[{}]",cloneTopicRouteData);
                             this.topicRouteTable.put(topic, cloneTopicRouteData);
                             return true;
                         }
