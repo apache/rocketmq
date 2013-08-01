@@ -53,7 +53,7 @@ public class StoreStatsMoniter {
             String topic = strs[0];
             String group = strs[1];
             for (Integer queueId : offsetTable.get(key).keySet()) {
-                long maxoffsize = defaultMessageStore.getMessageTotalInQueue(topic, queueId);
+                long maxoffsize = defaultMessageStore.getMaxOffsetInQuque(topic, queueId);
                 StringBuffer sb = new StringBuffer();
                 sb.append("Client Put And get Count").append(",");
                 sb.append("Topic[").append(topic).append("],");
