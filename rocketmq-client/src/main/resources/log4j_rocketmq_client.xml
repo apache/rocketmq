@@ -17,7 +17,7 @@
         <param name="append" value="true"/>
         <param name="encoding" value="GBK"/>
         <param name="MaxBackupIndex" value="36"/>
-        <param name="DatePattern" value="'.'yyyy-MM-dd-HH"/>
+        <param name="DatePattern" value="'.'yyyy-MM-dd"/>
         <layout class="org.apache.log4j.PatternLayout">
             <param name="ConversionPattern" value="%d %-5p %c{2} , %m%n"/>
         </layout>

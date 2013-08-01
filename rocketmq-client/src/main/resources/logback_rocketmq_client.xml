@@ -12,7 +12,7 @@
                     class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
                 <maxFileSize>104857600</maxFileSize>
             </timeBasedFileNamingAndTriggeringPolicy>
-            <MaxHistory>10</MaxHistory>
+            <MaxHistory>32</MaxHistory>
         </rollingPolicy>
         <encoder>
             <pattern>%d{yyy-MM-dd HH:mm:ss,GMT+8} %p %t - %m%n</pattern>
