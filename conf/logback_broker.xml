@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
     <appender name="DefaultAppender" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>${user.home}/rocketmqlogs/bk_default.log</file>
+        <file>${user.home}/rocketmqlogs/broker_default.log</file>
         <append>true</append>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
             <fileNamePattern>${user.home}/rocketmqlogs/otherdays/bk_default-%d{yyyy-MM-dd}.%i.log
@@ -150,10 +150,10 @@
 		</encoder>
 	</appender>
 	<appender name="RocketmqSendbackmsgLiveMoniterAppender" class="ch.qos.logback.core.rolling.RollingFileAppender">
-		<file>${user.home}/logs/rocketmqlogs/sendbackmsgLive.log</file>
+		<file>${user.home}/rocketmqlogs/sendbackmsgLive.log</file>
 		<append>true</append>
 		<rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-			<fileNamePattern>${user.home}/logs/rocketmqlogs/otherdays/sendbackmsgLive-%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+			<fileNamePattern>${user.home}/rocketmqlogs/otherdays/sendbackmsgLive-%d{yyyy-MM-dd}.%i.log</fileNamePattern>
 			<timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
 				<maxFileSize>104857600</maxFileSize>
 			</timeBasedFileNamingAndTriggeringPolicy>
@@ -217,14 +217,17 @@
         <level value="INFO"/>
         <appender-ref ref="RocketmqStoreStatsMoniterAppender"/>
     </logger>
+	
 	<logger name="PullmsgLiveMoniter" additivity="false">
 		<level value="ERROR" />
 		<appender-ref ref="RocketmqPullmsgLiveMoniterAppender" />
 	</logger>
+	
 	<logger name="SendbackmsgLiveMoniter" additivity="false">
 		<level value="ERROR" />
 		<appender-ref ref="RocketmqSendbackmsgLiveMoniterAppender" />
 	</logger>
+	
 	<logger name="SendmsgLiveMoniter" additivity="false">
 		<level value="ERROR" />
 		<appender-ref ref="RocketmqSendmsgLiveMoniterAppender" />

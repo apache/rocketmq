@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
     <appender name="DefaultAppender" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>${user.home}/rocketmqlogs/tl_default.log</file>
+        <file>${user.home}/rocketmqlogs/tools_default.log</file>
         <append>true</append>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
             <fileNamePattern>${user.home}/rocketmqlogs/otherdays/tl_default-%d{yyyy-MM-dd}.%i.log
