@@ -23,6 +23,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.alibaba.rocketmq.broker.BrokerController;
+import com.alibaba.rocketmq.broker.digestlog.SendbackmsgLiveMoniter;
+import com.alibaba.rocketmq.broker.digestlog.SendmsgLiveMoniter;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.TopicConfig;
 import com.alibaba.rocketmq.common.TopicFilterType;
@@ -193,6 +195,7 @@ public class SendMessageProcessor implements NettyRequestProcessor {
         msgInner.setReconsumeTimes(msgExt.getReconsumeTimes() + 1);
 
         PutMessageResult putMessageResult = this.brokerController.getMessageStore().putMessage(msgInner);
+        SendbackmsgLiveMoniter.printProcessSendmsgRequestLive(ctx.channel(), request, putMessageResult,delayLevel,msgExt.getReconsumeTimes());
         if (putMessageResult != null) {
             switch (putMessageResult.getPutMessageStatus()) {
             case PUT_OK:
@@ -338,6 +341,7 @@ public class SendMessageProcessor implements NettyRequestProcessor {
         }
 
         PutMessageResult putMessageResult = this.brokerController.getMessageStore().putMessage(msgInner);
+        SendmsgLiveMoniter.printProcessSendmsgRequestLive(ctx.channel(), request, putMessageResult);
         if (putMessageResult != null) {
             boolean sendOK = false;
 

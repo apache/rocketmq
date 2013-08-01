@@ -14,6 +14,8 @@ public class PullmsgLiveMoniter {
     private static final Logger log = LoggerFactory.getLogger("PullmsgLiveMoniter");
     
     public static void printProcessRequestLive(Channel channel, RemotingCommand request,GetMessageResult getMessageResult){
-        log.info("receive [{}] PullMessage request command[{}] and return result [{}] ",RemotingHelper.parseChannelRemoteName(channel), request,getMessageResult);
+        if(log.isInfoEnabled()){
+            log.info("receive [{}] PullMessage request command[{}] and return result [{}] ",RemotingHelper.parseChannelRemoteName(channel), request,getMessageResult);
+        }
     }
 }
