@@ -264,8 +264,11 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                 this.brokerController.getMessageStore().getMessage(requestHeader.getTopic(),
                     requestHeader.getQueueId(), requestHeader.getQueueOffset(),
                     requestHeader.getMaxMsgNums(), subscriptionData);
-        PullmsgLiveMoniter.printProcessRequestLive(channel, request, getMessageResult);
+        
         if (getMessageResult != null) {
+            if(getMessageResult.getBufferTotalSize()>0){
+                PullmsgLiveMoniter.printProcessRequestLive(channel, request, getMessageResult);
+            }
             response.setRemark(getMessageResult.getStatus().name());
             responseHeader.setNextBeginOffset(getMessageResult.getNextBeginOffset());
             responseHeader.setMinOffset(getMessageResult.getMinOffset());
