@@ -20,6 +20,7 @@ import org.slf4j.LoggerFactory;
 
 import com.alibaba.rocketmq.broker.BrokerController;
 import com.alibaba.rocketmq.broker.client.ConsumerGroupInfo;
+import com.alibaba.rocketmq.broker.digestlog.PullmsgLiveMoniter;
 import com.alibaba.rocketmq.broker.longpolling.PullRequest;
 import com.alibaba.rocketmq.broker.pagecache.ManyMessageTransfer;
 import com.alibaba.rocketmq.common.TopicConfig;
@@ -263,6 +264,7 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                 this.brokerController.getMessageStore().getMessage(requestHeader.getTopic(),
                     requestHeader.getQueueId(), requestHeader.getQueueOffset(),
                     requestHeader.getMaxMsgNums(), subscriptionData);
+        PullmsgLiveMoniter.printProcessRequestLive(channel, request, getMessageResult);
         if (getMessageResult != null) {
             response.setRemark(getMessageResult.getStatus().name());
             responseHeader.setNextBeginOffset(getMessageResult.getNextBeginOffset());
