@@ -13,7 +13,7 @@ public class SendbackmsgLiveMoniter {
     private static final Logger log = LoggerFactory.getLogger("SendbackmsgLiveMoniter");
     public static void printProcessSendmsgRequestLive(Channel channel, RemotingCommand request,PutMessageResult putMessageResult,int delayLevel,int reconsumeTimes){
         if(log.isInfoEnabled()){
-            log.info("receive [{}] SendBackMessage request command[{}] , this msg ReconsumeTimes[{}] and DelayLevel [{}]. return result [{}] ",RemotingHelper.parseChannelRemoteName(channel),reconsumeTimes,delayLevel, request,putMessageResult);
+            log.info("receive [{}] SendBackMessage request command[{}] , this msg ReconsumeTimes[{}] and DelayLevel [{}]. return result [{}] ",RemotingHelper.parseChannelRemoteName(channel),request,reconsumeTimes,delayLevel, putMessageResult);
         }
     }
 }
