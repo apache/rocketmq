@@ -137,4 +137,13 @@ public class GetMessageResult {
     public void setSuggestPullingFromSlave(boolean suggestPullingFromSlave) {
         this.suggestPullingFromSlave = suggestPullingFromSlave;
     }
+
+
+    @Override
+    public String toString() {
+        return "GetMessageResult [status=" + status + ", nextBeginOffset=" + nextBeginOffset + ", minOffset="
+                + minOffset + ", maxOffset=" + maxOffset + ", bufferTotalSize=" + bufferTotalSize
+                + ", suggestPullingFromSlave=" + suggestPullingFromSlave + "]";
+    }
+    
 }
