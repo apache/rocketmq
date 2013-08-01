@@ -120,10 +120,10 @@
     </appender>
 
 	<appender name="RocketmqPullmsgLiveMoniterAppender" class="ch.qos.logback.core.rolling.RollingFileAppender">
-		<file>f:/metahome/master/logs/rocketmqlogs/PullmsgLiveMoniter.log</file>
+		<file>${user.home}/rocketmqlogs/PullmsgLiveMoniter.log</file>
 		<append>true</append>
 		<rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-			<fileNamePattern>f:/metahome/master/logs/rocketmqlogs/otherdays/PullmsgLiveMoniter-%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+			<fileNamePattern>${user.home}/rocketmqlogs/otherdays/PullmsgLiveMoniter-%d{yyyy-MM-dd}.%i.log</fileNamePattern>
 			<timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
 				<maxFileSize>104857600</maxFileSize>
 			</timeBasedFileNamingAndTriggeringPolicy>
@@ -135,10 +135,10 @@
 		</encoder>
 	</appender>
 	<appender name="RocketmqSendmsgLiveMoniterAppender" class="ch.qos.logback.core.rolling.RollingFileAppender">
-		<file>f:/metahome/master/logs/rocketmqlogs/PutmsgLive.log</file>
+		<file>${user.home}/rocketmqlogs/PutmsgLive.log</file>
 		<append>true</append>
 		<rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-			<fileNamePattern>f:/metahome/master/logs/rocketmqlogs/otherdays/PutmsgLive-%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+			<fileNamePattern>${user.home}/rocketmqlogs/otherdays/PutmsgLive-%d{yyyy-MM-dd}.%i.log</fileNamePattern>
 			<timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
 				<maxFileSize>104857600</maxFileSize>
 			</timeBasedFileNamingAndTriggeringPolicy>
@@ -150,10 +150,10 @@
 		</encoder>
 	</appender>
 	<appender name="RocketmqSendbackmsgLiveMoniterAppender" class="ch.qos.logback.core.rolling.RollingFileAppender">
-		<file>f:/metahome/master/logs/rocketmqlogs/SendbackmsgLive.log</file>
+		<file>${user.home}/logs/rocketmqlogs/SendbackmsgLive.log</file>
 		<append>true</append>
 		<rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-			<fileNamePattern>f:/metahome/master/logs/rocketmqlogs/otherdays/SendbackmsgLive-%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+			<fileNamePattern>${user.home}/logs/rocketmqlogs/otherdays/SendbackmsgLive-%d{yyyy-MM-dd}.%i.log</fileNamePattern>
 			<timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
 				<maxFileSize>104857600</maxFileSize>
 			</timeBasedFileNamingAndTriggeringPolicy>
