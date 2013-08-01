@@ -27,17 +27,17 @@
         </filter>
     </appender>
 
-    <logger name="RocketmqClient" additivity="true">
+    <logger name="RocketmqClient" additivity="false">
         <level value="INFO"/>
         <appender-ref ref="RocketmqClientAppender"/>
     </logger>
 
-    <logger name="RocketmqCommon" additivity="true">
+    <logger name="RocketmqCommon" additivity="false">
         <level value="INFO"/>
         <appender-ref ref="RocketmqClientAppender"/>
     </logger>
 
-    <logger name="RocketmqRemoting" additivity="true">
+    <logger name="RocketmqRemoting" additivity="false">
         <level value="INFO"/>
         <appender-ref ref="RocketmqClientAppender"/>
     </logger>
