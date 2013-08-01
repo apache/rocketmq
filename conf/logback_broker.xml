@@ -69,10 +69,10 @@
     </appender>
 
     <appender name="RocketmqPutStatsMoniterAppender" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>${user.home}/rocketmqlogs/PutStatsMoniter.log</file>
+        <file>${user.home}/rocketmqlogs/Put.log</file>
         <append>true</append>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-            <fileNamePattern>${user.home}/rocketmqlogs/otherdays/PutStatsMoniter-%d{yyyy-MM-dd}.%i.log
+            <fileNamePattern>${user.home}/rocketmqlogs/otherdays/Put-%d{yyyy-MM-dd}.%i.log
             </fileNamePattern>
             <timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
                 <maxFileSize>104857600</maxFileSize>
@@ -86,10 +86,10 @@
     </appender>
 
     <appender name="RocketmqGetStatsMoniterAppender" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>${user.home}/rocketmqlogs/GetStatsMoniter.log</file>
+        <file>${user.home}/rocketmqlogs/Get.log</file>
         <append>true</append>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-            <fileNamePattern>${user.home}/rocketmqlogs/otherdays/GetStatsMoniter-%d{yyyy-MM-dd}.%i.log
+            <fileNamePattern>${user.home}/rocketmqlogs/otherdays/Get-%d{yyyy-MM-dd}.%i.log
             </fileNamePattern>
             <timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
                 <maxFileSize>104857600</maxFileSize>
@@ -103,10 +103,10 @@
     </appender>
 
     <appender name="RocketmqStoreStatsMoniterAppender" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>${user.home}/rocketmqlogs/StoreStatsMoniter.log</file>
+        <file>${user.home}/rocketmqlogs/Store.log</file>
         <append>true</append>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-            <fileNamePattern>${user.home}/rocketmqlogs/otherdays/StoreStatsMoniter-%d{yyyy-MM-dd}.%i.log
+            <fileNamePattern>${user.home}/rocketmqlogs/otherdays/Store-%d{yyyy-MM-dd}.%i.log
             </fileNamePattern>
             <timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
                 <maxFileSize>104857600</maxFileSize>
@@ -118,6 +118,52 @@
             <charset class="java.nio.charset.Charset">UTF-8</charset>
         </encoder>
     </appender>
+
+	<appender name="RocketmqPullmsgLiveMoniterAppender" class="ch.qos.logback.core.rolling.RollingFileAppender">
+		<file>${user.home}/rocketmqlogs/PullmsgLiveMoniter.log</file>
+		<append>true</append>
+		<rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+			<fileNamePattern>${user.home}/rocketmqlogs/otherdays/PullmsgLiveMoniter-%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+			<timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
+				<maxFileSize>104857600</maxFileSize>
+			</timeBasedFileNamingAndTriggeringPolicy>
+			<MaxHistory>10</MaxHistory>
+		</rollingPolicy>
+		<encoder>
+			<pattern>%d{yyy-MM-dd HH:mm:ss,GMT+8} %p %t - %m%n</pattern>
+			<charset class="java.nio.charset.Charset">UTF-8</charset>
+		</encoder>
+	</appender>
+	<appender name="RocketmqSendmsgLiveMoniterAppender" class="ch.qos.logback.core.rolling.RollingFileAppender">
+		<file>${user.home}/rocketmqlogs/PutmsgLive.log</file>
+		<append>true</append>
+		<rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+			<fileNamePattern>${user.home}/rocketmqlogs/otherdays/PutmsgLive-%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+			<timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
+				<maxFileSize>104857600</maxFileSize>
+			</timeBasedFileNamingAndTriggeringPolicy>
+			<MaxHistory>10</MaxHistory>
+		</rollingPolicy>
+		<encoder>
+			<pattern>%d{yyy-MM-dd HH:mm:ss,GMT+8} %p %t - %m%n</pattern>
+			<charset class="java.nio.charset.Charset">UTF-8</charset>
+		</encoder>
+	</appender>
+	<appender name="RocketmqSendbackmsgLiveMoniterAppender" class="ch.qos.logback.core.rolling.RollingFileAppender">
+		<file>${user.home}/logs/rocketmqlogs/SendbackmsgLive.log</file>
+		<append>true</append>
+		<rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+			<fileNamePattern>${user.home}/logs/rocketmqlogs/otherdays/SendbackmsgLive-%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+			<timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
+				<maxFileSize>104857600</maxFileSize>
+			</timeBasedFileNamingAndTriggeringPolicy>
+			<MaxHistory>10</MaxHistory>
+		</rollingPolicy>
+		<encoder>
+			<pattern>%d{yyy-MM-dd HH:mm:ss,GMT+8} %p %t - %m%n</pattern>
+			<charset class="java.nio.charset.Charset">UTF-8</charset>
+		</encoder>
+	</appender>
 
     <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
         <append>true</append>
@@ -171,6 +217,18 @@
         <level value="INFO"/>
         <appender-ref ref="RocketmqStoreStatsMoniterAppender"/>
     </logger>
+	<logger name="PullmsgLiveMoniter" additivity="false">
+		<level value="ERROR" />
+		<appender-ref ref="RocketmqPullmsgLiveMoniterAppender" />
+	</logger>
+	<logger name="SendbackmsgLiveMoniter" additivity="false">
+		<level value="ERROR" />
+		<appender-ref ref="RocketmqSendbackmsgLiveMoniterAppender" />
+	</logger>
+	<logger name="SendmsgLiveMoniter" additivity="false">
+		<level value="ERROR" />
+		<appender-ref ref="RocketmqSendmsgLiveMoniterAppender" />
+	</logger>
 
     <root>
         <level value="INFO"/>

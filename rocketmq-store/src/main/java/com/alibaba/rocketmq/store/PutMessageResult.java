@@ -55,4 +55,12 @@ public class PutMessageResult {
     public void setPutMessageStatus(PutMessageStatus putMessageStatus) {
         this.putMessageStatus = putMessageStatus;
     }
+
+
+    @Override
+    public String toString() {
+        return "PutMessageResult [putMessageStatus=" + putMessageStatus + ", appendMessageResult="
+                + appendMessageResult + "]";
+    }
+    
 }
