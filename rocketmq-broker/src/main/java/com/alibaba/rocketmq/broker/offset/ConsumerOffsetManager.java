@@ -95,10 +95,8 @@ public class ConsumerOffsetManager extends ConfigManager {
 
         if (0 == totalMsgs)
             return 0;
-
         double pullTps =
-                totalMsgs / this.brokerController.getBrokerConfig().getFlushConsumerOffsetHistoryInterval();
-        pullTps *= 1000;
+                totalMsgs*1000 / this.brokerController.getBrokerConfig().getFlushConsumerOffsetHistoryInterval();
 
         return Double.valueOf(pullTps).longValue();
     }
