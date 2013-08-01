@@ -112,6 +112,8 @@ public class LocalFileOffsetStore implements OffsetStore {
                     this.updateOffset(mq, offset.get(), false);
                     return offset.get();
                 }
+            } else {
+	            return offset.get();
             }
         }
 
