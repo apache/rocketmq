@@ -115,4 +115,13 @@ public class AppendMessageResult {
     public void setLogicsOffset(long logicsOffset) {
         this.logicsOffset = logicsOffset;
     }
+
+
+    @Override
+    public String toString() {
+        return "AppendMessageResult [status=" + status + ", wroteOffset=" + wroteOffset + ", wroteBytes="
+                + wroteBytes + ", msgId=" + msgId + ", storeTimestamp=" + storeTimestamp + ", logicsOffset="
+                + logicsOffset + "]";
+    }
+    
 }
