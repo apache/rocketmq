@@ -52,7 +52,7 @@ public class MessageStoreConfig {
     // CommitLog每个文件大小 1G
     private int mapedFileSizeCommitLog = 1024 * 1024 * 1024;
     // ConsumeQueue每个文件大小 默认存储50W条消息
-    private int mapedFileSizeConsumeQueue = 500000 * ConsumeQueue.CQStoreUnitSize;
+    private int mapedFileSizeConsumeQueue = 300000 * ConsumeQueue.CQStoreUnitSize;
     // CommitLog刷盘间隔时间（单位毫秒）
     private int flushIntervalCommitLog = 1000;
     // ConsumeQueue刷盘间隔时间（单位毫秒）
