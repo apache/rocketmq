@@ -12,6 +12,7 @@
 ----------
 
 ### 如何开始？
+* [下载最新稳定版安装包](https://github.com/alibaba/RocketMQ/releases)
 * [Quick Start（外部用户）](https://github.com/alibaba/RocketMQ/wiki/Quick-Start)
 * [通过Wiki了解更多（外部用户）](https://github.com/alibaba/RocketMQ/wiki)
 
@@ -23,9 +24,10 @@
 ----------
 
 ### 开发规范
-* 代码使用Eclipse代码样式格式化，[rocketmq.java.code.style.xml](https://github.com/alibaba/RocketMQ/blob/master/docs/rocketmq.java.code.style.xml)
+* 代码使用Eclipse代码样式格式化，提交代码前须格式化[rocketmq.java.code.style.xml](https://github.com/alibaba/RocketMQ/blob/master/docs/rocketmq.java.code.style.xml)
 * Java源文件使用Unix换行、UTF-8文件编码
 * 请在develop分支上开发
+* 每次提交须有Issue关联，可在git提交注释中增加`#issue号码`进行关联
 
 ----------
 
