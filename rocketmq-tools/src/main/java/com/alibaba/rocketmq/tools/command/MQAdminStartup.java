@@ -32,6 +32,7 @@ import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 import com.alibaba.rocketmq.tools.command.cluster.ClusterListSubCommand;
 import com.alibaba.rocketmq.tools.command.consumer.UpdateSubGroupSubCommand;
+import com.alibaba.rocketmq.tools.command.topic.TopicRouteSubCommand;
 import com.alibaba.rocketmq.tools.command.topic.UpdateTopicSubCommand;
 
 
@@ -47,7 +48,7 @@ public class MQAdminStartup {
         subCommandList.add(new UpdateTopicSubCommand());
         subCommandList.add(new UpdateSubGroupSubCommand());
         subCommandList.add(new ClusterListSubCommand());
-        // subCommandList.add(new ClusterListSubCommand());
+        subCommandList.add(new TopicRouteSubCommand());
         // subCommandList.add(new BrokerSubCommand());
         // subCommandList.add(new NamesrvSubCommand());
         // subCommandList.add(new ProducerSubCommand());
@@ -107,16 +108,25 @@ public class MQAdminStartup {
     }
 
 
-    private static void initLogback() throws JoranException {
-        String rocketmqHome =
-                System.getProperty(MixAll.ROCKETMQ_HOME_PROPERTY, System.getenv(MixAll.ROCKETMQ_HOME_ENV));
+    private static void printHelp() {
+        System.out.println("The most commonly used mqadmin commands are:");
 
-        // 初始化Logback
-        LoggerContext lc = (LoggerContext) LoggerFactory.getILoggerFactory();
-        JoranConfigurator configurator = new JoranConfigurator();
-        configurator.setContext(lc);
-        lc.reset();
-        configurator.doConfigure(rocketmqHome + "/conf/logback_tools.xml");
+        for (SubCommand cmd : subCommandList) {
+            System.out.printf("   %-16s %s\n", cmd.commandName(), cmd.commandDesc());
+        }
+
+        System.out.println("\nSee 'mqadmin help <command>' for more information on a specific command.");
+    }
+
+
+    private static SubCommand findSubCommand(final String name) {
+        for (SubCommand cmd : subCommandList) {
+            if (cmd.commandName().equals(name)) {
+                return cmd;
+            }
+        }
+
+        return null;
     }
 
 
@@ -132,24 +142,15 @@ public class MQAdminStartup {
     }
 
 
-    private static SubCommand findSubCommand(final String name) {
-        for (SubCommand cmd : subCommandList) {
-            if (cmd.commandName().equals(name)) {
-                return cmd;
-            }
-        }
+    private static void initLogback() throws JoranException {
+        String rocketmqHome =
+                System.getProperty(MixAll.ROCKETMQ_HOME_PROPERTY, System.getenv(MixAll.ROCKETMQ_HOME_ENV));
 
-        return null;
-    }
-
-
-    private static void printHelp() {
-        System.out.println("The most commonly used mqadmin commands are:");
-
-        for (SubCommand cmd : subCommandList) {
-            System.out.printf("   %-16s %s\n", cmd.commandName(), cmd.commandDesc());
-        }
-
-        System.out.println("\nSee 'mqadmin help <command>' for more information on a specific command.");
+        // 初始化Logback
+        LoggerContext lc = (LoggerContext) LoggerFactory.getILoggerFactory();
+        JoranConfigurator configurator = new JoranConfigurator();
+        configurator.setContext(lc);
+        lc.reset();
+        configurator.doConfigure(rocketmqHome + "/conf/logback_tools.xml");
     }
 }

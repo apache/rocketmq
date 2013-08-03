@@ -22,6 +22,7 @@ import com.alibaba.rocketmq.common.TopicConfig;
 import com.alibaba.rocketmq.common.admin.ConsumerProgress;
 import com.alibaba.rocketmq.common.admin.TopicOffsetTable;
 import com.alibaba.rocketmq.common.protocol.body.ClusterInfoSerializeWrapper;
+import com.alibaba.rocketmq.common.protocol.route.TopicRouteData;
 import com.alibaba.rocketmq.common.subscription.SubscriptionGroupConfig;
 import com.alibaba.rocketmq.remoting.exception.RemotingConnectException;
 import com.alibaba.rocketmq.remoting.exception.RemotingException;
@@ -138,6 +139,16 @@ public interface MQAdminExt extends MQAdmin {
     public ClusterInfoSerializeWrapper examineBrokerClusterInfo() throws InterruptedException,
             MQBrokerException, RemotingTimeoutException, RemotingSendRequestException,
             RemotingConnectException;
+
+
+    /**
+     * 查看Topic路由信息
+     * 
+     * @param topic
+     * @return
+     */
+    public TopicRouteData examineTopicRouteInfo(final String topic) throws RemotingException,
+            MQClientException, InterruptedException;
 
 
     /**

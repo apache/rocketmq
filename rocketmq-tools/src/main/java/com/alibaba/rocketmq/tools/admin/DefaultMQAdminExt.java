@@ -26,6 +26,7 @@ import com.alibaba.rocketmq.common.admin.TopicOffsetTable;
 import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.common.message.MessageQueue;
 import com.alibaba.rocketmq.common.protocol.body.ClusterInfoSerializeWrapper;
+import com.alibaba.rocketmq.common.protocol.route.TopicRouteData;
 import com.alibaba.rocketmq.common.subscription.SubscriptionGroupConfig;
 import com.alibaba.rocketmq.remoting.exception.RemotingConnectException;
 import com.alibaba.rocketmq.remoting.exception.RemotingException;
@@ -165,6 +166,13 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
             RemotingConnectException, RemotingTimeoutException, RemotingSendRequestException,
             MQBrokerException {
         return defaultMQAdminExtImpl.examineBrokerClusterInfo();
+    }
+
+
+    @Override
+    public TopicRouteData examineTopicRouteInfo(String topic) throws RemotingException, MQClientException,
+            InterruptedException {
+        return defaultMQAdminExtImpl.examineTopicRouteInfo(topic);
     }
 
 
