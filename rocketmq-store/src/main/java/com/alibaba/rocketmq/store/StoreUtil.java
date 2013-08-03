@@ -27,14 +27,9 @@ public class StoreUtil {
     public static final long TotalPhysicalMemorySize = getTotalPhysicalMemorySize();
 
 
-    /**
-     * 获取机器的物理内存
-     * 
-     * @return 单位字节
-     */
+ 
     @SuppressWarnings("restriction")
     public static long getTotalPhysicalMemorySize() {
-        // 默认24G物理内存
         long physicalTotal = 1024 * 1024 * 1024 * 24;
         OperatingSystemMXBean osmxb = ManagementFactory.getOperatingSystemMXBean();
         if (osmxb instanceof com.sun.management.OperatingSystemMXBean) {
