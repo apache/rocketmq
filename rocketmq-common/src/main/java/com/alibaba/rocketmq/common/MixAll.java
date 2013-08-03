@@ -17,6 +17,8 @@ package com.alibaba.rocketmq.common;
 
 import java.io.*;
 import java.lang.annotation.Annotation;
+import java.lang.management.ManagementFactory;
+import java.lang.management.OperatingSystemMXBean;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -29,10 +31,7 @@ import org.apache.commons.cli.*;
 import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 
-import sun.management.ManagementFactory;
-
 import com.alibaba.rocketmq.common.annotation.ImportantField;
-import com.sun.management.OperatingSystemMXBean;
 
 
 /**
@@ -312,9 +311,14 @@ public class MixAll {
      * 
      * @return 单位字节
      */
+    @SuppressWarnings("restriction")
     public static long getTotalPhysicalMemorySize() {
-        OperatingSystemMXBean osmxb = (OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean();
-        long physicalTotal = osmxb.getTotalPhysicalMemorySize();
+        long physicalTotal = -1;
+        OperatingSystemMXBean osmxb = ManagementFactory.getOperatingSystemMXBean();
+        if (osmxb instanceof com.sun.management.OperatingSystemMXBean) {
+            physicalTotal = ((com.sun.management.OperatingSystemMXBean) osmxb).getTotalPhysicalMemorySize();
+        }
+
         return physicalTotal;
     }
 
