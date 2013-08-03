@@ -17,8 +17,6 @@ package com.alibaba.rocketmq.common;
 
 import java.io.*;
 import java.lang.annotation.Annotation;
-import java.lang.management.ManagementFactory;
-import java.lang.management.OperatingSystemMXBean;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -43,10 +41,8 @@ import com.alibaba.rocketmq.common.annotation.ImportantField;
 public class MixAll {
     public static final String ROCKETMQ_HOME_ENV = "ROCKETMQ_HOME";
     public static final String ROCKETMQ_HOME_PROPERTY = "rocketmq.home.dir";
-
     public static final String NAMESRV_ADDR_ENV = "NAMESRV_ADDR";
     public static final String NAMESRV_ADDR_PROPERTY = "rocketmq.namesrv.addr";
-
     public static final String WS_DOMAIN_NAME = System.getProperty("rocketmq.namesrv.domain",
         "jmenv.tbsite.net");
     // http://jmenv.tbsite.net:8080/rocketmq/nsaddr
@@ -57,13 +53,12 @@ public class MixAll {
     public static final String DEFAULT_CONSUMER_GROUP = "DEFAULT_CONSUMER";
     public static final String CLIENT_INNER_PRODUCER_GROUP = "CLIENT_INNER_PRODUCER";
     public static final String SELF_TEST_TOPIC = "SELF_TEST_TOPIC";
-    public static final long TotalPhysicalMemorySize = getTotalPhysicalMemorySize();
+
     public static final List<String> LocalInetAddrs = getLocalInetAddress();
     public static final String Localhost = localhost();
     public static final String DEFAULT_CHARSET = "UTF-8";
     public static final long MASTER_ID = 0L;
     public static final long CURRENT_JVM_PID = getPID();
-
     // 为每个Consumer Group建立一个默认的Topic，前缀 + GroupName，用来保存处理失败需要重试的消息
     public static final String RETRY_GROUP_TOPIC_PREFIX = "%RETRY%";
     // 为每个Consumer Group建立一个默认的Topic，前缀 + GroupName，用来保存重试多次都失败，接下来不再重试的消息
@@ -92,41 +87,6 @@ public class MixAll {
         }
 
         return 0;
-    }
-
-
-    public static final String file2String(final String fileName) {
-        File file = new File(fileName);
-        if (file.exists()) {
-            char[] data = new char[(int) file.length()];
-            boolean result = false;
-
-            FileReader fileReader = null;
-            try {
-                fileReader = new FileReader(file);
-                int len = fileReader.read(data);
-                result = (len == data.length);
-            }
-            catch (IOException e) {
-                // e.printStackTrace();
-            }
-            finally {
-                if (fileReader != null) {
-                    try {
-                        fileReader.close();
-                    }
-                    catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-            }
-
-            if (result) {
-                String value = new String(data);
-                return value;
-            }
-        }
-        return null;
     }
 
 
@@ -191,6 +151,41 @@ public class MixAll {
                 }
             }
         }
+    }
+
+
+    public static final String file2String(final String fileName) {
+        File file = new File(fileName);
+        if (file.exists()) {
+            char[] data = new char[(int) file.length()];
+            boolean result = false;
+
+            FileReader fileReader = null;
+            try {
+                fileReader = new FileReader(file);
+                int len = fileReader.read(data);
+                result = (len == data.length);
+            }
+            catch (IOException e) {
+                // e.printStackTrace();
+            }
+            finally {
+                if (fileReader != null) {
+                    try {
+                        fileReader.close();
+                    }
+                    catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+
+            if (result) {
+                String value = new String(data);
+                return value;
+            }
+        }
+        return null;
     }
 
 
@@ -303,23 +298,6 @@ public class MixAll {
                 }
             }
         }
-    }
-
-
-    /**
-     * 获取机器的物理内存
-     * 
-     * @return 单位字节
-     */
-    @SuppressWarnings("restriction")
-    public static long getTotalPhysicalMemorySize() {
-        long physicalTotal = -1;
-        OperatingSystemMXBean osmxb = ManagementFactory.getOperatingSystemMXBean();
-        if (osmxb instanceof com.sun.management.OperatingSystemMXBean) {
-            physicalTotal = ((com.sun.management.OperatingSystemMXBean) osmxb).getTotalPhysicalMemorySize();
-        }
-
-        return physicalTotal;
     }
 
 
@@ -486,6 +464,18 @@ public class MixAll {
     }
 
 
+    public static void compareAndIncreaseOnly(final AtomicLong target, final long value) {
+        long prev = target.get();
+        while (value > prev) {
+            boolean updated = target.compareAndSet(prev, value);
+            if (updated)
+                break;
+
+            prev = target.get();
+        }
+    }
+
+
     public Set<String> list2Set(List<String> values) {
         Set<String> result = new HashSet<String>();
         for (String v : values) {
@@ -501,17 +491,5 @@ public class MixAll {
             result.add(v);
         }
         return result;
-    }
-
-
-    public static void compareAndIncreaseOnly(final AtomicLong target, final long value) {
-        long prev = target.get();
-        while (value > prev) {
-            boolean updated = target.compareAndSet(prev, value);
-            if (updated)
-                break;
-
-            prev = target.get();
-        }
     }
 }
