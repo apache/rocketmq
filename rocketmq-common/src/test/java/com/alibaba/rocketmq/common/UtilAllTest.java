@@ -10,6 +10,65 @@ import org.junit.Test;
 
 public class UtilAllTest {
 
+    @Test
+    public void test_a() {
+        URL url = this.getClass().getProtectionDomain().getCodeSource().getLocation();
+        System.out.println(url);
+        System.out.println(url.getPath());
+    }
+
+
+    @Test
+    public void test_resetClassProperties() {
+        DemoConfig demoConfig = new DemoConfig();
+        MixAll.properties2Object(new Properties(), demoConfig);
+    }
+
+
+    @Test
+    public void test_printClassProperties() {
+        DemoConfig demoConfig = new DemoConfig();
+    }
+
+
+    @Test
+    public void test_properties2String() {
+        DemoConfig demoConfig = new DemoConfig();
+        Properties properties = MixAll.object2Properties(demoConfig);
+        System.out.println(MixAll.properties2String(properties));
+    }
+
+
+    @Test
+    public void test_timeMillisToHumanString() {
+        System.out.println(UtilALl.timeMillisToHumanString());
+    }
+
+
+    @Test
+    public void test_isPropertiesEqual() {
+        final Properties p1 = new Properties();
+        final Properties p2 = new Properties();
+
+        p1.setProperty("a", "1");
+        p1.setProperty("b", "2");
+
+        p2.setProperty("a", "1");
+        p2.setProperty("b", "2");
+        // p2.setProperty("c", "3");
+
+        assertTrue(MixAll.isPropertiesEqual(p1, p2));
+    }
+
+
+    @Test
+    public void test_getpid() {
+        int pid = UtilALl.getPid();
+
+        System.out.println("PID = " + pid);
+        assertTrue(pid > 0);
+    }
+
     class DemoConfig {
         private int demoWidth = 0;
         private int demoLength = 0;
@@ -55,71 +114,5 @@ public class UtilAllTest {
         public void setDemoNfieldame(String demoName) {
             this.demoName = demoName;
         }
-    }
-
-
-    @Test
-    public void test_a() {
-        URL url = this.getClass().getProtectionDomain().getCodeSource().getLocation();
-        System.out.println(url);
-        System.out.println(url.getPath());
-    }
-
-
-    @Test
-    public void test_resetClassProperties() {
-        DemoConfig demoConfig = new DemoConfig();
-        MixAll.properties2Object(new Properties(), demoConfig);
-    }
-
-
-    @Test
-    public void test_printClassProperties() {
-        DemoConfig demoConfig = new DemoConfig();
-    }
-
-
-    @Test
-    public void test_properties2String() {
-        DemoConfig demoConfig = new DemoConfig();
-        Properties properties = MixAll.object2Properties(demoConfig);
-        System.out.println(MixAll.properties2String(properties));
-    }
-
-
-    @Test
-    public void test_getTotalPhysicalMemorySize() {
-        System.out.println(MixAll.TotalPhysicalMemorySize);
-    }
-
-
-    @Test
-    public void test_timeMillisToHumanString() {
-        System.out.println(UtilALl.timeMillisToHumanString());
-    }
-
-
-    @Test
-    public void test_isPropertiesEqual() {
-        final Properties p1 = new Properties();
-        final Properties p2 = new Properties();
-
-        p1.setProperty("a", "1");
-        p1.setProperty("b", "2");
-
-        p2.setProperty("a", "1");
-        p2.setProperty("b", "2");
-        // p2.setProperty("c", "3");
-
-        assertTrue(MixAll.isPropertiesEqual(p1, p2));
-    }
-
-
-    @Test
-    public void test_getpid() {
-        int pid = UtilALl.getPid();
-
-        System.out.println("PID = " + pid);
-        assertTrue(pid > 0);
     }
 }
