@@ -25,8 +25,12 @@ import com.alibaba.rocketmq.common.admin.ConsumerProgress;
 import com.alibaba.rocketmq.common.admin.TopicOffsetTable;
 import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.common.message.MessageQueue;
+import com.alibaba.rocketmq.common.protocol.body.ClusterInfoSerializeWrapper;
 import com.alibaba.rocketmq.common.subscription.SubscriptionGroupConfig;
+import com.alibaba.rocketmq.remoting.exception.RemotingConnectException;
 import com.alibaba.rocketmq.remoting.exception.RemotingException;
+import com.alibaba.rocketmq.remoting.exception.RemotingSendRequestException;
+import com.alibaba.rocketmq.remoting.exception.RemotingTimeoutException;
 
 
 /**
@@ -153,6 +157,14 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
     @Override
     public ConsumerProgress examineConsumerProgress(String consumerGroup, String topic) {
         return defaultMQAdminExtImpl.examineConsumerProgress(consumerGroup, topic);
+    }
+
+
+    @Override
+    public ClusterInfoSerializeWrapper examineBrokerClusterInfo() throws InterruptedException,
+            RemotingConnectException, RemotingTimeoutException, RemotingSendRequestException,
+            MQBrokerException {
+        return defaultMQAdminExtImpl.examineBrokerClusterInfo();
     }
 
 
