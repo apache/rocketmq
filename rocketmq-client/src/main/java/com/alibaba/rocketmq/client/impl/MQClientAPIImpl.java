@@ -42,6 +42,7 @@ import com.alibaba.rocketmq.common.message.MessageQueue;
 import com.alibaba.rocketmq.common.namesrv.TopAddressing;
 import com.alibaba.rocketmq.common.protocol.MQProtos.MQRequestCode;
 import com.alibaba.rocketmq.common.protocol.MQProtos.MQResponseCode;
+import com.alibaba.rocketmq.common.protocol.body.ClusterInfoSerializeWrapper;
 import com.alibaba.rocketmq.common.protocol.body.LockBatchRequestBody;
 import com.alibaba.rocketmq.common.protocol.body.LockBatchResponseBody;
 import com.alibaba.rocketmq.common.protocol.body.UnlockBatchRequestBody;
@@ -75,11 +76,9 @@ public class MQClientAPIImpl {
     private final RemotingClient remotingClient;
     private final TopAddressing topAddressing = new TopAddressing();
     private final ClientRemotingProcessor clientRemotingProcessor;
-
     static {
         System.setProperty(RemotingCommand.RemotingVersionKey, Integer.toString(MQVersion.CurrentVersion));
     }
-
     private String nameSrvAddr = null;
 
 
@@ -234,6 +233,19 @@ public class MQClientAPIImpl {
     }
 
 
+    private SendResult sendMessageSync(//
+            final String addr,//
+            final String brokerName,//
+            final Message msg,//
+            final long timeoutMillis,//
+            final RemotingCommand request//
+    ) throws RemotingException, MQBrokerException, InterruptedException {
+        RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
+        assert response != null;
+        return this.processSendResponse(brokerName, msg, response);
+    }
+
+
     private void sendMessageAsync(//
             final String addr,//
             final String brokerName,//
@@ -327,19 +339,6 @@ public class MQClientAPIImpl {
     }
 
 
-    private SendResult sendMessageSync(//
-            final String addr,//
-            final String brokerName,//
-            final Message msg,//
-            final long timeoutMillis,//
-            final RemotingCommand request//
-    ) throws RemotingException, MQBrokerException, InterruptedException {
-        RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
-        assert response != null;
-        return this.processSendResponse(brokerName, msg, response);
-    }
-
-
     /**
      * 拉消息接口
      */
@@ -368,17 +367,6 @@ public class MQClientAPIImpl {
         }
 
         return null;
-    }
-
-
-    private PullResult pullMessageSync(//
-            final String addr,// 1
-            final RemotingCommand request,// 2
-            final long timeoutMillis// 3
-    ) throws RemotingException, InterruptedException, MQBrokerException {
-        RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
-        assert response != null;
-        return this.processPullResponse(response);
     }
 
 
@@ -449,6 +437,17 @@ public class MQClientAPIImpl {
         return new PullResultExt(pullStatus, responseHeader.getNextBeginOffset(),
             responseHeader.getMinOffset(), responseHeader.getMaxOffset(), null,
             responseHeader.getSuggestWhichBrokerId(), response.getBody());
+    }
+
+
+    private PullResult pullMessageSync(//
+            final String addr,// 1
+            final RemotingCommand request,// 2
+            final long timeoutMillis// 3
+    ) throws RemotingException, InterruptedException, MQBrokerException {
+        RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
+        assert response != null;
+        return this.processPullResponse(response);
     }
 
 
@@ -879,6 +878,29 @@ public class MQClientAPIImpl {
 
             throw new MQBrokerException(response.getCode(), response.getRemark());
         }
+    }
+
+
+    public ClusterInfoSerializeWrapper getBrokerClusterInfo(final long timeoutMillis)
+            throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException,
+            RemotingConnectException, MQBrokerException {
+        RemotingCommand request =
+                RemotingCommand.createRequestCommand(MQRequestCode.GET_BROKER_CLUSTER_INFO_VALUE, null);
+
+        RemotingCommand response = this.remotingClient.invokeSync(null, request, timeoutMillis);
+        assert response != null;
+        switch (response.getCode()) {
+        case ResponseCode.SUCCESS_VALUE: {
+            ClusterInfoSerializeWrapper responseBody =
+                    ClusterInfoSerializeWrapper.decode(response.getBody(), ClusterInfoSerializeWrapper.class);
+            return responseBody;
+        }
+        default:
+            break;
+        }
+
+        throw new MQBrokerException(response.getCode(), response.getRemark());
+
     }
 
 
