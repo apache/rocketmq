@@ -45,15 +45,6 @@ public interface MQAdminExt extends MQAdmin {
 
 
     /**
-     * 向指定Broker集群创建或者更新Topic配置
-     * 
-     * @param cluster
-     * @param config
-     */
-    public void createAndUpdateTopicConfigByCluster(final String cluster, final TopicConfig config);
-
-
-    /**
      * 向指定Broker创建或者更新Topic配置
      * 
      * @param addr
@@ -63,18 +54,8 @@ public interface MQAdminExt extends MQAdmin {
      * @throws MQBrokerException
      * @throws RemotingException
      */
-    public void createAndUpdateTopicConfigByAddr(final String addr, final TopicConfig config)
+    public void createAndUpdateTopicConfig(final String addr, final TopicConfig config)
             throws RemotingException, MQBrokerException, InterruptedException, MQClientException;
-
-
-    /**
-     * 向指定Broker集群创建或者更新订阅组配置
-     * 
-     * @param cluster
-     * @param config
-     */
-    public void createAndUpdateSubscriptionGroupConfigByCluster(final String cluster,
-            final SubscriptionGroupConfig config);
 
 
     /**
@@ -87,9 +68,8 @@ public interface MQAdminExt extends MQAdmin {
      * @throws MQBrokerException
      * @throws RemotingException
      */
-    public void createAndUpdateSubscriptionGroupConfigByAddr(final String addr,
-            final SubscriptionGroupConfig config) throws RemotingException, MQBrokerException,
-            InterruptedException, MQClientException;
+    public void createAndUpdateSubscriptionGroupConfig(final String addr, final SubscriptionGroupConfig config)
+            throws RemotingException, MQBrokerException, InterruptedException, MQClientException;
 
 
     /**

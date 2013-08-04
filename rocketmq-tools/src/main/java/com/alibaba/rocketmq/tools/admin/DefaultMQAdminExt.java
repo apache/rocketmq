@@ -112,28 +112,16 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
 
 
     @Override
-    public void createAndUpdateTopicConfigByCluster(String cluster, TopicConfig config) {
-        defaultMQAdminExtImpl.createAndUpdateTopicConfigByCluster(cluster, config);
-    }
-
-
-    @Override
-    public void createAndUpdateTopicConfigByAddr(String addr, TopicConfig config) throws RemotingException,
+    public void createAndUpdateTopicConfig(String addr, TopicConfig config) throws RemotingException,
             MQBrokerException, InterruptedException, MQClientException {
-        defaultMQAdminExtImpl.createAndUpdateTopicConfigByAddr(addr, config);
+        defaultMQAdminExtImpl.createAndUpdateTopicConfig(addr, config);
     }
 
 
     @Override
-    public void createAndUpdateSubscriptionGroupConfigByCluster(String cluster, SubscriptionGroupConfig config) {
-        defaultMQAdminExtImpl.createAndUpdateSubscriptionGroupConfigByCluster(cluster, config);
-    }
-
-
-    @Override
-    public void createAndUpdateSubscriptionGroupConfigByAddr(String addr, SubscriptionGroupConfig config)
+    public void createAndUpdateSubscriptionGroupConfig(String addr, SubscriptionGroupConfig config)
             throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
-        defaultMQAdminExtImpl.createAndUpdateSubscriptionGroupConfigByAddr(addr, config);
+        defaultMQAdminExtImpl.createAndUpdateSubscriptionGroupConfig(addr, config);
     }
 
 
