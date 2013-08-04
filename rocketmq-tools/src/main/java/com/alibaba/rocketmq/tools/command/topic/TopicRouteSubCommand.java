@@ -64,6 +64,7 @@ public class TopicRouteSubCommand implements SubCommand {
         try {
             if (!commandLine.hasOption('t')) {
                 MixAll.printCommandLineHelp("mqadmin " + this.commandName(), options);
+                return;
             }
 
             defaultMQAdminExt.start();

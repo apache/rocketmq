@@ -15,12 +15,16 @@
  */
 package com.alibaba.rocketmq.tools.command.topic;
 
+import java.util.Set;
+
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 
+import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.TopicConfig;
 import com.alibaba.rocketmq.tools.admin.DefaultMQAdminExt;
+import com.alibaba.rocketmq.tools.command.CommandUtil;
 import com.alibaba.rocketmq.tools.command.SubCommand;
 
 
@@ -47,6 +51,10 @@ public class UpdateTopicSubCommand implements SubCommand {
     @Override
     public Options buildCommandlineOptions(Options options) {
         Option opt = new Option("b", "brokerAddr", true, "create topic to which broker");
+        opt.setRequired(false);
+        options.addOption(opt);
+
+        opt = new Option("c", "clusterName", true, "create topic to which cluster");
         opt.setRequired(false);
         options.addOption(opt);
 
@@ -77,28 +85,16 @@ public class UpdateTopicSubCommand implements SubCommand {
         defaultMQAdminExt.setInstanceName(Long.toString(System.currentTimeMillis()));
 
         try {
-            defaultMQAdminExt.start();
-
-            String addr = null;
             TopicConfig topicConfig = new TopicConfig();
             topicConfig.setReadQueueNums(8);
             topicConfig.setWriteQueueNums(8);
-
-            // brokerAddr
-            if (commandLine.hasOption('b')) {
-                addr = commandLine.getOptionValue('b');
-            }
-            else {
-                System.out.println("please tell us broker's addr");
-                return;
-            }
 
             // topic
             if (commandLine.hasOption('t')) {
                 topicConfig.setTopicName(commandLine.getOptionValue('t'));
             }
             else {
-                System.out.println("please tell us topic name");
+                MixAll.printCommandLineHelp("mqadmin " + this.commandName(), options);
                 return;
             }
 
@@ -117,9 +113,32 @@ public class UpdateTopicSubCommand implements SubCommand {
                 topicConfig.setPerm(Integer.parseInt(commandLine.getOptionValue('p')));
             }
 
-            defaultMQAdminExt.createAndUpdateTopicConfig(addr, topicConfig);
-            System.out.println("create topic success.");
-            System.out.println(topicConfig);
+            if (commandLine.hasOption('b')) {
+                String addr = commandLine.getOptionValue('b');
+
+                defaultMQAdminExt.start();
+                defaultMQAdminExt.createAndUpdateTopicConfig(addr, topicConfig);
+                System.out.printf("create topic to %s success.\n", addr);
+                System.out.println(topicConfig);
+                return;
+
+            }
+            else if (commandLine.hasOption('c')) {
+                String clusterName = commandLine.getOptionValue('c');
+
+                defaultMQAdminExt.start();
+
+                Set<String> masterSet =
+                        CommandUtil.fetchMasterAddrByClusterName(defaultMQAdminExt, clusterName);
+                for (String addr : masterSet) {
+                    defaultMQAdminExt.createAndUpdateTopicConfig(addr, topicConfig);
+                    System.out.printf("create topic to %s success.\n", addr);
+                }
+                System.out.println(topicConfig);
+                return;
+            }
+
+            MixAll.printCommandLineHelp("mqadmin " + this.commandName(), options);
         }
         catch (Exception e) {
             e.printStackTrace();
