@@ -71,7 +71,7 @@ public class UpdateTopicSubCommand implements SubCommand {
 
 
     @Override
-    public void execute(CommandLine commandLine) {
+    public void execute(final CommandLine commandLine, final Options options) {
         DefaultMQAdminExt defaultMQAdminExt = new DefaultMQAdminExt();
 
         defaultMQAdminExt.setInstanceName(Long.toString(System.currentTimeMillis()));

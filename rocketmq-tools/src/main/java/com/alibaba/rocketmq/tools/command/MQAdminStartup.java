@@ -49,13 +49,6 @@ public class MQAdminStartup {
         subCommandList.add(new UpdateSubGroupSubCommand());
         subCommandList.add(new ClusterListSubCommand());
         subCommandList.add(new TopicRouteSubCommand());
-        // subCommandList.add(new BrokerSubCommand());
-        // subCommandList.add(new NamesrvSubCommand());
-        // subCommandList.add(new ProducerSubCommand());
-        // subCommandList.add(new ConsumerSubCommand());
-        // subCommandList.add(new ConnectionSubCommand());
-        // subCommandList.add(new MessageSubCommand());
-        // subCommandList.add(new StatsSubCommand());
     }
 
 
@@ -97,7 +90,7 @@ public class MQAdminStartup {
                         return;
                     }
 
-                    cmd.execute(commandLine);
+                    cmd.execute(commandLine, options);
                 }
                 break;
             }

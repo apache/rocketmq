@@ -35,5 +35,5 @@ public interface SubCommand {
     public Options buildCommandlineOptions(final Options options);
 
 
-    public void execute(CommandLine commandLine);
+    public void execute(final CommandLine commandLine, final Options options);
 }
