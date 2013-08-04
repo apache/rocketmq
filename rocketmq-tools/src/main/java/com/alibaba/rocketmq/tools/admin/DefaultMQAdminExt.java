@@ -22,7 +22,7 @@ import com.alibaba.rocketmq.client.exception.MQClientException;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.TopicConfig;
 import com.alibaba.rocketmq.common.admin.ConsumerProgress;
-import com.alibaba.rocketmq.common.admin.TopicOffsetTable;
+import com.alibaba.rocketmq.common.admin.TopicStatsTable;
 import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.common.message.MessageQueue;
 import com.alibaba.rocketmq.common.protocol.body.ClusterInfoSerializeWrapper;
@@ -138,8 +138,9 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
 
 
     @Override
-    public TopicOffsetTable examineTopicOffset(String topic) {
-        return defaultMQAdminExtImpl.examineTopicOffset(topic);
+    public TopicStatsTable examineTopicStats(String topic) throws RemotingException, MQClientException,
+            InterruptedException, MQBrokerException {
+        return defaultMQAdminExtImpl.examineTopicStats(topic);
     }
 
 

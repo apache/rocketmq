@@ -124,6 +124,9 @@ public interface MessageStore {
     public long getEarliestMessageTime(final String topic, final int queueId);
 
 
+    public long getMessageStoreTimeStamp(final String topic, final int queueId, final long offset);
+
+
     /**
      * 获取队列中的消息总数
      */

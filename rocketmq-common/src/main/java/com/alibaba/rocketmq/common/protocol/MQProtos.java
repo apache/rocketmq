@@ -89,8 +89,10 @@ public final class MQProtos {
 
         // Broker 更新或者增加一个订阅组
         UPDATE_AND_CREATE_SUBSCRIPTIONGROUP(40, 200),
-        GET_ALL_SUBSCRIPTIONGROUP_CONFIG(41, 201), ;
+        GET_ALL_SUBSCRIPTIONGROUP_CONFIG(41, 201),
 
+        // 统计信息
+        GET_TOPIC_STATS_INFO(42, 202), ;
         // Broker 发送消息
         public static final int SEND_MESSAGE_VALUE = 10;
         // Broker 订阅消息
@@ -169,9 +171,17 @@ public final class MQProtos {
         public static final int GET_ROUTEINTO_BY_TOPIC_VALUE = 105;
         // Namesrv 获取注册到Name Server的所有Broker集群信息
         public static final int GET_BROKER_CLUSTER_INFO_VALUE = 106;
-
         public static final int UPDATE_AND_CREATE_SUBSCRIPTIONGROUP_VALUE = 200;
         public static final int GET_ALL_SUBSCRIPTIONGROUP_CONFIG_VALUE = 201;
+        public static final int GET_TOPIC_STATS_INFO_VALUE = 202;
+        private final int index;
+        private final int value;
+
+
+        private MQRequestCode(int index, int value) {
+            this.index = index;
+            this.value = value;
+        }
 
 
         public static MQRequestCode valueOf(int value) {
@@ -259,13 +269,13 @@ public final class MQProtos {
                 return UPDATE_AND_CREATE_SUBSCRIPTIONGROUP;
             case 201:
                 return GET_ALL_SUBSCRIPTIONGROUP_CONFIG;
+
+            case 202:
+                return GET_TOPIC_STATS_INFO;
             default:
                 return null;
             }
         }
-
-        private final int index;
-        private final int value;
 
 
         public int getIndex() {
@@ -275,12 +285,6 @@ public final class MQProtos {
 
         public final int getNumber() {
             return value;
-        }
-
-
-        private MQRequestCode(int index, int value) {
-            this.index = index;
-            this.value = value;
         }
     }
 
@@ -327,7 +331,6 @@ public final class MQProtos {
         TRANSACTION_STATE_UNKNOW(19, 202),
         // Producer ProducerGroup错误
         TRANSACTION_STATE_GROUP_WRONG(20, 203), ;
-
         // Broker 刷盘超时
         public static final int FLUSH_DISK_TIMEOUT_VALUE = 10;
         // Broker 同步双写，Slave不可用
@@ -370,6 +373,14 @@ public final class MQProtos {
         public static final int TRANSACTION_STATE_UNKNOW_VALUE = 202;
         // Producer ProducerGroup错误
         public static final int TRANSACTION_STATE_GROUP_WRONG_VALUE = 203;
+        private final int index;
+        private final int value;
+
+
+        private MQResponseCode(int index, int value) {
+            this.index = index;
+            this.value = value;
+        }
 
 
         public static MQResponseCode valueOf(int value) {
@@ -421,9 +432,6 @@ public final class MQProtos {
             }
         }
 
-        private final int index;
-        private final int value;
-
 
         public final int getNumber() {
             return value;
@@ -432,12 +440,6 @@ public final class MQProtos {
 
         public int getIndex() {
             return index;
-        }
-
-
-        private MQResponseCode(int index, int value) {
-            this.index = index;
-            this.value = value;
         }
     }
 }
