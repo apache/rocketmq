@@ -17,8 +17,6 @@ package com.alibaba.rocketmq.client.producer;
 
 import java.util.List;
 
-import sun.reflect.generics.reflectiveObjects.NotImplementedException;
-
 import com.alibaba.rocketmq.client.ClientConfig;
 import com.alibaba.rocketmq.client.QueryResult;
 import com.alibaba.rocketmq.client.exception.MQBrokerException;
@@ -162,7 +160,8 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     @Override
     public TransactionSendResult sendMessageInTransaction(Message msg, LocalTransactionExecuter tranExecuter,
             final Object arg) throws MQClientException {
-        throw new NotImplementedException();
+        throw new RuntimeException(
+            "sendMessageInTransaction not implement, please use TransactionMQProducer class");
     }
 
 
