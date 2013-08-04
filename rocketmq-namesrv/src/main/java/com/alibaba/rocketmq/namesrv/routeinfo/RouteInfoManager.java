@@ -69,6 +69,98 @@ public class RouteInfoManager {
 
 
     /**
+     * @return 如果是slave，则返回master的ha地址
+     */
+    public RegisterBrokerResult registerBroker(//
+            final String clusterName,// 1
+            final String brokerAddr,// 2
+            final String brokerName,// 3
+            final long brokerId,// 4
+            final String haServerAddr,// 5
+            final TopicConfigSerializeWrapper topicConfigWrapper,// 6
+            final Channel channel// 7
+    ) {
+        RegisterBrokerResult result = new RegisterBrokerResult();
+        try {
+            try {
+                this.lock.writeLock().lockInterruptibly();
+
+                // 更新集群信息
+                Set<String> brokerNames = this.clusterAddrTable.get(clusterName);
+                if (null == brokerNames) {
+                    brokerNames = new HashSet<String>();
+                    this.clusterAddrTable.put(clusterName, brokerNames);
+                }
+                brokerNames.add(brokerName);
+
+                boolean registerFirst = false;
+
+                // 更新主备信息
+                BrokerData brokerData = this.brokerAddrTable.get(brokerName);
+                if (null == brokerData) {
+                    registerFirst = true;
+                    brokerData = new BrokerData();
+                    brokerData.setBrokerName(brokerName);
+                    HashMap<Long, String> brokerAddrs = new HashMap<Long, String>();
+                    brokerData.setBrokerAddrs(brokerAddrs);
+
+                    this.brokerAddrTable.put(brokerName, brokerData);
+                }
+                String oldAddr = brokerData.getBrokerAddrs().put(brokerId, brokerAddr);
+                registerFirst = registerFirst || (null == oldAddr);
+
+                // 更新Topic信息
+                if (null != topicConfigWrapper //
+                        && MixAll.MASTER_ID == brokerId) {
+                    if (this.isBrokerTopicConfigChanged(brokerAddr, topicConfigWrapper.getDataVersion())//
+                            || registerFirst) {
+                        ConcurrentHashMap<String, TopicConfig> tcTable =
+                                topicConfigWrapper.getTopicConfigTable();
+                        if (tcTable != null) {
+                            for (String topic : tcTable.keySet()) {
+                                TopicConfig topicConfig = tcTable.get(topic);
+                                this.createAndUpdateQueueData(brokerName, topicConfig);
+                            }
+                        }
+                    }
+                }
+
+                // 更新最后变更时间
+                BrokerLiveInfo prevBrokerLiveInfo = this.brokerLiveTable.put(brokerAddr, //
+                    new BrokerLiveInfo(//
+                        System.currentTimeMillis(), //
+                        topicConfigWrapper.getDataVersion(),//
+                        channel, //
+                        haServerAddr));
+                if (null == prevBrokerLiveInfo) {
+                    log.info("new broker registerd, {} HAServer: {}", brokerAddr, haServerAddr);
+                }
+
+                // 返回值
+                if (MixAll.MASTER_ID != brokerId) {
+                    String masterAddr = brokerData.getBrokerAddrs().get(MixAll.MASTER_ID);
+                    if (masterAddr != null) {
+                        BrokerLiveInfo brokerLiveInfo = this.brokerLiveTable.get(masterAddr);
+                        if (brokerLiveInfo != null) {
+                            result.setHaServerAddr(brokerLiveInfo.getHaServerAddr());
+                            result.setMasterAddr(masterAddr);
+                        }
+                    }
+                }
+            }
+            finally {
+                this.lock.writeLock().unlock();
+            }
+        }
+        catch (Exception e) {
+            log.error("registerBroker Exception", e);
+        }
+
+        return result;
+    }
+
+
+    /**
      * 判断Topic配置信息是否发生变更
      */
     private boolean isBrokerTopicConfigChanged(final String brokerAddr, final DataVersion dataVersion) {
@@ -117,94 +209,6 @@ public class RouteInfoManager {
                 queueDataList.add(queueData);
             }
         }
-    }
-
-
-    /**
-     * @return 如果是slave，则返回master的ha地址
-     */
-    public RegisterBrokerResult registerBroker(//
-            final String clusterName,// 1
-            final String brokerAddr,// 2
-            final String brokerName,// 3
-            final long brokerId,// 4
-            final String haServerAddr,// 5
-            final TopicConfigSerializeWrapper topicConfigWrapper,// 6
-            final Channel channel// 7
-    ) {
-        RegisterBrokerResult result = new RegisterBrokerResult();
-        try {
-            try {
-                this.lock.writeLock().lockInterruptibly();
-
-                // 更新集群信息
-                Set<String> brokerNames = this.clusterAddrTable.get(clusterName);
-                if (null == brokerNames) {
-                    brokerNames = new HashSet<String>();
-                    this.clusterAddrTable.put(clusterName, brokerNames);
-                }
-                brokerNames.add(brokerName);
-
-                // 更新主备信息
-                BrokerData brokerData = this.brokerAddrTable.get(brokerName);
-                if (null == brokerData) {
-                    brokerData = new BrokerData();
-                    brokerData.setBrokerName(brokerName);
-                    HashMap<Long, String> brokerAddrs = new HashMap<Long, String>();
-                    brokerData.setBrokerAddrs(brokerAddrs);
-
-                    this.brokerAddrTable.put(brokerName, brokerData);
-                }
-                brokerData.getBrokerAddrs().put(brokerId, brokerAddr);
-
-                // 更新Topic信息
-                if (null != topicConfigWrapper //
-                        && MixAll.MASTER_ID == brokerId) {
-                    if (this.isBrokerTopicConfigChanged(brokerAddr,//
-                        topicConfigWrapper.getDataVersion())) {
-                        ConcurrentHashMap<String, TopicConfig> tcTable =
-                                topicConfigWrapper.getTopicConfigTable();
-                        if (tcTable != null) {
-                            for (String topic : tcTable.keySet()) {
-                                TopicConfig topicConfig = tcTable.get(topic);
-                                this.createAndUpdateQueueData(brokerName, topicConfig);
-                            }
-                        }
-                    }
-                }
-
-                // 更新最后变更时间
-                BrokerLiveInfo prevBrokerLiveInfo = this.brokerLiveTable.put(brokerAddr, //
-                    new BrokerLiveInfo(//
-                        System.currentTimeMillis(), //
-                        topicConfigWrapper.getDataVersion(),//
-                        channel, //
-                        haServerAddr));
-                if (null == prevBrokerLiveInfo) {
-                    log.info("new broker registerd, {} HAServer: {}", brokerAddr, haServerAddr);
-                }
-
-                // 返回值
-                if (MixAll.MASTER_ID != brokerId) {
-                    String masterAddr = brokerData.getBrokerAddrs().get(MixAll.MASTER_ID);
-                    if (masterAddr != null) {
-                        BrokerLiveInfo brokerLiveInfo = this.brokerLiveTable.get(masterAddr);
-                        if (brokerLiveInfo != null) {
-                            result.setHaServerAddr(brokerLiveInfo.getHaServerAddr());
-                            result.setMasterAddr(masterAddr);
-                        }
-                    }
-                }
-            }
-            finally {
-                this.lock.writeLock().unlock();
-            }
-        }
-        catch (Exception e) {
-            log.error("registerBroker Exception", e);
-        }
-
-        return result;
     }
 
 
