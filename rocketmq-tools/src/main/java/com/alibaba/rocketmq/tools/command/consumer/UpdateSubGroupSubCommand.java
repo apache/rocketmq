@@ -15,12 +15,16 @@
  */
 package com.alibaba.rocketmq.tools.command.consumer;
 
+import java.util.Set;
+
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 
+import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.subscription.SubscriptionGroupConfig;
 import com.alibaba.rocketmq.tools.admin.DefaultMQAdminExt;
+import com.alibaba.rocketmq.tools.command.CommandUtil;
 import com.alibaba.rocketmq.tools.command.SubCommand;
 
 
@@ -50,11 +54,15 @@ public class UpdateSubGroupSubCommand implements SubCommand {
         opt.setRequired(false);
         options.addOption(opt);
 
+        opt = new Option("c", "clusterName", true, "create subscription group to which cluster");
+        opt.setRequired(false);
+        options.addOption(opt);
+
         opt = new Option("g", "groupName", true, "consumer group name");
         opt.setRequired(false);
         options.addOption(opt);
 
-        opt = new Option("c", "consumeEnable", true, "consume enable");
+        opt = new Option("s", "consumeEnable", true, "consume enable");
         opt.setRequired(false);
         options.addOption(opt);
 
@@ -93,35 +101,23 @@ public class UpdateSubGroupSubCommand implements SubCommand {
         defaultMQAdminExt.setInstanceName(Long.toString(System.currentTimeMillis()));
 
         try {
-            defaultMQAdminExt.start();
-
-            String addr = null;
             SubscriptionGroupConfig subscriptionGroupConfig = new SubscriptionGroupConfig();
             subscriptionGroupConfig.setConsumeBroadcastEnable(false);
             subscriptionGroupConfig.setConsumeFromMinEnable(false);
-
-            // brokerAddr
-            if (commandLine.hasOption('b')) {
-                addr = commandLine.getOptionValue('b');
-            }
-            else {
-                System.out.println("please tell us broker's addr");
-                return;
-            }
 
             // groupName
             if (commandLine.hasOption('g')) {
                 subscriptionGroupConfig.setGroupName(commandLine.getOptionValue('g'));
             }
             else {
-                System.out.println("please tell us consumer group name");
+                MixAll.printCommandLineHelp("mqadmin " + this.commandName(), options);
                 return;
             }
 
             // consumeEnable
-            if (commandLine.hasOption('c')) {
+            if (commandLine.hasOption('s')) {
                 subscriptionGroupConfig
-                    .setConsumeEnable(Boolean.parseBoolean(commandLine.getOptionValue('c')));
+                    .setConsumeEnable(Boolean.parseBoolean(commandLine.getOptionValue('s')));
             }
 
             // consumeFromMinEnable
@@ -157,9 +153,33 @@ public class UpdateSubGroupSubCommand implements SubCommand {
                     .getOptionValue('w')));
             }
 
-            defaultMQAdminExt.createAndUpdateSubscriptionGroupConfig(addr, subscriptionGroupConfig);
-            System.out.println("create subscription group success.");
-            System.out.println(subscriptionGroupConfig);
+            if (commandLine.hasOption('b')) {
+                String addr = commandLine.getOptionValue('b');
+
+                defaultMQAdminExt.start();
+
+                defaultMQAdminExt.createAndUpdateSubscriptionGroupConfig(addr, subscriptionGroupConfig);
+                System.out.printf("create subscription group to %s success.\n", addr);
+                System.out.println(subscriptionGroupConfig);
+                return;
+
+            }
+            else if (commandLine.hasOption('c')) {
+                String clusterName = commandLine.getOptionValue('c');
+
+                defaultMQAdminExt.start();
+
+                Set<String> masterSet =
+                        CommandUtil.fetchMasterAddrByClusterName(defaultMQAdminExt, clusterName);
+                for (String addr : masterSet) {
+                    defaultMQAdminExt.createAndUpdateSubscriptionGroupConfig(addr, subscriptionGroupConfig);
+                    System.out.printf("create subscription group to %s success.\n", addr);
+                }
+                System.out.println(subscriptionGroupConfig);
+                return;
+            }
+
+            MixAll.printCommandLineHelp("mqadmin " + this.commandName(), options);
         }
         catch (Exception e) {
             e.printStackTrace();
