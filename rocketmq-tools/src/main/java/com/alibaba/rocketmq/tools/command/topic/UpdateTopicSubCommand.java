@@ -117,7 +117,7 @@ public class UpdateTopicSubCommand implements SubCommand {
                 topicConfig.setPerm(Integer.parseInt(commandLine.getOptionValue('p')));
             }
 
-            defaultMQAdminExt.createAndUpdateTopicConfigByAddr(addr, topicConfig);
+            defaultMQAdminExt.createAndUpdateTopicConfig(addr, topicConfig);
             System.out.println("create topic success.");
             System.out.println(topicConfig);
         }

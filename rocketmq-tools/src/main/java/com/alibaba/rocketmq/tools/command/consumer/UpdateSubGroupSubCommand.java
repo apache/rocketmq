@@ -157,7 +157,7 @@ public class UpdateSubGroupSubCommand implements SubCommand {
                     .getOptionValue('w')));
             }
 
-            defaultMQAdminExt.createAndUpdateSubscriptionGroupConfigByAddr(addr, subscriptionGroupConfig);
+            defaultMQAdminExt.createAndUpdateSubscriptionGroupConfig(addr, subscriptionGroupConfig);
             System.out.println("create subscription group success.");
             System.out.println(subscriptionGroupConfig);
         }

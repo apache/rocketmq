@@ -111,14 +111,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
 
 
     @Override
-    public void createAndUpdateTopicConfigByCluster(String cluster, TopicConfig config) {
-        // TODO Auto-generated method stub
-
-    }
-
-
-    @Override
-    public void createAndUpdateTopicConfigByAddr(String addr, TopicConfig config) throws RemotingException,
+    public void createAndUpdateTopicConfig(String addr, TopicConfig config) throws RemotingException,
             MQBrokerException, InterruptedException, MQClientException {
         this.mQClientFactory.getMQClientAPIImpl().createTopic(addr,
             this.defaultMQAdminExt.getCreateTopicKey(), config, 3000);
@@ -126,14 +119,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
 
 
     @Override
-    public void createAndUpdateSubscriptionGroupConfigByCluster(String cluster, SubscriptionGroupConfig config) {
-        // TODO Auto-generated method stub
-
-    }
-
-
-    @Override
-    public void createAndUpdateSubscriptionGroupConfigByAddr(String addr, SubscriptionGroupConfig config)
+    public void createAndUpdateSubscriptionGroupConfig(String addr, SubscriptionGroupConfig config)
             throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
         this.mQClientFactory.getMQClientAPIImpl().createSubscriptionGroup(addr, config, 3000);
     }
@@ -172,6 +158,13 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
             MQBrokerException, RemotingTimeoutException, RemotingSendRequestException,
             RemotingConnectException {
         return this.mQClientFactory.getMQClientAPIImpl().getBrokerClusterInfo(3000);
+    }
+
+
+    @Override
+    public TopicRouteData examineTopicRouteInfo(String topic) throws RemotingException, MQClientException,
+            InterruptedException {
+        return this.mQClientFactory.getMQClientAPIImpl().getTopicRouteInfoFromNameServer(topic, 3000);
     }
 
 
@@ -230,12 +223,5 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
     public QueryResult queryMessage(String topic, String key, int maxNum, long begin, long end)
             throws MQClientException, InterruptedException {
         return this.mQClientFactory.getMQAdminImpl().queryMessage(topic, key, maxNum, begin, end);
-    }
-
-
-    @Override
-    public TopicRouteData examineTopicRouteInfo(String topic) throws RemotingException, MQClientException,
-            InterruptedException {
-        return this.mQClientFactory.getMQClientAPIImpl().getTopicRouteInfoFromNameServer(topic, 3000);
     }
 }
