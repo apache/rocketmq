@@ -16,7 +16,7 @@
 package com.alibaba.rocketmq.common.admin;
 
 /**
- * Topic Offset信息
+ * Topic 统计信息信息
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-14
@@ -24,6 +24,7 @@ package com.alibaba.rocketmq.common.admin;
 public class TopicOffset {
     private long minOffset;
     private long maxOffset;
+    private long lastUpdateTimestamp;
 
 
     public long getMinOffset() {
@@ -43,5 +44,15 @@ public class TopicOffset {
 
     public void setMaxOffset(long maxOffset) {
         this.maxOffset = maxOffset;
+    }
+
+
+    public long getLastUpdateTimestamp() {
+        return lastUpdateTimestamp;
+    }
+
+
+    public void setLastUpdateTimestamp(long lastUpdateTimestamp) {
+        this.lastUpdateTimestamp = lastUpdateTimestamp;
     }
 }

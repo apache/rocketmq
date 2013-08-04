@@ -35,6 +35,7 @@ import com.alibaba.rocketmq.client.producer.SendResult;
 import com.alibaba.rocketmq.client.producer.SendStatus;
 import com.alibaba.rocketmq.common.MQVersion;
 import com.alibaba.rocketmq.common.TopicConfig;
+import com.alibaba.rocketmq.common.admin.TopicStatsTable;
 import com.alibaba.rocketmq.common.message.Message;
 import com.alibaba.rocketmq.common.message.MessageDecoder;
 import com.alibaba.rocketmq.common.message.MessageExt;
@@ -878,6 +879,27 @@ public class MQClientAPIImpl {
 
             throw new MQBrokerException(response.getCode(), response.getRemark());
         }
+    }
+
+
+    public TopicStatsTable getTopicStatsInfo(final String addr, final String topic, final long timeoutMillis)
+            throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException,
+            RemotingConnectException, MQBrokerException {
+        GetTopicStatsInfoRequestHeader requestHeader = new GetTopicStatsInfoRequestHeader();
+        requestHeader.setTopic(topic);
+
+        RemotingCommand request =
+                RemotingCommand.createRequestCommand(MQRequestCode.GET_TOPIC_STATS_INFO_VALUE, requestHeader);
+        RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
+        switch (response.getCode()) {
+        case ResponseCode.SUCCESS_VALUE: {
+            return TopicStatsTable.decode(response.getBody(), TopicStatsTable.class);
+        }
+        default:
+            break;
+        }
+
+        throw new MQBrokerException(response.getCode(), response.getRemark());
     }
 
 

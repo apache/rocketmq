@@ -20,7 +20,7 @@ import com.alibaba.rocketmq.client.exception.MQBrokerException;
 import com.alibaba.rocketmq.client.exception.MQClientException;
 import com.alibaba.rocketmq.common.TopicConfig;
 import com.alibaba.rocketmq.common.admin.ConsumerProgress;
-import com.alibaba.rocketmq.common.admin.TopicOffsetTable;
+import com.alibaba.rocketmq.common.admin.TopicStatsTable;
 import com.alibaba.rocketmq.common.protocol.body.ClusterInfoSerializeWrapper;
 import com.alibaba.rocketmq.common.protocol.route.TopicRouteData;
 import com.alibaba.rocketmq.common.subscription.SubscriptionGroupConfig;
@@ -98,7 +98,8 @@ public interface MQAdminExt extends MQAdmin {
      * @param topic
      * @return
      */
-    public TopicOffsetTable examineTopicOffset(final String topic);
+    public TopicStatsTable examineTopicStats(final String topic) throws RemotingException, MQClientException,
+            InterruptedException, MQBrokerException;
 
 
     /**

@@ -27,11 +27,12 @@ import com.alibaba.rocketmq.client.log.ClientLogger;
 import com.alibaba.rocketmq.common.ServiceState;
 import com.alibaba.rocketmq.common.TopicConfig;
 import com.alibaba.rocketmq.common.admin.ConsumerProgress;
-import com.alibaba.rocketmq.common.admin.TopicOffsetTable;
+import com.alibaba.rocketmq.common.admin.TopicStatsTable;
 import com.alibaba.rocketmq.common.help.FAQUrl;
 import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.common.message.MessageQueue;
 import com.alibaba.rocketmq.common.protocol.body.ClusterInfoSerializeWrapper;
+import com.alibaba.rocketmq.common.protocol.route.BrokerData;
 import com.alibaba.rocketmq.common.protocol.route.TopicRouteData;
 import com.alibaba.rocketmq.common.subscription.SubscriptionGroupConfig;
 import com.alibaba.rocketmq.remoting.exception.RemotingConnectException;
@@ -140,9 +141,23 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
 
 
     @Override
-    public TopicOffsetTable examineTopicOffset(String topic) {
-        // TODO Auto-generated method stub
-        return null;
+    public TopicStatsTable examineTopicStats(String topic) throws RemotingException, MQClientException,
+            InterruptedException, MQBrokerException {
+        TopicRouteData topicRouteData = this.examineTopicRouteInfo(topic);
+        TopicStatsTable topicStatsTable = new TopicStatsTable();
+
+        for (BrokerData bd : topicRouteData.getBrokerDatas()) {
+            String addr = bd.selectBrokerAddr();
+            TopicStatsTable tst =
+                    this.mQClientFactory.getMQClientAPIImpl().getTopicStatsInfo(addr, topic, 3000);
+            topicStatsTable.getOffsetTable().putAll(tst.getOffsetTable());
+        }
+
+        if (topicStatsTable.getOffsetTable().isEmpty()) {
+            throw new MQClientException("Not found the topic stats info", null);
+        }
+
+        return topicStatsTable;
     }
 
 

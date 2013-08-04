@@ -18,6 +18,7 @@ package com.alibaba.rocketmq.common.admin;
 import java.util.HashMap;
 
 import com.alibaba.rocketmq.common.message.MessageQueue;
+import com.alibaba.rocketmq.remoting.protocol.RemotingSerializable;
 
 
 /**
@@ -26,7 +27,7 @@ import com.alibaba.rocketmq.common.message.MessageQueue;
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-14
  */
-public class TopicOffsetTable {
+public class TopicStatsTable extends RemotingSerializable {
     private HashMap<MessageQueue, TopicOffset> offsetTable = new HashMap<MessageQueue, TopicOffset>();
 
 
