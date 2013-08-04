@@ -17,9 +17,6 @@ import com.alibaba.rocketmq.common.MixAll;
 public class NamesrvConfig {
     private String rocketmqHome = System.getProperty(MixAll.ROCKETMQ_HOME_PROPERTY,
         System.getenv(MixAll.ROCKETMQ_HOME_ENV));
-    // namesrv 集群地址
-    private String namesrvAddr = System.getProperty(MixAll.NAMESRV_ADDR_PROPERTY,
-        System.getenv(MixAll.NAMESRV_ADDR_ENV));
     // 通用的KV配置持久化地址
     private String kvConfigPath = System.getProperty("user.home") + File.separator + "namesrv"
             + File.separator + "kvConfig.json";
@@ -32,16 +29,6 @@ public class NamesrvConfig {
 
     public void setRocketmqHome(String rocketmqHome) {
         this.rocketmqHome = rocketmqHome;
-    }
-
-
-    public String getNamesrvAddr() {
-        return namesrvAddr;
-    }
-
-
-    public void setNamesrvAddr(String namesrvAddr) {
-        this.namesrvAddr = namesrvAddr;
     }
 
 
