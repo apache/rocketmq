@@ -9,7 +9,7 @@
             <timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
                 <maxFileSize>104857600</maxFileSize>
             </timeBasedFileNamingAndTriggeringPolicy>
-			<MaxHistory>10</MaxHistory>
+            <MaxHistory>10</MaxHistory>
         </rollingPolicy>
         <encoder>
             <pattern>%d{yyy-MM-dd HH:mm:ss,GMT+8} %p %t - %m%n</pattern>
@@ -23,11 +23,10 @@
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
             <fileNamePattern>${user.home}/rocketmqlogs/otherdays/namesrv-%d{yyyy-MM-dd}.%i.log
             </fileNamePattern>
-
             <timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
                 <maxFileSize>104857600</maxFileSize>
             </timeBasedFileNamingAndTriggeringPolicy>
-			<MaxHistory>10</MaxHistory>
+            <MaxHistory>10</MaxHistory>
         </rollingPolicy>
         <encoder>
             <pattern>%d{yyy-MM-dd HH:mm:ss,GMT+8} %p %t - %m%n</pattern>
@@ -44,7 +43,7 @@
     </appender>
 
     <logger name="RocketmqNamesrv" additivity="false">
-        <level value="DEBUG"/>
+        <level value="INFO"/>
         <appender-ref ref="RocketmqNamesrvAppender"/>
     </logger>
 
