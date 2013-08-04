@@ -19,6 +19,7 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 
+import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.protocol.route.TopicRouteData;
 import com.alibaba.rocketmq.tools.admin.DefaultMQAdminExt;
 import com.alibaba.rocketmq.tools.command.SubCommand;
@@ -55,25 +56,23 @@ public class TopicRouteSubCommand implements SubCommand {
 
 
     @Override
-    public void execute(CommandLine commandLine) {
+    public void execute(final CommandLine commandLine, final Options options) {
         DefaultMQAdminExt defaultMQAdminExt = new DefaultMQAdminExt();
 
         defaultMQAdminExt.setInstanceName(Long.toString(System.currentTimeMillis()));
 
         try {
+            if (!commandLine.hasOption('t')) {
+                MixAll.printCommandLineHelp("mqadmin " + this.commandName(), options);
+            }
+
             defaultMQAdminExt.start();
 
-            // topic
-            if (commandLine.hasOption('t')) {
-                String topic = commandLine.getOptionValue('t');
-                TopicRouteData topicRouteData = defaultMQAdminExt.examineTopicRouteInfo(topic);
-                String json = topicRouteData.toJson(true);
-                System.out.println(json);
-            }
-            else {
-                System.out.println("please tell us topic name");
-                return;
-            }
+            String topic = commandLine.getOptionValue('t');
+            TopicRouteData topicRouteData = defaultMQAdminExt.examineTopicRouteInfo(topic);
+            String json = topicRouteData.toJson(true);
+            System.out.println(json);
+
         }
         catch (Exception e) {
             e.printStackTrace();
