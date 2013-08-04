@@ -25,7 +25,6 @@ import java.io.Serializable;
  */
 public class MessageQueue implements Comparable<MessageQueue>, Serializable {
     private static final long serialVersionUID = 6191200464116433425L;
-
     private String topic;
     private String brokerName;
     private int queueId;
@@ -74,12 +73,6 @@ public class MessageQueue implements Comparable<MessageQueue>, Serializable {
 
 
     @Override
-    public String toString() {
-        return "MessageQueue [topic=" + topic + ", brokerName=" + brokerName + ", queueId=" + queueId + "]";
-    }
-
-
-    @Override
     public int hashCode() {
         final int prime = 31;
         int result = 1;
@@ -118,7 +111,27 @@ public class MessageQueue implements Comparable<MessageQueue>, Serializable {
 
 
     @Override
+    public String toString() {
+        return "MessageQueue [topic=" + topic + ", brokerName=" + brokerName + ", queueId=" + queueId + "]";
+    }
+
+
+    @Override
     public int compareTo(MessageQueue o) {
-        return this.toString().compareTo(o.toString());
+        {
+            int result = this.topic.compareTo(o.topic);
+            if (result != 0) {
+                return result;
+            }
+        }
+
+        {
+            int result = this.brokerName.compareTo(o.brokerName);
+            if (result != 0) {
+                return result;
+            }
+        }
+
+        return this.queueId - o.queueId;
     }
 }

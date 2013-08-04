@@ -15,14 +15,16 @@
  */
 package com.alibaba.rocketmq.tools.command.topic;
 
-import java.util.Iterator;
-import java.util.Map;
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 
 import com.alibaba.rocketmq.common.MixAll;
+import com.alibaba.rocketmq.common.UtilALl;
 import com.alibaba.rocketmq.common.admin.TopicOffset;
 import com.alibaba.rocketmq.common.admin.TopicStatsTable;
 import com.alibaba.rocketmq.common.message.MessageQueue;
@@ -77,22 +79,26 @@ public class TopicStatsSubCommand implements SubCommand {
             String topic = commandLine.getOptionValue('t');
             TopicStatsTable topicStatsTable = defaultMQAdminExt.examineTopicStats(topic);
 
-            Iterator<Map.Entry<MessageQueue, TopicOffset>> it =
-                    topicStatsTable.getOffsetTable().entrySet().iterator();
-            while (it.hasNext()) {
-                Map.Entry<MessageQueue, TopicOffset> next = it.next();
-                MessageQueue mq = next.getKey();
-                TopicOffset to = next.getValue();
+            List<MessageQueue> mqList = new LinkedList<MessageQueue>();
+            mqList.addAll(topicStatsTable.getOffsetTable().keySet());
+            Collections.sort(mqList);
 
-                System.out.printf("%32s %4d %20d %20d %20d\n",//
+            for (MessageQueue mq : mqList) {
+                TopicOffset topicOffset = topicStatsTable.getOffsetTable().get(mq);
+
+                String humanTimestamp = "";
+                if (topicOffset.getLastUpdateTimestamp() > 0) {
+                    humanTimestamp = UtilALl.timeMillisToHumanString2(topicOffset.getLastUpdateTimestamp());
+                }
+
+                System.out.printf("%-32s  %4d  %20d  %20d    %s\n",//
                     mq.getBrokerName(),//
                     mq.getQueueId(),//
-                    to.getMinOffset(),//
-                    to.getMaxOffset(),//
-                    to.getLastUpdateTimestamp()//
+                    topicOffset.getMinOffset(),//
+                    topicOffset.getMaxOffset(),//
+                    humanTimestamp //
                     );
             }
-
         }
         catch (Exception e) {
             e.printStackTrace();
