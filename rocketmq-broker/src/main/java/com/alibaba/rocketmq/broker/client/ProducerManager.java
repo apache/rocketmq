@@ -39,15 +39,11 @@ import io.netty.channel.Channel;
 public class ProducerManager {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.BrokerLoggerName);
     private static final long LockTimeoutMillis = 3000;
-
     private static final long ChannelExpiredTimeout = 1000 * 120;
-
     private final Random random = new Random(System.currentTimeMillis());
-
     private final Lock hashcodeChannelLock = new ReentrantLock();
     private final HashMap<Integer /* group hash code */, List<ClientChannelInfo>> hashcodeChannelTable =
             new HashMap<Integer, List<ClientChannelInfo>>();
-
     private final Lock groupChannelLock = new ReentrantLock();
     private final HashMap<String /* group name */, HashMap<Channel, ClientChannelInfo>> groupChannelTable =
             new HashMap<String, HashMap<Channel, ClientChannelInfo>>();
@@ -57,14 +53,8 @@ public class ProducerManager {
     }
 
 
-    private int generateRandmonNum() {
-        int value = this.random.nextInt();
-
-        if (value < 0) {
-            value = Math.abs(value);
-        }
-
-        return value;
+    public HashMap<String, HashMap<Channel, ClientChannelInfo>> getGroupChannelTable() {
+        return groupChannelTable;
     }
 
 
@@ -93,6 +83,17 @@ public class ProducerManager {
         }
 
         return null;
+    }
+
+
+    private int generateRandmonNum() {
+        int value = this.random.nextInt();
+
+        if (value < 0) {
+            value = Math.abs(value);
+        }
+
+        return value;
     }
 
 

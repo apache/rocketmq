@@ -41,16 +41,14 @@ import io.netty.channel.Channel;
  */
 public class ConsumerGroupInfo {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.BrokerLoggerName);
-
     private final String groupName;
-    private volatile ConsumeType consumeType;
-    private volatile MessageModel messageModel;
-    private volatile ConsumeFromWhere consumeFromWhere;
     private final ConcurrentHashMap<String/* Topic */, SubscriptionData> subscriptionTable =
             new ConcurrentHashMap<String, SubscriptionData>();
     private final ConcurrentHashMap<Channel, ClientChannelInfo> channelInfoTable =
             new ConcurrentHashMap<Channel, ClientChannelInfo>(16);
-
+    private volatile ConsumeType consumeType;
+    private volatile MessageModel messageModel;
+    private volatile ConsumeFromWhere consumeFromWhere;
     private volatile long lastUpdateTimestamp = System.currentTimeMillis();
 
 
@@ -60,6 +58,16 @@ public class ConsumerGroupInfo {
         this.consumeType = consumeType;
         this.messageModel = messageModel;
         this.consumeFromWhere = consumeFromWhere;
+    }
+
+
+    public ConcurrentHashMap<String, SubscriptionData> getSubscriptionTable() {
+        return subscriptionTable;
+    }
+
+
+    public ConcurrentHashMap<Channel, ClientChannelInfo> getChannelInfoTable() {
+        return channelInfoTable;
     }
 
 

@@ -92,7 +92,12 @@ public final class MQProtos {
         GET_ALL_SUBSCRIPTIONGROUP_CONFIG(41, 201),
 
         // 统计信息
-        GET_TOPIC_STATS_INFO(42, 202), ;
+        GET_TOPIC_STATS_INFO(42, 202),
+
+        // 获取Consumer连接列表，附带订阅关系
+        GET_CONSUMER_CONNECTION_LIST(43, 203),
+        // 获取Producer连接列表
+        GET_PRODUCER_CONNECTION_LIST(44, 204), ;
         // Broker 发送消息
         public static final int SEND_MESSAGE_VALUE = 10;
         // Broker 订阅消息
@@ -174,6 +179,8 @@ public final class MQProtos {
         public static final int UPDATE_AND_CREATE_SUBSCRIPTIONGROUP_VALUE = 200;
         public static final int GET_ALL_SUBSCRIPTIONGROUP_CONFIG_VALUE = 201;
         public static final int GET_TOPIC_STATS_INFO_VALUE = 202;
+        public static final int GET_CONSUMER_CONNECTION_LIST_VALUE = 203;
+        public static final int GET_PRODUCER_CONNECTION_LIST_VALUE = 204;
         private final int index;
         private final int value;
 
@@ -269,9 +276,13 @@ public final class MQProtos {
                 return UPDATE_AND_CREATE_SUBSCRIPTIONGROUP;
             case 201:
                 return GET_ALL_SUBSCRIPTIONGROUP_CONFIG;
-
             case 202:
                 return GET_TOPIC_STATS_INFO;
+
+            case 203:
+                return GET_CONSUMER_CONNECTION_LIST;
+            case 204:
+                return GET_PRODUCER_CONNECTION_LIST;
             default:
                 return null;
             }
