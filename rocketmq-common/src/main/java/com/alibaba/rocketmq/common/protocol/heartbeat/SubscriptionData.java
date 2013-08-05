@@ -14,8 +14,8 @@ public class SubscriptionData {
     public final static String SUB_ALL = "*";
     private String topic;
     private String subString;
-    private final Set<String> tagsSet = new HashSet<String>();
-    private final Set<Integer> codeSet = new HashSet<Integer>();
+    private Set<String> tagsSet = new HashSet<String>();
+    private Set<Integer> codeSet = new HashSet<Integer>();
     private long subVersion = System.currentTimeMillis();
 
 
@@ -56,6 +56,11 @@ public class SubscriptionData {
     }
 
 
+    public void setTagsSet(Set<String> tagsSet) {
+        this.tagsSet = tagsSet;
+    }
+
+
     public long getSubVersion() {
         return subVersion;
     }
@@ -68,6 +73,11 @@ public class SubscriptionData {
 
     public Set<Integer> getCodeSet() {
         return codeSet;
+    }
+
+
+    public void setCodeSet(Set<Integer> codeSet) {
+        this.codeSet = codeSet;
     }
 
 
