@@ -145,5 +145,5 @@ public class GetMessageResult {
                 + minOffset + ", maxOffset=" + maxOffset + ", bufferTotalSize=" + bufferTotalSize
                 + ", suggestPullingFromSlave=" + suggestPullingFromSlave + "]";
     }
-    
+
 }

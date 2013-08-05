@@ -62,5 +62,5 @@ public class PutMessageResult {
         return "PutMessageResult [putMessageStatus=" + putMessageStatus + ", appendMessageResult="
                 + appendMessageResult + "]";
     }
-    
+
 }

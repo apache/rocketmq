@@ -1,6 +1,8 @@
 package com.alibaba.rocketmq.common.filter.impl;
 
-import static com.alibaba.rocketmq.common.filter.impl.Operator.*;
+import static com.alibaba.rocketmq.common.filter.impl.Operator.LEFTPARENTHESIS;
+import static com.alibaba.rocketmq.common.filter.impl.Operator.RIGHTPARENTHESIS;
+import static com.alibaba.rocketmq.common.filter.impl.Operator.createOperator;
 
 import java.util.ArrayList;
 import java.util.List;

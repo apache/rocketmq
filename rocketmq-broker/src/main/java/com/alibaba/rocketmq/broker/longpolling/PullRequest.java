@@ -15,8 +15,9 @@
  */
 package com.alibaba.rocketmq.broker.longpolling;
 
-import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 import io.netty.channel.Channel;
+
+import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 
 
 /**

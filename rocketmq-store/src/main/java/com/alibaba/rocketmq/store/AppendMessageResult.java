@@ -123,5 +123,5 @@ public class AppendMessageResult {
                 + wroteBytes + ", msgId=" + msgId + ", storeTimestamp=" + storeTimestamp + ", logicsOffset="
                 + logicsOffset + "]";
     }
-    
+
 }

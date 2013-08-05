@@ -15,6 +15,8 @@
  */
 package com.alibaba.rocketmq.remoting;
 
+import io.netty.channel.Channel;
+
 import java.util.concurrent.ExecutorService;
 
 import com.alibaba.rocketmq.remoting.exception.RemotingSendRequestException;
@@ -22,7 +24,6 @@ import com.alibaba.rocketmq.remoting.exception.RemotingTimeoutException;
 import com.alibaba.rocketmq.remoting.exception.RemotingTooMuchRequestException;
 import com.alibaba.rocketmq.remoting.netty.NettyRequestProcessor;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
-import io.netty.channel.Channel;
 
 
 /**

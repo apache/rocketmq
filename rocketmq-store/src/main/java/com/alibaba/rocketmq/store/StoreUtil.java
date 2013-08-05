@@ -27,7 +27,6 @@ public class StoreUtil {
     public static final long TotalPhysicalMemorySize = getTotalPhysicalMemorySize();
 
 
- 
     @SuppressWarnings("restriction")
     public static long getTotalPhysicalMemorySize() {
         long physicalTotal = 1024 * 1024 * 1024 * 24;

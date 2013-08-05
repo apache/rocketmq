@@ -15,6 +15,8 @@
  */
 package com.alibaba.rocketmq.client.impl;
 
+import io.netty.channel.ChannelHandlerContext;
+
 import java.nio.ByteBuffer;
 
 import org.slf4j.Logger;
@@ -32,7 +34,6 @@ import com.alibaba.rocketmq.remoting.common.RemotingHelper;
 import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
 import com.alibaba.rocketmq.remoting.netty.NettyRequestProcessor;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
-import io.netty.channel.ChannelHandlerContext;
 
 
 /**
