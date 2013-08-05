@@ -97,7 +97,11 @@ public final class MQProtos {
         // 获取Consumer连接列表，附带订阅关系
         GET_CONSUMER_CONNECTION_LIST(43, 203),
         // 获取Producer连接列表
-        GET_PRODUCER_CONNECTION_LIST(44, 204), ;
+        GET_PRODUCER_CONNECTION_LIST(44, 204),
+
+        // 清除Name Server中某个Broker的写权限
+        WIPE_WRITE_PERM_OF_BROKER(45, 205), ;
+
         // Broker 发送消息
         public static final int SEND_MESSAGE_VALUE = 10;
         // Broker 订阅消息
@@ -181,6 +185,8 @@ public final class MQProtos {
         public static final int GET_TOPIC_STATS_INFO_VALUE = 202;
         public static final int GET_CONSUMER_CONNECTION_LIST_VALUE = 203;
         public static final int GET_PRODUCER_CONNECTION_LIST_VALUE = 204;
+        public static final int WIPE_WRITE_PERM_OF_BROKER_VALUE = 205;
+
         private final int index;
         private final int value;
 
@@ -283,6 +289,8 @@ public final class MQProtos {
                 return GET_CONSUMER_CONNECTION_LIST;
             case 204:
                 return GET_PRODUCER_CONNECTION_LIST;
+            case 205:
+                return WIPE_WRITE_PERM_OF_BROKER;
             default:
                 return null;
             }

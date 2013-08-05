@@ -35,6 +35,8 @@ import com.alibaba.rocketmq.common.protocol.header.namesrv.PutKVConfigRequestHea
 import com.alibaba.rocketmq.common.protocol.header.namesrv.RegisterBrokerRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.namesrv.RegisterBrokerResponseHeader;
 import com.alibaba.rocketmq.common.protocol.header.namesrv.UnRegisterBrokerRequestHeader;
+import com.alibaba.rocketmq.common.protocol.header.namesrv.WipeWritePermOfBrokerRequestHeader;
+import com.alibaba.rocketmq.common.protocol.header.namesrv.WipeWritePermOfBrokerResponseHeader;
 import com.alibaba.rocketmq.common.protocol.route.TopicRouteData;
 import com.alibaba.rocketmq.namesrv.NamesrvController;
 import com.alibaba.rocketmq.remoting.common.RemotingHelper;
@@ -87,10 +89,36 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
             return this.getRouteInfoByTopic(ctx, request);
         case GET_BROKER_CLUSTER_INFO:
             return this.getBrokerClusterInfo(ctx, request);
+        case WIPE_WRITE_PERM_OF_BROKER:
+            return this.wipeWritePermOfBroker(ctx, request);
         default:
             break;
         }
         return null;
+    }
+
+
+    private RemotingCommand wipeWritePermOfBroker(ChannelHandlerContext ctx, RemotingCommand request)
+            throws RemotingCommandException {
+        final RemotingCommand response =
+                RemotingCommand.createResponseCommand(WipeWritePermOfBrokerResponseHeader.class);
+        final WipeWritePermOfBrokerResponseHeader responseHeader =
+                (WipeWritePermOfBrokerResponseHeader) response.getCustomHeader();
+        final WipeWritePermOfBrokerRequestHeader requestHeader =
+                (WipeWritePermOfBrokerRequestHeader) request
+                    .decodeCommandCustomHeader(WipeWritePermOfBrokerRequestHeader.class);
+
+        int wipeTopicCnt =
+                this.namesrvController.getRouteInfoManager().wipeWritePermOfBrokerByLock(
+                    requestHeader.getBrokerName());
+
+        log.info("wipe write perm of broker[{}], client: {}", requestHeader.getBrokerName(),
+            RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
+
+        responseHeader.setWipeTopicCount(wipeTopicCnt);
+        response.setCode(ResponseCode.SUCCESS_VALUE);
+        response.setRemark(null);
+        return response;
     }
 
 
