@@ -15,6 +15,12 @@
  */
 package com.alibaba.rocketmq.broker.processor;
 
+import io.netty.channel.Channel;
+import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelFutureListener;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.FileRegion;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,7 +47,6 @@ import com.alibaba.rocketmq.remoting.netty.NettyRequestProcessor;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 import com.alibaba.rocketmq.remoting.protocol.RemotingProtos.ResponseCode;
 import com.alibaba.rocketmq.store.GetMessageResult;
-import io.netty.channel.*;
 
 
 /**
@@ -264,9 +269,9 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                 this.brokerController.getMessageStore().getMessage(requestHeader.getTopic(),
                     requestHeader.getQueueId(), requestHeader.getQueueOffset(),
                     requestHeader.getMaxMsgNums(), subscriptionData);
-        
+
         if (getMessageResult != null) {
-            if(getMessageResult.getBufferTotalSize()>0){
+            if (getMessageResult.getBufferTotalSize() > 0) {
                 PullmsgLiveMoniter.printProcessRequestLive(channel, request, getMessageResult);
             }
             response.setRemark(getMessageResult.getStatus().name());

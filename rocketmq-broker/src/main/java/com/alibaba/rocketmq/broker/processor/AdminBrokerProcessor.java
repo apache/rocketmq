@@ -15,8 +15,15 @@
  */
 package com.alibaba.rocketmq.broker.processor;
 
+import io.netty.channel.Channel;
+import io.netty.channel.ChannelHandlerContext;
+
 import java.io.UnsupportedEncodingException;
-import java.util.*;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,8 +39,30 @@ import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.common.message.MessageQueue;
 import com.alibaba.rocketmq.common.protocol.MQProtos.MQRequestCode;
 import com.alibaba.rocketmq.common.protocol.MQProtos.MQResponseCode;
-import com.alibaba.rocketmq.common.protocol.body.*;
-import com.alibaba.rocketmq.common.protocol.header.*;
+import com.alibaba.rocketmq.common.protocol.body.Connection;
+import com.alibaba.rocketmq.common.protocol.body.ConsumerConnectionSerializeWrapper;
+import com.alibaba.rocketmq.common.protocol.body.LockBatchRequestBody;
+import com.alibaba.rocketmq.common.protocol.body.LockBatchResponseBody;
+import com.alibaba.rocketmq.common.protocol.body.UnlockBatchRequestBody;
+import com.alibaba.rocketmq.common.protocol.header.CreateTopicRequestHeader;
+import com.alibaba.rocketmq.common.protocol.header.DeleteTopicRequestHeader;
+import com.alibaba.rocketmq.common.protocol.header.GetAllTopicConfigResponseHeader;
+import com.alibaba.rocketmq.common.protocol.header.GetBrokerConfigResponseHeader;
+import com.alibaba.rocketmq.common.protocol.header.GetConsumerConnectionListRequestHeader;
+import com.alibaba.rocketmq.common.protocol.header.GetEarliestMsgStoretimeRequestHeader;
+import com.alibaba.rocketmq.common.protocol.header.GetEarliestMsgStoretimeResponseHeader;
+import com.alibaba.rocketmq.common.protocol.header.GetMaxOffsetRequestHeader;
+import com.alibaba.rocketmq.common.protocol.header.GetMaxOffsetResponseHeader;
+import com.alibaba.rocketmq.common.protocol.header.GetMinOffsetRequestHeader;
+import com.alibaba.rocketmq.common.protocol.header.GetMinOffsetResponseHeader;
+import com.alibaba.rocketmq.common.protocol.header.GetProducerConnectionListRequestHeader;
+import com.alibaba.rocketmq.common.protocol.header.GetTopicStatsInfoRequestHeader;
+import com.alibaba.rocketmq.common.protocol.header.QueryConsumerOffsetRequestHeader;
+import com.alibaba.rocketmq.common.protocol.header.QueryConsumerOffsetResponseHeader;
+import com.alibaba.rocketmq.common.protocol.header.SearchOffsetRequestHeader;
+import com.alibaba.rocketmq.common.protocol.header.SearchOffsetResponseHeader;
+import com.alibaba.rocketmq.common.protocol.header.UpdateConsumerOffsetRequestHeader;
+import com.alibaba.rocketmq.common.protocol.header.UpdateConsumerOffsetResponseHeader;
 import com.alibaba.rocketmq.common.subscription.SubscriptionGroupConfig;
 import com.alibaba.rocketmq.remoting.common.RemotingHelper;
 import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
@@ -41,9 +70,6 @@ import com.alibaba.rocketmq.remoting.netty.NettyRequestProcessor;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 import com.alibaba.rocketmq.remoting.protocol.RemotingProtos.ResponseCode;
 import com.alibaba.rocketmq.remoting.protocol.RemotingSerializable;
-
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelHandlerContext;
 
 
 /**

@@ -15,6 +15,10 @@
  */
 package com.alibaba.rocketmq.broker.processor;
 
+import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelFutureListener;
+import io.netty.channel.ChannelHandlerContext;
+
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.util.Random;
@@ -48,10 +52,6 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 import com.alibaba.rocketmq.remoting.protocol.RemotingProtos.ResponseCode;
 import com.alibaba.rocketmq.store.MessageExtBrokerInner;
 import com.alibaba.rocketmq.store.PutMessageResult;
-
-import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelFutureListener;
-import io.netty.channel.ChannelHandlerContext;
 
 
 /**
@@ -195,7 +195,8 @@ public class SendMessageProcessor implements NettyRequestProcessor {
         msgInner.setReconsumeTimes(msgExt.getReconsumeTimes() + 1);
 
         PutMessageResult putMessageResult = this.brokerController.getMessageStore().putMessage(msgInner);
-        SendbackmsgLiveMoniter.printProcessSendmsgRequestLive(ctx.channel(), request, putMessageResult,delayLevel,msgExt.getReconsumeTimes());
+        SendbackmsgLiveMoniter.printProcessSendmsgRequestLive(ctx.channel(), request, putMessageResult,
+            delayLevel, msgExt.getReconsumeTimes());
         if (putMessageResult != null) {
             switch (putMessageResult.getPutMessageStatus()) {
             case PUT_OK:

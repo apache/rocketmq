@@ -15,6 +15,8 @@
  */
 package com.alibaba.rocketmq.broker.client;
 
+import io.netty.channel.Channel;
+
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -22,7 +24,6 @@ import com.alibaba.rocketmq.common.consumer.ConsumeFromWhere;
 import com.alibaba.rocketmq.common.protocol.heartbeat.ConsumeType;
 import com.alibaba.rocketmq.common.protocol.heartbeat.MessageModel;
 import com.alibaba.rocketmq.common.protocol.heartbeat.SubscriptionData;
-import io.netty.channel.Channel;
 
 
 /**
