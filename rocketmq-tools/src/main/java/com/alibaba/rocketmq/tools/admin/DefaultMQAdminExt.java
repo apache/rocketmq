@@ -26,6 +26,8 @@ import com.alibaba.rocketmq.common.admin.TopicStatsTable;
 import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.common.message.MessageQueue;
 import com.alibaba.rocketmq.common.protocol.body.ClusterInfoSerializeWrapper;
+import com.alibaba.rocketmq.common.protocol.body.ConsumerConnectionSerializeWrapper;
+import com.alibaba.rocketmq.common.protocol.body.ProducerConnectionSerializeWrapper;
 import com.alibaba.rocketmq.common.protocol.route.TopicRouteData;
 import com.alibaba.rocketmq.common.subscription.SubscriptionGroupConfig;
 import com.alibaba.rocketmq.remoting.exception.RemotingConnectException;
@@ -174,6 +176,22 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
     @Override
     public String getKVConfig(String namespace, String key) {
         return defaultMQAdminExtImpl.getKVConfig(namespace, key);
+    }
+
+
+    @Override
+    public ConsumerConnectionSerializeWrapper examineConsumerConnectionInfo(String consumerGroup,
+            final String topic) throws InterruptedException, MQBrokerException, RemotingException,
+            MQClientException {
+        return defaultMQAdminExtImpl.examineConsumerConnectionInfo(consumerGroup, topic);
+    }
+
+
+    @Override
+    public ProducerConnectionSerializeWrapper examineProducerConnectionInfo(String producerGroup,
+            final String topic) throws RemotingException, MQClientException, InterruptedException,
+            MQBrokerException {
+        return defaultMQAdminExtImpl.examineProducerConnectionInfo(producerGroup, topic);
     }
 
 
