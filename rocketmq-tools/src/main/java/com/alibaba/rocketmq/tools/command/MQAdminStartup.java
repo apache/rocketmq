@@ -31,6 +31,7 @@ import com.alibaba.rocketmq.common.MQVersion;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 import com.alibaba.rocketmq.tools.command.cluster.ClusterListSubCommand;
+import com.alibaba.rocketmq.tools.command.connection.ConnectionSubCommand;
 import com.alibaba.rocketmq.tools.command.consumer.UpdateSubGroupSubCommand;
 import com.alibaba.rocketmq.tools.command.topic.TopicRouteSubCommand;
 import com.alibaba.rocketmq.tools.command.topic.TopicStatsSubCommand;
@@ -51,6 +52,7 @@ public class MQAdminStartup {
         subCommandList.add(new ClusterListSubCommand());
         subCommandList.add(new TopicRouteSubCommand());
         subCommandList.add(new TopicStatsSubCommand());
+        subCommandList.add(new ConnectionSubCommand());
     }
 
 
