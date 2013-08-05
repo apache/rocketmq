@@ -38,7 +38,7 @@ import com.alibaba.rocketmq.remoting.exception.RemotingException;
 public class Producer {
     public static void main(String[] args) throws MQClientException {
         final int threadCount = args.length >= 1 ? Integer.parseInt(args[0]) : 32;
-        final int messageSize = args.length >= 2 ? Integer.parseInt(args[1]) : 1024 * 2;
+        final int messageSize = args.length >= 2 ? Integer.parseInt(args[1]) : 256;
 
         System.out.printf("threadCount %d messageSize %d\n", threadCount, messageSize);
 
