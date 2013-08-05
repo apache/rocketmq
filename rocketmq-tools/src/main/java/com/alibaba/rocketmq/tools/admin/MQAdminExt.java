@@ -22,6 +22,8 @@ import com.alibaba.rocketmq.common.TopicConfig;
 import com.alibaba.rocketmq.common.admin.ConsumerProgress;
 import com.alibaba.rocketmq.common.admin.TopicStatsTable;
 import com.alibaba.rocketmq.common.protocol.body.ClusterInfoSerializeWrapper;
+import com.alibaba.rocketmq.common.protocol.body.ConsumerConnectionSerializeWrapper;
+import com.alibaba.rocketmq.common.protocol.body.ProducerConnectionSerializeWrapper;
 import com.alibaba.rocketmq.common.protocol.route.TopicRouteData;
 import com.alibaba.rocketmq.common.subscription.SubscriptionGroupConfig;
 import com.alibaba.rocketmq.remoting.exception.RemotingConnectException;
@@ -130,6 +132,42 @@ public interface MQAdminExt extends MQAdmin {
      */
     public TopicRouteData examineTopicRouteInfo(final String topic) throws RemotingException,
             MQClientException, InterruptedException;
+
+
+    /**
+     * 查看Consumer网络连接、订阅关系
+     * 
+     * @param consumerGroup
+     * @param topic
+     * @return
+     * @throws MQBrokerException
+     * @throws InterruptedException
+     * @throws RemotingTimeoutException
+     * @throws RemotingSendRequestException
+     * @throws RemotingConnectException
+     * @throws MQClientException
+     * @throws RemotingException
+     */
+    public ConsumerConnectionSerializeWrapper examineConsumerConnectionInfo(final String consumerGroup,
+            final String topic) throws RemotingConnectException, RemotingSendRequestException,
+            RemotingTimeoutException, InterruptedException, MQBrokerException, RemotingException,
+            MQClientException;
+
+
+    /**
+     * 查看Producer网络连接
+     * 
+     * @param producerGroup
+     * @param topic
+     * @return
+     * @throws InterruptedException
+     * @throws MQClientException
+     * @throws RemotingException
+     * @throws MQBrokerException
+     */
+    public ProducerConnectionSerializeWrapper examineProducerConnectionInfo(final String producerGroup,
+            final String topic) throws RemotingException, MQClientException, InterruptedException,
+            MQBrokerException;
 
 
     /**

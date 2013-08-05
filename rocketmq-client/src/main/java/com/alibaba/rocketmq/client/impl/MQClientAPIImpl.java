@@ -44,12 +44,15 @@ import com.alibaba.rocketmq.common.namesrv.TopAddressing;
 import com.alibaba.rocketmq.common.protocol.MQProtos.MQRequestCode;
 import com.alibaba.rocketmq.common.protocol.MQProtos.MQResponseCode;
 import com.alibaba.rocketmq.common.protocol.body.ClusterInfoSerializeWrapper;
+import com.alibaba.rocketmq.common.protocol.body.ConsumerConnectionSerializeWrapper;
 import com.alibaba.rocketmq.common.protocol.body.LockBatchRequestBody;
 import com.alibaba.rocketmq.common.protocol.body.LockBatchResponseBody;
+import com.alibaba.rocketmq.common.protocol.body.ProducerConnectionSerializeWrapper;
 import com.alibaba.rocketmq.common.protocol.body.UnlockBatchRequestBody;
 import com.alibaba.rocketmq.common.protocol.header.ConsumerSendMsgBackRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.CreateTopicRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.EndTransactionRequestHeader;
+import com.alibaba.rocketmq.common.protocol.header.GetConsumerConnectionListRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.GetConsumerListByGroupRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.GetConsumerListByGroupResponseBody;
 import com.alibaba.rocketmq.common.protocol.header.GetEarliestMsgStoretimeRequestHeader;
@@ -58,6 +61,7 @@ import com.alibaba.rocketmq.common.protocol.header.GetMaxOffsetRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.GetMaxOffsetResponseHeader;
 import com.alibaba.rocketmq.common.protocol.header.GetMinOffsetRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.GetMinOffsetResponseHeader;
+import com.alibaba.rocketmq.common.protocol.header.GetProducerConnectionListRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.GetTopicStatsInfoRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.PullMessageRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.PullMessageResponseHeader;
@@ -931,6 +935,61 @@ public class MQClientAPIImpl {
     }
 
 
+    /**
+     * 根据ProducerGroup获取Producer连接列表
+     */
+    public ProducerConnectionSerializeWrapper getProducerConnectionList(final String addr,
+            final String producerGroup, final long timeoutMillis) throws RemotingConnectException,
+            RemotingSendRequestException, RemotingTimeoutException, InterruptedException, MQBrokerException {
+        GetProducerConnectionListRequestHeader requestHeader = new GetProducerConnectionListRequestHeader();
+        requestHeader.setProducerGroup(producerGroup);
+
+        RemotingCommand request =
+                RemotingCommand.createRequestCommand(MQRequestCode.GET_PRODUCER_CONNECTION_LIST_VALUE,
+                    requestHeader);
+        RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
+        switch (response.getCode()) {
+        case ResponseCode.SUCCESS_VALUE: {
+            return ProducerConnectionSerializeWrapper.decode(response.getBody(),
+                ProducerConnectionSerializeWrapper.class);
+        }
+        default:
+            break;
+        }
+
+        throw new MQBrokerException(response.getCode(), response.getRemark());
+    }
+
+
+    /**
+     * 根据ConsumerGroup获取Consumer连接列表以及订阅关系
+     */
+    public ConsumerConnectionSerializeWrapper getConsumerConnectionList(final String addr,
+            final String consumerGroup, final long timeoutMillis) throws RemotingConnectException,
+            RemotingSendRequestException, RemotingTimeoutException, InterruptedException, MQBrokerException {
+        GetConsumerConnectionListRequestHeader requestHeader = new GetConsumerConnectionListRequestHeader();
+        requestHeader.setConsumerGroup(consumerGroup);
+
+        RemotingCommand request =
+                RemotingCommand.createRequestCommand(MQRequestCode.GET_CONSUMER_CONNECTION_LIST_VALUE,
+                    requestHeader);
+        RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
+        switch (response.getCode()) {
+        case ResponseCode.SUCCESS_VALUE: {
+            return ConsumerConnectionSerializeWrapper.decode(response.getBody(),
+                ConsumerConnectionSerializeWrapper.class);
+        }
+        default:
+            break;
+        }
+
+        throw new MQBrokerException(response.getCode(), response.getRemark());
+    }
+
+
+    /**
+     * Name Server: 从Name Server获取集群信息
+     */
     public ClusterInfoSerializeWrapper getBrokerClusterInfo(final long timeoutMillis)
             throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException,
             RemotingConnectException, MQBrokerException {

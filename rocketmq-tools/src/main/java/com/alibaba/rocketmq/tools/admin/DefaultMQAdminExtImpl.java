@@ -32,6 +32,8 @@ import com.alibaba.rocketmq.common.help.FAQUrl;
 import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.common.message.MessageQueue;
 import com.alibaba.rocketmq.common.protocol.body.ClusterInfoSerializeWrapper;
+import com.alibaba.rocketmq.common.protocol.body.ConsumerConnectionSerializeWrapper;
+import com.alibaba.rocketmq.common.protocol.body.ProducerConnectionSerializeWrapper;
 import com.alibaba.rocketmq.common.protocol.route.BrokerData;
 import com.alibaba.rocketmq.common.protocol.route.TopicRouteData;
 import com.alibaba.rocketmq.common.subscription.SubscriptionGroupConfig;
@@ -238,5 +240,47 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
     public QueryResult queryMessage(String topic, String key, int maxNum, long begin, long end)
             throws MQClientException, InterruptedException {
         return this.mQClientFactory.getMQAdminImpl().queryMessage(topic, key, maxNum, begin, end);
+    }
+
+
+    @Override
+    public ConsumerConnectionSerializeWrapper examineConsumerConnectionInfo(String consumerGroup,
+            final String topic) throws InterruptedException, MQBrokerException, RemotingException,
+            MQClientException {
+        TopicRouteData topicRouteData = this.examineTopicRouteInfo(topic);
+        ConsumerConnectionSerializeWrapper result = new ConsumerConnectionSerializeWrapper();
+
+        for (BrokerData bd : topicRouteData.getBrokerDatas()) {
+            String addr = bd.selectBrokerAddr();
+            return this.mQClientFactory.getMQClientAPIImpl().getConsumerConnectionList(addr, consumerGroup,
+                3000);
+        }
+
+        if (result.getConnectionSet().isEmpty()) {
+            throw new MQClientException("Not found the consumer group connection", null);
+        }
+
+        return result;
+    }
+
+
+    @Override
+    public ProducerConnectionSerializeWrapper examineProducerConnectionInfo(String producerGroup,
+            final String topic) throws RemotingException, MQClientException, InterruptedException,
+            MQBrokerException {
+        TopicRouteData topicRouteData = this.examineTopicRouteInfo(topic);
+        ProducerConnectionSerializeWrapper result = new ProducerConnectionSerializeWrapper();
+
+        for (BrokerData bd : topicRouteData.getBrokerDatas()) {
+            String addr = bd.selectBrokerAddr();
+            return this.mQClientFactory.getMQClientAPIImpl().getProducerConnectionList(addr, producerGroup,
+                300);
+        }
+
+        if (result.getConnectionSet().isEmpty()) {
+            throw new MQClientException("Not found the consumer group connection", null);
+        }
+
+        return result;
     }
 }
