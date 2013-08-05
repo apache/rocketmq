@@ -59,7 +59,7 @@ public class UpdateTopicSubCommand implements SubCommand {
         options.addOption(opt);
 
         opt = new Option("t", "topic", true, "topic name");
-        opt.setRequired(false);
+        opt.setRequired(true);
         options.addOption(opt);
 
         opt = new Option("r", "readQueueNums", true, "set read queue nums");
@@ -88,15 +88,7 @@ public class UpdateTopicSubCommand implements SubCommand {
             TopicConfig topicConfig = new TopicConfig();
             topicConfig.setReadQueueNums(8);
             topicConfig.setWriteQueueNums(8);
-
-            // topic
-            if (commandLine.hasOption('t')) {
-                topicConfig.setTopicName(commandLine.getOptionValue('t'));
-            }
-            else {
-                MixAll.printCommandLineHelp("mqadmin " + this.commandName(), options);
-                return;
-            }
+            topicConfig.setTopicName(commandLine.getOptionValue('t'));
 
             // readQueueNums
             if (commandLine.hasOption('r')) {

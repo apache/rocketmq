@@ -23,7 +23,6 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 
-import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.UtilALl;
 import com.alibaba.rocketmq.common.admin.TopicOffset;
 import com.alibaba.rocketmq.common.admin.TopicStatsTable;
@@ -55,7 +54,7 @@ public class TopicStatsSubCommand implements SubCommand {
     @Override
     public Options buildCommandlineOptions(Options options) {
         Option opt = new Option("t", "topic", true, "topic name");
-        opt.setRequired(false);
+        opt.setRequired(true);
         options.addOption(opt);
 
         return options;
@@ -69,11 +68,6 @@ public class TopicStatsSubCommand implements SubCommand {
         defaultMQAdminExt.setInstanceName(Long.toString(System.currentTimeMillis()));
 
         try {
-            if (!commandLine.hasOption('t')) {
-                MixAll.printCommandLineHelp("mqadmin " + this.commandName(), options);
-                return;
-            }
-
             defaultMQAdminExt.start();
 
             String topic = commandLine.getOptionValue('t');

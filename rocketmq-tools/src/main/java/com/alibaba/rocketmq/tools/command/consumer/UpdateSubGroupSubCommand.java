@@ -59,7 +59,7 @@ public class UpdateSubGroupSubCommand implements SubCommand {
         options.addOption(opt);
 
         opt = new Option("g", "groupName", true, "consumer group name");
-        opt.setRequired(false);
+        opt.setRequired(true);
         options.addOption(opt);
 
         opt = new Option("s", "consumeEnable", true, "consume enable");
@@ -106,13 +106,7 @@ public class UpdateSubGroupSubCommand implements SubCommand {
             subscriptionGroupConfig.setConsumeFromMinEnable(false);
 
             // groupName
-            if (commandLine.hasOption('g')) {
-                subscriptionGroupConfig.setGroupName(commandLine.getOptionValue('g'));
-            }
-            else {
-                MixAll.printCommandLineHelp("mqadmin " + this.commandName(), options);
-                return;
-            }
+            subscriptionGroupConfig.setGroupName(commandLine.getOptionValue('g'));
 
             // consumeEnable
             if (commandLine.hasOption('s')) {
