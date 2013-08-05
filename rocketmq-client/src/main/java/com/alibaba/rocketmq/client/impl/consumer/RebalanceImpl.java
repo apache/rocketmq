@@ -41,19 +41,15 @@ import com.alibaba.rocketmq.common.protocol.heartbeat.SubscriptionData;
  */
 public abstract class RebalanceImpl {
     protected static final Logger log = ClientLogger.getLog();
-
     // 分配好的队列，消息存储也在这里
     protected final ConcurrentHashMap<MessageQueue, ProcessQueue> processQueueTable =
             new ConcurrentHashMap<MessageQueue, ProcessQueue>(64);
-
     // 可以订阅的所有队列（定时从Name Server更新最新版本）
     protected final ConcurrentHashMap<String/* topic */, Set<MessageQueue>> topicSubscribeInfoTable =
             new ConcurrentHashMap<String, Set<MessageQueue>>();
-
     // 订阅关系，用户配置的原始数据
     protected final ConcurrentHashMap<String /* topic */, SubscriptionData> subscriptionInner =
             new ConcurrentHashMap<String, SubscriptionData>();
-
     protected String consumerGroup;
     protected MessageModel messageModel;
     protected AllocateMessageQueueStrategy allocateMessageQueueStrategy;
@@ -67,19 +63,6 @@ public abstract class RebalanceImpl {
         this.allocateMessageQueueStrategy = allocateMessageQueueStrategy;
         this.mQClientFactory = mQClientFactory;
     }
-
-
-    public abstract void removeUnnecessaryMessageQueue(final MessageQueue mq, final ProcessQueue pq);
-
-
-    public abstract void dispatchPullRequest(final List<PullRequest> pullRequestList);
-
-
-    public abstract long computePullFromWhere(final MessageQueue mq);
-
-
-    public abstract void messageQueueChanged(final String topic, final Set<MessageQueue> mqAll,
-            final Set<MessageQueue> mqDivided);
 
 
     public void unlock(final MessageQueue mq, final boolean oneway) {
@@ -140,6 +123,22 @@ public abstract class RebalanceImpl {
     }
 
 
+    private HashMap<String/* brokerName */, Set<MessageQueue>> buildProcessQueueTableByBrokerName() {
+        HashMap<String, Set<MessageQueue>> result = new HashMap<String, Set<MessageQueue>>();
+        for (MessageQueue mq : this.processQueueTable.keySet()) {
+            Set<MessageQueue> mqs = result.get(mq.getBrokerName());
+            if (null == mqs) {
+                mqs = new HashSet<MessageQueue>();
+                result.put(mq.getBrokerName(), mqs);
+            }
+
+            mqs.add(mq);
+        }
+
+        return result;
+    }
+
+
     public boolean lock(final MessageQueue mq) {
         FindBrokerResult findBrokerResult =
                 this.mQClientFactory.findBrokerAddressInSubscribe(mq.getBrokerName(), MixAll.MASTER_ID, true);
@@ -174,22 +173,6 @@ public abstract class RebalanceImpl {
         }
 
         return false;
-    }
-
-
-    private HashMap<String/* brokerName */, Set<MessageQueue>> buildProcessQueueTableByBrokerName() {
-        HashMap<String, Set<MessageQueue>> result = new HashMap<String, Set<MessageQueue>>();
-        for (MessageQueue mq : this.processQueueTable.keySet()) {
-            Set<MessageQueue> mqs = result.get(mq.getBrokerName());
-            if (null == mqs) {
-                mqs = new HashSet<MessageQueue>();
-                result.put(mq.getBrokerName(), mqs);
-            }
-
-            mqs.add(mq);
-        }
-
-        return result;
     }
 
 
@@ -336,6 +319,9 @@ public abstract class RebalanceImpl {
                         topic,//
                         mqSet,//
                         allocateResultSet);
+
+                    log.info("messageQueueChanged consumerIdList: {}",//
+                        cidAll);
                 }
             }
             break;
@@ -344,6 +330,10 @@ public abstract class RebalanceImpl {
             break;
         }
     }
+
+
+    public abstract void messageQueueChanged(final String topic, final Set<MessageQueue> mqAll,
+            final Set<MessageQueue> mqDivided);
 
 
     private boolean updateProcessQueueTableInRebalance(final String topic, final Set<MessageQueue> mqSet) {
@@ -395,6 +385,15 @@ public abstract class RebalanceImpl {
     }
 
 
+    public abstract void removeUnnecessaryMessageQueue(final MessageQueue mq, final ProcessQueue pq);
+
+
+    public abstract void dispatchPullRequest(final List<PullRequest> pullRequestList);
+
+
+    public abstract long computePullFromWhere(final MessageQueue mq);
+
+
     private void truncateMessageQueueNotMyTopic() {
         Map<String, SubscriptionData> subTable = this.getSubscriptionInner();
 
@@ -411,6 +410,11 @@ public abstract class RebalanceImpl {
     }
 
 
+    public ConcurrentHashMap<String, SubscriptionData> getSubscriptionInner() {
+        return subscriptionInner;
+    }
+
+
     public ConcurrentHashMap<MessageQueue, ProcessQueue> getProcessQueueTable() {
         return processQueueTable;
     }
@@ -418,11 +422,6 @@ public abstract class RebalanceImpl {
 
     public ConcurrentHashMap<String, Set<MessageQueue>> getTopicSubscribeInfoTable() {
         return topicSubscribeInfoTable;
-    }
-
-
-    public ConcurrentHashMap<String, SubscriptionData> getSubscriptionInner() {
-        return subscriptionInner;
     }
 
 
