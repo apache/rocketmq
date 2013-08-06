@@ -15,6 +15,8 @@
  */
 package com.alibaba.rocketmq.tools.admin;
 
+import java.util.List;
+
 import com.alibaba.rocketmq.client.ClientConfig;
 import com.alibaba.rocketmq.client.QueryResult;
 import com.alibaba.rocketmq.client.exception.MQBrokerException;
@@ -30,6 +32,7 @@ import com.alibaba.rocketmq.common.protocol.body.ConsumerConnectionSerializeWrap
 import com.alibaba.rocketmq.common.protocol.body.ProducerConnectionSerializeWrapper;
 import com.alibaba.rocketmq.common.protocol.route.TopicRouteData;
 import com.alibaba.rocketmq.common.subscription.SubscriptionGroupConfig;
+import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
 import com.alibaba.rocketmq.remoting.exception.RemotingConnectException;
 import com.alibaba.rocketmq.remoting.exception.RemotingException;
 import com.alibaba.rocketmq.remoting.exception.RemotingSendRequestException;
@@ -195,6 +198,14 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
     }
 
 
+    @Override
+    public int wipeWritePermOfBroker(final String namesrvAddr, String brokerName)
+            throws RemotingCommandException, RemotingConnectException, RemotingSendRequestException,
+            RemotingTimeoutException, InterruptedException, MQClientException {
+        return defaultMQAdminExtImpl.wipeWritePermOfBroker(namesrvAddr, brokerName);
+    }
+
+
     public String getAdminExtGroup() {
         return adminExtGroup;
     }
@@ -212,5 +223,11 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
 
     public void setCreateTopicKey(String createTopicKey) {
         this.createTopicKey = createTopicKey;
+    }
+
+
+    @Override
+    public List<String> getNameServerAddressList() {
+        return this.defaultMQAdminExtImpl.getNameServerAddressList();
     }
 }

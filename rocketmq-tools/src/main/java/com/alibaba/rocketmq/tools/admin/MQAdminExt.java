@@ -15,6 +15,8 @@
  */
 package com.alibaba.rocketmq.tools.admin;
 
+import java.util.List;
+
 import com.alibaba.rocketmq.client.MQAdmin;
 import com.alibaba.rocketmq.client.exception.MQBrokerException;
 import com.alibaba.rocketmq.client.exception.MQClientException;
@@ -26,6 +28,7 @@ import com.alibaba.rocketmq.common.protocol.body.ConsumerConnectionSerializeWrap
 import com.alibaba.rocketmq.common.protocol.body.ProducerConnectionSerializeWrapper;
 import com.alibaba.rocketmq.common.protocol.route.TopicRouteData;
 import com.alibaba.rocketmq.common.subscription.SubscriptionGroupConfig;
+import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
 import com.alibaba.rocketmq.remoting.exception.RemotingConnectException;
 import com.alibaba.rocketmq.remoting.exception.RemotingException;
 import com.alibaba.rocketmq.remoting.exception.RemotingSendRequestException;
@@ -168,6 +171,31 @@ public interface MQAdminExt extends MQAdmin {
     public ProducerConnectionSerializeWrapper examineProducerConnectionInfo(final String producerGroup,
             final String topic) throws RemotingException, MQClientException, InterruptedException,
             MQBrokerException;
+
+
+    /**
+     * 获取Name Server地址列表
+     * 
+     * @return
+     */
+    public List<String> getNameServerAddressList();
+
+
+    /**
+     * 清除某个Broker的写权限，针对所有Name Server
+     * 
+     * @param brokerName
+     * @return 返回清除了多少个topic
+     * @throws MQClientException
+     * @throws InterruptedException
+     * @throws RemotingTimeoutException
+     * @throws RemotingSendRequestException
+     * @throws RemotingConnectException
+     * @throws RemotingCommandException
+     */
+    public int wipeWritePermOfBroker(final String namesrvAddr, String brokerName)
+            throws RemotingCommandException, RemotingConnectException, RemotingSendRequestException,
+            RemotingTimeoutException, InterruptedException, MQClientException;
 
 
     /**
