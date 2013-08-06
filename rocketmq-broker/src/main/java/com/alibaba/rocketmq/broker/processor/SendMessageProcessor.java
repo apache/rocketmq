@@ -111,6 +111,13 @@ public class SendMessageProcessor implements NettyRequestProcessor {
             return response;
         }
 
+        // 如果重试队列数目为0，则直接丢弃消息
+        if (subscriptionGroupConfig.getRetryQueueNums() <= 0) {
+            response.setCode(ResponseCode.SUCCESS_VALUE);
+            response.setRemark(null);
+            return response;
+        }
+
         String newTopic = MixAll.getRetryTopic(requestHeader.getGroup());
         int queueIdInt = Math.abs(this.random.nextInt()) % subscriptionGroupConfig.getRetryQueueNums();
 
