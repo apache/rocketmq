@@ -16,8 +16,11 @@
 package com.alibaba.rocketmq.common.message;
 
 import java.io.Serializable;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+
+import com.sun.xml.internal.fastinfoset.sax.Properties;
 
 
 /**
@@ -127,6 +130,13 @@ public class Message implements Serializable {
     }
 
 
+    public void putPropertys(final Properties pro) {
+        if (null == this.properties) {
+            this.properties.putAll((Map) pro);
+        }
+    }
+
+
     public String getProperty(final String name) {
         if (null == this.properties) {
             this.properties = new HashMap<String, String>();
@@ -163,6 +173,17 @@ public class Message implements Serializable {
 
     public void setKeys(String keys) {
         this.putProperty(PROPERTY_KEYS, keys);
+    }
+
+
+    public void setKeys(Collection<String> keys) {
+        StringBuffer sb = new StringBuffer();
+        for (String k : keys) {
+            sb.append(k);
+            sb.append(KEY_SEPARATOR);
+        }
+
+        this.setKeys(sb.toString().trim());
     }
 
 
