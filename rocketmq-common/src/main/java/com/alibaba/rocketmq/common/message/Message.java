@@ -20,8 +20,6 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.sun.xml.internal.fastinfoset.sax.Properties;
-
 
 /**
  * 消息，Producer与Consumer使用
@@ -127,13 +125,6 @@ public class Message implements Serializable {
         }
 
         this.properties.put(name, value);
-    }
-
-
-    public void putPropertys(final Properties pro) {
-        if (null == this.properties) {
-            this.properties.putAll((Map) pro);
-        }
     }
 
 
