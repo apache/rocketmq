@@ -76,6 +76,8 @@ import com.alibaba.rocketmq.common.protocol.header.UnregisterClientRequestHeader
 import com.alibaba.rocketmq.common.protocol.header.UpdateConsumerOffsetRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.ViewMessageRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.namesrv.GetRouteInfoRequestHeader;
+import com.alibaba.rocketmq.common.protocol.header.namesrv.WipeWritePermOfBrokerRequestHeader;
+import com.alibaba.rocketmq.common.protocol.header.namesrv.WipeWritePermOfBrokerResponseHeader;
 import com.alibaba.rocketmq.common.protocol.heartbeat.HeartbeatData;
 import com.alibaba.rocketmq.common.protocol.route.BrokerData;
 import com.alibaba.rocketmq.common.protocol.route.QueueData;
@@ -128,6 +130,11 @@ public class MQClientAPIImpl {
 
         this.remotingClient.registerProcessor(MQRequestCode.NOTIFY_CONSUMER_IDS_CHANGED_VALUE,
             this.clientRemotingProcessor, null);
+    }
+
+
+    public List<String> getNameServerAddressList() {
+        return this.remotingClient.getNameServerAddressList();
     }
 
 
@@ -1037,6 +1044,32 @@ public class MQClientAPIImpl {
             if (body != null) {
                 return TopicRouteData.decode(body, TopicRouteData.class);
             }
+        }
+        default:
+            break;
+        }
+
+        throw new MQClientException(response.getCode(), response.getRemark());
+    }
+
+
+    public int wipeWritePermOfBroker(final String namesrvAddr, String brokerName, final long timeoutMillis)
+            throws RemotingCommandException, RemotingConnectException, RemotingSendRequestException,
+            RemotingTimeoutException, InterruptedException, MQClientException {
+        WipeWritePermOfBrokerRequestHeader requestHeader = new WipeWritePermOfBrokerRequestHeader();
+        requestHeader.setBrokerName(brokerName);
+
+        RemotingCommand request =
+                RemotingCommand.createRequestCommand(MQRequestCode.WIPE_WRITE_PERM_OF_BROKER_VALUE,
+                    requestHeader);
+        RemotingCommand response = this.remotingClient.invokeSync(null, request, timeoutMillis);
+        assert response != null;
+        switch (response.getCode()) {
+        case ResponseCode.SUCCESS_VALUE: {
+            WipeWritePermOfBrokerResponseHeader responseHeader =
+                    (WipeWritePermOfBrokerResponseHeader) response
+                        .decodeCommandCustomHeader(WipeWritePermOfBrokerResponseHeader.class);
+            return responseHeader.getWipeTopicCount();
         }
         default:
             break;

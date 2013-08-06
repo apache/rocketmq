@@ -15,6 +15,8 @@
  */
 package com.alibaba.rocketmq.tools.admin;
 
+import java.util.List;
+
 import org.slf4j.Logger;
 
 import com.alibaba.rocketmq.client.QueryResult;
@@ -37,6 +39,7 @@ import com.alibaba.rocketmq.common.protocol.body.ProducerConnectionSerializeWrap
 import com.alibaba.rocketmq.common.protocol.route.BrokerData;
 import com.alibaba.rocketmq.common.protocol.route.TopicRouteData;
 import com.alibaba.rocketmq.common.subscription.SubscriptionGroupConfig;
+import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
 import com.alibaba.rocketmq.remoting.exception.RemotingConnectException;
 import com.alibaba.rocketmq.remoting.exception.RemotingException;
 import com.alibaba.rocketmq.remoting.exception.RemotingSendRequestException;
@@ -282,5 +285,19 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
         }
 
         return result;
+    }
+
+
+    @Override
+    public int wipeWritePermOfBroker(final String namesrvAddr, String brokerName)
+            throws RemotingCommandException, RemotingConnectException, RemotingSendRequestException,
+            RemotingTimeoutException, InterruptedException, MQClientException {
+        return this.mQClientFactory.getMQClientAPIImpl().wipeWritePermOfBroker(namesrvAddr, brokerName, 3000);
+    }
+
+
+    @Override
+    public List<String> getNameServerAddressList() {
+        return this.mQClientFactory.getMQClientAPIImpl().getNameServerAddressList();
     }
 }
