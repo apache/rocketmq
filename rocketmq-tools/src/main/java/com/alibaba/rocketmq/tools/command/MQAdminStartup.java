@@ -96,6 +96,11 @@ public class MQAdminStartup {
                         return;
                     }
 
+                    if (commandLine.hasOption('n')) {
+                        String namesrvAddr = commandLine.getOptionValue('n');
+                        System.setProperty(MixAll.NAMESRV_ADDR_PROPERTY, namesrvAddr);
+                    }
+
                     cmd.execute(commandLine, options);
                 }
                 break;
