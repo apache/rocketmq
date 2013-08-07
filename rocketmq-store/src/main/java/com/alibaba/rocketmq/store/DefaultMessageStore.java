@@ -639,7 +639,7 @@ public class DefaultMessageStore implements MessageStore {
     public long getMessageStoreTimeStamp(String topic, int queueId, long offset) {
         ConsumeQueue logicQueue = this.findConsumeQueue(topic, queueId);
         if (logicQueue != null) {
-            SelectMapedBufferResult result = logicQueue.getIndexBuffer(offset / ConsumeQueue.CQStoreUnitSize);
+            SelectMapedBufferResult result = logicQueue.getIndexBuffer(offset);
             if (result != null) {
                 try {
                     final long phyOffset = result.getByteBuffer().getLong();
