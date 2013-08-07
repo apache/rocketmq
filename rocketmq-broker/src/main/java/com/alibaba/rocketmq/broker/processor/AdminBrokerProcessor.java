@@ -70,6 +70,7 @@ import com.alibaba.rocketmq.remoting.netty.NettyRequestProcessor;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 import com.alibaba.rocketmq.remoting.protocol.RemotingProtos.ResponseCode;
 import com.alibaba.rocketmq.remoting.protocol.RemotingSerializable;
+import com.alibaba.rocketmq.store.ConsumeQueue;
 
 
 /**
@@ -274,8 +275,10 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
 
             long timestamp = 0;
             if (max > 0) {
+                long absoluteOffset = (max - 1) * ConsumeQueue.CQStoreUnitSize;
                 timestamp =
-                        this.brokerController.getMessageStore().getMessageStoreTimeStamp(topic, i, max - 1);
+                        this.brokerController.getMessageStore().getMessageStoreTimeStamp(topic, i,
+                            absoluteOffset);
             }
 
             topicOffset.setMinOffset(min);
