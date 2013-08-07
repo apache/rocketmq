@@ -275,7 +275,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             long timestamp = 0;
             if (max > 0) {
                 timestamp =
-                        this.brokerController.getMessageStore().getMessageStoreTimeStamp(topic, i, max - 1);
+                        this.brokerController.getMessageStore().getMessageStoreTimeStamp(topic, i, (max - 1));
             }
 
             topicOffset.setMinOffset(min);
