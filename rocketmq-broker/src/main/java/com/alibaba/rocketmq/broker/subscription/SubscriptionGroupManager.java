@@ -15,6 +15,8 @@
  */
 package com.alibaba.rocketmq.broker.subscription;
 
+import java.util.Iterator;
+import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.slf4j.Logger;
@@ -104,7 +106,18 @@ public class SubscriptionGroupManager extends ConfigManager {
             if (obj != null) {
                 this.subscriptionGroupTable.putAll(obj.subscriptionGroupTable);
                 this.dataVersion.assignNewOne(obj.dataVersion);
+                this.printLoadDataWhenFirstBoot(obj);
             }
+        }
+    }
+
+
+    private void printLoadDataWhenFirstBoot(final SubscriptionGroupManager sgm) {
+        Iterator<Entry<String, SubscriptionGroupConfig>> it =
+                sgm.getSubscriptionGroupTable().entrySet().iterator();
+        while (it.hasNext()) {
+            Entry<String, SubscriptionGroupConfig> next = it.next();
+            log.info("load exist subscription group, {}", next.getValue().toString());
         }
     }
 
