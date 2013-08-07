@@ -198,7 +198,7 @@ public abstract class NettyRemotingAbstract {
                         if (!cmd.isOnewayRPC()) {
                             final RemotingCommand response =
                                     RemotingCommand.createResponseCommand(ResponseCode.SYSTEM_ERROR_VALUE,
-                                        e.getMessage());
+                                        e.toString() + ", " + e.getMessage());
                             response.setOpaque(cmd.getOpaque());
                             ctx.writeAndFlush(response);
                         }
