@@ -134,7 +134,7 @@ public class MQAdminStartup {
 
     private static SubCommand findSubCommand(final String name) {
         for (SubCommand cmd : subCommandList) {
-            if (cmd.commandName().equals(name)) {
+            if (cmd.commandName().toUpperCase().equals(name.toUpperCase())) {
                 return cmd;
             }
         }
