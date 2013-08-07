@@ -28,6 +28,7 @@
         <module>rocketmq-remoting</module>
         <module>rocketmq-example</module>
         <module>rocketmq-test</module>
+        <module>rocketmq-qatest</module>
     </modules>
 
     <build>
