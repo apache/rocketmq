@@ -328,7 +328,9 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
     private void makeSureStateOK() throws MQClientException {
         if (this.serviceState != ServiceState.RUNNING) {
-            throw new MQClientException("The producer service state not OK, " + this.serviceState, null);
+            throw new MQClientException("The producer service state not OK, "//
+                    + this.serviceState//
+                    + FAQUrl.suggestTodo(FAQUrl.CLIENT_SERVICE_NOT_OK), null);
         }
     }
 
