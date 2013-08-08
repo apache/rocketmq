@@ -1,9 +1,10 @@
 #!/bin/sh
 PROG_NAME=rocketmq
 SHELL_PATH=$(cd "$(dirname "$0")"; pwd)
-NS="10.232.26.122 10.232.25.81"
-# NS="10.232.26.122"
+#NS="10.232.26.122 10.232.25.81"
 BROKER="10.232.25.82 10.232.25.83"
+NS="10.232.26.122"
+#BROKER="10.232.25.82"
 NS_PORT=9876
 TGZ_NAME=alibaba-rocketmq-3.0.0-SNAPSHOT.tar.gz
 
