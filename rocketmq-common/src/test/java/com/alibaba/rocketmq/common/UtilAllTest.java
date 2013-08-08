@@ -26,12 +26,6 @@ public class UtilAllTest {
 
 
     @Test
-    public void test_printClassProperties() {
-        DemoConfig demoConfig = new DemoConfig();
-    }
-
-
-    @Test
     public void test_properties2String() {
         DemoConfig demoConfig = new DemoConfig();
         Properties properties = MixAll.object2Properties(demoConfig);

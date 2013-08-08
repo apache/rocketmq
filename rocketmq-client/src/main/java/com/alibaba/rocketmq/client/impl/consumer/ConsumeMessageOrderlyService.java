@@ -36,6 +36,7 @@ import com.alibaba.rocketmq.client.stat.ConsumerStat;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.common.message.MessageQueue;
+import com.alibaba.rocketmq.remoting.common.RemotingHelper;
 
 
 /**
@@ -227,10 +228,11 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
                                 status = messageListener.consumeMessage(msgs, context);
                             }
                             catch (Throwable e) {
-                                log.warn("consumeMessage exception, Group: "
-                                        + ConsumeMessageOrderlyService.this.consumerGroup//
-                                        + " " + msgs//
-                                        + " " + messageQueue, e);
+                                log.warn("consumeMessage exception: {} Group: {} Msgs: {} MQ: {}",//
+                                    RemotingHelper.exceptionSimpleDesc(e),//
+                                    ConsumeMessageOrderlyService.this.consumerGroup,//
+                                    msgs,//
+                                    messageQueue);
                             }
 
                             long consumeRT = System.currentTimeMillis() - beginTimestamp;
