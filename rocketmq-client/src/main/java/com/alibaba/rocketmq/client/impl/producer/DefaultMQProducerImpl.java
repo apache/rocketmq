@@ -60,6 +60,7 @@ import com.alibaba.rocketmq.common.protocol.header.CheckTransactionStateRequestH
 import com.alibaba.rocketmq.common.protocol.header.EndTransactionRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.SendMessageRequestHeader;
 import com.alibaba.rocketmq.common.sysflag.MessageSysFlag;
+import com.alibaba.rocketmq.remoting.common.RemotingHelper;
 import com.alibaba.rocketmq.remoting.common.RemotingUtil;
 import com.alibaba.rocketmq.remoting.exception.RemotingException;
 import com.alibaba.rocketmq.remoting.protocol.RemotingProtos.ResponseCode;
@@ -288,7 +289,9 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
                 String remark = null;
                 if (exception != null) {
-                    remark = "checkLocalTransactionState Exception: " + exception.toString();
+                    remark =
+                            "checkLocalTransactionState Exception: "
+                                    + RemotingHelper.exceptionSimpleDesc(exception);
                 }
 
                 try {
