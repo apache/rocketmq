@@ -71,6 +71,11 @@ public class BrokerStartup {
 
 
     public static void main(String[] args) {
+        main0(args);
+    }
+
+
+    public static BrokerController main0(String[] args) {
         // 设置当前程序版本号，每次发布版本时，都要修改CurrentVersion
         System.setProperty(RemotingCommand.RemotingVersionKey, Integer.toString(MQVersion.CurrentVersion));
 
@@ -82,7 +87,7 @@ public class BrokerStartup {
                         .parseCmdLine("mqbroker", args, buildCommandlineOptions(options), new PosixParser());
             if (null == commandLine) {
                 System.exit(-1);
-                return;
+                return null;
             }
 
             // 初始化配置文件
@@ -216,10 +221,14 @@ public class BrokerStartup {
                             + controller.getBrokerAddr() + "] boot success.";
             log.info(tip);
             System.out.println(tip);
+
+            return controller;
         }
         catch (Throwable e) {
             e.printStackTrace();
             System.exit(-1);
         }
+
+        return null;
     }
 }
