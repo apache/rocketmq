@@ -32,7 +32,7 @@ public class TransactionProducer {
     public static void main(String[] args) throws MQClientException, InterruptedException {
 
         TransactionCheckListener transactionCheckListener = new TransactionCheckListenerImpl();
-        TransactionMQProducer producer = new TransactionMQProducer("example_transaction_producer");
+        TransactionMQProducer producer = new TransactionMQProducer("please_rename_unique_group_name");
         // 事务回查最小并发数
         producer.setCheckThreadPoolMinSize(2);
         // 事务回查最大并发数
