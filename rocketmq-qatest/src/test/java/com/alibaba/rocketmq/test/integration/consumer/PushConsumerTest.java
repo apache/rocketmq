@@ -53,11 +53,5 @@ public class PushConsumerTest extends BaseTest {
 
 		consumer.start();
 		System.out.println("Consumer Started.");
-
-		try {
-			System.in.read();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
 	}
 }
