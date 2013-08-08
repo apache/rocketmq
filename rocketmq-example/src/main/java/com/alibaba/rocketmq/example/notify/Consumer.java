@@ -35,7 +35,7 @@ import com.alibaba.rocketmq.common.message.MessageExt;
 public class Consumer {
 
     public static void main(String[] args) throws MQClientException {
-        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("please_rename_unique_group_name");
+        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("please_rename_unique_group_name_2");
 
         consumer.subscribe("TRADE-SUB",//
             "10000-trade-paid-done || 1000-trade-paid-done || 1001-trade-paid-done");
