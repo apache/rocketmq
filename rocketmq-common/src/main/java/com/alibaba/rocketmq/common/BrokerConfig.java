@@ -80,6 +80,10 @@ public class BrokerConfig {
     @ImportantField
     private boolean rejectTransactionMessage = false;
 
+    // 是否从地址服务器寻找Name Server地址，正式发布后，默认值为false
+    @ImportantField
+    private boolean fetchNamesrvAddrByAddressServer = true;
+
 
     public static String localHostName() {
         try {
@@ -320,5 +324,15 @@ public class BrokerConfig {
 
     public void setRejectTransactionMessage(boolean rejectTransactionMessage) {
         this.rejectTransactionMessage = rejectTransactionMessage;
+    }
+
+
+    public boolean isFetchNamesrvAddrByAddressServer() {
+        return fetchNamesrvAddrByAddressServer;
+    }
+
+
+    public void setFetchNamesrvAddrByAddressServer(boolean fetchNamesrvAddrByAddressServer) {
+        this.fetchNamesrvAddrByAddressServer = fetchNamesrvAddrByAddressServer;
     }
 }
