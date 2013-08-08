@@ -15,6 +15,8 @@
  */
 package com.alibaba.rocketmq.broker.topic;
 
+import java.util.Iterator;
+import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
@@ -300,7 +302,17 @@ public class TopicConfigManager extends ConfigManager {
             if (topicConfigSerializeWrapper != null) {
                 this.topicConfigTable.putAll(topicConfigSerializeWrapper.getTopicConfigTable());
                 this.dataVersion.assignNewOne(topicConfigSerializeWrapper.getDataVersion());
+                this.printLoadDataWhenFirstBoot(topicConfigSerializeWrapper);
             }
+        }
+    }
+
+
+    private void printLoadDataWhenFirstBoot(final TopicConfigSerializeWrapper tcs) {
+        Iterator<Entry<String, TopicConfig>> it = tcs.getTopicConfigTable().entrySet().iterator();
+        while (it.hasNext()) {
+            Entry<String, TopicConfig> next = it.next();
+            log.info("load exist local topic, {}", next.getValue().toString());
         }
     }
 
