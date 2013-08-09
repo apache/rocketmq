@@ -1,7 +1,7 @@
 #!/bin/sh
 
 #
-# 此脚本只允许运行一次
+# Execute Only Once
 #
 
 echo 'vm.overcommit_memory=1' >> /etc/sysctl.conf
