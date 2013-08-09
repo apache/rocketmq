@@ -413,18 +413,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                 String lastBrokerName = null == mq ? null : mq.getBrokerName();
                 MessageQueue tmpmq = topicPublishInfo.selectOneMessageQueue(lastBrokerName);
                 if (tmpmq != null) {
-                    // 对于根据默认Topic创建Topic的情况，需要进行队列数纠正
-                    if (!tmpmq.getTopic().equals(msg.getTopic())//
-                            && (tmpmq.getQueueId() >= this.defaultMQProducer.getDefaultTopicQueueNums())) {
-                        mq = new MessageQueue();
-                        mq.setBrokerName(tmpmq.getBrokerName());
-                        mq.setQueueId(-1);
-                        mq.setTopic(msg.getTopic());
-                    }
-                    else {
-                        mq = tmpmq;
-                    }
-
+                    mq = tmpmq;
                     try {
                         sendResult = this.sendKernelImpl(msg, mq, communicationMode, sendCallback);
                         endTimestamp = System.currentTimeMillis();
@@ -508,8 +497,8 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         if (null == topicPublishInfo || !topicPublishInfo.ok()) {
             this.topicPublishInfoTable.putIfAbsent(topic, new TopicPublishInfo());
             this.mQClientFactory.updateTopicRouteInfoFromNameServer(topic);
-            this.mQClientFactory.updateTopicRouteInfoFromNameServer(this.defaultMQProducer
-                .getCreateTopicKey());
+            this.mQClientFactory.updateTopicRouteInfoFromNameServer(topic, true,
+                this.defaultMQProducer.getDefaultTopicQueueNums());
             topicPublishInfo = this.topicPublishInfoTable.get(topic);
         }
 
@@ -530,8 +519,8 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         if (null == brokerAddr) {
             // TODO 此处可能对Name Server压力过大，需要调优
             this.mQClientFactory.updateTopicRouteInfoFromNameServer(mq.getTopic());
-            this.mQClientFactory.updateTopicRouteInfoFromNameServer(this.defaultMQProducer
-                .getCreateTopicKey());
+            this.mQClientFactory.updateTopicRouteInfoFromNameServer(mq.getTopic(), true,
+                this.defaultMQProducer.getDefaultTopicQueueNums());
             brokerAddr = this.mQClientFactory.findBrokerAddressInPublish(mq.getBrokerName());
         }
 
