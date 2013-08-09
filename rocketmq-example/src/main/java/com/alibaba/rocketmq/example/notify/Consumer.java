@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.alibaba.rocketmq.example.quickstart;
+package com.alibaba.rocketmq.example.notify;
 
 import java.util.List;
 
@@ -26,17 +26,19 @@ import com.alibaba.rocketmq.common.message.MessageExt;
 
 
 /**
- * Consumer，订阅消息
+ * 订阅Notify TRADE-SUB数据<br>
+ * RocketMQ维护了Notify TRADE-SUB topic下的全量数据
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2013-7-16
+ * @since 2013-8-8
  */
 public class Consumer {
 
-    public static void main(String[] args) throws InterruptedException, MQClientException {
-        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("please_rename_unique_group_name_4");
+    public static void main(String[] args) throws MQClientException {
+        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("please_rename_unique_group_name_2");
 
-        consumer.subscribe("TopicTest", "*");
+        consumer.subscribe("TRADE-SUB",//
+            "10000-trade-paid-done || 1000-trade-paid-done || 1001-trade-paid-done");
 
         consumer.registerMessageListener(new MessageListenerConcurrently() {
 

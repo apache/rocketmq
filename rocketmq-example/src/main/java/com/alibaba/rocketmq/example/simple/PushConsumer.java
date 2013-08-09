@@ -35,7 +35,7 @@ import com.alibaba.rocketmq.common.message.MessageExt;
 public class PushConsumer {
 
     public static void main(String[] args) throws InterruptedException, MQClientException {
-        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("example_push_consumer_group");
+        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("please_rename_unique_group_name_6");
 
         consumer.subscribe("TopicTest", "TagA || TagC || TagD");
 
