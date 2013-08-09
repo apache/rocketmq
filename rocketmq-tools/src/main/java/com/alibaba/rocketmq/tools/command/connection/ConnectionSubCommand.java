@@ -114,7 +114,7 @@ public class ConnectionSubCommand implements SubCommand {
                 // 打印连接
                 int i = 1;
                 for (Connection conn : cc.getConnectionSet()) {
-                    System.out.printf("%04d  %-32s %-22s %-8s %s\n",//
+                    System.out.printf("%03d  %-32s %-22s %-8s %s\n",//
                         i++,//
                         conn.getClientId(),//
                         conn.getClientAddr(),//
@@ -131,7 +131,7 @@ public class ConnectionSubCommand implements SubCommand {
                 while (it.hasNext()) {
                     Entry<String, SubscriptionData> entry = it.next();
                     SubscriptionData sd = entry.getValue();
-                    System.out.printf("%04d Topic: %-40s SubExpression: %s\n",//
+                    System.out.printf("%03d  Topic: %-40s SubExpression: %s\n",//
                         i++,//
                         sd.getTopic(),//
                         sd.getSubString()//

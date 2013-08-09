@@ -36,7 +36,7 @@ public class PullConsumer {
 
 
     public static void main(String[] args) throws MQClientException {
-        DefaultMQPullConsumer consumer = new DefaultMQPullConsumer("example_pull_consumer_group");
+        DefaultMQPullConsumer consumer = new DefaultMQPullConsumer("please_rename_unique_group_name_5");
 
         consumer.start();
 
