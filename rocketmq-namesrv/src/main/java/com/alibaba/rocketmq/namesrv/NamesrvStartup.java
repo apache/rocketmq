@@ -31,10 +31,12 @@ import org.slf4j.LoggerFactory;
 import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.joran.JoranConfigurator;
 
+import com.alibaba.rocketmq.common.MQVersion;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.common.namesrv.NamesrvConfig;
 import com.alibaba.rocketmq.remoting.netty.NettyServerConfig;
+import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 
 
 /**
@@ -59,6 +61,8 @@ public class NamesrvStartup {
 
 
     public static void main(String[] args) {
+        System.setProperty(RemotingCommand.RemotingVersionKey, Integer.toString(MQVersion.CurrentVersion));
+
         try {
             // 解析命令行
             Options options = MixAll.buildCommandlineOptions(new Options());
