@@ -76,7 +76,6 @@ public class BrokerStartup {
 
 
     public static BrokerController main0(String[] args) {
-        // 设置当前程序版本号，每次发布版本时，都要修改CurrentVersion
         System.setProperty(RemotingCommand.RemotingVersionKey, Integer.toString(MQVersion.CurrentVersion));
 
         try {

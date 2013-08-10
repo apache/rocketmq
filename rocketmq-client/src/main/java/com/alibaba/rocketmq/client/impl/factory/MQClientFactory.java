@@ -532,9 +532,11 @@ public class MQClientFactory {
         }
     }
 
-	public boolean updateTopicRouteInfoFromNameServer(final String topic) {
-		return updateTopicRouteInfoFromNameServer(topic, false,0);
-	}
+
+    public boolean updateTopicRouteInfoFromNameServer(final String topic) {
+        return updateTopicRouteInfoFromNameServer(topic, false, 0);
+    }
+
 
     /**
      * 调用Name Server接口，根据Topic获取路由信息
@@ -544,20 +546,20 @@ public class MQClientFactory {
         try {
             if (this.lockNamesrv.tryLock(LockTimeoutMillis, TimeUnit.MILLISECONDS)) {
                 try {
-	                TopicRouteData topicRouteData;
-	                if (isDefault) {
-		                topicRouteData =
-				                this.mQClientAPIImpl.getTopicRouteInfoFromNameServer(MixAll.DEFAULT_TOPIC,
-						                1000 * 3);
+                    TopicRouteData topicRouteData;
+                    if (isDefault) {
+                        topicRouteData =
+                                this.mQClientAPIImpl.getTopicRouteInfoFromNameServer(MixAll.DEFAULT_TOPIC,
+                                    1000 * 3);
                         for (QueueData data : topicRouteData.getQueueDatas()) {
                             data.setReadQueueNums(defaultTopicQueueNums);
                             data.setWriteQueueNums(defaultTopicQueueNums);
                         }
-	                }
-	                else {
-		                topicRouteData =
-				                this.mQClientAPIImpl.getTopicRouteInfoFromNameServer(topic, 1000 * 3);
-	                }
+                    }
+                    else {
+                        topicRouteData =
+                                this.mQClientAPIImpl.getTopicRouteInfoFromNameServer(topic, 1000 * 3);
+                    }
                     if (topicRouteData != null) {
                         TopicRouteData old = this.topicRouteTable.get(topic);
                         boolean changed = topicRouteDataIsChange(old, topicRouteData);
