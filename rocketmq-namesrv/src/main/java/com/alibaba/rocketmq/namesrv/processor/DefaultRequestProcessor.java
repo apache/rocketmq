@@ -48,7 +48,7 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingProtos.ResponseCode;
 
 /**
  * Name Server网络请求处理
- * 
+ *
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-5
  */
@@ -112,8 +112,10 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
                 this.namesrvController.getRouteInfoManager().wipeWritePermOfBrokerByLock(
                     requestHeader.getBrokerName());
 
-        log.info("wipe write perm of broker[{}], client: {}", requestHeader.getBrokerName(),
-            RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
+        log.info("wipe write perm of broker[{}], client: {}, {}", //
+            requestHeader.getBrokerName(), //
+            RemotingHelper.parseChannelRemoteAddr(ctx.channel()), //
+            wipeTopicCnt);
 
         responseHeader.setWipeTopicCount(wipeTopicCnt);
         response.setCode(ResponseCode.SUCCESS_VALUE);

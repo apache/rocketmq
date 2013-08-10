@@ -100,7 +100,26 @@ public final class MQProtos {
         GET_PRODUCER_CONNECTION_LIST(44, 204),
 
         // 清除Name Server中某个Broker的写权限
-        WIPE_WRITE_PERM_OF_BROKER(45, 205), ;
+        WIPE_WRITE_PERM_OF_BROKER(45, 205),
+
+        // 从Name Server获取完整Topic列表
+        GET_ALL_TOPIC_LIST_FROM_NAMESERVER(46, 206),
+        // 从Broker删除订阅组
+        DELETE_SUBSCRIPTIONGROUP(47, 207),
+        // 从Broker获取消费状态（进度）
+        GET_CONSUME_STATS(48, 208),
+        // Suspend Consumer消费过程
+        SUSPEND_CONSUMER(49, 209),
+        // Resume Consumer消费过程
+        RESUME_CONSUMER(50, 210),
+        // 重置Consumer Offset
+        RESET_CONSUMER_OFFSET_IN_CONSUMER(51, 211),
+        // 重置Consumer Offset
+        RESET_CONSUMER_OFFSET_IN_BROKER(52, 212),
+        // 调整Consumer线程池数量
+        ADJUST_CONSUMER_THREAD_POOL(53, 213),
+        // 查询消息被哪些消费组消费
+        WHO_CONSUME_THE_MESSAGE(54, 214), ;
 
         // Broker 发送消息
         public static final int SEND_MESSAGE_VALUE = 10;
@@ -186,6 +205,25 @@ public final class MQProtos {
         public static final int GET_CONSUMER_CONNECTION_LIST_VALUE = 203;
         public static final int GET_PRODUCER_CONNECTION_LIST_VALUE = 204;
         public static final int WIPE_WRITE_PERM_OF_BROKER_VALUE = 205;
+
+        // 从Name Server获取完整Topic列表
+        public static final int GET_ALL_TOPIC_LIST_FROM_NAMESERVER_VALUE = 206;
+        // 从Broker删除订阅组
+        public static final int DELETE_SUBSCRIPTIONGROUP_VALUE = 207;
+        // 从Broker获取消费状态（进度）
+        public static final int GET_CONSUME_STATS_VALUE = 208;
+        // Suspend Consumer消费过程
+        public static final int SUSPEND_CONSUMER_VALUE = 209;
+        // Resume Consumer消费过程
+        public static final int RESUME_CONSUMER_VALUE = 210;
+        // 重置Consumer Offset
+        public static final int RESET_CONSUMER_OFFSET_IN_CONSUMER_VALUE = 211;
+        // 重置Consumer Offset
+        public static final int RESET_CONSUMER_OFFSET_IN_BROKER_VALUE = 212;
+        // 调整Consumer线程池数量
+        public static final int ADJUST_CONSUMER_THREAD_POOL_VALUE = 213;
+        // 查询消息被哪些消费组消费
+        public static final int WHO_CONSUME_THE_MESSAGE_VALUE = 214;
 
         private final int index;
         private final int value;
