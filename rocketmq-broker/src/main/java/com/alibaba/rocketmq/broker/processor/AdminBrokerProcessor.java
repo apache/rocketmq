@@ -135,6 +135,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             return this.lockBatchMQ(ctx, request);
         case UNLOCK_BATCH_MQ:
             return this.unlockBatchMQ(ctx, request);
+
             // 订阅组配置
         case UPDATE_AND_CREATE_SUBSCRIPTIONGROUP:
             return this.updateAndCreateSubscriptionGroup(ctx, request);

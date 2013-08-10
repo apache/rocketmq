@@ -28,6 +28,7 @@ import com.alibaba.rocketmq.common.admin.TopicStatsTable;
 import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.common.message.MessageQueue;
 import com.alibaba.rocketmq.common.protocol.body.ClusterInfoSerializeWrapper;
+import com.alibaba.rocketmq.common.protocol.body.ConsumeByWho;
 import com.alibaba.rocketmq.common.protocol.body.ConsumerConnectionSerializeWrapper;
 import com.alibaba.rocketmq.common.protocol.body.ProducerConnectionSerializeWrapper;
 import com.alibaba.rocketmq.common.protocol.route.TopicRouteData;
@@ -229,5 +230,11 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
     @Override
     public List<String> getNameServerAddressList() {
         return this.defaultMQAdminExtImpl.getNameServerAddressList();
+    }
+
+
+    @Override
+    public ConsumeByWho whoConsumeTheMessage(String msgId) {
+        return this.defaultMQAdminExtImpl.whoConsumeTheMessage(msgId);
     }
 }
