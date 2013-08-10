@@ -24,6 +24,7 @@ import com.alibaba.rocketmq.common.TopicConfig;
 import com.alibaba.rocketmq.common.admin.ConsumerProgress;
 import com.alibaba.rocketmq.common.admin.TopicStatsTable;
 import com.alibaba.rocketmq.common.protocol.body.ClusterInfoSerializeWrapper;
+import com.alibaba.rocketmq.common.protocol.body.ConsumeByWho;
 import com.alibaba.rocketmq.common.protocol.body.ConsumerConnectionSerializeWrapper;
 import com.alibaba.rocketmq.common.protocol.body.ProducerConnectionSerializeWrapper;
 import com.alibaba.rocketmq.common.protocol.route.TopicRouteData;
@@ -196,6 +197,15 @@ public interface MQAdminExt extends MQAdmin {
     public int wipeWritePermOfBroker(final String namesrvAddr, String brokerName)
             throws RemotingCommandException, RemotingConnectException, RemotingSendRequestException,
             RemotingTimeoutException, InterruptedException, MQClientException;
+
+
+    /**
+     * 查看某个订阅组被谁消费了
+     * 
+     * @param msgId
+     * @return
+     */
+    public ConsumeByWho whoConsumeTheMessage(final String msgId);
 
 
     /**
