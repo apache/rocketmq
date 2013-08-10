@@ -39,7 +39,7 @@ import com.alibaba.rocketmq.remoting.exception.RemotingTimeoutException;
 /**
  * MQ管理类接口，涉及所有与MQ管理相关的对外接口<br>
  * 包括Topic创建、订阅组创建、配置修改等
- * 
+ *
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-14
  */
@@ -52,7 +52,7 @@ public interface MQAdminExt extends MQAdmin {
 
     /**
      * 向指定Broker创建或者更新Topic配置
-     * 
+     *
      * @param addr
      * @param config
      * @throws MQClientException
@@ -66,7 +66,7 @@ public interface MQAdminExt extends MQAdmin {
 
     /**
      * 向指定Broker创建或者更新订阅组配置
-     * 
+     *
      * @param addr
      * @param config
      * @throws MQClientException
@@ -80,7 +80,7 @@ public interface MQAdminExt extends MQAdmin {
 
     /**
      * 查询指定Broker的订阅组配置
-     * 
+     *
      * @param addr
      * @param group
      * @return
@@ -90,7 +90,7 @@ public interface MQAdminExt extends MQAdmin {
 
     /**
      * 查询指定Broker的Topic配置
-     * 
+     *
      * @param addr
      * @param group
      * @return
@@ -100,7 +100,7 @@ public interface MQAdminExt extends MQAdmin {
 
     /**
      * 查询Topic Offset信息
-     * 
+     *
      * @param topic
      * @return
      */
@@ -110,7 +110,7 @@ public interface MQAdminExt extends MQAdmin {
 
     /**
      * 查询消费进度
-     * 
+     *
      * @param consumerGroup
      * @param topic
      * @return
@@ -120,7 +120,7 @@ public interface MQAdminExt extends MQAdmin {
 
     /**
      * 查看集群信息
-     * 
+     *
      * @return
      */
     public ClusterInfoSerializeWrapper examineBrokerClusterInfo() throws InterruptedException,
@@ -130,7 +130,7 @@ public interface MQAdminExt extends MQAdmin {
 
     /**
      * 查看Topic路由信息
-     * 
+     *
      * @param topic
      * @return
      */
@@ -140,7 +140,7 @@ public interface MQAdminExt extends MQAdmin {
 
     /**
      * 查看Consumer网络连接、订阅关系
-     * 
+     *
      * @param consumerGroup
      * @param topic
      * @return
@@ -160,7 +160,7 @@ public interface MQAdminExt extends MQAdmin {
 
     /**
      * 查看Producer网络连接
-     * 
+     *
      * @param producerGroup
      * @param topic
      * @return
@@ -176,7 +176,7 @@ public interface MQAdminExt extends MQAdmin {
 
     /**
      * 获取Name Server地址列表
-     * 
+     *
      * @return
      */
     public List<String> getNameServerAddressList();
@@ -184,7 +184,7 @@ public interface MQAdminExt extends MQAdmin {
 
     /**
      * 清除某个Broker的写权限，针对所有Name Server
-     * 
+     *
      * @param brokerName
      * @return 返回清除了多少个topic
      * @throws MQClientException
@@ -201,7 +201,7 @@ public interface MQAdminExt extends MQAdmin {
 
     /**
      * 查看某个订阅组被谁消费了
-     * 
+     *
      * @param msgId
      * @return
      */
@@ -210,7 +210,7 @@ public interface MQAdminExt extends MQAdmin {
 
     /**
      * 向Name Server增加一个配置项
-     * 
+     *
      * @param namespace
      * @param key
      * @param value
@@ -220,7 +220,7 @@ public interface MQAdminExt extends MQAdmin {
 
     /**
      * 从Name Server获取一个配置项
-     * 
+     *
      * @param namespace
      * @param key
      * @return
