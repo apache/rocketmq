@@ -48,7 +48,7 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingProtos.ResponseCode;
 
 /**
  * Name Server网络请求处理
- *
+ * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-5
  */
@@ -91,10 +91,31 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
             return this.getBrokerClusterInfo(ctx, request);
         case WIPE_WRITE_PERM_OF_BROKER:
             return this.wipeWritePermOfBroker(ctx, request);
+        case GET_ALL_TOPIC_LIST_FROM_NAMESERVER:
+            return getAllTopicListFromNameserver(ctx, request);
         default:
             break;
         }
         return null;
+    }
+
+
+    /**
+     * 获取全部Topic列表
+     * 
+     * @param ctx
+     * @param request
+     * @return
+     */
+    private RemotingCommand getAllTopicListFromNameserver(ChannelHandlerContext ctx, RemotingCommand request) {
+        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
+
+        byte[] body = this.namesrvController.getRouteInfoManager().getAllTopicList();
+
+        response.setBody(body);
+        response.setCode(ResponseCode.SUCCESS_VALUE);
+        response.setRemark(null);
+        return response;
     }
 
 

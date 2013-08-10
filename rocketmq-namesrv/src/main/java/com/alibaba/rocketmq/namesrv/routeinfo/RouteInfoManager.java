@@ -39,6 +39,7 @@ import com.alibaba.rocketmq.common.constant.PermName;
 import com.alibaba.rocketmq.common.namesrv.RegisterBrokerResult;
 import com.alibaba.rocketmq.common.protocol.body.ClusterInfoSerializeWrapper;
 import com.alibaba.rocketmq.common.protocol.body.TopicConfigSerializeWrapper;
+import com.alibaba.rocketmq.common.protocol.body.TopicList;
 import com.alibaba.rocketmq.common.protocol.route.BrokerData;
 import com.alibaba.rocketmq.common.protocol.route.QueueData;
 import com.alibaba.rocketmq.common.protocol.route.TopicRouteData;
@@ -46,7 +47,7 @@ import com.alibaba.rocketmq.common.protocol.route.TopicRouteData;
 
 /**
  * 运行过程中的路由信息，数据只在内存，宕机后数据消失，但是Broker会定期推送最新数据
- * 
+ *
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-2
  */
@@ -72,6 +73,25 @@ public class RouteInfoManager {
         clusterInfoSerializeWrapper.setBrokerAddrTable(this.brokerAddrTable);
         clusterInfoSerializeWrapper.setClusterAddrTable(this.clusterAddrTable);
         return clusterInfoSerializeWrapper.encode();
+    }
+
+
+    public byte[] getAllTopicList() {
+        TopicList topicList = new TopicList();
+        try {
+            try {
+                this.lock.readLock().lockInterruptibly();
+                topicList.getTopicList().addAll(this.topicQueueTable.keySet());
+            }
+            finally {
+                this.lock.readLock().unlock();
+            }
+        }
+        catch (Exception e) {
+            log.error("getAllTopicList Exception", e);
+        }
+
+        return topicList.encode();
     }
 
 
