@@ -23,6 +23,7 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 
+import com.alibaba.rocketmq.common.UtilALl;
 import com.alibaba.rocketmq.common.admin.ConsumeStats;
 import com.alibaba.rocketmq.common.admin.OffsetWrapper;
 import com.alibaba.rocketmq.common.message.MessageQueue;
@@ -82,14 +83,16 @@ public class ConsumeStatsSubCommand implements SubCommand {
                 long diff = offsetWrapper.getBrokerOffset() - offsetWrapper.getConsumerOffset();
 
                 System.out.printf("%-32s  %-32s  %4d  %20d  %20d  %d\n",//
-                    mq.getTopic(),//
-                    mq.getBrokerName(),//
+                    UtilALl.frontStringAtLeast(mq.getTopic(), 32),//
+                    UtilALl.frontStringAtLeast(mq.getBrokerName(), 32),//
                     mq.getQueueId(),//
                     offsetWrapper.getBrokerOffset(),//
                     offsetWrapper.getConsumerOffset(),//
                     diff //
                     );
             }
+
+            System.out.printf("\nConsume TPS: %d\n", consumeStats.getConsumeTps());
         }
         catch (Exception e) {
             e.printStackTrace();

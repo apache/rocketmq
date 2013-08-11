@@ -101,6 +101,13 @@ public class ConsumerOffsetManager extends ConfigManager {
     }
 
 
+    public long computePullTPS(final String topic, final String group) {
+        // topic@group
+        String key = topic + TOPIC_GROUP_SEPARATOR + group;
+        return this.computePullTPS(key);
+    }
+
+
     public long computePullTPS(final String topicgroup) {
         ConcurrentHashMap<Integer, Long> mapLast = this.offsetTableLast.get(topicgroup);
         ConcurrentHashMap<Integer, Long> mapLastLast = this.offsetTableLastLast.get(topicgroup);

@@ -86,7 +86,7 @@ public class TopicStatsSubCommand implements SubCommand {
                 }
 
                 System.out.printf("%-32s  %4d  %20d  %20d    %s\n",//
-                    mq.getBrokerName(),//
+                    UtilALl.frontStringAtLeast(mq.getBrokerName(), 32),//
                     mq.getQueueId(),//
                     topicOffset.getMinOffset(),//
                     topicOffset.getMaxOffset(),//
