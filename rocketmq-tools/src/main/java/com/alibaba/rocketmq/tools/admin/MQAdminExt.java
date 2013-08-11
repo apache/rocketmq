@@ -112,10 +112,14 @@ public interface MQAdminExt extends MQAdmin {
      * 查询消费进度
      * 
      * @param consumerGroup
-     * @param topic
      * @return
+     * @throws InterruptedException
+     * @throws MQClientException
+     * @throws RemotingException
+     * @throws MQBrokerException
      */
-    public ConsumeStats examineConsumerProgress(final String consumerGroup, final String topic);
+    public ConsumeStats examineConsumeStats(final String consumerGroup) throws RemotingException,
+            MQClientException, InterruptedException, MQBrokerException;
 
 
     /**
