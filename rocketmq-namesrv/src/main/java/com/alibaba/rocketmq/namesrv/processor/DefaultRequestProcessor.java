@@ -28,6 +28,7 @@ import com.alibaba.rocketmq.common.protocol.MQProtos.MQRequestCode;
 import com.alibaba.rocketmq.common.protocol.MQProtos.MQResponseCode;
 import com.alibaba.rocketmq.common.protocol.body.TopicConfigSerializeWrapper;
 import com.alibaba.rocketmq.common.protocol.header.namesrv.DeleteKVConfigRequestHeader;
+import com.alibaba.rocketmq.common.protocol.header.namesrv.DeleteTopicInNamesrvRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.namesrv.GetKVConfigRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.namesrv.GetKVConfigResponseHeader;
 import com.alibaba.rocketmq.common.protocol.header.namesrv.GetRouteInfoRequestHeader;
@@ -93,10 +94,27 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
             return this.wipeWritePermOfBroker(ctx, request);
         case GET_ALL_TOPIC_LIST_FROM_NAMESERVER:
             return getAllTopicListFromNameserver(ctx, request);
+        case DELETE_TOPIC_IN_NAMESRV:
+            return deleteTopicInNamesrv(ctx, request);
         default:
             break;
         }
         return null;
+    }
+
+
+    private RemotingCommand deleteTopicInNamesrv(ChannelHandlerContext ctx, RemotingCommand request)
+            throws RemotingCommandException {
+        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
+        final DeleteTopicInNamesrvRequestHeader requestHeader =
+                (DeleteTopicInNamesrvRequestHeader) request
+                    .decodeCommandCustomHeader(DeleteTopicInNamesrvRequestHeader.class);
+
+        this.namesrvController.getRouteInfoManager().deleteTopic(requestHeader.getTopic());
+
+        response.setCode(ResponseCode.SUCCESS_VALUE);
+        response.setRemark(null);
+        return response;
     }
 
 

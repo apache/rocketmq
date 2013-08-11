@@ -49,7 +49,7 @@ import com.alibaba.rocketmq.remoting.exception.RemotingTimeoutException;
 
 /**
  * 所有运维接口都在这里实现
- *
+ * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-21
  */
@@ -175,9 +175,8 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
 
 
     @Override
-    public ClusterInfo examineBrokerClusterInfo() throws InterruptedException,
-            MQBrokerException, RemotingTimeoutException, RemotingSendRequestException,
-            RemotingConnectException {
+    public ClusterInfo examineBrokerClusterInfo() throws InterruptedException, MQBrokerException,
+            RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException {
         return this.mQClientFactory.getMQClientAPIImpl().getBrokerClusterInfo(3000);
     }
 
@@ -248,9 +247,8 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
 
 
     @Override
-    public ConsumerConnection examineConsumerConnectionInfo(String consumerGroup,
-            final String topic) throws InterruptedException, MQBrokerException, RemotingException,
-            MQClientException {
+    public ConsumerConnection examineConsumerConnectionInfo(String consumerGroup, final String topic)
+            throws InterruptedException, MQBrokerException, RemotingException, MQClientException {
         TopicRouteData topicRouteData = this.examineTopicRouteInfo(topic);
         ConsumerConnection result = new ConsumerConnection();
 
@@ -269,9 +267,8 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
 
 
     @Override
-    public ProducerConnection examineProducerConnectionInfo(String producerGroup,
-            final String topic) throws RemotingException, MQClientException, InterruptedException,
-            MQBrokerException {
+    public ProducerConnection examineProducerConnectionInfo(String producerGroup, final String topic)
+            throws RemotingException, MQClientException, InterruptedException, MQBrokerException {
         TopicRouteData topicRouteData = this.examineTopicRouteInfo(topic);
         ProducerConnection result = new ProducerConnection();
 

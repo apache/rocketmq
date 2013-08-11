@@ -30,7 +30,7 @@ import com.alibaba.rocketmq.tools.command.SubCommand;
 
 /**
  * 修改、创建Topic配置命令
- *
+ * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-21
  */

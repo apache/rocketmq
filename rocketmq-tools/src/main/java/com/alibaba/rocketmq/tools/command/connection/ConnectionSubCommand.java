@@ -86,8 +86,7 @@ public class ConnectionSubCommand implements SubCommand {
 
                 String group = commandLine.getOptionValue('p');
 
-                ProducerConnection pc =
-                        defaultMQAdminExt.examineProducerConnectionInfo(group, topic);
+                ProducerConnection pc = defaultMQAdminExt.examineProducerConnectionInfo(group, topic);
 
                 int i = 1;
                 for (Connection conn : pc.getConnectionSet()) {
@@ -108,8 +107,7 @@ public class ConnectionSubCommand implements SubCommand {
 
                 String group = commandLine.getOptionValue('c');
 
-                ConsumerConnection cc =
-                        defaultMQAdminExt.examineConsumerConnectionInfo(group, topic);
+                ConsumerConnection cc = defaultMQAdminExt.examineConsumerConnectionInfo(group, topic);
 
                 // 打印连接
                 int i = 1;

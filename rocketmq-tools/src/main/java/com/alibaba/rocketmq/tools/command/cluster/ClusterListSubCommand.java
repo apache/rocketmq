@@ -63,8 +63,7 @@ public class ClusterListSubCommand implements SubCommand {
         try {
             defaultMQAdminExt.start();
 
-            ClusterInfo clusterInfoSerializeWrapper =
-                    defaultMQAdminExt.examineBrokerClusterInfo();
+            ClusterInfo clusterInfoSerializeWrapper = defaultMQAdminExt.examineBrokerClusterInfo();
 
             Iterator<Map.Entry<String, Set<String>>> itCluster =
                     clusterInfoSerializeWrapper.getClusterAddrTable().entrySet().iterator();

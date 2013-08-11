@@ -74,7 +74,7 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingSerializable;
 
 /**
  * 管理类请求处理
- *
+ * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-26
  */
