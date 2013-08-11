@@ -25,7 +25,9 @@ import org.slf4j.LoggerFactory;
 import com.alibaba.rocketmq.broker.BrokerController;
 import com.alibaba.rocketmq.broker.client.ClientChannelInfo;
 import com.alibaba.rocketmq.broker.client.ConsumerGroupInfo;
+import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.constant.LoggerName;
+import com.alibaba.rocketmq.common.constant.PermName;
 import com.alibaba.rocketmq.common.protocol.MQProtos.MQRequestCode;
 import com.alibaba.rocketmq.common.protocol.header.GetConsumerListByGroupRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.GetConsumerListByGroupResponseBody;
@@ -35,6 +37,7 @@ import com.alibaba.rocketmq.common.protocol.header.UnregisterClientResponseHeade
 import com.alibaba.rocketmq.common.protocol.heartbeat.ConsumerData;
 import com.alibaba.rocketmq.common.protocol.heartbeat.HeartbeatData;
 import com.alibaba.rocketmq.common.protocol.heartbeat.ProducerData;
+import com.alibaba.rocketmq.common.subscription.SubscriptionGroupConfig;
 import com.alibaba.rocketmq.remoting.common.RemotingHelper;
 import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
 import com.alibaba.rocketmq.remoting.netty.NettyRequestProcessor;
@@ -161,6 +164,17 @@ public class ClientManageProcessor implements NettyRequestProcessor {
 
         // 注册Consumer
         for (ConsumerData data : heartbeatData.getConsumerDataSet()) {
+            SubscriptionGroupConfig subscriptionGroupConfig =
+                    this.brokerController.getSubscriptionGroupManager().findSubscriptionGroupConfig(
+                        data.getGroupName());
+            if (null != subscriptionGroupConfig) {
+                String newTopic = MixAll.getRetryTopic(data.getGroupName());
+                this.brokerController.getTopicConfigManager().createTopicInSendMessageBackMethod(//
+                    newTopic,//
+                    subscriptionGroupConfig.getRetryQueueNums(), //
+                    PermName.PERM_WRITE | PermName.PERM_READ);
+            }
+
             boolean changed = this.brokerController.getConsumerManager().registerConsumer(//
                 data.getGroupName(),//
                 clientChannelInfo,//

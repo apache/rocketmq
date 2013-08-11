@@ -26,6 +26,7 @@ import com.alibaba.rocketmq.client.exception.MQClientException;
 import com.alibaba.rocketmq.client.impl.MQClientManager;
 import com.alibaba.rocketmq.client.impl.factory.MQClientFactory;
 import com.alibaba.rocketmq.client.log.ClientLogger;
+import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.ServiceState;
 import com.alibaba.rocketmq.common.TopicConfig;
 import com.alibaba.rocketmq.common.admin.ConsumeStats;
@@ -154,9 +155,11 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
 
         for (BrokerData bd : topicRouteData.getBrokerDatas()) {
             String addr = bd.selectBrokerAddr();
-            TopicStatsTable tst =
-                    this.mQClientFactory.getMQClientAPIImpl().getTopicStatsInfo(addr, topic, 3000);
-            topicStatsTable.getOffsetTable().putAll(tst.getOffsetTable());
+            if (addr != null) {
+                TopicStatsTable tst =
+                        this.mQClientFactory.getMQClientAPIImpl().getTopicStatsInfo(addr, topic, 3000);
+                topicStatsTable.getOffsetTable().putAll(tst.getOffsetTable());
+            }
         }
 
         if (topicStatsTable.getOffsetTable().isEmpty()) {
@@ -168,9 +171,26 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
 
 
     @Override
-    public ConsumeStats examineConsumerProgress(String consumerGroup, String topic) {
-        // TODO Auto-generated method stub
-        return null;
+    public ConsumeStats examineConsumeStats(String consumerGroup) throws RemotingException,
+            MQClientException, InterruptedException, MQBrokerException {
+        String retryTopic = MixAll.getRetryTopic(consumerGroup);
+        TopicRouteData topicRouteData = this.examineTopicRouteInfo(retryTopic);
+        ConsumeStats result = new ConsumeStats();
+
+        for (BrokerData bd : topicRouteData.getBrokerDatas()) {
+            String addr = bd.selectBrokerAddr();
+            if (addr != null) {
+                ConsumeStats consumeStats =
+                        this.mQClientFactory.getMQClientAPIImpl().getConsumeStats(addr, consumerGroup, 3000);
+                result.getOffsetTable().putAll(consumeStats.getOffsetTable());
+            }
+        }
+
+        if (result.getOffsetTable().isEmpty()) {
+            throw new MQClientException("Not found the consumer group consume stats", null);
+        }
+
+        return result;
     }
 
 
@@ -254,8 +274,10 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
 
         for (BrokerData bd : topicRouteData.getBrokerDatas()) {
             String addr = bd.selectBrokerAddr();
-            return this.mQClientFactory.getMQClientAPIImpl().getConsumerConnectionList(addr, consumerGroup,
-                3000);
+            if (addr != null) {
+                return this.mQClientFactory.getMQClientAPIImpl().getConsumerConnectionList(addr,
+                    consumerGroup, 3000);
+            }
         }
 
         if (result.getConnectionSet().isEmpty()) {
@@ -274,8 +296,10 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
 
         for (BrokerData bd : topicRouteData.getBrokerDatas()) {
             String addr = bd.selectBrokerAddr();
-            return this.mQClientFactory.getMQClientAPIImpl().getProducerConnectionList(addr, producerGroup,
-                300);
+            if (addr != null) {
+                return this.mQClientFactory.getMQClientAPIImpl().getProducerConnectionList(addr,
+                    producerGroup, 300);
+            }
         }
 
         if (result.getConnectionSet().isEmpty()) {
