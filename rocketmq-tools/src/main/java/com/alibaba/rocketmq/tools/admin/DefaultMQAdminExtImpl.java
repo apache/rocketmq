@@ -183,6 +183,8 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
                 ConsumeStats consumeStats =
                         this.mQClientFactory.getMQClientAPIImpl().getConsumeStats(addr, consumerGroup, 3000);
                 result.getOffsetTable().putAll(consumeStats.getOffsetTable());
+                long value = result.getConsumeTps() + consumeStats.getConsumeTps();
+                result.setConsumeTps(value);
             }
         }
 

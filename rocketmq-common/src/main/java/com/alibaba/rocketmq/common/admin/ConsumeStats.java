@@ -29,6 +29,7 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingSerializable;
  */
 public class ConsumeStats extends RemotingSerializable {
     private HashMap<MessageQueue, OffsetWrapper> offsetTable = new HashMap<MessageQueue, OffsetWrapper>();
+    private long consumeTps = 0;
 
 
     public HashMap<MessageQueue, OffsetWrapper> getOffsetTable() {
@@ -38,5 +39,15 @@ public class ConsumeStats extends RemotingSerializable {
 
     public void setOffsetTable(HashMap<MessageQueue, OffsetWrapper> offsetTable) {
         this.offsetTable = offsetTable;
+    }
+
+
+    public long getConsumeTps() {
+        return consumeTps;
+    }
+
+
+    public void setConsumeTps(long consumeTps) {
+        this.consumeTps = consumeTps;
     }
 }

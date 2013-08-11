@@ -213,6 +213,11 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
 
                 consumeStats.getOffsetTable().put(mq, offsetWrapper);
             }
+
+            long consumeTps =
+                    this.brokerController.getConsumerOffsetManager().computePullTPS(topic,
+                        requestHeader.getConsumerGroup());
+            consumeStats.setConsumeTps(consumeTps);
         }
 
         byte[] body = consumeStats.encode();

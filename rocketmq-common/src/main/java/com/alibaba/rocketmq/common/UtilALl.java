@@ -334,4 +334,15 @@ public class UtilALl {
 
         return null;
     }
+
+
+    public static String frontStringAtLeast(final String str, final int size) {
+        if (str != null) {
+            if (str.length() > size) {
+                return str.substring(0, size);
+            }
+        }
+
+        return str;
+    }
 }
