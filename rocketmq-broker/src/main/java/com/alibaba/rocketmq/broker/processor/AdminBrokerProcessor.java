@@ -156,6 +156,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         case GET_PRODUCER_CONNECTION_LIST:
             return this.getProducerConnectionList(ctx, request);
 
+            // 查询消费进度，订阅组下的所有Topic
         case GET_CONSUME_STATS:
             return this.getConsumeStats(ctx, request);
         default:
