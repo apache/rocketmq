@@ -24,9 +24,6 @@ import com.alibaba.rocketmq.common.message.Message;
 
 /**
  * 执行本地事务
- * 
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2013-7-24
  */
 public class TransactionExecuterImpl implements LocalTransactionExecuter {
     private AtomicInteger transactionIndex = new AtomicInteger(1);

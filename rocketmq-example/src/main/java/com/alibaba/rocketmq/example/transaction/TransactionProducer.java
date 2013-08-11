@@ -25,8 +25,6 @@ import com.alibaba.rocketmq.common.message.Message;
 /**
  * 发送事务消息例子
  * 
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2013-7-24
  */
 public class TransactionProducer {
     public static void main(String[] args) throws MQClientException, InterruptedException {
