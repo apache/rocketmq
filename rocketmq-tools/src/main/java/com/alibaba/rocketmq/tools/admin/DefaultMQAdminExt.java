@@ -23,7 +23,7 @@ import com.alibaba.rocketmq.client.exception.MQBrokerException;
 import com.alibaba.rocketmq.client.exception.MQClientException;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.TopicConfig;
-import com.alibaba.rocketmq.common.admin.ConsumerProgress;
+import com.alibaba.rocketmq.common.admin.ConsumeStats;
 import com.alibaba.rocketmq.common.admin.TopicStatsTable;
 import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.common.message.MessageQueue;
@@ -151,7 +151,7 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
 
 
     @Override
-    public ConsumerProgress examineConsumerProgress(String consumerGroup, String topic) {
+    public ConsumeStats examineConsumerProgress(String consumerGroup, String topic) {
         return defaultMQAdminExtImpl.examineConsumerProgress(consumerGroup, topic);
     }
 

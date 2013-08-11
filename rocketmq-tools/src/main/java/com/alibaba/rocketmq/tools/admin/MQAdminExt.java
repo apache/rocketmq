@@ -21,7 +21,7 @@ import com.alibaba.rocketmq.client.MQAdmin;
 import com.alibaba.rocketmq.client.exception.MQBrokerException;
 import com.alibaba.rocketmq.client.exception.MQClientException;
 import com.alibaba.rocketmq.common.TopicConfig;
-import com.alibaba.rocketmq.common.admin.ConsumerProgress;
+import com.alibaba.rocketmq.common.admin.ConsumeStats;
 import com.alibaba.rocketmq.common.admin.TopicStatsTable;
 import com.alibaba.rocketmq.common.protocol.body.ClusterInfo;
 import com.alibaba.rocketmq.common.protocol.body.ConsumeByWho;
@@ -115,7 +115,7 @@ public interface MQAdminExt extends MQAdmin {
      * @param topic
      * @return
      */
-    public ConsumerProgress examineConsumerProgress(final String consumerGroup, final String topic);
+    public ConsumeStats examineConsumerProgress(final String consumerGroup, final String topic);
 
 
     /**
