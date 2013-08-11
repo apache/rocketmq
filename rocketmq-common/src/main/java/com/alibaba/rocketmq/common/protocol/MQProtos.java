@@ -119,7 +119,11 @@ public final class MQProtos {
         // 调整Consumer线程池数量
         ADJUST_CONSUMER_THREAD_POOL(53, 213),
         // 查询消息被哪些消费组消费
-        WHO_CONSUME_THE_MESSAGE(54, 214), ;
+        WHO_CONSUME_THE_MESSAGE(54, 214),
+        // 从Broker删除Topic配置
+        DELETE_TOPIC_IN_BROKER(55, 215),
+        // 从Namesrv删除Topic配置
+        DELETE_TOPIC_IN_NAMESRV(56, 216), ;
 
         // Broker 发送消息
         public static final int SEND_MESSAGE_VALUE = 10;
@@ -225,6 +229,11 @@ public final class MQProtos {
         // 查询消息被哪些消费组消费
         public static final int WHO_CONSUME_THE_MESSAGE_VALUE = 214;
 
+        // 从Broker删除Topic配置
+        public static final int DELETE_TOPIC_IN_BROKER_VALUE = 215;
+        // 从Namesrv删除Topic配置
+        public static final int DELETE_TOPIC_IN_NAMESRV_VALUE = 216;
+
         private final int index;
         private final int value;
 
@@ -329,6 +338,29 @@ public final class MQProtos {
                 return GET_PRODUCER_CONNECTION_LIST;
             case 205:
                 return WIPE_WRITE_PERM_OF_BROKER;
+
+            case 206:
+                return GET_ALL_TOPIC_LIST_FROM_NAMESERVER;
+            case 207:
+                return DELETE_SUBSCRIPTIONGROUP;
+            case 208:
+                return GET_CONSUME_STATS;
+            case 209:
+                return SUSPEND_CONSUMER;
+            case 210:
+                return RESUME_CONSUMER;
+            case 211:
+                return RESET_CONSUMER_OFFSET_IN_CONSUMER;
+            case 212:
+                return RESET_CONSUMER_OFFSET_IN_BROKER;
+            case 213:
+                return ADJUST_CONSUMER_THREAD_POOL;
+            case 214:
+                return WHO_CONSUME_THE_MESSAGE;
+            case 215:
+                return DELETE_TOPIC_IN_BROKER;
+            case 216:
+                return DELETE_TOPIC_IN_NAMESRV;
             default:
                 return null;
             }

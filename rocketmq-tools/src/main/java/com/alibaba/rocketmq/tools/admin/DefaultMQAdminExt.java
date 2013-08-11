@@ -42,7 +42,7 @@ import com.alibaba.rocketmq.remoting.exception.RemotingTimeoutException;
 
 /**
  * 所有运维接口都在这里实现
- *
+ * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-14
  */
@@ -157,9 +157,8 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
 
 
     @Override
-    public ClusterInfo examineBrokerClusterInfo() throws InterruptedException,
-            RemotingConnectException, RemotingTimeoutException, RemotingSendRequestException,
-            MQBrokerException {
+    public ClusterInfo examineBrokerClusterInfo() throws InterruptedException, RemotingConnectException,
+            RemotingTimeoutException, RemotingSendRequestException, MQBrokerException {
         return defaultMQAdminExtImpl.examineBrokerClusterInfo();
     }
 
@@ -184,17 +183,15 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
 
 
     @Override
-    public ConsumerConnection examineConsumerConnectionInfo(String consumerGroup,
-            final String topic) throws InterruptedException, MQBrokerException, RemotingException,
-            MQClientException {
+    public ConsumerConnection examineConsumerConnectionInfo(String consumerGroup, final String topic)
+            throws InterruptedException, MQBrokerException, RemotingException, MQClientException {
         return defaultMQAdminExtImpl.examineConsumerConnectionInfo(consumerGroup, topic);
     }
 
 
     @Override
-    public ProducerConnection examineProducerConnectionInfo(String producerGroup,
-            final String topic) throws RemotingException, MQClientException, InterruptedException,
-            MQBrokerException {
+    public ProducerConnection examineProducerConnectionInfo(String producerGroup, final String topic)
+            throws RemotingException, MQClientException, InterruptedException, MQBrokerException {
         return defaultMQAdminExtImpl.examineProducerConnectionInfo(producerGroup, topic);
     }
 

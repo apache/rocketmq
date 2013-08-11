@@ -945,9 +945,9 @@ public class MQClientAPIImpl {
     /**
      * 根据ProducerGroup获取Producer连接列表
      */
-    public ProducerConnection getProducerConnectionList(final String addr,
-            final String producerGroup, final long timeoutMillis) throws RemotingConnectException,
-            RemotingSendRequestException, RemotingTimeoutException, InterruptedException, MQBrokerException {
+    public ProducerConnection getProducerConnectionList(final String addr, final String producerGroup,
+            final long timeoutMillis) throws RemotingConnectException, RemotingSendRequestException,
+            RemotingTimeoutException, InterruptedException, MQBrokerException {
         GetProducerConnectionListRequestHeader requestHeader = new GetProducerConnectionListRequestHeader();
         requestHeader.setProducerGroup(producerGroup);
 
@@ -957,8 +957,7 @@ public class MQClientAPIImpl {
         RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
         switch (response.getCode()) {
         case ResponseCode.SUCCESS_VALUE: {
-            return ProducerConnection.decode(response.getBody(),
-                ProducerConnection.class);
+            return ProducerConnection.decode(response.getBody(), ProducerConnection.class);
         }
         default:
             break;
@@ -971,9 +970,9 @@ public class MQClientAPIImpl {
     /**
      * 根据ConsumerGroup获取Consumer连接列表以及订阅关系
      */
-    public ConsumerConnection getConsumerConnectionList(final String addr,
-            final String consumerGroup, final long timeoutMillis) throws RemotingConnectException,
-            RemotingSendRequestException, RemotingTimeoutException, InterruptedException, MQBrokerException {
+    public ConsumerConnection getConsumerConnectionList(final String addr, final String consumerGroup,
+            final long timeoutMillis) throws RemotingConnectException, RemotingSendRequestException,
+            RemotingTimeoutException, InterruptedException, MQBrokerException {
         GetConsumerConnectionListRequestHeader requestHeader = new GetConsumerConnectionListRequestHeader();
         requestHeader.setConsumerGroup(consumerGroup);
 
@@ -983,8 +982,7 @@ public class MQClientAPIImpl {
         RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
         switch (response.getCode()) {
         case ResponseCode.SUCCESS_VALUE: {
-            return ConsumerConnection.decode(response.getBody(),
-                ConsumerConnection.class);
+            return ConsumerConnection.decode(response.getBody(), ConsumerConnection.class);
         }
         default:
             break;
@@ -997,9 +995,9 @@ public class MQClientAPIImpl {
     /**
      * Name Server: 从Name Server获取集群信息
      */
-    public ClusterInfo getBrokerClusterInfo(final long timeoutMillis)
-            throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException,
-            RemotingConnectException, MQBrokerException {
+    public ClusterInfo getBrokerClusterInfo(final long timeoutMillis) throws InterruptedException,
+            RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException,
+            MQBrokerException {
         RemotingCommand request =
                 RemotingCommand.createRequestCommand(MQRequestCode.GET_BROKER_CLUSTER_INFO_VALUE, null);
 
@@ -1007,8 +1005,7 @@ public class MQClientAPIImpl {
         assert response != null;
         switch (response.getCode()) {
         case ResponseCode.SUCCESS_VALUE: {
-            ClusterInfo responseBody =
-                    ClusterInfo.decode(response.getBody(), ClusterInfo.class);
+            ClusterInfo responseBody = ClusterInfo.decode(response.getBody(), ClusterInfo.class);
             return responseBody;
         }
         default:
