@@ -29,8 +29,6 @@ import com.alibaba.rocketmq.common.protocol.heartbeat.MessageModel;
 /**
  * PushConsumer，广播方式订阅消息
  * 
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2013-7-16
  */
 public class PushConsumer {
 

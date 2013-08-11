@@ -32,9 +32,6 @@ import com.alibaba.rocketmq.common.message.MessageExt;
 
 /**
  * 性能测试，订阅消息
- * 
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2013-7-16
  */
 public class Consumer {
 

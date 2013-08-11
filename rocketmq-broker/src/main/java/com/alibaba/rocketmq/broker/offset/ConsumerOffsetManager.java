@@ -32,7 +32,7 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingSerializable;
 
 /**
  * Consumer消费进度管理
- *
+ * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-8-11
  */

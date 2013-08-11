@@ -34,9 +34,6 @@ import com.alibaba.rocketmq.common.message.MessageExt;
 
 /**
  * 性能测试，多线程同步发送事务消息
- * 
- * @author 菱叶<jin.qian@alipay.com>
- * @since 2013-7-24
  */
 public class TransactionProducer {
     private static int threadCount;

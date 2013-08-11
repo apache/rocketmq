@@ -31,9 +31,6 @@ import com.alibaba.rocketmq.remoting.exception.RemotingException;
 
 /**
  * 性能测试，多线程同步发送消息
- * 
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2013-7-16
  */
 public class Producer {
     public static void main(String[] args) throws MQClientException {

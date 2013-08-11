@@ -28,9 +28,6 @@ import com.alibaba.rocketmq.common.message.MessageExt;
 /**
  * 订阅Notify TRADE-SUB数据<br>
  * RocketMQ维护了Notify TRADE-SUB topic下的全量数据
- * 
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2013-8-8
  */
 public class Consumer {
 

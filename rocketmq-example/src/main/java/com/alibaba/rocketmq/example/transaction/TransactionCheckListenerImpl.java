@@ -24,9 +24,6 @@ import com.alibaba.rocketmq.common.message.MessageExt;
 
 /**
  * 未决事务，服务器回查客户端
- * 
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2013-7-24
  */
 public class TransactionCheckListenerImpl implements TransactionCheckListener {
     private AtomicInteger transactionIndex = new AtomicInteger(0);

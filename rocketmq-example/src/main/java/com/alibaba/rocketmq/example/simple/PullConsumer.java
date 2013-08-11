@@ -27,9 +27,6 @@ import com.alibaba.rocketmq.common.message.MessageQueue;
 
 /**
  * PullConsumer，订阅消息
- * 
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2013-7-16
  */
 public class PullConsumer {
     private static final Map<MessageQueue, Long> offseTable = new HashMap<MessageQueue, Long>();
