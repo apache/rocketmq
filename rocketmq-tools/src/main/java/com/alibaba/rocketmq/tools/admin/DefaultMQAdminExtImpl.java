@@ -33,10 +33,10 @@ import com.alibaba.rocketmq.common.admin.TopicStatsTable;
 import com.alibaba.rocketmq.common.help.FAQUrl;
 import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.common.message.MessageQueue;
-import com.alibaba.rocketmq.common.protocol.body.ClusterInfoSerializeWrapper;
+import com.alibaba.rocketmq.common.protocol.body.ClusterInfo;
 import com.alibaba.rocketmq.common.protocol.body.ConsumeByWho;
-import com.alibaba.rocketmq.common.protocol.body.ConsumerConnectionSerializeWrapper;
-import com.alibaba.rocketmq.common.protocol.body.ProducerConnectionSerializeWrapper;
+import com.alibaba.rocketmq.common.protocol.body.ConsumerConnection;
+import com.alibaba.rocketmq.common.protocol.body.ProducerConnection;
 import com.alibaba.rocketmq.common.protocol.route.BrokerData;
 import com.alibaba.rocketmq.common.protocol.route.TopicRouteData;
 import com.alibaba.rocketmq.common.subscription.SubscriptionGroupConfig;
@@ -175,7 +175,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
 
 
     @Override
-    public ClusterInfoSerializeWrapper examineBrokerClusterInfo() throws InterruptedException,
+    public ClusterInfo examineBrokerClusterInfo() throws InterruptedException,
             MQBrokerException, RemotingTimeoutException, RemotingSendRequestException,
             RemotingConnectException {
         return this.mQClientFactory.getMQClientAPIImpl().getBrokerClusterInfo(3000);
@@ -248,11 +248,11 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
 
 
     @Override
-    public ConsumerConnectionSerializeWrapper examineConsumerConnectionInfo(String consumerGroup,
+    public ConsumerConnection examineConsumerConnectionInfo(String consumerGroup,
             final String topic) throws InterruptedException, MQBrokerException, RemotingException,
             MQClientException {
         TopicRouteData topicRouteData = this.examineTopicRouteInfo(topic);
-        ConsumerConnectionSerializeWrapper result = new ConsumerConnectionSerializeWrapper();
+        ConsumerConnection result = new ConsumerConnection();
 
         for (BrokerData bd : topicRouteData.getBrokerDatas()) {
             String addr = bd.selectBrokerAddr();
@@ -269,11 +269,11 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
 
 
     @Override
-    public ProducerConnectionSerializeWrapper examineProducerConnectionInfo(String producerGroup,
+    public ProducerConnection examineProducerConnectionInfo(String producerGroup,
             final String topic) throws RemotingException, MQClientException, InterruptedException,
             MQBrokerException {
         TopicRouteData topicRouteData = this.examineTopicRouteInfo(topic);
-        ProducerConnectionSerializeWrapper result = new ProducerConnectionSerializeWrapper();
+        ProducerConnection result = new ProducerConnection();
 
         for (BrokerData bd : topicRouteData.getBrokerDatas()) {
             String addr = bd.selectBrokerAddr();

@@ -40,7 +40,7 @@ import com.alibaba.rocketmq.common.message.MessageQueue;
 import com.alibaba.rocketmq.common.protocol.MQProtos.MQRequestCode;
 import com.alibaba.rocketmq.common.protocol.MQProtos.MQResponseCode;
 import com.alibaba.rocketmq.common.protocol.body.Connection;
-import com.alibaba.rocketmq.common.protocol.body.ConsumerConnectionSerializeWrapper;
+import com.alibaba.rocketmq.common.protocol.body.ConsumerConnection;
 import com.alibaba.rocketmq.common.protocol.body.LockBatchRequestBody;
 import com.alibaba.rocketmq.common.protocol.body.LockBatchResponseBody;
 import com.alibaba.rocketmq.common.protocol.body.UnlockBatchRequestBody;
@@ -168,7 +168,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 (GetProducerConnectionListRequestHeader) request
                     .decodeCommandCustomHeader(GetProducerConnectionListRequestHeader.class);
 
-        ConsumerConnectionSerializeWrapper bodydata = new ConsumerConnectionSerializeWrapper();
+        ConsumerConnection bodydata = new ConsumerConnection();
         HashMap<Channel, ClientChannelInfo> channelInfoHashMap =
                 this.brokerController.getProducerManager().getGroupChannelTable()
                     .get(requestHeader.getProducerGroup());
@@ -209,7 +209,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 this.brokerController.getConsumerManager().getConsumerGroupInfo(
                     requestHeader.getConsumerGroup());
         if (consumerGroupInfo != null) {
-            ConsumerConnectionSerializeWrapper bodydata = new ConsumerConnectionSerializeWrapper();
+            ConsumerConnection bodydata = new ConsumerConnection();
             bodydata.setConsumeFromWhere(consumerGroupInfo.getConsumeFromWhere());
             bodydata.setConsumeType(consumerGroupInfo.getConsumeType());
             bodydata.setMessageModel(consumerGroupInfo.getMessageModel());

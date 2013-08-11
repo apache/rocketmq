@@ -20,7 +20,7 @@ import java.util.Set;
 
 import com.alibaba.rocketmq.client.exception.MQBrokerException;
 import com.alibaba.rocketmq.common.MixAll;
-import com.alibaba.rocketmq.common.protocol.body.ClusterInfoSerializeWrapper;
+import com.alibaba.rocketmq.common.protocol.body.ClusterInfo;
 import com.alibaba.rocketmq.common.protocol.route.BrokerData;
 import com.alibaba.rocketmq.remoting.exception.RemotingConnectException;
 import com.alibaba.rocketmq.remoting.exception.RemotingSendRequestException;
@@ -40,7 +40,7 @@ public class CommandUtil {
             RemotingSendRequestException, MQBrokerException {
         Set<String> masterSet = new HashSet<String>();
 
-        ClusterInfoSerializeWrapper clusterInfoSerializeWrapper = adminExt.examineBrokerClusterInfo();
+        ClusterInfo clusterInfoSerializeWrapper = adminExt.examineBrokerClusterInfo();
 
         Set<String> brokerNameSet = clusterInfoSerializeWrapper.getClusterAddrTable().get(clusterName);
 
