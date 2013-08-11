@@ -27,10 +27,10 @@ import com.alibaba.rocketmq.common.admin.ConsumerProgress;
 import com.alibaba.rocketmq.common.admin.TopicStatsTable;
 import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.common.message.MessageQueue;
-import com.alibaba.rocketmq.common.protocol.body.ClusterInfoSerializeWrapper;
+import com.alibaba.rocketmq.common.protocol.body.ClusterInfo;
 import com.alibaba.rocketmq.common.protocol.body.ConsumeByWho;
-import com.alibaba.rocketmq.common.protocol.body.ConsumerConnectionSerializeWrapper;
-import com.alibaba.rocketmq.common.protocol.body.ProducerConnectionSerializeWrapper;
+import com.alibaba.rocketmq.common.protocol.body.ConsumerConnection;
+import com.alibaba.rocketmq.common.protocol.body.ProducerConnection;
 import com.alibaba.rocketmq.common.protocol.route.TopicRouteData;
 import com.alibaba.rocketmq.common.subscription.SubscriptionGroupConfig;
 import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
@@ -157,7 +157,7 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
 
 
     @Override
-    public ClusterInfoSerializeWrapper examineBrokerClusterInfo() throws InterruptedException,
+    public ClusterInfo examineBrokerClusterInfo() throws InterruptedException,
             RemotingConnectException, RemotingTimeoutException, RemotingSendRequestException,
             MQBrokerException {
         return defaultMQAdminExtImpl.examineBrokerClusterInfo();
@@ -184,7 +184,7 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
 
 
     @Override
-    public ConsumerConnectionSerializeWrapper examineConsumerConnectionInfo(String consumerGroup,
+    public ConsumerConnection examineConsumerConnectionInfo(String consumerGroup,
             final String topic) throws InterruptedException, MQBrokerException, RemotingException,
             MQClientException {
         return defaultMQAdminExtImpl.examineConsumerConnectionInfo(consumerGroup, topic);
@@ -192,7 +192,7 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
 
 
     @Override
-    public ProducerConnectionSerializeWrapper examineProducerConnectionInfo(String producerGroup,
+    public ProducerConnection examineProducerConnectionInfo(String producerGroup,
             final String topic) throws RemotingException, MQClientException, InterruptedException,
             MQBrokerException {
         return defaultMQAdminExtImpl.examineProducerConnectionInfo(producerGroup, topic);

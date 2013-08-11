@@ -25,8 +25,8 @@ import org.apache.commons.cli.Options;
 import com.alibaba.rocketmq.common.MQVersion;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.protocol.body.Connection;
-import com.alibaba.rocketmq.common.protocol.body.ConsumerConnectionSerializeWrapper;
-import com.alibaba.rocketmq.common.protocol.body.ProducerConnectionSerializeWrapper;
+import com.alibaba.rocketmq.common.protocol.body.ConsumerConnection;
+import com.alibaba.rocketmq.common.protocol.body.ProducerConnection;
 import com.alibaba.rocketmq.common.protocol.heartbeat.SubscriptionData;
 import com.alibaba.rocketmq.tools.admin.DefaultMQAdminExt;
 import com.alibaba.rocketmq.tools.command.SubCommand;
@@ -86,7 +86,7 @@ public class ConnectionSubCommand implements SubCommand {
 
                 String group = commandLine.getOptionValue('p');
 
-                ProducerConnectionSerializeWrapper pc =
+                ProducerConnection pc =
                         defaultMQAdminExt.examineProducerConnectionInfo(group, topic);
 
                 int i = 1;
@@ -108,7 +108,7 @@ public class ConnectionSubCommand implements SubCommand {
 
                 String group = commandLine.getOptionValue('c');
 
-                ConsumerConnectionSerializeWrapper cc =
+                ConsumerConnection cc =
                         defaultMQAdminExt.examineConsumerConnectionInfo(group, topic);
 
                 // 打印连接

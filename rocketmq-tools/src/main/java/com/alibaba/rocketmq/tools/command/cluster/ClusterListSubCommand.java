@@ -22,7 +22,7 @@ import java.util.Set;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Options;
 
-import com.alibaba.rocketmq.common.protocol.body.ClusterInfoSerializeWrapper;
+import com.alibaba.rocketmq.common.protocol.body.ClusterInfo;
 import com.alibaba.rocketmq.common.protocol.route.BrokerData;
 import com.alibaba.rocketmq.tools.admin.DefaultMQAdminExt;
 import com.alibaba.rocketmq.tools.command.SubCommand;
@@ -63,7 +63,7 @@ public class ClusterListSubCommand implements SubCommand {
         try {
             defaultMQAdminExt.start();
 
-            ClusterInfoSerializeWrapper clusterInfoSerializeWrapper =
+            ClusterInfo clusterInfoSerializeWrapper =
                     defaultMQAdminExt.examineBrokerClusterInfo();
 
             Iterator<Map.Entry<String, Set<String>>> itCluster =

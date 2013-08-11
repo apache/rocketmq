@@ -23,10 +23,10 @@ import com.alibaba.rocketmq.client.exception.MQClientException;
 import com.alibaba.rocketmq.common.TopicConfig;
 import com.alibaba.rocketmq.common.admin.ConsumerProgress;
 import com.alibaba.rocketmq.common.admin.TopicStatsTable;
-import com.alibaba.rocketmq.common.protocol.body.ClusterInfoSerializeWrapper;
+import com.alibaba.rocketmq.common.protocol.body.ClusterInfo;
 import com.alibaba.rocketmq.common.protocol.body.ConsumeByWho;
-import com.alibaba.rocketmq.common.protocol.body.ConsumerConnectionSerializeWrapper;
-import com.alibaba.rocketmq.common.protocol.body.ProducerConnectionSerializeWrapper;
+import com.alibaba.rocketmq.common.protocol.body.ConsumerConnection;
+import com.alibaba.rocketmq.common.protocol.body.ProducerConnection;
 import com.alibaba.rocketmq.common.protocol.route.TopicRouteData;
 import com.alibaba.rocketmq.common.subscription.SubscriptionGroupConfig;
 import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
@@ -123,7 +123,7 @@ public interface MQAdminExt extends MQAdmin {
      *
      * @return
      */
-    public ClusterInfoSerializeWrapper examineBrokerClusterInfo() throws InterruptedException,
+    public ClusterInfo examineBrokerClusterInfo() throws InterruptedException,
             MQBrokerException, RemotingTimeoutException, RemotingSendRequestException,
             RemotingConnectException;
 
@@ -152,7 +152,7 @@ public interface MQAdminExt extends MQAdmin {
      * @throws MQClientException
      * @throws RemotingException
      */
-    public ConsumerConnectionSerializeWrapper examineConsumerConnectionInfo(final String consumerGroup,
+    public ConsumerConnection examineConsumerConnectionInfo(final String consumerGroup,
             final String topic) throws RemotingConnectException, RemotingSendRequestException,
             RemotingTimeoutException, InterruptedException, MQBrokerException, RemotingException,
             MQClientException;
@@ -169,7 +169,7 @@ public interface MQAdminExt extends MQAdmin {
      * @throws RemotingException
      * @throws MQBrokerException
      */
-    public ProducerConnectionSerializeWrapper examineProducerConnectionInfo(final String producerGroup,
+    public ProducerConnection examineProducerConnectionInfo(final String producerGroup,
             final String topic) throws RemotingException, MQClientException, InterruptedException,
             MQBrokerException;
 

@@ -43,11 +43,11 @@ import com.alibaba.rocketmq.common.message.MessageQueue;
 import com.alibaba.rocketmq.common.namesrv.TopAddressing;
 import com.alibaba.rocketmq.common.protocol.MQProtos.MQRequestCode;
 import com.alibaba.rocketmq.common.protocol.MQProtos.MQResponseCode;
-import com.alibaba.rocketmq.common.protocol.body.ClusterInfoSerializeWrapper;
-import com.alibaba.rocketmq.common.protocol.body.ConsumerConnectionSerializeWrapper;
+import com.alibaba.rocketmq.common.protocol.body.ClusterInfo;
+import com.alibaba.rocketmq.common.protocol.body.ConsumerConnection;
 import com.alibaba.rocketmq.common.protocol.body.LockBatchRequestBody;
 import com.alibaba.rocketmq.common.protocol.body.LockBatchResponseBody;
-import com.alibaba.rocketmq.common.protocol.body.ProducerConnectionSerializeWrapper;
+import com.alibaba.rocketmq.common.protocol.body.ProducerConnection;
 import com.alibaba.rocketmq.common.protocol.body.UnlockBatchRequestBody;
 import com.alibaba.rocketmq.common.protocol.header.ConsumerSendMsgBackRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.CreateTopicRequestHeader;
@@ -945,7 +945,7 @@ public class MQClientAPIImpl {
     /**
      * 根据ProducerGroup获取Producer连接列表
      */
-    public ProducerConnectionSerializeWrapper getProducerConnectionList(final String addr,
+    public ProducerConnection getProducerConnectionList(final String addr,
             final String producerGroup, final long timeoutMillis) throws RemotingConnectException,
             RemotingSendRequestException, RemotingTimeoutException, InterruptedException, MQBrokerException {
         GetProducerConnectionListRequestHeader requestHeader = new GetProducerConnectionListRequestHeader();
@@ -957,8 +957,8 @@ public class MQClientAPIImpl {
         RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
         switch (response.getCode()) {
         case ResponseCode.SUCCESS_VALUE: {
-            return ProducerConnectionSerializeWrapper.decode(response.getBody(),
-                ProducerConnectionSerializeWrapper.class);
+            return ProducerConnection.decode(response.getBody(),
+                ProducerConnection.class);
         }
         default:
             break;
@@ -971,7 +971,7 @@ public class MQClientAPIImpl {
     /**
      * 根据ConsumerGroup获取Consumer连接列表以及订阅关系
      */
-    public ConsumerConnectionSerializeWrapper getConsumerConnectionList(final String addr,
+    public ConsumerConnection getConsumerConnectionList(final String addr,
             final String consumerGroup, final long timeoutMillis) throws RemotingConnectException,
             RemotingSendRequestException, RemotingTimeoutException, InterruptedException, MQBrokerException {
         GetConsumerConnectionListRequestHeader requestHeader = new GetConsumerConnectionListRequestHeader();
@@ -983,8 +983,8 @@ public class MQClientAPIImpl {
         RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
         switch (response.getCode()) {
         case ResponseCode.SUCCESS_VALUE: {
-            return ConsumerConnectionSerializeWrapper.decode(response.getBody(),
-                ConsumerConnectionSerializeWrapper.class);
+            return ConsumerConnection.decode(response.getBody(),
+                ConsumerConnection.class);
         }
         default:
             break;
@@ -997,7 +997,7 @@ public class MQClientAPIImpl {
     /**
      * Name Server: 从Name Server获取集群信息
      */
-    public ClusterInfoSerializeWrapper getBrokerClusterInfo(final long timeoutMillis)
+    public ClusterInfo getBrokerClusterInfo(final long timeoutMillis)
             throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException,
             RemotingConnectException, MQBrokerException {
         RemotingCommand request =
@@ -1007,8 +1007,8 @@ public class MQClientAPIImpl {
         assert response != null;
         switch (response.getCode()) {
         case ResponseCode.SUCCESS_VALUE: {
-            ClusterInfoSerializeWrapper responseBody =
-                    ClusterInfoSerializeWrapper.decode(response.getBody(), ClusterInfoSerializeWrapper.class);
+            ClusterInfo responseBody =
+                    ClusterInfo.decode(response.getBody(), ClusterInfo.class);
             return responseBody;
         }
         default:
