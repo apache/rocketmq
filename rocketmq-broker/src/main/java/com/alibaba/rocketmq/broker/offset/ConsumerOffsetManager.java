@@ -66,7 +66,9 @@ public class ConsumerOffsetManager extends ConfigManager {
             String topicAtGroup = next.getKey();
             String[] arrays = topicAtGroup.split(TOPIC_GROUP_SEPARATOR);
             if (arrays != null && arrays.length == 2) {
-                topics.add(arrays[0]);
+                if (group.equals(arrays[1])) {
+                    topics.add(arrays[0]);
+                }
             }
         }
 

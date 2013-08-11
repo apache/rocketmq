@@ -35,6 +35,7 @@ import com.alibaba.rocketmq.client.producer.SendResult;
 import com.alibaba.rocketmq.client.producer.SendStatus;
 import com.alibaba.rocketmq.common.MQVersion;
 import com.alibaba.rocketmq.common.TopicConfig;
+import com.alibaba.rocketmq.common.admin.ConsumeStats;
 import com.alibaba.rocketmq.common.admin.TopicStatsTable;
 import com.alibaba.rocketmq.common.message.Message;
 import com.alibaba.rocketmq.common.message.MessageDecoder;
@@ -52,6 +53,7 @@ import com.alibaba.rocketmq.common.protocol.body.UnlockBatchRequestBody;
 import com.alibaba.rocketmq.common.protocol.header.ConsumerSendMsgBackRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.CreateTopicRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.EndTransactionRequestHeader;
+import com.alibaba.rocketmq.common.protocol.header.GetConsumeStatsRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.GetConsumerConnectionListRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.GetConsumerListByGroupRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.GetConsumerListByGroupResponseBody;
@@ -933,6 +935,27 @@ public class MQClientAPIImpl {
         switch (response.getCode()) {
         case ResponseCode.SUCCESS_VALUE: {
             return TopicStatsTable.decode(response.getBody(), TopicStatsTable.class);
+        }
+        default:
+            break;
+        }
+
+        throw new MQBrokerException(response.getCode(), response.getRemark());
+    }
+
+
+    public ConsumeStats getConsumeStats(final String addr, final String consumerGroup,
+            final long timeoutMillis) throws InterruptedException, RemotingTimeoutException,
+            RemotingSendRequestException, RemotingConnectException, MQBrokerException {
+        GetConsumeStatsRequestHeader requestHeader = new GetConsumeStatsRequestHeader();
+        requestHeader.setConsumerGroup(consumerGroup);
+
+        RemotingCommand request =
+                RemotingCommand.createRequestCommand(MQRequestCode.GET_CONSUME_STATS_VALUE, requestHeader);
+        RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
+        switch (response.getCode()) {
+        case ResponseCode.SUCCESS_VALUE: {
+            return ConsumeStats.decode(response.getBody(), ConsumeStats.class);
         }
         default:
             break;
