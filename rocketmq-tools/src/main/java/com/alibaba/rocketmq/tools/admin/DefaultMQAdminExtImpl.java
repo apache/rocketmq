@@ -28,7 +28,7 @@ import com.alibaba.rocketmq.client.impl.factory.MQClientFactory;
 import com.alibaba.rocketmq.client.log.ClientLogger;
 import com.alibaba.rocketmq.common.ServiceState;
 import com.alibaba.rocketmq.common.TopicConfig;
-import com.alibaba.rocketmq.common.admin.ConsumerProgress;
+import com.alibaba.rocketmq.common.admin.ConsumeStats;
 import com.alibaba.rocketmq.common.admin.TopicStatsTable;
 import com.alibaba.rocketmq.common.help.FAQUrl;
 import com.alibaba.rocketmq.common.message.MessageExt;
@@ -168,7 +168,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
 
 
     @Override
-    public ConsumerProgress examineConsumerProgress(String consumerGroup, String topic) {
+    public ConsumeStats examineConsumerProgress(String consumerGroup, String topic) {
         // TODO Auto-generated method stub
         return null;
     }

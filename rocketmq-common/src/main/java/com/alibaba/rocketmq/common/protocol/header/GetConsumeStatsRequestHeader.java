@@ -13,30 +13,35 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.alibaba.rocketmq.common.admin;
+package com.alibaba.rocketmq.common.protocol.header;
 
-import java.util.HashMap;
-
-import com.alibaba.rocketmq.common.message.MessageQueue;
-import com.alibaba.rocketmq.remoting.protocol.RemotingSerializable;
+import com.alibaba.rocketmq.remoting.CommandCustomHeader;
+import com.alibaba.rocketmq.remoting.annotation.CFNotNull;
+import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
 
 
 /**
- * Consumer消费进度
- * 
  * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2013-7-14
+ * @since 2013-8-11
  */
-public class ConsumerProgress extends RemotingSerializable {
-    private HashMap<MessageQueue, OffsetWrapper> offsetTable = new HashMap<MessageQueue, OffsetWrapper>();
+public class GetConsumeStatsRequestHeader implements CommandCustomHeader {
+    @CFNotNull
+    private String consumerGroup;
 
 
-    public HashMap<MessageQueue, OffsetWrapper> getOffsetTable() {
-        return offsetTable;
+    @Override
+    public void checkFields() throws RemotingCommandException {
+        // TODO Auto-generated method stub
+
     }
 
 
-    public void setOffsetTable(HashMap<MessageQueue, OffsetWrapper> offsetTable) {
-        this.offsetTable = offsetTable;
+    public String getConsumerGroup() {
+        return consumerGroup;
+    }
+
+
+    public void setConsumerGroup(String consumerGroup) {
+        this.consumerGroup = consumerGroup;
     }
 }

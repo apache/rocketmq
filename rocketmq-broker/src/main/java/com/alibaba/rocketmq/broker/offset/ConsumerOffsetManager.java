@@ -15,6 +15,10 @@
  */
 package com.alibaba.rocketmq.broker.offset;
 
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Map.Entry;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.slf4j.Logger;
@@ -50,6 +54,23 @@ public class ConsumerOffsetManager extends ConfigManager {
 
     public ConsumerOffsetManager(BrokerController brokerController) {
         this.brokerController = brokerController;
+    }
+
+
+    public Set<String> whichTopicByConsumer(final String group) {
+        Set<String> topics = new HashSet<String>();
+
+        Iterator<Entry<String, ConcurrentHashMap<Integer, Long>>> it = this.offsetTable.entrySet().iterator();
+        while (it.hasNext()) {
+            Entry<String, ConcurrentHashMap<Integer, Long>> next = it.next();
+            String topicAtGroup = next.getKey();
+            String[] arrays = topicAtGroup.split(TOPIC_GROUP_SEPARATOR);
+            if (arrays != null && arrays.length == 2) {
+                topics.add(arrays[0]);
+            }
+        }
+
+        return topics;
     }
 
 

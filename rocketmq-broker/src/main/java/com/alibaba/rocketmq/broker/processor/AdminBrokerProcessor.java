@@ -33,6 +33,8 @@ import com.alibaba.rocketmq.broker.client.ClientChannelInfo;
 import com.alibaba.rocketmq.broker.client.ConsumerGroupInfo;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.TopicConfig;
+import com.alibaba.rocketmq.common.admin.ConsumeStats;
+import com.alibaba.rocketmq.common.admin.OffsetWrapper;
 import com.alibaba.rocketmq.common.admin.TopicOffset;
 import com.alibaba.rocketmq.common.admin.TopicStatsTable;
 import com.alibaba.rocketmq.common.constant.LoggerName;
@@ -48,6 +50,7 @@ import com.alibaba.rocketmq.common.protocol.header.CreateTopicRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.DeleteTopicRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.GetAllTopicConfigResponseHeader;
 import com.alibaba.rocketmq.common.protocol.header.GetBrokerConfigResponseHeader;
+import com.alibaba.rocketmq.common.protocol.header.GetConsumeStatsRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.GetConsumerConnectionListRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.GetEarliestMsgStoretimeRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.GetEarliestMsgStoretimeResponseHeader;
@@ -152,12 +155,70 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             // Producer连接管理
         case GET_PRODUCER_CONNECTION_LIST:
             return this.getProducerConnectionList(ctx, request);
+
+        case GET_CONSUME_STATS:
+            return this.getConsumeStats(ctx, request);
         default:
             break;
 
         }
 
         return null;
+    }
+
+
+    private RemotingCommand getConsumeStats(ChannelHandlerContext ctx, RemotingCommand request)
+            throws RemotingCommandException {
+        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
+        final GetConsumeStatsRequestHeader requestHeader =
+                (GetConsumeStatsRequestHeader) request
+                    .decodeCommandCustomHeader(GetConsumeStatsRequestHeader.class);
+
+        ConsumeStats consumeStats = new ConsumeStats();
+
+        Set<String> topics =
+                this.brokerController.getConsumerOffsetManager().whichTopicByConsumer(
+                    requestHeader.getConsumerGroup());
+
+        for (String topic : topics) {
+            TopicConfig topicConfig = this.brokerController.getTopicConfigManager().selectTopicConfig(topic);
+            if (null == topicConfig) {
+                response.setCode(MQResponseCode.TOPIC_NOT_EXIST_VALUE);
+                response.setRemark("topic[" + topic + "] not exist");
+                return response;
+            }
+
+            for (int i = 0; i < topicConfig.getWriteQueueNums(); i++) {
+                MessageQueue mq = new MessageQueue();
+                mq.setTopic(topic);
+                mq.setBrokerName(this.brokerController.getBrokerConfig().getBrokerName());
+                mq.setQueueId(i);
+
+                OffsetWrapper offsetWrapper = new OffsetWrapper();
+
+                long brokerOffset = this.brokerController.getMessageStore().getMaxOffsetInQuque(topic, i);
+                if (brokerOffset < 0)
+                    brokerOffset = 0;
+
+                long consumerOffset = this.brokerController.getConsumerOffsetManager().queryOffset(//
+                    requestHeader.getConsumerGroup(),//
+                    topic,//
+                    i);
+                if (consumerOffset < 0)
+                    consumerOffset = 0;
+
+                offsetWrapper.setBrokerOffset(brokerOffset);
+                offsetWrapper.setConsumerOffset(consumerOffset);
+
+                consumeStats.getOffsetTable().put(mq, offsetWrapper);
+            }
+        }
+
+        byte[] body = consumeStats.encode();
+        response.setBody(body);
+        response.setCode(ResponseCode.SUCCESS_VALUE);
+        response.setRemark(null);
+        return response;
     }
 
 
