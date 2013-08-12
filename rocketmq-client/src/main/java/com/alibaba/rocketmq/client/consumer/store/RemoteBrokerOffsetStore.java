@@ -101,10 +101,11 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
                     log.warn("fetchConsumeOffsetFromBroker exception, " + mq, e);
                     return -2;
                 }
-
-                return offset.get();
             }
+
+            return offset.get();
         }
+
         return -1;
     }
 
