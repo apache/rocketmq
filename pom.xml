@@ -29,6 +29,7 @@
 		<module>rocketmq-remoting</module>
 		<module>rocketmq-example</module>
 		<module>rocketmq-test</module>
+		<module>rocketmq-qatest</module>
 	</modules>
 
 	<build>
@@ -152,6 +153,11 @@
 				<artifactId>rocketmq-test</artifactId>
 				<version>${project.version}</version>
 			</dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>rocketmq-qatest</artifactId>
+                <version>${project.version}</version>
+            </dependency>
 			<dependency>
 				<groupId>junit</groupId>
 				<artifactId>junit</artifactId>
