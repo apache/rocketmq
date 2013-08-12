@@ -117,6 +117,16 @@ public class QueryMessageSubCommand implements SubCommand {
             "Store Host:",//
             RemotingHelper.parseSocketAddressAddr(msg.getStoreHost())//
             );
+
+        System.out.printf("%-20s %s\n",//
+            "Tags:",//
+            msg.getTags()//
+            );
+
+        System.out.printf("%-20s %s\n",//
+            "Key:",//
+            msg.getKeys()//
+            );
     }
 
 
