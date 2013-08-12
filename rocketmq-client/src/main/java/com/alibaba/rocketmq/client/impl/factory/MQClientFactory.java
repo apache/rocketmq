@@ -534,7 +534,7 @@ public class MQClientFactory {
 
 
     public boolean updateTopicRouteInfoFromNameServer(final String topic) {
-        return updateTopicRouteInfoFromNameServer(topic, false, 0);
+        return updateTopicRouteInfoFromNameServer(topic, false, null);
     }
 
 
@@ -542,18 +542,24 @@ public class MQClientFactory {
      * 调用Name Server接口，根据Topic获取路由信息
      */
     public boolean updateTopicRouteInfoFromNameServer(final String topic, boolean isDefault,
-            int defaultTopicQueueNums) {
+            DefaultMQProducer defaultMQProducer) {
         try {
             if (this.lockNamesrv.tryLock(LockTimeoutMillis, TimeUnit.MILLISECONDS)) {
                 try {
                     TopicRouteData topicRouteData;
                     if (isDefault) {
+                        if (null == defaultMQProducer)
+                            return false;
                         topicRouteData =
-                                this.mQClientAPIImpl.getTopicRouteInfoFromNameServer(MixAll.DEFAULT_TOPIC,
-                                    1000 * 3);
+                                this.mQClientAPIImpl.getTopicRouteInfoFromNameServer(
+                                    defaultMQProducer.getCreateTopicKey(), 1000 * 3);
                         for (QueueData data : topicRouteData.getQueueDatas()) {
-                            data.setReadQueueNums(defaultTopicQueueNums);
-                            data.setWriteQueueNums(defaultTopicQueueNums);
+                            // 读写分区个数是一致，故只做一次判断
+                            int queueNums =
+                                    Math.min(defaultMQProducer.getDefaultTopicQueueNums(),
+                                        data.getReadQueueNums());
+                            data.setReadQueueNums(queueNums);
+                            data.setWriteQueueNums(queueNums);
                         }
                     }
                     else {
