@@ -77,12 +77,21 @@ public class ConsumeStatsSubCommand implements SubCommand {
             mqList.addAll(consumeStats.getOffsetTable().keySet());
             Collections.sort(mqList);
 
+            System.out.printf("%-32s  %-32s  %-4s  %-20s  %-20s  %s\n",//
+                "#Topic",//
+                "#Broker Name",//
+                "#QID",//
+                "#Broker Offset",//
+                "#Consumer Offset",//
+                "#Diff" //
+            );
+
             for (MessageQueue mq : mqList) {
                 OffsetWrapper offsetWrapper = consumeStats.getOffsetTable().get(mq);
 
                 long diff = offsetWrapper.getBrokerOffset() - offsetWrapper.getConsumerOffset();
 
-                System.out.printf("%-32s  %-32s  %4d  %20d  %20d  %d\n",//
+                System.out.printf("%-32s  %-32s  %-4d  %-20d  %-20d  %d\n",//
                     UtilALl.frontStringAtLeast(mq.getTopic(), 32),//
                     UtilALl.frontStringAtLeast(mq.getBrokerName(), 32),//
                     mq.getQueueId(),//

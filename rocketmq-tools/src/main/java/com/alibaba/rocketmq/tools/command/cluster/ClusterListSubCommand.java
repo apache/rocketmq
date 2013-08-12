@@ -65,6 +65,12 @@ public class ClusterListSubCommand implements SubCommand {
 
             ClusterInfo clusterInfoSerializeWrapper = defaultMQAdminExt.examineBrokerClusterInfo();
 
+            System.out.printf("%-16s  %-32s  %-4d  %s\n",//
+                "#Cluster Name",//
+                "#Broker Name",//
+                "#BID",//
+                "#Addr");
+
             Iterator<Map.Entry<String, Set<String>>> itCluster =
                     clusterInfoSerializeWrapper.getClusterAddrTable().entrySet().iterator();
             while (itCluster.hasNext()) {
@@ -81,7 +87,7 @@ public class ClusterListSubCommand implements SubCommand {
                         while (itAddr.hasNext()) {
                             Map.Entry<Long, String> next1 = itAddr.next();
 
-                            System.out.printf("%-16s%-32s%4d  %s\n",//
+                            System.out.printf("%-16s  %-32s  %-4d  %s\n",//
                                 clusterName,//
                                 brokerName,//
                                 next1.getKey().longValue(),//
