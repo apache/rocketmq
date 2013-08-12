@@ -65,7 +65,7 @@ public class ClusterListSubCommand implements SubCommand {
 
             ClusterInfo clusterInfoSerializeWrapper = defaultMQAdminExt.examineBrokerClusterInfo();
 
-            System.out.printf("%-16s  %-32s  %-4d  %s\n",//
+            System.out.printf("%-16s  %-32s  %-4s  %s\n",//
                 "#Cluster Name",//
                 "#Broker Name",//
                 "#BID",//
