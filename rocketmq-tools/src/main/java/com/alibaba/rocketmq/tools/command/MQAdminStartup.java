@@ -34,6 +34,7 @@ import com.alibaba.rocketmq.tools.command.cluster.ClusterListSubCommand;
 import com.alibaba.rocketmq.tools.command.connection.ConnectionSubCommand;
 import com.alibaba.rocketmq.tools.command.consumer.ConsumeStatsSubCommand;
 import com.alibaba.rocketmq.tools.command.consumer.UpdateSubGroupSubCommand;
+import com.alibaba.rocketmq.tools.command.message.QueryMessageSubCommand;
 import com.alibaba.rocketmq.tools.command.namesrv.WipeWritePermSubCommand;
 import com.alibaba.rocketmq.tools.command.topic.TopicRouteSubCommand;
 import com.alibaba.rocketmq.tools.command.topic.TopicStatsSubCommand;
@@ -56,6 +57,7 @@ public class MQAdminStartup {
         subCommandList.add(new TopicStatsSubCommand());
         subCommandList.add(new ConsumeStatsSubCommand());
         subCommandList.add(new ConnectionSubCommand());
+        subCommandList.add(new QueryMessageSubCommand());
         subCommandList.add(new WipeWritePermSubCommand());
     }
 
