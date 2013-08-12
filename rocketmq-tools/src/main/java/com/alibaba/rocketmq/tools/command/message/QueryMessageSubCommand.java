@@ -138,6 +138,10 @@ public class QueryMessageSubCommand implements SubCommand {
         long begin = end - (6 * 60 * 60 * 1000);
 
         QueryResult queryResult = admin.queryMessage(topic, key, 32, begin, end);
+        System.out.printf("%-50s %-4s  %s\n",//
+            "#Message ID",//
+            "#QID",//
+            "Offset");
         for (MessageExt msg : queryResult.getMessageList()) {
             System.out.printf("%-50s %-4d %d\n", msg.getMsgId(), msg.getQueueId(), msg.getQueueOffset());
         }
