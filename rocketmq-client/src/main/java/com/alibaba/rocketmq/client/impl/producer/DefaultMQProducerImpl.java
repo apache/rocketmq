@@ -499,8 +499,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         if (null == topicPublishInfo || !topicPublishInfo.ok()) {
             this.topicPublishInfoTable.putIfAbsent(topic, new TopicPublishInfo());
             this.mQClientFactory.updateTopicRouteInfoFromNameServer(topic);
-            this.mQClientFactory.updateTopicRouteInfoFromNameServer(topic, true,
-                this.defaultMQProducer.getDefaultTopicQueueNums());
+            this.mQClientFactory.updateTopicRouteInfoFromNameServer(topic, true, this.defaultMQProducer);
             topicPublishInfo = this.topicPublishInfoTable.get(topic);
         }
 
@@ -522,7 +521,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             // TODO 此处可能对Name Server压力过大，需要调优
             this.mQClientFactory.updateTopicRouteInfoFromNameServer(mq.getTopic());
             this.mQClientFactory.updateTopicRouteInfoFromNameServer(mq.getTopic(), true,
-                this.defaultMQProducer.getDefaultTopicQueueNums());
+                this.defaultMQProducer);
             brokerAddr = this.mQClientFactory.findBrokerAddressInPublish(mq.getBrokerName());
         }
 
