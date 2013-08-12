@@ -89,32 +89,32 @@ public class QueryMessageSubCommand implements SubCommand {
             );
 
         System.out.printf("%-20s %d\n",//
-            "Queue Offset",//
+            "Queue Offset:",//
             msg.getQueueOffset()//
             );
 
         System.out.printf("%-20s %d\n",//
-            "CommitLog Offset",//
+            "CommitLog Offset:",//
             msg.getCommitLogOffset()//
             );
 
         System.out.printf("%-20s %s\n",//
-            "Born Timestamp",//
+            "Born Timestamp:",//
             UtilALl.timeMillisToHumanString2(msg.getBornTimestamp())//
             );
 
         System.out.printf("%-20s %s\n",//
-            "Store Timestamp",//
+            "Store Timestamp:",//
             UtilALl.timeMillisToHumanString2(msg.getStoreTimestamp())//
             );
 
         System.out.printf("%-20s %s\n",//
-            "Born Host",//
+            "Born Host:",//
             RemotingHelper.parseSocketAddressAddr(msg.getBornHost())//
             );
 
         System.out.printf("%-20s %s\n",//
-            "Store Host",//
+            "Store Host:",//
             RemotingHelper.parseSocketAddressAddr(msg.getStoreHost())//
             );
     }
