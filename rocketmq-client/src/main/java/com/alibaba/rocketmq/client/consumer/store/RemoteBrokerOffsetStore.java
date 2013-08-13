@@ -90,7 +90,7 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
                 try {
                     long brokerOffset = this.fetchConsumeOffsetFromBroker(mq);
                     offset = new AtomicLong(brokerOffset);
-                    this.offsetTable.putIfAbsent(mq, offset);
+                    this.offsetTable.put(mq, offset);
                 }
                 // 当前订阅组在服务器没有对应的Offset
                 catch (MQBrokerException e) {
@@ -198,6 +198,15 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
         }
         else {
             throw new MQClientException("The broker[" + mq.getBrokerName() + "] not exist", null);
+        }
+    }
+
+
+    public void removeOffset(MessageQueue mq) {
+        if (mq != null) {
+            this.offsetTable.remove(mq);
+            log.info("remove unnecessary messageQueue offset. mq={}, offsetTableSize={}", mq,
+                offsetTable.size());
         }
     }
 }

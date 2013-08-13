@@ -159,4 +159,10 @@ public class LocalFileOffsetStore implements OffsetStore {
 
         return null;
     }
+
+
+    @Override
+    public void removeOffset(MessageQueue mq) {
+        // 消费进度存储到Consumer本地时暂不做 offset 清理
+    }
 }

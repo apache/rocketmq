@@ -126,7 +126,7 @@ public class RebalancePushImpl extends RebalanceImpl {
     @Override
     public void removeUnnecessaryMessageQueue(MessageQueue mq, ProcessQueue pq) {
         this.defaultMQPushConsumerImpl.getOffsetStore().persist(mq);
-
+        this.defaultMQPushConsumerImpl.getOffsetStore().removeOffset(mq);
         if (this.defaultMQPushConsumerImpl.isConsumeOrderly()) {
             this.unlock(mq, true);
         }
