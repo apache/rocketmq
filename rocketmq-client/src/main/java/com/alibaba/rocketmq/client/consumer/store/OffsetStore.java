@@ -52,4 +52,10 @@ public interface OffsetStore {
 
 
     public void persist(final MessageQueue mq);
+
+
+    /**
+     * 删除不必要的MessageQueue offset
+     */
+    public void removeOffset(MessageQueue mq);
 }
