@@ -597,8 +597,24 @@ public class DefaultMessageStore implements MessageStore {
 
     @Override
     public HashMap<String, String> getRuntimeInfo() {
-        // TODO Auto-generated method stub
-        return null;
+        HashMap<String, String> result = this.storeStatsService.getRuntimeInfo();
+        // 检测物理文件磁盘空间
+        {
+            String storePathPhysic = DefaultMessageStore.this.getMessageStoreConfig().getStorePathCommitLog();
+            double physicRatio = UtilALl.getDiskPartitionSpaceUsedPercent(storePathPhysic);
+            result.put("commitLogDiskRatio", String.valueOf(physicRatio));
+
+        }
+
+        // 检测逻辑文件磁盘空间
+        {
+            String storePathLogics =
+                    DefaultMessageStore.this.getMessageStoreConfig().getStorePathConsumeQueue();
+            double logicsRatio = UtilALl.getDiskPartitionSpaceUsedPercent(storePathLogics);
+            result.put("consumeQueueDiskRatio", String.valueOf(logicsRatio));
+        }
+
+        return result;
     }
 
 
