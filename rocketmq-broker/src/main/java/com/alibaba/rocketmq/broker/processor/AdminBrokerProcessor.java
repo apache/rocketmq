@@ -32,6 +32,7 @@ import com.alibaba.rocketmq.broker.BrokerController;
 import com.alibaba.rocketmq.broker.client.ClientChannelInfo;
 import com.alibaba.rocketmq.broker.client.ConsumerGroupInfo;
 import com.alibaba.rocketmq.broker.digestlog.UpdateCommitOffsetMoniter;
+import com.alibaba.rocketmq.common.MQVersion;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.TopicConfig;
 import com.alibaba.rocketmq.common.admin.ConsumeStats;
@@ -44,6 +45,7 @@ import com.alibaba.rocketmq.common.protocol.MQProtos.MQRequestCode;
 import com.alibaba.rocketmq.common.protocol.MQProtos.MQResponseCode;
 import com.alibaba.rocketmq.common.protocol.body.Connection;
 import com.alibaba.rocketmq.common.protocol.body.ConsumerConnection;
+import com.alibaba.rocketmq.common.protocol.body.KVTable;
 import com.alibaba.rocketmq.common.protocol.body.LockBatchRequestBody;
 import com.alibaba.rocketmq.common.protocol.body.LockBatchResponseBody;
 import com.alibaba.rocketmq.common.protocol.body.UnlockBatchRequestBody;
@@ -132,9 +134,9 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
 
             // 获取Broker运行时信息
         case GET_BROKER_RUNTIME_INFO:
-            break;
+            return this.getBrokerRuntimeInfo(ctx, request);
 
-        // 锁队列与解锁队列
+            // 锁队列与解锁队列
         case LOCK_BATCH_MQ:
             return this.lockBatchMQ(ctx, request);
         case UNLOCK_BATCH_MQ:
@@ -720,9 +722,23 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
     }
 
 
+    private HashMap<String, String> prepareRuntimeInfo() {
+        HashMap<String, String> runtimeInfo = this.brokerController.getMessageStore().getRuntimeInfo();
+        runtimeInfo.put("brokerVersionDesc", MQVersion.getVersionDesc(MQVersion.CurrentVersion));
+        runtimeInfo.put("brokerVersion", String.valueOf(MQVersion.CurrentVersion));
+        return runtimeInfo;
+    }
+
+
     private RemotingCommand getBrokerRuntimeInfo(ChannelHandlerContext ctx, RemotingCommand request) {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
 
+        HashMap<String, String> runtimeInfo = this.prepareRuntimeInfo();
+        KVTable kvTable = new KVTable();
+        kvTable.setTable(runtimeInfo);
+
+        byte[] body = kvTable.encode();
+        response.setBody(body);
         response.setCode(ResponseCode.SUCCESS_VALUE);
         response.setRemark(null);
         return response;

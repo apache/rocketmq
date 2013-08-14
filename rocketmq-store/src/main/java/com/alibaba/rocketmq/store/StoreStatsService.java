@@ -420,12 +420,22 @@ public class StoreStatsService extends ServiceThread {
             totalTimes = 1L;
         }
 
-        result.put("bootimestamp", String.valueOf(this.messageStoreBootTimestamp));
+        result.put("bootTimestamp", String.valueOf(this.messageStoreBootTimestamp));
         result.put("runtime", this.getFormatRuntime());
         result.put("putMessageEntireTimeMax", String.valueOf(this.putMessageEntireTimeMax));
+        result.put("putMessageTimesTotal", String.valueOf(totalTimes));
+        result.put("putMessageSizeTotal", String.valueOf(this.getPutMessageSizeTotal()));
+        result.put("putMessageDistributeTime",
+            String.valueOf(this.getPutMessageDistributeTimeStringInfo(totalTimes)));
         result.put("putMessageAverageSize",
             String.valueOf((this.getPutMessageSizeTotal() / totalTimes.doubleValue())));
         result.put("dispatchMaxBuffer", String.valueOf(this.dispatchMaxBuffer));
+        result.put("getMessageEntireTimeMax", String.valueOf(this.getMessageEntireTimeMax));
+        result.put("putTps", String.valueOf(this.getPutTps()));
+        result.put("getFoundTps", String.valueOf(this.getGetFoundTps()));
+        result.put("getMissTps", String.valueOf(this.getGetMissTps()));
+        result.put("getTotalTps", String.valueOf(this.getGetTotalTps()));
+        result.put("getTransferedTps", String.valueOf(this.getGetTransferedTps()));
 
         return result;
     }
