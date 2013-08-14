@@ -38,7 +38,7 @@ import com.alibaba.rocketmq.store.schedule.ScheduleMessageService;
 
 /**
  * Topic配置管理
- * 
+ *
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @author lansheng.zj@taobao.com
  * @since 2013-7-26
@@ -61,37 +61,44 @@ public class TopicConfigManager extends ConfigManager {
 
     public TopicConfigManager(BrokerController brokerController) {
         this.brokerController = brokerController;
-
-        // MixAll.DEFAULT_TOPIC
-        TopicConfig topicConfig = new TopicConfig(MixAll.DEFAULT_TOPIC);
-        topicConfig.setReadQueueNums(this.brokerController.getBrokerConfig().getDefaultTopicQueueNums());
-        topicConfig.setWriteQueueNums(this.brokerController.getBrokerConfig().getDefaultTopicQueueNums());
-        int perm =
-                this.brokerController.getBrokerConfig().isAutoCreateTopicEnable() ? PermName.PERM_INHERIT : 0;
-        perm |= PermName.PERM_READ | PermName.PERM_WRITE;
-        topicConfig.setPerm(perm);
-        this.topicConfigTable.put(topicConfig.getTopicName(), topicConfig);
-
-        // MixAll.SELF_TEST_TOPIC
-        topicConfig = new TopicConfig(MixAll.SELF_TEST_TOPIC);
-        topicConfig.setReadQueueNums(1);
-        topicConfig.setWriteQueueNums(1);
-        this.topicConfigTable.put(topicConfig.getTopicName(), topicConfig);
-
-        // MixAll.BENCHMARK_TOPIC
-        topicConfig = new TopicConfig(MixAll.BENCHMARK_TOPIC);
-        topicConfig.setReadQueueNums(1024);
-        topicConfig.setWriteQueueNums(1024);
-        this.topicConfigTable.put(topicConfig.getTopicName(), topicConfig);
-
-        // 集群名字
-        topicConfig = new TopicConfig(this.brokerController.getBrokerConfig().getBrokerClusterName());
-        perm = PermName.PERM_INHERIT;
-        if (this.brokerController.getBrokerConfig().isClusterTopicEnable()) {
-            perm |= PermName.PERM_READ | PermName.PERM_WRITE;
+        {
+            // MixAll.SELF_TEST_TOPIC
+            TopicConfig topicConfig = new TopicConfig(MixAll.SELF_TEST_TOPIC);
+            topicConfig.setReadQueueNums(1);
+            topicConfig.setWriteQueueNums(1);
+            this.topicConfigTable.put(topicConfig.getTopicName(), topicConfig);
         }
-        topicConfig.setPerm(perm);
-        this.topicConfigTable.put(topicConfig.getTopicName(), topicConfig);
+        {
+            // MixAll.DEFAULT_TOPIC
+            if (this.brokerController.getBrokerConfig().isAutoCreateTopicEnable()) {
+                TopicConfig topicConfig = new TopicConfig(MixAll.DEFAULT_TOPIC);
+                topicConfig.setReadQueueNums(this.brokerController.getBrokerConfig()
+                    .getDefaultTopicQueueNums());
+                topicConfig.setWriteQueueNums(this.brokerController.getBrokerConfig()
+                    .getDefaultTopicQueueNums());
+                int perm = PermName.PERM_INHERIT | PermName.PERM_READ | PermName.PERM_WRITE;
+                topicConfig.setPerm(perm);
+                this.topicConfigTable.put(topicConfig.getTopicName(), topicConfig);
+            }
+        }
+        {
+            // MixAll.BENCHMARK_TOPIC
+            TopicConfig topicConfig = new TopicConfig(MixAll.BENCHMARK_TOPIC);
+            topicConfig.setReadQueueNums(1024);
+            topicConfig.setWriteQueueNums(1024);
+            this.topicConfigTable.put(topicConfig.getTopicName(), topicConfig);
+        }
+        {
+            // 集群名字
+            TopicConfig topicConfig =
+                    new TopicConfig(this.brokerController.getBrokerConfig().getBrokerClusterName());
+            int perm = PermName.PERM_INHERIT;
+            if (this.brokerController.getBrokerConfig().isClusterTopicEnable()) {
+                perm |= PermName.PERM_READ | PermName.PERM_WRITE;
+            }
+            topicConfig.setPerm(perm);
+            this.topicConfigTable.put(topicConfig.getTopicName(), topicConfig);
+        }
     }
 
 
