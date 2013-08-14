@@ -84,7 +84,7 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
         return msgInner;
     }
 
-    private static final Logger logTransaction = LoggerFactory.getLogger(LoggerName.BrokerLoggerName);
+    private static final Logger logTransaction = LoggerFactory.getLogger(LoggerName.TransactionLoggerName);
 
 
     @Override

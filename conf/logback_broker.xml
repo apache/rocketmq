@@ -164,6 +164,21 @@
 			<charset class="java.nio.charset.Charset">UTF-8</charset>
 		</encoder>
 	</appender>
+	<appender name="UpdateCommitOffsetMoniterAppender" class="ch.qos.logback.core.rolling.RollingFileAppender">
+		<file>${user.home}/rocketmqlogs/updateCommitOffset.log</file>
+		<append>true</append>
+		<rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+			<fileNamePattern>${user.home}/rocketmqlogs/otherdays/updateCommitOffset-%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+			<timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
+				<maxFileSize>104857600</maxFileSize>
+			</timeBasedFileNamingAndTriggeringPolicy>
+			<MaxHistory>10</MaxHistory>
+		</rollingPolicy>
+		<encoder>
+			<pattern>%d{yyy-MM-dd HH:mm:ss,GMT+8} %p %t - %m%n</pattern>
+			<charset class="java.nio.charset.Charset">UTF-8</charset>
+		</encoder>
+	</appender>
 
     <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
         <append>true</append>
@@ -231,6 +246,10 @@
 	<logger name="SendmsgLiveMoniter" additivity="false">
 		<level value="ERROR" />
 		<appender-ref ref="RocketmqSendmsgLiveMoniterAppender" />
+	</logger>
+	<logger name="UpdateCommitOffsetMoniter" additivity="false">
+		<level value="ERROR" />
+		<appender-ref ref="UpdateCommitOffsetMoniterAppender" />
 	</logger>
 
     <root>
