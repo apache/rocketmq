@@ -17,6 +17,8 @@ package com.alibaba.rocketmq.namesrv.processor;
 
 import io.netty.channel.ChannelHandlerContext;
 
+import java.util.concurrent.atomic.AtomicLong;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -279,8 +281,16 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
                 (RegisterBrokerRequestHeader) request
                     .decodeCommandCustomHeader(RegisterBrokerRequestHeader.class);
 
-        TopicConfigSerializeWrapper topicConfigWrapper =
-                TopicConfigSerializeWrapper.decode(request.getBody(), TopicConfigSerializeWrapper.class);
+        TopicConfigSerializeWrapper topicConfigWrapper = null;
+        if (request.getBody() != null) {
+            topicConfigWrapper =
+                    TopicConfigSerializeWrapper.decode(request.getBody(), TopicConfigSerializeWrapper.class);
+        }
+        else {
+            topicConfigWrapper = new TopicConfigSerializeWrapper();
+            topicConfigWrapper.getDataVersion().setCounter(new AtomicLong(0));
+            topicConfigWrapper.getDataVersion().setTimestatmp(0);
+        }
 
         RegisterBrokerResult result = this.namesrvController.getRouteInfoManager().registerBroker(//
             requestHeader.getClusterName(), // 1
