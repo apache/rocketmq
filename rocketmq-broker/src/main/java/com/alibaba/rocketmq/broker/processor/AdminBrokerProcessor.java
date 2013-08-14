@@ -31,6 +31,7 @@ import org.slf4j.LoggerFactory;
 import com.alibaba.rocketmq.broker.BrokerController;
 import com.alibaba.rocketmq.broker.client.ClientChannelInfo;
 import com.alibaba.rocketmq.broker.client.ConsumerGroupInfo;
+import com.alibaba.rocketmq.broker.digestlog.UpdateCommitOffsetMoniter;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.TopicConfig;
 import com.alibaba.rocketmq.common.admin.ConsumeStats;
@@ -684,7 +685,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
 
         this.brokerController.getConsumerOffsetManager().commitOffset(requestHeader.getConsumerGroup(),
             requestHeader.getTopic(), requestHeader.getQueueId(), requestHeader.getCommitOffset());
-
+        UpdateCommitOffsetMoniter.printUpdatecommit(ctx.channel(), requestHeader);
         response.setCode(ResponseCode.SUCCESS_VALUE);
         response.setRemark(null);
         return response;
