@@ -46,6 +46,7 @@ import com.alibaba.rocketmq.common.protocol.MQProtos.MQRequestCode;
 import com.alibaba.rocketmq.common.protocol.MQProtos.MQResponseCode;
 import com.alibaba.rocketmq.common.protocol.body.ClusterInfo;
 import com.alibaba.rocketmq.common.protocol.body.ConsumerConnection;
+import com.alibaba.rocketmq.common.protocol.body.KVTable;
 import com.alibaba.rocketmq.common.protocol.body.LockBatchRequestBody;
 import com.alibaba.rocketmq.common.protocol.body.LockBatchResponseBody;
 import com.alibaba.rocketmq.common.protocol.body.ProducerConnection;
@@ -1007,6 +1008,25 @@ public class MQClientAPIImpl {
         switch (response.getCode()) {
         case ResponseCode.SUCCESS_VALUE: {
             return ConsumerConnection.decode(response.getBody(), ConsumerConnection.class);
+        }
+        default:
+            break;
+        }
+
+        throw new MQBrokerException(response.getCode(), response.getRemark());
+    }
+
+
+    public KVTable getBrokerRuntimeInfo(final String addr, final long timeoutMillis)
+            throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException,
+            InterruptedException, MQBrokerException {
+
+        RemotingCommand request =
+                RemotingCommand.createRequestCommand(MQRequestCode.GET_BROKER_RUNTIME_INFO_VALUE, null);
+        RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
+        switch (response.getCode()) {
+        case ResponseCode.SUCCESS_VALUE: {
+            return KVTable.decode(response.getBody(), KVTable.class);
         }
         default:
             break;

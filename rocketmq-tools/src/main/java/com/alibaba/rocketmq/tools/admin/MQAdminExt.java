@@ -26,6 +26,7 @@ import com.alibaba.rocketmq.common.admin.TopicStatsTable;
 import com.alibaba.rocketmq.common.protocol.body.ClusterInfo;
 import com.alibaba.rocketmq.common.protocol.body.ConsumeByWho;
 import com.alibaba.rocketmq.common.protocol.body.ConsumerConnection;
+import com.alibaba.rocketmq.common.protocol.body.KVTable;
 import com.alibaba.rocketmq.common.protocol.body.ProducerConnection;
 import com.alibaba.rocketmq.common.protocol.body.TopicList;
 import com.alibaba.rocketmq.common.protocol.route.TopicRouteData;
@@ -118,6 +119,20 @@ public interface MQAdminExt extends MQAdmin {
      * @throws RemotingException
      */
     public TopicList fetchAllTopicList() throws RemotingException, MQClientException, InterruptedException;
+
+
+    /**
+     * 获取Broker运行时数据
+     * 
+     * @return
+     * @throws MQBrokerException
+     * @throws InterruptedException
+     * @throws RemotingTimeoutException
+     * @throws RemotingSendRequestException
+     * @throws RemotingConnectException
+     */
+    public KVTable fetchBrokerRuntimeStats(final String brokerAddr) throws RemotingConnectException,
+            RemotingSendRequestException, RemotingTimeoutException, InterruptedException, MQBrokerException;
 
 
     /**
