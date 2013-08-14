@@ -26,7 +26,7 @@ import com.alibaba.rocketmq.remoting.common.RemotingUtil;
 
 /**
  * 服务器配置
- *
+ * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public class BrokerConfig {
