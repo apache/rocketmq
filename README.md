@@ -13,7 +13,7 @@ RocketMQ是一款分布式、队列模型的消息中间件，具有以下特点
 
 ### 如何开始？
 * [下载最新稳定版安装包](https://github.com/alibaba/RocketMQ/releases)
-* Quick Start（[阿里内部用户](http://gitlab.alibaba-inc.com/middleware//rocketmq/wikis/RocketMQ_Quick_Start) | [开源外部用户](https://github.com/alibaba/RocketMQ/wiki/Quick-Start)）
+* Quick Start（[阿里内部用户](http://gitlab.alibaba-inc.com/middleware//rocketmq/wikis/RocketMQ_Notes) | [开源外部用户](https://github.com/alibaba/RocketMQ/wiki/Quick-Start)）
 * 通过Wiki了解更多（[阿里内部用户](http://gitlab.alibaba-inc.com/middleware/rocketmq/wikis/home) | [开源外部用户](https://github.com/alibaba/RocketMQ/wiki)）
 
 ----------
@@ -26,6 +26,7 @@ RocketMQ是一款分布式、队列模型的消息中间件，具有以下特点
 ### 开发规范
 * 代码使用Eclipse代码样式格式化，提交代码前须格式化[rocketmq.java.code.style.xml](https://github.com/alibaba/RocketMQ/blob/master/docs/rocketmq.java.code.style.xml)
 * Java源文件使用Unix换行、UTF-8文件编码
+* 请在git clone命令之前执行`git config --global core.autocrlf false`，确保本地代码使用Unix换行格式
 * 请在develop分支上开发
 * 每次提交须有Issue关联，可在git提交注释中增加`#issue号码`进行关联
 
