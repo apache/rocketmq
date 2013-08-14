@@ -26,7 +26,7 @@ import com.alibaba.rocketmq.remoting.common.RemotingUtil;
 
 /**
  * 服务器配置
- * 
+ *
  * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public class BrokerConfig {
@@ -39,7 +39,7 @@ public class BrokerConfig {
     @ImportantField
     private String brokerName = localHostName();
     @ImportantField
-    private String brokerClusterName = "C01";
+    private String brokerClusterName = "DefaultCluster";
     @ImportantField
     private long brokerId = MixAll.MASTER_ID;
     private int brokerPermission = PermName.PERM_READ | PermName.PERM_WRITE;
@@ -82,7 +82,7 @@ public class BrokerConfig {
 
     // 是否从地址服务器寻找Name Server地址，正式发布后，默认值为false
     @ImportantField
-    private boolean fetchNamesrvAddrByAddressServer = true;
+    private boolean fetchNamesrvAddrByAddressServer = false;
 
 
     public static String localHostName() {
