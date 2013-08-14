@@ -49,6 +49,7 @@ import com.alibaba.rocketmq.common.protocol.body.ConsumerConnection;
 import com.alibaba.rocketmq.common.protocol.body.LockBatchRequestBody;
 import com.alibaba.rocketmq.common.protocol.body.LockBatchResponseBody;
 import com.alibaba.rocketmq.common.protocol.body.ProducerConnection;
+import com.alibaba.rocketmq.common.protocol.body.TopicList;
 import com.alibaba.rocketmq.common.protocol.body.UnlockBatchRequestBody;
 import com.alibaba.rocketmq.common.protocol.header.ConsumerSendMsgBackRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.CreateTopicRequestHeader;
@@ -1073,6 +1074,35 @@ public class MQClientAPIImpl {
     }
 
 
+    /**
+     * Name Server: 从Name Server获取所有Topic列表
+     */
+    public TopicList getTopicListFromNameServer(final long timeoutMillis) throws RemotingException,
+            MQClientException, InterruptedException {
+        RemotingCommand request =
+                RemotingCommand.createRequestCommand(MQRequestCode.GET_ALL_TOPIC_LIST_FROM_NAMESERVER_VALUE,
+                    null);
+
+        RemotingCommand response = this.remotingClient.invokeSync(null, request, timeoutMillis);
+        assert response != null;
+        switch (response.getCode()) {
+        case ResponseCode.SUCCESS_VALUE: {
+            byte[] body = response.getBody();
+            if (body != null) {
+                return TopicList.decode(body, TopicList.class);
+            }
+        }
+        default:
+            break;
+        }
+
+        throw new MQClientException(response.getCode(), response.getRemark());
+    }
+
+
+    /**
+     * Name Server: Broker下线前，清除Broker对应的权限
+     */
     public int wipeWritePermOfBroker(final String namesrvAddr, String brokerName, final long timeoutMillis)
             throws RemotingCommandException, RemotingConnectException, RemotingSendRequestException,
             RemotingTimeoutException, InterruptedException, MQClientException {

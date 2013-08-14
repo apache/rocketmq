@@ -27,6 +27,7 @@ import com.alibaba.rocketmq.common.protocol.body.ClusterInfo;
 import com.alibaba.rocketmq.common.protocol.body.ConsumeByWho;
 import com.alibaba.rocketmq.common.protocol.body.ConsumerConnection;
 import com.alibaba.rocketmq.common.protocol.body.ProducerConnection;
+import com.alibaba.rocketmq.common.protocol.body.TopicList;
 import com.alibaba.rocketmq.common.protocol.route.TopicRouteData;
 import com.alibaba.rocketmq.common.subscription.SubscriptionGroupConfig;
 import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
@@ -106,6 +107,17 @@ public interface MQAdminExt extends MQAdmin {
      */
     public TopicStatsTable examineTopicStats(final String topic) throws RemotingException, MQClientException,
             InterruptedException, MQBrokerException;
+
+
+    /**
+     * 从Name Server获取所有Topic列表
+     * 
+     * @return
+     * @throws InterruptedException
+     * @throws MQClientException
+     * @throws RemotingException
+     */
+    public TopicList fetchAllTopicList() throws RemotingException, MQClientException, InterruptedException;
 
 
     /**

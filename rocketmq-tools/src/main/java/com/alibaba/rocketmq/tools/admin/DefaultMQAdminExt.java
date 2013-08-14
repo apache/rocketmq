@@ -31,6 +31,7 @@ import com.alibaba.rocketmq.common.protocol.body.ClusterInfo;
 import com.alibaba.rocketmq.common.protocol.body.ConsumeByWho;
 import com.alibaba.rocketmq.common.protocol.body.ConsumerConnection;
 import com.alibaba.rocketmq.common.protocol.body.ProducerConnection;
+import com.alibaba.rocketmq.common.protocol.body.TopicList;
 import com.alibaba.rocketmq.common.protocol.route.TopicRouteData;
 import com.alibaba.rocketmq.common.subscription.SubscriptionGroupConfig;
 import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
@@ -234,5 +235,11 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
     @Override
     public ConsumeByWho whoConsumeTheMessage(String msgId) {
         return this.defaultMQAdminExtImpl.whoConsumeTheMessage(msgId);
+    }
+
+
+    @Override
+    public TopicList fetchAllTopicList() throws RemotingException, MQClientException, InterruptedException {
+        return this.defaultMQAdminExtImpl.fetchAllTopicList();
     }
 }
