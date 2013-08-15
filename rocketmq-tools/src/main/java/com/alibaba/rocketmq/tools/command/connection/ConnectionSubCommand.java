@@ -64,7 +64,7 @@ public class ConnectionSubCommand implements SubCommand {
 
         // topic必须设置
         opt = new Option("t", "topic", true, "topic name");
-        opt.setRequired(true);
+        opt.setRequired(false);
         options.addOption(opt);
 
         return options;
@@ -78,11 +78,12 @@ public class ConnectionSubCommand implements SubCommand {
         defaultMQAdminExt.setInstanceName(Long.toString(System.currentTimeMillis()));
 
         try {
-            String topic = commandLine.getOptionValue('t');
 
             // Producer
-            if (commandLine.hasOption('p')) {
+            if (commandLine.hasOption('p') && commandLine.hasOption('t')) {
                 defaultMQAdminExt.start();
+
+                String topic = commandLine.getOptionValue('t');
 
                 String group = commandLine.getOptionValue('p');
 
@@ -107,7 +108,7 @@ public class ConnectionSubCommand implements SubCommand {
 
                 String group = commandLine.getOptionValue('c');
 
-                ConsumerConnection cc = defaultMQAdminExt.examineConsumerConnectionInfo(group, topic);
+                ConsumerConnection cc = defaultMQAdminExt.examineConsumerConnectionInfo(group);
 
                 // 打印连接
                 int i = 1;
