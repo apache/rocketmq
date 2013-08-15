@@ -271,8 +271,9 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
 
 
     @Override
-    public ConsumerConnection examineConsumerConnectionInfo(String consumerGroup, final String topic)
+    public ConsumerConnection examineConsumerConnectionInfo(String consumerGroup)
             throws InterruptedException, MQBrokerException, RemotingException, MQClientException {
+        String topic = MixAll.getRetryTopic(consumerGroup);
         TopicRouteData topicRouteData = this.examineTopicRouteInfo(topic);
         ConsumerConnection result = new ConsumerConnection();
 

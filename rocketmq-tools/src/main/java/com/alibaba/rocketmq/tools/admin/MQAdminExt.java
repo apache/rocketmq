@@ -182,7 +182,7 @@ public interface MQAdminExt extends MQAdmin {
      * @throws MQClientException
      * @throws RemotingException
      */
-    public ConsumerConnection examineConsumerConnectionInfo(final String consumerGroup, final String topic)
+    public ConsumerConnection examineConsumerConnectionInfo(final String consumerGroup)
             throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException,
             InterruptedException, MQBrokerException, RemotingException, MQClientException;
 

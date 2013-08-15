@@ -186,9 +186,9 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
 
 
     @Override
-    public ConsumerConnection examineConsumerConnectionInfo(String consumerGroup, final String topic)
+    public ConsumerConnection examineConsumerConnectionInfo(String consumerGroup)
             throws InterruptedException, MQBrokerException, RemotingException, MQClientException {
-        return defaultMQAdminExtImpl.examineConsumerConnectionInfo(consumerGroup, topic);
+        return defaultMQAdminExtImpl.examineConsumerConnectionInfo(consumerGroup);
     }
 
 
