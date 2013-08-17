@@ -127,8 +127,7 @@ public class MessageStoreConfig {
     // 同步刷盘超时时间
     private int syncFlushTimeout = 1000 * 5;
     // 定时消息相关
-    private String messageDelayLevel =
-            "1s 5s 10s 30s 1m 2m 3m 4m 5m 6m 7m 8m 9m 10m 20m 30m 40m 50m 1h 2h 6h 12h 1d";
+    private String messageDelayLevel = "1s 5s 10s 30s 1m 2m 3m 4m 5m 6m 7m 8m 9m 10m 20m 30m";
     private long flushDelayOffsetInterval = 1000 * 10;
     private String delayOffsetStorePath = System.getProperty("user.home") + File.separator + "store"
             + File.separator + "config" + File.separator + "delayOffset.json";

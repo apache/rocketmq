@@ -86,10 +86,13 @@ public class ConsumeStatsSubCommand implements SubCommand {
                 "#Diff" //
             );
 
+            long diffTotal = 0L;
+
             for (MessageQueue mq : mqList) {
                 OffsetWrapper offsetWrapper = consumeStats.getOffsetTable().get(mq);
 
                 long diff = offsetWrapper.getBrokerOffset() - offsetWrapper.getConsumerOffset();
+                diffTotal += diff;
 
                 System.out.printf("%-32s  %-32s  %-4d  %-20d  %-20d  %d\n",//
                     UtilALl.frontStringAtLeast(mq.getTopic(), 32),//
@@ -101,7 +104,9 @@ public class ConsumeStatsSubCommand implements SubCommand {
                     );
             }
 
-            System.out.printf("\nConsume TPS: %d\n", consumeStats.getConsumeTps());
+            System.out.println("");
+            System.out.printf("Consume TPS: %d\n", consumeStats.getConsumeTps());
+            System.out.printf("Diff Total: %d\n", diffTotal);
         }
         catch (Exception e) {
             e.printStackTrace();
