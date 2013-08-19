@@ -725,8 +725,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                         requestHeader.getQueueId());
 
             boolean consumeFromMinEnable = false;
-
-            if (minOffset >= 0 && maxOffset > 0) {
+            if (0 == minOffset && maxOffset > 0) {
                 long minCommitLogOffset =
                         this.brokerController.getMessageStore().getCommitLogOffsetInQueue(
                             requestHeader.getTopic(), requestHeader.getQueueId(), minOffset);
@@ -748,8 +747,16 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                         maxOffset);
                 }
             }
+            else if (minOffset > 0 && maxOffset > 0) {
+                consumeFromMinEnable = false;
+            }
             else {
                 consumeFromMinEnable = true;
+                log.info(
+                    "the consumer group[{}] first subscribed, minOffset: {} maxOffset: {}, from min, and unknow offset.",//
+                    requestHeader.getConsumerGroup(),//
+                    minOffset,//
+                    maxOffset);
             }
 
             // 说明这个队列在服务器存储的消息比较少或者没有消息
