@@ -485,15 +485,17 @@ public class MixAll {
     }
 
 
-    public static void compareAndIncreaseOnly(final AtomicLong target, final long value) {
+    public static boolean compareAndIncreaseOnly(final AtomicLong target, final long value) {
         long prev = target.get();
         while (value > prev) {
             boolean updated = target.compareAndSet(prev, value);
             if (updated)
-                break;
+                return true;
 
             prev = target.get();
         }
+
+        return false;
     }
 
 
