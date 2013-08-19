@@ -79,6 +79,12 @@ public interface MessageStore {
 
 
     /**
+     * 获取消费队列记录的CommitLog Offset
+     */
+    public long getCommitLogOffsetInQueue(final String topic, final int queueId, final long cqOffset);
+
+
+    /**
      * 根据消息时间获取某个队列中对应的offset 1、如果指定时间（包含之前之后）有对应的消息，则获取距离此时间最近的offset（优先选择之前）
      * 2、如果指定时间无对应消息，则返回0
      */
