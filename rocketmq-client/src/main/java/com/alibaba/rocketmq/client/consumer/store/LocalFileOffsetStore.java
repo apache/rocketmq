@@ -96,25 +96,31 @@ public class LocalFileOffsetStore implements OffsetStore {
 
 
     @Override
-    public long readOffset(MessageQueue mq, boolean fromStore) {
+    public long readOffset(final MessageQueue mq, final ReadOffsetType type) {
         if (mq != null) {
-            AtomicLong offset = this.offsetTable.get(mq);
-            if (fromStore)
-                offset = null;
-
-            if (null == offset) {
-                OffsetSerializeWrapper offsetSerializeWrapper = this.readLocalOffset();
-                if (offsetSerializeWrapper != null && offsetSerializeWrapper.getOffsetTable() != null) {
-                    offset = offsetSerializeWrapper.getOffsetTable().get(mq);
-                }
-
+            switch (type) {
+            case MEMORY_FIRST_THEN_STORE:
+            case READ_FROM_MEMORY: {
+                AtomicLong offset = this.offsetTable.get(mq);
                 if (offset != null) {
-                    this.updateOffset(mq, offset.get(), false);
                     return offset.get();
                 }
+                else if (ReadOffsetType.READ_FROM_MEMORY == type) {
+                    return -1;
+                }
             }
-            else {
-                return offset.get();
+            case READ_FROM_STORE: {
+                OffsetSerializeWrapper offsetSerializeWrapper = this.readLocalOffset();
+                if (offsetSerializeWrapper != null && offsetSerializeWrapper.getOffsetTable() != null) {
+                    AtomicLong offset = offsetSerializeWrapper.getOffsetTable().get(mq);
+                    if (offset != null) {
+                        this.updateOffset(mq, offset.get(), false);
+                        return offset.get();
+                    }
+                }
+            }
+            default:
+                break;
             }
         }
 

@@ -31,6 +31,7 @@ import com.alibaba.rocketmq.client.consumer.listener.MessageListenerConcurrently
 import com.alibaba.rocketmq.client.consumer.listener.MessageListenerOrderly;
 import com.alibaba.rocketmq.client.consumer.store.LocalFileOffsetStore;
 import com.alibaba.rocketmq.client.consumer.store.OffsetStore;
+import com.alibaba.rocketmq.client.consumer.store.ReadOffsetType;
 import com.alibaba.rocketmq.client.consumer.store.RemoteBrokerOffsetStore;
 import com.alibaba.rocketmq.client.exception.MQBrokerException;
 import com.alibaba.rocketmq.client.exception.MQClientException;
@@ -366,8 +367,19 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
             }
         };
 
+        boolean commitOffsetEnable = false;
+        long commitOffsetValue = 0L;
+        if (MessageModel.CLUSTERING == this.defaultMQPushConsumer.getMessageModel()) {
+            commitOffsetValue =
+                    this.offsetStore.readOffset(pullRequest.getMessageQueue(),
+                        ReadOffsetType.READ_FROM_MEMORY);
+            if (commitOffsetValue > 0) {
+                commitOffsetEnable = true;
+            }
+        }
+
         int sysFlag = PullSysFlag.buildSysFlag(//
-            false, // commitOffset
+            commitOffsetEnable, // commitOffset
             true, // suspend
             false// subscription
             );
@@ -379,7 +391,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                 pullRequest.getNextOffset(), // 4
                 this.defaultMQPushConsumer.getPullBatchSize(), // 5
                 sysFlag, // 6
-                0,// 7
+                commitOffsetValue,// 7
                 BrokerSuspendMaxTimeMillis, // 8
                 ConsumerTimeoutMillisWhenSuspend, // 9
                 CommunicationMode.ASYNC, // 10

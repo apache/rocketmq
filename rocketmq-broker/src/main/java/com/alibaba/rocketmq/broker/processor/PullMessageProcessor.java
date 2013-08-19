@@ -47,6 +47,7 @@ import com.alibaba.rocketmq.remoting.netty.NettyRequestProcessor;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 import com.alibaba.rocketmq.remoting.protocol.RemotingProtos.ResponseCode;
 import com.alibaba.rocketmq.store.GetMessageResult;
+import com.alibaba.rocketmq.store.config.BrokerRole;
 
 
 /**
@@ -392,12 +393,13 @@ public class PullMessageProcessor implements NettyRequestProcessor {
         }
 
         // 存储Consumer消费进度
-        if (brokerAllowSuspend) { // 说明是首次调用，相对于长轮询通知
-            if (hasCommitOffsetFlag) {
-                this.brokerController.getConsumerOffsetManager().commitOffset(
-                    requestHeader.getConsumerGroup(), requestHeader.getTopic(), requestHeader.getQueueId(),
-                    requestHeader.getCommitOffset());
-            }
+        boolean storeOffsetEnable = brokerAllowSuspend; // 说明是首次调用，相对于长轮询通知
+        storeOffsetEnable = storeOffsetEnable && hasCommitOffsetFlag; // 说明Consumer设置了标志位
+        storeOffsetEnable = storeOffsetEnable // 只有Master支持存储offset
+                && this.brokerController.getMessageStoreConfig().getBrokerRole() != BrokerRole.SLAVE;
+        if (storeOffsetEnable) {
+            this.brokerController.getConsumerOffsetManager().commitOffset(requestHeader.getConsumerGroup(),
+                requestHeader.getTopic(), requestHeader.getQueueId(), requestHeader.getCommitOffset());
         }
 
         return response;
