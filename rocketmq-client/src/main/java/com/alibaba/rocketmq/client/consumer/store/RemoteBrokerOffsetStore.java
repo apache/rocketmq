@@ -15,6 +15,7 @@
  */
 package com.alibaba.rocketmq.client.consumer.store;
 
+import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
@@ -112,6 +113,8 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
 
     @Override
     public void persistAll(Set<MessageQueue> mqs) {
+        final HashSet<MessageQueue> unusedMQ = new HashSet<MessageQueue>();
+
         if (mqs != null && !mqs.isEmpty()) {
             for (MessageQueue mq : this.offsetTable.keySet()) {
                 AtomicLong offset = this.offsetTable.get(mq);
@@ -128,7 +131,18 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
                             log.error("updateConsumeOffsetToBroker exception, " + mq.toString(), e);
                         }
                     }
+                    // 本地多余的队列，需要删除掉
+                    else {
+                        unusedMQ.add(mq);
+                    }
                 }
+            }
+        }
+
+        if (!unusedMQ.isEmpty()) {
+            for (MessageQueue mq : unusedMQ) {
+                this.offsetTable.remove(mq);
+                log.info("remove unused mq, {}, {}", mq, this.groupName);
             }
         }
     }

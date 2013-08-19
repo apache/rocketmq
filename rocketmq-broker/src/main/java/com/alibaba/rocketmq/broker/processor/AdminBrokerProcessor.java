@@ -708,14 +708,28 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 this.brokerController.getConsumerOffsetManager().queryOffset(
                     requestHeader.getConsumerGroup(), requestHeader.getTopic(), requestHeader.getQueueId());
 
+        // 订阅组存在
         if (offset >= 0) {
             responseHeader.setOffset(offset);
             response.setCode(ResponseCode.SUCCESS_VALUE);
             response.setRemark(null);
         }
+        // 订阅组不存在
         else {
-            response.setCode(MQResponseCode.QUERY_NOT_FOUND_VALUE);
-            response.setRemark("Not found, maybe this group consumer boot first");
+            long minOffset =
+                    this.brokerController.getMessageStore().getMinOffsetInQuque(requestHeader.getTopic(),
+                        requestHeader.getQueueId());
+            // 说明这个队列在服务器存储的消息比较少或者没有消息
+            // 订阅组消费进度不存在情况下，从0开始消费
+            if (minOffset <= 0) {
+                responseHeader.setOffset(0L);
+                response.setCode(ResponseCode.SUCCESS_VALUE);
+                response.setRemark(null);
+            }
+            else {
+                response.setCode(MQResponseCode.QUERY_NOT_FOUND_VALUE);
+                response.setRemark("Not found, maybe this group consumer boot first");
+            }
         }
 
         return response;

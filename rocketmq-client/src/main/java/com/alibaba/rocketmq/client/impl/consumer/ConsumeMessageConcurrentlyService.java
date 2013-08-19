@@ -169,8 +169,17 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
             // 记录统计信息
             ConsumeMessageConcurrentlyService.this.getConsumerStat().getConsumeMsgRTTotal()
                 .addAndGet(consumeRT);
-            MixAll.compareAndIncreaseOnly(ConsumeMessageConcurrentlyService.this.getConsumerStat()
-                .getConsumeMsgRTMax(), consumeRT);
+            boolean updated =
+                    MixAll.compareAndIncreaseOnly(ConsumeMessageConcurrentlyService.this.getConsumerStat()
+                        .getConsumeMsgRTMax(), consumeRT);
+            // 耗时最大值新记录
+            if (updated) {
+                log.warn("consumeMessage RT new max: {} Group: {} Msgs: {} MQ: {}",//
+                    consumeRT,//
+                    ConsumeMessageConcurrentlyService.this.consumerGroup,//
+                    msgs,//
+                    messageQueue);
+            }
 
             ConsumeMessageConcurrentlyService.this.processConsumeResult(status, context, this);
         }
