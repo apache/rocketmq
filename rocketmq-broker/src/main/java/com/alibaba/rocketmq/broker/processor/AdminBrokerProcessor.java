@@ -76,6 +76,7 @@ import com.alibaba.rocketmq.remoting.netty.NettyRequestProcessor;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 import com.alibaba.rocketmq.remoting.protocol.RemotingProtos.ResponseCode;
 import com.alibaba.rocketmq.remoting.protocol.RemotingSerializable;
+import com.alibaba.rocketmq.store.StoreUtil;
 
 
 /**
@@ -719,9 +720,41 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             long minOffset =
                     this.brokerController.getMessageStore().getMinOffsetInQuque(requestHeader.getTopic(),
                         requestHeader.getQueueId());
+            long maxOffset =
+                    this.brokerController.getMessageStore().getMaxOffsetInQuque(requestHeader.getTopic(),
+                        requestHeader.getQueueId());
+
+            boolean consumeFromMinEnable = false;
+
+            if (minOffset >= 0 && maxOffset > 0) {
+                long minCommitLogOffset =
+                        this.brokerController.getMessageStore().getCommitLogOffsetInQueue(
+                            requestHeader.getTopic(), requestHeader.getQueueId(), minOffset);
+                long maxCommitLogOffset =
+                        this.brokerController.getMessageStore().getCommitLogOffsetInQueue(
+                            requestHeader.getTopic(), requestHeader.getQueueId(), maxOffset - 1);
+
+                long memorySpan =
+                        (long) (StoreUtil.TotalPhysicalMemorySize * (this.brokerController
+                            .getMessageStoreConfig().getAccessMessageInMemoryMaxRatio() / 100.0));
+
+                long diff = maxCommitLogOffset - minCommitLogOffset;
+                if (diff < memorySpan) {
+                    consumeFromMinEnable = true;
+                    log.info(
+                        "the consumer group[{}] first subscribed, minOffset: {} maxOffset: {}, from min.",//
+                        requestHeader.getConsumerGroup(),//
+                        minOffset,//
+                        maxOffset);
+                }
+            }
+            else {
+                consumeFromMinEnable = true;
+            }
+
             // 说明这个队列在服务器存储的消息比较少或者没有消息
             // 订阅组消费进度不存在情况下，从0开始消费
-            if (minOffset <= 0) {
+            if (consumeFromMinEnable) {
                 responseHeader.setOffset(0L);
                 response.setCode(ResponseCode.SUCCESS_VALUE);
                 response.setRemark(null);
