@@ -42,7 +42,7 @@ public interface OffsetStore {
     /**
      * 从本地缓存读取消费进度
      */
-    public long readOffset(final MessageQueue mq, final boolean fromStore);
+    public long readOffset(final MessageQueue mq, final ReadOffsetType type);
 
 
     /**

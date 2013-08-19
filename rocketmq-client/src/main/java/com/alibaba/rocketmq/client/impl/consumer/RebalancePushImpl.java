@@ -20,6 +20,7 @@ import java.util.Set;
 
 import com.alibaba.rocketmq.client.consumer.AllocateMessageQueueStrategy;
 import com.alibaba.rocketmq.client.consumer.store.OffsetStore;
+import com.alibaba.rocketmq.client.consumer.store.ReadOffsetType;
 import com.alibaba.rocketmq.client.impl.factory.MQClientFactory;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.consumer.ConsumeFromWhere;
@@ -66,7 +67,7 @@ public class RebalancePushImpl extends RebalanceImpl {
         final OffsetStore offsetStore = this.defaultMQPushConsumerImpl.getOffsetStore();
         switch (consumeFromWhere) {
         case CONSUME_FROM_LAST_OFFSET: {
-            long lastOffset = offsetStore.readOffset(mq, true);
+            long lastOffset = offsetStore.readOffset(mq, ReadOffsetType.READ_FROM_STORE);
             if (lastOffset >= 0) {
                 result = lastOffset;
             }
@@ -89,7 +90,7 @@ public class RebalancePushImpl extends RebalanceImpl {
             break;
         }
         case CONSUME_FROM_LAST_OFFSET_AND_FROM_MIN_WHEN_BOOT_FIRST: {
-            long lastOffset = offsetStore.readOffset(mq, true);
+            long lastOffset = offsetStore.readOffset(mq, ReadOffsetType.READ_FROM_STORE);
             if (lastOffset >= 0) {
                 result = lastOffset;
             }

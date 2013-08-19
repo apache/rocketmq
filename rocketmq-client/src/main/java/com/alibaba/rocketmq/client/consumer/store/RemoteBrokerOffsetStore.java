@@ -81,17 +81,25 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
 
 
     @Override
-    public long readOffset(MessageQueue mq, boolean fromStore) {
+    public long readOffset(final MessageQueue mq, final ReadOffsetType type) {
         if (mq != null) {
-            AtomicLong offset = this.offsetTable.get(mq);
-            if (fromStore)
-                offset = null;
-
-            if (null == offset) {
+            switch (type) {
+            case MEMORY_FIRST_THEN_STORE:
+            case READ_FROM_MEMORY: {
+                AtomicLong offset = this.offsetTable.get(mq);
+                if (offset != null) {
+                    return offset.get();
+                }
+                else if (ReadOffsetType.READ_FROM_MEMORY == type) {
+                    return -1;
+                }
+            }
+            case READ_FROM_STORE: {
                 try {
                     long brokerOffset = this.fetchConsumeOffsetFromBroker(mq);
-                    offset = new AtomicLong(brokerOffset);
-                    this.offsetTable.put(mq, offset);
+                    AtomicLong offset = new AtomicLong(brokerOffset);
+                    this.updateOffset(mq, offset.get(), false);
+                    return brokerOffset;
                 }
                 // 当前订阅组在服务器没有对应的Offset
                 catch (MQBrokerException e) {
@@ -103,8 +111,9 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
                     return -2;
                 }
             }
-
-            return offset.get();
+            default:
+                break;
+            }
         }
 
         return -1;

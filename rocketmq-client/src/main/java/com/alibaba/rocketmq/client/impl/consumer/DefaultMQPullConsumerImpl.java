@@ -29,6 +29,7 @@ import com.alibaba.rocketmq.client.consumer.PullCallback;
 import com.alibaba.rocketmq.client.consumer.PullResult;
 import com.alibaba.rocketmq.client.consumer.store.LocalFileOffsetStore;
 import com.alibaba.rocketmq.client.consumer.store.OffsetStore;
+import com.alibaba.rocketmq.client.consumer.store.ReadOffsetType;
 import com.alibaba.rocketmq.client.consumer.store.RemoteBrokerOffsetStore;
 import com.alibaba.rocketmq.client.exception.MQBrokerException;
 import com.alibaba.rocketmq.client.exception.MQClientException;
@@ -91,7 +92,8 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
 
     public long fetchConsumeOffset(MessageQueue mq, boolean fromStore) throws MQClientException {
         this.makeSureStateOK();
-        return this.offsetStore.readOffset(mq, fromStore);
+        return this.offsetStore.readOffset(mq, fromStore ? ReadOffsetType.READ_FROM_STORE
+                : ReadOffsetType.MEMORY_FIRST_THEN_STORE);
     }
 
 
