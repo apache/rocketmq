@@ -16,8 +16,8 @@ echo 'vm.dirty_writeback_centisecs=360000' >> /etc/sysctl.conf
 echo 'vm.swappiness=10' >> /etc/sysctl.conf
 sysctl -p
 
-ulimit -n 655350
 echo 'ulimit -n 655350' >> /etc/profile
+echo 'admin hard nofile 655350' >> /etc/security/limits.conf
 
 DISK=`df -k | sort -n -r -k 2 | awk -F/ 'NR==1 {gsub(/[0-9].*/,"",$3); print $3}'`
 [ "$DISK" = 'cciss' ] && DISK='cciss!c0d0'
@@ -35,5 +35,6 @@ sysctl vm.dirty_ratio
 sysctl vm.page-cluster
 sysctl vm.dirty_writeback_centisecs
 sysctl vm.swappiness
-ulimit -n
+
+su - admin -c 'ulimit -n'
 cat /sys/block/$DISK/queue/scheduler
