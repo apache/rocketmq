@@ -83,6 +83,16 @@ public class QueryMessageSubCommand implements SubCommand {
             msg.getTopic()//
             );
 
+        System.out.printf("%-20s %s\n",//
+            "Tags:",//
+            "[" + msg.getTags() + "]"//
+        );
+
+        System.out.printf("%-20s %s\n",//
+            "Keys:",//
+            "[" + msg.getKeys() + "]"//
+        );
+
         System.out.printf("%-20s %d\n",//
             "Queue ID:",//
             msg.getQueueId()//
@@ -118,15 +128,11 @@ public class QueryMessageSubCommand implements SubCommand {
             RemotingHelper.parseSocketAddressAddr(msg.getStoreHost())//
             );
 
-        System.out.printf("%-20s %s\n",//
-            "Tags:",//
-            msg.getTags()//
+        System.out.printf("%-20s %d\n",//
+            "System Flag:",//
+            msg.getSysFlag()//
             );
 
-        System.out.printf("%-20s %s\n",//
-            "Key:",//
-            msg.getKeys()//
-            );
     }
 
 
@@ -141,7 +147,7 @@ public class QueryMessageSubCommand implements SubCommand {
         System.out.printf("%-50s %-4s  %s\n",//
             "#Message ID",//
             "#QID",//
-            "Offset");
+            "#Offset");
         for (MessageExt msg : queryResult.getMessageList()) {
             System.out.printf("%-50s %-4d %d\n", msg.getMsgId(), msg.getQueueId(), msg.getQueueOffset());
         }
