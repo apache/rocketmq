@@ -38,6 +38,7 @@ import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.remoting.netty.NettyClientConfig;
 import com.alibaba.rocketmq.remoting.netty.NettyServerConfig;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
+import com.alibaba.rocketmq.store.config.BrokerRole;
 import com.alibaba.rocketmq.store.config.MessageStoreConfig;
 
 
@@ -95,6 +96,12 @@ public class BrokerStartup {
             final NettyClientConfig nettyClientConfig = new NettyClientConfig();
             nettyServerConfig.setListenPort(10911);
             final MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
+
+            // 如果是slave，修改默认值
+            if (BrokerRole.SLAVE == messageStoreConfig.getBrokerRole()) {
+                int ratio = messageStoreConfig.getAccessMessageInMemoryMaxRatio() - 10;
+                messageStoreConfig.setAccessMessageInMemoryMaxRatio(ratio);
+            }
 
             // 打印默认配置
             if (commandLine.hasOption('p')) {

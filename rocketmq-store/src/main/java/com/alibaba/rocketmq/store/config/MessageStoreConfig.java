@@ -103,7 +103,7 @@ public class MessageStoreConfig {
     private int maxTransferCountOnMessageInDisk = 8;
     // 命中消息在内存的最大比例
     @ImportantField
-    private int accessMessageInMemoryMaxRatio = 30;
+    private int accessMessageInMemoryMaxRatio = 40;
     // 是否开启消息索引功能
     @ImportantField
     private boolean messageIndexEnable = true;
@@ -145,6 +145,7 @@ public class MessageStoreConfig {
     // 是否开启事务Check过程，双十一时，可以关闭
     private boolean checkTransactionMessageEnable = true;
     // 磁盘空间超过90%警戒水位，自动开始删除文件
+    @ImportantField
     private boolean cleanFileForciblyEnable = true;
 
 
