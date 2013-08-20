@@ -15,18 +15,23 @@
  */
 package com.alibaba.rocketmq.broker.slave;
 
+import com.alibaba.rocketmq.broker.BrokerController;
+import com.alibaba.rocketmq.common.MixAll;
+import com.alibaba.rocketmq.common.constant.LoggerName;
+import com.alibaba.rocketmq.common.protocol.body.ConsumerOffsetSerializeWrapper;
+import com.alibaba.rocketmq.common.protocol.body.SubscriptionGroupWrapper;
+import com.alibaba.rocketmq.common.protocol.body.TopicConfigSerializeWrapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.alibaba.rocketmq.broker.BrokerController;
-import com.alibaba.rocketmq.common.constant.LoggerName;
-import com.alibaba.rocketmq.common.protocol.body.TopicConfigSerializeWrapper;
+import java.io.IOException;
 
 
 /**
  * Slave从Master同步信息（非消息）
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
+ * @author manhong.yqd<manhong.yqd@taobao.com>
  * @since 2013-7-8
  */
 public class SlaveSynchronize {
@@ -86,7 +91,16 @@ public class SlaveSynchronize {
     private void syncConsumerOffset() {
         String masterAddrBak = this.masterAddr;
         if (masterAddrBak != null) {
-
+            try {
+                ConsumerOffsetSerializeWrapper offsetWrapper =
+                        this.brokerController.getBrokerOuterAPI().getAllConsumerOffset(masterAddrBak);
+                this.brokerController.getConsumerOffsetManager().getOffsetTable()
+                    .putAll(offsetWrapper.getOffsetTable());
+                log.info("update slave consumer offset from master, {}", masterAddrBak);
+            }
+            catch (Exception e) {
+                log.error("syncConsumerOffset Exception, " + masterAddrBak, e);
+            }
         }
     }
 
@@ -94,7 +108,23 @@ public class SlaveSynchronize {
     private void syncDelayOffset() {
         String masterAddrBak = this.masterAddr;
         if (masterAddrBak != null) {
-
+            try {
+                String delayOffset =
+                        this.brokerController.getBrokerOuterAPI().getAllDelayOffset(masterAddrBak);
+                if (delayOffset != null) {
+                    String fileName = this.brokerController.getMessageStoreConfig().getDelayOffsetStorePath();
+                    try {
+                        MixAll.string2File(delayOffset, fileName);
+                    }
+                    catch (IOException e) {
+                        log.error("persist file Exception, " + fileName, e);
+                    }
+                }
+                log.info("update slave delay offset from master, {}", masterAddrBak);
+            }
+            catch (Exception e) {
+                log.error("syncDelayOffset Exception, " + masterAddrBak, e);
+            }
         }
     }
 
@@ -102,7 +132,17 @@ public class SlaveSynchronize {
     private void syncSubscriptionGroupConfig() {
         String masterAddrBak = this.masterAddr;
         if (masterAddrBak != null) {
-
+            try {
+                SubscriptionGroupWrapper subscriptionWrapper =
+                        this.brokerController.getBrokerOuterAPI()
+                            .getAllSubscriptionGroupConfig(masterAddrBak);
+                this.brokerController.getSubscriptionGroupManager().getSubscriptionGroupTable()
+                    .putAll(subscriptionWrapper.getSubscriptionGroupTable());
+                log.info("update slave Subscription Group from master, {}", masterAddrBak);
+            }
+            catch (Exception e) {
+                log.error("syncSubscriptionGroup Exception, " + masterAddrBak, e);
+            }
         }
     }
 }
