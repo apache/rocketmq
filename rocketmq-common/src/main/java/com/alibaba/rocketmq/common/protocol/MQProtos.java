@@ -30,8 +30,6 @@ public final class MQProtos {
         GET_TOPIC_CONFIG_LIST(9, 22),
         // Broker 获取所有Topic名称列表
         GET_TOPIC_NAME_LIST(10, 23),
-        // Broker Slave获取Master所有Consumer消费进度
-        PULL_ALL_CONSUMER_OFFSET(11, 24),
         // Broker 更新Broker上的配置
         UPDATE_BROKER_CONFIG(12, 25),
         // Broker 获取Broker上的配置
@@ -147,8 +145,6 @@ public final class MQProtos {
         public static final int GET_TOPIC_CONFIG_LIST_VALUE = 22;
         // Broker 获取所有Topic名称列表
         public static final int GET_TOPIC_NAME_LIST_VALUE = 23;
-        // Broker Slave获取Master所有Consumer消费进度
-        public static final int PULL_ALL_CONSUMER_OFFSET_VALUE = 24;
         // Broker 更新Broker上的配置
         public static final int UPDATE_BROKER_CONFIG_VALUE = 25;
         // Broker 获取Broker上的配置
@@ -268,8 +264,6 @@ public final class MQProtos {
                 return GET_TOPIC_CONFIG_LIST;
             case 23:
                 return GET_TOPIC_NAME_LIST;
-            case 24:
-                return PULL_ALL_CONSUMER_OFFSET;
             case 25:
                 return UPDATE_BROKER_CONFIG;
             case 26:

@@ -15,15 +15,8 @@
  */
 package com.alibaba.rocketmq.broker.processor;
 
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelHandlerContext;
-
 import java.io.UnsupportedEncodingException;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
+import java.util.*;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,32 +36,8 @@ import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.common.message.MessageQueue;
 import com.alibaba.rocketmq.common.protocol.MQProtos.MQRequestCode;
 import com.alibaba.rocketmq.common.protocol.MQProtos.MQResponseCode;
-import com.alibaba.rocketmq.common.protocol.body.Connection;
-import com.alibaba.rocketmq.common.protocol.body.ConsumerConnection;
-import com.alibaba.rocketmq.common.protocol.body.KVTable;
-import com.alibaba.rocketmq.common.protocol.body.LockBatchRequestBody;
-import com.alibaba.rocketmq.common.protocol.body.LockBatchResponseBody;
-import com.alibaba.rocketmq.common.protocol.body.UnlockBatchRequestBody;
-import com.alibaba.rocketmq.common.protocol.header.CreateTopicRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.DeleteTopicRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.GetAllTopicConfigResponseHeader;
-import com.alibaba.rocketmq.common.protocol.header.GetBrokerConfigResponseHeader;
-import com.alibaba.rocketmq.common.protocol.header.GetConsumeStatsRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.GetConsumerConnectionListRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.GetEarliestMsgStoretimeRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.GetEarliestMsgStoretimeResponseHeader;
-import com.alibaba.rocketmq.common.protocol.header.GetMaxOffsetRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.GetMaxOffsetResponseHeader;
-import com.alibaba.rocketmq.common.protocol.header.GetMinOffsetRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.GetMinOffsetResponseHeader;
-import com.alibaba.rocketmq.common.protocol.header.GetProducerConnectionListRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.GetTopicStatsInfoRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.QueryConsumerOffsetRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.QueryConsumerOffsetResponseHeader;
-import com.alibaba.rocketmq.common.protocol.header.SearchOffsetRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.SearchOffsetResponseHeader;
-import com.alibaba.rocketmq.common.protocol.header.UpdateConsumerOffsetRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.UpdateConsumerOffsetResponseHeader;
+import com.alibaba.rocketmq.common.protocol.body.*;
+import com.alibaba.rocketmq.common.protocol.header.*;
 import com.alibaba.rocketmq.common.subscription.SubscriptionGroupConfig;
 import com.alibaba.rocketmq.remoting.common.RemotingHelper;
 import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
@@ -76,13 +45,18 @@ import com.alibaba.rocketmq.remoting.netty.NettyRequestProcessor;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 import com.alibaba.rocketmq.remoting.protocol.RemotingProtos.ResponseCode;
 import com.alibaba.rocketmq.remoting.protocol.RemotingSerializable;
+import com.alibaba.rocketmq.store.DefaultMessageStore;
 import com.alibaba.rocketmq.store.StoreUtil;
+
+import io.netty.channel.Channel;
+import io.netty.channel.ChannelHandlerContext;
 
 
 /**
  * 管理类请求处理
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
+ * @author manhong.yqd<manhong.yqd@taobao.com>
  * @since 2013-7-26
  */
 public class AdminBrokerProcessor implements NettyRequestProcessor {
@@ -163,6 +137,12 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             // 查询消费进度，订阅组下的所有Topic
         case GET_CONSUME_STATS:
             return this.getConsumeStats(ctx, request);
+        case GET_ALL_CONSUMER_OFFSET:
+            return this.getAllConsumerOffset(ctx, request);
+
+            // 定时进度
+        case GET_ALL_DELAY_OFFSET:
+            return this.getAllDelayOffset(ctx, request);
         default:
             break;
 
@@ -795,6 +775,68 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         response.setBody(body);
         response.setCode(ResponseCode.SUCCESS_VALUE);
         response.setRemark(null);
+        return response;
+    }
+
+
+    private RemotingCommand getAllConsumerOffset(ChannelHandlerContext ctx, RemotingCommand request) {
+        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
+
+        String content = this.brokerController.getConsumerOffsetManager().encode();
+        if (content != null && content.length() > 0) {
+            try {
+                response.setBody(content.getBytes(MixAll.DEFAULT_CHARSET));
+            }
+            catch (UnsupportedEncodingException e) {
+                log.error("get all consumer offset from master error.", e);
+
+                response.setCode(ResponseCode.SYSTEM_ERROR_VALUE);
+                response.setRemark("UnsupportedEncodingException " + e);
+                return response;
+            }
+        }
+        else {
+            log.error("No consumer offset in this broker, client: " + ctx.channel().remoteAddress());
+            response.setCode(ResponseCode.SYSTEM_ERROR_VALUE);
+            response.setRemark("No consumer offset in this broker");
+            return response;
+        }
+
+        response.setCode(ResponseCode.SUCCESS_VALUE);
+        response.setRemark(null);
+
+        return response;
+    }
+
+
+    private RemotingCommand getAllDelayOffset(ChannelHandlerContext ctx, RemotingCommand request) {
+        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
+
+        String content =
+                ((DefaultMessageStore) this.brokerController.getMessageStore()).getScheduleMessageService()
+                    .encode();
+        if (content != null && content.length() > 0) {
+            try {
+                response.setBody(content.getBytes(MixAll.DEFAULT_CHARSET));
+            }
+            catch (UnsupportedEncodingException e) {
+                log.error("get all delay offset from master error.", e);
+
+                response.setCode(ResponseCode.SYSTEM_ERROR_VALUE);
+                response.setRemark("UnsupportedEncodingException " + e);
+                return response;
+            }
+        }
+        else {
+            log.error("No delay offset in this broker, client: " + ctx.channel().remoteAddress());
+            response.setCode(ResponseCode.SYSTEM_ERROR_VALUE);
+            response.setRemark("No delay offset in this broker");
+            return response;
+        }
+
+        response.setCode(ResponseCode.SUCCESS_VALUE);
+        response.setRemark(null);
+
         return response;
     }
 }

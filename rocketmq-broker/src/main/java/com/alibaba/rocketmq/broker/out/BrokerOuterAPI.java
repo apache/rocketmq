@@ -15,17 +15,13 @@
  */
 package com.alibaba.rocketmq.broker.out;
 
-import java.util.ArrayList;
-import java.util.List;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.alibaba.rocketmq.client.exception.MQBrokerException;
 import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.common.namesrv.RegisterBrokerResult;
 import com.alibaba.rocketmq.common.namesrv.TopAddressing;
 import com.alibaba.rocketmq.common.protocol.MQProtos.MQRequestCode;
+import com.alibaba.rocketmq.common.protocol.body.ConsumerOffsetSerializeWrapper;
+import com.alibaba.rocketmq.common.protocol.body.SubscriptionGroupWrapper;
 import com.alibaba.rocketmq.common.protocol.body.TopicConfigSerializeWrapper;
 import com.alibaba.rocketmq.common.protocol.header.namesrv.RegisterBrokerRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.namesrv.RegisterBrokerResponseHeader;
@@ -39,12 +35,18 @@ import com.alibaba.rocketmq.remoting.netty.NettyClientConfig;
 import com.alibaba.rocketmq.remoting.netty.NettyRemotingClient;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 import com.alibaba.rocketmq.remoting.protocol.RemotingProtos.ResponseCode;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.ArrayList;
+import java.util.List;
 
 
 /**
  * Broker对外调用的API封装
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
+ * @author manhong.yqd<manhong.yqd@taobao.com>
  * @since 2013-7-3
  */
 public class BrokerOuterAPI {
@@ -235,6 +237,82 @@ public class BrokerOuterAPI {
         switch (response.getCode()) {
         case ResponseCode.SUCCESS_VALUE: {
             return TopicConfigSerializeWrapper.decode(response.getBody(), TopicConfigSerializeWrapper.class);
+        }
+        default:
+            break;
+        }
+
+        throw new MQBrokerException(response.getCode(), response.getRemark());
+    }
+
+
+    /**
+     * 获取所有Consumer Offset
+     * 
+     * @param addr
+     * @return
+     */
+    public ConsumerOffsetSerializeWrapper getAllConsumerOffset(final String addr)
+            throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException,
+            RemotingConnectException, MQBrokerException {
+        RemotingCommand request =
+                RemotingCommand.createRequestCommand(MQRequestCode.GET_ALL_CONSUMER_OFFSET_VALUE, null);
+        RemotingCommand response = this.remotingClient.invokeSync(addr, request, 3000);
+        assert response != null;
+        switch (response.getCode()) {
+        case ResponseCode.SUCCESS_VALUE: {
+            return ConsumerOffsetSerializeWrapper.decode(response.getBody(),
+                ConsumerOffsetSerializeWrapper.class);
+        }
+        default:
+            break;
+        }
+
+        throw new MQBrokerException(response.getCode(), response.getRemark());
+    }
+
+
+    /**
+     * 获取所有定时进度
+     * 
+     * @param addr
+     * @return
+     */
+    public String getAllDelayOffset(final String addr) throws InterruptedException, RemotingTimeoutException,
+            RemotingSendRequestException, RemotingConnectException, MQBrokerException {
+        RemotingCommand request =
+                RemotingCommand.createRequestCommand(MQRequestCode.GET_ALL_DELAY_OFFSET_VALUE, null);
+        RemotingCommand response = this.remotingClient.invokeSync(addr, request, 3000);
+        assert response != null;
+        switch (response.getCode()) {
+        case ResponseCode.SUCCESS_VALUE: {
+            return new String(response.getBody());
+        }
+        default:
+            break;
+        }
+
+        throw new MQBrokerException(response.getCode(), response.getRemark());
+    }
+
+
+    /**
+     * 获取订阅组配置
+     * 
+     * @param addr
+     * @return
+     */
+    public SubscriptionGroupWrapper getAllSubscriptionGroupConfig(final String addr)
+            throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException,
+            RemotingConnectException, MQBrokerException {
+        RemotingCommand request =
+                RemotingCommand.createRequestCommand(MQRequestCode.GET_ALL_SUBSCRIPTIONGROUP_CONFIG_VALUE,
+                    null);
+        RemotingCommand response = this.remotingClient.invokeSync(addr, request, 3000);
+        assert response != null;
+        switch (response.getCode()) {
+        case ResponseCode.SUCCESS_VALUE: {
+            return SubscriptionGroupWrapper.decode(response.getBody(), SubscriptionGroupWrapper.class);
         }
         default:
             break;
