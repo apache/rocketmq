@@ -52,13 +52,13 @@ public class NettyIdleTest {
     }
 
 
-    @Test
+    // @Test
     public void test_idle_event() throws InterruptedException, RemotingConnectException,
             RemotingSendRequestException, RemotingTimeoutException {
         RemotingServer server = createRemotingServer();
         RemotingClient client = createRemotingClient();
 
-        for (int i = 0; i < 10000; i++) {
+        for (int i = 0; i < 10; i++) {
             RemotingCommand request = RemotingCommand.createRequestCommand(0, null);
             RemotingCommand response = client.invokeSync("127.0.0.1:8888", request, 1000 * 3);
             System.out.println(i + " invoke result = " + response);
