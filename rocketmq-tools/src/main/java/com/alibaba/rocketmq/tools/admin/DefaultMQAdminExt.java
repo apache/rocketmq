@@ -256,4 +256,9 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
             MQBrokerException, InterruptedException, MQClientException {
         defaultMQAdminExtImpl.deleteTopicInNameServer(addrs, topic);
     }
+
+	@Override
+	public void deleteSubscriptionGroup(String addr, String groupName) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
+		defaultMQAdminExtImpl.deleteSubscriptionGroup(addr, groupName);
+	}
 }
