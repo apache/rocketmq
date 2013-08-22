@@ -600,7 +600,10 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
     private void checkTopic(String topic) throws MQClientException {
         if (UtilALl.isBlank(topic)) {
-            throw new MQClientException("the message topic is blank", null);
+            throw new MQClientException("the specified topic is blank", null);
+        }
+        if (topic.length() > 255) {
+            throw new MQClientException("the specified topic is longer than topic max length 255.", null);
         }
     }
 
