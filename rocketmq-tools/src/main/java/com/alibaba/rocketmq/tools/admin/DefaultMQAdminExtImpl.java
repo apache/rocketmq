@@ -15,7 +15,10 @@
  */
 package com.alibaba.rocketmq.tools.admin;
 
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.slf4j.Logger;
 
@@ -347,4 +350,25 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
             RemotingSendRequestException, RemotingTimeoutException, InterruptedException, MQBrokerException {
         return this.mQClientFactory.getMQClientAPIImpl().getBrokerRuntimeInfo(brokerAddr, 3000);
     }
+
+	@Override
+	public void deleteTopicInBroker(Set<String> addrs, String topic) throws RemotingException, MQBrokerException,
+			InterruptedException, MQClientException {
+		for (String addr : addrs) {
+			this.mQClientFactory.getMQClientAPIImpl().deleteTopicInBroker(addr, topic, 3000);
+		}
+	}
+
+
+	@Override
+	public void deleteTopicInNameServer(Set<String> addrs, String topic) throws RemotingException,
+			MQBrokerException, InterruptedException, MQClientException {
+		if(addrs == null) {
+			String ns = this.mQClientFactory.getMQClientAPIImpl().fetchNameServerAddr();
+			addrs = new HashSet(Arrays.asList(ns.split(";")));
+		}
+		for (String addr : addrs) {
+			this.mQClientFactory.getMQClientAPIImpl().deleteTopicInNameServer(addr, topic, 3000);
+		}
+	}
 }

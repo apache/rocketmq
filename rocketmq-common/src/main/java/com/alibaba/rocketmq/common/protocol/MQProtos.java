@@ -22,8 +22,6 @@ public final class MQProtos {
         UPDATE_CONSUMER_OFFSET(5, 15),
         // Broker 更新或者增加一个Topic
         UPDATE_AND_CREATE_TOPIC(6, 17),
-        // Broker 删除一个Topic，包含数据与配置
-        DELETE_TOPIC(7, 19),
         // Broker 获取所有Topic的配置（Slave和Namesrv都会向Master请求此配置）
         GET_ALL_TOPIC_CONFIG(8, 21),
         // Broker 获取所有Topic配置（Slave和Namesrv都会向Master请求此配置）
@@ -137,8 +135,6 @@ public final class MQProtos {
         public static final int UPDATE_CONSUMER_OFFSET_VALUE = 15;
         // Broker 更新或者增加一个Topic
         public static final int UPDATE_AND_CREATE_TOPIC_VALUE = 17;
-        // Broker 删除一个Topic，包含数据与配置
-        public static final int DELETE_TOPIC_VALUE = 19;
         // Broker 获取所有Topic的配置（Slave和Namesrv都会向Master请求此配置）
         public static final int GET_ALL_TOPIC_CONFIG_VALUE = 21;
         // Broker 获取所有Topic配置（Slave和Namesrv都会向Master请求此配置）
@@ -256,8 +252,6 @@ public final class MQProtos {
                 return UPDATE_CONSUMER_OFFSET;
             case 17:
                 return UPDATE_AND_CREATE_TOPIC;
-            case 19:
-                return DELETE_TOPIC;
             case 21:
                 return GET_ALL_TOPIC_CONFIG;
             case 22:

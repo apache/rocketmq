@@ -78,7 +78,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         case UPDATE_AND_CREATE_TOPIC:
             return this.updateAndCreateTopic(ctx, request);
             // 删除Topic
-        case DELETE_TOPIC:
+        case DELETE_TOPIC_IN_BROKER:
             return this.deleteTopic(ctx, request);
             // 获取Topic配置
         case GET_ALL_TOPIC_CONFIG:
