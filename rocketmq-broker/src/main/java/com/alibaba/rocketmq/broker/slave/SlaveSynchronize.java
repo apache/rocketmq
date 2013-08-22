@@ -74,6 +74,7 @@ public class SlaveSynchronize {
 
                     this.brokerController.getTopicConfigManager().getDataVersion()
                         .assignNewOne(topicWrapper.getDataVersion());
+	                this.brokerController.getTopicConfigManager().getTopicConfigTable().clear();
                     this.brokerController.getTopicConfigManager().getTopicConfigTable()
                         .putAll(topicWrapper.getTopicConfigTable());
                     this.brokerController.getTopicConfigManager().persist();
@@ -96,6 +97,7 @@ public class SlaveSynchronize {
                         this.brokerController.getBrokerOuterAPI().getAllConsumerOffset(masterAddrBak);
                 this.brokerController.getConsumerOffsetManager().getOffsetTable()
                     .putAll(offsetWrapper.getOffsetTable());
+	            this.brokerController.getConsumerOffsetManager().persist();
                 log.info("update slave consumer offset from master, {}", masterAddrBak);
             }
             catch (Exception e) {
@@ -138,6 +140,7 @@ public class SlaveSynchronize {
                             .getAllSubscriptionGroupConfig(masterAddrBak);
                 this.brokerController.getSubscriptionGroupManager().getSubscriptionGroupTable()
                     .putAll(subscriptionWrapper.getSubscriptionGroupTable());
+	            this.brokerController.getSubscriptionGroupManager().persist();
                 log.info("update slave Subscription Group from master, {}", masterAddrBak);
             }
             catch (Exception e) {
