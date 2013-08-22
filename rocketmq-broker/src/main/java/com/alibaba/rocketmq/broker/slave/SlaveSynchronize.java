@@ -16,6 +16,7 @@
 package com.alibaba.rocketmq.broker.slave;
 
 import com.alibaba.rocketmq.broker.BrokerController;
+import com.alibaba.rocketmq.broker.subscription.SubscriptionGroupManager;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.common.protocol.body.ConsumerOffsetSerializeWrapper;
@@ -138,10 +139,19 @@ public class SlaveSynchronize {
                 SubscriptionGroupWrapper subscriptionWrapper =
                         this.brokerController.getBrokerOuterAPI()
                             .getAllSubscriptionGroupConfig(masterAddrBak);
-                this.brokerController.getSubscriptionGroupManager().getSubscriptionGroupTable()
-                    .putAll(subscriptionWrapper.getSubscriptionGroupTable());
-	            this.brokerController.getSubscriptionGroupManager().persist();
-                log.info("update slave Subscription Group from master, {}", masterAddrBak);
+
+                if (!this.brokerController.getSubscriptionGroupManager().getDataVersion()
+                    .equals(subscriptionWrapper.getDataVersion())) {
+                    SubscriptionGroupManager subscriptionGroupManager =
+                            this.brokerController.getSubscriptionGroupManager();
+                    subscriptionGroupManager.getDataVersion().assignNewOne(
+                        subscriptionWrapper.getDataVersion());
+                    subscriptionGroupManager.getSubscriptionGroupTable().clear();
+                    subscriptionGroupManager.getSubscriptionGroupTable().putAll(
+                        subscriptionWrapper.getSubscriptionGroupTable());
+                    subscriptionGroupManager.persist();
+                    log.info("update slave Subscription Group from master, {}", masterAddrBak);
+                }
             }
             catch (Exception e) {
                 log.error("syncSubscriptionGroup Exception, " + masterAddrBak, e);
