@@ -16,6 +16,7 @@
 package com.alibaba.rocketmq.tools.admin;
 
 import java.util.List;
+import java.util.Set;
 
 import com.alibaba.rocketmq.client.MQAdmin;
 import com.alibaba.rocketmq.client.exception.MQBrokerException;
@@ -23,19 +24,10 @@ import com.alibaba.rocketmq.client.exception.MQClientException;
 import com.alibaba.rocketmq.common.TopicConfig;
 import com.alibaba.rocketmq.common.admin.ConsumeStats;
 import com.alibaba.rocketmq.common.admin.TopicStatsTable;
-import com.alibaba.rocketmq.common.protocol.body.ClusterInfo;
-import com.alibaba.rocketmq.common.protocol.body.ConsumeByWho;
-import com.alibaba.rocketmq.common.protocol.body.ConsumerConnection;
-import com.alibaba.rocketmq.common.protocol.body.KVTable;
-import com.alibaba.rocketmq.common.protocol.body.ProducerConnection;
-import com.alibaba.rocketmq.common.protocol.body.TopicList;
+import com.alibaba.rocketmq.common.protocol.body.*;
 import com.alibaba.rocketmq.common.protocol.route.TopicRouteData;
 import com.alibaba.rocketmq.common.subscription.SubscriptionGroupConfig;
-import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
-import com.alibaba.rocketmq.remoting.exception.RemotingConnectException;
-import com.alibaba.rocketmq.remoting.exception.RemotingException;
-import com.alibaba.rocketmq.remoting.exception.RemotingSendRequestException;
-import com.alibaba.rocketmq.remoting.exception.RemotingTimeoutException;
+import com.alibaba.rocketmq.remoting.exception.*;
 
 
 /**
@@ -94,7 +86,7 @@ public interface MQAdminExt extends MQAdmin {
      * 查询指定Broker的Topic配置
      * 
      * @param addr
-     * @param group
+     * @param topic
      * @return
      */
     public TopicConfig examineTopicConfig(final String addr, final String topic);
@@ -172,7 +164,6 @@ public interface MQAdminExt extends MQAdmin {
      * 查看Consumer网络连接、订阅关系
      * 
      * @param consumerGroup
-     * @param topic
      * @return
      * @throws MQBrokerException
      * @throws InterruptedException
@@ -254,4 +245,32 @@ public interface MQAdminExt extends MQAdmin {
      * @return
      */
     public String getKVConfig(final String namespace, final String key);
+
+
+    /**
+     * 删除 broker 上的 topic 信息
+     * 
+     * @param addrs
+     * @param topic
+     * @throws RemotingException
+     * @throws MQBrokerException
+     * @throws InterruptedException
+     * @throws MQClientException
+     */
+    public void deleteTopicInBroker(final Set<String> addrs, final String topic) throws RemotingException,
+            MQBrokerException, InterruptedException, MQClientException;
+
+
+    /**
+     * 删除 broker 上的 topic 信息
+     * 
+     * @param addrs
+     * @param topic
+     * @throws RemotingException
+     * @throws MQBrokerException
+     * @throws InterruptedException
+     * @throws MQClientException
+     */
+    public void deleteTopicInNameServer(final Set<String> addrs, final String topic)
+            throws RemotingException, MQBrokerException, InterruptedException, MQClientException;
 }

@@ -44,15 +44,21 @@ public class CommandUtil {
 
         Set<String> brokerNameSet = clusterInfoSerializeWrapper.getClusterAddrTable().get(clusterName);
 
-        for (String brokerName : brokerNameSet) {
-            BrokerData brokerData = clusterInfoSerializeWrapper.getBrokerAddrTable().get(brokerName);
-            if (brokerData != null) {
+        if (brokerNameSet != null) {
+            for (String brokerName : brokerNameSet) {
+                BrokerData brokerData = clusterInfoSerializeWrapper.getBrokerAddrTable().get(brokerName);
+                if (brokerData != null) {
 
-                String addr = brokerData.getBrokerAddrs().get(MixAll.MASTER_ID);
-                if (addr != null) {
-                    masterSet.add(addr);
+                    String addr = brokerData.getBrokerAddrs().get(MixAll.MASTER_ID);
+                    if (addr != null) {
+                        masterSet.add(addr);
+                    }
                 }
             }
+        }
+        else {
+            System.out
+                .printf("[error] Make sure the specified clusterName exists or the nameserver which connected is correct.");
         }
 
         return masterSet;
