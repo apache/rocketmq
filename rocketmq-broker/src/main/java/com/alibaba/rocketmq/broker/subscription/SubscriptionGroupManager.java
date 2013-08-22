@@ -136,4 +136,17 @@ public class SubscriptionGroupManager extends ConfigManager {
     public DataVersion getDataVersion() {
         return dataVersion;
     }
+
+
+    public void deleteSubscriptionGroupConfig(final String groupName) {
+        SubscriptionGroupConfig old = this.subscriptionGroupTable.remove(groupName);
+        if (old != null) {
+            log.info("delete subscription group OK, subscription group: " + old);
+            this.dataVersion.nextVersion();
+            this.persist();
+        }
+        else {
+            log.warn("delete subscription group failed, subscription group: " + old + " not exist");
+        }
+    }
 }

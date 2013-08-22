@@ -122,6 +122,8 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             return this.updateAndCreateSubscriptionGroup(ctx, request);
         case GET_ALL_SUBSCRIPTIONGROUP_CONFIG:
             return this.getAllSubscriptionGroup(ctx, request);
+        case DELETE_SUBSCRIPTIONGROUP:
+            return this.deleteSubscriptionGroup(ctx, request);
 
             // 统计信息，获取Topic统计信息
         case GET_TOPIC_STATS_INFO:
@@ -837,6 +839,24 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         response.setCode(ResponseCode.SUCCESS_VALUE);
         response.setRemark(null);
 
+        return response;
+    }
+
+
+    private RemotingCommand deleteSubscriptionGroup(ChannelHandlerContext ctx, RemotingCommand request)
+            throws RemotingCommandException {
+        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
+        DeleteSubscriptionGroupRequestHeader requestHeader =
+                (DeleteSubscriptionGroupRequestHeader) request
+                    .decodeCommandCustomHeader(DeleteSubscriptionGroupRequestHeader.class);
+
+        log.info("deleteSubscriptionGroup called by {}", RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
+
+        this.brokerController.getSubscriptionGroupManager().deleteSubscriptionGroupConfig(
+            requestHeader.getGroupName());
+
+        response.setCode(ResponseCode.SUCCESS_VALUE);
+        response.setRemark(null);
         return response;
     }
 }
