@@ -18,6 +18,7 @@ package com.alibaba.rocketmq.tools.command;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.alibaba.rocketmq.tools.command.consumer.DeleteSubscriptionGroupCommand;
 import com.alibaba.rocketmq.tools.command.topic.*;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Options;
@@ -61,6 +62,7 @@ public class MQAdminStartup {
         subCommandList.add(new QueryMessageSubCommand());
         subCommandList.add(new WipeWritePermSubCommand());
         subCommandList.add(new DeleteTopicSubCommand());
+        subCommandList.add(new DeleteSubscriptionGroupCommand());
     }
 
 

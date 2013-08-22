@@ -87,9 +87,10 @@ public class DeleteTopicSubCommand implements SubCommand {
 
 
     public static void main(String[] args) {
-        DeleteTopicSubCommand cmd = new DeleteTopicSubCommand();
-        Options options = MixAll.buildCommandlineOptions(new Options());
-        String[] subargs = new String[] { "-n 10.232.26.122:9876", "-t SELF_TEST_TOPIC" };
+	    System.setProperty(MixAll.NAMESRV_ADDR_PROPERTY, "10.232.26.122:9876");
+	    DeleteTopicSubCommand cmd = new DeleteTopicSubCommand();
+	    Options options = MixAll.buildCommandlineOptions(new Options());
+        String[] subargs = new String[] { "-t SELF_TEST_TOPIC", "-c jodie" };
         final CommandLine commandLine =
                 MixAll.parseCmdLine("mqadmin " + cmd.commandName(), subargs,
                     cmd.buildCommandlineOptions(options), new PosixParser());
