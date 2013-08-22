@@ -1,5 +1,6 @@
 package com.alibaba.rocketmq.common.protocol.body;
 
+import com.alibaba.rocketmq.common.DataVersion;
 import com.alibaba.rocketmq.common.subscription.SubscriptionGroupConfig;
 import com.alibaba.rocketmq.remoting.protocol.RemotingSerializable;
 
@@ -14,7 +15,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class SubscriptionGroupWrapper extends RemotingSerializable {
     private ConcurrentHashMap<String, SubscriptionGroupConfig> subscriptionGroupTable =
             new ConcurrentHashMap<String, SubscriptionGroupConfig>(1024);
-
+	private DataVersion dataVersion = new DataVersion();
 
     public ConcurrentHashMap<String, SubscriptionGroupConfig> getSubscriptionGroupTable() {
         return subscriptionGroupTable;
@@ -25,4 +26,12 @@ public class SubscriptionGroupWrapper extends RemotingSerializable {
             ConcurrentHashMap<String, SubscriptionGroupConfig> subscriptionGroupTable) {
         this.subscriptionGroupTable = subscriptionGroupTable;
     }
+
+	public DataVersion getDataVersion() {
+		return dataVersion;
+	}
+
+	public void setDataVersion(DataVersion dataVersion) {
+		this.dataVersion = dataVersion;
+	}
 }

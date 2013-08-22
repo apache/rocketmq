@@ -1186,4 +1186,26 @@ public class MQClientAPIImpl {
 
         throw new MQClientException(response.getCode(), response.getRemark());
     }
+
+
+    public void deleteSubscriptionGroup(final String addr, final String groupName, final long timeoutMillis)
+            throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
+        DeleteSubscriptionGroupRequestHeader requestHeader = new DeleteSubscriptionGroupRequestHeader();
+        requestHeader.setGroupName(groupName);
+        RemotingCommand request =
+                RemotingCommand.createRequestCommand(MQRequestCode.DELETE_SUBSCRIPTIONGROUP_VALUE,
+                    requestHeader);
+
+        RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
+        assert response != null;
+        switch (response.getCode()) {
+        case ResponseCode.SUCCESS_VALUE: {
+            return;
+        }
+        default:
+            break;
+        }
+
+        throw new MQClientException(response.getCode(), response.getRemark());
+    }
 }
