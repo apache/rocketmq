@@ -49,7 +49,7 @@ public class BrokerStatsSubCommand implements SubCommand {
 
     @Override
     public Options buildCommandlineOptions(Options options) {
-        Option opt = new Option("b", "brokerAddr", true, "create topic to which broker");
+        Option opt = new Option("b", "brokerAddr", true, "Broker address");
         opt.setRequired(true);
         options.addOption(opt);
 
