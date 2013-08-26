@@ -614,6 +614,9 @@ public class DefaultMessageStore implements MessageStore {
             result.put("consumeQueueDiskRatio", String.valueOf(logicsRatio));
         }
 
+        result.put("commitLogMinOffset", String.valueOf(DefaultMessageStore.this.getMinPhyOffset()));
+        result.put("commitLogMaxOffset", String.valueOf(DefaultMessageStore.this.getMaxPhyOffset()));
+
         return result;
     }
 
@@ -1730,5 +1733,11 @@ public class DefaultMessageStore implements MessageStore {
         }
 
         return 0;
+    }
+
+
+    @Override
+    public long getMinPhyOffset() {
+        return this.commitLog.getMinOffset();
     }
 }
