@@ -124,6 +124,9 @@ public interface MessageStore {
     public long getMaxPhyOffset();
 
 
+    public long getMinPhyOffset();
+
+
     /**
      * 获取队列中最早的消息时间
      */
