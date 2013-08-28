@@ -21,10 +21,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
-import com.alibaba.rocketmq.client.Validators;
 import org.slf4j.Logger;
 
 import com.alibaba.rocketmq.client.QueryResult;
+import com.alibaba.rocketmq.client.Validators;
 import com.alibaba.rocketmq.client.consumer.DefaultMQPullConsumer;
 import com.alibaba.rocketmq.client.consumer.PullCallback;
 import com.alibaba.rocketmq.client.consumer.PullResult;
@@ -291,7 +291,8 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
             null// 11
             );
 
-        return this.pullAPIWrapper.processPullResult(mq, pullResult, subscriptionData);
+        return this.pullAPIWrapper.processPullResult(mq, pullResult, subscriptionData,
+            DefaultMQPullConsumerImpl.this.mQClientFactory.getMQClientAPIImpl().getProjectGroupPrefix());
     }
 
 
@@ -380,7 +381,9 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
                     @Override
                     public void onSuccess(PullResult pullResult) {
                         pullCallback.onSuccess(DefaultMQPullConsumerImpl.this.pullAPIWrapper
-                            .processPullResult(mq, pullResult, subscriptionData));
+                            .processPullResult(mq, pullResult, subscriptionData,
+                                DefaultMQPullConsumerImpl.this.mQClientFactory.getMQClientAPIImpl()
+                                    .getProjectGroupPrefix()));
                     }
                 });
         }
@@ -546,10 +549,10 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
 
 
     private void checkConfig() throws MQClientException {
-	    // check consumerGroup
-	    Validators.checkGroup(this.defaultMQPullConsumer.getConsumerGroup());
+        // check consumerGroup
+        Validators.checkGroup(this.defaultMQPullConsumer.getConsumerGroup());
 
-	    // consumerGroup
+        // consumerGroup
         if (null == this.defaultMQPullConsumer.getConsumerGroup()) {
             throw new MQClientException("consumerGroup is null" //
                     + FAQUrl.suggestTodo(FAQUrl.CLIENT_PARAMETER_CHECK_URL), //
