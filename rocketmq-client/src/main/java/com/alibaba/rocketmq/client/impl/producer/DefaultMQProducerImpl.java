@@ -22,10 +22,10 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.*;
 
-import com.alibaba.rocketmq.client.Validators;
 import org.slf4j.Logger;
 
 import com.alibaba.rocketmq.client.QueryResult;
+import com.alibaba.rocketmq.client.Validators;
 import com.alibaba.rocketmq.client.exception.MQBrokerException;
 import com.alibaba.rocketmq.client.exception.MQClientException;
 import com.alibaba.rocketmq.client.impl.CommunicationMode;
@@ -102,6 +102,8 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         case CREATE_JUST:
             this.checkConfig();
 
+            Validators.checkGroup(this.defaultMQProducer.getProducerGroup());
+
             this.serviceState = ServiceState.RUNNING;
 
             this.mQClientFactory =
@@ -139,8 +141,8 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
 
     private void checkConfig() throws MQClientException {
-	    // producerGroup 有效性检查
-	    Validators.checkGroup(this.defaultMQProducer.getProducerGroup());
+        // producerGroup 有效性检查
+        Validators.checkGroup(this.defaultMQProducer.getProducerGroup());
 
         if (null == this.defaultMQProducer.getProducerGroup()) {
             throw new MQClientException("producerGroup is null", null);
@@ -308,8 +310,9 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
     public void createTopic(String key, String newTopic, int queueNum) throws MQClientException {
         this.makeSureStateOK();
-        // topic
-        checkTopic(newTopic);
+        // topic 有效性检查
+        Validators.checkTopic(newTopic);
+
         this.mQClientFactory.getMQAdminImpl().createTopic(key, newTopic, queueNum);
     }
 
@@ -373,10 +376,6 @@ public class DefaultMQProducerImpl implements MQProducerInner {
      */
     public void send(Message msg, SendCallback sendCallback) throws MQClientException, RemotingException,
             InterruptedException {
-        this.makeSureStateOK();
-
-        this.checkMessage(msg);
-
         try {
             this.sendDefaultImpl(msg, CommunicationMode.ASYNC, sendCallback);
         }
@@ -391,6 +390,10 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             final CommunicationMode communicationMode,//
             final SendCallback sendCallback//
     ) throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
+        // 有效性检查
+        this.makeSureStateOK();
+        Validators.checkMessage(msg, this.defaultMQProducer);
+
         final long beginTimestamp = System.currentTimeMillis();
         long endTimestamp = beginTimestamp;
         TopicPublishInfo topicPublishInfo = this.tryToFindTopicPublishInfo(msg.getTopic());
@@ -580,46 +583,10 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     }
 
 
-    private void checkMessage(Message msg) throws MQClientException {
-        if (null == msg) {
-            throw new MQClientException("the message is null", null);
-        }
-        // topic
-        checkTopic(msg.getTopic());
-        // body
-        if (null == msg.getBody()) {
-            throw new MQClientException("the message body is null", null);
-        }
-
-        if (0 == msg.getBody().length) {
-            throw new MQClientException("the message body length is zero", null);
-        }
-
-        if (msg.getBody().length > this.defaultMQProducer.getMaxMessageSize()) {
-            throw new MQClientException("the message body size over max value, MAX: "
-                    + this.defaultMQProducer.getMaxMessageSize(), null);
-        }
-    }
-
-
-    private void checkTopic(String topic) throws MQClientException {
-        if (UtilALl.isBlank(topic)) {
-            throw new MQClientException("the specified topic is blank", null);
-        }
-        if (topic.length() > 255) {
-            throw new MQClientException("the specified topic is longer than topic max length 255.", null);
-        }
-    }
-
-
     /**
      * DEFAULT ONEWAY -------------------------------------------------------
      */
     public void sendOneway(Message msg) throws MQClientException, RemotingException, InterruptedException {
-        this.makeSureStateOK();
-
-        this.checkMessage(msg);
-
         try {
             this.sendDefaultImpl(msg, CommunicationMode.ONEWAY, null);
         }
@@ -634,9 +601,9 @@ public class DefaultMQProducerImpl implements MQProducerInner {
      */
     public SendResult send(Message msg, MessageQueue mq) throws MQClientException, RemotingException,
             MQBrokerException, InterruptedException {
+        // 有效性检查
         this.makeSureStateOK();
-
-        this.checkMessage(msg);
+        Validators.checkMessage(msg, this.defaultMQProducer);
 
         if (!msg.getTopic().equals(mq.getTopic())) {
             throw new MQClientException("message's topic not equal mq's topic", null);
@@ -651,9 +618,9 @@ public class DefaultMQProducerImpl implements MQProducerInner {
      */
     public void send(Message msg, MessageQueue mq, SendCallback sendCallback) throws MQClientException,
             RemotingException, InterruptedException {
+        // 有效性检查
         this.makeSureStateOK();
-
-        this.checkMessage(msg);
+        Validators.checkMessage(msg, this.defaultMQProducer);
 
         if (!msg.getTopic().equals(mq.getTopic())) {
             throw new MQClientException("message's topic not equal mq's topic", null);
@@ -673,9 +640,9 @@ public class DefaultMQProducerImpl implements MQProducerInner {
      */
     public void sendOneway(Message msg, MessageQueue mq) throws MQClientException, RemotingException,
             InterruptedException {
+        // 有效性检查
         this.makeSureStateOK();
-
-        this.checkMessage(msg);
+        Validators.checkMessage(msg, this.defaultMQProducer);
 
         try {
             this.sendKernelImpl(msg, mq, CommunicationMode.ONEWAY, null);
@@ -702,6 +669,10 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             final CommunicationMode communicationMode,//
             final SendCallback sendCallback//
     ) throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
+        // 有效性检查
+        this.makeSureStateOK();
+        Validators.checkMessage(msg, this.defaultMQProducer);
+
         TopicPublishInfo topicPublishInfo = this.tryToFindTopicPublishInfo(msg.getTopic());
         if (topicPublishInfo != null && topicPublishInfo.ok()) {
             MessageQueue mq = null;
@@ -754,10 +725,6 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
     public TransactionSendResult sendMessageInTransaction(final Message msg,
             final LocalTransactionExecuter tranExecuter, final Object arg) throws MQClientException {
-        if (null == msg) {
-            throw new MQClientException("msg is null", null);
-        }
-
         if (null == tranExecuter) {
             throw new MQClientException("tranExecuter is null", null);
         }
@@ -851,10 +818,6 @@ public class DefaultMQProducerImpl implements MQProducerInner {
      */
     public SendResult send(Message msg) throws MQClientException, RemotingException, MQBrokerException,
             InterruptedException {
-        this.makeSureStateOK();
-
-        this.checkMessage(msg);
-
         return this.sendDefaultImpl(msg, CommunicationMode.SYNC, null);
     }
 }
