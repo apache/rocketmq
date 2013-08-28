@@ -10,8 +10,7 @@ import com.alibaba.rocketmq.common.UtilALl;
  * @since 2013-8-26
  */
 public class VirtualEnvUtil {
-    public static final String VIRTUAL_APPGROUP_PREFIX = "^%s#";
-    private static final String PROJECT_GROUP_PREFIX_PATTERN = "#[^#]*#";
+    public static final String VIRTUAL_APPGROUP_PREFIX = "%%PROJECT_%s%%";
 
 
     /**
@@ -41,10 +40,11 @@ public class VirtualEnvUtil {
      * 清除虚拟运行环境相关的projectGroupPrefix
      * 
      * @param origin
+     * @param projectGroup
      * @return
      */
-    public static String clearProjectGroup(String origin) {
-        String prefix = Validators.getGroupWithRegularExpression(origin, PROJECT_GROUP_PREFIX_PATTERN);
+    public static String clearProjectGroup(String origin, String projectGroup) {
+        String prefix = String.format(VIRTUAL_APPGROUP_PREFIX, projectGroup);
         if (!UtilALl.isBlank(prefix) && origin.startsWith(prefix)) {
             return origin.substring(prefix.length());
         }
@@ -55,7 +55,7 @@ public class VirtualEnvUtil {
 
 
     public static void main(String[] args) {
-        String str = "#AAA#bbbb";
-        System.out.println(Validators.getGroupWithRegularExpression(str, PROJECT_GROUP_PREFIX_PATTERN));
+        String str = "%PROJECT_AAA%bbbb";
+        System.out.println(clearProjectGroup(str, "AAA"));
     }
 }
