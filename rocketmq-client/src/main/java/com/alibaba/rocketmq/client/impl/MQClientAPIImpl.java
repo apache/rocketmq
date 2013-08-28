@@ -46,9 +46,7 @@ import com.alibaba.rocketmq.common.protocol.MQProtos.MQRequestCode;
 import com.alibaba.rocketmq.common.protocol.MQProtos.MQResponseCode;
 import com.alibaba.rocketmq.common.protocol.body.*;
 import com.alibaba.rocketmq.common.protocol.header.*;
-import com.alibaba.rocketmq.common.protocol.header.namesrv.GetRouteInfoRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.namesrv.WipeWritePermOfBrokerRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.namesrv.WipeWritePermOfBrokerResponseHeader;
+import com.alibaba.rocketmq.common.protocol.header.namesrv.*;
 import com.alibaba.rocketmq.common.protocol.heartbeat.HeartbeatData;
 import com.alibaba.rocketmq.common.protocol.route.BrokerData;
 import com.alibaba.rocketmq.common.protocol.route.QueueData;
@@ -1197,6 +1195,88 @@ public class MQClientAPIImpl {
                     requestHeader);
 
         RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
+        assert response != null;
+        switch (response.getCode()) {
+        case ResponseCode.SUCCESS_VALUE: {
+            return;
+        }
+        default:
+            break;
+        }
+
+        throw new MQClientException(response.getCode(), response.getRemark());
+    }
+
+
+    /**
+     * Name Server: 从Namesrv获取KV配置
+     */
+    public String getKVConfigValue(final String namespace, final String key, final long timeoutMillis)
+            throws RemotingException, MQClientException, InterruptedException {
+        GetKVConfigRequestHeader requestHeader = new GetKVConfigRequestHeader();
+        requestHeader.setNamespace(namespace);
+        requestHeader.setKey(key);
+
+        RemotingCommand request =
+                RemotingCommand.createRequestCommand(MQRequestCode.GET_KV_CONFIG_VALUE, requestHeader);
+
+        RemotingCommand response = this.remotingClient.invokeSync(null, request, timeoutMillis);
+        assert response != null;
+        switch (response.getCode()) {
+        case ResponseCode.SUCCESS_VALUE: {
+            GetKVConfigResponseHeader responseHeader =
+                    (GetKVConfigResponseHeader) response
+                        .decodeCommandCustomHeader(GetKVConfigResponseHeader.class);
+            return responseHeader.getValue();
+        }
+        default:
+            break;
+        }
+
+        throw new MQClientException(response.getCode(), response.getRemark());
+    }
+
+
+    /**
+     * Name Server: 添加KV配置
+     */
+    public void putKVConfigValue(final String namespace, final String key, final String value,
+            final long timeoutMillis) throws RemotingException, MQClientException, InterruptedException {
+        PutKVConfigRequestHeader requestHeader = new PutKVConfigRequestHeader();
+        requestHeader.setNamespace(namespace);
+        requestHeader.setKey(key);
+        requestHeader.setValue(value);
+
+        RemotingCommand request =
+                RemotingCommand.createRequestCommand(MQRequestCode.PUT_KV_CONFIG_VALUE, requestHeader);
+
+        RemotingCommand response = this.remotingClient.invokeSync(null, request, timeoutMillis);
+        assert response != null;
+        switch (response.getCode()) {
+        case ResponseCode.SUCCESS_VALUE: {
+            return;
+        }
+        default:
+            break;
+        }
+
+        throw new MQClientException(response.getCode(), response.getRemark());
+    }
+
+
+    /**
+     * Name Server: 添加KV配置
+     */
+    public void deleteKVConfigValue(final String namespace, final String key, final long timeoutMillis)
+            throws RemotingException, MQClientException, InterruptedException {
+        DeleteKVConfigRequestHeader requestHeader = new DeleteKVConfigRequestHeader();
+        requestHeader.setNamespace(namespace);
+        requestHeader.setKey(key);
+
+        RemotingCommand request =
+                RemotingCommand.createRequestCommand(MQRequestCode.DELETE_KV_CONFIG_VALUE, requestHeader);
+
+        RemotingCommand response = this.remotingClient.invokeSync(null, request, timeoutMillis);
         assert response != null;
         switch (response.getCode()) {
         case ResponseCode.SUCCESS_VALUE: {
