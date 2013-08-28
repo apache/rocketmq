@@ -15,6 +15,8 @@
  */
 package com.alibaba.rocketmq.client.producer;
 
+import com.alibaba.rocketmq.client.VirtualEnvUtil;
+import com.alibaba.rocketmq.common.UtilALl;
 import com.alibaba.rocketmq.common.message.MessageQueue;
 
 
@@ -35,11 +37,17 @@ public class SendResult {
     }
 
 
-    public SendResult(SendStatus sendStatus, String msgId, MessageQueue messageQueue, long queueOffset) {
+    public SendResult(SendStatus sendStatus, String msgId, MessageQueue messageQueue, long queueOffset,
+            String projectGroupPrefix) {
         this.sendStatus = sendStatus;
         this.msgId = msgId;
         this.messageQueue = messageQueue;
         this.queueOffset = queueOffset;
+	    // 清除虚拟运行环境相关的projectGroupPrefix
+        if (!UtilALl.isBlank(projectGroupPrefix)) {
+            this.messageQueue.setTopic(VirtualEnvUtil.clearProjectGroup(this.messageQueue.getTopic(),
+                projectGroupPrefix));
+        }
     }
 
 
