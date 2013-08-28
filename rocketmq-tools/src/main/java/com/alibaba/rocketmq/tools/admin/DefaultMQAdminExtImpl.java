@@ -37,20 +37,11 @@ import com.alibaba.rocketmq.common.admin.TopicStatsTable;
 import com.alibaba.rocketmq.common.help.FAQUrl;
 import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.common.message.MessageQueue;
-import com.alibaba.rocketmq.common.protocol.body.ClusterInfo;
-import com.alibaba.rocketmq.common.protocol.body.ConsumeByWho;
-import com.alibaba.rocketmq.common.protocol.body.ConsumerConnection;
-import com.alibaba.rocketmq.common.protocol.body.KVTable;
-import com.alibaba.rocketmq.common.protocol.body.ProducerConnection;
-import com.alibaba.rocketmq.common.protocol.body.TopicList;
+import com.alibaba.rocketmq.common.protocol.body.*;
 import com.alibaba.rocketmq.common.protocol.route.BrokerData;
 import com.alibaba.rocketmq.common.protocol.route.TopicRouteData;
 import com.alibaba.rocketmq.common.subscription.SubscriptionGroupConfig;
-import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
-import com.alibaba.rocketmq.remoting.exception.RemotingConnectException;
-import com.alibaba.rocketmq.remoting.exception.RemotingException;
-import com.alibaba.rocketmq.remoting.exception.RemotingSendRequestException;
-import com.alibaba.rocketmq.remoting.exception.RemotingTimeoutException;
+import com.alibaba.rocketmq.remoting.exception.*;
 
 
 /**
@@ -351,29 +342,46 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
         return this.mQClientFactory.getMQClientAPIImpl().getBrokerRuntimeInfo(brokerAddr, 3000);
     }
 
-	@Override
-	public void deleteTopicInBroker(Set<String> addrs, String topic) throws RemotingException, MQBrokerException,
-			InterruptedException, MQClientException {
-		for (String addr : addrs) {
-			this.mQClientFactory.getMQClientAPIImpl().deleteTopicInBroker(addr, topic, 3000);
-		}
-	}
+
+    @Override
+    public void deleteTopicInBroker(Set<String> addrs, String topic) throws RemotingException,
+            MQBrokerException, InterruptedException, MQClientException {
+        for (String addr : addrs) {
+            this.mQClientFactory.getMQClientAPIImpl().deleteTopicInBroker(addr, topic, 3000);
+        }
+    }
 
 
-	@Override
-	public void deleteTopicInNameServer(Set<String> addrs, String topic) throws RemotingException,
-			MQBrokerException, InterruptedException, MQClientException {
-		if(addrs == null) {
-			String ns = this.mQClientFactory.getMQClientAPIImpl().fetchNameServerAddr();
-			addrs = new HashSet(Arrays.asList(ns.split(";")));
-		}
-		for (String addr : addrs) {
-			this.mQClientFactory.getMQClientAPIImpl().deleteTopicInNameServer(addr, topic, 3000);
-		}
-	}
+    @Override
+    public void deleteTopicInNameServer(Set<String> addrs, String topic) throws RemotingException,
+            MQBrokerException, InterruptedException, MQClientException {
+        if (addrs == null) {
+            String ns = this.mQClientFactory.getMQClientAPIImpl().fetchNameServerAddr();
+            addrs = new HashSet(Arrays.asList(ns.split(";")));
+        }
+        for (String addr : addrs) {
+            this.mQClientFactory.getMQClientAPIImpl().deleteTopicInNameServer(addr, topic, 3000);
+        }
+    }
 
-	@Override
-	public void deleteSubscriptionGroup(String addr, String groupName) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
-		this.mQClientFactory.getMQClientAPIImpl().deleteSubscriptionGroup(addr, groupName, 3000);
-	}
+
+    @Override
+    public void deleteSubscriptionGroup(String addr, String groupName) throws RemotingException,
+            MQBrokerException, InterruptedException, MQClientException {
+        this.mQClientFactory.getMQClientAPIImpl().deleteSubscriptionGroup(addr, groupName, 3000);
+    }
+
+
+    @Override
+    public void createAndUpdateKvConfig(String namespace, String key, String value) throws RemotingException,
+            MQBrokerException, InterruptedException, MQClientException {
+        this.mQClientFactory.getMQClientAPIImpl().putKVConfigValue(namespace, key, value, 3000);
+    }
+
+
+    @Override
+    public void deleteKvConfig(String namespace, String key) throws RemotingException, MQBrokerException,
+            InterruptedException, MQClientException {
+        this.mQClientFactory.getMQClientAPIImpl().deleteKVConfigValue(namespace, key, 3000);
+    }
 }

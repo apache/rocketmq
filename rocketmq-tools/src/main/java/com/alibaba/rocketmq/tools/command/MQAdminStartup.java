@@ -18,8 +18,6 @@ package com.alibaba.rocketmq.tools.command;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.alibaba.rocketmq.tools.command.consumer.DeleteSubscriptionGroupCommand;
-import com.alibaba.rocketmq.tools.command.topic.*;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.PosixParser;
@@ -36,9 +34,13 @@ import com.alibaba.rocketmq.tools.command.broker.BrokerStatsSubCommand;
 import com.alibaba.rocketmq.tools.command.cluster.ClusterListSubCommand;
 import com.alibaba.rocketmq.tools.command.connection.ConnectionSubCommand;
 import com.alibaba.rocketmq.tools.command.consumer.ConsumeStatsSubCommand;
+import com.alibaba.rocketmq.tools.command.consumer.DeleteSubscriptionGroupCommand;
 import com.alibaba.rocketmq.tools.command.consumer.UpdateSubGroupSubCommand;
 import com.alibaba.rocketmq.tools.command.message.QueryMessageSubCommand;
+import com.alibaba.rocketmq.tools.command.namesrv.DeleteKvConfig;
+import com.alibaba.rocketmq.tools.command.namesrv.UpdateKvConfig;
 import com.alibaba.rocketmq.tools.command.namesrv.WipeWritePermSubCommand;
+import com.alibaba.rocketmq.tools.command.topic.*;
 
 
 /**
@@ -63,6 +65,8 @@ public class MQAdminStartup {
         subCommandList.add(new WipeWritePermSubCommand());
         subCommandList.add(new DeleteTopicSubCommand());
         subCommandList.add(new DeleteSubscriptionGroupCommand());
+        subCommandList.add(new UpdateKvConfig());
+        subCommandList.add(new DeleteKvConfig());
     }
 
 
