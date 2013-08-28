@@ -21,6 +21,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+import com.alibaba.rocketmq.client.Validators;
 import org.slf4j.Logger;
 
 import com.alibaba.rocketmq.client.QueryResult;
@@ -545,7 +546,10 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
 
 
     private void checkConfig() throws MQClientException {
-        // consumerGroup
+	    // check consumerGroup
+	    Validators.checkGroup(this.defaultMQPullConsumer.getConsumerGroup());
+
+	    // consumerGroup
         if (null == this.defaultMQPullConsumer.getConsumerGroup()) {
             throw new MQClientException("consumerGroup is null" //
                     + FAQUrl.suggestTodo(FAQUrl.CLIENT_PARAMETER_CHECK_URL), //
