@@ -41,6 +41,7 @@ import com.alibaba.rocketmq.common.message.Message;
 import com.alibaba.rocketmq.common.message.MessageDecoder;
 import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.common.message.MessageQueue;
+import com.alibaba.rocketmq.common.namesrv.NamesrvUtil;
 import com.alibaba.rocketmq.common.namesrv.TopAddressing;
 import com.alibaba.rocketmq.common.protocol.MQProtos.MQRequestCode;
 import com.alibaba.rocketmq.common.protocol.MQProtos.MQResponseCode;
@@ -55,6 +56,7 @@ import com.alibaba.rocketmq.common.subscription.SubscriptionGroupConfig;
 import com.alibaba.rocketmq.remoting.InvokeCallback;
 import com.alibaba.rocketmq.remoting.RemotingClient;
 import com.alibaba.rocketmq.remoting.common.RemotingHelper;
+import com.alibaba.rocketmq.remoting.common.RemotingUtil;
 import com.alibaba.rocketmq.remoting.exception.*;
 import com.alibaba.rocketmq.remoting.netty.NettyClientConfig;
 import com.alibaba.rocketmq.remoting.netty.NettyRemotingClient;
@@ -1287,5 +1289,15 @@ public class MQClientAPIImpl {
         }
 
         throw new MQClientException(response.getCode(), response.getRemark());
+    }
+
+
+    /**
+     * Name Server: 获取虚拟运行环境相关的project Group
+     */
+    public String getProjectGroupValue(final long timeoutMillis) throws RemotingException, MQClientException,
+            InterruptedException {
+        String localAddress = RemotingUtil.getLocalAddress();
+        return getKVConfigValue(NamesrvUtil.NAMESPACE_VIRTUAL_ENV_CONFIG, localAddress, timeoutMillis);
     }
 }
