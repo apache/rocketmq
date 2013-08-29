@@ -23,6 +23,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
 
 import com.alibaba.rocketmq.client.QueryResult;
+import com.alibaba.rocketmq.client.Validators;
 import com.alibaba.rocketmq.client.consumer.DefaultMQPushConsumer;
 import com.alibaba.rocketmq.client.consumer.PullCallback;
 import com.alibaba.rocketmq.client.consumer.PullResult;
@@ -292,8 +293,10 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
             public void onSuccess(PullResult pullResult) {
                 if (pullResult != null) {
                     pullResult =
-                            DefaultMQPushConsumerImpl.this.pullAPIWrapper.processPullResult(
-                                pullRequest.getMessageQueue(), pullResult, subscriptionData);
+                            DefaultMQPushConsumerImpl.this.pullAPIWrapper.processPullResult(pullRequest
+                                .getMessageQueue(), pullResult, subscriptionData,
+                                DefaultMQPushConsumerImpl.this.mQClientFactory.getMQClientAPIImpl()
+                                    .getProjectGroupPrefix());
 
                     switch (pullResult.getPullStatus()) {
                     case FOUND:
@@ -603,6 +606,9 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
 
 
     private void checkConfig() throws MQClientException {
+        // consumerGroup 有效性检查
+        Validators.checkGroup(this.defaultMQPushConsumer.getConsumerGroup());
+
         // consumerGroup
         if (null == this.defaultMQPushConsumer.getConsumerGroup()) {
             throw new MQClientException("consumerGroup is null" //
