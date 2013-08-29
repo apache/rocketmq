@@ -279,10 +279,10 @@ public class ProcessQueue {
                             break;
                         }
                     }
+                }
 
-                    if (result.isEmpty()) {
-                        consuming = false;
-                    }
+                if (result.isEmpty()) {
+                    consuming = false;
                 }
             }
             finally {
