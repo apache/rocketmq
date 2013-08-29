@@ -535,7 +535,7 @@ public class MQClientFactory {
                     TopicRouteData topicRouteData;
                     if (isDefault && defaultMQProducer != null) {
                         topicRouteData =
-                                this.mQClientAPIImpl.getTopicRouteInfoFromNameServer(
+                                this.mQClientAPIImpl.getDefaultTopicRouteInfoFromNameServer(
                                     defaultMQProducer.getCreateTopicKey(), 1000 * 3);
                         if (topicRouteData != null) {
                             for (QueueData data : topicRouteData.getQueueDatas()) {
