@@ -533,19 +533,19 @@ public class MQClientFactory {
             if (this.lockNamesrv.tryLock(LockTimeoutMillis, TimeUnit.MILLISECONDS)) {
                 try {
                     TopicRouteData topicRouteData;
-                    if (isDefault) {
-                        if (null == defaultMQProducer)
-                            return false;
+                    if (isDefault && defaultMQProducer != null) {
                         topicRouteData =
-                                this.mQClientAPIImpl.getDefaultTopicRouteInfoFromNameServer(
+                                this.mQClientAPIImpl.getTopicRouteInfoFromNameServer(
                                     defaultMQProducer.getCreateTopicKey(), 1000 * 3);
-                        for (QueueData data : topicRouteData.getQueueDatas()) {
-                            // 读写分区个数是一致，故只做一次判断
-                            int queueNums =
-                                    Math.min(defaultMQProducer.getDefaultTopicQueueNums(),
-                                        data.getReadQueueNums());
-                            data.setReadQueueNums(queueNums);
-                            data.setWriteQueueNums(queueNums);
+                        if (topicRouteData != null) {
+                            for (QueueData data : topicRouteData.getQueueDatas()) {
+                                // 读写分区个数是一致，故只做一次判断
+                                int queueNums =
+                                        Math.min(defaultMQProducer.getDefaultTopicQueueNums(),
+                                            data.getReadQueueNums());
+                                data.setReadQueueNums(queueNums);
+                                data.setWriteQueueNums(queueNums);
+                            }
                         }
                     }
                     else {
