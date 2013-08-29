@@ -275,15 +275,45 @@ public interface MQAdminExt extends MQAdmin {
             throws RemotingException, MQBrokerException, InterruptedException, MQClientException;
 
 
-	/**
-	 * 删除 broker 上的 subscription group 信息
-	 * @param addr
-	 * @param groupName
-	 * @throws RemotingException
-	 * @throws MQBrokerException
-	 * @throws InterruptedException
-	 * @throws MQClientException
-	 */
+    /**
+     * 删除 broker 上的 subscription group 信息
+     * 
+     * @param addr
+     * @param groupName
+     * @throws RemotingException
+     * @throws MQBrokerException
+     * @throws InterruptedException
+     * @throws MQClientException
+     */
     public void deleteSubscriptionGroup(final String addr, String groupName) throws RemotingException,
             MQBrokerException, InterruptedException, MQClientException;
+
+
+    /**
+     * 在 namespace 上添加或者更新 KV 配置
+     * 
+     * @param namespace
+     * @param key
+     * @param value
+     * @throws RemotingException
+     * @throws MQBrokerException
+     * @throws InterruptedException
+     * @throws MQClientException
+     */
+    public void createAndUpdateKvConfig(String namespace, String key, String value) throws RemotingException,
+            MQBrokerException, InterruptedException, MQClientException;
+
+
+    /**
+     * 删除 namespace 上的 KV 配置
+     * 
+     * @param namespace
+     * @param key
+     * @throws RemotingException
+     * @throws MQBrokerException
+     * @throws InterruptedException
+     * @throws MQClientException
+     */
+    public void deleteKvConfig(String namespace, String key) throws RemotingException, MQBrokerException,
+            InterruptedException, MQClientException;
 }

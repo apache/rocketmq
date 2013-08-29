@@ -257,8 +257,24 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
         defaultMQAdminExtImpl.deleteTopicInNameServer(addrs, topic);
     }
 
-	@Override
-	public void deleteSubscriptionGroup(String addr, String groupName) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
-		defaultMQAdminExtImpl.deleteSubscriptionGroup(addr, groupName);
-	}
+
+    @Override
+    public void deleteSubscriptionGroup(String addr, String groupName) throws RemotingException,
+            MQBrokerException, InterruptedException, MQClientException {
+        defaultMQAdminExtImpl.deleteSubscriptionGroup(addr, groupName);
+    }
+
+
+    @Override
+    public void createAndUpdateKvConfig(String namespace, String key, String value) throws RemotingException,
+            MQBrokerException, InterruptedException, MQClientException {
+        defaultMQAdminExtImpl.createAndUpdateKvConfig(namespace, key, value);
+    }
+
+
+    @Override
+    public void deleteKvConfig(String namespace, String key) throws RemotingException, MQBrokerException,
+            InterruptedException, MQClientException {
+        defaultMQAdminExtImpl.deleteKvConfig(namespace, key);
+    }
 }
