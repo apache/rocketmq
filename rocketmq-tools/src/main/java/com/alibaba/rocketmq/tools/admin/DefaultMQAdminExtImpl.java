@@ -37,6 +37,7 @@ import com.alibaba.rocketmq.common.admin.TopicStatsTable;
 import com.alibaba.rocketmq.common.help.FAQUrl;
 import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.common.message.MessageQueue;
+import com.alibaba.rocketmq.common.namesrv.NamesrvUtil;
 import com.alibaba.rocketmq.common.protocol.body.*;
 import com.alibaba.rocketmq.common.protocol.route.BrokerData;
 import com.alibaba.rocketmq.common.protocol.route.TopicRouteData;
@@ -383,5 +384,28 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
     public void deleteKvConfig(String namespace, String key) throws RemotingException, MQBrokerException,
             InterruptedException, MQClientException {
         this.mQClientFactory.getMQClientAPIImpl().deleteKVConfigValue(namespace, key, 3000);
+    }
+
+
+    @Override
+    public String getProjectGroupByIp(String ip) throws RemotingException, MQBrokerException,
+            InterruptedException, MQClientException {
+        return this.mQClientFactory.getMQClientAPIImpl().getProjectGroupByIp(ip, 3000);
+    }
+
+
+    @Override
+    public String getIpsByProjectGroup(String projectGroup) throws RemotingException, MQBrokerException,
+            InterruptedException, MQClientException {
+        String namespace = NamesrvUtil.NAMESPACE_PROJECT_CONFIG;
+        return this.mQClientFactory.getMQClientAPIImpl().getKVConfigByValue(namespace, projectGroup, 3000);
+    }
+
+
+    @Override
+    public void deleteIpsByProjectGroup(String projectGroup) throws RemotingException, MQBrokerException,
+            InterruptedException, MQClientException {
+        String namespace = NamesrvUtil.NAMESPACE_PROJECT_CONFIG;
+        this.mQClientFactory.getMQClientAPIImpl().deleteKVConfigByValue(namespace, projectGroup, 3000);
     }
 }
