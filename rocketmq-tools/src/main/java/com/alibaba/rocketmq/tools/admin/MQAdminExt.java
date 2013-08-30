@@ -316,4 +316,45 @@ public interface MQAdminExt extends MQAdmin {
      */
     public void deleteKvConfig(String namespace, String key) throws RemotingException, MQBrokerException,
             InterruptedException, MQClientException;
+
+
+    /**
+     * 通过 server ip 获取 project 信息
+     * 
+     * @param ip
+     * @throws RemotingException
+     * @throws MQBrokerException
+     * @throws InterruptedException
+     * @throws MQClientException
+     * @return
+     */
+    public String getProjectGroupByIp(String ip) throws RemotingException, MQBrokerException,
+            InterruptedException, MQClientException;
+
+
+    /**
+     * 通过 project 获取所有的 server ip 信息
+     * 
+     * @param projectGroup
+     * @throws RemotingException
+     * @throws MQBrokerException
+     * @throws InterruptedException
+     * @throws MQClientException
+     * @return
+     */
+    public String getIpsByProjectGroup(String projectGroup) throws RemotingException, MQBrokerException,
+            InterruptedException, MQClientException;
+
+
+    /**
+     * 删除 project group 对应的所有 server ip
+     * 
+     * @param key
+     * @throws RemotingException
+     * @throws MQBrokerException
+     * @throws InterruptedException
+     * @throws MQClientException
+     */
+    public void deleteIpsByProjectGroup(String key) throws RemotingException, MQBrokerException,
+            InterruptedException, MQClientException;
 }

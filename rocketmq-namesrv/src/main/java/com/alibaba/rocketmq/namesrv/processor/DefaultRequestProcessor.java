@@ -15,8 +15,6 @@
  */
 package com.alibaba.rocketmq.namesrv.processor;
 
-import io.netty.channel.ChannelHandlerContext;
-
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.slf4j.Logger;
@@ -29,17 +27,7 @@ import com.alibaba.rocketmq.common.namesrv.RegisterBrokerResult;
 import com.alibaba.rocketmq.common.protocol.MQProtos.MQRequestCode;
 import com.alibaba.rocketmq.common.protocol.MQProtos.MQResponseCode;
 import com.alibaba.rocketmq.common.protocol.body.TopicConfigSerializeWrapper;
-import com.alibaba.rocketmq.common.protocol.header.namesrv.DeleteKVConfigRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.namesrv.DeleteTopicInNamesrvRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.namesrv.GetKVConfigRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.namesrv.GetKVConfigResponseHeader;
-import com.alibaba.rocketmq.common.protocol.header.namesrv.GetRouteInfoRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.namesrv.PutKVConfigRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.namesrv.RegisterBrokerRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.namesrv.RegisterBrokerResponseHeader;
-import com.alibaba.rocketmq.common.protocol.header.namesrv.UnRegisterBrokerRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.namesrv.WipeWritePermOfBrokerRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.namesrv.WipeWritePermOfBrokerResponseHeader;
+import com.alibaba.rocketmq.common.protocol.header.namesrv.*;
 import com.alibaba.rocketmq.common.protocol.route.TopicRouteData;
 import com.alibaba.rocketmq.namesrv.NamesrvController;
 import com.alibaba.rocketmq.remoting.common.RemotingHelper;
@@ -47,6 +35,7 @@ import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
 import com.alibaba.rocketmq.remoting.netty.NettyRequestProcessor;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 import com.alibaba.rocketmq.remoting.protocol.RemotingProtos.ResponseCode;
+import io.netty.channel.ChannelHandlerContext;
 
 
 /**
@@ -98,6 +87,10 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
             return getAllTopicListFromNameserver(ctx, request);
         case DELETE_TOPIC_IN_NAMESRV:
             return deleteTopicInNamesrv(ctx, request);
+        case GET_KV_CONFIG_BY_VALUE:
+            return getKVConfigByValue(ctx, request);
+        case DELETE_KV_CONFIG_BY_VALUE:
+            return deleteKVConfigByValue(ctx, request);
         default:
             break;
         }
@@ -328,4 +321,50 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
         response.setRemark(null);
         return response;
     }
+
+
+    public RemotingCommand getKVConfigByValue(ChannelHandlerContext ctx, RemotingCommand request)
+            throws RemotingCommandException {
+        final RemotingCommand response =
+                RemotingCommand.createResponseCommand(GetKVConfigResponseHeader.class);
+        final GetKVConfigResponseHeader responseHeader =
+                (GetKVConfigResponseHeader) response.getCustomHeader();
+        final GetKVConfigRequestHeader requestHeader =
+                (GetKVConfigRequestHeader) request.decodeCommandCustomHeader(GetKVConfigRequestHeader.class);
+
+        String value = this.namesrvController.getKvConfigManager().getKVConfigByValue(//
+            requestHeader.getNamespace(),//
+            requestHeader.getKey()//
+            );
+
+        if (value != null) {
+            responseHeader.setValue(value);
+            response.setCode(ResponseCode.SUCCESS_VALUE);
+            response.setRemark(null);
+            return response;
+        }
+
+        response.setCode(MQResponseCode.QUERY_NOT_FOUND_VALUE);
+        response.setRemark("No config item, Namespace: " + requestHeader.getNamespace() + " Key: "
+                + requestHeader.getKey());
+        return response;
+    }
+
+	public RemotingCommand deleteKVConfigByValue(ChannelHandlerContext ctx, RemotingCommand request)
+			throws RemotingCommandException {
+		final RemotingCommand response = RemotingCommand.createResponseCommand(null);
+		final DeleteKVConfigRequestHeader requestHeader =
+				(DeleteKVConfigRequestHeader) request
+						.decodeCommandCustomHeader(DeleteKVConfigRequestHeader.class);
+
+		this.namesrvController.getKvConfigManager().deleteKVConfigByValue(//
+				requestHeader.getNamespace(),//
+				requestHeader.getKey()//
+		);
+
+		response.setCode(ResponseCode.SUCCESS_VALUE);
+		response.setRemark(null);
+		return response;
+	}
+
 }

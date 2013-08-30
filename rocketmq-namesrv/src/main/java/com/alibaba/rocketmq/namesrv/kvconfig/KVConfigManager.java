@@ -17,6 +17,7 @@ package com.alibaba.rocketmq.namesrv.kvconfig;
 
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
@@ -136,6 +137,63 @@ public class KVConfigManager {
         }
 
         return null;
+    }
+
+
+    public String getKVConfigByValue(final String namespace, final String value) {
+        try {
+            this.lock.readLock().lockInterruptibly();
+            try {
+                HashMap<String, String> kvTable = this.configTable.get(namespace);
+                if (null != kvTable) {
+                    StringBuilder sb = new StringBuilder();
+                    String splitor = "";
+                    for (Map.Entry<String, String> entry : kvTable.entrySet()) {
+                        if (value.equals(entry.getValue())) {
+                            sb.append(splitor).append(entry.getKey());
+                            splitor = ";";
+                        }
+                    }
+                    return sb.toString();
+                }
+            }
+            finally {
+                this.lock.readLock().unlock();
+            }
+        }
+        catch (InterruptedException e) {
+            log.error("getIpsByProjectGroup InterruptedException", e);
+        }
+
+        return null;
+    }
+
+
+    public void deleteKVConfigByValue(final String namespace, final String value) {
+        try {
+            this.lock.writeLock().lockInterruptibly();
+            try {
+                HashMap<String, String> kvTable = this.configTable.get(namespace);
+                if (null != kvTable) {
+                    HashMap<String, String> cloneKvTable = new HashMap<String, String>(kvTable);
+                    for (Map.Entry<String, String> entry : cloneKvTable.entrySet()) {
+                        if (value.equals(entry.getValue())) {
+                            kvTable.remove(entry.getKey());
+                        }
+                    }
+                    log.info("deleteIpsByProjectGroup delete a config item, Namespace: {} Key: {} Value: {}", //
+                        namespace, value);
+                }
+            }
+            finally {
+                this.lock.writeLock().unlock();
+            }
+        }
+        catch (InterruptedException e) {
+            log.error("deleteIpsByProjectGroup InterruptedException", e);
+        }
+
+        this.persist();
     }
 
 
