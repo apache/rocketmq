@@ -8,9 +8,12 @@ import org.apache.commons.cli.Options;
 
 
 /**
- * description for com.alibaba.rocketmq.tools.command.namesrv. User: manhong.yqd
+ * 添加或者更新 KV 配置信息
+ *
+ * @author: manhong.yqd<jodie.yqd@gmail.com>
+ * @since: 13-8-29
  */
-public class UpdateKvConfig implements SubCommand {
+public class UpdateKvConfigCommand implements SubCommand {
     @Override
     public String commandName() {
         return "updateKvConfig";

@@ -119,7 +119,11 @@ public final class MQProtos {
         // 从Broker删除Topic配置
         DELETE_TOPIC_IN_BROKER(55, 215),
         // 从Namesrv删除Topic配置
-        DELETE_TOPIC_IN_NAMESRV(56, 216), ;
+        DELETE_TOPIC_IN_NAMESRV(56, 216),
+        // Namesrv 通过 project 获取所有的 server ip 信息
+        GET_KV_CONFIG_BY_VALUE(57, 217),
+        // 删除指定 project group 下的所有 server ip 信息
+        DELETE_KV_CONFIG_BY_VALUE(58, 218);
 
         // Broker 发送消息
         public static final int SEND_MESSAGE_VALUE = 10;
@@ -225,6 +229,10 @@ public final class MQProtos {
         public static final int DELETE_TOPIC_IN_BROKER_VALUE = 215;
         // 从Namesrv删除Topic配置
         public static final int DELETE_TOPIC_IN_NAMESRV_VALUE = 216;
+        // Namesrv 通过 project 获取所有的 server ip 信息
+        public static final int GET_KV_CONFIG_BY_VALUE_VALUE = 217;
+        // Namesrv 删除指定 project group 下的所有 server ip 信息
+        public static final int DELETE_KV_CONFIG_BY_VALUE_VALUE = 218;
 
         private final int index;
         private final int value;
@@ -349,6 +357,10 @@ public final class MQProtos {
                 return DELETE_TOPIC_IN_BROKER;
             case 216:
                 return DELETE_TOPIC_IN_NAMESRV;
+            case 217:
+                return GET_KV_CONFIG_BY_VALUE;
+            case 218:
+                return DELETE_KV_CONFIG_BY_VALUE;
             default:
                 return null;
             }

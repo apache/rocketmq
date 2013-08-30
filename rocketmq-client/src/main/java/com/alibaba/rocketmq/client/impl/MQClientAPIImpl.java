@@ -158,7 +158,8 @@ public class MQClientAPIImpl {
 
         // 获取虚拟运行环境相关的project group
         try {
-            projectGroupPrefix = this.getProjectGroupValue(3000);
+            String localAddress = RemotingUtil.getLocalAddress();
+            projectGroupPrefix = this.getProjectGroupByIp(localAddress, 3000);
         }
         catch (Exception e) {
             log.warn("get project group error.", e);
@@ -1602,11 +1603,67 @@ public class MQClientAPIImpl {
 
 
     /**
-     * Name Server: 获取虚拟运行环境相关的project Group
+     * Name Server: 通过 server ip 获取 project 信息
      */
-    public String getProjectGroupValue(final long timeoutMillis) throws RemotingException, MQClientException,
-            InterruptedException {
-        String localAddress = RemotingUtil.getLocalAddress();
-        return getKVConfigValue(NamesrvUtil.NAMESPACE_VIRTUAL_ENV_CONFIG, localAddress, timeoutMillis);
+    public String getProjectGroupByIp(String ip, final long timeoutMillis) throws RemotingException,
+            MQClientException, InterruptedException {
+        return getKVConfigValue(NamesrvUtil.NAMESPACE_PROJECT_CONFIG, ip, timeoutMillis);
+    }
+
+
+    /**
+     * Name Server: 通过 value 获取所有的 key 信息
+     */
+    public String getKVConfigByValue(final String namespace, String projectGroup, final long timeoutMillis)
+            throws RemotingException, MQClientException, InterruptedException {
+        GetKVConfigRequestHeader requestHeader = new GetKVConfigRequestHeader();
+        requestHeader.setNamespace(namespace);
+        requestHeader.setKey(projectGroup);
+
+        RemotingCommand request =
+                RemotingCommand.createRequestCommand(MQRequestCode.GET_KV_CONFIG_BY_VALUE_VALUE,
+                    requestHeader);
+
+        RemotingCommand response = this.remotingClient.invokeSync(null, request, timeoutMillis);
+        assert response != null;
+        switch (response.getCode()) {
+        case ResponseCode.SUCCESS_VALUE: {
+            GetKVConfigResponseHeader responseHeader =
+                    (GetKVConfigResponseHeader) response
+                        .decodeCommandCustomHeader(GetKVConfigResponseHeader.class);
+            return responseHeader.getValue();
+        }
+        default:
+            break;
+        }
+
+        throw new MQClientException(response.getCode(), response.getRemark());
+    }
+
+
+    /**
+     * Name Server: 删除 value 对应的所有 key
+     */
+    public void deleteKVConfigByValue(final String namespace, final String projectGroup,
+            final long timeoutMillis) throws RemotingException, MQClientException, InterruptedException {
+        DeleteKVConfigRequestHeader requestHeader = new DeleteKVConfigRequestHeader();
+        requestHeader.setNamespace(namespace);
+        requestHeader.setKey(projectGroup);
+
+        RemotingCommand request =
+                RemotingCommand.createRequestCommand(MQRequestCode.DELETE_KV_CONFIG_BY_VALUE_VALUE,
+                    requestHeader);
+
+        RemotingCommand response = this.remotingClient.invokeSync(null, request, timeoutMillis);
+        assert response != null;
+        switch (response.getCode()) {
+        case ResponseCode.SUCCESS_VALUE: {
+            return;
+        }
+        default:
+            break;
+        }
+
+        throw new MQClientException(response.getCode(), response.getRemark());
     }
 }

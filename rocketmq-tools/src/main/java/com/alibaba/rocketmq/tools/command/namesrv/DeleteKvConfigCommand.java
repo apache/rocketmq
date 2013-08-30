@@ -8,9 +8,12 @@ import org.apache.commons.cli.Options;
 
 
 /**
- * description for com.alibaba.rocketmq.tools.command.namesrv. User: manhong.yqd
+ * 删除 KV 配置信息
+ *
+ * @author: manhong.yqd<jodie.yqd@gmail.com>
+ * @since: 13-8-29
  */
-public class DeleteKvConfig implements SubCommand {
+public class DeleteKvConfigCommand implements SubCommand {
     @Override
     public String commandName() {
         return "deleteKvConfig";
