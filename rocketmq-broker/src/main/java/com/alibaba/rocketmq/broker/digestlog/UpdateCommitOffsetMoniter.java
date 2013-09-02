@@ -6,6 +6,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.alibaba.rocketmq.common.protocol.header.UpdateConsumerOffsetRequestHeader;
+import com.alibaba.rocketmq.remoting.common.RemotingHelper;
 
 
 public class UpdateCommitOffsetMoniter {
@@ -17,6 +18,7 @@ public class UpdateCommitOffsetMoniter {
         if (log.isInfoEnabled()) {
             log.info(
                 "client [{}] updateConsumeroffset ConsumerGroup[{}] Topic[{}] QueueId[{}] CommitOffset[{}]",
+                RemotingHelper.parseChannelRemoteAddr(channel),
                 requestHeader.getConsumerGroup(), requestHeader.getTopic(), requestHeader.getQueueId(),
                 requestHeader.getCommitOffset());
         }
