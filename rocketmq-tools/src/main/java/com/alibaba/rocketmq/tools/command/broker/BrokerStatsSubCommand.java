@@ -17,6 +17,7 @@ package com.alibaba.rocketmq.tools.command.broker;
 
 import java.util.Iterator;
 import java.util.Map.Entry;
+import java.util.TreeMap;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
@@ -70,7 +71,11 @@ public class BrokerStatsSubCommand implements SubCommand {
 
             KVTable kvTable = defaultMQAdminExt.fetchBrokerRuntimeStats(brokerAddr);
 
-            Iterator<Entry<String, String>> it = kvTable.getTable().entrySet().iterator();
+            // 为了排序
+            TreeMap<String, String> tmp = new TreeMap<String, String>();
+            tmp.putAll(kvTable.getTable());
+
+            Iterator<Entry<String, String>> it = tmp.entrySet().iterator();
             while (it.hasNext()) {
                 Entry<String, String> next = it.next();
                 System.out.printf("%-32s: %s\n", next.getKey(), next.getValue());
