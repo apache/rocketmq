@@ -62,7 +62,7 @@ public class WipeWritePermSubCommand implements SubCommand {
 
         try {
             defaultMQAdminExt.start();
-            String brokerName = commandLine.getOptionValue('b');
+            String brokerName = commandLine.getOptionValue('b').trim();
             List<String> namesrvList = defaultMQAdminExt.getNameServerAddressList();
             if (namesrvList != null) {
                 for (String namesrvAddr : namesrvList) {

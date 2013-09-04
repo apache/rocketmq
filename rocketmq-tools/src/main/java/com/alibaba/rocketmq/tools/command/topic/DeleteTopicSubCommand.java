@@ -53,10 +53,10 @@ public class DeleteTopicSubCommand implements SubCommand {
         DefaultMQAdminExt adminExt = new DefaultMQAdminExt();
         adminExt.setInstanceName(Long.toString(System.currentTimeMillis()));
         try {
-            String topic = commandLine.getOptionValue('t');
+            String topic = commandLine.getOptionValue('t').trim();
 
             if (commandLine.hasOption('c')) {
-                String clusterName = commandLine.getOptionValue('c');
+                String clusterName = commandLine.getOptionValue('c').trim();
 
                 adminExt.start();
                 // 删除 broker 上的 topic 信息
@@ -67,7 +67,7 @@ public class DeleteTopicSubCommand implements SubCommand {
                 // 删除 NameServer 上的 topic 信息
                 Set<String> nameServerSet = null;
                 if (commandLine.hasOption('n')) {
-                    String[] ns = commandLine.getOptionValue('n').split(";");
+                    String[] ns = commandLine.getOptionValue('n').trim().split(";");
                     nameServerSet = new HashSet(Arrays.asList(ns));
                 }
                 adminExt.deleteTopicInNameServer(nameServerSet, topic);

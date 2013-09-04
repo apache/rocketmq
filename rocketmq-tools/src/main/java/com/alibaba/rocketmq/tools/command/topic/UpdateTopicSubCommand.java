@@ -88,25 +88,25 @@ public class UpdateTopicSubCommand implements SubCommand {
             TopicConfig topicConfig = new TopicConfig();
             topicConfig.setReadQueueNums(8);
             topicConfig.setWriteQueueNums(8);
-            topicConfig.setTopicName(commandLine.getOptionValue('t'));
+            topicConfig.setTopicName(commandLine.getOptionValue('t').trim());
 
             // readQueueNums
             if (commandLine.hasOption('r')) {
-                topicConfig.setReadQueueNums(Integer.parseInt(commandLine.getOptionValue('r')));
+                topicConfig.setReadQueueNums(Integer.parseInt(commandLine.getOptionValue('r').trim()));
             }
 
             // writeQueueNums
             if (commandLine.hasOption('w')) {
-                topicConfig.setWriteQueueNums(Integer.parseInt(commandLine.getOptionValue('w')));
+                topicConfig.setWriteQueueNums(Integer.parseInt(commandLine.getOptionValue('w').trim()));
             }
 
             // perm
             if (commandLine.hasOption('p')) {
-                topicConfig.setPerm(Integer.parseInt(commandLine.getOptionValue('p')));
+                topicConfig.setPerm(Integer.parseInt(commandLine.getOptionValue('p').trim()));
             }
 
             if (commandLine.hasOption('b')) {
-                String addr = commandLine.getOptionValue('b');
+                String addr = commandLine.getOptionValue('b').trim();
 
                 defaultMQAdminExt.start();
                 defaultMQAdminExt.createAndUpdateTopicConfig(addr, topicConfig);
@@ -116,7 +116,7 @@ public class UpdateTopicSubCommand implements SubCommand {
 
             }
             else if (commandLine.hasOption('c')) {
-                String clusterName = commandLine.getOptionValue('c');
+                String clusterName = commandLine.getOptionValue('c').trim();
 
                 defaultMQAdminExt.start();
 

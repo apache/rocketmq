@@ -70,7 +70,7 @@ public class TopicStatsSubCommand implements SubCommand {
         try {
             defaultMQAdminExt.start();
 
-            String topic = commandLine.getOptionValue('t');
+            String topic = commandLine.getOptionValue('t').trim();
             TopicStatsTable topicStatsTable = defaultMQAdminExt.examineTopicStats(topic);
 
             List<MessageQueue> mqList = new LinkedList<MessageQueue>();

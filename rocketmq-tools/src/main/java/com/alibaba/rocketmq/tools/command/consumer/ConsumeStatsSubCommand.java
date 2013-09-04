@@ -70,7 +70,7 @@ public class ConsumeStatsSubCommand implements SubCommand {
         try {
             defaultMQAdminExt.start();
 
-            String consumerGroup = commandLine.getOptionValue('g');
+            String consumerGroup = commandLine.getOptionValue('g').trim();
             ConsumeStats consumeStats = defaultMQAdminExt.examineConsumeStats(consumerGroup);
 
             List<MessageQueue> mqList = new LinkedList<MessageQueue>();

@@ -45,9 +45,9 @@ public class DeleteKvConfigCommand implements SubCommand {
         defaultMQAdminExt.setInstanceName(Long.toString(System.currentTimeMillis()));
         try {
             // namespace
-            String namespace = commandLine.getOptionValue('s');
+            String namespace = commandLine.getOptionValue('s').trim();
             // key name
-            String key = commandLine.getOptionValue('k');
+            String key = commandLine.getOptionValue('k').trim();
 
             defaultMQAdminExt.start();
             defaultMQAdminExt.deleteKvConfig(namespace, key);

@@ -162,13 +162,13 @@ public class QueryMessageSubCommand implements SubCommand {
 
         try {
             if (commandLine.hasOption('i')) {
-                final String msgId = commandLine.getOptionValue('i');
+                final String msgId = commandLine.getOptionValue('i').trim();
                 this.queryById(defaultMQAdminExt, msgId);
             }
             else if (commandLine.hasOption('k') && commandLine.hasOption('t')) {
-                final String topic = commandLine.getOptionValue('t');
-                final String key = commandLine.getOptionValue('k');
-                final String fallbackHours = commandLine.getOptionValue('f');
+                final String topic = commandLine.getOptionValue('t').trim();
+                final String key = commandLine.getOptionValue('k').trim();
+                final String fallbackHours = commandLine.getOptionValue('f').trim();
                 long h = 0;
                 if (fallbackHours != null) {
                     h = Long.parseLong(fallbackHours);

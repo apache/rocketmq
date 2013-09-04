@@ -83,9 +83,9 @@ public class ConnectionSubCommand implements SubCommand {
             if (commandLine.hasOption('p') && commandLine.hasOption('t')) {
                 defaultMQAdminExt.start();
 
-                String topic = commandLine.getOptionValue('t');
+                String topic = commandLine.getOptionValue('t').trim();
 
-                String group = commandLine.getOptionValue('p');
+                String group = commandLine.getOptionValue('p').trim();
 
                 ProducerConnection pc = defaultMQAdminExt.examineProducerConnectionInfo(group, topic);
 
@@ -106,7 +106,7 @@ public class ConnectionSubCommand implements SubCommand {
             else if (commandLine.hasOption('c')) {
                 defaultMQAdminExt.start();
 
-                String group = commandLine.getOptionValue('c');
+                String group = commandLine.getOptionValue('c').trim();
 
                 ConsumerConnection cc = defaultMQAdminExt.examineConsumerConnectionInfo(group);
 

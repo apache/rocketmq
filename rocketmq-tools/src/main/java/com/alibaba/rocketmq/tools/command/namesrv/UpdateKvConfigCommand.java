@@ -49,11 +49,11 @@ public class UpdateKvConfigCommand implements SubCommand {
         defaultMQAdminExt.setInstanceName(Long.toString(System.currentTimeMillis()));
         try {
             // namespace
-            String namespace = commandLine.getOptionValue('s');
+            String namespace = commandLine.getOptionValue('s').trim();
             // key name
-            String key = commandLine.getOptionValue('k');
+            String key = commandLine.getOptionValue('k').trim();
             // key name
-            String value = commandLine.getOptionValue('v');
+            String value = commandLine.getOptionValue('v').trim();
 
             defaultMQAdminExt.start();
             defaultMQAdminExt.createAndUpdateKvConfig(namespace, key, value);

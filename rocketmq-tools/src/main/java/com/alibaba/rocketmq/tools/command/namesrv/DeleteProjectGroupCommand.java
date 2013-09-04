@@ -3,6 +3,7 @@ package com.alibaba.rocketmq.tools.command.namesrv;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
+import org.apache.commons.cli.PosixParser;
 
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.namesrv.NamesrvUtil;
@@ -50,13 +51,13 @@ public class DeleteProjectGroupCommand implements SubCommand {
             String namespace = NamesrvUtil.NAMESPACE_PROJECT_CONFIG;
 
             if (commandLine.hasOption("i")) {
-                String ip = commandLine.getOptionValue('i');
+                String ip = commandLine.getOptionValue('i').trim();
                 defaultMQAdminExt.start();
                 defaultMQAdminExt.deleteKvConfig(namespace, ip);
                 System.out.printf("delete project group from namespace by server ip success.\n");
             }
             else if (commandLine.hasOption("p")) {
-                String project = commandLine.getOptionValue('p');
+                String project = commandLine.getOptionValue('p').trim();
                 defaultMQAdminExt.start();
                 defaultMQAdminExt.deleteIpsByProjectGroup(project);
                 System.out.printf("delete all server ip from namespace by project group success.\n");
@@ -71,5 +72,15 @@ public class DeleteProjectGroupCommand implements SubCommand {
         finally {
             defaultMQAdminExt.shutdown();
         }
+    }
+    public static void main(String[] args) {
+        System.setProperty(MixAll.NAMESRV_ADDR_PROPERTY, "127.0.0.1:9876");
+        DeleteProjectGroupCommand cmd = new DeleteProjectGroupCommand();
+        Options options = MixAll.buildCommandlineOptions(new Options());
+        String[] subargs = new String[] { "-i 10.14.24.165 ","-p devgrouptest" };
+        final CommandLine commandLine =
+                MixAll.parseCmdLine("mqadmin " + cmd.commandName(), subargs,
+                    cmd.buildCommandlineOptions(options), new PosixParser());
+        cmd.execute(commandLine, options);
     }
 }
