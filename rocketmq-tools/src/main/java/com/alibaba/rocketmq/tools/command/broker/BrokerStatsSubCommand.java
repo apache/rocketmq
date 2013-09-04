@@ -66,7 +66,7 @@ public class BrokerStatsSubCommand implements SubCommand {
         try {
             defaultMQAdminExt.start();
 
-            String brokerAddr = commandLine.getOptionValue('b');
+            String brokerAddr = commandLine.getOptionValue('b').trim();
 
             KVTable kvTable = defaultMQAdminExt.fetchBrokerRuntimeStats(brokerAddr);
 

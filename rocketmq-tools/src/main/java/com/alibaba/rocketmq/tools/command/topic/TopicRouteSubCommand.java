@@ -63,7 +63,7 @@ public class TopicRouteSubCommand implements SubCommand {
         try {
             defaultMQAdminExt.start();
 
-            String topic = commandLine.getOptionValue('t');
+            String topic = commandLine.getOptionValue('t').trim();
             TopicRouteData topicRouteData = defaultMQAdminExt.examineTopicRouteInfo(topic);
             String json = topicRouteData.toJson(true);
             System.out.println(json);

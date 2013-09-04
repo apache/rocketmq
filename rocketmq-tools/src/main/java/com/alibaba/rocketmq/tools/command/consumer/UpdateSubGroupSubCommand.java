@@ -106,49 +106,49 @@ public class UpdateSubGroupSubCommand implements SubCommand {
             subscriptionGroupConfig.setConsumeFromMinEnable(false);
 
             // groupName
-            subscriptionGroupConfig.setGroupName(commandLine.getOptionValue('g'));
+            subscriptionGroupConfig.setGroupName(commandLine.getOptionValue('g').trim());
 
             // consumeEnable
             if (commandLine.hasOption('s')) {
                 subscriptionGroupConfig
-                    .setConsumeEnable(Boolean.parseBoolean(commandLine.getOptionValue('s')));
+                    .setConsumeEnable(Boolean.parseBoolean(commandLine.getOptionValue('s').trim()));
             }
 
             // consumeFromMinEnable
             if (commandLine.hasOption('m')) {
                 subscriptionGroupConfig.setConsumeFromMinEnable(Boolean.parseBoolean(commandLine
-                    .getOptionValue('m')));
+                    .getOptionValue('m').trim()));
             }
 
             // consumeBroadcastEnable
             if (commandLine.hasOption('d')) {
                 subscriptionGroupConfig.setConsumeBroadcastEnable(Boolean.parseBoolean(commandLine
-                    .getOptionValue('d')));
+                    .getOptionValue('d').trim()));
             }
 
             // retryQueueNums
             if (commandLine.hasOption('q')) {
-                subscriptionGroupConfig.setRetryQueueNums(Integer.parseInt(commandLine.getOptionValue('q')));
+                subscriptionGroupConfig.setRetryQueueNums(Integer.parseInt(commandLine.getOptionValue('q').trim()));
             }
 
             // retryMaxTimes
             if (commandLine.hasOption('r')) {
-                subscriptionGroupConfig.setRetryMaxTimes(Integer.parseInt(commandLine.getOptionValue('r')));
+                subscriptionGroupConfig.setRetryMaxTimes(Integer.parseInt(commandLine.getOptionValue('r').trim()));
             }
 
             // brokerId
             if (commandLine.hasOption('i')) {
-                subscriptionGroupConfig.setBrokerId(Long.parseLong(commandLine.getOptionValue('i')));
+                subscriptionGroupConfig.setBrokerId(Long.parseLong(commandLine.getOptionValue('i').trim()));
             }
 
             // whichBrokerWhenConsumeSlowly
             if (commandLine.hasOption('w')) {
                 subscriptionGroupConfig.setWhichBrokerWhenConsumeSlowly(Long.parseLong(commandLine
-                    .getOptionValue('w')));
+                    .getOptionValue('w').trim()));
             }
 
             if (commandLine.hasOption('b')) {
-                String addr = commandLine.getOptionValue('b');
+                String addr = commandLine.getOptionValue('b').trim();
 
                 defaultMQAdminExt.start();
 
@@ -159,7 +159,7 @@ public class UpdateSubGroupSubCommand implements SubCommand {
 
             }
             else if (commandLine.hasOption('c')) {
-                String clusterName = commandLine.getOptionValue('c');
+                String clusterName = commandLine.getOptionValue('c').trim();
 
                 defaultMQAdminExt.start();
 

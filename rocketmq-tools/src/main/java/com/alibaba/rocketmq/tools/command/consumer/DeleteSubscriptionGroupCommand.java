@@ -55,10 +55,10 @@ public class DeleteSubscriptionGroupCommand implements SubCommand {
         adminExt.setInstanceName(Long.toString(System.currentTimeMillis()));
         try {
             // groupName
-            String groupName = commandLine.getOptionValue('g');
+            String groupName = commandLine.getOptionValue('g').trim();
 
             if (commandLine.hasOption('b')) {
-                String addr = commandLine.getOptionValue('b');
+                String addr = commandLine.getOptionValue('b').trim();
                 adminExt.start();
 
                 adminExt.deleteSubscriptionGroup(addr, groupName);
@@ -69,7 +69,7 @@ public class DeleteSubscriptionGroupCommand implements SubCommand {
                 return;
             }
             else if (commandLine.hasOption('c')) {
-                String clusterName = commandLine.getOptionValue('c');
+                String clusterName = commandLine.getOptionValue('c').trim();
                 adminExt.start();
 
                 Set<String> masterSet = CommandUtil.fetchMasterAddrByClusterName(adminExt, clusterName);

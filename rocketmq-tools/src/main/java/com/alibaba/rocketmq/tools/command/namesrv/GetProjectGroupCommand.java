@@ -49,13 +49,13 @@ public class GetProjectGroupCommand implements SubCommand {
         defaultMQAdminExt.setInstanceName(Long.toString(System.currentTimeMillis()));
         try {
             if (commandLine.hasOption("i")) {
-                String ip = commandLine.getOptionValue('i');
+                String ip = commandLine.getOptionValue('i').trim();
                 defaultMQAdminExt.start();
                 String project = defaultMQAdminExt.getProjectGroupByIp(ip);
                 System.out.printf("ip=%s, projectGroup=%s\n", ip, project);
             }
             else if (commandLine.hasOption("p")) {
-                String project = commandLine.getOptionValue('p');
+                String project = commandLine.getOptionValue('p').trim();
                 defaultMQAdminExt.start();
                 String ips = defaultMQAdminExt.getIpsByProjectGroup(project);
                 if (UtilALl.isBlank(ips)) {
@@ -78,10 +78,10 @@ public class GetProjectGroupCommand implements SubCommand {
 
 
     public static void main(String[] args) {
-        System.setProperty(MixAll.NAMESRV_ADDR_PROPERTY, "10.232.26.122:9876");
+        System.setProperty(MixAll.NAMESRV_ADDR_PROPERTY, "127.0.0.1:9876");
         GetProjectGroupCommand cmd = new GetProjectGroupCommand();
         Options options = MixAll.buildCommandlineOptions(new Options());
-        String[] subargs = new String[] { "-i 10.7.61.15" };
+        String[] subargs = new String[] { "-i 10.14.24.165","-p devgrouptest" };
         final CommandLine commandLine =
                 MixAll.parseCmdLine("mqadmin " + cmd.commandName(), subargs,
                     cmd.buildCommandlineOptions(options), new PosixParser());
