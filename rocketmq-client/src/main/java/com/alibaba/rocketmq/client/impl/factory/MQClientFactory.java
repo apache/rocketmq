@@ -157,6 +157,7 @@ public class MQClientFactory {
                 }
 
                 this.mQClientAPIImpl.start();
+                updateTopicRouteInfoFromNameServer();
                 this.startScheduledTask();
                 this.pullMessageService.start();
                 this.rebalanceService.start();

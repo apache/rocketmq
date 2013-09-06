@@ -22,6 +22,7 @@ import com.alibaba.rocketmq.client.QueryResult;
 import com.alibaba.rocketmq.client.exception.MQBrokerException;
 import com.alibaba.rocketmq.client.exception.MQClientException;
 import com.alibaba.rocketmq.client.impl.producer.DefaultMQProducerImpl;
+import com.alibaba.rocketmq.client.impl.producer.TopicPublishInfo;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.message.Message;
 import com.alibaba.rocketmq.common.message.MessageExt;
@@ -208,7 +209,9 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
         return this.defaultMQProducerImpl.queryMessage(topic, key, maxNum, begin, end);
     }
 
-
+    public void addTopic(String topic){
+        this.defaultMQProducerImpl.getTopicPublishInfoTable().putIfAbsent(topic, new TopicPublishInfo());
+    }
     public String getProducerGroup() {
         return producerGroup;
     }
