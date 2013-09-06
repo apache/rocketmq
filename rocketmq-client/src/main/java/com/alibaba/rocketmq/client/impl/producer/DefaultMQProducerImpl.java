@@ -820,4 +820,9 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             InterruptedException {
         return this.sendDefaultImpl(msg, CommunicationMode.SYNC, null);
     }
+
+
+    public ConcurrentHashMap<String, TopicPublishInfo> getTopicPublishInfoTable() {
+        return topicPublishInfoTable;
+    }
 }
