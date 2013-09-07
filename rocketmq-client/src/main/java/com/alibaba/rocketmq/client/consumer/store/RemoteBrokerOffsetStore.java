@@ -124,6 +124,8 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
     public void persistAll(Set<MessageQueue> mqs) {
         final HashSet<MessageQueue> unusedMQ = new HashSet<MessageQueue>();
 
+        long times = this.storeTimesTotal.getAndIncrement();
+
         if (mqs != null && !mqs.isEmpty()) {
             for (MessageQueue mq : this.offsetTable.keySet()) {
                 AtomicLong offset = this.offsetTable.get(mq);
@@ -132,8 +134,12 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
                         try {
                             this.updateConsumeOffsetToBroker(mq, offset.get());
                             // 每隔1分钟打印一次消费进度
-                            if ((this.storeTimesTotal.getAndIncrement() % 12) == 0) {
-                                log.info("updateConsumeOffsetToBroker {} {}", mq, offset.get());
+                            if ((times % 12) == 0) {
+                                log.info("Group: {} ClientId: {} updateConsumeOffsetToBroker {} {}", //
+                                    this.groupName,//
+                                    this.mQClientFactory.getClientId(),//
+                                    mq, //
+                                    offset.get());
                             }
                         }
                         catch (Exception e) {
