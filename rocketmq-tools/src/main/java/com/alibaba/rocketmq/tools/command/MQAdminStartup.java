@@ -48,7 +48,7 @@ import com.alibaba.rocketmq.tools.command.topic.*;
  * @since 2013-7-25
  */
 public class MQAdminStartup {
-    private static List<SubCommand> subCommandList = new ArrayList<SubCommand>();
+    protected static List<SubCommand> subCommandList = new ArrayList<SubCommand>();
     static {
         subCommandList.add(new UpdateTopicSubCommand());
         subCommandList.add(new UpdateSubGroupSubCommand());
@@ -65,9 +65,9 @@ public class MQAdminStartup {
         subCommandList.add(new DeleteSubscriptionGroupCommand());
         subCommandList.add(new UpdateKvConfigCommand());
         subCommandList.add(new DeleteKvConfigCommand());
-	    subCommandList.add(new GetProjectGroupCommand());
-	    subCommandList.add(new UpdateProjectGroupCommand());
-	    subCommandList.add(new DeleteProjectGroupCommand());
+        subCommandList.add(new GetProjectGroupCommand());
+        subCommandList.add(new UpdateProjectGroupCommand());
+        subCommandList.add(new DeleteProjectGroupCommand());
     }
 
 
@@ -165,7 +165,7 @@ public class MQAdminStartup {
         System.out.println("The most commonly used mqadmin commands are:");
 
         for (SubCommand cmd : subCommandList) {
-            System.out.printf("   %-16s %s\n", cmd.commandName(), cmd.commandDesc());
+            System.out.printf("   %-20s %s\n", cmd.commandName(), cmd.commandDesc());
         }
 
         System.out.println("\nSee 'mqadmin help <command>' for more information on a specific command.");
