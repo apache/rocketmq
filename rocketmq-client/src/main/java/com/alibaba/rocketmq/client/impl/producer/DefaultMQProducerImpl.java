@@ -511,9 +511,9 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     ) throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
         String brokerAddr = this.mQClientFactory.findBrokerAddressInPublish(mq.getBrokerName());
         if (null == brokerAddr) {
-	        // TODO 此处可能对Name Server压力过大，需要调优
-	        tryToFindTopicPublishInfo(mq.getTopic());
-	        brokerAddr = this.mQClientFactory.findBrokerAddressInPublish(mq.getBrokerName());
+            // TODO 此处可能对Name Server压力过大，需要调优
+            tryToFindTopicPublishInfo(mq.getTopic());
+            brokerAddr = this.mQClientFactory.findBrokerAddressInPublish(mq.getBrokerName());
         }
 
         if (brokerAddr != null) {
@@ -824,5 +824,10 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
     public ConcurrentHashMap<String, TopicPublishInfo> getTopicPublishInfoTable() {
         return topicPublishInfoTable;
+    }
+
+
+    public MQClientFactory getmQClientFactory() {
+        return mQClientFactory;
     }
 }
