@@ -494,7 +494,7 @@ public class MQClientFactory {
     }
 
 
-    private void updateTopicRouteInfoFromNameServer() {
+    public void updateTopicRouteInfoFromNameServer() {
         Set<String> topicList = new HashSet<String>();
 
         // Consumer对象
