@@ -17,9 +17,19 @@ package com.alibaba.rocketmq.client.impl.factory;
 
 import java.net.DatagramSocket;
 import java.net.SocketException;
-import java.util.*;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
-import java.util.concurrent.*;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -29,7 +39,11 @@ import com.alibaba.rocketmq.client.ClientConfig;
 import com.alibaba.rocketmq.client.admin.MQAdminExtInner;
 import com.alibaba.rocketmq.client.exception.MQBrokerException;
 import com.alibaba.rocketmq.client.exception.MQClientException;
-import com.alibaba.rocketmq.client.impl.*;
+import com.alibaba.rocketmq.client.impl.ClientRemotingProcessor;
+import com.alibaba.rocketmq.client.impl.FindBrokerResult;
+import com.alibaba.rocketmq.client.impl.MQAdminImpl;
+import com.alibaba.rocketmq.client.impl.MQClientAPIImpl;
+import com.alibaba.rocketmq.client.impl.MQClientManager;
 import com.alibaba.rocketmq.client.impl.consumer.DefaultMQPushConsumerImpl;
 import com.alibaba.rocketmq.client.impl.consumer.MQConsumerInner;
 import com.alibaba.rocketmq.client.impl.consumer.PullMessageService;
@@ -157,7 +171,6 @@ public class MQClientFactory {
                 }
 
                 this.mQClientAPIImpl.start();
-                updateTopicRouteInfoFromNameServer();
                 this.startScheduledTask();
                 this.pullMessageService.start();
                 this.rebalanceService.start();
