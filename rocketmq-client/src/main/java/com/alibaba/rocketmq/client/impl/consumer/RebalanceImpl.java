@@ -307,6 +307,7 @@ public abstract class RebalanceImpl {
                 List<MessageQueue> allocateResult = null;
                 try {
                     allocateResult = strategy.allocate(this.mQClientFactory.getClientId(), mqAll, cidAll);
+                    log.info("reblance result is [{}] . ConsumerId is [{}],mqAll is[{}],cidAll is [{}]",allocateResult,this.mQClientFactory.getClientId(),mqAll,cidAll);
                 }
                 catch (Throwable e) {
                     log.error("AllocateMessageQueueStrategy.allocate Exception", e);
