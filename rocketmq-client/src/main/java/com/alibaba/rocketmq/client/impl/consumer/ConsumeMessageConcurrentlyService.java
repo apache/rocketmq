@@ -163,6 +163,10 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
             long consumeRT = System.currentTimeMillis() - beginTimestamp;
 
             if (null == status) {
+                log.warn("consumeMessage return null, Group: {} Msgs: {} MQ: {}",//
+                    ConsumeMessageConcurrentlyService.this.consumerGroup,//
+                    msgs,//
+                    messageQueue);
                 status = ConsumeConcurrentlyStatus.RECONSUME_LATER;
             }
 
