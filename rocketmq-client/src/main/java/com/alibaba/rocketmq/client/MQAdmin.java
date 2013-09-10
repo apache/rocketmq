@@ -38,8 +38,6 @@ public interface MQAdmin {
      *            要创建的新topic
      * @param queueNum
      *            新topic队列数
-     * @param order
-     *            是否是严格的顺序消息
      * @throws MQClientException
      */
     public void createTopic(final String key, final String newTopic, final int queueNum)

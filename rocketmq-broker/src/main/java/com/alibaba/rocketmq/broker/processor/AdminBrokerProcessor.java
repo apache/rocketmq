@@ -441,8 +441,17 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
         final CreateTopicRequestHeader requestHeader =
                 (CreateTopicRequestHeader) request.decodeCommandCustomHeader(CreateTopicRequestHeader.class);
-
         log.info("updateAndCreateTopic called by {}", RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
+
+	    // Topic名字是否与保留字段冲突
+	    if (requestHeader.getTopic().equals(this.brokerController.getBrokerConfig().getBrokerClusterName())) {
+		    String errorMsg =
+				    "the topic[" + requestHeader.getTopic() + "] is conflict with system reserved words.";
+		    log.warn(errorMsg);
+		    response.setCode(ResponseCode.SYSTEM_ERROR_VALUE);
+		    response.setRemark(errorMsg);
+		    return response;
+	    }
 
         TopicConfig topicConfig = new TopicConfig(requestHeader.getTopic());
         topicConfig.setReadQueueNums(requestHeader.getReadQueueNums());
