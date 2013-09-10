@@ -36,10 +36,10 @@ public class AllocateMessageQueueAveragely implements AllocateMessageQueueStrate
             throw new IllegalArgumentException("currentCID is empty");
         }
         if (mqAll == null || mqAll.size() < 1) {
-            throw new IllegalArgumentException("mqAll is null or  mqAll'size  less one");
+            throw new IllegalArgumentException("mqAll is null or mqAll size < 1");
         }
         if (cidAll == null || cidAll.size() < 1) {
-            throw new IllegalArgumentException("cidAll is null or  cidAll'size less one");
+            throw new IllegalArgumentException("cidAll is null or cidAll size < 1");
         }
 
         List<MessageQueue> result = new ArrayList<MessageQueue>();
@@ -48,21 +48,14 @@ public class AllocateMessageQueueAveragely implements AllocateMessageQueueStrate
         }
 
         int index = cidAll.indexOf(currentCID);
-        int averageSize = (mqAll.size() <= cidAll.size()) ? 1 : mqAll.size() / cidAll.size();
         int mod = mqAll.size() % cidAll.size();
-        int startIndex = index * averageSize;
-        int endIndex = Math.min((index + 1) * averageSize, mqAll.size());
-        for (int i = startIndex; i < endIndex; i++) {
-            result.add(mqAll.get(i % mqAll.size()));
-        }
-
-        // 如果当前的consumerId最后一个且还有剩下的队列，应该把最后队列都放到当前consumerId队列里
-        boolean isAddRemainQueue = (index == cidAll.size() - 1) && mod > 0;
-        if (isAddRemainQueue) {
-            int messageQueueSize = mqAll.size();
-            for (int i = endIndex; i < messageQueueSize; i++) {
-                result.add(mqAll.get(i));
-            }
+        int averageSize =
+                mqAll.size() <= cidAll.size() ? 1 : (mod > 0 && index < mod ? mqAll.size() / cidAll.size()
+                        + 1 : mqAll.size() / cidAll.size());
+        int startIndex = (mod > 0 && index < mod) ? index * averageSize : index * averageSize + mod;
+        int range = Math.min(averageSize, mqAll.size() - startIndex);
+        for (int i = 0; i < range; i++) {
+            result.add(mqAll.get((startIndex + i) % mqAll.size()));
         }
         return result;
     }
