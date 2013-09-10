@@ -160,9 +160,9 @@ public class MQClientAPIImpl {
         try {
             String localAddress = RemotingUtil.getLocalAddress();
             projectGroupPrefix = this.getProjectGroupByIp(localAddress, 3000);
+            log.info("The client[{}] in project group: {}", localAddress, projectGroupPrefix);
         }
         catch (Exception e) {
-            log.warn("get project group error.", e);
         }
     }
 
@@ -1355,7 +1355,7 @@ public class MQClientAPIImpl {
         assert response != null;
         switch (response.getCode()) {
         case MQResponseCode.TOPIC_NOT_EXIST_VALUE: {
-            log.warn("get Topic [{}]RouteInfoFromNameServer is not exist value",topic);
+            log.warn("get Topic [{}]RouteInfoFromNameServer is not exist value", topic);
             break;
         }
         case ResponseCode.SUCCESS_VALUE: {
