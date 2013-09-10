@@ -110,8 +110,8 @@ public class UpdateSubGroupSubCommand implements SubCommand {
 
             // consumeEnable
             if (commandLine.hasOption('s')) {
-                subscriptionGroupConfig
-                    .setConsumeEnable(Boolean.parseBoolean(commandLine.getOptionValue('s').trim()));
+                subscriptionGroupConfig.setConsumeEnable(Boolean.parseBoolean(commandLine.getOptionValue('s')
+                    .trim()));
             }
 
             // consumeFromMinEnable
@@ -128,12 +128,14 @@ public class UpdateSubGroupSubCommand implements SubCommand {
 
             // retryQueueNums
             if (commandLine.hasOption('q')) {
-                subscriptionGroupConfig.setRetryQueueNums(Integer.parseInt(commandLine.getOptionValue('q').trim()));
+                subscriptionGroupConfig.setRetryQueueNums(Integer.parseInt(commandLine.getOptionValue('q')
+                    .trim()));
             }
 
             // retryMaxTimes
             if (commandLine.hasOption('r')) {
-                subscriptionGroupConfig.setRetryMaxTimes(Integer.parseInt(commandLine.getOptionValue('r').trim()));
+                subscriptionGroupConfig.setRetryMaxTimes(Integer.parseInt(commandLine.getOptionValue('r')
+                    .trim()));
             }
 
             // brokerId

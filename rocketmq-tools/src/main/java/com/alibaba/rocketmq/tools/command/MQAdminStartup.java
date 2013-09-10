@@ -18,7 +18,6 @@ package com.alibaba.rocketmq.tools.command;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.alibaba.rocketmq.tools.command.namesrv.*;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.PosixParser;
@@ -38,7 +37,17 @@ import com.alibaba.rocketmq.tools.command.consumer.ConsumeStatsSubCommand;
 import com.alibaba.rocketmq.tools.command.consumer.DeleteSubscriptionGroupCommand;
 import com.alibaba.rocketmq.tools.command.consumer.UpdateSubGroupSubCommand;
 import com.alibaba.rocketmq.tools.command.message.QueryMessageSubCommand;
-import com.alibaba.rocketmq.tools.command.topic.*;
+import com.alibaba.rocketmq.tools.command.namesrv.DeleteKvConfigCommand;
+import com.alibaba.rocketmq.tools.command.namesrv.DeleteProjectGroupCommand;
+import com.alibaba.rocketmq.tools.command.namesrv.GetProjectGroupCommand;
+import com.alibaba.rocketmq.tools.command.namesrv.UpdateKvConfigCommand;
+import com.alibaba.rocketmq.tools.command.namesrv.UpdateProjectGroupCommand;
+import com.alibaba.rocketmq.tools.command.namesrv.WipeWritePermSubCommand;
+import com.alibaba.rocketmq.tools.command.topic.DeleteTopicSubCommand;
+import com.alibaba.rocketmq.tools.command.topic.TopicListSubCommand;
+import com.alibaba.rocketmq.tools.command.topic.TopicRouteSubCommand;
+import com.alibaba.rocketmq.tools.command.topic.TopicStatsSubCommand;
+import com.alibaba.rocketmq.tools.command.topic.UpdateTopicSubCommand;
 
 
 /**
