@@ -1,9 +1,23 @@
+/**
+ * Copyright (C) 2010-2013 Alibaba Group Holding Limited
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.alibaba.rocketmq.tools.command.namesrv;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
-import org.apache.commons.cli.PosixParser;
 
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.namesrv.NamesrvUtil;
@@ -63,7 +77,7 @@ public class DeleteProjectGroupCommand implements SubCommand {
                 System.out.printf("delete all server ip from namespace by project group success.\n");
             }
             else {
-	            MixAll.printCommandLineHelp("mqadmin " + this.commandName(), options);
+                MixAll.printCommandLineHelp("mqadmin " + this.commandName(), options);
             }
         }
         catch (Exception e) {
@@ -72,15 +86,5 @@ public class DeleteProjectGroupCommand implements SubCommand {
         finally {
             defaultMQAdminExt.shutdown();
         }
-    }
-    public static void main(String[] args) {
-        System.setProperty(MixAll.NAMESRV_ADDR_PROPERTY, "127.0.0.1:9876");
-        DeleteProjectGroupCommand cmd = new DeleteProjectGroupCommand();
-        Options options = MixAll.buildCommandlineOptions(new Options());
-        String[] subargs = new String[] { "-i 10.14.24.165 ","-p devgrouptest" };
-        final CommandLine commandLine =
-                MixAll.parseCmdLine("mqadmin " + cmd.commandName(), subargs,
-                    cmd.buildCommandlineOptions(options), new PosixParser());
-        cmd.execute(commandLine, options);
     }
 }
