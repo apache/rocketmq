@@ -5,6 +5,7 @@ import java.util.regex.Pattern;
 
 import com.alibaba.rocketmq.client.exception.MQClientException;
 import com.alibaba.rocketmq.client.producer.DefaultMQProducer;
+import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.UtilALl;
 import com.alibaba.rocketmq.common.message.Message;
 
@@ -17,6 +18,7 @@ import com.alibaba.rocketmq.common.message.Message;
  */
 public class Validators {
     public static final String validPatternStr = "^[a-zA-Z0-9_-]+$";
+    public static final int CHARACTER_MAX_LENGTH = 255;
 
 
     /**
@@ -71,8 +73,14 @@ public class Validators {
                 "the specified topic[%s] contains illegal characters, allowing only %s", topic,
                 validPatternStr), null);
         }
-        if (topic.length() > 255) {
+        if (topic.length() > CHARACTER_MAX_LENGTH) {
             throw new MQClientException("the specified topic is longer than topic max length 255.", null);
+        }
+
+        // Topic名字是否与保留字段冲突
+        if (topic.equals(MixAll.DEFAULT_TOPIC)) {
+            throw new MQClientException(
+                String.format("the topic[%s] is conflict with default topic.", topic), null);
         }
     }
 
@@ -92,7 +100,7 @@ public class Validators {
                 "the specified group[%s] contains illegal characters, allowing only %s", group,
                 validPatternStr), null);
         }
-        if (group.length() > 255) {
+        if (group.length() > CHARACTER_MAX_LENGTH) {
             throw new MQClientException("the specified group is longer than group max length 255.", null);
         }
     }
@@ -125,16 +133,5 @@ public class Validators {
             throw new MQClientException("the message body size over max value, MAX: "
                     + defaultMQProducer.getMaxMessageSize(), null);
         }
-    }
-
-
-    public static void main(String[] args) {
-        String pattern = "^(?![-_])(?!.*[-_]$)[a-zA-Z0-9_-]+$";
-        System.out.println(regularExpressionMatcher("aaaa_", pattern));
-        System.out.println(regularExpressionMatcher("_aaaa", pattern));
-        System.out.println(regularExpressionMatcher("aaaa-", pattern));
-        System.out.println(regularExpressionMatcher("-aaaa", pattern));
-        System.out.println(regularExpressionMatcher("aaaa-aa_000", pattern));
-        System.out.println(regularExpressionMatcher("000", pattern));
     }
 }
