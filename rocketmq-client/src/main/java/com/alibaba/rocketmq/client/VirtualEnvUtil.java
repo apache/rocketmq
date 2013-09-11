@@ -23,8 +23,8 @@ public class VirtualEnvUtil {
     public static String buildWithProjectGroup(String origin, String projectGroup) {
         if (!UtilALl.isBlank(projectGroup)) {
             String prefix = String.format(VIRTUAL_APPGROUP_PREFIX, projectGroup);
-            if (!origin.startsWith(prefix)) {
-                return prefix + origin;
+            if (!origin.endsWith(prefix)) {
+                return origin + prefix;
             }
             else {
                 return origin;
@@ -45,8 +45,8 @@ public class VirtualEnvUtil {
      */
     public static String clearProjectGroup(String origin, String projectGroup) {
         String prefix = String.format(VIRTUAL_APPGROUP_PREFIX, projectGroup);
-        if (!UtilALl.isBlank(prefix) && origin.startsWith(prefix)) {
-            return origin.substring(prefix.length());
+        if (!UtilALl.isBlank(prefix) && origin.endsWith(prefix)) {
+            return origin.substring(0, origin.lastIndexOf(prefix));
         }
         else {
             return origin;
@@ -55,7 +55,9 @@ public class VirtualEnvUtil {
 
 
     public static void main(String[] args) {
-        String str = "%PROJECT_AAA%bbbb";
-        System.out.println(clearProjectGroup(str, "AAA"));
+        String ori = "bbbb";
+        String str = buildWithProjectGroup(ori, "AAA");
+        System.out.println("build=" + str);
+        System.out.println("ori=" + clearProjectGroup(str, "AAA"));
     }
 }
