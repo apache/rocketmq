@@ -5,9 +5,7 @@ import java.util.List;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
-import org.apache.commons.cli.PosixParser;
 
-import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.UtilALl;
 import com.alibaba.rocketmq.common.admin.RollbackStats;
 import com.alibaba.rocketmq.tools.admin.DefaultMQAdminExt;
@@ -108,19 +106,5 @@ public class RollbackByTimeStampCommand implements SubCommand {
         finally {
             defaultMQAdminExt.shutdown();
         }
-    }
-
-
-    public static void main(String[] args) {
-        System.setProperty(MixAll.NAMESRV_ADDR_PROPERTY, "10.232.26.122:9876");
-        RollbackByTimeStampCommand cmd = new RollbackByTimeStampCommand();
-        Options options = MixAll.buildCommandlineOptions(new Options());
-        String[] subargs =
-                new String[] { "-g qatest_consumer", "-t qatest_TopicTest", "-s 2013-09-12 17:15:03:000",
-                              "-f true" };
-        final CommandLine commandLine =
-                MixAll.parseCmdLine("mqadmin " + cmd.commandName(), subargs,
-                    cmd.buildCommandlineOptions(options), new PosixParser());
-        cmd.execute(commandLine, options);
     }
 }
