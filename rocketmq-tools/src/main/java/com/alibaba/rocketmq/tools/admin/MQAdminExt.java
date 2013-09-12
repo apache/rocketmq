@@ -23,27 +23,18 @@ import com.alibaba.rocketmq.client.exception.MQBrokerException;
 import com.alibaba.rocketmq.client.exception.MQClientException;
 import com.alibaba.rocketmq.common.TopicConfig;
 import com.alibaba.rocketmq.common.admin.ConsumeStats;
+import com.alibaba.rocketmq.common.admin.RollbackStats;
 import com.alibaba.rocketmq.common.admin.TopicStatsTable;
-import com.alibaba.rocketmq.common.protocol.body.ClusterInfo;
-import com.alibaba.rocketmq.common.protocol.body.ConsumeByWho;
-import com.alibaba.rocketmq.common.protocol.body.ConsumerConnection;
-import com.alibaba.rocketmq.common.protocol.body.KVTable;
-import com.alibaba.rocketmq.common.protocol.body.ProducerConnection;
-import com.alibaba.rocketmq.common.protocol.body.TopicList;
+import com.alibaba.rocketmq.common.protocol.body.*;
 import com.alibaba.rocketmq.common.protocol.route.TopicRouteData;
 import com.alibaba.rocketmq.common.subscription.SubscriptionGroupConfig;
-import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
-import com.alibaba.rocketmq.remoting.exception.RemotingConnectException;
-import com.alibaba.rocketmq.remoting.exception.RemotingException;
-import com.alibaba.rocketmq.remoting.exception.RemotingSendRequestException;
-import com.alibaba.rocketmq.remoting.exception.RemotingTimeoutException;
+import com.alibaba.rocketmq.remoting.exception.*;
 
 
 /**
  * MQ管理类接口，涉及所有与MQ管理相关的对外接口<br>
  * 包括Topic创建、订阅组创建、配置修改等
  * 
- * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-14
  */
 public interface MQAdminExt extends MQAdmin {
@@ -366,4 +357,22 @@ public interface MQAdminExt extends MQAdmin {
      */
     public void deleteIpsByProjectGroup(String key) throws RemotingException, MQBrokerException,
             InterruptedException, MQClientException;
+
+
+    /**
+     * 按照时间回溯消费进度
+     * 
+     * @param consumerGroup
+     * @param topic
+     * @param timestamp
+     * @param force
+     * @throws RemotingException
+     * @throws MQBrokerException
+     * @throws InterruptedException
+     * @throws MQClientException
+     * @return
+     */
+    public List<RollbackStats> rollbackConsumerOffset(String consumerGroup, String topic, long timestamp,
+            boolean force) throws RemotingException, MQBrokerException, InterruptedException,
+            MQClientException;
 }
