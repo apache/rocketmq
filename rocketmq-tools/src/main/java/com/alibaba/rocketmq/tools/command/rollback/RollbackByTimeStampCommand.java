@@ -63,15 +63,44 @@ public class RollbackByTimeStampCommand implements SubCommand {
         try {
             String consumerGroup = commandLine.getOptionValue("g").trim();
             String topic = commandLine.getOptionValue("t").trim();
-	        long timestamp = Long.valueOf(commandLine.getOptionValue("s").trim());
-	        boolean force = Boolean.valueOf(commandLine.getOptionValue("f").trim());
+            String timeStampStr = commandLine.getOptionValue("s").trim();
+            long timestamp = 0;
+            try {
+                // 直接输入 long 类型的 timestamp
+                timestamp = Long.valueOf(timeStampStr);
+            }
+            catch (NumberFormatException e) {
+                // 输入的为日期格式，精确到毫秒
+                timestamp = UtilALl.parseDate(timeStampStr, UtilALl.yyyy_MM_dd_HH_mm_ss_SSS).getTime();
+            }
+            boolean force = Boolean.valueOf(commandLine.getOptionValue("f").trim());
             defaultMQAdminExt.start();
             List<RollbackStats> rollbackStatsList =
                     defaultMQAdminExt.rollbackConsumerOffset(consumerGroup, topic, timestamp, force);
             System.out
                 .printf(
-                    "rollback consumer offset by specified consumerGroup[%s], topic[%s], timestamp[%s]\n",
-                    consumerGroup, topic, timestamp);
+                    "rollback consumer offset by specified consumerGroup[%s], topic[%s], timestamp(string)[%s], timestamp(long)[%s]\n",
+                    consumerGroup, topic, timeStampStr, timestamp);
+
+            System.out.printf("%-20s  %-20s  %-20s  %-20s  %-20s  %-20s\n",//
+                "#brokerName",//
+                "#queueId",//
+                "#brokerOffset",//
+                "#consumerOffset",//
+                "#timestampOffset",//
+                "#rollbackOffset" //
+            );
+
+            for (RollbackStats rollbackStats : rollbackStatsList) {
+                System.out.printf("%-20s  %-20d  %-20d  %-20d  %-20d  %-20d\n",//
+                    UtilALl.frontStringAtLeast(rollbackStats.getBrokerName(), 32),//
+                    rollbackStats.getQueueId(),//
+                    rollbackStats.getBrokerOffset(),//
+                    rollbackStats.getConsumerOffset(),//
+                    rollbackStats.getTimestampOffset(),//
+                    rollbackStats.getRollbackOffset() //
+                    );
+            }
         }
         catch (Exception e) {
             e.printStackTrace();
