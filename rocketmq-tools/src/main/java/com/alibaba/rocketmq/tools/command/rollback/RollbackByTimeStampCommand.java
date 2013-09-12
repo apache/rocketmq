@@ -43,7 +43,7 @@ public class RollbackByTimeStampCommand implements SubCommand {
 
         opt =
                 new Option("s", "timestamp", true,
-                    "set the timestamp[currentTimeMillis|yyyy-MM-dd HH:mm:ss:SSS]");
+                    "set the timestamp[currentTimeMillis|yyyy-MM-dd#HH:mm:ss:SSS]");
         opt.setRequired(true);
         options.addOption(opt);
 
@@ -77,8 +77,8 @@ public class RollbackByTimeStampCommand implements SubCommand {
                     defaultMQAdminExt.rollbackConsumerOffset(consumerGroup, topic, timestamp, force);
             System.out
                 .printf(
-		                "rollback consumer offset by specified consumerGroup[%s], topic[%s], force[%s], timestamp(string)[%s], timestamp(long)[%s]\n",
-		                consumerGroup, topic, force, timeStampStr, timestamp);
+                    "rollback consumer offset by specified consumerGroup[%s], topic[%s], force[%s], timestamp(string)[%s], timestamp(long)[%s]\n",
+                    consumerGroup, topic, force, timeStampStr, timestamp);
 
             System.out.printf("%-20s  %-20s  %-20s  %-20s  %-20s  %-20s\n",//
                 "#brokerName",//
