@@ -36,10 +36,21 @@ import com.alibaba.rocketmq.tools.command.connection.ConnectionSubCommand;
 import com.alibaba.rocketmq.tools.command.consumer.ConsumeStatsSubCommand;
 import com.alibaba.rocketmq.tools.command.consumer.DeleteSubscriptionGroupCommand;
 import com.alibaba.rocketmq.tools.command.consumer.UpdateSubGroupSubCommand;
-import com.alibaba.rocketmq.tools.command.message.QueryMessageSubCommand;
-import com.alibaba.rocketmq.tools.command.namesrv.*;
+import com.alibaba.rocketmq.tools.command.message.QueryMsgByIdSubCommand;
+import com.alibaba.rocketmq.tools.command.message.QueryMsgByKeySubCommand;
+import com.alibaba.rocketmq.tools.command.message.QueryMsgByOffsetSubCommand;
+import com.alibaba.rocketmq.tools.command.namesrv.DeleteKvConfigCommand;
+import com.alibaba.rocketmq.tools.command.namesrv.DeleteProjectGroupCommand;
+import com.alibaba.rocketmq.tools.command.namesrv.GetProjectGroupCommand;
+import com.alibaba.rocketmq.tools.command.namesrv.UpdateKvConfigCommand;
+import com.alibaba.rocketmq.tools.command.namesrv.UpdateProjectGroupCommand;
+import com.alibaba.rocketmq.tools.command.namesrv.WipeWritePermSubCommand;
 import com.alibaba.rocketmq.tools.command.rollback.RollbackByTimeStampCommand;
-import com.alibaba.rocketmq.tools.command.topic.*;
+import com.alibaba.rocketmq.tools.command.topic.DeleteTopicSubCommand;
+import com.alibaba.rocketmq.tools.command.topic.TopicListSubCommand;
+import com.alibaba.rocketmq.tools.command.topic.TopicRouteSubCommand;
+import com.alibaba.rocketmq.tools.command.topic.TopicStatsSubCommand;
+import com.alibaba.rocketmq.tools.command.topic.UpdateTopicSubCommand;
 
 
 /**
@@ -60,7 +71,9 @@ public class MQAdminStartup {
         subCommandList.add(new BrokerStatsSubCommand());
         subCommandList.add(new ConsumeStatsSubCommand());
         subCommandList.add(new ConnectionSubCommand());
-        subCommandList.add(new QueryMessageSubCommand());
+        subCommandList.add(new QueryMsgByIdSubCommand());
+        subCommandList.add(new QueryMsgByKeySubCommand());
+        subCommandList.add(new QueryMsgByOffsetSubCommand());
         subCommandList.add(new WipeWritePermSubCommand());
         subCommandList.add(new DeleteTopicSubCommand());
         subCommandList.add(new DeleteSubscriptionGroupCommand());

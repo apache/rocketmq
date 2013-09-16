@@ -19,10 +19,8 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 
-import com.alibaba.rocketmq.client.QueryResult;
 import com.alibaba.rocketmq.client.exception.MQBrokerException;
 import com.alibaba.rocketmq.client.exception.MQClientException;
-import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.UtilALl;
 import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.remoting.common.RemotingHelper;
@@ -32,48 +30,36 @@ import com.alibaba.rocketmq.tools.command.SubCommand;
 
 
 /**
- * 根据消息Id或者消息Key查询消息
+ * 根据消息Id查询消息
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-8-12
  */
-public class QueryMessageSubCommand implements SubCommand {
+public class QueryMsgByIdSubCommand implements SubCommand {
 
     @Override
     public String commandName() {
-        return "queryMessage";
+        return "queryMsgById";
     }
 
 
     @Override
     public String commandDesc() {
-        return "Query Message by Id or Key";
+        return "Query Message by Id";
     }
 
 
     @Override
     public Options buildCommandlineOptions(Options options) {
-        Option opt = new Option("t", "topic", true, "topic name");
-        opt.setRequired(false);
-        options.addOption(opt);
-
-        opt = new Option("i", "msgId", true, "Message Id");
-        opt.setRequired(false);
-        options.addOption(opt);
-
-        opt = new Option("k", "msgKey", true, "Message Key");
-        opt.setRequired(false);
-        options.addOption(opt);
-
-        opt = new Option("f", "fallbackHours", true, "Fallback Hours");
-        opt.setRequired(false);
+        Option opt = new Option("i", "msgId", true, "Message Id");
+        opt.setRequired(true);
         options.addOption(opt);
 
         return options;
     }
 
 
-    void queryById(final DefaultMQAdminExt admin, final String msgId) throws MQClientException,
+    public static void queryById(final DefaultMQAdminExt admin, final String msgId) throws MQClientException,
             RemotingException, MQBrokerException, InterruptedException {
         admin.start();
         MessageExt msg = admin.viewMessage(msgId);
@@ -132,25 +118,6 @@ public class QueryMessageSubCommand implements SubCommand {
             "System Flag:",//
             msg.getSysFlag()//
             );
-
-    }
-
-
-    void queryByKey(final DefaultMQAdminExt admin, final String topic, final String key,
-            final long fallbackHours) throws MQClientException, InterruptedException {
-        admin.start();
-
-        long end = System.currentTimeMillis() - (fallbackHours * 60 * 60 * 1000);
-        long begin = end - (6 * 60 * 60 * 1000);
-
-        QueryResult queryResult = admin.queryMessage(topic, key, 32, begin, end);
-        System.out.printf("%-50s %-4s  %s\n",//
-            "#Message ID",//
-            "#QID",//
-            "#Offset");
-        for (MessageExt msg : queryResult.getMessageList()) {
-            System.out.printf("%-50s %-4d %d\n", msg.getMsgId(), msg.getQueueId(), msg.getQueueOffset());
-        }
     }
 
 
@@ -161,23 +128,8 @@ public class QueryMessageSubCommand implements SubCommand {
         defaultMQAdminExt.setInstanceName(Long.toString(System.currentTimeMillis()));
 
         try {
-            if (commandLine.hasOption('i')) {
-                final String msgId = commandLine.getOptionValue('i').trim();
-                this.queryById(defaultMQAdminExt, msgId);
-            }
-            else if (commandLine.hasOption('k') && commandLine.hasOption('t')) {
-                final String topic = commandLine.getOptionValue('t').trim();
-                final String key = commandLine.getOptionValue('k').trim();
-                final String fallbackHours = commandLine.getOptionValue('f').trim();
-                long h = 0;
-                if (fallbackHours != null) {
-                    h = Long.parseLong(fallbackHours);
-                }
-                this.queryByKey(defaultMQAdminExt, topic, key, h);
-            }
-            else {
-                MixAll.printCommandLineHelp("mqadmin " + this.commandName(), options);
-            }
+            final String msgId = commandLine.getOptionValue('i').trim();
+            queryById(defaultMQAdminExt, msgId);
         }
         catch (Exception e) {
             e.printStackTrace();
