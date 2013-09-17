@@ -63,26 +63,31 @@ public class MQAdminStartup {
     protected static List<SubCommand> subCommandList = new ArrayList<SubCommand>();
     static {
         subCommandList.add(new UpdateTopicSubCommand());
+        subCommandList.add(new DeleteTopicSubCommand());
         subCommandList.add(new UpdateSubGroupSubCommand());
-        subCommandList.add(new ClusterListSubCommand());
+        subCommandList.add(new DeleteSubscriptionGroupCommand());
+
         subCommandList.add(new TopicRouteSubCommand());
         subCommandList.add(new TopicStatsSubCommand());
-        subCommandList.add(new TopicListSubCommand());
+
         subCommandList.add(new BrokerStatsSubCommand());
         subCommandList.add(new ConsumeStatsSubCommand());
         subCommandList.add(new ConnectionSubCommand());
         subCommandList.add(new QueryMsgByIdSubCommand());
         subCommandList.add(new QueryMsgByKeySubCommand());
         subCommandList.add(new QueryMsgByOffsetSubCommand());
-        subCommandList.add(new WipeWritePermSubCommand());
-        subCommandList.add(new DeleteTopicSubCommand());
-        subCommandList.add(new DeleteSubscriptionGroupCommand());
+
+        subCommandList.add(new ClusterListSubCommand());
+        subCommandList.add(new TopicListSubCommand());
+
         subCommandList.add(new UpdateKvConfigCommand());
         subCommandList.add(new DeleteKvConfigCommand());
-        subCommandList.add(new GetProjectGroupCommand());
+
         subCommandList.add(new UpdateProjectGroupCommand());
         subCommandList.add(new DeleteProjectGroupCommand());
+        subCommandList.add(new GetProjectGroupCommand());
         subCommandList.add(new RollbackByTimeStampCommand());
+        subCommandList.add(new WipeWritePermSubCommand());
     }
 
 
