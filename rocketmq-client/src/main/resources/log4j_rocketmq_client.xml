@@ -12,7 +12,7 @@
 		</layout>
 	</appender>
 
-	<appender name="RocketmqClientAppender" class="com.alibaba.common.logging.spi.log4j.DailyRollingFileAppender">
+	<appender name="RocketmqClientAppender" class="org.apache.log4j.DailyRollingFileAppender">
 		<param name="file" value="${user.home}/logs/rocketmqlogs/rocketmq_client.log" />
 		<param name="append" value="true" />
 		<param name="encoding" value="GBK" />
