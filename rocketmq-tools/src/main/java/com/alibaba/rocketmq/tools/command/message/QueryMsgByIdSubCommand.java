@@ -15,6 +15,11 @@
  */
 package com.alibaba.rocketmq.tools.command.message;
 
+import java.io.DataOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
@@ -60,9 +65,12 @@ public class QueryMsgByIdSubCommand implements SubCommand {
 
 
     public static void queryById(final DefaultMQAdminExt admin, final String msgId) throws MQClientException,
-            RemotingException, MQBrokerException, InterruptedException {
+            RemotingException, MQBrokerException, InterruptedException, IOException {
         admin.start();
         MessageExt msg = admin.viewMessage(msgId);
+
+        // 存储消息 body 到指定路径
+        String bodyTmpFilePath = createBodyFile(msg);
 
         System.out.printf("%-20s %s\n",//
             "Topic:",//
@@ -118,6 +126,11 @@ public class QueryMsgByIdSubCommand implements SubCommand {
             "System Flag:",//
             msg.getSysFlag()//
             );
+
+        System.out.printf("%-20s %s\n",//
+            "Message body path:",//
+            bodyTmpFilePath//
+            );
     }
 
 
@@ -136,6 +149,27 @@ public class QueryMsgByIdSubCommand implements SubCommand {
         }
         finally {
             defaultMQAdminExt.shutdown();
+        }
+    }
+
+
+    private static String createBodyFile(MessageExt msg) throws IOException {
+        DataOutputStream dos = null;
+
+        try {
+            String bodyTmpFilePath = "/tmp/rocketmq/msgbodys/" + msg.getBornTimestamp();
+            File file = new File(bodyTmpFilePath);
+            if (!file.exists()) {
+                file.mkdirs();
+            }
+            bodyTmpFilePath = bodyTmpFilePath + msg.getBornTimestamp();
+            dos = new DataOutputStream(new FileOutputStream(bodyTmpFilePath));
+            dos.write(msg.getBody());
+            return bodyTmpFilePath;
+        }
+        finally {
+            if (dos != null)
+                dos.close();
         }
     }
 }
