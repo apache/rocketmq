@@ -43,7 +43,7 @@ import com.alibaba.rocketmq.remoting.exception.RemotingException;
  * @since 2013-7-24
  */
 public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsumer {
-    private final transient DefaultMQPushConsumerImpl defaultMQPushConsumerImpl =
+    protected final transient DefaultMQPushConsumerImpl defaultMQPushConsumerImpl =
             new DefaultMQPushConsumerImpl(this);
     /**
      * 做同样事情的Consumer归为同一个Group，应用必须设置，并保证命名唯一
