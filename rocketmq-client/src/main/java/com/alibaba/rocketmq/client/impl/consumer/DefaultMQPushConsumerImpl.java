@@ -109,7 +109,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
     }
 
 
-    public void registerHook(final String name, final ConsumeMessageHook hook) {
+    public void registerHook(final ConsumeMessageHook hook) {
         this.hookList.add(hook);
         log.info("register consumeMessageHook Hook, {}", hook.hookName());
     }
