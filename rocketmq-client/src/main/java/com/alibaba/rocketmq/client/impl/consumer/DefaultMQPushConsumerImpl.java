@@ -15,6 +15,7 @@
  */
 package com.alibaba.rocketmq.client.impl.consumer;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -36,6 +37,8 @@ import com.alibaba.rocketmq.client.consumer.store.ReadOffsetType;
 import com.alibaba.rocketmq.client.consumer.store.RemoteBrokerOffsetStore;
 import com.alibaba.rocketmq.client.exception.MQBrokerException;
 import com.alibaba.rocketmq.client.exception.MQClientException;
+import com.alibaba.rocketmq.client.hook.ConsumeMessageContext;
+import com.alibaba.rocketmq.client.hook.ConsumeMessageHook;
 import com.alibaba.rocketmq.client.impl.CommunicationMode;
 import com.alibaba.rocketmq.client.impl.MQClientManager;
 import com.alibaba.rocketmq.client.impl.factory.MQClientFactory;
@@ -90,9 +93,51 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
     // 消费消息服务
     private ConsumeMessageService consumeMessageService;
 
+    /**
+     * 消费每条消息会回调
+     */
+    private final ArrayList<ConsumeMessageHook> hookList = new ArrayList<ConsumeMessageHook>();
+
 
     public DefaultMQPushConsumerImpl(DefaultMQPushConsumer defaultMQPushConsumer) {
         this.defaultMQPushConsumer = defaultMQPushConsumer;
+    }
+
+
+    public boolean hasHook() {
+        return !this.hookList.isEmpty();
+    }
+
+
+    public void registerHook(final String name, final ConsumeMessageHook hook) {
+        this.hookList.add(hook);
+        log.info("register consumeMessageHook Hook, {}", hook.hookName());
+    }
+
+
+    public void executeHookBefore(final ConsumeMessageContext context) {
+        if (!this.hookList.isEmpty()) {
+            for (ConsumeMessageHook hook : this.hookList) {
+                try {
+                    hook.consumeMessageBefore(context);
+                }
+                catch (Throwable e) {
+                }
+            }
+        }
+    }
+
+
+    public void executeHookAfter(final ConsumeMessageContext context) {
+        if (!this.hookList.isEmpty()) {
+            for (ConsumeMessageHook hook : this.hookList) {
+                try {
+                    hook.consumeMessageAfter(context);
+                }
+                catch (Throwable e) {
+                }
+            }
+        }
     }
 
 

@@ -31,6 +31,7 @@ import com.alibaba.rocketmq.client.consumer.DefaultMQPushConsumer;
 import com.alibaba.rocketmq.client.consumer.listener.ConsumeOrderlyContext;
 import com.alibaba.rocketmq.client.consumer.listener.ConsumeOrderlyStatus;
 import com.alibaba.rocketmq.client.consumer.listener.MessageListenerOrderly;
+import com.alibaba.rocketmq.client.hook.ConsumeMessageContext;
 import com.alibaba.rocketmq.client.log.ClientLogger;
 import com.alibaba.rocketmq.client.stat.ConsumerStat;
 import com.alibaba.rocketmq.common.MixAll;
@@ -222,6 +223,17 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
 
                             ConsumeOrderlyStatus status = null;
 
+                            // 执行Hook
+                            ConsumeMessageContext consumeMessageContext = null;
+                            if (ConsumeMessageOrderlyService.this.defaultMQPushConsumerImpl.hasHook()) {
+                                consumeMessageContext = new ConsumeMessageContext();
+                                consumeMessageContext.setMq(messageQueue);
+                                consumeMessageContext.setMsgList(msgs);
+                                consumeMessageContext.setSuccess(false);
+                                ConsumeMessageOrderlyService.this.defaultMQPushConsumerImpl
+                                    .executeHookBefore(consumeMessageContext);
+                            }
+
                             long beginTimestamp = System.currentTimeMillis();
 
                             try {
@@ -240,6 +252,14 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
                             // 用户抛出异常或者返回null，都挂起队列
                             if (null == status) {
                                 status = ConsumeOrderlyStatus.SUSPEND_CURRENT_QUEUE_A_MOMENT;
+                            }
+
+                            // 执行Hook
+                            if (ConsumeMessageOrderlyService.this.defaultMQPushConsumerImpl.hasHook()) {
+                                consumeMessageContext.setSuccess(ConsumeOrderlyStatus.SUCCESS == status
+                                        || ConsumeOrderlyStatus.COMMIT == status);
+                                ConsumeMessageOrderlyService.this.defaultMQPushConsumerImpl
+                                    .executeHookAfter(consumeMessageContext);
                             }
 
                             // 记录统计信息
