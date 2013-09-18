@@ -55,4 +55,10 @@ public class ConsumeMessageContext {
     public void setSuccess(boolean success) {
         this.success = success;
     }
+
+
+    @Override
+    public String toString() {
+        return "ConsumeMessageContext [msgList=" + msgList + ", mq=" + mq + ", success=" + success + "]";
+    }
 }
