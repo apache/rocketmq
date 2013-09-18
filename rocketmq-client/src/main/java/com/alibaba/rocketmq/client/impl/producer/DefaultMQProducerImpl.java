@@ -123,7 +123,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     }
 
 
-    public void registerHook(final String name, final SendMessageHook hook) {
+    public void registerHook(final SendMessageHook hook) {
         this.hookList.add(hook);
         log.info("register sendMessage Hook, {}", hook.hookName());
     }
