@@ -99,4 +99,12 @@ public class SendMessageContext {
     public void setArg(Object arg) {
         this.arg = arg;
     }
+
+
+    @Override
+    public String toString() {
+        return "SendMessageContext [message=" + message + ", mq=" + mq + ", brokerAddr=" + brokerAddr
+                + ", communicationMode=" + communicationMode + ", sendResult=" + sendResult + ", exception="
+                + exception + ", arg=" + arg + "]";
+    }
 }
