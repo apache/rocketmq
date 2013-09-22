@@ -25,6 +25,7 @@ public class ConsumeMessageContext {
     private List<MessageExt> msgList;
     private MessageQueue mq;
     private boolean success;
+    private Object arg;
 
 
     public List<MessageExt> getMsgList() {
@@ -57,8 +58,19 @@ public class ConsumeMessageContext {
     }
 
 
+    public Object getArg() {
+        return arg;
+    }
+
+
+    public void setArg(Object arg) {
+        this.arg = arg;
+    }
+
+
     @Override
     public String toString() {
-        return "ConsumeMessageContext [msgList=" + msgList + ", mq=" + mq + ", success=" + success + "]";
+        return "ConsumeMessageContext [msgList=" + msgList + ", mq=" + mq + ", success=" + success + ", arg="
+                + arg + "]";
     }
 }
