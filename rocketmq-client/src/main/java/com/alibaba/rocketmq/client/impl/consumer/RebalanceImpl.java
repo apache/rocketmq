@@ -307,7 +307,6 @@ public abstract class RebalanceImpl {
                 List<MessageQueue> allocateResult = null;
                 try {
                     allocateResult = strategy.allocate(this.mQClientFactory.getClientId(), mqAll, cidAll);
-                    log.info("reblance result is [{}] . ConsumerId is [{}],mqAll is[{}],cidAll is [{}]",allocateResult,this.mQClientFactory.getClientId(),mqAll,cidAll);
                 }
                 catch (Throwable e) {
                     log.error("AllocateMessageQueueStrategy.allocate Exception", e);
@@ -321,6 +320,9 @@ public abstract class RebalanceImpl {
                 // 更新本地队列
                 boolean changed = this.updateProcessQueueTableInRebalance(topic, allocateResultSet);
                 if (changed) {
+                    log.info("reblance result is [{}], ConsumerId is [{}], mqAll is[{}], cidAll is [{}]",
+                        allocateResult, this.mQClientFactory.getClientId(), mqAll, cidAll);
+
                     this.messageQueueChanged(topic, mqSet, allocateResultSet);
                     log.info("messageQueueChanged {} {} {} {}",//
                         consumerGroup,//
