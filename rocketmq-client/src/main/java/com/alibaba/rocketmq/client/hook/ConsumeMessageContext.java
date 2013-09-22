@@ -22,10 +22,21 @@ import com.alibaba.rocketmq.common.message.MessageQueue;
 
 
 public class ConsumeMessageContext {
+    private String consumerGroup;
     private List<MessageExt> msgList;
     private MessageQueue mq;
     private boolean success;
     private Object arg;
+
+
+    public String getConsumerGroup() {
+        return consumerGroup;
+    }
+
+
+    public void setConsumerGroup(String consumerGroup) {
+        this.consumerGroup = consumerGroup;
+    }
 
 
     public List<MessageExt> getMsgList() {
@@ -70,7 +81,7 @@ public class ConsumeMessageContext {
 
     @Override
     public String toString() {
-        return "ConsumeMessageContext [msgList=" + msgList + ", mq=" + mq + ", success=" + success + ", arg="
-                + arg + "]";
+        return "ConsumeMessageContext [consumerGroup=" + consumerGroup + ", msgList=" + msgList + ", mq="
+                + mq + ", success=" + success + ", arg=" + arg + "]";
     }
 }

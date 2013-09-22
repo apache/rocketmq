@@ -227,6 +227,9 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
                             ConsumeMessageContext consumeMessageContext = null;
                             if (ConsumeMessageOrderlyService.this.defaultMQPushConsumerImpl.hasHook()) {
                                 consumeMessageContext = new ConsumeMessageContext();
+                                consumeMessageContext
+                                    .setConsumerGroup(ConsumeMessageOrderlyService.this.defaultMQPushConsumer
+                                        .getConsumerGroup());
                                 consumeMessageContext.setMq(messageQueue);
                                 consumeMessageContext.setMsgList(msgs);
                                 consumeMessageContext.setSuccess(false);

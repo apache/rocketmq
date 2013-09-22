@@ -596,6 +596,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                 // 执行hook
                 if (this.hasHook()) {
                     context = new SendMessageContext();
+                    context.setProducerGroup(this.defaultMQProducer.getProducerGroup());
                     context.setCommunicationMode(communicationMode);
                     context.setBrokerAddr(brokerAddr);
                     context.setMessage(msg);
