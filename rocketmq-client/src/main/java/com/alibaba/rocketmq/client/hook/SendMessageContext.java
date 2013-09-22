@@ -22,6 +22,7 @@ import com.alibaba.rocketmq.common.message.MessageQueue;
 
 
 public class SendMessageContext {
+    private String producerGroup;
     private Message message;
     private MessageQueue mq;
     private String brokerAddr;
@@ -29,6 +30,16 @@ public class SendMessageContext {
     private SendResult sendResult;
     private Exception exception;
     private Object arg;
+
+
+    public String getProducerGroup() {
+        return producerGroup;
+    }
+
+
+    public void setProducerGroup(String producerGroup) {
+        this.producerGroup = producerGroup;
+    }
 
 
     public Message getMessage() {
@@ -103,8 +114,8 @@ public class SendMessageContext {
 
     @Override
     public String toString() {
-        return "SendMessageContext [message=" + message + ", mq=" + mq + ", brokerAddr=" + brokerAddr
-                + ", communicationMode=" + communicationMode + ", sendResult=" + sendResult + ", exception="
-                + exception + ", arg=" + arg + "]";
+        return "SendMessageContext [producerGroup=" + producerGroup + ", message=" + message + ", mq=" + mq
+                + ", brokerAddr=" + brokerAddr + ", communicationMode=" + communicationMode + ", sendResult="
+                + sendResult + ", exception=" + exception + ", arg=" + arg + "]";
     }
 }
