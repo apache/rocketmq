@@ -128,7 +128,7 @@ public class QueryMsgByIdSubCommand implements SubCommand {
             );
 
         System.out.printf("%-20s %s\n",//
-            "Message body path:",//
+            "Message Body Path:",//
             bodyTmpFilePath//
             );
     }
@@ -157,12 +157,12 @@ public class QueryMsgByIdSubCommand implements SubCommand {
         DataOutputStream dos = null;
 
         try {
-            String bodyTmpFilePath = "/tmp/rocketmq/msgbodys/" + msg.getBornTimestamp();
+            String bodyTmpFilePath = "/tmp/rocketmq/msgbodys";
             File file = new File(bodyTmpFilePath);
             if (!file.exists()) {
                 file.mkdirs();
             }
-            bodyTmpFilePath = bodyTmpFilePath + msg.getBornTimestamp();
+            bodyTmpFilePath = bodyTmpFilePath + "/" + msg.getMsgId();
             dos = new DataOutputStream(new FileOutputStream(bodyTmpFilePath));
             dos.write(msg.getBody());
             return bodyTmpFilePath;
