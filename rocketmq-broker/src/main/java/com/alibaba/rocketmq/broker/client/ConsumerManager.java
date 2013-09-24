@@ -15,15 +15,21 @@
  */
 package com.alibaba.rocketmq.broker.client;
 
-import io.netty.channel.Channel;
-
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.common.consumer.ConsumeFromWhere;
 import com.alibaba.rocketmq.common.protocol.heartbeat.ConsumeType;
 import com.alibaba.rocketmq.common.protocol.heartbeat.MessageModel;
 import com.alibaba.rocketmq.common.protocol.heartbeat.SubscriptionData;
+import com.alibaba.rocketmq.remoting.common.RemotingHelper;
+import com.alibaba.rocketmq.remoting.common.RemotingUtil;
+import io.netty.channel.Channel;
 
 
 /**
@@ -33,10 +39,12 @@ import com.alibaba.rocketmq.common.protocol.heartbeat.SubscriptionData;
  * @since 2013-7-26
  */
 public class ConsumerManager {
+    private static final Logger log = LoggerFactory.getLogger(LoggerName.BrokerLoggerName);
     private final ConcurrentHashMap<String/* Group */, ConsumerGroupInfo> consumerTable =
             new ConcurrentHashMap<String, ConsumerGroupInfo>(1024);
 
     private final ConsumerIdsChangeListener consumerIdsChangeListener;
+    private static final long ChannelExpiredTimeout = 1000 * 120;
 
 
     public ConsumerManager(final ConsumerIdsChangeListener consumerIdsChangeListener) {
@@ -101,6 +109,28 @@ public class ConsumerManager {
         if (null != consumerGroupInfo) {
             consumerGroupInfo.unregisterChannel(clientChannelInfo);
             this.consumerIdsChangeListener.consumerIdsChanged(group, consumerGroupInfo.getAllChannel());
+        }
+    }
+
+
+    public void scanNotActiveChannel() {
+        for (String group : this.consumerTable.keySet()) {
+            final ConsumerGroupInfo info = this.consumerTable.get(group);
+            if (info != null) {
+                ConcurrentHashMap<Channel, ClientChannelInfo> cloneChannels =
+                        new ConcurrentHashMap(info.getChannelInfoTable());
+                for (Map.Entry<Channel, ClientChannelInfo> entry : cloneChannels.entrySet()) {
+                    ClientChannelInfo clientChannelInfo = entry.getValue();
+                    long diff = System.currentTimeMillis() - clientChannelInfo.getLastUpdateTimestamp();
+                    if (diff > ChannelExpiredTimeout) {
+                        log.warn(
+                            "SCAN: remove expired channel from ConsumerManager consumerTable, producer group hash code: {}. channel={}, consumerGroup={}",
+                            RemotingHelper.parseChannelRemoteAddr(entry.getKey()), group);
+                        RemotingUtil.closeChannel(clientChannelInfo.getChannel());
+                        info.getChannelInfoTable().remove(entry.getKey());
+                    }
+                }
+            }
         }
     }
 }
