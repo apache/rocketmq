@@ -124,7 +124,7 @@ public class ConsumerManager {
                     long diff = System.currentTimeMillis() - clientChannelInfo.getLastUpdateTimestamp();
                     if (diff > ChannelExpiredTimeout) {
                         log.warn(
-                            "SCAN: remove expired channel from ConsumerManager consumerTable, producer group hash code: {}. channel={}, consumerGroup={}",
+                            "SCAN: remove expired channel from ConsumerManager consumerTable. channel={}, consumerGroup={}",
                             RemotingHelper.parseChannelRemoteAddr(entry.getKey()), group);
                         RemotingUtil.closeChannel(clientChannelInfo.getChannel());
                         info.getChannelInfoTable().remove(entry.getKey());
