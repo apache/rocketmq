@@ -15,8 +15,6 @@
  */
 package com.alibaba.rocketmq.broker.client;
 
-import io.netty.channel.Channel;
-
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
@@ -28,6 +26,7 @@ import org.slf4j.LoggerFactory;
 import com.alibaba.rocketmq.broker.BrokerController;
 import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.remoting.ChannelEventListener;
+import io.netty.channel.Channel;
 
 
 /**
@@ -72,6 +71,7 @@ public class ClientHousekeepingService implements ChannelEventListener {
 
     private void scanExceptionChannel() {
         this.brokerController.getProducerManager().scanNotActiveChannel();
+        this.brokerController.getConsumerManager().scanNotActiveChannel();
     }
 
 
