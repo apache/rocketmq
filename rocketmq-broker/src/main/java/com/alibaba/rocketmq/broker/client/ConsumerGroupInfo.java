@@ -133,9 +133,13 @@ public class ConsumerGroupInfo {
                     messageModel, clientChannelInfo.toString());
                 updated = true;
             }
+
+            info = clientChannelInfo;
         }
 
         this.lastUpdateTimestamp = System.currentTimeMillis();
+        info.setLastUpdateTimestamp(this.lastUpdateTimestamp);
+
         return updated;
     }
 
