@@ -25,6 +25,7 @@ import org.slf4j.LoggerFactory;
 import com.alibaba.rocketmq.broker.BrokerController;
 import com.alibaba.rocketmq.common.ConfigManager;
 import com.alibaba.rocketmq.common.DataVersion;
+import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.common.subscription.SubscriptionGroupConfig;
 import com.alibaba.rocketmq.remoting.protocol.RemotingSerializable;
@@ -47,6 +48,9 @@ public class SubscriptionGroupManager extends ConfigManager {
 
 
     public SubscriptionGroupManager() {
+        SubscriptionGroupConfig subscriptionGroupConfig = new SubscriptionGroupConfig();
+        subscriptionGroupConfig.setGroupName(MixAll.TOOLS_CONSUMER_GROUP);
+        this.subscriptionGroupTable.put(MixAll.TOOLS_CONSUMER_GROUP, subscriptionGroupConfig);
     }
 
 
