@@ -21,6 +21,7 @@ import org.apache.commons.cli.Options;
 
 import com.alibaba.rocketmq.client.consumer.DefaultMQPullConsumer;
 import com.alibaba.rocketmq.client.consumer.PullResult;
+import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.message.MessageQueue;
 import com.alibaba.rocketmq.tools.admin.DefaultMQAdminExt;
 import com.alibaba.rocketmq.tools.command.SubCommand;
@@ -75,7 +76,7 @@ public class QueryMsgByOffsetSubCommand implements SubCommand {
                 new DefaultMQPullConsumer(Long.toString(System.currentTimeMillis()));
 
         defaultMQAdminExt.setInstanceName(Long.toString(System.currentTimeMillis()));
-        defaultMQPullConsumer.setInstanceName(defaultMQAdminExt.getInstanceName());
+        defaultMQPullConsumer.setInstanceName(MixAll.TOOLS_CONSUMER_GROUP);
 
         try {
             String topic = commandLine.getOptionValue('t').trim();

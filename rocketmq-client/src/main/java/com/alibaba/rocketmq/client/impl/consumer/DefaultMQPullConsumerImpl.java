@@ -291,8 +291,7 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
             null// 11
             );
 
-        return this.pullAPIWrapper.processPullResult(mq, pullResult, subscriptionData,
-            DefaultMQPullConsumerImpl.this.mQClientFactory.getMQClientAPIImpl().getProjectGroupPrefix());
+        return this.pullAPIWrapper.processPullResult(mq, pullResult, subscriptionData);
     }
 
 
@@ -381,9 +380,7 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
                     @Override
                     public void onSuccess(PullResult pullResult) {
                         pullCallback.onSuccess(DefaultMQPullConsumerImpl.this.pullAPIWrapper
-                            .processPullResult(mq, pullResult, subscriptionData,
-                                DefaultMQPullConsumerImpl.this.mQClientFactory.getMQClientAPIImpl()
-                                    .getProjectGroupPrefix()));
+                            .processPullResult(mq, pullResult, subscriptionData));
                     }
                 });
         }
