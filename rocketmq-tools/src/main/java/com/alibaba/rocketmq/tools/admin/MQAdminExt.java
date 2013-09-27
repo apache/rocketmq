@@ -372,7 +372,7 @@ public interface MQAdminExt extends MQAdmin {
      * @throws MQClientException
      * @return
      */
-    public List<RollbackStats> rollbackConsumerOffset(String consumerGroup, String topic, long timestamp,
+    public List<RollbackStats> resetOffsetByTimestamp(String consumerGroup, String topic, long timestamp,
             boolean force) throws RemotingException, MQBrokerException, InterruptedException,
             MQClientException;
 }

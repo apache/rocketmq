@@ -45,7 +45,7 @@ import com.alibaba.rocketmq.tools.command.namesrv.GetProjectGroupCommand;
 import com.alibaba.rocketmq.tools.command.namesrv.UpdateKvConfigCommand;
 import com.alibaba.rocketmq.tools.command.namesrv.UpdateProjectGroupCommand;
 import com.alibaba.rocketmq.tools.command.namesrv.WipeWritePermSubCommand;
-import com.alibaba.rocketmq.tools.command.rollback.RollbackByTimeStampCommand;
+import com.alibaba.rocketmq.tools.command.rollback.ResetOffsetByTimeSubCommand;
 import com.alibaba.rocketmq.tools.command.topic.DeleteTopicSubCommand;
 import com.alibaba.rocketmq.tools.command.topic.TopicListSubCommand;
 import com.alibaba.rocketmq.tools.command.topic.TopicRouteSubCommand;
@@ -86,7 +86,7 @@ public class MQAdminStartup {
         subCommandList.add(new UpdateProjectGroupCommand());
         subCommandList.add(new DeleteProjectGroupCommand());
         subCommandList.add(new GetProjectGroupCommand());
-        subCommandList.add(new RollbackByTimeStampCommand());
+        subCommandList.add(new ResetOffsetByTimeSubCommand());
         subCommandList.add(new WipeWritePermSubCommand());
     }
 
