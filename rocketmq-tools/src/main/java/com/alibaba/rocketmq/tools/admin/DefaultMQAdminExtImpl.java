@@ -411,8 +411,9 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
 
 
     @Override
-    public List<RollbackStats> rollbackConsumerOffset(String consumerGroup, String topic, long timestamp, boolean force)
-            throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
+    public List<RollbackStats> resetOffsetByTimestamp(String consumerGroup, String topic, long timestamp,
+            boolean force) throws RemotingException, MQBrokerException, InterruptedException,
+            MQClientException {
         String retryTopic = MixAll.getRetryTopic(consumerGroup);
         TopicRouteData topicRouteData = this.examineTopicRouteInfo(retryTopic);
         List<RollbackStats> rollbackStatsList = new ArrayList<RollbackStats>();
@@ -457,6 +458,6 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
                 }
             }
         }
-	    return rollbackStatsList;
+        return rollbackStatsList;
     }
 }

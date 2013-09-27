@@ -13,21 +13,21 @@ import com.alibaba.rocketmq.tools.command.SubCommand;
 
 
 /**
- * 根据时间回溯消费进度
+ * 根据时间来设置消费进度，设置之前要关闭这个订阅组的所有consumer，设置完再启动，方可生效。
  * 
  * @author: manhong.yqd<jodie.yqd@gmail.com>
  * @since: 13-9-12
  */
-public class RollbackByTimeStampCommand implements SubCommand {
+public class ResetOffsetByTimeSubCommand implements SubCommand {
     @Override
     public String commandName() {
-        return "rollbackByTimeStamp";
+        return "resetOffsetByTime";
     }
 
 
     @Override
     public String commandDesc() {
-        return "rollback consumer offset by timestamp.";
+        return "Reset consumer offset by timestamp.";
     }
 
 
@@ -74,7 +74,7 @@ public class RollbackByTimeStampCommand implements SubCommand {
             boolean force = Boolean.valueOf(commandLine.getOptionValue("f").trim());
             defaultMQAdminExt.start();
             List<RollbackStats> rollbackStatsList =
-                    defaultMQAdminExt.rollbackConsumerOffset(consumerGroup, topic, timestamp, force);
+                    defaultMQAdminExt.resetOffsetByTimestamp(consumerGroup, topic, timestamp, force);
             System.out
                 .printf(
                     "rollback consumer offset by specified consumerGroup[%s], topic[%s], force[%s], timestamp(string)[%s], timestamp(long)[%s]\n",

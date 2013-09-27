@@ -23,7 +23,9 @@ import com.alibaba.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext;
 import com.alibaba.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
 import com.alibaba.rocketmq.client.consumer.listener.MessageListenerConcurrently;
 import com.alibaba.rocketmq.client.exception.MQClientException;
+import com.alibaba.rocketmq.common.message.Message;
 import com.alibaba.rocketmq.common.message.MessageExt;
+import com.alibaba.rocketmq.common.message.MessageQueue;
 
 
 /**
@@ -43,6 +45,9 @@ public class PushConsumer {
             @Override
             public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> msgs,
                     ConsumeConcurrentlyContext context) {
+                MessageQueue mq = context.getMessageQueue();
+                long offset = msgs.get(0).getQueueOffset();
+                String maxOffset = msgs.get(0).getProperty(Message.PROPERTY_MAX_OFFSET);
                 System.out.println(Thread.currentThread().getName() + " Receive New Messages: " + msgs);
                 this.consumeTimes.incrementAndGet();
                 if ((this.consumeTimes.get() % 2) == 0) {
