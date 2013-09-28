@@ -28,7 +28,7 @@ public class FilterAPI {
         subscriptionData.setTopic(topic);
         subscriptionData.setSubString(subString);
 
-        if (null == subString || subString.equals(SubscriptionData.SUB_ALL)) {
+        if (null == subString || subString.equals(SubscriptionData.SUB_ALL) || subString.length() == 0) {
             subscriptionData.setSubString(SubscriptionData.SUB_ALL);
         }
         else {
