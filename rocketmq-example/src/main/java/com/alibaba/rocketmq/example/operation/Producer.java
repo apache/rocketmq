@@ -92,6 +92,7 @@ public class Producer {
             String msgCount = commandLine.getOptionValue('c');
 
             DefaultMQProducer producer = new DefaultMQProducer(group);
+            producer.setInstanceName(Long.toString(System.currentTimeMillis()));
 
             producer.start();
 

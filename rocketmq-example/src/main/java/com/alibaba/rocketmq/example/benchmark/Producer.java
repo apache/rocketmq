@@ -93,6 +93,7 @@ public class Producer {
         }, 10000, 10000);
 
         final DefaultMQProducer producer = new DefaultMQProducer("benchmark_producer");
+        producer.setInstanceName(Long.toString(System.currentTimeMillis()));
 
         producer.setCompressMsgBodyOverHowmuch(Integer.MAX_VALUE);
 
