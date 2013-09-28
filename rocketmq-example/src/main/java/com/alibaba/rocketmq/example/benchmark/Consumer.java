@@ -87,6 +87,7 @@ public class Consumer {
         }, 10000, 10000);
 
         DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("benchmark_consumer");
+        consumer.setInstanceName(Long.toString(System.currentTimeMillis()));
 
         consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_MAX_OFFSET);
 
