@@ -16,6 +16,8 @@
 package com.alibaba.rocketmq.store.schedule;
 
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map.Entry;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
@@ -29,6 +31,7 @@ import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.common.message.Message;
 import com.alibaba.rocketmq.common.message.MessageDecoder;
 import com.alibaba.rocketmq.common.message.MessageExt;
+import com.alibaba.rocketmq.common.running.RunningStats;
 import com.alibaba.rocketmq.store.ConsumeQueue;
 import com.alibaba.rocketmq.store.DefaultMessageStore;
 import com.alibaba.rocketmq.store.MessageExtBrokerInner;
@@ -65,6 +68,20 @@ public class ScheduleMessageService extends ConfigManager {
 
     public ScheduleMessageService(final DefaultMessageStore defaultMessageStore) {
         this.defaultMessageStore = defaultMessageStore;
+    }
+
+
+    public void buildRunningStats(HashMap<String, String> stats) {
+        Iterator<Entry<Integer, Long>> it = this.offsetTable.entrySet().iterator();
+        while (it.hasNext()) {
+            Entry<Integer, Long> next = it.next();
+            int queueId = delayLevel2QueueId(next.getKey());
+            long delayOffset = next.getValue();
+            long maxOffset = this.defaultMessageStore.getMaxOffsetInQuque(SCHEDULE_TOPIC, queueId);
+            String value = String.format("%d,%d", delayOffset, maxOffset);
+            String key = String.format("%s_%d", RunningStats.scheduleMessageOffset.name(), next.getKey());
+            stats.put(key, value);
+        }
     }
 
 
