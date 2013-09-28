@@ -50,8 +50,8 @@ public class Consumer {
         opt.setRequired(true);
         options.addOption(opt);
 
-        opt = new Option("s", "subscription", true, "Tags Name");
-        opt.setRequired(true);
+        opt = new Option("s", "subscription", true, "subscription");
+        opt.setRequired(false);
         options.addOption(opt);
 
         opt = new Option("f", "returnFailedHalf", true, "return failed result, for half message");
