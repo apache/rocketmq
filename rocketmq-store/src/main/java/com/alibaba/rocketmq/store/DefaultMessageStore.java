@@ -33,6 +33,7 @@ import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.common.message.MessageDecoder;
 import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.common.protocol.heartbeat.SubscriptionData;
+import com.alibaba.rocketmq.common.running.RunningStats;
 import com.alibaba.rocketmq.common.sysflag.MessageSysFlag;
 import com.alibaba.rocketmq.store.config.BrokerRole;
 import com.alibaba.rocketmq.store.config.MessageStoreConfig;
@@ -602,7 +603,7 @@ public class DefaultMessageStore implements MessageStore {
         {
             String storePathPhysic = DefaultMessageStore.this.getMessageStoreConfig().getStorePathCommitLog();
             double physicRatio = UtilALl.getDiskPartitionSpaceUsedPercent(storePathPhysic);
-            result.put("commitLogDiskRatio", String.valueOf(physicRatio));
+            result.put(RunningStats.commitLogDiskRatio.name(), String.valueOf(physicRatio));
 
         }
 
@@ -611,11 +612,20 @@ public class DefaultMessageStore implements MessageStore {
             String storePathLogics =
                     DefaultMessageStore.this.getMessageStoreConfig().getStorePathConsumeQueue();
             double logicsRatio = UtilALl.getDiskPartitionSpaceUsedPercent(storePathLogics);
-            result.put("consumeQueueDiskRatio", String.valueOf(logicsRatio));
+            result.put(RunningStats.consumeQueueDiskRatio.name(), String.valueOf(logicsRatio));
         }
 
-        result.put("commitLogMinOffset", String.valueOf(DefaultMessageStore.this.getMinPhyOffset()));
-        result.put("commitLogMaxOffset", String.valueOf(DefaultMessageStore.this.getMaxPhyOffset()));
+        // 延时进度
+        {
+            if (this.scheduleMessageService != null) {
+                this.scheduleMessageService.buildRunningStats(result);
+            }
+        }
+
+        result.put(RunningStats.commitLogMinOffset.name(),
+            String.valueOf(DefaultMessageStore.this.getMinPhyOffset()));
+        result.put(RunningStats.commitLogMaxOffset.name(),
+            String.valueOf(DefaultMessageStore.this.getMaxPhyOffset()));
 
         return result;
     }
