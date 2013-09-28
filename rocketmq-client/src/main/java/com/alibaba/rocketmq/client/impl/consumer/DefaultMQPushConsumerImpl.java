@@ -281,6 +281,17 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
     }
 
 
+    /**
+     * 通过Tag过滤时，会存在offset不准确的情况，需要纠正
+     */
+    private void correctTagsOffset(final PullRequest pullRequest) {
+        // 说明本地没有可消费的消息
+        if (0L == pullRequest.getProcessQueue().getMsgCount().get()) {
+            this.offsetStore.updateOffset(pullRequest.getMessageQueue(), pullRequest.getNextOffset(), true);
+        }
+    }
+
+
     public void pullMessage(final PullRequest pullRequest) {
         final ProcessQueue processQueue = pullRequest.getProcessQueue();
         if (processQueue.isDroped()) {
@@ -371,6 +382,8 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                         break;
                     case NO_NEW_MSG:
                         pullRequest.setNextOffset(pullResult.getNextBeginOffset());
+
+                        DefaultMQPushConsumerImpl.this.correctTagsOffset(pullRequest);
 
                         DefaultMQPushConsumerImpl.this.executePullRequestImmediately(pullRequest);
                         break;
