@@ -105,7 +105,7 @@ public class Producer {
                         ("Hello RocketMQ " + i).getBytes());// body
                     SendResult sendResult = producer.send(msg);
 
-                    System.out.printf("%-8d %s", i, sendResult);
+                    System.out.printf("%-8d %s\n", i, sendResult);
                 }
                 catch (Exception e) {
                     e.printStackTrace();
