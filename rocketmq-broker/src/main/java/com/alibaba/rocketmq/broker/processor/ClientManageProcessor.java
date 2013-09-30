@@ -184,11 +184,12 @@ public class ClientManageProcessor implements NettyRequestProcessor {
                 data.getSubscriptionDataSet()//
                 );
 
-            log.debug("registerConsumer {} {} CHANGED: {}",//
-                data.toString(),//
-                RemotingHelper.parseChannelRemoteAddr(ctx.channel()),//
-                changed//
-            );
+            if (changed) {
+                log.info("registerConsumer info changed {} {}",//
+                    data.toString(),//
+                    RemotingHelper.parseChannelRemoteAddr(ctx.channel())//
+                );
+            }
         }
 
         // 注册Producer
