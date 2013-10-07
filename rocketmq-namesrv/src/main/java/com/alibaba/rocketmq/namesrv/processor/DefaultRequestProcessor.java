@@ -194,7 +194,7 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
         }
 
         response.setCode(MQResponseCode.TOPIC_NOT_EXIST_VALUE);
-        response.setRemark("No topic route info for this topic: " + requestHeader.getTopic()
+        response.setRemark("No topic route info in name server for the topic: " + requestHeader.getTopic()
                 + FAQUrl.suggestTodo(FAQUrl.APPLY_TOPIC_URL));
         return response;
     }
@@ -350,21 +350,22 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
         return response;
     }
 
-	public RemotingCommand deleteKVConfigByValue(ChannelHandlerContext ctx, RemotingCommand request)
-			throws RemotingCommandException {
-		final RemotingCommand response = RemotingCommand.createResponseCommand(null);
-		final DeleteKVConfigRequestHeader requestHeader =
-				(DeleteKVConfigRequestHeader) request
-						.decodeCommandCustomHeader(DeleteKVConfigRequestHeader.class);
 
-		this.namesrvController.getKvConfigManager().deleteKVConfigByValue(//
-				requestHeader.getNamespace(),//
-				requestHeader.getKey()//
-		);
+    public RemotingCommand deleteKVConfigByValue(ChannelHandlerContext ctx, RemotingCommand request)
+            throws RemotingCommandException {
+        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
+        final DeleteKVConfigRequestHeader requestHeader =
+                (DeleteKVConfigRequestHeader) request
+                    .decodeCommandCustomHeader(DeleteKVConfigRequestHeader.class);
 
-		response.setCode(ResponseCode.SUCCESS_VALUE);
-		response.setRemark(null);
-		return response;
-	}
+        this.namesrvController.getKvConfigManager().deleteKVConfigByValue(//
+            requestHeader.getNamespace(),//
+            requestHeader.getKey()//
+            );
+
+        response.setCode(ResponseCode.SUCCESS_VALUE);
+        response.setRemark(null);
+        return response;
+    }
 
 }
