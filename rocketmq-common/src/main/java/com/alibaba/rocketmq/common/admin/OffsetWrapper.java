@@ -24,6 +24,8 @@ package com.alibaba.rocketmq.common.admin;
 public class OffsetWrapper {
     private long brokerOffset;
     private long consumerOffset;
+    // 消费的最后一条消息对应的时间戳
+    private long lastTimestamp;
 
 
     public long getBrokerOffset() {
@@ -43,5 +45,15 @@ public class OffsetWrapper {
 
     public void setConsumerOffset(long consumerOffset) {
         this.consumerOffset = consumerOffset;
+    }
+
+
+    public long getLastTimestamp() {
+        return lastTimestamp;
+    }
+
+
+    public void setLastTimestamp(long lastTimestamp) {
+        this.lastTimestamp = lastTimestamp;
     }
 }
