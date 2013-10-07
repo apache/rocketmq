@@ -541,7 +541,15 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             throw new MQClientException("Retry many times, still failed", exception);
         }
 
-        throw new MQClientException("No route info of this topic, " + msg.getTopic(), null);
+        List<String> nsList = this.getmQClientFactory().getMQClientAPIImpl().getNameServerAddressList();
+        if (null == nsList || nsList.isEmpty()) {
+            // 说明没有设置Name Server地址
+            throw new MQClientException("No name server address, please set it."
+                    + FAQUrl.suggestTodo(FAQUrl.NAME_SERVER_ADDR_NOT_EXIST_URL), null);
+        }
+
+        throw new MQClientException("No route info of this topic, " + msg.getTopic()
+                + FAQUrl.suggestTodo(FAQUrl.NO_TOPIC_ROUTE_INFO), null);
     }
 
 
