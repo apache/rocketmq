@@ -12,9 +12,9 @@ RocketMQ是一款分布式、队列模型的消息中间件，具有以下特点
 ----------
 
 ### 如何开始？
-* [下载最新稳定版安装包](https://github.com/alibaba/RocketMQ/releases)
-* Quick Start（[阿里内部用户](http://gitlab.alibaba-inc.com/middleware//rocketmq/wikis/RocketMQ_Notes) | [开源外部用户](https://github.com/alibaba/RocketMQ/wiki/Quick-Start)）
-* 通过Wiki了解更多（[阿里内部用户](http://gitlab.alibaba-inc.com/middleware/rocketmq/wikis/home) | [开源外部用户](https://github.com/alibaba/RocketMQ/wiki)）
+* [下载安装包](https://github.com/alibaba/RocketMQ/releases)
+* [Quick Start](https://github.com/alibaba/RocketMQ/wiki/Quick-Start)
+* [通过Wiki了解更多](https://github.com/alibaba/RocketMQ/wiki)
 
 ----------
 
@@ -36,6 +36,7 @@ RocketMQ是一款分布式、队列模型的消息中间件，具有以下特点
 
 * [向我们提交建议、BUG、寻求技术帮助](https://github.com/alibaba/RocketMQ/issues/new)
 * 欢迎参与RocketMQ项目，只需在Github上fork、pull request即可。RocketMQ目前只支持Java客户端，欢迎大家能贡献其他语言客户端。
-* [到新浪微博交流RocketMQ（限开源外部用户）](http://q.weibo.com/1628465)
+* [到新浪微博交流RocketMQ](http://q.weibo.com/1628465)
+* 加入QQ群交流，5776652
 
 ----------
