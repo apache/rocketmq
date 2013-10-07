@@ -49,6 +49,10 @@ public class FAQUrl {
     public static final String CLIENT_SERVICE_NOT_OK = //
             "https://github.com/alibaba/RocketMQ/issues/214";
 
+    // FAQ: No route info of this topic, TopicABC
+    public static final String NO_TOPIC_ROUTE_INFO = //
+            "https://github.com/alibaba/RocketMQ/issues/264";
+
     //
     // FAQ: 未收录异常处理办法
     //
