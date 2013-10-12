@@ -442,8 +442,20 @@ public class RouteInfoManager {
         return null;
     }
 
+    // Broker Channel两分钟过期
+    private final static long BrokerChannelExpiredTime = 1000 * 60 * 2;
+
 
     public void scanNotActiveBroker() {
+        Iterator<Entry<String, BrokerLiveInfo>> it = this.brokerLiveTable.entrySet().iterator();
+        while (it.hasNext()) {
+            Entry<String, BrokerLiveInfo> next = it.next();
+            long last = next.getValue().getLastUpdateTimestamp();
+            if ((last + BrokerChannelExpiredTime) < System.currentTimeMillis()) {
+                log.warn("The broker channel expired, {} {}ms", next.getKey(), BrokerChannelExpiredTime);
+                this.onChannelDestroy(next.getKey(), next.getValue().getChannel());
+            }
+        }
     }
 
 
@@ -454,29 +466,35 @@ public class RouteInfoManager {
         String brokerAddrFound = null;
 
         // 加读锁，寻找断开连接的Broker
-        try {
+        if (channel != null) {
             try {
-                this.lock.readLock().lockInterruptibly();
-                Iterator<Entry<String, BrokerLiveInfo>> itBrokerLiveTable =
-                        this.brokerLiveTable.entrySet().iterator();
-                while (itBrokerLiveTable.hasNext()) {
-                    Entry<String, BrokerLiveInfo> entry = itBrokerLiveTable.next();
-                    if (entry.getValue().getChannel() == channel) {
-                        brokerAddrFound = entry.getKey();
-                        break;
+                try {
+                    this.lock.readLock().lockInterruptibly();
+                    Iterator<Entry<String, BrokerLiveInfo>> itBrokerLiveTable =
+                            this.brokerLiveTable.entrySet().iterator();
+                    while (itBrokerLiveTable.hasNext()) {
+                        Entry<String, BrokerLiveInfo> entry = itBrokerLiveTable.next();
+                        if (entry.getValue().getChannel() == channel) {
+                            brokerAddrFound = entry.getKey();
+                            break;
+                        }
                     }
                 }
+                finally {
+                    this.lock.readLock().unlock();
+                }
             }
-            finally {
-                this.lock.readLock().unlock();
+            catch (Exception e) {
+                log.error("onChannelDestroy Exception", e);
             }
         }
-        catch (Exception e) {
-            log.error("onChannelDestroy Exception", e);
+
+        if (null == brokerAddrFound) {
+            brokerAddrFound = remoteAddr;
         }
 
         // 加写锁，删除相关数据结构
-        if (brokerAddrFound != null) {
+        if (brokerAddrFound != null && brokerAddrFound.length() > 0) {
             log.info("the broker's channel destroyed, {}, clean it's data structure at once", brokerAddrFound);
 
             try {
