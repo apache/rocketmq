@@ -43,6 +43,8 @@ import com.alibaba.rocketmq.common.protocol.body.TopicList;
 import com.alibaba.rocketmq.common.protocol.route.BrokerData;
 import com.alibaba.rocketmq.common.protocol.route.QueueData;
 import com.alibaba.rocketmq.common.protocol.route.TopicRouteData;
+import com.alibaba.rocketmq.remoting.common.RemotingHelper;
+import com.alibaba.rocketmq.remoting.common.RemotingUtil;
 
 
 /**
@@ -452,6 +454,8 @@ public class RouteInfoManager {
             Entry<String, BrokerLiveInfo> next = it.next();
             long last = next.getValue().getLastUpdateTimestamp();
             if ((last + BrokerChannelExpiredTime) < System.currentTimeMillis()) {
+                RemotingUtil.closeChannel(next.getValue().getChannel());
+                it.remove();
                 log.warn("The broker channel expired, {} {}ms", next.getKey(), BrokerChannelExpiredTime);
                 this.onChannelDestroy(next.getKey(), next.getValue().getChannel());
             }
