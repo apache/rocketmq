@@ -121,7 +121,10 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
             });
 
         this.serverBootstrap.group(this.eventLoopGroup, new NioEventLoopGroup())
-            .channel(NioServerSocketChannel.class).option(ChannelOption.SO_BACKLOG, 65536)
+            .channel(NioServerSocketChannel.class)
+            .option(ChannelOption.SO_BACKLOG, 65536)
+            .option(ChannelOption.SO_REUSEADDR, true)
+            //
             .childOption(ChannelOption.TCP_NODELAY, true)
             .localAddress(new InetSocketAddress(this.nettyServerConfig.getListenPort()))
             .childHandler(new ChannelInitializer<SocketChannel>() {
