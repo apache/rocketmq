@@ -673,13 +673,18 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         throw new MQClientException("The broker[" + mq.getBrokerName() + "] not exist", null);
     }
 
+    /**
+     * 消息压缩level，默认5
+     */
+    private int zipLevel = Integer.parseInt(System.getProperty(MixAll.MESSAGE_COMPRESS_LEVEL), 5);
+
 
     private boolean tryToCompressMessage(final Message msg) {
         byte[] body = msg.getBody();
         if (body != null) {
             if (body.length >= this.defaultMQProducer.getCompressMsgBodyOverHowmuch()) {
                 try {
-                    byte[] data = UtilALl.compress(body, 9);
+                    byte[] data = UtilALl.compress(body, zipLevel);
                     if (data != null) {
                         msg.setBody(data);
                         return true;
