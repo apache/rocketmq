@@ -52,7 +52,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     /**
      * 发送消息超时，不建议修改
      */
-    private int sendMsgTimeout = 10000;
+    private int sendMsgTimeout = 3000;
     /**
      * Message Body大小超过阀值，则压缩
      */
