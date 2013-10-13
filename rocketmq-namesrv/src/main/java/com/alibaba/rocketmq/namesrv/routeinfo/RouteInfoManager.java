@@ -508,13 +508,13 @@ public class RouteInfoManager {
 
                     // 清理brokerAddrTable
                     String brokerNameFound = null;
-                    boolean brokerNameDisappear = false;
+                    boolean removeBrokerName = false;
                     Iterator<Entry<String, BrokerData>> itBrokerAddrTable =
                             this.brokerAddrTable.entrySet().iterator();
                     while (itBrokerAddrTable.hasNext() && (null == brokerNameFound)) {
                         BrokerData brokerData = itBrokerAddrTable.next().getValue();
 
-                        // 遍历Master/Slave
+                        // 遍历Master/Slave，删除brokerAddr
                         Iterator<Entry<Long, String>> it = brokerData.getBrokerAddrs().entrySet().iterator();
                         while (it.hasNext()) {
                             Entry<Long, String> entry = it.next();
@@ -532,7 +532,7 @@ public class RouteInfoManager {
 
                         // BrokerName无关联BrokerAddr
                         if (brokerData.getBrokerAddrs().isEmpty()) {
-                            brokerNameDisappear = true;
+                            removeBrokerName = true;
                             itBrokerAddrTable.remove();
                             log.info("remove brokerName[{}] from brokerAddrTable, because channel destroyed",
                                 brokerData.getBrokerName());
@@ -540,7 +540,7 @@ public class RouteInfoManager {
                     }
 
                     // 清理clusterAddrTable
-                    if (brokerNameFound != null && brokerNameDisappear) {
+                    if (brokerNameFound != null && removeBrokerName) {
                         Iterator<Entry<String, Set<String>>> it = this.clusterAddrTable.entrySet().iterator();
                         while (it.hasNext()) {
                             Entry<String, Set<String>> entry = it.next();
@@ -566,7 +566,7 @@ public class RouteInfoManager {
                     }
 
                     // 清理topicQueueTable
-                    if (brokerNameDisappear) {
+                    if (removeBrokerName) {
                         Iterator<Entry<String, List<QueueData>>> itTopicQueueTable =
                                 this.topicQueueTable.entrySet().iterator();
                         while (itTopicQueueTable.hasNext()) {
