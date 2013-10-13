@@ -1,4 +1,4 @@
-package com.alibaba.rocketmq.tools.command.rollback;
+package com.alibaba.rocketmq.tools.command.offset;
 
 import java.util.List;
 
