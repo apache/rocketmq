@@ -37,17 +37,17 @@ import com.alibaba.rocketmq.tools.command.SubCommand;
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-8-11
  */
-public class ConsumeStatsSubCommand implements SubCommand {
+public class ConsumerProgressSubCommand implements SubCommand {
 
     @Override
     public String commandName() {
-        return "consumeStats";
+        return "consumerProgress";
     }
 
 
     @Override
     public String commandDesc() {
-        return "Consume Stats, Progress, Speed";
+        return "Query consumers's progress, speed";
     }
 
 
@@ -83,7 +83,6 @@ public class ConsumeStatsSubCommand implements SubCommand {
                 "#QID",//
                 "#Broker Offset",//
                 "#Consumer Offset",//
-                "#Msg LastTimes",
                 "#Diff" //
             );
 
@@ -101,7 +100,6 @@ public class ConsumeStatsSubCommand implements SubCommand {
                     mq.getQueueId(),//
                     offsetWrapper.getBrokerOffset(),//
                     offsetWrapper.getConsumerOffset(),//
-                    offsetWrapper.getLastTimestamp(),
                     diff //
                     );
             }

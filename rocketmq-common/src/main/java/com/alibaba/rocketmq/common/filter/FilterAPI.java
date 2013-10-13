@@ -37,8 +37,10 @@ public class FilterAPI {
                 for (String tag : tags) {
                     if (tag.length() > 0) {
                         String trimString = tag.trim();
-                        subscriptionData.getTagsSet().add(trimString);
-                        subscriptionData.getCodeSet().add(trimString.hashCode());
+                        if (trimString.length() > 0) {
+                            subscriptionData.getTagsSet().add(trimString);
+                            subscriptionData.getCodeSet().add(trimString.hashCode());
+                        }
                     }
                 }
             }

@@ -35,6 +35,14 @@ public class PushConsumer {
     public static void main(String[] args) throws InterruptedException, MQClientException {
         DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("please_rename_unique_group_name_6");
 
+        /**
+         * 订阅指定topic下所有消息
+         */
+        // consumer.subscribe("TopicTest", "*");
+
+        /**
+         * 订阅指定topic下tags分别等于TagA或TagC或TagD
+         */
         consumer.subscribe("TopicTest", "TagA || TagC || TagD");
 
         consumer.registerMessageListener(new MessageListenerConcurrently() {
