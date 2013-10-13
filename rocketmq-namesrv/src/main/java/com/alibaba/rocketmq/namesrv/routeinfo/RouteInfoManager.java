@@ -43,7 +43,6 @@ import com.alibaba.rocketmq.common.protocol.body.TopicList;
 import com.alibaba.rocketmq.common.protocol.route.BrokerData;
 import com.alibaba.rocketmq.common.protocol.route.QueueData;
 import com.alibaba.rocketmq.common.protocol.route.TopicRouteData;
-import com.alibaba.rocketmq.remoting.common.RemotingHelper;
 import com.alibaba.rocketmq.remoting.common.RemotingUtil;
 
 
@@ -541,7 +540,7 @@ public class RouteInfoManager {
                     }
 
                     // 清理clusterAddrTable
-                    if (brokerNameFound != null) {
+                    if (brokerNameFound != null && brokerNameDisappear) {
                         Iterator<Entry<String, Set<String>>> it = this.clusterAddrTable.entrySet().iterator();
                         while (it.hasNext()) {
                             Entry<String, Set<String>> entry = it.next();
@@ -552,6 +551,15 @@ public class RouteInfoManager {
                                 log.info(
                                     "remove brokerName[{}], clusterName[{}] from clusterAddrTable, because channel destroyed",
                                     brokerNameFound, clusterName);
+
+                                // 如果集群对应的所有broker都下线了， 则集群也删除掉
+                                if (brokerNames.isEmpty()) {
+                                    log.info(
+                                        "remove the clusterName[{}] from clusterAddrTable, because channel destroyed and no broker in this cluster",
+                                        clusterName);
+                                    it.remove();
+                                }
+
                                 break;
                             }
                         }
