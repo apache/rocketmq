@@ -83,7 +83,6 @@ public class ConsumeStatsSubCommand implements SubCommand {
                 "#QID",//
                 "#Broker Offset",//
                 "#Consumer Offset",//
-                "#Msg LastTimes",
                 "#Diff" //
             );
 
@@ -101,7 +100,6 @@ public class ConsumeStatsSubCommand implements SubCommand {
                     mq.getQueueId(),//
                     offsetWrapper.getBrokerOffset(),//
                     offsetWrapper.getConsumerOffset(),//
-                    offsetWrapper.getLastTimestamp(),
                     diff //
                     );
             }
