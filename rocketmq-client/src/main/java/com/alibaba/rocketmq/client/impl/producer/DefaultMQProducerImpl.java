@@ -676,7 +676,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     /**
      * 消息压缩level，默认5
      */
-    private int zipLevel = Integer.parseInt(System.getProperty(MixAll.MESSAGE_COMPRESS_LEVEL), 5);
+    private int zipLevel = Integer.parseInt(System.getProperty(MixAll.MESSAGE_COMPRESS_LEVEL, "5"));
 
 
     private boolean tryToCompressMessage(final Message msg) {
