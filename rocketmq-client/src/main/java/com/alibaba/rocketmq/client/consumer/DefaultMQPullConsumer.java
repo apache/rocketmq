@@ -302,4 +302,9 @@ public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsume
     public void setOffsetStore(OffsetStore offsetStore) {
         this.offsetStore = offsetStore;
     }
+
+
+    public DefaultMQPullConsumerImpl getDefaultMQPullConsumerImpl() {
+        return defaultMQPullConsumerImpl;
+    }
 }
