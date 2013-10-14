@@ -676,7 +676,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     /**
      * 消息压缩level，默认5
      */
-    private int zipLevel = Integer.parseInt(System.getProperty(MixAll.MESSAGE_COMPRESS_LEVEL, "5"));
+    private int zipCompressLevel = Integer.parseInt(System.getProperty(MixAll.MESSAGE_COMPRESS_LEVEL, "5"));
 
 
     private boolean tryToCompressMessage(final Message msg) {
@@ -684,7 +684,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         if (body != null) {
             if (body.length >= this.defaultMQProducer.getCompressMsgBodyOverHowmuch()) {
                 try {
-                    byte[] data = UtilALl.compress(body, zipLevel);
+                    byte[] data = UtilALl.compress(body, zipCompressLevel);
                     if (data != null) {
                         msg.setBody(data);
                         return true;
@@ -947,5 +947,15 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
     public MQClientFactory getmQClientFactory() {
         return mQClientFactory;
+    }
+
+
+    public int getZipCompressLevel() {
+        return zipCompressLevel;
+    }
+
+
+    public void setZipCompressLevel(int zipCompressLevel) {
+        this.zipCompressLevel = zipCompressLevel;
     }
 }
