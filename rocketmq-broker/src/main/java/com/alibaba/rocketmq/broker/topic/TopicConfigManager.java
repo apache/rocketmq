@@ -271,7 +271,7 @@ public class TopicConfigManager extends ConfigManager {
         TopicConfig old = this.topicConfigTable.remove(topic);
         if (old != null) {
             log.info("delete topic config OK, topic: " + old);
-	        this.dataVersion.nextVersion();
+            this.dataVersion.nextVersion();
             this.persist();
         }
         else {

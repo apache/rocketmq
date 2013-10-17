@@ -43,7 +43,7 @@ public class SendResult {
         this.msgId = msgId;
         this.messageQueue = messageQueue;
         this.queueOffset = queueOffset;
-	    // 清除虚拟运行环境相关的projectGroupPrefix
+        // 清除虚拟运行环境相关的projectGroupPrefix
         if (!UtilALl.isBlank(projectGroupPrefix)) {
             this.messageQueue.setTopic(VirtualEnvUtil.clearProjectGroup(this.messageQueue.getTopic(),
                 projectGroupPrefix));
