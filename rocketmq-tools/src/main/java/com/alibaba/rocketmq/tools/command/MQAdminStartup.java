@@ -113,6 +113,9 @@ public class MQAdminStartup {
                             MixAll.printCommandLineHelp("mqadmin " + cmd.commandName(), options);
                         }
                     }
+                    else {
+                        System.out.println("The sub command \'" + args[1] + "\' not exist.");
+                    }
                     break;
                 }
             case 1:
@@ -138,6 +141,9 @@ public class MQAdminStartup {
                     }
 
                     cmd.execute(commandLine, options);
+                }
+                else {
+                    System.out.println("The sub command \'" + args[0] + "\' not exist.");
                 }
                 break;
             }
