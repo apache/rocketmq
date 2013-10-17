@@ -315,4 +315,11 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
             MQClientException {
         return defaultMQAdminExtImpl.resetOffsetByTimestamp(consumerGroup, topic, timestamp, force);
     }
+
+
+    @Override
+    public KVTable getKVListByNamespace(String namespace) throws RemotingException, MQClientException,
+            InterruptedException {
+        return defaultMQAdminExtImpl.getKVListByNamespace(namespace);
+    }
 }

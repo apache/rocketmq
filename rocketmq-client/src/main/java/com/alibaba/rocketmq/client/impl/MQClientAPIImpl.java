@@ -1642,6 +1642,32 @@ public class MQClientAPIImpl {
 
 
     /**
+     * Name Server: 获取指定Namespace下的所有KV
+     */
+    public KVTable getKVListByNamespace(final String namespace, final long timeoutMillis)
+            throws RemotingException, MQClientException, InterruptedException {
+        GetKVListByNamespaceRequestHeader requestHeader = new GetKVListByNamespaceRequestHeader();
+        requestHeader.setNamespace(namespace);
+
+        RemotingCommand request =
+                RemotingCommand.createRequestCommand(MQRequestCode.GET_KVLIST_BY_NAMESPACE_VALUE,
+                    requestHeader);
+
+        RemotingCommand response = this.remotingClient.invokeSync(null, request, timeoutMillis);
+        assert response != null;
+        switch (response.getCode()) {
+        case ResponseCode.SUCCESS_VALUE: {
+            return KVTable.decode(response.getBody(), KVTable.class);
+        }
+        default:
+            break;
+        }
+
+        throw new MQClientException(response.getCode(), response.getRemark());
+    }
+
+
+    /**
      * Name Server: 删除 value 对应的所有 key
      */
     public void deleteKVConfigByValue(final String namespace, final String projectGroup,

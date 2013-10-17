@@ -123,7 +123,9 @@ public final class MQProtos {
         // Namesrv 通过 project 获取所有的 server ip 信息
         GET_KV_CONFIG_BY_VALUE(57, 217),
         // 删除指定 project group 下的所有 server ip 信息
-        DELETE_KV_CONFIG_BY_VALUE(58, 218);
+        DELETE_KV_CONFIG_BY_VALUE(58, 218),
+        // 通过NameSpace获取所有的KV List
+        GET_KVLIST_BY_NAMESPACE(59, 219);
 
         // Broker 发送消息
         public static final int SEND_MESSAGE_VALUE = 10;
@@ -233,6 +235,8 @@ public final class MQProtos {
         public static final int GET_KV_CONFIG_BY_VALUE_VALUE = 217;
         // Namesrv 删除指定 project group 下的所有 server ip 信息
         public static final int DELETE_KV_CONFIG_BY_VALUE_VALUE = 218;
+        // 通过NameSpace获取所有的KV List
+        public static final int GET_KVLIST_BY_NAMESPACE_VALUE = 219;
 
         private final int index;
         private final int value;
@@ -361,6 +365,8 @@ public final class MQProtos {
                 return GET_KV_CONFIG_BY_VALUE;
             case 218:
                 return DELETE_KV_CONFIG_BY_VALUE;
+            case GET_KVLIST_BY_NAMESPACE_VALUE:
+                return GET_KVLIST_BY_NAMESPACE;
             default:
                 return null;
             }
