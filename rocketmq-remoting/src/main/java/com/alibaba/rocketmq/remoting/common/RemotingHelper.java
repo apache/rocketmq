@@ -188,7 +188,10 @@ public class RemotingHelper {
         final String addr = remote != null ? remote.toString() : "";
 
         if (addr.length() > 0) {
-            return addr.substring(1);
+            int index = addr.lastIndexOf("/");
+            if (index >= 0) {
+                return addr.substring(index + 1);
+            }
         }
 
         return "";
