@@ -74,12 +74,28 @@
 				<version>2.3</version>
 				<configuration>
 					<argLine>-Xms512m -Xmx1024m</argLine>
-					<forkMode>always</forkMode>
+					<forkMode>once</forkMode>
 					<includes>
 						<include>**/*Test.java</include>
 					</includes>
+					<excludes>
+						<exclude>com/alibaba/rocketmq/remoting/ExceptionTest.java</exclude>
+						<exclude>com/alibaba/rocketmq/remoting/SyncInvokeTest.java</exclude>
+						<exclude>com/alibaba/rocketmq/remoting/NettyIdleTest.java</exclude>
+						<exclude>com/alibaba/rocketmq/remoting/NettyConnectionTest.java</exclude>
+						<exclude>com/alibaba/rocketmq/common/filter/PolishExprTest.java</exclude>
+						<exclude>com/alibaba/rocketmq/common/protocol/MQProtosHelperTest.java</exclude>
+						<exclude>com/alibaba/rocketmq/client/consumer/loadbalance/AllocateMessageQueueAveragelyTest.java</exclude>
+						<exclude>com/alibaba/rocketmq/store/RecoverTest.java</exclude>
+						<exclude>com/alibaba/rocketmq/broker/api/SendMessageTest.java</exclude>
+						<exclude>com/alibaba/rocketmq/test/integration/*/*.java</exclude>
+						<exclude>com/alibaba/rocketmq/test/integration/BaseTest.java</exclude>
+						<exclude>com/alibaba/rocketmq/test/*/*.java</exclude>
+						<exclude>com/alibaba/rocketmq/test/BaseTest.java</exclude>
+					</excludes>
 				</configuration>
 			</plugin>
+
 
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
