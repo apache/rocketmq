@@ -15,6 +15,11 @@
  */
 package com.alibaba.rocketmq.broker.slave;
 
+import java.io.IOException;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.alibaba.rocketmq.broker.BrokerController;
 import com.alibaba.rocketmq.broker.subscription.SubscriptionGroupManager;
 import com.alibaba.rocketmq.common.MixAll;
@@ -22,10 +27,6 @@ import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.common.protocol.body.ConsumerOffsetSerializeWrapper;
 import com.alibaba.rocketmq.common.protocol.body.SubscriptionGroupWrapper;
 import com.alibaba.rocketmq.common.protocol.body.TopicConfigSerializeWrapper;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.io.IOException;
 
 
 /**
@@ -75,7 +76,7 @@ public class SlaveSynchronize {
 
                     this.brokerController.getTopicConfigManager().getDataVersion()
                         .assignNewOne(topicWrapper.getDataVersion());
-	                this.brokerController.getTopicConfigManager().getTopicConfigTable().clear();
+                    this.brokerController.getTopicConfigManager().getTopicConfigTable().clear();
                     this.brokerController.getTopicConfigManager().getTopicConfigTable()
                         .putAll(topicWrapper.getTopicConfigTable());
                     this.brokerController.getTopicConfigManager().persist();
@@ -98,7 +99,7 @@ public class SlaveSynchronize {
                         this.brokerController.getBrokerOuterAPI().getAllConsumerOffset(masterAddrBak);
                 this.brokerController.getConsumerOffsetManager().getOffsetTable()
                     .putAll(offsetWrapper.getOffsetTable());
-	            this.brokerController.getConsumerOffsetManager().persist();
+                this.brokerController.getConsumerOffsetManager().persist();
                 log.info("update slave consumer offset from master, {}", masterAddrBak);
             }
             catch (Exception e) {

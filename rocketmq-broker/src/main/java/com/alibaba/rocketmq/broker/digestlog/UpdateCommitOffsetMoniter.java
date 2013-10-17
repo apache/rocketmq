@@ -18,9 +18,8 @@ public class UpdateCommitOffsetMoniter {
         if (log.isInfoEnabled()) {
             log.info(
                 "client [{}] updateConsumeroffset ConsumerGroup[{}] Topic[{}] QueueId[{}] CommitOffset[{}]",
-                RemotingHelper.parseChannelRemoteAddr(channel),
-                requestHeader.getConsumerGroup(), requestHeader.getTopic(), requestHeader.getQueueId(),
-                requestHeader.getCommitOffset());
+                RemotingHelper.parseChannelRemoteAddr(channel), requestHeader.getConsumerGroup(),
+                requestHeader.getTopic(), requestHeader.getQueueId(), requestHeader.getCommitOffset());
         }
     }
 }

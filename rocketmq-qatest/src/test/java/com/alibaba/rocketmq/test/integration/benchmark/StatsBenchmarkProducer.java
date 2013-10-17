@@ -2,9 +2,10 @@ package com.alibaba.rocketmq.test.integration.benchmark;
 
 import java.util.concurrent.atomic.AtomicLong;
 
+
 /**
  * description
- *
+ * 
  * @author: manhong.yqd<jodie.yqd@gmail.com>
  * @since: 13-9-5
  */

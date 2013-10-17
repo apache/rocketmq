@@ -5,8 +5,6 @@ import io.netty.channel.ChannelHandlerContext;
 
 import java.util.concurrent.Executors;
 
-import org.junit.Test;
-
 import com.alibaba.rocketmq.remoting.exception.RemotingConnectException;
 import com.alibaba.rocketmq.remoting.exception.RemotingSendRequestException;
 import com.alibaba.rocketmq.remoting.exception.RemotingTimeoutException;

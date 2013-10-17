@@ -1,9 +1,10 @@
 package com.alibaba.rocketmq.test.integration.benchmark;
 
+import org.apache.commons.lang.StringUtils;
+
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.message.Message;
 import com.alibaba.rocketmq.test.integration.BaseTest;
-import org.apache.commons.lang.StringUtils;
 
 
 /**
