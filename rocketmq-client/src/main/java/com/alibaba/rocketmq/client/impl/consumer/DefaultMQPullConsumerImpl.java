@@ -123,6 +123,7 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
 
 
     public Set<MessageQueue> fetchSubscribeMessageQueues(String topic) throws MQClientException {
+        this.makeSureStateOK();
         return this.mQClientFactory.getMQAdminImpl().fetchSubscribeMessageQueues(topic);
     }
 

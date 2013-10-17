@@ -257,6 +257,19 @@ public interface MQAdminExt extends MQAdmin {
 
 
     /**
+     * 获取指定Namespace下的所有kv
+     * 
+     * @param namespace
+     * @return
+     * @throws InterruptedException
+     * @throws MQClientException
+     * @throws RemotingException
+     */
+    public KVTable getKVListByNamespace(final String namespace) throws RemotingException, MQClientException,
+            InterruptedException;
+
+
+    /**
      * 删除 broker 上的 topic 信息
      * 
      * @param addrs

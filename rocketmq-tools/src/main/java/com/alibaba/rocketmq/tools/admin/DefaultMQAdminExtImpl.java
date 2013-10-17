@@ -477,4 +477,11 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
         }
         return rollbackStatsList;
     }
+
+
+    @Override
+    public KVTable getKVListByNamespace(String namespace) throws RemotingException, MQClientException,
+            InterruptedException {
+        return this.mQClientFactory.getMQClientAPIImpl().getKVListByNamespace(namespace, 5000);
+    }
 }

@@ -26,6 +26,7 @@ import org.slf4j.LoggerFactory;
 
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.constant.LoggerName;
+import com.alibaba.rocketmq.common.protocol.body.KVTable;
 import com.alibaba.rocketmq.namesrv.NamesrvController;
 
 
@@ -116,6 +117,29 @@ public class KVConfigManager {
         }
 
         this.persist();
+    }
+
+
+    public byte[] getKVListByNamespace(final String namespace) {
+        try {
+            this.lock.readLock().lockInterruptibly();
+            try {
+                HashMap<String, String> kvTable = this.configTable.get(namespace);
+                if (null != kvTable) {
+                    KVTable table = new KVTable();
+                    table.setTable(kvTable);
+                    return table.encode();
+                }
+            }
+            finally {
+                this.lock.readLock().unlock();
+            }
+        }
+        catch (InterruptedException e) {
+            log.error("getKVListByNamespace InterruptedException", e);
+        }
+
+        return null;
     }
 
 
