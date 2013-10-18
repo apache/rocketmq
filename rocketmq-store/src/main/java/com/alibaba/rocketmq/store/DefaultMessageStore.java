@@ -1365,6 +1365,9 @@ public class DefaultMessageStore implements MessageStore {
 
 
         private void doFlush(int retryTimes) {
+            /**
+             * 变量含义：如果大于0，则标识这次刷盘必须刷多少个page，如果=0，则有多少刷多少
+             */
             int flushConsumeQueueLeastPages =
                     DefaultMessageStore.this.getMessageStoreConfig().getFlushConsumeQueueLeastPages();
 
@@ -1401,7 +1404,9 @@ public class DefaultMessageStore implements MessageStore {
                 flushConsumeQueueLeastPages);
 
             if (0 == flushConsumeQueueLeastPages) {
-                DefaultMessageStore.this.getStoreCheckpoint().setLogicsMsgTimestamp(logicsMsgTimestamp);
+                if (logicsMsgTimestamp > 0) {
+                    DefaultMessageStore.this.getStoreCheckpoint().setLogicsMsgTimestamp(logicsMsgTimestamp);
+                }
                 DefaultMessageStore.this.getStoreCheckpoint().flush();
             }
         }
