@@ -447,11 +447,17 @@ public class CommitLog {
         if (this.defaultMessageStore.getMessageStoreConfig().isMessageIndexEnable()//
                 && this.defaultMessageStore.getMessageStoreConfig().isMessageIndexSafe()) {
             if (storeTimestamp <= this.defaultMessageStore.getStoreCheckpoint().getMinTimestampIndex()) {
+                log.info("find check timestamp, {} {}", //
+                    storeTimestamp,//
+                    UtilALl.timeMillisToHumanString(storeTimestamp));
                 return true;
             }
         }
         else {
             if (storeTimestamp <= this.defaultMessageStore.getStoreCheckpoint().getMinTimestamp()) {
+                log.info("find check timestamp, {} {}", //
+                    storeTimestamp,//
+                    UtilALl.timeMillisToHumanString(storeTimestamp));
                 return true;
             }
         }
