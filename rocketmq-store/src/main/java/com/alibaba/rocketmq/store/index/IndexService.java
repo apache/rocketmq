@@ -456,8 +456,10 @@ public class IndexService extends ServiceThread {
 
         f.flush();
 
-        this.defaultMessageStore.getStoreCheckpoint().setIndexMsgTimestamp(indexMsgTimestamp);
-        this.defaultMessageStore.getStoreCheckpoint().flush();
+        if (indexMsgTimestamp > 0) {
+            this.defaultMessageStore.getStoreCheckpoint().setIndexMsgTimestamp(indexMsgTimestamp);
+            this.defaultMessageStore.getStoreCheckpoint().flush();
+        }
     }
 
 
