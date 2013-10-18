@@ -74,7 +74,7 @@ public class MessageStoreConfig {
     private int diskMaxUsedSpaceRatio = 75;
     // 文件保留时间（单位小时）
     @ImportantField
-    private int fileReservedTime = 24;
+    private int fileReservedTime = 48;
     // 写消息索引到ConsumeQueue，缓冲区高水位，超过则开始流控
     private int putMsgIndexHightWater = 600000;
     // 最大消息大小，默认512K
