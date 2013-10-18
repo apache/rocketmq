@@ -40,27 +40,29 @@ public class PullConsumer {
         Set<MessageQueue> mqs = consumer.fetchSubscribeMessageQueues("TopicTest");
         for (MessageQueue mq : mqs) {
             System.out.println("Consume from the queue: " + mq);
-            PullResult pullResult;
-            try {
-                pullResult = consumer.pullBlockIfNotFound(mq, null, getMessageQueueOffset(mq), 32);
-                System.out.println(pullResult);
-                putMessageQueueOffset(mq, pullResult.getNextBeginOffset());
-                switch (pullResult.getPullStatus()) {
-                case FOUND:
-                    // TODO
-                    break;
-                case NO_MATCHED_MSG:
-                    break;
-                case NO_NEW_MSG:
-                    break;
-                case OFFSET_ILLEGAL:
-                    break;
-                default:
-                    break;
+            SINGLE_MQ: while (true) {
+                try {
+                    PullResult pullResult =
+                            consumer.pullBlockIfNotFound(mq, null, getMessageQueueOffset(mq), 32);
+                    System.out.println(pullResult);
+                    putMessageQueueOffset(mq, pullResult.getNextBeginOffset());
+                    switch (pullResult.getPullStatus()) {
+                    case FOUND:
+                        // TODO
+                        break;
+                    case NO_MATCHED_MSG:
+                        break SINGLE_MQ;
+                    case NO_NEW_MSG:
+                        break SINGLE_MQ;
+                    case OFFSET_ILLEGAL:
+                        break;
+                    default:
+                        break;
+                    }
                 }
-            }
-            catch (Exception e) {
-                e.printStackTrace();
+                catch (Exception e) {
+                    e.printStackTrace();
+                }
             }
         }
 
