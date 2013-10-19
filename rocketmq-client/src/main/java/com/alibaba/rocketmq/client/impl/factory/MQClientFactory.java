@@ -165,7 +165,7 @@ public class MQClientFactory {
             case CREATE_JUST:
                 this.makesureInstanceNameIsOnly(this.clientConfig.getInstanceName());
 
-                this.serviceState = ServiceState.RUNNING;
+                this.serviceState = ServiceState.START_FAILED;
                 if (null == this.clientConfig.getNamesrvAddr()) {
                     this.clientConfig.setNamesrvAddr(this.mQClientAPIImpl.fetchNameServerAddr());
                 }
@@ -177,11 +177,15 @@ public class MQClientFactory {
 
                 this.defaultMQProducer.getDefaultMQProducerImpl().start(false);
                 log.info("the client factory [{}] start OK", this.clientId);
+                this.serviceState = ServiceState.RUNNING;
                 break;
             case RUNNING:
                 break;
             case SHUTDOWN_ALREADY:
                 break;
+            case START_FAILED:
+                throw new MQClientException("The Factory object[" + this.getClientId()
+                        + "] has been created before, and failed.", null);
             default:
                 break;
             }

@@ -165,8 +165,6 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         case CREATE_JUST:
             this.checkConfig();
 
-            Validators.checkGroup(this.defaultMQProducer.getProducerGroup());
-
             this.serviceState = ServiceState.RUNNING;
 
             this.mQClientFactory =
