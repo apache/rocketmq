@@ -460,11 +460,11 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
     public void start() throws MQClientException {
         switch (this.serviceState) {
         case CREATE_JUST:
+            this.serviceState = ServiceState.START_FAILED;
+
             this.checkConfig();
 
             this.copySubscription();
-
-            this.serviceState = ServiceState.RUNNING;
 
             this.mQClientFactory =
                     MQClientManager.getInstance().getAndCreateMQClientFactory(this.defaultMQPullConsumer);
@@ -517,11 +517,14 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
 
             mQClientFactory.start();
             log.info("the consumer [{}] start OK", this.defaultMQPullConsumer.getConsumerGroup());
+            this.serviceState = ServiceState.RUNNING;
             break;
         case RUNNING:
-            break;
+        case START_FAILED:
         case SHUTDOWN_ALREADY:
-            break;
+            throw new MQClientException("The PullConsumer service state not OK, maybe started once, "//
+                + this.serviceState//
+                + FAQUrl.suggestTodo(FAQUrl.CLIENT_SERVICE_NOT_OK), null);
         default:
             break;
         }
