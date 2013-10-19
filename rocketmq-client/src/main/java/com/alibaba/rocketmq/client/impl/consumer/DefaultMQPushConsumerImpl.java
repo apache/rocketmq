@@ -580,12 +580,12 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
     public void start() throws MQClientException {
         switch (this.serviceState) {
         case CREATE_JUST:
+            this.serviceState = ServiceState.START_FAILED;
+
             this.checkConfig();
 
             // 复制订阅关系
             this.copySubscription();
-
-            this.serviceState = ServiceState.RUNNING;
 
             this.mQClientFactory =
                     MQClientManager.getInstance().getAndCreateMQClientFactory(this.defaultMQPushConsumer);
@@ -653,11 +653,14 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
 
             mQClientFactory.start();
             log.info("the consumer [{}] start OK", this.defaultMQPushConsumer.getConsumerGroup());
+            this.serviceState = ServiceState.RUNNING;
             break;
         case RUNNING:
-            break;
+        case START_FAILED:
         case SHUTDOWN_ALREADY:
-            break;
+            throw new MQClientException("The PushConsumer service state not OK, maybe started once, "//
+                + this.serviceState//
+                + FAQUrl.suggestTodo(FAQUrl.CLIENT_SERVICE_NOT_OK), null);
         default:
             break;
         }
