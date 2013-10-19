@@ -51,7 +51,7 @@ public class PullConsumer {
                         // TODO
                         break;
                     case NO_MATCHED_MSG:
-                        break SINGLE_MQ;
+                        break;
                     case NO_NEW_MSG:
                         break SINGLE_MQ;
                     case OFFSET_ILLEGAL:
