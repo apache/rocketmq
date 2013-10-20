@@ -140,6 +140,8 @@ public class DefaultMessageStore implements MessageStore {
         // load过程依赖此服务，所以提前启动
         this.allocateMapedFileService.start();
         this.dispatchMessageService.start();
+        // 因为下面的recover会分发请求到索引服务，如果不启动，分发过程会被流控
+        this.indexService.start();
     }
 
 
@@ -186,9 +188,6 @@ public class DefaultMessageStore implements MessageStore {
 
                 this.indexService.load(lastExitOK);
 
-                // 因为下面的recover会分发请求到索引服务，如果不启动，分发过程会被流控
-                this.indexService.start();
-
                 // 尝试恢复数据
                 this.recover(lastExitOK);
 
@@ -217,7 +216,7 @@ public class DefaultMessageStore implements MessageStore {
         this.cleanCommitLogService.start();
         this.cleanConsumeQueueService.start();
 
-        // 在load方法中已经start了
+        // 在构造函数已经start了。
         // this.indexService.start();
         // 在构造函数已经start了。
         // this.dispatchMessageService.start();
