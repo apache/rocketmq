@@ -192,6 +192,8 @@ public class RemotingHelper {
             if (index >= 0) {
                 return addr.substring(index + 1);
             }
+
+            return addr;
         }
 
         return "";
