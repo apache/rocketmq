@@ -184,7 +184,7 @@ public class ConsumerProgressSubCommand implements SubCommand {
 
                 for (GroupConsumeInfo info : groupConsumeInfoList) {
                     System.out.printf("%-32s  %-6d  %-24s %-5s  %-20s  %-7d  %d\n",//
-                        info.getGroup(),//
+                        UtilALl.frontStringAtLeast(info.getGroup(), 32),//
                         info.getCount(),//
                         info.versionDesc(),//
                         info.consumeTypeDesc(),//
