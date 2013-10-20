@@ -23,6 +23,7 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Options;
 
 import com.alibaba.rocketmq.common.protocol.body.ClusterInfo;
+import com.alibaba.rocketmq.common.protocol.body.KVTable;
 import com.alibaba.rocketmq.common.protocol.route.BrokerData;
 import com.alibaba.rocketmq.tools.admin.DefaultMQAdminExt;
 import com.alibaba.rocketmq.tools.command.SubCommand;
@@ -65,11 +66,14 @@ public class ClusterListSubCommand implements SubCommand {
 
             ClusterInfo clusterInfoSerializeWrapper = defaultMQAdminExt.examineBrokerClusterInfo();
 
-            System.out.printf("%-16s  %-32s  %-4s  %s\n",//
+            System.out.printf("%-16s  %-32s  %-4s  %-22s %-8d %-8d\n",//
                 "#Cluster Name",//
                 "#Broker Name",//
                 "#BID",//
-                "#Addr");
+                "#Addr",//
+                "#InTPS",//
+                "#OutTPS"//
+            );
 
             Iterator<Map.Entry<String, Set<String>>> itCluster =
                     clusterInfoSerializeWrapper.getClusterAddrTable().entrySet().iterator();
@@ -87,11 +91,33 @@ public class ClusterListSubCommand implements SubCommand {
                         while (itAddr.hasNext()) {
                             Map.Entry<Long, String> next1 = itAddr.next();
 
-                            System.out.printf("%-16s  %-32s  %-4d  %s\n",//
+                            KVTable kvTable = defaultMQAdminExt.fetchBrokerRuntimeStats(next1.getValue());
+                            String putTps = kvTable.getTable().get("putTps");
+                            String getTransferedTps = kvTable.getTable().get("getTransferedTps");
+                            long in = 0;
+                            long out = 0;
+                            {
+                                String[] tpss = putTps.split(" ");
+                                if (tpss != null && tpss.length > 0) {
+                                    in = (long) Double.parseDouble(tpss[0]);
+                                }
+                            }
+
+                            {
+                                String[] tpss = getTransferedTps.split(" ");
+                                if (tpss != null && tpss.length > 0) {
+                                    out = (long) Double.parseDouble(tpss[0]);
+                                }
+                            }
+
+                            System.out.printf("%-16s  %-32s  %-4s  %-22s %-8d %-8d\n",//
                                 clusterName,//
                                 brokerName,//
                                 next1.getKey().longValue(),//
-                                next1.getValue());
+                                next1.getValue(),//
+                                in,//
+                                out//
+                                );
                         }
                     }
                 }
