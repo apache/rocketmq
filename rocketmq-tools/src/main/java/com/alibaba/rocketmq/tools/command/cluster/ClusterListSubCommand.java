@@ -67,7 +67,7 @@ public class ClusterListSubCommand implements SubCommand {
 
             ClusterInfo clusterInfoSerializeWrapper = defaultMQAdminExt.examineBrokerClusterInfo();
 
-            System.out.printf("%-16s  %-32s  %-4s  %-22s %-8s %-8s\n",//
+            System.out.printf("%-16s  %-32s  %-4s  %-22s %-11s %-11s\n",//
                 "#Cluster Name",//
                 "#Broker Name",//
                 "#BID",//
@@ -92,8 +92,8 @@ public class ClusterListSubCommand implements SubCommand {
                                 brokerData.getBrokerAddrs().entrySet().iterator();
                         while (itAddr.hasNext()) {
                             Map.Entry<Long, String> next1 = itAddr.next();
-                            long in = 0;
-                            long out = 0;
+                            double in = 0;
+                            double out = 0;
 
                             try {
                                 KVTable kvTable = defaultMQAdminExt.fetchBrokerRuntimeStats(next1.getValue());
@@ -103,21 +103,21 @@ public class ClusterListSubCommand implements SubCommand {
                                 {
                                     String[] tpss = putTps.split(" ");
                                     if (tpss != null && tpss.length > 0) {
-                                        in = (long) Double.parseDouble(tpss[0]);
+                                        in = Double.parseDouble(tpss[0]);
                                     }
                                 }
 
                                 {
                                     String[] tpss = getTransferedTps.split(" ");
                                     if (tpss != null && tpss.length > 0) {
-                                        out = (long) Double.parseDouble(tpss[0]);
+                                        out = Double.parseDouble(tpss[0]);
                                     }
                                 }
                             }
                             catch (Exception e) {
                             }
 
-                            System.out.printf("%-16s  %-32s  %-4s  %-22s %-8d %-8d\n",//
+                            System.out.printf("%-16s  %-32s  %-4s  %-22s %8.2f %8.2f\n",//
                                 clusterName,//
                                 brokerName,//
                                 next1.getKey().longValue(),//
