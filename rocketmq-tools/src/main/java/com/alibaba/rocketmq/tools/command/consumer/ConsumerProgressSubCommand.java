@@ -229,7 +229,7 @@ class GroupConsumeInfo implements Comparable<GroupConsumeInfo> {
 
 
     public String messageModelDesc() {
-        if (this.count != 0) {
+        if (this.count != 0 && this.getConsumeType() == ConsumeType.CONSUME_PASSIVELY) {
             return this.getMessageModel().toString();
         }
         return "";
