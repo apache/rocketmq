@@ -18,6 +18,7 @@ package com.alibaba.rocketmq.tools.command.cluster;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Options;
@@ -80,7 +81,8 @@ public class ClusterListSubCommand implements SubCommand {
             while (itCluster.hasNext()) {
                 Map.Entry<String, Set<String>> next = itCluster.next();
                 String clusterName = next.getKey();
-                Set<String> brokerNameSet = next.getValue();
+                TreeSet<String> brokerNameSet = new TreeSet<String>();
+                brokerNameSet.addAll(next.getValue());
 
                 for (String brokerName : brokerNameSet) {
                     BrokerData brokerData = clusterInfoSerializeWrapper.getBrokerAddrTable().get(brokerName);
