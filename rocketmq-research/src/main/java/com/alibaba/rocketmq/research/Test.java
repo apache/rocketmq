@@ -10,5 +10,8 @@ public class Test {
 
         Object obj = abc;
         System.out.println(obj);
+        
+        double a1 = 9000 / 7.0;
+        System.out.printf("%8.2f\n",a1);
     }
 }
