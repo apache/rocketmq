@@ -15,12 +15,14 @@
  */
 package com.alibaba.rocketmq.client.impl;
 
+import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -38,6 +40,7 @@ import com.alibaba.rocketmq.client.producer.SendCallback;
 import com.alibaba.rocketmq.client.producer.SendResult;
 import com.alibaba.rocketmq.client.producer.SendStatus;
 import com.alibaba.rocketmq.common.MQVersion;
+import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.TopicConfig;
 import com.alibaba.rocketmq.common.UtilALl;
 import com.alibaba.rocketmq.common.admin.ConsumeStats;
@@ -1324,6 +1327,43 @@ public class MQClientAPIImpl {
         }
 
         throw new MQBrokerException(response.getCode(), response.getRemark());
+    }
+
+
+    /**
+     * 更新Broker的配置文件
+     * 
+     * @param addr
+     * @param properties
+     * @param timeoutMillis
+     * @throws RemotingConnectException
+     * @throws RemotingSendRequestException
+     * @throws RemotingTimeoutException
+     * @throws InterruptedException
+     * @throws MQBrokerException
+     * @throws UnsupportedEncodingException
+     */
+    public void updateBrokerConfig(final String addr, final Properties properties, final long timeoutMillis)
+            throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException,
+            InterruptedException, MQBrokerException, UnsupportedEncodingException {
+
+        RemotingCommand request =
+                RemotingCommand.createRequestCommand(MQRequestCode.UPDATE_BROKER_CONFIG_VALUE, null);
+
+        String str = MixAll.properties2String(properties);
+        if (str != null && str.length() > 0) {
+            request.setBody(str.getBytes(MixAll.DEFAULT_CHARSET));
+            RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
+            switch (response.getCode()) {
+            case ResponseCode.SUCCESS_VALUE: {
+                return;
+            }
+            default:
+                break;
+            }
+
+            throw new MQBrokerException(response.getCode(), response.getRemark());
+        }
     }
 
 
