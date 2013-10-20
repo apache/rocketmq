@@ -26,7 +26,7 @@ public class ConsumerConnection extends RemotingSerializable {
 
 
     public int computeMinVersion() {
-        int minVersion = Integer.MIN_VALUE;
+        int minVersion = Integer.MAX_VALUE;
         for (Connection c : this.connectionSet) {
             if (c.getVersion() < minVersion) {
                 minVersion = c.getVersion();
