@@ -122,7 +122,7 @@ public class ConsumerProgressSubCommand implements SubCommand {
             }
             // 查询全部
             else {
-                System.out.printf("%-32s  %-6s  %-24s %-5s  %-20s  %-7s  %s\n",//
+                System.out.printf("%-32s  %-6s  %-24s %-5s  %-14s  %-7s  %s\n",//
                     "#Group",//
                     "#Count",//
                     "#Version",//
@@ -183,7 +183,7 @@ public class ConsumerProgressSubCommand implements SubCommand {
                 Collections.sort(groupConsumeInfoList);
 
                 for (GroupConsumeInfo info : groupConsumeInfoList) {
-                    System.out.printf("%-32s  %-6d  %-24s %-5s  %-20s  %-7d  %d\n",//
+                    System.out.printf("%-32s  %-6d  %-24s %-5s  %-14s  %-7d  %d\n",//
                         UtilALl.frontStringAtLeast(info.getGroup(), 32),//
                         info.getCount(),//
                         info.versionDesc(),//
