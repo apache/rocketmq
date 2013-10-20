@@ -15,7 +15,9 @@
  */
 package com.alibaba.rocketmq.tools.admin;
 
+import java.io.UnsupportedEncodingException;
 import java.util.List;
+import java.util.Properties;
 import java.util.Set;
 
 import com.alibaba.rocketmq.client.MQAdmin;
@@ -51,6 +53,23 @@ public interface MQAdminExt extends MQAdmin {
 
 
     public void shutdown();
+
+
+    /**
+     * 更新Broker配置
+     * 
+     * @param brokerAddr
+     * @param properties
+     * @throws MQBrokerException
+     * @throws InterruptedException
+     * @throws UnsupportedEncodingException
+     * @throws RemotingTimeoutException
+     * @throws RemotingSendRequestException
+     * @throws RemotingConnectException
+     */
+    public void updateBrokerConfig(final String brokerAddr, final Properties properties)
+            throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException,
+            UnsupportedEncodingException, InterruptedException, MQBrokerException;
 
 
     /**

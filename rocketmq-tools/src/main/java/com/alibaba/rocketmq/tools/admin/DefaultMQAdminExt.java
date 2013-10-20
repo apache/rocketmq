@@ -15,7 +15,9 @@
  */
 package com.alibaba.rocketmq.tools.admin;
 
+import java.io.UnsupportedEncodingException;
 import java.util.List;
+import java.util.Properties;
 import java.util.Set;
 
 import com.alibaba.rocketmq.client.ClientConfig;
@@ -321,5 +323,13 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
     public KVTable getKVListByNamespace(String namespace) throws RemotingException, MQClientException,
             InterruptedException {
         return defaultMQAdminExtImpl.getKVListByNamespace(namespace);
+    }
+
+
+    @Override
+    public void updateBrokerConfig(String brokerAddr, Properties properties) throws RemotingConnectException,
+            RemotingSendRequestException, RemotingTimeoutException, UnsupportedEncodingException,
+            InterruptedException, MQBrokerException {
+        defaultMQAdminExtImpl.updateBrokerConfig(brokerAddr, properties);
     }
 }
