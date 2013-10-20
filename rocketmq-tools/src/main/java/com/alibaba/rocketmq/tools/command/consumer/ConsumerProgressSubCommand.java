@@ -170,6 +170,8 @@ public class ConsumerProgressSubCommand implements SubCommand {
                                 groupConsumeInfo.setConsumeType(cc.getConsumeType());
                                 groupConsumeInfo.setVersion(cc.computeMinVersion());
                             }
+
+                            groupConsumeInfoList.add(groupConsumeInfo);
                         }
                         catch (Exception e) {
                             log.warn("examineConsumeStats or examineConsumerConnectionInfo exception, "
