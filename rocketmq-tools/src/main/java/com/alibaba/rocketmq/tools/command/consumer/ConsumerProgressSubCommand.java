@@ -136,18 +136,29 @@ public class ConsumerProgressSubCommand implements SubCommand {
                         String consumerGroup = topic.substring(MixAll.RETRY_GROUP_TOPIC_PREFIX.length());
 
                         try {
-                            ConsumerConnection cc =
-                                    defaultMQAdminExt.examineConsumerConnectionInfo(consumerGroup);
+                            ConsumerConnection cc = null;
+                            try {
+                                cc = defaultMQAdminExt.examineConsumerConnectionInfo(consumerGroup);
+                            }
+                            catch (Exception e) {
+                            }
+
                             ConsumeStats consumeStats = defaultMQAdminExt.examineConsumeStats(consumerGroup);
 
                             GroupConsumeInfo groupConsumeInfo = new GroupConsumeInfo();
-                            groupConsumeInfo.setCount(cc.getConnectionSet().size());
+
                             groupConsumeInfo.setGroup(consumerGroup);
-                            groupConsumeInfo.setMessageModel(cc.getMessageModel());
+
                             groupConsumeInfo.setConsumeTps((int) consumeStats.getConsumeTps());
-                            groupConsumeInfo.setConsumeType(cc.getConsumeType());
-                            groupConsumeInfo.setVersion(cc.computeMinVersion());
+
                             groupConsumeInfo.setDiffTotal(consumeStats.computeTotalDiff());
+
+                            if (cc != null) {
+                                groupConsumeInfo.setCount(cc.getConnectionSet().size());
+                                groupConsumeInfo.setMessageModel(cc.getMessageModel());
+                                groupConsumeInfo.setConsumeType(cc.getConsumeType());
+                                groupConsumeInfo.setVersion(cc.computeMinVersion());
+                            }
                         }
                         catch (Exception e) {
                             e.printStackTrace();
@@ -161,9 +172,9 @@ public class ConsumerProgressSubCommand implements SubCommand {
                     System.out.printf("%-32s  %-6d  %-24s %-4s  %-20s  %-7d  %d\n",//
                         info.getGroup(),//
                         info.getCount(),//
-                        0 == info.getCount() ? "" : MQVersion.getVersionDesc(info.getVersion()),//
-                        info.getConsumeType() == ConsumeType.CONSUME_ACTIVELY ? "PULL" : "PUSH",//
-                        info.getMessageModel(),//
+                        info.versionDesc(),//
+                        info.consumeTypeDesc(),//
+                        info.messageModelDesc(),//
                         info.getConsumeTps(),//
                         info.getDiffTotal()//
                         );
@@ -192,6 +203,30 @@ class GroupConsumeInfo implements Comparable<GroupConsumeInfo> {
 
     public String getGroup() {
         return group;
+    }
+
+
+    public String consumeTypeDesc() {
+        if (this.count != 0) {
+            return this.getConsumeType() == ConsumeType.CONSUME_ACTIVELY ? "PULL" : "PUSH";
+        }
+        return "";
+    }
+
+
+    public String messageModelDesc() {
+        if (this.count != 0) {
+            return this.getMessageModel().toString();
+        }
+        return "";
+    }
+
+
+    public String versionDesc() {
+        if (this.count != 0) {
+            return MQVersion.getVersionDesc(this.version);
+        }
+        return "";
     }
 
 

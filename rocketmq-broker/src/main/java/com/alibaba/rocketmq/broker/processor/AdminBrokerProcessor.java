@@ -332,7 +332,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         }
 
         response.setCode(MQResponseCode.SUBSCRIPTION_GROUP_NOT_EXIST_VALUE);
-        response.setRemark("the consumer group[" + requestHeader.getConsumerGroup() + "] not exist");
+        response.setRemark("the consumer group[" + requestHeader.getConsumerGroup() + "] not online");
         return response;
     }
 
