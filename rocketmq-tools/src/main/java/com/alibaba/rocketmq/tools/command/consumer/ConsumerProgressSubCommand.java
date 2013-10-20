@@ -22,7 +22,9 @@ import java.util.List;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
+import org.slf4j.Logger;
 
+import com.alibaba.rocketmq.client.log.ClientLogger;
 import com.alibaba.rocketmq.common.MQVersion;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.UtilALl;
@@ -44,6 +46,8 @@ import com.alibaba.rocketmq.tools.command.SubCommand;
  * @since 2013-8-11
  */
 public class ConsumerProgressSubCommand implements SubCommand {
+    private final Logger log = ClientLogger.getLog();
+
 
     @Override
     public String commandName() {
@@ -136,22 +140,29 @@ public class ConsumerProgressSubCommand implements SubCommand {
                         String consumerGroup = topic.substring(MixAll.RETRY_GROUP_TOPIC_PREFIX.length());
 
                         try {
+                            ConsumeStats consumeStats = null;
+                            try {
+                                consumeStats = defaultMQAdminExt.examineConsumeStats(consumerGroup);
+                            }
+                            catch (Exception e) {
+                                log.warn("examineConsumeStats exception, " + consumerGroup, e);
+                            }
+
                             ConsumerConnection cc = null;
                             try {
                                 cc = defaultMQAdminExt.examineConsumerConnectionInfo(consumerGroup);
                             }
                             catch (Exception e) {
+                                log.warn("examineConsumerConnectionInfo exception, " + consumerGroup, e);
                             }
 
-                            ConsumeStats consumeStats = defaultMQAdminExt.examineConsumeStats(consumerGroup);
-
                             GroupConsumeInfo groupConsumeInfo = new GroupConsumeInfo();
-
                             groupConsumeInfo.setGroup(consumerGroup);
 
-                            groupConsumeInfo.setConsumeTps((int) consumeStats.getConsumeTps());
-
-                            groupConsumeInfo.setDiffTotal(consumeStats.computeTotalDiff());
+                            if (consumeStats != null) {
+                                groupConsumeInfo.setConsumeTps((int) consumeStats.getConsumeTps());
+                                groupConsumeInfo.setDiffTotal(consumeStats.computeTotalDiff());
+                            }
 
                             if (cc != null) {
                                 groupConsumeInfo.setCount(cc.getConnectionSet().size());
@@ -161,7 +172,8 @@ public class ConsumerProgressSubCommand implements SubCommand {
                             }
                         }
                         catch (Exception e) {
-                            e.printStackTrace();
+                            log.warn("examineConsumeStats or examineConsumerConnectionInfo exception, "
+                                    + consumerGroup, e);
                         }
                     }
                 }
