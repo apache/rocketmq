@@ -90,24 +90,29 @@ public class ClusterListSubCommand implements SubCommand {
                                 brokerData.getBrokerAddrs().entrySet().iterator();
                         while (itAddr.hasNext()) {
                             Map.Entry<Long, String> next1 = itAddr.next();
-
-                            KVTable kvTable = defaultMQAdminExt.fetchBrokerRuntimeStats(next1.getValue());
-                            String putTps = kvTable.getTable().get("putTps");
-                            String getTransferedTps = kvTable.getTable().get("getTransferedTps");
                             long in = 0;
                             long out = 0;
-                            {
-                                String[] tpss = putTps.split(" ");
-                                if (tpss != null && tpss.length > 0) {
-                                    in = (long) Double.parseDouble(tpss[0]);
+
+                            try {
+                                KVTable kvTable = defaultMQAdminExt.fetchBrokerRuntimeStats(next1.getValue());
+                                String putTps = kvTable.getTable().get("putTps");
+                                String getTransferedTps = kvTable.getTable().get("getTransferedTps");
+
+                                {
+                                    String[] tpss = putTps.split(" ");
+                                    if (tpss != null && tpss.length > 0) {
+                                        in = (long) Double.parseDouble(tpss[0]);
+                                    }
+                                }
+
+                                {
+                                    String[] tpss = getTransferedTps.split(" ");
+                                    if (tpss != null && tpss.length > 0) {
+                                        out = (long) Double.parseDouble(tpss[0]);
+                                    }
                                 }
                             }
-
-                            {
-                                String[] tpss = getTransferedTps.split(" ");
-                                if (tpss != null && tpss.length > 0) {
-                                    out = (long) Double.parseDouble(tpss[0]);
-                                }
+                            catch (Exception e) {
                             }
 
                             System.out.printf("%-16s  %-32s  %-4s  %-22s %-8d %-8d\n",//
