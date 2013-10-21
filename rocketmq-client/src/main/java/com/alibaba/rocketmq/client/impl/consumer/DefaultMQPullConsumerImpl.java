@@ -523,8 +523,8 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
         case START_FAILED:
         case SHUTDOWN_ALREADY:
             throw new MQClientException("The PullConsumer service state not OK, maybe started once, "//
-                + this.serviceState//
-                + FAQUrl.suggestTodo(FAQUrl.CLIENT_SERVICE_NOT_OK), null);
+                    + this.serviceState//
+                    + FAQUrl.suggestTodo(FAQUrl.CLIENT_SERVICE_NOT_OK), null);
         default:
             break;
         }

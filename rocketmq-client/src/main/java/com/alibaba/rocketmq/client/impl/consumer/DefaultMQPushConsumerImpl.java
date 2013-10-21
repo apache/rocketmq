@@ -659,8 +659,8 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
         case START_FAILED:
         case SHUTDOWN_ALREADY:
             throw new MQClientException("The PushConsumer service state not OK, maybe started once, "//
-                + this.serviceState//
-                + FAQUrl.suggestTodo(FAQUrl.CLIENT_SERVICE_NOT_OK), null);
+                    + this.serviceState//
+                    + FAQUrl.suggestTodo(FAQUrl.CLIENT_SERVICE_NOT_OK), null);
         default:
             break;
         }
