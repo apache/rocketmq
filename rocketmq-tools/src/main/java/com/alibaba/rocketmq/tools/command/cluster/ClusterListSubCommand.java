@@ -57,7 +57,7 @@ public class ClusterListSubCommand implements SubCommand {
 
     @Override
     public Options buildCommandlineOptions(Options options) {
-        Option opt = new Option("m", "moreStats", true, "Print more stats");
+        Option opt = new Option("m", "moreStats", false, "Print more stats");
         opt.setRequired(false);
         options.addOption(opt);
 
@@ -71,7 +71,7 @@ public class ClusterListSubCommand implements SubCommand {
 
         ClusterInfo clusterInfoSerializeWrapper = defaultMQAdminExt.examineBrokerClusterInfo();
 
-        System.out.printf("%-16s  %-24s  %-4s  %-22s %-24s %11s %11s\n",//
+        System.out.printf("%-16s  %-32s  %-4s  %-22s %-24s %11s %11s\n",//
             "#Cluster Name",//
             "#Broker Name",//
             "#BID",//
@@ -123,7 +123,7 @@ public class ClusterListSubCommand implements SubCommand {
                         catch (Exception e) {
                         }
 
-                        System.out.printf("%-16s  %-24s  %-4s  %-22s %-24s %11.2f %11.2f\n",//
+                        System.out.printf("%-16s  %-32s  %-4s  %-22s %-24s %11.2f %11.2f\n",//
                             clusterName,//
                             brokerName,//
                             next1.getKey().longValue(),//
@@ -149,7 +149,7 @@ public class ClusterListSubCommand implements SubCommand {
 
         ClusterInfo clusterInfoSerializeWrapper = defaultMQAdminExt.examineBrokerClusterInfo();
 
-        System.out.printf("%-16s  %-24s %13s %13s %13s %13s\n",//
+        System.out.printf("%-16s  %-32s %13s %13s %13s %13s\n",//
             "#Cluster Name",//
             "#Broker Name",//
             "#InTotalYest",//
@@ -210,7 +210,7 @@ public class ClusterListSubCommand implements SubCommand {
                         catch (Exception e) {
                         }
 
-                        System.out.printf("%-16s  %-24s %13d %13d %13d %13d\n",//
+                        System.out.printf("%-16s  %-32s %13d %13d %13d %13d\n",//
                             clusterName,//
                             brokerName,//
                             InTotalYest,//
