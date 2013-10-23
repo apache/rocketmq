@@ -26,7 +26,7 @@ import org.apache.commons.cli.Options;
 
 import com.alibaba.rocketmq.client.exception.MQBrokerException;
 import com.alibaba.rocketmq.client.exception.MQClientException;
-import com.alibaba.rocketmq.common.UtilALl;
+import com.alibaba.rocketmq.common.UtilAll;
 import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.remoting.common.RemotingHelper;
 import com.alibaba.rocketmq.remoting.exception.RemotingException;
@@ -104,12 +104,12 @@ public class QueryMsgByIdSubCommand implements SubCommand {
 
         System.out.printf("%-20s %s\n",//
             "Born Timestamp:",//
-            UtilALl.timeMillisToHumanString2(msg.getBornTimestamp())//
+            UtilAll.timeMillisToHumanString2(msg.getBornTimestamp())//
             );
 
         System.out.printf("%-20s %s\n",//
             "Store Timestamp:",//
-            UtilALl.timeMillisToHumanString2(msg.getStoreTimestamp())//
+            UtilAll.timeMillisToHumanString2(msg.getStoreTimestamp())//
             );
 
         System.out.printf("%-20s %s\n",//

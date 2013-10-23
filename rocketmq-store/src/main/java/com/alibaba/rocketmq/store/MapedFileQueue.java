@@ -26,7 +26,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.alibaba.rocketmq.common.UtilALl;
+import com.alibaba.rocketmq.common.UtilAll;
 import com.alibaba.rocketmq.common.constant.LoggerName;
 
 
@@ -236,10 +236,10 @@ public class MapedFileQueue {
         }
 
         if (createOffset != -1) {
-            String nextFilePath = this.storePath + File.separator + UtilALl.offset2FileName(createOffset);
+            String nextFilePath = this.storePath + File.separator + UtilAll.offset2FileName(createOffset);
             String nextNextFilePath =
                     this.storePath + File.separator
-                            + UtilALl.offset2FileName(createOffset + this.mapedFileSize);
+                            + UtilAll.offset2FileName(createOffset + this.mapedFileSize);
             MapedFile mapedFile = null;
 
             if (this.allocateMapedFileService != null) {

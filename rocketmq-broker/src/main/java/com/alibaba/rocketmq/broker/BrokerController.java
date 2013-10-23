@@ -45,12 +45,14 @@ import com.alibaba.rocketmq.broker.processor.PullMessageProcessor;
 import com.alibaba.rocketmq.broker.processor.QueryMessageProcessor;
 import com.alibaba.rocketmq.broker.processor.SendMessageProcessor;
 import com.alibaba.rocketmq.broker.slave.SlaveSynchronize;
+import com.alibaba.rocketmq.broker.stats.BrokerStats;
 import com.alibaba.rocketmq.broker.subscription.SubscriptionGroupManager;
 import com.alibaba.rocketmq.broker.topic.TopicConfigManager;
 import com.alibaba.rocketmq.broker.transaction.DefaultTransactionCheckExecuter;
 import com.alibaba.rocketmq.common.BrokerConfig;
 import com.alibaba.rocketmq.common.DataVersion;
 import com.alibaba.rocketmq.common.MixAll;
+import com.alibaba.rocketmq.common.UtilAll;
 import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.common.namesrv.RegisterBrokerResult;
 import com.alibaba.rocketmq.common.protocol.MQProtos;
@@ -129,6 +131,8 @@ public class BrokerController {
     private ExecutorService adminBrokerExecutor;
     // 是否需要定期更新HA Master地址
     private boolean updateMasterHAServerAddrPeriodically = false;
+
+    private BrokerStats brokerStats;
 
 
     public BrokerController(//
@@ -244,6 +248,21 @@ public class BrokerController {
                         });
 
             this.registerProcessor();
+
+            this.brokerStats = new BrokerStats((DefaultMessageStore) this.messageStore);
+
+            // 每天凌晨00:00:00统计消息两
+            this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        BrokerController.this.getBrokerStats().record();
+                    }
+                    catch (Exception e) {
+                        log.error("", e);
+                    }
+                }
+            }, UtilAll.computNextMorningTimeMillis(), 1, TimeUnit.DAYS);
 
             // 定时刷消费进度
             this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
@@ -687,6 +706,16 @@ public class BrokerController {
 
     public void setPullMessageExecutor(ExecutorService pullMessageExecutor) {
         this.pullMessageExecutor = pullMessageExecutor;
+    }
+
+
+    public BrokerStats getBrokerStats() {
+        return brokerStats;
+    }
+
+
+    public void setBrokerStats(BrokerStats brokerStats) {
+        this.brokerStats = brokerStats;
     }
 
 }

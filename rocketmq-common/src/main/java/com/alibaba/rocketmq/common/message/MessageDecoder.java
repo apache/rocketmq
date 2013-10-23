@@ -26,7 +26,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.alibaba.rocketmq.common.UtilALl;
+import com.alibaba.rocketmq.common.UtilAll;
 import com.alibaba.rocketmq.common.sysflag.MessageSysFlag;
 
 
@@ -59,7 +59,7 @@ public class MessageDecoder {
         // 消息对应的物理分区 OFFSET 8
         input.putLong(offset);
 
-        return UtilALl.bytes2string(input.array());
+        return UtilAll.bytes2string(input.array());
     }
 
 
@@ -68,14 +68,14 @@ public class MessageDecoder {
         long offset;
 
         // 地址
-        byte[] ip = UtilALl.string2bytes(msgId.substring(0, 8));
-        byte[] port = UtilALl.string2bytes(msgId.substring(8, 16));
+        byte[] ip = UtilAll.string2bytes(msgId.substring(0, 8));
+        byte[] port = UtilAll.string2bytes(msgId.substring(8, 16));
         ByteBuffer bb = ByteBuffer.wrap(port);
         int portInt = bb.getInt(0);
         address = new InetSocketAddress(InetAddress.getByAddress(ip), portInt);
 
         // offset
-        byte[] data = UtilALl.string2bytes(msgId.substring(16, 32));
+        byte[] data = UtilAll.string2bytes(msgId.substring(16, 32));
         bb = ByteBuffer.wrap(data);
         offset = bb.getLong(0);
 
@@ -163,7 +163,7 @@ public class MessageDecoder {
 
                     // uncompress body
                     if ((sysFlag & MessageSysFlag.CompressedFlag) == MessageSysFlag.CompressedFlag) {
-                        body = UtilALl.uncompress(body);
+                        body = UtilAll.uncompress(body);
                     }
 
                     msgExt.setBody(body);

@@ -25,7 +25,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.alibaba.rocketmq.common.ServiceThread;
-import com.alibaba.rocketmq.common.UtilALl;
+import com.alibaba.rocketmq.common.UtilAll;
 import com.alibaba.rocketmq.common.constant.LoggerName;
 
 
@@ -144,7 +144,7 @@ public class AllocateMapedFileService extends ServiceThread {
             if (req.getMapedFile() == null) {
                 long beginTime = System.currentTimeMillis();
                 MapedFile mapedFile = new MapedFile(req.getFilePath(), req.getFileSize());
-                long eclipseTime = UtilALl.computeEclipseTimeMilliseconds(beginTime);
+                long eclipseTime = UtilAll.computeEclipseTimeMilliseconds(beginTime);
                 // 记录大于10ms的
                 if (eclipseTime > 10) {
                     int queueSize = this.requestQueue.size();

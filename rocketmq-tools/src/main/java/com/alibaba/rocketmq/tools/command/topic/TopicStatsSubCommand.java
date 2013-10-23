@@ -23,7 +23,7 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 
-import com.alibaba.rocketmq.common.UtilALl;
+import com.alibaba.rocketmq.common.UtilAll;
 import com.alibaba.rocketmq.common.admin.TopicOffset;
 import com.alibaba.rocketmq.common.admin.TopicStatsTable;
 import com.alibaba.rocketmq.common.message.MessageQueue;
@@ -90,11 +90,11 @@ public class TopicStatsSubCommand implements SubCommand {
 
                 String humanTimestamp = "";
                 if (topicOffset.getLastUpdateTimestamp() > 0) {
-                    humanTimestamp = UtilALl.timeMillisToHumanString2(topicOffset.getLastUpdateTimestamp());
+                    humanTimestamp = UtilAll.timeMillisToHumanString2(topicOffset.getLastUpdateTimestamp());
                 }
 
                 System.out.printf("%-32s  %-4d  %-20d  %-20d    %s\n",//
-                    UtilALl.frontStringAtLeast(mq.getBrokerName(), 32),//
+                    UtilAll.frontStringAtLeast(mq.getBrokerName(), 32),//
                     mq.getQueueId(),//
                     topicOffset.getMinOffset(),//
                     topicOffset.getMaxOffset(),//

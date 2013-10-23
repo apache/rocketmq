@@ -28,7 +28,7 @@ import org.slf4j.LoggerFactory;
 
 import com.alibaba.rocketmq.common.ServiceThread;
 import com.alibaba.rocketmq.common.SystemClock;
-import com.alibaba.rocketmq.common.UtilALl;
+import com.alibaba.rocketmq.common.UtilAll;
 import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.common.message.MessageDecoder;
 import com.alibaba.rocketmq.common.message.MessageExt;
@@ -606,7 +606,7 @@ public class DefaultMessageStore implements MessageStore {
         // 检测物理文件磁盘空间
         {
             String storePathPhysic = DefaultMessageStore.this.getMessageStoreConfig().getStorePathCommitLog();
-            double physicRatio = UtilALl.getDiskPartitionSpaceUsedPercent(storePathPhysic);
+            double physicRatio = UtilAll.getDiskPartitionSpaceUsedPercent(storePathPhysic);
             result.put(RunningStats.commitLogDiskRatio.name(), String.valueOf(physicRatio));
 
         }
@@ -615,7 +615,7 @@ public class DefaultMessageStore implements MessageStore {
         {
             String storePathLogics =
                     DefaultMessageStore.this.getMessageStoreConfig().getStorePathConsumeQueue();
-            double logicsRatio = UtilALl.getDiskPartitionSpaceUsedPercent(storePathLogics);
+            double logicsRatio = UtilAll.getDiskPartitionSpaceUsedPercent(storePathLogics);
             result.put(RunningStats.consumeQueueDiskRatio.name(), String.valueOf(logicsRatio));
         }
 
@@ -1200,7 +1200,7 @@ public class DefaultMessageStore implements MessageStore {
             {
                 String storePathPhysic =
                         DefaultMessageStore.this.getMessageStoreConfig().getStorePathCommitLog();
-                double physicRatio = UtilALl.getDiskPartitionSpaceUsedPercent(storePathPhysic);
+                double physicRatio = UtilAll.getDiskPartitionSpaceUsedPercent(storePathPhysic);
                 if (physicRatio > DiskSpaceWarningLevelRatio) {
                     boolean diskok = DefaultMessageStore.this.runningFlags.getAndMakeDiskFull();
                     if (diskok) {
@@ -1233,7 +1233,7 @@ public class DefaultMessageStore implements MessageStore {
             {
                 String storePathLogics =
                         DefaultMessageStore.this.getMessageStoreConfig().getStorePathConsumeQueue();
-                double logicsRatio = UtilALl.getDiskPartitionSpaceUsedPercent(storePathLogics);
+                double logicsRatio = UtilAll.getDiskPartitionSpaceUsedPercent(storePathLogics);
                 if (logicsRatio > DiskSpaceWarningLevelRatio) {
                     boolean diskok = DefaultMessageStore.this.runningFlags.getAndMakeDiskFull();
                     if (diskok) {
@@ -1271,7 +1271,7 @@ public class DefaultMessageStore implements MessageStore {
          */
         private boolean isTimeToDelete() {
             String when = DefaultMessageStore.this.getMessageStoreConfig().getDeleteWhen();
-            if (UtilALl.isItTimeToDo(when)) {
+            if (UtilAll.isItTimeToDo(when)) {
                 DefaultMessageStore.log.info("it's time to reclaim disk space, " + when);
                 return true;
             }

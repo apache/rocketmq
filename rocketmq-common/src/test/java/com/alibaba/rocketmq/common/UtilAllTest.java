@@ -35,7 +35,7 @@ public class UtilAllTest {
 
     @Test
     public void test_timeMillisToHumanString() {
-        System.out.println(UtilALl.timeMillisToHumanString());
+        System.out.println(UtilAll.timeMillisToHumanString());
     }
 
 
@@ -57,7 +57,7 @@ public class UtilAllTest {
 
     @Test
     public void test_getpid() {
-        int pid = UtilALl.getPid();
+        int pid = UtilAll.getPid();
 
         System.out.println("PID = " + pid);
         assertTrue(pid > 0);

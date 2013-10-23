@@ -1,6 +1,6 @@
 package com.alibaba.rocketmq.client;
 
-import com.alibaba.rocketmq.common.UtilALl;
+import com.alibaba.rocketmq.common.UtilAll;
 
 
 /**
@@ -21,7 +21,7 @@ public class VirtualEnvUtil {
      * @return
      */
     public static String buildWithProjectGroup(String origin, String projectGroup) {
-        if (!UtilALl.isBlank(projectGroup)) {
+        if (!UtilAll.isBlank(projectGroup)) {
             String prefix = String.format(VIRTUAL_APPGROUP_PREFIX, projectGroup);
             if (!origin.endsWith(prefix)) {
                 return origin + prefix;
@@ -45,7 +45,7 @@ public class VirtualEnvUtil {
      */
     public static String clearProjectGroup(String origin, String projectGroup) {
         String prefix = String.format(VIRTUAL_APPGROUP_PREFIX, projectGroup);
-        if (!UtilALl.isBlank(prefix) && origin.endsWith(prefix)) {
+        if (!UtilAll.isBlank(prefix) && origin.endsWith(prefix)) {
             return origin.substring(0, origin.lastIndexOf(prefix));
         }
         else {

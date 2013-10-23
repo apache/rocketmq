@@ -28,7 +28,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.alibaba.rocketmq.common.ServiceThread;
-import com.alibaba.rocketmq.common.UtilALl;
+import com.alibaba.rocketmq.common.UtilAll;
 import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.common.message.Message;
 import com.alibaba.rocketmq.common.message.MessageDecoder;
@@ -297,7 +297,7 @@ public class CommitLog {
 
                     // 校验CRC
                     if (checkCRC) {
-                        int crc = UtilALl.crc32(bytesContent, 0, bodyLen);
+                        int crc = UtilAll.crc32(bytesContent, 0, bodyLen);
                         if (crc != bodyCRC) {
                             log.warn("CRC check failed " + crc + " " + bodyCRC);
                             return new DispatchRequest(-1);
@@ -449,7 +449,7 @@ public class CommitLog {
             if (storeTimestamp <= this.defaultMessageStore.getStoreCheckpoint().getMinTimestampIndex()) {
                 log.info("find check timestamp, {} {}", //
                     storeTimestamp,//
-                    UtilALl.timeMillisToHumanString(storeTimestamp));
+                    UtilAll.timeMillisToHumanString(storeTimestamp));
                 return true;
             }
         }
@@ -457,7 +457,7 @@ public class CommitLog {
             if (storeTimestamp <= this.defaultMessageStore.getStoreCheckpoint().getMinTimestamp()) {
                 log.info("find check timestamp, {} {}", //
                     storeTimestamp,//
-                    UtilALl.timeMillisToHumanString(storeTimestamp));
+                    UtilAll.timeMillisToHumanString(storeTimestamp));
                 return true;
             }
         }
@@ -470,7 +470,7 @@ public class CommitLog {
         // 设置存储时间
         msg.setStoreTimestamp(System.currentTimeMillis());
         // 设置消息体BODY CRC（考虑在客户端设置最合适）
-        msg.setBodyCRC(UtilALl.crc32(msg.getBody()));
+        msg.setBodyCRC(UtilAll.crc32(msg.getBody()));
         // 返回结果
         AppendMessageResult result = null;
 
