@@ -39,7 +39,7 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingProtos.ResponseCode;
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  */
-public class UtilALl {
+public class UtilAll {
     public static final String yyyy_MM_dd_HH_mm_ss = "yyyy-MM-dd HH:mm:ss";
     public static final String yyyy_MM_dd_HH_mm_ss_SSS = "yyyy-MM-dd#HH:mm:ss:SSS";
     public static final String yyyyMMddHHmmss = "yyyyMMddHHmmss";
@@ -105,6 +105,19 @@ public class UtilALl {
         return String.format("%04d%02d%02d%02d%02d%02d%03d", cal.get(Calendar.YEAR),
             cal.get(Calendar.MONTH) + 1, cal.get(Calendar.DAY_OF_MONTH), cal.get(Calendar.HOUR_OF_DAY),
             cal.get(Calendar.MINUTE), cal.get(Calendar.SECOND), cal.get(Calendar.MILLISECOND));
+    }
+
+
+    public static long computNextMorningTimeMillis() {
+        Calendar cal = Calendar.getInstance();
+        cal.setTimeInMillis(System.currentTimeMillis());
+        cal.add(Calendar.DAY_OF_MONTH, 1);
+        cal.set(Calendar.HOUR_OF_DAY, 0);
+        cal.set(Calendar.MINUTE, 0);
+        cal.set(Calendar.SECOND, 0);
+        cal.set(Calendar.MILLISECOND, 0);
+
+        return cal.getTimeInMillis();
     }
 
 

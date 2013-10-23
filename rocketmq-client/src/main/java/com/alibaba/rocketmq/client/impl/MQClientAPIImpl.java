@@ -42,7 +42,7 @@ import com.alibaba.rocketmq.client.producer.SendStatus;
 import com.alibaba.rocketmq.common.MQVersion;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.TopicConfig;
-import com.alibaba.rocketmq.common.UtilALl;
+import com.alibaba.rocketmq.common.UtilAll;
 import com.alibaba.rocketmq.common.admin.ConsumeStats;
 import com.alibaba.rocketmq.common.admin.OffsetWrapper;
 import com.alibaba.rocketmq.common.admin.TopicOffset;
@@ -231,7 +231,7 @@ public class MQClientAPIImpl {
             final long timeoutMillis) throws RemotingException, MQBrokerException, InterruptedException,
             MQClientException {
         // 添加虚拟运行环境相关的projectGroupPrefix
-        if (!UtilALl.isBlank(projectGroupPrefix)) {
+        if (!UtilAll.isBlank(projectGroupPrefix)) {
             config.setGroupName(VirtualEnvUtil.buildWithProjectGroup(config.getGroupName(),
                 projectGroupPrefix));
         }
@@ -263,7 +263,7 @@ public class MQClientAPIImpl {
             MQClientException {
         // 添加虚拟运行环境相关的projectGroupPrefix
         String topicWithProjectGroup = topicConfig.getTopicName();
-        if (!UtilALl.isBlank(projectGroupPrefix)) {
+        if (!UtilAll.isBlank(projectGroupPrefix)) {
             topicWithProjectGroup =
                     VirtualEnvUtil.buildWithProjectGroup(topicConfig.getTopicName(), projectGroupPrefix);
         }
@@ -307,7 +307,7 @@ public class MQClientAPIImpl {
             final SendCallback sendCallback// 7
     ) throws RemotingException, MQBrokerException, InterruptedException {
         // 添加虚拟运行环境相关的projectGroupPrefix
-        if (!UtilALl.isBlank(projectGroupPrefix)) {
+        if (!UtilAll.isBlank(projectGroupPrefix)) {
             msg.setTopic(VirtualEnvUtil.buildWithProjectGroup(msg.getTopic(), projectGroupPrefix));
             requestHeader.setProducerGroup(VirtualEnvUtil.buildWithProjectGroup(
                 requestHeader.getProducerGroup(), projectGroupPrefix));
@@ -455,7 +455,7 @@ public class MQClientAPIImpl {
             final PullCallback pullCallback//
     ) throws RemotingException, MQBrokerException, InterruptedException {
         // 添加虚拟运行环境相关的projectGroupPrefix
-        if (!UtilALl.isBlank(projectGroupPrefix)) {
+        if (!UtilAll.isBlank(projectGroupPrefix)) {
             requestHeader.setConsumerGroup(VirtualEnvUtil.buildWithProjectGroup(
                 requestHeader.getConsumerGroup(), projectGroupPrefix));
             requestHeader.setTopic(VirtualEnvUtil.buildWithProjectGroup(requestHeader.getTopic(),
@@ -581,7 +581,7 @@ public class MQClientAPIImpl {
             ByteBuffer byteBuffer = ByteBuffer.wrap(response.getBody());
             MessageExt messageExt = MessageDecoder.decode(byteBuffer);
             // 清除虚拟运行环境相关的projectGroupPrefix
-            if (!UtilALl.isBlank(projectGroupPrefix)) {
+            if (!UtilAll.isBlank(projectGroupPrefix)) {
                 messageExt.setTopic(VirtualEnvUtil.clearProjectGroup(messageExt.getTopic(),
                     projectGroupPrefix));
             }
@@ -602,7 +602,7 @@ public class MQClientAPIImpl {
             final long timeoutMillis) throws RemotingException, MQBrokerException, InterruptedException {
         // 添加虚拟运行环境相关的projectGroupPrefix
         String topicWithProjectGroup = topic;
-        if (!UtilALl.isBlank(projectGroupPrefix)) {
+        if (!UtilAll.isBlank(projectGroupPrefix)) {
             topicWithProjectGroup = VirtualEnvUtil.buildWithProjectGroup(topic, projectGroupPrefix);
         }
 
@@ -638,7 +638,7 @@ public class MQClientAPIImpl {
             final long timeoutMillis) throws RemotingException, MQBrokerException, InterruptedException {
         // 添加虚拟运行环境相关的projectGroupPrefix
         String topicWithProjectGroup = topic;
-        if (!UtilALl.isBlank(projectGroupPrefix)) {
+        if (!UtilAll.isBlank(projectGroupPrefix)) {
             topicWithProjectGroup = VirtualEnvUtil.buildWithProjectGroup(topic, projectGroupPrefix);
         }
 
@@ -676,7 +676,7 @@ public class MQClientAPIImpl {
             RemotingTimeoutException, MQBrokerException, InterruptedException {
         // 添加虚拟运行环境相关的projectGroupPrefix
         String consumerGroupWithProjectGroup = consumerGroup;
-        if (!UtilALl.isBlank(projectGroupPrefix)) {
+        if (!UtilAll.isBlank(projectGroupPrefix)) {
             consumerGroupWithProjectGroup =
                     VirtualEnvUtil.buildWithProjectGroup(consumerGroup, projectGroupPrefix);
         }
@@ -712,7 +712,7 @@ public class MQClientAPIImpl {
             final long timeoutMillis) throws RemotingException, MQBrokerException, InterruptedException {
         // 添加虚拟运行环境相关的projectGroupPrefix
         String topicWithProjectGroup = topic;
-        if (!UtilALl.isBlank(projectGroupPrefix)) {
+        if (!UtilAll.isBlank(projectGroupPrefix)) {
             topicWithProjectGroup = VirtualEnvUtil.buildWithProjectGroup(topic, projectGroupPrefix);
         }
 
@@ -747,7 +747,7 @@ public class MQClientAPIImpl {
             final long timeoutMillis) throws RemotingException, MQBrokerException, InterruptedException {
         // 添加虚拟运行环境相关的projectGroupPrefix
         String topicWithProjectGroup = topic;
-        if (!UtilALl.isBlank(projectGroupPrefix)) {
+        if (!UtilAll.isBlank(projectGroupPrefix)) {
             topicWithProjectGroup = VirtualEnvUtil.buildWithProjectGroup(topic, projectGroupPrefix);
         }
 
@@ -785,7 +785,7 @@ public class MQClientAPIImpl {
             final long timeoutMillis//
     ) throws RemotingException, MQBrokerException, InterruptedException {
         // 添加虚拟运行环境相关的projectGroupPrefix
-        if (!UtilALl.isBlank(projectGroupPrefix)) {
+        if (!UtilAll.isBlank(projectGroupPrefix)) {
             requestHeader.setConsumerGroup(VirtualEnvUtil.buildWithProjectGroup(
                 requestHeader.getConsumerGroup(), projectGroupPrefix));
             requestHeader.setTopic(VirtualEnvUtil.buildWithProjectGroup(requestHeader.getTopic(),
@@ -822,7 +822,7 @@ public class MQClientAPIImpl {
             final long timeoutMillis//
     ) throws RemotingException, MQBrokerException, InterruptedException {
         // 添加虚拟运行环境相关的projectGroupPrefix
-        if (!UtilALl.isBlank(projectGroupPrefix)) {
+        if (!UtilAll.isBlank(projectGroupPrefix)) {
             requestHeader.setConsumerGroup(VirtualEnvUtil.buildWithProjectGroup(
                 requestHeader.getConsumerGroup(), projectGroupPrefix));
             requestHeader.setTopic(VirtualEnvUtil.buildWithProjectGroup(requestHeader.getTopic(),
@@ -863,7 +863,7 @@ public class MQClientAPIImpl {
     ) throws RemotingConnectException, RemotingTooMuchRequestException, RemotingTimeoutException,
             RemotingSendRequestException, InterruptedException {
         // 添加虚拟运行环境相关的projectGroupPrefix
-        if (!UtilALl.isBlank(projectGroupPrefix)) {
+        if (!UtilAll.isBlank(projectGroupPrefix)) {
             requestHeader.setConsumerGroup(VirtualEnvUtil.buildWithProjectGroup(
                 requestHeader.getConsumerGroup(), projectGroupPrefix));
             requestHeader.setTopic(VirtualEnvUtil.buildWithProjectGroup(requestHeader.getTopic(),
@@ -886,7 +886,7 @@ public class MQClientAPIImpl {
             final long timeoutMillis//
     ) throws RemotingException, MQBrokerException, InterruptedException {
         // 添加虚拟运行环境相关的projectGroupPrefix
-        if (!UtilALl.isBlank(projectGroupPrefix)) {
+        if (!UtilAll.isBlank(projectGroupPrefix)) {
             Set<ConsumerData> consumerDatas = heartbeatData.getConsumerDataSet();
             for (ConsumerData consumerData : consumerDatas) {
                 consumerData.setGroupName(VirtualEnvUtil.buildWithProjectGroup(consumerData.getGroupName(),
@@ -933,7 +933,7 @@ public class MQClientAPIImpl {
         // 添加虚拟运行环境相关的projectGroupPrefix
         String producerGroupWithProjectGroup = producerGroup;
         String consumerGroupWithProjectGroup = consumerGroup;
-        if (!UtilALl.isBlank(projectGroupPrefix)) {
+        if (!UtilAll.isBlank(projectGroupPrefix)) {
             producerGroupWithProjectGroup =
                     VirtualEnvUtil.buildWithProjectGroup(producerGroup, projectGroupPrefix);
             consumerGroupWithProjectGroup =
@@ -970,7 +970,7 @@ public class MQClientAPIImpl {
             final long timeoutMillis//
     ) throws RemotingException, MQBrokerException, InterruptedException {
         // 添加虚拟运行环境相关的projectGroupPrefix
-        if (!UtilALl.isBlank(projectGroupPrefix)) {
+        if (!UtilAll.isBlank(projectGroupPrefix)) {
             requestHeader.setProducerGroup(VirtualEnvUtil.buildWithProjectGroup(
                 requestHeader.getProducerGroup(), projectGroupPrefix));
         }
@@ -992,7 +992,7 @@ public class MQClientAPIImpl {
             final InvokeCallback invokeCallback//
     ) throws RemotingException, MQBrokerException, InterruptedException {
         // 添加虚拟运行环境相关的projectGroupPrefix
-        if (!UtilALl.isBlank(projectGroupPrefix)) {
+        if (!UtilAll.isBlank(projectGroupPrefix)) {
             requestHeader.setTopic(VirtualEnvUtil.buildWithProjectGroup(requestHeader.getTopic(),
                 projectGroupPrefix));
         }
@@ -1006,7 +1006,7 @@ public class MQClientAPIImpl {
     public boolean registerClient(final String addr, final HeartbeatData heartbeat, final long timeoutMillis)
             throws RemotingException, InterruptedException {
         // 添加虚拟运行环境相关的projectGroupPrefix
-        if (!UtilALl.isBlank(projectGroupPrefix)) {
+        if (!UtilAll.isBlank(projectGroupPrefix)) {
             Set<ConsumerData> consumerDatas = heartbeat.getConsumerDataSet();
             for (ConsumerData consumerData : consumerDatas) {
                 consumerData.setGroupName(VirtualEnvUtil.buildWithProjectGroup(consumerData.getGroupName(),
@@ -1042,7 +1042,7 @@ public class MQClientAPIImpl {
     ) throws RemotingException, MQBrokerException, InterruptedException {
         // 添加虚拟运行环境相关的projectGroupPrefix
         String consumerGroupWithProjectGroup = consumerGroup;
-        if (!UtilALl.isBlank(projectGroupPrefix)) {
+        if (!UtilAll.isBlank(projectGroupPrefix)) {
             consumerGroupWithProjectGroup =
                     VirtualEnvUtil.buildWithProjectGroup(consumerGroup, projectGroupPrefix);
             msg.setTopic(VirtualEnvUtil.buildWithProjectGroup(msg.getTopic(), projectGroupPrefix));
@@ -1077,7 +1077,7 @@ public class MQClientAPIImpl {
             final LockBatchRequestBody requestBody,//
             final long timeoutMillis) throws RemotingException, MQBrokerException, InterruptedException {
         // 添加虚拟运行环境相关的projectGroupPrefix
-        if (!UtilALl.isBlank(projectGroupPrefix)) {
+        if (!UtilAll.isBlank(projectGroupPrefix)) {
             requestBody.setConsumerGroup((VirtualEnvUtil.buildWithProjectGroup(
                 requestBody.getConsumerGroup(), projectGroupPrefix)));
             Set<MessageQueue> messageQueues = requestBody.getMqSet();
@@ -1097,7 +1097,7 @@ public class MQClientAPIImpl {
                     LockBatchResponseBody.decode(response.getBody(), LockBatchResponseBody.class);
             Set<MessageQueue> messageQueues = responseBody.getLockOKMQSet();
             // 清除虚拟运行环境相关的projectGroupPrefix
-            if (!UtilALl.isBlank(projectGroupPrefix)) {
+            if (!UtilAll.isBlank(projectGroupPrefix)) {
                 for (MessageQueue messageQueue : messageQueues) {
                     messageQueue.setTopic(VirtualEnvUtil.clearProjectGroup(messageQueue.getTopic(),
                         projectGroupPrefix));
@@ -1120,7 +1120,7 @@ public class MQClientAPIImpl {
             final boolean oneway//
     ) throws RemotingException, MQBrokerException, InterruptedException {
         // 添加虚拟运行环境相关的projectGroupPrefix
-        if (!UtilALl.isBlank(projectGroupPrefix)) {
+        if (!UtilAll.isBlank(projectGroupPrefix)) {
             requestBody.setConsumerGroup(VirtualEnvUtil.buildWithProjectGroup(requestBody.getConsumerGroup(),
                 projectGroupPrefix));
             Set<MessageQueue> messageQueues = requestBody.getMqSet();
@@ -1157,7 +1157,7 @@ public class MQClientAPIImpl {
             RemotingConnectException, MQBrokerException {
         // 添加虚拟运行环境相关的projectGroupPrefix
         String topicWithProjectGroup = topic;
-        if (!UtilALl.isBlank(projectGroupPrefix)) {
+        if (!UtilAll.isBlank(projectGroupPrefix)) {
             topicWithProjectGroup = VirtualEnvUtil.buildWithProjectGroup(topic, projectGroupPrefix);
         }
 
@@ -1172,7 +1172,7 @@ public class MQClientAPIImpl {
             TopicStatsTable topicStatsTable =
                     TopicStatsTable.decode(response.getBody(), TopicStatsTable.class);
             // 清除虚拟运行环境相关的projectGroupPrefix
-            if (!UtilALl.isBlank(projectGroupPrefix)) {
+            if (!UtilAll.isBlank(projectGroupPrefix)) {
                 HashMap<MessageQueue, TopicOffset> newTopicOffsetMap =
                         new HashMap<MessageQueue, TopicOffset>();
                 for (Map.Entry<MessageQueue, TopicOffset> messageQueue : topicStatsTable.getOffsetTable()
@@ -1198,7 +1198,7 @@ public class MQClientAPIImpl {
             RemotingSendRequestException, RemotingConnectException, MQBrokerException {
         // 添加虚拟运行环境相关的projectGroupPrefix
         String consumerGroupWithProjectGroup = consumerGroup;
-        if (!UtilALl.isBlank(projectGroupPrefix)) {
+        if (!UtilAll.isBlank(projectGroupPrefix)) {
             consumerGroupWithProjectGroup =
                     VirtualEnvUtil.buildWithProjectGroup(consumerGroup, projectGroupPrefix);
         }
@@ -1213,7 +1213,7 @@ public class MQClientAPIImpl {
         case ResponseCode.SUCCESS_VALUE: {
             ConsumeStats consumeStats = ConsumeStats.decode(response.getBody(), ConsumeStats.class);
             // 清除虚拟运行环境相关的projectGroupPrefix
-            if (!UtilALl.isBlank(projectGroupPrefix)) {
+            if (!UtilAll.isBlank(projectGroupPrefix)) {
                 HashMap<MessageQueue, OffsetWrapper> newTopicOffsetMap =
                         new HashMap<MessageQueue, OffsetWrapper>();
                 for (Map.Entry<MessageQueue, OffsetWrapper> messageQueue : consumeStats.getOffsetTable()
@@ -1243,7 +1243,7 @@ public class MQClientAPIImpl {
             RemotingTimeoutException, InterruptedException, MQBrokerException {
         // 添加虚拟运行环境相关的projectGroupPrefix
         String producerGroupWithProjectGroup = producerGroup;
-        if (!UtilALl.isBlank(projectGroupPrefix)) {
+        if (!UtilAll.isBlank(projectGroupPrefix)) {
             producerGroupWithProjectGroup =
                     VirtualEnvUtil.buildWithProjectGroup(producerGroup, projectGroupPrefix);
         }
@@ -1275,7 +1275,7 @@ public class MQClientAPIImpl {
             RemotingTimeoutException, InterruptedException, MQBrokerException {
         // 添加虚拟运行环境相关的projectGroupPrefix
         String consumerGroupWithProjectGroup = consumerGroup;
-        if (!UtilALl.isBlank(projectGroupPrefix)) {
+        if (!UtilAll.isBlank(projectGroupPrefix)) {
             consumerGroupWithProjectGroup =
                     VirtualEnvUtil.buildWithProjectGroup(consumerGroup, projectGroupPrefix);
         }
@@ -1291,7 +1291,7 @@ public class MQClientAPIImpl {
         case ResponseCode.SUCCESS_VALUE: {
             ConsumerConnection consumerConnection =
                     ConsumerConnection.decode(response.getBody(), ConsumerConnection.class);
-            if (!UtilALl.isBlank(projectGroupPrefix)) {
+            if (!UtilAll.isBlank(projectGroupPrefix)) {
                 ConcurrentHashMap<String, SubscriptionData> subscriptionDataConcurrentHashMap =
                         consumerConnection.getSubscriptionTable();
                 for (Map.Entry<String, SubscriptionData> subscriptionDataEntry : subscriptionDataConcurrentHashMap
@@ -1432,7 +1432,7 @@ public class MQClientAPIImpl {
             throws RemotingException, MQClientException, InterruptedException {
         // 添加虚拟运行环境相关的projectGroupPrefix
         String topicWithProjectGroup = topic;
-        if (!UtilALl.isBlank(projectGroupPrefix)) {
+        if (!UtilAll.isBlank(projectGroupPrefix)) {
             topicWithProjectGroup = VirtualEnvUtil.buildWithProjectGroup(topic, projectGroupPrefix);
         }
 
@@ -1481,7 +1481,7 @@ public class MQClientAPIImpl {
             if (body != null) {
                 TopicList topicList = TopicList.decode(body, TopicList.class);
 
-                if (!UtilALl.isBlank(projectGroupPrefix)) {
+                if (!UtilAll.isBlank(projectGroupPrefix)) {
                     HashSet<String> newTopicSet = new HashSet<String>();
                     for (String topic : topicList.getTopicList()) {
                         newTopicSet.add(VirtualEnvUtil.clearProjectGroup(topic, projectGroupPrefix));
@@ -1532,7 +1532,7 @@ public class MQClientAPIImpl {
             throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
         // 添加虚拟运行环境相关的projectGroupPrefix
         String topicWithProjectGroup = topic;
-        if (!UtilALl.isBlank(projectGroupPrefix)) {
+        if (!UtilAll.isBlank(projectGroupPrefix)) {
             topicWithProjectGroup = VirtualEnvUtil.buildWithProjectGroup(topic, projectGroupPrefix);
         }
 
@@ -1560,7 +1560,7 @@ public class MQClientAPIImpl {
             throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
         // 添加虚拟运行环境相关的projectGroupPrefix
         String topicWithProjectGroup = topic;
-        if (!UtilALl.isBlank(projectGroupPrefix)) {
+        if (!UtilAll.isBlank(projectGroupPrefix)) {
             topicWithProjectGroup = VirtualEnvUtil.buildWithProjectGroup(topic, projectGroupPrefix);
         }
 
@@ -1588,7 +1588,7 @@ public class MQClientAPIImpl {
             throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
         // 添加虚拟运行环境相关的projectGroupPrefix
         String groupWithProjectGroup = groupName;
-        if (!UtilALl.isBlank(projectGroupPrefix)) {
+        if (!UtilAll.isBlank(projectGroupPrefix)) {
             groupWithProjectGroup = VirtualEnvUtil.buildWithProjectGroup(groupName, projectGroupPrefix);
         }
 

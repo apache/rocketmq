@@ -6,7 +6,7 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 
-import com.alibaba.rocketmq.common.UtilALl;
+import com.alibaba.rocketmq.common.UtilAll;
 import com.alibaba.rocketmq.common.admin.RollbackStats;
 import com.alibaba.rocketmq.tools.admin.DefaultMQAdminExt;
 import com.alibaba.rocketmq.tools.command.SubCommand;
@@ -69,7 +69,7 @@ public class ResetOffsetByTimeSubCommand implements SubCommand {
             }
             catch (NumberFormatException e) {
                 // 输入的为日期格式，精确到毫秒
-                timestamp = UtilALl.parseDate(timeStampStr, UtilALl.yyyy_MM_dd_HH_mm_ss_SSS).getTime();
+                timestamp = UtilAll.parseDate(timeStampStr, UtilAll.yyyy_MM_dd_HH_mm_ss_SSS).getTime();
             }
             boolean force = Boolean.valueOf(commandLine.getOptionValue("f").trim());
             defaultMQAdminExt.start();
@@ -91,7 +91,7 @@ public class ResetOffsetByTimeSubCommand implements SubCommand {
 
             for (RollbackStats rollbackStats : rollbackStatsList) {
                 System.out.printf("%-20s  %-20d  %-20d  %-20d  %-20d  %-20d\n",//
-                    UtilALl.frontStringAtLeast(rollbackStats.getBrokerName(), 32),//
+                    UtilAll.frontStringAtLeast(rollbackStats.getBrokerName(), 32),//
                     rollbackStats.getQueueId(),//
                     rollbackStats.getBrokerOffset(),//
                     rollbackStats.getConsumerOffset(),//

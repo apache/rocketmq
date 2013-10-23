@@ -6,7 +6,7 @@ import java.util.regex.Pattern;
 import com.alibaba.rocketmq.client.exception.MQClientException;
 import com.alibaba.rocketmq.client.producer.DefaultMQProducer;
 import com.alibaba.rocketmq.common.MixAll;
-import com.alibaba.rocketmq.common.UtilALl;
+import com.alibaba.rocketmq.common.UtilAll;
 import com.alibaba.rocketmq.common.message.Message;
 
 
@@ -29,10 +29,10 @@ public class Validators {
      * @return
      */
     public static boolean regularExpressionMatcher(String origin, String patternStr) {
-        if (UtilALl.isBlank(origin)) {
+        if (UtilAll.isBlank(origin)) {
             return false;
         }
-        if (UtilALl.isBlank(patternStr)) {
+        if (UtilAll.isBlank(patternStr)) {
             return true;
         }
         Pattern pattern = Pattern.compile(patternStr);
@@ -65,7 +65,7 @@ public class Validators {
      * @throws com.alibaba.rocketmq.client.exception.MQClientException
      */
     public static void checkTopic(String topic) throws MQClientException {
-        if (UtilALl.isBlank(topic)) {
+        if (UtilAll.isBlank(topic)) {
             throw new MQClientException("the specified topic is blank", null);
         }
         if (!regularExpressionMatcher(topic, validPatternStr)) {
@@ -92,7 +92,7 @@ public class Validators {
      * @throws com.alibaba.rocketmq.client.exception.MQClientException
      */
     public static void checkGroup(String group) throws MQClientException {
-        if (UtilALl.isBlank(group)) {
+        if (UtilAll.isBlank(group)) {
             throw new MQClientException("the specified group is blank", null);
         }
         if (!regularExpressionMatcher(group, validPatternStr)) {

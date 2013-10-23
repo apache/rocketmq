@@ -27,7 +27,7 @@ import org.slf4j.Logger;
 import com.alibaba.rocketmq.client.log.ClientLogger;
 import com.alibaba.rocketmq.common.MQVersion;
 import com.alibaba.rocketmq.common.MixAll;
-import com.alibaba.rocketmq.common.UtilALl;
+import com.alibaba.rocketmq.common.UtilAll;
 import com.alibaba.rocketmq.common.admin.ConsumeStats;
 import com.alibaba.rocketmq.common.admin.OffsetWrapper;
 import com.alibaba.rocketmq.common.message.MessageQueue;
@@ -107,8 +107,8 @@ public class ConsumerProgressSubCommand implements SubCommand {
                     diffTotal += diff;
 
                     System.out.printf("%-32s  %-32s  %-4d  %-20d  %-20d  %d\n",//
-                        UtilALl.frontStringAtLeast(mq.getTopic(), 32),//
-                        UtilALl.frontStringAtLeast(mq.getBrokerName(), 32),//
+                        UtilAll.frontStringAtLeast(mq.getTopic(), 32),//
+                        UtilAll.frontStringAtLeast(mq.getBrokerName(), 32),//
                         mq.getQueueId(),//
                         offsetWrapper.getBrokerOffset(),//
                         offsetWrapper.getConsumerOffset(),//
@@ -184,7 +184,7 @@ public class ConsumerProgressSubCommand implements SubCommand {
 
                 for (GroupConsumeInfo info : groupConsumeInfoList) {
                     System.out.printf("%-32s  %-6d  %-24s %-5s  %-14s  %-7d  %d\n",//
-                        UtilALl.frontStringAtLeast(info.getGroup(), 32),//
+                        UtilAll.frontStringAtLeast(info.getGroup(), 32),//
                         info.getCount(),//
                         info.versionDesc(),//
                         info.consumeTypeDesc(),//

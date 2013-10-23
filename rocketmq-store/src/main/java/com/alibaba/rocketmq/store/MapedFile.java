@@ -32,7 +32,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.alibaba.rocketmq.common.UtilALl;
+import com.alibaba.rocketmq.common.UtilAll;
 import com.alibaba.rocketmq.common.constant.LoggerName;
 
 
@@ -399,7 +399,7 @@ public class MapedFile extends ReferenceResource {
                 log.info("delete file[REF:" + this.getRefCount() + "] " + this.fileName
                         + (result ? " OK, " : " Failed, ") + "W:" + this.getWrotePostion() + " M:"
                         + this.getCommittedPosition() + ", "
-                        + UtilALl.computeEclipseTimeMilliseconds(beginTime));
+                        + UtilAll.computeEclipseTimeMilliseconds(beginTime));
             }
             catch (Exception e) {
                 log.warn("close file channel " + this.fileName + " Failed. ", e);

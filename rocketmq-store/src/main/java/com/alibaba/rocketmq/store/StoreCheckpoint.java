@@ -25,7 +25,7 @@ import java.nio.channels.FileChannel.MapMode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.alibaba.rocketmq.common.UtilALl;
+import com.alibaba.rocketmq.common.UtilAll;
 import com.alibaba.rocketmq.common.constant.LoggerName;
 
 
@@ -61,11 +61,11 @@ public class StoreCheckpoint {
             this.indexMsgTimestamp = this.mappedByteBuffer.getLong(16);
 
             log.info("store checkpoint file physicMsgTimestamp " + this.physicMsgTimestamp + ", "
-                    + UtilALl.timeMillisToHumanString(this.physicMsgTimestamp));
+                    + UtilAll.timeMillisToHumanString(this.physicMsgTimestamp));
             log.info("store checkpoint file logicsMsgTimestamp " + this.logicsMsgTimestamp + ", "
-                    + UtilALl.timeMillisToHumanString(this.logicsMsgTimestamp));
+                    + UtilAll.timeMillisToHumanString(this.logicsMsgTimestamp));
             log.info("store checkpoint file indexMsgTimestamp " + this.indexMsgTimestamp + ", "
-                    + UtilALl.timeMillisToHumanString(this.indexMsgTimestamp));
+                    + UtilAll.timeMillisToHumanString(this.indexMsgTimestamp));
         }
         else {
             log.info("store checkpoint file not exists, " + scpPath);
