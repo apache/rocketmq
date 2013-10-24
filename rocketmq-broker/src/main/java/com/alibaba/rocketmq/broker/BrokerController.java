@@ -251,7 +251,9 @@ public class BrokerController {
 
             this.brokerStats = new BrokerStats((DefaultMessageStore) this.messageStore);
 
-            // 每天凌晨00:00:00统计消息两
+            // 每天凌晨00:00:00统计消息量
+            final long initialDelay = UtilAll.computNextMorningTimeMillis() - System.currentTimeMillis();
+            final long period = 1000 * 60 * 60 * 24;
             this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
                 @Override
                 public void run() {
@@ -262,7 +264,7 @@ public class BrokerController {
                         log.error("", e);
                     }
                 }
-            }, UtilAll.computNextMorningTimeMillis(), 1, TimeUnit.DAYS);
+            }, initialDelay, period, TimeUnit.MILLISECONDS);
 
             // 定时刷消费进度
             this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
