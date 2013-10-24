@@ -52,7 +52,7 @@ public abstract class ConfigManager {
             String jsonString = MixAll.file2String(fileName);
             if (jsonString != null) {
                 this.decode(jsonString);
-                plog.error("load " + fileName + " OK");
+                plog.info("load " + fileName + " OK");
                 return true;
             }
         }
