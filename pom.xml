@@ -9,14 +9,19 @@
         <version>1.0.2</version>
     </parent>
 -->
-
+	<parent>
+	    <groupId>org.sonatype.oss</groupId>
+	    <artifactId>oss-parent</artifactId>
+	    <version>7</version>
+	</parent>
 	<modelVersion>4.0.0</modelVersion>
 	<inceptionYear>2012</inceptionYear>
 	<groupId>com.alibaba.rocketmq</groupId>
 	<artifactId>rocketmq-all</artifactId>
-	<version>3.0.2-SNAPSHOT</version>
+	<version>3.0.1-SNAPSHOT</version>
 	<packaging>pom</packaging>
 	<name>rocketmq-all ${project.version}</name>
+	<url>https://github.com/alibaba/rocketmq</url>
 
 	<modules>
 		<module>rocketmq-client</module>
@@ -31,7 +36,52 @@
 		<module>rocketmq-test</module>
 		<module>rocketmq-qatest</module>
 	</modules>
+	
+	<developers>
+		<developer>
+			<name>vintagewang</name>
+			<url>https://github.com/vintagewang</url>
+			<email>vintage.wang@gmail.com</email>
+			<timezone>8</timezone>
+		</developer>
+		<developer>
+			<name>manhong</name>
+			<url>https://github.com/YangJodie</url>
+			<email>manhong.yqd@alibaba-inc.com</email>
+			<timezone>8</timezone>
+		</developer>
+		<developer>
+			<name>lansheng</name>
+			<url>https://github.com/allenzhu</url>
+			<email>lansheng.zj@alibaba-inc.com</email>
+			<timezone>8</timezone>
+		</developer>
+	</developers>
 
+	<licenses>
+		<license>
+			<name>Apache License, Version 2.0</name>
+			<url>http://www.apache.org/licenses/LICENSE-2.0</url>
+		</license>
+	</licenses>
+	
+	<scm>
+		<url>git@github.com:alibaba/rocketmq.git</url>
+		<connection>scm:git:git@github.com:alibaba/rocketmq.git</connection>
+		<developerConnection>scm:git:git@github.com:alibaba/rocketmq.git</developerConnection>
+	</scm>
+	
+	<properties>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+		<!--maven properties-->
+		<maven.test.skip>true</maven.test.skip>
+		<downloadSources>true</downloadSources>
+		<!-- compiler settings properties -->
+		<java_source_version>1.6</java_source_version>
+		<java_target_version>1.6</java_target_version>
+		<file_encoding>UTF-8</file_encoding>
+	</properties>
+	
 	<build>
 		<plugins>
 			<plugin>
@@ -39,9 +89,9 @@
 				<artifactId>maven-compiler-plugin</artifactId>
 				<version>2.3.2</version>
 				<configuration>
-					<source>1.6</source>
-					<target>1.6</target>
-					<encoding>UTF-8</encoding>
+					<source>${java_source_version}</source>
+					<target>${java_target_version}</target>
+					<encoding>${file_encoding}</encoding>
 					<showDeprecation>true</showDeprecation>
 					<showWarnings>true</showWarnings>
 				</configuration>
@@ -222,4 +272,17 @@
 			</dependency>
 		</dependencies>
 	</dependencyManagement>
+	
+	<distributionManagement>
+		<snapshotRepository>
+			<id>sonatype-nexus-snapshots</id>
+			<name>Sonatype Nexus Snapshots</name>
+			<url>https://oss.sonatype.org/content/repositories/snapshots/</url>
+		</snapshotRepository>
+		<repository>
+			<id>sonatype-nexus-staging</id>
+			<name>Nexus Release Repository</name>
+			<url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
+		</repository>
+	</distributionManagement>
 </project>
