@@ -7,12 +7,13 @@
 		<artifactId>parent</artifactId>
 		<version>1.0.2</version>
 	</parent>
--->
+
 	<parent>
 		<groupId>org.sonatype.oss</groupId>
 		<artifactId>oss-parent</artifactId>
 		<version>7</version>
 	</parent>
+-->
 
 	<modelVersion>4.0.0</modelVersion>
 	<inceptionYear>2012</inceptionYear>
