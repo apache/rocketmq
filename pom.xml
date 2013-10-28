@@ -2,23 +2,19 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 
-<!--
-    <parent>
-        <groupId>com.taobao</groupId>
-        <artifactId>parent</artifactId>
-        <version>1.0.2</version>
-    </parent>
--->
 	<parent>
-	    <groupId>org.sonatype.oss</groupId>
-	    <artifactId>oss-parent</artifactId>
-	    <version>7</version>
+		<groupId>com.taobao</groupId>
+		<artifactId>parent</artifactId>
+		<version>1.0.2</version>
 	</parent>
+	<!-- <parent> <groupId>org.sonatype.oss</groupId> <artifactId>oss-parent</artifactId> 
+		<version>7</version> </parent> -->
+
 	<modelVersion>4.0.0</modelVersion>
 	<inceptionYear>2012</inceptionYear>
 	<groupId>com.alibaba.rocketmq</groupId>
 	<artifactId>rocketmq-all</artifactId>
-	<version>3.0.1-SNAPSHOT</version>
+	<version>3.0.2-open</version>
 	<packaging>pom</packaging>
 	<name>rocketmq-all ${project.version}</name>
 	<url>https://github.com/alibaba/rocketmq</url>
@@ -36,7 +32,7 @@
 		<module>rocketmq-test</module>
 		<module>rocketmq-qatest</module>
 	</modules>
-	
+
 	<developers>
 		<developer>
 			<name>vintagewang</name>
@@ -64,16 +60,16 @@
 			<url>http://www.apache.org/licenses/LICENSE-2.0</url>
 		</license>
 	</licenses>
-	
+
 	<scm>
 		<url>git@github.com:alibaba/rocketmq.git</url>
 		<connection>scm:git:git@github.com:alibaba/rocketmq.git</connection>
 		<developerConnection>scm:git:git@github.com:alibaba/rocketmq.git</developerConnection>
 	</scm>
-	
+
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-		<!--maven properties-->
+		<!--maven properties -->
 		<maven.test.skip>true</maven.test.skip>
 		<downloadSources>true</downloadSources>
 		<!-- compiler settings properties -->
@@ -81,7 +77,7 @@
 		<java_target_version>1.6</java_target_version>
 		<file_encoding>UTF-8</file_encoding>
 	</properties>
-	
+
 	<build>
 		<plugins>
 			<plugin>
@@ -272,7 +268,7 @@
 			</dependency>
 		</dependencies>
 	</dependencyManagement>
-	
+
 	<distributionManagement>
 		<snapshotRepository>
 			<id>sonatype-nexus-snapshots</id>
