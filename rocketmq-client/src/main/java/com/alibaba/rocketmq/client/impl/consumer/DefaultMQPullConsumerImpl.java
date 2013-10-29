@@ -167,6 +167,7 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
             synchronized (topics) {
                 for (String t : topics) {
                     SubscriptionData ms = new SubscriptionData(t, SubscriptionData.SUB_ALL);
+                    ms.setSubVersion(0L);
                     result.add(ms);
                 }
             }
