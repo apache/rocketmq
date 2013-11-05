@@ -36,6 +36,13 @@ public interface RemotingServer {
     public void start() throws InterruptedException;
 
 
+    /**
+     * 注册请求处理器，ExecutorService必须要对应一个队列大小有限制的阻塞队列，防止OOM
+     * 
+     * @param requestCode
+     * @param processor
+     * @param executor
+     */
     public void registerProcessor(final int requestCode, final NettyRequestProcessor processor,
             final ExecutorService executor);
 

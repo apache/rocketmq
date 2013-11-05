@@ -17,10 +17,13 @@ package com.alibaba.rocketmq.broker;
 
 import java.io.IOException;
 import java.util.Properties;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -133,6 +136,8 @@ public class BrokerController {
     private boolean updateMasterHAServerAddrPeriodically = false;
 
     private BrokerStats brokerStats;
+    // 对消息写入进行流控
+    private final BlockingQueue<Runnable> sendThreadPoolQueue;
 
 
     public BrokerController(//
@@ -165,6 +170,9 @@ public class BrokerController {
 
         this.slaveSynchronize = new SlaveSynchronize(this);
         this.digestLogManager = new DigestLogManager(this);
+
+        this.sendThreadPoolQueue =
+                new LinkedBlockingQueue<Runnable>(this.brokerConfig.getSendThreadPoolQueueSize());
     }
 
 
@@ -205,19 +213,21 @@ public class BrokerController {
                     new NettyRemotingServer(this.nettyServerConfig, this.clientHousekeepingService);
 
             // 初始化线程池
-            this.sendMessageExecutor =
-                    Executors.newFixedThreadPool(this.brokerConfig.getSendMessageThreadPoolNums(),
-                        new ThreadFactory() {
+            this.sendMessageExecutor = new ThreadPoolExecutor(//
+                this.brokerConfig.getSendMessageThreadPoolNums(),//
+                this.brokerConfig.getSendMessageThreadPoolNums(),//
+                1000 * 60,//
+                TimeUnit.MILLISECONDS,//
+                this.sendThreadPoolQueue,//
+                new ThreadFactory() {
+                    private AtomicInteger threadIndex = new AtomicInteger(0);
 
-                            private AtomicInteger threadIndex = new AtomicInteger(0);
 
-
-                            @Override
-                            public Thread newThread(Runnable r) {
-                                return new Thread(r, "SendMessageThread_"
-                                        + this.threadIndex.incrementAndGet());
-                            }
-                        });
+                    @Override
+                    public Thread newThread(Runnable r) {
+                        return new Thread(r, "SendMessageThread_" + this.threadIndex.incrementAndGet());
+                    }
+                });
 
             this.pullMessageExecutor =
                     Executors.newFixedThreadPool(this.brokerConfig.getPullMessageThreadPoolNums(),
