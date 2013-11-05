@@ -84,6 +84,9 @@ public class BrokerConfig {
     @ImportantField
     private boolean fetchNamesrvAddrByAddressServer = false;
 
+    // 发送消息对应的线程池阻塞队列size
+    private int sendThreadPoolQueueSize = 150000;
+
 
     public static String localHostName() {
         try {
@@ -334,5 +337,15 @@ public class BrokerConfig {
 
     public void setFetchNamesrvAddrByAddressServer(boolean fetchNamesrvAddrByAddressServer) {
         this.fetchNamesrvAddrByAddressServer = fetchNamesrvAddrByAddressServer;
+    }
+
+
+    public int getSendThreadPoolQueueSize() {
+        return sendThreadPoolQueueSize;
+    }
+
+
+    public void setSendThreadPoolQueueSize(int sendThreadPoolQueueSize) {
+        this.sendThreadPoolQueueSize = sendThreadPoolQueueSize;
     }
 }
