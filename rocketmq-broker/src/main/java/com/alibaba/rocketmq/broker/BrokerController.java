@@ -139,6 +139,9 @@ public class BrokerController {
     // 对消息写入进行流控
     private final BlockingQueue<Runnable> sendThreadPoolQueue;
 
+    // 对消息读取进行流控
+    private final BlockingQueue<Runnable> pullThreadPoolQueue;
+
 
     public BrokerController(//
             final BrokerConfig brokerConfig, //
@@ -172,7 +175,10 @@ public class BrokerController {
         this.digestLogManager = new DigestLogManager(this);
 
         this.sendThreadPoolQueue =
-                new LinkedBlockingQueue<Runnable>(this.brokerConfig.getSendThreadPoolQueueSize());
+                new LinkedBlockingQueue<Runnable>(this.brokerConfig.getSendThreadPoolQueueCapacity());
+
+        this.pullThreadPoolQueue =
+                new LinkedBlockingQueue<Runnable>(this.brokerConfig.getPullThreadPoolQueueCapacity());
     }
 
 
@@ -229,19 +235,21 @@ public class BrokerController {
                     }
                 });
 
-            this.pullMessageExecutor =
-                    Executors.newFixedThreadPool(this.brokerConfig.getPullMessageThreadPoolNums(),
-                        new ThreadFactory() {
+            this.pullMessageExecutor = new ThreadPoolExecutor(//
+                this.brokerConfig.getPullMessageThreadPoolNums(),//
+                this.brokerConfig.getPullMessageThreadPoolNums(),//
+                1000 * 60,//
+                TimeUnit.MILLISECONDS,//
+                this.pullThreadPoolQueue,//
+                new ThreadFactory() {
+                    private AtomicInteger threadIndex = new AtomicInteger(0);
 
-                            private AtomicInteger threadIndex = new AtomicInteger(0);
 
-
-                            @Override
-                            public Thread newThread(Runnable r) {
-                                return new Thread(r, "PullMessageThread_"
-                                        + this.threadIndex.incrementAndGet());
-                            }
-                        });
+                    @Override
+                    public Thread newThread(Runnable r) {
+                        return new Thread(r, "PullMessageThread_" + this.threadIndex.incrementAndGet());
+                    }
+                });
 
             this.adminBrokerExecutor =
                     Executors.newFixedThreadPool(this.brokerConfig.getAdminBrokerThreadPoolNums(),
