@@ -730,4 +730,9 @@ public class BrokerController {
         this.brokerStats = brokerStats;
     }
 
+
+    public BlockingQueue<Runnable> getSendThreadPoolQueue() {
+        return sendThreadPoolQueue;
+    }
+
 }
