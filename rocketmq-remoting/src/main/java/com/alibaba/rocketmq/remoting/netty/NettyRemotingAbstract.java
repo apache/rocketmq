@@ -218,7 +218,7 @@ public abstract class NettyRemotingAbstract {
                 if (!cmd.isOnewayRPC()) {
                     final RemotingCommand response =
                             RemotingCommand.createResponseCommand(ResponseCode.SYSTEM_BUSY_VALUE,
-                                "system busy now, please try another node");
+                                "system thread pool busy, please try another node");
                     response.setOpaque(cmd.getOpaque());
                     ctx.writeAndFlush(response);
                 }
