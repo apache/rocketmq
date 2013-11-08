@@ -34,7 +34,7 @@ import com.alibaba.rocketmq.client.impl.producer.TopicPublishInfo;
 import com.alibaba.rocketmq.client.log.ClientLogger;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.TopicConfig;
-import com.alibaba.rocketmq.common.message.Message;
+import com.alibaba.rocketmq.common.message.MessageConst;
 import com.alibaba.rocketmq.common.message.MessageDecoder;
 import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.common.message.MessageId;
@@ -357,7 +357,7 @@ public class MQAdminImpl {
                         String keys = msgExt.getKeys();
                         if (keys != null) {
                             boolean matched = false;
-                            String[] keyArray = keys.split(Message.KEY_SEPARATOR);
+                            String[] keyArray = keys.split(MessageConst.KEY_SEPARATOR);
                             if (keyArray != null) {
                                 for (String k : keyArray) {
                                     if (key.equals(k)) {

@@ -30,7 +30,7 @@ import org.slf4j.LoggerFactory;
 import com.alibaba.rocketmq.common.ServiceThread;
 import com.alibaba.rocketmq.common.UtilAll;
 import com.alibaba.rocketmq.common.constant.LoggerName;
-import com.alibaba.rocketmq.common.message.Message;
+import com.alibaba.rocketmq.common.message.MessageConst;
 import com.alibaba.rocketmq.common.message.MessageDecoder;
 import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.common.sysflag.MessageSysFlag;
@@ -324,8 +324,8 @@ public class CommitLog {
                 String properties = new String(bytesContent, 0, propertiesLength);
                 Map<String, String> propertiesMap = MessageDecoder.string2messageProperties(properties);
 
-                keys = propertiesMap.get(Message.PROPERTY_KEYS);
-                String tags = propertiesMap.get(Message.PROPERTY_TAGS);
+                keys = propertiesMap.get(MessageConst.PROPERTY_KEYS);
+                String tags = propertiesMap.get(MessageConst.PROPERTY_TAGS);
                 if (tags != null && tags.length() > 0) {
                     tagsCode =
                             MessageExtBrokerInner.tagsString2tagsCode(
@@ -500,8 +500,8 @@ public class CommitLog {
                 /**
                  * 备份真实的topic，queueId
                  */
-                msg.putProperty(Message.PROPERTY_REAL_TOPIC, msg.getTopic());
-                msg.putProperty(Message.PROPERTY_REAL_QUEUE_ID, String.valueOf(msg.getQueueId()));
+                msg.putProperty(MessageConst.PROPERTY_REAL_TOPIC, msg.getTopic());
+                msg.putProperty(MessageConst.PROPERTY_REAL_QUEUE_ID, String.valueOf(msg.getQueueId()));
                 msg.setPropertiesString(MessageDecoder.messageProperties2String(msg.getProperties()));
 
                 msg.setTopic(topic);
@@ -564,7 +564,7 @@ public class CommitLog {
                 msg.getSysFlag(),// 9
                 msg.getQueueOffset(), // 10
                 msg.getPreparedTransactionOffset(),// 11
-                msg.getProperty(Message.PROPERTY_PRODUCER_GROUP)// 12
+                msg.getProperty(MessageConst.PROPERTY_PRODUCER_GROUP)// 12
                     );
 
             this.defaultMessageStore.putDispatchRequest(dispatchRequest);

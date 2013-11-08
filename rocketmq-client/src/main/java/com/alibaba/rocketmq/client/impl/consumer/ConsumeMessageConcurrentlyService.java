@@ -36,7 +36,7 @@ import com.alibaba.rocketmq.client.hook.ConsumeMessageContext;
 import com.alibaba.rocketmq.client.log.ClientLogger;
 import com.alibaba.rocketmq.client.stat.ConsumerStat;
 import com.alibaba.rocketmq.common.MixAll;
-import com.alibaba.rocketmq.common.message.Message;
+import com.alibaba.rocketmq.common.message.MessageConst;
 import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.common.message.MessageQueue;
 import com.alibaba.rocketmq.remoting.common.RemotingHelper;
@@ -127,7 +127,7 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
         private void resetRetryTopic(final List<MessageExt> msgs) {
             final String groupTopic = MixAll.getRetryTopic(consumerGroup);
             for (MessageExt msg : msgs) {
-                String retryTopic = msg.getProperty(Message.PROPERTY_RETRY_TOPIC);
+                String retryTopic = msg.getProperty(MessageConst.PROPERTY_RETRY_TOPIC);
                 if (retryTopic != null && groupTopic.equals(msg.getTopic())) {
                     msg.setTopic(retryTopic);
                 }

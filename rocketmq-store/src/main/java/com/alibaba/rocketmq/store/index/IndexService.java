@@ -32,7 +32,7 @@ import org.slf4j.LoggerFactory;
 import com.alibaba.rocketmq.common.ServiceThread;
 import com.alibaba.rocketmq.common.UtilAll;
 import com.alibaba.rocketmq.common.constant.LoggerName;
-import com.alibaba.rocketmq.common.message.Message;
+import com.alibaba.rocketmq.common.message.MessageConst;
 import com.alibaba.rocketmq.common.sysflag.MessageSysFlag;
 import com.alibaba.rocketmq.store.DefaultMessageStore;
 import com.alibaba.rocketmq.store.DispatchRequest;
@@ -314,7 +314,7 @@ public class IndexService extends ServiceThread {
                 }
 
                 if (keys != null && keys.length() > 0) {
-                    String[] keyset = keys.split(Message.KEY_SEPARATOR);
+                    String[] keyset = keys.split(MessageConst.KEY_SEPARATOR);
                     for (String key : keyset) {
                         // TODO 是否需要TRIM
                         if (key.length() > 0) {
