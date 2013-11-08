@@ -28,7 +28,7 @@ import org.slf4j.LoggerFactory;
 import com.alibaba.rocketmq.common.ConfigManager;
 import com.alibaba.rocketmq.common.TopicFilterType;
 import com.alibaba.rocketmq.common.constant.LoggerName;
-import com.alibaba.rocketmq.common.message.Message;
+import com.alibaba.rocketmq.common.message.MessageConst;
 import com.alibaba.rocketmq.common.message.MessageDecoder;
 import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.common.running.RunningStats;
@@ -340,13 +340,13 @@ public class ScheduleMessageService extends ConfigManager {
             msgInner.setReconsumeTimes(msgExt.getReconsumeTimes());
 
             msgInner.setWaitStoreMsgOK(false);
-            msgInner.clearProperty(Message.PROPERTY_DELAY_TIME_LEVEL);
+            msgInner.clearProperty(MessageConst.PROPERTY_DELAY_TIME_LEVEL);
 
             // 恢复Topic
-            msgInner.setTopic(msgInner.getProperty(Message.PROPERTY_REAL_TOPIC));
+            msgInner.setTopic(msgInner.getProperty(MessageConst.PROPERTY_REAL_TOPIC));
 
             // 恢复QueueId
-            String queueIdStr = msgInner.getProperty(Message.PROPERTY_REAL_QUEUE_ID);
+            String queueIdStr = msgInner.getProperty(MessageConst.PROPERTY_REAL_QUEUE_ID);
             int queueId = Integer.parseInt(queueIdStr);
             msgInner.setQueueId(queueId);
 

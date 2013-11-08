@@ -32,7 +32,7 @@ import com.alibaba.rocketmq.client.impl.FindBrokerResult;
 import com.alibaba.rocketmq.client.impl.factory.MQClientFactory;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.UtilAll;
-import com.alibaba.rocketmq.common.message.Message;
+import com.alibaba.rocketmq.common.message.MessageConst;
 import com.alibaba.rocketmq.common.message.MessageDecoder;
 import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.common.message.MessageQueue;
@@ -114,15 +114,19 @@ public class PullAPIWrapper {
                 for (MessageExt msg : msgListFilterAgain) {
                     msg.setTopic(VirtualEnvUtil.clearProjectGroup(msg.getTopic(), projectGroupPrefix));
                     // 消息中放入队列的最大最小Offset，方便应用来感知消息堆积程度
-                    msg.putProperty(Message.PROPERTY_MIN_OFFSET, Long.toString(pullResult.getMinOffset()));
-                    msg.putProperty(Message.PROPERTY_MAX_OFFSET, Long.toString(pullResult.getMaxOffset()));
+                    msg.putProperty(MessageConst.PROPERTY_MIN_OFFSET,
+                        Long.toString(pullResult.getMinOffset()));
+                    msg.putProperty(MessageConst.PROPERTY_MAX_OFFSET,
+                        Long.toString(pullResult.getMaxOffset()));
                 }
             }
             else {
                 // 消息中放入队列的最大最小Offset，方便应用来感知消息堆积程度
                 for (MessageExt msg : msgListFilterAgain) {
-                    msg.putProperty(Message.PROPERTY_MIN_OFFSET, Long.toString(pullResult.getMinOffset()));
-                    msg.putProperty(Message.PROPERTY_MAX_OFFSET, Long.toString(pullResult.getMaxOffset()));
+                    msg.putProperty(MessageConst.PROPERTY_MIN_OFFSET,
+                        Long.toString(pullResult.getMinOffset()));
+                    msg.putProperty(MessageConst.PROPERTY_MAX_OFFSET,
+                        Long.toString(pullResult.getMaxOffset()));
                 }
             }
 

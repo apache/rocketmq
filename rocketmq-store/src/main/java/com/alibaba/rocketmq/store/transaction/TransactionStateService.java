@@ -27,7 +27,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.alibaba.rocketmq.common.constant.LoggerName;
-import com.alibaba.rocketmq.common.message.Message;
+import com.alibaba.rocketmq.common.message.MessageConst;
 import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.common.sysflag.MessageSysFlag;
 import com.alibaba.rocketmq.store.ConsumeQueue;
@@ -303,7 +303,7 @@ public class TransactionStateService {
             if (msgExt != null) {
                 this.appendPreparedTransaction(msgExt.getCommitLogOffset(), msgExt.getStoreSize(),
                     (int) (msgExt.getStoreTimestamp() / 1000),
-                    msgExt.getProperty(Message.PROPERTY_PRODUCER_GROUP).hashCode());
+                    msgExt.getProperty(MessageConst.PROPERTY_PRODUCER_GROUP).hashCode());
                 this.tranStateTableOffset.incrementAndGet();
             }
         }

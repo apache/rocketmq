@@ -23,7 +23,7 @@ import org.slf4j.LoggerFactory;
 import com.alibaba.rocketmq.broker.BrokerController;
 import com.alibaba.rocketmq.common.TopicFilterType;
 import com.alibaba.rocketmq.common.constant.LoggerName;
-import com.alibaba.rocketmq.common.message.Message;
+import com.alibaba.rocketmq.common.message.MessageConst;
 import com.alibaba.rocketmq.common.message.MessageDecoder;
 import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.common.protocol.MQProtos.MQResponseCode;
@@ -76,7 +76,7 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
         msgInner.setReconsumeTimes(msgExt.getReconsumeTimes());
 
         msgInner.setWaitStoreMsgOK(false);
-        msgInner.clearProperty(Message.PROPERTY_DELAY_TIME_LEVEL);
+        msgInner.clearProperty(MessageConst.PROPERTY_DELAY_TIME_LEVEL);
 
         msgInner.setTopic(msgExt.getTopic());
         msgInner.setQueueId(msgExt.getQueueId());
@@ -169,7 +169,7 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
                     requestHeader.getCommitLogOffset());
         if (msgExt != null) {
             // 校验Producer Group
-            final String pgroupRead = msgExt.getProperty(Message.PROPERTY_PRODUCER_GROUP);
+            final String pgroupRead = msgExt.getProperty(MessageConst.PROPERTY_PRODUCER_GROUP);
             if (!pgroupRead.equals(requestHeader.getProducerGroup())) {
                 response.setCode(ResponseCode.SYSTEM_ERROR_VALUE);
                 response.setRemark("the producer group wrong");
