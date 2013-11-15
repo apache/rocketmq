@@ -23,9 +23,11 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import org.slf4j.Logger;
 
+import com.alibaba.rocketmq.client.exception.MQClientException;
 import com.alibaba.rocketmq.client.impl.factory.MQClientFactory;
 import com.alibaba.rocketmq.client.log.ClientLogger;
 import com.alibaba.rocketmq.common.MixAll;
+import com.alibaba.rocketmq.common.help.FAQUrl;
 import com.alibaba.rocketmq.common.message.MessageQueue;
 
 
@@ -59,7 +61,7 @@ public class LocalFileOffsetStore implements OffsetStore {
 
 
     @Override
-    public void load() {
+    public void load() throws MQClientException {
         OffsetSerializeWrapper offsetSerializeWrapper = this.readLocalOffset();
         if (offsetSerializeWrapper != null && offsetSerializeWrapper.getOffsetTable() != null) {
             offsetTable.putAll(offsetSerializeWrapper.getOffsetTable());
@@ -110,7 +112,13 @@ public class LocalFileOffsetStore implements OffsetStore {
                 }
             }
             case READ_FROM_STORE: {
-                OffsetSerializeWrapper offsetSerializeWrapper = this.readLocalOffset();
+                OffsetSerializeWrapper offsetSerializeWrapper;
+                try {
+                    offsetSerializeWrapper = this.readLocalOffset();
+                }
+                catch (MQClientException e) {
+                    return -1;
+                }
                 if (offsetSerializeWrapper != null && offsetSerializeWrapper.getOffsetTable() != null) {
                     AtomicLong offset = offsetSerializeWrapper.getOffsetTable().get(mq);
                     if (offset != null) {
@@ -155,11 +163,20 @@ public class LocalFileOffsetStore implements OffsetStore {
     }
 
 
-    private OffsetSerializeWrapper readLocalOffset() {
+    private OffsetSerializeWrapper readLocalOffset() throws MQClientException {
         String content = MixAll.file2String(this.storePath);
         if (content != null) {
-            OffsetSerializeWrapper offsetSerializeWrapper =
-                    OffsetSerializeWrapper.fromJson(content, OffsetSerializeWrapper.class);
+            OffsetSerializeWrapper offsetSerializeWrapper;
+            try {
+                offsetSerializeWrapper =
+                        OffsetSerializeWrapper.fromJson(content, OffsetSerializeWrapper.class);
+            }
+            catch (Exception e) {
+                log.warn("readLocalOffset Exception", e);
+                throw new MQClientException("readLocalOffset Exception, maybe fastjson version too low" //
+                        + FAQUrl.suggestTodo(FAQUrl.LOAD_JSON_EXCEPTION), //
+                    e);
+            }
             return offsetSerializeWrapper;
         }
 
