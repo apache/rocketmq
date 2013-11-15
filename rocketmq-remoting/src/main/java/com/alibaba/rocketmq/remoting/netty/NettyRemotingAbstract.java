@@ -212,13 +212,13 @@ public abstract class NettyRemotingAbstract {
             }
             catch (RejectedExecutionException e) {
                 plog.warn(RemotingHelper.parseChannelRemoteAddr(ctx.channel()) //
-                        + ", system thread pool busy, RejectedExecutionException " //
+                        + ", too many requests and system thread pool busy, RejectedExecutionException " //
                         + pair.getObject2().toString() //
                         + " request code: " + cmd.getCode());
                 if (!cmd.isOnewayRPC()) {
                     final RemotingCommand response =
                             RemotingCommand.createResponseCommand(ResponseCode.SYSTEM_BUSY_VALUE,
-                                "system thread pool busy, please try another node");
+                                "too many requests and system thread pool busy, please try another server");
                     response.setOpaque(cmd.getOpaque());
                     ctx.writeAndFlush(response);
                 }
