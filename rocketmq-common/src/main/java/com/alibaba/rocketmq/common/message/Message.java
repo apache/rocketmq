@@ -39,7 +39,7 @@ public class Message implements Serializable {
      */
     private int flag;
     /**
-     * 消息属性，系统有保留属性，应用也可以自定义属性
+     * 消息属性，都是系统属性，禁止应用设置
      */
     private Map<String, String> properties;
     /**
