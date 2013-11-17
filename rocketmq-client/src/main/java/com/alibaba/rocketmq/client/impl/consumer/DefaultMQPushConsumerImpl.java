@@ -69,7 +69,9 @@ import com.alibaba.rocketmq.remoting.exception.RemotingException;
 public class DefaultMQPushConsumerImpl implements MQConsumerInner {
     // 拉消息异常时，延迟一段时间再拉
     private static final long PullTimeDelayMillsWhenException = 3000;
-    private static final long PullTimeDelayMillsWhenFlowControl = 100;
+    // 本地内存队列慢，流控间隔时间
+    private static final long PullTimeDelayMillsWhenFlowControl = 50;
+    // 被挂起后，下次拉取间隔时间
     private static final long PullTimeDelayMillsWhenSuspend = 1000;
     // 长轮询模式，Consumer连接在Broker挂起最长时间
     private static final long BrokerSuspendMaxTimeMillis = 1000 * 15;
