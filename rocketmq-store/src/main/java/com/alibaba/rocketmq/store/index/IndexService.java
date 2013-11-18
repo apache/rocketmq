@@ -148,7 +148,9 @@ public class IndexService extends ServiceThread {
             try {
                 this.readWriteLock.writeLock().lock();
                 for (IndexFile file : files) {
-                    if (!this.indexFileList.remove(file)) {
+                    boolean destroyed = file.destroy(3000);
+                    destroyed = destroyed && this.indexFileList.remove(file);
+                    if (!destroyed) {
                         log.error("deleteExpiredFile remove failed.");
                         break;
                     }
