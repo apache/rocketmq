@@ -39,43 +39,13 @@ public class Message implements Serializable {
      */
     private int flag;
     /**
-     * 消息属性，系统有保留属性，应用也可以自定义属性
+     * 消息属性，都是系统属性，禁止应用设置
      */
     private Map<String, String> properties;
     /**
      * 消息体
      */
     private byte[] body;
-
-    /**
-     * 消息关键词，多个Key用KEY_SEPARATOR隔开（查询消息使用）
-     */
-    public static final String PROPERTY_KEYS = "KEYS";
-    /**
-     * 消息标签，只支持设置一个Tag（服务端消息过滤使用）
-     */
-    public static final String PROPERTY_TAGS = "TAGS";
-    /**
-     * 是否等待服务器将消息存储完毕再返回（可能是等待刷盘完成或者等待同步复制到其他服务器）
-     */
-    public static final String PROPERTY_WAIT_STORE_MSG_OK = "WAIT";
-    /**
-     * 消息延时投递时间级别，0表示不延时，大于0表示特定延时级别（具体级别在服务器端定义）
-     */
-    public static final String PROPERTY_DELAY_TIME_LEVEL = "DELAY";
-
-    /**
-     * 内部使用
-     */
-    public static final String PROPERTY_RETRY_TOPIC = "RETRY_TOPIC";
-    public static final String PROPERTY_REAL_TOPIC = "REAL_TOPIC";
-    public static final String PROPERTY_REAL_QUEUE_ID = "REAL_QID";
-    public static final String PROPERTY_TRANSACTION_PREPARED = "TRAN_MSG";
-    public static final String PROPERTY_PRODUCER_GROUP = "PGROUP";
-    public static final String PROPERTY_MIN_OFFSET = "MIN_OFFSET";
-    public static final String PROPERTY_MAX_OFFSET = "MAX_OFFSET";
-
-    public static final String KEY_SEPARATOR = " ";
 
 
     public Message() {
@@ -148,22 +118,22 @@ public class Message implements Serializable {
 
 
     public String getTags() {
-        return this.getProperty(PROPERTY_TAGS);
+        return this.getProperty(MessageConst.PROPERTY_TAGS);
     }
 
 
     public void setTags(String tags) {
-        this.putProperty(PROPERTY_TAGS, tags);
+        this.putProperty(MessageConst.PROPERTY_TAGS, tags);
     }
 
 
     public String getKeys() {
-        return this.getProperty(PROPERTY_KEYS);
+        return this.getProperty(MessageConst.PROPERTY_KEYS);
     }
 
 
     public void setKeys(String keys) {
-        this.putProperty(PROPERTY_KEYS, keys);
+        this.putProperty(MessageConst.PROPERTY_KEYS, keys);
     }
 
 
@@ -171,7 +141,7 @@ public class Message implements Serializable {
         StringBuffer sb = new StringBuffer();
         for (String k : keys) {
             sb.append(k);
-            sb.append(KEY_SEPARATOR);
+            sb.append(MessageConst.KEY_SEPARATOR);
         }
 
         this.setKeys(sb.toString().trim());
@@ -179,7 +149,7 @@ public class Message implements Serializable {
 
 
     public int getDelayTimeLevel() {
-        String t = this.getProperty(PROPERTY_DELAY_TIME_LEVEL);
+        String t = this.getProperty(MessageConst.PROPERTY_DELAY_TIME_LEVEL);
         if (t != null) {
             return Integer.parseInt(t);
         }
@@ -189,12 +159,12 @@ public class Message implements Serializable {
 
 
     public void setDelayTimeLevel(int level) {
-        this.putProperty(PROPERTY_DELAY_TIME_LEVEL, String.valueOf(level));
+        this.putProperty(MessageConst.PROPERTY_DELAY_TIME_LEVEL, String.valueOf(level));
     }
 
 
     public boolean isWaitStoreMsgOK() {
-        String result = this.getProperty(PROPERTY_WAIT_STORE_MSG_OK);
+        String result = this.getProperty(MessageConst.PROPERTY_WAIT_STORE_MSG_OK);
         if (null == result)
             return true;
 
@@ -203,7 +173,7 @@ public class Message implements Serializable {
 
 
     public void setWaitStoreMsgOK(boolean waitStoreMsgOK) {
-        this.putProperty(PROPERTY_WAIT_STORE_MSG_OK, Boolean.toString(waitStoreMsgOK));
+        this.putProperty(MessageConst.PROPERTY_WAIT_STORE_MSG_OK, Boolean.toString(waitStoreMsgOK));
     }
 
 

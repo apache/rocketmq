@@ -44,6 +44,7 @@ import com.alibaba.rocketmq.common.consumer.ConsumeFromWhere;
 import com.alibaba.rocketmq.common.filter.FilterAPI;
 import com.alibaba.rocketmq.common.help.FAQUrl;
 import com.alibaba.rocketmq.common.message.Message;
+import com.alibaba.rocketmq.common.message.MessageConst;
 import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.common.message.MessageQueue;
 import com.alibaba.rocketmq.common.protocol.heartbeat.ConsumeType;
@@ -167,6 +168,7 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
             synchronized (topics) {
                 for (String t : topics) {
                     SubscriptionData ms = new SubscriptionData(t, SubscriptionData.SUB_ALL);
+                    ms.setSubVersion(0L);
                     result.add(ms);
                 }
             }
@@ -431,7 +433,7 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
 
             newMsg.setFlag(msg.getFlag());
             newMsg.setProperties(msg.getProperties());
-            newMsg.putProperty(Message.PROPERTY_RETRY_TOPIC, msg.getTopic());
+            newMsg.putProperty(MessageConst.PROPERTY_RETRY_TOPIC, msg.getTopic());
 
             this.mQClientFactory.getDefaultMQProducer().send(newMsg);
         }

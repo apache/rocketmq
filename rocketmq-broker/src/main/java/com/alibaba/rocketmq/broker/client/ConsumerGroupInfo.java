@@ -160,11 +160,13 @@ public class ConsumerGroupInfo {
                 }
             }
             else if (sub.getSubVersion() > old.getSubVersion()) {
-                log.info("subscription changed, group: {} OLD: {} NEW: {}", //
-                    this.groupName,//
-                    old.toString(),//
-                    sub.toString()//
-                );
+                if (this.consumeType == ConsumeType.CONSUME_PASSIVELY) {
+                    log.info("subscription changed, group: {} OLD: {} NEW: {}", //
+                        this.groupName,//
+                        old.toString(),//
+                        sub.toString()//
+                    );
+                }
 
                 this.subscriptionTable.put(sub.getTopic(), sub);
             }

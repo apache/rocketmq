@@ -206,34 +206,19 @@ public abstract class NettyRemotingAbstract {
                 }
             };
 
-            boolean executed = false;
-            for (int retry = 0; retry < 3 && !executed; retry++) {
-                try {
-                    // TODO 这里需要做流控
-                    pair.getObject2().submit(run);
-                    executed = true;
-                    break;
-                }
-                catch (RejectedExecutionException e) {
-                    plog.warn(RemotingHelper.parseChannelRemoteAddr(ctx.channel())
-                            + ", system thread pool busy, RejectedExecutionException "
-                            + pair.getObject2().toString());
-                    if (!cmd.isOnewayRPC()) {
-                        try {
-                            Thread.sleep(2);
-                        }
-                        catch (InterruptedException e1) {
-                            plog.error("", e1);
-                        }
-                    }
-                }
+            try {
+                // 这里需要做流控，要求线程池对应的队列必须是有大小限制的
+                pair.getObject2().submit(run);
             }
-
-            if (!executed) {
+            catch (RejectedExecutionException e) {
+                plog.warn(RemotingHelper.parseChannelRemoteAddr(ctx.channel()) //
+                        + ", too many requests and system thread pool busy, RejectedExecutionException " //
+                        + pair.getObject2().toString() //
+                        + " request code: " + cmd.getCode());
                 if (!cmd.isOnewayRPC()) {
                     final RemotingCommand response =
                             RemotingCommand.createResponseCommand(ResponseCode.SYSTEM_BUSY_VALUE,
-                                "system busy now, please try another node");
+                                "too many requests and system thread pool busy, please try another server");
                     response.setOpaque(cmd.getOpaque());
                     ctx.writeAndFlush(response);
                 }

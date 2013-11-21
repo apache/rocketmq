@@ -55,6 +55,7 @@ import com.alibaba.rocketmq.common.ServiceState;
 import com.alibaba.rocketmq.common.UtilAll;
 import com.alibaba.rocketmq.common.help.FAQUrl;
 import com.alibaba.rocketmq.common.message.Message;
+import com.alibaba.rocketmq.common.message.MessageConst;
 import com.alibaba.rocketmq.common.message.MessageDecoder;
 import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.common.message.MessageId;
@@ -597,7 +598,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                     sysFlag |= MessageSysFlag.CompressedFlag;
                 }
 
-                final String tranMsg = msg.getProperty(Message.PROPERTY_TRANSACTION_PREPARED);
+                final String tranMsg = msg.getProperty(MessageConst.PROPERTY_TRANSACTION_PREPARED);
                 if (tranMsg != null && Boolean.parseBoolean(tranMsg)) {
                     sysFlag |= MessageSysFlag.TransactionPreparedType;
                 }
@@ -850,8 +851,8 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
         // 第一步，向Broker发送一条Prepared消息
         SendResult sendResult = null;
-        msg.putProperty(Message.PROPERTY_TRANSACTION_PREPARED, "true");
-        msg.putProperty(Message.PROPERTY_PRODUCER_GROUP, this.defaultMQProducer.getProducerGroup());
+        msg.putProperty(MessageConst.PROPERTY_TRANSACTION_PREPARED, "true");
+        msg.putProperty(MessageConst.PROPERTY_PRODUCER_GROUP, this.defaultMQProducer.getProducerGroup());
         try {
             sendResult = this.send(msg);
         }

@@ -128,6 +128,11 @@ public class QueryMsgByIdSubCommand implements SubCommand {
             );
 
         System.out.printf("%-20s %s\n",//
+            "Properties:",//
+            msg.getProperties() != null ? msg.getProperties().toString() : ""//
+        );
+
+        System.out.printf("%-20s %s\n",//
             "Message Body Path:",//
             bodyTmpFilePath//
             );
