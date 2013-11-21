@@ -1,25 +1,24 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 <!--
 	<parent>
 		<groupId>com.taobao</groupId>
 		<artifactId>parent</artifactId>
 		<version>1.0.2</version>
 	</parent>
-
+-->
 	<parent>
 		<groupId>org.sonatype.oss</groupId>
 		<artifactId>oss-parent</artifactId>
 		<version>7</version>
 	</parent>
--->
+
 
 	<modelVersion>4.0.0</modelVersion>
 	<inceptionYear>2012</inceptionYear>
 	<groupId>com.alibaba.rocketmq</groupId>
 	<artifactId>rocketmq-all</artifactId>
-	<version>3.0.4-SNAPSHOT</version>
+	<version>3.0.4-open</version>
 	<packaging>pom</packaging>
 	<name>rocketmq-all ${project.version}</name>
 	<url>https://github.com/alibaba/rocketmq</url>
@@ -97,7 +96,7 @@
 					<showWarnings>true</showWarnings>
 				</configuration>
 			</plugin>
-			<plugin>
+<!-- 			<plugin>
 				<groupId>com.atlassian.maven.plugins</groupId>
 				<artifactId>maven-clover2-plugin</artifactId>
 				<configuration>
@@ -109,7 +108,7 @@
 					<generateXml>true</generateXml>
 					<generateHtml>true</generateHtml>
 				</configuration>
-			</plugin>
+			</plugin> -->
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-eclipse-plugin</artifactId>
@@ -148,7 +147,7 @@
 			</plugin>
 
 
-			<plugin>
+<!-- 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-site-plugin</artifactId>
 				<configuration>
@@ -156,7 +155,7 @@
 					<outputEncoding>UTF-8</outputEncoding>
 					<inputEncoding>UTF-8</inputEncoding>
 				</configuration>
-			</plugin>
+			</plugin> -->
 
 
 			<plugin>
@@ -274,4 +273,16 @@
 		</dependencies>
 	</dependencyManagement>
 
+	<distributionManagement>
+      <snapshotRepository>
+         <id>sonatype-nexus-snapshots</id>
+         <name>Sonatype Nexus Snapshots</name>
+         <url>https://oss.sonatype.org/content/repositories/snapshots/</url>
+      </snapshotRepository>
+      <repository>
+         <id>sonatype-nexus-staging</id>
+         <name>Nexus Release Repository</name>
+         <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
+      </repository>
+   </distributionManagement>
 </project>
