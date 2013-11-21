@@ -1,41 +1,41 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
 
-    <appender name="RocketmqClientAppender"
-              class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>${user.home}/logs/rocketmqlogs/rocketmq_client.log</file>
-        <append>true</append>
-        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-            <fileNamePattern>${user.home}/logs/rocketmqlogs/otherdays/rocketmq_client-%d{yyyy-MM-dd}.%i.log
-            </fileNamePattern>
-            <timeBasedFileNamingAndTriggeringPolicy
-                    class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
-                <maxFileSize>104857600</maxFileSize>
-            </timeBasedFileNamingAndTriggeringPolicy>
-            <MaxHistory>10</MaxHistory>
-        </rollingPolicy>
-        <encoder>
-            <pattern>%d{yyy-MM-dd HH:mm:ss,GMT+8} %p %t - %m%n</pattern>
-            <charset class="java.nio.charset.Charset">UTF-8</charset>
-        </encoder>
-    </appender>
+	<appender name="RocketmqClientAppender"
+		class="ch.qos.logback.core.rolling.RollingFileAppender">
+		<file>${user.home}/logs/rocketmqlogs/rocketmq_client.log</file>
+		<append>true</append>
+		<rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+			<fileNamePattern>${user.home}/logs/rocketmqlogs/otherdays/rocketmq_client-%d{yyyy-MM-dd}.%i.log
+			</fileNamePattern>
+			<timeBasedFileNamingAndTriggeringPolicy
+				class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
+				<maxFileSize>104857600</maxFileSize>
+			</timeBasedFileNamingAndTriggeringPolicy>
+			<MaxHistory>10</MaxHistory>
+		</rollingPolicy>
+		<encoder>
+			<pattern>%d{yyy-MM-dd HH:mm:ss,GMT+8} %p %t - %m%n</pattern>
+			<charset class="java.nio.charset.Charset">UTF-8</charset>
+		</encoder>
+	</appender>
 
-    <logger name="RocketmqCommon" additivity="false">
-        <level value="INFO"/>
-        <appender-ref ref="RocketmqClientAppender"/>
-    </logger>
-
-
-    <logger name="RocketmqRemoting" additivity="false">
-        <level value="INFO"/>
-        <appender-ref ref="RocketmqClientAppender"/>
-    </logger>
+	<logger name="RocketmqCommon" additivity="false">
+		<level value="INFO" />
+		<appender-ref ref="RocketmqClientAppender" />
+	</logger>
 
 
-    <logger name="RocketmqClient" additivity="false">
-        <level value="INFO"/>
-        <appender-ref ref="RocketmqClientAppender"/>
-    </logger>
+	<logger name="RocketmqRemoting" additivity="false">
+		<level value="INFO" />
+		<appender-ref ref="RocketmqClientAppender" />
+	</logger>
+
+
+	<logger name="RocketmqClient" additivity="false">
+		<level value="INFO" />
+		<appender-ref ref="RocketmqClientAppender" />
+	</logger>
 
 
 </configuration>

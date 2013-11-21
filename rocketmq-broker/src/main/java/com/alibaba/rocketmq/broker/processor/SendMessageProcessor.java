@@ -35,7 +35,7 @@ import com.alibaba.rocketmq.common.TopicFilterType;
 import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.common.constant.PermName;
 import com.alibaba.rocketmq.common.help.FAQUrl;
-import com.alibaba.rocketmq.common.message.Message;
+import com.alibaba.rocketmq.common.message.MessageConst;
 import com.alibaba.rocketmq.common.message.MessageDecoder;
 import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.common.protocol.MQProtos.MQRequestCode;
@@ -151,9 +151,9 @@ public class SendMessageProcessor implements NettyRequestProcessor {
         }
 
         // 构造消息
-        final String retryTopic = msgExt.getProperty(Message.PROPERTY_RETRY_TOPIC);
+        final String retryTopic = msgExt.getProperty(MessageConst.PROPERTY_RETRY_TOPIC);
         if (null == retryTopic) {
-            msgExt.putProperty(Message.PROPERTY_RETRY_TOPIC, msgExt.getTopic());
+            msgExt.putProperty(MessageConst.PROPERTY_RETRY_TOPIC, msgExt.getTopic());
         }
         msgExt.setWaitStoreMsgOK(false);
 
@@ -339,7 +339,7 @@ public class SendMessageProcessor implements NettyRequestProcessor {
 
         // 检查事务消息
         if (this.brokerController.getBrokerConfig().isRejectTransactionMessage()) {
-            String traFlag = msgInner.getProperty(Message.PROPERTY_TRANSACTION_PREPARED);
+            String traFlag = msgInner.getProperty(MessageConst.PROPERTY_TRANSACTION_PREPARED);
             if (traFlag != null) {
                 response.setCode(MQResponseCode.NO_PERMISSION_VALUE);
                 response.setRemark("the broker[" + this.brokerController.getBrokerConfig().getBrokerIP1()

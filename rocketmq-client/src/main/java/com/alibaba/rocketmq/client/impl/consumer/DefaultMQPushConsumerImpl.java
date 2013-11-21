@@ -50,6 +50,7 @@ import com.alibaba.rocketmq.common.consumer.ConsumeFromWhere;
 import com.alibaba.rocketmq.common.filter.FilterAPI;
 import com.alibaba.rocketmq.common.help.FAQUrl;
 import com.alibaba.rocketmq.common.message.Message;
+import com.alibaba.rocketmq.common.message.MessageConst;
 import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.common.message.MessageQueue;
 import com.alibaba.rocketmq.common.protocol.heartbeat.ConsumeType;
@@ -68,7 +69,9 @@ import com.alibaba.rocketmq.remoting.exception.RemotingException;
 public class DefaultMQPushConsumerImpl implements MQConsumerInner {
     // 拉消息异常时，延迟一段时间再拉
     private static final long PullTimeDelayMillsWhenException = 3000;
-    private static final long PullTimeDelayMillsWhenFlowControl = 100;
+    // 本地内存队列慢，流控间隔时间
+    private static final long PullTimeDelayMillsWhenFlowControl = 50;
+    // 被挂起后，下次拉取间隔时间
     private static final long PullTimeDelayMillsWhenSuspend = 1000;
     // 长轮询模式，Consumer连接在Broker挂起最长时间
     private static final long BrokerSuspendMaxTimeMillis = 1000 * 15;
@@ -550,7 +553,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
 
             newMsg.setFlag(msg.getFlag());
             newMsg.setProperties(msg.getProperties());
-            newMsg.putProperty(Message.PROPERTY_RETRY_TOPIC, msg.getTopic());
+            newMsg.putProperty(MessageConst.PROPERTY_RETRY_TOPIC, msg.getTopic());
 
             this.mQClientFactory.getDefaultMQProducer().send(newMsg);
         }

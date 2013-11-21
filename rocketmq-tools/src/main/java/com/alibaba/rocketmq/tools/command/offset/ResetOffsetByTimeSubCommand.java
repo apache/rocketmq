@@ -48,7 +48,7 @@ public class ResetOffsetByTimeSubCommand implements SubCommand {
         options.addOption(opt);
 
         opt = new Option("f", "force", true, "set the force rollback by timestamp switch[true|false]");
-        opt.setRequired(true);
+        opt.setRequired(false);
         options.addOption(opt);
         return options;
     }
@@ -71,7 +71,12 @@ public class ResetOffsetByTimeSubCommand implements SubCommand {
                 // 输入的为日期格式，精确到毫秒
                 timestamp = UtilAll.parseDate(timeStampStr, UtilAll.yyyy_MM_dd_HH_mm_ss_SSS).getTime();
             }
-            boolean force = Boolean.valueOf(commandLine.getOptionValue("f").trim());
+
+            boolean force = true;
+            if (commandLine.hasOption('f')) {
+                force = Boolean.valueOf(commandLine.getOptionValue("f").trim());
+            }
+
             defaultMQAdminExt.start();
             List<RollbackStats> rollbackStatsList =
                     defaultMQAdminExt.resetOffsetByTimestamp(consumerGroup, topic, timestamp, force);

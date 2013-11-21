@@ -235,15 +235,18 @@ public class StoreStatsService extends ServiceThread {
     private String getPutTps(int time) {
         String result = "";
         this.lockSampling.lock();
-        CallSnapshot last = this.putTimesList.getLast();
+        try {
+            CallSnapshot last = this.putTimesList.getLast();
 
-        if (this.putTimesList.size() > time) {
-            CallSnapshot lastBefore = this.putTimesList.get(this.putTimesList.size() - (time + 1));
-            result += CallSnapshot.getTPS(lastBefore, last);
+            if (this.putTimesList.size() > time) {
+                CallSnapshot lastBefore = this.putTimesList.get(this.putTimesList.size() - (time + 1));
+                result += CallSnapshot.getTPS(lastBefore, last);
+            }
+
         }
-
-        this.lockSampling.unlock();
-
+        finally {
+            this.lockSampling.unlock();
+        }
         return result;
     }
 
@@ -268,14 +271,18 @@ public class StoreStatsService extends ServiceThread {
     private String getGetFoundTps(int time) {
         String result = "";
         this.lockSampling.lock();
-        CallSnapshot last = this.getTimesFoundList.getLast();
+        try {
+            CallSnapshot last = this.getTimesFoundList.getLast();
 
-        if (this.getTimesFoundList.size() > time) {
-            CallSnapshot lastBefore = this.getTimesFoundList.get(this.getTimesFoundList.size() - (time + 1));
-            result += CallSnapshot.getTPS(lastBefore, last);
+            if (this.getTimesFoundList.size() > time) {
+                CallSnapshot lastBefore =
+                        this.getTimesFoundList.get(this.getTimesFoundList.size() - (time + 1));
+                result += CallSnapshot.getTPS(lastBefore, last);
+            }
         }
-
-        this.lockSampling.unlock();
+        finally {
+            this.lockSampling.unlock();
+        }
 
         return result;
     }
@@ -301,14 +308,19 @@ public class StoreStatsService extends ServiceThread {
     private String getGetMissTps(int time) {
         String result = "";
         this.lockSampling.lock();
-        CallSnapshot last = this.getTimesMissList.getLast();
+        try {
+            CallSnapshot last = this.getTimesMissList.getLast();
 
-        if (this.getTimesMissList.size() > time) {
-            CallSnapshot lastBefore = this.getTimesMissList.get(this.getTimesMissList.size() - (time + 1));
-            result += CallSnapshot.getTPS(lastBefore, last);
+            if (this.getTimesMissList.size() > time) {
+                CallSnapshot lastBefore =
+                        this.getTimesMissList.get(this.getTimesMissList.size() - (time + 1));
+                result += CallSnapshot.getTPS(lastBefore, last);
+            }
+
         }
-
-        this.lockSampling.unlock();
+        finally {
+            this.lockSampling.unlock();
+        }
 
         return result;
     }
@@ -334,15 +346,19 @@ public class StoreStatsService extends ServiceThread {
     private String getGetTransferedTps(int time) {
         String result = "";
         this.lockSampling.lock();
-        CallSnapshot last = this.transferedMsgCountList.getLast();
+        try {
+            CallSnapshot last = this.transferedMsgCountList.getLast();
 
-        if (this.transferedMsgCountList.size() > time) {
-            CallSnapshot lastBefore =
-                    this.transferedMsgCountList.get(this.transferedMsgCountList.size() - (time + 1));
-            result += CallSnapshot.getTPS(lastBefore, last);
+            if (this.transferedMsgCountList.size() > time) {
+                CallSnapshot lastBefore =
+                        this.transferedMsgCountList.get(this.transferedMsgCountList.size() - (time + 1));
+                result += CallSnapshot.getTPS(lastBefore, last);
+            }
+
         }
-
-        this.lockSampling.unlock();
+        finally {
+            this.lockSampling.unlock();
+        }
 
         return result;
     }
@@ -369,26 +385,30 @@ public class StoreStatsService extends ServiceThread {
         this.lockSampling.lock();
         double found = 0;
         double miss = 0;
-        {
-            CallSnapshot last = this.getTimesFoundList.getLast();
+        try {
+            {
+                CallSnapshot last = this.getTimesFoundList.getLast();
 
-            if (this.getTimesFoundList.size() > time) {
-                CallSnapshot lastBefore =
-                        this.getTimesFoundList.get(this.getTimesFoundList.size() - (time + 1));
-                found = CallSnapshot.getTPS(lastBefore, last);
+                if (this.getTimesFoundList.size() > time) {
+                    CallSnapshot lastBefore =
+                            this.getTimesFoundList.get(this.getTimesFoundList.size() - (time + 1));
+                    found = CallSnapshot.getTPS(lastBefore, last);
+                }
             }
-        }
-        {
-            CallSnapshot last = this.getTimesMissList.getLast();
+            {
+                CallSnapshot last = this.getTimesMissList.getLast();
 
-            if (this.getTimesMissList.size() > time) {
-                CallSnapshot lastBefore =
-                        this.getTimesMissList.get(this.getTimesMissList.size() - (time + 1));
-                miss = CallSnapshot.getTPS(lastBefore, last);
+                if (this.getTimesMissList.size() > time) {
+                    CallSnapshot lastBefore =
+                            this.getTimesMissList.get(this.getTimesMissList.size() - (time + 1));
+                    miss = CallSnapshot.getTPS(lastBefore, last);
+                }
             }
-        }
 
-        this.lockSampling.unlock();
+        }
+        finally {
+            this.lockSampling.unlock();
+        }
 
         return Double.toString(found + miss);
     }
@@ -463,31 +483,34 @@ public class StoreStatsService extends ServiceThread {
 
     private void sampling() {
         this.lockSampling.lock();
+        try {
+            this.putTimesList.add(new CallSnapshot(System.currentTimeMillis(), getPutMessageTimesTotal()));
+            if (this.putTimesList.size() > (MaxRecordsOfSampling + 1)) {
+                this.putTimesList.removeFirst();
+            }
 
-        this.putTimesList.add(new CallSnapshot(System.currentTimeMillis(), getPutMessageTimesTotal()));
-        if (this.putTimesList.size() > (MaxRecordsOfSampling + 1)) {
-            this.putTimesList.removeFirst();
+            this.getTimesFoundList.add(new CallSnapshot(System.currentTimeMillis(),
+                this.getMessageTimesTotalFound.get()));
+            if (this.getTimesFoundList.size() > (MaxRecordsOfSampling + 1)) {
+                this.getTimesFoundList.removeFirst();
+            }
+
+            this.getTimesMissList.add(new CallSnapshot(System.currentTimeMillis(),
+                this.getMessageTimesTotalMiss.get()));
+            if (this.getTimesMissList.size() > (MaxRecordsOfSampling + 1)) {
+                this.getTimesMissList.removeFirst();
+            }
+
+            this.transferedMsgCountList.add(new CallSnapshot(System.currentTimeMillis(),
+                this.getMessageTransferedMsgCount.get()));
+            if (this.transferedMsgCountList.size() > (MaxRecordsOfSampling + 1)) {
+                this.transferedMsgCountList.removeFirst();
+            }
+
         }
-
-        this.getTimesFoundList.add(new CallSnapshot(System.currentTimeMillis(),
-            this.getMessageTimesTotalFound.get()));
-        if (this.getTimesFoundList.size() > (MaxRecordsOfSampling + 1)) {
-            this.getTimesFoundList.removeFirst();
+        finally {
+            this.lockSampling.unlock();
         }
-
-        this.getTimesMissList.add(new CallSnapshot(System.currentTimeMillis(), this.getMessageTimesTotalMiss
-            .get()));
-        if (this.getTimesMissList.size() > (MaxRecordsOfSampling + 1)) {
-            this.getTimesMissList.removeFirst();
-        }
-
-        this.transferedMsgCountList.add(new CallSnapshot(System.currentTimeMillis(),
-            this.getMessageTransferedMsgCount.get()));
-        if (this.transferedMsgCountList.size() > (MaxRecordsOfSampling + 1)) {
-            this.transferedMsgCountList.removeFirst();
-        }
-
-        this.lockSampling.unlock();
     }
 
 
