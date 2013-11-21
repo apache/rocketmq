@@ -1,24 +1,24 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
-
+<!--
 	<parent>
 		<groupId>com.taobao</groupId>
 		<artifactId>parent</artifactId>
 		<version>1.0.2</version>
 	</parent>
-<!--
+-->
 	<parent>
 		<groupId>org.sonatype.oss</groupId>
 		<artifactId>oss-parent</artifactId>
 		<version>7</version>
 	</parent>
--->
+
 
 	<modelVersion>4.0.0</modelVersion>
 	<inceptionYear>2012</inceptionYear>
 	<groupId>com.alibaba.rocketmq</groupId>
 	<artifactId>rocketmq-all</artifactId>
-	<version>3.0.4</version>
+	<version>3.0.5-SNAPSHOT</version>
 	<packaging>pom</packaging>
 	<name>rocketmq-all ${project.version}</name>
 	<url>https://github.com/alibaba/rocketmq</url>
