@@ -138,6 +138,9 @@ public class LocalFileOffsetStore implements OffsetStore {
 
     @Override
     public void persistAll(Set<MessageQueue> mqs) {
+        if (null == mqs || mqs.isEmpty())
+            return;
+        
         OffsetSerializeWrapper offsetSerializeWrapper = new OffsetSerializeWrapper();
         for (MessageQueue mq : this.offsetTable.keySet()) {
             if (mqs.contains(mq)) {
