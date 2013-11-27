@@ -167,7 +167,7 @@ public class IndexFile {
                 return true;
             }
             catch (Exception e) {
-                log.error("putKey exception ", e);
+                log.error("putKey exception, Key: " + key + " KeyHashCode: " + key.hashCode(), e);
             }
             finally {
                 if (fileLock != null) {
