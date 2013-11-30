@@ -33,7 +33,6 @@
 		<module>rocketmq-namesrv</module>
 		<module>rocketmq-remoting</module>
 		<module>rocketmq-example</module>
-		<module>rocketmq-test</module>
 		<module>rocketmq-qatest</module>
 	</modules>
 
@@ -188,11 +187,6 @@
 			<dependency>
 				<groupId>${project.groupId}</groupId>
 				<artifactId>rocketmq-remoting</artifactId>
-				<version>${project.version}</version>
-			</dependency>
-			<dependency>
-				<groupId>${project.groupId}</groupId>
-				<artifactId>rocketmq-test</artifactId>
 				<version>${project.version}</version>
 			</dependency>
 			<dependency>
