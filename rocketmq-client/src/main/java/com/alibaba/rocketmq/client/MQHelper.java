@@ -36,6 +36,8 @@ public class MQHelper {
      * 
      * @param messageModel
      *            广播消费还是集群消费
+     * @param instanceName
+     *            实例名称，保持与工作Consumer一致。
      * @param consumerGroup
      *            订阅组
      * @param topic
