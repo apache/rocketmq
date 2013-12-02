@@ -46,12 +46,14 @@ public class MQHelper {
      */
     public static void resetOffsetByTimestamp(//
             final MessageModel messageModel,//
+            final String instanceName,//
             final String consumerGroup, //
             final String topic, //
             final long timestamp) throws Exception {
         final Logger log = ClientLogger.getLog();
 
         DefaultMQPullConsumer consumer = new DefaultMQPullConsumer(consumerGroup);
+        consumer.setInstanceName(instanceName);
         consumer.setMessageModel(messageModel);
         consumer.start();
 
@@ -80,5 +82,14 @@ public class MQHelper {
             }
             consumer.shutdown();
         }
+    }
+
+
+    public static void resetOffsetByTimestamp(//
+            final MessageModel messageModel,//
+            final String consumerGroup, //
+            final String topic, //
+            final long timestamp) throws Exception {
+        resetOffsetByTimestamp(messageModel, "DEFAULT", consumerGroup, topic, timestamp);
     }
 }
