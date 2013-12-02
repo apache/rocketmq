@@ -15,9 +15,9 @@
  */
 package com.alibaba.rocketmq.remoting.protocol;
 
-import com.alibaba.fastjson.JSON;
-
 import java.nio.charset.Charset;
+
+import com.alibaba.fastjson.JSON;
 
 
 /**
