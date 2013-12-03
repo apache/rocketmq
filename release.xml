@@ -10,6 +10,7 @@
             <includes>
                 <include>bin/*</include>
                 <include>conf/*</include>
+				<include>conf/*/*</include>
                 <include>test/*</include>
                 <include>benchmark/*</include>
 				<include>LICENSE.txt</include>
