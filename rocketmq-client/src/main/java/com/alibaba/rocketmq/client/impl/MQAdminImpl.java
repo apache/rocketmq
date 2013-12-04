@@ -150,7 +150,8 @@ public class MQAdminImpl {
                     return mqList;
                 }
                 else {
-                    throw new MQClientException("Can not find Message Queue for this topic, " + topic, null);
+                    throw new MQClientException("Can not find Message Queue for this topic, " + topic
+                            + " Namesrv return empty", null);
                 }
             }
         }

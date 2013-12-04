@@ -17,7 +17,7 @@
 
 	<options>
 		<-Xms512m></-Xms512m>
-		<-Xmx2g></-Xmx2g>
+		<-Xmx1g></-Xmx1g>
 		<-XX:NewSize>256M</-XX:NewSize>
 		<-XX:MaxNewSize>512M</-XX:MaxNewSize>
 		<-XX:PermSize>128M</-XX:PermSize>

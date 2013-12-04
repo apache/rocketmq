@@ -122,8 +122,10 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
 
     @Override
     public void persistAll(Set<MessageQueue> mqs) {
-        final HashSet<MessageQueue> unusedMQ = new HashSet<MessageQueue>();
+        if (null == mqs || mqs.isEmpty())
+            return;
 
+        final HashSet<MessageQueue> unusedMQ = new HashSet<MessageQueue>();
         long times = this.storeTimesTotal.getAndIncrement();
 
         if (mqs != null && !mqs.isEmpty()) {
