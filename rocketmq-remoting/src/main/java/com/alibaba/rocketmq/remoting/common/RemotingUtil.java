@@ -31,6 +31,7 @@ import java.net.UnknownHostException;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
 import java.nio.channels.spi.SelectorProvider;
+import java.util.ArrayList;
 import java.util.Enumeration;
 
 import org.slf4j.Logger;
@@ -99,7 +100,8 @@ public class RemotingUtil {
         try {
             // 遍历网卡，查找一个非回路ip地址并返回
             Enumeration<NetworkInterface> enumeration = NetworkInterface.getNetworkInterfaces();
-            InetAddress ipv6Address = null;
+            ArrayList<String> ipv4Result = new ArrayList<String>();
+            ArrayList<String> ipv6Result = new ArrayList<String>();
             while (enumeration.hasMoreElements()) {
                 final NetworkInterface networkInterface = enumeration.nextElement();
                 final Enumeration<InetAddress> en = networkInterface.getInetAddresses();
@@ -107,19 +109,33 @@ public class RemotingUtil {
                     final InetAddress address = en.nextElement();
                     if (!address.isLoopbackAddress()) {
                         if (address instanceof Inet6Address) {
-                            ipv6Address = address;
+                            ipv6Result.add(normalizeHostAddress(address));
                         }
                         else {
-                            // 优先使用ipv4
-                            return normalizeHostAddress(address);
+                            ipv4Result.add(normalizeHostAddress(address));
                         }
                     }
                 }
             }
-            // 没有ipv4，再使用ipv6
-            if (ipv6Address != null) {
-                return normalizeHostAddress(ipv6Address);
+
+            // 优先使用ipv4
+            if (!ipv4Result.isEmpty()) {
+                for (String ip : ipv4Result) {
+                    if (ip.startsWith("127.0") || ip.startsWith("192.168")) {
+                        continue;
+                    }
+
+                    return ip;
+                }
+
+                // 取最后一个
+                return ipv4Result.get(ipv4Result.size() - 1);
             }
+            // 然后使用ipv6
+            else if (!ipv6Result.isEmpty()) {
+                return ipv6Result.get(0);
+            }
+            // 然后使用本地ip
             final InetAddress localHost = InetAddress.getLocalHost();
             return normalizeHostAddress(localHost);
         }

@@ -113,6 +113,9 @@ public class IndexFile {
     public boolean putKey(final String key, final long phyOffset, final long storeTimestamp) {
         if (this.indexHeader.getIndexCount() < this.indexNum) {
             int keyHash = key.hashCode();
+            // Math.abs计算结果依旧为负
+            if (Integer.MIN_VALUE == keyHash)
+                keyHash = 0;
             int slotPos = Math.abs(keyHash) % this.hashSlotNum;
             int absSlotPos = IndexHeader.INDEX_HEADER_SIZE + slotPos * HASH_SLOT_SIZE;
 
@@ -164,7 +167,7 @@ public class IndexFile {
                 return true;
             }
             catch (Exception e) {
-                log.error("putKey exception ", e);
+                log.error("putKey exception, Key: " + key + " KeyHashCode: " + key.hashCode(), e);
             }
             finally {
                 if (fileLock != null) {
@@ -228,6 +231,8 @@ public class IndexFile {
             final long begin, final long end, boolean lock) {
         if (this.mapedFile.hold()) {
             int keyHash = key.hashCode();
+            if (Integer.MIN_VALUE == keyHash)
+                keyHash = 0;
             int slotPos = Math.abs(keyHash) % this.hashSlotNum;
             int absSlotPos = IndexHeader.INDEX_HEADER_SIZE + slotPos * HASH_SLOT_SIZE;
 

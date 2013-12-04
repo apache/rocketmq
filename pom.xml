@@ -18,7 +18,7 @@
 	<inceptionYear>2012</inceptionYear>
 	<groupId>com.alibaba.rocketmq</groupId>
 	<artifactId>rocketmq-all</artifactId>
-	<version>3.0.4</version>
+	<version>3.0.5</version>
 	<packaging>pom</packaging>
 	<name>rocketmq-all ${project.version}</name>
 	<url>https://github.com/alibaba/rocketmq</url>
@@ -33,7 +33,6 @@
 		<module>rocketmq-namesrv</module>
 		<module>rocketmq-remoting</module>
 		<module>rocketmq-example</module>
-		<module>rocketmq-test</module>
 		<module>rocketmq-qatest</module>
 	</modules>
 
@@ -192,11 +191,6 @@
 			</dependency>
 			<dependency>
 				<groupId>${project.groupId}</groupId>
-				<artifactId>rocketmq-test</artifactId>
-				<version>${project.version}</version>
-			</dependency>
-			<dependency>
-				<groupId>${project.groupId}</groupId>
 				<artifactId>rocketmq-qatest</artifactId>
 				<version>${project.version}</version>
 			</dependency>
@@ -239,12 +233,12 @@
 			<dependency>
 				<groupId>io.netty</groupId>
 				<artifactId>netty-all</artifactId>
-				<version>4.0.9.Final</version>
+				<version>4.0.13.Final</version>
 			</dependency>
 			<dependency>
 				<groupId>com.alibaba</groupId>
 				<artifactId>fastjson</artifactId>
-				<version>1.1.33</version>
+				<version>1.1.37</version>
 			</dependency>
 		</dependencies>
 	</dependencyManagement>

@@ -36,6 +36,8 @@ public class MQHelper {
      * 
      * @param messageModel
      *            广播消费还是集群消费
+     * @param instanceName
+     *            实例名称，保持与工作Consumer一致。
      * @param consumerGroup
      *            订阅组
      * @param topic
@@ -46,12 +48,14 @@ public class MQHelper {
      */
     public static void resetOffsetByTimestamp(//
             final MessageModel messageModel,//
+            final String instanceName,//
             final String consumerGroup, //
             final String topic, //
             final long timestamp) throws Exception {
         final Logger log = ClientLogger.getLog();
 
         DefaultMQPullConsumer consumer = new DefaultMQPullConsumer(consumerGroup);
+        consumer.setInstanceName(instanceName);
         consumer.setMessageModel(messageModel);
         consumer.start();
 
@@ -75,10 +79,19 @@ public class MQHelper {
             throw e;
         }
         finally {
-            consumer.shutdown();
             if (mqs != null) {
                 consumer.getDefaultMQPullConsumerImpl().getOffsetStore().persistAll(mqs);
             }
+            consumer.shutdown();
         }
+    }
+
+
+    public static void resetOffsetByTimestamp(//
+            final MessageModel messageModel,//
+            final String consumerGroup, //
+            final String topic, //
+            final long timestamp) throws Exception {
+        resetOffsetByTimestamp(messageModel, "DEFAULT", consumerGroup, topic, timestamp);
     }
 }

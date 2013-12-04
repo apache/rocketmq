@@ -21,6 +21,7 @@ import java.net.SocketAddress;
 import java.net.UnknownHostException;
 import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -184,7 +185,7 @@ public class MessageDecoder {
             if (propertiesLength > 0) {
                 byte[] properties = new byte[propertiesLength];
                 byteBuffer.get(properties);
-                String propertiesString = new String(properties);
+                String propertiesString = new String(properties, Charset.forName("UTF-8"));
                 Map<String, String> map = string2messageProperties(propertiesString);
                 msgExt.setProperties(map);
             }
