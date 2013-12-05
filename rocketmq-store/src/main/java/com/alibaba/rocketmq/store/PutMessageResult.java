@@ -33,7 +33,7 @@ public class PutMessageResult {
 
 
     public boolean isOk() {
-        return this.appendMessageResult.isOk();
+        return this.appendMessageResult != null && this.appendMessageResult.isOk();
     }
 
 
