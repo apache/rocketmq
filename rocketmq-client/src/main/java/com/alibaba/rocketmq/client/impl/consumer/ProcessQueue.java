@@ -79,11 +79,15 @@ public class ProcessQueue {
         try {
             this.lockTreeMap.writeLock().lockInterruptibly();
             try {
+                int validMsgCnt = 0;
                 for (MessageExt msg : msgs) {
-                    msgTreeMap.put(msg.getQueueOffset(), msg);
-                    this.queueOffsetMax = msg.getQueueOffset();
+                    MessageExt old = msgTreeMap.put(msg.getQueueOffset(), msg);
+                    if (null == old) {
+                        validMsgCnt++;
+                        this.queueOffsetMax = msg.getQueueOffset();
+                    }
                 }
-                msgCount.addAndGet(msgs.size());
+                msgCount.addAndGet(validMsgCnt);
 
                 if (!msgTreeMap.isEmpty() && !this.consuming) {
                     dispathToConsume = true;
