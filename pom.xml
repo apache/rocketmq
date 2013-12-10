@@ -75,6 +75,7 @@
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<!--maven properties -->
 		<maven.test.skip>false</maven.test.skip>
+		<maven.jdoc.skip>false</maven.jdoc.skip>
 		<downloadSources>true</downloadSources>
 		<!-- compiler settings properties -->
 		<java_source_version>1.6</java_source_version>
@@ -157,6 +158,7 @@
 					</execution>
 				</executions>
 				<configuration>
+					<skip>${maven.jdoc.skip}</skip>
 					<encoding>${file_encoding}</encoding>
 					<charset>${file_encoding}</charset>
 					<doclet>org.jboss.apiviz.APIviz</doclet>
