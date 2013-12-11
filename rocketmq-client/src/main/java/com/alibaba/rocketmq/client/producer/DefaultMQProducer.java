@@ -58,6 +58,10 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      */
     private int compressMsgBodyOverHowmuch = 1024 * 4;
     /**
+     * 发送失败后，重试几次
+     */
+    private int retryTimesWhenSendFailed = 2;
+    /**
      * 消息已经成功写入Master，但是刷盘超时或者同步到Slave失败，则尝试重试另一个Broker，不建议修改默认值<br>
      * 顺序消息无效
      */
@@ -281,5 +285,15 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
 
     public void setDefaultTopicQueueNums(int defaultTopicQueueNums) {
         this.defaultTopicQueueNums = defaultTopicQueueNums;
+    }
+
+
+    public int getRetryTimesWhenSendFailed() {
+        return retryTimesWhenSendFailed;
+    }
+
+
+    public void setRetryTimesWhenSendFailed(int retryTimesWhenSendFailed) {
+        this.retryTimesWhenSendFailed = retryTimesWhenSendFailed;
     }
 }
