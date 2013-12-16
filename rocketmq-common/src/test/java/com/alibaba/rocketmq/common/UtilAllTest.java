@@ -63,6 +63,35 @@ public class UtilAllTest {
         assertTrue(pid > 0);
     }
 
+
+    @Test
+    public void test_isBlank() {
+        {
+            boolean result = UtilAll.isBlank("Hello ");
+            assertTrue(result);
+        }
+
+        {
+            boolean result = UtilAll.isBlank(" Hello");
+            assertTrue(result);
+        }
+
+        {
+            boolean result = UtilAll.isBlank("He llo");
+            assertTrue(result);
+        }
+
+        {
+            boolean result = UtilAll.isBlank("  ");
+            assertTrue(result);
+        }
+
+        {
+            boolean result = UtilAll.isBlank("Hello");
+            assertTrue(!result);
+        }
+    }
+
     class DemoConfig {
         private int demoWidth = 0;
         private int demoLength = 0;
