@@ -195,7 +195,7 @@ public class DefaultMessageStore implements MessageStore {
             }
         }
         catch (Exception e) {
-            e.printStackTrace();
+            log.error("load exception", e);
             result = false;
         }
 
