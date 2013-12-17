@@ -143,10 +143,14 @@ public class ProcessQueue {
             try {
                 if (!msgTreeMap.isEmpty()) {
                     result = this.queueOffsetMax + 1;
+                    int removedCnt = 0;
                     for (MessageExt msg : msgs) {
-                        msgTreeMap.remove(msg.getQueueOffset());
+                        MessageExt prev = msgTreeMap.remove(msg.getQueueOffset());
+                        if (prev != null) {
+                            removedCnt--;
+                        }
                     }
-                    msgCount.addAndGet(msgs.size() * (-1));
+                    msgCount.addAndGet(removedCnt);
 
                     if (!msgTreeMap.isEmpty()) {
                         result = msgTreeMap.firstKey();
