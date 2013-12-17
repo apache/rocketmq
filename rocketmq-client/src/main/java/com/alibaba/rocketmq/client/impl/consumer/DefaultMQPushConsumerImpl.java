@@ -337,7 +337,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
             if (processQueue.getMaxSpan() > this.defaultMQPushConsumer.getConsumeConcurrentlyMaxSpan()) {
                 this.executePullRequestLater(pullRequest, PullTimeDelayMillsWhenFlowControl);
                 if ((flowControlTimes2++ % 3000) == 0) {
-                    log.warn("the queue's messages, span too long, so do flow control, {} {} {}", size,
+                    log.warn("the queue's messages, span too long, so do flow control, {} {} {}", processQueue.getMaxSpan(),
                         pullRequest, flowControlTimes2);
                 }
                 return;
