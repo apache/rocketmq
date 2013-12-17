@@ -7,6 +7,7 @@ import java.util.Calendar;
  * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public class Test {
+
     public static long computNextMorningTimeMillis() {
         Calendar cal = Calendar.getInstance();
         cal.set(Calendar.YEAR, 2013);
