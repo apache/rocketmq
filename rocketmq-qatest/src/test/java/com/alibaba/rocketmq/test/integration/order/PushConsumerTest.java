@@ -91,7 +91,7 @@ public class PushConsumerTest extends OrderBaseTest {
     @Test
     public void pushConsumerWithAutoCommitFromMinOffset() throws MQClientException {
         consumer.setMessageModel(MessageModel.CLUSTERING);
-        consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_MIN_OFFSET);
+        consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET);
         MessageListener listener = getAutoCommitMessageListener();
         consumer.registerMessageListener(listener);
 

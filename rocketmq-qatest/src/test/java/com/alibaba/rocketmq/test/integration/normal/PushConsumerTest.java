@@ -56,7 +56,7 @@ public class PushConsumerTest extends NormalBaseTest {
     @Test
     public void pushConsumerFromMinOffset() throws MQClientException {
         consumer.setMessageModel(MessageModel.CLUSTERING);
-        consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_MIN_OFFSET);
+        consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET);
         MessageListener listener = createMessageListener();
         consumer.registerMessageListener(listener);
 

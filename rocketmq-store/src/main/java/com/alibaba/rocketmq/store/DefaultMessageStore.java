@@ -524,9 +524,6 @@ public class DefaultMessageStore implements MessageStore {
         ConsumeQueue logic = this.findConsumeQueue(topic, queueId);
         if (logic != null) {
             long offset = logic.getMaxOffsetInQuque();
-            //
-            // if (offset > 0)
-            // offset -= 1;
             return offset;
         }
 

@@ -35,7 +35,7 @@ public class MQVersion {
         return Version.values()[value];
     }
 
-    enum Version {
+    public static enum Version {
         V3_0_0_SNAPSHOT,
         V3_0_0_ALPHA1,
         V3_0_0_BETA1,

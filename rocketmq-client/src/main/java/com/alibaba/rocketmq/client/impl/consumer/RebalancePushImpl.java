@@ -21,8 +21,10 @@ import java.util.Set;
 import com.alibaba.rocketmq.client.consumer.AllocateMessageQueueStrategy;
 import com.alibaba.rocketmq.client.consumer.store.OffsetStore;
 import com.alibaba.rocketmq.client.consumer.store.ReadOffsetType;
+import com.alibaba.rocketmq.client.exception.MQClientException;
 import com.alibaba.rocketmq.client.impl.factory.MQClientFactory;
 import com.alibaba.rocketmq.common.MixAll;
+import com.alibaba.rocketmq.common.UtilAll;
 import com.alibaba.rocketmq.common.consumer.ConsumeFromWhere;
 import com.alibaba.rocketmq.common.message.MessageQueue;
 import com.alibaba.rocketmq.common.protocol.heartbeat.MessageModel;
@@ -61,56 +63,98 @@ public class RebalancePushImpl extends RebalanceImpl {
 
     @Override
     public long computePullFromWhere(MessageQueue mq) {
+        // 如果返回-1，这个队列的rebalance会失败重试，但是不影响其他队列。
         long result = -1;
         final ConsumeFromWhere consumeFromWhere =
                 this.defaultMQPushConsumerImpl.getDefaultMQPushConsumer().getConsumeFromWhere();
         final OffsetStore offsetStore = this.defaultMQPushConsumerImpl.getOffsetStore();
         switch (consumeFromWhere) {
+        case CONSUME_FROM_LAST_OFFSET_AND_FROM_MIN_WHEN_BOOT_FIRST:
+        case CONSUME_FROM_MIN_OFFSET:
+        case CONSUME_FROM_MAX_OFFSET:
         case CONSUME_FROM_LAST_OFFSET: {
             long lastOffset = offsetStore.readOffset(mq, ReadOffsetType.READ_FROM_STORE);
+            // 第二次启动，根据上次的消费位点开始消费
             if (lastOffset >= 0) {
                 result = lastOffset;
             }
-            // 当前订阅组在服务器没有对应的Offset
-            // 说明是第一次启动
+            // 第一次启动，没有记录消费位点
             else if (-1 == lastOffset) {
-                // 如果是重试队列，需要从0开始
+                // 重试队列则从队列头部开始
                 if (mq.getTopic().startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
                     result = 0L;
                 }
-                // 正常队列则从末尾开始
+                // 正常队列则从队列尾部开始
                 else {
-                    result = Long.MAX_VALUE;
+                    try {
+                        result = this.mQClientFactory.getMQAdminImpl().maxOffset(mq);
+                    }
+                    catch (MQClientException e) {
+                        result = -1;
+                    }
                 }
             }
-            // 发生其他错误
+            // 其他错误
             else {
                 result = -1;
             }
             break;
         }
-        case CONSUME_FROM_LAST_OFFSET_AND_FROM_MIN_WHEN_BOOT_FIRST: {
+        case CONSUME_FROM_FIRST_OFFSET: {
             long lastOffset = offsetStore.readOffset(mq, ReadOffsetType.READ_FROM_STORE);
+            // 第二次启动，根据上次的消费位点开始消费
             if (lastOffset >= 0) {
                 result = lastOffset;
             }
-            // 当前订阅组在服务器没有对应的Offset
-            // 说明是第一次启动
+            // 第一次启动，没有记录消费位点
             else if (-1 == lastOffset) {
                 result = 0L;
             }
-            // 发生其他错误
+            // 其他错误
             else {
                 result = -1;
             }
             break;
         }
-        case CONSUME_FROM_MAX_OFFSET:
-            result = Long.MAX_VALUE;
+        case CONSUME_FROM_TIMESTAMP: {
+            long lastOffset = offsetStore.readOffset(mq, ReadOffsetType.READ_FROM_STORE);
+            // 第二次启动，根据上次的消费位点开始消费
+            if (lastOffset >= 0) {
+                result = lastOffset;
+            }
+            // 第一次启动，没有记录消费为点
+            else if (-1 == lastOffset) {
+                // 重试队列则从队列尾部开始
+                if (mq.getTopic().startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
+                    try {
+                        result = this.mQClientFactory.getMQAdminImpl().maxOffset(mq);
+                    }
+                    catch (MQClientException e) {
+                        result = -1;
+                    }
+                }
+                // 正常队列则从指定时间点开始
+                else {
+                    try {
+                        // 时间点需要参数配置
+                        long timestamp =
+                                UtilAll.parseDate(
+                                    this.defaultMQPushConsumerImpl.getDefaultMQPushConsumer()
+                                        .getConsumeTimestamp(), UtilAll.yyyyMMddHHmmss).getTime();
+                        result = this.mQClientFactory.getMQAdminImpl().searchOffset(mq, timestamp);
+                    }
+                    catch (MQClientException e) {
+                        result = -1;
+                    }
+                }
+            }
+            // 其他错误
+            else {
+                result = -1;
+            }
             break;
-        case CONSUME_FROM_MIN_OFFSET:
-            result = 0L;
-            break;
+        }
+
         default:
             break;
         }
