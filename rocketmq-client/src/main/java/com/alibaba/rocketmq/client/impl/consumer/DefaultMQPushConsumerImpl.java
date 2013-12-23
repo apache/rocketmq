@@ -16,6 +16,7 @@
 package com.alibaba.rocketmq.client.impl.consumer;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -46,6 +47,7 @@ import com.alibaba.rocketmq.client.log.ClientLogger;
 import com.alibaba.rocketmq.client.stat.ConsumerStatManager;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.ServiceState;
+import com.alibaba.rocketmq.common.UtilAll;
 import com.alibaba.rocketmq.common.consumer.ConsumeFromWhere;
 import com.alibaba.rocketmq.common.filter.FilterAPI;
 import com.alibaba.rocketmq.common.help.FAQUrl;
@@ -337,8 +339,8 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
             if (processQueue.getMaxSpan() > this.defaultMQPushConsumer.getConsumeConcurrentlyMaxSpan()) {
                 this.executePullRequestLater(pullRequest, PullTimeDelayMillsWhenFlowControl);
                 if ((flowControlTimes2++ % 3000) == 0) {
-                    log.warn("the queue's messages, span too long, so do flow control, {} {} {}", processQueue.getMaxSpan(),
-                        pullRequest, flowControlTimes2);
+                    log.warn("the queue's messages, span too long, so do flow control, {} {} {}",
+                        processQueue.getMaxSpan(), pullRequest, flowControlTimes2);
                 }
                 return;
             }
@@ -708,6 +710,14 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
             throw new MQClientException("consumeFromWhere is null" //
                     + FAQUrl.suggestTodo(FAQUrl.CLIENT_PARAMETER_CHECK_URL), //
                 null);
+        }
+
+        // 校验回溯时间戳格式是否正确
+        Date dt = UtilAll.parseDate(this.defaultMQPushConsumer.getConsumeTimestamp(), UtilAll.yyyyMMddHHmmss);
+        if (null == dt) {
+            throw new MQClientException("consumeTimestamp is invalid, yyyyMMddHHmmss" //
+                + FAQUrl.suggestTodo(FAQUrl.CLIENT_PARAMETER_CHECK_URL), //
+            null);
         }
 
         // allocateMessageQueueStrategy

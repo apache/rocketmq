@@ -1,6 +1,11 @@
 package com.alibaba.rocketmq.research;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.Date;
+
+import com.alibaba.rocketmq.common.UtilAll;
 
 
 /**
@@ -22,6 +27,13 @@ public class Test {
 
 
     public static void main(String[] args) {
-        System.out.println(computNextMorningTimeMillis());
+        long timestamp = System.currentTimeMillis() - (1000 * 60 * 20);
+        String date = UtilAll.timeMillisToHumanString3(timestamp);
+        System.out.println(date);
+
+        long timestatmpNew = UtilAll.parseDate(date, UtilAll.yyyyMMddHHmmss).getTime();
+
+        System.out.println(timestamp);
+        System.out.println(timestatmpNew);
     }
 }
