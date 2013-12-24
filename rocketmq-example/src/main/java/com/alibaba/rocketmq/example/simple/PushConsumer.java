@@ -16,14 +16,12 @@
 package com.alibaba.rocketmq.example.simple;
 
 import java.util.List;
-import java.util.concurrent.atomic.AtomicLong;
 
 import com.alibaba.rocketmq.client.consumer.DefaultMQPushConsumer;
 import com.alibaba.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext;
 import com.alibaba.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
 import com.alibaba.rocketmq.client.consumer.listener.MessageListenerConcurrently;
 import com.alibaba.rocketmq.client.exception.MQClientException;
-import com.alibaba.rocketmq.common.message.MessageConst;
 import com.alibaba.rocketmq.common.message.MessageExt;
 
 
@@ -38,37 +36,19 @@ public class PushConsumer {
         /**
          * 订阅指定topic下所有消息
          */
-        // consumer.subscribe("TopicTest", "*");
+        consumer.subscribe("TopicTest1", "*");
 
         /**
          * 订阅指定topic下tags分别等于TagA或TagC或TagD
          */
-        consumer.subscribe("TopicTest", "TagA || TagC || TagD");
+        consumer.subscribe("TopicTest2", "TagA || TagC || TagD");
 
         consumer.registerMessageListener(new MessageListenerConcurrently() {
-            AtomicLong consumeTimes = new AtomicLong(0);
-
 
             @Override
             public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> msgs,
                     ConsumeConcurrentlyContext context) {
-                long offset = msgs.get(0).getQueueOffset();
-                String maxOffset = msgs.get(0).getProperty(MessageConst.PROPERTY_MAX_OFFSET);
-                long diff = Long.parseLong(maxOffset) - offset;
-                if (diff > 100000) {
-                    // TODO 消息堆积情况的特殊处理
-                    // return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
-                }
-
                 System.out.println(Thread.currentThread().getName() + " Receive New Messages: " + msgs);
-                this.consumeTimes.incrementAndGet();
-                if ((this.consumeTimes.get() % 2) == 0) {
-                    return ConsumeConcurrentlyStatus.RECONSUME_LATER;
-                }
-                else if ((this.consumeTimes.get() % 3) == 0) {
-                    context.setDelayLevelWhenNextConsume(5);
-                    return ConsumeConcurrentlyStatus.RECONSUME_LATER;
-                }
 
                 return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
             }
