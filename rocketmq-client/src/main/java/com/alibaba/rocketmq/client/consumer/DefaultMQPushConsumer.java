@@ -62,7 +62,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
      * Consumer第一次启动时，如果回溯消费，默认回溯到哪个时间点，数据格式如下，时间精度秒：<br>
      * 20131223171201<br>
      * 表示2013年12月23日17点12分01秒<br>
-     * 默认表示回溯到相对启动时间的半小时前
+     * 默认回溯到相对启动时间的半小时前
      */
     private String consumeTimestamp = UtilAll.timeMillisToHumanString3(System.currentTimeMillis()
             - (1000 * 60 * 30));
