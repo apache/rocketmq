@@ -324,8 +324,8 @@ public abstract class RebalanceImpl {
                 // 更新本地队列
                 boolean changed = this.updateProcessQueueTableInRebalance(topic, allocateResultSet);
                 if (changed) {
-                    log.info("reblance result is [{}], ConsumerId is [{}], mqAll is[{}], cidAll is [{}]",
-                        allocateResult, this.mQClientFactory.getClientId(), mqAll, cidAll);
+                    log.info("rebalanced result changed. mqSet={}, ConsumerId={}, mqSize={}, cidSize={}",
+                        allocateResult, this.mQClientFactory.getClientId(), mqAll.size(), cidAll.size());
 
                     this.messageQueueChanged(topic, mqSet, allocateResultSet);
                     log.info("messageQueueChanged {} {} {} {}",//
