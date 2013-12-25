@@ -216,7 +216,6 @@ public class RebalanceLockManager {
                                 group, //
                                 clientId, //
                                 mq);
-	                        continue;
                         }
 
                         // 已经锁定
