@@ -84,6 +84,10 @@ public abstract class RebalanceImpl {
             try {
                 this.mQClientFactory.getMQClientAPIImpl().unlockBatchMQ(findBrokerResult.getBrokerAddr(),
                     requestBody, 1000, oneway);
+	            log.warn("unlock messageQueue. group:{}, clientId:{}, mq:{}",//
+			            this.consumerGroup, //
+			            this.mQClientFactory.getClientId(), //
+			            mq);
             }
             catch (Exception e) {
                 log.error("unlockBatchMQ exception, " + mq, e);
