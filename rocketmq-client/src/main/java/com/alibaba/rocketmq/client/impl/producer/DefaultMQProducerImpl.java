@@ -466,7 +466,8 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             MessageQueue mq = null;
             Exception exception = null;
             SendResult sendResult = null;
-            for (int times = 0; times < 3
+            int timesTotal = 1 + this.defaultMQProducer.getRetryTimesWhenSendFailed();
+            for (int times = 0; times < timesTotal
                     && (endTimestamp - beginTimestamp) < this.defaultMQProducer.getSendMsgTimeout(); times++) {
                 String lastBrokerName = null == mq ? null : mq.getBrokerName();
                 MessageQueue tmpmq = topicPublishInfo.selectOneMessageQueue(lastBrokerName);

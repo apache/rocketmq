@@ -183,7 +183,7 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
                     final long beginTime = System.currentTimeMillis();
                     for (boolean continueConsume = true; continueConsume;) {
                         if (this.processQueue.isDroped()) {
-                            log.info("the message queue not be able to consume, because it's droped {}",
+                            log.warn("the message queue not be able to consume, because it's dropped. {}",
                                 this.messageQueue);
                             break;
                         }
@@ -282,6 +282,11 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
                 }
                 // 没有拿到当前队列的锁，稍后再消费
                 else {
+	                if (this.processQueue.isDroped()) {
+		                log.warn("the message queue not be able to consume, because it's dropped. {}",
+				                this.messageQueue);
+		                return;
+	                }
                     ConsumeMessageOrderlyService.this.tryLockLaterAndReconsume(this.messageQueue,
                         this.processQueue, 10);
                 }

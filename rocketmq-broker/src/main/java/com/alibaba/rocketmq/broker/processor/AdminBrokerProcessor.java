@@ -748,58 +748,67 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         }
         // 订阅组不存在
         else {
-            long minOffset =
-                    this.brokerController.getMessageStore().getMinOffsetInQuque(requestHeader.getTopic(),
-                        requestHeader.getQueueId());
-            long maxOffset =
-                    this.brokerController.getMessageStore().getMaxOffsetInQuque(requestHeader.getTopic(),
-                        requestHeader.getQueueId());
+            // 新版本服务器不做消费进度纠正
+            if (request.getVersion() >= MQVersion.Version.V3_0_6_SNAPSHOT.ordinal()) {
+                response.setCode(MQResponseCode.QUERY_NOT_FOUND_VALUE);
+                response.setRemark("Not found, V3_0_6_SNAPSHOT maybe this group consumer boot first");
+            }
 
-            boolean consumeFromMinEnable = false;
-            if (0 == minOffset && maxOffset > 0) {
-                long minCommitLogOffset =
-                        this.brokerController.getMessageStore().getCommitLogOffsetInQueue(
-                            requestHeader.getTopic(), requestHeader.getQueueId(), minOffset);
-                long maxCommitLogOffset =
-                        this.brokerController.getMessageStore().getCommitLogOffsetInQueue(
-                            requestHeader.getTopic(), requestHeader.getQueueId(), maxOffset - 1);
+            // TODO：以下流程待所有客户端都升级后，可以删除此段代码
+            else {
+                long minOffset =
+                        this.brokerController.getMessageStore().getMinOffsetInQuque(requestHeader.getTopic(),
+                            requestHeader.getQueueId());
+                long maxOffset =
+                        this.brokerController.getMessageStore().getMaxOffsetInQuque(requestHeader.getTopic(),
+                            requestHeader.getQueueId());
 
-                long memorySpan =
-                        (long) (StoreUtil.TotalPhysicalMemorySize * (this.brokerController
-                            .getMessageStoreConfig().getAccessMessageInMemoryMaxRatio() / 100.0));
+                boolean consumeFromMinEnable = false;
+                if (0 == minOffset && maxOffset > 0) {
+                    long minCommitLogOffset =
+                            this.brokerController.getMessageStore().getCommitLogOffsetInQueue(
+                                requestHeader.getTopic(), requestHeader.getQueueId(), minOffset);
+                    long maxCommitLogOffset =
+                            this.brokerController.getMessageStore().getCommitLogOffsetInQueue(
+                                requestHeader.getTopic(), requestHeader.getQueueId(), maxOffset - 1);
 
-                long diff = maxCommitLogOffset - minCommitLogOffset;
-                if (diff < memorySpan) {
+                    long memorySpan =
+                            (long) (StoreUtil.TotalPhysicalMemorySize * (this.brokerController
+                                .getMessageStoreConfig().getAccessMessageInMemoryMaxRatio() / 100.0));
+
+                    long diff = maxCommitLogOffset - minCommitLogOffset;
+                    if (diff < memorySpan) {
+                        consumeFromMinEnable = true;
+                        log.info(
+                            "the consumer group[{}] first subscribed, minOffset: {} maxOffset: {}, from min.",//
+                            requestHeader.getConsumerGroup(),//
+                            minOffset,//
+                            maxOffset);
+                    }
+                }
+                else if (minOffset > 0 && maxOffset > 0) {
+                    consumeFromMinEnable = false;
+                }
+                else {
                     consumeFromMinEnable = true;
                     log.info(
-                        "the consumer group[{}] first subscribed, minOffset: {} maxOffset: {}, from min.",//
+                        "the consumer group[{}] first subscribed, minOffset: {} maxOffset: {}, from min, and unknow offset.",//
                         requestHeader.getConsumerGroup(),//
                         minOffset,//
                         maxOffset);
                 }
-            }
-            else if (minOffset > 0 && maxOffset > 0) {
-                consumeFromMinEnable = false;
-            }
-            else {
-                consumeFromMinEnable = true;
-                log.info(
-                    "the consumer group[{}] first subscribed, minOffset: {} maxOffset: {}, from min, and unknow offset.",//
-                    requestHeader.getConsumerGroup(),//
-                    minOffset,//
-                    maxOffset);
-            }
 
-            // 说明这个队列在服务器存储的消息比较少或者没有消息
-            // 订阅组消费进度不存在情况下，从0开始消费
-            if (consumeFromMinEnable) {
-                responseHeader.setOffset(0L);
-                response.setCode(ResponseCode.SUCCESS_VALUE);
-                response.setRemark(null);
-            }
-            else {
-                response.setCode(MQResponseCode.QUERY_NOT_FOUND_VALUE);
-                response.setRemark("Not found, maybe this group consumer boot first");
+                // 说明这个队列在服务器存储的消息比较少或者没有消息
+                // 订阅组消费进度不存在情况下，从0开始消费
+                if (consumeFromMinEnable) {
+                    responseHeader.setOffset(0L);
+                    response.setCode(ResponseCode.SUCCESS_VALUE);
+                    response.setRemark(null);
+                }
+                else {
+                    response.setCode(MQResponseCode.QUERY_NOT_FOUND_VALUE);
+                    response.setRemark("Not found, maybe this group consumer boot first");
+                }
             }
         }
 

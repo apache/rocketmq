@@ -308,40 +308,51 @@ public class MQClientFactory {
      * 清理下线的broker
      */
     private void cleanOfflineBroker() {
-        ConcurrentHashMap<String, HashMap<Long, String>> updatedTable =
-                new ConcurrentHashMap<String, HashMap<Long, String>>();
+        try {
+            if (this.lockNamesrv.tryLock(LockTimeoutMillis, TimeUnit.MILLISECONDS))
+                try {
+                    ConcurrentHashMap<String, HashMap<Long, String>> updatedTable =
+                            new ConcurrentHashMap<String, HashMap<Long, String>>();
 
-        Iterator<Entry<String, HashMap<Long, String>>> itBrokerTable =
-                this.brokerAddrTable.entrySet().iterator();
-        while (itBrokerTable.hasNext()) {
-            Entry<String, HashMap<Long, String>> entry = itBrokerTable.next();
-            String brokerName = entry.getKey();
-            HashMap<Long, String> oneTable = entry.getValue();
+                    Iterator<Entry<String, HashMap<Long, String>>> itBrokerTable =
+                            this.brokerAddrTable.entrySet().iterator();
+                    while (itBrokerTable.hasNext()) {
+                        Entry<String, HashMap<Long, String>> entry = itBrokerTable.next();
+                        String brokerName = entry.getKey();
+                        HashMap<Long, String> oneTable = entry.getValue();
 
-            HashMap<Long, String> cloneAddrTable = new HashMap<Long, String>();
-            cloneAddrTable.putAll(oneTable);
+                        HashMap<Long, String> cloneAddrTable = new HashMap<Long, String>();
+                        cloneAddrTable.putAll(oneTable);
 
-            Iterator<Entry<Long, String>> it = cloneAddrTable.entrySet().iterator();
-            while (it.hasNext()) {
-                Entry<Long, String> ee = it.next();
-                String addr = ee.getValue();
-                if (!this.isBrokerAddrExistInTopicRouteTable(addr)) {
-                    it.remove();
-                    log.info("the broker addr[{} {}] is offline, remove it", brokerName, addr);
+                        Iterator<Entry<Long, String>> it = cloneAddrTable.entrySet().iterator();
+                        while (it.hasNext()) {
+                            Entry<Long, String> ee = it.next();
+                            String addr = ee.getValue();
+                            if (!this.isBrokerAddrExistInTopicRouteTable(addr)) {
+                                it.remove();
+                                log.info("the broker addr[{} {}] is offline, remove it", brokerName, addr);
+                            }
+                        }
+
+                        if (cloneAddrTable.isEmpty()) {
+                            itBrokerTable.remove();
+                            log.info("the broker[{}] name's host is offline, remove it", brokerName);
+                        }
+                        else {
+                            updatedTable.put(brokerName, cloneAddrTable);
+                        }
+                    }
+
+                    if (!updatedTable.isEmpty()) {
+                        this.brokerAddrTable.putAll(updatedTable);
+                    }
                 }
-            }
-
-            if (cloneAddrTable.isEmpty()) {
-                itBrokerTable.remove();
-                log.info("the broker[{}] name's host is offline, remove it", brokerName);
-            }
-            else {
-                updatedTable.put(brokerName, cloneAddrTable);
-            }
+                finally {
+                    this.lockNamesrv.unlock();
+                }
         }
-
-        if (!updatedTable.isEmpty()) {
-            this.brokerAddrTable.putAll(updatedTable);
+        catch (InterruptedException e) {
+            log.warn("cleanOfflineBroker Exception", e);
         }
     }
 
