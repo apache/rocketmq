@@ -28,6 +28,7 @@ import com.alibaba.rocketmq.client.exception.MQBrokerException;
 import com.alibaba.rocketmq.client.exception.MQClientException;
 import com.alibaba.rocketmq.client.impl.consumer.DefaultMQPushConsumerImpl;
 import com.alibaba.rocketmq.common.MixAll;
+import com.alibaba.rocketmq.common.UtilAll;
 import com.alibaba.rocketmq.common.consumer.ConsumeFromWhere;
 import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.common.message.MessageQueue;
@@ -54,9 +55,17 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
      */
     private MessageModel messageModel = MessageModel.CLUSTERING;
     /**
-     * Consumer启动时，从哪里开始消费
+     * Consumer第一次启动时，从哪里开始消费
      */
     private ConsumeFromWhere consumeFromWhere = ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET;
+    /**
+     * Consumer第一次启动时，如果回溯消费，默认回溯到哪个时间点，数据格式如下，时间精度秒：<br>
+     * 20131223171201<br>
+     * 表示2013年12月23日17点12分01秒<br>
+     * 默认回溯到相对启动时间的半小时前
+     */
+    private String consumeTimestamp = UtilAll.timeMillisToHumanString3(System.currentTimeMillis()
+            - (1000 * 60 * 30));
     /**
      * 队列分配算法，应用可重写
      */
@@ -361,6 +370,16 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
 
     public void setOffsetStore(OffsetStore offsetStore) {
         this.offsetStore = offsetStore;
+    }
+
+
+    public String getConsumeTimestamp() {
+        return consumeTimestamp;
+    }
+
+
+    public void setConsumeTimestamp(String consumeTimestamp) {
+        this.consumeTimestamp = consumeTimestamp;
     }
 
 }

@@ -73,10 +73,10 @@ public class QueryMsgByOffsetSubCommand implements SubCommand {
     public void execute(CommandLine commandLine, Options options) {
         DefaultMQAdminExt defaultMQAdminExt = new DefaultMQAdminExt();
         DefaultMQPullConsumer defaultMQPullConsumer =
-                new DefaultMQPullConsumer(Long.toString(System.currentTimeMillis()));
+                new DefaultMQPullConsumer(MixAll.TOOLS_CONSUMER_GROUP);
 
         defaultMQAdminExt.setInstanceName(Long.toString(System.currentTimeMillis()));
-        defaultMQPullConsumer.setInstanceName(MixAll.TOOLS_CONSUMER_GROUP);
+        defaultMQPullConsumer.setInstanceName(Long.toString(System.currentTimeMillis()));
 
         try {
             String topic = commandLine.getOptionValue('t').trim();

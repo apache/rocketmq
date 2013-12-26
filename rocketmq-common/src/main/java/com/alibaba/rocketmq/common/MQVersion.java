@@ -22,7 +22,7 @@ package com.alibaba.rocketmq.common;
  */
 public class MQVersion {
     // TODO 每次发布版本都要修改此处版本号
-    public static final int CurrentVersion = Version.V3_0_5.ordinal();
+    public static final int CurrentVersion = Version.V3_0_6.ordinal();
 
 
     public static String getVersionDesc(int value) {
@@ -35,7 +35,7 @@ public class MQVersion {
         return Version.values()[value];
     }
 
-    enum Version {
+    public static enum Version {
         V3_0_0_SNAPSHOT,
         V3_0_0_ALPHA1,
         V3_0_0_BETA1,
@@ -74,5 +74,17 @@ public class MQVersion {
         V3_0_10,
         V3_0_11_SNAPSHOT,
         V3_0_11,
+
+        V3_0_12_SNAPSHOT,
+        V3_0_12,
+
+        V3_0_13_SNAPSHOT,
+        V3_0_13,
+
+        V3_0_14_SNAPSHOT,
+        V3_0_14,
+
+        V3_0_15_SNAPSHOT,
+        V3_0_15,
     }
 }
