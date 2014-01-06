@@ -34,7 +34,7 @@ RocketMQ是一款分布式、队列模型的消息中间件，具有以下特点
 ### 联系我们
 
 * [向我们提交建议、BUG、寻求技术帮助](https://github.com/alibaba/RocketMQ/issues/new)
-* 欢迎参与RocketMQ项目，只需在Github上fork、pull request即可。RocketMQ目前只支持Java客户端，欢迎大家能贡献其他语言客户端。
+* 欢迎参与RocketMQ项目，只需在Github上fork、pull request即可。
 * [到新浪微博交流RocketMQ](http://q.weibo.com/1628465)
 * 加入QQ群交流，5776652
 

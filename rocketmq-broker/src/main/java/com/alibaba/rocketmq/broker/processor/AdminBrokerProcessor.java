@@ -70,6 +70,7 @@ import com.alibaba.rocketmq.common.protocol.header.SearchOffsetRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.SearchOffsetResponseHeader;
 import com.alibaba.rocketmq.common.protocol.header.UpdateConsumerOffsetRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.UpdateConsumerOffsetResponseHeader;
+import com.alibaba.rocketmq.common.protocol.heartbeat.SubscriptionData;
 import com.alibaba.rocketmq.common.subscription.SubscriptionGroupConfig;
 import com.alibaba.rocketmq.remoting.common.RemotingHelper;
 import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
@@ -199,9 +200,17 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         for (String topic : topics) {
             TopicConfig topicConfig = this.brokerController.getTopicConfigManager().selectTopicConfig(topic);
             if (null == topicConfig) {
-                response.setCode(MQResponseCode.TOPIC_NOT_EXIST_VALUE);
-                response.setRemark("topic[" + topic + "] not exist");
-                return response;
+                log.warn("consumeStats, topic config not exist, {}", topic);
+                continue;
+            }
+
+            SubscriptionData findSubscriptionData =
+                    this.brokerController.getConsumerManager().findSubscriptionData(
+                        requestHeader.getConsumerGroup(), topic);
+            if (null == findSubscriptionData) {
+                log.warn("consumeStats, the consumer group[{}], topic[{}] not exist",
+                    requestHeader.getConsumerGroup(), topic);
+                continue;
             }
 
             for (int i = 0; i < topicConfig.getWriteQueueNums(); i++) {
