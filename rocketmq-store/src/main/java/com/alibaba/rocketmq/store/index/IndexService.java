@@ -318,7 +318,6 @@ public class IndexService extends ServiceThread {
 
         if (breakdown) {
             log.error("build index error, stop building index");
-            // TODO
         }
     }
 
