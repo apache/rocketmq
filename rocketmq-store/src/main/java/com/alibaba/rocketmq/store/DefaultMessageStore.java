@@ -1453,8 +1453,6 @@ public class DefaultMessageStore implements MessageStore {
     class DispatchMessageService extends ServiceThread {
         private volatile List<DispatchRequest> requestsWrite;
         private volatile List<DispatchRequest> requestsRead;
-        // 堆积在索引队列中未处理的请求数
-        private volatile int indexRequestCnt = 0;
 
 
         public DispatchMessageService(int putMsgIndexHightWater) {
@@ -1494,11 +1492,12 @@ public class DefaultMessageStore implements MessageStore {
 
             DefaultMessageStore.this.getStoreStatsService().setDispatchMaxBuffer(requestsWriteSize);
 
-            if ((requestsWriteSize > putMsgIndexHightWater) || (this.indexRequestCnt > putMsgIndexHightWater)) {
+            // 这里主动做流控，防止CommitLog写入太快，导致消费队列被冲垮
+            if (requestsWriteSize > putMsgIndexHightWater) {
                 try {
                     if (log.isDebugEnabled()) {
-                        log.debug("Message index buffer size " + requestsWriteSize + " "
-                                + this.indexRequestCnt + " > high water " + putMsgIndexHightWater);
+                        log.debug("Message index buffer size " + requestsWriteSize + " > high water "
+                                + putMsgIndexHightWater);
                     }
 
                     Thread.sleep(1);
@@ -1591,8 +1590,7 @@ public class DefaultMessageStore implements MessageStore {
                 }
 
                 if (DefaultMessageStore.this.getMessageStoreConfig().isMessageIndexEnable()) {
-                    this.indexRequestCnt =
-                            DefaultMessageStore.this.indexService.putRequest(this.requestsRead.toArray());
+                    DefaultMessageStore.this.indexService.putRequest(this.requestsRead.toArray());
                 }
 
                 this.requestsRead.clear();
