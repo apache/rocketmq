@@ -178,7 +178,16 @@ public class ConsumerGroupInfo {
         while (it.hasNext()) {
             Entry<String, SubscriptionData> next = it.next();
             String oldTopic = next.getKey();
-            if (!subList.contains(oldTopic)) {
+
+            boolean exist = false;
+            for (SubscriptionData sub : subList) {
+                if (sub.getTopic().equals(oldTopic)) {
+                    exist = true;
+                    break;
+                }
+            }
+
+            if (!exist) {
                 log.warn("subscription changed, group: {} remove topic {} {}", //
                     this.groupName,//
                     oldTopic,//
