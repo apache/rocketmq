@@ -140,6 +140,9 @@ public class IndexFile {
                     timeDiff = 0;
                 }
 
+                // 时间差存储单位由毫秒改为秒
+                timeDiff = timeDiff / 1000;
+
                 int absIndexPos =
                         IndexHeader.INDEX_HEADER_SIZE + this.hashSlotNum * HASH_SLOT_SIZE
                                 + this.indexHeader.getIndexCount() * INDEX_SIZE;
@@ -271,6 +274,9 @@ public class IndexFile {
                         if (timeDiff < 0) {
                             break;
                         }
+
+                        // 时间差存储的是秒，再还原为毫秒
+                        timeDiff *= 1000;
 
                         long timeRead = this.indexHeader.getBeginTimestamp() + timeDiff;
                         boolean timeMatched = (timeRead >= begin) && (timeRead <= end);
