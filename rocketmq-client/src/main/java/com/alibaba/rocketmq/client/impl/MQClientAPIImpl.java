@@ -26,6 +26,9 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+import com.alibaba.rocketmq.common.protocol.body.*;
+import com.alibaba.rocketmq.common.protocol.header.*;
+import com.alibaba.rocketmq.remoting.protocol.RemotingProtos;
 import org.slf4j.Logger;
 
 import com.alibaba.rocketmq.client.VirtualEnvUtil;
@@ -55,43 +58,6 @@ import com.alibaba.rocketmq.common.namesrv.NamesrvUtil;
 import com.alibaba.rocketmq.common.namesrv.TopAddressing;
 import com.alibaba.rocketmq.common.protocol.MQProtos.MQRequestCode;
 import com.alibaba.rocketmq.common.protocol.MQProtos.MQResponseCode;
-import com.alibaba.rocketmq.common.protocol.body.ClusterInfo;
-import com.alibaba.rocketmq.common.protocol.body.ConsumerConnection;
-import com.alibaba.rocketmq.common.protocol.body.KVTable;
-import com.alibaba.rocketmq.common.protocol.body.LockBatchRequestBody;
-import com.alibaba.rocketmq.common.protocol.body.LockBatchResponseBody;
-import com.alibaba.rocketmq.common.protocol.body.ProducerConnection;
-import com.alibaba.rocketmq.common.protocol.body.TopicList;
-import com.alibaba.rocketmq.common.protocol.body.UnlockBatchRequestBody;
-import com.alibaba.rocketmq.common.protocol.header.ConsumerSendMsgBackRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.CreateTopicRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.DeleteSubscriptionGroupRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.DeleteTopicRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.EndTransactionRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.GetConsumeStatsRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.GetConsumerConnectionListRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.GetConsumerListByGroupRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.GetConsumerListByGroupResponseBody;
-import com.alibaba.rocketmq.common.protocol.header.GetEarliestMsgStoretimeRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.GetEarliestMsgStoretimeResponseHeader;
-import com.alibaba.rocketmq.common.protocol.header.GetMaxOffsetRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.GetMaxOffsetResponseHeader;
-import com.alibaba.rocketmq.common.protocol.header.GetMinOffsetRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.GetMinOffsetResponseHeader;
-import com.alibaba.rocketmq.common.protocol.header.GetProducerConnectionListRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.GetTopicStatsInfoRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.PullMessageRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.PullMessageResponseHeader;
-import com.alibaba.rocketmq.common.protocol.header.QueryConsumerOffsetRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.QueryConsumerOffsetResponseHeader;
-import com.alibaba.rocketmq.common.protocol.header.QueryMessageRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.SearchOffsetRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.SearchOffsetResponseHeader;
-import com.alibaba.rocketmq.common.protocol.header.SendMessageRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.SendMessageResponseHeader;
-import com.alibaba.rocketmq.common.protocol.header.UnregisterClientRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.UpdateConsumerOffsetRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.ViewMessageRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.namesrv.DeleteKVConfigRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.namesrv.GetKVConfigRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.namesrv.GetKVConfigResponseHeader;
@@ -1777,6 +1743,39 @@ public class MQClientAPIImpl {
         switch (response.getCode()) {
         case ResponseCode.SUCCESS_VALUE: {
             return;
+        }
+        default:
+            break;
+        }
+
+        throw new MQClientException(response.getCode(), response.getRemark());
+    }
+
+
+    /**
+     * 通知 broker 重置 offset
+     */
+    public Map<MessageQueue, Long> invokeBrokerToResetOffset(final String addr, final String topic,
+            final String group, final long timestamp, final boolean isForce, final long timeoutMillis)
+            throws RemotingException, MQClientException, InterruptedException {
+        ResetOffsetRequestHeader requestHeader = new ResetOffsetRequestHeader();
+        requestHeader.setTopic(topic);
+        requestHeader.setGroup(group);
+        requestHeader.setTimestamp(timestamp);
+        requestHeader.setForce(isForce);
+
+        RemotingCommand request =
+                RemotingCommand.createRequestCommand(MQRequestCode.INVOKE_BROKER_TO_RESET_OFFSET_VALUE,
+                    requestHeader);
+
+        RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
+        assert response != null;
+        switch (response.getCode()) {
+        case RemotingProtos.ResponseCode.SUCCESS_VALUE: {
+            if (response.getBody() != null) {
+                ResetOffsetBody body = ResetOffsetBody.decode(response.getBody(), ResetOffsetBody.class);
+                return body.getOffsetTable();
+            }
         }
         default:
             break;

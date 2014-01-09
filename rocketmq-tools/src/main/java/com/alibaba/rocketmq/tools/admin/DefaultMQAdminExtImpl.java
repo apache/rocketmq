@@ -16,13 +16,7 @@
 package com.alibaba.rocketmq.tools.admin;
 
 import java.io.UnsupportedEncodingException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
+import java.util.*;
 
 import org.slf4j.Logger;
 
@@ -434,8 +428,8 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
 
 
     @Override
-    public List<RollbackStats> resetOffsetByTimestamp(String consumerGroup, String topic, long timestamp,
-            boolean force) throws RemotingException, MQBrokerException, InterruptedException,
+    public List<RollbackStats> resetOffsetByTimestampOld(String consumerGroup, String topic, long timestamp,
+                                                         boolean force) throws RemotingException, MQBrokerException, InterruptedException,
             MQClientException {
         TopicRouteData topicRouteData = this.examineTopicRouteInfo(topic);
         List<RollbackStats> rollbackStatsList = new ArrayList<RollbackStats>();
@@ -497,4 +491,20 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
             InterruptedException, MQBrokerException {
         this.mQClientFactory.getMQClientAPIImpl().updateBrokerConfig(brokerAddr, properties, 5000);
     }
+
+	@Override
+	public Map<MessageQueue, Long> resetOffsetByTimestamp(String topic, String group, long timestamp,
+	                                                      boolean isForce) throws RemotingException, MQBrokerException, InterruptedException,
+			MQClientException {
+		Map<MessageQueue, Long> offsetTable = new HashMap<MessageQueue, Long>();
+		TopicRouteData topicRouteData = this.examineTopicRouteInfo(topic);
+		for (BrokerData bd : topicRouteData.getBrokerDatas()) {
+			String addr = bd.selectBrokerAddr();
+			if (addr != null) {
+				offsetTable.putAll(this.mQClientFactory.getMQClientAPIImpl().invokeBrokerToResetOffset(addr,
+						topic, group, timestamp, isForce, 5000));
+			}
+		}
+		return offsetTable;
+	}
 }

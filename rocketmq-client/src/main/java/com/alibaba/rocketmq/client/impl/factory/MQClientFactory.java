@@ -33,6 +33,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import com.alibaba.rocketmq.client.impl.consumer.*;
 import org.slf4j.Logger;
 
 import com.alibaba.rocketmq.client.ClientConfig;
@@ -44,10 +45,6 @@ import com.alibaba.rocketmq.client.impl.FindBrokerResult;
 import com.alibaba.rocketmq.client.impl.MQAdminImpl;
 import com.alibaba.rocketmq.client.impl.MQClientAPIImpl;
 import com.alibaba.rocketmq.client.impl.MQClientManager;
-import com.alibaba.rocketmq.client.impl.consumer.DefaultMQPushConsumerImpl;
-import com.alibaba.rocketmq.client.impl.consumer.MQConsumerInner;
-import com.alibaba.rocketmq.client.impl.consumer.PullMessageService;
-import com.alibaba.rocketmq.client.impl.consumer.RebalanceService;
 import com.alibaba.rocketmq.client.impl.producer.DefaultMQProducerImpl;
 import com.alibaba.rocketmq.client.impl.producer.MQProducerInner;
 import com.alibaba.rocketmq.client.impl.producer.TopicPublishInfo;
@@ -1089,6 +1086,77 @@ public class MQClientFactory {
         }
 
         return null;
+    }
+
+
+    public void resetOffset(String topic, String group, Map<MessageQueue, Long> offsetTable) {
+        DefaultMQPushConsumerImpl consumer = null;
+        try {
+            MQConsumerInner impl = this.consumerTable.get(group);
+            if (impl != null && impl instanceof DefaultMQPushConsumerImpl) {
+                consumer = (DefaultMQPushConsumerImpl) impl;
+            }
+            else {
+                log.info("[reset-offset] consumer dose not exist. group={}", group);
+                return;
+            }
+
+            // 设置当前的 processQueue 为 dropped，从而使得当前的 pullRequest 以及
+            // consumerRequest 处理结束并销毁
+            ConcurrentHashMap<MessageQueue, ProcessQueue> processQueueTable =
+                    consumer.getRebalanceImpl().getProcessQueueTable();
+            Iterator<MessageQueue> itr = processQueueTable.keySet().iterator();
+            while (itr.hasNext()) {
+                MessageQueue mq = itr.next();
+                if (topic.equals(mq.getTopic())) {
+                    ProcessQueue pq = processQueueTable.get(mq);
+                    pq.setDroped(true);
+                    pq.clear();
+                }
+            }
+
+            // 更新消费队列的 offset 并提交到 broker
+            Iterator<MessageQueue> iterator = offsetTable.keySet().iterator();
+            while (iterator.hasNext()) {
+                MessageQueue mq = iterator.next();
+                consumer.updateConsumeOffset(mq, offsetTable.get(mq));
+                log.info("[reset-offset] reset offsetTable. topic={}, group={}, mq={}, offset={}",
+                    new Object[] { topic, group, mq, offsetTable.get(mq) });
+            }
+            consumer.getOffsetStore().persistAll(offsetTable.keySet());
+
+            // 等待所有的 pullRequest 以及 consumerRequest
+            // 处理完成（等的时间比较长，以保证当客户端处理较慢时，offset 仍可以被正确重置）
+            try {
+                TimeUnit.SECONDS.sleep(60);
+            }
+            catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+
+            // 更新消费队列的 offset 并提交到 broker
+            iterator = offsetTable.keySet().iterator();
+            while (iterator.hasNext()) {
+                MessageQueue mq = iterator.next();
+                consumer.updateConsumeOffset(mq, offsetTable.get(mq));
+                log.info("[reset-offset] reset offsetTable. topic={}, group={}, mq={}, offset={}",
+                    new Object[] { topic, group, mq, offsetTable.get(mq) });
+            }
+            consumer.getOffsetStore().persistAll(offsetTable.keySet());
+
+            // 真正清除被 dropped 的 processQueue，从而使得新的 rebalance 生效，生成新的 pullRequest
+            // 以及 consumerRequest
+            iterator = offsetTable.keySet().iterator();
+            processQueueTable = consumer.getRebalanceImpl().getProcessQueueTable();
+            while (iterator.hasNext()) {
+                MessageQueue mq = iterator.next();
+                processQueueTable.remove(mq);
+            }
+        }
+        finally {
+            // 放在 finally 主要是确保 rebalance 一定被执行
+            consumer.getRebalanceImpl().doRebalance();
+        }
     }
 
 
