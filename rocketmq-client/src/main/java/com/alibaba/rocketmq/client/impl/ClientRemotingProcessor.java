@@ -71,6 +71,8 @@ public class ClientRemotingProcessor implements NettyRequestProcessor {
             return this.notifyConsumerIdsChanged(ctx, request);
         case RESET_CONSUMER_CLIENT_OFFSET:
             return this.resetOffset(ctx, request);
+        case GET_CONSUMER_STATUS_FROM_CLIENT:
+            return this.getConsumeStatus(ctx, request);
         default:
             break;
         }
