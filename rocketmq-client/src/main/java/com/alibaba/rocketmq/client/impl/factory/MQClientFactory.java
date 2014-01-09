@@ -1125,13 +1125,12 @@ public class MQClientFactory {
             }
             consumer.getOffsetStore().persistAll(offsetTable.keySet());
 
-            // 等待所有的 pullRequest 以及 consumerRequest
-            // 处理完成（等的时间比较长，以保证当客户端处理较慢时，offset 仍可以被正确重置）
+            // 等待所有的 pullRequest 以及 consumerRequest 处理完成
             try {
-                TimeUnit.SECONDS.sleep(60);
+                TimeUnit.SECONDS.sleep(10);
             }
             catch (InterruptedException e) {
-                e.printStackTrace();
+                //
             }
 
             // 更新消费队列的 offset 并提交到 broker
