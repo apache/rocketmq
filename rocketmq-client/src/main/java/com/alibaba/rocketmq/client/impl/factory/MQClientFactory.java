@@ -1160,6 +1160,22 @@ public class MQClientFactory {
     }
 
 
+    public Map<MessageQueue, Long> getConsumerStatus(String topic, String group) {
+        MQConsumerInner impl = this.consumerTable.get(group);
+        if (impl != null && impl instanceof DefaultMQPushConsumerImpl) {
+            DefaultMQPushConsumerImpl consumer = (DefaultMQPushConsumerImpl) impl;
+            return consumer.getOffsetStore().cloneOffsetTable(topic);
+        }
+        else if (impl != null && impl instanceof DefaultMQPullConsumerImpl) {
+            DefaultMQPullConsumerImpl consumer = (DefaultMQPullConsumerImpl) impl;
+            return consumer.getOffsetStore().cloneOffsetTable(topic);
+        }
+        else {
+            return Collections.EMPTY_MAP;
+        }
+    }
+
+
     public TopicRouteData getAnExistTopicRouteData(final String topic) {
         return this.topicRouteTable.get(topic);
     }

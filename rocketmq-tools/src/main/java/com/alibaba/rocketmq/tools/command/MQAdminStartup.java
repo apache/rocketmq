@@ -18,6 +18,7 @@ package com.alibaba.rocketmq.tools.command;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.alibaba.rocketmq.tools.command.offset.GetConsumerStatusCommand;
 import com.alibaba.rocketmq.tools.command.offset.ResetOffsetByTimeCommand;
 import com.alibaba.rocketmq.tools.command.offset.ResetOffsetByTimeOldCommand;
 import org.apache.commons.cli.CommandLine;
@@ -95,6 +96,7 @@ public class MQAdminStartup {
         subCommandList.add(new ResetOffsetByTimeOldCommand());
         subCommandList.add(new WipeWritePermSubCommand());
         subCommandList.add(new ResetOffsetByTimeCommand());
+        subCommandList.add(new GetConsumerStatusCommand());
     }
 
 

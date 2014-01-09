@@ -339,4 +339,10 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
 			throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
 		return defaultMQAdminExtImpl.resetOffsetByTimestamp(topic, group, timestamp, isForce);
 	}
+
+	@Override
+	public Map<String, Map<MessageQueue, Long>> getConsumeStatus(String topic, String group, String clientAddr)
+			throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
+		return defaultMQAdminExtImpl.getConsumeStatus(topic, group, clientAddr);
+	}
 }

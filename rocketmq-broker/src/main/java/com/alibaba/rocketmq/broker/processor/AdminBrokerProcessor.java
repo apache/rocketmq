@@ -159,6 +159,10 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             // 调用客户端重置 offset
         case INVOKE_BROKER_TO_RESET_OFFSET:
             return this.resetOffset(ctx, request);
+
+            // 调用客户端订阅消息处理
+        case INVOKE_BROKER_TO_GET_CONSUMER_STATUS:
+            return this.getConsumerStatus(ctx, request);
         default:
             break;
 
@@ -940,5 +944,17 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
 
         return this.brokerController.getBroker2Client().resetOffset(requestHeader.getTopic(),
             requestHeader.getGroup(), requestHeader.getTimestamp(), requestHeader.isForce());
+    }
+
+
+    public RemotingCommand getConsumerStatus(ChannelHandlerContext ctx, RemotingCommand request)
+            throws RemotingCommandException {
+        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
+        final GetConsumerStatusRequestHeader requestHeader =
+                (GetConsumerStatusRequestHeader) request
+                    .decodeCommandCustomHeader(GetConsumerStatusRequestHeader.class);
+
+        return this.brokerController.getBroker2Client().getConsumeStatus(requestHeader.getTopic(),
+            requestHeader.getGroup(), requestHeader.getClientAddr());
     }
 }

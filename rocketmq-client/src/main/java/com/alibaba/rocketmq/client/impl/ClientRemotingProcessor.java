@@ -16,8 +16,11 @@
 package com.alibaba.rocketmq.client.impl;
 
 import com.alibaba.rocketmq.common.message.MessageQueue;
+import com.alibaba.rocketmq.common.protocol.body.GetConsumerStatusBody;
 import com.alibaba.rocketmq.common.protocol.body.ResetOffsetBody;
+import com.alibaba.rocketmq.common.protocol.header.GetConsumerStatusRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.ResetOffsetRequestHeader;
+import com.alibaba.rocketmq.remoting.protocol.RemotingProtos;
 import io.netty.channel.ChannelHandlerContext;
 
 import java.nio.ByteBuffer;
@@ -143,5 +146,25 @@ public class ClientRemotingProcessor implements NettyRequestProcessor {
         }
         this.mqClientFactory.resetOffset(requestHeader.getTopic(), requestHeader.getGroup(), offsetTable);
         return null;
+    }
+
+
+    /**
+     * 获取 consumer 消息消费状态。
+     */
+    public RemotingCommand getConsumeStatus(ChannelHandlerContext ctx, RemotingCommand request)
+            throws RemotingCommandException {
+        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
+        final GetConsumerStatusRequestHeader requestHeader =
+                (GetConsumerStatusRequestHeader) request
+                    .decodeCommandCustomHeader(GetConsumerStatusRequestHeader.class);
+
+        Map<MessageQueue, Long> offsetTable =
+                this.mqClientFactory.getConsumerStatus(requestHeader.getTopic(), requestHeader.getGroup());
+        GetConsumerStatusBody body = new GetConsumerStatusBody();
+        body.setMessageQueueTable(offsetTable);
+        response.setBody(body.encode());
+        response.setCode(RemotingProtos.ResponseCode.SUCCESS_VALUE);
+        return response;
     }
 }
