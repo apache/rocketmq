@@ -498,36 +498,33 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
     public Map<MessageQueue, Long> resetOffsetByTimestamp(String topic, String group, long timestamp,
             boolean isForce) throws RemotingException, MQBrokerException, InterruptedException,
             MQClientException {
-        Map<MessageQueue, Long> offsetTable = new HashMap<MessageQueue, Long>();
         TopicRouteData topicRouteData = this.examineTopicRouteInfo(topic);
-        for (BrokerData bd : topicRouteData.getBrokerDatas()) {
-            String addr = bd.selectBrokerAddr();
+        List<BrokerData> brokerDatas = topicRouteData.getBrokerDatas();
+        // 每个 broker 上有所有的 consumer 连接，故只需要在一个 broker 执行即可。
+        if (brokerDatas != null && brokerDatas.size() > 0) {
+            String addr = brokerDatas.get(0).selectBrokerAddr();
             if (addr != null) {
-                offsetTable.putAll(this.mQClientFactory.getMQClientAPIImpl().invokeBrokerToResetOffset(addr,
-                    topic, group, timestamp, isForce, 5000));
+                return this.mQClientFactory.getMQClientAPIImpl().invokeBrokerToResetOffset(addr, topic,
+                    group, timestamp, isForce, 5000);
             }
         }
-        return offsetTable;
+        return Collections.EMPTY_MAP;
     }
 
 
     @Override
     public Map<String, Map<MessageQueue, Long>> getConsumeStatus(String topic, String group, String clientAddr)
             throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
-        Map<String, Map<MessageQueue, Long>> consumerStatusTable =
-                new HashMap<String, Map<MessageQueue, Long>>();
         TopicRouteData topicRouteData = this.examineTopicRouteInfo(topic);
-        for (BrokerData bd : topicRouteData.getBrokerDatas()) {
-            String addr = bd.selectBrokerAddr();
+        List<BrokerData> brokerDatas = topicRouteData.getBrokerDatas();
+        // 每个 broker 上有所有的 consumer 连接，故只需要在一个 broker 执行即可。
+        if (brokerDatas != null && brokerDatas.size() > 0) {
+            String addr = brokerDatas.get(0).selectBrokerAddr();
             if (addr != null) {
-                consumerStatusTable.putAll(this.mQClientFactory.getMQClientAPIImpl()
-                    .invokeBrokerToGetConsumerStatus(addr, topic, group, clientAddr, 5000));
-            }
-            // 如果是指定 clientIp，并且返回的已经有结果，说明已经找到相应的 client，则直接退出。
-            if (!UtilAll.isBlank(clientAddr) && consumerStatusTable.size() != 0) {
-                break;
+                return this.mQClientFactory.getMQClientAPIImpl().invokeBrokerToGetConsumerStatus(addr, topic,
+                    group, clientAddr, 5000);
             }
         }
-        return consumerStatusTable;
+        return Collections.EMPTY_MAP;
     }
 }
