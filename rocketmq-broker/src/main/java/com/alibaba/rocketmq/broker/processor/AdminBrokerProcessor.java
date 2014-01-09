@@ -941,7 +941,9 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             throws RemotingCommandException {
         final ResetOffsetRequestHeader requestHeader =
                 (ResetOffsetRequestHeader) request.decodeCommandCustomHeader(ResetOffsetRequestHeader.class);
-
+        log.info("[reset-offset] reset offset started by {}. topic={}, group={}, timestamp={}, isForce={}",
+            new Object[] { RemotingHelper.parseChannelRemoteAddr(ctx.channel()), requestHeader.getTopic(),
+                          requestHeader.getGroup(), requestHeader.getTimestamp(), requestHeader.isForce() });
         return this.brokerController.getBroker2Client().resetOffset(requestHeader.getTopic(),
             requestHeader.getGroup(), requestHeader.getTimestamp(), requestHeader.isForce());
     }
@@ -949,10 +951,13 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
 
     public RemotingCommand getConsumerStatus(ChannelHandlerContext ctx, RemotingCommand request)
             throws RemotingCommandException {
-        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
         final GetConsumerStatusRequestHeader requestHeader =
                 (GetConsumerStatusRequestHeader) request
                     .decodeCommandCustomHeader(GetConsumerStatusRequestHeader.class);
+
+        log.info("get consumer status by {}. topic={}, group={}",
+            new Object[] { RemotingHelper.parseChannelRemoteAddr(ctx.channel()), requestHeader.getTopic(),
+                          requestHeader.getGroup() });
 
         return this.brokerController.getBroker2Client().getConsumeStatus(requestHeader.getTopic(),
             requestHeader.getGroup(), requestHeader.getClientAddr());

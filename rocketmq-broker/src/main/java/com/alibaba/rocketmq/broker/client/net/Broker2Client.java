@@ -171,8 +171,8 @@ public class Broker2Client {
             if (version >= MQVersion.Version.V3_0_7_SNAPSHOT.ordinal()) {
                 try {
                     this.brokerController.getRemotingServer().invokeOneway(channel, request, 5000);
-                    log.info("[reset-offset] reset offset success. topic={}, group={}, clientIp={}",
-                        new Object[] { topic, group, RemotingHelper.parseChannelRemoteAddr(channel) });
+                    log.info("[reset-offset] reset offset success. topic={}, group={}, clientId={}",
+                        new Object[] { topic, group, channelInfoTable.get(channel).getClientId() });
                 }
                 catch (Exception e) {
                     log.error("[reset-offset] reset offset exception. topic={}, group={}",
