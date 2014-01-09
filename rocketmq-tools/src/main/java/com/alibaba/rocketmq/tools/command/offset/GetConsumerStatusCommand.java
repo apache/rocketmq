@@ -44,7 +44,7 @@ public class GetConsumerStatusCommand implements SubCommand {
         opt.setRequired(true);
         options.addOption(opt);
 
-        opt = new Option("i", "clientAddr", true, "set the client address(ip:port)");
+        opt = new Option("i", "originClientId", true, "set the consumer clientId");
         opt.setRequired(false);
         options.addOption(opt);
 
@@ -59,19 +59,19 @@ public class GetConsumerStatusCommand implements SubCommand {
         try {
             String group = commandLine.getOptionValue("g").trim();
             String topic = commandLine.getOptionValue("t").trim();
-            String clientAddr = "";
+            String originClientId = "";
             if (commandLine.hasOption("i")) {
-                clientAddr = commandLine.getOptionValue("i").trim();
+                originClientId = commandLine.getOptionValue("i").trim();
             }
             defaultMQAdminExt.start();
 
             Map<String, Map<MessageQueue, Long>> consumerStatusTable =
-                    defaultMQAdminExt.getConsumeStatus(topic, group, clientAddr);
-            System.out.printf("get consumer status from client. group=%s, topic=%s,clientAddr=%s\n", group,
-                topic, clientAddr);
+                    defaultMQAdminExt.getConsumeStatus(topic, group, originClientId);
+            System.out.printf("get consumer status from client. group=%s, topic=%s, originClientId=%s\n",
+                group, topic, originClientId);
 
-            System.out.printf("%-20s  %-80s  %-20s\n",//
-                "#clientIp",//
+            System.out.printf("%-30s  %-70s  %-20s\n",//
+                "#originClientId",//
                 "#messageQueue",//
                 "#offset");
 
@@ -82,7 +82,7 @@ public class GetConsumerStatusCommand implements SubCommand {
                 Iterator<MessageQueue> mqIterator = mqTable.keySet().iterator();
                 while (mqIterator.hasNext()) {
                     MessageQueue mq = mqIterator.next();
-                    System.out.printf("%-20s  %-80s  %-20d\n",//
+                    System.out.printf("%-30s  %-70s  %-20d\n",//
                         UtilAll.frontStringAtLeast(clientIp, 20),//
                         mq.toString(),//
                         mqTable.get(mq));
@@ -105,7 +105,7 @@ public class GetConsumerStatusCommand implements SubCommand {
         String[] subargs = new String[] { "-t qatest_TopicTest", "-g qatest_consumer" };
         final CommandLine commandLine =
                 MixAll.parseCmdLine("mqadmin " + cmd.commandName(), subargs,
-		                cmd.buildCommandlineOptions(options), new PosixParser());
+                    cmd.buildCommandlineOptions(options), new PosixParser());
         cmd.execute(commandLine, options);
     }
 }
