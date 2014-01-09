@@ -416,22 +416,41 @@ public interface MQAdminExt extends MQAdmin {
      * @return
      */
     public List<RollbackStats> resetOffsetByTimestampOld(String consumerGroup, String topic, long timestamp,
-                                                         boolean force) throws RemotingException, MQBrokerException, InterruptedException,
+            boolean force) throws RemotingException, MQBrokerException, InterruptedException,
             MQClientException;
 
-	/**
-	 * 按照时间回溯消费进度(客户端不需要重启)
-	 *
-	 * @param topic
-	 * @param group
-	 * @param timestamp
-	 * @param isForce
-	 * @throws RemotingException
-	 * @throws MQBrokerException
-	 * @throws InterruptedException
-	 * @throws MQClientException
-	 * @return
-	 */
-	public Map<MessageQueue, Long> resetOffsetByTimestamp(String topic, String group, long timestamp, boolean isForce)
-			throws RemotingException, MQBrokerException, InterruptedException, MQClientException;
+
+    /**
+     * 按照时间回溯消费进度(客户端不需要重启)
+     * 
+     * @param topic
+     * @param group
+     * @param timestamp
+     * @param isForce
+     * @throws RemotingException
+     * @throws MQBrokerException
+     * @throws InterruptedException
+     * @throws MQClientException
+     * @return
+     */
+    public Map<MessageQueue, Long> resetOffsetByTimestamp(String topic, String group, long timestamp,
+            boolean isForce) throws RemotingException, MQBrokerException, InterruptedException,
+            MQClientException;
+
+
+    /**
+     * 通过客户端查看消费者的消费情况
+     * 
+     * @param topic
+     * @param group
+     * @param clientAddr
+     * @return
+     * @throws RemotingException
+     * @throws MQBrokerException
+     * @throws InterruptedException
+     * @throws MQClientException
+     */
+    public Map<String, Map<MessageQueue, Long>> getConsumeStatus(String topic, String group, String clientAddr)
+            throws RemotingException, MQBrokerException, InterruptedException, MQClientException;
+
 }

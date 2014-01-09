@@ -1783,4 +1783,37 @@ public class MQClientAPIImpl {
 
         throw new MQClientException(response.getCode(), response.getRemark());
     }
+
+
+    /**
+     * 通知 broker 客户端订阅消息处理
+     */
+    public Map<String, Map<MessageQueue, Long>> invokeBrokerToGetConsumerStatus(final String addr,
+            final String topic, final String group, final String clientAddr, final long timeoutMillis)
+            throws RemotingException, MQClientException, InterruptedException {
+        GetConsumerStatusRequestHeader requestHeader = new GetConsumerStatusRequestHeader();
+        requestHeader.setTopic(topic);
+        requestHeader.setGroup(group);
+        requestHeader.setClientAddr(clientAddr);
+
+        RemotingCommand request =
+                RemotingCommand.createRequestCommand(
+                    MQRequestCode.INVOKE_BROKER_TO_GET_CONSUMER_STATUS_VALUE, requestHeader);
+
+        RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
+        assert response != null;
+        switch (response.getCode()) {
+        case RemotingProtos.ResponseCode.SUCCESS_VALUE: {
+            if (response.getBody() != null) {
+                GetConsumerStatusBody body =
+                        GetConsumerStatusBody.decode(response.getBody(), GetConsumerStatusBody.class);
+                return body.getConsumerTable();
+            }
+        }
+        default:
+            break;
+        }
+
+        throw new MQClientException(response.getCode(), response.getRemark());
+    }
 }

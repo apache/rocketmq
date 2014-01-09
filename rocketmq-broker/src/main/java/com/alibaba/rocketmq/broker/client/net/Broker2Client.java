@@ -18,8 +18,11 @@ package com.alibaba.rocketmq.broker.client.net;
 import com.alibaba.rocketmq.broker.client.ClientChannelInfo;
 import com.alibaba.rocketmq.common.MQVersion;
 import com.alibaba.rocketmq.common.TopicConfig;
+import com.alibaba.rocketmq.common.UtilAll;
 import com.alibaba.rocketmq.common.message.MessageQueue;
+import com.alibaba.rocketmq.common.protocol.body.GetConsumerStatusBody;
 import com.alibaba.rocketmq.common.protocol.body.ResetOffsetBody;
+import com.alibaba.rocketmq.common.protocol.header.GetConsumerStatusRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.ResetOffsetRequestHeader;
 import com.alibaba.rocketmq.remoting.common.RemotingHelper;
 import com.alibaba.rocketmq.remoting.protocol.RemotingProtos;
@@ -191,5 +194,76 @@ public class Broker2Client {
         resBody.setOffsetTable(offsetTable);
         response.setBody(resBody.encode());
         return response;
+    }
+
+
+    /**
+     * Broker主动获取Consumer端的消息情况
+     */
+    public RemotingCommand getConsumeStatus(String topic, String group, String clientAddr) {
+        final RemotingCommand result = RemotingCommand.createResponseCommand(null);
+
+        GetConsumerStatusRequestHeader requestHeader = new GetConsumerStatusRequestHeader();
+        requestHeader.setTopic(topic);
+        requestHeader.setGroup(group);
+        RemotingCommand request =
+                RemotingCommand.createRequestCommand(MQRequestCode.GET_CONSUMER_STATUS_FROM_CLIENT_VALUE,
+                    requestHeader);
+
+        Map<String, Map<MessageQueue, Long>> consumerStatusTable =
+                new HashMap<String, Map<MessageQueue, Long>>();
+        ConcurrentHashMap<Channel, ClientChannelInfo> channelInfoTable =
+                this.brokerController.getConsumerManager().getConsumerGroupInfo(group).getChannelInfoTable();
+        for (Channel channel : channelInfoTable.keySet()) {
+            int version = channelInfoTable.get(channel).getVersion();
+            String channelRemoteAddr = RemotingHelper.parseChannelRemoteAddr(channel);
+            if (version < MQVersion.Version.V3_0_7_SNAPSHOT.ordinal()) {
+                // 如果有一个客户端是不支持该功能的，则直接返回错误，需要应用方升级。
+                result.setCode(RemotingProtos.ResponseCode.SYSTEM_ERROR_VALUE);
+                result.setRemark("the client does not support this feature. version=" + version);
+                log.warn("[reset-offset] the client does not support this feature. version={}",
+                    RemotingHelper.parseChannelRemoteAddr(channel), version);
+                return result;
+            }
+            else if (UtilAll.isBlank(clientAddr) || clientAddr.equals(channelRemoteAddr)) {
+                // 不指定 clientAddr 则对所有的 client 进行处理；若指定 clientAddr 则只对当前
+                // clientAddr 进行处理
+                try {
+                    RemotingCommand response =
+                            this.brokerController.getRemotingServer().invokeSync(channel, request, 5000);
+                    assert response != null;
+                    switch (response.getCode()) {
+                    case RemotingProtos.ResponseCode.SUCCESS_VALUE: {
+                        if (response.getBody() != null) {
+                            GetConsumerStatusBody body =
+                                    GetConsumerStatusBody.decode(response.getBody(),
+                                        GetConsumerStatusBody.class);
+
+                            consumerStatusTable.put(channelRemoteAddr, body.getMessageQueueTable());
+                            log.info("get consumer status success. topic={}, group={}, channelRemoteAddr={}",
+                                new Object[] { topic, group, channelRemoteAddr });
+                        }
+                    }
+                    default:
+                        break;
+                    }
+                }
+                catch (Exception e) {
+                    log.error("get consumer status exception. topic={}, group={}, offset={}",
+                        new Object[] { topic, group }, e);
+                }
+
+                // 若指定 clientAddr 相应的 client 处理完成，则退出循环
+                if (!UtilAll.isBlank(clientAddr) && clientAddr.equals(channelRemoteAddr)) {
+                    break;
+                }
+            }
+        }
+
+        result.setCode(RemotingProtos.ResponseCode.SUCCESS_VALUE);
+        GetConsumerStatusBody resBody = new GetConsumerStatusBody();
+        resBody.setConsumerTable(consumerStatusTable);
+        result.setBody(resBody.encode());
+        return result;
     }
 }

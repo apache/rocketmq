@@ -18,6 +18,7 @@ package com.alibaba.rocketmq.tools.admin;
 import java.io.UnsupportedEncodingException;
 import java.util.*;
 
+import com.alibaba.rocketmq.common.UtilAll;
 import org.slf4j.Logger;
 
 import com.alibaba.rocketmq.client.QueryResult;
@@ -429,7 +430,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
 
     @Override
     public List<RollbackStats> resetOffsetByTimestampOld(String consumerGroup, String topic, long timestamp,
-                                                         boolean force) throws RemotingException, MQBrokerException, InterruptedException,
+            boolean force) throws RemotingException, MQBrokerException, InterruptedException,
             MQClientException {
         TopicRouteData topicRouteData = this.examineTopicRouteInfo(topic);
         List<RollbackStats> rollbackStatsList = new ArrayList<RollbackStats>();
@@ -492,19 +493,41 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
         this.mQClientFactory.getMQClientAPIImpl().updateBrokerConfig(brokerAddr, properties, 5000);
     }
 
-	@Override
-	public Map<MessageQueue, Long> resetOffsetByTimestamp(String topic, String group, long timestamp,
-	                                                      boolean isForce) throws RemotingException, MQBrokerException, InterruptedException,
-			MQClientException {
-		Map<MessageQueue, Long> offsetTable = new HashMap<MessageQueue, Long>();
-		TopicRouteData topicRouteData = this.examineTopicRouteInfo(topic);
-		for (BrokerData bd : topicRouteData.getBrokerDatas()) {
-			String addr = bd.selectBrokerAddr();
-			if (addr != null) {
-				offsetTable.putAll(this.mQClientFactory.getMQClientAPIImpl().invokeBrokerToResetOffset(addr,
-						topic, group, timestamp, isForce, 5000));
-			}
-		}
-		return offsetTable;
-	}
+
+    @Override
+    public Map<MessageQueue, Long> resetOffsetByTimestamp(String topic, String group, long timestamp,
+            boolean isForce) throws RemotingException, MQBrokerException, InterruptedException,
+            MQClientException {
+        Map<MessageQueue, Long> offsetTable = new HashMap<MessageQueue, Long>();
+        TopicRouteData topicRouteData = this.examineTopicRouteInfo(topic);
+        for (BrokerData bd : topicRouteData.getBrokerDatas()) {
+            String addr = bd.selectBrokerAddr();
+            if (addr != null) {
+                offsetTable.putAll(this.mQClientFactory.getMQClientAPIImpl().invokeBrokerToResetOffset(addr,
+                    topic, group, timestamp, isForce, 5000));
+            }
+        }
+        return offsetTable;
+    }
+
+
+    @Override
+    public Map<String, Map<MessageQueue, Long>> getConsumeStatus(String topic, String group, String clientAddr)
+            throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
+        Map<String, Map<MessageQueue, Long>> consumerStatusTable =
+                new HashMap<String, Map<MessageQueue, Long>>();
+        TopicRouteData topicRouteData = this.examineTopicRouteInfo(topic);
+        for (BrokerData bd : topicRouteData.getBrokerDatas()) {
+            String addr = bd.selectBrokerAddr();
+            if (addr != null) {
+                consumerStatusTable.putAll(this.mQClientFactory.getMQClientAPIImpl()
+                    .invokeBrokerToGetConsumerStatus(addr, topic, group, clientAddr, 5000));
+            }
+            // 如果是指定 clientIp，并且返回的已经有结果，说明已经找到相应的 client，则直接退出。
+            if (!UtilAll.isBlank(clientAddr) && consumerStatusTable.size() != 0) {
+                break;
+            }
+        }
+        return consumerStatusTable;
+    }
 }

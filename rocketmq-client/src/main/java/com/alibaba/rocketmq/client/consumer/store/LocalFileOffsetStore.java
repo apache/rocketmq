@@ -17,10 +17,14 @@ package com.alibaba.rocketmq.client.consumer.store;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
+import com.alibaba.rocketmq.common.UtilAll;
 import org.slf4j.Logger;
 
 import com.alibaba.rocketmq.client.exception.MQClientException;
@@ -190,5 +194,20 @@ public class LocalFileOffsetStore implements OffsetStore {
     @Override
     public void removeOffset(MessageQueue mq) {
         // 消费进度存储到Consumer本地时暂不做 offset 清理
+    }
+
+
+    @Override
+    public Map<MessageQueue, Long> cloneOffsetTable(String topic) {
+        Map<MessageQueue, Long> cloneOffsetTable = new HashMap<MessageQueue, Long>();
+        Iterator<MessageQueue> iterator = this.offsetTable.keySet().iterator();
+        while (iterator.hasNext()) {
+            MessageQueue mq = iterator.next();
+            if (!UtilAll.isBlank(topic) && !topic.equals(mq.getTopic())) {
+                continue;
+            }
+            cloneOffsetTable.put(mq, this.offsetTable.get(mq).get());
+        }
+        return cloneOffsetTable;
     }
 }
