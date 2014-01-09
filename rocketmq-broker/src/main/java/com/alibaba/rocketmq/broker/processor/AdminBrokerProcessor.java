@@ -15,6 +15,7 @@
  */
 package com.alibaba.rocketmq.broker.processor;
 
+import com.alibaba.rocketmq.common.protocol.header.*;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 
@@ -49,27 +50,6 @@ import com.alibaba.rocketmq.common.protocol.body.KVTable;
 import com.alibaba.rocketmq.common.protocol.body.LockBatchRequestBody;
 import com.alibaba.rocketmq.common.protocol.body.LockBatchResponseBody;
 import com.alibaba.rocketmq.common.protocol.body.UnlockBatchRequestBody;
-import com.alibaba.rocketmq.common.protocol.header.CreateTopicRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.DeleteSubscriptionGroupRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.DeleteTopicRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.GetAllTopicConfigResponseHeader;
-import com.alibaba.rocketmq.common.protocol.header.GetBrokerConfigResponseHeader;
-import com.alibaba.rocketmq.common.protocol.header.GetConsumeStatsRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.GetConsumerConnectionListRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.GetEarliestMsgStoretimeRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.GetEarliestMsgStoretimeResponseHeader;
-import com.alibaba.rocketmq.common.protocol.header.GetMaxOffsetRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.GetMaxOffsetResponseHeader;
-import com.alibaba.rocketmq.common.protocol.header.GetMinOffsetRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.GetMinOffsetResponseHeader;
-import com.alibaba.rocketmq.common.protocol.header.GetProducerConnectionListRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.GetTopicStatsInfoRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.QueryConsumerOffsetRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.QueryConsumerOffsetResponseHeader;
-import com.alibaba.rocketmq.common.protocol.header.SearchOffsetRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.SearchOffsetResponseHeader;
-import com.alibaba.rocketmq.common.protocol.header.UpdateConsumerOffsetRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.UpdateConsumerOffsetResponseHeader;
 import com.alibaba.rocketmq.common.protocol.heartbeat.SubscriptionData;
 import com.alibaba.rocketmq.common.subscription.SubscriptionGroupConfig;
 import com.alibaba.rocketmq.remoting.common.RemotingHelper;
@@ -175,6 +155,10 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             // 定时进度
         case GET_ALL_DELAY_OFFSET:
             return this.getAllDelayOffset(ctx, request);
+
+            // 调用客户端重置 offset
+        case INVOKE_BROKER_TO_RESET_OFFSET:
+            return this.resetOffset(ctx, request);
         default:
             break;
 
@@ -946,5 +930,15 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         response.setCode(ResponseCode.SUCCESS_VALUE);
         response.setRemark(null);
         return response;
+    }
+
+
+    public RemotingCommand resetOffset(ChannelHandlerContext ctx, RemotingCommand request)
+            throws RemotingCommandException {
+        final ResetOffsetRequestHeader requestHeader =
+                (ResetOffsetRequestHeader) request.decodeCommandCustomHeader(ResetOffsetRequestHeader.class);
+
+        return this.brokerController.getBroker2Client().resetOffset(requestHeader.getTopic(),
+            requestHeader.getGroup(), requestHeader.getTimestamp(), requestHeader.isForce());
     }
 }

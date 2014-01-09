@@ -15,9 +15,14 @@
  */
 package com.alibaba.rocketmq.client.impl;
 
+import com.alibaba.rocketmq.common.message.MessageQueue;
+import com.alibaba.rocketmq.common.protocol.body.ResetOffsetBody;
+import com.alibaba.rocketmq.common.protocol.header.ResetOffsetRequestHeader;
 import io.netty.channel.ChannelHandlerContext;
 
 import java.nio.ByteBuffer;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.slf4j.Logger;
 
@@ -61,6 +66,8 @@ public class ClientRemotingProcessor implements NettyRequestProcessor {
             return this.checkTransactionState(ctx, request);
         case NOTIFY_CONSUMER_IDS_CHANGED:
             return this.notifyConsumerIdsChanged(ctx, request);
+        case RESET_CONSUMER_CLIENT_OFFSET:
+            return this.resetOffset(ctx, request);
         default:
             break;
         }
@@ -114,6 +121,27 @@ public class ClientRemotingProcessor implements NettyRequestProcessor {
             RemotingHelper.parseChannelRemoteAddr(ctx.channel()),//
             requestHeader.getConsumerGroup());
         this.mqClientFactory.rebalanceImmediately();
+        return null;
+    }
+
+
+    /**
+     * 重置 offset， oneWay调用，无返回值。
+     */
+    public RemotingCommand resetOffset(ChannelHandlerContext ctx, RemotingCommand request)
+            throws RemotingCommandException {
+        final ResetOffsetRequestHeader requestHeader =
+                (ResetOffsetRequestHeader) request.decodeCommandCustomHeader(ResetOffsetRequestHeader.class);
+        log.info(
+            "invoke reset offset operation from broker. brokerAddr={}, topic={}, group={}, timestamp={}",
+            new Object[] { RemotingHelper.parseChannelRemoteAddr(ctx.channel()), requestHeader.getTopic(),
+                          requestHeader.getGroup(), requestHeader.getTimestamp() });
+        Map<MessageQueue, Long> offsetTable = new HashMap<MessageQueue, Long>();
+        if (request.getBody() != null) {
+            ResetOffsetBody body = ResetOffsetBody.decode(request.getBody(), ResetOffsetBody.class);
+            offsetTable = body.getOffsetTable();
+        }
+        this.mqClientFactory.resetOffset(requestHeader.getTopic(), requestHeader.getGroup(), offsetTable);
         return null;
     }
 }
