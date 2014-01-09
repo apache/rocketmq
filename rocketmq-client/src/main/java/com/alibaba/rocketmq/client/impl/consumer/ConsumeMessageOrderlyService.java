@@ -25,6 +25,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
+import com.alibaba.rocketmq.common.protocol.heartbeat.MessageModel;
 import org.slf4j.Logger;
 
 import com.alibaba.rocketmq.client.consumer.DefaultMQPushConsumer;
@@ -103,12 +104,15 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
 
     public void start() {
         // 启动定时lock队列服务
-        this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
-            @Override
-            public void run() {
-                ConsumeMessageOrderlyService.this.lockMQPeriodically();
-            }
-        }, 1000 * 1, ProcessQueue.RebalanceLockInterval, TimeUnit.MILLISECONDS);
+        if (MessageModel.CLUSTERING.equals(ConsumeMessageOrderlyService.this.defaultMQPushConsumerImpl
+            .messageModel())) {
+            this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
+                @Override
+                public void run() {
+                    ConsumeMessageOrderlyService.this.lockMQPeriodically();
+                }
+            }, 1000 * 1, ProcessQueue.RebalanceLockInterval, TimeUnit.MILLISECONDS);
+        }
     }
 
 
@@ -116,7 +120,9 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
         this.stoped = true;
         this.scheduledExecutorService.shutdown();
         this.consumeExecutor.shutdown();
-        this.unlockAllMQ();
+        if (MessageModel.CLUSTERING.equals(this.defaultMQPushConsumerImpl.messageModel())) {
+            this.unlockAllMQ();
+        }
     }
 
 
@@ -179,7 +185,9 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
             final Object objLock = messageQueueLock.fetchLockObject(this.messageQueue);
             synchronized (objLock) {
                 // 保证在Consumer集群，同一队列串行消费
-                if (this.processQueue.isLocked() || !this.processQueue.isLockExpired()) {
+                if (MessageModel.BROADCASTING
+                    .equals(ConsumeMessageOrderlyService.this.defaultMQPushConsumerImpl.messageModel())
+                        || this.processQueue.isLocked() || !this.processQueue.isLockExpired()) {
                     final long beginTime = System.currentTimeMillis();
                     for (boolean continueConsume = true; continueConsume;) {
                         if (this.processQueue.isDroped()) {
@@ -188,14 +196,20 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
                             break;
                         }
 
-                        if (!this.processQueue.isLocked()) {
+                        if (MessageModel.CLUSTERING
+                            .equals(ConsumeMessageOrderlyService.this.defaultMQPushConsumerImpl
+                                .messageModel())
+                                && !this.processQueue.isLocked()) {
                             log.warn("the message queue not locked, so consume later, {}", this.messageQueue);
                             ConsumeMessageOrderlyService.this.tryLockLaterAndReconsume(this.messageQueue,
                                 this.processQueue, 10);
                             break;
                         }
 
-                        if (this.processQueue.isLockExpired()) {
+                        if (MessageModel.CLUSTERING
+                            .equals(ConsumeMessageOrderlyService.this.defaultMQPushConsumerImpl
+                                .messageModel())
+                                && this.processQueue.isLockExpired()) {
                             log.warn("the message queue lock expired, so consume later, {}",
                                 this.messageQueue);
                             ConsumeMessageOrderlyService.this.tryLockLaterAndReconsume(this.messageQueue,
@@ -282,11 +296,11 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
                 }
                 // 没有拿到当前队列的锁，稍后再消费
                 else {
-	                if (this.processQueue.isDroped()) {
-		                log.warn("the message queue not be able to consume, because it's dropped. {}",
-				                this.messageQueue);
-		                return;
-	                }
+                    if (this.processQueue.isDroped()) {
+                        log.warn("the message queue not be able to consume, because it's dropped. {}",
+                            this.messageQueue);
+                        return;
+                    }
                     ConsumeMessageOrderlyService.this.tryLockLaterAndReconsume(this.messageQueue,
                         this.processQueue, 10);
                 }
