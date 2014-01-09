@@ -207,7 +207,10 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
                     messageQueue);
             }
 
-            ConsumeMessageConcurrentlyService.this.processConsumeResult(status, context, this);
+            // 如果ProcessQueue是dropped状态，不需要直接更新 offset
+            if (!processQueue.isDroped()) {
+                ConsumeMessageConcurrentlyService.this.processConsumeResult(status, context, this);
+            }
         }
 
 
