@@ -15,6 +15,7 @@
  */
 package com.alibaba.rocketmq.broker.processor;
 
+import com.alibaba.rocketmq.common.protocol.header.*;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 
@@ -49,27 +50,7 @@ import com.alibaba.rocketmq.common.protocol.body.KVTable;
 import com.alibaba.rocketmq.common.protocol.body.LockBatchRequestBody;
 import com.alibaba.rocketmq.common.protocol.body.LockBatchResponseBody;
 import com.alibaba.rocketmq.common.protocol.body.UnlockBatchRequestBody;
-import com.alibaba.rocketmq.common.protocol.header.CreateTopicRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.DeleteSubscriptionGroupRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.DeleteTopicRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.GetAllTopicConfigResponseHeader;
-import com.alibaba.rocketmq.common.protocol.header.GetBrokerConfigResponseHeader;
-import com.alibaba.rocketmq.common.protocol.header.GetConsumeStatsRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.GetConsumerConnectionListRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.GetEarliestMsgStoretimeRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.GetEarliestMsgStoretimeResponseHeader;
-import com.alibaba.rocketmq.common.protocol.header.GetMaxOffsetRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.GetMaxOffsetResponseHeader;
-import com.alibaba.rocketmq.common.protocol.header.GetMinOffsetRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.GetMinOffsetResponseHeader;
-import com.alibaba.rocketmq.common.protocol.header.GetProducerConnectionListRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.GetTopicStatsInfoRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.QueryConsumerOffsetRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.QueryConsumerOffsetResponseHeader;
-import com.alibaba.rocketmq.common.protocol.header.SearchOffsetRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.SearchOffsetResponseHeader;
-import com.alibaba.rocketmq.common.protocol.header.UpdateConsumerOffsetRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.UpdateConsumerOffsetResponseHeader;
+import com.alibaba.rocketmq.common.protocol.heartbeat.SubscriptionData;
 import com.alibaba.rocketmq.common.subscription.SubscriptionGroupConfig;
 import com.alibaba.rocketmq.remoting.common.RemotingHelper;
 import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
@@ -174,6 +155,14 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             // 定时进度
         case GET_ALL_DELAY_OFFSET:
             return this.getAllDelayOffset(ctx, request);
+
+            // 调用客户端重置 offset
+        case INVOKE_BROKER_TO_RESET_OFFSET:
+            return this.resetOffset(ctx, request);
+
+            // 调用客户端订阅消息处理
+        case INVOKE_BROKER_TO_GET_CONSUMER_STATUS:
+            return this.getConsumerStatus(ctx, request);
         default:
             break;
 
@@ -199,9 +188,17 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         for (String topic : topics) {
             TopicConfig topicConfig = this.brokerController.getTopicConfigManager().selectTopicConfig(topic);
             if (null == topicConfig) {
-                response.setCode(MQResponseCode.TOPIC_NOT_EXIST_VALUE);
-                response.setRemark("topic[" + topic + "] not exist");
-                return response;
+                log.warn("consumeStats, topic config not exist, {}", topic);
+                continue;
+            }
+
+            SubscriptionData findSubscriptionData =
+                    this.brokerController.getConsumerManager().findSubscriptionData(
+                        requestHeader.getConsumerGroup(), topic);
+            if (null == findSubscriptionData) {
+                log.warn("consumeStats, the consumer group[{}], topic[{}] not exist",
+                    requestHeader.getConsumerGroup(), topic);
+                continue;
             }
 
             for (int i = 0; i < topicConfig.getWriteQueueNums(); i++) {
@@ -937,5 +934,32 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         response.setCode(ResponseCode.SUCCESS_VALUE);
         response.setRemark(null);
         return response;
+    }
+
+
+    public RemotingCommand resetOffset(ChannelHandlerContext ctx, RemotingCommand request)
+            throws RemotingCommandException {
+        final ResetOffsetRequestHeader requestHeader =
+                (ResetOffsetRequestHeader) request.decodeCommandCustomHeader(ResetOffsetRequestHeader.class);
+        log.info("[reset-offset] reset offset started by {}. topic={}, group={}, timestamp={}, isForce={}",
+            new Object[] { RemotingHelper.parseChannelRemoteAddr(ctx.channel()), requestHeader.getTopic(),
+                          requestHeader.getGroup(), requestHeader.getTimestamp(), requestHeader.isForce() });
+        return this.brokerController.getBroker2Client().resetOffset(requestHeader.getTopic(),
+            requestHeader.getGroup(), requestHeader.getTimestamp(), requestHeader.isForce());
+    }
+
+
+    public RemotingCommand getConsumerStatus(ChannelHandlerContext ctx, RemotingCommand request)
+            throws RemotingCommandException {
+        final GetConsumerStatusRequestHeader requestHeader =
+                (GetConsumerStatusRequestHeader) request
+                    .decodeCommandCustomHeader(GetConsumerStatusRequestHeader.class);
+
+        log.info("get consumer status by {}. topic={}, group={}",
+            new Object[] { RemotingHelper.parseChannelRemoteAddr(ctx.channel()), requestHeader.getTopic(),
+                          requestHeader.getGroup() });
+
+        return this.brokerController.getBroker2Client().getConsumeStatus(requestHeader.getTopic(),
+            requestHeader.getGroup(), requestHeader.getClientAddr());
     }
 }

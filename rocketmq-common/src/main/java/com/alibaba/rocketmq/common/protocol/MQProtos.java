@@ -125,7 +125,15 @@ public final class MQProtos {
         // 删除指定 project group 下的所有 server ip 信息
         DELETE_KV_CONFIG_BY_VALUE(58, 218),
         // 通过NameSpace获取所有的KV List
-        GET_KVLIST_BY_NAMESPACE(59, 219);
+        GET_KVLIST_BY_NAMESPACE(59, 219),
+        // offset 重置
+        RESET_CONSUMER_CLIENT_OFFSET(60, 220),
+        // 客户端订阅消息
+        GET_CONSUMER_STATUS_FROM_CLIENT(61, 221),
+        // 通知 broker 调用 offset 重置处理
+        INVOKE_BROKER_TO_RESET_OFFSET(62, 222),
+        // 通知 broker 调用客户端订阅消息处理
+        INVOKE_BROKER_TO_GET_CONSUMER_STATUS(63, 223);
 
         // Broker 发送消息
         public static final int SEND_MESSAGE_VALUE = 10;
@@ -237,6 +245,15 @@ public final class MQProtos {
         public static final int DELETE_KV_CONFIG_BY_VALUE_VALUE = 218;
         // 通过NameSpace获取所有的KV List
         public static final int GET_KVLIST_BY_NAMESPACE_VALUE = 219;
+
+        // offset 重置
+        public static final int RESET_CONSUMER_CLIENT_OFFSET_VALUE = 220;
+        // 客户端订阅消息
+        public static final int GET_CONSUMER_STATUS_FROM_CLIENT_VALUE = 221;
+        // 通知 broker 调用 offset 重置处理
+        public static final int INVOKE_BROKER_TO_RESET_OFFSET_VALUE = 222;
+        // 通知 broker 调用客户端订阅消息处理
+        public static final int INVOKE_BROKER_TO_GET_CONSUMER_STATUS_VALUE = 223;
 
         private final int index;
         private final int value;
@@ -367,6 +384,14 @@ public final class MQProtos {
                 return DELETE_KV_CONFIG_BY_VALUE;
             case GET_KVLIST_BY_NAMESPACE_VALUE:
                 return GET_KVLIST_BY_NAMESPACE;
+            case RESET_CONSUMER_CLIENT_OFFSET_VALUE:
+                return RESET_CONSUMER_CLIENT_OFFSET;
+            case GET_CONSUMER_STATUS_FROM_CLIENT_VALUE:
+                return GET_CONSUMER_STATUS_FROM_CLIENT;
+            case INVOKE_BROKER_TO_RESET_OFFSET_VALUE:
+                return INVOKE_BROKER_TO_RESET_OFFSET;
+            case INVOKE_BROKER_TO_GET_CONSUMER_STATUS_VALUE:
+                return INVOKE_BROKER_TO_GET_CONSUMER_STATUS;
             default:
                 return null;
             }

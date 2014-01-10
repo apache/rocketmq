@@ -17,6 +17,7 @@ package com.alibaba.rocketmq.tools.admin;
 
 import java.io.UnsupportedEncodingException;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
@@ -27,6 +28,7 @@ import com.alibaba.rocketmq.common.TopicConfig;
 import com.alibaba.rocketmq.common.admin.ConsumeStats;
 import com.alibaba.rocketmq.common.admin.RollbackStats;
 import com.alibaba.rocketmq.common.admin.TopicStatsTable;
+import com.alibaba.rocketmq.common.message.MessageQueue;
 import com.alibaba.rocketmq.common.protocol.body.ClusterInfo;
 import com.alibaba.rocketmq.common.protocol.body.ConsumeByWho;
 import com.alibaba.rocketmq.common.protocol.body.ConsumerConnection;
@@ -401,7 +403,7 @@ public interface MQAdminExt extends MQAdmin {
 
 
     /**
-     * 按照时间回溯消费进度
+     * 按照时间回溯消费进度(客户端需要重启)
      * 
      * @param consumerGroup
      * @param topic
@@ -413,7 +415,42 @@ public interface MQAdminExt extends MQAdmin {
      * @throws MQClientException
      * @return
      */
-    public List<RollbackStats> resetOffsetByTimestamp(String consumerGroup, String topic, long timestamp,
+    public List<RollbackStats> resetOffsetByTimestampOld(String consumerGroup, String topic, long timestamp,
             boolean force) throws RemotingException, MQBrokerException, InterruptedException,
             MQClientException;
+
+
+    /**
+     * 按照时间回溯消费进度(客户端不需要重启)
+     * 
+     * @param topic
+     * @param group
+     * @param timestamp
+     * @param isForce
+     * @throws RemotingException
+     * @throws MQBrokerException
+     * @throws InterruptedException
+     * @throws MQClientException
+     * @return
+     */
+    public Map<MessageQueue, Long> resetOffsetByTimestamp(String topic, String group, long timestamp,
+            boolean isForce) throws RemotingException, MQBrokerException, InterruptedException,
+            MQClientException;
+
+
+    /**
+     * 通过客户端查看消费者的消费情况
+     * 
+     * @param topic
+     * @param group
+     * @param clientAddr
+     * @return
+     * @throws RemotingException
+     * @throws MQBrokerException
+     * @throws InterruptedException
+     * @throws MQClientException
+     */
+    public Map<String, Map<MessageQueue, Long>> getConsumeStatus(String topic, String group, String clientAddr)
+            throws RemotingException, MQBrokerException, InterruptedException, MQClientException;
+
 }

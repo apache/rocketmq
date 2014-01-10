@@ -18,6 +18,9 @@ package com.alibaba.rocketmq.tools.command;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.alibaba.rocketmq.tools.command.offset.GetConsumerStatusCommand;
+import com.alibaba.rocketmq.tools.command.offset.ResetOffsetByTimeCommand;
+import com.alibaba.rocketmq.tools.command.offset.ResetOffsetByTimeOldCommand;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.PosixParser;
@@ -47,7 +50,6 @@ import com.alibaba.rocketmq.tools.command.namesrv.GetProjectGroupCommand;
 import com.alibaba.rocketmq.tools.command.namesrv.UpdateKvConfigCommand;
 import com.alibaba.rocketmq.tools.command.namesrv.UpdateProjectGroupCommand;
 import com.alibaba.rocketmq.tools.command.namesrv.WipeWritePermSubCommand;
-import com.alibaba.rocketmq.tools.command.offset.ResetOffsetByTimeSubCommand;
 import com.alibaba.rocketmq.tools.command.topic.DeleteTopicSubCommand;
 import com.alibaba.rocketmq.tools.command.topic.TopicListSubCommand;
 import com.alibaba.rocketmq.tools.command.topic.TopicRouteSubCommand;
@@ -91,8 +93,10 @@ public class MQAdminStartup {
         subCommandList.add(new UpdateProjectGroupCommand());
         subCommandList.add(new DeleteProjectGroupCommand());
         subCommandList.add(new GetProjectGroupCommand());
-        subCommandList.add(new ResetOffsetByTimeSubCommand());
-        subCommandList.add(new WipeWritePermSubCommand());
+	    subCommandList.add(new WipeWritePermSubCommand());
+	    subCommandList.add(new ResetOffsetByTimeOldCommand());
+        subCommandList.add(new ResetOffsetByTimeCommand());
+        subCommandList.add(new GetConsumerStatusCommand());
     }
 
 

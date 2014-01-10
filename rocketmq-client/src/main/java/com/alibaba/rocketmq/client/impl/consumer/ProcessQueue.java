@@ -305,6 +305,25 @@ public class ProcessQueue {
     }
 
 
+    public void clear() {
+        try {
+            this.lockTreeMap.writeLock().lockInterruptibly();
+            try {
+                this.msgTreeMap.clear();
+                this.msgTreeMapTemp.clear();
+                this.msgCount.set(0);
+                this.queueOffsetMax = 0L;
+            }
+            finally {
+                this.lockTreeMap.writeLock().unlock();
+            }
+        }
+        catch (InterruptedException e) {
+            log.error("rollback exception", e);
+        }
+    }
+
+
     public long getLastLockTimestamp() {
         return lastLockTimestamp;
     }

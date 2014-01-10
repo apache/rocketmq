@@ -28,7 +28,7 @@ import com.alibaba.rocketmq.common.message.MessageExt;
 public class PushConsumer {
 
     /**
-     * 当前例子是PushConsumer用法，使用方式给用户感觉是消息从MetaQ服务器推到了应用客户端。<br>
+     * 当前例子是PushConsumer用法，使用方式给用户感觉是消息从RocketMQ服务器推到了应用客户端。<br>
      * 但是实际PushConsumer内部是使用长轮询Pull方式从MetaQ服务器拉消息，然后再回调用户Listener方法<br>
      */
     public static void main(String[] args) throws InterruptedException, MQClientException {
