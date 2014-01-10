@@ -2,8 +2,8 @@ package com.alibaba.rocketmq.common.protocol.header;
 
 import com.alibaba.rocketmq.remoting.CommandCustomHeader;
 import com.alibaba.rocketmq.remoting.annotation.CFNotNull;
+import com.alibaba.rocketmq.remoting.annotation.CFNullable;
 import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
-import com.sun.istack.internal.Nullable;
 
 
 /**
@@ -17,7 +17,7 @@ public class GetConsumerStatusRequestHeader implements CommandCustomHeader {
     private String topic;
     @CFNotNull
     private String group;
-    @Nullable
+    @CFNullable
     private String clientAddr;
 
 
