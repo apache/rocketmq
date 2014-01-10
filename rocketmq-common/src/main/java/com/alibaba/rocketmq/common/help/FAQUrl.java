@@ -56,6 +56,10 @@ public class FAQUrl {
     // FAQ: 广播消费者启动加载json文件异常问题
     public static final String LOAD_JSON_EXCEPTION = //
             "https://github.com/alibaba/RocketMQ/issues/293";
+    
+    // FAQ: 同一个订阅组内不同Consumer实例订阅关系不同
+    public static final String SAME_GROUP_DIFFERENT_TOPIC = //
+            "https://github.com/alibaba/RocketMQ/issues/332";
 
     //
     // FAQ: 未收录异常处理办法

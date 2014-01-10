@@ -188,11 +188,11 @@ public class ConsumerGroupInfo {
             }
 
             if (!exist) {
-                log.warn("subscription changed, group: {} remove topic {} {}", //
+                log.warn("subscription changed, group[{}] remove topic[{} {}], subList[{}]", //
                     this.groupName,//
                     oldTopic,//
-                    next.getValue().toString()//
-                );
+                    next.getValue().toString(),//
+                    subList);
 
                 it.remove();
                 updated = true;
