@@ -219,7 +219,8 @@ public class PullMessageProcessor implements NettyRequestProcessor {
             if (null == consumerGroupInfo) {
                 log.warn("the consumer's group info not exist, group: {}", requestHeader.getConsumerGroup());
                 response.setCode(MQResponseCode.SUBSCRIPTION_NOT_EXIST_VALUE);
-                response.setRemark("the consumer's group info not exist");
+                response.setRemark("the consumer's group info not exist"
+                        + FAQUrl.suggestTodo(FAQUrl.SAME_GROUP_DIFFERENT_TOPIC));
                 return response;
             }
 
@@ -235,7 +236,8 @@ public class PullMessageProcessor implements NettyRequestProcessor {
             if (null == subscriptionData) {
                 log.warn("the consumer's subscription not exist, group: {}", requestHeader.getConsumerGroup());
                 response.setCode(MQResponseCode.SUBSCRIPTION_NOT_EXIST_VALUE);
-                response.setRemark("the consumer's subscription not exist");
+                response.setRemark("the consumer's subscription not exist"
+                        + FAQUrl.suggestTodo(FAQUrl.SAME_GROUP_DIFFERENT_TOPIC));
                 return response;
             }
 
