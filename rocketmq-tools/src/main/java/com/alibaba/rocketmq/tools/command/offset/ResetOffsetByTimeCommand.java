@@ -1,24 +1,27 @@
 package com.alibaba.rocketmq.tools.command.offset;
 
-import java.util.List;
+import java.util.Iterator;
+import java.util.Map;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
+import org.apache.commons.cli.PosixParser;
 
+import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.UtilAll;
-import com.alibaba.rocketmq.common.admin.RollbackStats;
+import com.alibaba.rocketmq.common.message.MessageQueue;
 import com.alibaba.rocketmq.tools.admin.DefaultMQAdminExt;
 import com.alibaba.rocketmq.tools.command.SubCommand;
 
 
 /**
- * 根据时间来设置消费进度，设置之前要关闭这个订阅组的所有consumer，设置完再启动，方可生效。
+ * 根据时间来设置消费进度，设置之前要关闭这个订阅组的所有consumer，客户端不需要重启。
  * 
  * @author: manhong.yqd<jodie.yqd@gmail.com>
  * @since: 13-9-12
  */
-public class ResetOffsetByTimeSubCommand implements SubCommand {
+public class ResetOffsetByTimeCommand implements SubCommand {
     @Override
     public String commandName() {
         return "resetOffsetByTime";
@@ -27,7 +30,7 @@ public class ResetOffsetByTimeSubCommand implements SubCommand {
 
     @Override
     public String commandDesc() {
-        return "Reset consumer offset by timestamp.";
+        return "Reset consumer offset by timestamp(without client restart).";
     }
 
 
@@ -59,7 +62,7 @@ public class ResetOffsetByTimeSubCommand implements SubCommand {
         DefaultMQAdminExt defaultMQAdminExt = new DefaultMQAdminExt();
         defaultMQAdminExt.setInstanceName(Long.toString(System.currentTimeMillis()));
         try {
-            String consumerGroup = commandLine.getOptionValue("g").trim();
+            String group = commandLine.getOptionValue("g").trim();
             String topic = commandLine.getOptionValue("t").trim();
             String timeStampStr = commandLine.getOptionValue("s").trim();
             long timestamp = 0;
@@ -78,31 +81,25 @@ public class ResetOffsetByTimeSubCommand implements SubCommand {
             }
 
             defaultMQAdminExt.start();
-            List<RollbackStats> rollbackStatsList =
-                    defaultMQAdminExt.resetOffsetByTimestamp(consumerGroup, topic, timestamp, force);
+            Map<MessageQueue, Long> offsetTable =
+                    defaultMQAdminExt.resetOffsetByTimestamp(topic, group, timestamp, force);
             System.out
                 .printf(
-                    "rollback consumer offset by specified consumerGroup[%s], topic[%s], force[%s], timestamp(string)[%s], timestamp(long)[%s]\n",
-                    consumerGroup, topic, force, timeStampStr, timestamp);
+                    "rollback consumer offset by specified group[%s], topic[%s], force[%s], timestamp(string)[%s], timestamp(long)[%s]\n",
+                    group, topic, force, timeStampStr, timestamp);
 
-            System.out.printf("%-20s  %-20s  %-20s  %-20s  %-20s  %-20s\n",//
+            System.out.printf("%-40s  %-40s  %-40s\n",//
                 "#brokerName",//
                 "#queueId",//
-                "#brokerOffset",//
-                "#consumerOffset",//
-                "#timestampOffset",//
-                "#rollbackOffset" //
-            );
+                "#offset");
 
-            for (RollbackStats rollbackStats : rollbackStatsList) {
-                System.out.printf("%-20s  %-20d  %-20d  %-20d  %-20d  %-20d\n",//
-                    UtilAll.frontStringAtLeast(rollbackStats.getBrokerName(), 32),//
-                    rollbackStats.getQueueId(),//
-                    rollbackStats.getBrokerOffset(),//
-                    rollbackStats.getConsumerOffset(),//
-                    rollbackStats.getTimestampOffset(),//
-                    rollbackStats.getRollbackOffset() //
-                    );
+            Iterator<Map.Entry<MessageQueue, Long>> iterator = offsetTable.entrySet().iterator();
+            while (iterator.hasNext()) {
+                Map.Entry<MessageQueue, Long> entry = iterator.next();
+                System.out.printf("%-40s  %-40d  %-40d\n",//
+                    UtilAll.frontStringAtLeast(entry.getKey().getBrokerName(), 32),//
+                    entry.getKey().getQueueId(),//
+                    entry.getValue());
             }
         }
         catch (Exception e) {
@@ -111,5 +108,18 @@ public class ResetOffsetByTimeSubCommand implements SubCommand {
         finally {
             defaultMQAdminExt.shutdown();
         }
+    }
+
+
+    public static void main(String[] args) {
+        System.setProperty(MixAll.NAMESRV_ADDR_PROPERTY, "10.232.26.122:9876");
+        ResetOffsetByTimeCommand cmd = new ResetOffsetByTimeCommand();
+        Options options = MixAll.buildCommandlineOptions(new Options());
+        String[] subargs =
+                new String[] { "-t qatest_TopicTest", "-g qatest_consumer", "-s 1389098416742", "-f true" };
+        final CommandLine commandLine =
+                MixAll.parseCmdLine("mqadmin " + cmd.commandName(), subargs,
+		                cmd.buildCommandlineOptions(options), new PosixParser());
+        cmd.execute(commandLine, options);
     }
 }

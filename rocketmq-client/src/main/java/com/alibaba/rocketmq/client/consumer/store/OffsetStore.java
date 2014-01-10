@@ -15,6 +15,7 @@
  */
 package com.alibaba.rocketmq.client.consumer.store;
 
+import java.util.Map;
 import java.util.Set;
 
 import com.alibaba.rocketmq.client.exception.MQClientException;
@@ -61,4 +62,9 @@ public interface OffsetStore {
      * 删除不必要的MessageQueue offset
      */
     public void removeOffset(MessageQueue mq);
+
+	/**
+	 * 如果 topic 为空，则不对 topic 进行过滤，全部拷贝。
+	 */
+	public Map<MessageQueue, Long> cloneOffsetTable(String topic);
 }

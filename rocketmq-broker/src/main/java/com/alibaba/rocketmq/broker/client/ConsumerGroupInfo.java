@@ -149,6 +149,7 @@ public class ConsumerGroupInfo {
      */
     public boolean updateSubscription(final Set<SubscriptionData> subList) {
         boolean updated = false;
+        // 增加新的订阅关系
         for (SubscriptionData sub : subList) {
             SubscriptionData old = this.subscriptionTable.get(sub.getTopic());
             if (old == null) {
@@ -172,8 +173,31 @@ public class ConsumerGroupInfo {
             }
         }
 
-        // TODO 是否需要删除多余的订阅关系，不删除似乎也没啥影响
-        // 这里如果确实有topic取消订阅了， 应该返回true
+        // 删除老的订阅关系
+        Iterator<Entry<String, SubscriptionData>> it = this.subscriptionTable.entrySet().iterator();
+        while (it.hasNext()) {
+            Entry<String, SubscriptionData> next = it.next();
+            String oldTopic = next.getKey();
+
+            boolean exist = false;
+            for (SubscriptionData sub : subList) {
+                if (sub.getTopic().equals(oldTopic)) {
+                    exist = true;
+                    break;
+                }
+            }
+
+            if (!exist) {
+                log.warn("subscription changed, group: {} remove topic {} {}", //
+                    this.groupName,//
+                    oldTopic,//
+                    next.getValue().toString()//
+                );
+
+                it.remove();
+                updated = true;
+            }
+        }
 
         this.lastUpdateTimestamp = System.currentTimeMillis();
 

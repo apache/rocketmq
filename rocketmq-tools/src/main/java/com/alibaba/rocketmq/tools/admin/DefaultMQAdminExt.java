@@ -17,6 +17,7 @@ package com.alibaba.rocketmq.tools.admin;
 
 import java.io.UnsupportedEncodingException;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
@@ -312,10 +313,10 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
     }
 
 
-    public List<RollbackStats> resetOffsetByTimestamp(String consumerGroup, String topic, long timestamp,
+    public List<RollbackStats> resetOffsetByTimestampOld(String consumerGroup, String topic, long timestamp,
             boolean force) throws RemotingException, MQBrokerException, InterruptedException,
             MQClientException {
-        return defaultMQAdminExtImpl.resetOffsetByTimestamp(consumerGroup, topic, timestamp, force);
+        return defaultMQAdminExtImpl.resetOffsetByTimestampOld(consumerGroup, topic, timestamp, force);
     }
 
 
@@ -332,4 +333,16 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
             InterruptedException, MQBrokerException {
         defaultMQAdminExtImpl.updateBrokerConfig(brokerAddr, properties);
     }
+
+	@Override
+	public Map<MessageQueue, Long> resetOffsetByTimestamp(String topic, String group, long timestamp, boolean isForce)
+			throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
+		return defaultMQAdminExtImpl.resetOffsetByTimestamp(topic, group, timestamp, isForce);
+	}
+
+	@Override
+	public Map<String, Map<MessageQueue, Long>> getConsumeStatus(String topic, String group, String clientAddr)
+			throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
+		return defaultMQAdminExtImpl.getConsumeStatus(topic, group, clientAddr);
+	}
 }

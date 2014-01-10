@@ -15,11 +15,11 @@
  */
 package com.alibaba.rocketmq.client.consumer.store;
 
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
+import com.alibaba.rocketmq.common.UtilAll;
 import org.slf4j.Logger;
 
 import com.alibaba.rocketmq.client.exception.MQBrokerException;
@@ -240,4 +240,18 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
                 offsetTable.size());
         }
     }
+
+	@Override
+	public Map<MessageQueue, Long> cloneOffsetTable(String topic) {
+		Map<MessageQueue, Long> cloneOffsetTable = new HashMap<MessageQueue, Long>();
+		Iterator<MessageQueue> iterator = this.offsetTable.keySet().iterator();
+		while (iterator.hasNext()) {
+			MessageQueue mq = iterator.next();
+			if (!UtilAll.isBlank(topic) && !topic.equals(mq.getTopic())) {
+				continue;
+			}
+			cloneOffsetTable.put(mq, this.offsetTable.get(mq).get());
+		}
+		return cloneOffsetTable;
+	}
 }

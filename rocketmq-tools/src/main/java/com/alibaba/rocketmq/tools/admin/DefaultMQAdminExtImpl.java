@@ -16,14 +16,9 @@
 package com.alibaba.rocketmq.tools.admin;
 
 import java.io.UnsupportedEncodingException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
+import java.util.*;
 
+import com.alibaba.rocketmq.common.UtilAll;
 import org.slf4j.Logger;
 
 import com.alibaba.rocketmq.client.QueryResult;
@@ -434,7 +429,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
 
 
     @Override
-    public List<RollbackStats> resetOffsetByTimestamp(String consumerGroup, String topic, long timestamp,
+    public List<RollbackStats> resetOffsetByTimestampOld(String consumerGroup, String topic, long timestamp,
             boolean force) throws RemotingException, MQBrokerException, InterruptedException,
             MQClientException {
         TopicRouteData topicRouteData = this.examineTopicRouteInfo(topic);
@@ -496,5 +491,40 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
             RemotingSendRequestException, RemotingTimeoutException, UnsupportedEncodingException,
             InterruptedException, MQBrokerException {
         this.mQClientFactory.getMQClientAPIImpl().updateBrokerConfig(brokerAddr, properties, 5000);
+    }
+
+
+    @Override
+    public Map<MessageQueue, Long> resetOffsetByTimestamp(String topic, String group, long timestamp,
+            boolean isForce) throws RemotingException, MQBrokerException, InterruptedException,
+            MQClientException {
+        TopicRouteData topicRouteData = this.examineTopicRouteInfo(topic);
+        List<BrokerData> brokerDatas = topicRouteData.getBrokerDatas();
+        // 每个 broker 上有所有的 consumer 连接，故只需要在一个 broker 执行即可。
+        if (brokerDatas != null && brokerDatas.size() > 0) {
+            String addr = brokerDatas.get(0).selectBrokerAddr();
+            if (addr != null) {
+                return this.mQClientFactory.getMQClientAPIImpl().invokeBrokerToResetOffset(addr, topic,
+                    group, timestamp, isForce, 5000);
+            }
+        }
+        return Collections.EMPTY_MAP;
+    }
+
+
+    @Override
+    public Map<String, Map<MessageQueue, Long>> getConsumeStatus(String topic, String group, String clientAddr)
+            throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
+        TopicRouteData topicRouteData = this.examineTopicRouteInfo(topic);
+        List<BrokerData> brokerDatas = topicRouteData.getBrokerDatas();
+        // 每个 broker 上有所有的 consumer 连接，故只需要在一个 broker 执行即可。
+        if (brokerDatas != null && brokerDatas.size() > 0) {
+            String addr = brokerDatas.get(0).selectBrokerAddr();
+            if (addr != null) {
+                return this.mQClientFactory.getMQClientAPIImpl().invokeBrokerToGetConsumerStatus(addr, topic,
+                    group, clientAddr, 5000);
+            }
+        }
+        return Collections.EMPTY_MAP;
     }
 }
