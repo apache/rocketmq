@@ -119,7 +119,7 @@ public class ResetOffsetByTimeCommand implements SubCommand {
                 new String[] { "-t qatest_TopicTest", "-g qatest_consumer", "-s 1389098416742", "-f true" };
         final CommandLine commandLine =
                 MixAll.parseCmdLine("mqadmin " + cmd.commandName(), subargs,
-		                cmd.buildCommandlineOptions(options), new PosixParser());
+                    cmd.buildCommandlineOptions(options), new PosixParser());
         cmd.execute(commandLine, options);
     }
 }

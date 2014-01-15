@@ -93,8 +93,8 @@ public class MQAdminStartup {
         subCommandList.add(new UpdateProjectGroupCommand());
         subCommandList.add(new DeleteProjectGroupCommand());
         subCommandList.add(new GetProjectGroupCommand());
-	    subCommandList.add(new WipeWritePermSubCommand());
-	    subCommandList.add(new ResetOffsetByTimeOldCommand());
+        subCommandList.add(new WipeWritePermSubCommand());
+        subCommandList.add(new ResetOffsetByTimeOldCommand());
         subCommandList.add(new ResetOffsetByTimeCommand());
         subCommandList.add(new GetConsumerStatusCommand());
     }
