@@ -241,17 +241,18 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
         }
     }
 
-	@Override
-	public Map<MessageQueue, Long> cloneOffsetTable(String topic) {
-		Map<MessageQueue, Long> cloneOffsetTable = new HashMap<MessageQueue, Long>();
-		Iterator<MessageQueue> iterator = this.offsetTable.keySet().iterator();
-		while (iterator.hasNext()) {
-			MessageQueue mq = iterator.next();
-			if (!UtilAll.isBlank(topic) && !topic.equals(mq.getTopic())) {
-				continue;
-			}
-			cloneOffsetTable.put(mq, this.offsetTable.get(mq).get());
-		}
-		return cloneOffsetTable;
-	}
+
+    @Override
+    public Map<MessageQueue, Long> cloneOffsetTable(String topic) {
+        Map<MessageQueue, Long> cloneOffsetTable = new HashMap<MessageQueue, Long>();
+        Iterator<MessageQueue> iterator = this.offsetTable.keySet().iterator();
+        while (iterator.hasNext()) {
+            MessageQueue mq = iterator.next();
+            if (!UtilAll.isBlank(topic) && !topic.equals(mq.getTopic())) {
+                continue;
+            }
+            cloneOffsetTable.put(mq, this.offsetTable.get(mq).get());
+        }
+        return cloneOffsetTable;
+    }
 }

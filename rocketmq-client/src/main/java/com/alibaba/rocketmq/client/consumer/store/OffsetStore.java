@@ -63,8 +63,9 @@ public interface OffsetStore {
      */
     public void removeOffset(MessageQueue mq);
 
-	/**
-	 * 如果 topic 为空，则不对 topic 进行过滤，全部拷贝。
-	 */
-	public Map<MessageQueue, Long> cloneOffsetTable(String topic);
+
+    /**
+     * 如果 topic 为空，则不对 topic 进行过滤，全部拷贝。
+     */
+    public Map<MessageQueue, Long> cloneOffsetTable(String topic);
 }
