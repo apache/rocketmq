@@ -85,7 +85,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
     /**
      * 消费消息线程，最小数目
      */
-    private int consumeThreadMin = 10;
+    private int consumeThreadMin = 20;
     /**
      * 消费消息线程，最大数目
      */
