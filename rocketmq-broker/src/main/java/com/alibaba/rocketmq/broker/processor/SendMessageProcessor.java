@@ -32,6 +32,7 @@ import com.alibaba.rocketmq.broker.digestlog.SendmsgLiveMoniter;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.TopicConfig;
 import com.alibaba.rocketmq.common.TopicFilterType;
+import com.alibaba.rocketmq.common.UtilAll;
 import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.common.constant.PermName;
 import com.alibaba.rocketmq.common.help.FAQUrl;
@@ -225,6 +226,20 @@ public class SendMessageProcessor implements NettyRequestProcessor {
     }
 
 
+    private String diskUtil() {
+        String storePathPhysic = this.brokerController.getMessageStoreConfig().getStorePathCommitLog();
+        double physicRatio = UtilAll.getDiskPartitionSpaceUsedPercent(storePathPhysic);
+
+        String storePathLogis = this.brokerController.getMessageStoreConfig().getStorePathConsumeQueue();
+        double logisRatio = UtilAll.getDiskPartitionSpaceUsedPercent(storePathLogis);
+
+        String storePathIndex = this.brokerController.getMessageStoreConfig().getStorePathIndex();
+        double indexRatio = UtilAll.getDiskPartitionSpaceUsedPercent(storePathIndex);
+
+        return String.format("CL: %5.2f CQ: %5.2f INDEX: %5.2f", physicRatio, logisRatio, indexRatio);
+    }
+
+
     private RemotingCommand sendMessage(final ChannelHandlerContext ctx, final RemotingCommand request)
             throws RemotingCommandException {
         final RemotingCommand response =
@@ -383,7 +398,7 @@ public class SendMessageProcessor implements NettyRequestProcessor {
                 break;
             case SERVICE_NOT_AVAILABLE:
                 response.setCode(MQResponseCode.SERVICE_NOT_AVAILABLE_VALUE);
-                response.setRemark("service not available now.");
+                response.setRemark("service not available now, maybe disk full, " + diskUtil());
                 break;
             case UNKNOWN_ERROR:
                 response.setCode(ResponseCode.SYSTEM_ERROR_VALUE);
