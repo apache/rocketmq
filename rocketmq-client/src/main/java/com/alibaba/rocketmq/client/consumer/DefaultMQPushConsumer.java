@@ -111,6 +111,11 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
      */
     private int pullBatchSize = 32;
 
+    /**
+     * 是否每次拉消息时，都上传订阅关系
+     */
+    private boolean postSubscriptionWhenPull = false;
+
 
     public DefaultMQPushConsumer() {
 
@@ -380,6 +385,16 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
 
     public void setConsumeTimestamp(String consumeTimestamp) {
         this.consumeTimestamp = consumeTimestamp;
+    }
+
+
+    public boolean isPostSubscriptionWhenPull() {
+        return postSubscriptionWhenPull;
+    }
+
+
+    public void setPostSubscriptionWhenPull(boolean postSubscriptionWhenPull) {
+        this.postSubscriptionWhenPull = postSubscriptionWhenPull;
     }
 
 }
