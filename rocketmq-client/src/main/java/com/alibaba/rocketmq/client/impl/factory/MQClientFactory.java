@@ -33,7 +33,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-import com.alibaba.rocketmq.client.impl.consumer.*;
 import org.slf4j.Logger;
 
 import com.alibaba.rocketmq.client.ClientConfig;
@@ -45,6 +44,12 @@ import com.alibaba.rocketmq.client.impl.FindBrokerResult;
 import com.alibaba.rocketmq.client.impl.MQAdminImpl;
 import com.alibaba.rocketmq.client.impl.MQClientAPIImpl;
 import com.alibaba.rocketmq.client.impl.MQClientManager;
+import com.alibaba.rocketmq.client.impl.consumer.DefaultMQPullConsumerImpl;
+import com.alibaba.rocketmq.client.impl.consumer.DefaultMQPushConsumerImpl;
+import com.alibaba.rocketmq.client.impl.consumer.MQConsumerInner;
+import com.alibaba.rocketmq.client.impl.consumer.ProcessQueue;
+import com.alibaba.rocketmq.client.impl.consumer.PullMessageService;
+import com.alibaba.rocketmq.client.impl.consumer.RebalanceService;
 import com.alibaba.rocketmq.client.impl.producer.DefaultMQProducerImpl;
 import com.alibaba.rocketmq.client.impl.producer.MQProducerInner;
 import com.alibaba.rocketmq.client.impl.producer.TopicPublishInfo;

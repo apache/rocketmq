@@ -16,9 +16,15 @@
 package com.alibaba.rocketmq.tools.admin;
 
 import java.io.UnsupportedEncodingException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
 
-import com.alibaba.rocketmq.common.UtilAll;
 import org.slf4j.Logger;
 
 import com.alibaba.rocketmq.client.QueryResult;
