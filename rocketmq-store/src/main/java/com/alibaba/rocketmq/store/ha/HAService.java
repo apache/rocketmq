@@ -237,9 +237,10 @@ public class HAService {
                                 log.warn("Unexpected ops in select " + k.readyOps());
                             }
                         }
+
+                        selected.clear();
                     }
 
-                    selected.clear();
                 }
                 catch (Exception e) {
                     log.error(this.getServiceName() + " service has exception.", e);

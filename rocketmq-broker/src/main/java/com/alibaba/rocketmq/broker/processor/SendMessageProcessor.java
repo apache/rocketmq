@@ -120,7 +120,8 @@ public class SendMessageProcessor implements NettyRequestProcessor {
         }
 
         String newTopic = MixAll.getRetryTopic(requestHeader.getGroup());
-        int queueIdInt = Math.abs(this.random.nextInt()) % subscriptionGroupConfig.getRetryQueueNums();
+        int queueIdInt =
+                Math.abs(this.random.nextInt() % 99999999) % subscriptionGroupConfig.getRetryQueueNums();
 
         // 检查topic是否存在
         TopicConfig topicConfig =
@@ -165,7 +166,7 @@ public class SendMessageProcessor implements NettyRequestProcessor {
         if (msgExt.getReconsumeTimes() >= subscriptionGroupConfig.getRetryMaxTimes()//
                 || delayLevel < 0) {
             newTopic = MixAll.getDLQTopic(requestHeader.getGroup());
-            queueIdInt = Math.abs(this.random.nextInt()) % DLQ_NUMS_PER_GROUP;
+            queueIdInt = Math.abs(this.random.nextInt() % 99999999) % DLQ_NUMS_PER_GROUP;
 
             topicConfig =
                     this.brokerController.getTopicConfigManager().createTopicInSendMessageBackMethod(
@@ -326,7 +327,7 @@ public class SendMessageProcessor implements NettyRequestProcessor {
 
         // 随机指定一个队列
         if (queueIdInt < 0) {
-            queueIdInt = Math.abs(this.random.nextInt()) % topicConfig.getWriteQueueNums();
+            queueIdInt = Math.abs(this.random.nextInt() % 99999999) % topicConfig.getWriteQueueNums();
         }
 
         int sysFlag = requestHeader.getSysFlag();
