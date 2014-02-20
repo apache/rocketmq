@@ -274,7 +274,8 @@ public interface MQAdminExt extends MQAdmin {
      * @param key
      * @return
      */
-    public String getKVConfig(final String namespace, final String key);
+    public String getKVConfig(final String namespace, final String key) throws RemotingException,
+            MQClientException, InterruptedException;
 
 
     /**
@@ -451,6 +452,21 @@ public interface MQAdminExt extends MQAdmin {
      * @throws MQClientException
      */
     public Map<String, Map<MessageQueue, Long>> getConsumeStatus(String topic, String group, String clientAddr)
+            throws RemotingException, MQBrokerException, InterruptedException, MQClientException;
+
+
+    /**
+     * 创建或更新顺序消息的分区配置
+     * 
+     * @param key
+     * @param value
+     * @param isCluster
+     * @throws RemotingException
+     * @throws MQBrokerException
+     * @throws InterruptedException
+     * @throws MQClientException
+     */
+    public void createOrUpdateOrderConf(String key, String value, boolean isCluster)
             throws RemotingException, MQBrokerException, InterruptedException, MQClientException;
 
 }

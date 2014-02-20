@@ -1717,11 +1717,11 @@ public class MQClientAPIImpl {
     /**
      * Name Server: 通过 value 获取所有的 key 信息
      */
-    public String getKVConfigByValue(final String namespace, String projectGroup, final long timeoutMillis)
+    public String getKVConfigByValue(final String namespace, String value, final long timeoutMillis)
             throws RemotingException, MQClientException, InterruptedException {
         GetKVConfigRequestHeader requestHeader = new GetKVConfigRequestHeader();
         requestHeader.setNamespace(namespace);
-        requestHeader.setKey(projectGroup);
+        requestHeader.setKey(value);
 
         RemotingCommand request =
                 RemotingCommand.createRequestCommand(MQRequestCode.GET_KV_CONFIG_BY_VALUE_VALUE,
