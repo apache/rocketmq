@@ -264,6 +264,16 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
                                     messageQueue);
                             }
 
+                            // 针对异常返回代码打印日志
+                            if (null == status //
+                                    || ConsumeOrderlyStatus.ROLLBACK == status//
+                                    || ConsumeOrderlyStatus.SUSPEND_CURRENT_QUEUE_A_MOMENT == status) {
+                                log.warn("consumeMessage Orderly return not OK, Group: {} Msgs: {} MQ: {}",//
+                                    ConsumeMessageOrderlyService.this.consumerGroup,//
+                                    msgs,//
+                                    messageQueue);
+                            }
+
                             long consumeRT = System.currentTimeMillis() - beginTimestamp;
 
                             // 用户抛出异常或者返回null，都挂起队列
