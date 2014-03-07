@@ -148,7 +148,18 @@ public class MapedFile extends ReferenceResource {
 
 
     private static ByteBuffer viewed(ByteBuffer buffer) {
-        ByteBuffer viewedBuffer = (ByteBuffer) invoke(buffer, "viewedBuffer");
+        String methodName = "viewedBuffer";
+
+        // JDK7中将DirectByteBuffer类中的viewedBuffer方法换成了attachment方法
+        Method[] methods = buffer.getClass().getMethods();
+        for (int i = 0; i < methods.length; i++) {
+            if (methods[i].getName().equals("attachment")) {
+                methodName = "attachment";
+                break;
+            }
+        }
+
+        ByteBuffer viewedBuffer = (ByteBuffer) invoke(buffer, methodName);
         if (viewedBuffer == null)
             return buffer;
         else

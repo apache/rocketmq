@@ -21,8 +21,8 @@ import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 
 import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.Iterator;
+import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -315,25 +315,22 @@ public abstract class NettyRemotingAbstract {
 
 
     public void scanResponseTable() {
-        List<Integer> todoList = new LinkedList<Integer>();
+        Iterator<Entry<Integer, ResponseFuture>> it = this.responseTable.entrySet().iterator();
+        while (it.hasNext()) {
+            Entry<Integer, ResponseFuture> next = it.next();
+            ResponseFuture rep = next.getValue();
 
-        for (ResponseFuture rep : this.responseTable.values()) {
             if ((rep.getBeginTimestamp() + rep.getTimeoutMillis() + 1000) <= System.currentTimeMillis()) {
-                todoList.add(rep.getOpaque());
+                it.remove();
+                rep.release();
                 try {
                     rep.executeInvokeCallback();
                 }
                 catch (Throwable e) {
                     plog.error("scanResponseTable, operationComplete exception", e);
                 }
-            }
-        }
 
-        for (Integer opaque : todoList) {
-            ResponseFuture responseFuture = this.responseTable.remove(opaque);
-            if (responseFuture != null) {
-                responseFuture.release();
-                plog.warn("remove timeout request, " + responseFuture);
+                plog.warn("remove timeout request, " + rep);
             }
         }
     }
@@ -409,13 +406,14 @@ public abstract class NettyRemotingAbstract {
                             responseFuture.setSendRequestOK(false);
                         }
 
-                        once.release();
+                        responseFuture.putResponse(null);
+                        responseFuture.executeInvokeCallback();
 
                         responseTable.remove(request.getOpaque());
-                        responseFuture.putResponse(null);
                         plog.warn("send a request command to channel <" + channel.remoteAddress()
                                 + "> failed.");
                         plog.warn(request.toString());
+
                     }
                 });
             }

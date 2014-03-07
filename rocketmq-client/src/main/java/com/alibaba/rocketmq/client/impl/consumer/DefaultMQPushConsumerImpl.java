@@ -451,15 +451,24 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
             }
         }
 
+        String subExpression = null;
+        if (this.defaultMQPushConsumer.isPostSubscriptionWhenPull()) {
+            SubscriptionData sd =
+                    this.rebalanceImpl.getSubscriptionInner().get(pullRequest.getMessageQueue().getTopic());
+            if (sd != null) {
+                subExpression = sd.getSubString();
+            }
+        }
+
         int sysFlag = PullSysFlag.buildSysFlag(//
             commitOffsetEnable, // commitOffset
             true, // suspend
-            false// subscription
+            subExpression != null// subscription
             );
         try {
             this.pullAPIWrapper.pullKernelImpl(//
                 pullRequest.getMessageQueue(), // 1
-                null, // 2
+                subExpression, // 2
                 subscriptionData.getSubVersion(), // 3
                 pullRequest.getNextOffset(), // 4
                 this.defaultMQPushConsumer.getPullBatchSize(), // 5
@@ -716,8 +725,8 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
         Date dt = UtilAll.parseDate(this.defaultMQPushConsumer.getConsumeTimestamp(), UtilAll.yyyyMMddHHmmss);
         if (null == dt) {
             throw new MQClientException("consumeTimestamp is invalid, yyyyMMddHHmmss" //
-                + FAQUrl.suggestTodo(FAQUrl.CLIENT_PARAMETER_CHECK_URL), //
-            null);
+                    + FAQUrl.suggestTodo(FAQUrl.CLIENT_PARAMETER_CHECK_URL), //
+                null);
         }
 
         // allocateMessageQueueStrategy

@@ -85,7 +85,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
     /**
      * 消费消息线程，最小数目
      */
-    private int consumeThreadMin = 10;
+    private int consumeThreadMin = 20;
     /**
      * 消费消息线程，最大数目
      */
@@ -110,6 +110,11 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
      * 拉消息，一次拉多少条
      */
     private int pullBatchSize = 32;
+
+    /**
+     * 是否每次拉消息时，都上传订阅关系
+     */
+    private boolean postSubscriptionWhenPull = false;
 
 
     public DefaultMQPushConsumer() {
@@ -380,6 +385,16 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
 
     public void setConsumeTimestamp(String consumeTimestamp) {
         this.consumeTimestamp = consumeTimestamp;
+    }
+
+
+    public boolean isPostSubscriptionWhenPull() {
+        return postSubscriptionWhenPull;
+    }
+
+
+    public void setPostSubscriptionWhenPull(boolean postSubscriptionWhenPull) {
+        this.postSubscriptionWhenPull = postSubscriptionWhenPull;
     }
 
 }

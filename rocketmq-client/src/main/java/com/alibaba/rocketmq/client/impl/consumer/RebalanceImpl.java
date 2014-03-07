@@ -84,10 +84,10 @@ public abstract class RebalanceImpl {
             try {
                 this.mQClientFactory.getMQClientAPIImpl().unlockBatchMQ(findBrokerResult.getBrokerAddr(),
                     requestBody, 1000, oneway);
-	            log.warn("unlock messageQueue. group:{}, clientId:{}, mq:{}",//
-			            this.consumerGroup, //
-			            this.mQClientFactory.getClientId(), //
-			            mq);
+                log.warn("unlock messageQueue. group:{}, clientId:{}, mq:{}",//
+                    this.consumerGroup, //
+                    this.mQClientFactory.getClientId(), //
+                    mq);
             }
             catch (Exception e) {
                 log.error("unlockBatchMQ exception, " + mq, e);
@@ -354,16 +354,19 @@ public abstract class RebalanceImpl {
         boolean changed = false;
 
         // 将多余的队列删除
-        for (MessageQueue mq : this.processQueueTable.keySet()) {
+        Iterator<Entry<MessageQueue, ProcessQueue>> it = this.processQueueTable.entrySet().iterator();
+        while (it.hasNext()) {
+            Entry<MessageQueue, ProcessQueue> next = it.next();
+            MessageQueue mq = next.getKey();
+            ProcessQueue pq = next.getValue();
+
             if (mq.getTopic().equals(topic)) {
                 if (!mqSet.contains(mq)) {
                     changed = true;
-                    ProcessQueue pq = this.processQueueTable.remove(mq);
-                    if (pq != null) {
-                        pq.setDroped(true);
-                        log.info("doRebalance, {}, remove unnecessary mq, {}", consumerGroup, mq);
-                        this.removeUnnecessaryMessageQueue(mq, pq);
-                    }
+                    it.remove();
+                    pq.setDroped(true);
+                    log.info("doRebalance, {}, remove unnecessary mq, {}", consumerGroup, mq);
+                    this.removeUnnecessaryMessageQueue(mq, pq);
                 }
             }
         }

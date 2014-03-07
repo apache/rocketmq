@@ -57,6 +57,14 @@ public class FAQUrl {
     public static final String LOAD_JSON_EXCEPTION = //
             "https://github.com/alibaba/RocketMQ/issues/293";
 
+    // FAQ: 同一个订阅组内不同Consumer实例订阅关系不同
+    public static final String SAME_GROUP_DIFFERENT_TOPIC = //
+            "https://github.com/alibaba/RocketMQ/issues/332";
+
+    // FAQ: 主动订阅消息，获取队列列表报Topic不存在
+    public static final String MQLIST_NOT_EXIST = //
+            "https://github.com/alibaba/RocketMQ/issues/336";
+
     //
     // FAQ: 未收录异常处理办法
     //

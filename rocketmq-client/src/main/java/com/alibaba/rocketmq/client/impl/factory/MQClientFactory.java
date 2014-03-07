@@ -33,7 +33,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-import com.alibaba.rocketmq.client.impl.consumer.*;
 import org.slf4j.Logger;
 
 import com.alibaba.rocketmq.client.ClientConfig;
@@ -45,11 +44,18 @@ import com.alibaba.rocketmq.client.impl.FindBrokerResult;
 import com.alibaba.rocketmq.client.impl.MQAdminImpl;
 import com.alibaba.rocketmq.client.impl.MQClientAPIImpl;
 import com.alibaba.rocketmq.client.impl.MQClientManager;
+import com.alibaba.rocketmq.client.impl.consumer.DefaultMQPullConsumerImpl;
+import com.alibaba.rocketmq.client.impl.consumer.DefaultMQPushConsumerImpl;
+import com.alibaba.rocketmq.client.impl.consumer.MQConsumerInner;
+import com.alibaba.rocketmq.client.impl.consumer.ProcessQueue;
+import com.alibaba.rocketmq.client.impl.consumer.PullMessageService;
+import com.alibaba.rocketmq.client.impl.consumer.RebalanceService;
 import com.alibaba.rocketmq.client.impl.producer.DefaultMQProducerImpl;
 import com.alibaba.rocketmq.client.impl.producer.MQProducerInner;
 import com.alibaba.rocketmq.client.impl.producer.TopicPublishInfo;
 import com.alibaba.rocketmq.client.log.ClientLogger;
 import com.alibaba.rocketmq.client.producer.DefaultMQProducer;
+import com.alibaba.rocketmq.common.MQVersion;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.ServiceState;
 import com.alibaba.rocketmq.common.constant.PermName;
@@ -149,10 +155,11 @@ public class MQClientFactory {
         this.defaultMQProducer = new DefaultMQProducer(MixAll.CLIENT_INNER_PRODUCER_GROUP);
         this.defaultMQProducer.resetClientConfig(clientConfig);
 
-        log.info("created a new client fatory, FactoryIndex: {} ClinetID: {} {}",//
+        log.info("created a new client fatory, FactoryIndex: {} ClinetID: {} {} {}",//
             this.factoryIndex, //
             this.clientId, //
-            this.clientConfig);
+            this.clientConfig, //
+            MQVersion.getVersionDesc(MQVersion.CurrentVersion));
     }
 
 

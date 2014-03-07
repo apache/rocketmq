@@ -18,7 +18,6 @@ package com.alibaba.rocketmq.tools.admin;
 import java.io.UnsupportedEncodingException;
 import java.util.*;
 
-import com.alibaba.rocketmq.common.UtilAll;
 import org.slf4j.Logger;
 
 import com.alibaba.rocketmq.client.QueryResult;
@@ -31,6 +30,7 @@ import com.alibaba.rocketmq.client.log.ClientLogger;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.ServiceState;
 import com.alibaba.rocketmq.common.TopicConfig;
+import com.alibaba.rocketmq.common.UtilAll;
 import com.alibaba.rocketmq.common.admin.ConsumeStats;
 import com.alibaba.rocketmq.common.admin.OffsetWrapper;
 import com.alibaba.rocketmq.common.admin.RollbackStats;
@@ -39,21 +39,12 @@ import com.alibaba.rocketmq.common.help.FAQUrl;
 import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.common.message.MessageQueue;
 import com.alibaba.rocketmq.common.namesrv.NamesrvUtil;
-import com.alibaba.rocketmq.common.protocol.body.ClusterInfo;
-import com.alibaba.rocketmq.common.protocol.body.ConsumeByWho;
-import com.alibaba.rocketmq.common.protocol.body.ConsumerConnection;
-import com.alibaba.rocketmq.common.protocol.body.KVTable;
-import com.alibaba.rocketmq.common.protocol.body.ProducerConnection;
-import com.alibaba.rocketmq.common.protocol.body.TopicList;
+import com.alibaba.rocketmq.common.protocol.body.*;
 import com.alibaba.rocketmq.common.protocol.header.UpdateConsumerOffsetRequestHeader;
 import com.alibaba.rocketmq.common.protocol.route.BrokerData;
 import com.alibaba.rocketmq.common.protocol.route.TopicRouteData;
 import com.alibaba.rocketmq.common.subscription.SubscriptionGroupConfig;
-import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
-import com.alibaba.rocketmq.remoting.exception.RemotingConnectException;
-import com.alibaba.rocketmq.remoting.exception.RemotingException;
-import com.alibaba.rocketmq.remoting.exception.RemotingSendRequestException;
-import com.alibaba.rocketmq.remoting.exception.RemotingTimeoutException;
+import com.alibaba.rocketmq.remoting.exception.*;
 
 
 /**
@@ -233,9 +224,9 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
 
 
     @Override
-    public String getKVConfig(String namespace, String key) {
-        // TODO Auto-generated method stub
-        return null;
+    public String getKVConfig(String namespace, String key) throws RemotingException, MQClientException,
+            InterruptedException {
+        return this.mQClientFactory.getMQClientAPIImpl().getKVConfigValue(namespace, key, 3000);
     }
 
 
@@ -526,5 +517,47 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
             }
         }
         return Collections.EMPTY_MAP;
+    }
+
+
+    public void createOrUpdateOrderConf(String key, String value, boolean isCluster)
+            throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
+
+        if (isCluster) {
+            this.mQClientFactory.getMQClientAPIImpl().putKVConfigValue(
+                NamesrvUtil.NAMESPACE_ORDER_TOPIC_CONFIG, key, value, 3000);
+        }
+        else {
+            String oldOrderConfs = null;
+            try {
+                oldOrderConfs =
+                        this.mQClientFactory.getMQClientAPIImpl().getKVConfigValue(
+                            NamesrvUtil.NAMESPACE_ORDER_TOPIC_CONFIG, key, 3000);
+            }
+            catch (Exception e) {
+                e.printStackTrace();
+            }
+
+            // 添加或替换需要更新的 broker
+            Map<String, String> orderConfMap = new HashMap<String, String>();
+            if (!UtilAll.isBlank(oldOrderConfs)) {
+                String[] oldOrderConfArr = oldOrderConfs.split(";");
+                for (String oldOrderConf : oldOrderConfArr) {
+                    String[] items = oldOrderConf.split(":");
+                    orderConfMap.put(items[0], oldOrderConf);
+                }
+            }
+            String[] items = value.split(":");
+            orderConfMap.put(items[0], value);
+
+            StringBuilder newOrderConf = new StringBuilder();
+            String splitor = "";
+            for (String tmp : orderConfMap.keySet()) {
+                newOrderConf.append(splitor).append(orderConfMap.get(tmp));
+                splitor = ";";
+            }
+            this.mQClientFactory.getMQClientAPIImpl().putKVConfigValue(
+                NamesrvUtil.NAMESPACE_ORDER_TOPIC_CONFIG, key, newOrderConf.toString(), 3000);
+        }
     }
 }
