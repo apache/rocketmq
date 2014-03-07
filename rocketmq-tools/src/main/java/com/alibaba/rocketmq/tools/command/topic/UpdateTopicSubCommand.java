@@ -74,6 +74,10 @@ public class UpdateTopicSubCommand implements SubCommand {
         opt.setRequired(false);
         options.addOption(opt);
 
+        opt = new Option("o", "order", true, "set topic's order(true|false");
+        opt.setRequired(false);
+        options.addOption(opt);
+
         return options;
     }
 
@@ -81,7 +85,6 @@ public class UpdateTopicSubCommand implements SubCommand {
     @Override
     public void execute(final CommandLine commandLine, final Options options) {
         DefaultMQAdminExt defaultMQAdminExt = new DefaultMQAdminExt();
-
         defaultMQAdminExt.setInstanceName(Long.toString(System.currentTimeMillis()));
 
         try {
@@ -105,11 +108,25 @@ public class UpdateTopicSubCommand implements SubCommand {
                 topicConfig.setPerm(Integer.parseInt(commandLine.getOptionValue('p').trim()));
             }
 
+            boolean isOrder = false;
+            if (commandLine.hasOption('o')) {
+                isOrder = Boolean.parseBoolean(commandLine.getOptionValue('o').trim());
+            }
+
             if (commandLine.hasOption('b')) {
                 String addr = commandLine.getOptionValue('b').trim();
 
                 defaultMQAdminExt.start();
                 defaultMQAdminExt.createAndUpdateTopicConfig(addr, topicConfig);
+
+                if (isOrder) {
+                    // 注册顺序消息到 nameserver
+                    String brokerName = CommandUtil.fetchBrokerNameByAddr(defaultMQAdminExt, addr);
+                    String orderConf = brokerName + ":" + topicConfig.getWriteQueueNums();
+                    defaultMQAdminExt.createOrUpdateOrderConf(topicConfig.getTopicName(), orderConf, false);
+                    System.out.println(String.format("set broker orderConf. isOrder=%s, orderConf=[%s]",
+                        isOrder, orderConf.toString()));
+                }
                 System.out.printf("create topic to %s success.\n", addr);
                 System.out.println(topicConfig);
                 return;
@@ -126,6 +143,24 @@ public class UpdateTopicSubCommand implements SubCommand {
                     defaultMQAdminExt.createAndUpdateTopicConfig(addr, topicConfig);
                     System.out.printf("create topic to %s success.\n", addr);
                 }
+
+                if (isOrder) {
+                    // 注册顺序消息到 nameserver
+                    Set<String> brokerNameSet =
+                            CommandUtil.fetchBrokerNameByClusterName(defaultMQAdminExt, clusterName);
+                    StringBuilder orderConf = new StringBuilder();
+                    String splitor = "";
+                    for (String s : brokerNameSet) {
+                        orderConf.append(splitor).append(s).append(":")
+                            .append(topicConfig.getWriteQueueNums());
+                        splitor = ";";
+                    }
+                    defaultMQAdminExt.createOrUpdateOrderConf(topicConfig.getTopicName(),
+                        orderConf.toString(), true);
+                    System.out.println(String.format("set cluster orderConf. isOrder=%s, orderConf=[%s]",
+                        isOrder, orderConf.toString()));
+                }
+
                 System.out.println(topicConfig);
                 return;
             }

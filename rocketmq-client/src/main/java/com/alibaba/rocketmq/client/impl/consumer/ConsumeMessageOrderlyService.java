@@ -25,7 +25,6 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
-import com.alibaba.rocketmq.common.protocol.heartbeat.MessageModel;
 import org.slf4j.Logger;
 
 import com.alibaba.rocketmq.client.consumer.DefaultMQPushConsumer;
@@ -38,6 +37,7 @@ import com.alibaba.rocketmq.client.stat.ConsumerStat;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.common.message.MessageQueue;
+import com.alibaba.rocketmq.common.protocol.heartbeat.MessageModel;
 import com.alibaba.rocketmq.remoting.common.RemotingHelper;
 
 
@@ -259,6 +259,16 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
                             catch (Throwable e) {
                                 log.warn("consumeMessage exception: {} Group: {} Msgs: {} MQ: {}",//
                                     RemotingHelper.exceptionSimpleDesc(e),//
+                                    ConsumeMessageOrderlyService.this.consumerGroup,//
+                                    msgs,//
+                                    messageQueue);
+                            }
+
+                            // 针对异常返回代码打印日志
+                            if (null == status //
+                                    || ConsumeOrderlyStatus.ROLLBACK == status//
+                                    || ConsumeOrderlyStatus.SUSPEND_CURRENT_QUEUE_A_MOMENT == status) {
+                                log.warn("consumeMessage Orderly return not OK, Group: {} Msgs: {} MQ: {}",//
                                     ConsumeMessageOrderlyService.this.consumerGroup,//
                                     msgs,//
                                     messageQueue);

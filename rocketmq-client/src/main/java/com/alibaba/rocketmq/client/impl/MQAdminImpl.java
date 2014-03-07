@@ -34,6 +34,7 @@ import com.alibaba.rocketmq.client.impl.producer.TopicPublishInfo;
 import com.alibaba.rocketmq.client.log.ClientLogger;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.TopicConfig;
+import com.alibaba.rocketmq.common.help.FAQUrl;
 import com.alibaba.rocketmq.common.message.MessageConst;
 import com.alibaba.rocketmq.common.message.MessageDecoder;
 import com.alibaba.rocketmq.common.message.MessageExt;
@@ -156,7 +157,9 @@ public class MQAdminImpl {
             }
         }
         catch (Exception e) {
-            throw new MQClientException("Can not find Message Queue for this topic, " + topic, e);
+            throw new MQClientException("Can not find Message Queue for this topic, " + topic
+                    + FAQUrl.suggestTodo(FAQUrl.MQLIST_NOT_EXIST), //
+                e);
         }
 
         throw new MQClientException("Unknow why, Can not find Message Queue for this topic, " + topic, null);

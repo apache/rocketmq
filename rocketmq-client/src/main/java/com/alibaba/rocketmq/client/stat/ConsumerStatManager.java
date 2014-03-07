@@ -80,7 +80,7 @@ public class ConsumerStatManager {
                 tps *= 1000;
 
                 log.info(
-                    "Consumer, {} {}, ConsumeAvgRT: {} ConsumeMaxRT: {} TotalOKMsg: {} TotalFailedMsg: {} consumeTPS: {}",//
+                    "Consumer, {} {}, ConsumeAvgRT(ms): {} ConsumeMaxRT(ms): {} TotalOKMsg: {} TotalFailedMsg: {} consumeTPS: {}",//
                     group, //
                     clientId, //
                     avgRT, //
@@ -97,7 +97,7 @@ public class ConsumerStatManager {
                         / //
                         (double) (last.getPullTimesTotal().get() - first.getPullTimesTotal().get());
 
-                log.info("Consumer, {} {}, PullAvgRT: {}  PullTimesTotal: {}",//
+                log.info("Consumer, {} {}, PullAvgRT(ms): {}  PullTimesTotal: {}",//
                     group, //
                     clientId, //
                     avgRT, //

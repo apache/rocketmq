@@ -1,9 +1,6 @@
 package com.alibaba.rocketmq.research;
 
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.Calendar;
-import java.util.Date;
 
 import com.alibaba.rocketmq.common.UtilAll;
 
@@ -26,14 +23,27 @@ public class Test {
     }
 
 
+    private static String diskUtil() {
+        String storePathPhysic = System.getenv("HOME");
+        double physicRatio = UtilAll.getDiskPartitionSpaceUsedPercent(storePathPhysic);
+
+        String storePathLogis = storePathPhysic;
+        double logisRatio = UtilAll.getDiskPartitionSpaceUsedPercent(storePathLogis);
+
+        String storePathIndex = storePathPhysic;
+        double indexRatio = UtilAll.getDiskPartitionSpaceUsedPercent(storePathIndex);
+
+        return String.format("CL: %5.2f CQ: %5.2f INDEX: %5.2f", physicRatio, logisRatio, indexRatio);
+    }
+
+
     public static void main(String[] args) {
-        long timestamp = System.currentTimeMillis() - (1000 * 60 * 20);
-        String date = UtilAll.timeMillisToHumanString3(timestamp);
-        System.out.println(date);
+        int a = -25;
+        int b = 1;
 
-        long timestatmpNew = UtilAll.parseDate(date, UtilAll.yyyyMMddHHmmss).getTime();
+        int c = a % b;
+        System.out.println(c);
 
-        System.out.println(timestamp);
-        System.out.println(timestatmpNew);
+        System.out.println(diskUtil());
     }
 }

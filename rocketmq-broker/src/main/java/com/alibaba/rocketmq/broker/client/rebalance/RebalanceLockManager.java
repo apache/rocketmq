@@ -222,7 +222,7 @@ public class RebalanceLockManager {
                         if (lockEntry.isLocked(clientId)) {
                             lockEntry.setLastUpdateTimestamp(System.currentTimeMillis());
                             lockedMqs.add(mq);
-	                        continue;
+                            continue;
                         }
 
                         String oldClientId = lockEntry.getClientId();
@@ -238,7 +238,7 @@ public class RebalanceLockManager {
                                 clientId, //
                                 mq);
                             lockedMqs.add(mq);
-	                        continue;
+                            continue;
                         }
 
                         // 锁被别的Client占用
