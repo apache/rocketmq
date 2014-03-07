@@ -55,6 +55,7 @@ import com.alibaba.rocketmq.client.impl.producer.MQProducerInner;
 import com.alibaba.rocketmq.client.impl.producer.TopicPublishInfo;
 import com.alibaba.rocketmq.client.log.ClientLogger;
 import com.alibaba.rocketmq.client.producer.DefaultMQProducer;
+import com.alibaba.rocketmq.common.MQVersion;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.ServiceState;
 import com.alibaba.rocketmq.common.constant.PermName;
@@ -154,10 +155,11 @@ public class MQClientFactory {
         this.defaultMQProducer = new DefaultMQProducer(MixAll.CLIENT_INNER_PRODUCER_GROUP);
         this.defaultMQProducer.resetClientConfig(clientConfig);
 
-        log.info("created a new client fatory, FactoryIndex: {} ClinetID: {} {}",//
+        log.info("created a new client fatory, FactoryIndex: {} ClinetID: {} {} {}",//
             this.factoryIndex, //
             this.clientId, //
-            this.clientConfig);
+            this.clientConfig, //
+            MQVersion.getVersionDesc(MQVersion.CurrentVersion));
     }
 
 
