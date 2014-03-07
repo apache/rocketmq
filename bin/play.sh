@@ -15,4 +15,4 @@ ADDR=`hostname -i`:9876
 #
 nohup sh mqbroker -n ${ADDR} > bk.log 2>&1 &
 
-echo “Start Name Server and Broker Successfully, ${ADDR}”
+echo "Start Name Server and Broker Successfully, ${ADDR}"
