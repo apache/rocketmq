@@ -138,7 +138,7 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
         @Override
         public void run() {
             if (this.processQueue.isDroped()) {
-                log.info("the message queue not be able to consume, because it's droped {}",
+                log.info("the message queue not be able to consume, because it's dropped {}",
                     this.messageQueue);
                 return;
             }
@@ -210,6 +210,11 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
             // 如果ProcessQueue是dropped状态，不需要直接更新 offset
             if (!processQueue.isDroped()) {
                 ConsumeMessageConcurrentlyService.this.processConsumeResult(status, context, this);
+            }
+            else {
+                log.warn(
+                    "processQueue is dropped without process consume result. messageQueue={}, msgTreeMap={}, msgs={}",
+                    new Object[] { messageQueue, processQueue.getMsgTreeMap(), msgs });
             }
         }
 

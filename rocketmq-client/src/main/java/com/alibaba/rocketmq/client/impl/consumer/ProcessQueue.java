@@ -161,8 +161,8 @@ public class ProcessQueue {
                 this.lockTreeMap.writeLock().unlock();
             }
         }
-        catch (InterruptedException e) {
-            log.error("removeMessage exception", e);
+        catch (Throwable t) {
+            log.error("removeMessage exception", t);
         }
 
         return result;
