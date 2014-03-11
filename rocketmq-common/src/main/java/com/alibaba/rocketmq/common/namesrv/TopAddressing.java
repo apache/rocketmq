@@ -5,35 +5,25 @@ package com.alibaba.rocketmq.common.namesrv;
 
 import java.io.IOException;
 
-import org.apache.commons.httpclient.HttpClient;
-import org.apache.commons.httpclient.HttpException;
-import org.apache.commons.httpclient.HttpMethod;
-import org.apache.commons.httpclient.methods.GetMethod;
-import org.apache.commons.httpclient.params.HttpConnectionManagerParams;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.common.help.FAQUrl;
+import com.alibaba.rocketmq.common.utils.HttpTinyClient;
+import com.alibaba.rocketmq.common.utils.HttpTinyClient.HttpResult;
 
 
 /**
  * 寻址服务
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
+ * @author manhong.yqd<jodie.yqd@gmail.com>
  */
 public class TopAddressing {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.CommonLoggerName);
-    private HttpClient httpClient = new HttpClient();
     private String nsAddr;
-
-
-    public TopAddressing() {
-        HttpConnectionManagerParams managerParams = httpClient.getHttpConnectionManager().getParams();
-        managerParams.setConnectionTimeout(5000);
-        managerParams.setSoTimeout(5000);
-    }
 
 
     private static String clearNewLine(final String str) {
@@ -53,35 +43,23 @@ public class TopAddressing {
 
 
     public final String fetchNSAddr() {
-        HttpMethod httpMethod = null;
-
         try {
-            httpMethod = new GetMethod(MixAll.WS_ADDR);
-            int httpStatus = this.httpClient.executeMethod(httpMethod);
-            if (200 == httpStatus) {
-                byte[] responseBody = httpMethod.getResponseBody();
-                if (responseBody != null) {
-                    String responseStr = new String(responseBody);
+            HttpResult result = HttpTinyClient.httpGet(MixAll.WS_ADDR, null, null, "UTF-8", 3000);
+            if (200 == result.code) {
+                String responseStr = result.content;
+                if (responseStr != null) {
                     return clearNewLine(responseStr);
                 }
                 else {
-                    log.error("httpMethod.getResponseBody() return null");
+                    log.error("fetch nameserver address is null");
                 }
             }
             else {
-                log.error("HttpClient.executeMethod return not OK, " + httpStatus);
+                log.error("fetch nameserver address failed. statusCode={}", result.code);
             }
-        }
-        catch (HttpException e) {
-            log.error("fetchZKAddr exception", e);
         }
         catch (IOException e) {
             log.error("fetchZKAddr exception", e);
-        }
-        finally {
-            if (httpMethod != null) {
-                httpMethod.releaseConnection();
-            }
         }
 
         String errorMsg =
@@ -92,26 +70,6 @@ public class TopAddressing {
         log.warn(errorMsg);
         System.out.println(errorMsg);
         return null;
-    }
-
-
-    protected void doOnNSAddrChanged(final String newNSAddr) {
-    }
-
-
-    public void tryToAddressing() {
-        try {
-            String newNSAddr = this.fetchNSAddr();
-            if (newNSAddr != null) {
-                if (null == this.nsAddr || !newNSAddr.equals(this.nsAddr)) {
-                    log.info("nsaddr in top web server changed, " + newNSAddr);
-                    this.doOnNSAddrChanged(newNSAddr);
-                }
-            }
-        }
-        catch (Exception e) {
-            log.error("", e);
-        }
     }
 
 
