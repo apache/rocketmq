@@ -846,57 +846,56 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
     public TransactionSendResult sendMessageInTransaction(final Message msg,
             final LocalTransactionExecuter tranExecuter, final Object arg) throws MQClientException {
-        if (null == tranExecuter) {
-            throw new MQClientException("tranExecuter is null", null);
-        }
+	    // 有效性检查
+	    if (null == tranExecuter) {
+		    throw new MQClientException("tranExecutor is null", null);
+	    }
+	    Validators.checkMessage(msg, this.defaultMQProducer);
 
-        // 第一步，向Broker发送一条Prepared消息
-        SendResult sendResult = null;
-        msg.putProperty(MessageConst.PROPERTY_TRANSACTION_PREPARED, "true");
-        msg.putProperty(MessageConst.PROPERTY_PRODUCER_GROUP, this.defaultMQProducer.getProducerGroup());
-        try {
-            sendResult = this.send(msg);
-        }
-        catch (Exception e) {
-            throw new MQClientException("send message Exception", e);
-        }
+	    // 第一步，向Broker发送一条Prepared消息
+	    SendResult sendResult = null;
+	    msg.putProperty(MessageConst.PROPERTY_TRANSACTION_PREPARED, "true");
+	    msg.putProperty(MessageConst.PROPERTY_PRODUCER_GROUP, this.defaultMQProducer.getProducerGroup());
+	    try {
+		    sendResult = this.send(msg);
+	    } catch (Exception e) {
+		    throw new MQClientException("send message Exception", e);
+	    }
 
-        // 第二步，回调本地事务
-        LocalTransactionState localTransactionState = LocalTransactionState.UNKNOW;
-        Throwable localException = null;
-        try {
-            localTransactionState = tranExecuter.executeLocalTransactionBranch(msg, arg);
-            if (null == localTransactionState) {
-                localTransactionState = LocalTransactionState.UNKNOW;
-            }
+	    // 第二步，回调本地事务
+	    LocalTransactionState localTransactionState = LocalTransactionState.UNKNOW;
+	    Throwable localException = null;
+	    try {
+		    localTransactionState = tranExecuter.executeLocalTransactionBranch(msg, arg);
+		    if (null == localTransactionState) {
+			    localTransactionState = LocalTransactionState.UNKNOW;
+		    }
 
-            if (localTransactionState != LocalTransactionState.COMMIT_MESSAGE) {
-                log.info("executeLocalTransactionBranch return {}", localTransactionState);
-                log.info(msg.toString());
-            }
-        }
-        catch (Throwable e) {
-            log.info("executeLocalTransactionBranch exception", e);
-            log.info(msg.toString());
-            localException = e;
-        }
+		    if (localTransactionState != LocalTransactionState.COMMIT_MESSAGE) {
+			    log.info("executeLocalTransactionBranch return {}", localTransactionState);
+			    log.info(msg.toString());
+		    }
+	    } catch (Throwable e) {
+		    log.info("executeLocalTransactionBranch exception", e);
+		    log.info(msg.toString());
+		    localException = e;
+	    }
 
-        // 第三步，提交或者回滚Broker端消息
-        try {
-            this.endTransaction(sendResult, localTransactionState, localException);
-        }
-        catch (Exception e) {
-            log.warn("local transaction execute " + localTransactionState
-                    + ", but end broker transaction failed", e);
-        }
+	    // 第三步，提交或者回滚Broker端消息
+	    try {
+		    this.endTransaction(sendResult, localTransactionState, localException);
+	    } catch (Exception e) {
+		    log.warn("local transaction execute " + localTransactionState
+				    + ", but end broker transaction failed", e);
+	    }
 
-        TransactionSendResult transactionSendResult = new TransactionSendResult();
-        transactionSendResult.setSendStatus(sendResult.getSendStatus());
-        transactionSendResult.setMessageQueue(sendResult.getMessageQueue());
-        transactionSendResult.setMsgId(sendResult.getMsgId());
-        transactionSendResult.setQueueOffset(sendResult.getQueueOffset());
-        transactionSendResult.setLocalTransactionState(localTransactionState);
-        return transactionSendResult;
+	    TransactionSendResult transactionSendResult = new TransactionSendResult();
+	    transactionSendResult.setSendStatus(sendResult.getSendStatus());
+	    transactionSendResult.setMessageQueue(sendResult.getMessageQueue());
+	    transactionSendResult.setMsgId(sendResult.getMsgId());
+	    transactionSendResult.setQueueOffset(sendResult.getQueueOffset());
+	    transactionSendResult.setLocalTransactionState(localTransactionState);
+	    return transactionSendResult;
     }
 
 
