@@ -193,7 +193,7 @@ public class MQPullConsumerScheduleService {
     }
 
 
-    public void registerPullCallback(final String topic, final PullTaskCallback callback) {
+    public void registerPullTaskCallback(final String topic, final PullTaskCallback callback) {
         this.callbackTable.put(topic, callback);
         this.defaultMQPullConsumer.registerMessageQueueListener(topic, null);
     }
