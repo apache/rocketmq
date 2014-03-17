@@ -15,15 +15,19 @@
  */
 package com.alibaba.rocketmq.client.consumer;
 
+import java.util.Iterator;
+import java.util.Map.Entry;
 import java.util.Set;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
+import org.slf4j.Logger;
+
 import com.alibaba.rocketmq.client.exception.MQClientException;
+import com.alibaba.rocketmq.client.log.ClientLogger;
 import com.alibaba.rocketmq.common.message.MessageQueue;
 import com.alibaba.rocketmq.common.protocol.heartbeat.MessageModel;
 
@@ -35,15 +39,21 @@ import com.alibaba.rocketmq.common.protocol.heartbeat.MessageModel;
  * @since 2014-2-26
  */
 public class MQPullConsumerScheduleService {
+    private final Logger log = ClientLogger.getLog();
     private DefaultMQPullConsumer defaultMQPullConsumer;
     private int pullThreadNums = 20;
+    private ConcurrentHashMap<String /* topic */, PullTaskCallback> callbackTable =
+            new ConcurrentHashMap<String, PullTaskCallback>();
 
     /**
      * 具体实现，使用者不用关心
      */
-    private ThreadPoolExecutor pullExecutor;
-    private final BlockingQueue<Runnable> pullRequestQueue = new LinkedBlockingQueue<Runnable>();
+    private ScheduledThreadPoolExecutor scheduledThreadPoolExecutor;
     private final MessageQueueListener messageQueueListener = new MessageQueueListenerImpl();
+
+    // 正在拉取的任务
+    private final ConcurrentHashMap<MessageQueue, PullTaskImpl> taskTable =
+            new ConcurrentHashMap<MessageQueue, PullTaskImpl>();
 
     class MessageQueueListenerImpl implements MessageQueueListener {
         @Override
@@ -52,8 +62,10 @@ public class MQPullConsumerScheduleService {
                     MQPullConsumerScheduleService.this.defaultMQPullConsumer.getMessageModel();
             switch (messageModel) {
             case BROADCASTING:
+                MQPullConsumerScheduleService.this.putTask(topic, mqAll);
                 break;
             case CLUSTERING:
+                MQPullConsumerScheduleService.this.putTask(topic, mqDivided);
                 break;
             default:
                 break;
@@ -61,10 +73,93 @@ public class MQPullConsumerScheduleService {
         }
     }
 
+    class PullTaskImpl implements Runnable {
+        private final MessageQueue messageQueue;
+        private volatile boolean cancelled = false;
+
+
+        public PullTaskImpl(final MessageQueue messageQueue) {
+            this.messageQueue = messageQueue;
+        }
+
+
+        @Override
+        public void run() {
+            String topic = this.messageQueue.getTopic();
+            if (!this.isCancelled()) {
+                PullTaskCallback pullTaskCallback =
+                        MQPullConsumerScheduleService.this.callbackTable.get(topic);
+                if (pullTaskCallback != null) {
+                    final PullTaskContext context = new PullTaskContext();
+                    try {
+                        pullTaskCallback.doPullTask(this.messageQueue, context);
+                    }
+                    catch (Throwable e) {
+                        context.setPullNextDelayTimeMillis(1000);
+                        log.error("doPullTask Exception", e);
+                    }
+
+                    if (!this.isCancelled()) {
+                        MQPullConsumerScheduleService.this.scheduledThreadPoolExecutor.schedule(this,
+                            context.getPullNextDelayTimeMillis(), TimeUnit.MILLISECONDS);
+                    }
+                    else {
+                        log.warn("The Pull Task is cancelled after doPullTask, {}", messageQueue);
+                    }
+                }
+                else {
+                    log.warn("Pull Task Callback not exist , {}", topic);
+                }
+            }
+            else {
+                log.warn("The Pull Task is cancelled, {}", messageQueue);
+            }
+        }
+
+
+        public boolean isCancelled() {
+            return cancelled;
+        }
+
+
+        public void setCancelled(boolean cancelled) {
+            this.cancelled = cancelled;
+        }
+
+
+        public MessageQueue getMessageQueue() {
+            return messageQueue;
+        }
+    }
+
 
     public MQPullConsumerScheduleService(final DefaultMQPullConsumer defaultMQPullConsumer) {
         this.defaultMQPullConsumer = defaultMQPullConsumer;
-        this.defaultMQPullConsumer.setMessageQueueListener(this.messageQueueListener);
+
+    }
+
+
+    public void putTask(String topic, Set<MessageQueue> mqNewSet) {
+        // 删除多余的队列
+        Iterator<Entry<MessageQueue, PullTaskImpl>> it = this.taskTable.entrySet().iterator();
+        while (it.hasNext()) {
+            Entry<MessageQueue, PullTaskImpl> next = it.next();
+            if (next.getKey().getTopic().equals(topic)) {
+                if (!mqNewSet.contains(next.getKey())) {
+                    next.getValue().setCancelled(true);
+                    it.remove();
+                }
+            }
+        }
+
+        // 增加新的队列
+        for (MessageQueue mq : mqNewSet) {
+            if (!this.taskTable.contains(mq)) {
+                PullTaskImpl command = new PullTaskImpl(mq);
+                this.taskTable.put(mq, command);
+                this.scheduledThreadPoolExecutor.schedule(command, 0, TimeUnit.MILLISECONDS);
+            }
+        }
     }
 
 
@@ -75,23 +170,32 @@ public class MQPullConsumerScheduleService {
      */
     public void start() throws MQClientException {
         final String group = this.defaultMQPullConsumer.getConsumerGroup();
-        this.pullExecutor = new ThreadPoolExecutor(//
+        this.scheduledThreadPoolExecutor = new ScheduledThreadPoolExecutor(//
             this.pullThreadNums,//
-            this.pullThreadNums,//
-            1000 * 60,//
-            TimeUnit.MILLISECONDS,//
-            this.pullRequestQueue,//
             new ThreadFactory() {
                 private AtomicLong threadIndex = new AtomicLong(0);
 
 
                 @Override
                 public Thread newThread(Runnable r) {
-                    return new Thread(r, "PullMessageThread-" //
+                    return new Thread(r, "PullMsgThread-" //
                             + group//
                             + "-" + this.threadIndex.incrementAndGet());
                 }
             });
+
+        this.defaultMQPullConsumer.setMessageQueueListener(this.messageQueueListener);
+
+        this.defaultMQPullConsumer.start();
+
+        log.info("MQPullConsumerScheduleService start OK, {} {}",
+            this.defaultMQPullConsumer.getConsumerGroup(), this.callbackTable);
+    }
+
+
+    public void registerPullCallback(final String topic, final PullTaskCallback callback) {
+        this.callbackTable.put(topic, callback);
+        this.defaultMQPullConsumer.registerMessageQueueListener(topic, null);
     }
 
 
@@ -99,8 +203,38 @@ public class MQPullConsumerScheduleService {
      * 关闭服务
      */
     public void shutdown() {
-        if (this.pullExecutor != null) {
-            this.pullExecutor.shutdown();
+        if (this.scheduledThreadPoolExecutor != null) {
+            this.scheduledThreadPoolExecutor.shutdown();
         }
+    }
+
+
+    public ConcurrentHashMap<String, PullTaskCallback> getCallbackTable() {
+        return callbackTable;
+    }
+
+
+    public void setCallbackTable(ConcurrentHashMap<String, PullTaskCallback> callbackTable) {
+        this.callbackTable = callbackTable;
+    }
+
+
+    public int getPullThreadNums() {
+        return pullThreadNums;
+    }
+
+
+    public void setPullThreadNums(int pullThreadNums) {
+        this.pullThreadNums = pullThreadNums;
+    }
+
+
+    public DefaultMQPullConsumer getDefaultMQPullConsumer() {
+        return defaultMQPullConsumer;
+    }
+
+
+    public void setDefaultMQPullConsumer(DefaultMQPullConsumer defaultMQPullConsumer) {
+        this.defaultMQPullConsumer = defaultMQPullConsumer;
     }
 }
