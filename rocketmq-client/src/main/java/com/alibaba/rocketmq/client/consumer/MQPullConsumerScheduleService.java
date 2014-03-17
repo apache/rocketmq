@@ -206,6 +206,10 @@ public class MQPullConsumerScheduleService {
         if (this.scheduledThreadPoolExecutor != null) {
             this.scheduledThreadPoolExecutor.shutdown();
         }
+
+        if (this.defaultMQPullConsumer != null) {
+            this.defaultMQPullConsumer.shutdown();
+        }
     }
 
 
