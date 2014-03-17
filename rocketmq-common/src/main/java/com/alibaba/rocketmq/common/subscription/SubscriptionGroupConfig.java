@@ -19,7 +19,7 @@ public class SubscriptionGroupConfig {
     // 消费失败的消息放到一个重试队列，每个订阅组配置几个重试队列
     private int retryQueueNums = 1;
     // 重试消费最大次数，超过则投递到死信队列，不再投递，并报警
-    private int retryMaxTimes = 5;
+    private int retryMaxTimes = 16;
     // 从哪个Broker开始消费
     private long brokerId = MixAll.MASTER_ID;
     // 发现消息堆积后，将Consumer的消费请求重定向到另外一台Slave机器
