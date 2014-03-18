@@ -10,7 +10,7 @@ import com.alibaba.rocketmq.common.message.MessageQueue;
 import com.alibaba.rocketmq.common.protocol.heartbeat.MessageModel;
 
 
-public class PullcheduleService {
+public class PullScheduleService {
 
     public static void main(String[] args) throws MQClientException {
         final MQPullConsumerScheduleService scheduleService = new MQPullConsumerScheduleService("GroupName1");
@@ -50,5 +50,4 @@ public class PullcheduleService {
 
         scheduleService.start();
     }
-
 }
