@@ -37,5 +37,6 @@ RocketMQ是一款分布式、队列模型的消息中间件，具有以下特点
 * 欢迎参与RocketMQ项目，只需在Github上fork、pull request即可。
 * [到新浪微博交流RocketMQ](http://q.weibo.com/1628465)
 * 加入QQ群交流，5776652
+* [告知我们你正在使用RocketMQ](https://github.com/alibaba/RocketMQ/issues/368)
 
 ----------
