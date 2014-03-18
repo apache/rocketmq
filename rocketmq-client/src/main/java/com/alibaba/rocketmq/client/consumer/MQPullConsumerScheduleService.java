@@ -133,9 +133,9 @@ public class MQPullConsumerScheduleService {
     }
 
 
-    public MQPullConsumerScheduleService(final DefaultMQPullConsumer defaultMQPullConsumer) {
-        this.defaultMQPullConsumer = defaultMQPullConsumer;
-
+    public MQPullConsumerScheduleService(final String consumerGroup) {
+        this.defaultMQPullConsumer = new DefaultMQPullConsumer(consumerGroup);
+        this.defaultMQPullConsumer.setMessageModel(MessageModel.CLUSTERING);
     }
 
 
@@ -240,5 +240,15 @@ public class MQPullConsumerScheduleService {
 
     public void setDefaultMQPullConsumer(DefaultMQPullConsumer defaultMQPullConsumer) {
         this.defaultMQPullConsumer = defaultMQPullConsumer;
+    }
+
+
+    public MessageModel getMessageModel() {
+        return this.defaultMQPullConsumer.getMessageModel();
+    }
+
+
+    public void setMessageModel(MessageModel messageModel) {
+        this.defaultMQPullConsumer.setMessageModel(messageModel);
     }
 }
