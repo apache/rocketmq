@@ -13,22 +13,20 @@ import com.alibaba.rocketmq.common.protocol.heartbeat.MessageModel;
 public class PullcheduleService {
 
     public static void main(String[] args) throws MQClientException {
-        final DefaultMQPullConsumer consumer =
-                new DefaultMQPullConsumer("please_rename_unique_group_name_04");
-        MQPullConsumerScheduleService scheduleService = new MQPullConsumerScheduleService(consumer);
+        final MQPullConsumerScheduleService scheduleService = new MQPullConsumerScheduleService("GroupName1");
 
-        consumer.setMessageModel(MessageModel.CLUSTERING);
-
+        scheduleService.setMessageModel(MessageModel.CLUSTERING);
         scheduleService.registerPullTaskCallback("TopicTest1", new PullTaskCallback() {
 
             @Override
             public void doPullTask(MessageQueue mq, PullTaskContext context) {
+                DefaultMQPullConsumer consumer = scheduleService.getDefaultMQPullConsumer();
                 try {
                     long offset = consumer.fetchConsumeOffset(mq, false);
                     if (offset < 0)
                         offset = 0;
 
-                    PullResult pullResult = consumer.pullBlockIfNotFound(mq, null, offset, 32);
+                    PullResult pullResult = consumer.pull(mq, "*", offset, 32);
                     System.out.println(offset + "\t" + mq + "\t" + pullResult);
                     switch (pullResult.getPullStatus()) {
                     case FOUND:
