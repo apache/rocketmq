@@ -17,6 +17,7 @@ package com.alibaba.rocketmq.client.impl.consumer;
 
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import com.alibaba.rocketmq.client.consumer.AllocateMessageQueueStrategy;
 import com.alibaba.rocketmq.client.consumer.store.OffsetStore;
@@ -169,12 +170,31 @@ public class RebalancePushImpl extends RebalanceImpl {
 
 
     @Override
-    public void removeUnnecessaryMessageQueue(MessageQueue mq, ProcessQueue pq) {
+    public boolean removeUnnecessaryMessageQueue(MessageQueue mq, ProcessQueue pq) {
         this.defaultMQPushConsumerImpl.getOffsetStore().persist(mq);
         this.defaultMQPushConsumerImpl.getOffsetStore().removeOffset(mq);
         if (this.defaultMQPushConsumerImpl.isConsumeOrderly()
                 && MessageModel.CLUSTERING.equals(this.defaultMQPushConsumerImpl.messageModel())) {
-            this.unlock(mq, true);
+            try {
+                if (pq.getLockConsume().tryLock(1000, TimeUnit.MILLISECONDS)) {
+                    try {
+                        this.unlock(mq, true);
+                        return true;
+                    }
+                    finally {
+                        pq.getLockConsume().unlock();
+                    }
+                }
+                else {
+                    log.warn("mq is consuming, so can not unlock it, {}", mq);
+                }
+            }
+            catch (Exception e) {
+                log.error("removeUnnecessaryMessageQueue Exception", e);
+            }
+
+            return false;
         }
+        return true;
     }
 }
