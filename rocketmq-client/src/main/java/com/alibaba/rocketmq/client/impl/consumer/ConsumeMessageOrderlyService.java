@@ -181,6 +181,12 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
 
         @Override
         public void run() {
+            if (this.processQueue.isDroped()) {
+                log.warn("run, the message queue not be able to consume, because it's dropped. {}",
+                    this.messageQueue);
+                return;
+            }
+
             // 保证在当前Consumer内，同一队列串行消费
             final Object objLock = messageQueueLock.fetchLockObject(this.messageQueue);
             synchronized (objLock) {
@@ -254,6 +260,14 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
                             long beginTimestamp = System.currentTimeMillis();
 
                             try {
+                                this.processQueue.getLockConsume().lock();
+                                if (this.processQueue.isDroped()) {
+                                    log.warn(
+                                        "consumeMessage, the message queue not be able to consume, because it's dropped. {}",
+                                        this.messageQueue);
+                                    break;
+                                }
+
                                 status = messageListener.consumeMessage(msgs, context);
                             }
                             catch (Throwable e) {
@@ -262,6 +276,9 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
                                     ConsumeMessageOrderlyService.this.consumerGroup,//
                                     msgs,//
                                     messageQueue);
+                            }
+                            finally {
+                                this.processQueue.getLockConsume().unlock();
                             }
 
                             // 针对异常返回代码打印日志
@@ -311,8 +328,9 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
                             this.messageQueue);
                         return;
                     }
+
                     ConsumeMessageOrderlyService.this.tryLockLaterAndReconsume(this.messageQueue,
-                        this.processQueue, 10);
+                        this.processQueue, 100);
                 }
             }
         }

@@ -20,7 +20,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.slf4j.Logger;
@@ -55,6 +57,8 @@ public class ProcessQueue {
     /**
      * 顺序消息专用
      */
+    private final Lock lockConsume = new ReentrantLock();
+
     // 是否从Broker锁定
     private volatile boolean locked = false;
     // 最后一次锁定成功时间戳
@@ -331,5 +335,10 @@ public class ProcessQueue {
 
     public void setLastLockTimestamp(long lastLockTimestamp) {
         this.lastLockTimestamp = lastLockTimestamp;
+    }
+
+
+    public Lock getLockConsume() {
+        return lockConsume;
     }
 }

@@ -362,11 +362,12 @@ public abstract class RebalanceImpl {
 
             if (mq.getTopic().equals(topic)) {
                 if (!mqSet.contains(mq)) {
-                    changed = true;
-                    it.remove();
                     pq.setDroped(true);
-                    log.info("doRebalance, {}, remove unnecessary mq, {}", consumerGroup, mq);
-                    this.removeUnnecessaryMessageQueue(mq, pq);
+                    if (this.removeUnnecessaryMessageQueue(mq, pq)) {
+                        it.remove();
+                        changed = true;
+                        log.info("doRebalance, {}, remove unnecessary mq, {}", consumerGroup, mq);
+                    }
                 }
             }
         }
@@ -402,7 +403,7 @@ public abstract class RebalanceImpl {
     }
 
 
-    public abstract void removeUnnecessaryMessageQueue(final MessageQueue mq, final ProcessQueue pq);
+    public abstract boolean removeUnnecessaryMessageQueue(final MessageQueue mq, final ProcessQueue pq);
 
 
     public abstract void dispatchPullRequest(final List<PullRequest> pullRequestList);
