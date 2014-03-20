@@ -68,8 +68,11 @@ public class QueryMsgByKeySubCommand implements SubCommand {
             final long fallbackHours) throws MQClientException, InterruptedException {
         admin.start();
 
+        /**
+         * 默认查询三天的前到现在的消息
+         */
         long end = System.currentTimeMillis() - (fallbackHours * 60 * 60 * 1000);
-        long begin = end - (6 * 60 * 60 * 1000);
+        long begin = end - (72 * 60 * 60 * 1000);
 
         QueryResult queryResult = admin.queryMessage(topic, key, 32, begin, end);
         System.out.printf("%-50s %-4s  %s\n",//
