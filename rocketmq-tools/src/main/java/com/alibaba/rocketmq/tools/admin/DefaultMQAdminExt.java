@@ -35,6 +35,7 @@ import com.alibaba.rocketmq.common.message.MessageQueue;
 import com.alibaba.rocketmq.common.protocol.body.ClusterInfo;
 import com.alibaba.rocketmq.common.protocol.body.ConsumeByWho;
 import com.alibaba.rocketmq.common.protocol.body.ConsumerConnection;
+import com.alibaba.rocketmq.common.protocol.body.GroupList;
 import com.alibaba.rocketmq.common.protocol.body.KVTable;
 import com.alibaba.rocketmq.common.protocol.body.ProducerConnection;
 import com.alibaba.rocketmq.common.protocol.body.TopicList;
@@ -355,5 +356,11 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
     public void createOrUpdateOrderConf(String key, String value, boolean isCluster)
             throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
         defaultMQAdminExtImpl.createOrUpdateOrderConf(key, value, isCluster);
+    }
+
+
+    @Override
+    public GroupList queryTopicConsumeByWho(String topic) {
+        return this.defaultMQAdminExtImpl.queryTopicConsumeByWho(topic);
     }
 }
