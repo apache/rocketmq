@@ -28,7 +28,7 @@ import com.alibaba.rocketmq.broker.client.ConsumerGroupInfo;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.common.constant.PermName;
-import com.alibaba.rocketmq.common.protocol.MQProtos.MQRequestCode;
+import com.alibaba.rocketmq.common.protocol.RequestCode;
 import com.alibaba.rocketmq.common.protocol.header.GetConsumerListByGroupRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.GetConsumerListByGroupResponseBody;
 import com.alibaba.rocketmq.common.protocol.header.GetConsumerListByGroupResponseHeader;
@@ -65,13 +65,12 @@ public class ClientManageProcessor implements NettyRequestProcessor {
     @Override
     public RemotingCommand processRequest(ChannelHandlerContext ctx, RemotingCommand request)
             throws RemotingCommandException {
-        MQRequestCode code = MQRequestCode.valueOf(request.getCode());
-        switch (code) {
-        case HEART_BEAT:
+        switch (request.getCode()) {
+        case RequestCode.HEART_BEAT:
             return this.heartBeat(ctx, request);
-        case UNREGISTER_CLIENT:
+        case RequestCode.UNREGISTER_CLIENT:
             return this.unregisterClient(ctx, request);
-        case GET_CONSUMER_LIST_BY_GROUP:
+        case RequestCode.GET_CONSUMER_LIST_BY_GROUP:
             return this.getConsumerListByGroup(ctx, request);
         default:
             break;

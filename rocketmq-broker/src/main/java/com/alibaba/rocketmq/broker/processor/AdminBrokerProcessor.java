@@ -41,8 +41,8 @@ import com.alibaba.rocketmq.common.admin.TopicOffset;
 import com.alibaba.rocketmq.common.admin.TopicStatsTable;
 import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.common.message.MessageQueue;
-import com.alibaba.rocketmq.common.protocol.MQProtos.MQRequestCode;
 import com.alibaba.rocketmq.common.protocol.MQProtos.MQResponseCode;
+import com.alibaba.rocketmq.common.protocol.RequestCode;
 import com.alibaba.rocketmq.common.protocol.body.Connection;
 import com.alibaba.rocketmq.common.protocol.body.ConsumerConnection;
 import com.alibaba.rocketmq.common.protocol.body.KVTable;
@@ -104,86 +104,85 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
     @Override
     public RemotingCommand processRequest(ChannelHandlerContext ctx, RemotingCommand request)
             throws RemotingCommandException {
-        MQRequestCode code = MQRequestCode.valueOf(request.getCode());
-        switch (code) {
+        switch (request.getCode()) {
         // 更新创建Topic
-        case UPDATE_AND_CREATE_TOPIC:
+        case RequestCode.UPDATE_AND_CREATE_TOPIC:
             return this.updateAndCreateTopic(ctx, request);
             // 删除Topic
-        case DELETE_TOPIC_IN_BROKER:
+        case RequestCode.DELETE_TOPIC_IN_BROKER:
             return this.deleteTopic(ctx, request);
             // 获取Topic配置
-        case GET_ALL_TOPIC_CONFIG:
+        case RequestCode.GET_ALL_TOPIC_CONFIG:
             return this.getAllTopicConfig(ctx, request);
 
             // 更新Broker配置 TODO 可能存在并发问题
-        case UPDATE_BROKER_CONFIG:
+        case RequestCode.UPDATE_BROKER_CONFIG:
             return this.updateBrokerConfig(ctx, request);
             // 获取Broker配置
-        case GET_BROKER_CONFIG:
+        case RequestCode.GET_BROKER_CONFIG:
             return this.getBrokerConfig(ctx, request);
 
             // 根据时间查询Offset
-        case SEARCH_OFFSET_BY_TIMESTAMP:
+        case RequestCode.SEARCH_OFFSET_BY_TIMESTAMP:
             return this.searchOffsetByTimestamp(ctx, request);
-        case GET_MAX_OFFSET:
+        case RequestCode.GET_MAX_OFFSET:
             return this.getMaxOffset(ctx, request);
-        case GET_MIN_OFFSET:
+        case RequestCode.GET_MIN_OFFSET:
             return this.getMinOffset(ctx, request);
-        case GET_EARLIEST_MSG_STORETIME:
+        case RequestCode.GET_EARLIEST_MSG_STORETIME:
             return this.getEarliestMsgStoretime(ctx, request);
 
             // 更新Consumer Offset
-        case UPDATE_CONSUMER_OFFSET:
+        case RequestCode.UPDATE_CONSUMER_OFFSET:
             return this.updateConsumerOffset(ctx, request);
-        case QUERY_CONSUMER_OFFSET:
+        case RequestCode.QUERY_CONSUMER_OFFSET:
             return this.queryConsumerOffset(ctx, request);
 
             // 获取Broker运行时信息
-        case GET_BROKER_RUNTIME_INFO:
+        case RequestCode.GET_BROKER_RUNTIME_INFO:
             return this.getBrokerRuntimeInfo(ctx, request);
 
             // 锁队列与解锁队列
-        case LOCK_BATCH_MQ:
+        case RequestCode.LOCK_BATCH_MQ:
             return this.lockBatchMQ(ctx, request);
-        case UNLOCK_BATCH_MQ:
+        case RequestCode.UNLOCK_BATCH_MQ:
             return this.unlockBatchMQ(ctx, request);
 
             // 订阅组配置
-        case UPDATE_AND_CREATE_SUBSCRIPTIONGROUP:
+        case RequestCode.UPDATE_AND_CREATE_SUBSCRIPTIONGROUP:
             return this.updateAndCreateSubscriptionGroup(ctx, request);
-        case GET_ALL_SUBSCRIPTIONGROUP_CONFIG:
+        case RequestCode.GET_ALL_SUBSCRIPTIONGROUP_CONFIG:
             return this.getAllSubscriptionGroup(ctx, request);
-        case DELETE_SUBSCRIPTIONGROUP:
+        case RequestCode.DELETE_SUBSCRIPTIONGROUP:
             return this.deleteSubscriptionGroup(ctx, request);
 
             // 统计信息，获取Topic统计信息
-        case GET_TOPIC_STATS_INFO:
+        case RequestCode.GET_TOPIC_STATS_INFO:
             return this.getTopicStatsInfo(ctx, request);
 
             // Consumer连接管理
-        case GET_CONSUMER_CONNECTION_LIST:
+        case RequestCode.GET_CONSUMER_CONNECTION_LIST:
             return this.getConsumerConnectionList(ctx, request);
             // Producer连接管理
-        case GET_PRODUCER_CONNECTION_LIST:
+        case RequestCode.GET_PRODUCER_CONNECTION_LIST:
             return this.getProducerConnectionList(ctx, request);
 
             // 查询消费进度，订阅组下的所有Topic
-        case GET_CONSUME_STATS:
+        case RequestCode.GET_CONSUME_STATS:
             return this.getConsumeStats(ctx, request);
-        case GET_ALL_CONSUMER_OFFSET:
+        case RequestCode.GET_ALL_CONSUMER_OFFSET:
             return this.getAllConsumerOffset(ctx, request);
 
             // 定时进度
-        case GET_ALL_DELAY_OFFSET:
+        case RequestCode.GET_ALL_DELAY_OFFSET:
             return this.getAllDelayOffset(ctx, request);
 
             // 调用客户端重置 offset
-        case INVOKE_BROKER_TO_RESET_OFFSET:
+        case RequestCode.INVOKE_BROKER_TO_RESET_OFFSET:
             return this.resetOffset(ctx, request);
 
             // 调用客户端订阅消息处理
-        case INVOKE_BROKER_TO_GET_CONSUMER_STATUS:
+        case RequestCode.INVOKE_BROKER_TO_GET_CONSUMER_STATUS:
             return this.getConsumerStatus(ctx, request);
         default:
             break;

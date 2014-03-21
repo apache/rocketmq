@@ -35,7 +35,7 @@ import com.alibaba.rocketmq.common.TopicConfig;
 import com.alibaba.rocketmq.common.UtilAll;
 import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.common.message.MessageQueue;
-import com.alibaba.rocketmq.common.protocol.MQProtos.MQRequestCode;
+import com.alibaba.rocketmq.common.protocol.RequestCode;
 import com.alibaba.rocketmq.common.protocol.body.GetConsumerStatusBody;
 import com.alibaba.rocketmq.common.protocol.body.ResetOffsetBody;
 import com.alibaba.rocketmq.common.protocol.header.CheckTransactionStateRequestHeader;
@@ -73,8 +73,7 @@ public class Broker2Client {
             final SelectMapedBufferResult selectMapedBufferResult//
     ) {
         RemotingCommand request =
-                RemotingCommand.createRequestCommand(MQRequestCode.CHECK_TRANSACTION_STATE_VALUE,
-                    requestHeader);
+                RemotingCommand.createRequestCommand(RequestCode.CHECK_TRANSACTION_STATE, requestHeader);
         request.markOnewayRPC();
 
         try {
@@ -108,8 +107,7 @@ public class Broker2Client {
         NotifyConsumerIdsChangedRequestHeader requestHeader = new NotifyConsumerIdsChangedRequestHeader();
         requestHeader.setConsumerGroup(consumerGroup);
         RemotingCommand request =
-                RemotingCommand.createRequestCommand(MQRequestCode.NOTIFY_CONSUMER_IDS_CHANGED_VALUE,
-                    requestHeader);
+                RemotingCommand.createRequestCommand(RequestCode.NOTIFY_CONSUMER_IDS_CHANGED, requestHeader);
 
         try {
             this.brokerController.getRemotingServer().invokeOneway(channel, request, 1000);
@@ -158,8 +156,7 @@ public class Broker2Client {
         requestHeader.setGroup(group);
         requestHeader.setTimestamp(timeStamp);
         RemotingCommand request =
-                RemotingCommand.createRequestCommand(MQRequestCode.RESET_CONSUMER_CLIENT_OFFSET_VALUE,
-                    requestHeader);
+                RemotingCommand.createRequestCommand(RequestCode.RESET_CONSUMER_CLIENT_OFFSET, requestHeader);
         ResetOffsetBody body = new ResetOffsetBody();
         body.setOffsetTable(offsetTable);
         request.setBody(body.encode());
@@ -207,7 +204,7 @@ public class Broker2Client {
         requestHeader.setTopic(topic);
         requestHeader.setGroup(group);
         RemotingCommand request =
-                RemotingCommand.createRequestCommand(MQRequestCode.GET_CONSUMER_STATUS_FROM_CLIENT_VALUE,
+                RemotingCommand.createRequestCommand(RequestCode.GET_CONSUMER_STATUS_FROM_CLIENT,
                     requestHeader);
 
         Map<String, Map<MessageQueue, Long>> consumerStatusTable =
