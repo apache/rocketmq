@@ -60,7 +60,7 @@ import com.alibaba.rocketmq.common.message.MessageDecoder;
 import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.common.message.MessageId;
 import com.alibaba.rocketmq.common.message.MessageQueue;
-import com.alibaba.rocketmq.common.protocol.MQProtos.MQResponseCode;
+import com.alibaba.rocketmq.common.protocol.ResponseCode;
 import com.alibaba.rocketmq.common.protocol.header.CheckTransactionStateRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.EndTransactionRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.SendMessageRequestHeader;
@@ -68,7 +68,6 @@ import com.alibaba.rocketmq.common.sysflag.MessageSysFlag;
 import com.alibaba.rocketmq.remoting.common.RemotingHelper;
 import com.alibaba.rocketmq.remoting.common.RemotingUtil;
 import com.alibaba.rocketmq.remoting.exception.RemotingException;
-import com.alibaba.rocketmq.remoting.protocol.RemotingProtos.ResponseCode;
 
 
 /**
@@ -513,10 +512,10 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                         exception = e;
                         endTimestamp = System.currentTimeMillis();
                         switch (e.getResponseCode()) {
-                        case MQResponseCode.TOPIC_NOT_EXIST_VALUE:
-                        case MQResponseCode.SERVICE_NOT_AVAILABLE_VALUE:
-                        case ResponseCode.SYSTEM_ERROR_VALUE:
-                        case MQResponseCode.NO_PERMISSION_VALUE:
+                        case ResponseCode.TOPIC_NOT_EXIST :
+                        case ResponseCode.SERVICE_NOT_AVAILABLE :
+                        case ResponseCode.SYSTEM_ERROR :
+                        case ResponseCode.NO_PERMISSION :
                             continue;
                         default:
                             if (sendResult != null) {

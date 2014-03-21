@@ -29,6 +29,7 @@ import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.common.constant.PermName;
 import com.alibaba.rocketmq.common.protocol.RequestCode;
+import com.alibaba.rocketmq.common.protocol.ResponseCode;
 import com.alibaba.rocketmq.common.protocol.header.GetConsumerListByGroupRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.GetConsumerListByGroupResponseBody;
 import com.alibaba.rocketmq.common.protocol.header.GetConsumerListByGroupResponseHeader;
@@ -42,7 +43,6 @@ import com.alibaba.rocketmq.remoting.common.RemotingHelper;
 import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
 import com.alibaba.rocketmq.remoting.netty.NettyRequestProcessor;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
-import com.alibaba.rocketmq.remoting.protocol.RemotingProtos.ResponseCode;
 
 
 /**
@@ -96,7 +96,7 @@ public class ClientManageProcessor implements NettyRequestProcessor {
                 GetConsumerListByGroupResponseBody body = new GetConsumerListByGroupResponseBody();
                 body.setConsumerIdList(clientIds);
                 response.setBody(body.encode());
-                response.setCode(ResponseCode.SUCCESS_VALUE);
+                response.setCode(ResponseCode.SUCCESS);
                 response.setRemark(null);
                 return response;
             }
@@ -110,7 +110,7 @@ public class ClientManageProcessor implements NettyRequestProcessor {
                 RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
         }
 
-        response.setCode(ResponseCode.SYSTEM_ERROR_VALUE);
+        response.setCode(ResponseCode.SYSTEM_ERROR);
         response.setRemark("no consumer for this group, " + requestHeader.getConsumerGroup());
         return response;
     }
@@ -143,7 +143,7 @@ public class ClientManageProcessor implements NettyRequestProcessor {
             this.brokerController.getConsumerManager().unregisterConsumer(consumerGroup, clientChannelInfo);
         }
 
-        response.setCode(ResponseCode.SUCCESS_VALUE);
+        response.setCode(ResponseCode.SUCCESS);
         response.setRemark(null);
         return response;
     }
@@ -197,7 +197,7 @@ public class ClientManageProcessor implements NettyRequestProcessor {
                 clientChannelInfo);
         }
 
-        response.setCode(ResponseCode.SUCCESS_VALUE);
+        response.setCode(ResponseCode.SUCCESS);
         response.setRemark(null);
         return response;
     }

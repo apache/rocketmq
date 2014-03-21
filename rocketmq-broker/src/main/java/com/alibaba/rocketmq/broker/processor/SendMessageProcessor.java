@@ -39,8 +39,8 @@ import com.alibaba.rocketmq.common.help.FAQUrl;
 import com.alibaba.rocketmq.common.message.MessageConst;
 import com.alibaba.rocketmq.common.message.MessageDecoder;
 import com.alibaba.rocketmq.common.message.MessageExt;
-import com.alibaba.rocketmq.common.protocol.MQProtos.MQResponseCode;
 import com.alibaba.rocketmq.common.protocol.RequestCode;
+import com.alibaba.rocketmq.common.protocol.ResponseCode;
 import com.alibaba.rocketmq.common.protocol.header.ConsumerSendMsgBackRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.SendMessageRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.SendMessageResponseHeader;
@@ -50,7 +50,6 @@ import com.alibaba.rocketmq.remoting.common.RemotingHelper;
 import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
 import com.alibaba.rocketmq.remoting.netty.NettyRequestProcessor;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
-import com.alibaba.rocketmq.remoting.protocol.RemotingProtos.ResponseCode;
 import com.alibaba.rocketmq.store.MessageExtBrokerInner;
 import com.alibaba.rocketmq.store.PutMessageResult;
 
@@ -105,7 +104,7 @@ public class SendMessageProcessor implements NettyRequestProcessor {
                 this.brokerController.getSubscriptionGroupManager().findSubscriptionGroupConfig(
                     requestHeader.getGroup());
         if (null == subscriptionGroupConfig) {
-            response.setCode(MQResponseCode.SUBSCRIPTION_GROUP_NOT_EXIST_VALUE);
+            response.setCode(ResponseCode.SUBSCRIPTION_GROUP_NOT_EXIST );
             response.setRemark("subscription group not exist, " + requestHeader.getGroup() + " "
                     + FAQUrl.suggestTodo(FAQUrl.SUBSCRIPTION_GROUP_NOT_EXIST));
             return response;
@@ -113,7 +112,7 @@ public class SendMessageProcessor implements NettyRequestProcessor {
 
         // 如果重试队列数目为0，则直接丢弃消息
         if (subscriptionGroupConfig.getRetryQueueNums() <= 0) {
-            response.setCode(ResponseCode.SUCCESS_VALUE);
+            response.setCode(ResponseCode.SUCCESS);
             response.setRemark(null);
             return response;
         }
@@ -129,14 +128,14 @@ public class SendMessageProcessor implements NettyRequestProcessor {
                     subscriptionGroupConfig.getRetryQueueNums(), //
                     PermName.PERM_WRITE | PermName.PERM_READ);
         if (null == topicConfig) {
-            response.setCode(ResponseCode.SYSTEM_ERROR_VALUE);
+            response.setCode(ResponseCode.SYSTEM_ERROR);
             response.setRemark("topic[" + newTopic + "] not exist");
             return response;
         }
 
         // 检查topic权限
         if (!PermName.isWriteable(topicConfig.getPerm())) {
-            response.setCode(MQResponseCode.NO_PERMISSION_VALUE);
+            response.setCode(ResponseCode.NO_PERMISSION );
             response.setRemark("the topic[" + newTopic + "] sending message is forbidden");
             return response;
         }
@@ -146,7 +145,7 @@ public class SendMessageProcessor implements NettyRequestProcessor {
         MessageExt msgExt =
                 this.brokerController.getMessageStore().lookMessageByOffset(requestHeader.getOffset());
         if (null == msgExt) {
-            response.setCode(ResponseCode.SYSTEM_ERROR_VALUE);
+            response.setCode(ResponseCode.SYSTEM_ERROR);
             response.setRemark("look message by offset failed, " + requestHeader.getOffset());
             return response;
         }
@@ -173,7 +172,7 @@ public class SendMessageProcessor implements NettyRequestProcessor {
                         DLQ_NUMS_PER_GROUP,//
                         PermName.PERM_WRITE);
             if (null == topicConfig) {
-                response.setCode(ResponseCode.SYSTEM_ERROR_VALUE);
+                response.setCode(ResponseCode.SYSTEM_ERROR);
                 response.setRemark("topic[" + newTopic + "] not exist");
                 return response;
             }
@@ -208,19 +207,19 @@ public class SendMessageProcessor implements NettyRequestProcessor {
         if (putMessageResult != null) {
             switch (putMessageResult.getPutMessageStatus()) {
             case PUT_OK:
-                response.setCode(ResponseCode.SUCCESS_VALUE);
+                response.setCode(ResponseCode.SUCCESS);
                 response.setRemark(null);
                 return response;
             default:
                 break;
             }
 
-            response.setCode(ResponseCode.SYSTEM_ERROR_VALUE);
+            response.setCode(ResponseCode.SYSTEM_ERROR);
             response.setRemark(putMessageResult.getPutMessageStatus().name());
             return response;
         }
 
-        response.setCode(ResponseCode.SYSTEM_ERROR_VALUE);
+        response.setCode(ResponseCode.SYSTEM_ERROR);
         response.setRemark("putMessageResult is null");
         return response;
     }
@@ -258,7 +257,7 @@ public class SendMessageProcessor implements NettyRequestProcessor {
 
         // 检查Broker权限
         if (!PermName.isWriteable(this.brokerController.getBrokerConfig().getBrokerPermission())) {
-            response.setCode(MQResponseCode.NO_PERMISSION_VALUE);
+            response.setCode(ResponseCode.NO_PERMISSION );
             response.setRemark("the broker[" + this.brokerController.getBrokerConfig().getBrokerIP1()
                     + "] sending message is forbidden");
             return response;
@@ -271,7 +270,7 @@ public class SendMessageProcessor implements NettyRequestProcessor {
             String errorMsg =
                     "the topic[" + requestHeader.getTopic() + "] is conflict with system reserved words.";
             log.warn(errorMsg);
-            response.setCode(ResponseCode.SYSTEM_ERROR_VALUE);
+            response.setCode(ResponseCode.SYSTEM_ERROR);
             response.setRemark(errorMsg);
             return response;
         }
@@ -298,7 +297,7 @@ public class SendMessageProcessor implements NettyRequestProcessor {
             }
 
             if (null == topicConfig) {
-                response.setCode(MQResponseCode.TOPIC_NOT_EXIST_VALUE);
+                response.setCode(ResponseCode.TOPIC_NOT_EXIST );
                 response.setRemark("topic[" + requestHeader.getTopic() + "] not exist, apply first please!"
                         + FAQUrl.suggestTodo(FAQUrl.APPLY_TOPIC_URL));
                 return response;
@@ -307,7 +306,7 @@ public class SendMessageProcessor implements NettyRequestProcessor {
 
         // 检查topic权限
         if (!PermName.isWriteable(topicConfig.getPerm())) {
-            response.setCode(MQResponseCode.NO_PERMISSION_VALUE);
+            response.setCode(ResponseCode.NO_PERMISSION );
             response.setRemark("the topic[" + requestHeader.getTopic() + "] sending message is forbidden");
             return response;
         }
@@ -319,7 +318,7 @@ public class SendMessageProcessor implements NettyRequestProcessor {
                     "queueId[" + queueIdInt + "] is illagal, topicConfig.writeQueueNums: "
                             + topicConfig.getWriteQueueNums() + " producer: " + ctx.channel().remoteAddress();
             log.warn(errorInfo);
-            response.setCode(ResponseCode.SYSTEM_ERROR_VALUE);
+            response.setCode(ResponseCode.SYSTEM_ERROR);
             response.setRemark(errorInfo);
             return response;
         }
@@ -356,7 +355,7 @@ public class SendMessageProcessor implements NettyRequestProcessor {
         if (this.brokerController.getBrokerConfig().isRejectTransactionMessage()) {
             String traFlag = msgInner.getProperty(MessageConst.PROPERTY_TRANSACTION_PREPARED);
             if (traFlag != null) {
-                response.setCode(MQResponseCode.NO_PERMISSION_VALUE);
+                response.setCode(ResponseCode.NO_PERMISSION );
                 response.setRemark("the broker[" + this.brokerController.getBrokerConfig().getBrokerIP1()
                         + "] sending transaction message is forbidden");
                 return response;
@@ -372,40 +371,40 @@ public class SendMessageProcessor implements NettyRequestProcessor {
             // Success
             case PUT_OK:
                 sendOK = true;
-                response.setCode(ResponseCode.SUCCESS_VALUE);
+                response.setCode(ResponseCode.SUCCESS);
                 break;
             case FLUSH_DISK_TIMEOUT:
-                response.setCode(MQResponseCode.FLUSH_DISK_TIMEOUT_VALUE);
+                response.setCode(ResponseCode.FLUSH_DISK_TIMEOUT );
                 sendOK = true;
                 break;
             case FLUSH_SLAVE_TIMEOUT:
-                response.setCode(MQResponseCode.FLUSH_SLAVE_TIMEOUT_VALUE);
+                response.setCode(ResponseCode.FLUSH_SLAVE_TIMEOUT );
                 sendOK = true;
                 break;
             case SLAVE_NOT_AVAILABLE:
-                response.setCode(MQResponseCode.SLAVE_NOT_AVAILABLE_VALUE);
+                response.setCode(ResponseCode.SLAVE_NOT_AVAILABLE );
                 sendOK = true;
                 break;
 
             // Failed
             case CREATE_MAPEDFILE_FAILED:
-                response.setCode(ResponseCode.SYSTEM_ERROR_VALUE);
+                response.setCode(ResponseCode.SYSTEM_ERROR);
                 response.setRemark("create maped file failed, please make sure OS and JDK both 64bit.");
                 break;
             case MESSAGE_ILLEGAL:
-                response.setCode(MQResponseCode.MESSAGE_ILLEGAL_VALUE);
+                response.setCode(ResponseCode.MESSAGE_ILLEGAL );
                 response.setRemark("the message is illegal, maybe length not matched.");
                 break;
             case SERVICE_NOT_AVAILABLE:
-                response.setCode(MQResponseCode.SERVICE_NOT_AVAILABLE_VALUE);
+                response.setCode(ResponseCode.SERVICE_NOT_AVAILABLE );
                 response.setRemark("service not available now, maybe disk full, " + diskUtil());
                 break;
             case UNKNOWN_ERROR:
-                response.setCode(ResponseCode.SYSTEM_ERROR_VALUE);
+                response.setCode(ResponseCode.SYSTEM_ERROR);
                 response.setRemark("UNKNOWN_ERROR");
                 break;
             default:
-                response.setCode(ResponseCode.SYSTEM_ERROR_VALUE);
+                response.setCode(ResponseCode.SYSTEM_ERROR);
                 response.setRemark("UNKNOWN_ERROR DEFAULT");
                 break;
             }
@@ -446,7 +445,7 @@ public class SendMessageProcessor implements NettyRequestProcessor {
             }
         }
         else {
-            response.setCode(ResponseCode.SYSTEM_ERROR_VALUE);
+            response.setCode(ResponseCode.SYSTEM_ERROR);
             response.setRemark("store putMessage return null");
         }
 
