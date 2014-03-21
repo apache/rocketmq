@@ -348,7 +348,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             return response;
         }
 
-        response.setCode( ResponseCode.SUBSCRIPTION_GROUP_NOT_EXIST );
+        response.setCode(ResponseCode.SUBSCRIPTION_GROUP_NOT_EXIST);
         response.setRemark("the consumer group[" + requestHeader.getConsumerGroup() + "] not online");
         return response;
     }
@@ -364,7 +364,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         final String topic = requestHeader.getTopic();
         TopicConfig topicConfig = this.brokerController.getTopicConfigManager().selectTopicConfig(topic);
         if (null == topicConfig) {
-            response.setCode(ResponseCode.TOPIC_NOT_EXIST );
+            response.setCode(ResponseCode.TOPIC_NOT_EXIST);
             response.setRemark("topic[" + topic + "] not exist");
             return response;
         }
@@ -767,7 +767,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         else {
             // 新版本服务器不做消费进度纠正
             if (request.getVersion() >= MQVersion.Version.V3_0_6_SNAPSHOT.ordinal()) {
-                response.setCode(ResponseCode.QUERY_NOT_FOUND );
+                response.setCode(ResponseCode.QUERY_NOT_FOUND);
                 response.setRemark("Not found, V3_0_6_SNAPSHOT maybe this group consumer boot first");
             }
 
@@ -823,7 +823,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                     response.setRemark(null);
                 }
                 else {
-                    response.setCode(ResponseCode.QUERY_NOT_FOUND );
+                    response.setCode(ResponseCode.QUERY_NOT_FOUND);
                     response.setRemark("Not found, maybe this group consumer boot first");
                 }
             }

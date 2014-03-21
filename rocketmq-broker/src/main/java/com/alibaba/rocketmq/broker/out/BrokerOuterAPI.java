@@ -127,7 +127,7 @@ public class BrokerOuterAPI {
         RemotingCommand response = this.remotingClient.invokeSync(namesrvAddr, request, 3000);
         assert response != null;
         switch (response.getCode()) {
-        case ResponseCode.SUCCESS : {
+        case ResponseCode.SUCCESS: {
             RegisterBrokerResponseHeader responseHeader =
                     (RegisterBrokerResponseHeader) response
                         .decodeCommandCustomHeader(RegisterBrokerResponseHeader.class);
@@ -196,7 +196,7 @@ public class BrokerOuterAPI {
         RemotingCommand response = this.remotingClient.invokeSync(namesrvAddr, request, 3000);
         assert response != null;
         switch (response.getCode()) {
-        case ResponseCode.SUCCESS : {
+        case ResponseCode.SUCCESS: {
             return;
         }
         default:
@@ -236,7 +236,7 @@ public class BrokerOuterAPI {
         RemotingCommand response = this.remotingClient.invokeSync(addr, request, 3000);
         assert response != null;
         switch (response.getCode()) {
-        case ResponseCode.SUCCESS : {
+        case ResponseCode.SUCCESS: {
             return TopicConfigSerializeWrapper.decode(response.getBody(), TopicConfigSerializeWrapper.class);
         }
         default:
@@ -261,7 +261,7 @@ public class BrokerOuterAPI {
         RemotingCommand response = this.remotingClient.invokeSync(addr, request, 3000);
         assert response != null;
         switch (response.getCode()) {
-        case ResponseCode.SUCCESS : {
+        case ResponseCode.SUCCESS: {
             return ConsumerOffsetSerializeWrapper.decode(response.getBody(),
                 ConsumerOffsetSerializeWrapper.class);
         }
@@ -286,7 +286,7 @@ public class BrokerOuterAPI {
         RemotingCommand response = this.remotingClient.invokeSync(addr, request, 3000);
         assert response != null;
         switch (response.getCode()) {
-        case ResponseCode.SUCCESS : {
+        case ResponseCode.SUCCESS: {
             return new String(response.getBody());
         }
         default:
@@ -311,7 +311,7 @@ public class BrokerOuterAPI {
         RemotingCommand response = this.remotingClient.invokeSync(addr, request, 3000);
         assert response != null;
         switch (response.getCode()) {
-        case ResponseCode.SUCCESS : {
+        case ResponseCode.SUCCESS: {
             return SubscriptionGroupWrapper.decode(response.getBody(), SubscriptionGroupWrapper.class);
         }
         default:

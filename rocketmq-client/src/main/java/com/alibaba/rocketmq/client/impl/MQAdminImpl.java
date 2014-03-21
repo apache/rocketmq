@@ -301,7 +301,7 @@ public class MQAdminImpl {
                                         RemotingCommand response = responseFuture.getResponseCommand();
                                         if (response != null) {
                                             switch (response.getCode()) {
-                                            case ResponseCode.SUCCESS : {
+                                            case ResponseCode.SUCCESS: {
                                                 QueryMessageResponseHeader responseHeader = null;
                                                 try {
                                                     responseHeader =

@@ -408,21 +408,21 @@ public class MQClientAPIImpl {
             final RemotingCommand response//
     ) throws MQBrokerException, RemotingCommandException {
         switch (response.getCode()) {
-        case ResponseCode.FLUSH_DISK_TIMEOUT :
-        case ResponseCode.FLUSH_SLAVE_TIMEOUT :
-        case ResponseCode.SLAVE_NOT_AVAILABLE : {
+        case ResponseCode.FLUSH_DISK_TIMEOUT:
+        case ResponseCode.FLUSH_SLAVE_TIMEOUT:
+        case ResponseCode.SLAVE_NOT_AVAILABLE: {
             // TODO LOG
         }
         case ResponseCode.SUCCESS: {
             SendStatus sendStatus = SendStatus.SEND_OK;
             switch (response.getCode()) {
-            case ResponseCode.FLUSH_DISK_TIMEOUT :
+            case ResponseCode.FLUSH_DISK_TIMEOUT:
                 sendStatus = SendStatus.FLUSH_DISK_TIMEOUT;
                 break;
-            case ResponseCode.FLUSH_SLAVE_TIMEOUT :
+            case ResponseCode.FLUSH_SLAVE_TIMEOUT:
                 sendStatus = SendStatus.FLUSH_SLAVE_TIMEOUT;
                 break;
-            case ResponseCode.SLAVE_NOT_AVAILABLE :
+            case ResponseCode.SLAVE_NOT_AVAILABLE:
                 sendStatus = SendStatus.SLAVE_NOT_AVAILABLE;
                 break;
             case ResponseCode.SUCCESS:
@@ -536,13 +536,13 @@ public class MQClientAPIImpl {
         case ResponseCode.SUCCESS:
             pullStatus = PullStatus.FOUND;
             break;
-        case ResponseCode.PULL_NOT_FOUND :
+        case ResponseCode.PULL_NOT_FOUND:
             pullStatus = PullStatus.NO_NEW_MSG;
             break;
-        case ResponseCode.PULL_RETRY_IMMEDIATELY :
+        case ResponseCode.PULL_RETRY_IMMEDIATELY:
             pullStatus = PullStatus.NO_MATCHED_MSG;
             break;
-        case ResponseCode.PULL_OFFSET_MOVED :
+        case ResponseCode.PULL_OFFSET_MOVED:
             pullStatus = PullStatus.OFFSET_ILLEGAL;
             break;
 
@@ -1402,7 +1402,7 @@ public class MQClientAPIImpl {
         RemotingCommand response = this.remotingClient.invokeSync(null, request, timeoutMillis);
         assert response != null;
         switch (response.getCode()) {
-        case ResponseCode.TOPIC_NOT_EXIST : {
+        case ResponseCode.TOPIC_NOT_EXIST: {
             // TODO LOG
             break;
         }
@@ -1440,7 +1440,7 @@ public class MQClientAPIImpl {
         RemotingCommand response = this.remotingClient.invokeSync(null, request, timeoutMillis);
         assert response != null;
         switch (response.getCode()) {
-        case ResponseCode.TOPIC_NOT_EXIST : {
+        case ResponseCode.TOPIC_NOT_EXIST: {
             log.warn("get Topic [{}]RouteInfoFromNameServer is not exist value", topic);
             break;
         }

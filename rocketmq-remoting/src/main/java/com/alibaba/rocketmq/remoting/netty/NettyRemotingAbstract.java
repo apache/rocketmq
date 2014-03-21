@@ -197,7 +197,7 @@ public abstract class NettyRemotingAbstract {
 
                         if (!cmd.isOnewayRPC()) {
                             final RemotingCommand response =
-                                    RemotingCommand.createResponseCommand(RemotingProtos.SYSTEM_ERROR ,//
+                                    RemotingCommand.createResponseCommand(RemotingProtos.SYSTEM_ERROR,//
                                         RemotingHelper.exceptionSimpleDesc(e));
                             response.setOpaque(cmd.getOpaque());
                             ctx.writeAndFlush(response);
@@ -227,8 +227,7 @@ public abstract class NettyRemotingAbstract {
         else {
             String error = " request type " + cmd.getCode() + " not supported";
             final RemotingCommand response =
-                    RemotingCommand.createResponseCommand(RemotingProtos.REQUEST_CODE_NOT_SUPPORTED ,
-                        error);
+                    RemotingCommand.createResponseCommand(RemotingProtos.REQUEST_CODE_NOT_SUPPORTED, error);
             response.setOpaque(cmd.getOpaque());
             ctx.writeAndFlush(response);
             plog.error(RemotingHelper.parseChannelRemoteAddr(ctx.channel()) + error);

@@ -87,7 +87,7 @@ public class QueryMessageProcessor implements NettyRequestProcessor {
                 this.brokerController.getBrokerConfig().getQueryMessageMaxTimeSpan() * 60 * 60 * 1000;
         long diff = requestHeader.getEndTimestamp() - requestHeader.getBeginTimestamp();
         if (diff > maxTimeSpan) {
-            response.setCode(ResponseCode.SYSTEM_ERROR );
+            response.setCode(ResponseCode.SYSTEM_ERROR);
             response.setRemark("the time range is too long, broker limits " + maxTimeSpan + "h");
             return response;
         }
@@ -131,7 +131,7 @@ public class QueryMessageProcessor implements NettyRequestProcessor {
             return null;
         }
 
-        response.setCode( ResponseCode.QUERY_NOT_FOUND );
+        response.setCode(ResponseCode.QUERY_NOT_FOUND);
         response.setRemark("can not find message, maybe time range not correct");
         return response;
     }
@@ -174,7 +174,7 @@ public class QueryMessageProcessor implements NettyRequestProcessor {
             return null;
         }
         else {
-            response.setCode(ResponseCode.SYSTEM_ERROR );
+            response.setCode(ResponseCode.SYSTEM_ERROR);
             response.setRemark("can not find message by the offset, " + requestHeader.getOffset());
         }
 
