@@ -43,7 +43,7 @@ import com.alibaba.rocketmq.remoting.exception.RemotingSendRequestException;
 import com.alibaba.rocketmq.remoting.exception.RemotingTimeoutException;
 import com.alibaba.rocketmq.remoting.exception.RemotingTooMuchRequestException;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
-import com.alibaba.rocketmq.remoting.protocol.RemotingProtos.ResponseCode;
+import com.alibaba.rocketmq.remoting.protocol.RemotingProtos;
 
 
 /**
@@ -197,7 +197,7 @@ public abstract class NettyRemotingAbstract {
 
                         if (!cmd.isOnewayRPC()) {
                             final RemotingCommand response =
-                                    RemotingCommand.createResponseCommand(ResponseCode.SYSTEM_ERROR_VALUE,//
+                                    RemotingCommand.createResponseCommand(RemotingProtos.SYSTEM_ERROR ,//
                                         RemotingHelper.exceptionSimpleDesc(e));
                             response.setOpaque(cmd.getOpaque());
                             ctx.writeAndFlush(response);
@@ -217,7 +217,7 @@ public abstract class NettyRemotingAbstract {
                         + " request code: " + cmd.getCode());
                 if (!cmd.isOnewayRPC()) {
                     final RemotingCommand response =
-                            RemotingCommand.createResponseCommand(ResponseCode.SYSTEM_BUSY_VALUE,
+                            RemotingCommand.createResponseCommand(RemotingProtos.SYSTEM_BUSY,
                                 "too many requests and system thread pool busy, please try another server");
                     response.setOpaque(cmd.getOpaque());
                     ctx.writeAndFlush(response);
@@ -227,7 +227,7 @@ public abstract class NettyRemotingAbstract {
         else {
             String error = " request type " + cmd.getCode() + " not supported";
             final RemotingCommand response =
-                    RemotingCommand.createResponseCommand(ResponseCode.REQUEST_CODE_NOT_SUPPORTED_VALUE,
+                    RemotingCommand.createResponseCommand(RemotingProtos.REQUEST_CODE_NOT_SUPPORTED ,
                         error);
             response.setOpaque(cmd.getOpaque());
             ctx.writeAndFlush(response);

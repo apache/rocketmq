@@ -6,7 +6,6 @@ import com.alibaba.rocketmq.remoting.exception.RemotingConnectException;
 import com.alibaba.rocketmq.remoting.exception.RemotingSendRequestException;
 import com.alibaba.rocketmq.remoting.exception.RemotingTimeoutException;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
-import com.alibaba.rocketmq.remoting.protocol.RemotingProtos.ResponseCode;
 
 
 /**
@@ -29,7 +28,7 @@ public class MQProtosHelper {
         try {
             RemotingCommand response = RemotingHelper.invokeSync(nsaddr, request, timeoutMillis);
             if (response != null) {
-                return ResponseCode.SUCCESS_VALUE == response.getCode();
+                return ResponseCode.SUCCESS == response.getCode();
             }
         }
         catch (RemotingConnectException e) {

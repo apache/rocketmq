@@ -28,7 +28,6 @@ import com.alibaba.fastjson.annotation.JSONField;
 import com.alibaba.rocketmq.remoting.CommandCustomHeader;
 import com.alibaba.rocketmq.remoting.annotation.CFNotNull;
 import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
-import com.alibaba.rocketmq.remoting.protocol.RemotingProtos.ResponseCode;
 
 
 /**
@@ -82,7 +81,7 @@ public class RemotingCommand {
 
     public static RemotingCommand createResponseCommand(Class<? extends CommandCustomHeader> classHeader) {
         RemotingCommand cmd =
-                createResponseCommand(ResponseCode.SYSTEM_ERROR_VALUE, "not set any response code",
+                createResponseCommand(RemotingProtos.SYSTEM_ERROR, "not set any response code",
                     classHeader);
 
         return cmd;

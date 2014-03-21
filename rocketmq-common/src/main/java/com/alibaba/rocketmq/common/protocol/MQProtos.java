@@ -409,157 +409,157 @@ public final class MQProtos {
     }
 
     public enum MQResponseCode {
-        // Broker 刷盘超时
-        FLUSH_DISK_TIMEOUT(0, 10),
-        // Broker 同步双写，Slave不可用
-        SLAVE_NOT_AVAILABLE(1, 11),
-        // Broker 同步双写，等待Slave应答超时
-        FLUSH_SLAVE_TIMEOUT(2, 12),
-        // Broker 消息非法
-        MESSAGE_ILLEGAL(3, 13),
-        // Broker, Namesrv 服务不可用，可能是正在关闭或者权限问题
-        SERVICE_NOT_AVAILABLE(4, 14),
-        // Broker, Namesrv 版本号不支持
-        VERSION_NOT_SUPPORTED(5, 15),
-        // Broker, Namesrv 无权限执行此操作，可能是发、收、或者其他操作
-        NO_PERMISSION(6, 16),
-        // Broker, Topic不存在
-        TOPIC_NOT_EXIST(7, 17),
-        // Broker, Topic已经存在，创建Topic
-        TOPIC_EXIST_ALREADY(8, 18),
-        // Broker 拉消息未找到（请求的Offset等于最大Offset，最大Offset无对应消息）
-        PULL_NOT_FOUND(9, 19),
-        // Broker 可能被过滤，或者误通知等
-        PULL_RETRY_IMMEDIATELY(10, 20),
-        // Broker 拉消息请求的Offset不合法，太小或太大
-        PULL_OFFSET_MOVED(11, 21),
-        // Broker 查询消息未找到
-        QUERY_NOT_FOUND(12, 22),
-        // Broker 订阅关系解析失败
-        SUBSCRIPTION_PARSE_FAILED(13, 23),
-        // Broker 订阅关系不存在
-        SUBSCRIPTION_NOT_EXIST(14, 24),
-        // Broker 订阅关系不是最新的
-        SUBSCRIPTION_NOT_LATEST(15, 25),
-        // Broker 订阅组不存在
-        SUBSCRIPTION_GROUP_NOT_EXIST(16, 26),
-        // Producer 事务应该被提交
-        TRANSACTION_SHOULD_COMMIT(17, 200),
-        // Producer 事务应该被回滚
-        TRANSACTION_SHOULD_ROLLBACK(18, 201),
-        // Producer 事务状态未知
-        TRANSACTION_STATE_UNKNOW(19, 202),
-        // Producer ProducerGroup错误
-        TRANSACTION_STATE_GROUP_WRONG(20, 203), ;
-        // Broker 刷盘超时
-        public static final int FLUSH_DISK_TIMEOUT_VALUE = 10;
-        // Broker 同步双写，Slave不可用
-        public static final int SLAVE_NOT_AVAILABLE_VALUE = 11;
-        // Broker 同步双写，等待Slave应答超时
-        public static final int FLUSH_SLAVE_TIMEOUT_VALUE = 12;
-        // Broker 消息非法
-        public static final int MESSAGE_ILLEGAL_VALUE = 13;
-        // Broker, Namesrv 服务不可用，可能是正在关闭或者权限问题
-        public static final int SERVICE_NOT_AVAILABLE_VALUE = 14;
-        // Broker, Namesrv 版本号不支持
-        public static final int VERSION_NOT_SUPPORTED_VALUE = 15;
-        // Broker, Namesrv 无权限执行此操作，可能是发、收、或者其他操作
-        public static final int NO_PERMISSION_VALUE = 16;
-        // Broker, Topic不存在
-        public static final int TOPIC_NOT_EXIST_VALUE = 17;
-        // Broker, Topic已经存在，创建Topic
-        public static final int TOPIC_EXIST_ALREADY_VALUE = 18;
-        // Broker 拉消息未找到（请求的Offset等于最大Offset，最大Offset无对应消息）
-        public static final int PULL_NOT_FOUND_VALUE = 19;
-        // Broker 可能被过滤，或者误通知等
-        public static final int PULL_RETRY_IMMEDIATELY_VALUE = 20;
-        // Broker 拉消息请求的Offset不合法，太小或太大
-        public static final int PULL_OFFSET_MOVED_VALUE = 21;
-        // Broker 查询消息未找到
-        public static final int QUERY_NOT_FOUND_VALUE = 22;
-        // Broker 订阅关系解析失败
-        public static final int SUBSCRIPTION_PARSE_FAILED_VALUE = 23;
-        // Broker 订阅关系不存在
-        public static final int SUBSCRIPTION_NOT_EXIST_VALUE = 24;
-        // Broker 订阅关系不是最新的
-        public static final int SUBSCRIPTION_NOT_LATEST_VALUE = 25;
-        // Broker 订阅组不存在
-        public static final int SUBSCRIPTION_GROUP_NOT_EXIST_VALUE = 26;
-        // Producer 事务应该被提交
-        public static final int TRANSACTION_SHOULD_COMMIT_VALUE = 200;
-        // Producer 事务应该被回滚
-        public static final int TRANSACTION_SHOULD_ROLLBACK_VALUE = 201;
-        // Producer 事务状态未知
-        public static final int TRANSACTION_STATE_UNKNOW_VALUE = 202;
-        // Producer ProducerGroup错误
-        public static final int TRANSACTION_STATE_GROUP_WRONG_VALUE = 203;
-        private final int index;
-        private final int value;
-
-
-        private MQResponseCode(int index, int value) {
-            this.index = index;
-            this.value = value;
-        }
-
-
-        public static MQResponseCode valueOf(int value) {
-            switch (value) {
-            case 10:
-                return FLUSH_DISK_TIMEOUT;
-            case 11:
-                return SLAVE_NOT_AVAILABLE;
-            case 12:
-                return FLUSH_SLAVE_TIMEOUT;
-            case 13:
-                return MESSAGE_ILLEGAL;
-            case 14:
-                return SERVICE_NOT_AVAILABLE;
-            case 15:
-                return VERSION_NOT_SUPPORTED;
-            case 16:
-                return NO_PERMISSION;
-            case 17:
-                return TOPIC_NOT_EXIST;
-            case 18:
-                return TOPIC_EXIST_ALREADY;
-            case 19:
-                return PULL_NOT_FOUND;
-            case 20:
-                return PULL_RETRY_IMMEDIATELY;
-            case 21:
-                return PULL_OFFSET_MOVED;
-            case 22:
-                return QUERY_NOT_FOUND;
-            case 23:
-                return SUBSCRIPTION_PARSE_FAILED;
-            case 24:
-                return SUBSCRIPTION_NOT_EXIST;
-            case 25:
-                return SUBSCRIPTION_NOT_LATEST;
-            case 26:
-                return SUBSCRIPTION_GROUP_NOT_EXIST;
-            case 200:
-                return TRANSACTION_SHOULD_COMMIT;
-            case 201:
-                return TRANSACTION_SHOULD_ROLLBACK;
-            case 202:
-                return TRANSACTION_STATE_UNKNOW;
-            case 203:
-                return TRANSACTION_STATE_GROUP_WRONG;
-            default:
-                return null;
-            }
-        }
-
-
-        public final int getNumber() {
-            return value;
-        }
-
-
-        public int getIndex() {
-            return index;
-        }
+//        // Broker 刷盘超时
+//        FLUSH_DISK_TIMEOUT(0, 10),
+//        // Broker 同步双写，Slave不可用
+//        SLAVE_NOT_AVAILABLE(1, 11),
+//        // Broker 同步双写，等待Slave应答超时
+//        FLUSH_SLAVE_TIMEOUT(2, 12),
+//        // Broker 消息非法
+//        MESSAGE_ILLEGAL(3, 13),
+//        // Broker, Namesrv 服务不可用，可能是正在关闭或者权限问题
+//        SERVICE_NOT_AVAILABLE(4, 14),
+//        // Broker, Namesrv 版本号不支持
+//        VERSION_NOT_SUPPORTED(5, 15),
+//        // Broker, Namesrv 无权限执行此操作，可能是发、收、或者其他操作
+//        NO_PERMISSION(6, 16),
+//        // Broker, Topic不存在
+//        TOPIC_NOT_EXIST(7, 17),
+//        // Broker, Topic已经存在，创建Topic
+//        TOPIC_EXIST_ALREADY(8, 18),
+//        // Broker 拉消息未找到（请求的Offset等于最大Offset，最大Offset无对应消息）
+//        PULL_NOT_FOUND(9, 19),
+//        // Broker 可能被过滤，或者误通知等
+//        PULL_RETRY_IMMEDIATELY(10, 20),
+//        // Broker 拉消息请求的Offset不合法，太小或太大
+//        PULL_OFFSET_MOVED(11, 21),
+//        // Broker 查询消息未找到
+//        QUERY_NOT_FOUND(12, 22),
+//        // Broker 订阅关系解析失败
+//        SUBSCRIPTION_PARSE_FAILED(13, 23),
+//        // Broker 订阅关系不存在
+//        SUBSCRIPTION_NOT_EXIST(14, 24),
+//        // Broker 订阅关系不是最新的
+//        SUBSCRIPTION_NOT_LATEST(15, 25),
+//        // Broker 订阅组不存在
+//        SUBSCRIPTION_GROUP_NOT_EXIST(16, 26),
+//        // Producer 事务应该被提交
+//        TRANSACTION_SHOULD_COMMIT(17, 200),
+//        // Producer 事务应该被回滚
+//        TRANSACTION_SHOULD_ROLLBACK(18, 201),
+//        // Producer 事务状态未知
+//        TRANSACTION_STATE_UNKNOW(19, 202),
+//        // Producer ProducerGroup错误
+//        TRANSACTION_STATE_GROUP_WRONG(20, 203), ;
+//        // Broker 刷盘超时
+//        public static final int FLUSH_DISK_TIMEOUT_VALUE = 10;
+//        // Broker 同步双写，Slave不可用
+//        public static final int SLAVE_NOT_AVAILABLE_VALUE = 11;
+//        // Broker 同步双写，等待Slave应答超时
+//        public static final int FLUSH_SLAVE_TIMEOUT_VALUE = 12;
+//        // Broker 消息非法
+//        public static final int MESSAGE_ILLEGAL_VALUE = 13;
+//        // Broker, Namesrv 服务不可用，可能是正在关闭或者权限问题
+//        public static final int SERVICE_NOT_AVAILABLE_VALUE = 14;
+//        // Broker, Namesrv 版本号不支持
+//        public static final int VERSION_NOT_SUPPORTED_VALUE = 15;
+//        // Broker, Namesrv 无权限执行此操作，可能是发、收、或者其他操作
+//        public static final int NO_PERMISSION_VALUE = 16;
+//        // Broker, Topic不存在
+//        public static final int TOPIC_NOT_EXIST_VALUE = 17;
+//        // Broker, Topic已经存在，创建Topic
+//        public static final int TOPIC_EXIST_ALREADY_VALUE = 18;
+//        // Broker 拉消息未找到（请求的Offset等于最大Offset，最大Offset无对应消息）
+//        public static final int PULL_NOT_FOUND_VALUE = 19;
+//        // Broker 可能被过滤，或者误通知等
+//        public static final int PULL_RETRY_IMMEDIATELY_VALUE = 20;
+//        // Broker 拉消息请求的Offset不合法，太小或太大
+//        public static final int PULL_OFFSET_MOVED_VALUE = 21;
+//        // Broker 查询消息未找到
+//        public static final int QUERY_NOT_FOUND_VALUE = 22;
+//        // Broker 订阅关系解析失败
+//        public static final int SUBSCRIPTION_PARSE_FAILED_VALUE = 23;
+//        // Broker 订阅关系不存在
+//        public static final int SUBSCRIPTION_NOT_EXIST_VALUE = 24;
+//        // Broker 订阅关系不是最新的
+//        public static final int SUBSCRIPTION_NOT_LATEST_VALUE = 25;
+//        // Broker 订阅组不存在
+//        public static final int SUBSCRIPTION_GROUP_NOT_EXIST_VALUE = 26;
+//        // Producer 事务应该被提交
+//        public static final int TRANSACTION_SHOULD_COMMIT_VALUE = 200;
+//        // Producer 事务应该被回滚
+//        public static final int TRANSACTION_SHOULD_ROLLBACK_VALUE = 201;
+//        // Producer 事务状态未知
+//        public static final int TRANSACTION_STATE_UNKNOW_VALUE = 202;
+//        // Producer ProducerGroup错误
+//        public static final int TRANSACTION_STATE_GROUP_WRONG_VALUE = 203;
+//        private final int index;
+//        private final int value;
+//
+//
+//        private MQResponseCode(int index, int value) {
+//            this.index = index;
+//            this.value = value;
+//        }
+//
+//
+//        public static MQResponseCode valueOf(int value) {
+//            switch (value) {
+//            case 10:
+//                return FLUSH_DISK_TIMEOUT;
+//            case 11:
+//                return SLAVE_NOT_AVAILABLE;
+//            case 12:
+//                return FLUSH_SLAVE_TIMEOUT;
+//            case 13:
+//                return MESSAGE_ILLEGAL;
+//            case 14:
+//                return SERVICE_NOT_AVAILABLE;
+//            case 15:
+//                return VERSION_NOT_SUPPORTED;
+//            case 16:
+//                return NO_PERMISSION;
+//            case 17:
+//                return TOPIC_NOT_EXIST;
+//            case 18:
+//                return TOPIC_EXIST_ALREADY;
+//            case 19:
+//                return PULL_NOT_FOUND;
+//            case 20:
+//                return PULL_RETRY_IMMEDIATELY;
+//            case 21:
+//                return PULL_OFFSET_MOVED;
+//            case 22:
+//                return QUERY_NOT_FOUND;
+//            case 23:
+//                return SUBSCRIPTION_PARSE_FAILED;
+//            case 24:
+//                return SUBSCRIPTION_NOT_EXIST;
+//            case 25:
+//                return SUBSCRIPTION_NOT_LATEST;
+//            case 26:
+//                return SUBSCRIPTION_GROUP_NOT_EXIST;
+//            case 200:
+//                return TRANSACTION_SHOULD_COMMIT;
+//            case 201:
+//                return TRANSACTION_SHOULD_ROLLBACK;
+//            case 202:
+//                return TRANSACTION_STATE_UNKNOW;
+//            case 203:
+//                return TRANSACTION_STATE_GROUP_WRONG;
+//            default:
+//                return null;
+//            }
+//        }
+//
+//
+//        public final int getNumber() {
+//            return value;
+//        }
+//
+//
+//        public int getIndex() {
+//            return index;
+//        }
     }
 }

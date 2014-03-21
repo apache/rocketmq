@@ -41,8 +41,8 @@ import com.alibaba.rocketmq.common.admin.TopicOffset;
 import com.alibaba.rocketmq.common.admin.TopicStatsTable;
 import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.common.message.MessageQueue;
-import com.alibaba.rocketmq.common.protocol.MQProtos.MQResponseCode;
 import com.alibaba.rocketmq.common.protocol.RequestCode;
+import com.alibaba.rocketmq.common.protocol.ResponseCode;
 import com.alibaba.rocketmq.common.protocol.body.Connection;
 import com.alibaba.rocketmq.common.protocol.body.ConsumerConnection;
 import com.alibaba.rocketmq.common.protocol.body.KVTable;
@@ -78,7 +78,6 @@ import com.alibaba.rocketmq.remoting.common.RemotingHelper;
 import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
 import com.alibaba.rocketmq.remoting.netty.NettyRequestProcessor;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
-import com.alibaba.rocketmq.remoting.protocol.RemotingProtos.ResponseCode;
 import com.alibaba.rocketmq.remoting.protocol.RemotingSerializable;
 import com.alibaba.rocketmq.store.DefaultMessageStore;
 import com.alibaba.rocketmq.store.StoreUtil;
@@ -268,7 +267,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
 
         byte[] body = consumeStats.encode();
         response.setBody(body);
-        response.setCode(ResponseCode.SUCCESS_VALUE);
+        response.setCode(ResponseCode.SUCCESS);
         response.setRemark(null);
         return response;
     }
@@ -300,12 +299,12 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
 
             byte[] body = bodydata.encode();
             response.setBody(body);
-            response.setCode(ResponseCode.SUCCESS_VALUE);
+            response.setCode(ResponseCode.SUCCESS);
             response.setRemark(null);
             return response;
         }
 
-        response.setCode(ResponseCode.SYSTEM_ERROR_VALUE);
+        response.setCode(ResponseCode.SYSTEM_ERROR);
         response.setRemark("the producer group[" + requestHeader.getProducerGroup() + "] not exist");
         return response;
     }
@@ -343,13 +342,13 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
 
             byte[] body = bodydata.encode();
             response.setBody(body);
-            response.setCode(ResponseCode.SUCCESS_VALUE);
+            response.setCode(ResponseCode.SUCCESS);
             response.setRemark(null);
 
             return response;
         }
 
-        response.setCode(MQResponseCode.SUBSCRIPTION_GROUP_NOT_EXIST_VALUE);
+        response.setCode( ResponseCode.SUBSCRIPTION_GROUP_NOT_EXIST );
         response.setRemark("the consumer group[" + requestHeader.getConsumerGroup() + "] not online");
         return response;
     }
@@ -365,7 +364,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         final String topic = requestHeader.getTopic();
         TopicConfig topicConfig = this.brokerController.getTopicConfigManager().selectTopicConfig(topic);
         if (null == topicConfig) {
-            response.setCode(MQResponseCode.TOPIC_NOT_EXIST_VALUE);
+            response.setCode(ResponseCode.TOPIC_NOT_EXIST );
             response.setRemark("topic[" + topic + "] not exist");
             return response;
         }
@@ -401,7 +400,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
 
         byte[] body = topicStatsTable.encode();
         response.setBody(body);
-        response.setCode(ResponseCode.SUCCESS_VALUE);
+        response.setCode(ResponseCode.SUCCESS);
         response.setRemark(null);
         return response;
     }
@@ -420,7 +419,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             this.brokerController.getSubscriptionGroupManager().updateSubscriptionGroupConfig(config);
         }
 
-        response.setCode(ResponseCode.SUCCESS_VALUE);
+        response.setCode(ResponseCode.SUCCESS);
         response.setRemark(null);
         return response;
     }
@@ -437,19 +436,19 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             catch (UnsupportedEncodingException e) {
                 log.error("", e);
 
-                response.setCode(ResponseCode.SYSTEM_ERROR_VALUE);
+                response.setCode(ResponseCode.SYSTEM_ERROR);
                 response.setRemark("UnsupportedEncodingException " + e);
                 return response;
             }
         }
         else {
             log.error("No subscription group in this broker, client: " + ctx.channel().remoteAddress());
-            response.setCode(ResponseCode.SYSTEM_ERROR_VALUE);
+            response.setCode(ResponseCode.SYSTEM_ERROR);
             response.setRemark("No subscription group in this broker");
             return response;
         }
 
-        response.setCode(ResponseCode.SUCCESS_VALUE);
+        response.setCode(ResponseCode.SUCCESS);
         response.setRemark(null);
 
         return response;
@@ -471,7 +470,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         responseBody.setLockOKMQSet(lockOKMQSet);
 
         response.setBody(responseBody.encode());
-        response.setCode(ResponseCode.SUCCESS_VALUE);
+        response.setCode(ResponseCode.SUCCESS);
         response.setRemark(null);
         return response;
     }
@@ -488,7 +487,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             requestBody.getMqSet(),//
             requestBody.getClientId());
 
-        response.setCode(ResponseCode.SUCCESS_VALUE);
+        response.setCode(ResponseCode.SUCCESS);
         response.setRemark(null);
         return response;
     }
@@ -506,7 +505,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             String errorMsg =
                     "the topic[" + requestHeader.getTopic() + "] is conflict with system reserved words.";
             log.warn(errorMsg);
-            response.setCode(ResponseCode.SYSTEM_ERROR_VALUE);
+            response.setCode(ResponseCode.SYSTEM_ERROR);
             response.setRemark(errorMsg);
             return response;
         }
@@ -519,7 +518,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
 
         this.brokerController.getTopicConfigManager().updateTopicConfig(topicConfig);
 
-        response.setCode(ResponseCode.SUCCESS_VALUE);
+        response.setCode(ResponseCode.SUCCESS);
         response.setRemark(null);
         return response;
     }
@@ -535,7 +534,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
 
         this.brokerController.getTopicConfigManager().deleteTopicConfig(requestHeader.getTopic());
 
-        response.setCode(ResponseCode.SUCCESS_VALUE);
+        response.setCode(ResponseCode.SUCCESS);
         response.setRemark(null);
         return response;
     }
@@ -555,19 +554,19 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             catch (UnsupportedEncodingException e) {
                 log.error("", e);
 
-                response.setCode(ResponseCode.SYSTEM_ERROR_VALUE);
+                response.setCode(ResponseCode.SYSTEM_ERROR);
                 response.setRemark("UnsupportedEncodingException " + e);
                 return response;
             }
         }
         else {
             log.error("No topic in this broker, client: " + ctx.channel().remoteAddress());
-            response.setCode(ResponseCode.SYSTEM_ERROR_VALUE);
+            response.setCode(ResponseCode.SYSTEM_ERROR);
             response.setRemark("No topic in this broker");
             return response;
         }
 
-        response.setCode(ResponseCode.SUCCESS_VALUE);
+        response.setCode(ResponseCode.SUCCESS);
         response.setRemark(null);
 
         return response;
@@ -591,20 +590,20 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 }
                 else {
                     log.error("string2Properties error");
-                    response.setCode(ResponseCode.SYSTEM_ERROR_VALUE);
+                    response.setCode(ResponseCode.SYSTEM_ERROR);
                     response.setRemark("string2Properties error");
                     return response;
                 }
             }
             catch (UnsupportedEncodingException e) {
                 log.error("", e);
-                response.setCode(ResponseCode.SYSTEM_ERROR_VALUE);
+                response.setCode(ResponseCode.SYSTEM_ERROR);
                 response.setRemark("UnsupportedEncodingException " + e);
                 return response;
             }
         }
 
-        response.setCode(ResponseCode.SUCCESS_VALUE);
+        response.setCode(ResponseCode.SUCCESS);
         response.setRemark(null);
         return response;
     }
@@ -625,7 +624,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             catch (UnsupportedEncodingException e) {
                 log.error("", e);
 
-                response.setCode(ResponseCode.SYSTEM_ERROR_VALUE);
+                response.setCode(ResponseCode.SYSTEM_ERROR);
                 response.setRemark("UnsupportedEncodingException " + e);
                 return response;
             }
@@ -633,7 +632,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
 
         responseHeader.setVersion(this.brokerController.getConfigDataVersion());
 
-        response.setCode(ResponseCode.SUCCESS_VALUE);
+        response.setCode(ResponseCode.SUCCESS);
         response.setRemark(null);
         return response;
     }
@@ -655,7 +654,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
 
         responseHeader.setOffset(offset);
 
-        response.setCode(ResponseCode.SUCCESS_VALUE);
+        response.setCode(ResponseCode.SUCCESS);
         response.setRemark(null);
         return response;
     }
@@ -677,7 +676,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
 
         responseHeader.setOffset(offset);
 
-        response.setCode(ResponseCode.SUCCESS_VALUE);
+        response.setCode(ResponseCode.SUCCESS);
         response.setRemark(null);
         return response;
     }
@@ -698,7 +697,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                     requestHeader.getQueueId());
 
         responseHeader.setOffset(offset);
-        response.setCode(ResponseCode.SUCCESS_VALUE);
+        response.setCode(ResponseCode.SUCCESS);
         response.setRemark(null);
         return response;
     }
@@ -719,7 +718,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                     requestHeader.getQueueId());
 
         responseHeader.setTimestamp(timestamp);
-        response.setCode(ResponseCode.SUCCESS_VALUE);
+        response.setCode(ResponseCode.SUCCESS);
         response.setRemark(null);
         return response;
     }
@@ -738,7 +737,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         this.brokerController.getConsumerOffsetManager().commitOffset(requestHeader.getConsumerGroup(),
             requestHeader.getTopic(), requestHeader.getQueueId(), requestHeader.getCommitOffset());
         UpdateCommitOffsetMoniter.printUpdatecommit(ctx.channel(), requestHeader);
-        response.setCode(ResponseCode.SUCCESS_VALUE);
+        response.setCode(ResponseCode.SUCCESS);
         response.setRemark(null);
         return response;
     }
@@ -761,14 +760,14 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         // 订阅组存在
         if (offset >= 0) {
             responseHeader.setOffset(offset);
-            response.setCode(ResponseCode.SUCCESS_VALUE);
+            response.setCode(ResponseCode.SUCCESS);
             response.setRemark(null);
         }
         // 订阅组不存在
         else {
             // 新版本服务器不做消费进度纠正
             if (request.getVersion() >= MQVersion.Version.V3_0_6_SNAPSHOT.ordinal()) {
-                response.setCode(MQResponseCode.QUERY_NOT_FOUND_VALUE);
+                response.setCode(ResponseCode.QUERY_NOT_FOUND );
                 response.setRemark("Not found, V3_0_6_SNAPSHOT maybe this group consumer boot first");
             }
 
@@ -820,11 +819,11 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 // 订阅组消费进度不存在情况下，从0开始消费
                 if (consumeFromMinEnable) {
                     responseHeader.setOffset(0L);
-                    response.setCode(ResponseCode.SUCCESS_VALUE);
+                    response.setCode(ResponseCode.SUCCESS);
                     response.setRemark(null);
                 }
                 else {
-                    response.setCode(MQResponseCode.QUERY_NOT_FOUND_VALUE);
+                    response.setCode(ResponseCode.QUERY_NOT_FOUND );
                     response.setRemark("Not found, maybe this group consumer boot first");
                 }
             }
@@ -872,7 +871,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
 
         byte[] body = kvTable.encode();
         response.setBody(body);
-        response.setCode(ResponseCode.SUCCESS_VALUE);
+        response.setCode(ResponseCode.SUCCESS);
         response.setRemark(null);
         return response;
     }
@@ -889,19 +888,19 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             catch (UnsupportedEncodingException e) {
                 log.error("get all consumer offset from master error.", e);
 
-                response.setCode(ResponseCode.SYSTEM_ERROR_VALUE);
+                response.setCode(ResponseCode.SYSTEM_ERROR);
                 response.setRemark("UnsupportedEncodingException " + e);
                 return response;
             }
         }
         else {
             log.error("No consumer offset in this broker, client: " + ctx.channel().remoteAddress());
-            response.setCode(ResponseCode.SYSTEM_ERROR_VALUE);
+            response.setCode(ResponseCode.SYSTEM_ERROR);
             response.setRemark("No consumer offset in this broker");
             return response;
         }
 
-        response.setCode(ResponseCode.SUCCESS_VALUE);
+        response.setCode(ResponseCode.SUCCESS);
         response.setRemark(null);
 
         return response;
@@ -921,19 +920,19 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             catch (UnsupportedEncodingException e) {
                 log.error("get all delay offset from master error.", e);
 
-                response.setCode(ResponseCode.SYSTEM_ERROR_VALUE);
+                response.setCode(ResponseCode.SYSTEM_ERROR);
                 response.setRemark("UnsupportedEncodingException " + e);
                 return response;
             }
         }
         else {
             log.error("No delay offset in this broker, client: " + ctx.channel().remoteAddress());
-            response.setCode(ResponseCode.SYSTEM_ERROR_VALUE);
+            response.setCode(ResponseCode.SYSTEM_ERROR);
             response.setRemark("No delay offset in this broker");
             return response;
         }
 
-        response.setCode(ResponseCode.SUCCESS_VALUE);
+        response.setCode(ResponseCode.SUCCESS);
         response.setRemark(null);
 
         return response;
@@ -952,7 +951,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         this.brokerController.getSubscriptionGroupManager().deleteSubscriptionGroupConfig(
             requestHeader.getGroupName());
 
-        response.setCode(ResponseCode.SUCCESS_VALUE);
+        response.setCode(ResponseCode.SUCCESS);
         response.setRemark(null);
         return response;
     }

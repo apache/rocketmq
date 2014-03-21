@@ -53,8 +53,8 @@ import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.common.message.MessageQueue;
 import com.alibaba.rocketmq.common.namesrv.NamesrvUtil;
 import com.alibaba.rocketmq.common.namesrv.TopAddressing;
-import com.alibaba.rocketmq.common.protocol.MQProtos.MQResponseCode;
 import com.alibaba.rocketmq.common.protocol.RequestCode;
+import com.alibaba.rocketmq.common.protocol.ResponseCode;
 import com.alibaba.rocketmq.common.protocol.body.ClusterInfo;
 import com.alibaba.rocketmq.common.protocol.body.ConsumerConnection;
 import com.alibaba.rocketmq.common.protocol.body.GetConsumerStatusBody;
@@ -124,8 +124,6 @@ import com.alibaba.rocketmq.remoting.netty.NettyClientConfig;
 import com.alibaba.rocketmq.remoting.netty.NettyRemotingClient;
 import com.alibaba.rocketmq.remoting.netty.ResponseFuture;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
-import com.alibaba.rocketmq.remoting.protocol.RemotingProtos;
-import com.alibaba.rocketmq.remoting.protocol.RemotingProtos.ResponseCode;
 import com.alibaba.rocketmq.remoting.protocol.RemotingSerializable;
 
 
@@ -256,7 +254,7 @@ public class MQClientAPIImpl {
         RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
         assert response != null;
         switch (response.getCode()) {
-        case ResponseCode.SUCCESS_VALUE: {
+        case ResponseCode.SUCCESS: {
             return;
         }
         default:
@@ -292,7 +290,7 @@ public class MQClientAPIImpl {
         RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
         assert response != null;
         switch (response.getCode()) {
-        case ResponseCode.SUCCESS_VALUE: {
+        case ResponseCode.SUCCESS: {
             return;
         }
         default:
@@ -410,24 +408,24 @@ public class MQClientAPIImpl {
             final RemotingCommand response//
     ) throws MQBrokerException, RemotingCommandException {
         switch (response.getCode()) {
-        case MQResponseCode.FLUSH_DISK_TIMEOUT_VALUE:
-        case MQResponseCode.FLUSH_SLAVE_TIMEOUT_VALUE:
-        case MQResponseCode.SLAVE_NOT_AVAILABLE_VALUE: {
+        case ResponseCode.FLUSH_DISK_TIMEOUT :
+        case ResponseCode.FLUSH_SLAVE_TIMEOUT :
+        case ResponseCode.SLAVE_NOT_AVAILABLE : {
             // TODO LOG
         }
-        case ResponseCode.SUCCESS_VALUE: {
+        case ResponseCode.SUCCESS: {
             SendStatus sendStatus = SendStatus.SEND_OK;
             switch (response.getCode()) {
-            case MQResponseCode.FLUSH_DISK_TIMEOUT_VALUE:
+            case ResponseCode.FLUSH_DISK_TIMEOUT :
                 sendStatus = SendStatus.FLUSH_DISK_TIMEOUT;
                 break;
-            case MQResponseCode.FLUSH_SLAVE_TIMEOUT_VALUE:
+            case ResponseCode.FLUSH_SLAVE_TIMEOUT :
                 sendStatus = SendStatus.FLUSH_SLAVE_TIMEOUT;
                 break;
-            case MQResponseCode.SLAVE_NOT_AVAILABLE_VALUE:
+            case ResponseCode.SLAVE_NOT_AVAILABLE :
                 sendStatus = SendStatus.SLAVE_NOT_AVAILABLE;
                 break;
-            case ResponseCode.SUCCESS_VALUE:
+            case ResponseCode.SUCCESS:
                 sendStatus = SendStatus.SEND_OK;
                 break;
             default:
@@ -535,16 +533,16 @@ public class MQClientAPIImpl {
             RemotingCommandException {
         PullStatus pullStatus = PullStatus.NO_NEW_MSG;
         switch (response.getCode()) {
-        case ResponseCode.SUCCESS_VALUE:
+        case ResponseCode.SUCCESS:
             pullStatus = PullStatus.FOUND;
             break;
-        case MQResponseCode.PULL_NOT_FOUND_VALUE:
+        case ResponseCode.PULL_NOT_FOUND :
             pullStatus = PullStatus.NO_NEW_MSG;
             break;
-        case MQResponseCode.PULL_RETRY_IMMEDIATELY_VALUE:
+        case ResponseCode.PULL_RETRY_IMMEDIATELY :
             pullStatus = PullStatus.NO_MATCHED_MSG;
             break;
-        case MQResponseCode.PULL_OFFSET_MOVED_VALUE:
+        case ResponseCode.PULL_OFFSET_MOVED :
             pullStatus = PullStatus.OFFSET_ILLEGAL;
             break;
 
@@ -586,7 +584,7 @@ public class MQClientAPIImpl {
         RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
         assert response != null;
         switch (response.getCode()) {
-        case ResponseCode.SUCCESS_VALUE: {
+        case ResponseCode.SUCCESS: {
             ByteBuffer byteBuffer = ByteBuffer.wrap(response.getBody());
             MessageExt messageExt = MessageDecoder.decode(byteBuffer);
             // 清除虚拟运行环境相关的projectGroupPrefix
@@ -625,7 +623,7 @@ public class MQClientAPIImpl {
         RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
         assert response != null;
         switch (response.getCode()) {
-        case ResponseCode.SUCCESS_VALUE: {
+        case ResponseCode.SUCCESS: {
             SearchOffsetResponseHeader responseHeader =
                     (SearchOffsetResponseHeader) response
                         .decodeCommandCustomHeader(SearchOffsetResponseHeader.class);
@@ -659,7 +657,7 @@ public class MQClientAPIImpl {
         RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
         assert response != null;
         switch (response.getCode()) {
-        case ResponseCode.SUCCESS_VALUE: {
+        case ResponseCode.SUCCESS: {
             GetMaxOffsetResponseHeader responseHeader =
                     (GetMaxOffsetResponseHeader) response
                         .decodeCommandCustomHeader(GetMaxOffsetResponseHeader.class);
@@ -696,7 +694,7 @@ public class MQClientAPIImpl {
         RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
         assert response != null;
         switch (response.getCode()) {
-        case ResponseCode.SUCCESS_VALUE: {
+        case ResponseCode.SUCCESS: {
             if (response.getBody() != null) {
                 GetConsumerListByGroupResponseBody body =
                         GetConsumerListByGroupResponseBody.decode(response.getBody(),
@@ -732,7 +730,7 @@ public class MQClientAPIImpl {
         RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
         assert response != null;
         switch (response.getCode()) {
-        case ResponseCode.SUCCESS_VALUE: {
+        case ResponseCode.SUCCESS: {
             GetMinOffsetResponseHeader responseHeader =
                     (GetMinOffsetResponseHeader) response
                         .decodeCommandCustomHeader(GetMinOffsetResponseHeader.class);
@@ -767,7 +765,7 @@ public class MQClientAPIImpl {
         RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
         assert response != null;
         switch (response.getCode()) {
-        case ResponseCode.SUCCESS_VALUE: {
+        case ResponseCode.SUCCESS: {
             GetEarliestMsgStoretimeResponseHeader responseHeader =
                     (GetEarliestMsgStoretimeResponseHeader) response
                         .decodeCommandCustomHeader(GetEarliestMsgStoretimeResponseHeader.class);
@@ -803,7 +801,7 @@ public class MQClientAPIImpl {
         RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
         assert response != null;
         switch (response.getCode()) {
-        case ResponseCode.SUCCESS_VALUE: {
+        case ResponseCode.SUCCESS: {
             QueryConsumerOffsetResponseHeader responseHeader =
                     (QueryConsumerOffsetResponseHeader) response
                         .decodeCommandCustomHeader(QueryConsumerOffsetResponseHeader.class);
@@ -839,7 +837,7 @@ public class MQClientAPIImpl {
         RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
         assert response != null;
         switch (response.getCode()) {
-        case ResponseCode.SUCCESS_VALUE: {
+        case ResponseCode.SUCCESS: {
             return;
         }
         default:
@@ -912,7 +910,7 @@ public class MQClientAPIImpl {
         RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
         assert response != null;
         switch (response.getCode()) {
-        case ResponseCode.SUCCESS_VALUE: {
+        case ResponseCode.SUCCESS: {
             return;
         }
         default:
@@ -952,7 +950,7 @@ public class MQClientAPIImpl {
         RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
         assert response != null;
         switch (response.getCode()) {
-        case ResponseCode.SUCCESS_VALUE: {
+        case ResponseCode.SUCCESS: {
             return;
         }
         default:
@@ -1030,7 +1028,7 @@ public class MQClientAPIImpl {
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.HEART_BEAT, null);
         request.setBody(heartbeat.encode());
         RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
-        return response.getCode() == ResponseCode.SUCCESS_VALUE;
+        return response.getCode() == ResponseCode.SUCCESS;
     }
 
 
@@ -1063,7 +1061,7 @@ public class MQClientAPIImpl {
         RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
         assert response != null;
         switch (response.getCode()) {
-        case ResponseCode.SUCCESS_VALUE: {
+        case ResponseCode.SUCCESS: {
             return;
         }
         default:
@@ -1093,7 +1091,7 @@ public class MQClientAPIImpl {
         request.setBody(requestBody.encode());
         RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
         switch (response.getCode()) {
-        case ResponseCode.SUCCESS_VALUE: {
+        case ResponseCode.SUCCESS: {
             LockBatchResponseBody responseBody =
                     LockBatchResponseBody.decode(response.getBody(), LockBatchResponseBody.class);
             Set<MessageQueue> messageQueues = responseBody.getLockOKMQSet();
@@ -1140,7 +1138,7 @@ public class MQClientAPIImpl {
         else {
             RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
             switch (response.getCode()) {
-            case ResponseCode.SUCCESS_VALUE: {
+            case ResponseCode.SUCCESS: {
                 return;
             }
             default:
@@ -1168,7 +1166,7 @@ public class MQClientAPIImpl {
                 RemotingCommand.createRequestCommand(RequestCode.GET_TOPIC_STATS_INFO, requestHeader);
         RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
         switch (response.getCode()) {
-        case ResponseCode.SUCCESS_VALUE: {
+        case ResponseCode.SUCCESS: {
             TopicStatsTable topicStatsTable =
                     TopicStatsTable.decode(response.getBody(), TopicStatsTable.class);
             // 清除虚拟运行环境相关的projectGroupPrefix
@@ -1210,7 +1208,7 @@ public class MQClientAPIImpl {
                 RemotingCommand.createRequestCommand(RequestCode.GET_CONSUME_STATS, requestHeader);
         RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
         switch (response.getCode()) {
-        case ResponseCode.SUCCESS_VALUE: {
+        case ResponseCode.SUCCESS: {
             ConsumeStats consumeStats = ConsumeStats.decode(response.getBody(), ConsumeStats.class);
             // 清除虚拟运行环境相关的projectGroupPrefix
             if (!UtilAll.isBlank(projectGroupPrefix)) {
@@ -1255,7 +1253,7 @@ public class MQClientAPIImpl {
                 RemotingCommand.createRequestCommand(RequestCode.GET_PRODUCER_CONNECTION_LIST, requestHeader);
         RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
         switch (response.getCode()) {
-        case ResponseCode.SUCCESS_VALUE: {
+        case ResponseCode.SUCCESS: {
             return ProducerConnection.decode(response.getBody(), ProducerConnection.class);
         }
         default:
@@ -1286,7 +1284,7 @@ public class MQClientAPIImpl {
                 RemotingCommand.createRequestCommand(RequestCode.GET_CONSUMER_CONNECTION_LIST, requestHeader);
         RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
         switch (response.getCode()) {
-        case ResponseCode.SUCCESS_VALUE: {
+        case ResponseCode.SUCCESS: {
             ConsumerConnection consumerConnection =
                     ConsumerConnection.decode(response.getBody(), ConsumerConnection.class);
             if (!UtilAll.isBlank(projectGroupPrefix)) {
@@ -1317,7 +1315,7 @@ public class MQClientAPIImpl {
                 RemotingCommand.createRequestCommand(RequestCode.GET_BROKER_RUNTIME_INFO, null);
         RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
         switch (response.getCode()) {
-        case ResponseCode.SUCCESS_VALUE: {
+        case ResponseCode.SUCCESS: {
             return KVTable.decode(response.getBody(), KVTable.class);
         }
         default:
@@ -1353,7 +1351,7 @@ public class MQClientAPIImpl {
             request.setBody(str.getBytes(MixAll.DEFAULT_CHARSET));
             RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
             switch (response.getCode()) {
-            case ResponseCode.SUCCESS_VALUE: {
+            case ResponseCode.SUCCESS: {
                 return;
             }
             default:
@@ -1377,7 +1375,7 @@ public class MQClientAPIImpl {
         RemotingCommand response = this.remotingClient.invokeSync(null, request, timeoutMillis);
         assert response != null;
         switch (response.getCode()) {
-        case ResponseCode.SUCCESS_VALUE: {
+        case ResponseCode.SUCCESS: {
             ClusterInfo responseBody = ClusterInfo.decode(response.getBody(), ClusterInfo.class);
             return responseBody;
         }
@@ -1404,11 +1402,11 @@ public class MQClientAPIImpl {
         RemotingCommand response = this.remotingClient.invokeSync(null, request, timeoutMillis);
         assert response != null;
         switch (response.getCode()) {
-        case MQResponseCode.TOPIC_NOT_EXIST_VALUE: {
+        case ResponseCode.TOPIC_NOT_EXIST : {
             // TODO LOG
             break;
         }
-        case ResponseCode.SUCCESS_VALUE: {
+        case ResponseCode.SUCCESS: {
             byte[] body = response.getBody();
             if (body != null) {
                 return TopicRouteData.decode(body, TopicRouteData.class);
@@ -1442,11 +1440,11 @@ public class MQClientAPIImpl {
         RemotingCommand response = this.remotingClient.invokeSync(null, request, timeoutMillis);
         assert response != null;
         switch (response.getCode()) {
-        case MQResponseCode.TOPIC_NOT_EXIST_VALUE: {
+        case ResponseCode.TOPIC_NOT_EXIST : {
             log.warn("get Topic [{}]RouteInfoFromNameServer is not exist value", topic);
             break;
         }
-        case ResponseCode.SUCCESS_VALUE: {
+        case ResponseCode.SUCCESS: {
             byte[] body = response.getBody();
             if (body != null) {
                 return TopicRouteData.decode(body, TopicRouteData.class);
@@ -1471,7 +1469,7 @@ public class MQClientAPIImpl {
         RemotingCommand response = this.remotingClient.invokeSync(null, request, timeoutMillis);
         assert response != null;
         switch (response.getCode()) {
-        case ResponseCode.SUCCESS_VALUE: {
+        case ResponseCode.SUCCESS: {
             byte[] body = response.getBody();
             if (body != null) {
                 TopicList topicList = TopicList.decode(body, TopicList.class);
@@ -1508,7 +1506,7 @@ public class MQClientAPIImpl {
         RemotingCommand response = this.remotingClient.invokeSync(namesrvAddr, request, timeoutMillis);
         assert response != null;
         switch (response.getCode()) {
-        case ResponseCode.SUCCESS_VALUE: {
+        case ResponseCode.SUCCESS: {
             WipeWritePermOfBrokerResponseHeader responseHeader =
                     (WipeWritePermOfBrokerResponseHeader) response
                         .decodeCommandCustomHeader(WipeWritePermOfBrokerResponseHeader.class);
@@ -1538,7 +1536,7 @@ public class MQClientAPIImpl {
         RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
         assert response != null;
         switch (response.getCode()) {
-        case ResponseCode.SUCCESS_VALUE: {
+        case ResponseCode.SUCCESS: {
             return;
         }
         default:
@@ -1565,7 +1563,7 @@ public class MQClientAPIImpl {
         RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
         assert response != null;
         switch (response.getCode()) {
-        case ResponseCode.SUCCESS_VALUE: {
+        case ResponseCode.SUCCESS: {
             return;
         }
         default:
@@ -1592,7 +1590,7 @@ public class MQClientAPIImpl {
         RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
         assert response != null;
         switch (response.getCode()) {
-        case ResponseCode.SUCCESS_VALUE: {
+        case ResponseCode.SUCCESS: {
             return;
         }
         default:
@@ -1618,7 +1616,7 @@ public class MQClientAPIImpl {
         RemotingCommand response = this.remotingClient.invokeSync(null, request, timeoutMillis);
         assert response != null;
         switch (response.getCode()) {
-        case ResponseCode.SUCCESS_VALUE: {
+        case ResponseCode.SUCCESS: {
             GetKVConfigResponseHeader responseHeader =
                     (GetKVConfigResponseHeader) response
                         .decodeCommandCustomHeader(GetKVConfigResponseHeader.class);
@@ -1648,7 +1646,7 @@ public class MQClientAPIImpl {
         RemotingCommand response = this.remotingClient.invokeSync(null, request, timeoutMillis);
         assert response != null;
         switch (response.getCode()) {
-        case ResponseCode.SUCCESS_VALUE: {
+        case ResponseCode.SUCCESS: {
             return;
         }
         default:
@@ -1674,7 +1672,7 @@ public class MQClientAPIImpl {
         RemotingCommand response = this.remotingClient.invokeSync(null, request, timeoutMillis);
         assert response != null;
         switch (response.getCode()) {
-        case ResponseCode.SUCCESS_VALUE: {
+        case ResponseCode.SUCCESS: {
             return;
         }
         default:
@@ -1709,7 +1707,7 @@ public class MQClientAPIImpl {
         RemotingCommand response = this.remotingClient.invokeSync(null, request, timeoutMillis);
         assert response != null;
         switch (response.getCode()) {
-        case ResponseCode.SUCCESS_VALUE: {
+        case ResponseCode.SUCCESS: {
             GetKVConfigResponseHeader responseHeader =
                     (GetKVConfigResponseHeader) response
                         .decodeCommandCustomHeader(GetKVConfigResponseHeader.class);
@@ -1737,7 +1735,7 @@ public class MQClientAPIImpl {
         RemotingCommand response = this.remotingClient.invokeSync(null, request, timeoutMillis);
         assert response != null;
         switch (response.getCode()) {
-        case ResponseCode.SUCCESS_VALUE: {
+        case ResponseCode.SUCCESS: {
             return KVTable.decode(response.getBody(), KVTable.class);
         }
         default:
@@ -1763,7 +1761,7 @@ public class MQClientAPIImpl {
         RemotingCommand response = this.remotingClient.invokeSync(null, request, timeoutMillis);
         assert response != null;
         switch (response.getCode()) {
-        case ResponseCode.SUCCESS_VALUE: {
+        case ResponseCode.SUCCESS: {
             return;
         }
         default:
@@ -1793,7 +1791,7 @@ public class MQClientAPIImpl {
         RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
         assert response != null;
         switch (response.getCode()) {
-        case RemotingProtos.ResponseCode.SUCCESS_VALUE: {
+        case ResponseCode.SUCCESS: {
             if (response.getBody() != null) {
                 ResetOffsetBody body = ResetOffsetBody.decode(response.getBody(), ResetOffsetBody.class);
                 return body.getOffsetTable();
@@ -1825,7 +1823,7 @@ public class MQClientAPIImpl {
         RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
         assert response != null;
         switch (response.getCode()) {
-        case RemotingProtos.ResponseCode.SUCCESS_VALUE: {
+        case ResponseCode.SUCCESS: {
             if (response.getBody() != null) {
                 GetConsumerStatusBody body =
                         GetConsumerStatusBody.decode(response.getBody(), GetConsumerStatusBody.class);
