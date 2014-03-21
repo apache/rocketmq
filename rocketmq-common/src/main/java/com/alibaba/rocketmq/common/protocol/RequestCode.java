@@ -121,4 +121,8 @@ public class RequestCode {
     public static final int INVOKE_BROKER_TO_RESET_OFFSET = 222;
     // 通知 broker 调用客户端订阅消息处理
     public static final int INVOKE_BROKER_TO_GET_CONSUMER_STATUS = 223;
+    
+    // Broker 查询topic被谁消费
+    // 2014-03-21 Add
+    public static final int QUERY_TOPIC_CONSUME_BY_WHO = 300;
 }

@@ -20,6 +20,7 @@ import io.netty.channel.ChannelHandlerContext;
 
 import java.io.UnsupportedEncodingException;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Properties;
@@ -45,6 +46,7 @@ import com.alibaba.rocketmq.common.protocol.RequestCode;
 import com.alibaba.rocketmq.common.protocol.ResponseCode;
 import com.alibaba.rocketmq.common.protocol.body.Connection;
 import com.alibaba.rocketmq.common.protocol.body.ConsumerConnection;
+import com.alibaba.rocketmq.common.protocol.body.GroupList;
 import com.alibaba.rocketmq.common.protocol.body.KVTable;
 import com.alibaba.rocketmq.common.protocol.body.LockBatchRequestBody;
 import com.alibaba.rocketmq.common.protocol.body.LockBatchResponseBody;
@@ -67,6 +69,7 @@ import com.alibaba.rocketmq.common.protocol.header.GetProducerConnectionListRequ
 import com.alibaba.rocketmq.common.protocol.header.GetTopicStatsInfoRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.QueryConsumerOffsetRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.QueryConsumerOffsetResponseHeader;
+import com.alibaba.rocketmq.common.protocol.header.QueryTopicConsumerByWhoRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.ResetOffsetRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.SearchOffsetRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.SearchOffsetResponseHeader;
@@ -183,6 +186,10 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             // 调用客户端订阅消息处理
         case RequestCode.INVOKE_BROKER_TO_GET_CONSUMER_STATUS:
             return this.getConsumerStatus(ctx, request);
+
+            // 查询Topic被哪些消费者消费
+        case RequestCode.QUERY_TOPIC_CONSUME_BY_WHO:
+            return this.queryTopicConsumeByWho(ctx, request);
         default:
             break;
 
@@ -981,5 +988,26 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
 
         return this.brokerController.getBroker2Client().getConsumeStatus(requestHeader.getTopic(),
             requestHeader.getGroup(), requestHeader.getClientAddr());
+    }
+
+
+    private RemotingCommand queryTopicConsumeByWho(ChannelHandlerContext ctx, RemotingCommand request)
+            throws RemotingCommandException {
+        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
+        QueryTopicConsumerByWhoRequestHeader requestHeader =
+                (QueryTopicConsumerByWhoRequestHeader) request
+                    .decodeCommandCustomHeader(QueryTopicConsumerByWhoRequestHeader.class);
+
+        HashSet<String> groups =
+                this.brokerController.getConsumerManager().queryTopicConsumeByWho(requestHeader.getTopic());
+
+        GroupList groupList = new GroupList();
+        groupList.setGroupList(groups);
+        byte[] body = groupList.encode();
+
+        response.setBody(body);
+        response.setCode(ResponseCode.SUCCESS);
+        response.setRemark(null);
+        return response;
     }
 }

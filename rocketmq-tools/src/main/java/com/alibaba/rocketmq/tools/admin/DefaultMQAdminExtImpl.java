@@ -50,6 +50,7 @@ import com.alibaba.rocketmq.common.namesrv.NamesrvUtil;
 import com.alibaba.rocketmq.common.protocol.body.ClusterInfo;
 import com.alibaba.rocketmq.common.protocol.body.ConsumeByWho;
 import com.alibaba.rocketmq.common.protocol.body.ConsumerConnection;
+import com.alibaba.rocketmq.common.protocol.body.GroupList;
 import com.alibaba.rocketmq.common.protocol.body.KVTable;
 import com.alibaba.rocketmq.common.protocol.body.ProducerConnection;
 import com.alibaba.rocketmq.common.protocol.body.TopicList;
@@ -576,5 +577,11 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
             this.mQClientFactory.getMQClientAPIImpl().putKVConfigValue(
                 NamesrvUtil.NAMESPACE_ORDER_TOPIC_CONFIG, key, newOrderConf.toString(), 3000);
         }
+    }
+
+
+    @Override
+    public GroupList queryTopicConsumeByWho(String topic) {
+        return null;
     }
 }
