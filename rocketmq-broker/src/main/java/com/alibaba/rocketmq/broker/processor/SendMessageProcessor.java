@@ -391,7 +391,7 @@ public class SendMessageProcessor implements NettyRequestProcessor {
             // Failed
             case CREATE_MAPEDFILE_FAILED:
                 response.setCode(ResponseCode.SYSTEM_ERROR_VALUE);
-                response.setRemark("create maped file failed.");
+                response.setRemark("create maped file failed, please make sure OS and JDK both 64bit.");
                 break;
             case MESSAGE_ILLEGAL:
                 response.setCode(MQResponseCode.MESSAGE_ILLEGAL_VALUE);
