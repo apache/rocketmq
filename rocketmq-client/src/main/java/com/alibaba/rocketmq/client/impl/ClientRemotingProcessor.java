@@ -30,7 +30,7 @@ import com.alibaba.rocketmq.common.message.MessageConst;
 import com.alibaba.rocketmq.common.message.MessageDecoder;
 import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.common.message.MessageQueue;
-import com.alibaba.rocketmq.common.protocol.MQProtos.MQRequestCode;
+import com.alibaba.rocketmq.common.protocol.RequestCode;
 import com.alibaba.rocketmq.common.protocol.body.GetConsumerStatusBody;
 import com.alibaba.rocketmq.common.protocol.body.ResetOffsetBody;
 import com.alibaba.rocketmq.common.protocol.header.CheckTransactionStateRequestHeader;
@@ -63,15 +63,14 @@ public class ClientRemotingProcessor implements NettyRequestProcessor {
     @Override
     public RemotingCommand processRequest(ChannelHandlerContext ctx, RemotingCommand request)
             throws RemotingCommandException {
-        MQRequestCode code = MQRequestCode.valueOf(request.getCode());
-        switch (code) {
-        case CHECK_TRANSACTION_STATE:
+        switch (request.getCode()) {
+        case RequestCode.CHECK_TRANSACTION_STATE:
             return this.checkTransactionState(ctx, request);
-        case NOTIFY_CONSUMER_IDS_CHANGED:
+        case RequestCode.NOTIFY_CONSUMER_IDS_CHANGED:
             return this.notifyConsumerIdsChanged(ctx, request);
-        case RESET_CONSUMER_CLIENT_OFFSET:
+        case RequestCode.RESET_CONSUMER_CLIENT_OFFSET:
             return this.resetOffset(ctx, request);
-        case GET_CONSUMER_STATUS_FROM_CLIENT:
+        case RequestCode.GET_CONSUMER_STATUS_FROM_CLIENT:
             return this.getConsumeStatus(ctx, request);
         default:
             break;

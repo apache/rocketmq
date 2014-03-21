@@ -27,8 +27,8 @@ import com.alibaba.rocketmq.broker.BrokerController;
 import com.alibaba.rocketmq.broker.pagecache.OneMessageTransfer;
 import com.alibaba.rocketmq.broker.pagecache.QueryMessageTransfer;
 import com.alibaba.rocketmq.common.constant.LoggerName;
-import com.alibaba.rocketmq.common.protocol.MQProtos.MQRequestCode;
 import com.alibaba.rocketmq.common.protocol.MQProtos.MQResponseCode;
+import com.alibaba.rocketmq.common.protocol.RequestCode;
 import com.alibaba.rocketmq.common.protocol.header.QueryMessageRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.QueryMessageResponseHeader;
 import com.alibaba.rocketmq.common.protocol.header.ViewMessageRequestHeader;
@@ -60,11 +60,10 @@ public class QueryMessageProcessor implements NettyRequestProcessor {
     @Override
     public RemotingCommand processRequest(ChannelHandlerContext ctx, RemotingCommand request)
             throws RemotingCommandException {
-        MQRequestCode code = MQRequestCode.valueOf(request.getCode());
-        switch (code) {
-        case QUERY_MESSAGE:
+        switch (request.getCode()) {
+        case RequestCode.QUERY_MESSAGE:
             return this.queryMessage(ctx, request);
-        case VIEW_MESSAGE_BY_ID:
+        case RequestCode.VIEW_MESSAGE_BY_ID:
             return this.viewMessageById(ctx, request);
         default:
             break;

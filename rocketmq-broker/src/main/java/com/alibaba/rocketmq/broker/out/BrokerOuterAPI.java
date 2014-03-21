@@ -25,7 +25,7 @@ import com.alibaba.rocketmq.client.exception.MQBrokerException;
 import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.common.namesrv.RegisterBrokerResult;
 import com.alibaba.rocketmq.common.namesrv.TopAddressing;
-import com.alibaba.rocketmq.common.protocol.MQProtos.MQRequestCode;
+import com.alibaba.rocketmq.common.protocol.RequestCode;
 import com.alibaba.rocketmq.common.protocol.body.ConsumerOffsetSerializeWrapper;
 import com.alibaba.rocketmq.common.protocol.body.SubscriptionGroupWrapper;
 import com.alibaba.rocketmq.common.protocol.body.TopicConfigSerializeWrapper;
@@ -121,7 +121,7 @@ public class BrokerOuterAPI {
         requestHeader.setClusterName(clusterName);
         requestHeader.setHaServerAddr(haServerAddr);
         RemotingCommand request =
-                RemotingCommand.createRequestCommand(MQRequestCode.REGISTER_BROKER_VALUE, requestHeader);
+                RemotingCommand.createRequestCommand(RequestCode.REGISTER_BROKER, requestHeader);
         request.setBody(topicConfigWrapper.encode());
 
         RemotingCommand response = this.remotingClient.invokeSync(namesrvAddr, request, 3000);
@@ -191,7 +191,7 @@ public class BrokerOuterAPI {
         requestHeader.setBrokerName(brokerName);
         requestHeader.setClusterName(clusterName);
         RemotingCommand request =
-                RemotingCommand.createRequestCommand(MQRequestCode.UNREGISTER_BROKER_VALUE, requestHeader);
+                RemotingCommand.createRequestCommand(RequestCode.UNREGISTER_BROKER, requestHeader);
 
         RemotingCommand response = this.remotingClient.invokeSync(namesrvAddr, request, 3000);
         assert response != null;
@@ -231,7 +231,7 @@ public class BrokerOuterAPI {
     public TopicConfigSerializeWrapper getAllTopicConfig(final String addr) throws RemotingConnectException,
             RemotingSendRequestException, RemotingTimeoutException, InterruptedException, MQBrokerException {
         RemotingCommand request =
-                RemotingCommand.createRequestCommand(MQRequestCode.GET_ALL_TOPIC_CONFIG_VALUE, null);
+                RemotingCommand.createRequestCommand(RequestCode.GET_ALL_TOPIC_CONFIG, null);
 
         RemotingCommand response = this.remotingClient.invokeSync(addr, request, 3000);
         assert response != null;
@@ -257,7 +257,7 @@ public class BrokerOuterAPI {
             throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException,
             RemotingConnectException, MQBrokerException {
         RemotingCommand request =
-                RemotingCommand.createRequestCommand(MQRequestCode.GET_ALL_CONSUMER_OFFSET_VALUE, null);
+                RemotingCommand.createRequestCommand(RequestCode.GET_ALL_CONSUMER_OFFSET, null);
         RemotingCommand response = this.remotingClient.invokeSync(addr, request, 3000);
         assert response != null;
         switch (response.getCode()) {
@@ -282,7 +282,7 @@ public class BrokerOuterAPI {
     public String getAllDelayOffset(final String addr) throws InterruptedException, RemotingTimeoutException,
             RemotingSendRequestException, RemotingConnectException, MQBrokerException {
         RemotingCommand request =
-                RemotingCommand.createRequestCommand(MQRequestCode.GET_ALL_DELAY_OFFSET_VALUE, null);
+                RemotingCommand.createRequestCommand(RequestCode.GET_ALL_DELAY_OFFSET, null);
         RemotingCommand response = this.remotingClient.invokeSync(addr, request, 3000);
         assert response != null;
         switch (response.getCode()) {
@@ -307,8 +307,7 @@ public class BrokerOuterAPI {
             throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException,
             RemotingConnectException, MQBrokerException {
         RemotingCommand request =
-                RemotingCommand.createRequestCommand(MQRequestCode.GET_ALL_SUBSCRIPTIONGROUP_CONFIG_VALUE,
-                    null);
+                RemotingCommand.createRequestCommand(RequestCode.GET_ALL_SUBSCRIPTIONGROUP_CONFIG, null);
         RemotingCommand response = this.remotingClient.invokeSync(addr, request, 3000);
         assert response != null;
         switch (response.getCode()) {

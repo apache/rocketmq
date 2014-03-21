@@ -39,8 +39,8 @@ import com.alibaba.rocketmq.common.help.FAQUrl;
 import com.alibaba.rocketmq.common.message.MessageConst;
 import com.alibaba.rocketmq.common.message.MessageDecoder;
 import com.alibaba.rocketmq.common.message.MessageExt;
-import com.alibaba.rocketmq.common.protocol.MQProtos.MQRequestCode;
 import com.alibaba.rocketmq.common.protocol.MQProtos.MQResponseCode;
+import com.alibaba.rocketmq.common.protocol.RequestCode;
 import com.alibaba.rocketmq.common.protocol.header.ConsumerSendMsgBackRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.SendMessageRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.SendMessageResponseHeader;
@@ -81,11 +81,10 @@ public class SendMessageProcessor implements NettyRequestProcessor {
     @Override
     public RemotingCommand processRequest(ChannelHandlerContext ctx, RemotingCommand request)
             throws RemotingCommandException {
-        MQRequestCode code = MQRequestCode.valueOf(request.getCode());
-        switch (code) {
-        case SEND_MESSAGE:
+        switch (request.getCode()) {
+        case RequestCode.SEND_MESSAGE:
             return this.sendMessage(ctx, request);
-        case CONSUMER_SEND_MSG_BACK:
+        case RequestCode.CONSUMER_SEND_MSG_BACK:
             return this.consumerSendMsgBack(ctx, request);
         default:
             break;
