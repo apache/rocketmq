@@ -368,14 +368,14 @@ public class BrokerController {
         NettyRequestProcessor sendProcessor = new SendMessageProcessor(this);
         this.remotingServer.registerProcessor(RequestCode.SEND_MESSAGE, sendProcessor,
             this.sendMessageExecutor);
-        this.remotingServer.registerProcessor(RequestCode.CONSUMER_SEND_MSG_BACK,
-            sendProcessor, this.sendMessageExecutor);
+        this.remotingServer.registerProcessor(RequestCode.CONSUMER_SEND_MSG_BACK, sendProcessor,
+            this.sendMessageExecutor);
 
         /**
          * PullMessageProcessor
          */
-        this.remotingServer.registerProcessor(RequestCode.PULL_MESSAGE,
-            this.pullMessageProcessor, this.pullMessageExecutor);
+        this.remotingServer.registerProcessor(RequestCode.PULL_MESSAGE, this.pullMessageProcessor,
+            this.pullMessageExecutor);
 
         /**
          * QueryMessageProcessor
@@ -383,8 +383,8 @@ public class BrokerController {
         NettyRequestProcessor queryProcessor = new QueryMessageProcessor(this);
         this.remotingServer.registerProcessor(RequestCode.QUERY_MESSAGE, queryProcessor,
             this.pullMessageExecutor);
-        this.remotingServer.registerProcessor(RequestCode.VIEW_MESSAGE_BY_ID,
-            queryProcessor, this.pullMessageExecutor);
+        this.remotingServer.registerProcessor(RequestCode.VIEW_MESSAGE_BY_ID, queryProcessor,
+            this.pullMessageExecutor);
 
         /**
          * ClientManageProcessor
@@ -392,16 +392,16 @@ public class BrokerController {
         NettyRequestProcessor clientProcessor = new ClientManageProcessor(this);
         this.remotingServer.registerProcessor(RequestCode.HEART_BEAT, clientProcessor,
             this.adminBrokerExecutor);
-        this.remotingServer.registerProcessor(RequestCode.UNREGISTER_CLIENT,
-            clientProcessor, this.adminBrokerExecutor);
-        this.remotingServer.registerProcessor(RequestCode.GET_CONSUMER_LIST_BY_GROUP,
-            clientProcessor, this.adminBrokerExecutor);
+        this.remotingServer.registerProcessor(RequestCode.UNREGISTER_CLIENT, clientProcessor,
+            this.adminBrokerExecutor);
+        this.remotingServer.registerProcessor(RequestCode.GET_CONSUMER_LIST_BY_GROUP, clientProcessor,
+            this.adminBrokerExecutor);
 
         /**
          * EndTransactionProcessor
          */
-        this.remotingServer.registerProcessor(RequestCode.END_TRANSACTION,
-            new EndTransactionProcessor(this), this.sendMessageExecutor);
+        this.remotingServer.registerProcessor(RequestCode.END_TRANSACTION, new EndTransactionProcessor(this),
+            this.sendMessageExecutor);
 
         /**
          * Default

@@ -219,11 +219,11 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
                     response.setRemark("create maped file failed.");
                     break;
                 case MESSAGE_ILLEGAL:
-                    response.setCode(ResponseCode.MESSAGE_ILLEGAL );
+                    response.setCode(ResponseCode.MESSAGE_ILLEGAL);
                     response.setRemark("the message is illegal, maybe length not matched.");
                     break;
                 case SERVICE_NOT_AVAILABLE:
-                    response.setCode(ResponseCode.SERVICE_NOT_AVAILABLE );
+                    response.setCode(ResponseCode.SERVICE_NOT_AVAILABLE);
                     response.setRemark("service not available now.");
                     break;
                 case UNKNOWN_ERROR:

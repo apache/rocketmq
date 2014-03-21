@@ -104,7 +104,7 @@ public class SendMessageProcessor implements NettyRequestProcessor {
                 this.brokerController.getSubscriptionGroupManager().findSubscriptionGroupConfig(
                     requestHeader.getGroup());
         if (null == subscriptionGroupConfig) {
-            response.setCode(ResponseCode.SUBSCRIPTION_GROUP_NOT_EXIST );
+            response.setCode(ResponseCode.SUBSCRIPTION_GROUP_NOT_EXIST);
             response.setRemark("subscription group not exist, " + requestHeader.getGroup() + " "
                     + FAQUrl.suggestTodo(FAQUrl.SUBSCRIPTION_GROUP_NOT_EXIST));
             return response;
@@ -135,7 +135,7 @@ public class SendMessageProcessor implements NettyRequestProcessor {
 
         // 检查topic权限
         if (!PermName.isWriteable(topicConfig.getPerm())) {
-            response.setCode(ResponseCode.NO_PERMISSION );
+            response.setCode(ResponseCode.NO_PERMISSION);
             response.setRemark("the topic[" + newTopic + "] sending message is forbidden");
             return response;
         }
@@ -257,7 +257,7 @@ public class SendMessageProcessor implements NettyRequestProcessor {
 
         // 检查Broker权限
         if (!PermName.isWriteable(this.brokerController.getBrokerConfig().getBrokerPermission())) {
-            response.setCode(ResponseCode.NO_PERMISSION );
+            response.setCode(ResponseCode.NO_PERMISSION);
             response.setRemark("the broker[" + this.brokerController.getBrokerConfig().getBrokerIP1()
                     + "] sending message is forbidden");
             return response;
@@ -297,7 +297,7 @@ public class SendMessageProcessor implements NettyRequestProcessor {
             }
 
             if (null == topicConfig) {
-                response.setCode(ResponseCode.TOPIC_NOT_EXIST );
+                response.setCode(ResponseCode.TOPIC_NOT_EXIST);
                 response.setRemark("topic[" + requestHeader.getTopic() + "] not exist, apply first please!"
                         + FAQUrl.suggestTodo(FAQUrl.APPLY_TOPIC_URL));
                 return response;
@@ -306,7 +306,7 @@ public class SendMessageProcessor implements NettyRequestProcessor {
 
         // 检查topic权限
         if (!PermName.isWriteable(topicConfig.getPerm())) {
-            response.setCode(ResponseCode.NO_PERMISSION );
+            response.setCode(ResponseCode.NO_PERMISSION);
             response.setRemark("the topic[" + requestHeader.getTopic() + "] sending message is forbidden");
             return response;
         }
@@ -355,7 +355,7 @@ public class SendMessageProcessor implements NettyRequestProcessor {
         if (this.brokerController.getBrokerConfig().isRejectTransactionMessage()) {
             String traFlag = msgInner.getProperty(MessageConst.PROPERTY_TRANSACTION_PREPARED);
             if (traFlag != null) {
-                response.setCode(ResponseCode.NO_PERMISSION );
+                response.setCode(ResponseCode.NO_PERMISSION);
                 response.setRemark("the broker[" + this.brokerController.getBrokerConfig().getBrokerIP1()
                         + "] sending transaction message is forbidden");
                 return response;
@@ -374,15 +374,15 @@ public class SendMessageProcessor implements NettyRequestProcessor {
                 response.setCode(ResponseCode.SUCCESS);
                 break;
             case FLUSH_DISK_TIMEOUT:
-                response.setCode(ResponseCode.FLUSH_DISK_TIMEOUT );
+                response.setCode(ResponseCode.FLUSH_DISK_TIMEOUT);
                 sendOK = true;
                 break;
             case FLUSH_SLAVE_TIMEOUT:
-                response.setCode(ResponseCode.FLUSH_SLAVE_TIMEOUT );
+                response.setCode(ResponseCode.FLUSH_SLAVE_TIMEOUT);
                 sendOK = true;
                 break;
             case SLAVE_NOT_AVAILABLE:
-                response.setCode(ResponseCode.SLAVE_NOT_AVAILABLE );
+                response.setCode(ResponseCode.SLAVE_NOT_AVAILABLE);
                 sendOK = true;
                 break;
 
@@ -392,11 +392,11 @@ public class SendMessageProcessor implements NettyRequestProcessor {
                 response.setRemark("create maped file failed, please make sure OS and JDK both 64bit.");
                 break;
             case MESSAGE_ILLEGAL:
-                response.setCode(ResponseCode.MESSAGE_ILLEGAL );
+                response.setCode(ResponseCode.MESSAGE_ILLEGAL);
                 response.setRemark("the message is illegal, maybe length not matched.");
                 break;
             case SERVICE_NOT_AVAILABLE:
-                response.setCode(ResponseCode.SERVICE_NOT_AVAILABLE );
+                response.setCode(ResponseCode.SERVICE_NOT_AVAILABLE);
                 response.setRemark("service not available now, maybe disk full, " + diskUtil());
                 break;
             case UNKNOWN_ERROR:
