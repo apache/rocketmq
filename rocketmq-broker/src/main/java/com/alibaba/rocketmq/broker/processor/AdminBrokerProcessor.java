@@ -69,7 +69,7 @@ import com.alibaba.rocketmq.common.protocol.header.GetProducerConnectionListRequ
 import com.alibaba.rocketmq.common.protocol.header.GetTopicStatsInfoRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.QueryConsumerOffsetRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.QueryConsumerOffsetResponseHeader;
-import com.alibaba.rocketmq.common.protocol.header.QueryTopicConsumerByWhoRequestHeader;
+import com.alibaba.rocketmq.common.protocol.header.QueryTopicConsumeByWhoRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.ResetOffsetRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.SearchOffsetRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.SearchOffsetResponseHeader;
@@ -994,9 +994,9 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
     private RemotingCommand queryTopicConsumeByWho(ChannelHandlerContext ctx, RemotingCommand request)
             throws RemotingCommandException {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
-        QueryTopicConsumerByWhoRequestHeader requestHeader =
-                (QueryTopicConsumerByWhoRequestHeader) request
-                    .decodeCommandCustomHeader(QueryTopicConsumerByWhoRequestHeader.class);
+        QueryTopicConsumeByWhoRequestHeader requestHeader =
+                (QueryTopicConsumeByWhoRequestHeader) request
+                    .decodeCommandCustomHeader(QueryTopicConsumeByWhoRequestHeader.class);
 
         HashSet<String> groups =
                 this.brokerController.getConsumerManager().queryTopicConsumeByWho(requestHeader.getTopic());

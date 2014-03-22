@@ -11,7 +11,7 @@ import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
 /**
  * @author shijia.wxr<vintage.wang@gmail.com>
  */
-public class QueryTopicConsumerByWhoRequestHeader implements CommandCustomHeader {
+public class QueryTopicConsumeByWhoRequestHeader implements CommandCustomHeader {
     @CFNotNull
     private String topic;
 
