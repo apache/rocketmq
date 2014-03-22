@@ -107,7 +107,8 @@ public class TopicListSubCommand implements SubCommand {
 
                 TopicList topicList = defaultMQAdminExt.fetchAllTopicList();
                 for (String topic : topicList.getTopicList()) {
-                    if (topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
+                    if (topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)
+                            || topic.startsWith(MixAll.DLQ_GROUP_TOPIC_PREFIX)) {
                         continue;
                     }
 
@@ -129,7 +130,7 @@ public class TopicListSubCommand implements SubCommand {
 
                     for (String group : groupList.getGroupList()) {
                         System.out.printf("%-16s  %-48s  %-48s\n",//
-                            clusterName,//
+                            UtilAll.frontStringAtLeast(clusterName, 16),//
                             UtilAll.frontStringAtLeast(topic, 48),//
                             UtilAll.frontStringAtLeast(group, 48)//
                             );
