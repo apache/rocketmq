@@ -24,6 +24,7 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 
 import com.alibaba.rocketmq.client.exception.MQClientException;
+import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.UtilAll;
 import com.alibaba.rocketmq.common.protocol.body.ClusterInfo;
 import com.alibaba.rocketmq.common.protocol.body.GroupList;
@@ -106,6 +107,10 @@ public class TopicListSubCommand implements SubCommand {
 
                 TopicList topicList = defaultMQAdminExt.fetchAllTopicList();
                 for (String topic : topicList.getTopicList()) {
+                    if (topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
+                        continue;
+                    }
+
                     String clusterName = "";
                     GroupList groupList = new GroupList();
 
@@ -132,7 +137,6 @@ public class TopicListSubCommand implements SubCommand {
                 }
             }
             else {
-
                 TopicList topicList = defaultMQAdminExt.fetchAllTopicList();
                 for (String topic : topicList.getTopicList()) {
                     System.out.println(topic);
