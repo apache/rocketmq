@@ -473,9 +473,19 @@ public interface MQAdminExt extends MQAdmin {
 
     /**
      * 根据Topic查询被哪些订阅组消费
+     * 
      * @param topic
      * @return
+     * @throws MQBrokerException
+     * @throws InterruptedException
+     * @throws RemotingTimeoutException
+     * @throws RemotingSendRequestException
+     * @throws RemotingConnectException
+     * @throws MQClientException
+     * @throws RemotingException
      */
-    public GroupList queryTopicConsumeByWho(final String topic);
+    public GroupList queryTopicConsumeByWho(final String topic) throws RemotingConnectException,
+            RemotingSendRequestException, RemotingTimeoutException, InterruptedException, MQBrokerException,
+            RemotingException, MQClientException;
 
 }

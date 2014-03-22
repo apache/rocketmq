@@ -581,7 +581,19 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
 
 
     @Override
-    public GroupList queryTopicConsumeByWho(String topic) {
+    public GroupList queryTopicConsumeByWho(String topic) throws InterruptedException, MQBrokerException,
+            RemotingException, MQClientException {
+        TopicRouteData topicRouteData = this.examineTopicRouteInfo(topic);
+
+        for (BrokerData bd : topicRouteData.getBrokerDatas()) {
+            String addr = bd.selectBrokerAddr();
+            if (addr != null) {
+                return this.mQClientFactory.getMQClientAPIImpl().queryTopicConsumeByWho(addr, topic, 3000);
+            }
+
+            break;
+        }
+
         return null;
     }
 }

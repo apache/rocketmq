@@ -15,10 +15,22 @@
  */
 package com.alibaba.rocketmq.tools.command.topic;
 
+import java.util.Iterator;
+import java.util.Map.Entry;
+import java.util.Set;
+
 import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 
+import com.alibaba.rocketmq.client.exception.MQClientException;
+import com.alibaba.rocketmq.common.UtilAll;
+import com.alibaba.rocketmq.common.protocol.body.ClusterInfo;
+import com.alibaba.rocketmq.common.protocol.body.GroupList;
 import com.alibaba.rocketmq.common.protocol.body.TopicList;
+import com.alibaba.rocketmq.common.protocol.route.BrokerData;
+import com.alibaba.rocketmq.common.protocol.route.TopicRouteData;
+import com.alibaba.rocketmq.remoting.exception.RemotingException;
 import com.alibaba.rocketmq.tools.admin.DefaultMQAdminExt;
 import com.alibaba.rocketmq.tools.command.SubCommand;
 
@@ -45,7 +57,32 @@ public class TopicListSubCommand implements SubCommand {
 
     @Override
     public Options buildCommandlineOptions(Options options) {
+        Option opt = new Option("c", "clusterModel", false, "clusterModel");
+        opt.setRequired(false);
+        options.addOption(opt);
+
         return options;
+    }
+
+
+    private String findTopicBelongToWhichCluster(final String topic, final ClusterInfo clusterInfo,
+            final DefaultMQAdminExt defaultMQAdminExt) throws RemotingException, MQClientException,
+            InterruptedException {
+        TopicRouteData topicRouteData = defaultMQAdminExt.examineTopicRouteInfo(topic);
+
+        BrokerData brokerData = topicRouteData.getBrokerDatas().get(0);
+
+        String brokerName = brokerData.getBrokerName();
+
+        Iterator<Entry<String, Set<String>>> it = clusterInfo.getClusterAddrTable().entrySet().iterator();
+        while (it.hasNext()) {
+            Entry<String, Set<String>> next = it.next();
+            if (next.getValue().contains(brokerName)) {
+                return next.getKey();
+            }
+        }
+
+        return null;
     }
 
 
@@ -58,9 +95,48 @@ public class TopicListSubCommand implements SubCommand {
         try {
             defaultMQAdminExt.start();
 
-            TopicList topicList = defaultMQAdminExt.fetchAllTopicList();
-            for (String topic : topicList.getTopicList()) {
-                System.out.println(topic);
+            if (commandLine.hasOption('c')) {
+                ClusterInfo clusterInfo = defaultMQAdminExt.examineBrokerClusterInfo();
+
+                System.out.printf("%-16s  %-48s  %-48s\n",//
+                    "#Cluster Name",//
+                    "#Topic",//
+                    "#Consumer Group"//
+                );
+
+                TopicList topicList = defaultMQAdminExt.fetchAllTopicList();
+                for (String topic : topicList.getTopicList()) {
+                    String clusterName = "";
+                    GroupList groupList = new GroupList();
+
+                    try {
+                        clusterName =
+                                this.findTopicBelongToWhichCluster(topic, clusterInfo, defaultMQAdminExt);
+                        groupList = defaultMQAdminExt.queryTopicConsumeByWho(topic);
+                    }
+                    catch (Exception e) {
+                    }
+
+                    if (null == groupList || groupList.getGroupList().isEmpty()) {
+                        groupList = new GroupList();
+                        groupList.getGroupList().add("");
+                    }
+
+                    for (String group : groupList.getGroupList()) {
+                        System.out.printf("%-16s  %-48s  %-48s\n",//
+                            clusterName,//
+                            UtilAll.frontStringAtLeast(topic, 48),//
+                            UtilAll.frontStringAtLeast(group, 48)//
+                            );
+                    }
+                }
+            }
+            else {
+
+                TopicList topicList = defaultMQAdminExt.fetchAllTopicList();
+                for (String topic : topicList.getTopicList()) {
+                    System.out.println(topic);
+                }
             }
         }
         catch (Exception e) {

@@ -58,6 +58,7 @@ import com.alibaba.rocketmq.common.protocol.ResponseCode;
 import com.alibaba.rocketmq.common.protocol.body.ClusterInfo;
 import com.alibaba.rocketmq.common.protocol.body.ConsumerConnection;
 import com.alibaba.rocketmq.common.protocol.body.GetConsumerStatusBody;
+import com.alibaba.rocketmq.common.protocol.body.GroupList;
 import com.alibaba.rocketmq.common.protocol.body.KVTable;
 import com.alibaba.rocketmq.common.protocol.body.LockBatchRequestBody;
 import com.alibaba.rocketmq.common.protocol.body.LockBatchResponseBody;
@@ -88,6 +89,7 @@ import com.alibaba.rocketmq.common.protocol.header.PullMessageResponseHeader;
 import com.alibaba.rocketmq.common.protocol.header.QueryConsumerOffsetRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.QueryConsumerOffsetResponseHeader;
 import com.alibaba.rocketmq.common.protocol.header.QueryMessageRequestHeader;
+import com.alibaba.rocketmq.common.protocol.header.QueryTopicConsumeByWhoRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.ResetOffsetRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.SearchOffsetRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.SearchOffsetResponseHeader;
@@ -1836,4 +1838,30 @@ public class MQClientAPIImpl {
 
         throw new MQClientException(response.getCode(), response.getRemark());
     }
+
+
+    /**
+     * 根据ConsumerGroup获取Consumer连接列表以及订阅关系
+     */
+    public GroupList queryTopicConsumeByWho(final String addr, final String topic, final long timeoutMillis)
+            throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException,
+            InterruptedException, MQBrokerException {
+        QueryTopicConsumeByWhoRequestHeader requestHeader = new QueryTopicConsumeByWhoRequestHeader();
+        requestHeader.setTopic(topic);
+
+        RemotingCommand request =
+                RemotingCommand.createRequestCommand(RequestCode.QUERY_TOPIC_CONSUME_BY_WHO, requestHeader);
+        RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
+        switch (response.getCode()) {
+        case ResponseCode.SUCCESS: {
+            GroupList groupList = GroupList.decode(response.getBody(), GroupList.class);
+            return groupList;
+        }
+        default:
+            break;
+        }
+
+        throw new MQBrokerException(response.getCode(), response.getRemark());
+    }
+
 }
