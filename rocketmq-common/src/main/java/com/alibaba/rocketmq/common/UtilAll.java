@@ -30,9 +30,6 @@ import java.util.zip.CRC32;
 import java.util.zip.DeflaterOutputStream;
 import java.util.zip.InflaterInputStream;
 
-import com.alibaba.rocketmq.common.protocol.MQProtos.MQResponseCode;
-import com.alibaba.rocketmq.remoting.protocol.RemotingProtos.ResponseCode;
-
 
 /**
  * 各种方法大杂烩
@@ -356,17 +353,7 @@ public class UtilAll {
 
 
     public static String responseCode2String(final int code) {
-        ResponseCode rc = ResponseCode.valueOf(code);
-        if (rc != null) {
-            return rc.toString();
-        }
-
-        MQResponseCode mrc = MQResponseCode.valueOf(code);
-        if (mrc != null) {
-            return mrc.toString();
-        }
-
-        return null;
+        return Integer.toString(code);
     }
 
 

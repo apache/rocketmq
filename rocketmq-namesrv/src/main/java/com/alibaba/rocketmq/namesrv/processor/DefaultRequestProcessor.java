@@ -26,8 +26,8 @@ import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.common.help.FAQUrl;
 import com.alibaba.rocketmq.common.namesrv.NamesrvUtil;
 import com.alibaba.rocketmq.common.namesrv.RegisterBrokerResult;
-import com.alibaba.rocketmq.common.protocol.MQProtos.MQRequestCode;
-import com.alibaba.rocketmq.common.protocol.MQProtos.MQResponseCode;
+import com.alibaba.rocketmq.common.protocol.RequestCode;
+import com.alibaba.rocketmq.common.protocol.ResponseCode;
 import com.alibaba.rocketmq.common.protocol.body.TopicConfigSerializeWrapper;
 import com.alibaba.rocketmq.common.protocol.header.namesrv.DeleteKVConfigRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.namesrv.DeleteTopicInNamesrvRequestHeader;
@@ -47,7 +47,6 @@ import com.alibaba.rocketmq.remoting.common.RemotingHelper;
 import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
 import com.alibaba.rocketmq.remoting.netty.NettyRequestProcessor;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
-import com.alibaba.rocketmq.remoting.protocol.RemotingProtos.ResponseCode;
 
 
 /**
@@ -70,40 +69,39 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
     @Override
     public RemotingCommand processRequest(ChannelHandlerContext ctx, RemotingCommand request)
             throws RemotingCommandException {
-        MQRequestCode code = MQRequestCode.valueOf(request.getCode());
         if (log.isDebugEnabled()) {
             log.debug("receive request, {} {} {}",//
-                code, //
+                request.getCode(), //
                 RemotingHelper.parseChannelRemoteAddr(ctx.channel()), //
                 request);
         }
 
-        switch (code) {
-        case PUT_KV_CONFIG:
+        switch (request.getCode()) {
+        case RequestCode.PUT_KV_CONFIG:
             return this.putKVConfig(ctx, request);
-        case GET_KV_CONFIG:
+        case RequestCode.GET_KV_CONFIG:
             return this.getKVConfig(ctx, request);
-        case DELETE_KV_CONFIG:
+        case RequestCode.DELETE_KV_CONFIG:
             return this.deleteKVConfig(ctx, request);
-        case REGISTER_BROKER:
+        case RequestCode.REGISTER_BROKER:
             return this.registerBroker(ctx, request);
-        case UNREGISTER_BROKER:
+        case RequestCode.UNREGISTER_BROKER:
             return this.unregisterBroker(ctx, request);
-        case GET_ROUTEINTO_BY_TOPIC:
+        case RequestCode.GET_ROUTEINTO_BY_TOPIC:
             return this.getRouteInfoByTopic(ctx, request);
-        case GET_BROKER_CLUSTER_INFO:
+        case RequestCode.GET_BROKER_CLUSTER_INFO:
             return this.getBrokerClusterInfo(ctx, request);
-        case WIPE_WRITE_PERM_OF_BROKER:
+        case RequestCode.WIPE_WRITE_PERM_OF_BROKER:
             return this.wipeWritePermOfBroker(ctx, request);
-        case GET_ALL_TOPIC_LIST_FROM_NAMESERVER:
+        case RequestCode.GET_ALL_TOPIC_LIST_FROM_NAMESERVER:
             return getAllTopicListFromNameserver(ctx, request);
-        case DELETE_TOPIC_IN_NAMESRV:
+        case RequestCode.DELETE_TOPIC_IN_NAMESRV:
             return deleteTopicInNamesrv(ctx, request);
-        case GET_KV_CONFIG_BY_VALUE:
+        case RequestCode.GET_KV_CONFIG_BY_VALUE:
             return getKVConfigByValue(ctx, request);
-        case DELETE_KV_CONFIG_BY_VALUE:
+        case RequestCode.DELETE_KV_CONFIG_BY_VALUE:
             return deleteKVConfigByValue(ctx, request);
-        case GET_KVLIST_BY_NAMESPACE:
+        case RequestCode.GET_KVLIST_BY_NAMESPACE:
             return this.getKVListByNamespace(ctx, request);
         default:
             break;
@@ -126,12 +124,12 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
             requestHeader.getNamespace());
         if (null != jsonValue) {
             response.setBody(jsonValue);
-            response.setCode(ResponseCode.SUCCESS_VALUE);
+            response.setCode(ResponseCode.SUCCESS);
             response.setRemark(null);
             return response;
         }
 
-        response.setCode(MQResponseCode.QUERY_NOT_FOUND_VALUE);
+        response.setCode(ResponseCode.QUERY_NOT_FOUND);
         response.setRemark("No config item, Namespace: " + requestHeader.getNamespace());
         return response;
     }
@@ -146,7 +144,7 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
 
         this.namesrvController.getRouteInfoManager().deleteTopic(requestHeader.getTopic());
 
-        response.setCode(ResponseCode.SUCCESS_VALUE);
+        response.setCode(ResponseCode.SUCCESS);
         response.setRemark(null);
         return response;
     }
@@ -165,7 +163,7 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
         byte[] body = this.namesrvController.getRouteInfoManager().getAllTopicList();
 
         response.setBody(body);
-        response.setCode(ResponseCode.SUCCESS_VALUE);
+        response.setCode(ResponseCode.SUCCESS);
         response.setRemark(null);
         return response;
     }
@@ -191,7 +189,7 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
             wipeTopicCnt);
 
         responseHeader.setWipeTopicCount(wipeTopicCnt);
-        response.setCode(ResponseCode.SUCCESS_VALUE);
+        response.setCode(ResponseCode.SUCCESS);
         response.setRemark(null);
         return response;
     }
@@ -203,7 +201,7 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
         byte[] content = this.namesrvController.getRouteInfoManager().getAllClusterInfo();
         response.setBody(content);
 
-        response.setCode(ResponseCode.SUCCESS_VALUE);
+        response.setCode(ResponseCode.SUCCESS);
         response.setRemark(null);
         return response;
     }
@@ -227,12 +225,12 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
 
             byte[] content = topicRouteData.encode();
             response.setBody(content);
-            response.setCode(ResponseCode.SUCCESS_VALUE);
+            response.setCode(ResponseCode.SUCCESS);
             response.setRemark(null);
             return response;
         }
 
-        response.setCode(MQResponseCode.TOPIC_NOT_EXIST_VALUE);
+        response.setCode(ResponseCode.TOPIC_NOT_EXIST);
         response.setRemark("No topic route info in name server for the topic: " + requestHeader.getTopic()
                 + FAQUrl.suggestTodo(FAQUrl.APPLY_TOPIC_URL));
         return response;
@@ -251,7 +249,7 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
             requestHeader.getValue()//
             );
 
-        response.setCode(ResponseCode.SUCCESS_VALUE);
+        response.setCode(ResponseCode.SUCCESS);
         response.setRemark(null);
         return response;
     }
@@ -273,12 +271,12 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
 
         if (value != null) {
             responseHeader.setValue(value);
-            response.setCode(ResponseCode.SUCCESS_VALUE);
+            response.setCode(ResponseCode.SUCCESS);
             response.setRemark(null);
             return response;
         }
 
-        response.setCode(MQResponseCode.QUERY_NOT_FOUND_VALUE);
+        response.setCode(ResponseCode.QUERY_NOT_FOUND);
         response.setRemark("No config item, Namespace: " + requestHeader.getNamespace() + " Key: "
                 + requestHeader.getKey());
         return response;
@@ -297,7 +295,7 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
             requestHeader.getKey()//
             );
 
-        response.setCode(ResponseCode.SUCCESS_VALUE);
+        response.setCode(ResponseCode.SUCCESS);
         response.setRemark(null);
         return response;
     }
@@ -337,7 +335,7 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
         responseHeader.setHaServerAddr(result.getHaServerAddr());
         responseHeader.setMasterAddr(result.getMasterAddr());
 
-        response.setCode(ResponseCode.SUCCESS_VALUE);
+        response.setCode(ResponseCode.SUCCESS);
         response.setRemark(null);
         return response;
     }
@@ -356,7 +354,7 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
             requestHeader.getBrokerName(), // 3
             requestHeader.getBrokerId());
 
-        response.setCode(ResponseCode.SUCCESS_VALUE);
+        response.setCode(ResponseCode.SUCCESS);
         response.setRemark(null);
         return response;
     }
@@ -378,12 +376,12 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
 
         if (value != null) {
             responseHeader.setValue(value);
-            response.setCode(ResponseCode.SUCCESS_VALUE);
+            response.setCode(ResponseCode.SUCCESS);
             response.setRemark(null);
             return response;
         }
 
-        response.setCode(MQResponseCode.QUERY_NOT_FOUND_VALUE);
+        response.setCode(ResponseCode.QUERY_NOT_FOUND);
         response.setRemark("No config item, Namespace: " + requestHeader.getNamespace() + " Key: "
                 + requestHeader.getKey());
         return response;
@@ -402,9 +400,8 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
             requestHeader.getKey()//
             );
 
-        response.setCode(ResponseCode.SUCCESS_VALUE);
+        response.setCode(ResponseCode.SUCCESS);
         response.setRemark(null);
         return response;
     }
-
 }
