@@ -51,6 +51,8 @@ public class BrokerConfig {
     private boolean autoCreateTopicEnable = true;
     // 自动创建以集群名字命名的Topic功能是否开启
     private boolean clusterTopicEnable = true;
+    // 自动创建以服务器名字命名的Topic功能是否开启
+    private boolean brokerTopicEnable = true;
     // 自动创建订阅组功能是否开启（线上建议关闭）
     @ImportantField
     private boolean autoCreateSubscriptionGroup = true;
@@ -76,7 +78,7 @@ public class BrokerConfig {
     private int flushConsumerOffsetHistoryInterval = 1000 * 60;
 
     // 查询消息最大时间跨度，单位小时
-    private long queryMessageMaxTimeSpan = 24;
+    private long queryMessageMaxTimeSpan = 73;
 
     // 是否拒绝接收事务消息
     @ImportantField
@@ -362,5 +364,15 @@ public class BrokerConfig {
 
     public void setPullThreadPoolQueueCapacity(int pullThreadPoolQueueCapacity) {
         this.pullThreadPoolQueueCapacity = pullThreadPoolQueueCapacity;
+    }
+
+
+    public boolean isBrokerTopicEnable() {
+        return brokerTopicEnable;
+    }
+
+
+    public void setBrokerTopicEnable(boolean brokerTopicEnable) {
+        this.brokerTopicEnable = brokerTopicEnable;
     }
 }

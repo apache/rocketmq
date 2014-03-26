@@ -60,7 +60,7 @@ import com.alibaba.rocketmq.common.message.MessageDecoder;
 import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.common.message.MessageId;
 import com.alibaba.rocketmq.common.message.MessageQueue;
-import com.alibaba.rocketmq.common.protocol.MQProtos.MQResponseCode;
+import com.alibaba.rocketmq.common.protocol.ResponseCode;
 import com.alibaba.rocketmq.common.protocol.header.CheckTransactionStateRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.EndTransactionRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.SendMessageRequestHeader;
@@ -68,7 +68,6 @@ import com.alibaba.rocketmq.common.sysflag.MessageSysFlag;
 import com.alibaba.rocketmq.remoting.common.RemotingHelper;
 import com.alibaba.rocketmq.remoting.common.RemotingUtil;
 import com.alibaba.rocketmq.remoting.exception.RemotingException;
-import com.alibaba.rocketmq.remoting.protocol.RemotingProtos.ResponseCode;
 
 
 /**
@@ -513,10 +512,10 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                         exception = e;
                         endTimestamp = System.currentTimeMillis();
                         switch (e.getResponseCode()) {
-                        case MQResponseCode.TOPIC_NOT_EXIST_VALUE:
-                        case MQResponseCode.SERVICE_NOT_AVAILABLE_VALUE:
-                        case ResponseCode.SYSTEM_ERROR_VALUE:
-                        case MQResponseCode.NO_PERMISSION_VALUE:
+                        case ResponseCode.TOPIC_NOT_EXIST:
+                        case ResponseCode.SERVICE_NOT_AVAILABLE:
+                        case ResponseCode.SYSTEM_ERROR:
+                        case ResponseCode.NO_PERMISSION:
                             continue;
                         default:
                             if (sendResult != null) {
@@ -846,56 +845,59 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
     public TransactionSendResult sendMessageInTransaction(final Message msg,
             final LocalTransactionExecuter tranExecuter, final Object arg) throws MQClientException {
-	    // 有效性检查
-	    if (null == tranExecuter) {
-		    throw new MQClientException("tranExecutor is null", null);
-	    }
-	    Validators.checkMessage(msg, this.defaultMQProducer);
+        // 有效性检查
+        if (null == tranExecuter) {
+            throw new MQClientException("tranExecutor is null", null);
+        }
+        Validators.checkMessage(msg, this.defaultMQProducer);
 
-	    // 第一步，向Broker发送一条Prepared消息
-	    SendResult sendResult = null;
-	    msg.putProperty(MessageConst.PROPERTY_TRANSACTION_PREPARED, "true");
-	    msg.putProperty(MessageConst.PROPERTY_PRODUCER_GROUP, this.defaultMQProducer.getProducerGroup());
-	    try {
-		    sendResult = this.send(msg);
-	    } catch (Exception e) {
-		    throw new MQClientException("send message Exception", e);
-	    }
+        // 第一步，向Broker发送一条Prepared消息
+        SendResult sendResult = null;
+        msg.putProperty(MessageConst.PROPERTY_TRANSACTION_PREPARED, "true");
+        msg.putProperty(MessageConst.PROPERTY_PRODUCER_GROUP, this.defaultMQProducer.getProducerGroup());
+        try {
+            sendResult = this.send(msg);
+        }
+        catch (Exception e) {
+            throw new MQClientException("send message Exception", e);
+        }
 
-	    // 第二步，回调本地事务
-	    LocalTransactionState localTransactionState = LocalTransactionState.UNKNOW;
-	    Throwable localException = null;
-	    try {
-		    localTransactionState = tranExecuter.executeLocalTransactionBranch(msg, arg);
-		    if (null == localTransactionState) {
-			    localTransactionState = LocalTransactionState.UNKNOW;
-		    }
+        // 第二步，回调本地事务
+        LocalTransactionState localTransactionState = LocalTransactionState.UNKNOW;
+        Throwable localException = null;
+        try {
+            localTransactionState = tranExecuter.executeLocalTransactionBranch(msg, arg);
+            if (null == localTransactionState) {
+                localTransactionState = LocalTransactionState.UNKNOW;
+            }
 
-		    if (localTransactionState != LocalTransactionState.COMMIT_MESSAGE) {
-			    log.info("executeLocalTransactionBranch return {}", localTransactionState);
-			    log.info(msg.toString());
-		    }
-	    } catch (Throwable e) {
-		    log.info("executeLocalTransactionBranch exception", e);
-		    log.info(msg.toString());
-		    localException = e;
-	    }
+            if (localTransactionState != LocalTransactionState.COMMIT_MESSAGE) {
+                log.info("executeLocalTransactionBranch return {}", localTransactionState);
+                log.info(msg.toString());
+            }
+        }
+        catch (Throwable e) {
+            log.info("executeLocalTransactionBranch exception", e);
+            log.info(msg.toString());
+            localException = e;
+        }
 
-	    // 第三步，提交或者回滚Broker端消息
-	    try {
-		    this.endTransaction(sendResult, localTransactionState, localException);
-	    } catch (Exception e) {
-		    log.warn("local transaction execute " + localTransactionState
-				    + ", but end broker transaction failed", e);
-	    }
+        // 第三步，提交或者回滚Broker端消息
+        try {
+            this.endTransaction(sendResult, localTransactionState, localException);
+        }
+        catch (Exception e) {
+            log.warn("local transaction execute " + localTransactionState
+                    + ", but end broker transaction failed", e);
+        }
 
-	    TransactionSendResult transactionSendResult = new TransactionSendResult();
-	    transactionSendResult.setSendStatus(sendResult.getSendStatus());
-	    transactionSendResult.setMessageQueue(sendResult.getMessageQueue());
-	    transactionSendResult.setMsgId(sendResult.getMsgId());
-	    transactionSendResult.setQueueOffset(sendResult.getQueueOffset());
-	    transactionSendResult.setLocalTransactionState(localTransactionState);
-	    return transactionSendResult;
+        TransactionSendResult transactionSendResult = new TransactionSendResult();
+        transactionSendResult.setSendStatus(sendResult.getSendStatus());
+        transactionSendResult.setMessageQueue(sendResult.getMessageQueue());
+        transactionSendResult.setMsgId(sendResult.getMsgId());
+        transactionSendResult.setQueueOffset(sendResult.getQueueOffset());
+        transactionSendResult.setLocalTransactionState(localTransactionState);
+        return transactionSendResult;
     }
 
 

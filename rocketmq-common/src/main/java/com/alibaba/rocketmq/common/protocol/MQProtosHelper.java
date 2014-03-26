@@ -1,13 +1,11 @@
 package com.alibaba.rocketmq.common.protocol;
 
-import com.alibaba.rocketmq.common.protocol.MQProtos.MQRequestCode;
 import com.alibaba.rocketmq.common.protocol.header.namesrv.RegisterBrokerRequestHeader;
 import com.alibaba.rocketmq.remoting.common.RemotingHelper;
 import com.alibaba.rocketmq.remoting.exception.RemotingConnectException;
 import com.alibaba.rocketmq.remoting.exception.RemotingSendRequestException;
 import com.alibaba.rocketmq.remoting.exception.RemotingTimeoutException;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
-import com.alibaba.rocketmq.remoting.protocol.RemotingProtos.ResponseCode;
 
 
 /**
@@ -25,12 +23,12 @@ public class MQProtosHelper {
         requestHeader.setBrokerAddr(brokerAddr);
 
         RemotingCommand request =
-                RemotingCommand.createRequestCommand(MQRequestCode.REGISTER_BROKER_VALUE, requestHeader);
+                RemotingCommand.createRequestCommand(RequestCode.REGISTER_BROKER, requestHeader);
 
         try {
             RemotingCommand response = RemotingHelper.invokeSync(nsaddr, request, timeoutMillis);
             if (response != null) {
-                return ResponseCode.SUCCESS_VALUE == response.getCode();
+                return ResponseCode.SUCCESS == response.getCode();
             }
         }
         catch (RemotingConnectException e) {

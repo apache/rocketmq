@@ -26,14 +26,13 @@ import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.common.message.MessageConst;
 import com.alibaba.rocketmq.common.message.MessageDecoder;
 import com.alibaba.rocketmq.common.message.MessageExt;
-import com.alibaba.rocketmq.common.protocol.MQProtos.MQResponseCode;
+import com.alibaba.rocketmq.common.protocol.ResponseCode;
 import com.alibaba.rocketmq.common.protocol.header.EndTransactionRequestHeader;
 import com.alibaba.rocketmq.common.sysflag.MessageSysFlag;
 import com.alibaba.rocketmq.remoting.common.RemotingHelper;
 import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
 import com.alibaba.rocketmq.remoting.netty.NettyRequestProcessor;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
-import com.alibaba.rocketmq.remoting.protocol.RemotingProtos.ResponseCode;
 import com.alibaba.rocketmq.store.MessageExtBrokerInner;
 import com.alibaba.rocketmq.store.MessageStore;
 import com.alibaba.rocketmq.store.PutMessageResult;
@@ -171,21 +170,21 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
             // 校验Producer Group
             final String pgroupRead = msgExt.getProperty(MessageConst.PROPERTY_PRODUCER_GROUP);
             if (!pgroupRead.equals(requestHeader.getProducerGroup())) {
-                response.setCode(ResponseCode.SYSTEM_ERROR_VALUE);
+                response.setCode(ResponseCode.SYSTEM_ERROR);
                 response.setRemark("the producer group wrong");
                 return response;
             }
 
             // 校验Transaction State Table Offset
             if (msgExt.getQueueOffset() != requestHeader.getTranStateTableOffset()) {
-                response.setCode(ResponseCode.SYSTEM_ERROR_VALUE);
+                response.setCode(ResponseCode.SYSTEM_ERROR);
                 response.setRemark("the transaction state table offset wrong");
                 return response;
             }
 
             // 校验Commit Log Offset
             if (msgExt.getCommitLogOffset() != requestHeader.getCommitLogOffset()) {
-                response.setCode(ResponseCode.SYSTEM_ERROR_VALUE);
+                response.setCode(ResponseCode.SYSTEM_ERROR);
                 response.setRemark("the commit log offset wrong");
                 return response;
             }
@@ -210,29 +209,29 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
                 case FLUSH_DISK_TIMEOUT:
                 case FLUSH_SLAVE_TIMEOUT:
                 case SLAVE_NOT_AVAILABLE:
-                    response.setCode(ResponseCode.SUCCESS_VALUE);
+                    response.setCode(ResponseCode.SUCCESS);
                     response.setRemark(null);
                     break;
 
                 // Failed
                 case CREATE_MAPEDFILE_FAILED:
-                    response.setCode(ResponseCode.SYSTEM_ERROR_VALUE);
+                    response.setCode(ResponseCode.SYSTEM_ERROR);
                     response.setRemark("create maped file failed.");
                     break;
                 case MESSAGE_ILLEGAL:
-                    response.setCode(MQResponseCode.MESSAGE_ILLEGAL_VALUE);
+                    response.setCode(ResponseCode.MESSAGE_ILLEGAL);
                     response.setRemark("the message is illegal, maybe length not matched.");
                     break;
                 case SERVICE_NOT_AVAILABLE:
-                    response.setCode(MQResponseCode.SERVICE_NOT_AVAILABLE_VALUE);
+                    response.setCode(ResponseCode.SERVICE_NOT_AVAILABLE);
                     response.setRemark("service not available now.");
                     break;
                 case UNKNOWN_ERROR:
-                    response.setCode(ResponseCode.SYSTEM_ERROR_VALUE);
+                    response.setCode(ResponseCode.SYSTEM_ERROR);
                     response.setRemark("UNKNOWN_ERROR");
                     break;
                 default:
-                    response.setCode(ResponseCode.SYSTEM_ERROR_VALUE);
+                    response.setCode(ResponseCode.SYSTEM_ERROR);
                     response.setRemark("UNKNOWN_ERROR DEFAULT");
                     break;
                 }
@@ -240,12 +239,12 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
                 return response;
             }
             else {
-                response.setCode(ResponseCode.SYSTEM_ERROR_VALUE);
+                response.setCode(ResponseCode.SYSTEM_ERROR);
                 response.setRemark("store putMessage return null");
             }
         }
         else {
-            response.setCode(ResponseCode.SYSTEM_ERROR_VALUE);
+            response.setCode(ResponseCode.SYSTEM_ERROR);
             response.setRemark("find prepared transaction message failed");
             return response;
         }

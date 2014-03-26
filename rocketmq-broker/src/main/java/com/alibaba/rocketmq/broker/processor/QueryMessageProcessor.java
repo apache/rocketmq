@@ -27,15 +27,14 @@ import com.alibaba.rocketmq.broker.BrokerController;
 import com.alibaba.rocketmq.broker.pagecache.OneMessageTransfer;
 import com.alibaba.rocketmq.broker.pagecache.QueryMessageTransfer;
 import com.alibaba.rocketmq.common.constant.LoggerName;
-import com.alibaba.rocketmq.common.protocol.MQProtos.MQRequestCode;
-import com.alibaba.rocketmq.common.protocol.MQProtos.MQResponseCode;
+import com.alibaba.rocketmq.common.protocol.RequestCode;
+import com.alibaba.rocketmq.common.protocol.ResponseCode;
 import com.alibaba.rocketmq.common.protocol.header.QueryMessageRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.QueryMessageResponseHeader;
 import com.alibaba.rocketmq.common.protocol.header.ViewMessageRequestHeader;
 import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
 import com.alibaba.rocketmq.remoting.netty.NettyRequestProcessor;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
-import com.alibaba.rocketmq.remoting.protocol.RemotingProtos.ResponseCode;
 import com.alibaba.rocketmq.store.QueryMessageResult;
 import com.alibaba.rocketmq.store.SelectMapedBufferResult;
 
@@ -60,11 +59,10 @@ public class QueryMessageProcessor implements NettyRequestProcessor {
     @Override
     public RemotingCommand processRequest(ChannelHandlerContext ctx, RemotingCommand request)
             throws RemotingCommandException {
-        MQRequestCode code = MQRequestCode.valueOf(request.getCode());
-        switch (code) {
-        case QUERY_MESSAGE:
+        switch (request.getCode()) {
+        case RequestCode.QUERY_MESSAGE:
             return this.queryMessage(ctx, request);
-        case VIEW_MESSAGE_BY_ID:
+        case RequestCode.VIEW_MESSAGE_BY_ID:
             return this.viewMessageById(ctx, request);
         default:
             break;
@@ -89,7 +87,7 @@ public class QueryMessageProcessor implements NettyRequestProcessor {
                 this.brokerController.getBrokerConfig().getQueryMessageMaxTimeSpan() * 60 * 60 * 1000;
         long diff = requestHeader.getEndTimestamp() - requestHeader.getBeginTimestamp();
         if (diff > maxTimeSpan) {
-            response.setCode(ResponseCode.SYSTEM_ERROR_VALUE);
+            response.setCode(ResponseCode.SYSTEM_ERROR);
             response.setRemark("the time range is too long, broker limits " + maxTimeSpan + "h");
             return response;
         }
@@ -108,7 +106,7 @@ public class QueryMessageProcessor implements NettyRequestProcessor {
 
         // 说明找到消息
         if (queryMessageResult.getBufferTotalSize() > 0) {
-            response.setCode(ResponseCode.SUCCESS_VALUE);
+            response.setCode(ResponseCode.SUCCESS);
             response.setRemark(null);
 
             try {
@@ -133,7 +131,7 @@ public class QueryMessageProcessor implements NettyRequestProcessor {
             return null;
         }
 
-        response.setCode(MQResponseCode.QUERY_NOT_FOUND_VALUE);
+        response.setCode(ResponseCode.QUERY_NOT_FOUND);
         response.setRemark("can not find message, maybe time range not correct");
         return response;
     }
@@ -151,7 +149,7 @@ public class QueryMessageProcessor implements NettyRequestProcessor {
         final SelectMapedBufferResult selectMapedBufferResult =
                 this.brokerController.getMessageStore().selectOneMessageByOffset(requestHeader.getOffset());
         if (selectMapedBufferResult != null) {
-            response.setCode(ResponseCode.SUCCESS_VALUE);
+            response.setCode(ResponseCode.SUCCESS);
             response.setRemark(null);
 
             try {
@@ -176,7 +174,7 @@ public class QueryMessageProcessor implements NettyRequestProcessor {
             return null;
         }
         else {
-            response.setCode(ResponseCode.SYSTEM_ERROR_VALUE);
+            response.setCode(ResponseCode.SYSTEM_ERROR);
             response.setRemark("can not find message by the offset, " + requestHeader.getOffset());
         }
 

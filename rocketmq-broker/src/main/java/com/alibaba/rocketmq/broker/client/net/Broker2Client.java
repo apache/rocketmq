@@ -35,7 +35,8 @@ import com.alibaba.rocketmq.common.TopicConfig;
 import com.alibaba.rocketmq.common.UtilAll;
 import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.common.message.MessageQueue;
-import com.alibaba.rocketmq.common.protocol.MQProtos.MQRequestCode;
+import com.alibaba.rocketmq.common.protocol.RequestCode;
+import com.alibaba.rocketmq.common.protocol.ResponseCode;
 import com.alibaba.rocketmq.common.protocol.body.GetConsumerStatusBody;
 import com.alibaba.rocketmq.common.protocol.body.ResetOffsetBody;
 import com.alibaba.rocketmq.common.protocol.header.CheckTransactionStateRequestHeader;
@@ -44,7 +45,6 @@ import com.alibaba.rocketmq.common.protocol.header.NotifyConsumerIdsChangedReque
 import com.alibaba.rocketmq.common.protocol.header.ResetOffsetRequestHeader;
 import com.alibaba.rocketmq.remoting.common.RemotingHelper;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
-import com.alibaba.rocketmq.remoting.protocol.RemotingProtos;
 import com.alibaba.rocketmq.store.SelectMapedBufferResult;
 
 
@@ -73,8 +73,7 @@ public class Broker2Client {
             final SelectMapedBufferResult selectMapedBufferResult//
     ) {
         RemotingCommand request =
-                RemotingCommand.createRequestCommand(MQRequestCode.CHECK_TRANSACTION_STATE_VALUE,
-                    requestHeader);
+                RemotingCommand.createRequestCommand(RequestCode.CHECK_TRANSACTION_STATE, requestHeader);
         request.markOnewayRPC();
 
         try {
@@ -108,8 +107,7 @@ public class Broker2Client {
         NotifyConsumerIdsChangedRequestHeader requestHeader = new NotifyConsumerIdsChangedRequestHeader();
         requestHeader.setConsumerGroup(consumerGroup);
         RemotingCommand request =
-                RemotingCommand.createRequestCommand(MQRequestCode.NOTIFY_CONSUMER_IDS_CHANGED_VALUE,
-                    requestHeader);
+                RemotingCommand.createRequestCommand(RequestCode.NOTIFY_CONSUMER_IDS_CHANGED, requestHeader);
 
         try {
             this.brokerController.getRemotingServer().invokeOneway(channel, request, 1000);
@@ -129,7 +127,7 @@ public class Broker2Client {
         TopicConfig topicConfig = this.brokerController.getTopicConfigManager().selectTopicConfig(topic);
         if (null == topicConfig) {
             log.error("[reset-offset] reset offset failed, no topic in this broker. topic={}", topic);
-            response.setCode(RemotingProtos.ResponseCode.SYSTEM_ERROR_VALUE);
+            response.setCode(ResponseCode.SYSTEM_ERROR);
             response.setRemark("[reset-offset] reset offset failed, no topic in this broker. topic=" + topic);
             return response;
         }
@@ -158,8 +156,7 @@ public class Broker2Client {
         requestHeader.setGroup(group);
         requestHeader.setTimestamp(timeStamp);
         RemotingCommand request =
-                RemotingCommand.createRequestCommand(MQRequestCode.RESET_CONSUMER_CLIENT_OFFSET_VALUE,
-                    requestHeader);
+                RemotingCommand.createRequestCommand(RequestCode.RESET_CONSUMER_CLIENT_OFFSET, requestHeader);
         ResetOffsetBody body = new ResetOffsetBody();
         body.setOffsetTable(offsetTable);
         request.setBody(body.encode());
@@ -181,7 +178,7 @@ public class Broker2Client {
             }
             else {
                 // 如果有一个客户端是不支持该功能的，则直接返回错误，需要应用方升级。
-                response.setCode(RemotingProtos.ResponseCode.SYSTEM_ERROR_VALUE);
+                response.setCode(ResponseCode.SYSTEM_ERROR);
                 response.setRemark("the client does not support this feature. version=" + version);
                 log.warn("[reset-offset] the client does not support this feature. version={}",
                     RemotingHelper.parseChannelRemoteAddr(channel), version);
@@ -189,7 +186,7 @@ public class Broker2Client {
             }
         }
 
-        response.setCode(RemotingProtos.ResponseCode.SUCCESS_VALUE);
+        response.setCode(ResponseCode.SUCCESS);
         ResetOffsetBody resBody = new ResetOffsetBody();
         resBody.setOffsetTable(offsetTable);
         response.setBody(resBody.encode());
@@ -207,7 +204,7 @@ public class Broker2Client {
         requestHeader.setTopic(topic);
         requestHeader.setGroup(group);
         RemotingCommand request =
-                RemotingCommand.createRequestCommand(MQRequestCode.GET_CONSUMER_STATUS_FROM_CLIENT_VALUE,
+                RemotingCommand.createRequestCommand(RequestCode.GET_CONSUMER_STATUS_FROM_CLIENT,
                     requestHeader);
 
         Map<String, Map<MessageQueue, Long>> consumerStatusTable =
@@ -219,7 +216,7 @@ public class Broker2Client {
             String clientId = channelInfoTable.get(channel).getClientId();
             if (version < MQVersion.Version.V3_0_7_SNAPSHOT.ordinal()) {
                 // 如果有一个客户端是不支持该功能的，则直接返回错误，需要应用方升级。
-                result.setCode(RemotingProtos.ResponseCode.SYSTEM_ERROR_VALUE);
+                result.setCode(ResponseCode.SYSTEM_ERROR);
                 result.setRemark("the client does not support this feature. version=" + version);
                 log.warn("[reset-offset] the client does not support this feature. version={}",
                     RemotingHelper.parseChannelRemoteAddr(channel), version);
@@ -233,7 +230,7 @@ public class Broker2Client {
                             this.brokerController.getRemotingServer().invokeSync(channel, request, 5000);
                     assert response != null;
                     switch (response.getCode()) {
-                    case RemotingProtos.ResponseCode.SUCCESS_VALUE: {
+                    case ResponseCode.SUCCESS: {
                         if (response.getBody() != null) {
                             GetConsumerStatusBody body =
                                     GetConsumerStatusBody.decode(response.getBody(),
@@ -260,7 +257,7 @@ public class Broker2Client {
             }
         }
 
-        result.setCode(RemotingProtos.ResponseCode.SUCCESS_VALUE);
+        result.setCode(ResponseCode.SUCCESS);
         GetConsumerStatusBody resBody = new GetConsumerStatusBody();
         resBody.setConsumerTable(consumerStatusTable);
         result.setBody(resBody.encode());

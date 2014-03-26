@@ -153,6 +153,9 @@ public class HAConnection {
 
             this.makeStop();
 
+            // 避免内存泄露
+            haService.removeConnection(HAConnection.this);
+
             // 只有读线程需要执行
             HAConnection.this.haService.getConnectionCount().decrementAndGet();
 
@@ -373,6 +376,9 @@ public class HAConnection {
             }
 
             this.makeStop();
+
+            // 避免内存泄露
+            haService.removeConnection(HAConnection.this);
 
             SelectionKey sk = this.socketChannel.keyFor(this.selector);
             if (sk != null) {
