@@ -38,6 +38,6 @@ RocketMQ是一款分布式、队列模型的消息中间件，具有以下特点
 * [到新浪微博交流RocketMQ](http://q.weibo.com/1628465)
 * 加入QQ群交流，5776652
 * [哪些人或组织在使用RocketMQ](https://github.com/alibaba/RocketMQ/issues/368)
-* [国内用户到oschina.net访问，速度更快](https://git.oschina.net/vintagewang/RocketMQ)
+* [国内用户到oschina.net访问，速度更快（oschina与github代码完全一致）](https://git.oschina.net/vintagewang/RocketMQ)
 
 ----------
