@@ -41,6 +41,7 @@ import com.alibaba.rocketmq.client.producer.SendResult;
 import com.alibaba.rocketmq.client.producer.SendStatus;
 import com.alibaba.rocketmq.common.MQVersion;
 import com.alibaba.rocketmq.common.MixAll;
+import com.alibaba.rocketmq.common.SessionCredentials;
 import com.alibaba.rocketmq.common.TopicConfig;
 import com.alibaba.rocketmq.common.UtilAll;
 import com.alibaba.rocketmq.common.admin.ConsumeStats;
@@ -144,8 +145,24 @@ public class MQClientAPIImpl {
     // 虚拟运行环境相关的project group
     private String projectGroupPrefix;
 
+    // 客户端授权
+    private volatile SessionCredentials sessionCredentials = new SessionCredentials();
+
     static {
         System.setProperty(RemotingCommand.RemotingVersionKey, Integer.toString(MQVersion.CurrentVersion));
+    }
+
+
+    private void attachSessionCredentials(final RemotingCommand cmd) {
+        SessionCredentials tmp = this.sessionCredentials;
+        if (tmp != null) {
+            if (tmp.getAccessKey() != null && tmp.getSecretKey() != null) {
+                HashMap<String, String> extFields = new HashMap<String, String>();
+                extFields.put(SessionCredentials.AccessKey, tmp.getAccessKey());
+                extFields.put(SessionCredentials.SecretKey, tmp.getSecretKey());
+                cmd.setExtFields(extFields);
+            }
+        }
     }
 
 
@@ -249,7 +266,7 @@ public class MQClientAPIImpl {
 
         RemotingCommand request =
                 RemotingCommand.createRequestCommand(RequestCode.UPDATE_AND_CREATE_SUBSCRIPTIONGROUP, null);
-
+        this.attachSessionCredentials(request);
         byte[] body = RemotingSerializable.encode(config);
         request.setBody(body);
 
@@ -288,7 +305,7 @@ public class MQClientAPIImpl {
 
         RemotingCommand request =
                 RemotingCommand.createRequestCommand(RequestCode.UPDATE_AND_CREATE_TOPIC, requestHeader);
-
+        this.attachSessionCredentials(request);
         RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
         assert response != null;
         switch (response.getCode()) {
@@ -326,6 +343,7 @@ public class MQClientAPIImpl {
 
         RemotingCommand request =
                 RemotingCommand.createRequestCommand(RequestCode.SEND_MESSAGE, requestHeader);
+        this.attachSessionCredentials(request);
         request.setBody(msg.getBody());
 
         switch (communicationMode) {
@@ -473,6 +491,7 @@ public class MQClientAPIImpl {
 
         RemotingCommand request =
                 RemotingCommand.createRequestCommand(RequestCode.PULL_MESSAGE, requestHeader);
+        this.attachSessionCredentials(request);
 
         switch (communicationMode) {
         case ONEWAY:
@@ -582,6 +601,7 @@ public class MQClientAPIImpl {
         requestHeader.setOffset(phyoffset);
         RemotingCommand request =
                 RemotingCommand.createRequestCommand(RequestCode.VIEW_MESSAGE_BY_ID, requestHeader);
+        this.attachSessionCredentials(request);
 
         RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
         assert response != null;
@@ -621,6 +641,7 @@ public class MQClientAPIImpl {
         requestHeader.setTimestamp(timestamp);
         RemotingCommand request =
                 RemotingCommand.createRequestCommand(RequestCode.SEARCH_OFFSET_BY_TIMESTAMP, requestHeader);
+        this.attachSessionCredentials(request);
 
         RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
         assert response != null;
@@ -655,6 +676,7 @@ public class MQClientAPIImpl {
         requestHeader.setQueueId(queueId);
         RemotingCommand request =
                 RemotingCommand.createRequestCommand(RequestCode.GET_MAX_OFFSET, requestHeader);
+        this.attachSessionCredentials(request);
 
         RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
         assert response != null;
@@ -693,6 +715,7 @@ public class MQClientAPIImpl {
         requestHeader.setConsumerGroup(consumerGroupWithProjectGroup);
         RemotingCommand request =
                 RemotingCommand.createRequestCommand(RequestCode.GET_CONSUMER_LIST_BY_GROUP, requestHeader);
+        this.attachSessionCredentials(request);
         RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
         assert response != null;
         switch (response.getCode()) {
@@ -728,6 +751,7 @@ public class MQClientAPIImpl {
         requestHeader.setQueueId(queueId);
         RemotingCommand request =
                 RemotingCommand.createRequestCommand(RequestCode.GET_MIN_OFFSET, requestHeader);
+        this.attachSessionCredentials(request);
 
         RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
         assert response != null;
@@ -763,6 +787,7 @@ public class MQClientAPIImpl {
         requestHeader.setQueueId(queueId);
         RemotingCommand request =
                 RemotingCommand.createRequestCommand(RequestCode.GET_EARLIEST_MSG_STORETIME, requestHeader);
+        this.attachSessionCredentials(request);
 
         RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
         assert response != null;
@@ -800,6 +825,7 @@ public class MQClientAPIImpl {
 
         RemotingCommand request =
                 RemotingCommand.createRequestCommand(RequestCode.QUERY_CONSUMER_OFFSET, requestHeader);
+        this.attachSessionCredentials(request);
         RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
         assert response != null;
         switch (response.getCode()) {
@@ -836,6 +862,7 @@ public class MQClientAPIImpl {
 
         RemotingCommand request =
                 RemotingCommand.createRequestCommand(RequestCode.UPDATE_CONSUMER_OFFSET, requestHeader);
+        this.attachSessionCredentials(request);
         RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
         assert response != null;
         switch (response.getCode()) {
@@ -876,6 +903,7 @@ public class MQClientAPIImpl {
 
         RemotingCommand request =
                 RemotingCommand.createRequestCommand(RequestCode.UPDATE_CONSUMER_OFFSET, requestHeader);
+        this.attachSessionCredentials(request);
         this.remotingClient.invokeOneway(addr, request, timeoutMillis);
     }
 
@@ -908,6 +936,7 @@ public class MQClientAPIImpl {
         }
 
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.HEART_BEAT, null);
+        this.attachSessionCredentials(request);
         request.setBody(heartbeatData.encode());
         RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
         assert response != null;
@@ -949,6 +978,7 @@ public class MQClientAPIImpl {
         requestHeader.setConsumerGroup(consumerGroupWithProjectGroup);
         RemotingCommand request =
                 RemotingCommand.createRequestCommand(RequestCode.UNREGISTER_CLIENT, requestHeader);
+        this.attachSessionCredentials(request);
         RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
         assert response != null;
         switch (response.getCode()) {
@@ -980,6 +1010,7 @@ public class MQClientAPIImpl {
 
         RemotingCommand request =
                 RemotingCommand.createRequestCommand(RequestCode.END_TRANSACTION, requestHeader);
+        this.attachSessionCredentials(request);
         request.setRemark(remark);
         this.remotingClient.invokeOneway(addr, request, timeoutMillis);
     }
@@ -1002,6 +1033,7 @@ public class MQClientAPIImpl {
 
         RemotingCommand request =
                 RemotingCommand.createRequestCommand(RequestCode.QUERY_MESSAGE, requestHeader);
+        this.attachSessionCredentials(request);
         this.remotingClient.invokeAsync(addr, request, timeoutMillis, invokeCallback);
     }
 
@@ -1028,6 +1060,9 @@ public class MQClientAPIImpl {
         }
 
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.HEART_BEAT, null);
+        this.attachSessionCredentials(request);
+
+        this.attachSessionCredentials(request);
         request.setBody(heartbeat.encode());
         RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
         return response.getCode() == ResponseCode.SUCCESS;
@@ -1054,6 +1089,7 @@ public class MQClientAPIImpl {
         ConsumerSendMsgBackRequestHeader requestHeader = new ConsumerSendMsgBackRequestHeader();
         RemotingCommand request =
                 RemotingCommand.createRequestCommand(RequestCode.CONSUMER_SEND_MSG_BACK, requestHeader);
+        this.attachSessionCredentials(request);
         requestHeader.setGroup(consumerGroupWithProjectGroup);
         requestHeader.setOffset(msg.getCommitLogOffset());
         requestHeader.setDelayLevel(delayLevel);
@@ -1090,6 +1126,7 @@ public class MQClientAPIImpl {
         }
 
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.LOCK_BATCH_MQ, null);
+        this.attachSessionCredentials(request);
         request.setBody(requestBody.encode());
         RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
         switch (response.getCode()) {
@@ -1132,6 +1169,7 @@ public class MQClientAPIImpl {
         }
 
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.UNLOCK_BATCH_MQ, null);
+        this.attachSessionCredentials(request);
         request.setBody(requestBody.encode());
 
         if (oneway) {
@@ -1166,6 +1204,8 @@ public class MQClientAPIImpl {
 
         RemotingCommand request =
                 RemotingCommand.createRequestCommand(RequestCode.GET_TOPIC_STATS_INFO, requestHeader);
+        this.attachSessionCredentials(request);
+
         RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
         switch (response.getCode()) {
         case ResponseCode.SUCCESS: {
@@ -1208,6 +1248,7 @@ public class MQClientAPIImpl {
 
         RemotingCommand request =
                 RemotingCommand.createRequestCommand(RequestCode.GET_CONSUME_STATS, requestHeader);
+        this.attachSessionCredentials(request);
         RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
         switch (response.getCode()) {
         case ResponseCode.SUCCESS: {
@@ -1253,6 +1294,7 @@ public class MQClientAPIImpl {
 
         RemotingCommand request =
                 RemotingCommand.createRequestCommand(RequestCode.GET_PRODUCER_CONNECTION_LIST, requestHeader);
+        this.attachSessionCredentials(request);
         RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
         switch (response.getCode()) {
         case ResponseCode.SUCCESS: {
@@ -1284,6 +1326,7 @@ public class MQClientAPIImpl {
 
         RemotingCommand request =
                 RemotingCommand.createRequestCommand(RequestCode.GET_CONSUMER_CONNECTION_LIST, requestHeader);
+        this.attachSessionCredentials(request);
         RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
         switch (response.getCode()) {
         case ResponseCode.SUCCESS: {
@@ -1315,6 +1358,7 @@ public class MQClientAPIImpl {
 
         RemotingCommand request =
                 RemotingCommand.createRequestCommand(RequestCode.GET_BROKER_RUNTIME_INFO, null);
+        this.attachSessionCredentials(request);
         RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
         switch (response.getCode()) {
         case ResponseCode.SUCCESS: {
@@ -1347,6 +1391,7 @@ public class MQClientAPIImpl {
 
         RemotingCommand request =
                 RemotingCommand.createRequestCommand(RequestCode.UPDATE_BROKER_CONFIG, null);
+        this.attachSessionCredentials(request);
 
         String str = MixAll.properties2String(properties);
         if (str != null && str.length() > 0) {
@@ -1373,6 +1418,7 @@ public class MQClientAPIImpl {
             MQBrokerException {
         RemotingCommand request =
                 RemotingCommand.createRequestCommand(RequestCode.GET_BROKER_CLUSTER_INFO, null);
+        this.attachSessionCredentials(request);
 
         RemotingCommand response = this.remotingClient.invokeSync(null, request, timeoutMillis);
         assert response != null;
@@ -1400,6 +1446,7 @@ public class MQClientAPIImpl {
 
         RemotingCommand request =
                 RemotingCommand.createRequestCommand(RequestCode.GET_ROUTEINTO_BY_TOPIC, requestHeader);
+        this.attachSessionCredentials(request);
 
         RemotingCommand response = this.remotingClient.invokeSync(null, request, timeoutMillis);
         assert response != null;
@@ -1438,6 +1485,7 @@ public class MQClientAPIImpl {
 
         RemotingCommand request =
                 RemotingCommand.createRequestCommand(RequestCode.GET_ROUTEINTO_BY_TOPIC, requestHeader);
+        this.attachSessionCredentials(request);
 
         RemotingCommand response = this.remotingClient.invokeSync(null, request, timeoutMillis);
         assert response != null;
@@ -1467,6 +1515,7 @@ public class MQClientAPIImpl {
             MQClientException, InterruptedException {
         RemotingCommand request =
                 RemotingCommand.createRequestCommand(RequestCode.GET_ALL_TOPIC_LIST_FROM_NAMESERVER, null);
+        this.attachSessionCredentials(request);
 
         RemotingCommand response = this.remotingClient.invokeSync(null, request, timeoutMillis);
         assert response != null;
@@ -1505,6 +1554,7 @@ public class MQClientAPIImpl {
 
         RemotingCommand request =
                 RemotingCommand.createRequestCommand(RequestCode.WIPE_WRITE_PERM_OF_BROKER, requestHeader);
+        this.attachSessionCredentials(request);
         RemotingCommand response = this.remotingClient.invokeSync(namesrvAddr, request, timeoutMillis);
         assert response != null;
         switch (response.getCode()) {
@@ -1534,7 +1584,7 @@ public class MQClientAPIImpl {
         requestHeader.setTopic(topicWithProjectGroup);
         RemotingCommand request =
                 RemotingCommand.createRequestCommand(RequestCode.DELETE_TOPIC_IN_BROKER, requestHeader);
-
+        this.attachSessionCredentials(request);
         RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
         assert response != null;
         switch (response.getCode()) {
@@ -1561,7 +1611,7 @@ public class MQClientAPIImpl {
         requestHeader.setTopic(topicWithProjectGroup);
         RemotingCommand request =
                 RemotingCommand.createRequestCommand(RequestCode.DELETE_TOPIC_IN_NAMESRV, requestHeader);
-
+        this.attachSessionCredentials(request);
         RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
         assert response != null;
         switch (response.getCode()) {
@@ -1588,7 +1638,7 @@ public class MQClientAPIImpl {
         requestHeader.setGroupName(groupWithProjectGroup);
         RemotingCommand request =
                 RemotingCommand.createRequestCommand(RequestCode.DELETE_SUBSCRIPTIONGROUP, requestHeader);
-
+        this.attachSessionCredentials(request);
         RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
         assert response != null;
         switch (response.getCode()) {
@@ -1614,6 +1664,7 @@ public class MQClientAPIImpl {
 
         RemotingCommand request =
                 RemotingCommand.createRequestCommand(RequestCode.GET_KV_CONFIG, requestHeader);
+        this.attachSessionCredentials(request);
 
         RemotingCommand response = this.remotingClient.invokeSync(null, request, timeoutMillis);
         assert response != null;
@@ -1644,6 +1695,7 @@ public class MQClientAPIImpl {
 
         RemotingCommand request =
                 RemotingCommand.createRequestCommand(RequestCode.PUT_KV_CONFIG, requestHeader);
+        this.attachSessionCredentials(request);
 
         RemotingCommand response = this.remotingClient.invokeSync(null, request, timeoutMillis);
         assert response != null;
@@ -1670,7 +1722,7 @@ public class MQClientAPIImpl {
 
         RemotingCommand request =
                 RemotingCommand.createRequestCommand(RequestCode.DELETE_KV_CONFIG, requestHeader);
-
+        this.attachSessionCredentials(request);
         RemotingCommand response = this.remotingClient.invokeSync(null, request, timeoutMillis);
         assert response != null;
         switch (response.getCode()) {
@@ -1705,6 +1757,7 @@ public class MQClientAPIImpl {
 
         RemotingCommand request =
                 RemotingCommand.createRequestCommand(RequestCode.GET_KV_CONFIG_BY_VALUE, requestHeader);
+        this.attachSessionCredentials(request);
 
         RemotingCommand response = this.remotingClient.invokeSync(null, request, timeoutMillis);
         assert response != null;
@@ -1733,6 +1786,7 @@ public class MQClientAPIImpl {
 
         RemotingCommand request =
                 RemotingCommand.createRequestCommand(RequestCode.GET_KVLIST_BY_NAMESPACE, requestHeader);
+        this.attachSessionCredentials(request);
 
         RemotingCommand response = this.remotingClient.invokeSync(null, request, timeoutMillis);
         assert response != null;
@@ -1759,7 +1813,7 @@ public class MQClientAPIImpl {
 
         RemotingCommand request =
                 RemotingCommand.createRequestCommand(RequestCode.DELETE_KV_CONFIG_BY_VALUE, requestHeader);
-
+        this.attachSessionCredentials(request);
         RemotingCommand response = this.remotingClient.invokeSync(null, request, timeoutMillis);
         assert response != null;
         switch (response.getCode()) {
@@ -1789,6 +1843,7 @@ public class MQClientAPIImpl {
         RemotingCommand request =
                 RemotingCommand
                     .createRequestCommand(RequestCode.INVOKE_BROKER_TO_RESET_OFFSET, requestHeader);
+        this.attachSessionCredentials(request);
 
         RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
         assert response != null;
@@ -1821,6 +1876,7 @@ public class MQClientAPIImpl {
         RemotingCommand request =
                 RemotingCommand.createRequestCommand(RequestCode.INVOKE_BROKER_TO_GET_CONSUMER_STATUS,
                     requestHeader);
+        this.attachSessionCredentials(request);
 
         RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
         assert response != null;
@@ -1851,6 +1907,7 @@ public class MQClientAPIImpl {
 
         RemotingCommand request =
                 RemotingCommand.createRequestCommand(RequestCode.QUERY_TOPIC_CONSUME_BY_WHO, requestHeader);
+        this.attachSessionCredentials(request);
         RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
         switch (response.getCode()) {
         case ResponseCode.SUCCESS: {
@@ -1862,6 +1919,16 @@ public class MQClientAPIImpl {
         }
 
         throw new MQBrokerException(response.getCode(), response.getRemark());
+    }
+
+
+    public SessionCredentials getSessionCredentials() {
+        return sessionCredentials;
+    }
+
+
+    public void setSessionCredentials(SessionCredentials sessionCredentials) {
+        this.sessionCredentials = sessionCredentials;
     }
 
 }
