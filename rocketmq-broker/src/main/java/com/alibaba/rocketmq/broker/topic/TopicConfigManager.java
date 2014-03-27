@@ -99,6 +99,17 @@ public class TopicConfigManager extends ConfigManager {
             topicConfig.setPerm(perm);
             this.topicConfigTable.put(topicConfig.getTopicName(), topicConfig);
         }
+        {
+            // 服务器名字
+            TopicConfig topicConfig =
+                    new TopicConfig(this.brokerController.getBrokerConfig().getBrokerName());
+            int perm = PermName.PERM_INHERIT;
+            if (this.brokerController.getBrokerConfig().isBrokerTopicEnable()) {
+                perm |= PermName.PERM_READ | PermName.PERM_WRITE;
+            }
+            topicConfig.setPerm(perm);
+            this.topicConfigTable.put(topicConfig.getTopicName(), topicConfig);
+        }
     }
 
 
