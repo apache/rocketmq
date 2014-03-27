@@ -374,10 +374,10 @@ public class UtilAll {
             return true;
         }
         for (int i = 0; i < strLen; i++) {
-            if (Character.isWhitespace(str.charAt(i))) {
-                return true;
+            if ((Character.isWhitespace(str.charAt(i)) == false)) {
+                return false;
             }
         }
-        return false;
+        return true;
     }
 }
