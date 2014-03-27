@@ -35,6 +35,7 @@ import com.alibaba.rocketmq.common.BrokerConfig;
 import com.alibaba.rocketmq.common.MQVersion;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.constant.LoggerName;
+import com.alibaba.rocketmq.remoting.common.RemotingUtil;
 import com.alibaba.rocketmq.remoting.netty.NettyClientConfig;
 import com.alibaba.rocketmq.remoting.netty.NettyServerConfig;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
@@ -153,6 +154,18 @@ public class BrokerStartup {
                 System.exit(-2);
             }
 
+            // 检测Name Server地址设置是否正确 IP:PORT
+            if (null != brokerConfig.getNamesrvAddr()) {
+                try {
+                    RemotingUtil.string2SocketAddress(brokerConfig.getNamesrvAddr());
+                }
+                catch (Exception e) {
+                    System.out
+                        .printf("The Name Server Address[%s] is illegal, please set it as this, 127.0.0.1:9876\n");
+                    System.exit(-3);
+                }
+            }
+
             // BrokerId的处理
             switch (messageStoreConfig.getBrokerRole()) {
             case ASYNC_MASTER:
@@ -225,6 +238,11 @@ public class BrokerStartup {
             String tip =
                     "The broker[" + controller.getBrokerConfig().getBrokerName() + ", "
                             + controller.getBrokerAddr() + "] boot success.";
+
+            if (null != brokerConfig.getNamesrvAddr()) {
+                tip += " and name server is " + brokerConfig.getNamesrvAddr();
+            }
+
             log.info(tip);
             System.out.println(tip);
 
