@@ -107,6 +107,8 @@ public class TopicConfigManager extends ConfigManager {
             if (this.brokerController.getBrokerConfig().isBrokerTopicEnable()) {
                 perm |= PermName.PERM_READ | PermName.PERM_WRITE;
             }
+            topicConfig.setReadQueueNums(1);
+            topicConfig.setWriteQueueNums(1);
             topicConfig.setPerm(perm);
             this.topicConfigTable.put(topicConfig.getTopicName(), topicConfig);
         }
