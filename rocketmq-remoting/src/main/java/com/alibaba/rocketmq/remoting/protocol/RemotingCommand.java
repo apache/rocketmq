@@ -224,13 +224,7 @@ public class RemotingCommand {
 
                     field.set(objectHeader, valueParsed);
                 }
-                catch (SecurityException e) {
-                }
-                catch (NoSuchFieldException e) {
-                }
-                catch (IllegalArgumentException e) {
-                }
-                catch (IllegalAccessException e) {
+                catch (Throwable e) {
                 }
             }
 
