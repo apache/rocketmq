@@ -100,7 +100,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
 
     private final ChannelEventListener channelEventListener;
 
-    private RPCHook rpcHook;
+    private final RPCHook rpcHook;
 
     class ChannelWrapper {
         private final ChannelFuture channelFuture;
@@ -127,12 +127,6 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
     }
 
     class NettyClientHandler extends SimpleChannelInboundHandler<RemotingCommand> {
-
-        // @Override
-        // protected void messageReceived(ChannelHandlerContext ctx,
-        // RemotingCommand msg) throws Exception {
-        // processMessageReceived(ctx, msg);
-        // }
 
         @Override
         protected void channelRead0(ChannelHandlerContext ctx, RemotingCommand msg) throws Exception {
@@ -230,12 +224,20 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
     }
 
 
-    public NettyRemotingClient(final NettyClientConfig nettyClientConfig,
+    public NettyRemotingClient(final NettyClientConfig nettyClientConfig,//
             final ChannelEventListener channelEventListener) {
+        this(nettyClientConfig, channelEventListener, null);
+    }
+
+
+    public NettyRemotingClient(final NettyClientConfig nettyClientConfig,//
+            final ChannelEventListener channelEventListener,//
+            final RPCHook rpcHook) {
         super(nettyClientConfig.getClientOnewaySemaphoreValue(), nettyClientConfig
             .getClientAsyncSemaphoreValue());
         this.nettyClientConfig = nettyClientConfig;
         this.channelEventListener = channelEventListener;
+        this.rpcHook = rpcHook;
 
         int publicThreadNums = nettyClientConfig.getClientCallbackExecutorThreads();
         if (publicThreadNums <= 0) {
@@ -733,10 +735,5 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
 
     public RPCHook getRpcHook() {
         return rpcHook;
-    }
-
-
-    public void setRpcHook(RPCHook rpcHook) {
-        this.rpcHook = rpcHook;
     }
 }
