@@ -218,7 +218,7 @@ public class Broker2Client {
                 // 如果有一个客户端是不支持该功能的，则直接返回错误，需要应用方升级。
                 result.setCode(ResponseCode.SYSTEM_ERROR);
                 result.setRemark("the client does not support this feature. version=" + version);
-                log.warn("[reset-offset] the client does not support this feature. version={}",
+                log.warn("[get-consumer-status] the client does not support this feature. version={}",
                     RemotingHelper.parseChannelRemoteAddr(channel), version);
                 return result;
             }
@@ -237,7 +237,7 @@ public class Broker2Client {
                                         GetConsumerStatusBody.class);
 
                             consumerStatusTable.put(clientId, body.getMessageQueueTable());
-                            log.info("get consumer status success. topic={}, group={}, channelRemoteAddr={}",
+                            log.info("[get-consumer-status] get consumer status success. topic={}, group={}, channelRemoteAddr={}",
                                 new Object[] { topic, group, clientId });
                         }
                     }
@@ -246,7 +246,7 @@ public class Broker2Client {
                     }
                 }
                 catch (Exception e) {
-                    log.error("get consumer status exception. topic={}, group={}, offset={}",
+                    log.error("[get-consumer-status] get consumer status exception. topic={}, group={}, offset={}",
                         new Object[] { topic, group }, e);
                 }
 
