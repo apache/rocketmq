@@ -982,7 +982,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 (GetConsumerStatusRequestHeader) request
                     .decodeCommandCustomHeader(GetConsumerStatusRequestHeader.class);
 
-        log.info("get consumer status by {}. topic={}, group={}",
+        log.info("[get-consumer-status] get consumer status by {}. topic={}, group={}",
             new Object[] { RemotingHelper.parseChannelRemoteAddr(ctx.channel()), requestHeader.getTopic(),
                           requestHeader.getGroup() });
 
