@@ -54,6 +54,7 @@ import org.slf4j.LoggerFactory;
 
 import com.alibaba.rocketmq.remoting.ChannelEventListener;
 import com.alibaba.rocketmq.remoting.InvokeCallback;
+import com.alibaba.rocketmq.remoting.RPCHook;
 import com.alibaba.rocketmq.remoting.RemotingClient;
 import com.alibaba.rocketmq.remoting.common.Pair;
 import com.alibaba.rocketmq.remoting.common.RemotingHelper;
@@ -98,6 +99,8 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
     private final ExecutorService publicExecutor;
 
     private final ChannelEventListener channelEventListener;
+
+    private RPCHook rpcHook;
 
     class ChannelWrapper {
         private final ChannelFuture channelFuture;
@@ -599,7 +602,14 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
         final Channel channel = this.getAndCreateChannel(addr);
         if (channel != null && channel.isActive()) {
             try {
-                return this.invokeSyncImpl(channel, request, timeoutMillis);
+                if (this.rpcHook != null) {
+                    this.rpcHook.doBeforeRequest(request);
+                }
+                RemotingCommand response = this.invokeSyncImpl(channel, request, timeoutMillis);
+                if (this.rpcHook != null) {
+                    this.rpcHook.doAfterResponse(response);
+                }
+                return response;
             }
             catch (RemotingSendRequestException e) {
                 log.warn("invokeSync: send request exception, so close the channel[{}]", addr);
@@ -627,6 +637,9 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
         final Channel channel = this.getAndCreateChannel(addr);
         if (channel != null && channel.isActive()) {
             try {
+                if (this.rpcHook != null) {
+                    this.rpcHook.doBeforeRequest(request);
+                }
                 this.invokeAsyncImpl(channel, request, timeoutMillis, invokeCallback);
             }
             catch (RemotingSendRequestException e) {
@@ -649,6 +662,9 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
         final Channel channel = this.getAndCreateChannel(addr);
         if (channel != null && channel.isActive()) {
             try {
+                if (this.rpcHook != null) {
+                    this.rpcHook.doBeforeRequest(request);
+                }
                 this.invokeOnewayImpl(channel, request, timeoutMillis);
             }
             catch (RemotingSendRequestException e) {
@@ -712,5 +728,15 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
     @Override
     public List<String> getNameServerAddressList() {
         return this.namesrvAddrList.get();
+    }
+
+
+    public RPCHook getRpcHook() {
+        return rpcHook;
+    }
+
+
+    public void setRpcHook(RPCHook rpcHook) {
+        this.rpcHook = rpcHook;
     }
 }
