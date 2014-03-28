@@ -179,9 +179,10 @@ public class Broker2Client {
             else {
                 // 如果有一个客户端是不支持该功能的，则直接返回错误，需要应用方升级。
                 response.setCode(ResponseCode.SYSTEM_ERROR);
-                response.setRemark("the client does not support this feature. version=" + version);
+                response.setRemark("the client does not support this feature. version="
+                        + MQVersion.getVersionDesc(version));
                 log.warn("[reset-offset] the client does not support this feature. version={}",
-                    RemotingHelper.parseChannelRemoteAddr(channel), version);
+                    RemotingHelper.parseChannelRemoteAddr(channel), MQVersion.getVersionDesc(version));
                 return response;
             }
         }
@@ -217,9 +218,9 @@ public class Broker2Client {
             if (version < MQVersion.Version.V3_0_7_SNAPSHOT.ordinal()) {
                 // 如果有一个客户端是不支持该功能的，则直接返回错误，需要应用方升级。
                 result.setCode(ResponseCode.SYSTEM_ERROR);
-                result.setRemark("the client does not support this feature. version=" + version);
+                result.setRemark("the client does not support this feature. version=" + MQVersion.getVersionDesc(version));
                 log.warn("[get-consumer-status] the client does not support this feature. version={}",
-                    RemotingHelper.parseChannelRemoteAddr(channel), version);
+                    RemotingHelper.parseChannelRemoteAddr(channel), MQVersion.getVersionDesc(version));
                 return result;
             }
             else if (UtilAll.isBlank(originClientId) || originClientId.equals(clientId)) {
@@ -237,7 +238,8 @@ public class Broker2Client {
                                         GetConsumerStatusBody.class);
 
                             consumerStatusTable.put(clientId, body.getMessageQueueTable());
-                            log.info("[get-consumer-status] get consumer status success. topic={}, group={}, channelRemoteAddr={}",
+                            log.info(
+                                "[get-consumer-status] get consumer status success. topic={}, group={}, channelRemoteAddr={}",
                                 new Object[] { topic, group, clientId });
                         }
                     }
@@ -246,7 +248,8 @@ public class Broker2Client {
                     }
                 }
                 catch (Exception e) {
-                    log.error("[get-consumer-status] get consumer status exception. topic={}, group={}, offset={}",
+                    log.error(
+                        "[get-consumer-status] get consumer status exception. topic={}, group={}, offset={}",
                         new Object[] { topic, group }, e);
                 }
 
