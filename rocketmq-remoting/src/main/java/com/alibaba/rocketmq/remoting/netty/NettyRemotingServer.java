@@ -44,6 +44,7 @@ import org.slf4j.LoggerFactory;
 
 import com.alibaba.rocketmq.remoting.ChannelEventListener;
 import com.alibaba.rocketmq.remoting.InvokeCallback;
+import com.alibaba.rocketmq.remoting.RPCHook;
 import com.alibaba.rocketmq.remoting.RemotingServer;
 import com.alibaba.rocketmq.remoting.common.Pair;
 import com.alibaba.rocketmq.remoting.common.RemotingHelper;
@@ -71,6 +72,8 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
     // 定时器
     private final Timer timer = new Timer("ServerHouseKeepingService", true);
     private DefaultEventExecutorGroup defaultEventExecutorGroup;
+
+    private RPCHook rpcHook;
 
 
     public NettyRemotingServer(final NettyServerConfig nettyServerConfig) {
@@ -106,7 +109,7 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
 
 
     @Override
-    public void start() throws InterruptedException {
+    public void start() {
         this.defaultEventExecutorGroup = new DefaultEventExecutorGroup(//
             nettyServerConfig.getServerWorkerThreads(), //
             new ThreadFactory() {
@@ -141,7 +144,12 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
                 }
             });
 
-        this.serverBootstrap.bind().sync();
+        try {
+            this.serverBootstrap.bind().sync();
+        }
+        catch (InterruptedException e1) {
+            throw new RuntimeException("this.serverBootstrap.bind().sync() InterruptedException", e1);
+        }
 
         if (this.channelEventListener != null) {
             this.nettyEventExecuter.start();
@@ -339,5 +347,17 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
 
             RemotingUtil.closeChannel(ctx.channel());
         }
+    }
+
+
+    @Override
+    public void registerRPCHook(RPCHook rpcHook) {
+        this.rpcHook = rpcHook;
+    }
+
+
+    @Override
+    public RPCHook getRPCHook() {
+        return this.rpcHook;
     }
 }

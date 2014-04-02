@@ -108,26 +108,24 @@ public class MQClientAPIImpl {
     }
 
     class RPCHookImpl implements RPCHook {
-
         @Override
-        public void doBeforeRequest(RemotingCommand request) {
+        public void doBeforeRequest(String remoteAddr, RemotingCommand request) {
             MQClientAPIImpl.this.attachSessionCredentials(request);
         }
 
 
         @Override
-        public void doAfterResponse(RemotingCommand response) {
-            // TODO Auto-generated method stub
-
+        public void doAfterResponse(RemotingCommand request, RemotingCommand response) {
         }
     }
 
 
     public MQClientAPIImpl(final NettyClientConfig nettyClientConfig,
             final ClientRemotingProcessor clientRemotingProcessor) {
-        this.remotingClient = new NettyRemotingClient(nettyClientConfig, null, new RPCHookImpl());
+        this.remotingClient = new NettyRemotingClient(nettyClientConfig, null);
         this.clientRemotingProcessor = clientRemotingProcessor;
 
+        this.remotingClient.registerRPCHook(new RPCHookImpl());
         /**
          * 注册客户端支持的RPC CODE
          */
