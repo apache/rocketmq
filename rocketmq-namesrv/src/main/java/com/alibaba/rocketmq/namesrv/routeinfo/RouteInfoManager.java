@@ -630,6 +630,46 @@ public class RouteInfoManager {
             log.error("printAllPeriodically Exception", e);
         }
     }
+
+
+    /**
+     * 获取指定集群下的所有 topic 列表
+     * 
+     * @param cluster
+     * @return
+     */
+    public byte[] getTopicsByCluster(String cluster) {
+        TopicList topicList = new TopicList();
+        try {
+            try {
+                this.lock.readLock().lockInterruptibly();
+                Set<String> brokerNameSet = this.clusterAddrTable.get(cluster);
+                for (String brokerName : brokerNameSet) {
+                    Iterator<Entry<String, List<QueueData>>> topicTableIt =
+                            this.topicQueueTable.entrySet().iterator();
+                    while (topicTableIt.hasNext()) {
+                        Entry<String, List<QueueData>> topicEntry = topicTableIt.next();
+                        String topic = topicEntry.getKey();
+                        List<QueueData> queueDatas = topicEntry.getValue();
+                        for (QueueData queueData : queueDatas) {
+                            if (brokerName.equals(queueData.getBrokerName())) {
+                                topicList.getTopicList().add(topic);
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+            finally {
+                this.lock.readLock().unlock();
+            }
+        }
+        catch (Exception e) {
+            log.error("getAllTopicList Exception", e);
+        }
+
+        return topicList.encode();
+    }
 }
 
 
