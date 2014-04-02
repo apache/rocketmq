@@ -319,6 +319,8 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
 
         // 检测Consumer是否被挂起
         if (this.isPause()) {
+            log.warn("consumer was paused, execute pull request later. instanceName={}",
+                this.defaultMQPushConsumer.getInstanceName());
             this.executePullRequestLater(pullRequest, PullTimeDelayMillsWhenSuspend);
             return;
         }

@@ -24,7 +24,6 @@ import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.common.help.FAQUrl;
 import com.alibaba.rocketmq.common.namesrv.NamesrvUtil;
 import com.alibaba.rocketmq.common.namesrv.RegisterBrokerResult;
-import com.alibaba.rocketmq.common.protocol.MQProtos.MQRequestCode;
 import com.alibaba.rocketmq.common.protocol.RequestCode;
 import com.alibaba.rocketmq.common.protocol.ResponseCode;
 import com.alibaba.rocketmq.common.protocol.body.TopicConfigSerializeWrapper;
@@ -59,10 +58,9 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
     @Override
     public RemotingCommand processRequest(ChannelHandlerContext ctx, RemotingCommand request)
             throws RemotingCommandException {
-        MQRequestCode code = MQRequestCode.valueOf(request.getCode());
         if (log.isDebugEnabled()) {
             log.debug("receive request, {} {} {}",//
-                code, //
+                request.getCode(), //
                 RemotingHelper.parseChannelRemoteAddr(ctx.channel()), //
                 request);
         }
