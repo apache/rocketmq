@@ -7,9 +7,13 @@ import java.util.Properties;
 public class SessionCredentials {
     public static final String AccessKey = "AccessKey";
     public static final String SecretKey = "SecretKey";
+    public static final String Signature = "Signature";
+    public static final String SignatureMethod = "SignatureMethod";
 
     private String accessKey;
     private String secretKey;
+    private String signature;
+    private String signatureMethod;
 
 
     public SessionCredentials() {
@@ -57,6 +61,26 @@ public class SessionCredentials {
 
     public void setSecretKey(String secretKey) {
         this.secretKey = secretKey;
+    }
+
+
+    public String getSignature() {
+        return signature;
+    }
+
+
+    public void setSignature(String signature) {
+        this.signature = signature;
+    }
+
+
+    public String getSignatureMethod() {
+        return signatureMethod;
+    }
+
+
+    public void setSignatureMethod(String signatureMethod) {
+        this.signatureMethod = signatureMethod;
     }
 
 
