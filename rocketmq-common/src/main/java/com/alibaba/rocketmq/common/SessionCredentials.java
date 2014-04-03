@@ -30,13 +30,13 @@ public class SessionCredentials {
 
     public void updateContent(Properties prop) {
         {
-            String value = prop.getProperty("AccessKey");
+            String value = prop.getProperty(AccessKey);
             if (value != null) {
                 this.accessKey = value;
             }
         }
         {
-            String value = prop.getProperty("SecretKey");
+            String value = prop.getProperty(SecretKey);
             if (value != null) {
                 this.secretKey = value;
             }
@@ -90,6 +90,8 @@ public class SessionCredentials {
         int result = 1;
         result = prime * result + ((accessKey == null) ? 0 : accessKey.hashCode());
         result = prime * result + ((secretKey == null) ? 0 : secretKey.hashCode());
+        result = prime * result + ((signature == null) ? 0 : signature.hashCode());
+        result = prime * result + ((signatureMethod == null) ? 0 : signatureMethod.hashCode());
         return result;
     }
 
@@ -114,6 +116,18 @@ public class SessionCredentials {
                 return false;
         }
         else if (!secretKey.equals(other.secretKey))
+            return false;
+        if (signature == null) {
+            if (other.signature != null)
+                return false;
+        }
+        else if (!signature.equals(other.signature))
+            return false;
+        if (signatureMethod == null) {
+            if (other.signatureMethod != null)
+                return false;
+        }
+        else if (!signatureMethod.equals(other.signatureMethod))
             return false;
         return true;
     }
