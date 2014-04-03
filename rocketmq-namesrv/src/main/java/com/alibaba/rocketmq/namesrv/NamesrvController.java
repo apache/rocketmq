@@ -170,4 +170,14 @@ public class NamesrvController {
     public RouteInfoManager getRouteInfoManager() {
         return routeInfoManager;
     }
+
+
+    public RemotingServer getRemotingServer() {
+        return remotingServer;
+    }
+
+
+    public void setRemotingServer(RemotingServer remotingServer) {
+        this.remotingServer = remotingServer;
+    }
 }
