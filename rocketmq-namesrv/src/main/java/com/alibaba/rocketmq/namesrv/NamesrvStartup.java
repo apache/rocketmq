@@ -61,6 +61,11 @@ public class NamesrvStartup {
 
 
     public static void main(String[] args) {
+        main0(args);
+    }
+
+
+    public static NamesrvController main0(String[] args) {
         System.setProperty(RemotingCommand.RemotingVersionKey, Integer.toString(MQVersion.CurrentVersion));
 
         try {
@@ -71,7 +76,7 @@ public class NamesrvStartup {
                         new PosixParser());
             if (null == commandLine) {
                 System.exit(-1);
-                return;
+                return null;
             }
 
             // 初始化配置文件
@@ -148,10 +153,14 @@ public class NamesrvStartup {
             String tip = "The Name Server boot success.";
             log.info(tip);
             System.out.println(tip);
+
+            return controller;
         }
         catch (Throwable e) {
             e.printStackTrace();
             System.exit(-1);
         }
+
+        return null;
     }
 }
