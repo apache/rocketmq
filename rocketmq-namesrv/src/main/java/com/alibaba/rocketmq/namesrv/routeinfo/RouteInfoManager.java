@@ -59,6 +59,7 @@ public class RouteInfoManager {
     private final HashMap<String/* brokerName */, BrokerData> brokerAddrTable;
     private final HashMap<String/* clusterName */, Set<String/* brokerName */>> clusterAddrTable;
     private final HashMap<String/* brokerAddr */, BrokerLiveInfo> brokerLiveTable;
+    private final HashMap<String/* brokerAddr */, List<String>/* Filter Server */> filterServerTable;
 
 
     public RouteInfoManager() {
@@ -66,6 +67,7 @@ public class RouteInfoManager {
         this.brokerAddrTable = new HashMap<String, BrokerData>(128);
         this.clusterAddrTable = new HashMap<String, Set<String>>(32);
         this.brokerLiveTable = new HashMap<String, BrokerLiveInfo>(256);
+        this.filterServerTable = new HashMap<String, List<String>>(256);
     }
 
 
@@ -122,7 +124,8 @@ public class RouteInfoManager {
             final long brokerId,// 4
             final String haServerAddr,// 5
             final TopicConfigSerializeWrapper topicConfigWrapper,// 6
-            final Channel channel// 7
+            final List<String> filterServerList, // 7
+            final Channel channel// 8
     ) {
         RegisterBrokerResult result = new RegisterBrokerResult();
         try {
@@ -178,6 +181,11 @@ public class RouteInfoManager {
                         haServerAddr));
                 if (null == prevBrokerLiveInfo) {
                     log.info("new broker registerd, {} HAServer: {}", brokerAddr, haServerAddr);
+                }
+
+                // 更新Filter Server列表
+                if (filterServerList != null) {
+                    this.filterServerTable.put(brokerAddr, filterServerList);
                 }
 
                 // 返回值
@@ -313,6 +321,8 @@ public class RouteInfoManager {
                         brokerAddr//
                     );
                 }
+
+                this.filterServerTable.remove(brokerAddr);
 
                 boolean removeBrokerName = false;
                 BrokerData brokerData = this.brokerAddrTable.get(brokerName);
@@ -505,6 +515,9 @@ public class RouteInfoManager {
                     this.lock.writeLock().lockInterruptibly();
                     // 清理brokerLiveTable
                     this.brokerLiveTable.remove(brokerAddrFound);
+
+                    // 清理Filter Server
+                    this.filterServerTable.remove(brokerAddrFound);
 
                     // 清理brokerAddrTable
                     String brokerNameFound = null;
