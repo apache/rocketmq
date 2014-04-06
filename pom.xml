@@ -37,6 +37,7 @@
         <module>rocketmq-remoting</module>
         <module>rocketmq-example</module>
         <module>rocketmq-qatest</module>
+        <module>rocketmq-filtersrv</module>
     </modules>
 
     <developers>
@@ -241,6 +242,11 @@
             <dependency>
                 <groupId>${project.groupId}</groupId>
                 <artifactId>rocketmq-qatest</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>rocketmq-filtersrv</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
