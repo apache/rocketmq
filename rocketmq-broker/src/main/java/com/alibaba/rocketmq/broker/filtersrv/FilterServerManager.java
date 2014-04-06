@@ -1,6 +1,8 @@
 package com.alibaba.rocketmq.broker.filtersrv;
 
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
@@ -50,5 +52,12 @@ public class FilterServerManager {
                 it.remove();
             }
         }
+    }
+
+
+    public List<String> buildNewFilterServerList() {
+        List<String> addr = new ArrayList<String>();
+        addr.addAll(this.filterServerTable.keySet());
+        return addr;
     }
 }

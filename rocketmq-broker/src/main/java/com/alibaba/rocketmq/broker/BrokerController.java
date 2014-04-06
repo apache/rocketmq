@@ -626,7 +626,10 @@ public class BrokerController {
             this.getBrokerAddr(), //
             this.brokerConfig.getBrokerName(), //
             this.brokerConfig.getBrokerId(), //
-            this.getHAServerAddr(), topicConfigWrapper);
+            this.getHAServerAddr(), //
+            topicConfigWrapper,//
+            this.filterServerManager.buildNewFilterServerList()//
+            );
 
         if (registerBrokerResult != null) {
             if (this.updateMasterHAServerAddrPeriodically && registerBrokerResult.getHaServerAddr() != null) {
