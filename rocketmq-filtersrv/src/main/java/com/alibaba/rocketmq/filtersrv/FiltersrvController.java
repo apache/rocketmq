@@ -25,8 +25,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.alibaba.rocketmq.client.consumer.DefaultMQPullConsumer;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.constant.LoggerName;
+import com.alibaba.rocketmq.common.protocol.header.filtersrv.RegisterFilterServerResponseHeader;
 import com.alibaba.rocketmq.filtersrv.processor.DefaultRequestProcessor;
 import com.alibaba.rocketmq.remoting.RemotingServer;
 import com.alibaba.rocketmq.remoting.netty.NettyRemotingServer;
@@ -53,6 +55,9 @@ public class FiltersrvController {
     // 访问Broker的api封装
     private final FilterServerOuterAPI filterServerOuterAPI = new FilterServerOuterAPI();
 
+    private final DefaultMQPullConsumer defaultMQPullConsumer = new DefaultMQPullConsumer(
+        MixAll.FILTERSRV_CONSUMER_GROUP);
+
     // 定时线程
     private final ScheduledExecutorService scheduledExecutorService = Executors
         .newSingleThreadScheduledExecutor(new ThreadFactory() {
@@ -66,6 +71,8 @@ public class FiltersrvController {
     public FiltersrvController(FiltersrvConfig filtersrvConfig, NettyServerConfig nettyServerConfig) {
         this.filtersrvConfig = filtersrvConfig;
         this.nettyServerConfig = nettyServerConfig;
+        this.defaultMQPullConsumer.getDefaultMQPullConsumerImpl().getPullAPIWrapper()
+            .setConnectBrokerByUser(true);
     }
 
 
@@ -97,7 +104,7 @@ public class FiltersrvController {
             public void run() {
                 FiltersrvController.this.registerFilterServerToBroker();
             }
-        }, 10, 10, TimeUnit.SECONDS);
+        }, 3, 10, TimeUnit.SECONDS);
 
         return true;
     }
@@ -111,10 +118,21 @@ public class FiltersrvController {
 
     public void registerFilterServerToBroker() {
         try {
-            this.filterServerOuterAPI.registerFilterServerToBroker(
-                this.filtersrvConfig.getConnectWhichBroker(), this.localAddr());
+            RegisterFilterServerResponseHeader responseHeader =
+                    this.filterServerOuterAPI.registerFilterServerToBroker(
+                        this.filtersrvConfig.getConnectWhichBroker(), this.localAddr());
+            this.defaultMQPullConsumer.getDefaultMQPullConsumerImpl().getPullAPIWrapper()
+                .setDefaultBrokerId(responseHeader.getBrokerId());
+
+            log.info("register filter server<%s> to broker<%s> OK, Return: %s %d", //
+                this.localAddr(),//
+                this.filtersrvConfig.getConnectWhichBroker(),//
+                responseHeader.getBrokerRole(),//
+                responseHeader.getBrokerId()//
+            );
         }
         catch (Exception e) {
+            log.warn("register filter server Exception", e);
             // TODO 如果失败，考虑是否尝试自杀
         }
     }
@@ -127,6 +145,7 @@ public class FiltersrvController {
 
 
     public void start() throws Exception {
+        this.defaultMQPullConsumer.start();
         this.remotingServer.start();
     }
 
@@ -135,6 +154,7 @@ public class FiltersrvController {
         this.remotingServer.shutdown();
         this.remotingExecutor.shutdown();
         this.scheduledExecutorService.shutdown();
+        this.defaultMQPullConsumer.shutdown();
     }
 
 

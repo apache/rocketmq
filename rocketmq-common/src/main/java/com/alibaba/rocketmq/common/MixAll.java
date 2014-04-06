@@ -76,6 +76,7 @@ public class MixAll {
     public static final String DEFAULT_PRODUCER_GROUP = "DEFAULT_PRODUCER";
     public static final String DEFAULT_CONSUMER_GROUP = "DEFAULT_CONSUMER";
     public static final String TOOLS_CONSUMER_GROUP = "TOOLS_CONSUMER";
+    public static final String FILTERSRV_CONSUMER_GROUP = "FILTERSRV_CONSUMER_GROUP";
     public static final String CLIENT_INNER_PRODUCER_GROUP = "CLIENT_INNER_PRODUCER";
     public static final String SELF_TEST_TOPIC = "SELF_TEST_TOPIC";
 

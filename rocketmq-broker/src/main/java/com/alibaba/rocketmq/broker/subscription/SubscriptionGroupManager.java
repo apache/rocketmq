@@ -48,9 +48,17 @@ public class SubscriptionGroupManager extends ConfigManager {
 
 
     private void init() {
-        SubscriptionGroupConfig subscriptionGroupConfig = new SubscriptionGroupConfig();
-        subscriptionGroupConfig.setGroupName(MixAll.TOOLS_CONSUMER_GROUP);
-        this.subscriptionGroupTable.put(MixAll.TOOLS_CONSUMER_GROUP, subscriptionGroupConfig);
+        {
+            SubscriptionGroupConfig subscriptionGroupConfig = new SubscriptionGroupConfig();
+            subscriptionGroupConfig.setGroupName(MixAll.TOOLS_CONSUMER_GROUP);
+            this.subscriptionGroupTable.put(MixAll.TOOLS_CONSUMER_GROUP, subscriptionGroupConfig);
+        }
+
+        {
+            SubscriptionGroupConfig subscriptionGroupConfig = new SubscriptionGroupConfig();
+            subscriptionGroupConfig.setGroupName(MixAll.FILTERSRV_CONSUMER_GROUP);
+            this.subscriptionGroupTable.put(MixAll.FILTERSRV_CONSUMER_GROUP, subscriptionGroupConfig);
+        }
     }
 
 

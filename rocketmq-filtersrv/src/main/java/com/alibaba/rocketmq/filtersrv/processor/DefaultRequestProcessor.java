@@ -21,6 +21,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.alibaba.rocketmq.common.constant.LoggerName;
+import com.alibaba.rocketmq.common.protocol.RequestCode;
 import com.alibaba.rocketmq.filtersrv.FiltersrvController;
 import com.alibaba.rocketmq.remoting.common.RemotingHelper;
 import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
@@ -53,6 +54,11 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
                 request.getCode(), //
                 RemotingHelper.parseChannelRemoteAddr(ctx.channel()), //
                 request);
+        }
+
+        switch (request.getCode()) {
+        case RequestCode.REGISTER_MESSAGE_FILTER_CLASS:
+        case RequestCode.PULL_MESSAGE:
         }
 
         return null;
