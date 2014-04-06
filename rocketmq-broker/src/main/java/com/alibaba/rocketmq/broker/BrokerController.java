@@ -38,6 +38,7 @@ import com.alibaba.rocketmq.broker.client.ProducerManager;
 import com.alibaba.rocketmq.broker.client.net.Broker2Client;
 import com.alibaba.rocketmq.broker.client.rebalance.RebalanceLockManager;
 import com.alibaba.rocketmq.broker.digestlog.DigestLogManager;
+import com.alibaba.rocketmq.broker.filtersrv.FilterServerManager;
 import com.alibaba.rocketmq.broker.longpolling.PullRequestHoldService;
 import com.alibaba.rocketmq.broker.offset.ConsumerOffsetManager;
 import com.alibaba.rocketmq.broker.out.BrokerOuterAPI;
@@ -141,6 +142,9 @@ public class BrokerController {
 
     // 对消息读取进行流控
     private final BlockingQueue<Runnable> pullThreadPoolQueue;
+
+    // FilterServer管理
+    private final FilterServerManager filterServerManager = new FilterServerManager();
 
 
     public BrokerController(//
@@ -296,6 +300,19 @@ public class BrokerController {
                     }
                 }
             }, 1000 * 10, this.brokerConfig.getFlushConsumerOffsetInterval(), TimeUnit.MILLISECONDS);
+
+            // 定时扫描过期的FilterServer
+            this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        BrokerController.this.filterServerManager.scanExpiredFilterServer();
+                    }
+                    catch (Exception e) {
+                        log.error("", e);
+                    }
+                }
+            }, 1000 * 10, FilterServerManager.FilterServerMaxIdleTimeMills, TimeUnit.MILLISECONDS);
 
             // 定时打印各个消费组的消费速度
             this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
@@ -741,6 +758,11 @@ public class BrokerController {
 
     public BlockingQueue<Runnable> getSendThreadPoolQueue() {
         return sendThreadPoolQueue;
+    }
+
+
+    public FilterServerManager getFilterServerManager() {
+        return filterServerManager;
     }
 
 }

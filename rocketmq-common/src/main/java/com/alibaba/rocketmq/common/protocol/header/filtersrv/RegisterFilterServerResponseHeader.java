@@ -7,23 +7,13 @@ import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
 
 public class RegisterFilterServerResponseHeader implements CommandCustomHeader {
     @CFNotNull
-    private String brokerRole;
+    private String brokerName;
     @CFNotNull
     private long brokerId;
 
 
     @Override
     public void checkFields() throws RemotingCommandException {
-    }
-
-
-    public String getBrokerRole() {
-        return brokerRole;
-    }
-
-
-    public void setBrokerRole(String brokerRole) {
-        this.brokerRole = brokerRole;
     }
 
 
@@ -34,5 +24,15 @@ public class RegisterFilterServerResponseHeader implements CommandCustomHeader {
 
     public void setBrokerId(long brokerId) {
         this.brokerId = brokerId;
+    }
+
+
+    public String getBrokerName() {
+        return brokerName;
+    }
+
+
+    public void setBrokerName(String brokerName) {
+        this.brokerName = brokerName;
     }
 }
