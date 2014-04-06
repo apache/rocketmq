@@ -24,4 +24,24 @@ public class FiltersrvConfig {
     public void setRocketmqHome(String rocketmqHome) {
         this.rocketmqHome = rocketmqHome;
     }
+
+
+    public String getConnectWhichBroker() {
+        return connectWhichBroker;
+    }
+
+
+    public void setConnectWhichBroker(String connectWhichBroker) {
+        this.connectWhichBroker = connectWhichBroker;
+    }
+
+
+    public String getFilterSrvIP() {
+        return filterSrvIP;
+    }
+
+
+    public void setFilterSrvIP(String filterSrvIP) {
+        this.filterSrvIP = filterSrvIP;
+    }
 }
