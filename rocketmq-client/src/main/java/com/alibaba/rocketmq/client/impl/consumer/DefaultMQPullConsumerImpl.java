@@ -613,4 +613,14 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
     public void setOffsetStore(OffsetStore offsetStore) {
         this.offsetStore = offsetStore;
     }
+
+
+    public PullAPIWrapper getPullAPIWrapper() {
+        return pullAPIWrapper;
+    }
+
+
+    public void setPullAPIWrapper(PullAPIWrapper pullAPIWrapper) {
+        this.pullAPIWrapper = pullAPIWrapper;
+    }
 }

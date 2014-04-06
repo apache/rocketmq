@@ -55,6 +55,9 @@ public class PullAPIWrapper {
     private final MQClientFactory mQClientFactory;
     private final String consumerGroup;
 
+    private volatile boolean connectBrokerByUser = false;
+    private volatile long defaultBrokerId = MixAll.MASTER_ID;
+
 
     public PullAPIWrapper(MQClientFactory mQClientFactory, String consumerGroup) {
         this.mQClientFactory = mQClientFactory;
@@ -144,6 +147,10 @@ public class PullAPIWrapper {
      * 每个队列都应该有相应的变量来保存从哪个服务器拉
      */
     public long recalculatePullFromWhichNode(final MessageQueue mq) {
+        if (this.isConnectBrokerByUser()) {
+            return this.defaultBrokerId;
+        }
+
         AtomicLong suggest = this.pullFromWhichNodeTable.get(mq);
         if (suggest != null) {
             return suggest.get();
@@ -208,5 +215,25 @@ public class PullAPIWrapper {
         }
 
         throw new MQClientException("The broker[" + mq.getBrokerName() + "] not exist", null);
+    }
+
+
+    public long getDefaultBrokerId() {
+        return defaultBrokerId;
+    }
+
+
+    public void setDefaultBrokerId(long defaultBrokerId) {
+        this.defaultBrokerId = defaultBrokerId;
+    }
+
+
+    public boolean isConnectBrokerByUser() {
+        return connectBrokerByUser;
+    }
+
+
+    public void setConnectBrokerByUser(boolean connectBrokerByUser) {
+        this.connectBrokerByUser = connectBrokerByUser;
     }
 }

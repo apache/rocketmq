@@ -19,6 +19,7 @@ import com.alibaba.rocketmq.client.exception.MQBrokerException;
 import com.alibaba.rocketmq.common.protocol.RequestCode;
 import com.alibaba.rocketmq.common.protocol.ResponseCode;
 import com.alibaba.rocketmq.common.protocol.header.filtersrv.RegisterFilterServerRequestHeader;
+import com.alibaba.rocketmq.common.protocol.header.filtersrv.RegisterFilterServerResponseHeader;
 import com.alibaba.rocketmq.remoting.RemotingClient;
 import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
 import com.alibaba.rocketmq.remoting.exception.RemotingConnectException;
@@ -54,7 +55,7 @@ public class FilterServerOuterAPI {
     }
 
 
-    public void registerFilterServerToBroker(//
+    public RegisterFilterServerResponseHeader registerFilterServerToBroker(//
             final String brokerAddr,// 1
             final String filterServerAddr// 2
     ) throws RemotingCommandException, RemotingConnectException, RemotingSendRequestException,
@@ -68,7 +69,11 @@ public class FilterServerOuterAPI {
         assert response != null;
         switch (response.getCode()) {
         case ResponseCode.SUCCESS: {
-            return;
+            RegisterFilterServerResponseHeader responseHeader =
+                    (RegisterFilterServerResponseHeader) response
+                        .decodeCommandCustomHeader(RegisterFilterServerResponseHeader.class);
+
+            return responseHeader;
         }
         default:
             break;
