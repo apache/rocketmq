@@ -50,6 +50,9 @@ public class FiltersrvController {
     // 服务端网络请求处理线程池
     private ExecutorService remotingExecutor;
 
+    // 访问Broker的api封装
+    private final FilterServerOuterAPI filterServerOuterAPI = new FilterServerOuterAPI();
+
     // 定时线程
     private final ScheduledExecutorService scheduledExecutorService = Executors
         .newSingleThreadScheduledExecutor(new ThreadFactory() {
@@ -92,9 +95,25 @@ public class FiltersrvController {
             @Override
             public void run() {
             }
-        }, 1000 * 10, 1000 * 120, TimeUnit.MILLISECONDS);
+        }, 10, 10, TimeUnit.SECONDS);
 
         return true;
+    }
+
+
+    public String localAddr() {
+        return String.format("%s:%d", this.filtersrvConfig.getFilterSrvIP(),
+            this.remotingServer.localListenPort());
+    }
+
+
+    public void registerFilterServerToBroker() {
+        try {
+            this.filterServerOuterAPI.registerFilterServerToBroker(
+                this.filtersrvConfig.getConnectWhichBroker(), this.localAddr());
+        }
+        catch (Exception e) {
+        }
     }
 
 
@@ -148,5 +167,10 @@ public class FiltersrvController {
 
     public ScheduledExecutorService getScheduledExecutorService() {
         return scheduledExecutorService;
+    }
+
+
+    public FilterServerOuterAPI getFilterServerOuterAPI() {
+        return filterServerOuterAPI;
     }
 }

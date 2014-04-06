@@ -48,6 +48,14 @@ public interface RemotingServer extends RemotingService {
     public void registerDefaultProcessor(final NettyRequestProcessor processor, final ExecutorService executor);
 
 
+    /**
+     * 服务器绑定的本地端口
+     * 
+     * @return PORT
+     */
+    public int localListenPort();
+
+
     public RemotingCommand invokeSync(final Channel channel, final RemotingCommand request,
             final long timeoutMillis) throws InterruptedException, RemotingSendRequestException,
             RemotingTimeoutException;

@@ -154,7 +154,7 @@ public class FiltersrvStartup {
             // 启动服务
             controller.start();
 
-            String tip = "The Filter Server boot success.";
+            String tip = "The Filter Server boot success, " + controller.localAddr();
             log.info(tip);
             System.out.println(tip);
 
