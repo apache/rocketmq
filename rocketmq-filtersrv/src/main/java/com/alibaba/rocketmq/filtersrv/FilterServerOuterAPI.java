@@ -33,7 +33,6 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
  * Broker对外调用的API封装
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
- * @author manhong.yqd<manhong.yqd@taobao.com>
  * @since 2013-7-3
  */
 public class FilterServerOuterAPI {

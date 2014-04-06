@@ -122,7 +122,7 @@ public class RequestCode {
     public static final int INVOKE_BROKER_TO_GET_CONSUMER_STATUS = 223;
 
     // Broker 查询topic被谁消费
-    // 2014-03-21 Add
+    // 2014-03-21 Add By shijia
     public static final int QUERY_TOPIC_CONSUME_BY_WHO = 300;
 
     // 获取指定集群下的所有 topic
@@ -130,6 +130,9 @@ public class RequestCode {
     public static final int GET_TOPICS_BY_CLUSTER = 224;
 
     // 向Broker注册Filter Server
-    // 2014-04-06
+    // 2014-04-06 Add By shijia
     public static final int REGISTER_FILTER_SERVER = 301;
+    // 向Filter Server注册Class
+    // 2014-04-06 Add By shijia
+    public static final int REGISTER_MESSAGE_FILTER_CLASS = 302;
 }

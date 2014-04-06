@@ -90,10 +90,12 @@ public class FiltersrvController {
 
         this.registerProcessor();
 
+        // 定时向Broker注册自己
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 
             @Override
             public void run() {
+                FiltersrvController.this.registerFilterServerToBroker();
             }
         }, 10, 10, TimeUnit.SECONDS);
 
@@ -113,6 +115,7 @@ public class FiltersrvController {
                 this.filtersrvConfig.getConnectWhichBroker(), this.localAddr());
         }
         catch (Exception e) {
+            // TODO 如果失败，考虑是否尝试自杀
         }
     }
 
