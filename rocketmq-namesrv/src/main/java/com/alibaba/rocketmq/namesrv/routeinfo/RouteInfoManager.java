@@ -406,6 +406,9 @@ public class RouteInfoManager {
         List<BrokerData> brokerDataList = new LinkedList<BrokerData>();
         topicRouteData.setBrokerDatas(brokerDataList);
 
+        HashMap<String, List<String>> filterServerMap = new HashMap<String, List<String>>();
+        topicRouteData.setFilterServerTable(filterServerMap);
+
         try {
             try {
                 this.lock.readLock().lockInterruptibly();
@@ -430,6 +433,12 @@ public class RouteInfoManager {
                                 .getBrokerAddrs().clone());
                             brokerDataList.add(brokerDataClone);
                             foundBrokerData = true;
+
+                            // 增加Filter Server
+                            for (final String brokerAddr : brokerDataClone.getBrokerAddrs().values()) {
+                                List<String> filterServerList = this.filterServerTable.get(brokerAddr);
+                                filterServerMap.put(brokerAddr, filterServerList);
+                            }
                         }
                     }
                 }
