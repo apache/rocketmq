@@ -58,6 +58,8 @@ public class FiltersrvController {
     private final DefaultMQPullConsumer defaultMQPullConsumer = new DefaultMQPullConsumer(
         MixAll.FILTERSRV_CONSUMER_GROUP);
 
+    private volatile String brokerName = null;
+
     // 定时线程
     private final ScheduledExecutorService scheduledExecutorService = Executors
         .newSingleThreadScheduledExecutor(new ThreadFactory() {
@@ -124,10 +126,14 @@ public class FiltersrvController {
             this.defaultMQPullConsumer.getDefaultMQPullConsumerImpl().getPullAPIWrapper()
                 .setDefaultBrokerId(responseHeader.getBrokerId());
 
+            if (null == this.brokerName) {
+                this.brokerName = responseHeader.getBrokerName();
+            }
+
             log.info("register filter server<%s> to broker<%s> OK, Return: %s %d", //
                 this.localAddr(),//
                 this.filtersrvConfig.getConnectWhichBroker(),//
-                responseHeader.getBrokerRole(),//
+                responseHeader.getBrokerName(),//
                 responseHeader.getBrokerId()//
             );
         }
