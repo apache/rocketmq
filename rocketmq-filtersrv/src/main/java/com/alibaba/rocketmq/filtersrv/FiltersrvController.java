@@ -29,6 +29,7 @@ import com.alibaba.rocketmq.client.consumer.DefaultMQPullConsumer;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.common.protocol.header.filtersrv.RegisterFilterServerResponseHeader;
+import com.alibaba.rocketmq.filtersrv.filter.FilterClassManager;
 import com.alibaba.rocketmq.filtersrv.processor.DefaultRequestProcessor;
 import com.alibaba.rocketmq.remoting.RemotingServer;
 import com.alibaba.rocketmq.remoting.netty.NettyRemotingServer;
@@ -51,6 +52,8 @@ public class FiltersrvController {
     private RemotingServer remotingServer;
     // 服务端网络请求处理线程池
     private ExecutorService remotingExecutor;
+
+    private final FilterClassManager filterClassManager = new FilterClassManager();
 
     // 访问Broker的api封装
     private final FilterServerOuterAPI filterServerOuterAPI = new FilterServerOuterAPI();
@@ -113,7 +116,7 @@ public class FiltersrvController {
 
 
     public String localAddr() {
-        return String.format("%s:%d", this.filtersrvConfig.getFilterSrvIP(),
+        return String.format("%s:%d", this.filtersrvConfig.getFilterServerIP(),
             this.remotingServer.localListenPort());
     }
 
@@ -201,5 +204,10 @@ public class FiltersrvController {
 
     public FilterServerOuterAPI getFilterServerOuterAPI() {
         return filterServerOuterAPI;
+    }
+
+
+    public FilterClassManager getFilterClassManager() {
+        return filterClassManager;
     }
 }

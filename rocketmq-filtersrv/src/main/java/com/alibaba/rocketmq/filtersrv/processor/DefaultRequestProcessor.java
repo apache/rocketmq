@@ -22,6 +22,8 @@ import org.slf4j.LoggerFactory;
 
 import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.common.protocol.RequestCode;
+import com.alibaba.rocketmq.common.protocol.ResponseCode;
+import com.alibaba.rocketmq.common.protocol.header.filtersrv.RegisterMessageFilterClassRequestHeader;
 import com.alibaba.rocketmq.filtersrv.FiltersrvController;
 import com.alibaba.rocketmq.remoting.common.RemotingHelper;
 import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
@@ -58,9 +60,36 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
 
         switch (request.getCode()) {
         case RequestCode.REGISTER_MESSAGE_FILTER_CLASS:
+            return registerMessageFilterClass(ctx, request);
         case RequestCode.PULL_MESSAGE:
         }
 
         return null;
+    }
+
+
+    private RemotingCommand registerMessageFilterClass(ChannelHandlerContext ctx, RemotingCommand request)
+            throws RemotingCommandException {
+        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
+        final RegisterMessageFilterClassRequestHeader requestHeader =
+                (RegisterMessageFilterClassRequestHeader) request
+                    .decodeCommandCustomHeader(RegisterMessageFilterClassRequestHeader.class);
+
+        try {
+            this.filtersrvController.getFilterClassManager().registerFilterClass(
+                requestHeader.getConsumerGroup(),//
+                requestHeader.getClassName(),//
+                requestHeader.getClassCRC(), //
+                request.getBody());
+        }
+        catch (Exception e) {
+            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setRemark(RemotingHelper.exceptionSimpleDesc(e));
+            return response;
+        }
+
+        response.setCode(ResponseCode.SUCCESS);
+        response.setRemark(null);
+        return response;
     }
 }
