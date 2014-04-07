@@ -61,6 +61,7 @@ import com.alibaba.rocketmq.common.ServiceState;
 import com.alibaba.rocketmq.common.constant.PermName;
 import com.alibaba.rocketmq.common.help.FAQUrl;
 import com.alibaba.rocketmq.common.message.MessageQueue;
+import com.alibaba.rocketmq.common.protocol.heartbeat.ConsumeType;
 import com.alibaba.rocketmq.common.protocol.heartbeat.ConsumerData;
 import com.alibaba.rocketmq.common.protocol.heartbeat.HeartbeatData;
 import com.alibaba.rocketmq.common.protocol.heartbeat.ProducerData;
@@ -424,6 +425,7 @@ public class MQClientFactory {
         if (this.lockHeartbeat.tryLock()) {
             try {
                 this.sendHeartbeatToAllBroker();
+                this.uploadFilterClass();
             }
             catch (final Exception e) {
                 log.error("sendHeartbeatToAllBroker exception", e);
@@ -434,6 +436,33 @@ public class MQClientFactory {
         }
         else {
             log.warn("lock heartBeat, but failed.");
+        }
+    }
+
+
+    private void uploadFilterClassToAllFilterServer(final String consumerGroup, final String className,
+            final String topic) {
+
+    }
+
+
+    private void uploadFilterClass() {
+        Iterator<Entry<String, MQConsumerInner>> it = this.consumerTable.entrySet().iterator();
+        while (it.hasNext()) {
+            Entry<String, MQConsumerInner> next = it.next();
+            MQConsumerInner consumer = next.getValue();
+            // 只支持PushConsumer
+            if (ConsumeType.CONSUME_PASSIVELY == consumer.consumeType()) {
+                Set<SubscriptionData> subscriptions = consumer.subscriptions();
+                for (SubscriptionData sub : subscriptions) {
+                    if (sub.isClassFilterMode()) {
+                        final String consumerGroup = consumer.groupName();
+                        final String className = sub.getSubString();
+                        final String topic = sub.getTopic();
+                        this.uploadFilterClassToAllFilterServer(consumerGroup, className, topic);
+                    }
+                }
+            }
         }
     }
 

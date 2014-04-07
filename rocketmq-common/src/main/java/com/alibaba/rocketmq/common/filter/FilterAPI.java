@@ -31,6 +31,11 @@ public class FilterAPI {
         if (null == subString || subString.equals(SubscriptionData.SUB_ALL) || subString.length() == 0) {
             subscriptionData.setSubString(SubscriptionData.SUB_ALL);
         }
+        // eg: com.taobao.tp.MessageFilterImpl
+        else if (subString.contains(".")) {
+            // TODO 判断一个类是否存在？
+            subscriptionData.setClassFilterMode(true);
+        }
         else {
             String[] tags = subString.split("\\|\\|");
             if (tags != null && tags.length > 0) {
@@ -51,5 +56,4 @@ public class FilterAPI {
 
         return subscriptionData;
     }
-
 }
