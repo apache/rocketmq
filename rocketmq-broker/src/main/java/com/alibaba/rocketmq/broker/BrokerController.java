@@ -189,11 +189,6 @@ public class BrokerController {
     public boolean initialize() {
         boolean result = true;
 
-        // 打印服务器配置参数
-        MixAll.printObjectProperties(log, this.brokerConfig);
-        MixAll.printObjectProperties(log, this.nettyServerConfig);
-        MixAll.printObjectProperties(log, this.messageStoreConfig);
-
         // 加载Topic配置
         result = result && this.topicConfigManager.load();
 

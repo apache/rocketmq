@@ -119,6 +119,10 @@ public class NamesrvStartup {
             configurator.doConfigure(namesrvConfig.getRocketmqHome() + "/conf/logback_namesrv.xml");
             final Logger log = LoggerFactory.getLogger(LoggerName.NamesrvLoggerName);
 
+            // 打印服务器配置参数
+            MixAll.printObjectProperties(log, namesrvConfig);
+            MixAll.printObjectProperties(log, nettyServerConfig);
+
             // 初始化服务控制对象
             final NamesrvController controller = new NamesrvController(namesrvConfig, nettyServerConfig);
             boolean initResult = controller.initialize();
