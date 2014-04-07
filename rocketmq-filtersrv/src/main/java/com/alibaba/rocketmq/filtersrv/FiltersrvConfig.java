@@ -13,7 +13,7 @@ public class FiltersrvConfig {
     // 连接到哪个Broker
     private String connectWhichBroker = "127.0.0.1:10911";
     // Filter Server对外服务的IP
-    private String filterSrvIP = RemotingUtil.getLocalAddress();
+    private String filterServerIP = RemotingUtil.getLocalAddress();
 
 
     public String getRocketmqHome() {
@@ -36,12 +36,13 @@ public class FiltersrvConfig {
     }
 
 
-    public String getFilterSrvIP() {
-        return filterSrvIP;
+    public String getFilterServerIP() {
+        return filterServerIP;
     }
 
 
-    public void setFilterSrvIP(String filterSrvIP) {
-        this.filterSrvIP = filterSrvIP;
+    public void setFilterServerIP(String filterServerIP) {
+        this.filterServerIP = filterServerIP;
     }
+
 }
