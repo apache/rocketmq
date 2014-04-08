@@ -16,12 +16,14 @@
 package com.alibaba.rocketmq.broker.out;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.alibaba.rocketmq.client.exception.MQBrokerException;
+import com.alibaba.rocketmq.common.SessionCredentials;
 import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.common.namesrv.RegisterBrokerResult;
 import com.alibaba.rocketmq.common.namesrv.TopAddressing;
@@ -33,6 +35,7 @@ import com.alibaba.rocketmq.common.protocol.body.TopicConfigSerializeWrapper;
 import com.alibaba.rocketmq.common.protocol.header.namesrv.RegisterBrokerRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.namesrv.RegisterBrokerResponseHeader;
 import com.alibaba.rocketmq.common.protocol.header.namesrv.UnRegisterBrokerRequestHeader;
+import com.alibaba.rocketmq.remoting.RPCHook;
 import com.alibaba.rocketmq.remoting.RemotingClient;
 import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
 import com.alibaba.rocketmq.remoting.exception.RemotingConnectException;
@@ -55,6 +58,33 @@ public class BrokerOuterAPI {
     private final RemotingClient remotingClient;
     private final TopAddressing topAddressing = new TopAddressing();
     private String nameSrvAddr = null;
+
+    // 客户端授权
+    private volatile SessionCredentials sessionCredentials = new SessionCredentials();
+
+    class RPCHookImpl implements RPCHook {
+        @Override
+        public void doBeforeRequest(String remoteAddr, RemotingCommand request) {
+            BrokerOuterAPI.this.attachSessionCredentials(request);
+        }
+
+
+        @Override
+        public void doAfterResponse(RemotingCommand request, RemotingCommand response) {
+        }
+    }
+
+
+    private void attachSessionCredentials(final RemotingCommand cmd) {
+        SessionCredentials tmp = this.sessionCredentials;
+        if (tmp != null) {
+            if (tmp.getAccessKey() != null && tmp.getSecretKey() != null) {
+                HashMap<String, String> extFields = new HashMap<String, String>();
+                extFields.put(SessionCredentials.AccessKey, tmp.getAccessKey());
+                cmd.setExtFields(extFields);
+            }
+        }
+    }
 
 
     public BrokerOuterAPI(final NettyClientConfig nettyClientConfig) {
