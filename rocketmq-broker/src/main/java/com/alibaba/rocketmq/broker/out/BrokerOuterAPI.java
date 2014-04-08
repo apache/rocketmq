@@ -89,6 +89,7 @@ public class BrokerOuterAPI {
 
     public BrokerOuterAPI(final NettyClientConfig nettyClientConfig) {
         this.remotingClient = new NettyRemotingClient(nettyClientConfig);
+        this.remotingClient.registerRPCHook(new RPCHookImpl());
     }
 
 
