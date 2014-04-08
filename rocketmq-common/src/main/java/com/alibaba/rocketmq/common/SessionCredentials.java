@@ -131,4 +131,11 @@ public class SessionCredentials {
             return false;
         return true;
     }
+
+
+    @Override
+    public String toString() {
+        return "SessionCredentials [accessKey=" + accessKey + ", secretKey=" + secretKey + ", signature="
+                + signature + ", signatureMethod=" + signatureMethod + "]";
+    }
 }
