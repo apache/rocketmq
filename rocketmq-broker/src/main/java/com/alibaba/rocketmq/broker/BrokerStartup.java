@@ -50,6 +50,8 @@ import com.alibaba.rocketmq.store.config.MessageStoreConfig;
  * @since 2013-7-26
  */
 public class BrokerStartup {
+    public static Properties BrokerConfigProperties = null;
+
 
     public static Options buildCommandlineOptions(final Options options) {
         Option opt = new Option("c", "configFile", true, "Broker config properties file");
@@ -127,6 +129,7 @@ public class BrokerStartup {
                     InputStream in = new BufferedInputStream(new FileInputStream(file));
                     Properties properties = new Properties();
                     properties.load(in);
+                    BrokerConfigProperties = properties;
                     MixAll.properties2Object(properties, brokerConfig);
                     MixAll.properties2Object(properties, nettyServerConfig);
                     MixAll.properties2Object(properties, nettyClientConfig);
