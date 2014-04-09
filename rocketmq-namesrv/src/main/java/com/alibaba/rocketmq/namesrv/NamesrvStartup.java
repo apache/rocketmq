@@ -46,6 +46,8 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
  * @since 2013-7-5
  */
 public class NamesrvStartup {
+    public static Properties NamesrvConfigProperties = null;
+
 
     public static Options buildCommandlineOptions(final Options options) {
         Option opt = new Option("c", "configFile", true, "Name server config properties file");
@@ -89,6 +91,7 @@ public class NamesrvStartup {
                     InputStream in = new BufferedInputStream(new FileInputStream(file));
                     Properties properties = new Properties();
                     properties.load(in);
+                    NamesrvConfigProperties = properties;
                     MixAll.properties2Object(properties, namesrvConfig);
                     MixAll.properties2Object(properties, nettyServerConfig);
                     System.out.println("load config properties file OK, " + file);
