@@ -22,6 +22,7 @@ import com.alibaba.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext;
 import com.alibaba.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
 import com.alibaba.rocketmq.client.consumer.listener.MessageListenerConcurrently;
 import com.alibaba.rocketmq.client.exception.MQClientException;
+import com.alibaba.rocketmq.common.consumer.ConsumeFromWhere;
 import com.alibaba.rocketmq.common.message.MessageExt;
 
 
@@ -47,6 +48,12 @@ public class PushConsumer {
          * 注意：一个consumer对象可以订阅多个topic
          */
         consumer.subscribe("TopicTest2", "*");
+
+        /**
+         * 设置Consumer第一次启动是从队列头部开始消费还是队列尾部开始消费<br>
+         * 如果非第一次启动，那么按照上次消费的位置继续消费
+         */
+        consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET);
 
         consumer.registerMessageListener(new MessageListenerConcurrently() {
 
