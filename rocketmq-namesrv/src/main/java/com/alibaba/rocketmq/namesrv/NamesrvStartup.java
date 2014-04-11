@@ -46,7 +46,8 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
  * @since 2013-7-5
  */
 public class NamesrvStartup {
-    public static Properties NamesrvConfigProperties = null;
+    public static Properties properties = null;
+    public static CommandLine commandLine = null;
 
 
     public static Options buildCommandlineOptions(final Options options) {
@@ -73,7 +74,7 @@ public class NamesrvStartup {
         try {
             // 解析命令行
             Options options = MixAll.buildCommandlineOptions(new Options());
-            final CommandLine commandLine =
+            commandLine =
                     MixAll.parseCmdLine("mqnamesrv", args, buildCommandlineOptions(options),
                         new PosixParser());
             if (null == commandLine) {
@@ -89,9 +90,8 @@ public class NamesrvStartup {
                 String file = commandLine.getOptionValue('c');
                 if (file != null) {
                     InputStream in = new BufferedInputStream(new FileInputStream(file));
-                    Properties properties = new Properties();
+                    properties = new Properties();
                     properties.load(in);
-                    NamesrvConfigProperties = properties;
                     MixAll.properties2Object(properties, namesrvConfig);
                     MixAll.properties2Object(properties, nettyServerConfig);
                     System.out.println("load config properties file OK, " + file);

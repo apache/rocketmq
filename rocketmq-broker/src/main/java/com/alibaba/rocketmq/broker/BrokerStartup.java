@@ -50,7 +50,8 @@ import com.alibaba.rocketmq.store.config.MessageStoreConfig;
  * @since 2013-7-26
  */
 public class BrokerStartup {
-    public static Properties BrokerConfigProperties = null;
+    public static Properties properties = null;
+    public static CommandLine commandLine = null;
 
 
     public static Options buildCommandlineOptions(final Options options) {
@@ -85,7 +86,7 @@ public class BrokerStartup {
         try {
             // 解析命令行
             Options options = MixAll.buildCommandlineOptions(new Options());
-            final CommandLine commandLine =
+            commandLine =
                     MixAll
                         .parseCmdLine("mqbroker", args, buildCommandlineOptions(options), new PosixParser());
             if (null == commandLine) {
@@ -127,9 +128,8 @@ public class BrokerStartup {
                 String file = commandLine.getOptionValue('c');
                 if (file != null) {
                     InputStream in = new BufferedInputStream(new FileInputStream(file));
-                    Properties properties = new Properties();
+                    properties = new Properties();
                     properties.load(in);
-                    BrokerConfigProperties = properties;
                     MixAll.properties2Object(properties, brokerConfig);
                     MixAll.properties2Object(properties, nettyServerConfig);
                     MixAll.properties2Object(properties, nettyClientConfig);
