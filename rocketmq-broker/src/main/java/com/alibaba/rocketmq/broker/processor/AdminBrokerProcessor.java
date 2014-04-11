@@ -772,21 +772,27 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         }
         // 订阅组不存在
         else {
+            long minOffset =
+                    this.brokerController.getMessageStore().getMinOffsetInQuque(requestHeader.getTopic(),
+                        requestHeader.getQueueId());
+            long maxOffset =
+                    this.brokerController.getMessageStore().getMaxOffsetInQuque(requestHeader.getTopic(),
+                        requestHeader.getQueueId());
+            // 订阅组不存在情况下，如果这个队列的消息最小Offset是0，则表示这个Topic上线时间不行，服务器堆积的数据也不多，那么这个订阅组就从0开始消费。
+            // 尤其对于Topic队列数动态扩容时，必须要从0开始消费。
+            if (minOffset <= 0) {
+                responseHeader.setOffset(0L);
+                response.setCode(ResponseCode.SUCCESS);
+                response.setRemark(null);
+            }
             // 新版本服务器不做消费进度纠正
-            if (request.getVersion() >= MQVersion.Version.V3_0_6_SNAPSHOT.ordinal()) {
+            else if (request.getVersion() >= MQVersion.Version.V3_0_6_SNAPSHOT.ordinal()) {
                 response.setCode(ResponseCode.QUERY_NOT_FOUND);
                 response.setRemark("Not found, V3_0_6_SNAPSHOT maybe this group consumer boot first");
             }
 
             // TODO：以下流程待所有客户端都升级后，可以删除此段代码
             else {
-                long minOffset =
-                        this.brokerController.getMessageStore().getMinOffsetInQuque(requestHeader.getTopic(),
-                            requestHeader.getQueueId());
-                long maxOffset =
-                        this.brokerController.getMessageStore().getMaxOffsetInQuque(requestHeader.getTopic(),
-                            requestHeader.getQueueId());
-
                 boolean consumeFromMinEnable = false;
                 if (0 == minOffset && maxOffset > 0) {
                     long minCommitLogOffset =
