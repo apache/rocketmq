@@ -1695,17 +1695,26 @@ public class MQClientAPIImpl {
         RemotingCommand request =
                 RemotingCommand.createRequestCommand(RequestCode.PUT_KV_CONFIG, requestHeader);
 
-        RemotingCommand response = this.remotingClient.invokeSync(null, request, timeoutMillis);
-        assert response != null;
-        switch (response.getCode()) {
-        case ResponseCode.SUCCESS: {
-            return;
-        }
-        default:
-            break;
-        }
+        List<String> nameServerAddressList = this.remotingClient.getNameServerAddressList();
+        if (nameServerAddressList != null) {
+            RemotingCommand errResponse = null;
+            for (String namesrvAddr : nameServerAddressList) {
+                RemotingCommand response =
+                        this.remotingClient.invokeSync(namesrvAddr, request, timeoutMillis);
+                assert response != null;
+                switch (response.getCode()) {
+                case ResponseCode.SUCCESS: {
+                    break;
+                }
+                default:
+                    errResponse = response;
+                }
+            }
 
-        throw new MQClientException(response.getCode(), response.getRemark());
+            if (errResponse != null) {
+                throw new MQClientException(errResponse.getCode(), errResponse.getRemark());
+            }
+        }
     }
 
 
@@ -1721,17 +1730,25 @@ public class MQClientAPIImpl {
         RemotingCommand request =
                 RemotingCommand.createRequestCommand(RequestCode.DELETE_KV_CONFIG, requestHeader);
 
-        RemotingCommand response = this.remotingClient.invokeSync(null, request, timeoutMillis);
-        assert response != null;
-        switch (response.getCode()) {
-        case ResponseCode.SUCCESS: {
-            return;
+        List<String> nameServerAddressList = this.remotingClient.getNameServerAddressList();
+        if (nameServerAddressList != null) {
+            RemotingCommand errResponse = null;
+            for (String namesrvAddr : nameServerAddressList) {
+                RemotingCommand response =
+                        this.remotingClient.invokeSync(namesrvAddr, request, timeoutMillis);
+                assert response != null;
+                switch (response.getCode()) {
+                case ResponseCode.SUCCESS: {
+                    break;
+                }
+                default:
+                    errResponse = response;
+                }
+            }
+            if (errResponse != null) {
+                throw new MQClientException(errResponse.getCode(), errResponse.getRemark());
+            }
         }
-        default:
-            break;
-        }
-
-        throw new MQClientException(response.getCode(), response.getRemark());
     }
 
 
@@ -1810,17 +1827,26 @@ public class MQClientAPIImpl {
         RemotingCommand request =
                 RemotingCommand.createRequestCommand(RequestCode.DELETE_KV_CONFIG_BY_VALUE, requestHeader);
 
-        RemotingCommand response = this.remotingClient.invokeSync(null, request, timeoutMillis);
-        assert response != null;
-        switch (response.getCode()) {
-        case ResponseCode.SUCCESS: {
-            return;
-        }
-        default:
-            break;
-        }
+        List<String> nameServerAddressList = this.remotingClient.getNameServerAddressList();
 
-        throw new MQClientException(response.getCode(), response.getRemark());
+        if (nameServerAddressList != null) {
+            RemotingCommand errResponse = null;
+            for (String namesrvAddr : nameServerAddressList) {
+                RemotingCommand response =
+                        this.remotingClient.invokeSync(namesrvAddr, request, timeoutMillis);
+                assert response != null;
+                switch (response.getCode()) {
+                case ResponseCode.SUCCESS: {
+                    break;
+                }
+                default:
+                    errResponse = response;
+                }
+            }
+            if (errResponse != null) {
+                throw new MQClientException(errResponse.getCode(), errResponse.getRemark());
+            }
+        }
     }
 
 
