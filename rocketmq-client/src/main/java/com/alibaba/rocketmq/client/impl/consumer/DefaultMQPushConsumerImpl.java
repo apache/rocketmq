@@ -15,13 +15,10 @@
  */
 package com.alibaba.rocketmq.client.impl.consumer;
 
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
+import com.alibaba.rocketmq.client.hook.FilterMessageHook;
 import org.slf4j.Logger;
 
 import com.alibaba.rocketmq.client.QueryResult;
@@ -98,10 +95,19 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
     // 消费消息服务
     private ConsumeMessageService consumeMessageService;
 
+    // 消息过滤 hook
+    private final ArrayList<FilterMessageHook> filterMessageHookList = new ArrayList<FilterMessageHook>();
+
+
+    public void registerFilterMessageHook(final FilterMessageHook hook) {
+        this.filterMessageHookList.add(hook);
+        log.info("register FilterMessageHook Hook, {}", hook.hookName());
+    }
+
     /**
      * 消费每条消息会回调
      */
-    private final ArrayList<ConsumeMessageHook> hookList = new ArrayList<ConsumeMessageHook>();
+    private final ArrayList<ConsumeMessageHook> consumeMessageHookList = new ArrayList<ConsumeMessageHook>();
 
 
     public DefaultMQPushConsumerImpl(DefaultMQPushConsumer defaultMQPushConsumer) {
@@ -110,19 +116,19 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
 
 
     public boolean hasHook() {
-        return !this.hookList.isEmpty();
+        return !this.consumeMessageHookList.isEmpty();
     }
 
 
-    public void registerHook(final ConsumeMessageHook hook) {
-        this.hookList.add(hook);
+    public void registerConsumeMessageHook(final ConsumeMessageHook hook) {
+        this.consumeMessageHookList.add(hook);
         log.info("register consumeMessageHook Hook, {}", hook.hookName());
     }
 
 
     public void executeHookBefore(final ConsumeMessageContext context) {
-        if (!this.hookList.isEmpty()) {
-            for (ConsumeMessageHook hook : this.hookList) {
+        if (!this.consumeMessageHookList.isEmpty()) {
+            for (ConsumeMessageHook hook : this.consumeMessageHookList) {
                 try {
                     hook.consumeMessageBefore(context);
                 }
@@ -134,8 +140,8 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
 
 
     public void executeHookAfter(final ConsumeMessageContext context) {
-        if (!this.hookList.isEmpty()) {
-            for (ConsumeMessageHook hook : this.hookList) {
+        if (!this.consumeMessageHookList.isEmpty()) {
+            for (ConsumeMessageHook hook : this.consumeMessageHookList) {
                 try {
                     hook.consumeMessageAfter(context);
                 }
@@ -615,7 +621,9 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
 
             this.pullAPIWrapper = new PullAPIWrapper(//
                 mQClientFactory,//
-                this.defaultMQPushConsumer.getConsumerGroup());
+                this.defaultMQPushConsumer.getConsumerGroup(), isUnitMode());
+            // 每次拉消息之后，都会进行一次过滤。
+            this.pullAPIWrapper.registerFilterMessageHook(filterMessageHookList);
 
             if (this.defaultMQPushConsumer.getOffsetStore() != null) {
                 this.offsetStore = this.defaultMQPushConsumer.getOffsetStore();
@@ -930,5 +938,25 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
 
     public void setConsumeOrderly(boolean consumeOrderly) {
         this.consumeOrderly = consumeOrderly;
+    }
+
+
+    @Override
+    public boolean isUnitMode() {
+        return this.defaultMQPushConsumer.isUnitMode();
+    }
+
+
+    public void resetOffsetByTimeStamp(long timeStamp) throws RemotingException, MQBrokerException,
+            InterruptedException, MQClientException {
+        for (String topic : rebalanceImpl.getSubscriptionInner().keySet()) {
+            Set<MessageQueue> mqs = rebalanceImpl.getTopicSubscribeInfoTable().get(topic);
+            Map<MessageQueue, Long> offsetTable = new HashMap<MessageQueue, Long>();
+            for (MessageQueue mq : mqs) {
+                long offset = searchOffset(mq, timeStamp);
+                offsetTable.put(mq, offset);
+            }
+            this.mQClientFactory.resetOffset(topic, groupName(), offsetTable);
+        }
     }
 }

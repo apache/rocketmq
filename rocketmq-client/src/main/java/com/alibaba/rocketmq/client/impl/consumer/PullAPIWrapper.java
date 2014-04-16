@@ -21,15 +21,20 @@ import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
+import org.slf4j.Logger;
+
 import com.alibaba.rocketmq.client.VirtualEnvUtil;
 import com.alibaba.rocketmq.client.consumer.PullCallback;
 import com.alibaba.rocketmq.client.consumer.PullResult;
 import com.alibaba.rocketmq.client.consumer.PullStatus;
 import com.alibaba.rocketmq.client.exception.MQBrokerException;
 import com.alibaba.rocketmq.client.exception.MQClientException;
+import com.alibaba.rocketmq.client.hook.FilterMessageContext;
+import com.alibaba.rocketmq.client.hook.FilterMessageHook;
 import com.alibaba.rocketmq.client.impl.CommunicationMode;
 import com.alibaba.rocketmq.client.impl.FindBrokerResult;
 import com.alibaba.rocketmq.client.impl.factory.MQClientFactory;
+import com.alibaba.rocketmq.client.log.ClientLogger;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.UtilAll;
 import com.alibaba.rocketmq.common.message.MessageConst;
@@ -49,16 +54,19 @@ import com.alibaba.rocketmq.remoting.exception.RemotingException;
  * @since 2013-7-24
  */
 public class PullAPIWrapper {
+    private final Logger log = ClientLogger.getLog();
     private ConcurrentHashMap<MessageQueue, AtomicLong/* brokerId */> pullFromWhichNodeTable =
             new ConcurrentHashMap<MessageQueue, AtomicLong>(32);
 
     private final MQClientFactory mQClientFactory;
     private final String consumerGroup;
+    private final boolean isUnitMode;
 
 
-    public PullAPIWrapper(MQClientFactory mQClientFactory, String consumerGroup) {
+    public PullAPIWrapper(MQClientFactory mQClientFactory, String consumerGroup, boolean isUnitMode) {
         this.mQClientFactory = mQClientFactory;
         this.consumerGroup = consumerGroup;
+        this.isUnitMode = isUnitMode;
     }
 
 
@@ -79,8 +87,6 @@ public class PullAPIWrapper {
      * @param mq
      * @param pullResult
      * @param subscriptionData
-     * @param projectGroupPrefix
-     *            虚拟环境projectGroupPrefix，不存在可设置为 null
      * @return
      */
     public PullResult processPullResult(final MessageQueue mq, final PullResult pullResult,
@@ -104,6 +110,13 @@ public class PullAPIWrapper {
                         }
                     }
                 }
+            }
+
+            // 执行消息过滤的 FilterMessageHook
+            if (this.hasHook()) {
+                FilterMessageContext filterMessageContext = new FilterMessageContext();
+                filterMessageContext.setMsgList(msgListFilterAgain);
+                this.executeHook(filterMessageContext);
             }
 
             // 清除虚拟运行环境相关的projectGroupPrefix
@@ -196,6 +209,7 @@ public class PullAPIWrapper {
             requestHeader.setSuspendTimeoutMillis(brokerSuspendMaxTimeMillis);
             requestHeader.setSubscription(subExpression);
             requestHeader.setSubVersion(subVersion);
+            requestHeader.setUnitMode(this.isUnitMode);
 
             PullResult pullResult = this.mQClientFactory.getMQClientAPIImpl().pullMessage(//
                 findBrokerResult.getBrokerAddr(),//
@@ -208,5 +222,34 @@ public class PullAPIWrapper {
         }
 
         throw new MQClientException("The broker[" + mq.getBrokerName() + "] not exist", null);
+    }
+
+    /**
+     * 从服务端拉消息之后，会执行 FilterMessageHook
+     */
+    private ArrayList<FilterMessageHook> filterMessageHookList = new ArrayList<FilterMessageHook>();
+
+
+    public boolean hasHook() {
+        return !this.filterMessageHookList.isEmpty();
+    }
+
+
+    public void registerFilterMessageHook(ArrayList<FilterMessageHook> filterMessageHookList) {
+        this.filterMessageHookList = filterMessageHookList;
+    }
+
+
+    public void executeHook(final FilterMessageContext context) {
+        if (!this.filterMessageHookList.isEmpty()) {
+            for (FilterMessageHook hook : this.filterMessageHookList) {
+                try {
+                    hook.filterMessage(context);
+                }
+                catch (Throwable e) {
+                    log.error("execute hook error. hookName={}", hook.hookName());
+                }
+            }
+        }
     }
 }

@@ -77,6 +77,10 @@ public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsume
      * 队列分配算法，应用可重写
      */
     private AllocateMessageQueueStrategy allocateMessageQueueStrategy = new AllocateMessageQueueAveragely();
+    /**
+     * 是否为单元化的订阅组
+     */
+    private boolean isUnitMode = false;
 
 
     public DefaultMQPullConsumer() {
@@ -306,5 +310,15 @@ public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsume
 
     public DefaultMQPullConsumerImpl getDefaultMQPullConsumerImpl() {
         return defaultMQPullConsumerImpl;
+    }
+
+
+    public boolean isUnitMode() {
+        return isUnitMode;
+    }
+
+
+    public void setUnitMode(boolean isUnitMode) {
+        this.isUnitMode = isUnitMode;
     }
 }

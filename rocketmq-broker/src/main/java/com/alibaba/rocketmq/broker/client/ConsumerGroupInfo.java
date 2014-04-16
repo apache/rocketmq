@@ -51,14 +51,16 @@ public class ConsumerGroupInfo {
     private volatile MessageModel messageModel;
     private volatile ConsumeFromWhere consumeFromWhere;
     private volatile long lastUpdateTimestamp = System.currentTimeMillis();
+    private final boolean isUnitMode;
 
 
     public ConsumerGroupInfo(String groupName, ConsumeType consumeType, MessageModel messageModel,
-            ConsumeFromWhere consumeFromWhere) {
+            ConsumeFromWhere consumeFromWhere, boolean isUnitMode) {
         this.groupName = groupName;
         this.consumeType = consumeType;
         this.messageModel = messageModel;
         this.consumeFromWhere = consumeFromWhere;
+        this.isUnitMode = isUnitMode;
     }
 
 
@@ -252,5 +254,10 @@ public class ConsumerGroupInfo {
 
     public void setConsumeFromWhere(ConsumeFromWhere consumeFromWhere) {
         this.consumeFromWhere = consumeFromWhere;
+    }
+
+
+    public boolean isUnitMode() {
+        return isUnitMode;
     }
 }
