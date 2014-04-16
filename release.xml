@@ -25,9 +25,7 @@
                 <include>com.alibaba.rocketmq:rocketmq-broker</include>
                 <include>com.alibaba.rocketmq:rocketmq-tools</include>
                 <include>com.alibaba.rocketmq:rocketmq-client</include>
-                <include>com.alibaba.rocketmq:rocketmq-research</include>
                 <include>com.alibaba.rocketmq:rocketmq-namesrv</include>
-                <include>com.alibaba.rocketmq:rocketmq-example</include>
             </includes>
             <binaries>
                 <outputDirectory>lib/</outputDirectory>
