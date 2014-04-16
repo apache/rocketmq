@@ -196,11 +196,13 @@ public class PullMessageProcessor implements NettyRequestProcessor {
 
         // 订阅关系处理
         SubscriptionData subscriptionData = null;
+        boolean isUnitMode = false;
         if (hasSubscriptionFlag) {
             try {
                 subscriptionData =
                         FilterAPI.buildSubscriptionData(requestHeader.getTopic(),
                             requestHeader.getSubscription());
+                isUnitMode = requestHeader.isUnitMode();
             }
             catch (Exception e) {
                 log.warn("parse the consumer's subscription[{}] failed, group: {}",
@@ -215,6 +217,7 @@ public class PullMessageProcessor implements NettyRequestProcessor {
             ConsumerGroupInfo consumerGroupInfo =
                     this.brokerController.getConsumerManager().getConsumerGroupInfo(
                         requestHeader.getConsumerGroup());
+            isUnitMode = consumerGroupInfo.isUnitMode();
             if (null == consumerGroupInfo) {
                 log.warn("the consumer's group info not exist, group: {}", requestHeader.getConsumerGroup());
                 response.setCode(ResponseCode.SUBSCRIPTION_NOT_EXIST);
@@ -253,7 +256,7 @@ public class PullMessageProcessor implements NettyRequestProcessor {
         final GetMessageResult getMessageResult =
                 this.brokerController.getMessageStore().getMessage(requestHeader.getTopic(),
                     requestHeader.getQueueId(), requestHeader.getQueueOffset(),
-                    requestHeader.getMaxMsgNums(), subscriptionData);
+                    requestHeader.getMaxMsgNums(), subscriptionData, isUnitMode);
 
         if (getMessageResult != null) {
             if (getMessageResult.getBufferTotalSize() > 0) {

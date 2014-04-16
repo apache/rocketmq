@@ -27,6 +27,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import com.alibaba.rocketmq.common.hook.FilterCheckHook;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -743,4 +744,8 @@ public class BrokerController {
         return sendThreadPoolQueue;
     }
 
+
+    public void registerFilterCheckHook(FilterCheckHook filterCheckHook) {
+        this.messageStore.registerFilterCheckHook(filterCheckHook);
+    }
 }

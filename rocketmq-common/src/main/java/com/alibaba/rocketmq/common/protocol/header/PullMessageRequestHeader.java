@@ -33,6 +33,8 @@ public class PullMessageRequestHeader implements CommandCustomHeader {
     private String subscription;
     @CFNotNull
     private Long subVersion;
+    @CFNotNull
+    private boolean isUnitMode;
 
 
     @Override
@@ -137,5 +139,15 @@ public class PullMessageRequestHeader implements CommandCustomHeader {
 
     public void setSubVersion(Long subVersion) {
         this.subVersion = subVersion;
+    }
+
+
+    public boolean isUnitMode() {
+        return isUnitMode;
+    }
+
+
+    public void setUnitMode(boolean isUnitMode) {
+        this.isUnitMode = isUnitMode;
     }
 }

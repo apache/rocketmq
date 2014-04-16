@@ -179,7 +179,8 @@ public class RecoverTest {
         long readCnt = 0;
         for (int queueId = 0; queueId < QUEUE_TOTAL; queueId++) {
             for (long offset = 0;;) {
-                GetMessageResult result = storeRead.getMessage("TOPIC_A", queueId, offset, 1024 * 1024, null);
+                GetMessageResult result =
+                        storeRead.getMessage("TOPIC_A", queueId, offset, 1024 * 1024, null, false);
                 if (result.getStatus() == GetMessageStatus.FOUND) {
                     System.out.println(queueId + "\t" + result.getMessageCount());
                     this.veryReadMessage(queueId, offset, result.getMessageBufferList());

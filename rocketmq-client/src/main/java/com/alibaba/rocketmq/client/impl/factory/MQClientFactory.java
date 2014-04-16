@@ -493,6 +493,7 @@ public class MQClientFactory {
                 consumerData.setMessageModel(impl.messageModel());
                 consumerData.setConsumeFromWhere(impl.consumeFromWhere());
                 consumerData.getSubscriptionDataSet().addAll(impl.subscriptions());
+                consumerData.setUnitMode(impl.isUnitMode());
 
                 heartbeatData.getConsumerDataSet().add(consumerData);
             }

@@ -15,12 +15,10 @@
  */
 package com.alibaba.rocketmq.client.impl.consumer;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
+import com.alibaba.rocketmq.client.hook.FilterMessageHook;
 import org.slf4j.Logger;
 
 import com.alibaba.rocketmq.client.QueryResult;
@@ -167,7 +165,13 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
         if (topics != null) {
             synchronized (topics) {
                 for (String t : topics) {
-                    SubscriptionData ms = new SubscriptionData(t, SubscriptionData.SUB_ALL);
+                    SubscriptionData ms = null;
+                    try {
+                        ms = FilterAPI.buildSubscriptionData(t, SubscriptionData.SUB_ALL);
+                    }
+                    catch (Exception e) {
+                        log.error("parse subscription error", e);
+                    }
                     ms.setSubVersion(0L);
                     result.add(ms);
                 }
@@ -225,6 +229,12 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
         }
 
         return false;
+    }
+
+
+    @Override
+    public boolean isUnitMode() {
+        return this.defaultMQPullConsumer.isUnitMode();
     }
 
 
@@ -480,7 +490,9 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
 
             this.pullAPIWrapper = new PullAPIWrapper(//
                 mQClientFactory,//
-                this.defaultMQPullConsumer.getConsumerGroup());
+                this.defaultMQPullConsumer.getConsumerGroup(), isUnitMode());
+            // 每次拉消息之后，都会进行一次过滤。
+            this.pullAPIWrapper.registerFilterMessageHook(filterMessageHookList);
 
             if (this.defaultMQPullConsumer.getOffsetStore() != null) {
                 this.offsetStore = this.defaultMQPullConsumer.getOffsetStore();
@@ -597,6 +609,15 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
             InterruptedException, MQClientException {
         this.makeSureStateOK();
         return this.mQClientFactory.getMQAdminImpl().viewMessage(msgId);
+    }
+
+    // 消息过滤 hook
+    private final ArrayList<FilterMessageHook> filterMessageHookList = new ArrayList<FilterMessageHook>();
+
+
+    public void registerFilterMessageHook(final FilterMessageHook hook) {
+        this.filterMessageHookList.add(hook);
+        log.info("register FilterMessageHook Hook, {}", hook.hookName());
     }
 
 
