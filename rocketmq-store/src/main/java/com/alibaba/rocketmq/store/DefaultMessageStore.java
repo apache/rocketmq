@@ -799,7 +799,7 @@ public class DefaultMessageStore implements MessageStore {
         SelectMapedBufferResult sbr = this.commitLog.getMessage(commitLogOffset, size);
         if (null != sbr) {
             try {
-                return MessageDecoder.decode(sbr.getByteBuffer());
+                return MessageDecoder.decode(sbr.getByteBuffer(), true, false);
             }
             finally {
                 sbr.release();
