@@ -457,7 +457,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
         if (this.defaultMQPushConsumer.isPostSubscriptionWhenPull()) {
             SubscriptionData sd =
                     this.rebalanceImpl.getSubscriptionInner().get(pullRequest.getMessageQueue().getTopic());
-            if (sd != null) {
+            if (sd != null && !sd.isClassFilterMode()) {
                 subExpression = sd.getSubString();
             }
         }
