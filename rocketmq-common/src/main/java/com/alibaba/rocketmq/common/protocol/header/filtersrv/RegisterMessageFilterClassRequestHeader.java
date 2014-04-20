@@ -9,6 +9,8 @@ public class RegisterMessageFilterClassRequestHeader implements CommandCustomHea
     @CFNotNull
     private String consumerGroup;
     @CFNotNull
+    private String topic;
+    @CFNotNull
     private String className;
     @CFNotNull
     private Integer classCRC;
@@ -26,6 +28,16 @@ public class RegisterMessageFilterClassRequestHeader implements CommandCustomHea
 
     public void setConsumerGroup(String consumerGroup) {
         this.consumerGroup = consumerGroup;
+    }
+
+
+    public String getTopic() {
+        return topic;
+    }
+
+
+    public void setTopic(String topic) {
+        this.topic = topic;
     }
 
 

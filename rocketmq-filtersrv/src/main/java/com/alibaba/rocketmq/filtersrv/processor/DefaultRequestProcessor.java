@@ -80,7 +80,7 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
                 requestHeader.getConsumerGroup(),//
                 requestHeader.getClassName(),//
                 requestHeader.getClassCRC(), //
-                request.getBody());
+                request.getBody());// Body传输的是Java Source，必须UTF-8编码
         }
         catch (Exception e) {
             response.setCode(ResponseCode.SYSTEM_ERROR);

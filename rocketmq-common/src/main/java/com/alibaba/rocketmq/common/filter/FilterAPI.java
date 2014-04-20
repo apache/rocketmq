@@ -23,7 +23,17 @@ import com.alibaba.rocketmq.common.protocol.heartbeat.SubscriptionData;
  * @since 2013-6-15
  */
 public class FilterAPI {
-    public static SubscriptionData buildSubscriptionData(String topic, String subString) throws Exception {
+    public static final String FilterClassPrefix = "rocketmq.message.filter";
+
+
+    public static boolean isFilterClassMode(final String subString, final String consumerGroup) {
+        final String prefix = FilterClassPrefix + "." + consumerGroup;
+        return subString.startsWith(prefix);
+    }
+
+
+    public static SubscriptionData buildSubscriptionData(final String consumerGroup, String topic,
+            String subString) throws Exception {
         SubscriptionData subscriptionData = new SubscriptionData();
         subscriptionData.setTopic(topic);
         subscriptionData.setSubString(subString);
@@ -31,9 +41,8 @@ public class FilterAPI {
         if (null == subString || subString.equals(SubscriptionData.SUB_ALL) || subString.length() == 0) {
             subscriptionData.setSubString(SubscriptionData.SUB_ALL);
         }
-        // eg: com.taobao.tp.MessageFilterImpl
-        else if (subString.contains(".")) {
-            // TODO 判断一个类是否存在？
+        // eg: rocketmq.message.filter.cousumergroup.FilterClassName
+        else if (isFilterClassMode(subString, consumerGroup)) {
             subscriptionData.setClassFilterMode(true);
         }
         else {
