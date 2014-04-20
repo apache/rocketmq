@@ -100,6 +100,7 @@ import com.alibaba.rocketmq.common.protocol.header.SendMessageResponseHeader;
 import com.alibaba.rocketmq.common.protocol.header.UnregisterClientRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.UpdateConsumerOffsetRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.ViewMessageRequestHeader;
+import com.alibaba.rocketmq.common.protocol.header.filtersrv.RegisterMessageFilterClassRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.namesrv.DeleteKVConfigRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.namesrv.GetKVConfigRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.namesrv.GetKVConfigResponseHeader;
@@ -1961,4 +1962,43 @@ public class MQClientAPIImpl {
         throw new MQClientException(response.getCode(), response.getRemark());
     }
 
+
+    /**
+     * Filter Server: 向Filter Server注册过滤类
+     * 
+     * @throws InterruptedException
+     * @throws RemotingTimeoutException
+     * @throws RemotingSendRequestException
+     * @throws RemotingConnectException
+     * @throws MQBrokerException
+     */
+    public void registerMessageFilterClass(final String addr,//
+            final String consumerGroup,//
+            final String topic,//
+            final String className,//
+            final int classCRC,//
+            final byte[] classBody,//
+            final long timeoutMillis) throws RemotingConnectException, RemotingSendRequestException,
+            RemotingTimeoutException, InterruptedException, MQBrokerException {
+        RegisterMessageFilterClassRequestHeader requestHeader = new RegisterMessageFilterClassRequestHeader();
+        requestHeader.setConsumerGroup(consumerGroup);
+        requestHeader.setClassName(className);
+        requestHeader.setTopic(topic);
+        requestHeader.setClassCRC(classCRC);
+
+        RemotingCommand request =
+                RemotingCommand
+                    .createRequestCommand(RequestCode.REGISTER_MESSAGE_FILTER_CLASS, requestHeader);
+        request.setBody(classBody);
+        RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
+        switch (response.getCode()) {
+        case ResponseCode.SUCCESS: {
+            return;
+        }
+        default:
+            break;
+        }
+
+        throw new MQBrokerException(response.getCode(), response.getRemark());
+    }
 }

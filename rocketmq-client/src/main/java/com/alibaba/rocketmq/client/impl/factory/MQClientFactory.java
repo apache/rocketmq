@@ -15,6 +15,7 @@
  */
 package com.alibaba.rocketmq.client.impl.factory;
 
+import java.io.UnsupportedEncodingException;
 import java.net.DatagramSocket;
 import java.net.SocketException;
 import java.util.Collections;
@@ -58,7 +59,9 @@ import com.alibaba.rocketmq.client.producer.DefaultMQProducer;
 import com.alibaba.rocketmq.common.MQVersion;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.ServiceState;
+import com.alibaba.rocketmq.common.UtilAll;
 import com.alibaba.rocketmq.common.constant.PermName;
+import com.alibaba.rocketmq.common.filter.FilterAPI;
 import com.alibaba.rocketmq.common.help.FAQUrl;
 import com.alibaba.rocketmq.common.message.MessageQueue;
 import com.alibaba.rocketmq.common.protocol.heartbeat.ConsumeType;
@@ -425,7 +428,7 @@ public class MQClientFactory {
         if (this.lockHeartbeat.tryLock()) {
             try {
                 this.sendHeartbeatToAllBroker();
-                this.uploadFilterClass();
+                this.uploadFilterClassSource();
             }
             catch (final Exception e) {
                 log.error("sendHeartbeatToAllBroker exception", e);
@@ -441,12 +444,46 @@ public class MQClientFactory {
 
 
     private void uploadFilterClassToAllFilterServer(final String consumerGroup, final String className,
-            final String topic) {
+            final String topic) throws UnsupportedEncodingException {
+        String classFile = FilterAPI.classFile(className);
+        String fileContent = MixAll.file2String(classFile);
+        byte[] classBody = fileContent.getBytes(MixAll.DEFAULT_CHARSET);
+        int classCRC = UtilAll.crc32(classBody);
 
+        TopicRouteData topicRouteData = this.topicRouteTable.get(topic);
+        if (topicRouteData != null //
+                && topicRouteData.getFilterServerTable() != null
+                && !topicRouteData.getFilterServerTable().isEmpty()) {
+            Iterator<Entry<String, List<String>>> it =
+                    topicRouteData.getFilterServerTable().entrySet().iterator();
+            while (it.hasNext()) {
+                Entry<String, List<String>> next = it.next();
+                List<String> value = next.getValue();
+                for (final String fsAddr : value) {
+                    try {
+                        this.mQClientAPIImpl.registerMessageFilterClass(fsAddr, consumerGroup, topic,
+                            className, classCRC, classBody, 5000);
+
+                        log.warn(
+                            "register message class filter to {} OK, ConsumerGroup: {} Topic: {} ClassName: {}",
+                            fsAddr, consumerGroup, topic, className);
+
+                    }
+                    catch (Exception e) {
+                        log.error("uploadFilterClassToAllFilterServer Exception", e);
+                    }
+                }
+            }
+        }
+        else {
+            log.warn(
+                "register message class filter failed, because no filter server, ConsumerGroup: {} Topic: {} ClassName: {}",
+                consumerGroup, topic, className);
+        }
     }
 
 
-    private void uploadFilterClass() {
+    private void uploadFilterClassSource() {
         Iterator<Entry<String, MQConsumerInner>> it = this.consumerTable.entrySet().iterator();
         while (it.hasNext()) {
             Entry<String, MQConsumerInner> next = it.next();
@@ -459,7 +496,12 @@ public class MQClientFactory {
                         final String consumerGroup = consumer.groupName();
                         final String className = sub.getSubString();
                         final String topic = sub.getTopic();
-                        this.uploadFilterClassToAllFilterServer(consumerGroup, className, topic);
+                        try {
+                            this.uploadFilterClassToAllFilterServer(consumerGroup, className, topic);
+                        }
+                        catch (Exception e) {
+                            log.error("uploadFilterClassToAllFilterServer Exception", e);
+                        }
                     }
                 }
             }

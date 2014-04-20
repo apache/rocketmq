@@ -15,6 +15,8 @@
  */
 package com.alibaba.rocketmq.common.filter;
 
+import java.net.URL;
+
 import com.alibaba.rocketmq.common.protocol.heartbeat.SubscriptionData;
 
 
@@ -24,6 +26,17 @@ import com.alibaba.rocketmq.common.protocol.heartbeat.SubscriptionData;
  */
 public class FilterAPI {
     public static final String FilterClassPrefix = "rocketmq.message.filter";
+
+
+    public static String classFile(final String className) {
+        final String javaSource = className + ".java";
+        URL url = FilterAPI.class.getClassLoader().getResource(javaSource);
+        if (url != null) {
+            return url.getFile();
+        }
+
+        return null;
+    }
 
 
     public static boolean isFilterClassMode(final String subString, final String consumerGroup) {
@@ -43,6 +56,10 @@ public class FilterAPI {
         }
         // eg: rocketmq.message.filter.cousumergroup.FilterClassName
         else if (isFilterClassMode(subString, consumerGroup)) {
+            if (null == classFile(subString)) {
+                throw new Exception(String.format("The Filter Java Class Source[%s] not exist in class path",
+                    subString + ".java"));
+            }
             subscriptionData.setClassFilterMode(true);
         }
         else {
