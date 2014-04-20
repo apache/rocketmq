@@ -201,9 +201,6 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                 subscriptionData =
                         FilterAPI.buildSubscriptionData(requestHeader.getConsumerGroup(),
                             requestHeader.getTopic(), requestHeader.getSubscription());
-                if (subscriptionData.isClassFilterMode()) {
-                    subscriptionData.setSubString(SubscriptionData.SUB_ALL);
-                }
             }
             catch (Exception e) {
                 log.warn("parse the consumer's subscription[{}] failed, group: {}",
