@@ -62,8 +62,14 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
         case RequestCode.REGISTER_MESSAGE_FILTER_CLASS:
             return registerMessageFilterClass(ctx, request);
         case RequestCode.PULL_MESSAGE:
+            return pullMessageForward(ctx, request);
         }
 
+        return null;
+    }
+
+
+    private RemotingCommand pullMessageForward(final ChannelHandlerContext ctx, final RemotingCommand request) {
         return null;
     }
 
@@ -76,11 +82,16 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
                     .decodeCommandCustomHeader(RegisterMessageFilterClassRequestHeader.class);
 
         try {
-            this.filtersrvController.getFilterClassManager().registerFilterClass(
-                requestHeader.getConsumerGroup(),//
-                requestHeader.getClassName(),//
-                requestHeader.getClassCRC(), //
-                request.getBody());// Body传输的是Java Source，必须UTF-8编码
+            boolean ok =
+                    this.filtersrvController.getFilterClassManager().registerFilterClass(
+                        requestHeader.getConsumerGroup(),//
+                        requestHeader.getTopic(),//
+                        requestHeader.getClassName(),//
+                        requestHeader.getClassCRC(), //
+                        request.getBody());// Body传输的是Java Source，必须UTF-8编码
+            if (!ok) {
+                throw new Exception("registerFilterClass error");
+            }
         }
         catch (Exception e) {
             response.setCode(ResponseCode.SYSTEM_ERROR);
