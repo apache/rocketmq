@@ -831,7 +831,9 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                 for (final Map.Entry<String, String> entry : sub.entrySet()) {
                     final String topic = entry.getKey();
                     final String subString = entry.getValue();
-                    SubscriptionData subscriptionData = FilterAPI.buildSubscriptionData(topic, subString);
+                    SubscriptionData subscriptionData =
+                            FilterAPI.buildSubscriptionData(this.defaultMQPushConsumer.getConsumerGroup(),//
+                                topic, subString);
                     this.rebalanceImpl.getSubscriptionInner().put(topic, subscriptionData);
                 }
             }
@@ -847,7 +849,8 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                 // 默认订阅消息重试Topic
                 final String retryTopic = MixAll.getRetryTopic(this.defaultMQPushConsumer.getConsumerGroup());
                 SubscriptionData subscriptionData =
-                        FilterAPI.buildSubscriptionData(retryTopic, SubscriptionData.SUB_ALL);
+                        FilterAPI.buildSubscriptionData(this.defaultMQPushConsumer.getConsumerGroup(),//
+                            retryTopic, SubscriptionData.SUB_ALL);
                 this.rebalanceImpl.getSubscriptionInner().put(retryTopic, subscriptionData);
                 break;
             default:
@@ -878,7 +881,9 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
 
     public void subscribe(String topic, String subExpression) throws MQClientException {
         try {
-            SubscriptionData subscriptionData = FilterAPI.buildSubscriptionData(topic, subExpression);
+            SubscriptionData subscriptionData =
+                    FilterAPI.buildSubscriptionData(this.defaultMQPushConsumer.getConsumerGroup(),//
+                        topic, subExpression);
             this.rebalanceImpl.getSubscriptionInner().put(topic, subscriptionData);
             // 发送心跳，将变更的订阅关系注册上去
             if (this.mQClientFactory != null) {

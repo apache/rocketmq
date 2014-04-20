@@ -270,7 +270,8 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
 
         SubscriptionData subscriptionData;
         try {
-            subscriptionData = FilterAPI.buildSubscriptionData(mq.getTopic(), subExpression);
+            subscriptionData = FilterAPI.buildSubscriptionData(this.defaultMQPullConsumer.getConsumerGroup(),//
+                mq.getTopic(), subExpression);
         }
         catch (Exception e) {
             throw new MQClientException("parse subscription error", e);
@@ -302,7 +303,8 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
         if (!this.rebalanceImpl.getSubscriptionInner().containsKey(topic)) {
             try {
                 SubscriptionData subscriptionData =
-                        FilterAPI.buildSubscriptionData(topic, SubscriptionData.SUB_ALL);
+                        FilterAPI.buildSubscriptionData(this.defaultMQPullConsumer.getConsumerGroup(),//
+                            topic, SubscriptionData.SUB_ALL);
                 this.rebalanceImpl.subscriptionInner.putIfAbsent(topic, subscriptionData);
             }
             catch (Exception e) {
@@ -351,7 +353,9 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
 
             final SubscriptionData subscriptionData;
             try {
-                subscriptionData = FilterAPI.buildSubscriptionData(mq.getTopic(), subExpression);
+                subscriptionData =
+                        FilterAPI.buildSubscriptionData(this.defaultMQPullConsumer.getConsumerGroup(),//
+                            mq.getTopic(), subExpression);
             }
             catch (Exception e) {
                 throw new MQClientException("parse subscription error", e);
@@ -540,7 +544,8 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
             if (registerTopics != null) {
                 for (final String topic : registerTopics) {
                     SubscriptionData subscriptionData =
-                            FilterAPI.buildSubscriptionData(topic, SubscriptionData.SUB_ALL);
+                            FilterAPI.buildSubscriptionData(this.defaultMQPullConsumer.getConsumerGroup(),//
+                                topic, SubscriptionData.SUB_ALL);
                     this.rebalanceImpl.getSubscriptionInner().put(topic, subscriptionData);
                 }
             }

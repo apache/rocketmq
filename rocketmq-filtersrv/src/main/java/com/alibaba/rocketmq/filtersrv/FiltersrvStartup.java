@@ -39,7 +39,7 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 
 
 /**
- * Name server 启动入口
+ * Filter server 启动入口
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-5
