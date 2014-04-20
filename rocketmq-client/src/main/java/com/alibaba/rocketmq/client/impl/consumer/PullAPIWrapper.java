@@ -98,7 +98,7 @@ public class PullAPIWrapper {
 
             // 消息再次过滤
             List<MessageExt> msgListFilterAgain = msgList;
-            if (!subscriptionData.getTagsSet().isEmpty()) {
+            if (!subscriptionData.getTagsSet().isEmpty() && !subscriptionData.isClassFilterMode()) {
                 msgListFilterAgain = new ArrayList<MessageExt>(msgList.size());
                 for (MessageExt msg : msgList) {
                     if (msg.getTags() != null) {
