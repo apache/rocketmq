@@ -454,18 +454,22 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
         }
 
         String subExpression = null;
-        if (this.defaultMQPushConsumer.isPostSubscriptionWhenPull()) {
-            SubscriptionData sd =
-                    this.rebalanceImpl.getSubscriptionInner().get(pullRequest.getMessageQueue().getTopic());
-            if (sd != null && !sd.isClassFilterMode()) {
+        boolean classFilter = false;
+        SubscriptionData sd =
+                this.rebalanceImpl.getSubscriptionInner().get(pullRequest.getMessageQueue().getTopic());
+        if (sd != null) {
+            if (this.defaultMQPushConsumer.isPostSubscriptionWhenPull() && !sd.isClassFilterMode()) {
                 subExpression = sd.getSubString();
             }
+
+            classFilter = sd.isClassFilterMode();
         }
 
         int sysFlag = PullSysFlag.buildSysFlag(//
             commitOffsetEnable, // commitOffset
             true, // suspend
-            subExpression != null// subscription
+            subExpression != null,// subscription
+            classFilter // class filter
             );
         try {
             this.pullAPIWrapper.pullKernelImpl(//

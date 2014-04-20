@@ -18,6 +18,7 @@ package com.alibaba.rocketmq.client.impl.consumer;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -38,6 +39,7 @@ import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.common.message.MessageQueue;
 import com.alibaba.rocketmq.common.protocol.header.PullMessageRequestHeader;
 import com.alibaba.rocketmq.common.protocol.heartbeat.SubscriptionData;
+import com.alibaba.rocketmq.common.protocol.route.TopicRouteData;
 import com.alibaba.rocketmq.common.sysflag.PullSysFlag;
 import com.alibaba.rocketmq.remoting.exception.RemotingException;
 
@@ -73,6 +75,43 @@ public class PullAPIWrapper {
         else {
             suggest.set(brokerId);
         }
+    }
+
+    private Random random = new Random(System.currentTimeMillis());
+
+
+    public int randomNum() {
+        int value = random.nextInt();
+        if (value < 0) {
+            value = Math.abs(value);
+            if (value < 0)
+                value = 0;
+        }
+        return value;
+    }
+
+
+    /**
+     * 随机找Filter Server
+     * 
+     * @param brokerAddr
+     * @return
+     * @throws MQClientException
+     */
+    private String computPullFromWhichFilterServer(final String topic, final String brokerAddr)
+            throws MQClientException {
+        ConcurrentHashMap<String, TopicRouteData> topicRouteTable = this.mQClientFactory.getTopicRouteTable();
+        if (topicRouteTable != null) {
+            TopicRouteData topicRouteData = topicRouteTable.get(topic);
+            List<String> list = topicRouteData.getFilterServerTable().get(brokerAddr);
+
+            if (list != null && !list.isEmpty()) {
+                return list.get(randomNum() % list.size());
+            }
+        }
+
+        throw new MQClientException("Find Filter Server Failed, Broker Addr: " + brokerAddr + " topic: "
+                + topic, null);
     }
 
 
@@ -204,8 +243,13 @@ public class PullAPIWrapper {
             requestHeader.setSubscription(subExpression);
             requestHeader.setSubVersion(subVersion);
 
+            String brokerAddr = findBrokerResult.getBrokerAddr();
+            if (PullSysFlag.hasClassFilterFlag(sysFlagInner)) {
+                brokerAddr = computPullFromWhichFilterServer(mq.getTopic(), brokerAddr);
+            }
+
             PullResult pullResult = this.mQClientFactory.getMQClientAPIImpl().pullMessage(//
-                findBrokerResult.getBrokerAddr(),//
+                brokerAddr,//
                 requestHeader,//
                 timeoutMillis,//
                 communicationMode,//

@@ -266,7 +266,7 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
         // 自动订阅
         this.subscriptionAutomatically(mq.getTopic());
 
-        int sysFlag = PullSysFlag.buildSysFlag(false, block, true);
+        int sysFlag = PullSysFlag.buildSysFlag(false, block, true, false);
 
         SubscriptionData subscriptionData;
         try {
@@ -349,7 +349,7 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
         this.subscriptionAutomatically(mq.getTopic());
 
         try {
-            int sysFlag = PullSysFlag.buildSysFlag(false, block, true);
+            int sysFlag = PullSysFlag.buildSysFlag(false, block, true, false);
 
             final SubscriptionData subscriptionData;
             try {

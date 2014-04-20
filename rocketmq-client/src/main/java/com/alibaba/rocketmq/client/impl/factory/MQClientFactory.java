@@ -1291,4 +1291,9 @@ public class MQClientFactory {
     public DefaultMQProducer getDefaultMQProducer() {
         return defaultMQProducer;
     }
+
+
+    public ConcurrentHashMap<String, TopicRouteData> getTopicRouteTable() {
+        return topicRouteTable;
+    }
 }
