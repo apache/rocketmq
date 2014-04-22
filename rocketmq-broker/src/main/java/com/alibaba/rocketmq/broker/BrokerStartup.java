@@ -158,13 +158,19 @@ public class BrokerStartup {
             }
 
             // 检测Name Server地址设置是否正确 IP:PORT
-            if (null != brokerConfig.getNamesrvAddr()) {
+            String namesrvAddr = brokerConfig.getNamesrvAddr();
+            if (null != namesrvAddr) {
                 try {
-                    RemotingUtil.string2SocketAddress(brokerConfig.getNamesrvAddr());
+                    String[] addrArray = namesrvAddr.split(";");
+                    if (addrArray != null) {
+                        for (String addr : addrArray) {
+                            RemotingUtil.string2SocketAddress(addr);
+                        }
+                    }
                 }
                 catch (Exception e) {
                     System.out
-                        .printf("The Name Server Address[%s] is illegal, please set it as this, 127.0.0.1:9876\n");
+                        .printf("The Name Server Address[%s] is illegal, please set it as this, 127.0.0.1:9876;192.168.0.1:9876\n");
                     System.exit(-3);
                 }
             }
