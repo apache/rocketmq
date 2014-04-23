@@ -17,7 +17,6 @@ package com.alibaba.rocketmq.store;
 
 import java.util.HashMap;
 
-import com.alibaba.rocketmq.common.hook.FilterCheckHook;
 import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.common.protocol.heartbeat.SubscriptionData;
 
@@ -64,7 +63,7 @@ public interface MessageStore {
      * 读取消息，如果types为null，则不做过滤
      */
     public GetMessageResult getMessage(final String topic, final int queueId, final long offset,
-            final int maxMsgNums, final SubscriptionData subscriptionData, final boolean isUnitMode);
+            final int maxMsgNums, final SubscriptionData subscriptionData);
 
 
     /**
@@ -172,7 +171,4 @@ public interface MessageStore {
 
 
     public long now();
-
-
-    public void registerFilterCheckHook(FilterCheckHook filterMessageHook);
 }

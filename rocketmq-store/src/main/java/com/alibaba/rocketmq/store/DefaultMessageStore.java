@@ -17,7 +17,6 @@ package com.alibaba.rocketmq.store;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -31,7 +30,6 @@ import com.alibaba.rocketmq.common.ServiceThread;
 import com.alibaba.rocketmq.common.SystemClock;
 import com.alibaba.rocketmq.common.UtilAll;
 import com.alibaba.rocketmq.common.constant.LoggerName;
-import com.alibaba.rocketmq.common.hook.FilterCheckHook;
 import com.alibaba.rocketmq.common.message.MessageDecoder;
 import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.common.protocol.heartbeat.SubscriptionData;
@@ -366,7 +364,7 @@ public class DefaultMessageStore implements MessageStore {
 
 
     public GetMessageResult getMessage(final String topic, final int queueId, final long offset,
-            final int maxMsgNums, final SubscriptionData subscriptionData, final boolean isUnitMode) {
+            final int maxMsgNums, final SubscriptionData subscriptionData) {
         if (this.shutdown) {
             log.warn("message store has shutdown, so getMessage is forbidden");
             return null;
@@ -448,29 +446,11 @@ public class DefaultMessageStore implements MessageStore {
                                 SelectMapedBufferResult selectResult =
                                         this.commitLog.getMessage(offsetPy, sizePy);
                                 if (selectResult != null) {
-                                    // todo:执行消息过滤的 FilterCheckHook
-                                    if (this.hasHook()) {
-                                        ByteBuffer byteBuffer = selectResult.getByteBuffer();
-                                        if (this.executeHook(isUnitMode, byteBuffer)) {
-                                            if (getResult.getBufferTotalSize() == 0) {
-                                                status = GetMessageStatus.NO_MATCHED_MESSAGE;
-                                            }
-                                        }
-                                        else {
-                                            this.storeStatsService.getGetMessageTransferedMsgCount()
-                                                .incrementAndGet();
-                                            getResult.addMessage(selectResult);
-                                            status = GetMessageStatus.FOUND;
-                                            nextPhyFileStartOffset = Long.MIN_VALUE;
-                                        }
-                                    }
-                                    else {
-                                        this.storeStatsService.getGetMessageTransferedMsgCount()
-                                            .incrementAndGet();
-                                        getResult.addMessage(selectResult);
-                                        status = GetMessageStatus.FOUND;
-                                        nextPhyFileStartOffset = Long.MIN_VALUE;
-                                    }
+                                    this.storeStatsService.getGetMessageTransferedMsgCount()
+                                        .incrementAndGet();
+                                    getResult.addMessage(selectResult);
+                                    status = GetMessageStatus.FOUND;
+                                    nextPhyFileStartOffset = Long.MIN_VALUE;
                                 }
                                 else {
                                     if (getResult.getBufferTotalSize() == 0) {
@@ -799,7 +779,7 @@ public class DefaultMessageStore implements MessageStore {
         SelectMapedBufferResult sbr = this.commitLog.getMessage(commitLogOffset, size);
         if (null != sbr) {
             try {
-                return MessageDecoder.decode(sbr.getByteBuffer(), true, false);
+	            return MessageDecoder.decode(sbr.getByteBuffer(), true, false);
             }
             finally {
                 sbr.release();
@@ -1773,31 +1753,5 @@ public class DefaultMessageStore implements MessageStore {
     @Override
     public long getMinPhyOffset() {
         return this.commitLog.getMinOffset();
-    }
-
-    /**
-     * 对消息过滤进行确认 FilterCheckHook
-     */
-    private FilterCheckHook filterMessageHook;
-
-
-    public boolean hasHook() {
-        return filterMessageHook != null;
-    }
-
-
-    public void registerFilterCheckHook(FilterCheckHook filterMessageHook) {
-        this.filterMessageHook = filterMessageHook;
-    }
-
-
-    public boolean executeHook(final boolean isUnitMode, final ByteBuffer byteBuffer) {
-        try {
-            return filterMessageHook.isFilterMatched(isUnitMode, byteBuffer);
-        }
-        catch (Throwable e) {
-            log.error("execute hook error. hookName={}", filterMessageHook.hookName());
-        }
-        return false;
     }
 }
