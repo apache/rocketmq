@@ -15,6 +15,7 @@
  */
 package com.alibaba.rocketmq.client.impl.consumer;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Executors;
@@ -268,7 +269,7 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
                                     break;
                                 }
 
-                                status = messageListener.consumeMessage(msgs, context);
+                                status = messageListener.consumeMessage(Collections.unmodifiableList(msgs), context);
                             }
                             catch (Throwable e) {
                                 log.warn("consumeMessage exception: {} Group: {} Msgs: {} MQ: {}",//
