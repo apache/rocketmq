@@ -85,7 +85,7 @@ public class MessageDecoder {
 
 
     public static MessageExt decode(java.nio.ByteBuffer byteBuffer) {
-        return decode(byteBuffer, true);
+        return decode(byteBuffer, true, true);
     }
 
 
@@ -93,6 +93,12 @@ public class MessageDecoder {
      * 客户端使用，SLAVE也会使用
      */
     public static MessageExt decode(java.nio.ByteBuffer byteBuffer, final boolean readBody) {
+        return decode(byteBuffer, readBody, true);
+    }
+
+
+    public static MessageExt decode(java.nio.ByteBuffer byteBuffer, final boolean readBody,
+            final boolean deCompressBody) {
         try {
             MessageExt msgExt = new MessageExt();
 
@@ -163,7 +169,8 @@ public class MessageDecoder {
                     byteBuffer.get(body);
 
                     // uncompress body
-                    if ((sysFlag & MessageSysFlag.CompressedFlag) == MessageSysFlag.CompressedFlag) {
+                    if (deCompressBody
+                            && (sysFlag & MessageSysFlag.CompressedFlag) == MessageSysFlag.CompressedFlag) {
                         body = UtilAll.uncompress(body);
                     }
 
