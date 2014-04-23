@@ -16,6 +16,7 @@
 package com.alibaba.rocketmq.client.impl.consumer;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Executors;
@@ -165,7 +166,7 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
 
             try {
                 this.resetRetryTopic(msgs);
-                status = listener.consumeMessage(msgs, context);
+                status = listener.consumeMessage(Collections.unmodifiableList(msgs), context);
             }
             catch (Throwable e) {
                 log.warn("consumeMessage exception: {} Group: {} Msgs: {} MQ: {}",//
