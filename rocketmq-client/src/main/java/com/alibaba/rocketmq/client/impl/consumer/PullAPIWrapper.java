@@ -209,7 +209,6 @@ public class PullAPIWrapper {
             requestHeader.setSuspendTimeoutMillis(brokerSuspendMaxTimeMillis);
             requestHeader.setSubscription(subExpression);
             requestHeader.setSubVersion(subVersion);
-            requestHeader.setUnitMode(this.isUnitMode);
 
             PullResult pullResult = this.mQClientFactory.getMQClientAPIImpl().pullMessage(//
                 findBrokerResult.getBrokerAddr(),//

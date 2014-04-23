@@ -95,7 +95,7 @@ public class DefaultMessageStoreTest {
         // 开始读文件
         for (long i = 0; i < totalMsgs; i++) {
             try {
-                GetMessageResult result = master.getMessage("TOPIC_A", 0, i, 1024 * 1024, null, false);
+                GetMessageResult result = master.getMessage("TOPIC_A", 0, i, 1024 * 1024, null);
                 if (result == null) {
                     System.out.println("result == null " + i);
                 }
@@ -150,7 +150,7 @@ public class DefaultMessageStoreTest {
         // 开始读文件
         for (long i = 0; i < totalMsgs; i++) {
             try {
-                GetMessageResult result = master.getMessage("TOPIC_A", 0, i, 1024 * 1024, null, false);
+                GetMessageResult result = master.getMessage("TOPIC_A", 0, i, 1024 * 1024, null);
                 if (result == null) {
                     System.out.println("result == null " + i);
                 }

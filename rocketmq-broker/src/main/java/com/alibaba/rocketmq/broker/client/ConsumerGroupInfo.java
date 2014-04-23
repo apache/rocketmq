@@ -51,16 +51,14 @@ public class ConsumerGroupInfo {
     private volatile MessageModel messageModel;
     private volatile ConsumeFromWhere consumeFromWhere;
     private volatile long lastUpdateTimestamp = System.currentTimeMillis();
-    private final boolean isUnitMode;
 
 
     public ConsumerGroupInfo(String groupName, ConsumeType consumeType, MessageModel messageModel,
-            ConsumeFromWhere consumeFromWhere, boolean isUnitMode) {
+            ConsumeFromWhere consumeFromWhere) {
         this.groupName = groupName;
         this.consumeType = consumeType;
         this.messageModel = messageModel;
         this.consumeFromWhere = consumeFromWhere;
-        this.isUnitMode = isUnitMode;
     }
 
 
@@ -99,7 +97,7 @@ public class ConsumerGroupInfo {
 
 
     public void unregisterChannel(final ClientChannelInfo clientChannelInfo) {
-        ClientChannelInfo old = this.channelInfoTable.remove(clientChannelInfo.getChannel());
+        ClientChannelInfo old = this.channelInfoTable.remove(clientChannelInfo.getChannel().hashCode());
         if (old != null) {
             log.info("unregister a consumer[{}] from consumerGroupInfo {}", this.groupName, old.toString());
         }
@@ -190,11 +188,11 @@ public class ConsumerGroupInfo {
             }
 
             if (!exist) {
-                log.warn("subscription changed, group[{}] remove topic[{} {}], subList[{}]", //
+                log.warn("subscription changed, group: {} remove topic {} {}", //
                     this.groupName,//
                     oldTopic,//
-                    next.getValue().toString(),//
-                    subList);
+                    next.getValue().toString()//
+                );
 
                 it.remove();
                 updated = true;
@@ -254,10 +252,5 @@ public class ConsumerGroupInfo {
 
     public void setConsumeFromWhere(ConsumeFromWhere consumeFromWhere) {
         this.consumeFromWhere = consumeFromWhere;
-    }
-
-
-    public boolean isUnitMode() {
-        return isUnitMode;
     }
 }

@@ -24,7 +24,8 @@ import com.alibaba.rocketmq.common.protocol.heartbeat.MessageModel;
  */
 public class UnitNormalTest {
     private static String[] topics = new String[] { "qatest_TopicTest", "qatest_TopicTest2",
-                                                   "qatest_TopicTest3_virtual_order" };
+                                                   "qatest_TopicTest3_virtual_order",
+                                                   "qatest_TopicTest3_virtual_order2" };
     private static String[] nsAddrs = new String[] { "10.232.26.122:9876", "10.232.25.81:9876" };
     private static String[] tags = new String[] { "TagA", "TagB", "TagC", "TagD", "TagE" };
     private static String consumerGroup = "qatest_consumer";

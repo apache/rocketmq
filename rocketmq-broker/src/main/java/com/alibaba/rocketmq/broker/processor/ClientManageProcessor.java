@@ -180,8 +180,8 @@ public class ClientManageProcessor implements NettyRequestProcessor {
                 data.getConsumeType(),//
                 data.getMessageModel(),//
                 data.getConsumeFromWhere(),//
-                data.getSubscriptionDataSet(),//
-                data.isUnitMode());
+                data.getSubscriptionDataSet()//
+                );
 
             if (changed) {
                 log.info("registerConsumer info changed {} {}",//

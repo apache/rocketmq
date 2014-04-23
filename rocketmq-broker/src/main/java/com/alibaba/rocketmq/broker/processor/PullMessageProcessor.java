@@ -15,12 +15,6 @@
  */
 package com.alibaba.rocketmq.broker.processor;
 
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelFutureListener;
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.FileRegion;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,6 +41,7 @@ import com.alibaba.rocketmq.remoting.netty.NettyRequestProcessor;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 import com.alibaba.rocketmq.store.GetMessageResult;
 import com.alibaba.rocketmq.store.config.BrokerRole;
+import io.netty.channel.*;
 
 
 /**
@@ -196,13 +191,11 @@ public class PullMessageProcessor implements NettyRequestProcessor {
 
         // 订阅关系处理
         SubscriptionData subscriptionData = null;
-        boolean isUnitMode = false;
         if (hasSubscriptionFlag) {
             try {
                 subscriptionData =
                         FilterAPI.buildSubscriptionData(requestHeader.getTopic(),
-                            requestHeader.getSubscription());
-                isUnitMode = requestHeader.isUnitMode();
+		                        requestHeader.getSubscription());
             }
             catch (Exception e) {
                 log.warn("parse the consumer's subscription[{}] failed, group: {}",
@@ -217,7 +210,6 @@ public class PullMessageProcessor implements NettyRequestProcessor {
             ConsumerGroupInfo consumerGroupInfo =
                     this.brokerController.getConsumerManager().getConsumerGroupInfo(
                         requestHeader.getConsumerGroup());
-            isUnitMode = consumerGroupInfo.isUnitMode();
             if (null == consumerGroupInfo) {
                 log.warn("the consumer's group info not exist, group: {}", requestHeader.getConsumerGroup());
                 response.setCode(ResponseCode.SUBSCRIPTION_NOT_EXIST);
@@ -256,7 +248,7 @@ public class PullMessageProcessor implements NettyRequestProcessor {
         final GetMessageResult getMessageResult =
                 this.brokerController.getMessageStore().getMessage(requestHeader.getTopic(),
                     requestHeader.getQueueId(), requestHeader.getQueueOffset(),
-                    requestHeader.getMaxMsgNums(), subscriptionData, isUnitMode);
+                    requestHeader.getMaxMsgNums(), subscriptionData);
 
         if (getMessageResult != null) {
             if (getMessageResult.getBufferTotalSize() > 0) {

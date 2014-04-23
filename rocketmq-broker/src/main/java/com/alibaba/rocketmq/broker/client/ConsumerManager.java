@@ -86,11 +86,10 @@ public class ConsumerManager {
      */
     public boolean registerConsumer(final String group, final ClientChannelInfo clientChannelInfo,
             ConsumeType consumeType, MessageModel messageModel, ConsumeFromWhere consumeFromWhere,
-            final Set<SubscriptionData> subList, final boolean isUnitMode) {
+            final Set<SubscriptionData> subList) {
         ConsumerGroupInfo consumerGroupInfo = this.consumerTable.get(group);
         if (null == consumerGroupInfo) {
-            ConsumerGroupInfo tmp =
-                    new ConsumerGroupInfo(group, consumeType, messageModel, consumeFromWhere, isUnitMode);
+            ConsumerGroupInfo tmp = new ConsumerGroupInfo(group, consumeType, messageModel, consumeFromWhere);
             ConsumerGroupInfo prev = this.consumerTable.putIfAbsent(group, tmp);
             consumerGroupInfo = prev != null ? prev : tmp;
         }
