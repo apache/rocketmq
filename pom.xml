@@ -24,7 +24,8 @@
     <packaging>pom</packaging>
     <name>rocketmq-all ${project.version}</name>
     <url>https://github.com/alibaba/rocketmq</url>
-
+    <description>https://github.com/alibaba/RocketMQ/blob/develop/README.md</description>
+    
     <modules>
         <module>rocketmq-client</module>
         <module>rocketmq-common</module>
@@ -52,9 +53,9 @@
             <timezone>8</timezone>
         </developer>
         <developer>
-            <name>lansheng</name>
+            <name>allenzhu</name>
             <url>https://github.com/allenzhu</url>
-            <email>lansheng.zj@alibaba-inc.com</email>
+            <email>allen.jie.zhu@gmail.com</email>
             <timezone>8</timezone>
         </developer>
     </developers>
@@ -76,7 +77,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <!--maven properties -->
         <maven.test.skip>true</maven.test.skip>
-        <maven.jdoc.skip>true</maven.jdoc.skip>
+        <maven.jdoc.skip>false</maven.jdoc.skip>
         <downloadSources>true</downloadSources>
         <!-- compiler settings properties -->
         <java_source_version>1.6</java_source_version>
@@ -112,6 +113,7 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>2.3</version>
                 <configuration>
+                    <skip>${maven.test.skip}</skip>
                     <argLine>-Xms512m -Xmx1024m</argLine>
                     <forkMode>once</forkMode>
                     <includes>
@@ -199,6 +201,35 @@
             </resource>
         </resources>
     </build>
+    <profiles>
+        <profile>
+            <id>release-sign-artifacts</id>
+            <activation>
+                <property>
+                    <name>performRelease</name>
+                    <value>true</value>
+                </property>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-gpg-plugin</artifactId>
+                        <version>1.1</version>
+                        <executions>
+                            <execution>
+                                <id>sign-artifacts</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>sign</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 
     <dependencyManagement>
         <dependencies>
