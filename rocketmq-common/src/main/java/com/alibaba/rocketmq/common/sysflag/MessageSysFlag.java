@@ -43,4 +43,9 @@ public class MessageSysFlag {
     public static int resetTransactionValue(final int flag, final int type) {
         return (flag & (~TransactionRollbackType)) | type;
     }
+
+
+    public static int clearCompressedFlag(final int flag) {
+        return flag & (~CompressedFlag);
+    }
 }

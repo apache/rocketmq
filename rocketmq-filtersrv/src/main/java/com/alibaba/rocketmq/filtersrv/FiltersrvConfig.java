@@ -1,19 +1,19 @@
 package com.alibaba.rocketmq.filtersrv;
 
+import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.remoting.common.RemotingUtil;
 
 
 public class FiltersrvConfig {
-    // private String rocketmqHome =
-    // System.getProperty(MixAll.ROCKETMQ_HOME_PROPERTY,
-    // System.getenv(MixAll.ROCKETMQ_HOME_ENV));
-
-    private String rocketmqHome = "/Users/vive/Desktop/share/work/gitlab/rocketmq";
+    private String rocketmqHome = System.getProperty(MixAll.ROCKETMQ_HOME_PROPERTY,
+        System.getenv(MixAll.ROCKETMQ_HOME_ENV));
 
     // 连接到哪个Broker
     private String connectWhichBroker = "127.0.0.1:10911";
     // Filter Server对外服务的IP
     private String filterServerIP = RemotingUtil.getLocalAddress();
+    private int compressMsgBodyOverHowmuch = 1024 * 4;
+    private int zipCompressLevel = 5;
 
 
     public String getRocketmqHome() {
@@ -43,6 +43,26 @@ public class FiltersrvConfig {
 
     public void setFilterServerIP(String filterServerIP) {
         this.filterServerIP = filterServerIP;
+    }
+
+
+    public int getCompressMsgBodyOverHowmuch() {
+        return compressMsgBodyOverHowmuch;
+    }
+
+
+    public void setCompressMsgBodyOverHowmuch(int compressMsgBodyOverHowmuch) {
+        this.compressMsgBodyOverHowmuch = compressMsgBodyOverHowmuch;
+    }
+
+
+    public int getZipCompressLevel() {
+        return zipCompressLevel;
+    }
+
+
+    public void setZipCompressLevel(int zipCompressLevel) {
+        this.zipCompressLevel = zipCompressLevel;
     }
 
 }
