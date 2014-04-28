@@ -111,6 +111,12 @@ public class FiltersrvController {
             }
         }, 3, 10, TimeUnit.SECONDS);
 
+        // 初始化PullConsumer参数，要比默认参数小。
+        this.defaultMQPullConsumer.setBrokerSuspendMaxTimeMillis(this.defaultMQPullConsumer
+            .getBrokerSuspendMaxTimeMillis() - 1000);
+        this.defaultMQPullConsumer.setConsumerTimeoutMillisWhenSuspend(this.defaultMQPullConsumer
+            .getConsumerTimeoutMillisWhenSuspend() - 1000);
+
         return true;
     }
 
@@ -209,5 +215,20 @@ public class FiltersrvController {
 
     public FilterClassManager getFilterClassManager() {
         return filterClassManager;
+    }
+
+
+    public DefaultMQPullConsumer getDefaultMQPullConsumer() {
+        return defaultMQPullConsumer;
+    }
+
+
+    public String getBrokerName() {
+        return brokerName;
+    }
+
+
+    public void setBrokerName(String brokerName) {
+        this.brokerName = brokerName;
     }
 }

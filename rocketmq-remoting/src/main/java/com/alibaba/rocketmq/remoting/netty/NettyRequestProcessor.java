@@ -17,7 +17,6 @@ package com.alibaba.rocketmq.remoting.netty;
 
 import io.netty.channel.ChannelHandlerContext;
 
-import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 
 
@@ -29,5 +28,5 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
  */
 public interface NettyRequestProcessor {
     public RemotingCommand processRequest(ChannelHandlerContext ctx, RemotingCommand request)
-            throws RemotingCommandException;
+            throws Exception;
 }

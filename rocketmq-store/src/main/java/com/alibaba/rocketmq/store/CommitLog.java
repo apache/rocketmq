@@ -49,7 +49,7 @@ import com.alibaba.rocketmq.store.schedule.ScheduleMessageService;
 public class CommitLog {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.StoreLoggerName);
     // 每个消息对应的MAGIC CODE daa320a7
-    private final static int MessageMagicCode = 0xAABBCCDD ^ 1880681586 + 8;
+    public final static int MessageMagicCode = 0xAABBCCDD ^ 1880681586 + 8;
     // 文件末尾空洞对应的MAGIC CODE cbd43194
     private final static int BlankMagicCode = 0xBBCCDDEE ^ 1880681586 + 8;
     // 存储消息的队列
