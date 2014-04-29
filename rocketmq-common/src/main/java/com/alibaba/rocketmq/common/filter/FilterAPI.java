@@ -39,9 +39,22 @@ public class FilterAPI {
     }
 
 
-    public static boolean isFilterClassMode(final String subString, final String consumerGroup) {
-        final String prefix = FilterClassPrefix + "." + consumerGroup;
-        return subString.startsWith(prefix);
+    public static boolean isFilterClassMode(final String subString) {
+        try {
+            if (subString.contains(".")) {
+                Class<?> loadClass = FilterAPI.class.getClassLoader().loadClass(subString);
+                Class<?>[] interfaces = loadClass.getInterfaces();
+                for (int i = 0; i < interfaces.length; i++) {
+                    if (interfaces[i].getCanonicalName().equals(MessageFilter.class.getCanonicalName())) {
+                        return true;
+                    }
+                }
+            }
+        }
+        catch (ClassNotFoundException e) {
+        }
+
+        return false;
     }
 
 
@@ -54,12 +67,12 @@ public class FilterAPI {
         if (null == subString || subString.equals(SubscriptionData.SUB_ALL) || subString.length() == 0) {
             subscriptionData.setSubString(SubscriptionData.SUB_ALL);
         }
-        // eg: rocketmq.message.filter.cousumergroup.FilterClassName
-        else if (isFilterClassMode(subString, consumerGroup)) {
-            if (null == classFile(subString)) {
-                throw new Exception(String.format("The Filter Java Class Source[%s] not exist in class path",
-                    subString + ".java"));
-            }
+        // eg: com.taobao.abc.FilterClassName
+        else if (isFilterClassMode(subString)) {
+//            if (null == classFile(subString)) {
+//                throw new Exception(String.format("The Filter Java Class Source[%s] not exist in class path",
+//                    subString + ".java"));
+//            }
             subscriptionData.setClassFilterMode(true);
         }
         else {
