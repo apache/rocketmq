@@ -18,6 +18,7 @@ package com.alibaba.rocketmq.client.impl.consumer;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -43,6 +44,7 @@ import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.common.message.MessageQueue;
 import com.alibaba.rocketmq.common.protocol.header.PullMessageRequestHeader;
 import com.alibaba.rocketmq.common.protocol.heartbeat.SubscriptionData;
+import com.alibaba.rocketmq.common.protocol.route.TopicRouteData;
 import com.alibaba.rocketmq.common.sysflag.PullSysFlag;
 import com.alibaba.rocketmq.remoting.exception.RemotingException;
 
@@ -62,6 +64,9 @@ public class PullAPIWrapper {
     private final String consumerGroup;
     private final boolean isUnitMode;
 
+    private volatile boolean connectBrokerByUser = false;
+    private volatile long defaultBrokerId = MixAll.MASTER_ID;
+
 
     public PullAPIWrapper(MQClientFactory mQClientFactory, String consumerGroup, boolean isUnitMode) {
         this.mQClientFactory = mQClientFactory;
@@ -78,6 +83,43 @@ public class PullAPIWrapper {
         else {
             suggest.set(brokerId);
         }
+    }
+
+    private Random random = new Random(System.currentTimeMillis());
+
+
+    public int randomNum() {
+        int value = random.nextInt();
+        if (value < 0) {
+            value = Math.abs(value);
+            if (value < 0)
+                value = 0;
+        }
+        return value;
+    }
+
+
+    /**
+     * 随机找Filter Server
+     * 
+     * @param brokerAddr
+     * @return
+     * @throws MQClientException
+     */
+    private String computPullFromWhichFilterServer(final String topic, final String brokerAddr)
+            throws MQClientException {
+        ConcurrentHashMap<String, TopicRouteData> topicRouteTable = this.mQClientFactory.getTopicRouteTable();
+        if (topicRouteTable != null) {
+            TopicRouteData topicRouteData = topicRouteTable.get(topic);
+            List<String> list = topicRouteData.getFilterServerTable().get(brokerAddr);
+
+            if (list != null && !list.isEmpty()) {
+                return list.get(randomNum() % list.size());
+            }
+        }
+
+        throw new MQClientException("Find Filter Server Failed, Broker Addr: " + brokerAddr + " topic: "
+                + topic, null);
     }
 
 
@@ -101,7 +143,7 @@ public class PullAPIWrapper {
 
             // 消息再次过滤
             List<MessageExt> msgListFilterAgain = msgList;
-            if (!subscriptionData.getTagsSet().isEmpty()) {
+            if (!subscriptionData.getTagsSet().isEmpty() && !subscriptionData.isClassFilterMode()) {
                 msgListFilterAgain = new ArrayList<MessageExt>(msgList.size());
                 for (MessageExt msg : msgList) {
                     if (msg.getTags() != null) {
@@ -157,6 +199,10 @@ public class PullAPIWrapper {
      * 每个队列都应该有相应的变量来保存从哪个服务器拉
      */
     public long recalculatePullFromWhichNode(final MessageQueue mq) {
+        if (this.isConnectBrokerByUser()) {
+            return this.defaultBrokerId;
+        }
+
         AtomicLong suggest = this.pullFromWhichNodeTable.get(mq);
         if (suggest != null) {
             return suggest.get();
@@ -210,8 +256,13 @@ public class PullAPIWrapper {
             requestHeader.setSubscription(subExpression);
             requestHeader.setSubVersion(subVersion);
 
+            String brokerAddr = findBrokerResult.getBrokerAddr();
+            if (PullSysFlag.hasClassFilterFlag(sysFlagInner)) {
+                brokerAddr = computPullFromWhichFilterServer(mq.getTopic(), brokerAddr);
+            }
+
             PullResult pullResult = this.mQClientFactory.getMQClientAPIImpl().pullMessage(//
-                findBrokerResult.getBrokerAddr(),//
+                brokerAddr,//
                 requestHeader,//
                 timeoutMillis,//
                 communicationMode,//
@@ -223,6 +274,7 @@ public class PullAPIWrapper {
         throw new MQClientException("The broker[" + mq.getBrokerName() + "] not exist", null);
     }
 
+ 
     /**
      * 从服务端拉消息之后，会执行 FilterMessageHook
      */
@@ -250,5 +302,25 @@ public class PullAPIWrapper {
                 }
             }
         }
+    }
+
+    public long getDefaultBrokerId() {
+        return defaultBrokerId;
+    }
+
+
+    public void setDefaultBrokerId(long defaultBrokerId) {
+        this.defaultBrokerId = defaultBrokerId;
+    }
+
+
+    public boolean isConnectBrokerByUser() {
+        return connectBrokerByUser;
+    }
+
+
+    public void setConnectBrokerByUser(boolean connectBrokerByUser) {
+        this.connectBrokerByUser = connectBrokerByUser;
+ 
     }
 }

@@ -18,6 +18,7 @@ package com.alibaba.rocketmq.remoting.netty;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelDuplexHandler;
+import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
@@ -74,6 +75,9 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
     private DefaultEventExecutorGroup defaultEventExecutorGroup;
 
     private RPCHook rpcHook;
+
+    // 本地server绑定的端口
+    private int port = 0;
 
 
     public NettyRemotingServer(final NettyServerConfig nettyServerConfig) {
@@ -145,7 +149,9 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
             });
 
         try {
-            this.serverBootstrap.bind().sync();
+            ChannelFuture sync = this.serverBootstrap.bind().sync();
+            InetSocketAddress addr = (InetSocketAddress) sync.channel().localAddress();
+            this.port = addr.getPort();
         }
         catch (InterruptedException e1) {
             throw new RuntimeException("this.serverBootstrap.bind().sync() InterruptedException", e1);
@@ -359,5 +365,11 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
     @Override
     public RPCHook getRPCHook() {
         return this.rpcHook;
+    }
+
+
+    @Override
+    public int localListenPort() {
+        return this.port;
     }
 }

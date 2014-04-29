@@ -276,11 +276,12 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
         // 自动订阅
         this.subscriptionAutomatically(mq.getTopic());
 
-        int sysFlag = PullSysFlag.buildSysFlag(false, block, true);
+        int sysFlag = PullSysFlag.buildSysFlag(false, block, true, false);
 
         SubscriptionData subscriptionData;
         try {
-            subscriptionData = FilterAPI.buildSubscriptionData(mq.getTopic(), subExpression);
+            subscriptionData = FilterAPI.buildSubscriptionData(this.defaultMQPullConsumer.getConsumerGroup(),//
+                mq.getTopic(), subExpression);
         }
         catch (Exception e) {
             throw new MQClientException("parse subscription error", e);
@@ -312,7 +313,8 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
         if (!this.rebalanceImpl.getSubscriptionInner().containsKey(topic)) {
             try {
                 SubscriptionData subscriptionData =
-                        FilterAPI.buildSubscriptionData(topic, SubscriptionData.SUB_ALL);
+                        FilterAPI.buildSubscriptionData(this.defaultMQPullConsumer.getConsumerGroup(),//
+                            topic, SubscriptionData.SUB_ALL);
                 this.rebalanceImpl.subscriptionInner.putIfAbsent(topic, subscriptionData);
             }
             catch (Exception e) {
@@ -357,11 +359,13 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
         this.subscriptionAutomatically(mq.getTopic());
 
         try {
-            int sysFlag = PullSysFlag.buildSysFlag(false, block, true);
+            int sysFlag = PullSysFlag.buildSysFlag(false, block, true, false);
 
             final SubscriptionData subscriptionData;
             try {
-                subscriptionData = FilterAPI.buildSubscriptionData(mq.getTopic(), subExpression);
+                subscriptionData =
+                        FilterAPI.buildSubscriptionData(this.defaultMQPullConsumer.getConsumerGroup(),//
+                            mq.getTopic(), subExpression);
             }
             catch (Exception e) {
                 throw new MQClientException("parse subscription error", e);
@@ -552,7 +556,8 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
             if (registerTopics != null) {
                 for (final String topic : registerTopics) {
                     SubscriptionData subscriptionData =
-                            FilterAPI.buildSubscriptionData(topic, SubscriptionData.SUB_ALL);
+                            FilterAPI.buildSubscriptionData(this.defaultMQPullConsumer.getConsumerGroup(),//
+                                topic, SubscriptionData.SUB_ALL);
                     this.rebalanceImpl.getSubscriptionInner().put(topic, subscriptionData);
                 }
             }
@@ -633,5 +638,15 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
 
     public void setOffsetStore(OffsetStore offsetStore) {
         this.offsetStore = offsetStore;
+    }
+
+
+    public PullAPIWrapper getPullAPIWrapper() {
+        return pullAPIWrapper;
+    }
+
+
+    public void setPullAPIWrapper(PullAPIWrapper pullAPIWrapper) {
+        this.pullAPIWrapper = pullAPIWrapper;
     }
 }

@@ -25,7 +25,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.common.namesrv.NamesrvConfig;
 import com.alibaba.rocketmq.namesrv.kvconfig.KVConfigManager;
@@ -82,9 +81,6 @@ public class NamesrvController {
 
 
     public boolean initialize() {
-        // 打印服务器配置参数
-        MixAll.printObjectProperties(log, this.namesrvConfig);
-
         // 加载KV配置
         this.kvConfigManager.load();
 

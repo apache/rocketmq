@@ -38,6 +38,7 @@ import com.alibaba.rocketmq.broker.client.ProducerManager;
 import com.alibaba.rocketmq.broker.client.net.Broker2Client;
 import com.alibaba.rocketmq.broker.client.rebalance.RebalanceLockManager;
 import com.alibaba.rocketmq.broker.digestlog.DigestLogManager;
+import com.alibaba.rocketmq.broker.filtersrv.FilterServerManager;
 import com.alibaba.rocketmq.broker.longpolling.PullRequestHoldService;
 import com.alibaba.rocketmq.broker.offset.ConsumerOffsetManager;
 import com.alibaba.rocketmq.broker.out.BrokerOuterAPI;
@@ -142,6 +143,9 @@ public class BrokerController {
     // 对消息读取进行流控
     private final BlockingQueue<Runnable> pullThreadPoolQueue;
 
+    // FilterServer管理
+    private final FilterServerManager filterServerManager = new FilterServerManager();
+
 
     public BrokerController(//
             final BrokerConfig brokerConfig, //
@@ -184,11 +188,6 @@ public class BrokerController {
 
     public boolean initialize() {
         boolean result = true;
-
-        // 打印服务器配置参数
-        MixAll.printObjectProperties(log, this.brokerConfig);
-        MixAll.printObjectProperties(log, this.nettyServerConfig);
-        MixAll.printObjectProperties(log, this.messageStoreConfig);
 
         // 加载Topic配置
         result = result && this.topicConfigManager.load();
@@ -296,6 +295,19 @@ public class BrokerController {
                     }
                 }
             }, 1000 * 10, this.brokerConfig.getFlushConsumerOffsetInterval(), TimeUnit.MILLISECONDS);
+
+            // 定时扫描过期的FilterServer
+            this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        BrokerController.this.filterServerManager.scanExpiredFilterServer();
+                    }
+                    catch (Exception e) {
+                        log.error("", e);
+                    }
+                }
+            }, 1000 * 10, FilterServerManager.FilterServerMaxIdleTimeMills, TimeUnit.MILLISECONDS);
 
             // 定时打印各个消费组的消费速度
             this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
@@ -609,7 +621,10 @@ public class BrokerController {
             this.getBrokerAddr(), //
             this.brokerConfig.getBrokerName(), //
             this.brokerConfig.getBrokerId(), //
-            this.getHAServerAddr(), topicConfigWrapper);
+            this.getHAServerAddr(), //
+            topicConfigWrapper,//
+            this.filterServerManager.buildNewFilterServerList()//
+            );
 
         if (registerBrokerResult != null) {
             if (this.updateMasterHAServerAddrPeriodically && registerBrokerResult.getHaServerAddr() != null) {
@@ -741,6 +756,11 @@ public class BrokerController {
 
     public BlockingQueue<Runnable> getSendThreadPoolQueue() {
         return sendThreadPoolQueue;
+    }
+
+
+    public FilterServerManager getFilterServerManager() {
+        return filterServerManager;
     }
 
 }

@@ -460,18 +460,22 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
         }
 
         String subExpression = null;
-        if (this.defaultMQPushConsumer.isPostSubscriptionWhenPull()) {
-            SubscriptionData sd =
-                    this.rebalanceImpl.getSubscriptionInner().get(pullRequest.getMessageQueue().getTopic());
-            if (sd != null) {
+        boolean classFilter = false;
+        SubscriptionData sd =
+                this.rebalanceImpl.getSubscriptionInner().get(pullRequest.getMessageQueue().getTopic());
+        if (sd != null) {
+            if (this.defaultMQPushConsumer.isPostSubscriptionWhenPull() && !sd.isClassFilterMode()) {
                 subExpression = sd.getSubString();
             }
+
+            classFilter = sd.isClassFilterMode();
         }
 
         int sysFlag = PullSysFlag.buildSysFlag(//
             commitOffsetEnable, // commitOffset
             true, // suspend
-            subExpression != null// subscription
+            subExpression != null,// subscription
+            classFilter // class filter
             );
         try {
             this.pullAPIWrapper.pullKernelImpl(//
@@ -839,7 +843,9 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                 for (final Map.Entry<String, String> entry : sub.entrySet()) {
                     final String topic = entry.getKey();
                     final String subString = entry.getValue();
-                    SubscriptionData subscriptionData = FilterAPI.buildSubscriptionData(topic, subString);
+                    SubscriptionData subscriptionData =
+                            FilterAPI.buildSubscriptionData(this.defaultMQPushConsumer.getConsumerGroup(),//
+                                topic, subString);
                     this.rebalanceImpl.getSubscriptionInner().put(topic, subscriptionData);
                 }
             }
@@ -855,7 +861,8 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                 // 默认订阅消息重试Topic
                 final String retryTopic = MixAll.getRetryTopic(this.defaultMQPushConsumer.getConsumerGroup());
                 SubscriptionData subscriptionData =
-                        FilterAPI.buildSubscriptionData(retryTopic, SubscriptionData.SUB_ALL);
+                        FilterAPI.buildSubscriptionData(this.defaultMQPushConsumer.getConsumerGroup(),//
+                            retryTopic, SubscriptionData.SUB_ALL);
                 this.rebalanceImpl.getSubscriptionInner().put(retryTopic, subscriptionData);
                 break;
             default:
@@ -886,7 +893,9 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
 
     public void subscribe(String topic, String subExpression) throws MQClientException {
         try {
-            SubscriptionData subscriptionData = FilterAPI.buildSubscriptionData(topic, subExpression);
+            SubscriptionData subscriptionData =
+                    FilterAPI.buildSubscriptionData(this.defaultMQPushConsumer.getConsumerGroup(),//
+                        topic, subExpression);
             this.rebalanceImpl.getSubscriptionInner().put(topic, subscriptionData);
             // 发送心跳，将变更的订阅关系注册上去
             if (this.mQClientFactory != null) {

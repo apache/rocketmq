@@ -12,6 +12,7 @@ import java.util.Set;
  */
 public class SubscriptionData {
     public final static String SUB_ALL = "*";
+    private boolean classFilterMode = false;
     private String topic;
     private String subString;
     private Set<String> tagsSet = new HashSet<String>();
@@ -81,10 +82,21 @@ public class SubscriptionData {
     }
 
 
+    public boolean isClassFilterMode() {
+        return classFilterMode;
+    }
+
+
+    public void setClassFilterMode(boolean classFilterMode) {
+        this.classFilterMode = classFilterMode;
+    }
+
+
     @Override
     public int hashCode() {
         final int prime = 31;
         int result = 1;
+        result = prime * result + (classFilterMode ? 1231 : 1237);
         result = prime * result + ((codeSet == null) ? 0 : codeSet.hashCode());
         result = prime * result + ((subString == null) ? 0 : subString.hashCode());
         result = prime * result + (int) (subVersion ^ (subVersion >>> 32));
@@ -102,47 +114,43 @@ public class SubscriptionData {
             return false;
         if (getClass() != obj.getClass())
             return false;
-
         SubscriptionData other = (SubscriptionData) obj;
-
+        if (classFilterMode != other.classFilterMode)
+            return false;
         if (codeSet == null) {
             if (other.codeSet != null)
                 return false;
         }
         else if (!codeSet.equals(other.codeSet))
             return false;
-
         if (subString == null) {
             if (other.subString != null)
                 return false;
         }
         else if (!subString.equals(other.subString))
             return false;
-
         if (subVersion != other.subVersion)
             return false;
-
         if (tagsSet == null) {
             if (other.tagsSet != null)
                 return false;
         }
         else if (!tagsSet.equals(other.tagsSet))
             return false;
-
         if (topic == null) {
             if (other.topic != null)
                 return false;
         }
         else if (!topic.equals(other.topic))
             return false;
-
         return true;
     }
 
 
     @Override
     public String toString() {
-        return "SubscriptionData [topic=" + topic + ", subString=" + subString + ", tagsSet=" + tagsSet
-                + ", codeSet=" + codeSet + ", subVersion=" + subVersion + "]";
+        return "SubscriptionData [classFilterMode=" + classFilterMode + ", topic=" + topic + ", subString="
+                + subString + ", tagsSet=" + tagsSet + ", codeSet=" + codeSet + ", subVersion=" + subVersion
+                + "]";
     }
 }
