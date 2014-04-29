@@ -75,6 +75,8 @@ import com.alibaba.rocketmq.common.protocol.header.SearchOffsetRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.SearchOffsetResponseHeader;
 import com.alibaba.rocketmq.common.protocol.header.UpdateConsumerOffsetRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.UpdateConsumerOffsetResponseHeader;
+import com.alibaba.rocketmq.common.protocol.header.filtersrv.RegisterFilterServerRequestHeader;
+import com.alibaba.rocketmq.common.protocol.header.filtersrv.RegisterFilterServerResponseHeader;
 import com.alibaba.rocketmq.common.protocol.heartbeat.SubscriptionData;
 import com.alibaba.rocketmq.common.subscription.SubscriptionGroupConfig;
 import com.alibaba.rocketmq.remoting.common.RemotingHelper;
@@ -189,12 +191,37 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             // 查询Topic被哪些消费者消费
         case RequestCode.QUERY_TOPIC_CONSUME_BY_WHO:
             return this.queryTopicConsumeByWho(ctx, request);
+
+        case RequestCode.REGISTER_FILTER_SERVER:
+            return this.registerFilterServer(ctx, request);
         default:
             break;
 
         }
 
         return null;
+    }
+
+
+    private RemotingCommand registerFilterServer(ChannelHandlerContext ctx, RemotingCommand request)
+            throws RemotingCommandException {
+        final RemotingCommand response =
+                RemotingCommand.createResponseCommand(RegisterFilterServerResponseHeader.class);
+        final RegisterFilterServerResponseHeader responseHeader =
+                (RegisterFilterServerResponseHeader) response.getCustomHeader();
+        final RegisterFilterServerRequestHeader requestHeader =
+                (RegisterFilterServerRequestHeader) request
+                    .decodeCommandCustomHeader(RegisterFilterServerRequestHeader.class);
+
+        this.brokerController.getFilterServerManager().registerFilterServer(
+            requestHeader.getFilterServerAddr());
+
+        responseHeader.setBrokerId(this.brokerController.getBrokerConfig().getBrokerId());
+        responseHeader.setBrokerName(this.brokerController.getBrokerConfig().getBrokerName());
+
+        response.setCode(ResponseCode.SUCCESS);
+        response.setRemark(null);
+        return response;
     }
 
 

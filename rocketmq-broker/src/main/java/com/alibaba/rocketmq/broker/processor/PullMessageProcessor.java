@@ -15,6 +15,12 @@
  */
 package com.alibaba.rocketmq.broker.processor;
 
+import io.netty.channel.Channel;
+import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelFutureListener;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.FileRegion;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,7 +47,6 @@ import com.alibaba.rocketmq.remoting.netty.NettyRequestProcessor;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 import com.alibaba.rocketmq.store.GetMessageResult;
 import com.alibaba.rocketmq.store.config.BrokerRole;
-import io.netty.channel.*;
 
 
 /**
@@ -194,8 +199,8 @@ public class PullMessageProcessor implements NettyRequestProcessor {
         if (hasSubscriptionFlag) {
             try {
                 subscriptionData =
-                        FilterAPI.buildSubscriptionData(requestHeader.getTopic(),
-		                        requestHeader.getSubscription());
+                        FilterAPI.buildSubscriptionData(requestHeader.getConsumerGroup(),
+                            requestHeader.getTopic(), requestHeader.getSubscription());
             }
             catch (Exception e) {
                 log.warn("parse the consumer's subscription[{}] failed, group: {}",
