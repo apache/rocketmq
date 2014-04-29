@@ -27,6 +27,7 @@ import org.slf4j.LoggerFactory;
 
 import com.alibaba.rocketmq.client.consumer.DefaultMQPullConsumer;
 import com.alibaba.rocketmq.common.MixAll;
+import com.alibaba.rocketmq.common.UtilAll;
 import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.common.protocol.header.filtersrv.RegisterFilterServerResponseHeader;
 import com.alibaba.rocketmq.filtersrv.filter.FilterClassManager;
@@ -117,6 +118,7 @@ public class FiltersrvController {
             .getConsumerTimeoutMillisWhenSuspend() - 1000);
 
         this.defaultMQPullConsumer.setNamesrvAddr(this.filtersrvConfig.getNamesrvAddr());
+        this.defaultMQPullConsumer.setInstanceName(String.valueOf(UtilAll.getPid()));
 
         return true;
     }
