@@ -167,7 +167,7 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
                 for (String t : topics) {
                     SubscriptionData ms = null;
                     try {
-                        ms = FilterAPI.buildSubscriptionData(t, SubscriptionData.SUB_ALL);
+                        ms = FilterAPI.buildSubscriptionData(this.groupName(), t, SubscriptionData.SUB_ALL);
                     }
                     catch (Exception e) {
                         log.error("parse subscription error", e);
