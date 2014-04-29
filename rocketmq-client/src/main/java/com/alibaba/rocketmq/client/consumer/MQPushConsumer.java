@@ -66,8 +66,7 @@ public interface MQPushConsumer extends MQConsumer {
      *            a、Java程序必须继承于com.alibaba.rocketmq.common.filter.MessageFilter，
      *            并实现相应的接口来过滤<br>
      *            b、Java程序必须是UTF-8编码<br>
-     *            c、Java程序必须以rocketmq.message.filter.{ConsumerGroup}为包名前缀<br>
-     *            d、这个Java过滤程序只能依赖JDK里的类，非JDK的Java类一律不能依赖
+     *            c、这个Java过滤程序只能依赖JDK里的类，非JDK的Java类一律不能依赖
      * @param listener
      *            消息回调监听器
      * @throws MQClientException
