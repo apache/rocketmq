@@ -185,7 +185,12 @@ public class RouteInfoManager {
 
                 // 更新Filter Server列表
                 if (filterServerList != null) {
-                    this.filterServerTable.put(brokerAddr, filterServerList);
+                    if (filterServerList.isEmpty()) {
+                        this.filterServerTable.remove(brokerAddr);
+                    }
+                    else {
+                        this.filterServerTable.put(brokerAddr, filterServerList);
+                    }
                 }
 
                 // 返回值
