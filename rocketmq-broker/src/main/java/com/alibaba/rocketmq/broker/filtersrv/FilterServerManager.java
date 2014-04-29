@@ -32,7 +32,7 @@ public class FilterServerManager {
         }
         else {
             this.filterServerTable.put(filterServerAddr, new AtomicLong(System.currentTimeMillis()));
-            log.info("Receive a New Filter Server<%s>", filterServerAddr);
+            log.info("Receive a New Filter Server<{}>", filterServerAddr);
         }
     }
 
@@ -48,7 +48,7 @@ public class FilterServerManager {
             Entry<String, AtomicLong> next = it.next();
             long timestamp = next.getValue().get();
             if ((System.currentTimeMillis() - timestamp) > FilterServerMaxIdleTimeMills) {
-                log.info("The Filter Server<%s> expired, remove it", next.getKey());
+                log.info("The Filter Server<{}> expired, remove it", next.getKey());
                 it.remove();
             }
         }

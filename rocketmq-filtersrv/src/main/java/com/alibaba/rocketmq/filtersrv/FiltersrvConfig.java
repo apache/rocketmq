@@ -5,11 +5,15 @@ import com.alibaba.rocketmq.remoting.common.RemotingUtil;
 
 
 public class FiltersrvConfig {
-    private String rocketmqHome = System.getProperty(MixAll.ROCKETMQ_HOME_PROPERTY,
-        System.getenv(MixAll.ROCKETMQ_HOME_ENV));
+    // private String rocketmqHome =
+    // System.getProperty(MixAll.ROCKETMQ_HOME_PROPERTY,
+    // System.getenv(MixAll.ROCKETMQ_HOME_ENV));
 
+    private String rocketmqHome = "/Users/vive/Desktop/share/work/gitlab/rocketmq";
+    private String namesrvAddr = "10.235.170.7:9876";
+    
     // 连接到哪个Broker
-    private String connectWhichBroker = "127.0.0.1:10911";
+    private String connectWhichBroker = "10.235.170.7:10911";
     // Filter Server对外服务的IP
     private String filterServerIP = RemotingUtil.getLocalAddress();
     private int compressMsgBodyOverHowmuch = 1024 * 4;
@@ -63,6 +67,16 @@ public class FiltersrvConfig {
 
     public void setZipCompressLevel(int zipCompressLevel) {
         this.zipCompressLevel = zipCompressLevel;
+    }
+
+
+    public String getNamesrvAddr() {
+        return namesrvAddr;
+    }
+
+
+    public void setNamesrvAddr(String namesrvAddr) {
+        this.namesrvAddr = namesrvAddr;
     }
 
 }

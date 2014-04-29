@@ -76,8 +76,7 @@ public class FiltersrvController {
     public FiltersrvController(FiltersrvConfig filtersrvConfig, NettyServerConfig nettyServerConfig) {
         this.filtersrvConfig = filtersrvConfig;
         this.nettyServerConfig = nettyServerConfig;
-        this.defaultMQPullConsumer.getDefaultMQPullConsumerImpl().getPullAPIWrapper()
-            .setConnectBrokerByUser(true);
+
     }
 
 
@@ -117,6 +116,8 @@ public class FiltersrvController {
         this.defaultMQPullConsumer.setConsumerTimeoutMillisWhenSuspend(this.defaultMQPullConsumer
             .getConsumerTimeoutMillisWhenSuspend() - 1000);
 
+        this.defaultMQPullConsumer.setNamesrvAddr(this.filtersrvConfig.getNamesrvAddr());
+
         return true;
     }
 
@@ -139,7 +140,7 @@ public class FiltersrvController {
                 this.brokerName = responseHeader.getBrokerName();
             }
 
-            log.info("register filter server<%s> to broker<%s> OK, Return: %s %d", //
+            log.info("register filter server<{}> to broker<{}> OK, Return: {} {}", //
                 this.localAddr(),//
                 this.filtersrvConfig.getConnectWhichBroker(),//
                 responseHeader.getBrokerName(),//
@@ -162,6 +163,9 @@ public class FiltersrvController {
     public void start() throws Exception {
         this.defaultMQPullConsumer.start();
         this.remotingServer.start();
+        this.filterServerOuterAPI.start();
+        this.defaultMQPullConsumer.getDefaultMQPullConsumerImpl().getPullAPIWrapper()
+            .setConnectBrokerByUser(true);
     }
 
 
@@ -170,6 +174,7 @@ public class FiltersrvController {
         this.remotingExecutor.shutdown();
         this.scheduledExecutorService.shutdown();
         this.defaultMQPullConsumer.shutdown();
+        this.filterServerOuterAPI.shutdown();
     }
 
 
