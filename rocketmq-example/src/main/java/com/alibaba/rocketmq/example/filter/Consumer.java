@@ -28,8 +28,8 @@ import com.alibaba.rocketmq.common.message.MessageExt;
 public class Consumer {
 
     public static void main(String[] args) throws InterruptedException, MQClientException {
-        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("ConsumerGroupName");
-
+        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("ConsumerGroupName13");
+        consumer.setNamesrvAddr("10.235.170.7:9876");
         /**
          * 使用Java代码，在服务器做消息过滤
          */

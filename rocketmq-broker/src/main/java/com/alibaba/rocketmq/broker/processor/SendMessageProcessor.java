@@ -397,7 +397,7 @@ public class SendMessageProcessor implements NettyRequestProcessor {
                 break;
             case SERVICE_NOT_AVAILABLE:
                 response.setCode(ResponseCode.SERVICE_NOT_AVAILABLE);
-                response.setRemark("service not available now, maybe disk full, " + diskUtil());
+                response.setRemark("service not available now, maybe disk full, " + diskUtil() + ", maybe your broker machine memory too small.");
                 break;
             case UNKNOWN_ERROR:
                 response.setCode(ResponseCode.SYSTEM_ERROR);

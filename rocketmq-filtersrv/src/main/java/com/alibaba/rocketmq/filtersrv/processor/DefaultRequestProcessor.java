@@ -183,7 +183,7 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
         int bodyTotalSize = 0;
         for (int i = 0; i < msgList.size(); i++) {
             try {
-                msgBufferList[i] = messageToByteBuffer(msgList.get(0));
+                msgBufferList[i] = messageToByteBuffer(msgList.get(i));
                 bodyTotalSize += msgBufferList[i].capacity();
             }
             catch (Exception e) {
@@ -193,6 +193,7 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
 
         ByteBuffer body = ByteBuffer.allocate(bodyTotalSize);
         for (ByteBuffer bb : msgBufferList) {
+            bb.flip();
             body.put(bb);
         }
 
@@ -256,9 +257,12 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
                 responseHeader.setMaxOffset(pullResult.getMaxOffset());
                 responseHeader.setMinOffset(pullResult.getMinOffset());
                 responseHeader.setNextBeginOffset(pullResult.getNextBeginOffset());
+                response.setRemark(null);
 
                 switch (pullResult.getPullStatus()) {
                 case FOUND:
+                    response.setCode(ResponseCode.SUCCESS);
+
                     List<MessageExt> msgListOK = new ArrayList<MessageExt>();
                     try {
                         for (MessageExt msg : pullResult.getMsgFoundList()) {
