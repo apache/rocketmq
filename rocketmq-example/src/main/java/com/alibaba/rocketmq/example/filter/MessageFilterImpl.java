@@ -16,6 +16,6 @@ public class MessageFilterImpl implements MessageFilter {
             }
         }
 
-        return true;
+        return false;
     }
 }
