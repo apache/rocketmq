@@ -1,6 +1,5 @@
 package com.alibaba.rocketmq.filtersrv;
 
-import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.remoting.common.RemotingUtil;
 
 
@@ -11,7 +10,7 @@ public class FiltersrvConfig {
 
     private String rocketmqHome = "/Users/vive/Desktop/share/work/gitlab/rocketmq";
     private String namesrvAddr = "10.235.170.7:9876";
-    
+
     // 连接到哪个Broker
     private String connectWhichBroker = "10.235.170.7:10911";
     // Filter Server对外服务的IP
