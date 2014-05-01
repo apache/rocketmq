@@ -89,6 +89,8 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
         case CREATE_JUST:
             this.serviceState = ServiceState.START_FAILED;
 
+            this.defaultMQAdminExt.changeInstanceNameToPID();
+
             this.mQClientFactory =
                     MQClientManager.getInstance().getAndCreateMQClientInstance(this.defaultMQAdminExt);
 

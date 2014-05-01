@@ -191,6 +191,8 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
             this.checkConfig();
 
+            this.defaultMQProducer.changeInstanceNameToPID();
+
             this.mQClientFactory =
                     MQClientManager.getInstance().getAndCreateMQClientInstance(this.defaultMQProducer);
 

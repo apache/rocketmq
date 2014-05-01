@@ -16,6 +16,7 @@
 package com.alibaba.rocketmq.client;
 
 import com.alibaba.rocketmq.common.MixAll;
+import com.alibaba.rocketmq.common.UtilAll;
 import com.alibaba.rocketmq.remoting.common.RemotingUtil;
 
 
@@ -44,6 +45,13 @@ public class ClientConfig {
         sb.append(this.getInstanceName());
 
         return sb.toString();
+    }
+
+
+    public void changeInstanceNameToPID() {
+        if (this.instanceName.equals("DEFAULT")) {
+            this.instanceName = String.valueOf(UtilAll.getPid());
+        }
     }
 
 
