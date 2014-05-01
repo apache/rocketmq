@@ -77,7 +77,7 @@ public class FilterServerManager {
                     log.error("", e);
                 }
             }
-        }, 1000 * 10, 1000 * 10, TimeUnit.MILLISECONDS);
+        }, 1000 * 5, 1000 * 30, TimeUnit.MILLISECONDS);
     }
 
 
@@ -97,12 +97,12 @@ public class FilterServerManager {
         }
 
         if (RemotingUtil.isWindowsPlatform()) {
-            return String.format("start /b %s\\bin\\mqfiltersrv %s", //
+            return String.format("start /b %s\\bin\\mqfiltersrv.exe %s", //
                 this.brokerController.getBrokerConfig().getRocketmqHome(),//
                 config);
         }
         else {
-            return String.format("nohup %s/bin/mqfiltersrv %s&", //
+            return String.format("nohup sh %s/bin/mqfiltersrv %s&", //
                 this.brokerController.getBrokerConfig().getRocketmqHome(),//
                 config);
         }
