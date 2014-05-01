@@ -314,6 +314,7 @@ public abstract class RebalanceImpl {
                 }
                 catch (Throwable e) {
                     log.error("AllocateMessageQueueStrategy.allocate Exception", e);
+                    return;
                 }
 
                 Set<MessageQueue> allocateResultSet = new HashSet<MessageQueue>();
@@ -348,6 +349,17 @@ public abstract class RebalanceImpl {
 
     public abstract void messageQueueChanged(final String topic, final Set<MessageQueue> mqAll,
             final Set<MessageQueue> mqDivided);
+
+
+    public void removeProcessQueue(final MessageQueue mq) {
+        ProcessQueue prev = this.processQueueTable.remove(mq);
+        if (prev != null) {
+            boolean droped = prev.isDroped();
+            prev.setDroped(true);
+            this.removeUnnecessaryMessageQueue(mq, prev);
+            log.info("Fix Offset, {}, remove unnecessary mq, {} Droped: {}", consumerGroup, mq, droped);
+        }
+    }
 
 
     private boolean updateProcessQueueTableInRebalance(final String topic, final Set<MessageQueue> mqSet) {

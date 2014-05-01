@@ -429,11 +429,33 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                             pullRequest.setNextOffset(pullResult.getMaxOffset());
                         }
 
-                        DefaultMQPushConsumerImpl.this.offsetStore.updateOffset(
-                            pullRequest.getMessageQueue(), pullRequest.getNextOffset(), false);
+                        // 第一步、缓存队列里的消息全部废弃
+                        pullRequest.getProcessQueue().setDroped(true);
+                        // 第二步、等待10s后再执行，防止Offset更新后又被覆盖
+                        DefaultMQPushConsumerImpl.this.executeTaskLater(new Runnable() {
 
-                        log.warn("fix the pull request offset, {}", pullRequest);
-                        DefaultMQPushConsumerImpl.this.executePullRequestImmediately(pullRequest);
+                            @Override
+                            public void run() {
+                                try {
+                                    // 第三步、纠正内部Offset
+                                    DefaultMQPushConsumerImpl.this.offsetStore.updateOffset(
+                                        pullRequest.getMessageQueue(), pullRequest.getNextOffset(), false);
+
+                                    // 第四步、将最新的Offset更新到服务器
+                                    DefaultMQPushConsumerImpl.this.offsetStore.persist(pullRequest
+                                        .getMessageQueue());
+
+                                    // 第五步、丢弃当前PullRequest，并且从Rebalabce结果里删除，等待下次Rebalance时，取纠正后的Offset
+                                    DefaultMQPushConsumerImpl.this.rebalanceImpl
+                                        .removeProcessQueue(pullRequest.getMessageQueue());
+
+                                    log.warn("fix the pull request offset, {}", pullRequest);
+                                }
+                                catch (Throwable e) {
+                                    log.error("executeTaskLater Exception", e);
+                                }
+                            }
+                        }, 10000);
                         break;
                     default:
                         break;
@@ -509,6 +531,11 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
      */
     public void executePullRequestImmediately(final PullRequest pullRequest) {
         this.mQClientFactory.getPullMessageService().executePullRequestImmediately(pullRequest);
+    }
+
+
+    public void executeTaskLater(final Runnable r, final long timeDelay) {
+        this.mQClientFactory.getPullMessageService().executeTaskLater(r, timeDelay);
     }
 
 

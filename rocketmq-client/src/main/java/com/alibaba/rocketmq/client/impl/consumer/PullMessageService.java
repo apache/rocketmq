@@ -67,6 +67,14 @@ public class PullMessageService extends ServiceThread {
 
 
     /**
+     * 只定时一次
+     */
+    public void executeTaskLater(final Runnable r, final long timeDelay) {
+        this.scheduledExecutorService.schedule(r, timeDelay, TimeUnit.MILLISECONDS);
+    }
+
+
+    /**
      * 立刻执行PullRequest
      */
     public void executePullRequestImmediately(final PullRequest pullRequest) {
