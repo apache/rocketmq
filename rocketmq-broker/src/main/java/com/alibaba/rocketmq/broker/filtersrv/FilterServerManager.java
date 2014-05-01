@@ -96,9 +96,16 @@ public class FilterServerManager {
             config += String.format(" -n '%s'", this.brokerController.getBrokerConfig().getNamesrvAddr());
         }
 
-        return String.format("nohup %s/bin/mqfiltersrv %s&", //
-            this.brokerController.getBrokerConfig().getRocketmqHome(),//
-            config);
+        if (RemotingUtil.isWindowsPlatform()) {
+            return String.format("start /b %s\\bin\\mqfiltersrv %s", //
+                this.brokerController.getBrokerConfig().getRocketmqHome(),//
+                config);
+        }
+        else {
+            return String.format("nohup %s/bin/mqfiltersrv %s&", //
+                this.brokerController.getBrokerConfig().getRocketmqHome(),//
+                config);
+        }
     }
 
 
