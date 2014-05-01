@@ -28,8 +28,8 @@ public class Producer {
         producer.start();
 
         try {
-            for (int i = 0; i < 60; i++) {
-                Message msg = new Message("TopicFilter6",// topic
+            for (int i = 0; i < 600; i++) {
+                Message msg = new Message("TopicFilter7",// topic
                     "TagA",// tag
                     "OrderID001",// key
                     ("Hello MetaQ").getBytes());// body
