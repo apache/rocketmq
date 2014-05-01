@@ -35,11 +35,11 @@ public class AllocateMessageQueueAveragely implements AllocateMessageQueueStrate
         if (currentCID == null || currentCID.length() < 1) {
             throw new IllegalArgumentException("currentCID is empty");
         }
-        if (mqAll == null || mqAll.size() < 1) {
-            throw new IllegalArgumentException("mqAll is null or mqAll size < 1");
+        if (mqAll == null || mqAll.isEmpty()) {
+            throw new IllegalArgumentException("mqAll is null or mqAll empty");
         }
-        if (cidAll == null || cidAll.size() < 1) {
-            throw new IllegalArgumentException("cidAll is null or cidAll size < 1");
+        if (cidAll == null || cidAll.isEmpty()) {
+            throw new IllegalArgumentException("cidAll is null or cidAll empty");
         }
 
         List<MessageQueue> result = new ArrayList<MessageQueue>();
