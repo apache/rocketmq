@@ -18,15 +18,14 @@ package com.alibaba.rocketmq.filtersrv;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.alibaba.rocketmq.client.consumer.DefaultMQPullConsumer;
 import com.alibaba.rocketmq.common.MixAll;
+import com.alibaba.rocketmq.common.ThreadFactoryImpl;
 import com.alibaba.rocketmq.common.UtilAll;
 import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.common.protocol.header.filtersrv.RegisterFilterServerResponseHeader;
@@ -66,12 +65,7 @@ public class FiltersrvController {
 
     // 定时线程
     private final ScheduledExecutorService scheduledExecutorService = Executors
-        .newSingleThreadScheduledExecutor(new ThreadFactory() {
-            @Override
-            public Thread newThread(Runnable r) {
-                return new Thread(r, "NamesrvControllerScheduledThread");
-            }
-        });
+        .newSingleThreadScheduledExecutor(new ThreadFactoryImpl("FSScheduledThread"));
 
 
     public FiltersrvController(FiltersrvConfig filtersrvConfig, NettyServerConfig nettyServerConfig) {
@@ -90,15 +84,8 @@ public class FiltersrvController {
 
         // 初始化线程池
         this.remotingExecutor =
-                Executors.newFixedThreadPool(nettyServerConfig.getServerWorkerThreads(), new ThreadFactory() {
-                    private AtomicInteger threadIndex = new AtomicInteger(0);
-
-
-                    @Override
-                    public Thread newThread(Runnable r) {
-                        return new Thread(r, "RemotingExecutorThread_" + threadIndex.incrementAndGet());
-                    }
-                });
+                Executors.newFixedThreadPool(nettyServerConfig.getServerWorkerThreads(),
+                    new ThreadFactoryImpl("RemotingExecutorThread_"));
 
         this.registerProcessor();
 

@@ -22,10 +22,8 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
 
 import org.slf4j.Logger;
 
@@ -37,6 +35,7 @@ import com.alibaba.rocketmq.client.hook.ConsumeMessageContext;
 import com.alibaba.rocketmq.client.log.ClientLogger;
 import com.alibaba.rocketmq.client.stat.ConsumerStat;
 import com.alibaba.rocketmq.common.MixAll;
+import com.alibaba.rocketmq.common.ThreadFactoryImpl;
 import com.alibaba.rocketmq.common.message.MessageConst;
 import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.common.message.MessageQueue;
@@ -77,24 +76,11 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
             1000 * 60,//
             TimeUnit.MILLISECONDS,//
             this.consumeRequestQueue,//
-            new ThreadFactory() {
-                private AtomicLong threadIndex = new AtomicLong(0);
+            new ThreadFactoryImpl("ConsumeMessageThread_"));
 
-
-                @Override
-                public Thread newThread(Runnable r) {
-                    return new Thread(r, "ConsumeMessageThread-" //
-                            + ConsumeMessageConcurrentlyService.this.consumerGroup//
-                            + "-" + this.threadIndex.incrementAndGet());
-                }
-            });
-
-        this.scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactory() {
-            @Override
-            public Thread newThread(Runnable r) {
-                return new Thread(r, "ConsumeMessageScheduledThread-" + consumerGroup);
-            }
-        });
+        this.scheduledExecutorService =
+                Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl(
+                    "ConsumeMessageScheduledThread_"));
     }
 
 
