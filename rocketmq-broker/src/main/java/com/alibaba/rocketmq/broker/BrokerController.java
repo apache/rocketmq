@@ -144,7 +144,7 @@ public class BrokerController {
     private final BlockingQueue<Runnable> pullThreadPoolQueue;
 
     // FilterServer管理
-    private final FilterServerManager filterServerManager = new FilterServerManager();
+    private final FilterServerManager filterServerManager;
 
 
     public BrokerController(//
@@ -169,6 +169,7 @@ public class BrokerController {
         this.broker2Client = new Broker2Client(this);
         this.subscriptionGroupManager = new SubscriptionGroupManager(this);
         this.brokerOuterAPI = new BrokerOuterAPI(nettyClientConfig);
+        this.filterServerManager = new FilterServerManager(this);
 
         if (this.brokerConfig.getNamesrvAddr() != null) {
             this.brokerOuterAPI.updateNameServerAddressList(this.brokerConfig.getNamesrvAddr());

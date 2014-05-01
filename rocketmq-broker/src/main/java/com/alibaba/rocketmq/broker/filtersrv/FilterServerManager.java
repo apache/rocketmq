@@ -7,20 +7,32 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.alibaba.rocketmq.broker.BrokerController;
+import com.alibaba.rocketmq.broker.BrokerStartup;
+import com.alibaba.rocketmq.common.ThreadFactoryImpl;
 import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.remoting.common.RemotingUtil;
 
 
 public class FilterServerManager {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.BrokerLoggerName);
+    // Filter Server最大空闲时间
+    public static final long FilterServerMaxIdleTimeMills = 30000;
+
     private final ConcurrentHashMap<Channel/* 注册连接 */, FilterServerInfo/* filterServer监听端口 */> filterServerTable =
             new ConcurrentHashMap<Channel, FilterServerInfo>(16);
 
-    public static final long FilterServerMaxIdleTimeMills = 30000;
+    private final BrokerController brokerController;
+
+    private ScheduledExecutorService scheduledExecutorService = Executors
+        .newSingleThreadScheduledExecutor(new ThreadFactoryImpl("ClientHousekeepingScheduledThread"));
 
     class FilterServerInfo {
         private String filterServerAddr;
@@ -48,7 +60,51 @@ public class FilterServerManager {
     }
 
 
-    public FilterServerManager() {
+    public FilterServerManager(final BrokerController brokerController) {
+        this.brokerController = brokerController;
+    }
+
+
+    public void start() {
+        // 定时检查Filter Server个数，数量不符合，则创建
+        this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    FilterServerManager.this.createFilterServer();
+                }
+                catch (Exception e) {
+                    log.error("", e);
+                }
+            }
+        }, 1000 * 10, 1000 * 10, TimeUnit.MILLISECONDS);
+    }
+
+
+    public void shutdown() {
+        this.scheduledExecutorService.shutdown();
+    }
+
+
+    private String buildStartCommand() {
+        String config = "";
+        if (BrokerStartup.configFile != null) {
+            config = String.format("-c %s", BrokerStartup.configFile);
+        }
+
+        return String.format("nohup %s/bin/mqfiltersrv %s&", //
+            this.brokerController.getBrokerConfig().getRocketmqHome(),//
+            config);
+    }
+
+
+    public void createFilterServer() {
+        int more =
+                this.brokerController.getBrokerConfig().getFilterServerNums() - this.filterServerTable.size();
+        String cmd = this.buildStartCommand();
+        for (int i = 0; i < more; i++) {
+            FilterServerUtil.callShell(cmd, log);
+        }
     }
 
 
