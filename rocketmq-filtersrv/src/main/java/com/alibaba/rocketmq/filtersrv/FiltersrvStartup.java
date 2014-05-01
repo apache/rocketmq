@@ -81,7 +81,7 @@ public class FiltersrvStartup {
             // 初始化配置文件
             final FiltersrvConfig filtersrvConfig = new FiltersrvConfig();
             final NettyServerConfig nettyServerConfig = new NettyServerConfig();
-            nettyServerConfig.setListenPort(0);
+
             nettyServerConfig.setServerAsyncSemaphoreValue(512);
             nettyServerConfig.setServerCallbackExecutorThreads(64);
             nettyServerConfig.setServerWorkerThreads(64);
@@ -96,8 +96,16 @@ public class FiltersrvStartup {
                     MixAll.properties2Object(properties, nettyServerConfig);
                     System.out.println("load config properties file OK, " + file);
                     in.close();
+
+                    String port = properties.getProperty("listenPort");
+                    if (port != null) {
+                        filtersrvConfig.setConnectWhichBroker(String.format("127.0.0.1:%s", port));
+                    }
                 }
             }
+
+            // 强制设置为0，自动分配端口号
+            nettyServerConfig.setListenPort(0);
 
             // 打印默认配置
             if (commandLine.hasOption('p')) {

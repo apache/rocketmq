@@ -52,6 +52,7 @@ import com.alibaba.rocketmq.store.config.MessageStoreConfig;
 public class BrokerStartup {
     public static Properties properties = null;
     public static CommandLine commandLine = null;
+    public static String configFile = null;
 
 
     public static Options buildCommandlineOptions(final Options options) {
@@ -127,6 +128,7 @@ public class BrokerStartup {
             if (commandLine.hasOption('c')) {
                 String file = commandLine.getOptionValue('c');
                 if (file != null) {
+                    configFile = file;
                     InputStream in = new BufferedInputStream(new FileInputStream(file));
                     properties = new Properties();
                     properties.load(in);

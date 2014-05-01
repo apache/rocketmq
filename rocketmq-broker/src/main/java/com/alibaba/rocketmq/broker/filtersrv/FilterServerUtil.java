@@ -34,6 +34,8 @@ public class FilterServerUtil {
             String line = null;
             while ((line = br2.readLine()) != null)
                 buf.append(line); // 循环等待ffmpeg进程结束
+
+            log.info("callShell: {} OK", shellString);
         }
         catch (Throwable e) {
             log.error("callShell: readLine IOException, " + shellString, e);
