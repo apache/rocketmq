@@ -9,14 +9,19 @@ public class FiltersrvConfig {
     // System.getenv(MixAll.ROCKETMQ_HOME_ENV));
 
     private String rocketmqHome = "/Users/vive/Desktop/share/work/gitlab/rocketmq";
-    private String namesrvAddr = "10.235.170.7:9876";
+    private String namesrvAddr = "10.235.170.7:9877";
 
     // 连接到哪个Broker
     private String connectWhichBroker = "10.235.170.7:10911";
     // Filter Server对外服务的IP
     private String filterServerIP = RemotingUtil.getLocalAddress();
-    private int compressMsgBodyOverHowmuch = 1024 * 4;
+    // 消息超过指定大小，开始压缩
+    private int compressMsgBodyOverHowmuch = 1024 * 8;
+    // 压缩Level
     private int zipCompressLevel = 5;
+
+    // 是否允许客户端上传Java类
+    private boolean clientUploadFilterClassEnable = true;
 
 
     public String getRocketmqHome() {
@@ -26,6 +31,16 @@ public class FiltersrvConfig {
 
     public void setRocketmqHome(String rocketmqHome) {
         this.rocketmqHome = rocketmqHome;
+    }
+
+
+    public String getNamesrvAddr() {
+        return namesrvAddr;
+    }
+
+
+    public void setNamesrvAddr(String namesrvAddr) {
+        this.namesrvAddr = namesrvAddr;
     }
 
 
@@ -69,13 +84,12 @@ public class FiltersrvConfig {
     }
 
 
-    public String getNamesrvAddr() {
-        return namesrvAddr;
+    public boolean isClientUploadFilterClassEnable() {
+        return clientUploadFilterClassEnable;
     }
 
 
-    public void setNamesrvAddr(String namesrvAddr) {
-        this.namesrvAddr = namesrvAddr;
+    public void setClientUploadFilterClassEnable(boolean clientUploadFilterClassEnable) {
+        this.clientUploadFilterClassEnable = clientUploadFilterClassEnable;
     }
-
 }
