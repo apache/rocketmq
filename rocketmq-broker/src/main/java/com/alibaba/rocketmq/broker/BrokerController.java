@@ -514,6 +514,10 @@ public class BrokerController {
         this.digestLogManager.dispose();
 
         this.consumerOffsetManager.persist();
+
+        if (this.filterServerManager != null) {
+            this.filterServerManager.shutdown();
+        }
     }
 
 
@@ -551,6 +555,10 @@ public class BrokerController {
 
         if (this.clientHousekeepingService != null) {
             this.clientHousekeepingService.start();
+        }
+
+        if (this.filterServerManager != null) {
+            this.filterServerManager.start();
         }
 
         // 启动统计日志
