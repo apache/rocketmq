@@ -24,12 +24,12 @@ import com.alibaba.rocketmq.common.message.Message;
 public class Producer {
     public static void main(String[] args) throws MQClientException, InterruptedException {
         DefaultMQProducer producer = new DefaultMQProducer("ProducerGroupName");
-        producer.setNamesrvAddr("10.235.170.7:9876");
+        producer.setNamesrvAddr("10.235.170.7:9877");
         producer.start();
 
         try {
             for (int i = 0; i < 60; i++) {
-                Message msg = new Message("TopicFilter5",// topic
+                Message msg = new Message("TopicFilter6",// topic
                     "TagA",// tag
                     "OrderID001",// key
                     ("Hello MetaQ").getBytes());// body
