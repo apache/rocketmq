@@ -43,7 +43,7 @@ import com.alibaba.rocketmq.common.constant.LoggerName;
  * @version 1.0
  */
 public class DynaCode {
-    private static final Logger logger = LoggerFactory.getLogger(LoggerName.NamesrvLoggerName);
+    private static final Logger logger = LoggerFactory.getLogger(LoggerName.FiltersrvLoggerName);
 
     private static final String FILE_SP = System.getProperty("file.separator");
 

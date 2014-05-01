@@ -127,8 +127,8 @@ public class FiltersrvStartup {
             JoranConfigurator configurator = new JoranConfigurator();
             configurator.setContext(lc);
             lc.reset();
-            configurator.doConfigure(filtersrvConfig.getRocketmqHome() + "/conf/logback_namesrv.xml");
-            final Logger log = LoggerFactory.getLogger(LoggerName.NamesrvLoggerName);
+            configurator.doConfigure(filtersrvConfig.getRocketmqHome() + "/conf/logback_filtersrv.xml");
+            final Logger log = LoggerFactory.getLogger(LoggerName.FiltersrvLoggerName);
 
             // 初始化服务控制对象
             final FiltersrvController controller =

@@ -11,7 +11,7 @@ import com.alibaba.rocketmq.common.filter.MessageFilter;
 
 
 public class FilterClassManager {
-    private static final Logger log = LoggerFactory.getLogger(LoggerName.NamesrvLoggerName);
+    private static final Logger log = LoggerFactory.getLogger(LoggerName.FiltersrvLoggerName);
 
     private ConcurrentHashMap<String/* topic@consumerGroup */, FilterClassInfo> filterClassTable =
             new ConcurrentHashMap<String, FilterClassInfo>(128);
