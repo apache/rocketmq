@@ -48,17 +48,17 @@
 
 	<logger name="RocketmqFiltersrv" additivity="false">
 		<level value="INFO" />
-		<appender-ref ref="RocketmqNamesrvAppender" />
+		<appender-ref ref="RocketmqFiltersrvAppender" />
 	</logger>
 
 	<logger name="RocketmqCommon" additivity="false">
 		<level value="INFO" />
-		<appender-ref ref="RocketmqNamesrvAppender" />
+		<appender-ref ref="RocketmqFiltersrvAppender" />
 	</logger>
 
 	<logger name="RocketmqRemoting" additivity="false">
 		<level value="INFO" />
-		<appender-ref ref="RocketmqNamesrvAppender" />
+		<appender-ref ref="RocketmqFiltersrvAppender" />
 	</logger>
 
 	<root>
