@@ -32,7 +32,7 @@ public class FilterServerManager {
     private final BrokerController brokerController;
 
     private ScheduledExecutorService scheduledExecutorService = Executors
-        .newSingleThreadScheduledExecutor(new ThreadFactoryImpl("ClientHousekeepingScheduledThread"));
+        .newSingleThreadScheduledExecutor(new ThreadFactoryImpl("FilterServerManagerScheduledThread"));
 
     class FilterServerInfo {
         private String filterServerAddr;
@@ -93,7 +93,7 @@ public class FilterServerManager {
         }
 
         if (this.brokerController.getBrokerConfig().getNamesrvAddr() != null) {
-            config += String.format(" -n '%s'", this.brokerController.getBrokerConfig().getNamesrvAddr());
+            config += String.format(" -n %s", this.brokerController.getBrokerConfig().getNamesrvAddr());
         }
 
         if (RemotingUtil.isWindowsPlatform()) {

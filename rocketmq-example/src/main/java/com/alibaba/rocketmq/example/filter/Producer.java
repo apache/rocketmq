@@ -29,7 +29,7 @@ public class Producer {
 
         try {
             for (int i = 0; i < 60; i++) {
-                Message msg = new Message("TopicFilter3",// topic
+                Message msg = new Message("TopicFilter5",// topic
                     "TagA",// tag
                     "OrderID001",// key
                     ("Hello MetaQ").getBytes());// body
