@@ -52,7 +52,7 @@ public class DynaCode {
     /**
      * 生成java文件的路径
      */
-    private String sourcePath = System.getProperty("user.home") + FILE_SP + "rocketmq_filter_class"
+    private String sourcePath = System.getProperty("user.home") + FILE_SP + "rocketmq_filter_class" + FILE_SP
             + UtilAll.getPid();
 
     /**
