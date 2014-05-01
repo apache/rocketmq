@@ -213,7 +213,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 (RegisterFilterServerRequestHeader) request
                     .decodeCommandCustomHeader(RegisterFilterServerRequestHeader.class);
 
-        this.brokerController.getFilterServerManager().registerFilterServer(
+        this.brokerController.getFilterServerManager().registerFilterServer(ctx.channel(),
             requestHeader.getFilterServerAddr());
 
         responseHeader.setBrokerId(this.brokerController.getBrokerConfig().getBrokerId());
