@@ -34,7 +34,7 @@ import com.alibaba.rocketmq.client.exception.MQBrokerException;
 import com.alibaba.rocketmq.client.exception.MQClientException;
 import com.alibaba.rocketmq.client.impl.CommunicationMode;
 import com.alibaba.rocketmq.client.impl.MQClientManager;
-import com.alibaba.rocketmq.client.impl.factory.MQClientFactory;
+import com.alibaba.rocketmq.client.impl.factory.MQClientInstance;
 import com.alibaba.rocketmq.client.log.ClientLogger;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.ServiceState;
@@ -62,7 +62,7 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
     private final Logger log = ClientLogger.getLog();
     private final DefaultMQPullConsumer defaultMQPullConsumer;
     private ServiceState serviceState = ServiceState.CREATE_JUST;
-    private MQClientFactory mQClientFactory;
+    private MQClientInstance mQClientFactory;
     private PullAPIWrapper pullAPIWrapper;
     // 消费进度存储
     private OffsetStore offsetStore;
@@ -483,7 +483,7 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
             this.copySubscription();
 
             this.mQClientFactory =
-                    MQClientManager.getInstance().getAndCreateMQClientFactory(this.defaultMQPullConsumer);
+                    MQClientManager.getInstance().getAndCreateMQClientInstance(this.defaultMQPullConsumer);
 
             // 初始化Rebalance变量
             this.rebalanceImpl.setConsumerGroup(this.defaultMQPullConsumer.getConsumerGroup());

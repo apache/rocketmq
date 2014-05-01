@@ -30,7 +30,7 @@ import org.slf4j.Logger;
 
 import com.alibaba.rocketmq.client.consumer.AllocateMessageQueueStrategy;
 import com.alibaba.rocketmq.client.impl.FindBrokerResult;
-import com.alibaba.rocketmq.client.impl.factory.MQClientFactory;
+import com.alibaba.rocketmq.client.impl.factory.MQClientInstance;
 import com.alibaba.rocketmq.client.log.ClientLogger;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.message.MessageQueue;
@@ -60,11 +60,11 @@ public abstract class RebalanceImpl {
     protected String consumerGroup;
     protected MessageModel messageModel;
     protected AllocateMessageQueueStrategy allocateMessageQueueStrategy;
-    protected MQClientFactory mQClientFactory;
+    protected MQClientInstance mQClientFactory;
 
 
     public RebalanceImpl(String consumerGroup, MessageModel messageModel,
-            AllocateMessageQueueStrategy allocateMessageQueueStrategy, MQClientFactory mQClientFactory) {
+            AllocateMessageQueueStrategy allocateMessageQueueStrategy, MQClientInstance mQClientFactory) {
         this.consumerGroup = consumerGroup;
         this.messageModel = messageModel;
         this.allocateMessageQueueStrategy = allocateMessageQueueStrategy;
@@ -473,12 +473,12 @@ public abstract class RebalanceImpl {
     }
 
 
-    public MQClientFactory getmQClientFactory() {
+    public MQClientInstance getmQClientFactory() {
         return mQClientFactory;
     }
 
 
-    public void setmQClientFactory(MQClientFactory mQClientFactory) {
+    public void setmQClientFactory(MQClientInstance mQClientFactory) {
         this.mQClientFactory = mQClientFactory;
     }
 }

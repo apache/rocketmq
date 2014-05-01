@@ -77,16 +77,16 @@ import com.alibaba.rocketmq.remoting.netty.NettyClientConfig;
 
 
 /**
- * 客户端Factory类，用来管理Producer与Consumer
+ * 客户端实例，用来管理客户端资源
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-6-15
  */
-public class MQClientFactory {
+public class MQClientInstance {
     private final static long LockTimeoutMillis = 3000;
     private final Logger log = ClientLogger.getLog();
     private final ClientConfig clientConfig;
-    private final int factoryIndex;
+    private final int instanceIndex;
     private final String clientId;
     private final long bootTimestamp = System.currentTimeMillis();
     // Producer对象
@@ -134,9 +134,9 @@ public class MQClientFactory {
     private DatagramSocket datagramSocket;
 
 
-    public MQClientFactory(ClientConfig clientConfig, int factoryIndex, String clientId) {
+    public MQClientInstance(ClientConfig clientConfig, int instanceIndex, String clientId) {
         this.clientConfig = clientConfig;
-        this.factoryIndex = factoryIndex;
+        this.instanceIndex = instanceIndex;
         this.nettyClientConfig = new NettyClientConfig();
         this.nettyClientConfig.setClientCallbackExecutorThreads(clientConfig
             .getClientCallbackExecutorThreads());
@@ -160,7 +160,7 @@ public class MQClientFactory {
         this.defaultMQProducer.resetClientConfig(clientConfig);
 
         log.info("created a new client fatory, FactoryIndex: {} ClinetID: {} {} {}",//
-            this.factoryIndex, //
+            this.instanceIndex, //
             this.clientId, //
             this.clientConfig, //
             MQVersion.getVersionDesc(MQVersion.CurrentVersion));
@@ -230,7 +230,7 @@ public class MQClientFactory {
                 @Override
                 public void run() {
                     try {
-                        MQClientFactory.this.mQClientAPIImpl.fetchNameServerAddr();
+                        MQClientInstance.this.mQClientAPIImpl.fetchNameServerAddr();
                     }
                     catch (Exception e) {
                         log.error("ScheduledTask fetchNameServerAddr exception", e);
@@ -245,7 +245,7 @@ public class MQClientFactory {
             @Override
             public void run() {
                 try {
-                    MQClientFactory.this.updateTopicRouteInfoFromNameServer();
+                    MQClientInstance.this.updateTopicRouteInfoFromNameServer();
                 }
                 catch (Exception e) {
                     log.error("ScheduledTask updateTopicRouteInfoFromNameServer exception", e);
@@ -260,8 +260,8 @@ public class MQClientFactory {
             @Override
             public void run() {
                 try {
-                    MQClientFactory.this.cleanOfflineBroker();
-                    MQClientFactory.this.sendHeartbeatToAllBrokerWithLock();
+                    MQClientInstance.this.cleanOfflineBroker();
+                    MQClientInstance.this.sendHeartbeatToAllBrokerWithLock();
                 }
                 catch (Exception e) {
                     log.error("ScheduledTask sendHeartbeatToAllBroker exception", e);
@@ -275,7 +275,7 @@ public class MQClientFactory {
             @Override
             public void run() {
                 try {
-                    MQClientFactory.this.persistAllConsumerOffset();
+                    MQClientInstance.this.persistAllConsumerOffset();
                 }
                 catch (Exception e) {
                     log.error("ScheduledTask persistAllConsumerOffset exception", e);
@@ -289,7 +289,7 @@ public class MQClientFactory {
             @Override
             public void run() {
                 try {
-                    MQClientFactory.this.recordSnapshotPeriodically();
+                    MQClientInstance.this.recordSnapshotPeriodically();
                 }
                 catch (Exception e) {
                     log.error("ScheduledTask uploadConsumerOffsets exception", e);
@@ -302,7 +302,7 @@ public class MQClientFactory {
             @Override
             public void run() {
                 try {
-                    MQClientFactory.this.logStatsPeriodically();
+                    MQClientInstance.this.logStatsPeriodically();
                 }
                 catch (Exception e) {
                     log.error("ScheduledTask uploadConsumerOffsets exception", e);

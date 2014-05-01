@@ -27,7 +27,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.slf4j.Logger;
 
 import com.alibaba.rocketmq.client.exception.MQClientException;
-import com.alibaba.rocketmq.client.impl.factory.MQClientFactory;
+import com.alibaba.rocketmq.client.impl.factory.MQClientInstance;
 import com.alibaba.rocketmq.client.log.ClientLogger;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.UtilAll;
@@ -46,7 +46,7 @@ public class LocalFileOffsetStore implements OffsetStore {
         "rocketmq.client.localOffsetStoreDir", //
         System.getProperty("user.home") + File.separator + ".rocketmq_offsets");
     private final static Logger log = ClientLogger.getLog();
-    private final MQClientFactory mQClientFactory;
+    private final MQClientInstance mQClientFactory;
     private final String groupName;
     // 本地Offset存储路径
     private final String storePath;
@@ -54,7 +54,7 @@ public class LocalFileOffsetStore implements OffsetStore {
             new ConcurrentHashMap<MessageQueue, AtomicLong>();
 
 
-    public LocalFileOffsetStore(MQClientFactory mQClientFactory, String groupName) {
+    public LocalFileOffsetStore(MQClientInstance mQClientFactory, String groupName) {
         this.mQClientFactory = mQClientFactory;
         this.groupName = groupName;
         this.storePath = LocalOffsetStoreDir + File.separator + //

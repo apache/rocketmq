@@ -37,7 +37,7 @@ import com.alibaba.rocketmq.client.exception.MQBrokerException;
 import com.alibaba.rocketmq.client.exception.MQClientException;
 import com.alibaba.rocketmq.client.impl.CommunicationMode;
 import com.alibaba.rocketmq.client.impl.MQClientManager;
-import com.alibaba.rocketmq.client.impl.factory.MQClientFactory;
+import com.alibaba.rocketmq.client.impl.factory.MQClientInstance;
 import com.alibaba.rocketmq.client.log.ClientLogger;
 import com.alibaba.rocketmq.client.producer.DefaultMQProducer;
 import com.alibaba.rocketmq.client.producer.LocalTransactionExecuter;
@@ -86,7 +86,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     protected BlockingQueue<Runnable> checkRequestQueue;
     protected ExecutorService checkExecutor;
     private ServiceState serviceState = ServiceState.CREATE_JUST;
-    private MQClientFactory mQClientFactory;
+    private MQClientInstance mQClientFactory;
 
     /**
      * 发送每条消息会回调
@@ -192,7 +192,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             this.checkConfig();
 
             this.mQClientFactory =
-                    MQClientManager.getInstance().getAndCreateMQClientFactory(this.defaultMQProducer);
+                    MQClientManager.getInstance().getAndCreateMQClientInstance(this.defaultMQProducer);
 
             boolean registerOK =
                     mQClientFactory.registerProducer(this.defaultMQProducer.getProducerGroup(), this);
@@ -991,7 +991,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     }
 
 
-    public MQClientFactory getmQClientFactory() {
+    public MQClientInstance getmQClientFactory() {
         return mQClientFactory;
     }
 

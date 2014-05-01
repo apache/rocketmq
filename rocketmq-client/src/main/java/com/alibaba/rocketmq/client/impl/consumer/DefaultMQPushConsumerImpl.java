@@ -39,7 +39,7 @@ import com.alibaba.rocketmq.client.hook.ConsumeMessageContext;
 import com.alibaba.rocketmq.client.hook.ConsumeMessageHook;
 import com.alibaba.rocketmq.client.impl.CommunicationMode;
 import com.alibaba.rocketmq.client.impl.MQClientManager;
-import com.alibaba.rocketmq.client.impl.factory.MQClientFactory;
+import com.alibaba.rocketmq.client.impl.factory.MQClientInstance;
 import com.alibaba.rocketmq.client.log.ClientLogger;
 import com.alibaba.rocketmq.client.stat.ConsumerStatManager;
 import com.alibaba.rocketmq.common.MixAll;
@@ -82,7 +82,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
     private final RebalanceImpl rebalanceImpl = new RebalancePushImpl(this);
     private final ConsumerStatManager consumerStatManager = new ConsumerStatManager();
     private ServiceState serviceState = ServiceState.CREATE_JUST;
-    private MQClientFactory mQClientFactory;
+    private MQClientInstance mQClientFactory;
     private PullAPIWrapper pullAPIWrapper;
     // 是否暂停接收消息 suspend/resume
     private volatile boolean pause = false;
@@ -614,7 +614,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
             this.copySubscription();
 
             this.mQClientFactory =
-                    MQClientManager.getInstance().getAndCreateMQClientFactory(this.defaultMQPushConsumer);
+                    MQClientManager.getInstance().getAndCreateMQClientInstance(this.defaultMQPushConsumer);
 
             // 初始化Rebalance变量
             this.rebalanceImpl.setConsumerGroup(this.defaultMQPushConsumer.getConsumerGroup());
