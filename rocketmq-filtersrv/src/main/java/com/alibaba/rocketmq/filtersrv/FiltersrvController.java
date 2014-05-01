@@ -43,7 +43,7 @@ import com.alibaba.rocketmq.remoting.netty.NettyServerConfig;
  * @since 2013-7-5
  */
 public class FiltersrvController {
-    private static final Logger log = LoggerFactory.getLogger(LoggerName.NamesrvLoggerName);
+    private static final Logger log = LoggerFactory.getLogger(LoggerName.FiltersrvLoggerName);
     // Filter Server配置
     private final FiltersrvConfig filtersrvConfig;
     // 通信层配置

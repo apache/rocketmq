@@ -58,7 +58,7 @@ import com.alibaba.rocketmq.store.CommitLog;
  * @since 2014-4-20
  */
 public class DefaultRequestProcessor implements NettyRequestProcessor {
-    private static final Logger log = LoggerFactory.getLogger(LoggerName.NamesrvLoggerName);
+    private static final Logger log = LoggerFactory.getLogger(LoggerName.FiltersrvLoggerName);
 
     private final FiltersrvController filtersrvController;
 
