@@ -25,7 +25,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -56,6 +55,7 @@ import com.alibaba.rocketmq.broker.transaction.DefaultTransactionCheckExecuter;
 import com.alibaba.rocketmq.common.BrokerConfig;
 import com.alibaba.rocketmq.common.DataVersion;
 import com.alibaba.rocketmq.common.MixAll;
+import com.alibaba.rocketmq.common.ThreadFactoryImpl;
 import com.alibaba.rocketmq.common.UtilAll;
 import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.common.namesrv.RegisterBrokerResult;
@@ -224,15 +224,7 @@ public class BrokerController {
                 1000 * 60,//
                 TimeUnit.MILLISECONDS,//
                 this.sendThreadPoolQueue,//
-                new ThreadFactory() {
-                    private AtomicInteger threadIndex = new AtomicInteger(0);
-
-
-                    @Override
-                    public Thread newThread(Runnable r) {
-                        return new Thread(r, "SendMessageThread_" + this.threadIndex.incrementAndGet());
-                    }
-                });
+                new ThreadFactoryImpl("SendMessageThread_"));
 
             this.pullMessageExecutor = new ThreadPoolExecutor(//
                 this.brokerConfig.getPullMessageThreadPoolNums(),//
@@ -240,29 +232,11 @@ public class BrokerController {
                 1000 * 60,//
                 TimeUnit.MILLISECONDS,//
                 this.pullThreadPoolQueue,//
-                new ThreadFactory() {
-                    private AtomicInteger threadIndex = new AtomicInteger(0);
-
-
-                    @Override
-                    public Thread newThread(Runnable r) {
-                        return new Thread(r, "PullMessageThread_" + this.threadIndex.incrementAndGet());
-                    }
-                });
+                new ThreadFactoryImpl("PullMessageThread_"));
 
             this.adminBrokerExecutor =
                     Executors.newFixedThreadPool(this.brokerConfig.getAdminBrokerThreadPoolNums(),
-                        new ThreadFactory() {
-
-                            private AtomicInteger threadIndex = new AtomicInteger(0);
-
-
-                            @Override
-                            public Thread newThread(Runnable r) {
-                                return new Thread(r, "AdminBrokerThread_"
-                                        + this.threadIndex.incrementAndGet());
-                            }
-                        });
+                        new ThreadFactoryImpl("AdminBrokerThread_"));
 
             this.registerProcessor();
 
