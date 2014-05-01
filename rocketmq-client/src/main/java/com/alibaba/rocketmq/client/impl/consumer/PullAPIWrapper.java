@@ -34,7 +34,7 @@ import com.alibaba.rocketmq.client.hook.FilterMessageContext;
 import com.alibaba.rocketmq.client.hook.FilterMessageHook;
 import com.alibaba.rocketmq.client.impl.CommunicationMode;
 import com.alibaba.rocketmq.client.impl.FindBrokerResult;
-import com.alibaba.rocketmq.client.impl.factory.MQClientFactory;
+import com.alibaba.rocketmq.client.impl.factory.MQClientInstance;
 import com.alibaba.rocketmq.client.log.ClientLogger;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.UtilAll;
@@ -60,7 +60,7 @@ public class PullAPIWrapper {
     private ConcurrentHashMap<MessageQueue, AtomicLong/* brokerId */> pullFromWhichNodeTable =
             new ConcurrentHashMap<MessageQueue, AtomicLong>(32);
 
-    private final MQClientFactory mQClientFactory;
+    private final MQClientInstance mQClientFactory;
     private final String consumerGroup;
     private final boolean isUnitMode;
 
@@ -68,7 +68,7 @@ public class PullAPIWrapper {
     private volatile long defaultBrokerId = MixAll.MASTER_ID;
 
 
-    public PullAPIWrapper(MQClientFactory mQClientFactory, String consumerGroup, boolean isUnitMode) {
+    public PullAPIWrapper(MQClientInstance mQClientFactory, String consumerGroup, boolean isUnitMode) {
         this.mQClientFactory = mQClientFactory;
         this.consumerGroup = consumerGroup;
         this.isUnitMode = isUnitMode;

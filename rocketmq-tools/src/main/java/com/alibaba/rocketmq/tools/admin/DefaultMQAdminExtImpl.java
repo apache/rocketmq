@@ -33,7 +33,7 @@ import com.alibaba.rocketmq.client.admin.MQAdminExtInner;
 import com.alibaba.rocketmq.client.exception.MQBrokerException;
 import com.alibaba.rocketmq.client.exception.MQClientException;
 import com.alibaba.rocketmq.client.impl.MQClientManager;
-import com.alibaba.rocketmq.client.impl.factory.MQClientFactory;
+import com.alibaba.rocketmq.client.impl.factory.MQClientInstance;
 import com.alibaba.rocketmq.client.log.ClientLogger;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.ServiceState;
@@ -75,7 +75,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
     private final Logger log = ClientLogger.getLog();
     private final DefaultMQAdminExt defaultMQAdminExt;
     private ServiceState serviceState = ServiceState.CREATE_JUST;
-    private MQClientFactory mQClientFactory;
+    private MQClientInstance mQClientFactory;
 
 
     public DefaultMQAdminExtImpl(DefaultMQAdminExt defaultMQAdminExt) {
@@ -90,7 +90,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
             this.serviceState = ServiceState.START_FAILED;
 
             this.mQClientFactory =
-                    MQClientManager.getInstance().getAndCreateMQClientFactory(this.defaultMQAdminExt);
+                    MQClientManager.getInstance().getAndCreateMQClientInstance(this.defaultMQAdminExt);
 
             boolean registerOK =
                     mQClientFactory.registerAdminExt(this.defaultMQAdminExt.getAdminExtGroup(), this);

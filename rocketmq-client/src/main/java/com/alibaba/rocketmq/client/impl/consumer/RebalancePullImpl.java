@@ -20,7 +20,7 @@ import java.util.Set;
 
 import com.alibaba.rocketmq.client.consumer.AllocateMessageQueueStrategy;
 import com.alibaba.rocketmq.client.consumer.MessageQueueListener;
-import com.alibaba.rocketmq.client.impl.factory.MQClientFactory;
+import com.alibaba.rocketmq.client.impl.factory.MQClientInstance;
 import com.alibaba.rocketmq.common.message.MessageQueue;
 import com.alibaba.rocketmq.common.protocol.heartbeat.MessageModel;
 
@@ -39,7 +39,7 @@ public class RebalancePullImpl extends RebalanceImpl {
 
 
     public RebalancePullImpl(String consumerGroup, MessageModel messageModel,
-            AllocateMessageQueueStrategy allocateMessageQueueStrategy, MQClientFactory mQClientFactory,
+            AllocateMessageQueueStrategy allocateMessageQueueStrategy, MQClientInstance mQClientFactory,
             DefaultMQPullConsumerImpl defaultMQPullConsumerImpl) {
         super(consumerGroup, messageModel, allocateMessageQueueStrategy, mQClientFactory);
         this.defaultMQPullConsumerImpl = defaultMQPullConsumerImpl;
