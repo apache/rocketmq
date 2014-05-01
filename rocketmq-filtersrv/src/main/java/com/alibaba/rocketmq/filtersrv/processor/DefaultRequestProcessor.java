@@ -335,24 +335,25 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
                 (RegisterMessageFilterClassRequestHeader) request
                     .decodeCommandCustomHeader(RegisterMessageFilterClassRequestHeader.class);
 
-        try {
-            boolean ok =
-                    this.filtersrvController.getFilterClassManager().registerFilterClass(
-                        requestHeader.getConsumerGroup(),//
-                        requestHeader.getTopic(),//
-                        requestHeader.getClassName(),//
-                        requestHeader.getClassCRC(), //
-                        request.getBody());// Body传输的是Java Source，必须UTF-8编码
-            if (!ok) {
-                throw new Exception("registerFilterClass error");
+        if (this.filtersrvController.getFiltersrvConfig().isClientUploadFilterClassEnable()) {
+            try {
+                boolean ok =
+                        this.filtersrvController.getFilterClassManager().registerFilterClass(
+                            requestHeader.getConsumerGroup(),//
+                            requestHeader.getTopic(),//
+                            requestHeader.getClassName(),//
+                            requestHeader.getClassCRC(), //
+                            request.getBody());// Body传输的是Java Source，必须UTF-8编码
+                if (!ok) {
+                    throw new Exception("registerFilterClass error");
+                }
+            }
+            catch (Exception e) {
+                response.setCode(ResponseCode.SYSTEM_ERROR);
+                response.setRemark(RemotingHelper.exceptionSimpleDesc(e));
+                return response;
             }
         }
-        catch (Exception e) {
-            response.setCode(ResponseCode.SYSTEM_ERROR);
-            response.setRemark(RemotingHelper.exceptionSimpleDesc(e));
-            return response;
-        }
-
         response.setCode(ResponseCode.SUCCESS);
         response.setRemark(null);
         return response;

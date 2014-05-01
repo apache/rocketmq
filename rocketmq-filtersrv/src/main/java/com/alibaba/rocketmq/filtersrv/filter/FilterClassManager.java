@@ -16,8 +16,6 @@ public class FilterClassManager {
     private ConcurrentHashMap<String/* topic@consumerGroup */, FilterClassInfo> filterClassTable =
             new ConcurrentHashMap<String, FilterClassInfo>(128);
 
-    private FilterClassLoader filterClassLoader = new FilterClassLoader();
-
     // 只为编译加锁使用
     private final Object compileLock = new Object();
 
