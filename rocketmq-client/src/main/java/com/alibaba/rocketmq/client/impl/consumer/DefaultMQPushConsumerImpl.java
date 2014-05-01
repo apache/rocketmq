@@ -15,10 +15,14 @@
  */
 package com.alibaba.rocketmq.client.impl.consumer;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
-import com.alibaba.rocketmq.client.hook.FilterMessageHook;
 import org.slf4j.Logger;
 
 import com.alibaba.rocketmq.client.QueryResult;
@@ -37,6 +41,7 @@ import com.alibaba.rocketmq.client.exception.MQBrokerException;
 import com.alibaba.rocketmq.client.exception.MQClientException;
 import com.alibaba.rocketmq.client.hook.ConsumeMessageContext;
 import com.alibaba.rocketmq.client.hook.ConsumeMessageHook;
+import com.alibaba.rocketmq.client.hook.FilterMessageHook;
 import com.alibaba.rocketmq.client.impl.CommunicationMode;
 import com.alibaba.rocketmq.client.impl.MQClientManager;
 import com.alibaba.rocketmq.client.impl.factory.MQClientInstance;
@@ -612,6 +617,10 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
 
             // 复制订阅关系
             this.copySubscription();
+
+            if (this.defaultMQPushConsumer.getMessageModel() == MessageModel.CLUSTERING) {
+                this.defaultMQPushConsumer.changeInstanceNameToPID();
+            }
 
             this.mQClientFactory =
                     MQClientManager.getInstance().getAndCreateMQClientInstance(this.defaultMQPushConsumer);

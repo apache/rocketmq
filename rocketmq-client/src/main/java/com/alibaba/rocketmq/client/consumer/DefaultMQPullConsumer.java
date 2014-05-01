@@ -60,7 +60,7 @@ public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsume
     /**
      * 集群消费/广播消费
      */
-    private MessageModel messageModel = MessageModel.BROADCASTING;
+    private MessageModel messageModel = MessageModel.CLUSTERING;
     /**
      * 队列变化监听器
      */
