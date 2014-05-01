@@ -92,6 +92,10 @@ public class FilterServerManager {
             config = String.format("-c %s", BrokerStartup.configFile);
         }
 
+        if (this.brokerController.getBrokerConfig().getNamesrvAddr() != null) {
+            config += String.format(" -n '%s'", this.brokerController.getBrokerConfig().getNamesrvAddr());
+        }
+
         return String.format("nohup %s/bin/mqfiltersrv %s&", //
             this.brokerController.getBrokerConfig().getRocketmqHome(),//
             config);
