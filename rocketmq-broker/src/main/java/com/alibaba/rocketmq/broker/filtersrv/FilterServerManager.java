@@ -70,7 +70,7 @@ public class FilterServerManager {
     /**
      * Filter Server 10s向Broker注册一次，Broker如果发现30s没有注册，则删除它
      */
-    public void scanExpiredFilterServer() {
+    public void scanNotActiveChannel() {
         // 单位毫秒
         Iterator<Entry<Channel, FilterServerInfo>> it = this.filterServerTable.entrySet().iterator();
         while (it.hasNext()) {
@@ -82,6 +82,15 @@ public class FilterServerManager {
                 it.remove();
                 RemotingUtil.closeChannel(channel);
             }
+        }
+    }
+
+
+    public void doChannelCloseEvent(final String remoteAddr, final Channel channel) {
+        FilterServerInfo old = this.filterServerTable.remove(channel);
+        if (old != null) {
+            log.warn("The Filter Server<{}> connection<{}> closed, remove it", old.getFilterServerAddr(),
+                remoteAddr);
         }
     }
 

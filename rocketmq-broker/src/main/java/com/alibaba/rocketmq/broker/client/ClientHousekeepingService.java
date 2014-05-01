@@ -55,7 +55,7 @@ public class ClientHousekeepingService implements ChannelEventListener {
 
 
     public void start() {
-        // 定时刷消费进度
+        // 定时扫描过期的连接
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
             @Override
             public void run() {
@@ -73,6 +73,7 @@ public class ClientHousekeepingService implements ChannelEventListener {
     private void scanExceptionChannel() {
         this.brokerController.getProducerManager().scanNotActiveChannel();
         this.brokerController.getConsumerManager().scanNotActiveChannel();
+        this.brokerController.getFilterServerManager().scanNotActiveChannel();
     }
 
 
@@ -91,6 +92,7 @@ public class ClientHousekeepingService implements ChannelEventListener {
     public void onChannelClose(String remoteAddr, Channel channel) {
         this.brokerController.getProducerManager().doChannelCloseEvent(remoteAddr, channel);
         this.brokerController.getConsumerManager().doChannelCloseEvent(remoteAddr, channel);
+        this.brokerController.getFilterServerManager().doChannelCloseEvent(remoteAddr, channel);
     }
 
 
@@ -98,6 +100,7 @@ public class ClientHousekeepingService implements ChannelEventListener {
     public void onChannelException(String remoteAddr, Channel channel) {
         this.brokerController.getProducerManager().doChannelCloseEvent(remoteAddr, channel);
         this.brokerController.getConsumerManager().doChannelCloseEvent(remoteAddr, channel);
+        this.brokerController.getFilterServerManager().doChannelCloseEvent(remoteAddr, channel);
     }
 
 
@@ -105,5 +108,6 @@ public class ClientHousekeepingService implements ChannelEventListener {
     public void onChannelIdle(String remoteAddr, Channel channel) {
         this.brokerController.getProducerManager().doChannelCloseEvent(remoteAddr, channel);
         this.brokerController.getConsumerManager().doChannelCloseEvent(remoteAddr, channel);
+        this.brokerController.getFilterServerManager().doChannelCloseEvent(remoteAddr, channel);
     }
 }
