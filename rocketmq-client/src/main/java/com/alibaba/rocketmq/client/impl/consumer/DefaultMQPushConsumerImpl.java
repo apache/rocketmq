@@ -498,6 +498,8 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
             classFilter = sd.isClassFilterMode();
         }
 
+        pullRequest.getProcessQueue().setLastPullTimestamp(System.currentTimeMillis());
+
         int sysFlag = PullSysFlag.buildSysFlag(//
             commitOffsetEnable, // commitOffset
             true, // suspend

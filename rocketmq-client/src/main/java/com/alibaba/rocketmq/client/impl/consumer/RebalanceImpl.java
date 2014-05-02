@@ -381,6 +381,17 @@ public abstract class RebalanceImpl {
                         log.info("doRebalance, {}, remove unnecessary mq, {}", consumerGroup, mq);
                     }
                 }
+                // 超过2分钟没有拉取动作了，删除它
+                else if (pq.isPullExpired()) {
+                    pq.setDroped(true);
+                    if (this.removeUnnecessaryMessageQueue(mq, pq)) {
+                        it.remove();
+                        changed = true;
+                        log.error(
+                            "[BUG]doRebalance, {}, remove unnecessary mq, {}, because pull is pause, so try to fixed it",
+                            consumerGroup, mq);
+                    }
+                }
             }
         }
 
