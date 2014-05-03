@@ -244,40 +244,6 @@
 		<appender-ref ref="RocketmqBrokerAppender" />
 	</logger>
 
-	<logger name="PutStatsMoniter" additivity="false">
-		<level value="INFO" />
-		<appender-ref ref="RocketmqPutStatsMoniterAppender" />
-	</logger>
-
-	<logger name="GetStatsMoniter" additivity="false">
-		<level value="INFO" />
-		<appender-ref ref="RocketmqGetStatsMoniterAppender" />
-	</logger>
-
-	<logger name="StoreStatsMoniter" additivity="false">
-		<level value="INFO" />
-		<appender-ref ref="RocketmqStoreStatsMoniterAppender" />
-	</logger>
-
-	<logger name="PullmsgLiveMoniter" additivity="false">
-		<level value="ERROR" />
-		<appender-ref ref="RocketmqPullmsgLiveMoniterAppender" />
-	</logger>
-
-	<logger name="SendbackmsgLiveMoniter" additivity="false">
-		<level value="ERROR" />
-		<appender-ref ref="RocketmqSendbackmsgLiveMoniterAppender" />
-	</logger>
-
-	<logger name="SendmsgLiveMoniter" additivity="false">
-		<level value="ERROR" />
-		<appender-ref ref="RocketmqSendmsgLiveMoniterAppender" />
-	</logger>
-	<logger name="UpdateCommitOffsetMoniter" additivity="false">
-		<level value="ERROR" />
-		<appender-ref ref="UpdateCommitOffsetMoniterAppender" />
-	</logger>
-
 	<root>
 		<level value="INFO" />
 		<appender-ref ref="DefaultAppender" />

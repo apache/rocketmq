@@ -36,7 +36,6 @@ import com.alibaba.rocketmq.broker.client.DefaultConsumerIdsChangeListener;
 import com.alibaba.rocketmq.broker.client.ProducerManager;
 import com.alibaba.rocketmq.broker.client.net.Broker2Client;
 import com.alibaba.rocketmq.broker.client.rebalance.RebalanceLockManager;
-import com.alibaba.rocketmq.broker.digestlog.DigestLogManager;
 import com.alibaba.rocketmq.broker.filtersrv.FilterServerManager;
 import com.alibaba.rocketmq.broker.longpolling.PullRequestHoldService;
 import com.alibaba.rocketmq.broker.offset.ConsumerOffsetManager;
@@ -120,7 +119,6 @@ public class BrokerController {
         });
     // Slave定期从Master同步信息
     private final SlaveSynchronize slaveSynchronize;
-    private final DigestLogManager digestLogManager;
     // 存储层对象
     private MessageStore messageStore;
     // 通信层对象
@@ -177,7 +175,6 @@ public class BrokerController {
         }
 
         this.slaveSynchronize = new SlaveSynchronize(this);
-        this.digestLogManager = new DigestLogManager(this);
 
         this.sendThreadPoolQueue =
                 new LinkedBlockingQueue<Runnable>(this.brokerConfig.getSendThreadPoolQueueCapacity());
@@ -465,11 +462,6 @@ public class BrokerController {
     }
 
 
-    public DigestLogManager getDigestLogManager() {
-        return digestLogManager;
-    }
-
-
     public void shutdown() {
         if (this.clientHousekeepingService != null) {
             this.clientHousekeepingService.shutdown();
@@ -511,7 +503,6 @@ public class BrokerController {
         if (this.brokerOuterAPI != null) {
             this.brokerOuterAPI.shutdown();
         }
-        this.digestLogManager.dispose();
 
         this.consumerOffsetManager.persist();
 
@@ -561,8 +552,6 @@ public class BrokerController {
             this.filterServerManager.start();
         }
 
-        // 启动统计日志
-        this.digestLogManager.start();
         // 启动时，强制注册
         this.registerBrokerAll();
 
