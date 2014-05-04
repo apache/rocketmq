@@ -7,7 +7,6 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import org.slf4j.Logger;
 
-import com.alibaba.rocketmq.common.SystemClock;
 import com.alibaba.rocketmq.common.UtilAll;
 
 
@@ -23,26 +22,26 @@ public class StatsItem {
     private final LinkedList<CallSnapshot> csListDay = new LinkedList<CallSnapshot>();
 
     private final String statsName;
-    private final SystemClock systemClock;
+    private final String statsKey;
     private final ScheduledExecutorService scheduledExecutorService;
     private final Logger log;
 
     private volatile long sumInLastMinutes = 0;
+    private volatile double avgpsInLastMinutes = 0;
     private volatile long sumInLastHour = 0;
     private volatile long sumInLastDay = 0;
 
 
-    public StatsItem(String statsName, SystemClock systemClock,
-            ScheduledExecutorService scheduledExecutorService, Logger log) {
+    public StatsItem(String statsName, String statsKey, ScheduledExecutorService scheduledExecutorService,
+            Logger log) {
         this.statsName = statsName;
-        this.systemClock = systemClock;
+        this.statsKey = statsKey;
         this.scheduledExecutorService = scheduledExecutorService;
         this.log = log;
-        this.init();
     }
 
 
-    private void init() {
+    public void init() {
         // 每隔10s执行一次
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
             @Override
@@ -127,10 +126,12 @@ public class StatsItem {
             CallSnapshot last = this.csListMinute.getLast();
             sumInLastMinutes = last.getCallTimesTotal() - first.getCallTimesTotal();
             avgps = (sumInLastMinutes * 1000.0d) / (last.getTimestamp() - first.getTimestamp());
+            this.avgpsInLastMinutes = avgps;
         }
 
-        log.info(String.format("[%s] Stats In Minutes, SUM: %d AVGPS: %14.4f", //
+        log.info(String.format("[%s %s] Stats In Minutes, SUM: %d AVGPS: %14.4f", //
             this.statsName,//
+            this.statsKey,//
             sumInLastMinutes, avgps));
     }
 
@@ -144,8 +145,9 @@ public class StatsItem {
             avgps = (sumInLastHour * 1000.0d) / (last.getTimestamp() - first.getTimestamp());
         }
 
-        log.info(String.format("[%s] Stats In Hours, SUM: %d AVGPS: %14.4f", //
+        log.info(String.format("[%s %s] Stats In Hours, SUM: %d AVGPS: %14.4f", //
             this.statsName,//
+            this.statsKey,//
             sumInLastHour, avgps));
     }
 
@@ -159,14 +161,15 @@ public class StatsItem {
             avgps = (sumInLastDay * 1000.0d) / (last.getTimestamp() - first.getTimestamp());
         }
 
-        log.info(String.format("[%s] Stats In Day, SUM: %d AVGPS: %14.4f", //
+        log.info(String.format("[%s %s] Stats In Day, SUM: %d AVGPS: %14.4f", //
             this.statsName,//
+            this.statsKey,//
             sumInLastDay, avgps));
     }
 
 
     private void samplingInSeconds() {
-        this.csListMinute.add(new CallSnapshot(this.systemClock.now(), this.value.get()));
+        this.csListMinute.add(new CallSnapshot(System.currentTimeMillis(), this.value.get()));
         if (this.csListMinute.size() > 6) {
             this.csListMinute.removeFirst();
         }
@@ -174,7 +177,7 @@ public class StatsItem {
 
 
     private void samplingInMinutes() {
-        this.csListHour.add(new CallSnapshot(this.systemClock.now(), this.value.get()));
+        this.csListHour.add(new CallSnapshot(System.currentTimeMillis(), this.value.get()));
         if (this.csListHour.size() > 6) {
             this.csListHour.removeFirst();
         }
@@ -182,7 +185,7 @@ public class StatsItem {
 
 
     private void samplingInHour() {
-        this.csListDay.add(new CallSnapshot(this.systemClock.now(), this.value.get()));
+        this.csListDay.add(new CallSnapshot(System.currentTimeMillis(), this.value.get()));
         if (this.csListDay.size() > 24) {
             this.csListDay.removeFirst();
         }
@@ -221,6 +224,26 @@ public class StatsItem {
 
     public void setSumInLastDay(long sumInLastDay) {
         this.sumInLastDay = sumInLastDay;
+    }
+
+
+    public String getStatsKey() {
+        return statsKey;
+    }
+
+
+    public double getAvgpsInLastMinutes() {
+        return avgpsInLastMinutes;
+    }
+
+
+    public void setAvgpsInLastMinutes(double avgpsInLastMinutes) {
+        this.avgpsInLastMinutes = avgpsInLastMinutes;
+    }
+
+
+    public String getStatsName() {
+        return statsName;
     }
 }
 

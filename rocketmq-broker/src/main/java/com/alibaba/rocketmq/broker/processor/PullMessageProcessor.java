@@ -324,6 +324,14 @@ public class PullMessageProcessor implements NettyRequestProcessor {
 
             switch (response.getCode()) {
             case ResponseCode.SUCCESS:
+                this.brokerController.getBrokerStatsManager().incGroupGetNums(
+                    requestHeader.getConsumerGroup(), requestHeader.getTopic(),
+                    getMessageResult.getMessageCount());
+
+                this.brokerController.getBrokerStatsManager().incGroupGetSize(
+                    requestHeader.getConsumerGroup(), requestHeader.getTopic(),
+                    getMessageResult.getBufferTotalSize());
+
                 try {
                     FileRegion fileRegion =
                             new ManyMessageTransfer(response.encodeHeader(getMessageResult

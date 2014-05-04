@@ -47,6 +47,7 @@ import com.alibaba.rocketmq.broker.processor.QueryMessageProcessor;
 import com.alibaba.rocketmq.broker.processor.SendMessageProcessor;
 import com.alibaba.rocketmq.broker.slave.SlaveSynchronize;
 import com.alibaba.rocketmq.broker.stats.BrokerStats;
+import com.alibaba.rocketmq.broker.stats.BrokerStatsManager;
 import com.alibaba.rocketmq.broker.subscription.SubscriptionGroupManager;
 import com.alibaba.rocketmq.broker.topic.TopicConfigManager;
 import com.alibaba.rocketmq.broker.transaction.DefaultTransactionCheckExecuter;
@@ -138,6 +139,8 @@ public class BrokerController {
     // FilterServer管理
     private final FilterServerManager filterServerManager;
 
+    private final BrokerStatsManager brokerStatsManager;
+
 
     public BrokerController(//
             final BrokerConfig brokerConfig, //
@@ -175,6 +178,8 @@ public class BrokerController {
 
         this.pullThreadPoolQueue =
                 new LinkedBlockingQueue<Runnable>(this.brokerConfig.getPullThreadPoolQueueCapacity());
+
+        this.brokerStatsManager = new BrokerStatsManager();
     }
 
 
@@ -457,6 +462,10 @@ public class BrokerController {
 
 
     public void shutdown() {
+        if (this.brokerStatsManager != null) {
+            this.brokerStatsManager.shutdown();
+        }
+
         if (this.clientHousekeepingService != null) {
             this.clientHousekeepingService.shutdown();
         }
@@ -562,6 +571,10 @@ public class BrokerController {
                 }
             }
         }, 1000 * 10, 1000 * 30, TimeUnit.MILLISECONDS);
+
+        if (this.brokerStatsManager != null) {
+            this.brokerStatsManager.start();
+        }
     }
 
 
@@ -714,6 +727,11 @@ public class BrokerController {
 
     public FilterServerManager getFilterServerManager() {
         return filterServerManager;
+    }
+
+
+    public BrokerStatsManager getBrokerStatsManager() {
+        return brokerStatsManager;
     }
 
 }
