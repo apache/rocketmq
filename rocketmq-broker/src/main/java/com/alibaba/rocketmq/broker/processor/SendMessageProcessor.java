@@ -408,11 +408,8 @@ public class SendMessageProcessor implements NettyRequestProcessor {
             if (sendOK) {
                 // 统计
                 this.brokerController.getBrokerStatsManager().incTopicPutNums(msgInner.getTopic());
-                int putSize = 0;
-                if (putMessageResult.getAppendMessageResult() != null) {
-                    putSize += putMessageResult.getAppendMessageResult().getWroteBytes();
-                }
-                this.brokerController.getBrokerStatsManager().incTopicPutSize(msgInner.getTopic(), putSize);
+                this.brokerController.getBrokerStatsManager().incTopicPutSize(msgInner.getTopic(),
+                    putMessageResult.getAppendMessageResult().getWroteBytes());
 
                 response.setRemark(null);
 

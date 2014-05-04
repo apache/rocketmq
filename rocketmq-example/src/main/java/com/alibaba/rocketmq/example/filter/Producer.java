@@ -25,10 +25,11 @@ public class Producer {
     public static void main(String[] args) throws MQClientException, InterruptedException {
         DefaultMQProducer producer = new DefaultMQProducer("ProducerGroupName");
         producer.setNamesrvAddr("10.235.170.7:9877");
+        producer.setNamesrvAddr("127.0.0.1:9876");
         producer.start();
 
         try {
-            for (int i = 0; i < 600; i++) {
+            for (int i = 0; i < 6000000; i++) {
                 Message msg = new Message("TopicFilter7",// topic
                     "TagA",// tag
                     "OrderID001",// key

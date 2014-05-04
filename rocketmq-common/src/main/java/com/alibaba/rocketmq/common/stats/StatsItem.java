@@ -129,7 +129,7 @@ public class StatsItem {
             this.avgpsInLastMinutes = avgps;
         }
 
-        log.info(String.format("[%s %s] Stats In Minutes, SUM: %d AVGPS: %14.4f", //
+        log.info(String.format("[%s %s] Stats In Minutes, SUM: %d AVGPS: %.2f", //
             this.statsName,//
             this.statsKey,//
             sumInLastMinutes, avgps));
@@ -145,7 +145,7 @@ public class StatsItem {
             avgps = (sumInLastHour * 1000.0d) / (last.getTimestamp() - first.getTimestamp());
         }
 
-        log.info(String.format("[%s %s] Stats In Hours, SUM: %d AVGPS: %14.4f", //
+        log.info(String.format("[%s %s] Stats In Hours, SUM: %d AVGPS: %.2f", //
             this.statsName,//
             this.statsKey,//
             sumInLastHour, avgps));
@@ -161,7 +161,7 @@ public class StatsItem {
             avgps = (sumInLastDay * 1000.0d) / (last.getTimestamp() - first.getTimestamp());
         }
 
-        log.info(String.format("[%s %s] Stats In Day, SUM: %d AVGPS: %14.4f", //
+        log.info(String.format("[%s %s] Stats In Day, SUM: %d AVGPS: %.2f", //
             this.statsName,//
             this.statsKey,//
             sumInLastDay, avgps));
