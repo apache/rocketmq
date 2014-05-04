@@ -34,6 +34,7 @@ import com.alibaba.rocketmq.common.UtilAll;
 import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.common.constant.PermName;
 import com.alibaba.rocketmq.common.help.FAQUrl;
+import com.alibaba.rocketmq.common.message.MessageAccessor;
 import com.alibaba.rocketmq.common.message.MessageConst;
 import com.alibaba.rocketmq.common.message.MessageDecoder;
 import com.alibaba.rocketmq.common.message.MessageExt;
@@ -151,7 +152,7 @@ public class SendMessageProcessor implements NettyRequestProcessor {
         // 构造消息
         final String retryTopic = msgExt.getProperty(MessageConst.PROPERTY_RETRY_TOPIC);
         if (null == retryTopic) {
-            msgExt.putProperty(MessageConst.PROPERTY_RETRY_TOPIC, msgExt.getTopic());
+            MessageAccessor.putProperty(msgExt, MessageConst.PROPERTY_RETRY_TOPIC, msgExt.getTopic());
         }
         msgExt.setWaitStoreMsgOK(false);
 
@@ -188,7 +189,7 @@ public class SendMessageProcessor implements NettyRequestProcessor {
         msgInner.setTopic(newTopic);
         msgInner.setBody(msgExt.getBody());
         msgInner.setFlag(msgExt.getFlag());
-        msgInner.setProperties(msgExt.getProperties());
+        MessageAccessor.setProperties(msgInner, msgExt.getProperties());
         msgInner.setPropertiesString(MessageDecoder.messageProperties2String(msgExt.getProperties()));
         msgInner.setTagsCode(MessageExtBrokerInner.tagsString2tagsCode(null, msgExt.getTags()));
 
@@ -334,7 +335,8 @@ public class SendMessageProcessor implements NettyRequestProcessor {
         msgInner.setTopic(requestHeader.getTopic());
         msgInner.setBody(body);
         msgInner.setFlag(requestHeader.getFlag());
-        msgInner.setProperties(MessageDecoder.string2messageProperties(requestHeader.getProperties()));
+        MessageAccessor.setProperties(msgInner,
+            MessageDecoder.string2messageProperties(requestHeader.getProperties()));
         msgInner.setPropertiesString(requestHeader.getProperties());
         msgInner.setTagsCode(MessageExtBrokerInner.tagsString2tagsCode(topicConfig.getTopicFilterType(),
             msgInner.getTags()));

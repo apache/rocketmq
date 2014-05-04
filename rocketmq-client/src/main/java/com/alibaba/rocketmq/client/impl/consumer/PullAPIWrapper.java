@@ -38,6 +38,7 @@ import com.alibaba.rocketmq.client.impl.factory.MQClientInstance;
 import com.alibaba.rocketmq.client.log.ClientLogger;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.UtilAll;
+import com.alibaba.rocketmq.common.message.MessageAccessor;
 import com.alibaba.rocketmq.common.message.MessageConst;
 import com.alibaba.rocketmq.common.message.MessageDecoder;
 import com.alibaba.rocketmq.common.message.MessageExt;
@@ -169,18 +170,19 @@ public class PullAPIWrapper {
                 for (MessageExt msg : msgListFilterAgain) {
                     msg.setTopic(VirtualEnvUtil.clearProjectGroup(msg.getTopic(), projectGroupPrefix));
                     // 消息中放入队列的最大最小Offset，方便应用来感知消息堆积程度
-                    msg.putProperty(MessageConst.PROPERTY_MIN_OFFSET,
+
+                    MessageAccessor.putProperty(msg, MessageConst.PROPERTY_MIN_OFFSET,
                         Long.toString(pullResult.getMinOffset()));
-                    msg.putProperty(MessageConst.PROPERTY_MAX_OFFSET,
+                    MessageAccessor.putProperty(msg, MessageConst.PROPERTY_MAX_OFFSET,
                         Long.toString(pullResult.getMaxOffset()));
                 }
             }
             else {
                 // 消息中放入队列的最大最小Offset，方便应用来感知消息堆积程度
                 for (MessageExt msg : msgListFilterAgain) {
-                    msg.putProperty(MessageConst.PROPERTY_MIN_OFFSET,
+                    MessageAccessor.putProperty(msg, MessageConst.PROPERTY_MIN_OFFSET,
                         Long.toString(pullResult.getMinOffset()));
-                    msg.putProperty(MessageConst.PROPERTY_MAX_OFFSET,
+                    MessageAccessor.putProperty(msg, MessageConst.PROPERTY_MAX_OFFSET,
                         Long.toString(pullResult.getMaxOffset()));
                 }
             }
@@ -274,7 +276,6 @@ public class PullAPIWrapper {
         throw new MQClientException("The broker[" + mq.getBrokerName() + "] not exist", null);
     }
 
- 
     /**
      * 从服务端拉消息之后，会执行 FilterMessageHook
      */
@@ -304,6 +305,7 @@ public class PullAPIWrapper {
         }
     }
 
+
     public long getDefaultBrokerId() {
         return defaultBrokerId;
     }
@@ -321,6 +323,6 @@ public class PullAPIWrapper {
 
     public void setConnectBrokerByUser(boolean connectBrokerByUser) {
         this.connectBrokerByUser = connectBrokerByUser;
- 
+
     }
 }

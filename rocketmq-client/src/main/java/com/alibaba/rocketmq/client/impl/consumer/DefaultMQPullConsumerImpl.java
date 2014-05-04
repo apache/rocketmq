@@ -19,6 +19,7 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 import com.alibaba.rocketmq.client.hook.FilterMessageHook;
+
 import org.slf4j.Logger;
 
 import com.alibaba.rocketmq.client.QueryResult;
@@ -42,6 +43,7 @@ import com.alibaba.rocketmq.common.consumer.ConsumeFromWhere;
 import com.alibaba.rocketmq.common.filter.FilterAPI;
 import com.alibaba.rocketmq.common.help.FAQUrl;
 import com.alibaba.rocketmq.common.message.Message;
+import com.alibaba.rocketmq.common.message.MessageAccessor;
 import com.alibaba.rocketmq.common.message.MessageConst;
 import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.common.message.MessageQueue;
@@ -446,8 +448,8 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
                         msg.getBody());
 
             newMsg.setFlag(msg.getFlag());
-            newMsg.setProperties(msg.getProperties());
-            newMsg.putProperty(MessageConst.PROPERTY_RETRY_TOPIC, msg.getTopic());
+            MessageAccessor.setProperties(newMsg, msg.getProperties());
+            MessageAccessor.putProperty(newMsg, MessageConst.PROPERTY_RETRY_TOPIC, msg.getTopic());
 
             this.mQClientFactory.getDefaultMQProducer().send(newMsg);
         }
