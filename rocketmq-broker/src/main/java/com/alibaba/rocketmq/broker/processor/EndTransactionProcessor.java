@@ -23,6 +23,7 @@ import org.slf4j.LoggerFactory;
 import com.alibaba.rocketmq.broker.BrokerController;
 import com.alibaba.rocketmq.common.TopicFilterType;
 import com.alibaba.rocketmq.common.constant.LoggerName;
+import com.alibaba.rocketmq.common.message.MessageAccessor;
 import com.alibaba.rocketmq.common.message.MessageConst;
 import com.alibaba.rocketmq.common.message.MessageDecoder;
 import com.alibaba.rocketmq.common.message.MessageExt;
@@ -59,7 +60,7 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
         MessageExtBrokerInner msgInner = new MessageExtBrokerInner();
         msgInner.setBody(msgExt.getBody());
         msgInner.setFlag(msgExt.getFlag());
-        msgInner.setProperties(msgExt.getProperties());
+        MessageAccessor.setProperties(msgInner, msgExt.getProperties());
 
         TopicFilterType topicFilterType =
                 (msgInner.getSysFlag() & MessageSysFlag.MultiTagsFlag) == MessageSysFlag.MultiTagsFlag ? TopicFilterType.MULTI_TAG
@@ -75,7 +76,7 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
         msgInner.setReconsumeTimes(msgExt.getReconsumeTimes());
 
         msgInner.setWaitStoreMsgOK(false);
-        msgInner.clearProperty(MessageConst.PROPERTY_DELAY_TIME_LEVEL);
+        MessageAccessor.clearProperty(msgInner, MessageConst.PROPERTY_DELAY_TIME_LEVEL);
 
         msgInner.setTopic(msgExt.getTopic());
         msgInner.setQueueId(msgExt.getQueueId());

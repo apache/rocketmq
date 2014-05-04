@@ -35,7 +35,7 @@ public class Producer {
                     "OrderID001",// key
                     ("Hello MetaQ").getBytes());// body
 
-                msg.putProperty("SequenceId", String.valueOf(i));
+                msg.putUserProperty("SequenceId", String.valueOf(i));
 
                 SendResult sendResult = producer.send(msg);
                 System.out.println(sendResult);

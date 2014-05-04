@@ -84,19 +84,33 @@ public class Message implements Serializable {
     }
 
 
-    public void clearProperty(final String name) {
+    void clearProperty(final String name) {
         if (null != this.properties) {
             this.properties.remove(name);
         }
     }
 
 
-    public void putProperty(final String name, final String value) {
+    void putProperty(final String name, final String value) {
         if (null == this.properties) {
             this.properties = new HashMap<String, String>();
         }
 
         this.properties.put(name, value);
+    }
+
+
+    public void putUserProperty(final String name, final String value) {
+        if (MessageConst.systemKeySet.contains(name)) {
+            throw new RuntimeException(String.format(
+                "The Property<%s> is used by system, input another please", name));
+        }
+        this.putProperty(name, value);
+    }
+
+
+    public String getUserProperty(final String name) {
+        return this.getProperty(name);
     }
 
 
@@ -204,7 +218,7 @@ public class Message implements Serializable {
     }
 
 
-    public void setProperties(Map<String, String> properties) {
+    void setProperties(Map<String, String> properties) {
         this.properties = properties;
     }
 
