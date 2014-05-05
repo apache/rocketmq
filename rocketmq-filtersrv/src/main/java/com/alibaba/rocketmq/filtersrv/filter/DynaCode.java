@@ -19,7 +19,6 @@ import java.util.Set;
 import javax.tools.JavaCompiler;
 import javax.tools.ToolProvider;
 
-import org.apache.commons.lang.builder.ToStringBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -219,10 +218,10 @@ public class DynaCode {
                 Class<?> classz = classLoader.loadClass(key);
                 if (null != classz) {
                     loadClass.put(key, classz);
-                    logger.warn("Dyna Load Java Class File OK:----> className: " + key);
+                    logger.info("Dyna Load Java Class File OK:----> className: " + key);
                 }
                 else {
-                    logger.warn("Dyna Load Java Class File Fail:----> className: " + key);
+                    logger.error("Dyna Load Java Class File Fail:----> className: " + key);
                 }
             }
         }
@@ -238,7 +237,6 @@ public class DynaCode {
     private void compile(String[] srcFiles) throws Exception {
         String args[] = this.buildCompileJavacArgs(srcFiles);
         ByteArrayOutputStream err = new ByteArrayOutputStream();
-        logger.warn("Dyna Complie Java Class File:---->" + ToStringBuilder.reflectionToString(args));
         JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
         if (compiler == null) {
             throw new NullPointerException(
