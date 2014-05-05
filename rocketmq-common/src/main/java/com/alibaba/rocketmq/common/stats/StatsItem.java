@@ -104,6 +104,19 @@ public class StatsItem {
         }, Math.abs(UtilAll.computNextHourTimeMillis() - System.currentTimeMillis()), //
             1000 * 60 * 60, TimeUnit.MILLISECONDS);
 
+        // 半小时整点执行
+        this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    printAtHalfHour();
+                }
+                catch (Throwable e) {
+                }
+            }
+        }, Math.abs(UtilAll.computNextHalfHourTimeMillis() - System.currentTimeMillis()), //
+            1000 * 60 * 30, TimeUnit.MILLISECONDS);
+
         // 每天0点执行
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
             @Override
@@ -129,7 +142,7 @@ public class StatsItem {
             this.avgpsInLastMinutes = avgps;
         }
 
-        log.info(String.format("[%s %s] Stats In Minutes, SUM: %d AVGPS: %.2f", //
+        log.info(String.format("[%s %s] Stats In One Minute, SUM: %d TPS: %.2f", //
             this.statsName,//
             this.statsKey,//
             sumInLastMinutes, avgps));
@@ -145,10 +158,30 @@ public class StatsItem {
             avgps = (sumInLastHour * 1000.0d) / (last.getTimestamp() - first.getTimestamp());
         }
 
-        log.info(String.format("[%s %s] Stats In Hours, SUM: %d AVGPS: %.2f", //
+        log.info(String.format("[%s %s] Stats In One Hour, SUM: %d TPS: %.2f", //
             this.statsName,//
             this.statsKey,//
             sumInLastHour, avgps));
+    }
+
+
+    private void printAtHalfHour() {
+        double avgps = 0;
+        long sumInLastHalfHour = 0;
+        if (!this.csListHour.isEmpty()) {
+            CallSnapshot first = this.csListHour.get(3);
+            if (null == first)
+                return;
+
+            CallSnapshot last = this.csListHour.getLast();
+            sumInLastHalfHour = last.getCallTimesTotal() - first.getCallTimesTotal();
+            avgps = (sumInLastHalfHour * 1000.0d) / (last.getTimestamp() - first.getTimestamp());
+        }
+
+        log.info(String.format("[%s %s] Stats In Half An Hour, SUM: %d TPS: %.2f", //
+            this.statsName,//
+            this.statsKey,//
+            sumInLastHalfHour, avgps));
     }
 
 
@@ -161,7 +194,7 @@ public class StatsItem {
             avgps = (sumInLastDay * 1000.0d) / (last.getTimestamp() - first.getTimestamp());
         }
 
-        log.info(String.format("[%s %s] Stats In Day, SUM: %d AVGPS: %.2f", //
+        log.info(String.format("[%s %s] Stats In One Day, SUM: %d TPS: %.2f", //
             this.statsName,//
             this.statsKey,//
             sumInLastDay, avgps));
@@ -170,7 +203,7 @@ public class StatsItem {
 
     private void samplingInSeconds() {
         this.csListMinute.add(new CallSnapshot(System.currentTimeMillis(), this.value.get()));
-        if (this.csListMinute.size() > 6) {
+        if (this.csListMinute.size() > 7) {
             this.csListMinute.removeFirst();
         }
     }
@@ -178,7 +211,7 @@ public class StatsItem {
 
     private void samplingInMinutes() {
         this.csListHour.add(new CallSnapshot(System.currentTimeMillis(), this.value.get()));
-        if (this.csListHour.size() > 6) {
+        if (this.csListHour.size() > 7) {
             this.csListHour.removeFirst();
         }
     }
@@ -186,7 +219,7 @@ public class StatsItem {
 
     private void samplingInHour() {
         this.csListDay.add(new CallSnapshot(System.currentTimeMillis(), this.value.get()));
-        if (this.csListDay.size() > 24) {
+        if (this.csListDay.size() > 25) {
             this.csListDay.removeFirst();
         }
     }

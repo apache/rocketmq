@@ -130,7 +130,7 @@ public class UtilAll {
         return cal.getTimeInMillis();
     }
 
-    
+
     public static long computNextHourTimeMillis() {
         Calendar cal = Calendar.getInstance();
         cal.setTimeInMillis(System.currentTimeMillis());
@@ -142,7 +142,21 @@ public class UtilAll {
 
         return cal.getTimeInMillis();
     }
-    
+
+
+    public static long computNextHalfHourTimeMillis() {
+        Calendar cal = Calendar.getInstance();
+        cal.setTimeInMillis(System.currentTimeMillis());
+        cal.add(Calendar.DAY_OF_MONTH, 0);
+        cal.add(Calendar.HOUR_OF_DAY, 1);
+        cal.set(Calendar.MINUTE, 30);
+        cal.set(Calendar.SECOND, 0);
+        cal.set(Calendar.MILLISECOND, 0);
+
+        return cal.getTimeInMillis();
+    }
+
+
     public static String timeMillisToHumanString2(final long t) {
         Calendar cal = Calendar.getInstance();
         cal.setTimeInMillis(t);
