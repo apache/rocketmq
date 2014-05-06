@@ -138,7 +138,9 @@ public class FiltersrvController {
         }
         catch (Exception e) {
             log.warn("register filter server Exception", e);
-            // TODO 如果失败，考虑是否尝试自杀
+            // 如果失败，尝试自杀
+            log.warn("access broker failed, kill oneself");
+            System.exit(-1);
         }
     }
 
