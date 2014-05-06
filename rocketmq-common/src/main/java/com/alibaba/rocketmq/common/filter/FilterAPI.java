@@ -25,11 +25,14 @@ import com.alibaba.rocketmq.common.protocol.heartbeat.SubscriptionData;
  * @since 2013-6-15
  */
 public class FilterAPI {
-    public static final String FilterClassPrefix = "rocketmq.message.filter";
-
-
     public static String classFile(final String className) {
-        final String javaSource = className + ".java";
+        String simpleClassName = "";
+        int index = className.lastIndexOf(".");
+        if (index >= 0) {
+            simpleClassName = className.substring(index + 1);
+        }
+
+        final String javaSource = simpleClassName + ".java";
         URL url = FilterAPI.class.getClassLoader().getResource(javaSource);
         if (url != null) {
             return url.getFile();
@@ -69,10 +72,11 @@ public class FilterAPI {
         }
         // eg: com.taobao.abc.FilterClassName
         else if (isFilterClassMode(subString)) {
-//            if (null == classFile(subString)) {
-//                throw new Exception(String.format("The Filter Java Class Source[%s] not exist in class path",
-//                    subString + ".java"));
-//            }
+            // if (null == classFile(subString)) {
+            // throw new
+            // Exception(String.format("The Filter Java Class Source[%s] not exist in class path",
+            // subString + ".java"));
+            // }
             subscriptionData.setClassFilterMode(true);
         }
         else {

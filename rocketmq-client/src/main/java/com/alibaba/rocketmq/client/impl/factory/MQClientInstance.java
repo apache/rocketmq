@@ -446,9 +446,16 @@ public class MQClientInstance {
     private void uploadFilterClassToAllFilterServer(final String consumerGroup, final String className,
             final String topic) throws UnsupportedEncodingException {
         String classFile = FilterAPI.classFile(className);
-        String fileContent = MixAll.file2String(classFile);
-        byte[] classBody = fileContent.getBytes(MixAll.DEFAULT_CHARSET);
-        int classCRC = UtilAll.crc32(classBody);
+        byte[] classBody = null;
+        int classCRC = 0;
+        if (null != classFile) {
+            String fileContent = MixAll.file2String(classFile);
+            classBody = fileContent.getBytes(MixAll.DEFAULT_CHARSET);
+            classCRC = UtilAll.crc32(classBody);
+        }
+        else {
+            log.warn("uploadFilterClassToAllFilterServer classFile<{}> Not Exitst", className);
+        }
 
         TopicRouteData topicRouteData = this.topicRouteTable.get(topic);
         if (topicRouteData != null //

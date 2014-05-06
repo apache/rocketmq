@@ -68,6 +68,7 @@ public interface MQPushConsumer extends MQConsumer {
      *            b、Java程序必须是UTF-8编码<br>
      *            c、这个Java过滤程序只能依赖JDK里的类，非JDK的Java类一律不能依赖
      *            d、过滤方法里不允许抛异常，只要抛异常，整个消费过程就停止
+     *            e、FilterClassName.java文件放置到CLASSPATH目录下，例如src/main/resources
      * @param listener
      *            消息回调监听器
      * @throws MQClientException
