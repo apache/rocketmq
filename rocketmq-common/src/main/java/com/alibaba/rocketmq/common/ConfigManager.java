@@ -50,7 +50,7 @@ public abstract class ConfigManager {
         try {
             fileName = this.configFilePath();
             String jsonString = MixAll.file2String(fileName);
-            if (jsonString != null) {
+            if (jsonString != null && jsonString.length() > 0) {
                 this.decode(jsonString);
                 plog.info("load " + fileName + " OK");
                 return true;
