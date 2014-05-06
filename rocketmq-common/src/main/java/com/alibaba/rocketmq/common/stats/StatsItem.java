@@ -132,7 +132,7 @@ public class StatsItem {
     }
 
 
-    private void printAtMinutes() {
+    public void printAtMinutes() {
         double avgps = 0;
         if (!this.csListMinute.isEmpty()) {
             CallSnapshot first = this.csListMinute.getFirst();
@@ -142,14 +142,14 @@ public class StatsItem {
             this.avgpsInLastMinutes = avgps;
         }
 
-        log.info(String.format("[%s %s] Stats In One Minute, SUM: %d TPS: %.2f", //
+        log.info(String.format("[%s] [%s] Stats In One Minute, SUM: %d TPS: %.2f", //
             this.statsName,//
             this.statsKey,//
             sumInLastMinutes, avgps));
     }
 
 
-    private void printAtHour() {
+    public void printAtHour() {
         double avgps = 0;
         if (!this.csListHour.isEmpty()) {
             CallSnapshot first = this.csListHour.getFirst();
@@ -158,14 +158,14 @@ public class StatsItem {
             avgps = (sumInLastHour * 1000.0d) / (last.getTimestamp() - first.getTimestamp());
         }
 
-        log.info(String.format("[%s %s] Stats In One Hour, SUM: %d TPS: %.2f", //
+        log.info(String.format("[%s] [%s] Stats In One Hour, SUM: %d TPS: %.2f", //
             this.statsName,//
             this.statsKey,//
             sumInLastHour, avgps));
     }
 
 
-    private void printAtHalfHour() {
+    public void printAtHalfHour() {
         double avgps = 0;
         long sumInLastHalfHour = 0;
         if (!this.csListHour.isEmpty()) {
@@ -178,14 +178,14 @@ public class StatsItem {
             avgps = (sumInLastHalfHour * 1000.0d) / (last.getTimestamp() - first.getTimestamp());
         }
 
-        log.info(String.format("[%s %s] Stats In Half An Hour, SUM: %d TPS: %.2f", //
+        log.info(String.format("[%s] [%s] Stats In Half An Hour, SUM: %d TPS: %.2f", //
             this.statsName,//
             this.statsKey,//
             sumInLastHalfHour, avgps));
     }
 
 
-    private void printAtDay() {
+    public void printAtDay() {
         double avgps = 0;
         if (!this.csListDay.isEmpty()) {
             CallSnapshot first = this.csListDay.getFirst();
@@ -194,14 +194,14 @@ public class StatsItem {
             avgps = (sumInLastDay * 1000.0d) / (last.getTimestamp() - first.getTimestamp());
         }
 
-        log.info(String.format("[%s %s] Stats In One Day, SUM: %d TPS: %.2f", //
+        log.info(String.format("[%s] [%s] Stats In One Day, SUM: %d TPS: %.2f", //
             this.statsName,//
             this.statsKey,//
             sumInLastDay, avgps));
     }
 
 
-    private void samplingInSeconds() {
+    public void samplingInSeconds() {
         this.csListMinute.add(new CallSnapshot(System.currentTimeMillis(), this.value.get()));
         if (this.csListMinute.size() > 7) {
             this.csListMinute.removeFirst();
@@ -209,7 +209,7 @@ public class StatsItem {
     }
 
 
-    private void samplingInMinutes() {
+    public void samplingInMinutes() {
         this.csListHour.add(new CallSnapshot(System.currentTimeMillis(), this.value.get()));
         if (this.csListHour.size() > 7) {
             this.csListHour.removeFirst();
@@ -217,7 +217,7 @@ public class StatsItem {
     }
 
 
-    private void samplingInHour() {
+    public void samplingInHour() {
         this.csListDay.add(new CallSnapshot(System.currentTimeMillis(), this.value.get()));
         if (this.csListDay.size() > 25) {
             this.csListDay.removeFirst();
