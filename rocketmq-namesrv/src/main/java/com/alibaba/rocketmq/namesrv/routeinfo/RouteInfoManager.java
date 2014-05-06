@@ -519,10 +519,12 @@ public class RouteInfoManager {
         if (null == brokerAddrFound) {
             brokerAddrFound = remoteAddr;
         }
+        else {
+            log.info("the broker's channel destroyed, {}, clean it's data structure at once", brokerAddrFound);
+        }
 
         // 加写锁，删除相关数据结构
         if (brokerAddrFound != null && brokerAddrFound.length() > 0) {
-            log.info("the broker's channel destroyed, {}, clean it's data structure at once", brokerAddrFound);
 
             try {
                 try {
