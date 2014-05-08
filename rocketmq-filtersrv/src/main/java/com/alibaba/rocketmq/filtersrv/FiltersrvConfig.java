@@ -25,6 +25,9 @@ public class FiltersrvConfig {
     // 是否允许客户端上传Java类
     private boolean clientUploadFilterClassEnable = true;
 
+    // 过滤类的仓库地址
+    private String filterClassRepertoryUrl = "http://fsrep.tbsite.net/filterclass";
+
 
     public String getRocketmqHome() {
         return rocketmqHome;
@@ -93,5 +96,15 @@ public class FiltersrvConfig {
 
     public void setClientUploadFilterClassEnable(boolean clientUploadFilterClassEnable) {
         this.clientUploadFilterClassEnable = clientUploadFilterClassEnable;
+    }
+
+
+    public String getFilterClassRepertoryUrl() {
+        return filterClassRepertoryUrl;
+    }
+
+
+    public void setFilterClassRepertoryUrl(String filterClassRepertoryUrl) {
+        this.filterClassRepertoryUrl = filterClassRepertoryUrl;
     }
 }
