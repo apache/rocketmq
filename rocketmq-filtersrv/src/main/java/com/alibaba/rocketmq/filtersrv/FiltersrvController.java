@@ -53,7 +53,7 @@ public class FiltersrvController {
     // 服务端网络请求处理线程池
     private ExecutorService remotingExecutor;
 
-    private final FilterClassManager filterClassManager = new FilterClassManager();
+    private final FilterClassManager filterClassManager;
 
     // 访问Broker的api封装
     private final FilterServerOuterAPI filterServerOuterAPI = new FilterServerOuterAPI();
@@ -71,7 +71,7 @@ public class FiltersrvController {
     public FiltersrvController(FiltersrvConfig filtersrvConfig, NettyServerConfig nettyServerConfig) {
         this.filtersrvConfig = filtersrvConfig;
         this.nettyServerConfig = nettyServerConfig;
-
+        this.filterClassManager = new FilterClassManager(this);
     }
 
 
@@ -157,6 +157,7 @@ public class FiltersrvController {
         this.filterServerOuterAPI.start();
         this.defaultMQPullConsumer.getDefaultMQPullConsumerImpl().getPullAPIWrapper()
             .setConnectBrokerByUser(true);
+        this.filterClassManager.start();
     }
 
 
@@ -166,6 +167,7 @@ public class FiltersrvController {
         this.scheduledExecutorService.shutdown();
         this.defaultMQPullConsumer.shutdown();
         this.filterServerOuterAPI.shutdown();
+        this.filterClassManager.shutdown();
     }
 
 

@@ -25,14 +25,19 @@ import com.alibaba.rocketmq.common.protocol.heartbeat.SubscriptionData;
  * @since 2013-6-15
  */
 public class FilterAPI {
-    public static String classFile(final String className) {
-        String simpleClassName = "";
+    public static String simpleClassName(final String className) {
+        String simple = className;
         int index = className.lastIndexOf(".");
         if (index >= 0) {
-            simpleClassName = className.substring(index + 1);
+            simple = className.substring(index + 1);
         }
 
-        final String javaSource = simpleClassName + ".java";
+        return simple;
+    }
+
+
+    public static String classFile(final String className) {
+        final String javaSource = simpleClassName(className) + ".java";
         URL url = FilterAPI.class.getClassLoader().getResource(javaSource);
         if (url != null) {
             return url.getFile();

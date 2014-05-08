@@ -82,7 +82,7 @@ public class FiltersrvStartup {
             final FiltersrvConfig filtersrvConfig = new FiltersrvConfig();
             final NettyServerConfig nettyServerConfig = new NettyServerConfig();
 
-            nettyServerConfig.setServerAsyncSemaphoreValue(512);
+            nettyServerConfig.setServerAsyncSemaphoreValue(1024);
             nettyServerConfig.setServerCallbackExecutorThreads(64);
             nettyServerConfig.setServerWorkerThreads(64);
 

@@ -26,6 +26,7 @@ import com.alibaba.common.lang.ArrayUtil;
 import com.alibaba.common.lang.StringUtil;
 import com.alibaba.rocketmq.common.UtilAll;
 import com.alibaba.rocketmq.common.constant.LoggerName;
+import com.alibaba.rocketmq.common.filter.FilterAPI;
 
 
 /**
@@ -472,8 +473,9 @@ public class DynaCode {
     }
 
 
-    public static Class<?> compileAndLoadClass(final String classSimpleName, final String javaSource)
+    public static Class<?> compileAndLoadClass(final String className, final String javaSource)
             throws Exception {
+        String classSimpleName = FilterAPI.simpleClassName(className);
         String javaCode = new String(javaSource);
         // Java类名需要替换，否则可能会产生Source变更，但是无法加载的类冲突问题
         final String newClassSimpleName = classSimpleName + System.currentTimeMillis();
