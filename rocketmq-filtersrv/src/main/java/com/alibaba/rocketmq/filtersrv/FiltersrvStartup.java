@@ -89,7 +89,6 @@ public class FiltersrvStartup {
                     Properties properties = new Properties();
                     properties.load(in);
                     MixAll.properties2Object(properties, filtersrvConfig);
-                    MixAll.properties2Object(properties, nettyServerConfig);
                     System.out.println("load config properties file OK, " + file);
                     in.close();
 
