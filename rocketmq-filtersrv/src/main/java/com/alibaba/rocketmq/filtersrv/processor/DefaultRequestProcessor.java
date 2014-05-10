@@ -177,27 +177,36 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
     }
 
 
-    private void returnResponse(final ChannelHandlerContext ctx, final RemotingCommand response,
-            final List<MessageExt> msgList) {
-        ByteBuffer[] msgBufferList = new ByteBuffer[msgList.size()];
-        int bodyTotalSize = 0;
-        for (int i = 0; i < msgList.size(); i++) {
-            try {
-                msgBufferList[i] = messageToByteBuffer(msgList.get(i));
-                bodyTotalSize += msgBufferList[i].capacity();
+    private void returnResponse(final String group, final String topic, ChannelHandlerContext ctx,
+            final RemotingCommand response, final List<MessageExt> msgList) {
+        if (null != msgList) {
+            ByteBuffer[] msgBufferList = new ByteBuffer[msgList.size()];
+            int bodyTotalSize = 0;
+            for (int i = 0; i < msgList.size(); i++) {
+                try {
+                    msgBufferList[i] = messageToByteBuffer(msgList.get(i));
+                    bodyTotalSize += msgBufferList[i].capacity();
+                }
+                catch (Exception e) {
+                    log.error("messageToByteBuffer UnsupportedEncodingException", e);
+                }
             }
-            catch (Exception e) {
-                log.error("messageToByteBuffer UnsupportedEncodingException", e);
+
+            ByteBuffer body = ByteBuffer.allocate(bodyTotalSize);
+            for (ByteBuffer bb : msgBufferList) {
+                bb.flip();
+                body.put(bb);
             }
-        }
 
-        ByteBuffer body = ByteBuffer.allocate(bodyTotalSize);
-        for (ByteBuffer bb : msgBufferList) {
-            bb.flip();
-            body.put(bb);
-        }
+            response.setBody(body.array());
 
-        response.setBody(body.array());
+            // 统计
+            this.filtersrvController.getFilterServerStatsManager().incGroupGetNums(group, topic,
+                msgList.size());
+
+            this.filtersrvController.getFilterServerStatsManager().incGroupGetSize(group, topic,
+                bodyTotalSize);
+        }
 
         try {
             ctx.writeAndFlush(response).addListener(new ChannelFutureListener() {
@@ -280,7 +289,8 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
 
                         // 有消息返回
                         if (!msgListOK.isEmpty()) {
-                            returnResponse(ctx, response, msgListOK);
+                            returnResponse(requestHeader.getConsumerGroup(), requestHeader.getTopic(), ctx,
+                                response, msgListOK);
                             return;
                         }
                         // 全部都被过滤掉了
@@ -297,7 +307,8 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
 
                         response.setCode(ResponseCode.SYSTEM_ERROR);
                         response.setRemark(error + RemotingHelper.exceptionSimpleDesc(e));
-                        returnResponse(ctx, response, null);
+                        returnResponse(requestHeader.getConsumerGroup(), requestHeader.getTopic(), ctx,
+                            response, null);
                         return;
                     }
 
@@ -315,7 +326,8 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
                     break;
                 }
 
-                returnResponse(ctx, response, null);
+                returnResponse(requestHeader.getConsumerGroup(), requestHeader.getTopic(), ctx, response,
+                    null);
             }
 
 
@@ -323,7 +335,8 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
             public void onException(Throwable e) {
                 response.setCode(ResponseCode.SYSTEM_ERROR);
                 response.setRemark("Pull Callback Exception, " + RemotingHelper.exceptionSimpleDesc(e));
-                returnResponse(ctx, response, null);
+                returnResponse(requestHeader.getConsumerGroup(), requestHeader.getTopic(), ctx, response,
+                    null);
                 return;
             }
         };

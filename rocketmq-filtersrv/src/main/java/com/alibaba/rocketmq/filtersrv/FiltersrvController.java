@@ -31,16 +31,17 @@ import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.common.protocol.header.filtersrv.RegisterFilterServerResponseHeader;
 import com.alibaba.rocketmq.filtersrv.filter.FilterClassManager;
 import com.alibaba.rocketmq.filtersrv.processor.DefaultRequestProcessor;
+import com.alibaba.rocketmq.filtersrv.stats.FilterServerStatsManager;
 import com.alibaba.rocketmq.remoting.RemotingServer;
 import com.alibaba.rocketmq.remoting.netty.NettyRemotingServer;
 import com.alibaba.rocketmq.remoting.netty.NettyServerConfig;
 
 
 /**
- * Name Server服务控制
+ * Filter Server服务控制
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2013-7-5
+ * @since 2014-4-10
  */
 public class FiltersrvController {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.FiltersrvLoggerName);
@@ -66,6 +67,8 @@ public class FiltersrvController {
     // 定时线程
     private final ScheduledExecutorService scheduledExecutorService = Executors
         .newSingleThreadScheduledExecutor(new ThreadFactoryImpl("FSScheduledThread"));
+
+    private final FilterServerStatsManager filterServerStatsManager = new FilterServerStatsManager();
 
 
     public FiltersrvController(FiltersrvConfig filtersrvConfig, NettyServerConfig nettyServerConfig) {
@@ -158,6 +161,7 @@ public class FiltersrvController {
         this.defaultMQPullConsumer.getDefaultMQPullConsumerImpl().getPullAPIWrapper()
             .setConnectBrokerByUser(true);
         this.filterClassManager.start();
+        this.filterServerStatsManager.start();
     }
 
 
@@ -168,6 +172,7 @@ public class FiltersrvController {
         this.defaultMQPullConsumer.shutdown();
         this.filterServerOuterAPI.shutdown();
         this.filterClassManager.shutdown();
+        this.filterServerStatsManager.shutdown();
     }
 
 
@@ -228,5 +233,10 @@ public class FiltersrvController {
 
     public void setBrokerName(String brokerName) {
         this.brokerName = brokerName;
+    }
+
+
+    public FilterServerStatsManager getFilterServerStatsManager() {
+        return filterServerStatsManager;
     }
 }

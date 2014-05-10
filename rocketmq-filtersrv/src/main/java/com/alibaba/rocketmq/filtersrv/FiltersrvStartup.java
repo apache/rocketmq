@@ -42,7 +42,7 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
  * Filter server 启动入口
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2013-7-5
+ * @since 2014-4-10
  */
 public class FiltersrvStartup {
 
