@@ -28,6 +28,10 @@ public class FiltersrvConfig {
     // 过滤类的仓库地址
     private String filterClassRepertoryUrl = "http://fsrep.tbsite.net/filterclass";
 
+    private int fsServerAsyncSemaphoreValue = 2048;
+    private int fsServerCallbackExecutorThreads = 64;
+    private int fsServerWorkerThreads = 64;
+
 
     public String getRocketmqHome() {
         return rocketmqHome;
@@ -106,5 +110,35 @@ public class FiltersrvConfig {
 
     public void setFilterClassRepertoryUrl(String filterClassRepertoryUrl) {
         this.filterClassRepertoryUrl = filterClassRepertoryUrl;
+    }
+
+
+    public int getFsServerAsyncSemaphoreValue() {
+        return fsServerAsyncSemaphoreValue;
+    }
+
+
+    public void setFsServerAsyncSemaphoreValue(int fsServerAsyncSemaphoreValue) {
+        this.fsServerAsyncSemaphoreValue = fsServerAsyncSemaphoreValue;
+    }
+
+
+    public int getFsServerCallbackExecutorThreads() {
+        return fsServerCallbackExecutorThreads;
+    }
+
+
+    public void setFsServerCallbackExecutorThreads(int fsServerCallbackExecutorThreads) {
+        this.fsServerCallbackExecutorThreads = fsServerCallbackExecutorThreads;
+    }
+
+
+    public int getFsServerWorkerThreads() {
+        return fsServerWorkerThreads;
+    }
+
+
+    public void setFsServerWorkerThreads(int fsServerWorkerThreads) {
+        this.fsServerWorkerThreads = fsServerWorkerThreads;
     }
 }
