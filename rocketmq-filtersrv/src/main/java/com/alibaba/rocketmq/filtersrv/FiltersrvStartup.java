@@ -82,10 +82,6 @@ public class FiltersrvStartup {
             final FiltersrvConfig filtersrvConfig = new FiltersrvConfig();
             final NettyServerConfig nettyServerConfig = new NettyServerConfig();
 
-            nettyServerConfig.setServerAsyncSemaphoreValue(1024);
-            nettyServerConfig.setServerCallbackExecutorThreads(64);
-            nettyServerConfig.setServerWorkerThreads(64);
-
             if (commandLine.hasOption('c')) {
                 String file = commandLine.getOptionValue('c');
                 if (file != null) {
@@ -106,6 +102,11 @@ public class FiltersrvStartup {
 
             // 强制设置为0，自动分配端口号
             nettyServerConfig.setListenPort(0);
+
+            nettyServerConfig.setServerAsyncSemaphoreValue(filtersrvConfig.getFsServerAsyncSemaphoreValue());
+            nettyServerConfig.setServerCallbackExecutorThreads(filtersrvConfig
+                .getFsServerCallbackExecutorThreads());
+            nettyServerConfig.setServerWorkerThreads(filtersrvConfig.getFsServerWorkerThreads());
 
             // 打印默认配置
             if (commandLine.hasOption('p')) {
