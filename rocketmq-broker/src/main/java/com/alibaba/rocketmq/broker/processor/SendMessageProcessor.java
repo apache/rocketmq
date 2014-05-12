@@ -301,12 +301,16 @@ public class SendMessageProcessor implements NettyRequestProcessor {
             }
         }
 
-        // 检查topic权限
-        if (!PermName.isWriteable(topicConfig.getPerm())) {
-            response.setCode(ResponseCode.NO_PERMISSION);
-            response.setRemark("the topic[" + requestHeader.getTopic() + "] sending message is forbidden");
-            return response;
-        }
+        /**
+         * Broker本身不做Topic的权限验证，由Name Server负责通知Client处理
+         */
+        // // 检查topic权限
+        // if (!PermName.isWriteable(topicConfig.getPerm())) {
+        // response.setCode(ResponseCode.NO_PERMISSION);
+        // response.setRemark("the topic[" + requestHeader.getTopic() +
+        // "] sending message is forbidden");
+        // return response;
+        // }
 
         // 检查队列有效性
         int queueIdInt = requestHeader.getQueueId();
