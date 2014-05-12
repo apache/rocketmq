@@ -341,7 +341,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
         long size = processQueue.getMsgCount().get();
         if (size > this.defaultMQPushConsumer.getPullThresholdForQueue()) {
             this.executePullRequestLater(pullRequest, PullTimeDelayMillsWhenFlowControl);
-            if ((flowControlTimes1++ % 3000) == 0) {
+            if ((flowControlTimes1++ % 1000) == 0) {
                 log.warn("the consumer message buffer is full, so do flow control, {} {} {}", size,
                     pullRequest, flowControlTimes1);
             }
@@ -352,7 +352,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
         if (!this.consumeOrderly) {
             if (processQueue.getMaxSpan() > this.defaultMQPushConsumer.getConsumeConcurrentlyMaxSpan()) {
                 this.executePullRequestLater(pullRequest, PullTimeDelayMillsWhenFlowControl);
-                if ((flowControlTimes2++ % 3000) == 0) {
+                if ((flowControlTimes2++ % 1000) == 0) {
                     log.warn("the queue's messages, span too long, so do flow control, {} {} {}",
                         processQueue.getMaxSpan(), pullRequest, flowControlTimes2);
                 }
