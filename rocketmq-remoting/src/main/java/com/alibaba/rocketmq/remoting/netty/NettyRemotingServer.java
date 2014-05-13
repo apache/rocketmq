@@ -16,6 +16,7 @@
 package com.alibaba.rocketmq.remoting.netty;
 
 import io.netty.bootstrap.ServerBootstrap;
+import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelDuplexHandler;
 import io.netty.channel.ChannelFuture;
@@ -127,12 +128,16 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
                 }
             });
 
-        this.serverBootstrap.group(this.eventLoopGroup, new NioEventLoopGroup())
+        this.serverBootstrap
+            .group(this.eventLoopGroup, new NioEventLoopGroup())
             .channel(NioServerSocketChannel.class)
+            //
             .option(ChannelOption.SO_BACKLOG, 65536)
+            //
             .option(ChannelOption.SO_REUSEADDR, true)
             //
             .childOption(ChannelOption.TCP_NODELAY, true)
+            .childOption(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT)
             .localAddress(new InetSocketAddress(this.nettyServerConfig.getListenPort()))
             .childHandler(new ChannelInitializer<SocketChannel>() {
                 @Override
