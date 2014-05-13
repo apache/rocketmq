@@ -213,6 +213,7 @@ public class MQClientInstance {
 
         try {
             this.datagramSocket = new DatagramSocket(udpPort);
+            this.datagramSocket.setReuseAddress(true);
         }
         catch (SocketException e) {
             throw new MQClientException("instance name is a duplicate one[" + instanceName + "," + udpPort
