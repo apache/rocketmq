@@ -87,16 +87,35 @@ public class MQVersion {
 
         V3_0_15_SNAPSHOT,
         V3_0_15,
-        V3_1_0,
+
         V3_1_0_SNAPSHOT,
+        V3_1_0,
+
+        V3_1_1_SNAPSHOT,
         V3_1_1,
+
+        V3_1_2_SNAPSHOT,
         V3_1_2,
+
+        V3_1_3_SNAPSHOT,
         V3_1_3,
+
+        V3_1_4_SNAPSHOT,
         V3_1_4,
+
+        V3_1_5_SNAPSHOT,
         V3_1_5,
+
+        V3_1_6_SNAPSHOT,
         V3_1_6,
+
+        V3_1_7_SNAPSHOT,
         V3_1_7,
+
+        V3_1_8_SNAPSHOT,
         V3_1_8,
+
+        V3_1_9_SNAPSHOT,
         V3_1_9,
     }
 }
