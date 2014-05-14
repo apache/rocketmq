@@ -17,6 +17,8 @@ public class Test {
                 new ConcurrentHashMap<String, ConcurrentHashMap<String, Long>>();
         private String remark = "abc";
 
+        private byte[] body = "hello".getBytes();
+
 
         public ConcurrentHashMap<String, ConcurrentHashMap<String, Long>> getTestTable() {
             return testTable;
@@ -31,24 +33,33 @@ public class Test {
         public void setRemark(String remark) {
             this.remark = remark;
         }
+
+
+        public byte[] getBody() {
+            return body;
+        }
+
+
+        public void setBody(byte[] body) {
+            this.body = body;
+        }
     }
 
 
     public static void main(String[] args) {
         TestTable testTable = new TestTable();
-        testTable.getTestTable().put("consumer1", new ConcurrentHashMap<String, Long>());
-        testTable.getTestTable().put("consumer2", new ConcurrentHashMap<String, Long>());
-        testTable.getTestTable().put("consumer3", new ConcurrentHashMap<String, Long>());
 
-        testTable.getTestTable().get("consumer1").put("A", 100L);
-        testTable.getTestTable().get("consumer1").put("B", 200L);
-        testTable.getTestTable().get("consumer1").put("C", 300L);
+        testTable.setBody("Hi, I am byte[]".getBytes());
 
         String jsonString = RemotingSerializable.toJson(testTable, true);
 
-        String jsonStringFmt = JSON.toJSONString(testTable, true);
+        System.out.println(jsonString);
+
+        TestTable testTable2 = RemotingSerializable.fromJson(jsonString, TestTable.class);
+
+        jsonString = RemotingSerializable.toJson(testTable2, true);
 
         System.out.println(jsonString);
-        System.out.println(jsonStringFmt);
+
     }
 }

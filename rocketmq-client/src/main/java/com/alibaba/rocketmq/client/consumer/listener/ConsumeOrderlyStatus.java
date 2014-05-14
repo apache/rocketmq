@@ -24,9 +24,9 @@ package com.alibaba.rocketmq.client.consumer.listener;
 public enum ConsumeOrderlyStatus {
     // 消息处理成功
     SUCCESS,
-    // 回滚消息
+    // 回滚消息（只供精卫binlog复制使用）
     ROLLBACK,
-    // 提交消息
+    // 提交消息（只供精卫binlog复制使用）
     COMMIT,
     // 将当前队列挂起一小会儿
     SUSPEND_CURRENT_QUEUE_A_MOMENT,
