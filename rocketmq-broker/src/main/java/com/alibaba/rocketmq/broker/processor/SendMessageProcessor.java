@@ -204,8 +204,13 @@ public class SendMessageProcessor implements NettyRequestProcessor {
         if (putMessageResult != null) {
             switch (putMessageResult.getPutMessageStatus()) {
             case PUT_OK:
+                // 统计
+                this.brokerController.getBrokerStatsManager().incSendBackNums(requestHeader.getGroup(),
+                    msgExt.getTopic(), 1);
+
                 response.setCode(ResponseCode.SUCCESS);
                 response.setRemark(null);
+
                 return response;
             default:
                 break;
@@ -416,6 +421,7 @@ public class SendMessageProcessor implements NettyRequestProcessor {
                 this.brokerController.getBrokerStatsManager().incTopicPutNums(msgInner.getTopic());
                 this.brokerController.getBrokerStatsManager().incTopicPutSize(msgInner.getTopic(),
                     putMessageResult.getAppendMessageResult().getWroteBytes());
+                this.brokerController.getBrokerStatsManager().incBrokerPutNums();
 
                 response.setRemark(null);
 

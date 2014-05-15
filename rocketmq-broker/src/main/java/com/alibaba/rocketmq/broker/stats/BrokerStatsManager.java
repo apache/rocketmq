@@ -8,6 +8,7 @@ import org.slf4j.LoggerFactory;
 
 import com.alibaba.rocketmq.common.ThreadFactoryImpl;
 import com.alibaba.rocketmq.common.constant.LoggerName;
+import com.alibaba.rocketmq.common.stats.StatsItem;
 import com.alibaba.rocketmq.common.stats.StatsItemSet;
 
 
@@ -24,12 +25,24 @@ public class BrokerStatsManager {
     private final StatsItemSet topicPutSize = new StatsItemSet("TOPIC_PUT_SIZE",
         this.scheduledExecutorService, log);
 
-    // ConsumerGroup Get Nums
+    // Topic@ConsumerGroup Get Nums
     private final StatsItemSet groupGetNums = new StatsItemSet("GROUP_GET_NUMS",
         this.scheduledExecutorService, log);
 
-    // ConsumerGroup Get Size
+    // Topic@ConsumerGroup Get Size
     private final StatsItemSet groupGetSize = new StatsItemSet("GROUP_GET_SIZE",
+        this.scheduledExecutorService, log);
+
+    // Broker Put Nums
+    private final StatsItem brokerPutNums = new StatsItem("BROKER_PUT_NUMS", "Broker",
+        this.scheduledExecutorService, log);
+
+    // Broker Get Nums
+    private final StatsItem brokerGetNums = new StatsItem("BROKER_GET_NUMS", "Broker",
+        this.scheduledExecutorService, log);
+
+    // Topic@ConsumerGroup sendback Nums
+    private final StatsItemSet sndbckPutNums = new StatsItemSet("SNDBCK_PUT_NUMS",
         this.scheduledExecutorService, log);
 
 
@@ -38,6 +51,8 @@ public class BrokerStatsManager {
 
 
     public void start() {
+        this.brokerPutNums.init();
+        this.brokerGetNums.init();
     }
 
 
@@ -63,5 +78,20 @@ public class BrokerStatsManager {
 
     public void incGroupGetSize(final String group, final String topic, final int incValue) {
         this.groupGetSize.addValue(topic + "@" + group, incValue);
+    }
+
+
+    public void incBrokerPutNums() {
+        this.brokerPutNums.getValue().incrementAndGet();
+    }
+
+
+    public void incBrokerGetNums(final int incValue) {
+        this.brokerGetNums.getValue().addAndGet(incValue);
+    }
+
+
+    public void incSendBackNums(final String group, final String topic, final int incValue) {
+        this.sndbckPutNums.addValue(topic + "@" + group, incValue);
     }
 }
