@@ -324,6 +324,7 @@ public class PullMessageProcessor implements NettyRequestProcessor {
 
             switch (response.getCode()) {
             case ResponseCode.SUCCESS:
+                // 统计
                 this.brokerController.getBrokerStatsManager().incGroupGetNums(
                     requestHeader.getConsumerGroup(), requestHeader.getTopic(),
                     getMessageResult.getMessageCount());
@@ -331,6 +332,9 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                 this.brokerController.getBrokerStatsManager().incGroupGetSize(
                     requestHeader.getConsumerGroup(), requestHeader.getTopic(),
                     getMessageResult.getBufferTotalSize());
+
+                this.brokerController.getBrokerStatsManager().incBrokerGetNums(
+                    getMessageResult.getMessageCount());
 
                 try {
                     FileRegion fileRegion =
