@@ -730,6 +730,9 @@ public class CommitLog {
             CommitLog.log.info(this.getServiceName() + " service started");
 
             while (!this.isStoped()) {
+                boolean flushCommitLogTimed =
+                        CommitLog.this.defaultMessageStore.getMessageStoreConfig().isFlushCommitLogTimed();
+
                 int interval =
                         CommitLog.this.defaultMessageStore.getMessageStoreConfig()
                             .getFlushIntervalCommitLog();
@@ -752,7 +755,14 @@ public class CommitLog {
                 }
 
                 try {
-                    this.waitForRunning(interval);
+                    // 定时刷盘
+                    if (flushCommitLogTimed) {
+                        Thread.sleep(interval);
+                    }
+                    // 实时刷盘
+                    else {
+                        this.waitForRunning(interval);
+                    }
 
                     if (printFlushProgress) {
                         this.printFlushProgress();

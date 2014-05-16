@@ -55,6 +55,8 @@ public class MessageStoreConfig {
     private int mapedFileSizeConsumeQueue = 300000 * ConsumeQueue.CQStoreUnitSize;
     // CommitLog刷盘间隔时间（单位毫秒）
     private int flushIntervalCommitLog = 1000;
+    // 是否定时方式刷盘，默认是实时刷盘
+    private boolean flushCommitLogTimed = false;
     // ConsumeQueue刷盘间隔时间（单位毫秒）
     private int flushIntervalConsumeQueue = 1000;
     // 清理资源间隔时间（单位毫秒）
@@ -714,5 +716,15 @@ public class MessageStoreConfig {
 
     public void setMessageIndexSafe(boolean messageIndexSafe) {
         this.messageIndexSafe = messageIndexSafe;
+    }
+
+
+    public boolean isFlushCommitLogTimed() {
+        return flushCommitLogTimed;
+    }
+
+
+    public void setFlushCommitLogTimed(boolean flushCommitLogTimed) {
+        this.flushCommitLogTimed = flushCommitLogTimed;
     }
 }
