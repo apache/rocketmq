@@ -248,6 +248,9 @@ public class ScheduleMessageService extends ConfigManager {
             ConsumeQueue cq =
                     ScheduleMessageService.this.defaultMessageStore.findConsumeQueue(SCHEDULE_TOPIC,
                         delayLevel2QueueId(delayLevel));
+
+            long failScheduleOffset = offset;
+
             if (cq != null) {
                 SelectMapedBufferResult bufferCQ = cq.getIndexBuffer(this.offset);
                 if (bufferCQ != null) {
@@ -270,26 +273,37 @@ public class ScheduleMessageService extends ConfigManager {
                                 MessageExt msgExt =
                                         ScheduleMessageService.this.defaultMessageStore.lookMessageByOffset(
                                             offsetPy, sizePy);
+
                                 if (msgExt != null) {
-                                    MessageExtBrokerInner msgInner = this.messageTimeup(msgExt);
-                                    PutMessageResult putMessageResult =
-                                            ScheduleMessageService.this.defaultMessageStore
-                                                .putMessage(msgInner);
-                                    // 成功
-                                    if (putMessageResult != null
-                                            && putMessageResult.getPutMessageStatus() == PutMessageStatus.PUT_OK) {
-                                        continue;
+                                    try {
+                                        MessageExtBrokerInner msgInner = this.messageTimeup(msgExt);
+                                        PutMessageResult putMessageResult =
+                                                ScheduleMessageService.this.defaultMessageStore
+                                                    .putMessage(msgInner);
+                                        // 成功
+                                        if (putMessageResult != null
+                                                && putMessageResult.getPutMessageStatus() == PutMessageStatus.PUT_OK) {
+                                            continue;
+                                        }
+                                        // 失败
+                                        else {
+                                            log.error(
+                                                "a message time up, but reput it failed, topic: {} msgId {}",
+                                                msgExt.getTopic(), msgExt.getMsgId());
+                                            ScheduleMessageService.this.timer.schedule(
+                                                new DeliverDelayedMessageTimerTask(this.delayLevel,
+                                                    nextOffset), DELAY_FOR_A_PERIOD);
+                                            ScheduleMessageService.this.updateOffset(this.delayLevel,
+                                                nextOffset);
+                                            return;
+                                        }
                                     }
-                                    // 失败
-                                    else {
-                                        log.error(
-                                            "a message time up, but reput it failed, topic: {} msgId {}",
-                                            msgExt.getTopic(), msgExt.getMsgId());
-                                        ScheduleMessageService.this.timer.schedule(
-                                            new DeliverDelayedMessageTimerTask(this.delayLevel, nextOffset),
-                                            DELAY_FOR_A_PERIOD);
-                                        ScheduleMessageService.this.updateOffset(this.delayLevel, nextOffset);
-                                        return;
+                                    catch (Exception e) {
+                                        // FIXME
+                                        // 可能导致messageTimeup(msgExt);执行失败的定时消息被跳过
+                                        log.error("messageTimeup execute error. msgExt=" + msgExt
+                                                + ", nextOffset=" + nextOffset + ",offsetPy=" + offsetPy
+                                                + ",sizePy=" + sizePy, e);
                                     }
                                 }
                             }
@@ -314,10 +328,19 @@ public class ScheduleMessageService extends ConfigManager {
                         bufferCQ.release();
                     }
                 } // end of if (bufferCQ != null)
+                else {
+                    // 索引文件被删除offset没有纠正还指向一个老的位置
+                    long cqMinOffset = cq.getMinLogicOffset() / ConsumeQueue.CQStoreUnitSize;
+                    if (offset != cqMinOffset) {
+                        failScheduleOffset = cqMinOffset;
+                        log.error("schedule CQ offset invalid. offset=" + offset + ", cqMinOffset="
+                                + cqMinOffset + ", queueId=" + cq.getQueueId());
+                    }
+                }
             } // end of if (cq != null)
 
             ScheduleMessageService.this.timer.schedule(new DeliverDelayedMessageTimerTask(this.delayLevel,
-                this.offset), DELAY_FOR_A_WHILE);
+                failScheduleOffset), DELAY_FOR_A_WHILE);
         }
 
 
