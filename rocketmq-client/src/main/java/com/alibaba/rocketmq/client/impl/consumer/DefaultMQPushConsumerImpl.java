@@ -1007,4 +1007,14 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
             this.mQClientFactory.resetOffset(topic, groupName(), offsetTable);
         }
     }
+
+
+    public MQClientInstance getmQClientFactory() {
+        return mQClientFactory;
+    }
+
+
+    public void setmQClientFactory(MQClientInstance mQClientFactory) {
+        this.mQClientFactory = mQClientFactory;
+    }
 }
