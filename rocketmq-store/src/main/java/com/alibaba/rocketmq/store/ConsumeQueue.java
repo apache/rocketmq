@@ -448,22 +448,28 @@ public class ConsumeQueue {
         this.byteBufferIndex.putInt(size);
         this.byteBufferIndex.putLong(tagsCode);
 
-        final long realLogicOffset = cqOffset * CQStoreUnitSize;
+        final long expectLogicOffset = cqOffset * CQStoreUnitSize;
 
-        MapedFile mapedFile = this.mapedFileQueue.getLastMapedFile(realLogicOffset);
+        MapedFile mapedFile = this.mapedFileQueue.getLastMapedFile(expectLogicOffset);
         if (mapedFile != null) {
             // 纠正MapedFile逻辑队列索引顺序
             if (mapedFile.isFirstCreateInQueue() && cqOffset != 0 && mapedFile.getWrotePostion() == 0) {
-                this.minLogicOffset = realLogicOffset;
-                this.fillPreBlank(mapedFile, realLogicOffset);
-                log.info("fill pre blank space " + mapedFile.getFileName() + " " + realLogicOffset + " "
+                this.minLogicOffset = expectLogicOffset;
+                this.fillPreBlank(mapedFile, expectLogicOffset);
+                log.info("fill pre blank space " + mapedFile.getFileName() + " " + expectLogicOffset + " "
                         + mapedFile.getWrotePostion());
             }
 
             if (cqOffset != 0) {
-                if (realLogicOffset != (mapedFile.getWrotePostion() + mapedFile.getFileFromOffset())) {
-                    log.warn("logic queue order maybe wrong " + realLogicOffset + " "
-                            + (mapedFile.getWrotePostion() + mapedFile.getFileFromOffset()));
+                long currentLogicOffset = mapedFile.getWrotePostion() + mapedFile.getFileFromOffset();
+                if (expectLogicOffset != currentLogicOffset) {
+                    log.warn(
+                        "logic queue order maybe wrong, expectLogicOffset: {} currentLogicOffset: {} Topic: {} QID: {}",//
+                        expectLogicOffset, //
+                        currentLogicOffset,//
+                        this.topic,//
+                        this.queueId//
+                    );
                 }
             }
 
