@@ -1316,7 +1316,6 @@ public class DefaultMessageStore implements MessageStore {
                                 Thread.sleep(deleteLogicsFilesInterval);
                             }
                             catch (InterruptedException e) {
-                                e.printStackTrace();
                             }
                         }
                     }
