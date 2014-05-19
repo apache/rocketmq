@@ -779,7 +779,7 @@ public class DefaultMessageStore implements MessageStore {
         SelectMapedBufferResult sbr = this.commitLog.getMessage(commitLogOffset, size);
         if (null != sbr) {
             try {
-	            return MessageDecoder.decode(sbr.getByteBuffer(), true, false);
+                return MessageDecoder.decode(sbr.getByteBuffer(), true, false);
             }
             finally {
                 sbr.release();
@@ -1178,6 +1178,7 @@ public class DefaultMessageStore implements MessageStore {
                 }
                 // 危险情况：磁盘满了，但是又无法删除文件
                 else if (spacefull) {
+                    // XXX: warn and notify me
                     log.warn("disk space will be full soon, but delete file failed.");
                 }
             }

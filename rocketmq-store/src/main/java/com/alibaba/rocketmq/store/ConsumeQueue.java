@@ -408,6 +408,7 @@ public class ConsumeQueue {
             }
             // 只有一种情况会失败，创建新的MapedFile时报错或者超时
             else {
+                // XXX: warn and notify me
                 log.warn("put commit log postion info to " + topic + ":" + queueId + " " + offset
                         + " failed, retry " + i + " times");
 
@@ -420,6 +421,8 @@ public class ConsumeQueue {
             }
         }
 
+        // XXX: warn and notify me
+        log.error("consume queue can not write, {} {}", this.topic, this.queueId);
         this.defaultMessageStore.getRunningFlags().makeLogicsQueueError();
     }
 
@@ -463,6 +466,7 @@ public class ConsumeQueue {
             if (cqOffset != 0) {
                 long currentLogicOffset = mapedFile.getWrotePostion() + mapedFile.getFileFromOffset();
                 if (expectLogicOffset != currentLogicOffset) {
+                    // XXX: warn and notify me
                     log.warn(
                         "logic queue order maybe wrong, expectLogicOffset: {} currentLogicOffset: {} Topic: {} QID: {}",//
                         expectLogicOffset, //
