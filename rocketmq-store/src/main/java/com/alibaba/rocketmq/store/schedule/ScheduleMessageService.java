@@ -337,7 +337,7 @@ public class ScheduleMessageService extends ConfigManager {
                      * 这里直接纠正下一次定时任务的offset为当前定时任务队列的最小值
                      */
                     long cqMinOffset = cq.getMinOffsetInQuque();
-                    if (offset != cqMinOffset) {
+                    if (offset < cqMinOffset) {
                         failScheduleOffset = cqMinOffset;
                         log.error("schedule CQ offset invalid. offset=" + offset + ", cqMinOffset="
                                 + cqMinOffset + ", queueId=" + cq.getQueueId());
