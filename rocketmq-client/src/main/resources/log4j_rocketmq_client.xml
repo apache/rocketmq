@@ -3,7 +3,6 @@
 
 
 <log4j:configuration xmlns:log4j="http://jakarta.apache.org/log4j/">
-
 	<appender name="STDOUT-APPENDER" class="org.apache.log4j.ConsoleAppender">
 		<param name="encoding" value="UTF-8" />
 		<param name="target" value="System.out" />
@@ -12,17 +11,16 @@
 		</layout>
 	</appender>
 
-
-    <appender name="RocketmqClientAppender" class="org.apache.log4j.RollingFileAppender">
+	<appender name="RocketmqClientAppender" class="org.apache.log4j.RollingFileAppender">
 		<param name="file" value="${user.home}/logs/rocketmqlogs/rocketmq_client.log" />
-        <param name="append" value="true"/>
-        <param name="encoding" value="UTF-8"/>
-        <param name="maxFileSize" value="67108864"/>
-        <param name="maxBackupIndex" value="10"/>
-        <layout class="org.apache.log4j.PatternLayout">
-            <param name="ConversionPattern" value="%d{yyy-MM-dd HH\:mm\:ss,SSS} %p %c{1}(%L) - %m%n"/>
-        </layout>
-    </appender>
+		<param name="append" value="true" />
+		<param name="encoding" value="UTF-8" />
+		<param name="maxFileSize" value="1073741824" />
+		<param name="maxBackupIndex" value="10" />
+		<layout class="org.apache.log4j.PatternLayout">
+			<param name="ConversionPattern" value="%d{yyy-MM-dd HH\:mm\:ss,SSS} %p %c{1}(%L) - %m%n" />
+		</layout>
+	</appender>
 
 	<logger name="RocketmqClient" additivity="false">
 		<level value="INFO" />
