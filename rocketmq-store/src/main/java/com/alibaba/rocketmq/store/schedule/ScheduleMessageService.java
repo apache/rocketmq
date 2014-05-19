@@ -238,7 +238,8 @@ public class ScheduleMessageService extends ConfigManager {
                 this.executeOnTimeup();
             }
             catch (Exception e) {
-                log.error("executeOnTimeup exception", e);
+                // XXX: warn and notify me
+                log.error("ScheduleMessageService, executeOnTimeup exception", e);
                 ScheduleMessageService.this.timer.schedule(new DeliverDelayedMessageTimerTask(
                     this.delayLevel, this.offset), DELAY_FOR_A_PERIOD);
             }
@@ -271,27 +272,37 @@ public class ScheduleMessageService extends ConfigManager {
                                 MessageExt msgExt =
                                         ScheduleMessageService.this.defaultMessageStore.lookMessageByOffset(
                                             offsetPy, sizePy);
-                                if (msgExt != null) {
-                                    MessageExtBrokerInner msgInner = this.messageTimeup(msgExt);
-                                    PutMessageResult putMessageResult =
-                                            ScheduleMessageService.this.defaultMessageStore
-                                                .putMessage(msgInner);
-                                    // 成功
-                                    if (putMessageResult != null
-                                            && putMessageResult.getPutMessageStatus() == PutMessageStatus.PUT_OK) {
-                                        continue;
+                                try {
+                                    if (msgExt != null) {
+                                        MessageExtBrokerInner msgInner = this.messageTimeup(msgExt);
+                                        PutMessageResult putMessageResult =
+                                                ScheduleMessageService.this.defaultMessageStore
+                                                    .putMessage(msgInner);
+                                        // 成功
+                                        if (putMessageResult != null
+                                                && putMessageResult.getPutMessageStatus() == PutMessageStatus.PUT_OK) {
+                                            continue;
+                                        }
+                                        // 失败
+                                        else {
+                                            // XXX: warn and notify me
+                                            log.error(
+                                                "ScheduleMessageService, a message time up, but reput it failed, topic: {} msgId {}",
+                                                msgExt.getTopic(), msgExt.getMsgId());
+                                            ScheduleMessageService.this.timer.schedule(
+                                                new DeliverDelayedMessageTimerTask(this.delayLevel,
+                                                    nextOffset), DELAY_FOR_A_PERIOD);
+                                            ScheduleMessageService.this.updateOffset(this.delayLevel,
+                                                nextOffset);
+                                            return;
+                                        }
                                     }
-                                    // 失败
-                                    else {
-                                        log.error(
-                                            "a message time up, but reput it failed, topic: {} msgId {}",
-                                            msgExt.getTopic(), msgExt.getMsgId());
-                                        ScheduleMessageService.this.timer.schedule(
-                                            new DeliverDelayedMessageTimerTask(this.delayLevel, nextOffset),
-                                            DELAY_FOR_A_PERIOD);
-                                        ScheduleMessageService.this.updateOffset(this.delayLevel, nextOffset);
-                                        return;
-                                    }
+                                }
+                                catch (Exception e) {
+                                    // XXX: warn and notify me
+                                    log.error(
+                                        "ScheduleMessageService, message from schedule queue to store failed, drop it",
+                                        e);
                                 }
                             }
                             // 时候未到，继续定时
