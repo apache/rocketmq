@@ -535,6 +535,7 @@ public class CommitLog {
                 // 创建新文件，重新写消息
                 mapedFile = this.mapedFileQueue.getLastMapedFile();
                 if (null == mapedFile) {
+                    // XXX: warn and notify me
                     log.error("create maped file2 error, topic: " + msg.getTopic() + " clientAddr: "
                             + msg.getBornHostString());
                     return new PutMessageResult(PutMessageStatus.CREATE_MAPEDFILE_FAILED, result);
@@ -573,6 +574,7 @@ public class CommitLog {
 
             long eclipseTime = this.defaultMessageStore.getSystemClock().now() - beginLockTimestamp;
             if (eclipseTime > 1000) {
+                // XXX: warn and notify me
                 log.warn("putMessage in lock eclipse time(ms) " + eclipseTime);
             }
         }
