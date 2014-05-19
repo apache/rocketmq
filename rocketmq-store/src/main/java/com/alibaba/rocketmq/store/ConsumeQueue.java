@@ -461,9 +461,17 @@ public class ConsumeQueue {
             }
 
             if (cqOffset != 0) {
-                if (realLogicOffset != (mapedFile.getWrotePostion() + mapedFile.getFileFromOffset())) {
-                    log.warn("logic queue order maybe wrong " + realLogicOffset + " "
-                            + (mapedFile.getWrotePostion() + mapedFile.getFileFromOffset()));
+                long currentLogicOffset = mapedFile.getWrotePostion() + mapedFile.getFileFromOffset();
+
+                if (realLogicOffset != currentLogicOffset) {
+                    log.warn(
+                        "logic queue order maybe wrong, realLogicOffset: {} currentLogicOffset: {} Topic: {} QID: {}",//
+                        realLogicOffset, //
+                        currentLogicOffset,//
+                        this.topic,//
+                        this.queueId//
+                    );
+
                 }
             }
 
