@@ -132,7 +132,7 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
             .group(this.eventLoopGroup, new NioEventLoopGroup())
             .channel(NioServerSocketChannel.class)
             //
-            .option(ChannelOption.SO_BACKLOG, 65536)
+            .option(ChannelOption.SO_BACKLOG, 1024)
             //
             .option(ChannelOption.SO_REUSEADDR, true)
             //
