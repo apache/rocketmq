@@ -250,6 +250,9 @@ public class ScheduleMessageService extends ConfigManager {
             ConsumeQueue cq =
                     ScheduleMessageService.this.defaultMessageStore.findConsumeQueue(SCHEDULE_TOPIC,
                         delayLevel2QueueId(delayLevel));
+
+            long failScheduleOffset = offset;
+
             if (cq != null) {
                 SelectMapedBufferResult bufferCQ = cq.getIndexBuffer(this.offset);
                 if (bufferCQ != null) {
@@ -272,8 +275,9 @@ public class ScheduleMessageService extends ConfigManager {
                                 MessageExt msgExt =
                                         ScheduleMessageService.this.defaultMessageStore.lookMessageByOffset(
                                             offsetPy, sizePy);
-                                try {
-                                    if (msgExt != null) {
+
+                                if (msgExt != null) {
+                                    try {
                                         MessageExtBrokerInner msgInner = this.messageTimeup(msgExt);
                                         PutMessageResult putMessageResult =
                                                 ScheduleMessageService.this.defaultMessageStore
@@ -297,12 +301,17 @@ public class ScheduleMessageService extends ConfigManager {
                                             return;
                                         }
                                     }
-                                }
-                                catch (Exception e) {
-                                    // XXX: warn and notify me
-                                    log.error(
-                                        "ScheduleMessageService, message from schedule queue to store failed, drop it",
-                                        e);
+                                    catch (Exception e) {
+                                        /*
+                                         * XXX
+                                         * msgExt里面的内容不完整，如没有REAL_QID,REAL_TOPIC之类的
+                                         * ，导致数据无法正常的投递到正确的消费队列，所以暂时先直接跳过该条消息
+                                         */
+                                        log.error(
+                                            "ScheduleMessageService messageTimeup execute error, drop it. msgExt="
+                                                    + msgExt + ", nextOffset=" + nextOffset + ",offsetPy="
+                                                    + offsetPy + ",sizePy=" + sizePy, e);
+                                    }
                                 }
                             }
                             // 时候未到，继续定时
@@ -326,10 +335,22 @@ public class ScheduleMessageService extends ConfigManager {
                         bufferCQ.release();
                     }
                 } // end of if (bufferCQ != null)
+                else {
+                    /*
+                     * 索引文件被删除，定时任务中记录的offset已经被删除，会导致从该位置中取不到数据，
+                     * 这里直接纠正下一次定时任务的offset为当前定时任务队列的最小值
+                     */
+                    long cqMinOffset = cq.getMinOffsetInQuque();
+                    if (offset < cqMinOffset) {
+                        failScheduleOffset = cqMinOffset;
+                        log.error("schedule CQ offset invalid. offset=" + offset + ", cqMinOffset="
+                                + cqMinOffset + ", queueId=" + cq.getQueueId());
+                    }
+                }
             } // end of if (cq != null)
 
             ScheduleMessageService.this.timer.schedule(new DeliverDelayedMessageTimerTask(this.delayLevel,
-                this.offset), DELAY_FOR_A_WHILE);
+                failScheduleOffset), DELAY_FOR_A_WHILE);
         }
 
 
