@@ -457,8 +457,8 @@ public class MQClientInstance {
         }
         catch (Exception e1) {
             log.warn("uploadFilterClassToAllFilterServer Exception, ClassFile: {} ClassName: {} {}", //
-                className,//
                 classFile,//
+                className,//
                 RemotingHelper.exceptionSimpleDesc(e1));
         }
 
