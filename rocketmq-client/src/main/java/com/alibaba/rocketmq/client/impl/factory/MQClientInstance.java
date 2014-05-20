@@ -18,6 +18,7 @@ package com.alibaba.rocketmq.client.impl.factory;
 import java.io.UnsupportedEncodingException;
 import java.net.DatagramSocket;
 import java.net.SocketException;
+import java.net.URL;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -447,7 +448,7 @@ public class MQClientInstance {
 
     private void uploadFilterClassToAllFilterServer(final String consumerGroup, final String className,
             final String topic) throws UnsupportedEncodingException {
-        String classFile = FilterAPI.classFile(className);
+        URL classFile = FilterAPI.classFile(className);
         byte[] classBody = null;
         int classCRC = 0;
         try {

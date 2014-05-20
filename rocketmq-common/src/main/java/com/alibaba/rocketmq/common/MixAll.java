@@ -30,6 +30,7 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
@@ -182,6 +183,23 @@ public class MixAll {
 
     public static final String file2String(final String fileName) {
         File file = new File(fileName);
+        return file2String(file);
+    }
+
+
+    public static final String file2String(final URL url) {
+        try {
+            File file = new File(url.toURI());
+            return file2String(file);
+        }
+        catch (URISyntaxException e) {
+        }
+
+        return null;
+    }
+
+
+    private static final String file2String(final File file) {
         if (file.exists()) {
             char[] data = new char[(int) file.length()];
             boolean result = false;

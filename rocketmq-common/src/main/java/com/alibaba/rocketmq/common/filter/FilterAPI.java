@@ -36,14 +36,10 @@ public class FilterAPI {
     }
 
 
-    public static String classFile(final String className) {
+    public static URL classFile(final String className) {
         final String javaSource = simpleClassName(className) + ".java";
         URL url = FilterAPI.class.getClassLoader().getResource(javaSource);
-        if (url != null) {
-            return url.getFile();
-        }
-
-        return null;
+        return url;
     }
 
 
