@@ -72,6 +72,7 @@ import com.alibaba.rocketmq.common.protocol.heartbeat.SubscriptionData;
 import com.alibaba.rocketmq.common.protocol.route.BrokerData;
 import com.alibaba.rocketmq.common.protocol.route.QueueData;
 import com.alibaba.rocketmq.common.protocol.route.TopicRouteData;
+import com.alibaba.rocketmq.remoting.common.RemotingHelper;
 import com.alibaba.rocketmq.remoting.exception.RemotingException;
 import com.alibaba.rocketmq.remoting.netty.NettyClientConfig;
 
@@ -449,13 +450,16 @@ public class MQClientInstance {
         String classFile = FilterAPI.classFile(className);
         byte[] classBody = null;
         int classCRC = 0;
-        if (null != classFile) {
+        try {
             String fileContent = MixAll.file2String(classFile);
             classBody = fileContent.getBytes(MixAll.DEFAULT_CHARSET);
             classCRC = UtilAll.crc32(classBody);
         }
-        else {
-            log.warn("uploadFilterClassToAllFilterServer classFile<{}> Not Exitst", className);
+        catch (Exception e1) {
+            log.warn("uploadFilterClassToAllFilterServer Exception, ClassFile: {} ClassName: {} {}", //
+                className,//
+                classFile,//
+                RemotingHelper.exceptionSimpleDesc(e1));
         }
 
         TopicRouteData topicRouteData = this.topicRouteTable.get(topic);
@@ -472,9 +476,9 @@ public class MQClientInstance {
                         this.mQClientAPIImpl.registerMessageFilterClass(fsAddr, consumerGroup, topic,
                             className, classCRC, classBody, 5000);
 
-                        log.warn(
-                            "register message class filter to {} OK, ConsumerGroup: {} Topic: {} ClassName: {}",
-                            fsAddr, consumerGroup, topic, className);
+                        log.info(
+                            "register message class filter to {} OK, ConsumerGroup: {} Topic: {} ClassName: {} ClassFile: {}",
+                            fsAddr, consumerGroup, topic, className, classFile);
 
                     }
                     catch (Exception e) {
