@@ -68,17 +68,17 @@ public class UtilAllTest {
     public void test_isBlank() {
         {
             boolean result = UtilAll.isBlank("Hello ");
-            assertTrue(result);
+            assertTrue(!result);
         }
 
         {
             boolean result = UtilAll.isBlank(" Hello");
-            assertTrue(result);
+            assertTrue(!result);
         }
 
         {
             boolean result = UtilAll.isBlank("He llo");
-            assertTrue(result);
+            assertTrue(!result);
         }
 
         {

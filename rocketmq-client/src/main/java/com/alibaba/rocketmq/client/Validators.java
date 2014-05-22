@@ -17,7 +17,8 @@ import com.alibaba.rocketmq.common.message.Message;
  * @since 2013-8-28
  */
 public class Validators {
-    public static final String validPatternStr = "^[a-zA-Z0-9_-]+$";
+    public static final String VALID_PATTERN_STR = "^[a-zA-Z0-9_-]+$";
+    public static final Pattern PATTERN = Pattern.compile(VALID_PATTERN_STR);
     public static final int CHARACTER_MAX_LENGTH = 255;
 
 
@@ -25,17 +26,13 @@ public class Validators {
      * 通过正则表达式进行字符匹配
      * 
      * @param origin
-     * @param patternStr
+     * @param pattern
      * @return
      */
-    public static boolean regularExpressionMatcher(String origin, String patternStr) {
-        if (UtilAll.isBlank(origin)) {
-            return false;
-        }
-        if (UtilAll.isBlank(patternStr)) {
+    public static boolean regularExpressionMatcher(String origin, Pattern pattern) {
+        if (pattern == null) {
             return true;
         }
-        Pattern pattern = Pattern.compile(patternStr);
         Matcher matcher = pattern.matcher(origin);
         return matcher.matches();
     }
@@ -68,10 +65,10 @@ public class Validators {
         if (UtilAll.isBlank(topic)) {
             throw new MQClientException("the specified topic is blank", null);
         }
-        if (!regularExpressionMatcher(topic, validPatternStr)) {
+        if (!regularExpressionMatcher(topic, PATTERN)) {
             throw new MQClientException(String.format(
                 "the specified topic[%s] contains illegal characters, allowing only %s", topic,
-                validPatternStr), null);
+                VALID_PATTERN_STR), null);
         }
         if (topic.length() > CHARACTER_MAX_LENGTH) {
             throw new MQClientException("the specified topic is longer than topic max length 255.", null);
@@ -95,10 +92,10 @@ public class Validators {
         if (UtilAll.isBlank(group)) {
             throw new MQClientException("the specified group is blank", null);
         }
-        if (!regularExpressionMatcher(group, validPatternStr)) {
+        if (!regularExpressionMatcher(group, PATTERN)) {
             throw new MQClientException(String.format(
                 "the specified group[%s] contains illegal characters, allowing only %s", group,
-                validPatternStr), null);
+                VALID_PATTERN_STR), null);
         }
         if (group.length() > CHARACTER_MAX_LENGTH) {
             throw new MQClientException("the specified group is longer than group max length 255.", null);

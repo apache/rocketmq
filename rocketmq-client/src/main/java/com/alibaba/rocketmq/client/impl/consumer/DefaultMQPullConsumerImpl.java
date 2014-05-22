@@ -15,11 +15,10 @@
  */
 package com.alibaba.rocketmq.client.impl.consumer;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+
+import com.alibaba.rocketmq.client.hook.FilterMessageHook;
 
 import org.slf4j.Logger;
 
@@ -36,7 +35,7 @@ import com.alibaba.rocketmq.client.exception.MQBrokerException;
 import com.alibaba.rocketmq.client.exception.MQClientException;
 import com.alibaba.rocketmq.client.impl.CommunicationMode;
 import com.alibaba.rocketmq.client.impl.MQClientManager;
-import com.alibaba.rocketmq.client.impl.factory.MQClientFactory;
+import com.alibaba.rocketmq.client.impl.factory.MQClientInstance;
 import com.alibaba.rocketmq.client.log.ClientLogger;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.ServiceState;
@@ -44,6 +43,7 @@ import com.alibaba.rocketmq.common.consumer.ConsumeFromWhere;
 import com.alibaba.rocketmq.common.filter.FilterAPI;
 import com.alibaba.rocketmq.common.help.FAQUrl;
 import com.alibaba.rocketmq.common.message.Message;
+import com.alibaba.rocketmq.common.message.MessageAccessor;
 import com.alibaba.rocketmq.common.message.MessageConst;
 import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.common.message.MessageQueue;
@@ -64,7 +64,7 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
     private final Logger log = ClientLogger.getLog();
     private final DefaultMQPullConsumer defaultMQPullConsumer;
     private ServiceState serviceState = ServiceState.CREATE_JUST;
-    private MQClientFactory mQClientFactory;
+    private MQClientInstance mQClientFactory;
     private PullAPIWrapper pullAPIWrapper;
     // 消费进度存储
     private OffsetStore offsetStore;
@@ -167,7 +167,13 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
         if (topics != null) {
             synchronized (topics) {
                 for (String t : topics) {
-                    SubscriptionData ms = new SubscriptionData(t, SubscriptionData.SUB_ALL);
+                    SubscriptionData ms = null;
+                    try {
+                        ms = FilterAPI.buildSubscriptionData(this.groupName(), t, SubscriptionData.SUB_ALL);
+                    }
+                    catch (Exception e) {
+                        log.error("parse subscription error", e);
+                    }
                     ms.setSubVersion(0L);
                     result.add(ms);
                 }
@@ -228,6 +234,12 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
     }
 
 
+    @Override
+    public boolean isUnitMode() {
+        return this.defaultMQPullConsumer.isUnitMode();
+    }
+
+
     public long maxOffset(MessageQueue mq) throws MQClientException {
         this.makeSureStateOK();
         return this.mQClientFactory.getMQAdminImpl().maxOffset(mq);
@@ -266,11 +278,12 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
         // 自动订阅
         this.subscriptionAutomatically(mq.getTopic());
 
-        int sysFlag = PullSysFlag.buildSysFlag(false, block, true);
+        int sysFlag = PullSysFlag.buildSysFlag(false, block, true, false);
 
         SubscriptionData subscriptionData;
         try {
-            subscriptionData = FilterAPI.buildSubscriptionData(mq.getTopic(), subExpression);
+            subscriptionData = FilterAPI.buildSubscriptionData(this.defaultMQPullConsumer.getConsumerGroup(),//
+                mq.getTopic(), subExpression);
         }
         catch (Exception e) {
             throw new MQClientException("parse subscription error", e);
@@ -302,7 +315,8 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
         if (!this.rebalanceImpl.getSubscriptionInner().containsKey(topic)) {
             try {
                 SubscriptionData subscriptionData =
-                        FilterAPI.buildSubscriptionData(topic, SubscriptionData.SUB_ALL);
+                        FilterAPI.buildSubscriptionData(this.defaultMQPullConsumer.getConsumerGroup(),//
+                            topic, SubscriptionData.SUB_ALL);
                 this.rebalanceImpl.subscriptionInner.putIfAbsent(topic, subscriptionData);
             }
             catch (Exception e) {
@@ -347,11 +361,13 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
         this.subscriptionAutomatically(mq.getTopic());
 
         try {
-            int sysFlag = PullSysFlag.buildSysFlag(false, block, true);
+            int sysFlag = PullSysFlag.buildSysFlag(false, block, true, false);
 
             final SubscriptionData subscriptionData;
             try {
-                subscriptionData = FilterAPI.buildSubscriptionData(mq.getTopic(), subExpression);
+                subscriptionData =
+                        FilterAPI.buildSubscriptionData(this.defaultMQPullConsumer.getConsumerGroup(),//
+                            mq.getTopic(), subExpression);
             }
             catch (Exception e) {
                 throw new MQClientException("parse subscription error", e);
@@ -432,8 +448,8 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
                         msg.getBody());
 
             newMsg.setFlag(msg.getFlag());
-            newMsg.setProperties(msg.getProperties());
-            newMsg.putProperty(MessageConst.PROPERTY_RETRY_TOPIC, msg.getTopic());
+            MessageAccessor.setProperties(newMsg, msg.getProperties());
+            MessageAccessor.putProperty(newMsg, MessageConst.PROPERTY_RETRY_TOPIC, msg.getTopic());
 
             this.mQClientFactory.getDefaultMQProducer().send(newMsg);
         }
@@ -468,8 +484,12 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
 
             this.copySubscription();
 
+            if (this.defaultMQPullConsumer.getMessageModel() == MessageModel.CLUSTERING) {
+                this.defaultMQPullConsumer.changeInstanceNameToPID();
+            }
+
             this.mQClientFactory =
-                    MQClientManager.getInstance().getAndCreateMQClientFactory(this.defaultMQPullConsumer);
+                    MQClientManager.getInstance().getAndCreateMQClientInstance(this.defaultMQPullConsumer);
 
             // 初始化Rebalance变量
             this.rebalanceImpl.setConsumerGroup(this.defaultMQPullConsumer.getConsumerGroup());
@@ -480,7 +500,9 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
 
             this.pullAPIWrapper = new PullAPIWrapper(//
                 mQClientFactory,//
-                this.defaultMQPullConsumer.getConsumerGroup());
+                this.defaultMQPullConsumer.getConsumerGroup(), isUnitMode());
+            // 每次拉消息之后，都会进行一次过滤。
+            this.pullAPIWrapper.registerFilterMessageHook(filterMessageHookList);
 
             if (this.defaultMQPullConsumer.getOffsetStore() != null) {
                 this.offsetStore = this.defaultMQPullConsumer.getOffsetStore();
@@ -540,7 +562,8 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
             if (registerTopics != null) {
                 for (final String topic : registerTopics) {
                     SubscriptionData subscriptionData =
-                            FilterAPI.buildSubscriptionData(topic, SubscriptionData.SUB_ALL);
+                            FilterAPI.buildSubscriptionData(this.defaultMQPullConsumer.getConsumerGroup(),//
+                                topic, SubscriptionData.SUB_ALL);
                     this.rebalanceImpl.getSubscriptionInner().put(topic, subscriptionData);
                 }
             }
@@ -599,6 +622,15 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
         return this.mQClientFactory.getMQAdminImpl().viewMessage(msgId);
     }
 
+    // 消息过滤 hook
+    private final ArrayList<FilterMessageHook> filterMessageHookList = new ArrayList<FilterMessageHook>();
+
+
+    public void registerFilterMessageHook(final FilterMessageHook hook) {
+        this.filterMessageHookList.add(hook);
+        log.info("register FilterMessageHook Hook, {}", hook.hookName());
+    }
+
 
     public DefaultMQPullConsumer getDefaultMQPullConsumer() {
         return defaultMQPullConsumer;
@@ -612,5 +644,15 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
 
     public void setOffsetStore(OffsetStore offsetStore) {
         this.offsetStore = offsetStore;
+    }
+
+
+    public PullAPIWrapper getPullAPIWrapper() {
+        return pullAPIWrapper;
+    }
+
+
+    public void setPullAPIWrapper(PullAPIWrapper pullAPIWrapper) {
+        this.pullAPIWrapper = pullAPIWrapper;
     }
 }

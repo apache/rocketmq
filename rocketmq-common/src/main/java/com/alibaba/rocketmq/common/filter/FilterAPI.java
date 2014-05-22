@@ -15,6 +15,8 @@
  */
 package com.alibaba.rocketmq.common.filter;
 
+import java.net.URL;
+
 import com.alibaba.rocketmq.common.protocol.heartbeat.SubscriptionData;
 
 
@@ -23,13 +25,60 @@ import com.alibaba.rocketmq.common.protocol.heartbeat.SubscriptionData;
  * @since 2013-6-15
  */
 public class FilterAPI {
-    public static SubscriptionData buildSubscriptionData(String topic, String subString) throws Exception {
+    public static String simpleClassName(final String className) {
+        String simple = className;
+        int index = className.lastIndexOf(".");
+        if (index >= 0) {
+            simple = className.substring(index + 1);
+        }
+
+        return simple;
+    }
+
+
+    public static URL classFile(final String className) {
+        final String javaSource = simpleClassName(className) + ".java";
+        URL url = FilterAPI.class.getClassLoader().getResource(javaSource);
+        return url;
+    }
+
+
+    public static boolean isFilterClassMode(final String subString) {
+        try {
+            if (subString.contains(".")) {
+                Class<?> loadClass = FilterAPI.class.getClassLoader().loadClass(subString);
+                Class<?>[] interfaces = loadClass.getInterfaces();
+                for (int i = 0; i < interfaces.length; i++) {
+                    if (interfaces[i].getCanonicalName().equals(MessageFilter.class.getCanonicalName())) {
+                        return true;
+                    }
+                }
+            }
+        }
+        catch (ClassNotFoundException e) {
+        }
+
+        return false;
+    }
+
+
+    public static SubscriptionData buildSubscriptionData(final String consumerGroup, String topic,
+            String subString) throws Exception {
         SubscriptionData subscriptionData = new SubscriptionData();
         subscriptionData.setTopic(topic);
         subscriptionData.setSubString(subString);
 
         if (null == subString || subString.equals(SubscriptionData.SUB_ALL) || subString.length() == 0) {
             subscriptionData.setSubString(SubscriptionData.SUB_ALL);
+        }
+        // eg: com.taobao.abc.FilterClassName
+        else if (isFilterClassMode(subString)) {
+            // if (null == classFile(subString)) {
+            // throw new
+            // Exception(String.format("The Filter Java Class Source[%s] not exist in class path",
+            // subString + ".java"));
+            // }
+            subscriptionData.setClassFilterMode(true);
         }
         else {
             String[] tags = subString.split("\\|\\|");
@@ -51,5 +100,4 @@ public class FilterAPI {
 
         return subscriptionData;
     }
-
 }

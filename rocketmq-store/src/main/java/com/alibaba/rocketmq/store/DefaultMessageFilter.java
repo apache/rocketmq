@@ -32,6 +32,9 @@ public class DefaultMessageFilter implements MessageFilter {
             return true;
         }
 
+        if (subscriptionData.isClassFilterMode())
+            return true;
+
         if (subscriptionData.getSubString().equals(SubscriptionData.SUB_ALL)) {
             return true;
         }

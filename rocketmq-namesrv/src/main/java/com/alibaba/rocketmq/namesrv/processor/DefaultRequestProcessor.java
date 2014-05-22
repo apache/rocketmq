@@ -15,27 +15,42 @@
  */
 package com.alibaba.rocketmq.namesrv.processor;
 
+import io.netty.channel.ChannelHandlerContext;
+
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.alibaba.rocketmq.common.MQVersion;
+import com.alibaba.rocketmq.common.MQVersion.Version;
 import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.common.help.FAQUrl;
 import com.alibaba.rocketmq.common.namesrv.NamesrvUtil;
 import com.alibaba.rocketmq.common.namesrv.RegisterBrokerResult;
 import com.alibaba.rocketmq.common.protocol.RequestCode;
 import com.alibaba.rocketmq.common.protocol.ResponseCode;
+import com.alibaba.rocketmq.common.protocol.body.RegisterBrokerBody;
 import com.alibaba.rocketmq.common.protocol.body.TopicConfigSerializeWrapper;
 import com.alibaba.rocketmq.common.protocol.header.GetTopicsByClusterRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.namesrv.*;
+import com.alibaba.rocketmq.common.protocol.header.namesrv.DeleteKVConfigRequestHeader;
+import com.alibaba.rocketmq.common.protocol.header.namesrv.DeleteTopicInNamesrvRequestHeader;
+import com.alibaba.rocketmq.common.protocol.header.namesrv.GetKVConfigRequestHeader;
+import com.alibaba.rocketmq.common.protocol.header.namesrv.GetKVConfigResponseHeader;
+import com.alibaba.rocketmq.common.protocol.header.namesrv.GetKVListByNamespaceRequestHeader;
+import com.alibaba.rocketmq.common.protocol.header.namesrv.GetRouteInfoRequestHeader;
+import com.alibaba.rocketmq.common.protocol.header.namesrv.PutKVConfigRequestHeader;
+import com.alibaba.rocketmq.common.protocol.header.namesrv.RegisterBrokerRequestHeader;
+import com.alibaba.rocketmq.common.protocol.header.namesrv.RegisterBrokerResponseHeader;
+import com.alibaba.rocketmq.common.protocol.header.namesrv.UnRegisterBrokerRequestHeader;
+import com.alibaba.rocketmq.common.protocol.header.namesrv.WipeWritePermOfBrokerRequestHeader;
+import com.alibaba.rocketmq.common.protocol.header.namesrv.WipeWritePermOfBrokerResponseHeader;
 import com.alibaba.rocketmq.common.protocol.route.TopicRouteData;
 import com.alibaba.rocketmq.namesrv.NamesrvController;
 import com.alibaba.rocketmq.remoting.common.RemotingHelper;
 import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
 import com.alibaba.rocketmq.remoting.netty.NettyRequestProcessor;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
-import io.netty.channel.ChannelHandlerContext;
 
 
 /**
@@ -73,7 +88,15 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
         case RequestCode.DELETE_KV_CONFIG:
             return this.deleteKVConfig(ctx, request);
         case RequestCode.REGISTER_BROKER:
-            return this.registerBroker(ctx, request);
+            Version brokerVersion = MQVersion.value2Version(request.getVersion());
+            // 新版本Broker，支持Filter Server
+            if (brokerVersion.ordinal() >= MQVersion.Version.V3_0_10_SNAPSHOT.ordinal()) {
+                return this.registerBrokerWithFilterServer(ctx, request);
+            }
+            // 低版本Broker，不支持Filter Server
+            else {
+                return this.registerBroker(ctx, request);
+            }
         case RequestCode.UNREGISTER_BROKER:
             return this.unregisterBroker(ctx, request);
         case RequestCode.GET_ROUTEINTO_BY_TOPIC:
@@ -98,6 +121,47 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
             break;
         }
         return null;
+    }
+
+
+    public RemotingCommand registerBrokerWithFilterServer(ChannelHandlerContext ctx, RemotingCommand request)
+            throws RemotingCommandException {
+        final RemotingCommand response =
+                RemotingCommand.createResponseCommand(RegisterBrokerResponseHeader.class);
+        final RegisterBrokerResponseHeader responseHeader =
+                (RegisterBrokerResponseHeader) response.getCustomHeader();
+        final RegisterBrokerRequestHeader requestHeader =
+                (RegisterBrokerRequestHeader) request
+                    .decodeCommandCustomHeader(RegisterBrokerRequestHeader.class);
+
+        RegisterBrokerBody registerBrokerBody = new RegisterBrokerBody();
+
+        if (request.getBody() != null) {
+            registerBrokerBody = RegisterBrokerBody.decode(request.getBody(), RegisterBrokerBody.class);
+        }
+        else {
+            registerBrokerBody.getTopicConfigSerializeWrapper().getDataVersion()
+                .setCounter(new AtomicLong(0));
+            registerBrokerBody.getTopicConfigSerializeWrapper().getDataVersion().setTimestatmp(0);
+        }
+
+        RegisterBrokerResult result = this.namesrvController.getRouteInfoManager().registerBroker(//
+            requestHeader.getClusterName(), // 1
+            requestHeader.getBrokerAddr(), // 2
+            requestHeader.getBrokerName(), // 3
+            requestHeader.getBrokerId(), // 4
+            requestHeader.getHaServerAddr(),// 5
+            registerBrokerBody.getTopicConfigSerializeWrapper(), // 6
+            registerBrokerBody.getFilterServerList(),//
+            ctx.channel()// 7
+            );
+
+        responseHeader.setHaServerAddr(result.getHaServerAddr());
+        responseHeader.setMasterAddr(result.getMasterAddr());
+
+        response.setCode(ResponseCode.SUCCESS);
+        response.setRemark(null);
+        return response;
     }
 
 
@@ -320,6 +384,7 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
             requestHeader.getBrokerId(), // 4
             requestHeader.getHaServerAddr(),// 5
             topicConfigWrapper, // 6
+            null,//
             ctx.channel()// 7
             );
 

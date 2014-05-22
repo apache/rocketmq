@@ -45,4 +45,7 @@ public interface MQProducerInner {
 
 
     public void updateTopicPublishInfo(final String topic, final TopicPublishInfo info);
+
+
+    public boolean isUnitMode();
 }

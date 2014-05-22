@@ -18,14 +18,12 @@ package com.alibaba.rocketmq.namesrv;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.alibaba.rocketmq.common.MixAll;
+import com.alibaba.rocketmq.common.ThreadFactoryImpl;
 import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.common.namesrv.NamesrvConfig;
 import com.alibaba.rocketmq.namesrv.kvconfig.KVConfigManager;
@@ -58,12 +56,7 @@ public class NamesrvController {
 
     // 定时线程
     private final ScheduledExecutorService scheduledExecutorService = Executors
-        .newSingleThreadScheduledExecutor(new ThreadFactory() {
-            @Override
-            public Thread newThread(Runnable r) {
-                return new Thread(r, "NamesrvControllerScheduledThread");
-            }
-        });
+        .newSingleThreadScheduledExecutor(new ThreadFactoryImpl("NSScheduledThread"));
 
     /**
      * 核心数据结构
@@ -82,9 +75,6 @@ public class NamesrvController {
 
 
     public boolean initialize() {
-        // 打印服务器配置参数
-        MixAll.printObjectProperties(log, this.namesrvConfig);
-
         // 加载KV配置
         this.kvConfigManager.load();
 
@@ -93,15 +83,8 @@ public class NamesrvController {
 
         // 初始化线程池
         this.remotingExecutor =
-                Executors.newFixedThreadPool(nettyServerConfig.getServerWorkerThreads(), new ThreadFactory() {
-                    private AtomicInteger threadIndex = new AtomicInteger(0);
-
-
-                    @Override
-                    public Thread newThread(Runnable r) {
-                        return new Thread(r, "RemotingExecutorThread_" + threadIndex.incrementAndGet());
-                    }
-                });
+                Executors.newFixedThreadPool(nettyServerConfig.getServerWorkerThreads(),
+                    new ThreadFactoryImpl("RemotingExecutorThread_"));
 
         this.registerProcessor();
 
@@ -169,5 +152,15 @@ public class NamesrvController {
 
     public RouteInfoManager getRouteInfoManager() {
         return routeInfoManager;
+    }
+
+
+    public RemotingServer getRemotingServer() {
+        return remotingServer;
+    }
+
+
+    public void setRemotingServer(RemotingServer remotingServer) {
+        this.remotingServer = remotingServer;
     }
 }

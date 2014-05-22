@@ -32,7 +32,6 @@ import org.slf4j.LoggerFactory;
 import com.alibaba.rocketmq.broker.BrokerController;
 import com.alibaba.rocketmq.broker.client.ClientChannelInfo;
 import com.alibaba.rocketmq.broker.client.ConsumerGroupInfo;
-import com.alibaba.rocketmq.broker.digestlog.UpdateCommitOffsetMoniter;
 import com.alibaba.rocketmq.common.MQVersion;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.TopicConfig;
@@ -75,6 +74,8 @@ import com.alibaba.rocketmq.common.protocol.header.SearchOffsetRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.SearchOffsetResponseHeader;
 import com.alibaba.rocketmq.common.protocol.header.UpdateConsumerOffsetRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.UpdateConsumerOffsetResponseHeader;
+import com.alibaba.rocketmq.common.protocol.header.filtersrv.RegisterFilterServerRequestHeader;
+import com.alibaba.rocketmq.common.protocol.header.filtersrv.RegisterFilterServerResponseHeader;
 import com.alibaba.rocketmq.common.protocol.heartbeat.SubscriptionData;
 import com.alibaba.rocketmq.common.subscription.SubscriptionGroupConfig;
 import com.alibaba.rocketmq.remoting.common.RemotingHelper;
@@ -83,7 +84,6 @@ import com.alibaba.rocketmq.remoting.netty.NettyRequestProcessor;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 import com.alibaba.rocketmq.remoting.protocol.RemotingSerializable;
 import com.alibaba.rocketmq.store.DefaultMessageStore;
-import com.alibaba.rocketmq.store.StoreUtil;
 
 
 /**
@@ -190,12 +190,37 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             // 查询Topic被哪些消费者消费
         case RequestCode.QUERY_TOPIC_CONSUME_BY_WHO:
             return this.queryTopicConsumeByWho(ctx, request);
+
+        case RequestCode.REGISTER_FILTER_SERVER:
+            return this.registerFilterServer(ctx, request);
         default:
             break;
 
         }
 
         return null;
+    }
+
+
+    private RemotingCommand registerFilterServer(ChannelHandlerContext ctx, RemotingCommand request)
+            throws RemotingCommandException {
+        final RemotingCommand response =
+                RemotingCommand.createResponseCommand(RegisterFilterServerResponseHeader.class);
+        final RegisterFilterServerResponseHeader responseHeader =
+                (RegisterFilterServerResponseHeader) response.getCustomHeader();
+        final RegisterFilterServerRequestHeader requestHeader =
+                (RegisterFilterServerRequestHeader) request
+                    .decodeCommandCustomHeader(RegisterFilterServerRequestHeader.class);
+
+        this.brokerController.getFilterServerManager().registerFilterServer(ctx.channel(),
+            requestHeader.getFilterServerAddr());
+
+        responseHeader.setBrokerId(this.brokerController.getBrokerConfig().getBrokerId());
+        responseHeader.setBrokerName(this.brokerController.getBrokerConfig().getBrokerName());
+
+        response.setCode(ResponseCode.SUCCESS);
+        response.setRemark(null);
+        return response;
     }
 
 
@@ -743,7 +768,6 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
 
         this.brokerController.getConsumerOffsetManager().commitOffset(requestHeader.getConsumerGroup(),
             requestHeader.getTopic(), requestHeader.getQueueId(), requestHeader.getCommitOffset());
-        UpdateCommitOffsetMoniter.printUpdatecommit(ctx.channel(), requestHeader);
         response.setCode(ResponseCode.SUCCESS);
         response.setRemark(null);
         return response;
@@ -772,67 +796,20 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         }
         // 订阅组不存在
         else {
+            long minOffset =
+                    this.brokerController.getMessageStore().getMinOffsetInQuque(requestHeader.getTopic(),
+                        requestHeader.getQueueId());
+            // 订阅组不存在情况下，如果这个队列的消息最小Offset是0，则表示这个Topic上线时间不长，服务器堆积的数据也不多，那么这个订阅组就从0开始消费。
+            // 尤其对于Topic队列数动态扩容时，必须要从0开始消费。
+            if (minOffset <= 0) {
+                responseHeader.setOffset(0L);
+                response.setCode(ResponseCode.SUCCESS);
+                response.setRemark(null);
+            }
             // 新版本服务器不做消费进度纠正
-            if (request.getVersion() >= MQVersion.Version.V3_0_6_SNAPSHOT.ordinal()) {
+            else {
                 response.setCode(ResponseCode.QUERY_NOT_FOUND);
                 response.setRemark("Not found, V3_0_6_SNAPSHOT maybe this group consumer boot first");
-            }
-
-            // TODO：以下流程待所有客户端都升级后，可以删除此段代码
-            else {
-                long minOffset =
-                        this.brokerController.getMessageStore().getMinOffsetInQuque(requestHeader.getTopic(),
-                            requestHeader.getQueueId());
-                long maxOffset =
-                        this.brokerController.getMessageStore().getMaxOffsetInQuque(requestHeader.getTopic(),
-                            requestHeader.getQueueId());
-
-                boolean consumeFromMinEnable = false;
-                if (0 == minOffset && maxOffset > 0) {
-                    long minCommitLogOffset =
-                            this.brokerController.getMessageStore().getCommitLogOffsetInQueue(
-                                requestHeader.getTopic(), requestHeader.getQueueId(), minOffset);
-                    long maxCommitLogOffset =
-                            this.brokerController.getMessageStore().getCommitLogOffsetInQueue(
-                                requestHeader.getTopic(), requestHeader.getQueueId(), maxOffset - 1);
-
-                    long memorySpan =
-                            (long) (StoreUtil.TotalPhysicalMemorySize * (this.brokerController
-                                .getMessageStoreConfig().getAccessMessageInMemoryMaxRatio() / 100.0));
-
-                    long diff = maxCommitLogOffset - minCommitLogOffset;
-                    if (diff < memorySpan) {
-                        consumeFromMinEnable = true;
-                        log.info(
-                            "the consumer group[{}] first subscribed, minOffset: {} maxOffset: {}, from min.",//
-                            requestHeader.getConsumerGroup(),//
-                            minOffset,//
-                            maxOffset);
-                    }
-                }
-                else if (minOffset > 0 && maxOffset > 0) {
-                    consumeFromMinEnable = false;
-                }
-                else {
-                    consumeFromMinEnable = true;
-                    log.info(
-                        "the consumer group[{}] first subscribed, minOffset: {} maxOffset: {}, from min, and unknow offset.",//
-                        requestHeader.getConsumerGroup(),//
-                        minOffset,//
-                        maxOffset);
-                }
-
-                // 说明这个队列在服务器存储的消息比较少或者没有消息
-                // 订阅组消费进度不存在情况下，从0开始消费
-                if (consumeFromMinEnable) {
-                    responseHeader.setOffset(0L);
-                    response.setCode(ResponseCode.SUCCESS);
-                    response.setRemark(null);
-                }
-                else {
-                    response.setCode(ResponseCode.QUERY_NOT_FOUND);
-                    response.setRemark("Not found, maybe this group consumer boot first");
-                }
             }
         }
 

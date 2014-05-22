@@ -35,6 +35,7 @@ import org.slf4j.LoggerFactory;
 
 import com.alibaba.rocketmq.remoting.ChannelEventListener;
 import com.alibaba.rocketmq.remoting.InvokeCallback;
+import com.alibaba.rocketmq.remoting.RPCHook;
 import com.alibaba.rocketmq.remoting.common.Pair;
 import com.alibaba.rocketmq.remoting.common.RemotingHelper;
 import com.alibaba.rocketmq.remoting.common.SemaphoreReleaseOnlyOnce;
@@ -76,6 +77,9 @@ public abstract class NettyRemotingAbstract {
 
 
     public abstract ChannelEventListener getChannelEventListener();
+
+
+    public abstract RPCHook getRPCHook();
 
 
     public void putNettyEvent(final NettyEvent event) {
@@ -159,7 +163,17 @@ public abstract class NettyRemotingAbstract {
                 @Override
                 public void run() {
                     try {
+                        RPCHook rpcHook = NettyRemotingAbstract.this.getRPCHook();
+                        if (rpcHook != null) {
+                            rpcHook
+                                .doBeforeRequest(RemotingHelper.parseChannelRemoteAddr(ctx.channel()), cmd);
+                        }
+
                         final RemotingCommand response = pair.getObject1().processRequest(ctx, cmd);
+                        if (rpcHook != null) {
+                            rpcHook.doAfterResponse(cmd, response);
+                        }
+
                         // Oneway形式忽略应答结果
                         if (!cmd.isOnewayRPC()) {
                             if (response != null) {
@@ -197,7 +211,8 @@ public abstract class NettyRemotingAbstract {
 
                         if (!cmd.isOnewayRPC()) {
                             final RemotingCommand response =
-                                    RemotingCommand.createResponseCommand(RemotingSysResponseCode.SYSTEM_ERROR,//
+                                    RemotingCommand.createResponseCommand(
+                                        RemotingSysResponseCode.SYSTEM_ERROR,//
                                         RemotingHelper.exceptionSimpleDesc(e));
                             response.setOpaque(cmd.getOpaque());
                             ctx.writeAndFlush(response);
@@ -227,7 +242,8 @@ public abstract class NettyRemotingAbstract {
         else {
             String error = " request type " + cmd.getCode() + " not supported";
             final RemotingCommand response =
-                    RemotingCommand.createResponseCommand(RemotingSysResponseCode.REQUEST_CODE_NOT_SUPPORTED, error);
+                    RemotingCommand.createResponseCommand(RemotingSysResponseCode.REQUEST_CODE_NOT_SUPPORTED,
+                        error);
             response.setOpaque(cmd.getOpaque());
             ctx.writeAndFlush(response);
             plog.error(RemotingHelper.parseChannelRemoteAddr(ctx.channel()) + error);

@@ -22,10 +22,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,7 +35,7 @@ import com.alibaba.rocketmq.broker.client.DefaultConsumerIdsChangeListener;
 import com.alibaba.rocketmq.broker.client.ProducerManager;
 import com.alibaba.rocketmq.broker.client.net.Broker2Client;
 import com.alibaba.rocketmq.broker.client.rebalance.RebalanceLockManager;
-import com.alibaba.rocketmq.broker.digestlog.DigestLogManager;
+import com.alibaba.rocketmq.broker.filtersrv.FilterServerManager;
 import com.alibaba.rocketmq.broker.longpolling.PullRequestHoldService;
 import com.alibaba.rocketmq.broker.offset.ConsumerOffsetManager;
 import com.alibaba.rocketmq.broker.out.BrokerOuterAPI;
@@ -49,12 +47,14 @@ import com.alibaba.rocketmq.broker.processor.QueryMessageProcessor;
 import com.alibaba.rocketmq.broker.processor.SendMessageProcessor;
 import com.alibaba.rocketmq.broker.slave.SlaveSynchronize;
 import com.alibaba.rocketmq.broker.stats.BrokerStats;
+import com.alibaba.rocketmq.broker.stats.BrokerStatsManager;
 import com.alibaba.rocketmq.broker.subscription.SubscriptionGroupManager;
 import com.alibaba.rocketmq.broker.topic.TopicConfigManager;
 import com.alibaba.rocketmq.broker.transaction.DefaultTransactionCheckExecuter;
 import com.alibaba.rocketmq.common.BrokerConfig;
 import com.alibaba.rocketmq.common.DataVersion;
 import com.alibaba.rocketmq.common.MixAll;
+import com.alibaba.rocketmq.common.ThreadFactoryImpl;
 import com.alibaba.rocketmq.common.UtilAll;
 import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.common.namesrv.RegisterBrokerResult;
@@ -111,15 +111,9 @@ public class BrokerController {
     // Broker的通信层客户端
     private final BrokerOuterAPI brokerOuterAPI;
     private final ScheduledExecutorService scheduledExecutorService = Executors
-        .newSingleThreadScheduledExecutor(new ThreadFactory() {
-            @Override
-            public Thread newThread(Runnable r) {
-                return new Thread(r, "BrokerControllerScheduledThread");
-            }
-        });
+        .newSingleThreadScheduledExecutor(new ThreadFactoryImpl("BrokerControllerScheduledThread"));
     // Slave定期从Master同步信息
     private final SlaveSynchronize slaveSynchronize;
-    private final DigestLogManager digestLogManager;
     // 存储层对象
     private MessageStore messageStore;
     // 通信层对象
@@ -141,6 +135,11 @@ public class BrokerController {
 
     // 对消息读取进行流控
     private final BlockingQueue<Runnable> pullThreadPoolQueue;
+
+    // FilterServer管理
+    private final FilterServerManager filterServerManager;
+
+    private final BrokerStatsManager brokerStatsManager;
 
 
     public BrokerController(//
@@ -165,6 +164,7 @@ public class BrokerController {
         this.broker2Client = new Broker2Client(this);
         this.subscriptionGroupManager = new SubscriptionGroupManager(this);
         this.brokerOuterAPI = new BrokerOuterAPI(nettyClientConfig);
+        this.filterServerManager = new FilterServerManager(this);
 
         if (this.brokerConfig.getNamesrvAddr() != null) {
             this.brokerOuterAPI.updateNameServerAddressList(this.brokerConfig.getNamesrvAddr());
@@ -172,23 +172,19 @@ public class BrokerController {
         }
 
         this.slaveSynchronize = new SlaveSynchronize(this);
-        this.digestLogManager = new DigestLogManager(this);
 
         this.sendThreadPoolQueue =
                 new LinkedBlockingQueue<Runnable>(this.brokerConfig.getSendThreadPoolQueueCapacity());
 
         this.pullThreadPoolQueue =
                 new LinkedBlockingQueue<Runnable>(this.brokerConfig.getPullThreadPoolQueueCapacity());
+
+        this.brokerStatsManager = new BrokerStatsManager();
     }
 
 
     public boolean initialize() {
         boolean result = true;
-
-        // 打印服务器配置参数
-        MixAll.printObjectProperties(log, this.brokerConfig);
-        MixAll.printObjectProperties(log, this.nettyServerConfig);
-        MixAll.printObjectProperties(log, this.messageStoreConfig);
 
         // 加载Topic配置
         result = result && this.topicConfigManager.load();
@@ -225,15 +221,7 @@ public class BrokerController {
                 1000 * 60,//
                 TimeUnit.MILLISECONDS,//
                 this.sendThreadPoolQueue,//
-                new ThreadFactory() {
-                    private AtomicInteger threadIndex = new AtomicInteger(0);
-
-
-                    @Override
-                    public Thread newThread(Runnable r) {
-                        return new Thread(r, "SendMessageThread_" + this.threadIndex.incrementAndGet());
-                    }
-                });
+                new ThreadFactoryImpl("SendMessageThread_"));
 
             this.pullMessageExecutor = new ThreadPoolExecutor(//
                 this.brokerConfig.getPullMessageThreadPoolNums(),//
@@ -241,29 +229,11 @@ public class BrokerController {
                 1000 * 60,//
                 TimeUnit.MILLISECONDS,//
                 this.pullThreadPoolQueue,//
-                new ThreadFactory() {
-                    private AtomicInteger threadIndex = new AtomicInteger(0);
-
-
-                    @Override
-                    public Thread newThread(Runnable r) {
-                        return new Thread(r, "PullMessageThread_" + this.threadIndex.incrementAndGet());
-                    }
-                });
+                new ThreadFactoryImpl("PullMessageThread_"));
 
             this.adminBrokerExecutor =
                     Executors.newFixedThreadPool(this.brokerConfig.getAdminBrokerThreadPoolNums(),
-                        new ThreadFactory() {
-
-                            private AtomicInteger threadIndex = new AtomicInteger(0);
-
-
-                            @Override
-                            public Thread newThread(Runnable r) {
-                                return new Thread(r, "AdminBrokerThread_"
-                                        + this.threadIndex.incrementAndGet());
-                            }
-                        });
+                        new ThreadFactoryImpl("AdminBrokerThread_"));
 
             this.registerProcessor();
 
@@ -491,12 +461,11 @@ public class BrokerController {
     }
 
 
-    public DigestLogManager getDigestLogManager() {
-        return digestLogManager;
-    }
-
-
     public void shutdown() {
+        if (this.brokerStatsManager != null) {
+            this.brokerStatsManager.shutdown();
+        }
+
         if (this.clientHousekeepingService != null) {
             this.clientHousekeepingService.shutdown();
         }
@@ -537,9 +506,12 @@ public class BrokerController {
         if (this.brokerOuterAPI != null) {
             this.brokerOuterAPI.shutdown();
         }
-        this.digestLogManager.dispose();
 
         this.consumerOffsetManager.persist();
+
+        if (this.filterServerManager != null) {
+            this.filterServerManager.shutdown();
+        }
     }
 
 
@@ -579,8 +551,10 @@ public class BrokerController {
             this.clientHousekeepingService.start();
         }
 
-        // 启动统计日志
-        this.digestLogManager.start();
+        if (this.filterServerManager != null) {
+            this.filterServerManager.start();
+        }
+
         // 启动时，强制注册
         this.registerBrokerAll();
 
@@ -597,6 +571,10 @@ public class BrokerController {
                 }
             }
         }, 1000 * 10, 1000 * 30, TimeUnit.MILLISECONDS);
+
+        if (this.brokerStatsManager != null) {
+            this.brokerStatsManager.start();
+        }
     }
 
 
@@ -609,7 +587,10 @@ public class BrokerController {
             this.getBrokerAddr(), //
             this.brokerConfig.getBrokerName(), //
             this.brokerConfig.getBrokerId(), //
-            this.getHAServerAddr(), topicConfigWrapper);
+            this.getHAServerAddr(), //
+            topicConfigWrapper,//
+            this.filterServerManager.buildNewFilterServerList()//
+            );
 
         if (registerBrokerResult != null) {
             if (this.updateMasterHAServerAddrPeriodically && registerBrokerResult.getHaServerAddr() != null) {
@@ -741,6 +722,16 @@ public class BrokerController {
 
     public BlockingQueue<Runnable> getSendThreadPoolQueue() {
         return sendThreadPoolQueue;
+    }
+
+
+    public FilterServerManager getFilterServerManager() {
+        return filterServerManager;
+    }
+
+
+    public BrokerStatsManager getBrokerStatsManager() {
+        return brokerStatsManager;
     }
 
 }

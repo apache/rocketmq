@@ -2,7 +2,15 @@ package com.alibaba.rocketmq.research;
 
 import java.util.Calendar;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import ch.qos.logback.classic.LoggerContext;
+import ch.qos.logback.classic.joran.JoranConfigurator;
+import ch.qos.logback.core.joran.spi.JoranException;
+
 import com.alibaba.rocketmq.common.UtilAll;
+import com.alibaba.rocketmq.common.constant.LoggerName;
 
 
 /**
@@ -37,13 +45,22 @@ public class Test {
     }
 
 
-    public static void main(String[] args) {
-        int a = -25;
-        int b = 1;
+    public static void testlog() throws JoranException {
+        // 初始化Logback
+        LoggerContext lc = (LoggerContext) LoggerFactory.getILoggerFactory();
+        JoranConfigurator configurator = new JoranConfigurator();
+        configurator.setContext(lc);
+        lc.reset();
+        configurator.doConfigure("/Users/vive/Desktop/share/work/gitlab/rocketmq/conf/logback_broker.xml");
+        final Logger log = LoggerFactory.getLogger(LoggerName.BrokerLoggerName);
 
-        int c = a % b;
-        System.out.println(c);
+        while (true) {
+            log.info("hello, current time: {}", System.currentTimeMillis());
+        }
+    }
 
-        System.out.println(diskUtil());
+
+    public static void main(String[] args) throws JoranException {
+        testlog();
     }
 }

@@ -100,7 +100,6 @@ public class MQAdminStartup {
         subCommandList.add(new GetConsumerStatusCommand());
 
         subCommandList.add(new UpdateOrderConfCommand());
-        subCommandList.add(new UpdateTopicSubCommand());
     }
 
 

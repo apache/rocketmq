@@ -218,7 +218,8 @@ public class Broker2Client {
             if (version < MQVersion.Version.V3_0_7_SNAPSHOT.ordinal()) {
                 // 如果有一个客户端是不支持该功能的，则直接返回错误，需要应用方升级。
                 result.setCode(ResponseCode.SYSTEM_ERROR);
-                result.setRemark("the client does not support this feature. version=" + MQVersion.getVersionDesc(version));
+                result.setRemark("the client does not support this feature. version="
+                        + MQVersion.getVersionDesc(version));
                 log.warn("[get-consumer-status] the client does not support this feature. version={}",
                     RemotingHelper.parseChannelRemoteAddr(channel), MQVersion.getVersionDesc(version));
                 return result;

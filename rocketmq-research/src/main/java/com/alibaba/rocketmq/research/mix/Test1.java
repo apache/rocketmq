@@ -16,7 +16,15 @@ public class Test1 {
     }
 
 
+    public static void test_2(String[] args) {
+        long d1 = 10000;
+        double d2 = 6;
+
+        System.out.println(String.format("%.2f", d1 / d2));
+    }
+
+
     public static void main(String[] args) {
-        test_1(args);
+        test_2(args);
     }
 }

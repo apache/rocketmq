@@ -48,6 +48,7 @@ public class PushConsumerTest extends OrderBaseTest {
         consumer = new DefaultMQPushConsumer(consumerGroup);
         consumer.setInstanceName(instanceName + System.nanoTime());
         consumer.subscribe(topic, getTagsExpression(0));
+        consumer.subscribe("qatest_TopicTest3_virtual_order", getTagsExpression(0));
         // consumer.subscribe(topic, getTagsExpression(3));
     }
 

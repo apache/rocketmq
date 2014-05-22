@@ -15,8 +15,10 @@
  */
 package com.alibaba.rocketmq.client.impl.factory;
 
+import java.io.UnsupportedEncodingException;
 import java.net.DatagramSocket;
 import java.net.SocketException;
+import java.net.URL;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -58,9 +60,12 @@ import com.alibaba.rocketmq.client.producer.DefaultMQProducer;
 import com.alibaba.rocketmq.common.MQVersion;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.ServiceState;
+import com.alibaba.rocketmq.common.UtilAll;
 import com.alibaba.rocketmq.common.constant.PermName;
+import com.alibaba.rocketmq.common.filter.FilterAPI;
 import com.alibaba.rocketmq.common.help.FAQUrl;
 import com.alibaba.rocketmq.common.message.MessageQueue;
+import com.alibaba.rocketmq.common.protocol.heartbeat.ConsumeType;
 import com.alibaba.rocketmq.common.protocol.heartbeat.ConsumerData;
 import com.alibaba.rocketmq.common.protocol.heartbeat.HeartbeatData;
 import com.alibaba.rocketmq.common.protocol.heartbeat.ProducerData;
@@ -68,21 +73,22 @@ import com.alibaba.rocketmq.common.protocol.heartbeat.SubscriptionData;
 import com.alibaba.rocketmq.common.protocol.route.BrokerData;
 import com.alibaba.rocketmq.common.protocol.route.QueueData;
 import com.alibaba.rocketmq.common.protocol.route.TopicRouteData;
+import com.alibaba.rocketmq.remoting.common.RemotingHelper;
 import com.alibaba.rocketmq.remoting.exception.RemotingException;
 import com.alibaba.rocketmq.remoting.netty.NettyClientConfig;
 
 
 /**
- * 客户端Factory类，用来管理Producer与Consumer
+ * 客户端实例，用来管理客户端资源
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-6-15
  */
-public class MQClientFactory {
+public class MQClientInstance {
     private final static long LockTimeoutMillis = 3000;
     private final Logger log = ClientLogger.getLog();
     private final ClientConfig clientConfig;
-    private final int factoryIndex;
+    private final int instanceIndex;
     private final String clientId;
     private final long bootTimestamp = System.currentTimeMillis();
     // Producer对象
@@ -130,9 +136,9 @@ public class MQClientFactory {
     private DatagramSocket datagramSocket;
 
 
-    public MQClientFactory(ClientConfig clientConfig, int factoryIndex, String clientId) {
+    public MQClientInstance(ClientConfig clientConfig, int instanceIndex, String clientId) {
         this.clientConfig = clientConfig;
-        this.factoryIndex = factoryIndex;
+        this.instanceIndex = instanceIndex;
         this.nettyClientConfig = new NettyClientConfig();
         this.nettyClientConfig.setClientCallbackExecutorThreads(clientConfig
             .getClientCallbackExecutorThreads());
@@ -156,7 +162,7 @@ public class MQClientFactory {
         this.defaultMQProducer.resetClientConfig(clientConfig);
 
         log.info("created a new client fatory, FactoryIndex: {} ClinetID: {} {} {}",//
-            this.factoryIndex, //
+            this.instanceIndex, //
             this.clientId, //
             this.clientConfig, //
             MQVersion.getVersionDesc(MQVersion.CurrentVersion));
@@ -209,6 +215,7 @@ public class MQClientFactory {
 
         try {
             this.datagramSocket = new DatagramSocket(udpPort);
+            this.datagramSocket.setReuseAddress(true);
         }
         catch (SocketException e) {
             throw new MQClientException("instance name is a duplicate one[" + instanceName + "," + udpPort
@@ -226,7 +233,7 @@ public class MQClientFactory {
                 @Override
                 public void run() {
                     try {
-                        MQClientFactory.this.mQClientAPIImpl.fetchNameServerAddr();
+                        MQClientInstance.this.mQClientAPIImpl.fetchNameServerAddr();
                     }
                     catch (Exception e) {
                         log.error("ScheduledTask fetchNameServerAddr exception", e);
@@ -241,7 +248,7 @@ public class MQClientFactory {
             @Override
             public void run() {
                 try {
-                    MQClientFactory.this.updateTopicRouteInfoFromNameServer();
+                    MQClientInstance.this.updateTopicRouteInfoFromNameServer();
                 }
                 catch (Exception e) {
                     log.error("ScheduledTask updateTopicRouteInfoFromNameServer exception", e);
@@ -256,8 +263,8 @@ public class MQClientFactory {
             @Override
             public void run() {
                 try {
-                    MQClientFactory.this.cleanOfflineBroker();
-                    MQClientFactory.this.sendHeartbeatToAllBrokerWithLock();
+                    MQClientInstance.this.cleanOfflineBroker();
+                    MQClientInstance.this.sendHeartbeatToAllBrokerWithLock();
                 }
                 catch (Exception e) {
                     log.error("ScheduledTask sendHeartbeatToAllBroker exception", e);
@@ -271,7 +278,7 @@ public class MQClientFactory {
             @Override
             public void run() {
                 try {
-                    MQClientFactory.this.persistAllConsumerOffset();
+                    MQClientInstance.this.persistAllConsumerOffset();
                 }
                 catch (Exception e) {
                     log.error("ScheduledTask persistAllConsumerOffset exception", e);
@@ -285,7 +292,7 @@ public class MQClientFactory {
             @Override
             public void run() {
                 try {
-                    MQClientFactory.this.recordSnapshotPeriodically();
+                    MQClientInstance.this.recordSnapshotPeriodically();
                 }
                 catch (Exception e) {
                     log.error("ScheduledTask uploadConsumerOffsets exception", e);
@@ -298,7 +305,7 @@ public class MQClientFactory {
             @Override
             public void run() {
                 try {
-                    MQClientFactory.this.logStatsPeriodically();
+                    MQClientInstance.this.logStatsPeriodically();
                 }
                 catch (Exception e) {
                     log.error("ScheduledTask uploadConsumerOffsets exception", e);
@@ -424,6 +431,7 @@ public class MQClientFactory {
         if (this.lockHeartbeat.tryLock()) {
             try {
                 this.sendHeartbeatToAllBroker();
+                this.uploadFilterClassSource();
             }
             catch (final Exception e) {
                 log.error("sendHeartbeatToAllBroker exception", e);
@@ -434,6 +442,82 @@ public class MQClientFactory {
         }
         else {
             log.warn("lock heartBeat, but failed.");
+        }
+    }
+
+
+    private void uploadFilterClassToAllFilterServer(final String consumerGroup, final String className,
+            final String topic) throws UnsupportedEncodingException {
+        URL classFile = FilterAPI.classFile(className);
+        byte[] classBody = null;
+        int classCRC = 0;
+        try {
+            String fileContent = MixAll.file2String(classFile);
+            classBody = fileContent.getBytes(MixAll.DEFAULT_CHARSET);
+            classCRC = UtilAll.crc32(classBody);
+        }
+        catch (Exception e1) {
+            log.warn("uploadFilterClassToAllFilterServer Exception, ClassFile: {} ClassName: {} {}", //
+                classFile,//
+                className,//
+                RemotingHelper.exceptionSimpleDesc(e1));
+        }
+
+        TopicRouteData topicRouteData = this.topicRouteTable.get(topic);
+        if (topicRouteData != null //
+                && topicRouteData.getFilterServerTable() != null
+                && !topicRouteData.getFilterServerTable().isEmpty()) {
+            Iterator<Entry<String, List<String>>> it =
+                    topicRouteData.getFilterServerTable().entrySet().iterator();
+            while (it.hasNext()) {
+                Entry<String, List<String>> next = it.next();
+                List<String> value = next.getValue();
+                for (final String fsAddr : value) {
+                    try {
+                        this.mQClientAPIImpl.registerMessageFilterClass(fsAddr, consumerGroup, topic,
+                            className, classCRC, classBody, 5000);
+
+                        log.info(
+                            "register message class filter to {} OK, ConsumerGroup: {} Topic: {} ClassName: {} ClassFile: {}",
+                            fsAddr, consumerGroup, topic, className, classFile);
+
+                    }
+                    catch (Exception e) {
+                        log.error("uploadFilterClassToAllFilterServer Exception", e);
+                    }
+                }
+            }
+        }
+        else {
+            log.warn(
+                "register message class filter failed, because no filter server, ConsumerGroup: {} Topic: {} ClassName: {}",
+                consumerGroup, topic, className);
+        }
+    }
+
+
+    private void uploadFilterClassSource() {
+        Iterator<Entry<String, MQConsumerInner>> it = this.consumerTable.entrySet().iterator();
+        while (it.hasNext()) {
+            Entry<String, MQConsumerInner> next = it.next();
+            MQConsumerInner consumer = next.getValue();
+            // 只支持PushConsumer
+            if (ConsumeType.CONSUME_PASSIVELY == consumer.consumeType()) {
+                Set<SubscriptionData> subscriptions = consumer.subscriptions();
+                for (SubscriptionData sub : subscriptions) {
+                    if (sub.isClassFilterMode()) {
+                        final String consumerGroup = consumer.groupName();
+                        final String className = sub.getSubString();
+                        final String topic = sub.getTopic();
+                        try {
+                            this.uploadFilterClassToAllFilterServer(consumerGroup, className, topic);
+                        }
+                        catch (Exception e) {
+                            log.error("uploadFilterClassToAllFilterServer Exception", e);
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -493,6 +577,7 @@ public class MQClientFactory {
                 consumerData.setMessageModel(impl.messageModel());
                 consumerData.setConsumeFromWhere(impl.consumeFromWhere());
                 consumerData.getSubscriptionDataSet().addAll(impl.subscriptions());
+                consumerData.setUnitMode(impl.isUnitMode());
 
                 heartbeatData.getConsumerDataSet().add(consumerData);
             }
@@ -1219,5 +1304,10 @@ public class MQClientFactory {
 
     public DefaultMQProducer getDefaultMQProducer() {
         return defaultMQProducer;
+    }
+
+
+    public ConcurrentHashMap<String, TopicRouteData> getTopicRouteTable() {
+        return topicRouteTable;
     }
 }

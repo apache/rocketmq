@@ -4,6 +4,7 @@
 package com.alibaba.rocketmq.common.protocol.route;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 import com.alibaba.rocketmq.remoting.protocol.RemotingSerializable;
@@ -18,12 +19,14 @@ public class TopicRouteData extends RemotingSerializable {
     private String orderTopicConf;
     private List<QueueData> queueDatas;
     private List<BrokerData> brokerDatas;
+    private HashMap<String/* brokerAddr */, List<String>/* Filter Server */> filterServerTable;
 
 
     public TopicRouteData cloneTopicRouteData() {
         TopicRouteData topicRouteData = new TopicRouteData();
         topicRouteData.setQueueDatas(new ArrayList<QueueData>());
         topicRouteData.setBrokerDatas(new ArrayList<BrokerData>());
+        topicRouteData.setFilterServerTable(new HashMap<String, List<String>>());
         topicRouteData.setOrderTopicConf(this.orderTopicConf);
 
         if (this.queueDatas != null) {
@@ -32,6 +35,10 @@ public class TopicRouteData extends RemotingSerializable {
 
         if (this.brokerDatas != null) {
             topicRouteData.getBrokerDatas().addAll(this.brokerDatas);
+        }
+
+        if (this.filterServerTable != null) {
+            topicRouteData.getFilterServerTable().putAll(this.filterServerTable);
         }
 
         return topicRouteData;
@@ -75,6 +82,7 @@ public class TopicRouteData extends RemotingSerializable {
         result = prime * result + ((brokerDatas == null) ? 0 : brokerDatas.hashCode());
         result = prime * result + ((orderTopicConf == null) ? 0 : orderTopicConf.hashCode());
         result = prime * result + ((queueDatas == null) ? 0 : queueDatas.hashCode());
+        result = prime * result + ((filterServerTable == null) ? 0 : filterServerTable.hashCode());
         return result;
     }
 
@@ -106,13 +114,29 @@ public class TopicRouteData extends RemotingSerializable {
         }
         else if (!queueDatas.equals(other.queueDatas))
             return false;
+        if (filterServerTable == null) {
+            if (other.filterServerTable != null)
+                return false;
+        }
+        else if (!filterServerTable.equals(other.filterServerTable))
+            return false;
         return true;
+    }
+
+
+    public HashMap<String, List<String>> getFilterServerTable() {
+        return filterServerTable;
+    }
+
+
+    public void setFilterServerTable(HashMap<String, List<String>> filterServerTable) {
+        this.filterServerTable = filterServerTable;
     }
 
 
     @Override
     public String toString() {
-        return "TopicRouteData [queueDatas=" + queueDatas + ", brokerDatas=" + brokerDatas
-                + ", orderTopicConf=" + orderTopicConf + "]";
+        return "TopicRouteData [orderTopicConf=" + orderTopicConf + ", queueDatas=" + queueDatas
+                + ", brokerDatas=" + brokerDatas + ", filterServerTable=" + filterServerTable + "]";
     }
 }

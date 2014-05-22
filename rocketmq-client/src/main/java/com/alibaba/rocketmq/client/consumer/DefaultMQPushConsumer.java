@@ -116,6 +116,11 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
      */
     private boolean postSubscriptionWhenPull = false;
 
+    /**
+     * 是否为单元化的订阅组
+     */
+    private boolean isUnitMode = false;
+
 
     public DefaultMQPushConsumer() {
 
@@ -397,4 +402,11 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
         this.postSubscriptionWhenPull = postSubscriptionWhenPull;
     }
 
+	public boolean isUnitMode() {
+		return isUnitMode;
+	}
+
+	public void setUnitMode(boolean isUnitMode) {
+		this.isUnitMode = isUnitMode;
+	}
 }

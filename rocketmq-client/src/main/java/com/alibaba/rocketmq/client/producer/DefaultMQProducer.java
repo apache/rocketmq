@@ -70,7 +70,10 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      * 最大消息大小，默认512K
      */
     private int maxMessageSize = 1024 * 128;
-
+	/**
+	 * 是否为单元化的发布者
+	 */
+	private boolean isUnitMode = false;
 
     public DefaultMQProducer() {
     }
@@ -296,4 +299,12 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     public void setRetryTimesWhenSendFailed(int retryTimesWhenSendFailed) {
         this.retryTimesWhenSendFailed = retryTimesWhenSendFailed;
     }
+
+	public boolean isUnitMode() {
+		return isUnitMode;
+	}
+
+	public void setUnitMode(boolean isUnitMode) {
+		this.isUnitMode = isUnitMode;
+	}
 }

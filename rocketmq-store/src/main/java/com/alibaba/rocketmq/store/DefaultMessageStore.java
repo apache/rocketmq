@@ -1178,6 +1178,7 @@ public class DefaultMessageStore implements MessageStore {
                 }
                 // 危险情况：磁盘满了，但是又无法删除文件
                 else if (spacefull) {
+                    // XXX: warn and notify me
                     log.warn("disk space will be full soon, but delete file failed.");
                 }
             }
@@ -1315,7 +1316,6 @@ public class DefaultMessageStore implements MessageStore {
                                 Thread.sleep(deleteLogicsFilesInterval);
                             }
                             catch (InterruptedException e) {
-                                e.printStackTrace();
                             }
                         }
                     }

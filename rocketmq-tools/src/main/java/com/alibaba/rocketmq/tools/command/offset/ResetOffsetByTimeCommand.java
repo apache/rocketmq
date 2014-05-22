@@ -16,7 +16,7 @@ import com.alibaba.rocketmq.tools.command.SubCommand;
 
 
 /**
- * 根据时间来设置消费进度，设置之前要关闭这个订阅组的所有consumer，客户端不需要重启。
+ * 根据时间设置消费进度，客户端无需重启。
  * 
  * @author: manhong.yqd<jodie.yqd@gmail.com>
  * @since: 13-9-12

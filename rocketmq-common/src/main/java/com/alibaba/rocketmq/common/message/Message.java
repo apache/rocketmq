@@ -15,6 +15,8 @@
  */
 package com.alibaba.rocketmq.common.message;
 
+import com.alibaba.rocketmq.common.constant.UnitProperties;
+
 import java.io.Serializable;
 import java.util.Collection;
 import java.util.HashMap;
@@ -82,19 +84,33 @@ public class Message implements Serializable {
     }
 
 
-    public void clearProperty(final String name) {
+    void clearProperty(final String name) {
         if (null != this.properties) {
             this.properties.remove(name);
         }
     }
 
 
-    public void putProperty(final String name, final String value) {
+    void putProperty(final String name, final String value) {
         if (null == this.properties) {
             this.properties = new HashMap<String, String>();
         }
 
         this.properties.put(name, value);
+    }
+
+
+    public void putUserProperty(final String name, final String value) {
+        if (MessageConst.systemKeySet.contains(name)) {
+            throw new RuntimeException(String.format(
+                "The Property<%s> is used by system, input another please", name));
+        }
+        this.putProperty(name, value);
+    }
+
+
+    public String getUserProperty(final String name) {
+        return this.getProperty(name);
     }
 
 
@@ -202,8 +218,48 @@ public class Message implements Serializable {
     }
 
 
-    public void setProperties(Map<String, String> properties) {
+    void setProperties(Map<String, String> properties) {
         this.properties = properties;
+    }
+
+
+    public void setBuyerId(String buyerId) {
+        putProperty(UnitProperties.PROPS_BUYER_ID_KEY, buyerId);
+    }
+
+
+    public String getBuyerId() {
+        return getProperty(UnitProperties.PROPS_BUYER_ID_KEY);
+    }
+
+
+    public void setTransfer(String transferName) {
+        putProperty(UnitProperties.PROPS_TRANSFER_KEY, transferName);
+    }
+
+
+    public String getTransfer() {
+        return getProperty(UnitProperties.PROPS_TRANSFER_KEY);
+    }
+
+
+    public void setCorrection(String correction) {
+        putProperty(UnitProperties.PROPS_CORRECTION_KEY, correction);
+    }
+
+
+    public String getCorrection() {
+        return getProperty(UnitProperties.PROPS_CORRECTION_KEY);
+    }
+
+
+    public void setMessageId(String messageId) {
+        putProperty(UnitProperties.PROPS_MESSAGE_ID_KEY, messageId);
+    }
+
+
+    public String getMessageId() {
+        return getProperty(UnitProperties.PROPS_MESSAGE_ID_KEY);
     }
 
 

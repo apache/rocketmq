@@ -16,23 +16,27 @@
 package com.alibaba.rocketmq.broker.out;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.alibaba.rocketmq.client.exception.MQBrokerException;
+import com.alibaba.rocketmq.common.SessionCredentials;
 import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.common.namesrv.RegisterBrokerResult;
 import com.alibaba.rocketmq.common.namesrv.TopAddressing;
 import com.alibaba.rocketmq.common.protocol.RequestCode;
 import com.alibaba.rocketmq.common.protocol.ResponseCode;
 import com.alibaba.rocketmq.common.protocol.body.ConsumerOffsetSerializeWrapper;
+import com.alibaba.rocketmq.common.protocol.body.RegisterBrokerBody;
 import com.alibaba.rocketmq.common.protocol.body.SubscriptionGroupWrapper;
 import com.alibaba.rocketmq.common.protocol.body.TopicConfigSerializeWrapper;
 import com.alibaba.rocketmq.common.protocol.header.namesrv.RegisterBrokerRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.namesrv.RegisterBrokerResponseHeader;
 import com.alibaba.rocketmq.common.protocol.header.namesrv.UnRegisterBrokerRequestHeader;
+import com.alibaba.rocketmq.remoting.RPCHook;
 import com.alibaba.rocketmq.remoting.RemotingClient;
 import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
 import com.alibaba.rocketmq.remoting.exception.RemotingConnectException;
@@ -56,9 +60,37 @@ public class BrokerOuterAPI {
     private final TopAddressing topAddressing = new TopAddressing();
     private String nameSrvAddr = null;
 
+    // 客户端授权
+    private volatile SessionCredentials sessionCredentials = new SessionCredentials();
+
+    class RPCHookImpl implements RPCHook {
+        @Override
+        public void doBeforeRequest(String remoteAddr, RemotingCommand request) {
+            BrokerOuterAPI.this.attachSessionCredentials(request);
+        }
+
+
+        @Override
+        public void doAfterResponse(RemotingCommand request, RemotingCommand response) {
+        }
+    }
+
+
+    private void attachSessionCredentials(final RemotingCommand cmd) {
+        SessionCredentials tmp = this.sessionCredentials;
+        if (tmp != null) {
+            if (tmp.getAccessKey() != null && tmp.getSecretKey() != null) {
+                HashMap<String, String> extFields = new HashMap<String, String>();
+                extFields.put(SessionCredentials.AccessKey, tmp.getAccessKey());
+                cmd.setExtFields(extFields);
+            }
+        }
+    }
+
 
     public BrokerOuterAPI(final NettyClientConfig nettyClientConfig) {
         this.remotingClient = new NettyRemotingClient(nettyClientConfig);
+        this.remotingClient.registerRPCHook(new RPCHookImpl());
     }
 
 
@@ -111,7 +143,8 @@ public class BrokerOuterAPI {
             final String brokerName,// 3
             final long brokerId,// 4
             final String haServerAddr,// 5
-            final TopicConfigSerializeWrapper topicConfigWrapper// 6
+            final TopicConfigSerializeWrapper topicConfigWrapper, // 6
+            final List<String> filterServerList // 7
     ) throws RemotingCommandException, MQBrokerException, RemotingConnectException,
             RemotingSendRequestException, RemotingTimeoutException, InterruptedException {
         RegisterBrokerRequestHeader requestHeader = new RegisterBrokerRequestHeader();
@@ -122,7 +155,11 @@ public class BrokerOuterAPI {
         requestHeader.setHaServerAddr(haServerAddr);
         RemotingCommand request =
                 RemotingCommand.createRequestCommand(RequestCode.REGISTER_BROKER, requestHeader);
-        request.setBody(topicConfigWrapper.encode());
+
+        RegisterBrokerBody requestBody = new RegisterBrokerBody();
+        requestBody.setTopicConfigSerializeWrapper(topicConfigWrapper);
+        requestBody.setFilterServerList(filterServerList);
+        request.setBody(requestBody.encode());
 
         RemotingCommand response = this.remotingClient.invokeSync(namesrvAddr, request, 3000);
         assert response != null;
@@ -150,7 +187,8 @@ public class BrokerOuterAPI {
             final String brokerName,// 3
             final long brokerId,// 4
             final String haServerAddr,// 5
-            final TopicConfigSerializeWrapper topicConfigWrapper// 6
+            final TopicConfigSerializeWrapper topicConfigWrapper,// 6
+            final List<String> filterServerList // 7
     ) {
         RegisterBrokerResult registerBrokerResult = null;
 
@@ -160,7 +198,7 @@ public class BrokerOuterAPI {
                 try {
                     RegisterBrokerResult result =
                             this.registerBroker(namesrvAddr, clusterName, brokerAddr, brokerName, brokerId,
-                                haServerAddr, topicConfigWrapper);
+                                haServerAddr, topicConfigWrapper, filterServerList);
                     if (result != null) {
                         registerBrokerResult = result;
                     }

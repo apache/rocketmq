@@ -59,6 +59,7 @@ public class RouteInfoManager {
     private final HashMap<String/* brokerName */, BrokerData> brokerAddrTable;
     private final HashMap<String/* clusterName */, Set<String/* brokerName */>> clusterAddrTable;
     private final HashMap<String/* brokerAddr */, BrokerLiveInfo> brokerLiveTable;
+    private final HashMap<String/* brokerAddr */, List<String>/* Filter Server */> filterServerTable;
 
 
     public RouteInfoManager() {
@@ -66,6 +67,7 @@ public class RouteInfoManager {
         this.brokerAddrTable = new HashMap<String, BrokerData>(128);
         this.clusterAddrTable = new HashMap<String, Set<String>>(32);
         this.brokerLiveTable = new HashMap<String, BrokerLiveInfo>(256);
+        this.filterServerTable = new HashMap<String, List<String>>(256);
     }
 
 
@@ -122,7 +124,8 @@ public class RouteInfoManager {
             final long brokerId,// 4
             final String haServerAddr,// 5
             final TopicConfigSerializeWrapper topicConfigWrapper,// 6
-            final Channel channel// 7
+            final List<String> filterServerList, // 7
+            final Channel channel// 8
     ) {
         RegisterBrokerResult result = new RegisterBrokerResult();
         try {
@@ -178,6 +181,16 @@ public class RouteInfoManager {
                         haServerAddr));
                 if (null == prevBrokerLiveInfo) {
                     log.info("new broker registerd, {} HAServer: {}", brokerAddr, haServerAddr);
+                }
+
+                // 更新Filter Server列表
+                if (filterServerList != null) {
+                    if (filterServerList.isEmpty()) {
+                        this.filterServerTable.remove(brokerAddr);
+                    }
+                    else {
+                        this.filterServerTable.put(brokerAddr, filterServerList);
+                    }
                 }
 
                 // 返回值
@@ -314,6 +327,8 @@ public class RouteInfoManager {
                     );
                 }
 
+                this.filterServerTable.remove(brokerAddr);
+
                 boolean removeBrokerName = false;
                 BrokerData brokerData = this.brokerAddrTable.get(brokerName);
                 if (null != brokerData) {
@@ -396,6 +411,9 @@ public class RouteInfoManager {
         List<BrokerData> brokerDataList = new LinkedList<BrokerData>();
         topicRouteData.setBrokerDatas(brokerDataList);
 
+        HashMap<String, List<String>> filterServerMap = new HashMap<String, List<String>>();
+        topicRouteData.setFilterServerTable(filterServerMap);
+
         try {
             try {
                 this.lock.readLock().lockInterruptibly();
@@ -420,6 +438,12 @@ public class RouteInfoManager {
                                 .getBrokerAddrs().clone());
                             brokerDataList.add(brokerDataClone);
                             foundBrokerData = true;
+
+                            // 增加Filter Server
+                            for (final String brokerAddr : brokerDataClone.getBrokerAddrs().values()) {
+                                List<String> filterServerList = this.filterServerTable.get(brokerAddr);
+                                filterServerMap.put(brokerAddr, filterServerList);
+                            }
                         }
                     }
                 }
@@ -495,16 +519,21 @@ public class RouteInfoManager {
         if (null == brokerAddrFound) {
             brokerAddrFound = remoteAddr;
         }
+        else {
+            log.info("the broker's channel destroyed, {}, clean it's data structure at once", brokerAddrFound);
+        }
 
         // 加写锁，删除相关数据结构
         if (brokerAddrFound != null && brokerAddrFound.length() > 0) {
-            log.info("the broker's channel destroyed, {}, clean it's data structure at once", brokerAddrFound);
 
             try {
                 try {
                     this.lock.writeLock().lockInterruptibly();
                     // 清理brokerLiveTable
                     this.brokerLiveTable.remove(brokerAddrFound);
+
+                    // 清理Filter Server
+                    this.filterServerTable.remove(brokerAddrFound);
 
                     // 清理brokerAddrTable
                     String brokerNameFound = null;

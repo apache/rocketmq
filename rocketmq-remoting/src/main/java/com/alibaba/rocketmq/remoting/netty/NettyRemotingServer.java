@@ -18,6 +18,7 @@ package com.alibaba.rocketmq.remoting.netty;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelDuplexHandler;
+import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
@@ -44,6 +45,7 @@ import org.slf4j.LoggerFactory;
 
 import com.alibaba.rocketmq.remoting.ChannelEventListener;
 import com.alibaba.rocketmq.remoting.InvokeCallback;
+import com.alibaba.rocketmq.remoting.RPCHook;
 import com.alibaba.rocketmq.remoting.RemotingServer;
 import com.alibaba.rocketmq.remoting.common.Pair;
 import com.alibaba.rocketmq.remoting.common.RemotingHelper;
@@ -71,6 +73,11 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
     // 定时器
     private final Timer timer = new Timer("ServerHouseKeepingService", true);
     private DefaultEventExecutorGroup defaultEventExecutorGroup;
+
+    private RPCHook rpcHook;
+
+    // 本地server绑定的端口
+    private int port = 0;
 
 
     public NettyRemotingServer(final NettyServerConfig nettyServerConfig) {
@@ -106,7 +113,7 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
 
 
     @Override
-    public void start() throws InterruptedException {
+    public void start() {
         this.defaultEventExecutorGroup = new DefaultEventExecutorGroup(//
             nettyServerConfig.getServerWorkerThreads(), //
             new ThreadFactory() {
@@ -120,12 +127,17 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
                 }
             });
 
-        this.serverBootstrap.group(this.eventLoopGroup, new NioEventLoopGroup())
+        this.serverBootstrap
+            .group(this.eventLoopGroup, new NioEventLoopGroup())
             .channel(NioServerSocketChannel.class)
-            .option(ChannelOption.SO_BACKLOG, 65536)
+            //
+            .option(ChannelOption.SO_BACKLOG, 1024)
+            //
             .option(ChannelOption.SO_REUSEADDR, true)
             //
             .childOption(ChannelOption.TCP_NODELAY, true)
+            // 这个选项有可能会占用大量堆外内存，暂时不使用。
+            //.childOption(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT)
             .localAddress(new InetSocketAddress(this.nettyServerConfig.getListenPort()))
             .childHandler(new ChannelInitializer<SocketChannel>() {
                 @Override
@@ -141,7 +153,14 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
                 }
             });
 
-        this.serverBootstrap.bind().sync();
+        try {
+            ChannelFuture sync = this.serverBootstrap.bind().sync();
+            InetSocketAddress addr = (InetSocketAddress) sync.channel().localAddress();
+            this.port = addr.getPort();
+        }
+        catch (InterruptedException e1) {
+            throw new RuntimeException("this.serverBootstrap.bind().sync() InterruptedException", e1);
+        }
 
         if (this.channelEventListener != null) {
             this.nettyEventExecuter.start();
@@ -339,5 +358,23 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
 
             RemotingUtil.closeChannel(ctx.channel());
         }
+    }
+
+
+    @Override
+    public void registerRPCHook(RPCHook rpcHook) {
+        this.rpcHook = rpcHook;
+    }
+
+
+    @Override
+    public RPCHook getRPCHook() {
+        return this.rpcHook;
+    }
+
+
+    @Override
+    public int localListenPort() {
+        return this.port;
     }
 }
