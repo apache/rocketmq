@@ -24,6 +24,12 @@ import com.alibaba.rocketmq.common.utils.HttpTinyClient.HttpResult;
 public class TopAddressing {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.CommonLoggerName);
     private String nsAddr;
+    private String wsAddr;
+
+
+    public TopAddressing(final String wsAddr) {
+        this.wsAddr = wsAddr;
+    }
 
 
     private static String clearNewLine(final String str) {
@@ -44,7 +50,7 @@ public class TopAddressing {
 
     public final String fetchNSAddr() {
         try {
-            HttpResult result = HttpTinyClient.httpGet(MixAll.WS_ADDR, null, null, "UTF-8", 3000);
+            HttpResult result = HttpTinyClient.httpGet(this.wsAddr, null, null, "UTF-8", 3000);
             if (200 == result.code) {
                 String responseStr = result.content;
                 if (responseStr != null) {

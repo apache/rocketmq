@@ -142,7 +142,7 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingSerializable;
 public class MQClientAPIImpl {
     private final static Logger log = ClientLogger.getLog();
     private final RemotingClient remotingClient;
-    private final TopAddressing topAddressing = new TopAddressing();
+    private final TopAddressing topAddressing = new TopAddressing(MixAll.WS_ADDR);
     private final ClientRemotingProcessor clientRemotingProcessor;
     private String nameSrvAddr = null;
     // 虚拟运行环境相关的project group
