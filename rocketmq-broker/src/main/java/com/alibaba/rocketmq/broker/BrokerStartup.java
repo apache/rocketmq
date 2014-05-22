@@ -39,6 +39,7 @@ import com.alibaba.rocketmq.remoting.common.RemotingUtil;
 import com.alibaba.rocketmq.remoting.netty.NettyClientConfig;
 import com.alibaba.rocketmq.remoting.netty.NettyServerConfig;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
+import com.alibaba.rocketmq.srvutil.ServerUtil;
 import com.alibaba.rocketmq.store.config.BrokerRole;
 import com.alibaba.rocketmq.store.config.MessageStoreConfig;
 
@@ -86,10 +87,10 @@ public class BrokerStartup {
 
         try {
             // 解析命令行
-            Options options = MixAll.buildCommandlineOptions(new Options());
+            Options options = ServerUtil.buildCommandlineOptions(new Options());
             commandLine =
-                    MixAll
-                        .parseCmdLine("mqbroker", args, buildCommandlineOptions(options), new PosixParser());
+                    ServerUtil.parseCmdLine("mqbroker", args, buildCommandlineOptions(options),
+                        new PosixParser());
             if (null == commandLine) {
                 System.exit(-1);
                 return null;
@@ -151,7 +152,7 @@ public class BrokerStartup {
                 }
             }
 
-            MixAll.properties2Object(MixAll.commandLine2Properties(commandLine), brokerConfig);
+            MixAll.properties2Object(ServerUtil.commandLine2Properties(commandLine), brokerConfig);
 
             if (null == brokerConfig.getRocketmqHome()) {
                 System.out.println("Please set the " + MixAll.ROCKETMQ_HOME_ENV

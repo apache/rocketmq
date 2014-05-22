@@ -19,7 +19,7 @@
 		</dependency>
 		<dependency>
 			<groupId>${project.groupId}</groupId>
-			<artifactId>rocketmq-common</artifactId>
+			<artifactId>rocketmq-srvutil</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>ch.qos.logback</groupId>

@@ -15,10 +15,12 @@
  */
 package com.alibaba.rocketmq.client.impl.consumer;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-
-import com.alibaba.rocketmq.client.hook.FilterMessageHook;
 
 import org.slf4j.Logger;
 
@@ -33,6 +35,7 @@ import com.alibaba.rocketmq.client.consumer.store.ReadOffsetType;
 import com.alibaba.rocketmq.client.consumer.store.RemoteBrokerOffsetStore;
 import com.alibaba.rocketmq.client.exception.MQBrokerException;
 import com.alibaba.rocketmq.client.exception.MQClientException;
+import com.alibaba.rocketmq.client.hook.FilterMessageHook;
 import com.alibaba.rocketmq.client.impl.CommunicationMode;
 import com.alibaba.rocketmq.client.impl.MQClientManager;
 import com.alibaba.rocketmq.client.impl.factory.MQClientInstance;

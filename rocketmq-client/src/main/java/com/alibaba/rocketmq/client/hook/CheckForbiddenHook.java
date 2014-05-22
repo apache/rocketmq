@@ -2,6 +2,7 @@ package com.alibaba.rocketmq.client.hook;
 
 import com.alibaba.rocketmq.client.exception.MQClientException;
 
+
 /**
  * 读写权限控制 Hook
  * 
