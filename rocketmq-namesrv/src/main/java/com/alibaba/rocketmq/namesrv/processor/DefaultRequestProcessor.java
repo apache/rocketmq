@@ -90,7 +90,7 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
         case RequestCode.REGISTER_BROKER:
             Version brokerVersion = MQVersion.value2Version(request.getVersion());
             // 新版本Broker，支持Filter Server
-            if (brokerVersion.ordinal() >= MQVersion.Version.V3_0_10_SNAPSHOT.ordinal()) {
+            if (brokerVersion.ordinal() >= MQVersion.Version.V3_0_11.ordinal()) {
                 return this.registerBrokerWithFilterServer(ctx, request);
             }
             // 低版本Broker，不支持Filter Server
