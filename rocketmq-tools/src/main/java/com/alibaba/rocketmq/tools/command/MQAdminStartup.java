@@ -30,6 +30,7 @@ import ch.qos.logback.core.joran.spi.JoranException;
 import com.alibaba.rocketmq.common.MQVersion;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
+import com.alibaba.rocketmq.srvutil.ServerUtil;
 import com.alibaba.rocketmq.tools.command.broker.BrokerStatsSubCommand;
 import com.alibaba.rocketmq.tools.command.broker.UpdateBrokerConfigSubCommand;
 import com.alibaba.rocketmq.tools.command.cluster.ClusterListSubCommand;
@@ -116,10 +117,10 @@ public class MQAdminStartup {
                 if (args[0].equals("help")) {
                     SubCommand cmd = findSubCommand(args[1]);
                     if (cmd != null) {
-                        Options options = MixAll.buildCommandlineOptions(new Options());
+                        Options options = ServerUtil.buildCommandlineOptions(new Options());
                         options = cmd.buildCommandlineOptions(options);
                         if (options != null) {
-                            MixAll.printCommandLineHelp("mqadmin " + cmd.commandName(), options);
+                            ServerUtil.printCommandLineHelp("mqadmin " + cmd.commandName(), options);
                         }
                     }
                     else {
@@ -135,9 +136,9 @@ public class MQAdminStartup {
                     String[] subargs = parseSubArgs(args);
 
                     // 解析命令行
-                    Options options = MixAll.buildCommandlineOptions(new Options());
+                    Options options = ServerUtil.buildCommandlineOptions(new Options());
                     final CommandLine commandLine =
-                            MixAll.parseCmdLine("mqadmin " + cmd.commandName(), subargs,
+                            ServerUtil.parseCmdLine("mqadmin " + cmd.commandName(), subargs,
                                 cmd.buildCommandlineOptions(options), new PosixParser());
                     if (null == commandLine) {
                         System.exit(-1);

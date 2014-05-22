@@ -15,12 +15,12 @@
  */
 package com.alibaba.rocketmq.common.message;
 
-import com.alibaba.rocketmq.common.constant.UnitProperties;
-
 import java.io.Serializable;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+
+import com.alibaba.rocketmq.common.constant.UnitProperties;
 
 
 /**
