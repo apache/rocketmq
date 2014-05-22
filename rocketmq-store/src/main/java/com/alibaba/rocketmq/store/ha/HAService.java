@@ -685,4 +685,8 @@ public class HAService {
             return HAClient.class.getSimpleName();
         }
     }
+
+    public AtomicLong getPush2SlaveMaxOffset() {
+        return push2SlaveMaxOffset;
+    }
 }

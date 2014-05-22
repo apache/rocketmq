@@ -170,5 +170,11 @@ public interface MessageStore {
     public void updateHaMasterAddress(final String newAddr);
 
 
+    /**
+     * Slave落后Master多少，单位字节
+     */
+    public long slaveFallBehindMuch();
+
+
     public long now();
 }
