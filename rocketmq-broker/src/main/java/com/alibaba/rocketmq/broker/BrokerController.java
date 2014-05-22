@@ -325,6 +325,20 @@ public class BrokerController {
                     }
                 }, 1000 * 10, 1000 * 60, TimeUnit.MILLISECONDS);
             }
+            // 如果是Master，增加统计日志
+            else {
+                this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
+
+                    @Override
+                    public void run() {
+                        try {
+                            BrokerController.this.printMasterAndSlaveDiff();
+                        }
+                        catch (Exception e) {
+                        }
+                    }
+                }, 1000 * 10, 1000 * 60, TimeUnit.MILLISECONDS);
+            }
         }
 
         return result;
@@ -734,4 +748,10 @@ public class BrokerController {
         return brokerStatsManager;
     }
 
+
+    private void printMasterAndSlaveDiff() {
+        long diff = this.messageStore.slaveFallBehindMuch();
+
+        log.info("slave fall behind master, how much, {} bytes", diff);
+    }
 }

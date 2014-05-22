@@ -1754,4 +1754,10 @@ public class DefaultMessageStore implements MessageStore {
     public long getMinPhyOffset() {
         return this.commitLog.getMinOffset();
     }
+
+
+    @Override
+    public long slaveFallBehindMuch() {
+        return this.commitLog.getMaxOffset() - this.haService.getPush2SlaveMaxOffset().get();
+    }
 }
