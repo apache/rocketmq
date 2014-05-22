@@ -97,7 +97,7 @@ public class ConsumerGroupInfo {
 
 
     public void unregisterChannel(final ClientChannelInfo clientChannelInfo) {
-        ClientChannelInfo old = this.channelInfoTable.remove(clientChannelInfo.getChannel());
+        ClientChannelInfo old = this.channelInfoTable.remove(clientChannelInfo.getChannel().hashCode());
         if (old != null) {
             log.info("unregister a consumer[{}] from consumerGroupInfo {}", this.groupName, old.toString());
         }
@@ -188,11 +188,11 @@ public class ConsumerGroupInfo {
             }
 
             if (!exist) {
-                log.warn("subscription changed, group[{}] remove topic[{} {}], subList[{}]", //
+                log.warn("subscription changed, group: {} remove topic {} {}", //
                     this.groupName,//
                     oldTopic,//
-                    next.getValue().toString(),//
-                    subList);
+                    next.getValue().toString()//
+                );
 
                 it.remove();
                 updated = true;

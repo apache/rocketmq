@@ -100,7 +100,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
 
     private final ChannelEventListener channelEventListener;
 
-    private final RPCHook rpcHook;
+    private RPCHook rpcHook;
 
     class ChannelWrapper {
         private final ChannelFuture channelFuture;
@@ -226,18 +226,10 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
 
     public NettyRemotingClient(final NettyClientConfig nettyClientConfig,//
             final ChannelEventListener channelEventListener) {
-        this(nettyClientConfig, channelEventListener, null);
-    }
-
-
-    public NettyRemotingClient(final NettyClientConfig nettyClientConfig,//
-            final ChannelEventListener channelEventListener,//
-            final RPCHook rpcHook) {
         super(nettyClientConfig.getClientOnewaySemaphoreValue(), nettyClientConfig
             .getClientAsyncSemaphoreValue());
         this.nettyClientConfig = nettyClientConfig;
         this.channelEventListener = channelEventListener;
-        this.rpcHook = rpcHook;
 
         int publicThreadNums = nettyClientConfig.getClientCallbackExecutorThreads();
         if (publicThreadNums <= 0) {
@@ -605,11 +597,11 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
         if (channel != null && channel.isActive()) {
             try {
                 if (this.rpcHook != null) {
-                    this.rpcHook.doBeforeRequest(request);
+                    this.rpcHook.doBeforeRequest(addr, request);
                 }
                 RemotingCommand response = this.invokeSyncImpl(channel, request, timeoutMillis);
                 if (this.rpcHook != null) {
-                    this.rpcHook.doAfterResponse(response);
+                    this.rpcHook.doAfterResponse(request, response);
                 }
                 return response;
             }
@@ -640,7 +632,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
         if (channel != null && channel.isActive()) {
             try {
                 if (this.rpcHook != null) {
-                    this.rpcHook.doBeforeRequest(request);
+                    this.rpcHook.doBeforeRequest(addr, request);
                 }
                 this.invokeAsyncImpl(channel, request, timeoutMillis, invokeCallback);
             }
@@ -665,7 +657,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
         if (channel != null && channel.isActive()) {
             try {
                 if (this.rpcHook != null) {
-                    this.rpcHook.doBeforeRequest(request);
+                    this.rpcHook.doBeforeRequest(addr, request);
                 }
                 this.invokeOnewayImpl(channel, request, timeoutMillis);
             }
@@ -735,5 +727,17 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
 
     public RPCHook getRpcHook() {
         return rpcHook;
+    }
+
+
+    @Override
+    public void registerRPCHook(RPCHook rpcHook) {
+        this.rpcHook = rpcHook;
+    }
+
+
+    @Override
+    public RPCHook getRPCHook() {
+        return this.rpcHook;
     }
 }

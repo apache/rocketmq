@@ -23,7 +23,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 
-import com.alibaba.rocketmq.client.impl.factory.MQClientFactory;
+import com.alibaba.rocketmq.client.impl.factory.MQClientInstance;
 import com.alibaba.rocketmq.client.log.ClientLogger;
 import com.alibaba.rocketmq.common.ServiceThread;
 
@@ -37,7 +37,7 @@ import com.alibaba.rocketmq.common.ServiceThread;
 public class PullMessageService extends ServiceThread {
     private final Logger log = ClientLogger.getLog();
     private final LinkedBlockingQueue<PullRequest> pullRequestQueue = new LinkedBlockingQueue<PullRequest>();
-    private final MQClientFactory mQClientFactory;
+    private final MQClientInstance mQClientFactory;
     private final ScheduledExecutorService scheduledExecutorService = Executors
         .newSingleThreadScheduledExecutor(new ThreadFactory() {
             @Override
@@ -47,7 +47,7 @@ public class PullMessageService extends ServiceThread {
         });;
 
 
-    public PullMessageService(MQClientFactory mQClientFactory) {
+    public PullMessageService(MQClientInstance mQClientFactory) {
         this.mQClientFactory = mQClientFactory;
     }
 
@@ -63,6 +63,14 @@ public class PullMessageService extends ServiceThread {
                 PullMessageService.this.executePullRequestImmediately(pullRequest);
             }
         }, timeDelay, TimeUnit.MILLISECONDS);
+    }
+
+
+    /**
+     * 只定时一次
+     */
+    public void executeTaskLater(final Runnable r, final long timeDelay) {
+        this.scheduledExecutorService.schedule(r, timeDelay, TimeUnit.MILLISECONDS);
     }
 
 

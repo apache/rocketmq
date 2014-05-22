@@ -30,6 +30,7 @@ import org.slf4j.LoggerFactory;
 import com.alibaba.rocketmq.common.ServiceThread;
 import com.alibaba.rocketmq.common.UtilAll;
 import com.alibaba.rocketmq.common.constant.LoggerName;
+import com.alibaba.rocketmq.common.message.MessageAccessor;
 import com.alibaba.rocketmq.common.message.MessageConst;
 import com.alibaba.rocketmq.common.message.MessageDecoder;
 import com.alibaba.rocketmq.common.message.MessageExt;
@@ -49,7 +50,7 @@ import com.alibaba.rocketmq.store.schedule.ScheduleMessageService;
 public class CommitLog {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.StoreLoggerName);
     // 每个消息对应的MAGIC CODE daa320a7
-    private final static int MessageMagicCode = 0xAABBCCDD ^ 1880681586 + 8;
+    public final static int MessageMagicCode = 0xAABBCCDD ^ 1880681586 + 8;
     // 文件末尾空洞对应的MAGIC CODE cbd43194
     private final static int BlankMagicCode = 0xBBCCDDEE ^ 1880681586 + 8;
     // 存储消息的队列
@@ -500,8 +501,9 @@ public class CommitLog {
                 /**
                  * 备份真实的topic，queueId
                  */
-                msg.putProperty(MessageConst.PROPERTY_REAL_TOPIC, msg.getTopic());
-                msg.putProperty(MessageConst.PROPERTY_REAL_QUEUE_ID, String.valueOf(msg.getQueueId()));
+                MessageAccessor.putProperty(msg, MessageConst.PROPERTY_REAL_TOPIC, msg.getTopic());
+                MessageAccessor.putProperty(msg, MessageConst.PROPERTY_REAL_QUEUE_ID,
+                    String.valueOf(msg.getQueueId()));
                 msg.setPropertiesString(MessageDecoder.messageProperties2String(msg.getProperties()));
 
                 msg.setTopic(topic);
@@ -533,6 +535,7 @@ public class CommitLog {
                 // 创建新文件，重新写消息
                 mapedFile = this.mapedFileQueue.getLastMapedFile();
                 if (null == mapedFile) {
+                    // XXX: warn and notify me
                     log.error("create maped file2 error, topic: " + msg.getTopic() + " clientAddr: "
                             + msg.getBornHostString());
                     return new PutMessageResult(PutMessageStatus.CREATE_MAPEDFILE_FAILED, result);
@@ -571,6 +574,7 @@ public class CommitLog {
 
             long eclipseTime = this.defaultMessageStore.getSystemClock().now() - beginLockTimestamp;
             if (eclipseTime > 1000) {
+                // XXX: warn and notify me
                 log.warn("putMessage in lock eclipse time(ms) " + eclipseTime);
             }
         }
@@ -728,6 +732,9 @@ public class CommitLog {
             CommitLog.log.info(this.getServiceName() + " service started");
 
             while (!this.isStoped()) {
+                boolean flushCommitLogTimed =
+                        CommitLog.this.defaultMessageStore.getMessageStoreConfig().isFlushCommitLogTimed();
+
                 int interval =
                         CommitLog.this.defaultMessageStore.getMessageStoreConfig()
                             .getFlushIntervalCommitLog();
@@ -750,7 +757,14 @@ public class CommitLog {
                 }
 
                 try {
-                    this.waitForRunning(interval);
+                    // 定时刷盘
+                    if (flushCommitLogTimed) {
+                        Thread.sleep(interval);
+                    }
+                    // 实时刷盘
+                    else {
+                        this.waitForRunning(interval);
+                    }
 
                     if (printFlushProgress) {
                         this.printFlushProgress();

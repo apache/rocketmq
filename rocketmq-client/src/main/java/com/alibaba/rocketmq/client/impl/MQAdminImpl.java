@@ -29,7 +29,7 @@ import org.slf4j.Logger;
 import com.alibaba.rocketmq.client.QueryResult;
 import com.alibaba.rocketmq.client.exception.MQBrokerException;
 import com.alibaba.rocketmq.client.exception.MQClientException;
-import com.alibaba.rocketmq.client.impl.factory.MQClientFactory;
+import com.alibaba.rocketmq.client.impl.factory.MQClientInstance;
 import com.alibaba.rocketmq.client.impl.producer.TopicPublishInfo;
 import com.alibaba.rocketmq.client.log.ClientLogger;
 import com.alibaba.rocketmq.common.MixAll;
@@ -61,10 +61,10 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
  */
 public class MQAdminImpl {
     private final Logger log = ClientLogger.getLog();
-    private final MQClientFactory mQClientFactory;
+    private final MQClientInstance mQClientFactory;
 
 
-    public MQAdminImpl(MQClientFactory mQClientFactory) {
+    public MQAdminImpl(MQClientInstance mQClientFactory) {
         this.mQClientFactory = mQClientFactory;
     }
 
@@ -125,7 +125,7 @@ public class MQAdminImpl {
                         .getTopicRouteInfoFromNameServer(topic, 1000 * 3);
             if (topicRouteData != null) {
                 TopicPublishInfo topicPublishInfo =
-                        MQClientFactory.topicRouteData2TopicPublishInfo(topic, topicRouteData);
+                        MQClientInstance.topicRouteData2TopicPublishInfo(topic, topicRouteData);
                 if (topicPublishInfo != null && topicPublishInfo.ok()) {
                     return topicPublishInfo.getMessageQueueList();
                 }
@@ -146,7 +146,7 @@ public class MQAdminImpl {
                         .getTopicRouteInfoFromNameServer(topic, 1000 * 3);
             if (topicRouteData != null) {
                 Set<MessageQueue> mqList =
-                        MQClientFactory.topicRouteData2TopicSubscribeInfo(topic, topicRouteData);
+                        MQClientInstance.topicRouteData2TopicSubscribeInfo(topic, topicRouteData);
                 if (!mqList.isEmpty()) {
                     return mqList;
                 }

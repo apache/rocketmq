@@ -22,7 +22,7 @@ package com.alibaba.rocketmq.common;
  */
 public class MQVersion {
     // TODO 每次发布版本都要修改此处版本号
-    public static final int CurrentVersion = Version.V3_0_10.ordinal();
+    public static final int CurrentVersion = Version.V3_0_12.ordinal();
 
 
     public static String getVersionDesc(int value) {
@@ -70,9 +70,10 @@ public class MQVersion {
         V3_0_8,
         V3_0_9_SNAPSHOT,
         V3_0_9,
-        V3_0_10_DUMMY_SNAPSHOT,
+
         V3_0_10_SNAPSHOT,
         V3_0_10,
+
         V3_0_11_SNAPSHOT,
         V3_0_11,
 
@@ -87,5 +88,65 @@ public class MQVersion {
 
         V3_0_15_SNAPSHOT,
         V3_0_15,
+
+        V3_1_0_SNAPSHOT,
+        V3_1_0,
+
+        V3_1_1_SNAPSHOT,
+        V3_1_1,
+
+        V3_1_2_SNAPSHOT,
+        V3_1_2,
+
+        V3_1_3_SNAPSHOT,
+        V3_1_3,
+
+        V3_1_4_SNAPSHOT,
+        V3_1_4,
+
+        V3_1_5_SNAPSHOT,
+        V3_1_5,
+
+        V3_1_6_SNAPSHOT,
+        V3_1_6,
+
+        V3_1_7_SNAPSHOT,
+        V3_1_7,
+
+        V3_1_8_SNAPSHOT,
+        V3_1_8,
+
+        V3_1_9_SNAPSHOT,
+        V3_1_9,
+
+        V3_2_0_SNAPSHOT,
+        V3_2_0,
+
+        V3_2_1_SNAPSHOT,
+        V3_2_1,
+
+        V3_2_2_SNAPSHOT,
+        V3_2_2,
+
+        V3_2_3_SNAPSHOT,
+        V3_2_3,
+
+        V3_2_4_SNAPSHOT,
+        V3_2_4,
+
+        V3_2_5_SNAPSHOT,
+        V3_2_5,
+
+        V3_2_6_SNAPSHOT,
+        V3_2_6,
+
+        V3_2_7_SNAPSHOT,
+        V3_2_7,
+
+        V3_2_8_SNAPSHOT,
+        V3_2_8,
+
+        V3_2_9_SNAPSHOT,
+        V3_2_9,
     }
 }

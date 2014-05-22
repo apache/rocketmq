@@ -50,6 +50,10 @@ import com.alibaba.rocketmq.store.config.MessageStoreConfig;
  * @since 2013-7-26
  */
 public class BrokerStartup {
+    public static Properties properties = null;
+    public static CommandLine commandLine = null;
+    public static String configFile = null;
+
 
     public static Options buildCommandlineOptions(final Options options) {
         Option opt = new Option("c", "configFile", true, "Broker config properties file");
@@ -83,7 +87,7 @@ public class BrokerStartup {
         try {
             // 解析命令行
             Options options = MixAll.buildCommandlineOptions(new Options());
-            final CommandLine commandLine =
+            commandLine =
                     MixAll
                         .parseCmdLine("mqbroker", args, buildCommandlineOptions(options), new PosixParser());
             if (null == commandLine) {
@@ -124,8 +128,9 @@ public class BrokerStartup {
             if (commandLine.hasOption('c')) {
                 String file = commandLine.getOptionValue('c');
                 if (file != null) {
+                    configFile = file;
                     InputStream in = new BufferedInputStream(new FileInputStream(file));
-                    Properties properties = new Properties();
+                    properties = new Properties();
                     properties.load(in);
                     MixAll.properties2Object(properties, brokerConfig);
                     MixAll.properties2Object(properties, nettyServerConfig);
@@ -155,13 +160,19 @@ public class BrokerStartup {
             }
 
             // 检测Name Server地址设置是否正确 IP:PORT
-            if (null != brokerConfig.getNamesrvAddr()) {
+            String namesrvAddr = brokerConfig.getNamesrvAddr();
+            if (null != namesrvAddr) {
                 try {
-                    RemotingUtil.string2SocketAddress(brokerConfig.getNamesrvAddr());
+                    String[] addrArray = namesrvAddr.split(";");
+                    if (addrArray != null) {
+                        for (String addr : addrArray) {
+                            RemotingUtil.string2SocketAddress(addr);
+                        }
+                    }
                 }
                 catch (Exception e) {
                     System.out
-                        .printf("The Name Server Address[%s] is illegal, please set it as this, 127.0.0.1:9876\n");
+                        .printf("The Name Server Address[%s] is illegal, please set it as this, 127.0.0.1:9876;192.168.0.1:9876\n");
                     System.exit(-3);
                 }
             }

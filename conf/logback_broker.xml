@@ -4,207 +4,106 @@
 		class="ch.qos.logback.core.rolling.RollingFileAppender">
 		<file>${user.home}/logs/rocketmqlogs/broker_default.log</file>
 		<append>true</append>
-		<rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-			<fileNamePattern>${user.home}/logs/rocketmqlogs/otherdays/bk_default-%d{yyyy-MM-dd}.%i.log
+		<rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
+			<fileNamePattern>${user.home}/logs/rocketmqlogs/otherdays/broker_default.%i.log
 			</fileNamePattern>
-			<timeBasedFileNamingAndTriggeringPolicy
-				class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
-				<maxFileSize>104857600</maxFileSize>
-			</timeBasedFileNamingAndTriggeringPolicy>
-			<MaxHistory>10</MaxHistory>
+			<minIndex>1</minIndex>
+			<maxIndex>5</maxIndex>
 		</rollingPolicy>
+		<triggeringPolicy
+			class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
+			<maxFileSize>100MB</maxFileSize>
+		</triggeringPolicy>
 		<encoder>
 			<pattern>%d{yyy-MM-dd HH:mm:ss,GMT+8} %p %t - %m%n</pattern>
 			<charset class="java.nio.charset.Charset">UTF-8</charset>
 		</encoder>
 	</appender>
+
 
 	<appender name="RocketmqBrokerAppender"
 		class="ch.qos.logback.core.rolling.RollingFileAppender">
 		<file>${user.home}/logs/rocketmqlogs/broker.log</file>
 		<append>true</append>
-		<rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-			<fileNamePattern>${user.home}/logs/rocketmqlogs/otherdays/broker-%d{yyyy-MM-dd}.%i.log
+		<rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
+			<fileNamePattern>${user.home}/logs/rocketmqlogs/otherdays/broker.%i.log
 			</fileNamePattern>
-			<timeBasedFileNamingAndTriggeringPolicy
-				class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
-				<maxFileSize>104857600</maxFileSize>
-			</timeBasedFileNamingAndTriggeringPolicy>
-			<MaxHistory>10</MaxHistory>
+			<minIndex>1</minIndex>
+			<maxIndex>30</maxIndex>
 		</rollingPolicy>
+		<triggeringPolicy
+			class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
+			<maxFileSize>100MB</maxFileSize>
+		</triggeringPolicy>
 		<encoder>
 			<pattern>%d{yyy-MM-dd HH:mm:ss,GMT+8} %p %t - %m%n</pattern>
 			<charset class="java.nio.charset.Charset">UTF-8</charset>
 		</encoder>
 	</appender>
+
 
 	<appender name="RocketmqTransactionAppender"
 		class="ch.qos.logback.core.rolling.RollingFileAppender">
 		<file>${user.home}/logs/rocketmqlogs/transaction.log</file>
 		<append>true</append>
-		<rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-			<fileNamePattern>${user.home}/logs/rocketmqlogs/otherdays/transaction-%d{yyyy-MM-dd}.%i.log
+		<rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
+			<fileNamePattern>${user.home}/logs/rocketmqlogs/otherdays/transaction.%i.log
 			</fileNamePattern>
-			<timeBasedFileNamingAndTriggeringPolicy
-				class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
-				<maxFileSize>104857600</maxFileSize>
-			</timeBasedFileNamingAndTriggeringPolicy>
-			<MaxHistory>10</MaxHistory>
+			<minIndex>1</minIndex>
+			<maxIndex>5</maxIndex>
 		</rollingPolicy>
+		<triggeringPolicy
+			class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
+			<maxFileSize>100MB</maxFileSize>
+		</triggeringPolicy>
 		<encoder>
 			<pattern>%d{yyy-MM-dd HH:mm:ss,GMT+8} %p %t - %m%n</pattern>
 			<charset class="java.nio.charset.Charset">UTF-8</charset>
 		</encoder>
 	</appender>
+
 
 	<appender name="RocketmqRebalanceLockAppender"
 		class="ch.qos.logback.core.rolling.RollingFileAppender">
 		<file>${user.home}/logs/rocketmqlogs/lock.log</file>
 		<append>true</append>
-		<rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-			<fileNamePattern>${user.home}/logs/rocketmqlogs/otherdays/lock-%d{yyyy-MM-dd}.%i.log
+		<rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
+			<fileNamePattern>${user.home}/logs/rocketmqlogs/otherdays/lock.%i.log
 			</fileNamePattern>
-			<timeBasedFileNamingAndTriggeringPolicy
-				class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
-				<maxFileSize>104857600</maxFileSize>
-			</timeBasedFileNamingAndTriggeringPolicy>
-			<MaxHistory>10</MaxHistory>
+			<minIndex>1</minIndex>
+			<maxIndex>5</maxIndex>
 		</rollingPolicy>
+		<triggeringPolicy
+			class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
+			<maxFileSize>100MB</maxFileSize>
+		</triggeringPolicy>
 		<encoder>
 			<pattern>%d{yyy-MM-dd HH:mm:ss,GMT+8} %p %t - %m%n</pattern>
 			<charset class="java.nio.charset.Charset">UTF-8</charset>
 		</encoder>
 	</appender>
 
-	<appender name="RocketmqPutStatsMoniterAppender"
+
+	<appender name="RocketmqStatsAppender"
 		class="ch.qos.logback.core.rolling.RollingFileAppender">
-		<file>${user.home}/logs/rocketmqlogs/put.log</file>
+		<file>${user.home}/logs/rocketmqlogs/stats.log</file>
 		<append>true</append>
-		<rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-			<fileNamePattern>${user.home}/logs/rocketmqlogs/otherdays/put-%d{yyyy-MM-dd}.%i.log
+		<rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
+			<fileNamePattern>${user.home}/logs/rocketmqlogs/otherdays/stats.%i.log
 			</fileNamePattern>
-			<timeBasedFileNamingAndTriggeringPolicy
-				class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
-				<maxFileSize>104857600</maxFileSize>
-			</timeBasedFileNamingAndTriggeringPolicy>
-			<MaxHistory>10</MaxHistory>
+			<minIndex>1</minIndex>
+			<maxIndex>5</maxIndex>
 		</rollingPolicy>
+		<triggeringPolicy
+			class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
+			<maxFileSize>100MB</maxFileSize>
+		</triggeringPolicy>
 		<encoder>
 			<pattern>%d{yyy-MM-dd HH:mm:ss,GMT+8} %p %t - %m%n</pattern>
 			<charset class="java.nio.charset.Charset">UTF-8</charset>
 		</encoder>
 	</appender>
 
-	<appender name="RocketmqGetStatsMoniterAppender"
-		class="ch.qos.logback.core.rolling.RollingFileAppender">
-		<file>${user.home}/logs/rocketmqlogs/get.log</file>
-		<append>true</append>
-		<rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-			<fileNamePattern>${user.home}/logs/rocketmqlogs/otherdays/get-%d{yyyy-MM-dd}.%i.log
-			</fileNamePattern>
-			<timeBasedFileNamingAndTriggeringPolicy
-				class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
-				<maxFileSize>104857600</maxFileSize>
-			</timeBasedFileNamingAndTriggeringPolicy>
-			<MaxHistory>10</MaxHistory>
-		</rollingPolicy>
-		<encoder>
-			<pattern>%d{yyy-MM-dd HH:mm:ss,GMT+8} %p %t - %m%n</pattern>
-			<charset class="java.nio.charset.Charset">UTF-8</charset>
-		</encoder>
-	</appender>
-
-	<appender name="RocketmqStoreStatsMoniterAppender"
-		class="ch.qos.logback.core.rolling.RollingFileAppender">
-		<file>${user.home}/logs/rocketmqlogs/store.log</file>
-		<append>true</append>
-		<rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-			<fileNamePattern>${user.home}/logs/rocketmqlogs/otherdays/store-%d{yyyy-MM-dd}.%i.log
-			</fileNamePattern>
-			<timeBasedFileNamingAndTriggeringPolicy
-				class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
-				<maxFileSize>104857600</maxFileSize>
-			</timeBasedFileNamingAndTriggeringPolicy>
-			<MaxHistory>10</MaxHistory>
-		</rollingPolicy>
-		<encoder>
-			<pattern>%d{yyy-MM-dd HH:mm:ss,GMT+8} %p %t - %m%n</pattern>
-			<charset class="java.nio.charset.Charset">UTF-8</charset>
-		</encoder>
-	</appender>
-
-	<appender name="RocketmqPullmsgLiveMoniterAppender"
-		class="ch.qos.logback.core.rolling.RollingFileAppender">
-		<file>${user.home}/logs/rocketmqlogs/pullmsgLive.log</file>
-		<append>true</append>
-		<rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-			<fileNamePattern>${user.home}/logs/rocketmqlogs/otherdays/pullmsgLive-%d{yyyy-MM-dd}.%i.log
-			</fileNamePattern>
-			<timeBasedFileNamingAndTriggeringPolicy
-				class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
-				<maxFileSize>104857600</maxFileSize>
-			</timeBasedFileNamingAndTriggeringPolicy>
-			<MaxHistory>10</MaxHistory>
-		</rollingPolicy>
-		<encoder>
-			<pattern>%d{yyy-MM-dd HH:mm:ss,GMT+8} %p %t - %m%n</pattern>
-			<charset class="java.nio.charset.Charset">UTF-8</charset>
-		</encoder>
-	</appender>
-	<appender name="RocketmqSendmsgLiveMoniterAppender"
-		class="ch.qos.logback.core.rolling.RollingFileAppender">
-		<file>${user.home}/logs/rocketmqlogs/putmsgLive.log</file>
-		<append>true</append>
-		<rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-			<fileNamePattern>${user.home}/logs/rocketmqlogs/otherdays/putmsgLive-%d{yyyy-MM-dd}.%i.log
-			</fileNamePattern>
-			<timeBasedFileNamingAndTriggeringPolicy
-				class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
-				<maxFileSize>104857600</maxFileSize>
-			</timeBasedFileNamingAndTriggeringPolicy>
-			<MaxHistory>10</MaxHistory>
-		</rollingPolicy>
-		<encoder>
-			<pattern>%d{yyy-MM-dd HH:mm:ss,GMT+8} %p %t - %m%n</pattern>
-			<charset class="java.nio.charset.Charset">UTF-8</charset>
-		</encoder>
-	</appender>
-	<appender name="RocketmqSendbackmsgLiveMoniterAppender"
-		class="ch.qos.logback.core.rolling.RollingFileAppender">
-		<file>${user.home}/logs/rocketmqlogs/sendbackmsgLive.log</file>
-		<append>true</append>
-		<rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-			<fileNamePattern>${user.home}/logs/rocketmqlogs/otherdays/sendbackmsgLive-%d{yyyy-MM-dd}.%i.log
-			</fileNamePattern>
-			<timeBasedFileNamingAndTriggeringPolicy
-				class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
-				<maxFileSize>104857600</maxFileSize>
-			</timeBasedFileNamingAndTriggeringPolicy>
-			<MaxHistory>10</MaxHistory>
-		</rollingPolicy>
-		<encoder>
-			<pattern>%d{yyy-MM-dd HH:mm:ss,GMT+8} %p %t - %m%n</pattern>
-			<charset class="java.nio.charset.Charset">UTF-8</charset>
-		</encoder>
-	</appender>
-	<appender name="UpdateCommitOffsetMoniterAppender"
-		class="ch.qos.logback.core.rolling.RollingFileAppender">
-		<file>${user.home}/logs/rocketmqlogs/updateCommitOffset.log</file>
-		<append>true</append>
-		<rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-			<fileNamePattern>${user.home}/logs/rocketmqlogs/otherdays/updateCommitOffset-%d{yyyy-MM-dd}.%i.log
-			</fileNamePattern>
-			<timeBasedFileNamingAndTriggeringPolicy
-				class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
-				<maxFileSize>104857600</maxFileSize>
-			</timeBasedFileNamingAndTriggeringPolicy>
-			<MaxHistory>10</MaxHistory>
-		</rollingPolicy>
-		<encoder>
-			<pattern>%d{yyy-MM-dd HH:mm:ss,GMT+8} %p %t - %m%n</pattern>
-			<charset class="java.nio.charset.Charset">UTF-8</charset>
-		</encoder>
-	</appender>
 
 	<appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
 		<append>true</append>
@@ -244,38 +143,9 @@
 		<appender-ref ref="RocketmqBrokerAppender" />
 	</logger>
 
-	<logger name="PutStatsMoniter" additivity="false">
+	<logger name="RocketmqStats" additivity="false">
 		<level value="INFO" />
-		<appender-ref ref="RocketmqPutStatsMoniterAppender" />
-	</logger>
-
-	<logger name="GetStatsMoniter" additivity="false">
-		<level value="INFO" />
-		<appender-ref ref="RocketmqGetStatsMoniterAppender" />
-	</logger>
-
-	<logger name="StoreStatsMoniter" additivity="false">
-		<level value="INFO" />
-		<appender-ref ref="RocketmqStoreStatsMoniterAppender" />
-	</logger>
-
-	<logger name="PullmsgLiveMoniter" additivity="false">
-		<level value="ERROR" />
-		<appender-ref ref="RocketmqPullmsgLiveMoniterAppender" />
-	</logger>
-
-	<logger name="SendbackmsgLiveMoniter" additivity="false">
-		<level value="ERROR" />
-		<appender-ref ref="RocketmqSendbackmsgLiveMoniterAppender" />
-	</logger>
-
-	<logger name="SendmsgLiveMoniter" additivity="false">
-		<level value="ERROR" />
-		<appender-ref ref="RocketmqSendmsgLiveMoniterAppender" />
-	</logger>
-	<logger name="UpdateCommitOffsetMoniter" additivity="false">
-		<level value="ERROR" />
-		<appender-ref ref="UpdateCommitOffsetMoniterAppender" />
+		<appender-ref ref="RocketmqStatsAppender" />
 	</logger>
 
 	<root>

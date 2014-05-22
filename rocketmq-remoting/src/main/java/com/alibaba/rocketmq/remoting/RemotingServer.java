@@ -32,9 +32,7 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-13
  */
-public interface RemotingServer {
-    public void start() throws InterruptedException;
-
+public interface RemotingServer extends RemotingService {
 
     /**
      * 注册请求处理器，ExecutorService必须要对应一个队列大小有限制的阻塞队列，防止OOM
@@ -48,6 +46,14 @@ public interface RemotingServer {
 
 
     public void registerDefaultProcessor(final NettyRequestProcessor processor, final ExecutorService executor);
+
+
+    /**
+     * 服务器绑定的本地端口
+     * 
+     * @return PORT
+     */
+    public int localListenPort();
 
 
     public RemotingCommand invokeSync(final Channel channel, final RemotingCommand request,
@@ -64,6 +70,4 @@ public interface RemotingServer {
             throws InterruptedException, RemotingTooMuchRequestException, RemotingTimeoutException,
             RemotingSendRequestException;
 
-
-    public void shutdown();
 }

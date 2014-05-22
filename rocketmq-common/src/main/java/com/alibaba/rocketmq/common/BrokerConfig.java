@@ -94,6 +94,9 @@ public class BrokerConfig {
     // 订阅消息对应的线程池阻塞队列size
     private int pullThreadPoolQueueCapacity = 100000;
 
+    // 过滤服务器数量
+    private int filterServerNums = 1;
+
 
     public static String localHostName() {
         try {
@@ -374,5 +377,15 @@ public class BrokerConfig {
 
     public void setBrokerTopicEnable(boolean brokerTopicEnable) {
         this.brokerTopicEnable = brokerTopicEnable;
+    }
+
+
+    public int getFilterServerNums() {
+        return filterServerNums;
+    }
+
+
+    public void setFilterServerNums(int filterServerNums) {
+        this.filterServerNums = filterServerNums;
     }
 }

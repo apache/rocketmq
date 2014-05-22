@@ -32,9 +32,7 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-13
  */
-public interface RemotingClient {
-    public void start();
-
+public interface RemotingClient extends RemotingService {
 
     public void updateNameServerAddressList(final List<String> addrs);
 
@@ -59,7 +57,4 @@ public interface RemotingClient {
 
     public void registerProcessor(final int requestCode, final NettyRequestProcessor processor,
             final ExecutorService executor);
-
-
-    public void shutdown();
 }

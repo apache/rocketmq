@@ -53,6 +53,9 @@ public class ProcessQueue {
 
     // 当前Q是否被rebalance丢弃
     private volatile boolean droped = false;
+    private volatile long lastPullTimestamp = System.currentTimeMillis();
+    private final static long PullMaxIdleTime = Long.parseLong(System.getProperty(
+        "rocketmq.client.pull.pullMaxIdleTime", "120000"));
 
     /**
      * 顺序消息专用
@@ -71,6 +74,12 @@ public class ProcessQueue {
 
     public boolean isLockExpired() {
         boolean result = (System.currentTimeMillis() - this.lastLockTimestamp) > RebalanceLockMaxLiveTime;
+        return result;
+    }
+
+
+    public boolean isPullExpired() {
+        boolean result = (System.currentTimeMillis() - this.lastPullTimestamp) > PullMaxIdleTime;
         return result;
     }
 
@@ -340,5 +349,15 @@ public class ProcessQueue {
 
     public Lock getLockConsume() {
         return lockConsume;
+    }
+
+
+    public long getLastPullTimestamp() {
+        return lastPullTimestamp;
+    }
+
+
+    public void setLastPullTimestamp(long lastPullTimestamp) {
+        this.lastPullTimestamp = lastPullTimestamp;
     }
 }

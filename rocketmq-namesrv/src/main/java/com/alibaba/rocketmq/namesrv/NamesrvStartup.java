@@ -46,6 +46,9 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
  * @since 2013-7-5
  */
 public class NamesrvStartup {
+    public static Properties properties = null;
+    public static CommandLine commandLine = null;
+
 
     public static Options buildCommandlineOptions(final Options options) {
         Option opt = new Option("c", "configFile", true, "Name server config properties file");
@@ -61,17 +64,22 @@ public class NamesrvStartup {
 
 
     public static void main(String[] args) {
+        main0(args);
+    }
+
+
+    public static NamesrvController main0(String[] args) {
         System.setProperty(RemotingCommand.RemotingVersionKey, Integer.toString(MQVersion.CurrentVersion));
 
         try {
             // 解析命令行
             Options options = MixAll.buildCommandlineOptions(new Options());
-            final CommandLine commandLine =
+            commandLine =
                     MixAll.parseCmdLine("mqnamesrv", args, buildCommandlineOptions(options),
                         new PosixParser());
             if (null == commandLine) {
                 System.exit(-1);
-                return;
+                return null;
             }
 
             // 初始化配置文件
@@ -82,7 +90,7 @@ public class NamesrvStartup {
                 String file = commandLine.getOptionValue('c');
                 if (file != null) {
                     InputStream in = new BufferedInputStream(new FileInputStream(file));
-                    Properties properties = new Properties();
+                    properties = new Properties();
                     properties.load(in);
                     MixAll.properties2Object(properties, namesrvConfig);
                     MixAll.properties2Object(properties, nettyServerConfig);
@@ -113,6 +121,10 @@ public class NamesrvStartup {
             lc.reset();
             configurator.doConfigure(namesrvConfig.getRocketmqHome() + "/conf/logback_namesrv.xml");
             final Logger log = LoggerFactory.getLogger(LoggerName.NamesrvLoggerName);
+
+            // 打印服务器配置参数
+            MixAll.printObjectProperties(log, namesrvConfig);
+            MixAll.printObjectProperties(log, nettyServerConfig);
 
             // 初始化服务控制对象
             final NamesrvController controller = new NamesrvController(namesrvConfig, nettyServerConfig);
@@ -148,10 +160,14 @@ public class NamesrvStartup {
             String tip = "The Name Server boot success.";
             log.info(tip);
             System.out.println(tip);
+
+            return controller;
         }
         catch (Throwable e) {
             e.printStackTrace();
             System.exit(-1);
         }
+
+        return null;
     }
 }

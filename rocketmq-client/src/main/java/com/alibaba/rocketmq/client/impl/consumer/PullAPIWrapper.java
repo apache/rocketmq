@@ -18,8 +18,11 @@ package com.alibaba.rocketmq.client.impl.consumer;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
+
+import org.slf4j.Logger;
 
 import com.alibaba.rocketmq.client.VirtualEnvUtil;
 import com.alibaba.rocketmq.client.consumer.PullCallback;
@@ -27,17 +30,22 @@ import com.alibaba.rocketmq.client.consumer.PullResult;
 import com.alibaba.rocketmq.client.consumer.PullStatus;
 import com.alibaba.rocketmq.client.exception.MQBrokerException;
 import com.alibaba.rocketmq.client.exception.MQClientException;
+import com.alibaba.rocketmq.client.hook.FilterMessageContext;
+import com.alibaba.rocketmq.client.hook.FilterMessageHook;
 import com.alibaba.rocketmq.client.impl.CommunicationMode;
 import com.alibaba.rocketmq.client.impl.FindBrokerResult;
-import com.alibaba.rocketmq.client.impl.factory.MQClientFactory;
+import com.alibaba.rocketmq.client.impl.factory.MQClientInstance;
+import com.alibaba.rocketmq.client.log.ClientLogger;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.UtilAll;
+import com.alibaba.rocketmq.common.message.MessageAccessor;
 import com.alibaba.rocketmq.common.message.MessageConst;
 import com.alibaba.rocketmq.common.message.MessageDecoder;
 import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.common.message.MessageQueue;
 import com.alibaba.rocketmq.common.protocol.header.PullMessageRequestHeader;
 import com.alibaba.rocketmq.common.protocol.heartbeat.SubscriptionData;
+import com.alibaba.rocketmq.common.protocol.route.TopicRouteData;
 import com.alibaba.rocketmq.common.sysflag.PullSysFlag;
 import com.alibaba.rocketmq.remoting.exception.RemotingException;
 
@@ -49,16 +57,22 @@ import com.alibaba.rocketmq.remoting.exception.RemotingException;
  * @since 2013-7-24
  */
 public class PullAPIWrapper {
+    private final Logger log = ClientLogger.getLog();
     private ConcurrentHashMap<MessageQueue, AtomicLong/* brokerId */> pullFromWhichNodeTable =
             new ConcurrentHashMap<MessageQueue, AtomicLong>(32);
 
-    private final MQClientFactory mQClientFactory;
+    private final MQClientInstance mQClientFactory;
     private final String consumerGroup;
+    private final boolean isUnitMode;
+
+    private volatile boolean connectBrokerByUser = false;
+    private volatile long defaultBrokerId = MixAll.MASTER_ID;
 
 
-    public PullAPIWrapper(MQClientFactory mQClientFactory, String consumerGroup) {
+    public PullAPIWrapper(MQClientInstance mQClientFactory, String consumerGroup, boolean isUnitMode) {
         this.mQClientFactory = mQClientFactory;
         this.consumerGroup = consumerGroup;
+        this.isUnitMode = isUnitMode;
     }
 
 
@@ -72,6 +86,43 @@ public class PullAPIWrapper {
         }
     }
 
+    private Random random = new Random(System.currentTimeMillis());
+
+
+    public int randomNum() {
+        int value = random.nextInt();
+        if (value < 0) {
+            value = Math.abs(value);
+            if (value < 0)
+                value = 0;
+        }
+        return value;
+    }
+
+
+    /**
+     * 随机找Filter Server
+     * 
+     * @param brokerAddr
+     * @return
+     * @throws MQClientException
+     */
+    private String computPullFromWhichFilterServer(final String topic, final String brokerAddr)
+            throws MQClientException {
+        ConcurrentHashMap<String, TopicRouteData> topicRouteTable = this.mQClientFactory.getTopicRouteTable();
+        if (topicRouteTable != null) {
+            TopicRouteData topicRouteData = topicRouteTable.get(topic);
+            List<String> list = topicRouteData.getFilterServerTable().get(brokerAddr);
+
+            if (list != null && !list.isEmpty()) {
+                return list.get(randomNum() % list.size());
+            }
+        }
+
+        throw new MQClientException("Find Filter Server Failed, Broker Addr: " + brokerAddr + " topic: "
+                + topic, null);
+    }
+
 
     /**
      * 对拉取结果进行处理，主要是消息反序列化
@@ -79,8 +130,6 @@ public class PullAPIWrapper {
      * @param mq
      * @param pullResult
      * @param subscriptionData
-     * @param projectGroupPrefix
-     *            虚拟环境projectGroupPrefix，不存在可设置为 null
      * @return
      */
     public PullResult processPullResult(final MessageQueue mq, final PullResult pullResult,
@@ -95,7 +144,7 @@ public class PullAPIWrapper {
 
             // 消息再次过滤
             List<MessageExt> msgListFilterAgain = msgList;
-            if (!subscriptionData.getTagsSet().isEmpty()) {
+            if (!subscriptionData.getTagsSet().isEmpty() && !subscriptionData.isClassFilterMode()) {
                 msgListFilterAgain = new ArrayList<MessageExt>(msgList.size());
                 for (MessageExt msg : msgList) {
                     if (msg.getTags() != null) {
@@ -106,6 +155,13 @@ public class PullAPIWrapper {
                 }
             }
 
+            // 执行消息过滤的 FilterMessageHook
+            if (this.hasHook()) {
+                FilterMessageContext filterMessageContext = new FilterMessageContext();
+                filterMessageContext.setMsgList(msgListFilterAgain);
+                this.executeHook(filterMessageContext);
+            }
+
             // 清除虚拟运行环境相关的projectGroupPrefix
             if (!UtilAll.isBlank(projectGroupPrefix)) {
                 subscriptionData.setTopic(VirtualEnvUtil.clearProjectGroup(subscriptionData.getTopic(),
@@ -114,18 +170,19 @@ public class PullAPIWrapper {
                 for (MessageExt msg : msgListFilterAgain) {
                     msg.setTopic(VirtualEnvUtil.clearProjectGroup(msg.getTopic(), projectGroupPrefix));
                     // 消息中放入队列的最大最小Offset，方便应用来感知消息堆积程度
-                    msg.putProperty(MessageConst.PROPERTY_MIN_OFFSET,
+
+                    MessageAccessor.putProperty(msg, MessageConst.PROPERTY_MIN_OFFSET,
                         Long.toString(pullResult.getMinOffset()));
-                    msg.putProperty(MessageConst.PROPERTY_MAX_OFFSET,
+                    MessageAccessor.putProperty(msg, MessageConst.PROPERTY_MAX_OFFSET,
                         Long.toString(pullResult.getMaxOffset()));
                 }
             }
             else {
                 // 消息中放入队列的最大最小Offset，方便应用来感知消息堆积程度
                 for (MessageExt msg : msgListFilterAgain) {
-                    msg.putProperty(MessageConst.PROPERTY_MIN_OFFSET,
+                    MessageAccessor.putProperty(msg, MessageConst.PROPERTY_MIN_OFFSET,
                         Long.toString(pullResult.getMinOffset()));
-                    msg.putProperty(MessageConst.PROPERTY_MAX_OFFSET,
+                    MessageAccessor.putProperty(msg, MessageConst.PROPERTY_MAX_OFFSET,
                         Long.toString(pullResult.getMaxOffset()));
                 }
             }
@@ -144,6 +201,10 @@ public class PullAPIWrapper {
      * 每个队列都应该有相应的变量来保存从哪个服务器拉
      */
     public long recalculatePullFromWhichNode(final MessageQueue mq) {
+        if (this.isConnectBrokerByUser()) {
+            return this.defaultBrokerId;
+        }
+
         AtomicLong suggest = this.pullFromWhichNodeTable.get(mq);
         if (suggest != null) {
             return suggest.get();
@@ -197,8 +258,13 @@ public class PullAPIWrapper {
             requestHeader.setSubscription(subExpression);
             requestHeader.setSubVersion(subVersion);
 
+            String brokerAddr = findBrokerResult.getBrokerAddr();
+            if (PullSysFlag.hasClassFilterFlag(sysFlagInner)) {
+                brokerAddr = computPullFromWhichFilterServer(mq.getTopic(), brokerAddr);
+            }
+
             PullResult pullResult = this.mQClientFactory.getMQClientAPIImpl().pullMessage(//
-                findBrokerResult.getBrokerAddr(),//
+                brokerAddr,//
                 requestHeader,//
                 timeoutMillis,//
                 communicationMode,//
@@ -208,5 +274,55 @@ public class PullAPIWrapper {
         }
 
         throw new MQClientException("The broker[" + mq.getBrokerName() + "] not exist", null);
+    }
+
+    /**
+     * 从服务端拉消息之后，会执行 FilterMessageHook
+     */
+    private ArrayList<FilterMessageHook> filterMessageHookList = new ArrayList<FilterMessageHook>();
+
+
+    public boolean hasHook() {
+        return !this.filterMessageHookList.isEmpty();
+    }
+
+
+    public void registerFilterMessageHook(ArrayList<FilterMessageHook> filterMessageHookList) {
+        this.filterMessageHookList = filterMessageHookList;
+    }
+
+
+    public void executeHook(final FilterMessageContext context) {
+        if (!this.filterMessageHookList.isEmpty()) {
+            for (FilterMessageHook hook : this.filterMessageHookList) {
+                try {
+                    hook.filterMessage(context);
+                }
+                catch (Throwable e) {
+                    log.error("execute hook error. hookName={}", hook.hookName());
+                }
+            }
+        }
+    }
+
+
+    public long getDefaultBrokerId() {
+        return defaultBrokerId;
+    }
+
+
+    public void setDefaultBrokerId(long defaultBrokerId) {
+        this.defaultBrokerId = defaultBrokerId;
+    }
+
+
+    public boolean isConnectBrokerByUser() {
+        return connectBrokerByUser;
+    }
+
+
+    public void setConnectBrokerByUser(boolean connectBrokerByUser) {
+        this.connectBrokerByUser = connectBrokerByUser;
+
     }
 }

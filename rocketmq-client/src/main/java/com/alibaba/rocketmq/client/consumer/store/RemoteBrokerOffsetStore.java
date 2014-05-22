@@ -28,7 +28,7 @@ import org.slf4j.Logger;
 import com.alibaba.rocketmq.client.exception.MQBrokerException;
 import com.alibaba.rocketmq.client.exception.MQClientException;
 import com.alibaba.rocketmq.client.impl.FindBrokerResult;
-import com.alibaba.rocketmq.client.impl.factory.MQClientFactory;
+import com.alibaba.rocketmq.client.impl.factory.MQClientInstance;
 import com.alibaba.rocketmq.client.log.ClientLogger;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.UtilAll;
@@ -46,14 +46,14 @@ import com.alibaba.rocketmq.remoting.exception.RemotingException;
  */
 public class RemoteBrokerOffsetStore implements OffsetStore {
     private final static Logger log = ClientLogger.getLog();
-    private final MQClientFactory mQClientFactory;
+    private final MQClientInstance mQClientFactory;
     private final String groupName;
     private final AtomicLong storeTimesTotal = new AtomicLong(0);
     private ConcurrentHashMap<MessageQueue, AtomicLong> offsetTable =
             new ConcurrentHashMap<MessageQueue, AtomicLong>();
 
 
-    public RemoteBrokerOffsetStore(MQClientFactory mQClientFactory, String groupName) {
+    public RemoteBrokerOffsetStore(MQClientInstance mQClientFactory, String groupName) {
         this.mQClientFactory = mQClientFactory;
         this.groupName = groupName;
     }

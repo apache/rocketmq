@@ -19,13 +19,13 @@ import io.netty.channel.Channel;
 
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.alibaba.rocketmq.broker.BrokerController;
+import com.alibaba.rocketmq.common.ThreadFactoryImpl;
 import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.remoting.ChannelEventListener;
 
@@ -41,12 +41,7 @@ public class ClientHousekeepingService implements ChannelEventListener {
     private final BrokerController brokerController;
 
     private ScheduledExecutorService scheduledExecutorService = Executors
-        .newSingleThreadScheduledExecutor(new ThreadFactory() {
-            @Override
-            public Thread newThread(Runnable r) {
-                return new Thread(r, "ClientHousekeepingScheduledThread");
-            }
-        });
+        .newSingleThreadScheduledExecutor(new ThreadFactoryImpl("ClientHousekeepingScheduledThread"));
 
 
     public ClientHousekeepingService(final BrokerController brokerController) {
@@ -55,7 +50,7 @@ public class ClientHousekeepingService implements ChannelEventListener {
 
 
     public void start() {
-        // 定时刷消费进度
+        // 定时扫描过期的连接
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
             @Override
             public void run() {
@@ -70,15 +65,16 @@ public class ClientHousekeepingService implements ChannelEventListener {
     }
 
 
-    private void scanExceptionChannel() {
-        this.brokerController.getProducerManager().scanNotActiveChannel();
-        this.brokerController.getConsumerManager().scanNotActiveChannel();
-    }
-
-
     public void shutdown() {
         this.scheduledExecutorService.shutdown();
     }
+
+    private void scanExceptionChannel() {
+        this.brokerController.getProducerManager().scanNotActiveChannel();
+        this.brokerController.getConsumerManager().scanNotActiveChannel();
+        this.brokerController.getFilterServerManager().scanNotActiveChannel();
+    }
+
 
 
     @Override
@@ -91,6 +87,7 @@ public class ClientHousekeepingService implements ChannelEventListener {
     public void onChannelClose(String remoteAddr, Channel channel) {
         this.brokerController.getProducerManager().doChannelCloseEvent(remoteAddr, channel);
         this.brokerController.getConsumerManager().doChannelCloseEvent(remoteAddr, channel);
+        this.brokerController.getFilterServerManager().doChannelCloseEvent(remoteAddr, channel);
     }
 
 
@@ -98,6 +95,7 @@ public class ClientHousekeepingService implements ChannelEventListener {
     public void onChannelException(String remoteAddr, Channel channel) {
         this.brokerController.getProducerManager().doChannelCloseEvent(remoteAddr, channel);
         this.brokerController.getConsumerManager().doChannelCloseEvent(remoteAddr, channel);
+        this.brokerController.getFilterServerManager().doChannelCloseEvent(remoteAddr, channel);
     }
 
 
@@ -105,5 +103,6 @@ public class ClientHousekeepingService implements ChannelEventListener {
     public void onChannelIdle(String remoteAddr, Channel channel) {
         this.brokerController.getProducerManager().doChannelCloseEvent(remoteAddr, channel);
         this.brokerController.getConsumerManager().doChannelCloseEvent(remoteAddr, channel);
+        this.brokerController.getFilterServerManager().doChannelCloseEvent(remoteAddr, channel);
     }
 }

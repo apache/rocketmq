@@ -15,6 +15,9 @@
  */
 package com.alibaba.rocketmq.common.message;
 
+import java.util.HashSet;
+
+
 public class MessageConst {
     /**
      * 消息关键词，多个Key用KEY_SEPARATOR隔开（查询消息使用）
@@ -45,4 +48,19 @@ public class MessageConst {
     public static final String PROPERTY_MAX_OFFSET = "MAX_OFFSET";
 
     public static final String KEY_SEPARATOR = " ";
+
+    public static final HashSet<String> systemKeySet = new HashSet<String>();
+    static {
+        systemKeySet.add(PROPERTY_KEYS);
+        systemKeySet.add(PROPERTY_TAGS);
+        systemKeySet.add(PROPERTY_WAIT_STORE_MSG_OK);
+        systemKeySet.add(PROPERTY_DELAY_TIME_LEVEL);
+        systemKeySet.add(PROPERTY_RETRY_TOPIC);
+        systemKeySet.add(PROPERTY_REAL_TOPIC);
+        systemKeySet.add(PROPERTY_REAL_QUEUE_ID);
+        systemKeySet.add(PROPERTY_TRANSACTION_PREPARED);
+        systemKeySet.add(PROPERTY_PRODUCER_GROUP);
+        systemKeySet.add(PROPERTY_MIN_OFFSET);
+        systemKeySet.add(PROPERTY_MAX_OFFSET);
+    }
 }

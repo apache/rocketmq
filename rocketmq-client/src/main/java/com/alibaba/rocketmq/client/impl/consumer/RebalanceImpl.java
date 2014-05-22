@@ -30,7 +30,7 @@ import org.slf4j.Logger;
 
 import com.alibaba.rocketmq.client.consumer.AllocateMessageQueueStrategy;
 import com.alibaba.rocketmq.client.impl.FindBrokerResult;
-import com.alibaba.rocketmq.client.impl.factory.MQClientFactory;
+import com.alibaba.rocketmq.client.impl.factory.MQClientInstance;
 import com.alibaba.rocketmq.client.log.ClientLogger;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.message.MessageQueue;
@@ -60,11 +60,11 @@ public abstract class RebalanceImpl {
     protected String consumerGroup;
     protected MessageModel messageModel;
     protected AllocateMessageQueueStrategy allocateMessageQueueStrategy;
-    protected MQClientFactory mQClientFactory;
+    protected MQClientInstance mQClientFactory;
 
 
     public RebalanceImpl(String consumerGroup, MessageModel messageModel,
-            AllocateMessageQueueStrategy allocateMessageQueueStrategy, MQClientFactory mQClientFactory) {
+            AllocateMessageQueueStrategy allocateMessageQueueStrategy, MQClientInstance mQClientFactory) {
         this.consumerGroup = consumerGroup;
         this.messageModel = messageModel;
         this.allocateMessageQueueStrategy = allocateMessageQueueStrategy;
@@ -314,6 +314,7 @@ public abstract class RebalanceImpl {
                 }
                 catch (Throwable e) {
                     log.error("AllocateMessageQueueStrategy.allocate Exception", e);
+                    return;
                 }
 
                 Set<MessageQueue> allocateResultSet = new HashSet<MessageQueue>();
@@ -350,6 +351,17 @@ public abstract class RebalanceImpl {
             final Set<MessageQueue> mqDivided);
 
 
+    public void removeProcessQueue(final MessageQueue mq) {
+        ProcessQueue prev = this.processQueueTable.remove(mq);
+        if (prev != null) {
+            boolean droped = prev.isDroped();
+            prev.setDroped(true);
+            this.removeUnnecessaryMessageQueue(mq, prev);
+            log.info("Fix Offset, {}, remove unnecessary mq, {} Droped: {}", consumerGroup, mq, droped);
+        }
+    }
+
+
     private boolean updateProcessQueueTableInRebalance(final String topic, final Set<MessageQueue> mqSet) {
         boolean changed = false;
 
@@ -367,6 +379,17 @@ public abstract class RebalanceImpl {
                         it.remove();
                         changed = true;
                         log.info("doRebalance, {}, remove unnecessary mq, {}", consumerGroup, mq);
+                    }
+                }
+                // 超过2分钟没有拉取动作了，删除它
+                else if (pq.isPullExpired()) {
+                    pq.setDroped(true);
+                    if (this.removeUnnecessaryMessageQueue(mq, pq)) {
+                        it.remove();
+                        changed = true;
+                        log.error(
+                            "[BUG]doRebalance, {}, remove unnecessary mq, {}, because pull is pause, so try to fixed it",
+                            consumerGroup, mq);
                     }
                 }
             }
@@ -473,12 +496,12 @@ public abstract class RebalanceImpl {
     }
 
 
-    public MQClientFactory getmQClientFactory() {
+    public MQClientInstance getmQClientFactory() {
         return mQClientFactory;
     }
 
 
-    public void setmQClientFactory(MQClientFactory mQClientFactory) {
+    public void setmQClientFactory(MQClientInstance mQClientFactory) {
         this.mQClientFactory = mQClientFactory;
     }
 }

@@ -26,7 +26,6 @@ import org.slf4j.LoggerFactory;
 
 import com.alibaba.rocketmq.broker.BrokerController;
 import com.alibaba.rocketmq.broker.client.ConsumerGroupInfo;
-import com.alibaba.rocketmq.broker.digestlog.PullmsgLiveMoniter;
 import com.alibaba.rocketmq.broker.longpolling.PullRequest;
 import com.alibaba.rocketmq.broker.pagecache.ManyMessageTransfer;
 import com.alibaba.rocketmq.common.TopicConfig;
@@ -199,8 +198,8 @@ public class PullMessageProcessor implements NettyRequestProcessor {
         if (hasSubscriptionFlag) {
             try {
                 subscriptionData =
-                        FilterAPI.buildSubscriptionData(requestHeader.getTopic(),
-                            requestHeader.getSubscription());
+                        FilterAPI.buildSubscriptionData(requestHeader.getConsumerGroup(),
+                            requestHeader.getTopic(), requestHeader.getSubscription());
             }
             catch (Exception e) {
                 log.warn("parse the consumer's subscription[{}] failed, group: {}",
@@ -256,9 +255,6 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                     requestHeader.getMaxMsgNums(), subscriptionData);
 
         if (getMessageResult != null) {
-            if (getMessageResult.getBufferTotalSize() > 0) {
-                PullmsgLiveMoniter.printProcessRequestLive(channel, request, getMessageResult);
-            }
             response.setRemark(getMessageResult.getStatus().name());
             responseHeader.setNextBeginOffset(getMessageResult.getNextBeginOffset());
             responseHeader.setMinOffset(getMessageResult.getMinOffset());
@@ -328,6 +324,18 @@ public class PullMessageProcessor implements NettyRequestProcessor {
 
             switch (response.getCode()) {
             case ResponseCode.SUCCESS:
+                // 统计
+                this.brokerController.getBrokerStatsManager().incGroupGetNums(
+                    requestHeader.getConsumerGroup(), requestHeader.getTopic(),
+                    getMessageResult.getMessageCount());
+
+                this.brokerController.getBrokerStatsManager().incGroupGetSize(
+                    requestHeader.getConsumerGroup(), requestHeader.getTopic(),
+                    getMessageResult.getBufferTotalSize());
+
+                this.brokerController.getBrokerStatsManager().incBrokerGetNums(
+                    getMessageResult.getMessageCount());
+
                 try {
                     FileRegion fileRegion =
                             new ManyMessageTransfer(response.encodeHeader(getMessageResult
