@@ -10,10 +10,17 @@ import org.slf4j.Logger;
 
 public class FilterServerUtil {
 
+    private static String[] splitShellString(final String shellString) {
+        String[] split = shellString.split(" ");
+        return split;
+    }
+
+
     public static void callShell(final String shellString, final Logger log) {
         Process process = null;
         try {
-            process = Runtime.getRuntime().exec(shellString);
+            String[] cmdArray = splitShellString(shellString);
+            process = Runtime.getRuntime().exec(cmdArray);
             final InputStream is1 = process.getInputStream();
             new Thread(new Runnable() {
                 public void run() {
