@@ -102,7 +102,7 @@ public class FilterServerManager {
                 config);
         }
         else {
-            return String.format("nohup sh %s/bin/mqfiltersrv %s &", //
+            return String.format("sh %s/bin/startfsrv.sh %s", //
                 this.brokerController.getBrokerConfig().getRocketmqHome(),//
                 config);
         }
