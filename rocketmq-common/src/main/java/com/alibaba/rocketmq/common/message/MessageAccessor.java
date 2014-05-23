@@ -18,4 +18,44 @@ public class MessageAccessor {
     public static void setProperties(final Message msg, Map<String, String> properties) {
         msg.setProperties(properties);
     }
+
+
+    public static void setTransferFlag(final Message msg, String unit) {
+        putProperty(msg, MessageConst.PROPERTY_TRANSFER_FLAG, unit);
+    }
+
+
+    public static String getTransferFlag(final Message msg) {
+        return msg.getProperty(MessageConst.PROPERTY_TRANSFER_FLAG);
+    }
+
+
+    public static void setCorrectionFlag(final Message msg, String unit) {
+        putProperty(msg, MessageConst.PROPERTY_CORRECTION_FLAG, unit);
+    }
+
+
+    public static String getCorrectionFlag(final Message msg) {
+        return msg.getProperty(MessageConst.PROPERTY_CORRECTION_FLAG);
+    }
+
+
+    public static void setOriginMessageId(final Message msg, String OriginMessageId) {
+        putProperty(msg, MessageConst.PROPERTY_ORIGIN_MESSAGE_ID, OriginMessageId);
+    }
+
+
+    public static String getOriginMessageId(final Message msg) {
+        return msg.getProperty(MessageConst.PROPERTY_ORIGIN_MESSAGE_ID);
+    }
+
+
+    public static void setMQ2Flag(final Message msg, String flag) {
+        putProperty(msg, MessageConst.PROPERTY_MQ2_FLAG, flag);
+    }
+
+
+    public static String getMQ2Flag(final Message msg) {
+        return msg.getProperty(MessageConst.PROPERTY_MQ2_FLAG);
+    }
 }
