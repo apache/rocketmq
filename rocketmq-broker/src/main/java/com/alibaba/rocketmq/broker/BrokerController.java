@@ -267,19 +267,6 @@ public class BrokerController {
                 }
             }, 1000 * 10, this.brokerConfig.getFlushConsumerOffsetInterval(), TimeUnit.MILLISECONDS);
 
-            // 定时打印各个消费组的消费速度
-            this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        BrokerController.this.consumerOffsetManager.recordPullTPS();
-                    }
-                    catch (Exception e) {
-                        log.error("recordPullTPS Exception", e);
-                    }
-                }
-            }, 1000 * 10, this.brokerConfig.getFlushConsumerOffsetHistoryInterval(), TimeUnit.MILLISECONDS);
-
             // 先获取Name Server地址
             if (this.brokerConfig.getNamesrvAddr() != null) {
                 this.brokerOuterAPI.updateNameServerAddressList(this.brokerConfig.getNamesrvAddr());

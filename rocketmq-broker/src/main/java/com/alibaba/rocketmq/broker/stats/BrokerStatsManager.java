@@ -100,4 +100,9 @@ public class BrokerStatsManager {
     public void incSendBackNums(final String group, final String topic, final int incValue) {
         this.sndbckPutNums.addValue(topic + "@" + group, incValue);
     }
+
+
+    public double tpsGroupGetNums(final String group, final String topic) {
+        return this.groupGetNums.getAvgpsInLastMinutes(topic + "@" + group);
+    }
 }

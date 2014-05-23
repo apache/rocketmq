@@ -43,8 +43,6 @@ public class ConsumerOffsetManager extends ConfigManager {
     private ConcurrentHashMap<String/* topic@group */, ConcurrentHashMap<Integer, Long>> offsetTable =
             new ConcurrentHashMap<String, ConcurrentHashMap<Integer, Long>>(512);
 
-    private transient volatile ConcurrentHashMap<String, ConcurrentHashMap<Integer, Long>> offsetTableLastLast;
-    private transient volatile ConcurrentHashMap<String, ConcurrentHashMap<Integer, Long>> offsetTableLast;
     private transient BrokerController brokerController;
 
 
@@ -73,78 +71,6 @@ public class ConsumerOffsetManager extends ConfigManager {
         }
 
         return topics;
-    }
-
-
-    private static ConcurrentHashMap<String, ConcurrentHashMap<Integer, Long>> cloneOffsetTable(
-            final ConcurrentHashMap<String, ConcurrentHashMap<Integer, Long>> input) {
-        ConcurrentHashMap<String, ConcurrentHashMap<Integer, Long>> out =
-                new ConcurrentHashMap<String, ConcurrentHashMap<Integer, Long>>(input.size());
-
-        for (String topicgroup : input.keySet()) {
-            ConcurrentHashMap<Integer, Long> map = input.get(topicgroup);
-            if (map != null) {
-                ConcurrentHashMap<Integer, Long> mapNew = new ConcurrentHashMap<Integer, Long>(map.size());
-                for (Integer queueId : map.keySet()) {
-                    Long offset = map.get(queueId);
-                    Integer queueIdNew = new Integer(queueId.intValue());
-                    Long offsetNew = new Long(offset.longValue());
-                    mapNew.put(queueIdNew, offsetNew);
-                }
-
-                String topicgroupNew = new String(topicgroup);
-                out.put(topicgroupNew, mapNew);
-            }
-        }
-
-        return out;
-    }
-
-
-    public long computePullTPS(final String topic, final String group) {
-        // topic@group
-        String key = topic + TOPIC_GROUP_SEPARATOR + group;
-        return this.computePullTPS(key);
-    }
-
-
-    public long computePullTPS(final String topicgroup) {
-        ConcurrentHashMap<Integer, Long> mapLast = this.offsetTableLast.get(topicgroup);
-        ConcurrentHashMap<Integer, Long> mapLastLast = this.offsetTableLastLast.get(topicgroup);
-        long totalMsgs = 0;
-        if (mapLast != null && mapLastLast != null) {
-            for (Integer queueIdLast : mapLast.keySet()) {
-                Long offsetLast = mapLast.get(queueIdLast);
-                Long offsetLastLast = mapLastLast.get(queueIdLast);
-                if (offsetLast != null && offsetLastLast != null) {
-                    long diff = offsetLast - offsetLastLast;
-                    totalMsgs += diff;
-                }
-            }
-        }
-
-        if (0 == totalMsgs)
-            return 0;
-        double pullTps =
-                totalMsgs * 1000
-                        / this.brokerController.getBrokerConfig().getFlushConsumerOffsetHistoryInterval();
-
-        return Double.valueOf(pullTps).longValue();
-    }
-
-
-    public void recordPullTPS() {
-        ConcurrentHashMap<String, ConcurrentHashMap<Integer, Long>> snapshotNow =
-                cloneOffsetTable(this.offsetTable);
-        this.offsetTableLastLast = this.offsetTableLast;
-        this.offsetTableLast = snapshotNow;
-
-        if (this.offsetTableLast != null && this.offsetTableLastLast != null) {
-            for (String topicgroupLast : this.offsetTableLast.keySet()) {
-                long tps = this.computePullTPS(topicgroupLast);
-                log.info(topicgroupLast + " pull tps, " + tps);
-            }
-        }
     }
 
 

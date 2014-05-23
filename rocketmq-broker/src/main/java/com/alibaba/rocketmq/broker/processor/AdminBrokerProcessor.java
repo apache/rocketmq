@@ -290,8 +290,8 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             }
 
             long consumeTps =
-                    this.brokerController.getConsumerOffsetManager().computePullTPS(topic,
-                        requestHeader.getConsumerGroup());
+                    (long) this.brokerController.getBrokerStatsManager().tpsGroupGetNums(
+                        requestHeader.getConsumerGroup(), topic);
 
             consumeTps += consumeStats.getConsumeTps();
             consumeStats.setConsumeTps(consumeTps);
