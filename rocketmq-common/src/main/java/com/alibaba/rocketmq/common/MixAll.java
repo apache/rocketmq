@@ -30,8 +30,8 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
-import java.net.URISyntaxException;
 import java.net.URL;
+import java.net.URLConnection;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -60,11 +60,11 @@ public class MixAll {
     public static final String NAMESRV_ADDR_PROPERTY = "rocketmq.namesrv.addr";
     public static final String MESSAGE_COMPRESS_LEVEL = "rocketmq.message.compressLevel";
     public static final String WS_DOMAIN_NAME = System.getProperty("rocketmq.namesrv.domain",
-        "jmenv.tbsite.net");
+        "jmenv.tbsite.net:8080");
     public static final String WS_DOMAIN_SUBGROUP = System.getProperty("rocketmq.namesrv.domain.subgroup",
         "nsaddr");
     // http://jmenv.tbsite.net:8080/rocketmq/nsaddr
-    public static final String WS_ADDR = "http://" + WS_DOMAIN_NAME + ":8080/rocketmq/" + WS_DOMAIN_SUBGROUP;
+    public static final String WS_ADDR = "http://" + WS_DOMAIN_NAME + "/rocketmq/" + WS_DOMAIN_SUBGROUP;
     public static final String DEFAULT_TOPIC = "TBW102";
     public static final String BENCHMARK_TOPIC = "BenchmarkTest";
     public static final String DEFAULT_PRODUCER_GROUP = "DEFAULT_PRODUCER";
@@ -181,11 +181,26 @@ public class MixAll {
 
 
     public static final String file2String(final URL url) {
+        InputStream in = null;
         try {
-            File file = new File(url.toURI());
-            return file2String(file);
+            URLConnection urlConnection = url.openConnection();
+            urlConnection.setUseCaches(false);
+            in = urlConnection.getInputStream();
+            int len = in.available();
+            byte[] data = new byte[len];
+            in.read(data, 0, len);
+            return new String(data, "UTF-8");
         }
-        catch (URISyntaxException e) {
+        catch (Exception e) {
+        }
+        finally {
+            if (null != in) {
+                try {
+                    in.close();
+                }
+                catch (IOException e) {
+                }
+            }
         }
 
         return null;
