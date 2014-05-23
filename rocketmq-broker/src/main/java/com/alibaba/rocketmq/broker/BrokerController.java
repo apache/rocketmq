@@ -752,6 +752,7 @@ public class BrokerController {
     private void printMasterAndSlaveDiff() {
         long diff = this.messageStore.slaveFallBehindMuch();
 
+        // XXX: warn and notify me
         log.info("slave fall behind master, how much, {} bytes", diff);
     }
 }
