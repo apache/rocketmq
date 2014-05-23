@@ -6,6 +6,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.alibaba.rocketmq.broker.BrokerController;
 import com.alibaba.rocketmq.common.ThreadFactoryImpl;
 import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.common.stats.StatsItem;
@@ -34,19 +35,24 @@ public class BrokerStatsManager {
         this.scheduledExecutorService, log);
 
     // Broker Put Nums
-    private final StatsItem brokerPutNums = new StatsItem("BROKER_PUT_NUMS", "Broker",
-        this.scheduledExecutorService, log);
+    private final StatsItem brokerPutNums;
 
     // Broker Get Nums
-    private final StatsItem brokerGetNums = new StatsItem("BROKER_GET_NUMS", "Broker",
-        this.scheduledExecutorService, log);
+    private final StatsItem brokerGetNums;
 
     // Topic@ConsumerGroup sendback Nums
     private final StatsItemSet sndbckPutNums = new StatsItemSet("SNDBCK_PUT_NUMS",
         this.scheduledExecutorService, log);
 
 
-    public BrokerStatsManager() {
+    public BrokerStatsManager(BrokerController brokerController) {
+        // Broker Put Nums
+        this.brokerPutNums = new StatsItem("BROKER_PUT_NUMS", //
+            brokerController.getBrokerConfig().getBrokerClusterName(), this.scheduledExecutorService, log);
+
+        // Broker Get Nums
+        this.brokerGetNums = new StatsItem("BROKER_GET_NUMS", //
+            brokerController.getBrokerConfig().getBrokerClusterName(), this.scheduledExecutorService, log);
     }
 
 

@@ -179,7 +179,7 @@ public class BrokerController {
         this.pullThreadPoolQueue =
                 new LinkedBlockingQueue<Runnable>(this.brokerConfig.getPullThreadPoolQueueCapacity());
 
-        this.brokerStatsManager = new BrokerStatsManager();
+        this.brokerStatsManager = new BrokerStatsManager(this);
     }
 
 
