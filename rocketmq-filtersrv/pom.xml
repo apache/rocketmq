@@ -37,10 +37,5 @@
 			<groupId>ch.qos.logback</groupId>
 			<artifactId>logback-core</artifactId>
 		</dependency>
-		<dependency>
-			<groupId>com.alibaba.toolkit.common.lang</groupId>
-			<artifactId>lang</artifactId>
-			<version>1.0</version>
-		</dependency>
 	</dependencies>
 </project>
