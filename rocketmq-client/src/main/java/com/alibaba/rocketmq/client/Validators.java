@@ -65,11 +65,18 @@ public class Validators {
         if (UtilAll.isBlank(topic)) {
             throw new MQClientException("the specified topic is blank", null);
         }
+
+        if (topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)
+                || topic.startsWith(MixAll.DLQ_GROUP_TOPIC_PREFIX)) {
+            return;
+        }
+
         if (!regularExpressionMatcher(topic, PATTERN)) {
             throw new MQClientException(String.format(
                 "the specified topic[%s] contains illegal characters, allowing only %s", topic,
                 VALID_PATTERN_STR), null);
         }
+
         if (topic.length() > CHARACTER_MAX_LENGTH) {
             throw new MQClientException("the specified topic is longer than topic max length 255.", null);
         }
