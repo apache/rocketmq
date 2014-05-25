@@ -332,6 +332,26 @@ public class CommitLog {
                             MessageExtBrokerInner.tagsString2tagsCode(
                                 MessageExt.parseTopicFilterType(sysFlag), tags);
                 }
+
+                // 定时消息处理
+                {
+                    String t = propertiesMap.get(MessageConst.PROPERTY_DELAY_TIME_LEVEL);
+                    if (t != null) {
+                        int delayLevel = Integer.parseInt(t);
+
+                        if (delayLevel > this.defaultMessageStore.getScheduleMessageService()
+                            .getMaxDelayLevel()) {
+                            delayLevel =
+                                    this.defaultMessageStore.getScheduleMessageService().getMaxDelayLevel();
+                        }
+
+                        if (delayLevel > 0) {
+                            tagsCode =
+                                    this.defaultMessageStore.getScheduleMessageService()
+                                        .computeDeliverTimestamp(delayLevel, storeTimestamp);
+                        }
+                    }
+                }
             }
 
             return new DispatchRequest(//

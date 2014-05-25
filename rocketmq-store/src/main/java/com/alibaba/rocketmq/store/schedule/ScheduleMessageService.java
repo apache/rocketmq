@@ -254,7 +254,7 @@ public class ScheduleMessageService extends ConfigManager {
         private long correctDeliverTimestamp(final long now, final long deliverTimestamp) {
             // 如果为0，则会立刻投递
             long result = deliverTimestamp;
-            // 超过最大值，纠正为0
+            // 超过最大值，纠正为当前时间
             long maxTimestamp = now + ScheduleMessageService.this.delayLevelTable.get(this.delayLevel);
             if (deliverTimestamp > maxTimestamp) {
                 result = now;
