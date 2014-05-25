@@ -73,6 +73,7 @@ public class MixAll {
     public static final String FILTERSRV_CONSUMER_GROUP = "FILTERSRV_CONSUMER";
     public static final String CLIENT_INNER_PRODUCER_GROUP = "CLIENT_INNER_PRODUCER";
     public static final String SELF_TEST_TOPIC = "SELF_TEST_TOPIC";
+    public static final String OFFSET_MOVED_EVENT = "OFFSET_MOVED_EVENT";
 
     public static final List<String> LocalInetAddrs = getLocalInetAddress();
     public static final String Localhost = localhost();

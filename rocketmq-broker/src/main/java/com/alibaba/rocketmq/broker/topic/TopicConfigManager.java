@@ -112,6 +112,13 @@ public class TopicConfigManager extends ConfigManager {
             topicConfig.setPerm(perm);
             this.topicConfigTable.put(topicConfig.getTopicName(), topicConfig);
         }
+        {
+            // MixAll.OFFSET_MOVED_EVENT
+            TopicConfig topicConfig = new TopicConfig(MixAll.OFFSET_MOVED_EVENT);
+            topicConfig.setReadQueueNums(1);
+            topicConfig.setWriteQueueNums(1);
+            this.topicConfigTable.put(topicConfig.getTopicName(), topicConfig);
+        }
     }
 
 
