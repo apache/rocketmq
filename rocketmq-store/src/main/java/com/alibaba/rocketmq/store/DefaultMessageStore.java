@@ -169,6 +169,12 @@ public class DefaultMessageStore implements MessageStore {
             boolean lastExitOK = !this.isTempFileExist();
             log.info("last shutdown " + (lastExitOK ? "normally" : "abnormally"));
 
+            // load 定时进度
+            // 这个步骤要放置到最前面，从CommitLog里Recover定时消息需要依赖加载的定时级别参数
+            if (null != scheduleMessageService) {
+                result = result && this.scheduleMessageService.load();
+            }
+
             // load Commit Log
             result = this.commitLog.load();
 
@@ -177,11 +183,6 @@ public class DefaultMessageStore implements MessageStore {
 
             // load 事务模块
             result = result && this.transactionStateService.load();
-
-            // load 定时进度
-            if (null != scheduleMessageService) {
-                result = result && this.scheduleMessageService.load();
-            }
 
             if (result) {
                 this.storeCheckpoint = new StoreCheckpoint(this.messageStoreConfig.getStoreCheckpoint());
