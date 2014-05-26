@@ -148,6 +148,17 @@
 				</configuration>
 			</plugin>
 
+<!--
+			<plugin>
+				<artifactId>maven-assembly-plugin</artifactId>
+				<configuration>
+					<finalName>alibaba-rocketmq-client-java-${project.version}</finalName>
+					<descriptors>
+						<descriptor>release-client.xml</descriptor>
+					</descriptors>
+				</configuration>
+			</plugin>
+-->
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-javadoc-plugin</artifactId>
