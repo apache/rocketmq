@@ -10,6 +10,9 @@ public class SessionCredentials {
     public static final String Signature = "Signature";
     public static final String SignatureMethod = "SignatureMethod";
 
+    public static final String KeyFile = System.getProperty("rocketmq.client.keyFile",
+        System.getProperty("user.home") + File.separator + "onskey");
+
     private String accessKey;
     private String secretKey;
     private String signature;
@@ -17,8 +20,7 @@ public class SessionCredentials {
 
 
     public SessionCredentials() {
-        final String keyFile = System.getProperty("user.home") + File.separator + "onskey";
-        final String keyContent = MixAll.file2String(keyFile);
+        final String keyContent = MixAll.file2String(KeyFile);
         if (keyContent != null) {
             Properties prop = MixAll.string2Properties(keyContent);
             if (prop != null) {
