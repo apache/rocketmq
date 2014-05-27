@@ -278,7 +278,7 @@ public class BrokerController {
                         log.error("", e);
                     }
                 }
-            }, 10, 10, TimeUnit.MINUTES);
+            }, 10, 60, TimeUnit.MINUTES);
 
             // 先获取Name Server地址
             if (this.brokerConfig.getNamesrvAddr() != null) {
