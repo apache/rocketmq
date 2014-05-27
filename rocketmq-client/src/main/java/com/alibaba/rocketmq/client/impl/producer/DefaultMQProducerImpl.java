@@ -1011,4 +1011,14 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     public void setZipCompressLevel(int zipCompressLevel) {
         this.zipCompressLevel = zipCompressLevel;
     }
+
+
+    public ServiceState getServiceState() {
+        return serviceState;
+    }
+
+
+    public void setServiceState(ServiceState serviceState) {
+        this.serviceState = serviceState;
+    }
 }
