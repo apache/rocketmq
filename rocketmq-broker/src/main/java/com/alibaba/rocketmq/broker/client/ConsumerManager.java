@@ -70,6 +70,16 @@ public class ConsumerManager {
     }
 
 
+    public int findSubscriptionDataCount(final String group) {
+        ConsumerGroupInfo consumerGroupInfo = this.getConsumerGroupInfo(group);
+        if (consumerGroupInfo != null) {
+            return consumerGroupInfo.getSubscriptionTable().size();
+        }
+
+        return 0;
+    }
+
+
     public void doChannelCloseEvent(final String remoteAddr, final Channel channel) {
         for (String group : this.consumerTable.keySet()) {
             final ConsumerGroupInfo info = this.consumerTable.get(group);
