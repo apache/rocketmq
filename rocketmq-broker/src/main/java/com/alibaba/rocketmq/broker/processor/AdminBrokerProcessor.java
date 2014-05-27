@@ -76,7 +76,6 @@ import com.alibaba.rocketmq.common.protocol.header.UpdateConsumerOffsetRequestHe
 import com.alibaba.rocketmq.common.protocol.header.UpdateConsumerOffsetResponseHeader;
 import com.alibaba.rocketmq.common.protocol.header.filtersrv.RegisterFilterServerRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.filtersrv.RegisterFilterServerResponseHeader;
-import com.alibaba.rocketmq.common.protocol.heartbeat.SubscriptionData;
 import com.alibaba.rocketmq.common.subscription.SubscriptionGroupConfig;
 import com.alibaba.rocketmq.remoting.common.RemotingHelper;
 import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
@@ -244,15 +243,17 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 continue;
             }
 
-            SubscriptionData findSubscriptionData =
-                    this.brokerController.getConsumerManager().findSubscriptionData(
-                        requestHeader.getConsumerGroup(), topic);
-            if (null == findSubscriptionData) {
-                log.warn("consumeStats, the consumer group[{}], topic[{}] not exist",
-                    requestHeader.getConsumerGroup(), topic);
-                continue;
-            }
-
+            /**
+             * Consumer不在线的时候，也允许查询消费进度
+             */
+            /*
+             * { SubscriptionData findSubscriptionData =
+             * this.brokerController.getConsumerManager().findSubscriptionData(
+             * requestHeader.getConsumerGroup(), topic); if (null ==
+             * findSubscriptionData) {
+             * log.warn("consumeStats, the consumer group[{}], topic[{}] not exist"
+             * , requestHeader.getConsumerGroup(), topic); continue; } }
+             */
             for (int i = 0; i < topicConfig.getWriteQueueNums(); i++) {
                 MessageQueue mq = new MessageQueue();
                 mq.setTopic(topic);

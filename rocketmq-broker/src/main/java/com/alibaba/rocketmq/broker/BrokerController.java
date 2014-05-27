@@ -267,6 +267,19 @@ public class BrokerController {
                 }
             }, 1000 * 10, this.brokerConfig.getFlushConsumerOffsetInterval(), TimeUnit.MILLISECONDS);
 
+            // 定时删除非常落后的消费进度
+            this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        BrokerController.this.consumerOffsetManager.scanUnsubscribedTopic();
+                    }
+                    catch (Exception e) {
+                        log.error("", e);
+                    }
+                }
+            }, 1, 1, TimeUnit.HOURS);
+
             // 先获取Name Server地址
             if (this.brokerConfig.getNamesrvAddr() != null) {
                 this.brokerOuterAPI.updateNameServerAddressList(this.brokerConfig.getNamesrvAddr());

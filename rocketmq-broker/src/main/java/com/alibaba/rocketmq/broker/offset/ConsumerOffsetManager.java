@@ -55,6 +55,44 @@ public class ConsumerOffsetManager extends ConfigManager {
     }
 
 
+    /**
+     * 扫描数据被删除了的topic，offset记录也对应删除
+     */
+    public void scanUnsubscribedTopic() {
+        Iterator<Entry<String, ConcurrentHashMap<Integer, Long>>> it = this.offsetTable.entrySet().iterator();
+        while (it.hasNext()) {
+            Entry<String, ConcurrentHashMap<Integer, Long>> next = it.next();
+            String topicAtGroup = next.getKey();
+            String[] arrays = topicAtGroup.split(TOPIC_GROUP_SEPARATOR);
+            if (arrays != null && arrays.length == 2) {
+                String topic = arrays[0];
+                if (this.offsetBehindMuchThanData(topic, next.getValue())) {
+                    it.remove();
+                    log.warn("remove topic offset, {}", topicAtGroup);
+                }
+            }
+        }
+    }
+
+
+    private boolean offsetBehindMuchThanData(final String topic, ConcurrentHashMap<Integer, Long> table) {
+        Iterator<Entry<Integer, Long>> it = table.entrySet().iterator();
+        boolean result = !table.isEmpty();
+
+        while (it.hasNext() && result) {
+            Entry<Integer, Long> next = it.next();
+            long minOffsetInStore =
+                    this.brokerController.getMessageStore().getMinOffsetInQuque(topic, next.getKey());
+            long offsetInPersist = next.getValue();
+            if (offsetInPersist > minOffsetInStore) {
+                result = false;
+            }
+        }
+
+        return result;
+    }
+
+
     public Set<String> whichTopicByConsumer(final String group) {
         Set<String> topics = new HashSet<String>();
 
