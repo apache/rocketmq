@@ -267,7 +267,7 @@ public class BrokerController {
                 }
             }, 1000 * 10, this.brokerConfig.getFlushConsumerOffsetInterval(), TimeUnit.MILLISECONDS);
 
-            // 定时删除非常落后的消费进度
+            // 定时删除非常落后的消费进度，10分钟扫描一次
             this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
                 @Override
                 public void run() {
@@ -278,7 +278,7 @@ public class BrokerController {
                         log.error("", e);
                     }
                 }
-            }, 1, 1, TimeUnit.HOURS);
+            }, 10, 10, TimeUnit.MINUTES);
 
             // 先获取Name Server地址
             if (this.brokerConfig.getNamesrvAddr() != null) {
