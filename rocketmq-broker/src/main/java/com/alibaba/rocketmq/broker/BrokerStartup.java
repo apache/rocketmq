@@ -173,7 +173,9 @@ public class BrokerStartup {
                 }
                 catch (Exception e) {
                     System.out
-                        .printf("The Name Server Address[%s] is illegal, please set it as this, 127.0.0.1:9876;192.168.0.1:9876\n");
+                        .printf(
+                            "The Name Server Address[%s] is illegal, please set it as this, 127.0.0.1:9876;192.168.0.1:9876\n",
+                            namesrvAddr);
                     System.exit(-3);
                 }
             }
