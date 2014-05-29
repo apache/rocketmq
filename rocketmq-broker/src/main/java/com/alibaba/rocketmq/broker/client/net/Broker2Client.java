@@ -197,7 +197,7 @@ public class Broker2Client {
         else {
             String errorInfo =
                     String.format(
-                        "Consumer not online, so can not reset offset, Group: {} Topic: {} Timestamp: {}",//
+                        "Consumer not online, so can not reset offset, Group: %s Topic: %s Timestamp: %d",//
                         requestHeader.getGroup(), //
                         requestHeader.getTopic(), //
                         requestHeader.getTimestamp());
