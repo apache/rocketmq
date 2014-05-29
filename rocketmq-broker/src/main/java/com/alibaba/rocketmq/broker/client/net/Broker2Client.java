@@ -202,7 +202,7 @@ public class Broker2Client {
                         requestHeader.getTopic(), //
                         requestHeader.getTimestamp());
             log.error(errorInfo);
-            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setCode(ResponseCode.CONSUMER_NOT_ONLINE);
             response.setRemark(errorInfo);
             return response;
         }

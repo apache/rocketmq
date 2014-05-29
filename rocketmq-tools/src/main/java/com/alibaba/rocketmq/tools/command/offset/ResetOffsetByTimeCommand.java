@@ -8,9 +8,11 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.PosixParser;
 
+import com.alibaba.rocketmq.client.exception.MQClientException;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.UtilAll;
 import com.alibaba.rocketmq.common.message.MessageQueue;
+import com.alibaba.rocketmq.common.protocol.ResponseCode;
 import com.alibaba.rocketmq.srvutil.ServerUtil;
 import com.alibaba.rocketmq.tools.admin.DefaultMQAdminExt;
 import com.alibaba.rocketmq.tools.command.SubCommand;
@@ -82,8 +84,19 @@ public class ResetOffsetByTimeCommand implements SubCommand {
             }
 
             defaultMQAdminExt.start();
-            Map<MessageQueue, Long> offsetTable =
-                    defaultMQAdminExt.resetOffsetByTimestamp(topic, group, timestamp, force);
+            Map<MessageQueue, Long> offsetTable;
+            try {
+                offsetTable = defaultMQAdminExt.resetOffsetByTimestamp(topic, group, timestamp, force);
+            }
+            catch (MQClientException e) {
+                if (ResponseCode.CONSUMER_NOT_ONLINE == e.getResponseCode()) {
+                    ResetOffsetByTimeOldCommand.resetOffset(defaultMQAdminExt, group, topic, timestamp,
+                        force, timeStampStr);
+                    return;
+                }
+                throw e;
+            }
+
             System.out
                 .printf(
                     "rollback consumer offset by specified group[%s], topic[%s], force[%s], timestamp(string)[%s], timestamp(long)[%s]\n",
