@@ -50,7 +50,6 @@ import com.alibaba.rocketmq.tools.command.namesrv.UpdateProjectGroupCommand;
 import com.alibaba.rocketmq.tools.command.namesrv.WipeWritePermSubCommand;
 import com.alibaba.rocketmq.tools.command.offset.GetConsumerStatusCommand;
 import com.alibaba.rocketmq.tools.command.offset.ResetOffsetByTimeCommand;
-import com.alibaba.rocketmq.tools.command.offset.ResetOffsetByTimeOldCommand;
 import com.alibaba.rocketmq.tools.command.topic.DeleteTopicSubCommand;
 import com.alibaba.rocketmq.tools.command.topic.TopicListSubCommand;
 import com.alibaba.rocketmq.tools.command.topic.TopicRouteSubCommand;
@@ -96,7 +95,6 @@ public class MQAdminStartup {
         subCommandList.add(new DeleteProjectGroupCommand());
         subCommandList.add(new GetProjectGroupCommand());
         subCommandList.add(new WipeWritePermSubCommand());
-        subCommandList.add(new ResetOffsetByTimeOldCommand());
         subCommandList.add(new ResetOffsetByTimeCommand());
         subCommandList.add(new GetConsumerStatusCommand());
 

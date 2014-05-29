@@ -50,4 +50,7 @@ public class ResponseCode extends RemotingSysResponseCode {
     public static final int NO_BUYERID = 204;
     // 单元化消息，非本单元消息
     public static final int NOT_IN_CURRENT_UNIT = 205;
+
+    // Consumer不在线
+    public static final int CONSUMER_NOT_ONLINE = 206;
 }
