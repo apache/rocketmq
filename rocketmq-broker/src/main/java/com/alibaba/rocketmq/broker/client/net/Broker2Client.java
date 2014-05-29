@@ -29,6 +29,7 @@ import org.slf4j.LoggerFactory;
 
 import com.alibaba.rocketmq.broker.BrokerController;
 import com.alibaba.rocketmq.broker.client.ClientChannelInfo;
+import com.alibaba.rocketmq.broker.client.ConsumerGroupInfo;
 import com.alibaba.rocketmq.broker.pagecache.OneMessageTransfer;
 import com.alibaba.rocketmq.common.MQVersion;
 import com.alibaba.rocketmq.common.TopicConfig;
@@ -161,32 +162,50 @@ public class Broker2Client {
         body.setOffsetTable(offsetTable);
         request.setBody(body.encode());
 
-        ConcurrentHashMap<Channel, ClientChannelInfo> channelInfoTable =
-                this.brokerController.getConsumerManager().getConsumerGroupInfo(group).getChannelInfoTable();
-        for (Channel channel : channelInfoTable.keySet()) {
-            int version = channelInfoTable.get(channel).getVersion();
-            if (version >= MQVersion.Version.V3_0_7_SNAPSHOT.ordinal()) {
-                try {
-                    this.brokerController.getRemotingServer().invokeOneway(channel, request, 5000);
-                    log.info("[reset-offset] reset offset success. topic={}, group={}, clientId={}",
-                        new Object[] { topic, group, channelInfoTable.get(channel).getClientId() });
+        ConsumerGroupInfo consumerGroupInfo =
+                this.brokerController.getConsumerManager().getConsumerGroupInfo(group);
+
+        // Consumer在线
+        if (consumerGroupInfo != null && !consumerGroupInfo.getAllChannel().isEmpty()) {
+            ConcurrentHashMap<Channel, ClientChannelInfo> channelInfoTable =
+                    consumerGroupInfo.getChannelInfoTable();
+            for (Channel channel : channelInfoTable.keySet()) {
+                int version = channelInfoTable.get(channel).getVersion();
+                if (version >= MQVersion.Version.V3_0_7_SNAPSHOT.ordinal()) {
+                    try {
+                        this.brokerController.getRemotingServer().invokeOneway(channel, request, 5000);
+                        log.info("[reset-offset] reset offset success. topic={}, group={}, clientId={}",
+                            new Object[] { topic, group, channelInfoTable.get(channel).getClientId() });
+                    }
+                    catch (Exception e) {
+                        log.error("[reset-offset] reset offset exception. topic={}, group={}",
+                            new Object[] { topic, group }, e);
+                    }
                 }
-                catch (Exception e) {
-                    log.error("[reset-offset] reset offset exception. topic={}, group={}",
-                        new Object[] { topic, group }, e);
+                else {
+                    // 如果有一个客户端是不支持该功能的，则直接返回错误，需要应用方升级。
+                    response.setCode(ResponseCode.SYSTEM_ERROR);
+                    response.setRemark("the client does not support this feature. version="
+                            + MQVersion.getVersionDesc(version));
+                    log.warn("[reset-offset] the client does not support this feature. version={}",
+                        RemotingHelper.parseChannelRemoteAddr(channel), MQVersion.getVersionDesc(version));
+                    return response;
                 }
-            }
-            else {
-                // 如果有一个客户端是不支持该功能的，则直接返回错误，需要应用方升级。
-                response.setCode(ResponseCode.SYSTEM_ERROR);
-                response.setRemark("the client does not support this feature. version="
-                        + MQVersion.getVersionDesc(version));
-                log.warn("[reset-offset] the client does not support this feature. version={}",
-                    RemotingHelper.parseChannelRemoteAddr(channel), MQVersion.getVersionDesc(version));
-                return response;
             }
         }
-
+        // Consumer不在线
+        else {
+            String errorInfo =
+                    String.format(
+                        "Consumer not online, so can not reset offset, Group: {} Topic: {} Timestamp: {}",//
+                        requestHeader.getGroup(), //
+                        requestHeader.getTopic(), //
+                        requestHeader.getTimestamp());
+            log.error(errorInfo);
+            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setRemark(errorInfo);
+            return response;
+        }
         response.setCode(ResponseCode.SUCCESS);
         ResetOffsetBody resBody = new ResetOffsetBody();
         resBody.setOffsetTable(offsetTable);
