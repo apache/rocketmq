@@ -179,7 +179,7 @@ public class BrokerController {
         this.pullThreadPoolQueue =
                 new LinkedBlockingQueue<Runnable>(this.brokerConfig.getPullThreadPoolQueueCapacity());
 
-        this.brokerStatsManager = new BrokerStatsManager();
+        this.brokerStatsManager = new BrokerStatsManager(this);
     }
 
 
@@ -267,18 +267,18 @@ public class BrokerController {
                 }
             }, 1000 * 10, this.brokerConfig.getFlushConsumerOffsetInterval(), TimeUnit.MILLISECONDS);
 
-            // 定时打印各个消费组的消费速度
+            // 定时删除非常落后的消费进度，10分钟扫描一次
             this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
                 @Override
                 public void run() {
                     try {
-                        BrokerController.this.consumerOffsetManager.recordPullTPS();
+                        BrokerController.this.consumerOffsetManager.scanUnsubscribedTopic();
                     }
                     catch (Exception e) {
-                        log.error("recordPullTPS Exception", e);
+                        log.error("", e);
                     }
                 }
-            }, 1000 * 10, this.brokerConfig.getFlushConsumerOffsetHistoryInterval(), TimeUnit.MILLISECONDS);
+            }, 10, 60, TimeUnit.MINUTES);
 
             // 先获取Name Server地址
             if (this.brokerConfig.getNamesrvAddr() != null) {
@@ -321,6 +321,20 @@ public class BrokerController {
                         }
                         catch (Exception e) {
                             log.error("ScheduledTask syncAll slave exception", e);
+                        }
+                    }
+                }, 1000 * 10, 1000 * 60, TimeUnit.MILLISECONDS);
+            }
+            // 如果是Master，增加统计日志
+            else {
+                this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
+
+                    @Override
+                    public void run() {
+                        try {
+                            BrokerController.this.printMasterAndSlaveDiff();
+                        }
+                        catch (Exception e) {
                         }
                     }
                 }, 1000 * 10, 1000 * 60, TimeUnit.MILLISECONDS);
@@ -734,4 +748,11 @@ public class BrokerController {
         return brokerStatsManager;
     }
 
+
+    private void printMasterAndSlaveDiff() {
+        long diff = this.messageStore.slaveFallBehindMuch();
+
+        // XXX: warn and notify me
+        log.info("slave fall behind master, how much, {} bytes", diff);
+    }
 }

@@ -95,7 +95,7 @@ public class BrokerConfig {
     private int pullThreadPoolQueueCapacity = 100000;
 
     // 过滤服务器数量
-    private int filterServerNums = 1;
+    private int filterServerNums = 0;
 
 
     public static String localHostName() {

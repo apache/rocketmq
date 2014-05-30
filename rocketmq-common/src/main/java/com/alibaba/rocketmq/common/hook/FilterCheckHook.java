@@ -2,8 +2,6 @@ package com.alibaba.rocketmq.common.hook;
 
 import java.nio.ByteBuffer;
 
-import com.alibaba.rocketmq.common.protocol.heartbeat.SubscriptionData;
-
 
 /**
  * 确认消息是否需要过滤 Hook

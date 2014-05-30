@@ -38,6 +38,7 @@ import com.alibaba.rocketmq.common.protocol.body.ConsumerConnection;
 import com.alibaba.rocketmq.common.protocol.body.GroupList;
 import com.alibaba.rocketmq.common.protocol.body.KVTable;
 import com.alibaba.rocketmq.common.protocol.body.ProducerConnection;
+import com.alibaba.rocketmq.common.protocol.body.QueueTimeSpan;
 import com.alibaba.rocketmq.common.protocol.body.TopicList;
 import com.alibaba.rocketmq.common.protocol.route.TopicRouteData;
 import com.alibaba.rocketmq.common.subscription.SubscriptionGroupConfig;
@@ -363,5 +364,12 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
     public GroupList queryTopicConsumeByWho(String topic) throws InterruptedException, MQBrokerException,
             RemotingException, MQClientException {
         return this.defaultMQAdminExtImpl.queryTopicConsumeByWho(topic);
+    }
+
+
+    @Override
+    public Set<QueueTimeSpan> queryConsumeTimeSpan(final String topic, final String group)
+            throws InterruptedException, MQBrokerException, RemotingException, MQClientException {
+        return this.defaultMQAdminExtImpl.queryConsumeTimeSpan(topic, group);
     }
 }

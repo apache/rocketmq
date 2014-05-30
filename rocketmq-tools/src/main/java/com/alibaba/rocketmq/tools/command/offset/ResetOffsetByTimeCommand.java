@@ -8,9 +8,12 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.PosixParser;
 
+import com.alibaba.rocketmq.client.exception.MQClientException;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.UtilAll;
 import com.alibaba.rocketmq.common.message.MessageQueue;
+import com.alibaba.rocketmq.common.protocol.ResponseCode;
+import com.alibaba.rocketmq.srvutil.ServerUtil;
 import com.alibaba.rocketmq.tools.admin.DefaultMQAdminExt;
 import com.alibaba.rocketmq.tools.command.SubCommand;
 
@@ -81,8 +84,19 @@ public class ResetOffsetByTimeCommand implements SubCommand {
             }
 
             defaultMQAdminExt.start();
-            Map<MessageQueue, Long> offsetTable =
-                    defaultMQAdminExt.resetOffsetByTimestamp(topic, group, timestamp, force);
+            Map<MessageQueue, Long> offsetTable;
+            try {
+                offsetTable = defaultMQAdminExt.resetOffsetByTimestamp(topic, group, timestamp, force);
+            }
+            catch (MQClientException e) {
+                if (ResponseCode.CONSUMER_NOT_ONLINE == e.getResponseCode()) {
+                    ResetOffsetByTimeOldCommand.resetOffset(defaultMQAdminExt, group, topic, timestamp,
+                        force, timeStampStr);
+                    return;
+                }
+                throw e;
+            }
+
             System.out
                 .printf(
                     "rollback consumer offset by specified group[%s], topic[%s], force[%s], timestamp(string)[%s], timestamp(long)[%s]\n",
@@ -114,11 +128,11 @@ public class ResetOffsetByTimeCommand implements SubCommand {
     public static void main(String[] args) {
         System.setProperty(MixAll.NAMESRV_ADDR_PROPERTY, "10.232.26.122:9876");
         ResetOffsetByTimeCommand cmd = new ResetOffsetByTimeCommand();
-        Options options = MixAll.buildCommandlineOptions(new Options());
+        Options options = ServerUtil.buildCommandlineOptions(new Options());
         String[] subargs =
                 new String[] { "-t qatest_TopicTest", "-g qatest_consumer", "-s 1389098416742", "-f true" };
         final CommandLine commandLine =
-                MixAll.parseCmdLine("mqadmin " + cmd.commandName(), subargs,
+                ServerUtil.parseCmdLine("mqadmin " + cmd.commandName(), subargs,
                     cmd.buildCommandlineOptions(options), new PosixParser());
         cmd.execute(commandLine, options);
     }

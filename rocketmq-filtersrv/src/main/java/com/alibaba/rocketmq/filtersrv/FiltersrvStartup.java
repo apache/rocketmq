@@ -36,6 +36,7 @@ import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.remoting.netty.NettyServerConfig;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
+import com.alibaba.rocketmq.srvutil.ServerUtil;
 
 
 /**
@@ -69,9 +70,9 @@ public class FiltersrvStartup {
 
         try {
             // 解析命令行
-            Options options = MixAll.buildCommandlineOptions(new Options());
+            Options options = ServerUtil.buildCommandlineOptions(new Options());
             final CommandLine commandLine =
-                    MixAll.parseCmdLine("mqfiltersrv", args, buildCommandlineOptions(options),
+                    ServerUtil.parseCmdLine("mqfiltersrv", args, buildCommandlineOptions(options),
                         new PosixParser());
             if (null == commandLine) {
                 System.exit(-1);
@@ -114,7 +115,7 @@ public class FiltersrvStartup {
                 System.exit(0);
             }
 
-            MixAll.properties2Object(MixAll.commandLine2Properties(commandLine), filtersrvConfig);
+            MixAll.properties2Object(ServerUtil.commandLine2Properties(commandLine), filtersrvConfig);
 
             if (null == filtersrvConfig.getRocketmqHome()) {
                 System.out.println("Please set the " + MixAll.ROCKETMQ_HOME_ENV

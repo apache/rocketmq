@@ -246,6 +246,24 @@ public class ScheduleMessageService extends ConfigManager {
         }
 
 
+        /**
+         * 纠正下次投递时间，如果时间特别大，则纠正为当前时间
+         * 
+         * @return
+         */
+        private long correctDeliverTimestamp(final long now, final long deliverTimestamp) {
+            // 如果为0，则会立刻投递
+            long result = deliverTimestamp;
+            // 超过最大值，纠正为当前时间
+            long maxTimestamp = now + ScheduleMessageService.this.delayLevelTable.get(this.delayLevel);
+            if (deliverTimestamp > maxTimestamp) {
+                result = now;
+            }
+
+            return result;
+        }
+
+
         public void executeOnTimeup() {
             ConsumeQueue cq =
                     ScheduleMessageService.this.defaultMessageStore.findConsumeQueue(SCHEDULE_TOPIC,
@@ -265,11 +283,12 @@ public class ScheduleMessageService extends ConfigManager {
                             long tagsCode = bufferCQ.getByteBuffer().getLong();
 
                             // 队列里存储的tagsCode实际是一个时间点
-                            long deliverTimestamp = tagsCode;
+                            long now = System.currentTimeMillis();
+                            long deliverTimestamp = this.correctDeliverTimestamp(now, tagsCode);
 
                             nextOffset = offset + (i / ConsumeQueue.CQStoreUnitSize);
 
-                            long countdown = deliverTimestamp - System.currentTimeMillis();
+                            long countdown = deliverTimestamp - now;
                             // 时间到了，该投递
                             if (countdown <= 0) {
                                 MessageExt msgExt =
@@ -303,12 +322,13 @@ public class ScheduleMessageService extends ConfigManager {
                                     }
                                     catch (Exception e) {
                                         /*
-                                         * XXX
-                                         * msgExt里面的内容不完整，如没有REAL_QID,REAL_TOPIC之类的
+                                         * XXX: warn and notify me
+                                         * msgExt里面的内容不完整
+                                         * ，如没有REAL_QID,REAL_TOPIC之类的
                                          * ，导致数据无法正常的投递到正确的消费队列，所以暂时先直接跳过该条消息
                                          */
                                         log.error(
-                                            "ScheduleMessageService messageTimeup execute error, drop it. msgExt="
+                                            "ScheduleMessageService, messageTimeup execute error, drop it. msgExt="
                                                     + msgExt + ", nextOffset=" + nextOffset + ",offsetPy="
                                                     + offsetPy + ",sizePy=" + sizePy, e);
                                     }

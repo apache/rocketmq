@@ -23,6 +23,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.alibaba.rocketmq.client.exception.MQBrokerException;
+import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.SessionCredentials;
 import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.common.namesrv.RegisterBrokerResult;
@@ -57,7 +58,7 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 public class BrokerOuterAPI {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.BrokerLoggerName);
     private final RemotingClient remotingClient;
-    private final TopAddressing topAddressing = new TopAddressing();
+    private final TopAddressing topAddressing = new TopAddressing(MixAll.WS_ADDR);
     private String nameSrvAddr = null;
 
     // 客户端授权

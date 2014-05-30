@@ -28,23 +28,31 @@ import com.alibaba.rocketmq.broker.BrokerController;
 import com.alibaba.rocketmq.broker.client.ConsumerGroupInfo;
 import com.alibaba.rocketmq.broker.longpolling.PullRequest;
 import com.alibaba.rocketmq.broker.pagecache.ManyMessageTransfer;
+import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.TopicConfig;
+import com.alibaba.rocketmq.common.TopicFilterType;
 import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.common.constant.PermName;
 import com.alibaba.rocketmq.common.filter.FilterAPI;
 import com.alibaba.rocketmq.common.help.FAQUrl;
+import com.alibaba.rocketmq.common.message.MessageDecoder;
+import com.alibaba.rocketmq.common.message.MessageQueue;
 import com.alibaba.rocketmq.common.protocol.ResponseCode;
 import com.alibaba.rocketmq.common.protocol.header.PullMessageRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.PullMessageResponseHeader;
 import com.alibaba.rocketmq.common.protocol.heartbeat.MessageModel;
 import com.alibaba.rocketmq.common.protocol.heartbeat.SubscriptionData;
+import com.alibaba.rocketmq.common.protocol.topic.OffsetMovedEvent;
 import com.alibaba.rocketmq.common.subscription.SubscriptionGroupConfig;
 import com.alibaba.rocketmq.common.sysflag.PullSysFlag;
 import com.alibaba.rocketmq.remoting.common.RemotingHelper;
+import com.alibaba.rocketmq.remoting.common.RemotingUtil;
 import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
 import com.alibaba.rocketmq.remoting.netty.NettyRequestProcessor;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 import com.alibaba.rocketmq.store.GetMessageResult;
+import com.alibaba.rocketmq.store.MessageExtBrokerInner;
+import com.alibaba.rocketmq.store.PutMessageResult;
 import com.alibaba.rocketmq.store.config.BrokerRole;
 
 
@@ -112,6 +120,35 @@ public class PullMessageProcessor implements NettyRequestProcessor {
         };
 
         this.brokerController.getPullMessageExecutor().submit(run);
+    }
+
+
+    private void generateOffsetMovedEvent(final OffsetMovedEvent event) {
+        try {
+            MessageExtBrokerInner msgInner = new MessageExtBrokerInner();
+            msgInner.setTopic(MixAll.OFFSET_MOVED_EVENT);
+            msgInner.setTags(event.getConsumerGroup());
+            msgInner.setDelayTimeLevel(0);
+            msgInner.setKeys(event.getConsumerGroup());
+            msgInner.setBody(event.encode());
+            msgInner.setFlag(0);
+            msgInner.setPropertiesString(MessageDecoder.messageProperties2String(msgInner.getProperties()));
+            msgInner.setTagsCode(MessageExtBrokerInner.tagsString2tagsCode(TopicFilterType.SINGLE_TAG,
+                msgInner.getTags()));
+
+            msgInner.setQueueId(0);
+            msgInner.setSysFlag(0);
+            msgInner.setBornTimestamp(System.currentTimeMillis());
+            msgInner.setBornHost(RemotingUtil.string2SocketAddress(this.brokerController.getBrokerAddr()));
+            msgInner.setStoreHost(msgInner.getBornHost());
+
+            msgInner.setReconsumeTimes(0);
+
+            PutMessageResult putMessageResult = this.brokerController.getMessageStore().putMessage(msgInner);
+        }
+        catch (Exception e) {
+            log.warn(String.format("generateOffsetMovedEvent Exception, %s", event.toString()), e);
+        }
     }
 
 
@@ -283,6 +320,7 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                 if (0 != requestHeader.getQueueOffset()) {
                     response.setCode(ResponseCode.PULL_OFFSET_MOVED);
 
+                    // XXX: warn and notify me
                     log.info(
                         "the broker store no queue data, fix the request offset {} to {}, Topic: {} QueueId: {} Consumer Group: {}",//
                         requestHeader.getQueueOffset(), //
@@ -304,6 +342,7 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                 break;
             case OFFSET_OVERFLOW_BADLY:
                 response.setCode(ResponseCode.PULL_OFFSET_MOVED);
+                // XXX: warn and notify me
                 log.info("the request offset: " + requestHeader.getQueueOffset()
                         + " over flow badly, broker max offset: " + getMessageResult.getMaxOffset()
                         + ", consumer: " + channel.remoteAddress());
@@ -313,6 +352,7 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                 break;
             case OFFSET_TOO_SMALL:
                 response.setCode(ResponseCode.PULL_OFFSET_MOVED);
+                // XXX: warn and notify me
                 log.info("the request offset: " + requestHeader.getQueueOffset()
                         + " too small, broker min offset: " + getMessageResult.getMinOffset()
                         + ", consumer: " + channel.remoteAddress());
@@ -373,7 +413,19 @@ public class PullMessageProcessor implements NettyRequestProcessor {
 
                 // 向Consumer返回应答
             case ResponseCode.PULL_RETRY_IMMEDIATELY:
+                break;
             case ResponseCode.PULL_OFFSET_MOVED:
+                MessageQueue mq = new MessageQueue();
+                mq.setTopic(requestHeader.getTopic());
+                mq.setQueueId(requestHeader.getQueueId());
+                mq.setBrokerName(this.brokerController.getBrokerConfig().getBrokerName());
+
+                OffsetMovedEvent event = new OffsetMovedEvent();
+                event.setConsumerGroup(requestHeader.getConsumerGroup());
+                event.setMessageQueue(mq);
+                event.setOffsetRequest(requestHeader.getQueueOffset());
+                event.setOffsetNew(getMessageResult.getNextBeginOffset());
+                this.generateOffsetMovedEvent(event);
                 break;
             default:
                 assert false;

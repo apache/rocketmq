@@ -28,14 +28,16 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
-import com.alibaba.rocketmq.client.hook.*;
-
 import org.slf4j.Logger;
 
 import com.alibaba.rocketmq.client.QueryResult;
 import com.alibaba.rocketmq.client.Validators;
 import com.alibaba.rocketmq.client.exception.MQBrokerException;
 import com.alibaba.rocketmq.client.exception.MQClientException;
+import com.alibaba.rocketmq.client.hook.CheckForbiddenContext;
+import com.alibaba.rocketmq.client.hook.CheckForbiddenHook;
+import com.alibaba.rocketmq.client.hook.SendMessageContext;
+import com.alibaba.rocketmq.client.hook.SendMessageHook;
 import com.alibaba.rocketmq.client.impl.CommunicationMode;
 import com.alibaba.rocketmq.client.impl.MQClientManager;
 import com.alibaba.rocketmq.client.impl.factory.MQClientInstance;
@@ -1008,5 +1010,15 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
     public void setZipCompressLevel(int zipCompressLevel) {
         this.zipCompressLevel = zipCompressLevel;
+    }
+
+
+    public ServiceState getServiceState() {
+        return serviceState;
+    }
+
+
+    public void setServiceState(ServiceState serviceState) {
+        this.serviceState = serviceState;
     }
 }

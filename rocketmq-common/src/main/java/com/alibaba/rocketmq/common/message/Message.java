@@ -15,8 +15,6 @@
  */
 package com.alibaba.rocketmq.common.message;
 
-import com.alibaba.rocketmq.common.constant.UnitProperties;
-
 import java.io.Serializable;
 import java.util.Collection;
 import java.util.HashMap;
@@ -224,44 +222,13 @@ public class Message implements Serializable {
 
 
     public void setBuyerId(String buyerId) {
-        putProperty(UnitProperties.PROPS_BUYER_ID_KEY, buyerId);
+        putProperty(MessageConst.PROPERTY_BUYER_ID, buyerId);
     }
 
 
     public String getBuyerId() {
-        return getProperty(UnitProperties.PROPS_BUYER_ID_KEY);
+        return getProperty(MessageConst.PROPERTY_BUYER_ID);
     }
-
-
-    public void setTransfer(String transferName) {
-        putProperty(UnitProperties.PROPS_TRANSFER_KEY, transferName);
-    }
-
-
-    public String getTransfer() {
-        return getProperty(UnitProperties.PROPS_TRANSFER_KEY);
-    }
-
-
-    public void setCorrection(String correction) {
-        putProperty(UnitProperties.PROPS_CORRECTION_KEY, correction);
-    }
-
-
-    public String getCorrection() {
-        return getProperty(UnitProperties.PROPS_CORRECTION_KEY);
-    }
-
-
-    public void setMessageId(String messageId) {
-        putProperty(UnitProperties.PROPS_MESSAGE_ID_KEY, messageId);
-    }
-
-
-    public String getMessageId() {
-        return getProperty(UnitProperties.PROPS_MESSAGE_ID_KEY);
-    }
-
 
     @Override
     public String toString() {

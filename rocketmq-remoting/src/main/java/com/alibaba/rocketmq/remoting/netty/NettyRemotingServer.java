@@ -137,7 +137,8 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
             //
             .childOption(ChannelOption.TCP_NODELAY, true)
             // 这个选项有可能会占用大量堆外内存，暂时不使用。
-            //.childOption(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT)
+            // .childOption(ChannelOption.ALLOCATOR,
+            // PooledByteBufAllocator.DEFAULT)
             .localAddress(new InetSocketAddress(this.nettyServerConfig.getListenPort()))
             .childHandler(new ChannelInitializer<SocketChannel>() {
                 @Override
