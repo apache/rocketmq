@@ -69,12 +69,12 @@ public class ClientHousekeepingService implements ChannelEventListener {
         this.scheduledExecutorService.shutdown();
     }
 
+
     private void scanExceptionChannel() {
         this.brokerController.getProducerManager().scanNotActiveChannel();
         this.brokerController.getConsumerManager().scanNotActiveChannel();
         this.brokerController.getFilterServerManager().scanNotActiveChannel();
     }
-
 
 
     @Override

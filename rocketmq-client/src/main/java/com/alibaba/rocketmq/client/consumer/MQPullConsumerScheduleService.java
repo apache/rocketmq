@@ -154,7 +154,7 @@ public class MQPullConsumerScheduleService {
 
         // 增加新的队列
         for (MessageQueue mq : mqNewSet) {
-            if (!this.taskTable.contains(mq)) {
+            if (!this.taskTable.containsKey(mq)) {
                 PullTaskImpl command = new PullTaskImpl(mq);
                 this.taskTable.put(mq, command);
                 this.scheduledThreadPoolExecutor.schedule(command, 0, TimeUnit.MILLISECONDS);

@@ -53,6 +53,7 @@ import com.alibaba.rocketmq.common.protocol.body.ConsumerConnection;
 import com.alibaba.rocketmq.common.protocol.body.GroupList;
 import com.alibaba.rocketmq.common.protocol.body.KVTable;
 import com.alibaba.rocketmq.common.protocol.body.ProducerConnection;
+import com.alibaba.rocketmq.common.protocol.body.QueueTimeSpan;
 import com.alibaba.rocketmq.common.protocol.body.TopicList;
 import com.alibaba.rocketmq.common.protocol.header.UpdateConsumerOffsetRequestHeader;
 import com.alibaba.rocketmq.common.protocol.route.BrokerData;
@@ -596,6 +597,23 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
             break;
         }
 
+        return null;
+    }
+
+
+    @Override
+    public Set<QueueTimeSpan> queryConsumeTimeSpan(final String topic, final String group)
+            throws InterruptedException, MQBrokerException, RemotingException, MQClientException {
+        TopicRouteData topicRouteData = this.examineTopicRouteInfo(topic);
+        for (BrokerData bd : topicRouteData.getBrokerDatas()) {
+            String addr = bd.selectBrokerAddr();
+            if (addr != null) {
+                return this.mQClientFactory.getMQClientAPIImpl().queryConsumeTimeSpan(addr, topic, group,
+                    3000);
+            }
+
+            break;
+        }
         return null;
     }
 }

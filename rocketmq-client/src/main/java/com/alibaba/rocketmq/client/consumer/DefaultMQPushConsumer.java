@@ -402,11 +402,13 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
         this.postSubscriptionWhenPull = postSubscriptionWhenPull;
     }
 
-	public boolean isUnitMode() {
-		return isUnitMode;
-	}
 
-	public void setUnitMode(boolean isUnitMode) {
-		this.isUnitMode = isUnitMode;
-	}
+    public boolean isUnitMode() {
+        return isUnitMode;
+    }
+
+
+    public void setUnitMode(boolean isUnitMode) {
+        this.isUnitMode = isUnitMode;
+    }
 }

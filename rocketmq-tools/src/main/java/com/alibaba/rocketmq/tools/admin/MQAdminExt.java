@@ -35,6 +35,7 @@ import com.alibaba.rocketmq.common.protocol.body.ConsumerConnection;
 import com.alibaba.rocketmq.common.protocol.body.GroupList;
 import com.alibaba.rocketmq.common.protocol.body.KVTable;
 import com.alibaba.rocketmq.common.protocol.body.ProducerConnection;
+import com.alibaba.rocketmq.common.protocol.body.QueueTimeSpan;
 import com.alibaba.rocketmq.common.protocol.body.TopicList;
 import com.alibaba.rocketmq.common.protocol.route.TopicRouteData;
 import com.alibaba.rocketmq.common.subscription.SubscriptionGroupConfig;
@@ -487,5 +488,23 @@ public interface MQAdminExt extends MQAdmin {
     public GroupList queryTopicConsumeByWho(final String topic) throws RemotingConnectException,
             RemotingSendRequestException, RemotingTimeoutException, InterruptedException, MQBrokerException,
             RemotingException, MQClientException;
+
+
+    /**
+     * 根据 topic 和 group 获取消息的时间跨度
+     * 
+     * @param topic
+     * @param group
+     * @return
+     * @throws RemotingConnectException
+     * @throws RemotingSendRequestException
+     * @throws RemotingTimeoutException
+     * @throws InterruptedException
+     * @throws MQBrokerException
+     * @throws RemotingException
+     * @throws MQClientException
+     */
+    public Set<QueueTimeSpan> queryConsumeTimeSpan(final String topic, final String group)
+            throws InterruptedException, MQBrokerException, RemotingException, MQClientException;
 
 }
