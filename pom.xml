@@ -68,9 +68,9 @@
 	</licenses>
 
 	<scm>
-		<url>git@github.com:alibaba/rocketmq.git</url>
-		<connection>scm:git:git@github.com:alibaba/rocketmq.git</connection>
-		<developerConnection>scm:git:git@github.com:alibaba/rocketmq.git</developerConnection>
+		<url>http://gitlab.alibaba-inc.com/middleware/rocketmq.git</url>
+		<connection>scm:git:http://gitlab.alibaba-inc.com/middleware/rocketmq.git</connection>
+		<developerConnection>scm:git:http://gitlab.alibaba-inc.com/middleware/rocketmq.git</developerConnection>
 	</scm>
 
 	<properties>
@@ -212,7 +212,7 @@
 			</resource>
 		</resources>
 	</build>
-	
+
 	<profiles>
 		<profile>
 			<id>release-sign-artifacts</id>
