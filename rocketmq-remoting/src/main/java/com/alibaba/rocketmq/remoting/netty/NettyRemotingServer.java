@@ -16,6 +16,7 @@
 package com.alibaba.rocketmq.remoting.netty;
 
 import io.netty.bootstrap.ServerBootstrap;
+import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelDuplexHandler;
 import io.netty.channel.ChannelFuture;
@@ -111,6 +112,10 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
         this.eventLoopGroup = new NioEventLoopGroup(nettyServerConfig.getServerSelectorThreads());
     }
 
+    public static boolean nettyPooledByteBufAllocatorEnable = //
+            Boolean.parseBoolean(System.getProperty(
+                "com.rocketmq.remoting.nettyPooledByteBufAllocatorEnable", "false"));
+
 
     @Override
     public void start() {
@@ -127,32 +132,41 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
                 }
             });
 
-        this.serverBootstrap
-            .group(this.eventLoopGroup, new NioEventLoopGroup())
-            .channel(NioServerSocketChannel.class)
-            //
-            .option(ChannelOption.SO_BACKLOG, 1024)
-            //
-            .option(ChannelOption.SO_REUSEADDR, true)
-            //
-            .childOption(ChannelOption.TCP_NODELAY, true)
-            // 这个选项有可能会占用大量堆外内存，暂时不使用。
-            // .childOption(ChannelOption.ALLOCATOR,
-            // PooledByteBufAllocator.DEFAULT)
-            .localAddress(new InetSocketAddress(this.nettyServerConfig.getListenPort()))
-            .childHandler(new ChannelInitializer<SocketChannel>() {
-                @Override
-                public void initChannel(SocketChannel ch) throws Exception {
-                    ch.pipeline().addLast(
+        ServerBootstrap childHandler = //
+                this.serverBootstrap.group(this.eventLoopGroup, new NioEventLoopGroup())
+                    .channel(NioServerSocketChannel.class)
                     //
-                        defaultEventExecutorGroup, //
-                        new NettyEncoder(), //
-                        new NettyDecoder(), //
-                        new IdleStateHandler(0, 0, nettyServerConfig.getServerChannelMaxIdleTimeSeconds()),//
-                        new NettyConnetManageHandler(), //
-                        new NettyServerHandler());
-                }
-            });
+                    .option(ChannelOption.SO_BACKLOG, 1024)
+                    //
+                    .option(ChannelOption.SO_REUSEADDR, true)
+                    //
+                    .childOption(ChannelOption.TCP_NODELAY, true)
+                    //
+                    .childOption(ChannelOption.SO_SNDBUF, 1024 * 128)
+                    //
+                    .childOption(ChannelOption.SO_RCVBUF, 1024 * 128)
+
+                    .localAddress(new InetSocketAddress(this.nettyServerConfig.getListenPort()))
+                    .childHandler(new ChannelInitializer<SocketChannel>() {
+                        @Override
+                        public void initChannel(SocketChannel ch) throws Exception {
+                            ch.pipeline().addLast(
+                                //
+                                defaultEventExecutorGroup, //
+                                new NettyEncoder(), //
+                                new NettyDecoder(), //
+                                new IdleStateHandler(0, 0, nettyServerConfig
+                                    .getServerChannelMaxIdleTimeSeconds()),//
+                                new NettyConnetManageHandler(), //
+                                new NettyServerHandler());
+                        }
+                    });
+
+        if (nettyPooledByteBufAllocatorEnable) {
+            // 这个选项有可能会占用大量堆外内存，暂时不使用。
+            childHandler.childOption(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT)//
+            ;
+        }
 
         try {
             ChannelFuture sync = this.serverBootstrap.bind().sync();
