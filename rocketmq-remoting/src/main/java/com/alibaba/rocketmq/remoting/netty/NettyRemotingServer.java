@@ -112,10 +112,6 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
         this.eventLoopGroup = new NioEventLoopGroup(nettyServerConfig.getServerSelectorThreads());
     }
 
-    public static boolean nettyPooledByteBufAllocatorEnable = //
-            Boolean.parseBoolean(System.getProperty(
-                "com.rocketmq.remoting.nettyPooledByteBufAllocatorEnable", "false"));
-
 
     @Override
     public void start() {
@@ -142,9 +138,9 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
                     //
                     .childOption(ChannelOption.TCP_NODELAY, true)
                     //
-                    .childOption(ChannelOption.SO_SNDBUF, 1024 * 128)
+                    .childOption(ChannelOption.SO_SNDBUF, NettySystemConfig.SocketSndbufSize)
                     //
-                    .childOption(ChannelOption.SO_RCVBUF, 1024 * 128)
+                    .childOption(ChannelOption.SO_RCVBUF, NettySystemConfig.SocketRcvbufSize)
 
                     .localAddress(new InetSocketAddress(this.nettyServerConfig.getListenPort()))
                     .childHandler(new ChannelInitializer<SocketChannel>() {
@@ -162,7 +158,7 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
                         }
                     });
 
-        if (nettyPooledByteBufAllocatorEnable) {
+        if (NettySystemConfig.NettyPooledByteBufAllocatorEnable) {
             // 这个选项有可能会占用大量堆外内存，暂时不使用。
             childHandler.childOption(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT)//
             ;
