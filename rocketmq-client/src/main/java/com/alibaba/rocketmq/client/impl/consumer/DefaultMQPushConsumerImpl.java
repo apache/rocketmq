@@ -1053,12 +1053,12 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
         long computeDuijiTotal = this.computeDuijiTotal();
         long adjustThreadPoolNumsThreshold = this.defaultMQPushConsumer.getAdjustThreadPoolNumsThreshold();
 
-        long incThreshold = (long) (adjustThreadPoolNumsThreshold * 1.2);
+        long incThreshold = (long) (adjustThreadPoolNumsThreshold * 1.0);
 
         long decThreshold = (long) (adjustThreadPoolNumsThreshold * 0.8);
 
         // 增加线程池线程数量
-        if (computeDuijiTotal > incThreshold) {
+        if (computeDuijiTotal >= incThreshold) {
             this.consumeMessageService.incCorePoolSize();
         }
 
