@@ -461,8 +461,26 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
 
     @Override
     public void updateCorePoolSize(int corePoolSize) {
-        if (corePoolSize > 0 && corePoolSize <= Short.MAX_VALUE) {
+        if (corePoolSize > 0 //
+                && corePoolSize <= Short.MAX_VALUE //
+                && corePoolSize < this.defaultMQPushConsumer.getConsumeThreadMax()) {
             this.consumeExecutor.setCorePoolSize(corePoolSize);
         }
+    }
+
+
+    @Override
+    public void incCorePoolSize() {
+    }
+
+
+    @Override
+    public void decCorePoolSize() {
+    }
+
+
+    @Override
+    public int getCorePoolSize() {
+        return this.consumeExecutor.getCorePoolSize();
     }
 }
