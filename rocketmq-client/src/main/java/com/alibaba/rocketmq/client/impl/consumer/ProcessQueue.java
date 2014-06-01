@@ -28,6 +28,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.slf4j.Logger;
 
 import com.alibaba.rocketmq.client.log.ClientLogger;
+import com.alibaba.rocketmq.common.message.MessageConst;
 import com.alibaba.rocketmq.common.message.MessageExt;
 
 
@@ -71,6 +72,11 @@ public class ProcessQueue {
     // 事务方式消费，未提交的消息
     private final TreeMap<Long, MessageExt> msgTreeMapTemp = new TreeMap<Long, MessageExt>();
 
+    /**
+     * 当前队列的消息堆积数量
+     */
+    private volatile long msgDuijiCnt = 0;
+
 
     public boolean isLockExpired() {
         boolean result = (System.currentTimeMillis() - this.lastLockTimestamp) > RebalanceLockMaxLiveTime;
@@ -105,6 +111,18 @@ public class ProcessQueue {
                 if (!msgTreeMap.isEmpty() && !this.consuming) {
                     dispathToConsume = true;
                     this.consuming = true;
+                }
+
+                // 计算当前队列堆积的消息数量
+                if (!msgs.isEmpty()) {
+                    MessageExt messageExt = msgs.get(msgs.size() - 1);
+                    String property = messageExt.getProperty(MessageConst.PROPERTY_MAX_OFFSET);
+                    if (property != null) {
+                        long duiji = Long.parseLong(property) - messageExt.getQueueOffset();
+                        if (duiji > 0) {
+                            this.msgDuijiCnt = duiji;
+                        }
+                    }
                 }
             }
             finally {
@@ -359,5 +377,15 @@ public class ProcessQueue {
 
     public void setLastPullTimestamp(long lastPullTimestamp) {
         this.lastPullTimestamp = lastPullTimestamp;
+    }
+
+
+    public long getMsgDuijiCnt() {
+        return msgDuijiCnt;
+    }
+
+
+    public void setMsgDuijiCnt(long msgDuijiCnt) {
+        this.msgDuijiCnt = msgDuijiCnt;
     }
 }

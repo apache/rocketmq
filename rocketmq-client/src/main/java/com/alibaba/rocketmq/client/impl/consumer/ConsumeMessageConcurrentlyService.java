@@ -363,8 +363,44 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
 
     @Override
     public void updateCorePoolSize(int corePoolSize) {
-        if (corePoolSize > 0 && corePoolSize <= Short.MAX_VALUE) {
+        if (corePoolSize > 0 //
+                && corePoolSize <= Short.MAX_VALUE //
+                && corePoolSize < this.defaultMQPushConsumer.getConsumeThreadMax()) {
             this.consumeExecutor.setCorePoolSize(corePoolSize);
         }
+    }
+
+
+    @Override
+    public void incCorePoolSize() {
+        long corePoolSize = this.consumeExecutor.getCorePoolSize();
+        if (corePoolSize < this.defaultMQPushConsumer.getConsumeThreadMax()) {
+            this.consumeExecutor.setCorePoolSize(this.consumeExecutor.getCorePoolSize() + 1);
+        }
+
+        log.info("incCorePoolSize Concurrently from {} to {}, ConsumerGroup: {}", //
+            corePoolSize,//
+            this.consumeExecutor.getCorePoolSize(),//
+            this.consumerGroup);
+    }
+
+
+    @Override
+    public void decCorePoolSize() {
+        long corePoolSize = this.consumeExecutor.getCorePoolSize();
+        if (corePoolSize > this.defaultMQPushConsumer.getConsumeThreadMin()) {
+            this.consumeExecutor.setCorePoolSize(this.consumeExecutor.getCorePoolSize() - 1);
+        }
+
+        log.info("decCorePoolSize Concurrently from {} to {}, ConsumerGroup: {}", //
+            corePoolSize,//
+            this.consumeExecutor.getCorePoolSize(),//
+            this.consumerGroup);
+    }
+
+
+    @Override
+    public int getCorePoolSize() {
+        return this.consumeExecutor.getCorePoolSize();
     }
 }
