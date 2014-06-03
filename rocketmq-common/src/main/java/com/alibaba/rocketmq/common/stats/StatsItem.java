@@ -11,7 +11,10 @@ import com.alibaba.rocketmq.common.UtilAll;
 
 
 public class StatsItem {
+    // 具体的统计值
     private final AtomicLong value = new AtomicLong(0);
+    // 统计次数
+    private final AtomicLong times = new AtomicLong(0);
     // 最近一分钟内的镜像，数量6，10秒钟采样一次
     private final LinkedList<CallSnapshot> csListMinute = new LinkedList<CallSnapshot>();
 
@@ -27,7 +30,10 @@ public class StatsItem {
     private final Logger log;
 
     private volatile long sumInLastMinutes = 0;
-    private volatile double avgpsInLastMinutes = 0;
+    // 在最近一分钟内，每秒的平均值
+    private volatile double avgpsecondInLastMinutes = 0;
+    // 在最近一分钟内，每次的平均值
+    private volatile double avgptimesInLastMinutes = 0;
     private volatile long sumInLastHour = 0;
     private volatile long sumInLastDay = 0;
 
@@ -133,40 +139,59 @@ public class StatsItem {
 
 
     public void printAtMinutes() {
-        double avgps = 0;
+        double avgpsecond = 0;
+        double avgptimes = 0;
         if (!this.csListMinute.isEmpty()) {
             CallSnapshot first = this.csListMinute.getFirst();
             CallSnapshot last = this.csListMinute.getLast();
-            sumInLastMinutes = last.getCallTimesTotal() - first.getCallTimesTotal();
-            avgps = (sumInLastMinutes * 1000.0d) / (last.getTimestamp() - first.getTimestamp());
-            this.avgpsInLastMinutes = avgps;
+            sumInLastMinutes = last.getValue() - first.getValue();
+            avgpsecond = (sumInLastMinutes * 1000.0d) / (last.getTimestamp() - first.getTimestamp());
+            this.avgpsecondInLastMinutes = avgpsecond;
+
+            long timesDiff = last.getTimes() - first.getTimes();
+            if (timesDiff > 0) {
+                avgptimes = (sumInLastMinutes * 1.0d) / (timesDiff);
+            }
+
+            this.avgptimesInLastMinutes = avgptimes;
         }
 
-        log.info(String.format("[%s] [%s] Stats In One Minute, SUM: %d TPS: %.2f", //
+        log.info(String.format("[%s] [%s] Stats In One Minute, SUM: %d TPS: %.2f AVGPT: %.2f", //
             this.statsName,//
             this.statsKey,//
-            sumInLastMinutes, avgps));
+            sumInLastMinutes,//
+            avgpsecond,//
+            avgptimes));
     }
 
 
     public void printAtHour() {
-        double avgps = 0;
+        double avgpsecond = 0;
+        double avgptimes = 0;
         if (!this.csListHour.isEmpty()) {
             CallSnapshot first = this.csListHour.getFirst();
             CallSnapshot last = this.csListHour.getLast();
-            sumInLastHour = last.getCallTimesTotal() - first.getCallTimesTotal();
-            avgps = (sumInLastHour * 1000.0d) / (last.getTimestamp() - first.getTimestamp());
+            sumInLastHour = last.getValue() - first.getValue();
+            avgpsecond = (sumInLastHour * 1000.0d) / (last.getTimestamp() - first.getTimestamp());
+
+            long timesDiff = last.getTimes() - first.getTimes();
+            if (timesDiff > 0) {
+                avgptimes = (sumInLastHour * 1.0d) / (timesDiff);
+            }
         }
 
-        log.info(String.format("[%s] [%s] Stats In One Hour, SUM: %d TPS: %.2f", //
+        log.info(String.format("[%s] [%s] Stats In One Hour, SUM: %d TPS: %.2f AVGPT: %.2f", //
             this.statsName,//
             this.statsKey,//
-            sumInLastHour, avgps));
+            sumInLastHour,//
+            avgpsecond,//
+            avgptimes));
     }
 
 
     public void printAtHalfHour() {
-        double avgps = 0;
+        double avgpsecond = 0;
+        double avgptimes = 0;
         long sumInLastHalfHour = 0;
         if (!this.csListHour.isEmpty()) {
             CallSnapshot first = this.csListHour.get(3);
@@ -174,35 +199,51 @@ public class StatsItem {
                 return;
 
             CallSnapshot last = this.csListHour.getLast();
-            sumInLastHalfHour = last.getCallTimesTotal() - first.getCallTimesTotal();
-            avgps = (sumInLastHalfHour * 1000.0d) / (last.getTimestamp() - first.getTimestamp());
+            sumInLastHalfHour = last.getValue() - first.getValue();
+            avgpsecond = (sumInLastHalfHour * 1000.0d) / (last.getTimestamp() - first.getTimestamp());
+
+            long timesDiff = last.getTimes() - first.getTimes();
+            if (timesDiff > 0) {
+                avgptimes = (sumInLastHalfHour * 1.0d) / (timesDiff);
+            }
         }
 
-        log.info(String.format("[%s] [%s] Stats In Half An Hour, SUM: %d TPS: %.2f", //
+        log.info(String.format("[%s] [%s] Stats In Half An Hour, SUM: %d TPS: %.2f AVGPT: %.2f", //
             this.statsName,//
             this.statsKey,//
-            sumInLastHalfHour, avgps));
+            sumInLastHalfHour, //
+            avgpsecond, //
+            avgptimes));
     }
 
 
     public void printAtDay() {
-        double avgps = 0;
+        double avgpsecond = 0;
+        double avgptimes = 0;
         if (!this.csListDay.isEmpty()) {
             CallSnapshot first = this.csListDay.getFirst();
             CallSnapshot last = this.csListDay.getLast();
-            sumInLastDay = last.getCallTimesTotal() - first.getCallTimesTotal();
-            avgps = (sumInLastDay * 1000.0d) / (last.getTimestamp() - first.getTimestamp());
+            sumInLastDay = last.getValue() - first.getValue();
+            avgpsecond = (sumInLastDay * 1000.0d) / (last.getTimestamp() - first.getTimestamp());
+
+            long timesDiff = last.getTimes() - first.getTimes();
+            if (timesDiff > 0) {
+                avgptimes = (sumInLastDay * 1.0d) / (timesDiff);
+            }
         }
 
-        log.info(String.format("[%s] [%s] Stats In One Day, SUM: %d TPS: %.2f", //
+        log.info(String.format("[%s] [%s] Stats In One Day, SUM: %d TPS: %.2f AVGPT: %.2f", //
             this.statsName,//
             this.statsKey,//
-            sumInLastDay, avgps));
+            sumInLastDay,//
+            avgpsecond, //
+            avgptimes));
     }
 
 
     public void samplingInSeconds() {
-        this.csListMinute.add(new CallSnapshot(System.currentTimeMillis(), this.value.get()));
+        this.csListMinute
+            .add(new CallSnapshot(System.currentTimeMillis(), this.times.get(), this.value.get()));
         if (this.csListMinute.size() > 7) {
             this.csListMinute.removeFirst();
         }
@@ -210,7 +251,7 @@ public class StatsItem {
 
 
     public void samplingInMinutes() {
-        this.csListHour.add(new CallSnapshot(System.currentTimeMillis(), this.value.get()));
+        this.csListHour.add(new CallSnapshot(System.currentTimeMillis(), this.times.get(), this.value.get()));
         if (this.csListHour.size() > 7) {
             this.csListHour.removeFirst();
         }
@@ -218,7 +259,7 @@ public class StatsItem {
 
 
     public void samplingInHour() {
-        this.csListDay.add(new CallSnapshot(System.currentTimeMillis(), this.value.get()));
+        this.csListDay.add(new CallSnapshot(System.currentTimeMillis(), this.times.get(), this.value.get()));
         if (this.csListDay.size() > 25) {
             this.csListDay.removeFirst();
         }
@@ -265,31 +306,50 @@ public class StatsItem {
     }
 
 
-    public double getAvgpsInLastMinutes() {
-        return avgpsInLastMinutes;
-    }
-
-
-    public void setAvgpsInLastMinutes(double avgpsInLastMinutes) {
-        this.avgpsInLastMinutes = avgpsInLastMinutes;
-    }
-
-
     public String getStatsName() {
         return statsName;
     }
+
+
+    public AtomicLong getTimes() {
+        return times;
+    }
+
+
+    public double getAvgptimesInLastMinutes() {
+        return avgptimesInLastMinutes;
+    }
+
+
+    public void setAvgptimesInLastMinutes(double avgptimesInLastMinutes) {
+        this.avgptimesInLastMinutes = avgptimesInLastMinutes;
+    }
+
+
+    public double getAvgpsecondInLastMinutes() {
+        return avgpsecondInLastMinutes;
+    }
+
+
+    public void setAvgpsecondInLastMinutes(double avgpsecondInLastMinutes) {
+        this.avgpsecondInLastMinutes = avgpsecondInLastMinutes;
+    }
+
 }
 
 
 class CallSnapshot {
     private final long timestamp;
-    private final long callTimesTotal;
+    private final long times;
+
+    private final long value;
 
 
-    public CallSnapshot(long timestamp, long callTimesTotal) {
+    public CallSnapshot(long timestamp, long times, long value) {
         super();
         this.timestamp = timestamp;
-        this.callTimesTotal = callTimesTotal;
+        this.times = times;
+        this.value = value;
     }
 
 
@@ -298,7 +358,12 @@ class CallSnapshot {
     }
 
 
-    public long getCallTimesTotal() {
-        return callTimesTotal;
+    public long getTimes() {
+        return times;
+    }
+
+
+    public long getValue() {
+        return value;
     }
 }
