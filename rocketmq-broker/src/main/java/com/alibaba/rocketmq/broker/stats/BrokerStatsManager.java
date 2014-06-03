@@ -68,22 +68,22 @@ public class BrokerStatsManager {
 
 
     public void incTopicPutNums(final String topic) {
-        this.topicPutNums.addValue(topic, 1);
+        this.topicPutNums.addValue(topic, 1, 1);
     }
 
 
     public void incTopicPutSize(final String topic, final int size) {
-        this.topicPutSize.addValue(topic, size);
+        this.topicPutSize.addValue(topic, size, 1);
     }
 
 
     public void incGroupGetNums(final String group, final String topic, final int incValue) {
-        this.groupGetNums.addValue(topic + "@" + group, incValue);
+        this.groupGetNums.addValue(topic + "@" + group, incValue, 1);
     }
 
 
     public void incGroupGetSize(final String group, final String topic, final int incValue) {
-        this.groupGetSize.addValue(topic + "@" + group, incValue);
+        this.groupGetSize.addValue(topic + "@" + group, incValue, 1);
     }
 
 
@@ -97,8 +97,8 @@ public class BrokerStatsManager {
     }
 
 
-    public void incSendBackNums(final String group, final String topic, final int incValue) {
-        this.sndbckPutNums.addValue(topic + "@" + group, incValue);
+    public void incSendBackNums(final String group, final String topic) {
+        this.sndbckPutNums.addValue(topic + "@" + group, 1, 1);
     }
 
 
