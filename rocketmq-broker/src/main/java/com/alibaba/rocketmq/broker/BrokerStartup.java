@@ -38,6 +38,7 @@ import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.remoting.common.RemotingUtil;
 import com.alibaba.rocketmq.remoting.netty.NettyClientConfig;
 import com.alibaba.rocketmq.remoting.netty.NettyServerConfig;
+import com.alibaba.rocketmq.remoting.netty.NettySystemConfig;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 import com.alibaba.rocketmq.srvutil.ServerUtil;
 import com.alibaba.rocketmq.store.config.BrokerRole;
@@ -84,6 +85,16 @@ public class BrokerStartup {
 
     public static BrokerController main0(String[] args) {
         System.setProperty(RemotingCommand.RemotingVersionKey, Integer.toString(MQVersion.CurrentVersion));
+
+        // Socket发送缓冲区大小
+        if (null == System.getProperty(NettySystemConfig.SystemPropertySocketSndbufSize)) {
+            NettySystemConfig.SocketSndbufSize = 131072;
+        }
+
+        // Socket接收缓冲区大小
+        if (null == System.getProperty(NettySystemConfig.SystemPropertySocketRcvbufSize)) {
+            NettySystemConfig.SocketRcvbufSize = 131072;
+        }
 
         try {
             // 解析命令行

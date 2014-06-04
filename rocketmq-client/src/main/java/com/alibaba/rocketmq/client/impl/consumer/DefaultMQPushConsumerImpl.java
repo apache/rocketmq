@@ -19,7 +19,9 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -1026,5 +1028,43 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
 
     public void setServiceState(ServiceState serviceState) {
         this.serviceState = serviceState;
+    }
+
+
+    private long computeDuijiTotal() {
+        long msgDuijiCntTotal = 0;
+        ConcurrentHashMap<MessageQueue, ProcessQueue> processQueueTable =
+                this.rebalanceImpl.getProcessQueueTable();
+        Iterator<Entry<MessageQueue, ProcessQueue>> it = processQueueTable.entrySet().iterator();
+        while (it.hasNext()) {
+            Entry<MessageQueue, ProcessQueue> next = it.next();
+            ProcessQueue value = next.getValue();
+            msgDuijiCntTotal += value.getMsgDuijiCnt();
+        }
+
+        return msgDuijiCntTotal;
+    }
+
+
+    /**
+     * 根据消息堆积数量，动态调整线程池数量
+     */
+    public void adjustThreadPool() {
+        long computeDuijiTotal = this.computeDuijiTotal();
+        long adjustThreadPoolNumsThreshold = this.defaultMQPushConsumer.getAdjustThreadPoolNumsThreshold();
+
+        long incThreshold = (long) (adjustThreadPoolNumsThreshold * 1.0);
+
+        long decThreshold = (long) (adjustThreadPoolNumsThreshold * 0.8);
+
+        // 增加线程池线程数量
+        if (computeDuijiTotal >= incThreshold) {
+            this.consumeMessageService.incCorePoolSize();
+        }
+
+        // 开始减少线程池线程数量
+        if (computeDuijiTotal < decThreshold) {
+            this.consumeMessageService.decCorePoolSize();
+        }
     }
 }

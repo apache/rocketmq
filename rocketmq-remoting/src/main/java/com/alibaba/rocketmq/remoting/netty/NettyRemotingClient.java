@@ -265,8 +265,15 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                 }
             });
 
-        this.bootstrap.group(this.eventLoopGroup).channel(NioSocketChannel.class)
-            .option(ChannelOption.TCP_NODELAY, true).handler(new ChannelInitializer<SocketChannel>() {
+        Bootstrap handler = this.bootstrap.group(this.eventLoopGroup).channel(NioSocketChannel.class)//
+            //
+            .option(ChannelOption.TCP_NODELAY, true)
+            //
+            .option(ChannelOption.SO_SNDBUF, NettySystemConfig.SocketSndbufSize)
+            //
+            .option(ChannelOption.SO_RCVBUF, NettySystemConfig.SocketRcvbufSize)
+            //
+            .handler(new ChannelInitializer<SocketChannel>() {
                 @Override
                 public void initChannel(SocketChannel ch) throws Exception {
                     ch.pipeline().addLast(//

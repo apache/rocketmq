@@ -35,7 +35,8 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
  */
 public class NettyDecoder extends LengthFieldBasedFrameDecoder {
     private static final Logger log = LoggerFactory.getLogger(RemotingHelper.RemotingLogName);
-    private static final int FRAME_MAX_LENGTH = 1024 * 1024 * 8;
+    private static final int FRAME_MAX_LENGTH = //
+            Integer.parseInt(System.getProperty("com.rocketmq.remoting.frameMaxLength", "8388608"));
 
 
     public NettyDecoder() {
