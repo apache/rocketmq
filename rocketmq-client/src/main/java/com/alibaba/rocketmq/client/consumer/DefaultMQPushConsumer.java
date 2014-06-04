@@ -89,7 +89,13 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
     /**
      * 消费消息线程，最大数目
      */
-    private int consumeThreadMax = 20;
+    private int consumeThreadMax = 64;
+
+    /**
+     * 消息堆积超过此阀值，动态调整线程池数
+     */
+    private long adjustThreadPoolNumsThreshold = 100000;
+
     /**
      * 同一队列并行消费的最大跨度，顺序消费方式情况下，此参数无效
      */
@@ -410,5 +416,15 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
 
     public void setUnitMode(boolean isUnitMode) {
         this.isUnitMode = isUnitMode;
+    }
+
+
+    public long getAdjustThreadPoolNumsThreshold() {
+        return adjustThreadPoolNumsThreshold;
+    }
+
+
+    public void setAdjustThreadPoolNumsThreshold(long adjustThreadPoolNumsThreshold) {
+        this.adjustThreadPoolNumsThreshold = adjustThreadPoolNumsThreshold;
     }
 }

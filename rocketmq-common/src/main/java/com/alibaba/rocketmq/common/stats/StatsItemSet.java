@@ -28,7 +28,7 @@ public class StatsItemSet {
     }
 
 
-    public void addValue(final String statsKey, final int incValue) {
+    private StatsItem getAndCreateStatsItem(final String statsKey) {
         StatsItem statsItem = this.statsItemTable.get(statsKey);
         if (null == statsItem) {
             statsItem = new StatsItem(this.statsName, statsKey, this.scheduledExecutorService, this.log);
@@ -40,7 +40,14 @@ public class StatsItemSet {
             }
         }
 
+        return statsItem;
+    }
+
+
+    public void addValue(final String statsKey, final int incValue, final int incTimes) {
+        StatsItem statsItem = this.getAndCreateStatsItem(statsKey);
         statsItem.getValue().addAndGet(incValue);
+        statsItem.getTimes().addAndGet(incTimes);
     }
 
 
@@ -56,7 +63,7 @@ public class StatsItemSet {
     public double getAvgpsInLastMinutes(final String statsKey) {
         StatsItem statsItem = this.statsItemTable.get(statsKey);
         if (null != statsItem) {
-            return statsItem.getAvgpsInLastMinutes();
+            return statsItem.getAvgpsecondInLastMinutes();
         }
         return 0;
     }

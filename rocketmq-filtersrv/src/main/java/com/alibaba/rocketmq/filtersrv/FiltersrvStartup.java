@@ -35,6 +35,7 @@ import com.alibaba.rocketmq.common.MQVersion;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.remoting.netty.NettyServerConfig;
+import com.alibaba.rocketmq.remoting.netty.NettySystemConfig;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 import com.alibaba.rocketmq.srvutil.ServerUtil;
 
@@ -67,6 +68,16 @@ public class FiltersrvStartup {
 
     public static FiltersrvController main0(String[] args) {
         System.setProperty(RemotingCommand.RemotingVersionKey, Integer.toString(MQVersion.CurrentVersion));
+
+        // Socket发送缓冲区大小
+        if (null == System.getProperty(NettySystemConfig.SystemPropertySocketSndbufSize)) {
+            NettySystemConfig.SocketSndbufSize = 65535;
+        }
+
+        // Socket接收缓冲区大小
+        if (null == System.getProperty(NettySystemConfig.SystemPropertySocketRcvbufSize)) {
+            NettySystemConfig.SocketRcvbufSize = 1024;
+        }
 
         try {
             // 解析命令行

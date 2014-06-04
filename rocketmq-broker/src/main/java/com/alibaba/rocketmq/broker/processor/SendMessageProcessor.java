@@ -206,7 +206,7 @@ public class SendMessageProcessor implements NettyRequestProcessor {
             case PUT_OK:
                 // 统计
                 this.brokerController.getBrokerStatsManager().incSendBackNums(requestHeader.getGroup(),
-                    msgExt.getTopic(), 1);
+                    msgExt.getTopic());
 
                 response.setCode(ResponseCode.SUCCESS);
                 response.setRemark(null);

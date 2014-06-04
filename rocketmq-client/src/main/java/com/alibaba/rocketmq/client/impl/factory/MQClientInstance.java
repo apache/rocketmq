@@ -312,6 +312,20 @@ public class MQClientInstance {
                 }
             }
         }, 1000 * 10, 1000 * 60, TimeUnit.MILLISECONDS);
+
+        // 动态调整消费线程池
+        this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
+
+            @Override
+            public void run() {
+                try {
+                    MQClientInstance.this.adjustThreadPool();
+                }
+                catch (Exception e) {
+                    log.error("ScheduledTask adjustThreadPool exception", e);
+                }
+            }
+        }, 1, 1, TimeUnit.MINUTES);
     }
 
 
@@ -1309,5 +1323,24 @@ public class MQClientInstance {
 
     public ConcurrentHashMap<String, TopicRouteData> getTopicRouteTable() {
         return topicRouteTable;
+    }
+
+
+    public void adjustThreadPool() {
+        Iterator<Entry<String, MQConsumerInner>> it = this.consumerTable.entrySet().iterator();
+        while (it.hasNext()) {
+            Entry<String, MQConsumerInner> entry = it.next();
+            MQConsumerInner impl = entry.getValue();
+            if (impl != null) {
+                try {
+                    if (impl instanceof DefaultMQPushConsumerImpl) {
+                        DefaultMQPushConsumerImpl dmq = (DefaultMQPushConsumerImpl) impl;
+                        dmq.adjustThreadPool();
+                    }
+                }
+                catch (Exception e) {
+                }
+            }
+        }
     }
 }

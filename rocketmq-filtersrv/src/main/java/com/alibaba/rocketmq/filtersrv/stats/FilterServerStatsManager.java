@@ -39,11 +39,11 @@ public class FilterServerStatsManager {
 
 
     public void incGroupGetNums(final String group, final String topic, final int incValue) {
-        this.groupGetNums.addValue(topic + "@" + group, incValue);
+        this.groupGetNums.addValue(topic + "@" + group, incValue, 1);
     }
 
 
     public void incGroupGetSize(final String group, final String topic, final int incValue) {
-        this.groupGetSize.addValue(topic + "@" + group, incValue);
+        this.groupGetSize.addValue(topic + "@" + group, incValue, 1);
     }
 }

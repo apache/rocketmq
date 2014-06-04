@@ -37,6 +37,15 @@ public interface ConsumeMessageService {
     public void updateCorePoolSize(int corePoolSize);
 
 
+    public void incCorePoolSize();
+
+
+    public void decCorePoolSize();
+
+
+    public int getCorePoolSize();
+
+
     public void submitConsumeRequest(//
             final List<MessageExt> msgs, //
             final ProcessQueue processQueue, //
