@@ -202,8 +202,14 @@ public class MQClientInstance {
         }
     }
 
+    private boolean udpPortCheck = Boolean.parseBoolean(System.getProperty(
+        "com.alibaba.rocketmq.client.udpPortCheck", "true"));
+
 
     private void makesureInstanceNameIsOnly(final String instanceName) throws MQClientException {
+        if (!udpPortCheck)
+            return;
+
         int udpPort = 33333;
 
         int value = instanceName.hashCode();
@@ -218,9 +224,9 @@ public class MQClientInstance {
             this.datagramSocket.setReuseAddress(true);
         }
         catch (SocketException e) {
-            throw new MQClientException("instance name is a duplicate one[" + instanceName + "," + udpPort
-                    + "], please set a new name"
-                    + FAQUrl.suggestTodo(FAQUrl.CLIENT_INSTACNCE_NAME_DUPLICATE_URL), e);
+            throw new MQClientException(String.format(
+                "instance name is a duplicate one[%s], PORT: %d, please set a new name %s", instanceName,
+                udpPort, FAQUrl.suggestTodo(FAQUrl.CLIENT_INSTACNCE_NAME_DUPLICATE_URL)), e);
         }
     }
 
