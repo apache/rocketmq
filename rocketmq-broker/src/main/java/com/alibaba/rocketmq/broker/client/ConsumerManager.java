@@ -81,11 +81,13 @@ public class ConsumerManager {
 
 
     public void doChannelCloseEvent(final String remoteAddr, final Channel channel) {
-        for (String group : this.consumerTable.keySet()) {
-            final ConsumerGroupInfo info = this.consumerTable.get(group);
-            if (info != null) {
-                info.doChannelCloseEvent(remoteAddr, channel);
-                this.consumerIdsChangeListener.consumerIdsChanged(group, info.getAllChannel());
+        Iterator<Entry<String, ConsumerGroupInfo>> it = this.consumerTable.entrySet().iterator();
+        while (it.hasNext()) {
+            Entry<String, ConsumerGroupInfo> next = it.next();
+            ConsumerGroupInfo info = next.getValue();
+            boolean removed = info.doChannelCloseEvent(remoteAddr, channel);
+            if (removed) {
+                this.consumerIdsChangeListener.consumerIdsChanged(next.getKey(), info.getAllChannel());
             }
         }
     }
