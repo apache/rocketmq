@@ -105,6 +105,11 @@ public class Broker2Client {
             final Channel channel,//
             final String consumerGroup//
     ) {
+        if (null == consumerGroup) {
+            log.error("notifyConsumerIdsChanged consumerGroup is null");
+            return;
+        }
+
         NotifyConsumerIdsChangedRequestHeader requestHeader = new NotifyConsumerIdsChangedRequestHeader();
         requestHeader.setConsumerGroup(consumerGroup);
         RemotingCommand request =

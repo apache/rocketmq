@@ -69,7 +69,7 @@ public class TopAddressing {
         }
 
         String errorMsg =
-                "connect to " + MixAll.WS_ADDR + " failed, maybe the domain name " + MixAll.WS_DOMAIN_NAME
+                "connect to " + wsAddr + " failed, maybe the domain name " + MixAll.WS_DOMAIN_NAME
                         + " not bind in /etc/hosts";
         errorMsg += FAQUrl.suggestTodo(FAQUrl.NAME_SERVER_ADDR_NOT_EXIST_URL);
 
