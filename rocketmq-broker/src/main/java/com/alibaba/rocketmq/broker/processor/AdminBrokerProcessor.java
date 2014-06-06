@@ -160,6 +160,8 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             // 根据 topic 和 group 获取消息的时间跨度
         case RequestCode.QUERY_CONSUME_TIME_SPAN:
             return this.queryConsumeTimeSpan(ctx, request);
+        case RequestCode.GET_SYSTEM_TOPIC_LIST_FROM_BROKER:
+            return this.getSystemTopicListFromBroker(ctx, request);
         default:
             break;
         }
@@ -1013,6 +1015,20 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         QueryConsumeTimeSpanBody queryConsumeTimeSpanBody = new QueryConsumeTimeSpanBody();
         queryConsumeTimeSpanBody.setConsumeTimeSpanSet(timeSpanSet);
         response.setBody(queryConsumeTimeSpanBody.encode());
+        response.setCode(ResponseCode.SUCCESS);
+        response.setRemark(null);
+        return response;
+    }
+
+
+    private RemotingCommand getSystemTopicListFromBroker(ChannelHandlerContext ctx, RemotingCommand request)
+            throws RemotingCommandException {
+        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
+
+        Set<String> topics = this.brokerController.getTopicConfigManager().getSystemTopic();
+	    TopicList topicList = new TopicList();
+        topicList.setTopicList(topics);
+        response.setBody(topicList.encode());
         response.setCode(ResponseCode.SUCCESS);
         response.setRemark(null);
         return response;

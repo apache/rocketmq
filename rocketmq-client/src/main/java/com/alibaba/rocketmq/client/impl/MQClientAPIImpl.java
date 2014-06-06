@@ -1990,4 +1990,78 @@ public class MQClientAPIImpl {
 
         throw new MQBrokerException(response.getCode(), response.getRemark());
     }
+
+
+    /**
+     * 获取所有系统内置 Topic 列表
+     */
+    public TopicList getSystemTopicList(final long timeoutMillis) throws RemotingException,
+            MQClientException, InterruptedException {
+        RemotingCommand request =
+                RemotingCommand.createRequestCommand(RequestCode.GET_SYSTEM_TOPIC_LIST_FROM_NS, null);
+
+        RemotingCommand response = this.remotingClient.invokeSync(null, request, timeoutMillis);
+        assert response != null;
+        switch (response.getCode()) {
+        case ResponseCode.SUCCESS: {
+            byte[] body = response.getBody();
+            if (body != null) {
+                TopicList topicList = TopicList.decode(response.getBody(), TopicList.class);
+                if (!UtilAll.isBlank(projectGroupPrefix)) {
+                    HashSet<String> newTopicSet = new HashSet<String>();
+                    for (String topic : topicList.getTopicList()) {
+                        newTopicSet.add(VirtualEnvUtil.clearProjectGroup(topic, projectGroupPrefix));
+                    }
+                    topicList.setTopicList(newTopicSet);
+                }
+
+                if (topicList.getTopicList() != null && !topicList.getTopicList().isEmpty()
+                        && !UtilAll.isBlank(topicList.getBrokerAddr())) {
+                    TopicList tmp = getSystemTopicListFromBroker(topicList.getBrokerAddr(), timeoutMillis);
+                    if (tmp.getTopicList() != null && !tmp.getTopicList().isEmpty()) {
+                        topicList.getTopicList().addAll(tmp.getTopicList());
+                    }
+                }
+                return topicList;
+            }
+        }
+        default:
+            break;
+        }
+
+        throw new MQClientException(response.getCode(), response.getRemark());
+    }
+
+
+    /**
+     * Name Server: 从Name Server获取所有系统内置 Topic 列表
+     */
+    public TopicList getSystemTopicListFromBroker(final String addr, final long timeoutMillis)
+            throws RemotingException, MQClientException, InterruptedException {
+        RemotingCommand request =
+                RemotingCommand.createRequestCommand(RequestCode.GET_SYSTEM_TOPIC_LIST_FROM_BROKER, null);
+
+        RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
+        assert response != null;
+        switch (response.getCode()) {
+        case ResponseCode.SUCCESS: {
+            byte[] body = response.getBody();
+            if (body != null) {
+                TopicList topicList = TopicList.decode(body, TopicList.class);
+                if (!UtilAll.isBlank(projectGroupPrefix)) {
+                    HashSet<String> newTopicSet = new HashSet<String>();
+                    for (String topic : topicList.getTopicList()) {
+                        newTopicSet.add(VirtualEnvUtil.clearProjectGroup(topic, projectGroupPrefix));
+                    }
+                    topicList.setTopicList(newTopicSet);
+                }
+                return topicList;
+            }
+        }
+        default:
+            break;
+        }
+
+        throw new MQClientException(response.getCode(), response.getRemark());
+    }
 }
