@@ -76,7 +76,7 @@
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<!--maven properties -->
 		<maven.test.skip>true</maven.test.skip>
-		<maven.jdoc.skip>true</maven.jdoc.skip>
+		<maven.jdoc.skip>false</maven.jdoc.skip>
 		<downloadSources>true</downloadSources>
 		<!-- compiler settings properties -->
 		<java_source_version>1.6</java_source_version>
