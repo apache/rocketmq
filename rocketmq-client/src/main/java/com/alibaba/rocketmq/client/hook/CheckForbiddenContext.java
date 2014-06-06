@@ -28,6 +28,7 @@ import com.alibaba.rocketmq.common.message.MessageQueue;
  * @since 2014-3-19
  */
 public class CheckForbiddenContext {
+    private String nameSrvAddr;
     private String group;
     private Message message;
     private MessageQueue mq;
@@ -129,10 +130,21 @@ public class CheckForbiddenContext {
     }
 
 
+    public String getNameSrvAddr() {
+        return nameSrvAddr;
+    }
+
+
+    public void setNameSrvAddr(String nameSrvAddr) {
+        this.nameSrvAddr = nameSrvAddr;
+    }
+
+
     @Override
     public String toString() {
-        return "SendMessageContext [group=" + group + ", message=" + message + ", mq=" + mq + ", brokerAddr="
-                + brokerAddr + ", communicationMode=" + communicationMode + ", sendResult=" + sendResult
-                + ", exception=" + exception + ", isUnitMode=" + isUnitMode + ", arg=" + arg + "]";
+        return "SendMessageContext [nameSrvAddr=" + nameSrvAddr + ", group=" + group + ", message=" + message
+                + ", mq=" + mq + ", brokerAddr=" + brokerAddr + ", communicationMode=" + communicationMode
+                + ", sendResult=" + sendResult + ", exception=" + exception + ", isUnitMode=" + isUnitMode
+                + ", arg=" + arg + "]";
     }
 }
