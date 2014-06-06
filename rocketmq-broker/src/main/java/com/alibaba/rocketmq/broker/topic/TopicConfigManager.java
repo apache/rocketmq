@@ -15,16 +15,6 @@
  */
 package com.alibaba.rocketmq.broker.topic;
 
-import java.util.Iterator;
-import java.util.Map.Entry;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.alibaba.rocketmq.broker.BrokerController;
 import com.alibaba.rocketmq.common.ConfigManager;
 import com.alibaba.rocketmq.common.DataVersion;
@@ -33,7 +23,17 @@ import com.alibaba.rocketmq.common.TopicConfig;
 import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.common.constant.PermName;
 import com.alibaba.rocketmq.common.protocol.body.TopicConfigSerializeWrapper;
-import com.alibaba.rocketmq.store.schedule.ScheduleMessageService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 
 /**
@@ -54,6 +54,8 @@ public class TopicConfigManager extends ConfigManager {
             new ConcurrentHashMap<String, TopicConfig>(1024);
     private final DataVersion dataVersion = new DataVersion();
 
+    private final Set<String> systemTopicList = new HashSet<String>();
+
 
     public TopicConfigManager() {
     }
@@ -63,7 +65,9 @@ public class TopicConfigManager extends ConfigManager {
         this.brokerController = brokerController;
         {
             // MixAll.SELF_TEST_TOPIC
-            TopicConfig topicConfig = new TopicConfig(MixAll.SELF_TEST_TOPIC);
+            String topic = MixAll.SELF_TEST_TOPIC;
+            TopicConfig topicConfig = new TopicConfig(topic);
+            this.systemTopicList.add(topic);
             topicConfig.setReadQueueNums(1);
             topicConfig.setWriteQueueNums(1);
             this.topicConfigTable.put(topicConfig.getTopicName(), topicConfig);
@@ -71,7 +75,9 @@ public class TopicConfigManager extends ConfigManager {
         {
             // MixAll.DEFAULT_TOPIC
             if (this.brokerController.getBrokerConfig().isAutoCreateTopicEnable()) {
-                TopicConfig topicConfig = new TopicConfig(MixAll.DEFAULT_TOPIC);
+                String topic = MixAll.DEFAULT_TOPIC;
+                TopicConfig topicConfig = new TopicConfig(topic);
+                this.systemTopicList.add(topic);
                 topicConfig.setReadQueueNums(this.brokerController.getBrokerConfig()
                     .getDefaultTopicQueueNums());
                 topicConfig.setWriteQueueNums(this.brokerController.getBrokerConfig()
@@ -83,15 +89,18 @@ public class TopicConfigManager extends ConfigManager {
         }
         {
             // MixAll.BENCHMARK_TOPIC
-            TopicConfig topicConfig = new TopicConfig(MixAll.BENCHMARK_TOPIC);
+            String topic = MixAll.BENCHMARK_TOPIC;
+            TopicConfig topicConfig = new TopicConfig(topic);
+            this.systemTopicList.add(topic);
             topicConfig.setReadQueueNums(1024);
             topicConfig.setWriteQueueNums(1024);
             this.topicConfigTable.put(topicConfig.getTopicName(), topicConfig);
         }
         {
             // 集群名字
-            TopicConfig topicConfig =
-                    new TopicConfig(this.brokerController.getBrokerConfig().getBrokerClusterName());
+            String topic = this.brokerController.getBrokerConfig().getBrokerClusterName();
+            TopicConfig topicConfig = new TopicConfig(topic);
+            this.systemTopicList.add(topic);
             int perm = PermName.PERM_INHERIT;
             if (this.brokerController.getBrokerConfig().isClusterTopicEnable()) {
                 perm |= PermName.PERM_READ | PermName.PERM_WRITE;
@@ -101,8 +110,9 @@ public class TopicConfigManager extends ConfigManager {
         }
         {
             // 服务器名字
-            TopicConfig topicConfig =
-                    new TopicConfig(this.brokerController.getBrokerConfig().getBrokerName());
+            String topic = this.brokerController.getBrokerConfig().getBrokerName();
+            TopicConfig topicConfig = new TopicConfig(topic);
+            this.systemTopicList.add(topic);
             int perm = PermName.PERM_INHERIT;
             if (this.brokerController.getBrokerConfig().isBrokerTopicEnable()) {
                 perm |= PermName.PERM_READ | PermName.PERM_WRITE;
@@ -114,7 +124,9 @@ public class TopicConfigManager extends ConfigManager {
         }
         {
             // MixAll.OFFSET_MOVED_EVENT
-            TopicConfig topicConfig = new TopicConfig(MixAll.OFFSET_MOVED_EVENT);
+            String topic = MixAll.OFFSET_MOVED_EVENT;
+            TopicConfig topicConfig = new TopicConfig(topic);
+            this.systemTopicList.add(topic);
             topicConfig.setReadQueueNums(1);
             topicConfig.setWriteQueueNums(1);
             this.topicConfigTable.put(topicConfig.getTopicName(), topicConfig);
@@ -123,14 +135,12 @@ public class TopicConfigManager extends ConfigManager {
 
 
     public boolean isSystemTopic(final String topic) {
-        boolean res = //
-                topic.equals(MixAll.DEFAULT_TOPIC)//
-                        || topic.equals(MixAll.SELF_TEST_TOPIC)//
-                        || topic.equals(this.brokerController.getBrokerConfig().getBrokerClusterName())//
-                        || topic.equals(ScheduleMessageService.SCHEDULE_TOPIC)//
-                        || topic.equals(MixAll.SELF_TEST_TOPIC);
+        return this.systemTopicList.contains(topic);
+    }
 
-        return res;
+
+    public Set<String> getSystemTopic() {
+        return this.systemTopicList;
     }
 
 
