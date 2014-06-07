@@ -62,10 +62,6 @@ public class BrokerStartup {
         opt.setRequired(false);
         options.addOption(opt);
 
-        opt = new Option("t", "topicConfig", true, "Topic config json file");
-        opt.setRequired(false);
-        options.addOption(opt);
-
         opt = new Option("p", "printConfigItem", false, "Print all config item");
         opt.setRequired(false);
         options.addOption(opt);
@@ -149,17 +145,9 @@ public class BrokerStartup {
                     MixAll.properties2Object(properties, nettyClientConfig);
                     MixAll.properties2Object(properties, messageStoreConfig);
 
-                    brokerConfig.setBrokerConfigPath(file);
+                    BrokerPathConfigHelper.setBrokerConfigPath(file);
 
                     System.out.println("load config properties file OK, " + file);
-                }
-            }
-
-            // 指定Topic配置项
-            if (commandLine.hasOption('t')) {
-                String file = commandLine.getOptionValue('t');
-                if (file != null) {
-                    brokerConfig.setTopicConfigPath(file);
                 }
             }
 
@@ -185,7 +173,7 @@ public class BrokerStartup {
                 catch (Exception e) {
                     System.out
                         .printf(
-                            "The Name Server Address[%s] is illegal, please set it as this, 127.0.0.1:9876;192.168.0.1:9876\n",
+                            "The Name Server Address[%s] illegal, please set it as follows, \"127.0.0.1:9876;192.168.0.1:9876\"\n",
                             namesrvAddr);
                     System.exit(-3);
                 }
