@@ -37,6 +37,7 @@ import com.alibaba.rocketmq.common.running.RunningStats;
 import com.alibaba.rocketmq.common.sysflag.MessageSysFlag;
 import com.alibaba.rocketmq.store.config.BrokerRole;
 import com.alibaba.rocketmq.store.config.MessageStoreConfig;
+import com.alibaba.rocketmq.store.config.StorePathConfigHelper;
 import com.alibaba.rocketmq.store.ha.HAService;
 import com.alibaba.rocketmq.store.index.IndexService;
 import com.alibaba.rocketmq.store.index.QueryOffsetResult;
@@ -185,7 +186,9 @@ public class DefaultMessageStore implements MessageStore {
             result = result && this.transactionStateService.load();
 
             if (result) {
-                this.storeCheckpoint = new StoreCheckpoint(this.messageStoreConfig.getStoreCheckpoint());
+                this.storeCheckpoint =
+                        new StoreCheckpoint(StorePathConfigHelper.getStoreCheckpoint(this.messageStoreConfig
+                            .getStorePathRootDir()));
 
                 this.indexService.load(lastExitOK);
 
@@ -278,7 +281,8 @@ public class DefaultMessageStore implements MessageStore {
             }
             this.storeCheckpoint.flush();
             this.storeCheckpoint.shutdown();
-            this.deleteFile(this.messageStoreConfig.getAbortFile());
+
+            this.deleteFile(StorePathConfigHelper.getAbortFile(this.messageStoreConfig.getStorePathRootDir()));
         }
     }
 
@@ -287,8 +291,9 @@ public class DefaultMessageStore implements MessageStore {
         this.destroyLogics();
         this.commitLog.destroy();
         this.indexService.destroy();
-        this.deleteFile(this.messageStoreConfig.getAbortFile());
-        this.deleteFile(this.messageStoreConfig.getStoreCheckpoint());
+        this.deleteFile(StorePathConfigHelper.getAbortFile(this.messageStoreConfig.getStorePathRootDir()));
+        this.deleteFile(StorePathConfigHelper.getStoreCheckpoint(this.messageStoreConfig
+            .getStorePathRootDir()));
     }
 
 
@@ -611,8 +616,10 @@ public class DefaultMessageStore implements MessageStore {
 
         // 检测逻辑文件磁盘空间
         {
+
             String storePathLogics =
-                    DefaultMessageStore.this.getMessageStoreConfig().getStorePathConsumeQueue();
+                    StorePathConfigHelper.getStorePathConsumeQueue(this.messageStoreConfig
+                        .getStorePathRootDir());
             double logicsRatio = UtilAll.getDiskPartitionSpaceUsedPercent(storePathLogics);
             result.put(RunningStats.consumeQueueDiskRatio.name(), String.valueOf(logicsRatio));
         }
@@ -807,12 +814,14 @@ public class DefaultMessageStore implements MessageStore {
 
         ConsumeQueue logic = map.get(queueId);
         if (null == logic) {
-            ConsumeQueue newLogic = new ConsumeQueue(//
-                topic,//
-                queueId,//
-                this.getMessageStoreConfig().getStorePathConsumeQueue(),//
-                this.getMessageStoreConfig().getMapedFileSizeConsumeQueue(),//
-                this);
+            ConsumeQueue newLogic =
+                    new ConsumeQueue(//
+                        topic,//
+                        queueId,//
+                        StorePathConfigHelper.getStorePathConsumeQueue(this.messageStoreConfig
+                            .getStorePathRootDir()),//
+                        this.getMessageStoreConfig().getMapedFileSizeConsumeQueue(),//
+                        this);
             ConsumeQueue oldLogic = map.putIfAbsent(queueId, newLogic);
             if (oldLogic != null) {
                 logic = oldLogic;
@@ -880,7 +889,7 @@ public class DefaultMessageStore implements MessageStore {
      * @throws IOException
      */
     private void createTempFile() throws IOException {
-        String fileName = this.messageStoreConfig.getAbortFile();
+        String fileName = StorePathConfigHelper.getAbortFile(this.messageStoreConfig.getStorePathRootDir());
         File file = new File(fileName);
         MapedFile.ensureDirOK(file.getParent());
         boolean result = file.createNewFile();
@@ -889,14 +898,16 @@ public class DefaultMessageStore implements MessageStore {
 
 
     private boolean isTempFileExist() {
-        String fileName = this.messageStoreConfig.getAbortFile();
+        String fileName = StorePathConfigHelper.getAbortFile(this.messageStoreConfig.getStorePathRootDir());
         File file = new File(fileName);
         return file.exists();
     }
 
 
     private boolean loadConsumeQueue() {
-        File dirLogic = new File(this.messageStoreConfig.getStorePathConsumeQueue());
+        File dirLogic =
+                new File(StorePathConfigHelper.getStorePathConsumeQueue(this.messageStoreConfig
+                    .getStorePathRootDir()));
         File[] fileTopicList = dirLogic.listFiles();
         if (fileTopicList != null) {
             // TOPIC 遍历
@@ -907,12 +918,14 @@ public class DefaultMessageStore implements MessageStore {
                 if (fileQueueIdList != null) {
                     for (File fileQueueId : fileQueueIdList) {
                         int queueId = Integer.parseInt(fileQueueId.getName());
-                        ConsumeQueue logic = new ConsumeQueue(//
-                            topic,//
-                            queueId,//
-                            this.getMessageStoreConfig().getStorePathConsumeQueue(),//
-                            this.getMessageStoreConfig().getMapedFileSizeConsumeQueue(),//
-                            this);
+                        ConsumeQueue logic =
+                                new ConsumeQueue(//
+                                    topic,//
+                                    queueId,//
+                                    StorePathConfigHelper.getStorePathConsumeQueue(this.messageStoreConfig
+                                        .getStorePathRootDir()),//
+                                    this.getMessageStoreConfig().getMapedFileSizeConsumeQueue(),//
+                                    this);
                         this.putConsumeQueue(topic, queueId, logic);
                         if (!logic.load()) {
                             return false;
@@ -1231,7 +1244,8 @@ public class DefaultMessageStore implements MessageStore {
             // 检测逻辑文件磁盘空间
             {
                 String storePathLogics =
-                        DefaultMessageStore.this.getMessageStoreConfig().getStorePathConsumeQueue();
+                        StorePathConfigHelper.getStorePathConsumeQueue(DefaultMessageStore.this
+                            .getMessageStoreConfig().getStorePathRootDir());
                 double logicsRatio = UtilAll.getDiskPartitionSpaceUsedPercent(storePathLogics);
                 if (logicsRatio > DiskSpaceWarningLevelRatio) {
                     boolean diskok = DefaultMessageStore.this.runningFlags.getAndMakeDiskFull();

@@ -35,6 +35,7 @@ import com.alibaba.rocketmq.common.message.MessageConst;
 import com.alibaba.rocketmq.common.sysflag.MessageSysFlag;
 import com.alibaba.rocketmq.store.DefaultMessageStore;
 import com.alibaba.rocketmq.store.DispatchRequest;
+import com.alibaba.rocketmq.store.config.StorePathConfigHelper;
 
 
 /**
@@ -61,7 +62,8 @@ public class IndexService extends ServiceThread {
         this.defaultMessageStore = store;
         this.hashSlotNum = store.getMessageStoreConfig().getMaxHashSlotNum();
         this.indexNum = store.getMessageStoreConfig().getMaxIndexNum();
-        this.storePath = store.getMessageStoreConfig().getStorePathIndex();
+        this.storePath =
+                StorePathConfigHelper.getStorePathIndex(store.getMessageStoreConfig().getStorePathRootDir());
     }
 
 
