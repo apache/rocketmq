@@ -39,6 +39,7 @@ import com.alibaba.rocketmq.store.MessageExtBrokerInner;
 import com.alibaba.rocketmq.store.PutMessageResult;
 import com.alibaba.rocketmq.store.PutMessageStatus;
 import com.alibaba.rocketmq.store.SelectMapedBufferResult;
+import com.alibaba.rocketmq.store.config.StorePathConfigHelper;
 
 
 /**
@@ -177,7 +178,8 @@ public class ScheduleMessageService extends ConfigManager {
 
     @Override
     public String configFilePath() {
-        return this.defaultMessageStore.getMessageStoreConfig().getDelayOffsetStorePath();
+        return StorePathConfigHelper.getDelayOffsetStorePath(this.defaultMessageStore.getMessageStoreConfig()
+            .getStorePathRootDir());
     }
 
 
