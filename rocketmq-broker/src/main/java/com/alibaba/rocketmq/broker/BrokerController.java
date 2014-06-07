@@ -645,11 +645,11 @@ public class BrokerController {
     private void flushAllConfig() {
         String allConfig = this.encodeAllConfig();
         try {
-            MixAll.string2File(allConfig, this.brokerConfig.getBrokerConfigPath());
-            log.info("flush broker config, {} OK", this.brokerConfig.getBrokerConfigPath());
+            MixAll.string2File(allConfig, BrokerPathConfigHelper.getBrokerConfigPath());
+            log.info("flush broker config, {} OK", BrokerPathConfigHelper.getBrokerConfigPath());
         }
         catch (IOException e) {
-            log.info("flush broker config Exception, " + this.brokerConfig.getBrokerConfigPath(), e);
+            log.info("flush broker config Exception, " + BrokerPathConfigHelper.getBrokerConfigPath(), e);
         }
     }
 
