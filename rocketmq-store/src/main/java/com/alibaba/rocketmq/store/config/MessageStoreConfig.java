@@ -43,8 +43,10 @@ public class MessageStoreConfig {
     // ConsumeQueue每个文件大小 默认存储30W条消息
     private int mapedFileSizeConsumeQueue = 300000 * ConsumeQueue.CQStoreUnitSize;
     // CommitLog刷盘间隔时间（单位毫秒）
+    @ImportantField
     private int flushIntervalCommitLog = 1000;
     // 是否定时方式刷盘，默认是实时刷盘
+    @ImportantField
     private boolean flushCommitLogTimed = false;
     // ConsumeQueue刷盘间隔时间（单位毫秒）
     private int flushIntervalConsumeQueue = 1000;
@@ -65,7 +67,7 @@ public class MessageStoreConfig {
     private int diskMaxUsedSpaceRatio = 75;
     // 文件保留时间（单位小时）
     @ImportantField
-    private int fileReservedTime = 48;
+    private int fileReservedTime = 72;
     // 写消息索引到ConsumeQueue，缓冲区高水位，超过则开始流控
     private int putMsgIndexHightWater = 600000;
     // 最大消息大小，默认512K
