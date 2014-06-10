@@ -19,7 +19,10 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map.Entry;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -1774,5 +1777,29 @@ public class DefaultMessageStore implements MessageStore {
     @Override
     public long slaveFallBehindMuch() {
         return this.commitLog.getMaxOffset() - this.haService.getPush2SlaveMaxOffset().get();
+    }
+
+
+    @Override
+    public int cleanUnusedTopic(Set<String> topics) {
+        Iterator<Entry<String, ConcurrentHashMap<Integer, ConsumeQueue>>> it =
+                this.consumeQueueTable.entrySet().iterator();
+        while (it.hasNext()) {
+            Entry<String, ConcurrentHashMap<Integer, ConsumeQueue>> next = it.next();
+            String topic = next.getKey();
+            // Topic可以删除
+            if (!topics.contains(topic) && !topic.equals(ScheduleMessageService.SCHEDULE_TOPIC)) {
+                ConcurrentHashMap<Integer, ConsumeQueue> queueTable = next.getValue();
+                for (ConsumeQueue cq : queueTable.values()) {
+                    cq.destroy();
+                    log.info("cleanUnusedTopic: {} {} ConsumeQueue cleaned", cq.getTopic(), cq.getQueueId());
+                }
+                it.remove();
+
+                log.info("cleanUnusedTopic: {},topic destroyed", topic);
+            }
+        }
+
+        return 0;
     }
 }

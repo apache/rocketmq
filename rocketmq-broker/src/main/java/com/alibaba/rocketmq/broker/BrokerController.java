@@ -755,4 +755,17 @@ public class BrokerController {
         // XXX: warn and notify me
         log.info("slave fall behind master, how much, {} bytes", diff);
     }
+
+
+    public void addDeleteTopicTask() {
+        // 5分钟后，尝试删除topic
+        this.scheduledExecutorService.schedule(new Runnable() {
+            @Override
+            public void run() {
+                BrokerController.this.messageStore.cleanUnusedTopic(BrokerController.this
+                    .getTopicConfigManager().getTopicConfigTable().keySet());
+
+            }
+        }, 5, TimeUnit.MINUTES);
+    }
 }
