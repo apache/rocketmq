@@ -324,10 +324,13 @@ public class SendMessageProcessor implements NettyRequestProcessor {
 
         // 检查队列有效性
         int queueIdInt = requestHeader.getQueueId();
-        if (queueIdInt >= topicConfig.getWriteQueueNums()) {
-            String errorInfo =
-                    "queueId[" + queueIdInt + "] is illagal, topicConfig.writeQueueNums: "
-                            + topicConfig.getWriteQueueNums() + " producer: " + ctx.channel().remoteAddress();
+        int idValid = Math.max(topicConfig.getWriteQueueNums(), topicConfig.getReadQueueNums());
+        if (queueIdInt >= idValid) {
+            String errorInfo = String.format("request queueId[%d] is illagal, %s Producer: %s",//
+                queueIdInt,//
+                topicConfig.toString(),//
+                RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
+
             log.warn(errorInfo);
             response.setCode(ResponseCode.SYSTEM_ERROR);
             response.setRemark(errorInfo);
