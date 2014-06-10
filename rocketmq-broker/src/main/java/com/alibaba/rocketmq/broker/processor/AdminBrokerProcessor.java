@@ -582,6 +582,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         log.info("deleteTopic called by {}", RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
 
         this.brokerController.getTopicConfigManager().deleteTopicConfig(requestHeader.getTopic());
+        this.brokerController.addDeleteTopicTask();
 
         response.setCode(ResponseCode.SUCCESS);
         response.setRemark(null);
@@ -1067,7 +1068,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
 
         Set<String> topics = this.brokerController.getTopicConfigManager().getSystemTopic();
-	    TopicList topicList = new TopicList();
+        TopicList topicList = new TopicList();
         topicList.setTopicList(topics);
         response.setBody(topicList.encode());
         response.setCode(ResponseCode.SUCCESS);
