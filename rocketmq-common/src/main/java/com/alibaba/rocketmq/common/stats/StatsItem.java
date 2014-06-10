@@ -247,6 +247,23 @@ public class StatsItem {
         if (this.csListMinute.size() > 7) {
             this.csListMinute.removeFirst();
         }
+
+        double avgpsecond = 0;
+        double avgptimes = 0;
+        if (!this.csListMinute.isEmpty()) {
+            CallSnapshot first = this.csListMinute.getFirst();
+            CallSnapshot last = this.csListMinute.getLast();
+            sumInLastMinutes = last.getValue() - first.getValue();
+            avgpsecond = (sumInLastMinutes * 1000.0d) / (last.getTimestamp() - first.getTimestamp());
+
+            long timesDiff = last.getTimes() - first.getTimes();
+            if (timesDiff > 0) {
+                avgptimes = (sumInLastMinutes * 1.0d) / (timesDiff);
+            }
+        }
+
+        this.avgpsecondInLastMinutes = avgpsecond;
+        this.avgptimesInLastMinutes = avgptimes;
     }
 
 
