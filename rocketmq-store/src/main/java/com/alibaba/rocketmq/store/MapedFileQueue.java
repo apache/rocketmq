@@ -364,7 +364,6 @@ public class MapedFileQueue {
                                 Thread.sleep(deleteFilesInterval);
                             }
                             catch (InterruptedException e) {
-                                e.printStackTrace();
                             }
                         }
                     }

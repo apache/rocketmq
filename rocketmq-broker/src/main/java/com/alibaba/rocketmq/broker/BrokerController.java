@@ -589,6 +589,9 @@ public class BrokerController {
         if (this.brokerStatsManager != null) {
             this.brokerStatsManager.start();
         }
+
+        // 删除多余的Topic
+        this.addDeleteTopicTask();
     }
 
 
