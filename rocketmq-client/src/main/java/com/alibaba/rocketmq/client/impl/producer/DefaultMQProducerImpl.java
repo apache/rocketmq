@@ -41,6 +41,7 @@ import com.alibaba.rocketmq.common.sysflag.MessageSysFlag;
 import com.alibaba.rocketmq.remoting.common.RemotingHelper;
 import com.alibaba.rocketmq.remoting.common.RemotingUtil;
 import com.alibaba.rocketmq.remoting.exception.RemotingException;
+
 import org.slf4j.Logger;
 
 import java.io.IOException;
@@ -473,6 +474,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         this.makeSureStateOK();
         Validators.checkMessage(msg, this.defaultMQProducer);
 
+        final long maxTimeout = this.defaultMQProducer.getSendMsgTimeout() + 1000;
         final long beginTimestamp = System.currentTimeMillis();
         long endTimestamp = beginTimestamp;
         TopicPublishInfo topicPublishInfo = this.tryToFindTopicPublishInfo(msg.getTopic());
@@ -481,8 +483,8 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             Exception exception = null;
             SendResult sendResult = null;
             int timesTotal = 1 + this.defaultMQProducer.getRetryTimesWhenSendFailed();
-            for (int times = 0; times < timesTotal
-                    && (endTimestamp - beginTimestamp) < this.defaultMQProducer.getSendMsgTimeout(); times++) {
+            int times = 0;
+            for (; times < timesTotal && (endTimestamp - beginTimestamp) < maxTimeout; times++) {
                 String lastBrokerName = null == mq ? null : mq.getBrokerName();
                 MessageQueue tmpmq = topicPublishInfo.selectOneMessageQueue(lastBrokerName);
                 if (tmpmq != null) {
@@ -557,7 +559,10 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                 return sendResult;
             }
 
-            throw new MQClientException("Retry many times, still failed", exception);
+            throw new MQClientException(String.format("Retry [%d] times, still failed, cost [%d]ms", //
+                times, //
+                (System.currentTimeMillis() - beginTimestamp)), //
+                exception);
         }
 
         List<String> nsList = this.getmQClientFactory().getMQClientAPIImpl().getNameServerAddressList();
