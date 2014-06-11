@@ -47,6 +47,7 @@ import com.alibaba.rocketmq.common.help.FAQUrl;
 import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.common.message.MessageQueue;
 import com.alibaba.rocketmq.common.namesrv.NamesrvUtil;
+import com.alibaba.rocketmq.common.protocol.ResponseCode;
 import com.alibaba.rocketmq.common.protocol.body.ClusterInfo;
 import com.alibaba.rocketmq.common.protocol.body.ConsumeByWho;
 import com.alibaba.rocketmq.common.protocol.body.ConsumerConnection;
@@ -615,5 +616,21 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
             break;
         }
         return null;
+    }
+
+
+    @Override
+    public void resetOffsetNew(String consumerGroup, String topic, long timestamp) throws RemotingException,
+            MQBrokerException, InterruptedException, MQClientException {
+        try {
+            this.resetOffsetByTimestamp(topic, consumerGroup, timestamp, true);
+        }
+        catch (MQClientException e) {
+            if (ResponseCode.CONSUMER_NOT_ONLINE == e.getResponseCode()) {
+                this.resetOffsetByTimestampOld(consumerGroup, topic, timestamp, true);
+                return;
+            }
+            throw e;
+        }
     }
 }

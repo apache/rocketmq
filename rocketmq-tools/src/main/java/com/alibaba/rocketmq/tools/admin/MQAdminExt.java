@@ -442,6 +442,20 @@ public interface MQAdminExt extends MQAdmin {
 
 
     /**
+     * 重置消费进度，无论Consumer是否在线，都可以执行。不保证最终结果是否成功，需要调用方通过消费进度查询来再次确认
+     * 
+     * @param consumerGroup
+     * @param topic
+     * @param timestamp
+     * @throws InterruptedException
+     * @throws MQBrokerException
+     * @throws RemotingException
+     * @throws MQClientException 
+     */
+    public void resetOffsetNew(String consumerGroup, String topic, long timestamp) throws RemotingException, MQBrokerException, InterruptedException, MQClientException;
+
+
+    /**
      * 通过客户端查看消费者的消费情况
      * 
      * @param topic
