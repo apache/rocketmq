@@ -17,7 +17,7 @@ import com.alibaba.rocketmq.common.message.Message;
  * @since 2013-8-28
  */
 public class Validators {
-    public static final String VALID_PATTERN_STR = "^[a-zA-Z0-9_-]+$";
+    public static final String VALID_PATTERN_STR = "^[%|a-zA-Z0-9_-]+$";
     public static final Pattern PATTERN = Pattern.compile(VALID_PATTERN_STR);
     public static final int CHARACTER_MAX_LENGTH = 255;
 
@@ -64,11 +64,6 @@ public class Validators {
     public static void checkTopic(String topic) throws MQClientException {
         if (UtilAll.isBlank(topic)) {
             throw new MQClientException("the specified topic is blank", null);
-        }
-
-        if (topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)
-                || topic.startsWith(MixAll.DLQ_GROUP_TOPIC_PREFIX)) {
-            return;
         }
 
         if (!regularExpressionMatcher(topic, PATTERN)) {
