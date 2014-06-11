@@ -167,7 +167,7 @@ public class DefaultMessageStore implements MessageStore {
      * @throws IOException
      */
     public boolean load() {
-        boolean result = false;
+        boolean result = true;
 
         try {
             boolean lastExitOK = !this.isTempFileExist();
@@ -180,7 +180,7 @@ public class DefaultMessageStore implements MessageStore {
             }
 
             // load Commit Log
-            result = this.commitLog.load();
+            result = result && this.commitLog.load();
 
             // load Consume Queue
             result = result && this.loadConsumeQueue();
