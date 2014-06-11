@@ -310,6 +310,9 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
             return;
         }
 
+        // 标明尝试拉消息了
+        pullRequest.getProcessQueue().setLastPullTimestamp(System.currentTimeMillis());
+
         // 检测Consumer是否启动
         try {
             this.makeSureStateOK();
@@ -489,8 +492,6 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
 
             classFilter = sd.isClassFilterMode();
         }
-
-        pullRequest.getProcessQueue().setLastPullTimestamp(System.currentTimeMillis());
 
         int sysFlag = PullSysFlag.buildSysFlag(//
             commitOffsetEnable, // commitOffset
