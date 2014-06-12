@@ -25,8 +25,10 @@ public enum ConsumeOrderlyStatus {
     // 消息处理成功
     SUCCESS,
     // 回滚消息（只供精卫binlog复制使用）
+    @Deprecated
     ROLLBACK,
     // 提交消息（只供精卫binlog复制使用）
+    @Deprecated
     COMMIT,
     // 将当前队列挂起一小会儿
     SUSPEND_CURRENT_QUEUE_A_MOMENT,
