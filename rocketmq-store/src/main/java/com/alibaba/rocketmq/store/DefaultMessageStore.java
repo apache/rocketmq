@@ -24,6 +24,9 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.slf4j.Logger;
@@ -31,6 +34,7 @@ import org.slf4j.LoggerFactory;
 
 import com.alibaba.rocketmq.common.ServiceThread;
 import com.alibaba.rocketmq.common.SystemClock;
+import com.alibaba.rocketmq.common.ThreadFactoryImpl;
 import com.alibaba.rocketmq.common.UtilAll;
 import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.common.message.MessageDecoder;
@@ -99,6 +103,9 @@ public class DefaultMessageStore implements MessageStore {
     private StoreCheckpoint storeCheckpoint;
     // 权限控制后，打印间隔次数
     private AtomicLong printTimes = new AtomicLong(0);
+    // 存储层的定时线程
+    private final ScheduledExecutorService scheduledExecutorService = Executors
+        .newSingleThreadScheduledExecutor(new ThreadFactoryImpl("StoreScheduledThread"));
 
 
     public DefaultMessageStore(final MessageStoreConfig messageStoreConfig) throws IOException {
@@ -171,7 +178,7 @@ public class DefaultMessageStore implements MessageStore {
 
         try {
             boolean lastExitOK = !this.isTempFileExist();
-            log.info("last shutdown " + (lastExitOK ? "normally" : "abnormally"));
+            log.info("last shutdown {}", (lastExitOK ? "normally" : "abnormally"));
 
             // load 定时进度
             // 这个步骤要放置到最前面，从CommitLog里Recover定时消息需要依赖加载的定时级别参数
@@ -198,7 +205,7 @@ public class DefaultMessageStore implements MessageStore {
                 // 尝试恢复数据
                 this.recover(lastExitOK);
 
-                log.info("load over, and the max phy offset = " + this.getMaxPhyOffset());
+                log.info("load over, and the max phy offset = {}", this.getMaxPhyOffset());
             }
         }
         catch (Exception e) {
@@ -214,15 +221,29 @@ public class DefaultMessageStore implements MessageStore {
     }
 
 
+    private void addScheduleTask() {
+        // 定时删除文件
+        this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
+            @Override
+            public void run() {
+                DefaultMessageStore.this.cleanFilesPeriodically();
+            }
+        }, 1000 * 60, this.messageStoreConfig.getCleanResourceInterval(), TimeUnit.MILLISECONDS);
+    }
+
+
+    private void cleanFilesPeriodically() {
+        this.cleanCommitLogService.run();
+        this.cleanConsumeQueueService.run();
+    }
+
+
     /**
      * 启动存储服务
      * 
      * @throws Exception
      */
     public void start() throws Exception {
-        this.cleanCommitLogService.start();
-        this.cleanConsumeQueueService.start();
-
         // 在构造函数已经start了。
         // this.indexService.start();
         // 在构造函数已经start了。
@@ -244,6 +265,7 @@ public class DefaultMessageStore implements MessageStore {
         this.haService.start();
 
         this.createTempFile();
+        this.addScheduleTask();
         this.shutdown = false;
     }
 
@@ -254,6 +276,8 @@ public class DefaultMessageStore implements MessageStore {
     public void shutdown() {
         if (!this.shutdown) {
             this.shutdown = true;
+
+            this.scheduledExecutorService.shutdown();
 
             try {
                 // 等待其他调用停止
@@ -272,8 +296,6 @@ public class DefaultMessageStore implements MessageStore {
             this.haService.shutdown();
 
             this.storeStatsService.shutdown();
-            this.cleanCommitLogService.shutdown();
-            this.cleanConsumeQueueService.shutdown();
             this.dispatchMessageService.shutdown();
             this.indexService.shutdown();
             this.flushConsumeQueueService.shutdown();
@@ -1091,7 +1113,7 @@ public class DefaultMessageStore implements MessageStore {
     /**
      * 清理物理文件服务
      */
-    class CleanCommitLogService extends ServiceThread {
+    class CleanCommitLogService {
         // 手工触发一次最多删除次数
         private final static int MaxManualDeleteFileTimes = 20;
         // 磁盘空间警戒水位，超过，则停止接收新消息（出于保护自身目的）
@@ -1114,27 +1136,17 @@ public class DefaultMessageStore implements MessageStore {
 
 
         public void run() {
-            DefaultMessageStore.log.info(this.getServiceName() + " service started");
-            int cleanResourceInterval =
-                    DefaultMessageStore.this.getMessageStoreConfig().getCleanResourceInterval();
-            while (!this.isStoped()) {
-                try {
-                    this.waitForRunning(cleanResourceInterval);
+            try {
+                this.deleteExpiredFiles();
 
-                    this.deleteExpiredFiles();
-
-                    this.redeleteHangedFile();
-                }
-                catch (Exception e) {
-                    DefaultMessageStore.log.warn(this.getServiceName() + " service has exception. ", e);
-                }
+                this.redeleteHangedFile();
             }
-
-            DefaultMessageStore.log.info(this.getServiceName() + " service end");
+            catch (Exception e) {
+                DefaultMessageStore.log.warn(this.getServiceName() + " service has exception. ", e);
+            }
         }
 
 
-        @Override
         public String getServiceName() {
             return CleanCommitLogService.class.getSimpleName();
         }
@@ -1152,7 +1164,7 @@ public class DefaultMessageStore implements MessageStore {
                         DefaultMessageStore.this.getMessageStoreConfig()
                             .getDestroyMapedFileIntervalForcibly();
                 if (DefaultMessageStore.this.commitLog.retryDeleteFirstFile(destroyMapedFileIntervalForcibly)) {
-                    DefaultMessageStore.this.cleanConsumeQueueService.wakeup();
+                    // TODO
                 }
             }
         }
@@ -1191,7 +1203,7 @@ public class DefaultMessageStore implements MessageStore {
                         DefaultMessageStore.this.commitLog.deleteExpiredFile(fileReservedTime,
                             deletePhysicFilesInterval, destroyMapedFileIntervalForcibly, cleanAtOnce);
                 if (deleteCount > 0) {
-                    DefaultMessageStore.this.cleanConsumeQueueService.wakeup();
+                    // TODO
                 }
                 // 危险情况：磁盘满了，但是又无法删除文件
                 else if (spacefull) {
@@ -1309,7 +1321,7 @@ public class DefaultMessageStore implements MessageStore {
     /**
      * 清理逻辑文件服务
      */
-    class CleanConsumeQueueService extends ServiceThread {
+    class CleanConsumeQueueService {
         private long lastPhysicalMinOffset = 0;
 
 
@@ -1351,25 +1363,15 @@ public class DefaultMessageStore implements MessageStore {
 
 
         public void run() {
-            DefaultMessageStore.log.info(this.getServiceName() + " service started");
-            int cleanResourceInterval =
-                    DefaultMessageStore.this.getMessageStoreConfig().getCleanResourceInterval();
-            while (!this.isStoped()) {
-                try {
-                    this.deleteExpiredFiles();
-
-                    this.waitForRunning(cleanResourceInterval);
-                }
-                catch (Exception e) {
-                    DefaultMessageStore.log.warn(this.getServiceName() + " service has exception. ", e);
-                }
+            try {
+                this.deleteExpiredFiles();
             }
-
-            DefaultMessageStore.log.info(this.getServiceName() + " service end");
+            catch (Exception e) {
+                DefaultMessageStore.log.warn(this.getServiceName() + " service has exception. ", e);
+            }
         }
 
 
-        @Override
         public String getServiceName() {
             return CleanConsumeQueueService.class.getSimpleName();
         }
