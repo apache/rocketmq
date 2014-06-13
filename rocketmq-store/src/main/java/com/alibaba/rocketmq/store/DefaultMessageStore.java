@@ -222,19 +222,63 @@ public class DefaultMessageStore implements MessageStore {
 
 
     private void addScheduleTask() {
-        // 定时删除文件
+        // 定时删除过期文件
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
             @Override
             public void run() {
                 DefaultMessageStore.this.cleanFilesPeriodically();
             }
         }, 1000 * 60, this.messageStoreConfig.getCleanResourceInterval(), TimeUnit.MILLISECONDS);
+
+        // 定时清理完全不使用的队列
+        this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
+            @Override
+            public void run() {
+                DefaultMessageStore.this.cleanExpiredConsumerQueue();
+            }
+        }, 1, 1, TimeUnit.HOURS);
     }
 
 
     private void cleanFilesPeriodically() {
         this.cleanCommitLogService.run();
         this.cleanConsumeQueueService.run();
+    }
+
+
+    private void cleanExpiredConsumerQueue() {
+        // CommitLog的最小Offset
+        long minCommitLogOffset = this.commitLog.getMinOffset();
+
+        Iterator<Entry<String, ConcurrentHashMap<Integer, ConsumeQueue>>> it =
+                this.consumeQueueTable.entrySet().iterator();
+        while (it.hasNext()) {
+            Entry<String, ConcurrentHashMap<Integer, ConsumeQueue>> next = it.next();
+            String topic = next.getKey();
+            if (!topic.equals(ScheduleMessageService.SCHEDULE_TOPIC)) {
+                ConcurrentHashMap<Integer, ConsumeQueue> queueTable = next.getValue();
+                Iterator<Entry<Integer, ConsumeQueue>> itQT = queueTable.entrySet().iterator();
+                while (itQT.hasNext()) {
+                    Entry<Integer, ConsumeQueue> nextQT = itQT.next();
+                    long maxCLOffsetInConsumeQueue = nextQT.getValue().getLastOffset();
+                    if (maxCLOffsetInConsumeQueue < minCommitLogOffset) {
+                        log.info(
+                            "cleanExpiredConsumerQueue: {} {} consumer queue destroyed, minCommitLogOffset: {} maxCLOffsetInConsumeQueue: {}",//
+                            topic,//
+                            nextQT.getKey(),//
+                            minCommitLogOffset,//
+                            maxCLOffsetInConsumeQueue);
+                        nextQT.getValue().destroy();
+                        itQT.remove();
+                    }
+                }
+
+                if (queueTable.isEmpty()) {
+                    log.info("cleanExpiredConsumerQueue: {},topic destroyed", topic);
+                    it.remove();
+                }
+            }
+        }
     }
 
 
@@ -439,7 +483,12 @@ public class DefaultMessageStore implements MessageStore {
             }
             else if (offset > maxOffset) {
                 status = GetMessageStatus.OFFSET_OVERFLOW_BADLY;
-                nextBeginOffset = maxOffset;
+                if (0 == minOffset) {
+                    nextBeginOffset = minOffset;
+                }
+                else {
+                    nextBeginOffset = maxOffset;
+                }
             }
             else {
                 SelectMapedBufferResult bufferConsumeQueue = consumeQueue.getIndexBuffer(offset);
@@ -1794,7 +1843,10 @@ public class DefaultMessageStore implements MessageStore {
                 ConcurrentHashMap<Integer, ConsumeQueue> queueTable = next.getValue();
                 for (ConsumeQueue cq : queueTable.values()) {
                     cq.destroy();
-                    log.info("cleanUnusedTopic: {} {} ConsumeQueue cleaned", cq.getTopic(), cq.getQueueId());
+                    log.info("cleanUnusedTopic: {} {} ConsumeQueue cleaned",//
+                        cq.getTopic(), //
+                        cq.getQueueId() //
+                    );
                 }
                 it.remove();
 

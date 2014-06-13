@@ -417,12 +417,8 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                     case OFFSET_ILLEGAL:
                         log.warn("the pull request offset illegal, {} {}",//
                             pullRequest.toString(), pullResult.toString());
-                        if (pullRequest.getNextOffset() < pullResult.getMinOffset()) {
-                            pullRequest.setNextOffset(pullResult.getMinOffset());
-                        }
-                        else if (pullRequest.getNextOffset() > pullResult.getMaxOffset()) {
-                            pullRequest.setNextOffset(pullResult.getMaxOffset());
-                        }
+
+                        pullRequest.setNextOffset(pullResult.getNextBeginOffset());
 
                         // 第一步、缓存队列里的消息全部废弃
                         pullRequest.getProcessQueue().setDroped(true);
