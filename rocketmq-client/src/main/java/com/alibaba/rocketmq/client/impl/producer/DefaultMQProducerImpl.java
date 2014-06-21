@@ -899,21 +899,33 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         // 第二步，回调本地事务
         LocalTransactionState localTransactionState = LocalTransactionState.UNKNOW;
         Throwable localException = null;
-        try {
-            localTransactionState = tranExecuter.executeLocalTransactionBranch(msg, arg);
-            if (null == localTransactionState) {
-                localTransactionState = LocalTransactionState.UNKNOW;
-            }
+        switch (sendResult.getSendStatus()) {
+        case SEND_OK: {
+            try {
+                localTransactionState = tranExecuter.executeLocalTransactionBranch(msg, arg);
+                if (null == localTransactionState) {
+                    localTransactionState = LocalTransactionState.UNKNOW;
+                }
 
-            if (localTransactionState != LocalTransactionState.COMMIT_MESSAGE) {
-                log.info("executeLocalTransactionBranch return {}", localTransactionState);
+                if (localTransactionState != LocalTransactionState.COMMIT_MESSAGE) {
+                    log.info("executeLocalTransactionBranch return {}", localTransactionState);
+                    log.info(msg.toString());
+                }
+            }
+            catch (Throwable e) {
+                log.info("executeLocalTransactionBranch exception", e);
                 log.info(msg.toString());
+                localException = e;
             }
         }
-        catch (Throwable e) {
-            log.info("executeLocalTransactionBranch exception", e);
-            log.info(msg.toString());
-            localException = e;
+            break;
+        case FLUSH_DISK_TIMEOUT:
+        case FLUSH_SLAVE_TIMEOUT:
+        case SLAVE_NOT_AVAILABLE:
+            localTransactionState = LocalTransactionState.ROLLBACK_MESSAGE;
+            break;
+        default:
+            break;
         }
 
         // 第三步，提交或者回滚Broker端消息
