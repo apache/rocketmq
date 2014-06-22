@@ -47,6 +47,7 @@ import org.slf4j.Logger;
 import java.io.IOException;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -563,11 +564,11 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             }
 
             String info =
-                    String.format("Retry [%d] times, still failed, cost [%d]ms, Topic: %s BrokersSent: %s", //
+                    String.format("Send [%d] times, still failed, cost [%d]ms, Topic: %s, BrokersSent: %s", //
                         times, //
                         (System.currentTimeMillis() - beginTimestamp), //
                         msg.getTopic(),//
-                        brokersSent);
+                        Arrays.toString(brokersSent));
 
             throw new MQClientException(info, exception);
         }
