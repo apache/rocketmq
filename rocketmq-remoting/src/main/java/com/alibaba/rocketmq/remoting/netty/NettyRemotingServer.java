@@ -109,7 +109,18 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
             }
         });
 
-        this.eventLoopGroup = new NioEventLoopGroup(nettyServerConfig.getServerSelectorThreads());
+        this.eventLoopGroup =
+                new NioEventLoopGroup(nettyServerConfig.getServerSelectorThreads(), new ThreadFactory() {
+                    private AtomicInteger threadIndex = new AtomicInteger(0);
+                    private int threadTotal = nettyServerConfig.getServerSelectorThreads();
+
+
+                    @Override
+                    public Thread newThread(Runnable r) {
+                        return new Thread(r, String.format("NettyServerSelector_%d_%d", threadTotal,
+                            this.threadIndex.incrementAndGet()));
+                    }
+                });
     }
 
 
