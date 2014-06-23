@@ -51,6 +51,7 @@ import com.alibaba.rocketmq.remoting.netty.NettyRequestProcessor;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 import com.alibaba.rocketmq.store.MessageExtBrokerInner;
 import com.alibaba.rocketmq.store.PutMessageResult;
+import com.alibaba.rocketmq.store.config.StorePathConfigHelper;
 
 
 /**
@@ -231,10 +232,14 @@ public class SendMessageProcessor implements NettyRequestProcessor {
         String storePathPhysic = this.brokerController.getMessageStoreConfig().getStorePathCommitLog();
         double physicRatio = UtilAll.getDiskPartitionSpaceUsedPercent(storePathPhysic);
 
-        String storePathLogis = this.brokerController.getMessageStoreConfig().getStorePathConsumeQueue();
+        String storePathLogis =
+                StorePathConfigHelper.getStorePathConsumeQueue(this.brokerController.getMessageStoreConfig()
+                    .getStorePathRootDir());
         double logisRatio = UtilAll.getDiskPartitionSpaceUsedPercent(storePathLogis);
 
-        String storePathIndex = this.brokerController.getMessageStoreConfig().getStorePathIndex();
+        String storePathIndex =
+                StorePathConfigHelper.getStorePathIndex(this.brokerController.getMessageStoreConfig()
+                    .getStorePathRootDir());
         double indexRatio = UtilAll.getDiskPartitionSpaceUsedPercent(storePathIndex);
 
         return String.format("CL: %5.2f CQ: %5.2f INDEX: %5.2f", physicRatio, logisRatio, indexRatio);
@@ -319,10 +324,13 @@ public class SendMessageProcessor implements NettyRequestProcessor {
 
         // 检查队列有效性
         int queueIdInt = requestHeader.getQueueId();
-        if (queueIdInt >= topicConfig.getWriteQueueNums()) {
-            String errorInfo =
-                    "queueId[" + queueIdInt + "] is illagal, topicConfig.writeQueueNums: "
-                            + topicConfig.getWriteQueueNums() + " producer: " + ctx.channel().remoteAddress();
+        int idValid = Math.max(topicConfig.getWriteQueueNums(), topicConfig.getReadQueueNums());
+        if (queueIdInt >= idValid) {
+            String errorInfo = String.format("request queueId[%d] is illagal, %s Producer: %s",//
+                queueIdInt,//
+                topicConfig.toString(),//
+                RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
+
             log.warn(errorInfo);
             response.setCode(ResponseCode.SYSTEM_ERROR);
             response.setRemark(errorInfo);

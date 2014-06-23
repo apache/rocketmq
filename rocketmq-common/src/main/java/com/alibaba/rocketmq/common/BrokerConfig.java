@@ -15,7 +15,6 @@
  */
 package com.alibaba.rocketmq.common;
 
-import java.io.File;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 
@@ -60,18 +59,6 @@ public class BrokerConfig {
     private int sendMessageThreadPoolNums = 32 + Runtime.getRuntime().availableProcessors() * 4;
     private int pullMessageThreadPoolNums = 32 + Runtime.getRuntime().availableProcessors() * 4;
     private int adminBrokerThreadPoolNums = 8;
-
-    private String topicConfigPath = System.getProperty("user.home") + File.separator + "store"
-            + File.separator + "config" + File.separator + "topics.json";
-
-    private String consumerOffsetPath = System.getProperty("user.home") + File.separator + "store"
-            + File.separator + "config" + File.separator + "consumerOffset.json";
-
-    private String brokerConfigPath = System.getProperty("user.home") + File.separator + "store"
-            + File.separator + "config" + File.separator + "broker.properties";
-
-    private String subscriptionGroupPath = System.getProperty("user.home") + File.separator + "store"
-            + File.separator + "config" + File.separator + "subscriptionGroup.json";
 
     private int flushConsumerOffsetInterval = 1000 * 5;
 
@@ -220,26 +207,6 @@ public class BrokerConfig {
     }
 
 
-    public String getTopicConfigPath() {
-        return topicConfigPath;
-    }
-
-
-    public void setTopicConfigPath(String topicConfigPath) {
-        this.topicConfigPath = topicConfigPath;
-    }
-
-
-    public String getConsumerOffsetPath() {
-        return consumerOffsetPath;
-    }
-
-
-    public void setConsumerOffsetPath(String consumerOffsetPath) {
-        this.consumerOffsetPath = consumerOffsetPath;
-    }
-
-
     public int getFlushConsumerOffsetInterval() {
         return flushConsumerOffsetInterval;
     }
@@ -257,16 +224,6 @@ public class BrokerConfig {
 
     public void setFlushConsumerOffsetHistoryInterval(int flushConsumerOffsetHistoryInterval) {
         this.flushConsumerOffsetHistoryInterval = flushConsumerOffsetHistoryInterval;
-    }
-
-
-    public String getBrokerConfigPath() {
-        return brokerConfigPath;
-    }
-
-
-    public void setBrokerConfigPath(String brokerConfigPath) {
-        this.brokerConfigPath = brokerConfigPath;
     }
 
 
@@ -307,16 +264,6 @@ public class BrokerConfig {
 
     public void setAutoCreateSubscriptionGroup(boolean autoCreateSubscriptionGroup) {
         this.autoCreateSubscriptionGroup = autoCreateSubscriptionGroup;
-    }
-
-
-    public String getSubscriptionGroupPath() {
-        return subscriptionGroupPath;
-    }
-
-
-    public void setSubscriptionGroupPath(String subscriptionGroupPath) {
-        this.subscriptionGroupPath = subscriptionGroupPath;
     }
 
 

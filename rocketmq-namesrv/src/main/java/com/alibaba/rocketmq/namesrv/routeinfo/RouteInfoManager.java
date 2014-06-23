@@ -15,22 +15,6 @@
  */
 package com.alibaba.rocketmq.namesrv.routeinfo;
 
-import io.netty.channel.Channel;
-
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.alibaba.rocketmq.common.DataVersion;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.TopicConfig;
@@ -44,6 +28,15 @@ import com.alibaba.rocketmq.common.protocol.route.BrokerData;
 import com.alibaba.rocketmq.common.protocol.route.QueueData;
 import com.alibaba.rocketmq.common.protocol.route.TopicRouteData;
 import com.alibaba.rocketmq.remoting.common.RemotingUtil;
+import io.netty.channel.Channel;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.*;
+import java.util.Map.Entry;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 
 /**
@@ -658,6 +651,47 @@ public class RouteInfoManager {
         catch (Exception e) {
             log.error("printAllPeriodically Exception", e);
         }
+    }
+
+
+    /**
+     * 获取指定集群下的所有 topic 列表
+     * 
+     * @return
+     */
+    public byte[] getSystemTopicList() {
+        TopicList topicList = new TopicList();
+        try {
+            try {
+                this.lock.readLock().lockInterruptibly();
+                for (String cluster : clusterAddrTable.keySet()) {
+                    topicList.getTopicList().add(cluster);
+                    topicList.getTopicList().addAll(this.clusterAddrTable.get(cluster));
+                }
+
+                // 随机取一台 broker
+                if (brokerAddrTable != null && !brokerAddrTable.isEmpty()) {
+                    Iterator<String> it = brokerAddrTable.keySet().iterator();
+                    while (it.hasNext()) {
+                        BrokerData bd = brokerAddrTable.get(it.next());
+                        HashMap<Long, String> brokerAddrs = bd.getBrokerAddrs();
+                        if (bd.getBrokerAddrs() != null && !bd.getBrokerAddrs().isEmpty()) {
+                            Iterator<Long> it2 = brokerAddrs.keySet().iterator();
+                            topicList.setBrokerAddr(brokerAddrs.get(it2.next()));
+                            break;
+                        }
+                    }
+                }
+            }
+            finally {
+                this.lock.readLock().unlock();
+            }
+        }
+        catch (Exception e) {
+            log.error("getAllTopicList Exception", e);
+        }
+
+        return topicList.encode();
     }
 
 

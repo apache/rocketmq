@@ -236,6 +236,12 @@ public class Broker2Client {
                 new HashMap<String, Map<MessageQueue, Long>>();
         ConcurrentHashMap<Channel, ClientChannelInfo> channelInfoTable =
                 this.brokerController.getConsumerManager().getConsumerGroupInfo(group).getChannelInfoTable();
+        if (null == channelInfoTable || channelInfoTable.isEmpty()) {
+            result.setCode(ResponseCode.SYSTEM_ERROR);
+            result.setRemark(String.format("No Any Consumer online in the consumer group: [%s]", group));
+            return result;
+        }
+
         for (Channel channel : channelInfoTable.keySet()) {
             int version = channelInfoTable.get(channel).getVersion();
             String clientId = channelInfoTable.get(channel).getClientId();

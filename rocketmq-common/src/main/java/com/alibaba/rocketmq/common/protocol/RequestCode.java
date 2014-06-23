@@ -135,6 +135,9 @@ public class RequestCode {
     // 向Filter Server注册Class
     // 2014-04-06 Add By shijia
     public static final int REGISTER_MESSAGE_FILTER_CLASS = 302;
-	// 根据 topic 和 group 获取消息的时间跨度
+    // 根据 topic 和 group 获取消息的时间跨度
     public static final int QUERY_CONSUME_TIME_SPAN = 303;
+    // 获取所有系统内置 Topic 列表
+    public static final int GET_SYSTEM_TOPIC_LIST_FROM_NS = 304;
+    public static final int GET_SYSTEM_TOPIC_LIST_FROM_BROKER = 305;
 }

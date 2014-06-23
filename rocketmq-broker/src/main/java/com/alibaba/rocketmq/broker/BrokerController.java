@@ -589,6 +589,9 @@ public class BrokerController {
         if (this.brokerStatsManager != null) {
             this.brokerStatsManager.start();
         }
+
+        // 删除多余的Topic
+        this.addDeleteTopicTask();
     }
 
 
@@ -645,11 +648,11 @@ public class BrokerController {
     private void flushAllConfig() {
         String allConfig = this.encodeAllConfig();
         try {
-            MixAll.string2File(allConfig, this.brokerConfig.getBrokerConfigPath());
-            log.info("flush broker config, {} OK", this.brokerConfig.getBrokerConfigPath());
+            MixAll.string2File(allConfig, BrokerPathConfigHelper.getBrokerConfigPath());
+            log.info("flush broker config, {} OK", BrokerPathConfigHelper.getBrokerConfigPath());
         }
         catch (IOException e) {
-            log.info("flush broker config Exception, " + this.brokerConfig.getBrokerConfigPath(), e);
+            log.info("flush broker config Exception, " + BrokerPathConfigHelper.getBrokerConfigPath(), e);
         }
     }
 
@@ -754,5 +757,19 @@ public class BrokerController {
 
         // XXX: warn and notify me
         log.info("slave fall behind master, how much, {} bytes", diff);
+    }
+
+
+    public void addDeleteTopicTask() {
+        // 5分钟后，尝试删除topic
+        this.scheduledExecutorService.schedule(new Runnable() {
+            @Override
+            public void run() {
+                int removedTopicCnt =
+                        BrokerController.this.messageStore.cleanUnusedTopic(BrokerController.this
+                            .getTopicConfigManager().getTopicConfigTable().keySet());
+                log.info("addDeleteTopicTask removed topic count {}", removedTopicCnt);
+            }
+        }, 5, TimeUnit.MINUTES);
     }
 }

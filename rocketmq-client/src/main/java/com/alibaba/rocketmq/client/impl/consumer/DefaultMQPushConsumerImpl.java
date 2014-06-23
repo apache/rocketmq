@@ -15,18 +15,6 @@
  */
 package com.alibaba.rocketmq.client.impl.consumer;
 
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-
-import org.slf4j.Logger;
-
 import com.alibaba.rocketmq.client.QueryResult;
 import com.alibaba.rocketmq.client.Validators;
 import com.alibaba.rocketmq.client.consumer.DefaultMQPushConsumer;
@@ -55,16 +43,17 @@ import com.alibaba.rocketmq.common.UtilAll;
 import com.alibaba.rocketmq.common.consumer.ConsumeFromWhere;
 import com.alibaba.rocketmq.common.filter.FilterAPI;
 import com.alibaba.rocketmq.common.help.FAQUrl;
-import com.alibaba.rocketmq.common.message.Message;
-import com.alibaba.rocketmq.common.message.MessageAccessor;
-import com.alibaba.rocketmq.common.message.MessageConst;
-import com.alibaba.rocketmq.common.message.MessageExt;
-import com.alibaba.rocketmq.common.message.MessageQueue;
+import com.alibaba.rocketmq.common.message.*;
 import com.alibaba.rocketmq.common.protocol.heartbeat.ConsumeType;
 import com.alibaba.rocketmq.common.protocol.heartbeat.MessageModel;
 import com.alibaba.rocketmq.common.protocol.heartbeat.SubscriptionData;
 import com.alibaba.rocketmq.common.sysflag.PullSysFlag;
 import com.alibaba.rocketmq.remoting.exception.RemotingException;
+import org.slf4j.Logger;
+
+import java.util.*;
+import java.util.Map.Entry;
+import java.util.concurrent.ConcurrentHashMap;
 
 
 /**
@@ -321,6 +310,9 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
             return;
         }
 
+        // 标明尝试拉消息了
+        pullRequest.getProcessQueue().setLastPullTimestamp(System.currentTimeMillis());
+
         // 检测Consumer是否启动
         try {
             this.makeSureStateOK();
@@ -425,12 +417,8 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                     case OFFSET_ILLEGAL:
                         log.warn("the pull request offset illegal, {} {}",//
                             pullRequest.toString(), pullResult.toString());
-                        if (pullRequest.getNextOffset() < pullResult.getMinOffset()) {
-                            pullRequest.setNextOffset(pullResult.getMinOffset());
-                        }
-                        else if (pullRequest.getNextOffset() > pullResult.getMaxOffset()) {
-                            pullRequest.setNextOffset(pullResult.getMaxOffset());
-                        }
+
+                        pullRequest.setNextOffset(pullResult.getNextBeginOffset());
 
                         // 第一步、缓存队列里的消息全部废弃
                         pullRequest.getProcessQueue().setDroped(true);
@@ -500,8 +488,6 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
 
             classFilter = sd.isClassFilterMode();
         }
-
-        pullRequest.getProcessQueue().setLastPullTimestamp(System.currentTimeMillis());
 
         int sysFlag = PullSysFlag.buildSysFlag(//
             commitOffsetEnable, // commitOffset
@@ -1002,11 +988,13 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
         for (String topic : rebalanceImpl.getSubscriptionInner().keySet()) {
             Set<MessageQueue> mqs = rebalanceImpl.getTopicSubscribeInfoTable().get(topic);
             Map<MessageQueue, Long> offsetTable = new HashMap<MessageQueue, Long>();
-            for (MessageQueue mq : mqs) {
-                long offset = searchOffset(mq, timeStamp);
-                offsetTable.put(mq, offset);
+            if (mqs != null) {
+                for (MessageQueue mq : mqs) {
+                    long offset = searchOffset(mq, timeStamp);
+                    offsetTable.put(mq, offset);
+                }
+                this.mQClientFactory.resetOffset(topic, groupName(), offsetTable);
             }
-            this.mQClientFactory.resetOffset(topic, groupName(), offsetTable);
         }
     }
 

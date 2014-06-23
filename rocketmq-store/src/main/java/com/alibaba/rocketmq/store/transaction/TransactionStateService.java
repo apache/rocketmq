@@ -36,6 +36,7 @@ import com.alibaba.rocketmq.store.MapedFile;
 import com.alibaba.rocketmq.store.MapedFileQueue;
 import com.alibaba.rocketmq.store.SelectMapedBufferResult;
 import com.alibaba.rocketmq.store.config.BrokerRole;
+import com.alibaba.rocketmq.store.config.StorePathConfigHelper;
 
 
 /**
@@ -75,16 +76,20 @@ public class TransactionStateService {
 
     public TransactionStateService(final DefaultMessageStore defaultMessageStore) {
         this.defaultMessageStore = defaultMessageStore;
-        this.tranStateTable =
-                new MapedFileQueue(defaultMessageStore.getMessageStoreConfig().getTranStateTableStorePath(),
-                    defaultMessageStore.getMessageStoreConfig().getTranStateTableMapedFileSize(), null);
 
-        this.tranRedoLog = new ConsumeQueue(//
-            TRANSACTION_REDOLOG_TOPIC,//
-            TRANSACTION_REDOLOG_TOPIC_QUEUEID,//
-            defaultMessageStore.getMessageStoreConfig().getTranRedoLogStorePath(),//
-            defaultMessageStore.getMessageStoreConfig().getTranRedoLogMapedFileSize(),//
-            defaultMessageStore);
+        this.tranStateTable =
+                new MapedFileQueue(StorePathConfigHelper.getTranStateTableStorePath(defaultMessageStore
+                    .getMessageStoreConfig().getStorePathRootDir()), defaultMessageStore
+                    .getMessageStoreConfig().getTranStateTableMapedFileSize(), null);
+
+        this.tranRedoLog =
+                new ConsumeQueue(//
+                    TRANSACTION_REDOLOG_TOPIC,//
+                    TRANSACTION_REDOLOG_TOPIC_QUEUEID,//
+                    StorePathConfigHelper.getTranRedoLogStorePath(defaultMessageStore.getMessageStoreConfig()
+                        .getStorePathRootDir()),//
+                    defaultMessageStore.getMessageStoreConfig().getTranRedoLogMapedFileSize(),//
+                    defaultMessageStore);
     }
 
 
@@ -252,9 +257,11 @@ public class TransactionStateService {
 
 
     private void recreateStateTable() {
+
         this.tranStateTable =
-                new MapedFileQueue(defaultMessageStore.getMessageStoreConfig().getTranStateTableStorePath(),
-                    defaultMessageStore.getMessageStoreConfig().getTranStateTableMapedFileSize(), null);
+                new MapedFileQueue(StorePathConfigHelper.getTranStateTableStorePath(defaultMessageStore
+                    .getMessageStoreConfig().getStorePathRootDir()), defaultMessageStore
+                    .getMessageStoreConfig().getTranStateTableMapedFileSize(), null);
 
         final TreeSet<Long> preparedItemSet = new TreeSet<Long>();
 
