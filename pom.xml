@@ -70,8 +70,8 @@
 
     <scm>
         <url>git@gitlab.alibaba-inc.com:middleware/rocketmq.git</url>
-        <connection>git@gitlab.alibaba-inc.com:middleware/rocketmq.git</connection>
-        <developerConnection>git@gitlab.alibaba-inc.com:middleware/rocketmq.git</developerConnection>
+        <connection>scm:git:git@gitlab.alibaba-inc.com:middleware/rocketmq.git</connection>
+        <developerConnection>scm:git:git@gitlab.alibaba-inc.com:middleware/rocketmq.git</developerConnection>
     </scm>
 
     <properties>
