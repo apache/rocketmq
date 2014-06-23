@@ -1,9 +1,11 @@
 package com.alibaba.rocketmq.srvutil;
 
-public class ServerUtilTest {
+import org.junit.Test;
 
-    public ServerUtilTest() {
+
+public class ServerUtilTest {
+    @Test
+    public void test1() {
         // TODO Auto-generated constructor stub
     }
-
 }

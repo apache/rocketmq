@@ -180,7 +180,7 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
                 // 保证在Consumer集群，同一队列串行消费
                 if (MessageModel.BROADCASTING
                     .equals(ConsumeMessageOrderlyService.this.defaultMQPushConsumerImpl.messageModel())
-                        || this.processQueue.isLocked() || !this.processQueue.isLockExpired()) {
+                        || (this.processQueue.isLocked() && !this.processQueue.isLockExpired())) {
                     final long beginTime = System.currentTimeMillis();
                     for (boolean continueConsume = true; continueConsume;) {
                         if (this.processQueue.isDroped()) {

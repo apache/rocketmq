@@ -15,9 +15,10 @@
  */
 package com.alibaba.rocketmq.common.protocol.body;
 
-import java.util.HashSet;
-
 import com.alibaba.rocketmq.remoting.protocol.RemotingSerializable;
+
+import java.util.HashSet;
+import java.util.Set;
 
 
 /**
@@ -25,15 +26,26 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingSerializable;
  * @since 2013-8-10
  */
 public class TopicList extends RemotingSerializable {
-    private HashSet<String> topicList = new HashSet<String>();
+    private Set<String> topicList = new HashSet<String>();
+    private String brokerAddr;
 
 
-    public HashSet<String> getTopicList() {
+    public Set<String> getTopicList() {
         return topicList;
     }
 
 
-    public void setTopicList(HashSet<String> topicList) {
+    public void setTopicList(Set<String> topicList) {
         this.topicList = topicList;
+    }
+
+
+    public String getBrokerAddr() {
+        return brokerAddr;
+    }
+
+
+    public void setBrokerAddr(String brokerAddr) {
+        this.brokerAddr = brokerAddr;
     }
 }

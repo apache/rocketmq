@@ -16,6 +16,7 @@
 package com.alibaba.rocketmq.store;
 
 import java.util.HashMap;
+import java.util.Set;
 
 import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.common.protocol.heartbeat.SubscriptionData;
@@ -177,4 +178,7 @@ public interface MessageStore {
 
 
     public long now();
+
+
+    public int cleanUnusedTopic(final Set<String> topics);
 }

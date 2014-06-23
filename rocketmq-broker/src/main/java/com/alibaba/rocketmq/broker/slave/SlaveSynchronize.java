@@ -27,6 +27,7 @@ import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.common.protocol.body.ConsumerOffsetSerializeWrapper;
 import com.alibaba.rocketmq.common.protocol.body.SubscriptionGroupWrapper;
 import com.alibaba.rocketmq.common.protocol.body.TopicConfigSerializeWrapper;
+import com.alibaba.rocketmq.store.config.StorePathConfigHelper;
 
 
 /**
@@ -116,7 +117,10 @@ public class SlaveSynchronize {
                 String delayOffset =
                         this.brokerController.getBrokerOuterAPI().getAllDelayOffset(masterAddrBak);
                 if (delayOffset != null) {
-                    String fileName = this.brokerController.getMessageStoreConfig().getDelayOffsetStorePath();
+
+                    String fileName =
+                            StorePathConfigHelper.getDelayOffsetStorePath(this.brokerController
+                                .getMessageStoreConfig().getStorePathRootDir());
                     try {
                         MixAll.string2File(delayOffset, fileName);
                     }

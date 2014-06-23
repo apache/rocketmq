@@ -29,33 +29,24 @@ import com.alibaba.rocketmq.store.transaction.TransactionStateService;
  * @since 2013-7-21
  */
 public class MessageStoreConfig {
+    // 存储跟目录
+    @ImportantField
+    private String storePathRootDir = System.getProperty("user.home") + File.separator + "store";
+
     // CommitLog存储目录
     @ImportantField
     private String storePathCommitLog = System.getProperty("user.home") + File.separator + "store"
             + File.separator + "commitlog";
-    // ConsumeQueue存储目录
-    @ImportantField
-    private String storePathConsumeQueue = System.getProperty("user.home") + File.separator + "store"
-            + File.separator + "consumequeue";
-    // 索引文件存储目录
-    @ImportantField
-    private String storePathIndex = System.getProperty("user.home") + File.separator + "store"
-            + File.separator + "index";
-    // 异常退出产生的文件
-    @ImportantField
-    private String storeCheckpoint = System.getProperty("user.home") + File.separator + "store"
-            + File.separator + "checkpoint";
-    // 异常退出产生的文件
-    @ImportantField
-    private String abortFile = System.getProperty("user.home") + File.separator + "store" + File.separator
-            + "abort";
+
     // CommitLog每个文件大小 1G
     private int mapedFileSizeCommitLog = 1024 * 1024 * 1024;
     // ConsumeQueue每个文件大小 默认存储30W条消息
     private int mapedFileSizeConsumeQueue = 300000 * ConsumeQueue.CQStoreUnitSize;
     // CommitLog刷盘间隔时间（单位毫秒）
+    @ImportantField
     private int flushIntervalCommitLog = 1000;
     // 是否定时方式刷盘，默认是实时刷盘
+    @ImportantField
     private boolean flushCommitLogTimed = false;
     // ConsumeQueue刷盘间隔时间（单位毫秒）
     private int flushIntervalConsumeQueue = 1000;
@@ -76,7 +67,7 @@ public class MessageStoreConfig {
     private int diskMaxUsedSpaceRatio = 75;
     // 文件保留时间（单位小时）
     @ImportantField
-    private int fileReservedTime = 48;
+    private int fileReservedTime = 72;
     // 写消息索引到ConsumeQueue，缓冲区高水位，超过则开始流控
     private int putMsgIndexHightWater = 600000;
     // 最大消息大小，默认512K
@@ -136,14 +127,7 @@ public class MessageStoreConfig {
     // 定时消息相关
     private String messageDelayLevel = "1s 5s 10s 30s 1m 2m 3m 4m 5m 6m 7m 8m 9m 10m 20m 30m";
     private long flushDelayOffsetInterval = 1000 * 10;
-    private String delayOffsetStorePath = System.getProperty("user.home") + File.separator + "store"
-            + File.separator + "config" + File.separator + "delayOffset.json";
-    // 分布式事务配置
-    private String tranStateTableStorePath = System.getProperty("user.home") + File.separator + "store"
-            + File.separator + "transaction" + File.separator + "statetable";
     private int tranStateTableMapedFileSize = 2000000 * TransactionStateService.TSStoreUnitSize;
-    private String tranRedoLogStorePath = System.getProperty("user.home") + File.separator + "store"
-            + File.separator + "transaction" + File.separator + "redolog";
     private int tranRedoLogMapedFileSize = 2000000 * ConsumeQueue.CQStoreUnitSize;
     // 事务回查至少间隔时间
     private long checkTransactionMessageAtleastInterval = 1000 * 60;
@@ -250,26 +234,6 @@ public class MessageStoreConfig {
 
     public void setStorePathCommitLog(String storePathCommitLog) {
         this.storePathCommitLog = storePathCommitLog;
-    }
-
-
-    public String getStorePathConsumeQueue() {
-        return storePathConsumeQueue;
-    }
-
-
-    public void setStorePathConsumeQueue(String storePathConsumeQueue) {
-        this.storePathConsumeQueue = storePathConsumeQueue;
-    }
-
-
-    public String getAbortFile() {
-        return abortFile;
-    }
-
-
-    public void setAbortFile(String abortFile) {
-        this.abortFile = abortFile;
     }
 
 
@@ -409,16 +373,6 @@ public class MessageStoreConfig {
     }
 
 
-    public String getStoreCheckpoint() {
-        return storeCheckpoint;
-    }
-
-
-    public void setStoreCheckpoint(String storeCheckpoint) {
-        this.storeCheckpoint = storeCheckpoint;
-    }
-
-
     public int getFileReservedTime() {
         return fileReservedTime;
     }
@@ -476,16 +430,6 @@ public class MessageStoreConfig {
 
     public void setMaxIndexNum(int maxIndexNum) {
         this.maxIndexNum = maxIndexNum;
-    }
-
-
-    public String getStorePathIndex() {
-        return storePathIndex;
-    }
-
-
-    public void setStorePathIndex(String storePathIndex) {
-        this.storePathIndex = storePathIndex;
     }
 
 
@@ -619,46 +563,6 @@ public class MessageStoreConfig {
     }
 
 
-    public String getDelayOffsetStorePath() {
-        return delayOffsetStorePath;
-    }
-
-
-    public void setDelayOffsetStorePath(String delayOffsetStorePath) {
-        this.delayOffsetStorePath = delayOffsetStorePath;
-    }
-
-
-    public String getTranStateTableStorePath() {
-        return tranStateTableStorePath;
-    }
-
-
-    public void setTranStateTableStorePath(String tranStateTableStorePath) {
-        this.tranStateTableStorePath = tranStateTableStorePath;
-    }
-
-
-    public int getTranStateTableMapedFileSize() {
-        return tranStateTableMapedFileSize;
-    }
-
-
-    public void setTranStateTableMapedFileSize(int tranStateTableMapedFileSize) {
-        this.tranStateTableMapedFileSize = tranStateTableMapedFileSize;
-    }
-
-
-    public String getTranRedoLogStorePath() {
-        return tranRedoLogStorePath;
-    }
-
-
-    public void setTranRedoLogStorePath(String tranRedoLogStorePath) {
-        this.tranRedoLogStorePath = tranRedoLogStorePath;
-    }
-
-
     public int getTranRedoLogMapedFileSize() {
         return tranRedoLogMapedFileSize;
     }
@@ -726,5 +630,25 @@ public class MessageStoreConfig {
 
     public void setFlushCommitLogTimed(boolean flushCommitLogTimed) {
         this.flushCommitLogTimed = flushCommitLogTimed;
+    }
+
+
+    public String getStorePathRootDir() {
+        return storePathRootDir;
+    }
+
+
+    public void setStorePathRootDir(String storePathRootDir) {
+        this.storePathRootDir = storePathRootDir;
+    }
+
+
+    public int getTranStateTableMapedFileSize() {
+        return tranStateTableMapedFileSize;
+    }
+
+
+    public void setTranStateTableMapedFileSize(int tranStateTableMapedFileSize) {
+        this.tranStateTableMapedFileSize = tranStateTableMapedFileSize;
     }
 }

@@ -372,4 +372,11 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
             throws InterruptedException, MQBrokerException, RemotingException, MQClientException {
         return this.defaultMQAdminExtImpl.queryConsumeTimeSpan(topic, group);
     }
+
+
+    @Override
+    public void resetOffsetNew(String consumerGroup, String topic, long timestamp) throws RemotingException,
+            MQBrokerException, InterruptedException, MQClientException {
+        this.defaultMQAdminExtImpl.resetOffsetNew(consumerGroup, topic, timestamp);
+    }
 }
