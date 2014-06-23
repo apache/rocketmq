@@ -49,8 +49,6 @@ import com.alibaba.rocketmq.store.ha.HAService;
 import com.alibaba.rocketmq.store.index.IndexService;
 import com.alibaba.rocketmq.store.index.QueryOffsetResult;
 import com.alibaba.rocketmq.store.schedule.ScheduleMessageService;
-import com.alibaba.rocketmq.store.transaction.TransactionCheckExecuter;
-import com.alibaba.rocketmq.store.transaction.TransactionStateService;
 
 
 /**
@@ -87,16 +85,12 @@ public class DefaultMessageStore implements MessageStore {
     private final HAService haService;
     // 定时服务
     private final ScheduleMessageService scheduleMessageService;
-    // 分布式事务服务
-    private final TransactionStateService transactionStateService;
     // 运行时数据统计
     private final StoreStatsService storeStatsService;
     // 运行过程标志位
     private final RunningFlags runningFlags = new RunningFlags();
     // 优化获取时间性能，精度1ms
     private final SystemClock systemClock = new SystemClock(1);
-    // 事务回查接口
-    private final TransactionCheckExecuter transactionCheckExecuter;
     // 存储服务是否启动
     private volatile boolean shutdown = true;
     // 存储检查点
@@ -109,14 +103,7 @@ public class DefaultMessageStore implements MessageStore {
 
 
     public DefaultMessageStore(final MessageStoreConfig messageStoreConfig) throws IOException {
-        this(messageStoreConfig, null);
-    }
-
-
-    public DefaultMessageStore(final MessageStoreConfig messageStoreConfig,
-            final TransactionCheckExecuter transactionCheckExecuter) throws IOException {
         this.messageStoreConfig = messageStoreConfig;
-        this.transactionCheckExecuter = transactionCheckExecuter;
         this.allocateMapedFileService = new AllocateMapedFileService();
         this.commitLog = new CommitLog(this);
         this.consumeQueueTable =
@@ -131,7 +118,6 @@ public class DefaultMessageStore implements MessageStore {
         this.storeStatsService = new StoreStatsService();
         this.indexService = new IndexService(this);
         this.haService = new HAService(this);
-        this.transactionStateService = new TransactionStateService(this);
 
         switch (this.messageStoreConfig.getBrokerRole()) {
         case SLAVE:
@@ -191,9 +177,6 @@ public class DefaultMessageStore implements MessageStore {
 
             // load Consume Queue
             result = result && this.loadConsumeQueue();
-
-            // load 事务模块
-            result = result && this.transactionStateService.load();
 
             if (result) {
                 this.storeCheckpoint =
@@ -305,7 +288,6 @@ public class DefaultMessageStore implements MessageStore {
             this.reputMessageService.start();
         }
 
-        this.transactionStateService.start();
         this.haService.start();
 
         this.createTempFile();
@@ -330,8 +312,6 @@ public class DefaultMessageStore implements MessageStore {
             catch (InterruptedException e) {
                 log.error("shutdown Exception, ", e);
             }
-
-            this.transactionStateService.shutdown();
 
             if (this.scheduleMessageService != null) {
                 this.scheduleMessageService.shutdown();
@@ -1037,9 +1017,6 @@ public class DefaultMessageStore implements MessageStore {
         // 先按照正常流程恢复Consume Queue
         this.recoverConsumeQueue();
 
-        // 先按照正常流程恢复Tran Redo Log
-        this.transactionStateService.getTranRedoLog().recover();
-
         // 正常数据恢复
         if (lastExitOK) {
             this.commitLog.recoverNormally();
@@ -1048,9 +1025,6 @@ public class DefaultMessageStore implements MessageStore {
         else {
             this.commitLog.recoverAbnormally();
         }
-
-        // 恢复事务模块
-        this.transactionStateService.recoverStateTable(lastExitOK);
 
         // 保证消息都能从DispatchService缓冲队列进入到真正的队列
         while (this.dispatchMessageService.hasRemainMessage()) {
@@ -1144,18 +1118,8 @@ public class DefaultMessageStore implements MessageStore {
     }
 
 
-    public TransactionStateService getTransactionStateService() {
-        return transactionStateService;
-    }
-
-
     public RunningFlags getRunningFlags() {
         return runningFlags;
-    }
-
-
-    public TransactionCheckExecuter getTransactionCheckExecuter() {
-        return transactionCheckExecuter;
     }
 
     /**
@@ -1399,11 +1363,6 @@ public class DefaultMessageStore implements MessageStore {
                     }
                 }
 
-                // 删除日志RedoLog
-                DefaultMessageStore.this.transactionStateService.getTranRedoLog()
-                    .deleteExpiredFile(minOffset);
-                // 删除日志StateTable
-                DefaultMessageStore.this.transactionStateService.deleteExpiredStateFile(minOffset);
                 // 删除索引
                 DefaultMessageStore.this.indexService.deleteExpiredFile(minOffset);
             }
@@ -1467,10 +1426,6 @@ public class DefaultMessageStore implements MessageStore {
                     }
                 }
             }
-
-            // 事务Redolog
-            DefaultMessageStore.this.transactionStateService.getTranRedoLog().commit(
-                flushConsumeQueueLeastPages);
 
             if (0 == flushConsumeQueueLeastPages) {
                 if (logicsMsgTimestamp > 0) {
@@ -1600,59 +1555,6 @@ public class DefaultMessageStore implements MessageStore {
                         break;
                     case MessageSysFlag.TransactionPreparedType:
                     case MessageSysFlag.TransactionRollbackType:
-                        break;
-                    }
-
-                    // 2、更新Transaction State Table
-                    if (req.getProducerGroup() != null) {
-                        switch (tranType) {
-                        case MessageSysFlag.TransactionNotType:
-                            break;
-                        case MessageSysFlag.TransactionPreparedType:
-                            // 将Prepared事务记录下来
-                            DefaultMessageStore.this.getTransactionStateService().appendPreparedTransaction(//
-                                req.getCommitLogOffset(),//
-                                req.getMsgSize(),//
-                                (int) (req.getStoreTimestamp() / 1000),//
-                                req.getProducerGroup().hashCode());
-                            break;
-                        case MessageSysFlag.TransactionCommitType:
-                        case MessageSysFlag.TransactionRollbackType:
-                            DefaultMessageStore.this.getTransactionStateService().updateTransactionState(//
-                                req.getTranStateTableOffset(),//
-                                req.getPreparedTransactionOffset(),//
-                                req.getProducerGroup().hashCode(),//
-                                tranType//
-                                );
-                            break;
-                        }
-                    }
-                    // 3、记录Transaction Redo Log
-                    switch (tranType) {
-                    case MessageSysFlag.TransactionNotType:
-                        break;
-                    case MessageSysFlag.TransactionPreparedType:
-                        // 记录redolog
-                        DefaultMessageStore.this.getTransactionStateService().getTranRedoLog()
-                            .putMessagePostionInfoWrapper(//
-                                req.getCommitLogOffset(),//
-                                req.getMsgSize(),//
-                                TransactionStateService.PreparedMessageTagsCode,//
-                                req.getStoreTimestamp(),//
-                                0L//
-                            );
-                        break;
-                    case MessageSysFlag.TransactionCommitType:
-                    case MessageSysFlag.TransactionRollbackType:
-                        // 记录redolog
-                        DefaultMessageStore.this.getTransactionStateService().getTranRedoLog()
-                            .putMessagePostionInfoWrapper(//
-                                req.getCommitLogOffset(),//
-                                req.getMsgSize(),//
-                                req.getPreparedTransactionOffset(),//
-                                req.getStoreTimestamp(),//
-                                0L//
-                            );
                         break;
                     }
                 }
