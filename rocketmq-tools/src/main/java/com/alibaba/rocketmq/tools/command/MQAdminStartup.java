@@ -81,6 +81,7 @@ public class MQAdminStartup {
         subCommandList.add(new QueryMsgByIdSubCommand());
         subCommandList.add(new QueryMsgByKeySubCommand());
         subCommandList.add(new QueryMsgByOffsetSubCommand());
+        subCommandList.add(new PrintMessageSubCommand());
 
         subCommandList.add(new ProducerConnectionSubCommand());
         subCommandList.add(new ConsumerConnectionSubCommand());
@@ -100,8 +101,6 @@ public class MQAdminStartup {
         subCommandList.add(new GetConsumerStatusCommand());
 
         subCommandList.add(new UpdateOrderConfCommand());
-
-        subCommandList.add(new PrintMessageSubCommand());
     }
 
 
