@@ -42,7 +42,7 @@ public class PrintMessageSubCommand implements SubCommand {
 
     @Override
     public String commandName() {
-        return "printMessage";
+        return "printMsg";
     }
 
 
@@ -59,6 +59,10 @@ public class PrintMessageSubCommand implements SubCommand {
         options.addOption(opt);
 
         opt = new Option("c", "charsetName ", true, "CharsetName(eg: UTF-8、GBK)");
+        opt.setRequired(false);
+        options.addOption(opt);
+
+        opt = new Option("e", "subExpression ", true, "Subscribe Expression(eg: TagA || TagB)");
         opt.setRequired(false);
         options.addOption(opt);
 
@@ -85,11 +89,12 @@ public class PrintMessageSubCommand implements SubCommand {
 
         try {
             String topic = commandLine.getOptionValue('t').trim();
-            String charsetName = commandLine.getOptionValue('c');
-            if (null == charsetName) {
-                charsetName = "UTF-8";
-            }
-            charsetName.trim();
+
+            String charsetName = //
+                    !commandLine.hasOption('c') ? "UTF-8" : commandLine.getOptionValue('c').trim();
+
+            String subExpression = //
+                    !commandLine.hasOption('e') ? "*" : commandLine.getOptionValue('e').trim();
 
             consumer.start();
             adminExt.start();
@@ -100,7 +105,7 @@ public class PrintMessageSubCommand implements SubCommand {
                 long maxOffset = consumer.maxOffset(mq);
                 READQ: for (long offset = minOffset; offset < maxOffset;) {
                     try {
-                        PullResult pullResult = consumer.pull(mq, "*", offset, 32);
+                        PullResult pullResult = consumer.pull(mq, subExpression, offset, 32);
                         offset = pullResult.getNextBeginOffset();
                         switch (pullResult.getPullStatus()) {
                         case FOUND:
