@@ -85,7 +85,11 @@ public class PrintMessageSubCommand implements SubCommand {
 
         try {
             String topic = commandLine.getOptionValue('t').trim();
-            String charsetName = commandLine.getOptionValue('c').trim();
+            String charsetName = commandLine.getOptionValue('c');
+            if (null == charsetName) {
+                charsetName = "UTF-8";
+            }
+            charsetName.trim();
 
             consumer.start();
             adminExt.start();
