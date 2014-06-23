@@ -97,7 +97,7 @@ public class PrintMessageSubCommand implements SubCommand {
             Set<MessageQueue> mqs = consumer.fetchSubscribeMessageQueues(topic);
             for (MessageQueue mq : mqs) {
                 long minOffset = consumer.minOffset(mq);
-                long maxOffset = consumer.minOffset(mq);
+                long maxOffset = consumer.maxOffset(mq);
                 READQ: for (long offset = minOffset; offset < maxOffset;) {
                     try {
                         PullResult pullResult = consumer.pull(mq, "*", offset, 32);
