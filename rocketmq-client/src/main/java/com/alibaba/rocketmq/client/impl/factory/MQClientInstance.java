@@ -17,7 +17,6 @@ package com.alibaba.rocketmq.client.impl.factory;
 
 import java.io.UnsupportedEncodingException;
 import java.net.DatagramSocket;
-import java.net.SocketException;
 import java.net.URL;
 import java.util.Collections;
 import java.util.HashMap;
@@ -63,7 +62,6 @@ import com.alibaba.rocketmq.common.ServiceState;
 import com.alibaba.rocketmq.common.UtilAll;
 import com.alibaba.rocketmq.common.constant.PermName;
 import com.alibaba.rocketmq.common.filter.FilterAPI;
-import com.alibaba.rocketmq.common.help.FAQUrl;
 import com.alibaba.rocketmq.common.message.MessageQueue;
 import com.alibaba.rocketmq.common.protocol.heartbeat.ConsumeType;
 import com.alibaba.rocketmq.common.protocol.heartbeat.ConsumerData;
@@ -173,8 +171,6 @@ public class MQClientInstance {
         synchronized (this) {
             switch (this.serviceState) {
             case CREATE_JUST:
-                this.makesureInstanceNameIsOnly(this.clientConfig.getInstanceName());
-
                 this.serviceState = ServiceState.START_FAILED;
                 if (null == this.clientConfig.getNamesrvAddr()) {
                     this.clientConfig.setNamesrvAddr(this.mQClientAPIImpl.fetchNameServerAddr());
@@ -199,34 +195,6 @@ public class MQClientInstance {
             default:
                 break;
             }
-        }
-    }
-
-    private boolean udpPortCheck = Boolean.parseBoolean(System.getProperty(
-        "com.alibaba.rocketmq.client.udpPortCheck", "true"));
-
-
-    private void makesureInstanceNameIsOnly(final String instanceName) throws MQClientException {
-        if (!udpPortCheck)
-            return;
-
-        int udpPort = 33333;
-
-        int value = instanceName.hashCode();
-        if (value < 0) {
-            value = Math.abs(value);
-        }
-
-        udpPort += value % 10000;
-
-        try {
-            this.datagramSocket = new DatagramSocket(udpPort);
-            this.datagramSocket.setReuseAddress(true);
-        }
-        catch (SocketException e) {
-            throw new MQClientException(String.format(
-                "instance name is a duplicate one[%s], PORT: %d, please set a new name %s", instanceName,
-                udpPort, FAQUrl.suggestTodo(FAQUrl.CLIENT_INSTACNCE_NAME_DUPLICATE_URL)), e);
         }
     }
 
