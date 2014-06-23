@@ -450,9 +450,10 @@ public interface MQAdminExt extends MQAdmin {
      * @throws InterruptedException
      * @throws MQBrokerException
      * @throws RemotingException
-     * @throws MQClientException 
+     * @throws MQClientException
      */
-    public void resetOffsetNew(String consumerGroup, String topic, long timestamp) throws RemotingException, MQBrokerException, InterruptedException, MQClientException;
+    public void resetOffsetNew(String consumerGroup, String topic, long timestamp) throws RemotingException,
+            MQBrokerException, InterruptedException, MQClientException;
 
 
     /**
