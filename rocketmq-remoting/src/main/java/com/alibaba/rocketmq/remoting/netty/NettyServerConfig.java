@@ -25,7 +25,7 @@ public class NettyServerConfig {
     private int listenPort = 8888;
     private int serverWorkerThreads = 32;
     private int serverCallbackExecutorThreads = 0;
-    private int serverSelectorThreads = 4;
+    private int serverSelectorThreads = 2;
     private int serverOnewaySemaphoreValue = 32;
     private int serverAsyncSemaphoreValue = 64;
     private int serverChannelMaxIdleTimeSeconds = 120;

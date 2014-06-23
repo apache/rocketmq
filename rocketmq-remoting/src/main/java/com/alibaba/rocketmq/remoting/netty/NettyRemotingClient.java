@@ -79,7 +79,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
 
     private final NettyClientConfig nettyClientConfig;
     private final Bootstrap bootstrap = new Bootstrap();
-    private final EventLoopGroup eventLoopGroup;
+    private final EventLoopGroup eventLoopGroupWorker;
     private DefaultEventExecutorGroup defaultEventExecutorGroup;
 
     private final Lock lockChannelTables = new ReentrantLock();
@@ -246,7 +246,16 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
             }
         });
 
-        this.eventLoopGroup = new NioEventLoopGroup(nettyClientConfig.getClientSelectorThreads());
+        this.eventLoopGroupWorker = new NioEventLoopGroup(1, new ThreadFactory() {
+            private AtomicInteger threadIndex = new AtomicInteger(0);
+
+
+            @Override
+            public Thread newThread(Runnable r) {
+                return new Thread(r, String.format("NettyClientSelector_%d",
+                    this.threadIndex.incrementAndGet()));
+            }
+        });
     }
 
 
@@ -265,7 +274,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                 }
             });
 
-        Bootstrap handler = this.bootstrap.group(this.eventLoopGroup).channel(NioSocketChannel.class)//
+        Bootstrap handler = this.bootstrap.group(this.eventLoopGroupWorker).channel(NioSocketChannel.class)//
             //
             .option(ChannelOption.TCP_NODELAY, true)
             //
@@ -317,7 +326,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
 
             this.channelTables.clear();
 
-            this.eventLoopGroup.shutdownGracefully();
+            this.eventLoopGroupWorker.shutdownGracefully();
 
             if (this.nettyEventExecuter != null) {
                 this.nettyEventExecuter.shutdown();
