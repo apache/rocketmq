@@ -1047,21 +1047,20 @@ public class DefaultMessageStore implements MessageStore {
         // 异常数据恢复，OS CRASH或者JVM CRASH或者机器掉电
         else {
             this.commitLog.recoverAbnormally();
-
-            // 保证消息都能从DispatchService缓冲队列进入到真正的队列
-            while (this.dispatchMessageService.hasRemainMessage()) {
-                try {
-                    Thread.sleep(500);
-                    log.info("waiting dispatching message over");
-                }
-                catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-            }
         }
 
         // 恢复事务模块
         this.transactionStateService.recoverStateTable(lastExitOK);
+
+        // 保证消息都能从DispatchService缓冲队列进入到真正的队列
+        while (this.dispatchMessageService.hasRemainMessage()) {
+            try {
+                Thread.sleep(500);
+                log.info("waiting dispatching message over");
+            }
+            catch (InterruptedException e) {
+            }
+        }
 
         this.recoverTopicQueueTable();
     }
