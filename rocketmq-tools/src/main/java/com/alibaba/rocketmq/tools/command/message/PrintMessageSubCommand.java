@@ -28,7 +28,6 @@ import com.alibaba.rocketmq.client.consumer.PullResult;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.common.message.MessageQueue;
-import com.alibaba.rocketmq.tools.admin.DefaultMQAdminExt;
 import com.alibaba.rocketmq.tools.command.SubCommand;
 
 
@@ -84,7 +83,6 @@ public class PrintMessageSubCommand implements SubCommand {
 
     @Override
     public void execute(CommandLine commandLine, Options options) {
-        DefaultMQAdminExt adminExt = new DefaultMQAdminExt();
         DefaultMQPullConsumer consumer = new DefaultMQPullConsumer(MixAll.TOOLS_CONSUMER_GROUP);
 
         try {
@@ -97,7 +95,6 @@ public class PrintMessageSubCommand implements SubCommand {
                     !commandLine.hasOption('e') ? "*" : commandLine.getOptionValue('e').trim();
 
             consumer.start();
-            adminExt.start();
 
             Set<MessageQueue> mqs = consumer.fetchSubscribeMessageQueues(topic);
             for (MessageQueue mq : mqs) {
@@ -129,7 +126,6 @@ public class PrintMessageSubCommand implements SubCommand {
         }
         finally {
             consumer.shutdown();
-            adminExt.shutdown();
         }
     }
 }
