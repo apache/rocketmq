@@ -39,6 +39,7 @@ import com.alibaba.rocketmq.tools.command.connection.ProducerConnectionSubComman
 import com.alibaba.rocketmq.tools.command.consumer.ConsumerProgressSubCommand;
 import com.alibaba.rocketmq.tools.command.consumer.DeleteSubscriptionGroupCommand;
 import com.alibaba.rocketmq.tools.command.consumer.UpdateSubGroupSubCommand;
+import com.alibaba.rocketmq.tools.command.message.PrintMessageSubCommand;
 import com.alibaba.rocketmq.tools.command.message.QueryMsgByIdSubCommand;
 import com.alibaba.rocketmq.tools.command.message.QueryMsgByKeySubCommand;
 import com.alibaba.rocketmq.tools.command.message.QueryMsgByOffsetSubCommand;
@@ -99,6 +100,8 @@ public class MQAdminStartup {
         subCommandList.add(new GetConsumerStatusCommand());
 
         subCommandList.add(new UpdateOrderConfCommand());
+
+        subCommandList.add(new PrintMessageSubCommand());
     }
 
 
