@@ -1030,13 +1030,10 @@ public class CommitLog {
              */
             final int tranType = MessageSysFlag.getTransactionValue(msgInner.getSysFlag());
             switch (tranType) {
+            // Prepared和Rollback都是不可以消费的消息，不会进入消费队列
             case MessageSysFlag.TransactionPreparedType:
-                queueOffset =
-                        CommitLog.this.defaultMessageStore.getTransactionStateService()
-                            .getTranStateTableOffset().get();
-                break;
             case MessageSysFlag.TransactionRollbackType:
-                queueOffset = msgInner.getQueueOffset();
+                queueOffset = 0L;
                 break;
             case MessageSysFlag.TransactionNotType:
             case MessageSysFlag.TransactionCommitType:
@@ -1149,9 +1146,6 @@ public class CommitLog {
 
             switch (tranType) {
             case MessageSysFlag.TransactionPreparedType:
-                CommitLog.this.defaultMessageStore.getTransactionStateService().getTranStateTableOffset()
-                    .incrementAndGet();
-                break;
             case MessageSysFlag.TransactionRollbackType:
                 break;
             case MessageSysFlag.TransactionNotType:
