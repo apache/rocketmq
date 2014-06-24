@@ -15,8 +15,6 @@
  */
 package com.alibaba.rocketmq.broker.processor;
 
-import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 
 import java.net.InetSocketAddress;
@@ -440,17 +438,7 @@ public class SendMessageProcessor implements NettyRequestProcessor {
                 // 直接返回
                 if (!request.isOnewayRPC()) {
                     try {
-                        ctx.writeAndFlush(response).addListener(new ChannelFutureListener() {
-                            @Override
-                            public void operationComplete(ChannelFuture future) throws Exception {
-                                if (!future.isSuccess()) {
-                                    log.error("SendMessageProcessor response to "
-                                            + future.channel().remoteAddress() + " failed", future.cause());
-                                    log.error(request.toString());
-                                    log.error(response.toString());
-                                }
-                            }
-                        });
+                        ctx.writeAndFlush(response, null);
                     }
                     catch (Throwable e) {
                         log.error("SendMessageProcessor process request over, but response failed", e);
