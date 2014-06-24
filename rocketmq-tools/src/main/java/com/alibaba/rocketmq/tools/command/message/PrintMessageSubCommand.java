@@ -26,6 +26,7 @@ import org.apache.commons.cli.Options;
 import com.alibaba.rocketmq.client.consumer.DefaultMQPullConsumer;
 import com.alibaba.rocketmq.client.consumer.PullResult;
 import com.alibaba.rocketmq.common.MixAll;
+import com.alibaba.rocketmq.common.UtilAll;
 import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.common.message.MessageQueue;
 import com.alibaba.rocketmq.tools.command.SubCommand;
@@ -61,7 +62,19 @@ public class PrintMessageSubCommand implements SubCommand {
         opt.setRequired(false);
         options.addOption(opt);
 
-        opt = new Option("e", "subExpression ", true, "Subscribe Expression(eg: TagA || TagB)");
+        opt = new Option("s", "subExpression ", true, "Subscribe Expression(eg: TagA || TagB)");
+        opt.setRequired(false);
+        options.addOption(opt);
+
+        opt =
+                new Option("b", "beginTimestamp ", true,
+                    "Begin timestamp[currentTimeMillis|yyyy-MM-dd#HH:mm:ss:SSS]");
+        opt.setRequired(false);
+        options.addOption(opt);
+
+        opt =
+                new Option("e", "endTimestamp ", true,
+                    "End timestamp[currentTimeMillis|yyyy-MM-dd#HH:mm:ss:SSS]");
         opt.setRequired(false);
         options.addOption(opt);
 
@@ -81,6 +94,21 @@ public class PrintMessageSubCommand implements SubCommand {
     }
 
 
+    public static long timestampFormat(final String value) {
+        long timestamp = 0;
+        try {
+            // 直接输入 long 类型的 timestamp
+            timestamp = Long.valueOf(value);
+        }
+        catch (NumberFormatException e) {
+            // 输入的为日期格式，精确到毫秒
+            timestamp = UtilAll.parseDate(value, UtilAll.yyyy_MM_dd_HH_mm_ss_SSS).getTime();
+        }
+
+        return timestamp;
+    }
+
+
     @Override
     public void execute(CommandLine commandLine, Options options) {
         DefaultMQPullConsumer consumer = new DefaultMQPullConsumer(MixAll.TOOLS_CONSUMER_GROUP);
@@ -92,7 +120,7 @@ public class PrintMessageSubCommand implements SubCommand {
                     !commandLine.hasOption('c') ? "UTF-8" : commandLine.getOptionValue('c').trim();
 
             String subExpression = //
-                    !commandLine.hasOption('e') ? "*" : commandLine.getOptionValue('e').trim();
+                    !commandLine.hasOption('s') ? "*" : commandLine.getOptionValue('s').trim();
 
             consumer.start();
 
@@ -100,6 +128,19 @@ public class PrintMessageSubCommand implements SubCommand {
             for (MessageQueue mq : mqs) {
                 long minOffset = consumer.minOffset(mq);
                 long maxOffset = consumer.maxOffset(mq);
+
+                if (commandLine.hasOption('b')) {
+                    String timestampStr = commandLine.getOptionValue('b').trim();
+                    long timeValue = timestampFormat(timestampStr);
+                    minOffset = consumer.searchOffset(mq, timeValue);
+                }
+
+                if (commandLine.hasOption('e')) {
+                    String timestampStr = commandLine.getOptionValue('e').trim();
+                    long timeValue = timestampFormat(timestampStr);
+                    maxOffset = consumer.searchOffset(mq, timeValue);
+                }
+
                 READQ: for (long offset = minOffset; offset < maxOffset;) {
                     try {
                         PullResult pullResult = consumer.pull(mq, subExpression, offset, 32);
