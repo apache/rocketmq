@@ -597,7 +597,7 @@ public class CommitLog {
                 // XXX: warn and notify me
                 log.warn("putMessage in lock eclipse time(ms) " + eclipseTime);
             }
-        }
+        } // end of synchronized
 
         // 返回结果
         PutMessageResult putMessageResult = new PutMessageResult(PutMessageStatus.PUT_OK, result);
