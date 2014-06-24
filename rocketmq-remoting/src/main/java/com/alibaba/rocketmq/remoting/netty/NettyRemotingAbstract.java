@@ -180,19 +180,7 @@ public abstract class NettyRemotingAbstract {
                                 response.setOpaque(cmd.getOpaque());
                                 response.markResponseType();
                                 try {
-                                    ctx.writeAndFlush(response).addListener(new ChannelFutureListener() {
-                                        @Override
-                                        public void operationComplete(ChannelFuture future) throws Exception {
-                                            if (!future.isSuccess()) {
-                                                plog.error(
-                                                    "response to "
-                                                            + RemotingHelper.parseChannelRemoteAddr(future
-                                                                .channel()) + " failed", future.cause());
-                                                plog.error(cmd.toString());
-                                                plog.error(response.toString());
-                                            }
-                                        }
-                                    });
+                                    ctx.writeAndFlush(response, null);
                                 }
                                 catch (Throwable e) {
                                     plog.error("process request over, but response failed", e);
