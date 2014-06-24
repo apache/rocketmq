@@ -39,6 +39,7 @@ import com.alibaba.rocketmq.common.constant.LoggerName;
  */
 public class MapedFileQueue {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.StoreLoggerName);
+    private static final Logger logError = LoggerFactory.getLogger(LoggerName.StoreErrorLoggerName);
     // 每次触发删除文件，最多删除多少个文件
     private static final int DeleteFilesBatchMax = 30;
     // 文件存储位置
@@ -463,13 +464,14 @@ public class MapedFileQueue {
                 int index =
                         (int) ((offset / this.mapedFileSize) - (mapedFile.getFileFromOffset() / this.mapedFileSize));
                 if (index < 0 || index >= this.mapedFiles.size()) {
-                    log.warn(
-                        "findMapedFileByOffset offset not matched, request Offset: {}, index: {}, mapedFileSize: {}, mapedFiles count: {}, StackTrace: {}",//
-                        offset,//
-                        index,//
-                        this.mapedFileSize,//
-                        this.mapedFiles.size(),//
-                        UtilAll.currentStackTrace());
+                    logError
+                        .warn(
+                            "findMapedFileByOffset offset not matched, request Offset: {}, index: {}, mapedFileSize: {}, mapedFiles count: {}, StackTrace: {}",//
+                            offset,//
+                            index,//
+                            this.mapedFileSize,//
+                            this.mapedFiles.size(),//
+                            UtilAll.currentStackTrace());
                 }
 
                 try {
