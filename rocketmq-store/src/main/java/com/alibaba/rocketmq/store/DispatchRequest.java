@@ -34,7 +34,6 @@ public class DispatchRequest {
      * 事务相关部分
      */
     private final int sysFlag;
-    private final long tranStateTableOffset;
     private final long preparedTransactionOffset;
 
 
@@ -51,8 +50,7 @@ public class DispatchRequest {
              * 事务相关部分
              */
             final int sysFlag,// 9
-            final long tranStateTableOffset,// 10
-            final long preparedTransactionOffset// 11
+            final long preparedTransactionOffset// 10
     ) {
         this.topic = topic;
         this.queueId = queueId;
@@ -67,7 +65,6 @@ public class DispatchRequest {
          * 事务相关部分
          */
         this.sysFlag = sysFlag;
-        this.tranStateTableOffset = tranStateTableOffset;
         this.preparedTransactionOffset = preparedTransactionOffset;
     }
 
@@ -94,7 +91,6 @@ public class DispatchRequest {
          * 事务相关部分
          */
         this.sysFlag = 0;
-        this.tranStateTableOffset = 0;
         this.preparedTransactionOffset = 0;
     }
 
@@ -141,11 +137,6 @@ public class DispatchRequest {
 
     public int getSysFlag() {
         return sysFlag;
-    }
-
-
-    public long getTranStateTableOffset() {
-        return tranStateTableOffset;
     }
 
 
