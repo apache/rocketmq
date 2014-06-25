@@ -1526,7 +1526,6 @@ public class DefaultMessageStore implements MessageStore {
                     Thread.sleep(1);
                 }
                 catch (InterruptedException e) {
-                    e.printStackTrace();
                 }
             }
         }
