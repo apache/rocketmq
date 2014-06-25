@@ -410,7 +410,7 @@ public class ConsumeQueue {
             // 只有一种情况会失败，创建新的MapedFile时报错或者超时
             else {
                 // XXX: warn and notify me
-                log.warn("put commit log postion info to " + topic + ":" + queueId + " " + offset
+                log.warn("[BUG]put commit log postion info to " + topic + ":" + queueId + " " + offset
                         + " failed, retry " + i + " times");
 
                 try {
@@ -423,7 +423,7 @@ public class ConsumeQueue {
         }
 
         // XXX: warn and notify me
-        log.error("consume queue can not write, {} {}", this.topic, this.queueId);
+        log.error("[BUG]consume queue can not write, {} {}", this.topic, this.queueId);
         this.defaultMessageStore.getRunningFlags().makeLogicsQueueError();
     }
 
@@ -470,7 +470,7 @@ public class ConsumeQueue {
                     // XXX: warn and notify me
                     logError
                         .warn(
-                            "logic queue order maybe wrong, expectLogicOffset: {} currentLogicOffset: {} Topic: {} QID: {} Diff: {}",//
+                            "[BUG]logic queue order maybe wrong, expectLogicOffset: {} currentLogicOffset: {} Topic: {} QID: {} Diff: {}",//
                             expectLogicOffset, //
                             currentLogicOffset,//
                             this.topic,//
