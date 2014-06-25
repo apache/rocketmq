@@ -113,7 +113,7 @@ public class QueryMessageProcessor implements NettyRequestProcessor {
                 FileRegion fileRegion =
                         new QueryMessageTransfer(response.encodeHeader(queryMessageResult
                             .getBufferTotalSize()), queryMessageResult);
-                ctx.channel().writeAndFlush(fileRegion).addListener(new ChannelFutureListener() {
+                ctx.channel().writeAndFlush(fileRegion, null).addListener(new ChannelFutureListener() {
                     @Override
                     public void operationComplete(ChannelFuture future) throws Exception {
                         queryMessageResult.release();
@@ -156,7 +156,7 @@ public class QueryMessageProcessor implements NettyRequestProcessor {
                 FileRegion fileRegion =
                         new OneMessageTransfer(response.encodeHeader(selectMapedBufferResult.getSize()),
                             selectMapedBufferResult);
-                ctx.channel().writeAndFlush(fileRegion).addListener(new ChannelFutureListener() {
+                ctx.channel().writeAndFlush(fileRegion, null).addListener(new ChannelFutureListener() {
                     @Override
                     public void operationComplete(ChannelFuture future) throws Exception {
                         selectMapedBufferResult.release();
