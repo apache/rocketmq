@@ -209,7 +209,7 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
         }
 
         try {
-            ctx.writeAndFlush(response).addListener(new ChannelFutureListener() {
+            ctx.writeAndFlush(response, null).addListener(new ChannelFutureListener() {
                 @Override
                 public void operationComplete(ChannelFuture future) throws Exception {
                     if (!future.isSuccess()) {

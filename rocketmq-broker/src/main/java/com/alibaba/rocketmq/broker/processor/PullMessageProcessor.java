@@ -93,7 +93,7 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                         response.setOpaque(request.getOpaque());
                         response.markResponseType();
                         try {
-                            channel.writeAndFlush(response).addListener(new ChannelFutureListener() {
+                            channel.writeAndFlush(response, null).addListener(new ChannelFutureListener() {
                                 @Override
                                 public void operationComplete(ChannelFuture future) throws Exception {
                                     if (!future.isSuccess()) {
