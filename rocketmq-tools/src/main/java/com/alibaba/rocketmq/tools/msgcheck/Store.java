@@ -131,7 +131,7 @@ public class Store {
     }
 
 
-    public void traval() {
+    public void traval(boolean openAll) {
         boolean success = true;
         byte[] bytesContent = new byte[1024];
         List<MapedFile> mapedFiles = this.mapedFileQueue.getMapedFiles();
@@ -139,6 +139,7 @@ public class Store {
             long startOffset = mapedFile.getFileFromOffset();
             int position = 0;
             int msgCount = 0;
+            int errorCount = 0;
 
             System.out.println("start travel " + mapedFile.getFileName());
             long startTime = System.currentTimeMillis();
@@ -206,8 +207,11 @@ public class Store {
                 if (physicOffset != currentPhyOffset) {
                     System.out.println("[fetal error] physicOffset != currentPhyOffset. " + physicOffset
                             + " " + currentPhyOffset);
-                    success = false;
-                    break ALL;
+                    errorCount++;
+                    if (!openAll) {
+                        success = false;
+                        break ALL;
+                    }
                 }
 
                 ConsumeQueue consumeQueue = findConsumeQueue(topic, queueId);
@@ -218,13 +222,19 @@ public class Store {
                     if (physicOffset != offsetPy) {
                         System.out.println("[fetal error] physicOffset != offsetPy. " + physicOffset + " "
                                 + offsetPy);
-                        success = false;
-                        break ALL;
+                        errorCount++;
+                        if (!openAll) {
+                            success = false;
+                            break ALL;
+                        }
                     }
                     if (totalSize != sizePy) {
                         System.out.println("[fetal error] totalSize != sizePy. " + totalSize + " " + sizePy);
-                        success = false;
-                        break ALL;
+                        errorCount++;
+                        if (!openAll) {
+                            success = false;
+                            break ALL;
+                        }
                     }
                 }
                 finally {
@@ -237,7 +247,7 @@ public class Store {
             }
 
             System.out.println("end travel " + mapedFile.getFileName() + ", total msg=" + msgCount
-                    + ", cost:" + (System.currentTimeMillis() - startTime));
+                    + ", error count=" + errorCount + ", cost:" + (System.currentTimeMillis() - startTime));
         }
 
         System.out.println("travel " + (success ? "ok" : "fail"));
