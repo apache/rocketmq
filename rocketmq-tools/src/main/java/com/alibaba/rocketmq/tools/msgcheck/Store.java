@@ -138,6 +138,9 @@ public class Store {
         ALL: for (MapedFile mapedFile : mapedFiles) {
             long startOffset = mapedFile.getFileFromOffset();
             int position = 0;
+
+            System.out.println("start travel " + mapedFile.getFileName());
+
             ByteBuffer byteBuffer = mapedFile.sliceByteBuffer();
             while (byteBuffer.hasRemaining()) {
                 byteBuffer.position(position);
