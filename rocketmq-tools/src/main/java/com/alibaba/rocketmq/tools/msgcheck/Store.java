@@ -138,19 +138,19 @@ public class Store {
         ALL: for (MapedFile mapedFile : mapedFiles) {
             long startOffset = mapedFile.getFileFromOffset();
             int position = 0;
+            int msgCount = 0;
 
             System.out.println("start travel " + mapedFile.getFileName());
 
             ByteBuffer byteBuffer = mapedFile.sliceByteBuffer();
             while (byteBuffer.hasRemaining()) {
-                byteBuffer.position(position);
-
                 // 1 TOTALSIZE
                 int totalSize = byteBuffer.getInt();
                 // 2 MAGICCODE
                 int magicCode = byteBuffer.getInt();
                 if (BlankMagicCode == magicCode) {
                     position = byteBuffer.limit();
+                    break;
                 }
                 // 3 BODYCRC
                 int bodyCRC = byteBuffer.getInt();
@@ -231,8 +231,12 @@ public class Store {
                     smb.release();
                 }
 
+                msgCount++;
                 position += totalSize;
+                byteBuffer.position(position);
             }
+
+            System.out.println("end travel " + mapedFile.getFileName() + ", total msg=" + msgCount);
         }
 
         System.out.println("travel " + (success ? "ok" : "fail"));
