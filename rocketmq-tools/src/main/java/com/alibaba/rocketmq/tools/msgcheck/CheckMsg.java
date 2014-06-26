@@ -16,6 +16,7 @@ public class CheckMsg {
         }
 
         Store store = new Store(args[0], Integer.parseInt(args[1]), args[2], Integer.parseInt(args[3]));
+        store.load();
         store.traval();
     }
 
