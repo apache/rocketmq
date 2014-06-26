@@ -180,7 +180,7 @@ public abstract class NettyRemotingAbstract {
                                 response.setOpaque(cmd.getOpaque());
                                 response.markResponseType();
                                 try {
-                                    ctx.writeAndFlush(response, null);
+                                    ctx.writeAndFlush(response);
                                 }
                                 catch (Throwable e) {
                                     plog.error("process request over, but response failed", e);
@@ -203,7 +203,7 @@ public abstract class NettyRemotingAbstract {
                                         RemotingSysResponseCode.SYSTEM_ERROR,//
                                         RemotingHelper.exceptionSimpleDesc(e));
                             response.setOpaque(cmd.getOpaque());
-                            ctx.writeAndFlush(response, null);
+                            ctx.writeAndFlush(response);
                         }
                     }
                 }
@@ -233,7 +233,7 @@ public abstract class NettyRemotingAbstract {
                     RemotingCommand.createResponseCommand(RemotingSysResponseCode.REQUEST_CODE_NOT_SUPPORTED,
                         error);
             response.setOpaque(cmd.getOpaque());
-            ctx.writeAndFlush(response, null);
+            ctx.writeAndFlush(response);
             plog.error(RemotingHelper.parseChannelRemoteAddr(ctx.channel()) + error);
         }
     }
@@ -346,7 +346,7 @@ public abstract class NettyRemotingAbstract {
             final ResponseFuture responseFuture =
                     new ResponseFuture(request.getOpaque(), timeoutMillis, null, null);
             this.responseTable.put(request.getOpaque(), responseFuture);
-            channel.writeAndFlush(request, null).addListener(new ChannelFutureListener() {
+            channel.writeAndFlush(request).addListener(new ChannelFutureListener() {
                 @Override
                 public void operationComplete(ChannelFuture f) throws Exception {
                     if (f.isSuccess()) {
@@ -398,7 +398,7 @@ public abstract class NettyRemotingAbstract {
                     new ResponseFuture(request.getOpaque(), timeoutMillis, invokeCallback, once);
             this.responseTable.put(request.getOpaque(), responseFuture);
             try {
-                channel.writeAndFlush(request, null).addListener(new ChannelFutureListener() {
+                channel.writeAndFlush(request).addListener(new ChannelFutureListener() {
                     @Override
                     public void operationComplete(ChannelFuture f) throws Exception {
                         if (f.isSuccess()) {
@@ -449,7 +449,7 @@ public abstract class NettyRemotingAbstract {
         if (acquired) {
             final SemaphoreReleaseOnlyOnce once = new SemaphoreReleaseOnlyOnce(this.semaphoreOneway);
             try {
-                channel.writeAndFlush(request, null).addListener(new ChannelFutureListener() {
+                channel.writeAndFlush(request).addListener(new ChannelFutureListener() {
                     @Override
                     public void operationComplete(ChannelFuture f) throws Exception {
                         once.release();

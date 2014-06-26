@@ -438,7 +438,7 @@ public class SendMessageProcessor implements NettyRequestProcessor {
                 // 直接返回
                 if (!request.isOnewayRPC()) {
                     try {
-                        ctx.writeAndFlush(response, null);
+                        ctx.writeAndFlush(response, ctx.voidPromise());
                     }
                     catch (Throwable e) {
                         log.error("SendMessageProcessor process request over, but response failed", e);
@@ -449,7 +449,7 @@ public class SendMessageProcessor implements NettyRequestProcessor {
 
                 this.brokerController.getPullRequestHoldService().notifyMessageArriving(
                     requestHeader.getTopic(), queueIdInt,
-                    putMessageResult.getAppendMessageResult().getLogicsOffset());
+                    putMessageResult.getAppendMessageResult().getLogicsOffset() + 1);
                 return null;
             }
         }
