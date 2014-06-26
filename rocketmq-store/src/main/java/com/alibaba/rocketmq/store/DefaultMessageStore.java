@@ -582,7 +582,7 @@ public class DefaultMessageStore implements MessageStore {
 
 
     /**
-     * 返回的是当前队列有效的最大Offset，这个Offset有对应的消息
+     * 返回的是当前队列的最大Offset，这个Offset没有对应的消息
      */
     public long getMaxOffsetInQuque(String topic, int queueId) {
         ConsumeQueue logic = this.findConsumeQueue(topic, queueId);
@@ -595,6 +595,9 @@ public class DefaultMessageStore implements MessageStore {
     }
 
 
+    /**
+     * 返回的是当前队列的最小Offset
+     */
     public long getMinOffsetInQuque(String topic, int queueId) {
         ConsumeQueue logic = this.findConsumeQueue(topic, queueId);
         if (logic != null) {

@@ -93,7 +93,7 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                         response.setOpaque(request.getOpaque());
                         response.markResponseType();
                         try {
-                            channel.writeAndFlush(response, null).addListener(new ChannelFutureListener() {
+                            channel.writeAndFlush(response).addListener(new ChannelFutureListener() {
                                 @Override
                                 public void operationComplete(ChannelFuture future) throws Exception {
                                     if (!future.isSuccess()) {
@@ -380,7 +380,7 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                     FileRegion fileRegion =
                             new ManyMessageTransfer(response.encodeHeader(getMessageResult
                                 .getBufferTotalSize()), getMessageResult);
-                    channel.writeAndFlush(fileRegion, null).addListener(new ChannelFutureListener() {
+                    channel.writeAndFlush(fileRegion).addListener(new ChannelFutureListener() {
                         @Override
                         public void operationComplete(ChannelFuture future) throws Exception {
                             getMessageResult.release();
