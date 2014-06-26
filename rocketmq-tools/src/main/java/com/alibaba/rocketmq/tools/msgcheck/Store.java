@@ -2,6 +2,7 @@ package com.alibaba.rocketmq.tools.msgcheck;
 
 import java.io.File;
 import java.nio.ByteBuffer;
+import java.util.Date;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -202,10 +203,13 @@ public class Store {
                 byteBuffer.get(bytesContent, 0, topicLen);
                 String topic = new String(bytesContent, 0, topicLen);
 
+                Date storeTime = new Date(storeTimestamp);
+
                 // 计算出来当前消息的偏移量
                 long currentPhyOffset = startOffset + position;
                 if (physicOffset != currentPhyOffset) {
-                    System.out.println("[fetal error] physicOffset != currentPhyOffset. position=" + position
+                    System.out.println(storeTime
+                            + " [fetal error] physicOffset != currentPhyOffset. position=" + position
                             + ", msgCount=" + msgCount + ", physicOffset=" + physicOffset
                             + ", currentPhyOffset=" + currentPhyOffset);
                     errorCount++;
@@ -221,9 +225,9 @@ public class Store {
                     long offsetPy = smb.getByteBuffer().getLong();
                     int sizePy = smb.getByteBuffer().getInt();
                     if (physicOffset != offsetPy) {
-                        System.out.println("[fetal error] physicOffset != offsetPy. position=" + position
-                                + ", msgCount=" + msgCount + ", physicOffset=" + physicOffset + ", offsetPy="
-                                + offsetPy);
+                        System.out.println(storeTime + " [fetal error] physicOffset != offsetPy. position="
+                                + position + ", msgCount=" + msgCount + ", physicOffset=" + physicOffset
+                                + ", offsetPy=" + offsetPy);
                         errorCount++;
                         if (!openAll) {
                             success = false;
@@ -231,9 +235,9 @@ public class Store {
                         }
                     }
                     if (totalSize != sizePy) {
-                        System.out.println("[fetal error] totalSize != sizePy. position=" + position
-                                + ", msgCount=" + msgCount + ", totalSize=" + totalSize + ", sizePy="
-                                + sizePy);
+                        System.out.println(storeTime + " [fetal error] totalSize != sizePy. position="
+                                + position + ", msgCount=" + msgCount + ", totalSize=" + totalSize
+                                + ", sizePy=" + sizePy);
                         errorCount++;
                         if (!openAll) {
                             success = false;
