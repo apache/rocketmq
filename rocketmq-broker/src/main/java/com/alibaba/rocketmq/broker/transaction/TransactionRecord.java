@@ -3,8 +3,6 @@ package com.alibaba.rocketmq.broker.transaction;
 public class TransactionRecord {
     // Commit Log Offset
     private long offset;
-    // 消息写入时间戳
-    private long storeTimestamp;
     private String producerGroup;
 
 
@@ -15,16 +13,6 @@ public class TransactionRecord {
 
     public void setOffset(long offset) {
         this.offset = offset;
-    }
-
-
-    public long getStoreTimestamp() {
-        return storeTimestamp;
-    }
-
-
-    public void setStoreTimestamp(long storeTimestamp) {
-        this.storeTimestamp = storeTimestamp;
     }
 
 
