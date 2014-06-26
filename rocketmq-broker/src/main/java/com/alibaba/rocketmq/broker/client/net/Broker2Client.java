@@ -81,7 +81,7 @@ public class Broker2Client {
             FileRegion fileRegion =
                     new OneMessageTransfer(request.encodeHeader(selectMapedBufferResult.getSize()),
                         selectMapedBufferResult);
-            channel.writeAndFlush(fileRegion, null).addListener(new ChannelFutureListener() {
+            channel.writeAndFlush(fileRegion).addListener(new ChannelFutureListener() {
                 @Override
                 public void operationComplete(ChannelFuture future) throws Exception {
                     selectMapedBufferResult.release();
