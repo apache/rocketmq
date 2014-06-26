@@ -11,7 +11,7 @@ public class CheckMsg {
     public static void main(String[] args) {
         if (args.length < 4) {
             System.out
-                .println("need param:CommitLogStorePath CommitLogMapedFileSize ConsumeQueueStorePathParent ConsumeQueueMapedFileSize");
+                .println("Usage:sh checkmsg.sh CommitLogStorePath CommitLogMapedFileSize ConsumeQueueStorePathParent ConsumeQueueMapedFileSize [verbose]");
             System.exit(-1);
         }
         boolean openAll = false;
