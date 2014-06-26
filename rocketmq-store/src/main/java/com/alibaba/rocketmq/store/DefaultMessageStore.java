@@ -251,6 +251,10 @@ public class DefaultMessageStore implements MessageStore {
                             nextQT.getKey(),//
                             minCommitLogOffset,//
                             maxCLOffsetInConsumeQueue);
+
+                        DefaultMessageStore.this.commitLog.removeQueurFromTopicQueueTable(nextQT.getValue()
+                            .getTopic(), nextQT.getValue().getQueueId());
+
                         nextQT.getValue().destroy();
                         itQT.remove();
                     }
