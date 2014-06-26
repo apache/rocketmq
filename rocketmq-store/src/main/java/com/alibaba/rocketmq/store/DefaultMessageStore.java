@@ -1747,6 +1747,8 @@ public class DefaultMessageStore implements MessageStore {
                         cq.getTopic(), //
                         cq.getQueueId() //
                     );
+
+                    this.commitLog.removeQueurFromTopicQueueTable(cq.getTopic(), cq.getQueueId());
                 }
                 it.remove();
 

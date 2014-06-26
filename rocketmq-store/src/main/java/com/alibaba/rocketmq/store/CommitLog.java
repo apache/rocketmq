@@ -1162,4 +1162,14 @@ public class CommitLog {
             this.msgStoreItemMemory.limit(length);
         }
     }
+
+
+    public void removeQueurFromTopicQueueTable(final String topic, final int queueId) {
+        String key = topic + "-" + queueId;
+        synchronized (this) {
+            this.topicQueueTable.remove(key);
+        }
+
+        log.info("removeQueurFromTopicQueueTable OK Topic: {} QueueId: {}", topic, queueId);
+    }
 }
