@@ -15,7 +15,7 @@ public class CheckMsg {
             System.exit(-1);
         }
         boolean openAll = false;
-        if (args.length > 5) {
+        if (args.length > 4) {
             openAll = Boolean.parseBoolean(args[4]);
         }
 
