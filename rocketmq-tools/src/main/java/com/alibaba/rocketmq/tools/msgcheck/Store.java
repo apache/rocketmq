@@ -141,7 +141,7 @@ public class Store {
             int msgCount = 0;
 
             System.out.println("start travel " + mapedFile.getFileName());
-
+            long startTime = System.currentTimeMillis();
             ByteBuffer byteBuffer = mapedFile.sliceByteBuffer();
             while (byteBuffer.hasRemaining()) {
                 // 1 TOTALSIZE
@@ -236,7 +236,8 @@ public class Store {
                 byteBuffer.position(position);
             }
 
-            System.out.println("end travel " + mapedFile.getFileName() + ", total msg=" + msgCount);
+            System.out.println("end travel " + mapedFile.getFileName() + ", total msg=" + msgCount
+                    + ", cost:" + (System.currentTimeMillis() - startTime));
         }
 
         System.out.println("travel " + (success ? "ok" : "fail"));
