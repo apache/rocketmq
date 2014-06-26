@@ -205,8 +205,9 @@ public class Store {
                 // 计算出来当前消息的偏移量
                 long currentPhyOffset = startOffset + position;
                 if (physicOffset != currentPhyOffset) {
-                    System.out.println("[fetal error] physicOffset != currentPhyOffset. " + physicOffset
-                            + " " + currentPhyOffset);
+                    System.out.println("[fetal error] physicOffset != currentPhyOffset. position=" + position
+                            + ", msgCount=" + msgCount + ", physicOffset=" + physicOffset
+                            + ", currentPhyOffset=" + currentPhyOffset);
                     errorCount++;
                     if (!openAll) {
                         success = false;
@@ -220,7 +221,8 @@ public class Store {
                     long offsetPy = smb.getByteBuffer().getLong();
                     int sizePy = smb.getByteBuffer().getInt();
                     if (physicOffset != offsetPy) {
-                        System.out.println("[fetal error] physicOffset != offsetPy. " + physicOffset + " "
+                        System.out.println("[fetal error] physicOffset != offsetPy. position=" + position
+                                + ", msgCount=" + msgCount + ", physicOffset=" + physicOffset + ", offsetPy="
                                 + offsetPy);
                         errorCount++;
                         if (!openAll) {
@@ -229,7 +231,9 @@ public class Store {
                         }
                     }
                     if (totalSize != sizePy) {
-                        System.out.println("[fetal error] totalSize != sizePy. " + totalSize + " " + sizePy);
+                        System.out.println("[fetal error] totalSize != sizePy. position=" + position
+                                + ", msgCount=" + msgCount + ", totalSize=" + totalSize + ", sizePy="
+                                + sizePy);
                         errorCount++;
                         if (!openAll) {
                             success = false;
