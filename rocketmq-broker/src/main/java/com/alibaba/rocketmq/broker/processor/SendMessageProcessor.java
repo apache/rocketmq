@@ -438,7 +438,7 @@ public class SendMessageProcessor implements NettyRequestProcessor {
                 // 直接返回
                 if (!request.isOnewayRPC()) {
                     try {
-                        ctx.writeAndFlush(response, ctx.voidPromise());
+                        ctx.writeAndFlush(response);
                     }
                     catch (Throwable e) {
                         log.error("SendMessageProcessor process request over, but response failed", e);
