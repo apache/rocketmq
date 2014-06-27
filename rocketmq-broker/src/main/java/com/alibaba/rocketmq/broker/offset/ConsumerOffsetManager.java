@@ -67,7 +67,10 @@ public class ConsumerOffsetManager extends ConfigManager {
             String[] arrays = topicAtGroup.split(TOPIC_GROUP_SEPARATOR);
             if (arrays != null && arrays.length == 2) {
                 String topic = arrays[0];
-                if (this.offsetBehindMuchThanData(topic, next.getValue())) {
+                String group = arrays[1];
+                // 当前订阅关系里面没有group-topic订阅关系（消费端当前是停机的状态）并且offset落后很多,则删除消费进度
+                if (null == brokerController.getConsumerManager().findSubscriptionData(group, topic)
+                        && this.offsetBehindMuchThanData(topic, next.getValue())) {
                     it.remove();
                     log.warn("remove topic offset, {}", topicAtGroup);
                 }
