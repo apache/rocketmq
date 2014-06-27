@@ -639,4 +639,48 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
             throw e;
         }
     }
+
+
+    public boolean cleanExpiredConsumerQueueByCluster(ClusterInfo clusterInfo, String cluster)
+            throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException,
+            MQClientException, InterruptedException {
+        boolean result = false;
+        String[] addrs = clusterInfo.getAllAddrByCluster(cluster);
+        for (String addr : addrs) {
+            result = cleanExpiredConsumerQueueByAddr(addr);
+        }
+        return result;
+    }
+
+
+    @Override
+    public boolean cleanExpiredConsumerQueue(String cluster) throws RemotingConnectException,
+            RemotingSendRequestException, RemotingTimeoutException, MQClientException, InterruptedException {
+        boolean result = false;
+        try {
+            ClusterInfo clusterInfo = examineBrokerClusterInfo();
+            if (null == cluster || "".equals(cluster)) {
+                for (String targetCluster : clusterInfo.getAllClusterNames()) {
+                    result = cleanExpiredConsumerQueueByCluster(clusterInfo, targetCluster);
+                }
+            }
+            else {
+                result = cleanExpiredConsumerQueueByCluster(clusterInfo, cluster);
+            }
+        }
+        catch (MQBrokerException e) {
+            log.error("cleanExpiredConsumerQueue error.", e);
+        }
+
+        return result;
+    }
+
+
+    @Override
+    public boolean cleanExpiredConsumerQueueByAddr(String addr) throws RemotingConnectException,
+            RemotingSendRequestException, RemotingTimeoutException, MQClientException, InterruptedException {
+        boolean result = mQClientFactory.getMQClientAPIImpl().cleanExpiredConsumeQueue(addr, 3000L);
+        log.warn("clean expired ConsumeQueue on target " + addr + " broker " + result);
+        return result;
+    }
 }

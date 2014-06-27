@@ -140,4 +140,7 @@ public class RequestCode {
     // 获取所有系统内置 Topic 列表
     public static final int GET_SYSTEM_TOPIC_LIST_FROM_NS = 304;
     public static final int GET_SYSTEM_TOPIC_LIST_FROM_BROKER = 305;
+
+    // 清理失效队列
+    public static final int CLEAN_EXPIRED_CONSUMEQUEUE = 306;
 }

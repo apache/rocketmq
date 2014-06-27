@@ -379,4 +379,18 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
             MQBrokerException, InterruptedException, MQClientException {
         this.defaultMQAdminExtImpl.resetOffsetNew(consumerGroup, topic, timestamp);
     }
+
+
+    @Override
+    public boolean cleanExpiredConsumerQueue(String cluster) throws RemotingConnectException,
+            RemotingSendRequestException, RemotingTimeoutException, MQClientException, InterruptedException {
+        return defaultMQAdminExtImpl.cleanExpiredConsumerQueue(cluster);
+    }
+
+
+    @Override
+    public boolean cleanExpiredConsumerQueueByAddr(String addr) throws RemotingConnectException,
+            RemotingSendRequestException, RemotingTimeoutException, MQClientException, InterruptedException {
+        return defaultMQAdminExtImpl.cleanExpiredConsumerQueueByAddr(addr);
+    }
 }

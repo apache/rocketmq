@@ -203,11 +203,26 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             return this.queryConsumeTimeSpan(ctx, request);
         case RequestCode.GET_SYSTEM_TOPIC_LIST_FROM_BROKER:
             return this.getSystemTopicListFromBroker(ctx, request);
+
+            // 删除失效队列
+        case RequestCode.CLEAN_EXPIRED_CONSUMEQUEUE:
+            return this.cleanExpiredConsumeQueue();
         default:
             break;
         }
 
         return null;
+    }
+
+
+    public RemotingCommand cleanExpiredConsumeQueue() {
+        log.warn("invoke cleanExpiredConsumeQueue start.");
+        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
+        brokerController.getMessageStore().cleanExpiredConsumerQueue();
+        log.warn("invoke cleanExpiredConsumeQueue end.");
+        response.setCode(ResponseCode.SUCCESS);
+        response.setRemark(null);
+        return response;
     }
 
 
