@@ -249,7 +249,7 @@ public class BrokerController {
                         BrokerController.this.getBrokerStats().record();
                     }
                     catch (Exception e) {
-                        log.error("", e);
+                        log.error("schedule record error.", e);
                     }
                 }
             }, initialDelay, period, TimeUnit.MILLISECONDS);
@@ -262,7 +262,7 @@ public class BrokerController {
                         BrokerController.this.consumerOffsetManager.persist();
                     }
                     catch (Exception e) {
-                        log.error("", e);
+                        log.error("schedule persist consumerOffset error.", e);
                     }
                 }
             }, 1000 * 10, this.brokerConfig.getFlushConsumerOffsetInterval(), TimeUnit.MILLISECONDS);
@@ -275,7 +275,7 @@ public class BrokerController {
                         BrokerController.this.consumerOffsetManager.scanUnsubscribedTopic();
                     }
                     catch (Exception e) {
-                        log.error("", e);
+                        log.error("schedule scanUnsubscribedTopic error.", e);
                     }
                 }
             }, 10, 60, TimeUnit.MINUTES);
@@ -335,6 +335,7 @@ public class BrokerController {
                             BrokerController.this.printMasterAndSlaveDiff();
                         }
                         catch (Exception e) {
+                            log.error("schedule printMasterAndSlaveDiff error.", e);
                         }
                     }
                 }, 1000 * 10, 1000 * 60, TimeUnit.MILLISECONDS);
