@@ -40,7 +40,7 @@ public class ClusterInfo extends RemotingSerializable {
     }
 
 
-    public String[] getAllAddrByCluster(String cluster) {
+    public String[] retrieveAllAddrByCluster(String cluster) {
         List<String> addrs = new ArrayList<String>();
         if (clusterAddrTable.containsKey(cluster)) {
             Set<String> brokerNames = clusterAddrTable.get(cluster);
@@ -56,7 +56,7 @@ public class ClusterInfo extends RemotingSerializable {
     }
 
 
-    public String[] getAllClusterNames() {
+    public String[] retrieveAllClusterNames() {
         return clusterAddrTable.entrySet().toArray(new String[] {});
     }
 }
