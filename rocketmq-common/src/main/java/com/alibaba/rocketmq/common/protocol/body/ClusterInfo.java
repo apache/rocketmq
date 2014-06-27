@@ -1,6 +1,8 @@
 package com.alibaba.rocketmq.common.protocol.body;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Set;
 
 import com.alibaba.rocketmq.common.protocol.route.BrokerData;
@@ -35,5 +37,26 @@ public class ClusterInfo extends RemotingSerializable {
 
     public void setClusterAddrTable(HashMap<String, Set<String>> clusterAddrTable) {
         this.clusterAddrTable = clusterAddrTable;
+    }
+
+
+    public String[] getAllAddrByCluster(String cluster) {
+        List<String> addrs = new ArrayList<String>();
+        if (clusterAddrTable.containsKey(cluster)) {
+            Set<String> brokerNames = clusterAddrTable.get(cluster);
+            for (String brokerName : brokerNames) {
+                BrokerData brokerData = brokerAddrTable.get(brokerName);
+                if (null != brokerData) {
+                    addrs.addAll(brokerData.getBrokerAddrs().values());
+                }
+            }
+        }
+
+        return addrs.toArray(new String[] {});
+    }
+
+
+    public String[] getAllClusterNames() {
+        return clusterAddrTable.entrySet().toArray(new String[] {});
     }
 }

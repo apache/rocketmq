@@ -314,12 +314,13 @@ public class ConsumeQueue {
 
         MapedFile mapedFile = this.mapedFileQueue.getLastMapedFile2();
         if (mapedFile != null) {
+            // 找到写入位置对应的索引项的起始位置
+            int position = mapedFile.getWrotePostion() - CQStoreUnitSize;
+            if (position < 0)
+                position = 0;
+
             ByteBuffer byteBuffer = mapedFile.sliceByteBuffer();
-
-            // 先将Offset清空
-            mapedFile.setWrotePostion(0);
-            mapedFile.setCommittedPosition(0);
-
+            byteBuffer.position(position);
             for (int i = 0; i < logicFileSize; i += CQStoreUnitSize) {
                 long offset = byteBuffer.getLong();
                 int size = byteBuffer.getInt();
@@ -328,10 +329,6 @@ public class ConsumeQueue {
                 // 说明当前存储单元有效
                 if (offset >= 0 && size > 0) {
                     lastOffset = offset + size;
-                    int pos = i + CQStoreUnitSize;
-                    mapedFile.setWrotePostion(pos);
-                    mapedFile.setCommittedPosition(pos);
-                    this.maxPhysicOffset = offset;
                 }
                 else {
                     break;

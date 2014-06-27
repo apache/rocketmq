@@ -584,6 +584,12 @@ public class MapedFileQueue {
         }
         this.mapedFiles.clear();
         this.committedWhere = 0;
+
+        // delete parent directory
+        File file = new File(storePath);
+        if (file.isDirectory()) {
+            file.delete();
+        }
         this.readWriteLock.writeLock().unlock();
     }
 

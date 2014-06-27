@@ -246,7 +246,7 @@ public class DefaultMessageStore implements MessageStore {
     }
 
 
-    private void cleanExpiredConsumerQueue() {
+    public void cleanExpiredConsumerQueue() {
         // CommitLog的最小Offset
         long minCommitLogOffset = this.commitLog.getMinOffset();
 
