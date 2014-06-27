@@ -645,7 +645,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
             throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException,
             MQClientException, InterruptedException {
         boolean result = false;
-        String[] addrs = clusterInfo.getAllAddrByCluster(cluster);
+        String[] addrs = clusterInfo.retrieveAllAddrByCluster(cluster);
         for (String addr : addrs) {
             result = cleanExpiredConsumerQueueByAddr(addr);
         }
@@ -660,7 +660,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
         try {
             ClusterInfo clusterInfo = examineBrokerClusterInfo();
             if (null == cluster || "".equals(cluster)) {
-                for (String targetCluster : clusterInfo.getAllClusterNames()) {
+                for (String targetCluster : clusterInfo.retrieveAllClusterNames()) {
                     result = cleanExpiredConsumerQueueByCluster(clusterInfo, targetCluster);
                 }
             }
