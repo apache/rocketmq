@@ -628,18 +628,16 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                     sysFlag |= MessageSysFlag.TransactionPreparedType;
                 }
 
-	            // todo:发消息之前，单元化读写权限控制时调用 Hook （由于 unitrouter 版本冲突，目前只在单元化时做 check）
-	            if(this.isUnitMode()) {
-		            CheckForbiddenContext checkForbiddenContext = new CheckForbiddenContext();
-		            checkForbiddenContext.setNameSrvAddr(this.defaultMQProducer.getNamesrvAddr());
-		            checkForbiddenContext.setGroup(this.defaultMQProducer.getProducerGroup());
-		            checkForbiddenContext.setCommunicationMode(communicationMode);
-		            checkForbiddenContext.setBrokerAddr(brokerAddr);
-		            checkForbiddenContext.setMessage(msg);
-		            checkForbiddenContext.setMq(mq);
-		            checkForbiddenContext.setUnitMode(this.isUnitMode());
-		            this.executeCheckForbiddenHook(checkForbiddenContext);
-	            }
+                // 发消息之前，读写权限控制时调用 Hook
+                CheckForbiddenContext checkForbiddenContext = new CheckForbiddenContext();
+                checkForbiddenContext.setNameSrvAddr(this.defaultMQProducer.getNamesrvAddr());
+                checkForbiddenContext.setGroup(this.defaultMQProducer.getProducerGroup());
+                checkForbiddenContext.setCommunicationMode(communicationMode);
+                checkForbiddenContext.setBrokerAddr(brokerAddr);
+                checkForbiddenContext.setMessage(msg);
+                checkForbiddenContext.setMq(mq);
+                checkForbiddenContext.setUnitMode(this.isUnitMode());
+                this.executeCheckForbiddenHook(checkForbiddenContext);
 
                 // 执行hook
                 if (this.hasSendMessageHook()) {
