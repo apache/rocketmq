@@ -57,6 +57,6 @@ public class ClusterInfo extends RemotingSerializable {
 
 
     public String[] retrieveAllClusterNames() {
-        return clusterAddrTable.entrySet().toArray(new String[] {});
+        return clusterAddrTable.keySet().toArray(new String[] {});
     }
 }
