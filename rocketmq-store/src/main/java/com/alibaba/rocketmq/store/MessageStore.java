@@ -181,4 +181,10 @@ public interface MessageStore {
 
 
     public int cleanUnusedTopic(final Set<String> topics);
+
+
+    /**
+     * 清除失效的消费队列
+     */
+    public void cleanExpiredConsumerQueue();
 }

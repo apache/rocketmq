@@ -230,6 +230,7 @@ public class Message implements Serializable {
         return getProperty(MessageConst.PROPERTY_BUYER_ID);
     }
 
+
     @Override
     public String toString() {
         return "Message [topic=" + topic + ", flag=" + flag + ", properties=" + properties + ", body="

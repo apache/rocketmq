@@ -19,7 +19,6 @@ import java.io.File;
 
 import com.alibaba.rocketmq.common.annotation.ImportantField;
 import com.alibaba.rocketmq.store.ConsumeQueue;
-import com.alibaba.rocketmq.store.transaction.TransactionStateService;
 
 
 /**
@@ -125,16 +124,8 @@ public class MessageStoreConfig {
     // 同步刷盘超时时间
     private int syncFlushTimeout = 1000 * 5;
     // 定时消息相关
-    private String messageDelayLevel = "1s 5s 10s 30s 1m 2m 3m 4m 5m 6m 7m 8m 9m 10m 20m 30m";
+    private String messageDelayLevel = "1s 5s 10s 30s 1m 2m 3m 4m 5m 6m 7m 8m 9m 10m 20m 30m 1h 2h";
     private long flushDelayOffsetInterval = 1000 * 10;
-    private int tranStateTableMapedFileSize = 2000000 * TransactionStateService.TSStoreUnitSize;
-    private int tranRedoLogMapedFileSize = 2000000 * ConsumeQueue.CQStoreUnitSize;
-    // 事务回查至少间隔时间
-    private long checkTransactionMessageAtleastInterval = 1000 * 60;
-    // 事务回查定时间隔时间
-    private long checkTransactionMessageTimerInterval = 1000 * 60;
-    // 是否开启事务Check过程，双十一时，可以关闭
-    private boolean checkTransactionMessageEnable = true;
     // 磁盘空间超过90%警戒水位，自动开始删除文件
     @ImportantField
     private boolean cleanFileForciblyEnable = true;
@@ -563,36 +554,6 @@ public class MessageStoreConfig {
     }
 
 
-    public int getTranRedoLogMapedFileSize() {
-        return tranRedoLogMapedFileSize;
-    }
-
-
-    public void setTranRedoLogMapedFileSize(int tranRedoLogMapedFileSize) {
-        this.tranRedoLogMapedFileSize = tranRedoLogMapedFileSize;
-    }
-
-
-    public long getCheckTransactionMessageAtleastInterval() {
-        return checkTransactionMessageAtleastInterval;
-    }
-
-
-    public void setCheckTransactionMessageAtleastInterval(long checkTransactionMessageAtleastInterval) {
-        this.checkTransactionMessageAtleastInterval = checkTransactionMessageAtleastInterval;
-    }
-
-
-    public long getCheckTransactionMessageTimerInterval() {
-        return checkTransactionMessageTimerInterval;
-    }
-
-
-    public void setCheckTransactionMessageTimerInterval(long checkTransactionMessageTimerInterval) {
-        this.checkTransactionMessageTimerInterval = checkTransactionMessageTimerInterval;
-    }
-
-
     public boolean isCleanFileForciblyEnable() {
         return cleanFileForciblyEnable;
     }
@@ -600,16 +561,6 @@ public class MessageStoreConfig {
 
     public void setCleanFileForciblyEnable(boolean cleanFileForciblyEnable) {
         this.cleanFileForciblyEnable = cleanFileForciblyEnable;
-    }
-
-
-    public boolean isCheckTransactionMessageEnable() {
-        return checkTransactionMessageEnable;
-    }
-
-
-    public void setCheckTransactionMessageEnable(boolean checkTransactionMessageEnable) {
-        this.checkTransactionMessageEnable = checkTransactionMessageEnable;
     }
 
 
@@ -640,15 +591,5 @@ public class MessageStoreConfig {
 
     public void setStorePathRootDir(String storePathRootDir) {
         this.storePathRootDir = storePathRootDir;
-    }
-
-
-    public int getTranStateTableMapedFileSize() {
-        return tranStateTableMapedFileSize;
-    }
-
-
-    public void setTranStateTableMapedFileSize(int tranStateTableMapedFileSize) {
-        this.tranStateTableMapedFileSize = tranStateTableMapedFileSize;
     }
 }

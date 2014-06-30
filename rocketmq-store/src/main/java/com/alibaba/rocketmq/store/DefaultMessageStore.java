@@ -49,8 +49,6 @@ import com.alibaba.rocketmq.store.ha.HAService;
 import com.alibaba.rocketmq.store.index.IndexService;
 import com.alibaba.rocketmq.store.index.QueryOffsetResult;
 import com.alibaba.rocketmq.store.schedule.ScheduleMessageService;
-import com.alibaba.rocketmq.store.transaction.TransactionCheckExecuter;
-import com.alibaba.rocketmq.store.transaction.TransactionStateService;
 
 
 /**
@@ -87,16 +85,12 @@ public class DefaultMessageStore implements MessageStore {
     private final HAService haService;
     // 定时服务
     private final ScheduleMessageService scheduleMessageService;
-    // 分布式事务服务
-    private final TransactionStateService transactionStateService;
     // 运行时数据统计
     private final StoreStatsService storeStatsService;
     // 运行过程标志位
     private final RunningFlags runningFlags = new RunningFlags();
     // 优化获取时间性能，精度1ms
     private final SystemClock systemClock = new SystemClock(1);
-    // 事务回查接口
-    private final TransactionCheckExecuter transactionCheckExecuter;
     // 存储服务是否启动
     private volatile boolean shutdown = true;
     // 存储检查点
@@ -109,14 +103,7 @@ public class DefaultMessageStore implements MessageStore {
 
 
     public DefaultMessageStore(final MessageStoreConfig messageStoreConfig) throws IOException {
-        this(messageStoreConfig, null);
-    }
-
-
-    public DefaultMessageStore(final MessageStoreConfig messageStoreConfig,
-            final TransactionCheckExecuter transactionCheckExecuter) throws IOException {
         this.messageStoreConfig = messageStoreConfig;
-        this.transactionCheckExecuter = transactionCheckExecuter;
         this.allocateMapedFileService = new AllocateMapedFileService();
         this.commitLog = new CommitLog(this);
         this.consumeQueueTable =
@@ -131,7 +118,6 @@ public class DefaultMessageStore implements MessageStore {
         this.storeStatsService = new StoreStatsService();
         this.indexService = new IndexService(this);
         this.haService = new HAService(this);
-        this.transactionStateService = new TransactionStateService(this);
 
         switch (this.messageStoreConfig.getBrokerRole()) {
         case SLAVE:
@@ -192,9 +178,6 @@ public class DefaultMessageStore implements MessageStore {
             // load Consume Queue
             result = result && this.loadConsumeQueue();
 
-            // load 事务模块
-            result = result && this.transactionStateService.load();
-
             if (result) {
                 this.storeCheckpoint =
                         new StoreCheckpoint(StorePathConfigHelper.getStoreCheckpoint(this.messageStoreConfig
@@ -231,12 +214,12 @@ public class DefaultMessageStore implements MessageStore {
         }, 1000 * 60, this.messageStoreConfig.getCleanResourceInterval(), TimeUnit.MILLISECONDS);
 
         // 定时清理完全不使用的队列
-        this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
-            @Override
-            public void run() {
-                DefaultMessageStore.this.cleanExpiredConsumerQueue();
-            }
-        }, 1, 1, TimeUnit.HOURS);
+        // this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
+        // @Override
+        // public void run() {
+        // DefaultMessageStore.this.cleanExpiredConsumerQueue();
+        // }
+        // }, 1, 1, TimeUnit.HOURS);
     }
 
 
@@ -246,7 +229,7 @@ public class DefaultMessageStore implements MessageStore {
     }
 
 
-    private void cleanExpiredConsumerQueue() {
+    public void cleanExpiredConsumerQueue() {
         // CommitLog的最小Offset
         long minCommitLogOffset = this.commitLog.getMinOffset();
 
@@ -261,13 +244,27 @@ public class DefaultMessageStore implements MessageStore {
                 while (itQT.hasNext()) {
                     Entry<Integer, ConsumeQueue> nextQT = itQT.next();
                     long maxCLOffsetInConsumeQueue = nextQT.getValue().getLastOffset();
-                    if (maxCLOffsetInConsumeQueue < minCommitLogOffset) {
+
+                    // maxCLOffsetInConsumeQueue==-1有可能正好是索引文件刚好创建的那一时刻,此时不清除数据
+                    if (maxCLOffsetInConsumeQueue == -1) {
+                        log.warn(
+                            "maybe ConsumeQueue was created just now. topic={} queueId={} maxPhysicOffset={} minLogicOffset={}.",//
+                            nextQT.getValue().getTopic(),//
+                            nextQT.getValue().getQueueId(),//
+                            nextQT.getValue().getMaxPhysicOffset(),//
+                            nextQT.getValue().getMinLogicOffset());
+                    }
+                    else if (maxCLOffsetInConsumeQueue < minCommitLogOffset) {
                         log.info(
                             "cleanExpiredConsumerQueue: {} {} consumer queue destroyed, minCommitLogOffset: {} maxCLOffsetInConsumeQueue: {}",//
                             topic,//
                             nextQT.getKey(),//
                             minCommitLogOffset,//
                             maxCLOffsetInConsumeQueue);
+
+                        DefaultMessageStore.this.commitLog.removeQueurFromTopicQueueTable(nextQT.getValue()
+                            .getTopic(), nextQT.getValue().getQueueId());
+
                         nextQT.getValue().destroy();
                         itQT.remove();
                     }
@@ -305,7 +302,6 @@ public class DefaultMessageStore implements MessageStore {
             this.reputMessageService.start();
         }
 
-        this.transactionStateService.start();
         this.haService.start();
 
         this.createTempFile();
@@ -330,8 +326,6 @@ public class DefaultMessageStore implements MessageStore {
             catch (InterruptedException e) {
                 log.error("shutdown Exception, ", e);
             }
-
-            this.transactionStateService.shutdown();
 
             if (this.scheduleMessageService != null) {
                 this.scheduleMessageService.shutdown();
@@ -598,7 +592,7 @@ public class DefaultMessageStore implements MessageStore {
 
 
     /**
-     * 返回的是当前队列有效的最大Offset，这个Offset有对应的消息
+     * 返回的是当前队列的最大Offset，这个Offset没有对应的消息
      */
     public long getMaxOffsetInQuque(String topic, int queueId) {
         ConsumeQueue logic = this.findConsumeQueue(topic, queueId);
@@ -611,6 +605,9 @@ public class DefaultMessageStore implements MessageStore {
     }
 
 
+    /**
+     * 返回的是当前队列的最小Offset
+     */
     public long getMinOffsetInQuque(String topic, int queueId) {
         ConsumeQueue logic = this.findConsumeQueue(topic, queueId);
         if (logic != null) {
@@ -1037,9 +1034,6 @@ public class DefaultMessageStore implements MessageStore {
         // 先按照正常流程恢复Consume Queue
         this.recoverConsumeQueue();
 
-        // 先按照正常流程恢复Tran Redo Log
-        this.transactionStateService.getTranRedoLog().recover();
-
         // 正常数据恢复
         if (lastExitOK) {
             this.commitLog.recoverNormally();
@@ -1047,21 +1041,17 @@ public class DefaultMessageStore implements MessageStore {
         // 异常数据恢复，OS CRASH或者JVM CRASH或者机器掉电
         else {
             this.commitLog.recoverAbnormally();
-
-            // 保证消息都能从DispatchService缓冲队列进入到真正的队列
-            while (this.dispatchMessageService.hasRemainMessage()) {
-                try {
-                    Thread.sleep(500);
-                    log.info("waiting dispatching message over");
-                }
-                catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-            }
         }
 
-        // 恢复事务模块
-        this.transactionStateService.recoverStateTable(lastExitOK);
+        // 保证消息都能从DispatchService缓冲队列进入到真正的队列
+        while (this.dispatchMessageService.hasRemainMessage()) {
+            try {
+                Thread.sleep(500);
+                log.info("waiting dispatching message over");
+            }
+            catch (InterruptedException e) {
+            }
+        }
 
         this.recoverTopicQueueTable();
     }
@@ -1145,18 +1135,8 @@ public class DefaultMessageStore implements MessageStore {
     }
 
 
-    public TransactionStateService getTransactionStateService() {
-        return transactionStateService;
-    }
-
-
     public RunningFlags getRunningFlags() {
         return runningFlags;
-    }
-
-
-    public TransactionCheckExecuter getTransactionCheckExecuter() {
-        return transactionCheckExecuter;
     }
 
     /**
@@ -1400,11 +1380,6 @@ public class DefaultMessageStore implements MessageStore {
                     }
                 }
 
-                // 删除日志RedoLog
-                DefaultMessageStore.this.transactionStateService.getTranRedoLog()
-                    .deleteExpiredFile(minOffset);
-                // 删除日志StateTable
-                DefaultMessageStore.this.transactionStateService.deleteExpiredStateFile(minOffset);
                 // 删除索引
                 DefaultMessageStore.this.indexService.deleteExpiredFile(minOffset);
             }
@@ -1468,10 +1443,6 @@ public class DefaultMessageStore implements MessageStore {
                     }
                 }
             }
-
-            // 事务Redolog
-            DefaultMessageStore.this.transactionStateService.getTranRedoLog().commit(
-                flushConsumeQueueLeastPages);
 
             if (0 == flushConsumeQueueLeastPages) {
                 if (logicsMsgTimestamp > 0) {
@@ -1572,7 +1543,6 @@ public class DefaultMessageStore implements MessageStore {
                     Thread.sleep(1);
                 }
                 catch (InterruptedException e) {
-                    e.printStackTrace();
                 }
             }
         }
@@ -1601,59 +1571,6 @@ public class DefaultMessageStore implements MessageStore {
                         break;
                     case MessageSysFlag.TransactionPreparedType:
                     case MessageSysFlag.TransactionRollbackType:
-                        break;
-                    }
-
-                    // 2、更新Transaction State Table
-                    if (req.getProducerGroup() != null) {
-                        switch (tranType) {
-                        case MessageSysFlag.TransactionNotType:
-                            break;
-                        case MessageSysFlag.TransactionPreparedType:
-                            // 将Prepared事务记录下来
-                            DefaultMessageStore.this.getTransactionStateService().appendPreparedTransaction(//
-                                req.getCommitLogOffset(),//
-                                req.getMsgSize(),//
-                                (int) (req.getStoreTimestamp() / 1000),//
-                                req.getProducerGroup().hashCode());
-                            break;
-                        case MessageSysFlag.TransactionCommitType:
-                        case MessageSysFlag.TransactionRollbackType:
-                            DefaultMessageStore.this.getTransactionStateService().updateTransactionState(//
-                                req.getTranStateTableOffset(),//
-                                req.getPreparedTransactionOffset(),//
-                                req.getProducerGroup().hashCode(),//
-                                tranType//
-                                );
-                            break;
-                        }
-                    }
-                    // 3、记录Transaction Redo Log
-                    switch (tranType) {
-                    case MessageSysFlag.TransactionNotType:
-                        break;
-                    case MessageSysFlag.TransactionPreparedType:
-                        // 记录redolog
-                        DefaultMessageStore.this.getTransactionStateService().getTranRedoLog()
-                            .putMessagePostionInfoWrapper(//
-                                req.getCommitLogOffset(),//
-                                req.getMsgSize(),//
-                                TransactionStateService.PreparedMessageTagsCode,//
-                                req.getStoreTimestamp(),//
-                                0L//
-                            );
-                        break;
-                    case MessageSysFlag.TransactionCommitType:
-                    case MessageSysFlag.TransactionRollbackType:
-                        // 记录redolog
-                        DefaultMessageStore.this.getTransactionStateService().getTranRedoLog()
-                            .putMessagePostionInfoWrapper(//
-                                req.getCommitLogOffset(),//
-                                req.getMsgSize(),//
-                                req.getPreparedTransactionOffset(),//
-                                req.getStoreTimestamp(),//
-                                0L//
-                            );
                         break;
                     }
                 }
@@ -1847,6 +1764,8 @@ public class DefaultMessageStore implements MessageStore {
                         cq.getTopic(), //
                         cq.getQueueId() //
                     );
+
+                    this.commitLog.removeQueurFromTopicQueueTable(cq.getTopic(), cq.getQueueId());
                 }
                 it.remove();
 

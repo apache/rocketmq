@@ -25,7 +25,6 @@ public class NettyClientConfig {
     // 处理Server Response/Request
     private int clientWorkerThreads = 4;
     private int clientCallbackExecutorThreads = Runtime.getRuntime().availableProcessors();
-    private int clientSelectorThreads = 1;
     private int clientOnewaySemaphoreValue = 256;
     private int clientAsyncSemaphoreValue = 128;
     private long connectTimeoutMillis = 3000;
@@ -42,16 +41,6 @@ public class NettyClientConfig {
 
     public void setClientWorkerThreads(int clientWorkerThreads) {
         this.clientWorkerThreads = clientWorkerThreads;
-    }
-
-
-    public int getClientSelectorThreads() {
-        return clientSelectorThreads;
-    }
-
-
-    public void setClientSelectorThreads(int clientSelectorThreads) {
-        this.clientSelectorThreads = clientSelectorThreads;
     }
 
 

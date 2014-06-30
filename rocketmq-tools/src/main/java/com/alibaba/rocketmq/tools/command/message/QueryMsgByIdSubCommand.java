@@ -102,6 +102,11 @@ public class QueryMsgByIdSubCommand implements SubCommand {
             msg.getCommitLogOffset()//
             );
 
+        System.out.printf("%-20s %d\n",//
+            "Reconsume Times:",//
+            msg.getReconsumeTimes()//
+            );
+
         System.out.printf("%-20s %s\n",//
             "Born Timestamp:",//
             UtilAll.timeMillisToHumanString2(msg.getBornTimestamp())//

@@ -56,8 +56,8 @@ public class BrokerConfig {
     @ImportantField
     private boolean autoCreateSubscriptionGroup = true;
 
-    private int sendMessageThreadPoolNums = 32 + Runtime.getRuntime().availableProcessors() * 4;
-    private int pullMessageThreadPoolNums = 32 + Runtime.getRuntime().availableProcessors() * 4;
+    private int sendMessageThreadPoolNums = 16 + Runtime.getRuntime().availableProcessors() * 4;
+    private int pullMessageThreadPoolNums = 16 + Runtime.getRuntime().availableProcessors() * 2;
     private int adminBrokerThreadPoolNums = 8;
 
     private int flushConsumerOffsetInterval = 1000 * 5;

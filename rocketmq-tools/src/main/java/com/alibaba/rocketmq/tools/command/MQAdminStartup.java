@@ -32,6 +32,7 @@ import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 import com.alibaba.rocketmq.srvutil.ServerUtil;
 import com.alibaba.rocketmq.tools.command.broker.BrokerStatsSubCommand;
+import com.alibaba.rocketmq.tools.command.broker.CleanExpiredCQSubCommand;
 import com.alibaba.rocketmq.tools.command.broker.UpdateBrokerConfigSubCommand;
 import com.alibaba.rocketmq.tools.command.cluster.ClusterListSubCommand;
 import com.alibaba.rocketmq.tools.command.connection.ConsumerConnectionSubCommand;
@@ -39,6 +40,7 @@ import com.alibaba.rocketmq.tools.command.connection.ProducerConnectionSubComman
 import com.alibaba.rocketmq.tools.command.consumer.ConsumerProgressSubCommand;
 import com.alibaba.rocketmq.tools.command.consumer.DeleteSubscriptionGroupCommand;
 import com.alibaba.rocketmq.tools.command.consumer.UpdateSubGroupSubCommand;
+import com.alibaba.rocketmq.tools.command.message.PrintMessageSubCommand;
 import com.alibaba.rocketmq.tools.command.message.QueryMsgByIdSubCommand;
 import com.alibaba.rocketmq.tools.command.message.QueryMsgByKeySubCommand;
 import com.alibaba.rocketmq.tools.command.message.QueryMsgByOffsetSubCommand;
@@ -80,6 +82,7 @@ public class MQAdminStartup {
         subCommandList.add(new QueryMsgByIdSubCommand());
         subCommandList.add(new QueryMsgByKeySubCommand());
         subCommandList.add(new QueryMsgByOffsetSubCommand());
+        subCommandList.add(new PrintMessageSubCommand());
 
         subCommandList.add(new ProducerConnectionSubCommand());
         subCommandList.add(new ConsumerConnectionSubCommand());
@@ -99,6 +102,7 @@ public class MQAdminStartup {
         subCommandList.add(new GetConsumerStatusCommand());
 
         subCommandList.add(new UpdateOrderConfCommand());
+        subCommandList.add(new CleanExpiredCQSubCommand());
     }
 
 

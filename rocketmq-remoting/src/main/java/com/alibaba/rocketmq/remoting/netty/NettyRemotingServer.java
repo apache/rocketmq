@@ -66,7 +66,8 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 public class NettyRemotingServer extends NettyRemotingAbstract implements RemotingServer {
     private static final Logger log = LoggerFactory.getLogger(RemotingHelper.RemotingLogName);
     private final ServerBootstrap serverBootstrap;
-    private final EventLoopGroup eventLoopGroup;
+    private final EventLoopGroup eventLoopGroupWorker;
+    private final EventLoopGroup eventLoopGroupBoss;
     private final NettyServerConfig nettyServerConfig;
     // 处理Callback应答器
     private final ExecutorService publicExecutor;
@@ -109,7 +110,29 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
             }
         });
 
-        this.eventLoopGroup = new NioEventLoopGroup(nettyServerConfig.getServerSelectorThreads());
+        this.eventLoopGroupBoss = new NioEventLoopGroup(1, new ThreadFactory() {
+            private AtomicInteger threadIndex = new AtomicInteger(0);
+
+
+            @Override
+            public Thread newThread(Runnable r) {
+                return new Thread(r,
+                    String.format("NettyBossSelector_%d", this.threadIndex.incrementAndGet()));
+            }
+        });
+
+        this.eventLoopGroupWorker =
+                new NioEventLoopGroup(nettyServerConfig.getServerSelectorThreads(), new ThreadFactory() {
+                    private AtomicInteger threadIndex = new AtomicInteger(0);
+                    private int threadTotal = nettyServerConfig.getServerSelectorThreads();
+
+
+                    @Override
+                    public Thread newThread(Runnable r) {
+                        return new Thread(r, String.format("NettyServerSelector_%d_%d", threadTotal,
+                            this.threadIndex.incrementAndGet()));
+                    }
+                });
     }
 
 
@@ -129,7 +152,7 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
             });
 
         ServerBootstrap childHandler = //
-                this.serverBootstrap.group(this.eventLoopGroup, new NioEventLoopGroup())
+                this.serverBootstrap.group(this.eventLoopGroupBoss, this.eventLoopGroupWorker)
                     .channel(NioServerSocketChannel.class)
                     //
                     .option(ChannelOption.SO_BACKLOG, 1024)
@@ -243,7 +266,9 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
                 this.timer.cancel();
             }
 
-            this.eventLoopGroup.shutdownGracefully();
+            this.eventLoopGroupBoss.shutdownGracefully();
+
+            this.eventLoopGroupWorker.shutdownGracefully();
 
             if (this.nettyEventExecuter != null) {
                 this.nettyEventExecuter.shutdown();
@@ -281,16 +306,9 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
 
     class NettyServerHandler extends SimpleChannelInboundHandler<RemotingCommand> {
 
-        // @Override
-        // protected void messageReceived(ChannelHandlerContext ctx,
-        // RemotingCommand msg) throws Exception {
-        // processMessageReceived(ctx, msg);
-        // }
-
         @Override
         protected void channelRead0(ChannelHandlerContext ctx, RemotingCommand msg) throws Exception {
             processMessageReceived(ctx, msg);
-
         }
     }
 
