@@ -50,7 +50,6 @@ import com.alibaba.rocketmq.broker.stats.BrokerStats;
 import com.alibaba.rocketmq.broker.stats.BrokerStatsManager;
 import com.alibaba.rocketmq.broker.subscription.SubscriptionGroupManager;
 import com.alibaba.rocketmq.broker.topic.TopicConfigManager;
-import com.alibaba.rocketmq.broker.transaction.DefaultTransactionCheckExecuter;
 import com.alibaba.rocketmq.common.BrokerConfig;
 import com.alibaba.rocketmq.common.DataVersion;
 import com.alibaba.rocketmq.common.MixAll;
@@ -96,8 +95,6 @@ public class BrokerController {
     private final ProducerManager producerManager;
     // 检测所有客户端连接
     private final ClientHousekeepingService clientHousekeepingService;
-    // Broker主动回查Producer事务状态
-    private final DefaultTransactionCheckExecuter defaultTransactionCheckExecuter;
     private final PullMessageProcessor pullMessageProcessor;
     private final PullRequestHoldService pullRequestHoldService;
     // Broker主动调用Client
@@ -160,7 +157,6 @@ public class BrokerController {
         this.consumerManager = new ConsumerManager(this.consumerIdsChangeListener);
         this.producerManager = new ProducerManager();
         this.clientHousekeepingService = new ClientHousekeepingService(this);
-        this.defaultTransactionCheckExecuter = new DefaultTransactionCheckExecuter(this);
         this.broker2Client = new Broker2Client(this);
         this.subscriptionGroupManager = new SubscriptionGroupManager(this);
         this.brokerOuterAPI = new BrokerOuterAPI(nettyClientConfig);
@@ -197,8 +193,7 @@ public class BrokerController {
         // 初始化存储层
         if (result) {
             try {
-                this.messageStore =
-                        new DefaultMessageStore(this.messageStoreConfig, this.defaultTransactionCheckExecuter);
+                this.messageStore = new DefaultMessageStore(this.messageStoreConfig);
             }
             catch (IOException e) {
                 result = false;
@@ -418,11 +413,6 @@ public class BrokerController {
 
     public ConsumerOffsetManager getConsumerOffsetManager() {
         return consumerOffsetManager;
-    }
-
-
-    public DefaultTransactionCheckExecuter getDefaultTransactionCheckExecuter() {
-        return defaultTransactionCheckExecuter;
     }
 
 
