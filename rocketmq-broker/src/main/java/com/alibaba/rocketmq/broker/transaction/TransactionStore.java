@@ -13,7 +13,7 @@ public interface TransactionStore {
     public void close();
 
 
-    public boolean write(final TransactionRecord tr);
+    public boolean put(final List<TransactionRecord> trs);
 
 
     public void remove(final List<Long> pks);
