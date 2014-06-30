@@ -244,7 +244,17 @@ public class DefaultMessageStore implements MessageStore {
                 while (itQT.hasNext()) {
                     Entry<Integer, ConsumeQueue> nextQT = itQT.next();
                     long maxCLOffsetInConsumeQueue = nextQT.getValue().getLastOffset();
-                    if (maxCLOffsetInConsumeQueue < minCommitLogOffset) {
+
+                    // maxCLOffsetInConsumeQueue==-1有可能正好是索引文件刚好创建的那一时刻,此时不清除数据
+                    if (maxCLOffsetInConsumeQueue == -1) {
+                        log.warn(
+                            "maybe ConsumeQueue was created just now. topic={} queueId={} maxPhysicOffset={} minLogicOffset={}.",//
+                            nextQT.getValue().getTopic(),//
+                            nextQT.getValue().getQueueId(),//
+                            nextQT.getValue().getMaxPhysicOffset(),//
+                            nextQT.getValue().getMinLogicOffset());
+                    }
+                    else if (maxCLOffsetInConsumeQueue < minCommitLogOffset) {
                         log.info(
                             "cleanExpiredConsumerQueue: {} {} consumer queue destroyed, minCommitLogOffset: {} maxCLOffsetInConsumeQueue: {}",//
                             topic,//

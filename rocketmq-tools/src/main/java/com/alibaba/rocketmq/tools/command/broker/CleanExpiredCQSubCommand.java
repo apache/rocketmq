@@ -4,7 +4,6 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 
-import com.alibaba.rocketmq.client.exception.MQClientException;
 import com.alibaba.rocketmq.tools.admin.DefaultMQAdminExt;
 import com.alibaba.rocketmq.tools.command.SubCommand;
 
@@ -16,7 +15,7 @@ public class CleanExpiredCQSubCommand implements SubCommand {
 
     @Override
     public String commandName() {
-        return "cleanExpiredConsumeQueue";
+        return "cleanExpiredCQ";
     }
 
 
@@ -54,7 +53,9 @@ public class CleanExpiredCQSubCommand implements SubCommand {
 
             }
             else {
-                String cluster = commandLine.getOptionValue('c').trim();
+                String cluster = commandLine.getOptionValue('c');
+                if (null != cluster)
+                    cluster = cluster.trim();
                 result = defaultMQAdminExt.cleanExpiredConsumerQueue(cluster);
             }
             System.out.println(result ? "success" : "false");
