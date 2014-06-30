@@ -1,16 +1,15 @@
 ### RocketMQ是什么？
 RocketMQ是一款分布式、队列模型的消息中间件，具有以下特点：
 
-* 能够保证严格的消息顺序
-* 提供丰富的消息拉取模式
-* 高效的订阅者水平扩展能力
-* 实时的消息订阅机制
+* 支持严格的消息顺序
+* 支持Topic与Queue两种模式
 * 亿级消息堆积能力
-
+* 比较友好的分布式特性
+* 同时支持Push与Pull方式消费消息
 
 ----------
 
-### 如何开始？
+### 如何开始？`必读`
 * [下载安装包](https://github.com/alibaba/RocketMQ/releases)
 * [Quick Start](https://github.com/alibaba/RocketMQ/wiki/Quick-Start)
 * [通过Wiki了解更多](https://github.com/alibaba/RocketMQ/wiki)

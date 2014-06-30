@@ -364,9 +364,7 @@ public class CommitLog {
                 queueOffset,// 7
                 keys,// 8
                 sysFlag,// 9
-                0L,// 10
-                preparedTransactionOffset,// 11
-                null// 12
+                preparedTransactionOffset// 10
             );
         }
         catch (BufferUnderflowException e) {
@@ -585,10 +583,7 @@ public class CommitLog {
                  * 事务部分
                  */
                 msg.getSysFlag(),// 9
-                msg.getQueueOffset(), // 10
-                msg.getPreparedTransactionOffset(),// 11
-                msg.getProperty(MessageConst.PROPERTY_PRODUCER_GROUP)// 12
-                    );
+                msg.getPreparedTransactionOffset());// 10
 
             this.defaultMessageStore.putDispatchRequest(dispatchRequest);
 
@@ -597,7 +592,7 @@ public class CommitLog {
                 // XXX: warn and notify me
                 log.warn("putMessage in lock eclipse time(ms) " + eclipseTime);
             }
-        }
+        } // end of synchronized
 
         // 返回结果
         PutMessageResult putMessageResult = new PutMessageResult(PutMessageStatus.PUT_OK, result);
@@ -1030,13 +1025,10 @@ public class CommitLog {
              */
             final int tranType = MessageSysFlag.getTransactionValue(msgInner.getSysFlag());
             switch (tranType) {
+            // Prepared和Rollback都是不可以消费的消息，不会进入消费队列
             case MessageSysFlag.TransactionPreparedType:
-                queueOffset =
-                        CommitLog.this.defaultMessageStore.getTransactionStateService()
-                            .getTranStateTableOffset().get();
-                break;
             case MessageSysFlag.TransactionRollbackType:
-                queueOffset = msgInner.getQueueOffset();
+                queueOffset = 0L;
                 break;
             case MessageSysFlag.TransactionNotType:
             case MessageSysFlag.TransactionCommitType:
@@ -1149,9 +1141,6 @@ public class CommitLog {
 
             switch (tranType) {
             case MessageSysFlag.TransactionPreparedType:
-                CommitLog.this.defaultMessageStore.getTransactionStateService().getTranStateTableOffset()
-                    .incrementAndGet();
-                break;
             case MessageSysFlag.TransactionRollbackType:
                 break;
             case MessageSysFlag.TransactionNotType:
@@ -1172,5 +1161,15 @@ public class CommitLog {
             this.msgStoreItemMemory.flip();
             this.msgStoreItemMemory.limit(length);
         }
+    }
+
+
+    public void removeQueurFromTopicQueueTable(final String topic, final int queueId) {
+        String key = topic + "-" + queueId;
+        synchronized (this) {
+            this.topicQueueTable.remove(key);
+        }
+
+        log.info("removeQueurFromTopicQueueTable OK Topic: {} QueueId: {}", topic, queueId);
     }
 }

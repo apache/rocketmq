@@ -34,9 +34,7 @@ public class DispatchRequest {
      * 事务相关部分
      */
     private final int sysFlag;
-    private final long tranStateTableOffset;
     private final long preparedTransactionOffset;
-    private final String producerGroup;
 
 
     public DispatchRequest(//
@@ -52,12 +50,7 @@ public class DispatchRequest {
              * 事务相关部分
              */
             final int sysFlag,// 9
-            final long tranStateTableOffset,// 10
-            final long preparedTransactionOffset,// 11
-            final String producerGroup// 12
-    // 如果producerGroup为空，表示是recover过程，所以不更新
-    // Transaction state
-    // table
+            final long preparedTransactionOffset// 10
     ) {
         this.topic = topic;
         this.queueId = queueId;
@@ -72,9 +65,7 @@ public class DispatchRequest {
          * 事务相关部分
          */
         this.sysFlag = sysFlag;
-        this.tranStateTableOffset = tranStateTableOffset;
         this.preparedTransactionOffset = preparedTransactionOffset;
-        this.producerGroup = producerGroup;
     }
 
 
@@ -100,9 +91,7 @@ public class DispatchRequest {
          * 事务相关部分
          */
         this.sysFlag = 0;
-        this.tranStateTableOffset = 0;
         this.preparedTransactionOffset = 0;
-        this.producerGroup = "";
     }
 
 
@@ -151,17 +140,7 @@ public class DispatchRequest {
     }
 
 
-    public long getTranStateTableOffset() {
-        return tranStateTableOffset;
-    }
-
-
     public long getPreparedTransactionOffset() {
         return preparedTransactionOffset;
-    }
-
-
-    public String getProducerGroup() {
-        return producerGroup;
     }
 }
