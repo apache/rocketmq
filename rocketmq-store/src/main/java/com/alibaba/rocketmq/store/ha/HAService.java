@@ -686,6 +686,7 @@ public class HAService {
         }
     }
 
+
     public AtomicLong getPush2SlaveMaxOffset() {
         return push2SlaveMaxOffset;
     }

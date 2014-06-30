@@ -1,7 +1,5 @@
 git pull
 
-git checkout develop
-
 rm -rf target
 rm -f devenv
 
@@ -12,4 +10,4 @@ fi
 export PATH=/opt/taobao/mvn/bin:$JAVA_HOME/bin:$PATH
 mvn -Dmaven.test.skip=true clean package install assembly:assembly -U
 
-ln -s target/alibaba-rocketmq-3.1.4-SNAPSHOT/alibaba-rocketmq devenv
+ln -s target/alibaba-rocketmq-3.1.5-SNAPSHOT/alibaba-rocketmq devenv

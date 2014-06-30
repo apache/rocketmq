@@ -11,6 +11,12 @@ import org.junit.Test;
 public class UtilAllTest {
 
     @Test
+    public void test_currentStackTrace() {
+        System.out.println(UtilAll.currentStackTrace());
+    }
+
+
+    @Test
     public void test_a() {
         URL url = this.getClass().getProtectionDomain().getCodeSource().getLocation();
         System.out.println(url);

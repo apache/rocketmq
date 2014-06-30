@@ -450,9 +450,10 @@ public interface MQAdminExt extends MQAdmin {
      * @throws InterruptedException
      * @throws MQBrokerException
      * @throws RemotingException
-     * @throws MQClientException 
+     * @throws MQClientException
      */
-    public void resetOffsetNew(String consumerGroup, String topic, long timestamp) throws RemotingException, MQBrokerException, InterruptedException, MQClientException;
+    public void resetOffsetNew(String consumerGroup, String topic, long timestamp) throws RemotingException,
+            MQBrokerException, InterruptedException, MQClientException;
 
 
     /**
@@ -521,4 +522,34 @@ public interface MQAdminExt extends MQAdmin {
     public Set<QueueTimeSpan> queryConsumeTimeSpan(final String topic, final String group)
             throws InterruptedException, MQBrokerException, RemotingException, MQClientException;
 
+
+    /**
+     * 触发清理失效的消费队列
+     * 
+     * @param cluster
+     *            null则表示所有集群
+     * @return 清理是否成功
+     * @throws RemotingConnectException
+     * @throws RemotingSendRequestException
+     * @throws RemotingTimeoutException
+     * @throws MQClientException
+     * @throws InterruptedException
+     */
+    public boolean cleanExpiredConsumerQueue(String cluster) throws RemotingConnectException,
+            RemotingSendRequestException, RemotingTimeoutException, MQClientException, InterruptedException;
+
+
+    /**
+     * 触发指定的broker清理失效的消费队列
+     * 
+     * @param addr
+     * @return 清理是否成功
+     * @throws RemotingConnectException
+     * @throws RemotingSendRequestException
+     * @throws RemotingTimeoutException
+     * @throws MQClientException
+     * @throws InterruptedException
+     */
+    public boolean cleanExpiredConsumerQueueByAddr(String addr) throws RemotingConnectException,
+            RemotingSendRequestException, RemotingTimeoutException, MQClientException, InterruptedException;
 }

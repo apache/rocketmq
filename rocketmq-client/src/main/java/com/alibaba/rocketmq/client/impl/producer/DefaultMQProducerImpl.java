@@ -41,15 +41,11 @@ import com.alibaba.rocketmq.common.sysflag.MessageSysFlag;
 import com.alibaba.rocketmq.remoting.common.RemotingHelper;
 import com.alibaba.rocketmq.remoting.common.RemotingUtil;
 import com.alibaba.rocketmq.remoting.exception.RemotingException;
-
 import org.slf4j.Logger;
 
 import java.io.IOException;
 import java.net.UnknownHostException;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.*;
 
 
@@ -175,7 +171,9 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
             this.checkConfig();
 
-            this.defaultMQProducer.changeInstanceNameToPID();
+            if (!this.defaultMQProducer.getProducerGroup().equals(MixAll.CLIENT_INNER_PRODUCER_GROUP)) {
+                this.defaultMQProducer.changeInstanceNameToPID();
+            }
 
             this.mQClientFactory =
                     MQClientManager.getInstance().getAndCreateMQClientInstance(this.defaultMQProducer);
@@ -484,11 +482,14 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             SendResult sendResult = null;
             int timesTotal = 1 + this.defaultMQProducer.getRetryTimesWhenSendFailed();
             int times = 0;
+            // 记录投递的BrokerName
+            String[] brokersSent = new String[timesTotal];
             for (; times < timesTotal && (endTimestamp - beginTimestamp) < maxTimeout; times++) {
                 String lastBrokerName = null == mq ? null : mq.getBrokerName();
                 MessageQueue tmpmq = topicPublishInfo.selectOneMessageQueue(lastBrokerName);
                 if (tmpmq != null) {
                     mq = tmpmq;
+                    brokersSent[times] = mq.getBrokerName();
                     try {
                         sendResult = this.sendKernelImpl(msg, mq, communicationMode, sendCallback);
                         endTimestamp = System.currentTimeMillis();
@@ -559,10 +560,14 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                 return sendResult;
             }
 
-            throw new MQClientException(String.format("Retry [%d] times, still failed, cost [%d]ms", //
-                times, //
-                (System.currentTimeMillis() - beginTimestamp)), //
-                exception);
+            String info =
+                    String.format("Send [%d] times, still failed, cost [%d]ms, Topic: %s, BrokersSent: %s", //
+                        times, //
+                        (System.currentTimeMillis() - beginTimestamp), //
+                        msg.getTopic(),//
+                        Arrays.toString(brokersSent));
+
+            throw new MQClientException(info, exception);
         }
 
         List<String> nsList = this.getmQClientFactory().getMQClientAPIImpl().getNameServerAddressList();
@@ -626,15 +631,17 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                 }
 
                 // 发消息之前，读写权限控制时调用 Hook
-                CheckForbiddenContext checkForbiddenContext = new CheckForbiddenContext();
-                checkForbiddenContext.setNameSrvAddr(this.defaultMQProducer.getNamesrvAddr());
-                checkForbiddenContext.setGroup(this.defaultMQProducer.getProducerGroup());
-                checkForbiddenContext.setCommunicationMode(communicationMode);
-                checkForbiddenContext.setBrokerAddr(brokerAddr);
-                checkForbiddenContext.setMessage(msg);
-                checkForbiddenContext.setMq(mq);
-                checkForbiddenContext.setUnitMode(this.isUnitMode());
-                this.executeCheckForbiddenHook(checkForbiddenContext);
+                if (hasCheckForbiddenHook()) {
+                    CheckForbiddenContext checkForbiddenContext = new CheckForbiddenContext();
+                    checkForbiddenContext.setNameSrvAddr(this.defaultMQProducer.getNamesrvAddr());
+                    checkForbiddenContext.setGroup(this.defaultMQProducer.getProducerGroup());
+                    checkForbiddenContext.setCommunicationMode(communicationMode);
+                    checkForbiddenContext.setBrokerAddr(brokerAddr);
+                    checkForbiddenContext.setMessage(msg);
+                    checkForbiddenContext.setMq(mq);
+                    checkForbiddenContext.setUnitMode(this.isUnitMode());
+                    this.executeCheckForbiddenHook(checkForbiddenContext);
+                }
 
                 // 执行hook
                 if (this.hasSendMessageHook()) {

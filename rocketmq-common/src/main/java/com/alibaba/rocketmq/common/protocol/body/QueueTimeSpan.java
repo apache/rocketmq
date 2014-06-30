@@ -1,9 +1,9 @@
 package com.alibaba.rocketmq.common.protocol.body;
 
+import java.util.Date;
+
 import com.alibaba.rocketmq.common.UtilAll;
 import com.alibaba.rocketmq.common.message.MessageQueue;
-
-import java.util.Date;
 
 
 /**
