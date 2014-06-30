@@ -54,6 +54,18 @@ public class UtilAll {
     }
 
 
+    public static String currentStackTrace() {
+        StringBuilder sb = new StringBuilder();
+        StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
+        for (StackTraceElement ste : stackTrace) {
+            sb.append("\n\t");
+            sb.append(ste.toString());
+        }
+
+        return sb.toString();
+    }
+
+
     /**
      * 将offset转化成字符串形式<br>
      * 左补零对齐至20位

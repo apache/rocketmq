@@ -132,15 +132,20 @@ public class ClientManageProcessor implements NettyRequestProcessor {
                 );
 
         // 注销Producer
-        final String producerGroup = requestHeader.getProducerGroup();
-        if (producerGroup != null) {
-            this.brokerController.getProducerManager().unregisterProducer(producerGroup, clientChannelInfo);
+        {
+            final String group = requestHeader.getProducerGroup();
+            if (group != null) {
+                this.brokerController.getProducerManager().unregisterProducer(group, clientChannelInfo);
+            }
         }
 
         // 注销Consumer
-        final String consumerGroup = requestHeader.getProducerGroup();
-        if (consumerGroup != null) {
-            this.brokerController.getConsumerManager().unregisterConsumer(consumerGroup, clientChannelInfo);
+        {
+            final String group = requestHeader.getConsumerGroup();
+            if (group != null) {
+                this.brokerController.getConsumerManager().unregisterConsumer(group,
+                    clientChannelInfo);
+            }
         }
 
         response.setCode(ResponseCode.SUCCESS);
