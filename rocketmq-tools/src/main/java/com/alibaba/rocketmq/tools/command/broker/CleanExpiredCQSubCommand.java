@@ -53,7 +53,9 @@ public class CleanExpiredCQSubCommand implements SubCommand {
 
             }
             else {
-                String cluster = commandLine.getOptionValue('c').trim();
+                String cluster = commandLine.getOptionValue('c');
+                if (null != cluster)
+                    cluster = cluster.trim();
                 result = defaultMQAdminExt.cleanExpiredConsumerQueue(cluster);
             }
             System.out.println(result ? "success" : "false");
