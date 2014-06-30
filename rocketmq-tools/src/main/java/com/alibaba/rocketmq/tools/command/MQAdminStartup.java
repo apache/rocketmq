@@ -32,6 +32,7 @@ import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 import com.alibaba.rocketmq.srvutil.ServerUtil;
 import com.alibaba.rocketmq.tools.command.broker.BrokerStatsSubCommand;
+import com.alibaba.rocketmq.tools.command.broker.CleanExpiredCQSubCommand;
 import com.alibaba.rocketmq.tools.command.broker.UpdateBrokerConfigSubCommand;
 import com.alibaba.rocketmq.tools.command.cluster.ClusterListSubCommand;
 import com.alibaba.rocketmq.tools.command.connection.ConsumerConnectionSubCommand;
@@ -101,6 +102,7 @@ public class MQAdminStartup {
         subCommandList.add(new GetConsumerStatusCommand());
 
         subCommandList.add(new UpdateOrderConfCommand());
+        subCommandList.add(new CleanExpiredCQSubCommand());
     }
 
 
