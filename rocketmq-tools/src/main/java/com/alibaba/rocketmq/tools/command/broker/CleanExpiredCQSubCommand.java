@@ -15,7 +15,7 @@ public class CleanExpiredCQSubCommand implements SubCommand {
 
     @Override
     public String commandName() {
-        return "cleanExpiredConsumeQueue";
+        return "cleanExpiredCQ";
     }
 
 
