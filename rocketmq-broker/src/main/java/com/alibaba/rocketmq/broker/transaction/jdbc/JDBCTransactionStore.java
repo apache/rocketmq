@@ -3,9 +3,11 @@ package com.alibaba.rocketmq.broker.transaction.jdbc;
 import java.net.URL;
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicLong;
@@ -100,9 +102,9 @@ public class JDBCTransactionStore implements TransactionStore {
 
             String sql = this.createTableSql();
             log.info("createDB SQL:\n {}", sql);
-            boolean execute = statement.execute(sql);
-            log.info("createDB execute {}", execute ? "Success." : "Failed");
-            return execute;
+            statement.execute(sql);
+            this.connection.commit();
+            return true;
         }
         catch (Exception e) {
             log.warn("createDB Exception", e);
@@ -130,6 +132,9 @@ public class JDBCTransactionStore implements TransactionStore {
             try {
                 this.connection =
                         DriverManager.getConnection(this.jdbcTransactionStoreConfig.getJdbcURL(), props);
+
+                this.connection.setAutoCommit(false);
+
                 // 如果表不存在，尝试初始化表
                 if (!this.computeTotalRecords()) {
                     return this.createDB();
@@ -158,16 +163,42 @@ public class JDBCTransactionStore implements TransactionStore {
     }
 
 
-    @Override
-    public boolean write(TransactionRecord tr) {
-        return false;
+    private long updatedRows(int[] rows) {
+        long res = 0;
+        for (int i : rows) {
+            res += i;
+        }
+
+        return res;
     }
 
 
     @Override
     public void remove(List<Long> pks) {
-        // TODO Auto-generated method stub
-
+        PreparedStatement statement = null;
+        try {
+            this.connection.setAutoCommit(false);
+            statement = this.connection.prepareStatement("DELETE FROM t_transaction WHERE offset = ?");
+            for (long pk : pks) {
+                statement.setLong(1, pk);
+                statement.addBatch();
+            }
+            int[] executeBatch = statement.executeBatch();
+            System.out.println(Arrays.toString(executeBatch));
+            this.connection.commit();
+        }
+        catch (Exception e) {
+            log.warn("createDB Exception", e);
+        }
+        finally {
+            if (null != statement) {
+                try {
+                    statement.close();
+                }
+                catch (SQLException e) {
+                }
+            }
+        }
     }
 
 
@@ -198,4 +229,35 @@ public class JDBCTransactionStore implements TransactionStore {
         return 0;
     }
 
+
+    @Override
+    public boolean put(List<TransactionRecord> trs) {
+        PreparedStatement statement = null;
+        try {
+            this.connection.setAutoCommit(false);
+            statement = this.connection.prepareStatement("insert into t_transaction values (?, ?)");
+            for (TransactionRecord tr : trs) {
+                statement.setLong(1, tr.getOffset());
+                statement.setString(2, tr.getProducerGroup());
+                statement.addBatch();
+            }
+            int[] executeBatch = statement.executeBatch();
+            this.connection.commit();
+            this.totalRecordsValue.addAndGet(updatedRows(executeBatch));
+            return true;
+        }
+        catch (Exception e) {
+            log.warn("createDB Exception", e);
+            return false;
+        }
+        finally {
+            if (null != statement) {
+                try {
+                    statement.close();
+                }
+                catch (SQLException e) {
+                }
+            }
+        }
+    }
 }

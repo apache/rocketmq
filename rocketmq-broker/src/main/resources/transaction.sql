@@ -1,4 +1,4 @@
-CREATE TABLE `t_transaction` (
-  `offset` INT(20) UNSIGNED PRIMARY KEY,
-  `producerGroup` VARCHAR(64) NOT NULL
-);
+CREATE TABLE t_transaction(
+	offset				NUMERIC(20) PRIMARY KEY,
+	producerGroup		VARCHAR(64)
+)

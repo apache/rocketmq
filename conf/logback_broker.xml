@@ -112,7 +112,7 @@
 			</fileNamePattern>
 			<timeBasedFileNamingAndTriggeringPolicy
 				class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
-				<maxFileSize>300MB</maxFileSize>
+				<maxFileSize>500MB</maxFileSize>
 			</timeBasedFileNamingAndTriggeringPolicy>
 			<MaxHistory>10</MaxHistory>
 		</rollingPolicy>
