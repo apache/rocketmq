@@ -35,6 +35,7 @@ public class ConsumeQueue {
     // 存储单元大小
     public static final int CQStoreUnitSize = 20;
     private static final Logger log = LoggerFactory.getLogger(LoggerName.StoreLoggerName);
+    private static final Logger logError = LoggerFactory.getLogger(LoggerName.StoreErrorLoggerName);
     // 存储顶层对象
     private final DefaultMessageStore defaultMessageStore;
     // 存储消息索引的队列
@@ -406,11 +407,11 @@ public class ConsumeQueue {
             // 只有一种情况会失败，创建新的MapedFile时报错或者超时
             else {
                 // XXX: warn and notify me
-                log.warn("put commit log postion info to " + topic + ":" + queueId + " " + offset
+                log.warn("[BUG]put commit log postion info to " + topic + ":" + queueId + " " + offset
                         + " failed, retry " + i + " times");
 
                 try {
-                    Thread.sleep(1000 * 5);
+                    Thread.sleep(1000);
                 }
                 catch (InterruptedException e) {
                     log.warn("", e);
@@ -419,7 +420,7 @@ public class ConsumeQueue {
         }
 
         // XXX: warn and notify me
-        log.error("consume queue can not write, {} {}", this.topic, this.queueId);
+        log.error("[BUG]consume queue can not write, {} {}", this.topic, this.queueId);
         this.defaultMessageStore.getRunningFlags().makeLogicsQueueError();
     }
 
@@ -464,13 +465,15 @@ public class ConsumeQueue {
                 long currentLogicOffset = mapedFile.getWrotePostion() + mapedFile.getFileFromOffset();
                 if (expectLogicOffset != currentLogicOffset) {
                     // XXX: warn and notify me
-                    log.warn(
-                        "logic queue order maybe wrong, expectLogicOffset: {} currentLogicOffset: {} Topic: {} QID: {}",//
-                        expectLogicOffset, //
-                        currentLogicOffset,//
-                        this.topic,//
-                        this.queueId//
-                    );
+                    logError
+                        .warn(
+                            "[BUG]logic queue order maybe wrong, expectLogicOffset: {} currentLogicOffset: {} Topic: {} QID: {} Diff: {}",//
+                            expectLogicOffset, //
+                            currentLogicOffset,//
+                            this.topic,//
+                            this.queueId,//
+                            expectLogicOffset - currentLogicOffset//
+                        );
                 }
             }
 
