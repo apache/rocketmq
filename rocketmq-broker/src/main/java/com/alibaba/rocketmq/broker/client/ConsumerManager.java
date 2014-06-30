@@ -87,6 +87,14 @@ public class ConsumerManager {
             ConsumerGroupInfo info = next.getValue();
             boolean removed = info.doChannelCloseEvent(remoteAddr, channel);
             if (removed) {
+                if (info.getChannelInfoTable().isEmpty()) {
+                    ConsumerGroupInfo remove = this.consumerTable.remove(next.getKey());
+                    if (remove != null) {
+                        log.info("ungister consumer ok, no any connection, and remove consumer group, {}",
+                            next.getKey());
+                    }
+                }
+
                 this.consumerIdsChangeListener.consumerIdsChanged(next.getKey(), info.getAllChannel());
             }
         }
@@ -123,6 +131,12 @@ public class ConsumerManager {
         ConsumerGroupInfo consumerGroupInfo = this.consumerTable.get(group);
         if (null != consumerGroupInfo) {
             consumerGroupInfo.unregisterChannel(clientChannelInfo);
+            if (consumerGroupInfo.getChannelInfoTable().isEmpty()) {
+                ConsumerGroupInfo remove = this.consumerTable.remove(group);
+                if (remove != null) {
+                    log.info("ungister consumer ok, no any connection, and remove consumer group, {}", group);
+                }
+            }
             this.consumerIdsChangeListener.consumerIdsChanged(group, consumerGroupInfo.getAllChannel());
         }
     }
