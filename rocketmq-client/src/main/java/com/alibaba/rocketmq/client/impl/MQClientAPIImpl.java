@@ -41,7 +41,6 @@ import com.alibaba.rocketmq.client.producer.SendResult;
 import com.alibaba.rocketmq.client.producer.SendStatus;
 import com.alibaba.rocketmq.common.MQVersion;
 import com.alibaba.rocketmq.common.MixAll;
-import com.alibaba.rocketmq.common.SessionCredentials;
 import com.alibaba.rocketmq.common.TopicConfig;
 import com.alibaba.rocketmq.common.UtilAll;
 import com.alibaba.rocketmq.common.admin.ConsumeStats;
@@ -143,6 +142,11 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingSerializable;
  * @since 2013-7-24
  */
 public class MQClientAPIImpl {
+
+    static {
+        System.setProperty(RemotingCommand.RemotingVersionKey, Integer.toString(MQVersion.CurrentVersion));
+    }
+
     private final static Logger log = ClientLogger.getLog();
     private final RemotingClient remotingClient;
     private final TopAddressing topAddressing = new TopAddressing(MixAll.WS_ADDR);
@@ -151,49 +155,13 @@ public class MQClientAPIImpl {
     // 虚拟运行环境相关的project group
     private String projectGroupPrefix;
 
-    // 客户端授权
-    private volatile SessionCredentials sessionCredentials = new SessionCredentials();
-
-    static {
-        System.setProperty(RemotingCommand.RemotingVersionKey, Integer.toString(MQVersion.CurrentVersion));
-    }
-
-
-    private void attachSessionCredentials(final RemotingCommand cmd) {
-        SessionCredentials tmp = this.sessionCredentials;
-        if (tmp != null) {
-            if (tmp.getAccessKey() != null && tmp.getSecretKey() != null) {
-                HashMap<String, String> extFields = new HashMap<String, String>();
-                extFields.put(SessionCredentials.AccessKey, tmp.getAccessKey());
-                cmd.setExtFields(extFields);
-            }
-        }
-    }
-
-
-    public String getProjectGroupPrefix() {
-        return projectGroupPrefix;
-    }
-
-    class RPCHookImpl implements RPCHook {
-        @Override
-        public void doBeforeRequest(String remoteAddr, RemotingCommand request) {
-            MQClientAPIImpl.this.attachSessionCredentials(request);
-        }
-
-
-        @Override
-        public void doAfterResponse(RemotingCommand request, RemotingCommand response) {
-        }
-    }
-
 
     public MQClientAPIImpl(final NettyClientConfig nettyClientConfig,
-            final ClientRemotingProcessor clientRemotingProcessor) {
+            final ClientRemotingProcessor clientRemotingProcessor, RPCHook rpcHook) {
         this.remotingClient = new NettyRemotingClient(nettyClientConfig, null);
         this.clientRemotingProcessor = clientRemotingProcessor;
 
-        this.remotingClient.registerRPCHook(new RPCHookImpl());
+        this.remotingClient.registerRPCHook(rpcHook);
         /**
          * 注册客户端支持的RPC CODE
          */
@@ -208,6 +176,12 @@ public class MQClientAPIImpl {
 
         this.remotingClient.registerProcessor(RequestCode.GET_CONSUMER_STATUS_FROM_CLIENT,
             this.clientRemotingProcessor, null);
+    }
+
+
+    public MQClientAPIImpl(final NettyClientConfig nettyClientConfig,
+            final ClientRemotingProcessor clientRemotingProcessor) {
+        this(nettyClientConfig, clientRemotingProcessor, null);
     }
 
 
@@ -1974,16 +1948,6 @@ public class MQClientAPIImpl {
     }
 
 
-    public SessionCredentials getSessionCredentials() {
-        return sessionCredentials;
-    }
-
-
-    public void setSessionCredentials(SessionCredentials sessionCredentials) {
-        this.sessionCredentials = sessionCredentials;
-    }
-
-
     /**
      * Name Server: 获取指定集群下的所有 topic
      */
@@ -2149,5 +2113,10 @@ public class MQClientAPIImpl {
         }
 
         throw new MQClientException(response.getCode(), response.getRemark());
+    }
+
+
+    public String getProjectGroupPrefix() {
+        return projectGroupPrefix;
     }
 }
