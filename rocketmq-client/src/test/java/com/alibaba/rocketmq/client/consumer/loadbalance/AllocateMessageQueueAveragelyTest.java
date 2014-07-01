@@ -57,7 +57,7 @@ public class AllocateMessageQueueAveragelyTest {
         createConsumerIdList(1);
         createMessageQueueList(5);
         List<MessageQueue> result =
-                allocateMessageQueueAveragely.allocate(currentCID, messageQueueList, consumerIdList);
+                allocateMessageQueueAveragely.allocate("", currentCID, messageQueueList, consumerIdList);
         printMessageQueue(result, "testConsumer1");
         Assert.assertEquals(result.size(), 5);
         Assert.assertEquals(result.containsAll(getMessageQueueList()), true);
@@ -70,7 +70,7 @@ public class AllocateMessageQueueAveragelyTest {
         createConsumerIdList(2);
         createMessageQueueList(5);
         List<MessageQueue> result =
-                allocateMessageQueueAveragely.allocate(currentCID, messageQueueList, consumerIdList);
+                allocateMessageQueueAveragely.allocate("", currentCID, messageQueueList, consumerIdList);
         printMessageQueue(result, "testConsumer2");
         Assert.assertEquals(result.size(), 3);
         Assert.assertEquals(result.containsAll(getMessageQueueList().subList(2, 5)), true);
@@ -84,7 +84,7 @@ public class AllocateMessageQueueAveragelyTest {
         createConsumerIdList(3);
         createMessageQueueList(5);
         List<MessageQueue> result =
-                allocateMessageQueueAveragely.allocate(currentCID, messageQueueList, consumerIdList);
+                allocateMessageQueueAveragely.allocate("", currentCID, messageQueueList, consumerIdList);
         printMessageQueue(result, "testConsumer3CurrentCID0");
         Assert.assertEquals(result.size(), 1);
         Assert.assertEquals(result.containsAll(getMessageQueueList().subList(0, 1)), true);
@@ -97,7 +97,7 @@ public class AllocateMessageQueueAveragelyTest {
         createConsumerIdList(3);
         createMessageQueueList(5);
         List<MessageQueue> result =
-                allocateMessageQueueAveragely.allocate(currentCID, messageQueueList, consumerIdList);
+                allocateMessageQueueAveragely.allocate("", currentCID, messageQueueList, consumerIdList);
         printMessageQueue(result, "testConsumer3CurrentCID1");
         Assert.assertEquals(result.size(), 1);
         Assert.assertEquals(result.containsAll(getMessageQueueList().subList(1, 2)), true);
@@ -110,7 +110,7 @@ public class AllocateMessageQueueAveragelyTest {
         createConsumerIdList(3);
         createMessageQueueList(5);
         List<MessageQueue> result =
-                allocateMessageQueueAveragely.allocate(currentCID, messageQueueList, consumerIdList);
+                allocateMessageQueueAveragely.allocate("", currentCID, messageQueueList, consumerIdList);
         printMessageQueue(result, "testConsumer3CurrentCID2");
         Assert.assertEquals(result.size(), 3);
         Assert.assertEquals(result.containsAll(getMessageQueueList().subList(2, 5)), true);
@@ -123,7 +123,7 @@ public class AllocateMessageQueueAveragelyTest {
         createConsumerIdList(4);
         createMessageQueueList(5);
         List<MessageQueue> result =
-                allocateMessageQueueAveragely.allocate(currentCID, messageQueueList, consumerIdList);
+                allocateMessageQueueAveragely.allocate("", currentCID, messageQueueList, consumerIdList);
         printMessageQueue(result, "testConsumer4");
         Assert.assertEquals(result.size(), 1);
         Assert.assertEquals(result.containsAll(getMessageQueueList().subList(1, 2)), true);
@@ -136,7 +136,7 @@ public class AllocateMessageQueueAveragelyTest {
         createConsumerIdList(5);
         createMessageQueueList(5);
         List<MessageQueue> result =
-                allocateMessageQueueAveragely.allocate(currentCID, messageQueueList, consumerIdList);
+                allocateMessageQueueAveragely.allocate("", currentCID, messageQueueList, consumerIdList);
         printMessageQueue(result, "testConsumer5");
         Assert.assertEquals(result.size(), 1);
         Assert.assertEquals(result.containsAll(getMessageQueueList().subList(1, 2)), true);
@@ -149,7 +149,7 @@ public class AllocateMessageQueueAveragelyTest {
         createConsumerIdList(2);
         createMessageQueueList(6);
         List<MessageQueue> result =
-                allocateMessageQueueAveragely.allocate(currentCID, messageQueueList, consumerIdList);
+                allocateMessageQueueAveragely.allocate("", currentCID, messageQueueList, consumerIdList);
         printMessageQueue(result, "testConsumer");
         Assert.assertEquals(result.size(), 3);
         Assert.assertEquals(result.containsAll(getMessageQueueList().subList(3, 6)), true);
@@ -162,7 +162,7 @@ public class AllocateMessageQueueAveragelyTest {
         createConsumerIdList(2);
         createMessageQueueList(6);
         List<MessageQueue> result =
-                allocateMessageQueueAveragely.allocate(currentCID, messageQueueList, consumerIdList);
+                allocateMessageQueueAveragely.allocate("", currentCID, messageQueueList, consumerIdList);
         printMessageQueue(result, "testCurrentCIDNotExists");
         Assert.assertEquals(result.size(), 0);
     }
@@ -172,7 +172,7 @@ public class AllocateMessageQueueAveragelyTest {
     public void testCurrentCIDIllegalArgument() { // currentCID是空
         createConsumerIdList(2);
         createMessageQueueList(6);
-        allocateMessageQueueAveragely.allocate("", getMessageQueueList(), getConsumerIdList());
+        allocateMessageQueueAveragely.allocate("", "", getMessageQueueList(), getConsumerIdList());
     }
 
 
@@ -180,7 +180,7 @@ public class AllocateMessageQueueAveragelyTest {
     public void testMessageQueueIllegalArgument() { // MessageQueue为空
         currentCID = "0";
         createConsumerIdList(2);
-        allocateMessageQueueAveragely.allocate(currentCID, null, getConsumerIdList());
+        allocateMessageQueueAveragely.allocate("", currentCID, null, getConsumerIdList());
     }
 
 
@@ -188,7 +188,7 @@ public class AllocateMessageQueueAveragelyTest {
     public void testConsumerIdIllegalArgument() { // ConsumerIdList为空
         currentCID = "0";
         createMessageQueueList(6);
-        allocateMessageQueueAveragely.allocate(currentCID, getMessageQueueList(), null);
+        allocateMessageQueueAveragely.allocate("", currentCID, getMessageQueueList(), null);
     }
 
 
@@ -243,7 +243,7 @@ public class AllocateMessageQueueAveragelyTest {
         System.out.println(mqAll.toString());
         System.out.println(cidAll.toString());
         for (int i = 0; i < consumerSize; i++) {
-            List<MessageQueue> rs = allocateMessageQueueAveragely.allocate(currentCID + i, mqAll, cidAll);
+            List<MessageQueue> rs = allocateMessageQueueAveragely.allocate("", currentCID + i, mqAll, cidAll);
             System.out.println("rs[" + currentCID + i + "]:" + rs.toString());
         }
     }
