@@ -51,7 +51,7 @@ public class AllocateMessageQueueAveragely implements AllocateMessageQueueStrate
 
         List<MessageQueue> result = new ArrayList<MessageQueue>();
         if (!cidAll.contains(currentCID)) { // 不存在此ConsumerId ,直接返回
-            log.info("[REBALANCE] ConsumerGroup: {} The consumerId: {} not in cidAll: {}", //
+            log.info("[BUG] ConsumerGroup: {} The consumerId: {} not in cidAll: {}", //
                 consumerGroup, //
                 currentCID,//
                 cidAll);
