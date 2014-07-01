@@ -204,8 +204,13 @@ public class SendMessageProcessor implements NettyRequestProcessor {
             switch (putMessageResult.getPutMessageStatus()) {
             case PUT_OK:
                 // 统计
+                String backTopic = msgExt.getTopic();
+                String realTopic = msgExt.getProperty(MessageConst.PROPERTY_REAL_TOPIC);
+                if (backTopic != null) {
+                    backTopic = realTopic;
+                }
                 this.brokerController.getBrokerStatsManager().incSendBackNums(requestHeader.getGroup(),
-                    msgExt.getTopic());
+                    backTopic);
 
                 response.setCode(ResponseCode.SUCCESS);
                 response.setRemark(null);
