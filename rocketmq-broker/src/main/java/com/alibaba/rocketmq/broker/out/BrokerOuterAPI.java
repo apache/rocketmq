@@ -16,7 +16,6 @@
 package com.alibaba.rocketmq.broker.out;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 
 import org.slf4j.Logger;
@@ -24,7 +23,6 @@ import org.slf4j.LoggerFactory;
 
 import com.alibaba.rocketmq.client.exception.MQBrokerException;
 import com.alibaba.rocketmq.common.MixAll;
-import com.alibaba.rocketmq.common.SessionCredentials;
 import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.common.namesrv.RegisterBrokerResult;
 import com.alibaba.rocketmq.common.namesrv.TopAddressing;
@@ -61,37 +59,15 @@ public class BrokerOuterAPI {
     private final TopAddressing topAddressing = new TopAddressing(MixAll.WS_ADDR);
     private String nameSrvAddr = null;
 
-    // 客户端授权
-    private volatile SessionCredentials sessionCredentials = new SessionCredentials();
 
-    class RPCHookImpl implements RPCHook {
-        @Override
-        public void doBeforeRequest(String remoteAddr, RemotingCommand request) {
-            BrokerOuterAPI.this.attachSessionCredentials(request);
-        }
-
-
-        @Override
-        public void doAfterResponse(RemotingCommand request, RemotingCommand response) {
-        }
-    }
-
-
-    private void attachSessionCredentials(final RemotingCommand cmd) {
-        SessionCredentials tmp = this.sessionCredentials;
-        if (tmp != null) {
-            if (tmp.getAccessKey() != null && tmp.getSecretKey() != null) {
-                HashMap<String, String> extFields = new HashMap<String, String>();
-                extFields.put(SessionCredentials.AccessKey, tmp.getAccessKey());
-                cmd.setExtFields(extFields);
-            }
-        }
+    public BrokerOuterAPI(final NettyClientConfig nettyClientConfig, RPCHook rpcHook) {
+        this.remotingClient = new NettyRemotingClient(nettyClientConfig);
+        this.remotingClient.registerRPCHook(rpcHook);
     }
 
 
     public BrokerOuterAPI(final NettyClientConfig nettyClientConfig) {
-        this.remotingClient = new NettyRemotingClient(nettyClientConfig);
-        this.remotingClient.registerRPCHook(new RPCHookImpl());
+        this(nettyClientConfig, null);
     }
 
 
