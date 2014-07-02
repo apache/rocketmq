@@ -223,7 +223,7 @@ public abstract class NettyRemotingAbstract {
                             RemotingCommand.createResponseCommand(RemotingSysResponseCode.SYSTEM_BUSY,
                                 "too many requests and system thread pool busy, please try another server");
                     response.setOpaque(cmd.getOpaque());
-                    ctx.writeAndFlush(response, null);
+                    ctx.writeAndFlush(response);
                 }
             }
         }
