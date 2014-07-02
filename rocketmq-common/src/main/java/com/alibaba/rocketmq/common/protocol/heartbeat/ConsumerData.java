@@ -3,10 +3,10 @@
  */
 package com.alibaba.rocketmq.common.protocol.heartbeat;
 
+import com.alibaba.rocketmq.common.consumer.ConsumeFromWhere;
+
 import java.util.HashSet;
 import java.util.Set;
-
-import com.alibaba.rocketmq.common.consumer.ConsumeFromWhere;
 
 
 /**
@@ -18,7 +18,7 @@ public class ConsumerData {
     private MessageModel messageModel;
     private ConsumeFromWhere consumeFromWhere;
     private Set<SubscriptionData> subscriptionDataSet = new HashSet<SubscriptionData>();
-    private boolean isUnitMode;
+    private boolean unitMode;
 
 
     public String getGroupName() {
@@ -72,19 +72,19 @@ public class ConsumerData {
 
 
     public boolean isUnitMode() {
-        return isUnitMode;
+        return unitMode;
     }
 
 
     public void setUnitMode(boolean isUnitMode) {
-        this.isUnitMode = isUnitMode;
+        this.unitMode = isUnitMode;
     }
 
 
     @Override
     public String toString() {
         return "ConsumerData [groupName=" + groupName + ", consumeType=" + consumeType + ", messageModel="
-                + messageModel + ", consumeFromWhere=" + consumeFromWhere + ", isUnitMode=" + isUnitMode
+                + messageModel + ", consumeFromWhere=" + consumeFromWhere + ", unitMode=" + unitMode
                 + ", subscriptionDataSet=" + subscriptionDataSet + "]";
     }
 }

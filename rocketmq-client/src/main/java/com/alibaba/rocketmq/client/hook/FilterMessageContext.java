@@ -15,10 +15,10 @@
  */
 package com.alibaba.rocketmq.client.hook;
 
-import java.util.List;
-
 import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.common.message.MessageQueue;
+
+import java.util.List;
 
 
 /**
@@ -32,7 +32,7 @@ public class FilterMessageContext {
     private List<MessageExt> msgList;
     private MessageQueue mq;
     private Object arg;
-    private boolean isUnitMode;
+    private boolean unitMode;
 
 
     public String getConsumerGroup() {
@@ -76,12 +76,12 @@ public class FilterMessageContext {
 
 
     public boolean isUnitMode() {
-        return isUnitMode;
+        return unitMode;
     }
 
 
     public void setUnitMode(boolean isUnitMode) {
-        this.isUnitMode = isUnitMode;
+        this.unitMode = isUnitMode;
     }
 
 

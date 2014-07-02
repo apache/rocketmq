@@ -15,12 +15,12 @@
  */
 package com.alibaba.rocketmq.client.hook;
 
-import java.util.Properties;
-
 import com.alibaba.rocketmq.client.impl.CommunicationMode;
 import com.alibaba.rocketmq.client.producer.SendResult;
 import com.alibaba.rocketmq.common.message.Message;
 import com.alibaba.rocketmq.common.message.MessageQueue;
+
+import java.util.Properties;
 
 
 public class SendMessageContext {
@@ -28,9 +28,11 @@ public class SendMessageContext {
     private Message message;
     private MessageQueue mq;
     private String brokerAddr;
+    private String bornHost;
     private CommunicationMode communicationMode;
     private SendResult sendResult;
     private Exception exception;
+    private Object mqTraceContext;
     private Properties properties;
 
 
@@ -104,6 +106,16 @@ public class SendMessageContext {
     }
 
 
+    public Object getMqTraceContext() {
+        return mqTraceContext;
+    }
+
+
+    public void setMqTraceContext(Object mqTraceContext) {
+        this.mqTraceContext = mqTraceContext;
+    }
+
+
     public Properties getProperties() {
         return properties;
     }
@@ -119,10 +131,12 @@ public class SendMessageContext {
     }
 
 
-    @Override
-    public String toString() {
-        return "SendMessageContext [producerGroup=" + producerGroup + ", message=" + message + ", mq=" + mq
-                + ", brokerAddr=" + brokerAddr + ", communicationMode=" + communicationMode + ", sendResult="
-                + sendResult + ", exception=" + exception + ", properties=" + properties + "]";
+    public String getBornHost() {
+        return bornHost;
+    }
+
+
+    public void setBornHost(String bornHost) {
+        this.bornHost = bornHost;
     }
 }
