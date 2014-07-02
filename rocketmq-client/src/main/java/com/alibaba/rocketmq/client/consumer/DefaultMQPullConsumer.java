@@ -15,9 +15,6 @@
  */
 package com.alibaba.rocketmq.client.consumer;
 
-import java.util.HashSet;
-import java.util.Set;
-
 import com.alibaba.rocketmq.client.ClientConfig;
 import com.alibaba.rocketmq.client.QueryResult;
 import com.alibaba.rocketmq.client.consumer.rebalance.AllocateMessageQueueAveragely;
@@ -30,6 +27,9 @@ import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.common.message.MessageQueue;
 import com.alibaba.rocketmq.common.protocol.heartbeat.MessageModel;
 import com.alibaba.rocketmq.remoting.exception.RemotingException;
+
+import java.util.HashSet;
+import java.util.Set;
 
 
 /**
@@ -80,7 +80,7 @@ public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsume
     /**
      * 是否为单元化的订阅组
      */
-    private boolean isUnitMode = false;
+    private boolean unitMode = false;
 
 
     public DefaultMQPullConsumer() {
@@ -314,11 +314,11 @@ public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsume
 
 
     public boolean isUnitMode() {
-        return isUnitMode;
+        return unitMode;
     }
 
 
     public void setUnitMode(boolean isUnitMode) {
-        this.isUnitMode = isUnitMode;
+        this.unitMode = isUnitMode;
     }
 }

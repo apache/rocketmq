@@ -15,11 +15,11 @@
  */
 package com.alibaba.rocketmq.client.hook;
 
-import java.util.List;
-import java.util.Properties;
-
 import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.common.message.MessageQueue;
+
+import java.util.List;
+import java.util.Properties;
 
 
 public class ConsumeMessageContext {
@@ -27,6 +27,7 @@ public class ConsumeMessageContext {
     private List<MessageExt> msgList;
     private MessageQueue mq;
     private boolean success;
+    private Object mqTraceContext;
     private Properties properties;
 
 
@@ -70,6 +71,16 @@ public class ConsumeMessageContext {
     }
 
 
+    public Object getMqTraceContext() {
+        return mqTraceContext;
+    }
+
+
+    public void setMqTraceContext(Object mqTraceContext) {
+        this.mqTraceContext = mqTraceContext;
+    }
+
+
     public Properties getProperties() {
         return properties;
     }
@@ -82,12 +93,5 @@ public class ConsumeMessageContext {
 
     public void clearProperty() {
         this.properties.clear();
-    }
-
-
-    @Override
-    public String toString() {
-        return "ConsumeMessageContext [consumerGroup=" + consumerGroup + ", msgList=" + msgList + ", mq="
-                + mq + ", success=" + success + ", properties=" + properties + "]";
     }
 }

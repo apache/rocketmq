@@ -15,8 +15,6 @@
  */
 package com.alibaba.rocketmq.client.producer;
 
-import java.util.List;
-
 import com.alibaba.rocketmq.client.ClientConfig;
 import com.alibaba.rocketmq.client.QueryResult;
 import com.alibaba.rocketmq.client.exception.MQBrokerException;
@@ -27,6 +25,8 @@ import com.alibaba.rocketmq.common.message.Message;
 import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.common.message.MessageQueue;
 import com.alibaba.rocketmq.remoting.exception.RemotingException;
+
+import java.util.List;
 
 
 /**
@@ -73,7 +73,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     /**
      * 是否为单元化的发布者
      */
-    private boolean isUnitMode = false;
+    private boolean unitMode = false;
 
 
     public DefaultMQProducer() {
@@ -303,11 +303,11 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
 
 
     public boolean isUnitMode() {
-        return isUnitMode;
+        return unitMode;
     }
 
 
     public void setUnitMode(boolean isUnitMode) {
-        this.isUnitMode = isUnitMode;
+        this.unitMode = isUnitMode;
     }
 }

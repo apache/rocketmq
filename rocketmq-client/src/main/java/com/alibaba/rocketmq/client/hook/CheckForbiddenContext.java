@@ -37,7 +37,7 @@ public class CheckForbiddenContext {
     private SendResult sendResult;
     private Exception exception;
     private Object arg;
-    private boolean isUnitMode = false;
+    private boolean unitMode = false;
 
 
     public String getGroup() {
@@ -121,12 +121,12 @@ public class CheckForbiddenContext {
 
 
     public boolean isUnitMode() {
-        return isUnitMode;
+        return unitMode;
     }
 
 
     public void setUnitMode(boolean isUnitMode) {
-        this.isUnitMode = isUnitMode;
+        this.unitMode = isUnitMode;
     }
 
 
@@ -144,7 +144,7 @@ public class CheckForbiddenContext {
     public String toString() {
         return "SendMessageContext [nameSrvAddr=" + nameSrvAddr + ", group=" + group + ", message=" + message
                 + ", mq=" + mq + ", brokerAddr=" + brokerAddr + ", communicationMode=" + communicationMode
-                + ", sendResult=" + sendResult + ", exception=" + exception + ", isUnitMode=" + isUnitMode
+                + ", sendResult=" + sendResult + ", exception=" + exception + ", unitMode=" + unitMode
                 + ", arg=" + arg + "]";
     }
 }
