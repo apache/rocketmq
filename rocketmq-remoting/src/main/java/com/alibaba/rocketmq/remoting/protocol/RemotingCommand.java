@@ -488,6 +488,14 @@ public class RemotingCommand {
     }
 
 
+    public void addExtField(String key, String value) {
+        if (null == extFields) {
+            extFields = new HashMap<String, String>();
+        }
+        extFields.put(key, value);
+    }
+
+
     @Override
     public String toString() {
         return "RemotingCommand [code=" + code + ", language=" + language + ", version=" + version
