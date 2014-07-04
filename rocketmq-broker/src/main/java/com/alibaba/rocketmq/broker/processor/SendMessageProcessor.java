@@ -205,7 +205,7 @@ public class SendMessageProcessor implements NettyRequestProcessor {
             case PUT_OK:
                 // 统计
                 String backTopic = msgExt.getTopic();
-                String realTopic = msgExt.getProperty(MessageConst.PROPERTY_REAL_TOPIC);
+                String realTopic = msgExt.getProperty(MessageConst.PROPERTY_RETRY_TOPIC);
                 if (backTopic != null) {
                     backTopic = realTopic;
                 }
