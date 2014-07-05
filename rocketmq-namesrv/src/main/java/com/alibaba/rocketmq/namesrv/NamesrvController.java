@@ -95,7 +95,7 @@ public class NamesrvController {
             public void run() {
                 NamesrvController.this.routeInfoManager.scanNotActiveBroker();
             }
-        }, 1000 * 5, 1000 * 10, TimeUnit.MILLISECONDS);
+        }, 5, 10, TimeUnit.SECONDS);
 
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 
@@ -103,7 +103,7 @@ public class NamesrvController {
             public void run() {
                 NamesrvController.this.kvConfigManager.printAllPeriodically();
             }
-        }, 1000 * 10, 1000 * 120, TimeUnit.MILLISECONDS);
+        }, 1, 10, TimeUnit.MINUTES);
 
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 
@@ -111,7 +111,7 @@ public class NamesrvController {
             public void run() {
                 NamesrvController.this.routeInfoManager.printAllPeriodically();
             }
-        }, 1000 * 10, 1000 * 120, TimeUnit.MILLISECONDS);
+        }, 1, 5, TimeUnit.MINUTES);
 
         return true;
     }
