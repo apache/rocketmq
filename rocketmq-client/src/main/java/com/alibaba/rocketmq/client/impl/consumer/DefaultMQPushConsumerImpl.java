@@ -609,6 +609,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                         msg.getBody());
 
             newMsg.setFlag(msg.getFlag());
+            // 这里要删除无用的属性，防止服务器发生冲突。TODO
             MessageAccessor.setProperties(newMsg, msg.getProperties());
             MessageAccessor.putProperty(newMsg, MessageConst.PROPERTY_RETRY_TOPIC, msg.getTopic());
 
