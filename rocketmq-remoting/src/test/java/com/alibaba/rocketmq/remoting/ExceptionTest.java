@@ -59,7 +59,7 @@ public class ExceptionTest {
         RemotingCommand request = RemotingCommand.createRequestCommand(0, null);
         RemotingCommand response = null;
         try {
-            response = client.invokeSync("127.0.0.1:10911", request, 1000 * 3);
+            response = client.invokeSync("127.0.0.1:8888", request, 1000 * 3);
         }
         catch (RemotingConnectException e) {
             e.printStackTrace();
@@ -74,7 +74,7 @@ public class ExceptionTest {
             e.printStackTrace();
         }
         System.out.println("invoke result = " + response);
-        assertTrue(response != null);
+        assertTrue(null == response);
 
         client.shutdown();
         System.out.println("-----------------------------------------------------------------");
