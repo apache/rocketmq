@@ -61,6 +61,8 @@ public class MonitorService {
         this.defaultMQPushConsumer.setInstanceName(instanceName());
         this.defaultMQPushConsumer.setNamesrvAddr(monitorConfig.getNamesrvAddr());
         try {
+            this.defaultMQPushConsumer.setConsumeThreadMin(1);
+            this.defaultMQPushConsumer.setConsumeThreadMax(1);
             this.defaultMQPushConsumer.subscribe(MixAll.OFFSET_MOVED_EVENT, "*");
             this.defaultMQPushConsumer.registerMessageListener(new MessageListenerConcurrently() {
 
