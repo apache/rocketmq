@@ -225,7 +225,7 @@ public class MonitorService {
                 try {
                     long maxOffset = this.defaultMQPullConsumer.maxOffset(mq);
                     if (maxOffset > 0) {
-                        PullResult pull = this.defaultMQPullConsumer.pull(mq, "*", maxOffset, 1);
+                        PullResult pull = this.defaultMQPullConsumer.pull(mq, "*", maxOffset - 1, 1);
                         switch (pull.getPullStatus()) {
                         case FOUND:
                             long delay =
@@ -235,9 +235,7 @@ public class MonitorService {
                             }
                             break;
                         case NO_MATCHED_MSG:
-                            break;
                         case NO_NEW_MSG:
-                            break;
                         case OFFSET_ILLEGAL:
                             break;
                         default:
