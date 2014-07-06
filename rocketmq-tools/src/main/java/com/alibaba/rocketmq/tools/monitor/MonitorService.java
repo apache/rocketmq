@@ -214,4 +214,11 @@ public class MonitorService {
         undoneMsgs.setUndoneMsgsSingleMQ(singleMax);
         undoneMsgs.setUndoneMsgsDelayTimeMills(delayMax);
     }
+
+
+    public static void main(String[] args) throws MQClientException {
+        MonitorService monitorService = new MonitorService(new MonitorConfig(), new DefaultMonitorListener());
+
+        monitorService.start();
+    }
 }
