@@ -2,6 +2,7 @@ package com.alibaba.rocketmq.tools.monitor;
 
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map.Entry;
 import java.util.Random;
 import java.util.concurrent.Executors;
@@ -11,16 +12,22 @@ import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 
 import com.alibaba.rocketmq.client.consumer.DefaultMQPullConsumer;
+import com.alibaba.rocketmq.client.consumer.DefaultMQPushConsumer;
 import com.alibaba.rocketmq.client.consumer.PullResult;
+import com.alibaba.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext;
+import com.alibaba.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
+import com.alibaba.rocketmq.client.consumer.listener.MessageListenerConcurrently;
 import com.alibaba.rocketmq.client.exception.MQClientException;
 import com.alibaba.rocketmq.client.log.ClientLogger;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.ThreadFactoryImpl;
 import com.alibaba.rocketmq.common.admin.ConsumeStats;
 import com.alibaba.rocketmq.common.admin.OffsetWrapper;
+import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.common.message.MessageQueue;
 import com.alibaba.rocketmq.common.protocol.body.ConsumerConnection;
 import com.alibaba.rocketmq.common.protocol.body.TopicList;
+import com.alibaba.rocketmq.common.protocol.topic.OffsetMovedEvent;
 import com.alibaba.rocketmq.remoting.exception.RemotingException;
 import com.alibaba.rocketmq.tools.admin.DefaultMQAdminExt;
 
@@ -37,6 +44,8 @@ public class MonitorService {
     private final DefaultMQAdminExt defaultMQAdminExt = new DefaultMQAdminExt();
     private final DefaultMQPullConsumer defaultMQPullConsumer = new DefaultMQPullConsumer(
         MixAll.TOOLS_CONSUMER_GROUP);
+    private final DefaultMQPushConsumer defaultMQPushConsumer = new DefaultMQPushConsumer(
+        MixAll.MONITOR_CONSUMER_GROUP);
 
 
     public MonitorService(MonitorConfig monitorConfig, MonitorListener monitorListener) {
@@ -48,6 +57,35 @@ public class MonitorService {
 
         this.defaultMQPullConsumer.setInstanceName(instanceName());
         this.defaultMQPullConsumer.setNamesrvAddr(monitorConfig.getNamesrvAddr());
+
+        this.defaultMQPushConsumer.setInstanceName(instanceName());
+        this.defaultMQPushConsumer.setNamesrvAddr(monitorConfig.getNamesrvAddr());
+        try {
+            this.defaultMQPushConsumer.subscribe(MixAll.OFFSET_MOVED_EVENT, "*");
+            this.defaultMQPushConsumer.registerMessageListener(new MessageListenerConcurrently() {
+
+                @Override
+                public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> msgs,
+                        ConsumeConcurrentlyContext context) {
+                    try {
+                        OffsetMovedEvent ome =
+                                OffsetMovedEvent.decode(msgs.get(0).getBody(), OffsetMovedEvent.class);
+
+                        DeleteMsgsEvent deleteMsgsEvent = new DeleteMsgsEvent();
+                        deleteMsgsEvent.setOffsetMovedEvent(ome);
+                        deleteMsgsEvent.setEventTimestamp(msgs.get(0).getStoreTimestamp());
+
+                        MonitorService.this.monitorListener.reportDeleteMsgsEvent(deleteMsgsEvent);
+                    }
+                    catch (Exception e) {
+                    }
+
+                    return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
+                }
+            });
+        }
+        catch (MQClientException e) {
+        }
     }
 
 
@@ -77,6 +115,7 @@ public class MonitorService {
     public void start() throws MQClientException {
         this.defaultMQPullConsumer.start();
         this.defaultMQAdminExt.start();
+        this.defaultMQPushConsumer.start();
         this.startScheduleTask();
     }
 
@@ -84,6 +123,7 @@ public class MonitorService {
     public void shutdown() {
         this.defaultMQPullConsumer.shutdown();
         this.defaultMQAdminExt.shutdown();
+        this.defaultMQPushConsumer.shutdown();
     }
 
 
