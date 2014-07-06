@@ -34,4 +34,11 @@ public class FailedMsgs {
     public void setFailedMsgsTotalRecently(long failedMsgsTotalRecently) {
         this.failedMsgsTotalRecently = failedMsgsTotalRecently;
     }
+
+
+    @Override
+    public String toString() {
+        return "FailedMsgs [consumerGroup=" + consumerGroup + ", topic=" + topic
+                + ", failedMsgsTotalRecently=" + failedMsgsTotalRecently + "]";
+    }
 }
