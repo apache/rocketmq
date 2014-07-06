@@ -8,7 +8,7 @@ public class UndoneMsgs {
     // 单个队列堆积的最多消息数
     private long undoneMsgsSingleMQ;
     // Delay的最长时间，单位秒
-    private long undoneMsgsDelaySeconds;
+    private long undoneMsgsDelayTimeMills;
 
 
     public String getConsumerGroup() {
@@ -51,12 +51,12 @@ public class UndoneMsgs {
     }
 
 
-    public long getUndoneMsgsDelaySeconds() {
-        return undoneMsgsDelaySeconds;
+    public long getUndoneMsgsDelayTimeMills() {
+        return undoneMsgsDelayTimeMills;
     }
 
 
-    public void setUndoneMsgsDelaySeconds(long undoneMsgsDelaySeconds) {
-        this.undoneMsgsDelaySeconds = undoneMsgsDelaySeconds;
+    public void setUndoneMsgsDelayTimeMills(long undoneMsgsDelayTimeMills) {
+        this.undoneMsgsDelayTimeMills = undoneMsgsDelayTimeMills;
     }
 }
