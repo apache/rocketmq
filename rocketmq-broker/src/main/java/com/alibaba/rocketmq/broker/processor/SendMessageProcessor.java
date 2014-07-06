@@ -453,9 +453,11 @@ public class SendMessageProcessor implements NettyRequestProcessor {
                     }
                 }
 
-                this.brokerController.getPullRequestHoldService().notifyMessageArriving(
-                    requestHeader.getTopic(), queueIdInt,
-                    putMessageResult.getAppendMessageResult().getLogicsOffset() + 1);
+                if (this.brokerController.getBrokerConfig().isLongPollingEnable()) {
+                    this.brokerController.getPullRequestHoldService().notifyMessageArriving(
+                        requestHeader.getTopic(), queueIdInt,
+                        putMessageResult.getAppendMessageResult().getLogicsOffset() + 1);
+                }
                 return null;
             }
         }
