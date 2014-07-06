@@ -59,4 +59,12 @@ public class UndoneMsgs {
     public void setUndoneMsgsDelayTimeMills(long undoneMsgsDelayTimeMills) {
         this.undoneMsgsDelayTimeMills = undoneMsgsDelayTimeMills;
     }
+
+
+    @Override
+    public String toString() {
+        return "UndoneMsgs [consumerGroup=" + consumerGroup + ", topic=" + topic + ", undoneMsgsTotal="
+                + undoneMsgsTotal + ", undoneMsgsSingleMQ=" + undoneMsgsSingleMQ
+                + ", undoneMsgsDelayTimeMills=" + undoneMsgsDelayTimeMills + "]";
+    }
 }
