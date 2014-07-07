@@ -1213,9 +1213,6 @@ public class DefaultMessageStore implements MessageStore {
 
             // 删除物理队列文件
             if (timeup || spacefull || manualDelete) {
-                log.info("begin to delete before " + fileReservedTime + " hours file. timeup: " + timeup
-                        + " spacefull: " + spacefull + " manualDeleteFileSeveralTimes: "
-                        + this.manualDeleteFileSeveralTimes);
 
                 if (manualDelete)
                     this.manualDeleteFileSeveralTimes--;
@@ -1227,6 +1224,14 @@ public class DefaultMessageStore implements MessageStore {
                 boolean cleanAtOnce =
                         DefaultMessageStore.this.getMessageStoreConfig().isCleanFileForciblyEnable()
                                 && this.cleanImmediately;
+
+                log.info(
+                    "begin to delete before {} hours file. timeup: {} spacefull: {} manualDeleteFileSeveralTimes: {} cleanAtOnce: {}",//
+                    fileReservedTime,//
+                    timeup,//
+                    spacefull,//
+                    manualDeleteFileSeveralTimes,//
+                    cleanAtOnce);
 
                 deleteCount =
                         DefaultMessageStore.this.commitLog.deleteExpiredFile(fileReservedTime,
