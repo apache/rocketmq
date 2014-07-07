@@ -151,6 +151,11 @@ public class MonitorService {
     }
 
 
+    private void reportFailedMsgs(final String consumerGroup, final String topic) {
+
+    }
+
+
     private void reportUndoneMsgs(final String consumerGroup) {
         ConsumeStats cs = null;
         try {
@@ -197,6 +202,7 @@ public class MonitorService {
                     undoneMsgs.setTopic(next.getKey());
                     this.computeUndoneMsgs(undoneMsgs, next.getValue());
                     this.monitorListener.reportUndoneMsgs(undoneMsgs);
+                    this.reportFailedMsgs(consumerGroup, next.getKey());
                 }
             }
         }
