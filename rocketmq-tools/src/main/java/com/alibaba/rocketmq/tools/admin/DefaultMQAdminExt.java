@@ -42,6 +42,7 @@ import com.alibaba.rocketmq.common.protocol.body.QueueTimeSpan;
 import com.alibaba.rocketmq.common.protocol.body.TopicList;
 import com.alibaba.rocketmq.common.protocol.route.TopicRouteData;
 import com.alibaba.rocketmq.common.subscription.SubscriptionGroupConfig;
+import com.alibaba.rocketmq.remoting.RPCHook;
 import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
 import com.alibaba.rocketmq.remoting.exception.RemotingConnectException;
 import com.alibaba.rocketmq.remoting.exception.RemotingException;
@@ -56,17 +57,24 @@ import com.alibaba.rocketmq.remoting.exception.RemotingTimeoutException;
  * @since 2013-7-14
  */
 public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
-    private final DefaultMQAdminExtImpl defaultMQAdminExtImpl = new DefaultMQAdminExtImpl(this);
+    private final DefaultMQAdminExtImpl defaultMQAdminExtImpl;
     private String adminExtGroup = "admin_ext_group";
     private String createTopicKey = MixAll.DEFAULT_TOPIC;
 
 
     public DefaultMQAdminExt() {
+        this.defaultMQAdminExtImpl = new DefaultMQAdminExtImpl(this, null);
+    }
+
+
+    public DefaultMQAdminExt(RPCHook rpcHook) {
+        this.defaultMQAdminExtImpl = new DefaultMQAdminExtImpl(this, rpcHook);
     }
 
 
     public DefaultMQAdminExt(final String adminExtGroup) {
         this.adminExtGroup = adminExtGroup;
+        this.defaultMQAdminExtImpl = new DefaultMQAdminExtImpl(this);
     }
 
 
