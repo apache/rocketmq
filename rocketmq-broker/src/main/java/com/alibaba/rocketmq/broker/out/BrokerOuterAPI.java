@@ -335,4 +335,9 @@ public class BrokerOuterAPI {
 
         throw new MQBrokerException(response.getCode(), response.getRemark());
     }
+
+
+    public void registerRPCHook(RPCHook rpcHook) {
+        remotingClient.registerRPCHook(rpcHook);
+    }
 }
