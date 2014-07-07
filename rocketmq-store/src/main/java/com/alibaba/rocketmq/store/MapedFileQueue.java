@@ -41,7 +41,7 @@ public class MapedFileQueue {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.StoreLoggerName);
     private static final Logger logError = LoggerFactory.getLogger(LoggerName.StoreErrorLoggerName);
     // 每次触发删除文件，最多删除多少个文件
-    private static final int DeleteFilesBatchMax = 30;
+    private static final int DeleteFilesBatchMax = 10;
     // 文件存储位置
     private final String storePath;
     // 每个文件的大小
