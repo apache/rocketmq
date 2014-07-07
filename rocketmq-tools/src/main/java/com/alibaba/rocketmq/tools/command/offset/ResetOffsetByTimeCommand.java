@@ -13,6 +13,7 @@ import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.UtilAll;
 import com.alibaba.rocketmq.common.message.MessageQueue;
 import com.alibaba.rocketmq.common.protocol.ResponseCode;
+import com.alibaba.rocketmq.remoting.RPCHook;
 import com.alibaba.rocketmq.srvutil.ServerUtil;
 import com.alibaba.rocketmq.tools.admin.DefaultMQAdminExt;
 import com.alibaba.rocketmq.tools.command.SubCommand;
@@ -61,8 +62,8 @@ public class ResetOffsetByTimeCommand implements SubCommand {
 
 
     @Override
-    public void execute(CommandLine commandLine, Options options) {
-        DefaultMQAdminExt defaultMQAdminExt = new DefaultMQAdminExt();
+    public void execute(CommandLine commandLine, Options options, RPCHook rpcHook) {
+        DefaultMQAdminExt defaultMQAdminExt = new DefaultMQAdminExt(rpcHook);
         defaultMQAdminExt.setInstanceName(Long.toString(System.currentTimeMillis()));
         try {
             String group = commandLine.getOptionValue("g").trim();
@@ -134,6 +135,6 @@ public class ResetOffsetByTimeCommand implements SubCommand {
         final CommandLine commandLine =
                 ServerUtil.parseCmdLine("mqadmin " + cmd.commandName(), subargs,
                     cmd.buildCommandlineOptions(options), new PosixParser());
-        cmd.execute(commandLine, options);
+        cmd.execute(commandLine, options, null);
     }
 }

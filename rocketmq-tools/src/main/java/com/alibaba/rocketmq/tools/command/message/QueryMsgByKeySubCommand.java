@@ -22,6 +22,7 @@ import org.apache.commons.cli.Options;
 import com.alibaba.rocketmq.client.QueryResult;
 import com.alibaba.rocketmq.client.exception.MQClientException;
 import com.alibaba.rocketmq.common.message.MessageExt;
+import com.alibaba.rocketmq.remoting.RPCHook;
 import com.alibaba.rocketmq.tools.admin.DefaultMQAdminExt;
 import com.alibaba.rocketmq.tools.command.SubCommand;
 
@@ -86,8 +87,8 @@ public class QueryMsgByKeySubCommand implements SubCommand {
 
 
     @Override
-    public void execute(CommandLine commandLine, Options options) {
-        DefaultMQAdminExt defaultMQAdminExt = new DefaultMQAdminExt();
+    public void execute(CommandLine commandLine, Options options, RPCHook rpcHook) {
+        DefaultMQAdminExt defaultMQAdminExt = new DefaultMQAdminExt(rpcHook);
 
         defaultMQAdminExt.setInstanceName(Long.toString(System.currentTimeMillis()));
 

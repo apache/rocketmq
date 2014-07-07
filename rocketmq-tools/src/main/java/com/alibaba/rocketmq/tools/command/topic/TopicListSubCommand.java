@@ -31,6 +31,7 @@ import com.alibaba.rocketmq.common.protocol.body.GroupList;
 import com.alibaba.rocketmq.common.protocol.body.TopicList;
 import com.alibaba.rocketmq.common.protocol.route.BrokerData;
 import com.alibaba.rocketmq.common.protocol.route.TopicRouteData;
+import com.alibaba.rocketmq.remoting.RPCHook;
 import com.alibaba.rocketmq.remoting.exception.RemotingException;
 import com.alibaba.rocketmq.tools.admin.DefaultMQAdminExt;
 import com.alibaba.rocketmq.tools.command.SubCommand;
@@ -88,8 +89,8 @@ public class TopicListSubCommand implements SubCommand {
 
 
     @Override
-    public void execute(final CommandLine commandLine, final Options options) {
-        DefaultMQAdminExt defaultMQAdminExt = new DefaultMQAdminExt();
+    public void execute(final CommandLine commandLine, final Options options, RPCHook rpcHook) {
+        DefaultMQAdminExt defaultMQAdminExt = new DefaultMQAdminExt(rpcHook);
 
         defaultMQAdminExt.setInstanceName(Long.toString(System.currentTimeMillis()));
 

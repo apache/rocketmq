@@ -60,6 +60,7 @@ import com.alibaba.rocketmq.common.protocol.header.UpdateConsumerOffsetRequestHe
 import com.alibaba.rocketmq.common.protocol.route.BrokerData;
 import com.alibaba.rocketmq.common.protocol.route.TopicRouteData;
 import com.alibaba.rocketmq.common.subscription.SubscriptionGroupConfig;
+import com.alibaba.rocketmq.remoting.RPCHook;
 import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
 import com.alibaba.rocketmq.remoting.exception.RemotingConnectException;
 import com.alibaba.rocketmq.remoting.exception.RemotingException;
@@ -78,10 +79,17 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
     private final DefaultMQAdminExt defaultMQAdminExt;
     private ServiceState serviceState = ServiceState.CREATE_JUST;
     private MQClientInstance mQClientFactory;
+    private RPCHook rpcHook;
 
 
     public DefaultMQAdminExtImpl(DefaultMQAdminExt defaultMQAdminExt) {
+        this(defaultMQAdminExt, null);
+    }
+
+
+    public DefaultMQAdminExtImpl(DefaultMQAdminExt defaultMQAdminExt, RPCHook rpcHook) {
         this.defaultMQAdminExt = defaultMQAdminExt;
+        this.rpcHook = rpcHook;
     }
 
 
@@ -94,7 +102,8 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
             this.defaultMQAdminExt.changeInstanceNameToPID();
 
             this.mQClientFactory =
-                    MQClientManager.getInstance().getAndCreateMQClientInstance(this.defaultMQAdminExt);
+                    MQClientManager.getInstance().getAndCreateMQClientInstance(this.defaultMQAdminExt,
+                        rpcHook);
 
             boolean registerOK =
                     mQClientFactory.registerAdminExt(this.defaultMQAdminExt.getAdminExtGroup(), this);
