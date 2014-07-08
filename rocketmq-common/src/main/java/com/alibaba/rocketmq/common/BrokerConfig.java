@@ -84,6 +84,9 @@ public class BrokerConfig {
     // 过滤服务器数量
     private int filterServerNums = 0;
 
+    // Consumer订阅消息时，Broker是否开启长轮询
+    private boolean longPollingEnable = true;
+
 
     public static String localHostName() {
         try {
@@ -334,5 +337,15 @@ public class BrokerConfig {
 
     public void setFilterServerNums(int filterServerNums) {
         this.filterServerNums = filterServerNums;
+    }
+
+
+    public boolean isLongPollingEnable() {
+        return longPollingEnable;
+    }
+
+
+    public void setLongPollingEnable(boolean longPollingEnable) {
+        this.longPollingEnable = longPollingEnable;
     }
 }

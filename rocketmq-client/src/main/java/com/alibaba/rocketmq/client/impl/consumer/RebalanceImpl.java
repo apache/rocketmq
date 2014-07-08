@@ -310,7 +310,11 @@ public abstract class RebalanceImpl {
                 // 执行分配算法
                 List<MessageQueue> allocateResult = null;
                 try {
-                    allocateResult = strategy.allocate(this.mQClientFactory.getClientId(), mqAll, cidAll);
+                    allocateResult = strategy.allocate(//
+                        this.consumerGroup, //
+                        this.mQClientFactory.getClientId(), //
+                        mqAll,//
+                        cidAll);
                 }
                 catch (Throwable e) {
                     log.error("AllocateMessageQueueStrategy.allocate Exception", e);

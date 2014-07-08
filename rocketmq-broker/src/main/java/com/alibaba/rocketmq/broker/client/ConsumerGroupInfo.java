@@ -120,28 +120,37 @@ public class ConsumerGroupInfo {
     /**
      * 返回值表示是否发生变更
      */
-    public boolean updateChannel(final ClientChannelInfo clientChannelInfo, ConsumeType consumeType,
+    public boolean updateChannel(final ClientChannelInfo infoNew, ConsumeType consumeType,
             MessageModel messageModel, ConsumeFromWhere consumeFromWhere) {
         boolean updated = false;
         this.consumeType = consumeType;
         this.messageModel = messageModel;
         this.consumeFromWhere = consumeFromWhere;
 
-        ClientChannelInfo info = this.channelInfoTable.get(clientChannelInfo.getChannel());
-        if (null == info) {
-            ClientChannelInfo prev =
-                    this.channelInfoTable.put(clientChannelInfo.getChannel(), clientChannelInfo);
+        ClientChannelInfo infoOld = this.channelInfoTable.get(infoNew.getChannel());
+        if (null == infoOld) {
+            ClientChannelInfo prev = this.channelInfoTable.put(infoNew.getChannel(), infoNew);
             if (null == prev) {
                 log.info("new consumer connected, group: {} {} {} channel: {}", this.groupName, consumeType,
-                    messageModel, clientChannelInfo.toString());
+                    messageModel, infoNew.toString());
                 updated = true;
             }
 
-            info = clientChannelInfo;
+            infoOld = infoNew;
+        }
+        else {
+            if (!infoOld.getClientId().equals(infoNew.getClientId())) {
+                log.error(
+                    "[BUG] consumer channel exist in broker, but clientId not equal. GROUP: {} OLD: {} NEW: {} ",
+                    this.groupName,//
+                    infoOld.toString(),//
+                    infoNew.toString());
+                this.channelInfoTable.put(infoNew.getChannel(), infoNew);
+            }
         }
 
         this.lastUpdateTimestamp = System.currentTimeMillis();
-        info.setLastUpdateTimestamp(this.lastUpdateTimestamp);
+        infoOld.setLastUpdateTimestamp(this.lastUpdateTimestamp);
 
         return updated;
     }
