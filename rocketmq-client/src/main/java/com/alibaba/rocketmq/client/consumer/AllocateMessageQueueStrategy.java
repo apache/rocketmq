@@ -39,6 +39,7 @@ public interface AllocateMessageQueueStrategy {
      * @return 分配结果，无重复数据
      */
     public List<MessageQueue> allocate(//
+            final String consumerGroup,//
             final String currentCID,//
             final List<MessageQueue> mqAll,//
             final List<String> cidAll//

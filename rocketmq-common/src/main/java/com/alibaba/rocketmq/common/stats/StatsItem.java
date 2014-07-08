@@ -208,7 +208,7 @@ public class StatsItem {
             }
         }
 
-        log.info(String.format("[%s] [%s] Stats In Half An Hour, SUM: %d TPS: %.2f AVGPT: %.2f", //
+        log.info(String.format("[%s] [%s] Stats In Half Hour, SUM: %d TPS: %.2f AVGPT: %.2f", //
             this.statsName,//
             this.statsKey,//
             sumInLastHalfHour, //

@@ -203,9 +203,15 @@ public class SendMessageProcessor implements NettyRequestProcessor {
         if (putMessageResult != null) {
             switch (putMessageResult.getPutMessageStatus()) {
             case PUT_OK:
-                // 统计
+                // 统计失败重试的Topic
+                String backTopic = msgExt.getTopic();
+                String correctTopic = msgExt.getProperty(MessageConst.PROPERTY_RETRY_TOPIC);
+                if (correctTopic != null) {
+                    backTopic = correctTopic;
+                }
+
                 this.brokerController.getBrokerStatsManager().incSendBackNums(requestHeader.getGroup(),
-                    msgExt.getTopic());
+                    backTopic);
 
                 response.setCode(ResponseCode.SUCCESS);
                 response.setRemark(null);
@@ -447,9 +453,11 @@ public class SendMessageProcessor implements NettyRequestProcessor {
                     }
                 }
 
-                this.brokerController.getPullRequestHoldService().notifyMessageArriving(
-                    requestHeader.getTopic(), queueIdInt,
-                    putMessageResult.getAppendMessageResult().getLogicsOffset() + 1);
+                if (this.brokerController.getBrokerConfig().isLongPollingEnable()) {
+                    this.brokerController.getPullRequestHoldService().notifyMessageArriving(
+                        requestHeader.getTopic(), queueIdInt,
+                        putMessageResult.getAppendMessageResult().getLogicsOffset() + 1);
+                }
                 return null;
             }
         }

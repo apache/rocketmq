@@ -19,6 +19,8 @@ import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 
+import java.nio.ByteBuffer;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,22 +48,26 @@ public class NettyDecoder extends LengthFieldBasedFrameDecoder {
 
     @Override
     public Object decode(ChannelHandlerContext ctx, ByteBuf in) throws Exception {
+        ByteBuf frame = null;
         try {
-            ByteBuf frame = (ByteBuf) super.decode(ctx, in);
-            if (frame == null) {
+            frame = (ByteBuf) super.decode(ctx, in);
+            if (null == frame) {
                 return null;
             }
 
-            byte[] tmpBuf = new byte[frame.capacity()];
-            frame.getBytes(0, tmpBuf);
-            frame.release();
+            ByteBuffer byteBuffer = frame.nioBuffer();
 
-            return RemotingCommand.decode(tmpBuf);
+            return RemotingCommand.decode(byteBuffer);
         }
         catch (Exception e) {
             log.error("decode exception, " + RemotingHelper.parseChannelRemoteAddr(ctx.channel()), e);
             // 这里关闭后， 会在pipeline中产生事件，通过具体的close事件来清理数据结构
             RemotingUtil.closeChannel(ctx.channel());
+        }
+        finally {
+            if (null != frame) {
+                frame.release();
+            }
         }
 
         return null;

@@ -642,14 +642,41 @@ public class RouteInfoManager {
             try {
                 this.lock.readLock().lockInterruptibly();
                 log.info("--------------------------------------------------------");
+                {
+                    log.info("topicQueueTable SIZE: {}", this.topicQueueTable.size());
+                    Iterator<Entry<String, List<QueueData>>> it = this.topicQueueTable.entrySet().iterator();
+                    while (it.hasNext()) {
+                        Entry<String, List<QueueData>> next = it.next();
+                        log.info("topicQueueTable Topic: {} {}", next.getKey(), next.getValue());
+                    }
+                }
 
-                log.info("topicQueueTable {}", this.topicQueueTable);
+                {
+                    log.info("brokerAddrTable SIZE: {}", this.brokerAddrTable.size());
+                    Iterator<Entry<String, BrokerData>> it = this.brokerAddrTable.entrySet().iterator();
+                    while (it.hasNext()) {
+                        Entry<String, BrokerData> next = it.next();
+                        log.info("brokerAddrTable brokerName: {} {}", next.getKey(), next.getValue());
+                    }
+                }
 
-                log.info("brokerAddrTable {}", this.brokerAddrTable);
+                {
+                    log.info("brokerLiveTable SIZE: {}", this.brokerLiveTable.size());
+                    Iterator<Entry<String, BrokerLiveInfo>> it = this.brokerLiveTable.entrySet().iterator();
+                    while (it.hasNext()) {
+                        Entry<String, BrokerLiveInfo> next = it.next();
+                        log.info("brokerLiveTable brokerAddr: {} {}", next.getKey(), next.getValue());
+                    }
+                }
 
-                log.info("brokerLiveTable {}", this.brokerLiveTable);
-
-                log.info("clusterAddrTable {}", this.clusterAddrTable);
+                {
+                    log.info("clusterAddrTable SIZE: {}", this.clusterAddrTable.size());
+                    Iterator<Entry<String, Set<String>>> it = this.clusterAddrTable.entrySet().iterator();
+                    while (it.hasNext()) {
+                        Entry<String, Set<String>> next = it.next();
+                        log.info("clusterAddrTable clusterName: {} {}", next.getKey(), next.getValue());
+                    }
+                }
             }
             finally {
                 this.lock.readLock().unlock();
