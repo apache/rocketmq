@@ -423,6 +423,8 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                     case NO_MATCHED_MSG:
                         pullRequest.setNextOffset(pullResult.getNextBeginOffset());
 
+                        DefaultMQPushConsumerImpl.this.correctTagsOffset(pullRequest);
+
                         DefaultMQPushConsumerImpl.this.executePullRequestImmediately(pullRequest);
                         break;
                     case OFFSET_ILLEGAL:
