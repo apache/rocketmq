@@ -46,16 +46,20 @@ public class FilterAPI {
     public static boolean isFilterClassMode(final String subString) {
         try {
             if (subString.contains(".")) {
-                Class<?> loadClass = FilterAPI.class.getClassLoader().loadClass(subString);
-                Class<?>[] interfaces = loadClass.getInterfaces();
-                for (int i = 0; i < interfaces.length; i++) {
-                    if (interfaces[i].getCanonicalName().equals(MessageFilter.class.getCanonicalName())) {
-                        return true;
-                    }
-                }
+                // Class<?> loadClass =
+                // FilterAPI.class.getClassLoader().loadClass(subString);
+                // Class<?>[] interfaces = loadClass.getInterfaces();
+                // for (int i = 0; i < interfaces.length; i++) {
+                // if
+                // (interfaces[i].getCanonicalName().equals(MessageFilter.class.getCanonicalName()))
+                // {
+                // return true;
+                // }
+                // }
+                return true;
             }
         }
-        catch (ClassNotFoundException e) {
+        catch (Exception e) {
         }
 
         return false;
