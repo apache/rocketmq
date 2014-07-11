@@ -293,8 +293,8 @@ public class MQAdminImpl {
                         requestHeader.setBeginTimestamp(begin);
                         requestHeader.setEndTimestamp(end);
 
-                        this.mQClientFactory.getMQClientAPIImpl().queryMessage(addr, requestHeader, 1000 * 5,
-                            new InvokeCallback() {
+                        this.mQClientFactory.getMQClientAPIImpl().queryMessage(addr, requestHeader,
+                            1000 * 15, new InvokeCallback() {
                                 @Override
                                 public void operationComplete(ResponseFuture responseFuture) {
                                     try {
@@ -345,7 +345,7 @@ public class MQAdminImpl {
 
                 } // end of for
 
-                boolean ok = countDownLatch.await(1000 * 10, TimeUnit.MILLISECONDS);
+                boolean ok = countDownLatch.await(1000 * 20, TimeUnit.MILLISECONDS);
                 if (!ok) {
                     log.warn("queryMessage, maybe some broker failed");
                 }
