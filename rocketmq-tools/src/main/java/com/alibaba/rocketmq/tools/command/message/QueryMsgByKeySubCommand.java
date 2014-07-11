@@ -56,25 +56,15 @@ public class QueryMsgByKeySubCommand implements SubCommand {
         opt.setRequired(true);
         options.addOption(opt);
 
-        opt = new Option("f", "fallbackHours", true, "Fallback Hours");
-        opt.setRequired(false);
-        options.addOption(opt);
-
         return options;
     }
 
 
-    void queryByKey(final DefaultMQAdminExt admin, final String topic, final String key,
-            final long fallbackHours) throws MQClientException, InterruptedException {
+    void queryByKey(final DefaultMQAdminExt admin, final String topic, final String key)
+            throws MQClientException, InterruptedException {
         admin.start();
 
-        /**
-         * 默认查询三天的前到现在的消息
-         */
-        long end = System.currentTimeMillis() - (fallbackHours * 60 * 60 * 1000);
-        long begin = end - (72 * 60 * 60 * 1000);
-
-        QueryResult queryResult = admin.queryMessage(topic, key, 32, begin, end);
+        QueryResult queryResult = admin.queryMessage(topic, key, 32, 0, Long.MAX_VALUE);
         System.out.printf("%-50s %-4s  %s\n",//
             "#Message ID",//
             "#QID",//
@@ -94,15 +84,8 @@ public class QueryMsgByKeySubCommand implements SubCommand {
         try {
             final String topic = commandLine.getOptionValue('t').trim();
             final String key = commandLine.getOptionValue('k').trim();
-            long h = 0;
-            if (commandLine.hasOption('f')) {
-                final String fallbackHours = commandLine.getOptionValue('f').trim();
-                if (fallbackHours != null) {
-                    h = Long.parseLong(fallbackHours);
-                }
-            }
 
-            this.queryByKey(defaultMQAdminExt, topic, key, h);
+            this.queryByKey(defaultMQAdminExt, topic, key);
         }
         catch (Exception e) {
             e.printStackTrace();

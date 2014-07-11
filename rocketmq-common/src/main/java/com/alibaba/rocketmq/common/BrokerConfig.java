@@ -64,9 +64,6 @@ public class BrokerConfig {
 
     private int flushConsumerOffsetHistoryInterval = 1000 * 60;
 
-    // 查询消息最大时间跨度，单位小时
-    private long queryMessageMaxTimeSpan = 73;
-
     // 是否拒绝接收事务消息
     @ImportantField
     private boolean rejectTransactionMessage = false;
@@ -267,16 +264,6 @@ public class BrokerConfig {
 
     public void setAutoCreateSubscriptionGroup(boolean autoCreateSubscriptionGroup) {
         this.autoCreateSubscriptionGroup = autoCreateSubscriptionGroup;
-    }
-
-
-    public long getQueryMessageMaxTimeSpan() {
-        return queryMessageMaxTimeSpan;
-    }
-
-
-    public void setQueryMessageMaxTimeSpan(long queryMessageMaxTimeSpan) {
-        this.queryMessageMaxTimeSpan = queryMessageMaxTimeSpan;
     }
 
 
