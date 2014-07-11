@@ -117,12 +117,20 @@ public class StoreCheckpoint {
 
 
     public long getMinTimestampIndex() {
-        return Math.min(Math.min(this.physicMsgTimestamp, this.logicsMsgTimestamp), this.indexMsgTimestamp);
+        return Math.min(this.getMinTimestamp(), this.indexMsgTimestamp);
     }
 
 
     public long getMinTimestamp() {
-        return Math.min(this.physicMsgTimestamp, this.logicsMsgTimestamp);
+        long min = Math.min(this.physicMsgTimestamp, this.logicsMsgTimestamp);
+
+        // 向前倒退3s，防止因为时间精度问题导致丢数据
+        // fixed https://github.com/alibaba/RocketMQ/issues/467
+        min -= 1000 * 3;
+        if (min < 0)
+            min = 0;
+
+        return min;
     }
 
 
