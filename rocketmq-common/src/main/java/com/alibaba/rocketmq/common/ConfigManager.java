@@ -50,9 +50,13 @@ public abstract class ConfigManager {
         try {
             fileName = this.configFilePath();
             String jsonString = MixAll.file2String(fileName);
-            if (jsonString != null) {
+            // 文件不存在，或者为空文件
+            if (null == jsonString || jsonString.length() == 0) {
+                return this.loadBak();
+            }
+            else {
                 this.decode(jsonString);
-                plog.info("load " + fileName + " OK");
+                plog.info("load {} OK", fileName);
                 return true;
             }
         }
@@ -60,8 +64,6 @@ public abstract class ConfigManager {
             plog.error("load " + fileName + " Failed, and try to load backup file", e);
             return this.loadBak();
         }
-
-        return true;
     }
 
 
