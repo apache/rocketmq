@@ -410,19 +410,26 @@ public abstract class NettyRemotingAbstract {
                         }
 
                         responseFuture.putResponse(null);
-                        responseFuture.executeInvokeCallback();
-
+                        responseFuture.release();
                         responseTable.remove(request.getOpaque());
-                        plog.warn("send a request command to channel <" + channel.remoteAddress()
-                                + "> failed.");
-                        plog.warn(request.toString());
+                        try {
+                            responseFuture.executeInvokeCallback();
+                        }
+                        catch (Throwable e) {
+                            plog.warn("excute callback in writeAndFlush addListener, and callback throw", e);
+                        }
 
+                        plog.warn("send a request command to channel <{}> failed.",
+                            RemotingHelper.parseChannelRemoteAddr(channel));
+                        plog.warn(request.toString());
                     }
                 });
             }
             catch (Exception e) {
-                once.release();
-                plog.warn("write send a request command to channel <" + channel.remoteAddress() + "> failed.");
+                responseFuture.release();
+                plog.warn(
+                    "send a request command to channel <" + RemotingHelper.parseChannelRemoteAddr(channel)
+                            + "> Exception", e);
                 throw new RemotingSendRequestException(RemotingHelper.parseChannelRemoteAddr(channel), e);
             }
         }
@@ -431,11 +438,17 @@ public abstract class NettyRemotingAbstract {
                 throw new RemotingTooMuchRequestException("invokeAsyncImpl invoke too fast");
             }
             else {
-                plog.warn("invokeAsyncImpl tryAcquire semaphore timeout, " + timeoutMillis
-                        + " waiting thread nums: " + this.semaphoreAsync.getQueueLength());
+                String info =
+                        String
+                            .format(
+                                "invokeAsyncImpl tryAcquire semaphore timeout, %dms, waiting thread nums: %d semaphoreAsyncValue: %d", //
+                                timeoutMillis,//
+                                this.semaphoreAsync.getQueueLength(),//
+                                this.semaphoreAsync.availablePermits()//
+                            );
+                plog.warn(info);
                 plog.warn(request.toString());
-
-                throw new RemotingTimeoutException("tryAcquire timeout(ms) " + timeoutMillis);
+                throw new RemotingTimeoutException(info);
             }
         }
     }
@@ -472,11 +485,17 @@ public abstract class NettyRemotingAbstract {
                 throw new RemotingTooMuchRequestException("invokeOnewayImpl invoke too fast");
             }
             else {
-                plog.warn("invokeOnewayImpl tryAcquire semaphore timeout, " + timeoutMillis
-                        + " waiting thread nums: " + this.semaphoreOneway.getQueueLength());
+                String info =
+                        String
+                            .format(
+                                "invokeOnewayImpl tryAcquire semaphore timeout, %dms, waiting thread nums: %d semaphoreAsyncValue: %d", //
+                                timeoutMillis,//
+                                this.semaphoreAsync.getQueueLength(),//
+                                this.semaphoreAsync.availablePermits()//
+                            );
+                plog.warn(info);
                 plog.warn(request.toString());
-
-                throw new RemotingTimeoutException("tryAcquire timeout(ms) " + timeoutMillis);
+                throw new RemotingTimeoutException(info);
             }
         }
     }
