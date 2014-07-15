@@ -278,7 +278,7 @@ public abstract class NettyRemotingAbstract {
                         responseFuture.executeInvokeCallback();
                     }
                     catch (Throwable e) {
-                        plog.warn("", e);
+                        plog.warn("executeInvokeCallback Exception", e);
                     }
                 }
             }
@@ -325,12 +325,14 @@ public abstract class NettyRemotingAbstract {
 
             if ((rep.getBeginTimestamp() + rep.getTimeoutMillis() + 1000) <= System.currentTimeMillis()) {
                 it.remove();
-                rep.release();
                 try {
                     rep.executeInvokeCallback();
                 }
                 catch (Throwable e) {
-                    plog.error("scanResponseTable, operationComplete exception", e);
+                    plog.warn("scanResponseTable, operationComplete Exception", e);
+                }
+                finally {
+                    rep.release();
                 }
 
                 plog.warn("remove timeout request, " + rep);
@@ -410,13 +412,15 @@ public abstract class NettyRemotingAbstract {
                         }
 
                         responseFuture.putResponse(null);
-                        responseFuture.release();
                         responseTable.remove(request.getOpaque());
                         try {
                             responseFuture.executeInvokeCallback();
                         }
                         catch (Throwable e) {
                             plog.warn("excute callback in writeAndFlush addListener, and callback throw", e);
+                        }
+                        finally {
+                            responseFuture.release();
                         }
 
                         plog.warn("send a request command to channel <{}> failed.",
