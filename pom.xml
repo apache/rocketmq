@@ -64,11 +64,11 @@
 		</license>
 	</licenses>
 
-	<scm>
-		<url>git@gitlab.alibaba-inc.com:middleware/rocketmq.git</url>
-		<connection>scm:git:git@gitlab.alibaba-inc.com:middleware/rocketmq.git</connection>
-		<developerConnection>scm:git:git@gitlab.alibaba-inc.com:middleware/rocketmq.git</developerConnection>
-	</scm>
+    <scm>
+        <url>http://gitlab.alibaba-inc.com/middleware/rocketmq.git</url>
+        <connection>scm:git:http://gitlab.alibaba-inc.com/middleware/rocketmq.git</connection>
+        <developerConnection>scm:git:http://gitlab.alibaba-inc.com/middleware/rocketmq.git</developerConnection>
+    </scm>
 
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
