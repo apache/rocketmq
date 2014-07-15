@@ -172,8 +172,30 @@ public class LocalFileOffsetStore implements OffsetStore {
 
     private OffsetSerializeWrapper readLocalOffset() throws MQClientException {
         String content = MixAll.file2String(this.storePath);
-        if (content != null) {
-            OffsetSerializeWrapper offsetSerializeWrapper;
+        // 文件不存在，或者为空文件
+        if (null == content || content.length() == 0) {
+            return this.readLocalOffsetBak();
+        }
+        else {
+            OffsetSerializeWrapper offsetSerializeWrapper = null;
+            try {
+                offsetSerializeWrapper =
+                        OffsetSerializeWrapper.fromJson(content, OffsetSerializeWrapper.class);
+            }
+            catch (Exception e) {
+                log.warn("readLocalOffset Exception, and try to correct", e);
+                return this.readLocalOffsetBak();
+            }
+
+            return offsetSerializeWrapper;
+        }
+    }
+
+
+    private OffsetSerializeWrapper readLocalOffsetBak() throws MQClientException {
+        String content = MixAll.file2String(this.storePath + ".bak");
+        if (content != null && content.length() > 0) {
+            OffsetSerializeWrapper offsetSerializeWrapper = null;
             try {
                 offsetSerializeWrapper =
                         OffsetSerializeWrapper.fromJson(content, OffsetSerializeWrapper.class);
