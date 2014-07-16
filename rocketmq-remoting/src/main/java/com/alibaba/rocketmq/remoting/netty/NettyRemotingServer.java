@@ -159,12 +159,14 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
                     //
                     .option(ChannelOption.SO_REUSEADDR, true)
                     //
+                    .option(ChannelOption.SO_KEEPALIVE, false)
+                    //
                     .childOption(ChannelOption.TCP_NODELAY, true)
                     //
-                    .childOption(ChannelOption.SO_SNDBUF, NettySystemConfig.SocketSndbufSize)
+                    .option(ChannelOption.SO_SNDBUF, nettyServerConfig.getServerSocketSndBufSize())
                     //
-                    .childOption(ChannelOption.SO_RCVBUF, NettySystemConfig.SocketRcvbufSize)
-
+                    .option(ChannelOption.SO_RCVBUF, nettyServerConfig.getServerSocketRcvBufSize())
+                    //
                     .localAddress(new InetSocketAddress(this.nettyServerConfig.getListenPort()))
                     .childHandler(new ChannelInitializer<SocketChannel>() {
                         @Override
@@ -181,10 +183,9 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
                         }
                     });
 
-        if (NettySystemConfig.NettyPooledByteBufAllocatorEnable) {
+        if (nettyServerConfig.isServerPooledByteBufAllocatorEnable()) {
             // 这个选项有可能会占用大量堆外内存，暂时不使用。
-            childHandler.childOption(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT)//
-            ;
+            childHandler.childOption(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT);
         }
 
         try {

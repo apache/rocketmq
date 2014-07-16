@@ -30,6 +30,10 @@ public class NettyServerConfig {
     private int serverAsyncSemaphoreValue = 64;
     private int serverChannelMaxIdleTimeSeconds = 120;
 
+    private int serverSocketSndBufSize = NettySystemConfig.SocketSndbufSize;
+    private int serverSocketRcvBufSize = NettySystemConfig.SocketRcvbufSize;
+    private boolean serverPooledByteBufAllocatorEnable = false;
+
 
     public int getListenPort() {
         return listenPort;
@@ -98,5 +102,35 @@ public class NettyServerConfig {
 
     public void setServerChannelMaxIdleTimeSeconds(int serverChannelMaxIdleTimeSeconds) {
         this.serverChannelMaxIdleTimeSeconds = serverChannelMaxIdleTimeSeconds;
+    }
+
+
+    public int getServerSocketSndBufSize() {
+        return serverSocketSndBufSize;
+    }
+
+
+    public void setServerSocketSndBufSize(int serverSocketSndBufSize) {
+        this.serverSocketSndBufSize = serverSocketSndBufSize;
+    }
+
+
+    public int getServerSocketRcvBufSize() {
+        return serverSocketRcvBufSize;
+    }
+
+
+    public void setServerSocketRcvBufSize(int serverSocketRcvBufSize) {
+        this.serverSocketRcvBufSize = serverSocketRcvBufSize;
+    }
+
+
+    public boolean isServerPooledByteBufAllocatorEnable() {
+        return serverPooledByteBufAllocatorEnable;
+    }
+
+
+    public void setServerPooledByteBufAllocatorEnable(boolean serverPooledByteBufAllocatorEnable) {
+        this.serverPooledByteBufAllocatorEnable = serverPooledByteBufAllocatorEnable;
     }
 }
