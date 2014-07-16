@@ -51,39 +51,30 @@ public class StatsItemSet {
     }
 
 
-    public long getSumInLastMinutes(final String statsKey) {
+    public StatsSnapshot getStatsDataInMinute(final String statsKey) {
         StatsItem statsItem = this.statsItemTable.get(statsKey);
         if (null != statsItem) {
-            return statsItem.getSumInLastMinutes();
+            return statsItem.getStatsDataInMinute();
         }
-        return 0;
+        return new StatsSnapshot();
     }
 
 
-    public double getAvgpsInLastMinutes(final String statsKey) {
+    public StatsSnapshot getStatsDataInHour(final String statsKey) {
         StatsItem statsItem = this.statsItemTable.get(statsKey);
         if (null != statsItem) {
-            return statsItem.getAvgpsecondInLastMinutes();
+            return statsItem.getStatsDataInHour();
         }
-        return 0;
+        return new StatsSnapshot();
     }
 
 
-    public long getSumInLastHour(final String statsKey) {
+    public StatsSnapshot getStatsDataInDay(final String statsKey) {
         StatsItem statsItem = this.statsItemTable.get(statsKey);
         if (null != statsItem) {
-            return statsItem.getSumInLastHour();
+            return statsItem.getStatsDataInDay();
         }
-        return 0;
-    }
-
-
-    public long getSumInLastDay(final String statsKey) {
-        StatsItem statsItem = this.statsItemTable.get(statsKey);
-        if (null != statsItem) {
-            return statsItem.getSumInLastDay();
-        }
-        return 0;
+        return new StatsSnapshot();
     }
 
 
@@ -150,19 +141,6 @@ public class StatsItemSet {
         }, Math.abs(UtilAll.computNextHourTimeMillis() - System.currentTimeMillis()), //
             1000 * 60 * 60, TimeUnit.MILLISECONDS);
 
-        // 半小时整点执行
-        this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    printAtHalfHour();
-                }
-                catch (Throwable e) {
-                }
-            }
-        }, Math.abs(UtilAll.computNextHalfHourTimeMillis() - System.currentTimeMillis()), //
-            1000 * 60 * 30, TimeUnit.MILLISECONDS);
-
         // 每天0点执行
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
             @Override
@@ -192,15 +170,6 @@ public class StatsItemSet {
         while (it.hasNext()) {
             Entry<String, StatsItem> next = it.next();
             next.getValue().printAtHour();
-        }
-    }
-
-
-    private void printAtHalfHour() {
-        Iterator<Entry<String, StatsItem>> it = this.statsItemTable.entrySet().iterator();
-        while (it.hasNext()) {
-            Entry<String, StatsItem> next = it.next();
-            next.getValue().printAtHalfHour();
         }
     }
 
