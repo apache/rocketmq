@@ -33,6 +33,9 @@ public class NettyClientConfig {
 
     private int clientChannelMaxIdleTimeSeconds = 120;
 
+    private int clientSocketSndBufSize = NettySystemConfig.SocketSndbufSize;
+    private int clientSocketRcvBufSize = NettySystemConfig.SocketRcvbufSize;
+    private boolean clientPooledByteBufAllocatorEnable = false;
 
     public int getClientWorkerThreads() {
         return clientWorkerThreads;
@@ -101,5 +104,35 @@ public class NettyClientConfig {
 
     public void setClientChannelMaxIdleTimeSeconds(int clientChannelMaxIdleTimeSeconds) {
         this.clientChannelMaxIdleTimeSeconds = clientChannelMaxIdleTimeSeconds;
+    }
+
+
+    public int getClientSocketSndBufSize() {
+        return clientSocketSndBufSize;
+    }
+
+
+    public void setClientSocketSndBufSize(int clientSocketSndBufSize) {
+        this.clientSocketSndBufSize = clientSocketSndBufSize;
+    }
+
+
+    public int getClientSocketRcvBufSize() {
+        return clientSocketRcvBufSize;
+    }
+
+
+    public void setClientSocketRcvBufSize(int clientSocketRcvBufSize) {
+        this.clientSocketRcvBufSize = clientSocketRcvBufSize;
+    }
+
+
+    public boolean isClientPooledByteBufAllocatorEnable() {
+        return clientPooledByteBufAllocatorEnable;
+    }
+
+
+    public void setClientPooledByteBufAllocatorEnable(boolean clientPooledByteBufAllocatorEnable) {
+        this.clientPooledByteBufAllocatorEnable = clientPooledByteBufAllocatorEnable;
     }
 }

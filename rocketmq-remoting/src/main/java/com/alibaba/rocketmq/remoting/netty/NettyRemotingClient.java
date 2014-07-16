@@ -278,9 +278,11 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
             //
             .option(ChannelOption.TCP_NODELAY, true)
             //
-            .option(ChannelOption.SO_SNDBUF, NettySystemConfig.SocketSndbufSize)
+            .option(ChannelOption.SO_KEEPALIVE, false)
             //
-            .option(ChannelOption.SO_RCVBUF, NettySystemConfig.SocketRcvbufSize)
+            .option(ChannelOption.SO_SNDBUF, nettyClientConfig.getClientSocketSndBufSize())
+            //
+            .option(ChannelOption.SO_RCVBUF, nettyClientConfig.getClientSocketRcvBufSize())
             //
             .handler(new ChannelInitializer<SocketChannel>() {
                 @Override
