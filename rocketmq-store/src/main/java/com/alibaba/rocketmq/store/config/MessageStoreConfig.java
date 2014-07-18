@@ -101,7 +101,7 @@ public class MessageStoreConfig {
     private boolean messageIndexEnable = true;
     private int maxHashSlotNum = 5000000;
     private int maxIndexNum = 5000000 * 4;
-    private int maxMsgsNumBatch = 32;
+    private int maxMsgsNumBatch = 64;
     // 是否使用安全的消息索引功能，即可靠模式。
     // 可靠模式下，异常宕机恢复慢
     // 非可靠模式下，异常宕机恢复快
