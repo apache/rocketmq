@@ -1217,9 +1217,6 @@ public class DefaultMessageStore implements MessageStore {
                 if (manualDelete)
                     this.manualDeleteFileSeveralTimes--;
 
-                // 小时转化成毫秒
-                fileReservedTime *= 60 * 60 * 1000;
-
                 // 是否立刻强制删除文件
                 boolean cleanAtOnce =
                         DefaultMessageStore.this.getMessageStoreConfig().isCleanFileForciblyEnable()
@@ -1232,6 +1229,9 @@ public class DefaultMessageStore implements MessageStore {
                     spacefull,//
                     manualDeleteFileSeveralTimes,//
                     cleanAtOnce);
+
+                // 小时转化成毫秒
+                fileReservedTime *= 60 * 60 * 1000;
 
                 deleteCount =
                         DefaultMessageStore.this.commitLog.deleteExpiredFile(fileReservedTime,
