@@ -1496,7 +1496,7 @@ public class MQClientAPIImpl {
         assert response != null;
         switch (response.getCode()) {
         case ResponseCode.TOPIC_NOT_EXIST: {
-            log.warn("get Topic [{}]RouteInfoFromNameServer is not exist value", topic);
+            log.warn("get Topic [{}] RouteInfoFromNameServer is not exist value", topic);
             break;
         }
         case ResponseCode.SUCCESS: {
