@@ -16,4 +16,14 @@ public class NettySystemConfig {
             "com.rocketmq.remoting.socket.rcvbuf.size";
     public static int SocketRcvbufSize = //
             Integer.parseInt(System.getProperty(SystemPropertySocketRcvbufSize, "65535"));
+
+    public static final String SystemPropertyClientAsyncSemaphoreValue = //
+            "com.rocketmq.remoting.clientAsyncSemaphoreValue";
+    public static int ClientAsyncSemaphoreValue = //
+            Integer.parseInt(System.getProperty(SystemPropertyClientAsyncSemaphoreValue, "128"));
+
+    public static final String SystemPropertyClientOnewaySemaphoreValue = //
+            "com.rocketmq.remoting.clientOnewaySemaphoreValue";
+    public static int ClientOnewaySemaphoreValue = //
+            Integer.parseInt(System.getProperty(SystemPropertyClientOnewaySemaphoreValue, "256"));
 }
