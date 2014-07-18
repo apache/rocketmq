@@ -41,6 +41,5 @@ public class DefaultMonitorListener implements MonitorListener {
     @Override
     public void endRound() {
         // TODO Auto-generated method stub
-
     }
 }
