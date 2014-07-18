@@ -71,6 +71,8 @@ public class ProcessQueue {
     private volatile boolean consuming = false;
     // 事务方式消费，未提交的消息
     private final TreeMap<Long, MessageExt> msgTreeMapTemp = new TreeMap<Long, MessageExt>();
+    // 尝试释放这个队列的次数
+    private final AtomicLong tryUnlockTimes = new AtomicLong(0);
 
     /**
      * 当前队列的消息堆积数量
@@ -387,5 +389,15 @@ public class ProcessQueue {
 
     public void setMsgDuijiCnt(long msgDuijiCnt) {
         this.msgDuijiCnt = msgDuijiCnt;
+    }
+
+
+    public long getTryUnlockTimes() {
+        return this.tryUnlockTimes.get();
+    }
+
+
+    public void incTryUnlockTimes() {
+        this.tryUnlockTimes.incrementAndGet();
     }
 }
