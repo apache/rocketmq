@@ -23,7 +23,7 @@ package com.alibaba.rocketmq.remoting.netty;
  */
 public class NettyServerConfig {
     private int listenPort = 8888;
-    private int serverWorkerThreads = 32;
+    private int serverWorkerThreads = 8;
     private int serverCallbackExecutorThreads = 0;
     private int serverSelectorThreads = 3;
     private int serverOnewaySemaphoreValue = 32;
