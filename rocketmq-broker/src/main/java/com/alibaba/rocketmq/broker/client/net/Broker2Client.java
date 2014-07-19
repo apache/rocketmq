@@ -45,6 +45,8 @@ import com.alibaba.rocketmq.common.protocol.header.GetConsumerStatusRequestHeade
 import com.alibaba.rocketmq.common.protocol.header.NotifyConsumerIdsChangedRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.ResetOffsetRequestHeader;
 import com.alibaba.rocketmq.remoting.common.RemotingHelper;
+import com.alibaba.rocketmq.remoting.exception.RemotingSendRequestException;
+import com.alibaba.rocketmq.remoting.exception.RemotingTimeoutException;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 import com.alibaba.rocketmq.store.SelectMapedBufferResult;
 
@@ -95,6 +97,15 @@ public class Broker2Client {
             log.error("invokeProducer exception", e);
             selectMapedBufferResult.release();
         }
+    }
+
+
+    public RemotingCommand getConsumerRunningInfo(//
+            final Channel channel,//
+            final RemotingCommand request//
+    ) throws RemotingSendRequestException, RemotingTimeoutException, InterruptedException {
+        request.setOpaque(RemotingCommand.createNewRequestId());
+        return this.brokerController.getRemotingServer().invokeSync(channel, request, 3000);
     }
 
 

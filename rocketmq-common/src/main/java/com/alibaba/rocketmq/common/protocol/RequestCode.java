@@ -143,4 +143,8 @@ public class RequestCode {
 
     // 清理失效队列
     public static final int CLEAN_EXPIRED_CONSUMEQUEUE = 306;
+
+    // 通过Broker查询Consumer内存数据
+    // 2014-07-19 Add By shijia
+    public static final int GET_CONSUMER_RUNNING_INFO = 307;
 }

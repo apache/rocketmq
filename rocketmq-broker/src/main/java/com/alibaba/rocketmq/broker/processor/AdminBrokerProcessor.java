@@ -61,6 +61,7 @@ import com.alibaba.rocketmq.common.protocol.header.GetAllTopicConfigResponseHead
 import com.alibaba.rocketmq.common.protocol.header.GetBrokerConfigResponseHeader;
 import com.alibaba.rocketmq.common.protocol.header.GetConsumeStatsRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.GetConsumerConnectionListRequestHeader;
+import com.alibaba.rocketmq.common.protocol.header.GetConsumerRunningInfoRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.GetConsumerStatusRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.GetEarliestMsgStoretimeRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.GetEarliestMsgStoretimeResponseHeader;
@@ -207,11 +208,61 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             // 删除失效队列
         case RequestCode.CLEAN_EXPIRED_CONSUMEQUEUE:
             return this.cleanExpiredConsumeQueue();
+
+        case RequestCode.GET_CONSUMER_RUNNING_INFO:
+            return this.getConsumerRunningInfo(ctx, request);
         default:
             break;
         }
 
         return null;
+    }
+
+
+    /**
+     * 调用Consumer，获取Consumer内存数据结构，为监控以及定位问题
+     */
+    private RemotingCommand getConsumerRunningInfo(ChannelHandlerContext ctx, RemotingCommand request)
+            throws RemotingCommandException {
+        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
+        final GetConsumerRunningInfoRequestHeader requestHeader =
+                (GetConsumerRunningInfoRequestHeader) request
+                    .decodeCommandCustomHeader(GetConsumerRunningInfoRequestHeader.class);
+
+        int requestOpaque = request.getOpaque();
+
+        ClientChannelInfo clientChannelInfo =
+                this.brokerController.getConsumerManager().findChannel(requestHeader.getConsumerGroup(),
+                    requestHeader.getClientId());
+
+        if (null == clientChannelInfo) {
+            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setRemark(String.format("The Consumer <%s> not online", requestHeader.getClientId()));
+            return response;
+        }
+
+        if (clientChannelInfo.getVersion() < MQVersion.Version.V3_1_8_SNAPSHOT.ordinal()) {
+            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setRemark(String.format(
+                "The Consumer <%s> Version <%s> too low to finish, please upgrade it to V3_1_8_SNAPSHOT", //
+                requestHeader.getClientId(),//
+                MQVersion.getVersionDesc(clientChannelInfo.getVersion())));
+            return response;
+        }
+
+        try {
+            RemotingCommand consumerResponse =
+                    this.brokerController.getBroker2Client().getConsumerRunningInfo(
+                        clientChannelInfo.getChannel(), request);
+            consumerResponse.setOpaque(requestOpaque);
+            return consumerResponse;
+        }
+        catch (Exception e) {
+            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setRemark(String.format("invoke consumer <%s> Exception: %s",
+                requestHeader.getClientId(), RemotingHelper.exceptionSimpleDesc(e)));
+            return response;
+        }
     }
 
 

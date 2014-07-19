@@ -488,6 +488,11 @@ public class RemotingCommand {
     }
 
 
+    public static int createNewRequestId() {
+        return RequestId.incrementAndGet();
+    }
+
+
     @Override
     public String toString() {
         return "RemotingCommand [code=" + code + ", language=" + language + ", version=" + version
