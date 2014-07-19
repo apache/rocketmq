@@ -55,6 +55,16 @@ public class ConsumerManager {
     }
 
 
+    public ClientChannelInfo findChannel(final String group, final String clientId) {
+        ConsumerGroupInfo consumerGroupInfo = this.consumerTable.get(group);
+        if (consumerGroupInfo != null) {
+            return consumerGroupInfo.findChannel(clientId);
+        }
+
+        return null;
+    }
+
+
     public ConsumerGroupInfo getConsumerGroupInfo(final String group) {
         return this.consumerTable.get(group);
     }

@@ -62,6 +62,19 @@ public class ConsumerGroupInfo {
     }
 
 
+    public ClientChannelInfo findChannel(final String clientId) {
+        Iterator<Entry<Channel, ClientChannelInfo>> it = this.channelInfoTable.entrySet().iterator();
+        while (it.hasNext()) {
+            Entry<Channel, ClientChannelInfo> next = it.next();
+            if (next.getValue().getClientId().equals(clientId)) {
+                return next.getValue();
+            }
+        }
+
+        return null;
+    }
+
+
     public ConcurrentHashMap<String, SubscriptionData> getSubscriptionTable() {
         return subscriptionTable;
     }
