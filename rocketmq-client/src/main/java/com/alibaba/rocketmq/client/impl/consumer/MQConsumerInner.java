@@ -19,6 +19,7 @@ import java.util.Set;
 
 import com.alibaba.rocketmq.common.consumer.ConsumeFromWhere;
 import com.alibaba.rocketmq.common.message.MessageQueue;
+import com.alibaba.rocketmq.common.protocol.body.ConsumerRunningInfo;
 import com.alibaba.rocketmq.common.protocol.heartbeat.ConsumeType;
 import com.alibaba.rocketmq.common.protocol.heartbeat.MessageModel;
 import com.alibaba.rocketmq.common.protocol.heartbeat.SubscriptionData;
@@ -59,4 +60,7 @@ public interface MQConsumerInner {
 
 
     public boolean isUnitMode();
+
+
+    public ConsumerRunningInfo consumerRunningInfo();
 }

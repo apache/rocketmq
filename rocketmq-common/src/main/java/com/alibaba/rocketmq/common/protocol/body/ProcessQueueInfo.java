@@ -27,6 +27,9 @@ public class ProcessQueueInfo {
     private long tryUnlockTimes;
     private long lastLockTimestamp;
 
+    private boolean droped;
+    private long lastPullTimestamp;
+
 
     public long getCommitOffset() {
         return commitOffset;
@@ -125,5 +128,25 @@ public class ProcessQueueInfo {
 
     public void setLastLockTimestamp(long lastLockTimestamp) {
         this.lastLockTimestamp = lastLockTimestamp;
+    }
+
+
+    public boolean isDroped() {
+        return droped;
+    }
+
+
+    public void setDroped(boolean droped) {
+        this.droped = droped;
+    }
+
+
+    public long getLastPullTimestamp() {
+        return lastPullTimestamp;
+    }
+
+
+    public void setLastPullTimestamp(long lastPullTimestamp) {
+        this.lastPullTimestamp = lastPullTimestamp;
     }
 }

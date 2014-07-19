@@ -30,6 +30,7 @@ import org.slf4j.Logger;
 import com.alibaba.rocketmq.client.log.ClientLogger;
 import com.alibaba.rocketmq.common.message.MessageConst;
 import com.alibaba.rocketmq.common.message.MessageExt;
+import com.alibaba.rocketmq.common.protocol.body.ProcessQueueInfo;
 
 
 /**
@@ -399,5 +400,36 @@ public class ProcessQueue {
 
     public void incTryUnlockTimes() {
         this.tryUnlockTimes.incrementAndGet();
+    }
+
+
+    public void fillProcessQueueInfo(final ProcessQueueInfo info) {
+        try {
+            this.lockTreeMap.readLock().lockInterruptibly();
+
+            if (!this.msgTreeMap.isEmpty()) {
+                info.setCachedMsgMinOffset(this.msgTreeMap.firstKey());
+                info.setCachedMsgMaxOffset(this.msgTreeMap.lastKey());
+                info.setCachedMsgCount(this.msgTreeMap.size());
+            }
+
+            if (!this.msgTreeMapTemp.isEmpty()) {
+                info.setTransactionMsgMinOffset(this.msgTreeMapTemp.firstKey());
+                info.setTransactionMsgMaxOffset(this.msgTreeMapTemp.lastKey());
+                info.setTransactionMsgCount(this.msgTreeMapTemp.size());
+            }
+
+            info.setLocked(this.locked);
+            info.setTryUnlockTimes(this.tryUnlockTimes.get());
+            info.setLastLockTimestamp(this.lastLockTimestamp);
+
+            info.setDroped(this.droped);
+            info.setLastPullTimestamp(this.lastPullTimestamp);
+        }
+        catch (Exception e) {
+        }
+        finally {
+            this.lockTreeMap.readLock().unlock();
+        }
     }
 }
