@@ -63,6 +63,7 @@ import com.alibaba.rocketmq.common.UtilAll;
 import com.alibaba.rocketmq.common.constant.PermName;
 import com.alibaba.rocketmq.common.filter.FilterAPI;
 import com.alibaba.rocketmq.common.message.MessageQueue;
+import com.alibaba.rocketmq.common.protocol.body.ConsumerRunningInfo;
 import com.alibaba.rocketmq.common.protocol.heartbeat.ConsumeType;
 import com.alibaba.rocketmq.common.protocol.heartbeat.ConsumerData;
 import com.alibaba.rocketmq.common.protocol.heartbeat.HeartbeatData;
@@ -1316,5 +1317,15 @@ public class MQClientInstance {
                 }
             }
         }
+    }
+
+
+    public ConsumerRunningInfo consumerRunningInfo(final String consumerGroup) {
+        MQConsumerInner mqConsumerInner = this.consumerTable.get(consumerGroup);
+
+        ConsumerRunningInfo consumerRunningInfo = mqConsumerInner.consumerRunningInfo();
+
+        // 补充额外的信息
+        return consumerRunningInfo;
     }
 }

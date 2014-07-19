@@ -32,9 +32,11 @@ import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.common.message.MessageQueue;
 import com.alibaba.rocketmq.common.protocol.RequestCode;
 import com.alibaba.rocketmq.common.protocol.ResponseCode;
+import com.alibaba.rocketmq.common.protocol.body.ConsumerRunningInfo;
 import com.alibaba.rocketmq.common.protocol.body.GetConsumerStatusBody;
 import com.alibaba.rocketmq.common.protocol.body.ResetOffsetBody;
 import com.alibaba.rocketmq.common.protocol.header.CheckTransactionStateRequestHeader;
+import com.alibaba.rocketmq.common.protocol.header.GetConsumerRunningInfoRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.GetConsumerStatusRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.NotifyConsumerIdsChangedRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.ResetOffsetRequestHeader;
@@ -72,10 +74,36 @@ public class ClientRemotingProcessor implements NettyRequestProcessor {
             return this.resetOffset(ctx, request);
         case RequestCode.GET_CONSUMER_STATUS_FROM_CLIENT:
             return this.getConsumeStatus(ctx, request);
+
+        case RequestCode.GET_CONSUMER_RUNNING_INFO:
+            return this.getConsumerRunningInfo(ctx, request);
         default:
             break;
         }
         return null;
+    }
+
+
+    private RemotingCommand getConsumerRunningInfo(ChannelHandlerContext ctx, RemotingCommand request)
+            throws RemotingCommandException {
+        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
+        final GetConsumerRunningInfoRequestHeader requestHeader =
+                (GetConsumerRunningInfoRequestHeader) request
+                    .decodeCommandCustomHeader(GetConsumerRunningInfoRequestHeader.class);
+
+        ConsumerRunningInfo consumerRunningInfo =
+                this.mqClientFactory.consumerRunningInfo(requestHeader.getConsumerGroup());
+        if (null != consumerRunningInfo) {
+            response.setCode(ResponseCode.SUCCESS);
+            response.setBody(consumerRunningInfo.encode());
+        }
+        else {
+            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setRemark(String.format("The Consumer Group <%s> not exist in this consumer",
+                requestHeader.getConsumerGroup()));
+        }
+
+        return response;
     }
 
 
@@ -159,6 +187,7 @@ public class ClientRemotingProcessor implements NettyRequestProcessor {
     /**
      * 获取 consumer 消息消费状态。
      */
+    @Deprecated
     public RemotingCommand getConsumeStatus(ChannelHandlerContext ctx, RemotingCommand request)
             throws RemotingCommandException {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);

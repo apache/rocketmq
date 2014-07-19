@@ -22,6 +22,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -60,6 +61,8 @@ import com.alibaba.rocketmq.common.message.MessageAccessor;
 import com.alibaba.rocketmq.common.message.MessageConst;
 import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.common.message.MessageQueue;
+import com.alibaba.rocketmq.common.protocol.body.ConsumerRunningInfo;
+import com.alibaba.rocketmq.common.protocol.body.ProcessQueueInfo;
 import com.alibaba.rocketmq.common.protocol.heartbeat.ConsumeType;
 import com.alibaba.rocketmq.common.protocol.heartbeat.MessageModel;
 import com.alibaba.rocketmq.common.protocol.heartbeat.SubscriptionData;
@@ -1068,5 +1071,34 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
         if (computeDuijiTotal < decThreshold) {
             this.consumeMessageService.decCorePoolSize();
         }
+    }
+
+
+    @Override
+    public ConsumerRunningInfo consumerRunningInfo() {
+        ConsumerRunningInfo info = new ConsumerRunningInfo();
+
+        // 各种配置及运行数据
+        Properties prop = MixAll.object2Properties(this.defaultMQPushConsumer);
+        info.setProperties(prop);
+
+        // 订阅关系
+        info.setSubscriptionSet(this.subscriptions());
+
+        // 消费进度、Rebalance、内部消费队列的信息
+        Iterator<Entry<MessageQueue, ProcessQueue>> it =
+                this.rebalanceImpl.getProcessQueueTable().entrySet().iterator();
+        while (it.hasNext()) {
+            Entry<MessageQueue, ProcessQueue> next = it.next();
+            MessageQueue mq = next.getKey();
+            ProcessQueue pq = next.getValue();
+
+            ProcessQueueInfo pqinfo = new ProcessQueueInfo();
+            pqinfo.setCommitOffset(this.offsetStore.readOffset(mq, ReadOffsetType.MEMORY_FIRST_THEN_STORE));
+            pq.fillProcessQueueInfo(pqinfo);
+            info.getMqTable().put(mq, pqinfo);
+        }
+
+        return info;
     }
 }
