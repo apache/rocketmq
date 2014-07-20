@@ -37,7 +37,9 @@ public class PushConsumer {
          * 一个应用创建一个Consumer，由应用来维护此对象，可以设置为全局对象或者单例<br>
          * 注意：ConsumerGroupName需要由应用来保证唯一
          */
-        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("ConsumerGroupName");
+        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("CID_220");
+        consumer.setNamesrvAddr("10.235.170.7:9877");
+        //consumer.setNamesrvAddr("127.0.0.1:9876");
 
         /**
          * 订阅指定topic下tags分别等于TagA或TagC或TagD

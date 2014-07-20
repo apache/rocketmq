@@ -32,8 +32,7 @@ import com.alibaba.rocketmq.client.consumer.listener.ConsumeOrderlyStatus;
 import com.alibaba.rocketmq.client.consumer.listener.MessageListenerOrderly;
 import com.alibaba.rocketmq.client.hook.ConsumeMessageContext;
 import com.alibaba.rocketmq.client.log.ClientLogger;
-import com.alibaba.rocketmq.client.stat.ConsumerStat;
-import com.alibaba.rocketmq.common.MixAll;
+import com.alibaba.rocketmq.client.stat.ConsumerStatsManager;
 import com.alibaba.rocketmq.common.ThreadFactoryImpl;
 import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.common.message.MessageQueue;
@@ -151,8 +150,8 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
     }
 
 
-    public ConsumerStat getConsumerStat() {
-        return this.defaultMQPushConsumerImpl.getConsumerStatManager().getConsumertat();
+    public ConsumerStatsManager getConsumerStatsManager() {
+        return this.defaultMQPushConsumerImpl.getConsumerStatsManager();
     }
 
     class ConsumeRequest implements Runnable {
@@ -296,10 +295,9 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
                             }
 
                             // 记录统计信息
-                            ConsumeMessageOrderlyService.this.getConsumerStat().getConsumeMsgRTTotal()
-                                .addAndGet(consumeRT);
-                            MixAll.compareAndIncreaseOnly(ConsumeMessageOrderlyService.this.getConsumerStat()
-                                .getConsumeMsgRTMax(), consumeRT);
+                            ConsumeMessageOrderlyService.this.getConsumerStatsManager().incConsumeRT(
+                                ConsumeMessageOrderlyService.this.consumerGroup, messageQueue.getTopic(),
+                                consumeRT);
 
                             continueConsume =
                                     ConsumeMessageOrderlyService.this.processConsumeResult(msgs, status,
@@ -355,7 +353,8 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
             case SUCCESS:
                 commitOffset = consumeRequest.getProcessQueue().commit();
                 // 统计信息
-                this.getConsumerStat().getConsumeMsgOKTotal().addAndGet(msgs.size());
+                this.getConsumerStatsManager().incConsumeOKTPS(consumerGroup,
+                    consumeRequest.getMessageQueue().getTopic(), msgs.size());
                 break;
             case SUSPEND_CURRENT_QUEUE_A_MOMENT:
                 consumeRequest.getProcessQueue().makeMessageToCosumeAgain(msgs);
@@ -366,7 +365,8 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
                 continueConsume = false;
 
                 // 统计信息
-                this.getConsumerStat().getConsumeMsgFailedTotal().addAndGet(msgs.size());
+                this.getConsumerStatsManager().incConsumeFailedTPS(consumerGroup,
+                    consumeRequest.getMessageQueue().getTopic(), msgs.size());
                 break;
             default:
                 break;
@@ -377,12 +377,11 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
             switch (status) {
             case SUCCESS:
                 // 统计信息
-                this.getConsumerStat().getConsumeMsgOKTotal().addAndGet(msgs.size());
+                this.getConsumerStatsManager().incConsumeOKTPS(consumerGroup,
+                    consumeRequest.getMessageQueue().getTopic(), msgs.size());
                 break;
             case COMMIT:
                 commitOffset = consumeRequest.getProcessQueue().commit();
-                // 统计信息
-                this.getConsumerStat().getConsumeMsgOKTotal().addAndGet(msgs.size());
                 break;
             case ROLLBACK:
                 // 如果Rollback后，最好suspend一会儿再消费，防止应用无限Rollback下去
@@ -392,8 +391,6 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
                     consumeRequest.getMessageQueue(), //
                     context.getSuspendCurrentQueueTimeMillis());
                 continueConsume = false;
-                // 统计信息
-                this.getConsumerStat().getConsumeMsgFailedTotal().addAndGet(msgs.size());
                 break;
             case SUSPEND_CURRENT_QUEUE_A_MOMENT:
                 consumeRequest.getProcessQueue().makeMessageToCosumeAgain(msgs);
@@ -403,7 +400,8 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
                     context.getSuspendCurrentQueueTimeMillis());
                 continueConsume = false;
                 // 统计信息
-                this.getConsumerStat().getConsumeMsgFailedTotal().addAndGet(msgs.size());
+                this.getConsumerStatsManager().incConsumeFailedTPS(consumerGroup,
+                    consumeRequest.getMessageQueue().getTopic(), msgs.size());
                 break;
             default:
                 break;

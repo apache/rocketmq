@@ -33,7 +33,7 @@ import com.alibaba.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
 import com.alibaba.rocketmq.client.consumer.listener.MessageListenerConcurrently;
 import com.alibaba.rocketmq.client.hook.ConsumeMessageContext;
 import com.alibaba.rocketmq.client.log.ClientLogger;
-import com.alibaba.rocketmq.client.stat.ConsumerStat;
+import com.alibaba.rocketmq.client.stat.ConsumerStatsManager;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.ThreadFactoryImpl;
 import com.alibaba.rocketmq.common.message.MessageConst;
@@ -94,8 +94,8 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
     }
 
 
-    public ConsumerStat getConsumerStat() {
-        return this.defaultMQPushConsumerImpl.getConsumerStatManager().getConsumertat();
+    public ConsumerStatsManager getConsumerStatsManager() {
+        return this.defaultMQPushConsumerImpl.getConsumerStatsManager();
     }
 
     class ConsumeRequest implements Runnable {
@@ -180,19 +180,8 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
             }
 
             // 记录统计信息
-            ConsumeMessageConcurrentlyService.this.getConsumerStat().getConsumeMsgRTTotal()
-                .addAndGet(consumeRT);
-            boolean updated =
-                    MixAll.compareAndIncreaseOnly(ConsumeMessageConcurrentlyService.this.getConsumerStat()
-                        .getConsumeMsgRTMax(), consumeRT);
-            // 耗时最大值新记录
-            if (updated) {
-                log.warn("consumeMessage RT new max: {} Group: {} Msgs: {} MQ: {}",//
-                    consumeRT,//
-                    ConsumeMessageConcurrentlyService.this.consumerGroup,//
-                    msgs,//
-                    messageQueue);
-            }
+            ConsumeMessageConcurrentlyService.this.getConsumerStatsManager().incConsumeRT(
+                ConsumeMessageConcurrentlyService.this.consumerGroup, messageQueue.getTopic(), consumeRT);
 
             // 如果ProcessQueue是dropped状态，不需要直接更新 offset
             if (!processQueue.isDroped()) {
@@ -257,13 +246,16 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
             int ok = ackIndex + 1;
             int failed = consumeRequest.getMsgs().size() - ok;
             // 统计信息
-            this.getConsumerStat().getConsumeMsgOKTotal().addAndGet(ok);
-            this.getConsumerStat().getConsumeMsgFailedTotal().addAndGet(failed);
+            this.getConsumerStatsManager().incConsumeOKTPS(consumerGroup,
+                consumeRequest.getMessageQueue().getTopic(), ok);
+            this.getConsumerStatsManager().incConsumeFailedTPS(consumerGroup,
+                consumeRequest.getMessageQueue().getTopic(), failed);
             break;
         case RECONSUME_LATER:
             ackIndex = -1;
             // 统计信息
-            this.getConsumerStat().getConsumeMsgFailedTotal().addAndGet(consumeRequest.getMsgs().size());
+            this.getConsumerStatsManager().incConsumeFailedTPS(consumerGroup,
+                consumeRequest.getMessageQueue().getTopic(), consumeRequest.getMsgs().size());
             break;
         default:
             break;

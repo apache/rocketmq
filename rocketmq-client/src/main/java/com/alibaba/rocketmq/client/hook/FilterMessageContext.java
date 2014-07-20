@@ -15,10 +15,10 @@
  */
 package com.alibaba.rocketmq.client.hook;
 
+import java.util.List;
+
 import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.common.message.MessageQueue;
-
-import java.util.List;
 
 
 /**
