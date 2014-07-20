@@ -19,6 +19,7 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 
+import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.protocol.body.Connection;
 import com.alibaba.rocketmq.common.protocol.body.ConsumerConnection;
 import com.alibaba.rocketmq.common.protocol.body.ConsumerRunningInfo;
@@ -76,11 +77,18 @@ public class ConsumerStatusSubCommand implements SubCommand {
             if (!commandLine.hasOption('i')) {
                 // 打印连接
                 int i = 1;
+                long now = System.currentTimeMillis();
                 for (Connection conn : cc.getConnectionSet()) {
-                    System.out.printf("%03d  %-32s\n",//
-                        i++,//
-                        conn.getClientId()//
-                        );
+                    ConsumerRunningInfo consumerRunningInfo =
+                            defaultMQAdminExt.getConsumerRunningInfo(group, conn.getClientId());
+                    if (consumerRunningInfo != null) {
+                        String filePath = now + "/" + conn.getClientId();
+                        MixAll.string2FileNotSafe(consumerRunningInfo.formatString(), filePath);
+                        System.out.printf("%03d  %-40s %s\n",//
+                            i++,//
+                            conn.getClientId(),//
+                            filePath);
+                    }
                 }
             }
             else {
