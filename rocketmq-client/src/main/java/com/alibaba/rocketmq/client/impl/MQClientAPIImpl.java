@@ -210,6 +210,9 @@ public class MQClientAPIImpl {
 
         this.remotingClient.registerProcessor(RequestCode.GET_CONSUMER_STATUS_FROM_CLIENT,
             this.clientRemotingProcessor, null);
+
+        this.remotingClient.registerProcessor(RequestCode.GET_CONSUMER_RUNNING_INFO,
+            this.clientRemotingProcessor, null);
     }
 
 

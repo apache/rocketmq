@@ -167,8 +167,13 @@ public class RemotingCommand {
     }
 
 
-    public CommandCustomHeader getCustomHeader() {
+    public CommandCustomHeader readCustomHeader() {
         return customHeader;
+    }
+
+
+    public void writeCustomHeader(CommandCustomHeader customHeader) {
+        this.customHeader = customHeader;
     }
 
 
@@ -499,4 +504,5 @@ public class RemotingCommand {
                 + ", opaque=" + opaque + ", flag(B)=" + Integer.toBinaryString(flag) + ", remark=" + remark
                 + ", extFields=" + extFields + "]";
     }
+
 }

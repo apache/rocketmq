@@ -77,7 +77,7 @@ public class QueryMessageProcessor implements NettyRequestProcessor {
         final RemotingCommand response =
                 RemotingCommand.createResponseCommand(QueryMessageResponseHeader.class);
         final QueryMessageResponseHeader responseHeader =
-                (QueryMessageResponseHeader) response.getCustomHeader();
+                (QueryMessageResponseHeader) response.readCustomHeader();
         final QueryMessageRequestHeader requestHeader =
                 (QueryMessageRequestHeader) request
                     .decodeCommandCustomHeader(QueryMessageRequestHeader.class);
