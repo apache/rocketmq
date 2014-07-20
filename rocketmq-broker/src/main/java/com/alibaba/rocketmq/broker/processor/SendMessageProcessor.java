@@ -255,7 +255,7 @@ public class SendMessageProcessor implements NettyRequestProcessor {
         final RemotingCommand response =
                 RemotingCommand.createResponseCommand(SendMessageResponseHeader.class);
         final SendMessageResponseHeader responseHeader =
-                (SendMessageResponseHeader) response.getCustomHeader();
+                (SendMessageResponseHeader) response.readCustomHeader();
         final SendMessageRequestHeader requestHeader =
                 (SendMessageRequestHeader) request.decodeCommandCustomHeader(SendMessageRequestHeader.class);
 

@@ -131,7 +131,7 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
         final RemotingCommand response =
                 RemotingCommand.createResponseCommand(RegisterBrokerResponseHeader.class);
         final RegisterBrokerResponseHeader responseHeader =
-                (RegisterBrokerResponseHeader) response.getCustomHeader();
+                (RegisterBrokerResponseHeader) response.readCustomHeader();
         final RegisterBrokerRequestHeader requestHeader =
                 (RegisterBrokerRequestHeader) request
                     .decodeCommandCustomHeader(RegisterBrokerRequestHeader.class);
@@ -231,7 +231,7 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
         final RemotingCommand response =
                 RemotingCommand.createResponseCommand(WipeWritePermOfBrokerResponseHeader.class);
         final WipeWritePermOfBrokerResponseHeader responseHeader =
-                (WipeWritePermOfBrokerResponseHeader) response.getCustomHeader();
+                (WipeWritePermOfBrokerResponseHeader) response.readCustomHeader();
         final WipeWritePermOfBrokerRequestHeader requestHeader =
                 (WipeWritePermOfBrokerRequestHeader) request
                     .decodeCommandCustomHeader(WipeWritePermOfBrokerRequestHeader.class);
@@ -317,7 +317,7 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
         final RemotingCommand response =
                 RemotingCommand.createResponseCommand(GetKVConfigResponseHeader.class);
         final GetKVConfigResponseHeader responseHeader =
-                (GetKVConfigResponseHeader) response.getCustomHeader();
+                (GetKVConfigResponseHeader) response.readCustomHeader();
         final GetKVConfigRequestHeader requestHeader =
                 (GetKVConfigRequestHeader) request.decodeCommandCustomHeader(GetKVConfigRequestHeader.class);
 
@@ -363,7 +363,7 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
         final RemotingCommand response =
                 RemotingCommand.createResponseCommand(RegisterBrokerResponseHeader.class);
         final RegisterBrokerResponseHeader responseHeader =
-                (RegisterBrokerResponseHeader) response.getCustomHeader();
+                (RegisterBrokerResponseHeader) response.readCustomHeader();
         final RegisterBrokerRequestHeader requestHeader =
                 (RegisterBrokerRequestHeader) request
                     .decodeCommandCustomHeader(RegisterBrokerRequestHeader.class);
@@ -423,7 +423,7 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
         final RemotingCommand response =
                 RemotingCommand.createResponseCommand(GetKVConfigResponseHeader.class);
         final GetKVConfigResponseHeader responseHeader =
-                (GetKVConfigResponseHeader) response.getCustomHeader();
+                (GetKVConfigResponseHeader) response.readCustomHeader();
         final GetKVConfigRequestHeader requestHeader =
                 (GetKVConfigRequestHeader) request.decodeCommandCustomHeader(GetKVConfigRequestHeader.class);
 

@@ -251,6 +251,8 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         }
 
         try {
+            request.writeCustomHeader(requestHeader);
+
             RemotingCommand consumerResponse =
                     this.brokerController.getBroker2Client().getConsumerRunningInfo(
                         clientChannelInfo.getChannel(), request);
@@ -283,7 +285,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         final RemotingCommand response =
                 RemotingCommand.createResponseCommand(RegisterFilterServerResponseHeader.class);
         final RegisterFilterServerResponseHeader responseHeader =
-                (RegisterFilterServerResponseHeader) response.getCustomHeader();
+                (RegisterFilterServerResponseHeader) response.readCustomHeader();
         final RegisterFilterServerRequestHeader requestHeader =
                 (RegisterFilterServerRequestHeader) request
                     .decodeCommandCustomHeader(RegisterFilterServerRequestHeader.class);
@@ -661,7 +663,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         final RemotingCommand response =
                 RemotingCommand.createResponseCommand(GetAllTopicConfigResponseHeader.class);
         final GetAllTopicConfigResponseHeader responseHeader =
-                (GetAllTopicConfigResponseHeader) response.getCustomHeader();
+                (GetAllTopicConfigResponseHeader) response.readCustomHeader();
 
         String content = this.brokerController.getTopicConfigManager().encode();
         if (content != null && content.length() > 0) {
@@ -731,7 +733,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         final RemotingCommand response =
                 RemotingCommand.createResponseCommand(GetBrokerConfigResponseHeader.class);
         final GetBrokerConfigResponseHeader responseHeader =
-                (GetBrokerConfigResponseHeader) response.getCustomHeader();
+                (GetBrokerConfigResponseHeader) response.readCustomHeader();
 
         String content = this.brokerController.encodeAllConfig();
         if (content != null && content.length() > 0) {
@@ -760,7 +762,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         final RemotingCommand response =
                 RemotingCommand.createResponseCommand(SearchOffsetResponseHeader.class);
         final SearchOffsetResponseHeader responseHeader =
-                (SearchOffsetResponseHeader) response.getCustomHeader();
+                (SearchOffsetResponseHeader) response.readCustomHeader();
         final SearchOffsetRequestHeader requestHeader =
                 (SearchOffsetRequestHeader) request
                     .decodeCommandCustomHeader(SearchOffsetRequestHeader.class);
@@ -782,7 +784,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         final RemotingCommand response =
                 RemotingCommand.createResponseCommand(GetMaxOffsetResponseHeader.class);
         final GetMaxOffsetResponseHeader responseHeader =
-                (GetMaxOffsetResponseHeader) response.getCustomHeader();
+                (GetMaxOffsetResponseHeader) response.readCustomHeader();
         final GetMaxOffsetRequestHeader requestHeader =
                 (GetMaxOffsetRequestHeader) request
                     .decodeCommandCustomHeader(GetMaxOffsetRequestHeader.class);
@@ -804,7 +806,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         final RemotingCommand response =
                 RemotingCommand.createResponseCommand(GetMinOffsetResponseHeader.class);
         final GetMinOffsetResponseHeader responseHeader =
-                (GetMinOffsetResponseHeader) response.getCustomHeader();
+                (GetMinOffsetResponseHeader) response.readCustomHeader();
         final GetMinOffsetRequestHeader requestHeader =
                 (GetMinOffsetRequestHeader) request
                     .decodeCommandCustomHeader(GetMinOffsetRequestHeader.class);
@@ -825,7 +827,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         final RemotingCommand response =
                 RemotingCommand.createResponseCommand(GetEarliestMsgStoretimeResponseHeader.class);
         final GetEarliestMsgStoretimeResponseHeader responseHeader =
-                (GetEarliestMsgStoretimeResponseHeader) response.getCustomHeader();
+                (GetEarliestMsgStoretimeResponseHeader) response.readCustomHeader();
         final GetEarliestMsgStoretimeRequestHeader requestHeader =
                 (GetEarliestMsgStoretimeRequestHeader) request
                     .decodeCommandCustomHeader(GetEarliestMsgStoretimeRequestHeader.class);
@@ -846,7 +848,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         final RemotingCommand response =
                 RemotingCommand.createResponseCommand(UpdateConsumerOffsetResponseHeader.class);
         final UpdateConsumerOffsetResponseHeader responseHeader =
-                (UpdateConsumerOffsetResponseHeader) response.getCustomHeader();
+                (UpdateConsumerOffsetResponseHeader) response.readCustomHeader();
         final UpdateConsumerOffsetRequestHeader requestHeader =
                 (UpdateConsumerOffsetRequestHeader) request
                     .decodeCommandCustomHeader(UpdateConsumerOffsetRequestHeader.class);
@@ -864,7 +866,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         final RemotingCommand response =
                 RemotingCommand.createResponseCommand(QueryConsumerOffsetResponseHeader.class);
         final QueryConsumerOffsetResponseHeader responseHeader =
-                (QueryConsumerOffsetResponseHeader) response.getCustomHeader();
+                (QueryConsumerOffsetResponseHeader) response.readCustomHeader();
         final QueryConsumerOffsetRequestHeader requestHeader =
                 (QueryConsumerOffsetRequestHeader) request
                     .decodeCommandCustomHeader(QueryConsumerOffsetRequestHeader.class);

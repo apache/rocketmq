@@ -232,7 +232,7 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
         final RemotingCommand response =
                 RemotingCommand.createResponseCommand(PullMessageResponseHeader.class);
         final PullMessageResponseHeader responseHeader =
-                (PullMessageResponseHeader) response.getCustomHeader();
+                (PullMessageResponseHeader) response.readCustomHeader();
         final PullMessageRequestHeader requestHeader =
                 (PullMessageRequestHeader) request.decodeCommandCustomHeader(PullMessageRequestHeader.class);
 
