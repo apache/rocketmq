@@ -167,7 +167,12 @@ public class MQClientAPIImpl {
             if (tmp.getAccessKey() != null && tmp.getSecretKey() != null) {
                 HashMap<String, String> extFields = new HashMap<String, String>();
                 extFields.put(SessionCredentials.AccessKey, tmp.getAccessKey());
-                cmd.setExtFields(extFields);
+                if (null == cmd.getExtFields()) {
+                    cmd.setExtFields(extFields);
+                }
+                else {
+                    cmd.getExtFields().putAll(extFields);
+                }
             }
         }
     }
