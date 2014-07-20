@@ -58,6 +58,7 @@ import com.alibaba.rocketmq.common.protocol.RequestCode;
 import com.alibaba.rocketmq.common.protocol.ResponseCode;
 import com.alibaba.rocketmq.common.protocol.body.ClusterInfo;
 import com.alibaba.rocketmq.common.protocol.body.ConsumerConnection;
+import com.alibaba.rocketmq.common.protocol.body.ConsumerRunningInfo;
 import com.alibaba.rocketmq.common.protocol.body.GetConsumerStatusBody;
 import com.alibaba.rocketmq.common.protocol.body.GroupList;
 import com.alibaba.rocketmq.common.protocol.body.KVTable;
@@ -78,6 +79,7 @@ import com.alibaba.rocketmq.common.protocol.header.GetConsumeStatsRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.GetConsumerConnectionListRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.GetConsumerListByGroupRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.GetConsumerListByGroupResponseBody;
+import com.alibaba.rocketmq.common.protocol.header.GetConsumerRunningInfoRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.GetConsumerStatusRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.GetEarliestMsgStoretimeRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.GetEarliestMsgStoretimeResponseHeader;
@@ -2143,6 +2145,37 @@ public class MQClientAPIImpl {
         switch (response.getCode()) {
         case ResponseCode.SUCCESS: {
             return true;
+        }
+        default:
+            break;
+        }
+
+        throw new MQClientException(response.getCode(), response.getRemark());
+    }
+
+
+    /**
+     * 通过调用Broker，从Consumer内存获取相应数据结构
+     */
+    public ConsumerRunningInfo getConsumerRunningInfo(final String addr, String consumerGroup,
+            String clientId, final long timeoutMillis) throws RemotingException, MQClientException,
+            InterruptedException {
+        GetConsumerRunningInfoRequestHeader requestHeader = new GetConsumerRunningInfoRequestHeader();
+        requestHeader.setConsumerGroup(consumerGroup);
+        requestHeader.setClientId(clientId);
+
+        RemotingCommand request =
+                RemotingCommand.createRequestCommand(RequestCode.GET_CONSUMER_RUNNING_INFO, null);
+
+        RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
+        assert response != null;
+        switch (response.getCode()) {
+        case ResponseCode.SUCCESS: {
+            byte[] body = response.getBody();
+            if (body != null) {
+                ConsumerRunningInfo info = ConsumerRunningInfo.decode(body, ConsumerRunningInfo.class);
+                return info;
+            }
         }
         default:
             break;

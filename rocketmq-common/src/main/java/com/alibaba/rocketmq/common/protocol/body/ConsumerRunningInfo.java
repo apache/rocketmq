@@ -14,6 +14,10 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingSerializable;
  * Consumer内部数据结构
  */
 public class ConsumerRunningInfo extends RemotingSerializable {
+    public static final String PROP_NAMESERVER_ADDR = "PROP_NAMESERVER_ADDR";
+    public static final String PROP_THREADPOOL_CORE_SIZE = "PROP_THREADPOOL_CORE_SIZE";
+    public static final String PROP_CONSUMEORDERLY = "PROP_CONSUMEORDERLY";
+
     // 各种配置及运行数据
     private Properties properties = new Properties();
     // 订阅关系
