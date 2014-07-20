@@ -68,7 +68,7 @@ public class ConsumerRunningInfo extends RemotingSerializable {
             while (it.hasNext()) {
                 Entry<Object, Object> next = it.next();
                 String item =
-                        String.format("%40s: %s\n", next.getKey().toString(), next.getValue().toString());
+                        String.format("%-40s: %s\n", next.getKey().toString(), next.getValue().toString());
                 sb.append(item);
             }
         }
