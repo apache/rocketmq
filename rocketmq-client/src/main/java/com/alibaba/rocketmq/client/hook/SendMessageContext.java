@@ -15,12 +15,12 @@
  */
 package com.alibaba.rocketmq.client.hook;
 
+import java.util.Properties;
+
 import com.alibaba.rocketmq.client.impl.CommunicationMode;
 import com.alibaba.rocketmq.client.producer.SendResult;
 import com.alibaba.rocketmq.common.message.Message;
 import com.alibaba.rocketmq.common.message.MessageQueue;
-
-import java.util.Properties;
 
 
 public class SendMessageContext {

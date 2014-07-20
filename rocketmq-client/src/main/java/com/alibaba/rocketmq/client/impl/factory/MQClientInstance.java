@@ -56,6 +56,7 @@ import com.alibaba.rocketmq.client.impl.producer.MQProducerInner;
 import com.alibaba.rocketmq.client.impl.producer.TopicPublishInfo;
 import com.alibaba.rocketmq.client.log.ClientLogger;
 import com.alibaba.rocketmq.client.producer.DefaultMQProducer;
+import com.alibaba.rocketmq.client.stat.ConsumerStatsManager;
 import com.alibaba.rocketmq.common.MQVersion;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.ServiceState;
@@ -134,6 +135,8 @@ public class MQClientInstance {
     // 监听一个UDP端口，用来防止同一个Factory启动多份（有可能分布在多个JVM中）
     private DatagramSocket datagramSocket;
 
+    private final ConsumerStatsManager consumerStatsManager;
+
 
     public MQClientInstance(ClientConfig clientConfig, int instanceIndex, String clientId) {
         this.clientConfig = clientConfig;
@@ -160,7 +163,9 @@ public class MQClientInstance {
         this.defaultMQProducer = new DefaultMQProducer(MixAll.CLIENT_INNER_PRODUCER_GROUP);
         this.defaultMQProducer.resetClientConfig(clientConfig);
 
-        log.info("created a new client fatory, FactoryIndex: {} ClinetID: {} {} {}",//
+        this.consumerStatsManager = new ConsumerStatsManager(this.scheduledExecutorService);
+
+        log.info("created a new client Instance, FactoryIndex: {} ClinetID: {} {} {}",//
             this.instanceIndex, //
             this.clientId, //
             this.clientConfig, //
@@ -261,33 +266,6 @@ public class MQClientInstance {
             }
         }, 1000 * 10, this.clientConfig.getPersistConsumerOffsetInterval(), TimeUnit.MILLISECONDS);
 
-        // 统计信息打点
-        this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
-
-            @Override
-            public void run() {
-                try {
-                    MQClientInstance.this.recordSnapshotPeriodically();
-                }
-                catch (Exception e) {
-                    log.error("ScheduledTask uploadConsumerOffsets exception", e);
-                }
-            }
-        }, 1000 * 10, 1000, TimeUnit.MILLISECONDS);
-
-        this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
-
-            @Override
-            public void run() {
-                try {
-                    MQClientInstance.this.logStatsPeriodically();
-                }
-                catch (Exception e) {
-                    log.error("ScheduledTask uploadConsumerOffsets exception", e);
-                }
-            }
-        }, 1000 * 10, 1000 * 60, TimeUnit.MILLISECONDS);
-
         // 动态调整消费线程池
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 
@@ -373,36 +351,6 @@ public class MQClientInstance {
         }
 
         return false;
-    }
-
-
-    private void recordSnapshotPeriodically() {
-        Iterator<Entry<String, MQConsumerInner>> it = this.consumerTable.entrySet().iterator();
-        while (it.hasNext()) {
-            Entry<String, MQConsumerInner> entry = it.next();
-            MQConsumerInner impl = entry.getValue();
-            if (impl != null) {
-                if (impl instanceof DefaultMQPushConsumerImpl) {
-                    DefaultMQPushConsumerImpl consumer = (DefaultMQPushConsumerImpl) impl;
-                    consumer.getConsumerStatManager().recordSnapshotPeriodically();
-                }
-            }
-        }
-    }
-
-
-    private void logStatsPeriodically() {
-        Iterator<Entry<String, MQConsumerInner>> it = this.consumerTable.entrySet().iterator();
-        while (it.hasNext()) {
-            Entry<String, MQConsumerInner> entry = it.next();
-            MQConsumerInner impl = entry.getValue();
-            if (impl != null) {
-                if (impl instanceof DefaultMQPushConsumerImpl) {
-                    DefaultMQPushConsumerImpl consumer = (DefaultMQPushConsumerImpl) impl;
-                    consumer.getConsumerStatManager().logStatsPeriodically(entry.getKey(), this.clientId);
-                }
-            }
-        }
     }
 
 
@@ -1336,5 +1284,10 @@ public class MQClientInstance {
         consumerRunningInfo.getProperties().put(ConsumerRunningInfo.PROP_NAMESERVER_ADDR, nsAddr);
 
         return consumerRunningInfo;
+    }
+
+
+    public ConsumerStatsManager getConsumerStatsManager() {
+        return consumerStatsManager;
     }
 }

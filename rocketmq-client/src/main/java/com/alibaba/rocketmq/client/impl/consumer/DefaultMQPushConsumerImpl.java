@@ -49,7 +49,7 @@ import com.alibaba.rocketmq.client.impl.CommunicationMode;
 import com.alibaba.rocketmq.client.impl.MQClientManager;
 import com.alibaba.rocketmq.client.impl.factory.MQClientInstance;
 import com.alibaba.rocketmq.client.log.ClientLogger;
-import com.alibaba.rocketmq.client.stat.ConsumerStatManager;
+import com.alibaba.rocketmq.client.stat.ConsumerStatsManager;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.ServiceState;
 import com.alibaba.rocketmq.common.UtilAll;
@@ -91,7 +91,6 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
     private final DefaultMQPushConsumer defaultMQPushConsumer;
     // Rebalance实现
     private final RebalanceImpl rebalanceImpl = new RebalancePushImpl(this);
-    private final ConsumerStatManager consumerStatManager = new ConsumerStatManager();
     private ServiceState serviceState = ServiceState.CREATE_JUST;
     private MQClientInstance mQClientFactory;
     private PullAPIWrapper pullAPIWrapper;
@@ -393,10 +392,12 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                         pullRequest.setNextOffset(pullResult.getNextBeginOffset());
 
                         long pullRT = System.currentTimeMillis() - beginTimestamp;
-                        DefaultMQPushConsumerImpl.this.getConsumerStatManager().getConsumertat()
-                            .getPullTimesTotal().incrementAndGet();
-                        DefaultMQPushConsumerImpl.this.getConsumerStatManager().getConsumertat()
-                            .getPullRTTotal().addAndGet(pullRT);
+                        // 统计打点
+                        DefaultMQPushConsumerImpl.this.getConsumerStatsManager().incPullTPS(
+                            pullRequest.getConsumerGroup(), pullRequest.getMessageQueue().getTopic(),
+                            pullResult.getMsgFoundList().size());
+                        DefaultMQPushConsumerImpl.this.getConsumerStatsManager().incPullRT(
+                            pullRequest.getConsumerGroup(), pullRequest.getMessageQueue().getTopic(), pullRT);
 
                         boolean dispathToConsume = processQueue.putMessage(pullResult.getMsgFoundList());
                         DefaultMQPushConsumerImpl.this.consumeMessageService.submitConsumeRequest(//
@@ -570,11 +571,6 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                     + this.serviceState//
                     + FAQUrl.suggestTodo(FAQUrl.CLIENT_SERVICE_NOT_OK), null);
         }
-    }
-
-
-    public ConsumerStatManager getConsumerStatManager() {
-        return consumerStatManager;
     }
 
 
@@ -1104,5 +1100,10 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
         }
 
         return info;
+    }
+
+
+    public ConsumerStatsManager getConsumerStatsManager() {
+        return this.mQClientFactory.getConsumerStatsManager();
     }
 }
