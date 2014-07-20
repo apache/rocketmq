@@ -2165,7 +2165,7 @@ public class MQClientAPIImpl {
         requestHeader.setClientId(clientId);
 
         RemotingCommand request =
-                RemotingCommand.createRequestCommand(RequestCode.GET_CONSUMER_RUNNING_INFO, null);
+                RemotingCommand.createRequestCommand(RequestCode.GET_CONSUMER_RUNNING_INFO, requestHeader);
 
         RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
         assert response != null;
