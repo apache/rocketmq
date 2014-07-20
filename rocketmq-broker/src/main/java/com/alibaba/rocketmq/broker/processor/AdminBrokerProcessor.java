@@ -229,8 +229,6 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 (GetConsumerRunningInfoRequestHeader) request
                     .decodeCommandCustomHeader(GetConsumerRunningInfoRequestHeader.class);
 
-        int requestOpaque = request.getOpaque();
-
         ClientChannelInfo clientChannelInfo =
                 this.brokerController.getConsumerManager().findChannel(requestHeader.getConsumerGroup(),
                     requestHeader.getClientId());
@@ -251,13 +249,12 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         }
 
         try {
-            request.writeCustomHeader(requestHeader);
-
+            RemotingCommand newRequest =
+                    RemotingCommand
+                        .createRequestCommand(RequestCode.GET_CONSUMER_RUNNING_INFO, requestHeader);
             RemotingCommand consumerResponse =
                     this.brokerController.getBroker2Client().getConsumerRunningInfo(
-                        clientChannelInfo.getChannel(), request);
-            request.setOpaque(requestOpaque);
-            consumerResponse.setOpaque(requestOpaque);
+                        clientChannelInfo.getChannel(), newRequest);
             return consumerResponse;
         }
         catch (Exception e) {
