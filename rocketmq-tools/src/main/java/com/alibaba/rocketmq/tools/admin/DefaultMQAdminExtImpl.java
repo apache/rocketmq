@@ -51,6 +51,7 @@ import com.alibaba.rocketmq.common.protocol.ResponseCode;
 import com.alibaba.rocketmq.common.protocol.body.ClusterInfo;
 import com.alibaba.rocketmq.common.protocol.body.ConsumeByWho;
 import com.alibaba.rocketmq.common.protocol.body.ConsumerConnection;
+import com.alibaba.rocketmq.common.protocol.body.ConsumerRunningInfo;
 import com.alibaba.rocketmq.common.protocol.body.GroupList;
 import com.alibaba.rocketmq.common.protocol.body.KVTable;
 import com.alibaba.rocketmq.common.protocol.body.ProducerConnection;
@@ -77,7 +78,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
     private final Logger log = ClientLogger.getLog();
     private final DefaultMQAdminExt defaultMQAdminExt;
     private ServiceState serviceState = ServiceState.CREATE_JUST;
-    private MQClientInstance mQClientFactory;
+    private MQClientInstance mqClientInstance;
 
 
     public DefaultMQAdminExtImpl(DefaultMQAdminExt defaultMQAdminExt) {
@@ -93,11 +94,11 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
 
             this.defaultMQAdminExt.changeInstanceNameToPID();
 
-            this.mQClientFactory =
+            this.mqClientInstance =
                     MQClientManager.getInstance().getAndCreateMQClientInstance(this.defaultMQAdminExt);
 
             boolean registerOK =
-                    mQClientFactory.registerAdminExt(this.defaultMQAdminExt.getAdminExtGroup(), this);
+                    mqClientInstance.registerAdminExt(this.defaultMQAdminExt.getAdminExtGroup(), this);
             if (!registerOK) {
                 this.serviceState = ServiceState.CREATE_JUST;
                 throw new MQClientException("The adminExt group[" + this.defaultMQAdminExt.getAdminExtGroup()
@@ -105,7 +106,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
                         + FAQUrl.suggestTodo(FAQUrl.GROUP_NAME_DUPLICATE_URL), null);
             }
 
-            mQClientFactory.start();
+            mqClientInstance.start();
 
             log.info("the adminExt [{}] start OK", this.defaultMQAdminExt.getAdminExtGroup());
 
@@ -129,8 +130,8 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
         case CREATE_JUST:
             break;
         case RUNNING:
-            this.mQClientFactory.unregisterAdminExt(this.defaultMQAdminExt.getAdminExtGroup());
-            this.mQClientFactory.shutdown();
+            this.mqClientInstance.unregisterAdminExt(this.defaultMQAdminExt.getAdminExtGroup());
+            this.mqClientInstance.shutdown();
 
             log.info("the adminExt [{}] shutdown OK", this.defaultMQAdminExt.getAdminExtGroup());
             this.serviceState = ServiceState.SHUTDOWN_ALREADY;
@@ -146,7 +147,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
     @Override
     public void createAndUpdateTopicConfig(String addr, TopicConfig config) throws RemotingException,
             MQBrokerException, InterruptedException, MQClientException {
-        this.mQClientFactory.getMQClientAPIImpl().createTopic(addr,
+        this.mqClientInstance.getMQClientAPIImpl().createTopic(addr,
             this.defaultMQAdminExt.getCreateTopicKey(), config, 3000);
     }
 
@@ -154,7 +155,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
     @Override
     public void createAndUpdateSubscriptionGroupConfig(String addr, SubscriptionGroupConfig config)
             throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
-        this.mQClientFactory.getMQClientAPIImpl().createSubscriptionGroup(addr, config, 3000);
+        this.mqClientInstance.getMQClientAPIImpl().createSubscriptionGroup(addr, config, 3000);
     }
 
 
@@ -182,7 +183,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
             String addr = bd.selectBrokerAddr();
             if (addr != null) {
                 TopicStatsTable tst =
-                        this.mQClientFactory.getMQClientAPIImpl().getTopicStatsInfo(addr, topic, 3000);
+                        this.mqClientInstance.getMQClientAPIImpl().getTopicStatsInfo(addr, topic, 3000);
                 topicStatsTable.getOffsetTable().putAll(tst.getOffsetTable());
             }
         }
@@ -207,7 +208,8 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
             if (addr != null) {
                 // 由于查询时间戳会产生IO操作，可能会耗时较长，所以超时时间设置为15s
                 ConsumeStats consumeStats =
-                        this.mQClientFactory.getMQClientAPIImpl().getConsumeStats(addr, consumerGroup, 15000);
+                        this.mqClientInstance.getMQClientAPIImpl()
+                            .getConsumeStats(addr, consumerGroup, 15000);
                 result.getOffsetTable().putAll(consumeStats.getOffsetTable());
                 long value = result.getConsumeTps() + consumeStats.getConsumeTps();
                 result.setConsumeTps(value);
@@ -227,14 +229,14 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
     @Override
     public ClusterInfo examineBrokerClusterInfo() throws InterruptedException, MQBrokerException,
             RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException {
-        return this.mQClientFactory.getMQClientAPIImpl().getBrokerClusterInfo(3000);
+        return this.mqClientInstance.getMQClientAPIImpl().getBrokerClusterInfo(3000);
     }
 
 
     @Override
     public TopicRouteData examineTopicRouteInfo(String topic) throws RemotingException, MQClientException,
             InterruptedException {
-        return this.mQClientFactory.getMQClientAPIImpl().getTopicRouteInfoFromNameServer(topic, 3000);
+        return this.mqClientInstance.getMQClientAPIImpl().getTopicRouteInfoFromNameServer(topic, 3000);
     }
 
 
@@ -248,51 +250,51 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
     @Override
     public String getKVConfig(String namespace, String key) throws RemotingException, MQClientException,
             InterruptedException {
-        return this.mQClientFactory.getMQClientAPIImpl().getKVConfigValue(namespace, key, 3000);
+        return this.mqClientInstance.getMQClientAPIImpl().getKVConfigValue(namespace, key, 3000);
     }
 
 
     @Override
     public void createTopic(String key, String newTopic, int queueNum) throws MQClientException {
-        this.mQClientFactory.getMQAdminImpl().createTopic(key, newTopic, queueNum);
+        this.mqClientInstance.getMQAdminImpl().createTopic(key, newTopic, queueNum);
     }
 
 
     @Override
     public long searchOffset(MessageQueue mq, long timestamp) throws MQClientException {
-        return this.mQClientFactory.getMQAdminImpl().searchOffset(mq, timestamp);
+        return this.mqClientInstance.getMQAdminImpl().searchOffset(mq, timestamp);
     }
 
 
     @Override
     public long maxOffset(MessageQueue mq) throws MQClientException {
-        return this.mQClientFactory.getMQAdminImpl().maxOffset(mq);
+        return this.mqClientInstance.getMQAdminImpl().maxOffset(mq);
     }
 
 
     @Override
     public long minOffset(MessageQueue mq) throws MQClientException {
-        return this.mQClientFactory.getMQAdminImpl().minOffset(mq);
+        return this.mqClientInstance.getMQAdminImpl().minOffset(mq);
     }
 
 
     @Override
     public long earliestMsgStoreTime(MessageQueue mq) throws MQClientException {
-        return this.mQClientFactory.getMQAdminImpl().earliestMsgStoreTime(mq);
+        return this.mqClientInstance.getMQAdminImpl().earliestMsgStoreTime(mq);
     }
 
 
     @Override
     public MessageExt viewMessage(String msgId) throws RemotingException, MQBrokerException,
             InterruptedException, MQClientException {
-        return this.mQClientFactory.getMQAdminImpl().viewMessage(msgId);
+        return this.mqClientInstance.getMQAdminImpl().viewMessage(msgId);
     }
 
 
     @Override
     public QueryResult queryMessage(String topic, String key, int maxNum, long begin, long end)
             throws MQClientException, InterruptedException {
-        return this.mQClientFactory.getMQAdminImpl().queryMessage(topic, key, maxNum, begin, end);
+        return this.mqClientInstance.getMQAdminImpl().queryMessage(topic, key, maxNum, begin, end);
     }
 
 
@@ -306,7 +308,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
         for (BrokerData bd : topicRouteData.getBrokerDatas()) {
             String addr = bd.selectBrokerAddr();
             if (addr != null) {
-                return this.mQClientFactory.getMQClientAPIImpl().getConsumerConnectionList(addr,
+                return this.mqClientInstance.getMQClientAPIImpl().getConsumerConnectionList(addr,
                     consumerGroup, 3000);
             }
         }
@@ -328,7 +330,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
         for (BrokerData bd : topicRouteData.getBrokerDatas()) {
             String addr = bd.selectBrokerAddr();
             if (addr != null) {
-                return this.mQClientFactory.getMQClientAPIImpl().getProducerConnectionList(addr,
+                return this.mqClientInstance.getMQClientAPIImpl().getProducerConnectionList(addr,
                     producerGroup, 300);
             }
         }
@@ -345,13 +347,14 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
     public int wipeWritePermOfBroker(final String namesrvAddr, String brokerName)
             throws RemotingCommandException, RemotingConnectException, RemotingSendRequestException,
             RemotingTimeoutException, InterruptedException, MQClientException {
-        return this.mQClientFactory.getMQClientAPIImpl().wipeWritePermOfBroker(namesrvAddr, brokerName, 3000);
+        return this.mqClientInstance.getMQClientAPIImpl()
+            .wipeWritePermOfBroker(namesrvAddr, brokerName, 3000);
     }
 
 
     @Override
     public List<String> getNameServerAddressList() {
-        return this.mQClientFactory.getMQClientAPIImpl().getNameServerAddressList();
+        return this.mqClientInstance.getMQClientAPIImpl().getNameServerAddressList();
     }
 
 
@@ -364,14 +367,14 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
 
     @Override
     public TopicList fetchAllTopicList() throws RemotingException, MQClientException, InterruptedException {
-        return this.mQClientFactory.getMQClientAPIImpl().getTopicListFromNameServer(3000);
+        return this.mqClientInstance.getMQClientAPIImpl().getTopicListFromNameServer(3000);
     }
 
 
     @Override
     public KVTable fetchBrokerRuntimeStats(final String brokerAddr) throws RemotingConnectException,
             RemotingSendRequestException, RemotingTimeoutException, InterruptedException, MQBrokerException {
-        return this.mQClientFactory.getMQClientAPIImpl().getBrokerRuntimeInfo(brokerAddr, 3000);
+        return this.mqClientInstance.getMQClientAPIImpl().getBrokerRuntimeInfo(brokerAddr, 3000);
     }
 
 
@@ -379,7 +382,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
     public void deleteTopicInBroker(Set<String> addrs, String topic) throws RemotingException,
             MQBrokerException, InterruptedException, MQClientException {
         for (String addr : addrs) {
-            this.mQClientFactory.getMQClientAPIImpl().deleteTopicInBroker(addr, topic, 3000);
+            this.mqClientInstance.getMQClientAPIImpl().deleteTopicInBroker(addr, topic, 3000);
         }
     }
 
@@ -388,11 +391,11 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
     public void deleteTopicInNameServer(Set<String> addrs, String topic) throws RemotingException,
             MQBrokerException, InterruptedException, MQClientException {
         if (addrs == null) {
-            String ns = this.mQClientFactory.getMQClientAPIImpl().fetchNameServerAddr();
+            String ns = this.mqClientInstance.getMQClientAPIImpl().fetchNameServerAddr();
             addrs = new HashSet(Arrays.asList(ns.split(";")));
         }
         for (String addr : addrs) {
-            this.mQClientFactory.getMQClientAPIImpl().deleteTopicInNameServer(addr, topic, 3000);
+            this.mqClientInstance.getMQClientAPIImpl().deleteTopicInNameServer(addr, topic, 3000);
         }
     }
 
@@ -400,28 +403,28 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
     @Override
     public void deleteSubscriptionGroup(String addr, String groupName) throws RemotingException,
             MQBrokerException, InterruptedException, MQClientException {
-        this.mQClientFactory.getMQClientAPIImpl().deleteSubscriptionGroup(addr, groupName, 3000);
+        this.mqClientInstance.getMQClientAPIImpl().deleteSubscriptionGroup(addr, groupName, 3000);
     }
 
 
     @Override
     public void createAndUpdateKvConfig(String namespace, String key, String value) throws RemotingException,
             MQBrokerException, InterruptedException, MQClientException {
-        this.mQClientFactory.getMQClientAPIImpl().putKVConfigValue(namespace, key, value, 3000);
+        this.mqClientInstance.getMQClientAPIImpl().putKVConfigValue(namespace, key, value, 3000);
     }
 
 
     @Override
     public void deleteKvConfig(String namespace, String key) throws RemotingException, MQBrokerException,
             InterruptedException, MQClientException {
-        this.mQClientFactory.getMQClientAPIImpl().deleteKVConfigValue(namespace, key, 3000);
+        this.mqClientInstance.getMQClientAPIImpl().deleteKVConfigValue(namespace, key, 3000);
     }
 
 
     @Override
     public String getProjectGroupByIp(String ip) throws RemotingException, MQBrokerException,
             InterruptedException, MQClientException {
-        return this.mQClientFactory.getMQClientAPIImpl().getProjectGroupByIp(ip, 3000);
+        return this.mqClientInstance.getMQClientAPIImpl().getProjectGroupByIp(ip, 3000);
     }
 
 
@@ -429,7 +432,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
     public String getIpsByProjectGroup(String projectGroup) throws RemotingException, MQBrokerException,
             InterruptedException, MQClientException {
         String namespace = NamesrvUtil.NAMESPACE_PROJECT_CONFIG;
-        return this.mQClientFactory.getMQClientAPIImpl().getKVConfigByValue(namespace, projectGroup, 3000);
+        return this.mqClientInstance.getMQClientAPIImpl().getKVConfigByValue(namespace, projectGroup, 3000);
     }
 
 
@@ -437,7 +440,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
     public void deleteIpsByProjectGroup(String projectGroup) throws RemotingException, MQBrokerException,
             InterruptedException, MQClientException {
         String namespace = NamesrvUtil.NAMESPACE_PROJECT_CONFIG;
-        this.mQClientFactory.getMQClientAPIImpl().deleteKVConfigByValue(namespace, projectGroup, 3000);
+        this.mqClientInstance.getMQClientAPIImpl().deleteKVConfigByValue(namespace, projectGroup, 3000);
     }
 
 
@@ -452,7 +455,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
             if (addr != null) {
                 // 根据 consumerGroup 查找对应的 mq
                 ConsumeStats consumeStats =
-                        this.mQClientFactory.getMQClientAPIImpl().getConsumeStats(addr, consumerGroup, 3000);
+                        this.mqClientInstance.getMQClientAPIImpl().getConsumeStats(addr, consumerGroup, 3000);
 
                 // 根据 topic 过滤不需要的 mq
                 for (Map.Entry<MessageQueue, OffsetWrapper> entry : consumeStats.getOffsetTable().entrySet()) {
@@ -461,7 +464,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
                     if (topic.equals(queue.getTopic())) {
                         // 根据 timestamp 查找对应的offset
                         long offset =
-                                this.mQClientFactory.getMQClientAPIImpl().searchOffset(addr, topic,
+                                this.mqClientInstance.getMQClientAPIImpl().searchOffset(addr, topic,
                                     queue.getQueueId(), timestamp, 3000);
                         // 构建按时间回溯消费进度
                         RollbackStats rollbackStats = new RollbackStats();
@@ -480,7 +483,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
                             requestHeader.setTopic(topic);
                             requestHeader.setQueueId(queue.getQueueId());
                             requestHeader.setCommitOffset(offset);
-                            this.mQClientFactory.getMQClientAPIImpl().updateConsumerOffset(addr,
+                            this.mqClientInstance.getMQClientAPIImpl().updateConsumerOffset(addr,
                                 requestHeader, 3000);
                         }
                         rollbackStatsList.add(rollbackStats);
@@ -495,7 +498,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
     @Override
     public KVTable getKVListByNamespace(String namespace) throws RemotingException, MQClientException,
             InterruptedException {
-        return this.mQClientFactory.getMQClientAPIImpl().getKVListByNamespace(namespace, 5000);
+        return this.mqClientInstance.getMQClientAPIImpl().getKVListByNamespace(namespace, 5000);
     }
 
 
@@ -503,7 +506,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
     public void updateBrokerConfig(String brokerAddr, Properties properties) throws RemotingConnectException,
             RemotingSendRequestException, RemotingTimeoutException, UnsupportedEncodingException,
             InterruptedException, MQBrokerException {
-        this.mQClientFactory.getMQClientAPIImpl().updateBrokerConfig(brokerAddr, properties, 5000);
+        this.mqClientInstance.getMQClientAPIImpl().updateBrokerConfig(brokerAddr, properties, 5000);
     }
 
 
@@ -519,7 +522,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
                 String addr = brokerData.selectBrokerAddr();
                 if (addr != null) {
                     Map<MessageQueue, Long> offsetTable =
-                            this.mQClientFactory.getMQClientAPIImpl().invokeBrokerToResetOffset(addr, topic,
+                            this.mqClientInstance.getMQClientAPIImpl().invokeBrokerToResetOffset(addr, topic,
                                 group, timestamp, isForce, 5000);
                     if (offsetTable != null) {
                         allOffsetTable.putAll(offsetTable);
@@ -540,8 +543,8 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
         if (brokerDatas != null && brokerDatas.size() > 0) {
             String addr = brokerDatas.get(0).selectBrokerAddr();
             if (addr != null) {
-                return this.mQClientFactory.getMQClientAPIImpl().invokeBrokerToGetConsumerStatus(addr, topic,
-                    group, clientAddr, 5000);
+                return this.mqClientInstance.getMQClientAPIImpl().invokeBrokerToGetConsumerStatus(addr,
+                    topic, group, clientAddr, 5000);
             }
         }
         return Collections.EMPTY_MAP;
@@ -552,14 +555,14 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
             throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
 
         if (isCluster) {
-            this.mQClientFactory.getMQClientAPIImpl().putKVConfigValue(
+            this.mqClientInstance.getMQClientAPIImpl().putKVConfigValue(
                 NamesrvUtil.NAMESPACE_ORDER_TOPIC_CONFIG, key, value, 3000);
         }
         else {
             String oldOrderConfs = null;
             try {
                 oldOrderConfs =
-                        this.mQClientFactory.getMQClientAPIImpl().getKVConfigValue(
+                        this.mqClientInstance.getMQClientAPIImpl().getKVConfigValue(
                             NamesrvUtil.NAMESPACE_ORDER_TOPIC_CONFIG, key, 3000);
             }
             catch (Exception e) {
@@ -584,7 +587,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
                 newOrderConf.append(splitor).append(orderConfMap.get(tmp));
                 splitor = ";";
             }
-            this.mQClientFactory.getMQClientAPIImpl().putKVConfigValue(
+            this.mqClientInstance.getMQClientAPIImpl().putKVConfigValue(
                 NamesrvUtil.NAMESPACE_ORDER_TOPIC_CONFIG, key, newOrderConf.toString(), 3000);
         }
     }
@@ -598,7 +601,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
         for (BrokerData bd : topicRouteData.getBrokerDatas()) {
             String addr = bd.selectBrokerAddr();
             if (addr != null) {
-                return this.mQClientFactory.getMQClientAPIImpl().queryTopicConsumeByWho(addr, topic, 3000);
+                return this.mqClientInstance.getMQClientAPIImpl().queryTopicConsumeByWho(addr, topic, 3000);
             }
 
             break;
@@ -615,7 +618,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
         for (BrokerData bd : topicRouteData.getBrokerDatas()) {
             String addr = bd.selectBrokerAddr();
             if (addr != null) {
-                return this.mQClientFactory.getMQClientAPIImpl().queryConsumeTimeSpan(addr, topic, group,
+                return this.mqClientInstance.getMQClientAPIImpl().queryConsumeTimeSpan(addr, topic, group,
                     3000);
             }
 
@@ -679,8 +682,27 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
     @Override
     public boolean cleanExpiredConsumerQueueByAddr(String addr) throws RemotingConnectException,
             RemotingSendRequestException, RemotingTimeoutException, MQClientException, InterruptedException {
-        boolean result = mQClientFactory.getMQClientAPIImpl().cleanExpiredConsumeQueue(addr, 3000L);
+        boolean result = mqClientInstance.getMQClientAPIImpl().cleanExpiredConsumeQueue(addr, 3000L);
         log.warn("clean expired ConsumeQueue on target " + addr + " broker " + result);
         return result;
+    }
+
+
+    @Override
+    public ConsumerRunningInfo getConsumerRunningInfo(String consumerGroup, String clientId)
+            throws RemotingException, MQClientException, InterruptedException {
+        String topic = MixAll.RETRY_GROUP_TOPIC_PREFIX + consumerGroup;
+        TopicRouteData topicRouteData = this.examineTopicRouteInfo(topic);
+        List<BrokerData> brokerDatas = topicRouteData.getBrokerDatas();
+        if (brokerDatas != null) {
+            for (BrokerData brokerData : brokerDatas) {
+                String addr = brokerData.selectBrokerAddr();
+                if (addr != null) {
+                    return this.mqClientInstance.getMQClientAPIImpl().getConsumerRunningInfo(addr,
+                        consumerGroup, clientId, 5000);
+                }
+            }
+        }
+        return null;
     }
 }

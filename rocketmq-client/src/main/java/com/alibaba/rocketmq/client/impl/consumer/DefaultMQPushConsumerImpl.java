@@ -1080,6 +1080,10 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
 
         // 各种配置及运行数据
         Properties prop = MixAll.object2Properties(this.defaultMQPushConsumer);
+
+        prop.put(ConsumerRunningInfo.PROP_CONSUMEORDERLY, this.consumeOrderly);
+        prop.put(ConsumerRunningInfo.PROP_THREADPOOL_CORE_SIZE, this.consumeMessageService.getCorePoolSize());
+
         info.setProperties(prop);
 
         // 订阅关系

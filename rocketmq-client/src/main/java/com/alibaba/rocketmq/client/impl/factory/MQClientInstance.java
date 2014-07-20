@@ -1326,6 +1326,15 @@ public class MQClientInstance {
         ConsumerRunningInfo consumerRunningInfo = mqConsumerInner.consumerRunningInfo();
 
         // 补充额外的信息
+        List<String> nsList = this.mQClientAPIImpl.getRemotingClient().getNameServerAddressList();
+        String nsAddr = "";
+        if (nsList != null) {
+            for (String addr : nsList) {
+                nsAddr = nsAddr + addr + ";";
+            }
+        }
+        consumerRunningInfo.getProperties().put(ConsumerRunningInfo.PROP_NAMESERVER_ADDR, nsAddr);
+
         return consumerRunningInfo;
     }
 }

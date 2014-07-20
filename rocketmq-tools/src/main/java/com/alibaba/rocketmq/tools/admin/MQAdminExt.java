@@ -32,6 +32,7 @@ import com.alibaba.rocketmq.common.message.MessageQueue;
 import com.alibaba.rocketmq.common.protocol.body.ClusterInfo;
 import com.alibaba.rocketmq.common.protocol.body.ConsumeByWho;
 import com.alibaba.rocketmq.common.protocol.body.ConsumerConnection;
+import com.alibaba.rocketmq.common.protocol.body.ConsumerRunningInfo;
 import com.alibaba.rocketmq.common.protocol.body.GroupList;
 import com.alibaba.rocketmq.common.protocol.body.KVTable;
 import com.alibaba.rocketmq.common.protocol.body.ProducerConnection;
@@ -552,4 +553,18 @@ public interface MQAdminExt extends MQAdmin {
      */
     public boolean cleanExpiredConsumerQueueByAddr(String addr) throws RemotingConnectException,
             RemotingSendRequestException, RemotingTimeoutException, MQClientException, InterruptedException;
+
+
+    /**
+     * 查询Consumer内存数据结构
+     * 
+     * @param consumerGroup
+     * @param clientId
+     * @return
+     * @throws InterruptedException
+     * @throws MQClientException
+     * @throws RemotingException
+     */
+    public ConsumerRunningInfo getConsumerRunningInfo(final String consumerGroup, final String clientId)
+            throws RemotingException, MQClientException, InterruptedException;
 }
