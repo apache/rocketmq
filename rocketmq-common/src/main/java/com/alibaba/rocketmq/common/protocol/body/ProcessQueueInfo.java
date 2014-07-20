@@ -149,4 +149,16 @@ public class ProcessQueueInfo {
     public void setLastPullTimestamp(long lastPullTimestamp) {
         this.lastPullTimestamp = lastPullTimestamp;
     }
+
+
+    @Override
+    public String toString() {
+        return "ProcessQueueInfo [commitOffset=" + commitOffset + ", cachedMsgMinOffset="
+                + cachedMsgMinOffset + ", cachedMsgMaxOffset=" + cachedMsgMaxOffset + ", cachedMsgCount="
+                + cachedMsgCount + ", transactionMsgMinOffset=" + transactionMsgMinOffset
+                + ", transactionMsgMaxOffset=" + transactionMsgMaxOffset + ", transactionMsgCount="
+                + transactionMsgCount + ", locked=" + locked + ", tryUnlockTimes=" + tryUnlockTimes
+                + ", lastLockTimestamp=" + lastLockTimestamp + ", droped=" + droped + ", lastPullTimestamp="
+                + lastPullTimestamp + "]";
+    }
 }
