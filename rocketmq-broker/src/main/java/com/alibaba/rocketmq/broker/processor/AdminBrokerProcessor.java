@@ -254,6 +254,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             RemotingCommand consumerResponse =
                     this.brokerController.getBroker2Client().getConsumerRunningInfo(
                         clientChannelInfo.getChannel(), request);
+            request.setOpaque(requestOpaque);
             consumerResponse.setOpaque(requestOpaque);
             return consumerResponse;
         }
