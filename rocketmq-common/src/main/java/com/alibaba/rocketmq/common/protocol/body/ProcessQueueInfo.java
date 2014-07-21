@@ -29,6 +29,7 @@ public class ProcessQueueInfo {
 
     private boolean droped;
     private long lastPullTimestamp;
+    private long lastConsumeTimestamp;
 
 
     public long getCommitOffset() {
@@ -151,6 +152,16 @@ public class ProcessQueueInfo {
     }
 
 
+    public long getLastConsumeTimestamp() {
+        return lastConsumeTimestamp;
+    }
+
+
+    public void setLastConsumeTimestamp(long lastConsumeTimestamp) {
+        this.lastConsumeTimestamp = lastConsumeTimestamp;
+    }
+
+
     @Override
     public String toString() {
         return "ProcessQueueInfo [commitOffset=" + commitOffset + ", cachedMsgMinOffset="
@@ -159,6 +170,6 @@ public class ProcessQueueInfo {
                 + ", transactionMsgMaxOffset=" + transactionMsgMaxOffset + ", transactionMsgCount="
                 + transactionMsgCount + ", locked=" + locked + ", tryUnlockTimes=" + tryUnlockTimes
                 + ", lastLockTimestamp=" + lastLockTimestamp + ", droped=" + droped + ", lastPullTimestamp="
-                + lastPullTimestamp + "]";
+                + lastPullTimestamp + ", lastConsumeTimestamp=" + lastConsumeTimestamp + "]";
     }
 }

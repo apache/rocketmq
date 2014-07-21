@@ -142,25 +142,28 @@ public class ConsumerRunningInfo extends RemotingSerializable {
         // 5
         {
             sb.append("\n\n#Consumer RT&TPS#\n");
-            sb.append(String.format("%-32s  %14s %14s %14s %14s %18s\n",//
+            sb.append(String.format("%-32s  %14s %14s %14s %14s %18s %25s\n",//
                 "#Topic",//
                 "#Pull RT",//
                 "#Pull TPS",//
                 "#Consume RT",//
                 "#ConsumeOK TPS",//
-                "#ConsumeFailed TPS"//
+                "#ConsumeFailed TPS",//
+                "#ConsumeFailedMsgsInHour"//
             ));
 
             Iterator<Entry<String, ConsumeStatus>> it = this.statusTable.entrySet().iterator();
             while (it.hasNext()) {
                 Entry<String, ConsumeStatus> next = it.next();
-                String item = String.format("%-32s  %14.2f %14.2f %14.2f %14.2f %18.2f\n",//
+                String item = String.format("%-32s  %14.2f %14.2f %14.2f %14.2f %18.2f %25.2f\n",//
                     next.getKey(),//
                     next.getValue().getPullRT(),//
                     next.getValue().getPullTPS(),//
                     next.getValue().getConsumeRT(),//
                     next.getValue().getConsumeOKTPS(),//
-                    next.getValue().getConsumeFailedTPS());
+                    next.getValue().getConsumeFailedTPS(),//
+                    next.getValue().getConsumeFailedMsgs()//
+                    );
 
                 sb.append(item);
             }

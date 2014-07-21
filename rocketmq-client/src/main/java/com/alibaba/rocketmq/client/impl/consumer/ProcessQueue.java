@@ -59,6 +59,9 @@ public class ProcessQueue {
     private final static long PullMaxIdleTime = Long.parseLong(System.getProperty(
         "rocketmq.client.pull.pullMaxIdleTime", "120000"));
 
+    // 最后一次消费的时间戳
+    private volatile long lastConsumeTimestamp = System.currentTimeMillis();
+
     /**
      * 顺序消息专用
      */
@@ -171,9 +174,10 @@ public class ProcessQueue {
      */
     public long removeMessage(final List<MessageExt> msgs) {
         long result = -1;
-
+        final long now = System.currentTimeMillis();
         try {
             this.lockTreeMap.writeLock().lockInterruptibly();
+            this.lastConsumeTimestamp = now;
             try {
                 if (!msgTreeMap.isEmpty()) {
                     result = this.queueOffsetMax + 1;
@@ -307,8 +311,10 @@ public class ProcessQueue {
      */
     public List<MessageExt> takeMessags(final int batchSize) {
         List<MessageExt> result = new ArrayList<MessageExt>(batchSize);
+        final long now = System.currentTimeMillis();
         try {
             this.lockTreeMap.writeLock().lockInterruptibly();
+            this.lastConsumeTimestamp = now;
             try {
                 if (!this.msgTreeMap.isEmpty()) {
                     for (int i = 0; i < batchSize; i++) {
@@ -425,11 +431,22 @@ public class ProcessQueue {
 
             info.setDroped(this.droped);
             info.setLastPullTimestamp(this.lastPullTimestamp);
+            info.setLastConsumeTimestamp(this.lastConsumeTimestamp);
         }
         catch (Exception e) {
         }
         finally {
             this.lockTreeMap.readLock().unlock();
         }
+    }
+
+
+    public long getLastConsumeTimestamp() {
+        return lastConsumeTimestamp;
+    }
+
+
+    public void setLastConsumeTimestamp(long lastConsumeTimestamp) {
+        this.lastConsumeTimestamp = lastConsumeTimestamp;
     }
 }
