@@ -681,7 +681,7 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
         info.setProperties(prop);
 
         // 订阅关系
-        info.setSubscriptionSet(this.subscriptions());
+        info.getSubscriptionSet().addAll(this.subscriptions());
         return info;
     }
 }

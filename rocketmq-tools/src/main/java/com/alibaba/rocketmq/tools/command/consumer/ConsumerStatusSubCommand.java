@@ -15,6 +15,10 @@
  */
 package com.alibaba.rocketmq.tools.command.consumer;
 
+import java.util.Iterator;
+import java.util.Map.Entry;
+import java.util.TreeMap;
+
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
@@ -23,6 +27,7 @@ import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.protocol.body.Connection;
 import com.alibaba.rocketmq.common.protocol.body.ConsumerConnection;
 import com.alibaba.rocketmq.common.protocol.body.ConsumerRunningInfo;
+import com.alibaba.rocketmq.common.protocol.heartbeat.ConsumeType;
 import com.alibaba.rocketmq.tools.admin.DefaultMQAdminExt;
 import com.alibaba.rocketmq.tools.command.SubCommand;
 
@@ -78,17 +83,37 @@ public class ConsumerStatusSubCommand implements SubCommand {
                 // 打印连接
                 int i = 1;
                 long now = System.currentTimeMillis();
+                final TreeMap<String/* clientId */, ConsumerRunningInfo> criTable =
+                        new TreeMap<String, ConsumerRunningInfo>();
                 for (Connection conn : cc.getConnectionSet()) {
-                    ConsumerRunningInfo consumerRunningInfo =
-                            defaultMQAdminExt.getConsumerRunningInfo(group, conn.getClientId());
-                    if (consumerRunningInfo != null) {
-                        String filePath = now + "/" + conn.getClientId();
-                        MixAll.string2FileNotSafe(consumerRunningInfo.formatString(), filePath);
-                        System.out.printf("%03d  %-40s %s\n",//
-                            i++,//
-                            conn.getClientId(),//
-                            filePath);
+                    try {
+                        ConsumerRunningInfo consumerRunningInfo =
+                                defaultMQAdminExt.getConsumerRunningInfo(group, conn.getClientId());
+                        if (consumerRunningInfo != null) {
+                            criTable.put(conn.getClientId(), consumerRunningInfo);
+                            String filePath = now + "/" + conn.getClientId();
+                            MixAll.string2FileNotSafe(consumerRunningInfo.formatString(), filePath);
+                            System.out.printf("%03d  %-40s %s\n",//
+                                i++,//
+                                conn.getClientId(),//
+                                filePath);
+                        }
                     }
+                    catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+
+                boolean subSame = true;
+                if (!criTable.isEmpty()) {
+                    subSame = ConsumerRunningInfo.analyzeSubscription(criTable);
+                }
+
+                if (subSame) {
+                    System.out.println("\n\nSame subscription in the same group of consumer");
+                }
+                else {
+                    System.out.println("\n\nWARN: Different subscription in the same group of consumer!!!");
                 }
             }
             else {
@@ -99,7 +124,6 @@ public class ConsumerStatusSubCommand implements SubCommand {
                     System.out.println(consumerRunningInfo.formatString());
                 }
             }
-
         }
         catch (Exception e) {
             e.printStackTrace();
