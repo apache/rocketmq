@@ -9,6 +9,8 @@ public class ConsumeStatus {
     private double consumeRT;
     private double consumeOKTPS;
     private double consumeFailedTPS;
+    // 最近一小时内消费失败的消息数
+    private long consumeFailedMsgs;
 
 
     public double getPullRT() {
@@ -58,5 +60,15 @@ public class ConsumeStatus {
 
     public void setConsumeFailedTPS(double consumeFailedTPS) {
         this.consumeFailedTPS = consumeFailedTPS;
+    }
+
+
+    public long getConsumeFailedMsgs() {
+        return consumeFailedMsgs;
+    }
+
+
+    public void setConsumeFailedMsgs(long consumeFailedMsgs) {
+        this.consumeFailedMsgs = consumeFailedMsgs;
     }
 }

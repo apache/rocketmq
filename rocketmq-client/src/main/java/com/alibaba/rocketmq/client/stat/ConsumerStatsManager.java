@@ -138,6 +138,13 @@ public class ConsumerStatsManager {
             }
         }
 
+        {
+            StatsSnapshot ss = this.topicAndGroupConsumeFailedTPS.getStatsDataInHour(topic + "@" + group);
+            if (ss != null) {
+                cs.setConsumeFailedMsgs(ss.getSum());
+            }
+        }
+
         return cs;
     }
 }
