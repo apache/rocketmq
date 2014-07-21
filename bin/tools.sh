@@ -13,7 +13,7 @@ fi
 BASE_DIR=$(dirname $0)/..
 CLASSPATH=.:${BASE_DIR}/conf:${CLASSPATH}
 
-JAVA_OPT_1="-Djava.ext.dirs=${BASE_DIR}/lib -cp ${CLASSPATH}"
+JAVA_OPT="${JAVA_OPT} -Djava.ext.dirs=${BASE_DIR}/lib -cp ${CLASSPATH}"
 
 
 if [ -z "$JAVA_HOME" ]; then
@@ -22,6 +22,4 @@ fi
 
 JAVA="$JAVA_HOME/bin/java"
 
-JAVA_OPTS="${JAVA_OPT_1}"
-
-$JAVA $JAVA_OPTS $@
+$JAVA ${JAVA_OPT} $@
