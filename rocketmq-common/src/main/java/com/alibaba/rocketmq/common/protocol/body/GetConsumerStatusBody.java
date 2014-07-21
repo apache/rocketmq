@@ -13,6 +13,7 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingSerializable;
  * @author: manhong.yqd<jodie.yqd@gmail.com>
  * @since: 13-12-30
  */
+@Deprecated
 public class GetConsumerStatusBody extends RemotingSerializable {
     private Map<MessageQueue, Long> messageQueueTable = new HashMap<MessageQueue, Long>();
     private Map<String, Map<MessageQueue, Long>> consumerTable =

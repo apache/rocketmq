@@ -61,6 +61,7 @@ import com.alibaba.rocketmq.common.message.MessageAccessor;
 import com.alibaba.rocketmq.common.message.MessageConst;
 import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.common.message.MessageQueue;
+import com.alibaba.rocketmq.common.protocol.body.ConsumeStatus;
 import com.alibaba.rocketmq.common.protocol.body.ConsumerRunningInfo;
 import com.alibaba.rocketmq.common.protocol.body.ProcessQueueInfo;
 import com.alibaba.rocketmq.common.protocol.heartbeat.ConsumeType;
@@ -1083,7 +1084,8 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
         info.setProperties(prop);
 
         // 订阅关系
-        info.setSubscriptionSet(this.subscriptions());
+        Set<SubscriptionData> subSet = this.subscriptions();
+        info.setSubscriptionSet(subSet);
 
         // 消费进度、Rebalance、内部消费队列的信息
         Iterator<Entry<MessageQueue, ProcessQueue>> it =
@@ -1097,6 +1099,14 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
             pqinfo.setCommitOffset(this.offsetStore.readOffset(mq, ReadOffsetType.MEMORY_FIRST_THEN_STORE));
             pq.fillProcessQueueInfo(pqinfo);
             info.getMqTable().put(mq, pqinfo);
+        }
+
+        // RT、TPS统计
+        for (SubscriptionData sd : subSet) {
+            ConsumeStatus consumeStatus =
+                    this.mQClientFactory.getConsumerStatsManager().consumeStatus(this.groupName(),
+                        sd.getTopic());
+            info.getStatusTable().put(sd.getTopic(), consumeStatus);
         }
 
         return info;
