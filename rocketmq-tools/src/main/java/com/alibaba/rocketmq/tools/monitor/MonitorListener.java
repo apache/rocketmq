@@ -1,5 +1,7 @@
 package com.alibaba.rocketmq.tools.monitor;
 
+import com.alibaba.rocketmq.common.protocol.body.ConsumerRunningInfo;
+
 /**
  * 监控监听器
  */
@@ -31,7 +33,7 @@ public interface MonitorListener {
     /**
      * 汇报Consumer内部运行数据结构
      */
-    public void reportConsumerRunningData(ConsumerRunningData consumerRunningData);
+    public void reportConsumerRunningInfo(ConsumerRunningInfo consumerRunningInfo);
 
 
     /**

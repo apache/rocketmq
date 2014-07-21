@@ -1,5 +1,8 @@
 package com.alibaba.rocketmq.tools.monitor;
 
+import com.alibaba.rocketmq.common.protocol.body.ConsumerRunningInfo;
+
+
 public class DefaultMonitorListener implements MonitorListener {
 
     public DefaultMonitorListener() {
@@ -33,8 +36,9 @@ public class DefaultMonitorListener implements MonitorListener {
 
 
     @Override
-    public void reportConsumerRunningData(ConsumerRunningData consumerRunningData) {
-        System.out.println(consumerRunningData);
+    public void reportConsumerRunningInfo(ConsumerRunningInfo consumerRunningInfo) {
+        // TODO Auto-generated method stub
+
     }
 
 
