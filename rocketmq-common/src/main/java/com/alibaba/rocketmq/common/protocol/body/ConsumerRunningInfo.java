@@ -167,7 +167,7 @@ public class ConsumerRunningInfo extends RemotingSerializable {
             Iterator<Entry<String, ConsumeStatus>> it = this.statusTable.entrySet().iterator();
             while (it.hasNext()) {
                 Entry<String, ConsumeStatus> next = it.next();
-                String item = String.format("%-32s  %14.2f %14.2f %14.2f %14.2f %18.2f %-25d\n",//
+                String item = String.format("%-32s  %14.2f %14.2f %14.2f %14.2f %18.2f %25d\n",//
                     next.getKey(),//
                     next.getValue().getPullRT(),//
                     next.getValue().getPullTPS(),//
