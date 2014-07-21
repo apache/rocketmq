@@ -699,7 +699,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
                 String addr = brokerData.selectBrokerAddr();
                 if (addr != null) {
                     return this.mqClientInstance.getMQClientAPIImpl().getConsumerRunningInfo(addr,
-                        consumerGroup, clientId, 5000);
+                        consumerGroup, clientId, 12000);
                 }
             }
         }

@@ -37,7 +37,7 @@ public class PushConsumer {
          * 一个应用创建一个Consumer，由应用来维护此对象，可以设置为全局对象或者单例<br>
          * 注意：ConsumerGroupName需要由应用来保证唯一
          */
-        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("CID_220");
+        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("CID_221");
         consumer.setNamesrvAddr("10.235.170.7:9877");
         //consumer.setNamesrvAddr("127.0.0.1:9876");
 
@@ -50,6 +50,7 @@ public class PushConsumer {
          * 注意：一个consumer对象可以订阅多个topic
          */
         consumer.subscribe("TopicTest2", "*");
+        consumer.subscribe("BenchmarkTest", "*");
 
         /**
          * 设置Consumer第一次启动是从队列头部开始消费还是队列尾部开始消费<br>
