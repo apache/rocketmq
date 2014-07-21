@@ -18,7 +18,9 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingSerializable;
 public class ConsumerRunningInfo extends RemotingSerializable {
     public static final String PROP_NAMESERVER_ADDR = "PROP_NAMESERVER_ADDR";
     public static final String PROP_THREADPOOL_CORE_SIZE = "PROP_THREADPOOL_CORE_SIZE";
-    public static final String PROP_CONSUMEORDERLY = "PROP_CONSUMEORDERLY";
+    public static final String PROP_CONSUME_ORDERLY = "PROP_CONSUMEORDERLY";
+    public static final String PROP_CONSUME_TYPE = "PROP_CONSUME_TYPE";
+    public static final String PROP_CLIENT_VERSION = "PROP_CLIENT_VERSION";
 
     // 各种配置及运行数据
     private Properties properties = new Properties();
