@@ -26,6 +26,8 @@ public class ConsumerRunningInfo extends RemotingSerializable {
     private Set<SubscriptionData> subscriptionSet = new HashSet<SubscriptionData>();
     // 消费进度、Rebalance、内部消费队列的信息
     private TreeMap<MessageQueue, ProcessQueueInfo> mqTable = new TreeMap<MessageQueue, ProcessQueueInfo>();
+    // RT、TPS统计
+    private TreeMap<String/* Topic */, ConsumeStatus> statusTable = new TreeMap<String, ConsumeStatus>();
 
 
     public Properties getProperties() {
@@ -94,12 +96,12 @@ public class ConsumerRunningInfo extends RemotingSerializable {
         // 3
         {
             sb.append("\n\n#Consumer Offset#\n");
-            String.format("%-32s  %-32s  %-4s  %-20s\n",//
+            sb.append(String.format("%-32s  %-32s  %-4s  %-20s\n",//
                 "#Topic",//
                 "#Broker Name",//
                 "#QID",//
                 "#Consumer Offset"//
-            );
+            ));
 
             Iterator<Entry<MessageQueue, ProcessQueueInfo>> it = this.mqTable.entrySet().iterator();
             while (it.hasNext()) {
@@ -117,12 +119,12 @@ public class ConsumerRunningInfo extends RemotingSerializable {
         // 4
         {
             sb.append("\n\n#Consumer MQ Detail#\n");
-            String.format("%-32s  %-32s  %-4s  %-20s\n",//
+            sb.append(String.format("%-32s  %-32s  %-4s  %-20s\n",//
                 "#Topic",//
                 "#Broker Name",//
                 "#QID",//
                 "#ProcessQueueInfo"//
-            );
+            ));
 
             Iterator<Entry<MessageQueue, ProcessQueueInfo>> it = this.mqTable.entrySet().iterator();
             while (it.hasNext()) {
@@ -137,6 +139,43 @@ public class ConsumerRunningInfo extends RemotingSerializable {
             }
         }
 
+        // 5
+        {
+            sb.append("\n\n#Consumer RT&TPS#\n");
+            sb.append(String.format("%-32s  %14s %14s %14s %14s %18s\n",//
+                "#Topic",//
+                "#Pull RT",//
+                "#Pull TPS",//
+                "#Consume RT",//
+                "#ConsumeOK TPS",//
+                "#ConsumeFailed TPS"//
+            ));
+
+            Iterator<Entry<String, ConsumeStatus>> it = this.statusTable.entrySet().iterator();
+            while (it.hasNext()) {
+                Entry<String, ConsumeStatus> next = it.next();
+                String item = String.format("%-32s  %14.2f %14.2f %14.2f %14.2f %18.2f\n",//
+                    next.getKey(),//
+                    next.getValue().getPullRT(),//
+                    next.getValue().getPullTPS(),//
+                    next.getValue().getConsumeRT(),//
+                    next.getValue().getConsumeOKTPS(),//
+                    next.getValue().getConsumeFailedTPS());
+
+                sb.append(item);
+            }
+        }
+
         return sb.toString();
+    }
+
+
+    public TreeMap<String, ConsumeStatus> getStatusTable() {
+        return statusTable;
+    }
+
+
+    public void setStatusTable(TreeMap<String, ConsumeStatus> statusTable) {
+        this.statusTable = statusTable;
     }
 }
