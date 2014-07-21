@@ -1085,7 +1085,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
 
         // 订阅关系
         Set<SubscriptionData> subSet = this.subscriptions();
-        info.setSubscriptionSet(subSet);
+        info.getSubscriptionSet().addAll(subSet);
 
         // 消费进度、Rebalance、内部消费队列的信息
         Iterator<Entry<MessageQueue, ProcessQueue>> it =

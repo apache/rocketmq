@@ -1,13 +1,13 @@
 package com.alibaba.rocketmq.common.protocol.body;
 
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.Properties;
-import java.util.Set;
 import java.util.TreeMap;
+import java.util.TreeSet;
 
 import com.alibaba.rocketmq.common.message.MessageQueue;
+import com.alibaba.rocketmq.common.protocol.heartbeat.ConsumeType;
 import com.alibaba.rocketmq.common.protocol.heartbeat.SubscriptionData;
 import com.alibaba.rocketmq.remoting.protocol.RemotingSerializable;
 
@@ -25,7 +25,7 @@ public class ConsumerRunningInfo extends RemotingSerializable {
     // 各种配置及运行数据
     private Properties properties = new Properties();
     // 订阅关系
-    private Set<SubscriptionData> subscriptionSet = new HashSet<SubscriptionData>();
+    private TreeSet<SubscriptionData> subscriptionSet = new TreeSet<SubscriptionData>();
     // 消费进度、Rebalance、内部消费队列的信息
     private TreeMap<MessageQueue, ProcessQueueInfo> mqTable = new TreeMap<MessageQueue, ProcessQueueInfo>();
     // RT、TPS统计
@@ -42,16 +42,6 @@ public class ConsumerRunningInfo extends RemotingSerializable {
     }
 
 
-    public Set<SubscriptionData> getSubscriptionSet() {
-        return subscriptionSet;
-    }
-
-
-    public void setSubscriptionSet(Set<SubscriptionData> subscriptionSet) {
-        this.subscriptionSet = subscriptionSet;
-    }
-
-
     public TreeMap<MessageQueue, ProcessQueueInfo> getMqTable() {
         return mqTable;
     }
@@ -59,6 +49,26 @@ public class ConsumerRunningInfo extends RemotingSerializable {
 
     public void setMqTable(TreeMap<MessageQueue, ProcessQueueInfo> mqTable) {
         this.mqTable = mqTable;
+    }
+
+
+    public TreeMap<String, ConsumeStatus> getStatusTable() {
+        return statusTable;
+    }
+
+
+    public void setStatusTable(TreeMap<String, ConsumeStatus> statusTable) {
+        this.statusTable = statusTable;
+    }
+
+
+    public TreeSet<SubscriptionData> getSubscriptionSet() {
+        return subscriptionSet;
+    }
+
+
+    public void setSubscriptionSet(TreeSet<SubscriptionData> subscriptionSet) {
+        this.subscriptionSet = subscriptionSet;
     }
 
 
@@ -175,12 +185,41 @@ public class ConsumerRunningInfo extends RemotingSerializable {
     }
 
 
-    public TreeMap<String, ConsumeStatus> getStatusTable() {
-        return statusTable;
-    }
+    /**
+     * 分析订阅关系是否相同
+     */
+    public static boolean analyzeSubscription(
+            final TreeMap<String/* clientId */, ConsumerRunningInfo> criTable) {
+        ConsumerRunningInfo prev = criTable.firstEntry().getValue();
+        String property = prev.getProperties().getProperty(ConsumerRunningInfo.PROP_CONSUME_TYPE);
+        // 只检测PUSH
+        if (ConsumeType.valueOf(property) == ConsumeType.CONSUME_PASSIVELY) {
+            // 分析订阅关系是否相同
+            {
+                Iterator<Entry<String, ConsumerRunningInfo>> it = criTable.entrySet().iterator();
+                while (it.hasNext()) {
+                    Entry<String, ConsumerRunningInfo> next = it.next();
+                    ConsumerRunningInfo current = next.getValue();
+                    boolean equals = current.getSubscriptionSet().equals(prev.getSubscriptionSet());
+                    // 发现订阅关系有误
+                    if (!equals) {
+                        // Different subscription in the same group of consumer
+                        return false;
+                    }
 
+                    prev = next.getValue();
+                }
 
-    public void setStatusTable(TreeMap<String, ConsumeStatus> statusTable) {
-        this.statusTable = statusTable;
+                if (prev != null) {
+                    // 无订阅关系
+                    if (prev.getSubscriptionSet().isEmpty()) {
+                        // Subscription empty!
+                        return false;
+                    }
+                }
+            }
+        }
+
+        return true;
     }
 }
