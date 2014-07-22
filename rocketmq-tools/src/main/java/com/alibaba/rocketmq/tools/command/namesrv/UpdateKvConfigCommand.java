@@ -38,7 +38,7 @@ public class UpdateKvConfigCommand implements SubCommand {
 
     @Override
     public String commandDesc() {
-        return "create or update KV config.";
+        return "Create or update KV config.";
     }
 
 

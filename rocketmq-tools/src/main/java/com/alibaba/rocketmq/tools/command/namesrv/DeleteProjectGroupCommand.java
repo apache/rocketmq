@@ -40,7 +40,7 @@ public class DeleteProjectGroupCommand implements SubCommand {
 
     @Override
     public String commandDesc() {
-        return "delete project group by server ip.";
+        return "Delete project group by server ip.";
     }
 
 

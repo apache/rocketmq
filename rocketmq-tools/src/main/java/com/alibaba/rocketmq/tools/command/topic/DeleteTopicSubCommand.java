@@ -47,7 +47,7 @@ public class DeleteTopicSubCommand implements SubCommand {
 
     @Override
     public String commandDesc() {
-        return "delete topic from broker and NameServer.";
+        return "Delete topic from broker and NameServer.";
     }
 
 

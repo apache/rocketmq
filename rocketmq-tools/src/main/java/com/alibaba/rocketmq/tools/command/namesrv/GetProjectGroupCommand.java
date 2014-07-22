@@ -40,7 +40,7 @@ public class GetProjectGroupCommand implements SubCommand {
 
     @Override
     public String commandDesc() {
-        return "get project group by server ip or project group name.";
+        return "Get project group by server ip or project group name.";
     }
 
 
