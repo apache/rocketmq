@@ -39,7 +39,7 @@ public class UpdateProjectGroupCommand implements SubCommand {
 
     @Override
     public String commandDesc() {
-        return "create or update project group by server ip.";
+        return "Create or update project group by server ip.";
     }
 
 

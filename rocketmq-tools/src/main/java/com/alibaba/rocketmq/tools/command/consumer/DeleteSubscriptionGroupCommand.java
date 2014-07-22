@@ -44,7 +44,7 @@ public class DeleteSubscriptionGroupCommand implements SubCommand {
 
     @Override
     public String commandDesc() {
-        return "delete subscription group from broker.";
+        return "Delete subscription group from broker.";
     }
 
 

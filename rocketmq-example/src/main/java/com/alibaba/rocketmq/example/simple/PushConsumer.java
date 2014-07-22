@@ -50,6 +50,7 @@ public class PushConsumer {
          * 注意：一个consumer对象可以订阅多个topic
          */
         consumer.subscribe("TopicTest2", "*");
+        consumer.subscribe("TopicTest3", "*");
         consumer.subscribe("BenchmarkTest", "*");
 
         /**

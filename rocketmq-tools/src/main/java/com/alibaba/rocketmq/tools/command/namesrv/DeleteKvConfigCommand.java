@@ -38,7 +38,7 @@ public class DeleteKvConfigCommand implements SubCommand {
 
     @Override
     public String commandDesc() {
-        return "delete KV config.";
+        return "Delete KV config.";
     }
 
 

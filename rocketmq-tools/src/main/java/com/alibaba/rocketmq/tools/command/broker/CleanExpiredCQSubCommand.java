@@ -21,7 +21,7 @@ public class CleanExpiredCQSubCommand implements SubCommand {
 
     @Override
     public String commandDesc() {
-        return "clean expired ConsumeQueue on broker.";
+        return "Clean expired ConsumeQueue on broker.";
     }
 
 

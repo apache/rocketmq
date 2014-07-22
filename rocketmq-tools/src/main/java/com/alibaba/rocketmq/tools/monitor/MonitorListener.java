@@ -2,6 +2,7 @@ package com.alibaba.rocketmq.tools.monitor;
 
 import com.alibaba.rocketmq.common.protocol.body.ConsumerRunningInfo;
 
+
 /**
  * 监控监听器
  */

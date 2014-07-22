@@ -15,8 +15,6 @@
  */
 package com.alibaba.rocketmq.tools.command.consumer;
 
-import java.util.Iterator;
-import java.util.Map.Entry;
 import java.util.TreeMap;
 
 import org.apache.commons.cli.CommandLine;
@@ -27,7 +25,6 @@ import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.protocol.body.Connection;
 import com.alibaba.rocketmq.common.protocol.body.ConsumerConnection;
 import com.alibaba.rocketmq.common.protocol.body.ConsumerRunningInfo;
-import com.alibaba.rocketmq.common.protocol.heartbeat.ConsumeType;
 import com.alibaba.rocketmq.tools.admin.DefaultMQAdminExt;
 import com.alibaba.rocketmq.tools.command.SubCommand;
 
