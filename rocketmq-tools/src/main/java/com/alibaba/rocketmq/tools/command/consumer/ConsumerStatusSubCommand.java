@@ -21,6 +21,7 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 
+import com.alibaba.rocketmq.common.MQVersion;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.protocol.body.Connection;
 import com.alibaba.rocketmq.common.protocol.body.ConsumerConnection;
@@ -90,9 +91,10 @@ public class ConsumerStatusSubCommand implements SubCommand {
                             criTable.put(conn.getClientId(), consumerRunningInfo);
                             String filePath = now + "/" + conn.getClientId();
                             MixAll.string2FileNotSafe(consumerRunningInfo.formatString(), filePath);
-                            System.out.printf("%03d  %-40s %s\n",//
+                            System.out.printf("%03d  %-40s %-20s %s\n",//
                                 i++,//
                                 conn.getClientId(),//
+                                MQVersion.getVersionDesc(conn.getVersion()),//
                                 filePath);
                         }
                     }
