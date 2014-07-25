@@ -21,6 +21,7 @@ public class ConsumerRunningInfo extends RemotingSerializable {
     public static final String PROP_CONSUME_ORDERLY = "PROP_CONSUMEORDERLY";
     public static final String PROP_CONSUME_TYPE = "PROP_CONSUME_TYPE";
     public static final String PROP_CLIENT_VERSION = "PROP_CLIENT_VERSION";
+    public static final String PROP_CONSUMER_START_TIMESTAMP = "PROP_CONSUMER_START_TIMESTAMP";
 
     // 各种配置及运行数据
     private Properties properties = new Properties();
@@ -191,9 +192,22 @@ public class ConsumerRunningInfo extends RemotingSerializable {
     public static boolean analyzeSubscription(
             final TreeMap<String/* clientId */, ConsumerRunningInfo> criTable) {
         ConsumerRunningInfo prev = criTable.firstEntry().getValue();
-        String property = prev.getProperties().getProperty(ConsumerRunningInfo.PROP_CONSUME_TYPE);
+
+        boolean push = false;
+        {
+            String property = prev.getProperties().getProperty(ConsumerRunningInfo.PROP_CONSUME_TYPE);
+            push = ConsumeType.valueOf(property) == ConsumeType.CONSUME_PASSIVELY;
+        }
+
+        boolean startForAWhile = false;
+        {
+            String property =
+                    prev.getProperties().getProperty(ConsumerRunningInfo.PROP_CONSUMER_START_TIMESTAMP);
+            startForAWhile = (System.currentTimeMillis() - Long.parseLong(property)) > (1000 * 60 * 2);
+        }
+
         // 只检测PUSH
-        if (ConsumeType.valueOf(property) == ConsumeType.CONSUME_PASSIVELY) {
+        if (push && startForAWhile) {
             // 分析订阅关系是否相同
             {
                 Iterator<Entry<String, ConsumerRunningInfo>> it = criTable.entrySet().iterator();

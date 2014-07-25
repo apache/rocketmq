@@ -109,6 +109,9 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
     // 消息过滤 hook
     private final ArrayList<FilterMessageHook> filterMessageHookList = new ArrayList<FilterMessageHook>();
 
+    // Consumer启动时间
+    private final long consumerStartTimestamp = System.currentTimeMillis();
+
 
     public void registerFilterMessageHook(final FilterMessageHook hook) {
         this.filterMessageHookList.add(hook);
@@ -1080,6 +1083,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
 
         prop.put(ConsumerRunningInfo.PROP_CONSUME_ORDERLY, this.consumeOrderly);
         prop.put(ConsumerRunningInfo.PROP_THREADPOOL_CORE_SIZE, this.consumeMessageService.getCorePoolSize());
+        prop.put(ConsumerRunningInfo.PROP_CONSUMER_START_TIMESTAMP, this.consumerStartTimestamp);
 
         info.setProperties(prop);
 
