@@ -236,4 +236,9 @@ public class ConsumerRunningInfo extends RemotingSerializable {
 
         return true;
     }
+
+
+    public static boolean analyzeRebalance(final TreeMap<String/* clientId */, ConsumerRunningInfo> criTable) {
+        return true;
+    }
 }

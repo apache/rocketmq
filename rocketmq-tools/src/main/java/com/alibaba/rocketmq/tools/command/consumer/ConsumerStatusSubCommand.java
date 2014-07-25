@@ -102,17 +102,18 @@ public class ConsumerStatusSubCommand implements SubCommand {
                         e.printStackTrace();
                     }
                 }
-
-                boolean subSame = true;
                 if (!criTable.isEmpty()) {
-                    subSame = ConsumerRunningInfo.analyzeSubscription(criTable);
-                }
+                    boolean subSame = ConsumerRunningInfo.analyzeSubscription(criTable);
 
-                if (subSame) {
-                    System.out.println("\n\nSame subscription in the same group of consumer");
-                }
-                else {
-                    System.out.println("\n\nWARN: Different subscription in the same group of consumer!!!");
+                    boolean rebalanceOK = subSame && ConsumerRunningInfo.analyzeRebalance(criTable);
+
+                    if (subSame) {
+                        System.out.println("\n\nSame subscription in the same group of consumer");
+                    }
+                    else {
+                        System.out
+                            .println("\n\nWARN: Different subscription in the same group of consumer!!!");
+                    }
                 }
             }
             else {
