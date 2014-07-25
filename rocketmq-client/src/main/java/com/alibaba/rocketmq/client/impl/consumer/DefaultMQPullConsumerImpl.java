@@ -76,6 +76,9 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
     // Rebalance实现
     private RebalanceImpl rebalanceImpl = new RebalancePullImpl(this);
 
+    // Consumer启动时间
+    private final long consumerStartTimestamp = System.currentTimeMillis();
+
 
     public DefaultMQPullConsumerImpl(final DefaultMQPullConsumer defaultMQPullConsumer) {
         this.defaultMQPullConsumer = defaultMQPullConsumer;
@@ -678,10 +681,16 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
 
         // 各种配置及运行数据
         Properties prop = MixAll.object2Properties(this.defaultMQPullConsumer);
+        prop.put(ConsumerRunningInfo.PROP_CONSUMER_START_TIMESTAMP, this.consumerStartTimestamp);
         info.setProperties(prop);
 
         // 订阅关系
         info.getSubscriptionSet().addAll(this.subscriptions());
         return info;
+    }
+
+
+    public long getConsumerStartTimestamp() {
+        return consumerStartTimestamp;
     }
 }
