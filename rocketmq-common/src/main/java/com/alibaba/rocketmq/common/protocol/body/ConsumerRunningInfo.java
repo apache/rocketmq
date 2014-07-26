@@ -241,4 +241,65 @@ public class ConsumerRunningInfo extends RemotingSerializable {
     public static boolean analyzeRebalance(final TreeMap<String/* clientId */, ConsumerRunningInfo> criTable) {
         return true;
     }
+
+
+    public static String analyzeProcessQueue(final String clientId, ConsumerRunningInfo info) {
+        StringBuilder sb = new StringBuilder();
+        boolean push = false;
+        {
+            String property = info.getProperties().getProperty(ConsumerRunningInfo.PROP_CONSUME_TYPE);
+            push = ConsumeType.valueOf(property) == ConsumeType.CONSUME_PASSIVELY;
+        }
+
+        boolean orderMsg = false;
+        {
+            String property = info.getProperties().getProperty(ConsumerRunningInfo.PROP_CONSUME_ORDERLY);
+            orderMsg = Boolean.parseBoolean(property);
+        }
+
+        if (push) {
+            Iterator<Entry<MessageQueue, ProcessQueueInfo>> it = info.getMqTable().entrySet().iterator();
+            while (it.hasNext()) {
+                Entry<MessageQueue, ProcessQueueInfo> next = it.next();
+                MessageQueue mq = next.getKey();
+                ProcessQueueInfo pq = next.getValue();
+
+                // 顺序消息
+                if (orderMsg) {
+                    // 没锁住
+                    if (!pq.isLocked()) {
+                        sb.append(String.format("%s %s can't lock for a while, %dms\n", //
+                            clientId,//
+                            mq,//
+                            System.currentTimeMillis() - pq.getLastLockTimestamp()));
+                    }
+                    // 锁住
+                    else {
+                        // Rebalance已经丢弃此队列，但是没有正常释放Lock
+                        if (pq.isDroped() && (pq.getTryUnlockTimes() > 0)) {
+                            sb.append(String.format("%s %s unlock %d times, still failed\n",//
+                                clientId,//
+                                mq,//
+                                pq.getTryUnlockTimes()));
+                        }
+                    }
+
+                    // 事务消息未提交
+                }
+                // 乱序消息
+                else {
+                    long diff = System.currentTimeMillis() - pq.getLastConsumeTimestamp();
+                    // 在有消息的情况下，超过1分钟没再消费消息了
+                    if (diff > (1000 * 60) && pq.getCachedMsgCount() > 0) {
+                        sb.append(String.format("%s %s can't consume for a while, maybe blocked, %dms\n",//
+                            clientId,//
+                            mq, //
+                            diff));
+                    }
+                }
+            }
+        }
+
+        return sb.toString();
+    }
 }
