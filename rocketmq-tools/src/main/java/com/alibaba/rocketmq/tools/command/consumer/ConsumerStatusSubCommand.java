@@ -15,6 +15,8 @@
  */
 package com.alibaba.rocketmq.tools.command.consumer;
 
+import java.util.Iterator;
+import java.util.Map.Entry;
 import java.util.TreeMap;
 
 import org.apache.commons.cli.CommandLine;
@@ -102,6 +104,7 @@ public class ConsumerStatusSubCommand implements SubCommand {
                         e.printStackTrace();
                     }
                 }
+
                 if (!criTable.isEmpty()) {
                     boolean subSame = ConsumerRunningInfo.analyzeSubscription(criTable);
 
@@ -109,6 +112,18 @@ public class ConsumerStatusSubCommand implements SubCommand {
 
                     if (subSame) {
                         System.out.println("\n\nSame subscription in the same group of consumer");
+
+                        System.out.printf("\n\nRebalance %s\n", rebalanceOK ? "OK" : "Failed");
+
+                        Iterator<Entry<String, ConsumerRunningInfo>> it = criTable.entrySet().iterator();
+                        while (it.hasNext()) {
+                            Entry<String, ConsumerRunningInfo> next = it.next();
+                            String result =
+                                    ConsumerRunningInfo.analyzeProcessQueue(next.getKey(), next.getValue());
+                            if (result.length() > 0) {
+                                System.out.println(result);
+                            }
+                        }
                     }
                     else {
                         System.out
