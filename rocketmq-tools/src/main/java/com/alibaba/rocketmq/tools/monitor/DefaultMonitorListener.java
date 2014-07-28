@@ -1,19 +1,18 @@
 package com.alibaba.rocketmq.tools.monitor;
 
+import java.util.Map;
+
 import com.alibaba.rocketmq.common.protocol.body.ConsumerRunningInfo;
 
 
 public class DefaultMonitorListener implements MonitorListener {
 
     public DefaultMonitorListener() {
-        // TODO Auto-generated constructor stub
     }
 
 
     @Override
     public void beginRound() {
-        // TODO Auto-generated method stub
-
     }
 
 
@@ -36,14 +35,11 @@ public class DefaultMonitorListener implements MonitorListener {
 
 
     @Override
-    public void reportConsumerRunningInfo(ConsumerRunningInfo consumerRunningInfo) {
-        // TODO Auto-generated method stub
-
+    public void reportConsumerRunningInfo(Map<String, ConsumerRunningInfo> criTable) {
     }
 
 
     @Override
     public void endRound() {
-        // TODO Auto-generated method stub
     }
 }
