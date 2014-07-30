@@ -20,6 +20,7 @@ import org.apache.commons.cli.Options;
 import org.slf4j.Logger;
 
 import com.alibaba.rocketmq.client.log.ClientLogger;
+import com.alibaba.rocketmq.remoting.RPCHook;
 import com.alibaba.rocketmq.tools.command.SubCommand;
 import com.alibaba.rocketmq.tools.monitor.DefaultMonitorListener;
 import com.alibaba.rocketmq.tools.monitor.MonitorConfig;
@@ -55,10 +56,10 @@ public class StartMonitoringSubCommand implements SubCommand {
 
 
     @Override
-    public void execute(CommandLine commandLine, Options options) {
+    public void execute(CommandLine commandLine, Options options, RPCHook rpcHook) {
         try {
             MonitorService monitorService =
-                    new MonitorService(new MonitorConfig(), new DefaultMonitorListener());
+                    new MonitorService(new MonitorConfig(), new DefaultMonitorListener(), rpcHook);
 
             monitorService.start();
         }

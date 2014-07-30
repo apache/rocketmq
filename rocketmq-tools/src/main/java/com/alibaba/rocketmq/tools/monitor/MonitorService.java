@@ -28,6 +28,7 @@ import com.alibaba.rocketmq.common.message.MessageQueue;
 import com.alibaba.rocketmq.common.protocol.body.ConsumerConnection;
 import com.alibaba.rocketmq.common.protocol.body.TopicList;
 import com.alibaba.rocketmq.common.protocol.topic.OffsetMovedEvent;
+import com.alibaba.rocketmq.remoting.RPCHook;
 import com.alibaba.rocketmq.remoting.exception.RemotingException;
 import com.alibaba.rocketmq.tools.admin.DefaultMQAdminExt;
 
@@ -41,17 +42,18 @@ public class MonitorService {
 
     private final MonitorListener monitorListener;
 
-    private final DefaultMQAdminExt defaultMQAdminExt = new DefaultMQAdminExt();
+    private final DefaultMQAdminExt defaultMQAdminExt;
     private final DefaultMQPullConsumer defaultMQPullConsumer = new DefaultMQPullConsumer(
         MixAll.TOOLS_CONSUMER_GROUP);
     private final DefaultMQPushConsumer defaultMQPushConsumer = new DefaultMQPushConsumer(
         MixAll.MONITOR_CONSUMER_GROUP);
 
 
-    public MonitorService(MonitorConfig monitorConfig, MonitorListener monitorListener) {
+    public MonitorService(MonitorConfig monitorConfig, MonitorListener monitorListener, RPCHook rpcHook) {
         this.monitorConfig = monitorConfig;
         this.monitorListener = monitorListener;
 
+        this.defaultMQAdminExt = new DefaultMQAdminExt(rpcHook);
         this.defaultMQAdminExt.setInstanceName(instanceName());
         this.defaultMQAdminExt.setNamesrvAddr(monitorConfig.getNamesrvAddr());
 
@@ -263,8 +265,13 @@ public class MonitorService {
 
 
     public static void main(String[] args) throws MQClientException {
-        MonitorService monitorService = new MonitorService(new MonitorConfig(), new DefaultMonitorListener());
+        main0(args, null);
+    }
 
+
+    public static void main0(String[] args, RPCHook rpcHook) throws MQClientException {
+        MonitorService monitorService =
+                new MonitorService(new MonitorConfig(), new DefaultMonitorListener(), rpcHook);
         monitorService.start();
     }
 }
