@@ -18,6 +18,8 @@ package com.alibaba.rocketmq.tools.command;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Options;
 
+import com.alibaba.rocketmq.remoting.RPCHook;
+
 
 /**
  * 各个子命令的接口
@@ -35,5 +37,5 @@ public interface SubCommand {
     public Options buildCommandlineOptions(final Options options);
 
 
-    public void execute(final CommandLine commandLine, final Options options);
+    public void execute(final CommandLine commandLine, final Options options, RPCHook rpcHook);
 }

@@ -29,6 +29,7 @@ import ch.qos.logback.core.joran.spi.JoranException;
 
 import com.alibaba.rocketmq.common.MQVersion;
 import com.alibaba.rocketmq.common.MixAll;
+import com.alibaba.rocketmq.remoting.RPCHook;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 import com.alibaba.rocketmq.srvutil.ServerUtil;
 import com.alibaba.rocketmq.tools.command.broker.BrokerStatsSubCommand;
@@ -110,6 +111,11 @@ public class MQAdminStartup {
 
 
     public static void main(String[] args) {
+        main0(args, null);
+    }
+
+
+    public static void main0(String[] args, RPCHook rpcHook) {
         System.setProperty(RemotingCommand.RemotingVersionKey, Integer.toString(MQVersion.CurrentVersion));
 
         try {
@@ -155,7 +161,7 @@ public class MQAdminStartup {
                         System.setProperty(MixAll.NAMESRV_ADDR_PROPERTY, namesrvAddr);
                     }
 
-                    cmd.execute(commandLine, options);
+                    cmd.execute(commandLine, options, rpcHook);
                 }
                 else {
                     System.out.println("The sub command \'" + args[0] + "\' not exist.");
