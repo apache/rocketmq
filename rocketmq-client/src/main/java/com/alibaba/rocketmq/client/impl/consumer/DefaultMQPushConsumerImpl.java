@@ -68,6 +68,7 @@ import com.alibaba.rocketmq.common.protocol.heartbeat.ConsumeType;
 import com.alibaba.rocketmq.common.protocol.heartbeat.MessageModel;
 import com.alibaba.rocketmq.common.protocol.heartbeat.SubscriptionData;
 import com.alibaba.rocketmq.common.sysflag.PullSysFlag;
+import com.alibaba.rocketmq.remoting.RPCHook;
 import com.alibaba.rocketmq.remoting.exception.RemotingException;
 
 
@@ -109,20 +110,27 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
     // 消息过滤 hook
     private final ArrayList<FilterMessageHook> filterMessageHookList = new ArrayList<FilterMessageHook>();
 
+    // 消费每条消息会回调
+    private final ArrayList<ConsumeMessageHook> consumeMessageHookList = new ArrayList<ConsumeMessageHook>();
+
+    // 通信层hook
+    private final RPCHook rpcHook;
+
+
+    public DefaultMQPushConsumerImpl(DefaultMQPushConsumer defaultMQPushConsumer, RPCHook rpcHook) {
+        this.defaultMQPushConsumer = defaultMQPushConsumer;
+        this.rpcHook = rpcHook;
+    }
+
+
+    public DefaultMQPushConsumerImpl(DefaultMQPushConsumer defaultMQPushConsumer) {
+        this(defaultMQPushConsumer, null);
+    }
+
 
     public void registerFilterMessageHook(final FilterMessageHook hook) {
         this.filterMessageHookList.add(hook);
         log.info("register FilterMessageHook Hook, {}", hook.hookName());
-    }
-
-    /**
-     * 消费每条消息会回调
-     */
-    private final ArrayList<ConsumeMessageHook> consumeMessageHookList = new ArrayList<ConsumeMessageHook>();
-
-
-    public DefaultMQPushConsumerImpl(DefaultMQPushConsumer defaultMQPushConsumer) {
-        this.defaultMQPushConsumer = defaultMQPushConsumer;
     }
 
 
@@ -655,7 +663,8 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
             }
 
             this.mQClientFactory =
-                    MQClientManager.getInstance().getAndCreateMQClientInstance(this.defaultMQPushConsumer);
+                    MQClientManager.getInstance().getAndCreateMQClientInstance(this.defaultMQPushConsumer,
+                        rpcHook);
 
             // 初始化Rebalance变量
             this.rebalanceImpl.setConsumerGroup(this.defaultMQPushConsumer.getConsumerGroup());

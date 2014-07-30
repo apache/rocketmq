@@ -29,6 +29,7 @@ import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.common.message.MessageQueue;
 import com.alibaba.rocketmq.common.protocol.heartbeat.MessageModel;
+import com.alibaba.rocketmq.remoting.RPCHook;
 import com.alibaba.rocketmq.remoting.exception.RemotingException;
 
 
@@ -39,12 +40,12 @@ import com.alibaba.rocketmq.remoting.exception.RemotingException;
  * @since 2013-7-24
  */
 public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsumer {
-    protected final transient DefaultMQPullConsumerImpl defaultMQPullConsumerImpl =
-            new DefaultMQPullConsumerImpl(this);
+    protected final transient DefaultMQPullConsumerImpl defaultMQPullConsumerImpl;
+
     /**
      * 做同样事情的Consumer归为同一个Group，应用必须设置，并保证命名唯一
      */
-    private String consumerGroup = MixAll.DEFAULT_CONSUMER_GROUP;
+    private String consumerGroup;
     /**
      * 长轮询模式，Consumer连接在Broker挂起最长时间，不建议修改
      */
@@ -84,11 +85,23 @@ public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsume
 
 
     public DefaultMQPullConsumer() {
+        this(MixAll.DEFAULT_CONSUMER_GROUP, null);
     }
 
 
     public DefaultMQPullConsumer(final String consumerGroup) {
+        this(consumerGroup, null);
+    }
+
+
+    public DefaultMQPullConsumer(RPCHook rpcHook) {
+        this(MixAll.DEFAULT_CONSUMER_GROUP, rpcHook);
+    }
+
+
+    public DefaultMQPullConsumer(final String consumerGroup, RPCHook rpcHook) {
         this.consumerGroup = consumerGroup;
+        defaultMQPullConsumerImpl = new DefaultMQPullConsumerImpl(this, rpcHook);
     }
 
 

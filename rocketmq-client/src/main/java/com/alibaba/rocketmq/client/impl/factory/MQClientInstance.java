@@ -73,6 +73,7 @@ import com.alibaba.rocketmq.common.protocol.heartbeat.SubscriptionData;
 import com.alibaba.rocketmq.common.protocol.route.BrokerData;
 import com.alibaba.rocketmq.common.protocol.route.QueueData;
 import com.alibaba.rocketmq.common.protocol.route.TopicRouteData;
+import com.alibaba.rocketmq.remoting.RPCHook;
 import com.alibaba.rocketmq.remoting.common.RemotingHelper;
 import com.alibaba.rocketmq.remoting.exception.RemotingException;
 import com.alibaba.rocketmq.remoting.netty.NettyClientConfig;
@@ -138,14 +139,15 @@ public class MQClientInstance {
     private final ConsumerStatsManager consumerStatsManager;
 
 
-    public MQClientInstance(ClientConfig clientConfig, int instanceIndex, String clientId) {
+    public MQClientInstance(ClientConfig clientConfig, int instanceIndex, String clientId, RPCHook rpcHook) {
         this.clientConfig = clientConfig;
         this.instanceIndex = instanceIndex;
         this.nettyClientConfig = new NettyClientConfig();
         this.nettyClientConfig.setClientCallbackExecutorThreads(clientConfig
             .getClientCallbackExecutorThreads());
         this.clientRemotingProcessor = new ClientRemotingProcessor(this);
-        this.mQClientAPIImpl = new MQClientAPIImpl(this.nettyClientConfig, this.clientRemotingProcessor);
+        this.mQClientAPIImpl =
+                new MQClientAPIImpl(this.nettyClientConfig, this.clientRemotingProcessor, rpcHook);
 
         if (this.clientConfig.getNamesrvAddr() != null) {
             this.mQClientAPIImpl.updateNameServerAddressList(this.clientConfig.getNamesrvAddr());
@@ -170,6 +172,11 @@ public class MQClientInstance {
             this.clientId, //
             this.clientConfig, //
             MQVersion.getVersionDesc(MQVersion.CurrentVersion));
+    }
+
+
+    public MQClientInstance(ClientConfig clientConfig, int instanceIndex, String clientId) {
+        this(clientConfig, instanceIndex, clientId, null);
     }
 
 

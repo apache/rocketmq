@@ -55,6 +55,7 @@ public class BrokerStartup {
     public static Properties properties = null;
     public static CommandLine commandLine = null;
     public static String configFile = null;
+    public static Logger log;
 
 
     public static Options buildCommandlineOptions(final Options options) {
@@ -75,11 +76,11 @@ public class BrokerStartup {
 
 
     public static void main(String[] args) {
-        main0(args);
+        start(createBrokerController(args));
     }
 
 
-    public static BrokerController main0(String[] args) {
+    public static BrokerController createBrokerController(String[] args) {
         System.setProperty(RemotingCommand.RemotingVersionKey, Integer.toString(MQVersion.CurrentVersion));
 
         // Socket发送缓冲区大小
@@ -206,7 +207,7 @@ public class BrokerStartup {
             configurator.setContext(lc);
             lc.reset();
             configurator.doConfigure(brokerConfig.getRocketmqHome() + "/conf/logback_broker.xml");
-            final Logger log = LoggerFactory.getLogger(LoggerName.BrokerLoggerName);
+            log = LoggerFactory.getLogger(LoggerName.BrokerLoggerName);
 
             // 打印启动参数
             MixAll.printObjectProperties(log, brokerConfig);
@@ -246,14 +247,27 @@ public class BrokerStartup {
                 }
             }, "ShutdownHook"));
 
+            return controller;
+        }
+        catch (Throwable e) {
+            e.printStackTrace();
+            System.exit(-1);
+        }
+
+        return null;
+    }
+
+
+    public static BrokerController start(BrokerController controller) {
+        try {
             // 启动服务控制对象
             controller.start();
             String tip =
                     "The broker[" + controller.getBrokerConfig().getBrokerName() + ", "
                             + controller.getBrokerAddr() + "] boot success.";
 
-            if (null != brokerConfig.getNamesrvAddr()) {
-                tip += " and name server is " + brokerConfig.getNamesrvAddr();
+            if (null != controller.getBrokerConfig().getNamesrvAddr()) {
+                tip += " and name server is " + controller.getBrokerConfig().getNamesrvAddr();
             }
 
             log.info(tip);

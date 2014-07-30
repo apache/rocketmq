@@ -26,6 +26,7 @@ import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.message.Message;
 import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.common.message.MessageQueue;
+import com.alibaba.rocketmq.remoting.RPCHook;
 import com.alibaba.rocketmq.remoting.exception.RemotingException;
 
 
@@ -36,11 +37,11 @@ import com.alibaba.rocketmq.remoting.exception.RemotingException;
  * @since 2013-7-25
  */
 public class DefaultMQProducer extends ClientConfig implements MQProducer {
-    protected final transient DefaultMQProducerImpl defaultMQProducerImpl = new DefaultMQProducerImpl(this);
+    protected final transient DefaultMQProducerImpl defaultMQProducerImpl;
     /**
      * 一般发送同样消息的Producer，归为同一个Group，应用必须设置，并保证命名唯一
      */
-    private String producerGroup = MixAll.DEFAULT_PRODUCER_GROUP;
+    private String producerGroup;
     /**
      * 支持在发送消息时，如果Topic不存在，自动创建Topic，但是要指定Key
      */
@@ -77,11 +78,23 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
 
 
     public DefaultMQProducer() {
+        this(MixAll.DEFAULT_PRODUCER_GROUP, null);
     }
 
 
     public DefaultMQProducer(final String producerGroup) {
+        this(producerGroup, null);
+    }
+
+
+    public DefaultMQProducer(RPCHook rpcHook) {
+        this(MixAll.DEFAULT_PRODUCER_GROUP, rpcHook);
+    }
+
+
+    public DefaultMQProducer(final String producerGroup, RPCHook rpcHook) {
         this.producerGroup = producerGroup;
+        defaultMQProducerImpl = new DefaultMQProducerImpl(this, rpcHook);
     }
 
 

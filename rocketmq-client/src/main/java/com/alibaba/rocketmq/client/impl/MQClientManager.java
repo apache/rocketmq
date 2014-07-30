@@ -20,6 +20,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import com.alibaba.rocketmq.client.ClientConfig;
 import com.alibaba.rocketmq.client.impl.factory.MQClientInstance;
+import com.alibaba.rocketmq.remoting.RPCHook;
 
 
 /**
@@ -45,13 +46,13 @@ public class MQClientManager {
     }
 
 
-    public MQClientInstance getAndCreateMQClientInstance(final ClientConfig clientConfig) {
+    public MQClientInstance getAndCreateMQClientInstance(final ClientConfig clientConfig, RPCHook rpcHook) {
         String clientId = clientConfig.buildMQClientId();
         MQClientInstance instance = this.factoryTable.get(clientId);
         if (null == instance) {
             instance =
                     new MQClientInstance(clientConfig.cloneClientConfig(),
-                        this.factoryIndexGenerator.getAndIncrement(), clientId);
+                        this.factoryIndexGenerator.getAndIncrement(), clientId, rpcHook);
             MQClientInstance prev = this.factoryTable.putIfAbsent(clientId, instance);
             if (prev != null) {
                 instance = prev;
@@ -62,6 +63,11 @@ public class MQClientManager {
         }
 
         return instance;
+    }
+
+
+    public MQClientInstance getAndCreateMQClientInstance(final ClientConfig clientConfig) {
+        return getAndCreateMQClientInstance(clientConfig, null);
     }
 
 

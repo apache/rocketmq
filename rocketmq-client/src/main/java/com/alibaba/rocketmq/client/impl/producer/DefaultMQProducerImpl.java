@@ -69,6 +69,7 @@ import com.alibaba.rocketmq.common.protocol.header.CheckTransactionStateRequestH
 import com.alibaba.rocketmq.common.protocol.header.EndTransactionRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.SendMessageRequestHeader;
 import com.alibaba.rocketmq.common.sysflag.MessageSysFlag;
+import com.alibaba.rocketmq.remoting.RPCHook;
 import com.alibaba.rocketmq.remoting.common.RemotingHelper;
 import com.alibaba.rocketmq.remoting.common.RemotingUtil;
 import com.alibaba.rocketmq.remoting.exception.RemotingException;
@@ -102,6 +103,22 @@ public class DefaultMQProducerImpl implements MQProducerInner {
      */
     private ArrayList<CheckForbiddenHook> checkForbiddenHookList = new ArrayList<CheckForbiddenHook>();
 
+    /**
+     * 通信层hook
+     */
+    private final RPCHook rpcHook;
+
+
+    public DefaultMQProducerImpl(final DefaultMQProducer defaultMQProducer, RPCHook rpcHook) {
+        this.defaultMQProducer = defaultMQProducer;
+        this.rpcHook = rpcHook;
+    }
+
+
+    public DefaultMQProducerImpl(final DefaultMQProducer defaultMQProducer) {
+        this(defaultMQProducer, null);
+    }
+
 
     public boolean hasCheckForbiddenHook() {
         return !checkForbiddenHookList.isEmpty();
@@ -121,11 +138,6 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                 hook.checkForbidden(context);
             }
         }
-    }
-
-
-    public DefaultMQProducerImpl(final DefaultMQProducer defaultMQProducer) {
-        this.defaultMQProducer = defaultMQProducer;
     }
 
 
@@ -201,7 +213,8 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             }
 
             this.mQClientFactory =
-                    MQClientManager.getInstance().getAndCreateMQClientInstance(this.defaultMQProducer);
+                    MQClientManager.getInstance().getAndCreateMQClientInstance(this.defaultMQProducer,
+                        rpcHook);
 
             boolean registerOK =
                     mQClientFactory.registerProducer(this.defaultMQProducer.getProducerGroup(), this);

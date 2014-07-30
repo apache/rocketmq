@@ -23,6 +23,7 @@
 	<url>https://github.com/alibaba/rocketmq</url>
 	<description>https://github.com/alibaba/RocketMQ/blob/develop/README.md</description>
 
+
 	<modules>
 		<module>rocketmq-client</module>
 		<module>rocketmq-common</module>
@@ -65,11 +66,11 @@
 		</license>
 	</licenses>
 
-    <scm>
-        <url>http://gitlab.alibaba-inc.com/middleware/rocketmq.git</url>
-        <connection>scm:git:http://gitlab.alibaba-inc.com/middleware/rocketmq.git</connection>
-        <developerConnection>scm:git:http://gitlab.alibaba-inc.com/middleware/rocketmq.git</developerConnection>
-    </scm>
+	<scm>
+		<url>http://gitlab.alibaba-inc.com/middleware/rocketmq.git</url>
+		<connection>scm:git:http://gitlab.alibaba-inc.com/middleware/rocketmq.git</connection>
+		<developerConnection>scm:git:http://gitlab.alibaba-inc.com/middleware/rocketmq.git</developerConnection>
+	</scm>
 
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
