@@ -15,12 +15,15 @@
  */
 package com.alibaba.rocketmq.tools.command.consumer;
 
+import java.util.Iterator;
+import java.util.Map.Entry;
 import java.util.TreeMap;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 
+import com.alibaba.rocketmq.common.MQVersion;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.protocol.body.Connection;
 import com.alibaba.rocketmq.common.protocol.body.ConsumerConnection;
@@ -91,9 +94,10 @@ public class ConsumerStatusSubCommand implements SubCommand {
                             criTable.put(conn.getClientId(), consumerRunningInfo);
                             String filePath = now + "/" + conn.getClientId();
                             MixAll.string2FileNotSafe(consumerRunningInfo.formatString(), filePath);
-                            System.out.printf("%03d  %-40s %s\n",//
+                            System.out.printf("%03d  %-40s %-20s %s\n",//
                                 i++,//
                                 conn.getClientId(),//
+                                MQVersion.getVersionDesc(conn.getVersion()),//
                                 filePath);
                         }
                     }
@@ -102,16 +106,30 @@ public class ConsumerStatusSubCommand implements SubCommand {
                     }
                 }
 
-                boolean subSame = true;
                 if (!criTable.isEmpty()) {
-                    subSame = ConsumerRunningInfo.analyzeSubscription(criTable);
-                }
+                    boolean subSame = ConsumerRunningInfo.analyzeSubscription(criTable);
 
-                if (subSame) {
-                    System.out.println("\n\nSame subscription in the same group of consumer");
-                }
-                else {
-                    System.out.println("\n\nWARN: Different subscription in the same group of consumer!!!");
+                    boolean rebalanceOK = subSame && ConsumerRunningInfo.analyzeRebalance(criTable);
+
+                    if (subSame) {
+                        System.out.println("\n\nSame subscription in the same group of consumer");
+
+                        System.out.printf("\n\nRebalance %s\n", rebalanceOK ? "OK" : "Failed");
+
+                        Iterator<Entry<String, ConsumerRunningInfo>> it = criTable.entrySet().iterator();
+                        while (it.hasNext()) {
+                            Entry<String, ConsumerRunningInfo> next = it.next();
+                            String result =
+                                    ConsumerRunningInfo.analyzeProcessQueue(next.getKey(), next.getValue());
+                            if (result.length() > 0) {
+                                System.out.println(result);
+                            }
+                        }
+                    }
+                    else {
+                        System.out
+                            .println("\n\nWARN: Different subscription in the same group of consumer!!!");
+                    }
                 }
             }
             else {

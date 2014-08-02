@@ -21,6 +21,7 @@ public class ConsumerRunningInfo extends RemotingSerializable {
     public static final String PROP_CONSUME_ORDERLY = "PROP_CONSUMEORDERLY";
     public static final String PROP_CONSUME_TYPE = "PROP_CONSUME_TYPE";
     public static final String PROP_CLIENT_VERSION = "PROP_CLIENT_VERSION";
+    public static final String PROP_CONSUMER_START_TIMESTAMP = "PROP_CONSUMER_START_TIMESTAMP";
 
     // 各种配置及运行数据
     private Properties properties = new Properties();
@@ -191,9 +192,22 @@ public class ConsumerRunningInfo extends RemotingSerializable {
     public static boolean analyzeSubscription(
             final TreeMap<String/* clientId */, ConsumerRunningInfo> criTable) {
         ConsumerRunningInfo prev = criTable.firstEntry().getValue();
-        String property = prev.getProperties().getProperty(ConsumerRunningInfo.PROP_CONSUME_TYPE);
+
+        boolean push = false;
+        {
+            String property = prev.getProperties().getProperty(ConsumerRunningInfo.PROP_CONSUME_TYPE);
+            push = ConsumeType.valueOf(property) == ConsumeType.CONSUME_PASSIVELY;
+        }
+
+        boolean startForAWhile = false;
+        {
+            String property =
+                    prev.getProperties().getProperty(ConsumerRunningInfo.PROP_CONSUMER_START_TIMESTAMP);
+            startForAWhile = (System.currentTimeMillis() - Long.parseLong(property)) > (1000 * 60 * 2);
+        }
+
         // 只检测PUSH
-        if (ConsumeType.valueOf(property) == ConsumeType.CONSUME_PASSIVELY) {
+        if (push && startForAWhile) {
             // 分析订阅关系是否相同
             {
                 Iterator<Entry<String, ConsumerRunningInfo>> it = criTable.entrySet().iterator();
@@ -221,5 +235,71 @@ public class ConsumerRunningInfo extends RemotingSerializable {
         }
 
         return true;
+    }
+
+
+    public static boolean analyzeRebalance(final TreeMap<String/* clientId */, ConsumerRunningInfo> criTable) {
+        return true;
+    }
+
+
+    public static String analyzeProcessQueue(final String clientId, ConsumerRunningInfo info) {
+        StringBuilder sb = new StringBuilder();
+        boolean push = false;
+        {
+            String property = info.getProperties().getProperty(ConsumerRunningInfo.PROP_CONSUME_TYPE);
+            push = ConsumeType.valueOf(property) == ConsumeType.CONSUME_PASSIVELY;
+        }
+
+        boolean orderMsg = false;
+        {
+            String property = info.getProperties().getProperty(ConsumerRunningInfo.PROP_CONSUME_ORDERLY);
+            orderMsg = Boolean.parseBoolean(property);
+        }
+
+        if (push) {
+            Iterator<Entry<MessageQueue, ProcessQueueInfo>> it = info.getMqTable().entrySet().iterator();
+            while (it.hasNext()) {
+                Entry<MessageQueue, ProcessQueueInfo> next = it.next();
+                MessageQueue mq = next.getKey();
+                ProcessQueueInfo pq = next.getValue();
+
+                // 顺序消息
+                if (orderMsg) {
+                    // 没锁住
+                    if (!pq.isLocked()) {
+                        sb.append(String.format("%s %s can't lock for a while, %dms\n", //
+                            clientId,//
+                            mq,//
+                            System.currentTimeMillis() - pq.getLastLockTimestamp()));
+                    }
+                    // 锁住
+                    else {
+                        // Rebalance已经丢弃此队列，但是没有正常释放Lock
+                        if (pq.isDroped() && (pq.getTryUnlockTimes() > 0)) {
+                            sb.append(String.format("%s %s unlock %d times, still failed\n",//
+                                clientId,//
+                                mq,//
+                                pq.getTryUnlockTimes()));
+                        }
+                    }
+
+                    // 事务消息未提交
+                }
+                // 乱序消息
+                else {
+                    long diff = System.currentTimeMillis() - pq.getLastConsumeTimestamp();
+                    // 在有消息的情况下，超过1分钟没再消费消息了
+                    if (diff > (1000 * 60) && pq.getCachedMsgCount() > 0) {
+                        sb.append(String.format("%s %s can't consume for a while, maybe blocked, %dms\n",//
+                            clientId,//
+                            mq, //
+                            diff));
+                    }
+                }
+            }
+        }
+
+        return sb.toString();
     }
 }

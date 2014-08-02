@@ -20,8 +20,6 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import com.alibaba.fastjson.annotation.JSONField;
@@ -191,74 +189,62 @@ public class RemotingCommand {
                 return null;
             }
 
-            Iterator<Entry<String, String>> it = this.extFields.entrySet().iterator();
-            while (it.hasNext()) {
-                Entry<String, String> entry = it.next();
-                String name = entry.getKey();
-                String value = entry.getValue();
-
-                try {
-                    Field field = objectHeader.getClass().getDeclaredField(name);
-                    field.setAccessible(true);
-                    String type = field.getType().getSimpleName();
-                    Object valueParsed = null;
-
-                    if (type.equals("String")) {
-                        valueParsed = value;
-                    }
-                    else if (type.equals("Integer")) {
-                        valueParsed = Integer.parseInt(value);
-                    }
-                    else if (type.equals("Long")) {
-                        valueParsed = Long.parseLong(value);
-                    }
-                    else if (type.equals("Boolean")) {
-                        valueParsed = Boolean.parseBoolean(value);
-                    }
-                    else if (type.equals("Double")) {
-                        valueParsed = Double.parseDouble(value);
-                    }
-                    else if (type.equals("int")) {
-                        valueParsed = Integer.parseInt(value);
-                    }
-                    else if (type.equals("long")) {
-                        valueParsed = Long.parseLong(value);
-                    }
-                    else if (type.equals("boolean")) {
-                        valueParsed = Boolean.parseBoolean(value);
-                    }
-                    else if (type.equals("double")) {
-                        valueParsed = Double.parseDouble(value);
-                    }
-
-                    field.set(objectHeader, valueParsed);
-                }
-                catch (Throwable e) {
-                }
-            }
-
             // 检查返回对象是否有效
             Field[] fields = objectHeader.getClass().getDeclaredFields();
             for (Field field : fields) {
                 if (!Modifier.isStatic(field.getModifiers())) {
-                    String name = field.getName();
-                    if (!name.startsWith("this")) {
-                        Object value = null;
+                    String fieldName = field.getName();
+                    if (!fieldName.startsWith("this")) {
                         try {
-                            field.setAccessible(true);
-                            value = field.get(objectHeader);
-                        }
-                        catch (IllegalArgumentException e) {
-                        }
-                        catch (IllegalAccessException e) {
-                        }
-
-                        // 空值检查
-                        if (null == value) {
-                            Annotation annotation = field.getAnnotation(CFNotNull.class);
-                            if (annotation != null) {
-                                throw new RemotingCommandException("the custom field <" + name + "> is null");
+                            String value = this.extFields.get(fieldName);
+                            if (null == value) {
+                                Annotation annotation = field.getAnnotation(CFNotNull.class);
+                                if (annotation != null) {
+                                    throw new RemotingCommandException("the custom field <" + fieldName
+                                            + "> is null");
+                                }
                             }
+
+                            field.setAccessible(true);
+                            String type = field.getType().getSimpleName();
+                            Object valueParsed = null;
+
+                            if (type.equals("String")) {
+                                valueParsed = value;
+                            }
+                            else if (type.equals("Integer")) {
+                                valueParsed = Integer.parseInt(value);
+                            }
+                            else if (type.equals("Long")) {
+                                valueParsed = Long.parseLong(value);
+                            }
+                            else if (type.equals("Boolean")) {
+                                valueParsed = Boolean.parseBoolean(value);
+                            }
+                            else if (type.equals("Double")) {
+                                valueParsed = Double.parseDouble(value);
+                            }
+                            else if (type.equals("int")) {
+                                valueParsed = Integer.parseInt(value);
+                            }
+                            else if (type.equals("long")) {
+                                valueParsed = Long.parseLong(value);
+                            }
+                            else if (type.equals("boolean")) {
+                                valueParsed = Boolean.parseBoolean(value);
+                            }
+                            else if (type.equals("double")) {
+                                valueParsed = Double.parseDouble(value);
+                            }
+                            else {
+                                throw new RemotingCommandException("the custom field <" + fieldName
+                                        + "> type is not supported");
+                            }
+
+                            field.set(objectHeader, valueParsed);
+
+                        }
+                        catch (Throwable e) {
                         }
                     }
                 }

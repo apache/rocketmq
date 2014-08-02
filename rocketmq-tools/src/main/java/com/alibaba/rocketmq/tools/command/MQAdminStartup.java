@@ -32,7 +32,7 @@ import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.remoting.RPCHook;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 import com.alibaba.rocketmq.srvutil.ServerUtil;
-import com.alibaba.rocketmq.tools.command.broker.BrokerStatsSubCommand;
+import com.alibaba.rocketmq.tools.command.broker.BrokerStatusSubCommand;
 import com.alibaba.rocketmq.tools.command.broker.CleanExpiredCQSubCommand;
 import com.alibaba.rocketmq.tools.command.broker.UpdateBrokerConfigSubCommand;
 import com.alibaba.rocketmq.tools.command.cluster.ClusterListSubCommand;
@@ -57,7 +57,7 @@ import com.alibaba.rocketmq.tools.command.offset.ResetOffsetByTimeCommand;
 import com.alibaba.rocketmq.tools.command.topic.DeleteTopicSubCommand;
 import com.alibaba.rocketmq.tools.command.topic.TopicListSubCommand;
 import com.alibaba.rocketmq.tools.command.topic.TopicRouteSubCommand;
-import com.alibaba.rocketmq.tools.command.topic.TopicStatsSubCommand;
+import com.alibaba.rocketmq.tools.command.topic.TopicStatusSubCommand;
 import com.alibaba.rocketmq.tools.command.topic.UpdateOrderConfCommand;
 import com.alibaba.rocketmq.tools.command.topic.UpdateTopicSubCommand;
 
@@ -78,9 +78,9 @@ public class MQAdminStartup {
         subCommandList.add(new UpdateBrokerConfigSubCommand());
 
         subCommandList.add(new TopicRouteSubCommand());
-        subCommandList.add(new TopicStatsSubCommand());
+        subCommandList.add(new TopicStatusSubCommand());
 
-        subCommandList.add(new BrokerStatsSubCommand());
+        subCommandList.add(new BrokerStatusSubCommand());
         subCommandList.add(new QueryMsgByIdSubCommand());
         subCommandList.add(new QueryMsgByKeySubCommand());
         subCommandList.add(new QueryMsgByOffsetSubCommand());

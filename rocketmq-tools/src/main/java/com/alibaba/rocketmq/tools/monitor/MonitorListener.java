@@ -1,5 +1,7 @@
 package com.alibaba.rocketmq.tools.monitor;
 
+import java.util.Map;
+
 import com.alibaba.rocketmq.common.protocol.body.ConsumerRunningInfo;
 
 
@@ -34,7 +36,7 @@ public interface MonitorListener {
     /**
      * 汇报Consumer内部运行数据结构
      */
-    public void reportConsumerRunningInfo(ConsumerRunningInfo consumerRunningInfo);
+    public void reportConsumerRunningInfo(Map<String/* clientId */, ConsumerRunningInfo> criTable);
 
 
     /**

@@ -35,17 +35,17 @@ import com.alibaba.rocketmq.tools.command.SubCommand;
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-8-14
  */
-public class BrokerStatsSubCommand implements SubCommand {
+public class BrokerStatusSubCommand implements SubCommand {
 
     @Override
     public String commandName() {
-        return "brokerStats";
+        return "brokerStatus";
     }
 
 
     @Override
     public String commandDesc() {
-        return "Fetch broker runtime stats data";
+        return "Fetch broker runtime status data";
     }
 
 
