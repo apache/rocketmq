@@ -38,17 +38,17 @@ import com.alibaba.rocketmq.tools.command.SubCommand;
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-8-3
  */
-public class TopicStatsSubCommand implements SubCommand {
+public class TopicStatusSubCommand implements SubCommand {
 
     @Override
     public String commandName() {
-        return "topicStats";
+        return "topicStatus";
     }
 
 
     @Override
     public String commandDesc() {
-        return "Examine topic stats info";
+        return "Examine topic Status info";
     }
 
 

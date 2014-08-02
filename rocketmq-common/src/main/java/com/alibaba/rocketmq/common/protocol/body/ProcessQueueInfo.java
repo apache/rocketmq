@@ -1,5 +1,8 @@
 package com.alibaba.rocketmq.common.protocol.body;
 
+import com.alibaba.rocketmq.common.UtilAll;
+
+
 public class ProcessQueueInfo {
     /**
      * 消费到哪里，提交的offset
@@ -169,7 +172,9 @@ public class ProcessQueueInfo {
                 + cachedMsgCount + ", transactionMsgMinOffset=" + transactionMsgMinOffset
                 + ", transactionMsgMaxOffset=" + transactionMsgMaxOffset + ", transactionMsgCount="
                 + transactionMsgCount + ", locked=" + locked + ", tryUnlockTimes=" + tryUnlockTimes
-                + ", lastLockTimestamp=" + lastLockTimestamp + ", droped=" + droped + ", lastPullTimestamp="
-                + lastPullTimestamp + ", lastConsumeTimestamp=" + lastConsumeTimestamp + "]";
+                + ", lastLockTimestamp=" + UtilAll.timeMillisToHumanString(lastLockTimestamp) + ", droped="
+                + droped + ", lastPullTimestamp=" + UtilAll.timeMillisToHumanString(lastPullTimestamp)
+                + ", lastConsumeTimestamp=" + UtilAll.timeMillisToHumanString(lastConsumeTimestamp) + "]";
+
     }
 }

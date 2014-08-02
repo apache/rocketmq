@@ -1,4 +1,4 @@
-### RocketMQ是什么？
+### RocketMQ是什么？[![Build Status](https://travis-ci.org/alibaba/rocketmq.svg?branch=develop)](https://travis-ci.org/alibaba/rocketmq)
 RocketMQ是一款分布式、队列模型的消息中间件，具有以下特点：
 
 * 支持严格的消息顺序
