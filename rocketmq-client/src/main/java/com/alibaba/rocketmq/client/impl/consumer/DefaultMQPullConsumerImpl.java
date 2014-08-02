@@ -56,6 +56,7 @@ import com.alibaba.rocketmq.common.protocol.heartbeat.ConsumeType;
 import com.alibaba.rocketmq.common.protocol.heartbeat.MessageModel;
 import com.alibaba.rocketmq.common.protocol.heartbeat.SubscriptionData;
 import com.alibaba.rocketmq.common.sysflag.PullSysFlag;
+import com.alibaba.rocketmq.remoting.RPCHook;
 import com.alibaba.rocketmq.remoting.exception.RemotingException;
 
 
@@ -79,9 +80,12 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
     // Consumer启动时间
     private final long consumerStartTimestamp = System.currentTimeMillis();
 
+    private final RPCHook rpcHook;
 
-    public DefaultMQPullConsumerImpl(final DefaultMQPullConsumer defaultMQPullConsumer) {
+
+    public DefaultMQPullConsumerImpl(final DefaultMQPullConsumer defaultMQPullConsumer, final RPCHook rpcHook) {
         this.defaultMQPullConsumer = defaultMQPullConsumer;
+        this.rpcHook = rpcHook;
     }
 
 
@@ -497,7 +501,8 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
             }
 
             this.mQClientFactory =
-                    MQClientManager.getInstance().getAndCreateMQClientInstance(this.defaultMQPullConsumer);
+                    MQClientManager.getInstance().getAndCreateMQClientInstance(this.defaultMQPullConsumer,
+                        this.rpcHook);
 
             // 初始化Rebalance变量
             this.rebalanceImpl.setConsumerGroup(this.defaultMQPullConsumer.getConsumerGroup());
