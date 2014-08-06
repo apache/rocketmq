@@ -15,23 +15,6 @@
  */
 package com.alibaba.rocketmq.store;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.alibaba.rocketmq.common.ServiceThread;
 import com.alibaba.rocketmq.common.SystemClock;
 import com.alibaba.rocketmq.common.ThreadFactoryImpl;
@@ -49,6 +32,20 @@ import com.alibaba.rocketmq.store.ha.HAService;
 import com.alibaba.rocketmq.store.index.IndexService;
 import com.alibaba.rocketmq.store.index.QueryOffsetResult;
 import com.alibaba.rocketmq.store.schedule.ScheduleMessageService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.File;
+import java.io.IOException;
+import java.net.SocketAddress;
+import java.nio.ByteBuffer;
+import java.util.*;
+import java.util.Map.Entry;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 
 /**
@@ -1779,5 +1776,53 @@ public class DefaultMessageStore implements MessageStore {
         }
 
         return 0;
+    }
+
+
+    public Map<Long, String> getMessageIds(final String topic, final int queueId, long minOffset,
+            long maxOffset, SocketAddress storeHost) {
+        Map<Long, String> messageIds = new HashMap<Long, String>();
+        if (this.shutdown) {
+            return messageIds;
+        }
+
+        ConsumeQueue consumeQueue = findConsumeQueue(topic, queueId);
+        if (consumeQueue != null) {
+            minOffset = Math.max(minOffset, consumeQueue.getMinOffsetInQuque());
+            maxOffset = Math.min(maxOffset, consumeQueue.getMaxOffsetInQuque() - 1);
+
+            if (maxOffset == 0) {
+                return messageIds;
+            }
+
+            long nextOffset = minOffset;
+            while (nextOffset <= maxOffset) {
+                SelectMapedBufferResult bufferConsumeQueue = consumeQueue.getIndexBuffer(nextOffset);
+                if (bufferConsumeQueue != null) {
+                    try {
+                        int i = 0;
+                        for (; i < bufferConsumeQueue.getSize(); i += ConsumeQueue.CQStoreUnitSize) {
+                            long offsetPy = bufferConsumeQueue.getByteBuffer().getLong();
+                            final ByteBuffer msgIdMemory = ByteBuffer.allocate(MessageDecoder.MSG_ID_LENGTH);
+                            String msgId =
+                                    MessageDecoder.createMessageId(msgIdMemory,
+                                        MessageExt.SocketAddress2ByteBuffer(storeHost), offsetPy);
+                            messageIds.put(nextOffset++, msgId);
+                            if (nextOffset > maxOffset) {
+                                return messageIds;
+                            }
+                        }
+                    }
+                    finally {
+                        // 必须释放资源
+                        bufferConsumeQueue.release();
+                    }
+                }
+                else {
+                    return messageIds;
+                }
+            }
+        }
+        return messageIds;
     }
 }

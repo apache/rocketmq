@@ -15,18 +15,11 @@
  */
 package com.alibaba.rocketmq.broker.processor;
 
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelFutureListener;
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.FileRegion;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.alibaba.rocketmq.broker.BrokerController;
 import com.alibaba.rocketmq.broker.client.ConsumerGroupInfo;
 import com.alibaba.rocketmq.broker.longpolling.PullRequest;
+import com.alibaba.rocketmq.broker.mqtrace.ConsumeMessageContext;
+import com.alibaba.rocketmq.broker.mqtrace.ConsumeMessageHook;
 import com.alibaba.rocketmq.broker.pagecache.ManyMessageTransfer;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.TopicConfig;
@@ -54,6 +47,14 @@ import com.alibaba.rocketmq.store.GetMessageResult;
 import com.alibaba.rocketmq.store.MessageExtBrokerInner;
 import com.alibaba.rocketmq.store.PutMessageResult;
 import com.alibaba.rocketmq.store.config.BrokerRole;
+import io.netty.channel.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.net.InetSocketAddress;
+import java.net.SocketAddress;
+import java.util.List;
+import java.util.Map;
 
 
 /**
@@ -310,6 +311,29 @@ public class PullMessageProcessor implements NettyRequestProcessor {
             switch (getMessageResult.getStatus()) {
             case FOUND:
                 response.setCode(ResponseCode.SUCCESS);
+
+                // 消息轨迹：记录客户端拉取的消息记录（不表示消费成功）
+                if (this.hasConsumeMessageHook()) {
+                    // 执行hook
+                    ConsumeMessageContext context = new ConsumeMessageContext();
+                    context.setConsumerGroup(requestHeader.getConsumerGroup());
+                    context.setTopic(requestHeader.getTopic());
+                    context.setClientHost(RemotingHelper.parseChannelRemoteAddr(channel));
+                    context.setStoreHost(this.brokerController.getBrokerAddr());
+                    context.setQueueId(requestHeader.getQueueId());
+
+                    final SocketAddress storeHost =
+                            new InetSocketAddress(brokerController.getBrokerConfig().getBrokerIP1(),
+                                brokerController.getNettyServerConfig().getListenPort());
+                    Map<Long, String> messageIds =
+                            this.brokerController.getMessageStore().getMessageIds(requestHeader.getTopic(),
+                                requestHeader.getQueueId(), requestHeader.getQueueOffset(),
+                                requestHeader.getQueueOffset() + getMessageResult.getMessageCount(),
+                                storeHost);
+                    context.setMessageIds(messageIds);
+                    this.executeConsumeMessageHookBefore(context);
+                }
+
                 break;
             case MESSAGE_WAS_REMOVING:
                 response.setCode(ResponseCode.PULL_RETRY_IMMEDIATELY);
@@ -447,5 +471,33 @@ public class PullMessageProcessor implements NettyRequestProcessor {
         }
 
         return response;
+    }
+
+    /**
+     * 发送每条消息会回调
+     */
+    private List<ConsumeMessageHook> consumeMessageHookList;
+
+
+    public boolean hasConsumeMessageHook() {
+        return consumeMessageHookList != null && !this.consumeMessageHookList.isEmpty();
+    }
+
+
+    public void registerConsumeMessageHook(List<ConsumeMessageHook> sendMessageHookList) {
+        this.consumeMessageHookList = sendMessageHookList;
+    }
+
+
+    public void executeConsumeMessageHookBefore(final ConsumeMessageContext context) {
+        if (hasConsumeMessageHook()) {
+            for (ConsumeMessageHook hook : this.consumeMessageHookList) {
+                try {
+                    hook.consumeMessageBefore(context);
+                }
+                catch (Throwable e) {
+                }
+            }
+        }
     }
 }
