@@ -15,11 +15,13 @@
  */
 package com.alibaba.rocketmq.store;
 
-import java.util.HashMap;
-import java.util.Set;
-
 import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.common.protocol.heartbeat.SubscriptionData;
+
+import java.net.SocketAddress;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
 
 
 /**
@@ -187,4 +189,11 @@ public interface MessageStore {
      * 清除失效的消费队列
      */
     public void cleanExpiredConsumerQueue();
+
+
+    /**
+     * 批量获取 messageId
+     */
+    public Map<Long, String> getMessageIds(final String topic, int queueId, long minOffset,
+            final long maxOffset, SocketAddress storeHost);
 }

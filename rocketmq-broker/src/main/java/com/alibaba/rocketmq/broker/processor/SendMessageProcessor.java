@@ -15,16 +15,9 @@
  */
 package com.alibaba.rocketmq.broker.processor;
 
-import io.netty.channel.ChannelHandlerContext;
-
-import java.net.InetSocketAddress;
-import java.net.SocketAddress;
-import java.util.Random;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.alibaba.rocketmq.broker.BrokerController;
+import com.alibaba.rocketmq.broker.mqtrace.SendMessageContext;
+import com.alibaba.rocketmq.broker.mqtrace.SendMessageHook;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.TopicConfig;
 import com.alibaba.rocketmq.common.TopicFilterType;
@@ -50,6 +43,14 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 import com.alibaba.rocketmq.store.MessageExtBrokerInner;
 import com.alibaba.rocketmq.store.PutMessageResult;
 import com.alibaba.rocketmq.store.config.StorePathConfigHelper;
+import io.netty.channel.ChannelHandlerContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.net.InetSocketAddress;
+import java.net.SocketAddress;
+import java.util.List;
+import java.util.Random;
 
 
 /**
@@ -80,7 +81,34 @@ public class SendMessageProcessor implements NettyRequestProcessor {
             throws RemotingCommandException {
         switch (request.getCode()) {
         case RequestCode.SEND_MESSAGE:
-            return this.sendMessage(ctx, request);
+            SendMessageContext context = null;
+            // 消息轨迹：记录到达 broker 的消息
+            if (this.hasSendMessageHook()) {
+                final SendMessageRequestHeader requestHeader =
+                        (SendMessageRequestHeader) request
+                            .decodeCommandCustomHeader(SendMessageRequestHeader.class);
+                context = new SendMessageContext();
+                context.setProducerGroup(requestHeader.getProducerGroup());
+                context.setTopic(requestHeader.getTopic());
+                context.setMsgProps(requestHeader.getProperties());
+                context.setBornHost(RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
+                context.setBrokerAddr(this.brokerController.getBrokerAddr());
+                this.executeSendMessageHookBefore(context);
+            }
+
+            final RemotingCommand response = this.sendMessage(ctx, request);
+
+            // 消息轨迹：记录发送成功的消息
+            if (this.hasSendMessageHook()) {
+                final SendMessageResponseHeader responseHeader =
+                        (SendMessageResponseHeader) response.readCustomHeader();
+                context.setResponse(response);
+                context.setMsgId(responseHeader.getMsgId());
+                context.setQueueId(responseHeader.getQueueId());
+                context.setQueueOffset(responseHeader.getQueueOffset());
+                this.executeSendMessageHookAfter(context);
+            }
+            return response;
         case RequestCode.CONSUMER_SEND_MSG_BACK:
             return this.consumerSendMsgBack(ctx, request);
         default:
@@ -472,5 +500,46 @@ public class SendMessageProcessor implements NettyRequestProcessor {
 
     public SocketAddress getStoreHost() {
         return storeHost;
+    }
+
+    /**
+     * 发送每条消息会回调
+     */
+    private List<SendMessageHook> sendMessageHookList;
+
+
+    public boolean hasSendMessageHook() {
+        return sendMessageHookList != null && !this.sendMessageHookList.isEmpty();
+    }
+
+
+    public void registerSendMessageHook(List<SendMessageHook> sendMessageHookList) {
+        this.sendMessageHookList = sendMessageHookList;
+    }
+
+
+    public void executeSendMessageHookBefore(final SendMessageContext context) {
+        if (hasSendMessageHook()) {
+            for (SendMessageHook hook : this.sendMessageHookList) {
+                try {
+                    hook.sendMessageBefore(context);
+                }
+                catch (Throwable e) {
+                }
+            }
+        }
+    }
+
+
+    public void executeSendMessageHookAfter(final SendMessageContext context) {
+        if (hasSendMessageHook()) {
+            for (SendMessageHook hook : this.sendMessageHookList) {
+                try {
+                    hook.sendMessageAfter(context);
+                }
+                catch (Throwable e) {
+                }
+            }
+        }
     }
 }

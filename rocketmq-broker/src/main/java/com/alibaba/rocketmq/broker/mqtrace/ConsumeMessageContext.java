@@ -13,23 +13,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.alibaba.rocketmq.client.hook;
+package com.alibaba.rocketmq.broker.mqtrace;
 
-import com.alibaba.rocketmq.common.message.MessageExt;
-import com.alibaba.rocketmq.common.message.MessageQueue;
-
-import java.util.List;
-import java.util.Properties;
+import java.util.Map;
 
 
 public class ConsumeMessageContext {
     private String consumerGroup;
-    private List<MessageExt> msgList;
-    private MessageQueue mq;
+    private String topic;
+    private Integer queueId;
+    private String clientHost;
+    private String storeHost;
+    private Map<Long, String> messageIds;
     private boolean success;
     private String status;
-    private Object mqTraceContext;
-    private Properties properties;
 
 
     public String getConsumerGroup() {
@@ -42,23 +39,43 @@ public class ConsumeMessageContext {
     }
 
 
-    public List<MessageExt> getMsgList() {
-        return msgList;
+    public String getTopic() {
+        return topic;
     }
 
 
-    public void setMsgList(List<MessageExt> msgList) {
-        this.msgList = msgList;
+    public void setTopic(String topic) {
+        this.topic = topic;
     }
 
 
-    public MessageQueue getMq() {
-        return mq;
+    public Integer getQueueId() {
+        return queueId;
     }
 
 
-    public void setMq(MessageQueue mq) {
-        this.mq = mq;
+    public void setQueueId(Integer queueId) {
+        this.queueId = queueId;
+    }
+
+
+    public String getClientHost() {
+        return clientHost;
+    }
+
+
+    public void setClientHost(String clientHost) {
+        this.clientHost = clientHost;
+    }
+
+
+    public Map<Long, String> getMessageIds() {
+        return messageIds;
+    }
+
+
+    public void setMessageIds(Map<Long, String> messageIds) {
+        this.messageIds = messageIds;
     }
 
 
@@ -72,31 +89,6 @@ public class ConsumeMessageContext {
     }
 
 
-    public Object getMqTraceContext() {
-        return mqTraceContext;
-    }
-
-
-    public void setMqTraceContext(Object mqTraceContext) {
-        this.mqTraceContext = mqTraceContext;
-    }
-
-
-    public Properties getProperties() {
-        return properties;
-    }
-
-
-    public void setProperties(Properties properties) {
-        this.properties = properties;
-    }
-
-
-    public void clearProperty() {
-        this.properties.clear();
-    }
-
-
     public String getStatus() {
         return status;
     }
@@ -104,5 +96,15 @@ public class ConsumeMessageContext {
 
     public void setStatus(String status) {
         this.status = status;
+    }
+
+
+    public String getStoreHost() {
+        return storeHost;
+    }
+
+
+    public void setStoreHost(String storeHost) {
+        this.storeHost = storeHost;
     }
 }
