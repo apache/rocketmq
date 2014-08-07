@@ -1,4 +1,4 @@
-package com.alibaba.rocketmq.tools.msgcheck;
+package com.alibaba.rocketmq.tools.command.message;
 
 import java.io.File;
 import java.nio.ByteBuffer;
