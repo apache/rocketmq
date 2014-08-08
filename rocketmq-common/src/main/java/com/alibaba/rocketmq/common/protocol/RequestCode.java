@@ -147,4 +147,7 @@ public class RequestCode {
     // 通过Broker查询Consumer内存数据
     // 2014-07-19 Add By shijia
     public static final int GET_CONSUMER_RUNNING_INFO = 307;
+
+    // 查找被修正 offset (转发组件）
+    public static final int QUERY_CORRECTION_OFFSET = 308;
 }
