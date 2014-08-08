@@ -173,6 +173,10 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
 
         case RequestCode.GET_CONSUMER_RUNNING_INFO:
             return this.getConsumerRunningInfo(ctx, request);
+
+            // 查找被修正 offset (转发组件）
+        case RequestCode.QUERY_CORRECTION_OFFSET:
+            return this.queryCorrectionOffset(ctx, request);
         default:
             break;
         }
@@ -1156,5 +1160,37 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 }
             }
         }
+    }
+
+
+    private RemotingCommand queryCorrectionOffset(ChannelHandlerContext ctx, RemotingCommand request)
+            throws RemotingCommandException {
+        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
+        QueryCorrectionOffsetHeader requestHeader =
+                (QueryCorrectionOffsetHeader) request
+                    .decodeCommandCustomHeader(QueryCorrectionOffsetHeader.class);
+
+        Map<Integer, Long> correctionOffset =
+                this.brokerController.getConsumerOffsetManager().queryMinOffsetInAllGroup(
+                    requestHeader.getTopic());
+
+        Map<Integer, Long> compareOffset =
+                this.brokerController.getConsumerOffsetManager().queryOffset(requestHeader.getTopic(),
+                    requestHeader.getGroup());
+
+        if (compareOffset != null && !compareOffset.isEmpty()) {
+            for (Integer queueId : compareOffset.keySet()) {
+                correctionOffset.put(queueId,
+                    correctionOffset.get(queueId) > compareOffset.get(queueId) ? Long.MAX_VALUE
+                            : correctionOffset.get(queueId));
+            }
+        }
+
+        QueryCorrectionOffsetBody body = new QueryCorrectionOffsetBody();
+        body.setCorrectionOffsets(correctionOffset);
+        response.setBody(body.encode());
+        response.setCode(ResponseCode.SUCCESS);
+        response.setRemark(null);
+        return response;
     }
 }

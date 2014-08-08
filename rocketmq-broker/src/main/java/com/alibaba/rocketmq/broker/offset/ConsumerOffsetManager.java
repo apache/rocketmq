@@ -15,20 +15,17 @@
  */
 package com.alibaba.rocketmq.broker.offset;
 
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.alibaba.rocketmq.broker.BrokerController;
 import com.alibaba.rocketmq.broker.BrokerPathConfigHelper;
 import com.alibaba.rocketmq.common.ConfigManager;
 import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.remoting.protocol.RemotingSerializable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.*;
+import java.util.Map.Entry;
+import java.util.concurrent.ConcurrentHashMap;
 
 
 /**
@@ -186,5 +183,33 @@ public class ConsumerOffsetManager extends ConfigManager {
 
     public void setOffsetTable(ConcurrentHashMap<String, ConcurrentHashMap<Integer, Long>> offsetTable) {
         this.offsetTable = offsetTable;
+    }
+
+
+    public Map<Integer, Long> queryMinOffsetInAllGroup(final String topic) {
+        Map<Integer, Long> queueMinOffset = new HashMap<Integer, Long>();
+        Set<String> topicGroups = this.offsetTable.keySet();
+        for (String topicGroup : topicGroups) {
+            String[] topicGroupArr = topicGroup.split(TOPIC_GROUP_SEPARATOR);
+            if (topic.equals(topicGroupArr[0])) {
+                for (Entry<Integer, Long> entry : this.offsetTable.get(topicGroup).entrySet()) {
+                    Long offset = queueMinOffset.get(entry.getKey());
+                    if (offset == null) {
+                        queueMinOffset.put(entry.getKey(), Math.min(Long.MAX_VALUE, entry.getValue()));
+                    }
+                    else {
+                        queueMinOffset.put(entry.getKey(), Math.min(entry.getValue(), offset));
+                    }
+                }
+            }
+        }
+        return queueMinOffset;
+    }
+
+
+    public Map<Integer, Long> queryOffset(final String group, final String topic) {
+        // topic@group
+        String key = topic + TOPIC_GROUP_SEPARATOR + group;
+        return this.offsetTable.get(key);
     }
 }
