@@ -111,7 +111,7 @@ public abstract class NettyRemotingAbstract {
             while (!this.isStoped()) {
                 try {
                     NettyEvent event = this.eventQueue.poll(3000, TimeUnit.MILLISECONDS);
-                    if (event != null) {
+                    if (event != null && listener != null) {
                         switch (event.getType()) {
                         case IDLE:
                             listener.onChannelIdle(event.getRemoteAddr(), event.getChannel());
