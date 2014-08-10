@@ -227,6 +227,11 @@ public class SendMessageProcessor implements NettyRequestProcessor {
         msgInner.setStoreHost(this.getStoreHost());
         msgInner.setReconsumeTimes(msgExt.getReconsumeTimes() + 1);
 
+        // 保存源生消息的 msgId
+        String originMsgId = MessageAccessor.getOriginMessageId(msgExt);
+        MessageAccessor.setOriginMessageId(msgInner, UtilAll.isBlank(originMsgId) ? msgExt.getMsgId()
+                : originMsgId);
+
         PutMessageResult putMessageResult = this.brokerController.getMessageStore().putMessage(msgInner);
         if (putMessageResult != null) {
             switch (putMessageResult.getPutMessageStatus()) {
