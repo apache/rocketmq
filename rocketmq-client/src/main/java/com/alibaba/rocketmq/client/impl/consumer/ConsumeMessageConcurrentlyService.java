@@ -15,6 +15,18 @@
  */
 package com.alibaba.rocketmq.client.impl.consumer;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+
+import org.slf4j.Logger;
+
 import com.alibaba.rocketmq.client.consumer.DefaultMQPushConsumer;
 import com.alibaba.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext;
 import com.alibaba.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
@@ -27,13 +39,9 @@ import com.alibaba.rocketmq.common.ThreadFactoryImpl;
 import com.alibaba.rocketmq.common.message.MessageConst;
 import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.common.message.MessageQueue;
+import com.alibaba.rocketmq.common.protocol.body.CMResult;
+import com.alibaba.rocketmq.common.protocol.body.ConsumeMessageDirectlyResult;
 import com.alibaba.rocketmq.remoting.common.RemotingHelper;
-import org.slf4j.Logger;
-
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.concurrent.*;
 
 
 /**
@@ -105,17 +113,6 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
         }
 
 
-        private void resetRetryTopic(final List<MessageExt> msgs) {
-            final String groupTopic = MixAll.getRetryTopic(consumerGroup);
-            for (MessageExt msg : msgs) {
-                String retryTopic = msg.getProperty(MessageConst.PROPERTY_RETRY_TOPIC);
-                if (retryTopic != null && groupTopic.equals(msg.getTopic())) {
-                    msg.setTopic(retryTopic);
-                }
-            }
-        }
-
-
         @Override
         public void run() {
             if (this.processQueue.isDroped()) {
@@ -145,7 +142,7 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
             long beginTimestamp = System.currentTimeMillis();
 
             try {
-                this.resetRetryTopic(msgs);
+                ConsumeMessageConcurrentlyService.this.resetRetryTopic(msgs);
                 status = listener.consumeMessage(Collections.unmodifiableList(msgs), context);
             }
             catch (Throwable e) {
@@ -168,8 +165,8 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
 
             // 执行Hook
             if (ConsumeMessageConcurrentlyService.this.defaultMQPushConsumerImpl.hasHook()) {
-	            consumeMessageContext.setStatus(status.toString());
-	            consumeMessageContext.setSuccess(ConsumeConcurrentlyStatus.CONSUME_SUCCESS == status);
+                consumeMessageContext.setStatus(status.toString());
+                consumeMessageContext.setSuccess(ConsumeConcurrentlyStatus.CONSUME_SUCCESS == status);
                 ConsumeMessageConcurrentlyService.this.defaultMQPushConsumerImpl
                     .executeHookAfter(consumeMessageContext);
             }
@@ -389,5 +386,63 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
     @Override
     public int getCorePoolSize() {
         return this.consumeExecutor.getCorePoolSize();
+    }
+
+
+    @Override
+    public ConsumeMessageDirectlyResult consumeMessageDirectly(MessageExt msg, String brokerName) {
+        ConsumeMessageDirectlyResult result = new ConsumeMessageDirectlyResult();
+        result.setOrder(false);
+        result.setAutoCommit(true);
+
+        List<MessageExt> msgs = new ArrayList<MessageExt>();
+        MessageQueue mq = new MessageQueue();
+        mq.setBrokerName(brokerName);
+        mq.setTopic(msg.getTopic());
+        mq.setQueueId(msg.getQueueId());
+
+        ConsumeConcurrentlyContext context = new ConsumeConcurrentlyContext(mq);
+
+        this.resetRetryTopic(msgs);
+
+        final long beginTime = System.currentTimeMillis();
+
+        try {
+            ConsumeConcurrentlyStatus status = this.messageListener.consumeMessage(msgs, context);
+            if (status != null) {
+                switch (status) {
+                case CONSUME_SUCCESS:
+                    result.setConsumeResult(CMResult.CR_SUCCESS);
+                    break;
+                case RECONSUME_LATER:
+                    result.setConsumeResult(CMResult.CR_LATER);
+                    break;
+                default:
+                    break;
+                }
+            }
+            else {
+                result.setConsumeResult(CMResult.CR_RETURN_NULL);
+            }
+        }
+        catch (Throwable e) {
+            result.setConsumeResult(CMResult.CR_THROW_EXCEPTION);
+            result.setRemark(RemotingHelper.exceptionSimpleDesc(e));
+        }
+
+        result.setSpentTimeMills(System.currentTimeMillis() - beginTime);
+
+        return result;
+    }
+
+
+    public void resetRetryTopic(final List<MessageExt> msgs) {
+        final String groupTopic = MixAll.getRetryTopic(consumerGroup);
+        for (MessageExt msg : msgs) {
+            String retryTopic = msg.getProperty(MessageConst.PROPERTY_RETRY_TOPIC);
+            if (retryTopic != null && groupTopic.equals(msg.getTopic())) {
+                msg.setTopic(retryTopic);
+            }
+        }
     }
 }
