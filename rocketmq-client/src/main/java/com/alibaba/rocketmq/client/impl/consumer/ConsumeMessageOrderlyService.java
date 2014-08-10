@@ -15,6 +15,18 @@
  */
 package com.alibaba.rocketmq.client.impl.consumer;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+
+import org.slf4j.Logger;
+
 import com.alibaba.rocketmq.client.consumer.DefaultMQPushConsumer;
 import com.alibaba.rocketmq.client.consumer.listener.ConsumeOrderlyContext;
 import com.alibaba.rocketmq.client.consumer.listener.ConsumeOrderlyStatus;
@@ -25,13 +37,10 @@ import com.alibaba.rocketmq.client.stat.ConsumerStatsManager;
 import com.alibaba.rocketmq.common.ThreadFactoryImpl;
 import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.common.message.MessageQueue;
+import com.alibaba.rocketmq.common.protocol.body.CMResult;
+import com.alibaba.rocketmq.common.protocol.body.ConsumeMessageDirectlyResult;
 import com.alibaba.rocketmq.common.protocol.heartbeat.MessageModel;
 import com.alibaba.rocketmq.remoting.common.RemotingHelper;
-import org.slf4j.Logger;
-
-import java.util.Collections;
-import java.util.List;
-import java.util.concurrent.*;
 
 
 /**
@@ -476,4 +485,56 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
     public int getCorePoolSize() {
         return this.consumeExecutor.getCorePoolSize();
     }
+
+
+    @Override
+    public ConsumeMessageDirectlyResult consumeMessageDirectly(MessageExt msg, String brokerName) {
+        ConsumeMessageDirectlyResult result = new ConsumeMessageDirectlyResult();
+        result.setOrder(true);
+
+        List<MessageExt> msgs = new ArrayList<MessageExt>();
+        MessageQueue mq = new MessageQueue();
+        mq.setBrokerName(brokerName);
+        mq.setTopic(msg.getTopic());
+        mq.setQueueId(msg.getQueueId());
+
+        ConsumeOrderlyContext context = new ConsumeOrderlyContext(mq);
+
+        final long beginTime = System.currentTimeMillis();
+
+        try {
+            ConsumeOrderlyStatus status = this.messageListener.consumeMessage(msgs, context);
+            if (status != null) {
+                switch (status) {
+                case COMMIT:
+                    result.setConsumeResult(CMResult.CR_COMMIT);
+                    break;
+                case ROLLBACK:
+                    result.setConsumeResult(CMResult.CR_ROLLBACK);
+                    break;
+                case SUCCESS:
+                    result.setConsumeResult(CMResult.CR_SUCCESS);
+                    break;
+                case SUSPEND_CURRENT_QUEUE_A_MOMENT:
+                    result.setConsumeResult(CMResult.CR_LATER);
+                    break;
+                default:
+                    break;
+                }
+            }
+            else {
+                result.setConsumeResult(CMResult.CR_RETURN_NULL);
+            }
+        }
+        catch (Throwable e) {
+            result.setConsumeResult(CMResult.CR_THROW_EXCEPTION);
+            result.setRemark(RemotingHelper.exceptionSimpleDesc(e));
+        }
+
+        result.setAutoCommit(context.isAutoCommit());
+        result.setSpentTimeMills(System.currentTimeMillis() - beginTime);
+
+        return result;
+    }
+
 }
