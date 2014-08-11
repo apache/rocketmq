@@ -108,7 +108,7 @@ public class Broker2Client {
     }
 
 
-    public RemotingCommand consumeMessageDirectly(//
+    public RemotingCommand callClient(//
             final Channel channel,//
             final RemotingCommand request//
     ) throws RemotingSendRequestException, RemotingTimeoutException, InterruptedException {
