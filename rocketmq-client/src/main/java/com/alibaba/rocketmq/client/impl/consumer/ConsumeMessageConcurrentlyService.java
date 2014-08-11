@@ -428,9 +428,17 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
         catch (Throwable e) {
             result.setConsumeResult(CMResult.CR_THROW_EXCEPTION);
             result.setRemark(RemotingHelper.exceptionSimpleDesc(e));
+
+            log.warn(String.format("consumeMessageDirectly exception: {} Group: {} Msgs: {} MQ: {}",//
+                RemotingHelper.exceptionSimpleDesc(e),//
+                ConsumeMessageConcurrentlyService.this.consumerGroup,//
+                msgs,//
+                mq), e);
         }
 
         result.setSpentTimeMills(System.currentTimeMillis() - beginTime);
+
+        log.warn("consumeMessageDirectly Result: {}", result);
 
         return result;
     }
