@@ -38,8 +38,8 @@ public class PushConsumer {
          * 注意：ConsumerGroupName需要由应用来保证唯一
          */
         DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("CID_222");
-        consumer.setNamesrvAddr("10.235.170.7:9877");
-        //consumer.setNamesrvAddr("127.0.0.1:9876");
+        // consumer.setNamesrvAddr("10.235.170.7:9877");
+        // consumer.setNamesrvAddr("127.0.0.1:9876");
 
         /**
          * 订阅指定topic下tags分别等于TagA或TagC或TagD
@@ -51,7 +51,6 @@ public class PushConsumer {
          */
         consumer.subscribe("TopicTest2", "*");
         consumer.subscribe("TopicTest3", "*");
-        consumer.subscribe("BenchmarkTest", "*");
 
         /**
          * 设置Consumer第一次启动是从队列头部开始消费还是队列尾部开始消费<br>
@@ -67,7 +66,8 @@ public class PushConsumer {
             @Override
             public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> msgs,
                     ConsumeConcurrentlyContext context) {
-                //System.out.println(Thread.currentThread().getName() + " Receive New Messages: " + msgs);
+                // System.out.println(Thread.currentThread().getName() +
+                // " Receive New Messages: " + msgs);
 
                 MessageExt msg = msgs.get(0);
                 if (msg.getTopic().equals("TopicTest1")) {
