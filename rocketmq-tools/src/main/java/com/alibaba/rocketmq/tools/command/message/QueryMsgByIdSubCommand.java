@@ -19,6 +19,7 @@ import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.List;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
@@ -33,6 +34,7 @@ import com.alibaba.rocketmq.remoting.RPCHook;
 import com.alibaba.rocketmq.remoting.common.RemotingHelper;
 import com.alibaba.rocketmq.remoting.exception.RemotingException;
 import com.alibaba.rocketmq.tools.admin.DefaultMQAdminExt;
+import com.alibaba.rocketmq.tools.admin.api.MessageTrack;
 import com.alibaba.rocketmq.tools.command.SubCommand;
 
 
@@ -151,6 +153,11 @@ public class QueryMsgByIdSubCommand implements SubCommand {
             "Message Body Path:",//
             bodyTmpFilePath//
             );
+
+        List<MessageTrack> mtdList = admin.messageTrackDetail(msg);
+        for (MessageTrack mt : mtdList) {
+            System.out.println(mt);
+        }
     }
 
 

@@ -21,8 +21,10 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
 
@@ -43,6 +45,7 @@ import com.alibaba.rocketmq.common.admin.ConsumeStats;
 import com.alibaba.rocketmq.common.admin.OffsetWrapper;
 import com.alibaba.rocketmq.common.admin.RollbackStats;
 import com.alibaba.rocketmq.common.admin.TopicStatsTable;
+import com.alibaba.rocketmq.common.filter.FilterAPI;
 import com.alibaba.rocketmq.common.help.FAQUrl;
 import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.common.message.MessageQueue;
@@ -59,16 +62,20 @@ import com.alibaba.rocketmq.common.protocol.body.ProducerConnection;
 import com.alibaba.rocketmq.common.protocol.body.QueueTimeSpan;
 import com.alibaba.rocketmq.common.protocol.body.TopicList;
 import com.alibaba.rocketmq.common.protocol.header.UpdateConsumerOffsetRequestHeader;
+import com.alibaba.rocketmq.common.protocol.heartbeat.SubscriptionData;
 import com.alibaba.rocketmq.common.protocol.route.BrokerData;
 import com.alibaba.rocketmq.common.protocol.route.TopicRouteData;
 import com.alibaba.rocketmq.common.subscription.SubscriptionGroupConfig;
 import com.alibaba.rocketmq.remoting.RPCHook;
+import com.alibaba.rocketmq.remoting.common.RemotingHelper;
 import com.alibaba.rocketmq.remoting.common.RemotingUtil;
 import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
 import com.alibaba.rocketmq.remoting.exception.RemotingConnectException;
 import com.alibaba.rocketmq.remoting.exception.RemotingException;
 import com.alibaba.rocketmq.remoting.exception.RemotingSendRequestException;
 import com.alibaba.rocketmq.remoting.exception.RemotingTimeoutException;
+import com.alibaba.rocketmq.tools.admin.api.MessageTrack;
+import com.alibaba.rocketmq.tools.admin.api.TrackType;
 
 
 /**
@@ -726,5 +733,88 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
 
         return this.mqClientInstance.getMQClientAPIImpl().consumeMessageDirectly(
             RemotingUtil.socketAddress2String(msg.getStoreHost()), consumerGroup, clientId, msgId, 10000);
+    }
+
+
+    public boolean consumed(final MessageExt msg, final String group) throws RemotingException,
+            MQClientException, InterruptedException, MQBrokerException {
+        // 查询消费进度
+        ConsumeStats cstats = this.examineConsumeStats(group);
+
+        ClusterInfo ci = this.examineBrokerClusterInfo();
+
+        Iterator<Entry<MessageQueue, OffsetWrapper>> it = cstats.getOffsetTable().entrySet().iterator();
+        while (it.hasNext()) {
+            Entry<MessageQueue, OffsetWrapper> next = it.next();
+            MessageQueue mq = next.getKey();
+            if (mq.getTopic().equals(msg.getTopic()) && mq.getQueueId() == msg.getQueueId()) {
+                BrokerData brokerData = ci.getBrokerAddrTable().get(mq.getBrokerName());
+                String addr = brokerData.getBrokerAddrs().get(0);
+                if (addr.equals(RemotingUtil.socketAddress2String(msg.getStoreHost()))) {
+                    if (next.getValue().getConsumerOffset() > msg.getQueueOffset()) {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        return false;
+    }
+
+
+    @Override
+    public List<MessageTrack> messageTrackDetail(MessageExt msg) throws RemotingException, MQClientException,
+            InterruptedException, MQBrokerException {
+        List<MessageTrack> result = new ArrayList<MessageTrack>();
+
+        GroupList groupList = this.queryTopicConsumeByWho(msg.getTopic());
+
+        for (String group : groupList.getGroupList()) {
+
+            // 查询连接
+            MessageTrack mt = new MessageTrack();
+            mt.setConsumerGroup(group);
+            mt.setTrackType(TrackType.UNKNOW_EXCEPTION);
+            try {
+                ConsumerConnection cc = this.examineConsumerConnectionInfo(group);
+                switch (cc.getConsumeType()) {
+                case CONSUME_ACTIVELY:
+                    mt.setTrackType(TrackType.SUBSCRIBED_BUT_PULL);
+                    break;
+                case CONSUME_PASSIVELY:
+                    boolean ifConsumed = this.consumed(msg, group);
+                    if (ifConsumed) {
+                        mt.setTrackType(TrackType.SUBSCRIBED_AND_CONSUMED);
+
+                        // 查看订阅关系是否匹配
+                        Iterator<Entry<String, SubscriptionData>> it =
+                                cc.getSubscriptionTable().entrySet().iterator();
+                        while (it.hasNext()) {
+                            Entry<String, SubscriptionData> next = it.next();
+                            if (next.getKey().equals(msg.getTopic())) {
+                                if (next.getValue().getTagsSet().contains(msg.getTags()) //
+                                        || next.getValue().getTagsSet().contains("*")) {
+
+                                }
+                                else {
+                                    mt.setTrackType(TrackType.SUBSCRIBED_BUT_FILTERD);
+                                }
+                            }
+                        }
+                    }
+                    else {
+                        mt.setTrackType(TrackType.SUBSCRIBED_AND_NOT_CONSUME);
+                    }
+                    break;
+                default:
+                    break;
+                }
+            }
+            catch (Exception e) {
+                mt.setExceptionDesc(RemotingHelper.exceptionSimpleDesc(e));
+            }
+        }
+
+        return null;
     }
 }
