@@ -166,6 +166,7 @@ public class QueryMsgByIdSubCommand implements SubCommand {
             }
         }
         catch (Exception e) {
+            e.printStackTrace();
         }
     }
 

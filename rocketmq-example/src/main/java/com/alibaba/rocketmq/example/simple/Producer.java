@@ -43,7 +43,7 @@ public class Producer {
          * 例如消息写入Master成功，但是Slave不成功，这种情况消息属于成功，但是对于个别应用如果对消息可靠性要求极高，<br>
          * 需要对这种情况做处理。另外，消息可能会存在发送失败的情况，失败重试由应用来处理。
          */
-        for(int i = 0; i < 1000; i++)
+        for(int i = 0; i < 10; i++)
         try {
             {
                 Message msg = new Message("TopicTest1",// topic
