@@ -8,7 +8,7 @@ public enum TrackType {
     // 订阅了，但是是PULL，结果未知
     SUBSCRIBED_BUT_PULL,
     // 订阅了，但是没有消费（Offset小）
-    SUBSCRIBED_AND_NOT_CONSUME,
+    SUBSCRIBED_AND_NOT_CONSUME_YET,
     // 未知异常
     UNKNOW_EXCEPTION,
 }

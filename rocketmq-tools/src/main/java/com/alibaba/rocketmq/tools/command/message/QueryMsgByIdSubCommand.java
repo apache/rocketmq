@@ -1,4 +1,5 @@
 /**
+
  * Copyright (C) 2010-2013 Alibaba Group Holding Limited
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -35,6 +36,7 @@ import com.alibaba.rocketmq.remoting.common.RemotingHelper;
 import com.alibaba.rocketmq.remoting.exception.RemotingException;
 import com.alibaba.rocketmq.tools.admin.DefaultMQAdminExt;
 import com.alibaba.rocketmq.tools.admin.api.MessageTrack;
+import com.alibaba.rocketmq.tools.command.MQAdminStartup;
 import com.alibaba.rocketmq.tools.command.SubCommand;
 
 
@@ -217,5 +219,10 @@ public class QueryMsgByIdSubCommand implements SubCommand {
             if (dos != null)
                 dos.close();
         }
+    }
+
+
+    public static void main(String[] args) {
+        MQAdminStartup.main(new String[] { "queryMsgById", "-i", "0AEBAA0500002AE5000002A693AE8961" });
     }
 }
