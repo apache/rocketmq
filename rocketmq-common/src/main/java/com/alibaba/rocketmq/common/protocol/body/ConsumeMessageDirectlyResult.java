@@ -1,6 +1,9 @@
 package com.alibaba.rocketmq.common.protocol.body;
 
-public class ConsumeMessageDirectlyResult {
+import com.alibaba.rocketmq.remoting.protocol.RemotingSerializable;
+
+
+public class ConsumeMessageDirectlyResult extends RemotingSerializable {
     private boolean order = false;
     private boolean autoCommit = true;
     private CMResult consumeResult;
@@ -55,5 +58,13 @@ public class ConsumeMessageDirectlyResult {
 
     public void setSpentTimeMills(long spentTimeMills) {
         this.spentTimeMills = spentTimeMills;
+    }
+
+
+    @Override
+    public String toString() {
+        return "ConsumeMessageDirectlyResult [order=" + order + ", autoCommit=" + autoCommit
+                + ", consumeResult=" + consumeResult + ", remark=" + remark + ", spentTimeMills="
+                + spentTimeMills + "]";
     }
 }

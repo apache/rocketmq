@@ -56,6 +56,7 @@ import com.alibaba.rocketmq.common.namesrv.TopAddressing;
 import com.alibaba.rocketmq.common.protocol.RequestCode;
 import com.alibaba.rocketmq.common.protocol.ResponseCode;
 import com.alibaba.rocketmq.common.protocol.body.ClusterInfo;
+import com.alibaba.rocketmq.common.protocol.body.ConsumeMessageDirectlyResult;
 import com.alibaba.rocketmq.common.protocol.body.ConsumerConnection;
 import com.alibaba.rocketmq.common.protocol.body.ConsumerRunningInfo;
 import com.alibaba.rocketmq.common.protocol.body.GetConsumerStatusBody;
@@ -69,6 +70,7 @@ import com.alibaba.rocketmq.common.protocol.body.QueueTimeSpan;
 import com.alibaba.rocketmq.common.protocol.body.ResetOffsetBody;
 import com.alibaba.rocketmq.common.protocol.body.TopicList;
 import com.alibaba.rocketmq.common.protocol.body.UnlockBatchRequestBody;
+import com.alibaba.rocketmq.common.protocol.header.ConsumeMessageDirectlyResultRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.ConsumerSendMsgBackRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.CreateTopicRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.DeleteSubscriptionGroupRequestHeader;
@@ -2141,6 +2143,41 @@ public class MQClientAPIImpl {
             byte[] body = response.getBody();
             if (body != null) {
                 ConsumerRunningInfo info = ConsumerRunningInfo.decode(body, ConsumerRunningInfo.class);
+                return info;
+            }
+        }
+        default:
+            break;
+        }
+
+        throw new MQClientException(response.getCode(), response.getRemark());
+    }
+
+
+    /**
+     * 通过调用Broker，向指定Consumer发送某条消息，并返回消费结果
+     */
+    public ConsumeMessageDirectlyResult consumeMessageDirectly(final String addr, //
+            String consumerGroup, //
+            String clientId, //
+            String msgId, //
+            final long timeoutMillis) throws RemotingException, MQClientException, InterruptedException {
+        ConsumeMessageDirectlyResultRequestHeader requestHeader =
+                new ConsumeMessageDirectlyResultRequestHeader();
+        requestHeader.setConsumerGroup(consumerGroup);
+        requestHeader.setClientId(clientId);
+
+        RemotingCommand request =
+                RemotingCommand.createRequestCommand(RequestCode.CONSUME_MESSAGE_DIRECTLY, requestHeader);
+
+        RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
+        assert response != null;
+        switch (response.getCode()) {
+        case ResponseCode.SUCCESS: {
+            byte[] body = response.getBody();
+            if (body != null) {
+                ConsumeMessageDirectlyResult info =
+                        ConsumeMessageDirectlyResult.decode(body, ConsumeMessageDirectlyResult.class);
                 return info;
             }
         }
