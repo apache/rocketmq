@@ -28,6 +28,7 @@ import com.alibaba.rocketmq.client.exception.MQBrokerException;
 import com.alibaba.rocketmq.client.exception.MQClientException;
 import com.alibaba.rocketmq.common.UtilAll;
 import com.alibaba.rocketmq.common.message.MessageExt;
+import com.alibaba.rocketmq.common.protocol.body.ConsumeMessageDirectlyResult;
 import com.alibaba.rocketmq.remoting.RPCHook;
 import com.alibaba.rocketmq.remoting.common.RemotingHelper;
 import com.alibaba.rocketmq.remoting.exception.RemotingException;
@@ -59,6 +60,14 @@ public class QueryMsgByIdSubCommand implements SubCommand {
     public Options buildCommandlineOptions(Options options) {
         Option opt = new Option("i", "msgId", true, "Message Id");
         opt.setRequired(true);
+        options.addOption(opt);
+
+        opt = new Option("g", "consumerGroup", true, "consumer group name");
+        opt.setRequired(false);
+        options.addOption(opt);
+
+        opt = new Option("d", "clientId", true, "The consumer's client id");
+        opt.setRequired(false);
         options.addOption(opt);
 
         return options;
@@ -153,7 +162,16 @@ public class QueryMsgByIdSubCommand implements SubCommand {
 
         try {
             final String msgId = commandLine.getOptionValue('i').trim();
-            queryById(defaultMQAdminExt, msgId);
+            if (commandLine.hasOption('g') && commandLine.hasOption('d')) {
+                final String consumerGroup = commandLine.getOptionValue('g').trim();
+                final String clientId = commandLine.getOptionValue('d').trim();
+                ConsumeMessageDirectlyResult result =
+                        defaultMQAdminExt.consumeMessageDirectly(consumerGroup, clientId, msgId);
+                System.out.println(result);
+            }
+            else {
+                queryById(defaultMQAdminExt, msgId);
+            }
         }
         catch (Exception e) {
             e.printStackTrace();

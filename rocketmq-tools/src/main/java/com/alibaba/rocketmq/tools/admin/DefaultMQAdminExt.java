@@ -34,6 +34,7 @@ import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.common.message.MessageQueue;
 import com.alibaba.rocketmq.common.protocol.body.ClusterInfo;
 import com.alibaba.rocketmq.common.protocol.body.ConsumeByWho;
+import com.alibaba.rocketmq.common.protocol.body.ConsumeMessageDirectlyResult;
 import com.alibaba.rocketmq.common.protocol.body.ConsumerConnection;
 import com.alibaba.rocketmq.common.protocol.body.ConsumerRunningInfo;
 import com.alibaba.rocketmq.common.protocol.body.GroupList;
@@ -408,5 +409,13 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
     public ConsumerRunningInfo getConsumerRunningInfo(String consumerGroup, String clientId)
             throws RemotingException, MQClientException, InterruptedException {
         return defaultMQAdminExtImpl.getConsumerRunningInfo(consumerGroup, clientId);
+    }
+
+
+    @Override
+    public ConsumeMessageDirectlyResult consumeMessageDirectly(String consumerGroup, String clientId,
+            String msgId) throws RemotingException, MQClientException, InterruptedException,
+            MQBrokerException {
+        return defaultMQAdminExtImpl.consumeMessageDirectly(consumerGroup, clientId, msgId);
     }
 }
