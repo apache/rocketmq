@@ -748,10 +748,12 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
             MessageQueue mq = next.getKey();
             if (mq.getTopic().equals(msg.getTopic()) && mq.getQueueId() == msg.getQueueId()) {
                 BrokerData brokerData = ci.getBrokerAddrTable().get(mq.getBrokerName());
-                String addr = brokerData.getBrokerAddrs().get(0);
-                if (addr.equals(RemotingUtil.socketAddress2String(msg.getStoreHost()))) {
-                    if (next.getValue().getConsumerOffset() > msg.getQueueOffset()) {
-                        return true;
+                if (brokerData != null) {
+                    String addr = brokerData.getBrokerAddrs().get(MixAll.MASTER_ID);
+                    if (addr.equals(RemotingUtil.socketAddress2String(msg.getStoreHost()))) {
+                        if (next.getValue().getConsumerOffset() > msg.getQueueOffset()) {
+                            return true;
+                        }
                     }
                 }
             }
@@ -791,7 +793,9 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
                             Entry<String, SubscriptionData> next = it.next();
                             if (next.getKey().equals(msg.getTopic())) {
                                 if (next.getValue().getTagsSet().contains(msg.getTags()) //
-                                        || next.getValue().getTagsSet().contains("*")) {
+                                        || next.getValue().getTagsSet().contains("*")//
+                                        || next.getValue().getTagsSet().isEmpty()//
+                                ) {
 
                                 }
                                 else {
@@ -801,7 +805,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
                         }
                     }
                     else {
-                        mt.setTrackType(TrackType.SUBSCRIBED_AND_NOT_CONSUME);
+                        mt.setTrackType(TrackType.SUBSCRIBED_AND_NOT_CONSUME_YET);
                     }
                     break;
                 default:
