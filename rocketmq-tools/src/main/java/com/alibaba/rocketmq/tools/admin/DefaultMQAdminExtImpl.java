@@ -51,7 +51,6 @@ import com.alibaba.rocketmq.common.message.MessageQueue;
 import com.alibaba.rocketmq.common.namesrv.NamesrvUtil;
 import com.alibaba.rocketmq.common.protocol.ResponseCode;
 import com.alibaba.rocketmq.common.protocol.body.ClusterInfo;
-import com.alibaba.rocketmq.common.protocol.body.ConsumeByWho;
 import com.alibaba.rocketmq.common.protocol.body.ConsumeMessageDirectlyResult;
 import com.alibaba.rocketmq.common.protocol.body.ConsumerConnection;
 import com.alibaba.rocketmq.common.protocol.body.ConsumerRunningInfo;
@@ -372,13 +371,6 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
     @Override
     public List<String> getNameServerAddressList() {
         return this.mqClientInstance.getMQClientAPIImpl().getNameServerAddressList();
-    }
-
-
-    @Override
-    public ConsumeByWho whoConsumeTheMessage(String msgId) {
-        // TODO Auto-generated method stub
-        return null;
     }
 
 
