@@ -50,6 +50,7 @@ import com.alibaba.rocketmq.remoting.exception.RemotingConnectException;
 import com.alibaba.rocketmq.remoting.exception.RemotingException;
 import com.alibaba.rocketmq.remoting.exception.RemotingSendRequestException;
 import com.alibaba.rocketmq.remoting.exception.RemotingTimeoutException;
+import com.alibaba.rocketmq.tools.admin.api.MessageTrack;
 
 
 /**
@@ -418,4 +419,12 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
             MQBrokerException {
         return defaultMQAdminExtImpl.consumeMessageDirectly(consumerGroup, clientId, msgId);
     }
+
+
+    @Override
+    public List<MessageTrack> messageTrackDetail(MessageExt msg) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
 }
