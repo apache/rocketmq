@@ -90,6 +90,7 @@ import com.alibaba.rocketmq.common.protocol.header.filtersrv.RegisterFilterServe
 import com.alibaba.rocketmq.common.protocol.header.filtersrv.RegisterFilterServerResponseHeader;
 import com.alibaba.rocketmq.common.protocol.heartbeat.SubscriptionData;
 import com.alibaba.rocketmq.common.subscription.SubscriptionGroupConfig;
+import com.alibaba.rocketmq.remoting.CommandCustomHeader;
 import com.alibaba.rocketmq.remoting.common.RemotingHelper;
 import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
 import com.alibaba.rocketmq.remoting.netty.NettyRequestProcessor;
@@ -228,20 +229,18 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
     }
 
 
-    private RemotingCommand consumeMessageDirectly(ChannelHandlerContext ctx, RemotingCommand request)
-            throws RemotingCommandException {
+    private RemotingCommand callConsumer(//
+            final int requestCode,//
+            final CommandCustomHeader requestHeader, //
+            final String consumerGroup,//
+            final String clientId) throws RemotingCommandException {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
-        final ConsumeMessageDirectlyResultRequestHeader requestHeader =
-                (ConsumeMessageDirectlyResultRequestHeader) request
-                    .decodeCommandCustomHeader(ConsumeMessageDirectlyResultRequestHeader.class);
-
         ClientChannelInfo clientChannelInfo =
-                this.brokerController.getConsumerManager().findChannel(requestHeader.getConsumerGroup(),
-                    requestHeader.getClientId());
+                this.brokerController.getConsumerManager().findChannel(consumerGroup, clientId);
 
         if (null == clientChannelInfo) {
             response.setCode(ResponseCode.SYSTEM_ERROR);
-            response.setRemark(String.format("The Consumer <%s> not online", requestHeader.getClientId()));
+            response.setRemark(String.format("The Consumer <%s> <%s> not online", consumerGroup, clientId));
             return response;
         }
 
@@ -249,25 +248,34 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             response.setCode(ResponseCode.SYSTEM_ERROR);
             response.setRemark(String.format(
                 "The Consumer <%s> Version <%s> too low to finish, please upgrade it to V3_1_8_SNAPSHOT", //
-                requestHeader.getClientId(),//
+                clientId,//
                 MQVersion.getVersionDesc(clientChannelInfo.getVersion())));
             return response;
         }
 
         try {
-            RemotingCommand newRequest =
-                    RemotingCommand.createRequestCommand(RequestCode.CONSUME_MESSAGE_DIRECTLY, requestHeader);
+            RemotingCommand newRequest = RemotingCommand.createRequestCommand(requestCode, requestHeader);
             RemotingCommand consumerResponse =
-                    this.brokerController.getBroker2Client().getConsumerRunningInfo(
-                        clientChannelInfo.getChannel(), newRequest);
+                    this.brokerController.getBroker2Client().callClient(clientChannelInfo.getChannel(),
+                        newRequest);
             return consumerResponse;
         }
         catch (Exception e) {
             response.setCode(ResponseCode.SYSTEM_ERROR);
-            response.setRemark(String.format("invoke consumer <%s> Exception: %s",
-                requestHeader.getClientId(), RemotingHelper.exceptionSimpleDesc(e)));
+            response.setRemark(String.format("invoke consumer <%s> <%s> Exception: %s", consumerGroup,
+                clientId, RemotingHelper.exceptionSimpleDesc(e)));
             return response;
         }
+    }
+
+
+    private RemotingCommand consumeMessageDirectly(ChannelHandlerContext ctx, RemotingCommand request)
+            throws RemotingCommandException {
+        final ConsumeMessageDirectlyResultRequestHeader requestHeader =
+                (ConsumeMessageDirectlyResultRequestHeader) request
+                    .decodeCommandCustomHeader(ConsumeMessageDirectlyResultRequestHeader.class);
+        return this.callConsumer(RequestCode.CONSUME_MESSAGE_DIRECTLY, requestHeader,
+            requestHeader.getConsumerGroup(), requestHeader.getClientId());
     }
 
 
@@ -276,45 +284,12 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
      */
     private RemotingCommand getConsumerRunningInfo(ChannelHandlerContext ctx, RemotingCommand request)
             throws RemotingCommandException {
-        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
         final GetConsumerRunningInfoRequestHeader requestHeader =
                 (GetConsumerRunningInfoRequestHeader) request
                     .decodeCommandCustomHeader(GetConsumerRunningInfoRequestHeader.class);
 
-        ClientChannelInfo clientChannelInfo =
-                this.brokerController.getConsumerManager().findChannel(requestHeader.getConsumerGroup(),
-                    requestHeader.getClientId());
-
-        if (null == clientChannelInfo) {
-            response.setCode(ResponseCode.SYSTEM_ERROR);
-            response.setRemark(String.format("The Consumer <%s> not online", requestHeader.getClientId()));
-            return response;
-        }
-
-        if (clientChannelInfo.getVersion() < MQVersion.Version.V3_1_8_SNAPSHOT.ordinal()) {
-            response.setCode(ResponseCode.SYSTEM_ERROR);
-            response.setRemark(String.format(
-                "The Consumer <%s> Version <%s> too low to finish, please upgrade it to V3_1_8_SNAPSHOT", //
-                requestHeader.getClientId(),//
-                MQVersion.getVersionDesc(clientChannelInfo.getVersion())));
-            return response;
-        }
-
-        try {
-            RemotingCommand newRequest =
-                    RemotingCommand
-                        .createRequestCommand(RequestCode.GET_CONSUMER_RUNNING_INFO, requestHeader);
-            RemotingCommand consumerResponse =
-                    this.brokerController.getBroker2Client().getConsumerRunningInfo(
-                        clientChannelInfo.getChannel(), newRequest);
-            return consumerResponse;
-        }
-        catch (Exception e) {
-            response.setCode(ResponseCode.SYSTEM_ERROR);
-            response.setRemark(String.format("invoke consumer <%s> Exception: %s",
-                requestHeader.getClientId(), RemotingHelper.exceptionSimpleDesc(e)));
-            return response;
-        }
+        return this.callConsumer(RequestCode.GET_CONSUMER_RUNNING_INFO, requestHeader,
+            requestHeader.getConsumerGroup(), requestHeader.getClientId());
     }
 
 
