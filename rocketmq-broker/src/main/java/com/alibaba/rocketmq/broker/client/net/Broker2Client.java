@@ -100,14 +100,6 @@ public class Broker2Client {
     }
 
 
-    public RemotingCommand getConsumerRunningInfo(//
-            final Channel channel,//
-            final RemotingCommand request//
-    ) throws RemotingSendRequestException, RemotingTimeoutException, InterruptedException {
-        return this.brokerController.getRemotingServer().invokeSync(channel, request, 10000);
-    }
-
-
     public RemotingCommand callClient(//
             final Channel channel,//
             final RemotingCommand request//
