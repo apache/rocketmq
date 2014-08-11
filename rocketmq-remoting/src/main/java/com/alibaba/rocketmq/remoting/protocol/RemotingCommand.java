@@ -134,7 +134,7 @@ public class RemotingCommand {
     }
 
 
-    private void makeCustomHeaderToNet() {
+    public void makeCustomHeaderToNet() {
         if (this.customHeader != null) {
             Field[] fields = this.customHeader.getClass().getDeclaredFields();
             if (null == this.extFields) {

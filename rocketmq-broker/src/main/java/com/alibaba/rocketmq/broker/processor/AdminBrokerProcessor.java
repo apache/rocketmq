@@ -21,6 +21,7 @@ import io.netty.channel.ChannelHandlerContext;
 import java.io.UnsupportedEncodingException;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
+import java.net.UnknownHostException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -45,6 +46,8 @@ import com.alibaba.rocketmq.common.admin.OffsetWrapper;
 import com.alibaba.rocketmq.common.admin.TopicOffset;
 import com.alibaba.rocketmq.common.admin.TopicStatsTable;
 import com.alibaba.rocketmq.common.constant.LoggerName;
+import com.alibaba.rocketmq.common.message.MessageDecoder;
+import com.alibaba.rocketmq.common.message.MessageId;
 import com.alibaba.rocketmq.common.message.MessageQueue;
 import com.alibaba.rocketmq.common.protocol.RequestCode;
 import com.alibaba.rocketmq.common.protocol.ResponseCode;
@@ -90,13 +93,13 @@ import com.alibaba.rocketmq.common.protocol.header.filtersrv.RegisterFilterServe
 import com.alibaba.rocketmq.common.protocol.header.filtersrv.RegisterFilterServerResponseHeader;
 import com.alibaba.rocketmq.common.protocol.heartbeat.SubscriptionData;
 import com.alibaba.rocketmq.common.subscription.SubscriptionGroupConfig;
-import com.alibaba.rocketmq.remoting.CommandCustomHeader;
 import com.alibaba.rocketmq.remoting.common.RemotingHelper;
 import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
 import com.alibaba.rocketmq.remoting.netty.NettyRequestProcessor;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 import com.alibaba.rocketmq.remoting.protocol.RemotingSerializable;
 import com.alibaba.rocketmq.store.DefaultMessageStore;
+import com.alibaba.rocketmq.store.SelectMapedBufferResult;
 
 
 /**
@@ -231,7 +234,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
 
     private RemotingCommand callConsumer(//
             final int requestCode,//
-            final CommandCustomHeader requestHeader, //
+            final RemotingCommand request, //
             final String consumerGroup,//
             final String clientId) throws RemotingCommandException {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
@@ -254,7 +257,10 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         }
 
         try {
-            RemotingCommand newRequest = RemotingCommand.createRequestCommand(requestCode, requestHeader);
+            RemotingCommand newRequest = RemotingCommand.createRequestCommand(requestCode, null);
+            newRequest.setExtFields(request.getExtFields());
+            newRequest.setBody(request.getBody());
+
             RemotingCommand consumerResponse =
                     this.brokerController.getBroker2Client().callClient(clientChannelInfo.getChannel(),
                         newRequest);
@@ -274,7 +280,27 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         final ConsumeMessageDirectlyResultRequestHeader requestHeader =
                 (ConsumeMessageDirectlyResultRequestHeader) request
                     .decodeCommandCustomHeader(ConsumeMessageDirectlyResultRequestHeader.class);
-        return this.callConsumer(RequestCode.CONSUME_MESSAGE_DIRECTLY, requestHeader,
+
+        request.getExtFields().put("brokerName", this.brokerController.getBrokerConfig().getBrokerName());
+        SelectMapedBufferResult selectMapedBufferResult = null;
+        try {
+            MessageId messageId = MessageDecoder.decodeMessageId(requestHeader.getMsgId());
+            selectMapedBufferResult =
+                    this.brokerController.getMessageStore().selectOneMessageByOffset(messageId.getOffset());
+
+            byte[] body = new byte[selectMapedBufferResult.getSize()];
+            selectMapedBufferResult.getByteBuffer().get(body);
+            request.setBody(body);
+        }
+        catch (UnknownHostException e) {
+        }
+        finally {
+            if (selectMapedBufferResult != null) {
+                selectMapedBufferResult.release();
+            }
+        }
+
+        return this.callConsumer(RequestCode.CONSUME_MESSAGE_DIRECTLY, request,
             requestHeader.getConsumerGroup(), requestHeader.getClientId());
     }
 
@@ -288,7 +314,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 (GetConsumerRunningInfoRequestHeader) request
                     .decodeCommandCustomHeader(GetConsumerRunningInfoRequestHeader.class);
 
-        return this.callConsumer(RequestCode.GET_CONSUMER_RUNNING_INFO, requestHeader,
+        return this.callConsumer(RequestCode.GET_CONSUMER_RUNNING_INFO, request,
             requestHeader.getConsumerGroup(), requestHeader.getClientId());
     }
 

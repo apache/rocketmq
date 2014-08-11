@@ -10,11 +10,11 @@ public class ConsumeMessageDirectlyResultRequestHeader implements CommandCustomH
     @CFNotNull
     private String consumerGroup;
     @CFNullable
-    private String brokerName;
-    @CFNullable
     private String clientId;
     @CFNullable
     private String msgId;
+    @CFNullable
+    private String brokerName;
 
 
     @Override
