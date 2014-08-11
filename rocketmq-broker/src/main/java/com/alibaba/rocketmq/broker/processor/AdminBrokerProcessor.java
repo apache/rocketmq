@@ -15,6 +15,23 @@
  */
 package com.alibaba.rocketmq.broker.processor;
 
+import io.netty.channel.Channel;
+import io.netty.channel.ChannelHandlerContext;
+
+import java.io.UnsupportedEncodingException;
+import java.net.InetSocketAddress;
+import java.net.SocketAddress;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.alibaba.rocketmq.broker.BrokerController;
 import com.alibaba.rocketmq.broker.client.ClientChannelInfo;
 import com.alibaba.rocketmq.broker.client.ConsumerGroupInfo;
@@ -31,8 +48,44 @@ import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.common.message.MessageQueue;
 import com.alibaba.rocketmq.common.protocol.RequestCode;
 import com.alibaba.rocketmq.common.protocol.ResponseCode;
-import com.alibaba.rocketmq.common.protocol.body.*;
-import com.alibaba.rocketmq.common.protocol.header.*;
+import com.alibaba.rocketmq.common.protocol.body.Connection;
+import com.alibaba.rocketmq.common.protocol.body.ConsumerConnection;
+import com.alibaba.rocketmq.common.protocol.body.GroupList;
+import com.alibaba.rocketmq.common.protocol.body.KVTable;
+import com.alibaba.rocketmq.common.protocol.body.LockBatchRequestBody;
+import com.alibaba.rocketmq.common.protocol.body.LockBatchResponseBody;
+import com.alibaba.rocketmq.common.protocol.body.ProducerConnection;
+import com.alibaba.rocketmq.common.protocol.body.QueryConsumeTimeSpanBody;
+import com.alibaba.rocketmq.common.protocol.body.QueueTimeSpan;
+import com.alibaba.rocketmq.common.protocol.body.TopicList;
+import com.alibaba.rocketmq.common.protocol.body.UnlockBatchRequestBody;
+import com.alibaba.rocketmq.common.protocol.header.ConsumeMessageDirectlyResultRequestHeader;
+import com.alibaba.rocketmq.common.protocol.header.CreateTopicRequestHeader;
+import com.alibaba.rocketmq.common.protocol.header.DeleteSubscriptionGroupRequestHeader;
+import com.alibaba.rocketmq.common.protocol.header.DeleteTopicRequestHeader;
+import com.alibaba.rocketmq.common.protocol.header.GetAllTopicConfigResponseHeader;
+import com.alibaba.rocketmq.common.protocol.header.GetBrokerConfigResponseHeader;
+import com.alibaba.rocketmq.common.protocol.header.GetConsumeStatsRequestHeader;
+import com.alibaba.rocketmq.common.protocol.header.GetConsumerConnectionListRequestHeader;
+import com.alibaba.rocketmq.common.protocol.header.GetConsumerRunningInfoRequestHeader;
+import com.alibaba.rocketmq.common.protocol.header.GetConsumerStatusRequestHeader;
+import com.alibaba.rocketmq.common.protocol.header.GetEarliestMsgStoretimeRequestHeader;
+import com.alibaba.rocketmq.common.protocol.header.GetEarliestMsgStoretimeResponseHeader;
+import com.alibaba.rocketmq.common.protocol.header.GetMaxOffsetRequestHeader;
+import com.alibaba.rocketmq.common.protocol.header.GetMaxOffsetResponseHeader;
+import com.alibaba.rocketmq.common.protocol.header.GetMinOffsetRequestHeader;
+import com.alibaba.rocketmq.common.protocol.header.GetMinOffsetResponseHeader;
+import com.alibaba.rocketmq.common.protocol.header.GetProducerConnectionListRequestHeader;
+import com.alibaba.rocketmq.common.protocol.header.GetTopicStatsInfoRequestHeader;
+import com.alibaba.rocketmq.common.protocol.header.QueryConsumeTimeSpanRequestHeader;
+import com.alibaba.rocketmq.common.protocol.header.QueryConsumerOffsetRequestHeader;
+import com.alibaba.rocketmq.common.protocol.header.QueryConsumerOffsetResponseHeader;
+import com.alibaba.rocketmq.common.protocol.header.QueryTopicConsumeByWhoRequestHeader;
+import com.alibaba.rocketmq.common.protocol.header.ResetOffsetRequestHeader;
+import com.alibaba.rocketmq.common.protocol.header.SearchOffsetRequestHeader;
+import com.alibaba.rocketmq.common.protocol.header.SearchOffsetResponseHeader;
+import com.alibaba.rocketmq.common.protocol.header.UpdateConsumerOffsetRequestHeader;
+import com.alibaba.rocketmq.common.protocol.header.UpdateConsumerOffsetResponseHeader;
 import com.alibaba.rocketmq.common.protocol.header.filtersrv.RegisterFilterServerRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.filtersrv.RegisterFilterServerResponseHeader;
 import com.alibaba.rocketmq.common.protocol.heartbeat.SubscriptionData;
@@ -43,15 +96,6 @@ import com.alibaba.rocketmq.remoting.netty.NettyRequestProcessor;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 import com.alibaba.rocketmq.remoting.protocol.RemotingSerializable;
 import com.alibaba.rocketmq.store.DefaultMessageStore;
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelHandlerContext;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.io.UnsupportedEncodingException;
-import java.net.InetSocketAddress;
-import java.net.SocketAddress;
-import java.util.*;
 
 
 /**
@@ -173,11 +217,57 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
 
         case RequestCode.GET_CONSUMER_RUNNING_INFO:
             return this.getConsumerRunningInfo(ctx, request);
+
+        case RequestCode.CONSUME_MESSAGE_DIRECTLY:
+            return this.consumeMessageDirectly(ctx, request);
         default:
             break;
         }
 
         return null;
+    }
+
+
+    private RemotingCommand consumeMessageDirectly(ChannelHandlerContext ctx, RemotingCommand request)
+            throws RemotingCommandException {
+        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
+        final ConsumeMessageDirectlyResultRequestHeader requestHeader =
+                (ConsumeMessageDirectlyResultRequestHeader) request
+                    .decodeCommandCustomHeader(ConsumeMessageDirectlyResultRequestHeader.class);
+
+        ClientChannelInfo clientChannelInfo =
+                this.brokerController.getConsumerManager().findChannel(requestHeader.getConsumerGroup(),
+                    requestHeader.getClientId());
+
+        if (null == clientChannelInfo) {
+            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setRemark(String.format("The Consumer <%s> not online", requestHeader.getClientId()));
+            return response;
+        }
+
+        if (clientChannelInfo.getVersion() < MQVersion.Version.V3_1_8_SNAPSHOT.ordinal()) {
+            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setRemark(String.format(
+                "The Consumer <%s> Version <%s> too low to finish, please upgrade it to V3_1_8_SNAPSHOT", //
+                requestHeader.getClientId(),//
+                MQVersion.getVersionDesc(clientChannelInfo.getVersion())));
+            return response;
+        }
+
+        try {
+            RemotingCommand newRequest =
+                    RemotingCommand.createRequestCommand(RequestCode.CONSUME_MESSAGE_DIRECTLY, requestHeader);
+            RemotingCommand consumerResponse =
+                    this.brokerController.getBroker2Client().getConsumerRunningInfo(
+                        clientChannelInfo.getChannel(), newRequest);
+            return consumerResponse;
+        }
+        catch (Exception e) {
+            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setRemark(String.format("invoke consumer <%s> Exception: %s",
+                requestHeader.getClientId(), RemotingHelper.exceptionSimpleDesc(e)));
+            return response;
+        }
     }
 
 

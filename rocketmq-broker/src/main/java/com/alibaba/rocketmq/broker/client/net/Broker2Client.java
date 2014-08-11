@@ -108,6 +108,14 @@ public class Broker2Client {
     }
 
 
+    public RemotingCommand consumeMessageDirectly(//
+            final Channel channel,//
+            final RemotingCommand request//
+    ) throws RemotingSendRequestException, RemotingTimeoutException, InterruptedException {
+        return this.brokerController.getRemotingServer().invokeSync(channel, request, 10000);
+    }
+
+
     /**
      * Broker主动通知Consumer，Id列表发生变化，Oneway
      */

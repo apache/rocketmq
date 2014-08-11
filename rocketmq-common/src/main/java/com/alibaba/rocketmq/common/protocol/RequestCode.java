@@ -147,4 +147,8 @@ public class RequestCode {
     // 通过Broker查询Consumer内存数据
     // 2014-07-19 Add By shijia
     public static final int GET_CONSUMER_RUNNING_INFO = 307;
+
+    // 通过Broker直接向某个Consumer发送一条消息，并立刻消费，返回结果给broker，再返回给调用方
+    // 2014-08-11 Add By shijia
+    public static final int CONSUME_MESSAGE_DIRECTLY = 308;
 }
