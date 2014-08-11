@@ -45,7 +45,6 @@ import com.alibaba.rocketmq.common.admin.ConsumeStats;
 import com.alibaba.rocketmq.common.admin.OffsetWrapper;
 import com.alibaba.rocketmq.common.admin.RollbackStats;
 import com.alibaba.rocketmq.common.admin.TopicStatsTable;
-import com.alibaba.rocketmq.common.filter.FilterAPI;
 import com.alibaba.rocketmq.common.help.FAQUrl;
 import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.common.message.MessageQueue;
@@ -770,7 +769,6 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
         GroupList groupList = this.queryTopicConsumeByWho(msg.getTopic());
 
         for (String group : groupList.getGroupList()) {
-
             // 查询连接
             MessageTrack mt = new MessageTrack();
             mt.setConsumerGroup(group);
@@ -813,8 +811,10 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
             catch (Exception e) {
                 mt.setExceptionDesc(RemotingHelper.exceptionSimpleDesc(e));
             }
+
+            result.add(mt);
         }
 
-        return null;
+        return result;
     }
 }

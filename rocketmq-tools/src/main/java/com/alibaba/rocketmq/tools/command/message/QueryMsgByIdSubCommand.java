@@ -154,9 +154,18 @@ public class QueryMsgByIdSubCommand implements SubCommand {
             bodyTmpFilePath//
             );
 
-        List<MessageTrack> mtdList = admin.messageTrackDetail(msg);
-        for (MessageTrack mt : mtdList) {
-            System.out.println(mt);
+        try {
+            List<MessageTrack> mtdList = admin.messageTrackDetail(msg);
+            if (mtdList.isEmpty()) {
+                System.out.println("No Consumer");
+            }
+            else {
+                for (MessageTrack mt : mtdList) {
+                    System.out.println(mt);
+                }
+            }
+        }
+        catch (Exception e) {
         }
     }
 
