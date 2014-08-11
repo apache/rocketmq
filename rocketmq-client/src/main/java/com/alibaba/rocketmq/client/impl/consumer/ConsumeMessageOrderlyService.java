@@ -529,10 +529,18 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
         catch (Throwable e) {
             result.setConsumeResult(CMResult.CR_THROW_EXCEPTION);
             result.setRemark(RemotingHelper.exceptionSimpleDesc(e));
+
+            log.warn(String.format("consumeMessageDirectly exception: {} Group: {} Msgs: {} MQ: {}",//
+                RemotingHelper.exceptionSimpleDesc(e),//
+                ConsumeMessageOrderlyService.this.consumerGroup,//
+                msgs,//
+                mq), e);
         }
 
         result.setAutoCommit(context.isAutoCommit());
         result.setSpentTimeMills(System.currentTimeMillis() - beginTime);
+
+        log.warn("consumeMessageDirectly Result: {}", result);
 
         return result;
     }
