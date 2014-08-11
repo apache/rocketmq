@@ -162,6 +162,7 @@ public class QueryMsgByIdSubCommand implements SubCommand {
                 System.out.println("No Consumer");
             }
             else {
+                System.out.println("\n\n");
                 for (MessageTrack mt : mtdList) {
                     System.out.println(mt);
                 }
