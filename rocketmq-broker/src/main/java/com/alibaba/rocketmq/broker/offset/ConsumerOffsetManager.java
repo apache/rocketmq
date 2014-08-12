@@ -187,18 +187,24 @@ public class ConsumerOffsetManager extends ConfigManager {
 
 
     public Map<Integer, Long> queryMinOffsetInAllGroup(final String topic) {
+
         Map<Integer, Long> queueMinOffset = new HashMap<Integer, Long>();
         Set<String> topicGroups = this.offsetTable.keySet();
         for (String topicGroup : topicGroups) {
             String[] topicGroupArr = topicGroup.split(TOPIC_GROUP_SEPARATOR);
             if (topic.equals(topicGroupArr[0])) {
                 for (Entry<Integer, Long> entry : this.offsetTable.get(topicGroup).entrySet()) {
-                    Long offset = queueMinOffset.get(entry.getKey());
-                    if (offset == null) {
-                        queueMinOffset.put(entry.getKey(), Math.min(Long.MAX_VALUE, entry.getValue()));
-                    }
-                    else {
-                        queueMinOffset.put(entry.getKey(), Math.min(entry.getValue(), offset));
+                    long minOffset =
+                            this.brokerController.getMessageStore()
+                                .getMinOffsetInQuque(topic, entry.getKey());
+                    if (entry.getValue() >= minOffset) {
+                        Long offset = queueMinOffset.get(entry.getKey());
+                        if (offset == null) {
+                            queueMinOffset.put(entry.getKey(), Math.min(Long.MAX_VALUE, entry.getValue()));
+                        }
+                        else {
+                            queueMinOffset.put(entry.getKey(), Math.min(entry.getValue(), offset));
+                        }
                     }
                 }
             }
