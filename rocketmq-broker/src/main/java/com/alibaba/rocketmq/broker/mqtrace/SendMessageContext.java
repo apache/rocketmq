@@ -24,14 +24,26 @@ public class SendMessageContext {
     private String producerGroup;
     private String topic;
     private String msgId;
+    private String originMsgId;
     private Integer queueId;
     private Long queueOffset;
     private String brokerAddr;
     private String bornHost;
+    private int bodyLength;
     private RemotingCommand response;
     private String msgProps;
     private Object mqTraceContext;
     private Properties extProps;
+
+
+    public int getBodyLength() {
+        return bodyLength;
+    }
+
+
+    public void setBodyLength(int bodyLength) {
+        this.bodyLength = bodyLength;
+    }
 
 
     public String getProducerGroup() {
@@ -141,5 +153,15 @@ public class SendMessageContext {
 
     public void setExtProps(Properties extProps) {
         this.extProps = extProps;
+    }
+
+
+    public String getOriginMsgId() {
+        return originMsgId;
+    }
+
+
+    public void setOriginMsgId(String originMsgId) {
+        this.originMsgId = originMsgId;
     }
 }

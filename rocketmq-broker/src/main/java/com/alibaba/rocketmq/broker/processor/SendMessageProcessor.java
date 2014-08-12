@@ -90,10 +90,12 @@ public class SendMessageProcessor implements NettyRequestProcessor {
                 context = new SendMessageContext();
                 context.setProducerGroup(requestHeader.getProducerGroup());
                 context.setTopic(requestHeader.getTopic());
+                context.setBodyLength(request.getBody().length);
                 context.setMsgProps(requestHeader.getProperties());
                 context.setBornHost(RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
                 context.setBrokerAddr(this.brokerController.getBrokerAddr());
                 this.executeSendMessageHookBefore(context);
+                requestHeader.setProperties(context.getMsgProps());
             }
 
             final RemotingCommand response = this.sendMessage(ctx, request);
