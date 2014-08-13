@@ -27,6 +27,7 @@ public class ConsumeMessageContext {
     private Map<Long, String> messageIds;
     private boolean success;
     private String status;
+    private Object mqTraceContext;
 
 
     public String getConsumerGroup() {
@@ -69,6 +70,16 @@ public class ConsumeMessageContext {
     }
 
 
+    public String getStoreHost() {
+        return storeHost;
+    }
+
+
+    public void setStoreHost(String storeHost) {
+        this.storeHost = storeHost;
+    }
+
+
     public Map<Long, String> getMessageIds() {
         return messageIds;
     }
@@ -99,12 +110,12 @@ public class ConsumeMessageContext {
     }
 
 
-    public String getStoreHost() {
-        return storeHost;
+    public Object getMqTraceContext() {
+        return mqTraceContext;
     }
 
 
-    public void setStoreHost(String storeHost) {
-        this.storeHost = storeHost;
+    public void setMqTraceContext(Object mqTraceContext) {
+        this.mqTraceContext = mqTraceContext;
     }
 }
