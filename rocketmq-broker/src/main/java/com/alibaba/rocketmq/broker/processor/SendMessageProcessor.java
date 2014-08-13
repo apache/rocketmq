@@ -16,6 +16,8 @@
 package com.alibaba.rocketmq.broker.processor;
 
 import com.alibaba.rocketmq.broker.BrokerController;
+import com.alibaba.rocketmq.broker.mqtrace.ConsumeMessageContext;
+import com.alibaba.rocketmq.broker.mqtrace.ConsumeMessageHook;
 import com.alibaba.rocketmq.broker.mqtrace.SendMessageContext;
 import com.alibaba.rocketmq.broker.mqtrace.SendMessageHook;
 import com.alibaba.rocketmq.common.MixAll;
@@ -49,7 +51,9 @@ import org.slf4j.LoggerFactory;
 
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 
 
@@ -81,34 +85,18 @@ public class SendMessageProcessor implements NettyRequestProcessor {
             throws RemotingCommandException {
         switch (request.getCode()) {
         case RequestCode.SEND_MESSAGE:
-            SendMessageContext context = null;
+            SendMessageContext mqtraceContext = null;
             // 消息轨迹：记录到达 broker 的消息
-            if (this.hasSendMessageHook()) {
-                final SendMessageRequestHeader requestHeader =
-                        (SendMessageRequestHeader) request
-                            .decodeCommandCustomHeader(SendMessageRequestHeader.class);
-                context = new SendMessageContext();
-                context.setProducerGroup(requestHeader.getProducerGroup());
-                context.setTopic(requestHeader.getTopic());
-                context.setBodyLength(request.getBody().length);
-                context.setMsgProps(requestHeader.getProperties());
-                context.setBornHost(RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
-                context.setBrokerAddr(this.brokerController.getBrokerAddr());
-                this.executeSendMessageHookBefore(context);
-                requestHeader.setProperties(context.getMsgProps());
+            if (hasSendMessageHook()) {
+                mqtraceContext = new SendMessageContext();
+                this.executeSendMessageHookBefore(ctx, request, mqtraceContext);
             }
 
-            final RemotingCommand response = this.sendMessage(ctx, request);
+            final RemotingCommand response = this.sendMessage(ctx, request, mqtraceContext);
 
-            // 消息轨迹：记录发送成功的消息
-            if (this.hasSendMessageHook()) {
-                final SendMessageResponseHeader responseHeader =
-                        (SendMessageResponseHeader) response.readCustomHeader();
-                context.setResponse(response);
-                context.setMsgId(responseHeader.getMsgId());
-                context.setQueueId(responseHeader.getQueueId());
-                context.setQueueOffset(responseHeader.getQueueOffset());
-                this.executeSendMessageHookAfter(context);
+            // 消息轨迹：记录发送结束的消息
+            if (hasSendMessageHook()) {
+                this.executeSendMessageHookAfter(response, mqtraceContext);
             }
             return response;
         case RequestCode.CONSUMER_SEND_MSG_BACK:
@@ -126,6 +114,20 @@ public class SendMessageProcessor implements NettyRequestProcessor {
         final ConsumerSendMsgBackRequestHeader requestHeader =
                 (ConsumerSendMsgBackRequestHeader) request
                     .decodeCommandCustomHeader(ConsumerSendMsgBackRequestHeader.class);
+
+        // 消息轨迹：记录消费失败的消息
+        if (this.hasConsumeMessageHook()) {
+            // 执行hook
+            ConsumeMessageContext context = new ConsumeMessageContext();
+            context.setConsumerGroup(requestHeader.getGroup());
+            context.setClientHost(RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
+            context.setStoreHost(this.brokerController.getBrokerAddr());
+            context.setSuccess(false);
+            Map<Long, String> messageIds = new HashMap<Long, String>();
+            messageIds.put(requestHeader.getOffset(), requestHeader.getMsgId());
+            context.setMessageIds(messageIds);
+            this.executeConsumeMessageHookAfter(context);
+        }
 
         // 确保订阅组存在
         SubscriptionGroupConfig subscriptionGroupConfig =
@@ -285,8 +287,8 @@ public class SendMessageProcessor implements NettyRequestProcessor {
     }
 
 
-    private RemotingCommand sendMessage(final ChannelHandlerContext ctx, final RemotingCommand request)
-            throws RemotingCommandException {
+    private RemotingCommand sendMessage(final ChannelHandlerContext ctx, final RemotingCommand request,
+            final SendMessageContext mqtraceContext) throws RemotingCommandException {
         final RemotingCommand response =
                 RemotingCommand.createResponseCommand(SendMessageResponseHeader.class);
         final SendMessageResponseHeader responseHeader =
@@ -373,6 +375,7 @@ public class SendMessageProcessor implements NettyRequestProcessor {
             log.warn(errorInfo);
             response.setCode(ResponseCode.SYSTEM_ERROR);
             response.setRemark(errorInfo);
+
             return response;
         }
 
@@ -493,6 +496,13 @@ public class SendMessageProcessor implements NettyRequestProcessor {
                         requestHeader.getTopic(), queueIdInt,
                         putMessageResult.getAppendMessageResult().getLogicsOffset() + 1);
                 }
+
+                // 消息轨迹：记录发送成功的消息
+                if (hasSendMessageHook()) {
+                    mqtraceContext.setMsgId(responseHeader.getMsgId());
+                    mqtraceContext.setQueueOffset(responseHeader.getQueueOffset());
+                    this.executeSendMessageHookAfter(response, mqtraceContext);
+                }
                 return null;
             }
         }
@@ -525,11 +535,23 @@ public class SendMessageProcessor implements NettyRequestProcessor {
     }
 
 
-    public void executeSendMessageHookBefore(final SendMessageContext context) {
+    public void executeSendMessageHookBefore(final ChannelHandlerContext ctx, final RemotingCommand request,
+            SendMessageContext context) {
         if (hasSendMessageHook()) {
             for (SendMessageHook hook : this.sendMessageHookList) {
                 try {
+                    final SendMessageRequestHeader requestHeader =
+                            (SendMessageRequestHeader) request
+                                .decodeCommandCustomHeader(SendMessageRequestHeader.class);
+                    context.setProducerGroup(requestHeader.getProducerGroup());
+                    context.setTopic(requestHeader.getTopic());
+                    context.setBodyLength(request.getBody().length);
+                    context.setMsgProps(requestHeader.getProperties());
+                    context.setBornHost(RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
+                    context.setBrokerAddr(this.brokerController.getBrokerAddr());
+                    context.setQueueId(requestHeader.getQueueId());
                     hook.sendMessageBefore(context);
+                    requestHeader.setProperties(context.getMsgProps());
                 }
                 catch (Throwable e) {
                 }
@@ -538,11 +560,43 @@ public class SendMessageProcessor implements NettyRequestProcessor {
     }
 
 
-    public void executeSendMessageHookAfter(final SendMessageContext context) {
+    public void executeSendMessageHookAfter(final RemotingCommand response, final SendMessageContext context) {
         if (hasSendMessageHook()) {
             for (SendMessageHook hook : this.sendMessageHookList) {
                 try {
+                    if (response != null) {
+                        context.setCode(response.getCode());
+                        context.setErrorMsg(response.getRemark());
+                    }
                     hook.sendMessageAfter(context);
+                }
+                catch (Throwable e) {
+                }
+            }
+        }
+    }
+
+    /**
+     * 消费每条消息会回调
+     */
+    private List<ConsumeMessageHook> consumeMessageHookList;
+
+
+    public boolean hasConsumeMessageHook() {
+        return consumeMessageHookList != null && !this.consumeMessageHookList.isEmpty();
+    }
+
+
+    public void registerConsumeMessageHook(List<ConsumeMessageHook> consumeMessageHookList) {
+        this.consumeMessageHookList = consumeMessageHookList;
+    }
+
+
+    public void executeConsumeMessageHookAfter(final ConsumeMessageContext context) {
+        if (hasConsumeMessageHook()) {
+            for (ConsumeMessageHook hook : this.consumeMessageHookList) {
+                try {
+                    hook.consumeMessageAfter(context);
                 }
                 catch (Throwable e) {
                 }

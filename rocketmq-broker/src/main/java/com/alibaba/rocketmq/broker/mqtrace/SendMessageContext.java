@@ -15,8 +15,6 @@
  */
 package com.alibaba.rocketmq.broker.mqtrace;
 
-import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
-
 import java.util.Properties;
 
 
@@ -30,20 +28,11 @@ public class SendMessageContext {
     private String brokerAddr;
     private String bornHost;
     private int bodyLength;
-    private RemotingCommand response;
+    private int code;
+    private String errorMsg;
     private String msgProps;
     private Object mqTraceContext;
     private Properties extProps;
-
-
-    public int getBodyLength() {
-        return bodyLength;
-    }
-
-
-    public void setBodyLength(int bodyLength) {
-        this.bodyLength = bodyLength;
-    }
 
 
     public String getProducerGroup() {
@@ -73,6 +62,16 @@ public class SendMessageContext {
 
     public void setMsgId(String msgId) {
         this.msgId = msgId;
+    }
+
+
+    public String getOriginMsgId() {
+        return originMsgId;
+    }
+
+
+    public void setOriginMsgId(String originMsgId) {
+        this.originMsgId = originMsgId;
     }
 
 
@@ -116,13 +115,33 @@ public class SendMessageContext {
     }
 
 
-    public RemotingCommand getResponse() {
-        return response;
+    public int getBodyLength() {
+        return bodyLength;
     }
 
 
-    public void setResponse(RemotingCommand response) {
-        this.response = response;
+    public void setBodyLength(int bodyLength) {
+        this.bodyLength = bodyLength;
+    }
+
+
+    public int getCode() {
+        return code;
+    }
+
+
+    public void setCode(int code) {
+        this.code = code;
+    }
+
+
+    public String getErrorMsg() {
+        return errorMsg;
+    }
+
+
+    public void setErrorMsg(String errorMsg) {
+        this.errorMsg = errorMsg;
     }
 
 
@@ -153,15 +172,5 @@ public class SendMessageContext {
 
     public void setExtProps(Properties extProps) {
         this.extProps = extProps;
-    }
-
-
-    public String getOriginMsgId() {
-        return originMsgId;
-    }
-
-
-    public void setOriginMsgId(String originMsgId) {
-        this.originMsgId = originMsgId;
     }
 }

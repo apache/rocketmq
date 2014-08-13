@@ -1135,7 +1135,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
     }
 
     /**
-     * 发送每条消息会回调
+     * 消费每条消息会回调
      */
     private List<ConsumeMessageHook> consumeMessageHookList;
 
