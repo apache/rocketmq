@@ -567,8 +567,11 @@ public class SendMessageProcessor implements NettyRequestProcessor {
                     if (response != null) {
                         context.setCode(response.getCode());
                         context.setErrorMsg(response.getRemark());
+                        hook.sendMessageAfter(context);
                     }
-                    hook.sendMessageAfter(context);
+                    else {
+                        hook.sendMessageAfter(context);
+                    }
                 }
                 catch (Throwable e) {
                 }

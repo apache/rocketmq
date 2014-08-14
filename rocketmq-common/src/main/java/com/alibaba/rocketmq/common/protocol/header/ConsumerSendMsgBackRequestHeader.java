@@ -17,6 +17,7 @@ public class ConsumerSendMsgBackRequestHeader implements CommandCustomHeader {
     @CFNotNull
     private Integer delayLevel;
     private String msgId;
+    private String topic;
 
 
     @Override
@@ -65,9 +66,19 @@ public class ConsumerSendMsgBackRequestHeader implements CommandCustomHeader {
     }
 
 
+    public String getTopic() {
+        return topic;
+    }
+
+
+    public void setTopic(String topic) {
+        this.topic = topic;
+    }
+
+
     @Override
     public String toString() {
-        return "ConsumerSendMsgBackRequestHeader [offset=" + offset + ", group=" + group + ", delayLevel="
-                + delayLevel + ", msgId=" + msgId + "]";
+        return "ConsumerSendMsgBackRequestHeader [group=" + group + ", topic=" + topic + ", msgId=" + msgId
+                + ", delayLevel=" + delayLevel + "]";
     }
 }
