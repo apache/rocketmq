@@ -120,6 +120,7 @@ public class SendMessageProcessor implements NettyRequestProcessor {
             // 执行hook
             ConsumeMessageContext context = new ConsumeMessageContext();
             context.setConsumerGroup(requestHeader.getGroup());
+            context.setTopic(requestHeader.getTopic());
             context.setClientHost(RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
             context.setStoreHost(this.brokerController.getBrokerAddr());
             context.setSuccess(false);
