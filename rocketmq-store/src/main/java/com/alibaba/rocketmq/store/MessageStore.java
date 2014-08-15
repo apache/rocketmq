@@ -194,6 +194,6 @@ public interface MessageStore {
     /**
      * 批量获取 messageId
      */
-    public Map<Long, String> getMessageIds(final String topic, int queueId, long minOffset,
+    public Map<String, Long> getMessageIds(final String topic, int queueId, long minOffset,
             final long maxOffset, SocketAddress storeHost);
 }

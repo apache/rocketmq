@@ -325,12 +325,14 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                     final SocketAddress storeHost =
                             new InetSocketAddress(brokerController.getBrokerConfig().getBrokerIP1(),
                                 brokerController.getNettyServerConfig().getListenPort());
-                    Map<Long, String> messageIds =
+                    Map<String, Long> messageIds =
                             this.brokerController.getMessageStore().getMessageIds(requestHeader.getTopic(),
                                 requestHeader.getQueueId(), requestHeader.getQueueOffset(),
                                 requestHeader.getQueueOffset() + getMessageResult.getMessageCount(),
                                 storeHost);
                     context.setMessageIds(messageIds);
+                    context.setBodyLength(getMessageResult.getBufferTotalSize()
+                            / getMessageResult.getMessageCount());
                     this.executeConsumeMessageHookBefore(context);
                 }
 
