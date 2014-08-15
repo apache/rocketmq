@@ -151,4 +151,7 @@ public class RequestCode {
     // 通过Broker直接向某个Consumer发送一条消息，并立刻消费，返回结果给broker，再返回给调用方
     // 2014-08-11 Add By shijia
     public static final int CONSUME_MESSAGE_DIRECTLY = 308;
+
+    // Broker 发送消息，优化网络数据包
+    public static final int SEND_MESSAGE_V2 = 309;
 }
