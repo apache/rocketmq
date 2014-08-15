@@ -24,7 +24,8 @@ public class ConsumeMessageContext {
     private Integer queueId;
     private String clientHost;
     private String storeHost;
-    private Map<Long, String> messageIds;
+    private Map<String, Long> messageIds;
+    private int bodyLength;
     private boolean success;
     private String status;
     private Object mqTraceContext;
@@ -80,12 +81,12 @@ public class ConsumeMessageContext {
     }
 
 
-    public Map<Long, String> getMessageIds() {
+    public Map<String, Long> getMessageIds() {
         return messageIds;
     }
 
 
-    public void setMessageIds(Map<Long, String> messageIds) {
+    public void setMessageIds(Map<String, Long> messageIds) {
         this.messageIds = messageIds;
     }
 
@@ -117,5 +118,15 @@ public class ConsumeMessageContext {
 
     public void setMqTraceContext(Object mqTraceContext) {
         this.mqTraceContext = mqTraceContext;
+    }
+
+
+    public int getBodyLength() {
+        return bodyLength;
+    }
+
+
+    public void setBodyLength(int bodyLength) {
+        this.bodyLength = bodyLength;
     }
 }

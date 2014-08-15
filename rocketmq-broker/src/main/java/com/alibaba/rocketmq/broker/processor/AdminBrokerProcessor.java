@@ -20,6 +20,7 @@ import com.alibaba.rocketmq.broker.client.ClientChannelInfo;
 import com.alibaba.rocketmq.broker.client.ConsumerGroupInfo;
 import com.alibaba.rocketmq.broker.mqtrace.ConsumeMessageContext;
 import com.alibaba.rocketmq.broker.mqtrace.ConsumeMessageHook;
+import com.alibaba.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
 import com.alibaba.rocketmq.common.MQVersion;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.TopicConfig;
@@ -826,7 +827,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             context.setStoreHost(this.brokerController.getBrokerAddr());
             context.setQueueId(requestHeader.getQueueId());
             context.setSuccess(true);
-
+            context.setStatus(ConsumeConcurrentlyStatus.CONSUME_SUCCESS.toString());
             final SocketAddress storeHost =
                     new InetSocketAddress(brokerController.getBrokerConfig().getBrokerIP1(), brokerController
                         .getNettyServerConfig().getListenPort());
@@ -835,7 +836,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                     this.brokerController.getConsumerOffsetManager().queryOffset(
                         requestHeader.getConsumerGroup(), requestHeader.getTopic(),
                         requestHeader.getQueueId());
-            Map<Long, String> messageIds =
+            Map<String, Long> messageIds =
                     this.brokerController.getMessageStore()
                         .getMessageIds(requestHeader.getTopic(), requestHeader.getQueueId(), preOffset + 1,
                             requestHeader.getCommitOffset(), storeHost);

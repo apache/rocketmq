@@ -1779,9 +1779,9 @@ public class DefaultMessageStore implements MessageStore {
     }
 
 
-    public Map<Long, String> getMessageIds(final String topic, final int queueId, long minOffset,
+    public Map<String, Long> getMessageIds(final String topic, final int queueId, long minOffset,
             long maxOffset, SocketAddress storeHost) {
-        Map<Long, String> messageIds = new HashMap<Long, String>();
+        Map<String, Long> messageIds = new HashMap<String, Long>();
         if (this.shutdown) {
             return messageIds;
         }
@@ -1807,7 +1807,7 @@ public class DefaultMessageStore implements MessageStore {
                             String msgId =
                                     MessageDecoder.createMessageId(msgIdMemory,
                                         MessageExt.SocketAddress2ByteBuffer(storeHost), offsetPy);
-                            messageIds.put(nextOffset++, msgId);
+                            messageIds.put(msgId, nextOffset++);
                             if (nextOffset > maxOffset) {
                                 return messageIds;
                             }

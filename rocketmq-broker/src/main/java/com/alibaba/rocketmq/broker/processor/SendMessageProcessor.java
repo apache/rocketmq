@@ -20,6 +20,7 @@ import com.alibaba.rocketmq.broker.mqtrace.ConsumeMessageContext;
 import com.alibaba.rocketmq.broker.mqtrace.ConsumeMessageHook;
 import com.alibaba.rocketmq.broker.mqtrace.SendMessageContext;
 import com.alibaba.rocketmq.broker.mqtrace.SendMessageHook;
+import com.alibaba.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.TopicConfig;
 import com.alibaba.rocketmq.common.TopicFilterType;
@@ -124,8 +125,9 @@ public class SendMessageProcessor implements NettyRequestProcessor {
             context.setClientHost(RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
             context.setStoreHost(this.brokerController.getBrokerAddr());
             context.setSuccess(false);
-            Map<Long, String> messageIds = new HashMap<Long, String>();
-            messageIds.put(requestHeader.getOffset(), requestHeader.getMsgId());
+            context.setStatus(ConsumeConcurrentlyStatus.RECONSUME_LATER.toString());
+            Map<String, Long> messageIds = new HashMap<String, Long>();
+            messageIds.put(requestHeader.getMsgId(), requestHeader.getOffset());
             context.setMessageIds(messageIds);
             this.executeConsumeMessageHookAfter(context);
         }
@@ -502,7 +504,6 @@ public class SendMessageProcessor implements NettyRequestProcessor {
                 if (hasSendMessageHook()) {
                     mqtraceContext.setMsgId(responseHeader.getMsgId());
                     mqtraceContext.setQueueOffset(responseHeader.getQueueOffset());
-                    this.executeSendMessageHookAfter(response, mqtraceContext);
                 }
                 return null;
             }
@@ -568,11 +569,8 @@ public class SendMessageProcessor implements NettyRequestProcessor {
                     if (response != null) {
                         context.setCode(response.getCode());
                         context.setErrorMsg(response.getRemark());
-                        hook.sendMessageAfter(context);
                     }
-                    else {
-                        hook.sendMessageAfter(context);
-                    }
+                    hook.sendMessageAfter(context);
                 }
                 catch (Throwable e) {
                 }
