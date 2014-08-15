@@ -102,6 +102,7 @@ import com.alibaba.rocketmq.common.protocol.header.ResetOffsetRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.SearchOffsetRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.SearchOffsetResponseHeader;
 import com.alibaba.rocketmq.common.protocol.header.SendMessageRequestHeader;
+import com.alibaba.rocketmq.common.protocol.header.SendMessageRequestHeaderV2;
 import com.alibaba.rocketmq.common.protocol.header.SendMessageResponseHeader;
 import com.alibaba.rocketmq.common.protocol.header.UnregisterClientRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.UpdateConsumerOffsetRequestHeader;
@@ -340,8 +341,14 @@ public class MQClientAPIImpl {
                 projectGroupPrefix));
         }
 
+        // RemotingCommand request =
+        // RemotingCommand.createRequestCommand(RequestCode.SEND_MESSAGE,
+        // requestHeader);
+
+        SendMessageRequestHeaderV2 requestHeaderV2 =
+                SendMessageRequestHeaderV2.createSendMessageRequestHeaderV2(requestHeader);
         RemotingCommand request =
-                RemotingCommand.createRequestCommand(RequestCode.SEND_MESSAGE, requestHeader);
+                RemotingCommand.createRequestCommand(RequestCode.SEND_MESSAGE_V2, requestHeaderV2);
 
         request.setBody(msg.getBody());
 
