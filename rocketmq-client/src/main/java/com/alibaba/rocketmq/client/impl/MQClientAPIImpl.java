@@ -319,6 +319,12 @@ public class MQClientAPIImpl {
         throw new MQClientException(response.getCode(), response.getRemark());
     }
 
+    /**
+     * 是否发送网络包精简的Message
+     */
+    public static boolean sendSmartMsg = //
+            Boolean.parseBoolean(System.getProperty("com.alibaba.rocketmq.client.sendSmartMsg", "false"));
+
 
     /**
      * 发送消息
@@ -341,14 +347,15 @@ public class MQClientAPIImpl {
                 projectGroupPrefix));
         }
 
-        // RemotingCommand request =
-        // RemotingCommand.createRequestCommand(RequestCode.SEND_MESSAGE,
-        // requestHeader);
-
-        SendMessageRequestHeaderV2 requestHeaderV2 =
-                SendMessageRequestHeaderV2.createSendMessageRequestHeaderV2(requestHeader);
-        RemotingCommand request =
-                RemotingCommand.createRequestCommand(RequestCode.SEND_MESSAGE_V2, requestHeaderV2);
+        RemotingCommand request = null;
+        if (sendSmartMsg) {
+            SendMessageRequestHeaderV2 requestHeaderV2 =
+                    SendMessageRequestHeaderV2.createSendMessageRequestHeaderV2(requestHeader);
+            request = RemotingCommand.createRequestCommand(RequestCode.SEND_MESSAGE_V2, requestHeaderV2);
+        }
+        else {
+            request = RemotingCommand.createRequestCommand(RequestCode.SEND_MESSAGE, requestHeader);
+        }
 
         request.setBody(msg.getBody());
 
