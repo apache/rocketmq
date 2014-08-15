@@ -15,6 +15,16 @@
  */
 package com.alibaba.rocketmq.broker.processor;
 
+import io.netty.channel.ChannelHandlerContext;
+
+import java.net.InetSocketAddress;
+import java.net.SocketAddress;
+import java.util.List;
+import java.util.Random;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.alibaba.rocketmq.broker.BrokerController;
 import com.alibaba.rocketmq.broker.mqtrace.SendMessageContext;
 import com.alibaba.rocketmq.broker.mqtrace.SendMessageHook;
@@ -33,6 +43,7 @@ import com.alibaba.rocketmq.common.protocol.RequestCode;
 import com.alibaba.rocketmq.common.protocol.ResponseCode;
 import com.alibaba.rocketmq.common.protocol.header.ConsumerSendMsgBackRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.SendMessageRequestHeader;
+import com.alibaba.rocketmq.common.protocol.header.SendMessageRequestHeaderV2;
 import com.alibaba.rocketmq.common.protocol.header.SendMessageResponseHeader;
 import com.alibaba.rocketmq.common.subscription.SubscriptionGroupConfig;
 import com.alibaba.rocketmq.common.sysflag.MessageSysFlag;
@@ -43,14 +54,6 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 import com.alibaba.rocketmq.store.MessageExtBrokerInner;
 import com.alibaba.rocketmq.store.PutMessageResult;
 import com.alibaba.rocketmq.store.config.StorePathConfigHelper;
-import io.netty.channel.ChannelHandlerContext;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.net.InetSocketAddress;
-import java.net.SocketAddress;
-import java.util.List;
-import java.util.Random;
 
 
 /**
@@ -79,14 +82,27 @@ public class SendMessageProcessor implements NettyRequestProcessor {
     @Override
     public RemotingCommand processRequest(ChannelHandlerContext ctx, RemotingCommand request)
             throws RemotingCommandException {
+        SendMessageRequestHeaderV2 requestHeaderV2 = null;
+
         switch (request.getCode()) {
+        case RequestCode.SEND_MESSAGE_V2:
+            requestHeaderV2 =
+                    (SendMessageRequestHeaderV2) request
+                        .decodeCommandCustomHeader(SendMessageRequestHeaderV2.class);
         case RequestCode.SEND_MESSAGE:
             SendMessageContext context = null;
-            // 消息轨迹：记录到达 broker 的消息
-            if (this.hasSendMessageHook()) {
-                final SendMessageRequestHeader requestHeader =
+            SendMessageRequestHeader requestHeader = null;
+
+            if (null == requestHeaderV2) {
+                requestHeader =
                         (SendMessageRequestHeader) request
                             .decodeCommandCustomHeader(SendMessageRequestHeader.class);
+            }
+            else {
+                requestHeader = SendMessageRequestHeaderV2.createSendMessageRequestHeaderV1(requestHeaderV2);
+            }
+            // 消息轨迹：记录到达 broker 的消息
+            if (this.hasSendMessageHook()) {
                 context = new SendMessageContext();
                 context.setProducerGroup(requestHeader.getProducerGroup());
                 context.setTopic(requestHeader.getTopic());
@@ -96,7 +112,7 @@ public class SendMessageProcessor implements NettyRequestProcessor {
                 this.executeSendMessageHookBefore(context);
             }
 
-            final RemotingCommand response = this.sendMessage(ctx, request);
+            final RemotingCommand response = this.sendMessage(ctx, request, requestHeader);
 
             // 消息轨迹：记录发送成功的消息
             if (this.hasSendMessageHook()) {
@@ -162,7 +178,7 @@ public class SendMessageProcessor implements NettyRequestProcessor {
         // 检查topic权限
         if (!PermName.isWriteable(topicConfig.getPerm())) {
             response.setCode(ResponseCode.NO_PERMISSION);
-            response.setRemark("the topic[" + newTopic + "] sending message is forbidden");
+            response.setRemark(String.format("the topic[%s] sending message is forbidden", newTopic));
             return response;
         }
 
@@ -278,14 +294,12 @@ public class SendMessageProcessor implements NettyRequestProcessor {
     }
 
 
-    private RemotingCommand sendMessage(final ChannelHandlerContext ctx, final RemotingCommand request)
-            throws RemotingCommandException {
+    private RemotingCommand sendMessage(final ChannelHandlerContext ctx, final RemotingCommand request,
+            final SendMessageRequestHeader requestHeader) throws RemotingCommandException {
         final RemotingCommand response =
                 RemotingCommand.createResponseCommand(SendMessageResponseHeader.class);
         final SendMessageResponseHeader responseHeader =
                 (SendMessageResponseHeader) response.readCustomHeader();
-        final SendMessageRequestHeader requestHeader =
-                (SendMessageRequestHeader) request.decodeCommandCustomHeader(SendMessageRequestHeader.class);
 
         // 由于有直接返回的逻辑，所以必须要设置
         response.setOpaque(request.getOpaque());
