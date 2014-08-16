@@ -125,10 +125,20 @@ public class Producer {
                         catch (RemotingException e) {
                             statsBenchmark.getSendRequestFailedCount().incrementAndGet();
                             e.printStackTrace();
+
+                            try {
+                                Thread.sleep(3000);
+                            }
+                            catch (InterruptedException e1) {
+                            }
                         }
                         catch (InterruptedException e) {
                             statsBenchmark.getSendRequestFailedCount().incrementAndGet();
-                            e.printStackTrace();
+                            try {
+                                Thread.sleep(3000);
+                            }
+                            catch (InterruptedException e1) {
+                            }
                         }
                         catch (MQClientException e) {
                             statsBenchmark.getSendRequestFailedCount().incrementAndGet();
@@ -136,7 +146,11 @@ public class Producer {
                         }
                         catch (MQBrokerException e) {
                             statsBenchmark.getReceiveResponseFailedCount().incrementAndGet();
-                            e.printStackTrace();
+                            try {
+                                Thread.sleep(3000);
+                            }
+                            catch (InterruptedException e1) {
+                            }
                         }
                     }
                 }
