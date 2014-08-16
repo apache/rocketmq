@@ -703,6 +703,10 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                 requestHeader.setBornTimestamp(System.currentTimeMillis());
                 requestHeader.setFlag(msg.getFlag());
                 requestHeader.setProperties(MessageDecoder.messageProperties2String(msg.getProperties()));
+                int reconsumeTimes = 0;
+                if (null != msg.getProperty(MessageConst.PROPERTY_RECONSUME_TIMES))
+                    reconsumeTimes = Integer.parseInt(msg.getProperty(MessageConst.PROPERTY_RECONSUME_TIMES));
+                requestHeader.setReconsumeTimes(reconsumeTimes);
 
                 SendResult sendResult = this.mQClientFactory.getMQClientAPIImpl().sendMessage(//
                     brokerAddr,// 1
