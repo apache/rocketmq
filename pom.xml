@@ -349,6 +349,11 @@
                 <artifactId>derby</artifactId>
                 <version>10.10.2.0</version>
             </dependency>
+<dependency>
+  <groupId>jboss</groupId>
+  <artifactId>javassist</artifactId>
+  <version>3.7.ga</version>
+</dependency>
         </dependencies>
     </dependencyManagement>
 </project>

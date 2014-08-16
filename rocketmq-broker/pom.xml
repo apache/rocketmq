@@ -57,5 +57,9 @@
 			<groupId>org.apache.derby</groupId>
 			<artifactId>derby</artifactId>
 		</dependency>
+<dependency>
+  <groupId>jboss</groupId>
+  <artifactId>javassist</artifactId>
+</dependency>
 	</dependencies>
 </project>
