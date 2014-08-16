@@ -408,8 +408,10 @@ public class SendMessageProcessor implements NettyRequestProcessor {
         msgInner.setBornTimestamp(requestHeader.getBornTimestamp());
         msgInner.setBornHost(ctx.channel().remoteAddress());
         msgInner.setStoreHost(this.getStoreHost());
-
-        msgInner.setReconsumeTimes(0);
+        int reconsumeTimes = 0;
+        if (requestHeader.getReconsumeTimes() > 0)
+            reconsumeTimes = requestHeader.getReconsumeTimes();
+        msgInner.setReconsumeTimes(reconsumeTimes);
 
         // 检查事务消息
         if (this.brokerController.getBrokerConfig().isRejectTransactionMessage()) {

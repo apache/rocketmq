@@ -15,6 +15,9 @@
  */
 package com.alibaba.rocketmq.client.impl.consumer;
 
+import static com.alibaba.rocketmq.common.message.MessageConst.PROPERTY_RECONSUME_TIMES;
+import static com.alibaba.rocketmq.common.message.MessageConst.PROPERTY_RETRY_TOPIC;
+
 import com.alibaba.rocketmq.client.QueryResult;
 import com.alibaba.rocketmq.client.Validators;
 import com.alibaba.rocketmq.client.consumer.DefaultMQPushConsumer;
@@ -611,7 +614,8 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
             newMsg.setFlag(msg.getFlag());
             // 这里要删除无用的属性，防止服务器发生冲突。TODO
             MessageAccessor.setProperties(newMsg, msg.getProperties());
-            MessageAccessor.putProperty(newMsg, MessageConst.PROPERTY_RETRY_TOPIC, msg.getTopic());
+            MessageAccessor.putProperty(newMsg, PROPERTY_RETRY_TOPIC, msg.getTopic());
+            MessageAccessor.putProperty(newMsg, PROPERTY_RECONSUME_TIMES, msg.getReconsumeTimes() + "");
 
             this.mQClientFactory.getDefaultMQProducer().send(newMsg);
         }

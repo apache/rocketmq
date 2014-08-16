@@ -51,6 +51,7 @@ public class MessageConst {
     public static final String PROPERTY_TRANSFER_FLAG = "TRANSFER_FLAG";
     public static final String PROPERTY_CORRECTION_FLAG = "CORRECTION_FLAG";
     public static final String PROPERTY_MQ2_FLAG = "MQ2_FLAG";
+    public static final String PROPERTY_RECONSUME_TIMES = "RECONSUME_TIMES";
 
     public static final String KEY_SEPARATOR = " ";
 
