@@ -28,6 +28,7 @@ import org.slf4j.Logger;
 
 import com.alibaba.rocketmq.client.exception.MQClientException;
 import com.alibaba.rocketmq.client.log.ClientLogger;
+import com.alibaba.rocketmq.common.ThreadFactoryImpl;
 import com.alibaba.rocketmq.common.message.MessageQueue;
 import com.alibaba.rocketmq.common.protocol.heartbeat.MessageModel;
 
@@ -91,6 +92,7 @@ public class MQPullConsumerScheduleService {
                         MQPullConsumerScheduleService.this.callbackTable.get(topic);
                 if (pullTaskCallback != null) {
                     final PullTaskContext context = new PullTaskContext();
+                    context.setPullConsumer(MQPullConsumerScheduleService.this.defaultMQPullConsumer);
                     try {
                         pullTaskCallback.doPullTask(this.messageQueue, context);
                     }
@@ -172,17 +174,8 @@ public class MQPullConsumerScheduleService {
         final String group = this.defaultMQPullConsumer.getConsumerGroup();
         this.scheduledThreadPoolExecutor = new ScheduledThreadPoolExecutor(//
             this.pullThreadNums,//
-            new ThreadFactory() {
-                private AtomicLong threadIndex = new AtomicLong(0);
-
-
-                @Override
-                public Thread newThread(Runnable r) {
-                    return new Thread(r, "PullMsgThread-" //
-                            + group//
-                            + "-" + this.threadIndex.incrementAndGet());
-                }
-            });
+            new ThreadFactoryImpl("PullMsgThread-" + group)//
+                );
 
         this.defaultMQPullConsumer.setMessageQueueListener(this.messageQueueListener);
 
