@@ -85,7 +85,9 @@ public class Consumer {
             }
         }, 10000, 10000);
 
-        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("benchmark_consumer");
+        DefaultMQPushConsumer consumer =
+                new DefaultMQPushConsumer("benchmark_consumer_"
+                        + Long.toString(System.currentTimeMillis() % 100));
         consumer.setInstanceName(Long.toString(System.currentTimeMillis()));
 
         consumer.subscribe("BenchmarkTest", "*");
