@@ -396,6 +396,7 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
         result.setAutoCommit(true);
 
         List<MessageExt> msgs = new ArrayList<MessageExt>();
+        msgs.add(msg);
         MessageQueue mq = new MessageQueue();
         mq.setBrokerName(brokerName);
         mq.setTopic(msg.getTopic());
@@ -406,6 +407,8 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
         this.resetRetryTopic(msgs);
 
         final long beginTime = System.currentTimeMillis();
+
+        log.info("consumeMessageDirectly receive new messge: {}", msg);
 
         try {
             ConsumeConcurrentlyStatus status = this.messageListener.consumeMessage(msgs, context);
@@ -438,7 +441,7 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
 
         result.setSpentTimeMills(System.currentTimeMillis() - beginTime);
 
-        log.warn("consumeMessageDirectly Result: {}", result);
+        log.info("consumeMessageDirectly Result: {}", result);
 
         return result;
     }

@@ -30,6 +30,7 @@ import com.alibaba.rocketmq.common.protocol.body.ConsumerConnection;
 import com.alibaba.rocketmq.common.protocol.body.ConsumerRunningInfo;
 import com.alibaba.rocketmq.remoting.RPCHook;
 import com.alibaba.rocketmq.tools.admin.DefaultMQAdminExt;
+import com.alibaba.rocketmq.tools.command.MQAdminStartup;
 import com.alibaba.rocketmq.tools.command.SubCommand;
 
 
@@ -147,5 +148,13 @@ public class ConsumerStatusSubCommand implements SubCommand {
         finally {
             defaultMQAdminExt.shutdown();
         }
+    }
+
+
+    public static void main(String[] args) {
+        System.setProperty(MixAll.NAMESRV_ADDR_PROPERTY, "10.235.169.73:9876");
+        MQAdminStartup.main(new String[] { new ConsumerStatusSubCommand().commandName(), //
+                                          "-g", "benchmark_consumer" //
+        });
     }
 }

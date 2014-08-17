@@ -493,6 +493,7 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
         result.setOrder(true);
 
         List<MessageExt> msgs = new ArrayList<MessageExt>();
+        msgs.add(msg);
         MessageQueue mq = new MessageQueue();
         mq.setBrokerName(brokerName);
         mq.setTopic(msg.getTopic());
@@ -501,6 +502,8 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
         ConsumeOrderlyContext context = new ConsumeOrderlyContext(mq);
 
         final long beginTime = System.currentTimeMillis();
+
+        log.info("consumeMessageDirectly receive new messge: {}", msg);
 
         try {
             ConsumeOrderlyStatus status = this.messageListener.consumeMessage(msgs, context);
@@ -540,7 +543,7 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
         result.setAutoCommit(context.isAutoCommit());
         result.setSpentTimeMills(System.currentTimeMillis() - beginTime);
 
-        log.warn("consumeMessageDirectly Result: {}", result);
+        log.info("consumeMessageDirectly Result: {}", result);
 
         return result;
     }

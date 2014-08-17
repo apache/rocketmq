@@ -32,10 +32,12 @@ import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.common.message.MessageQueue;
 import com.alibaba.rocketmq.common.protocol.RequestCode;
 import com.alibaba.rocketmq.common.protocol.ResponseCode;
+import com.alibaba.rocketmq.common.protocol.body.ConsumeMessageDirectlyResult;
 import com.alibaba.rocketmq.common.protocol.body.ConsumerRunningInfo;
 import com.alibaba.rocketmq.common.protocol.body.GetConsumerStatusBody;
 import com.alibaba.rocketmq.common.protocol.body.ResetOffsetBody;
 import com.alibaba.rocketmq.common.protocol.header.CheckTransactionStateRequestHeader;
+import com.alibaba.rocketmq.common.protocol.header.ConsumeMessageDirectlyResultRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.GetConsumerRunningInfoRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.GetConsumerStatusRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.NotifyConsumerIdsChangedRequestHeader;
@@ -77,10 +79,40 @@ public class ClientRemotingProcessor implements NettyRequestProcessor {
 
         case RequestCode.GET_CONSUMER_RUNNING_INFO:
             return this.getConsumerRunningInfo(ctx, request);
+
+        case RequestCode.CONSUME_MESSAGE_DIRECTLY:
+            return this.consumeMessageDirectly(ctx, request);
         default:
             break;
         }
         return null;
+    }
+
+
+    private RemotingCommand consumeMessageDirectly(ChannelHandlerContext ctx, RemotingCommand request)
+            throws RemotingCommandException {
+        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
+        final ConsumeMessageDirectlyResultRequestHeader requestHeader =
+                (ConsumeMessageDirectlyResultRequestHeader) request
+                    .decodeCommandCustomHeader(ConsumeMessageDirectlyResultRequestHeader.class);
+
+        final MessageExt msg = MessageDecoder.decode(ByteBuffer.wrap(request.getBody()));
+
+        ConsumeMessageDirectlyResult result =
+                this.mqClientFactory.consumeMessageDirectly(msg, requestHeader.getConsumerGroup(),
+                    requestHeader.getBrokerName());
+
+        if (null != result) {
+            response.setCode(ResponseCode.SUCCESS);
+            response.setBody(result.encode());
+        }
+        else {
+            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setRemark(String.format("The Consumer Group <%s> not exist in this consumer",
+                requestHeader.getConsumerGroup()));
+        }
+
+        return response;
     }
 
 

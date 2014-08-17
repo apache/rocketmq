@@ -184,6 +184,9 @@ public class MQClientAPIImpl {
 
         this.remotingClient.registerProcessor(RequestCode.GET_CONSUMER_RUNNING_INFO,
             this.clientRemotingProcessor, null);
+
+        this.remotingClient.registerProcessor(RequestCode.CONSUME_MESSAGE_DIRECTLY,
+            this.clientRemotingProcessor, null);
     }
 
 
@@ -2180,6 +2183,7 @@ public class MQClientAPIImpl {
                 new ConsumeMessageDirectlyResultRequestHeader();
         requestHeader.setConsumerGroup(consumerGroup);
         requestHeader.setClientId(clientId);
+        requestHeader.setMsgId(msgId);
 
         RemotingCommand request =
                 RemotingCommand.createRequestCommand(RequestCode.CONSUME_MESSAGE_DIRECTLY, requestHeader);
