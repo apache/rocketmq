@@ -1086,9 +1086,11 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
         // 各种配置及运行数据
         Properties prop = MixAll.object2Properties(this.defaultMQPushConsumer);
 
-        prop.put(ConsumerRunningInfo.PROP_CONSUME_ORDERLY, this.consumeOrderly);
-        prop.put(ConsumerRunningInfo.PROP_THREADPOOL_CORE_SIZE, this.consumeMessageService.getCorePoolSize());
-        prop.put(ConsumerRunningInfo.PROP_CONSUMER_START_TIMESTAMP, this.consumerStartTimestamp);
+        prop.put(ConsumerRunningInfo.PROP_CONSUME_ORDERLY, String.valueOf(this.consumeOrderly));
+        prop.put(ConsumerRunningInfo.PROP_THREADPOOL_CORE_SIZE,
+            String.valueOf(this.consumeMessageService.getCorePoolSize()));
+        prop.put(ConsumerRunningInfo.PROP_CONSUMER_START_TIMESTAMP,
+            String.valueOf(this.consumerStartTimestamp));
 
         info.setProperties(prop);
 
@@ -1124,5 +1126,15 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
 
     public ConsumerStatsManager getConsumerStatsManager() {
         return this.mQClientFactory.getConsumerStatsManager();
+    }
+
+
+    public ConsumeMessageService getConsumeMessageService() {
+        return consumeMessageService;
+    }
+
+
+    public void setConsumeMessageService(ConsumeMessageService consumeMessageService) {
+        this.consumeMessageService = consumeMessageService;
     }
 }

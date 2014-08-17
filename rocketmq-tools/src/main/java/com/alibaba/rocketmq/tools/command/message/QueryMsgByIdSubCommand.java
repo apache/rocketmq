@@ -80,7 +80,6 @@ public class QueryMsgByIdSubCommand implements SubCommand {
 
     public static void queryById(final DefaultMQAdminExt admin, final String msgId) throws MQClientException,
             RemotingException, MQBrokerException, InterruptedException, IOException {
-        admin.start();
         MessageExt msg = admin.viewMessage(msgId);
 
         // 存储消息 body 到指定路径
@@ -181,6 +180,8 @@ public class QueryMsgByIdSubCommand implements SubCommand {
         defaultMQAdminExt.setInstanceName(Long.toString(System.currentTimeMillis()));
 
         try {
+            defaultMQAdminExt.start();
+
             final String msgId = commandLine.getOptionValue('i').trim();
             if (commandLine.hasOption('g') && commandLine.hasOption('d')) {
                 final String consumerGroup = commandLine.getOptionValue('g').trim();
@@ -190,6 +191,7 @@ public class QueryMsgByIdSubCommand implements SubCommand {
                 System.out.println(result);
             }
             else {
+
                 queryById(defaultMQAdminExt, msgId);
             }
         }
@@ -224,6 +226,11 @@ public class QueryMsgByIdSubCommand implements SubCommand {
 
 
     public static void main(String[] args) {
-        MQAdminStartup.main(new String[] { "queryMsgById", "-i", "0AEBAA0500002AE5000002A693AE8961" });
+        MQAdminStartup.main(new String[] { new QueryMsgByIdSubCommand().commandName(), //
+                                          "-n", "10.235.169.73:9876", //
+                                          "-g", "CID_110", //
+                                          "-d", "10.22.18.241@73376", //
+                                          "-i", "0A654A3400002ABD00000011C3555205" //
+        });
     }
 }

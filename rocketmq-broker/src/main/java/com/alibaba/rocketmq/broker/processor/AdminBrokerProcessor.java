@@ -95,6 +95,7 @@ import com.alibaba.rocketmq.common.protocol.heartbeat.SubscriptionData;
 import com.alibaba.rocketmq.common.subscription.SubscriptionGroupConfig;
 import com.alibaba.rocketmq.remoting.common.RemotingHelper;
 import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
+import com.alibaba.rocketmq.remoting.exception.RemotingTimeoutException;
 import com.alibaba.rocketmq.remoting.netty.NettyRequestProcessor;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 import com.alibaba.rocketmq.remoting.protocol.RemotingSerializable;
@@ -265,6 +266,12 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                     this.brokerController.getBroker2Client().callClient(clientChannelInfo.getChannel(),
                         newRequest);
             return consumerResponse;
+        }
+        catch (RemotingTimeoutException e) {
+            response.setCode(ResponseCode.CONSUME_MSG_TIMEOUT);
+            response.setRemark(String.format("consumer <%s> <%s> Timeout: %s", consumerGroup, clientId,
+                RemotingHelper.exceptionSimpleDesc(e)));
+            return response;
         }
         catch (Exception e) {
             response.setCode(ResponseCode.SYSTEM_ERROR);
