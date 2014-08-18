@@ -1790,14 +1790,14 @@ public class DefaultMessageStore implements MessageStore {
         ConsumeQueue consumeQueue = findConsumeQueue(topic, queueId);
         if (consumeQueue != null) {
             minOffset = Math.max(minOffset, consumeQueue.getMinOffsetInQuque());
-            maxOffset = Math.min(maxOffset, consumeQueue.getMaxOffsetInQuque() - 1);
+            maxOffset = Math.min(maxOffset, consumeQueue.getMaxOffsetInQuque());
 
             if (maxOffset == 0) {
                 return messageIds;
             }
 
             long nextOffset = minOffset;
-            while (nextOffset <= maxOffset) {
+            while (nextOffset < maxOffset) {
                 SelectMapedBufferResult bufferConsumeQueue = consumeQueue.getIndexBuffer(nextOffset);
                 if (bufferConsumeQueue != null) {
                     try {
