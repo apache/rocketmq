@@ -612,6 +612,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
             // 这里要删除无用的属性，防止服务器发生冲突。TODO
             MessageAccessor.setProperties(newMsg, msg.getProperties());
             MessageAccessor.putProperty(newMsg, MessageConst.PROPERTY_RETRY_TOPIC, msg.getTopic());
+            MessageAccessor.setReconsumeTime(newMsg, (msg.getReconsumeTimes() + 1) + "");
 
             this.mQClientFactory.getDefaultMQProducer().send(newMsg);
         }
