@@ -100,7 +100,7 @@ public class Broker2Client {
     }
 
 
-    public RemotingCommand getConsumerRunningInfo(//
+    public RemotingCommand callClient(//
             final Channel channel,//
             final RemotingCommand request//
     ) throws RemotingSendRequestException, RemotingTimeoutException, InterruptedException {
@@ -157,6 +157,12 @@ public class Broker2Client {
 
             long consumerOffset =
                     this.brokerController.getConsumerOffsetManager().queryOffset(group, topic, i);
+            if (-1 == consumerOffset) {
+                response.setCode(ResponseCode.SYSTEM_ERROR);
+                response.setRemark(String.format("THe consumer group <%s> not exist", group));
+                return response;
+            }
+
             long timeStampOffset =
                     this.brokerController.getMessageStore().getOffsetInQueueByTime(topic, i, timeStamp);
             if (isForce || timeStampOffset < consumerOffset) {

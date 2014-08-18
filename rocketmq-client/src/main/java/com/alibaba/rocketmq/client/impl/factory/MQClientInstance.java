@@ -63,7 +63,9 @@ import com.alibaba.rocketmq.common.ServiceState;
 import com.alibaba.rocketmq.common.UtilAll;
 import com.alibaba.rocketmq.common.constant.PermName;
 import com.alibaba.rocketmq.common.filter.FilterAPI;
+import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.common.message.MessageQueue;
+import com.alibaba.rocketmq.common.protocol.body.ConsumeMessageDirectlyResult;
 import com.alibaba.rocketmq.common.protocol.body.ConsumerRunningInfo;
 import com.alibaba.rocketmq.common.protocol.heartbeat.ConsumeType;
 import com.alibaba.rocketmq.common.protocol.heartbeat.ConsumerData;
@@ -1272,6 +1274,22 @@ public class MQClientInstance {
                 }
             }
         }
+    }
+
+
+    public ConsumeMessageDirectlyResult consumeMessageDirectly(final MessageExt msg, //
+            final String consumerGroup, //
+            final String brokerName) {
+        MQConsumerInner mqConsumerInner = this.consumerTable.get(consumerGroup);
+        if (null != mqConsumerInner) {
+            DefaultMQPushConsumerImpl consumer = (DefaultMQPushConsumerImpl) mqConsumerInner;
+
+            ConsumeMessageDirectlyResult result =
+                    consumer.getConsumeMessageService().consumeMessageDirectly(msg, brokerName);
+            return result;
+        }
+
+        return null;
     }
 
 

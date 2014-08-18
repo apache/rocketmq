@@ -1,4 +1,5 @@
 /**
+
  * Copyright (C) 2010-2013 Alibaba Group Holding Limited
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,6 +20,7 @@ import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.List;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
@@ -28,10 +30,13 @@ import com.alibaba.rocketmq.client.exception.MQBrokerException;
 import com.alibaba.rocketmq.client.exception.MQClientException;
 import com.alibaba.rocketmq.common.UtilAll;
 import com.alibaba.rocketmq.common.message.MessageExt;
+import com.alibaba.rocketmq.common.protocol.body.ConsumeMessageDirectlyResult;
 import com.alibaba.rocketmq.remoting.RPCHook;
 import com.alibaba.rocketmq.remoting.common.RemotingHelper;
 import com.alibaba.rocketmq.remoting.exception.RemotingException;
 import com.alibaba.rocketmq.tools.admin.DefaultMQAdminExt;
+import com.alibaba.rocketmq.tools.admin.api.MessageTrack;
+import com.alibaba.rocketmq.tools.command.MQAdminStartup;
 import com.alibaba.rocketmq.tools.command.SubCommand;
 
 
@@ -61,13 +66,20 @@ public class QueryMsgByIdSubCommand implements SubCommand {
         opt.setRequired(true);
         options.addOption(opt);
 
+        opt = new Option("g", "consumerGroup", true, "consumer group name");
+        opt.setRequired(false);
+        options.addOption(opt);
+
+        opt = new Option("d", "clientId", true, "The consumer's client id");
+        opt.setRequired(false);
+        options.addOption(opt);
+
         return options;
     }
 
 
     public static void queryById(final DefaultMQAdminExt admin, final String msgId) throws MQClientException,
             RemotingException, MQBrokerException, InterruptedException, IOException {
-        admin.start();
         MessageExt msg = admin.viewMessage(msgId);
 
         // 存储消息 body 到指定路径
@@ -142,6 +154,22 @@ public class QueryMsgByIdSubCommand implements SubCommand {
             "Message Body Path:",//
             bodyTmpFilePath//
             );
+
+        try {
+            List<MessageTrack> mtdList = admin.messageTrackDetail(msg);
+            if (mtdList.isEmpty()) {
+                System.out.println("No Consumer");
+            }
+            else {
+                System.out.println("\n\n");
+                for (MessageTrack mt : mtdList) {
+                    System.out.println(mt);
+                }
+            }
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
 
@@ -152,8 +180,20 @@ public class QueryMsgByIdSubCommand implements SubCommand {
         defaultMQAdminExt.setInstanceName(Long.toString(System.currentTimeMillis()));
 
         try {
+            defaultMQAdminExt.start();
+
             final String msgId = commandLine.getOptionValue('i').trim();
-            queryById(defaultMQAdminExt, msgId);
+            if (commandLine.hasOption('g') && commandLine.hasOption('d')) {
+                final String consumerGroup = commandLine.getOptionValue('g').trim();
+                final String clientId = commandLine.getOptionValue('d').trim();
+                ConsumeMessageDirectlyResult result =
+                        defaultMQAdminExt.consumeMessageDirectly(consumerGroup, clientId, msgId);
+                System.out.println(result);
+            }
+            else {
+
+                queryById(defaultMQAdminExt, msgId);
+            }
         }
         catch (Exception e) {
             e.printStackTrace();
@@ -182,5 +222,15 @@ public class QueryMsgByIdSubCommand implements SubCommand {
             if (dos != null)
                 dos.close();
         }
+    }
+
+
+    public static void main(String[] args) {
+        MQAdminStartup.main(new String[] { new QueryMsgByIdSubCommand().commandName(), //
+                                          "-n", "10.235.169.73:9876", //
+                                          "-g", "CID_110", //
+                                          "-d", "10.22.18.241@73376", //
+                                          "-i", "0A654A3400002ABD00000011C3555205" //
+        });
     }
 }

@@ -15,8 +15,6 @@ import com.alibaba.rocketmq.common.ThreadFactoryImpl;
 import com.alibaba.rocketmq.common.UtilAll;
 import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.common.filter.MessageFilter;
-import com.alibaba.rocketmq.common.utils.HttpTinyClient;
-import com.alibaba.rocketmq.common.utils.HttpTinyClient.HttpResult;
 import com.alibaba.rocketmq.filtersrv.FiltersrvController;
 
 
@@ -35,9 +33,14 @@ public class FilterClassManager {
     private final ScheduledExecutorService scheduledExecutorService = Executors
         .newSingleThreadScheduledExecutor(new ThreadFactoryImpl("FSGetClassScheduledThread"));
 
+    private FilterClassFetchMethod filterClassFetchMethod;
+
 
     public FilterClassManager(FiltersrvController filtersrvController) {
         this.filtersrvController = filtersrvController;
+        this.filterClassFetchMethod =
+                new HttpFilterClassFetchMethod(this.filtersrvController.getFiltersrvConfig()
+                    .getFilterClassRepertoryUrl());
     }
 
 
@@ -65,28 +68,22 @@ public class FilterClassManager {
             try {
                 Entry<String, FilterClassInfo> next = it.next();
                 FilterClassInfo filterClassInfo = next.getValue();
+                String[] topicAndGroup = next.getKey().split("@");
+                String responseStr =
+                        this.filterClassFetchMethod.fetch(topicAndGroup[0], topicAndGroup[1],
+                            filterClassInfo.getClassName());
+                byte[] filterSourceBinary = responseStr.getBytes("UTF-8");
+                int classCRC = UtilAll.crc32(responseStr.getBytes("UTF-8"));
+                if (classCRC != filterClassInfo.getClassCRC()) {
+                    String javaSource = new String(filterSourceBinary, MixAll.DEFAULT_CHARSET);
+                    Class<?> newClass =
+                            DynaCode.compileAndLoadClass(filterClassInfo.getClassName(), javaSource);
+                    Object newInstance = newClass.newInstance();
+                    filterClassInfo.setMessageFilter((MessageFilter) newInstance);
+                    filterClassInfo.setClassCRC(classCRC);
 
-                String url = this.filtersrvController.getFiltersrvConfig().getFilterClassRepertoryUrl();
-                url += "/";
-                url += filterClassInfo.getClassName();
-                url += ".java";
-
-                HttpResult result = HttpTinyClient.httpGet(url, null, null, "UTF-8", 5000);
-                if (200 == result.code) {
-                    String responseStr = result.content;
-                    byte[] filterSourceBinary = responseStr.getBytes("UTF-8");
-                    int classCRC = UtilAll.crc32(responseStr.getBytes("UTF-8"));
-                    if (classCRC != filterClassInfo.getClassCRC()) {
-                        String javaSource = new String(filterSourceBinary, MixAll.DEFAULT_CHARSET);
-                        Class<?> newClass =
-                                DynaCode.compileAndLoadClass(filterClassInfo.getClassName(), javaSource);
-                        Object newInstance = newClass.newInstance();
-                        filterClassInfo.setMessageFilter((MessageFilter) newInstance);
-                        filterClassInfo.setClassCRC(classCRC);
-
-                        log.info("fetch Remote class File OK, {} {} {}", next.getKey(),
-                            filterClassInfo.getClassName(), url);
-                    }
+                    log.info("fetch Remote class File OK, {} {}", next.getKey(),
+                        filterClassInfo.getClassName());
                 }
             }
             catch (Exception e) {
@@ -157,5 +154,15 @@ public class FilterClassManager {
 
     public FilterClassInfo findFilterClass(final String consumerGroup, final String topic) {
         return this.filterClassTable.get(buildKey(consumerGroup, topic));
+    }
+
+
+    public FilterClassFetchMethod getFilterClassFetchMethod() {
+        return filterClassFetchMethod;
+    }
+
+
+    public void setFilterClassFetchMethod(FilterClassFetchMethod filterClassFetchMethod) {
+        this.filterClassFetchMethod = filterClassFetchMethod;
     }
 }

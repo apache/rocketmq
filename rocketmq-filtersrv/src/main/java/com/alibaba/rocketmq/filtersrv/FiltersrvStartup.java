@@ -47,6 +47,8 @@ import com.alibaba.rocketmq.srvutil.ServerUtil;
  * @since 2014-4-10
  */
 public class FiltersrvStartup {
+    public static Logger log;
+
 
     public static Options buildCommandlineOptions(final Options options) {
         Option opt = new Option("c", "configFile", true, "Filter server config properties file");
@@ -62,11 +64,29 @@ public class FiltersrvStartup {
 
 
     public static void main(String[] args) {
-        main0(args);
+        start(createController(args));
     }
 
 
-    public static FiltersrvController main0(String[] args) {
+    public static FiltersrvController start(FiltersrvController controller) {
+        // 启动服务
+        try {
+            controller.start();
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+            System.exit(-1);
+        }
+
+        String tip = "The Filter Server boot success, " + controller.localAddr();
+        log.info(tip);
+        System.out.println(tip);
+
+        return controller;
+    }
+
+
+    public static FiltersrvController createController(String[] args) {
         System.setProperty(RemotingCommand.RemotingVersionKey, Integer.toString(MQVersion.CurrentVersion));
 
         // Socket发送缓冲区大小
@@ -140,7 +160,7 @@ public class FiltersrvStartup {
             configurator.setContext(lc);
             lc.reset();
             configurator.doConfigure(filtersrvConfig.getRocketmqHome() + "/conf/logback_filtersrv.xml");
-            final Logger log = LoggerFactory.getLogger(LoggerName.FiltersrvLoggerName);
+            log = LoggerFactory.getLogger(LoggerName.FiltersrvLoggerName);
 
             // 初始化服务控制对象
             final FiltersrvController controller =
@@ -170,13 +190,6 @@ public class FiltersrvStartup {
                     }
                 }
             }, "ShutdownHook"));
-
-            // 启动服务
-            controller.start();
-
-            String tip = "The Filter Server boot success, " + controller.localAddr();
-            log.info(tip);
-            System.out.println(tip);
 
             return controller;
         }

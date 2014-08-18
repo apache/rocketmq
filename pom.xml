@@ -19,7 +19,7 @@
     <inceptionYear>2012</inceptionYear>
     <groupId>com.alibaba.rocketmq</groupId>
     <artifactId>rocketmq-all</artifactId>
-    <version>3.1.8-SNAPSHOT</version>
+    <version>3.1.8-beta1-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>rocketmq-all ${project.version}</name>
     <url>https://github.com/alibaba/rocketmq</url>
@@ -349,6 +349,11 @@
                 <artifactId>derby</artifactId>
                 <version>10.10.2.0</version>
             </dependency>
+<dependency>
+  <groupId>jboss</groupId>
+  <artifactId>javassist</artifactId>
+  <version>3.7.ga</version>
+</dependency>
         </dependencies>
     </dependencyManagement>
 </project>
