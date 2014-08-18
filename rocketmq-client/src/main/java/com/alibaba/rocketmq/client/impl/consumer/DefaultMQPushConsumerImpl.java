@@ -15,6 +15,12 @@
  */
 package com.alibaba.rocketmq.client.impl.consumer;
 
+import java.util.*;
+import java.util.Map.Entry;
+import java.util.concurrent.ConcurrentHashMap;
+
+import org.slf4j.Logger;
+
 import com.alibaba.rocketmq.client.QueryResult;
 import com.alibaba.rocketmq.client.Validators;
 import com.alibaba.rocketmq.client.consumer.DefaultMQPushConsumer;
@@ -56,11 +62,6 @@ import com.alibaba.rocketmq.common.protocol.route.TopicRouteData;
 import com.alibaba.rocketmq.common.sysflag.PullSysFlag;
 import com.alibaba.rocketmq.remoting.RPCHook;
 import com.alibaba.rocketmq.remoting.exception.RemotingException;
-import org.slf4j.Logger;
-
-import java.util.*;
-import java.util.Map.Entry;
-import java.util.concurrent.ConcurrentHashMap;
 
 
 /**
@@ -607,6 +608,11 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
             Message newMsg =
                     new Message(MixAll.getRetryTopic(this.defaultMQPushConsumer.getConsumerGroup()),
                         msg.getBody());
+
+	        // 保存源生消息的 msgId
+            String originMsgId = MessageAccessor.getOriginMessageId(msg);
+            MessageAccessor.setOriginMessageId(newMsg, UtilAll.isBlank(originMsgId) ? msg.getMsgId()
+                    : originMsgId);
 
             newMsg.setFlag(msg.getFlag());
             // 这里要删除无用的属性，防止服务器发生冲突。TODO
