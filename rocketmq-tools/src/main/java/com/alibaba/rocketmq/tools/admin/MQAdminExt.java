@@ -28,9 +28,10 @@ import com.alibaba.rocketmq.common.TopicConfig;
 import com.alibaba.rocketmq.common.admin.ConsumeStats;
 import com.alibaba.rocketmq.common.admin.RollbackStats;
 import com.alibaba.rocketmq.common.admin.TopicStatsTable;
+import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.common.message.MessageQueue;
 import com.alibaba.rocketmq.common.protocol.body.ClusterInfo;
-import com.alibaba.rocketmq.common.protocol.body.ConsumeByWho;
+import com.alibaba.rocketmq.common.protocol.body.ConsumeMessageDirectlyResult;
 import com.alibaba.rocketmq.common.protocol.body.ConsumerConnection;
 import com.alibaba.rocketmq.common.protocol.body.ConsumerRunningInfo;
 import com.alibaba.rocketmq.common.protocol.body.GroupList;
@@ -45,6 +46,7 @@ import com.alibaba.rocketmq.remoting.exception.RemotingConnectException;
 import com.alibaba.rocketmq.remoting.exception.RemotingException;
 import com.alibaba.rocketmq.remoting.exception.RemotingSendRequestException;
 import com.alibaba.rocketmq.remoting.exception.RemotingTimeoutException;
+import com.alibaba.rocketmq.tools.admin.api.MessageTrack;
 
 
 /**
@@ -249,15 +251,6 @@ public interface MQAdminExt extends MQAdmin {
     public int wipeWritePermOfBroker(final String namesrvAddr, String brokerName)
             throws RemotingCommandException, RemotingConnectException, RemotingSendRequestException,
             RemotingTimeoutException, InterruptedException, MQClientException;
-
-
-    /**
-     * 查看某个订阅组被谁消费了
-     * 
-     * @param msgId
-     * @return
-     */
-    public ConsumeByWho whoConsumeTheMessage(final String msgId);
 
 
     /**
@@ -567,4 +560,36 @@ public interface MQAdminExt extends MQAdmin {
      */
     public ConsumerRunningInfo getConsumerRunningInfo(final String consumerGroup, final String clientId)
             throws RemotingException, MQClientException, InterruptedException;
+
+
+    /**
+     * 向指定Consumer发送某条消息
+     * 
+     * @param consumerGroup
+     * @param clientId
+     * @param msgId
+     * @return
+     * @throws InterruptedException
+     * @throws MQClientException
+     * @throws RemotingException
+     * @throws MQBrokerException
+     */
+    public ConsumeMessageDirectlyResult consumeMessageDirectly(String consumerGroup, //
+            String clientId, //
+            String msgId) throws RemotingException, MQClientException, InterruptedException,
+            MQBrokerException;
+
+
+    /**
+     * 查询消息被谁消费了
+     * 
+     * @param msg
+     * @return
+     * @throws RemotingException
+     * @throws MQClientException
+     * @throws InterruptedException
+     * @throws MQBrokerException
+     */
+    public List<MessageTrack> messageTrackDetail(MessageExt msg) throws RemotingException, MQClientException,
+            InterruptedException, MQBrokerException;
 }

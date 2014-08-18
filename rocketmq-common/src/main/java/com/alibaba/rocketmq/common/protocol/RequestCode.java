@@ -148,6 +148,15 @@ public class RequestCode {
     // 2014-07-19 Add By shijia
     public static final int GET_CONSUMER_RUNNING_INFO = 307;
 
+ 
     // 查找被修正 offset (转发组件）
     public static final int QUERY_CORRECTION_OFFSET = 308;
+ 
+    // 通过Broker直接向某个Consumer发送一条消息，并立刻消费，返回结果给broker，再返回给调用方
+    // 2014-08-11 Add By shijia
+    public static final int CONSUME_MESSAGE_DIRECTLY = 309;
+
+    // Broker 发送消息，优化网络数据包
+    public static final int SEND_MESSAGE_V2 = 310;
+ 
 }

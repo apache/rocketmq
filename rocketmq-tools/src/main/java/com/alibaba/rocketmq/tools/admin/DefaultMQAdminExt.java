@@ -33,7 +33,7 @@ import com.alibaba.rocketmq.common.admin.TopicStatsTable;
 import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.common.message.MessageQueue;
 import com.alibaba.rocketmq.common.protocol.body.ClusterInfo;
-import com.alibaba.rocketmq.common.protocol.body.ConsumeByWho;
+import com.alibaba.rocketmq.common.protocol.body.ConsumeMessageDirectlyResult;
 import com.alibaba.rocketmq.common.protocol.body.ConsumerConnection;
 import com.alibaba.rocketmq.common.protocol.body.ConsumerRunningInfo;
 import com.alibaba.rocketmq.common.protocol.body.GroupList;
@@ -49,6 +49,7 @@ import com.alibaba.rocketmq.remoting.exception.RemotingConnectException;
 import com.alibaba.rocketmq.remoting.exception.RemotingException;
 import com.alibaba.rocketmq.remoting.exception.RemotingSendRequestException;
 import com.alibaba.rocketmq.remoting.exception.RemotingTimeoutException;
+import com.alibaba.rocketmq.tools.admin.api.MessageTrack;
 
 
 /**
@@ -251,12 +252,6 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
 
 
     @Override
-    public ConsumeByWho whoConsumeTheMessage(String msgId) {
-        return this.defaultMQAdminExtImpl.whoConsumeTheMessage(msgId);
-    }
-
-
-    @Override
     public TopicList fetchAllTopicList() throws RemotingException, MQClientException, InterruptedException {
         return this.defaultMQAdminExtImpl.fetchAllTopicList();
     }
@@ -409,4 +404,20 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
             throws RemotingException, MQClientException, InterruptedException {
         return defaultMQAdminExtImpl.getConsumerRunningInfo(consumerGroup, clientId);
     }
+
+
+    @Override
+    public ConsumeMessageDirectlyResult consumeMessageDirectly(String consumerGroup, String clientId,
+            String msgId) throws RemotingException, MQClientException, InterruptedException,
+            MQBrokerException {
+        return defaultMQAdminExtImpl.consumeMessageDirectly(consumerGroup, clientId, msgId);
+    }
+
+
+    @Override
+    public List<MessageTrack> messageTrackDetail(MessageExt msg) throws RemotingException, MQClientException,
+            InterruptedException, MQBrokerException {
+        return this.defaultMQAdminExtImpl.messageTrackDetail(msg);
+    }
+
 }

@@ -20,10 +20,10 @@ public class NettySystemConfig {
     public static final String SystemPropertyClientAsyncSemaphoreValue = //
             "com.rocketmq.remoting.clientAsyncSemaphoreValue";
     public static int ClientAsyncSemaphoreValue = //
-            Integer.parseInt(System.getProperty(SystemPropertyClientAsyncSemaphoreValue, "128"));
+            Integer.parseInt(System.getProperty(SystemPropertyClientAsyncSemaphoreValue, "2048"));
 
     public static final String SystemPropertyClientOnewaySemaphoreValue = //
             "com.rocketmq.remoting.clientOnewaySemaphoreValue";
     public static int ClientOnewaySemaphoreValue = //
-            Integer.parseInt(System.getProperty(SystemPropertyClientOnewaySemaphoreValue, "256"));
+            Integer.parseInt(System.getProperty(SystemPropertyClientOnewaySemaphoreValue, "2048"));
 }

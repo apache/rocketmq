@@ -134,7 +134,7 @@ public class RemotingCommand {
     }
 
 
-    private void makeCustomHeaderToNet() {
+    public void makeCustomHeaderToNet() {
         if (this.customHeader != null) {
             Field[] fields = this.customHeader.getClass().getDeclaredFields();
             if (null == this.extFields) {
@@ -174,6 +174,20 @@ public class RemotingCommand {
         this.customHeader = customHeader;
     }
 
+    private static final String StringName = String.class.getCanonicalName();//
+
+    private static final String IntegerName1 = Integer.class.getCanonicalName();//
+    private static final String IntegerName2 = int.class.getCanonicalName();//
+
+    private static final String LongName1 = Long.class.getCanonicalName();//
+    private static final String LongName2 = long.class.getCanonicalName();//
+
+    private static final String BooleanName1 = Boolean.class.getCanonicalName();//
+    private static final String BooleanName2 = boolean.class.getCanonicalName();//
+
+    private static final String DoubleName1 = Double.class.getCanonicalName();//
+    private static final String DoubleName2 = double.class.getCanonicalName();//
+
 
     public CommandCustomHeader decodeCommandCustomHeader(Class<? extends CommandCustomHeader> classHeader)
             throws RemotingCommandException {
@@ -203,37 +217,27 @@ public class RemotingCommand {
                                     throw new RemotingCommandException("the custom field <" + fieldName
                                             + "> is null");
                                 }
+
+                                continue;
                             }
 
                             field.setAccessible(true);
-                            String type = field.getType().getSimpleName();
+                            String type = field.getType().getCanonicalName();
                             Object valueParsed = null;
 
-                            if (type.equals("String")) {
+                            if (type.equals(StringName)) {
                                 valueParsed = value;
                             }
-                            else if (type.equals("Integer")) {
+                            else if (type.equals(IntegerName1) || type.equals(IntegerName2)) {
                                 valueParsed = Integer.parseInt(value);
                             }
-                            else if (type.equals("Long")) {
+                            else if (type.equals(LongName1) || type.equals(LongName2)) {
                                 valueParsed = Long.parseLong(value);
                             }
-                            else if (type.equals("Boolean")) {
+                            else if (type.equals(BooleanName1) || type.equals(BooleanName2)) {
                                 valueParsed = Boolean.parseBoolean(value);
                             }
-                            else if (type.equals("Double")) {
-                                valueParsed = Double.parseDouble(value);
-                            }
-                            else if (type.equals("int")) {
-                                valueParsed = Integer.parseInt(value);
-                            }
-                            else if (type.equals("long")) {
-                                valueParsed = Long.parseLong(value);
-                            }
-                            else if (type.equals("boolean")) {
-                                valueParsed = Boolean.parseBoolean(value);
-                            }
-                            else if (type.equals("double")) {
+                            else if (type.equals(DoubleName1) || type.equals(DoubleName2)) {
                                 valueParsed = Double.parseDouble(value);
                             }
                             else {

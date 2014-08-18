@@ -53,4 +53,7 @@ public class ResponseCode extends RemotingSysResponseCode {
 
     // Consumer不在线
     public static final int CONSUMER_NOT_ONLINE = 206;
+
+    // Consumer消费消息超时
+    public static final int CONSUME_MSG_TIMEOUT = 207;
 }

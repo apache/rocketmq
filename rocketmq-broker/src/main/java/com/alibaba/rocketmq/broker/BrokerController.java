@@ -334,6 +334,8 @@ public class BrokerController {
         sendProcessor.registerSendMessageHook(sendMessageHookList);
         this.remotingServer.registerProcessor(RequestCode.SEND_MESSAGE, sendProcessor,
             this.sendMessageExecutor);
+        this.remotingServer.registerProcessor(RequestCode.SEND_MESSAGE_V2, sendProcessor,
+            this.sendMessageExecutor);
         this.remotingServer.registerProcessor(RequestCode.CONSUMER_SEND_MSG_BACK, sendProcessor,
             this.sendMessageExecutor);
 

@@ -609,7 +609,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                     new Message(MixAll.getRetryTopic(this.defaultMQPushConsumer.getConsumerGroup()),
                         msg.getBody());
 
-	        // 保存源生消息的 msgId
+            // 保存源生消息的 msgId
             String originMsgId = MessageAccessor.getOriginMessageId(msg);
             MessageAccessor.setOriginMessageId(newMsg, UtilAll.isBlank(originMsgId) ? msg.getMsgId()
                     : originMsgId);
@@ -1084,9 +1084,11 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
         // 各种配置及运行数据
         Properties prop = MixAll.object2Properties(this.defaultMQPushConsumer);
 
-        prop.put(ConsumerRunningInfo.PROP_CONSUME_ORDERLY, this.consumeOrderly);
-        prop.put(ConsumerRunningInfo.PROP_THREADPOOL_CORE_SIZE, this.consumeMessageService.getCorePoolSize());
-        prop.put(ConsumerRunningInfo.PROP_CONSUMER_START_TIMESTAMP, this.consumerStartTimestamp);
+        prop.put(ConsumerRunningInfo.PROP_CONSUME_ORDERLY, String.valueOf(this.consumeOrderly));
+        prop.put(ConsumerRunningInfo.PROP_THREADPOOL_CORE_SIZE,
+            String.valueOf(this.consumeMessageService.getCorePoolSize()));
+        prop.put(ConsumerRunningInfo.PROP_CONSUMER_START_TIMESTAMP,
+            String.valueOf(this.consumerStartTimestamp));
 
         info.setProperties(prop);
 
@@ -1135,6 +1137,18 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
             queueTimeSpan.addAll(this.mQClientFactory.getMQClientAPIImpl().queryConsumeTimeSpan(addr, topic,
                 groupName(), 3000l));
         }
+
         return queueTimeSpan;
+    }
+
+
+    public ConsumeMessageService getConsumeMessageService() {
+        return consumeMessageService;
+    }
+
+
+    public void setConsumeMessageService(ConsumeMessageService consumeMessageService) {
+        this.consumeMessageService = consumeMessageService;
+
     }
 }

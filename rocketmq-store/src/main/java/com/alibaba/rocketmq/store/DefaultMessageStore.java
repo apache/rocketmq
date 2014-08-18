@@ -546,7 +546,8 @@ public class DefaultMessageStore implements MessageStore {
 
                         nextBeginOffset = offset + (i / ConsumeQueue.CQStoreUnitSize);
 
-                        long diff = maxOffset - maxPhyOffsetPulling;
+                        // TODO 是否会影响性能，需要测试
+                        long diff = this.getMaxPhyOffset() - maxPhyOffsetPulling;
                         long memory =
                                 (long) (StoreUtil.TotalPhysicalMemorySize * (this.messageStoreConfig
                                     .getAccessMessageInMemoryMaxRatio() / 100.0));
