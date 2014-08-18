@@ -58,4 +58,14 @@ public class MessageAccessor {
     public static String getMQ2Flag(final Message msg) {
         return msg.getProperty(MessageConst.PROPERTY_MQ2_FLAG);
     }
+
+
+    public static void setReconsumeTime(final Message msg, String reconsumeTimes) {
+        putProperty(msg, MessageConst.PROPERTY_RECONSUME_TIME, reconsumeTimes);
+    }
+
+
+    public static String getReconsumeTime(final Message msg) {
+        return msg.getProperty(MessageConst.PROPERTY_RECONSUME_TIME);
+    }
 }
