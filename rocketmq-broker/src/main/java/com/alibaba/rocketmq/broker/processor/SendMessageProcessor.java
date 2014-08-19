@@ -107,12 +107,12 @@ public class SendMessageProcessor implements NettyRequestProcessor {
 
             // 消息轨迹：记录到达 broker 的消息
             if (this.hasSendMessageHook()) {
-	            mqtraceContext = new SendMessageContext();
-	            mqtraceContext.setProducerGroup(requestHeader.getProducerGroup());
-	            mqtraceContext.setTopic(requestHeader.getTopic());
-	            mqtraceContext.setMsgProps(requestHeader.getProperties());
-	            mqtraceContext.setBornHost(RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
-	            mqtraceContext.setBrokerAddr(this.brokerController.getBrokerAddr());
+                mqtraceContext = new SendMessageContext();
+                mqtraceContext.setProducerGroup(requestHeader.getProducerGroup());
+                mqtraceContext.setTopic(requestHeader.getTopic());
+                mqtraceContext.setMsgProps(requestHeader.getProperties());
+                mqtraceContext.setBornHost(RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
+                mqtraceContext.setBrokerAddr(this.brokerController.getBrokerAddr());
                 this.executeSendMessageHookBefore(ctx, request, mqtraceContext);
             }
 
@@ -140,15 +140,17 @@ public class SendMessageProcessor implements NettyRequestProcessor {
                     .decodeCommandCustomHeader(ConsumerSendMsgBackRequestHeader.class);
 
         // 消息轨迹：记录消费失败的消息
-        if (this.hasConsumeMessageHook()) {
+        if (this.hasConsumeMessageHook() && !UtilAll.isBlank(requestHeader.getOriginMsgId())) {
             // 执行hook
             ConsumeMessageContext context = new ConsumeMessageContext();
             context.setConsumerGroup(requestHeader.getGroup());
+            context.setTopic(requestHeader.getOriginTopic());
             context.setClientHost(RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
             context.setSuccess(false);
             context.setStatus(ConsumeConcurrentlyStatus.RECONSUME_LATER.toString());
+
             Map<String, Long> messageIds = new HashMap<String, Long>();
-            messageIds.put(requestHeader.getMsgId(), requestHeader.getOffset());
+            messageIds.put(requestHeader.getOriginMsgId(), requestHeader.getOffset());
             context.setMessageIds(messageIds);
             this.executeConsumeMessageHookAfter(context);
         }
@@ -383,7 +385,7 @@ public class SendMessageProcessor implements NettyRequestProcessor {
         // // 检查topic权限
         // if (!PermName.isWriteable(topicConfig.getPerm())) {
         // response.setCode(ResponseCode.NO_PERMISSION);
-        // response.setRemark("the topic[" + requestHeader.getTopic() +
+        // response.setRemark("the topic[" + requestHeader.getOriginTopic() +
         // "] sending message is forbidden");
         // return response;
         // }
@@ -525,8 +527,8 @@ public class SendMessageProcessor implements NettyRequestProcessor {
                 // 消息轨迹：记录发送成功的消息
                 if (hasSendMessageHook()) {
                     mqtraceContext.setMsgId(responseHeader.getMsgId());
-	                mqtraceContext.setQueueId(responseHeader.getQueueId());
-	                mqtraceContext.setQueueOffset(responseHeader.getQueueOffset());
+                    mqtraceContext.setQueueId(responseHeader.getQueueId());
+                    mqtraceContext.setQueueOffset(responseHeader.getQueueOffset());
                 }
                 return null;
             }
@@ -590,11 +592,11 @@ public class SendMessageProcessor implements NettyRequestProcessor {
             for (SendMessageHook hook : this.sendMessageHookList) {
                 try {
                     if (response != null) {
-	                    final SendMessageResponseHeader responseHeader =
-			                    (SendMessageResponseHeader) response.readCustomHeader();
-	                    context.setMsgId(responseHeader.getMsgId());
-	                    context.setQueueId(responseHeader.getQueueId());
-	                    context.setQueueOffset(responseHeader.getQueueOffset());
+                        final SendMessageResponseHeader responseHeader =
+                                (SendMessageResponseHeader) response.readCustomHeader();
+                        context.setMsgId(responseHeader.getMsgId());
+                        context.setQueueId(responseHeader.getQueueId());
+                        context.setQueueOffset(responseHeader.getQueueOffset());
                         context.setCode(response.getCode());
                         context.setErrorMsg(response.getRemark());
                     }

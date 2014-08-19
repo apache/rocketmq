@@ -16,8 +16,8 @@ public class ConsumerSendMsgBackRequestHeader implements CommandCustomHeader {
     private String group;
     @CFNotNull
     private Integer delayLevel;
-    private String msgId;
-    private String topic;
+    private String originMsgId;
+    private String originTopic;
 
 
     @Override
@@ -56,29 +56,29 @@ public class ConsumerSendMsgBackRequestHeader implements CommandCustomHeader {
     }
 
 
-    public String getMsgId() {
-        return msgId;
+    public String getOriginMsgId() {
+        return originMsgId;
     }
 
 
-    public void setMsgId(String msgId) {
-        this.msgId = msgId;
+    public void setOriginMsgId(String originMsgId) {
+        this.originMsgId = originMsgId;
     }
 
 
-    public String getTopic() {
-        return topic;
+    public String getOriginTopic() {
+        return originTopic;
     }
 
 
-    public void setTopic(String topic) {
-        this.topic = topic;
+    public void setOriginTopic(String originTopic) {
+        this.originTopic = originTopic;
     }
 
 
     @Override
     public String toString() {
-        return "ConsumerSendMsgBackRequestHeader [group=" + group + ", topic=" + topic + ", msgId=" + msgId
+        return "ConsumerSendMsgBackRequestHeader [group=" + group + ", originTopic=" + originTopic + ", originMsgId=" + originMsgId
                 + ", delayLevel=" + delayLevel + "]";
     }
 }
