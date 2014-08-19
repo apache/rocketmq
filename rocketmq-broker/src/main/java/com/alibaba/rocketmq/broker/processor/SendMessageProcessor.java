@@ -120,13 +120,7 @@ public class SendMessageProcessor implements NettyRequestProcessor {
 
             // 消息轨迹：记录发送成功的消息
             if (this.hasSendMessageHook()) {
-                final SendMessageResponseHeader responseHeader =
-                        (SendMessageResponseHeader) response.readCustomHeader();
-
-	            mqtraceContext.setMsgId(responseHeader.getMsgId());
-	            mqtraceContext.setQueueId(responseHeader.getQueueId());
-	            mqtraceContext.setQueueOffset(responseHeader.getQueueOffset());
-                this.executeSendMessageHookAfter(request, mqtraceContext);
+                this.executeSendMessageHookAfter(response, mqtraceContext);
             }
             return response;
         case RequestCode.CONSUMER_SEND_MSG_BACK:
@@ -531,7 +525,8 @@ public class SendMessageProcessor implements NettyRequestProcessor {
                 // 消息轨迹：记录发送成功的消息
                 if (hasSendMessageHook()) {
                     mqtraceContext.setMsgId(responseHeader.getMsgId());
-                    mqtraceContext.setQueueOffset(responseHeader.getQueueOffset());
+	                mqtraceContext.setQueueId(responseHeader.getQueueId());
+	                mqtraceContext.setQueueOffset(responseHeader.getQueueOffset());
                 }
                 return null;
             }
@@ -595,6 +590,11 @@ public class SendMessageProcessor implements NettyRequestProcessor {
             for (SendMessageHook hook : this.sendMessageHookList) {
                 try {
                     if (response != null) {
+	                    final SendMessageResponseHeader responseHeader =
+			                    (SendMessageResponseHeader) response.readCustomHeader();
+	                    context.setMsgId(responseHeader.getMsgId());
+	                    context.setQueueId(responseHeader.getQueueId());
+	                    context.setQueueOffset(responseHeader.getQueueOffset());
                         context.setCode(response.getCode());
                         context.setErrorMsg(response.getRemark());
                     }
