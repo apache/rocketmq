@@ -15,18 +15,6 @@
  */
 package com.alibaba.rocketmq.broker.processor;
 
-import io.netty.channel.ChannelHandlerContext;
-
-import java.net.InetSocketAddress;
-import java.net.SocketAddress;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.alibaba.rocketmq.broker.BrokerController;
 import com.alibaba.rocketmq.broker.mqtrace.ConsumeMessageContext;
 import com.alibaba.rocketmq.broker.mqtrace.ConsumeMessageHook;
@@ -59,6 +47,16 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 import com.alibaba.rocketmq.store.MessageExtBrokerInner;
 import com.alibaba.rocketmq.store.PutMessageResult;
 import com.alibaba.rocketmq.store.config.StorePathConfigHelper;
+import io.netty.channel.ChannelHandlerContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.net.InetSocketAddress;
+import java.net.SocketAddress;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
 
 
 /**
@@ -96,7 +94,6 @@ public class SendMessageProcessor implements NettyRequestProcessor {
                         .decodeCommandCustomHeader(SendMessageRequestHeaderV2.class);
         case RequestCode.SEND_MESSAGE:
             SendMessageContext mqtraceContext = null;
-            SendMessageContext context = null;
             SendMessageRequestHeader requestHeader = null;
 
             if (null == requestHeaderV2) {
@@ -110,13 +107,13 @@ public class SendMessageProcessor implements NettyRequestProcessor {
 
             // 消息轨迹：记录到达 broker 的消息
             if (this.hasSendMessageHook()) {
-                context = new SendMessageContext();
-                context.setProducerGroup(requestHeader.getProducerGroup());
-                context.setTopic(requestHeader.getTopic());
-                context.setMsgProps(requestHeader.getProperties());
-                context.setBornHost(RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
-                context.setBrokerAddr(this.brokerController.getBrokerAddr());
-                this.executeSendMessageHookBefore(ctx, request, context);
+	            mqtraceContext = new SendMessageContext();
+	            mqtraceContext.setProducerGroup(requestHeader.getProducerGroup());
+	            mqtraceContext.setTopic(requestHeader.getTopic());
+	            mqtraceContext.setMsgProps(requestHeader.getProperties());
+	            mqtraceContext.setBornHost(RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
+	            mqtraceContext.setBrokerAddr(this.brokerController.getBrokerAddr());
+                this.executeSendMessageHookBefore(ctx, request, mqtraceContext);
             }
 
             final RemotingCommand response = this.sendMessage(ctx, request, mqtraceContext, requestHeader);
@@ -126,10 +123,10 @@ public class SendMessageProcessor implements NettyRequestProcessor {
                 final SendMessageResponseHeader responseHeader =
                         (SendMessageResponseHeader) response.readCustomHeader();
 
-                context.setMsgId(responseHeader.getMsgId());
-                context.setQueueId(responseHeader.getQueueId());
-                context.setQueueOffset(responseHeader.getQueueOffset());
-                this.executeSendMessageHookAfter(request, context);
+	            mqtraceContext.setMsgId(responseHeader.getMsgId());
+	            mqtraceContext.setQueueId(responseHeader.getQueueId());
+	            mqtraceContext.setQueueOffset(responseHeader.getQueueOffset());
+                this.executeSendMessageHookAfter(request, mqtraceContext);
             }
             return response;
         case RequestCode.CONSUMER_SEND_MSG_BACK:
@@ -153,9 +150,7 @@ public class SendMessageProcessor implements NettyRequestProcessor {
             // 执行hook
             ConsumeMessageContext context = new ConsumeMessageContext();
             context.setConsumerGroup(requestHeader.getGroup());
-            context.setTopic(requestHeader.getTopic());
             context.setClientHost(RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
-            context.setStoreHost(this.brokerController.getBrokerAddr());
             context.setSuccess(false);
             context.setStatus(ConsumeConcurrentlyStatus.RECONSUME_LATER.toString());
             Map<String, Long> messageIds = new HashMap<String, Long>();
