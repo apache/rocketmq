@@ -2,7 +2,6 @@ package com.alibaba.rocketmq.research.fastjson;
 
 import java.util.concurrent.ConcurrentHashMap;
 
-import com.alibaba.fastjson.JSON;
 import com.alibaba.rocketmq.remoting.protocol.RemotingSerializable;
 
 

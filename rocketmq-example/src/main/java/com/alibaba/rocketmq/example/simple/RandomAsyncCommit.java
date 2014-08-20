@@ -40,7 +40,7 @@ public class RandomAsyncCommit {
         if (null != cachedQueue) {
             return cachedQueue.getMsgCachedTable().firstKey();
         }
-        
+
         return -1;
     }
 }

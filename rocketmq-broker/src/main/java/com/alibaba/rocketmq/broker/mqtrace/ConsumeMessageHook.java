@@ -15,8 +15,6 @@
  */
 package com.alibaba.rocketmq.broker.mqtrace;
 
-
-
 public interface ConsumeMessageHook {
     public String hookName();
 

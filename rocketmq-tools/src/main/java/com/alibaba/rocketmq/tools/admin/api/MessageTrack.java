@@ -1,7 +1,5 @@
 package com.alibaba.rocketmq.tools.admin.api;
 
-
-
 public class MessageTrack {
     private String consumerGroup;
     private TrackType trackType;
