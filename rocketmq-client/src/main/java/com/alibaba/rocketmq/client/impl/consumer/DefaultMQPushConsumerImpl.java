@@ -15,8 +15,15 @@
  */
 package com.alibaba.rocketmq.client.impl.consumer;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Properties;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.slf4j.Logger;
@@ -49,7 +56,11 @@ import com.alibaba.rocketmq.common.UtilAll;
 import com.alibaba.rocketmq.common.consumer.ConsumeFromWhere;
 import com.alibaba.rocketmq.common.filter.FilterAPI;
 import com.alibaba.rocketmq.common.help.FAQUrl;
-import com.alibaba.rocketmq.common.message.*;
+import com.alibaba.rocketmq.common.message.Message;
+import com.alibaba.rocketmq.common.message.MessageAccessor;
+import com.alibaba.rocketmq.common.message.MessageConst;
+import com.alibaba.rocketmq.common.message.MessageExt;
+import com.alibaba.rocketmq.common.message.MessageQueue;
 import com.alibaba.rocketmq.common.protocol.body.ConsumeStatus;
 import com.alibaba.rocketmq.common.protocol.body.ConsumerRunningInfo;
 import com.alibaba.rocketmq.common.protocol.body.ProcessQueueInfo;
@@ -618,7 +629,10 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
             // 这里要删除无用的属性，防止服务器发生冲突。TODO
             MessageAccessor.setProperties(newMsg, msg.getProperties());
             MessageAccessor.putProperty(newMsg, MessageConst.PROPERTY_RETRY_TOPIC, msg.getTopic());
-            MessageAccessor.setReconsumeTime(newMsg, (msg.getReconsumeTimes() + 1) + "");
+            int reTimes = msg.getReconsumeTimes() + 1;
+            MessageAccessor.setReconsumeTime(newMsg, reTimes + "");
+            // 设置Delay Level
+            newMsg.setDelayTimeLevel(3 + reTimes);
 
             this.mQClientFactory.getDefaultMQProducer().send(newMsg);
         }
