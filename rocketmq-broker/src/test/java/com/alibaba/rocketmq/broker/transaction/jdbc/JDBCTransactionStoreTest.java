@@ -28,7 +28,7 @@ public class JDBCTransactionStoreTest {
     }
 
 
-    @Test
+    //@Test
     public void test_mysql_open() {
         JDBCTransactionStoreConfig config = new JDBCTransactionStoreConfig();
 
@@ -41,7 +41,7 @@ public class JDBCTransactionStoreTest {
     }
 
 
-    @Test
+    //@Test
     public void test_mysql_put() {
         JDBCTransactionStoreConfig config = new JDBCTransactionStoreConfig();
 
@@ -71,7 +71,7 @@ public class JDBCTransactionStoreTest {
     }
 
 
-    @Test
+    //@Test
     public void test_mysql_remove() {
         JDBCTransactionStoreConfig config = new JDBCTransactionStoreConfig();
 
