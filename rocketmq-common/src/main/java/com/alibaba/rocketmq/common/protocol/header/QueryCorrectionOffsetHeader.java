@@ -15,9 +15,9 @@ import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
  * @since: 14-08-06
  */
 public class QueryCorrectionOffsetHeader implements CommandCustomHeader {
-	@CFNotNull
-	private String group;
-	@CFNotNull
+    @CFNotNull
+    private String group;
+    @CFNotNull
     private String topic;
 
 

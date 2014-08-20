@@ -105,13 +105,13 @@ public class NamesrvController {
             }
         }, 1, 10, TimeUnit.MINUTES);
 
-//        this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
-//
-//            @Override
-//            public void run() {
-//                NamesrvController.this.routeInfoManager.printAllPeriodically();
-//            }
-//        }, 1, 5, TimeUnit.MINUTES);
+        // this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
+        //
+        // @Override
+        // public void run() {
+        // NamesrvController.this.routeInfoManager.printAllPeriodically();
+        // }
+        // }, 1, 5, TimeUnit.MINUTES);
 
         return true;
     }

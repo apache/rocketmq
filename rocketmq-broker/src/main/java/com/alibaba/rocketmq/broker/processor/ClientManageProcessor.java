@@ -143,8 +143,7 @@ public class ClientManageProcessor implements NettyRequestProcessor {
         {
             final String group = requestHeader.getConsumerGroup();
             if (group != null) {
-                this.brokerController.getConsumerManager().unregisterConsumer(group,
-                    clientChannelInfo);
+                this.brokerController.getConsumerManager().unregisterConsumer(group, clientChannelInfo);
             }
         }
 

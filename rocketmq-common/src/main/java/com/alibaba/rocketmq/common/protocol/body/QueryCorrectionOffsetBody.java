@@ -15,10 +15,10 @@
  */
 package com.alibaba.rocketmq.common.protocol.body;
 
-import com.alibaba.rocketmq.remoting.protocol.RemotingSerializable;
-
 import java.util.HashMap;
 import java.util.Map;
+
+import com.alibaba.rocketmq.remoting.protocol.RemotingSerializable;
 
 
 /**

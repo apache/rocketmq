@@ -3,10 +3,10 @@
  */
 package com.alibaba.rocketmq.common.protocol.heartbeat;
 
-import com.alibaba.rocketmq.common.consumer.ConsumeFromWhere;
-
 import java.util.HashSet;
 import java.util.Set;
+
+import com.alibaba.rocketmq.common.consumer.ConsumeFromWhere;
 
 
 /**
