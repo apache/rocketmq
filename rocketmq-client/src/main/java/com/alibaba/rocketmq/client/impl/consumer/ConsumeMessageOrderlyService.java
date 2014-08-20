@@ -533,7 +533,7 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
             result.setConsumeResult(CMResult.CR_THROW_EXCEPTION);
             result.setRemark(RemotingHelper.exceptionSimpleDesc(e));
 
-            log.warn(String.format("consumeMessageDirectly exception: {} Group: {} Msgs: {} MQ: {}",//
+            log.warn(String.format("consumeMessageDirectly exception: %s Group: %s Msgs: %s MQ: %s",//
                 RemotingHelper.exceptionSimpleDesc(e),//
                 ConsumeMessageOrderlyService.this.consumerGroup,//
                 msgs,//
