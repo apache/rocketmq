@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="GBK"?>
+<!DOCTYPE log4j:configuration SYSTEM "log4j.dtd">
+
+
+<log4j:configuration xmlns:log4j="http://jakarta.apache.org/log4j/">
+	<appender name="STDOUT-APPENDER" class="org.apache.log4j.ConsoleAppender">
+		<param name="encoding" value="UTF-8" />
+		<param name="target" value="System.out" />
+		<layout class="org.apache.log4j.PatternLayout">
+			<param name="ConversionPattern" value="%-5p %c{2} , %m%n" />
+		</layout>
+	</appender>
+
+	<appender name="RocketmqClientAppender" class="org.apache.log4j.RollingFileAppender">
+		<param name="file" value="${user.home}/logs/rocketmqlogs/rocketmq_client.log" />
+		<param name="append" value="true" />
+		<param name="encoding" value="UTF-8" />
+		<param name="maxFileSize" value="1073741824" />
+		<param name="maxBackupIndex" value="10" />
+		<layout class="org.apache.log4j.PatternLayout">
+			<param name="ConversionPattern" value="%d{yyy-MM-dd HH\:mm\:ss,SSS} %p %c{1}(%L) - %m%n" />
+		</layout>
+	</appender>
+
+	<logger name="RocketmqClient" additivity="false">
+		<level value="INFO" />
+		<appender-ref ref="RocketmqClientAppender" />
+	</logger>
+
+	<logger name="RocketmqCommon" additivity="false">
+		<level value="INFO" />
+		<appender-ref ref="RocketmqClientAppender" />
+	</logger>
+
+	<logger name="RocketmqRemoting" additivity="false">
+		<level value="INFO" />
+		<appender-ref ref="RocketmqClientAppender" />
+	</logger>
+
+</log4j:configuration>
+

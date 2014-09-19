@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<assembly>
+	<baseDirectory>alibaba-rocketmq</baseDirectory>
+	<formats>
+		<format>dir</format>
+		<format>tar.gz</format>
+	</formats>
+	<fileSets>
+		<fileSet>
+			<includes>
+				<include>bin/*</include>
+				<include>conf/*</include>
+				<include>conf/*/*</include>
+				<include>test/*</include>
+				<include>benchmark/*</include>
+				<include>LICENSE.txt</include>
+			</includes>
+		</fileSet>
+	</fileSets>
+
+
+	<moduleSets>
+		<moduleSet>
+			<includes>
+				<include>com.alibaba.rocketmq:rocketmq-broker</include>
+				<include>com.alibaba.rocketmq:rocketmq-tools</include>
+				<include>com.alibaba.rocketmq:rocketmq-client</include>
+				<include>com.alibaba.rocketmq:rocketmq-namesrv</include>
+				<include>com.alibaba.rocketmq:rocketmq-filtersrv</include>
+				<include>com.alibaba.rocketmq:rocketmq-example</include>
+			</includes>
+			<binaries>
+				<outputDirectory>lib/</outputDirectory>
+				<unpack>false</unpack>
+				<dependencySets>
+					<dependencySet>
+						<outputDirectory>lib/</outputDirectory>
+					</dependencySet>
+				</dependencySets>
+			</binaries>
+		</moduleSet>
+	</moduleSets>
+</assembly>
