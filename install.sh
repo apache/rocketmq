@@ -1,7 +1,5 @@
 git pull
 
-git checkout master
-
 rm -rf target
 rm -f devenv
 if [ -z "$JAVA_HOME" ]; then
