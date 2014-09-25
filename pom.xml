@@ -205,6 +205,11 @@
                     </execution>
                 </executions>
             </plugin>
+  <plugin>
+            <groupId>org.codehaus.mojo</groupId>
+            <artifactId>clirr-maven-plugin</artifactId>
+            <version>2.6.1</version>
+         </plugin>
         </plugins>
 
         <resources>
