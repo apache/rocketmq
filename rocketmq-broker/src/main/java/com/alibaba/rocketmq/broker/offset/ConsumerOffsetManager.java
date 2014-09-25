@@ -119,6 +119,25 @@ public class ConsumerOffsetManager extends ConfigManager {
     }
 
 
+    public Set<String> whichGroupByTopic(final String topic) {
+        Set<String> groups = new HashSet<String>();
+
+        Iterator<Entry<String, ConcurrentHashMap<Integer, Long>>> it = this.offsetTable.entrySet().iterator();
+        while (it.hasNext()) {
+            Entry<String, ConcurrentHashMap<Integer, Long>> next = it.next();
+            String topicAtGroup = next.getKey();
+            String[] arrays = topicAtGroup.split(TOPIC_GROUP_SEPARATOR);
+            if (arrays != null && arrays.length == 2) {
+                if (topic.equals(arrays[0])) {
+                    groups.add(arrays[1]);
+                }
+            }
+        }
+
+        return groups;
+    }
+
+
     public void commitOffset(final String group, final String topic, final int queueId, final long offset) {
         // topic@group
         String key = topic + TOPIC_GROUP_SEPARATOR + group;
