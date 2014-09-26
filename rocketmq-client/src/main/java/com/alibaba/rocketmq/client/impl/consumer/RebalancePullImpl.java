@@ -22,6 +22,7 @@ import com.alibaba.rocketmq.client.consumer.AllocateMessageQueueStrategy;
 import com.alibaba.rocketmq.client.consumer.MessageQueueListener;
 import com.alibaba.rocketmq.client.impl.factory.MQClientInstance;
 import com.alibaba.rocketmq.common.message.MessageQueue;
+import com.alibaba.rocketmq.common.protocol.heartbeat.ConsumeType;
 import com.alibaba.rocketmq.common.protocol.heartbeat.MessageModel;
 
 
@@ -77,5 +78,11 @@ public class RebalancePullImpl extends RebalanceImpl {
         this.defaultMQPullConsumerImpl.getOffsetStore().persist(mq);
         this.defaultMQPullConsumerImpl.getOffsetStore().removeOffset(mq);
         return true;
+    }
+
+
+    @Override
+    public ConsumeType consumeType() {
+        return ConsumeType.CONSUME_ACTIVELY;
     }
 }

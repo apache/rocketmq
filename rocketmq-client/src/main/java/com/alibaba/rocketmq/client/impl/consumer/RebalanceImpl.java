@@ -36,6 +36,7 @@ import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.message.MessageQueue;
 import com.alibaba.rocketmq.common.protocol.body.LockBatchRequestBody;
 import com.alibaba.rocketmq.common.protocol.body.UnlockBatchRequestBody;
+import com.alibaba.rocketmq.common.protocol.heartbeat.ConsumeType;
 import com.alibaba.rocketmq.common.protocol.heartbeat.MessageModel;
 import com.alibaba.rocketmq.common.protocol.heartbeat.SubscriptionData;
 
@@ -70,6 +71,9 @@ public abstract class RebalanceImpl {
         this.allocateMessageQueueStrategy = allocateMessageQueueStrategy;
         this.mQClientFactory = mQClientFactory;
     }
+
+
+    public abstract ConsumeType consumeType();
 
 
     public void unlock(final MessageQueue mq, final boolean oneway) {
@@ -386,13 +390,21 @@ public abstract class RebalanceImpl {
                 }
                 // 超过2分钟没有拉取动作了，删除它
                 else if (pq.isPullExpired()) {
-                    pq.setDroped(true);
-                    if (this.removeUnnecessaryMessageQueue(mq, pq)) {
-                        it.remove();
-                        changed = true;
-                        log.error(
-                            "[BUG]doRebalance, {}, remove unnecessary mq, {}, because pull is pause, so try to fixed it",
-                            consumerGroup, mq);
+                    switch (this.consumeType()) {
+                    case CONSUME_ACTIVELY:
+                        break;
+                    case CONSUME_PASSIVELY:
+                        pq.setDroped(true);
+                        if (this.removeUnnecessaryMessageQueue(mq, pq)) {
+                            it.remove();
+                            changed = true;
+                            log.error(
+                                "[BUG]doRebalance, {}, remove unnecessary mq, {}, because pull is pause, so try to fixed it",
+                                consumerGroup, mq);
+                        }
+                        break;
+                    default:
+                        break;
                     }
                 }
             }
@@ -506,5 +518,14 @@ public abstract class RebalanceImpl {
 
     public void setmQClientFactory(MQClientInstance mQClientFactory) {
         this.mQClientFactory = mQClientFactory;
+    }
+
+
+    public void destroy() {
+        Iterator<Entry<MessageQueue, ProcessQueue>> it = this.processQueueTable.entrySet().iterator();
+        while (it.hasNext()) {
+            Entry<MessageQueue, ProcessQueue> next = it.next();
+            next.getValue().setDroped(true);
+        }
     }
 }

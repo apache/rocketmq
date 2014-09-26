@@ -28,6 +28,7 @@ import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.UtilAll;
 import com.alibaba.rocketmq.common.consumer.ConsumeFromWhere;
 import com.alibaba.rocketmq.common.message.MessageQueue;
+import com.alibaba.rocketmq.common.protocol.heartbeat.ConsumeType;
 import com.alibaba.rocketmq.common.protocol.heartbeat.MessageModel;
 
 
@@ -201,5 +202,11 @@ public class RebalancePushImpl extends RebalanceImpl {
             return false;
         }
         return true;
+    }
+
+
+    @Override
+    public ConsumeType consumeType() {
+        return ConsumeType.CONSUME_PASSIVELY;
     }
 }
