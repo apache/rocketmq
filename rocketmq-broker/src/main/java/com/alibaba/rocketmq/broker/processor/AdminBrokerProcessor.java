@@ -1156,8 +1156,15 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 (QueryTopicConsumeByWhoRequestHeader) request
                     .decodeCommandCustomHeader(QueryTopicConsumeByWhoRequestHeader.class);
 
+        // 从订阅关系查询topic被谁消费，只查询在线
         HashSet<String> groups =
                 this.brokerController.getConsumerManager().queryTopicConsumeByWho(requestHeader.getTopic());
+        // 从Offset持久化查询topic被谁消费，离线和在线都会查询
+        Set<String> groupInOffset =
+                this.brokerController.getConsumerOffsetManager().whichGroupByTopic(requestHeader.getTopic());
+        if (groupInOffset != null && !groupInOffset.isEmpty()) {
+            groups.addAll(groupInOffset);
+        }
 
         GroupList groupList = new GroupList();
         groupList.setGroupList(groups);
