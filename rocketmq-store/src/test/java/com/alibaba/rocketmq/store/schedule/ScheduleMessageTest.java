@@ -77,7 +77,7 @@ public class ScheduleMessageTest {
         messageStoreConfig.setMaxHashSlotNum(100);
         messageStoreConfig.setMaxIndexNum(1000 * 10);
 
-        MessageStore master = new DefaultMessageStore(messageStoreConfig);
+        MessageStore master = new DefaultMessageStore(messageStoreConfig, null);
         // 第一步，load已有数据
         boolean load = master.load();
         assertTrue(load);
@@ -98,8 +98,7 @@ public class ScheduleMessageTest {
         // 开始读文件
         for (long i = 0; i < totalMsgs; i++) {
             try {
-                GetMessageResult result =
-                        master.getMessage("GROUP_A", "TOPIC_A", 0, i, 1024 * 1024, null, null);
+                GetMessageResult result = master.getMessage("GROUP_A", "TOPIC_A", 0, i, 1024 * 1024, null);
                 if (result == null) {
                     System.out.println("result == null " + i);
                 }

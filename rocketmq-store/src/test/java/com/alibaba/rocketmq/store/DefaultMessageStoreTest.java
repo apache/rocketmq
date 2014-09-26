@@ -78,7 +78,7 @@ public class DefaultMessageStoreTest {
         messageStoreConfig.setMaxHashSlotNum(100);
         messageStoreConfig.setMaxIndexNum(100 * 10);
 
-        MessageStore master = new DefaultMessageStore(messageStoreConfig);
+        MessageStore master = new DefaultMessageStore(messageStoreConfig, null);
         // 第一步，load已有数据
         boolean load = master.load();
         assertTrue(load);
@@ -94,8 +94,7 @@ public class DefaultMessageStoreTest {
         // 开始读文件
         for (long i = 0; i < totalMsgs; i++) {
             try {
-                GetMessageResult result =
-                        master.getMessage("GROUP_A", "TOPIC_A", 0, i, 1024 * 1024, null, null);
+                GetMessageResult result = master.getMessage("GROUP_A", "TOPIC_A", 0, i, 1024 * 1024, null);
                 if (result == null) {
                     System.out.println("result == null " + i);
                 }
@@ -134,7 +133,7 @@ public class DefaultMessageStoreTest {
         // 开启GroupCommit功能
         messageStoreConfig.setFlushDiskType(FlushDiskType.SYNC_FLUSH);
 
-        MessageStore master = new DefaultMessageStore(messageStoreConfig);
+        MessageStore master = new DefaultMessageStore(messageStoreConfig, null);
         // 第一步，load已有数据
         boolean load = master.load();
         assertTrue(load);
@@ -150,8 +149,7 @@ public class DefaultMessageStoreTest {
         // 开始读文件
         for (long i = 0; i < totalMsgs; i++) {
             try {
-                GetMessageResult result =
-                        master.getMessage("GROUP_A", "TOPIC_A", 0, i, 1024 * 1024, null, null);
+                GetMessageResult result = master.getMessage("GROUP_A", "TOPIC_A", 0, i, 1024 * 1024, null);
                 if (result == null) {
                     System.out.println("result == null " + i);
                 }

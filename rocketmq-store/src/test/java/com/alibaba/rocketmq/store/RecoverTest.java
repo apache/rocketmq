@@ -107,7 +107,7 @@ public class RecoverTest {
         messageStoreConfig.setMapedFileSizeConsumeQueue(100 * 20);
         messageStoreConfig.setMessageIndexEnable(false);
 
-        MessageStore messageStore = new DefaultMessageStore(messageStoreConfig);
+        MessageStore messageStore = new DefaultMessageStore(messageStoreConfig, null);
         if (first) {
             this.storeWrite1 = messageStore;
         }
@@ -166,7 +166,7 @@ public class RecoverTest {
         messageStoreConfig.setMapedFileSizeConsumeQueue(100 * 20);
         messageStoreConfig.setMessageIndexEnable(false);
 
-        storeRead = new DefaultMessageStore(messageStoreConfig);
+        storeRead = new DefaultMessageStore(messageStoreConfig, null);
         // 第一步，load已有数据
         boolean loadResult = storeRead.load();
         assertTrue(loadResult);
@@ -179,7 +179,7 @@ public class RecoverTest {
         for (int queueId = 0; queueId < QUEUE_TOTAL; queueId++) {
             for (long offset = 0;;) {
                 GetMessageResult result =
-                        storeRead.getMessage("GROUP_A", "TOPIC_A", queueId, offset, 1024 * 1024, null, null);
+                        storeRead.getMessage("GROUP_A", "TOPIC_A", queueId, offset, 1024 * 1024, null);
                 if (result.getStatus() == GetMessageStatus.FOUND) {
                     System.out.println(queueId + "\t" + result.getMessageCount());
                     this.veryReadMessage(queueId, offset, result.getMessageBufferList());
