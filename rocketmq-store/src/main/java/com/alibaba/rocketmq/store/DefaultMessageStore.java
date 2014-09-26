@@ -15,6 +15,8 @@
  */
 package com.alibaba.rocketmq.store;
 
+import static com.alibaba.rocketmq.store.config.BrokerRole.SLAVE;
+
 import java.io.File;
 import java.io.IOException;
 import java.net.SocketAddress;
@@ -127,7 +129,8 @@ public class DefaultMessageStore implements MessageStore {
         switch (this.messageStoreConfig.getBrokerRole()) {
         case SLAVE:
             this.reputMessageService = new ReputMessageService();
-            this.scheduleMessageService = null;
+            // reputMessageService依赖scheduleMessageService做定时消息的恢复，确保储备数据一致
+            this.scheduleMessageService = new ScheduleMessageService(this);
             break;
         case ASYNC_MASTER:
         case SYNC_MASTER:
@@ -173,6 +176,7 @@ public class DefaultMessageStore implements MessageStore {
 
             // load 定时进度
             // 这个步骤要放置到最前面，从CommitLog里Recover定时消息需要依赖加载的定时级别参数
+            // slave依赖scheduleMessageService做定时消息的恢复
             if (null != scheduleMessageService) {
                 result = result && this.scheduleMessageService.load();
             }
@@ -298,7 +302,8 @@ public class DefaultMessageStore implements MessageStore {
         this.commitLog.start();
         this.storeStatsService.start();
 
-        if (this.scheduleMessageService != null) {
+        // slave不启动scheduleMessageService避免对消费队列的并发操作
+        if (this.scheduleMessageService != null && SLAVE != messageStoreConfig.getBrokerRole()) {
             this.scheduleMessageService.start();
         }
 
