@@ -15,20 +15,6 @@
  */
 package com.alibaba.rocketmq.broker.processor;
 
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelFutureListener;
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.FileRegion;
-
-import java.net.InetSocketAddress;
-import java.net.SocketAddress;
-import java.util.List;
-import java.util.Map;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.alibaba.rocketmq.broker.BrokerController;
 import com.alibaba.rocketmq.broker.client.ConsumerGroupInfo;
 import com.alibaba.rocketmq.broker.longpolling.PullRequest;
@@ -61,6 +47,14 @@ import com.alibaba.rocketmq.store.GetMessageResult;
 import com.alibaba.rocketmq.store.MessageExtBrokerInner;
 import com.alibaba.rocketmq.store.PutMessageResult;
 import com.alibaba.rocketmq.store.config.BrokerRole;
+import io.netty.channel.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.net.InetSocketAddress;
+import java.net.SocketAddress;
+import java.util.List;
+import java.util.Map;
 
 
 /**
@@ -294,10 +288,10 @@ public class PullMessageProcessor implements NettyRequestProcessor {
         }
 
         final GetMessageResult getMessageResult =
-                this.brokerController.getMessageStore().getMessage(requestHeader.getTopic(),
-                    requestHeader.getQueueId(), requestHeader.getQueueOffset(),
-                    requestHeader.getMaxMsgNums(), subscriptionData);
-
+                this.brokerController.getMessageStore().getMessage(requestHeader.getConsumerGroup(),
+                    requestHeader.getTopic(), requestHeader.getQueueId(), requestHeader.getQueueOffset(),
+                    requestHeader.getMaxMsgNums(), subscriptionData,
+                    this.brokerController.getBrokerStatsManager());
         if (getMessageResult != null) {
             response.setRemark(getMessageResult.getStatus().name());
             responseHeader.setNextBeginOffset(getMessageResult.getNextBeginOffset());

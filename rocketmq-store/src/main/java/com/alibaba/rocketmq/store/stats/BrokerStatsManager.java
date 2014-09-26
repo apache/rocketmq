@@ -1,16 +1,14 @@
-package com.alibaba.rocketmq.broker.stats;
+package com.alibaba.rocketmq.store.stats;
 
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.alibaba.rocketmq.broker.BrokerController;
 import com.alibaba.rocketmq.common.ThreadFactoryImpl;
 import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.common.stats.StatsItem;
 import com.alibaba.rocketmq.common.stats.StatsItemSet;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 
 
 public class BrokerStatsManager {
@@ -22,9 +20,12 @@ public class BrokerStatsManager {
     public static final String TOPIC_PUT_SIZE = "TOPIC_PUT_SIZE";
     public static final String GROUP_GET_NUMS = "GROUP_GET_NUMS";
     public static final String GROUP_GET_SIZE = "GROUP_GET_SIZE";
+    public static final String GROUP_GET_FROM_DISK_NUMS = "GROUP_GET_FROM_DISK_NUMS";
+    public static final String GROUP_GET_FROM_DISK_SIZE = "GROUP_GET_FROM_DISK_SIZE";
     public static final String SNDBCK_PUT_NUMS = "SNDBCK_PUT_NUMS";
     public static final String BROKER_PUT_NUMS = "BROKER_PUT_NUMS";
     public static final String BROKER_GET_NUMS = "BROKER_GET_NUMS";
+    public static final String BROKER_GET_FROM_DISK_NUMS = "BROKER_GET_FROM_DISK_NUMS";
 
     // Topic Put Nums
     private final StatsItemSet topicPutNums = new StatsItemSet(TOPIC_PUT_NUMS, this.scheduledExecutorService,
@@ -42,31 +43,47 @@ public class BrokerStatsManager {
     private final StatsItemSet groupGetSize = new StatsItemSet(GROUP_GET_SIZE, this.scheduledExecutorService,
         log);
 
+    // Topic@ConsumerGroup get in disk nums
+    private final StatsItemSet groupGetFromDiskNums = new StatsItemSet(GROUP_GET_FROM_DISK_NUMS,
+        this.scheduledExecutorService, log);
+
+    // Topic@ConsumerGroup group get in disk size
+    private final StatsItemSet groupGetFromDiskSize = new StatsItemSet(GROUP_GET_FROM_DISK_SIZE,
+        this.scheduledExecutorService, log);
+
     // Broker Put Nums
     private final StatsItem brokerPutNums;
 
     // Broker Get Nums
     private final StatsItem brokerGetNums;
 
+    // Broker Get From Disk Nums
+    private final StatsItem brokerGetFromDiskNums;
+
     // Topic@ConsumerGroup sendback Nums
     private final StatsItemSet sndbckPutNums = new StatsItemSet(SNDBCK_PUT_NUMS,
         this.scheduledExecutorService, log);
 
 
-    public BrokerStatsManager(BrokerController brokerController) {
+    public BrokerStatsManager(String clusterName) {
         // Broker Put Nums
         this.brokerPutNums = new StatsItem(BROKER_PUT_NUMS, //
-            brokerController.getBrokerConfig().getBrokerClusterName(), this.scheduledExecutorService, log);
+            clusterName, this.scheduledExecutorService, log);
 
         // Broker Get Nums
         this.brokerGetNums = new StatsItem(BROKER_GET_NUMS, //
-            brokerController.getBrokerConfig().getBrokerClusterName(), this.scheduledExecutorService, log);
+            clusterName, this.scheduledExecutorService, log);
+
+        // Broker Get From Disk Nums
+        this.brokerGetFromDiskNums = new StatsItem(BROKER_GET_FROM_DISK_NUMS, //
+            clusterName, this.scheduledExecutorService, log);
     }
 
 
     public void start() {
         this.brokerPutNums.init();
         this.brokerGetNums.init();
+        this.brokerGetFromDiskNums.init();
     }
 
 
@@ -112,5 +129,20 @@ public class BrokerStatsManager {
 
     public double tpsGroupGetNums(final String group, final String topic) {
         return this.groupGetNums.getStatsDataInMinute(topic + "@" + group).getTps();
+    }
+
+
+    public void incBrokerGetFromDiskNums(final int incValue) {
+        this.brokerGetFromDiskNums.getValue().addAndGet(incValue);
+    }
+
+
+    public void incGroupGetFromDiskNums(final String group, final String topic, final int incValue) {
+        this.groupGetFromDiskNums.addValue(topic + "@" + group, incValue, 1);
+    }
+
+
+    public void indGroupGetFromDiskSize(final String group, final String topic, final int incValue) {
+        this.groupGetFromDiskSize.addValue(topic + "@" + group, incValue, 1);
     }
 }

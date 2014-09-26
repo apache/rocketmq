@@ -15,27 +15,6 @@
  */
 package com.alibaba.rocketmq.store;
 
-import java.io.File;
-import java.io.IOException;
-import java.net.SocketAddress;
-import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.alibaba.rocketmq.common.ServiceThread;
 import com.alibaba.rocketmq.common.SystemClock;
 import com.alibaba.rocketmq.common.ThreadFactoryImpl;
@@ -54,6 +33,21 @@ import com.alibaba.rocketmq.store.ha.HAService;
 import com.alibaba.rocketmq.store.index.IndexService;
 import com.alibaba.rocketmq.store.index.QueryOffsetResult;
 import com.alibaba.rocketmq.store.schedule.ScheduleMessageService;
+import com.alibaba.rocketmq.store.stats.BrokerStatsManager;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.File;
+import java.io.IOException;
+import java.net.SocketAddress;
+import java.nio.ByteBuffer;
+import java.util.*;
+import java.util.Map.Entry;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 
 /**
@@ -437,8 +431,9 @@ public class DefaultMessageStore implements MessageStore {
     }
 
 
-    public GetMessageResult getMessage(final String topic, final int queueId, final long offset,
-            final int maxMsgNums, final SubscriptionData subscriptionData) {
+    public GetMessageResult getMessage(final String group, final String topic, final int queueId,
+            final long offset, final int maxMsgNums, final SubscriptionData subscriptionData,
+            final BrokerStatsManager brokerStatsManager) {
         if (this.shutdown) {
             log.warn("message store has shutdown, so getMessage is forbidden");
             return null;
@@ -514,9 +509,11 @@ public class DefaultMessageStore implements MessageStore {
                                     continue;
                             }
 
+                            // 判断是否拉磁盘数据
+                            boolean isInDisk = checkInDisk(offsetPy);
                             // 此批消息达到上限了
-                            if (this.isTheBatchFull(offsetPy, sizePy, maxMsgNums,
-                                getResult.getBufferTotalSize(), getResult.getMessageCount())) {
+                            if (this.isTheBatchFull(sizePy, maxMsgNums, getResult.getBufferTotalSize(),
+                                getResult.getMessageCount(), isInDisk)) {
                                 break;
                             }
 
@@ -530,6 +527,14 @@ public class DefaultMessageStore implements MessageStore {
                                     getResult.addMessage(selectResult);
                                     status = GetMessageStatus.FOUND;
                                     nextPhyFileStartOffset = Long.MIN_VALUE;
+
+                                    // 统计消息数据
+                                    if (isInDisk && brokerStatsManager != null) {
+                                        brokerStatsManager.incGroupGetFromDiskNums(group, topic, 1);
+                                        brokerStatsManager.indGroupGetFromDiskSize(group, topic,
+                                            selectResult.getSize());
+                                        brokerStatsManager.incBrokerGetFromDiskNums(1);
+                                    }
                                 }
                                 else {
                                     if (getResult.getBufferTotalSize() == 0) {
@@ -963,13 +968,17 @@ public class DefaultMessageStore implements MessageStore {
     }
 
 
-    private boolean isTheBatchFull(long offsetPy, int sizePy, int maxMsgNums, int bufferTotal,
-            int messageTotal) {
+    private boolean checkInDisk(long offsetPy) {
         long maxOffsetPy = this.commitLog.getMaxOffset();
         long memory =
                 (long) (StoreUtil.TotalPhysicalMemorySize * (this.messageStoreConfig
                     .getAccessMessageInMemoryMaxRatio() / 100.0));
+        return (maxOffsetPy - offsetPy) > memory;
+    }
 
+
+    private boolean isTheBatchFull(int sizePy, int maxMsgNums, int bufferTotal, int messageTotal,
+            boolean isInDisk) {
         // 第一条消息可以不做限制
         if (0 == bufferTotal || 0 == messageTotal) {
             return false;
@@ -980,7 +989,7 @@ public class DefaultMessageStore implements MessageStore {
         }
 
         // 消息在磁盘
-        if ((maxOffsetPy - offsetPy) > memory) {
+        if (isInDisk) {
             if ((bufferTotal + sizePy) > this.messageStoreConfig.getMaxTransferBytesOnMessageInDisk()) {
                 return true;
             }

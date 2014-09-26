@@ -15,13 +15,14 @@
  */
 package com.alibaba.rocketmq.store;
 
+import com.alibaba.rocketmq.common.message.MessageExt;
+import com.alibaba.rocketmq.common.protocol.heartbeat.SubscriptionData;
+import com.alibaba.rocketmq.store.stats.BrokerStatsManager;
+
 import java.net.SocketAddress;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
-
-import com.alibaba.rocketmq.common.message.MessageExt;
-import com.alibaba.rocketmq.common.protocol.heartbeat.SubscriptionData;
 
 
 /**
@@ -65,8 +66,9 @@ public interface MessageStore {
     /**
      * 读取消息，如果types为null，则不做过滤
      */
-    public GetMessageResult getMessage(final String topic, final int queueId, final long offset,
-            final int maxMsgNums, final SubscriptionData subscriptionData);
+    public GetMessageResult getMessage(final String group, final String topic, final int queueId,
+            final long offset, final int maxMsgNums, final SubscriptionData subscriptionData,
+            final BrokerStatsManager brokerStatsManager);
 
 
     /**
