@@ -15,6 +15,23 @@
  */
 package com.alibaba.rocketmq.store;
 
+import static com.alibaba.rocketmq.store.config.BrokerRole.SLAVE;
+
+import java.io.File;
+import java.io.IOException;
+import java.net.SocketAddress;
+import java.nio.ByteBuffer;
+import java.util.*;
+import java.util.Map.Entry;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.alibaba.rocketmq.common.ServiceThread;
 import com.alibaba.rocketmq.common.SystemClock;
 import com.alibaba.rocketmq.common.ThreadFactoryImpl;
@@ -34,20 +51,6 @@ import com.alibaba.rocketmq.store.index.IndexService;
 import com.alibaba.rocketmq.store.index.QueryOffsetResult;
 import com.alibaba.rocketmq.store.schedule.ScheduleMessageService;
 import com.alibaba.rocketmq.store.stats.BrokerStatsManager;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.io.File;
-import java.io.IOException;
-import java.net.SocketAddress;
-import java.nio.ByteBuffer;
-import java.util.*;
-import java.util.Map.Entry;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
 
 
 /**
@@ -121,7 +124,8 @@ public class DefaultMessageStore implements MessageStore {
         switch (this.messageStoreConfig.getBrokerRole()) {
         case SLAVE:
             this.reputMessageService = new ReputMessageService();
-            this.scheduleMessageService = null;
+            // reputMessageService依赖scheduleMessageService做定时消息的恢复，确保储备数据一致
+            this.scheduleMessageService = new ScheduleMessageService(this);
             break;
         case ASYNC_MASTER:
         case SYNC_MASTER:
@@ -167,6 +171,7 @@ public class DefaultMessageStore implements MessageStore {
 
             // load 定时进度
             // 这个步骤要放置到最前面，从CommitLog里Recover定时消息需要依赖加载的定时级别参数
+            // slave依赖scheduleMessageService做定时消息的恢复
             if (null != scheduleMessageService) {
                 result = result && this.scheduleMessageService.load();
             }
@@ -292,7 +297,8 @@ public class DefaultMessageStore implements MessageStore {
         this.commitLog.start();
         this.storeStatsService.start();
 
-        if (this.scheduleMessageService != null) {
+        // slave不启动scheduleMessageService避免对消费队列的并发操作
+        if (this.scheduleMessageService != null && SLAVE != messageStoreConfig.getBrokerRole()) {
             this.scheduleMessageService.start();
         }
 
