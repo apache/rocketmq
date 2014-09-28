@@ -341,7 +341,14 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
     @Override
     public void sendMessageBack(MessageExt msg, int delayLevel) throws RemotingException, MQBrokerException,
             InterruptedException, MQClientException {
-        this.defaultMQPushConsumerImpl.sendMessageBack(msg, delayLevel);
+        this.defaultMQPushConsumerImpl.sendMessageBack(msg, delayLevel, null);
+    }
+
+
+    @Override
+    public void sendMessageBack(MessageExt msg, int delayLevel, String brokerName) throws RemotingException,
+            MQBrokerException, InterruptedException, MQClientException {
+        this.defaultMQPushConsumerImpl.sendMessageBack(msg, delayLevel, brokerName);
     }
 
 
@@ -448,4 +455,5 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
     public void setAdjustThreadPoolNumsThreshold(long adjustThreadPoolNumsThreshold) {
         this.adjustThreadPoolNumsThreshold = adjustThreadPoolNumsThreshold;
     }
+
 }

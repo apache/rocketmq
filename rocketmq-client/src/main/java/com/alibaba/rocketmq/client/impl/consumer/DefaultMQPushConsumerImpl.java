@@ -55,7 +55,9 @@ import com.alibaba.rocketmq.common.protocol.route.BrokerData;
 import com.alibaba.rocketmq.common.protocol.route.TopicRouteData;
 import com.alibaba.rocketmq.common.sysflag.PullSysFlag;
 import com.alibaba.rocketmq.remoting.RPCHook;
+import com.alibaba.rocketmq.remoting.common.RemotingHelper;
 import com.alibaba.rocketmq.remoting.exception.RemotingException;
+
 import org.slf4j.Logger;
 
 import java.util.*;
@@ -620,11 +622,16 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
     }
 
 
-    public void sendMessageBack(MessageExt msg, int delayLevel) throws RemotingException, MQBrokerException,
-            InterruptedException, MQClientException {
+    public void sendMessageBack(MessageExt msg, int delayLevel, final String brokerName)
+            throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
         try {
-            this.mQClientFactory.getMQClientAPIImpl().consumerSendMessageBack(msg,
-                this.defaultMQPushConsumer.getConsumerGroup(), delayLevel, 3000);
+            String brokerAddr = (null != brokerName) ? //
+            this.mQClientFactory.findBrokerAddressInPublish(brokerName) //
+                    : //
+                    RemotingHelper.parseSocketAddressAddr(msg.getStoreHost());
+
+            this.mQClientFactory.getMQClientAPIImpl().consumerSendMessageBack(brokerAddr, msg,
+                this.defaultMQPushConsumer.getConsumerGroup(), delayLevel, 5000);
         }
         catch (Exception e) {
             log.error("sendMessageBack Exception, " + this.defaultMQPushConsumer.getConsumerGroup(), e);

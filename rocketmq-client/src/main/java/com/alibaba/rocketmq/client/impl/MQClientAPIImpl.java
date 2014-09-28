@@ -1087,6 +1087,7 @@ public class MQClientAPIImpl {
      * 失败的消息发回Broker
      */
     public void consumerSendMessageBack(//
+            final String addr, //
             final MessageExt msg,//
             final String consumerGroup,//
             final int delayLevel,//
@@ -1109,8 +1110,6 @@ public class MQClientAPIImpl {
         requestHeader.setOffset(msg.getCommitLogOffset());
         requestHeader.setDelayLevel(delayLevel);
         requestHeader.setOriginMsgId(msg.getMsgId());
-
-        String addr = RemotingHelper.parseSocketAddressAddr(msg.getStoreHost());
 
         RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
         assert response != null;

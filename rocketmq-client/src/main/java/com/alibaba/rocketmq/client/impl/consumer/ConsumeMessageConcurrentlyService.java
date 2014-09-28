@@ -208,7 +208,8 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
         int delayLevel = context.getDelayLevelWhenNextConsume();
 
         try {
-            this.defaultMQPushConsumerImpl.sendMessageBack(msg, delayLevel);
+            this.defaultMQPushConsumerImpl.sendMessageBack(msg, delayLevel, context.getMessageQueue()
+                .getBrokerName());
             return true;
         }
         catch (Exception e) {

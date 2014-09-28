@@ -239,7 +239,14 @@ public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsume
     @Override
     public void sendMessageBack(MessageExt msg, int delayLevel) throws RemotingException, MQBrokerException,
             InterruptedException, MQClientException {
-        this.defaultMQPullConsumerImpl.sendMessageBack(msg, delayLevel);
+        this.defaultMQPullConsumerImpl.sendMessageBack(msg, delayLevel, null);
+    }
+
+
+    @Override
+    public void sendMessageBack(MessageExt msg, int delayLevel, String brokerName) throws RemotingException,
+            MQBrokerException, InterruptedException, MQClientException {
+        this.defaultMQPullConsumerImpl.sendMessageBack(msg, delayLevel, brokerName);
     }
 
 
@@ -341,4 +348,5 @@ public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsume
     public void setUnitMode(boolean isUnitMode) {
         this.unitMode = isUnitMode;
     }
+
 }
