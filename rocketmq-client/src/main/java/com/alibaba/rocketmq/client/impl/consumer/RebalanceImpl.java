@@ -527,5 +527,7 @@ public abstract class RebalanceImpl {
             Entry<MessageQueue, ProcessQueue> next = it.next();
             next.getValue().setDroped(true);
         }
+
+        this.processQueueTable.clear();
     }
 }
