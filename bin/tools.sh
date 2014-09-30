@@ -1,25 +1,28 @@
 #!/bin/sh
 
-#
-# $Id: tools.sh 587 2012-11-20 03:26:56Z shijia.wxr $
-#
+#===========================================================================================
+# Java 环境设置
+#===========================================================================================
+error_exit ()
+{
+    echo "ERROR: $1 !!"
+    exit 1
+}
 
-if [ $# -lt 1 ];
-then
-  echo "USAGE: $0 classname opts"
-  exit 1
-fi
+[ ! -e "$JAVA_HOME/bin/java" ] && JAVA_HOME=$HOME/jdk/java
+[ ! -e "$JAVA_HOME/bin/java" ] && JAVA_HOME=/opt/taobao/java
+[ ! -e "$JAVA_HOME/bin/java" ] && error_exit "Please set the JAVA_HOME variable in your environment, We need java(x64)!"
 
-BASE_DIR=$(dirname $0)/..
-CLASSPATH=.:${BASE_DIR}/conf:${CLASSPATH}
+export JAVA_HOME
+export JAVA="$JAVA_HOME/bin/java"
+export BASE_DIR=$(dirname $0)/..
+export CLASSPATH=.:${BASE_DIR}/conf:${CLASSPATH}
 
-JAVA_OPT="${JAVA_OPT} -Djava.ext.dirs=${BASE_DIR}/lib -cp ${CLASSPATH}"
-
-
-if [ -z "$JAVA_HOME" ]; then
-  JAVA_HOME=/opt/taobao/java
-fi
-
-JAVA="$JAVA_HOME/bin/java"
+#===========================================================================================
+# JVM 参数配置
+#===========================================================================================
+JAVA_OPT="${JAVA_OPT} -server -Xms1g -Xmx1g -Xmn256m -XX:PermSize=128m -XX:MaxPermSize=128m"
+JAVA_OPT="${JAVA_OPT} -Djava.ext.dirs=${BASE_DIR}/lib"
+JAVA_OPT="${JAVA_OPT} -cp ${CLASSPATH}"
 
 $JAVA ${JAVA_OPT} $@
