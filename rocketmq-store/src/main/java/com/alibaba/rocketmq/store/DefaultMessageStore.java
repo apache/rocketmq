@@ -517,7 +517,7 @@ public class DefaultMessageStore implements MessageStore {
                             }
 
                             // 判断是否拉磁盘数据
-                            boolean isInDisk = checkInDisk(offsetPy);
+                            boolean isInDisk = checkInDiskByCommitOffset(offsetPy);
                             // 此批消息达到上限了
                             if (this.isTheBatchFull(sizePy, maxMsgNums, getResult.getBufferTotalSize(),
                                 getResult.getMessageCount(), isInDisk)) {
@@ -972,15 +972,6 @@ public class DefaultMessageStore implements MessageStore {
         }
 
         return logic;
-    }
-
-
-    private boolean checkInDisk(long offsetPy) {
-        long maxOffsetPy = this.commitLog.getMaxOffset();
-        long memory =
-                (long) (StoreUtil.TotalPhysicalMemorySize * (this.messageStoreConfig
-                    .getAccessMessageInMemoryMaxRatio() / 100.0));
-        return (maxOffsetPy - offsetPy) > memory;
     }
 
 
@@ -1900,5 +1891,40 @@ public class DefaultMessageStore implements MessageStore {
             }
         }
         return messageIds;
+    }
+
+
+    private boolean checkInDiskByCommitOffset(long offsetPy) {
+        long maxOffsetPy = this.commitLog.getMaxOffset();
+        long memory =
+                (long) (StoreUtil.TotalPhysicalMemorySize * (this.messageStoreConfig
+                    .getAccessMessageInMemoryMaxRatio() / 100.0));
+        return (maxOffsetPy - offsetPy) > memory;
+    }
+
+
+    @Override
+    public boolean checkInDiskByConsumeOffset(final String topic, final int queueId, long consumeOffset) {
+        ConsumeQueue consumeQueue = findConsumeQueue(topic, queueId);
+        if (consumeQueue != null) {
+            SelectMapedBufferResult bufferConsumeQueue = consumeQueue.getIndexBuffer(consumeOffset);
+            if (bufferConsumeQueue != null) {
+                try {
+                    int i = 0;
+                    for (; i < bufferConsumeQueue.getSize(); i += ConsumeQueue.CQStoreUnitSize) {
+                        long offsetPy = bufferConsumeQueue.getByteBuffer().getLong();
+                        return checkInDiskByCommitOffset(offsetPy);
+                    }
+                }
+                finally {
+                    // 必须释放资源
+                    bufferConsumeQueue.release();
+                }
+            }
+            else {
+                return false;
+            }
+        }
+        return false;
     }
 }

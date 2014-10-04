@@ -196,4 +196,10 @@ public interface MessageStore {
      */
     public Map<String, Long> getMessageIds(final String topic, int queueId, long minOffset,
             final long maxOffset, SocketAddress storeHost);
+
+
+    /**
+     * 判断消息是否在磁盘
+     */
+    public boolean checkInDiskByConsumeOffset(final String topic, final int queueId, long consumeOffset);
 }
