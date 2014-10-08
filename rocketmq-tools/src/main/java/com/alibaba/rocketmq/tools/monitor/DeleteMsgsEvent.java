@@ -26,4 +26,11 @@ public class DeleteMsgsEvent {
     public void setEventTimestamp(long eventTimestamp) {
         this.eventTimestamp = eventTimestamp;
     }
+
+
+    @Override
+    public String toString() {
+        return "DeleteMsgsEvent [offsetMovedEvent=" + offsetMovedEvent + ", eventTimestamp=" + eventTimestamp
+                + "]";
+    }
 }

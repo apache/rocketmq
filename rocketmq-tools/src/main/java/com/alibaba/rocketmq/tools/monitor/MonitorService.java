@@ -5,6 +5,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Random;
+import java.util.TreeMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -17,15 +18,19 @@ import com.alibaba.rocketmq.client.consumer.PullResult;
 import com.alibaba.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext;
 import com.alibaba.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
 import com.alibaba.rocketmq.client.consumer.listener.MessageListenerConcurrently;
+import com.alibaba.rocketmq.client.exception.MQBrokerException;
 import com.alibaba.rocketmq.client.exception.MQClientException;
 import com.alibaba.rocketmq.client.log.ClientLogger;
+import com.alibaba.rocketmq.common.MQVersion;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.ThreadFactoryImpl;
 import com.alibaba.rocketmq.common.admin.ConsumeStats;
 import com.alibaba.rocketmq.common.admin.OffsetWrapper;
 import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.common.message.MessageQueue;
+import com.alibaba.rocketmq.common.protocol.body.Connection;
 import com.alibaba.rocketmq.common.protocol.body.ConsumerConnection;
+import com.alibaba.rocketmq.common.protocol.body.ConsumerRunningInfo;
 import com.alibaba.rocketmq.common.protocol.body.TopicList;
 import com.alibaba.rocketmq.common.protocol.topic.OffsetMovedEvent;
 import com.alibaba.rocketmq.remoting.RPCHook;
@@ -139,17 +144,52 @@ public class MonitorService {
         for (String topic : topicList.getTopicList()) {
             if (topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
                 String consumerGroup = topic.substring(MixAll.RETRY_GROUP_TOPIC_PREFIX.length());
+                // 监控消费进度
                 try {
                     this.reportUndoneMsgs(consumerGroup);
                 }
                 catch (Exception e) {
-                    log.error("reportUndoneMsgs Exception", e);
+                    // log.error("reportUndoneMsgs Exception", e);
+                }
+
+                // 监控每个Consumer内存状态
+                try {
+                    this.reportConsumerRunningInfo(consumerGroup);
+                }
+                catch (Exception e) {
+                    // log.error("reportConsumerRunningInfo Exception", e);
                 }
             }
         }
         this.monitorListener.endRound();
         long spentTimeMills = System.currentTimeMillis() - beginTime;
         log.info("Execute one round monitor work, spent timemills: {}", spentTimeMills);
+    }
+
+
+    public void reportConsumerRunningInfo(final String consumerGroup) throws InterruptedException,
+            MQBrokerException, RemotingException, MQClientException {
+        ConsumerConnection cc = defaultMQAdminExt.examineConsumerConnectionInfo(consumerGroup);
+        TreeMap<String, ConsumerRunningInfo> infoMap = new TreeMap<String, ConsumerRunningInfo>();
+        for (Connection c : cc.getConnectionSet()) {
+            String clientId = c.getClientId();
+            // 低于3.1.8版本，不支持此功能
+            if (c.getVersion() < MQVersion.Version.V3_1_8_SNAPSHOT.ordinal()) {
+                continue;
+            }
+
+            try {
+                ConsumerRunningInfo info =
+                        defaultMQAdminExt.getConsumerRunningInfo(consumerGroup, clientId, false);
+                infoMap.put(clientId, info);
+            }
+            catch (Exception e) {
+            }
+        }
+
+        if (!infoMap.isEmpty()) {
+            this.monitorListener.reportConsumerRunningInfo(infoMap);
+        }
     }
 
 
@@ -164,7 +204,7 @@ public class MonitorService {
             cs = defaultMQAdminExt.examineConsumeStats(consumerGroup);
         }
         catch (Exception e) {
-            log.warn("examineConsumeStats exception, " + consumerGroup, e);
+            return;
         }
 
         ConsumerConnection cc = null;
@@ -172,7 +212,7 @@ public class MonitorService {
             cc = defaultMQAdminExt.examineConsumerConnectionInfo(consumerGroup);
         }
         catch (Exception e) {
-            log.warn("examineConsumerConnectionInfo exception, " + consumerGroup, e);
+            return;
         }
 
         if (cs != null) {
@@ -270,8 +310,23 @@ public class MonitorService {
 
 
     public static void main0(String[] args, RPCHook rpcHook) throws MQClientException {
-        MonitorService monitorService =
+        final MonitorService monitorService =
                 new MonitorService(new MonitorConfig(), new DefaultMonitorListener(), rpcHook);
         monitorService.start();
+
+        Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
+            private volatile boolean hasShutdown = false;
+
+
+            @Override
+            public void run() {
+                synchronized (this) {
+                    if (!this.hasShutdown) {
+                        this.hasShutdown = true;
+                        monitorService.shutdown();
+                    }
+                }
+            }
+        }, "ShutdownHook"));
     }
 }
