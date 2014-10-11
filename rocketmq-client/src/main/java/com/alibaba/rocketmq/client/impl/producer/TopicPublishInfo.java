@@ -15,11 +15,11 @@
  */
 package com.alibaba.rocketmq.client.impl.producer;
 
+import com.alibaba.rocketmq.common.message.MessageQueue;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
-
-import com.alibaba.rocketmq.common.message.MessageQueue;
 
 
 /**
@@ -30,6 +30,7 @@ import com.alibaba.rocketmq.common.message.MessageQueue;
  */
 public class TopicPublishInfo {
     private boolean orderTopic = false;
+    private boolean haveTopicRouterInfo = false;
     private List<MessageQueue> messageQueueList = new ArrayList<MessageQueue>();
     private AtomicInteger sendWhichQueue = new AtomicInteger(0);
 
@@ -69,6 +70,16 @@ public class TopicPublishInfo {
     }
 
 
+    public boolean isHaveTopicRouterInfo() {
+        return haveTopicRouterInfo;
+    }
+
+
+    public void setHaveTopicRouterInfo(boolean haveTopicRouterInfo) {
+        this.haveTopicRouterInfo = haveTopicRouterInfo;
+    }
+
+
     /**
      * 如果lastBrokerName不为null，则寻找与其不同的MessageQueue
      */
@@ -96,6 +107,6 @@ public class TopicPublishInfo {
     @Override
     public String toString() {
         return "TopicPublishInfo [orderTopic=" + orderTopic + ", messageQueueList=" + messageQueueList
-                + ", sendWhichQueue=" + sendWhichQueue + "]";
+                + ", sendWhichQueue=" + sendWhichQueue + ", haveTopicRouterInfo=" + haveTopicRouterInfo + "]";
     }
 }

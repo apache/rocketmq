@@ -3,23 +3,18 @@
  */
 package com.alibaba.rocketmq.store.schedule;
 
-import static org.junit.Assert.assertTrue;
+import com.alibaba.rocketmq.store.*;
+import com.alibaba.rocketmq.store.config.MessageStoreConfig;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
-
-import com.alibaba.rocketmq.store.DefaultMessageStore;
-import com.alibaba.rocketmq.store.GetMessageResult;
-import com.alibaba.rocketmq.store.MessageExtBrokerInner;
-import com.alibaba.rocketmq.store.MessageStore;
-import com.alibaba.rocketmq.store.PutMessageResult;
-import com.alibaba.rocketmq.store.config.MessageStoreConfig;
+import static org.junit.Assert.assertTrue;
 
 
 public class ScheduleMessageTest {
@@ -82,7 +77,7 @@ public class ScheduleMessageTest {
         messageStoreConfig.setMaxHashSlotNum(100);
         messageStoreConfig.setMaxIndexNum(1000 * 10);
 
-        MessageStore master = new DefaultMessageStore(messageStoreConfig);
+        MessageStore master = new DefaultMessageStore(messageStoreConfig, null);
         // 第一步，load已有数据
         boolean load = master.load();
         assertTrue(load);
@@ -103,7 +98,7 @@ public class ScheduleMessageTest {
         // 开始读文件
         for (long i = 0; i < totalMsgs; i++) {
             try {
-                GetMessageResult result = master.getMessage("TOPIC_A", 0, i, 1024 * 1024, null);
+                GetMessageResult result = master.getMessage("GROUP_A", "TOPIC_A", 0, i, 1024 * 1024, null);
                 if (result == null) {
                     System.out.println("result == null " + i);
                 }
