@@ -15,13 +15,6 @@
  */
 package com.alibaba.rocketmq.broker.processor;
 
-import io.netty.channel.ChannelHandlerContext;
-
-import java.util.List;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.alibaba.rocketmq.broker.BrokerController;
 import com.alibaba.rocketmq.broker.client.ClientChannelInfo;
 import com.alibaba.rocketmq.broker.client.ConsumerGroupInfo;
@@ -30,21 +23,21 @@ import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.common.constant.PermName;
 import com.alibaba.rocketmq.common.protocol.RequestCode;
 import com.alibaba.rocketmq.common.protocol.ResponseCode;
-import com.alibaba.rocketmq.common.protocol.header.GetConsumerListByGroupRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.GetConsumerListByGroupResponseBody;
-import com.alibaba.rocketmq.common.protocol.header.GetConsumerListByGroupResponseHeader;
-import com.alibaba.rocketmq.common.protocol.header.UnregisterClientRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.UnregisterClientResponseHeader;
+import com.alibaba.rocketmq.common.protocol.header.*;
 import com.alibaba.rocketmq.common.protocol.heartbeat.ConsumerData;
 import com.alibaba.rocketmq.common.protocol.heartbeat.HeartbeatData;
 import com.alibaba.rocketmq.common.protocol.heartbeat.ProducerData;
-import com.alibaba.rocketmq.common.protocol.heartbeat.SubscriptionData;
 import com.alibaba.rocketmq.common.subscription.SubscriptionGroupConfig;
 import com.alibaba.rocketmq.common.sysflag.TopicSysFlag;
 import com.alibaba.rocketmq.remoting.common.RemotingHelper;
 import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
 import com.alibaba.rocketmq.remoting.netty.NettyRequestProcessor;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
+import io.netty.channel.ChannelHandlerContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.List;
 
 
 /**
@@ -200,10 +193,12 @@ public class ClientManageProcessor implements NettyRequestProcessor {
                     RemotingHelper.parseChannelRemoteAddr(ctx.channel())//
                 );
 
-                for (SubscriptionData subscriptionData : data.getSubscriptionDataSet()) {
-                    this.brokerController.getTopicConfigManager().updateTopicUnitSubFlag(
-                        subscriptionData.getTopic(), data.isUnitMode());
-                }
+                // todo:有可能会有频繁变更
+                // for (SubscriptionData subscriptionData :
+                // data.getSubscriptionDataSet()) {
+                // this.brokerController.getTopicConfigManager().updateTopicUnitSubFlag(
+                // subscriptionData.getTopic(), data.isUnitMode());
+                // }
             }
         }
 
