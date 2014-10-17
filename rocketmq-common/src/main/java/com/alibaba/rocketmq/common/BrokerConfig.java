@@ -15,12 +15,12 @@
  */
 package com.alibaba.rocketmq.common;
 
-import java.net.InetAddress;
-import java.net.UnknownHostException;
-
 import com.alibaba.rocketmq.common.annotation.ImportantField;
 import com.alibaba.rocketmq.common.constant.PermName;
 import com.alibaba.rocketmq.remoting.common.RemotingUtil;
+
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 
 
 /**
@@ -83,6 +83,9 @@ public class BrokerConfig {
 
     // Consumer订阅消息时，Broker是否开启长轮询
     private boolean longPollingEnable = true;
+
+    // notify consumerId changed 开关
+    private boolean notifyConsumerIdsChangedEnable = true;
 
 
     public static String localHostName() {
@@ -334,5 +337,15 @@ public class BrokerConfig {
 
     public void setLongPollingEnable(boolean longPollingEnable) {
         this.longPollingEnable = longPollingEnable;
+    }
+
+
+    public boolean isNotifyConsumerIdsChangedEnable() {
+        return notifyConsumerIdsChangedEnable;
+    }
+
+
+    public void setNotifyConsumerIdsChangedEnable(boolean notifyConsumerIdsChangedEnable) {
+        this.notifyConsumerIdsChangedEnable = notifyConsumerIdsChangedEnable;
     }
 }

@@ -15,11 +15,10 @@
  */
 package com.alibaba.rocketmq.broker.client;
 
+import com.alibaba.rocketmq.broker.BrokerController;
 import io.netty.channel.Channel;
 
 import java.util.List;
-
-import com.alibaba.rocketmq.broker.BrokerController;
 
 
 /**
@@ -39,7 +38,7 @@ public class DefaultConsumerIdsChangeListener implements ConsumerIdsChangeListen
 
     @Override
     public void consumerIdsChanged(String group, List<Channel> channels) {
-        if (channels != null) {
+        if (channels != null && brokerController.getBrokerConfig().isNotifyConsumerIdsChangedEnable()) {
             for (Channel chl : channels) {
                 this.brokerController.getBroker2Client().notifyConsumerIdsChanged(chl, group);
             }
