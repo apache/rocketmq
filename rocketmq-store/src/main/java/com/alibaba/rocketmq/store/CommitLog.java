@@ -530,6 +530,7 @@ public class CommitLog {
         }
 
         // 写文件要加锁
+        long eclipseTimeInLock = 0;
         synchronized (this) {
             long beginLockTimestamp = this.defaultMessageStore.getSystemClock().now();
 
@@ -587,12 +588,13 @@ public class CommitLog {
 
             this.defaultMessageStore.putDispatchRequest(dispatchRequest);
 
-            long eclipseTime = this.defaultMessageStore.getSystemClock().now() - beginLockTimestamp;
-            if (eclipseTime > 1000) {
-                // XXX: warn and notify me
-                log.warn("putMessage in lock eclipse time(ms) " + eclipseTime);
-            }
+            eclipseTimeInLock = this.defaultMessageStore.getSystemClock().now() - beginLockTimestamp;
         } // end of synchronized
+
+        if (eclipseTimeInLock > 1000) {
+            // XXX: warn and notify me
+            log.warn("putMessage in lock eclipse time(ms) " + eclipseTimeInLock);
+        }
 
         // 返回结果
         PutMessageResult putMessageResult = new PutMessageResult(PutMessageStatus.PUT_OK, result);
