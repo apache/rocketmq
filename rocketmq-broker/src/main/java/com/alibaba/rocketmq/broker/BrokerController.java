@@ -179,7 +179,7 @@ public class BrokerController {
         // 初始化存储层
         if (result) {
             try {
-                this.messageStore = new DefaultMessageStore(this.messageStoreConfig, null);
+                this.messageStore = new DefaultMessageStore(this.messageStoreConfig, this.brokerStatsManager);
             }
             catch (IOException e) {
                 result = false;

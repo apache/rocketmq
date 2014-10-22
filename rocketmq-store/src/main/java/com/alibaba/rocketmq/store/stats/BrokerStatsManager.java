@@ -142,7 +142,7 @@ public class BrokerStatsManager {
     }
 
 
-    public void indGroupGetFromDiskSize(final String group, final String topic, final int incValue) {
+    public void incGroupGetFromDiskSize(final String group, final String topic, final int incValue) {
         this.groupGetFromDiskSize.addValue(topic + "@" + group, incValue, 1);
     }
 }

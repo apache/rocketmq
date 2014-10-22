@@ -147,13 +147,13 @@ public class DefaultMessageStore implements MessageStore {
     }
 
 
-    public void truncateDirtyLogicFiles(long phyOffet) {
+    public void truncateDirtyLogicFiles(long phyOffset) {
         ConcurrentHashMap<String, ConcurrentHashMap<Integer, ConsumeQueue>> tables =
                 DefaultMessageStore.this.consumeQueueTable;
 
         for (ConcurrentHashMap<Integer, ConsumeQueue> maps : tables.values()) {
             for (ConsumeQueue logic : maps.values()) {
-                logic.truncateDirtyLogicFiles(phyOffet);
+                logic.truncateDirtyLogicFiles(phyOffset);
             }
         }
     }
@@ -538,7 +538,7 @@ public class DefaultMessageStore implements MessageStore {
                                     // 统计消息数据
                                     if (isInDisk && brokerStatsManager != null) {
                                         brokerStatsManager.incGroupGetFromDiskNums(group, topic, 1);
-                                        brokerStatsManager.indGroupGetFromDiskSize(group, topic,
+                                        brokerStatsManager.incGroupGetFromDiskSize(group, topic,
                                             selectResult.getSize());
                                         brokerStatsManager.incBrokerGetFromDiskNums(1);
                                     }
@@ -1899,7 +1899,7 @@ public class DefaultMessageStore implements MessageStore {
         long memory =
                 (long) (StoreUtil.TotalPhysicalMemorySize * (this.messageStoreConfig
                     .getAccessMessageInMemoryMaxRatio() / 100.0));
-        return (maxOffsetPy - offsetPy) > memory;
+        return maxOffsetPy - offsetPy > memory;
     }
 
 
