@@ -31,7 +31,7 @@ public class HttpTinyClient {
         try {
             conn = (HttpURLConnection) new URL(url).openConnection();
             conn.setRequestMethod("GET");
-            conn.setConnectTimeout(500);
+            conn.setConnectTimeout((int) readTimeoutMs);
             conn.setReadTimeout((int) readTimeoutMs);
             setHeaders(conn, headers, encoding);
 
