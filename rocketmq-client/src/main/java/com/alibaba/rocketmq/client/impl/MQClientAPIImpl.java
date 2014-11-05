@@ -331,7 +331,7 @@ public class MQClientAPIImpl {
      * 是否发送网络包精简的Message
      */
     public static boolean sendSmartMsg = //
-            Boolean.parseBoolean(System.getProperty("com.alibaba.rocketmq.client.sendSmartMsg", "false"));
+            Boolean.parseBoolean(System.getProperty("com.alibaba.rocketmq.client.sendSmartMsg", "true"));
 
 
     /**
