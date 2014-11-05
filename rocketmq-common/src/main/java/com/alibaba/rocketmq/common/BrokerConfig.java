@@ -59,6 +59,7 @@ public class BrokerConfig {
     private int sendMessageThreadPoolNums = 16 + Runtime.getRuntime().availableProcessors() * 4;
     private int pullMessageThreadPoolNums = 16 + Runtime.getRuntime().availableProcessors() * 2;
     private int adminBrokerThreadPoolNums = 16;
+    private int clientManageThreadPoolNums = 16;
 
     private int flushConsumerOffsetInterval = 1000 * 5;
 
@@ -86,16 +87,6 @@ public class BrokerConfig {
 
     // 如果是短轮询，服务器挂起时间
     private long shortPollingTimeMills = 1000;
-
-    public long getShortPollingTimeMills() {
-        return shortPollingTimeMills;
-    }
-
-
-    public void setShortPollingTimeMills(long shortPollingTimeMills) {
-        this.shortPollingTimeMills = shortPollingTimeMills;
-    }
-
 
     // notify consumerId changed 开关
     private boolean notifyConsumerIdsChangedEnable = true;
@@ -360,5 +351,25 @@ public class BrokerConfig {
 
     public void setNotifyConsumerIdsChangedEnable(boolean notifyConsumerIdsChangedEnable) {
         this.notifyConsumerIdsChangedEnable = notifyConsumerIdsChangedEnable;
+    }
+
+
+    public long getShortPollingTimeMills() {
+        return shortPollingTimeMills;
+    }
+
+
+    public void setShortPollingTimeMills(long shortPollingTimeMills) {
+        this.shortPollingTimeMills = shortPollingTimeMills;
+    }
+
+
+    public int getClientManageThreadPoolNums() {
+        return clientManageThreadPoolNums;
+    }
+
+
+    public void setClientManageThreadPoolNums(int clientManageThreadPoolNums) {
+        this.clientManageThreadPoolNums = clientManageThreadPoolNums;
     }
 }

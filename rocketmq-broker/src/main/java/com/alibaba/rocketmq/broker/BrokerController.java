@@ -15,7 +15,27 @@
  */
 package com.alibaba.rocketmq.broker;
 
-import com.alibaba.rocketmq.broker.client.*;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Properties;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.alibaba.rocketmq.broker.client.ClientHousekeepingService;
+import com.alibaba.rocketmq.broker.client.ConsumerIdsChangeListener;
+import com.alibaba.rocketmq.broker.client.ConsumerManager;
+import com.alibaba.rocketmq.broker.client.DefaultConsumerIdsChangeListener;
+import com.alibaba.rocketmq.broker.client.ProducerManager;
 import com.alibaba.rocketmq.broker.client.net.Broker2Client;
 import com.alibaba.rocketmq.broker.client.rebalance.RebalanceLockManager;
 import com.alibaba.rocketmq.broker.filtersrv.FilterServerManager;
@@ -24,11 +44,21 @@ import com.alibaba.rocketmq.broker.mqtrace.ConsumeMessageHook;
 import com.alibaba.rocketmq.broker.mqtrace.SendMessageHook;
 import com.alibaba.rocketmq.broker.offset.ConsumerOffsetManager;
 import com.alibaba.rocketmq.broker.out.BrokerOuterAPI;
-import com.alibaba.rocketmq.broker.processor.*;
+import com.alibaba.rocketmq.broker.processor.AdminBrokerProcessor;
+import com.alibaba.rocketmq.broker.processor.ClientManageProcessor;
+import com.alibaba.rocketmq.broker.processor.EndTransactionProcessor;
+import com.alibaba.rocketmq.broker.processor.PullMessageProcessor;
+import com.alibaba.rocketmq.broker.processor.QueryMessageProcessor;
+import com.alibaba.rocketmq.broker.processor.SendMessageProcessor;
 import com.alibaba.rocketmq.broker.slave.SlaveSynchronize;
 import com.alibaba.rocketmq.broker.subscription.SubscriptionGroupManager;
 import com.alibaba.rocketmq.broker.topic.TopicConfigManager;
-import com.alibaba.rocketmq.common.*;
+import com.alibaba.rocketmq.common.BrokerConfig;
+import com.alibaba.rocketmq.common.DataVersion;
+import com.alibaba.rocketmq.common.MixAll;
+import com.alibaba.rocketmq.common.ThreadFactoryImpl;
+import com.alibaba.rocketmq.common.TopicConfig;
+import com.alibaba.rocketmq.common.UtilAll;
 import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.common.constant.PermName;
 import com.alibaba.rocketmq.common.namesrv.RegisterBrokerResult;
@@ -46,14 +76,6 @@ import com.alibaba.rocketmq.store.config.BrokerRole;
 import com.alibaba.rocketmq.store.config.MessageStoreConfig;
 import com.alibaba.rocketmq.store.stats.BrokerStats;
 import com.alibaba.rocketmq.store.stats.BrokerStatsManager;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Properties;
-import java.util.concurrent.*;
 
 
 /**
@@ -109,6 +131,8 @@ public class BrokerController {
     private ExecutorService pullMessageExecutor;
     // 处理管理Broker线程池
     private ExecutorService adminBrokerExecutor;
+    // 处理管理Client线程池
+    private ExecutorService clientManageExecutor;
     // 是否需要定期更新HA Master地址
     private boolean updateMasterHAServerAddrPeriodically = false;
 
@@ -215,6 +239,10 @@ public class BrokerController {
             this.adminBrokerExecutor =
                     Executors.newFixedThreadPool(this.brokerConfig.getAdminBrokerThreadPoolNums(),
                         new ThreadFactoryImpl("AdminBrokerThread_"));
+
+            this.clientManageExecutor =
+                    Executors.newFixedThreadPool(this.brokerConfig.getClientManageThreadPoolNums(),
+                        new ThreadFactoryImpl("ClientManageThread_"));
 
             this.registerProcessor();
 
@@ -359,13 +387,22 @@ public class BrokerController {
         /**
          * ClientManageProcessor
          */
-        NettyRequestProcessor clientProcessor = new ClientManageProcessor(this);
+        ClientManageProcessor clientProcessor = new ClientManageProcessor(this);
+        clientProcessor.registerConsumeMessageHook(this.consumeMessageHookList);
         this.remotingServer.registerProcessor(RequestCode.HEART_BEAT, clientProcessor,
-            this.adminBrokerExecutor);
+            this.clientManageExecutor);
         this.remotingServer.registerProcessor(RequestCode.UNREGISTER_CLIENT, clientProcessor,
-            this.adminBrokerExecutor);
+            this.clientManageExecutor);
         this.remotingServer.registerProcessor(RequestCode.GET_CONSUMER_LIST_BY_GROUP, clientProcessor,
-            this.adminBrokerExecutor);
+            this.clientManageExecutor);
+
+        /**
+         * Offset存储更新转移到ClientProcessor处理
+         */
+        this.remotingServer.registerProcessor(RequestCode.UPDATE_CONSUMER_OFFSET, clientProcessor,
+            this.clientManageExecutor);
+        this.remotingServer.registerProcessor(RequestCode.QUERY_CONSUMER_OFFSET, clientProcessor,
+            this.clientManageExecutor);
 
         /**
          * EndTransactionProcessor
@@ -377,7 +414,6 @@ public class BrokerController {
          * Default
          */
         AdminBrokerProcessor adminProcessor = new AdminBrokerProcessor(this);
-        adminProcessor.registerConsumeMessageHook(this.consumeMessageHookList);
         this.remotingServer.registerDefaultProcessor(adminProcessor, this.adminBrokerExecutor);
     }
 

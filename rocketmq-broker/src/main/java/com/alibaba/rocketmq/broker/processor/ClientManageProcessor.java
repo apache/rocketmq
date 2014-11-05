@@ -15,15 +15,36 @@
  */
 package com.alibaba.rocketmq.broker.processor;
 
+import io.netty.channel.ChannelHandlerContext;
+
+import java.net.InetSocketAddress;
+import java.net.SocketAddress;
+import java.util.List;
+import java.util.Map;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.alibaba.rocketmq.broker.BrokerController;
 import com.alibaba.rocketmq.broker.client.ClientChannelInfo;
 import com.alibaba.rocketmq.broker.client.ConsumerGroupInfo;
+import com.alibaba.rocketmq.broker.mqtrace.ConsumeMessageContext;
+import com.alibaba.rocketmq.broker.mqtrace.ConsumeMessageHook;
+import com.alibaba.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.common.constant.PermName;
 import com.alibaba.rocketmq.common.protocol.RequestCode;
 import com.alibaba.rocketmq.common.protocol.ResponseCode;
-import com.alibaba.rocketmq.common.protocol.header.*;
+import com.alibaba.rocketmq.common.protocol.header.GetConsumerListByGroupRequestHeader;
+import com.alibaba.rocketmq.common.protocol.header.GetConsumerListByGroupResponseBody;
+import com.alibaba.rocketmq.common.protocol.header.GetConsumerListByGroupResponseHeader;
+import com.alibaba.rocketmq.common.protocol.header.QueryConsumerOffsetRequestHeader;
+import com.alibaba.rocketmq.common.protocol.header.QueryConsumerOffsetResponseHeader;
+import com.alibaba.rocketmq.common.protocol.header.UnregisterClientRequestHeader;
+import com.alibaba.rocketmq.common.protocol.header.UnregisterClientResponseHeader;
+import com.alibaba.rocketmq.common.protocol.header.UpdateConsumerOffsetRequestHeader;
+import com.alibaba.rocketmq.common.protocol.header.UpdateConsumerOffsetResponseHeader;
 import com.alibaba.rocketmq.common.protocol.heartbeat.ConsumerData;
 import com.alibaba.rocketmq.common.protocol.heartbeat.HeartbeatData;
 import com.alibaba.rocketmq.common.protocol.heartbeat.ProducerData;
@@ -33,11 +54,6 @@ import com.alibaba.rocketmq.remoting.common.RemotingHelper;
 import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
 import com.alibaba.rocketmq.remoting.netty.NettyRequestProcessor;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
-import io.netty.channel.ChannelHandlerContext;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.util.List;
 
 
 /**
@@ -67,10 +83,129 @@ public class ClientManageProcessor implements NettyRequestProcessor {
             return this.unregisterClient(ctx, request);
         case RequestCode.GET_CONSUMER_LIST_BY_GROUP:
             return this.getConsumerListByGroup(ctx, request);
+            // 更新Consumer Offset
+        case RequestCode.UPDATE_CONSUMER_OFFSET:
+            return this.updateConsumerOffset(ctx, request);
+        case RequestCode.QUERY_CONSUMER_OFFSET:
+            return this.queryConsumerOffset(ctx, request);
         default:
-            break;
+            break;  
         }
         return null;
+    }
+
+    /**
+     * 消费每条消息会回调
+     */
+    private List<ConsumeMessageHook> consumeMessageHookList;
+
+
+    public boolean hasConsumeMessageHook() {
+        return consumeMessageHookList != null && !this.consumeMessageHookList.isEmpty();
+    }
+
+
+    public void registerConsumeMessageHook(List<ConsumeMessageHook> consumeMessageHookList) {
+        this.consumeMessageHookList = consumeMessageHookList;
+    }
+
+
+    public void executeConsumeMessageHookAfter(final ConsumeMessageContext context) {
+        if (hasConsumeMessageHook()) {
+            for (ConsumeMessageHook hook : this.consumeMessageHookList) {
+                try {
+                    hook.consumeMessageAfter(context);
+                }
+                catch (Throwable e) {
+                }
+            }
+        }
+    }
+
+
+    private RemotingCommand updateConsumerOffset(ChannelHandlerContext ctx, RemotingCommand request)
+            throws RemotingCommandException {
+        final RemotingCommand response =
+                RemotingCommand.createResponseCommand(UpdateConsumerOffsetResponseHeader.class);
+        // final UpdateConsumerOffsetResponseHeader responseHeader =
+        // (UpdateConsumerOffsetResponseHeader) response.readCustomHeader();
+        final UpdateConsumerOffsetRequestHeader requestHeader =
+                (UpdateConsumerOffsetRequestHeader) request
+                    .decodeCommandCustomHeader(UpdateConsumerOffsetRequestHeader.class);
+
+        // 消息轨迹：记录已经消费成功并提交 offset 的消息记录
+        if (this.hasConsumeMessageHook()) {
+            // 执行hook
+            ConsumeMessageContext context = new ConsumeMessageContext();
+            context.setConsumerGroup(requestHeader.getConsumerGroup());
+            context.setTopic(requestHeader.getTopic());
+            context.setClientHost(RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
+            context.setSuccess(true);
+            context.setStatus(ConsumeConcurrentlyStatus.CONSUME_SUCCESS.toString());
+            final SocketAddress storeHost =
+                    new InetSocketAddress(brokerController.getBrokerConfig().getBrokerIP1(), brokerController
+                        .getNettyServerConfig().getListenPort());
+
+            long preOffset =
+                    this.brokerController.getConsumerOffsetManager().queryOffset(
+                        requestHeader.getConsumerGroup(), requestHeader.getTopic(),
+                        requestHeader.getQueueId());
+            Map<String, Long> messageIds =
+                    this.brokerController.getMessageStore().getMessageIds(requestHeader.getTopic(),
+                        requestHeader.getQueueId(), preOffset, requestHeader.getCommitOffset(), storeHost);
+            context.setMessageIds(messageIds);
+            this.executeConsumeMessageHookAfter(context);
+        }
+        this.brokerController.getConsumerOffsetManager().commitOffset(requestHeader.getConsumerGroup(),
+            requestHeader.getTopic(), requestHeader.getQueueId(), requestHeader.getCommitOffset());
+        response.setCode(ResponseCode.SUCCESS);
+        response.setRemark(null);
+        return response;
+    }
+
+
+    private RemotingCommand queryConsumerOffset(ChannelHandlerContext ctx, RemotingCommand request)
+            throws RemotingCommandException {
+        final RemotingCommand response =
+                RemotingCommand.createResponseCommand(QueryConsumerOffsetResponseHeader.class);
+        final QueryConsumerOffsetResponseHeader responseHeader =
+                (QueryConsumerOffsetResponseHeader) response.readCustomHeader();
+        final QueryConsumerOffsetRequestHeader requestHeader =
+                (QueryConsumerOffsetRequestHeader) request
+                    .decodeCommandCustomHeader(QueryConsumerOffsetRequestHeader.class);
+
+        long offset =
+                this.brokerController.getConsumerOffsetManager().queryOffset(
+                    requestHeader.getConsumerGroup(), requestHeader.getTopic(), requestHeader.getQueueId());
+
+        // 订阅组存在
+        if (offset >= 0) {
+            responseHeader.setOffset(offset);
+            response.setCode(ResponseCode.SUCCESS);
+            response.setRemark(null);
+        }
+        // 订阅组不存在
+        else {
+            long minOffset =
+                    this.brokerController.getMessageStore().getMinOffsetInQuque(requestHeader.getTopic(),
+                        requestHeader.getQueueId());
+            // 订阅组不存在情况下，如果这个队列的消息最小Offset是0，则表示这个Topic上线时间不长，服务器堆积的数据也不多，那么这个订阅组就从0开始消费。
+            // 尤其对于Topic队列数动态扩容时，必须要从0开始消费。
+            if (minOffset <= 0
+                    && !this.brokerController.getMessageStore().checkInDiskByConsumeOffset(
+                        requestHeader.getTopic(), requestHeader.getQueueId(), 0)) {
+                responseHeader.setOffset(0L);
+                response.setCode(ResponseCode.SUCCESS);
+                response.setRemark(null);
+            }
+            // 新版本服务器不做消费进度纠正
+            else {
+                response.setCode(ResponseCode.QUERY_NOT_FOUND);
+                response.setRemark("Not found, V3_0_6_SNAPSHOT maybe this group consumer boot first");
+            }
+        }
+
+        return response;
     }
 
 
