@@ -57,4 +57,7 @@ public interface RemotingClient extends RemotingService {
 
     public void registerProcessor(final int requestCode, final NettyRequestProcessor processor,
             final ExecutorService executor);
+
+
+    public boolean isChannelWriteable(final String addr);
 }

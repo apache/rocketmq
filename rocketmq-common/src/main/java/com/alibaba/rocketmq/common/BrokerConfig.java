@@ -84,6 +84,19 @@ public class BrokerConfig {
     // Consumer订阅消息时，Broker是否开启长轮询
     private boolean longPollingEnable = true;
 
+    // 如果是短轮询，服务器挂起时间
+    private long shortPollingTimeMills = 1000;
+
+    public long getShortPollingTimeMills() {
+        return shortPollingTimeMills;
+    }
+
+
+    public void setShortPollingTimeMills(long shortPollingTimeMills) {
+        this.shortPollingTimeMills = shortPollingTimeMills;
+    }
+
+
     // notify consumerId changed 开关
     private boolean notifyConsumerIdsChangedEnable = true;
 

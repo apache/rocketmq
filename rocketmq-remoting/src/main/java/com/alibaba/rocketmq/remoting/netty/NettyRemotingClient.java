@@ -116,6 +116,11 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
         }
 
 
+        public boolean isWriteable() {
+            return this.channelFuture.channel().isWritable();
+        }
+
+
         private Channel getChannel() {
             return this.channelFuture.channel();
         }
@@ -757,5 +762,15 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
     @Override
     public RPCHook getRPCHook() {
         return this.rpcHook;
+    }
+
+
+    @Override
+    public boolean isChannelWriteable(String addr) {
+        ChannelWrapper cw = this.channelTables.get(addr);
+        if (cw != null && cw.isOK()) {
+            return cw.isWriteable();
+        }
+        return true;
     }
 }
