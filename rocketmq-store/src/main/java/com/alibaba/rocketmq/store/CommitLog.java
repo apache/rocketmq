@@ -669,13 +669,15 @@ public class CommitLog {
      * 根据offset获取特定消息的存储时间 如果出错，则返回-1
      */
     public long pickupStoretimestamp(final long offset, final int size) {
-        SelectMapedBufferResult result = this.getMessage(offset, size);
-        if (null != result) {
-            try {
-                return result.getByteBuffer().getLong(MessageDecoder.MessageStoreTimestampPostion);
-            }
-            finally {
-                result.release();
+        if (offset > this.getMinOffset()) {
+            SelectMapedBufferResult result = this.getMessage(offset, size);
+            if (null != result) {
+                try {
+                    return result.getByteBuffer().getLong(MessageDecoder.MessageStoreTimestampPostion);
+                }
+                finally {
+                    result.release();
+                }
             }
         }
 
