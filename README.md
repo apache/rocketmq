@@ -6,14 +6,14 @@ RocketMQ是一款分布式、队列模型的消息中间件，具有以下特点
 * 亿级消息堆积能力
 * 比较友好的分布式特性
 * 同时支持Push与Pull方式消费消息
+* 历经多次天猫双十一海量消息考验
 
 ----------
 
 ### 如何开始？`必读`
-* [下载安装包](https://github.com/alibaba/RocketMQ/releases)
-* [Quick Start](https://github.com/alibaba/RocketMQ/wiki/Quick-Start)
-* [通过Wiki了解更多](https://github.com/alibaba/RocketMQ/wiki)
-* [`在阿里云上使用RocketMQ`](http://onsall.oss-cn-hangzhou.aliyuncs.com/ALIYUN_ONS_USER_GUIDE.pdf)
+* [下载最新版安装包](https://github.com/alibaba/RocketMQ/releases)
+* [向开发者索要最新文档](https://github.com/alibaba/RocketMQ/issues/1)
+* [`在阿里云上使用RocketMQ`](http://onsall.oss-cn-hangzhou.aliyuncs.com/ALIYUN_ONS_USER_GUIDE.pdf)，可以免去繁琐的部署运维、成本。
 
 ----------
 
@@ -37,6 +37,5 @@ RocketMQ是一款分布式、队列模型的消息中间件，具有以下特点
 * 欢迎参与RocketMQ项目，只需在Github上fork、pull request即可。
 * [到新浪微博交流RocketMQ](http://q.weibo.com/1628465)
 * 加入QQ群交流，[5776652](http://url.cn/Knxm0o)
-* [哪些人或组织在使用RocketMQ](https://github.com/alibaba/RocketMQ/issues/368)
 
 ----------
