@@ -1,0 +1,12 @@
+*.iml
+.idea/
+target/
+logs/
+.classpath
+.project
+.settings/
+.amateras
+src/main/resources/hibernate.cfg.xml
+src/main/resources/hibernate.reveng.xml
+/target*
+*.log*
