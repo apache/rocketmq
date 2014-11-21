@@ -18,6 +18,7 @@ public class SendMessageResponseHeader implements CommandCustomHeader {
     private Integer queueId;
     @CFNotNull
     private Long queueOffset;
+    private String transactionId;
 
 
     @Override
@@ -52,5 +53,13 @@ public class SendMessageResponseHeader implements CommandCustomHeader {
 
     public void setQueueOffset(Long queueOffset) {
         this.queueOffset = queueOffset;
+    }
+
+    public String getTransactionId() {
+        return transactionId;
+    }
+
+    public void setTransactionId(String transactionId) {
+        this.transactionId = transactionId;
     }
 }

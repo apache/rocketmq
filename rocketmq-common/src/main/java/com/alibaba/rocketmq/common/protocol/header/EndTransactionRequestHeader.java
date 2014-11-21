@@ -31,6 +31,7 @@ public class EndTransactionRequestHeader implements CommandCustomHeader {
     @CFNotNull
     private String msgId;
 
+    private String transactionId;
 
     @Override
     public void checkFields() throws RemotingCommandException {
@@ -109,6 +110,13 @@ public class EndTransactionRequestHeader implements CommandCustomHeader {
         this.msgId = msgId;
     }
 
+    public String getTransactionId() {
+        return transactionId;
+    }
+
+    public void setTransactionId(String transactionId) {
+        this.transactionId = transactionId;
+    }
 
     @Override
     public String toString() {

@@ -407,4 +407,9 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
     public int localListenPort() {
         return this.port;
     }
+
+    @Override
+    public Pair<NettyRequestProcessor, ExecutorService> getProcessorPair(int requestCode) {
+        return processorTable.get(requestCode);
+    }
 }

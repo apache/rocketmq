@@ -990,8 +990,10 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             final Throwable localException) throws RemotingException, MQBrokerException,
             InterruptedException, UnknownHostException {
         final MessageId id = MessageDecoder.decodeMessageId(sendResult.getMsgId());
+        String transactionId = sendResult.getTransactionId();
         final String addr = RemotingUtil.socketAddress2String(id.getAddress());
         EndTransactionRequestHeader requestHeader = new EndTransactionRequestHeader();
+        requestHeader.setTransactionId(transactionId);
         requestHeader.setCommitLogOffset(id.getOffset());
         switch (localTransactionState) {
         case COMMIT_MESSAGE:

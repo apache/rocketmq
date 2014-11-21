@@ -63,6 +63,15 @@ public class MessageDecoder {
         return UtilAll.bytes2string(input.array());
     }
 
+    public static String createMessageId(SocketAddress socketAddress) {
+        ByteBuffer byteBuffer = ByteBuffer.allocate(MessageDecoder.MSG_ID_LENGTH);
+        InetSocketAddress inetSocketAddress = (InetSocketAddress) socketAddress;
+        byteBuffer.put(inetSocketAddress.getAddress().getAddress());
+        byteBuffer.putInt(inetSocketAddress.getPort());
+        byteBuffer.putLong(0);
+        byteBuffer.flip();
+        return UtilAll.bytes2string(byteBuffer.array());
+    }
 
     public static MessageId decodeMessageId(final String msgId) throws UnknownHostException {
         SocketAddress address;
