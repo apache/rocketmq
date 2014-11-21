@@ -3,16 +3,15 @@
  */
 package com.alibaba.rocketmq.common.namesrv;
 
-import java.io.IOException;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.common.help.FAQUrl;
 import com.alibaba.rocketmq.common.utils.HttpTinyClient;
 import com.alibaba.rocketmq.common.utils.HttpTinyClient.HttpResult;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
 
 
 /**
@@ -74,7 +73,6 @@ public class TopAddressing {
         errorMsg += FAQUrl.suggestTodo(FAQUrl.NAME_SERVER_ADDR_NOT_EXIST_URL);
 
         log.warn(errorMsg);
-        System.out.println(errorMsg);
         return null;
     }
 
