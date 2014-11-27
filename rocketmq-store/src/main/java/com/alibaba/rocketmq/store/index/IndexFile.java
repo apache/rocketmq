@@ -128,6 +128,11 @@ public class IndexFile {
                 }
 
                 long timeDiff = storeTimestamp - this.indexHeader.getBeginTimestamp();
+
+                // 时间差存储单位由毫秒改为秒
+                timeDiff = timeDiff / 1000;
+
+                // 25000天后溢出
                 if (this.indexHeader.getBeginTimestamp() <= 0) {
                     timeDiff = 0;
                 }
@@ -137,9 +142,6 @@ public class IndexFile {
                 else if (timeDiff < 0) {
                     timeDiff = 0;
                 }
-
-                // 时间差存储单位由毫秒改为秒
-                timeDiff = timeDiff / 1000;
 
                 int absIndexPos =
                         IndexHeader.INDEX_HEADER_SIZE + this.hashSlotNum * HASH_SLOT_SIZE
@@ -274,7 +276,8 @@ public class IndexFile {
 
                         int keyHashRead = this.mappedByteBuffer.getInt(absIndexPos);
                         long phyOffsetRead = this.mappedByteBuffer.getLong(absIndexPos + 4);
-                        int timeDiff = this.mappedByteBuffer.getInt(absIndexPos + 4 + 8);
+                        // int转为long，避免下面计算时间差值时溢出
+                        long timeDiff = (long) this.mappedByteBuffer.getInt(absIndexPos + 4 + 8);
                         int prevIndexRead = this.mappedByteBuffer.getInt(absIndexPos + 4 + 8 + 4);
 
                         // 读到了未知数据
@@ -282,8 +285,8 @@ public class IndexFile {
                             break;
                         }
 
-                        // 时间差存储的是秒，再还原为毫秒
-                        timeDiff *= 1000;
+                        // 时间差存储的是秒，再还原为毫秒， long避免溢出
+                        timeDiff *= 1000L;
 
                         long timeRead = this.indexHeader.getBeginTimestamp() + timeDiff;
                         boolean timeMatched = (timeRead >= begin) && (timeRead <= end);
