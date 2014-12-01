@@ -173,26 +173,23 @@ public class ConsumerProgressSubCommand implements SubCommand {
                             }
 
                             groupConsumeInfoList.add(groupConsumeInfo);
+
+                            GroupConsumeInfo info = groupConsumeInfo;
+                            System.out.printf("%-32s  %-6d  %-24s %-5s  %-14s  %-7d  %d\n",//
+                                UtilAll.frontStringAtLeast(info.getGroup(), 32),//
+                                info.getCount(),//
+                                info.getCount() > 0 ? info.versionDesc() : "OFFLINE",//
+                                info.consumeTypeDesc(),//
+                                info.messageModelDesc(),//
+                                info.getConsumeTps(),//
+                                info.getDiffTotal()//
+                                );
                         }
                         catch (Exception e) {
                             log.warn("examineConsumeStats or examineConsumerConnectionInfo exception, "
                                     + consumerGroup, e);
                         }
                     }
-                }
-
-                Collections.sort(groupConsumeInfoList);
-
-                for (GroupConsumeInfo info : groupConsumeInfoList) {
-                    System.out.printf("%-32s  %-6d  %-24s %-5s  %-14s  %-7d  %d\n",//
-                        UtilAll.frontStringAtLeast(info.getGroup(), 32),//
-                        info.getCount(),//
-                        info.versionDesc(),//
-                        info.consumeTypeDesc(),//
-                        info.messageModelDesc(),//
-                        info.getConsumeTps(),//
-                        info.getDiffTotal()//
-                        );
                 }
             }
         }
