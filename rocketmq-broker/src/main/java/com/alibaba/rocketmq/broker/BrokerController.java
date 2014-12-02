@@ -46,10 +46,12 @@ import com.alibaba.rocketmq.store.config.BrokerRole;
 import com.alibaba.rocketmq.store.config.MessageStoreConfig;
 import com.alibaba.rocketmq.store.stats.BrokerStats;
 import com.alibaba.rocketmq.store.stats.BrokerStatsManager;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
@@ -123,6 +125,7 @@ public class BrokerController {
     private final FilterServerManager filterServerManager;
 
     private final BrokerStatsManager brokerStatsManager;
+	private InetSocketAddress storeHost;
 
 
     public BrokerController(//
@@ -162,6 +165,8 @@ public class BrokerController {
                 new LinkedBlockingQueue<Runnable>(this.brokerConfig.getPullThreadPoolQueueCapacity());
 
         this.brokerStatsManager = new BrokerStatsManager(this.brokerConfig.getBrokerClusterName());
+        this.setStoreHost(new InetSocketAddress(this.getBrokerConfig().getBrokerIP1(), this
+		    .getNettyServerConfig().getListenPort()));
     }
 
 
@@ -798,4 +803,14 @@ public class BrokerController {
     public void registerClientRPCHook(RPCHook rpcHook) {
         this.getBrokerOuterAPI().registerRPCHook(rpcHook);
     }
+
+
+	public InetSocketAddress getStoreHost() {
+		return storeHost;
+	}
+
+
+	public void setStoreHost(InetSocketAddress storeHost) {
+		this.storeHost = storeHost;
+	}
 }

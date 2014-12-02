@@ -1,0 +1,324 @@
+/**
+ * Copyright (C) 2010-2013 Alibaba Group Holding Limited
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.alibaba.rocketmq.broker.processor;
+
+import io.netty.channel.ChannelHandlerContext;
+
+import java.net.InetSocketAddress;
+import java.net.SocketAddress;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.alibaba.rocketmq.broker.BrokerController;
+import com.alibaba.rocketmq.broker.mqtrace.ConsumeMessageContext;
+import com.alibaba.rocketmq.broker.mqtrace.ConsumeMessageHook;
+import com.alibaba.rocketmq.broker.mqtrace.SendMessageContext;
+import com.alibaba.rocketmq.broker.mqtrace.SendMessageHook;
+import com.alibaba.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
+import com.alibaba.rocketmq.common.MixAll;
+import com.alibaba.rocketmq.common.TopicConfig;
+import com.alibaba.rocketmq.common.TopicFilterType;
+import com.alibaba.rocketmq.common.UtilAll;
+import com.alibaba.rocketmq.common.constant.LoggerName;
+import com.alibaba.rocketmq.common.constant.PermName;
+import com.alibaba.rocketmq.common.help.FAQUrl;
+import com.alibaba.rocketmq.common.message.MessageAccessor;
+import com.alibaba.rocketmq.common.message.MessageConst;
+import com.alibaba.rocketmq.common.message.MessageDecoder;
+import com.alibaba.rocketmq.common.message.MessageExt;
+import com.alibaba.rocketmq.common.protocol.RequestCode;
+import com.alibaba.rocketmq.common.protocol.ResponseCode;
+import com.alibaba.rocketmq.common.protocol.header.ConsumerSendMsgBackRequestHeader;
+import com.alibaba.rocketmq.common.protocol.header.SendMessageRequestHeader;
+import com.alibaba.rocketmq.common.protocol.header.SendMessageRequestHeaderV2;
+import com.alibaba.rocketmq.common.protocol.header.SendMessageResponseHeader;
+import com.alibaba.rocketmq.common.subscription.SubscriptionGroupConfig;
+import com.alibaba.rocketmq.common.sysflag.MessageSysFlag;
+import com.alibaba.rocketmq.common.sysflag.TopicSysFlag;
+import com.alibaba.rocketmq.remoting.common.RemotingHelper;
+import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
+import com.alibaba.rocketmq.remoting.netty.NettyRequestProcessor;
+import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
+import com.alibaba.rocketmq.store.MessageExtBrokerInner;
+import com.alibaba.rocketmq.store.PutMessageResult;
+import com.alibaba.rocketmq.store.config.StorePathConfigHelper;
+
+
+/**
+ * 处理客户端发送消息的请求
+ * 
+ * @author shijia.wxr<vintage.wang@gmail.com>
+ * @since 2013-7-26
+ */
+public abstract class AbstractSendMessageProcessor implements NettyRequestProcessor {
+    protected static final Logger log = LoggerFactory.getLogger(LoggerName.BrokerLoggerName);
+
+    protected final static int DLQ_NUMS_PER_GROUP = 1;
+    protected final BrokerController brokerController;
+    protected final Random random = new Random(System.currentTimeMillis());
+    protected final SocketAddress storeHost;
+
+
+    public AbstractSendMessageProcessor(final BrokerController brokerController) {
+        this.brokerController = brokerController;
+        this.storeHost =
+                new InetSocketAddress(brokerController.getBrokerConfig().getBrokerIP1(), brokerController
+                    .getNettyServerConfig().getListenPort());
+    }
+
+
+   
+
+
+	protected SendMessageContext exeBeforeHook(ChannelHandlerContext ctx,
+			RemotingCommand request, SendMessageContext mqtraceContext,
+			SendMessageRequestHeader requestHeader) {
+		if (this.hasSendMessageHook()) {
+		    mqtraceContext = new SendMessageContext();
+		    mqtraceContext.setProducerGroup(requestHeader.getProducerGroup());
+		    mqtraceContext.setTopic(requestHeader.getTopic());
+		    mqtraceContext.setMsgProps(requestHeader.getProperties());
+		    mqtraceContext.setBornHost(RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
+		    mqtraceContext.setBrokerAddr(this.brokerController.getBrokerAddr());
+		    this.executeSendMessageHookBefore(ctx, request, mqtraceContext);
+		}
+		return mqtraceContext;
+	}
+    protected SendMessageRequestHeader parseRequestHeader(RemotingCommand request) throws RemotingCommandException {
+
+        SendMessageRequestHeaderV2 requestHeaderV2 = null;
+        SendMessageRequestHeader requestHeader = null;
+        switch (request.getCode()) {
+        case RequestCode.SEND_MESSAGE_V2:
+            requestHeaderV2 =
+                    (SendMessageRequestHeaderV2) request
+                        .decodeCommandCustomHeader(SendMessageRequestHeaderV2.class);
+        case RequestCode.SEND_MESSAGE:
+            if (null == requestHeaderV2) {
+                requestHeader =
+                        (SendMessageRequestHeader) request
+                            .decodeCommandCustomHeader(SendMessageRequestHeader.class);
+            }
+            else {
+                requestHeader = SendMessageRequestHeaderV2.createSendMessageRequestHeaderV1(requestHeaderV2);
+            }
+        default:
+            break;
+        }
+        return requestHeader;
+	}
+
+    protected MessageExtBrokerInner buildInnerMsg(
+			final ChannelHandlerContext ctx,
+			final SendMessageRequestHeader requestHeader, final byte[] body,
+			TopicConfig topicConfig) {
+        int queueIdInt=requestHeader.getQueueId();
+		// 随机指定一个队列
+        if (queueIdInt < 0) {
+            queueIdInt = Math.abs(this.random.nextInt() % 99999999) % topicConfig.getWriteQueueNums();
+        }
+		int sysFlag = requestHeader.getSysFlag();
+		
+        // 多标签过滤需要置位
+        if (TopicFilterType.MULTI_TAG == topicConfig.getTopicFilterType()) {
+            sysFlag |= MessageSysFlag.MultiTagsFlag;
+        }
+
+        MessageExtBrokerInner msgInner = new MessageExtBrokerInner();
+        msgInner.setTopic(requestHeader.getTopic());
+        msgInner.setBody(body);
+        msgInner.setFlag(requestHeader.getFlag());
+        MessageAccessor.setProperties(msgInner,
+            MessageDecoder.string2messageProperties(requestHeader.getProperties()));
+        msgInner.setPropertiesString(requestHeader.getProperties());
+        msgInner.setTagsCode(MessageExtBrokerInner.tagsString2tagsCode(topicConfig.getTopicFilterType(),
+            msgInner.getTags()));
+
+        msgInner.setQueueId(queueIdInt);
+        msgInner.setSysFlag(sysFlag);
+        msgInner.setBornTimestamp(requestHeader.getBornTimestamp());
+        msgInner.setBornHost(ctx.channel().remoteAddress());
+        msgInner.setStoreHost(this.getStoreHost());
+        msgInner.setReconsumeTimes(requestHeader.getReconsumeTimes() == null ? 0 : requestHeader
+            .getReconsumeTimes());
+		return msgInner;
+	}
+
+
+	protected RemotingCommand msgCheck(final ChannelHandlerContext ctx,final SendMessageRequestHeader requestHeader,
+			final RemotingCommand response) {
+		// 检查Broker权限, 顺序消息禁写；非顺序消息通过 nameserver 通知客户端剔除禁写分区
+        if (!PermName.isWriteable(this.brokerController.getBrokerConfig().getBrokerPermission())
+                && this.brokerController.getTopicConfigManager().isOrderTopic(requestHeader.getTopic())) {
+            response.setCode(ResponseCode.NO_PERMISSION);
+            response.setRemark("the broker[" + this.brokerController.getBrokerConfig().getBrokerIP1()
+                    + "] sending message is forbidden");
+            return response;
+        }
+        // Topic名字是否与保留字段冲突
+        if (!this.brokerController.getTopicConfigManager().isTopicCanSendMessage(requestHeader.getTopic())) {
+            String errorMsg =
+                    "the topic[" + requestHeader.getTopic() + "] is conflict with system reserved words.";
+            log.warn(errorMsg);
+            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setRemark(errorMsg);
+            return response;
+        }
+
+        // 检查topic是否存在
+        TopicConfig topicConfig =
+                this.brokerController.getTopicConfigManager().selectTopicConfig(requestHeader.getTopic());
+        if (null == topicConfig) {
+            // 如果是单元化模式，则对 topic 进行设置
+            int topicSysFlag = 0;
+            if (requestHeader.isUnitMode()) {
+                if (requestHeader.getTopic().startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
+                    topicSysFlag = TopicSysFlag.buildSysFlag(false, true);
+                }
+                else {
+                    topicSysFlag = TopicSysFlag.buildSysFlag(true, false);
+                }
+            }
+
+            log.warn("the topic " + requestHeader.getTopic() + " not exist, producer: "
+                    + ctx.channel().remoteAddress());
+            topicConfig = this.brokerController.getTopicConfigManager().createTopicInSendMessageMethod(//
+                requestHeader.getTopic(), //
+                requestHeader.getDefaultTopic(), //
+                RemotingHelper.parseChannelRemoteAddr(ctx.channel()), //
+                requestHeader.getDefaultTopicQueueNums(), topicSysFlag);
+
+            // 尝试看下是否是失败消息发回
+            if (null == topicConfig) {
+                if (requestHeader.getTopic().startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
+                    topicConfig =
+                            this.brokerController.getTopicConfigManager().createTopicInSendMessageBackMethod(
+                                requestHeader.getTopic(), 1, PermName.PERM_WRITE | PermName.PERM_READ,
+                                topicSysFlag);
+                }
+            }
+
+            if (null == topicConfig) {
+                response.setCode(ResponseCode.TOPIC_NOT_EXIST);
+                response.setRemark("topic[" + requestHeader.getTopic() + "] not exist, apply first please!"
+                        + FAQUrl.suggestTodo(FAQUrl.APPLY_TOPIC_URL));
+                return response;
+            }
+        }
+
+        /**
+         * Broker本身不做Topic的权限验证，由Name Server负责通知Client处理
+         */
+        // // 检查topic权限
+        // if (!PermName.isWriteable(topicConfig.getPerm())) {
+        // response.setCode(ResponseCode.NO_PERMISSION);
+        // response.setRemark("the topic[" + requestHeader.getOriginTopic() +
+        // "] sending message is forbidden");
+        // return response;
+        // }
+
+        // 检查队列有效性
+        int queueIdInt = requestHeader.getQueueId();
+        int idValid = Math.max(topicConfig.getWriteQueueNums(), topicConfig.getReadQueueNums());
+        if (queueIdInt >= idValid) {
+            String errorInfo = String.format("request queueId[%d] is illagal, %s Producer: %s",//
+                queueIdInt,//
+                topicConfig.toString(),//
+                RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
+
+            log.warn(errorInfo);
+            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setRemark(errorInfo);
+
+            return response;
+        }
+        return response;
+	}
+
+
+    public SocketAddress getStoreHost() {
+        return storeHost;
+    }
+
+    /**
+     * 发送每条消息会回调
+     */
+    private List<SendMessageHook> sendMessageHookList;
+
+
+    public boolean hasSendMessageHook() {
+        return sendMessageHookList != null && !this.sendMessageHookList.isEmpty();
+    }
+
+
+    public void registerSendMessageHook(List<SendMessageHook> sendMessageHookList) {
+        this.sendMessageHookList = sendMessageHookList;
+    }
+
+
+    public void executeSendMessageHookBefore(final ChannelHandlerContext ctx, final RemotingCommand request,
+            SendMessageContext context) {
+        if (hasSendMessageHook()) {
+            for (SendMessageHook hook : this.sendMessageHookList) {
+                try {
+                    final SendMessageRequestHeader requestHeader =
+                            (SendMessageRequestHeader) request
+                                .decodeCommandCustomHeader(SendMessageRequestHeader.class);
+                    context.setProducerGroup(requestHeader.getProducerGroup());
+                    context.setTopic(requestHeader.getTopic());
+                    context.setBodyLength(request.getBody().length);
+                    context.setMsgProps(requestHeader.getProperties());
+                    context.setBornHost(RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
+                    context.setBrokerAddr(this.brokerController.getBrokerAddr());
+                    context.setQueueId(requestHeader.getQueueId());
+                    hook.sendMessageBefore(context);
+                    requestHeader.setProperties(context.getMsgProps());
+                }
+                catch (Throwable e) {
+                }
+            }
+        }
+    }
+
+
+    public void executeSendMessageHookAfter(final RemotingCommand response, final SendMessageContext context) {
+        if (hasSendMessageHook()) {
+            for (SendMessageHook hook : this.sendMessageHookList) {
+                try {
+                    if (response != null) {
+                        final SendMessageResponseHeader responseHeader =
+                                (SendMessageResponseHeader) response.readCustomHeader();
+                        context.setMsgId(responseHeader.getMsgId());
+                        context.setQueueId(responseHeader.getQueueId());
+                        context.setQueueOffset(responseHeader.getQueueOffset());
+                        context.setCode(response.getCode());
+                        context.setErrorMsg(response.getRemark());
+                    }
+                    hook.sendMessageAfter(context);
+                }
+                catch (Throwable e) {
+                }
+            }
+        }
+    }
+
+   
+}
