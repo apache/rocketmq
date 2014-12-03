@@ -132,9 +132,6 @@ public class ConsumerProgressSubCommand implements SubCommand {
                     "#TPS",//
                     "#Diff Total"//
                 );
-
-                List<GroupConsumeInfo> groupConsumeInfoList = new LinkedList<GroupConsumeInfo>();
-
                 TopicList topicList = defaultMQAdminExt.fetchAllTopicList();
                 for (String topic : topicList.getTopicList()) {
                     if (topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
@@ -172,27 +169,21 @@ public class ConsumerProgressSubCommand implements SubCommand {
                                 groupConsumeInfo.setVersion(cc.computeMinVersion());
                             }
 
-                            groupConsumeInfoList.add(groupConsumeInfo);
+                            System.out.printf("%-32s  %-6d  %-24s %-5s  %-14s  %-7d  %d\n",//
+                                UtilAll.frontStringAtLeast(groupConsumeInfo.getGroup(), 32),//
+                                groupConsumeInfo.getCount(),//
+                                groupConsumeInfo.getCount() > 0 ? groupConsumeInfo.versionDesc() : "OFFLINE",//
+                                groupConsumeInfo.consumeTypeDesc(),//
+                                groupConsumeInfo.messageModelDesc(),//
+                                groupConsumeInfo.getConsumeTps(),//
+                                groupConsumeInfo.getDiffTotal()//
+                                );
                         }
                         catch (Exception e) {
                             log.warn("examineConsumeStats or examineConsumerConnectionInfo exception, "
                                     + consumerGroup, e);
                         }
                     }
-                }
-
-                Collections.sort(groupConsumeInfoList);
-
-                for (GroupConsumeInfo info : groupConsumeInfoList) {
-                    System.out.printf("%-32s  %-6d  %-24s %-5s  %-14s  %-7d  %d\n",//
-                        UtilAll.frontStringAtLeast(info.getGroup(), 32),//
-                        info.getCount(),//
-                        info.versionDesc(),//
-                        info.consumeTypeDesc(),//
-                        info.messageModelDesc(),//
-                        info.getConsumeTps(),//
-                        info.getDiffTotal()//
-                        );
                 }
             }
         }
