@@ -64,12 +64,12 @@ public class MessageDecoder {
         return UtilAll.bytes2string(input.array());
     }
 
-    public static String createMessageId(SocketAddress socketAddress) {
+    public static String createMessageId(SocketAddress socketAddress,long transactionIdhashCode) {
         ByteBuffer byteBuffer = ByteBuffer.allocate(MessageDecoder.MSG_ID_LENGTH);
         InetSocketAddress inetSocketAddress = (InetSocketAddress) socketAddress;
         byteBuffer.put(inetSocketAddress.getAddress().getAddress());
         byteBuffer.putInt(inetSocketAddress.getPort());
-        byteBuffer.putLong(0);
+        byteBuffer.putLong(transactionIdhashCode);
         byteBuffer.flip();
         return UtilAll.bytes2string(byteBuffer.array());
     }
