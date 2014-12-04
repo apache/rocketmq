@@ -27,7 +27,7 @@ public class StatsItemSet {
     }
 
 
-    private StatsItem getAndCreateStatsItem(final String statsKey) {
+    public StatsItem getAndCreateStatsItem(final String statsKey) {
         StatsItem statsItem = this.statsItemTable.get(statsKey);
         if (null == statsItem) {
             statsItem = new StatsItem(this.statsName, statsKey, this.scheduledExecutorService, this.log);

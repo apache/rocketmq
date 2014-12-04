@@ -1,14 +1,16 @@
 package com.alibaba.rocketmq.store.stats;
 
-import com.alibaba.rocketmq.common.ThreadFactoryImpl;
-import com.alibaba.rocketmq.common.constant.LoggerName;
-import com.alibaba.rocketmq.common.stats.StatsItem;
-import com.alibaba.rocketmq.common.stats.StatsItemSet;
+import java.util.HashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
+import com.alibaba.rocketmq.common.ThreadFactoryImpl;
+import com.alibaba.rocketmq.common.constant.LoggerName;
+import com.alibaba.rocketmq.common.stats.MomentStatsItemSet;
+import com.alibaba.rocketmq.common.stats.StatsItemSet;
 
 
 public class BrokerStatsManager {
@@ -20,70 +22,42 @@ public class BrokerStatsManager {
     public static final String TOPIC_PUT_SIZE = "TOPIC_PUT_SIZE";
     public static final String GROUP_GET_NUMS = "GROUP_GET_NUMS";
     public static final String GROUP_GET_SIZE = "GROUP_GET_SIZE";
-    public static final String GROUP_GET_FROM_DISK_NUMS = "GROUP_GET_FROM_DISK_NUMS";
-    public static final String GROUP_GET_FROM_DISK_SIZE = "GROUP_GET_FROM_DISK_SIZE";
     public static final String SNDBCK_PUT_NUMS = "SNDBCK_PUT_NUMS";
     public static final String BROKER_PUT_NUMS = "BROKER_PUT_NUMS";
     public static final String BROKER_GET_NUMS = "BROKER_GET_NUMS";
-    public static final String BROKER_GET_FROM_DISK_NUMS = "BROKER_GET_FROM_DISK_NUMS";
 
-    // Topic Put Nums
-    private final StatsItemSet topicPutNums = new StatsItemSet(TOPIC_PUT_NUMS, this.scheduledExecutorService,
-        log);
+    private final HashMap<String, StatsItemSet> statsTable = new HashMap<String, StatsItemSet>();
+    private final String clusterName;
 
-    // Topic Put Size
-    private final StatsItemSet topicPutSize = new StatsItemSet(TOPIC_PUT_SIZE, this.scheduledExecutorService,
-        log);
-
-    // Topic@ConsumerGroup Get Nums
-    private final StatsItemSet groupGetNums = new StatsItemSet(GROUP_GET_NUMS, this.scheduledExecutorService,
-        log);
-
-    // Topic@ConsumerGroup Get Size
-    private final StatsItemSet groupGetSize = new StatsItemSet(GROUP_GET_SIZE, this.scheduledExecutorService,
-        log);
-
-    // Topic@ConsumerGroup get in disk nums
-    private final StatsItemSet groupGetFromDiskNums = new StatsItemSet(GROUP_GET_FROM_DISK_NUMS,
-        this.scheduledExecutorService, log);
-
-    // Topic@ConsumerGroup group get in disk size
-    private final StatsItemSet groupGetFromDiskSize = new StatsItemSet(GROUP_GET_FROM_DISK_SIZE,
-        this.scheduledExecutorService, log);
-
-    // Broker Put Nums
-    private final StatsItem brokerPutNums;
-
-    // Broker Get Nums
-    private final StatsItem brokerGetNums;
-
-    // Broker Get From Disk Nums
-    private final StatsItem brokerGetFromDiskNums;
-
-    // Topic@ConsumerGroup sendback Nums
-    private final StatsItemSet sndbckPutNums = new StatsItemSet(SNDBCK_PUT_NUMS,
-        this.scheduledExecutorService, log);
+    /**
+     * 读磁盘落后统计
+     */
+    public static final String GROUP_GET_FALL = "GROUP_GET_FALL";
+    private final MomentStatsItemSet momentStatsItemSet = new MomentStatsItemSet(GROUP_GET_FALL,
+        scheduledExecutorService, log);
 
 
     public BrokerStatsManager(String clusterName) {
-        // Broker Put Nums
-        this.brokerPutNums = new StatsItem(BROKER_PUT_NUMS, //
-            clusterName, this.scheduledExecutorService, log);
+        this.clusterName = clusterName;
 
-        // Broker Get Nums
-        this.brokerGetNums = new StatsItem(BROKER_GET_NUMS, //
-            clusterName, this.scheduledExecutorService, log);
-
-        // Broker Get From Disk Nums
-        this.brokerGetFromDiskNums = new StatsItem(BROKER_GET_FROM_DISK_NUMS, //
-            clusterName, this.scheduledExecutorService, log);
+        this.statsTable.put(TOPIC_PUT_NUMS, new StatsItemSet(TOPIC_PUT_NUMS, this.scheduledExecutorService,
+            log));
+        this.statsTable.put(TOPIC_PUT_SIZE, new StatsItemSet(TOPIC_PUT_SIZE, this.scheduledExecutorService,
+            log));
+        this.statsTable.put(GROUP_GET_NUMS, new StatsItemSet(GROUP_GET_NUMS, this.scheduledExecutorService,
+            log));
+        this.statsTable.put(GROUP_GET_SIZE, new StatsItemSet(GROUP_GET_SIZE, this.scheduledExecutorService,
+            log));
+        this.statsTable.put(SNDBCK_PUT_NUMS, new StatsItemSet(SNDBCK_PUT_NUMS, this.scheduledExecutorService,
+            log));
+        this.statsTable.put(BROKER_PUT_NUMS, new StatsItemSet(BROKER_PUT_NUMS, this.scheduledExecutorService,
+            log));
+        this.statsTable.put(BROKER_GET_NUMS, new StatsItemSet(BROKER_GET_NUMS, this.scheduledExecutorService,
+            log));
     }
 
 
     public void start() {
-        this.brokerPutNums.init();
-        this.brokerGetNums.init();
-        this.brokerGetFromDiskNums.init();
     }
 
 
@@ -93,56 +67,50 @@ public class BrokerStatsManager {
 
 
     public void incTopicPutNums(final String topic) {
-        this.topicPutNums.addValue(topic, 1, 1);
+        this.statsTable.get(TOPIC_PUT_NUMS).addValue(topic, 1, 1);
     }
 
 
     public void incTopicPutSize(final String topic, final int size) {
-        this.topicPutSize.addValue(topic, size, 1);
+        this.statsTable.get(TOPIC_PUT_SIZE).addValue(topic, size, 1);
     }
 
 
     public void incGroupGetNums(final String group, final String topic, final int incValue) {
-        this.groupGetNums.addValue(topic + "@" + group, incValue, 1);
+        this.statsTable.get(GROUP_GET_NUMS).addValue(topic + "@" + group, incValue, 1);
     }
 
 
     public void incGroupGetSize(final String group, final String topic, final int incValue) {
-        this.groupGetSize.addValue(topic + "@" + group, incValue, 1);
+        this.statsTable.get(GROUP_GET_SIZE).addValue(topic + "@" + group, incValue, 1);
     }
 
 
     public void incBrokerPutNums() {
-        this.brokerPutNums.getValue().incrementAndGet();
+        this.statsTable.get(BROKER_PUT_NUMS).getAndCreateStatsItem(this.clusterName).getValue()
+            .incrementAndGet();
     }
 
 
     public void incBrokerGetNums(final int incValue) {
-        this.brokerGetNums.getValue().addAndGet(incValue);
+        this.statsTable.get(BROKER_PUT_NUMS).getAndCreateStatsItem(this.clusterName).getValue()
+            .addAndGet(incValue);
     }
 
 
     public void incSendBackNums(final String group, final String topic) {
-        this.sndbckPutNums.addValue(topic + "@" + group, 1, 1);
+        this.statsTable.get(SNDBCK_PUT_NUMS).addValue(topic + "@" + group, 1, 1);
     }
 
 
     public double tpsGroupGetNums(final String group, final String topic) {
-        return this.groupGetNums.getStatsDataInMinute(topic + "@" + group).getTps();
+        return this.statsTable.get(GROUP_GET_NUMS).getStatsDataInMinute(topic + "@" + group).getTps();
     }
 
 
-    public void incBrokerGetFromDiskNums(final int incValue) {
-        this.brokerGetFromDiskNums.getValue().addAndGet(incValue);
-    }
-
-
-    public void incGroupGetFromDiskNums(final String group, final String topic, final int incValue) {
-        this.groupGetFromDiskNums.addValue(topic + "@" + group, incValue, 1);
-    }
-
-
-    public void incGroupGetFromDiskSize(final String group, final String topic, final int incValue) {
-        this.groupGetFromDiskSize.addValue(topic + "@" + group, incValue, 1);
+    public void recordDiskFallBehind(final String group, final String topic, final int queueId,
+            final long fallBehind) {
+        final String statsKey = String.format("%d@%s@%s", queueId, topic, group);
+        this.momentStatsItemSet.getAndCreateStatsItem(statsKey).getValue().set(fallBehind);
     }
 }
