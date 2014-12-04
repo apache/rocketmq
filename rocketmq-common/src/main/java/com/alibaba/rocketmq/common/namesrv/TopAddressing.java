@@ -48,13 +48,13 @@ public class TopAddressing {
 
 
     public final String fetchNSAddr() {
-        return fetchNSAddr(true);
+        return fetchNSAddr(true, 3000);
     }
 
 
-    public final String fetchNSAddr(boolean verbose) {
+    public final String fetchNSAddr(boolean verbose, long timeoutMills) {
         try {
-            HttpResult result = HttpTinyClient.httpGet(this.wsAddr, null, null, "UTF-8", 3000);
+            HttpResult result = HttpTinyClient.httpGet(this.wsAddr, null, null, "UTF-8", timeoutMills);
             if (200 == result.code) {
                 String responseStr = result.content;
                 if (responseStr != null) {
