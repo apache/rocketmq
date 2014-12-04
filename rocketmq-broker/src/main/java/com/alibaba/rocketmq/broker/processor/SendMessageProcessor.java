@@ -68,26 +68,26 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
     }
 
 
-    @Override
-    public RemotingCommand processRequest(ChannelHandlerContext ctx, RemotingCommand request)
-            throws RemotingCommandException {
-        SendMessageContext mqtraceContext = null;
+	@Override
+	public RemotingCommand processRequest(ChannelHandlerContext ctx, RemotingCommand request) throws RemotingCommandException {
+		SendMessageContext mqtraceContext = null;
 		switch (request.getCode()) {
-        case RequestCode.CONSUMER_SEND_MSG_BACK:
-            return this.consumerSendMsgBack(ctx, request);
-        default:
-        	SendMessageRequestHeader requestHeader=parseRequestHeader(request);
-            // 消息轨迹：记录到达 broker 的消息
-			exeBeforeHook(ctx, request, mqtraceContext, requestHeader);
-
-            final RemotingCommand response = this.sendMessage(ctx, request, mqtraceContext, requestHeader);
-            // 消息轨迹：记录发送成功的消息
-            this.exeAfterHook(response, mqtraceContext);
-            return response;
-            
-        }
-    }
-
+		case RequestCode.CONSUMER_SEND_MSG_BACK:
+			return this.consumerSendMsgBack(ctx, request);
+		default:
+			SendMessageRequestHeader requestHeader = parseRequestHeader(request);
+			if (requestHeader==null) {
+				return null;
+			}
+			// 消息轨迹：记录到达 broker 的消息
+            mqtraceContext = buildMsgContext(ctx, requestHeader);
+            this.executeSendMessageHookBefore(ctx, request, mqtraceContext);
+			final RemotingCommand response = this.sendMessage(ctx, request, mqtraceContext, requestHeader);
+			// 消息轨迹：记录发送成功的消息
+			this.executeSendMessageHookAfter(response, mqtraceContext);
+			return response;
+		}
+	}
 
     private RemotingCommand consumerSendMsgBack(final ChannelHandlerContext ctx, final RemotingCommand request)
             throws RemotingCommandException {
@@ -414,17 +414,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
                 responseHeader.setQueueOffset(putMessageResult.getAppendMessageResult().getLogicsOffset());
 
                 // 直接返回
-                if (!request.isOnewayRPC()) {
-                    try {
-                        ctx.writeAndFlush(response);
-                    }
-                    catch (Throwable e) {
-                        log.error("SendMessageProcessor process request over, but response failed", e);
-                        log.error(request.toString());
-                        log.error(response.toString());
-                    }
-                }
-
+                doResponse(ctx, request, response);
                 if (this.brokerController.getBrokerConfig().isLongPollingEnable()) {
                     this.brokerController.getPullRequestHoldService().notifyMessageArriving(
                         requestHeader.getTopic(), queueIdInt,
@@ -469,51 +459,9 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
     }
 
 
-    public void executeSendMessageHookBefore(final ChannelHandlerContext ctx, final RemotingCommand request,
-            SendMessageContext context) {
-        if (hasSendMessageHook()) {
-            for (SendMessageHook hook : this.sendMessageHookList) {
-                try {
-                    final SendMessageRequestHeader requestHeader =
-                            (SendMessageRequestHeader) request
-                                .decodeCommandCustomHeader(SendMessageRequestHeader.class);
-                    context.setProducerGroup(requestHeader.getProducerGroup());
-                    context.setTopic(requestHeader.getTopic());
-                    context.setBodyLength(request.getBody().length);
-                    context.setMsgProps(requestHeader.getProperties());
-                    context.setBornHost(RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
-                    context.setBrokerAddr(this.brokerController.getBrokerAddr());
-                    context.setQueueId(requestHeader.getQueueId());
-                    hook.sendMessageBefore(context);
-                    requestHeader.setProperties(context.getMsgProps());
-                }
-                catch (Throwable e) {
-                }
-            }
-        }
-    }
 
 
-    public void exeAfterHook(final RemotingCommand response, final SendMessageContext context) {
-        if (hasSendMessageHook()) {
-            for (SendMessageHook hook : this.sendMessageHookList) {
-                try {
-                    if (response != null) {
-                        final SendMessageResponseHeader responseHeader =
-                                (SendMessageResponseHeader) response.readCustomHeader();
-                        context.setMsgId(responseHeader.getMsgId());
-                        context.setQueueId(responseHeader.getQueueId());
-                        context.setQueueOffset(responseHeader.getQueueOffset());
-                        context.setCode(response.getCode());
-                        context.setErrorMsg(response.getRemark());
-                    }
-                    hook.sendMessageAfter(context);
-                }
-                catch (Throwable e) {
-                }
-            }
-        }
-    }
+
 
     /**
      * 消费每条消息会回调
