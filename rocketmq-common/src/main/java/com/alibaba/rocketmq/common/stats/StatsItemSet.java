@@ -77,6 +77,11 @@ public class StatsItemSet {
     }
 
 
+    public StatsItem getStatsItem(final String statsKey) {
+        return this.statsItemTable.get(statsKey);
+    }
+
+
     public void init() {
         // 每隔10s执行一次
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {

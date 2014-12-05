@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory;
 import com.alibaba.rocketmq.common.ThreadFactoryImpl;
 import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.common.stats.MomentStatsItemSet;
+import com.alibaba.rocketmq.common.stats.StatsItem;
 import com.alibaba.rocketmq.common.stats.StatsItemSet;
 
 
@@ -63,6 +64,17 @@ public class BrokerStatsManager {
 
     public void shutdown() {
         this.scheduledExecutorService.shutdown();
+    }
+
+
+    public StatsItem getStatsItem(final String statsName, final String statsKey) {
+        try {
+            return this.statsTable.get(statsName).getStatsItem(statsKey);
+        }
+        catch (Exception e) {
+        }
+
+        return null;
     }
 
 
