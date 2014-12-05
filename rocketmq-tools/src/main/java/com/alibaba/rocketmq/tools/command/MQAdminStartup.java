@@ -49,13 +49,11 @@ import com.alibaba.rocketmq.tools.command.message.QueryMsgByIdSubCommand;
 import com.alibaba.rocketmq.tools.command.message.QueryMsgByKeySubCommand;
 import com.alibaba.rocketmq.tools.command.message.QueryMsgByOffsetSubCommand;
 import com.alibaba.rocketmq.tools.command.namesrv.DeleteKvConfigCommand;
-import com.alibaba.rocketmq.tools.command.namesrv.DeleteProjectGroupCommand;
-import com.alibaba.rocketmq.tools.command.namesrv.GetProjectGroupCommand;
 import com.alibaba.rocketmq.tools.command.namesrv.UpdateKvConfigCommand;
-import com.alibaba.rocketmq.tools.command.namesrv.UpdateProjectGroupCommand;
 import com.alibaba.rocketmq.tools.command.namesrv.WipeWritePermSubCommand;
 import com.alibaba.rocketmq.tools.command.offset.CloneGroupOffsetCommand;
 import com.alibaba.rocketmq.tools.command.offset.ResetOffsetByTimeCommand;
+import com.alibaba.rocketmq.tools.command.stats.StatsAllSubCommand;
 import com.alibaba.rocketmq.tools.command.topic.DeleteTopicSubCommand;
 import com.alibaba.rocketmq.tools.command.topic.TopicListSubCommand;
 import com.alibaba.rocketmq.tools.command.topic.TopicRouteSubCommand;
@@ -102,9 +100,6 @@ public class MQAdminStartup {
         initCommand(new UpdateKvConfigCommand());
         initCommand(new DeleteKvConfigCommand());
 
-        initCommand(new UpdateProjectGroupCommand());
-        initCommand(new DeleteProjectGroupCommand());
-        initCommand(new GetProjectGroupCommand());
         initCommand(new WipeWritePermSubCommand());
         initCommand(new ResetOffsetByTimeCommand());
 
@@ -113,6 +108,7 @@ public class MQAdminStartup {
 
         initCommand(new StartMonitoringSubCommand());
         initCommand(new CheckMsgSubCommand());
+        initCommand(new StatsAllSubCommand());
     }
 
 
