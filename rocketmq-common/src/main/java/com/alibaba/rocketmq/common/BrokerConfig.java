@@ -15,12 +15,12 @@
  */
 package com.alibaba.rocketmq.common;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+
 import com.alibaba.rocketmq.common.annotation.ImportantField;
 import com.alibaba.rocketmq.common.constant.PermName;
 import com.alibaba.rocketmq.remoting.common.RemotingUtil;
-
-import java.net.InetAddress;
-import java.net.UnknownHostException;
 
 
 /**
