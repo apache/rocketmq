@@ -15,6 +15,13 @@
  */
 package com.alibaba.rocketmq.client.impl;
 
+import java.io.UnsupportedEncodingException;
+import java.nio.ByteBuffer;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+
+import org.slf4j.Logger;
+
 import com.alibaba.rocketmq.client.VirtualEnvUtil;
 import com.alibaba.rocketmq.client.consumer.PullCallback;
 import com.alibaba.rocketmq.client.consumer.PullResult;
@@ -62,12 +69,6 @@ import com.alibaba.rocketmq.remoting.netty.NettyRemotingClient;
 import com.alibaba.rocketmq.remoting.netty.ResponseFuture;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 import com.alibaba.rocketmq.remoting.protocol.RemotingSerializable;
-import org.slf4j.Logger;
-
-import java.io.UnsupportedEncodingException;
-import java.nio.ByteBuffer;
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 
 
 /**
@@ -2332,6 +2333,33 @@ public class MQClientAPIImpl {
         switch (response.getCode()) {
         case ResponseCode.SUCCESS: {
             return;
+        }
+        default:
+            break;
+        }
+
+        throw new MQClientException(response.getCode(), response.getRemark());
+    }
+
+
+    public BrokerStatsData ViewBrokerStatsData(String brokerAddr, String statsName, String statsKey,
+            long timeoutMillis) throws MQClientException, RemotingConnectException,
+            RemotingSendRequestException, RemotingTimeoutException, InterruptedException {
+        ViewBrokerStatsDataRequestHeader requestHeader = new ViewBrokerStatsDataRequestHeader();
+        requestHeader.setStatsName(statsName);
+        requestHeader.setStatsKey(statsKey);
+
+        RemotingCommand request =
+                RemotingCommand.createRequestCommand(RequestCode.VIEW_BROKER_STATS_DATA, requestHeader);
+
+        RemotingCommand response = this.remotingClient.invokeSync(brokerAddr, request, timeoutMillis);
+        assert response != null;
+        switch (response.getCode()) {
+        case ResponseCode.SUCCESS: {
+            byte[] body = response.getBody();
+            if (body != null) {
+                return BrokerStatsData.decode(body, BrokerStatsData.class);
+            }
         }
         default:
             break;

@@ -60,6 +60,12 @@ public class SubscriptionGroupManager extends ConfigManager {
             subscriptionGroupConfig.setGroupName(MixAll.FILTERSRV_CONSUMER_GROUP);
             this.subscriptionGroupTable.put(MixAll.FILTERSRV_CONSUMER_GROUP, subscriptionGroupConfig);
         }
+
+        {
+            SubscriptionGroupConfig subscriptionGroupConfig = new SubscriptionGroupConfig();
+            subscriptionGroupConfig.setGroupName(MixAll.SELF_TEST_CONSUMER_GROUP);
+            this.subscriptionGroupTable.put(MixAll.SELF_TEST_CONSUMER_GROUP, subscriptionGroupConfig);
+        }
     }
 
 

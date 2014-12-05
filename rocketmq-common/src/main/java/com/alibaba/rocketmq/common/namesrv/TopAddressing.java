@@ -3,15 +3,16 @@
  */
 package com.alibaba.rocketmq.common.namesrv;
 
+import java.io.IOException;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.common.help.FAQUrl;
 import com.alibaba.rocketmq.common.utils.HttpTinyClient;
 import com.alibaba.rocketmq.common.utils.HttpTinyClient.HttpResult;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.io.IOException;
 
 
 /**
@@ -48,13 +49,13 @@ public class TopAddressing {
 
 
     public final String fetchNSAddr() {
-        return fetchNSAddr(true);
+        return fetchNSAddr(true, 3000);
     }
 
 
-    public final String fetchNSAddr(boolean verbose) {
+    public final String fetchNSAddr(boolean verbose, long timeoutMills) {
         try {
-            HttpResult result = HttpTinyClient.httpGet(this.wsAddr, null, null, "UTF-8", 3000);
+            HttpResult result = HttpTinyClient.httpGet(this.wsAddr, null, null, "UTF-8", timeoutMills);
             if (200 == result.code) {
                 String responseStr = result.content;
                 if (responseStr != null) {

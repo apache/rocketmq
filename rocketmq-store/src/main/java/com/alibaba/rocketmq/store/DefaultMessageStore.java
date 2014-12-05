@@ -15,6 +15,29 @@
  */
 package com.alibaba.rocketmq.store;
 
+import static com.alibaba.rocketmq.store.config.BrokerRole.SLAVE;
+
+import java.io.File;
+import java.io.IOException;
+import java.net.SocketAddress;
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.alibaba.rocketmq.common.ServiceThread;
 import com.alibaba.rocketmq.common.SystemClock;
 import com.alibaba.rocketmq.common.ThreadFactoryImpl;
@@ -34,22 +57,6 @@ import com.alibaba.rocketmq.store.index.IndexService;
 import com.alibaba.rocketmq.store.index.QueryOffsetResult;
 import com.alibaba.rocketmq.store.schedule.ScheduleMessageService;
 import com.alibaba.rocketmq.store.stats.BrokerStatsManager;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.io.File;
-import java.io.IOException;
-import java.net.SocketAddress;
-import java.nio.ByteBuffer;
-import java.util.*;
-import java.util.Map.Entry;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
-
-import static com.alibaba.rocketmq.store.config.BrokerRole.SLAVE;
 
 
 /**
@@ -465,6 +472,9 @@ public class DefaultMessageStore implements MessageStore {
 
         GetMessageResult getResult = new GetMessageResult();
 
+        // 有个读写锁，所以只访问一次，避免锁开销影响性能
+        final long maxOffsetPy = this.commitLog.getMaxOffset();
+
         ConsumeQueue consumeQueue = findConsumeQueue(topic, queueId);
         if (consumeQueue != null) {
             minOffset = consumeQueue.getMinOffsetInQuque();
@@ -502,6 +512,7 @@ public class DefaultMessageStore implements MessageStore {
 
                         int i = 0;
                         final int MaxFilterMessageCount = 16000;
+                        boolean diskFallRecorded = false;
                         for (; i < bufferConsumeQueue.getSize() && i < MaxFilterMessageCount; i +=
                                 ConsumeQueue.CQStoreUnitSize) {
                             long offsetPy = bufferConsumeQueue.getByteBuffer().getLong();
@@ -517,7 +528,7 @@ public class DefaultMessageStore implements MessageStore {
                             }
 
                             // 判断是否拉磁盘数据
-                            boolean isInDisk = checkInDiskByCommitOffset(offsetPy);
+                            boolean isInDisk = checkInDiskByCommitOffset(offsetPy, maxOffsetPy);
                             // 此批消息达到上限了
                             if (this.isTheBatchFull(sizePy, maxMsgNums, getResult.getBufferTotalSize(),
                                 getResult.getMessageCount(), isInDisk)) {
@@ -535,12 +546,12 @@ public class DefaultMessageStore implements MessageStore {
                                     status = GetMessageStatus.FOUND;
                                     nextPhyFileStartOffset = Long.MIN_VALUE;
 
-                                    // 统计消息数据
-                                    if (isInDisk && brokerStatsManager != null) {
-                                        brokerStatsManager.incGroupGetFromDiskNums(group, topic, 1);
-                                        brokerStatsManager.incGroupGetFromDiskSize(group, topic,
-                                            selectResult.getSize());
-                                        brokerStatsManager.incBrokerGetFromDiskNums(1);
+                                    // 统计读取磁盘落后情况
+                                    if (diskFallRecorded) {
+                                        diskFallRecorded = true;
+                                        long fallBehind = consumeQueue.getMaxPhysicOffset() - offsetPy;
+                                        brokerStatsManager.recordDiskFallBehind(group, topic, queueId,
+                                            fallBehind);
                                     }
                                 }
                                 else {
@@ -1894,26 +1905,28 @@ public class DefaultMessageStore implements MessageStore {
     }
 
 
-    private boolean checkInDiskByCommitOffset(long offsetPy) {
-        long maxOffsetPy = this.commitLog.getMaxOffset();
+    private boolean checkInDiskByCommitOffset(long offsetPy, long maxOffsetPy) {
         long memory =
                 (long) (StoreUtil.TotalPhysicalMemorySize * (this.messageStoreConfig
                     .getAccessMessageInMemoryMaxRatio() / 100.0));
-        return maxOffsetPy - offsetPy > memory;
+        return (maxOffsetPy - offsetPy) > memory;
     }
 
 
     @Override
     public boolean checkInDiskByConsumeOffset(final String topic, final int queueId, long consumeOffset) {
+        // 有个读写锁，所以只访问一次，避免锁开销影响性能
+        final long maxOffsetPy = this.commitLog.getMaxOffset();
+
         ConsumeQueue consumeQueue = findConsumeQueue(topic, queueId);
         if (consumeQueue != null) {
             SelectMapedBufferResult bufferConsumeQueue = consumeQueue.getIndexBuffer(consumeOffset);
             if (bufferConsumeQueue != null) {
                 try {
-                    int i = 0;
-                    for (; i < bufferConsumeQueue.getSize(); i += ConsumeQueue.CQStoreUnitSize) {
+                    for (int i = 0; i < bufferConsumeQueue.getSize();) {
+                        i += ConsumeQueue.CQStoreUnitSize;
                         long offsetPy = bufferConsumeQueue.getByteBuffer().getLong();
-                        return checkInDiskByCommitOffset(offsetPy);
+                        return checkInDiskByCommitOffset(offsetPy, maxOffsetPy);
                     }
                 }
                 finally {
@@ -1926,5 +1939,10 @@ public class DefaultMessageStore implements MessageStore {
             }
         }
         return false;
+    }
+
+
+    public BrokerStatsManager getBrokerStatsManager() {
+        return brokerStatsManager;
     }
 }

@@ -15,6 +15,12 @@
  */
 package com.alibaba.rocketmq.tools.admin;
 
+import java.io.UnsupportedEncodingException;
+import java.util.*;
+import java.util.Map.Entry;
+
+import org.slf4j.Logger;
+
 import com.alibaba.rocketmq.client.QueryResult;
 import com.alibaba.rocketmq.client.admin.MQAdminExtInner;
 import com.alibaba.rocketmq.client.exception.MQBrokerException;
@@ -45,11 +51,6 @@ import com.alibaba.rocketmq.remoting.common.RemotingUtil;
 import com.alibaba.rocketmq.remoting.exception.*;
 import com.alibaba.rocketmq.tools.admin.api.MessageTrack;
 import com.alibaba.rocketmq.tools.admin.api.TrackType;
-import org.slf4j.Logger;
-
-import java.io.UnsupportedEncodingException;
-import java.util.*;
-import java.util.Map.Entry;
 
 
 /**
@@ -854,5 +855,13 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
                     isOffline, 15000);
             }
         }
+    }
+
+
+    @Override
+    public BrokerStatsData ViewBrokerStatsData(String brokerAddr, String statsName, String statsKey)
+            throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, MQClientException, InterruptedException {
+        return this.mqClientInstance.getMQClientAPIImpl().ViewBrokerStatsData(brokerAddr, statsName,
+            statsKey, 3000);
     }
 }

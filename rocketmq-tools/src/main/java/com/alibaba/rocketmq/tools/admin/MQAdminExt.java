@@ -15,6 +15,12 @@
  */
 package com.alibaba.rocketmq.tools.admin;
 
+import java.io.UnsupportedEncodingException;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
+
 import com.alibaba.rocketmq.client.MQAdmin;
 import com.alibaba.rocketmq.client.exception.MQBrokerException;
 import com.alibaba.rocketmq.client.exception.MQClientException;
@@ -29,12 +35,6 @@ import com.alibaba.rocketmq.common.protocol.route.TopicRouteData;
 import com.alibaba.rocketmq.common.subscription.SubscriptionGroupConfig;
 import com.alibaba.rocketmq.remoting.exception.*;
 import com.alibaba.rocketmq.tools.admin.api.MessageTrack;
-
-import java.io.UnsupportedEncodingException;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
 
 
 /**
@@ -600,4 +600,20 @@ public interface MQAdminExt extends MQAdmin {
      */
     public void cloneGroupOffset(String srcGroup, String destGroup, String topic, boolean isOffline)
             throws RemotingException, MQClientException, InterruptedException, MQBrokerException;
+
+
+    /**
+     * 服务器统计数据输出
+     * 
+     * @param statsName
+     * @param statsKey
+     * @return
+     * @throws InterruptedException
+     * @throws MQClientException
+     * @throws RemotingTimeoutException
+     * @throws RemotingSendRequestException
+     * @throws RemotingConnectException
+     */
+    public BrokerStatsData ViewBrokerStatsData(final String brokerAddr, final String statsName,
+            final String statsKey) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, MQClientException, InterruptedException;
 }
