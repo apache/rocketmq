@@ -56,6 +56,8 @@ public class MixAll {
     public static final String FILTERSRV_CONSUMER_GROUP = "FILTERSRV_CONSUMER";
     public static final String MONITOR_CONSUMER_GROUP = "__MONITOR_CONSUMER";
     public static final String CLIENT_INNER_PRODUCER_GROUP = "CLIENT_INNER_PRODUCER";
+    public static final String SELF_TEST_PRODUCER_GROUP = "SELF_TEST_P_GROUP";
+    public static final String SELF_TEST_CONSUMER_GROUP = "SELF_TEST_C_GROUP";
     public static final String SELF_TEST_TOPIC = "SELF_TEST_TOPIC";
     public static final String OFFSET_MOVED_EVENT = "OFFSET_MOVED_EVENT";
 
