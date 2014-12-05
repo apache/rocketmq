@@ -189,7 +189,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
 
 
     @Override
-    public ConsumeStats examineConsumeStats(String consumerGroup) throws RemotingException,
+    public ConsumeStats examineConsumeStats(String consumerGroup, String topic) throws RemotingException,
             MQClientException, InterruptedException, MQBrokerException {
         String retryTopic = MixAll.getRetryTopic(consumerGroup);
         TopicRouteData topicRouteData = this.examineTopicRouteInfo(retryTopic);
@@ -200,8 +200,8 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
             if (addr != null) {
                 // 由于查询时间戳会产生IO操作，可能会耗时较长，所以超时时间设置为15s
                 ConsumeStats consumeStats =
-                        this.mqClientInstance.getMQClientAPIImpl()
-                            .getConsumeStats(addr, consumerGroup, 15000);
+                        this.mqClientInstance.getMQClientAPIImpl().getConsumeStats(addr, consumerGroup,
+                            topic, 15000);
                 result.getOffsetTable().putAll(consumeStats.getOffsetTable());
                 long value = result.getConsumeTps() + consumeStats.getConsumeTps();
                 result.setConsumeTps(value);
@@ -215,6 +215,13 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
         }
 
         return result;
+    }
+
+
+    @Override
+    public ConsumeStats examineConsumeStats(String consumerGroup) throws RemotingException,
+            MQClientException, InterruptedException, MQBrokerException {
+	    return examineConsumeStats(consumerGroup, null);
     }
 
 
