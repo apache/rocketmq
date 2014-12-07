@@ -23,7 +23,6 @@ public class StatsAllSubCommand implements SubCommand {
 
     @Override
     public String commandName() {
-        // TODO Auto-generated method stub
         return "statsAll";
     }
 
