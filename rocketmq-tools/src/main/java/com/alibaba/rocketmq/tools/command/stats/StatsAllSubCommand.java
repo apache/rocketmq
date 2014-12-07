@@ -83,7 +83,7 @@ public class StatsAllSubCommand implements SubCommand {
             }
 
             // 打印
-            System.out.printf("%-48s  %-48s %11.2f %11.2f %14d %14d\n",//
+            System.out.printf("%-32s  %-32s %11.2f %11.2f %14d %14d\n",//
                 topic,//
                 group,//
                 inTPS,//
@@ -106,7 +106,7 @@ public class StatsAllSubCommand implements SubCommand {
 
             TopicList topicList = defaultMQAdminExt.fetchAllTopicList();
 
-            System.out.printf("%-48s  %-48s %11s %11s %14s %14s\n",//
+            System.out.printf("%-32s  %-32s %11s %11s %14s %14s\n",//
                 "#Topic",//
                 "#Consumer Group",//
                 "#InTPS",//
