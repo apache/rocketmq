@@ -6,6 +6,7 @@ import org.apache.commons.cli.Options;
 import com.alibaba.rocketmq.client.exception.MQBrokerException;
 import com.alibaba.rocketmq.client.exception.MQClientException;
 import com.alibaba.rocketmq.common.MixAll;
+import com.alibaba.rocketmq.common.UtilAll;
 import com.alibaba.rocketmq.common.protocol.body.BrokerStatsData;
 import com.alibaba.rocketmq.common.protocol.body.GroupList;
 import com.alibaba.rocketmq.common.protocol.body.TopicList;
@@ -85,8 +86,8 @@ public class StatsAllSubCommand implements SubCommand {
 
                 // 打印
                 System.out.printf("%-32s  %-32s %11.2f %11.2f %14d %14d\n",//
-                    topic,//
-                    group,//
+                    UtilAll.frontStringAtLeast(topic, 32),//
+                    UtilAll.frontStringAtLeast(group, 32),//
                     inTPS,//
                     outTPS,//
                     inMsgCntToday,//
@@ -98,7 +99,7 @@ public class StatsAllSubCommand implements SubCommand {
         else {
             // 打印
             System.out.printf("%-32s  %-32s %11.2f %11s %14d %14s\n",//
-                topic,//
+                UtilAll.frontStringAtLeast(topic, 32),//
                 "",//
                 inTPS,//
                 "",//
