@@ -9,6 +9,7 @@ import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.protocol.body.BrokerStatsData;
 import com.alibaba.rocketmq.common.protocol.body.GroupList;
 import com.alibaba.rocketmq.common.protocol.body.TopicList;
+import com.alibaba.rocketmq.common.protocol.route.BrokerData;
 import com.alibaba.rocketmq.common.protocol.route.TopicRouteData;
 import com.alibaba.rocketmq.remoting.RPCHook;
 import com.alibaba.rocketmq.remoting.exception.RemotingException;
@@ -44,8 +45,53 @@ public class StatsAllSubCommand implements SubCommand {
 
         GroupList groupList = admin.queryTopicConsumeByWho(topic);
 
-        BrokerStatsData bsd = admin.ViewBrokerStatsData("", BrokerStatsManager.TOPIC_PUT_NUMS, topic);
+        double inTPS = 0;
 
+        long inMsgCntToday = 0;
+
+        // 统计Topic写入
+        for (BrokerData bd : topicRouteData.getBrokerDatas()) {
+            String masterAddr = bd.getBrokerAddrs().get(MixAll.MASTER_ID);
+            if (masterAddr != null) {
+                {
+                    BrokerStatsData bsd =
+                            admin.ViewBrokerStatsData(masterAddr, BrokerStatsManager.TOPIC_PUT_NUMS, topic);
+                    inTPS += bsd.getStatsMinute().getTps();
+
+                    inMsgCntToday += bsd.getStatsDay().getSum();
+                }
+            }
+        }
+
+        // 统计订阅
+        for (String group : groupList.getGroupList()) {
+            double outTPS = 0;
+            long outMsgCntToday = 0;
+
+            for (BrokerData bd : topicRouteData.getBrokerDatas()) {
+                String masterAddr = bd.getBrokerAddrs().get(MixAll.MASTER_ID);
+                if (masterAddr != null) {
+                    {
+                        String statsKey = String.format("%s@%s", topic, group);
+                        BrokerStatsData bsd =
+                                admin.ViewBrokerStatsData(masterAddr, BrokerStatsManager.TOPIC_PUT_NUMS,
+                                    statsKey);
+                        outTPS += bsd.getStatsMinute().getTps();
+                        outMsgCntToday += bsd.getStatsDay().getSum();
+                    }
+                }
+            }
+
+            // 打印
+            System.out.printf("%-48s  %-48s %11.2f %11.2f %14d %14d\n",//
+                topic,//
+                group,//
+                inTPS,//
+                outTPS,//
+                inMsgCntToday,//
+                outMsgCntToday//
+                );
+        }
     }
 
 
@@ -59,6 +105,15 @@ public class StatsAllSubCommand implements SubCommand {
             defaultMQAdminExt.start();
 
             TopicList topicList = defaultMQAdminExt.fetchAllTopicList();
+
+            System.out.printf("%-48s  %-48s %11s %11s %14s %14s\n",//
+                "#Topic",//
+                "#Consumer Group",//
+                "#InTPS",//
+                "#OutTPS",//
+                "#InMsg24Hour",//
+                "#OutMsg24Hour"//
+            );
 
             for (String topic : topicList.getTopicList()) {
                 if (topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
