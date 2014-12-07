@@ -63,34 +63,48 @@ public class StatsAllSubCommand implements SubCommand {
             }
         }
 
-        // 统计订阅
-        for (String group : groupList.getGroupList()) {
-            double outTPS = 0;
-            long outMsgCntToday = 0;
+        if (groupList != null && !groupList.getGroupList().isEmpty()) {
+            // 统计订阅
+            for (String group : groupList.getGroupList()) {
+                double outTPS = 0;
+                long outMsgCntToday = 0;
 
-            for (BrokerData bd : topicRouteData.getBrokerDatas()) {
-                String masterAddr = bd.getBrokerAddrs().get(MixAll.MASTER_ID);
-                if (masterAddr != null) {
-                    {
-                        String statsKey = String.format("%s@%s", topic, group);
-                        BrokerStatsData bsd =
-                                admin.ViewBrokerStatsData(masterAddr, BrokerStatsManager.TOPIC_PUT_NUMS,
-                                    statsKey);
-                        outTPS += bsd.getStatsMinute().getTps();
-                        outMsgCntToday += bsd.getStatsDay().getSum();
+                for (BrokerData bd : topicRouteData.getBrokerDatas()) {
+                    String masterAddr = bd.getBrokerAddrs().get(MixAll.MASTER_ID);
+                    if (masterAddr != null) {
+                        {
+                            String statsKey = String.format("%s@%s", topic, group);
+                            BrokerStatsData bsd =
+                                    admin.ViewBrokerStatsData(masterAddr, BrokerStatsManager.TOPIC_PUT_NUMS,
+                                        statsKey);
+                            outTPS += bsd.getStatsMinute().getTps();
+                            outMsgCntToday += bsd.getStatsDay().getSum();
+                        }
                     }
                 }
-            }
 
+                // 打印
+                System.out.printf("%-32s  %-32s %11.2f %11.2f %14d %14d\n",//
+                    topic,//
+                    group,//
+                    inTPS,//
+                    outTPS,//
+                    inMsgCntToday,//
+                    outMsgCntToday//
+                    );
+            }
+        }
+        // 没有订阅者
+        else {
             // 打印
-            System.out.printf("%-32s  %-32s %11.2f %11.2f %14d %14d\n",//
+            System.out.printf("%-32s  %-32s %11.2f %11s %14d %14s\n",//
                 topic,//
-                group,//
+                "",//
                 inTPS,//
-                outTPS,//
+                "",//
                 inMsgCntToday,//
-                outMsgCntToday//
-                );
+                "NO_CONSUMER"//
+            );
         }
     }
 
