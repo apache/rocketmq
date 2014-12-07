@@ -144,7 +144,7 @@
             <plugin>
                 <artifactId>maven-assembly-plugin</artifactId>
                 <configuration>
-                    <finalName>alibaba-rocketmq-${project.version}</finalName>
+                    <finalName>alibaba-rocketmq</finalName>
                     <descriptors>
                         <descriptor>release.xml</descriptor>
                     </descriptors>
