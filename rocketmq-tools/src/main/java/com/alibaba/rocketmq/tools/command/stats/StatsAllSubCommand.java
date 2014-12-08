@@ -53,12 +53,14 @@ public class StatsAllSubCommand implements SubCommand {
         for (BrokerData bd : topicRouteData.getBrokerDatas()) {
             String masterAddr = bd.getBrokerAddrs().get(MixAll.MASTER_ID);
             if (masterAddr != null) {
-                {
+                try {
                     BrokerStatsData bsd =
                             admin.ViewBrokerStatsData(masterAddr, BrokerStatsManager.TOPIC_PUT_NUMS, topic);
                     inTPS += bsd.getStatsMinute().getTps();
 
                     inMsgCntToday += bsd.getStatsDay().getSum();
+                }
+                catch (Exception e) {
                 }
             }
         }
@@ -72,13 +74,15 @@ public class StatsAllSubCommand implements SubCommand {
                 for (BrokerData bd : topicRouteData.getBrokerDatas()) {
                     String masterAddr = bd.getBrokerAddrs().get(MixAll.MASTER_ID);
                     if (masterAddr != null) {
-                        {
+                        try {
                             String statsKey = String.format("%s@%s", topic, group);
                             BrokerStatsData bsd =
                                     admin.ViewBrokerStatsData(masterAddr, BrokerStatsManager.GROUP_GET_NUMS,
                                         statsKey);
                             outTPS += bsd.getStatsMinute().getTps();
                             outMsgCntToday += bsd.getStatsDay().getSum();
+                        }
+                        catch (Exception e) {
                         }
                     }
                 }
