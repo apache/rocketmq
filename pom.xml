@@ -342,7 +342,7 @@
             <dependency>
                 <groupId>com.alibaba</groupId>
                 <artifactId>fastjson</artifactId>
-                <version>1.1.41</version>
+                <version>1.2.3</version>
             </dependency>
             <dependency>
                 <groupId>mysql</groupId>

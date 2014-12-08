@@ -33,6 +33,7 @@ import ch.qos.logback.classic.joran.JoranConfigurator;
 
 import com.alibaba.rocketmq.common.MQVersion;
 import com.alibaba.rocketmq.common.MixAll;
+import com.alibaba.rocketmq.common.conflict.PackageConflictDetect;
 import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.remoting.netty.NettyServerConfig;
 import com.alibaba.rocketmq.remoting.netty.NettySystemConfig;
@@ -100,6 +101,9 @@ public class FiltersrvStartup {
         }
 
         try {
+            // 检测包冲突
+            PackageConflictDetect.detectFastjson();
+
             // 解析命令行
             Options options = ServerUtil.buildCommandlineOptions(new Options());
             final CommandLine commandLine =

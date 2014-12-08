@@ -16,6 +16,7 @@ import com.alibaba.rocketmq.remoting.RPCHook;
 import com.alibaba.rocketmq.remoting.exception.RemotingException;
 import com.alibaba.rocketmq.store.stats.BrokerStatsManager;
 import com.alibaba.rocketmq.tools.admin.DefaultMQAdminExt;
+import com.alibaba.rocketmq.tools.command.MQAdminStartup;
 import com.alibaba.rocketmq.tools.command.SubCommand;
 
 
@@ -74,7 +75,6 @@ public class StatsAllSubCommand implements SubCommand {
                     BrokerStatsData bsd =
                             admin.ViewBrokerStatsData(masterAddr, BrokerStatsManager.TOPIC_PUT_NUMS, topic);
                     inTPS += bsd.getStatsMinute().getTps();
-
                     inMsgCntToday += compute24HourSum(bsd);
                 }
                 catch (Exception e) {
@@ -168,5 +168,11 @@ public class StatsAllSubCommand implements SubCommand {
         finally {
             defaultMQAdminExt.shutdown();
         }
+    }
+
+
+    public static void main(String[] args) {
+        System.setProperty(MixAll.NAMESRV_ADDR_PROPERTY, "10.101.87.102:9876");
+        MQAdminStartup.main(new String[] { new StatsAllSubCommand().commandName() });
     }
 }
