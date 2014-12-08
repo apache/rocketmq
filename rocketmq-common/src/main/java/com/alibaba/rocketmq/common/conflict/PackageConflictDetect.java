@@ -29,7 +29,7 @@ public class PackageConflictDetect {
 
             if (conflict) {
                 throw new RuntimeException(String.format(
-                    "You fastjson version is too low, or no fastjson, ONS minimum version required: %s",//
+                    "Your fastjson version is too low, or no fastjson, RocketMQ minimum version required: %s",//
                     fastjsonVersion));
             }
         }
