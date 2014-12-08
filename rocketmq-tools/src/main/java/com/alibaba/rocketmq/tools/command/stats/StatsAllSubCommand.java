@@ -75,7 +75,7 @@ public class StatsAllSubCommand implements SubCommand {
                         {
                             String statsKey = String.format("%s@%s", topic, group);
                             BrokerStatsData bsd =
-                                    admin.ViewBrokerStatsData(masterAddr, BrokerStatsManager.TOPIC_PUT_NUMS,
+                                    admin.ViewBrokerStatsData(masterAddr, BrokerStatsManager.GROUP_GET_NUMS,
                                         statsKey);
                             outTPS += bsd.getStatsMinute().getTps();
                             outMsgCntToday += bsd.getStatsDay().getSum();
