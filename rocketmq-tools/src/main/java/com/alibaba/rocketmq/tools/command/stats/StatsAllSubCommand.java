@@ -126,15 +126,17 @@ public class StatsAllSubCommand implements SubCommand {
         }
         // 没有订阅者
         else {
-            // 打印
-            System.out.printf("%-32s  %-32s %11.2f %11s %14d %14s\n",//
-                UtilAll.frontStringAtLeast(topic, 32),//
-                "",//
-                inTPS,//
-                "",//
-                inMsgCntToday,//
-                "NO_CONSUMER"//
-            );
+            if (!activeTopic || (inMsgCntToday > 0)) {
+                // 打印
+                System.out.printf("%-32s  %-32s %11.2f %11s %14d %14s\n",//
+                    UtilAll.frontStringAtLeast(topic, 32),//
+                    "",//
+                    inTPS,//
+                    "",//
+                    inMsgCntToday,//
+                    "NO_CONSUMER"//
+                );
+            }
         }
     }
 
