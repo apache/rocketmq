@@ -1,13 +1,14 @@
 package com.alibaba.rocketmq.common.stats;
 
-import com.alibaba.rocketmq.common.UtilAll;
-import org.slf4j.Logger;
-
 import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+
+import org.slf4j.Logger;
+
+import com.alibaba.rocketmq.common.UtilAll;
 
 
 public class StatsItemSet {
@@ -27,7 +28,7 @@ public class StatsItemSet {
     }
 
 
-    private StatsItem getAndCreateStatsItem(final String statsKey) {
+    public StatsItem getAndCreateStatsItem(final String statsKey) {
         StatsItem statsItem = this.statsItemTable.get(statsKey);
         if (null == statsItem) {
             statsItem = new StatsItem(this.statsName, statsKey, this.scheduledExecutorService, this.log);
@@ -74,6 +75,11 @@ public class StatsItemSet {
             return statsItem.getStatsDataInDay();
         }
         return new StatsSnapshot();
+    }
+
+
+    public StatsItem getStatsItem(final String statsKey) {
+        return this.statsItemTable.get(statsKey);
     }
 
 

@@ -9,4 +9,5 @@ public enum LanguageCode {
     ERLANG,
     RUBY,
     OTHER,
+    HTTP,
 }

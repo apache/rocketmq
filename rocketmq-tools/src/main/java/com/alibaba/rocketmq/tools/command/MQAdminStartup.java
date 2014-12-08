@@ -29,6 +29,7 @@ import ch.qos.logback.core.joran.spi.JoranException;
 
 import com.alibaba.rocketmq.common.MQVersion;
 import com.alibaba.rocketmq.common.MixAll;
+import com.alibaba.rocketmq.common.conflict.PackageConflictDetect;
 import com.alibaba.rocketmq.remoting.RPCHook;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 import com.alibaba.rocketmq.srvutil.ServerUtil;
@@ -49,13 +50,11 @@ import com.alibaba.rocketmq.tools.command.message.QueryMsgByIdSubCommand;
 import com.alibaba.rocketmq.tools.command.message.QueryMsgByKeySubCommand;
 import com.alibaba.rocketmq.tools.command.message.QueryMsgByOffsetSubCommand;
 import com.alibaba.rocketmq.tools.command.namesrv.DeleteKvConfigCommand;
-import com.alibaba.rocketmq.tools.command.namesrv.DeleteProjectGroupCommand;
-import com.alibaba.rocketmq.tools.command.namesrv.GetProjectGroupCommand;
 import com.alibaba.rocketmq.tools.command.namesrv.UpdateKvConfigCommand;
-import com.alibaba.rocketmq.tools.command.namesrv.UpdateProjectGroupCommand;
 import com.alibaba.rocketmq.tools.command.namesrv.WipeWritePermSubCommand;
 import com.alibaba.rocketmq.tools.command.offset.CloneGroupOffsetCommand;
 import com.alibaba.rocketmq.tools.command.offset.ResetOffsetByTimeCommand;
+import com.alibaba.rocketmq.tools.command.stats.StatsAllSubCommand;
 import com.alibaba.rocketmq.tools.command.topic.DeleteTopicSubCommand;
 import com.alibaba.rocketmq.tools.command.topic.TopicListSubCommand;
 import com.alibaba.rocketmq.tools.command.topic.TopicRouteSubCommand;
@@ -72,45 +71,50 @@ import com.alibaba.rocketmq.tools.command.topic.UpdateTopicSubCommand;
  */
 public class MQAdminStartup {
     protected static List<SubCommand> subCommandList = new ArrayList<SubCommand>();
-    static {
-        subCommandList.add(new UpdateTopicSubCommand());
-        subCommandList.add(new DeleteTopicSubCommand());
-        subCommandList.add(new UpdateSubGroupSubCommand());
-        subCommandList.add(new DeleteSubscriptionGroupCommand());
-        subCommandList.add(new UpdateBrokerConfigSubCommand());
 
-        subCommandList.add(new TopicRouteSubCommand());
-        subCommandList.add(new TopicStatusSubCommand());
 
-        subCommandList.add(new BrokerStatusSubCommand());
-        subCommandList.add(new QueryMsgByIdSubCommand());
-        subCommandList.add(new QueryMsgByKeySubCommand());
-        subCommandList.add(new QueryMsgByOffsetSubCommand());
-        subCommandList.add(new PrintMessageSubCommand());
+    public static void initCommand() {
+        initCommand(new UpdateTopicSubCommand());
+        initCommand(new DeleteTopicSubCommand());
+        initCommand(new UpdateSubGroupSubCommand());
+        initCommand(new DeleteSubscriptionGroupCommand());
+        initCommand(new UpdateBrokerConfigSubCommand());
 
-        subCommandList.add(new ProducerConnectionSubCommand());
-        subCommandList.add(new ConsumerConnectionSubCommand());
-        subCommandList.add(new ConsumerProgressSubCommand());
-        subCommandList.add(new ConsumerStatusSubCommand());
-        subCommandList.add(new CloneGroupOffsetCommand());
+        initCommand(new TopicRouteSubCommand());
+        initCommand(new TopicStatusSubCommand());
 
-        subCommandList.add(new ClusterListSubCommand());
-        subCommandList.add(new TopicListSubCommand());
+        initCommand(new BrokerStatusSubCommand());
+        initCommand(new QueryMsgByIdSubCommand());
+        initCommand(new QueryMsgByKeySubCommand());
+        initCommand(new QueryMsgByOffsetSubCommand());
+        initCommand(new PrintMessageSubCommand());
 
-        subCommandList.add(new UpdateKvConfigCommand());
-        subCommandList.add(new DeleteKvConfigCommand());
+        initCommand(new ProducerConnectionSubCommand());
+        initCommand(new ConsumerConnectionSubCommand());
+        initCommand(new ConsumerProgressSubCommand());
+        initCommand(new ConsumerStatusSubCommand());
+        initCommand(new CloneGroupOffsetCommand());
 
-        subCommandList.add(new UpdateProjectGroupCommand());
-        subCommandList.add(new DeleteProjectGroupCommand());
-        subCommandList.add(new GetProjectGroupCommand());
-        subCommandList.add(new WipeWritePermSubCommand());
-        subCommandList.add(new ResetOffsetByTimeCommand());
+        initCommand(new ClusterListSubCommand());
+        initCommand(new TopicListSubCommand());
 
-        subCommandList.add(new UpdateOrderConfCommand());
-        subCommandList.add(new CleanExpiredCQSubCommand());
+        initCommand(new UpdateKvConfigCommand());
+        initCommand(new DeleteKvConfigCommand());
 
-        subCommandList.add(new StartMonitoringSubCommand());
-        subCommandList.add(new CheckMsgSubCommand());
+        initCommand(new WipeWritePermSubCommand());
+        initCommand(new ResetOffsetByTimeCommand());
+
+        initCommand(new UpdateOrderConfCommand());
+        initCommand(new CleanExpiredCQSubCommand());
+
+        initCommand(new StartMonitoringSubCommand());
+        initCommand(new CheckMsgSubCommand());
+        initCommand(new StatsAllSubCommand());
+    }
+
+
+    public static void initCommand(SubCommand command) {
+        subCommandList.add(command);
     }
 
 
@@ -121,6 +125,11 @@ public class MQAdminStartup {
 
     public static void main0(String[] args, RPCHook rpcHook) {
         System.setProperty(RemotingCommand.RemotingVersionKey, Integer.toString(MQVersion.CurrentVersion));
+
+        // 检测包冲突
+        PackageConflictDetect.detectFastjson();
+
+        initCommand();
 
         try {
             initLogback();

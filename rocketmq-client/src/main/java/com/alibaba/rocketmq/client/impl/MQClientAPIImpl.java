@@ -17,14 +17,7 @@ package com.alibaba.rocketmq.client.impl;
 
 import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.slf4j.Logger;
@@ -56,70 +49,10 @@ import com.alibaba.rocketmq.common.namesrv.NamesrvUtil;
 import com.alibaba.rocketmq.common.namesrv.TopAddressing;
 import com.alibaba.rocketmq.common.protocol.RequestCode;
 import com.alibaba.rocketmq.common.protocol.ResponseCode;
-import com.alibaba.rocketmq.common.protocol.body.ClusterInfo;
-import com.alibaba.rocketmq.common.protocol.body.ConsumeMessageDirectlyResult;
-import com.alibaba.rocketmq.common.protocol.body.ConsumerConnection;
-import com.alibaba.rocketmq.common.protocol.body.ConsumerRunningInfo;
-import com.alibaba.rocketmq.common.protocol.body.GetConsumerStatusBody;
-import com.alibaba.rocketmq.common.protocol.body.GroupList;
-import com.alibaba.rocketmq.common.protocol.body.KVTable;
-import com.alibaba.rocketmq.common.protocol.body.LockBatchRequestBody;
-import com.alibaba.rocketmq.common.protocol.body.LockBatchResponseBody;
-import com.alibaba.rocketmq.common.protocol.body.ProducerConnection;
-import com.alibaba.rocketmq.common.protocol.body.QueryConsumeTimeSpanBody;
-import com.alibaba.rocketmq.common.protocol.body.QueryCorrectionOffsetBody;
-import com.alibaba.rocketmq.common.protocol.body.QueueTimeSpan;
-import com.alibaba.rocketmq.common.protocol.body.ResetOffsetBody;
-import com.alibaba.rocketmq.common.protocol.body.TopicList;
-import com.alibaba.rocketmq.common.protocol.body.UnlockBatchRequestBody;
-import com.alibaba.rocketmq.common.protocol.header.CloneGroupOffsetRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.ConsumeMessageDirectlyResultRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.ConsumerSendMsgBackRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.CreateTopicRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.DeleteSubscriptionGroupRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.DeleteTopicRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.EndTransactionRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.GetConsumeStatsRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.GetConsumerConnectionListRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.GetConsumerListByGroupRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.GetConsumerListByGroupResponseBody;
-import com.alibaba.rocketmq.common.protocol.header.GetConsumerRunningInfoRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.GetConsumerStatusRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.GetEarliestMsgStoretimeRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.GetEarliestMsgStoretimeResponseHeader;
-import com.alibaba.rocketmq.common.protocol.header.GetMaxOffsetRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.GetMaxOffsetResponseHeader;
-import com.alibaba.rocketmq.common.protocol.header.GetMinOffsetRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.GetMinOffsetResponseHeader;
-import com.alibaba.rocketmq.common.protocol.header.GetProducerConnectionListRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.GetTopicStatsInfoRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.GetTopicsByClusterRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.PullMessageRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.PullMessageResponseHeader;
-import com.alibaba.rocketmq.common.protocol.header.QueryConsumeTimeSpanRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.QueryConsumerOffsetRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.QueryConsumerOffsetResponseHeader;
-import com.alibaba.rocketmq.common.protocol.header.QueryCorrectionOffsetHeader;
-import com.alibaba.rocketmq.common.protocol.header.QueryMessageRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.QueryTopicConsumeByWhoRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.ResetOffsetRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.SearchOffsetRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.SearchOffsetResponseHeader;
-import com.alibaba.rocketmq.common.protocol.header.SendMessageRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.SendMessageRequestHeaderV2;
-import com.alibaba.rocketmq.common.protocol.header.SendMessageResponseHeader;
-import com.alibaba.rocketmq.common.protocol.header.UnregisterClientRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.UpdateConsumerOffsetRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.ViewMessageRequestHeader;
+import com.alibaba.rocketmq.common.protocol.body.*;
+import com.alibaba.rocketmq.common.protocol.header.*;
 import com.alibaba.rocketmq.common.protocol.header.filtersrv.RegisterMessageFilterClassRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.namesrv.DeleteKVConfigRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.namesrv.GetKVConfigRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.namesrv.GetKVConfigResponseHeader;
-import com.alibaba.rocketmq.common.protocol.header.namesrv.GetKVListByNamespaceRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.namesrv.GetRouteInfoRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.namesrv.PutKVConfigRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.namesrv.WipeWritePermOfBrokerRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.namesrv.WipeWritePermOfBrokerResponseHeader;
+import com.alibaba.rocketmq.common.protocol.header.namesrv.*;
 import com.alibaba.rocketmq.common.protocol.heartbeat.ConsumerData;
 import com.alibaba.rocketmq.common.protocol.heartbeat.HeartbeatData;
 import com.alibaba.rocketmq.common.protocol.heartbeat.ProducerData;
@@ -129,14 +62,8 @@ import com.alibaba.rocketmq.common.subscription.SubscriptionGroupConfig;
 import com.alibaba.rocketmq.remoting.InvokeCallback;
 import com.alibaba.rocketmq.remoting.RPCHook;
 import com.alibaba.rocketmq.remoting.RemotingClient;
-import com.alibaba.rocketmq.remoting.common.RemotingHelper;
 import com.alibaba.rocketmq.remoting.common.RemotingUtil;
-import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
-import com.alibaba.rocketmq.remoting.exception.RemotingConnectException;
-import com.alibaba.rocketmq.remoting.exception.RemotingException;
-import com.alibaba.rocketmq.remoting.exception.RemotingSendRequestException;
-import com.alibaba.rocketmq.remoting.exception.RemotingTimeoutException;
-import com.alibaba.rocketmq.remoting.exception.RemotingTooMuchRequestException;
+import com.alibaba.rocketmq.remoting.exception.*;
 import com.alibaba.rocketmq.remoting.netty.NettyClientConfig;
 import com.alibaba.rocketmq.remoting.netty.NettyRemotingClient;
 import com.alibaba.rocketmq.remoting.netty.ResponseFuture;
@@ -332,7 +259,7 @@ public class MQClientAPIImpl {
      * 是否发送网络包精简的Message
      */
     public static boolean sendSmartMsg = //
-            Boolean.parseBoolean(System.getProperty("com.alibaba.rocketmq.client.sendSmartMsg", "false"));
+            Boolean.parseBoolean(System.getProperty("com.alibaba.rocketmq.client.sendSmartMsg", "true"));
 
 
     /**
@@ -1250,6 +1177,13 @@ public class MQClientAPIImpl {
     public ConsumeStats getConsumeStats(final String addr, final String consumerGroup,
             final long timeoutMillis) throws InterruptedException, RemotingTimeoutException,
             RemotingSendRequestException, RemotingConnectException, MQBrokerException {
+        return getConsumeStats(addr, consumerGroup, null, timeoutMillis);
+    }
+
+
+    public ConsumeStats getConsumeStats(final String addr, final String consumerGroup, final String topic,
+            final long timeoutMillis) throws InterruptedException, RemotingTimeoutException,
+            RemotingSendRequestException, RemotingConnectException, MQBrokerException {
         // 添加虚拟运行环境相关的projectGroupPrefix
         String consumerGroupWithProjectGroup = consumerGroup;
         if (!UtilAll.isBlank(projectGroupPrefix)) {
@@ -1259,6 +1193,7 @@ public class MQClientAPIImpl {
 
         GetConsumeStatsRequestHeader requestHeader = new GetConsumeStatsRequestHeader();
         requestHeader.setConsumerGroup(consumerGroupWithProjectGroup);
+        requestHeader.setTopic(topic);
 
         RemotingCommand request =
                 RemotingCommand.createRequestCommand(RequestCode.GET_CONSUME_STATS, requestHeader);
@@ -2398,6 +2333,33 @@ public class MQClientAPIImpl {
         switch (response.getCode()) {
         case ResponseCode.SUCCESS: {
             return;
+        }
+        default:
+            break;
+        }
+
+        throw new MQClientException(response.getCode(), response.getRemark());
+    }
+
+
+    public BrokerStatsData ViewBrokerStatsData(String brokerAddr, String statsName, String statsKey,
+            long timeoutMillis) throws MQClientException, RemotingConnectException,
+            RemotingSendRequestException, RemotingTimeoutException, InterruptedException {
+        ViewBrokerStatsDataRequestHeader requestHeader = new ViewBrokerStatsDataRequestHeader();
+        requestHeader.setStatsName(statsName);
+        requestHeader.setStatsKey(statsKey);
+
+        RemotingCommand request =
+                RemotingCommand.createRequestCommand(RequestCode.VIEW_BROKER_STATS_DATA, requestHeader);
+
+        RemotingCommand response = this.remotingClient.invokeSync(brokerAddr, request, timeoutMillis);
+        assert response != null;
+        switch (response.getCode()) {
+        case ResponseCode.SUCCESS: {
+            byte[] body = response.getBody();
+            if (body != null) {
+                return BrokerStatsData.decode(body, BrokerStatsData.class);
+            }
         }
         default:
             break;

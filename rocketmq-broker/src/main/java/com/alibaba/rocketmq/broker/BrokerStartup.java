@@ -34,6 +34,7 @@ import ch.qos.logback.classic.joran.JoranConfigurator;
 import com.alibaba.rocketmq.common.BrokerConfig;
 import com.alibaba.rocketmq.common.MQVersion;
 import com.alibaba.rocketmq.common.MixAll;
+import com.alibaba.rocketmq.common.conflict.PackageConflictDetect;
 import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.remoting.common.RemotingUtil;
 import com.alibaba.rocketmq.remoting.netty.NettyClientConfig;
@@ -94,6 +95,9 @@ public class BrokerStartup {
         }
 
         try {
+            // 检测包冲突
+            PackageConflictDetect.detectFastjson();
+
             // 解析命令行
             Options options = ServerUtil.buildCommandlineOptions(new Options());
             commandLine =

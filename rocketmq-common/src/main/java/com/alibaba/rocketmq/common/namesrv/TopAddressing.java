@@ -49,8 +49,13 @@ public class TopAddressing {
 
 
     public final String fetchNSAddr() {
+        return fetchNSAddr(true, 3000);
+    }
+
+
+    public final String fetchNSAddr(boolean verbose, long timeoutMills) {
         try {
-            HttpResult result = HttpTinyClient.httpGet(this.wsAddr, null, null, "UTF-8", 3000);
+            HttpResult result = HttpTinyClient.httpGet(this.wsAddr, null, null, "UTF-8", timeoutMills);
             if (200 == result.code) {
                 String responseStr = result.content;
                 if (responseStr != null) {
@@ -65,16 +70,19 @@ public class TopAddressing {
             }
         }
         catch (IOException e) {
-            log.error("fetchZKAddr exception", e);
+            if (verbose) {
+                log.error("fetchZKAddr exception", e);
+            }
         }
 
-        String errorMsg =
-                "connect to " + wsAddr + " failed, maybe the domain name " + MixAll.WS_DOMAIN_NAME
-                        + " not bind in /etc/hosts";
-        errorMsg += FAQUrl.suggestTodo(FAQUrl.NAME_SERVER_ADDR_NOT_EXIST_URL);
+        if (verbose) {
+            String errorMsg =
+                    "connect to " + wsAddr + " failed, maybe the domain name " + MixAll.WS_DOMAIN_NAME
+                            + " not bind in /etc/hosts";
+            errorMsg += FAQUrl.suggestTodo(FAQUrl.NAME_SERVER_ADDR_NOT_EXIST_URL);
 
-        log.warn(errorMsg);
-        System.out.println(errorMsg);
+            log.warn(errorMsg);
+        }
         return null;
     }
 

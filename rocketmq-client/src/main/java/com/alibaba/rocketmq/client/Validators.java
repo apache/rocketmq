@@ -1,14 +1,14 @@
 package com.alibaba.rocketmq.client;
 
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 import com.alibaba.rocketmq.client.exception.MQClientException;
 import com.alibaba.rocketmq.client.producer.DefaultMQProducer;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.UtilAll;
 import com.alibaba.rocketmq.common.message.Message;
 import com.alibaba.rocketmq.common.protocol.ResponseCode;
-
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 
 /**

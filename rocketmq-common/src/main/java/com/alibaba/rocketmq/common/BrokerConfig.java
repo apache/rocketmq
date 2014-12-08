@@ -15,12 +15,12 @@
  */
 package com.alibaba.rocketmq.common;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+
 import com.alibaba.rocketmq.common.annotation.ImportantField;
 import com.alibaba.rocketmq.common.constant.PermName;
 import com.alibaba.rocketmq.remoting.common.RemotingUtil;
-
-import java.net.InetAddress;
-import java.net.UnknownHostException;
 
 
 /**
@@ -59,6 +59,7 @@ public class BrokerConfig {
     private int sendMessageThreadPoolNums = 16 + Runtime.getRuntime().availableProcessors() * 4;
     private int pullMessageThreadPoolNums = 16 + Runtime.getRuntime().availableProcessors() * 2;
     private int adminBrokerThreadPoolNums = 16;
+    private int clientManageThreadPoolNums = 16;
 
     private int flushConsumerOffsetInterval = 1000 * 5;
 
@@ -83,6 +84,9 @@ public class BrokerConfig {
 
     // Consumer订阅消息时，Broker是否开启长轮询
     private boolean longPollingEnable = true;
+
+    // 如果是短轮询，服务器挂起时间
+    private long shortPollingTimeMills = 1000;
 
     // notify consumerId changed 开关
     private boolean notifyConsumerIdsChangedEnable = true;
@@ -347,5 +351,25 @@ public class BrokerConfig {
 
     public void setNotifyConsumerIdsChangedEnable(boolean notifyConsumerIdsChangedEnable) {
         this.notifyConsumerIdsChangedEnable = notifyConsumerIdsChangedEnable;
+    }
+
+
+    public long getShortPollingTimeMills() {
+        return shortPollingTimeMills;
+    }
+
+
+    public void setShortPollingTimeMills(long shortPollingTimeMills) {
+        this.shortPollingTimeMills = shortPollingTimeMills;
+    }
+
+
+    public int getClientManageThreadPoolNums() {
+        return clientManageThreadPoolNums;
+    }
+
+
+    public void setClientManageThreadPoolNums(int clientManageThreadPoolNums) {
+        this.clientManageThreadPoolNums = clientManageThreadPoolNums;
     }
 }

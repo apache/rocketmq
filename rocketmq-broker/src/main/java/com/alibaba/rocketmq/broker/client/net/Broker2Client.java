@@ -126,7 +126,7 @@ public class Broker2Client {
                 RemotingCommand.createRequestCommand(RequestCode.NOTIFY_CONSUMER_IDS_CHANGED, requestHeader);
 
         try {
-            this.brokerController.getRemotingServer().invokeOneway(channel, request, 1000);
+            this.brokerController.getRemotingServer().invokeOneway(channel, request, 10);
         }
         catch (Exception e) {
             log.error("notifyConsumerIdsChanged exception, " + consumerGroup, e);

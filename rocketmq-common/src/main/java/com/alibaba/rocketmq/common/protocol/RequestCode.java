@@ -167,4 +167,6 @@ public class RequestCode {
     // 克隆某一个组的消费进度到新的组
     public static final int CLONE_GROUP_OFFSET = 314;
 
+    // 查看Broker上的各种统计信息
+    public static final int VIEW_BROKER_STATS_DATA = 315;
 }

@@ -15,6 +15,20 @@
  */
 package com.alibaba.rocketmq.broker.processor;
 
+import io.netty.channel.Channel;
+import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelFutureListener;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.FileRegion;
+
+import java.net.InetSocketAddress;
+import java.net.SocketAddress;
+import java.util.List;
+import java.util.Map;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.alibaba.rocketmq.broker.BrokerController;
 import com.alibaba.rocketmq.broker.client.ConsumerGroupInfo;
 import com.alibaba.rocketmq.broker.longpolling.PullRequest;
@@ -47,14 +61,6 @@ import com.alibaba.rocketmq.store.GetMessageResult;
 import com.alibaba.rocketmq.store.MessageExtBrokerInner;
 import com.alibaba.rocketmq.store.PutMessageResult;
 import com.alibaba.rocketmq.store.config.BrokerRole;
-import io.netty.channel.*;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.net.InetSocketAddress;
-import java.net.SocketAddress;
-import java.util.List;
-import java.util.Map;
 
 
 /**
@@ -427,8 +433,13 @@ public class PullMessageProcessor implements NettyRequestProcessor {
             case ResponseCode.PULL_NOT_FOUND:
                 // 长轮询
                 if (brokerAllowSuspend && hasSuspendFlag) {
+                    long pollingTimeMills = suspendTimeoutMillisLong;
+                    if (this.brokerController.getBrokerConfig().isLongPollingEnable()) {
+                        pollingTimeMills = this.brokerController.getBrokerConfig().getShortPollingTimeMills();
+                    }
+
                     PullRequest pullRequest =
-                            new PullRequest(request, channel, suspendTimeoutMillisLong, this.brokerController
+                            new PullRequest(request, channel, pollingTimeMills, this.brokerController
                                 .getMessageStore().now(), requestHeader.getQueueOffset());
                     this.brokerController.getPullRequestHoldService().suspendPullRequest(
                         requestHeader.getTopic(), requestHeader.getQueueId(), pullRequest);

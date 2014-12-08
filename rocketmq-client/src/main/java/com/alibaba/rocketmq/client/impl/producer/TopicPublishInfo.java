@@ -15,11 +15,11 @@
  */
 package com.alibaba.rocketmq.client.impl.producer;
 
-import com.alibaba.rocketmq.common.message.MessageQueue;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import com.alibaba.rocketmq.common.message.MessageQueue;
 
 
 /**

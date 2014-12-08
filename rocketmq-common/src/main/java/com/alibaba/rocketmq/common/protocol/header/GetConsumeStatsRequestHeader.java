@@ -27,6 +27,7 @@ import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
 public class GetConsumeStatsRequestHeader implements CommandCustomHeader {
     @CFNotNull
     private String consumerGroup;
+    private String topic;
 
 
     @Override
@@ -43,5 +44,15 @@ public class GetConsumeStatsRequestHeader implements CommandCustomHeader {
 
     public void setConsumerGroup(String consumerGroup) {
         this.consumerGroup = consumerGroup;
+    }
+
+
+    public String getTopic() {
+        return topic;
+    }
+
+
+    public void setTopic(String topic) {
+        this.topic = topic;
     }
 }

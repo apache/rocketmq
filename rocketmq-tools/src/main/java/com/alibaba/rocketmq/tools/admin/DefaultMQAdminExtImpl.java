@@ -16,17 +16,8 @@
 package com.alibaba.rocketmq.tools.admin;
 
 import java.io.UnsupportedEncodingException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Properties;
-import java.util.Set;
 
 import org.slf4j.Logger;
 
@@ -41,37 +32,23 @@ import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.ServiceState;
 import com.alibaba.rocketmq.common.TopicConfig;
 import com.alibaba.rocketmq.common.UtilAll;
-import com.alibaba.rocketmq.common.admin.ConsumeStats;
-import com.alibaba.rocketmq.common.admin.OffsetWrapper;
-import com.alibaba.rocketmq.common.admin.RollbackStats;
-import com.alibaba.rocketmq.common.admin.TopicStatsTable;
+import com.alibaba.rocketmq.common.admin.*;
 import com.alibaba.rocketmq.common.help.FAQUrl;
 import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.common.message.MessageQueue;
 import com.alibaba.rocketmq.common.namesrv.NamesrvUtil;
 import com.alibaba.rocketmq.common.protocol.ResponseCode;
-import com.alibaba.rocketmq.common.protocol.body.ClusterInfo;
-import com.alibaba.rocketmq.common.protocol.body.ConsumeMessageDirectlyResult;
-import com.alibaba.rocketmq.common.protocol.body.ConsumerConnection;
-import com.alibaba.rocketmq.common.protocol.body.ConsumerRunningInfo;
-import com.alibaba.rocketmq.common.protocol.body.GroupList;
-import com.alibaba.rocketmq.common.protocol.body.KVTable;
-import com.alibaba.rocketmq.common.protocol.body.ProducerConnection;
-import com.alibaba.rocketmq.common.protocol.body.QueueTimeSpan;
-import com.alibaba.rocketmq.common.protocol.body.TopicList;
+import com.alibaba.rocketmq.common.protocol.body.*;
 import com.alibaba.rocketmq.common.protocol.header.UpdateConsumerOffsetRequestHeader;
 import com.alibaba.rocketmq.common.protocol.heartbeat.SubscriptionData;
 import com.alibaba.rocketmq.common.protocol.route.BrokerData;
+import com.alibaba.rocketmq.common.protocol.route.QueueData;
 import com.alibaba.rocketmq.common.protocol.route.TopicRouteData;
 import com.alibaba.rocketmq.common.subscription.SubscriptionGroupConfig;
 import com.alibaba.rocketmq.remoting.RPCHook;
 import com.alibaba.rocketmq.remoting.common.RemotingHelper;
 import com.alibaba.rocketmq.remoting.common.RemotingUtil;
-import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
-import com.alibaba.rocketmq.remoting.exception.RemotingConnectException;
-import com.alibaba.rocketmq.remoting.exception.RemotingException;
-import com.alibaba.rocketmq.remoting.exception.RemotingSendRequestException;
-import com.alibaba.rocketmq.remoting.exception.RemotingTimeoutException;
+import com.alibaba.rocketmq.remoting.exception.*;
 import com.alibaba.rocketmq.tools.admin.api.MessageTrack;
 import com.alibaba.rocketmq.tools.admin.api.TrackType;
 
@@ -213,7 +190,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
 
 
     @Override
-    public ConsumeStats examineConsumeStats(String consumerGroup) throws RemotingException,
+    public ConsumeStats examineConsumeStats(String consumerGroup, String topic) throws RemotingException,
             MQClientException, InterruptedException, MQBrokerException {
         String retryTopic = MixAll.getRetryTopic(consumerGroup);
         TopicRouteData topicRouteData = this.examineTopicRouteInfo(retryTopic);
@@ -224,8 +201,8 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
             if (addr != null) {
                 // 由于查询时间戳会产生IO操作，可能会耗时较长，所以超时时间设置为15s
                 ConsumeStats consumeStats =
-                        this.mqClientInstance.getMQClientAPIImpl()
-                            .getConsumeStats(addr, consumerGroup, 15000);
+                        this.mqClientInstance.getMQClientAPIImpl().getConsumeStats(addr, consumerGroup,
+                            topic, 15000);
                 result.getOffsetTable().putAll(consumeStats.getOffsetTable());
                 long value = result.getConsumeTps() + consumeStats.getConsumeTps();
                 result.setConsumeTps(value);
@@ -239,6 +216,13 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
         }
 
         return result;
+    }
+
+
+    @Override
+    public ConsumeStats examineConsumeStats(String consumerGroup) throws RemotingException,
+            MQClientException, InterruptedException, MQBrokerException {
+	    return examineConsumeStats(consumerGroup, null);
     }
 
 
@@ -337,7 +321,8 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
         }
 
         if (result.getConnectionSet().isEmpty()) {
-            throw new MQClientException("Not found the consumer group connection", null);
+            throw new MQClientException(ResponseCode.CONSUMER_NOT_ONLINE,
+                "Not found the consumer group connection");
         }
 
         return result;
@@ -466,6 +451,12 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
             MQClientException {
         TopicRouteData topicRouteData = this.examineTopicRouteInfo(topic);
         List<RollbackStats> rollbackStatsList = new ArrayList<RollbackStats>();
+        Map<String, Integer> topicRouteMap = new HashMap<String, Integer>();
+        for (BrokerData bd : topicRouteData.getBrokerDatas()) {
+            for (QueueData queueData : topicRouteData.getQueueDatas()) {
+                topicRouteMap.put(bd.selectBrokerAddr(), queueData.getReadQueueNums());
+            }
+        }
         for (BrokerData bd : topicRouteData.getBrokerDatas()) {
             String addr = bd.selectBrokerAddr();
             if (addr != null) {
@@ -474,40 +465,68 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
                         this.mqClientInstance.getMQClientAPIImpl().getConsumeStats(addr, consumerGroup, 3000);
 
                 // 根据 topic 过滤不需要的 mq
+                boolean hasConsumed = false;
                 for (Map.Entry<MessageQueue, OffsetWrapper> entry : consumeStats.getOffsetTable().entrySet()) {
                     MessageQueue queue = entry.getKey();
                     OffsetWrapper offsetWrapper = entry.getValue();
                     if (topic.equals(queue.getTopic())) {
-                        // 根据 timestamp 查找对应的offset
-                        long offset =
-                                this.mqClientInstance.getMQClientAPIImpl().searchOffset(addr, topic,
-                                    queue.getQueueId(), timestamp, 3000);
-                        // 构建按时间回溯消费进度
-                        RollbackStats rollbackStats = new RollbackStats();
-                        rollbackStats.setBrokerName(bd.getBrokerName());
-                        rollbackStats.setQueueId(queue.getQueueId());
-                        rollbackStats.setBrokerOffset(offsetWrapper.getBrokerOffset());
-                        rollbackStats.setConsumerOffset(offsetWrapper.getConsumerOffset());
-                        rollbackStats.setTimestampOffset(offset);
-                        rollbackStats.setRollbackOffset(offsetWrapper.getConsumerOffset());
-                        // 更新 offset
-                        if (force || offset <= offsetWrapper.getConsumerOffset()) {
-                            rollbackStats.setRollbackOffset(offset);
-                            UpdateConsumerOffsetRequestHeader requestHeader =
-                                    new UpdateConsumerOffsetRequestHeader();
-                            requestHeader.setConsumerGroup(consumerGroup);
-                            requestHeader.setTopic(topic);
-                            requestHeader.setQueueId(queue.getQueueId());
-                            requestHeader.setCommitOffset(offset);
-                            this.mqClientInstance.getMQClientAPIImpl().updateConsumerOffset(addr,
-                                requestHeader, 3000);
-                        }
+                        hasConsumed = true;
+                        RollbackStats rollbackStats =
+                                resetOffsetConsumeOffset(addr, consumerGroup, queue, offsetWrapper,
+                                    timestamp, force);
+                        rollbackStatsList.add(rollbackStats);
+                    }
+                }
+
+                if (!hasConsumed) {
+                    HashMap<MessageQueue, TopicOffset> topicStatus =
+                            this.mqClientInstance.getMQClientAPIImpl().getTopicStatsInfo(addr, topic, 3000)
+                                .getOffsetTable();
+                    for (int i = 0; i < topicRouteMap.get(addr); i++) {
+                        MessageQueue queue = new MessageQueue(topic, bd.getBrokerName(), i);
+                        OffsetWrapper offsetWrapper = new OffsetWrapper();
+                        offsetWrapper.setBrokerOffset(topicStatus.get(queue).getMaxOffset());
+                        offsetWrapper.setConsumerOffset(topicStatus.get(queue).getMinOffset());
+
+                        RollbackStats rollbackStats =
+                                resetOffsetConsumeOffset(addr, consumerGroup, queue, offsetWrapper,
+                                    timestamp, force);
                         rollbackStatsList.add(rollbackStats);
                     }
                 }
             }
         }
         return rollbackStatsList;
+    }
+
+
+    private RollbackStats resetOffsetConsumeOffset(String brokerAddr, String consumeGroup,
+            MessageQueue queue, OffsetWrapper offsetWrapper, long timestamp, boolean force)
+            throws RemotingException, InterruptedException, MQBrokerException {
+        // 根据 timestamp 查找对应的offset
+        long resetOffset =
+                this.mqClientInstance.getMQClientAPIImpl().searchOffset(brokerAddr, queue.getTopic(),
+                    queue.getQueueId(), timestamp, 3000);
+        // 构建按时间回溯消费进度
+        RollbackStats rollbackStats = new RollbackStats();
+        rollbackStats.setBrokerName(queue.getBrokerName());
+        rollbackStats.setQueueId(queue.getQueueId());
+        rollbackStats.setBrokerOffset(offsetWrapper.getBrokerOffset());
+        rollbackStats.setConsumerOffset(offsetWrapper.getConsumerOffset());
+        rollbackStats.setTimestampOffset(resetOffset);
+        rollbackStats.setRollbackOffset(offsetWrapper.getConsumerOffset());
+
+        // 更新 offset
+        if (force || resetOffset <= offsetWrapper.getConsumerOffset()) {
+            rollbackStats.setRollbackOffset(resetOffset);
+            UpdateConsumerOffsetRequestHeader requestHeader = new UpdateConsumerOffsetRequestHeader();
+            requestHeader.setConsumerGroup(consumeGroup);
+            requestHeader.setTopic(queue.getTopic());
+            requestHeader.setQueueId(queue.getQueueId());
+            requestHeader.setCommitOffset(resetOffset);
+            this.mqClientInstance.getMQClientAPIImpl().updateConsumerOffset(brokerAddr, requestHeader, 3000);
+        }
+        return rollbackStats;
     }
 
 
@@ -836,5 +855,13 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
                     isOffline, 15000);
             }
         }
+    }
+
+
+    @Override
+    public BrokerStatsData ViewBrokerStatsData(String brokerAddr, String statsName, String statsKey)
+            throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, MQClientException, InterruptedException {
+        return this.mqClientInstance.getMQClientAPIImpl().ViewBrokerStatsData(brokerAddr, statsName,
+            statsKey, 3000);
     }
 }
