@@ -39,6 +39,23 @@ public class StatsAllSubCommand implements SubCommand {
     }
 
 
+    public static long compute24HourSum(BrokerStatsData bsd) {
+        if (bsd.getStatsDay().getSum() != 0) {
+            return bsd.getStatsDay().getSum();
+        }
+
+        if (bsd.getStatsHour().getSum() != 0) {
+            return bsd.getStatsHour().getSum();
+        }
+
+        if (bsd.getStatsMinute().getSum() != 0) {
+            return bsd.getStatsMinute().getSum();
+        }
+
+        return 0;
+    }
+
+
     public static void printTopicDetail(final DefaultMQAdminExt admin, final String topic)
             throws RemotingException, MQClientException, InterruptedException, MQBrokerException {
         TopicRouteData topicRouteData = admin.examineTopicRouteInfo(topic);
@@ -58,7 +75,7 @@ public class StatsAllSubCommand implements SubCommand {
                             admin.ViewBrokerStatsData(masterAddr, BrokerStatsManager.TOPIC_PUT_NUMS, topic);
                     inTPS += bsd.getStatsMinute().getTps();
 
-                    inMsgCntToday += bsd.getStatsDay().getSum();
+                    inMsgCntToday += compute24HourSum(bsd);
                 }
                 catch (Exception e) {
                 }
@@ -80,7 +97,7 @@ public class StatsAllSubCommand implements SubCommand {
                                     admin.ViewBrokerStatsData(masterAddr, BrokerStatsManager.GROUP_GET_NUMS,
                                         statsKey);
                             outTPS += bsd.getStatsMinute().getTps();
-                            outMsgCntToday += bsd.getStatsDay().getSum();
+                            outMsgCntToday += compute24HourSum(bsd);
                         }
                         catch (Exception e) {
                         }
