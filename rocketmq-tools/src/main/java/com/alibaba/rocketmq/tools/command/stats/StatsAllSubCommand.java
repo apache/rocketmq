@@ -1,6 +1,7 @@
 package com.alibaba.rocketmq.tools.command.stats;
 
 import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 
 import com.alibaba.rocketmq.client.exception.MQBrokerException;
@@ -36,6 +37,10 @@ public class StatsAllSubCommand implements SubCommand {
 
     @Override
     public Options buildCommandlineOptions(Options options) {
+        Option opt = new Option("a", "activeTopic", false, "print active topic only");
+        opt.setRequired(false);
+        options.addOption(opt);
+
         return options;
     }
 
@@ -57,8 +62,9 @@ public class StatsAllSubCommand implements SubCommand {
     }
 
 
-    public static void printTopicDetail(final DefaultMQAdminExt admin, final String topic)
-            throws RemotingException, MQClientException, InterruptedException, MQBrokerException {
+    public static void printTopicDetail(final DefaultMQAdminExt admin, final String topic,
+            final boolean activeTopic) throws RemotingException, MQClientException, InterruptedException,
+            MQBrokerException {
         TopicRouteData topicRouteData = admin.examineTopicRouteInfo(topic);
 
         GroupList groupList = admin.queryTopicConsumeByWho(topic);
@@ -104,15 +110,18 @@ public class StatsAllSubCommand implements SubCommand {
                     }
                 }
 
-                // 打印
-                System.out.printf("%-32s  %-32s %11.2f %11.2f %14d %14d\n",//
-                    UtilAll.frontStringAtLeast(topic, 32),//
-                    UtilAll.frontStringAtLeast(group, 32),//
-                    inTPS,//
-                    outTPS,//
-                    inMsgCntToday,//
-                    outMsgCntToday//
-                    );
+                if (!activeTopic || (inMsgCntToday > 0) || //
+                        (outMsgCntToday > 0)) {
+                    // 打印
+                    System.out.printf("%-32s  %-32s %11.2f %11.2f %14d %14d\n",//
+                        UtilAll.frontStringAtLeast(topic, 32),//
+                        UtilAll.frontStringAtLeast(group, 32),//
+                        inTPS,//
+                        outTPS,//
+                        inMsgCntToday,//
+                        outMsgCntToday//
+                        );
+                }
             }
         }
         // 没有订阅者
@@ -150,13 +159,15 @@ public class StatsAllSubCommand implements SubCommand {
                 "#OutMsg24Hour"//
             );
 
+            boolean activeTopic = commandLine.hasOption('a');
+
             for (String topic : topicList.getTopicList()) {
                 if (topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
                     continue;
                 }
 
                 try {
-                    printTopicDetail(defaultMQAdminExt, topic);
+                    printTopicDetail(defaultMQAdminExt, topic, activeTopic);
                 }
                 catch (Exception e) {
                 }
