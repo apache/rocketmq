@@ -1739,7 +1739,8 @@ public class DefaultMessageStore implements MessageStore {
                             if (size > 0) {
                                 DefaultMessageStore.this.putDispatchRequest(dispatchRequest);
 
-                                this.reputFromOffset = result.getStartOffset() + size;
+                                // FIXED BUG By shijia
+                                this.reputFromOffset += size;
                                 readSize += size;
                                 DefaultMessageStore.this.storeStatsService
                                     .getSinglePutMessageTopicTimesTotal(dispatchRequest.getTopic())
