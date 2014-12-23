@@ -105,7 +105,7 @@ public class BrokerStatsManager {
 
 
     public void incBrokerGetNums(final int incValue) {
-        this.statsTable.get(BROKER_PUT_NUMS).getAndCreateStatsItem(this.clusterName).getValue()
+        this.statsTable.get(BROKER_GET_NUMS).getAndCreateStatsItem(this.clusterName).getValue()
             .addAndGet(incValue);
     }
 
