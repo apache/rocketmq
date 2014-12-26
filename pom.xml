@@ -1,26 +1,25 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 
     <parent>
         <groupId>com.taobao</groupId>
         <artifactId>parent</artifactId>
         <version>1.0.2</version>
     </parent>
-   <!--  
+<!--
     <parent>
         <groupId>org.sonatype.oss</groupId>
         <artifactId>oss-parent</artifactId>
         <version>7</version>
     </parent>
-  -->     
+-->
 
 
     <modelVersion>4.0.0</modelVersion>
     <inceptionYear>2012</inceptionYear>
     <groupId>com.alibaba.rocketmq</groupId>
     <artifactId>rocketmq-all</artifactId>
-    <version>3.2.3</version>
+    <version>3.2.2-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>rocketmq-all ${project.version}</name>
     <url>https://github.com/alibaba/rocketmq</url>
@@ -144,7 +143,7 @@
             <plugin>
                 <artifactId>maven-assembly-plugin</artifactId>
                 <configuration>
-                    <finalName>alibaba-rocketmq</finalName>
+                    <finalName>alibaba-rocketmq-${project.version}</finalName>
                     <descriptors>
                         <descriptor>release.xml</descriptor>
                     </descriptors>
@@ -206,11 +205,11 @@
                     </execution>
                 </executions>
             </plugin>
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>clirr-maven-plugin</artifactId>
-                <version>2.6.1</version>
-            </plugin>
+  <plugin>
+            <groupId>org.codehaus.mojo</groupId>
+            <artifactId>clirr-maven-plugin</artifactId>
+            <version>2.6.1</version>
+         </plugin>
         </plugins>
 
         <resources>
@@ -337,12 +336,12 @@
             <dependency>
                 <groupId>io.netty</groupId>
                 <artifactId>netty-all</artifactId>
-                <version>4.0.24.Final</version>
+                <version>4.0.21.Final</version>
             </dependency>
             <dependency>
                 <groupId>com.alibaba</groupId>
                 <artifactId>fastjson</artifactId>
-                <version>1.2.3</version>
+                <version>1.1.41</version>
             </dependency>
             <dependency>
                 <groupId>mysql</groupId>

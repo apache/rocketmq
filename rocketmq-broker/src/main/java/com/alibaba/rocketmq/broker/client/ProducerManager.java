@@ -19,8 +19,11 @@ import io.netty.channel.Channel;
 
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -35,7 +38,7 @@ import com.alibaba.rocketmq.remoting.common.RemotingUtil;
 
 /**
  * 管理Producer组及各个Producer连接
- * 
+ *
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-26
  */
@@ -46,6 +49,7 @@ public class ProducerManager {
     private final Lock groupChannelLock = new ReentrantLock();
     private final HashMap<String /* group name */, HashMap<Channel, ClientChannelInfo>> groupChannelTable =
             new HashMap<String, HashMap<Channel, ClientChannelInfo>>();
+    private ConcurrentHashMap<String, List<Channel>> groupChanelList = new ConcurrentHashMap<String, List<Channel>>();
 
 
     public ProducerManager() {
@@ -75,6 +79,10 @@ public class ProducerManager {
                             long diff = System.currentTimeMillis() - info.getLastUpdateTimestamp();
                             if (diff > ChannelExpiredTimeout) {
                                 it.remove();
+                                List<Channel> channels = groupChanelList.get(group);
+                                if(channels!=null){
+                                    channels.remove(item.getKey());
+                                }
                                 log.warn(
                                     "SCAN: remove expired channel[{}] from ProducerManager groupChannelTable, producer group name: {}",
                                     RemotingHelper.parseChannelRemoteAddr(info.getChannel()), group);
@@ -114,6 +122,11 @@ public class ProducerManager {
                                     "NETTY EVENT: remove channel[{}][{}] from ProducerManager groupChannelTable, producer group: {}",
                                     clientChannelInfo.toString(), remoteAddr, group);
                             }
+                            List<Channel> channels = groupChanelList.get(group);
+                            if(channels!=null){
+                                channels.remove(channel);
+                            }
+
                         }
                     }
                     finally {
@@ -149,9 +162,17 @@ public class ProducerManager {
                         log.info("new producer connected, group: {} channel: {}", group,
                             clientChannelInfo.toString());
                     }
+                    //记录group-->chanelList
+                    List<Channel> channels = groupChanelList.get(group);
+                    if(channels==null){
+                        channels  = new CopyOnWriteArrayList<Channel>();
+                        groupChanelList.put(group,channels);
+                    }
+                    channels.add(clientChannelInfo.getChannel());
                 }
                 finally {
                     this.groupChannelLock.unlock();
+
                 }
 
                 if (clientChannelInfoFound != null) {
@@ -197,5 +218,9 @@ public class ProducerManager {
         catch (InterruptedException e) {
             log.error("", e);
         }
+    }
+
+    public ConcurrentHashMap<String, List<Channel>> getGroupChanelList() {
+        return groupChanelList;
     }
 }

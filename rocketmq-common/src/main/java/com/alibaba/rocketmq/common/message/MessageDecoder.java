@@ -49,7 +49,8 @@ public class MessageDecoder {
     public final static int MessageFlagPostion = 16;
     public final static int MessagePhysicOffsetPostion = 28;
     public final static int MessageStoreTimestampPostion = 56;
-
+    public final static int MessageMagicCode = 0xAABBCCDD ^ 1880681586 + 8;
+    private final static  String charset = "utf-8";
 
     public static String createMessageId(final ByteBuffer input, final ByteBuffer addr, final long offset) {
         input.flip();
@@ -63,6 +64,15 @@ public class MessageDecoder {
         return UtilAll.bytes2string(input.array());
     }
 
+    public static String createMessageId(SocketAddress socketAddress,long transactionIdhashCode) {
+        ByteBuffer byteBuffer = ByteBuffer.allocate(MessageDecoder.MSG_ID_LENGTH);
+        InetSocketAddress inetSocketAddress = (InetSocketAddress) socketAddress;
+        byteBuffer.put(inetSocketAddress.getAddress().getAddress());
+        byteBuffer.putInt(inetSocketAddress.getPort());
+        byteBuffer.putLong(transactionIdhashCode);
+        byteBuffer.flip();
+        return UtilAll.bytes2string(byteBuffer.array());
+    }
 
     public static MessageId decodeMessageId(final String msgId) throws UnknownHostException {
         SocketAddress address;
@@ -95,7 +105,120 @@ public class MessageDecoder {
     public static MessageExt decode(java.nio.ByteBuffer byteBuffer, final boolean readBody) {
         return decode(byteBuffer, readBody, true);
     }
+    public static  byte[] encode(MessageExt messageExt) throws Exception {
+        byte [] body = messageExt.getBody();
+        int bodyLength = messageExt.getBody().length;
+        byte[]  topics = messageExt.getTopic().getBytes(charset);
+        byte topicLen = (byte)topics.length;
+        String properties =  messageProperties2String(messageExt.getProperties());
+        byte [] propertiesBytes = properties.getBytes(charset);
+        short   propertiesLength = (short) propertiesBytes.length;
+        final int msgLen = 4 // 1 TOTALSIZE
+                + 4 // 2 MAGICCODE
+                + 4 // 3 BODYCRC
+                + 4 // 4 QUEUEID
+                + 4 // 5 FLAG
+                + 8 // 6 QUEUEOFFSET
+                + 8 // 7 PHYSICALOFFSET
+                + 4 // 8 SYSFLAG
+                + 8 // 9 BORNTIMESTAMP
+                + 8 // 10 BORNHOST
+                + 8 // 11 STORETIMESTAMP
+                + 8 // 12 STOREHOSTADDRESS
+                + 4 // 13 RECONSUMETIMES
+                + 8 // 14 Prepared Transaction Offset
+                + 4 + bodyLength // 14 BODY
+                + 1 + topicLen // 15 TOPIC
+                + 2 + propertiesLength // 16 propertiesLength
+                + 0;
+        ByteBuffer byteBuffer = ByteBuffer.allocate(msgLen);
 
+        // 1 TOTALSIZE
+        int storeSize = messageExt.getStoreSize();
+        byteBuffer.putInt(storeSize);
+
+        // 2 MAGICCODE
+        byteBuffer.putInt(MessageMagicCode);
+
+        // 3 BODYCRC
+        int bodyCRC = messageExt.getBodyCRC();
+        byteBuffer.putInt(bodyCRC);
+
+        // 4 QUEUEID
+        int queueId = messageExt.getQueueId();
+        byteBuffer.putInt(queueId) ;
+
+        // 5 FLAG
+        int flag = messageExt.getFlag();
+        byteBuffer.putInt(flag);
+
+        // 6 QUEUEOFFSET
+        long queueOffset = messageExt.getQueueOffset();
+        byteBuffer.putLong(queueOffset);
+
+        // 7 PHYSICALOFFSET
+        long physicOffset = messageExt.getCommitLogOffset();
+        byteBuffer.putLong(physicOffset);
+
+        // 8 SYSFLAG
+        int sysFlag = messageExt.getSysFlag();
+        byteBuffer.putInt(sysFlag);
+
+        // 9 BORNTIMESTAMP
+        long bornTimeStamp = messageExt.getBornTimestamp();
+        byteBuffer.putLong(bornTimeStamp);
+
+        // 10 BORNHOST
+
+        InetSocketAddress bornHost = (InetSocketAddress)messageExt.getBornHost();
+        byteBuffer.put(bornHost.getAddress().getAddress());
+        byteBuffer.putInt(bornHost.getPort());
+
+        // 11 STORETIMESTAMP
+        long storeTimestamp = messageExt.getStoreTimestamp();
+        byteBuffer.putLong(storeTimestamp);
+
+        // 12 STOREHOST
+
+        InetSocketAddress serverHost = (InetSocketAddress)messageExt.getStoreHost();
+        byteBuffer.put(serverHost.getAddress().getAddress());
+        byteBuffer.putInt(serverHost.getPort());
+
+        // 13 RECONSUMETIMES
+        int reconsumeTimes = messageExt.getReconsumeTimes();
+        byteBuffer.putInt(reconsumeTimes);
+
+        // 14 Prepared Transaction Offset
+        long preparedTransactionOffset = messageExt.getPreparedTransactionOffset();
+        byteBuffer.putLong(preparedTransactionOffset);
+
+        // 15 BODY
+        byte [] newBody = body;
+        if ((sysFlag & MessageSysFlag.CompressedFlag) == MessageSysFlag.CompressedFlag) {
+            newBody = UtilAll.compress(body,5);
+        }
+
+        byteBuffer.putInt(bodyLength);
+        byteBuffer.put(newBody);
+
+
+        // 16 TOPIC
+        byteBuffer.put(topicLen);
+        byteBuffer.put(topics);
+
+        // 17 properties
+        byteBuffer.putShort(propertiesLength);
+        byteBuffer.put(propertiesBytes);
+
+//        // 消息ID
+//        ByteBuffer byteBufferMsgId = ByteBuffer.allocate(MSG_ID_LENGTH);
+//        String msgId =
+//                createMessageId(byteBufferMsgId, msgExt.getStoreHostBytes(), msgExt.getCommitLogOffset());
+//        msgExt.setMsgId(msgId);
+
+        return byteBuffer.array();
+
+    }
 
     public static MessageExt decode(java.nio.ByteBuffer byteBuffer, final boolean readBody,
             final boolean deCompressBody) {

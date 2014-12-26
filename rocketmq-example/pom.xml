@@ -1,9 +1,8 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<parent>
 		<groupId>com.alibaba.rocketmq</groupId>
 		<artifactId>rocketmq-all</artifactId>
-		<version>3.2.3</version>
+		<version>3.2.2-SNAPSHOT</version>
 	</parent>
 
 	<modelVersion>4.0.0</modelVersion>
@@ -33,9 +32,9 @@
 			<groupId>ch.qos.logback</groupId>
 			<artifactId>logback-core</artifactId>
 		</dependency>
-		<dependency>
-			<groupId>jboss</groupId>
-			<artifactId>javassist</artifactId>
-		</dependency>
+<dependency>
+  <groupId>jboss</groupId>
+  <artifactId>javassist</artifactId>
+</dependency>
 	</dependencies>
 </project>
