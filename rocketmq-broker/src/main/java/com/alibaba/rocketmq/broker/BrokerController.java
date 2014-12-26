@@ -78,6 +78,9 @@ import com.alibaba.rocketmq.store.stats.BrokerStats;
 import com.alibaba.rocketmq.store.stats.BrokerStatsManager;
 
 
+import java.net.InetSocketAddress;
+
+
 /**
  * Broker各个服务控制器
  * 
@@ -147,6 +150,7 @@ public class BrokerController {
     private final FilterServerManager filterServerManager;
 
     private final BrokerStatsManager brokerStatsManager;
+	private InetSocketAddress storeHost;
 
 
     public BrokerController(//
@@ -186,6 +190,8 @@ public class BrokerController {
                 new LinkedBlockingQueue<Runnable>(this.brokerConfig.getPullThreadPoolQueueCapacity());
 
         this.brokerStatsManager = new BrokerStatsManager(this.brokerConfig.getBrokerClusterName());
+        this.setStoreHost(new InetSocketAddress(this.getBrokerConfig().getBrokerIP1(), this
+		    .getNettyServerConfig().getListenPort()));
     }
 
 
@@ -833,5 +839,15 @@ public class BrokerController {
 
     public void registerClientRPCHook(RPCHook rpcHook) {
         this.getBrokerOuterAPI().registerRPCHook(rpcHook);
+    }
+
+
+	public InetSocketAddress getStoreHost() {
+		return storeHost;
+	}
+
+
+	public void setStoreHost(InetSocketAddress storeHost) {
+		this.storeHost = storeHost;
     }
 }

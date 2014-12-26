@@ -19,7 +19,7 @@
     <inceptionYear>2012</inceptionYear>
     <groupId>com.alibaba.rocketmq</groupId>
     <artifactId>rocketmq-all</artifactId>
-    <version>3.2.2-SNAPSHOT</version>
+    <version>3.2.4-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>rocketmq-all ${project.version}</name>
     <url>https://github.com/alibaba/rocketmq</url>
@@ -341,7 +341,7 @@
             <dependency>
                 <groupId>com.alibaba</groupId>
                 <artifactId>fastjson</artifactId>
-                <version>1.1.41</version>
+                <version>1.2.3</version>
             </dependency>
             <dependency>
                 <groupId>mysql</groupId>
