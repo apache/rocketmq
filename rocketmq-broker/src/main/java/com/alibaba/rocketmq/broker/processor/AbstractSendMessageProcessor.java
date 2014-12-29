@@ -19,47 +19,37 @@ import io.netty.channel.ChannelHandlerContext;
 
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Random;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.alibaba.rocketmq.broker.BrokerController;
-import com.alibaba.rocketmq.broker.mqtrace.ConsumeMessageContext;
-import com.alibaba.rocketmq.broker.mqtrace.ConsumeMessageHook;
 import com.alibaba.rocketmq.broker.mqtrace.SendMessageContext;
 import com.alibaba.rocketmq.broker.mqtrace.SendMessageHook;
-import com.alibaba.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.TopicConfig;
 import com.alibaba.rocketmq.common.TopicFilterType;
-import com.alibaba.rocketmq.common.UtilAll;
+import com.alibaba.rocketmq.common.constant.DBMsgConstants;
 import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.common.constant.PermName;
 import com.alibaba.rocketmq.common.help.FAQUrl;
 import com.alibaba.rocketmq.common.message.MessageAccessor;
-import com.alibaba.rocketmq.common.message.MessageConst;
 import com.alibaba.rocketmq.common.message.MessageDecoder;
-import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.common.protocol.RequestCode;
 import com.alibaba.rocketmq.common.protocol.ResponseCode;
-import com.alibaba.rocketmq.common.protocol.header.ConsumerSendMsgBackRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.SendMessageRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.SendMessageRequestHeaderV2;
 import com.alibaba.rocketmq.common.protocol.header.SendMessageResponseHeader;
-import com.alibaba.rocketmq.common.subscription.SubscriptionGroupConfig;
 import com.alibaba.rocketmq.common.sysflag.MessageSysFlag;
 import com.alibaba.rocketmq.common.sysflag.TopicSysFlag;
+import com.alibaba.rocketmq.common.utils.ChannelUtil;
 import com.alibaba.rocketmq.remoting.common.RemotingHelper;
 import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
 import com.alibaba.rocketmq.remoting.netty.NettyRequestProcessor;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 import com.alibaba.rocketmq.store.MessageExtBrokerInner;
-import com.alibaba.rocketmq.store.PutMessageResult;
-import com.alibaba.rocketmq.store.config.StorePathConfigHelper;
 
 
 /**
@@ -159,7 +149,28 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
             .getReconsumeTimes());
 		return msgInner;
 	}
-
+    protected RemotingCommand msgContentCheck(final ChannelHandlerContext ctx,final SendMessageRequestHeader requestHeader,RemotingCommand request,
+			final RemotingCommand response) {
+        // message topic长度校验
+        if (requestHeader.getTopic().length() > Byte.MAX_VALUE) {
+            log.warn("putMessage message topic length too long " + requestHeader.getTopic().length());
+            response.setCode(ResponseCode.MESSAGE_ILLEGAL);
+            return response;
+        }
+        // message properties长度校验
+        if (requestHeader.getProperties() != null && requestHeader.getProperties().length() > Short.MAX_VALUE) {
+            log.warn("putMessage message properties length too long " + requestHeader.getProperties().length());
+            response.setCode(ResponseCode.MESSAGE_ILLEGAL);
+            return response;
+        }
+        if (request.getBody().length > DBMsgConstants.maxBodySize) {
+            log.warn(" topic {}  msg body size {}  from {}", requestHeader.getTopic(), request.getBody().length, ChannelUtil.getRemoteIp(ctx.channel()));
+            response.setRemark("msg body must be less 64KB");
+            response.setCode(ResponseCode.MESSAGE_ILLEGAL);
+            return response;
+        }
+        return response;
+    }
 
 	protected RemotingCommand msgCheck(final ChannelHandlerContext ctx,final SendMessageRequestHeader requestHeader,
 			final RemotingCommand response) {
