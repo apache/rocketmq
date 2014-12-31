@@ -17,6 +17,7 @@ package com.alibaba.rocketmq.client.producer;
 
 import com.alibaba.rocketmq.client.exception.MQClientException;
 import com.alibaba.rocketmq.common.message.Message;
+import com.alibaba.rocketmq.remoting.RPCHook;
 
 
 /**
@@ -48,7 +49,9 @@ public class TransactionMQProducer extends DefaultMQProducer {
     public TransactionMQProducer(final String producerGroup) {
         super(producerGroup);
     }
-
+    public TransactionMQProducer(final String producerGroup,RPCHook rpcHook) {
+        super(producerGroup,rpcHook);
+    }
 
     @Override
     public void start() throws MQClientException {
