@@ -68,6 +68,7 @@ public class BrokerConfig {
     private boolean fetchNamesrvAddrByAddressServer = false;
     private int sendThreadPoolQueueCapacity = 10000;
     private int pullThreadPoolQueueCapacity = 10000;
+    private int clientManagerThreadPoolQueueCapacity = 100000;
 
     private int filterServerNums = 0;
 
@@ -502,5 +503,13 @@ public class BrokerConfig {
 
     public void setMaxDelayTime(final int maxDelayTime) {
         this.maxDelayTime = maxDelayTime;
+    }
+
+    public int getClientManagerThreadPoolQueueCapacity() {
+        return clientManagerThreadPoolQueueCapacity;
+    }
+
+    public void setClientManagerThreadPoolQueueCapacity(int clientManagerThreadPoolQueueCapacity) {
+        this.clientManagerThreadPoolQueueCapacity = clientManagerThreadPoolQueueCapacity;
     }
 }

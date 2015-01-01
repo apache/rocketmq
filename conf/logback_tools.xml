@@ -37,7 +37,7 @@
         </encoder>
     </appender>
 
-    <appender name="RocketmqToolsAppender"
+    <appender name="RocketmqToolsAppender_inner"
               class="ch.qos.logback.core.rolling.RollingFileAppender">
         <file>${user.home}/logs/rocketmqlogs/tools.log</file>
         <append>true</append>
@@ -55,6 +55,9 @@
             <pattern>%d{yyy-MM-dd HH:mm:ss,GMT+8} %p %t - %m%n</pattern>
             <charset class="java.nio.charset.Charset">UTF-8</charset>
         </encoder>
+    </appender>
+    <appender name="RocketmqToolsAppender" class="ch.qos.logback.classic.AsyncAppender">
+        <appender-ref ref="RocketmqToolsAppender_inner"/>
     </appender>
 
 
