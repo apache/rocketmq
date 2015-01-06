@@ -23,53 +23,49 @@ package com.alibaba.rocketmq.common.help;
 public class FAQUrl {
     // FAQ: Topic不存在如何解决
     public static final String APPLY_TOPIC_URL = //
-            "https://github.com/alibaba/RocketMQ/issues/55";
-
-    // FAQ: 同一台机器无法启动多个实例（在多个JVM进程中）
-    public static final String CLIENT_INSTACNCE_NAME_DUPLICATE_URL = //
-            "https://github.com/alibaba/RocketMQ/issues/56";
+            "https://github.com/alibaba/RocketMQ/issues/38";
 
     // FAQ: Name Server地址不存在
     public static final String NAME_SERVER_ADDR_NOT_EXIST_URL = //
-            "https://github.com/alibaba/RocketMQ/issues/57";
+            "https://github.com/alibaba/RocketMQ/issues/39";
 
     // FAQ: 启动Producer、Consumer失败，Group Name重复
     public static final String GROUP_NAME_DUPLICATE_URL = //
-            "https://github.com/alibaba/RocketMQ/issues/63";
+            "https://github.com/alibaba/RocketMQ/issues/40";
 
     // FAQ: 客户端对象参数校验合法性
     public static final String CLIENT_PARAMETER_CHECK_URL = //
-            "https://github.com/alibaba/RocketMQ/issues/73";
+            "https://github.com/alibaba/RocketMQ/issues/41";
 
     // FAQ: 订阅组不存在如何解决
     public static final String SUBSCRIPTION_GROUP_NOT_EXIST = //
-            "https://github.com/alibaba/RocketMQ/issues/75";
+            "https://github.com/alibaba/RocketMQ/issues/42";
 
     // FAQ: Producer、Consumer服务状态不正确
     public static final String CLIENT_SERVICE_NOT_OK = //
-            "https://github.com/alibaba/RocketMQ/issues/214";
+            "https://github.com/alibaba/RocketMQ/issues/43";
 
     // FAQ: No route info of this topic, TopicABC
     public static final String NO_TOPIC_ROUTE_INFO = //
-            "https://github.com/alibaba/RocketMQ/issues/264";
+            "https://github.com/alibaba/RocketMQ/issues/44";
 
     // FAQ: 广播消费者启动加载json文件异常问题
     public static final String LOAD_JSON_EXCEPTION = //
-            "https://github.com/alibaba/RocketMQ/issues/293";
+            "https://github.com/alibaba/RocketMQ/issues/45";
 
     // FAQ: 同一个订阅组内不同Consumer实例订阅关系不同
     public static final String SAME_GROUP_DIFFERENT_TOPIC = //
-            "https://github.com/alibaba/RocketMQ/issues/332";
+            "https://github.com/alibaba/RocketMQ/issues/46";
 
     // FAQ: 主动订阅消息，获取队列列表报Topic不存在
     public static final String MQLIST_NOT_EXIST = //
-            "https://github.com/alibaba/RocketMQ/issues/336";
+            "https://github.com/alibaba/RocketMQ/issues/47";
 
     //
     // FAQ: 未收录异常处理办法
     //
     public static final String UNEXPECTED_EXCEPTION_URL = //
-            "https://github.com/alibaba/RocketMQ/issues/64";
+            "https://github.com/alibaba/RocketMQ/issues/48";
 
     private static final String TipStringBegin = "\nSee ";
     private static final String TipStringEnd = " for further details.";
