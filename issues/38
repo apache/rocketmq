@@ -1,0 +1,27 @@
+## 可能产生的原因
+Broker关闭了自动创建Topic功能，导致Producer向Broker发送消息，服务器校验不通过
+
+    autoCreateTopicEnable=false
+
+
+
+## 解决方案一（推荐阿里内部用户使用）
+到MetaQ控制台或者Spass控制台上申请Topic
+
+## 解决方案二（推荐开源社区用户使用）
+开启服务器自动创建Topic功能
+
+    autoCreateTopicEnable=true
+
+
+## 解决方案三（推荐开源社区用户使用）
+使用命令行手工创建Topic到某台Broker
+
+	sh mqadmin updateTopic -b "192.168.1.1:10911" -t Topic1 -r 10 -w 10
+
+或
+
+
+使用命令行手工创建Topic到某个集群
+
+	sh mqadmin updateTopic -c cluster1 -t Topic1 -r 10 -w 10
