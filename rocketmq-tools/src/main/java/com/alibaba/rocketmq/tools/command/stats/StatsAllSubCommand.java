@@ -164,7 +164,8 @@ public class StatsAllSubCommand implements SubCommand {
             boolean activeTopic = commandLine.hasOption('a');
 
             for (String topic : topicList.getTopicList()) {
-                if (topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
+                if (topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)
+                        || topic.startsWith(MixAll.DLQ_GROUP_TOPIC_PREFIX)) {
                     continue;
                 }
 
