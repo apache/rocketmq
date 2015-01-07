@@ -22,7 +22,7 @@ export CLASSPATH=.:${BASE_DIR}/conf:${CLASSPATH}
 # JVM 参数配置
 #===========================================================================================
 JAVA_OPT="${JAVA_OPT} -server -Xms1g -Xmx1g -Xmn256m -XX:PermSize=128m -XX:MaxPermSize=128m"
-JAVA_OPT="${JAVA_OPT} -Djava.ext.dirs=${BASE_DIR}/lib"
+JAVA_OPT="${JAVA_OPT} -Djava.ext.dirs=${BASE_DIR}/lib:${JAVA_HOME}/jre/lib/ext"
 JAVA_OPT="${JAVA_OPT} -cp ${CLASSPATH}"
 
 $JAVA ${JAVA_OPT} $@
