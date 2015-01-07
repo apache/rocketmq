@@ -11,7 +11,7 @@
 
 
 ## 解决方案一（推荐阿里内部用户使用）
-到MetaQ控制台或者Spass控制台上申请Topic
+到阿里内部MetaQ控制台或者Spass控制台上申请Topic
 
 ## 解决方案二（推荐开源社区用户使用）
 * 确保Producer、Broker正确连接到Name Server，且是同一个Name Server集群

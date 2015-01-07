@@ -61,6 +61,11 @@ public class SyncDocsToGithubSubCommand implements SubCommand {
     }
 
 
+    private static boolean syncWiki(final GHRepository rep, final int issueId, final String body) {
+        return false;
+    }
+
+
     @Override
     public void execute(CommandLine commandLine, Options options, RPCHook rpcHook) {
         String userName = commandLine.getOptionValue('u').trim();
@@ -71,18 +76,27 @@ public class SyncDocsToGithubSubCommand implements SubCommand {
             GHOrganization alibaba = github.getOrganization("Alibaba");
             GHRepository rep = alibaba.getRepository("RocketMQ");
 
-            File dir = new File(System.getenv(MixAll.ROCKETMQ_HOME_ENV) + "/" + "issues");
-            File[] files = dir.listFiles();
-            if (files != null) {
-                // ascending order
-                Arrays.sort(files);
-                for (File file : files) {
-                    int issueId = Integer.parseInt(file.getName());
-                    String body = MixAll.file2String(file);
-                    boolean result = syncIssue(rep, issueId, body);
-                    System.out
-                        .printf("Sync issue <%d> to github.com %s\n", issueId, result ? "OK" : "Failed");
+            //
+            // 同步Issue
+            //
+            {
+                File dir = new File(System.getenv(MixAll.ROCKETMQ_HOME_ENV) + "/" + "issues");
+                File[] files = dir.listFiles();
+                if (files != null) {
+                    // ascending order
+                    Arrays.sort(files);
+                    for (File file : files) {
+                        int issueId = Integer.parseInt(file.getName());
+                        String body = MixAll.file2String(file);
+                        boolean result = syncIssue(rep, issueId, body);
+                        System.out.printf("Sync issue <%d> to github.com %s\n", issueId, result ? "OK"
+                                : "Failed");
+                    }
                 }
+            }
+
+            // 同步Wiki
+            {
             }
         }
         catch (Exception e) {
