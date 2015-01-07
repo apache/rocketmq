@@ -67,9 +67,7 @@ public class SyncDocsToGithubSubCommand implements SubCommand {
         String password = commandLine.getOptionValue('p').trim();
 
         try {
-            System.setProperty("login", userName);
-            System.setProperty("password", password);
-            GitHub github = GitHub.connect();
+            GitHub github = GitHub.connectUsingPassword(userName, password);
             GHOrganization alibaba = github.getOrganization("Alibaba");
             GHRepository rep = alibaba.getRepository("RocketMQ");
 
