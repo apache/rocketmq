@@ -51,7 +51,6 @@ public class SyncDocsToGithubSubCommand implements SubCommand {
         try {
             GHIssue issue = rep.getIssue(issueId);
             issue.setBody(body);
-            issue.close();
             return true;
         }
         catch (Exception e) {
