@@ -611,6 +611,8 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                         msg.getTopic(),//
                         Arrays.toString(brokersSent));
 
+            info += FAQUrl.suggestTodo(FAQUrl.SEND_MSG_FAILED);
+
             throw new MQClientException(info, exception);
         }
 

@@ -67,6 +67,10 @@ public class FAQUrl {
     public static final String UNEXPECTED_EXCEPTION_URL = //
             "https://github.com/alibaba/RocketMQ/issues/48";
 
+    // FAQ: 发送消息尝试多次失败
+    public static final String SEND_MSG_FAILED = //
+            "https://github.com/alibaba/RocketMQ/issues/50";
+
     private static final String TipStringBegin = "\nSee ";
     private static final String TipStringEnd = " for further details.";
 
