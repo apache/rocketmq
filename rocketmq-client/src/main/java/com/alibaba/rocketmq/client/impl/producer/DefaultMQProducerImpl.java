@@ -964,6 +964,9 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         switch (sendResult.getSendStatus()) {
         case SEND_OK: {
             try {
+                if (sendResult.getTransactionId() != null) {
+                    msg.putUserProperty("__transactionId__",sendResult.getTransactionId());
+                }
                 localTransactionState = tranExecuter.executeLocalTransactionBranch(msg, arg);
                 if (null == localTransactionState) {
                     localTransactionState = LocalTransactionState.UNKNOW;
@@ -1017,7 +1020,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             InterruptedException, UnknownHostException {
         final MessageId id = MessageDecoder.decodeMessageId(sendResult.getMsgId());
         String transactionId = sendResult.getTransactionId();
-        final String addr = RemotingUtil.socketAddress2String(id.getAddress());
+        final String brokerAddr = this.mQClientFactory.findBrokerAddressInPublish(sendResult.getMessageQueue().getBrokerName());
         EndTransactionRequestHeader requestHeader = new EndTransactionRequestHeader();
         requestHeader.setTransactionId(transactionId);
         requestHeader.setCommitLogOffset(id.getOffset());
@@ -1041,7 +1044,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         String remark =
                 localException != null ? ("executeLocalTransactionBranch exception: " + localException
                     .toString()) : null;
-        this.mQClientFactory.getMQClientAPIImpl().endTransactionOneway(addr, requestHeader, remark,
+        this.mQClientFactory.getMQClientAPIImpl().endTransactionOneway(brokerAddr, requestHeader, remark,
             this.defaultMQProducer.getSendMsgTimeout());
     }
 
