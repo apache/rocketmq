@@ -718,6 +718,8 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
 
         this.brokerController.getTopicConfigManager().updateTopicConfig(topicConfig);
 
+        this.brokerController.registerBrokerAll(false, true);
+
         response.setCode(ResponseCode.SUCCESS);
         response.setRemark(null);
         return response;

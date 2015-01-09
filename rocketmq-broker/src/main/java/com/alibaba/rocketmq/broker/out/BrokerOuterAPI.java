@@ -42,6 +42,7 @@ import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
 import com.alibaba.rocketmq.remoting.exception.RemotingConnectException;
 import com.alibaba.rocketmq.remoting.exception.RemotingSendRequestException;
 import com.alibaba.rocketmq.remoting.exception.RemotingTimeoutException;
+import com.alibaba.rocketmq.remoting.exception.RemotingTooMuchRequestException;
 import com.alibaba.rocketmq.remoting.netty.NettyClientConfig;
 import com.alibaba.rocketmq.remoting.netty.NettyRemotingClient;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
@@ -122,7 +123,8 @@ public class BrokerOuterAPI {
             final long brokerId,// 4
             final String haServerAddr,// 5
             final TopicConfigSerializeWrapper topicConfigWrapper, // 6
-            final List<String> filterServerList // 7
+            final List<String> filterServerList,// 7
+            final boolean oneway// 8
     ) throws RemotingCommandException, MQBrokerException, RemotingConnectException,
             RemotingSendRequestException, RemotingTimeoutException, InterruptedException {
         RegisterBrokerRequestHeader requestHeader = new RegisterBrokerRequestHeader();
@@ -138,6 +140,15 @@ public class BrokerOuterAPI {
         requestBody.setTopicConfigSerializeWrapper(topicConfigWrapper);
         requestBody.setFilterServerList(filterServerList);
         request.setBody(requestBody.encode());
+
+        if (oneway) {
+            try {
+                this.remotingClient.invokeOneway(namesrvAddr, request, 3000);
+            }
+            catch (RemotingTooMuchRequestException e) {
+            }
+            return null;
+        }
 
         RemotingCommand response = this.remotingClient.invokeSync(namesrvAddr, request, 3000);
         assert response != null;
@@ -170,7 +181,8 @@ public class BrokerOuterAPI {
             final long brokerId,// 4
             final String haServerAddr,// 5
             final TopicConfigSerializeWrapper topicConfigWrapper,// 6
-            final List<String> filterServerList // 7
+            final List<String> filterServerList,// 7
+            final boolean oneway// 8
     ) {
         RegisterBrokerResult registerBrokerResult = null;
 
@@ -180,7 +192,7 @@ public class BrokerOuterAPI {
                 try {
                     RegisterBrokerResult result =
                             this.registerBroker(namesrvAddr, clusterName, brokerAddr, brokerName, brokerId,
-                                haServerAddr, topicConfigWrapper, filterServerList);
+                                haServerAddr, topicConfigWrapper, filterServerList, oneway);
                     if (result != null) {
                         registerBrokerResult = result;
                     }
