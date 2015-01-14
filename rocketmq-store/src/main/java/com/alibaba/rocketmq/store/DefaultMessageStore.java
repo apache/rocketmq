@@ -1730,6 +1730,10 @@ public class DefaultMessageStore implements MessageStore {
                 SelectMapedBufferResult result = DefaultMessageStore.this.commitLog.getData(reputFromOffset);
                 if (result != null) {
                     try {
+                        // 当主机有很多数据，备机没有数据时，此时启动备机，备机会从主机的末尾开始拉数据
+                        // 这时reputFromOffset的初始值和commitlog的值不匹配。
+                        this.reputFromOffset = result.getStartOffset();
+
                         for (int readSize = 0; readSize < result.getSize() && doNext;) {
                             DispatchRequest dispatchRequest =
                                     DefaultMessageStore.this.commitLog.checkMessageAndReturnSize(
