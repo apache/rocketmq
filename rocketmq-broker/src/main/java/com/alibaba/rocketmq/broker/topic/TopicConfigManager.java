@@ -232,7 +232,7 @@ public class TopicConfigManager extends ConfigManager {
         }
 
         if (createNew) {
-            this.brokerController.registerBrokerAll(false);
+            this.brokerController.registerBrokerAll(false, true);
         }
 
         return topicConfig;
@@ -279,7 +279,7 @@ public class TopicConfigManager extends ConfigManager {
         }
 
         if (createNew) {
-            this.brokerController.registerBrokerAll(false);
+            this.brokerController.registerBrokerAll(false, true);
         }
 
         return topicConfig;
@@ -309,7 +309,7 @@ public class TopicConfigManager extends ConfigManager {
             this.dataVersion.nextVersion();
 
             this.persist();
-            this.brokerController.registerBrokerAll(false);
+            this.brokerController.registerBrokerAll(false, true);
         }
     }
 
@@ -333,7 +333,7 @@ public class TopicConfigManager extends ConfigManager {
             this.dataVersion.nextVersion();
 
             this.persist();
-            this.brokerController.registerBrokerAll(false);
+            this.brokerController.registerBrokerAll(false, true);
         }
     }
 
@@ -348,8 +348,6 @@ public class TopicConfigManager extends ConfigManager {
         }
 
         this.dataVersion.nextVersion();
-
-        this.brokerController.registerBrokerAll(false);
 
         this.persist();
     }

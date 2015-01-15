@@ -2,7 +2,7 @@
 	<parent>
 		<groupId>com.alibaba.rocketmq</groupId>
 		<artifactId>rocketmq-all</artifactId>
-		<version>3.2.4-SNAPSHOT</version>
+		<version>3.2.4-FIX1</version>
 	</parent>
 
 	<modelVersion>4.0.0</modelVersion>
@@ -39,6 +39,11 @@
 		<dependency>
 			<groupId>ch.qos.logback</groupId>
 			<artifactId>logback-core</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.kohsuke</groupId>
+			<artifactId>github-api</artifactId>
+			<version>1.59</version>
 		</dependency>
 	</dependencies>
 </project>

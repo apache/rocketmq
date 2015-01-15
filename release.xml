@@ -13,6 +13,8 @@
 				<include>conf/*/*</include>
 				<include>test/*</include>
 				<include>benchmark/*</include>
+				<include>issues/*</include>
+				<include>wiki/*</include>
 				<include>LICENSE.txt</include>
 			</includes>
 		</fileSet>

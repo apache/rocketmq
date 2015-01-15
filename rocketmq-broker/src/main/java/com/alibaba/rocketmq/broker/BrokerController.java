@@ -594,7 +594,7 @@ public class BrokerController {
         }
 
         // 启动时，强制注册
-        this.registerBrokerAll(true);
+        this.registerBrokerAll(true, false);
 
         // 定时注册Broker到Name Server
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
@@ -602,7 +602,7 @@ public class BrokerController {
             @Override
             public void run() {
                 try {
-                    BrokerController.this.registerBrokerAll(true);
+                    BrokerController.this.registerBrokerAll(true, false);
                 }
                 catch (Exception e) {
                     log.error("registerBrokerAll Exception", e);
@@ -619,7 +619,7 @@ public class BrokerController {
     }
 
 
-    public synchronized void registerBrokerAll(final boolean checkOrderConfig) {
+    public synchronized void registerBrokerAll(final boolean checkOrderConfig, boolean oneway) {
         TopicConfigSerializeWrapper topicConfigWrapper =
                 this.getTopicConfigManager().buildTopicConfigSerializeWrapper();
 
@@ -641,8 +641,8 @@ public class BrokerController {
             this.brokerConfig.getBrokerId(), //
             this.getHAServerAddr(), //
             topicConfigWrapper,//
-            this.filterServerManager.buildNewFilterServerList()//
-            );
+            this.filterServerManager.buildNewFilterServerList(),//
+            oneway);
 
         if (registerBrokerResult != null) {
             if (this.updateMasterHAServerAddrPeriodically && registerBrokerResult.getHaServerAddr() != null) {
