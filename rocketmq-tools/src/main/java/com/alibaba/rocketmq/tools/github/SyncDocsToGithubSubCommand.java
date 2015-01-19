@@ -97,6 +97,19 @@ public class SyncDocsToGithubSubCommand implements SubCommand {
 
             // 同步Wiki
             {
+                File dir = new File(System.getenv(MixAll.ROCKETMQ_HOME_ENV) + "/" + "wiki");
+                File[] files = dir.listFiles();
+                if (files != null) {
+                    // ascending order
+                    Arrays.sort(files);
+                    for (File file : files) {
+                        int issueId = Integer.parseInt(file.getName());
+                        String body = MixAll.file2String(file);
+                        boolean result = syncIssue(rep, issueId, body);
+                        System.out.printf("Sync issue <%d> to github.com %s\n", issueId, result ? "OK"
+                                : "Failed");
+                    }
+                }
             }
         }
         catch (Exception e) {
