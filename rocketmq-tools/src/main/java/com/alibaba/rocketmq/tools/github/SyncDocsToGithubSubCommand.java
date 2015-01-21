@@ -61,7 +61,8 @@ public class SyncDocsToGithubSubCommand implements SubCommand {
     }
 
 
-    private static boolean syncWiki(final GHRepository rep, final int issueId, final String body) {
+    private static boolean syncWiki(final GHRepository rep, final String wikiName, final String body) {
+
         return false;
     }
 
@@ -103,10 +104,15 @@ public class SyncDocsToGithubSubCommand implements SubCommand {
                     // ascending order
                     Arrays.sort(files);
                     for (File file : files) {
-                        int issueId = Integer.parseInt(file.getName());
+                        String fileName = file.getName();
+                        int index = fileName.lastIndexOf('.');
+                        if (index > 0) {
+                            fileName = fileName.substring(0, index);
+                        }
+
                         String body = MixAll.file2String(file);
-                        boolean result = syncIssue(rep, issueId, body);
-                        System.out.printf("Sync issue <%d> to github.com %s\n", issueId, result ? "OK"
+                        boolean result = syncWiki(rep, fileName, body);
+                        System.out.printf("Sync wiki <%s> to github.com %s\n", fileName, result ? "OK"
                                 : "Failed");
                     }
                 }
