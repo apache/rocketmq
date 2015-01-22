@@ -15,8 +15,6 @@
  */
 package com.alibaba.rocketmq.client.producer;
 
-import java.util.List;
-
 import com.alibaba.rocketmq.client.ClientConfig;
 import com.alibaba.rocketmq.client.QueryResult;
 import com.alibaba.rocketmq.client.exception.MQBrokerException;
@@ -28,6 +26,8 @@ import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.common.message.MessageQueue;
 import com.alibaba.rocketmq.remoting.RPCHook;
 import com.alibaba.rocketmq.remoting.exception.RemotingException;
+
+import java.util.List;
 
 
 /**
@@ -124,6 +124,13 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
 
 
     @Override
+    public SendResult send(Message msg, long timeout) throws MQClientException, RemotingException,
+            MQBrokerException, InterruptedException {
+        return this.defaultMQProducerImpl.send(msg, timeout);
+    }
+
+
+    @Override
     public void send(Message msg, SendCallback sendCallback) throws MQClientException, RemotingException,
             InterruptedException {
         this.defaultMQProducerImpl.send(msg, sendCallback);
@@ -140,6 +147,13 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     public SendResult send(Message msg, MessageQueue mq) throws MQClientException, RemotingException,
             MQBrokerException, InterruptedException {
         return this.defaultMQProducerImpl.send(msg, mq);
+    }
+
+
+    @Override
+    public SendResult send(Message msg, MessageQueue mq, long timeout) throws MQClientException,
+            RemotingException, MQBrokerException, InterruptedException {
+        return this.defaultMQProducerImpl.send(msg, mq, timeout);
     }
 
 
@@ -161,6 +175,13 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     public SendResult send(Message msg, MessageQueueSelector selector, Object arg) throws MQClientException,
             RemotingException, MQBrokerException, InterruptedException {
         return this.defaultMQProducerImpl.send(msg, selector, arg);
+    }
+
+
+    @Override
+    public SendResult send(Message msg, MessageQueueSelector selector, Object arg, long timeout)
+            throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
+        return this.defaultMQProducerImpl.send(msg, selector, arg, timeout);
     }
 
 

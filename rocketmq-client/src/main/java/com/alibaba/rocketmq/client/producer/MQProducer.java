@@ -15,14 +15,14 @@
  */
 package com.alibaba.rocketmq.client.producer;
 
-import java.util.List;
-
 import com.alibaba.rocketmq.client.MQAdmin;
 import com.alibaba.rocketmq.client.exception.MQBrokerException;
 import com.alibaba.rocketmq.client.exception.MQClientException;
 import com.alibaba.rocketmq.common.message.Message;
 import com.alibaba.rocketmq.common.message.MessageQueue;
 import com.alibaba.rocketmq.remoting.exception.RemotingException;
+
+import java.util.List;
 
 
 /**
@@ -72,6 +72,10 @@ public interface MQProducer extends MQAdmin {
             InterruptedException;
 
 
+    public SendResult send(Message msg, long timeout) throws MQClientException, RemotingException,
+            MQBrokerException, InterruptedException;
+
+
     /**
      * 发送消息，异步调用
      * 
@@ -102,7 +106,7 @@ public interface MQProducer extends MQAdmin {
 
     /**
      * 向指定队列发送消息，同步调用
-     * 
+     *
      * @param msg
      *            消息
      * @param mq
@@ -114,6 +118,10 @@ public interface MQProducer extends MQAdmin {
      * @throws MQClientException
      */
     public SendResult send(final Message msg, final MessageQueue mq) throws MQClientException,
+            RemotingException, MQBrokerException, InterruptedException;
+
+
+    public SendResult send(Message msg, MessageQueue mq, long timeout) throws MQClientException,
             RemotingException, MQBrokerException, InterruptedException;
 
 
@@ -167,6 +175,9 @@ public interface MQProducer extends MQAdmin {
      * @throws MQClientException
      */
     public SendResult send(final Message msg, final MessageQueueSelector selector, final Object arg)
+            throws MQClientException, RemotingException, MQBrokerException, InterruptedException;
+
+    public SendResult send(Message msg, MessageQueueSelector selector, Object arg, long timeout)
             throws MQClientException, RemotingException, MQBrokerException, InterruptedException;
 
 

@@ -15,14 +15,14 @@
  */
 package com.alibaba.rocketmq.client.consumer;
 
-import java.util.Set;
-
 import com.alibaba.rocketmq.client.MQAdmin;
 import com.alibaba.rocketmq.client.exception.MQBrokerException;
 import com.alibaba.rocketmq.client.exception.MQClientException;
 import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.common.message.MessageQueue;
 import com.alibaba.rocketmq.remoting.exception.RemotingException;
+
+import java.util.Set;
 
 
 /**

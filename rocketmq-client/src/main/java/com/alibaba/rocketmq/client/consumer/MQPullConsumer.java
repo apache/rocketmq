@@ -15,12 +15,13 @@
  */
 package com.alibaba.rocketmq.client.consumer;
 
-import java.util.Set;
-
 import com.alibaba.rocketmq.client.exception.MQBrokerException;
 import com.alibaba.rocketmq.client.exception.MQClientException;
+import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.common.message.MessageQueue;
 import com.alibaba.rocketmq.remoting.exception.RemotingException;
+
+import java.util.Set;
 
 
 /**
@@ -147,4 +148,22 @@ public interface MQPullConsumer extends MQConsumer {
      * @throws MQClientException
      */
     public Set<MessageQueue> fetchMessageQueuesInBalance(final String topic) throws MQClientException;
+
+
+    /**
+     * Consumer消费失败的消息可以选择重新发回到服务器端，并延时消费<br>
+     * 会首先尝试将消息发回到消息之前存储的主机，此时只传送消息Offset，消息体不传送，不会占用网络带宽<br>
+     * 如果发送失败，会自动重试发往其他主机，此时消息体也会传送<br>
+     * 重传回去的消息只会被当前Consumer Group消费。
+     *
+     * @param msg
+     * @param delayLevel
+     *
+     * @throws InterruptedException
+     * @throws MQBrokerException
+     * @throws RemotingException
+     * @throws MQClientException
+     */
+    public void sendMessageBack(MessageExt msg, int delayLevel, String brokerName, String consumerGroup)
+            throws RemotingException, MQBrokerException, InterruptedException, MQClientException;
 }

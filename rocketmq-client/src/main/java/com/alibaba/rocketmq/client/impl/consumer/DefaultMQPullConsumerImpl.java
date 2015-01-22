@@ -15,16 +15,6 @@
  */
 package com.alibaba.rocketmq.client.impl.consumer;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-
-import org.slf4j.Logger;
-
 import com.alibaba.rocketmq.client.QueryResult;
 import com.alibaba.rocketmq.client.Validators;
 import com.alibaba.rocketmq.client.consumer.DefaultMQPullConsumer;
@@ -43,14 +33,11 @@ import com.alibaba.rocketmq.client.impl.factory.MQClientInstance;
 import com.alibaba.rocketmq.client.log.ClientLogger;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.ServiceState;
+import com.alibaba.rocketmq.common.UtilAll;
 import com.alibaba.rocketmq.common.consumer.ConsumeFromWhere;
 import com.alibaba.rocketmq.common.filter.FilterAPI;
 import com.alibaba.rocketmq.common.help.FAQUrl;
-import com.alibaba.rocketmq.common.message.Message;
-import com.alibaba.rocketmq.common.message.MessageAccessor;
-import com.alibaba.rocketmq.common.message.MessageConst;
-import com.alibaba.rocketmq.common.message.MessageExt;
-import com.alibaba.rocketmq.common.message.MessageQueue;
+import com.alibaba.rocketmq.common.message.*;
 import com.alibaba.rocketmq.common.protocol.body.ConsumerRunningInfo;
 import com.alibaba.rocketmq.common.protocol.heartbeat.ConsumeType;
 import com.alibaba.rocketmq.common.protocol.heartbeat.MessageModel;
@@ -59,6 +46,10 @@ import com.alibaba.rocketmq.common.sysflag.PullSysFlag;
 import com.alibaba.rocketmq.remoting.RPCHook;
 import com.alibaba.rocketmq.remoting.common.RemotingHelper;
 import com.alibaba.rocketmq.remoting.exception.RemotingException;
+import org.slf4j.Logger;
+
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 
 /**
@@ -273,17 +264,25 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
 
     public PullResult pull(MessageQueue mq, String subExpression, long offset, int maxNums)
             throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
-        return this.pullSyncImpl(mq, subExpression, offset, maxNums, false);
+        return pull(mq, subExpression, offset, maxNums,
+            this.defaultMQPullConsumer.getConsumerPullTimeoutMillis());
+    }
+
+
+    public PullResult pull(MessageQueue mq, String subExpression, long offset, int maxNums, long timeout)
+            throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
+        return this.pullSyncImpl(mq, subExpression, offset, maxNums, false, timeout);
     }
 
 
     private PullResult pullSyncImpl(MessageQueue mq, String subExpression, long offset, int maxNums,
-            boolean block) throws MQClientException, RemotingException, MQBrokerException,
+            boolean block, long timeout) throws MQClientException, RemotingException, MQBrokerException,
             InterruptedException {
         this.makeSureStateOK();
 
         if (null == mq) {
             throw new MQClientException("mq is null", null);
+
         }
 
         if (offset < 0) {
@@ -309,8 +308,7 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
         }
 
         long timeoutMillis =
-                block ? this.defaultMQPullConsumer.getConsumerTimeoutMillisWhenSuspend()
-                        : this.defaultMQPullConsumer.getConsumerPullTimeoutMillis();
+                block ? this.defaultMQPullConsumer.getConsumerTimeoutMillisWhenSuspend() : timeout;
 
         PullResult pullResult = this.pullAPIWrapper.pullKernelImpl(//
             mq, // 1
@@ -346,7 +344,15 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
 
     public void pull(MessageQueue mq, String subExpression, long offset, int maxNums,
             PullCallback pullCallback) throws MQClientException, RemotingException, InterruptedException {
-        this.pullAsyncImpl(mq, subExpression, offset, maxNums, pullCallback, false);
+        pull(mq, subExpression, offset, maxNums, pullCallback,
+            this.defaultMQPullConsumer.getConsumerPullTimeoutMillis());
+    }
+
+
+    public void pull(MessageQueue mq, String subExpression, long offset, int maxNums,
+            PullCallback pullCallback, long timeout) throws MQClientException, RemotingException,
+            InterruptedException {
+        this.pullAsyncImpl(mq, subExpression, offset, maxNums, pullCallback, false, timeout);
     }
 
 
@@ -356,8 +362,8 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
             final long offset,//
             final int maxNums,//
             final PullCallback pullCallback,//
-            final boolean block//
-    ) throws MQClientException, RemotingException, InterruptedException {
+            final boolean block,//
+            final long timeout) throws MQClientException, RemotingException, InterruptedException {
         this.makeSureStateOK();
 
         if (null == mq) {
@@ -393,8 +399,7 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
             }
 
             long timeoutMillis =
-                    block ? this.defaultMQPullConsumer.getConsumerTimeoutMillisWhenSuspend()
-                            : this.defaultMQPullConsumer.getConsumerPullTimeoutMillis();
+                    block ? this.defaultMQPullConsumer.getConsumerTimeoutMillisWhenSuspend() : timeout;
 
             this.pullAPIWrapper.pullKernelImpl(//
                 mq, // 1
@@ -430,13 +435,29 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
 
     public PullResult pullBlockIfNotFound(MessageQueue mq, String subExpression, long offset, int maxNums)
             throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
-        return this.pullSyncImpl(mq, subExpression, offset, maxNums, true);
+        return pull(mq, subExpression, offset, maxNums,
+            this.defaultMQPullConsumer.getConsumerPullTimeoutMillis());
+    }
+
+
+    public PullResult pullBlockIfNotFound(MessageQueue mq, String subExpression, long offset, int maxNums,
+            long timeout) throws MQClientException, RemotingException, MQBrokerException,
+            InterruptedException {
+        return this.pullSyncImpl(mq, subExpression, offset, maxNums, true, timeout);
     }
 
 
     public void pullBlockIfNotFound(MessageQueue mq, String subExpression, long offset, int maxNums,
             PullCallback pullCallback) throws MQClientException, RemotingException, InterruptedException {
-        this.pullAsyncImpl(mq, subExpression, offset, maxNums, pullCallback, true);
+        pullBlockIfNotFound(mq, subExpression, offset, maxNums, pullCallback,
+            this.defaultMQPullConsumer.getConsumerPullTimeoutMillis());
+    }
+
+
+    public void pullBlockIfNotFound(MessageQueue mq, String subExpression, long offset, int maxNums,
+            PullCallback pullCallback, long timeout) throws MQClientException, RemotingException,
+            InterruptedException {
+        this.pullAsyncImpl(mq, subExpression, offset, maxNums, pullCallback, true, timeout);
     }
 
 
@@ -455,14 +476,23 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
 
     public void sendMessageBack(MessageExt msg, int delayLevel, final String brokerName)
             throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
-        try {
-            String brokerAddr = (null != brokerName) ? //
-            this.mQClientFactory.findBrokerAddressInPublish(brokerName) //
-                    : //
-                    RemotingHelper.parseSocketAddressAddr(msg.getStoreHost());
+        sendMessageBack(msg, delayLevel, brokerName, this.defaultMQPullConsumer.getConsumerGroup());
+    }
 
-            this.mQClientFactory.getMQClientAPIImpl().consumerSendMessageBack(brokerAddr, msg,
-                this.defaultMQPullConsumer.getConsumerGroup(), delayLevel, 3000);
+
+    public void sendMessageBack(MessageExt msg, int delayLevel, final String brokerName, String consumerGroup)
+            throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
+        try {
+            String brokerAddr =
+                    (null != brokerName) ? this.mQClientFactory.findBrokerAddressInPublish(brokerName)
+                            : RemotingHelper.parseSocketAddressAddr(msg.getStoreHost());
+
+            if (UtilAll.isBlank(consumerGroup)) {
+                consumerGroup = this.defaultMQPullConsumer.getConsumerGroup();
+            }
+
+            this.mQClientFactory.getMQClientAPIImpl().consumerSendMessageBack(brokerAddr, msg, consumerGroup,
+                delayLevel, 3000);
         }
         catch (Exception e) {
             log.error("sendMessageBack Exception, " + this.defaultMQPullConsumer.getConsumerGroup(), e);
