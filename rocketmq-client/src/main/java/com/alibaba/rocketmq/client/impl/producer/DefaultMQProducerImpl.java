@@ -344,6 +344,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                 thisHeader.setTranStateTableOffset(checkRequestHeader.getTranStateTableOffset());
                 thisHeader.setFromTransactionCheck(true);
                 thisHeader.setMsgId(message.getMsgId());
+                thisHeader.setTransactionId(checkRequestHeader.getTransactionId());
                 switch (localTransactionState) {
                 case COMMIT_MESSAGE:
                     thisHeader.setCommitOrRollback(MessageSysFlag.TransactionCommitType);
@@ -959,6 +960,9 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         switch (sendResult.getSendStatus()) {
         case SEND_OK: {
             try {
+                if (sendResult.getTransactionId() != null) {
+                    msg.putUserProperty("__transactionId__",sendResult.getTransactionId());
+                }
                 localTransactionState = tranExecuter.executeLocalTransactionBranch(msg, arg);
                 if (null == localTransactionState) {
                     localTransactionState = LocalTransactionState.UNKNOW;
@@ -999,6 +1003,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         transactionSendResult.setMessageQueue(sendResult.getMessageQueue());
         transactionSendResult.setMsgId(sendResult.getMsgId());
         transactionSendResult.setQueueOffset(sendResult.getQueueOffset());
+        transactionSendResult.setTransactionId(sendResult.getTransactionId());
         transactionSendResult.setLocalTransactionState(localTransactionState);
         return transactionSendResult;
     }
@@ -1010,8 +1015,10 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             final Throwable localException) throws RemotingException, MQBrokerException,
             InterruptedException, UnknownHostException {
         final MessageId id = MessageDecoder.decodeMessageId(sendResult.getMsgId());
-        final String addr = RemotingUtil.socketAddress2String(id.getAddress());
+        String transactionId = sendResult.getTransactionId();
+        final String brokerAddr = this.mQClientFactory.findBrokerAddressInPublish(sendResult.getMessageQueue().getBrokerName());
         EndTransactionRequestHeader requestHeader = new EndTransactionRequestHeader();
+        requestHeader.setTransactionId(transactionId);
         requestHeader.setCommitLogOffset(id.getOffset());
         switch (localTransactionState) {
         case COMMIT_MESSAGE:
@@ -1033,7 +1040,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         String remark =
                 localException != null ? ("executeLocalTransactionBranch exception: " + localException
                     .toString()) : null;
-        this.mQClientFactory.getMQClientAPIImpl().endTransactionOneway(addr, requestHeader, remark,
+        this.mQClientFactory.getMQClientAPIImpl().endTransactionOneway(brokerAddr, requestHeader, remark,
             this.defaultMQProducer.getSendMsgTimeout());
     }
 

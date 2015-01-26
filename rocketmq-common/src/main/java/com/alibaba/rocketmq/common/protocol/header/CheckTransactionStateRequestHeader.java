@@ -16,6 +16,8 @@ public class CheckTransactionStateRequestHeader implements CommandCustomHeader {
     private Long tranStateTableOffset;
     @CFNotNull
     private Long commitLogOffset;
+    private String msgId;
+    private String transactionId;
 
 
     @Override
@@ -40,5 +42,21 @@ public class CheckTransactionStateRequestHeader implements CommandCustomHeader {
 
     public void setCommitLogOffset(Long commitLogOffset) {
         this.commitLogOffset = commitLogOffset;
+    }
+
+    public String getMsgId() {
+        return msgId;
+    }
+
+    public void setMsgId(String msgId) {
+        this.msgId = msgId;
+    }
+
+    public String getTransactionId() {
+        return transactionId;
+    }
+
+    public void setTransactionId(String transactionId) {
+        this.transactionId = transactionId;
     }
 }
