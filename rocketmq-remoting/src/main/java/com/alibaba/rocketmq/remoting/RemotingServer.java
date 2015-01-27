@@ -15,6 +15,7 @@
  */
 package com.alibaba.rocketmq.remoting;
 
+import com.alibaba.rocketmq.remoting.common.Pair;
 import io.netty.channel.Channel;
 
 import java.util.concurrent.ExecutorService;
@@ -54,6 +55,9 @@ public interface RemotingServer extends RemotingService {
      * @return PORT
      */
     public int localListenPort();
+
+
+    public Pair<NettyRequestProcessor, ExecutorService> getProcessorPair(final int requestCode);
 
 
     public RemotingCommand invokeSync(final Channel channel, final RemotingCommand request,

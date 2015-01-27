@@ -409,8 +409,10 @@ public class MQClientAPIImpl {
             MessageQueue messageQueue =
                     new MessageQueue(msg.getTopic(), brokerName, responseHeader.getQueueId());
 
-            return new SendResult(sendStatus, responseHeader.getMsgId(), messageQueue,
+            SendResult sendResult = new SendResult(sendStatus, responseHeader.getMsgId(), messageQueue,
                 responseHeader.getQueueOffset(), projectGroupPrefix);
+            sendResult.setTransactionId(responseHeader.getTransactionId());
+            return sendResult;
         }
         default:
             break;
