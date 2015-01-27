@@ -79,8 +79,18 @@ public interface MQPullConsumer extends MQConsumer {
             InterruptedException;
 
 
+    public PullResult pull(final MessageQueue mq, final String subExpression, final long offset,
+            final int maxNums, final long timeout) throws MQClientException, RemotingException,
+            MQBrokerException, InterruptedException;
+
+
     public void pull(final MessageQueue mq, final String subExpression, final long offset, final int maxNums,
             final PullCallback pullCallback) throws MQClientException, RemotingException,
+            InterruptedException;
+
+
+    public void pull(final MessageQueue mq, final String subExpression, final long offset, final int maxNums,
+            final PullCallback pullCallback, long timeout) throws MQClientException, RemotingException,
             InterruptedException;
 
 

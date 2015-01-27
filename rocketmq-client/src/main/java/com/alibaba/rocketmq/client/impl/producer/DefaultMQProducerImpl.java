@@ -473,12 +473,17 @@ public class DefaultMQProducerImpl implements MQProducerInner {
      */
     public void send(Message msg, SendCallback sendCallback) throws MQClientException, RemotingException,
             InterruptedException {
+        send(msg, sendCallback, this.defaultMQProducer.getSendMsgTimeout());
+    }
+
+
+    public void send(Message msg, SendCallback sendCallback, long timeout) throws MQClientException,
+            RemotingException, InterruptedException {
         try {
-            this.sendDefaultImpl(msg, CommunicationMode.ASYNC, sendCallback,
-                this.defaultMQProducer.getSendMsgTimeout());
+            this.sendDefaultImpl(msg, CommunicationMode.ASYNC, sendCallback, timeout);
         }
         catch (MQBrokerException e) {
-            throw new MQClientException("unknow exception", e);
+            throw new MQClientException("unknown exception", e);
         }
     }
 
@@ -818,6 +823,12 @@ public class DefaultMQProducerImpl implements MQProducerInner {
      */
     public void send(Message msg, MessageQueue mq, SendCallback sendCallback) throws MQClientException,
             RemotingException, InterruptedException {
+        send(msg, mq, sendCallback, this.defaultMQProducer.getSendMsgTimeout());
+    }
+
+
+    public void send(Message msg, MessageQueue mq, SendCallback sendCallback, long timeout)
+            throws MQClientException, RemotingException, InterruptedException {
         // 有效性检查
         this.makeSureStateOK();
         Validators.checkMessage(msg, this.defaultMQProducer);
@@ -827,8 +838,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         }
 
         try {
-            this.sendKernelImpl(msg, mq, CommunicationMode.ASYNC, sendCallback,
-                this.defaultMQProducer.getSendMsgTimeout());
+            this.sendKernelImpl(msg, mq, CommunicationMode.ASYNC, sendCallback, timeout);
         }
         catch (MQBrokerException e) {
             throw new MQClientException("unknow exception", e);
@@ -908,12 +918,17 @@ public class DefaultMQProducerImpl implements MQProducerInner {
      */
     public void send(Message msg, MessageQueueSelector selector, Object arg, SendCallback sendCallback)
             throws MQClientException, RemotingException, InterruptedException {
+        send(msg, selector, arg, sendCallback, this.defaultMQProducer.getSendMsgTimeout());
+    }
+
+
+    public void send(Message msg, MessageQueueSelector selector, Object arg, SendCallback sendCallback,
+            long timeout) throws MQClientException, RemotingException, InterruptedException {
         try {
-            this.sendSelectImpl(msg, selector, arg, CommunicationMode.ASYNC, sendCallback,
-                this.defaultMQProducer.getSendMsgTimeout());
+            this.sendSelectImpl(msg, selector, arg, CommunicationMode.ASYNC, sendCallback, timeout);
         }
         catch (MQBrokerException e) {
-            throw new MQClientException("unknow exception", e);
+            throw new MQClientException("unknown exception", e);
         }
     }
 
