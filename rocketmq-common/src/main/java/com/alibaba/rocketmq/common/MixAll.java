@@ -499,7 +499,7 @@ public class MixAll {
         try {
             return InetAddress.getLocalHost().getHostName();
         }
-        catch (UnknownHostException e) {
+        catch (Throwable e) {
             throw new RuntimeException(
                 "InetAddress java.net.InetAddress.getLocalHost() throws UnknownHostException"
                         + FAQUrl.suggestTodo(FAQUrl.UNKNOWN_HOST_EXCEPTION), e);
