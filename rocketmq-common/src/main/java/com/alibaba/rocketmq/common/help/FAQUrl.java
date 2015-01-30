@@ -71,6 +71,10 @@ public class FAQUrl {
     public static final String SEND_MSG_FAILED = //
             "https://github.com/alibaba/RocketMQ/issues/50";
 
+    // FAQ: 主机名不存在
+    public static final String UNKNOWN_HOST_EXCEPTION = //
+            "https://github.com/alibaba/RocketMQ/issues/64";
+
     private static final String TipStringBegin = "\nSee ";
     private static final String TipStringEnd = " for further details.";
 

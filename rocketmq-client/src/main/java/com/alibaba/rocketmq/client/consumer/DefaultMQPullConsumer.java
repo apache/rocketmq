@@ -253,7 +253,7 @@ public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsume
     @Override
     public void sendMessageBack(MessageExt msg, int delayLevel, String brokerName, String consumerGroup)
             throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
-        this.defaultMQPullConsumerImpl.sendMessageBack(msg, delayLevel, brokerName,consumerGroup);
+        this.defaultMQPullConsumerImpl.sendMessageBack(msg, delayLevel, brokerName, consumerGroup);
     }
 
 
@@ -294,9 +294,24 @@ public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsume
 
 
     @Override
+    public PullResult pull(MessageQueue mq, String subExpression, long offset, int maxNums, long timeout)
+            throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
+        return this.defaultMQPullConsumerImpl.pull(mq, subExpression, offset, maxNums, timeout);
+    }
+
+
+    @Override
     public void pull(MessageQueue mq, String subExpression, long offset, int maxNums,
             PullCallback pullCallback) throws MQClientException, RemotingException, InterruptedException {
         this.defaultMQPullConsumerImpl.pull(mq, subExpression, offset, maxNums, pullCallback);
+    }
+
+
+    @Override
+    public void pull(MessageQueue mq, String subExpression, long offset, int maxNums,
+            PullCallback pullCallback, long timeout) throws MQClientException, RemotingException,
+            InterruptedException {
+        this.defaultMQPullConsumerImpl.pull(mq, subExpression, offset, maxNums, pullCallback, timeout);
     }
 
 

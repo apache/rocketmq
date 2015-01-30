@@ -138,6 +138,13 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
 
 
     @Override
+    public void send(Message msg, SendCallback sendCallback, long timeout) throws MQClientException,
+            RemotingException, InterruptedException {
+        this.defaultMQProducerImpl.send(msg, sendCallback, timeout);
+    }
+
+
+    @Override
     public void sendOneway(Message msg) throws MQClientException, RemotingException, InterruptedException {
         this.defaultMQProducerImpl.sendOneway(msg);
     }
@@ -160,7 +167,14 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     @Override
     public void send(Message msg, MessageQueue mq, SendCallback sendCallback) throws MQClientException,
             RemotingException, InterruptedException {
-        this.defaultMQProducerImpl.send(msg, mq, sendCallback);
+        send(msg, mq, sendCallback);
+    }
+
+
+    @Override
+    public void send(Message msg, MessageQueue mq, SendCallback sendCallback, long timeout)
+            throws MQClientException, RemotingException, InterruptedException {
+        this.defaultMQProducerImpl.send(msg, mq, sendCallback, timeout);
     }
 
 
@@ -189,6 +203,13 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     public void send(Message msg, MessageQueueSelector selector, Object arg, SendCallback sendCallback)
             throws MQClientException, RemotingException, InterruptedException {
         this.defaultMQProducerImpl.send(msg, selector, arg, sendCallback);
+    }
+
+
+    @Override
+    public void send(Message msg, MessageQueueSelector selector, Object arg, SendCallback sendCallback,
+            long timeout) throws MQClientException, RemotingException, InterruptedException {
+        this.defaultMQProducerImpl.send(msg, selector, arg, sendCallback, timeout);
     }
 
 

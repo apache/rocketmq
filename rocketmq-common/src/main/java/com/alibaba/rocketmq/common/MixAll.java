@@ -32,7 +32,6 @@ import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.net.URL;
 import java.net.URLConnection;
-import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Enumeration;
@@ -45,6 +44,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.slf4j.Logger;
 
 import com.alibaba.rocketmq.common.annotation.ImportantField;
+import com.alibaba.rocketmq.common.help.FAQUrl;
 
 
 /**
@@ -454,8 +454,10 @@ public class MixAll {
             InetAddress addr = InetAddress.getLocalHost();
             return addr.getHostAddress();
         }
-        catch (UnknownHostException e) {
-            throw new RuntimeException("get localhost fail", e);
+        catch (Throwable e) {
+            throw new RuntimeException(
+                "InetAddress java.net.InetAddress.getLocalHost() throws UnknownHostException"
+                        + FAQUrl.suggestTodo(FAQUrl.UNKNOWN_HOST_EXCEPTION), e);
         }
     }
 
@@ -496,8 +498,10 @@ public class MixAll {
         try {
             return InetAddress.getLocalHost().getHostName();
         }
-        catch (UnknownHostException e) {
-            throw new RuntimeException("get localhost fail", e);
+        catch (Throwable e) {
+            throw new RuntimeException(
+                "InetAddress java.net.InetAddress.getLocalHost() throws UnknownHostException"
+                        + FAQUrl.suggestTodo(FAQUrl.UNKNOWN_HOST_EXCEPTION), e);
         }
     }
 }
