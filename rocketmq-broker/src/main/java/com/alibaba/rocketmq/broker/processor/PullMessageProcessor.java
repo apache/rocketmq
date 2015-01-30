@@ -434,7 +434,7 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                 // 长轮询
                 if (brokerAllowSuspend && hasSuspendFlag) {
                     long pollingTimeMills = suspendTimeoutMillisLong;
-                    if (this.brokerController.getBrokerConfig().isLongPollingEnable()) {
+                    if (!this.brokerController.getBrokerConfig().isLongPollingEnable()) {
                         pollingTimeMills = this.brokerController.getBrokerConfig().getShortPollingTimeMills();
                     }
 
