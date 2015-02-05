@@ -153,6 +153,7 @@ public class BrokerStartup {
                     BrokerPathConfigHelper.setBrokerConfigPath(file);
 
                     System.out.println("load config properties file OK, " + file);
+                    in.close();
                 }
             }
 
