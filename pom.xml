@@ -1,19 +1,19 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
-
+    <!--
     <parent>
         <groupId>com.taobao</groupId>
         <artifactId>parent</artifactId>
         <version>1.0.2</version>
     </parent>
-    <!--
+        -->
     <parent>
         <groupId>org.sonatype.oss</groupId>
         <artifactId>oss-parent</artifactId>
         <version>7</version>
     </parent>
-        -->
+
 
 
     <modelVersion>4.0.0</modelVersion>
@@ -69,16 +69,16 @@
     </licenses>
 
     <scm>
-        <url>http://gitlab.alibaba-inc.com/middleware/rocketmq.git</url>
-        <connection>scm:git:http://gitlab.alibaba-inc.com/middleware/rocketmq.git</connection>
-        <developerConnection>scm:git:http://gitlab.alibaba-inc.com/middleware/rocketmq.git</developerConnection>
+        <url>git@gitlab.alibaba-inc.com:middleware/rocketmq.git</url>
+        <connection>scm:git:git@gitlab.alibaba-inc.com:middleware/rocketmq.git</connection>
+        <developerConnection>scm:git:git@gitlab.alibaba-inc.com:middleware/rocketmq.git</developerConnection>
     </scm>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <!--maven properties -->
         <maven.test.skip>true</maven.test.skip>
-        <maven.jdoc.skip>true</maven.jdoc.skip>
+        <maven.jdoc.skip>false</maven.jdoc.skip>
         <downloadSources>true</downloadSources>
         <!-- compiler settings properties -->
         <java_source_version>1.6</java_source_version>
