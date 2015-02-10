@@ -16,18 +16,14 @@
 package com.alibaba.rocketmq.store;
 
 /**
- * 向物理队列写消息返回结果码
+ * When write a message to the commit log, returns code
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-21
  */
 public enum AppendMessageStatus {
-    // 成功追加消息
     PUT_OK,
-    // 走到文件末尾
     END_OF_FILE,
-    // 消息大小超限
     MESSAGE_SIZE_EXCEEDED,
-    // 未知错误
     UNKNOWN_ERROR,
 }
