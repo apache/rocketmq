@@ -7,10 +7,10 @@
 
 ### 数据可靠性
 * RocketMQ支持异步实时刷盘，同步刷盘，同步Replication，异步Replication
-* Kafka使用异步刷盘方式，异步Replication
+* Kafka使用异步刷盘方式，异步Replication/同步Replication
 
 > 总结：RocketMQ的同步刷盘在单机可靠性上比Kafka更高，不会因为操作系统Crash，导致数据丢失。
-> 同时同步Replication也比Kafka异步Replication更可靠，数据完全无单点。另外Kafka的Replication以topic为单位，支持主机宕机，备机自动切换，但是这里有个问题，由于是异步Replication，那么切换后会有数据丢失，同时Leader如果重启后，会与已经存在的Leader产生数据冲突。开源版本的RocketMQ不支持Master宕机，Slave自动切换为Master，[阿里云版本的RocketMQ](http://www.aliyun.com/product/ons)支持自动切换特性。
+> Kafka同步Replication理论上性能低于RocketMQ的同步Replication，原因是Kafka的数据已分区为单位组织，意味着一个Kafka实例上会有几百个数据分区，RocketMQ一个实例上只有一个数据分区，RocketMQ可以充分利用IO Group Commit机制，批量传输数据，配置同步Replication与异步Replication相比，性能损耗月20%~30%，Kafka没有亲自测试过，但是个人认为理论上会与低于RocketMQ。
 
 ### 性能对比
 * [Kafka单机写入TPS约在百万条/秒，消息大小10个字节](http://engineering.linkedin.com/kafka/benchmarking-apache-kafka-2-million-writes-second-three-cheap-machines)
@@ -36,15 +36,15 @@
 2. Consumer的集群规模和队列数成正比，队列越多，Consumer集群可以越大
 
 ### 消息投递实时性
-* Kafka使用短轮询方式，实时性取决于轮询间隔时间
+* Kafka使用短轮询方式，实时性取决于轮询间隔时间，0.8以后版本支持长轮询。
 * RocketMQ使用长轮询，同Push方式实时性一致，消息的投递延时通常在几个毫秒。
 
 
 ### 消费失败重试
-* Kafka消费失败不支持重试
+* Kafka消费失败不支持重试。
 * RocketMQ消费失败支持定时重试，每次重试间隔时间顺延
 
-> 总结：例如充值类应用，当前时刻调用运营商网关，充值失败，可能是对方压力过多，稍后在调用就会成功，如支付宝到银行扣款也是类似需求。
+> 总结：例如充值类应用，当前时刻调用运营商网关，充值失败，可能是对方压力过多，稍后再调用就会成功，如支付宝到银行扣款也是类似需求。
 
 > 这里的重试需要可靠的重试，即失败重试的消息不因为Consumer宕机导致丢失。
 
@@ -58,7 +58,7 @@
 ### 定时消息
 * Kafka不支持定时消息
 * RocketMQ支持两类定时消息
-	* 开源版本RocketMQ仅支持定时Level
+	* 开源版本RocketMQ仅支持定时Level，定时Level用户可定制
 	* 阿里云ONS支持定时Level，以及指定的毫秒级别的延时时间
 
 ### 分布式事务消息
@@ -123,7 +123,4 @@
 * [新浪微博](http://weibo.com/vintagewangxr)
 * vintage.wang@gmail.com
 * [加入RocketMQ开源群, 群号：5776652](http://url.cn/Knxm0o)
-
-
-
-
+* [感谢热心网友@王启军为本文提供了宝贵建议](http://blog.csdn.net/douliw/article/details/44179009)
