@@ -6,6 +6,8 @@ package com.alibaba.rocketmq.common.protocol.heartbeat;
 import java.util.HashSet;
 import java.util.Set;
 
+import com.alibaba.fastjson.annotation.JSONField;
+
 
 /**
  * @author shijia.wxr<vintage.wang@gmail.com>
@@ -18,6 +20,22 @@ public class SubscriptionData implements Comparable<SubscriptionData> {
     private Set<String> tagsSet = new HashSet<String>();
     private Set<Integer> codeSet = new HashSet<Integer>();
     private long subVersion = System.currentTimeMillis();
+
+    /**
+     * Java过滤类，通过专有的上传接口上传到Filter Server
+     */
+    @JSONField(serialize = false)
+    private String filterClassSource;
+
+
+    public String getFilterClassSource() {
+        return filterClassSource;
+    }
+
+
+    public void setFilterClassSource(String filterClassSource) {
+        this.filterClassSource = filterClassSource;
+    }
 
 
     public SubscriptionData() {

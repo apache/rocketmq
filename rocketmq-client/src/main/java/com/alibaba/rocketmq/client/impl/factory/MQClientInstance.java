@@ -17,7 +17,6 @@ package com.alibaba.rocketmq.client.impl.factory;
 
 import java.io.UnsupportedEncodingException;
 import java.net.DatagramSocket;
-import java.net.URL;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -63,7 +62,6 @@ import com.alibaba.rocketmq.common.ServiceState;
 import com.alibaba.rocketmq.common.UtilAll;
 import com.alibaba.rocketmq.common.conflict.PackageConflictDetect;
 import com.alibaba.rocketmq.common.constant.PermName;
-import com.alibaba.rocketmq.common.filter.FilterAPI;
 import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.common.message.MessageQueue;
 import com.alibaba.rocketmq.common.protocol.body.ConsumeMessageDirectlyResult;
@@ -395,20 +393,17 @@ public class MQClientInstance {
     }
 
 
-    private void uploadFilterClassToAllFilterServer(final String consumerGroup, final String className,
-            final String topic) throws UnsupportedEncodingException {
-        URL classFile = FilterAPI.classFile(className);
+    private void uploadFilterClassToAllFilterServer(final String consumerGroup, final String fullClassName,
+            final String topic, final String filterClassSource) throws UnsupportedEncodingException {
         byte[] classBody = null;
         int classCRC = 0;
         try {
-            String fileContent = MixAll.file2String(classFile);
-            classBody = fileContent.getBytes(MixAll.DEFAULT_CHARSET);
+            classBody = filterClassSource.getBytes(MixAll.DEFAULT_CHARSET);
             classCRC = UtilAll.crc32(classBody);
         }
         catch (Exception e1) {
-            log.warn("uploadFilterClassToAllFilterServer Exception, ClassFile: {} ClassName: {} {}", //
-                classFile,//
-                className,//
+            log.warn("uploadFilterClassToAllFilterServer Exception, ClassName: {} {}", //
+                fullClassName,//
                 RemotingHelper.exceptionSimpleDesc(e1));
         }
 
@@ -424,11 +419,11 @@ public class MQClientInstance {
                 for (final String fsAddr : value) {
                     try {
                         this.mQClientAPIImpl.registerMessageFilterClass(fsAddr, consumerGroup, topic,
-                            className, classCRC, classBody, 5000);
+                            fullClassName, classCRC, classBody, 5000);
 
                         log.info(
-                            "register message class filter to {} OK, ConsumerGroup: {} Topic: {} ClassName: {} ClassFile: {}",
-                            fsAddr, consumerGroup, topic, className, classFile);
+                            "register message class filter to {} OK, ConsumerGroup: {} Topic: {} ClassName: {}",
+                            fsAddr, consumerGroup, topic, fullClassName);
 
                     }
                     catch (Exception e) {
@@ -440,7 +435,7 @@ public class MQClientInstance {
         else {
             log.warn(
                 "register message class filter failed, because no filter server, ConsumerGroup: {} Topic: {} ClassName: {}",
-                consumerGroup, topic, className);
+                consumerGroup, topic, fullClassName);
         }
     }
 
@@ -454,12 +449,14 @@ public class MQClientInstance {
             if (ConsumeType.CONSUME_PASSIVELY == consumer.consumeType()) {
                 Set<SubscriptionData> subscriptions = consumer.subscriptions();
                 for (SubscriptionData sub : subscriptions) {
-                    if (sub.isClassFilterMode()) {
+                    if (sub.isClassFilterMode() && sub.getFilterClassSource() != null) {
                         final String consumerGroup = consumer.groupName();
                         final String className = sub.getSubString();
                         final String topic = sub.getTopic();
+                        final String filterClassSource = sub.getFilterClassSource();
                         try {
-                            this.uploadFilterClassToAllFilterServer(consumerGroup, className, topic);
+                            this.uploadFilterClassToAllFilterServer(consumerGroup, className, topic,
+                                filterClassSource);
                         }
                         catch (Exception e) {
                             log.error("uploadFilterClassToAllFilterServer Exception", e);

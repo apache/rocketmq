@@ -57,6 +57,7 @@ import com.alibaba.rocketmq.common.sysflag.PullSysFlag;
 import com.alibaba.rocketmq.remoting.RPCHook;
 import com.alibaba.rocketmq.remoting.common.RemotingHelper;
 import com.alibaba.rocketmq.remoting.exception.RemotingException;
+
 import org.slf4j.Logger;
 
 import java.util.*;
@@ -984,6 +985,29 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
             if (this.mQClientFactory != null) {
                 this.mQClientFactory.sendHeartbeatToAllBrokerWithLock();
             }
+        }
+        catch (Exception e) {
+            throw new MQClientException("subscription exception", e);
+        }
+    }
+
+
+    public void subscribe(String topic, String fullClassName, String filterClassSource)
+            throws MQClientException {
+        try {
+            SubscriptionData subscriptionData =
+                    FilterAPI.buildSubscriptionData(this.defaultMQPushConsumer.getConsumerGroup(),//
+                        topic, "*");
+            subscriptionData.setSubString(fullClassName);
+            subscriptionData.setClassFilterMode(true);
+            subscriptionData.setFilterClassSource(filterClassSource);
+            this.rebalanceImpl.getSubscriptionInner().put(topic, subscriptionData);
+            // 发送心跳，将变更的订阅关系注册上去
+            if (this.mQClientFactory != null) {
+                this.mQClientFactory.sendHeartbeatToAllBrokerWithLock();
+            }
+
+            // TODO 后面需要校验传入的Java源码是否可以正常编译通过
         }
         catch (Exception e) {
             throw new MQClientException("subscription exception", e);

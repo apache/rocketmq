@@ -384,6 +384,13 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
 
 
     @Override
+    public void subscribe(String topic, String fullClassName, String filterClassSource)
+            throws MQClientException {
+        this.defaultMQPushConsumerImpl.subscribe(topic, fullClassName, filterClassSource);
+    }
+
+
+    @Override
     public void unsubscribe(String topic) {
         this.defaultMQPushConsumerImpl.unsubscribe(topic);
     }
@@ -455,5 +462,4 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
     public void setAdjustThreadPoolNumsThreshold(long adjustThreadPoolNumsThreshold) {
         this.adjustThreadPoolNumsThreshold = adjustThreadPoolNumsThreshold;
     }
-
 }

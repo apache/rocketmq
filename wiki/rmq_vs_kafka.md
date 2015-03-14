@@ -27,7 +27,7 @@
 
 
 ### 单机支持的队列数
-* Kafka单机超过64个队列/分区，Load会发生明显的飙高现象，队列越多，load越高，发送消息响应时间变长
+* Kafka单机超过64个队列/分区，Load会发生明显的飙高现象，队列越多，load越高，发送消息响应时间变长。[Kafka分区数无法过多的问题](http://blog.confluent.io/2015/03/12/how-to-choose-the-number-of-topicspartitions-in-a-kafka-cluster/)
 * RocketMQ单机支持最高5万个队列，Load不会发生明显变化
 
 *队列多有什么好处？*
