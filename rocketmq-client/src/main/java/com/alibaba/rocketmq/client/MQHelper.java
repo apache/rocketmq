@@ -32,18 +32,18 @@ import com.alibaba.rocketmq.common.protocol.heartbeat.MessageModel;
  */
 public class MQHelper {
     /**
-     * 根据时间戳来重置一个订阅组的消费进度
+     * Reset consumer topic offset according to time
      * 
      * @param messageModel
-     *            广播消费还是集群消费
+     *            which model
      * @param instanceName
-     *            实例名称，保持与工作Consumer一致。
+     *            which instance
      * @param consumerGroup
-     *            订阅组
+     *            consumer group
      * @param topic
      *            topic
      * @param timestamp
-     *            时间戳
+     *            time
      * @throws Exception
      */
     public static void resetOffsetByTimestamp(//
