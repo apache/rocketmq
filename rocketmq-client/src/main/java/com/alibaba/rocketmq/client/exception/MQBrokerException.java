@@ -20,8 +20,6 @@ import com.alibaba.rocketmq.common.help.FAQUrl;
 
 
 /**
- * Broker异常
- * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-24
  */
