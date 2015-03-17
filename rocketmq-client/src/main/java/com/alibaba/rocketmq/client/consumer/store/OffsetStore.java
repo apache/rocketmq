@@ -23,49 +23,62 @@ import com.alibaba.rocketmq.common.message.MessageQueue;
 
 
 /**
- * Consumer Offset存储接口
- * 
+ * Offset store interface
+ *
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-25
  */
 public interface OffsetStore {
     /**
-     * 加载Offset
-     * 
+     * Load
+     *
      * @throws MQClientException
      */
-    public void load() throws MQClientException;
+    void load() throws MQClientException;
 
 
     /**
-     * 更新消费进度，存储到内存
+     * Update the offset,store it in memory
+     *
+     * @param mq
+     * @param offset
+     * @param increaseOnly
      */
-    public void updateOffset(final MessageQueue mq, final long offset, final boolean increaseOnly);
-
+    void updateOffset(final MessageQueue mq, final long offset, final boolean increaseOnly);
 
     /**
-     * 从本地缓存读取消费进度
+     * Get offset from local storage
+     *
+     * @param mq
+     * @param type
+     * @return
      */
-    public long readOffset(final MessageQueue mq, final ReadOffsetType type);
-
+    long readOffset(final MessageQueue mq, final ReadOffsetType type);
 
     /**
-     * 持久化全部消费进度，可能持久化本地或者远端Broker
+     * Persist all offsets,may be in local storage or remote name server
+     *
+     * @param mqs
      */
-    public void persistAll(final Set<MessageQueue> mqs);
-
-
-    public void persist(final MessageQueue mq);
-
+    void persistAll(final Set<MessageQueue> mqs);
 
     /**
-     * 删除不必要的MessageQueue offset
+     * Persist the offset,may be in local storage or remote name server
+     *
+     * @param mq
      */
-    public void removeOffset(MessageQueue mq);
-
+    void persist(final MessageQueue mq);
 
     /**
-     * 如果 topic 为空，则不对 topic 进行过滤，全部拷贝。
+     * Remove offset
+     *
+     * @param mq
      */
-    public Map<MessageQueue, Long> cloneOffsetTable(String topic);
+    void removeOffset(MessageQueue mq);
+
+    /**
+     * @param topic
+     * @return
+     */
+    Map<MessageQueue, Long> cloneOffsetTable(String topic);
 }

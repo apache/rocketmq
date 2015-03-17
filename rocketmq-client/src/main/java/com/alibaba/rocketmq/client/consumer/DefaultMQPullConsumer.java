@@ -34,8 +34,8 @@ import java.util.Set;
 
 
 /**
- * 消费者，主动拉取方式消费
- * 
+ * Default pulling consumer
+ *
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-24
  */
@@ -43,43 +43,43 @@ public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsume
     protected final transient DefaultMQPullConsumerImpl defaultMQPullConsumerImpl;
 
     /**
-     * 做同样事情的Consumer归为同一个Group，应用必须设置，并保证命名唯一
+     * Do the same thing for the same Group, the application must be set,and guarantee Globally unique
      */
     private String consumerGroup;
     /**
-     * 长轮询模式，Consumer连接在Broker挂起最长时间，不建议修改
+     * Long polling mode, the Consumer connection max suspend time, it is not recommended to modify
      */
     private long brokerSuspendMaxTimeMillis = 1000 * 20;
     /**
-     * 长轮询模式，Consumer超时时间（必须要大于brokerSuspendMaxTimeMillis），不建议修改
+     * Long polling mode, the Consumer connection timeout(must greater than brokerSuspendMaxTimeMillis), it is not recommended to modify
      */
     private long consumerTimeoutMillisWhenSuspend = 1000 * 30;
     /**
-     * 非阻塞拉模式，Consumer超时时间，不建议修改
+     * The socket timeout in milliseconds
      */
     private long consumerPullTimeoutMillis = 1000 * 10;
     /**
-     * 集群消费/广播消费
+     * Consumption pattern,default is clustering
      */
     private MessageModel messageModel = MessageModel.CLUSTERING;
     /**
-     * 队列变化监听器
+     * Message queue listener
      */
     private MessageQueueListener messageQueueListener;
     /**
-     * Offset存储，系统会根据客户端配置自动创建相应的实现，如果应用配置了，则以应用配置的为主
+     * Offset Storage
      */
     private OffsetStore offsetStore;
     /**
-     * 需要监听哪些Topic的队列变化
+     * Topic set you want to register
      */
     private Set<String> registerTopics = new HashSet<String>();
     /**
-     * 队列分配算法，应用可重写
+     * Queue allocation algorithm
      */
     private AllocateMessageQueueStrategy allocateMessageQueueStrategy = new AllocateMessageQueueAveragely();
     /**
-     * 是否为单元化的订阅组
+     * Whether the unit of subscription group
      */
     private boolean unitMode = false;
 
@@ -302,14 +302,14 @@ public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsume
 
     @Override
     public void pull(MessageQueue mq, String subExpression, long offset, int maxNums,
-            PullCallback pullCallback) throws MQClientException, RemotingException, InterruptedException {
+                     PullCallback pullCallback) throws MQClientException, RemotingException, InterruptedException {
         this.defaultMQPullConsumerImpl.pull(mq, subExpression, offset, maxNums, pullCallback);
     }
 
 
     @Override
     public void pull(MessageQueue mq, String subExpression, long offset, int maxNums,
-            PullCallback pullCallback, long timeout) throws MQClientException, RemotingException,
+                     PullCallback pullCallback, long timeout) throws MQClientException, RemotingException,
             InterruptedException {
         this.defaultMQPullConsumerImpl.pull(mq, subExpression, offset, maxNums, pullCallback, timeout);
     }
@@ -324,7 +324,7 @@ public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsume
 
     @Override
     public void pullBlockIfNotFound(MessageQueue mq, String subExpression, long offset, int maxNums,
-            PullCallback pullCallback) throws MQClientException, RemotingException, InterruptedException {
+                                    PullCallback pullCallback) throws MQClientException, RemotingException, InterruptedException {
         this.defaultMQPullConsumerImpl.pullBlockIfNotFound(mq, subExpression, offset, maxNums, pullCallback);
     }
 

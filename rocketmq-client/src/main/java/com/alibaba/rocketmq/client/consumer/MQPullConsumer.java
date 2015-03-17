@@ -25,155 +25,185 @@ import java.util.Set;
 
 
 /**
- * 消费者，主动方式消费
- * 
+ * Pulling consumer interface
+ *
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-24
  */
 public interface MQPullConsumer extends MQConsumer {
     /**
-     * 启动服务
-     * 
+     * Start the consumer
+     *
      * @throws MQClientException
      */
-    public void start() throws MQClientException;
+    void start() throws MQClientException;
 
 
     /**
-     * 关闭服务
+     * Shutdown the consumer
      */
-    public void shutdown();
+    void shutdown();
 
 
     /**
-     * 注册监听队列变化的listener对象
-     * 
+     * Register the message queue listener
+     *
      * @param topic
      * @param listener
-     *            一旦发生变化，客户端会主动回调listener对象
      */
-    public void registerMessageQueueListener(final String topic, final MessageQueueListener listener);
+    void registerMessageQueueListener(final String topic, final MessageQueueListener listener);
 
 
     /**
-     * 指定队列，主动拉取消息，即使没有消息，也立刻返回
-     * 
-     * @param mq
-     *            指定具体要拉取的队列
-     * @param subExpression
-     *            订阅过滤表达式字符串，broker依据此表达式进行过滤。目前只支持或运算<br>
-     *            eg: "tag1 || tag2 || tag3"<br>
-     *            如果subExpression等于null或者*，则表示全部订阅
-     * @param offset
-     *            从指定队列哪个位置开始拉取
-     * @param maxNums
-     *            一次最多拉取条数
-     * @return 参见PullResult
+     * Pulling the messages,not blocking
+     *
+     * @param mq            from which message queue
+     * @param subExpression subscription expression.it only support or operation such as "tag1 || tag2 || tag3" <br>
+     *                      if null or * expression,meaning subscribe all
+     * @param offset        from where to pull
+     * @param maxNums       max pulling numbers
+     * @return
      * @throws MQClientException
      * @throws InterruptedException
      * @throws MQBrokerException
      * @throws RemotingException
      */
-    public PullResult pull(final MessageQueue mq, final String subExpression, final long offset,
-            final int maxNums) throws MQClientException, RemotingException, MQBrokerException,
-            InterruptedException;
-
-
-    public PullResult pull(final MessageQueue mq, final String subExpression, final long offset,
-            final int maxNums, final long timeout) throws MQClientException, RemotingException,
-            MQBrokerException, InterruptedException;
-
-
-    public void pull(final MessageQueue mq, final String subExpression, final long offset, final int maxNums,
-            final PullCallback pullCallback) throws MQClientException, RemotingException,
-            InterruptedException;
-
-
-    public void pull(final MessageQueue mq, final String subExpression, final long offset, final int maxNums,
-            final PullCallback pullCallback, long timeout) throws MQClientException, RemotingException,
+    PullResult pull(final MessageQueue mq, final String subExpression, final long offset,
+                    final int maxNums) throws MQClientException, RemotingException, MQBrokerException,
             InterruptedException;
 
 
     /**
-     * 指定队列，主动拉取消息，如果没有消息，则broker阻塞一段时间再返回（时间可配置）<br>
-     * broker阻塞期间，如果有消息，则立刻将消息返回
-     * 
+     * Pulling the messages in the specified timeout
+     *
      * @param mq
-     *            指定具体要拉取的队列
      * @param subExpression
-     *            订阅过滤表达式字符串，broker依据此表达式进行过滤。目前只支持或运算<br>
-     *            eg: "tag1 || tag2 || tag3"<br>
-     *            如果subExpression等于null或者*，则表示全部订阅
      * @param offset
-     *            从指定队列哪个位置开始拉取
      * @param maxNums
-     *            一次最多拉取条数
-     * @return 参见PullResult
-     * @throws InterruptedException
-     * @throws MQBrokerException
-     * @throws RemotingException
+     * @param timeout
+     * @return
      * @throws MQClientException
+     * @throws RemotingException
+     * @throws MQBrokerException
+     * @throws InterruptedException
      */
-    public PullResult pullBlockIfNotFound(final MessageQueue mq, final String subExpression,
-            final long offset, final int maxNums) throws MQClientException, RemotingException,
+    PullResult pull(final MessageQueue mq, final String subExpression, final long offset,
+                    final int maxNums, final long timeout) throws MQClientException, RemotingException,
             MQBrokerException, InterruptedException;
 
 
-    public void pullBlockIfNotFound(final MessageQueue mq, final String subExpression, final long offset,
-            final int maxNums, final PullCallback pullCallback) throws MQClientException, RemotingException,
+    /**
+     * Pulling the messages in a async. way
+     *
+     * @param mq
+     * @param subExpression
+     * @param offset
+     * @param maxNums
+     * @param pullCallback
+     * @throws MQClientException
+     * @throws RemotingException
+     * @throws InterruptedException
+     */
+    void pull(final MessageQueue mq, final String subExpression, final long offset, final int maxNums,
+              final PullCallback pullCallback) throws MQClientException, RemotingException,
+            InterruptedException;
+
+    /**
+     * Pulling the messages in a async. way
+     *
+     * @param mq
+     * @param subExpression
+     * @param offset
+     * @param maxNums
+     * @param pullCallback
+     * @param timeout
+     * @throws MQClientException
+     * @throws RemotingException
+     * @throws InterruptedException
+     */
+    void pull(final MessageQueue mq, final String subExpression, final long offset, final int maxNums,
+              final PullCallback pullCallback, long timeout) throws MQClientException, RemotingException,
             InterruptedException;
 
 
     /**
-     * 更新消费进度<br>
-     * 只是更新Consumer缓存中的数据，如果是广播模式，则定时更新到本地存储<br>
-     * 如果是集群模式，则定时更新到远端Broker<br>
-     * <p/>
-     * P.S. 可频繁调用，无性能开销
-     * 
+     * Pulling the messages,if no message arrival,blocking some time
+     *
+     * @param mq
+     * @param subExpression
+     * @param offset
+     * @param maxNums
+     * @return
+     * @throws MQClientException
+     * @throws RemotingException
+     * @throws MQBrokerException
+     * @throws InterruptedException
+     */
+    PullResult pullBlockIfNotFound(final MessageQueue mq, final String subExpression,
+                                   final long offset, final int maxNums) throws MQClientException, RemotingException,
+            MQBrokerException, InterruptedException;
+
+
+    /**
+     * Pulling the messages through callback function,if no message arrival,blocking.
+     *
+     * @param mq
+     * @param subExpression
+     * @param offset
+     * @param maxNums
+     * @param pullCallback
+     * @throws MQClientException
+     * @throws RemotingException
+     * @throws InterruptedException
+     */
+    void pullBlockIfNotFound(final MessageQueue mq, final String subExpression, final long offset,
+                             final int maxNums, final PullCallback pullCallback) throws MQClientException, RemotingException,
+            InterruptedException;
+
+
+    /**
+     * Update the offset
+     *
      * @param mq
      * @param offset
      * @throws MQClientException
      */
-    public void updateConsumeOffset(final MessageQueue mq, final long offset) throws MQClientException;
+    void updateConsumeOffset(final MessageQueue mq, final long offset) throws MQClientException;
 
 
     /**
-     * 获取消费进度，返回-1表示出错
-     * 
+     * Fetch the offset
+     *
      * @param mq
      * @param fromStore
      * @return
      * @throws MQClientException
      */
-    public long fetchConsumeOffset(final MessageQueue mq, final boolean fromStore) throws MQClientException;
+    long fetchConsumeOffset(final MessageQueue mq, final boolean fromStore) throws MQClientException;
 
 
     /**
-     * 根据topic获取MessageQueue，以均衡方式在组内多个成员之间分配
-     * 
-     * @param topic
-     *            消息Topic
-     * @return 返回队列集合
+     * Fetch the message queues according to the topic
+     *
+     * @param topic message topic
+     * @return message queue set
      * @throws MQClientException
      */
-    public Set<MessageQueue> fetchMessageQueuesInBalance(final String topic) throws MQClientException;
-
+    Set<MessageQueue> fetchMessageQueuesInBalance(final String topic) throws MQClientException;
 
     /**
-     * Consumer消费失败的消息可以选择重新发回到服务器端，并延时消费<br>
-     * 会首先尝试将消息发回到消息之前存储的主机，此时只传送消息Offset，消息体不传送，不会占用网络带宽<br>
-     * 如果发送失败，会自动重试发往其他主机，此时消息体也会传送<br>
-     * 重传回去的消息只会被当前Consumer Group消费。
+     * If consuming failure,message will be send back to the broker,and delay consuming in some time later.<br>
+     * Mind! message can only be consumed in the same group.
      *
      * @param msg
      * @param delayLevel
-     *
-     * @throws InterruptedException
-     * @throws MQBrokerException
+     * @param brokerName
+     * @param consumerGroup
      * @throws RemotingException
+     * @throws MQBrokerException
+     * @throws InterruptedException
      * @throws MQClientException
      */
-    public void sendMessageBack(MessageExt msg, int delayLevel, String brokerName, String consumerGroup)
+    void sendMessageBack(MessageExt msg, int delayLevel, String brokerName, String consumerGroup)
             throws RemotingException, MQBrokerException, InterruptedException, MQClientException;
 }

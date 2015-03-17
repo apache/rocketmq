@@ -16,20 +16,26 @@
 package com.alibaba.rocketmq.client.consumer.listener;
 
 /**
- * 顺序消费，消费结果
- * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-24
  */
 public enum ConsumeOrderlyStatus {
-    // 消息处理成功
+    /**
+     * Success consumption
+     */
     SUCCESS,
-    // 回滚消息（只供精卫binlog复制使用）
+    /**
+     * Rollback consumption(only for binlog consumption)
+     */
     @Deprecated
     ROLLBACK,
-    // 提交消息（只供精卫binlog复制使用）
+    /**
+     * Commit offset(only for binlog consumption)
+     */
     @Deprecated
     COMMIT,
-    // 将当前队列挂起一小会儿
-    SUSPEND_CURRENT_QUEUE_A_MOMENT,
+    /**
+     * Suspend current queue a moment
+     */
+    SUSPEND_CURRENT_QUEUE_A_MOMENT;
 }

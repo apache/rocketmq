@@ -20,94 +20,81 @@ import com.alibaba.rocketmq.client.exception.MQClientException;
 
 
 /**
- * 消费者，被动方式消费
- * 
+ * Push consumer
+ *
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-24
  */
 public interface MQPushConsumer extends MQConsumer {
     /**
-     * 启动服务，调用之前确保registerMessageListener与subscribe都已经调用<br>
-     * 或者已经通过Spring注入了相关配置
-     * 
+     * Start the consumer
+     *
      * @throws MQClientException
      */
-    public void start() throws MQClientException;
+    void start() throws MQClientException;
 
 
     /**
-     * 关闭服务，一旦关闭，此对象将不可用
+     * Shutdown the consumer
      */
-    public void shutdown();
+    void shutdown();
 
 
     /**
-     * 注册消息监听器，一个Consumer只能有一个监听器
-     * 
+     * Register the message listener
+     *
      * @param messageListener
      */
-    public void registerMessageListener(final MessageListener messageListener);
+    void registerMessageListener(final MessageListener messageListener);
+
+    /**
+     * Subscribe some topic
+     *
+     * @param topic
+     * @param subExpression subscription expression.it only support or operation such as "tag1 || tag2 || tag3" <br>
+     *                      if null or * expression,meaning subscribe all
+     * @throws MQClientException
+     */
+    void subscribe(final String topic, final String subExpression) throws MQClientException;
 
 
     /**
-     * 订阅消息，方法可以调用多次来订阅不同的Topic，也可覆盖之前Topic的订阅过滤表达式
-     * 
+     * Subscribe some topic
+     *
      * @param topic
-     *            消息主题
-     * @param subExpression
-     *            订阅过滤表达式字符串，broker依据此表达式进行过滤。目前只支持或运算<br>
-     *            例如: "tag1 || tag2 || tag3"<br>
-     *            如果subExpression等于null或者*，则表示全部订阅<br>
-     * @param listener
-     *            消息回调监听器
+     * @param fullClassName     full class name，must extend com.alibaba.rocketmq.common.filter.
+     *                          MessageFilter
+     * @param filterClassSource class source code，used UTF-8 file encoding,must be responsible for your code safety
      * @throws MQClientException
      */
-    public void subscribe(final String topic, final String subExpression) throws MQClientException;
-
-
-    /**
-     * 订阅消息，方法可以调用多次来订阅不同的Topic，也可覆盖之前Topic的过滤类
-     * 
-     * @param topic
-     *            消息主题
-     * @param fullClassName
-     *            过滤类的完整类名，必须继承于com.alibaba.rocketmq.common.filter.
-     *            MessageFilter接口
-     *            例如：rocketmq.message.filter.cousumergroup.FilterClassName
-     * @param filterClassSource
-     *            过滤类Java代码，必须UTF-8编码方式，代码实现不可以依赖除JDK外的代码。代码会自动上传到服务器运行，
-     *            请用户自己保证代码安全性
-     * @throws MQClientException
-     */
-    public void subscribe(final String topic, final String fullClassName, final String filterClassSource)
+    void subscribe(final String topic, final String fullClassName, final String filterClassSource)
             throws MQClientException;
 
 
     /**
-     * 取消订阅，从当前订阅组内注销，消息会被订阅组内其他订阅者订阅
-     * 
-     * @param topic
-     *            消息主题
+     * Unsubscribe consumption some topic
+     *
+     * @param topic message topic
      */
-    public void unsubscribe(final String topic);
+    void unsubscribe(final String topic);
 
 
     /**
-     * 动态调整消费线程池线程数量
-     * 
+     * Update the consumer thread pool size Dynamically
+     *
      * @param corePoolSize
      */
-    public void updateCorePoolSize(int corePoolSize);
+    void updateCorePoolSize(int corePoolSize);
 
 
     /**
-     * 消费线程挂起，暂停消费
+     * Suspend the consumption
      */
-    public void suspend();
+    void suspend();
 
 
     /**
-     * 消费线程恢复，继续消费
+     * Resume the consumption
      */
-    public void resume();
+    void resume();
 }

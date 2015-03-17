@@ -16,9 +16,7 @@
 package com.alibaba.rocketmq.client.consumer;
 
 public class PullTaskContext {
-    /**
-     * 距离下次拉取这个队列的间隔时间，单位毫秒
-     */
+
     private int pullNextDelayTimeMillis = 200;
 
     private MQPullConsumer pullConsumer;

@@ -22,8 +22,6 @@ import com.alibaba.rocketmq.common.message.MessageQueue;
 
 
 /**
- * 按照配置来分配队列，建议应用使用Spring来初始化
- * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-24
  */
@@ -39,7 +37,7 @@ public class AllocateMessageQueueByConfig implements AllocateMessageQueueStrateg
 
     @Override
     public List<MessageQueue> allocate(String consumerGroup, String currentCID, List<MessageQueue> mqAll,
-            List<String> cidAll) {
+                                       List<String> cidAll) {
         return this.messageQueueList;
     }
 

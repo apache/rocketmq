@@ -39,8 +39,8 @@ import com.alibaba.rocketmq.remoting.exception.RemotingException;
 
 
 /**
- * 消费进度存储到远端Broker，比较可靠
- * 
+ * Remote storage implementation
+ *
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-24
  */
@@ -75,8 +75,7 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
             if (null != offsetOld) {
                 if (increaseOnly) {
                     MixAll.compareAndIncreaseOnly(offsetOld, offset);
-                }
-                else {
+                } else {
                     offsetOld.set(offset);
                 }
             }
@@ -88,35 +87,34 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
     public long readOffset(final MessageQueue mq, final ReadOffsetType type) {
         if (mq != null) {
             switch (type) {
-            case MEMORY_FIRST_THEN_STORE:
-            case READ_FROM_MEMORY: {
-                AtomicLong offset = this.offsetTable.get(mq);
-                if (offset != null) {
-                    return offset.get();
+                case MEMORY_FIRST_THEN_STORE:
+                case READ_FROM_MEMORY: {
+                    AtomicLong offset = this.offsetTable.get(mq);
+                    if (offset != null) {
+                        return offset.get();
+                    } else if (ReadOffsetType.READ_FROM_MEMORY == type) {
+                        return -1;
+                    }
                 }
-                else if (ReadOffsetType.READ_FROM_MEMORY == type) {
-                    return -1;
+                case READ_FROM_STORE: {
+                    try {
+                        long brokerOffset = this.fetchConsumeOffsetFromBroker(mq);
+                        AtomicLong offset = new AtomicLong(brokerOffset);
+                        this.updateOffset(mq, offset.get(), false);
+                        return brokerOffset;
+                    }
+                    // No offset in broker
+                    catch (MQBrokerException e) {
+                        return -1;
+                    }
+                    //Other exceptions
+                    catch (Exception e) {
+                        log.warn("fetchConsumeOffsetFromBroker exception, " + mq, e);
+                        return -2;
+                    }
                 }
-            }
-            case READ_FROM_STORE: {
-                try {
-                    long brokerOffset = this.fetchConsumeOffsetFromBroker(mq);
-                    AtomicLong offset = new AtomicLong(brokerOffset);
-                    this.updateOffset(mq, offset.get(), false);
-                    return brokerOffset;
-                }
-                // 当前订阅组在服务器没有对应的Offset
-                catch (MQBrokerException e) {
-                    return -1;
-                }
-                // 其他通信错误
-                catch (Exception e) {
-                    log.warn("fetchConsumeOffsetFromBroker exception, " + mq, e);
-                    return -2;
-                }
-            }
-            default:
-                break;
+                default:
+                    break;
             }
         }
 
@@ -139,21 +137,17 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
                     if (mqs.contains(mq)) {
                         try {
                             this.updateConsumeOffsetToBroker(mq, offset.get());
-                            // 每隔1分钟打印一次消费进度
                             if ((times % 12) == 0) {
                                 log.info("Group: {} ClientId: {} updateConsumeOffsetToBroker {} {}", //
-                                    this.groupName,//
-                                    this.mQClientFactory.getClientId(),//
-                                    mq, //
-                                    offset.get());
+                                        this.groupName,//
+                                        this.mQClientFactory.getClientId(),//
+                                        mq, //
+                                        offset.get());
                             }
-                        }
-                        catch (Exception e) {
+                        } catch (Exception e) {
                             log.error("updateConsumeOffsetToBroker exception, " + mq.toString(), e);
                         }
-                    }
-                    // 本地多余的队列，需要删除掉
-                    else {
+                    } else {
                         unusedMQ.add(mq);
                     }
                 }
@@ -176,8 +170,7 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
             try {
                 this.updateConsumeOffsetToBroker(mq, offset.get());
                 log.debug("updateConsumeOffsetToBroker {} {}", mq, offset.get());
-            }
-            catch (Exception e) {
+            } catch (Exception e) {
                 log.error("updateConsumeOffsetToBroker exception, " + mq.toString(), e);
             }
         }
@@ -185,13 +178,14 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
 
 
     /**
-     * 更新Consumer Offset，在Master断网期间，可能会更新到Slave，这里需要优化，或者在Slave端优化， TODO
+     * Update the Consumer Offset, once the Master is off, updated to Slave,
+     * here need to be optimized.
      */
     private void updateConsumeOffsetToBroker(MessageQueue mq, long offset) throws RemotingException,
             MQBrokerException, InterruptedException, MQClientException {
         FindBrokerResult findBrokerResult = this.mQClientFactory.findBrokerAddressInAdmin(mq.getBrokerName());
         if (null == findBrokerResult) {
-            // TODO 此处可能对Name Server压力过大，需要调优
+            // TODO Here may be heavily overhead for Name Server,need tuning
             this.mQClientFactory.updateTopicRouteInfoFromNameServer(mq.getTopic());
             findBrokerResult = this.mQClientFactory.findBrokerAddressInAdmin(mq.getBrokerName());
         }
@@ -203,11 +197,9 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
             requestHeader.setQueueId(mq.getQueueId());
             requestHeader.setCommitOffset(offset);
 
-            // 使用oneway形式，原因是服务器在删除文件时，这个调用可能会超时
             this.mQClientFactory.getMQClientAPIImpl().updateConsumerOffsetOneway(
-                findBrokerResult.getBrokerAddr(), requestHeader, 1000 * 5);
-        }
-        else {
+                    findBrokerResult.getBrokerAddr(), requestHeader, 1000 * 5);
+        } else {
             throw new MQClientException("The broker[" + mq.getBrokerName() + "] not exist", null);
         }
     }
@@ -217,7 +209,7 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
             InterruptedException, MQClientException {
         FindBrokerResult findBrokerResult = this.mQClientFactory.findBrokerAddressInAdmin(mq.getBrokerName());
         if (null == findBrokerResult) {
-            // TODO 此处可能对Name Server压力过大，需要调优
+            // TODO Here may be heavily overhead for Name Server,need tuning
             this.mQClientFactory.updateTopicRouteInfoFromNameServer(mq.getTopic());
             findBrokerResult = this.mQClientFactory.findBrokerAddressInAdmin(mq.getBrokerName());
         }
@@ -229,9 +221,8 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
             requestHeader.setQueueId(mq.getQueueId());
 
             return this.mQClientFactory.getMQClientAPIImpl().queryConsumerOffset(
-                findBrokerResult.getBrokerAddr(), requestHeader, 1000 * 5);
-        }
-        else {
+                    findBrokerResult.getBrokerAddr(), requestHeader, 1000 * 5);
+        } else {
             throw new MQClientException("The broker[" + mq.getBrokerName() + "] not exist", null);
         }
     }
@@ -241,7 +232,7 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
         if (mq != null) {
             this.offsetTable.remove(mq);
             log.info("remove unnecessary messageQueue offset. mq={}, offsetTableSize={}", mq,
-                offsetTable.size());
+                    offsetTable.size());
         }
     }
 

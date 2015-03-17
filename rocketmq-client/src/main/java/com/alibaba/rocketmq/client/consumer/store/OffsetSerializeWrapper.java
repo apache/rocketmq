@@ -23,8 +23,8 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingSerializable;
 
 
 /**
- * Offset持久化，json包装类
- * 
+ * Wrapper class for offset serialization
+ *
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-25
  */
@@ -32,11 +32,9 @@ public class OffsetSerializeWrapper extends RemotingSerializable {
     private ConcurrentHashMap<MessageQueue, AtomicLong> offsetTable =
             new ConcurrentHashMap<MessageQueue, AtomicLong>();
 
-
     public ConcurrentHashMap<MessageQueue, AtomicLong> getOffsetTable() {
         return offsetTable;
     }
-
 
     public void setOffsetTable(ConcurrentHashMap<MessageQueue, AtomicLong> offsetTable) {
         this.offsetTable = offsetTable;
