@@ -15,20 +15,6 @@
  */
 package com.alibaba.rocketmq.broker.processor;
 
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelFutureListener;
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.FileRegion;
-
-import java.net.InetSocketAddress;
-import java.net.SocketAddress;
-import java.util.List;
-import java.util.Map;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.alibaba.rocketmq.broker.BrokerController;
 import com.alibaba.rocketmq.broker.client.ConsumerGroupInfo;
 import com.alibaba.rocketmq.broker.longpolling.PullRequest;
@@ -61,6 +47,14 @@ import com.alibaba.rocketmq.store.GetMessageResult;
 import com.alibaba.rocketmq.store.MessageExtBrokerInner;
 import com.alibaba.rocketmq.store.PutMessageResult;
 import com.alibaba.rocketmq.store.config.BrokerRole;
+import io.netty.channel.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.net.InetSocketAddress;
+import java.net.SocketAddress;
+import java.util.List;
+import java.util.Map;
 
 
 /**
@@ -451,17 +445,29 @@ public class PullMessageProcessor implements NettyRequestProcessor {
             case ResponseCode.PULL_RETRY_IMMEDIATELY:
                 break;
             case ResponseCode.PULL_OFFSET_MOVED:
-                MessageQueue mq = new MessageQueue();
-                mq.setTopic(requestHeader.getTopic());
-                mq.setQueueId(requestHeader.getQueueId());
-                mq.setBrokerName(this.brokerController.getBrokerConfig().getBrokerName());
+                if (this.brokerController.getMessageStoreConfig().getBrokerRole() != BrokerRole.SLAVE
+                        || this.brokerController.getBrokerConfig().isOffsetCheckInSlave()) {
+                    MessageQueue mq = new MessageQueue();
+                    mq.setTopic(requestHeader.getTopic());
+                    mq.setQueueId(requestHeader.getQueueId());
+                    mq.setBrokerName(this.brokerController.getBrokerConfig().getBrokerName());
 
-                OffsetMovedEvent event = new OffsetMovedEvent();
-                event.setConsumerGroup(requestHeader.getConsumerGroup());
-                event.setMessageQueue(mq);
-                event.setOffsetRequest(requestHeader.getQueueOffset());
-                event.setOffsetNew(getMessageResult.getNextBeginOffset());
-                this.generateOffsetMovedEvent(event);
+                    OffsetMovedEvent event = new OffsetMovedEvent();
+                    event.setConsumerGroup(requestHeader.getConsumerGroup());
+                    event.setMessageQueue(mq);
+                    event.setOffsetRequest(requestHeader.getQueueOffset());
+                    event.setOffsetNew(getMessageResult.getNextBeginOffset());
+                    this.generateOffsetMovedEvent(event);
+                }
+                else {
+                    responseHeader.setSuggestWhichBrokerId(subscriptionGroupConfig.getBrokerId());
+                    response.setCode(ResponseCode.PULL_RETRY_IMMEDIATELY);
+                }
+
+                log.warn(
+                    "PULL_OFFSET_MOVED:topic={}, groupId={}, clientId={}, offset={}, suggestBrokerId={}",
+                    requestHeader.getTopic(), requestHeader.getConsumerGroup(),
+                    requestHeader.getQueueOffset(), responseHeader.getSuggestWhichBrokerId());
                 break;
             default:
                 assert false;
