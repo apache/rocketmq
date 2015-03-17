@@ -325,7 +325,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
 
     public void pullMessage(final PullRequest pullRequest) {
         final ProcessQueue processQueue = pullRequest.getProcessQueue();
-        if (processQueue.isDroped()) {
+        if (processQueue.isDropped()) {
             log.info("the pull request[{}] is droped.", pullRequest.toString());
             return;
         }
@@ -464,7 +464,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                         pullRequest.setNextOffset(pullResult.getNextBeginOffset());
 
                         // 第一步、缓存队列里的消息全部废弃
-                        pullRequest.getProcessQueue().setDroped(true);
+                        pullRequest.getProcessQueue().setDropped(true);
                         // 第二步、等待10s后再执行，防止Offset更新后又被覆盖
                         DefaultMQPushConsumerImpl.this.executeTaskLater(new Runnable() {
 
@@ -1099,39 +1099,33 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
     }
 
 
-    private long computeDuijiTotal() {
-        long msgDuijiCntTotal = 0;
+    private long computeAccumulationTotal() {
+        long msgAccTotal = 0;
         ConcurrentHashMap<MessageQueue, ProcessQueue> processQueueTable =
                 this.rebalanceImpl.getProcessQueueTable();
         Iterator<Entry<MessageQueue, ProcessQueue>> it = processQueueTable.entrySet().iterator();
         while (it.hasNext()) {
             Entry<MessageQueue, ProcessQueue> next = it.next();
             ProcessQueue value = next.getValue();
-            msgDuijiCntTotal += value.getMsgDuijiCnt();
+            msgAccTotal += value.getMsgAccCnt();
         }
 
-        return msgDuijiCntTotal;
+        return msgAccTotal;
     }
 
-
-    /**
-     * 根据消息堆积数量，动态调整线程池数量
-     */
     public void adjustThreadPool() {
-        long computeDuijiTotal = this.computeDuijiTotal();
+        long computeAccTotal = this.computeAccumulationTotal();
         long adjustThreadPoolNumsThreshold = this.defaultMQPushConsumer.getAdjustThreadPoolNumsThreshold();
 
         long incThreshold = (long) (adjustThreadPoolNumsThreshold * 1.0);
 
         long decThreshold = (long) (adjustThreadPoolNumsThreshold * 0.8);
 
-        // 增加线程池线程数量
-        if (computeDuijiTotal >= incThreshold) {
+        if (computeAccTotal >= incThreshold) {
             this.consumeMessageService.incCorePoolSize();
         }
 
-        // 开始减少线程池线程数量
-        if (computeDuijiTotal < decThreshold) {
+        if (computeAccTotal < decThreshold) {
             this.consumeMessageService.decCorePoolSize();
         }
     }

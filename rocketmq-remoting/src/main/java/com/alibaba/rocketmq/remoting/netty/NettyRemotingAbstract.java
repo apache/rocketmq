@@ -374,12 +374,10 @@ public abstract class NettyRemotingAbstract {
 
             RemotingCommand responseCommand = responseFuture.waitResponse(timeoutMillis);
             if (null == responseCommand) {
-                // 发送请求成功，读取应答超时
                 if (responseFuture.isSendRequestOK()) {
                     throw new RemotingTimeoutException(RemotingHelper.parseChannelRemoteAddr(channel),
                         timeoutMillis, responseFuture.getCause());
                 }
-                // 发送请求失败
                 else {
                     throw new RemotingSendRequestException(RemotingHelper.parseChannelRemoteAddr(channel),
                         responseFuture.getCause());

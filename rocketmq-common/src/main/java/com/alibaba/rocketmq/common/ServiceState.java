@@ -16,25 +16,23 @@
 package com.alibaba.rocketmq.common;
 
 /**
- * 服务对象的状态，通常需要start，shutdown
- * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public enum ServiceState {
     /**
-     * 服务对象刚刚创建，但是未启动
+     * Service just created,not start
      */
     CREATE_JUST,
     /**
-     * 服务启动成功
+     * Service Running
      */
     RUNNING,
     /**
-     * 服务已经关闭
+     * Service shutdown
      */
     SHUTDOWN_ALREADY,
     /**
-     * 服务启动失败
+     * Service Start failure
      */
-    START_FAILED
+    START_FAILED;
 }

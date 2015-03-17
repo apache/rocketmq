@@ -20,20 +20,16 @@ import org.slf4j.LoggerFactory;
 
 
 /**
- * 后台服务线程基类
- * 
+ * Base class for background thread
+ *
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-13
  */
 public abstract class ServiceThread implements Runnable {
     private static final Logger stlog = LoggerFactory.getLogger(RemotingHelper.RemotingLogName);
-    // 执行线程
     protected final Thread thread;
-    // 线程回收时间，默认90S
     private static final long JoinTime = 90 * 1000;
-    // 是否已经被Notify过
     protected volatile boolean hasNotified = false;
-    // 线程是否已经停止
     protected volatile boolean stoped = false;
 
 
@@ -102,8 +98,7 @@ public abstract class ServiceThread implements Runnable {
             long eclipseTime = System.currentTimeMillis() - beginTime;
             stlog.info("join thread " + this.getServiceName() + " eclipse time(ms) " + eclipseTime + " "
                     + this.getJointime());
-        }
-        catch (InterruptedException e) {
+        } catch (InterruptedException e) {
             e.printStackTrace();
         }
     }
@@ -129,11 +124,9 @@ public abstract class ServiceThread implements Runnable {
 
             try {
                 this.wait(interval);
-            }
-            catch (InterruptedException e) {
+            } catch (InterruptedException e) {
                 e.printStackTrace();
-            }
-            finally {
+            } finally {
                 this.hasNotified = false;
                 this.onWaitEnd();
             }

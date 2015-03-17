@@ -354,8 +354,8 @@ public abstract class RebalanceImpl {
     public void removeProcessQueue(final MessageQueue mq) {
         ProcessQueue prev = this.processQueueTable.remove(mq);
         if (prev != null) {
-            boolean droped = prev.isDroped();
-            prev.setDroped(true);
+            boolean droped = prev.isDropped();
+            prev.setDropped(true);
             this.removeUnnecessaryMessageQueue(mq, prev);
             log.info("Fix Offset, {}, remove unnecessary mq, {} Droped: {}", consumerGroup, mq, droped);
         }
@@ -374,7 +374,7 @@ public abstract class RebalanceImpl {
 
             if (mq.getTopic().equals(topic)) {
                 if (!mqSet.contains(mq)) {
-                    pq.setDroped(true);
+                    pq.setDropped(true);
                     if (this.removeUnnecessaryMessageQueue(mq, pq)) {
                         it.remove();
                         changed = true;
@@ -387,7 +387,7 @@ public abstract class RebalanceImpl {
                         case CONSUME_ACTIVELY:
                             break;
                         case CONSUME_PASSIVELY:
-                            pq.setDroped(true);
+                            pq.setDropped(true);
                             if (this.removeUnnecessaryMessageQueue(mq, pq)) {
                                 it.remove();
                                 changed = true;
@@ -449,7 +449,7 @@ public abstract class RebalanceImpl {
             if (!subTable.containsKey(mq.getTopic())) {
                 ProcessQueue pq = this.processQueueTable.remove(mq);
                 if (pq != null) {
-                    pq.setDroped(true);
+                    pq.setDropped(true);
                     log.info("doRebalance, {}, truncateMessageQueueNotMyTopic remove unnecessary mq, {}",
                             consumerGroup, mq);
                 }
@@ -517,7 +517,7 @@ public abstract class RebalanceImpl {
         Iterator<Entry<MessageQueue, ProcessQueue>> it = this.processQueueTable.entrySet().iterator();
         while (it.hasNext()) {
             Entry<MessageQueue, ProcessQueue> next = it.next();
-            next.getValue().setDroped(true);
+            next.getValue().setDropped(true);
         }
 
         this.processQueueTable.clear();

@@ -170,7 +170,7 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
 
         @Override
         public void run() {
-            if (this.processQueue.isDroped()) {
+            if (this.processQueue.isDropped()) {
                 log.warn("run, the message queue not be able to consume, because it's dropped. {}",
                     this.messageQueue);
                 return;
@@ -185,7 +185,7 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
                         || (this.processQueue.isLocked() && !this.processQueue.isLockExpired())) {
                     final long beginTime = System.currentTimeMillis();
                     for (boolean continueConsume = true; continueConsume;) {
-                        if (this.processQueue.isDroped()) {
+                        if (this.processQueue.isDropped()) {
                             log.warn("the message queue not be able to consume, because it's dropped. {}",
                                 this.messageQueue);
                             break;
@@ -250,7 +250,7 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
 
                             try {
                                 this.processQueue.getLockConsume().lock();
-                                if (this.processQueue.isDroped()) {
+                                if (this.processQueue.isDropped()) {
                                     log.warn(
                                         "consumeMessage, the message queue not be able to consume, because it's dropped. {}",
                                         this.messageQueue);
@@ -314,7 +314,7 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
                 }
                 // 没有拿到当前队列的锁，稍后再消费
                 else {
-                    if (this.processQueue.isDroped()) {
+                    if (this.processQueue.isDropped()) {
                         log.warn("the message queue not be able to consume, because it's dropped. {}",
                             this.messageQueue);
                         return;

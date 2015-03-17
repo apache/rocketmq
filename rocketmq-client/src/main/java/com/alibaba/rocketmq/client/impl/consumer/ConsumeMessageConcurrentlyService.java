@@ -115,7 +115,7 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
 
         @Override
         public void run() {
-            if (this.processQueue.isDroped()) {
+            if (this.processQueue.isDropped()) {
                 log.info("the message queue not be able to consume, because it's dropped {}",
                     this.messageQueue);
                 return;
@@ -125,7 +125,6 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
             ConsumeConcurrentlyContext context = new ConsumeConcurrentlyContext(messageQueue);
             ConsumeConcurrentlyStatus status = null;
 
-            // 执行Hook
             ConsumeMessageContext consumeMessageContext = null;
             if (ConsumeMessageConcurrentlyService.this.defaultMQPushConsumerImpl.hasHook()) {
                 consumeMessageContext = new ConsumeMessageContext();
@@ -176,7 +175,7 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
                 ConsumeMessageConcurrentlyService.this.consumerGroup, messageQueue.getTopic(), consumeRT);
 
             // 如果ProcessQueue是dropped状态，不需要直接更新 offset
-            if (!processQueue.isDroped()) {
+            if (!processQueue.isDropped()) {
                 ConsumeMessageConcurrentlyService.this.processConsumeResult(status, context, this);
             }
             else {

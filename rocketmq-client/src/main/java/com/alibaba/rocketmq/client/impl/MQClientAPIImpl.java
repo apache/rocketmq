@@ -170,10 +170,8 @@ public class MQClientAPIImpl {
 
 
     public void start() {
-        // 远程通信 Client 启动
         this.remotingClient.start();
-
-        // 获取虚拟运行环境相关的project group
+        //Get app info
         try {
             String localAddress = RemotingUtil.getLocalAddress();
             projectGroupPrefix = this.getProjectGroupByIp(localAddress, 3000);
@@ -853,15 +851,11 @@ public class MQClientAPIImpl {
     }
 
 
-    /**
-     * 发送心跳
-     */
     public void sendHearbeat(//
             final String addr,//
             final HeartbeatData heartbeatData,//
             final long timeoutMillis//
     ) throws RemotingException, MQBrokerException, InterruptedException {
-        // 添加虚拟运行环境相关的projectGroupPrefix
         if (!UtilAll.isBlank(projectGroupPrefix)) {
             Set<ConsumerData> consumerDatas = heartbeatData.getConsumerDataSet();
             for (ConsumerData consumerData : consumerDatas) {
@@ -897,9 +891,6 @@ public class MQClientAPIImpl {
     }
 
 
-    /**
-     * 发送心跳
-     */
     public void unregisterClient(//
             final String addr,//
             final String clientID,//

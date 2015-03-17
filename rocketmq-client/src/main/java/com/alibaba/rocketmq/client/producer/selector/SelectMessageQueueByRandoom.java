@@ -24,8 +24,6 @@ import com.alibaba.rocketmq.common.message.MessageQueue;
 
 
 /**
- * 发送消息，随机选择队列
- * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-25
  */

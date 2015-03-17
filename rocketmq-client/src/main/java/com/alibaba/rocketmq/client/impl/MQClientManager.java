@@ -24,8 +24,6 @@ import com.alibaba.rocketmq.remoting.RPCHook;
 
 
 /**
- * Client单例管理
- * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-24
  */
@@ -52,12 +50,11 @@ public class MQClientManager {
         if (null == instance) {
             instance =
                     new MQClientInstance(clientConfig.cloneClientConfig(),
-                        this.factoryIndexGenerator.getAndIncrement(), clientId, rpcHook);
+                            this.factoryIndexGenerator.getAndIncrement(), clientId, rpcHook);
             MQClientInstance prev = this.factoryTable.putIfAbsent(clientId, instance);
             if (prev != null) {
                 instance = prev;
-            }
-            else {
+            } else {
                 // TODO log
             }
         }
