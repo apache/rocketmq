@@ -22,5 +22,5 @@ package com.alibaba.rocketmq.client.impl;
 public enum CommunicationMode {
     SYNC,
     ASYNC,
-    ONEWAY;
+    ONEWAY,
 }

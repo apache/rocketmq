@@ -16,8 +16,6 @@
 package com.alibaba.rocketmq.remoting.common;
 
 /**
- * 包装2个对象
- * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-13
  */

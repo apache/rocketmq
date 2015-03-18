@@ -29,8 +29,6 @@ import com.alibaba.rocketmq.common.ServiceThread;
 
 
 /**
- * 长轮询拉消息服务，单线程异步拉取
- * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-24
  */
@@ -51,10 +49,6 @@ public class PullMessageService extends ServiceThread {
         this.mQClientFactory = mQClientFactory;
     }
 
-
-    /**
-     * 只定时一次
-     */
     public void executePullRequestLater(final PullRequest pullRequest, final long timeDelay) {
         this.scheduledExecutorService.schedule(new Runnable() {
 
@@ -66,17 +60,11 @@ public class PullMessageService extends ServiceThread {
     }
 
 
-    /**
-     * 只定时一次
-     */
     public void executeTaskLater(final Runnable r, final long timeDelay) {
         this.scheduledExecutorService.schedule(r, timeDelay, TimeUnit.MILLISECONDS);
     }
 
 
-    /**
-     * 立刻执行PullRequest
-     */
     public void executePullRequestImmediately(final PullRequest pullRequest) {
         try {
             this.pullRequestQueue.put(pullRequest);

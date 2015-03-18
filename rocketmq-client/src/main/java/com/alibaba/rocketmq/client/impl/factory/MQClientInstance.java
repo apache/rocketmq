@@ -175,11 +175,15 @@ public class MQClientInstance {
                     if (null == this.clientConfig.getNamesrvAddr()) {
                         this.clientConfig.setNamesrvAddr(this.mQClientAPIImpl.fetchNameServerAddr());
                     }
+                    //Start request-response channel
                     this.mQClientAPIImpl.start();
+                    //Start various schedule tasks
                     this.startScheduledTask();
+                    //Start pull service
                     this.pullMessageService.start();
+                    //Start rebalance service
                     this.rebalanceService.start();
-
+                    //Start push service
                     this.defaultMQProducer.getDefaultMQProducerImpl().start(false);
                     log.info("the client factory [{}] start OK", this.clientId);
                     this.serviceState = ServiceState.RUNNING;
@@ -407,7 +411,6 @@ public class MQClientInstance {
         while (it.hasNext()) {
             Entry<String, MQConsumerInner> next = it.next();
             MQConsumerInner consumer = next.getValue();
-            // 只支持PushConsumer
             if (ConsumeType.CONSUME_PASSIVELY == consumer.consumeType()) {
                 Set<SubscriptionData> subscriptions = consumer.subscriptions();
                 for (SubscriptionData sub : subscriptions) {
@@ -547,9 +550,6 @@ public class MQClientInstance {
     }
 
 
-    /**
-     * 调用Name Server接口，根据Topic获取路由信息
-     */
     public boolean updateTopicRouteInfoFromNameServer(final String topic, boolean isDefault,
                                                       DefaultMQProducer defaultMQProducer) {
         try {
@@ -562,7 +562,6 @@ public class MQClientInstance {
                                         defaultMQProducer.getCreateTopicKey(), 1000 * 3);
                         if (topicRouteData != null) {
                             for (QueueData data : topicRouteData.getQueueDatas()) {
-                                // 读写分区个数是一致，故只做一次判断
                                 int queueNums =
                                         Math.min(defaultMQProducer.getDefaultTopicQueueNums(),
                                                 data.getReadQueueNums());
@@ -585,15 +584,13 @@ public class MQClientInstance {
                         }
 
                         if (changed) {
-                            // 后面排序会影响下次的equal逻辑判断，所以先clone一份
                             TopicRouteData cloneTopicRouteData = topicRouteData.cloneTopicRouteData();
 
-                            // 更新Broker地址信息
                             for (BrokerData bd : topicRouteData.getBrokerDatas()) {
                                 this.brokerAddrTable.put(bd.getBrokerName(), bd.getBrokerAddrs());
                             }
 
-                            // 更新发布队列信息
+                            // Update Pub info
                             {
                                 TopicPublishInfo publishInfo =
                                         topicRouteData2TopicPublishInfo(topic, topicRouteData);
@@ -609,7 +606,7 @@ public class MQClientInstance {
                                 }
                             }
 
-                            // 更新订阅队列信息
+                            //Update sub info
                             {
                                 Set<MessageQueue> subscribeInfo =
                                         topicRouteData2TopicSubscribeInfo(topic, topicRouteData);
@@ -668,7 +665,6 @@ public class MQClientInstance {
     public static TopicPublishInfo topicRouteData2TopicPublishInfo(final String topic,
                                                                    final TopicRouteData route) {
         TopicPublishInfo info = new TopicPublishInfo();
-        // 顺序消息
         if (route.getOrderTopicConf() != null && route.getOrderTopicConf().length() > 0) {
             String[] brokers = route.getOrderTopicConf().split(";");
             for (String broker : brokers) {
@@ -682,14 +678,11 @@ public class MQClientInstance {
 
             info.setOrderTopic(true);
         }
-        // 非顺序消息
         else {
             List<QueueData> qds = route.getQueueDatas();
-            // 排序原因：即使没有配置顺序消息模式，默认队列的顺序同配置的一致。
             Collections.sort(qds);
             for (QueueData qd : qds) {
                 if (PermName.isWriteable(qd.getPerm())) {
-                    // 这里需要判断BrokerName对应的Master是否存在，因为只能向Master发送消息
                     BrokerData brokerData = null;
                     for (BrokerData bd : route.getBrokerDatas()) {
                         if (bd.getBrokerName().equals(qd.getBrokerName())) {
@@ -739,7 +732,6 @@ public class MQClientInstance {
 
     private boolean isNeedUpdateTopicRouteInfo(final String topic) {
         boolean result = false;
-        // 查看发布队列是否需要更新
         {
             Iterator<Entry<String, MQProducerInner>> it = this.producerTable.entrySet().iterator();
             while (it.hasNext() && !result) {
@@ -751,7 +743,6 @@ public class MQClientInstance {
             }
         }
 
-        // 查看订阅队列是否需要更新
         {
             Iterator<Entry<String, MQConsumerInner>> it = this.consumerTable.entrySet().iterator();
             while (it.hasNext() && !result) {
@@ -950,12 +941,6 @@ public class MQClientInstance {
     }
 
 
-    /**
-     * 管理类的接口查询Broker地址，Master优先
-     *
-     * @param brokerName
-     * @return
-     */
     public FindBrokerResult findBrokerAddressInAdmin(final String brokerName) {
         String brokerAddr = null;
         boolean slave = false;
@@ -963,7 +948,6 @@ public class MQClientInstance {
 
         HashMap<Long/* brokerId */, String/* address */> map = this.brokerAddrTable.get(brokerName);
         if (map != null && !map.isEmpty()) {
-            // TODO 如果有多个Slave，可能会每次都选中相同的Slave，这里需要优化
             FOR_SEG:
             for (Map.Entry<Long, String> entry : map.entrySet()) {
                 Long id = entry.getKey();
@@ -989,10 +973,6 @@ public class MQClientInstance {
         return null;
     }
 
-
-    /**
-     * 发布消息过程中，寻找Broker地址，一定是找Master
-     */
     public String findBrokerAddressInPublish(final String brokerName) {
         HashMap<Long/* brokerId */, String/* address */> map = this.brokerAddrTable.get(brokerName);
         if (map != null && !map.isEmpty()) {
@@ -1002,10 +982,6 @@ public class MQClientInstance {
         return null;
     }
 
-
-    /**
-     * 订阅消息过程中，寻找Broker地址，取Master还是Slave由参数决定
-     */
     public FindBrokerResult findBrokerAddressInSubscribe(//
                                                          final String brokerName,//
                                                          final long brokerId,//
@@ -1021,7 +997,6 @@ public class MQClientInstance {
             slave = (brokerId != MixAll.MASTER_ID);
             found = (brokerAddr != null);
 
-            // 尝试寻找其他Broker
             if (!found && !onlyThisBroker) {
                 Entry<Long, String> entry = map.entrySet().iterator().next();
                 brokerAddr = entry.getValue();
@@ -1082,8 +1057,6 @@ public class MQClientInstance {
                 return;
             }
 
-            // 设置当前的 processQueue 为 dropped，从而使得当前的 pullRequest 以及
-            // consumerRequest 处理结束并销毁
             ConcurrentHashMap<MessageQueue, ProcessQueue> processQueueTable =
                     consumer.getRebalanceImpl().getProcessQueueTable();
             Iterator<MessageQueue> itr = processQueueTable.keySet().iterator();
@@ -1096,7 +1069,6 @@ public class MQClientInstance {
                 }
             }
 
-            // 更新消费队列的 offset 并提交到 broker
             Iterator<MessageQueue> iterator = offsetTable.keySet().iterator();
             while (iterator.hasNext()) {
                 MessageQueue mq = iterator.next();
@@ -1106,14 +1078,12 @@ public class MQClientInstance {
             }
             consumer.getOffsetStore().persistAll(offsetTable.keySet());
 
-            // 等待所有的 pullRequest 以及 consumerRequest 处理完成
             try {
                 TimeUnit.SECONDS.sleep(10);
             } catch (InterruptedException e) {
                 //
             }
 
-            // 更新消费队列的 offset 并提交到 broker
             iterator = offsetTable.keySet().iterator();
             while (iterator.hasNext()) {
                 MessageQueue mq = iterator.next();
@@ -1123,8 +1093,6 @@ public class MQClientInstance {
             }
             consumer.getOffsetStore().persistAll(offsetTable.keySet());
 
-            // 真正清除被 dropped 的 processQueue，从而使得新的 rebalance 生效，生成新的 pullRequest
-            // 以及 consumerRequest
             iterator = offsetTable.keySet().iterator();
             processQueueTable = consumer.getRebalanceImpl().getProcessQueueTable();
             while (iterator.hasNext()) {
@@ -1132,7 +1100,6 @@ public class MQClientInstance {
                 processQueueTable.remove(mq);
             }
         } finally {
-            // 放在 finally 主要是确保 rebalance 一定被执行
             consumer.getRebalanceImpl().doRebalance();
         }
     }
@@ -1236,7 +1203,6 @@ public class MQClientInstance {
 
         ConsumerRunningInfo consumerRunningInfo = mqConsumerInner.consumerRunningInfo();
 
-        // 补充额外的信息
         List<String> nsList = this.mQClientAPIImpl.getRemotingClient().getNameServerAddressList();
         String nsAddr = "";
         if (nsList != null) {

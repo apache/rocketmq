@@ -330,10 +330,8 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
             return;
         }
 
-        // 标明尝试拉消息了
         pullRequest.getProcessQueue().setLastPullTimestamp(System.currentTimeMillis());
 
-        // 检测Consumer是否启动
         try {
             this.makeSureStateOK();
         }
@@ -343,7 +341,6 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
             return;
         }
 
-        // 检测Consumer是否被挂起
         if (this.isPause()) {
             log.warn("consumer was paused, execute pull request later. instanceName={}",
                 this.defaultMQPushConsumer.getInstanceName());
@@ -351,7 +348,6 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
             return;
         }
 
-        // 流量控制，队列中消息总数
         long size = processQueue.getMsgCount().get();
         if (size > this.defaultMQPushConsumer.getPullThresholdForQueue()) {
             this.executePullRequestLater(pullRequest, PullTimeDelayMillsWhenFlowControl);
@@ -362,7 +358,6 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
             return;
         }
 
-        // 流量控制，队列中消息最大跨度
         if (!this.consumeOrderly) {
             if (processQueue.getMaxSpan() > this.defaultMQPushConsumer.getConsumeConcurrentlyMaxSpan()) {
                 this.executePullRequestLater(pullRequest, PullTimeDelayMillsWhenFlowControl);
@@ -374,7 +369,6 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
             }
         }
 
-        // 查询订阅关系
         final SubscriptionData subscriptionData =
                 this.rebalanceImpl.getSubscriptionInner().get(pullRequest.getMessageQueue().getTopic());
         if (null == subscriptionData) {

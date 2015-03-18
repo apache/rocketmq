@@ -140,10 +140,6 @@ public class ClientRemotingProcessor implements NettyRequestProcessor {
         return response;
     }
 
-
-    /**
-     * Oneway调用，无返回值
-     */
     public RemotingCommand checkTransactionState(ChannelHandlerContext ctx, RemotingCommand request)
             throws RemotingCommandException {
         final CheckTransactionStateRequestHeader requestHeader =
@@ -171,10 +167,6 @@ public class ClientRemotingProcessor implements NettyRequestProcessor {
         return null;
     }
 
-
-    /**
-     * Oneway调用，无返回值
-     */
     public RemotingCommand notifyConsumerIdsChanged(ChannelHandlerContext ctx, RemotingCommand request)
             throws RemotingCommandException {
         try {
@@ -192,10 +184,6 @@ public class ClientRemotingProcessor implements NettyRequestProcessor {
         return null;
     }
 
-
-    /**
-     * 重置 offset， oneWay调用，无返回值。
-     */
     public RemotingCommand resetOffset(ChannelHandlerContext ctx, RemotingCommand request)
             throws RemotingCommandException {
         final ResetOffsetRequestHeader requestHeader =
@@ -213,10 +201,6 @@ public class ClientRemotingProcessor implements NettyRequestProcessor {
         return null;
     }
 
-
-    /**
-     * 获取 consumer 消息消费状态。
-     */
     @Deprecated
     public RemotingCommand getConsumeStatus(ChannelHandlerContext ctx, RemotingCommand request)
             throws RemotingCommandException {
