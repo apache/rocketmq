@@ -16,8 +16,6 @@
 package com.alibaba.rocketmq.client.producer;
 
 /**
- * 发送事务消息返回结果
- * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-31
  */
