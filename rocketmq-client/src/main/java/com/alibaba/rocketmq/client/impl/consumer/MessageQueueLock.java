@@ -21,7 +21,7 @@ import com.alibaba.rocketmq.common.message.MessageQueue;
 
 
 /**
- * 严格保证单个队列同一时刻只有一个线程消费
+ * Message lock,strictly ensure the single queue only one thread at a time consuming
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-6-25

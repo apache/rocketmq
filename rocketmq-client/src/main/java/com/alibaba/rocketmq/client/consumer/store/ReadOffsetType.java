@@ -16,10 +16,16 @@
 package com.alibaba.rocketmq.client.consumer.store;
 
 public enum ReadOffsetType {
-    // 只从Memory读取
+    /**
+     * From memory
+     */
     READ_FROM_MEMORY,
-    // 只从存储层读取（本地或者远端）
+    /**
+     * From storage
+     */
     READ_FROM_STORE,
-    // 先从内存读，内存不存在再从存储层读
-    MEMORY_FIRST_THEN_STORE,
+    /**
+     * From memory,then from storage
+     */
+    MEMORY_FIRST_THEN_STORE;
 }

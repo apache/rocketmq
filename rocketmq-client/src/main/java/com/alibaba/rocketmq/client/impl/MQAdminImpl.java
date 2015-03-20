@@ -54,8 +54,6 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 
 
 /**
- * 管理类接口实现
- * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-24
  */
@@ -81,14 +79,12 @@ public class MQAdminImpl {
                     this.mQClientFactory.getMQClientAPIImpl().getTopicRouteInfoFromNameServer(key, 1000 * 3);
             List<BrokerData> brokerDataList = topicRouteData.getBrokerDatas();
             if (brokerDataList != null && !brokerDataList.isEmpty()) {
-                // 排序原因：即使没有配置顺序消息模式，默认队列的顺序同配置的一致。
                 Collections.sort(brokerDataList);
 
                 MQClientException exception = null;
 
                 StringBuilder orderTopicString = new StringBuilder();
 
-                // 遍历各个Broker
                 for (BrokerData brokerData : brokerDataList) {
                     String addr = brokerData.getBrokerAddrs().get(MixAll.MASTER_ID);
                     if (addr != null) {

@@ -21,12 +21,18 @@ import com.alibaba.rocketmq.common.message.MessageQueue;
 
 
 /**
- * 队列变化监听器
- * 
+ * A MessageQueueListener is implemented by the application and may be specified when a message queue changed
+ *
  * @author shijia.wxr<vintage.wang@gmail.com>
+ * @author von gosling<fengjia10@gmail.com>
  * @since 2013-7-24
  */
 public interface MessageQueueListener {
-    public void messageQueueChanged(final String topic, final Set<MessageQueue> mqAll,
-            final Set<MessageQueue> mqDivided);
+    /**
+     * @param topic     message topic
+     * @param mqAll     all queues in this message topic
+     * @param mqDivided collection of queues,assigned to the current consumer
+     */
+    void messageQueueChanged(final String topic, final Set<MessageQueue> mqAll,
+                             final Set<MessageQueue> mqDivided);
 }

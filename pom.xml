@@ -7,14 +7,6 @@
         <artifactId>parent</artifactId>
         <version>1.0.2</version>
     </parent>
-      <!--    
-    <parent>
-        <groupId>org.sonatype.oss</groupId>
-        <artifactId>oss-parent</artifactId>
-        <version>7</version>
-    </parent>
--->
-
 
     <modelVersion>4.0.0</modelVersion>
     <inceptionYear>2012</inceptionYear>
@@ -26,6 +18,9 @@
     <url>https://github.com/alibaba/rocketmq</url>
     <description>https://github.com/alibaba/RocketMQ/blob/develop/README.md</description>
 
+    <prerequisites>
+        <maven>2.2.1</maven>
+    </prerequisites>
 
     <modules>
         <module>rocketmq-client</module>
@@ -59,6 +54,13 @@
             <email>allen.jie.zhu@gmail.com</email>
             <timezone>8</timezone>
         </developer>
+        <developer>
+            <id>Von Gosling</id>
+            <name>Von Gosling</name>
+            <email>fengjia10@gmail.com</email>
+            <url>https://github.com/vongosling</url>
+            <timezone>+8</timezone>
+        </developer>
     </developers>
 
     <licenses>
@@ -89,9 +91,48 @@
     <build>
         <plugins>
             <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>versions-maven-plugin</artifactId>
+                <version>2.1</version>
+            </plugin>
+            <plugin>
+                <groupId>com.github.vongosling</groupId>
+                <artifactId>dependency-mediator-maven-plugin</artifactId>
+                <version>1.0.2</version>
+            </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>clirr-maven-plugin</artifactId>
+                <version>2.6.1</version>
+            </plugin>
+            <plugin>
+                <artifactId>maven-enforcer-plugin</artifactId>
+                <version>1.4</version>
+                <executions>
+                    <execution>
+                        <id>enforce-ban-circular-dependencies</id>
+                        <goals>
+                            <goal>enforce</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <rules>
+                        <banCircularDependencies />
+                    </rules>
+                    <fail>true</fail>
+                </configuration>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>extra-enforcer-rules</artifactId>
+                        <version>1.0-beta-2</version>
+                    </dependency>
+                </dependencies>
+            </plugin>
+            <plugin>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>2.3.2</version>
+                <version>3.2</version>
                 <configuration>
                     <source>${java_source_version}</source>
                     <target>${java_target_version}</target>
@@ -101,18 +142,16 @@
                 </configuration>
             </plugin>
             <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-eclipse-plugin</artifactId>
-                <version>2.5.1</version>
+                <version>2.9</version>
                 <configuration>
                     <downloadSources>true</downloadSources>
                     <downloadJavadocs>false</downloadJavadocs>
                 </configuration>
             </plugin>
             <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
-                <version>2.3</version>
+                <version>2.18.1</version>
                 <configuration>
                     <skip>${maven.test.skip}</skip>
                     <argLine>-Xms512m -Xmx1024m</argLine>
@@ -143,6 +182,7 @@
 
             <plugin>
                 <artifactId>maven-assembly-plugin</artifactId>
+                <version>2.5.3</version>
                 <configuration>
                     <finalName>alibaba-rocketmq-${project.version}</finalName>
                     <descriptors>
@@ -165,9 +205,8 @@
 
 
             <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
-                <version>2.7</version>
+                <version>2.10.1</version>
                 <executions>
                     <execution>
                         <id>attach-javadocs</id>
@@ -194,9 +233,8 @@
                 </configuration>
             </plugin>
             <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-source-plugin</artifactId>
-                <version>2.1.2</version>
+                <version>2.4</version>
                 <executions>
                     <execution>
                         <id>attach-sources</id>
@@ -233,9 +271,8 @@
             <build>
                 <plugins>
                     <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-gpg-plugin</artifactId>
-                        <version>1.1</version>
+                        <version>1.6</version>
                         <executions>
                             <execution>
                                 <id>sign-artifacts</id>

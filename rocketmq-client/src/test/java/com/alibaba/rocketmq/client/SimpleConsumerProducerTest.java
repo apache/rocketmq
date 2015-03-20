@@ -18,12 +18,11 @@ import com.alibaba.rocketmq.common.message.Message;
 import com.alibaba.rocketmq.common.message.MessageExt;
 
 
-public class TestMultiConsumerProducer {
+public class SimpleConsumerProducerTest {
     private static final String TOPIC_TEST = "TopicTest-fundmng";
 
-
     @Test
-    public void testProducerConsumer() throws MQClientException, InterruptedException {
+    public void producerConsumerTest() throws MQClientException, InterruptedException {
         System.setProperty("rocketmq.namesrv.domain", "jmenv.tbsite.alipay.net");
 
         DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("S_fundmng_demo_producer");
@@ -38,8 +37,8 @@ public class TestMultiConsumerProducer {
 
         consumer.registerMessageListener(new MessageListenerConcurrently() {
             public ConsumeConcurrentlyStatus consumeMessage(final List<MessageExt> msgs,
-                    final ConsumeConcurrentlyContext context) {
-                System.out.println("接收了" + consumeTimes.incrementAndGet() + "条消息!");
+                                                            final ConsumeConcurrentlyContext context) {
+                System.out.println("Received" + consumeTimes.incrementAndGet() + "messages !");
 
                 lastReceivedMills.set(System.currentTimeMillis());
 
@@ -55,8 +54,7 @@ public class TestMultiConsumerProducer {
                 Message msg = new Message(TOPIC_TEST, ("Hello RocketMQ " + i).getBytes());
                 SendResult sendResult = producer.send(msg);
                 System.out.println(sendResult);
-            }
-            catch (Exception e) {
+            } catch (Exception e) {
                 TimeUnit.SECONDS.sleep(1);
             }
         }

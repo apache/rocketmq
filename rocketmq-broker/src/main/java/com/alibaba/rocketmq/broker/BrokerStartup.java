@@ -47,8 +47,6 @@ import com.alibaba.rocketmq.store.config.MessageStoreConfig;
 
 
 /**
- * Broker启动入口
- * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-26
  */

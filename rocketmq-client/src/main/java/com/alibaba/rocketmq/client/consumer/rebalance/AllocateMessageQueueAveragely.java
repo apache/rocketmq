@@ -26,8 +26,8 @@ import com.alibaba.rocketmq.common.message.MessageQueue;
 
 
 /**
- * 平均分配队列算法（块状）
- * 
+ * Average Hashing queue algorithm
+ *
  * @author fuchong<yubao.fyb@alibaba-inc.com>
  * @author manhong.yqd<manhong.yqd@taobao.com>
  * @since 2013-7-24
@@ -44,7 +44,7 @@ public class AllocateMessageQueueAveragely implements AllocateMessageQueueStrate
 
     @Override
     public List<MessageQueue> allocate(String consumerGroup, String currentCID, List<MessageQueue> mqAll,
-            List<String> cidAll) {
+                                       List<String> cidAll) {
         if (currentCID == null || currentCID.length() < 1) {
             throw new IllegalArgumentException("currentCID is empty");
         }
@@ -56,11 +56,11 @@ public class AllocateMessageQueueAveragely implements AllocateMessageQueueStrate
         }
 
         List<MessageQueue> result = new ArrayList<MessageQueue>();
-        if (!cidAll.contains(currentCID)) { // 不存在此ConsumerId ,直接返回
+        if (!cidAll.contains(currentCID)) {
             log.info("[BUG] ConsumerGroup: {} The consumerId: {} not in cidAll: {}", //
-                consumerGroup, //
-                currentCID,//
-                cidAll);
+                    consumerGroup, //
+                    currentCID,//
+                    cidAll);
             return result;
         }
 

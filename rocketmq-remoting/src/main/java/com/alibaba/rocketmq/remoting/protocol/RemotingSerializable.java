@@ -21,8 +21,7 @@ import com.alibaba.fastjson.JSON;
 
 
 /**
- * 复杂对象的序列化，利用json来实现
- * 
+ *
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-13
  */

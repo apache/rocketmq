@@ -21,22 +21,20 @@ import com.alibaba.rocketmq.common.message.MessageExt;
 
 
 /**
- * 同一队列的消息同一时刻只能一个线程消费，可保证消息在同一队列严格有序消费
- * 
+ * A MessageListenerConcurrently object is used to receive asynchronously delivered messages orderly.one queue,one thread
+ *
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-24
  */
 public interface MessageListenerOrderly extends MessageListener {
     /**
-     * 方法抛出异常等同于返回 ConsumeOrderlyStatus.SUSPEND_CURRENT_QUEUE_A_MOMENT<br>
-     * P.S: 建议应用不要抛出异常
-     * 
-     * @param msgs
-     *            msgs.size() >= 1<br>
-     *            DefaultMQPushConsumer.consumeMessageBatchMaxSize=1，默认消息数为1
+     * It is not recommend to throw exception,rather than returning ConsumeOrderlyStatus.SUSPEND_CURRENT_QUEUE_A_MOMENT if consumption failure
+     *
+     * @param msgs    msgs.size() >= 1<br>
+     *                DefaultMQPushConsumer.consumeMessageBatchMaxSize=1，you can modify here
      * @param context
      * @return
      */
-    public ConsumeOrderlyStatus consumeMessage(final List<MessageExt> msgs,
-            final ConsumeOrderlyContext context);
+    ConsumeOrderlyStatus consumeMessage(final List<MessageExt> msgs,
+                                        final ConsumeOrderlyContext context);
 }

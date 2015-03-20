@@ -16,11 +16,9 @@
 package com.alibaba.rocketmq.client.hook;
 
 public interface ConsumeMessageHook {
-    public String hookName();
+    String hookName();
 
+    void consumeMessageBefore(final ConsumeMessageContext context);
 
-    public void consumeMessageBefore(final ConsumeMessageContext context);
-
-
-    public void consumeMessageAfter(final ConsumeMessageContext context);
+    void consumeMessageAfter(final ConsumeMessageContext context);
 }

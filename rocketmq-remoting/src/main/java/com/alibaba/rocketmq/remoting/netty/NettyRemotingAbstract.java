@@ -175,7 +175,6 @@ public abstract class NettyRemotingAbstract {
                                 cmd, response);
                         }
 
-                        // Oneway形式忽略应答结果
                         if (!cmd.isOnewayRPC()) {
                             if (response != null) {
                                 response.setOpaque(cmd.getOpaque());
@@ -251,7 +250,6 @@ public abstract class NettyRemotingAbstract {
 
             responseFuture.release();
 
-            // 异步调用
             if (responseFuture.getInvokeCallback() != null) {
                 boolean runInThisThread = false;
                 ExecutorService executor = this.getCallbackExecutor();
@@ -287,7 +285,6 @@ public abstract class NettyRemotingAbstract {
                     }
                 }
             }
-            // 同步调用
             else {
                 responseFuture.putResponse(cmd);
             }
@@ -374,12 +371,10 @@ public abstract class NettyRemotingAbstract {
 
             RemotingCommand responseCommand = responseFuture.waitResponse(timeoutMillis);
             if (null == responseCommand) {
-                // 发送请求成功，读取应答超时
                 if (responseFuture.isSendRequestOK()) {
                     throw new RemotingTimeoutException(RemotingHelper.parseChannelRemoteAddr(channel),
                         timeoutMillis, responseFuture.getCause());
                 }
-                // 发送请求失败
                 else {
                     throw new RemotingSendRequestException(RemotingHelper.parseChannelRemoteAddr(channel),
                         responseFuture.getCause());

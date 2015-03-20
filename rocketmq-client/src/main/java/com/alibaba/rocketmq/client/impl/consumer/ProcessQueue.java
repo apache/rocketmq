@@ -34,16 +34,14 @@ import com.alibaba.rocketmq.common.protocol.body.ProcessQueueInfo;
 
 
 /**
- * 正在被消费的队列，含消息
+ * Queue consumption snapshot
  * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-24
  */
 public class ProcessQueue {
-    // 客户端本地Lock存活最大时间，超过则自动过期，单位ms
     public final static long RebalanceLockMaxLiveTime = Long.parseLong(System.getProperty(
         "rocketmq.client.rebalance.lockMaxLiveTime", "30000"));
-    // 定时Lock间隔时间，单位ms
     public final static long RebalanceLockInterval = Long.parseLong(System.getProperty(
         "rocketmq.client.rebalance.lockInterval", "20000"));
 
@@ -53,35 +51,22 @@ public class ProcessQueue {
     private volatile long queueOffsetMax = 0L;
     private final AtomicLong msgCount = new AtomicLong();
 
-    // 当前Q是否被rebalance丢弃
-    private volatile boolean droped = false;
+    private volatile boolean dropped = false;
     private volatile long lastPullTimestamp = System.currentTimeMillis();
     private final static long PullMaxIdleTime = Long.parseLong(System.getProperty(
         "rocketmq.client.pull.pullMaxIdleTime", "120000"));
 
-    // 最后一次消费的时间戳
     private volatile long lastConsumeTimestamp = System.currentTimeMillis();
 
-    /**
-     * 顺序消息专用
-     */
     private final Lock lockConsume = new ReentrantLock();
 
-    // 是否从Broker锁定
     private volatile boolean locked = false;
-    // 最后一次锁定成功时间戳
     private volatile long lastLockTimestamp = System.currentTimeMillis();
-    // 是否正在被消费
     private volatile boolean consuming = false;
-    // 事务方式消费，未提交的消息
     private final TreeMap<Long, MessageExt> msgTreeMapTemp = new TreeMap<Long, MessageExt>();
-    // 尝试释放这个队列的次数
     private final AtomicLong tryUnlockTimes = new AtomicLong(0);
 
-    /**
-     * 当前队列的消息堆积数量
-     */
-    private volatile long msgDuijiCnt = 0;
+    private volatile long msgAccCnt = 0;
 
 
     public boolean isLockExpired() {
@@ -95,12 +80,8 @@ public class ProcessQueue {
         return result;
     }
 
-
-    /**
-     * @return 是否需要分发当前队列到消费线程池
-     */
     public boolean putMessage(final List<MessageExt> msgs) {
-        boolean dispathToConsume = false;
+        boolean dispatchToConsume = false;
         try {
             this.lockTreeMap.writeLock().lockInterruptibly();
             try {
@@ -115,18 +96,17 @@ public class ProcessQueue {
                 msgCount.addAndGet(validMsgCnt);
 
                 if (!msgTreeMap.isEmpty() && !this.consuming) {
-                    dispathToConsume = true;
+                    dispatchToConsume = true;
                     this.consuming = true;
                 }
 
-                // 计算当前队列堆积的消息数量
                 if (!msgs.isEmpty()) {
                     MessageExt messageExt = msgs.get(msgs.size() - 1);
                     String property = messageExt.getProperty(MessageConst.PROPERTY_MAX_OFFSET);
                     if (property != null) {
-                        long duiji = Long.parseLong(property) - messageExt.getQueueOffset();
-                        if (duiji > 0) {
-                            this.msgDuijiCnt = duiji;
+                        long accTotal = Long.parseLong(property) - messageExt.getQueueOffset();
+                        if (accTotal > 0) {
+                            this.msgAccCnt = accTotal;
                         }
                     }
                 }
@@ -139,13 +119,10 @@ public class ProcessQueue {
             log.error("putMessage exception", e);
         }
 
-        return dispathToConsume;
+        return dispatchToConsume;
     }
 
 
-    /**
-     * 获取当前队列的最大跨度
-     */
     public long getMaxSpan() {
         try {
             this.lockTreeMap.readLock().lockInterruptibly();
@@ -165,13 +142,6 @@ public class ProcessQueue {
         return 0;
     }
 
-
-    /**
-     * 删除已经消费过的消息，返回最小Offset，这个Offset对应的消息未消费
-     * 
-     * @param msgs
-     * @return
-     */
     public long removeMessage(final List<MessageExt> msgs) {
         long result = -1;
         final long now = System.currentTimeMillis();
@@ -217,20 +187,14 @@ public class ProcessQueue {
     }
 
 
-    public boolean isDroped() {
-        return droped;
+    public boolean isDropped() {
+        return dropped;
     }
 
 
-    public void setDroped(boolean droped) {
-        this.droped = droped;
+    public void setDropped(boolean dropped) {
+        this.dropped = dropped;
     }
-
-
-    /**
-     * ========================================================================
-     * 以下部分为顺序消息专有操作
-     */
 
     public void setLocked(boolean locked) {
         this.locked = locked;
@@ -286,8 +250,6 @@ public class ProcessQueue {
         try {
             this.lockTreeMap.writeLock().lockInterruptibly();
             try {
-                // 临时Table删除
-                // 正常Table增加
                 for (MessageExt msg : msgs) {
                     this.msgTreeMapTemp.remove(msg.getQueueOffset());
                     this.msgTreeMap.put(msg.getQueueOffset(), msg);
@@ -302,13 +264,6 @@ public class ProcessQueue {
         }
     }
 
-
-    /**
-     * 如果取不到消息，则将正在消费状态置为false
-     * 
-     * @param batchSize
-     * @return
-     */
     public List<MessageExt> takeMessags(final int batchSize) {
         List<MessageExt> result = new ArrayList<MessageExt>(batchSize);
         final long now = System.currentTimeMillis();
@@ -338,7 +293,7 @@ public class ProcessQueue {
             }
         }
         catch (InterruptedException e) {
-            log.error("takeMessags exception", e);
+            log.error("take Messages exception", e);
         }
 
         return result;
@@ -389,13 +344,13 @@ public class ProcessQueue {
     }
 
 
-    public long getMsgDuijiCnt() {
-        return msgDuijiCnt;
+    public long getMsgAccCnt() {
+        return msgAccCnt;
     }
 
 
-    public void setMsgDuijiCnt(long msgDuijiCnt) {
-        this.msgDuijiCnt = msgDuijiCnt;
+    public void setMsgAccCnt(long msgAccCnt) {
+        this.msgAccCnt = msgAccCnt;
     }
 
 
@@ -429,7 +384,7 @@ public class ProcessQueue {
             info.setTryUnlockTimes(this.tryUnlockTimes.get());
             info.setLastLockTimestamp(this.lastLockTimestamp);
 
-            info.setDroped(this.droped);
+            info.setDroped(this.dropped);
             info.setLastPullTimestamp(this.lastPullTimestamp);
             info.setLastConsumeTimestamp(this.lastConsumeTimestamp);
         }

@@ -16,11 +16,9 @@
 package com.alibaba.rocketmq.client.hook;
 
 public interface SendMessageHook {
-    public String hookName();
+    String hookName();
 
+    void sendMessageBefore(final SendMessageContext context);
 
-    public void sendMessageBefore(final SendMessageContext context);
-
-
-    public void sendMessageAfter(final SendMessageContext context);
+    void sendMessageAfter(final SendMessageContext context);
 }

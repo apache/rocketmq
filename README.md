@@ -40,8 +40,8 @@ It offers a variety of features as follows:
 ## Development team in Alibaba
 * vintagewang([@vintagewang](https://github.com/vintagewang))
 * vongosling([@vongosling](https://github.com/vongosling))
-* manhong
-* lansheng
+* allenzhu([[@allenzhu]](https://github.com/allenzhu))
+* manhong([@manhong](https://github.com/YangJodie))
 * longji
 * fuchong
 * mouyu

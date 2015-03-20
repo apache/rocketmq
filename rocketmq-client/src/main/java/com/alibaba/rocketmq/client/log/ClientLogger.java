@@ -26,16 +26,12 @@ import com.alibaba.rocketmq.common.constant.LoggerName;
 
 
 /**
- * Client通过反射来初始化客户端日志
- * 
- * @author 菱叶<jin.qian@alipay.com>
- * @since 2013-7-24
+ * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public class ClientLogger {
     private static Logger log;
 
     static {
-        // 初始化Logger
         log = createLogger(LoggerName.ClientLoggerName);
     }
 
@@ -43,7 +39,7 @@ public class ClientLogger {
     private static Logger createLogger(final String loggerName) {
         String logConfigFilePath =
                 System.getProperty("rocketmq.client.log.configFile",
-                    System.getenv("ROCKETMQ_CLIENT_LOG_CONFIGFILE"));
+                        System.getenv("ROCKETMQ_CLIENT_LOG_CONFIGFILE"));
         Boolean isloadconfig =
                 Boolean.parseBoolean(System.getProperty("rocketmq.client.log.loadconfig", "true"));
 
@@ -52,7 +48,7 @@ public class ClientLogger {
 
         final String logback_resource_file =
                 System
-                    .getProperty("rocketmq.client.logback.resource.fileName", "logback_rocketmq_client.xml");
+                        .getProperty("rocketmq.client.logback.resource.fileName", "logback_rocketmq_client.xml");
 
         if (isloadconfig) {
             try {
@@ -64,18 +60,15 @@ public class ClientLogger {
                     DOMConfigurator = Class.forName("org.apache.log4j.xml.DOMConfigurator");
                     DOMConfiguratorObj = DOMConfigurator.newInstance();
                     if (null == logConfigFilePath) {
-                        // 如果应用没有配置，则使用jar包内置配置
                         Method configure = DOMConfiguratorObj.getClass().getMethod("configure", URL.class);
                         URL url = ClientLogger.class.getClassLoader().getResource(log4j_resource_file);
                         configure.invoke(DOMConfiguratorObj, url);
-                    }
-                    else {
+                    } else {
                         Method configure = DOMConfiguratorObj.getClass().getMethod("configure", String.class);
                         configure.invoke(DOMConfiguratorObj, logConfigFilePath);
                     }
 
-                }
-                else if (classType.getName().equals("ch.qos.logback.classic.LoggerContext")) {
+                } else if (classType.getName().equals("ch.qos.logback.classic.LoggerContext")) {
                     Class<?> joranConfigurator = null;
                     Class<?> context = Class.forName("ch.qos.logback.core.Context");
                     Object joranConfiguratoroObj = null;
@@ -84,21 +77,18 @@ public class ClientLogger {
                     Method setContext = joranConfiguratoroObj.getClass().getMethod("setContext", context);
                     setContext.invoke(joranConfiguratoroObj, iLoggerFactory);
                     if (null == logConfigFilePath) {
-                        // 如果应用没有配置，则使用jar包内置配置
                         URL url = ClientLogger.class.getClassLoader().getResource(logback_resource_file);
                         Method doConfigure =
                                 joranConfiguratoroObj.getClass().getMethod("doConfigure", URL.class);
                         doConfigure.invoke(joranConfiguratoroObj, url);
-                    }
-                    else {
+                    } else {
                         Method doConfigure =
                                 joranConfiguratoroObj.getClass().getMethod("doConfigure", String.class);
                         doConfigure.invoke(joranConfiguratoroObj, logConfigFilePath);
                     }
 
                 }
-            }
-            catch (Exception e) {
+            } catch (Exception e) {
                 System.err.println(e);
             }
         }

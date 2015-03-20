@@ -26,18 +26,15 @@ import java.util.Set;
 
 
 /**
- * Consumer接口
- * 
+ * Message queue consumer interface
+ *
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-24
  */
 public interface MQConsumer extends MQAdmin {
     /**
-     * Consumer消费失败的消息可以选择重新发回到服务器端，并延时消费<br>
-     * 会首先尝试将消息发回到消息之前存储的主机，此时只传送消息Offset，消息体不传送，不会占用网络带宽<br>
-     * 如果发送失败，会自动重试发往其他主机，此时消息体也会传送<br>
-     * 重传回去的消息只会被当前Consumer Group消费。
-     * 
+     * If consuming failure,message will be send back to the brokers,and delay consuming some time
+     *
      * @param msg
      * @param delayLevel
      * @throws InterruptedException
@@ -46,22 +43,31 @@ public interface MQConsumer extends MQAdmin {
      * @throws MQClientException
      */
     @Deprecated
-    public void sendMessageBack(final MessageExt msg, final int delayLevel) throws RemotingException,
+    void sendMessageBack(final MessageExt msg, final int delayLevel) throws RemotingException,
             MQBrokerException, InterruptedException, MQClientException;
 
 
-    public void sendMessageBack(final MessageExt msg, final int delayLevel, final String brokerName)
+    /**
+     * If consuming failure,message will be send back to the broker,and delay consuming some time
+     *
+     * @param msg
+     * @param delayLevel
+     * @param brokerName
+     * @throws RemotingException
+     * @throws MQBrokerException
+     * @throws InterruptedException
+     * @throws MQClientException
+     */
+    void sendMessageBack(final MessageExt msg, final int delayLevel, final String brokerName)
             throws RemotingException, MQBrokerException, InterruptedException, MQClientException;
 
 
     /**
-     * 根据topic获取对应的MessageQueue，是可被订阅的队列<br>
-     * P.S 从Consumer Cache中拿数据，可以频繁调用。Cache中数据大约30秒更新一次
-     * 
-     * @param topic
-     *            消息Topic
-     * @return 返回队列集合
+     * Fetch message queues from consumer cache according to the topic
+     *
+     * @param topic message topic
+     * @return queue set
      * @throws MQClientException
      */
-    public Set<MessageQueue> fetchSubscribeMessageQueues(final String topic) throws MQClientException;
+    Set<MessageQueue> fetchSubscribeMessageQueues(final String topic) throws MQClientException;
 }

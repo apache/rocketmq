@@ -16,8 +16,6 @@
 package com.alibaba.rocketmq.client.hook;
 
 /**
- * 消息过滤 Hook
- * 
  * @author manhong.yqd<jodie.yqd@gmail.com>
  * @since 2014-3-19
  */

@@ -23,122 +23,105 @@ import com.alibaba.rocketmq.remoting.exception.RemotingException;
 
 
 /**
- * MQ管理类接口
- * 
+ * Base interface for MQ management
+ *
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-24
  */
 public interface MQAdmin {
     /**
-     * 创建topic
-     * 
-     * @param key
-     *            请向运维人员申请
-     * @param newTopic
-     *            要创建的新topic
-     * @param queueNum
-     *            新topic队列数
+     * Creates an topic
+     *
+     * @param key      accesskey
+     * @param newTopic topic name
+     * @param queueNum topic's queue number
      * @throws MQClientException
      */
-    public void createTopic(final String key, final String newTopic, final int queueNum)
+    void createTopic(final String key, final String newTopic, final int queueNum)
             throws MQClientException;
 
 
     /**
-     * 创建topic
-     * 
-     * @param key
-     *            请向运维人员申请
-     * @param newTopic
-     *            要创建的新topic
-     * @param queueNum
-     *            新topic队列数
-     * @param topicSysFlag
-     *            新 topic 配置标识
+     * Creates an topic
+     *
+     * @param key          accesskey
+     * @param newTopic     topic name
+     * @param queueNum     topic's queue number
+     * @param topicSysFlag topic system flag
      * @throws MQClientException
      */
-    public void createTopic(String key, String newTopic, int queueNum, int topicSysFlag)
+    void createTopic(String key, String newTopic, int queueNum, int topicSysFlag)
             throws MQClientException;
 
 
     /**
-     * 根据时间查询对应的offset，精确到毫秒<br>
-     * P.S. 当前接口有较多IO开销，请勿频繁调用
-     * 
-     * @param mq
-     *            队列
-     * @param timestamp
-     *            毫秒形式时间戳
-     * @return 指定时间对应的offset
+     * Gets the message queue offset according to some time in milliseconds<br>
+     * be cautious to call because of more IO overhead
+     *
+     * @param mq        Instance of MessageQueue
+     * @param timestamp from when in milliseconds.
+     * @return offset
      * @throws MQClientException
      */
-    public long searchOffset(final MessageQueue mq, final long timestamp) throws MQClientException;
+    long searchOffset(final MessageQueue mq, final long timestamp) throws MQClientException;
 
 
     /**
-     * 向服务器查询队列最大Offset PS: 最大Offset无对应消息，减1有消息
-     * 
-     * @param mq
-     *            队列
-     * @return 队列的最大Offset
+     * Gets the max offset
+     *
+     * @param mq Instance of MessageQueue
+     * @return the max offset
      * @throws MQClientException
      */
-    public long maxOffset(final MessageQueue mq) throws MQClientException;
+    long maxOffset(final MessageQueue mq) throws MQClientException;
 
 
     /**
-     * 向服务器查询队列最小Offset PS: 最小Offset有对应消息
-     * 
-     * @param mq
-     *            队列
-     * @return 队列的最小Offset
+     * Gets the minimum offset
+     *
+     * @param mq Instance of MessageQueue
+     * @return the minimum offset
      * @throws MQClientException
      */
-    public long minOffset(final MessageQueue mq) throws MQClientException;
+    long minOffset(final MessageQueue mq) throws MQClientException;
 
 
     /**
-     * 向服务器查询队列保存的最早消息对应的存储时间
-     * 
-     * @param mq
-     *            队列
-     * @return 最早消息对应的存储时间，精确到毫秒
+     * Gets the earliest stored message time
+     *
+     * @param mq Instance of MessageQueue
+     * @return the time in microseconds
      * @throws MQClientException
      */
-    public long earliestMsgStoreTime(final MessageQueue mq) throws MQClientException;
+    long earliestMsgStoreTime(final MessageQueue mq) throws MQClientException;
 
 
     /**
-     * 根据消息ID，从服务器获取完整的消息
-     * 
-     * @param msgId
-     * @return 完整消息
+     * Query message according tto message id
+     *
+     * @param msgId message id
+     * @return message
      * @throws InterruptedException
      * @throws MQBrokerException
      * @throws RemotingException
      * @throws MQClientException
      */
-    public MessageExt viewMessage(final String msgId) throws RemotingException, MQBrokerException,
+    MessageExt viewMessage(final String msgId) throws RemotingException, MQBrokerException,
             InterruptedException, MQClientException;
 
 
     /**
-     * 根据消息Key查询消息
-     * 
-     * @param topic
-     *            消息主题
-     * @param key
-     *            消息关键词
-     * @param maxNum
-     *            查询最大条数
-     * @param begin
-     *            起始时间戳
-     * @param end
-     *            结束时间戳
-     * @return 查询结果
+     * Query messages
+     *
+     * @param topic  message topic
+     * @param key    message key index word
+     * @param maxNum max message number
+     * @param begin  from when
+     * @param end    to when
+     * @return Instance of QueryResult
      * @throws MQClientException
      * @throws InterruptedException
      */
-    public QueryResult queryMessage(final String topic, final String key, final int maxNum, final long begin,
-            final long end) throws MQClientException, InterruptedException;
+    QueryResult queryMessage(final String topic, final String key, final int maxNum, final long begin,
+                             final long end) throws MQClientException, InterruptedException;
 }

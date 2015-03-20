@@ -272,7 +272,6 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
 
                 private AtomicInteger threadIndex = new AtomicInteger(0);
 
-
                 @Override
                 public Thread newThread(Runnable r) {
                     return new Thread(r, "NettyClientWorkerThread_" + this.threadIndex.incrementAndGet());
@@ -302,7 +301,6 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                 }
             });
 
-        // 每隔1秒扫描下异步调用超时情况
         this.timer.scheduleAtFixedRate(new TimerTask() {
 
             @Override
@@ -381,7 +379,6 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
         }
 
         final List<String> addrList = this.namesrvAddrList.get();
-        // 加锁，尝试创建连接
         if (this.lockNamesrvChannel.tryLock(LockTimeoutMillis, TimeUnit.MILLISECONDS)) {
             try {
                 addr = this.namesrvAddrChoosed.get();
@@ -636,8 +633,6 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
             }
             catch (RemotingTimeoutException e) {
                 log.warn("invokeSync: wait response timeout exception, the channel[{}]", addr);
-                // 超时异常如果关闭连接可能会产生连锁反应
-                // this.closeChannel(addr, channel);
                 throw e;
             }
         }

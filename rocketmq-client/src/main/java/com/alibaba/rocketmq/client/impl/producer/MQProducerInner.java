@@ -23,29 +23,27 @@ import com.alibaba.rocketmq.common.protocol.header.CheckTransactionStateRequestH
 
 
 /**
- * Producer内部接口
- * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-24
  */
 public interface MQProducerInner {
-    public Set<String> getPublishTopicList();
+    Set<String> getPublishTopicList();
 
 
-    public boolean isPublishTopicNeedUpdate(final String topic);
+    boolean isPublishTopicNeedUpdate(final String topic);
 
 
-    public TransactionCheckListener checkListener();
+    TransactionCheckListener checkListener();
 
 
-    public void checkTransactionState(//
-            final String addr, //
-            final MessageExt msg, //
-            final CheckTransactionStateRequestHeader checkRequestHeader);
+    void checkTransactionState(//
+                               final String addr, //
+                               final MessageExt msg, //
+                               final CheckTransactionStateRequestHeader checkRequestHeader);
 
 
-    public void updateTopicPublishInfo(final String topic, final TopicPublishInfo info);
+    void updateTopicPublishInfo(final String topic, final TopicPublishInfo info);
 
 
-    public boolean isUnitMode();
+    boolean isUnitMode();
 }

@@ -22,8 +22,6 @@ import com.alibaba.rocketmq.common.message.MessageQueue;
 
 
 /**
- * 消息过滤用
- * 
  * @author manhong.yqd<jodie.yqd@gmail.com>
  * @since 2014-3-19
  */

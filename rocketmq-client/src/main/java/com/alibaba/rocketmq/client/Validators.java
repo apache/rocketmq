@@ -12,8 +12,8 @@ import com.alibaba.rocketmq.common.protocol.ResponseCode;
 
 
 /**
- * 有效性检查公用类。
- * 
+ * Common Validator
+ *
  * @author manhong.yqd<jodie.yqd@gmail.com>
  * @since 2013-8-28
  */
@@ -24,8 +24,6 @@ public class Validators {
 
 
     /**
-     * 通过正则表达式进行字符匹配
-     * 
      * @param origin
      * @param pattern
      * @return
@@ -40,8 +38,6 @@ public class Validators {
 
 
     /**
-     * 通过正则表达式查找匹配的字符
-     * 
      * @param origin
      * @param patternStr
      * @return
@@ -57,8 +53,8 @@ public class Validators {
 
 
     /**
-     * topic 有效性检查
-     * 
+     * Validate topic
+     *
      * @param topic
      * @throws com.alibaba.rocketmq.client.exception.MQClientException
      */
@@ -69,25 +65,25 @@ public class Validators {
 
         if (!regularExpressionMatcher(topic, PATTERN)) {
             throw new MQClientException(String.format(
-                "the specified topic[%s] contains illegal characters, allowing only %s", topic,
-                VALID_PATTERN_STR), null);
+                    "the specified topic[%s] contains illegal characters, allowing only %s", topic,
+                    VALID_PATTERN_STR), null);
         }
 
         if (topic.length() > CHARACTER_MAX_LENGTH) {
             throw new MQClientException("the specified topic is longer than topic max length 255.", null);
         }
 
-        // Topic名字是否与保留字段冲突
+        //whether the same with system reserved keyword
         if (topic.equals(MixAll.DEFAULT_TOPIC)) {
             throw new MQClientException(
-                String.format("the topic[%s] is conflict with default topic.", topic), null);
+                    String.format("the topic[%s] is conflict with default topic.", topic), null);
         }
     }
 
 
     /**
-     * group 有效性检查
-     * 
+     * Validate group
+     *
      * @param group
      * @throws com.alibaba.rocketmq.client.exception.MQClientException
      */
@@ -97,8 +93,8 @@ public class Validators {
         }
         if (!regularExpressionMatcher(group, PATTERN)) {
             throw new MQClientException(String.format(
-                "the specified group[%s] contains illegal characters, allowing only %s", group,
-                VALID_PATTERN_STR), null);
+                    "the specified group[%s] contains illegal characters, allowing only %s", group,
+                    VALID_PATTERN_STR), null);
         }
         if (group.length() > CHARACTER_MAX_LENGTH) {
             throw new MQClientException("the specified group is longer than group max length 255.", null);
@@ -107,8 +103,8 @@ public class Validators {
 
 
     /**
-     * message 有效性检查
-     * 
+     * Validate message
+     *
      * @param msg
      * @param defaultMQProducer
      * @throws com.alibaba.rocketmq.client.exception.MQClientException
@@ -131,7 +127,7 @@ public class Validators {
 
         if (msg.getBody().length > defaultMQProducer.getMaxMessageSize()) {
             throw new MQClientException(ResponseCode.MESSAGE_ILLEGAL,
-                "the message body size over max value, MAX: " + defaultMQProducer.getMaxMessageSize());
+                    "the message body size over max value, MAX: " + defaultMQProducer.getMaxMessageSize());
         }
     }
 }

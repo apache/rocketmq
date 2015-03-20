@@ -21,34 +21,34 @@ import com.alibaba.rocketmq.common.message.MessageQueue;
 
 
 /**
- * Consumer队列自动分配策略
- * 
+ * Strategy Algorithm for message allocating between consumers
+ *
  * @author shijia.wxr<vintage.wang@gmail.com>
+ * @author von gosling<fengjia10@gmail.com>
  * @since 2013-7-24
  */
 public interface AllocateMessageQueueStrategy {
+
     /**
-     * 给当前的ConsumerId分配队列
-     * 
-     * @param currentCID
-     *            当前ConsumerId
-     * @param mqAll
-     *            当前Topic的所有队列集合，无重复数据，且有序
-     * @param cidAll
-     *            当前订阅组的所有Consumer集合，无重复数据，且有序
-     * @return 分配结果，无重复数据
+     * Allocating by consumer id
+     *
+     * @param consumerGroup current consumer group
+     * @param currentCID    current consumer id
+     * @param mqAll         message queue set in current topic
+     * @param cidAll        consumer set in current consumer group
+     * @return
      */
     public List<MessageQueue> allocate(//
-            final String consumerGroup,//
-            final String currentCID,//
-            final List<MessageQueue> mqAll,//
-            final List<String> cidAll//
+                                       final String consumerGroup,//
+                                       final String currentCID,//
+                                       final List<MessageQueue> mqAll,//
+                                       final List<String> cidAll//
     );
 
 
     /**
-     * rebalance 算法的名字
-     * 
+     * Algorithm name
+     *
      * @return
      */
     public String getName();

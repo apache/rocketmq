@@ -24,8 +24,8 @@ import com.alibaba.rocketmq.common.message.MessageQueue;
 
 
 /**
- * 按照机房来分配队列，例如支付宝逻辑机房
- * 
+ * Computer room Hashing queue algorithm, such as Alipay logic room
+ *
  * @author linye<jin.qian@alipay.com>
  * @since 2013-7-24
  */
@@ -41,7 +41,7 @@ public class AllocateMessageQueueByMachineRoom implements AllocateMessageQueueSt
 
     @Override
     public List<MessageQueue> allocate(String consumerGroup, String currentCID, List<MessageQueue> mqAll,
-            List<String> cidAll) {
+                                       List<String> cidAll) {
         List<MessageQueue> result = new ArrayList<MessageQueue>();
         int currentIndex = cidAll.indexOf(currentCID);
         if (currentIndex < 0) {

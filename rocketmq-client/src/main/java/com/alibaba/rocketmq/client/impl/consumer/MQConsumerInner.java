@@ -26,41 +26,41 @@ import com.alibaba.rocketmq.common.protocol.heartbeat.SubscriptionData;
 
 
 /**
- * Consumer内部接口，供MQClientFactory使用
- * 
+ * Consumer inner interface
+ *
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-24
  */
 public interface MQConsumerInner {
-    public String groupName();
+    String groupName();
 
 
-    public MessageModel messageModel();
+    MessageModel messageModel();
 
 
-    public ConsumeType consumeType();
+    ConsumeType consumeType();
 
 
-    public ConsumeFromWhere consumeFromWhere();
+    ConsumeFromWhere consumeFromWhere();
 
 
-    public Set<SubscriptionData> subscriptions();
+    Set<SubscriptionData> subscriptions();
 
 
-    public void doRebalance();
+    void doRebalance();
 
 
-    public void persistConsumerOffset();
+    void persistConsumerOffset();
 
 
-    public void updateTopicSubscribeInfo(final String topic, final Set<MessageQueue> info);
+    void updateTopicSubscribeInfo(final String topic, final Set<MessageQueue> info);
 
 
-    public boolean isSubscribeTopicNeedUpdate(final String topic);
+    boolean isSubscribeTopicNeedUpdate(final String topic);
 
 
-    public boolean isUnitMode();
+    boolean isUnitMode();
 
 
-    public ConsumerRunningInfo consumerRunningInfo();
+    ConsumerRunningInfo consumerRunningInfo();
 }
