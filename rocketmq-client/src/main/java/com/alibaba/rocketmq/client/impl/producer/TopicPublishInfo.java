@@ -23,8 +23,6 @@ import com.alibaba.rocketmq.common.message.MessageQueue;
 
 
 /**
- * 发布Topic用到的路由信息
- * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-24
  */
@@ -80,9 +78,6 @@ public class TopicPublishInfo {
     }
 
 
-    /**
-     * 如果lastBrokerName不为null，则寻找与其不同的MessageQueue
-     */
     public MessageQueue selectOneMessageQueue(final String lastBrokerName) {
         if (lastBrokerName != null) {
             int index = this.sendWhichQueue.getAndIncrement();

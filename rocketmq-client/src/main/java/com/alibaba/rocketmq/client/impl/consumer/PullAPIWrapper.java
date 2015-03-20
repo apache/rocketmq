@@ -51,8 +51,6 @@ import com.alibaba.rocketmq.remoting.exception.RemotingException;
 
 
 /**
- * 对Pull接口进行进一步的封装
- * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-24
  */
@@ -99,14 +97,6 @@ public class PullAPIWrapper {
         return value;
     }
 
-
-    /**
-     * 随机找Filter Server
-     * 
-     * @param brokerAddr
-     * @return
-     * @throws MQClientException
-     */
     private String computPullFromWhichFilterServer(final String topic, final String brokerAddr)
             throws MQClientException {
         ConcurrentHashMap<String, TopicRouteData> topicRouteTable = this.mQClientFactory.getTopicRouteTable();
@@ -124,14 +114,6 @@ public class PullAPIWrapper {
     }
 
 
-    /**
-     * 对拉取结果进行处理，主要是消息反序列化
-     * 
-     * @param mq
-     * @param pullResult
-     * @param subscriptionData
-     * @return
-     */
     public PullResult processPullResult(final MessageQueue mq, final PullResult pullResult,
             final SubscriptionData subscriptionData) {
         final String projectGroupPrefix = this.mQClientFactory.getMQClientAPIImpl().getProjectGroupPrefix();
@@ -142,7 +124,6 @@ public class PullAPIWrapper {
             ByteBuffer byteBuffer = ByteBuffer.wrap(pullResultExt.getMessageBinary());
             List<MessageExt> msgList = MessageDecoder.decodes(byteBuffer);
 
-            // 消息再次过滤
             List<MessageExt> msgListFilterAgain = msgList;
             if (!subscriptionData.getTagsSet().isEmpty() && !subscriptionData.isClassFilterMode()) {
                 msgListFilterAgain = new ArrayList<MessageExt>(msgList.size());
@@ -155,7 +136,6 @@ public class PullAPIWrapper {
                 }
             }
 
-            // 执行消息过滤的 FilterMessageHook
             if (this.hasHook()) {
                 FilterMessageContext filterMessageContext = new FilterMessageContext();
                 filterMessageContext.setUnitMode(unitMode);
@@ -163,14 +143,12 @@ public class PullAPIWrapper {
                 this.executeHook(filterMessageContext);
             }
 
-            // 清除虚拟运行环境相关的projectGroupPrefix
             if (!UtilAll.isBlank(projectGroupPrefix)) {
                 subscriptionData.setTopic(VirtualEnvUtil.clearProjectGroup(subscriptionData.getTopic(),
                     projectGroupPrefix));
                 mq.setTopic(VirtualEnvUtil.clearProjectGroup(mq.getTopic(), projectGroupPrefix));
                 for (MessageExt msg : msgListFilterAgain) {
                     msg.setTopic(VirtualEnvUtil.clearProjectGroup(msg.getTopic(), projectGroupPrefix));
-                    // 消息中放入队列的最大最小Offset，方便应用来感知消息堆积程度
 
                     MessageAccessor.putProperty(msg, MessageConst.PROPERTY_MIN_OFFSET,
                         Long.toString(pullResult.getMinOffset()));
@@ -179,7 +157,6 @@ public class PullAPIWrapper {
                 }
             }
             else {
-                // 消息中放入队列的最大最小Offset，方便应用来感知消息堆积程度
                 for (MessageExt msg : msgListFilterAgain) {
                     MessageAccessor.putProperty(msg, MessageConst.PROPERTY_MIN_OFFSET,
                         Long.toString(pullResult.getMinOffset()));
@@ -191,16 +168,11 @@ public class PullAPIWrapper {
             pullResultExt.setMsgFoundList(msgListFilterAgain);
         }
 
-        // 令GC释放内存
         pullResultExt.setMessageBinary(null);
 
         return pullResult;
     }
 
-
-    /**
-     * 每个队列都应该有相应的变量来保存从哪个服务器拉
-     */
     public long recalculatePullFromWhichNode(final MessageQueue mq) {
         if (this.isConnectBrokerByUser()) {
             return this.defaultBrokerId;
@@ -232,7 +204,6 @@ public class PullAPIWrapper {
                 this.mQClientFactory.findBrokerAddressInSubscribe(mq.getBrokerName(),
                     this.recalculatePullFromWhichNode(mq), false);
         if (null == findBrokerResult) {
-            // TODO 此处可能对Name Server压力过大，需要调优
             this.mQClientFactory.updateTopicRouteInfoFromNameServer(mq.getTopic());
             findBrokerResult =
                     this.mQClientFactory.findBrokerAddressInSubscribe(mq.getBrokerName(),
@@ -242,7 +213,6 @@ public class PullAPIWrapper {
         if (findBrokerResult != null) {
             int sysFlagInner = sysFlag;
 
-            // Slave不允许实时提交消费进度，可以定时提交
             if (findBrokerResult.isSlave()) {
                 sysFlagInner = PullSysFlag.clearCommitOffsetFlag(sysFlagInner);
             }
@@ -277,9 +247,6 @@ public class PullAPIWrapper {
         throw new MQClientException("The broker[" + mq.getBrokerName() + "] not exist", null);
     }
 
-    /**
-     * 从服务端拉消息之后，会执行 FilterMessageHook
-     */
     private ArrayList<FilterMessageHook> filterMessageHookList = new ArrayList<FilterMessageHook>();
 
 

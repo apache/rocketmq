@@ -23,36 +23,34 @@ import com.alibaba.rocketmq.common.protocol.body.ConsumeMessageDirectlyResult;
 
 
 /**
- * 消费消息服务，公共接口
- * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-24
  */
 public interface ConsumeMessageService {
-    public void start();
+    void start();
 
 
-    public void shutdown();
+    void shutdown();
 
 
-    public void updateCorePoolSize(int corePoolSize);
+    void updateCorePoolSize(int corePoolSize);
 
 
-    public void incCorePoolSize();
+    void incCorePoolSize();
 
 
-    public void decCorePoolSize();
+    void decCorePoolSize();
 
 
-    public int getCorePoolSize();
+    int getCorePoolSize();
 
 
-    public ConsumeMessageDirectlyResult consumeMessageDirectly(final MessageExt msg, final String brokerName);
+    ConsumeMessageDirectlyResult consumeMessageDirectly(final MessageExt msg, final String brokerName);
 
 
-    public void submitConsumeRequest(//
-            final List<MessageExt> msgs, //
-            final ProcessQueue processQueue, //
-            final MessageQueue messageQueue, //
-            final boolean dispathToConsume);
+    void submitConsumeRequest(//
+                              final List<MessageExt> msgs, //
+                              final ProcessQueue processQueue, //
+                              final MessageQueue messageQueue, //
+                              final boolean dispathToConsume);
 }

@@ -51,8 +51,6 @@ import java.util.concurrent.*;
 
 
 /**
- * 生产者默认实现
- * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-24
  */
@@ -61,26 +59,13 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     private final DefaultMQProducer defaultMQProducer;
     private final ConcurrentHashMap<String/* topic */, TopicPublishInfo> topicPublishInfoTable =
             new ConcurrentHashMap<String, TopicPublishInfo>();
-    /**
-     * 事务相关
-     */
     protected BlockingQueue<Runnable> checkRequestQueue;
     protected ExecutorService checkExecutor;
     private ServiceState serviceState = ServiceState.CREATE_JUST;
     private MQClientInstance mQClientFactory;
 
-    /**
-     * 发送每条消息会回调
-     */
     private final ArrayList<SendMessageHook> sendMessageHookList = new ArrayList<SendMessageHook>();
-    /**
-     * 发消息之前，读写权限控制时调用 Hook
-     */
     private ArrayList<CheckForbiddenHook> checkForbiddenHookList = new ArrayList<CheckForbiddenHook>();
-
-    /**
-     * 通信层hook
-     */
     private final RPCHook rpcHook;
 
 
@@ -200,7 +185,6 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                         + FAQUrl.suggestTodo(FAQUrl.GROUP_NAME_DUPLICATE_URL), null);
             }
 
-            // 默认Topic注册
             this.topicPublishInfoTable
                 .put(this.defaultMQProducer.getCreateTopicKey(), new TopicPublishInfo());
 
@@ -226,7 +210,6 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
 
     private void checkConfig() throws MQClientException {
-        // producerGroup 有效性检查
         Validators.checkGroup(this.defaultMQProducer.getProducerGroup());
 
         if (null == this.defaultMQProducer.getProducerGroup()) {
@@ -408,7 +391,6 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     public void createTopic(String key, String newTopic, int queueNum, int topicSysFlag)
             throws MQClientException {
         this.makeSureStateOK();
-        // topic 有效性检查
         Validators.checkTopic(newTopic);
 
         this.mQClientFactory.getMQAdminImpl().createTopic(key, newTopic, queueNum, topicSysFlag);
@@ -494,7 +476,6 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             final CommunicationMode communicationMode,//
             final SendCallback sendCallback, final long timeout//
     ) throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
-        // 有效性检查
         this.makeSureStateOK();
         Validators.checkMessage(msg, this.defaultMQProducer);
 
@@ -508,7 +489,6 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             SendResult sendResult = null;
             int timesTotal = 1 + this.defaultMQProducer.getRetryTimesWhenSendFailed();
             int times = 0;
-            // 记录投递的BrokerName
             String[] brokersSent = new String[timesTotal];
             for (; times < timesTotal && (endTimestamp - beginTimestamp) < maxTimeout; times++) {
                 String lastBrokerName = null == mq ? null : mq.getBrokerName();
@@ -600,7 +580,6 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
         List<String> nsList = this.getmQClientFactory().getMQClientAPIImpl().getNameServerAddressList();
         if (null == nsList || nsList.isEmpty()) {
-            // 说明没有设置Name Server地址
             throw new MQClientException("No name server address, please set it."
                     + FAQUrl.suggestTodo(FAQUrl.NAME_SERVER_ADDR_NOT_EXIST_URL), null);
         }
@@ -609,10 +588,6 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                 + FAQUrl.suggestTodo(FAQUrl.NO_TOPIC_ROUTE_INFO), null);
     }
 
-
-    /**
-     * 尝试寻找Topic路由信息，如果没有则到Name Server上找，再没有，则取默认Topic
-     */
     private TopicPublishInfo tryToFindTopicPublishInfo(final String topic) {
         TopicPublishInfo topicPublishInfo = this.topicPublishInfoTable.get(topic);
         if (null == topicPublishInfo || !topicPublishInfo.ok()) {
@@ -640,7 +615,6 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             InterruptedException {
         String brokerAddr = this.mQClientFactory.findBrokerAddressInPublish(mq.getBrokerName());
         if (null == brokerAddr) {
-            // TODO 此处可能对Name Server压力过大，需要调优
             tryToFindTopicPublishInfo(mq.getTopic());
             brokerAddr = this.mQClientFactory.findBrokerAddressInPublish(mq.getBrokerName());
         }
@@ -659,7 +633,6 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                     sysFlag |= MessageSysFlag.TransactionPreparedType;
                 }
 
-                // 发消息之前，读写权限控制时调用 Hook
                 if (hasCheckForbiddenHook()) {
                     CheckForbiddenContext checkForbiddenContext = new CheckForbiddenContext();
                     checkForbiddenContext.setNameSrvAddr(this.defaultMQProducer.getNamesrvAddr());
@@ -672,7 +645,6 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                     this.executeCheckForbiddenHook(checkForbiddenContext);
                 }
 
-                // 执行hook
                 if (this.hasSendMessageHook()) {
                     context = new SendMessageContext();
                     context.setProducerGroup(this.defaultMQProducer.getProducerGroup());
@@ -714,7 +686,6 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                     sendCallback// 7
                     );
 
-                // 执行hook
                 if (this.hasSendMessageHook()) {
                     context.setSendResult(sendResult);
                     this.executeSendMessageHookAfter(context);
@@ -723,7 +694,6 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                 return sendResult;
             }
             catch (RemotingException e) {
-                // 执行hook
                 if (this.hasSendMessageHook()) {
                     context.setException(e);
                     this.executeSendMessageHookAfter(context);
@@ -731,7 +701,6 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                 throw e;
             }
             catch (MQBrokerException e) {
-                // 执行hook
                 if (this.hasSendMessageHook()) {
                     context.setException(e);
                     this.executeSendMessageHookAfter(context);
@@ -739,7 +708,6 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                 throw e;
             }
             catch (InterruptedException e) {
-                // 执行hook
                 if (this.hasSendMessageHook()) {
                     context.setException(e);
                     this.executeSendMessageHookAfter(context);
@@ -754,9 +722,6 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         throw new MQClientException("The broker[" + mq.getBrokerName() + "] not exist", null);
     }
 
-    /**
-     * 消息压缩level，默认5
-     */
     private int zipCompressLevel = Integer.parseInt(System.getProperty(MixAll.MESSAGE_COMPRESS_LEVEL, "5"));
 
 
@@ -807,7 +772,6 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
     public SendResult send(Message msg, MessageQueue mq, long timeout) throws MQClientException,
             RemotingException, MQBrokerException, InterruptedException {
-        // 有效性检查
         this.makeSureStateOK();
         Validators.checkMessage(msg, this.defaultMQProducer);
 
@@ -830,7 +794,6 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
     public void send(Message msg, MessageQueue mq, SendCallback sendCallback, long timeout)
             throws MQClientException, RemotingException, InterruptedException {
-        // 有效性检查
         this.makeSureStateOK();
         Validators.checkMessage(msg, this.defaultMQProducer);
 
@@ -852,7 +815,6 @@ public class DefaultMQProducerImpl implements MQProducerInner {
      */
     public void sendOneway(Message msg, MessageQueue mq) throws MQClientException, RemotingException,
             InterruptedException {
-        // 有效性检查
         this.makeSureStateOK();
         Validators.checkMessage(msg, this.defaultMQProducer);
 
@@ -888,7 +850,6 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             final CommunicationMode communicationMode,//
             final SendCallback sendCallback, final long timeout//
     ) throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
-        // 有效性检查
         this.makeSureStateOK();
         Validators.checkMessage(msg, this.defaultMQProducer);
 
@@ -951,13 +912,11 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
     public TransactionSendResult sendMessageInTransaction(final Message msg,
             final LocalTransactionExecuter tranExecuter, final Object arg) throws MQClientException {
-        // 有效性检查
         if (null == tranExecuter) {
             throw new MQClientException("tranExecutor is null", null);
         }
         Validators.checkMessage(msg, this.defaultMQProducer);
 
-        // 第一步，向Broker发送一条Prepared消息
         SendResult sendResult = null;
         MessageAccessor.putProperty(msg, MessageConst.PROPERTY_TRANSACTION_PREPARED, "true");
         MessageAccessor.putProperty(msg, MessageConst.PROPERTY_PRODUCER_GROUP,
@@ -969,7 +928,6 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             throw new MQClientException("send message Exception", e);
         }
 
-        // 第二步，回调本地事务
         LocalTransactionState localTransactionState = LocalTransactionState.UNKNOW;
         Throwable localException = null;
         switch (sendResult.getSendStatus()) {
@@ -1004,7 +962,6 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             break;
         }
 
-        // 第三步，提交或者回滚Broker端消息
         try {
             this.endTransaction(sendResult, localTransactionState, localException);
         }
