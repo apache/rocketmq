@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <assembly>
+	<id>alibaba-rocketmq</id>
 	<baseDirectory>alibaba-rocketmq</baseDirectory>
 	<formats>
 		<format>dir</format>
