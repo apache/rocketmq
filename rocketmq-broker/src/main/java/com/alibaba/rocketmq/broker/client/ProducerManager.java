@@ -49,7 +49,6 @@ public class ProducerManager {
     private final Lock groupChannelLock = new ReentrantLock();
     private final HashMap<String /* group name */, HashMap<Channel, ClientChannelInfo>> groupChannelTable =
             new HashMap<String, HashMap<Channel, ClientChannelInfo>>();
-    private ConcurrentHashMap<String, List<Channel>> groupChanelList = new ConcurrentHashMap<String, List<Channel>>();
 
 
     public ProducerManager() {
@@ -79,10 +78,6 @@ public class ProducerManager {
                             long diff = System.currentTimeMillis() - info.getLastUpdateTimestamp();
                             if (diff > ChannelExpiredTimeout) {
                                 it.remove();
-                                List<Channel> channels = groupChanelList.get(group);
-                                if(channels!=null){
-                                    channels.remove(item.getKey());
-                                }
                                 log.warn(
                                     "SCAN: remove expired channel[{}] from ProducerManager groupChannelTable, producer group name: {}",
                                     RemotingHelper.parseChannelRemoteAddr(info.getChannel()), group);
@@ -122,10 +117,6 @@ public class ProducerManager {
                                     "NETTY EVENT: remove channel[{}][{}] from ProducerManager groupChannelTable, producer group: {}",
                                     clientChannelInfo.toString(), remoteAddr, group);
                             }
-                            List<Channel> channels = groupChanelList.get(group);
-                            if(channels!=null){
-                                channels.remove(channel);
-                            }
 
                         }
                     }
@@ -162,13 +153,6 @@ public class ProducerManager {
                         log.info("new producer connected, group: {} channel: {}", group,
                             clientChannelInfo.toString());
                     }
-                    //记录group-->chanelList
-                    List<Channel> channels = groupChanelList.get(group);
-                    if(channels==null){
-                        channels  = new CopyOnWriteArrayList<Channel>();
-                        groupChanelList.put(group,channels);
-                    }
-                    channels.add(clientChannelInfo.getChannel());
                 }
                 finally {
                     this.groupChannelLock.unlock();
@@ -218,9 +202,5 @@ public class ProducerManager {
         catch (InterruptedException e) {
             log.error("", e);
         }
-    }
-
-    public ConcurrentHashMap<String, List<Channel>> getGroupChanelList() {
-        return groupChanelList;
     }
 }
