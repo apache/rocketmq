@@ -52,6 +52,7 @@ public class ProducerManager {
     }
 
 
+    //TODO会抛出并发异常,应该用复制的机制
     public HashMap<String, HashMap<Channel, ClientChannelInfo>> getGroupChannelTable() {
         return groupChannelTable;
     }
