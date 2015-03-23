@@ -19,11 +19,8 @@ import io.netty.channel.Channel;
 
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -114,8 +111,8 @@ public class ProducerManager {
                                     clientChannelInfoTable.remove(channel);
                             if (clientChannelInfo != null) {
                                 log.info(
-                                    "NETTY EVENT: remove channel[{}][{}] from ProducerManager groupChannelTable, producer group: {}",
-                                    clientChannelInfo.toString(), remoteAddr, group);
+                                        "NETTY EVENT: remove channel[{}][{}] from ProducerManager groupChannelTable, producer group: {}",
+                                        clientChannelInfo.toString(), remoteAddr, group);
                             }
 
                         }
@@ -156,7 +153,6 @@ public class ProducerManager {
                 }
                 finally {
                     this.groupChannelLock.unlock();
-
                 }
 
                 if (clientChannelInfoFound != null) {
