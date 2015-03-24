@@ -1,4 +1,6 @@
-### [分区数量在Kafka中有什么作用？](http://blog.confluent.io/2015/03/12/how-to-choose-the-number-of-topicspartitions-in-a-kafka-cluster/)
+## Kafka模型产生自日志记录场景，受到场景所限，Kafka不需要太高的并发度。而在阿里这样的大规模应用中，我们经过实践发现，原有模型已经不能满足阿里的实际需要。ONS(RocketMQ)则比较好的解决了并发数问题，已经是内部非常广泛使用的一套产品。
+
+### [分区在Kafka中有什么作用？](http://blog.confluent.io/2015/03/12/how-to-choose-the-number-of-topicspartitions-in-a-kafka-cluster/)
 1. Producer在Broker并发写入与分区数成正比。
 2. Consumer消费某个Topic的并行度与分区数保持一致，假设分区数是20，那么Consumer的消费并行度最大为20。
 3. 每个Topic由固定数量的分区数组成，分区数的多少决定了单台Broker能支持的Topic数量，Topic数量又决定了支持的业务数量。
