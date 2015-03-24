@@ -22,6 +22,8 @@ import java.util.Set;
 import com.alibaba.rocketmq.client.ClientConfig;
 import com.alibaba.rocketmq.client.QueryResult;
 import com.alibaba.rocketmq.client.consumer.listener.MessageListener;
+import com.alibaba.rocketmq.client.consumer.listener.MessageListenerConcurrently;
+import com.alibaba.rocketmq.client.consumer.listener.MessageListenerOrderly;
 import com.alibaba.rocketmq.client.consumer.rebalance.AllocateMessageQueueAveragely;
 import com.alibaba.rocketmq.client.consumer.store.OffsetStore;
 import com.alibaba.rocketmq.client.exception.MQBrokerException;
@@ -46,7 +48,8 @@ import com.alibaba.rocketmq.remoting.exception.RemotingException;
 public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsumer {
     protected final transient DefaultMQPushConsumerImpl defaultMQPushConsumerImpl;
     /**
-     * Do the same thing for the same Group, the application must be set,and guarantee Globally unique
+     * Do the same thing for the same Group, the application must be set,and
+     * guarantee Globally unique
      */
     private String consumerGroup;
     /**
@@ -58,7 +61,8 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
      */
     private ConsumeFromWhere consumeFromWhere = ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET;
     /**
-     * Backtracking consumption time with second precision.time format is 20131223171201<br>
+     * Backtracking consumption time with second precision.time format is
+     * 20131223171201<br>
      * Implying Seventeen twelve and 01 seconds on December 23, 2013 year<br>
      * Default backtracking consumption time Half an hour ago
      */
@@ -117,7 +121,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
     private int pullBatchSize = 32;
 
     /**
-     * Whether update subscription relationship when  every pull
+     * Whether update subscription relationship when every pull
      */
     private boolean postSubscriptionWhenPull = false;
 
@@ -143,7 +147,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
 
 
     public DefaultMQPushConsumer(final String consumerGroup, RPCHook rpcHook,
-                                 AllocateMessageQueueStrategy allocateMessageQueueStrategy) {
+            AllocateMessageQueueStrategy allocateMessageQueueStrategy) {
         this.consumerGroup = consumerGroup;
         this.allocateMessageQueueStrategy = allocateMessageQueueStrategy;
         defaultMQPushConsumerImpl = new DefaultMQPushConsumerImpl(this, rpcHook);
@@ -369,7 +373,14 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
 
 
     @Override
-    public void registerMessageListener(MessageListener messageListener) {
+    public void registerMessageListener(MessageListenerConcurrently messageListener) {
+        this.messageListener = messageListener;
+        this.defaultMQPushConsumerImpl.registerMessageListener(messageListener);
+    }
+
+
+    @Override
+    public void registerMessageListener(MessageListenerOrderly messageListener) {
         this.messageListener = messageListener;
         this.defaultMQPushConsumerImpl.registerMessageListener(messageListener);
     }

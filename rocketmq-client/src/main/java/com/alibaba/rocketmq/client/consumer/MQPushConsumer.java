@@ -15,7 +15,8 @@
  */
 package com.alibaba.rocketmq.client.consumer;
 
-import com.alibaba.rocketmq.client.consumer.listener.MessageListener;
+import com.alibaba.rocketmq.client.consumer.listener.MessageListenerConcurrently;
+import com.alibaba.rocketmq.client.consumer.listener.MessageListenerOrderly;
 import com.alibaba.rocketmq.client.exception.MQClientException;
 
 
@@ -45,14 +46,20 @@ public interface MQPushConsumer extends MQConsumer {
      *
      * @param messageListener
      */
-    void registerMessageListener(final MessageListener messageListener);
+    void registerMessageListener(final MessageListenerConcurrently messageListener);
+
+
+    void registerMessageListener(final MessageListenerOrderly messageListener);
+
 
     /**
      * Subscribe some topic
      *
      * @param topic
-     * @param subExpression subscription expression.it only support or operation such as "tag1 || tag2 || tag3" <br>
-     *                      if null or * expression,meaning subscribe all
+     * @param subExpression
+     *            subscription expression.it only support or operation such as
+     *            "tag1 || tag2 || tag3" <br>
+     *            if null or * expression,meaning subscribe all
      * @throws MQClientException
      */
     void subscribe(final String topic, final String subExpression) throws MQClientException;
@@ -62,9 +69,12 @@ public interface MQPushConsumer extends MQConsumer {
      * Subscribe some topic
      *
      * @param topic
-     * @param fullClassName     full class name，must extend com.alibaba.rocketmq.common.filter.
-     *                          MessageFilter
-     * @param filterClassSource class source code，used UTF-8 file encoding,must be responsible for your code safety
+     * @param fullClassName
+     *            full class name，must extend
+     *            com.alibaba.rocketmq.common.filter. MessageFilter
+     * @param filterClassSource
+     *            class source code，used UTF-8 file encoding,must be responsible
+     *            for your code safety
      * @throws MQClientException
      */
     void subscribe(final String topic, final String fullClassName, final String filterClassSource)
@@ -74,7 +84,8 @@ public interface MQPushConsumer extends MQConsumer {
     /**
      * Unsubscribe consumption some topic
      *
-     * @param topic message topic
+     * @param topic
+     *            message topic
      */
     void unsubscribe(final String topic);
 
