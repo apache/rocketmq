@@ -142,7 +142,12 @@ public class FilterClassManager {
                     this.filterClassTable.put(key, filterClassInfoNew);
                 }
                 catch (Throwable e) {
-                    log.error("compileAndLoadClass Exception", e);
+                    String info =
+                            String
+                                .format(
+                                    "FilterServer, registerFilterClass Exception, consumerGroup: %s topic: %s className: %s",
+                                    consumerGroup, topic, className);
+                    log.error(info, e);
                     return false;
                 }
             }
