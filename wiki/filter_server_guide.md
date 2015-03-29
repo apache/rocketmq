@@ -1,32 +1,43 @@
-/**
- * Copyright (C) 2010-2013 Alibaba Group Holding Limited
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+### Filter网络架构，以CPU资源换取宝贵的网卡流量资源
+![screenshot](http://img4.tbcdn.cn/L1/461/1/813c4f5a6934634233142e0a1cecb43507cbd1a5)
+
+### 启动Broker时，增加以下配置，可以自动加载Filter Server进程
+
+	filterServerNums=1
+
+### Filter样本（Consumer仅负责将代码上传到Filter Server，由Filter Server编译后执行）
+
+```java
+
 package com.alibaba.rocketmq.example.filter;
 
-import java.util.List;
-
-import com.alibaba.rocketmq.client.consumer.DefaultMQPushConsumer;
-import com.alibaba.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext;
-import com.alibaba.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
-import com.alibaba.rocketmq.client.consumer.listener.MessageListenerConcurrently;
-import com.alibaba.rocketmq.client.exception.MQClientException;
-import com.alibaba.rocketmq.common.MixAll;
+import com.alibaba.rocketmq.common.filter.MessageFilter;
 import com.alibaba.rocketmq.common.message.MessageExt;
 
 
-public class Consumer {
+public class MessageFilterImpl implements MessageFilter {
+
+    @Override
+    public boolean match(MessageExt msg) {
+        String property = msg.getUserProperty("SequenceId");
+        if (property != null) {
+            int id = Integer.parseInt(property);
+            if ((id % 3) == 0 && (id > 10)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+}
+
+
+```
+
+
+### Consumer例子
+
+```java
 
     public static void main(String[] args) throws InterruptedException, MQClientException {
         DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("ConsumerGroupNamecc4");
@@ -50,4 +61,10 @@ public class Consumer {
 
         System.out.println("Consumer Started.");
     }
-}
+
+
+```
+
+
+
+
