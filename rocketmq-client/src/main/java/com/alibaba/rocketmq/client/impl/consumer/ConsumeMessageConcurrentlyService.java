@@ -173,9 +173,8 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
                 ConsumeMessageConcurrentlyService.this.processConsumeResult(status, context, this);
             }
             else {
-                log.warn(
-                    "processQueue is dropped without process consume result. messageQueue={}, msgTreeMap={}, msgs={}",
-                    new Object[] { messageQueue, processQueue.getMsgTreeMap(), msgs });
+                log.warn("processQueue is dropped without process consume result. messageQueue={}, msgs={}",
+                    messageQueue, msgs);
             }
         }
 
