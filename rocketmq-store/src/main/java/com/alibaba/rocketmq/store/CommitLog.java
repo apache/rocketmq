@@ -535,7 +535,7 @@ public class CommitLog {
             // global
             msg.setStoreTimestamp(beginLockTimestamp);
 
-            if (null == mapedFile) {
+            if (null == mapedFile || mapedFile.isFull()) {
                 mapedFile = this.mapedFileQueue.getLastMapedFile();
             }
 
@@ -585,7 +585,8 @@ public class CommitLog {
             eclipseTimeInLock = this.defaultMessageStore.getSystemClock().now() - beginLockTimestamp;
         } // end of synchronized
 
-        // 分发放置到锁外面，仅仅是为了测试性能，存在潜在的乱序问题。
+        // TODO 分发放置到锁外面，仅仅是为了测试性能，存在潜在的乱序问题。
+        // 解决办法，彻底去除dispatch机制，改为使用单独线程扫描commit log
         this.defaultMessageStore.putDispatchRequest(dispatchRequest);
 
         if (eclipseTimeInLock > 1000) {
