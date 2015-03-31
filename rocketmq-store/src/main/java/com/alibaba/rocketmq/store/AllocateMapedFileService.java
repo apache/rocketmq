@@ -130,9 +130,13 @@ public class AllocateMapedFileService extends ServiceThread {
 
 
     private void preAllocatePhyMem(MapedFile mapedFile) {
-        ByteBuffer byteBuffer = mapedFile.sliceByteBuffer();
-        for (int i = 0; i < mapedFile.getFileSize(); i += MapedFile.OS_PAGE_SIZE) {
-            byteBuffer.put(i, (byte) 0);
+        int size = 1024 * 1024 * 512;
+
+        if (mapedFile.getFileSize() > size) {
+            ByteBuffer byteBuffer = mapedFile.sliceByteBuffer();
+            for (int i = 0; i < mapedFile.getFileSize(); i += 1) {
+                byteBuffer.put(i, (byte) 0);
+            }
         }
     }
 
