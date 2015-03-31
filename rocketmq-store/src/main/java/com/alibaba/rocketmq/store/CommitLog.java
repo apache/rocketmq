@@ -527,6 +527,7 @@ public class CommitLog {
 
         long eclipseTimeInLock = 0;
         MapedFile mapedFile = this.mapedFileQueue.getLastMapedFileXXX();
+        DispatchRequest dispatchRequest = null;
         synchronized (this) {
             long beginLockTimestamp = this.defaultMessageStore.getSystemClock().now();
 
@@ -566,7 +567,7 @@ public class CommitLog {
                 return new PutMessageResult(PutMessageStatus.UNKNOWN_ERROR, result);
             }
 
-            DispatchRequest dispatchRequest = new DispatchRequest(//
+            dispatchRequest = new DispatchRequest(//
                 topic,// 1
                 queueId,// 2
                 result.getWroteOffset(),// 3
@@ -581,10 +582,11 @@ public class CommitLog {
                 msg.getSysFlag(),// 9
                 msg.getPreparedTransactionOffset());// 10
 
-            this.defaultMessageStore.putDispatchRequest(dispatchRequest);
-
             eclipseTimeInLock = this.defaultMessageStore.getSystemClock().now() - beginLockTimestamp;
         } // end of synchronized
+
+        // 分发放置到锁外面，仅仅是为了测试性能，存在潜在的乱序问题。
+        this.defaultMessageStore.putDispatchRequest(dispatchRequest);
 
         if (eclipseTimeInLock > 1000) {
             // XXX: warn and notify me
