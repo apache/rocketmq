@@ -134,7 +134,7 @@ public class AllocateMapedFileService extends ServiceThread {
 
         if (mapedFile.getFileSize() > size) {
             ByteBuffer byteBuffer = mapedFile.sliceByteBuffer();
-            for (int i = 0; i < mapedFile.getFileSize(); i += 1) {
+            for (int i = 0; i < mapedFile.getFileSize(); i += MapedFile.OS_PAGE_SIZE) {
                 byteBuffer.put(i, (byte) 0);
             }
         }
