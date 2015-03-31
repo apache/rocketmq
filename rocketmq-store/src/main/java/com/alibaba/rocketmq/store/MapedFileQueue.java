@@ -211,6 +211,18 @@ public class MapedFileQueue {
     }
 
 
+    public MapedFile getLastMapedFileXXX() {
+        MapedFile mapedFileLast = null;
+        this.readWriteLock.readLock().lock();
+        if (!this.mapedFiles.isEmpty()) {
+            mapedFileLast = this.mapedFiles.get(this.mapedFiles.size() - 1);
+        }
+        this.readWriteLock.readLock().unlock();
+
+        return mapedFileLast;
+    }
+
+
     /**
      * 获取最后一个MapedFile对象，如果一个都没有，则新创建一个，如果最后一个写满了，则新创建一个
      * 

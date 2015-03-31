@@ -526,6 +526,7 @@ public class CommitLog {
         }
 
         long eclipseTimeInLock = 0;
+        MapedFile mapedFile = this.mapedFileQueue.getLastMapedFileXXX();
         synchronized (this) {
             long beginLockTimestamp = this.defaultMessageStore.getSystemClock().now();
 
@@ -533,7 +534,10 @@ public class CommitLog {
             // global
             msg.setStoreTimestamp(beginLockTimestamp);
 
-            MapedFile mapedFile = this.mapedFileQueue.getLastMapedFile();
+            if (null == mapedFile) {
+                mapedFile = this.mapedFileQueue.getLastMapedFile();
+            }
+
             if (null == mapedFile) {
                 log.error("create maped file1 error, topic: " + msg.getTopic() + " clientAddr: "
                         + msg.getBornHostString());
