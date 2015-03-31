@@ -16,6 +16,7 @@
 package com.alibaba.rocketmq.store;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.PriorityBlockingQueue;
@@ -128,6 +129,14 @@ public class AllocateMapedFileService extends ServiceThread {
     }
 
 
+    private void preAllocatePhyMem(MapedFile mapedFile) {
+        ByteBuffer byteBuffer = mapedFile.sliceByteBuffer();
+        for (int i = 0; i < mapedFile.getFileSize(); i += MapedFile.OS_PAGE_SIZE) {
+            byteBuffer.put(i, (byte) 0);
+        }
+    }
+
+
     /**
      * Only interrupted by the external thread, will return false
      */
@@ -153,6 +162,8 @@ public class AllocateMapedFileService extends ServiceThread {
 
                 req.setMapedFile(mapedFile);
                 this.hasException = false;
+
+                preAllocatePhyMem(mapedFile);
             }
         }
         catch (InterruptedException e) {
