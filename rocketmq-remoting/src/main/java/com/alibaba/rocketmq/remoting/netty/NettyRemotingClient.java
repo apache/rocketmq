@@ -272,6 +272,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
 
                 private AtomicInteger threadIndex = new AtomicInteger(0);
 
+
                 @Override
                 public Thread newThread(Runnable r) {
                     return new Thread(r, "NettyClientWorkerThread_" + this.threadIndex.incrementAndGet());
@@ -621,8 +622,8 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                 }
                 RemotingCommand response = this.invokeSyncImpl(channel, request, timeoutMillis);
                 if (this.rpcHook != null) {
-                    this.rpcHook.doAfterResponse(RemotingHelper.parseChannelRemoteAddr(channel),
-                        request, response);
+                    this.rpcHook.doAfterResponse(RemotingHelper.parseChannelRemoteAddr(channel), request,
+                        response);
                 }
                 return response;
             }
@@ -649,6 +650,12 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
             RemotingTooMuchRequestException, RemotingTimeoutException, RemotingSendRequestException {
         final Channel channel = this.getAndCreateChannel(addr);
         if (channel != null && channel.isActive()) {
+            // test the channel writable or not
+            if (!channel.isWritable()) {
+                throw new RemotingTooMuchRequestException(String.format(
+                    "the channel[%s] is not writable now", channel.toString()));
+            }
+
             try {
                 if (this.rpcHook != null) {
                     this.rpcHook.doBeforeRequest(addr, request);
@@ -674,6 +681,12 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
             RemotingTimeoutException, RemotingSendRequestException {
         final Channel channel = this.getAndCreateChannel(addr);
         if (channel != null && channel.isActive()) {
+            // test the channel writable or not
+            if (!channel.isWritable()) {
+                throw new RemotingTooMuchRequestException(String.format(
+                    "the channel[%s] is not writable now", channel.toString()));
+            }
+
             try {
                 if (this.rpcHook != null) {
                     this.rpcHook.doBeforeRequest(addr, request);
