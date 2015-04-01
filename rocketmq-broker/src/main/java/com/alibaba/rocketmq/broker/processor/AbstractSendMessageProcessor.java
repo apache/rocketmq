@@ -53,8 +53,6 @@ import com.alibaba.rocketmq.store.MessageExtBrokerInner;
 
 
 /**
- * 澶勭悊瀹㈡埛绔彂閫佹秷鎭殑璇锋眰
- * 
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-26
  */
@@ -75,22 +73,24 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
     }
 
 
-   
+    protected SendMessageContext buildMsgContext(ChannelHandlerContext ctx,
+            SendMessageRequestHeader requestHeader) {
+        if (!this.hasSendMessageHook()) {
+            return null;
+        }
+        SendMessageContext mqtraceContext;
+        mqtraceContext = new SendMessageContext();
+        mqtraceContext.setProducerGroup(requestHeader.getProducerGroup());
+        mqtraceContext.setTopic(requestHeader.getTopic());
+        mqtraceContext.setMsgProps(requestHeader.getProperties());
+        mqtraceContext.setBornHost(RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
+        mqtraceContext.setBrokerAddr(this.brokerController.getBrokerAddr());
+        return mqtraceContext;
+    }
 
-	protected SendMessageContext buildMsgContext(ChannelHandlerContext ctx, SendMessageRequestHeader requestHeader) {
-		if (!this.hasSendMessageHook()) {
-			return null;
-		}
-		SendMessageContext mqtraceContext;
-		mqtraceContext = new SendMessageContext();
-		mqtraceContext.setProducerGroup(requestHeader.getProducerGroup());
-		mqtraceContext.setTopic(requestHeader.getTopic());
-		mqtraceContext.setMsgProps(requestHeader.getProperties());
-		mqtraceContext.setBornHost(RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
-		mqtraceContext.setBrokerAddr(this.brokerController.getBrokerAddr());
-		return mqtraceContext;
-	}
-    protected SendMessageRequestHeader parseRequestHeader(RemotingCommand request) throws RemotingCommandException {
+
+    protected SendMessageRequestHeader parseRequestHeader(RemotingCommand request)
+            throws RemotingCommandException {
 
         SendMessageRequestHeaderV2 requestHeaderV2 = null;
         SendMessageRequestHeader requestHeader = null;
@@ -112,20 +112,17 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
             break;
         }
         return requestHeader;
-	}
+    }
 
-    protected MessageExtBrokerInner buildInnerMsg(
-			final ChannelHandlerContext ctx,
-			final SendMessageRequestHeader requestHeader, final byte[] body,
-			TopicConfig topicConfig) {
-        int queueIdInt=requestHeader.getQueueId();
-		// 闅忔満鎸囧畾涓�涓槦鍒�
+
+    protected MessageExtBrokerInner buildInnerMsg(final ChannelHandlerContext ctx,
+            final SendMessageRequestHeader requestHeader, final byte[] body, TopicConfig topicConfig) {
+        int queueIdInt = requestHeader.getQueueId();
         if (queueIdInt < 0) {
             queueIdInt = Math.abs(this.random.nextInt() % 99999999) % topicConfig.getWriteQueueNums();
         }
-		int sysFlag = requestHeader.getSysFlag();
-		
-        // 澶氭爣绛捐繃婊ら渶瑕佺疆浣�
+        int sysFlag = requestHeader.getSysFlag();
+
         if (TopicFilterType.MULTI_TAG == topicConfig.getTopicFilterType()) {
             sysFlag |= MessageSysFlag.MultiTagsFlag;
         }
@@ -147,24 +144,27 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
         msgInner.setStoreHost(this.getStoreHost());
         msgInner.setReconsumeTimes(requestHeader.getReconsumeTimes() == null ? 0 : requestHeader
             .getReconsumeTimes());
-		return msgInner;
-	}
-    protected RemotingCommand msgContentCheck(final ChannelHandlerContext ctx,final SendMessageRequestHeader requestHeader,RemotingCommand request,
-			final RemotingCommand response) {
-        // message topic长度校验
+        return msgInner;
+    }
+
+
+    protected RemotingCommand msgContentCheck(final ChannelHandlerContext ctx,
+            final SendMessageRequestHeader requestHeader, RemotingCommand request,
+            final RemotingCommand response) {
         if (requestHeader.getTopic().length() > Byte.MAX_VALUE) {
             log.warn("putMessage message topic length too long " + requestHeader.getTopic().length());
             response.setCode(ResponseCode.MESSAGE_ILLEGAL);
             return response;
         }
-        // message properties长度校验
         if (requestHeader.getProperties() != null && requestHeader.getProperties().length() > Short.MAX_VALUE) {
-            log.warn("putMessage message properties length too long " + requestHeader.getProperties().length());
+            log.warn("putMessage message properties length too long "
+                    + requestHeader.getProperties().length());
             response.setCode(ResponseCode.MESSAGE_ILLEGAL);
             return response;
         }
         if (request.getBody().length > DBMsgConstants.maxBodySize) {
-            log.warn(" topic {}  msg body size {}  from {}", requestHeader.getTopic(), request.getBody().length, ChannelUtil.getRemoteIp(ctx.channel()));
+            log.warn(" topic {}  msg body size {}  from {}", requestHeader.getTopic(),
+                request.getBody().length, ChannelUtil.getRemoteIp(ctx.channel()));
             response.setRemark("msg body must be less 64KB");
             response.setCode(ResponseCode.MESSAGE_ILLEGAL);
             return response;
@@ -172,9 +172,9 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
         return response;
     }
 
-	protected RemotingCommand msgCheck(final ChannelHandlerContext ctx,final SendMessageRequestHeader requestHeader,
-			final RemotingCommand response) {
-		// 妫�鏌roker鏉冮檺, 椤哄簭娑堟伅绂佸啓锛涢潪椤哄簭娑堟伅閫氳繃 nameserver 閫氱煡瀹㈡埛绔墧闄ょ鍐欏垎鍖�
+
+    protected RemotingCommand msgCheck(final ChannelHandlerContext ctx,
+            final SendMessageRequestHeader requestHeader, final RemotingCommand response) {
         if (!PermName.isWriteable(this.brokerController.getBrokerConfig().getBrokerPermission())
                 && this.brokerController.getTopicConfigManager().isOrderTopic(requestHeader.getTopic())) {
             response.setCode(ResponseCode.NO_PERMISSION);
@@ -182,7 +182,6 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
                     + "] sending message is forbidden");
             return response;
         }
-        // Topic鍚嶅瓧鏄惁涓庝繚鐣欏瓧娈靛啿绐�
         if (!this.brokerController.getTopicConfigManager().isTopicCanSendMessage(requestHeader.getTopic())) {
             String errorMsg =
                     "the topic[" + requestHeader.getTopic() + "] is conflict with system reserved words.";
@@ -192,11 +191,9 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
             return response;
         }
 
-        // 妫�鏌opic鏄惁瀛樺湪
         TopicConfig topicConfig =
                 this.brokerController.getTopicConfigManager().selectTopicConfig(requestHeader.getTopic());
         if (null == topicConfig) {
-            // 濡傛灉鏄崟鍏冨寲妯″紡锛屽垯瀵� topic 杩涜璁剧疆
             int topicSysFlag = 0;
             if (requestHeader.isUnitMode()) {
                 if (requestHeader.getTopic().startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
@@ -215,7 +212,6 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
                 RemotingHelper.parseChannelRemoteAddr(ctx.channel()), //
                 requestHeader.getDefaultTopicQueueNums(), topicSysFlag);
 
-            // 灏濊瘯鐪嬩笅鏄惁鏄け璐ユ秷鎭彂鍥�
             if (null == topicConfig) {
                 if (requestHeader.getTopic().startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
                     topicConfig =
@@ -233,18 +229,6 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
             }
         }
 
-        /**
-         * Broker鏈韩涓嶅仛Topic鐨勬潈闄愰獙璇侊紝鐢盢ame Server璐熻矗閫氱煡Client澶勭悊
-         */
-        // // 妫�鏌opic鏉冮檺
-        // if (!PermName.isWriteable(topicConfig.getPerm())) {
-        // response.setCode(ResponseCode.NO_PERMISSION);
-        // response.setRemark("the topic[" + requestHeader.getOriginTopic() +
-        // "] sending message is forbidden");
-        // return response;
-        // }
-
-        // 妫�鏌ラ槦鍒楁湁鏁堟��
         int queueIdInt = requestHeader.getQueueId();
         int idValid = Math.max(topicConfig.getWriteQueueNums(), topicConfig.getReadQueueNums());
         if (queueIdInt >= idValid) {
@@ -260,16 +244,13 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
             return response;
         }
         return response;
-	}
+    }
 
 
     public SocketAddress getStoreHost() {
         return storeHost;
     }
 
-    /**
-     * 鍙戦�佹瘡鏉℃秷鎭細鍥炶皟
-     */
     private List<SendMessageHook> sendMessageHookList;
 
 
@@ -281,17 +262,22 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
     public void registerSendMessageHook(List<SendMessageHook> sendMessageHookList) {
         this.sendMessageHookList = sendMessageHookList;
     }
-	protected void doResponse(ChannelHandlerContext ctx, RemotingCommand request, final RemotingCommand response) {
-		if (!request.isOnewayRPC()) {
-			try {
-				ctx.writeAndFlush(response);
-			} catch (Throwable e) {
-				log.error("SendMessageProcessor process request over, but response failed", e);
-				log.error(request.toString());
-				log.error(response.toString());
-			}
-		}
-	}
+
+
+    protected void doResponse(ChannelHandlerContext ctx, RemotingCommand request,
+            final RemotingCommand response) {
+        if (!request.isOnewayRPC()) {
+            try {
+                ctx.writeAndFlush(response);
+            }
+            catch (Throwable e) {
+                log.error("SendMessageProcessor process request over, but response failed", e);
+                log.error(request.toString());
+                log.error(response.toString());
+            }
+        }
+    }
+
 
     public void executeSendMessageHookBefore(final ChannelHandlerContext ctx, final RemotingCommand request,
             SendMessageContext context) {
@@ -334,11 +320,10 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
                     hook.sendMessageAfter(context);
                 }
                 catch (Throwable e) {
-                	
+
                 }
             }
         }
     }
 
-   
 }
