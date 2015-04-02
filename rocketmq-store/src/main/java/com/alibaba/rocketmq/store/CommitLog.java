@@ -17,6 +17,7 @@ package com.alibaba.rocketmq.store;
 
 import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -27,6 +28,7 @@ import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.ServiceThread;
 import com.alibaba.rocketmq.common.UtilAll;
 import com.alibaba.rocketmq.common.constant.LoggerName;
@@ -1023,10 +1025,11 @@ public class CommitLog {
              * Serialize message
              */
             final byte[] propertiesData =
-                    msgInner.getPropertiesString() == null ? null : msgInner.getPropertiesString().getBytes();
+                    msgInner.getPropertiesString() == null ? null : msgInner.getPropertiesString().getBytes(
+                        Charset.forName(MixAll.DEFAULT_CHARSET));
             final int propertiesLength = propertiesData == null ? 0 : propertiesData.length;
 
-            final byte[] topicData = msgInner.getTopic().getBytes();
+            final byte[] topicData = msgInner.getTopic().getBytes(Charset.forName(MixAll.DEFAULT_CHARSET));
             final int topicLength = topicData == null ? 0 : topicData.length;
 
             final int bodyLength = msgInner.getBody() == null ? 0 : msgInner.getBody().length;
