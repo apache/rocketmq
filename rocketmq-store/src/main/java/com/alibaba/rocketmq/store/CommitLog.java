@@ -404,7 +404,7 @@ public class CommitLog {
                 // Normal data
                 if (size > 0) {
                     mapedFileOffset += size;
-                    this.defaultMessageStore.putDispatchRequest(dispatchRequest);
+                    this.defaultMessageStore.doDispatch(dispatchRequest);
                 }
                 // Intermediate file read error
                 else if (size == -1) {
@@ -526,8 +526,7 @@ public class CommitLog {
         }
 
         long eclipseTimeInLock = 0;
-        MapedFile mapedFile = this.mapedFileQueue.getLastMapedFileXXX();
-        DispatchRequest dispatchRequest = null;
+        MapedFile mapedFile = this.mapedFileQueue.getLastMapedFileWithLock();
         synchronized (this) {
             long beginLockTimestamp = this.defaultMessageStore.getSystemClock().now();
 
@@ -567,27 +566,8 @@ public class CommitLog {
                 return new PutMessageResult(PutMessageStatus.UNKNOWN_ERROR, result);
             }
 
-            dispatchRequest = new DispatchRequest(//
-                topic,// 1
-                queueId,// 2
-                result.getWroteOffset(),// 3
-                result.getWroteBytes(),// 4
-                tagsCode,// 5
-                msg.getStoreTimestamp(),// 6
-                result.getLogicsOffset(),// 7
-                msg.getKeys(),// 8
-                /**
-                 * Transaction
-                 */
-                msg.getSysFlag(),// 9
-                msg.getPreparedTransactionOffset());// 10
-
             eclipseTimeInLock = this.defaultMessageStore.getSystemClock().now() - beginLockTimestamp;
         } // end of synchronized
-
-        // TODO 分发放置到锁外面，仅仅是为了测试性能，存在潜在的乱序问题。
-        // 解决办法，彻底去除dispatch机制，改为使用单独线程扫描commit log
-        this.defaultMessageStore.putDispatchRequest(dispatchRequest);
 
         if (eclipseTimeInLock > 1000) {
             // XXX: warn and notify me
@@ -1024,7 +1004,7 @@ public class CommitLog {
              */
             final byte[] propertiesData =
                     msgInner.getPropertiesString() == null ? null : msgInner.getPropertiesString().getBytes(
-                            MessageDecoder.CHARSET_UTF8);
+                        MessageDecoder.CHARSET_UTF8);
             final int propertiesLength = propertiesData == null ? 0 : propertiesData.length;
 
             final byte[] topicData = msgInner.getTopic().getBytes(MessageDecoder.CHARSET_UTF8);

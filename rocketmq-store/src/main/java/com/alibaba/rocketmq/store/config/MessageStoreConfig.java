@@ -15,10 +15,10 @@
  */
 package com.alibaba.rocketmq.store.config;
 
-import java.io.File;
-
 import com.alibaba.rocketmq.common.annotation.ImportantField;
 import com.alibaba.rocketmq.store.ConsumeQueue;
+
+import java.io.File;
 
 
 /**
@@ -75,6 +75,8 @@ public class MessageStoreConfig {
     private boolean checkCRCOnRecover = true;
     // 刷CommitLog，至少刷几个PAGE
     private int flushCommitLogLeastPages = 4;
+    // 预热时刷盘page(16M)
+    private int flushCommitLogLeastPagesWhenPreLoadMem = 1024 / 4 * 16;
     // 刷ConsumeQueue，至少刷几个PAGE
     private int flushConsumeQueueLeastPages = 2;
     // 刷CommitLog，彻底刷盘间隔时间
@@ -591,5 +593,15 @@ public class MessageStoreConfig {
 
     public void setStorePathRootDir(String storePathRootDir) {
         this.storePathRootDir = storePathRootDir;
+    }
+
+
+    public int getFlushCommitLogLeastPagesWhenPreLoadMem() {
+        return flushCommitLogLeastPagesWhenPreLoadMem;
+    }
+
+
+    public void setFlushCommitLogLeastPagesWhenPreLoadMem(int flushCommitLogLeastPagesWhenPreLoadMem) {
+        this.flushCommitLogLeastPagesWhenPreLoadMem = flushCommitLogLeastPagesWhenPreLoadMem;
     }
 }

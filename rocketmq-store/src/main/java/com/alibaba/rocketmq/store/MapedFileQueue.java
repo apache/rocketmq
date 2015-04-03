@@ -15,6 +15,11 @@
  */
 package com.alibaba.rocketmq.store;
 
+import com.alibaba.rocketmq.common.UtilAll;
+import com.alibaba.rocketmq.common.constant.LoggerName;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -22,12 +27,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.alibaba.rocketmq.common.UtilAll;
-import com.alibaba.rocketmq.common.constant.LoggerName;
 
 
 /**
@@ -211,7 +210,7 @@ public class MapedFileQueue {
     }
 
 
-    public MapedFile getLastMapedFileXXX() {
+    public MapedFile getLastMapedFileWithLock() {
         MapedFile mapedFileLast = null;
         this.readWriteLock.readLock().lock();
         if (!this.mapedFiles.isEmpty()) {

@@ -15,19 +15,17 @@
  */
 package com.alibaba.rocketmq.store;
 
+import com.alibaba.rocketmq.common.ServiceThread;
+import com.alibaba.rocketmq.common.UtilAll;
+import com.alibaba.rocketmq.common.constant.LoggerName;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.PriorityBlockingQueue;
 import java.util.concurrent.TimeUnit;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.alibaba.rocketmq.common.ServiceThread;
-import com.alibaba.rocketmq.common.UtilAll;
-import com.alibaba.rocketmq.common.constant.LoggerName;
 
 
 /**
@@ -44,6 +42,12 @@ public class AllocateMapedFileService extends ServiceThread {
     private PriorityBlockingQueue<AllocateRequest> requestQueue =
             new PriorityBlockingQueue<AllocateRequest>();
     private volatile boolean hasException = false;
+    private DefaultMessageStore messageStore;
+
+
+    public AllocateMapedFileService(DefaultMessageStore messageStore) {
+        this.messageStore = messageStore;
+    }
 
 
     public MapedFile putRequestAndReturnMapedFile(String nextFilePath, String nextNextFilePath, int fileSize) {
@@ -129,18 +133,6 @@ public class AllocateMapedFileService extends ServiceThread {
     }
 
 
-    private void preAllocatePhyMem(MapedFile mapedFile) {
-        int size = 1024 * 1024 * 512;
-
-        if (mapedFile.getFileSize() > size) {
-            ByteBuffer byteBuffer = mapedFile.sliceByteBuffer();
-            for (int i = 0; i < mapedFile.getFileSize(); i += MapedFile.OS_PAGE_SIZE) {
-                byteBuffer.put(i, (byte) 0);
-            }
-        }
-    }
-
-
     /**
      * Only interrupted by the external thread, will return false
      */
@@ -164,10 +156,12 @@ public class AllocateMapedFileService extends ServiceThread {
                             + " " + req.getFilePath() + " " + req.getFileSize());
                 }
 
+                // pre write mappedFile
+                mapedFile.preAllocatePhyMem(this.messageStore.getMessageStoreConfig().getFlushDiskType(),
+                    this.messageStore.getMessageStoreConfig().getFlushCommitLogLeastPagesWhenPreLoadMem());
+
                 req.setMapedFile(mapedFile);
                 this.hasException = false;
-
-                preAllocatePhyMem(mapedFile);
             }
         }
         catch (InterruptedException e) {

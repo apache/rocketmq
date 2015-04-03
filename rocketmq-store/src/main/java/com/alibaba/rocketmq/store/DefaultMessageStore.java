@@ -15,29 +15,6 @@
  */
 package com.alibaba.rocketmq.store;
 
-import static com.alibaba.rocketmq.store.config.BrokerRole.SLAVE;
-
-import java.io.File;
-import java.io.IOException;
-import java.net.SocketAddress;
-import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.alibaba.rocketmq.common.ServiceThread;
 import com.alibaba.rocketmq.common.SystemClock;
 import com.alibaba.rocketmq.common.ThreadFactoryImpl;
@@ -57,6 +34,22 @@ import com.alibaba.rocketmq.store.index.IndexService;
 import com.alibaba.rocketmq.store.index.QueryOffsetResult;
 import com.alibaba.rocketmq.store.schedule.ScheduleMessageService;
 import com.alibaba.rocketmq.store.stats.BrokerStatsManager;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.File;
+import java.io.IOException;
+import java.net.SocketAddress;
+import java.nio.ByteBuffer;
+import java.util.*;
+import java.util.Map.Entry;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
+
+import static com.alibaba.rocketmq.store.config.BrokerRole.SLAVE;
 
 
 /**
@@ -81,8 +74,6 @@ public class DefaultMessageStore implements MessageStore {
     private final CleanCommitLogService cleanCommitLogService;
     // 清理逻辑文件服务
     private final CleanConsumeQueueService cleanConsumeQueueService;
-    // 分发消息索引服务
-    private final DispatchMessageService dispatchMessageService;
     // 消息索引服务
     private final IndexService indexService;
     // 预分配MapedFile对象服务
@@ -115,7 +106,7 @@ public class DefaultMessageStore implements MessageStore {
             final BrokerStatsManager brokerStatsManager) throws IOException {
         this.messageStoreConfig = messageStoreConfig;
         this.brokerStatsManager = brokerStatsManager;
-        this.allocateMapedFileService = new AllocateMapedFileService();
+        this.allocateMapedFileService = new AllocateMapedFileService(this);
         this.commitLog = new CommitLog(this);
         this.consumeQueueTable =
                 new ConcurrentHashMap<String/* topic */, ConcurrentHashMap<Integer/* queueId */, ConsumeQueue>>(
@@ -124,31 +115,16 @@ public class DefaultMessageStore implements MessageStore {
         this.flushConsumeQueueService = new FlushConsumeQueueService();
         this.cleanCommitLogService = new CleanCommitLogService();
         this.cleanConsumeQueueService = new CleanConsumeQueueService();
-        this.dispatchMessageService =
-                new DispatchMessageService(this.messageStoreConfig.getPutMsgIndexHightWater());
         this.storeStatsService = new StoreStatsService();
         this.indexService = new IndexService(this);
         this.haService = new HAService(this);
 
-        switch (this.messageStoreConfig.getBrokerRole()) {
-        case SLAVE:
-            this.reputMessageService = new ReputMessageService();
-            // reputMessageService依赖scheduleMessageService做定时消息的恢复，确保储备数据一致
-            this.scheduleMessageService = new ScheduleMessageService(this);
-            break;
-        case ASYNC_MASTER:
-        case SYNC_MASTER:
-            this.reputMessageService = null;
-            this.scheduleMessageService = new ScheduleMessageService(this);
-            break;
-        default:
-            this.reputMessageService = null;
-            this.scheduleMessageService = null;
-        }
+        this.reputMessageService = new ReputMessageService();
+        // reputMessageService依赖scheduleMessageService做定时消息的恢复，确保储备数据一致
+        this.scheduleMessageService = new ScheduleMessageService(this);
 
         // load过程依赖此服务，所以提前启动
         this.allocateMapedFileService.start();
-        this.dispatchMessageService.start();
         // 因为下面的recover会分发请求到索引服务，如果不启动，分发过程会被流控
         this.indexService.start();
     }
@@ -298,10 +274,6 @@ public class DefaultMessageStore implements MessageStore {
      * @throws Exception
      */
     public void start() throws Exception {
-        // 在构造函数已经start了。
-        // this.indexService.start();
-        // 在构造函数已经start了。
-        // this.dispatchMessageService.start();
         this.flushConsumeQueueService.start();
         this.commitLog.start();
         this.storeStatsService.start();
@@ -311,10 +283,8 @@ public class DefaultMessageStore implements MessageStore {
             this.scheduleMessageService.start();
         }
 
-        if (this.reputMessageService != null) {
-            this.reputMessageService.setReputFromOffset(this.commitLog.getMaxOffset());
-            this.reputMessageService.start();
-        }
+        this.reputMessageService.setReputFromOffset(this.commitLog.getMaxOffset());
+        this.reputMessageService.start();
 
         this.haService.start();
 
@@ -348,7 +318,6 @@ public class DefaultMessageStore implements MessageStore {
             this.haService.shutdown();
 
             this.storeStatsService.shutdown();
-            this.dispatchMessageService.shutdown();
             this.indexService.shutdown();
             this.flushConsumeQueueService.shutdown();
             this.commitLog.shutdown();
@@ -1118,16 +1087,6 @@ public class DefaultMessageStore implements MessageStore {
             this.commitLog.recoverAbnormally();
         }
 
-        // 保证消息都能从DispatchService缓冲队列进入到真正的队列
-        while (this.dispatchMessageService.hasRemainMessage()) {
-            try {
-                Thread.sleep(500);
-                log.info("waiting dispatching message over");
-            }
-            catch (InterruptedException e) {
-            }
-        }
-
         this.recoverTopicQueueTable();
     }
 
@@ -1162,16 +1121,6 @@ public class DefaultMessageStore implements MessageStore {
             long storeTimestamp, long logicOffset) {
         ConsumeQueue cq = this.findConsumeQueue(topic, queueId);
         cq.putMessagePostionInfoWrapper(offset, size, tagsCode, storeTimestamp, logicOffset);
-    }
-
-
-    public void putDispatchRequest(final DispatchRequest dispatchRequest) {
-        this.dispatchMessageService.putRequest(dispatchRequest);
-    }
-
-
-    public DispatchMessageService getDispatchMessageService() {
-        return dispatchMessageService;
     }
 
 
@@ -1567,143 +1516,25 @@ public class DefaultMessageStore implements MessageStore {
         }
     }
 
-    /**
-     * 分发消息索引服务
-     */
-    class DispatchMessageService extends ServiceThread {
-        private volatile List<DispatchRequest> requestsWrite;
-        private volatile List<DispatchRequest> requestsRead;
 
-
-        public DispatchMessageService(int putMsgIndexHightWater) {
-            putMsgIndexHightWater *= 1.5;
-            this.requestsWrite = new ArrayList<DispatchRequest>(putMsgIndexHightWater);
-            this.requestsRead = new ArrayList<DispatchRequest>(putMsgIndexHightWater);
+    public void doDispatch(DispatchRequest req) {
+        final int tranType = MessageSysFlag.getTransactionValue(req.getSysFlag());
+        // 1、分发消息位置信息到ConsumeQueue
+        switch (tranType) {
+        case MessageSysFlag.TransactionNotType:
+        case MessageSysFlag.TransactionCommitType:
+            // 将请求发到具体的Consume Queue
+            DefaultMessageStore.this.putMessagePostionInfo(req.getTopic(), req.getQueueId(),
+                req.getCommitLogOffset(), req.getMsgSize(), req.getTagsCode(), req.getStoreTimestamp(),
+                req.getConsumeQueueOffset());
+            break;
+        case MessageSysFlag.TransactionPreparedType:
+        case MessageSysFlag.TransactionRollbackType:
+            break;
         }
 
-
-        public boolean hasRemainMessage() {
-            List<DispatchRequest> reqs = this.requestsWrite;
-            if (reqs != null && !reqs.isEmpty()) {
-                return true;
-            }
-
-            reqs = this.requestsRead;
-            if (reqs != null && !reqs.isEmpty()) {
-                return true;
-            }
-
-            return false;
-        }
-
-
-        public void putRequest(final DispatchRequest dispatchRequest) {
-            int requestsWriteSize = 0;
-            int putMsgIndexHightWater =
-                    DefaultMessageStore.this.getMessageStoreConfig().getPutMsgIndexHightWater();
-            synchronized (this) {
-                this.requestsWrite.add(dispatchRequest);
-                requestsWriteSize = this.requestsWrite.size();
-                if (!this.hasNotified) {
-                    this.hasNotified = true;
-                    this.notify();
-                }
-            }
-
-            DefaultMessageStore.this.getStoreStatsService().setDispatchMaxBuffer(requestsWriteSize);
-
-            // 这里主动做流控，防止CommitLog写入太快，导致消费队列被冲垮
-            if (requestsWriteSize > putMsgIndexHightWater) {
-                try {
-                    if (log.isDebugEnabled()) {
-                        log.debug("Message index buffer size " + requestsWriteSize + " > high water "
-                                + putMsgIndexHightWater);
-                    }
-
-                    Thread.sleep(1);
-                }
-                catch (InterruptedException e) {
-                }
-            }
-        }
-
-
-        private void swapRequests() {
-            List<DispatchRequest> tmp = this.requestsWrite;
-            this.requestsWrite = this.requestsRead;
-            this.requestsRead = tmp;
-        }
-
-
-        private void doDispatch() {
-            if (!this.requestsRead.isEmpty()) {
-                for (DispatchRequest req : this.requestsRead) {
-
-                    final int tranType = MessageSysFlag.getTransactionValue(req.getSysFlag());
-                    // 1、分发消息位置信息到ConsumeQueue
-                    switch (tranType) {
-                    case MessageSysFlag.TransactionNotType:
-                    case MessageSysFlag.TransactionCommitType:
-                        // 将请求发到具体的Consume Queue
-                        DefaultMessageStore.this.putMessagePostionInfo(req.getTopic(), req.getQueueId(),
-                            req.getCommitLogOffset(), req.getMsgSize(), req.getTagsCode(),
-                            req.getStoreTimestamp(), req.getConsumeQueueOffset());
-                        break;
-                    case MessageSysFlag.TransactionPreparedType:
-                    case MessageSysFlag.TransactionRollbackType:
-                        break;
-                    }
-                }
-
-                if (DefaultMessageStore.this.getMessageStoreConfig().isMessageIndexEnable()) {
-                    DefaultMessageStore.this.indexService.putRequest(this.requestsRead.toArray());
-                }
-
-                this.requestsRead.clear();
-            }
-        }
-
-
-        public void run() {
-            DefaultMessageStore.log.info(this.getServiceName() + " service started");
-
-            while (!this.isStoped()) {
-                try {
-                    this.waitForRunning(0);
-                    this.doDispatch();
-                }
-                catch (Exception e) {
-                    DefaultMessageStore.log.warn(this.getServiceName() + " service has exception. ", e);
-                }
-            }
-
-            // 在正常shutdown情况下，要保证所有消息都dispatch
-            try {
-                Thread.sleep(5 * 1000);
-            }
-            catch (InterruptedException e) {
-                DefaultMessageStore.log.warn("DispatchMessageService Exception, ", e);
-            }
-
-            synchronized (this) {
-                this.swapRequests();
-            }
-
-            this.doDispatch();
-
-            DefaultMessageStore.log.info(this.getServiceName() + " service end");
-        }
-
-
-        @Override
-        protected void onWaitEnd() {
-            this.swapRequests();
-        }
-
-
-        @Override
-        public String getServiceName() {
-            return DispatchMessageService.class.getSimpleName();
+        if (DefaultMessageStore.this.getMessageStoreConfig().isMessageIndexEnable()) {
+            DefaultMessageStore.this.indexService.buildIndex(req);
         }
     }
 
@@ -1741,7 +1572,7 @@ public class DefaultMessageStore implements MessageStore {
                             int size = dispatchRequest.getMsgSize();
                             // 正常数据
                             if (size > 0) {
-                                DefaultMessageStore.this.putDispatchRequest(dispatchRequest);
+                                DefaultMessageStore.this.doDispatch(dispatchRequest);
 
                                 // FIXED BUG By shijia
                                 this.reputFromOffset += size;
@@ -1781,7 +1612,7 @@ public class DefaultMessageStore implements MessageStore {
 
             while (!this.isStoped()) {
                 try {
-                    this.waitForRunning(1000);
+                    Thread.sleep(1);
                     this.doReput();
                 }
                 catch (Exception e) {

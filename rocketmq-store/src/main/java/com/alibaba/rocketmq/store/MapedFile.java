@@ -15,6 +15,12 @@
  */
 package com.alibaba.rocketmq.store;
 
+import com.alibaba.rocketmq.common.UtilAll;
+import com.alibaba.rocketmq.common.constant.LoggerName;
+import com.alibaba.rocketmq.store.config.FlushDiskType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -28,12 +34,6 @@ import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.alibaba.rocketmq.common.UtilAll;
-import com.alibaba.rocketmq.common.constant.LoggerName;
 
 
 /**
@@ -424,6 +424,39 @@ public class MapedFile extends ReferenceResource {
         }
 
         return false;
+    }
+
+
+    /**
+     * 每隔 OS_PAGE_SIZE(1024*4) 预写一次
+     *
+     * @return
+     */
+    public void preAllocatePhyMem(FlushDiskType type, int pages) {
+        // filter consumeQueue file
+        int size = 1024 * 1024 * 512;
+
+        if (this.fileSize > size) {
+            ByteBuffer byteBuffer = this.mappedByteBuffer.slice();
+            int flush = 0;
+            for (int i = 0; i < this.fileSize; i += MapedFile.OS_PAGE_SIZE) {
+                byteBuffer.put(i, (byte) 0);
+
+                // force flush when flush disk type is sync
+                if (type == FlushDiskType.SYNC_FLUSH) {
+                    // 只有未刷盘数据满足指定page数目才刷盘
+                    if ((i / OS_PAGE_SIZE) - (flush / OS_PAGE_SIZE) >= pages) {
+                        flush = i;
+                        mappedByteBuffer.force();
+                    }
+                }
+            }
+
+            // force flush when prepare load finished
+            if (type == FlushDiskType.SYNC_FLUSH) {
+                mappedByteBuffer.force();
+            }
+        }
     }
 
 
