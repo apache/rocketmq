@@ -15,20 +15,6 @@
  */
 package com.alibaba.rocketmq.store;
 
-import java.nio.BufferUnderflowException;
-import java.nio.ByteBuffer;
-import java.nio.charset.Charset;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.ServiceThread;
 import com.alibaba.rocketmq.common.UtilAll;
 import com.alibaba.rocketmq.common.constant.LoggerName;
@@ -41,6 +27,17 @@ import com.alibaba.rocketmq.store.config.BrokerRole;
 import com.alibaba.rocketmq.store.config.FlushDiskType;
 import com.alibaba.rocketmq.store.ha.HAService;
 import com.alibaba.rocketmq.store.schedule.ScheduleMessageService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.nio.BufferUnderflowException;
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 
 /**
@@ -310,7 +307,7 @@ public class CommitLog {
             // 16 TOPIC
             byte topicLen = byteBuffer.get();
             byteBuffer.get(bytesContent, 0, topicLen);
-            String topic = new String(bytesContent, 0, topicLen);
+            String topic = new String(bytesContent, 0, topicLen, MessageDecoder.CHARSET_UTF8);
 
             long tagsCode = 0;
             String keys = "";
@@ -319,7 +316,8 @@ public class CommitLog {
             short propertiesLength = byteBuffer.getShort();
             if (propertiesLength > 0) {
                 byteBuffer.get(bytesContent, 0, propertiesLength);
-                String properties = new String(bytesContent, 0, propertiesLength);
+                String properties =
+                        new String(bytesContent, 0, propertiesLength, MessageDecoder.CHARSET_UTF8);
                 Map<String, String> propertiesMap = MessageDecoder.string2messageProperties(properties);
 
                 keys = propertiesMap.get(MessageConst.PROPERTY_KEYS);
@@ -1026,10 +1024,10 @@ public class CommitLog {
              */
             final byte[] propertiesData =
                     msgInner.getPropertiesString() == null ? null : msgInner.getPropertiesString().getBytes(
-                        Charset.forName(MixAll.DEFAULT_CHARSET));
+                            MessageDecoder.CHARSET_UTF8);
             final int propertiesLength = propertiesData == null ? 0 : propertiesData.length;
 
-            final byte[] topicData = msgInner.getTopic().getBytes(Charset.forName(MixAll.DEFAULT_CHARSET));
+            final byte[] topicData = msgInner.getTopic().getBytes(MessageDecoder.CHARSET_UTF8);
             final int topicLength = topicData == null ? 0 : topicData.length;
 
             final int bodyLength = msgInner.getBody() == null ? 0 : msgInner.getBody().length;
