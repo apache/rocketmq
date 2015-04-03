@@ -228,12 +228,9 @@ public class CommitLog {
     public DispatchRequest checkMessageAndReturnSize(java.nio.ByteBuffer byteBuffer, final boolean checkCRC,
             final boolean readBody) {
         try {
-            java.nio.ByteBuffer byteBufferMessage =
-                    ((DefaultAppendMessageCallback) this.appendMessageCallback).getMsgStoreItemMemory();
-            byte[] bytesContent = byteBufferMessage.array();
-
             // 1 TOTALSIZE
             int totalSize = byteBuffer.getInt();
+            byte[] bytesContent = new byte[totalSize];
 
             // 2 MAGICCODE
             int magicCode = byteBuffer.getInt();
