@@ -258,6 +258,20 @@ public class BrokerController {
                 }
             }, 10, 60, TimeUnit.MINUTES);
 
+            this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
+
+                @Override
+                public void run() {
+                    try {
+                        log.info("dispatch behind commit log {} bytes", BrokerController.this
+                            .getMessageStore().dispatchBehindBytes());
+                    }
+                    catch (Exception e) {
+                        log.error("schedule dispatchBehindBytes error.", e);
+                    }
+                }
+            }, 1000 * 10, 1000 * 60, TimeUnit.MILLISECONDS);
+
             if (this.brokerConfig.getNamesrvAddr() != null) {
                 this.brokerOuterAPI.updateNameServerAddressList(this.brokerConfig.getNamesrvAddr());
             }

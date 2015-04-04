@@ -952,6 +952,8 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         runtimeInfo.put("sendThreadPoolQueueCapacity",
             String.valueOf(this.brokerController.getBrokerConfig().getSendThreadPoolQueueCapacity()));
 
+        runtimeInfo.put("dispatchBehindBytes",
+            String.valueOf(this.brokerController.getMessageStore().dispatchBehindBytes()));
         return runtimeInfo;
     }
 

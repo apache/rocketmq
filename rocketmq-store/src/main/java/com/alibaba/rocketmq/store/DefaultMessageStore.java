@@ -15,6 +15,27 @@
  */
 package com.alibaba.rocketmq.store;
 
+import static com.alibaba.rocketmq.store.config.BrokerRole.SLAVE;
+
+import java.io.File;
+import java.io.IOException;
+import java.net.SocketAddress;
+import java.nio.ByteBuffer;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.alibaba.rocketmq.common.ServiceThread;
 import com.alibaba.rocketmq.common.SystemClock;
 import com.alibaba.rocketmq.common.ThreadFactoryImpl;
@@ -34,22 +55,6 @@ import com.alibaba.rocketmq.store.index.IndexService;
 import com.alibaba.rocketmq.store.index.QueryOffsetResult;
 import com.alibaba.rocketmq.store.schedule.ScheduleMessageService;
 import com.alibaba.rocketmq.store.stats.BrokerStatsManager;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.io.File;
-import java.io.IOException;
-import java.net.SocketAddress;
-import java.nio.ByteBuffer;
-import java.util.*;
-import java.util.Map.Entry;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
-
-import static com.alibaba.rocketmq.store.config.BrokerRole.SLAVE;
 
 
 /**
@@ -321,14 +326,18 @@ public class DefaultMessageStore implements MessageStore {
             this.indexService.shutdown();
             this.flushConsumeQueueService.shutdown();
             this.commitLog.shutdown();
+            this.reputMessageService.shutdown();
             this.allocateMapedFileService.shutdown();
-            if (this.reputMessageService != null) {
-                this.reputMessageService.shutdown();
-            }
             this.storeCheckpoint.flush();
             this.storeCheckpoint.shutdown();
 
-            this.deleteFile(StorePathConfigHelper.getAbortFile(this.messageStoreConfig.getStorePathRootDir()));
+            if (this.runningFlags.isWriteable()) {
+                this.deleteFile(StorePathConfigHelper.getAbortFile(this.messageStoreConfig
+                    .getStorePathRootDir()));
+            }
+            else {
+                log.warn("the store may be wrong, so shutdown abnormally, and keep abort file.");
+            }
         }
     }
 
@@ -1539,9 +1548,28 @@ public class DefaultMessageStore implements MessageStore {
     }
 
     /**
-     * SLAVE: 从物理队列Load消息，并分发到各个逻辑队列
+     * 从Commitlog Load消息，并分发到各个Consume Queue
      */
     class ReputMessageService extends ServiceThread {
+        @Override
+        public void shutdown() {
+            for (int i = 0; i < 50 && this.isCommitLogAvailable(); i++) {
+                try {
+                    Thread.sleep(100);
+                }
+                catch (InterruptedException e) {
+                }
+            }
+
+            if (this.isCommitLogAvailable()) {
+                log.warn(
+                    "shutdown ReputMessageService, but commitlog have not finish to be dispatched, CL: {} reputFromOffset: {}",
+                    DefaultMessageStore.this.commitLog.getMaxOffset(), this.reputFromOffset);
+            }
+
+            super.shutdown();
+        }
+
         // 从这里开始解析物理队列数据，并分发到逻辑队列
         private volatile long reputFromOffset = 0;
 
@@ -1556,8 +1584,18 @@ public class DefaultMessageStore implements MessageStore {
         }
 
 
+        private boolean isCommitLogAvailable() {
+            return this.reputFromOffset < DefaultMessageStore.this.commitLog.getMaxOffset();
+        }
+
+
+        public long behind() {
+            return DefaultMessageStore.this.commitLog.getMaxOffset() - this.reputFromOffset;
+        }
+
+
         private void doReput() {
-            for (boolean doNext = true; doNext;) {
+            for (boolean doNext = true; this.isCommitLogAvailable() && doNext;) {
                 SelectMapedBufferResult result = DefaultMessageStore.this.commitLog.getData(reputFromOffset);
                 if (result != null) {
                     try {
@@ -1780,5 +1818,10 @@ public class DefaultMessageStore implements MessageStore {
 
     public BrokerStatsManager getBrokerStatsManager() {
         return brokerStatsManager;
+    }
+
+
+    public long dispatchBehindBytes() {
+        return this.reputMessageService.behind();
     }
 }
