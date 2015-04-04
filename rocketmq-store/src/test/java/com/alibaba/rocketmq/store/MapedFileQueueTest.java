@@ -43,7 +43,7 @@ public class MapedFileQueueTest {
     public void test_getLastMapedFile() {
         final String fixedMsg = "0123456789abcdef";
         System.out.println("================================================================");
-        AllocateMapedFileService allocateMapedFileService = new AllocateMapedFileService();
+        AllocateMapedFileService allocateMapedFileService = new AllocateMapedFileService(null);
         allocateMapedFileService.start();
         MapedFileQueue mapedFileQueue =
                 new MapedFileQueue("./unit_test_store/a/", 1024, allocateMapedFileService);
@@ -69,7 +69,7 @@ public class MapedFileQueueTest {
     public void test_findMapedFileByOffset() {
         final String fixedMsg = "abcd";
         System.out.println("================================================================");
-        AllocateMapedFileService allocateMapedFileService = new AllocateMapedFileService();
+        AllocateMapedFileService allocateMapedFileService = new AllocateMapedFileService(null);
         allocateMapedFileService.start();
         MapedFileQueue mapedFileQueue =
                 new MapedFileQueue("./unit_test_store/b/", 1024, allocateMapedFileService);
@@ -129,7 +129,7 @@ public class MapedFileQueueTest {
     public void test_commit() {
         final String fixedMsg = "0123456789abcdef";
         System.out.println("================================================================");
-        AllocateMapedFileService allocateMapedFileService = new AllocateMapedFileService();
+        AllocateMapedFileService allocateMapedFileService = new AllocateMapedFileService(null);
         allocateMapedFileService.start();
         MapedFileQueue mapedFileQueue =
                 new MapedFileQueue("./unit_test_store/c/", 1024, allocateMapedFileService);
@@ -183,7 +183,7 @@ public class MapedFileQueueTest {
     public void test_getMapedMemorySize() {
         final String fixedMsg = "abcd";
         System.out.println("================================================================");
-        AllocateMapedFileService allocateMapedFileService = new AllocateMapedFileService();
+        AllocateMapedFileService allocateMapedFileService = new AllocateMapedFileService(null);
         allocateMapedFileService.start();
         MapedFileQueue mapedFileQueue =
                 new MapedFileQueue("./unit_test_store/d/", 1024, allocateMapedFileService);
