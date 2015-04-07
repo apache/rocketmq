@@ -37,10 +37,8 @@ import java.util.concurrent.TimeUnit;
 public class AllocateMapedFileService extends ServiceThread {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.StoreLoggerName);
     private static int WaitTimeOut = 1000 * 5;
-    private ConcurrentHashMap<String, AllocateRequest> requestTable =
-            new ConcurrentHashMap<String, AllocateRequest>();
-    private PriorityBlockingQueue<AllocateRequest> requestQueue =
-            new PriorityBlockingQueue<AllocateRequest>();
+    private ConcurrentHashMap<String, AllocateRequest> requestTable = new ConcurrentHashMap<String, AllocateRequest>();
+    private PriorityBlockingQueue<AllocateRequest> requestQueue = new PriorityBlockingQueue<AllocateRequest>();
     private volatile boolean hasException = false;
     private DefaultMessageStore messageStore;
 
@@ -141,8 +139,7 @@ public class AllocateMapedFileService extends ServiceThread {
         try {
             req = this.requestQueue.take();
             if (null == this.requestTable.get(req.getFilePath())) {
-                log.warn("this mmap request expired, maybe cause timeout " + req.getFilePath() + " "
-                        + req.getFileSize());
+                log.warn("this mmap request expired, maybe cause timeout " + req.getFilePath() + " " + req.getFileSize());
                 return true;
             }
 
@@ -152,13 +149,17 @@ public class AllocateMapedFileService extends ServiceThread {
                 long eclipseTime = UtilAll.computeEclipseTimeMilliseconds(beginTime);
                 if (eclipseTime > 10) {
                     int queueSize = this.requestQueue.size();
-                    log.warn("create mapedFile spent time(ms) " + eclipseTime + " queue size " + queueSize
-                            + " " + req.getFilePath() + " " + req.getFileSize());
+                    log.warn("create mapedFile spent time(ms) " + eclipseTime + " queue size " + queueSize + " " + req.getFilePath() + " "
+                            + req.getFileSize());
                 }
 
                 // pre write mappedFile
-                mapedFile.preAllocatePhyMem(this.messageStore.getMessageStoreConfig().getFlushDiskType(),
-                    this.messageStore.getMessageStoreConfig().getFlushCommitLogLeastPagesWhenPreLoadMem());
+                if (mapedFile.getFileSize() >= this.messageStore.getMessageStoreConfig().getMapedFileSizeCommitLog() //
+                        && //
+                        this.messageStore.getMessageStoreConfig().isWarmMapedFileEnable()) {
+                    mapedFile.warmMapedFile(this.messageStore.getMessageStoreConfig().getFlushDiskType(), this.messageStore
+                        .getMessageStoreConfig().getFlushLeastPagesWhenWarmMapedFile());
+                }
 
                 req.setMapedFile(mapedFile);
                 this.hasException = false;

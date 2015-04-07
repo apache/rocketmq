@@ -76,7 +76,7 @@ public class MessageStoreConfig {
     // 刷CommitLog，至少刷几个PAGE
     private int flushCommitLogLeastPages = 4;
     // 预热时刷盘page(16M)
-    private int flushCommitLogLeastPagesWhenPreLoadMem = 1024 / 4 * 16;
+    private int flushLeastPagesWhenWarmMapedFile = 1024 / 4 * 16;
     // 刷ConsumeQueue，至少刷几个PAGE
     private int flushConsumeQueueLeastPages = 2;
     // 刷CommitLog，彻底刷盘间隔时间
@@ -131,6 +131,19 @@ public class MessageStoreConfig {
     // 磁盘空间超过90%警戒水位，自动开始删除文件
     @ImportantField
     private boolean cleanFileForciblyEnable = true;
+
+    // 是否开启虚拟内存预热
+    private boolean warmMapedFileEnable = true;
+
+
+    public boolean isWarmMapedFileEnable() {
+        return warmMapedFileEnable;
+    }
+
+
+    public void setWarmMapedFileEnable(boolean warmMapedFileEnable) {
+        this.warmMapedFileEnable = warmMapedFileEnable;
+    }
 
 
     public int getMapedFileSizeCommitLog() {
@@ -596,12 +609,12 @@ public class MessageStoreConfig {
     }
 
 
-    public int getFlushCommitLogLeastPagesWhenPreLoadMem() {
-        return flushCommitLogLeastPagesWhenPreLoadMem;
+    public int getFlushLeastPagesWhenWarmMapedFile() {
+        return flushLeastPagesWhenWarmMapedFile;
     }
 
 
-    public void setFlushCommitLogLeastPagesWhenPreLoadMem(int flushCommitLogLeastPagesWhenPreLoadMem) {
-        this.flushCommitLogLeastPagesWhenPreLoadMem = flushCommitLogLeastPagesWhenPreLoadMem;
+    public void setFlushLeastPagesWhenWarmMapedFile(int flushLeastPagesWhenWarmMapedFile) {
+        this.flushLeastPagesWhenWarmMapedFile = flushLeastPagesWhenWarmMapedFile;
     }
 }

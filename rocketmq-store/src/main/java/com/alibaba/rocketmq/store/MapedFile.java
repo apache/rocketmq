@@ -432,7 +432,7 @@ public class MapedFile extends ReferenceResource {
      *
      * @return
      */
-    public void preAllocatePhyMem(FlushDiskType type, int pages) {
+    public void warmMapedFile(FlushDiskType type, int pages) {
         // filter consumeQueue file
         int size = 1024 * 1024 * 512;
 
