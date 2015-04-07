@@ -22,24 +22,57 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicLong;
 
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.Option;
+import org.apache.commons.cli.Options;
+import org.apache.commons.cli.PosixParser;
+import org.slf4j.Logger;
+
 import com.alibaba.rocketmq.client.exception.MQBrokerException;
 import com.alibaba.rocketmq.client.exception.MQClientException;
+import com.alibaba.rocketmq.client.log.ClientLogger;
 import com.alibaba.rocketmq.client.producer.DefaultMQProducer;
 import com.alibaba.rocketmq.common.message.Message;
 import com.alibaba.rocketmq.remoting.exception.RemotingException;
+import com.alibaba.rocketmq.srvutil.ServerUtil;
 
 
 /**
  * 性能测试，多线程同步发送消息
  */
 public class Producer {
-    public static void main(String[] args) throws MQClientException {
-        final int threadCount = args.length >= 1 ? Integer.parseInt(args[0]) : 64;
-        final int messageSize = args.length >= 2 ? Integer.parseInt(args[1]) : 128;
-        final boolean keyEnable = args.length >= 3 ? Boolean.parseBoolean(args[2]) : false;
+    public static Options buildCommandlineOptions(final Options options) {
+        Option opt = new Option("t", "threadCount", true, "Thread count, Default: 64");
+        opt.setRequired(false);
+        options.addOption(opt);
 
-        System.out
-            .printf("threadCount %d messageSize %d keyEnable %s\n", threadCount, messageSize, keyEnable);
+        opt = new Option("s", "messageSize", true, "Message Size, Default: 128");
+        opt.setRequired(false);
+        options.addOption(opt);
+
+        opt = new Option("k", "keyEnable", true, "Message Key Enable, Default: false");
+        opt.setRequired(false);
+        options.addOption(opt);
+
+        return options;
+    }
+
+
+    public static void main(String[] args) throws MQClientException {
+        // 解析命令行
+        Options options = ServerUtil.buildCommandlineOptions(new Options());
+        CommandLine commandLine = ServerUtil.parseCmdLine("producer", args, buildCommandlineOptions(options), new PosixParser());
+        if (null == commandLine) {
+            System.exit(-1);
+        }
+
+        final int threadCount = commandLine.hasOption('t') ? Integer.parseInt(commandLine.getOptionValue('t')) : 64;
+        final int messageSize = commandLine.hasOption('s') ? Integer.parseInt(commandLine.getOptionValue('s')) : 128;
+        final boolean keyEnable = commandLine.hasOption('k') ? Boolean.parseBoolean(commandLine.getOptionValue('k')) : false;
+
+        System.out.printf("threadCount %d messageSize %d keyEnable %s\n", threadCount, messageSize, keyEnable);
+
+        final Logger log = ClientLogger.getLog();
 
         final Message msg = buildMessage(messageSize);
 
@@ -67,12 +100,10 @@ public class Producer {
                     Long[] begin = snapshotList.getFirst();
                     Long[] end = snapshotList.getLast();
 
-                    final long sendTps =
-                            (long) (((end[3] - begin[3]) / (double) (end[0] - begin[0])) * 1000L);
+                    final long sendTps = (long) (((end[3] - begin[3]) / (double) (end[0] - begin[0])) * 1000L);
                     final double averageRT = ((end[5] - begin[5]) / (double) (end[3] - begin[3]));
 
-                    System.out.printf(
-                        "Send TPS: %d Max RT: %d Average RT: %7.3f Send Failed: %d Response Failed: %d\n"//
+                    System.out.printf("Send TPS: %d Max RT: %d Average RT: %7.3f Send Failed: %d Response Failed: %d\n"//
                         , sendTps//
                         , statsBenchmark.getSendMessageMaxRT().get()//
                         , averageRT//
@@ -97,6 +128,12 @@ public class Producer {
         final DefaultMQProducer producer = new DefaultMQProducer("benchmark_producer");
         producer.setInstanceName(Long.toString(System.currentTimeMillis()));
 
+        // 设置Name Server
+        if (commandLine.hasOption('n')) {
+            String ns = commandLine.getOptionValue('n');
+            producer.setNamesrvAddr(ns);
+        }
+
         producer.setCompressMsgBodyOverHowmuch(Integer.MAX_VALUE);
 
         producer.start();
@@ -118,9 +155,7 @@ public class Producer {
                             statsBenchmark.getSendMessageSuccessTimeTotal().addAndGet(currentRT);
                             long prevMaxRT = statsBenchmark.getSendMessageMaxRT().get();
                             while (currentRT > prevMaxRT) {
-                                boolean updated =
-                                        statsBenchmark.getSendMessageMaxRT().compareAndSet(prevMaxRT,
-                                            currentRT);
+                                boolean updated = statsBenchmark.getSendMessageMaxRT().compareAndSet(prevMaxRT, currentRT);
                                 if (updated)
                                     break;
 
@@ -129,7 +164,7 @@ public class Producer {
                         }
                         catch (RemotingException e) {
                             statsBenchmark.getSendRequestFailedCount().incrementAndGet();
-                            e.printStackTrace();
+                            log.error("[BENCHMARK_PRODUCER] Send Exception", e);
 
                             try {
                                 Thread.sleep(3000);
@@ -147,7 +182,7 @@ public class Producer {
                         }
                         catch (MQClientException e) {
                             statsBenchmark.getSendRequestFailedCount().incrementAndGet();
-                            e.printStackTrace();
+                            log.error("[BENCHMARK_PRODUCER] Send Exception", e);
                         }
                         catch (MQBrokerException e) {
                             statsBenchmark.getReceiveResponseFailedCount().incrementAndGet();
