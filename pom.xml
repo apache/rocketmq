@@ -192,7 +192,7 @@
                 <artifactId>maven-assembly-plugin</artifactId>
                 <version>2.5.3</version>
                 <configuration>
-                    <finalName>alibaba-rocketmq-${project.version}</finalName>
+                    <finalName>alibaba-rocketmq</finalName>
                     <descriptors>
                         <descriptor>release.xml</descriptor>
                     </descriptors>
