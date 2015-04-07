@@ -15,6 +15,11 @@
  */
 package com.alibaba.rocketmq.store;
 
+import com.alibaba.rocketmq.common.ServiceThread;
+import com.alibaba.rocketmq.common.constant.LoggerName;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.text.MessageFormat;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -22,12 +27,6 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.alibaba.rocketmq.common.ServiceThread;
-import com.alibaba.rocketmq.common.constant.LoggerName;
 
 
 /**
