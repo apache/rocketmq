@@ -62,13 +62,16 @@ public class ClusterListSubCommand implements SubCommand {
         opt.setRequired(false);
         options.addOption(opt);
 
+        opt = new Option("i", "interval", true, "specify intervals numbers, it is in seconds");
+        opt.setRequired(false);
+        options.addOption(opt);
+
         return options;
     }
 
 
-    private void printClusterBaseInfo(final DefaultMQAdminExt defaultMQAdminExt)
-            throws RemotingConnectException, RemotingTimeoutException, RemotingSendRequestException,
-            InterruptedException, MQBrokerException {
+    private void printClusterBaseInfo(final DefaultMQAdminExt defaultMQAdminExt) throws RemotingConnectException, RemotingTimeoutException,
+            RemotingSendRequestException, InterruptedException, MQBrokerException {
 
         ClusterInfo clusterInfoSerializeWrapper = defaultMQAdminExt.examineBrokerClusterInfo();
 
@@ -82,8 +85,7 @@ public class ClusterListSubCommand implements SubCommand {
             "#OutTPS"//
         );
 
-        Iterator<Map.Entry<String, Set<String>>> itCluster =
-                clusterInfoSerializeWrapper.getClusterAddrTable().entrySet().iterator();
+        Iterator<Map.Entry<String, Set<String>>> itCluster = clusterInfoSerializeWrapper.getClusterAddrTable().entrySet().iterator();
         while (itCluster.hasNext()) {
             Map.Entry<String, Set<String>> next = itCluster.next();
             String clusterName = next.getKey();
@@ -94,8 +96,7 @@ public class ClusterListSubCommand implements SubCommand {
                 BrokerData brokerData = clusterInfoSerializeWrapper.getBrokerAddrTable().get(brokerName);
                 if (brokerData != null) {
 
-                    Iterator<Map.Entry<Long, String>> itAddr =
-                            brokerData.getBrokerAddrs().entrySet().iterator();
+                    Iterator<Map.Entry<Long, String>> itAddr = brokerData.getBrokerAddrs().entrySet().iterator();
                     while (itAddr.hasNext()) {
                         Map.Entry<Long, String> next1 = itAddr.next();
                         double in = 0;
@@ -144,9 +145,8 @@ public class ClusterListSubCommand implements SubCommand {
     }
 
 
-    private void printClusterMoreStats(final DefaultMQAdminExt defaultMQAdminExt)
-            throws RemotingConnectException, RemotingTimeoutException, RemotingSendRequestException,
-            InterruptedException, MQBrokerException {
+    private void printClusterMoreStats(final DefaultMQAdminExt defaultMQAdminExt) throws RemotingConnectException,
+            RemotingTimeoutException, RemotingSendRequestException, InterruptedException, MQBrokerException {
 
         ClusterInfo clusterInfoSerializeWrapper = defaultMQAdminExt.examineBrokerClusterInfo();
 
@@ -159,8 +159,7 @@ public class ClusterListSubCommand implements SubCommand {
             "#OutTotalToday"//
         );
 
-        Iterator<Map.Entry<String, Set<String>>> itCluster =
-                clusterInfoSerializeWrapper.getClusterAddrTable().entrySet().iterator();
+        Iterator<Map.Entry<String, Set<String>>> itCluster = clusterInfoSerializeWrapper.getClusterAddrTable().entrySet().iterator();
         while (itCluster.hasNext()) {
             Map.Entry<String, Set<String>> next = itCluster.next();
             String clusterName = next.getKey();
@@ -171,8 +170,7 @@ public class ClusterListSubCommand implements SubCommand {
                 BrokerData brokerData = clusterInfoSerializeWrapper.getBrokerAddrTable().get(brokerName);
                 if (brokerData != null) {
 
-                    Iterator<Map.Entry<Long, String>> itAddr =
-                            brokerData.getBrokerAddrs().entrySet().iterator();
+                    Iterator<Map.Entry<Long, String>> itAddr = brokerData.getBrokerAddrs().entrySet().iterator();
                     while (itAddr.hasNext()) {
                         Map.Entry<Long, String> next1 = itAddr.next();
                         long InTotalYest = 0;
@@ -182,30 +180,18 @@ public class ClusterListSubCommand implements SubCommand {
 
                         try {
                             KVTable kvTable = defaultMQAdminExt.fetchBrokerRuntimeStats(next1.getValue());
-                            String msgPutTotalYesterdayMorning =
-                                    kvTable.getTable().get("msgPutTotalYesterdayMorning");
-                            String msgPutTotalTodayMorning =
-                                    kvTable.getTable().get("msgPutTotalTodayMorning");
+                            String msgPutTotalYesterdayMorning = kvTable.getTable().get("msgPutTotalYesterdayMorning");
+                            String msgPutTotalTodayMorning = kvTable.getTable().get("msgPutTotalTodayMorning");
                             String msgPutTotalTodayNow = kvTable.getTable().get("msgPutTotalTodayNow");
-                            String msgGetTotalYesterdayMorning =
-                                    kvTable.getTable().get("msgGetTotalYesterdayMorning");
-                            String msgGetTotalTodayMorning =
-                                    kvTable.getTable().get("msgGetTotalTodayMorning");
+                            String msgGetTotalYesterdayMorning = kvTable.getTable().get("msgGetTotalYesterdayMorning");
+                            String msgGetTotalTodayMorning = kvTable.getTable().get("msgGetTotalTodayMorning");
                             String msgGetTotalTodayNow = kvTable.getTable().get("msgGetTotalTodayNow");
 
-                            InTotalYest =
-                                    Long.parseLong(msgPutTotalTodayMorning)
-                                            - Long.parseLong(msgPutTotalYesterdayMorning);
-                            OutTotalYest =
-                                    Long.parseLong(msgGetTotalTodayMorning)
-                                            - Long.parseLong(msgGetTotalYesterdayMorning);
+                            InTotalYest = Long.parseLong(msgPutTotalTodayMorning) - Long.parseLong(msgPutTotalYesterdayMorning);
+                            OutTotalYest = Long.parseLong(msgGetTotalTodayMorning) - Long.parseLong(msgGetTotalYesterdayMorning);
 
-                            InTotalToday =
-                                    Long.parseLong(msgPutTotalTodayNow)
-                                            - Long.parseLong(msgPutTotalTodayMorning);
-                            OutTotalToday =
-                                    Long.parseLong(msgGetTotalTodayNow)
-                                            - Long.parseLong(msgGetTotalTodayMorning);
+                            InTotalToday = Long.parseLong(msgPutTotalTodayNow) - Long.parseLong(msgPutTotalTodayMorning);
+                            OutTotalToday = Long.parseLong(msgGetTotalTodayNow) - Long.parseLong(msgGetTotalTodayMorning);
 
                         }
                         catch (Exception e) {
@@ -236,15 +222,28 @@ public class ClusterListSubCommand implements SubCommand {
 
         defaultMQAdminExt.setInstanceName(Long.toString(System.currentTimeMillis()));
 
+        long printInterval = 1;
+        boolean enableInterval = commandLine.hasOption('i');
+
+        if (enableInterval) {
+            printInterval = Long.parseLong(commandLine.getOptionValue('i')) * 1000;
+        }
+
         try {
             defaultMQAdminExt.start();
 
-            if (commandLine.hasOption('m')) {
-                this.printClusterMoreStats(defaultMQAdminExt);
-            }
-            else {
-                this.printClusterBaseInfo(defaultMQAdminExt);
-            }
+            do {
+                if (commandLine.hasOption('m')) {
+                    this.printClusterMoreStats(defaultMQAdminExt);
+                }
+                else {
+                    this.printClusterBaseInfo(defaultMQAdminExt);
+                }
+
+                Thread.sleep(printInterval);
+
+                System.out.println("");
+            } while (enableInterval);
         }
         catch (Exception e) {
             e.printStackTrace();
