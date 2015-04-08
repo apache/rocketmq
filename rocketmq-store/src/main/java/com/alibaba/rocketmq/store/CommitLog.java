@@ -562,8 +562,8 @@ public class CommitLog {
             eclipseTimeInLock = this.defaultMessageStore.getSystemClock().now() - beginLockTimestamp;
         } // end of synchronized
 
-        if (eclipseTimeInLock > 1000) {
-            // XXX: warn and notify me
+        //todo-->jodie:恢复成1s
+        if (eclipseTimeInLock > 500) {
             log.warn("putMessage in lock eclipse time(ms) " + eclipseTimeInLock);
         }
 
