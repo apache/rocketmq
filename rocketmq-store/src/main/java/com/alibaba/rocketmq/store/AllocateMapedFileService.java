@@ -157,7 +157,7 @@ public class AllocateMapedFileService extends ServiceThread {
                 if (mapedFile.getFileSize() >= this.messageStore.getMessageStoreConfig().getMapedFileSizeCommitLog() //
                         && //
                         this.messageStore.getMessageStoreConfig().isWarmMapedFileEnable()) {
-                    mapedFile.warmMapedFile(this.messageStore.getMessageStoreConfig().getFlushDiskType(), this.messageStore
+                    mapedFile.warmMappedFile(this.messageStore.getMessageStoreConfig().getFlushDiskType(), this.messageStore
                         .getMessageStoreConfig().getFlushLeastPagesWhenWarmMapedFile());
                 }
 

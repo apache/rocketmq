@@ -432,31 +432,37 @@ public class MapedFile extends ReferenceResource {
      *
      * @return
      */
-    public void warmMapedFile(FlushDiskType type, int pages) {
-        // filter consumeQueue file
-        int size = 1024 * 1024 * 512;
-
-        if (this.fileSize > size) {
-            ByteBuffer byteBuffer = this.mappedByteBuffer.slice();
-            int flush = 0;
-            for (int i = 0; i < this.fileSize; i += MapedFile.OS_PAGE_SIZE) {
-                byteBuffer.put(i, (byte) 0);
-
-                // force flush when flush disk type is sync
+    public void warmMappedFile(FlushDiskType type, int pages) {
+        long beginTime = System.currentTimeMillis();
+        ByteBuffer byteBuffer = this.mappedByteBuffer.slice();
+        int flush = 0;
+        for (int i = 0, j = 0; i < this.fileSize; i += MapedFile.OS_PAGE_SIZE, j++) {
+            byteBuffer.put(i, (byte) 0);
+            if ((i / OS_PAGE_SIZE) - (flush / OS_PAGE_SIZE) >= pages) {
+                flush = i;
                 if (type == FlushDiskType.SYNC_FLUSH) {
-                    // 只有未刷盘数据满足指定page数目才刷盘
-                    if ((i / OS_PAGE_SIZE) - (flush / OS_PAGE_SIZE) >= pages) {
-                        flush = i;
-                        mappedByteBuffer.force();
-                    }
+                    // force flush when flush disk type is sync
+                    mappedByteBuffer.force();
                 }
             }
 
-            // force flush when prepare load finished
-            if (type == FlushDiskType.SYNC_FLUSH) {
-                mappedByteBuffer.force();
+            // prevent gc
+            if (j % 100 == 0) {
+                try {
+                    Thread.sleep(1);
+                }
+                catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
             }
         }
+
+        // force flush when prepare load finished
+        if (type == FlushDiskType.SYNC_FLUSH) {
+            mappedByteBuffer.force();
+        }
+        log.info("mapped file worm up done. mappedFile={}, costTime={}", this.getFileName(),
+            System.currentTimeMillis() - beginTime);
     }
 
 
