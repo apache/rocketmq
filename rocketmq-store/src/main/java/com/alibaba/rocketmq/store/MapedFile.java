@@ -449,7 +449,7 @@ public class MapedFile extends ReferenceResource {
             // prevent gc
             if (j % 100 == 0) {
                 try {
-                    Thread.sleep(1);
+                    Thread.sleep(0);
                 }
                 catch (InterruptedException e) {
                     e.printStackTrace();
