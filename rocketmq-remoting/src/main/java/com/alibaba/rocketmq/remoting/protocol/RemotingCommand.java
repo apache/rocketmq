@@ -15,22 +15,23 @@
  */
 package com.alibaba.rocketmq.remoting.protocol;
 
-import java.lang.annotation.Annotation;
-import java.lang.reflect.Field;
-import java.lang.reflect.Modifier;
-import java.nio.ByteBuffer;
-import java.util.HashMap;
-import java.util.concurrent.atomic.AtomicInteger;
-
 import com.alibaba.fastjson.annotation.JSONField;
 import com.alibaba.rocketmq.remoting.CommandCustomHeader;
 import com.alibaba.rocketmq.remoting.annotation.CFNotNull;
 import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
 
+import java.lang.annotation.Annotation;
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
+import java.nio.ByteBuffer;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
+
 
 /**
  * Remoting模块中，服务器与客户端通过传递RemotingCommand来交互
- * 
+ *
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-13
  */
@@ -57,6 +58,51 @@ public class RemotingCommand {
     private HashMap<String, String> extFields;
 
     private transient CommandCustomHeader customHeader;
+
+    // 序列化&反序化字段缓存
+    private static final Map<Class<? extends CommandCustomHeader>, Field[]> clazzFieldsCache =
+            new HashMap<Class<? extends CommandCustomHeader>, Field[]>();
+    private static final Map<Class, String> canonicalNameCache = new HashMap<Class, String>();
+    private static final Map<Field, Annotation> notNullAnnotationCache = new HashMap<Field, Annotation>();
+
+
+    private Field[] getClazzFields(Class<? extends CommandCustomHeader> classHeader) {
+        Field[] field = clazzFieldsCache.get(classHeader);
+
+        if (field == null) {
+            field = classHeader.getDeclaredFields();
+            synchronized (clazzFieldsCache) {
+                clazzFieldsCache.put(classHeader, field);
+            }
+        }
+        return field;
+    }
+
+
+    private String getCanonicalName(Class clazz) {
+        String name = canonicalNameCache.get(clazz);
+
+        if (name == null) {
+            name = clazz.getCanonicalName();
+            synchronized (canonicalNameCache) {
+                canonicalNameCache.put(clazz, name);
+            }
+        }
+        return name;
+    }
+
+
+    private Annotation getNotNullAnnotation(Field field) {
+        Annotation annotation = notNullAnnotationCache.get(field);
+
+        if (annotation == null) {
+            annotation = field.getAnnotation(CFNotNull.class);
+            synchronized (notNullAnnotationCache) {
+                notNullAnnotationCache.put(field, annotation);
+            }
+        }
+        return annotation;
+    }
 
     /**
      * Body 部分
@@ -136,7 +182,7 @@ public class RemotingCommand {
 
     public void makeCustomHeaderToNet() {
         if (this.customHeader != null) {
-            Field[] fields = this.customHeader.getClass().getDeclaredFields();
+            Field[] fields = getClazzFields(customHeader.getClass());
             if (null == this.extFields) {
                 this.extFields = new HashMap<String, String>();
             }
@@ -174,19 +220,20 @@ public class RemotingCommand {
         this.customHeader = customHeader;
     }
 
-    private static final String StringName = String.class.getCanonicalName();//
+    // 基本类型
+    private static final String StringCanonicalName = String.class.getCanonicalName();//
 
-    private static final String IntegerName1 = Integer.class.getCanonicalName();//
-    private static final String IntegerName2 = int.class.getCanonicalName();//
+    private static final String DoubleCanonicalName1 = Double.class.getCanonicalName();//
+    private static final String DoubleCanonicalName2 = double.class.getCanonicalName();//
 
-    private static final String LongName1 = Long.class.getCanonicalName();//
-    private static final String LongName2 = long.class.getCanonicalName();//
+    private static final String IntegerCanonicalName1 = Integer.class.getCanonicalName();//
+    private static final String IntegerCanonicalName2 = int.class.getCanonicalName();//
 
-    private static final String BooleanName1 = Boolean.class.getCanonicalName();//
-    private static final String BooleanName2 = boolean.class.getCanonicalName();//
+    private static final String LongCanonicalName1 = Long.class.getCanonicalName();//
+    private static final String LongCanonicalName2 = long.class.getCanonicalName();//
 
-    private static final String DoubleName1 = Double.class.getCanonicalName();//
-    private static final String DoubleName2 = double.class.getCanonicalName();//
+    private static final String BooleanCanonicalName1 = Boolean.class.getCanonicalName();//
+    private static final String BooleanCanonicalName2 = boolean.class.getCanonicalName();//
 
 
     public CommandCustomHeader decodeCommandCustomHeader(Class<? extends CommandCustomHeader> classHeader)
@@ -204,7 +251,7 @@ public class RemotingCommand {
             }
 
             // 检查返回对象是否有效
-            Field[] fields = objectHeader.getClass().getDeclaredFields();
+            Field[] fields = getClazzFields(classHeader);
             for (Field field : fields) {
                 if (!Modifier.isStatic(field.getModifiers())) {
                     String fieldName = field.getName();
@@ -212,7 +259,7 @@ public class RemotingCommand {
                         try {
                             String value = this.extFields.get(fieldName);
                             if (null == value) {
-                                Annotation annotation = field.getAnnotation(CFNotNull.class);
+                                Annotation annotation = getNotNullAnnotation(field);
                                 if (annotation != null) {
                                     throw new RemotingCommandException("the custom field <" + fieldName
                                             + "> is null");
@@ -222,22 +269,22 @@ public class RemotingCommand {
                             }
 
                             field.setAccessible(true);
-                            String type = field.getType().getCanonicalName();
-                            Object valueParsed = null;
+                            String type = getCanonicalName(field.getType());
+                            Object valueParsed;
 
-                            if (type.equals(StringName)) {
+                            if (type.equals(StringCanonicalName)) {
                                 valueParsed = value;
                             }
-                            else if (type.equals(IntegerName1) || type.equals(IntegerName2)) {
+                            else if (type.equals(IntegerCanonicalName1) || type.equals(IntegerCanonicalName2)) {
                                 valueParsed = Integer.parseInt(value);
                             }
-                            else if (type.equals(LongName1) || type.equals(LongName2)) {
+                            else if (type.equals(LongCanonicalName1) || type.equals(LongCanonicalName2)) {
                                 valueParsed = Long.parseLong(value);
                             }
-                            else if (type.equals(BooleanName1) || type.equals(BooleanName2)) {
+                            else if (type.equals(BooleanCanonicalName1) || type.equals(BooleanCanonicalName2)) {
                                 valueParsed = Boolean.parseBoolean(value);
                             }
-                            else if (type.equals(DoubleName1) || type.equals(DoubleName2)) {
+                            else if (type.equals(DoubleCanonicalName1) || type.equals(DoubleCanonicalName2)) {
                                 valueParsed = Double.parseDouble(value);
                             }
                             else {
