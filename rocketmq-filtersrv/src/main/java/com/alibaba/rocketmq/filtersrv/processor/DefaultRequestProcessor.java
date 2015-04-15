@@ -33,6 +33,7 @@ import com.alibaba.rocketmq.client.consumer.PullResult;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.UtilAll;
 import com.alibaba.rocketmq.common.constant.LoggerName;
+import com.alibaba.rocketmq.common.filter.FilterContext;
 import com.alibaba.rocketmq.common.message.MessageDecoder;
 import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.common.message.MessageQueue;
@@ -69,8 +70,7 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
 
 
     @Override
-    public RemotingCommand processRequest(ChannelHandlerContext ctx, RemotingCommand request)
-            throws Exception {
+    public RemotingCommand processRequest(ChannelHandlerContext ctx, RemotingCommand request) throws Exception {
         if (log.isDebugEnabled()) {
             log.debug("receive request, {} {} {}",//
                 request.getCode(), //
@@ -92,11 +92,8 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
     private ByteBuffer messageToByteBuffer(final MessageExt msg) throws IOException {
         int sysFlag = MessageSysFlag.clearCompressedFlag(msg.getSysFlag());
         if (msg.getBody() != null) {
-            if (msg.getBody().length >= this.filtersrvController.getFiltersrvConfig()
-                .getCompressMsgBodyOverHowmuch()) {
-                byte[] data =
-                        UtilAll.compress(msg.getBody(), this.filtersrvController.getFiltersrvConfig()
-                            .getZipCompressLevel());
+            if (msg.getBody().length >= this.filtersrvController.getFiltersrvConfig().getCompressMsgBodyOverHowmuch()) {
+                byte[] data = UtilAll.compress(msg.getBody(), this.filtersrvController.getFiltersrvConfig().getZipCompressLevel());
                 if (data != null) {
                     msg.setBody(data);
                     sysFlag |= MessageSysFlag.CompressedFlag;
@@ -177,8 +174,8 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
     }
 
 
-    private void returnResponse(final String group, final String topic, ChannelHandlerContext ctx,
-            final RemotingCommand response, final List<MessageExt> msgList) {
+    private void returnResponse(final String group, final String topic, ChannelHandlerContext ctx, final RemotingCommand response,
+            final List<MessageExt> msgList) {
         if (null != msgList) {
             ByteBuffer[] msgBufferList = new ByteBuffer[msgList.size()];
             int bodyTotalSize = 0;
@@ -201,11 +198,9 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
             response.setBody(body.array());
 
             // 统计
-            this.filtersrvController.getFilterServerStatsManager().incGroupGetNums(group, topic,
-                msgList.size());
+            this.filtersrvController.getFilterServerStatsManager().incGroupGetNums(group, topic, msgList.size());
 
-            this.filtersrvController.getFilterServerStatsManager().incGroupGetSize(group, topic,
-                bodyTotalSize);
+            this.filtersrvController.getFilterServerStatsManager().incGroupGetSize(group, topic, bodyTotalSize);
         }
 
         try {
@@ -213,8 +208,7 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
                 @Override
                 public void operationComplete(ChannelFuture future) throws Exception {
                     if (!future.isSuccess()) {
-                        log.error("FilterServer response to " + future.channel().remoteAddress() + " failed",
-                            future.cause());
+                        log.error("FilterServer response to " + future.channel().remoteAddress() + " failed", future.cause());
                         log.error(response.toString());
                     }
                 }
@@ -227,22 +221,22 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
     }
 
 
-    private RemotingCommand pullMessageForward(final ChannelHandlerContext ctx, final RemotingCommand request)
-            throws Exception {
-        final RemotingCommand response =
-                RemotingCommand.createResponseCommand(PullMessageResponseHeader.class);
-        final PullMessageResponseHeader responseHeader =
-                (PullMessageResponseHeader) response.readCustomHeader();
+    private RemotingCommand pullMessageForward(final ChannelHandlerContext ctx, final RemotingCommand request) throws Exception {
+        final RemotingCommand response = RemotingCommand.createResponseCommand(PullMessageResponseHeader.class);
+        final PullMessageResponseHeader responseHeader = (PullMessageResponseHeader) response.readCustomHeader();
         final PullMessageRequestHeader requestHeader =
                 (PullMessageRequestHeader) request.decodeCommandCustomHeader(PullMessageRequestHeader.class);
+
+        final FilterContext filterContext = new FilterContext();
+        filterContext.setConsumerGroup(requestHeader.getConsumerGroup());
 
         // 由于异步返回，所以必须要设置
         response.setOpaque(request.getOpaque());
 
         DefaultMQPullConsumer pullConsumer = this.filtersrvController.getDefaultMQPullConsumer();
         final FilterClassInfo findFilterClass =
-                this.filtersrvController.getFilterClassManager().findFilterClass(
-                    requestHeader.getConsumerGroup(), requestHeader.getTopic());
+                this.filtersrvController.getFilterClassManager()
+                    .findFilterClass(requestHeader.getConsumerGroup(), requestHeader.getTopic());
         if (null == findFilterClass) {
             response.setCode(ResponseCode.SYSTEM_ERROR);
             response.setRemark("Find Filter class failed, not registered");
@@ -281,7 +275,7 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
                     List<MessageExt> msgListOK = new ArrayList<MessageExt>();
                     try {
                         for (MessageExt msg : pullResult.getMsgFoundList()) {
-                            boolean match = findFilterClass.getMessageFilter().match(msg);
+                            boolean match = findFilterClass.getMessageFilter().match(msg, filterContext);
                             if (match) {
                                 msgListOK.add(msg);
                             }
@@ -289,8 +283,7 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
 
                         // 有消息返回
                         if (!msgListOK.isEmpty()) {
-                            returnResponse(requestHeader.getConsumerGroup(), requestHeader.getTopic(), ctx,
-                                response, msgListOK);
+                            returnResponse(requestHeader.getConsumerGroup(), requestHeader.getTopic(), ctx, response, msgListOK);
                             return;
                         }
                         // 全部都被过滤掉了
@@ -307,8 +300,7 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
 
                         response.setCode(ResponseCode.SYSTEM_ERROR);
                         response.setRemark(error + RemotingHelper.exceptionSimpleDesc(e));
-                        returnResponse(requestHeader.getConsumerGroup(), requestHeader.getTopic(), ctx,
-                            response, null);
+                        returnResponse(requestHeader.getConsumerGroup(), requestHeader.getTopic(), ctx, response, null);
                         return;
                     }
 
@@ -326,8 +318,7 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
                     break;
                 }
 
-                returnResponse(requestHeader.getConsumerGroup(), requestHeader.getTopic(), ctx, response,
-                    null);
+                returnResponse(requestHeader.getConsumerGroup(), requestHeader.getTopic(), ctx, response, null);
             }
 
 
@@ -335,8 +326,7 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
             public void onException(Throwable e) {
                 response.setCode(ResponseCode.SYSTEM_ERROR);
                 response.setRemark("Pull Callback Exception, " + RemotingHelper.exceptionSimpleDesc(e));
-                returnResponse(requestHeader.getConsumerGroup(), requestHeader.getTopic(), ctx, response,
-                    null);
+                returnResponse(requestHeader.getConsumerGroup(), requestHeader.getTopic(), ctx, response, null);
                 return;
             }
         };
@@ -347,21 +337,17 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
     }
 
 
-    private RemotingCommand registerMessageFilterClass(ChannelHandlerContext ctx, RemotingCommand request)
-            throws RemotingCommandException {
+    private RemotingCommand registerMessageFilterClass(ChannelHandlerContext ctx, RemotingCommand request) throws RemotingCommandException {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
         final RegisterMessageFilterClassRequestHeader requestHeader =
-                (RegisterMessageFilterClassRequestHeader) request
-                    .decodeCommandCustomHeader(RegisterMessageFilterClassRequestHeader.class);
+                (RegisterMessageFilterClassRequestHeader) request.decodeCommandCustomHeader(RegisterMessageFilterClassRequestHeader.class);
 
         try {
-            boolean ok =
-                    this.filtersrvController.getFilterClassManager().registerFilterClass(
-                        requestHeader.getConsumerGroup(),//
-                        requestHeader.getTopic(),//
-                        requestHeader.getClassName(),//
-                        requestHeader.getClassCRC(), //
-                        request.getBody());// Body传输的是Java Source，必须UTF-8编码
+            boolean ok = this.filtersrvController.getFilterClassManager().registerFilterClass(requestHeader.getConsumerGroup(),//
+                requestHeader.getTopic(),//
+                requestHeader.getClassName(),//
+                requestHeader.getClassCRC(), //
+                request.getBody());// Body传输的是Java Source，必须UTF-8编码
             if (!ok) {
                 throw new Exception("registerFilterClass error");
             }

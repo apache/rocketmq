@@ -14,5 +14,5 @@ public interface MessageFilter {
      * @param msg
      * @return 是否可以被Consumer消费
      */
-    public boolean match(final MessageExt msg);
+    public boolean match(final MessageExt msg, final FilterContext context);
 }
