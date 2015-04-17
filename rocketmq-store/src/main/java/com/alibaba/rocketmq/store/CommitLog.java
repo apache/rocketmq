@@ -784,8 +784,8 @@ public class CommitLog {
 
 
         private void printFlushProgress() {
-            CommitLog.log.info("how much disk fall behind memory, "
-                    + CommitLog.this.mapedFileQueue.howMuchFallBehind());
+            // CommitLog.log.info("how much disk fall behind memory, "
+            //        + CommitLog.this.mapedFileQueue.howMuchFallBehind());
         }
 
 
