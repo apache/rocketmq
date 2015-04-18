@@ -80,7 +80,7 @@ public class AllocateMapedFileService extends ServiceThread {
                 if (!waitOK) {
                     log.warn("create mmap timeout " + result.getFilePath() + " " + result.getFileSize());
                 }
-                this.requestTable.remove(nextFilePath);
+
                 return result.getMapedFile();
             }
             else {
@@ -162,6 +162,7 @@ public class AllocateMapedFileService extends ServiceThread {
                 }
 
                 req.setMapedFile(mapedFile);
+                this.requestTable.remove(req.getFilePath());
                 this.hasException = false;
             }
         }
