@@ -459,6 +459,8 @@ public class MapedFile extends ReferenceResource {
 
         // force flush when prepare load finished
         if (type == FlushDiskType.SYNC_FLUSH) {
+            log.info("mapped file worm up done, force to disk, mappedFile={}, costTime={}", this.getFileName(),
+                System.currentTimeMillis() - beginTime);
             mappedByteBuffer.force();
         }
         log.info("mapped file worm up done. mappedFile={}, costTime={}", this.getFileName(),
