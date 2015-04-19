@@ -504,4 +504,10 @@ public class MapedFile extends ReferenceResource {
     public void setFirstCreateInQueue(boolean firstCreateInQueue) {
         this.firstCreateInQueue = firstCreateInQueue;
     }
+
+
+    @Override
+    public String toString() {
+        return this.fileName;
+    }
 }

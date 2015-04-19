@@ -1129,4 +1129,9 @@ public class CommitLog {
 
         log.info("removeQueurFromTopicQueueTable OK Topic: {} QueueId: {}", topic, queueId);
     }
+
+
+    public void checkSelf() {
+        mapedFileQueue.checkSelf();
+    }
 }
