@@ -437,17 +437,19 @@ public class MapedFile extends ReferenceResource {
         ByteBuffer byteBuffer = this.mappedByteBuffer.slice();
         int flush = 0;
         for (int i = 0, j = 0; i < this.fileSize; i += MapedFile.OS_PAGE_SIZE, j++) {
+            long time = System.currentTimeMillis();
             byteBuffer.put(i, (byte) 0);
-            if ((i / OS_PAGE_SIZE) - (flush / OS_PAGE_SIZE) >= pages) {
-                flush = i;
-                if (type == FlushDiskType.SYNC_FLUSH) {
-                    // force flush when flush disk type is sync
+            // force flush when flush disk type is sync
+            if (type == FlushDiskType.SYNC_FLUSH) {
+                if ((i / OS_PAGE_SIZE) - (flush / OS_PAGE_SIZE) >= pages) {
+                    flush = i;
                     mappedByteBuffer.force();
                 }
             }
 
             // prevent gc
-            if (j % 100 == 0) {
+            if (j % 1000 == 0) {
+                log.info("j={}, costTime={}", j, System.currentTimeMillis() - time);
                 try {
                     Thread.sleep(0);
                 }
@@ -459,8 +461,8 @@ public class MapedFile extends ReferenceResource {
 
         // force flush when prepare load finished
         if (type == FlushDiskType.SYNC_FLUSH) {
-            log.info("mapped file worm up done, force to disk, mappedFile={}, costTime={}", this.getFileName(),
-                System.currentTimeMillis() - beginTime);
+            log.info("mapped file worm up done, force to disk, mappedFile={}, costTime={}",
+                this.getFileName(), System.currentTimeMillis() - beginTime);
             mappedByteBuffer.force();
         }
         log.info("mapped file worm up done. mappedFile={}, costTime={}", this.getFileName(),
