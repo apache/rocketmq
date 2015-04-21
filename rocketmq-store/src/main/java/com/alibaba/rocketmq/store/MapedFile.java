@@ -436,8 +436,8 @@ public class MapedFile extends ReferenceResource {
         long beginTime = System.currentTimeMillis();
         ByteBuffer byteBuffer = this.mappedByteBuffer.slice();
         int flush = 0;
+        long time = System.currentTimeMillis();
         for (int i = 0, j = 0; i < this.fileSize; i += MapedFile.OS_PAGE_SIZE, j++) {
-            long time = System.currentTimeMillis();
             byteBuffer.put(i, (byte) 0);
             // force flush when flush disk type is sync
             if (type == FlushDiskType.SYNC_FLUSH) {
@@ -450,6 +450,7 @@ public class MapedFile extends ReferenceResource {
             // prevent gc
             if (j % 1000 == 0) {
                 log.info("j={}, costTime={}", j, System.currentTimeMillis() - time);
+                time = System.currentTimeMillis();
                 try {
                     Thread.sleep(0);
                 }
