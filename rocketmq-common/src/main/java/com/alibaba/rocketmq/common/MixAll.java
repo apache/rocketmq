@@ -15,36 +15,19 @@
  */
 package com.alibaba.rocketmq.common;
 
-import java.io.ByteArrayInputStream;
-import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.UnsupportedEncodingException;
+import com.alibaba.rocketmq.common.annotation.ImportantField;
+import com.alibaba.rocketmq.common.help.FAQUrl;
+import org.slf4j.Logger;
+
+import java.io.*;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.net.NetworkInterface;
-import java.net.SocketException;
-import java.net.URL;
-import java.net.URLConnection;
+import java.net.*;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.Enumeration;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Properties;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
-
-import org.slf4j.Logger;
-
-import com.alibaba.rocketmq.common.annotation.ImportantField;
-import com.alibaba.rocketmq.common.help.FAQUrl;
 
 
 /**
@@ -77,6 +60,7 @@ public class MixAll {
     public static final String SELF_TEST_CONSUMER_GROUP = "SELF_TEST_C_GROUP";
     public static final String SELF_TEST_TOPIC = "SELF_TEST_TOPIC";
     public static final String OFFSET_MOVED_EVENT = "OFFSET_MOVED_EVENT";
+    public static final String ONS_HTTP_PROXY_GROUP = "CID_ONS-HTTP-PROXY";
 
     public static final List<String> LocalInetAddrs = getLocalInetAddress();
     public static final String Localhost = localhost();
