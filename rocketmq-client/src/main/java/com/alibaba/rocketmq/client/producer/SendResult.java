@@ -15,8 +15,6 @@
  */
 package com.alibaba.rocketmq.client.producer;
 
-import com.alibaba.rocketmq.client.VirtualEnvUtil;
-import com.alibaba.rocketmq.common.UtilAll;
 import com.alibaba.rocketmq.common.message.MessageQueue;
 
 
@@ -32,21 +30,15 @@ public class SendResult {
     private String transactionId;
 
 
-
     public SendResult() {
     }
 
 
-    public SendResult(SendStatus sendStatus, String msgId, MessageQueue messageQueue, long queueOffset,
-            String projectGroupPrefix) {
+    public SendResult(SendStatus sendStatus, String msgId, MessageQueue messageQueue, long queueOffset) {
         this.sendStatus = sendStatus;
         this.msgId = msgId;
         this.messageQueue = messageQueue;
         this.queueOffset = queueOffset;
-        if (!UtilAll.isBlank(projectGroupPrefix)) {
-            this.messageQueue.setTopic(VirtualEnvUtil.clearProjectGroup(this.messageQueue.getTopic(),
-                projectGroupPrefix));
-        }
     }
 
 
@@ -94,9 +86,11 @@ public class SendResult {
         return transactionId;
     }
 
+
     public void setTransactionId(String transactionId) {
         this.transactionId = transactionId;
     }
+
 
     @Override
     public String toString() {

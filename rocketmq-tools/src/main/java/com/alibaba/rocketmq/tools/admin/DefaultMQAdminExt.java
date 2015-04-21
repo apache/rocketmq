@@ -300,28 +300,6 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
         defaultMQAdminExtImpl.deleteKvConfig(namespace, key);
     }
 
-
-    @Override
-    public String getProjectGroupByIp(String ip) throws RemotingException, MQBrokerException,
-            InterruptedException, MQClientException {
-        return defaultMQAdminExtImpl.getProjectGroupByIp(ip);
-    }
-
-
-    @Override
-    public String getIpsByProjectGroup(String projectGroup) throws RemotingException, MQBrokerException,
-            InterruptedException, MQClientException {
-        return defaultMQAdminExtImpl.getIpsByProjectGroup(projectGroup);
-    }
-
-
-    @Override
-    public void deleteIpsByProjectGroup(String projectGroup) throws RemotingException, MQBrokerException,
-            InterruptedException, MQClientException {
-        defaultMQAdminExtImpl.deleteIpsByProjectGroup(projectGroup);
-    }
-
-
     public List<RollbackStats> resetOffsetByTimestampOld(String consumerGroup, String topic, long timestamp,
             boolean force) throws RemotingException, MQBrokerException, InterruptedException,
             MQClientException {

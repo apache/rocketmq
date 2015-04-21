@@ -15,13 +15,6 @@
  */
 package com.alibaba.rocketmq.namesrv.processor;
 
-import io.netty.channel.ChannelHandlerContext;
-
-import java.util.concurrent.atomic.AtomicLong;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.alibaba.rocketmq.common.MQVersion;
 import com.alibaba.rocketmq.common.MQVersion.Version;
 import com.alibaba.rocketmq.common.constant.LoggerName;
@@ -33,24 +26,18 @@ import com.alibaba.rocketmq.common.protocol.ResponseCode;
 import com.alibaba.rocketmq.common.protocol.body.RegisterBrokerBody;
 import com.alibaba.rocketmq.common.protocol.body.TopicConfigSerializeWrapper;
 import com.alibaba.rocketmq.common.protocol.header.GetTopicsByClusterRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.namesrv.DeleteKVConfigRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.namesrv.DeleteTopicInNamesrvRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.namesrv.GetKVConfigRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.namesrv.GetKVConfigResponseHeader;
-import com.alibaba.rocketmq.common.protocol.header.namesrv.GetKVListByNamespaceRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.namesrv.GetRouteInfoRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.namesrv.PutKVConfigRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.namesrv.RegisterBrokerRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.namesrv.RegisterBrokerResponseHeader;
-import com.alibaba.rocketmq.common.protocol.header.namesrv.UnRegisterBrokerRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.namesrv.WipeWritePermOfBrokerRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.namesrv.WipeWritePermOfBrokerResponseHeader;
+import com.alibaba.rocketmq.common.protocol.header.namesrv.*;
 import com.alibaba.rocketmq.common.protocol.route.TopicRouteData;
 import com.alibaba.rocketmq.namesrv.NamesrvController;
 import com.alibaba.rocketmq.remoting.common.RemotingHelper;
 import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
 import com.alibaba.rocketmq.remoting.netty.NettyRequestProcessor;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
+import io.netty.channel.ChannelHandlerContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.concurrent.atomic.AtomicLong;
 
 
 /**
@@ -109,10 +96,6 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
             return getAllTopicListFromNameserver(ctx, request);
         case RequestCode.DELETE_TOPIC_IN_NAMESRV:
             return deleteTopicInNamesrv(ctx, request);
-        case RequestCode.GET_KV_CONFIG_BY_VALUE:
-            return getKVConfigByValue(ctx, request);
-        case RequestCode.DELETE_KV_CONFIG_BY_VALUE:
-            return deleteKVConfigByValue(ctx, request);
         case RequestCode.GET_KVLIST_BY_NAMESPACE:
             return this.getKVListByNamespace(ctx, request);
         case RequestCode.GET_TOPICS_BY_CLUSTER:
@@ -428,52 +411,6 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
             requestHeader.getBrokerAddr(), // 2
             requestHeader.getBrokerName(), // 3
             requestHeader.getBrokerId());
-
-        response.setCode(ResponseCode.SUCCESS);
-        response.setRemark(null);
-        return response;
-    }
-
-
-    public RemotingCommand getKVConfigByValue(ChannelHandlerContext ctx, RemotingCommand request)
-            throws RemotingCommandException {
-        final RemotingCommand response =
-                RemotingCommand.createResponseCommand(GetKVConfigResponseHeader.class);
-        final GetKVConfigResponseHeader responseHeader =
-                (GetKVConfigResponseHeader) response.readCustomHeader();
-        final GetKVConfigRequestHeader requestHeader =
-                (GetKVConfigRequestHeader) request.decodeCommandCustomHeader(GetKVConfigRequestHeader.class);
-
-        String value = this.namesrvController.getKvConfigManager().getKVConfigByValue(//
-            requestHeader.getNamespace(),//
-            requestHeader.getKey()//
-            );
-
-        if (value != null) {
-            responseHeader.setValue(value);
-            response.setCode(ResponseCode.SUCCESS);
-            response.setRemark(null);
-            return response;
-        }
-
-        response.setCode(ResponseCode.QUERY_NOT_FOUND);
-        response.setRemark("No config item, Namespace: " + requestHeader.getNamespace() + " Key: "
-                + requestHeader.getKey());
-        return response;
-    }
-
-
-    public RemotingCommand deleteKVConfigByValue(ChannelHandlerContext ctx, RemotingCommand request)
-            throws RemotingCommandException {
-        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
-        final DeleteKVConfigRequestHeader requestHeader =
-                (DeleteKVConfigRequestHeader) request
-                    .decodeCommandCustomHeader(DeleteKVConfigRequestHeader.class);
-
-        this.namesrvController.getKvConfigManager().deleteKVConfigByValue(//
-            requestHeader.getNamespace(),//
-            requestHeader.getKey()//
-            );
 
         response.setCode(ResponseCode.SUCCESS);
         response.setRemark(null);

@@ -105,10 +105,6 @@ public class RequestCode {
     public static final int DELETE_TOPIC_IN_BROKER = 215;
     // 从Namesrv删除Topic配置
     public static final int DELETE_TOPIC_IN_NAMESRV = 216;
-    // Namesrv 通过 project 获取所有的 server ip 信息
-    public static final int GET_KV_CONFIG_BY_VALUE = 217;
-    // Namesrv 删除指定 project group 下的所有 server ip 信息
-    public static final int DELETE_KV_CONFIG_BY_VALUE = 218;
     // 通过NameSpace获取所有的KV List
     public static final int GET_KVLIST_BY_NAMESPACE = 219;
 

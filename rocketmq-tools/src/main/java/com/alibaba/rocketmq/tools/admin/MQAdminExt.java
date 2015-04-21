@@ -15,12 +15,6 @@
  */
 package com.alibaba.rocketmq.tools.admin;
 
-import java.io.UnsupportedEncodingException;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
-
 import com.alibaba.rocketmq.client.MQAdmin;
 import com.alibaba.rocketmq.client.exception.MQBrokerException;
 import com.alibaba.rocketmq.client.exception.MQClientException;
@@ -35,6 +29,12 @@ import com.alibaba.rocketmq.common.protocol.route.TopicRouteData;
 import com.alibaba.rocketmq.common.subscription.SubscriptionGroupConfig;
 import com.alibaba.rocketmq.remoting.exception.*;
 import com.alibaba.rocketmq.tools.admin.api.MessageTrack;
+
+import java.io.UnsupportedEncodingException;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
 
 
 /**
@@ -351,47 +351,6 @@ public interface MQAdminExt extends MQAdmin {
 
 
     /**
-     * 通过 server ip 获取 project 信息
-     * 
-     * @param ip
-     * @throws RemotingException
-     * @throws MQBrokerException
-     * @throws InterruptedException
-     * @throws MQClientException
-     * @return
-     */
-    public String getProjectGroupByIp(String ip) throws RemotingException, MQBrokerException,
-            InterruptedException, MQClientException;
-
-
-    /**
-     * 通过 project 获取所有的 server ip 信息
-     * 
-     * @param projectGroup
-     * @throws RemotingException
-     * @throws MQBrokerException
-     * @throws InterruptedException
-     * @throws MQClientException
-     * @return
-     */
-    public String getIpsByProjectGroup(String projectGroup) throws RemotingException, MQBrokerException,
-            InterruptedException, MQClientException;
-
-
-    /**
-     * 删除 project group 对应的所有 server ip
-     * 
-     * @param key
-     * @throws RemotingException
-     * @throws MQBrokerException
-     * @throws InterruptedException
-     * @throws MQClientException
-     */
-    public void deleteIpsByProjectGroup(String key) throws RemotingException, MQBrokerException,
-            InterruptedException, MQClientException;
-
-
-    /**
      * 按照时间回溯消费进度(客户端需要重启)
      * 
      * @param consumerGroup
@@ -615,5 +574,6 @@ public interface MQAdminExt extends MQAdmin {
      * @throws RemotingConnectException
      */
     public BrokerStatsData ViewBrokerStatsData(final String brokerAddr, final String statsName,
-            final String statsKey) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, MQClientException, InterruptedException;
+            final String statsKey) throws RemotingConnectException, RemotingSendRequestException,
+            RemotingTimeoutException, MQClientException, InterruptedException;
 }
