@@ -500,6 +500,24 @@ public interface MQAdminExt extends MQAdmin {
 
 
     /**
+     * 触发指定的broker清理失效的topic
+     *
+     * @return 清理是否成功
+     * @throws RemotingConnectException
+     * @throws RemotingSendRequestException
+     * @throws RemotingTimeoutException
+     * @throws MQClientException
+     * @throws InterruptedException
+     */
+    public boolean cleanUnusedTopic(String cluster) throws RemotingConnectException,
+            RemotingSendRequestException, RemotingTimeoutException, MQClientException, InterruptedException;
+
+
+    public boolean cleanUnusedTopicByAddr(String addr) throws RemotingConnectException,
+            RemotingSendRequestException, RemotingTimeoutException, MQClientException, InterruptedException;
+
+
+    /**
      * 查询Consumer内存数据结构
      * 
      * @param consumerGroup

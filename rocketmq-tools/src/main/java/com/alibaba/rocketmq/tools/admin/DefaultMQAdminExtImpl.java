@@ -699,6 +699,50 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
 
 
     @Override
+    public boolean cleanUnusedTopic(String cluster) throws RemotingConnectException,
+            RemotingSendRequestException, RemotingTimeoutException, MQClientException, InterruptedException {
+        boolean result = false;
+        try {
+            ClusterInfo clusterInfo = examineBrokerClusterInfo();
+            if (null == cluster || "".equals(cluster)) {
+                for (String targetCluster : clusterInfo.retrieveAllClusterNames()) {
+                    result = cleanUnusedTopicByCluster(clusterInfo, targetCluster);
+                }
+            }
+            else {
+                result = cleanUnusedTopicByCluster(clusterInfo, cluster);
+            }
+        }
+        catch (MQBrokerException e) {
+            log.error("cleanExpiredConsumerQueue error.", e);
+        }
+
+        return result;
+    }
+
+
+    public boolean cleanUnusedTopicByCluster(ClusterInfo clusterInfo, String cluster)
+            throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException,
+            MQClientException, InterruptedException {
+        boolean result = false;
+        String[] addrs = clusterInfo.retrieveAllAddrByCluster(cluster);
+        for (String addr : addrs) {
+            result = cleanUnusedTopicByAddr(addr);
+        }
+        return result;
+    }
+
+
+    @Override
+    public boolean cleanUnusedTopicByAddr(String addr) throws RemotingConnectException,
+            RemotingSendRequestException, RemotingTimeoutException, MQClientException, InterruptedException {
+        boolean result = mqClientInstance.getMQClientAPIImpl().cleanUnusedTopicByAddr(addr, 3000L);
+        log.warn("clean expired ConsumeQueue on target " + addr + " broker " + result);
+        return result;
+    }
+
+
+    @Override
     public ConsumerRunningInfo getConsumerRunningInfo(String consumerGroup, String clientId, boolean jstack)
             throws RemotingException, MQClientException, InterruptedException {
         String topic = MixAll.RETRY_GROUP_TOPIC_PREFIX + consumerGroup;

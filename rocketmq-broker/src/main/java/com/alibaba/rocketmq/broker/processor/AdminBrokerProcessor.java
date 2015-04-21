@@ -15,13 +15,6 @@
  */
 package com.alibaba.rocketmq.broker.processor;
 
-import java.io.UnsupportedEncodingException;
-import java.net.UnknownHostException;
-import java.util.*;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.alibaba.rocketmq.broker.BrokerController;
 import com.alibaba.rocketmq.broker.client.ClientChannelInfo;
 import com.alibaba.rocketmq.broker.client.ConsumerGroupInfo;
@@ -55,9 +48,14 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 import com.alibaba.rocketmq.remoting.protocol.RemotingSerializable;
 import com.alibaba.rocketmq.store.DefaultMessageStore;
 import com.alibaba.rocketmq.store.SelectMapedBufferResult;
-
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.UnsupportedEncodingException;
+import java.net.UnknownHostException;
+import java.util.*;
 
 
 /**
@@ -170,6 +168,9 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             // 删除失效队列
         case RequestCode.CLEAN_EXPIRED_CONSUMEQUEUE:
             return this.cleanExpiredConsumeQueue();
+            // 删除失效TOPIC
+        case RequestCode.CLEAN_UNUSED_TOPIC:
+            return this.cleanUnusedTopic();
 
         case RequestCode.GET_CONSUMER_RUNNING_INFO:
             return this.getConsumerRunningInfo(ctx, request);
@@ -348,6 +349,18 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
         brokerController.getMessageStore().cleanExpiredConsumerQueue();
         log.warn("invoke cleanExpiredConsumeQueue end.");
+        response.setCode(ResponseCode.SUCCESS);
+        response.setRemark(null);
+        return response;
+    }
+
+
+    public RemotingCommand cleanUnusedTopic() {
+        log.warn("invoke cleanUnusedTopic start.");
+        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
+        brokerController.getMessageStore().cleanUnusedTopic(
+            brokerController.getTopicConfigManager().getTopicConfigTable().keySet());
+        log.warn("invoke cleanUnusedTopic end.");
         response.setCode(ResponseCode.SUCCESS);
         response.setRemark(null);
         return response;
@@ -735,7 +748,8 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         log.info("deleteTopic called by {}", RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
 
         this.brokerController.getTopicConfigManager().deleteTopicConfig(requestHeader.getTopic());
-        this.brokerController.addDeleteTopicTask();
+        this.brokerController.getMessageStore().cleanUnusedTopic(
+            this.brokerController.getTopicConfigManager().getTopicConfigTable().keySet());
 
         response.setCode(ResponseCode.SUCCESS);
         response.setRemark(null);

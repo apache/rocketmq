@@ -15,18 +15,9 @@
  */
 package com.alibaba.rocketmq.tools.command;
 
-import java.util.ArrayList;
-import java.util.List;
-
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.Options;
-import org.apache.commons.cli.PosixParser;
-import org.slf4j.LoggerFactory;
-
 import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.joran.JoranConfigurator;
 import ch.qos.logback.core.joran.spi.JoranException;
-
 import com.alibaba.rocketmq.common.MQVersion;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.conflict.PackageConflictDetect;
@@ -35,33 +26,28 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 import com.alibaba.rocketmq.srvutil.ServerUtil;
 import com.alibaba.rocketmq.tools.command.broker.BrokerStatusSubCommand;
 import com.alibaba.rocketmq.tools.command.broker.CleanExpiredCQSubCommand;
+import com.alibaba.rocketmq.tools.command.broker.CleanUnusedTopicCommand;
 import com.alibaba.rocketmq.tools.command.broker.UpdateBrokerConfigSubCommand;
 import com.alibaba.rocketmq.tools.command.cluster.ClusterListSubCommand;
 import com.alibaba.rocketmq.tools.command.connection.ConsumerConnectionSubCommand;
 import com.alibaba.rocketmq.tools.command.connection.ProducerConnectionSubCommand;
-import com.alibaba.rocketmq.tools.command.consumer.ConsumerProgressSubCommand;
-import com.alibaba.rocketmq.tools.command.consumer.ConsumerStatusSubCommand;
-import com.alibaba.rocketmq.tools.command.consumer.DeleteSubscriptionGroupCommand;
-import com.alibaba.rocketmq.tools.command.consumer.StartMonitoringSubCommand;
-import com.alibaba.rocketmq.tools.command.consumer.UpdateSubGroupSubCommand;
-import com.alibaba.rocketmq.tools.command.message.CheckMsgSubCommand;
-import com.alibaba.rocketmq.tools.command.message.PrintMessageSubCommand;
-import com.alibaba.rocketmq.tools.command.message.QueryMsgByIdSubCommand;
-import com.alibaba.rocketmq.tools.command.message.QueryMsgByKeySubCommand;
-import com.alibaba.rocketmq.tools.command.message.QueryMsgByOffsetSubCommand;
+import com.alibaba.rocketmq.tools.command.consumer.*;
+import com.alibaba.rocketmq.tools.command.message.*;
 import com.alibaba.rocketmq.tools.command.namesrv.DeleteKvConfigCommand;
 import com.alibaba.rocketmq.tools.command.namesrv.UpdateKvConfigCommand;
 import com.alibaba.rocketmq.tools.command.namesrv.WipeWritePermSubCommand;
 import com.alibaba.rocketmq.tools.command.offset.CloneGroupOffsetCommand;
 import com.alibaba.rocketmq.tools.command.offset.ResetOffsetByTimeCommand;
 import com.alibaba.rocketmq.tools.command.stats.StatsAllSubCommand;
-import com.alibaba.rocketmq.tools.command.topic.DeleteTopicSubCommand;
-import com.alibaba.rocketmq.tools.command.topic.TopicListSubCommand;
-import com.alibaba.rocketmq.tools.command.topic.TopicRouteSubCommand;
-import com.alibaba.rocketmq.tools.command.topic.TopicStatusSubCommand;
-import com.alibaba.rocketmq.tools.command.topic.UpdateOrderConfCommand;
-import com.alibaba.rocketmq.tools.command.topic.UpdateTopicSubCommand;
+import com.alibaba.rocketmq.tools.command.topic.*;
 import com.alibaba.rocketmq.tools.github.SyncDocsToGithubSubCommand;
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.Options;
+import org.apache.commons.cli.PosixParser;
+import org.slf4j.LoggerFactory;
+
+import java.util.ArrayList;
+import java.util.List;
 
 
 /**
@@ -107,6 +93,7 @@ public class MQAdminStartup {
 
         initCommand(new UpdateOrderConfCommand());
         initCommand(new CleanExpiredCQSubCommand());
+        initCommand(new CleanUnusedTopicCommand());
 
         initCommand(new StartMonitoringSubCommand());
         initCommand(new CheckMsgSubCommand());

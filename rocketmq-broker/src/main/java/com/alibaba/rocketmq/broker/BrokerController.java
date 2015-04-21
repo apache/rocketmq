@@ -560,8 +560,6 @@ public class BrokerController {
         if (this.brokerStatsManager != null) {
             this.brokerStatsManager.start();
         }
-
-        this.addDeleteTopicTask();
     }
 
 
@@ -741,20 +739,6 @@ public class BrokerController {
 
         // XXX: warn and notify me
         log.info("slave fall behind master, how much, {} bytes", diff);
-    }
-
-
-    // todo-->jodie:
-    public void addDeleteTopicTask() {
-        this.scheduledExecutorService.schedule(new Runnable() {
-            @Override
-            public void run() {
-                int removedTopicCnt =
-                        BrokerController.this.messageStore.cleanUnusedTopic(BrokerController.this
-                            .getTopicConfigManager().getTopicConfigTable().keySet());
-                log.info("addDeleteTopicTask removed topic count {}", removedTopicCnt);
-            }
-        }, 5, TimeUnit.MINUTES);
     }
 
     private final List<SendMessageHook> sendMessageHookList = new ArrayList<SendMessageHook>();
