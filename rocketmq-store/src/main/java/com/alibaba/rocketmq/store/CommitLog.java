@@ -819,8 +819,8 @@ public class CommitLog {
 
         public boolean waitForFlush(long timeout) {
             try {
-                boolean result = this.countDownLatch.await(timeout, TimeUnit.MILLISECONDS);
-                return result || this.flushOK;
+                this.countDownLatch.await(timeout, TimeUnit.MILLISECONDS);
+                return this.flushOK;
             }
             catch (InterruptedException e) {
                 e.printStackTrace();
