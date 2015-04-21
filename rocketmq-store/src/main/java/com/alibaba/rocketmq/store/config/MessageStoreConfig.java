@@ -133,7 +133,7 @@ public class MessageStoreConfig {
     private boolean cleanFileForciblyEnable = true;
 
     // 是否开启虚拟内存预热
-    private boolean warmMapedFileEnable = true;
+    private boolean warmMapedFileEnable = false;
 
 
     public boolean isWarmMapedFileEnable() {
