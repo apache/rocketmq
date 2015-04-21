@@ -18,10 +18,13 @@ package com.alibaba.rocketmq.store;
 import com.alibaba.rocketmq.common.ServiceThread;
 import com.alibaba.rocketmq.common.UtilAll;
 import com.alibaba.rocketmq.common.constant.LoggerName;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.Iterator;
+import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.PriorityBlockingQueue;
@@ -80,7 +83,7 @@ public class AllocateMapedFileService extends ServiceThread {
                 if (!waitOK) {
                     log.warn("create mmap timeout " + result.getFilePath() + " " + result.getFileSize());
                 }
-                this.requestTable.remove(nextFilePath);
+
                 return result.getMapedFile();
             }
             else {
@@ -130,6 +133,16 @@ public class AllocateMapedFileService extends ServiceThread {
         log.info(this.getServiceName() + " service end");
     }
 
+    private void scanAndCleanRequestTable(){
+        Iterator<Entry<String, AllocateRequest>> it = this.requestTable.entrySet().iterator();
+        while(it.hasNext()){
+            Entry<String, AllocateRequest> next = it.next();
+            if(next.getValue().isExpired()){
+                log.info("AllocateMapedFileService, remove request from request table, {}", next.getKey());
+                it.remove();
+            }
+        }
+    }
 
     /**
      * Only interrupted by the external thread, will return false
@@ -162,6 +175,7 @@ public class AllocateMapedFileService extends ServiceThread {
                 }
 
                 req.setMapedFile(mapedFile);
+                this.scanAndCleanRequestTable();
                 this.hasException = false;
             }
         }
@@ -188,12 +202,20 @@ public class AllocateMapedFileService extends ServiceThread {
         private CountDownLatch countDownLatch = new CountDownLatch(1);
         private volatile MapedFile mapedFile = null;
 
+        private final long createTimestamp = System.currentTimeMillis();
+
+        // 10 minutes
+        private static final long ExpiredTime = 1000 * 60 * 10;
+
 
         public AllocateRequest(String filePath, int fileSize) {
             this.filePath = filePath;
             this.fileSize = fileSize;
         }
 
+        public boolean isExpired(){
+            return (System.currentTimeMillis() - createTimestamp) > ExpiredTime;
+        }
 
         public String getFilePath() {
             return filePath;

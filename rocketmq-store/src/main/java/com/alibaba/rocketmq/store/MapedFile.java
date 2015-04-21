@@ -436,18 +436,21 @@ public class MapedFile extends ReferenceResource {
         long beginTime = System.currentTimeMillis();
         ByteBuffer byteBuffer = this.mappedByteBuffer.slice();
         int flush = 0;
+        long time = System.currentTimeMillis();
         for (int i = 0, j = 0; i < this.fileSize; i += MapedFile.OS_PAGE_SIZE, j++) {
             byteBuffer.put(i, (byte) 0);
-            if ((i / OS_PAGE_SIZE) - (flush / OS_PAGE_SIZE) >= pages) {
-                flush = i;
-                if (type == FlushDiskType.SYNC_FLUSH) {
-                    // force flush when flush disk type is sync
+            // force flush when flush disk type is sync
+            if (type == FlushDiskType.SYNC_FLUSH) {
+                if ((i / OS_PAGE_SIZE) - (flush / OS_PAGE_SIZE) >= pages) {
+                    flush = i;
                     mappedByteBuffer.force();
                 }
             }
 
             // prevent gc
-            if (j % 100 == 0) {
+            if (j % 1000 == 0) {
+                log.info("j={}, costTime={}", j, System.currentTimeMillis() - time);
+                time = System.currentTimeMillis();
                 try {
                     Thread.sleep(0);
                 }
@@ -459,6 +462,8 @@ public class MapedFile extends ReferenceResource {
 
         // force flush when prepare load finished
         if (type == FlushDiskType.SYNC_FLUSH) {
+            log.info("mapped file worm up done, force to disk, mappedFile={}, costTime={}",
+                this.getFileName(), System.currentTimeMillis() - beginTime);
             mappedByteBuffer.force();
         }
         log.info("mapped file worm up done. mappedFile={}, costTime={}", this.getFileName(),
@@ -501,5 +506,11 @@ public class MapedFile extends ReferenceResource {
 
     public void setFirstCreateInQueue(boolean firstCreateInQueue) {
         this.firstCreateInQueue = firstCreateInQueue;
+    }
+
+
+    @Override
+    public String toString() {
+        return this.fileName;
     }
 }

@@ -34,6 +34,7 @@ import com.alibaba.rocketmq.store.index.IndexService;
 import com.alibaba.rocketmq.store.index.QueryOffsetResult;
 import com.alibaba.rocketmq.store.schedule.ScheduleMessageService;
 import com.alibaba.rocketmq.store.stats.BrokerStatsManager;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -201,6 +202,15 @@ public class DefaultMessageStore implements MessageStore {
                 DefaultMessageStore.this.cleanFilesPeriodically();
             }
         }, 1000 * 60, this.messageStoreConfig.getCleanResourceInterval(), TimeUnit.MILLISECONDS);
+        
+        // 定期检测数据结构的正确性
+        this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
+            @Override
+            public void run() {
+                DefaultMessageStore.this.checkSelf();
+            }
+        }, 1, 10, TimeUnit.MINUTES);
+
 
         // 定时清理完全不使用的队列
         // this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
@@ -217,6 +227,19 @@ public class DefaultMessageStore implements MessageStore {
         this.cleanConsumeQueueService.run();
     }
 
+    private void checkSelf(){
+        this.commitLog.checkSelf();
+
+        Iterator<Entry<String, ConcurrentHashMap<Integer, ConsumeQueue>>> it = this.consumeQueueTable.entrySet().iterator();
+        while(it.hasNext()){
+            Entry<String, ConcurrentHashMap<Integer, ConsumeQueue>> next = it.next();
+            Iterator<Entry<Integer, ConsumeQueue>> itNext = next.getValue().entrySet().iterator();
+            while (itNext.hasNext()) {
+                Entry<Integer, ConsumeQueue> cq = itNext.next();
+                cq.getValue().checkSelf();
+            }
+        }
+    }
 
     public void cleanExpiredConsumerQueue() {
         // CommitLog的最小Offset

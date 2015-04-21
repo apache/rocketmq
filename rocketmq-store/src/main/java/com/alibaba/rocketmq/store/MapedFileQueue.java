@@ -65,6 +65,32 @@ public class MapedFileQueue {
     }
 
 
+    public void checkSelf() {
+        this.readWriteLock.readLock().lock();
+        try {
+            if (!this.mapedFiles.isEmpty()) {
+                MapedFile first = this.mapedFiles.get(0);
+                MapedFile last = this.mapedFiles.get(this.mapedFiles.size() - 1);
+
+                int sizeCompute = (int) ((last.getFileFromOffset() - first.getFileFromOffset()) / this.mapedFileSize) + 1;
+                int sizeReal = this.mapedFiles.size();
+                if (sizeCompute != sizeReal) {
+                    logError.error("[BUG]The mapedfile queue's data is damaged, {} mapedFileSize={} sizeCompute={} sizeReal={}\n{}", //
+                        this.storePath,//
+                        this.mapedFileSize,//
+                        sizeCompute,//
+                        sizeReal,//
+                        this.mapedFiles.toString()//
+                        );
+                }
+            }
+        }
+        finally {
+            this.readWriteLock.readLock().unlock();
+        }
+    }
+
+
     public MapedFile getMapedFileByTime(final long timestamp) {
         Object[] mfs = this.copyMapedFiles(0);
 
@@ -187,7 +213,7 @@ public class MapedFileQueue {
 
 
     /**
-     * 刷盘进度落后了多少
+     * 刷盘进度落后了多少，此访问调用了getLastMapedFile，存在并发问题
      */
     public long howMuchFallBehind() {
         if (this.mapedFiles.isEmpty())

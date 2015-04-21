@@ -784,8 +784,8 @@ public class CommitLog {
 
 
         private void printFlushProgress() {
-            CommitLog.log.info("how much disk fall behind memory, "
-                    + CommitLog.this.mapedFileQueue.howMuchFallBehind());
+            // CommitLog.log.info("how much disk fall behind memory, "
+            //        + CommitLog.this.mapedFileQueue.howMuchFallBehind());
         }
 
 
@@ -819,8 +819,8 @@ public class CommitLog {
 
         public boolean waitForFlush(long timeout) {
             try {
-                boolean result = this.countDownLatch.await(timeout, TimeUnit.MILLISECONDS);
-                return result || this.flushOK;
+                this.countDownLatch.await(timeout, TimeUnit.MILLISECONDS);
+                return this.flushOK;
             }
             catch (InterruptedException e) {
                 e.printStackTrace();
@@ -1128,5 +1128,10 @@ public class CommitLog {
         }
 
         log.info("removeQueurFromTopicQueueTable OK Topic: {} QueueId: {}", topic, queueId);
+    }
+
+
+    public void checkSelf() {
+        mapedFileQueue.checkSelf();
     }
 }
