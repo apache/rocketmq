@@ -140,7 +140,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     @Override
     public void send(Message msg, MessageQueue mq, SendCallback sendCallback) throws MQClientException,
             RemotingException, InterruptedException {
-        send(msg, mq, sendCallback);
+        this.defaultMQProducerImpl.send(msg, mq, sendCallback);
     }
 
 
