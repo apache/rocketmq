@@ -15,24 +15,6 @@
  */
 package com.alibaba.rocketmq.remoting.netty;
 
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelFutureListener;
-import io.netty.channel.ChannelHandlerContext;
-
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map.Entry;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.RejectedExecutionException;
-import java.util.concurrent.Semaphore;
-import java.util.concurrent.TimeUnit;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.alibaba.rocketmq.remoting.ChannelEventListener;
 import com.alibaba.rocketmq.remoting.InvokeCallback;
 import com.alibaba.rocketmq.remoting.RPCHook;
@@ -45,6 +27,17 @@ import com.alibaba.rocketmq.remoting.exception.RemotingTimeoutException;
 import com.alibaba.rocketmq.remoting.exception.RemotingTooMuchRequestException;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 import com.alibaba.rocketmq.remoting.protocol.RemotingSysResponseCode;
+import io.netty.channel.Channel;
+import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelFutureListener;
+import io.netty.channel.ChannelHandlerContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map.Entry;
+import java.util.concurrent.*;
 
 
 /**
@@ -250,8 +243,8 @@ public abstract class NettyRemotingAbstract {
 
             responseFuture.release();
 
-            // 在回调之前删除可以解决用户同一个线程使用同一个RemotingCommand对象发送多个rpc请求产生的超时问题。
-            responseTable.remove(cmd.getOpaque());
+//            // 在回调之前删除可以解决用户同一个线程使用同一个RemotingCommand对象发送多个rpc请求产生的超时问题。
+//            responseTable.remove(cmd.getOpaque());
 
             if (responseFuture.getInvokeCallback() != null) {
                 boolean runInThisThread = false;
@@ -297,6 +290,8 @@ public abstract class NettyRemotingAbstract {
                     + RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
             plog.warn(cmd.toString());
         }
+
+        responseTable.remove(cmd.getOpaque());
     }
 
 
