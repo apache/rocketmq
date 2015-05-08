@@ -243,8 +243,8 @@ public abstract class NettyRemotingAbstract {
 
             responseFuture.release();
 
-//            // 在回调之前删除可以解决用户同一个线程使用同一个RemotingCommand对象发送多个rpc请求产生的超时问题。
-//            responseTable.remove(cmd.getOpaque());
+            // 在回调之前删除可以解决用户同一个线程使用同一个RemotingCommand对象发送多个rpc请求产生的超时问题。
+            responseTable.remove(cmd.getOpaque());
 
             if (responseFuture.getInvokeCallback() != null) {
                 boolean runInThisThread = false;
@@ -290,8 +290,6 @@ public abstract class NettyRemotingAbstract {
                     + RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
             plog.warn(cmd.toString());
         }
-
-        responseTable.remove(cmd.getOpaque());
     }
 
 
