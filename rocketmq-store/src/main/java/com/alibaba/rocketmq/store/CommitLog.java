@@ -228,12 +228,15 @@ public class CommitLog {
     public DispatchRequest checkMessageAndReturnSize(java.nio.ByteBuffer byteBuffer, final boolean checkCRC,
             final boolean readBody) {
         try {
+            int readLength = 0;
             // 1 TOTALSIZE
             int totalSize = byteBuffer.getInt();
+            readLength += 32;
             byte[] bytesContent = new byte[totalSize];
 
             // 2 MAGICCODE
             int magicCode = byteBuffer.getInt();
+            readLength += 32;
             switch (magicCode) {
             case MessageMagicCode:
                 break;
@@ -246,44 +249,57 @@ public class CommitLog {
 
             // 3 BODYCRC
             int bodyCRC = byteBuffer.getInt();
+            readLength += 32;
 
             // 4 QUEUEID
             int queueId = byteBuffer.getInt();
+            readLength += 32;
 
             // 5 FLAG
             int flag = byteBuffer.getInt();
+            readLength += 32;
             flag = flag + 0;
 
             // 6 QUEUEOFFSET
             long queueOffset = byteBuffer.getLong();
+            readLength += 64;
 
             // 7 PHYSICALOFFSET
             long physicOffset = byteBuffer.getLong();
+            readLength += 64;
 
             // 8 SYSFLAG
             int sysFlag = byteBuffer.getInt();
+            readLength += 32;
 
             // 9 BORNTIMESTAMP
             long bornTimeStamp = byteBuffer.getLong();
+            readLength += 64;
             bornTimeStamp = bornTimeStamp + 0;
 
             // 10 BORNHOST（IP+PORT）
             byteBuffer.get(bytesContent, 0, 8);
+            readLength += 8;
 
             // 11 STORETIMESTAMP
             long storeTimestamp = byteBuffer.getLong();
+            readLength += 64;
 
             // 12 STOREHOST（IP+PORT）
             byteBuffer.get(bytesContent, 0, 8);
+            readLength += 8;
 
             // 13 RECONSUMETIMES
             int reconsumeTimes = byteBuffer.getInt();
+            readLength += 32;
 
             // 14 Prepared Transaction Offset
             long preparedTransactionOffset = byteBuffer.getLong();
+            readLength += 64;
 
             // 15 BODY
             int bodyLen = byteBuffer.getInt();
+            readLength += 32 + bodyLen;
             if (bodyLen > 0) {
                 if (readBody) {
                     byteBuffer.get(bytesContent, 0, bodyLen);
@@ -303,6 +319,7 @@ public class CommitLog {
 
             // 16 TOPIC
             byte topicLen = byteBuffer.get();
+            readLength += 1 + topicLen;
             byteBuffer.get(bytesContent, 0, topicLen);
             String topic = new String(bytesContent, 0, topicLen, MessageDecoder.CHARSET_UTF8);
 
@@ -311,6 +328,7 @@ public class CommitLog {
 
             // 17 properties
             short propertiesLength = byteBuffer.getShort();
+            readLength += 16 + propertiesLength;
             if (propertiesLength > 0) {
                 byteBuffer.get(bytesContent, 0, propertiesLength);
                 String properties =
@@ -344,6 +362,12 @@ public class CommitLog {
                         }
                     }
                 }
+            }
+
+            if (totalSize != readLength) {
+                log.warn("read total count not equals msg total size. totalSize={}, readTotalCount={}",
+                    totalSize, readLength);
+                return new DispatchRequest(-1);
             }
 
             return new DispatchRequest(//
@@ -562,7 +586,7 @@ public class CommitLog {
             eclipseTimeInLock = this.defaultMessageStore.getSystemClock().now() - beginLockTimestamp;
         } // end of synchronized
 
-        //todo-->jodie:恢复成1s
+        // todo-->jodie:恢复成1s
         if (eclipseTimeInLock > 500) {
             log.warn("putMessage in lock eclipse time(ms) " + eclipseTimeInLock);
         }
@@ -785,7 +809,7 @@ public class CommitLog {
 
         private void printFlushProgress() {
             // CommitLog.log.info("how much disk fall behind memory, "
-            //        + CommitLog.this.mapedFileQueue.howMuchFallBehind());
+            // + CommitLog.this.mapedFileQueue.howMuchFallBehind());
         }
 
 
