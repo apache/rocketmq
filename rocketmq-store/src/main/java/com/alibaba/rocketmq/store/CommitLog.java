@@ -228,15 +228,12 @@ public class CommitLog {
     public DispatchRequest checkMessageAndReturnSize(java.nio.ByteBuffer byteBuffer, final boolean checkCRC,
             final boolean readBody) {
         try {
-            int readLength = 0;
             // 1 TOTALSIZE
             int totalSize = byteBuffer.getInt();
-            readLength += 32;
             byte[] bytesContent = new byte[totalSize];
 
             // 2 MAGICCODE
             int magicCode = byteBuffer.getInt();
-            readLength += 32;
             switch (magicCode) {
             case MessageMagicCode:
                 break;
@@ -249,57 +246,44 @@ public class CommitLog {
 
             // 3 BODYCRC
             int bodyCRC = byteBuffer.getInt();
-            readLength += 32;
 
             // 4 QUEUEID
             int queueId = byteBuffer.getInt();
-            readLength += 32;
 
             // 5 FLAG
             int flag = byteBuffer.getInt();
-            readLength += 32;
             flag = flag + 0;
 
             // 6 QUEUEOFFSET
             long queueOffset = byteBuffer.getLong();
-            readLength += 64;
 
             // 7 PHYSICALOFFSET
             long physicOffset = byteBuffer.getLong();
-            readLength += 64;
 
             // 8 SYSFLAG
             int sysFlag = byteBuffer.getInt();
-            readLength += 32;
 
             // 9 BORNTIMESTAMP
             long bornTimeStamp = byteBuffer.getLong();
-            readLength += 64;
             bornTimeStamp = bornTimeStamp + 0;
 
             // 10 BORNHOST（IP+PORT）
             byteBuffer.get(bytesContent, 0, 8);
-            readLength += 8;
 
             // 11 STORETIMESTAMP
             long storeTimestamp = byteBuffer.getLong();
-            readLength += 64;
 
             // 12 STOREHOST（IP+PORT）
             byteBuffer.get(bytesContent, 0, 8);
-            readLength += 8;
 
             // 13 RECONSUMETIMES
             int reconsumeTimes = byteBuffer.getInt();
-            readLength += 32;
 
             // 14 Prepared Transaction Offset
             long preparedTransactionOffset = byteBuffer.getLong();
-            readLength += 64;
 
             // 15 BODY
             int bodyLen = byteBuffer.getInt();
-            readLength += 32 + bodyLen;
             if (bodyLen > 0) {
                 if (readBody) {
                     byteBuffer.get(bytesContent, 0, bodyLen);
@@ -319,7 +303,6 @@ public class CommitLog {
 
             // 16 TOPIC
             byte topicLen = byteBuffer.get();
-            readLength += 1 + topicLen;
             byteBuffer.get(bytesContent, 0, topicLen);
             String topic = new String(bytesContent, 0, topicLen, MessageDecoder.CHARSET_UTF8);
 
@@ -328,7 +311,6 @@ public class CommitLog {
 
             // 17 properties
             short propertiesLength = byteBuffer.getShort();
-            readLength += 16 + propertiesLength;
             if (propertiesLength > 0) {
                 byteBuffer.get(bytesContent, 0, propertiesLength);
                 String properties =
@@ -364,9 +346,12 @@ public class CommitLog {
                 }
             }
 
+            int readLength = calMsgLength(bodyLen, topicLen, propertiesLength);
             if (totalSize != readLength) {
                 log.warn("read total count not equals msg total size. totalSize={}, readTotalCount={}",
                     totalSize, readLength);
+                // re
+                byteBuffer.position(byteBuffer.position() + (totalSize - bodyLen));
                 return new DispatchRequest(-1);
             }
 
@@ -391,6 +376,29 @@ public class CommitLog {
         }
 
         return new DispatchRequest(-1);
+    }
+
+
+    private int calMsgLength(int bodyLength, int topicLength, int propertiesLength) {
+        final int msgLen = 4 // 1 TOTALSIZE
+                + 4 // 2 MAGICCODE
+                + 4 // 3 BODYCRC
+                + 4 // 4 QUEUEID
+                + 4 // 5 FLAG
+                + 8 // 6 QUEUEOFFSET
+                + 8 // 7 PHYSICALOFFSET
+                + 4 // 8 SYSFLAG
+                + 8 // 9 BORNTIMESTAMP
+                + 8 // 10 BORNHOST
+                + 8 // 11 STORETIMESTAMP
+                + 8 // 12 STOREHOSTADDRESS
+                + 4 // 13 RECONSUMETIMES
+                + 8 // 14 Prepared Transaction Offset
+                + 4 + bodyLength // 14 BODY
+                + 1 + topicLength // 15 TOPIC
+                + 2 + propertiesLength // 16 propertiesLength
+                + 0;
+        return msgLen;
     }
 
 
@@ -1030,24 +1038,7 @@ public class CommitLog {
 
             final int bodyLength = msgInner.getBody() == null ? 0 : msgInner.getBody().length;
 
-            final int msgLen = 4 // 1 TOTALSIZE
-                    + 4 // 2 MAGICCODE
-                    + 4 // 3 BODYCRC
-                    + 4 // 4 QUEUEID
-                    + 4 // 5 FLAG
-                    + 8 // 6 QUEUEOFFSET
-                    + 8 // 7 PHYSICALOFFSET
-                    + 4 // 8 SYSFLAG
-                    + 8 // 9 BORNTIMESTAMP
-                    + 8 // 10 BORNHOST
-                    + 8 // 11 STORETIMESTAMP
-                    + 8 // 12 STOREHOSTADDRESS
-                    + 4 // 13 RECONSUMETIMES
-                    + 8 // 14 Prepared Transaction Offset
-                    + 4 + bodyLength // 14 BODY
-                    + 1 + topicLength // 15 TOPIC
-                    + 2 + propertiesLength // 16 propertiesLength
-                    + 0;
+            final int msgLen = calMsgLength(bodyLength, topicLength, propertiesLength);
 
             // Exceeds the maximum message
             if (msgLen > this.maxMessageSize) {
