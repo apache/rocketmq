@@ -13,7 +13,7 @@ echo 'vm.dirty_background_ratio=50' >> /etc/sysctl.conf
 echo 'vm.dirty_ratio=50' >> /etc/sysctl.conf
 echo 'vm.page-cluster=3' >> /etc/sysctl.conf
 echo 'vm.dirty_writeback_centisecs=360000' >> /etc/sysctl.conf
-echo 'vm.swappiness=10' >> /etc/sysctl.conf
+echo 'vm.swappiness=60' >> /etc/sysctl.conf
 sysctl -p
 
 echo 'ulimit -n 655350' >> /etc/profile
