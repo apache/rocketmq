@@ -32,7 +32,8 @@ public class NettyServerConfig {
 
     private int serverSocketSndBufSize = NettySystemConfig.SocketSndbufSize;
     private int serverSocketRcvBufSize = NettySystemConfig.SocketRcvbufSize;
-    private boolean serverPooledByteBufAllocatorEnable = false;
+    private boolean serverPooledByteBufAllocatorEnable = true;
+    private boolean useEpollNativeSelector = false;
 
 
     public int getListenPort() {
@@ -132,5 +133,15 @@ public class NettyServerConfig {
 
     public void setServerPooledByteBufAllocatorEnable(boolean serverPooledByteBufAllocatorEnable) {
         this.serverPooledByteBufAllocatorEnable = serverPooledByteBufAllocatorEnable;
+    }
+
+
+    public boolean isUseEpollNativeSelector() {
+        return useEpollNativeSelector;
+    }
+
+
+    public void setUseEpollNativeSelector(boolean useEpollNativeSelector) {
+        this.useEpollNativeSelector = useEpollNativeSelector;
     }
 }
