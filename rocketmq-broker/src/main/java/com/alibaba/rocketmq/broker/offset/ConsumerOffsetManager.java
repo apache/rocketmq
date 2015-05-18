@@ -88,11 +88,13 @@ public class ConsumerOffsetManager extends ConfigManager {
 
         while (it.hasNext() && result) {
             Entry<Integer, Long> next = it.next();
-            long minOffsetInStore =
-                    this.brokerController.getMessageStore().getMinOffsetInQuque(topic, next.getKey());
+            long minOffsetInStore = this.brokerController.getMessageStore().getMinOffsetInQuque(topic, next.getKey());
             long offsetInPersist = next.getValue();
             if (offsetInPersist > minOffsetInStore) {
                 result = false;
+            }
+            else {
+                result = true;
             }
         }
 
@@ -185,8 +187,7 @@ public class ConsumerOffsetManager extends ConfigManager {
     @Override
     public void decode(String jsonString) {
         if (jsonString != null) {
-            ConsumerOffsetManager obj =
-                    RemotingSerializable.fromJson(jsonString, ConsumerOffsetManager.class);
+            ConsumerOffsetManager obj = RemotingSerializable.fromJson(jsonString, ConsumerOffsetManager.class);
             if (obj != null) {
                 this.offsetTable = obj.offsetTable;
             }
@@ -196,8 +197,7 @@ public class ConsumerOffsetManager extends ConfigManager {
 
     @Override
     public String configFilePath() {
-        return BrokerPathConfigHelper.getConsumerOffsetPath(this.brokerController.getMessageStoreConfig()
-            .getStorePathRootDir());
+        return BrokerPathConfigHelper.getConsumerOffsetPath(this.brokerController.getMessageStoreConfig().getStorePathRootDir());
     }
 
 
@@ -229,9 +229,7 @@ public class ConsumerOffsetManager extends ConfigManager {
             String[] topicGroupArr = topicGroup.split(TOPIC_GROUP_SEPARATOR);
             if (topic.equals(topicGroupArr[0])) {
                 for (Entry<Integer, Long> entry : this.offsetTable.get(topicGroup).entrySet()) {
-                    long minOffset =
-                            this.brokerController.getMessageStore()
-                                .getMinOffsetInQuque(topic, entry.getKey());
+                    long minOffset = this.brokerController.getMessageStore().getMinOffsetInQuque(topic, entry.getKey());
                     if (entry.getValue() >= minOffset) {
                         Long offset = queueMinOffset.get(entry.getKey());
                         if (offset == null) {
@@ -256,8 +254,7 @@ public class ConsumerOffsetManager extends ConfigManager {
 
 
     public void cloneOffset(final String srcGroup, final String destGroup, final String topic) {
-        ConcurrentHashMap<Integer, Long> offsets =
-                this.offsetTable.get(topic + TOPIC_GROUP_SEPARATOR + srcGroup);
+        ConcurrentHashMap<Integer, Long> offsets = this.offsetTable.get(topic + TOPIC_GROUP_SEPARATOR + srcGroup);
         if (offsets != null) {
             this.offsetTable.put(topic + TOPIC_GROUP_SEPARATOR + destGroup, offsets);
         }
