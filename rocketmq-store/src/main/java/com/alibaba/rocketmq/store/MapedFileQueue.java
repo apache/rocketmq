@@ -72,15 +72,18 @@ public class MapedFileQueue {
                 MapedFile first = this.mapedFiles.get(0);
                 MapedFile last = this.mapedFiles.get(this.mapedFiles.size() - 1);
 
-                int sizeCompute = (int) ((last.getFileFromOffset() - first.getFileFromOffset()) / this.mapedFileSize) + 1;
+                int sizeCompute =
+                        (int) ((last.getFileFromOffset() - first.getFileFromOffset()) / this.mapedFileSize) + 1;
                 int sizeReal = this.mapedFiles.size();
                 if (sizeCompute != sizeReal) {
-                    logError.error("[BUG]The mapedfile queue's data is damaged, {} mapedFileSize={} sizeCompute={} sizeReal={}\n{}", //
-                        this.storePath,//
-                        this.mapedFileSize,//
-                        sizeCompute,//
-                        sizeReal,//
-                        this.mapedFiles.toString()//
+                    logError
+                        .error(
+                            "[BUG]The mapedfile queue's data is damaged, {} mapedFileSize={} sizeCompute={} sizeReal={}\n{}", //
+                            this.storePath,//
+                            this.mapedFileSize,//
+                            sizeCompute,//
+                            sizeReal,//
+                            this.mapedFiles.toString()//
                         );
                 }
             }
@@ -221,7 +224,7 @@ public class MapedFileQueue {
 
         long committed = this.committedWhere;
         if (committed != 0) {
-            MapedFile mapedFile = this.getLastMapedFile();
+            MapedFile mapedFile = this.getLastMapedFile(0, false);
             if (mapedFile != null) {
                 return (mapedFile.getFileFromOffset() + mapedFile.getWrotePostion()) - committed;
             }
@@ -248,6 +251,11 @@ public class MapedFileQueue {
     }
 
 
+    public MapedFile getLastMapedFile(final long startOffset) {
+        return getLastMapedFile(startOffset, true);
+    }
+
+
     /**
      * 获取最后一个MapedFile对象，如果一个都没有，则新创建一个，如果最后一个写满了，则新创建一个
      * 
@@ -255,7 +263,7 @@ public class MapedFileQueue {
      *            如果创建新的文件，起始offset
      * @return
      */
-    public MapedFile getLastMapedFile(final long startOffset) {
+    public MapedFile getLastMapedFile(final long startOffset, boolean needCreate) {
         long createOffset = -1;
         MapedFile mapedFileLast = null;
         {
@@ -273,7 +281,7 @@ public class MapedFileQueue {
             createOffset = mapedFileLast.getFileFromOffset() + this.mapedFileSize;
         }
 
-        if (createOffset != -1) {
+        if (createOffset != -1 && needCreate) {
             String nextFilePath = this.storePath + File.separator + UtilAll.offset2FileName(createOffset);
             String nextNextFilePath =
                     this.storePath + File.separator
