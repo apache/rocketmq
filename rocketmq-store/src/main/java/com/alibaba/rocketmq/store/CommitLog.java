@@ -1014,7 +1014,7 @@ public class CommitLog {
             final int tranType = MessageSysFlag.getTransactionValue(msgInner.getSysFlag());
             switch (tranType) {
             // Prepared and Rollback message is not consumed, will not enter the
-            // consumer queue
+            // consumer queuec
             case MessageSysFlag.TransactionPreparedType:
             case MessageSysFlag.TransactionRollbackType:
                 queueOffset = 0L;

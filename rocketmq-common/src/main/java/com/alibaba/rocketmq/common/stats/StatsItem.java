@@ -1,13 +1,12 @@
 package com.alibaba.rocketmq.common.stats;
 
+import com.alibaba.rocketmq.common.UtilAll;
+import org.slf4j.Logger;
+
 import java.util.LinkedList;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
-
-import org.slf4j.Logger;
-
-import com.alibaba.rocketmq.common.UtilAll;
 
 
 public class StatsItem {
@@ -24,13 +23,15 @@ public class StatsItem {
     // 最近一天内的镜像，数量24，1小时采样一次
     private final LinkedList<CallSnapshot> csListDay = new LinkedList<CallSnapshot>();
 
+    private long offset;
+
     private final String statsName;
     private final String statsKey;
     private final ScheduledExecutorService scheduledExecutorService;
     private final Logger log;
 
 
-    private static StatsSnapshot computeStatsData(final LinkedList<CallSnapshot> csList) {
+    private static StatsSnapshot computeStatsData(final LinkedList<CallSnapshot> csList, final long offset) {
         StatsSnapshot statsSnapshot = new StatsSnapshot();
         synchronized (csList) {
             double tps = 0;
@@ -51,6 +52,7 @@ public class StatsItem {
             statsSnapshot.setSum(sum);
             statsSnapshot.setTps(tps);
             statsSnapshot.setAvgpt(avgpt);
+            statsSnapshot.setOffset(offset);
         }
 
         return statsSnapshot;
@@ -58,17 +60,17 @@ public class StatsItem {
 
 
     public StatsSnapshot getStatsDataInMinute() {
-        return computeStatsData(this.csListMinute);
+        return computeStatsData(this.csListMinute, this.offset);
     }
 
 
     public StatsSnapshot getStatsDataInHour() {
-        return computeStatsData(this.csListHour);
+        return computeStatsData(this.csListHour, this.offset);
     }
 
 
     public StatsSnapshot getStatsDataInDay() {
-        return computeStatsData(this.csListDay);
+        return computeStatsData(this.csListDay, this.offset);
     }
 
 
@@ -160,42 +162,76 @@ public class StatsItem {
 
 
     public void printAtMinutes() {
-        StatsSnapshot ss = computeStatsData(this.csListMinute);
-        log.info(String.format("[%s] [%s] Stats In One Minute, SUM: %d TPS: %.2f AVGPT: %.2f", //
-            this.statsName,//
-            this.statsKey,//
-            ss.getSum(),//
-            ss.getTps(),//
-            ss.getAvgpt()));
+        StatsSnapshot ss = computeStatsData(this.csListMinute, this.offset);
+        if (this.getStatsName().contains("BROKER") || this.getStatsName().contains("SIZE")) {
+            log.info(String.format("[%s] [%s] Stats In One Minute, SUM: %d TPS: %.2f AVGPT: %.2f", //
+                this.statsName,//
+                this.statsKey,//
+                ss.getSum(),//
+                ss.getTps(),//
+                ss.getAvgpt()));
+        }
+        else {
+            log.info(String.format("[%s] [%s] Stats In One Minute, SUM: %d TPS: %.2f AVGPT: %.2f OFFSET: %d", //
+                this.statsName,//
+                this.statsKey,//
+                ss.getSum(),//
+                ss.getTps(),//
+                ss.getAvgpt(),//
+                ss.getOffset()));
+        }
     }
 
 
     public void printAtHour() {
-        StatsSnapshot ss = computeStatsData(this.csListHour);
-        log.info(String.format("[%s] [%s] Stats In One Hour, SUM: %d TPS: %.2f AVGPT: %.2f", //
-            this.statsName,//
-            this.statsKey,//
-            ss.getSum(),//
-            ss.getTps(),//
-            ss.getAvgpt()));
+        StatsSnapshot ss = computeStatsData(this.csListHour, this.offset);
+        if (this.getStatsName().contains("BROKER") || this.getStatsName().contains("SIZE")) {
+            log.info(String.format("[%s] [%s] Stats In One Hour, SUM: %d TPS: %.2f AVGPT: %.2f", //
+                this.statsName,//
+                this.statsKey,//
+                ss.getSum(),//
+                ss.getTps(),//
+                ss.getAvgpt()));
+        }
+        else {
+            log.info(String.format("[%s] [%s] Stats In One Hour, SUM: %d TPS: %.2f AVGPT: %.2f OFFSET: %d", //
+                this.statsName,//
+                this.statsKey,//
+                ss.getSum(),//
+                ss.getTps(),//
+                ss.getAvgpt(),//
+                ss.getOffset()));
+        }
     }
 
 
     public void printAtDay() {
-        StatsSnapshot ss = computeStatsData(this.csListDay);
-        log.info(String.format("[%s] [%s] Stats In One Day, SUM: %d TPS: %.2f AVGPT: %.2f", //
-            this.statsName,//
-            this.statsKey,//
-            ss.getSum(),//
-            ss.getTps(),//
-            ss.getAvgpt()));
+        StatsSnapshot ss = computeStatsData(this.csListDay, this.offset);
+        if (this.getStatsName().contains("BROKER") || this.getStatsName().contains("SIZE")) {
+            log.info(String.format("[%s] [%s] Stats In One Day, SUM: %d TPS: %.2f AVGPT: %.2f", //
+                this.statsName,//
+                this.statsKey,//
+                ss.getSum(),//
+                ss.getTps(),//
+                ss.getAvgpt()));
+        }
+        else {
+
+            log.info(String.format("[%s] [%s] Stats In One Day, SUM: %d TPS: %.2f AVGPT: %.2f OFFSET: %d", //
+                this.statsName,//
+                this.statsKey,//
+                ss.getSum(),//
+                ss.getTps(),//
+                ss.getAvgpt(),//
+                ss.getOffset()));
+        }
     }
 
 
     public void samplingInSeconds() {
         synchronized (this.csListMinute) {
             this.csListMinute.add(new CallSnapshot(System.currentTimeMillis(), this.times.get(), this.value
-                .get()));
+                .get(), this.offset));
             if (this.csListMinute.size() > 7) {
                 this.csListMinute.removeFirst();
             }
@@ -206,7 +242,7 @@ public class StatsItem {
     public void samplingInMinutes() {
         synchronized (this.csListHour) {
             this.csListHour.add(new CallSnapshot(System.currentTimeMillis(), this.times.get(), this.value
-                .get()));
+                .get(), this.offset));
             if (this.csListHour.size() > 7) {
                 this.csListHour.removeFirst();
             }
@@ -217,11 +253,21 @@ public class StatsItem {
     public void samplingInHour() {
         synchronized (this.csListDay) {
             this.csListDay.add(new CallSnapshot(System.currentTimeMillis(), this.times.get(), this.value
-                .get()));
+                .get(), this.offset));
             if (this.csListDay.size() > 25) {
                 this.csListDay.removeFirst();
             }
         }
+    }
+
+
+    public long getOffset() {
+        return offset;
+    }
+
+
+    public void setOffset(long offset) {
+        this.offset = offset;
     }
 
 
@@ -251,13 +297,15 @@ class CallSnapshot {
     private final long times;
 
     private final long value;
+    private final long offset;
 
 
-    public CallSnapshot(long timestamp, long times, long value) {
+    public CallSnapshot(long timestamp, long times, long value, long offset) {
         super();
         this.timestamp = timestamp;
         this.times = times;
         this.value = value;
+        this.offset = offset;
     }
 
 
@@ -273,5 +321,10 @@ class CallSnapshot {
 
     public long getValue() {
         return value;
+    }
+
+
+    public long getOffset() {
+        return offset;
     }
 }

@@ -135,6 +135,9 @@ public class MessageStoreConfig {
     // 是否开启虚拟内存预热
     private boolean warmMapedFileEnable = false;
 
+    // slave 是否需要纠正位点
+    private boolean offsetCheckInSlave = false;
+
 
     public boolean isWarmMapedFileEnable() {
         return warmMapedFileEnable;
@@ -616,5 +619,15 @@ public class MessageStoreConfig {
 
     public void setFlushLeastPagesWhenWarmMapedFile(int flushLeastPagesWhenWarmMapedFile) {
         this.flushLeastPagesWhenWarmMapedFile = flushLeastPagesWhenWarmMapedFile;
+    }
+
+
+    public boolean isOffsetCheckInSlave() {
+        return offsetCheckInSlave;
+    }
+
+
+    public void setOffsetCheckInSlave(boolean offsetCheckInSlave) {
+        this.offsetCheckInSlave = offsetCheckInSlave;
     }
 }

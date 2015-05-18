@@ -202,7 +202,7 @@ public class DefaultMessageStore implements MessageStore {
                 DefaultMessageStore.this.cleanFilesPeriodically();
             }
         }, 1000 * 60, this.messageStoreConfig.getCleanResourceInterval(), TimeUnit.MILLISECONDS);
-        
+
         // 定期检测数据结构的正确性
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
             @Override
@@ -210,7 +210,6 @@ public class DefaultMessageStore implements MessageStore {
                 DefaultMessageStore.this.checkSelf();
             }
         }, 1, 10, TimeUnit.MINUTES);
-
 
         // 定时清理完全不使用的队列
         // this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
@@ -227,11 +226,13 @@ public class DefaultMessageStore implements MessageStore {
         this.cleanConsumeQueueService.run();
     }
 
-    private void checkSelf(){
+
+    private void checkSelf() {
         this.commitLog.checkSelf();
 
-        Iterator<Entry<String, ConcurrentHashMap<Integer, ConsumeQueue>>> it = this.consumeQueueTable.entrySet().iterator();
-        while(it.hasNext()){
+        Iterator<Entry<String, ConcurrentHashMap<Integer, ConsumeQueue>>> it =
+                this.consumeQueueTable.entrySet().iterator();
+        while (it.hasNext()) {
             Entry<String, ConcurrentHashMap<Integer, ConsumeQueue>> next = it.next();
             Iterator<Entry<Integer, ConsumeQueue>> itNext = next.getValue().entrySet().iterator();
             while (itNext.hasNext()) {
@@ -240,6 +241,7 @@ public class DefaultMessageStore implements MessageStore {
             }
         }
     }
+
 
     public void cleanExpiredConsumerQueue() {
         // CommitLog的最小Offset
@@ -608,7 +610,15 @@ public class DefaultMessageStore implements MessageStore {
         this.storeStatsService.setGetMessageEntireTimeMax(eclipseTime);
 
         getResult.setStatus(status);
-        getResult.setNextBeginOffset(nextBeginOffset);
+
+        // 备机默认不纠正 pull offset
+        if (this.getMessageStoreConfig().getBrokerRole() != BrokerRole.SLAVE
+                || this.getMessageStoreConfig().isOffsetCheckInSlave()) {
+            getResult.setNextBeginOffset(nextBeginOffset);
+        }
+        else {
+            getResult.setNextBeginOffset(offset);
+        }
         getResult.setMaxOffset(maxOffset);
         getResult.setMinOffset(minOffset);
         return getResult;
@@ -1641,6 +1651,10 @@ public class DefaultMessageStore implements MessageStore {
                                         .getSinglePutMessageTopicSizeTotal(dispatchRequest.getTopic())
                                         .addAndGet(dispatchRequest.getMsgSize());
                                 }
+
+                                // 统计
+                                DefaultMessageStore.this.brokerStatsManager.updateTopicOffset(
+                                    dispatchRequest.getTopic(), dispatchRequest.getConsumeQueueOffset());
                             }
                             // 文件中间读到错误
                             else if (size == -1) {

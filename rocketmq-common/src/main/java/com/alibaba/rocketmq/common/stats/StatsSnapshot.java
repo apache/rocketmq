@@ -4,6 +4,7 @@ public class StatsSnapshot {
     private long sum;
     private double tps;
     private double avgpt;
+    private long offset;
 
 
     public long getSum() {
@@ -33,5 +34,13 @@ public class StatsSnapshot {
 
     public void setAvgpt(double avgpt) {
         this.avgpt = avgpt;
+    }
+
+    public long getOffset() {
+        return offset;
+    }
+
+    public void setOffset(long offset) {
+        this.offset = offset;
     }
 }

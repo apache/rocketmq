@@ -15,12 +15,6 @@
  */
 package com.alibaba.rocketmq.broker.processor;
 
-import io.netty.channel.ChannelHandlerContext;
-
-import java.net.SocketAddress;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 import com.alibaba.rocketmq.broker.BrokerController;
 import com.alibaba.rocketmq.broker.mqtrace.ConsumeMessageContext;
 import com.alibaba.rocketmq.broker.mqtrace.ConsumeMessageHook;
@@ -52,6 +46,12 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 import com.alibaba.rocketmq.store.MessageExtBrokerInner;
 import com.alibaba.rocketmq.store.PutMessageResult;
 import com.alibaba.rocketmq.store.config.StorePathConfigHelper;
+import io.netty.channel.ChannelHandlerContext;
+
+import java.net.SocketAddress;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 
 /**

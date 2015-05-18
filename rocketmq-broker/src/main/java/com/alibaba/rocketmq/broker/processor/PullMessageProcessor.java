@@ -301,6 +301,11 @@ public class PullMessageProcessor implements NettyRequestProcessor {
             if (getMessageResult.isSuggestPullingFromSlave()) {
                 responseHeader.setSuggestWhichBrokerId(subscriptionGroupConfig
                     .getWhichBrokerWhenConsumeSlowly());
+                log.warn(
+                    "consume message too slow, suggest pulling from slave. group={}, topic={}, subString={}, queueId={}, offset={}",
+                    requestHeader.getConsumerGroup(), requestHeader.getTopic(),
+                    subscriptionData.getSubString(), requestHeader.getQueueId(),
+                    requestHeader.getQueueOffset());
             }
             // 消费正常，按照订阅组配置重定向
             else {
@@ -377,10 +382,10 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                 break;
             case OFFSET_TOO_SMALL:
                 response.setCode(ResponseCode.PULL_OFFSET_MOVED);
-                // XXX: warn and notify me
-                log.info("the request offset: " + requestHeader.getQueueOffset()
-                        + " too small, broker min offset: " + getMessageResult.getMinOffset()
-                        + ", consumer: " + channel.remoteAddress());
+                log.info(
+                    "the request offset too small. group={}, topic={}, requestOffset{}, brokerMinOffset={}, clientIp={}",
+                    requestHeader.getConsumerGroup(), requestHeader.getTopic(),
+                    requestHeader.getQueueOffset(), getMessageResult.getMinOffset(), channel.remoteAddress());
                 break;
             default:
                 assert false;
@@ -446,7 +451,7 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                 break;
             case ResponseCode.PULL_OFFSET_MOVED:
                 if (this.brokerController.getMessageStoreConfig().getBrokerRole() != BrokerRole.SLAVE
-                        || this.brokerController.getBrokerConfig().isOffsetCheckInSlave()) {
+                        || this.brokerController.getMessageStoreConfig().isOffsetCheckInSlave()) {
                     MessageQueue mq = new MessageQueue();
                     mq.setTopic(requestHeader.getTopic());
                     mq.setQueueId(requestHeader.getQueueId());
@@ -458,16 +463,20 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                     event.setOffsetRequest(requestHeader.getQueueOffset());
                     event.setOffsetNew(getMessageResult.getNextBeginOffset());
                     this.generateOffsetMovedEvent(event);
+                    log.warn(
+                        "PULL_OFFSET_MOVED:correction offset. topic={}, groupId={}, requestOffset={}, newOffset={}, suggestBrokerId={}",
+                        requestHeader.getTopic(), requestHeader.getConsumerGroup(), event.getOffsetRequest(),
+                        event.getOffsetNew(), responseHeader.getSuggestWhichBrokerId());
                 }
                 else {
                     responseHeader.setSuggestWhichBrokerId(subscriptionGroupConfig.getBrokerId());
                     response.setCode(ResponseCode.PULL_RETRY_IMMEDIATELY);
+                    log.warn(
+                        "PULL_OFFSET_MOVED:none correction. topic={}, groupId={}, requestOffset={}, suggestBrokerId={}",
+                        requestHeader.getTopic(), requestHeader.getConsumerGroup(),
+                        requestHeader.getQueueOffset(), responseHeader.getSuggestWhichBrokerId());
                 }
 
-                log.warn(
-                    "PULL_OFFSET_MOVED:topic={}, groupId={}, clientId={}, offset={}, suggestBrokerId={}",
-                    requestHeader.getTopic(), requestHeader.getConsumerGroup(),
-                    requestHeader.getQueueOffset(), responseHeader.getSuggestWhichBrokerId());
                 break;
             default:
                 assert false;
@@ -487,6 +496,13 @@ public class PullMessageProcessor implements NettyRequestProcessor {
             this.brokerController.getConsumerOffsetManager().commitOffset(requestHeader.getConsumerGroup(),
                 requestHeader.getTopic(), requestHeader.getQueueId(), requestHeader.getCommitOffset());
         }
+
+        // 记录offset
+        long offset =
+                this.brokerController.getConsumerOffsetManager().queryOffset(
+                    requestHeader.getConsumerGroup(), requestHeader.getTopic(), requestHeader.getQueueId());
+        this.brokerController.getBrokerStatsManager().updateGroupOffset(requestHeader.getConsumerGroup(),
+            requestHeader.getTopic(), offset);
 
         return response;
     }

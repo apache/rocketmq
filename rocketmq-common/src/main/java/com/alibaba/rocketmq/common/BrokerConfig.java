@@ -91,9 +91,6 @@ public class BrokerConfig {
     // notify consumerId changed 开关
     private boolean notifyConsumerIdsChangedEnable = true;
 
-    // slave 是否需要纠正位点
-    private boolean offsetCheckInSlave = false;
-
 
     public static String localHostName() {
         try {
@@ -374,15 +371,5 @@ public class BrokerConfig {
 
     public void setClientManageThreadPoolNums(int clientManageThreadPoolNums) {
         this.clientManageThreadPoolNums = clientManageThreadPoolNums;
-    }
-
-
-    public boolean isOffsetCheckInSlave() {
-        return offsetCheckInSlave;
-    }
-
-
-    public void setOffsetCheckInSlave(boolean offsetCheckInSlave) {
-        this.offsetCheckInSlave = offsetCheckInSlave;
     }
 }

@@ -299,6 +299,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
         return false;
     }
 
+
     private void correctTagsOffset(final PullRequest pullRequest) {
         if (0L == pullRequest.getProcessQueue().getMsgCount().get()) {
             this.offsetStore.updateOffset(pullRequest.getMessageQueue(), pullRequest.getNextOffset(), true);
@@ -436,7 +437,6 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                     case OFFSET_ILLEGAL:
                         log.warn("the pull request offset illegal, {} {}",//
                             pullRequest.toString(), pullResult.toString());
-
                         pullRequest.setNextOffset(pullResult.getNextBeginOffset());
 
                         pullRequest.getProcessQueue().setDropped(true);
@@ -530,6 +530,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
         }
     }
 
+
     public void executePullRequestImmediately(final PullRequest pullRequest) {
         this.mQClientFactory.getPullMessageService().executePullRequestImmediately(pullRequest);
     }
@@ -538,6 +539,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
     public void executeTaskLater(final Runnable r, final long timeDelay) {
         this.mQClientFactory.getPullMessageService().executeTaskLater(r, timeDelay);
     }
+
 
     private void executePullRequestLater(final PullRequest pullRequest, final long timeDelay) {
         this.mQClientFactory.getPullMessageService().executePullRequestLater(pullRequest, timeDelay);
@@ -1055,6 +1057,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
 
         return msgAccTotal;
     }
+
 
     public void adjustThreadPool() {
         long computeAccTotal = this.computeAccumulationTotal();
