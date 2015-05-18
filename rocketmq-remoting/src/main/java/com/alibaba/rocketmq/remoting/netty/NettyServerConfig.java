@@ -32,7 +32,16 @@ public class NettyServerConfig {
 
     private int serverSocketSndBufSize = NettySystemConfig.SocketSndbufSize;
     private int serverSocketRcvBufSize = NettySystemConfig.SocketRcvbufSize;
-    private boolean serverPooledByteBufAllocatorEnable = false;
+    private boolean serverPooledByteBufAllocatorEnable = true;
+
+    /**
+     * make make install
+     * 
+     * 
+     * ../glibc-2.10.1/configure \ --prefix=/usr \ --with-headers=/usr/include \
+     * --host=x86_64-linux-gnu \ --build=x86_64-pc-linux-gnu \ --without-gd
+     */
+    private boolean useEpollNativeSelector = false;
 
 
     public int getListenPort() {
@@ -132,5 +141,15 @@ public class NettyServerConfig {
 
     public void setServerPooledByteBufAllocatorEnable(boolean serverPooledByteBufAllocatorEnable) {
         this.serverPooledByteBufAllocatorEnable = serverPooledByteBufAllocatorEnable;
+    }
+
+
+    public boolean isUseEpollNativeSelector() {
+        return useEpollNativeSelector;
+    }
+
+
+    public void setUseEpollNativeSelector(boolean useEpollNativeSelector) {
+        this.useEpollNativeSelector = useEpollNativeSelector;
     }
 }

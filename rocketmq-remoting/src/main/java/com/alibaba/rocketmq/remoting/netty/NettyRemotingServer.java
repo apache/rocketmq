@@ -119,7 +119,8 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
             }
         });
 
-        if (RemotingUtil.isLinuxPlatform()) {
+        if (RemotingUtil.isLinuxPlatform() //
+                && nettyServerConfig.isUseEpollNativeSelector()) {
             this.eventLoopGroupSelector = new EpollEventLoopGroup(nettyServerConfig.getServerSelectorThreads(), new ThreadFactory() {
                 private AtomicInteger threadIndex = new AtomicInteger(0);
                 private int threadTotal = nettyServerConfig.getServerSelectorThreads();
