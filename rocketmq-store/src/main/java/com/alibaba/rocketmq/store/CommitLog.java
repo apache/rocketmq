@@ -350,8 +350,6 @@ public class CommitLog {
             if (totalSize != readLength) {
                 log.warn("read total count not equals msg total size. totalSize={}, readTotalCount={}",
                     totalSize, readLength);
-                // re
-                byteBuffer.position(byteBuffer.position() + (totalSize - bodyLen));
                 return new DispatchRequest(-1);
             }
 
