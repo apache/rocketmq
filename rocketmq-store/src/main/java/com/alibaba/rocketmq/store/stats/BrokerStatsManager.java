@@ -83,7 +83,7 @@ public class BrokerStatsManager {
 
 
     public void updateTopicOffset(final String topic, long offset) {
-        this.statsTable.get(GROUP_GET_NUMS).getStatsItem(topic).setOffset(offset);
+        this.statsTable.get(TOPIC_PUT_NUMS).getStatsItem(topic).setOffset(offset);
     }
 
 
