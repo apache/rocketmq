@@ -496,14 +496,6 @@ public class PullMessageProcessor implements NettyRequestProcessor {
             this.brokerController.getConsumerOffsetManager().commitOffset(requestHeader.getConsumerGroup(),
                 requestHeader.getTopic(), requestHeader.getQueueId(), requestHeader.getCommitOffset());
         }
-
-        // 记录offset
-        long offset =
-                this.brokerController.getConsumerOffsetManager().queryOffset(
-                    requestHeader.getConsumerGroup(), requestHeader.getTopic(), requestHeader.getQueueId());
-        this.brokerController.getBrokerStatsManager().updateGroupOffset(requestHeader.getConsumerGroup(),
-            requestHeader.getTopic(), offset);
-
         return response;
     }
 

@@ -1654,10 +1654,6 @@ public class DefaultMessageStore implements MessageStore {
                                         .getSinglePutMessageTopicSizeTotal(dispatchRequest.getTopic())
                                         .addAndGet(dispatchRequest.getMsgSize());
                                 }
-
-                                // 统计
-                                DefaultMessageStore.this.brokerStatsManager.updateTopicOffset(
-                                    dispatchRequest.getTopic(), dispatchRequest.getConsumeQueueOffset());
                             }
                             // 文件中间读到错误
                             else if (size == -1) {
