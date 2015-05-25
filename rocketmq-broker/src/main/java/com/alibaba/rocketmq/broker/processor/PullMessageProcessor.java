@@ -501,9 +501,6 @@ public class PullMessageProcessor implements NettyRequestProcessor {
         long offset =
                 this.brokerController.getConsumerOffsetManager().queryOffset(
                     requestHeader.getConsumerGroup(), requestHeader.getTopic(), requestHeader.getQueueId());
-        this.brokerController.getBrokerStatsManager().updateGroupOffset(requestHeader.getConsumerGroup(),
-            requestHeader.getTopic(), offset);
-
         return response;
     }
 

@@ -82,11 +82,6 @@ public class BrokerStatsManager {
     }
 
 
-    public void updateTopicOffset(final String topic, long offset) {
-        this.statsTable.get(TOPIC_PUT_NUMS).getStatsItem(topic).setOffset(offset);
-    }
-
-
     public void incTopicPutSize(final String topic, final int size) {
         this.statsTable.get(TOPIC_PUT_SIZE).addValue(topic, size, 1);
     }
@@ -94,11 +89,6 @@ public class BrokerStatsManager {
 
     public void incGroupGetNums(final String group, final String topic, final int incValue) {
         this.statsTable.get(GROUP_GET_NUMS).addValue(topic + "@" + group, incValue, 1);
-    }
-
-
-    public void updateGroupOffset(final String group, final String topic, final long offset) {
-        this.statsTable.get(GROUP_GET_NUMS).getStatsItem(topic + "@" + group).setOffset(offset);
     }
 
 
