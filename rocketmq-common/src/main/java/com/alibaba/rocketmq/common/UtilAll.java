@@ -15,7 +15,6 @@
  */
 package com.alibaba.rocketmq.common;
 
-import com.alibaba.rocketmq.common.utils.PureJavaCrc32;
 import com.alibaba.rocketmq.remoting.common.RemotingHelper;
 
 import java.io.ByteArrayInputStream;
@@ -38,7 +37,7 @@ import java.util.zip.InflaterInputStream;
 
 /**
  * 各种方法大杂烩
- * 
+ *
  * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public class UtilAll {
@@ -191,7 +190,7 @@ public class UtilAll {
     /**
      * 返回日期时间格式，精度到秒<br>
      * 格式如下：2013122305190000
-     * 
+     *
      * @param t
      * @return
      */
@@ -241,9 +240,7 @@ public class UtilAll {
 
     public static final int crc32(byte[] array) {
         if (array != null) {
-            PureJavaCrc32 pureJavaCrc32 = new PureJavaCrc32();
-            pureJavaCrc32.update(array, 0, array.length);
-            return (int) pureJavaCrc32.getValue();
+            return crc32(array, 0, array.length);
         }
 
         return 0;
