@@ -1,15 +1,12 @@
 package com.alibaba.rocketmq.common.protocol.body;
 
-import java.util.Iterator;
-import java.util.Map.Entry;
-import java.util.Properties;
-import java.util.TreeMap;
-import java.util.TreeSet;
-
 import com.alibaba.rocketmq.common.message.MessageQueue;
 import com.alibaba.rocketmq.common.protocol.heartbeat.ConsumeType;
 import com.alibaba.rocketmq.common.protocol.heartbeat.SubscriptionData;
 import com.alibaba.rocketmq.remoting.protocol.RemotingSerializable;
+
+import java.util.*;
+import java.util.Map.Entry;
 
 
 /**
@@ -33,6 +30,7 @@ public class ConsumerRunningInfo extends RemotingSerializable {
     private TreeMap<String/* Topic */, ConsumeStatus> statusTable = new TreeMap<String, ConsumeStatus>();
     // jstack的结果
     private String jstack;
+    private Map<Thread, StackTraceElement[]> stackTraceElementMap;
 
 
     public Properties getProperties() {
@@ -84,8 +82,7 @@ public class ConsumerRunningInfo extends RemotingSerializable {
             Iterator<Entry<Object, Object>> it = this.properties.entrySet().iterator();
             while (it.hasNext()) {
                 Entry<Object, Object> next = it.next();
-                String item =
-                        String.format("%-40s: %s\n", next.getKey().toString(), next.getValue().toString());
+                String item = String.format("%-40s: %s\n", next.getKey().toString(), next.getValue().toString());
                 sb.append(item);
             }
         }
@@ -197,8 +194,7 @@ public class ConsumerRunningInfo extends RemotingSerializable {
     /**
      * 分析订阅关系是否相同
      */
-    public static boolean analyzeSubscription(
-            final TreeMap<String/* clientId */, ConsumerRunningInfo> criTable) {
+    public static boolean analyzeSubscription(final TreeMap<String/* clientId */, ConsumerRunningInfo> criTable) {
         ConsumerRunningInfo prev = criTable.firstEntry().getValue();
 
         boolean push = false;
@@ -209,8 +205,7 @@ public class ConsumerRunningInfo extends RemotingSerializable {
 
         boolean startForAWhile = false;
         {
-            String property =
-                    prev.getProperties().getProperty(ConsumerRunningInfo.PROP_CONSUMER_START_TIMESTAMP);
+            String property = prev.getProperties().getProperty(ConsumerRunningInfo.PROP_CONSUMER_START_TIMESTAMP);
             startForAWhile = (System.currentTimeMillis() - Long.parseLong(property)) > (1000 * 60 * 2);
         }
 
@@ -319,5 +314,15 @@ public class ConsumerRunningInfo extends RemotingSerializable {
 
     public void setJstack(String jstack) {
         this.jstack = jstack;
+    }
+
+
+    public Map<Thread, StackTraceElement[]> getStackTraceElementMap() {
+        return stackTraceElementMap;
+    }
+
+
+    public void setStackTraceElementMap(Map<Thread, StackTraceElement[]> stackTraceElementMap) {
+        this.stackTraceElementMap = stackTraceElementMap;
     }
 }

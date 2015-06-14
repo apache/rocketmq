@@ -115,9 +115,9 @@ public class UtilAll {
     public static String timeMillisToHumanString(final long t) {
         Calendar cal = Calendar.getInstance();
         cal.setTimeInMillis(t);
-        return String.format("%04d%02d%02d%02d%02d%02d%03d", cal.get(Calendar.YEAR),
-            cal.get(Calendar.MONTH) + 1, cal.get(Calendar.DAY_OF_MONTH), cal.get(Calendar.HOUR_OF_DAY),
-            cal.get(Calendar.MINUTE), cal.get(Calendar.SECOND), cal.get(Calendar.MILLISECOND));
+        return String.format("%04d%02d%02d%02d%02d%02d%03d", cal.get(Calendar.YEAR), cal.get(Calendar.MONTH) + 1,
+            cal.get(Calendar.DAY_OF_MONTH), cal.get(Calendar.HOUR_OF_DAY), cal.get(Calendar.MINUTE), cal.get(Calendar.SECOND),
+            cal.get(Calendar.MILLISECOND));
     }
 
 
@@ -438,9 +438,13 @@ public class UtilAll {
 
 
     public static String jstack() {
+        return jstack(Thread.getAllStackTraces());
+    }
+
+
+    public static String jstack(Map<Thread, StackTraceElement[]> map) {
         StringBuilder result = new StringBuilder();
         try {
-            Map<Thread, StackTraceElement[]> map = Thread.getAllStackTraces();
             Iterator<Map.Entry<Thread, StackTraceElement[]>> ite = map.entrySet().iterator();
             while (ite.hasNext()) {
                 Map.Entry<Thread, StackTraceElement[]> entry = ite.next();
@@ -448,8 +452,7 @@ public class UtilAll {
                 Thread thread = entry.getKey();
                 if (elements != null && elements.length > 0) {
                     String threadName = entry.getKey().getName();
-                    result.append(String.format("%-40sTID: %d STATE: %s\n", threadName, thread.getId(),
-                        thread.getState()));
+                    result.append(String.format("%-40sTID: %d STATE: %s\n", threadName, thread.getId(), thread.getState()));
                     for (StackTraceElement el : elements) {
                         result.append(String.format("%-40s%s\n", threadName, el.toString()));
                     }

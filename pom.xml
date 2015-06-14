@@ -20,7 +20,7 @@
     <inceptionYear>2012</inceptionYear>
     <groupId>com.alibaba.rocketmq</groupId>
     <artifactId>rocketmq-all</artifactId>
-    <version>3.4.1</version>
+    <version>3.4.2-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>rocketmq-all ${project.version}</name>
     <url>https://github.com/alibaba/rocketmq</url>
