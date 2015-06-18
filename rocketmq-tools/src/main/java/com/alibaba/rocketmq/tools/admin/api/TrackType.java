@@ -1,16 +1,16 @@
 package com.alibaba.rocketmq.tools.admin.api;
 
 public enum TrackType {
-    // 订阅了，而且消费了（Offset越过了）
+    // 已订阅，并且消息已被消费
     CONSUMED,
-    // 订阅了，但是被过滤掉了
+    // 已订阅，但消息被过滤表达式过滤
     CONSUMED_BUT_FILTERED,
-    // 订阅了，但是是PULL，结果未知
+    // 以 PULL 方式订阅，消费位点完全由应用方控制
     PULL,
-    // 订阅了，但是没有消费（Offset小）
+    // 已订阅，但消息未被消费
     NOT_CONSUME_YET,
-    // 订阅了，但是当前不在线
+    // 已订阅，但是订阅组当前不在线
     NOT_ONLINE,
-    // 未知异常
+    // 未知异常，请查看 url
     UNKNOWN,
 }
