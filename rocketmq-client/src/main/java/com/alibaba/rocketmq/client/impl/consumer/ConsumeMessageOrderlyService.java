@@ -73,7 +73,7 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
 
         this.defaultMQPushConsumer = this.defaultMQPushConsumerImpl.getDefaultMQPushConsumer();
         this.consumerGroup = this.defaultMQPushConsumer.getConsumerGroup();
-        this.consumeRequestQueue = new LinkedBlockingQueue<Runnable>();
+        this.consumeRequestQueue = new LinkedBlockingQueue<Runnable>(5000);
 
         this.consumeExecutor = new ThreadPoolExecutor(//
             this.defaultMQPushConsumer.getConsumeThreadMin(),//
