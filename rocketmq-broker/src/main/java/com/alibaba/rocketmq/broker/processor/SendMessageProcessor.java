@@ -46,6 +46,7 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 import com.alibaba.rocketmq.store.MessageExtBrokerInner;
 import com.alibaba.rocketmq.store.PutMessageResult;
 import com.alibaba.rocketmq.store.config.StorePathConfigHelper;
+import com.alibaba.rocketmq.store.stats.BrokerStatsManager;
 import io.netty.channel.ChannelHandlerContext;
 
 import java.net.SocketAddress;
@@ -248,11 +249,27 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
                 this.brokerController.getBrokerStatsManager().incSendBackNums(requestHeader.getGroup(),
                     backTopic);
 
+                //For commercial
+                int incValue = (int) Math.ceil(putMessageResult.getAppendMessageResult().getWroteBytes() /
+                        BrokerStatsManager.SIZE_PER_COUNT);
+                this.brokerController.getBrokerStatsManager().incCommercialGroupSndBckTimes(
+                        requestHeader.getGroup(),backTopic,
+                        BrokerStatsManager.StatsType.SEND_BACK_SUCCESS.toString(), incValue);
+
+                this.brokerController.getBrokerStatsManager().incCommercialGroupSndBckSize(
+                        requestHeader.getGroup(),backTopic,
+                        BrokerStatsManager.StatsType.SEND_BACK_SUCCESS.toString(),
+                        putMessageResult.getAppendMessageResult().getWroteBytes());
+
                 response.setCode(ResponseCode.SUCCESS);
                 response.setRemark(null);
 
                 return response;
             default:
+                //For commercial
+                this.brokerController.getBrokerStatsManager().incCommercialGroupSndBckTimes(
+                        requestHeader.getGroup(),msgExt.getTopic(),
+                        BrokerStatsManager.StatsType.SEND_BACK_FAILURE.toString(), 1);
                 break;
             }
 
@@ -407,6 +424,18 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
                     putMessageResult.getAppendMessageResult().getWroteBytes());
                 this.brokerController.getBrokerStatsManager().incBrokerPutNums();
 
+                //For commercial
+                int incValue = (int) Math.ceil(putMessageResult.getAppendMessageResult().getWroteBytes() /
+                        BrokerStatsManager.SIZE_PER_COUNT);
+                this.brokerController.getBrokerStatsManager().incCommercialTopicSendTimes(
+                        requestHeader.getProducerGroup(),msgInner.getTopic(),
+                        BrokerStatsManager.StatsType.SEND_SUCCESS.toString(), incValue);
+
+                this.brokerController.getBrokerStatsManager().incCommercialTopicSendSize(
+                        requestHeader.getProducerGroup(), msgInner.getTopic(),
+                        BrokerStatsManager.StatsType.SEND_SUCCESS.toString(),
+                        putMessageResult.getAppendMessageResult().getWroteBytes());
+
                 response.setRemark(null);
 
                 responseHeader.setMsgId(putMessageResult.getAppendMessageResult().getMsgId());
@@ -428,6 +457,11 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
                     mqtraceContext.setQueueOffset(responseHeader.getQueueOffset());
                 }
                 return null;
+            } else {
+                //For commercial
+                this.brokerController.getBrokerStatsManager().incCommercialTopicSendTimes(
+                        requestHeader.getProducerGroup(), msgInner.getTopic(),
+                        BrokerStatsManager.StatsType.SEND_FAILURE.toString(), 1);
             }
         }
         else {

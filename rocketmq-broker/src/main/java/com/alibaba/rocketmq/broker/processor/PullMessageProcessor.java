@@ -47,6 +47,7 @@ import com.alibaba.rocketmq.store.GetMessageResult;
 import com.alibaba.rocketmq.store.MessageExtBrokerInner;
 import com.alibaba.rocketmq.store.PutMessageResult;
 import com.alibaba.rocketmq.store.config.BrokerRole;
+import com.alibaba.rocketmq.store.stats.BrokerStatsManager;
 import io.netty.channel.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -390,6 +391,42 @@ public class PullMessageProcessor implements NettyRequestProcessor {
             default:
                 assert false;
                 break;
+            }
+
+            //For commercial
+
+            switch (response.getCode()) {
+                case ResponseCode.SUCCESS:
+                     this.brokerController.getBrokerStatsManager().incCommercialGroupRcvTimes(
+                            requestHeader.getConsumerGroup(), requestHeader.getTopic(),
+                            BrokerStatsManager.StatsType.RCV_SUCCESS.toString(),
+                            getMessageResult.getMsgCount4Commercial());
+
+                    this.brokerController.getBrokerStatsManager().incCommercialGroupRcvSize(
+                            requestHeader.getConsumerGroup(), requestHeader.getTopic(),
+                            BrokerStatsManager.StatsType.RCV_SUCCESS.toString(),
+                            getMessageResult.getBufferTotalSize());
+                    break;
+                case ResponseCode.PULL_NOT_FOUND:
+                    if (!brokerAllowSuspend) {
+                        //如果客户端的pull请求没有命中，会在broker阻塞该长轮询，特定时间或者条件下，由broker模拟一次pull请求
+                        //针对这两次pull请求，对于被阻塞的那次请求，我们不作计数
+                        this.brokerController.getBrokerStatsManager().incCommercialGroupRcvEpolls(
+                                requestHeader.getConsumerGroup(), requestHeader.getTopic(),
+//                                BrokerStatsManager.StatsType.RCV_EPOLLS.toString(), 1);
+                                "not_found", 1);
+                    }
+                    break;
+                case ResponseCode.PULL_RETRY_IMMEDIATELY:
+                case ResponseCode.PULL_OFFSET_MOVED:
+                    this.brokerController.getBrokerStatsManager().incCommercialGroupRcvEpolls(
+                            requestHeader.getConsumerGroup(), requestHeader.getTopic(),
+//                            BrokerStatsManager.StatsType.RCV_EPOLLS.toString(), 1);
+                            "moved",1);
+                    break;
+                default:
+                    assert false;
+
             }
 
             switch (response.getCode()) {
