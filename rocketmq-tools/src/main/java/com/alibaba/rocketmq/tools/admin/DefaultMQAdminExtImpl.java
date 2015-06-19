@@ -602,7 +602,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
                 spanSet.addAll(this.mqClientInstance.getMQClientAPIImpl().queryConsumeTimeSpan(addr, topic, group, 3000));
             }
         }
-        return null;
+        return spanSet;
     }
 
 
