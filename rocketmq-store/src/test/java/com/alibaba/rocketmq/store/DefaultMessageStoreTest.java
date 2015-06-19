@@ -1,18 +1,17 @@
 package com.alibaba.rocketmq.store;
 
-import static org.junit.Assert.assertTrue;
+import com.alibaba.rocketmq.store.config.FlushDiskType;
+import com.alibaba.rocketmq.store.config.MessageStoreConfig;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
-
-import com.alibaba.rocketmq.store.config.FlushDiskType;
-import com.alibaba.rocketmq.store.config.MessageStoreConfig;
+import static org.junit.Assert.assertTrue;
 
 
 /**
@@ -79,7 +78,7 @@ public class DefaultMessageStoreTest {
         messageStoreConfig.setMaxHashSlotNum(100);
         messageStoreConfig.setMaxIndexNum(100 * 10);
 
-        MessageStore master = new DefaultMessageStore(messageStoreConfig, null);
+        MessageStore master = new DefaultMessageStore(messageStoreConfig, null, null, null);
         // 第一步，load已有数据
         boolean load = master.load();
         assertTrue(load);
@@ -134,7 +133,7 @@ public class DefaultMessageStoreTest {
         // 开启GroupCommit功能
         messageStoreConfig.setFlushDiskType(FlushDiskType.SYNC_FLUSH);
 
-        MessageStore master = new DefaultMessageStore(messageStoreConfig, null);
+        MessageStore master = new DefaultMessageStore(messageStoreConfig, null, null, null);
         // 第一步，load已有数据
         boolean load = master.load();
         assertTrue(load);
