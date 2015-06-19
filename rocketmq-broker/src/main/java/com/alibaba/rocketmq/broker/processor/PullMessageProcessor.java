@@ -413,16 +413,14 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                         //针对这两次pull请求，对于被阻塞的那次请求，我们不作计数
                         this.brokerController.getBrokerStatsManager().incCommercialGroupRcvEpolls(
                                 requestHeader.getConsumerGroup(), requestHeader.getTopic(),
-//                                BrokerStatsManager.StatsType.RCV_EPOLLS.toString(), 1);
-                                "not_found", 1);
+                                BrokerStatsManager.StatsType.RCV_EPOLLS.toString(), 1);
                     }
                     break;
                 case ResponseCode.PULL_RETRY_IMMEDIATELY:
                 case ResponseCode.PULL_OFFSET_MOVED:
                     this.brokerController.getBrokerStatsManager().incCommercialGroupRcvEpolls(
                             requestHeader.getConsumerGroup(), requestHeader.getTopic(),
-//                            BrokerStatsManager.StatsType.RCV_EPOLLS.toString(), 1);
-                            "moved",1);
+                            BrokerStatsManager.StatsType.RCV_EPOLLS.toString(), 1);
                     break;
                 default:
                     assert false;
