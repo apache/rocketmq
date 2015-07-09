@@ -15,14 +15,6 @@
  */
 package com.alibaba.rocketmq.remoting.protocol;
 
-import com.alibaba.fastjson.annotation.JSONField;
-import com.alibaba.rocketmq.remoting.CommandCustomHeader;
-import com.alibaba.rocketmq.remoting.annotation.CFNotNull;
-import com.alibaba.rocketmq.remoting.common.RemotingHelper;
-import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
@@ -30,6 +22,15 @@ import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.alibaba.fastjson.annotation.JSONField;
+import com.alibaba.rocketmq.remoting.CommandCustomHeader;
+import com.alibaba.rocketmq.remoting.annotation.CFNotNull;
+import com.alibaba.rocketmq.remoting.common.RemotingHelper;
+import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
 
 
 /**
@@ -71,20 +72,26 @@ public class RemotingCommand {
     private static final Map<Class, String> canonicalNameCache = new HashMap<Class, String>();
     private static final Map<Field, Annotation> notNullAnnotationCache = new HashMap<Field, Annotation>();
 
-    private static SerializeType serializeType = SerializeType.JSON;
+    /**
+     * 序列化全局配置
+     */
+    private static SerializeType SerializeTypeConfigInThisServer = SerializeType.JSON;
     static {
-        final String protocol =
-                System
-                        .getProperty(SERIALIZE_TYPE_PROPERTY, System.getenv(SERIALIZE_TYPE_ENV));
+        final String protocol = System.getProperty(SERIALIZE_TYPE_PROPERTY, System.getenv(SERIALIZE_TYPE_ENV));
         if (!isBlank(protocol)) {
             try {
-                serializeType = SerializeType.valueOf(protocol);
+                SerializeTypeConfigInThisServer = SerializeType.valueOf(protocol);
             }
             catch (IllegalArgumentException e) {
                 throw new RuntimeException("parser specified protocol error. protocol=" + protocol, e);
             }
         }
     }
+
+    /**
+     * 当前这次RPC的序列化方式
+     */
+    private SerializeType serializeTypeCurrentRPC = SerializeTypeConfigInThisServer;
 
 
     private Field[] getClazzFields(Class<? extends CommandCustomHeader> classHeader) {
@@ -145,9 +152,7 @@ public class RemotingCommand {
 
 
     public static RemotingCommand createResponseCommand(Class<? extends CommandCustomHeader> classHeader) {
-        RemotingCommand cmd =
-                createResponseCommand(RemotingSysResponseCode.SYSTEM_ERROR, "not set any response code",
-                        classHeader);
+        RemotingCommand cmd = createResponseCommand(RemotingSysResponseCode.SYSTEM_ERROR, "not set any response code", classHeader);
 
         return cmd;
     }
@@ -161,8 +166,7 @@ public class RemotingCommand {
     /**
      * 只有通信层内部会调用，业务不会调用
      */
-    public static RemotingCommand createResponseCommand(int code, String remark,
-                                                        Class<? extends CommandCustomHeader> classHeader) {
+    public static RemotingCommand createResponseCommand(int code, String remark, Class<? extends CommandCustomHeader> classHeader) {
         RemotingCommand cmd = new RemotingCommand();
         cmd.markResponseType();
         cmd.setCode(code);
@@ -257,8 +261,7 @@ public class RemotingCommand {
     private static final String BooleanCanonicalName2 = boolean.class.getCanonicalName();//
 
 
-    public CommandCustomHeader decodeCommandCustomHeader(Class<? extends CommandCustomHeader> classHeader)
-            throws RemotingCommandException {
+    public CommandCustomHeader decodeCommandCustomHeader(Class<? extends CommandCustomHeader> classHeader) throws RemotingCommandException {
         CommandCustomHeader objectHeader;
         try {
             objectHeader = classHeader.newInstance();
@@ -282,8 +285,7 @@ public class RemotingCommand {
                             if (null == value) {
                                 Annotation annotation = getNotNullAnnotation(field);
                                 if (annotation != null) {
-                                    throw new RemotingCommandException("the custom field <" + fieldName
-                                            + "> is null");
+                                    throw new RemotingCommandException("the custom field <" + fieldName + "> is null");
                                 }
 
                                 continue;
@@ -309,8 +311,7 @@ public class RemotingCommand {
                                 valueParsed = Double.parseDouble(value);
                             }
                             else {
-                                throw new RemotingCommandException("the custom field <" + fieldName
-                                        + "> type is not supported");
+                                throw new RemotingCommandException("the custom field <" + fieldName + "> type is not supported");
                             }
 
                             field.set(objectHeader, valueParsed);
@@ -331,7 +332,7 @@ public class RemotingCommand {
 
     private byte[] headerEncode() {
         this.makeCustomHeaderToNet();
-        if (SerializeType.ROCKETMQ == serializeType) {
+        if (SerializeType.ROCKETMQ == serializeTypeCurrentRPC) {
             return RocketMQSerializable.rocketMQProtocolEncode(this);
         }
         else {
@@ -341,12 +342,20 @@ public class RemotingCommand {
 
 
     private static RemotingCommand headerDecode(byte[] headerData, SerializeType type) {
-        if (SerializeType.ROCKETMQ == type) {
-            return RocketMQSerializable.rocketMQProtocolDecode(headerData);
+        switch (SerializeType.ROCKETMQ) {
+        case JSON:
+            RemotingCommand resultJson = RemotingSerializable.decode(headerData, RemotingCommand.class);
+            resultJson.setSerializeTypeCurrentRPC(type);
+            return resultJson;
+        case ROCKETMQ:
+            RemotingCommand resultRMQ = RocketMQSerializable.rocketMQProtocolDecode(headerData);
+            resultRMQ.setSerializeTypeCurrentRPC(type);
+            return resultRMQ;
+        default:
+            break;
         }
-        else {
-            return RemotingSerializable.decode(headerData, RemotingCommand.class);
-        }
+
+        return null;
     }
 
 
@@ -369,7 +378,7 @@ public class RemotingCommand {
         result.putInt(length);
 
         // header length
-        result.put(markProtocolType(headerData.length, serializeType));
+        result.put(markProtocolType(headerData.length, serializeTypeCurrentRPC));
 
         // header data
         result.put(headerData);
@@ -412,7 +421,7 @@ public class RemotingCommand {
         result.putInt(length);
 
         // header length
-        result.put(markProtocolType(headerData.length, serializeType));
+        result.put(markProtocolType(headerData.length, serializeTypeCurrentRPC));
 
         // header data
         result.put(headerData);
@@ -601,8 +610,8 @@ public class RemotingCommand {
     }
 
 
-    public static SerializeType getSerializeType() {
-        return serializeType;
+    public static SerializeType getSerializeTypeConfigInThisServer() {
+        return SerializeTypeConfigInThisServer;
     }
 
 
@@ -622,8 +631,18 @@ public class RemotingCommand {
 
     @Override
     public String toString() {
-        return "RemotingCommand [code=" + code + ", language=" + language + ", version=" + version
-                + ", opaque=" + opaque + ", flag(B)=" + Integer.toBinaryString(flag) + ", remark=" + remark
-                + ", extFields=" + extFields + ", protocolType=" + serializeType + "]";
+        return "RemotingCommand [code=" + code + ", language=" + language + ", version=" + version + ", opaque=" + opaque + ", flag(B)="
+                + Integer.toBinaryString(flag) + ", remark=" + remark + ", extFields=" + extFields + ", serializeTypeCurrentRPC="
+                + serializeTypeCurrentRPC + "]";
+    }
+
+
+    public SerializeType getSerializeTypeCurrentRPC() {
+        return serializeTypeCurrentRPC;
+    }
+
+
+    public void setSerializeTypeCurrentRPC(SerializeType serializeTypeCurrentRPC) {
+        this.serializeTypeCurrentRPC = serializeTypeCurrentRPC;
     }
 }

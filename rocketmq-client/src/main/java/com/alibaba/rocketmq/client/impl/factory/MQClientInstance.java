@@ -132,7 +132,7 @@ public class MQClientInstance {
                 this.instanceIndex, //
                 this.clientId, //
                 this.clientConfig, //
-                MQVersion.getVersionDesc(MQVersion.CurrentVersion), RemotingCommand.getSerializeType());
+                MQVersion.getVersionDesc(MQVersion.CurrentVersion), RemotingCommand.getSerializeTypeConfigInThisServer());
     }
 
 
