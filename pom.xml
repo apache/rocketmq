@@ -382,7 +382,7 @@
             <dependency>
                 <groupId>io.netty</groupId>
                 <artifactId>netty-all</artifactId>
-                <version>4.0.27.Final</version>
+                <version>4.0.29.Final</version>
             </dependency>
             <dependency>
                 <groupId>com.alibaba</groupId>
