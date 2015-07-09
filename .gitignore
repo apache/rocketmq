@@ -60,3 +60,11 @@ src/main/resources/hibernate.reveng.xml
 /target*
 *.log*
 
+rocketmq-example/src/main/java/com/alibaba/rocketmq/example/poll/AsyncTask.java
+rocketmq-example/src/main/java/com/alibaba/rocketmq/example/poll/Record.java
+rocketmq-example/src/main/java/com/alibaba/rocketmq/example/poll/TaskManager.java
+rocketmq-example/src/main/java/com/alibaba/rocketmq/example/pollv2.zip
+rocketmq-example/src/main/java/com/alibaba/rocketmq/example/pollv2/AsyncTask.java
+rocketmq-example/src/main/java/com/alibaba/rocketmq/example/pollv2/Record.java
+rocketmq-example/src/main/java/com/alibaba/rocketmq/example/pollv2/TaskManager.java
+rocketmq-example/src/main/java/com/alibaba/rocketmq/example/shenxun/MessageListenerImp.java
