@@ -57,6 +57,10 @@ public class ResetOffsetByTimeCommand implements SubCommand {
         opt = new Option("f", "force", true, "set the force rollback by timestamp switch[true|false]");
         opt.setRequired(false);
         options.addOption(opt);
+
+        opt = new Option("c", "cplus", false, "reset c++ client offset");
+        opt.setRequired(false);
+        options.addOption(opt);
         return options;
     }
 
@@ -84,10 +88,15 @@ public class ResetOffsetByTimeCommand implements SubCommand {
                 force = Boolean.valueOf(commandLine.getOptionValue("f").trim());
             }
 
+            boolean isC = false;
+            if (commandLine.hasOption('c')) {
+                isC = true;
+            }
+
             defaultMQAdminExt.start();
             Map<MessageQueue, Long> offsetTable;
             try {
-                offsetTable = defaultMQAdminExt.resetOffsetByTimestamp(topic, group, timestamp, force);
+                offsetTable = defaultMQAdminExt.resetOffsetByTimestamp(topic, group, timestamp, force, isC);
             }
             catch (MQClientException e) {
                 if (ResponseCode.CONSUMER_NOT_ONLINE == e.getResponseCode()) {

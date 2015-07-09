@@ -20,8 +20,11 @@ import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.FileRegion;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.slf4j.Logger;
@@ -36,10 +39,12 @@ import com.alibaba.rocketmq.common.TopicConfig;
 import com.alibaba.rocketmq.common.UtilAll;
 import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.common.message.MessageQueue;
+import com.alibaba.rocketmq.common.message.MessageQueueForC;
 import com.alibaba.rocketmq.common.protocol.RequestCode;
 import com.alibaba.rocketmq.common.protocol.ResponseCode;
 import com.alibaba.rocketmq.common.protocol.body.GetConsumerStatusBody;
 import com.alibaba.rocketmq.common.protocol.body.ResetOffsetBody;
+import com.alibaba.rocketmq.common.protocol.body.ResetOffsetBodyForC;
 import com.alibaba.rocketmq.common.protocol.header.CheckTransactionStateRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.GetConsumerStatusRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.NotifyConsumerIdsChangedRequestHeader;
@@ -134,10 +139,16 @@ public class Broker2Client {
     }
 
 
+    public RemotingCommand resetOffset(String topic, String group, long timeStamp, boolean isForce) {
+        return resetOffset(topic, group, timeStamp, isForce, false);
+    }
+
+
     /**
      * Broker 主动通知 Consumer，offset 需要进行重置列表发生变化
      */
-    public RemotingCommand resetOffset(String topic, String group, long timeStamp, boolean isForce) {
+    public RemotingCommand resetOffset(String topic, String group, long timeStamp, boolean isForce,
+            boolean isC) {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
 
         TopicConfig topicConfig = this.brokerController.getTopicConfigManager().selectTopicConfig(topic);
@@ -179,9 +190,19 @@ public class Broker2Client {
         requestHeader.setTimestamp(timeStamp);
         RemotingCommand request =
                 RemotingCommand.createRequestCommand(RequestCode.RESET_CONSUMER_CLIENT_OFFSET, requestHeader);
-        ResetOffsetBody body = new ResetOffsetBody();
-        body.setOffsetTable(offsetTable);
-        request.setBody(body.encode());
+        if (isC) {
+            // c++ language
+            ResetOffsetBodyForC body = new ResetOffsetBodyForC();
+            List<MessageQueueForC> offsetList = convertOffsetTable2OffsetList(offsetTable);
+            body.setOffsetTable(offsetList);
+            request.setBody(body.encode());
+        }
+        else {
+            // other language
+            ResetOffsetBody body = new ResetOffsetBody();
+            body.setOffsetTable(offsetTable);
+            request.setBody(body.encode());
+        }
 
         ConsumerGroupInfo consumerGroupInfo =
                 this.brokerController.getConsumerManager().getConsumerGroupInfo(group);
@@ -312,5 +333,18 @@ public class Broker2Client {
         resBody.setConsumerTable(consumerStatusTable);
         result.setBody(resBody.encode());
         return result;
+    }
+
+
+    private List<MessageQueueForC> convertOffsetTable2OffsetList(Map<MessageQueue, Long> table) {
+        List<MessageQueueForC> list = new ArrayList<MessageQueueForC>();
+        for (Entry<MessageQueue, Long> entry : table.entrySet()) {
+            MessageQueue mq = entry.getKey();
+            MessageQueueForC tmp =
+                    new MessageQueueForC(mq.getTopic(), mq.getBrokerName(), mq.getQueueId(), entry.getValue());
+            list.add(tmp);
+        }
+
+        return list;
     }
 }

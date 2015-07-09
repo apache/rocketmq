@@ -52,6 +52,7 @@ import com.alibaba.rocketmq.remoting.exception.*;
 import com.alibaba.rocketmq.remoting.netty.NettyClientConfig;
 import com.alibaba.rocketmq.remoting.netty.NettyRemotingClient;
 import com.alibaba.rocketmq.remoting.netty.ResponseFuture;
+import com.alibaba.rocketmq.remoting.protocol.LanguageCode;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 import com.alibaba.rocketmq.remoting.protocol.RemotingSerializable;
 import org.slf4j.Logger;
@@ -1315,6 +1316,13 @@ public class MQClientAPIImpl {
     public Map<MessageQueue, Long> invokeBrokerToResetOffset(final String addr, final String topic,
             final String group, final long timestamp, final boolean isForce, final long timeoutMillis)
             throws RemotingException, MQClientException, InterruptedException {
+        return invokeBrokerToResetOffset(addr, topic, group, timestamp, isForce, timeoutMillis, false);
+    }
+
+
+    public Map<MessageQueue, Long> invokeBrokerToResetOffset(final String addr, final String topic,
+            final String group, final long timestamp, final boolean isForce, final long timeoutMillis,
+            boolean isC) throws RemotingException, MQClientException, InterruptedException {
         ResetOffsetRequestHeader requestHeader = new ResetOffsetRequestHeader();
         requestHeader.setTopic(topic);
         requestHeader.setGroup(group);
@@ -1324,6 +1332,9 @@ public class MQClientAPIImpl {
         RemotingCommand request =
                 RemotingCommand
                     .createRequestCommand(RequestCode.INVOKE_BROKER_TO_RESET_OFFSET, requestHeader);
+        if (isC) {
+            request.setLanguage(LanguageCode.CPP);
+        }
 
         RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
         assert response != null;
