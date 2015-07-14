@@ -162,6 +162,25 @@
 		</encoder>
 	</appender>
 
+	<appender name="RocketmqCommercialAppender"
+			  class="ch.qos.logback.core.rolling.RollingFileAppender">
+		<file>${user.home}/logs/rocketmqlogs/commercial.log</file>
+		<append>true</append>
+		<rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+			<fileNamePattern>${user.home}/logs/rocketmqlogs/otherdays/commercial-%d{yyyy-MM-dd}.%i.log
+			</fileNamePattern>
+			<timeBasedFileNamingAndTriggeringPolicy
+					class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
+				<maxFileSize>500MB</maxFileSize>
+			</timeBasedFileNamingAndTriggeringPolicy>
+			<MaxHistory>10</MaxHistory>
+		</rollingPolicy>
+		<encoder>
+			<pattern>%d{yyy-MM-dd HH:mm:ss,GMT+8} %p - %m%n</pattern>
+			<charset class="java.nio.charset.Charset">UTF-8</charset>
+		</encoder>
+	</appender>
+
 	<appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
 		<append>true</append>
 		<encoder>
@@ -208,6 +227,11 @@
 	<logger name="RocketmqStats" additivity="false">
 		<level value="INFO" />
 		<appender-ref ref="RocketmqStatsAppender" />
+	</logger>
+
+	<logger name="RocketmqCommercial" additivity="false">
+		<level value="INFO" />
+		<appender-ref ref="RocketmqCommercialAppender" />
 	</logger>
 
 	<root>

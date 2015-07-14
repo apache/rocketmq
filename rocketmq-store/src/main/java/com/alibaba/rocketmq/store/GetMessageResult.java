@@ -15,6 +15,8 @@
  */
 package com.alibaba.rocketmq.store;
 
+import com.alibaba.rocketmq.store.stats.BrokerStatsManager;
+
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
@@ -44,6 +46,8 @@ public class GetMessageResult {
     private int bufferTotalSize = 0;
     // 是否建议从slave拉消息
     private boolean suggestPullingFromSlave = false;
+    // 用于消息计费
+    private int msgCount4Commercial = 0;
 
 
     public GetMessageResult() {
@@ -104,6 +108,8 @@ public class GetMessageResult {
         this.messageMapedList.add(mapedBuffer);
         this.messageBufferList.add(mapedBuffer.getByteBuffer());
         this.bufferTotalSize += mapedBuffer.getSize();
+        this.msgCount4Commercial += (int) Math.ceil(
+                mapedBuffer.getSize() / BrokerStatsManager.SIZE_PER_COUNT);
     }
 
 
@@ -136,6 +142,14 @@ public class GetMessageResult {
 
     public void setSuggestPullingFromSlave(boolean suggestPullingFromSlave) {
         this.suggestPullingFromSlave = suggestPullingFromSlave;
+    }
+
+    public int getMsgCount4Commercial() {
+        return msgCount4Commercial;
+    }
+
+    public void setMsgCount4Commercial(int msgCount4Commercial) {
+        this.msgCount4Commercial = msgCount4Commercial;
     }
 
 

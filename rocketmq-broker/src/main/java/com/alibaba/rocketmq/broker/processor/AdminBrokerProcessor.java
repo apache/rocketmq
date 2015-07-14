@@ -44,6 +44,7 @@ import com.alibaba.rocketmq.remoting.common.RemotingHelper;
 import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
 import com.alibaba.rocketmq.remoting.exception.RemotingTimeoutException;
 import com.alibaba.rocketmq.remoting.netty.NettyRequestProcessor;
+import com.alibaba.rocketmq.remoting.protocol.LanguageCode;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 import com.alibaba.rocketmq.remoting.protocol.RemotingSerializable;
 import com.alibaba.rocketmq.store.DefaultMessageStore;
@@ -440,7 +441,9 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 consumeStats.getOffsetTable().put(mq, offsetWrapper);
             }
 
-            double consumeTps = this.brokerController.getBrokerStatsManager().tpsGroupGetNums(requestHeader.getConsumerGroup(), topic);
+            double consumeTps =
+                    this.brokerController.getBrokerStatsManager().tpsGroupGetNums(
+                        requestHeader.getConsumerGroup(), topic);
 
             consumeTps += consumeStats.getConsumeTps();
             consumeStats.setConsumeTps(consumeTps);
@@ -1040,7 +1043,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             return response;
         }
 
-        List<QueueTimeSpan> timeSpanSet = new ArrayList<QueueTimeSpan>();
+        Set<QueueTimeSpan> timeSpanSet = new HashSet<QueueTimeSpan>();
         for (int i = 0; i < topicConfig.getWriteQueueNums(); i++) {
             QueueTimeSpan timeSpan = new QueueTimeSpan();
             MessageQueue mq = new MessageQueue();

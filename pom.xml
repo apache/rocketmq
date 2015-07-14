@@ -20,7 +20,7 @@
     <inceptionYear>2012</inceptionYear>
     <groupId>com.alibaba.rocketmq</groupId>
     <artifactId>rocketmq-all</artifactId>
-    <version>3.4.2-SNAPSHOT</version>
+    <version>3.4.4-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>rocketmq-all ${project.version}</name>
     <url>https://github.com/alibaba/rocketmq</url>
@@ -382,7 +382,7 @@
             <dependency>
                 <groupId>io.netty</groupId>
                 <artifactId>netty-all</artifactId>
-                <version>4.0.27.Final</version>
+                <version>4.0.29.Final</version>
             </dependency>
             <dependency>
                 <groupId>com.alibaba</groupId>

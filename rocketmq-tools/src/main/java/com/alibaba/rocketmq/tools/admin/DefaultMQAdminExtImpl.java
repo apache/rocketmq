@@ -196,14 +196,15 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
                 // 由于查询时间戳会产生IO操作，可能会耗时较长，所以超时时间设置为15s
                 ConsumeStats consumeStats = this.mqClientInstance.getMQClientAPIImpl().getConsumeStats(addr, consumerGroup, topic, 15000);
                 result.getOffsetTable().putAll(consumeStats.getOffsetTable());
-                double value = result.getConsumeTps() + consumeStats.getConsumeTps();
+                long value = result.getConsumeTps() + consumeStats.getConsumeTps();
                 result.setConsumeTps(value);
             }
         }
 
         if (result.getOffsetTable().isEmpty()) {
-            throw new MQClientException(ResponseCode.CONSUMER_NOT_ONLINE,
-                "Not found the consumer group consume stats, because return offset table is empty, maybe the consumer not consume any message");
+            throw new MQClientException(
+                "Not found the consumer group consume stats, because return offset table is empty, maybe the consumer not consume any message",
+                null);
         }
 
         return result;
@@ -794,61 +795,61 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
             }
 
             switch (cc.getConsumeType()) {
-            case CONSUME_ACTIVELY:
-                mt.setTrackType(TrackType.PULL);
-                break;
-            case CONSUME_PASSIVELY:
-                boolean ifConsumed = false;
-                try {
-                    ifConsumed = this.consumed(msg, group);
-                }
-                catch (MQClientException e) {
-                    if (ResponseCode.CONSUMER_NOT_ONLINE == e.getResponseCode()) {
-                        mt.setTrackType(TrackType.NOT_ONLINE);
+                case CONSUME_ACTIVELY:
+                    mt.setTrackType(TrackType.PULL);
+                    break;
+                case CONSUME_PASSIVELY:
+                    boolean ifConsumed = false;
+                    try {
+                        ifConsumed = this.consumed(msg, group);
                     }
-                    mt.setExceptionDesc("CODE:" + e.getResponseCode() + " DESC:" + e.getErrorMessage());
-                    result.add(mt);
-                    continue;
-                }
-                catch (MQBrokerException e) {
-                    if (ResponseCode.CONSUMER_NOT_ONLINE == e.getResponseCode()) {
-                        mt.setTrackType(TrackType.NOT_ONLINE);
+                    catch (MQClientException e) {
+                        if (ResponseCode.CONSUMER_NOT_ONLINE == e.getResponseCode()) {
+                            mt.setTrackType(TrackType.NOT_ONLINE);
+                        }
+                        mt.setExceptionDesc("CODE:" + e.getResponseCode() + " DESC:" + e.getErrorMessage());
+                        result.add(mt);
+                        continue;
                     }
-                    mt.setExceptionDesc("CODE:" + e.getResponseCode() + " DESC:" + e.getErrorMessage());
-                    result.add(mt);
-                    continue;
-                }
-                catch (Exception e) {
-                    mt.setExceptionDesc(RemotingHelper.exceptionSimpleDesc(e));
-                    result.add(mt);
-                    continue;
-                }
+                    catch (MQBrokerException e) {
+                        if (ResponseCode.CONSUMER_NOT_ONLINE == e.getResponseCode()) {
+                            mt.setTrackType(TrackType.NOT_ONLINE);
+                        }
+                        mt.setExceptionDesc("CODE:" + e.getResponseCode() + " DESC:" + e.getErrorMessage());
+                        result.add(mt);
+                        continue;
+                    }
+                    catch (Exception e) {
+                        mt.setExceptionDesc(RemotingHelper.exceptionSimpleDesc(e));
+                        result.add(mt);
+                        continue;
+                    }
 
-                if (ifConsumed) {
-                    mt.setTrackType(TrackType.CONSUMED);
+                    if (ifConsumed) {
+                        mt.setTrackType(TrackType.CONSUMED);
 
-                    // 查看订阅关系是否匹配
-                    Iterator<Entry<String, SubscriptionData>> it = cc.getSubscriptionTable().entrySet().iterator();
-                    while (it.hasNext()) {
-                        Entry<String, SubscriptionData> next = it.next();
-                        if (next.getKey().equals(msg.getTopic())) {
-                            if (next.getValue().getTagsSet().contains(msg.getTags()) //
-                                    || next.getValue().getTagsSet().contains("*")//
-                                    || next.getValue().getTagsSet().isEmpty()//
-                            ) {
-                            }
-                            else {
-                                mt.setTrackType(TrackType.CONSUMED_BUT_FILTERED);
+                        // 查看订阅关系是否匹配
+                        Iterator<Entry<String, SubscriptionData>> it = cc.getSubscriptionTable().entrySet().iterator();
+                        while (it.hasNext()) {
+                            Entry<String, SubscriptionData> next = it.next();
+                            if (next.getKey().equals(msg.getTopic())) {
+                                if (next.getValue().getTagsSet().contains(msg.getTags()) //
+                                        || next.getValue().getTagsSet().contains("*")//
+                                        || next.getValue().getTagsSet().isEmpty()//
+                                        ) {
+                                }
+                                else {
+                                    mt.setTrackType(TrackType.CONSUMED_BUT_FILTERED);
+                                }
                             }
                         }
                     }
-                }
-                else {
-                    mt.setTrackType(TrackType.NOT_CONSUME_YET);
-                }
-                break;
-            default:
-                break;
+                    else {
+                        mt.setTrackType(TrackType.NOT_CONSUME_YET);
+                    }
+                    break;
+                default:
+                    break;
             }
             result.add(mt);
         }
