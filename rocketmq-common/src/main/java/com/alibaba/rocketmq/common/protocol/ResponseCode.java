@@ -44,10 +44,10 @@ public class ResponseCode extends RemotingSysResponseCode {
     public static final int TRANSACTION_SHOULD_ROLLBACK = 201;
     // Producer 事务状态未知
     public static final int TRANSACTION_STATE_UNKNOW = 202;
-	// Producer ProducerGroup错误
+    // Producer ProducerGroup错误
     public static final int TRANSACTION_STATE_GROUP_WRONG = 203;
-	// 单元化消息，需要设置 buyerId
-	public static final int NO_BUYER_ID = 204;
+    // 单元化消息，需要设置 buyerId
+    public static final int NO_BUYER_ID = 204;
 
     // 单元化消息，非本单元消息
     public static final int NOT_IN_CURRENT_UNIT = 205;
@@ -57,4 +57,7 @@ public class ResponseCode extends RemotingSysResponseCode {
 
     // Consumer消费消息超时
     public static final int CONSUME_MSG_TIMEOUT = 207;
+
+    // Consumer消费消息超时
+    public static final int NO_MESSAGE = 208;
 }

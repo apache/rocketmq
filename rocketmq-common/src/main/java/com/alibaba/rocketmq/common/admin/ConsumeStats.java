@@ -15,12 +15,12 @@
  */
 package com.alibaba.rocketmq.common.admin;
 
+import com.alibaba.rocketmq.common.message.MessageQueue;
+import com.alibaba.rocketmq.remoting.protocol.RemotingSerializable;
+
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map.Entry;
-
-import com.alibaba.rocketmq.common.message.MessageQueue;
-import com.alibaba.rocketmq.remoting.protocol.RemotingSerializable;
 
 
 /**
@@ -31,7 +31,7 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingSerializable;
  */
 public class ConsumeStats extends RemotingSerializable {
     private HashMap<MessageQueue, OffsetWrapper> offsetTable = new HashMap<MessageQueue, OffsetWrapper>();
-    private long consumeTps = 0;
+    private double consumeTps = 0;
 
 
     public long computeTotalDiff() {
@@ -57,13 +57,11 @@ public class ConsumeStats extends RemotingSerializable {
         this.offsetTable = offsetTable;
     }
 
-
-    public long getConsumeTps() {
+    public double getConsumeTps() {
         return consumeTps;
     }
 
-
-    public void setConsumeTps(long consumeTps) {
+    public void setConsumeTps(double consumeTps) {
         this.consumeTps = consumeTps;
     }
 }

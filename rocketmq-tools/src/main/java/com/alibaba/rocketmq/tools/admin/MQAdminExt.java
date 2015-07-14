@@ -464,7 +464,7 @@ public interface MQAdminExt extends MQAdmin {
      * @throws RemotingException
      * @throws MQClientException
      */
-    public Set<QueueTimeSpan> queryConsumeTimeSpan(final String topic, final String group)
+    public List<QueueTimeSpan> queryConsumeTimeSpan(final String topic, final String group)
             throws InterruptedException, MQBrokerException, RemotingException, MQClientException;
 
 

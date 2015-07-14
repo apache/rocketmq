@@ -1,9 +1,9 @@
 package com.alibaba.rocketmq.common.protocol.body;
 
-import java.util.HashSet;
-import java.util.Set;
-
 import com.alibaba.rocketmq.remoting.protocol.RemotingSerializable;
+
+import java.util.ArrayList;
+import java.util.List;
 
 
 /**
@@ -13,15 +13,15 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingSerializable;
  * @since: 13-12-30
  */
 public class QueryConsumeTimeSpanBody extends RemotingSerializable {
-    Set<QueueTimeSpan> consumeTimeSpanSet = new HashSet<QueueTimeSpan>();
+    List<QueueTimeSpan> consumeTimeSpanSet = new ArrayList<QueueTimeSpan>();
 
 
-    public Set<QueueTimeSpan> getConsumeTimeSpanSet() {
+    public List<QueueTimeSpan> getConsumeTimeSpanSet() {
         return consumeTimeSpanSet;
     }
 
 
-    public void setConsumeTimeSpanSet(Set<QueueTimeSpan> consumeTimeSpanSet) {
+    public void setConsumeTimeSpanSet(List<QueueTimeSpan> consumeTimeSpanSet) {
         this.consumeTimeSpanSet = consumeTimeSpanSet;
     }
 }
