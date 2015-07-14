@@ -52,6 +52,7 @@ import com.alibaba.rocketmq.remoting.exception.*;
 import com.alibaba.rocketmq.remoting.netty.NettyClientConfig;
 import com.alibaba.rocketmq.remoting.netty.NettyRemotingClient;
 import com.alibaba.rocketmq.remoting.netty.ResponseFuture;
+import com.alibaba.rocketmq.remoting.protocol.LanguageCode;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 import com.alibaba.rocketmq.remoting.protocol.RemotingSerializable;
 import org.slf4j.Logger;
@@ -1405,7 +1406,7 @@ public class MQClientAPIImpl {
     }
 
 
-    public Set<QueueTimeSpan> queryConsumeTimeSpan(final String addr, final String topic, final String group,
+    public List<QueueTimeSpan> queryConsumeTimeSpan(final String addr, final String topic, final String group,
             final long timeoutMillis) throws RemotingConnectException, RemotingSendRequestException,
             RemotingTimeoutException, InterruptedException, MQBrokerException {
         QueryConsumeTimeSpanRequestHeader requestHeader = new QueryConsumeTimeSpanRequestHeader();

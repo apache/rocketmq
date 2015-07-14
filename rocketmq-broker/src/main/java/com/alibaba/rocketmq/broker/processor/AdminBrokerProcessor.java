@@ -441,9 +441,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 consumeStats.getOffsetTable().put(mq, offsetWrapper);
             }
 
-            double consumeTps =
-                    this.brokerController.getBrokerStatsManager().tpsGroupGetNums(
-                        requestHeader.getConsumerGroup(), topic);
+            double consumeTps = this.brokerController.getBrokerStatsManager().tpsGroupGetNums(requestHeader.getConsumerGroup(), topic);
 
             consumeTps += consumeStats.getConsumeTps();
             consumeStats.setConsumeTps(consumeTps);
@@ -989,8 +987,15 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         log.info("[reset-offset] reset offset started by {}. topic={}, group={}, timestamp={}, isForce={}",
             new Object[] { RemotingHelper.parseChannelRemoteAddr(ctx.channel()), requestHeader.getTopic(), requestHeader.getGroup(),
                           requestHeader.getTimestamp(), requestHeader.isForce() });
+        boolean isC = false;
+        LanguageCode language = request.getLanguage();
+        switch (language) {
+        case CPP:
+            isC = true;
+            break;
+        }
         return this.brokerController.getBroker2Client().resetOffset(requestHeader.getTopic(), requestHeader.getGroup(),
-            requestHeader.getTimestamp(), requestHeader.isForce());
+            requestHeader.getTimestamp(), requestHeader.isForce(), isC);
     }
 
 
@@ -1043,7 +1048,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             return response;
         }
 
-        Set<QueueTimeSpan> timeSpanSet = new HashSet<QueueTimeSpan>();
+        List<QueueTimeSpan> timeSpanSet = new ArrayList<QueueTimeSpan>();
         for (int i = 0; i < topicConfig.getWriteQueueNums(); i++) {
             QueueTimeSpan timeSpan = new QueueTimeSpan();
             MessageQueue mq = new MessageQueue();
