@@ -3,16 +3,16 @@
  */
 package com.alibaba.rocketmq.common.namesrv;
 
-import java.io.IOException;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.alibaba.rocketmq.common.MixAll;
+import com.alibaba.rocketmq.common.UtilAll;
 import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.common.help.FAQUrl;
 import com.alibaba.rocketmq.common.utils.HttpTinyClient;
 import com.alibaba.rocketmq.common.utils.HttpTinyClient.HttpResult;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
 
 
 /**
@@ -25,10 +25,17 @@ public class TopAddressing {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.CommonLoggerName);
     private String nsAddr;
     private String wsAddr;
+    private String unitName;
 
 
     public TopAddressing(final String wsAddr) {
+        this(wsAddr, null);
+    }
+
+
+    public TopAddressing(final String wsAddr, final String unitName) {
         this.wsAddr = wsAddr;
+        this.unitName = unitName;
     }
 
 
@@ -55,7 +62,11 @@ public class TopAddressing {
 
     public final String fetchNSAddr(boolean verbose, long timeoutMills) {
         try {
-            HttpResult result = HttpTinyClient.httpGet(this.wsAddr, null, null, "UTF-8", timeoutMills);
+            String url = this.wsAddr;
+            if (!UtilAll.isBlank(this.unitName)) {
+                url = url + "_" + this.unitName;
+            }
+            HttpResult result = HttpTinyClient.httpGet(url, null, null, "UTF-8", timeoutMills);
             if (200 == result.code) {
                 String responseStr = result.content;
                 if (responseStr != null) {
@@ -71,14 +82,13 @@ public class TopAddressing {
         }
         catch (IOException e) {
             if (verbose) {
-                log.error("fetchZKAddr exception", e);
+                log.error("fetch name server address exception", e);
             }
         }
 
         if (verbose) {
             String errorMsg =
-                    "connect to " + wsAddr + " failed, maybe the domain name " + MixAll.WS_DOMAIN_NAME
-                            + " not bind in /etc/hosts";
+                    "connect to " + wsAddr + " failed, maybe the domain name " + MixAll.WS_DOMAIN_NAME + " not bind in /etc/hosts";
             errorMsg += FAQUrl.suggestTodo(FAQUrl.NAME_SERVER_ADDR_NOT_EXIST_URL);
 
             log.warn(errorMsg);
