@@ -42,10 +42,8 @@ public class MixAll {
     public static final String NAMESRV_ADDR_ENV = "NAMESRV_ADDR";
     public static final String NAMESRV_ADDR_PROPERTY = "rocketmq.namesrv.addr";
     public static final String MESSAGE_COMPRESS_LEVEL = "rocketmq.message.compressLevel";
-    public static final String WS_DOMAIN_NAME = System.getProperty("rocketmq.namesrv.domain",
-        "jmenv.tbsite.net");
-    public static final String WS_DOMAIN_SUBGROUP = System.getProperty("rocketmq.namesrv.domain.subgroup",
-        "nsaddr");
+    public static final String WS_DOMAIN_NAME = System.getProperty("rocketmq.namesrv.domain", "jmenv.tbsite.net");
+    public static final String WS_DOMAIN_SUBGROUP = System.getProperty("rocketmq.namesrv.domain.subgroup", "nsaddr");
     // http://jmenv.tbsite.net:8080/rocketmq/nsaddr
     public static final String WS_ADDR = "http://" + WS_DOMAIN_NAME + ":8080/rocketmq/" + WS_DOMAIN_SUBGROUP;
     public static final String DEFAULT_TOPIC = "TBW102";
@@ -64,6 +62,7 @@ public class MixAll {
     public static final String CID_ONSAPI_PERMISSION_GROUP = "CID_ONSAPI_PERMISSION";
     public static final String CID_ONSAPI_OWNER_GROUP = "CID_ONSAPI_OWNER";
     public static final String CID_ONSAPI_PULL_GROUP = "CID_ONSAPI_PULL";
+    public static final String CID_RMQ_SYS_PREFIX = "CID_RMQ_SYS_";
 
     public static final List<String> LocalInetAddrs = getLocalInetAddress();
     public static final String Localhost = localhost();
@@ -79,6 +78,11 @@ public class MixAll {
 
     public static String getRetryTopic(final String consumerGroup) {
         return RETRY_GROUP_TOPIC_PREFIX + consumerGroup;
+    }
+
+
+    public static boolean isSysConsumerGroup(final String consumerGroup) {
+        return consumerGroup.startsWith(CID_RMQ_SYS_PREFIX);
     }
 
 
@@ -244,8 +248,7 @@ public class MixAll {
     }
 
 
-    public static void printObjectProperties(final Logger log, final Object object,
-            final boolean onlyImportantField) {
+    public static void printObjectProperties(final Logger log, final Object object, final boolean onlyImportantField) {
         Field[] fields = object.getClass().getDeclaredFields();
         for (Field field : fields) {
             if (!Modifier.isStatic(field.getModifiers())) {
@@ -443,9 +446,8 @@ public class MixAll {
             return addr.getHostAddress();
         }
         catch (Throwable e) {
-            throw new RuntimeException(
-                "InetAddress java.net.InetAddress.getLocalHost() throws UnknownHostException"
-                        + FAQUrl.suggestTodo(FAQUrl.UNKNOWN_HOST_EXCEPTION), e);
+            throw new RuntimeException("InetAddress java.net.InetAddress.getLocalHost() throws UnknownHostException"
+                    + FAQUrl.suggestTodo(FAQUrl.UNKNOWN_HOST_EXCEPTION), e);
         }
     }
 
@@ -487,9 +489,8 @@ public class MixAll {
             return InetAddress.getLocalHost().getHostName();
         }
         catch (Throwable e) {
-            throw new RuntimeException(
-                "InetAddress java.net.InetAddress.getLocalHost() throws UnknownHostException"
-                        + FAQUrl.suggestTodo(FAQUrl.UNKNOWN_HOST_EXCEPTION), e);
+            throw new RuntimeException("InetAddress java.net.InetAddress.getLocalHost() throws UnknownHostException"
+                    + FAQUrl.suggestTodo(FAQUrl.UNKNOWN_HOST_EXCEPTION), e);
         }
     }
 }
