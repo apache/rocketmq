@@ -128,7 +128,7 @@ public class MQClientInstance {
 
         this.consumerStatsManager = new ConsumerStatsManager(this.scheduledExecutorService);
 
-        log.info("created a new client Instance, FactoryIndex: {} ClinetID: {} {} {}, protocolType={}",//
+        log.info("created a new client Instance, FactoryIndex: {} ClinetID: {} {} {}, serializeType={}",//
                 this.instanceIndex, //
                 this.clientId, //
                 this.clientConfig, //
