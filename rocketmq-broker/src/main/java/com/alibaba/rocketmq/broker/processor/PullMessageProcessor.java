@@ -44,8 +44,10 @@ import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
 import com.alibaba.rocketmq.remoting.netty.NettyRequestProcessor;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 import com.alibaba.rocketmq.store.GetMessageResult;
+import com.alibaba.rocketmq.store.MapedFile;
 import com.alibaba.rocketmq.store.MessageExtBrokerInner;
 import com.alibaba.rocketmq.store.PutMessageResult;
+import com.alibaba.rocketmq.store.SelectMapedBufferResult;
 import com.alibaba.rocketmq.store.config.BrokerRole;
 import com.alibaba.rocketmq.store.stats.BrokerStatsManager;
 import io.netty.channel.*;
@@ -56,6 +58,8 @@ import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 
 /**
@@ -406,6 +410,35 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                             requestHeader.getConsumerGroup(), requestHeader.getTopic(),
                             BrokerStatsManager.StatsType.RCV_SUCCESS.toString(),
                             getMessageResult.getBufferTotalSize());
+                    
+                    // 堆积预热
+                    if (brokerController.getBrokerConfig().isPiledWarmup()) {
+                        if (getMessageResult.isSuggestPullingFromSlave()) {
+                            CountDownLatch countdown = null;
+                            boolean isFirst = true;
+                            MapedFile tmp = null;
+                            for (SelectMapedBufferResult r : getMessageResult.getMessageMapedList()) {
+                                if (tmp != r.getMapedFile()) {
+                                    tmp = r.getMapedFile();
+                                    CountDownLatch cdl = brokerController.getPiledMergeService().put(tmp);
+                                    if (isFirst) {
+                                        countdown = cdl;
+                                        isFirst = false;
+                                    }
+                                }
+                            }
+                            try {
+                                if (brokerController.getBrokerConfig().getPiledAwaitTime() > 0) {
+                                    countdown.await(brokerController.getBrokerConfig().getPiledAwaitTime(),
+                                        TimeUnit.MILLISECONDS);
+                                }
+                            }
+                            catch (InterruptedException e) {
+                                log.warn("merge pull request error.", e);
+                            }
+                        }
+                    }
+                    
                     break;
                 case ResponseCode.PULL_NOT_FOUND:
                     if (!brokerAllowSuspend) {
