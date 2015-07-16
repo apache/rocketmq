@@ -752,6 +752,10 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 if (properties != null) {
                     log.info("updateBrokerConfig, new config: " + properties + " client: " + ctx.channel().remoteAddress());
                     this.brokerController.updateAllConfig(properties);
+                    if (properties.containsKey("brokerPermission")) {
+                        this.brokerController.registerBrokerAll(false, false);
+                        this.brokerController.getTopicConfigManager().getDataVersion().nextVersion();
+                    }
                 }
                 else {
                     log.error("string2Properties error");
