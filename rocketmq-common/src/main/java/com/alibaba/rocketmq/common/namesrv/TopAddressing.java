@@ -64,7 +64,7 @@ public class TopAddressing {
         try {
             String url = this.wsAddr;
             if (!UtilAll.isBlank(this.unitName)) {
-                url = url + "_" + this.unitName;
+                url = url + "-" + this.unitName;
             }
             HttpResult result = HttpTinyClient.httpGet(url, null, null, "UTF-8", timeoutMills);
             if (200 == result.code) {
