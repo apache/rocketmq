@@ -15,6 +15,14 @@
  */
 package com.alibaba.rocketmq.remoting.protocol;
 
+import com.alibaba.fastjson.annotation.JSONField;
+import com.alibaba.rocketmq.remoting.CommandCustomHeader;
+import com.alibaba.rocketmq.remoting.annotation.CFNotNull;
+import com.alibaba.rocketmq.remoting.common.RemotingHelper;
+import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
@@ -22,15 +30,6 @@ import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.alibaba.fastjson.annotation.JSONField;
-import com.alibaba.rocketmq.remoting.CommandCustomHeader;
-import com.alibaba.rocketmq.remoting.annotation.CFNotNull;
-import com.alibaba.rocketmq.remoting.common.RemotingHelper;
-import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
 
 
 /**
@@ -342,7 +341,7 @@ public class RemotingCommand {
 
 
     private static RemotingCommand headerDecode(byte[] headerData, SerializeType type) {
-        switch (SerializeType.ROCKETMQ) {
+        switch (type) {
         case JSON:
             RemotingCommand resultJson = RemotingSerializable.decode(headerData, RemotingCommand.class);
             resultJson.setSerializeTypeCurrentRPC(type);
