@@ -19,6 +19,7 @@ import com.alibaba.rocketmq.common.annotation.ImportantField;
 import com.alibaba.rocketmq.common.help.FAQUrl;
 import org.slf4j.Logger;
 
+import java.beans.PropertyDescriptor;
 import java.io.*;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;

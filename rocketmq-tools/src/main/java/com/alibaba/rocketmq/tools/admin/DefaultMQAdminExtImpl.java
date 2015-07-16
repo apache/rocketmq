@@ -202,9 +202,8 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
         }
 
         if (result.getOffsetTable().isEmpty()) {
-            throw new MQClientException(
-                "Not found the consumer group consume stats, because return offset table is empty, maybe the consumer not consume any message",
-                null);
+            throw new MQClientException(ResponseCode.CONSUMER_NOT_ONLINE,
+                    "Not found the consumer group consume stats, because return offset table is empty, maybe the consumer not consume any message");
         }
 
         return result;

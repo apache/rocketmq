@@ -45,7 +45,7 @@ public class ClientConfig {
      * Offset persistent interval for consumer
      */
     private int persistConsumerOffsetInterval = 1000 * 5;
-
+    private boolean unitMode = false;
     private String unitName;
 
 
@@ -87,6 +87,8 @@ public class ClientConfig {
         cc.pollNameServerInteval = pollNameServerInteval;
         cc.heartbeatBrokerInterval = heartbeatBrokerInterval;
         cc.persistConsumerOffsetInterval = persistConsumerOffsetInterval;
+        cc.unitMode = unitMode;
+        cc.unitName = unitName;
         return cc;
     }
 
@@ -170,12 +172,19 @@ public class ClientConfig {
         this.unitName = unitName;
     }
 
+    public boolean isUnitMode() {
+        return unitMode;
+    }
+
+    public void setUnitMode(boolean unitMode) {
+        this.unitMode = unitMode;
+    }
 
     @Override
     public String toString() {
         return "ClientConfig [namesrvAddr=" + namesrvAddr + ", clientIP=" + clientIP + ", instanceName=" + instanceName
                 + ", clientCallbackExecutorThreads=" + clientCallbackExecutorThreads + ", pollNameServerInteval=" + pollNameServerInteval
                 + ", heartbeatBrokerInterval=" + heartbeatBrokerInterval + ", persistConsumerOffsetInterval="
-                + persistConsumerOffsetInterval + ", unitName=" + unitName + "]";
+                + persistConsumerOffsetInterval + ", unitMode=" + unitMode + ", unitName=" + unitName + "]";
     }
 }
