@@ -183,7 +183,7 @@ public class BrokerStatsManager {
 
 
     public String buildStatsKey(String topic, String group) {
-        StringBuilder strBuilder = new StringBuilder();
+        StringBuffer strBuilder = new StringBuffer();
         strBuilder.append(topic);
         strBuilder.append("@");
         strBuilder.append(group);
@@ -191,7 +191,7 @@ public class BrokerStatsManager {
     }
 
     public String buildCommercialStatsKey(String topic, String group, String type) {
-        StringBuilder strBuilder = new StringBuilder();
+        StringBuffer strBuilder = new StringBuffer();
         strBuilder.append(topic);
         strBuilder.append("@");
         strBuilder.append(group);
@@ -220,13 +220,6 @@ public class BrokerStatsManager {
         this.statsTable.get(COMMERCIAL_TOPIC_SEND_SIZE).addValue(statsKey, size, 1);
     }
 
-    public void incCommercialTopicSendTimes(final String statsKey, final int incValue){
-        this.statsTable.get(COMMERCIAL_TOPIC_SEND_TIMES).addValue(statsKey, incValue, 1);
-    }
-
-    public void incCommercialTopicSendSize(final String statsKey, final int size){
-        this.statsTable.get(COMMERCIAL_TOPIC_SEND_SIZE).addValue(statsKey, size, 1);
-    }
 
     public void incCommercialGroupRcvTimes(final String group, final String topic,
                                            final String type, final int incValue){
