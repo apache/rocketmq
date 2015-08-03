@@ -220,6 +220,14 @@ public class BrokerStatsManager {
         this.statsTable.get(COMMERCIAL_TOPIC_SEND_SIZE).addValue(statsKey, size, 1);
     }
 
+    public void incCommercialTopicSendTimes(final String statsKey, final int incValue){
+        this.statsTable.get(COMMERCIAL_TOPIC_SEND_TIMES).addValue(statsKey, incValue, 1);
+    }
+
+    public void incCommercialTopicSendSize(final String statsKey, final int size){
+        this.statsTable.get(COMMERCIAL_TOPIC_SEND_SIZE).addValue(statsKey, size, 1);
+    }
+
     public void incCommercialGroupRcvTimes(final String group, final String topic,
                                            final String type, final int incValue){
         final String statsKey = buildCommercialStatsKey(topic, group, type);

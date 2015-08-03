@@ -408,13 +408,15 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
                 //For commercial
                 int incValue = (int) Math.ceil(putMessageResult.getAppendMessageResult().getWroteBytes() /
                         BrokerStatsManager.SIZE_PER_COUNT);
+                final String statsKey = this.brokerController.getBrokerStatsManager().buildCommercialStatsKey(
+                        requestHeader.getProducerGroup(), msgInner.getTopic(),
+                        BrokerStatsManager.StatsType.SEND_SUCCESS.toString());
+
                 this.brokerController.getBrokerStatsManager().incCommercialTopicSendTimes(
-                        requestHeader.getProducerGroup(),msgInner.getTopic(),
-                        BrokerStatsManager.StatsType.SEND_SUCCESS.toString(), incValue);
+                        statsKey,incValue);
 
                 this.brokerController.getBrokerStatsManager().incCommercialTopicSendSize(
-                        requestHeader.getProducerGroup(), msgInner.getTopic(),
-                        BrokerStatsManager.StatsType.SEND_SUCCESS.toString(),
+                        statsKey,
                         putMessageResult.getAppendMessageResult().getWroteBytes());
 
                 response.setRemark(null);
