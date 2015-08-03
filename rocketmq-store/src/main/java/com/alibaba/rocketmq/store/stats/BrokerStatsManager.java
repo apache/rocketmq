@@ -145,6 +145,7 @@ public class BrokerStatsManager {
     }
 
 
+
     public void incGroupGetNums(final String group, final String topic, final int incValue) {
         this.statsTable.get(GROUP_GET_NUMS).addValue(topic + "@" + group, incValue, 1);
     }
@@ -173,17 +174,22 @@ public class BrokerStatsManager {
 
 
     public double tpsGroupGetNums(final String group, final String topic) {
+//        final String statsKey = buildStatsKey(topic, group, null);
         return this.statsTable.get(GROUP_GET_NUMS).getStatsDataInMinute(topic + "@" + group).getTps();
     }
 
-    public String buildStatsKey(String topic,String group,String type) {
-        StringBuffer strBuffer = new StringBuffer();
-        strBuffer.append(topic);
-        strBuffer.append("@");
-        strBuffer.append(group);
-        strBuffer.append("@");
-        strBuffer.append(type);
-        return strBuffer.toString();
+
+    public String buildStatsKey(String topic, String group, String type) {
+        StringBuilder strBuilder = new StringBuilder();
+        strBuilder.append(topic);
+        strBuilder.append("@");
+        strBuilder.append(group);
+        if(null != type){
+            strBuilder.append("@");
+            strBuilder.append(type);
+        }
+
+        return strBuilder.toString();
     }
 
     public void recordDiskFallBehind(final String group, final String topic, final int queueId,
