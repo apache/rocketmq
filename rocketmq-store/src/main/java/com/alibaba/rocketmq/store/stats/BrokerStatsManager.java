@@ -176,6 +176,15 @@ public class BrokerStatsManager {
         return this.statsTable.get(GROUP_GET_NUMS).getStatsDataInMinute(topic + "@" + group).getTps();
     }
 
+    public String buildStatsKey(String topic,String group,String type) {
+        StringBuffer strBuffer = new StringBuffer();
+        strBuffer.append(topic);
+        strBuffer.append("@");
+        strBuffer.append(group);
+        strBuffer.append("@");
+        strBuffer.append(type);
+        return strBuffer.toString();
+    }
 
     public void recordDiskFallBehind(final String group, final String topic, final int queueId,
             final long fallBehind) {
@@ -186,43 +195,43 @@ public class BrokerStatsManager {
     //For commercial
     public void incCommercialTopicSendTimes(final String group, final String topic,
                                             final String type, final int incValue){
-        final String statsKey = String.format("%s@%s@%s", topic, group, type);
+        final String statsKey = buildStatsKey(topic, group, type);
         this.statsTable.get(COMMERCIAL_TOPIC_SEND_TIMES).addValue(statsKey, incValue, 1);
     }
 
     public void incCommercialTopicSendSize(final String group, final String topic,
                                            final String type, final int size){
-        final String statsKey = String.format("%s@%s@%s", topic, group, type);
+        final String statsKey = buildStatsKey(topic, group, type);
         this.statsTable.get(COMMERCIAL_TOPIC_SEND_SIZE).addValue(statsKey, size, 1);
     }
 
     public void incCommercialGroupRcvTimes(final String group, final String topic,
                                            final String type, final int incValue){
-        final String statsKey = String.format("%s@%s@%s", topic, group, type);
+        final String statsKey = buildStatsKey(topic, group, type);
         this.statsTable.get(COMMERCIAL_GROUP_RCV_TIMES).addValue(statsKey,incValue,1);
     }
 
     public void incCommercialGroupRcvSize(final String group, final String topic,
                                           final String type, final int size){
-        final String statsKey = String.format("%s@%s@%s", topic, group, type);
+        final String statsKey = buildStatsKey(topic, group, type);
         this.statsTable.get(COMMERCIAL_GROUP_RCV_SIZE).addValue(statsKey, size, 1);
     }
 
     public void incCommercialGroupRcvEpolls(final String group, final String topic,
                                             final String type, final int incValue){
-        final String statsKey = String.format("%s@%s@%s", topic, group, type);
+        final String statsKey = buildStatsKey(topic, group, type);
         this.statsTable.get(COMMERCIAL_GROUP_RCV_EPOLLS).addValue(statsKey, incValue, 1);
     }
 
     public void incCommercialGroupSndBckTimes(final String group, final String topic,
                                               final String type, final int incValue){
-        final String statsKey = String.format("%s@%s@%s", topic, group, type);
+        final String statsKey = buildStatsKey(topic, group, type);
         this.statsTable.get(COMMERCIAL_GROUP_SNDBCK_TIMES).addValue(statsKey, incValue, 1);
     }
 
     public void incCommercialGroupSndBckSize(final String group, final String topic,
                                              final String type, final int size){
-        final String statsKey = String.format("%s@%s@%s", topic, group, type);
+        final String statsKey = buildStatsKey(topic, group, type);
         this.statsTable.get(COMMERCIAL_GROUP_SNDBCK_SIZE).addValue(statsKey, size, 1);
     }
 }
