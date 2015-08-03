@@ -147,12 +147,14 @@ public class BrokerStatsManager {
 
 
     public void incGroupGetNums(final String group, final String topic, final int incValue) {
-        this.statsTable.get(GROUP_GET_NUMS).addValue(topic + "@" + group, incValue, 1);
+        final String statsKey = buildStatsKey(topic, group, null);
+        this.statsTable.get(GROUP_GET_NUMS).addValue(statsKey, incValue, 1);
     }
 
 
     public void incGroupGetSize(final String group, final String topic, final int incValue) {
-        this.statsTable.get(GROUP_GET_SIZE).addValue(topic + "@" + group, incValue, 1);
+        final String statsKey = buildStatsKey(topic, group, null);
+        this.statsTable.get(GROUP_GET_SIZE).addValue(statsKey, incValue, 1);
     }
 
 
@@ -169,13 +171,14 @@ public class BrokerStatsManager {
 
 
     public void incSendBackNums(final String group, final String topic) {
-        this.statsTable.get(SNDBCK_PUT_NUMS).addValue(topic + "@" + group, 1, 1);
+        final String statsKey = buildStatsKey(topic, group, null);
+        this.statsTable.get(SNDBCK_PUT_NUMS).addValue(statsKey, 1, 1);
     }
 
 
     public double tpsGroupGetNums(final String group, final String topic) {
-//        final String statsKey = buildStatsKey(topic, group, null);
-        return this.statsTable.get(GROUP_GET_NUMS).getStatsDataInMinute(topic + "@" + group).getTps();
+        final String statsKey = buildStatsKey(topic, group, null);
+        return this.statsTable.get(GROUP_GET_NUMS).getStatsDataInMinute(statsKey).getTps();
     }
 
 
@@ -184,10 +187,10 @@ public class BrokerStatsManager {
         strBuilder.append(topic);
         strBuilder.append("@");
         strBuilder.append(group);
-        if(null != type){
+//        if(null != type){
             strBuilder.append("@");
             strBuilder.append(type);
-        }
+//        }
 
         return strBuilder.toString();
     }
