@@ -237,19 +237,21 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
                     backTopic = correctTopic;
                 }
 
-                this.brokerController.getBrokerStatsManager().incSendBackNums(requestHeader.getGroup(), backTopic);
+                if (!this.brokerController.getBrokerConfig().isHighSpeedMode()) {
+                    this.brokerController.getBrokerStatsManager().incSendBackNums(requestHeader.getGroup(), backTopic);
 
-                //For commercial
-                int incValue = (int) Math.ceil(putMessageResult.getAppendMessageResult().getWroteBytes() /
-                        BrokerStatsManager.SIZE_PER_COUNT);
-                this.brokerController.getBrokerStatsManager().incCommercialGroupSndBckTimes(
-                        requestHeader.getGroup(),backTopic,
-                        BrokerStatsManager.StatsType.SEND_BACK_SUCCESS.toString(), incValue);
+                    //For commercial
+                    int incValue = (int) Math.ceil(putMessageResult.getAppendMessageResult().getWroteBytes() /
+                            BrokerStatsManager.SIZE_PER_COUNT);
+                    this.brokerController.getBrokerStatsManager().incCommercialGroupSndBckTimes(
+                            requestHeader.getGroup(), backTopic,
+                            BrokerStatsManager.StatsType.SEND_BACK_SUCCESS.toString(), incValue);
 
-                this.brokerController.getBrokerStatsManager().incCommercialGroupSndBckSize(
-                        requestHeader.getGroup(),backTopic,
-                        BrokerStatsManager.StatsType.SEND_BACK_SUCCESS.toString(),
-                        putMessageResult.getAppendMessageResult().getWroteBytes());
+                    this.brokerController.getBrokerStatsManager().incCommercialGroupSndBckSize(
+                            requestHeader.getGroup(), backTopic,
+                            BrokerStatsManager.StatsType.SEND_BACK_SUCCESS.toString(),
+                            putMessageResult.getAppendMessageResult().getWroteBytes());
+                }
 
                 response.setCode(ResponseCode.SUCCESS);
                 response.setRemark(null);
