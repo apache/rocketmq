@@ -621,6 +621,8 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
         SendMessageContext context = null;
         if (brokerAddr != null) {
+        	String[] ipAndPort=brokerAddr.split(":");
+        	brokerAddr=ipAndPort[0]+":"+(Integer.valueOf(ipAndPort[1])-2);
             byte[] prevBody = msg.getBody();
             try {
                 int sysFlag = 0;
