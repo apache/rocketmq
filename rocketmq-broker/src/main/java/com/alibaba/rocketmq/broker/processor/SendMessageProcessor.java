@@ -407,18 +407,19 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
                     putMessageResult.getAppendMessageResult().getWroteBytes());
                 this.brokerController.getBrokerStatsManager().incBrokerPutNums();
 
-                //For commercial
-                int incValue = (int) Math.ceil(putMessageResult.getAppendMessageResult().getWroteBytes() /
-                        BrokerStatsManager.SIZE_PER_COUNT);
-                this.brokerController.getBrokerStatsManager().incCommercialTopicSendTimes(
-                        requestHeader.getProducerGroup(),msgInner.getTopic(),
-                        BrokerStatsManager.StatsType.SEND_SUCCESS.toString(), incValue);
+                if (!this.brokerController.getBrokerConfig().isHighSpeedMode()) {
+                    //For commercial
+                    int incValue = (int) Math.ceil(putMessageResult.getAppendMessageResult().getWroteBytes() /
+                            BrokerStatsManager.SIZE_PER_COUNT);
+                    this.brokerController.getBrokerStatsManager().incCommercialTopicSendTimes(
+                            requestHeader.getProducerGroup(), msgInner.getTopic(),
+                            BrokerStatsManager.StatsType.SEND_SUCCESS.toString(), incValue);
 
-                this.brokerController.getBrokerStatsManager().incCommercialTopicSendSize(
-                        requestHeader.getProducerGroup(), msgInner.getTopic(),
-                        BrokerStatsManager.StatsType.SEND_SUCCESS.toString(),
-                        putMessageResult.getAppendMessageResult().getWroteBytes());
-
+                    this.brokerController.getBrokerStatsManager().incCommercialTopicSendSize(
+                            requestHeader.getProducerGroup(), msgInner.getTopic(),
+                            BrokerStatsManager.StatsType.SEND_SUCCESS.toString(),
+                            putMessageResult.getAppendMessageResult().getWroteBytes());
+                }
                 response.setRemark(null);
 
                 responseHeader.setMsgId(putMessageResult.getAppendMessageResult().getMsgId());
