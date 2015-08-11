@@ -113,16 +113,44 @@ public class MessageDecoder {
     // 当前该方法没有用到
     public static byte[] encode(MessageExt messageExt) throws Exception {
         byte[] body = messageExt.getBody();
-        int bodyLength = messageExt.getBody().length;
         byte[] topics = messageExt.getTopic().getBytes(CHARSET_UTF8);
         byte topicLen = (byte) topics.length;
         String properties = messageProperties2String(messageExt.getProperties());
         byte[] propertiesBytes = properties.getBytes(CHARSET_UTF8);
         short propertiesLength = (short) propertiesBytes.length;
-
-        // 1 TOTALSIZE
+        int sysFlag = messageExt.getSysFlag();
+        byte[] newBody = messageExt.getBody();
+        if ((sysFlag & MessageSysFlag.CompressedFlag) == MessageSysFlag.CompressedFlag) {
+            newBody = UtilAll.compress(body, 5);
+        }
+        int bodyLength = newBody.length;
         int storeSize = messageExt.getStoreSize();
-        ByteBuffer byteBuffer = ByteBuffer.allocate(storeSize);
+        ByteBuffer byteBuffer;
+        if (storeSize > 0) {
+            byteBuffer = ByteBuffer.allocate(storeSize);
+        }
+        else {
+            storeSize = 4 // 1 TOTALSIZE
+                    + 4 // 2 MAGICCODE
+                    + 4 // 3 BODYCRC
+                    + 4 // 4 QUEUEID
+                    + 4 // 5 FLAG
+                    + 8 // 6 QUEUEOFFSET
+                    + 8 // 7 PHYSICALOFFSET
+                    + 4 // 8 SYSFLAG
+                    + 8 // 9 BORNTIMESTAMP
+                    + 8 // 10 BORNHOST
+                    + 8 // 11 STORETIMESTAMP
+                    + 8 // 12 STOREHOSTADDRESS
+                    + 4 // 13 RECONSUMETIMES
+                    + 8 // 14 Prepared Transaction Offset
+                    + 4 + bodyLength // 14 BODY
+                    + 1 + topicLen // 15 TOPIC
+                    + 2 + propertiesLength // 16 propertiesLength
+                    + 0;
+            byteBuffer = ByteBuffer.allocate(storeSize);
+        }
+        // 1 TOTALSIZE
         byteBuffer.putInt(storeSize);
 
         // 2 MAGICCODE
@@ -149,7 +177,6 @@ public class MessageDecoder {
         byteBuffer.putLong(physicOffset);
 
         // 8 SYSFLAG
-        int sysFlag = messageExt.getSysFlag();
         byteBuffer.putInt(sysFlag);
 
         // 9 BORNTIMESTAMP
@@ -157,7 +184,6 @@ public class MessageDecoder {
         byteBuffer.putLong(bornTimeStamp);
 
         // 10 BORNHOST
-
         InetSocketAddress bornHost = (InetSocketAddress) messageExt.getBornHost();
         byteBuffer.put(bornHost.getAddress().getAddress());
         byteBuffer.putInt(bornHost.getPort());
@@ -167,7 +193,6 @@ public class MessageDecoder {
         byteBuffer.putLong(storeTimestamp);
 
         // 12 STOREHOST
-
         InetSocketAddress serverHost = (InetSocketAddress) messageExt.getStoreHost();
         byteBuffer.put(serverHost.getAddress().getAddress());
         byteBuffer.putInt(serverHost.getPort());
@@ -181,11 +206,6 @@ public class MessageDecoder {
         byteBuffer.putLong(preparedTransactionOffset);
 
         // 15 BODY
-        byte[] newBody = body;
-        if ((sysFlag & MessageSysFlag.CompressedFlag) == MessageSysFlag.CompressedFlag) {
-            newBody = UtilAll.compress(body, 5);
-        }
-
         byteBuffer.putInt(bodyLength);
         byteBuffer.put(newBody);
 
