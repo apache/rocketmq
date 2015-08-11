@@ -119,28 +119,10 @@ public class MessageDecoder {
         String properties = messageProperties2String(messageExt.getProperties());
         byte[] propertiesBytes = properties.getBytes(CHARSET_UTF8);
         short propertiesLength = (short) propertiesBytes.length;
-        final int msgLen = 4 // 1 TOTALSIZE
-                + 4 // 2 MAGICCODE
-                + 4 // 3 BODYCRC
-                + 4 // 4 QUEUEID
-                + 4 // 5 FLAG
-                + 8 // 6 QUEUEOFFSET
-                + 8 // 7 PHYSICALOFFSET
-                + 4 // 8 SYSFLAG
-                + 8 // 9 BORNTIMESTAMP
-                + 8 // 10 BORNHOST
-                + 8 // 11 STORETIMESTAMP
-                + 8 // 12 STOREHOSTADDRESS
-                + 4 // 13 RECONSUMETIMES
-                + 8 // 14 Prepared Transaction Offset
-                + 4 + bodyLength // 14 BODY
-                + 1 + topicLen // 15 TOPIC
-                + 2 + propertiesLength // 16 propertiesLength
-                + 0;
-        ByteBuffer byteBuffer = ByteBuffer.allocate(msgLen);
 
         // 1 TOTALSIZE
         int storeSize = messageExt.getStoreSize();
+        ByteBuffer byteBuffer = ByteBuffer.allocate(storeSize);
         byteBuffer.putInt(storeSize);
 
         // 2 MAGICCODE
@@ -215,20 +197,11 @@ public class MessageDecoder {
         byteBuffer.putShort(propertiesLength);
         byteBuffer.put(propertiesBytes);
 
-        // // 消息ID
-        // ByteBuffer byteBufferMsgId = ByteBuffer.allocate(MSG_ID_LENGTH);
-        // String msgId =
-        // createMessageId(byteBufferMsgId, msgExt.getStoreHostBytes(),
-        // msgExt.getCommitLogOffset());
-        // msgExt.setMsgId(msgId);
-
         return byteBuffer.array();
-
     }
 
 
-    public static MessageExt decode(java.nio.ByteBuffer byteBuffer, final boolean readBody,
-            final boolean deCompressBody) {
+    public static MessageExt decode(java.nio.ByteBuffer byteBuffer, final boolean readBody, final boolean deCompressBody) {
         try {
             MessageExt msgExt = new MessageExt();
 
@@ -299,8 +272,7 @@ public class MessageDecoder {
                     byteBuffer.get(body);
 
                     // uncompress body
-                    if (deCompressBody
-                            && (sysFlag & MessageSysFlag.CompressedFlag) == MessageSysFlag.CompressedFlag) {
+                    if (deCompressBody && (sysFlag & MessageSysFlag.CompressedFlag) == MessageSysFlag.CompressedFlag) {
                         body = UtilAll.uncompress(body);
                     }
 
@@ -329,8 +301,7 @@ public class MessageDecoder {
 
             // 消息ID
             ByteBuffer byteBufferMsgId = ByteBuffer.allocate(MSG_ID_LENGTH);
-            String msgId =
-                    createMessageId(byteBufferMsgId, msgExt.getStoreHostBytes(), msgExt.getCommitLogOffset());
+            String msgId = createMessageId(byteBufferMsgId, msgExt.getStoreHostBytes(), msgExt.getCommitLogOffset());
             msgExt.setMsgId(msgId);
 
             return msgExt;
