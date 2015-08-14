@@ -24,10 +24,7 @@ import com.alibaba.rocketmq.common.conflict.PackageConflictDetect;
 import com.alibaba.rocketmq.remoting.RPCHook;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 import com.alibaba.rocketmq.srvutil.ServerUtil;
-import com.alibaba.rocketmq.tools.command.broker.BrokerStatusSubCommand;
-import com.alibaba.rocketmq.tools.command.broker.CleanExpiredCQSubCommand;
-import com.alibaba.rocketmq.tools.command.broker.CleanUnusedTopicCommand;
-import com.alibaba.rocketmq.tools.command.broker.UpdateBrokerConfigSubCommand;
+import com.alibaba.rocketmq.tools.command.broker.*;
 import com.alibaba.rocketmq.tools.command.cluster.ClusterListSubCommand;
 import com.alibaba.rocketmq.tools.command.connection.ConsumerConnectionSubCommand;
 import com.alibaba.rocketmq.tools.command.connection.ProducerConnectionSubCommand;
@@ -75,6 +72,7 @@ public class MQAdminStartup {
         initCommand(new QueryMsgByKeySubCommand());
         initCommand(new QueryMsgByOffsetSubCommand());
         initCommand(new PrintMessageSubCommand());
+        initCommand(new SendMsgStatusCommand());
 
         initCommand(new ProducerConnectionSubCommand());
         initCommand(new ConsumerConnectionSubCommand());
@@ -152,8 +150,8 @@ public class MQAdminStartup {
                     // 解析命令行
                     Options options = ServerUtil.buildCommandlineOptions(new Options());
                     final CommandLine commandLine =
-                            ServerUtil.parseCmdLine("mqadmin " + cmd.commandName(), subargs,
-                                cmd.buildCommandlineOptions(options), new PosixParser());
+                            ServerUtil.parseCmdLine("mqadmin " + cmd.commandName(), subargs, cmd.buildCommandlineOptions(options),
+                                new PosixParser());
                     if (null == commandLine) {
                         System.exit(-1);
                         return;
@@ -179,8 +177,7 @@ public class MQAdminStartup {
 
 
     private static void initLogback() throws JoranException {
-        String rocketmqHome =
-                System.getProperty(MixAll.ROCKETMQ_HOME_PROPERTY, System.getenv(MixAll.ROCKETMQ_HOME_ENV));
+        String rocketmqHome = System.getProperty(MixAll.ROCKETMQ_HOME_PROPERTY, System.getenv(MixAll.ROCKETMQ_HOME_ENV));
 
         // 初始化Logback
         LoggerContext lc = (LoggerContext) LoggerFactory.getILoggerFactory();
