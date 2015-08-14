@@ -75,6 +75,8 @@ public class ClientConfig {
         this.pollNameServerInteval = cc.pollNameServerInteval;
         this.heartbeatBrokerInterval = cc.heartbeatBrokerInterval;
         this.persistConsumerOffsetInterval = cc.persistConsumerOffsetInterval;
+        this.unitMode = cc.unitMode;
+        this.unitName = cc.unitName;
     }
 
 
@@ -172,13 +174,16 @@ public class ClientConfig {
         this.unitName = unitName;
     }
 
+
     public boolean isUnitMode() {
         return unitMode;
     }
 
+
     public void setUnitMode(boolean unitMode) {
         this.unitMode = unitMode;
     }
+
 
     @Override
     public String toString() {
