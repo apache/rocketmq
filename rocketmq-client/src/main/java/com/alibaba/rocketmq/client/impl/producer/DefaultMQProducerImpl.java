@@ -621,8 +621,11 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
         SendMessageContext context = null;
         if (brokerAddr != null) {
-        	String[] ipAndPort=brokerAddr.split(":");
-        	brokerAddr=ipAndPort[0]+":"+(Integer.valueOf(ipAndPort[1])-2);
+        	//默认使用原来的通道，兼容老服务端
+			if ("t".equals(System.getProperty("RMQFAST"))) {
+				String[] ipAndPort = brokerAddr.split(":");
+				brokerAddr = ipAndPort[0] + ":" + (Integer.valueOf(ipAndPort[1]) - 2);
+			}
             byte[] prevBody = msg.getBody();
             try {
                 int sysFlag = 0;
