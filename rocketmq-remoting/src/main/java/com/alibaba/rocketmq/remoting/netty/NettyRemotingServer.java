@@ -66,12 +66,8 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 public class NettyRemotingServer extends NettyRemotingAbstract implements RemotingServer {
     private static final Logger log = LoggerFactory.getLogger(RemotingHelper.RemotingLogName);
     private final ServerBootstrap serverBootstrap;
-    private final ServerBootstrap fastServerBootstrap;
     private final EventLoopGroup eventLoopGroupWorker;
-    private final EventLoopGroup fastEventLoopGroupWorker;
     private final EventLoopGroup eventLoopGroupBoss;
-    private final EventLoopGroup fastEventLoopGroupBoss;
-
     private final NettyServerConfig nettyServerConfig;
     // 处理Callback应答器
     private final ExecutorService publicExecutor;
@@ -96,8 +92,6 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
         super(nettyServerConfig.getServerOnewaySemaphoreValue(), nettyServerConfig
             .getServerAsyncSemaphoreValue());
         this.serverBootstrap = new ServerBootstrap();
-        this.fastServerBootstrap = new ServerBootstrap();
-
         this.nettyServerConfig = nettyServerConfig;
         this.channelEventListener = channelEventListener;
 
@@ -126,16 +120,7 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
                     String.format("NettyBossSelector_%d", this.threadIndex.incrementAndGet()));
             }
         });
-        this.fastEventLoopGroupBoss = new NioEventLoopGroup(1, new ThreadFactory() {
-            private AtomicInteger threadIndex = new AtomicInteger(0);
 
-
-            @Override
-            public Thread newThread(Runnable r) {
-                return new Thread(r,
-                    String.format("FastNettyBossSelector_%d", this.threadIndex.incrementAndGet()));
-            }
-        });
         this.eventLoopGroupWorker =
                 new NioEventLoopGroup(nettyServerConfig.getServerSelectorThreads(), new ThreadFactory() {
                     private AtomicInteger threadIndex = new AtomicInteger(0);
@@ -148,18 +133,6 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
                             this.threadIndex.incrementAndGet()));
                     }
                 });
-        this.fastEventLoopGroupWorker =
-                new NioEventLoopGroup(nettyServerConfig.getServerSelectorThreads(), new ThreadFactory() {
-                    private AtomicInteger threadIndex = new AtomicInteger(0);
-                    private int threadTotal = nettyServerConfig.getServerSelectorThreads();
-
-
-                    @Override
-                    public Thread newThread(Runnable r) {
-                        return new Thread(r, String.format("FastNettyServerSelector_%d_%d", threadTotal,
-                            this.threadIndex.incrementAndGet()));
-                    }
-                });        
     }
 
 
@@ -209,39 +182,8 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
                                 new NettyServerHandler());
                         }
                     });
-        ServerBootstrap fastChildHandler = //
-                this.fastServerBootstrap.group(this.fastEventLoopGroupBoss, this.fastEventLoopGroupWorker)
-                    .channel(NioServerSocketChannel.class)
-                    //
-                    .option(ChannelOption.SO_BACKLOG, 1024)
-                    //
-                    .option(ChannelOption.SO_REUSEADDR, true)
-                    //
-                    .option(ChannelOption.SO_KEEPALIVE, false)
-                    //
-                    .childOption(ChannelOption.TCP_NODELAY, true)
-                    //
-                    .option(ChannelOption.SO_SNDBUF, nettyServerConfig.getServerSocketSndBufSize())
-                    //
-                    .option(ChannelOption.SO_RCVBUF, nettyServerConfig.getServerSocketRcvBufSize())
-                    //
-                    .localAddress(new InetSocketAddress(this.nettyServerConfig.getListenPort()-2))
-                    .childHandler(new ChannelInitializer<SocketChannel>() {
-                        @Override
-                        public void initChannel(SocketChannel ch) throws Exception {
-                            ch.pipeline().addLast(
-                                //
-                                defaultEventExecutorGroup, //
-                                new NettyEncoder(), //
-                                new NettyDecoder(), //
-                                new IdleStateHandler(0, 0, nettyServerConfig
-                                    .getServerChannelMaxIdleTimeSeconds()),//
-                                new NettyConnetManageHandler(), //
-                                new NettyServerHandler());
-                        }
-                    });
+
         if (nettyServerConfig.isServerPooledByteBufAllocatorEnable()) {
-            // 这个选项有可能会占用大量堆外内存，暂时不使用。
             childHandler.childOption(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT);
         }
 
@@ -253,17 +195,11 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
         catch (InterruptedException e1) {
             throw new RuntimeException("this.serverBootstrap.bind().sync() InterruptedException", e1);
         }
-        try {
-            ChannelFuture sync = this.fastServerBootstrap.bind().sync();
-        }
-        catch (InterruptedException e1) {
-            throw new RuntimeException("this.serverBootstrap.bind().sync() InterruptedException", e1);
-        }
+
         if (this.channelEventListener != null) {
             this.nettyEventExecuter.start();
         }
 
-        // 每隔1秒扫描下异步调用超时情况
         this.timer.scheduleAtFixedRate(new TimerTask() {
 
             @Override
@@ -330,9 +266,9 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
             }
 
             this.eventLoopGroupBoss.shutdownGracefully();
-            this.fastEventLoopGroupBoss.shutdownGracefully();
+
             this.eventLoopGroupWorker.shutdownGracefully();
-            this.fastEventLoopGroupWorker.shutdownGracefully();
+
             if (this.nettyEventExecuter != null) {
                 this.nettyEventExecuter.shutdown();
             }
