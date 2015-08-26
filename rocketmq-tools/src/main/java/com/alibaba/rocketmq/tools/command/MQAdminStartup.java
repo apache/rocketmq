@@ -98,6 +98,7 @@ public class MQAdminStartup {
         initCommand(new StatsAllSubCommand());
 
         initCommand(new SyncDocsToGithubSubCommand());
+        initCommand(new AllocateMQSubCommand());
     }
 
 
