@@ -89,7 +89,7 @@ public class AllocateMQSubCommand implements SubCommand {
             RebalanceResult rr = new RebalanceResult();
 
             for (String i : ipList) {
-                final List<MessageQueue> mqResult = averagely.allocate("aa", MixAll.Localhost, new ArrayList<MessageQueue>(mqs), ipList);
+                final List<MessageQueue> mqResult = averagely.allocate("aa", i, new ArrayList<MessageQueue>(mqs), ipList);
                 rr.getResult().put(i, mqResult);
             }
 
