@@ -70,6 +70,8 @@ public class AllocateMQSubCommand implements SubCommand {
         DefaultMQAdminExt adminExt = new DefaultMQAdminExt(rpcHook);
         adminExt.setInstanceName(Long.toString(System.currentTimeMillis()));
         try {
+            adminExt.start();
+
             String topic = commandLine.getOptionValue('t').trim();
             String ips = commandLine.getOptionValue('i').trim();
             final String[] split = ips.split(",");
