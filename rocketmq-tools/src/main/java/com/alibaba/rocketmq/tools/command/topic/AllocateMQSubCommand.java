@@ -93,7 +93,7 @@ public class AllocateMQSubCommand implements SubCommand {
                 rr.getResult().put(i, mqResult);
             }
 
-            final String json = RemotingSerializable.toJson(rr, true);
+            final String json = RemotingSerializable.toJson(rr, false);
             System.out.println(json);
         } catch (Exception e) {
             e.printStackTrace();
