@@ -17,6 +17,8 @@ package com.alibaba.rocketmq.example.quickstart;
 
 import com.alibaba.rocketmq.client.exception.MQClientException;
 import com.alibaba.rocketmq.client.producer.DefaultMQProducer;
+import com.alibaba.rocketmq.client.producer.LocalTransactionExecuter;
+import com.alibaba.rocketmq.client.producer.LocalTransactionState;
 import com.alibaba.rocketmq.client.producer.SendResult;
 import com.alibaba.rocketmq.common.message.Message;
 
@@ -38,6 +40,15 @@ public class Producer {
                     ("Hello RocketMQ " + i).getBytes()// body
                         );
                 SendResult sendResult = producer.send(msg);
+                LocalTransactionExecuter tranExecuter=new LocalTransactionExecuter() {
+					
+					@Override
+					public LocalTransactionState executeLocalTransactionBranch(Message msg, Object arg) {
+						// TODO Auto-generated method stub
+						return null;
+					}
+				};
+				//producer.sendMessageInTransaction(msg, tranExecuter, arg)
                 System.out.println(sendResult);
             }
             catch (Exception e) {

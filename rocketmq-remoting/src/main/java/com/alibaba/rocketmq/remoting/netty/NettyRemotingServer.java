@@ -193,7 +193,6 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
                     });
 
         if (nettyServerConfig.isServerPooledByteBufAllocatorEnable()) {
-            // 这个选项有可能会占用大量堆外内存，暂时不使用。
             childHandler.childOption(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT);
         }
 
@@ -210,7 +209,6 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
             this.nettyEventExecuter.start();
         }
 
-        // 每隔1秒扫描下异步调用超时情况
         this.timer.scheduleAtFixedRate(new TimerTask() {
 
             @Override

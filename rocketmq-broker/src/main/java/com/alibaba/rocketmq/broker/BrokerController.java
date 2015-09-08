@@ -89,6 +89,8 @@ public class BrokerController {
     private final SlaveSynchronize slaveSynchronize;
     private MessageStore messageStore;
     private RemotingServer remotingServer;
+    private RemotingServer fastRemotingServer;
+
     private TopicConfigManager topicConfigManager;
     private ExecutorService sendMessageExecutor;
     private ExecutorService pullMessageExecutor;
@@ -148,7 +150,7 @@ public class BrokerController {
     }
 
 
-    public boolean initialize() {
+    public boolean initialize() throws CloneNotSupportedException {
         boolean result = true;
 
         result = result && this.topicConfigManager.load();
@@ -172,7 +174,9 @@ public class BrokerController {
 
         if (result) {
             this.remotingServer = new NettyRemotingServer(this.nettyServerConfig, this.clientHousekeepingService);
-
+            NettyServerConfig fastConfig=(NettyServerConfig) this.nettyServerConfig.clone();
+            fastConfig.setListenPort(nettyServerConfig.getListenPort()-2);
+            this.fastRemotingServer = new NettyRemotingServer(fastConfig, this.clientHousekeepingService);
             this.sendMessageExecutor = new ThreadPoolExecutor(//
                 this.brokerConfig.getSendMessageThreadPoolNums(),//
                 this.brokerConfig.getSendMessageThreadPoolNums(),//
@@ -319,10 +323,16 @@ public class BrokerController {
          */
         SendMessageProcessor sendProcessor = new SendMessageProcessor(this);
         sendProcessor.registerSendMessageHook(sendMessageHookList);
+        
         this.remotingServer.registerProcessor(RequestCode.SEND_MESSAGE, sendProcessor, this.sendMessageExecutor);
-        this.remotingServer.registerProcessor(RequestCode.SEND_MESSAGE_V2, sendProcessor, this.sendMessageExecutor);
-        this.remotingServer.registerProcessor(RequestCode.CONSUMER_SEND_MSG_BACK, sendProcessor, this.sendMessageExecutor);
-
+        this.remotingServer.registerProcessor(RequestCode.SEND_MESSAGE_V2, sendProcessor,this.sendMessageExecutor);
+        this.remotingServer.registerProcessor(RequestCode.CONSUMER_SEND_MSG_BACK, sendProcessor,this.sendMessageExecutor);
+        /**
+         * 只用于发送的无阻塞通道
+         */
+        this.fastRemotingServer.registerProcessor(RequestCode.SEND_MESSAGE, sendProcessor,this.sendMessageExecutor);
+        this.fastRemotingServer.registerProcessor(RequestCode.SEND_MESSAGE_V2, sendProcessor,this.sendMessageExecutor);
+        this.fastRemotingServer.registerProcessor(RequestCode.CONSUMER_SEND_MSG_BACK, sendProcessor,this.sendMessageExecutor);
         /**
          * PullMessageProcessor
          */
@@ -413,7 +423,9 @@ public class BrokerController {
         return producerManager;
     }
 
-
+	public void setFastRemotingServer(RemotingServer fastRemotingServer) {
+		this.fastRemotingServer = fastRemotingServer;
+	}
     public PullMessageProcessor getPullMessageProcessor() {
         return pullMessageProcessor;
     }
@@ -465,6 +477,10 @@ public class BrokerController {
             this.remotingServer.shutdown();
         }
 
+        if (this.fastRemotingServer!=null) {
+			this.fastRemotingServer.shutdown();
+		}
+        
         if (this.messageStore != null) {
             this.messageStore.shutdown();
         }
@@ -526,6 +542,10 @@ public class BrokerController {
             this.remotingServer.start();
         }
 
+		if (this.fastRemotingServer != null) {
+			this.fastRemotingServer.start();
+		}
+		
         if (this.brokerOuterAPI != null) {
             this.brokerOuterAPI.start();
         }

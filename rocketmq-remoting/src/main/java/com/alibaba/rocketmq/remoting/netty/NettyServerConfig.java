@@ -21,7 +21,7 @@ package com.alibaba.rocketmq.remoting.netty;
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-13
  */
-public class NettyServerConfig {
+public class NettyServerConfig implements Cloneable{
     private int listenPort = 8888;
     private int serverWorkerThreads = 8;
     private int serverCallbackExecutorThreads = 0;
@@ -152,4 +152,9 @@ public class NettyServerConfig {
     public void setUseEpollNativeSelector(boolean useEpollNativeSelector) {
         this.useEpollNativeSelector = useEpollNativeSelector;
     }
+    
+    @Override  
+    public Object clone() throws CloneNotSupportedException {  
+        return (NettyServerConfig)super.clone();  
+    }  
 }
