@@ -30,7 +30,6 @@ public class Producer {
          * 因为服务器会回查这个Group下的任意一个Producer
          */
         DefaultMQProducer producer = new DefaultMQProducer("ProducerGroupName");
-        producer.setCreateTopicKey("test_longji");
         /**
          * Producer对象在使用之前必须要调用start初始化，初始化一次即可<br>
          * 注意：切记不可以在每次发送消息时，都调用start方法
@@ -46,7 +45,7 @@ public class Producer {
         for (int i = 0; i < 1; i++)
             try {
                 {
-                    Message msg = new Message("TopicTest3",// topic
+                    Message msg = new Message("TopicTest",// topic
                         "TagA",// tag
                         "OrderID188",// key
                         ("Hello MetaQ").getBytes());// body
