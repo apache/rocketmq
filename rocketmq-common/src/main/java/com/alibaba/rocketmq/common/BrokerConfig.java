@@ -92,7 +92,7 @@ public class BrokerConfig {
     private boolean notifyConsumerIdsChangedEnable = true;
 
     // 堆积读取预热
-    private boolean piledWarmup = true;
+    private boolean piledWarmup = false;
 
     // 等待时间ms
     private long piledAwaitTime = 0;
