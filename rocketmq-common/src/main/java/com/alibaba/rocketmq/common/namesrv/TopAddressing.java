@@ -61,10 +61,10 @@ public class TopAddressing {
 
 
     public final String fetchNSAddr(boolean verbose, long timeoutMills) {
+        String url = this.wsAddr;
         try {
-            String url = this.wsAddr;
             if (!UtilAll.isBlank(this.unitName)) {
-                url = url + "-" + this.unitName+"?nofix=1";
+                url = url + "-" + this.unitName + "?nofix=1";
             }
             HttpResult result = HttpTinyClient.httpGet(url, null, null, "UTF-8", timeoutMills);
             if (200 == result.code) {
@@ -88,7 +88,7 @@ public class TopAddressing {
 
         if (verbose) {
             String errorMsg =
-                    "connect to " + wsAddr + " failed, maybe the domain name " + MixAll.WS_DOMAIN_NAME + " not bind in /etc/hosts";
+                    "connect to " + url + " failed, maybe the domain name " + MixAll.WS_DOMAIN_NAME + " not bind in /etc/hosts";
             errorMsg += FAQUrl.suggestTodo(FAQUrl.NAME_SERVER_ADDR_NOT_EXIST_URL);
 
             log.warn(errorMsg);

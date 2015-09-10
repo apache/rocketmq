@@ -203,7 +203,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
 
         if (result.getOffsetTable().isEmpty()) {
             throw new MQClientException(ResponseCode.CONSUMER_NOT_ONLINE,
-                    "Not found the consumer group consume stats, because return offset table is empty, maybe the consumer not consume any message");
+                "Not found the consumer group consume stats, because return offset table is empty, maybe the consumer not consume any message");
         }
 
         return result;
@@ -883,5 +883,12 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
     public BrokerStatsData ViewBrokerStatsData(String brokerAddr, String statsName, String statsKey) throws RemotingConnectException,
             RemotingSendRequestException, RemotingTimeoutException, MQClientException, InterruptedException {
         return this.mqClientInstance.getMQClientAPIImpl().ViewBrokerStatsData(brokerAddr, statsName, statsKey, 3000);
+    }
+
+
+    @Override
+    public Set<String> getClusterList(String topic) throws RemotingConnectException, RemotingSendRequestException,
+            RemotingTimeoutException, MQClientException, InterruptedException {
+        return this.mqClientInstance.getMQClientAPIImpl().getClusterList(topic, 3000);
     }
 }

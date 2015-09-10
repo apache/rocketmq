@@ -436,4 +436,10 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
             MQClientException, InterruptedException {
         return this.defaultMQAdminExtImpl.ViewBrokerStatsData(brokerAddr, statsName, statsKey);
     }
+
+    @Override
+    public Set<String> getClusterList(String topic)throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException,
+    MQClientException, InterruptedException {
+        return this.defaultMQAdminExtImpl.getClusterList(topic);
+    }
 }

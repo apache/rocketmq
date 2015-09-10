@@ -15,15 +15,6 @@
  */
 package com.alibaba.rocketmq.tools.command.consumer;
 
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
-
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.Option;
-import org.apache.commons.cli.Options;
-import org.slf4j.Logger;
-
 import com.alibaba.rocketmq.client.log.ClientLogger;
 import com.alibaba.rocketmq.common.MQVersion;
 import com.alibaba.rocketmq.common.MixAll;
@@ -38,6 +29,14 @@ import com.alibaba.rocketmq.common.protocol.heartbeat.MessageModel;
 import com.alibaba.rocketmq.remoting.RPCHook;
 import com.alibaba.rocketmq.tools.admin.DefaultMQAdminExt;
 import com.alibaba.rocketmq.tools.command.SubCommand;
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.Option;
+import org.apache.commons.cli.Options;
+import org.slf4j.Logger;
+
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
 
 
 /**
@@ -90,14 +89,14 @@ public class ConsumerProgressSubCommand implements SubCommand {
                 mqList.addAll(consumeStats.getOffsetTable().keySet());
                 Collections.sort(mqList);
 
-                System.out.printf("%-32s  %-32s  %-4s  %-20s  %-20s  %s\n",//
+                System.out.printf("%-32s  %-32s  %-4s  %-20s  %-20s  %-20s  %s\n",//
                     "#Topic",//
                     "#Broker Name",//
                     "#QID",//
                     "#Broker Offset",//
                     "#Consumer Offset",//
-                    "#Diff" //
-                );
+                    "#Diff", //
+                    "#LastTimeStamp");
 
                 long diffTotal = 0L;
 
@@ -107,13 +106,14 @@ public class ConsumerProgressSubCommand implements SubCommand {
                     long diff = offsetWrapper.getBrokerOffset() - offsetWrapper.getConsumerOffset();
                     diffTotal += diff;
 
-                    System.out.printf("%-32s  %-32s  %-4d  %-20d  %-20d  %d\n",//
+                    System.out.printf("%-32s  %-32s  %-4d  %-20d  %-20d  %-20d  %d\n",//
                         UtilAll.frontStringAtLeast(mq.getTopic(), 32),//
                         UtilAll.frontStringAtLeast(mq.getBrokerName(), 32),//
                         mq.getQueueId(),//
                         offsetWrapper.getBrokerOffset(),//
                         offsetWrapper.getConsumerOffset(),//
-                        diff //
+                        diff, //
+                        offsetWrapper.getLastTimestamp()//
                         );
                 }
 
@@ -180,8 +180,7 @@ public class ConsumerProgressSubCommand implements SubCommand {
                                 );
                         }
                         catch (Exception e) {
-                            log.warn("examineConsumeStats or examineConsumerConnectionInfo exception, "
-                                    + consumerGroup, e);
+                            log.warn("examineConsumeStats or examineConsumerConnectionInfo exception, " + consumerGroup, e);
                         }
                     }
                 }

@@ -1708,4 +1708,11 @@ public class MQClientAPIImpl {
 
         throw new MQClientException(response.getCode(), response.getRemark());
     }
+
+
+    public Set<String> getClusterList(String topic, long timeoutMillis) throws MQClientException, RemotingConnectException,
+            RemotingSendRequestException, RemotingTimeoutException, InterruptedException {
+        // todo:jodie
+        return Collections.EMPTY_SET;
+    }
 }
