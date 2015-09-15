@@ -15,6 +15,7 @@
  */
 package com.alibaba.rocketmq.client.consumer;
 
+import com.alibaba.rocketmq.client.consumer.listener.MessageListener;
 import com.alibaba.rocketmq.client.consumer.listener.MessageListenerConcurrently;
 import com.alibaba.rocketmq.client.consumer.listener.MessageListenerOrderly;
 import com.alibaba.rocketmq.client.exception.MQClientException;
@@ -46,6 +47,10 @@ public interface MQPushConsumer extends MQConsumer {
      *
      * @param messageListener
      */
+    @Deprecated
+    public void registerMessageListener(MessageListener messageListener);
+
+
     void registerMessageListener(final MessageListenerConcurrently messageListener);
 
 
@@ -77,8 +82,7 @@ public interface MQPushConsumer extends MQConsumer {
      *            for your code safety
      * @throws MQClientException
      */
-    void subscribe(final String topic, final String fullClassName, final String filterClassSource)
-            throws MQClientException;
+    void subscribe(final String topic, final String fullClassName, final String filterClassSource) throws MQClientException;
 
 
     /**
