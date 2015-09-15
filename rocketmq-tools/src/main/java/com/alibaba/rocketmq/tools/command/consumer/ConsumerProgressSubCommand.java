@@ -35,6 +35,7 @@ import org.apache.commons.cli.Options;
 import org.slf4j.Logger;
 
 import java.util.Collections;
+import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -96,7 +97,7 @@ public class ConsumerProgressSubCommand implements SubCommand {
                     "#Broker Offset",//
                     "#Consumer Offset",//
                     "#Diff", //
-                    "#LastTimeStamp");
+                    "#LastTime");
 
                 long diffTotal = 0L;
 
@@ -106,19 +107,27 @@ public class ConsumerProgressSubCommand implements SubCommand {
                     long diff = offsetWrapper.getBrokerOffset() - offsetWrapper.getConsumerOffset();
                     diffTotal += diff;
 
-                    System.out.printf("%-32s  %-32s  %-4d  %-20d  %-20d  %-20d  %d\n",//
-                        UtilAll.frontStringAtLeast(mq.getTopic(), 32),//
-                        UtilAll.frontStringAtLeast(mq.getBrokerName(), 32),//
-                        mq.getQueueId(),//
-                        offsetWrapper.getBrokerOffset(),//
-                        offsetWrapper.getConsumerOffset(),//
-                        diff, //
-                        offsetWrapper.getLastTimestamp()//
-                        );
+                    String lastTime = "-";
+                    try {
+                        lastTime = UtilAll.formatDate(new Date(offsetWrapper.getLastTimestamp()), UtilAll.yyyy_MM_dd_HH_mm_ss);
+                    }
+                    catch (Exception e) {
+                        //
+                    }
+                    if (offsetWrapper.getLastTimestamp() > 0)
+                        System.out.printf("%-32s  %-32s  %-4d  %-20d  %-20d  %-20d  %s\n",//
+                            UtilAll.frontStringAtLeast(mq.getTopic(), 32),//
+                            UtilAll.frontStringAtLeast(mq.getBrokerName(), 32),//
+                            mq.getQueueId(),//
+                            offsetWrapper.getBrokerOffset(),//
+                            offsetWrapper.getConsumerOffset(),//
+                            diff, //
+                            lastTime//
+                            );
                 }
 
                 System.out.println("");
-                System.out.printf("Consume TPS: %d\n", consumeStats.getConsumeTps());
+                System.out.printf("Consume TPS: %s\n", consumeStats.getConsumeTps());
                 System.out.printf("Diff Total: %d\n", diffTotal);
             }
             // 查询全部
