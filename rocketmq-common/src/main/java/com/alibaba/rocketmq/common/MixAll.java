@@ -19,7 +19,6 @@ import com.alibaba.rocketmq.common.annotation.ImportantField;
 import com.alibaba.rocketmq.common.help.FAQUrl;
 import org.slf4j.Logger;
 
-import java.beans.PropertyDescriptor;
 import java.io.*;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
@@ -76,7 +75,6 @@ public class MixAll {
     public static final String DLQ_GROUP_TOPIC_PREFIX = "%DLQ%";
     public static final String SYSTEM_TOPIC_PREFIX = "rmq_sys_";
 
-
     public static String getRetryTopic(final String consumerGroup) {
         return RETRY_GROUP_TOPIC_PREFIX + consumerGroup;
     }
@@ -89,6 +87,28 @@ public class MixAll {
 
     public static String getDLQTopic(final String consumerGroup) {
         return DLQ_GROUP_TOPIC_PREFIX + consumerGroup;
+    }
+
+    public static final String SendMessageToAnotherPortProperty = "com.rocketmq.sendMessageToAnotherPort";
+
+    private static boolean SendMessageToAnotherPort = Boolean.parseBoolean(System.getProperty(SendMessageToAnotherPortProperty, "false"));
+
+    public static String getSendMessageAddr(final String brokerAddr) {
+        if (SendMessageToAnotherPort) {
+            String[] ipAndPort = brokerAddr.split(":");
+            String brokerAddrNew = ipAndPort[0] + ":" + (Integer.valueOf(ipAndPort[1]) - 2);
+            return brokerAddrNew;
+        }
+
+        return brokerAddr;
+    }
+
+
+    public static void enablSendMessageToAnotherPort(){
+        SendMessageToAnotherPort = true;
+    }
+    public static void disableSendMessageToAnotherPort(){
+        SendMessageToAnotherPort = false;
     }
 
 
