@@ -15,24 +15,24 @@
  */
 package com.alibaba.rocketmq.namesrv;
 
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.alibaba.rocketmq.common.ThreadFactoryImpl;
 import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.common.namesrv.NamesrvConfig;
 import com.alibaba.rocketmq.namesrv.kvconfig.KVConfigManager;
+import com.alibaba.rocketmq.namesrv.processor.ClusterTestRequestProcessor;
 import com.alibaba.rocketmq.namesrv.processor.DefaultRequestProcessor;
 import com.alibaba.rocketmq.namesrv.routeinfo.BrokerHousekeepingService;
 import com.alibaba.rocketmq.namesrv.routeinfo.RouteInfoManager;
 import com.alibaba.rocketmq.remoting.RemotingServer;
 import com.alibaba.rocketmq.remoting.netty.NettyRemotingServer;
 import com.alibaba.rocketmq.remoting.netty.NettyServerConfig;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 
 /**
@@ -55,8 +55,8 @@ public class NamesrvController {
     private ExecutorService remotingExecutor;
 
     // 定时线程
-    private final ScheduledExecutorService scheduledExecutorService = Executors
-        .newSingleThreadScheduledExecutor(new ThreadFactoryImpl("NSScheduledThread"));
+    private final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl(
+        "NSScheduledThread"));
 
     /**
      * 核心数据结构
@@ -83,8 +83,7 @@ public class NamesrvController {
 
         // 初始化线程池
         this.remotingExecutor =
-                Executors.newFixedThreadPool(nettyServerConfig.getServerWorkerThreads(),
-                    new ThreadFactoryImpl("RemotingExecutorThread_"));
+                Executors.newFixedThreadPool(nettyServerConfig.getServerWorkerThreads(), new ThreadFactoryImpl("RemotingExecutorThread_"));
 
         this.registerProcessor();
 
@@ -118,8 +117,15 @@ public class NamesrvController {
 
 
     private void registerProcessor() {
-        this.remotingServer
-            .registerDefaultProcessor(new DefaultRequestProcessor(this), this.remotingExecutor);
+        if (namesrvConfig.isClusterTest()) {
+            // 全链路压测版本
+            this.remotingServer.registerDefaultProcessor(new ClusterTestRequestProcessor(this, namesrvConfig.getProductEnvName()),
+                this.remotingExecutor);
+        }
+        else {
+            // 生产网默认版本
+            this.remotingServer.registerDefaultProcessor(new DefaultRequestProcessor(this), this.remotingExecutor);
+        }
     }
 
 

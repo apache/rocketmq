@@ -382,7 +382,7 @@ public class MixAll {
     /**
      * 将Properties中的值写入Object
      */
-    public static void properties2Object(final Properties p, final Object object) {
+    public static void  properties2Object(final Properties p, final Object object) {
         Method[] methods = object.getClass().getMethods();
         for (Method method : methods) {
             String mn = method.getName();
