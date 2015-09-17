@@ -90,19 +90,6 @@ public class BrokerConfig {
 
     // notify consumerId changed 开关
     private boolean notifyConsumerIdsChangedEnable = true;
-
-    // 堆积读取预热
-    private boolean piledWarmup = false;
-
-    // 等待时间ms
-    private long piledAwaitTime = 0;
-
-    // 缓存已预热的文件数目
-    private int piledElementAmount = 60;
-
-    // 预热方式
-    private int warmType = 0;
-
     // 高速模式
     private boolean highSpeedMode = false;
 
@@ -392,45 +379,4 @@ public class BrokerConfig {
     public void setClientManageThreadPoolNums(int clientManageThreadPoolNums) {
         this.clientManageThreadPoolNums = clientManageThreadPoolNums;
     }
-
-
-    public boolean isPiledWarmup() {
-        return piledWarmup;
-    }
-
-
-    public void setPiledWarmup(boolean piledWarmup) {
-        this.piledWarmup = piledWarmup;
-    }
-
-
-    public long getPiledAwaitTime() {
-        return piledAwaitTime;
-    }
-
-
-    public void setPiledAwaitTime(long piledAwaitTime) {
-        this.piledAwaitTime = piledAwaitTime;
-    }
-
-
-    public int getPiledElementAmount() {
-        return piledElementAmount;
-    }
-
-
-    public void setPiledElementAmount(int piledElementAmount) {
-        this.piledElementAmount = piledElementAmount;
-    }
-
-
-    public int getWarmType() {
-        return warmType;
-    }
-
-
-    public void setWarmType(int warmType) {
-        this.warmType = warmType;
-    }
-
 }
