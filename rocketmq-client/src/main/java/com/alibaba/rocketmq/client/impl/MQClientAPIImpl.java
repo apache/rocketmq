@@ -1715,4 +1715,31 @@ public class MQClientAPIImpl {
         // todo:jodie
         return Collections.EMPTY_SET;
     }
+
+
+    public ConsumeStatsList fetchConsumeStatsInBroker(String brokerAddr, boolean isOrder, long timeoutMillis)
+            throws MQClientException, RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException,
+            InterruptedException {
+        GetConsumeStatsInBrokerHeader requestHeader = new GetConsumeStatsInBrokerHeader();
+        requestHeader.setIsOrder(isOrder);
+
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_BROKER_CONSUME_STATS, requestHeader);
+
+        RemotingCommand response = this.remotingClient.invokeSync(brokerAddr, request, timeoutMillis);
+        assert response != null;
+        switch (response.getCode()) {
+            case ResponseCode.SUCCESS: {
+                byte[] body = response.getBody();
+                if (body != null) {
+                    return ConsumeStatsList.decode(body, ConsumeStatsList.class);
+                }
+            }
+            default:
+                break;
+        }
+
+        throw new MQClientException(response.getCode(), response.getRemark());
+    }
+
+
 }

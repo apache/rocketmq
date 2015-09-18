@@ -168,4 +168,8 @@ public class RequestCode {
 
     // 清理失效topic
     public static final int CLEAN_UNUSED_TOPIC = 316;
+
+    //Broker 获取整个Broker的消费（进度）
+    public static final int GET_BROKER_CONSUME_STATS = 317;
+
 }

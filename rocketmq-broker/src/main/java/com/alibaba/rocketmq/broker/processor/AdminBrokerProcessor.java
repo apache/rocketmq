@@ -15,6 +15,7 @@
  */
 package com.alibaba.rocketmq.broker.processor;
 
+import com.alibaba.fastjson.JSON;
 import com.alibaba.rocketmq.broker.BrokerController;
 import com.alibaba.rocketmq.broker.client.ClientChannelInfo;
 import com.alibaba.rocketmq.broker.client.ConsumerGroupInfo;
@@ -57,6 +58,7 @@ import org.slf4j.LoggerFactory;
 import java.io.UnsupportedEncodingException;
 import java.net.UnknownHostException;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 
 /**
@@ -187,6 +189,9 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             // 查看Broker统计信息
         case RequestCode.VIEW_BROKER_STATS_DATA:
             return ViewBrokerStatsData(ctx, request);
+        //查看broker的消费堆积统计
+        case RequestCode.GET_BROKER_CONSUME_STATS:
+            return fetchAllConsumeStatsInBroker(ctx, request);
         default:
             break;
         }
@@ -1175,4 +1180,94 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         response.setRemark(null);
         return response;
     }
+
+    private RemotingCommand fetchAllConsumeStatsInBroker(ChannelHandlerContext ctx, RemotingCommand request) throws RemotingCommandException {
+        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
+        GetConsumeStatsInBrokerHeader requestHeader =
+                (GetConsumeStatsInBrokerHeader) request.decodeCommandCustomHeader(GetConsumeStatsInBrokerHeader.class);
+        boolean isOrder = requestHeader.isOrder();
+        //获取Broker有多少个订阅的group
+        ConcurrentHashMap<String, SubscriptionGroupConfig> subscriptionGroups = brokerController.getSubscriptionGroupManager().getSubscriptionGroupTable();
+        List<Map<String/*subscriptionGroupName*/, List<ConsumeStats>>> brokerConsumeStatsList = new ArrayList<Map<String, List<ConsumeStats>>>();
+        //开始查询每个group订阅的每个topic的消费情况
+        for (String group : subscriptionGroups.keySet()){
+            Map<String, List<ConsumeStats>> subscripTopicConsumeMap = new HashMap<String, List<ConsumeStats>>();
+            //每个group订阅了哪些topic
+            Set<String> topics = this.brokerController.getConsumerOffsetManager().whichTopicByConsumer(group);
+            List<ConsumeStats> consumeStatsList = new ArrayList<ConsumeStats>();
+            for (String topic : topics) {
+                ConsumeStats consumeStats = new ConsumeStats();
+                TopicConfig topicConfig = this.brokerController.getTopicConfigManager().selectTopicConfig(topic);
+                if (null == topicConfig) {
+                    log.warn("consumeStats, topic config not exist, {}", topic);
+                    continue;
+                }
+                //只查顺序消息的堆积
+                if (isOrder && !topicConfig.isOrder()){
+                    continue;
+                }
+                /**
+                 * Consumer不在线的时候，也允许查询消费进度
+                 */
+                {
+                    SubscriptionData findSubscriptionData =
+                            this.brokerController.getConsumerManager().findSubscriptionData(group, topic);
+                    // 如果Consumer在线，而且这个topic没有被订阅，那么就跳过
+                    if (null == findSubscriptionData //
+                            && this.brokerController.getConsumerManager().findSubscriptionDataCount(group) > 0) {
+                        log.warn("consumeStats, the consumer group[{}], topic[{}] not exist", group, topic);
+                        continue;
+                    }
+                }
+
+                for (int i = 0; i < topicConfig.getWriteQueueNums(); i++) {
+                    MessageQueue mq = new MessageQueue();
+                    mq.setTopic(topic);
+                    mq.setBrokerName(this.brokerController.getBrokerConfig().getBrokerName());
+                    mq.setQueueId(i);
+
+                    OffsetWrapper offsetWrapper = new OffsetWrapper();
+
+                    long brokerOffset = this.brokerController.getMessageStore().getMaxOffsetInQuque(topic, i);
+                    if (brokerOffset < 0)
+                        brokerOffset = 0;
+
+                    long consumerOffset = this.brokerController.getConsumerOffsetManager().queryOffset(//
+                            group,//
+                            topic,//
+                            i);
+                    if (consumerOffset < 0)
+                        consumerOffset = 0;
+
+                    offsetWrapper.setBrokerOffset(brokerOffset);
+                    offsetWrapper.setConsumerOffset(consumerOffset);
+
+                    // 查询消费者最后一条消息对应的时间戳
+                    long timeOffset = consumerOffset - 1;
+                    if (timeOffset >= 0) {
+                        long lastTimestamp = this.brokerController.getMessageStore().getMessageStoreTimeStamp(topic, i, timeOffset);
+                        if (lastTimestamp > 0) {
+                            offsetWrapper.setLastTimestamp(lastTimestamp);
+                        }
+                    }
+                    consumeStats.getOffsetTable().put(mq, offsetWrapper);
+                }
+                double consumeTps = this.brokerController.getBrokerStatsManager().tpsGroupGetNums(group, topic);
+                consumeTps += consumeStats.getConsumeTps();
+                consumeStats.setConsumeTps(consumeTps);
+                consumeStatsList.add(consumeStats);
+            }
+            subscripTopicConsumeMap.put(group, consumeStatsList);
+            brokerConsumeStatsList.add(subscripTopicConsumeMap);
+        }
+        ConsumeStatsList consumeStats = new ConsumeStatsList();
+        consumeStats.setBrokerAddr(brokerController.getBrokerAddr());
+        consumeStats.setConsumeStatsList(brokerConsumeStatsList);
+        response.setBody(consumeStats.encode());
+        response.setCode(ResponseCode.SUCCESS);
+        response.setRemark(null);
+        return response;
+    }
+
+
 }

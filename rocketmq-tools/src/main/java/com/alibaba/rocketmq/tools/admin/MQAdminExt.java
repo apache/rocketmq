@@ -76,7 +76,7 @@ public interface MQAdminExt extends MQAdmin {
      * @throws MQBrokerException
      * @throws RemotingException
      */
-    public void createAndUpdateTopicConfig(final String addr, final TopicConfig config) throws RemotingException, MQBrokerException,
+    public void     createAndUpdateTopicConfig(final String addr, final TopicConfig config) throws RemotingException, MQBrokerException,
             InterruptedException, MQClientException;
 
 
@@ -589,4 +589,9 @@ public interface MQAdminExt extends MQAdmin {
 
     public Set<String> getClusterList(final String topic) throws RemotingConnectException, RemotingSendRequestException,
             RemotingTimeoutException, MQClientException, InterruptedException;
+
+
+    public ConsumeStatsList fetchConsumeStatsInBroker(final String brokerAddr, boolean isOrder) throws RemotingConnectException, RemotingSendRequestException,
+            RemotingTimeoutException, MQClientException, InterruptedException;
+
 }
