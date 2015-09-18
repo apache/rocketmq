@@ -117,7 +117,6 @@ public class BrokerConsumeStatsSubCommad implements SubCommand {
                         }
                     }
                 }
-                System.out.println();
             }
         }
         catch (Exception e) {
