@@ -68,20 +68,9 @@ public class TopicClusterSubCommand implements SubCommand {
         String topic = commandLine.getOptionValue('t').trim();
         try {
             defaultMQAdminExt.start();
-            ClusterInfo clusterInfo = defaultMQAdminExt.examineBrokerClusterInfo();
-
-            TopicRouteData topicRouteData = defaultMQAdminExt.examineTopicRouteInfo(topic);
-
-            BrokerData brokerData = topicRouteData.getBrokerDatas().get(0);
-
-            String brokerName = brokerData.getBrokerName();
-
-            Iterator<Map.Entry<String, Set<String>>> it = clusterInfo.getClusterAddrTable().entrySet().iterator();
-            while (it.hasNext()) {
-                Map.Entry<String, Set<String>> next = it.next();
-                if (next.getValue().contains(brokerName)) {
-                    System.out.println(next.getKey());
-                }
+            Set<String> clusters = defaultMQAdminExt.getTopicClusterList(topic);
+            for (String value : clusters){
+                System.out.println(value);
             }
         }
         catch (Exception e) {

@@ -1188,7 +1188,10 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         boolean isOrder = requestHeader.isOrder();
         //获取Broker有多少个订阅的group
         ConcurrentHashMap<String, SubscriptionGroupConfig> subscriptionGroups = brokerController.getSubscriptionGroupManager().getSubscriptionGroupTable();
+        //存放最后的结果
         List<Map<String/*subscriptionGroupName*/, List<ConsumeStats>>> brokerConsumeStatsList = new ArrayList<Map<String, List<ConsumeStats>>>();
+        //统计总的堆积量
+        long totalDiff = 0L;
         //开始查询每个group订阅的每个topic的消费情况
         for (String group : subscriptionGroups.keySet()){
             Map<String, List<ConsumeStats>> subscripTopicConsumeMap = new HashMap<String, List<ConsumeStats>>();
@@ -1220,18 +1223,16 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                     }
                 }
 
+
                 for (int i = 0; i < topicConfig.getWriteQueueNums(); i++) {
                     MessageQueue mq = new MessageQueue();
                     mq.setTopic(topic);
                     mq.setBrokerName(this.brokerController.getBrokerConfig().getBrokerName());
                     mq.setQueueId(i);
-
                     OffsetWrapper offsetWrapper = new OffsetWrapper();
-
                     long brokerOffset = this.brokerController.getMessageStore().getMaxOffsetInQuque(topic, i);
                     if (brokerOffset < 0)
                         brokerOffset = 0;
-
                     long consumerOffset = this.brokerController.getConsumerOffsetManager().queryOffset(//
                             group,//
                             topic,//
@@ -1255,6 +1256,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 double consumeTps = this.brokerController.getBrokerStatsManager().tpsGroupGetNums(group, topic);
                 consumeTps += consumeStats.getConsumeTps();
                 consumeStats.setConsumeTps(consumeTps);
+                totalDiff += consumeStats.computeTotalDiff();
                 consumeStatsList.add(consumeStats);
             }
             subscripTopicConsumeMap.put(group, consumeStatsList);
@@ -1263,6 +1265,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         ConsumeStatsList consumeStats = new ConsumeStatsList();
         consumeStats.setBrokerAddr(brokerController.getBrokerAddr());
         consumeStats.setConsumeStatsList(brokerConsumeStatsList);
+        consumeStats.setTotalDiff(totalDiff);
         response.setBody(consumeStats.encode());
         response.setCode(ResponseCode.SUCCESS);
         response.setRemark(null);

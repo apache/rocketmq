@@ -118,6 +118,8 @@ public class BrokerConsumeStatsSubCommad implements SubCommand {
                     }
                 }
             }
+            System.out.println();
+            System.out.printf("Diff Total: %d\n", consumeStatsList.getTotalDiff());
         }
         catch (Exception e) {
             e.printStackTrace();

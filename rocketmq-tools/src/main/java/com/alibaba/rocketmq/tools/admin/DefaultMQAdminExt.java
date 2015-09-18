@@ -455,4 +455,9 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
         return this.defaultMQAdminExtImpl.fetchConsumeStatsInBroker(brokerAddr, isOrder);
     }
 
+    @Override
+    public Set<String> getTopicClusterList(final String topic) throws InterruptedException, MQBrokerException,MQClientException, RemotingException{
+        return this.defaultMQAdminExtImpl.getTopicClusterList(topic);
+    }
+
 }

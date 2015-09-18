@@ -28,7 +28,7 @@ import java.util.*;
 public class ConsumeStatsList extends RemotingSerializable {
     private List<Map<String/*subscriptionGroupName*/, List<ConsumeStats>>> consumeStatsList = new ArrayList<Map<String/*subscriptionGroupName*/, List<ConsumeStats>>>();
     private String brokerAddr;
-
+    private long totalDiff;
 
     public List<Map<String, List<ConsumeStats>>> getConsumeStatsList() {
         return consumeStatsList;
@@ -44,5 +44,13 @@ public class ConsumeStatsList extends RemotingSerializable {
 
     public void setBrokerAddr(String brokerAddr) {
         this.brokerAddr = brokerAddr;
+    }
+
+    public long getTotalDiff() {
+        return totalDiff;
+    }
+
+    public void setTotalDiff(long totalDiff) {
+        this.totalDiff = totalDiff;
     }
 }
