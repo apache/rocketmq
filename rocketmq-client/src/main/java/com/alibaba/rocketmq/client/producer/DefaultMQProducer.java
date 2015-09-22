@@ -48,6 +48,14 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     private boolean retryAnotherBrokerWhenNotStoreOK = false;
     private int maxMessageSize = 1024 * 128;
 
+    /**
+     * 设置发送消息是否通过专有通道
+     */
+    public static final String SendMessageWithVIPChannelProperty = "com.rocketmq.sendMessageWithVIPChannel";
+
+
+    private boolean sendMessageWithVIPChannel = Boolean.parseBoolean(System.getProperty(SendMessageWithVIPChannelProperty, "false"));
+
 
     public DefaultMQProducer() {
         this(MixAll.DEFAULT_PRODUCER_GROUP, null);
@@ -326,5 +334,13 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
 
     public void setRetryTimesWhenSendFailed(int retryTimesWhenSendFailed) {
         this.retryTimesWhenSendFailed = retryTimesWhenSendFailed;
+    }
+
+    public boolean isSendMessageWithVIPChannel() {
+        return sendMessageWithVIPChannel;
+    }
+
+    public void setSendMessageWithVIPChannel(final boolean sendMessageWithVIPChannel) {
+        this.sendMessageWithVIPChannel = sendMessageWithVIPChannel;
     }
 }
