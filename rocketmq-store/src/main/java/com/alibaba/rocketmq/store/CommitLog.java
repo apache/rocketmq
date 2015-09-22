@@ -228,10 +228,10 @@ public class CommitLog {
             case MessageMagicCode:
                 break;
             case BlankMagicCode:
-                return new DispatchRequest(0, true);
+                return new DispatchRequest(0, true /*success*/);
             default:
                 log.warn("found a illegal magic code 0x" + Integer.toHexString(magicCode));
-                return new DispatchRequest(-1);
+                return new DispatchRequest(-1, false /*success*/);
             }
 
             // 3 BODYCRC
@@ -282,7 +282,7 @@ public class CommitLog {
                         int crc = UtilAll.crc32(bytesContent, 0, bodyLen);
                         if (crc != bodyCRC) {
                             log.warn("CRC check failed. bodyCRC={}, currentCRC={}", crc, bodyCRC);
-                            return new DispatchRequest(-1);
+                            return new DispatchRequest(-1, false/*success*/);
                         }
                     }
                 }
@@ -336,7 +336,7 @@ public class CommitLog {
                 log.error(
                         "[BUG]read total count not equals msg total size. totalSize={}, readTotalCount={}, bodyLen={}, topicLen={}, propertiesLength={}",
                         totalSize, readLength, bodyLen, topicLen, propertiesLength);
-                return new DispatchRequest(totalSize);
+                return new DispatchRequest(totalSize, false/*success*/);
             }
 
             return new DispatchRequest(//
@@ -355,7 +355,7 @@ public class CommitLog {
         catch (Exception e) {
         }
 
-        return new DispatchRequest(-1);
+        return new DispatchRequest(-1, false /*success*/);
     }
 
 
