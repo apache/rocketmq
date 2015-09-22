@@ -62,9 +62,8 @@ public class StatsAllSubCommand implements SubCommand {
     }
 
 
-    public static void printTopicDetail(final DefaultMQAdminExt admin, final String topic,
-            final boolean activeTopic) throws RemotingException, MQClientException, InterruptedException,
-            MQBrokerException {
+    public static void printTopicDetail(final DefaultMQAdminExt admin, final String topic, final boolean activeTopic)
+            throws RemotingException, MQClientException, InterruptedException, MQBrokerException {
         TopicRouteData topicRouteData = admin.examineTopicRouteInfo(topic);
 
         GroupList groupList = admin.queryTopicConsumeByWho(topic);
@@ -78,8 +77,7 @@ public class StatsAllSubCommand implements SubCommand {
             String masterAddr = bd.getBrokerAddrs().get(MixAll.MASTER_ID);
             if (masterAddr != null) {
                 try {
-                    BrokerStatsData bsd =
-                            admin.ViewBrokerStatsData(masterAddr, BrokerStatsManager.TOPIC_PUT_NUMS, topic);
+                    BrokerStatsData bsd = admin.ViewBrokerStatsData(masterAddr, BrokerStatsManager.TOPIC_PUT_NUMS, topic);
                     inTPS += bsd.getStatsMinute().getTps();
                     inMsgCntToday += compute24HourSum(bsd);
                 }
@@ -99,9 +97,7 @@ public class StatsAllSubCommand implements SubCommand {
                     if (masterAddr != null) {
                         try {
                             String statsKey = String.format("%s@%s", topic, group);
-                            BrokerStatsData bsd =
-                                    admin.ViewBrokerStatsData(masterAddr, BrokerStatsManager.GROUP_GET_NUMS,
-                                        statsKey);
+                            BrokerStatsData bsd = admin.ViewBrokerStatsData(masterAddr, BrokerStatsManager.GROUP_GET_NUMS, statsKey);
                             outTPS += bsd.getStatsMinute().getTps();
                             outMsgCntToday += compute24HourSum(bsd);
                         }
@@ -164,8 +160,7 @@ public class StatsAllSubCommand implements SubCommand {
             boolean activeTopic = commandLine.hasOption('a');
 
             for (String topic : topicList.getTopicList()) {
-                if (topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)
-                        || topic.startsWith(MixAll.DLQ_GROUP_TOPIC_PREFIX)) {
+                if (topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX) || topic.startsWith(MixAll.DLQ_GROUP_TOPIC_PREFIX)) {
                     continue;
                 }
 

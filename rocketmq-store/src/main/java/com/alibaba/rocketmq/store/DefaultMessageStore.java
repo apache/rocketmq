@@ -546,6 +546,13 @@ public class DefaultMessageStore implements MessageStore {
                                         long fallBehind = consumeQueue.getMaxPhysicOffset() - offsetPy;
                                         brokerStatsManager.recordDiskFallBehind(group, topic, queueId, fallBehind);
                                     }
+
+                                    // 统计消息数据
+                                    if (isInDisk && brokerStatsManager != null) {
+                                        brokerStatsManager.incGroupGetFromDiskNums(group, topic, 1);
+                                        brokerStatsManager.incGroupGetFromDiskSize(group, topic, selectResult.getSize());
+                                        brokerStatsManager.incBrokerGetFromDiskNums(1);
+                                    }
                                 }
                                 else {
                                     if (getResult.getBufferTotalSize() == 0) {
@@ -1584,21 +1591,17 @@ public class DefaultMessageStore implements MessageStore {
                                     DefaultMessageStore.this.commitLog.checkMessageAndReturnSize(result.getByteBuffer(), false, false);
                             int size = dispatchRequest.getMsgSize();
                             // 正常数据
-                            if (size > 0) {
+                            if (dispatchRequest.isSuccess() && size > 0) {
                                 DefaultMessageStore.this.doDispatch(dispatchRequest);
-
                                 // 长轮询通知
                                 if (BrokerRole.SLAVE != DefaultMessageStore.this.getMessageStoreConfig().getBrokerRole()
                                         && DefaultMessageStore.this.brokerConfig.isLongPollingEnable()) {
-                                    // todo:是否需要+1
                                     DefaultMessageStore.this.messageArrivingListener.arriving(dispatchRequest.getTopic(),
                                         dispatchRequest.getQueueId(), dispatchRequest.getConsumeQueueOffset() + 1);
                                 }
-
                                 // FIXED BUG By shijia
                                 this.reputFromOffset += size;
                                 readSize += size;
-
                                 if (DefaultMessageStore.this.getMessageStoreConfig().getBrokerRole() == BrokerRole.SLAVE) {
                                     DefaultMessageStore.this.storeStatsService.getSinglePutMessageTopicTimesTotal(
                                         dispatchRequest.getTopic()).incrementAndGet();
@@ -1607,14 +1610,18 @@ public class DefaultMessageStore implements MessageStore {
                                             dispatchRequest.getMsgSize());
                                 }
                             }
-                            // 文件中间读到错误
-                            else if (size == -1) {
-                                doNext = false;
-                            }
                             // 走到文件末尾，切换至下一个文件
-                            else if (size == 0) {
+                            else if (dispatchRequest.isSuccess() && size == 0) {
                                 this.reputFromOffset = DefaultMessageStore.this.commitLog.rollNextFile(this.reputFromOffset);
                                 readSize = result.getSize();
+                            }
+                            // total size 与 byteBuffer 解析结果不一致
+                            else if (!dispatchRequest.isSuccess() && size > 0) {
+                                this.reputFromOffset += size;
+                            }
+                            // 文件中间读到错误
+                            else if (!dispatchRequest.isSuccess()) {
+                                doNext = false;
                             }
                         }
                     }
