@@ -170,20 +170,13 @@ public class CommitLog {
                 DispatchRequest dispatchRequest = this.checkMessageAndReturnSize(byteBuffer, checkCRCOnRecover);
                 int size = dispatchRequest.getMsgSize();
                 // Normal data
-                if (size > 0) {
+                if (dispatchRequest.isSuccess() && size > 0) {
                     mapedFileOffset += size;
                 }
-                // Intermediate file read error
-                else if (size == -1) {
-                    log.info("recover physics file end, " + mapedFile.getFileName());
-                    break;
-                }
-                //
-                // Come the end of the file, switch to the next file
-                // Since the return 0 representatives met last hole, this can
-                // not be included in truncate offset
-                //
-                else if (size == 0) {
+                // Come the end of the file, switch to the next file Since the
+                // return 0 representatives met last hole,
+                // this can not be included in truncate offset
+                else if (dispatchRequest.isSuccess() && size == 0) {
                     index++;
                     if (index >= mapedFiles.size()) {
                         // Current branch can not happen
@@ -197,6 +190,11 @@ public class CommitLog {
                         mapedFileOffset = 0;
                         log.info("recover next physics file, " + mapedFile.getFileName());
                     }
+                }
+                // Intermediate file read error
+                else if (!dispatchRequest.isSuccess()) {
+                    log.info("recover physics file end, " + mapedFile.getFileName());
+                    break;
                 }
             }
 
@@ -220,17 +218,17 @@ public class CommitLog {
      */
     public DispatchRequest checkMessageAndReturnSize(java.nio.ByteBuffer byteBuffer, final boolean checkCRC, final boolean readBody) {
         try {
-            // 1 TOTALSIZE
+            // 1 TOTAL SIZE
             int totalSize = byteBuffer.getInt();
             byte[] bytesContent = new byte[totalSize];
 
-            // 2 MAGICCODE
+            // 2 MAGIC CODE
             int magicCode = byteBuffer.getInt();
             switch (magicCode) {
             case MessageMagicCode:
                 break;
             case BlankMagicCode:
-                return new DispatchRequest(0);
+                return new DispatchRequest(0, true);
             default:
                 log.warn("found a illegal magic code 0x" + Integer.toHexString(magicCode));
                 return new DispatchRequest(-1);
@@ -283,7 +281,7 @@ public class CommitLog {
                     if (checkCRC) {
                         int crc = UtilAll.crc32(bytesContent, 0, bodyLen);
                         if (crc != bodyCRC) {
-                            log.warn("CRC check failed " + crc + " " + bodyCRC);
+                            log.warn("CRC check failed. bodyCRC={}, currentCRC={}", crc, bodyCRC);
                             return new DispatchRequest(-1);
                         }
                     }
@@ -335,8 +333,10 @@ public class CommitLog {
 
             int readLength = calMsgLength(bodyLen, topicLen, propertiesLength);
             if (totalSize != readLength) {
-                log.warn("read total count not equals msg total size. totalSize={}, readTotalCount={}", totalSize, readLength);
-                return new DispatchRequest(-1);
+                log.warn(
+                    "read total count not equals msg total size. totalSize={}, readTotalCount={}, bodyLen={}, topicLen={}, propertiesLength={}",
+                    totalSize, readLength, bodyLen, topicLen, propertiesLength);
+                return new DispatchRequest(totalSize);
             }
 
             return new DispatchRequest(//
