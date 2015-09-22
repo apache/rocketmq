@@ -30,6 +30,7 @@ public class DispatchRequest {
     private final long storeTimestamp;
     private final long consumeQueueOffset;
     private final String keys;
+    private final boolean success;
     /**
      * 事务相关部分
      */
@@ -66,6 +67,7 @@ public class DispatchRequest {
          */
         this.sysFlag = sysFlag;
         this.preparedTransactionOffset = preparedTransactionOffset;
+        this.success = true;
     }
 
 
@@ -92,6 +94,34 @@ public class DispatchRequest {
          */
         this.sysFlag = 0;
         this.preparedTransactionOffset = 0;
+        this.success = false;
+    }
+
+
+    public DispatchRequest(int size, boolean success) {
+        // 1
+        this.topic = "";
+        // 2
+        this.queueId = 0;
+        // 3
+        this.commitLogOffset = 0;
+        // 4
+        this.msgSize = size;
+        // 5
+        this.tagsCode = 0;
+        // 6
+        this.storeTimestamp = 0;
+        // 7
+        this.consumeQueueOffset = 0;
+        // 8
+        this.keys = "";
+
+        /**
+         * 事务相关部分
+         */
+        this.sysFlag = 0;
+        this.preparedTransactionOffset = 0;
+        this.success = success;
     }
 
 
@@ -142,5 +172,10 @@ public class DispatchRequest {
 
     public long getPreparedTransactionOffset() {
         return preparedTransactionOffset;
+    }
+
+
+    public boolean isSuccess() {
+        return success;
     }
 }
