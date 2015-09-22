@@ -25,7 +25,6 @@ import com.alibaba.rocketmq.broker.mqtrace.ConsumeMessageHook;
 import com.alibaba.rocketmq.broker.mqtrace.SendMessageHook;
 import com.alibaba.rocketmq.broker.offset.ConsumerOffsetManager;
 import com.alibaba.rocketmq.broker.out.BrokerOuterAPI;
-import com.alibaba.rocketmq.broker.piled.PiledMergeService;
 import com.alibaba.rocketmq.broker.processor.*;
 import com.alibaba.rocketmq.broker.slave.SlaveSynchronize;
 import com.alibaba.rocketmq.broker.subscription.SubscriptionGroupManager;
@@ -77,7 +76,6 @@ public class BrokerController {
     private final ClientHousekeepingService clientHousekeepingService;
     private final PullMessageProcessor pullMessageProcessor;
     private final PullRequestHoldService pullRequestHoldService;
-    private final PiledMergeService piledMergeService;
     private final MessageArrivingListener messageArrivingListener;
     private final Broker2Client broker2Client;
     private final SubscriptionGroupManager subscriptionGroupManager;
@@ -123,7 +121,6 @@ public class BrokerController {
         this.topicConfigManager = new TopicConfigManager(this);
         this.pullMessageProcessor = new PullMessageProcessor(this);
         this.pullRequestHoldService = new PullRequestHoldService(this);
-        this.piledMergeService = new PiledMergeService(this);
         this.messageArrivingListener = new NotifyMessageArrivingListener(this.pullRequestHoldService);
         this.consumerIdsChangeListener = new DefaultConsumerIdsChangeListener(this);
         this.consumerManager = new ConsumerManager(this.consumerIdsChangeListener);
@@ -346,6 +343,9 @@ public class BrokerController {
         this.remotingServer.registerProcessor(RequestCode.QUERY_MESSAGE, queryProcessor, this.pullMessageExecutor);
         this.remotingServer.registerProcessor(RequestCode.VIEW_MESSAGE_BY_ID, queryProcessor, this.pullMessageExecutor);
 
+        this.fastRemotingServer.registerProcessor(RequestCode.QUERY_MESSAGE, queryProcessor, this.pullMessageExecutor);
+        this.fastRemotingServer.registerProcessor(RequestCode.VIEW_MESSAGE_BY_ID, queryProcessor, this.pullMessageExecutor);
+
         /**
          * ClientManageProcessor
          */
@@ -355,22 +355,32 @@ public class BrokerController {
         this.remotingServer.registerProcessor(RequestCode.UNREGISTER_CLIENT, clientProcessor, this.clientManageExecutor);
         this.remotingServer.registerProcessor(RequestCode.GET_CONSUMER_LIST_BY_GROUP, clientProcessor, this.clientManageExecutor);
 
+
+        this.fastRemotingServer.registerProcessor(RequestCode.HEART_BEAT, clientProcessor, this.clientManageExecutor);
+        this.fastRemotingServer.registerProcessor(RequestCode.UNREGISTER_CLIENT, clientProcessor, this.clientManageExecutor);
+        this.fastRemotingServer.registerProcessor(RequestCode.GET_CONSUMER_LIST_BY_GROUP, clientProcessor, this.clientManageExecutor);
+
         /**
          * Offset存储更新转移到ClientProcessor处理
          */
         this.remotingServer.registerProcessor(RequestCode.UPDATE_CONSUMER_OFFSET, clientProcessor, this.clientManageExecutor);
         this.remotingServer.registerProcessor(RequestCode.QUERY_CONSUMER_OFFSET, clientProcessor, this.clientManageExecutor);
 
+        this.fastRemotingServer.registerProcessor(RequestCode.UPDATE_CONSUMER_OFFSET, clientProcessor, this.clientManageExecutor);
+        this.fastRemotingServer.registerProcessor(RequestCode.QUERY_CONSUMER_OFFSET, clientProcessor, this.clientManageExecutor);
+
         /**
          * EndTransactionProcessor
          */
         this.remotingServer.registerProcessor(RequestCode.END_TRANSACTION, new EndTransactionProcessor(this), this.sendMessageExecutor);
+        this.fastRemotingServer.registerProcessor(RequestCode.END_TRANSACTION, new EndTransactionProcessor(this), this.sendMessageExecutor);
 
         /**
          * Default
          */
         AdminBrokerProcessor adminProcessor = new AdminBrokerProcessor(this);
         this.remotingServer.registerDefaultProcessor(adminProcessor, this.adminBrokerExecutor);
+        this.fastRemotingServer.registerDefaultProcessor(adminProcessor, this.adminBrokerExecutor);
     }
 
 
@@ -435,12 +445,6 @@ public class BrokerController {
         return pullRequestHoldService;
     }
 
-
-    public PiledMergeService getPiledMergeService() {
-        return piledMergeService;
-    }
-
-
     public RemotingServer getRemotingServer() {
         return remotingServer;
     }
@@ -467,10 +471,6 @@ public class BrokerController {
 
         if (this.pullRequestHoldService != null) {
             this.pullRequestHoldService.shutdown();
-        }
-
-        if (piledMergeService != null) {
-            piledMergeService.shutdown();
         }
 
         if (this.remotingServer != null) {
@@ -552,10 +552,6 @@ public class BrokerController {
 
         if (this.pullRequestHoldService != null) {
             this.pullRequestHoldService.start();
-        }
-
-        if (piledMergeService != null) {
-            piledMergeService.start();
         }
 
         if (this.clientHousekeepingService != null) {

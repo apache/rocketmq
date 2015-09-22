@@ -1597,16 +1597,16 @@ public class DefaultMessageStore implements MessageStore {
                                 if (BrokerRole.SLAVE != DefaultMessageStore.this.getMessageStoreConfig().getBrokerRole()
                                         && DefaultMessageStore.this.brokerConfig.isLongPollingEnable()) {
                                     DefaultMessageStore.this.messageArrivingListener.arriving(dispatchRequest.getTopic(),
-                                        dispatchRequest.getQueueId(), dispatchRequest.getConsumeQueueOffset() + 1);
+                                            dispatchRequest.getQueueId(), dispatchRequest.getConsumeQueueOffset() + 1);
                                 }
                                 // FIXED BUG By shijia
                                 this.reputFromOffset += size;
                                 readSize += size;
                                 if (DefaultMessageStore.this.getMessageStoreConfig().getBrokerRole() == BrokerRole.SLAVE) {
                                     DefaultMessageStore.this.storeStatsService.getSinglePutMessageTopicTimesTotal(
-                                        dispatchRequest.getTopic()).incrementAndGet();
+                                            dispatchRequest.getTopic()).incrementAndGet();
                                     DefaultMessageStore.this.storeStatsService
-                                        .getSinglePutMessageTopicSizeTotal(dispatchRequest.getTopic()).addAndGet(
+                                            .getSinglePutMessageTopicSizeTotal(dispatchRequest.getTopic()).addAndGet(
                                             dispatchRequest.getMsgSize());
                                 }
                             }
@@ -1622,6 +1622,13 @@ public class DefaultMessageStore implements MessageStore {
                             // 文件中间读到错误
                             else if (!dispatchRequest.isSuccess()) {
                                 doNext = false;
+                                // 如果是备机模式，会很频繁走到这里。因为主备复制按照数据块来复制，会频繁出现半条消息达到
+                                // 如果是主机模式，消息一定是完整的。即使异常掉电或者kill -9 也会将半条消息纠错
+                                if(DefaultMessageStore.this.brokerConfig.getBrokerId() == MixAll.MASTER_ID){
+                                    log.error("the master dispatch message to consume queue error, COMMITLOG OFFSET: {}",this.reputFromOffset);
+                                    // 一旦发生，强制跳到最新写入处
+                                    this.reputFromOffset += (result.getSize() - readSize);
+                                }
                             }
                         }
                     }

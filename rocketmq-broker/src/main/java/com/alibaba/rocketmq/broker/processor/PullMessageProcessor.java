@@ -410,35 +410,7 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                             requestHeader.getConsumerGroup(), requestHeader.getTopic(),
                             BrokerStatsManager.StatsType.RCV_SUCCESS.toString(),
                             getMessageResult.getBufferTotalSize());
-                    
-                    // 堆积预热
-                    if (brokerController.getBrokerConfig().isPiledWarmup()) {
-                        if (getMessageResult.isSuggestPullingFromSlave()) {
-                            CountDownLatch countdown = null;
-                            boolean isFirst = true;
-                            MapedFile tmp = null;
-                            for (SelectMapedBufferResult r : getMessageResult.getMessageMapedList()) {
-                                if (tmp != r.getMapedFile()) {
-                                    tmp = r.getMapedFile();
-                                    CountDownLatch cdl = brokerController.getPiledMergeService().put(tmp);
-                                    if (isFirst) {
-                                        countdown = cdl;
-                                        isFirst = false;
-                                    }
-                                }
-                            }
-                            try {
-                                if (brokerController.getBrokerConfig().getPiledAwaitTime() > 0) {
-                                    countdown.await(brokerController.getBrokerConfig().getPiledAwaitTime(),
-                                        TimeUnit.MILLISECONDS);
-                                }
-                            }
-                            catch (InterruptedException e) {
-                                log.warn("merge pull request error.", e);
-                            }
-                        }
-                    }
-                    
+
                     break;
                 case ResponseCode.PULL_NOT_FOUND:
                     if (!brokerAllowSuspend) {
