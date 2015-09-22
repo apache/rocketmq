@@ -1610,6 +1610,13 @@ public class DefaultMessageStore implements MessageStore {
                             // 文件中间读到错误
                             else if (size == -1) {
                                 doNext = false;
+                                // 如果是备机模式，会很频繁走到这里。因为主备复制按照数据块来复制，会频繁出现半条消息达到
+                                // 如果是主机模式，消息一定是完整的。即使异常掉电或者kill -9 也会将半条消息纠错
+                                if(DefaultMessageStore.this.brokerConfig.getBrokerId() == MixAll.MASTER_ID){
+                                    log.error("the master dispatch message to consume queue error, COMMITLOG OFFSET: {}",this.reputFromOffset);
+                                    // 一旦发生，强制跳到最新写入处
+                                    this.reputFromOffset += (result.getSize() - readSize);
+                                }
                             }
                             // 走到文件末尾，切换至下一个文件
                             else if (size == 0) {
