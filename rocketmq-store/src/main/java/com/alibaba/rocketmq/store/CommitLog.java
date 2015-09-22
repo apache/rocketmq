@@ -333,9 +333,9 @@ public class CommitLog {
 
             int readLength = calMsgLength(bodyLen, topicLen, propertiesLength);
             if (totalSize != readLength) {
-                log.warn(
-                    "read total count not equals msg total size. totalSize={}, readTotalCount={}, bodyLen={}, topicLen={}, propertiesLength={}",
-                    totalSize, readLength, bodyLen, topicLen, propertiesLength);
+                log.error(
+                        "[BUG]read total count not equals msg total size. totalSize={}, readTotalCount={}, bodyLen={}, topicLen={}, propertiesLength={}",
+                        totalSize, readLength, bodyLen, topicLen, propertiesLength);
                 return new DispatchRequest(totalSize);
             }
 
@@ -352,11 +352,7 @@ public class CommitLog {
                 preparedTransactionOffset// 10
             );
         }
-        catch (BufferUnderflowException e) {
-            byteBuffer.position(byteBuffer.limit());
-        }
         catch (Exception e) {
-            byteBuffer.position(byteBuffer.limit());
         }
 
         return new DispatchRequest(-1);
