@@ -76,7 +76,7 @@ public interface MQAdminExt extends MQAdmin {
      * @throws MQBrokerException
      * @throws RemotingException
      */
-    public void createAndUpdateTopicConfig(final String addr, final TopicConfig config) throws RemotingException, MQBrokerException,
+    public void     createAndUpdateTopicConfig(final String addr, final TopicConfig config) throws RemotingException, MQBrokerException,
             InterruptedException, MQClientException;
 
 
@@ -589,4 +589,32 @@ public interface MQAdminExt extends MQAdmin {
 
     public Set<String> getClusterList(final String topic) throws RemotingConnectException, RemotingSendRequestException,
             RemotingTimeoutException, MQClientException, InterruptedException;
+
+
+    /**
+     * 获取broker的消费堆积状态
+     * @param brokerAddr
+     * @param isOrder
+     * @return
+     * @throws RemotingConnectException
+     * @throws RemotingSendRequestException
+     * @throws RemotingTimeoutException
+     * @throws MQClientException
+     * @throws InterruptedException
+     */
+    public ConsumeStatsList fetchConsumeStatsInBroker(final String brokerAddr, boolean isOrder) throws RemotingConnectException, RemotingSendRequestException,
+            RemotingTimeoutException, MQClientException, InterruptedException;
+
+    /**
+     * 查询topic在哪些集群
+     * @param topic
+     * @return
+     * @throws RemotingConnectException
+     * @throws RemotingSendRequestException
+     * @throws RemotingTimeoutException
+     * @throws MQClientException
+     * @throws InterruptedException
+     */
+    public Set<String> getTopicClusterList(final String topic) throws InterruptedException, MQBrokerException,MQClientException, RemotingException;
+
 }

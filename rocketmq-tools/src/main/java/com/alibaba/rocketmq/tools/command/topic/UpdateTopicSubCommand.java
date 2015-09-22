@@ -15,8 +15,13 @@
  */
 package com.alibaba.rocketmq.tools.command.topic;
 
+import java.util.List;
 import java.util.Set;
 
+import com.alibaba.rocketmq.client.exception.MQClientException;
+import com.alibaba.rocketmq.common.protocol.ResponseCode;
+import com.alibaba.rocketmq.common.protocol.route.QueueData;
+import com.alibaba.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
@@ -99,43 +104,68 @@ public class UpdateTopicSubCommand implements SubCommand {
 
         try {
             TopicConfig topicConfig = new TopicConfig();
-            topicConfig.setReadQueueNums(8);
-            topicConfig.setWriteQueueNums(8);
-            topicConfig.setTopicName(commandLine.getOptionValue('t').trim());
-
-            // readQueueNums
-            if (commandLine.hasOption('r')) {
-                topicConfig.setReadQueueNums(Integer.parseInt(commandLine.getOptionValue('r').trim()));
+            //先查询一下，topic是否存在
+            String topic = commandLine.getOptionValue('t').trim();
+            boolean topicFirstAdd = false;
+            try {
+                TopicRouteData topicRouteData = defaultMQAdminExt.examineTopicRouteInfo(topic);
+                assert topicRouteData != null;
+                List<QueueData> queueDatas = topicRouteData.getQueueDatas();
+                assert queueDatas != null && queueDatas.size() > 0;
+                //取第一个，每个元素除了brokerName，其他值应该都是一样的
+                QueueData queueData = queueDatas.get(0);
+                topicConfig.setWriteQueueNums(queueData.getWriteQueueNums());
+                topicConfig.setReadQueueNums(queueData.getReadQueueNums());
+                topicConfig.setPerm(queueData.getPerm());
+            }
+            catch (MQClientException e){
+                if (e.getResponseCode() == ResponseCode.TOPIC_NOT_EXIST){
+                    topicFirstAdd = true;
+                }
             }
 
-            // writeQueueNums
-            if (commandLine.hasOption('w')) {
-                topicConfig.setWriteQueueNums(Integer.parseInt(commandLine.getOptionValue('w').trim()));
+            boolean isUnit = false;
+            boolean isCenterSync = false;
+            boolean isOrder = false;
+            //首次添加这个topic
+            if (topicFirstAdd){
+                topicConfig.setReadQueueNums(8);
+                topicConfig.setWriteQueueNums(8);
+                topicConfig.setTopicName(commandLine.getOptionValue('t').trim());
+
+                // readQueueNums
+                if (commandLine.hasOption('r')) {
+                    topicConfig.setReadQueueNums(Integer.parseInt(commandLine.getOptionValue('r').trim()));
+                }
+
+                // writeQueueNums
+                if (commandLine.hasOption('w')) {
+                    topicConfig.setWriteQueueNums(Integer.parseInt(commandLine.getOptionValue('w').trim()));
+                }
+
+                if (commandLine.hasOption('u')) {
+                    isUnit = Boolean.parseBoolean(commandLine.getOptionValue('u').trim());
+                }
+
+
+                if (commandLine.hasOption('s')) {
+                    isCenterSync = Boolean.parseBoolean(commandLine.getOptionValue('s').trim());
+                }
+
+                int topicCenterSync = TopicSysFlag.buildSysFlag(isUnit, isCenterSync);
+                topicConfig.setTopicSysFlag(topicCenterSync);
+
+
+                if (commandLine.hasOption('o')) {
+                    isOrder = Boolean.parseBoolean(commandLine.getOptionValue('o').trim());
+                }
+                topicConfig.setOrder(isOrder);
             }
 
             // perm
             if (commandLine.hasOption('p')) {
                 topicConfig.setPerm(Integer.parseInt(commandLine.getOptionValue('p').trim()));
             }
-
-            boolean isUnit = false;
-            if (commandLine.hasOption('u')) {
-                isUnit = Boolean.parseBoolean(commandLine.getOptionValue('u').trim());
-            }
-
-            boolean isCenterSync = false;
-            if (commandLine.hasOption('s')) {
-                isCenterSync = Boolean.parseBoolean(commandLine.getOptionValue('s').trim());
-            }
-
-            int topicCenterSync = TopicSysFlag.buildSysFlag(isUnit, isCenterSync);
-            topicConfig.setTopicSysFlag(topicCenterSync);
-
-            boolean isOrder = false;
-            if (commandLine.hasOption('o')) {
-                isOrder = Boolean.parseBoolean(commandLine.getOptionValue('o').trim());
-            }
-            topicConfig.setOrder(isOrder);
 
             if (commandLine.hasOption('b')) {
                 String addr = commandLine.getOptionValue('b').trim();

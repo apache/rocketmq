@@ -3,9 +3,12 @@
  */
 package com.alibaba.rocketmq.common.namesrv;
 
-import java.io.File;
-
 import com.alibaba.rocketmq.common.MixAll;
+import com.alibaba.rocketmq.common.constant.LoggerName;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.File;
 
 
 /**
@@ -15,11 +18,12 @@ import com.alibaba.rocketmq.common.MixAll;
  * @author lansheng.zj@taobao.com
  */
 public class NamesrvConfig {
-    private String rocketmqHome = System.getProperty(MixAll.ROCKETMQ_HOME_PROPERTY,
-        System.getenv(MixAll.ROCKETMQ_HOME_ENV));
+    private static final Logger log = LoggerFactory.getLogger(LoggerName.NamesrvLoggerName);
+    private String rocketmqHome = System.getProperty(MixAll.ROCKETMQ_HOME_PROPERTY, System.getenv(MixAll.ROCKETMQ_HOME_ENV));
     // 通用的KV配置持久化地址
-    private String kvConfigPath = System.getProperty("user.home") + File.separator + "namesrv"
-            + File.separator + "kvConfig.json";
+    private String kvConfigPath = System.getProperty("user.home") + File.separator + "namesrv" + File.separator + "kvConfig.json";
+    private String productEnvName = "center";
+    private boolean clusterTest = false;
 
 
     public String getRocketmqHome() {
@@ -39,5 +43,25 @@ public class NamesrvConfig {
 
     public void setKvConfigPath(String kvConfigPath) {
         this.kvConfigPath = kvConfigPath;
+    }
+
+
+    public String getProductEnvName() {
+        return productEnvName;
+    }
+
+
+    public void setProductEnvName(String productEnvName) {
+        this.productEnvName = productEnvName;
+    }
+
+
+    public boolean isClusterTest() {
+        return clusterTest;
+    }
+
+
+    public void setClusterTest(boolean clusterTest) {
+        this.clusterTest = clusterTest;
     }
 }

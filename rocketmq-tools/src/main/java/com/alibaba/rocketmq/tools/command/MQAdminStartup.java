@@ -66,6 +66,8 @@ public class MQAdminStartup {
 
         initCommand(new TopicRouteSubCommand());
         initCommand(new TopicStatusSubCommand());
+        initCommand(new TopicClusterSubCommand());
+
 
         initCommand(new BrokerStatusSubCommand());
         initCommand(new QueryMsgByIdSubCommand());
@@ -73,6 +75,8 @@ public class MQAdminStartup {
         initCommand(new QueryMsgByOffsetSubCommand());
         initCommand(new PrintMessageSubCommand());
         initCommand(new SendMsgStatusCommand());
+        initCommand(new BrokerConsumeStatsSubCommad());
+
 
         initCommand(new ProducerConnectionSubCommand());
         initCommand(new ConsumerConnectionSubCommand());
