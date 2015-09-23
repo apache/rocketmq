@@ -31,7 +31,6 @@ import com.alibaba.rocketmq.store.index.IndexService;
 import com.alibaba.rocketmq.store.index.QueryOffsetResult;
 import com.alibaba.rocketmq.store.schedule.ScheduleMessageService;
 import com.alibaba.rocketmq.store.stats.BrokerStatsManager;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -545,6 +544,13 @@ public class DefaultMessageStore implements MessageStore {
                                         diskFallRecorded = true;
                                         long fallBehind = consumeQueue.getMaxPhysicOffset() - offsetPy;
                                         brokerStatsManager.recordDiskFallBehind(group, topic, queueId, fallBehind);
+                                    }
+
+                                    // 统计消息数据
+                                    if (isInDisk && brokerStatsManager != null) {
+                                        brokerStatsManager.incGroupGetFromDiskNums(group, topic, 1);
+                                        brokerStatsManager.incGroupGetFromDiskSize(group, topic, selectResult.getSize());
+                                        brokerStatsManager.incBrokerGetFromDiskNums(1);
                                     }
                                 }
                                 else {
@@ -1584,37 +1590,48 @@ public class DefaultMessageStore implements MessageStore {
                                     DefaultMessageStore.this.commitLog.checkMessageAndReturnSize(result.getByteBuffer(), false, false);
                             int size = dispatchRequest.getMsgSize();
                             // 正常数据
-                            if (size > 0) {
-                                DefaultMessageStore.this.doDispatch(dispatchRequest);
-
-                                // 长轮询通知
-                                if (BrokerRole.SLAVE != DefaultMessageStore.this.getMessageStoreConfig().getBrokerRole()
-                                        && DefaultMessageStore.this.brokerConfig.isLongPollingEnable()) {
-                                    // todo:是否需要+1
-                                    DefaultMessageStore.this.messageArrivingListener.arriving(dispatchRequest.getTopic(),
-                                        dispatchRequest.getQueueId(), dispatchRequest.getConsumeQueueOffset() + 1);
+                            if (dispatchRequest.isSuccess()) {
+                                if (size > 0) {
+                                    DefaultMessageStore.this.doDispatch(dispatchRequest);
+                                    // 长轮询通知
+                                    if (BrokerRole.SLAVE != DefaultMessageStore.this.getMessageStoreConfig().getBrokerRole()
+                                            && DefaultMessageStore.this.brokerConfig.isLongPollingEnable()) {
+                                        DefaultMessageStore.this.messageArrivingListener.arriving(dispatchRequest.getTopic(),
+                                                dispatchRequest.getQueueId(), dispatchRequest.getConsumeQueueOffset() + 1);
+                                    }
+                                    // FIXED BUG By shijia
+                                    this.reputFromOffset += size;
+                                    readSize += size;
+                                    if (DefaultMessageStore.this.getMessageStoreConfig().getBrokerRole() == BrokerRole.SLAVE) {
+                                        DefaultMessageStore.this.storeStatsService.getSinglePutMessageTopicTimesTotal(
+                                                dispatchRequest.getTopic()).incrementAndGet();
+                                        DefaultMessageStore.this.storeStatsService
+                                                .getSinglePutMessageTopicSizeTotal(dispatchRequest.getTopic()).addAndGet(
+                                                dispatchRequest.getMsgSize());
+                                    }
                                 }
-
-                                // FIXED BUG By shijia
-                                this.reputFromOffset += size;
-                                readSize += size;
-
-                                if (DefaultMessageStore.this.getMessageStoreConfig().getBrokerRole() == BrokerRole.SLAVE) {
-                                    DefaultMessageStore.this.storeStatsService.getSinglePutMessageTopicTimesTotal(
-                                        dispatchRequest.getTopic()).incrementAndGet();
-                                    DefaultMessageStore.this.storeStatsService
-                                        .getSinglePutMessageTopicSizeTotal(dispatchRequest.getTopic()).addAndGet(
-                                            dispatchRequest.getMsgSize());
+                                // 走到文件末尾，切换至下一个文件
+                                else if (size == 0) {
+                                    this.reputFromOffset = DefaultMessageStore.this.commitLog.rollNextFile(this.reputFromOffset);
+                                    readSize = result.getSize();
                                 }
-                            }
-                            // 文件中间读到错误
-                            else if (size == -1) {
-                                doNext = false;
-                            }
-                            // 走到文件末尾，切换至下一个文件
-                            else if (size == 0) {
-                                this.reputFromOffset = DefaultMessageStore.this.commitLog.rollNextFile(this.reputFromOffset);
-                                readSize = result.getSize();
+                            } else if (!dispatchRequest.isSuccess()) {
+                                // total size 与 byteBuffer 解析结果不一致
+                                // 只跳过当前不完整消息
+                                if (size > 0) {
+                                    this.reputFromOffset += size;
+                                }
+                                // 跳过整个数据块
+                                else {
+                                    doNext = false;
+                                    // 如果是备机模式，会很频繁走到这里。因为主备复制按照数据块来复制，会频繁出现半条消息达到
+                                    // 如果是主机模式，消息一定是完整的。即使异常掉电或者kill -9 也会将半条消息纠错
+                                    if (DefaultMessageStore.this.brokerConfig.getBrokerId() == MixAll.MASTER_ID) {
+                                        log.error("[BUG]the master dispatch message to consume queue error, COMMITLOG OFFSET: {}", this.reputFromOffset);
+                                        // 一旦发生，强制跳到最新写入处
+                                        this.reputFromOffset += (result.getSize() - readSize);
+                                    }
+                                }
                             }
                         }
                     }

@@ -89,28 +89,12 @@ public class MixAll {
         return DLQ_GROUP_TOPIC_PREFIX + consumerGroup;
     }
 
-    public static final String SendMessageToAnotherPortProperty = "com.rocketmq.sendMessageToAnotherPort";
 
-    private static boolean SendMessageToAnotherPort = Boolean.parseBoolean(System.getProperty(SendMessageToAnotherPortProperty, "false"));
-
-    public static String getSendMessageAddr(final String brokerAddr) {
-        if (SendMessageToAnotherPort) {
-            String[] ipAndPort = brokerAddr.split(":");
-            String brokerAddrNew = ipAndPort[0] + ":" + (Integer.valueOf(ipAndPort[1]) - 2);
-            return brokerAddrNew;
-        }
-
-        return brokerAddr;
+    public static String brokerVIPChannel(final String brokerAddr) {
+        String[] ipAndPort = brokerAddr.split(":");
+        String brokerAddrNew = ipAndPort[0] + ":" + (Integer.valueOf(ipAndPort[1]) - 2);
+        return brokerAddrNew;
     }
-
-
-    public static void enablSendMessageToAnotherPort(){
-        SendMessageToAnotherPort = true;
-    }
-    public static void disableSendMessageToAnotherPort(){
-        SendMessageToAnotherPort = false;
-    }
-
 
     public static long getPID() {
         String processName = java.lang.management.ManagementFactory.getRuntimeMXBean().getName();
