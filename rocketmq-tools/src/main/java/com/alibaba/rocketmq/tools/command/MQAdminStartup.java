@@ -63,6 +63,7 @@ public class MQAdminStartup {
         initCommand(new UpdateSubGroupSubCommand());
         initCommand(new DeleteSubscriptionGroupCommand());
         initCommand(new UpdateBrokerConfigSubCommand());
+        initCommand(new UpdateTopicPermSubCommand());
 
         initCommand(new TopicRouteSubCommand());
         initCommand(new TopicStatusSubCommand());
