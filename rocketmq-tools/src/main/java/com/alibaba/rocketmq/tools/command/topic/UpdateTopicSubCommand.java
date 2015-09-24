@@ -104,68 +104,43 @@ public class UpdateTopicSubCommand implements SubCommand {
 
         try {
             TopicConfig topicConfig = new TopicConfig();
-            //先查询一下，topic是否存在
-            String topic = commandLine.getOptionValue('t').trim();
-            boolean topicFirstAdd = false;
-            try {
-                TopicRouteData topicRouteData = defaultMQAdminExt.examineTopicRouteInfo(topic);
-                assert topicRouteData != null;
-                List<QueueData> queueDatas = topicRouteData.getQueueDatas();
-                assert queueDatas != null && queueDatas.size() > 0;
-                //取第一个，每个元素除了brokerName，其他值应该都是一样的
-                QueueData queueData = queueDatas.get(0);
-                topicConfig.setWriteQueueNums(queueData.getWriteQueueNums());
-                topicConfig.setReadQueueNums(queueData.getReadQueueNums());
-                topicConfig.setPerm(queueData.getPerm());
-            }
-            catch (MQClientException e){
-                if (e.getResponseCode() == ResponseCode.TOPIC_NOT_EXIST){
-                    topicFirstAdd = true;
-                }
+            topicConfig.setReadQueueNums(8);
+            topicConfig.setWriteQueueNums(8);
+            topicConfig.setTopicName(commandLine.getOptionValue('t').trim());
+
+            // readQueueNums
+            if (commandLine.hasOption('r')) {
+                topicConfig.setReadQueueNums(Integer.parseInt(commandLine.getOptionValue('r').trim()));
             }
 
-            boolean isUnit = false;
-            boolean isCenterSync = false;
-            boolean isOrder = false;
-            //首次添加这个topic
-            if (topicFirstAdd){
-                topicConfig.setReadQueueNums(8);
-                topicConfig.setWriteQueueNums(8);
-                topicConfig.setTopicName(commandLine.getOptionValue('t').trim());
-
-                // readQueueNums
-                if (commandLine.hasOption('r')) {
-                    topicConfig.setReadQueueNums(Integer.parseInt(commandLine.getOptionValue('r').trim()));
-                }
-
-                // writeQueueNums
-                if (commandLine.hasOption('w')) {
-                    topicConfig.setWriteQueueNums(Integer.parseInt(commandLine.getOptionValue('w').trim()));
-                }
-
-                if (commandLine.hasOption('u')) {
-                    isUnit = Boolean.parseBoolean(commandLine.getOptionValue('u').trim());
-                }
-
-
-                if (commandLine.hasOption('s')) {
-                    isCenterSync = Boolean.parseBoolean(commandLine.getOptionValue('s').trim());
-                }
-
-                int topicCenterSync = TopicSysFlag.buildSysFlag(isUnit, isCenterSync);
-                topicConfig.setTopicSysFlag(topicCenterSync);
-
-
-                if (commandLine.hasOption('o')) {
-                    isOrder = Boolean.parseBoolean(commandLine.getOptionValue('o').trim());
-                }
-                topicConfig.setOrder(isOrder);
+            // writeQueueNums
+            if (commandLine.hasOption('w')) {
+                topicConfig.setWriteQueueNums(Integer.parseInt(commandLine.getOptionValue('w').trim()));
             }
 
             // perm
             if (commandLine.hasOption('p')) {
                 topicConfig.setPerm(Integer.parseInt(commandLine.getOptionValue('p').trim()));
             }
+
+            boolean isUnit = false;
+            if (commandLine.hasOption('u')) {
+                isUnit = Boolean.parseBoolean(commandLine.getOptionValue('u').trim());
+            }
+
+            boolean isCenterSync = false;
+            if (commandLine.hasOption('s')) {
+                isCenterSync = Boolean.parseBoolean(commandLine.getOptionValue('s').trim());
+            }
+
+            int topicCenterSync = TopicSysFlag.buildSysFlag(isUnit, isCenterSync);
+            topicConfig.setTopicSysFlag(topicCenterSync);
+
+            boolean isOrder = false;
+            if (commandLine.hasOption('o')) {
+                isOrder = Boolean.parseBoolean(commandLine.getOptionValue('o').trim());
+            }
+            topicConfig.setOrder(isOrder);
 
             if (commandLine.hasOption('b')) {
                 String addr = commandLine.getOptionValue('b').trim();
@@ -179,7 +154,7 @@ public class UpdateTopicSubCommand implements SubCommand {
                     String orderConf = brokerName + ":" + topicConfig.getWriteQueueNums();
                     defaultMQAdminExt.createOrUpdateOrderConf(topicConfig.getTopicName(), orderConf, false);
                     System.out.println(String.format("set broker orderConf. isOrder=%s, orderConf=[%s]",
-                        isOrder, orderConf.toString()));
+                            isOrder, orderConf.toString()));
                 }
                 System.out.printf("create topic to %s success.\n", addr);
                 System.out.println(topicConfig);
@@ -206,13 +181,13 @@ public class UpdateTopicSubCommand implements SubCommand {
                     String splitor = "";
                     for (String s : brokerNameSet) {
                         orderConf.append(splitor).append(s).append(":")
-                            .append(topicConfig.getWriteQueueNums());
+                                .append(topicConfig.getWriteQueueNums());
                         splitor = ";";
                     }
                     defaultMQAdminExt.createOrUpdateOrderConf(topicConfig.getTopicName(),
-                        orderConf.toString(), true);
+                            orderConf.toString(), true);
                     System.out.println(String.format("set cluster orderConf. isOrder=%s, orderConf=[%s]",
-                        isOrder, orderConf.toString()));
+                            isOrder, orderConf.toString()));
                 }
 
                 System.out.println(topicConfig);
