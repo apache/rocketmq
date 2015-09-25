@@ -173,7 +173,7 @@ public class UpdateSubGroupSubCommand implements SubCommand {
                         System.out.printf("create subscription group to %s success.\n", addr);
                     } catch (Exception e) {
                         e.printStackTrace();
-                        Thread.sleep(1000 * 3);
+                        Thread.sleep(1000 * 1);
                     }
                 }
                 System.out.println(subscriptionGroupConfig);
