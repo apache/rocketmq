@@ -1,13 +1,5 @@
 package com.alibaba.rocketmq.tools.command.offset;
 
-import java.util.Iterator;
-import java.util.Map;
-
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.Option;
-import org.apache.commons.cli.Options;
-import org.apache.commons.cli.PosixParser;
-
 import com.alibaba.rocketmq.client.exception.MQClientException;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.UtilAll;
@@ -17,6 +9,13 @@ import com.alibaba.rocketmq.remoting.RPCHook;
 import com.alibaba.rocketmq.srvutil.ServerUtil;
 import com.alibaba.rocketmq.tools.admin.DefaultMQAdminExt;
 import com.alibaba.rocketmq.tools.command.SubCommand;
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.Option;
+import org.apache.commons.cli.Options;
+import org.apache.commons.cli.PosixParser;
+
+import java.util.Iterator;
+import java.util.Map;
 
 
 /**
@@ -73,15 +72,16 @@ public class ResetOffsetByTimeCommand implements SubCommand {
             String group = commandLine.getOptionValue("g").trim();
             String topic = commandLine.getOptionValue("t").trim();
             String timeStampStr = commandLine.getOptionValue("s").trim();
-            long timestamp = 0;
+            long timestamp = timeStampStr.equals("now") ? System.currentTimeMillis() : 0;
+
             try {
                 // 直接输入 long 类型的 timestamp
                 timestamp = Long.valueOf(timeStampStr);
-            }
-            catch (NumberFormatException e) {
+            } catch (NumberFormatException e) {
                 // 输入的为日期格式，精确到毫秒
                 timestamp = UtilAll.parseDate(timeStampStr, UtilAll.yyyy_MM_dd_HH_mm_ss_SSS).getTime();
             }
+
 
             boolean force = true;
             if (commandLine.hasOption('f')) {
