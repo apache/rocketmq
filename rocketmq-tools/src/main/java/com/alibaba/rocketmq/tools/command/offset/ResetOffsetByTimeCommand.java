@@ -67,8 +67,8 @@ public class ResetOffsetByTimeCommand implements SubCommand {
     @Override
     public void execute(CommandLine commandLine, Options options, RPCHook rpcHook) {
         DefaultMQAdminExt defaultMQAdminExt = new DefaultMQAdminExt(rpcHook);
-        defaultMQAdminExt.setInstanceName(Long.toString(System.currentTimeMillis()));
-        try {
+            defaultMQAdminExt.setInstanceName(Long.toString(System.currentTimeMillis()));
+            try {
             String group = commandLine.getOptionValue("g").trim();
             String topic = commandLine.getOptionValue("t").trim();
             String timeStampStr = commandLine.getOptionValue("s").trim();

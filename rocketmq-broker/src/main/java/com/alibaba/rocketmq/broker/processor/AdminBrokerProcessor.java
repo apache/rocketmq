@@ -412,7 +412,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 }
             }
 
-            for (int i = 0; i < topicConfig.getWriteQueueNums(); i++) {
+            for (int i = 0; i < topicConfig.getReadQueueNums(); i++) {
                 MessageQueue mq = new MessageQueue();
                 mq.setTopic(topic);
                 mq.setBrokerName(this.brokerController.getBrokerConfig().getBrokerName());
