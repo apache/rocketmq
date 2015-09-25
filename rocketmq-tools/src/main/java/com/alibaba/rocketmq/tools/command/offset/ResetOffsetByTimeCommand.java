@@ -49,7 +49,7 @@ public class ResetOffsetByTimeCommand implements SubCommand {
 
         opt =
                 new Option("s", "timestamp", true,
-                    "set the timestamp[currentTimeMillis|yyyy-MM-dd#HH:mm:ss:SSS]");
+                    "set the timestamp[now|currentTimeMillis|yyyy-MM-dd#HH:mm:ss:SSS]");
         opt.setRequired(true);
         options.addOption(opt);
 
