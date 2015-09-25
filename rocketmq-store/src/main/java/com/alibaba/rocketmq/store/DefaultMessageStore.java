@@ -408,7 +408,7 @@ public class DefaultMessageStore implements MessageStore {
         // message properties长度校验
         if (msg.getPropertiesString() != null && msg.getPropertiesString().length() > Short.MAX_VALUE) {
             log.warn("putMessage message properties length too long " + msg.getPropertiesString().length());
-            return new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, null);
+            return new PutMessageResult(PutMessageStatus.PROPERTIES_SIZE_EXCEEDED, null);
         }
 
         long beginTime = this.getSystemClock().now();

@@ -220,6 +220,7 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
                     response.setRemark("create maped file failed.");
                     break;
                 case MESSAGE_ILLEGAL:
+                case PROPERTIES_SIZE_EXCEEDED:
                     response.setCode(ResponseCode.MESSAGE_ILLEGAL);
                     response.setRemark("the message is illegal, maybe length not matched.");
                     break;

@@ -564,6 +564,7 @@ public class CommitLog {
                 result = mapedFile.appendMessage(msg, this.appendMessageCallback);
                 break;
             case MESSAGE_SIZE_EXCEEDED:
+            case PROPERTIES_SIZE_EXCEEDED:
                 return new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, result);
             case UNKNOWN_ERROR:
                 return new PutMessageResult(PutMessageStatus.UNKNOWN_ERROR, result);
@@ -994,6 +995,11 @@ public class CommitLog {
              */
             final byte[] propertiesData =
                     msgInner.getPropertiesString() == null ? null : msgInner.getPropertiesString().getBytes(MessageDecoder.CHARSET_UTF8);
+            if (propertiesData.length > Short.MAX_VALUE) {
+                log.warn("putMessage message properties length too long. length={}", propertiesData.length);
+                return new AppendMessageResult(AppendMessageStatus.PROPERTIES_SIZE_EXCEEDED);
+            }
+
             final short propertiesLength = propertiesData == null ? 0 : (short) propertiesData.length;
 
             final byte[] topicData = msgInner.getTopic().getBytes(MessageDecoder.CHARSET_UTF8);

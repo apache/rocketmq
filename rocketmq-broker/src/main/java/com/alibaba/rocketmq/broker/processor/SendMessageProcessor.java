@@ -382,6 +382,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
                 response.setRemark("create maped file failed, please make sure OS and JDK both 64bit.");
                 break;
             case MESSAGE_ILLEGAL:
+            case PROPERTIES_SIZE_EXCEEDED:
                 response.setCode(ResponseCode.MESSAGE_ILLEGAL);
                 response.setRemark("the message is illegal, maybe length not matched.");
                 break;
