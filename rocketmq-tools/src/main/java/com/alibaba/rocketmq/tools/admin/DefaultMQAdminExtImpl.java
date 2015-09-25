@@ -64,7 +64,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
     private ServiceState serviceState = ServiceState.CREATE_JUST;
     private MQClientInstance mqClientInstance;
     private RPCHook rpcHook;
-    private long timeoutMillis = 5000;
+    private long timeoutMillis = 20000;
 
 
     public DefaultMQAdminExtImpl(DefaultMQAdminExt defaultMQAdminExt, long timeoutMillis) {
