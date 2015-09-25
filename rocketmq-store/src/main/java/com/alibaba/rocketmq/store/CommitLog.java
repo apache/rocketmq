@@ -30,7 +30,6 @@ import com.alibaba.rocketmq.store.schedule.ScheduleMessageService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -228,10 +227,10 @@ public class CommitLog {
             case MessageMagicCode:
                 break;
             case BlankMagicCode:
-                return new DispatchRequest(0, true /*success*/);
+                return new DispatchRequest(0, true /* success */);
             default:
                 log.warn("found a illegal magic code 0x" + Integer.toHexString(magicCode));
-                return new DispatchRequest(-1, false /*success*/);
+                return new DispatchRequest(-1, false /* success */);
             }
 
             // 3 BODYCRC
@@ -282,7 +281,7 @@ public class CommitLog {
                         int crc = UtilAll.crc32(bytesContent, 0, bodyLen);
                         if (crc != bodyCRC) {
                             log.warn("CRC check failed. bodyCRC={}, currentCRC={}", crc, bodyCRC);
-                            return new DispatchRequest(-1, false/*success*/);
+                            return new DispatchRequest(-1, false/* success */);
                         }
                     }
                 }
@@ -334,9 +333,9 @@ public class CommitLog {
             int readLength = calMsgLength(bodyLen, topicLen, propertiesLength);
             if (totalSize != readLength) {
                 log.error(
-                        "[BUG]read total count not equals msg total size. totalSize={}, readTotalCount={}, bodyLen={}, topicLen={}, propertiesLength={}",
-                        totalSize, readLength, bodyLen, topicLen, propertiesLength);
-                return new DispatchRequest(totalSize, false/*success*/);
+                    "[BUG]read total count not equals msg total size. totalSize={}, readTotalCount={}, bodyLen={}, topicLen={}, propertiesLength={}",
+                    totalSize, readLength, bodyLen, topicLen, propertiesLength);
+                return new DispatchRequest(totalSize, false/* success */);
             }
 
             return new DispatchRequest(//
@@ -355,7 +354,7 @@ public class CommitLog {
         catch (Exception e) {
         }
 
-        return new DispatchRequest(-1, false /*success*/);
+        return new DispatchRequest(-1, false /* success */);
     }
 
 
@@ -374,9 +373,10 @@ public class CommitLog {
                 + 8 // 12 STOREHOSTADDRESS
                 + 4 // 13 RECONSUMETIMES
                 + 8 // 14 Prepared Transaction Offset
-                + 4 + bodyLength // 14 BODY
+                + 4 + (bodyLength > 0 ? bodyLength : 0) // 14 BODY
                 + 1 + topicLength // 15 TOPIC
-                + 2 + propertiesLength // 16 propertiesLength
+                + 2 + (propertiesLength > 0 ? propertiesLength : 0) // 16
+                                                                    // propertiesLength
                 + 0;
         return msgLen;
     }
