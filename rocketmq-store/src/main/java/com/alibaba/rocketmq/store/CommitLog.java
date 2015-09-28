@@ -577,7 +577,7 @@ public class CommitLog {
 
         // todo-->jodie:恢复成1s
         if (eclipseTimeInLock > 500) {
-            log.warn("putMessage in lock eclipse time(ms) " + eclipseTimeInLock);
+            log.warn("[NOTIFYME]putMessage in lock eclipse time(ms) " + eclipseTimeInLock);
         }
 
         PutMessageResult putMessageResult = new PutMessageResult(PutMessageStatus.PUT_OK, result);
