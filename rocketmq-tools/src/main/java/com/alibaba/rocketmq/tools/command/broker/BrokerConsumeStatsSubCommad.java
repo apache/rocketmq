@@ -58,6 +58,14 @@ public class BrokerConsumeStatsSubCommad implements SubCommand {
         opt.setRequired(true);
         options.addOption(opt);
 
+        opt = new Option("t", "timeoutMillis", true, "request timeout Millis");
+        opt.setRequired(true);
+        options.addOption(opt);
+
+        opt = new Option("l", "level", true, "threshold of print diff");
+        opt.setRequired(false);
+        options.addOption(opt);
+
         opt = new Option("o", "order", true, "order topic");
         opt.setRequired(false);
         options.addOption(opt);
@@ -73,10 +81,19 @@ public class BrokerConsumeStatsSubCommad implements SubCommand {
             defaultMQAdminExt.start();
             String brokerAddr = commandLine.getOptionValue('b').trim();
             boolean isOrder = false;
+            long timeoutMillis = 50000;
+            long diffLevel = 0;
             if (commandLine.hasOption('o')) {
                 isOrder = Boolean.parseBoolean(commandLine.getOptionValue('o').trim());
             }
-            ConsumeStatsList consumeStatsList = defaultMQAdminExt.fetchConsumeStatsInBroker(brokerAddr, isOrder);
+            if (commandLine.hasOption('t')) {
+                timeoutMillis = Long.parseLong(commandLine.getOptionValue('t').trim());
+            }
+            if (commandLine.hasOption('l')) {
+                diffLevel = Long.parseLong(commandLine.getOptionValue('l').trim());
+            }
+
+            ConsumeStatsList consumeStatsList = defaultMQAdminExt.fetchConsumeStatsInBroker(brokerAddr, isOrder, timeoutMillis);
             System.out.printf("%-32s  %-32s  %-32s  %-4s  %-20s  %-20s  %-20s  %s\n",//
                     "#Topic",//
                     "#Group",//
@@ -96,6 +113,10 @@ public class BrokerConsumeStatsSubCommad implements SubCommand {
                         for (MessageQueue mq : mqList) {
                             OffsetWrapper offsetWrapper = consumeStats.getOffsetTable().get(mq);
                             long diff = offsetWrapper.getBrokerOffset() - offsetWrapper.getConsumerOffset();
+                            //如果设置了输出diff最小阀值，判断一下
+                            if (diff < diffLevel){
+                                continue;
+                            }
                             String lastTime = "-";
                             try {
                                 lastTime = UtilAll.formatDate(new Date(offsetWrapper.getLastTimestamp()), UtilAll.yyyy_MM_dd_HH_mm_ss);

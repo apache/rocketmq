@@ -595,6 +595,7 @@ public interface MQAdminExt extends MQAdmin {
      * 获取broker的消费堆积状态
      * @param brokerAddr
      * @param isOrder
+     * @param timeoutMillis
      * @return
      * @throws RemotingConnectException
      * @throws RemotingSendRequestException
@@ -602,7 +603,7 @@ public interface MQAdminExt extends MQAdmin {
      * @throws MQClientException
      * @throws InterruptedException
      */
-    public ConsumeStatsList fetchConsumeStatsInBroker(final String brokerAddr, boolean isOrder) throws RemotingConnectException, RemotingSendRequestException,
+    public ConsumeStatsList fetchConsumeStatsInBroker(final String brokerAddr, boolean isOrder, long timeoutMillis) throws RemotingConnectException, RemotingSendRequestException,
             RemotingTimeoutException, MQClientException, InterruptedException;
 
     /**

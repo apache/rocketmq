@@ -450,9 +450,9 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
     }
 
     @Override
-    public ConsumeStatsList fetchConsumeStatsInBroker(final String brokerAddr, boolean isOrder) throws RemotingConnectException, RemotingSendRequestException,
+    public ConsumeStatsList fetchConsumeStatsInBroker(final String brokerAddr, boolean isOrder, long timeoutMillis) throws RemotingConnectException, RemotingSendRequestException,
             RemotingTimeoutException, MQClientException, InterruptedException{
-        return this.defaultMQAdminExtImpl.fetchConsumeStatsInBroker(brokerAddr, isOrder);
+        return this.defaultMQAdminExtImpl.fetchConsumeStatsInBroker(brokerAddr, isOrder, timeoutMillis);
     }
 
     @Override
