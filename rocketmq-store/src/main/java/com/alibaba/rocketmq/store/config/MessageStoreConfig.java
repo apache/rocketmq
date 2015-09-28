@@ -139,6 +139,18 @@ public class MessageStoreConfig {
     private boolean offsetCheckInSlave = false;
 
 
+
+    // 是否记录磁盘的落后情况
+    private boolean diskFallRecorded = true;
+
+    public boolean isDiskFallRecorded() {
+        return diskFallRecorded;
+    }
+
+    public void setDiskFallRecorded(final boolean diskFallRecorded) {
+        this.diskFallRecorded = diskFallRecorded;
+    }
+
     public boolean isWarmMapedFileEnable() {
         return warmMapedFileEnable;
     }

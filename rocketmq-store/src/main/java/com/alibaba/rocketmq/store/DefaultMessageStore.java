@@ -508,7 +508,7 @@ public class DefaultMessageStore implements MessageStore {
 
                         int i = 0;
                         final int MaxFilterMessageCount = 16000;
-                        boolean diskFallRecorded = false;
+                        final boolean diskFallRecorded = this.messageStoreConfig.isDiskFallRecorded();
                         for (; i < bufferConsumeQueue.getSize() && i < MaxFilterMessageCount; i += ConsumeQueue.CQStoreUnitSize) {
                             long offsetPy = bufferConsumeQueue.getByteBuffer().getLong();
                             int sizePy = bufferConsumeQueue.getByteBuffer().getInt();
@@ -538,20 +538,6 @@ public class DefaultMessageStore implements MessageStore {
                                     getResult.addMessage(selectResult);
                                     status = GetMessageStatus.FOUND;
                                     nextPhyFileStartOffset = Long.MIN_VALUE;
-
-                                    // 统计读取磁盘落后情况
-                                    if (diskFallRecorded) {
-                                        diskFallRecorded = true;
-                                        long fallBehind = consumeQueue.getMaxPhysicOffset() - offsetPy;
-                                        brokerStatsManager.recordDiskFallBehind(group, topic, queueId, fallBehind);
-                                    }
-
-                                    // 统计消息数据
-                                    if (isInDisk && brokerStatsManager != null) {
-                                        brokerStatsManager.incGroupGetFromDiskNums(group, topic, 1);
-                                        brokerStatsManager.incGroupGetFromDiskSize(group, topic, selectResult.getSize());
-                                        brokerStatsManager.incBrokerGetFromDiskNums(1);
-                                    }
                                 }
                                 else {
                                     if (getResult.getBufferTotalSize() == 0) {
@@ -573,10 +559,16 @@ public class DefaultMessageStore implements MessageStore {
                             }
                         }
 
+                        // 统计读取磁盘落后情况
+                        if (diskFallRecorded) {
+                            long fallBehind = maxOffsetPy - maxPhyOffsetPulling;
+                            brokerStatsManager.recordDiskFallBehind(group, topic, queueId, fallBehind);
+                        }
+
                         nextBeginOffset = offset + (i / ConsumeQueue.CQStoreUnitSize);
 
                         // TODO 是否会影响性能，需要测试
-                        long diff = this.getMaxPhyOffset() - maxPhyOffsetPulling;
+                        long diff = maxOffsetPy - maxPhyOffsetPulling;
                         long memory =
                                 (long) (StoreUtil.TotalPhysicalMemorySize * (this.messageStoreConfig.getAccessMessageInMemoryMaxRatio() / 100.0));
                         getResult.setSuggestPullingFromSlave(diff > memory);
