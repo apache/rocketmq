@@ -240,17 +240,15 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
                 if (!this.brokerController.getBrokerConfig().isHighSpeedMode()) {
                     this.brokerController.getBrokerStatsManager().incSendBackNums(requestHeader.getGroup(), backTopic);
 
-                    //For commercial
-                    int incValue = (int) Math.ceil(putMessageResult.getAppendMessageResult().getWroteBytes() /
-                            BrokerStatsManager.SIZE_PER_COUNT);
-                    this.brokerController.getBrokerStatsManager().incCommercialGroupSndBckTimes(
-                            requestHeader.getGroup(), backTopic,
-                            BrokerStatsManager.StatsType.SEND_BACK_SUCCESS.toString(), incValue);
+                    // For commercial
+                    int incValue =
+                            (int) Math.ceil(putMessageResult.getAppendMessageResult().getWroteBytes() / BrokerStatsManager.SIZE_PER_COUNT);
+                    this.brokerController.getBrokerStatsManager().incCommercialGroupSndBckTimes(requestHeader.getGroup(), backTopic,
+                        BrokerStatsManager.StatsType.SEND_BACK_SUCCESS.toString(), incValue);
 
-                    this.brokerController.getBrokerStatsManager().incCommercialGroupSndBckSize(
-                            requestHeader.getGroup(), backTopic,
-                            BrokerStatsManager.StatsType.SEND_BACK_SUCCESS.toString(),
-                            putMessageResult.getAppendMessageResult().getWroteBytes());
+                    this.brokerController.getBrokerStatsManager().incCommercialGroupSndBckSize(requestHeader.getGroup(), backTopic,
+                        BrokerStatsManager.StatsType.SEND_BACK_SUCCESS.toString(),
+                        putMessageResult.getAppendMessageResult().getWroteBytes());
                 }
 
                 response.setCode(ResponseCode.SUCCESS);
@@ -258,10 +256,9 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
 
                 return response;
             default:
-                //For commercial
-                this.brokerController.getBrokerStatsManager().incCommercialGroupSndBckTimes(
-                        requestHeader.getGroup(),msgExt.getTopic(),
-                        BrokerStatsManager.StatsType.SEND_BACK_FAILURE.toString(), 1);
+                // For commercial
+                this.brokerController.getBrokerStatsManager().incCommercialGroupSndBckTimes(requestHeader.getGroup(), msgExt.getTopic(),
+                    BrokerStatsManager.StatsType.SEND_BACK_FAILURE.toString(), 1);
                 break;
             }
 
@@ -382,8 +379,10 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
                 response.setRemark("create maped file failed, please make sure OS and JDK both 64bit.");
                 break;
             case MESSAGE_ILLEGAL:
+            case PROPERTIES_SIZE_EXCEEDED:
                 response.setCode(ResponseCode.MESSAGE_ILLEGAL);
-                response.setRemark("the message is illegal, maybe length not matched.");
+                response
+                    .setRemark("the message is illegal, maybe msg body or properties length not matched. msg body length limit 128k, msg properties length limit 32k.");
                 break;
             case SERVICE_NOT_AVAILABLE:
                 response.setCode(ResponseCode.SERVICE_NOT_AVAILABLE);
@@ -408,17 +407,15 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
                 this.brokerController.getBrokerStatsManager().incBrokerPutNums();
 
                 if (!this.brokerController.getBrokerConfig().isHighSpeedMode()) {
-                    //For commercial
-                    int incValue = (int) Math.ceil(putMessageResult.getAppendMessageResult().getWroteBytes() /
-                            BrokerStatsManager.SIZE_PER_COUNT);
-                    this.brokerController.getBrokerStatsManager().incCommercialTopicSendTimes(
-                            requestHeader.getProducerGroup(), msgInner.getTopic(),
-                            BrokerStatsManager.StatsType.SEND_SUCCESS.toString(), incValue);
+                    // For commercial
+                    int incValue =
+                            (int) Math.ceil(putMessageResult.getAppendMessageResult().getWroteBytes() / BrokerStatsManager.SIZE_PER_COUNT);
+                    this.brokerController.getBrokerStatsManager().incCommercialTopicSendTimes(requestHeader.getProducerGroup(),
+                        msgInner.getTopic(), BrokerStatsManager.StatsType.SEND_SUCCESS.toString(), incValue);
 
-                    this.brokerController.getBrokerStatsManager().incCommercialTopicSendSize(
-                            requestHeader.getProducerGroup(), msgInner.getTopic(),
-                            BrokerStatsManager.StatsType.SEND_SUCCESS.toString(),
-                            putMessageResult.getAppendMessageResult().getWroteBytes());
+                    this.brokerController.getBrokerStatsManager().incCommercialTopicSendSize(requestHeader.getProducerGroup(),
+                        msgInner.getTopic(), BrokerStatsManager.StatsType.SEND_SUCCESS.toString(),
+                        putMessageResult.getAppendMessageResult().getWroteBytes());
                 }
                 response.setRemark(null);
 
@@ -436,11 +433,11 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
                     mqtraceContext.setQueueOffset(responseHeader.getQueueOffset());
                 }
                 return null;
-            } else {
-                //For commercial
-                this.brokerController.getBrokerStatsManager().incCommercialTopicSendTimes(
-                        requestHeader.getProducerGroup(), msgInner.getTopic(),
-                        BrokerStatsManager.StatsType.SEND_FAILURE.toString(), 1);
+            }
+            else {
+                // For commercial
+                this.brokerController.getBrokerStatsManager().incCommercialTopicSendTimes(requestHeader.getProducerGroup(),
+                    msgInner.getTopic(), BrokerStatsManager.StatsType.SEND_FAILURE.toString(), 1);
             }
         }
         else {
