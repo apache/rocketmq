@@ -93,6 +93,17 @@ public class BrokerConfig {
     // 高速模式
     private boolean highSpeedMode = false;
 
+    // 通过Java堆来传输消息
+    private boolean transferMsgByHeap = false;
+
+
+    public boolean isTransferMsgByHeap() {
+        return transferMsgByHeap;
+    }
+
+    public void setTransferMsgByHeap(final boolean transferMsgByHeap) {
+        this.transferMsgByHeap = transferMsgByHeap;
+    }
     public static String localHostName() {
         try {
             return InetAddress.getLocalHost().getHostName();

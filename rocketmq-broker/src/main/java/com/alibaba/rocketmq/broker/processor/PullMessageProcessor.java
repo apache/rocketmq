@@ -44,10 +44,8 @@ import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
 import com.alibaba.rocketmq.remoting.netty.NettyRequestProcessor;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 import com.alibaba.rocketmq.store.GetMessageResult;
-import com.alibaba.rocketmq.store.MapedFile;
 import com.alibaba.rocketmq.store.MessageExtBrokerInner;
 import com.alibaba.rocketmq.store.PutMessageResult;
-import com.alibaba.rocketmq.store.SelectMapedBufferResult;
 import com.alibaba.rocketmq.store.config.BrokerRole;
 import com.alibaba.rocketmq.store.stats.BrokerStatsManager;
 import io.netty.channel.*;
@@ -56,10 +54,9 @@ import org.slf4j.LoggerFactory;
 
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
+import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
 
 
 /**
@@ -155,6 +152,22 @@ public class PullMessageProcessor implements NettyRequestProcessor {
         catch (Exception e) {
             log.warn(String.format("generateOffsetMovedEvent Exception, %s", event.toString()), e);
         }
+    }
+
+    private byte[] readGetMessageResult(final GetMessageResult getMessageResult) {
+        final ByteBuffer byteBuffer = ByteBuffer.allocate(getMessageResult.getBufferTotalSize());
+
+        try {
+            List<ByteBuffer> messageBufferList = getMessageResult.getMessageBufferList();
+            for (ByteBuffer bb : messageBufferList) {
+                // IO操作，会比较耗时
+                byteBuffer.put(bb);
+            }
+        } finally {
+            getMessageResult.release();
+        }
+
+        return byteBuffer.array();
     }
 
 
@@ -446,28 +459,33 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                 this.brokerController.getBrokerStatsManager().incBrokerGetNums(
                     getMessageResult.getMessageCount());
 
-                try {
-                    FileRegion fileRegion =
-                            new ManyMessageTransfer(response.encodeHeader(getMessageResult
-                                .getBufferTotalSize()), getMessageResult);
-                    channel.writeAndFlush(fileRegion).addListener(new ChannelFutureListener() {
-                        @Override
-                        public void operationComplete(ChannelFuture future) throws Exception {
-                            getMessageResult.release();
-                            if (!future.isSuccess()) {
-                                log.error(
-                                    "transfer many message by pagecache failed, " + channel.remoteAddress(),
-                                    future.cause());
+                if(this.brokerController.getBrokerConfig().isTransferMsgByHeap()){
+                    final byte[] r = this.readGetMessageResult(getMessageResult);
+                    response.setBody(r);
+                }
+                else {
+                    try {
+                        FileRegion fileRegion =
+                                new ManyMessageTransfer(response.encodeHeader(getMessageResult
+                                        .getBufferTotalSize()), getMessageResult);
+                        channel.writeAndFlush(fileRegion).addListener(new ChannelFutureListener() {
+                            @Override
+                            public void operationComplete(ChannelFuture future) throws Exception {
+                                getMessageResult.release();
+                                if (!future.isSuccess()) {
+                                    log.error(
+                                            "transfer many message by pagecache failed, " + channel.remoteAddress(),
+                                            future.cause());
+                                }
                             }
-                        }
-                    });
-                }
-                catch (Throwable e) {
-                    log.error("", e);
-                    getMessageResult.release();
-                }
+                        });
+                    } catch (Throwable e) {
+                        log.error("transfer many message by pagecache exception", e);
+                        getMessageResult.release();
+                    }
 
-                response = null;
+                    response = null;
+                }
                 break;
             case ResponseCode.PULL_NOT_FOUND:
                 // 长轮询
