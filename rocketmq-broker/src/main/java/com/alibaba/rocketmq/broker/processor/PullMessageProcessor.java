@@ -319,11 +319,12 @@ public class PullMessageProcessor implements NettyRequestProcessor {
             if (getMessageResult.isSuggestPullingFromSlave()) {
                 responseHeader.setSuggestWhichBrokerId(subscriptionGroupConfig
                     .getWhichBrokerWhenConsumeSlowly());
-                log.warn(
-                    "consume message too slow, suggest pulling from slave. group={}, topic={}, subString={}, queueId={}, offset={}",
-                    requestHeader.getConsumerGroup(), requestHeader.getTopic(),
-                    subscriptionData.getSubString(), requestHeader.getQueueId(),
-                    requestHeader.getQueueOffset());
+// Add By shijia, 注释日志，打印过于频繁
+//                log.warn(
+//                    "consume message too slow, suggest pulling from slave. group={}, topic={}, subString={}, queueId={}, offset={}",
+//                    requestHeader.getConsumerGroup(), requestHeader.getTopic(),
+//                    subscriptionData.getSubString(), requestHeader.getQueueId(),
+//                    requestHeader.getQueueOffset());
             }
             // 消费正常，按照订阅组配置重定向
             else {
