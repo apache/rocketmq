@@ -94,7 +94,7 @@ public class BrokerConfig {
     private boolean highSpeedMode = false;
 
     // 通过Java堆来传输消息
-    private boolean transferMsgByHeap = false;
+    private boolean transferMsgByHeap = true;
 
 
     public boolean isTransferMsgByHeap() {
