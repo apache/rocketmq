@@ -76,7 +76,9 @@ public class ResetOffsetByTimeCommand implements SubCommand {
 
             try {
                 // 直接输入 long 类型的 timestamp
-                timestamp = Long.valueOf(timeStampStr);
+                if(timestamp == 0) {
+                    timestamp = Long.valueOf(timeStampStr);
+                }
             } catch (NumberFormatException e) {
                 // 输入的为日期格式，精确到毫秒
                 timestamp = UtilAll.parseDate(timeStampStr, UtilAll.yyyy_MM_dd_HH_mm_ss_SSS).getTime();
