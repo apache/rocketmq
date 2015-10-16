@@ -127,6 +127,7 @@ public class ClusterListSubCommand implements SubCommand {
 
                             {
                               sendUtil =  Double.parseDouble(sendThreadPoolQueueSize) / Double.parseDouble(sendThreadPoolQueueCapacity);
+                              sendUtil *= 100;
                             }
                         }
                         catch (Exception e) {
@@ -142,7 +143,7 @@ public class ClusterListSubCommand implements SubCommand {
                             next1.getValue(),//
                             version,//
                             in,//
-                            String.format("(%07.2f%%)", sendUtil),//
+                            String.format("(%07.2f", sendUtil, "%)"),//
                             out//
                             );
                     }
