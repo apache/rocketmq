@@ -75,7 +75,7 @@ public class ClusterListSubCommand implements SubCommand {
 
         ClusterInfo clusterInfoSerializeWrapper = defaultMQAdminExt.examineBrokerClusterInfo();
 
-        System.out.printf("%-16s  %-32s  %-4s  %-22s %-22s %11s %11s\n",//
+        System.out.printf("%-16s  %-22s  %-4s  %-22s %-16s %11s%7s %11s\n",//
             "#Cluster Name",//
             "#Broker Name",//
             "#BID",//
@@ -99,6 +99,7 @@ public class ClusterListSubCommand implements SubCommand {
                     Iterator<Map.Entry<Long, String>> itAddr = brokerData.getBrokerAddrs().entrySet().iterator();
                     while (itAddr.hasNext()) {
                         Map.Entry<Long, String> next1 = itAddr.next();
+                        double sendUtil = 0;
                         double in = 0;
                         double out = 0;
                         String version = "";
@@ -107,6 +108,8 @@ public class ClusterListSubCommand implements SubCommand {
                             KVTable kvTable = defaultMQAdminExt.fetchBrokerRuntimeStats(next1.getValue());
                             String putTps = kvTable.getTable().get("putTps");
                             String getTransferedTps = kvTable.getTable().get("getTransferedTps");
+                            String sendThreadPoolQueueSize = kvTable.getTable().get("sendThreadPoolQueueSize");
+                            String sendThreadPoolQueueCapacity = kvTable.getTable().get("sendThreadPoolQueueCapacity");
                             version = kvTable.getTable().get("brokerVersionDesc");
                             {
                                 String[] tpss = putTps.split(" ");
@@ -121,17 +124,25 @@ public class ClusterListSubCommand implements SubCommand {
                                     out = Double.parseDouble(tpss[0]);
                                 }
                             }
+
+                            {
+                              sendUtil =  Double.parseDouble(sendThreadPoolQueueSize) / Double.parseDouble(sendThreadPoolQueueCapacity);
+                            }
                         }
                         catch (Exception e) {
                         }
 
-                        System.out.printf("%-16s  %-32s  %-4s  %-22s %-22s %11.2f %11.2f\n",//
+
+
+
+                        System.out.printf("%-16s  %-22s  %-4s  %-22s %-16s %11.2f%07.2f %11.2f\n",//
                             clusterName,//
                             brokerName,//
                             next1.getKey().longValue(),//
                             next1.getValue(),//
                             version,//
                             in,//
+                            String.format("(%07.2f%%)", sendUtil),//
                             out//
                             );
                     }
