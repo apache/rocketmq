@@ -143,7 +143,7 @@ public class ClusterListSubCommand implements SubCommand {
                             next1.getValue(),//
                             version,//
                             in,//
-                            String.format("(%07.2f", sendUtil, "%)"),//
+                            String.format("(%07.2f%s", sendUtil, "%)"),//
                             out//
                             );
                     }
