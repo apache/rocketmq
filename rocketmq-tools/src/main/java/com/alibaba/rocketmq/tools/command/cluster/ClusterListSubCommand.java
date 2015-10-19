@@ -134,16 +134,16 @@ public class ClusterListSubCommand implements SubCommand {
                         }
 
 
+                        String sendUtilStr = String.format("(%07.2f)", sendUtil);
 
-
-                        System.out.printf("%-16s  %-22s  %-4s  %-22s %-16s %11.2f%07s %11.2f\n",//
+                        System.out.printf("%-16s  %-22s  %-4s  %-22s %-16s %11.2f %s %11.2f\n",//
                             clusterName,//
                             brokerName,//
                             next1.getKey().longValue(),//
                             next1.getValue(),//
                             version,//
                             in,//
-                            String.format("(%07.2f%s", sendUtil, "%)"),//
+                            sendUtilStr,//
                             out//
                             );
                     }

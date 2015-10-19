@@ -495,6 +495,13 @@ public class CommitLog {
         return false;
     }
 
+    public long getBeginTimeInLock() {
+        return beginTimeInLock;
+    }
+
+    private volatile long beginTimeInLock = 0;
+
+
 
     public PutMessageResult putMessage(final MessageExtBrokerInner msg) {
         // Set the storage time
@@ -536,6 +543,7 @@ public class CommitLog {
         MapedFile mapedFile = this.mapedFileQueue.getLastMapedFileWithLock();
         synchronized (this) {
             long beginLockTimestamp = this.defaultMessageStore.getSystemClock().now();
+            this.beginTimeInLock = beginLockTimestamp;
 
             // Here settings are stored timestamp, in order to ensure an orderly
             // global
@@ -547,6 +555,7 @@ public class CommitLog {
 
             if (null == mapedFile) {
                 log.error("create maped file1 error, topic: " + msg.getTopic() + " clientAddr: " + msg.getBornHostString());
+                beginTimeInLock = 0;
                 return new PutMessageResult(PutMessageStatus.CREATE_MAPEDFILE_FAILED, null);
             }
             result = mapedFile.appendMessage(msg, this.appendMessageCallback);
@@ -559,20 +568,25 @@ public class CommitLog {
                 if (null == mapedFile) {
                     // XXX: warn and notify me
                     log.error("create maped file2 error, topic: " + msg.getTopic() + " clientAddr: " + msg.getBornHostString());
+                    beginTimeInLock = 0;
                     return new PutMessageResult(PutMessageStatus.CREATE_MAPEDFILE_FAILED, result);
                 }
                 result = mapedFile.appendMessage(msg, this.appendMessageCallback);
                 break;
             case MESSAGE_SIZE_EXCEEDED:
             case PROPERTIES_SIZE_EXCEEDED:
+                beginTimeInLock = 0;
                 return new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, result);
             case UNKNOWN_ERROR:
+                beginTimeInLock = 0;
                 return new PutMessageResult(PutMessageStatus.UNKNOWN_ERROR, result);
             default:
+                beginTimeInLock = 0;
                 return new PutMessageResult(PutMessageStatus.UNKNOWN_ERROR, result);
             }
 
             eclipseTimeInLock = this.defaultMessageStore.getSystemClock().now() - beginLockTimestamp;
+            beginTimeInLock = 0;
         } // end of synchronized
 
         // todo-->jodie:恢复成1s
