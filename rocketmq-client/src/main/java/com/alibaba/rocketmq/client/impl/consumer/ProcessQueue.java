@@ -300,6 +300,23 @@ public class ProcessQueue {
     }
 
 
+    public boolean hasTempMessage() {
+        try {
+            this.lockTreeMap.readLock().lockInterruptibly();
+            try {
+               return !this.msgTreeMap.isEmpty();
+            }
+            finally {
+                this.lockTreeMap.readLock().unlock();
+            }
+        }
+        catch (InterruptedException e) {
+        }
+
+        return true;
+    }
+
+
     public void clear() {
         try {
             this.lockTreeMap.writeLock().lockInterruptibly();
