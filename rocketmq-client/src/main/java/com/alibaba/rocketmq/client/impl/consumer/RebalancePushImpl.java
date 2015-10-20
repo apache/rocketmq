@@ -15,10 +15,6 @@
  */
 package com.alibaba.rocketmq.client.impl.consumer;
 
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-
 import com.alibaba.rocketmq.client.consumer.AllocateMessageQueueStrategy;
 import com.alibaba.rocketmq.client.consumer.store.OffsetStore;
 import com.alibaba.rocketmq.client.consumer.store.ReadOffsetType;
@@ -30,6 +26,10 @@ import com.alibaba.rocketmq.common.consumer.ConsumeFromWhere;
 import com.alibaba.rocketmq.common.message.MessageQueue;
 import com.alibaba.rocketmq.common.protocol.heartbeat.ConsumeType;
 import com.alibaba.rocketmq.common.protocol.heartbeat.MessageModel;
+
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 
 /**
@@ -153,7 +153,25 @@ public class RebalancePushImpl extends RebalanceImpl {
     @Override
     public void messageQueueChanged(String topic, Set<MessageQueue> mqAll, Set<MessageQueue> mqDivided) {
     }
+    private final static long UnlockDelayTimeMills = Long.parseLong(System.getProperty(
+            "rocketmq.client.unlockDelayTimeMills", "20000"));
 
+
+    private boolean unlockDelay(final MessageQueue mq, final ProcessQueue pq) {
+        // 说明有未commit的消息
+
+        if (pq.hasTempMessage()) {
+            log.info("[{}]unlockDelay, begin {} ", mq.hashCode(), mq);
+            this.defaultMQPushConsumerImpl.getmQClientFactory().getScheduledExecutorService().schedule(new Runnable() {
+                @Override
+                public void run() {
+                    log.info("[{}]unlockDelay, execute at once {}", mq.hashCode(), mq);
+                    RebalancePushImpl.this.unlock(mq, true);
+                }
+            }, UnlockDelayTimeMills, TimeUnit.MILLISECONDS);
+        }
+        return true;
+    }
 
     @Override
     public boolean removeUnnecessaryMessageQueue(MessageQueue mq, ProcessQueue pq) {
@@ -164,8 +182,7 @@ public class RebalancePushImpl extends RebalanceImpl {
             try {
                 if (pq.getLockConsume().tryLock(1000, TimeUnit.MILLISECONDS)) {
                     try {
-                        this.unlock(mq, true);
-                        return true;
+                        return this.unlockDelay(mq, pq);
                     }
                     finally {
                         pq.getLockConsume().unlock();
@@ -173,9 +190,9 @@ public class RebalancePushImpl extends RebalanceImpl {
                 }
                 else {
                     log.warn(
-                        "[WRONG]mq is consuming, so can not unlock it, {}. maybe hanged for a while, {}",//
-                        mq,//
-                        pq.getTryUnlockTimes());
+                            "[WRONG]mq is consuming, so can not unlock it, {}. maybe hanged for a while, {}",//
+                            mq,//
+                            pq.getTryUnlockTimes());
 
                     pq.incTryUnlockTimes();
                 }
