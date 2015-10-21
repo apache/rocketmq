@@ -355,6 +355,21 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                 return;
             }
         }
+        // 顺序消息必须等锁住才能拉消息，且要重新初始化从哪里拉
+        else {
+            if(processQueue.isLocked()){
+                if(!pullRequest.isLockedFirst()){
+                    final long offset = this.rebalanceImpl.computePullFromWhere(pullRequest.getMessageQueue());
+                    log.info("[NOTIFYME]pull message, and first pull, so fix offset, pullRequest: {} NEWOFFSET: {}", pullRequest, offset);
+                    pullRequest.setLockedFirst(true);
+                    pullRequest.setNextOffset(offset);
+                }
+            }
+            else {
+                this.executePullRequestLater(pullRequest, PullTimeDelayMillsWhenException);
+                log.info("[NOTIFYME]pull message, but not locked in broker, {}", pullRequest);
+            }
+        }
 
         final SubscriptionData subscriptionData =
                 this.rebalanceImpl.getSubscriptionInner().get(pullRequest.getMessageQueue().getTopic());

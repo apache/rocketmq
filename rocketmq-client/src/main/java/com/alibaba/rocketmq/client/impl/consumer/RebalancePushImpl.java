@@ -168,8 +168,9 @@ public class RebalancePushImpl extends RebalanceImpl {
                     RebalancePushImpl.this.unlock(mq, true);
                 }
             }, UnlockDelayTimeMills, TimeUnit.MILLISECONDS);
-        } else {
-            this.unlock(mq, true);
+        }
+        else{
+            this.unlock(mq,true);
         }
         return true;
     }

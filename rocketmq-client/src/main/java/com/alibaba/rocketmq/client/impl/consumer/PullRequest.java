@@ -27,7 +27,15 @@ public class PullRequest {
     private MessageQueue messageQueue;
     private ProcessQueue processQueue;
     private long nextOffset;
+    private boolean lockedFirst = false;
 
+    public boolean isLockedFirst() {
+        return lockedFirst;
+    }
+
+    public void setLockedFirst(boolean lockedFirst) {
+        this.lockedFirst = lockedFirst;
+    }
 
     public String getConsumerGroup() {
         return consumerGroup;
