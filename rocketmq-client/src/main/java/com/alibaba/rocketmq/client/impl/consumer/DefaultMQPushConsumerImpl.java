@@ -360,7 +360,13 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
             if(processQueue.isLocked()){
                 if(!pullRequest.isLockedFirst()){
                     final long offset = this.rebalanceImpl.computePullFromWhere(pullRequest.getMessageQueue());
-                    log.info("[NOTIFYME]pull message, and first pull, so fix offset, pullRequest: {} NEWOFFSET: {}", pullRequest, offset);
+                    boolean brokerBusy = offset < pullRequest.getNextOffset();
+                    log.info("[NOTIFYME]pull message, and first pull, so fix offset, pullRequest: {} NEWOFFSET: {} brokerBusy: {}", pullRequest, offset, brokerBusy);
+                    if(offset < pullRequest.getNextOffset()){
+                        this.executePullRequestLater(pullRequest, PullTimeDelayMillsWhenException);
+                        return;
+                    }
+
                     pullRequest.setLockedFirst(true);
                     pullRequest.setNextOffset(offset);
                 }
