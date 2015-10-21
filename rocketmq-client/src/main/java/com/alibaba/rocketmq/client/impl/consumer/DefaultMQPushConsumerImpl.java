@@ -374,6 +374,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
             else {
                 this.executePullRequestLater(pullRequest, PullTimeDelayMillsWhenException);
                 log.info("[NOTIFYME]pull message, but not locked in broker, {}", pullRequest);
+                return;
             }
         }
 
