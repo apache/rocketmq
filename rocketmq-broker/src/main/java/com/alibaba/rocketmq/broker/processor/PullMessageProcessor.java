@@ -402,7 +402,7 @@ public class PullMessageProcessor implements NettyRequestProcessor {
             case OFFSET_TOO_SMALL:
                 response.setCode(ResponseCode.PULL_OFFSET_MOVED);
                 log.info(
-                    "the request offset too small. group={}, topic={}, requestOffset{}, brokerMinOffset={}, clientIp={}",
+                    "the request offset too small. group={}, topic={}, requestOffset={}, brokerMinOffset={}, clientIp={}",
                     requestHeader.getConsumerGroup(), requestHeader.getTopic(),
                     requestHeader.getQueueOffset(), getMessageResult.getMinOffset(), channel.remoteAddress());
                 break;
