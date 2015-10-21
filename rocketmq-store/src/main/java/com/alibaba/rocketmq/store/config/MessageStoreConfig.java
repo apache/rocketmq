@@ -138,7 +138,7 @@ public class MessageStoreConfig {
     // slave 是否需要纠正位点
     private boolean offsetCheckInSlave = false;
     //
-    private boolean debugLockEnable = true;
+    private boolean debugLockEnable = false;
 
     public boolean isDebugLockEnable() {
         return debugLockEnable;
