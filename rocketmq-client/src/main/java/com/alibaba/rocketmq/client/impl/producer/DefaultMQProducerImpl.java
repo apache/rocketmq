@@ -984,7 +984,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     }
 
 
-    private void endTransaction(//
+    public void endTransaction(//
             final SendResult sendResult, //
             final LocalTransactionState localTransactionState, //
             final Throwable localException) throws RemotingException, MQBrokerException,
