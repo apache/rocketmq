@@ -36,6 +36,7 @@ import com.alibaba.rocketmq.tools.command.namesrv.WipeWritePermSubCommand;
 import com.alibaba.rocketmq.tools.command.offset.CloneGroupOffsetCommand;
 import com.alibaba.rocketmq.tools.command.offset.ResetOffsetByTimeCommand;
 import com.alibaba.rocketmq.tools.command.stats.StatsAllSubCommand;
+import com.alibaba.rocketmq.tools.command.stats.TpsStatsSubCommand;
 import com.alibaba.rocketmq.tools.command.topic.*;
 import com.alibaba.rocketmq.tools.github.SyncDocsToGithubSubCommand;
 import org.apache.commons.cli.CommandLine;
@@ -84,6 +85,7 @@ public class MQAdminStartup {
         initCommand(new ConsumerProgressSubCommand());
         initCommand(new ConsumerStatusSubCommand());
         initCommand(new CloneGroupOffsetCommand());
+        initCommand(new ConsumeOffsetRankSubCommand());
 
         initCommand(new ClusterListSubCommand());
         initCommand(new TopicListSubCommand());
@@ -101,6 +103,7 @@ public class MQAdminStartup {
         initCommand(new StartMonitoringSubCommand());
         initCommand(new CheckMsgSubCommand());
         initCommand(new StatsAllSubCommand());
+        initCommand(new TpsStatsSubCommand());
 
         initCommand(new SyncDocsToGithubSubCommand());
         initCommand(new AllocateMQSubCommand());

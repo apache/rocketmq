@@ -618,4 +618,38 @@ public interface MQAdminExt extends MQAdmin {
      */
     public Set<String> getTopicClusterList(final String topic) throws InterruptedException, MQBrokerException,MQClientException, RemotingException;
 
+
+    /**
+     * 获取broker上全部group
+     * @param brokerAddr
+     * @param timeoutMillis
+     * @return
+     * @throws InterruptedException
+     * @throws RemotingTimeoutException
+     * @throws RemotingSendRequestException
+     * @throws RemotingConnectException
+     * @throws MQBrokerException
+     */
+    public SubscriptionGroupWrapper getAllSubscriptionGroup(final String brokerAddr, long timeoutMillis) throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException,
+            RemotingConnectException, MQBrokerException;
+
+
+    /**
+     * 获取broker上全部topic
+     * @param brokerAddr
+     * @param timeoutMillis
+     * @return
+     * @throws InterruptedException
+     * @throws RemotingTimeoutException
+     * @throws RemotingSendRequestException
+     * @throws RemotingConnectException
+     * @throws MQBrokerException
+     */
+    public TopicConfigSerializeWrapper getAllTopicGroup(final String brokerAddr, long timeoutMillis) throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException,
+            RemotingConnectException, MQBrokerException;
+
+
+
+
+
 }

@@ -145,7 +145,6 @@ public class ConsumerProgressSubCommand implements SubCommand {
                 for (String topic : topicList.getTopicList()) {
                     if (topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
                         String consumerGroup = topic.substring(MixAll.RETRY_GROUP_TOPIC_PREFIX.length());
-
                         try {
                             ConsumeStats consumeStats = null;
                             try {

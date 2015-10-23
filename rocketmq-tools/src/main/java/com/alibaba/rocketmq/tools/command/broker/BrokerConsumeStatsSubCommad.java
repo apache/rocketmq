@@ -59,7 +59,7 @@ public class BrokerConsumeStatsSubCommad implements SubCommand {
         options.addOption(opt);
 
         opt = new Option("t", "timeoutMillis", true, "request timeout Millis");
-        opt.setRequired(true);
+        opt.setRequired(false);
         options.addOption(opt);
 
         opt = new Option("l", "level", true, "threshold of print diff");
