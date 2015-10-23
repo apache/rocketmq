@@ -495,12 +495,12 @@ public class CommitLog {
         return false;
     }
 
+
     public long getBeginTimeInLock() {
         return beginTimeInLock;
     }
 
     private volatile long beginTimeInLock = 0;
-
 
 
     public PutMessageResult putMessage(final MessageExtBrokerInner msg) {
@@ -589,9 +589,8 @@ public class CommitLog {
             beginTimeInLock = 0;
         } // end of synchronized
 
-        // todo-->jodie:恢复成1s
-        if (eclipseTimeInLock > 500) {
-            log.warn("[NOTIFYME]putMessage in lock eclipse time(ms) " + eclipseTimeInLock);
+        if (eclipseTimeInLock > 1000) {
+            log.warn("[NOTIFYME]putMessage in lock eclipse time(ms)={}, bodyLength={}", eclipseTimeInLock, msg.getBody().length);
         }
 
         PutMessageResult putMessageResult = new PutMessageResult(PutMessageStatus.PUT_OK, result);
