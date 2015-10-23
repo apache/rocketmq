@@ -47,9 +47,7 @@ public class ResetOffsetByTimeCommand implements SubCommand {
         opt.setRequired(true);
         options.addOption(opt);
 
-        opt =
-                new Option("s", "timestamp", true,
-                    "set the timestamp[now|currentTimeMillis|yyyy-MM-dd#HH:mm:ss:SSS]");
+        opt = new Option("s", "timestamp", true, "set the timestamp[now|currentTimeMillis|yyyy-MM-dd#HH:mm:ss:SSS]");
         opt.setRequired(true);
         options.addOption(opt);
 
@@ -67,8 +65,8 @@ public class ResetOffsetByTimeCommand implements SubCommand {
     @Override
     public void execute(CommandLine commandLine, Options options, RPCHook rpcHook) {
         DefaultMQAdminExt defaultMQAdminExt = new DefaultMQAdminExt(rpcHook);
-            defaultMQAdminExt.setInstanceName(Long.toString(System.currentTimeMillis()));
-            try {
+        defaultMQAdminExt.setInstanceName(Long.toString(System.currentTimeMillis()));
+        try {
             String group = commandLine.getOptionValue("g").trim();
             String topic = commandLine.getOptionValue("t").trim();
             String timeStampStr = commandLine.getOptionValue("s").trim();
@@ -76,14 +74,14 @@ public class ResetOffsetByTimeCommand implements SubCommand {
 
             try {
                 // 直接输入 long 类型的 timestamp
-                if(timestamp == 0) {
+                if (timestamp == 0) {
                     timestamp = Long.valueOf(timeStampStr);
                 }
-            } catch (NumberFormatException e) {
+            }
+            catch (NumberFormatException e) {
                 // 输入的为日期格式，精确到毫秒
                 timestamp = UtilAll.parseDate(timeStampStr, UtilAll.yyyy_MM_dd_HH_mm_ss_SSS).getTime();
             }
-
 
             boolean force = true;
             if (commandLine.hasOption('f')) {
@@ -102,17 +100,15 @@ public class ResetOffsetByTimeCommand implements SubCommand {
             }
             catch (MQClientException e) {
                 if (ResponseCode.CONSUMER_NOT_ONLINE == e.getResponseCode()) {
-                    ResetOffsetByTimeOldCommand.resetOffset(defaultMQAdminExt, group, topic, timestamp,
-                        force, timeStampStr);
+                    ResetOffsetByTimeOldCommand.resetOffset(defaultMQAdminExt, group, topic, timestamp, force, timeStampStr);
                     return;
                 }
                 throw e;
             }
 
-            System.out
-                .printf(
-                    "rollback consumer offset by specified group[%s], topic[%s], force[%s], timestamp(string)[%s], timestamp(long)[%s]\n",
-                    group, topic, force, timeStampStr, timestamp);
+            System.out.printf(
+                "rollback consumer offset by specified group[%s], topic[%s], force[%s], timestamp(string)[%s], timestamp(long)[%s]\n",
+                group, topic, force, timeStampStr, timestamp);
 
             System.out.printf("%-40s  %-40s  %-40s\n",//
                 "#brokerName",//
@@ -141,11 +137,9 @@ public class ResetOffsetByTimeCommand implements SubCommand {
         System.setProperty(MixAll.NAMESRV_ADDR_PROPERTY, "127.0.0.1:9876");
         ResetOffsetByTimeCommand cmd = new ResetOffsetByTimeCommand();
         Options options = ServerUtil.buildCommandlineOptions(new Options());
-        String[] subargs =
-                new String[] { "-t qatest_TopicTest", "-g qatest_consumer", "-s 1389098416742", "-f true" };
+        String[] subargs = new String[] { "-t qatest_TopicTest", "-g qatest_consumer", "-s 1389098416742", "-f true" };
         final CommandLine commandLine =
-                ServerUtil.parseCmdLine("mqadmin " + cmd.commandName(), subargs,
-                    cmd.buildCommandlineOptions(options), new PosixParser());
+                ServerUtil.parseCmdLine("mqadmin " + cmd.commandName(), subargs, cmd.buildCommandlineOptions(options), new PosixParser());
         cmd.execute(commandLine, options, null);
     }
 }

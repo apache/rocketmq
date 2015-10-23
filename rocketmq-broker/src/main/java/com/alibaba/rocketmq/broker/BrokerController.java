@@ -99,6 +99,8 @@ public class BrokerController {
     private BrokerStats brokerStats;
     private final BlockingQueue<Runnable> sendThreadPoolQueue;
 
+
+
     private final BlockingQueue<Runnable> pullThreadPoolQueue;
 
     private final FilterServerManager filterServerManager;
@@ -145,7 +147,9 @@ public class BrokerController {
         this.brokerStatsManager = new BrokerStatsManager(this.brokerConfig.getBrokerClusterName());
         this.setStoreHost(new InetSocketAddress(this.getBrokerConfig().getBrokerIP1(), this.getNettyServerConfig().getListenPort()));
     }
-
+    public BlockingQueue<Runnable> getPullThreadPoolQueue() {
+        return pullThreadPoolQueue;
+    }
 
     public boolean initialize() throws CloneNotSupportedException {
         boolean result = true;

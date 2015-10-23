@@ -515,6 +515,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
             for (BrokerData brokerData : brokerDatas) {
                 String addr = brokerData.selectBrokerAddr();
                 if (addr != null) {
+                    addr = MixAll.brokerVIPChannel(addr);
                     Map<MessageQueue, Long> offsetTable =
                             this.mqClientInstance.getMQClientAPIImpl().invokeBrokerToResetOffset(addr, topic, group, timestamp, isForce,
                                 timeoutMillis, isC);

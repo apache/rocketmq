@@ -207,6 +207,29 @@ public class DefaultMessageStore implements MessageStore {
             }
         }, 1, 10, TimeUnit.MINUTES);
 
+        // 定期检测数据结构的正确性
+        this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
+            @Override
+            public void run() {
+                if (DefaultMessageStore.this.getMessageStoreConfig().isDebugLockEnable()) {
+                    try {
+                        if (DefaultMessageStore.this.commitLog.getBeginTimeInLock() != 0) {
+                            long lockTime = System.currentTimeMillis() - DefaultMessageStore.this.commitLog.getBeginTimeInLock();
+                            if (lockTime > 1000 && lockTime < 10000000) {
+                                // 打印堆栈
+                                String stack = UtilAll.jstack();
+                                final String fileName =
+                                        System.getProperty("user.home") + File.separator + "debug/lock/stack-"
+                                                + DefaultMessageStore.this.commitLog.getBeginTimeInLock() + "-" + lockTime;
+                                MixAll.string2FileNotSafe(stack, fileName);
+                            }
+                        }
+                    }
+                    catch (Exception e) {
+                    }
+                }
+            }
+        }, 1, 1, TimeUnit.SECONDS);
         // 定时清理完全不使用的队列
         // this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
         // @Override
@@ -416,7 +439,7 @@ public class DefaultMessageStore implements MessageStore {
         // 性能数据统计
         long eclipseTime = this.getSystemClock().now() - beginTime;
         if (eclipseTime > 1000) {
-            log.warn("putMessage not in lock eclipse time(ms) " + eclipseTime);
+            log.warn("putMessage not in lock eclipse time(ms)={}, bodyLength={}", eclipseTime, msg.getBody().length);
         }
         this.storeStatsService.setPutMessageEntireTimeMax(eclipseTime);
 

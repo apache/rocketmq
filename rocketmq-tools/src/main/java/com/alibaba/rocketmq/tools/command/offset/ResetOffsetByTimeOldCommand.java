@@ -1,11 +1,5 @@
 package com.alibaba.rocketmq.tools.command.offset;
 
-import java.util.List;
-
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.Option;
-import org.apache.commons.cli.Options;
-
 import com.alibaba.rocketmq.client.exception.MQBrokerException;
 import com.alibaba.rocketmq.client.exception.MQClientException;
 import com.alibaba.rocketmq.common.UtilAll;
@@ -14,6 +8,12 @@ import com.alibaba.rocketmq.remoting.RPCHook;
 import com.alibaba.rocketmq.remoting.exception.RemotingException;
 import com.alibaba.rocketmq.tools.admin.DefaultMQAdminExt;
 import com.alibaba.rocketmq.tools.command.SubCommand;
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.Option;
+import org.apache.commons.cli.Options;
+
+import java.util.Date;
+import java.util.List;
 
 
 /**
@@ -45,9 +45,7 @@ public class ResetOffsetByTimeOldCommand implements SubCommand {
         opt.setRequired(true);
         options.addOption(opt);
 
-        opt =
-                new Option("s", "timestamp", true,
-                    "set the timestamp[currentTimeMillis|yyyy-MM-dd#HH:mm:ss:SSS]");
+        opt = new Option("s", "timestamp", true, "set the timestamp[currentTimeMillis|yyyy-MM-dd#HH:mm:ss:SSS]");
         opt.setRequired(true);
         options.addOption(opt);
 
@@ -58,15 +56,12 @@ public class ResetOffsetByTimeOldCommand implements SubCommand {
     }
 
 
-    public static void resetOffset(DefaultMQAdminExt defaultMQAdminExt, String consumerGroup, String topic,
-            long timestamp, boolean force, String timeStampStr) throws RemotingException, MQBrokerException,
-            InterruptedException, MQClientException {
-        List<RollbackStats> rollbackStatsList =
-                defaultMQAdminExt.resetOffsetByTimestampOld(consumerGroup, topic, timestamp, force);
-        System.out
-            .printf(
-                "rollback consumer offset by specified consumerGroup[%s], topic[%s], force[%s], timestamp(string)[%s], timestamp(long)[%s]\n",
-                consumerGroup, topic, force, timeStampStr, timestamp);
+    public static void resetOffset(DefaultMQAdminExt defaultMQAdminExt, String consumerGroup, String topic, long timestamp, boolean force,
+            String timeStampStr) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
+        List<RollbackStats> rollbackStatsList = defaultMQAdminExt.resetOffsetByTimestampOld(consumerGroup, topic, timestamp, force);
+        System.out.printf(
+            "rollback consumer offset by specified consumerGroup[%s], topic[%s], force[%s], timestamp(string)[%s], timestamp(long)[%s]\n",
+            consumerGroup, topic, force, timeStampStr, timestamp);
 
         System.out.printf("%-20s  %-20s  %-20s  %-20s  %-20s  %-20s\n",//
             "#brokerName",//
@@ -105,16 +100,24 @@ public class ResetOffsetByTimeOldCommand implements SubCommand {
             }
             catch (NumberFormatException e) {
                 // 输入的为日期格式，精确到毫秒
-                timestamp = UtilAll.parseDate(timeStampStr, UtilAll.yyyy_MM_dd_HH_mm_ss_SSS).getTime();
+                Date date = UtilAll.parseDate(timeStampStr, UtilAll.yyyy_MM_dd_HH_mm_ss_SSS);
+                if (date != null) {
+                    timestamp = UtilAll.parseDate(timeStampStr, UtilAll.yyyy_MM_dd_HH_mm_ss_SSS).getTime();
+                }
+                else {
+                    System.out.println("specified timestamp invalid.");
+                    return;
+                }
+
+                boolean force = true;
+                if (commandLine.hasOption('f')) {
+                    force = Boolean.valueOf(commandLine.getOptionValue("f").trim());
+                }
+
+                defaultMQAdminExt.start();
+                resetOffset(defaultMQAdminExt, consumerGroup, topic, timestamp, force, timeStampStr);
             }
 
-            boolean force = true;
-            if (commandLine.hasOption('f')) {
-                force = Boolean.valueOf(commandLine.getOptionValue("f").trim());
-            }
-
-            defaultMQAdminExt.start();
-            resetOffset(defaultMQAdminExt, consumerGroup, topic, timestamp, force, timeStampStr);
         }
         catch (Exception e) {
             e.printStackTrace();

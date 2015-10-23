@@ -15,11 +15,10 @@
  */
 package com.alibaba.rocketmq.client.impl.consumer;
 
-import org.slf4j.Logger;
-
 import com.alibaba.rocketmq.client.impl.factory.MQClientInstance;
 import com.alibaba.rocketmq.client.log.ClientLogger;
 import com.alibaba.rocketmq.common.ServiceThread;
+import org.slf4j.Logger;
 
 
 /**
@@ -37,9 +36,9 @@ public class RebalanceService extends ServiceThread {
         this.mqClientFactory = mqClientFactory;
     }
 
-    private static long WaitInterval = 1000 * 10;
-
-
+    private static long WaitInterval =
+            Long.parseLong(System.getProperty(
+                    "rocketmq.client.rebalance.waitInterval", "20000"));
     @Override
     public void run() {
         log.info(this.getServiceName() + " service started");
