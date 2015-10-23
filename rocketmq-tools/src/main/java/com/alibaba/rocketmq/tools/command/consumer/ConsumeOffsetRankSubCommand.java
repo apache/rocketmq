@@ -401,7 +401,7 @@ public class ConsumeOffsetRankSubCommand implements SubCommand {
             KeyValueQuery kvq = new KeyValueQuery("metaq_metaqstats", // StageId
                     "meta_stats_1min",// BizId
                     new KeyValueParam("type", "TOPIC_PUT_NUMS"), //kv1-定值
-                    new KeyValueParam("key", "ACCS_DM_BROADCAST_TOPIC"), //kv2-定值
+                    new KeyValueParam("key", "NUT_CTU_EVENT_TRADE_CORE"), //kv2-定值
                     new KeyValueParam("date", startTime + "", endTime + ""));//kv3-范围值，格式为ms
 
             JSONResult queryData = TLogQueryClient.queryData("http://110.75.84.129:9999", kvq); //查询url,query keys

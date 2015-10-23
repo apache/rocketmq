@@ -211,7 +211,7 @@ public class TpsStatsSubCommand implements SubCommand {
             tpsDataInfo.setTopicName(topic);
             tpsDataInfo.setGroupName(group);
             if (records.length > 0)
-                tps = (Integer)records[0].getValueByKeyName("sum");
+                tps = (Integer)records[records.length - 1].getValueByKeyName("sum");
             tpsDataInfo.setTps(tps);
             return tpsDataInfo;
         }
