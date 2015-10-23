@@ -36,7 +36,7 @@ public class SendResult {
     public static  String encoderSendResultToJson(final Object obj){
         return JSON.toJSONString(obj);
     }
-    public static SendResult decoderSendResultfromJson(String json){
+    public static SendResult decoderSendResultFromJson(String json){
         return JSON.parseObject(json, SendResult.class);
     }
 
