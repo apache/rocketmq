@@ -210,9 +210,8 @@ public class TpsStatsSubCommand implements SubCommand {
             tpsDataInfo.setClusterName(clusterName);
             tpsDataInfo.setTopicName(topic);
             tpsDataInfo.setGroupName(group);
-            for (JSONResult.JSONRecord r : records) {
-                tps += (Integer) r.getValueByKeyName("sum"); //从结果中获取sum这个key的value
-            }
+            if (records.length > 0)
+                tps = (Integer)records[0].getValueByKeyName("sum");
             tpsDataInfo.setTps(tps);
             return tpsDataInfo;
         }
@@ -259,7 +258,7 @@ public class TpsStatsSubCommand implements SubCommand {
     class TpsDataInfo implements Comparable<TpsDataInfo> {
         private String topicName;
         private String groupName;
-        private int tps;
+        private int tps = 0;
         private String clusterName;
 
 
