@@ -18,6 +18,7 @@ package com.alibaba.rocketmq.tools.command;
 import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.joran.JoranConfigurator;
 import ch.qos.logback.core.joran.spi.JoranException;
+
 import com.alibaba.rocketmq.common.MQVersion;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.conflict.PackageConflictDetect;
@@ -39,6 +40,7 @@ import com.alibaba.rocketmq.tools.command.stats.StatsAllSubCommand;
 import com.alibaba.rocketmq.tools.command.stats.TpsStatsSubCommand;
 import com.alibaba.rocketmq.tools.command.topic.*;
 import com.alibaba.rocketmq.tools.github.SyncDocsToGithubSubCommand;
+
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.PosixParser;
@@ -107,6 +109,8 @@ public class MQAdminStartup {
 
         initCommand(new SyncDocsToGithubSubCommand());
         initCommand(new AllocateMQSubCommand());
+        
+        initCommand(new CheckMsgSendRTCommand());
     }
 
 
