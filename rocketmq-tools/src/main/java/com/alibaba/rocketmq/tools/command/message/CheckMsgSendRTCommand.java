@@ -66,7 +66,7 @@ public class CheckMsgSendRTCommand implements SubCommand {
         options.addOption(opt);
 
         opt = new Option("s", "size", true, "message size | default 128 Byte");
-        opt.setRequired(false);
+        opt.setRequired(true);
         options.addOption(opt);
         return options;
     }
@@ -80,6 +80,7 @@ public class CheckMsgSendRTCommand implements SubCommand {
             producer.start();
             long start = 0;
             long end = 0;
+            long timeElapsed = 0;
             boolean sendSuccess = false;
             String topic = commandLine.getOptionValue('t').trim();
             long amount = !commandLine.hasOption('a') ? 100 : Long.parseLong(commandLine
@@ -87,13 +88,13 @@ public class CheckMsgSendRTCommand implements SubCommand {
             long msgSize = !commandLine.hasOption('s') ? 128 : Long.parseLong(commandLine
                     .getOptionValue('s').trim());
             Message msg = new Message(topic, getStringBySize(msgSize).getBytes());
-            
+
             System.out.printf("%-32s  %-4s  %-20s    %s\n",//
                     "#Broker Name",//
                     "#QID",//
                     "#Send Result",//
                     "#RT"//
-                );
+            );
             for (int i = 0; i < amount; i++) {
                 start = System.currentTimeMillis();
                 try {
@@ -113,15 +114,21 @@ public class CheckMsgSendRTCommand implements SubCommand {
                     sendSuccess = false;
                     end = System.currentTimeMillis();
                 }
-
                 
+                //第一条消息不算入到平均响应时间中
+                if (i != 0) {
+                    timeElapsed += (end - start);
+                }
+
                 System.out.printf("%-32s  %-4s  %-20s    %s\n",//
                         brokerName,//
                         queueId,//
                         sendSuccess,//
-                        (end-start)//
-                    );
+                        (end - start)//
+                        );
             }
+
+            System.out.printf("Avg RT: %s", timeElapsed / (amount - 1));
         }
 
         catch (Exception e) {
