@@ -75,7 +75,6 @@ public class SendMsgStatusCommand implements SubCommand {
             int count = commandLine.hasOption('c') ? Integer.parseInt(commandLine.getOptionValue('c')) : 50;
 
             producer.send(buildMessage(brokerName, 16));
-            producer.send(buildMessage(brokerName, 16));
 
             for (int i = 0; i < count; i++) {
                 long begin = System.currentTimeMillis();
