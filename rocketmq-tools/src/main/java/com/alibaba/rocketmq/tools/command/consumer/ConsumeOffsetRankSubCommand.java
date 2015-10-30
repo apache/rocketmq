@@ -80,14 +80,6 @@ public class ConsumeOffsetRankSubCommand implements SubCommand {
         opt.setRequired(false);
         options.addOption(opt);
 
-        opt = new Option("s", "sort rule", true, "default:by total diff; tps:by consume tps");
-        opt.setRequired(false);
-        options.addOption(opt);
-
-        opt = new Option("r", "reverse order", false, "reverse order, from low to high");
-        opt.setRequired(false);
-        options.addOption(opt);
-
         return options;
     }
 
@@ -105,23 +97,12 @@ public class ConsumeOffsetRankSubCommand implements SubCommand {
         if (commandLine.hasOption('a')) {
             amount = Integer.parseInt(commandLine.getOptionValue('a').trim());
         }
-        //排序规则，1：total diff， 2：consume tps
-        int sort = 1;
-        if (commandLine.hasOption('s')) {
-            String sortRule = commandLine.getOptionValue('s').trim();
-            if (sortRule.equals("tps"))
-                sort = 2;
-        }
-        boolean reverse = false;
-        if (commandLine.hasOption('r')) {
-            reverse = true;
-        }
         try {
             defaultMQAdminExt.start();
             //查询单个节点
             if (commandLine.hasOption('b')) {
                 String brokerAddr = commandLine.getOptionValue('b').trim();
-                List<ConsumeDataInfo> consumeDataInfoList = consumeRankInBroker(defaultMQAdminExt, brokerAddr, timeoutMillis, sort, reverse);
+                List<ConsumeDataInfo> consumeDataInfoList = consumeRankInBroker(defaultMQAdminExt, brokerAddr, timeoutMillis);
                 if (null != consumeDataInfoList)
                     mergeConsumeDataInfoList(consumeDataInfoMap, consumeDataInfoList);
                 //打印结果
@@ -135,7 +116,7 @@ public class ConsumeOffsetRankSubCommand implements SubCommand {
                 //查询一个集群
                 if (commandLine.hasOption('c')){
                     String clusterName = commandLine.getOptionValue('c').trim();
-                    printClusterConsumeDataInfo(clusterInfo, clusterName, defaultMQAdminExt, timeoutMillis, amount, sort, reverse, consumeDataInfoMap);
+                    printClusterConsumeDataInfo(clusterInfo, clusterName, defaultMQAdminExt, timeoutMillis, amount, consumeDataInfoMap);
                 }
                 //查询全部集群
                 else {
@@ -143,7 +124,7 @@ public class ConsumeOffsetRankSubCommand implements SubCommand {
                         consumeDataInfoMap.clear();
                         try {
                             System.out.println("consume offset rank list for cluster [" + clusterName + "]");
-                            printClusterConsumeDataInfo(clusterInfo, clusterName, defaultMQAdminExt, timeoutMillis, amount, sort, reverse, consumeDataInfoMap);
+                            printClusterConsumeDataInfo(clusterInfo, clusterName, defaultMQAdminExt, timeoutMillis, amount, consumeDataInfoMap);
                             System.out.println();
                         }
                         catch (Exception e){
@@ -164,7 +145,7 @@ public class ConsumeOffsetRankSubCommand implements SubCommand {
     }
 
     private List<ConsumeDataInfo> consumeRankInBroker(DefaultMQAdminExt defaultMQAdminExt, String brokerAddr,
-                                                      long timeoutMillis, int sort, boolean reverse) throws Exception{
+                                                      long timeoutMillis) throws Exception{
         ConsumeStatsList consumeStatsList = defaultMQAdminExt.fetchConsumeStatsInBroker(brokerAddr, false, timeoutMillis);
         List<ConsumeDataInfo> consumeDataInfoList = new ArrayList<ConsumeDataInfo>();
         for (Map<String, List<ConsumeStats>> map : consumeStatsList.getConsumeStatsList()){
@@ -173,8 +154,6 @@ public class ConsumeOffsetRankSubCommand implements SubCommand {
                 for (ConsumeStats consumeStats : consumeStatsArray){
                     ConsumeDataInfo consumeDataInfo = new ConsumeDataInfo();
                     consumeDataInfo.setGroup(group);
-                    consumeDataInfo.setSortType(sort);
-                    consumeDataInfo.setReverse(reverse);
                     if (consumeStats != null) {
                         consumeDataInfo.setConsumeTps((int) consumeStats.getConsumeTps());
                         consumeDataInfo.setDiffTotal(consumeStats.computeTotalDiff());
@@ -202,14 +181,14 @@ public class ConsumeOffsetRankSubCommand implements SubCommand {
     }
 
     private void printClusterConsumeDataInfo(ClusterInfo clusterInfo, String clusterName, DefaultMQAdminExt defaultMQAdminExt,
-                                             long timeoutMillis, int amount, int sort, boolean reverse, Map<String/*group*/, ConsumeDataInfo> consumeDataInfoMap) throws Exception{
+                                             long timeoutMillis, int amount, Map<String/*group*/, ConsumeDataInfo> consumeDataInfoMap) throws Exception{
         Set<String> brokerNameSet = clusterInfo.getClusterAddrTable().get(clusterName);
         if (null == brokerNameSet)
             return;
         for (String brokerName : brokerNameSet){
             String brokerAddr = clusterInfo.getBrokerAddrTable().get(brokerName).getBrokerAddrs().get(MixAll.MASTER_ID);
             if (null != brokerAddr && brokerAddr.length() > 0){
-                List<ConsumeDataInfo> consumeDataInfoList = consumeRankInBroker(defaultMQAdminExt, brokerAddr, timeoutMillis, sort, reverse);
+                List<ConsumeDataInfo> consumeDataInfoList = consumeRankInBroker(defaultMQAdminExt, brokerAddr, timeoutMillis);
                 mergeConsumeDataInfoList(consumeDataInfoMap, consumeDataInfoList);
             }
         }
@@ -223,7 +202,7 @@ public class ConsumeOffsetRankSubCommand implements SubCommand {
             consumeDataInfoRet.add(consumeDataInfoMap.get(group));
         }
         Collections.sort(consumeDataInfoRet);
-        System.out.printf("%-32s  %-6s  %-24s %-5s  %-14s  %-7s  %s\n",//
+        System.out.printf("%-48s  %-6s  %-24s %-5s  %-14s  %-7s  %s\n",//
                 "#Group",//
                 "#Count",//
                 "#Version",//
@@ -243,7 +222,7 @@ public class ConsumeOffsetRankSubCommand implements SubCommand {
                 cc = defaultMQAdminExt.examineConsumerConnectionInfo(consumeDataInfo.getGroup());
             }
             catch (Exception e) {
-                log.warn("examineConsumerConnectionInfo exception, " + consumeDataInfo.getGroup(), e);
+                log.error("examineConsumerConnectionInfo exception, " + consumeDataInfo.getGroup());
             }
             if (cc != null) {
                 onlineCount++;
@@ -251,7 +230,7 @@ public class ConsumeOffsetRankSubCommand implements SubCommand {
                 consumeDataInfo.setMessageModel(cc.getMessageModel());
                 consumeDataInfo.setConsumeType(cc.getConsumeType());
                 consumeDataInfo.setVersion(cc.computeMinVersion());
-                System.out.printf("%-32s  %-6d  %-24s %-5s  %-14s  %-7d  %d\n",//
+                System.out.printf("%-48s  %-6d  %-24s %-5s  %-14s  %-7d  %d\n",//
                         UtilAll.frontStringAtLeast(consumeDataInfo.getGroup(), 32),//
                         consumeDataInfo.getCount(),//
                         consumeDataInfo.getCount() > 0 ? consumeDataInfo.versionDesc() : "OFFLINE",//
@@ -272,8 +251,6 @@ public class ConsumeOffsetRankSubCommand implements SubCommand {
         private MessageModel messageModel;
         private int consumeTps;
         private long diffTotal;
-        private int sortType;
-        private boolean reverse;
         private String clusterName;
 
         public String getGroup() {
@@ -306,10 +283,13 @@ public class ConsumeOffsetRankSubCommand implements SubCommand {
 
         @Override
         public int compareTo(ConsumeDataInfo o) {
-            if (o.sortType == 2){
-                return !reverse ? o.consumeTps - consumeTps : consumeTps - o.consumeTps;
-            }
-            return !reverse ? (int) (o.diffTotal - diffTotal) : (int) (diffTotal - o.diffTotal);
+            if (o.diffTotal == diffTotal)
+                return 0;
+            else if (o.diffTotal < diffTotal)
+                return -1;
+            else if (o.diffTotal > diffTotal)
+                return 1;
+            return 0;
         }
 
         public void setGroup(String group) {
@@ -375,14 +355,6 @@ public class ConsumeOffsetRankSubCommand implements SubCommand {
             this.version = version;
         }
 
-        public void setSortType(int sortType) {
-            this.sortType = sortType;
-        }
-
-        public void setReverse(boolean reverse) {
-            this.reverse = reverse;
-        }
-
         public String getClusterName() {
             return clusterName;
         }
@@ -394,24 +366,24 @@ public class ConsumeOffsetRankSubCommand implements SubCommand {
 
 
     public static void main(String[] args) {
-        for (int i = 0; i < 500; ++i){
+        for (int i = 0; i < 1; ++i){
             long endTime = System.currentTimeMillis() - 60000;
             long startTime = endTime - 60000;
 
             KeyValueQuery kvq = new KeyValueQuery("metaq_metaqstats", // StageId
                     "meta_stats_1min",// BizId
                     new KeyValueParam("type", "TOPIC_PUT_NUMS"), //kv1-定值
-                    new KeyValueParam("key", "NUT_CTU_EVENT_TRADE_CORE"), //kv2-定值
+                    new KeyValueParam("key", "TRADE"), //kv2-定值
                     new KeyValueParam("date", startTime + "", endTime + ""));//kv3-范围值，格式为ms
 
             JSONResult queryData = TLogQueryClient.queryData("http://110.75.84.129:9999", kvq); //查询url,query keys
-
+            long tps = 0;
             if (queryData != null) {
                 JSONResult.JSONRecord[] records = queryData.getRecords();
                 for (JSONResult.JSONRecord r : records) {
-                    int tps = (Integer) r.getValueByKeyName("sum"); //从结果中获取sum这个key的value
-                    System.out.println(tps);
+                    tps += (Long) r.getValueByKeyName("sum"); //从结果中获取sum这个key的value
                 }
+                System.out.println(tps);
             }
         }
 
