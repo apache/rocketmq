@@ -26,6 +26,7 @@ import com.alibaba.rocketmq.remoting.RPCHook;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 import com.alibaba.rocketmq.srvutil.ServerUtil;
 import com.alibaba.rocketmq.tools.command.broker.*;
+import com.alibaba.rocketmq.tools.command.cluster.CLusterSendMsgRTCommand;
 import com.alibaba.rocketmq.tools.command.cluster.ClusterListSubCommand;
 import com.alibaba.rocketmq.tools.command.connection.ConsumerConnectionSubCommand;
 import com.alibaba.rocketmq.tools.command.connection.ProducerConnectionSubCommand;
@@ -111,6 +112,7 @@ public class MQAdminStartup {
         initCommand(new AllocateMQSubCommand());
         
         initCommand(new CheckMsgSendRTCommand());
+        initCommand(new CLusterSendMsgRTCommand());
     }
 
 
