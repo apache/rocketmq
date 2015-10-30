@@ -16,12 +16,15 @@
 
 package com.alibaba.rocketmq.tools.command.cluster;
 
+import java.util.HashMap;
 import java.util.Set;
+import java.util.TreeSet;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 
+import com.alibaba.fastjson.JSON;
 import com.alibaba.rocketmq.client.producer.DefaultMQProducer;
 import com.alibaba.rocketmq.common.message.Message;
 import com.alibaba.rocketmq.common.protocol.body.ClusterInfo;
@@ -57,6 +60,10 @@ public class CLusterSendMsgRTCommand implements SubCommand {
         opt.setRequired(true);
         options.addOption(opt);
 
+        opt = new Option("c", "cluster", true, "cluster name | default display all cluster");
+        opt.setRequired(false);
+        options.addOption(opt);
+
         return options;
     }
 
@@ -73,7 +80,10 @@ public class CLusterSendMsgRTCommand implements SubCommand {
             producer.start();
 
             ClusterInfo clusterInfoSerializeWrapper = defaultMQAdminExt.examineBrokerClusterInfo();
-            Set<String> clusterNames = clusterInfoSerializeWrapper.getClusterAddrTable().keySet();
+            HashMap<String, Set<String>> clusterAddr = clusterInfoSerializeWrapper
+                    .getClusterAddrTable();
+            
+            Set<String> clusterNames = null;
 
             long amount = !commandLine.hasOption('a') ? 50 : Long.parseLong(commandLine
                     .getOptionValue('a').trim());
@@ -81,44 +91,60 @@ public class CLusterSendMsgRTCommand implements SubCommand {
             long size = !commandLine.hasOption('s') ? 128 : Long.parseLong(commandLine
                     .getOptionValue('s').trim());
 
-            System.out.printf("%-24s  %-4s  %-8s  %-8s\n",//
+            if (commandLine.hasOption('c')) {
+                clusterNames = new TreeSet<String>();
+                clusterNames.add(commandLine.getOptionValue('c').trim());
+            } else {
+                clusterNames = clusterAddr.keySet();
+            }
+
+            System.out.printf("%-24s  %-24s  %-4s  %-8s  %-8s\n",//
                     "#Cluster Name",//
+                    "#Broker Name",//
                     "#RT",//
                     "#successCount",//
                     "#failCount"//
             );
-
-            for (String clusterName : clusterNames) {
-                Message msg = new Message(clusterName, getStringBySize(size).getBytes());
-
-                long start = 0;
-                long end = 0;
-                long elapsed = 0;
-                int successCount = 0;
-                int failCount = 0;
-
-                for (int i = 0; i < amount; i++) {
-                    start = System.currentTimeMillis();
-                    try {
-                        producer.send(msg);
-                        successCount++;
-                        end = System.currentTimeMillis();
-                    } catch (Exception e) {
-                        failCount++;
-                        end = System.currentTimeMillis();
-                    }
-
-                    if (i != 0) {
-                        elapsed += end - start;
-                    }
+            
+            for (String clusterName : clusterNames) { //查询所有的集群
+                Set<String> brokerNames = clusterAddr.get(clusterName);
+                if (brokerNames == null) {
+                    System.out.printf("cluster [%s] not exist", clusterName);
+                    break;
                 }
 
-                System.out.printf("%-24s  %-4s  %-16s  %-8s\n",//
-                        clusterName,//
-                        elapsed / (amount - 1),//
-                        successCount,//
-                        failCount//
-                        );
+                for (String brokerName : brokerNames) { //查询所有的Broker
+                    Message msg = new Message(brokerName, getStringBySize(size).getBytes());
+                    long start = 0;
+                    long end = 0;
+                    long elapsed = 0;
+                    int successCount = 0;
+                    int failCount = 0;
+
+                    for (int i = 0; i < amount; i++) { //发送指定条数的消息
+                        start = System.currentTimeMillis();
+                        try {
+                            producer.send(msg);
+                            successCount++;
+                            end = System.currentTimeMillis();
+                        } catch (Exception e) {
+                            failCount++;
+                            end = System.currentTimeMillis();
+                        }
+
+                        if (i != 0) {
+                            elapsed += end - start;
+                        }
+                    }
+
+                    System.out.printf("%-24s  %-24s  %-4s  %-16s  %-8s\n",//
+                            clusterName,//
+                            brokerName, elapsed / (amount - 1),//
+                            successCount,//
+                            failCount//
+                            );
+                }
+
             }
 
         } catch (Exception e) {

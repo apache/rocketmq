@@ -25,14 +25,9 @@ import org.apache.commons.cli.Options;
 
 import com.alibaba.rocketmq.client.producer.DefaultMQProducer;
 import com.alibaba.rocketmq.client.producer.MessageQueueSelector;
-import com.alibaba.rocketmq.client.producer.SendResult;
-import com.alibaba.rocketmq.common.UtilAll;
-import com.alibaba.rocketmq.common.admin.TopicOffset;
-import com.alibaba.rocketmq.common.admin.TopicStatsTable;
 import com.alibaba.rocketmq.common.message.Message;
 import com.alibaba.rocketmq.common.message.MessageQueue;
 import com.alibaba.rocketmq.remoting.RPCHook;
-import com.alibaba.rocketmq.tools.admin.DefaultMQAdminExt;
 import com.alibaba.rocketmq.tools.command.SubCommand;
 
 /**
@@ -128,7 +123,8 @@ public class CheckMsgSendRTCommand implements SubCommand {
                         );
             }
 
-            System.out.printf("Avg RT: %s", timeElapsed / (amount - 1));
+            double rt = (double)timeElapsed / (amount - 1);
+            System.out.printf("Avg RT: %s\n", String.format("%.2f", rt));
         }
 
         catch (Exception e) {
@@ -145,5 +141,4 @@ public class CheckMsgSendRTCommand implements SubCommand {
         }
         return res.toString();
     }
-
 }
