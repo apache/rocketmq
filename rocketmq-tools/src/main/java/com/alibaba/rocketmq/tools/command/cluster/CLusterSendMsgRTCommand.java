@@ -82,7 +82,7 @@ public class CLusterSendMsgRTCommand implements SubCommand {
             ClusterInfo clusterInfoSerializeWrapper = defaultMQAdminExt.examineBrokerClusterInfo();
             HashMap<String, Set<String>> clusterAddr = clusterInfoSerializeWrapper
                     .getClusterAddrTable();
-            
+
             Set<String> clusterNames = null;
 
             long amount = !commandLine.hasOption('a') ? 50 : Long.parseLong(commandLine
@@ -105,7 +105,7 @@ public class CLusterSendMsgRTCommand implements SubCommand {
                     "#successCount",//
                     "#failCount"//
             );
-            
+
             for (String clusterName : clusterNames) { //查询所有的集群
                 Set<String> brokerNames = clusterAddr.get(clusterName);
                 if (brokerNames == null) {
@@ -137,9 +137,10 @@ public class CLusterSendMsgRTCommand implements SubCommand {
                         }
                     }
 
+                    double rt = (double) elapsed / (amount - 1);
                     System.out.printf("%-24s  %-24s  %-4s  %-16s  %-8s\n",//
                             clusterName,//
-                            brokerName, elapsed / (amount - 1),//
+                            brokerName, String.format("%.2f", rt),//
                             successCount,//
                             failCount//
                             );
