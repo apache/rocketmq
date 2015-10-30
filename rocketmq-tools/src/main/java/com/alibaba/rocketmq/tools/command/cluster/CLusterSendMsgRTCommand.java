@@ -138,7 +138,7 @@ public class CLusterSendMsgRTCommand implements SubCommand {
                     }
 
                     double rt = (double) elapsed / (amount - 1);
-                    System.out.printf("%-24s  %-24s  %-4s  %-16s  %-8s\n",//
+                    System.out.printf("%-24s  %-24s  %-8s  %-16s  %-16s\n",//
                             clusterName,//
                             brokerName, String.format("%.2f", rt),//
                             successCount,//
