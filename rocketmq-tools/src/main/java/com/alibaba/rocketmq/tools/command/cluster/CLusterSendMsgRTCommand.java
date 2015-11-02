@@ -16,6 +16,7 @@
 
 package com.alibaba.rocketmq.tools.command.cluster;
 
+import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.Set;
 import java.util.TreeSet;
@@ -170,10 +171,9 @@ public class CLusterSendMsgRTCommand implements SubCommand {
                                     failCount//
                                     );
                         } else {
-                            System.out
-                                    .println(String.format("%s|%s|%s|%s|%s", getCurTime(),
-                                            machineRoom, clusterName, brokerName,
-                                            String.format("%.2f", rt)));
+                            System.out.println(String.format("%s|%s|%s|%s|%s", getCurTime(),
+                                    machineRoom, clusterName, brokerName,
+                                    new BigDecimal(rt).setScale(0, BigDecimal.ROUND_HALF_UP)));
                         }
 
                     }
