@@ -103,7 +103,7 @@ public class CLusterSendMsgRTCommand implements SubCommand {
             long size = !commandLine.hasOption('s') ? 128 : Long.parseLong(commandLine
                     .getOptionValue('s').trim());
 
-            long interval = !commandLine.hasOption('i') ? 128 : Long.parseLong(commandLine
+            long interval = !commandLine.hasOption('i') ? 10 : Long.parseLong(commandLine
                     .getOptionValue('i').trim());
 
             boolean printAsTlog = !commandLine.hasOption('p') ? false : Boolean
