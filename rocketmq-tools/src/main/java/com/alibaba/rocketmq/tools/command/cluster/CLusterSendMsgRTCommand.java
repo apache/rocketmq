@@ -24,7 +24,6 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 
-import com.alibaba.fastjson.JSON;
 import com.alibaba.rocketmq.client.producer.DefaultMQProducer;
 import com.alibaba.rocketmq.common.message.Message;
 import com.alibaba.rocketmq.common.protocol.body.ClusterInfo;
@@ -64,6 +63,18 @@ public class CLusterSendMsgRTCommand implements SubCommand {
         opt.setRequired(false);
         options.addOption(opt);
 
+        opt = new Option("p", "print log", true, "print as tlog | default false");
+        opt.setRequired(false);
+        options.addOption(opt);
+
+        opt = new Option("m", "machine room", true, "machine room name | default noname");
+        opt.setRequired(false);
+        options.addOption(opt);
+
+        opt = new Option("i", "interval", true, "print interval | default 10 seconds");
+        opt.setRequired(false);
+        options.addOption(opt);
+
         return options;
     }
 
@@ -91,6 +102,15 @@ public class CLusterSendMsgRTCommand implements SubCommand {
             long size = !commandLine.hasOption('s') ? 128 : Long.parseLong(commandLine
                     .getOptionValue('s').trim());
 
+            long interval = !commandLine.hasOption('i') ? 128 : Long.parseLong(commandLine
+                    .getOptionValue('i').trim());
+
+            boolean printAsTlog = !commandLine.hasOption('p') ? false : Boolean
+                    .parseBoolean(commandLine.getOptionValue('p').trim());
+
+            String machineRoom = !commandLine.hasOption('m') ? "noname" : commandLine
+                    .getOptionValue('m').trim();
+
             if (commandLine.hasOption('c')) {
                 clusterNames = new TreeSet<String>();
                 clusterNames.add(commandLine.getOptionValue('c').trim());
@@ -98,54 +118,69 @@ public class CLusterSendMsgRTCommand implements SubCommand {
                 clusterNames = clusterAddr.keySet();
             }
 
-            System.out.printf("%-24s  %-24s  %-4s  %-8s  %-8s\n",//
-                    "#Cluster Name",//
-                    "#Broker Name",//
-                    "#RT",//
-                    "#successCount",//
-                    "#failCount"//
-            );
+            if (!printAsTlog) {
+                System.out.printf("%-24s  %-24s  %-4s  %-8s  %-8s\n",//
+                        "#Cluster Name",//
+                        "#Broker Name",//
+                        "#RT",//
+                        "#successCount",//
+                        "#failCount"//
+                );
+            }
 
-            for (String clusterName : clusterNames) { //查询所有的集群
-                Set<String> brokerNames = clusterAddr.get(clusterName);
-                if (brokerNames == null) {
-                    System.out.printf("cluster [%s] not exist", clusterName);
-                    break;
-                }
-
-                for (String brokerName : brokerNames) { //查询所有的Broker
-                    Message msg = new Message(brokerName, getStringBySize(size).getBytes());
-                    long start = 0;
-                    long end = 0;
-                    long elapsed = 0;
-                    int successCount = 0;
-                    int failCount = 0;
-
-                    for (int i = 0; i < amount; i++) { //发送指定条数的消息
-                        start = System.currentTimeMillis();
-                        try {
-                            producer.send(msg);
-                            successCount++;
-                            end = System.currentTimeMillis();
-                        } catch (Exception e) {
-                            failCount++;
-                            end = System.currentTimeMillis();
-                        }
-
-                        if (i != 0) {
-                            elapsed += end - start;
-                        }
+            while (true) {
+                for (String clusterName : clusterNames) { //查询所有的集群
+                    Set<String> brokerNames = clusterAddr.get(clusterName);
+                    if (brokerNames == null) {
+                        System.out.printf("cluster [%s] not exist", clusterName);
+                        break;
                     }
 
-                    double rt = (double) elapsed / (amount - 1);
-                    System.out.printf("%-24s  %-24s  %-8s  %-16s  %-16s\n",//
-                            clusterName,//
-                            brokerName, String.format("%.2f", rt),//
-                            successCount,//
-                            failCount//
-                            );
+                    for (String brokerName : brokerNames) { //查询所有的Broker
+                        Message msg = new Message(brokerName, getStringBySize(size).getBytes());
+                        long start = 0;
+                        long end = 0;
+                        long elapsed = 0;
+                        int successCount = 0;
+                        int failCount = 0;
+
+                        for (int i = 0; i < amount; i++) { //发送指定条数的消息
+                            start = System.currentTimeMillis();
+                            try {
+                                producer.send(msg);
+                                successCount++;
+                                end = System.currentTimeMillis();
+                            } catch (Exception e) {
+                                failCount++;
+                                end = System.currentTimeMillis();
+                            }
+
+                            if (i != 0) {
+                                elapsed += end - start;
+                            }
+                        }
+
+                        double rt = (double) elapsed / (amount - 1);
+                        if (!printAsTlog) {
+                            System.out.printf("%-24s  %-24s  %-8s  %-16s  %-16s\n",//
+                                    clusterName,//
+                                    brokerName, //
+                                    String.format("%.2f", rt),//
+                                    successCount,//
+                                    failCount//
+                                    );
+                        } else {
+                            System.out
+                                    .println(String.format("%s|%s|%s|%s|%s", getCurTime(),
+                                            machineRoom, clusterName, brokerName,
+                                            String.format("%.2f", rt)));
+                        }
+
+                    }
+
                 }
 
+                Thread.sleep(interval * 1000);
             }
 
         } catch (Exception e) {
@@ -162,6 +197,14 @@ public class CLusterSendMsgRTCommand implements SubCommand {
             res.append('a');
         }
         return res.toString();
+    }
+
+    public String getCurTime() {
+        java.text.SimpleDateFormat df = new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        return df.format(new java.util.Date());
+    }
+
+    public static void main(String args[]) {
     }
 
 }
