@@ -17,9 +17,8 @@
 package com.alibaba.rocketmq.tools.command.cluster;
 
 import java.math.BigDecimal;
-import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.util.Calendar;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Set;
 import java.util.TimeZone;
@@ -204,17 +203,14 @@ public class CLusterSendMsgRTCommand implements SubCommand {
     }
 
     public String getCurTime() {
-        Calendar cal = Calendar.getInstance();
-        cal.getTimeInMillis();
-
-        //北京时区GMT+8
-        Calendar beijingcal = Calendar.getInstance();
-        beijingcal.clear();
-        beijingcal.setTimeZone(TimeZone.getTimeZone("GMT+8"));
-        beijingcal.setTimeInMillis(cal.getTimeInMillis());
-        DateFormat fmt = new SimpleDateFormat("yyyy-MM-dd HH:mm");
-        String beijingFormatStr = fmt.format(beijingcal.getTime());
-        return beijingFormatStr;
+        String fromTimeZone = "GMT+8"; //显示中国时间
+        //        String toTimeZone = "GMT+0";  //显示格林威治时间
+        //        String usZoneString = "America/New_York";  //显示美国时间
+        SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        Date date = new Date();
+        format.setTimeZone(TimeZone.getTimeZone(fromTimeZone));
+        String chinaDate = format.format(date);
+        return chinaDate;
     }
 
     public static void main(String args[]) {
