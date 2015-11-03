@@ -495,12 +495,12 @@ public class CommitLog {
         return false;
     }
 
+
     public long getBeginTimeInLock() {
         return beginTimeInLock;
     }
 
     private volatile long beginTimeInLock = 0;
-
 
 
     public PutMessageResult putMessage(final MessageExtBrokerInner msg) {
@@ -553,12 +553,24 @@ public class CommitLog {
                 mapedFile = this.mapedFileQueue.getLastMapedFile();
             }
 
+            // todo-->jodie:测试
+            eclipseTimeInLock = this.defaultMessageStore.getSystemClock().now() - beginLockTimestamp;
+            if (eclipseTimeInLock > 1000) {
+                log.warn("[NOTIFYME]get mapedFile time(ms)={}, file={}", eclipseTimeInLock, mapedFile.getFileName());
+            }
+
             if (null == mapedFile) {
                 log.error("create maped file1 error, topic: " + msg.getTopic() + " clientAddr: " + msg.getBornHostString());
                 beginTimeInLock = 0;
                 return new PutMessageResult(PutMessageStatus.CREATE_MAPEDFILE_FAILED, null);
             }
             result = mapedFile.appendMessage(msg, this.appendMessageCallback);
+
+            // todo-->jodie:测试
+            eclipseTimeInLock = this.defaultMessageStore.getSystemClock().now() - beginLockTimestamp;
+            if (eclipseTimeInLock > 1000) {
+                log.warn("[NOTIFYME]append message time(ms)={}", eclipseTimeInLock);
+            }
             switch (result.getStatus()) {
             case PUT_OK:
                 break;
@@ -589,9 +601,8 @@ public class CommitLog {
             beginTimeInLock = 0;
         } // end of synchronized
 
-        // todo-->jodie:恢复成1s
-        if (eclipseTimeInLock > 500) {
-            log.warn("[NOTIFYME]putMessage in lock eclipse time(ms) " + eclipseTimeInLock);
+        if (eclipseTimeInLock > 1000) {
+            log.warn("[NOTIFYME]putMessage in lock eclipse time(ms)={}, bodyLength={}", eclipseTimeInLock, msg.getBody().length);
         }
 
         PutMessageResult putMessageResult = new PutMessageResult(PutMessageStatus.PUT_OK, result);
@@ -975,11 +986,18 @@ public class CommitLog {
 
 
         public AppendMessageResult doAppend(final long fileFromOffset, final ByteBuffer byteBuffer, final int maxBlank, final Object msg) {
+            long eclipseTimeInLock = 0;
+            long beginLockTimestamp = CommitLog.this.defaultMessageStore.getSystemClock().now();
             // STORETIMESTAMP + STOREHOSTADDRESS + OFFSET <br>
             MessageExtBrokerInner msgInner = (MessageExtBrokerInner) msg;
             // PHY OFFSET
             long wroteOffset = fileFromOffset + byteBuffer.position();
             String msgId = MessageDecoder.createMessageId(this.msgIdMemory, msgInner.getStoreHostBytes(), wroteOffset);
+            // todo-->jodie:测试
+            eclipseTimeInLock = CommitLog.this.defaultMessageStore.getSystemClock().now() - beginLockTimestamp;
+            if (eclipseTimeInLock > 100) {
+                log.warn("[NOTIFYME]get msgId time(ms)={}", eclipseTimeInLock);
+            }
 
             // Record ConsumeQueue information
             String key = msgInner.getTopic() + "-" + msgInner.getQueueId();
@@ -1046,6 +1064,12 @@ public class CommitLog {
                     queueOffset);
             }
 
+            // todo-->jodie:测试
+            eclipseTimeInLock = CommitLog.this.defaultMessageStore.getSystemClock().now() - beginLockTimestamp;
+            if (eclipseTimeInLock > 500) {
+                log.warn("[NOTIFYME]sufficient free space check time(ms)={}", eclipseTimeInLock);
+            }
+
             // Initialization of storage space
             this.resetMsgStoreItemMemory(msgLen);
             // 1 TOTALSIZE
@@ -1090,6 +1114,12 @@ public class CommitLog {
 
             // Write messages to the queue buffer
             byteBuffer.put(this.msgStoreItemMemory.array(), 0, msgLen);
+
+            // todo-->jodie:测试
+            eclipseTimeInLock = CommitLog.this.defaultMessageStore.getSystemClock().now() - beginLockTimestamp;
+            if (eclipseTimeInLock > 1000) {
+                log.warn("[NOTIFYME]byte buffer put time(ms)={}", eclipseTimeInLock);
+            }
 
             AppendMessageResult result =
                     new AppendMessageResult(AppendMessageStatus.PUT_OK, wroteOffset, msgLen, msgId, msgInner.getStoreTimestamp(),

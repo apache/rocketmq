@@ -18,6 +18,7 @@ package com.alibaba.rocketmq.tools.command;
 import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.joran.JoranConfigurator;
 import ch.qos.logback.core.joran.spi.JoranException;
+
 import com.alibaba.rocketmq.common.MQVersion;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.conflict.PackageConflictDetect;
@@ -25,6 +26,7 @@ import com.alibaba.rocketmq.remoting.RPCHook;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 import com.alibaba.rocketmq.srvutil.ServerUtil;
 import com.alibaba.rocketmq.tools.command.broker.*;
+import com.alibaba.rocketmq.tools.command.cluster.CLusterSendMsgRTCommand;
 import com.alibaba.rocketmq.tools.command.cluster.ClusterListSubCommand;
 import com.alibaba.rocketmq.tools.command.connection.ConsumerConnectionSubCommand;
 import com.alibaba.rocketmq.tools.command.connection.ProducerConnectionSubCommand;
@@ -36,8 +38,10 @@ import com.alibaba.rocketmq.tools.command.namesrv.WipeWritePermSubCommand;
 import com.alibaba.rocketmq.tools.command.offset.CloneGroupOffsetCommand;
 import com.alibaba.rocketmq.tools.command.offset.ResetOffsetByTimeCommand;
 import com.alibaba.rocketmq.tools.command.stats.StatsAllSubCommand;
+import com.alibaba.rocketmq.tools.command.stats.TpsStatsSubCommand;
 import com.alibaba.rocketmq.tools.command.topic.*;
 import com.alibaba.rocketmq.tools.github.SyncDocsToGithubSubCommand;
+
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.PosixParser;
@@ -84,6 +88,7 @@ public class MQAdminStartup {
         initCommand(new ConsumerProgressSubCommand());
         initCommand(new ConsumerStatusSubCommand());
         initCommand(new CloneGroupOffsetCommand());
+        initCommand(new ConsumeOffsetRankSubCommand());
 
         initCommand(new ClusterListSubCommand());
         initCommand(new TopicListSubCommand());
@@ -101,9 +106,13 @@ public class MQAdminStartup {
         initCommand(new StartMonitoringSubCommand());
         initCommand(new CheckMsgSubCommand());
         initCommand(new StatsAllSubCommand());
+        initCommand(new TpsStatsSubCommand());
 
         initCommand(new SyncDocsToGithubSubCommand());
         initCommand(new AllocateMQSubCommand());
+        
+        initCommand(new CheckMsgSendRTCommand());
+        initCommand(new CLusterSendMsgRTCommand());
     }
 
 

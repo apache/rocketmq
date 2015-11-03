@@ -49,7 +49,7 @@ public class TopicClusterSubCommand implements SubCommand {
 
     @Override
     public String commandDesc() {
-        return "Fetch all cluster list for topic";
+        return "get cluster info for topic";
     }
 
 

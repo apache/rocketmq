@@ -215,14 +215,17 @@ public class DefaultMessageStore implements MessageStore {
                     try {
                         if (DefaultMessageStore.this.commitLog.getBeginTimeInLock() != 0) {
                             long lockTime = System.currentTimeMillis() - DefaultMessageStore.this.commitLog.getBeginTimeInLock();
-                            if (lockTime > 500 && lockTime < 10000000) {
+                            if (lockTime > 1000 && lockTime < 10000000) {
                                 // 打印堆栈
                                 String stack = UtilAll.jstack();
-                                final String fileName = System.getProperty("user.home") + File.separator + "debug/lock/stack-" + DefaultMessageStore.this.commitLog.getBeginTimeInLock() + "-" + lockTime;
+                                final String fileName =
+                                        System.getProperty("user.home") + File.separator + "debug/lock/stack-"
+                                                + DefaultMessageStore.this.commitLog.getBeginTimeInLock() + "-" + lockTime;
                                 MixAll.string2FileNotSafe(stack, fileName);
                             }
                         }
-                    } catch (Exception e) {
+                    }
+                    catch (Exception e) {
                     }
                 }
             }
@@ -436,7 +439,7 @@ public class DefaultMessageStore implements MessageStore {
         // 性能数据统计
         long eclipseTime = this.getSystemClock().now() - beginTime;
         if (eclipseTime > 1000) {
-            log.warn("putMessage not in lock eclipse time(ms) " + eclipseTime);
+            log.warn("putMessage not in lock eclipse time(ms)={}, bodyLength={}", eclipseTime, msg.getBody().length);
         }
         this.storeStatsService.setPutMessageEntireTimeMax(eclipseTime);
 

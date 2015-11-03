@@ -107,23 +107,22 @@ public class ConsumerProgressSubCommand implements SubCommand {
                     long diff = offsetWrapper.getBrokerOffset() - offsetWrapper.getConsumerOffset();
                     diffTotal += diff;
 
-                    String lastTime = "-";
+                    String lastTime = "";
                     try {
                         lastTime = UtilAll.formatDate(new Date(offsetWrapper.getLastTimestamp()), UtilAll.yyyy_MM_dd_HH_mm_ss);
                     }
                     catch (Exception e) {
                         //
                     }
-                    if (offsetWrapper.getLastTimestamp() > 0)
-                        System.out.printf("%-32s  %-32s  %-4d  %-20d  %-20d  %-20d  %s\n",//
-                            UtilAll.frontStringAtLeast(mq.getTopic(), 32),//
-                            UtilAll.frontStringAtLeast(mq.getBrokerName(), 32),//
-                            mq.getQueueId(),//
-                            offsetWrapper.getBrokerOffset(),//
-                            offsetWrapper.getConsumerOffset(),//
-                            diff, //
-                            lastTime//
-                            );
+                    System.out.printf("%-32s  %-32s  %-4d  %-20d  %-20d  %-20d  %s\n",//
+                        UtilAll.frontStringAtLeast(mq.getTopic(), 32),//
+                        UtilAll.frontStringAtLeast(mq.getBrokerName(), 32),//
+                        mq.getQueueId(),//
+                        offsetWrapper.getBrokerOffset(),//
+                        offsetWrapper.getConsumerOffset(),//
+                        diff, //
+                        lastTime//
+                        );
                 }
 
                 System.out.println("");
@@ -145,7 +144,6 @@ public class ConsumerProgressSubCommand implements SubCommand {
                 for (String topic : topicList.getTopicList()) {
                     if (topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
                         String consumerGroup = topic.substring(MixAll.RETRY_GROUP_TOPIC_PREFIX.length());
-
                         try {
                             ConsumeStats consumeStats = null;
                             try {

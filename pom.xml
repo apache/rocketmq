@@ -20,7 +20,7 @@
     <inceptionYear>2012</inceptionYear>
     <groupId>com.alibaba.rocketmq</groupId>
     <artifactId>rocketmq-all</artifactId>
-    <version>3.4.7-SNAPSHOT</version>
+    <version>3.4.8-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>rocketmq-all ${project.version}</name>
     <url>https://github.com/alibaba/rocketmq</url>
@@ -403,6 +403,11 @@
                 <groupId>jboss</groupId>
                 <artifactId>javassist</artifactId>
                 <version>3.7.ga</version>
+            </dependency>
+            <dependency>
+                <groupId>com.taobao.tlog</groupId>
+                <artifactId>tlog-client</artifactId>
+                <version>2.0.0-SNAPSHOT</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

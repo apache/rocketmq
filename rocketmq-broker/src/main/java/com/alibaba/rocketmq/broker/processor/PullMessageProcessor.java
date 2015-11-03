@@ -77,20 +77,17 @@ public class PullMessageProcessor implements NettyRequestProcessor {
 
 
     @Override
-    public RemotingCommand processRequest(final ChannelHandlerContext ctx, RemotingCommand request)
-            throws RemotingCommandException {
+    public RemotingCommand processRequest(final ChannelHandlerContext ctx, RemotingCommand request) throws RemotingCommandException {
         return this.processRequest(ctx.channel(), request, true);
     }
 
 
-    public void excuteRequestWhenWakeup(final Channel channel, final RemotingCommand request)
-            throws RemotingCommandException {
+    public void excuteRequestWhenWakeup(final Channel channel, final RemotingCommand request) throws RemotingCommandException {
         Runnable run = new Runnable() {
             @Override
             public void run() {
                 try {
-                    final RemotingCommand response =
-                            PullMessageProcessor.this.processRequest(channel, request, false);
+                    final RemotingCommand response = PullMessageProcessor.this.processRequest(channel, request, false);
 
                     if (response != null) {
                         response.setOpaque(request.getOpaque());
@@ -100,8 +97,7 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                                 @Override
                                 public void operationComplete(ChannelFuture future) throws Exception {
                                     if (!future.isSuccess()) {
-                                        log.error("processRequestWrapper response to "
-                                                + future.channel().remoteAddress() + " failed",
+                                        log.error("processRequestWrapper response to " + future.channel().remoteAddress() + " failed",
                                             future.cause());
                                         log.error(request.toString());
                                         log.error(response.toString());
@@ -136,8 +132,7 @@ public class PullMessageProcessor implements NettyRequestProcessor {
             msgInner.setBody(event.encode());
             msgInner.setFlag(0);
             msgInner.setPropertiesString(MessageDecoder.messageProperties2String(msgInner.getProperties()));
-            msgInner.setTagsCode(MessageExtBrokerInner.tagsString2tagsCode(TopicFilterType.SINGLE_TAG,
-                msgInner.getTags()));
+            msgInner.setTagsCode(MessageExtBrokerInner.tagsString2tagsCode(TopicFilterType.SINGLE_TAG, msgInner.getTags()));
 
             msgInner.setQueueId(0);
             msgInner.setSysFlag(0);
@@ -154,6 +149,7 @@ public class PullMessageProcessor implements NettyRequestProcessor {
         }
     }
 
+
     private byte[] readGetMessageResult(final GetMessageResult getMessageResult) {
         final ByteBuffer byteBuffer = ByteBuffer.allocate(getMessageResult.getBufferTotalSize());
 
@@ -163,7 +159,8 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                 // IO操作，会比较耗时
                 byteBuffer.put(bb);
             }
-        } finally {
+        }
+        finally {
             getMessageResult.release();
         }
 
@@ -171,11 +168,10 @@ public class PullMessageProcessor implements NettyRequestProcessor {
     }
 
 
-    private RemotingCommand processRequest(final Channel channel, RemotingCommand request,
-            boolean brokerAllowSuspend) throws RemotingCommandException {
+    private RemotingCommand processRequest(final Channel channel, RemotingCommand request, boolean brokerAllowSuspend)
+            throws RemotingCommandException {
         RemotingCommand response = RemotingCommand.createResponseCommand(PullMessageResponseHeader.class);
-        final PullMessageResponseHeader responseHeader =
-                (PullMessageResponseHeader) response.readCustomHeader();
+        final PullMessageResponseHeader responseHeader = (PullMessageResponseHeader) response.readCustomHeader();
         final PullMessageRequestHeader requestHeader =
                 (PullMessageRequestHeader) request.decodeCommandCustomHeader(PullMessageRequestHeader.class);
 
@@ -189,15 +185,13 @@ public class PullMessageProcessor implements NettyRequestProcessor {
         // 检查Broker权限
         if (!PermName.isReadable(this.brokerController.getBrokerConfig().getBrokerPermission())) {
             response.setCode(ResponseCode.NO_PERMISSION);
-            response.setRemark("the broker[" + this.brokerController.getBrokerConfig().getBrokerIP1()
-                    + "] pulling message is forbidden");
+            response.setRemark("the broker[" + this.brokerController.getBrokerConfig().getBrokerIP1() + "] pulling message is forbidden");
             return response;
         }
 
         // 确保订阅组存在
         SubscriptionGroupConfig subscriptionGroupConfig =
-                this.brokerController.getSubscriptionGroupManager().findSubscriptionGroupConfig(
-                    requestHeader.getConsumerGroup());
+                this.brokerController.getSubscriptionGroupManager().findSubscriptionGroupConfig(requestHeader.getConsumerGroup());
         if (null == subscriptionGroupConfig) {
             response.setCode(ResponseCode.SUBSCRIPTION_GROUP_NOT_EXIST);
             response.setRemark("subscription group not exist, " + requestHeader.getConsumerGroup() + " "
@@ -219,11 +213,9 @@ public class PullMessageProcessor implements NettyRequestProcessor {
         final long suspendTimeoutMillisLong = hasSuspendFlag ? requestHeader.getSuspendTimeoutMillis() : 0;
 
         // 检查topic是否存在
-        TopicConfig topicConfig =
-                this.brokerController.getTopicConfigManager().selectTopicConfig(requestHeader.getTopic());
+        TopicConfig topicConfig = this.brokerController.getTopicConfigManager().selectTopicConfig(requestHeader.getTopic());
         if (null == topicConfig) {
-            log.error("the topic " + requestHeader.getTopic() + " not exist, consumer: "
-                    + RemotingHelper.parseChannelRemoteAddr(channel));
+            log.error("the topic " + requestHeader.getTopic() + " not exist, consumer: " + RemotingHelper.parseChannelRemoteAddr(channel));
             response.setCode(ResponseCode.TOPIC_NOT_EXIST);
             response.setRemark("topic[" + requestHeader.getTopic() + "] not exist, apply first please!"
                     + FAQUrl.suggestTodo(FAQUrl.APPLY_TOPIC_URL));
@@ -240,9 +232,8 @@ public class PullMessageProcessor implements NettyRequestProcessor {
         // 检查队列有效性
         if (requestHeader.getQueueId() < 0 || requestHeader.getQueueId() >= topicConfig.getReadQueueNums()) {
             String errorInfo =
-                    "queueId[" + requestHeader.getQueueId() + "] is illagal,Topic :"
-                            + requestHeader.getTopic() + " topicConfig.readQueueNums: "
-                            + topicConfig.getReadQueueNums() + " consumer: " + channel.remoteAddress();
+                    "queueId[" + requestHeader.getQueueId() + "] is illagal,Topic :" + requestHeader.getTopic()
+                            + " topicConfig.readQueueNums: " + topicConfig.getReadQueueNums() + " consumer: " + channel.remoteAddress();
             log.warn(errorInfo);
             response.setCode(ResponseCode.SYSTEM_ERROR);
             response.setRemark(errorInfo);
@@ -254,12 +245,11 @@ public class PullMessageProcessor implements NettyRequestProcessor {
         if (hasSubscriptionFlag) {
             try {
                 subscriptionData =
-                        FilterAPI.buildSubscriptionData(requestHeader.getConsumerGroup(),
-                            requestHeader.getTopic(), requestHeader.getSubscription());
+                        FilterAPI.buildSubscriptionData(requestHeader.getConsumerGroup(), requestHeader.getTopic(),
+                            requestHeader.getSubscription());
             }
             catch (Exception e) {
-                log.warn("parse the consumer's subscription[{}] failed, group: {}",
-                    requestHeader.getSubscription(),//
+                log.warn("parse the consumer's subscription[{}] failed, group: {}", requestHeader.getSubscription(),//
                     requestHeader.getConsumerGroup());
                 response.setCode(ResponseCode.SUBSCRIPTION_PARSE_FAILED);
                 response.setRemark("parse the consumer's subscription failed");
@@ -268,21 +258,18 @@ public class PullMessageProcessor implements NettyRequestProcessor {
         }
         else {
             ConsumerGroupInfo consumerGroupInfo =
-                    this.brokerController.getConsumerManager().getConsumerGroupInfo(
-                        requestHeader.getConsumerGroup());
+                    this.brokerController.getConsumerManager().getConsumerGroupInfo(requestHeader.getConsumerGroup());
             if (null == consumerGroupInfo) {
                 log.warn("the consumer's group info not exist, group: {}", requestHeader.getConsumerGroup());
                 response.setCode(ResponseCode.SUBSCRIPTION_NOT_EXIST);
-                response.setRemark("the consumer's group info not exist"
-                        + FAQUrl.suggestTodo(FAQUrl.SAME_GROUP_DIFFERENT_TOPIC));
+                response.setRemark("the consumer's group info not exist" + FAQUrl.suggestTodo(FAQUrl.SAME_GROUP_DIFFERENT_TOPIC));
                 return response;
             }
 
             if (!subscriptionGroupConfig.isConsumeBroadcastEnable() //
                     && consumerGroupInfo.getMessageModel() == MessageModel.BROADCASTING) {
                 response.setCode(ResponseCode.NO_PERMISSION);
-                response.setRemark("the consumer group[" + requestHeader.getConsumerGroup()
-                        + "] can not consume by broadcast way");
+                response.setRemark("the consumer group[" + requestHeader.getConsumerGroup() + "] can not consume by broadcast way");
                 return response;
             }
 
@@ -290,15 +277,14 @@ public class PullMessageProcessor implements NettyRequestProcessor {
             if (null == subscriptionData) {
                 log.warn("the consumer's subscription not exist, group: {}", requestHeader.getConsumerGroup());
                 response.setCode(ResponseCode.SUBSCRIPTION_NOT_EXIST);
-                response.setRemark("the consumer's subscription not exist"
-                        + FAQUrl.suggestTodo(FAQUrl.SAME_GROUP_DIFFERENT_TOPIC));
+                response.setRemark("the consumer's subscription not exist" + FAQUrl.suggestTodo(FAQUrl.SAME_GROUP_DIFFERENT_TOPIC));
                 return response;
             }
 
             // 判断Broker的订阅关系版本是否最新
             if (subscriptionData.getSubVersion() < requestHeader.getSubVersion()) {
-                log.warn("the broker's subscription is not latest, group: {} {}",
-                    requestHeader.getConsumerGroup(), subscriptionData.getSubString());
+                log.warn("the broker's subscription is not latest, group: {} {}", requestHeader.getConsumerGroup(),
+                    subscriptionData.getSubString());
                 response.setCode(ResponseCode.SUBSCRIPTION_NOT_LATEST);
                 response.setRemark("the consumer's subscription not latest");
                 return response;
@@ -306,9 +292,8 @@ public class PullMessageProcessor implements NettyRequestProcessor {
         }
 
         final GetMessageResult getMessageResult =
-                this.brokerController.getMessageStore().getMessage(requestHeader.getConsumerGroup(),
-                    requestHeader.getTopic(), requestHeader.getQueueId(), requestHeader.getQueueOffset(),
-                    requestHeader.getMaxMsgNums(), subscriptionData);
+                this.brokerController.getMessageStore().getMessage(requestHeader.getConsumerGroup(), requestHeader.getTopic(),
+                    requestHeader.getQueueId(), requestHeader.getQueueOffset(), requestHeader.getMaxMsgNums(), subscriptionData);
         if (getMessageResult != null) {
             response.setRemark(getMessageResult.getStatus().name());
             responseHeader.setNextBeginOffset(getMessageResult.getNextBeginOffset());
@@ -317,14 +302,13 @@ public class PullMessageProcessor implements NettyRequestProcessor {
 
             // 消费较慢，重定向到另外一台机器
             if (getMessageResult.isSuggestPullingFromSlave()) {
-                responseHeader.setSuggestWhichBrokerId(subscriptionGroupConfig
-                    .getWhichBrokerWhenConsumeSlowly());
-// Add By shijia, 注释日志，打印过于频繁
-//                log.warn(
-//                    "consume message too slow, suggest pulling from slave. group={}, topic={}, subString={}, queueId={}, offset={}",
-//                    requestHeader.getConsumerGroup(), requestHeader.getTopic(),
-//                    subscriptionData.getSubString(), requestHeader.getQueueId(),
-//                    requestHeader.getQueueOffset());
+                responseHeader.setSuggestWhichBrokerId(subscriptionGroupConfig.getWhichBrokerWhenConsumeSlowly());
+                // Add By shijia, 注释日志，打印过于频繁
+                // log.warn(
+                // "consume message too slow, suggest pulling from slave. group={}, topic={}, subString={}, queueId={}, offset={}",
+                // requestHeader.getConsumerGroup(), requestHeader.getTopic(),
+                // subscriptionData.getSubString(), requestHeader.getQueueId(),
+                // requestHeader.getQueueOffset());
             }
             // 消费正常，按照订阅组配置重定向
             else {
@@ -346,16 +330,14 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                     context.setQueueId(requestHeader.getQueueId());
 
                     final SocketAddress storeHost =
-                            new InetSocketAddress(brokerController.getBrokerConfig().getBrokerIP1(),
-                                brokerController.getNettyServerConfig().getListenPort());
+                            new InetSocketAddress(brokerController.getBrokerConfig().getBrokerIP1(), brokerController
+                                .getNettyServerConfig().getListenPort());
                     Map<String, Long> messageIds =
-                            this.brokerController.getMessageStore().getMessageIds(requestHeader.getTopic(),
-                                requestHeader.getQueueId(), requestHeader.getQueueOffset(),
-                                requestHeader.getQueueOffset() + getMessageResult.getMessageCount(),
+                            this.brokerController.getMessageStore().getMessageIds(requestHeader.getTopic(), requestHeader.getQueueId(),
+                                requestHeader.getQueueOffset(), requestHeader.getQueueOffset() + getMessageResult.getMessageCount(),
                                 storeHost);
                     context.setMessageIds(messageIds);
-                    context.setBodyLength(getMessageResult.getBufferTotalSize()
-                            / getMessageResult.getMessageCount());
+                    context.setBodyLength(getMessageResult.getBufferTotalSize() / getMessageResult.getMessageCount());
                     this.executeConsumeMessageHookBefore(context);
                 }
 
@@ -370,8 +352,7 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                     response.setCode(ResponseCode.PULL_OFFSET_MOVED);
 
                     // XXX: warn and notify me
-                    log.info(
-                        "the broker store no queue data, fix the request offset {} to {}, Topic: {} QueueId: {} Consumer Group: {}",//
+                    log.info("the broker store no queue data, fix the request offset {} to {}, Topic: {} QueueId: {} Consumer Group: {}",//
                         requestHeader.getQueueOffset(), //
                         getMessageResult.getNextBeginOffset(), //
                         requestHeader.getTopic(),//
@@ -392,95 +373,83 @@ public class PullMessageProcessor implements NettyRequestProcessor {
             case OFFSET_OVERFLOW_BADLY:
                 response.setCode(ResponseCode.PULL_OFFSET_MOVED);
                 // XXX: warn and notify me
-                log.info("the request offset: " + requestHeader.getQueueOffset()
-                        + " over flow badly, broker max offset: " + getMessageResult.getMaxOffset()
-                        + ", consumer: " + channel.remoteAddress());
+                log.info("the request offset: " + requestHeader.getQueueOffset() + " over flow badly, broker max offset: "
+                        + getMessageResult.getMaxOffset() + ", consumer: " + channel.remoteAddress());
                 break;
             case OFFSET_OVERFLOW_ONE:
                 response.setCode(ResponseCode.PULL_NOT_FOUND);
                 break;
             case OFFSET_TOO_SMALL:
                 response.setCode(ResponseCode.PULL_OFFSET_MOVED);
-                log.info(
-                    "the request offset too small. group={}, topic={}, requestOffset{}, brokerMinOffset={}, clientIp={}",
-                    requestHeader.getConsumerGroup(), requestHeader.getTopic(),
-                    requestHeader.getQueueOffset(), getMessageResult.getMinOffset(), channel.remoteAddress());
+                log.info("the request offset too small. group={}, topic={}, requestOffset={}, brokerMinOffset={}, clientIp={}",
+                    requestHeader.getConsumerGroup(), requestHeader.getTopic(), requestHeader.getQueueOffset(),
+                    getMessageResult.getMinOffset(), channel.remoteAddress());
                 break;
             default:
                 assert false;
                 break;
             }
 
-            //For commercial
+            // For commercial
 
             switch (response.getCode()) {
-                case ResponseCode.SUCCESS:
-                     this.brokerController.getBrokerStatsManager().incCommercialGroupRcvTimes(
-                            requestHeader.getConsumerGroup(), requestHeader.getTopic(),
-                            BrokerStatsManager.StatsType.RCV_SUCCESS.toString(),
-                            getMessageResult.getMsgCount4Commercial());
+            case ResponseCode.SUCCESS:
+                this.brokerController.getBrokerStatsManager().incCommercialGroupRcvTimes(requestHeader.getConsumerGroup(),
+                    requestHeader.getTopic(), BrokerStatsManager.StatsType.RCV_SUCCESS.toString(),
+                    getMessageResult.getMsgCount4Commercial());
 
-                    this.brokerController.getBrokerStatsManager().incCommercialGroupRcvSize(
-                            requestHeader.getConsumerGroup(), requestHeader.getTopic(),
-                            BrokerStatsManager.StatsType.RCV_SUCCESS.toString(),
-                            getMessageResult.getBufferTotalSize());
+                this.brokerController.getBrokerStatsManager().incCommercialGroupRcvSize(requestHeader.getConsumerGroup(),
+                    requestHeader.getTopic(), BrokerStatsManager.StatsType.RCV_SUCCESS.toString(), getMessageResult.getBufferTotalSize());
 
-                    break;
-                case ResponseCode.PULL_NOT_FOUND:
-                    if (!brokerAllowSuspend) {
-                        //如果客户端的pull请求没有命中，会在broker阻塞该长轮询，特定时间或者条件下，由broker模拟一次pull请求
-                        //针对这两次pull请求，对于被阻塞的那次请求，我们不作计数
-                        this.brokerController.getBrokerStatsManager().incCommercialGroupRcvEpolls(
-                                requestHeader.getConsumerGroup(), requestHeader.getTopic(),
-                                BrokerStatsManager.StatsType.RCV_EPOLLS.toString(), 1);
-                    }
-                    break;
-                case ResponseCode.PULL_RETRY_IMMEDIATELY:
-                case ResponseCode.PULL_OFFSET_MOVED:
-                    this.brokerController.getBrokerStatsManager().incCommercialGroupRcvEpolls(
-                            requestHeader.getConsumerGroup(), requestHeader.getTopic(),
-                            BrokerStatsManager.StatsType.RCV_EPOLLS.toString(), 1);
-                    break;
-                default:
-                    assert false;
+                break;
+            case ResponseCode.PULL_NOT_FOUND:
+                if (!brokerAllowSuspend) {
+                    // 如果客户端的pull请求没有命中，会在broker阻塞该长轮询，特定时间或者条件下，由broker模拟一次pull请求
+                    // 针对这两次pull请求，对于被阻塞的那次请求，我们不作计数
+                    this.brokerController.getBrokerStatsManager().incCommercialGroupRcvEpolls(requestHeader.getConsumerGroup(),
+                        requestHeader.getTopic(), BrokerStatsManager.StatsType.RCV_EPOLLS.toString(), 1);
+                }
+                break;
+            case ResponseCode.PULL_RETRY_IMMEDIATELY:
+            case ResponseCode.PULL_OFFSET_MOVED:
+                this.brokerController.getBrokerStatsManager().incCommercialGroupRcvEpolls(requestHeader.getConsumerGroup(),
+                    requestHeader.getTopic(), BrokerStatsManager.StatsType.RCV_EPOLLS.toString(), 1);
+                break;
+            default:
+                assert false;
 
             }
 
             switch (response.getCode()) {
             case ResponseCode.SUCCESS:
                 // 统计
-                this.brokerController.getBrokerStatsManager().incGroupGetNums(
-                    requestHeader.getConsumerGroup(), requestHeader.getTopic(),
+                this.brokerController.getBrokerStatsManager().incGroupGetNums(requestHeader.getConsumerGroup(), requestHeader.getTopic(),
                     getMessageResult.getMessageCount());
 
-                this.brokerController.getBrokerStatsManager().incGroupGetSize(
-                    requestHeader.getConsumerGroup(), requestHeader.getTopic(),
+                this.brokerController.getBrokerStatsManager().incGroupGetSize(requestHeader.getConsumerGroup(), requestHeader.getTopic(),
                     getMessageResult.getBufferTotalSize());
 
-                this.brokerController.getBrokerStatsManager().incBrokerGetNums(
-                    getMessageResult.getMessageCount());
+                this.brokerController.getBrokerStatsManager().incBrokerGetNums(getMessageResult.getMessageCount());
 
-                if(this.brokerController.getBrokerConfig().isTransferMsgByHeap()){
+                if (this.brokerController.getBrokerConfig().isTransferMsgByHeap()) {
                     final byte[] r = this.readGetMessageResult(getMessageResult);
                     response.setBody(r);
                 }
                 else {
                     try {
                         FileRegion fileRegion =
-                                new ManyMessageTransfer(response.encodeHeader(getMessageResult
-                                        .getBufferTotalSize()), getMessageResult);
+                                new ManyMessageTransfer(response.encodeHeader(getMessageResult.getBufferTotalSize()), getMessageResult);
                         channel.writeAndFlush(fileRegion).addListener(new ChannelFutureListener() {
                             @Override
                             public void operationComplete(ChannelFuture future) throws Exception {
                                 getMessageResult.release();
                                 if (!future.isSuccess()) {
-                                    log.error(
-                                            "transfer many message by pagecache failed, " + channel.remoteAddress(),
-                                            future.cause());
+                                    log.error("transfer many message by pagecache failed, " + channel.remoteAddress(), future.cause());
                                 }
                             }
                         });
-                    } catch (Throwable e) {
+                    }
+                    catch (Throwable e) {
                         log.error("transfer many message by pagecache exception", e);
                         getMessageResult.release();
                     }
@@ -497,10 +466,10 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                     }
 
                     PullRequest pullRequest =
-                            new PullRequest(request, channel, pollingTimeMills, this.brokerController
-                                .getMessageStore().now(), requestHeader.getQueueOffset());
-                    this.brokerController.getPullRequestHoldService().suspendPullRequest(
-                        requestHeader.getTopic(), requestHeader.getQueueId(), pullRequest);
+                            new PullRequest(request, channel, pollingTimeMills, this.brokerController.getMessageStore().now(),
+                                requestHeader.getQueueOffset());
+                    this.brokerController.getPullRequestHoldService().suspendPullRequest(requestHeader.getTopic(),
+                        requestHeader.getQueueId(), pullRequest);
                     response = null;
                     break;
                 }
@@ -524,16 +493,15 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                     this.generateOffsetMovedEvent(event);
                     log.warn(
                         "PULL_OFFSET_MOVED:correction offset. topic={}, groupId={}, requestOffset={}, newOffset={}, suggestBrokerId={}",
-                        requestHeader.getTopic(), requestHeader.getConsumerGroup(), event.getOffsetRequest(),
-                        event.getOffsetNew(), responseHeader.getSuggestWhichBrokerId());
+                        requestHeader.getTopic(), requestHeader.getConsumerGroup(), event.getOffsetRequest(), event.getOffsetNew(),
+                        responseHeader.getSuggestWhichBrokerId());
                 }
                 else {
                     responseHeader.setSuggestWhichBrokerId(subscriptionGroupConfig.getBrokerId());
                     response.setCode(ResponseCode.PULL_RETRY_IMMEDIATELY);
-                    log.warn(
-                        "PULL_OFFSET_MOVED:none correction. topic={}, groupId={}, requestOffset={}, suggestBrokerId={}",
-                        requestHeader.getTopic(), requestHeader.getConsumerGroup(),
-                        requestHeader.getQueueOffset(), responseHeader.getSuggestWhichBrokerId());
+                    log.warn("PULL_OFFSET_MOVED:none correction. topic={}, groupId={}, requestOffset={}, suggestBrokerId={}",
+                        requestHeader.getTopic(), requestHeader.getConsumerGroup(), requestHeader.getQueueOffset(),
+                        responseHeader.getSuggestWhichBrokerId());
                 }
 
                 break;
@@ -552,8 +520,8 @@ public class PullMessageProcessor implements NettyRequestProcessor {
         storeOffsetEnable = storeOffsetEnable // 只有Master支持存储offset
                 && this.brokerController.getMessageStoreConfig().getBrokerRole() != BrokerRole.SLAVE;
         if (storeOffsetEnable) {
-            this.brokerController.getConsumerOffsetManager().commitOffset(requestHeader.getConsumerGroup(),
-                requestHeader.getTopic(), requestHeader.getQueueId(), requestHeader.getCommitOffset());
+            this.brokerController.getConsumerOffsetManager().commitOffset(requestHeader.getConsumerGroup(), requestHeader.getTopic(),
+                requestHeader.getQueueId(), requestHeader.getCommitOffset());
         }
         return response;
     }
