@@ -17,7 +17,11 @@
 package com.alibaba.rocketmq.tools.command.cluster;
 
 import java.math.BigDecimal;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -200,8 +204,11 @@ public class CLusterSendMsgRTCommand implements SubCommand {
     }
 
     public String getCurTime() {
-        java.text.SimpleDateFormat df = new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-        return df.format(new java.util.Date());
+        Calendar calendar = Calendar.getInstance(Locale.CHINA);
+        Date date = calendar.getTime();
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        String chinaDate = dateFormat.format(date);
+        return chinaDate;
     }
 
     public static void main(String args[]) {
