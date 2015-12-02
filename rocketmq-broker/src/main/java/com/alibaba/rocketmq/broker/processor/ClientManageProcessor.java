@@ -1,12 +1,12 @@
 /**
  * Copyright (C) 2010-2013 Alibaba Group Holding Limited
- *
+ * <p/>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p/>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p/>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -14,16 +14,6 @@
  * limitations under the License.
  */
 package com.alibaba.rocketmq.broker.processor;
-
-import io.netty.channel.ChannelHandlerContext;
-
-import java.net.InetSocketAddress;
-import java.net.SocketAddress;
-import java.util.List;
-import java.util.Map;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.alibaba.rocketmq.broker.BrokerController;
 import com.alibaba.rocketmq.broker.client.ClientChannelInfo;
@@ -36,15 +26,7 @@ import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.common.constant.PermName;
 import com.alibaba.rocketmq.common.protocol.RequestCode;
 import com.alibaba.rocketmq.common.protocol.ResponseCode;
-import com.alibaba.rocketmq.common.protocol.header.GetConsumerListByGroupRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.GetConsumerListByGroupResponseBody;
-import com.alibaba.rocketmq.common.protocol.header.GetConsumerListByGroupResponseHeader;
-import com.alibaba.rocketmq.common.protocol.header.QueryConsumerOffsetRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.QueryConsumerOffsetResponseHeader;
-import com.alibaba.rocketmq.common.protocol.header.UnregisterClientRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.UnregisterClientResponseHeader;
-import com.alibaba.rocketmq.common.protocol.header.UpdateConsumerOffsetRequestHeader;
-import com.alibaba.rocketmq.common.protocol.header.UpdateConsumerOffsetResponseHeader;
+import com.alibaba.rocketmq.common.protocol.header.*;
 import com.alibaba.rocketmq.common.protocol.heartbeat.ConsumerData;
 import com.alibaba.rocketmq.common.protocol.heartbeat.HeartbeatData;
 import com.alibaba.rocketmq.common.protocol.heartbeat.ProducerData;
@@ -54,11 +36,19 @@ import com.alibaba.rocketmq.remoting.common.RemotingHelper;
 import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
 import com.alibaba.rocketmq.remoting.netty.NettyRequestProcessor;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
+import io.netty.channel.ChannelHandlerContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.net.InetSocketAddress;
+import java.net.SocketAddress;
+import java.util.List;
+import java.util.Map;
 
 
 /**
  * Client注册与注销管理
- * 
+ *
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-26
  */
@@ -77,19 +67,19 @@ public class ClientManageProcessor implements NettyRequestProcessor {
     public RemotingCommand processRequest(ChannelHandlerContext ctx, RemotingCommand request)
             throws RemotingCommandException {
         switch (request.getCode()) {
-        case RequestCode.HEART_BEAT:
-            return this.heartBeat(ctx, request);
-        case RequestCode.UNREGISTER_CLIENT:
-            return this.unregisterClient(ctx, request);
-        case RequestCode.GET_CONSUMER_LIST_BY_GROUP:
-            return this.getConsumerListByGroup(ctx, request);
+            case RequestCode.HEART_BEAT:
+                return this.heartBeat(ctx, request);
+            case RequestCode.UNREGISTER_CLIENT:
+                return this.unregisterClient(ctx, request);
+            case RequestCode.GET_CONSUMER_LIST_BY_GROUP:
+                return this.getConsumerListByGroup(ctx, request);
             // 更新Consumer Offset
-        case RequestCode.UPDATE_CONSUMER_OFFSET:
-            return this.updateConsumerOffset(ctx, request);
-        case RequestCode.QUERY_CONSUMER_OFFSET:
-            return this.queryConsumerOffset(ctx, request);
-        default:
-            break;  
+            case RequestCode.UPDATE_CONSUMER_OFFSET:
+                return this.updateConsumerOffset(ctx, request);
+            case RequestCode.QUERY_CONSUMER_OFFSET:
+                return this.queryConsumerOffset(ctx, request);
+            default:
+                break;
         }
         return null;
     }
@@ -115,8 +105,7 @@ public class ClientManageProcessor implements NettyRequestProcessor {
             for (ConsumeMessageHook hook : this.consumeMessageHookList) {
                 try {
                     hook.consumeMessageAfter(context);
-                }
-                catch (Throwable e) {
+                } catch (Throwable e) {
                 }
             }
         }
@@ -131,7 +120,7 @@ public class ClientManageProcessor implements NettyRequestProcessor {
         // (UpdateConsumerOffsetResponseHeader) response.readCustomHeader();
         final UpdateConsumerOffsetRequestHeader requestHeader =
                 (UpdateConsumerOffsetRequestHeader) request
-                    .decodeCommandCustomHeader(UpdateConsumerOffsetRequestHeader.class);
+                        .decodeCommandCustomHeader(UpdateConsumerOffsetRequestHeader.class);
 
         // 消息轨迹：记录已经消费成功并提交 offset 的消息记录
         if (this.hasConsumeMessageHook()) {
@@ -144,20 +133,20 @@ public class ClientManageProcessor implements NettyRequestProcessor {
             context.setStatus(ConsumeConcurrentlyStatus.CONSUME_SUCCESS.toString());
             final SocketAddress storeHost =
                     new InetSocketAddress(brokerController.getBrokerConfig().getBrokerIP1(), brokerController
-                        .getNettyServerConfig().getListenPort());
+                            .getNettyServerConfig().getListenPort());
 
             long preOffset =
                     this.brokerController.getConsumerOffsetManager().queryOffset(
-                        requestHeader.getConsumerGroup(), requestHeader.getTopic(),
-                        requestHeader.getQueueId());
+                            requestHeader.getConsumerGroup(), requestHeader.getTopic(),
+                            requestHeader.getQueueId());
             Map<String, Long> messageIds =
                     this.brokerController.getMessageStore().getMessageIds(requestHeader.getTopic(),
-                        requestHeader.getQueueId(), preOffset, requestHeader.getCommitOffset(), storeHost);
+                            requestHeader.getQueueId(), preOffset, requestHeader.getCommitOffset(), storeHost);
             context.setMessageIds(messageIds);
             this.executeConsumeMessageHookAfter(context);
         }
-        this.brokerController.getConsumerOffsetManager().commitOffset(requestHeader.getConsumerGroup(),
-            requestHeader.getTopic(), requestHeader.getQueueId(), requestHeader.getCommitOffset());
+        this.brokerController.getConsumerOffsetManager().commitOffset(RemotingHelper.parseChannelRemoteAddr(ctx.channel()), requestHeader.getConsumerGroup(),
+                requestHeader.getTopic(), requestHeader.getQueueId(), requestHeader.getCommitOffset());
         response.setCode(ResponseCode.SUCCESS);
         response.setRemark(null);
         return response;
@@ -172,11 +161,11 @@ public class ClientManageProcessor implements NettyRequestProcessor {
                 (QueryConsumerOffsetResponseHeader) response.readCustomHeader();
         final QueryConsumerOffsetRequestHeader requestHeader =
                 (QueryConsumerOffsetRequestHeader) request
-                    .decodeCommandCustomHeader(QueryConsumerOffsetRequestHeader.class);
+                        .decodeCommandCustomHeader(QueryConsumerOffsetRequestHeader.class);
 
         long offset =
                 this.brokerController.getConsumerOffsetManager().queryOffset(
-                    requestHeader.getConsumerGroup(), requestHeader.getTopic(), requestHeader.getQueueId());
+                        requestHeader.getConsumerGroup(), requestHeader.getTopic(), requestHeader.getQueueId());
 
         // 订阅组存在
         if (offset >= 0) {
@@ -188,12 +177,12 @@ public class ClientManageProcessor implements NettyRequestProcessor {
         else {
             long minOffset =
                     this.brokerController.getMessageStore().getMinOffsetInQuque(requestHeader.getTopic(),
-                        requestHeader.getQueueId());
+                            requestHeader.getQueueId());
             // 订阅组不存在情况下，如果这个队列的消息最小Offset是0，则表示这个Topic上线时间不长，服务器堆积的数据也不多，那么这个订阅组就从0开始消费。
             // 尤其对于Topic队列数动态扩容时，必须要从0开始消费。
             if (minOffset <= 0
                     && !this.brokerController.getMessageStore().checkInDiskByConsumeOffset(
-                        requestHeader.getTopic(), requestHeader.getQueueId(), 0)) {
+                    requestHeader.getTopic(), requestHeader.getQueueId(), 0)) {
                 responseHeader.setOffset(0L);
                 response.setCode(ResponseCode.SUCCESS);
                 response.setRemark(null);
@@ -215,11 +204,11 @@ public class ClientManageProcessor implements NettyRequestProcessor {
                 RemotingCommand.createResponseCommand(GetConsumerListByGroupResponseHeader.class);
         final GetConsumerListByGroupRequestHeader requestHeader =
                 (GetConsumerListByGroupRequestHeader) request
-                    .decodeCommandCustomHeader(GetConsumerListByGroupRequestHeader.class);
+                        .decodeCommandCustomHeader(GetConsumerListByGroupRequestHeader.class);
 
         ConsumerGroupInfo consumerGroupInfo =
                 this.brokerController.getConsumerManager().getConsumerGroupInfo(
-                    requestHeader.getConsumerGroup());
+                        requestHeader.getConsumerGroup());
         if (consumerGroupInfo != null) {
             List<String> clientIds = consumerGroupInfo.getAllClientId();
             if (!clientIds.isEmpty()) {
@@ -229,15 +218,13 @@ public class ClientManageProcessor implements NettyRequestProcessor {
                 response.setCode(ResponseCode.SUCCESS);
                 response.setRemark(null);
                 return response;
-            }
-            else {
+            } else {
                 log.warn("getAllClientId failed, {} {}", requestHeader.getConsumerGroup(),
-                    RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
+                        RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
             }
-        }
-        else {
+        } else {
             log.warn("getConsumerGroupInfo failed, {} {}", requestHeader.getConsumerGroup(),
-                RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
+                    RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
         }
 
         response.setCode(ResponseCode.SYSTEM_ERROR);
@@ -252,14 +239,14 @@ public class ClientManageProcessor implements NettyRequestProcessor {
                 RemotingCommand.createResponseCommand(UnregisterClientResponseHeader.class);
         final UnregisterClientRequestHeader requestHeader =
                 (UnregisterClientRequestHeader) request
-                    .decodeCommandCustomHeader(UnregisterClientRequestHeader.class);
+                        .decodeCommandCustomHeader(UnregisterClientRequestHeader.class);
 
         ClientChannelInfo clientChannelInfo = new ClientChannelInfo(//
-            ctx.channel(),//
-            requestHeader.getClientID(),//
-            request.getLanguage(),//
-            request.getVersion()//
-                );
+                ctx.channel(),//
+                requestHeader.getClientID(),//
+                request.getLanguage(),//
+                request.getVersion()//
+        );
 
         // 注销Producer
         {
@@ -289,17 +276,17 @@ public class ClientManageProcessor implements NettyRequestProcessor {
         HeartbeatData heartbeatData = HeartbeatData.decode(request.getBody(), HeartbeatData.class);
 
         ClientChannelInfo clientChannelInfo = new ClientChannelInfo(//
-            ctx.channel(),//
-            heartbeatData.getClientID(),//
-            request.getLanguage(),//
-            request.getVersion()//
-                );
+                ctx.channel(),//
+                heartbeatData.getClientID(),//
+                request.getLanguage(),//
+                request.getVersion()//
+        );
 
         // 注册Consumer
         for (ConsumerData data : heartbeatData.getConsumerDataSet()) {
             SubscriptionGroupConfig subscriptionGroupConfig =
                     this.brokerController.getSubscriptionGroupManager().findSubscriptionGroupConfig(
-                        data.getGroupName());
+                            data.getGroupName());
             if (null != subscriptionGroupConfig) {
                 // 如果是单元化模式，则对 topic 进行设置
                 int topicSysFlag = 0;
@@ -308,24 +295,24 @@ public class ClientManageProcessor implements NettyRequestProcessor {
                 }
                 String newTopic = MixAll.getRetryTopic(data.getGroupName());
                 this.brokerController.getTopicConfigManager().createTopicInSendMessageBackMethod(//
-                    newTopic,//
-                    subscriptionGroupConfig.getRetryQueueNums(), //
-                    PermName.PERM_WRITE | PermName.PERM_READ, topicSysFlag);
+                        newTopic,//
+                        subscriptionGroupConfig.getRetryQueueNums(), //
+                        PermName.PERM_WRITE | PermName.PERM_READ, topicSysFlag);
             }
 
             boolean changed = this.brokerController.getConsumerManager().registerConsumer(//
-                data.getGroupName(),//
-                clientChannelInfo,//
-                data.getConsumeType(),//
-                data.getMessageModel(),//
-                data.getConsumeFromWhere(),//
-                data.getSubscriptionDataSet()//
-                );
+                    data.getGroupName(),//
+                    clientChannelInfo,//
+                    data.getConsumeType(),//
+                    data.getMessageModel(),//
+                    data.getConsumeFromWhere(),//
+                    data.getSubscriptionDataSet()//
+            );
 
             if (changed) {
                 log.info("registerConsumer info changed {} {}",//
-                    data.toString(),//
-                    RemotingHelper.parseChannelRemoteAddr(ctx.channel())//
+                        data.toString(),//
+                        RemotingHelper.parseChannelRemoteAddr(ctx.channel())//
                 );
 
                 // todo:有可能会有频繁变更
@@ -340,7 +327,7 @@ public class ClientManageProcessor implements NettyRequestProcessor {
         // 注册Producer
         for (ProducerData data : heartbeatData.getProducerDataSet()) {
             this.brokerController.getProducerManager().registerProducer(data.getGroupName(),
-                clientChannelInfo);
+                    clientChannelInfo);
         }
 
         response.setCode(ResponseCode.SUCCESS);

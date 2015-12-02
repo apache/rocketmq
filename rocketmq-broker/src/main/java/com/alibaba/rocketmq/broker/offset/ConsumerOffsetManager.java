@@ -1,12 +1,12 @@
 /**
  * Copyright (C) 2010-2013 Alibaba Group Holding Limited
- *
+ * <p/>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p/>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p/>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -15,28 +15,23 @@
  */
 package com.alibaba.rocketmq.broker.offset;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.alibaba.rocketmq.broker.BrokerController;
 import com.alibaba.rocketmq.broker.BrokerPathConfigHelper;
 import com.alibaba.rocketmq.common.ConfigManager;
 import com.alibaba.rocketmq.common.UtilAll;
 import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.remoting.protocol.RemotingSerializable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.*;
+import java.util.Map.Entry;
+import java.util.concurrent.ConcurrentHashMap;
 
 
 /**
  * Consumer消费进度管理
- * 
+ *
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-8-11
  */
@@ -92,8 +87,7 @@ public class ConsumerOffsetManager extends ConfigManager {
             long offsetInPersist = next.getValue();
             if (offsetInPersist > minOffsetInStore) {
                 result = false;
-            }
-            else {
+            } else {
                 result = true;
             }
         }
@@ -140,10 +134,10 @@ public class ConsumerOffsetManager extends ConfigManager {
     }
 
 
-    public void commitOffset(final String group, final String topic, final int queueId, final long offset) {
+    public void commitOffset(final String clientHost, final String group, final String topic, final int queueId, final long offset) {
         // topic@group
         String key = topic + TOPIC_GROUP_SEPARATOR + group;
-        this.commitOffset(key, queueId, offset);
+        this.commitOffset(clientHost, key, queueId, offset);
     }
 
 
@@ -161,14 +155,17 @@ public class ConsumerOffsetManager extends ConfigManager {
     }
 
 
-    private void commitOffset(final String key, final int queueId, final long offset) {
+    private void commitOffset(final String clientHost, final String key, final int queueId, final long offset) {
         ConcurrentHashMap<Integer, Long> map = this.offsetTable.get(key);
         if (null == map) {
             map = new ConcurrentHashMap<Integer, Long>(32);
             map.put(queueId, offset);
             this.offsetTable.put(key, map);
-        }
-        else {
+        } else {
+            long storeOffset = map.get(queueId);
+            if (offset < storeOffset) {
+                log.warn("[NOTIFYME]update consumer offset less than store. clientHost={}, key={}, queueId={}, requestOffset={}, storeOffset={}", clientHost, key, queueId, offset, storeOffset);
+            }
             map.put(queueId, offset);
         }
     }
@@ -234,8 +231,7 @@ public class ConsumerOffsetManager extends ConfigManager {
                         Long offset = queueMinOffset.get(entry.getKey());
                         if (offset == null) {
                             queueMinOffset.put(entry.getKey(), Math.min(Long.MAX_VALUE, entry.getValue()));
-                        }
-                        else {
+                        } else {
                             queueMinOffset.put(entry.getKey(), Math.min(entry.getValue(), offset));
                         }
                     }
