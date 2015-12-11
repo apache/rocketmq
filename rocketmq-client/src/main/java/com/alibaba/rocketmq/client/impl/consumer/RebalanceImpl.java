@@ -1,12 +1,12 @@
 /**
  * Copyright (C) 2010-2013 Alibaba Group Holding Limited
- *
+ * <p/>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p/>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p/>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -313,13 +313,9 @@ public abstract class RebalanceImpl {
                     boolean changed = this.updateProcessQueueTableInRebalance(topic, allocateResultSet);
                     if (changed) {
                         log.info(
-                                "rebalanced allocate source. allocateMessageQueueStrategyName={}, group={}, topic={}, mqAllSize={}, cidAllSize={}, mqAll={}, cidAll={}",
-                                strategy.getName(), consumerGroup, topic, mqSet.size(), cidAll.size(), mqSet, cidAll);
-                        log.info(
-                                "rebalanced result changed. allocateMessageQueueStrategyName={}, group={}, topic={}, ConsumerId={}, rebalanceSize={}, rebalanceMqSet={}",
-                                strategy.getName(), consumerGroup, topic, this.mQClientFactory.getClientId(),
-                                allocateResultSet.size(), mqAll.size(), cidAll.size(), allocateResultSet);
-
+                                "rebalanced result changed. allocateMessageQueueStrategyName={}, group={}, topic={}, clientId={}, mqAllSize={}, cidAllSize={}, rebalanceResultSize={}, rebalanceResultSet={}",
+                                strategy.getName(), consumerGroup, topic, this.mQClientFactory.getClientId(), mqSet.size(), cidAll.size(),
+                                allocateResultSet.size(), allocateResultSet);
                         this.messageQueueChanged(topic, mqSet, allocateResultSet);
                     }
                 }
@@ -363,10 +359,10 @@ public abstract class RebalanceImpl {
                         changed = true;
                         log.info("doRebalance, {}, remove unnecessary mq, {}", consumerGroup, mq);
                     }
-                }
-                else if (pq.isPullExpired()) {
+                } else if (pq.isPullExpired()) {
                     switch (this.consumeType()) {
                         case CONSUME_ACTIVELY:
+                            // todo-->jodie:主动拉的时候可能会存在问题
                             break;
                         case CONSUME_PASSIVELY:
                             pq.setDropped(true);
@@ -427,6 +423,7 @@ public abstract class RebalanceImpl {
 
         for (MessageQueue mq : this.processQueueTable.keySet()) {
             if (!subTable.containsKey(mq.getTopic())) {
+                // todo-->jodie:不再订阅该topic时,offset需要清除
                 ProcessQueue pq = this.processQueueTable.remove(mq);
                 if (pq != null) {
                     pq.setDropped(true);

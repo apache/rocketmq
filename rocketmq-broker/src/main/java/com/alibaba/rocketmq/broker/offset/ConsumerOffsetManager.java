@@ -162,11 +162,10 @@ public class ConsumerOffsetManager extends ConfigManager {
             map.put(queueId, offset);
             this.offsetTable.put(key, map);
         } else {
-            long storeOffset = map.get(queueId);
-            if (offset < storeOffset) {
+            Long storeOffset = map.put(queueId, offset);
+            if (storeOffset != null && offset < storeOffset) {
                 log.warn("[NOTIFYME]update consumer offset less than store. clientHost={}, key={}, queueId={}, requestOffset={}, storeOffset={}", clientHost, key, queueId, offset, storeOffset);
             }
-            map.put(queueId, offset);
         }
     }
 
