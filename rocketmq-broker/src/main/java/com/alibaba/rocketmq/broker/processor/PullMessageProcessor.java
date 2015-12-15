@@ -15,21 +15,6 @@
  */
 package com.alibaba.rocketmq.broker.processor;
 
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelFutureListener;
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.FileRegion;
-
-import java.net.InetSocketAddress;
-import java.net.SocketAddress;
-import java.nio.ByteBuffer;
-import java.util.List;
-import java.util.Map;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.alibaba.rocketmq.broker.BrokerController;
 import com.alibaba.rocketmq.broker.client.ConsumerGroupInfo;
 import com.alibaba.rocketmq.broker.longpolling.PullRequest;
@@ -63,7 +48,15 @@ import com.alibaba.rocketmq.store.MessageExtBrokerInner;
 import com.alibaba.rocketmq.store.PutMessageResult;
 import com.alibaba.rocketmq.store.config.BrokerRole;
 import com.alibaba.rocketmq.store.stats.BrokerStatsManager;
-import com.taobao.protester.waloger.metaq.plugin.ProtesterDbMqStore;
+import io.netty.channel.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.net.InetSocketAddress;
+import java.net.SocketAddress;
+import java.nio.ByteBuffer;
+import java.util.List;
+import java.util.Map;
 
 
 /**
@@ -77,8 +70,7 @@ public class PullMessageProcessor implements NettyRequestProcessor {
 
     private final BrokerController brokerController;
 
-    private  ProtesterDbMqStore protesterDbMqStore = new ProtesterDbMqStore();
-    
+
     public PullMessageProcessor(final BrokerController brokerController) {
         this.brokerController = brokerController;
     }
@@ -178,7 +170,7 @@ public class PullMessageProcessor implements NettyRequestProcessor {
         return byteBuffer.array();
     }
 
-    
+
     private RemotingCommand processRequest(final Channel channel, RemotingCommand request,
             boolean brokerAllowSuspend) throws RemotingCommandException {
         RemotingCommand response = RemotingCommand.createResponseCommand(PullMessageResponseHeader.class);
@@ -313,11 +305,8 @@ public class PullMessageProcessor implements NettyRequestProcessor {
             }
         }
 
-//        final GetMessageResult getMessageResult =
-//                this.brokerController.getMessageStore().getMessage(requestHeader.getConsumerGroup(),
-//                    requestHeader.getTopic(), requestHeader.getQueueId(), requestHeader.getQueueOffset(),
-//                    requestHeader.getMaxMsgNums(), subscriptionData);
-        final GetMessageResult getMessageResult = protesterDbMqStore.getMessage(brokerController.getMessageStore(),requestHeader.getConsumerGroup(),
+        final GetMessageResult getMessageResult =
+                this.brokerController.getMessageStore().getMessage(requestHeader.getConsumerGroup(),
                     requestHeader.getTopic(), requestHeader.getQueueId(), requestHeader.getQueueOffset(),
                     requestHeader.getMaxMsgNums(), subscriptionData);
         if (getMessageResult != null) {
