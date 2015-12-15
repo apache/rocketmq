@@ -55,6 +55,8 @@ public class BrokerConfig {
     // 自动创建订阅组功能是否开启（线上建议关闭）
     @ImportantField
     private boolean autoCreateSubscriptionGroup = true;
+    
+    private String messageStorePlugIn = "";
 
     private int sendMessageThreadPoolNums = 16 + Runtime.getRuntime().availableProcessors() * 4;
     private int pullMessageThreadPoolNums = 16 + Runtime.getRuntime().availableProcessors() * 2;
@@ -64,6 +66,15 @@ public class BrokerConfig {
     private int flushConsumerOffsetInterval = 1000 * 5;
 
     private int flushConsumerOffsetHistoryInterval = 1000 * 60;
+
+    public String getMessageStorePlugIn() {
+        return messageStorePlugIn;
+    }
+
+    public void setMessageStorePlugIn(String messageStorePlugIn) {
+        this.messageStorePlugIn = messageStorePlugIn;
+    }
+
 
     // 是否拒绝接收事务消息
     @ImportantField
