@@ -47,6 +47,8 @@ import com.alibaba.rocketmq.store.MessageExtBrokerInner;
 import com.alibaba.rocketmq.store.PutMessageResult;
 import com.alibaba.rocketmq.store.config.StorePathConfigHelper;
 import com.alibaba.rocketmq.store.stats.BrokerStatsManager;
+import com.taobao.protester.waloger.metaq.plugin.ProtesterDbMqStore;
+
 import io.netty.channel.ChannelHandlerContext;
 
 import java.net.SocketAddress;
@@ -63,6 +65,8 @@ import java.util.Map;
  */
 public class SendMessageProcessor extends AbstractSendMessageProcessor implements NettyRequestProcessor {
 
+    private ProtesterDbMqStore pstore = new ProtesterDbMqStore();
+    
     public SendMessageProcessor(final BrokerController brokerController) {
         super(brokerController);
     }
@@ -288,7 +292,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         return String.format("CL: %5.2f CQ: %5.2f INDEX: %5.2f", physicRatio, logisRatio, indexRatio);
     }
 
-
+    
     private RemotingCommand sendMessage(final ChannelHandlerContext ctx, //
             final RemotingCommand request,//
             final SendMessageContext mqtraceContext,//
@@ -349,8 +353,8 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
                 return response;
             }
         }
-
-        PutMessageResult putMessageResult = this.brokerController.getMessageStore().putMessage(msgInner);
+        PutMessageResult putMessageResult = pstore.putMessage(this.brokerController.getMessageStore(), msgInner);
+//        PutMessageResult putMessageResult = this.brokerController.getMessageStore().putMessage(msgInner);
         if (putMessageResult != null) {
             boolean sendOK = false;
 
