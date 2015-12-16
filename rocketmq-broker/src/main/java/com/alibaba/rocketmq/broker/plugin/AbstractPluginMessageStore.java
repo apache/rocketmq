@@ -30,6 +30,10 @@ public abstract class AbstractPluginMessageStore implements MessageStore {
     public final void setNext(MessageStore next) {
         this.next = next;
     }
+    
+    public final MessageStore getNext(){
+        return this.next;
+    }
 
     @Override
     public boolean load() {

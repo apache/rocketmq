@@ -163,6 +163,7 @@ public class BrokerController {
                 this.messageStore =
                         new DefaultMessageStore(this.messageStoreConfig, this.brokerStatsManager, this.messageArrivingListener,
                             this.brokerConfig);
+                this.brokerStats = new BrokerStats((DefaultMessageStore) this.messageStore);
                 //load plugin
                 MessageStorePluginContext context = new MessageStorePluginContext(messageStoreConfig, brokerStatsManager, messageArrivingListener, brokerConfig);
                 this.messageStore = MessageStoreFactory.build(context, this.messageStore);
@@ -206,7 +207,6 @@ public class BrokerController {
 
             this.registerProcessor();
 
-            this.brokerStats = new BrokerStats((DefaultMessageStore) this.messageStore);
 
             // TODO remove in future
             final long initialDelay = UtilAll.computNextMorningTimeMillis() - System.currentTimeMillis();
