@@ -77,9 +77,6 @@ public class PlugInTest {
     public void testAbstractPluginMessageStore() throws IllegalAccessException, IllegalArgumentException,
             InvocationTargetException {
 
-        AbstractPluginMessageStore pluginMessageStore = new AbstractPluginMessageStore() {
-
-        };
         
         final ThreadLocal<String> invokingMethodName = new ThreadLocal<String>();
         
@@ -106,7 +103,9 @@ public class PlugInTest {
                     }
                 });
 
-        pluginMessageStore.setNext(messageStore);
+        AbstractPluginMessageStore pluginMessageStore = new AbstractPluginMessageStore(null, messageStore) {
+            
+        };
 
         Method[] methods = MessageStore.class.getMethods();
         for (Method m : methods) {

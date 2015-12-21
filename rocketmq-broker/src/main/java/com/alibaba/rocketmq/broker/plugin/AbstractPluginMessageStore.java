@@ -21,18 +21,12 @@ import com.alibaba.rocketmq.store.SelectMapedBufferResult;
  * @author qinan.qn@taobao.com 2015年12月9日
  */
 public abstract class AbstractPluginMessageStore implements MessageStore {
-    MessageStore next = null;
+    protected MessageStore next = null;
     protected MessageStorePluginContext context;
-    
-    public AbstractPluginMessageStore() {
-    }
-    
-    public final void setNext(MessageStore next) {
+
+    public AbstractPluginMessageStore(MessageStorePluginContext context, MessageStore next) {
         this.next = next;
-    }
-    
-    public final MessageStore getNext(){
-        return this.next;
+        this.context = context;
     }
 
     @Override

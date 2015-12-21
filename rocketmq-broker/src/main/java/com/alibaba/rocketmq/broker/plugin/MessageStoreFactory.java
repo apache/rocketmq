@@ -4,6 +4,7 @@
 package com.alibaba.rocketmq.broker.plugin;
 
 import java.io.IOException;
+import java.lang.reflect.Constructor;
 
 import com.alibaba.rocketmq.store.MessageStore;
 
@@ -19,16 +20,14 @@ public final class MessageStoreFactory {
             for (int i = pluginClasses.length - 1 ; i >= 0 ; --i) {
                 String pluginClass  = pluginClasses[i];
                 try {
-                    @SuppressWarnings("rawtypes")
-                    Class clazz = Class.forName(pluginClass);
-                    AbstractPluginMessageStore pluginMessageStore = (AbstractPluginMessageStore) clazz
-                            .newInstance();
-                    pluginMessageStore.context = context;
-                    pluginMessageStore.setNext(messageStore);
+                    @SuppressWarnings("unchecked")
+                    Class<AbstractPluginMessageStore> clazz = (Class<AbstractPluginMessageStore>) Class.forName(pluginClass);
+                    Constructor<AbstractPluginMessageStore> construct = clazz.getConstructor(MessageStorePluginContext.class , MessageStore.class);
+                    AbstractPluginMessageStore pluginMessageStore = (AbstractPluginMessageStore) construct.newInstance(context,messageStore);
                     messageStore = pluginMessageStore;
                 } catch (Throwable e) {
                     throw new RuntimeException(String.format(
-                            "Initialize plugin's class %s miss error!", pluginClass), e);
+                            "Initialize plugin's class %s not found!", pluginClass), e);
                 }
             }
         }
