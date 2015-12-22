@@ -25,6 +25,8 @@ import com.alibaba.rocketmq.broker.mqtrace.ConsumeMessageHook;
 import com.alibaba.rocketmq.broker.mqtrace.SendMessageHook;
 import com.alibaba.rocketmq.broker.offset.ConsumerOffsetManager;
 import com.alibaba.rocketmq.broker.out.BrokerOuterAPI;
+import com.alibaba.rocketmq.broker.plugin.MessageStoreFactory;
+import com.alibaba.rocketmq.broker.plugin.MessageStorePluginContext;
 import com.alibaba.rocketmq.broker.processor.*;
 import com.alibaba.rocketmq.broker.slave.SlaveSynchronize;
 import com.alibaba.rocketmq.broker.subscription.SubscriptionGroupManager;
@@ -48,6 +50,7 @@ import com.alibaba.rocketmq.store.config.BrokerRole;
 import com.alibaba.rocketmq.store.config.MessageStoreConfig;
 import com.alibaba.rocketmq.store.stats.BrokerStats;
 import com.alibaba.rocketmq.store.stats.BrokerStatsManager;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -164,6 +167,10 @@ public class BrokerController {
                 this.messageStore =
                         new DefaultMessageStore(this.messageStoreConfig, this.brokerStatsManager, this.messageArrivingListener,
                             this.brokerConfig);
+                this.brokerStats = new BrokerStats((DefaultMessageStore) this.messageStore);
+                //load plugin
+                MessageStorePluginContext context = new MessageStorePluginContext(messageStoreConfig, brokerStatsManager, messageArrivingListener, brokerConfig);
+                this.messageStore = MessageStoreFactory.build(context, this.messageStore);
             }
             catch (IOException e) {
                 result = false;
@@ -204,7 +211,6 @@ public class BrokerController {
 
             this.registerProcessor();
 
-            this.brokerStats = new BrokerStats((DefaultMessageStore) this.messageStore);
 
             // TODO remove in future
             final long initialDelay = UtilAll.computNextMorningTimeMillis() - System.currentTimeMillis();
