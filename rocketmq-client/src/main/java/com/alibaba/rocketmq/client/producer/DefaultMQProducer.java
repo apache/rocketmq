@@ -54,7 +54,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     public static final String SendMessageWithVIPChannelProperty = "com.rocketmq.sendMessageWithVIPChannel";
 
 
-    private boolean sendMessageWithVIPChannel = Boolean.parseBoolean(System.getProperty(SendMessageWithVIPChannelProperty, "true"));
+    private boolean sendMessageWithVIPChannel = Boolean.parseBoolean(System.getProperty(SendMessageWithVIPChannelProperty, "false"));
 
 
     public DefaultMQProducer() {
