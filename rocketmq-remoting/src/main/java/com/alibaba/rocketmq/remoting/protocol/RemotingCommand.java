@@ -74,7 +74,7 @@ public class RemotingCommand {
     /**
      * 序列化全局配置
      */
-    private static SerializeType SerializeTypeConfigInThisServer = SerializeType.ROCKETMQ;
+    private static SerializeType SerializeTypeConfigInThisServer = SerializeType.JSON;
 
     static {
         final String protocol = System.getProperty(SERIALIZE_TYPE_PROPERTY, System.getenv(SERIALIZE_TYPE_ENV));
