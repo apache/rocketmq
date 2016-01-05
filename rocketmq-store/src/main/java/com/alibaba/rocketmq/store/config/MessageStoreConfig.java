@@ -69,8 +69,8 @@ public class MessageStoreConfig {
     private int fileReservedTime = 72;
     // 写消息索引到ConsumeQueue，缓冲区高水位，超过则开始流控
     private int putMsgIndexHightWater = 600000;
-    // 最大消息大小，默认512K
-    private int maxMessageSize = 1024 * 512;
+    // 最大消息大小，默认4M
+    private int maxMessageSize = 1024 * 1024 * 4;
     // 重启时，是否校验CRC
     private boolean checkCRCOnRecover = true;
     // 刷CommitLog，至少刷几个PAGE
