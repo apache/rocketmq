@@ -118,7 +118,7 @@ public class MQClientAPIImpl {
             String addrs = this.topAddressing.fetchNSAddr();
             if (addrs != null) {
                 if (!addrs.equals(this.nameSrvAddr)) {
-                    log.info("name server address changed, old: " + this.nameSrvAddr + " new: " + addrs);
+                    log.info("name server address changed, old=" + this.nameSrvAddr + ", new=" + addrs);
                     this.updateNameServerAddressList(addrs);
                     this.nameSrvAddr = addrs;
                     return nameSrvAddr;
