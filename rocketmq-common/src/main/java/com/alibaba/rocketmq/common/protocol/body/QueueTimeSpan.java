@@ -74,9 +74,11 @@ public class QueueTimeSpan {
         return UtilAll.formatDate(new Date(consumeTimeStamp), UtilAll.yyyy_MM_dd_HH_mm_ss_SSS);
     }
 
+
     public long getDelayTime() {
         return delayTime;
     }
+
 
     public void setDelayTime(long delayTime) {
         this.delayTime = delayTime;
