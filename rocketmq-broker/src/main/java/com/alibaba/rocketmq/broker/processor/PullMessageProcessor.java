@@ -460,7 +460,7 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                     }
 
                     PullRequest pullRequest = new PullRequest(request, channel, pollingTimeMills,
-                        this.brokerController.getMessageStore().now(), requestHeader.getQueueOffset());
+                        this.brokerController.getMessageStore().now(), requestHeader.getQueueOffset(), subscriptionData);
                     this.brokerController.getPullRequestHoldService().suspendPullRequest(requestHeader.getTopic(),
                         requestHeader.getQueueId(), pullRequest);
                     response = null;
