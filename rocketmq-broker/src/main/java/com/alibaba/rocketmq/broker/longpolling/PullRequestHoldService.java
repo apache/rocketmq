@@ -103,7 +103,14 @@ public class PullRequestHoldService extends ServiceThread {
 
                 for (PullRequest request : requestList) {
                     // 查看是否offset OK
-                    if (maxOffset > request.getPullFromThisOffset()) {
+                    long newestOffset = maxOffset;
+                    if (newestOffset <= request.getPullFromThisOffset()) {
+                        // 尝试取最新Offset
+                        newestOffset = this.brokerController.getMessageStore().getMaxOffsetInQuque(topic, queueId);
+                    }
+
+                    if (newestOffset > request.getPullFromThisOffset()
+                            && this.messageFilter.isMessageMatched(request.getSubscriptionData(), tagsCode)) {
                         try {
                             this.brokerController.getPullMessageProcessor().excuteRequestWhenWakeup(request.getClientChannel(),
                                 request.getRequestCommand());
@@ -112,21 +119,6 @@ public class PullRequestHoldService extends ServiceThread {
                             log.error("", e);
                         }
                         continue;
-                    }
-                    // 尝试取最新Offset
-                    else {
-                        final long newestOffset = this.brokerController.getMessageStore().getMaxOffsetInQuque(topic, queueId);
-                        if (newestOffset > request.getPullFromThisOffset()
-                                && this.messageFilter.isMessageMatched(request.getSubscriptionData(), tagsCode)) {
-                            try {
-                                this.brokerController.getPullMessageProcessor().excuteRequestWhenWakeup(request.getClientChannel(),
-                                    request.getRequestCommand());
-                            }
-                            catch (RemotingCommandException e) {
-                                log.error("", e);
-                            }
-                            continue;
-                        }
                     }
 
                     // 查看是否超时
