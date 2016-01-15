@@ -334,15 +334,9 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
                 ConsumeRequest consumeRequest = new ConsumeRequest(msgThis, processQueue, messageQueue);
                 try {
                     this.consumeExecutor.submit(consumeRequest);
-                }
-                catch (RejectedExecutionException e){
-                    for (; total < consumeBatchSize; total++) {
-                        if (total < msgs.size()) {
-                            msgThis.add(msgs.get(total));
-                        }
-                        else {
-                            break;
-                        }
+                } catch (RejectedExecutionException e) {
+                    for (; total < msgs.size(); total++) {
+                        msgThis.add(msgs.get(total));
                     }
 
                     this.submitConsumeRequestLater(consumeRequest);
