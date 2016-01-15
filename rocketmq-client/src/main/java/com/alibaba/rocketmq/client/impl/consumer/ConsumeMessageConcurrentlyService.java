@@ -15,18 +15,6 @@
  */
 package com.alibaba.rocketmq.client.impl.consumer;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.Executors;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
-
-import org.slf4j.Logger;
-
 import com.alibaba.rocketmq.client.consumer.DefaultMQPushConsumer;
 import com.alibaba.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext;
 import com.alibaba.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
@@ -42,6 +30,12 @@ import com.alibaba.rocketmq.common.message.MessageQueue;
 import com.alibaba.rocketmq.common.protocol.body.CMResult;
 import com.alibaba.rocketmq.common.protocol.body.ConsumeMessageDirectlyResult;
 import com.alibaba.rocketmq.remoting.common.RemotingHelper;
+import org.slf4j.Logger;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.*;
 
 
 /**
@@ -296,6 +290,18 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
         }, 5000, TimeUnit.MILLISECONDS);
     }
 
+    private void submitConsumeRequestLater(final ConsumeRequest consumeRequest//
+    ) {
+
+        this.scheduledExecutorService.schedule(new Runnable() {
+
+            @Override
+            public void run() {
+                ConsumeMessageConcurrentlyService.this.consumeExecutor.submit(consumeRequest);
+            }
+        }, 5000, TimeUnit.MILLISECONDS);
+    }
+
 
     @Override
     public void submitConsumeRequest(//
@@ -306,7 +312,12 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
         final int consumeBatchSize = this.defaultMQPushConsumer.getConsumeMessageBatchMaxSize();
         if (msgs.size() <= consumeBatchSize) {
             ConsumeRequest consumeRequest = new ConsumeRequest(msgs, processQueue, messageQueue);
-            this.consumeExecutor.submit(consumeRequest);
+            try {
+                this.consumeExecutor.submit(consumeRequest);
+            }
+            catch (RejectedExecutionException e){
+                this.submitConsumeRequestLater(consumeRequest);
+            }
         }
         else {
             for (int total = 0; total < msgs.size();) {
@@ -321,7 +332,21 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
                 }
 
                 ConsumeRequest consumeRequest = new ConsumeRequest(msgThis, processQueue, messageQueue);
-                this.consumeExecutor.submit(consumeRequest);
+                try {
+                    this.consumeExecutor.submit(consumeRequest);
+                }
+                catch (RejectedExecutionException e){
+                    for (; total < consumeBatchSize; total++) {
+                        if (total < msgs.size()) {
+                            msgThis.add(msgs.get(total));
+                        }
+                        else {
+                            break;
+                        }
+                    }
+
+                    this.submitConsumeRequestLater(consumeRequest);
+                }
             }
         }
     }
