@@ -34,6 +34,8 @@ public class MomentStatsItem {
             public void run() {
                 try {
                     printAtMinutes();
+
+                    MomentStatsItem.this.value.set(0);
                 }
                 catch (Throwable e) {
                 }
