@@ -24,7 +24,15 @@ public class NamesrvConfig {
     private String kvConfigPath = System.getProperty("user.home") + File.separator + "namesrv" + File.separator + "kvConfig.json";
     private String productEnvName = "center";
     private boolean clusterTest = false;
+    private boolean orderMessageEnable = false;
 
+    public boolean isOrderMessageEnable() {
+        return orderMessageEnable;
+    }
+
+    public void setOrderMessageEnable(boolean orderMessageEnable) {
+        this.orderMessageEnable = orderMessageEnable;
+    }
 
     public String getRocketmqHome() {
         return rocketmqHome;
