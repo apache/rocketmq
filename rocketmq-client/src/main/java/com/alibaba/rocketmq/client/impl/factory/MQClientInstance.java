@@ -397,6 +397,19 @@ public class MQClientInstance {
         }
     }
 
+    private boolean isBrokerInNameServer(final String brokerAddr) {
+        Iterator<Entry<String, TopicRouteData>> it = this.topicRouteTable.entrySet().iterator();
+        while (it.hasNext()) {
+            Entry<String, TopicRouteData> itNext = it.next();
+            List<BrokerData> brokerDatas = itNext.getValue().getBrokerDatas();
+            for (BrokerData bd : brokerDatas) {
+                boolean contain = bd.getBrokerAddrs().containsValue(brokerAddr);
+                if (contain) return true;
+            }
+        }
+
+        return false;
+    }
 
     private void sendHeartbeatToAllBroker() {
         final HeartbeatData heartbeatData = this.prepareHeartbeatData();
@@ -429,7 +442,11 @@ public class MQClientInstance {
                                 log.info(heartbeatData.toString());
                             }
                         } catch (Exception e) {
-                            log.error("send heart beat to broker exception", e);
+                            if (this.isBrokerInNameServer(addr)) {
+                                log.error("send heart beat to broker exception", e);
+                            } else {
+                                log.info("send heart beat to broker[{} {} {}] exception, because the broker not up, forget it", brokerName, id, addr);
+                            }
                         }
                     }
                 }
