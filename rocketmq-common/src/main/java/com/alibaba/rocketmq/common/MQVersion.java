@@ -1,12 +1,12 @@
 /**
  * Copyright (C) 2010-2013 Alibaba Group Holding Limited
- *
+ * <p/>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p/>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p/>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -17,20 +17,19 @@ package com.alibaba.rocketmq.common;
 
 /**
  * 定义各个版本信息
- * 
+ *
  * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public class MQVersion {
     // TODO 每次发布版本都要修改此处版本号
-    public static final int CurrentVersion = Version.V3_4_8_SNAPSHOT.ordinal();
+    public static final int CurrentVersion = Version.V3_4_8.ordinal();
 
 
     public static String getVersionDesc(int value) {
         try {
             Version v = Version.values()[value];
             return v.name();
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
         }
 
         return "HigherVersion";
@@ -234,5 +233,113 @@ public class MQVersion {
 
         V3_5_9_SNAPSHOT,
         V3_5_9,
+
+        V3_6_1_SNAPSHOT,
+        V3_6_1,
+
+        V3_6_2_SNAPSHOT,
+        V3_6_2,
+
+        V3_6_3_SNAPSHOT,
+        V3_6_3,
+
+        V3_6_4_SNAPSHOT,
+        V3_6_4,
+
+        V3_6_5_SNAPSHOT,
+        V3_6_5,
+
+        V3_6_6_SNAPSHOT,
+        V3_6_6,
+
+        V3_6_7_SNAPSHOT,
+        V3_6_7,
+
+        V3_6_8_SNAPSHOT,
+        V3_6_8,
+
+        V3_6_9_SNAPSHOT,
+        V3_6_9,
+
+        V3_7_1_SNAPSHOT,
+        V3_7_1,
+
+        V3_7_2_SNAPSHOT,
+        V3_7_2,
+
+        V3_7_3_SNAPSHOT,
+        V3_7_3,
+
+        V3_7_4_SNAPSHOT,
+        V3_7_4,
+
+        V3_7_5_SNAPSHOT,
+        V3_7_5,
+
+        V3_7_6_SNAPSHOT,
+        V3_7_6,
+
+        V3_7_7_SNAPSHOT,
+        V3_7_7,
+
+        V3_7_8_SNAPSHOT,
+        V3_7_8,
+
+        V3_7_9_SNAPSHOT,
+        V3_7_9,
+
+        V3_8_1_SNAPSHOT,
+        V3_8_1,
+
+        V3_8_2_SNAPSHOT,
+        V3_8_2,
+
+        V3_8_3_SNAPSHOT,
+        V3_8_3,
+
+        V3_8_4_SNAPSHOT,
+        V3_8_4,
+
+        V3_8_5_SNAPSHOT,
+        V3_8_5,
+
+        V3_8_6_SNAPSHOT,
+        V3_8_6,
+
+        V3_8_7_SNAPSHOT,
+        V3_8_7,
+
+        V3_8_8_SNAPSHOT,
+        V3_8_8,
+
+        V3_8_9_SNAPSHOT,
+        V3_8_9,
+
+        V3_9_1_SNAPSHOT,
+        V3_9_1,
+
+        V3_9_2_SNAPSHOT,
+        V3_9_2,
+
+        V3_9_3_SNAPSHOT,
+        V3_9_3,
+
+        V3_9_4_SNAPSHOT,
+        V3_9_4,
+
+        V3_9_5_SNAPSHOT,
+        V3_9_5,
+
+        V3_9_6_SNAPSHOT,
+        V3_9_6,
+
+        V3_9_7_SNAPSHOT,
+        V3_9_7,
+
+        V3_9_8_SNAPSHOT,
+        V3_9_8,
+
+        V3_9_9_SNAPSHOT,
+        V3_9_9,
     }
 }
