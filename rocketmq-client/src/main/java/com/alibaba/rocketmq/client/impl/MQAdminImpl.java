@@ -95,9 +95,13 @@ public class MQAdminImpl {
                         topicConfig.setReadQueueNums(queueNum);
                         topicConfig.setWriteQueueNums(queueNum);
                         topicConfig.setTopicSysFlag(topicSysFlag);
+
+                        boolean createOK = false;
                         for (int i = 0; i < 5; i++) {
                             try {
                                 this.mQClientFactory.getMQClientAPIImpl().createTopic(addr, key, topicConfig, timeoutMillis);
+                                createOK = true;
+                                break;
                             } catch (Exception e) {
                                 if (4 == i) {
                                     exception = new MQClientException("create topic to broker exception", e);
@@ -105,10 +109,12 @@ public class MQAdminImpl {
                             }
                         }
 
-                        orderTopicString.append(brokerData.getBrokerName());
-                        orderTopicString.append(":");
-                        orderTopicString.append(queueNum);
-                        orderTopicString.append(";");
+                        if (createOK) {
+                            orderTopicString.append(brokerData.getBrokerName());
+                            orderTopicString.append(":");
+                            orderTopicString.append(queueNum);
+                            orderTopicString.append(";");
+                        }
                     }
                 }
 
