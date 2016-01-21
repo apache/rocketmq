@@ -676,6 +676,14 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             return response;
         }
 
+        try {
+            response.setCode(ResponseCode.SUCCESS);
+            response.setRemark(null);
+            ctx.writeAndFlush(response);
+        } catch (Exception e) {
+        }
+
+
         TopicConfig topicConfig = new TopicConfig(requestHeader.getTopic());
         topicConfig.setReadQueueNums(requestHeader.getReadQueueNums());
         topicConfig.setWriteQueueNums(requestHeader.getWriteQueueNums());
@@ -683,13 +691,10 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         topicConfig.setPerm(requestHeader.getPerm());
         topicConfig.setTopicSysFlag(requestHeader.getTopicSysFlag() == null ? 0 : requestHeader.getTopicSysFlag());
 
+
         this.brokerController.getTopicConfigManager().updateTopicConfig(topicConfig);
-
         this.brokerController.registerBrokerAll(false, true);
-
-        response.setCode(ResponseCode.SUCCESS);
-        response.setRemark(null);
-        return response;
+        return null;
     }
 
 
