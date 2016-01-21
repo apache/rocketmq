@@ -1,13 +1,12 @@
 package com.alibaba.rocketmq.tools.monitor;
 
+import com.alibaba.rocketmq.client.log.ClientLogger;
+import com.alibaba.rocketmq.common.protocol.body.ConsumerRunningInfo;
+import org.slf4j.Logger;
+
 import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.TreeMap;
-
-import org.slf4j.Logger;
-
-import com.alibaba.rocketmq.client.log.ClientLogger;
-import com.alibaba.rocketmq.common.protocol.body.ConsumerRunningInfo;
 
 
 public class DefaultMonitorListener implements MonitorListener {

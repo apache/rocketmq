@@ -74,12 +74,12 @@ public class NamesrvStartup {
 
         // Socket发送缓冲区大小
         if (null == System.getProperty(NettySystemConfig.SystemPropertySocketSndbufSize)) {
-            NettySystemConfig.SocketSndbufSize = 2048;
+            NettySystemConfig.SocketSndbufSize = 4096;
         }
 
         // Socket接收缓冲区大小
         if (null == System.getProperty(NettySystemConfig.SystemPropertySocketRcvbufSize)) {
-            NettySystemConfig.SocketRcvbufSize = 1024;
+            NettySystemConfig.SocketRcvbufSize = 4096;
         }
 
         try {

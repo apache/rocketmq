@@ -694,6 +694,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                         timeout, // 5
                         communicationMode// 6
                     );
+                    break;
                 default:
                     assert false;
                     break;
