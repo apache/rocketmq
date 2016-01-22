@@ -15,6 +15,13 @@
  */
 package com.alibaba.rocketmq.client.impl.consumer;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.*;
+
+import org.slf4j.Logger;
+
 import com.alibaba.rocketmq.client.consumer.DefaultMQPushConsumer;
 import com.alibaba.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext;
 import com.alibaba.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
@@ -30,12 +37,6 @@ import com.alibaba.rocketmq.common.message.MessageQueue;
 import com.alibaba.rocketmq.common.protocol.body.CMResult;
 import com.alibaba.rocketmq.common.protocol.body.ConsumeMessageDirectlyResult;
 import com.alibaba.rocketmq.remoting.common.RemotingHelper;
-import org.slf4j.Logger;
-
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.concurrent.*;
 
 
 /**
@@ -64,16 +65,14 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
         this.consumeRequestQueue = new LinkedBlockingQueue<Runnable>();
 
         this.consumeExecutor = new ThreadPoolExecutor(//
-            this.defaultMQPushConsumer.getConsumeThreadMin(),//
-            this.defaultMQPushConsumer.getConsumeThreadMax(),//
-            1000 * 60,//
-            TimeUnit.MILLISECONDS,//
-            this.consumeRequestQueue,//
+            this.defaultMQPushConsumer.getConsumeThreadMin(), //
+            this.defaultMQPushConsumer.getConsumeThreadMax(), //
+            1000 * 60, //
+            TimeUnit.MILLISECONDS, //
+            this.consumeRequestQueue, //
             new ThreadFactoryImpl("ConsumeMessageThread_"));
 
-        this.scheduledExecutorService =
-                Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl(
-                    "ConsumeMessageScheduledThread_"));
+        this.scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("ConsumeMessageScheduledThread_"));
     }
 
 
@@ -107,8 +106,7 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
         @Override
         public void run() {
             if (this.processQueue.isDropped()) {
-                log.info("the message queue not be able to consume, because it's dropped {}",
-                    this.messageQueue);
+                log.info("the message queue not be able to consume, because it's dropped {}", this.messageQueue);
                 return;
             }
 
@@ -119,14 +117,11 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
             ConsumeMessageContext consumeMessageContext = null;
             if (ConsumeMessageConcurrentlyService.this.defaultMQPushConsumerImpl.hasHook()) {
                 consumeMessageContext = new ConsumeMessageContext();
-                consumeMessageContext
-                    .setConsumerGroup(ConsumeMessageConcurrentlyService.this.defaultMQPushConsumer
-                        .getConsumerGroup());
+                consumeMessageContext.setConsumerGroup(ConsumeMessageConcurrentlyService.this.defaultMQPushConsumer.getConsumerGroup());
                 consumeMessageContext.setMq(messageQueue);
                 consumeMessageContext.setMsgList(msgs);
                 consumeMessageContext.setSuccess(false);
-                ConsumeMessageConcurrentlyService.this.defaultMQPushConsumerImpl
-                    .executeHookBefore(consumeMessageContext);
+                ConsumeMessageConcurrentlyService.this.defaultMQPushConsumerImpl.executeHookBefore(consumeMessageContext);
             }
 
             long beginTimestamp = System.currentTimeMillis();
@@ -136,19 +131,19 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
                 status = listener.consumeMessage(Collections.unmodifiableList(msgs), context);
             }
             catch (Throwable e) {
-                log.warn("consumeMessage exception: {} Group: {} Msgs: {} MQ: {}",//
-                    RemotingHelper.exceptionSimpleDesc(e),//
-                    ConsumeMessageConcurrentlyService.this.consumerGroup,//
-                    msgs,//
+                log.warn("consumeMessage exception: {} Group: {} Msgs: {} MQ: {}", //
+                    RemotingHelper.exceptionSimpleDesc(e), //
+                    ConsumeMessageConcurrentlyService.this.consumerGroup, //
+                    msgs, //
                     messageQueue);
             }
 
             long consumeRT = System.currentTimeMillis() - beginTimestamp;
 
             if (null == status) {
-                log.warn("consumeMessage return null, Group: {} Msgs: {} MQ: {}",//
-                    ConsumeMessageConcurrentlyService.this.consumerGroup,//
-                    msgs,//
+                log.warn("consumeMessage return null, Group: {} Msgs: {} MQ: {}", //
+                    ConsumeMessageConcurrentlyService.this.consumerGroup, //
+                    msgs, //
                     messageQueue);
                 status = ConsumeConcurrentlyStatus.RECONSUME_LATER;
             }
@@ -156,19 +151,17 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
             if (ConsumeMessageConcurrentlyService.this.defaultMQPushConsumerImpl.hasHook()) {
                 consumeMessageContext.setStatus(status.toString());
                 consumeMessageContext.setSuccess(ConsumeConcurrentlyStatus.CONSUME_SUCCESS == status);
-                ConsumeMessageConcurrentlyService.this.defaultMQPushConsumerImpl
-                    .executeHookAfter(consumeMessageContext);
+                ConsumeMessageConcurrentlyService.this.defaultMQPushConsumerImpl.executeHookAfter(consumeMessageContext);
             }
 
-            ConsumeMessageConcurrentlyService.this.getConsumerStatsManager().incConsumeRT(
-                ConsumeMessageConcurrentlyService.this.consumerGroup, messageQueue.getTopic(), consumeRT);
+            ConsumeMessageConcurrentlyService.this.getConsumerStatsManager()
+                .incConsumeRT(ConsumeMessageConcurrentlyService.this.consumerGroup, messageQueue.getTopic(), consumeRT);
 
             if (!processQueue.isDropped()) {
                 ConsumeMessageConcurrentlyService.this.processConsumeResult(status, context, this);
             }
             else {
-                log.warn("processQueue is dropped without process consume result. messageQueue={}, msgs={}",
-                    messageQueue, msgs);
+                log.warn("processQueue is dropped without process consume result. messageQueue={}, msgs={}", messageQueue, msgs);
             }
         }
 
@@ -193,13 +186,11 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
         int delayLevel = context.getDelayLevelWhenNextConsume();
 
         try {
-            this.defaultMQPushConsumerImpl.sendMessageBack(msg, delayLevel, context.getMessageQueue()
-                .getBrokerName());
+            this.defaultMQPushConsumerImpl.sendMessageBack(msg, delayLevel, context.getMessageQueue().getBrokerName());
             return true;
         }
         catch (Exception e) {
-            log.error("sendMessageBack exception, group: " + this.consumerGroup + " msg: " + msg.toString(),
-                e);
+            log.error("sendMessageBack exception, group: " + this.consumerGroup + " msg: " + msg.toString(), e);
         }
 
         return false;
@@ -223,15 +214,13 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
             }
             int ok = ackIndex + 1;
             int failed = consumeRequest.getMsgs().size() - ok;
-            this.getConsumerStatsManager().incConsumeOKTPS(consumerGroup,
-                consumeRequest.getMessageQueue().getTopic(), ok);
-            this.getConsumerStatsManager().incConsumeFailedTPS(consumerGroup,
-                consumeRequest.getMessageQueue().getTopic(), failed);
+            this.getConsumerStatsManager().incConsumeOKTPS(consumerGroup, consumeRequest.getMessageQueue().getTopic(), ok);
+            this.getConsumerStatsManager().incConsumeFailedTPS(consumerGroup, consumeRequest.getMessageQueue().getTopic(), failed);
             break;
         case RECONSUME_LATER:
             ackIndex = -1;
-            this.getConsumerStatsManager().incConsumeFailedTPS(consumerGroup,
-                consumeRequest.getMessageQueue().getTopic(), consumeRequest.getMsgs().size());
+            this.getConsumerStatsManager().incConsumeFailedTPS(consumerGroup, consumeRequest.getMessageQueue().getTopic(),
+                consumeRequest.getMsgs().size());
             break;
         default:
             break;
@@ -258,8 +247,7 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
             if (!msgBackFailed.isEmpty()) {
                 consumeRequest.getMsgs().removeAll(msgBackFailed);
 
-                this.submitConsumeRequestLater(msgBackFailed, consumeRequest.getProcessQueue(),
-                    consumeRequest.getMessageQueue());
+                this.submitConsumeRequestLater(msgBackFailed, consumeRequest.getProcessQueue(), consumeRequest.getMessageQueue());
             }
             break;
         default:
@@ -267,9 +255,8 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
         }
 
         long offset = consumeRequest.getProcessQueue().removeMessage(consumeRequest.getMsgs());
-        if (offset >= 0) {
-            this.defaultMQPushConsumerImpl.getOffsetStore().updateOffset(consumeRequest.getMessageQueue(),
-                offset, true);
+        if (offset >= 0 && !consumeRequest.getProcessQueue().isDropped()) {
+            this.defaultMQPushConsumerImpl.getOffsetStore().updateOffset(consumeRequest.getMessageQueue(), offset, true);
         }
     }
 
@@ -284,11 +271,11 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
 
             @Override
             public void run() {
-                ConsumeMessageConcurrentlyService.this.submitConsumeRequest(msgs, processQueue, messageQueue,
-                    true);
+                ConsumeMessageConcurrentlyService.this.submitConsumeRequest(msgs, processQueue, messageQueue, true);
             }
         }, 5000, TimeUnit.MILLISECONDS);
     }
+
 
     private void submitConsumeRequestLater(final ConsumeRequest consumeRequest//
     ) {
@@ -315,7 +302,7 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
             try {
                 this.consumeExecutor.submit(consumeRequest);
             }
-            catch (RejectedExecutionException e){
+            catch (RejectedExecutionException e) {
                 this.submitConsumeRequestLater(consumeRequest);
             }
         }
@@ -334,7 +321,8 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
                 ConsumeRequest consumeRequest = new ConsumeRequest(msgThis, processQueue, messageQueue);
                 try {
                     this.consumeExecutor.submit(consumeRequest);
-                } catch (RejectedExecutionException e) {
+                }
+                catch (RejectedExecutionException e) {
                     for (; total < msgs.size(); total++) {
                         msgThis.add(msgs.get(total));
                     }
@@ -358,29 +346,35 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
 
     @Override
     public void incCorePoolSize() {
-//        long corePoolSize = this.consumeExecutor.getCorePoolSize();
-//        if (corePoolSize < this.defaultMQPushConsumer.getConsumeThreadMax()) {
-//            this.consumeExecutor.setCorePoolSize(this.consumeExecutor.getCorePoolSize() + 1);
-//        }
-//
-//        log.info("incCorePoolSize Concurrently from {} to {}, ConsumerGroup: {}", //
-//            corePoolSize,//
-//            this.consumeExecutor.getCorePoolSize(),//
-//            this.consumerGroup);
+        // long corePoolSize = this.consumeExecutor.getCorePoolSize();
+        // if (corePoolSize < this.defaultMQPushConsumer.getConsumeThreadMax())
+        // {
+        // this.consumeExecutor.setCorePoolSize(this.consumeExecutor.getCorePoolSize()
+        // + 1);
+        // }
+        //
+        // log.info("incCorePoolSize Concurrently from {} to {}, ConsumerGroup:
+        // {}", //
+        // corePoolSize,//
+        // this.consumeExecutor.getCorePoolSize(),//
+        // this.consumerGroup);
     }
 
 
     @Override
     public void decCorePoolSize() {
-//        long corePoolSize = this.consumeExecutor.getCorePoolSize();
-//        if (corePoolSize > this.defaultMQPushConsumer.getConsumeThreadMin()) {
-//            this.consumeExecutor.setCorePoolSize(this.consumeExecutor.getCorePoolSize() - 1);
-//        }
-//
-//        log.info("decCorePoolSize Concurrently from {} to {}, ConsumerGroup: {}", //
-//            corePoolSize,//
-//            this.consumeExecutor.getCorePoolSize(),//
-//            this.consumerGroup);
+        // long corePoolSize = this.consumeExecutor.getCorePoolSize();
+        // if (corePoolSize > this.defaultMQPushConsumer.getConsumeThreadMin())
+        // {
+        // this.consumeExecutor.setCorePoolSize(this.consumeExecutor.getCorePoolSize()
+        // - 1);
+        // }
+        //
+        // log.info("decCorePoolSize Concurrently from {} to {}, ConsumerGroup:
+        // {}", //
+        // corePoolSize,//
+        // this.consumeExecutor.getCorePoolSize(),//
+        // this.consumerGroup);
     }
 
 
@@ -433,10 +427,10 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
             result.setConsumeResult(CMResult.CR_THROW_EXCEPTION);
             result.setRemark(RemotingHelper.exceptionSimpleDesc(e));
 
-            log.warn(String.format("consumeMessageDirectly exception: %s Group: %s Msgs: %s MQ: %s",//
-                RemotingHelper.exceptionSimpleDesc(e),//
-                ConsumeMessageConcurrentlyService.this.consumerGroup,//
-                msgs,//
+            log.warn(String.format("consumeMessageDirectly exception: %s Group: %s Msgs: %s MQ: %s", //
+                RemotingHelper.exceptionSimpleDesc(e), //
+                ConsumeMessageConcurrentlyService.this.consumerGroup, //
+                msgs, //
                 mq), e);
         }
 
