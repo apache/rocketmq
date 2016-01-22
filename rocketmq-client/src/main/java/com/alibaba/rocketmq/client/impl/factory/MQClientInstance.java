@@ -1049,7 +1049,7 @@ public class MQClientInstance {
             consumer.getOffsetStore().persistAll(offsetTable.keySet());
 
             try {
-                TimeUnit.SECONDS.sleep(10);
+                TimeUnit.SECONDS.sleep(60);
             } catch (InterruptedException e) {
                 //
             }
