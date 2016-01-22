@@ -54,7 +54,7 @@ import java.util.concurrent.TimeUnit;
 public class MQAdminImpl {
     private final Logger log = ClientLogger.getLog();
     private final MQClientInstance mQClientFactory;
-    private long timeoutMillis = 5000;
+    private long timeoutMillis = 6000;
 
 
     public MQAdminImpl(MQClientInstance mQClientFactory) {
@@ -95,17 +95,26 @@ public class MQAdminImpl {
                         topicConfig.setReadQueueNums(queueNum);
                         topicConfig.setWriteQueueNums(queueNum);
                         topicConfig.setTopicSysFlag(topicSysFlag);
-                        try {
-                            this.mQClientFactory.getMQClientAPIImpl().createTopic(addr, key, topicConfig, timeoutMillis);
-                        }
-                        catch (Exception e) {
-                            exception = new MQClientException("create topic to broker exception", e);
+
+                        boolean createOK = false;
+                        for (int i = 0; i < 5; i++) {
+                            try {
+                                this.mQClientFactory.getMQClientAPIImpl().createTopic(addr, key, topicConfig, timeoutMillis);
+                                createOK = true;
+                                break;
+                            } catch (Exception e) {
+                                if (4 == i) {
+                                    exception = new MQClientException("create topic to broker exception", e);
+                                }
+                            }
                         }
 
-                        orderTopicString.append(brokerData.getBrokerName());
-                        orderTopicString.append(":");
-                        orderTopicString.append(queueNum);
-                        orderTopicString.append(";");
+                        if (createOK) {
+                            orderTopicString.append(brokerData.getBrokerName());
+                            orderTopicString.append(":");
+                            orderTopicString.append(queueNum);
+                            orderTopicString.append(";");
+                        }
                     }
                 }
 

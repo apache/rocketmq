@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="Encoding" defaultCharsetForPropertiesFiles="UTF-8">
+    <file url="file://$PROJECT_DIR$" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/rocketmq-broker" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/rocketmq-client" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/rocketmq-common" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/rocketmq-example" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/rocketmq-filtersrv" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/rocketmq-namesrv" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/rocketmq-remoting" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/rocketmq-srvutil" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/rocketmq-store" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/rocketmq-tools" charset="UTF-8" />
+    <file url="PROJECT" charset="UTF-8" />
+  </component>
+</project>
