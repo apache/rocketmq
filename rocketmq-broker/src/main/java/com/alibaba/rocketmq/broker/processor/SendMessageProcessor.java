@@ -147,7 +147,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
 
         // 检查topic是否存在
         TopicConfig topicConfig = this.brokerController.getTopicConfigManager().createTopicInSendMessageBackMethod(//
-            newTopic,//
+            newTopic, //
             subscriptionGroupConfig.getRetryQueueNums(), //
             PermName.PERM_WRITE | PermName.PERM_READ, topicSysFlag);
         if (null == topicConfig) {
@@ -189,9 +189,9 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
             queueIdInt = Math.abs(this.random.nextInt() % 99999999) % DLQ_NUMS_PER_GROUP;
 
             topicConfig = this.brokerController.getTopicConfigManager().createTopicInSendMessageBackMethod(newTopic, //
-                DLQ_NUMS_PER_GROUP,//
+                DLQ_NUMS_PER_GROUP, //
                 PermName.PERM_WRITE, 0 // 死信消息不需要同步，不需要较正。
-                );
+            );
             if (null == topicConfig) {
                 response.setCode(ResponseCode.SYSTEM_ERROR);
                 response.setRemark("topic[" + newTopic + "] not exist");
@@ -290,8 +290,8 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
 
 
     private RemotingCommand sendMessage(final ChannelHandlerContext ctx, //
-            final RemotingCommand request,//
-            final SendMessageContext mqtraceContext,//
+            final RemotingCommand request, //
+            final SendMessageContext mqtraceContext, //
             final SendMessageRequestHeader requestHeader) throws RemotingCommandException {
 
         final RemotingCommand response = RemotingCommand.createResponseCommand(SendMessageResponseHeader.class);
@@ -344,8 +344,8 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
             String traFlag = msgInner.getProperty(MessageConst.PROPERTY_TRANSACTION_PREPARED);
             if (traFlag != null) {
                 response.setCode(ResponseCode.NO_PERMISSION);
-                response.setRemark("the broker[" + this.brokerController.getBrokerConfig().getBrokerIP1()
-                        + "] sending transaction message is forbidden");
+                response.setRemark(
+                    "the broker[" + this.brokerController.getBrokerConfig().getBrokerIP1() + "] sending transaction message is forbidden");
                 return response;
             }
         }
@@ -381,13 +381,13 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
             case MESSAGE_ILLEGAL:
             case PROPERTIES_SIZE_EXCEEDED:
                 response.setCode(ResponseCode.MESSAGE_ILLEGAL);
-                response
-                    .setRemark("the message is illegal, maybe msg body or properties length not matched. msg body length limit 128k, msg properties length limit 32k.");
+                response.setRemark(
+                    "the message is illegal, maybe msg body or properties length not matched. msg body length limit 128k, msg properties length limit 32k.");
                 break;
             case SERVICE_NOT_AVAILABLE:
                 response.setCode(ResponseCode.SERVICE_NOT_AVAILABLE);
-                response.setRemark("service not available now, maybe disk full, " + diskUtil()
-                        + ", maybe your broker machine memory too small.");
+                response.setRemark(
+                    "service not available now, maybe disk full, " + diskUtil() + ", maybe your broker machine memory too small.");
                 break;
             case UNKNOWN_ERROR:
                 response.setCode(ResponseCode.SYSTEM_ERROR);

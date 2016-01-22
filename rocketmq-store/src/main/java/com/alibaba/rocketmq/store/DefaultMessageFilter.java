@@ -43,7 +43,7 @@ public class DefaultMessageFilter implements MessageFilter {
             return true;
         }
 
-        return subscriptionData.getCodeSet().contains(tagsCode);
+        return subscriptionData.getCodeSet().contains(tagsCode.intValue());
     }
 
 }
