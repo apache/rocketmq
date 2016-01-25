@@ -15,6 +15,8 @@
  */
 package com.alibaba.rocketmq.client.producer;
 
+import java.util.List;
+
 import com.alibaba.rocketmq.client.ClientConfig;
 import com.alibaba.rocketmq.client.QueryResult;
 import com.alibaba.rocketmq.client.exception.MQBrokerException;
@@ -26,8 +28,6 @@ import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.common.message.MessageQueue;
 import com.alibaba.rocketmq.remoting.RPCHook;
 import com.alibaba.rocketmq.remoting.exception.RemotingException;
-
-import java.util.List;
 
 
 /**
@@ -47,13 +47,6 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     private int retryTimesWhenSendFailed = 2;
     private boolean retryAnotherBrokerWhenNotStoreOK = false;
     private int maxMessageSize = 1024 * 1024 * 4; // 4M
-
-    /**
-     * 设置发送消息是否通过专有通道
-     */
-    public static final String SendMessageWithVIPChannelProperty = "com.rocketmq.sendMessageWithVIPChannel";
-
-    private boolean sendMessageWithVIPChannel = Boolean.parseBoolean(System.getProperty(SendMessageWithVIPChannelProperty, "false"));
 
 
     public DefaultMQProducer() {
@@ -337,11 +330,11 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
 
 
     public boolean isSendMessageWithVIPChannel() {
-        return sendMessageWithVIPChannel;
+        return isVipChannelEnabled();
     }
 
 
     public void setSendMessageWithVIPChannel(final boolean sendMessageWithVIPChannel) {
-        this.sendMessageWithVIPChannel = sendMessageWithVIPChannel;
+        this.setVipChannelEnabled(sendMessageWithVIPChannel);
     }
 }
