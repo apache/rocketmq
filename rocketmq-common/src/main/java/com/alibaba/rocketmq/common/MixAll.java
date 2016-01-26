@@ -15,10 +15,6 @@
  */
 package com.alibaba.rocketmq.common;
 
-import com.alibaba.rocketmq.common.annotation.ImportantField;
-import com.alibaba.rocketmq.common.help.FAQUrl;
-import org.slf4j.Logger;
-
 import java.io.*;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
@@ -28,6 +24,11 @@ import java.net.*;
 import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
+
+import org.slf4j.Logger;
+
+import com.alibaba.rocketmq.common.annotation.ImportantField;
+import com.alibaba.rocketmq.common.help.FAQUrl;
 
 
 /**
@@ -75,6 +76,7 @@ public class MixAll {
     public static final String DLQ_GROUP_TOPIC_PREFIX = "%DLQ%";
     public static final String SYSTEM_TOPIC_PREFIX = "rmq_sys_";
 
+
     public static String getRetryTopic(final String consumerGroup) {
         return RETRY_GROUP_TOPIC_PREFIX + consumerGroup;
     }
@@ -90,11 +92,17 @@ public class MixAll {
     }
 
 
-    public static String brokerVIPChannel(final String brokerAddr) {
-        String[] ipAndPort = brokerAddr.split(":");
-        String brokerAddrNew = ipAndPort[0] + ":" + (Integer.valueOf(ipAndPort[1]) - 2);
-        return brokerAddrNew;
+    public static String brokerVIPChannel(final boolean isChange, final String brokerAddr) {
+        if (isChange) {
+            String[] ipAndPort = brokerAddr.split(":");
+            String brokerAddrNew = ipAndPort[0] + ":" + (Integer.valueOf(ipAndPort[1]) - 2);
+            return brokerAddrNew;
+        }
+        else {
+            return brokerAddr;
+        }
     }
+
 
     public static long getPID() {
         String processName = java.lang.management.ManagementFactory.getRuntimeMXBean().getName();
@@ -366,7 +374,7 @@ public class MixAll {
     /**
      * 将Properties中的值写入Object
      */
-    public static void  properties2Object(final Properties p, final Object object) {
+    public static void properties2Object(final Properties p, final Object object) {
         Method[] methods = object.getClass().getMethods();
         for (Method method : methods) {
             String mn = method.getName();
@@ -452,7 +460,8 @@ public class MixAll {
         }
         catch (Throwable e) {
             throw new RuntimeException("InetAddress java.net.InetAddress.getLocalHost() throws UnknownHostException"
-                    + FAQUrl.suggestTodo(FAQUrl.UNKNOWN_HOST_EXCEPTION), e);
+                    + FAQUrl.suggestTodo(FAQUrl.UNKNOWN_HOST_EXCEPTION),
+                e);
         }
     }
 
@@ -495,7 +504,8 @@ public class MixAll {
         }
         catch (Throwable e) {
             throw new RuntimeException("InetAddress java.net.InetAddress.getLocalHost() throws UnknownHostException"
-                    + FAQUrl.suggestTodo(FAQUrl.UNKNOWN_HOST_EXCEPTION), e);
+                    + FAQUrl.suggestTodo(FAQUrl.UNKNOWN_HOST_EXCEPTION),
+                e);
         }
     }
 }
