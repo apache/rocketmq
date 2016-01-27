@@ -20,6 +20,8 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
+import io.netty.util.internal.StringUtil;
+
 
 /**
  * 消息，Producer与Consumer使用
@@ -161,6 +163,26 @@ public class Message implements Serializable {
         this.setKeys(sb.toString().trim());
     }
 
+    /**
+     * 在keys字符串后面加入一个新key，此方法并非线程安全
+     * @param key
+     */
+    void appendKey(String key) {
+        Object keys = this.getKeys();
+        if (keys == null) {
+            this.setKeys(key);
+        }
+        else {
+            StringBuilder sb = new StringBuilder();
+            sb.append(keys);
+            if (!this.getKeys().endsWith(MessageConst.KEY_SEPARATOR)) {               
+                sb.append(MessageConst.KEY_SEPARATOR);
+            }
+            sb.append(key);
+            sb.append(MessageConst.KEY_SEPARATOR);
+            this.setKeys(sb.toString());            
+        }
+    }
 
     public int getDelayTimeLevel() {
         String t = this.getProperty(MessageConst.PROPERTY_DELAY_TIME_LEVEL);

@@ -23,11 +23,16 @@ import java.io.File;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.lang.management.RuntimeMXBean;
+import java.net.Inet4Address;
+import java.net.InetAddress;
+import java.net.NetworkInterface;
+import java.nio.ByteBuffer;
 import java.text.NumberFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.zip.CRC32;
@@ -55,9 +60,8 @@ public class UtilAll {
         catch (Exception e) {
             return -1;
         }
-    }
-
-
+    }    
+    
     public static String currentStackTrace() {
         StringBuilder sb = new StringBuilder();
         StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
@@ -465,5 +469,28 @@ public class UtilAll {
         }
 
         return result.toString();
+    }
+       
+    public static byte[] getIP() throws Exception {
+        try {
+            Enumeration allNetInterfaces = NetworkInterface.getNetworkInterfaces();
+            InetAddress ip = null;
+            while (allNetInterfaces.hasMoreElements()) {
+                NetworkInterface netInterface = (NetworkInterface) allNetInterfaces.nextElement();
+                System.out.println(netInterface.getName());
+                Enumeration addresses = netInterface.getInetAddresses();
+                while (addresses.hasMoreElements()) {
+                    ip = (InetAddress) addresses.nextElement();
+                    if (ip != null && ip instanceof Inet4Address) {
+                        return ip.getAddress();
+                    } 
+                }
+            }
+            throw new RuntimeException("获取本机ip失败");
+        }
+        catch (Exception e) {
+            //TODO 考虑用cmd获取ip
+            throw e;
+        }
     }
 }

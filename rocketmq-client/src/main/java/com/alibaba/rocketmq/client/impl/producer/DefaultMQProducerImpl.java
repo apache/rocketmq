@@ -615,6 +615,9 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
             byte[] prevBody = msg.getBody();
             try {
+                //设置客户端唯一ID，作为标识，去重
+                MessageClientIDSetter.setUniqID(msg);                
+                
                 int sysFlag = 0;
                 if (this.tryToCompressMessage(msg)) {
                     sysFlag |= MessageSysFlag.CompressedFlag;
