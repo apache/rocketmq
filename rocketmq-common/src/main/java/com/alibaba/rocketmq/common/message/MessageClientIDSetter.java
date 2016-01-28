@@ -20,38 +20,44 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import com.alibaba.rocketmq.common.UtilAll;
 
+import io.netty.util.internal.StringUtil;
+
 /**
  * 类MessageClientIDDecoder.java的实现描述：TODO 类实现描述 
  * @author yp 2016年1月26日 下午5:53:01
  */
 public class MessageClientIDSetter {
                 
-    private static AtomicInteger counter;
+    private static int counter;
     
     private static boolean validate;
     
     private static int basePos = 0;
     
+    private static long startTime;
+    
     //ip  + pid + classloaderid + counter + time
     //4 bytes for ip , 4 bytes for pid, 4 bytes for  classloaderid
-    //4 bytes for counter,  8 bytes for time, 
+    //4 bytes for counter,  2 bytes for timediff, 
     private static StringBuilder sb = null;
     
+    private static ByteBuffer buffer = ByteBuffer.allocate(4 + 2); 
+    
     static {
-        int len = 4 + 4 + 4  + 4  + 8;        
+        int len = 4 + 4 + 4  + 4  + 2;        
         try {
             //分配空间
             sb = new StringBuilder(len*2);
-            ByteBuffer tempBuffer =  ByteBuffer.allocate(4 + 4 + 4);                
+            ByteBuffer tempBuffer =  ByteBuffer.allocate(len - buffer.limit());                
             //本机ip, 进程id，classloader标识
             tempBuffer.put(UtilAll.getIP());            
             tempBuffer.putInt(UtilAll.getPid());
             tempBuffer.putInt(MessageClientIDSetter.class.getClassLoader().hashCode());
             sb.append(UtilAll.bytes2string(tempBuffer.array()));            
             basePos = sb.length();
-                        
+            startTime = System.currentTimeMillis();
             //计数器
-            counter = new AtomicInteger(0);
+            counter = 0;
             validate = true;
         }
         catch (Exception e) {
@@ -61,13 +67,13 @@ public class MessageClientIDSetter {
         }
     }
     
-    private static String createUniqID() {
+    private static synchronized String createUniqID() {
         if (validate) {
             //连接正常唯一id
-            ByteBuffer buffer = ByteBuffer.allocate(4 + 8);            
+            buffer.position(0);          
             sb.setLength(basePos);            
-            buffer.putInt(counter.incrementAndGet());
-            buffer.putLong(System.currentTimeMillis());
+            buffer.putInt(counter++);
+            buffer.putShort((short)(System.currentTimeMillis() - startTime));
             sb.append(UtilAll.bytes2string(buffer.array()));
             return sb.toString();
         }
@@ -77,11 +83,17 @@ public class MessageClientIDSetter {
         }
     }
     
+    /**
+     * 这个方法会在property中存储uniqkey在keys中的index,一旦后续这个index改变，程序会出问题，
+     * 因此后续只能向keys后面加入key，不能往前面插入key
+     * @param msg
+     */
     public static void setUniqID(final Message msg) {
         if (msg.getProperty(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID) == null) {
             String uniqID = createUniqID();
-            msg.putProperty(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID, uniqID);
             msg.appendKey(uniqID);
+            int keysIdx = msg.getKeys().split(MessageConst.KEY_SEPARATOR).length - 1;
+            msg.putProperty(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID, String.valueOf(keysIdx));            
         }
     }
         
