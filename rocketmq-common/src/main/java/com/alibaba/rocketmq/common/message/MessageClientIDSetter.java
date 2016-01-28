@@ -89,11 +89,11 @@ public class MessageClientIDSetter {
      * @param msg
      */
     public static void setUniqID(final Message msg) {
-        if (msg.getProperty(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID) == null) {
+        if (msg.getProperty(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX) == null) {
             String uniqID = createUniqID();
             msg.appendKey(uniqID);
             int keysIdx = msg.getKeys().split(MessageConst.KEY_SEPARATOR).length - 1;
-            msg.putProperty(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID, String.valueOf(keysIdx));            
+            msg.putProperty(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX, String.valueOf(keysIdx));            
         }
     }
         
@@ -107,7 +107,7 @@ public class MessageClientIDSetter {
         for (int i = 0; i < 20; i++) {
             Message test = new Message();
             MessageClientIDSetter.setUniqID(test);
-            System.out.println(test.getProperty(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID));
+            System.out.println(test.getProperty(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX));
         }
         
         System.out.println("end");
