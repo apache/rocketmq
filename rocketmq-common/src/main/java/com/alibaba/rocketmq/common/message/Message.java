@@ -147,12 +147,20 @@ public class Message implements Serializable {
         return this.getProperty(MessageConst.PROPERTY_KEYS);
     }
 
-
+    /**
+     * 由于唯一idc存储的是key的index, 依赖key的顺序，因此不要向keys的前面插入数据，
+     * 只向后面追加
+     * @param keys
+     */
     public void setKeys(String keys) {
         this.putProperty(MessageConst.PROPERTY_KEYS, keys);
     }
 
-
+    /**
+     * 由于唯一idc存储的是key的index, 依赖key的顺序，因此不要向keys的前面插入数据，
+     * 只向后面追加
+     * @param keys
+     */
     public void setKeys(Collection<String> keys) {
         StringBuffer sb = new StringBuffer();
         for (String k : keys) {
