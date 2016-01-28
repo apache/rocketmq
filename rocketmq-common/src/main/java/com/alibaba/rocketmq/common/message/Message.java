@@ -148,7 +148,8 @@ public class Message implements Serializable {
     }
 
     /**
-     * 由于唯一idc存储的是key的index, 依赖key的顺序，因此不要向keys的前面插入数据，
+     * 由于客户端唯一id存储在keys中，而property存储的该id在keys中的index, 
+     * 依赖key的顺序，因此不要向keys的前面插入数据，
      * 只向后面追加
      * @param keys
      */
@@ -157,7 +158,8 @@ public class Message implements Serializable {
     }
 
     /**
-     * 由于唯一idc存储的是key的index, 依赖key的顺序，因此不要向keys的前面插入数据，
+     * 由于客户端唯一id存储在keys中，而property存储的该id在keys中的index, 
+     * 依赖key的顺序，因此不要向keys的前面插入数据，
      * 只向后面追加
      * @param keys
      */
