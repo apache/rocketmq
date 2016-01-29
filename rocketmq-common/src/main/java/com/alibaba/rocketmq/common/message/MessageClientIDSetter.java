@@ -38,13 +38,14 @@ public class MessageClientIDSetter {
     
     //ip  + pid + classloaderid + counter + time
     //4 bytes for ip , 4 bytes for pid, 4 bytes for  classloaderid
-    //4 bytes for counter,  2 bytes for timediff, 
+    //4 bytes for counter,  4 bytes for timediff, 
     private static StringBuilder sb = null;
     
-    private static ByteBuffer buffer = ByteBuffer.allocate(4 + 2); 
+    private static ByteBuffer buffer = ByteBuffer.allocate(4 + 4); 
     
     static {
-        int len = 4 + 4 + 4  + 4  + 2;        
+
+        int len = 4 + 4 + 4  + 4  + 4;        
         try {
             //分配空间
             sb = new StringBuilder(len*2);
@@ -55,7 +56,10 @@ public class MessageClientIDSetter {
             tempBuffer.putInt(MessageClientIDSetter.class.getClassLoader().hashCode());
             sb.append(UtilAll.bytes2string(tempBuffer.array()));            
             basePos = sb.length();
-            startTime = System.currentTimeMillis();
+            //以2016 1 1 为基准计算差值，一个int，可以存储n年，足够用了
+            Calendar cal = Calendar.getInstance();
+            cal.set(2016, 1, 1);
+            startTime = cal.getTimeInMillis();
             //计数器
             counter = 0;
             validate = true;
@@ -72,8 +76,8 @@ public class MessageClientIDSetter {
             //连接正常唯一id
             buffer.position(0);          
             sb.setLength(basePos);            
-            buffer.putInt(counter++);
-            buffer.putShort((short)(System.currentTimeMillis() - startTime));
+            buffer.putInt(counter++);           
+            buffer.putInt((int)((System.currentTimeMillis() - startTime)/1000));
             sb.append(UtilAll.bytes2string(buffer.array()));
             return sb.toString();
         }
@@ -98,11 +102,29 @@ public class MessageClientIDSetter {
     }
         
     public static void main(String[] args) {
-                
-        Calendar cal = Calendar.getInstance();
-        cal.set(3000, 1, 1);
-        System.out.println(cal.getTimeInMillis());
+            
+        System.out.println(Short.MAX_VALUE);
+        System.out.println(Byte.MAX_VALUE);
         
+        long begin = System.currentTimeMillis();
+        for (int i = 0; i < 1000000; i++) {
+            UUID.randomUUID().toString();
+        }
+        long end =  System.currentTimeMillis();
+        System.out.println(end - begin); //3812
+        
+        begin = System.currentTimeMillis();
+        for (int i = 0; i < 1000000; i++) {
+            createUniqID();
+        }
+        end =  System.currentTimeMillis();
+        System.out.println(end - begin);//783
+        
+        long testlong = (long)Integer.MAX_VALUE + 1L;
+        System.out.println(testlong);
+        
+        System.out.println(UUID.randomUUID().toString());
+        System.out.println(createUniqID());
         
         for (int i = 0; i < 20; i++) {
             Message test = new Message();
