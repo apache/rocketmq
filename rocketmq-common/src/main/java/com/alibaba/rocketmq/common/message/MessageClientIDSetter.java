@@ -14,6 +14,7 @@ import java.net.InetAddress;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Calendar;
+import java.util.HashSet;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -28,7 +29,7 @@ import io.netty.util.internal.StringUtil;
  */
 public class MessageClientIDSetter {
                 
-    private static int counter;
+    private static short counter;
     
     private static boolean validate;
     
@@ -41,19 +42,25 @@ public class MessageClientIDSetter {
     //4 bytes for counter,  4 bytes for timediff, 
     private static StringBuilder sb = null;
     
-    private static ByteBuffer buffer = ByteBuffer.allocate(4 + 4); 
+    private static ByteBuffer buffer = ByteBuffer.allocate(6 + 2); 
     
     static {
 
-        int len = 4 + 4 + 4  + 4  + 4;        
+        //算法是这样的 ip 4 byte + pid 4 byte + classloader 4 byte + timestamp 4 byte + counter 3 byte
+        //其中，前3个4byte提前预置， 
+        //timestamp 6个byte，从20160101开始算起，豪秒级别，可以计算到上千年
+        //counter 2 byte，可以计算到65535, 足够豪秒级别的自增了
+        //如果是一个进程多个容器，classloader可以区分
+        //如果是c++等语言调用，那么毫秒级别不可能启动关闭多个jvm，并有同样的pid
+        int len = 4 + 4 + 4  + 6 + 2;        
         try {
             //分配空间
             sb = new StringBuilder(len*2);
             ByteBuffer tempBuffer =  ByteBuffer.allocate(len - buffer.limit());                
             //本机ip, 进程id，classloader标识
-            tempBuffer.put(UtilAll.getIP());            
-            tempBuffer.putInt(UtilAll.getPid());
-            tempBuffer.putInt(MessageClientIDSetter.class.getClassLoader().hashCode());
+            tempBuffer.put(UtilAll.getIP());    //4        
+            tempBuffer.putInt(UtilAll.getPid()); //4
+            tempBuffer.putInt(MessageClientIDSetter.class.getClassLoader().hashCode()); //4
             sb.append(UtilAll.bytes2string(tempBuffer.array()));            
             basePos = sb.length();
             //以2016 1 1 为基准计算差值，一个int，可以存储n年，足够用了
@@ -76,8 +83,9 @@ public class MessageClientIDSetter {
             //连接正常唯一id
             buffer.position(0);          
             sb.setLength(basePos);            
-            buffer.putInt(counter++);           
-            buffer.putInt((int)((System.currentTimeMillis() - startTime)/1000));
+            buffer.putLong(System.currentTimeMillis() - startTime);//ms级别 6 byte
+            buffer.position(0);
+            buffer.putShort(counter++); //覆盖timestamp前2byte，每ms 1个short 65535，应该足够计数了                  
             sb.append(UtilAll.bytes2string(buffer.array()));
             return sb.toString();
         }
@@ -103,22 +111,36 @@ public class MessageClientIDSetter {
         
     public static void main(String[] args) {
             
+        long threeday = 1000*60*60*24*3;
+        System.out.println(Long.toBinaryString(threeday));
+        
+        int d = Integer.parseInt("1111111111111111", 2);
+        System.out.println(d);
+        
         System.out.println(Short.MAX_VALUE);
         System.out.println(Byte.MAX_VALUE);
         
+        //性能测试
         long begin = System.currentTimeMillis();
         for (int i = 0; i < 1000000; i++) {
             UUID.randomUUID().toString();
         }
         long end =  System.currentTimeMillis();
-        System.out.println(end - begin); //3812
+        System.out.println(end - begin); //3576
         
         begin = System.currentTimeMillis();
         for (int i = 0; i < 1000000; i++) {
             createUniqID();
         }
         end =  System.currentTimeMillis();
-        System.out.println(end - begin);//783
+        System.out.println(end - begin);//993
+        
+        //排重测试
+        HashSet<String> set = new HashSet<String>();
+        for (int i = 0; i < 10000; i++) {
+            set.add(createUniqID());
+        }
+        System.out.println(set.size());
         
         long testlong = (long)Integer.MAX_VALUE + 1L;
         System.out.println(testlong);
