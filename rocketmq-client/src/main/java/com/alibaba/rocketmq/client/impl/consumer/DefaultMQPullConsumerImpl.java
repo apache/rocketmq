@@ -516,11 +516,13 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
             Message newMsg =
                     new Message(MixAll.getRetryTopic(this.defaultMQPullConsumer.getConsumerGroup()),
                             msg.getBody());
-
+            String originMsgId = MessageAccessor.getOriginMessageId(msg);
+            MessageAccessor.setOriginMessageId(newMsg, UtilAll.isBlank(originMsgId) ? msg.getMsgId() : originMsgId);
             newMsg.setFlag(msg.getFlag());
             MessageAccessor.setProperties(newMsg, msg.getProperties());
             MessageAccessor.putProperty(newMsg, MessageConst.PROPERTY_RETRY_TOPIC, msg.getTopic());
-
+            MessageAccessor.setReconsumeTime(newMsg, msg.getReconsumeTimes() + 1 + "");
+            newMsg.setDelayTimeLevel(3 + msg.getReconsumeTimes());
             this.mQClientFactory.getDefaultMQProducer().send(newMsg);
         }
     }

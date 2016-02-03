@@ -607,7 +607,6 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
             String brokerAddr =
                     (null != brokerName) ? this.mQClientFactory.findBrokerAddressInPublish(brokerName) : RemotingHelper
                         .parseSocketAddressAddr(msg.getStoreHost());
-
             this.mQClientFactory.getMQClientAPIImpl().consumerSendMessageBack(brokerAddr, msg,
                 this.defaultMQPushConsumer.getConsumerGroup(), delayLevel, 5000);
         }
