@@ -1,12 +1,12 @@
 /**
  * Copyright (C) 2010-2013 Alibaba Group Holding Limited
- *
+ * <p/>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p/>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p/>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -57,7 +57,7 @@ import java.util.Map;
 
 /**
  * 处理客户端发送消息的请求
- * 
+ *
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-26
  */
@@ -109,6 +109,12 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
             Map<String, Long> messageIds = new HashMap<String, Long>();
             messageIds.put(requestHeader.getOriginMsgId(), requestHeader.getOffset());
             context.setMessageIds(messageIds);
+
+            //ONS商业化：消费失败打回--API调用一次
+            context.setCommercialRcvStats(BrokerStatsManager.StatsType.SEND_BACK);
+            context.setCommercialRcvTimes(1);
+            context.setCommercialOwner(request.getExtFields().get(BrokerStatsManager.COMMERCIAL_OWNER));
+
             this.executeConsumeMessageHookAfter(context);
         }
 
@@ -237,29 +243,14 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
                     backTopic = correctTopic;
                 }
 
-                if (!this.brokerController.getBrokerConfig().isHighSpeedMode()) {
                     this.brokerController.getBrokerStatsManager().incSendBackNums(requestHeader.getGroup(), backTopic);
 
-                    // For commercial
-                    int incValue =
-                            (int) Math.ceil(putMessageResult.getAppendMessageResult().getWroteBytes() / BrokerStatsManager.SIZE_PER_COUNT);
-                    this.brokerController.getBrokerStatsManager().incCommercialGroupSndBckTimes(requestHeader.getGroup(), backTopic,
-                        BrokerStatsManager.StatsType.SEND_BACK_SUCCESS.toString(), incValue);
+                    response.setCode(ResponseCode.SUCCESS);
+                    response.setRemark(null);
 
-                    this.brokerController.getBrokerStatsManager().incCommercialGroupSndBckSize(requestHeader.getGroup(), backTopic,
-                        BrokerStatsManager.StatsType.SEND_BACK_SUCCESS.toString(),
-                        putMessageResult.getAppendMessageResult().getWroteBytes());
-                }
-
-                response.setCode(ResponseCode.SUCCESS);
-                response.setRemark(null);
-
-                return response;
-            default:
-                // For commercial
-                this.brokerController.getBrokerStatsManager().incCommercialGroupSndBckTimes(requestHeader.getGroup(), msgExt.getTopic(),
-                    BrokerStatsManager.StatsType.SEND_BACK_FAILURE.toString(), 1);
-                break;
+                    return response;
+                default:
+                    break;
             }
 
             response.setCode(ResponseCode.SYSTEM_ERROR);
@@ -290,9 +281,9 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
 
 
     private RemotingCommand sendMessage(final ChannelHandlerContext ctx, //
-            final RemotingCommand request, //
-            final SendMessageContext mqtraceContext, //
-            final SendMessageRequestHeader requestHeader) throws RemotingCommandException {
+                                        final RemotingCommand request, //
+                                        final SendMessageContext sendMessageContext, //
+                                        final SendMessageRequestHeader requestHeader) throws RemotingCommandException {
 
         final RemotingCommand response = RemotingCommand.createResponseCommand(SendMessageResponseHeader.class);
         final SendMessageResponseHeader responseHeader = (SendMessageResponseHeader) response.readCustomHeader();
@@ -406,17 +397,6 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
                     putMessageResult.getAppendMessageResult().getWroteBytes());
                 this.brokerController.getBrokerStatsManager().incBrokerPutNums();
 
-                if (!this.brokerController.getBrokerConfig().isHighSpeedMode()) {
-                    // For commercial
-                    int incValue =
-                            (int) Math.ceil(putMessageResult.getAppendMessageResult().getWroteBytes() / BrokerStatsManager.SIZE_PER_COUNT);
-                    this.brokerController.getBrokerStatsManager().incCommercialTopicSendTimes(requestHeader.getProducerGroup(),
-                        msgInner.getTopic(), BrokerStatsManager.StatsType.SEND_SUCCESS.toString(), incValue);
-
-                    this.brokerController.getBrokerStatsManager().incCommercialTopicSendSize(requestHeader.getProducerGroup(),
-                        msgInner.getTopic(), BrokerStatsManager.StatsType.SEND_SUCCESS.toString(),
-                        putMessageResult.getAppendMessageResult().getWroteBytes());
-                }
                 response.setRemark(null);
 
                 responseHeader.setMsgId(putMessageResult.getAppendMessageResult().getMsgId());
@@ -428,16 +408,28 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
 
                 // 消息轨迹：记录发送成功的消息
                 if (hasSendMessageHook()) {
-                    mqtraceContext.setMsgId(responseHeader.getMsgId());
-                    mqtraceContext.setQueueId(responseHeader.getQueueId());
-                    mqtraceContext.setQueueOffset(responseHeader.getQueueOffset());
+                    sendMessageContext.setMsgId(responseHeader.getMsgId());
+                    sendMessageContext.setQueueId(responseHeader.getQueueId());
+                    sendMessageContext.setQueueOffset(responseHeader.getQueueOffset());
+
+                    //ONS 商业化：消息发送成功，计费Size考虑 body + properties
+                    int incValue = (int) Math.ceil(
+                            putMessageResult.getAppendMessageResult().getWroteBytes() / BrokerStatsManager.SIZE_PER_COUNT);
+                    sendMessageContext.setCommercialSendStats(BrokerStatsManager.StatsType.SEND_SUCCESS);
+                    sendMessageContext.setCommercialSendTimes(incValue);
+                    sendMessageContext.setCommercialSendSize(putMessageResult.getAppendMessageResult().getWroteBytes());
+                    sendMessageContext.setCommercialOwner(request.getExtFields().get("owner"));
                 }
                 return null;
-            }
-            else {
-                // For commercial
-                this.brokerController.getBrokerStatsManager().incCommercialTopicSendTimes(requestHeader.getProducerGroup(),
-                    msgInner.getTopic(), BrokerStatsManager.StatsType.SEND_FAILURE.toString(), 1);
+            } else {
+                // ONS 商业化：如果消息发送失败，计费Size考虑 body
+                if (hasSendMessageHook()) {
+                    int incValue = (int) Math.ceil(request.getBody().length / BrokerStatsManager.SIZE_PER_COUNT);
+                    sendMessageContext.setCommercialSendStats(BrokerStatsManager.StatsType.SEND_FAILURE);
+                    sendMessageContext.setCommercialSendTimes(incValue);
+                    sendMessageContext.setCommercialSendSize(request.getBody().length);
+                    sendMessageContext.setCommercialOwner(request.getExtFields().get("owner"));
+                }
             }
         }
         else {
