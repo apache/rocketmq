@@ -314,9 +314,37 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         if (TopicFilterType.MULTI_TAG == topicConfig.getTopicFilterType()) {
             sysFlag |= MessageSysFlag.MultiTagsFlag;
         }
-
+        // 死信消息处理,因为有可能该消息是sendback流程里的，需要拦截
+        String newTopic=requestHeader.getTopic();
+        if((null != newTopic && newTopic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX))){
+            //是重试topic的发送
+            String groupName =newTopic.substring(MixAll.RETRY_GROUP_TOPIC_PREFIX.length());
+            // 确保订阅组存在
+            SubscriptionGroupConfig subscriptionGroupConfig =
+                    this.brokerController.getSubscriptionGroupManager().findSubscriptionGroupConfig(groupName);
+            if (null == subscriptionGroupConfig) {
+                response.setCode(ResponseCode.SUBSCRIPTION_GROUP_NOT_EXIST);
+                response.setRemark("subscription group not exist, " + groupName + " "
+                        + FAQUrl.suggestTodo(FAQUrl.SUBSCRIPTION_GROUP_NOT_EXIST));
+                return response;
+            }
+            int reconsumeTimes=requestHeader.getReconsumeTimes();
+            if (reconsumeTimes >= subscriptionGroupConfig.getRetryMaxTimes()) {
+                newTopic = MixAll.getDLQTopic(groupName);
+                queueIdInt = Math.abs(this.random.nextInt() % 99999999) % DLQ_NUMS_PER_GROUP;
+                topicConfig = this.brokerController.getTopicConfigManager().createTopicInSendMessageBackMethod(newTopic, //
+                        DLQ_NUMS_PER_GROUP, //
+                        PermName.PERM_WRITE, 0 // 死信消息不需要同步，不需要较正。
+                );
+                if (null == topicConfig) {
+                    response.setCode(ResponseCode.SYSTEM_ERROR);
+                    response.setRemark("topic[" + newTopic + "] not exist");
+                    return response;
+                }
+            }
+        }
         MessageExtBrokerInner msgInner = new MessageExtBrokerInner();
-        msgInner.setTopic(requestHeader.getTopic());
+        msgInner.setTopic(newTopic);
         msgInner.setBody(body);
         msgInner.setFlag(requestHeader.getFlag());
         MessageAccessor.setProperties(msgInner, MessageDecoder.string2messageProperties(requestHeader.getProperties()));
@@ -329,7 +357,6 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         msgInner.setBornHost(ctx.channel().remoteAddress());
         msgInner.setStoreHost(this.getStoreHost());
         msgInner.setReconsumeTimes(requestHeader.getReconsumeTimes() == null ? 0 : requestHeader.getReconsumeTimes());
-
         // 检查事务消息
         if (this.brokerController.getBrokerConfig().isRejectTransactionMessage()) {
             String traFlag = msgInner.getProperty(MessageConst.PROPERTY_TRANSACTION_PREPARED);
