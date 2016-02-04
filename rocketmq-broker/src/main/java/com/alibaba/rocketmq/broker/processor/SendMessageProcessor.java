@@ -19,7 +19,6 @@ import com.alibaba.rocketmq.broker.BrokerController;
 import com.alibaba.rocketmq.broker.mqtrace.ConsumeMessageContext;
 import com.alibaba.rocketmq.broker.mqtrace.ConsumeMessageHook;
 import com.alibaba.rocketmq.broker.mqtrace.SendMessageContext;
-import com.alibaba.rocketmq.broker.mqtrace.SendMessageHook;
 import com.alibaba.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.TopicConfig;
@@ -470,21 +469,6 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
 
     public SocketAddress getStoreHost() {
         return storeHost;
-    }
-
-    /**
-     * 发送每条消息会回调
-     */
-    private List<SendMessageHook> sendMessageHookList;
-
-
-    public boolean hasSendMessageHook() {
-        return sendMessageHookList != null && !this.sendMessageHookList.isEmpty();
-    }
-
-
-    public void registerSendMessageHook(List<SendMessageHook> sendMessageHookList) {
-        this.sendMessageHookList = sendMessageHookList;
     }
 
     /**

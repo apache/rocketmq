@@ -324,6 +324,10 @@ public class BrokerController {
          */
         SendMessageProcessor sendProcessor = new SendMessageProcessor(this);
         sendProcessor.registerSendMessageHook(sendMessageHookList);
+        /**
+         * consumerSendMsgBack方法中需要调用ConsumeMessageHook#consumeMessageAfter
+         */
+        sendProcessor.registerConsumeMessageHook(consumeMessageHookList);
         
         this.remotingServer.registerProcessor(RequestCode.SEND_MESSAGE, sendProcessor, this.sendMessageExecutor);
         this.remotingServer.registerProcessor(RequestCode.SEND_MESSAGE_V2, sendProcessor,this.sendMessageExecutor);
