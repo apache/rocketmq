@@ -416,6 +416,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
                 break;
             }
 
+            String  owner = request.getExtFields().get(BrokerStatsManager.COMMERCIAL_OWNER);
             if (sendOK) {
                 // 统计
                 this.brokerController.getBrokerStatsManager().incTopicPutNums(msgInner.getTopic());
@@ -439,22 +440,25 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
                     sendMessageContext.setQueueOffset(responseHeader.getQueueOffset());
 
                     //ONS 商业化：消息发送成功，计费Size考虑 body + properties
-                    int incValue = (int) Math.ceil(
-                            putMessageResult.getAppendMessageResult().getWroteBytes() / BrokerStatsManager.SIZE_PER_COUNT);
+                    int wroteSize = putMessageResult.getAppendMessageResult().getWroteBytes();
+                    int incValue = (int) Math.ceil(wroteSize / BrokerStatsManager.SIZE_PER_COUNT);
+
                     sendMessageContext.setCommercialSendStats(BrokerStatsManager.StatsType.SEND_SUCCESS);
                     sendMessageContext.setCommercialSendTimes(incValue);
-                    sendMessageContext.setCommercialSendSize(putMessageResult.getAppendMessageResult().getWroteBytes());
-                    sendMessageContext.setCommercialOwner(request.getExtFields().get("owner"));
+                    sendMessageContext.setCommercialSendSize(wroteSize);
+                    sendMessageContext.setCommercialOwner(owner);
                 }
                 return null;
             } else {
                 // ONS 商业化：如果消息发送失败，计费Size考虑 body
                 if (hasSendMessageHook()) {
-                    int incValue = (int) Math.ceil(request.getBody().length / BrokerStatsManager.SIZE_PER_COUNT);
+                    int wroteSize = request.getBody().length;
+                    int incValue = (int) Math.ceil(wroteSize/ BrokerStatsManager.SIZE_PER_COUNT);
+
                     sendMessageContext.setCommercialSendStats(BrokerStatsManager.StatsType.SEND_FAILURE);
                     sendMessageContext.setCommercialSendTimes(incValue);
-                    sendMessageContext.setCommercialSendSize(request.getBody().length);
-                    sendMessageContext.setCommercialOwner(request.getExtFields().get("owner"));
+                    sendMessageContext.setCommercialSendSize(wroteSize);
+                    sendMessageContext.setCommercialOwner(owner);
                 }
             }
         }

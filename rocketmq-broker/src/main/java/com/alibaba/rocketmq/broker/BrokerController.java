@@ -772,6 +772,9 @@ public class BrokerController {
 
     private final List<SendMessageHook> sendMessageHookList = new ArrayList<SendMessageHook>();
 
+    public List<SendMessageHook> getSendMessageHookList() {
+        return sendMessageHookList;
+    }
 
     public void registerSendMessageHook(final SendMessageHook hook) {
         this.sendMessageHookList.add(hook);
@@ -780,6 +783,9 @@ public class BrokerController {
 
     private final List<ConsumeMessageHook> consumeMessageHookList = new ArrayList<ConsumeMessageHook>();
 
+    public List<ConsumeMessageHook> getConsumeMessageHookList() {
+        return consumeMessageHookList;
+    }
 
     public void registerConsumeMessageHook(final ConsumeMessageHook hook) {
         this.consumeMessageHookList.add(hook);
