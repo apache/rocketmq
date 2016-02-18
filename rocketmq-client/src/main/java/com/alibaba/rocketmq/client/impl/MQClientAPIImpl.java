@@ -316,9 +316,12 @@ public class MQClientAPIImpl {
                 if (response != null) {
                     try {
                         SendResult sendResult = MQClientAPIImpl.this.processSendResponse(brokerName, msg, response);
-                        assert sendResult != null&&context!=null;
-                        context.setSendResult(sendResult);
-                        context.getProducer().executeSendMessageHookAfter(context);
+                        assert sendResult != null;
+                        //context在没有sendMessagehook时为null
+                        if(context != null){
+                            context.setSendResult(sendResult);
+                            context.getProducer().executeSendMessageHookAfter(context);
+                        }
                         sendCallback.onSuccess(sendResult);
                     }
                     catch (Exception e) {
