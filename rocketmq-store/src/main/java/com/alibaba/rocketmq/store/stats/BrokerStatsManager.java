@@ -18,12 +18,12 @@ public class BrokerStatsManager {
     public enum StatsType {
         SEND_SUCCESS,
         SEND_FAILURE,
-        SEND_BACK_SUCCESS,
-        SEND_BACK_FAILURE,
-        SEND_TIMER_SUCCESS,
-        SEND_TRANSACTION_SUCCESS,
+        SEND_BACK,
+        SEND_TIMER,
+        SEND_TRANSACTION,
         RCV_SUCCESS,
-        RCV_EPOLLS
+        RCV_EPOLLS,
+        PERM_FAILURE
     }
 
     private static final Logger log = LoggerFactory.getLogger(LoggerName.RocketmqStatsLoggerName);
@@ -31,7 +31,7 @@ public class BrokerStatsManager {
         "BrokerStatsThread"));
 
     private static final Logger commercialLog = LoggerFactory.getLogger(LoggerName.CommercialLoggerName);
-    private final ScheduledExecutorService commercialStatsExecutor = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl(
+    private final ScheduledExecutorService commercialExecutor = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl(
         "CommercialStatsThread"));
 
     public static final String TOPIC_PUT_NUMS = "TOPIC_PUT_NUMS";
@@ -47,14 +47,15 @@ public class BrokerStatsManager {
     public static final String BROKER_GET_FROM_DISK_SIZE = "BROKER_GET_FROM_DISK_SIZE";
 
     // For commercial
-    public static final String COMMERCIAL_TOPIC_SEND_TIMES = "COMMERCIAL_TOPIC_SEND_TIMES";
-    public static final String COMMERCIAL_GROUP_SNDBCK_TIMES = "COMMERCIAL_GROUP_SNDBCK_TIMES";
-    public static final String COMMERCIAL_GROUP_RCV_TIMES = "COMMERCIAL_GROUP_RCV_TIMES";
-    public static final String COMMERCIAL_GROUP_RCV_EPOLLS = "COMMERCIAL_GROUP_RCV_EPOLLS";
+    public static final String COMMERCIAL_SEND_TIMES = "COMMERCIAL_SEND_TIMES";
+    public static final String COMMERCIAL_SNDBCK_TIMES = "COMMERCIAL_SNDBCK_TIMES";
+    public static final String COMMERCIAL_RCV_TIMES = "COMMERCIAL_RCV_TIMES";
+    public static final String COMMERCIAL_RCV_EPOLLS = "COMMERCIAL_RCV_EPOLLS";
 
-    public static final String COMMERCIAL_TOPIC_SEND_SIZE = "COMMERCIAL_TOPIC_SEND_SIZE";
-    public static final String COMMERCIAL_GROUP_SNDBCK_SIZE = "COMMERCIAL_GROUP_SNDBCK_SIZE";
-    public static final String COMMERCIAL_GROUP_RCV_SIZE = "COMMERCIAL_GROUP_RCV_SIZE";
+    public static final String COMMERCIAL_SEND_SIZE = "COMMERCIAL_SEND_SIZE";
+    public static final String COMMERCIAL_RCV_SIZE = "COMMERCIAL_RCV_SIZE";
+    public static final String COMMERCIAL_PERM_FAILURES = "COMMERCIAL_PERM_FAILURES";
+    public static final String COMMERCIAL_OWNER = "Owner";
 
     // Message Size limit for one api-calling count.
     public static final double SIZE_PER_COUNT = 64 * 1024;
@@ -90,27 +91,14 @@ public class BrokerStatsManager {
         this.statsTable.put(BROKER_GET_FROM_DISK_NUMS, new StatsItemSet(BROKER_GET_FROM_DISK_NUMS, this.scheduledExecutorService, log));
         this.statsTable.put(BROKER_GET_FROM_DISK_SIZE, new StatsItemSet(BROKER_GET_FROM_DISK_SIZE, this.scheduledExecutorService, log));
 
-        // For commercial
-        this.statsTable.put(COMMERCIAL_TOPIC_SEND_TIMES, new StatsItemSet(COMMERCIAL_TOPIC_SEND_TIMES, this.commercialStatsExecutor,
-            commercialLog));
-
-        this.statsTable.put(COMMERCIAL_GROUP_RCV_TIMES, new StatsItemSet(COMMERCIAL_GROUP_RCV_TIMES, this.commercialStatsExecutor,
-            commercialLog));
-
-        this.statsTable.put(COMMERCIAL_TOPIC_SEND_SIZE, new StatsItemSet(COMMERCIAL_TOPIC_SEND_SIZE, this.commercialStatsExecutor,
-            commercialLog));
-
-        this.statsTable.put(COMMERCIAL_GROUP_RCV_SIZE, new StatsItemSet(COMMERCIAL_GROUP_RCV_SIZE, this.commercialStatsExecutor,
-            commercialLog));
-
-        this.statsTable.put(COMMERCIAL_GROUP_RCV_EPOLLS, new StatsItemSet(COMMERCIAL_GROUP_RCV_EPOLLS, this.commercialStatsExecutor,
-            commercialLog));
-
-        this.statsTable.put(COMMERCIAL_GROUP_SNDBCK_TIMES, new StatsItemSet(COMMERCIAL_GROUP_SNDBCK_TIMES, this.commercialStatsExecutor,
-            commercialLog));
-
-        this.statsTable.put(COMMERCIAL_GROUP_SNDBCK_SIZE, new StatsItemSet(COMMERCIAL_GROUP_SNDBCK_SIZE, this.commercialStatsExecutor,
-            commercialLog));
+        //ONS商业化
+        this.statsTable.put(COMMERCIAL_SEND_TIMES, new StatsItemSet(COMMERCIAL_SEND_TIMES, this.commercialExecutor, commercialLog));
+        this.statsTable.put(COMMERCIAL_RCV_TIMES, new StatsItemSet(COMMERCIAL_RCV_TIMES, this.commercialExecutor, commercialLog));
+        this.statsTable.put(COMMERCIAL_SEND_SIZE, new StatsItemSet(COMMERCIAL_SEND_SIZE, this.commercialExecutor, commercialLog));
+        this.statsTable.put(COMMERCIAL_RCV_SIZE, new StatsItemSet(COMMERCIAL_RCV_SIZE, this.commercialExecutor, commercialLog));
+        this.statsTable.put(COMMERCIAL_RCV_EPOLLS, new StatsItemSet(COMMERCIAL_RCV_EPOLLS, this.commercialExecutor, commercialLog));
+        this.statsTable.put(COMMERCIAL_SNDBCK_TIMES, new StatsItemSet(COMMERCIAL_SNDBCK_TIMES, this.commercialExecutor, commercialLog));
+        this.statsTable.put(COMMERCIAL_PERM_FAILURES, new StatsItemSet(COMMERCIAL_PERM_FAILURES, this.commercialExecutor, commercialLog));
     }
 
 
@@ -126,8 +114,7 @@ public class BrokerStatsManager {
     public StatsItem getStatsItem(final String statsName, final String statsKey) {
         try {
             return this.statsTable.get(statsName).getStatsItem(statsKey);
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
         }
 
         return null;
@@ -216,8 +203,10 @@ public class BrokerStatsManager {
     }
 
 
-    public String buildCommercialStatsKey(String topic, String group, String type) {
+    public String buildCommercialStatsKey(String owner, String topic, String group, String type) {
         StringBuffer strBuilder = new StringBuffer();
+        strBuilder.append(owner);
+        strBuilder.append("@");
         strBuilder.append(topic);
         strBuilder.append("@");
         strBuilder.append(group);
@@ -233,45 +222,10 @@ public class BrokerStatsManager {
     }
 
 
-    // For commercial
-    public void incCommercialTopicSendTimes(final String group, final String topic, final String type, final int incValue) {
-        final String statsKey = buildCommercialStatsKey(topic, group, type);
-        this.statsTable.get(COMMERCIAL_TOPIC_SEND_TIMES).addValue(statsKey, incValue, 1);
-    }
-
-
-    public void incCommercialTopicSendSize(final String group, final String topic, final String type, final int size) {
-        final String statsKey = buildCommercialStatsKey(topic, group, type);
-        this.statsTable.get(COMMERCIAL_TOPIC_SEND_SIZE).addValue(statsKey, size, 1);
-    }
-
-
-    public void incCommercialGroupRcvTimes(final String group, final String topic, final String type, final int incValue) {
-        final String statsKey = buildCommercialStatsKey(topic, group, type);
-        this.statsTable.get(COMMERCIAL_GROUP_RCV_TIMES).addValue(statsKey, incValue, 1);
-    }
-
-
-    public void incCommercialGroupRcvSize(final String group, final String topic, final String type, final int size) {
-        final String statsKey = buildCommercialStatsKey(topic, group, type);
-        this.statsTable.get(COMMERCIAL_GROUP_RCV_SIZE).addValue(statsKey, size, 1);
-    }
-
-
-    public void incCommercialGroupRcvEpolls(final String group, final String topic, final String type, final int incValue) {
-        final String statsKey = buildCommercialStatsKey(topic, group, type);
-        this.statsTable.get(COMMERCIAL_GROUP_RCV_EPOLLS).addValue(statsKey, incValue, 1);
-    }
-
-
-    public void incCommercialGroupSndBckTimes(final String group, final String topic, final String type, final int incValue) {
-        final String statsKey = buildCommercialStatsKey(topic, group, type);
-        this.statsTable.get(COMMERCIAL_GROUP_SNDBCK_TIMES).addValue(statsKey, incValue, 1);
-    }
-
-
-    public void incCommercialGroupSndBckSize(final String group, final String topic, final String type, final int size) {
-        final String statsKey = buildCommercialStatsKey(topic, group, type);
-        this.statsTable.get(COMMERCIAL_GROUP_SNDBCK_SIZE).addValue(statsKey, size, 1);
+    //ONS商业化
+    public void incCommercialValue(final String key, final String owner, final String group,
+                                   final String topic, final String type, final int incValue) {
+        final String statsKey = buildCommercialStatsKey(owner, topic, group, type);
+        this.statsTable.get(key).addValue(statsKey, incValue, 1);
     }
 }

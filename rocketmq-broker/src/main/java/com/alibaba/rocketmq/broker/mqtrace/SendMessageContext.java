@@ -1,12 +1,12 @@
 /**
  * Copyright (C) 2010-2013 Alibaba Group Holding Limited
- *
+ * <p/>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p/>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p/>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 package com.alibaba.rocketmq.broker.mqtrace;
+
+import com.alibaba.rocketmq.store.stats.BrokerStatsManager;
 
 import java.util.Properties;
 
@@ -33,6 +35,11 @@ public class SendMessageContext {
     private String msgProps;
     private Object mqTraceContext;
     private Properties extProps;
+    //For Commercial
+    private String commercialOwner;
+    private BrokerStatsManager.StatsType commercialSendStats;
+    private int commercialSendSize;
+    private int commercialSendTimes;
 
 
     public String getProducerGroup() {
@@ -172,5 +179,37 @@ public class SendMessageContext {
 
     public void setExtProps(Properties extProps) {
         this.extProps = extProps;
+    }
+
+    public String getCommercialOwner() {
+        return commercialOwner;
+    }
+
+    public void setCommercialOwner(final String commercialOwner) {
+        this.commercialOwner = commercialOwner;
+    }
+
+    public BrokerStatsManager.StatsType getCommercialSendStats() {
+        return commercialSendStats;
+    }
+
+    public void setCommercialSendStats(final BrokerStatsManager.StatsType commercialSendStats) {
+        this.commercialSendStats = commercialSendStats;
+    }
+
+    public int getCommercialSendSize() {
+        return commercialSendSize;
+    }
+
+    public void setCommercialSendSize(final int commercialSendSize) {
+        this.commercialSendSize = commercialSendSize;
+    }
+
+    public int getCommercialSendTimes() {
+        return commercialSendTimes;
+    }
+
+    public void setCommercialSendTimes(final int commercialSendTimes) {
+        this.commercialSendTimes = commercialSendTimes;
     }
 }
