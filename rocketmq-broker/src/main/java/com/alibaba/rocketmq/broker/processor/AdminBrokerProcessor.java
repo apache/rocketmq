@@ -1094,7 +1094,8 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             timeSpan.setConsumeTimeStamp(consumeTime);
 
             // 在消息堆积的情况下,延迟时间 = 当前时间 - 下一条待消费的消息产生时间; 消息不堆积的情况下,延迟时间 = 0;
-            if (consumeTime < maxTime) {
+            long maxBrokerOffset = this.brokerController.getMessageStore().getMaxOffsetInQuque(requestHeader.getTopic(), i);
+            if (consumerOffset < maxBrokerOffset) {
                 long nextTime = this.brokerController.getMessageStore().getMessageStoreTimeStamp(topic, i, consumerOffset);
                 timeSpan.setDelayTime(System.currentTimeMillis() - nextTime);
             }
