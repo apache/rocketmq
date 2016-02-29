@@ -16,6 +16,7 @@ public class QueryMessageRequestHeader implements CommandCustomHeader {
     private String topic;
     @CFNotNull
     private String key;
+    private Boolean isUniqKey;
     @CFNotNull
     private Integer maxNum;
     @CFNotNull
@@ -47,6 +48,15 @@ public class QueryMessageRequestHeader implements CommandCustomHeader {
 
     public void setKey(String key) {
         this.key = key;
+    }    
+
+    public Boolean isUniqKey() {
+        return isUniqKey;
+    }
+
+
+    public void setUniqKey(Boolean isUniqKey) {
+        this.isUniqKey = isUniqKey;
     }
 
 

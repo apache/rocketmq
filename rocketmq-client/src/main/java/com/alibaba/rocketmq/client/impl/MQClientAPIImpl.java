@@ -36,6 +36,7 @@ import com.alibaba.rocketmq.common.UtilAll;
 import com.alibaba.rocketmq.common.admin.ConsumeStats;
 import com.alibaba.rocketmq.common.admin.TopicStatsTable;
 import com.alibaba.rocketmq.common.message.Message;
+import com.alibaba.rocketmq.common.message.MessageClientIDSetter;
 import com.alibaba.rocketmq.common.message.MessageDecoder;
 import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.common.message.MessageQueue;
@@ -427,7 +428,10 @@ public class MQClientAPIImpl {
 
             MessageQueue messageQueue = new MessageQueue(msg.getTopic(), brokerName, responseHeader.getQueueId());
 
-            SendResult sendResult = new SendResult(sendStatus, responseHeader.getMsgId(), messageQueue, responseHeader.getQueueOffset());
+            //原来的ID变为offset id， 
+            SendResult sendResult = new SendResult(sendStatus, 
+                    MessageClientIDSetter.getUniqID(msg),
+                    responseHeader.getMsgId(), messageQueue, responseHeader.getQueueOffset());
             sendResult.setTransactionId(responseHeader.getTransactionId());
             return sendResult;
         }

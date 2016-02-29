@@ -998,7 +998,13 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             final SendResult sendResult, //
             final LocalTransactionState localTransactionState, //
             final Throwable localException) throws RemotingException, MQBrokerException, InterruptedException, UnknownHostException {
-        final MessageId id = MessageDecoder.decodeMessageId(sendResult.getMsgId());
+        final MessageId id;
+        if (sendResult.getOffsetMsgId() != null) {
+            id = MessageDecoder.decodeMessageId(sendResult.getOffsetMsgId());
+        }
+        else {
+            id = MessageDecoder.decodeMessageId(sendResult.getMsgId());
+        }
         String transactionId = sendResult.getTransactionId();
         final String brokerAddr = this.mQClientFactory.findBrokerAddressInPublish(sendResult.getMessageQueue().getBrokerName());
         EndTransactionRequestHeader requestHeader = new EndTransactionRequestHeader();

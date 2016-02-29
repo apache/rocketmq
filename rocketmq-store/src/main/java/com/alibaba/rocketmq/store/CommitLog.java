@@ -297,6 +297,7 @@ public class CommitLog {
 
             long tagsCode = 0;
             String keys = "";
+            int uniqKeyIdx = -1;
 
             // 17 properties
             short propertiesLength = byteBuffer.getShort();
@@ -306,6 +307,16 @@ public class CommitLog {
                 Map<String, String> propertiesMap = MessageDecoder.string2messageProperties(properties);
 
                 keys = propertiesMap.get(MessageConst.PROPERTY_KEYS);
+                
+                //标志着消息ID的key
+                if (propertiesMap.get(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX) != null) {
+                    //获得唯一key索引
+                    uniqKeyIdx = 
+                            Integer.parseInt(propertiesMap.get(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX));
+                }
+                
+                String idKey = propertiesMap.get(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX);
+                
                 String tags = propertiesMap.get(MessageConst.PROPERTY_TAGS);
                 if (tags != null && tags.length() > 0) {
                     tagsCode = MessageExtBrokerInner.tagsString2tagsCode(MessageExt.parseTopicFilterType(sysFlag), tags);
@@ -346,8 +357,9 @@ public class CommitLog {
                 storeTimestamp, // 6
                 queueOffset, // 7
                 keys, // 8
+                uniqKeyIdx, //9
                 sysFlag, // 9
-                preparedTransactionOffset// 10
+                preparedTransactionOffset// 10                
             );
         }
         catch (Exception e) {
@@ -976,6 +988,8 @@ public class CommitLog {
             MessageExtBrokerInner msgInner = (MessageExtBrokerInner) msg;
             // PHY OFFSET
             long wroteOffset = fileFromOffset + byteBuffer.position();
+            
+            //TODO 返回的客户端ID给 SendResult 要注意定时消息的情形, 定时消息这个ID应该没有用
             String msgId = MessageDecoder.createMessageId(this.msgIdMemory, msgInner.getStoreHostBytes(), wroteOffset);
 
             // Record ConsumeQueue information

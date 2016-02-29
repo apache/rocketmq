@@ -177,8 +177,11 @@ public class IndexService {
         }
     }
 
-
-    public QueryOffsetResult queryOffset(String topic, String key, int maxNum, long begin, long end) {
+//    public QueryOffsetResult queryOffset(String topic, String key, int maxNum, long begin, long end) {
+//        return queryOffset(topic, key, maxNum, begin, end, false);
+//    }
+    
+    public QueryOffsetResult queryOffset(String topic, String key, int maxNum, long begin, long end, boolean isUniqKey) {
         List<Long> phyOffsets = new ArrayList<Long>(maxNum);
         // TODO 可能需要返回给最终用户
         long indexLastUpdateTimestamp = 0;
@@ -197,7 +200,7 @@ public class IndexService {
 
                     if (f.isTimeMatched(begin, end)) {
                         // 最后一个文件需要加锁
-                        f.selectPhyOffset(phyOffsets, this.buildKey(topic, key), maxNum, begin, end, lastFile);
+                        f.selectPhyOffset(phyOffsets, this.buildKey(topic, key, isUniqKey), maxNum, begin, end, lastFile);
                     }
 
                     // 再往前遍历时间更不符合
@@ -222,8 +225,13 @@ public class IndexService {
     }
 
 
-    private String buildKey(final String topic, final String key) {
-        return topic + "#" + key;
+    private String buildKey(final String topic, final String key, boolean isUniqKey) {
+        if (!isUniqKey) {
+            return topic + "#" + key;
+        }
+        else {
+            return key;
+        }
     }
 
 
@@ -250,12 +258,13 @@ public class IndexService {
             }
 
             if (keys != null && keys.length() > 0) {
-                String[] keyset = keys.split(MessageConst.KEY_SEPARATOR);
-                for (String key : keyset) {
+                String[] keyset = keys.split(MessageConst.KEY_SEPARATOR);                
+                for (int i = 0; i <  keyset.length; i++) {
+                    String key = keyset[i]; 
                     // TODO 是否需要TRIM
                     if (key.length() > 0) {
                         for (boolean ok =
-                                indexFile.putKey(buildKey(topic, key), msg.getCommitLogOffset(),
+                                indexFile.putKey(buildKey(topic, key, i == req.getUniqKeyIdx()), msg.getCommitLogOffset(),
                                     msg.getStoreTimestamp()); !ok;) {
                             log.warn("index file full, so create another one, " + indexFile.getFileName());
                             indexFile = retryGetAndCreateIndexFile();
@@ -265,7 +274,7 @@ public class IndexService {
                             }
 
                             ok =
-                                    indexFile.putKey(buildKey(topic, key), msg.getCommitLogOffset(),
+                                    indexFile.putKey(buildKey(topic, key, i == req.getUniqKeyIdx()), msg.getCommitLogOffset(),
                                         msg.getStoreTimestamp());
                         }
                     }

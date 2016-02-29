@@ -38,7 +38,7 @@ import java.util.Map;
  */
 public class MessageDecoder {
     /**
-     * 消息ID定长
+     * 消息ID定长,  此长度任意增加可能会导致MessageClientIDSetter.isUniqID判断错误
      */
     public final static int MSG_ID_LENGTH = 8 + 8;
 
@@ -98,15 +98,21 @@ public class MessageDecoder {
 
 
     public static MessageExt decode(java.nio.ByteBuffer byteBuffer) {
-        return decode(byteBuffer, true, true);
+        return decode(byteBuffer, true, true, false);
     }
 
-
     /**
-     * 客户端使用，SLAVE也会使用
+     * 客户端使用
+     */
+    public static MessageExt clientDecode(java.nio.ByteBuffer byteBuffer, final boolean readBody) {
+        return decode(byteBuffer, readBody, true, true);
+    }
+    
+    /**
+     * SLAVE使用
      */
     public static MessageExt decode(java.nio.ByteBuffer byteBuffer, final boolean readBody) {
-        return decode(byteBuffer, readBody, true);
+        return decode(byteBuffer, readBody, true, false);
     }
 
 
@@ -220,10 +226,22 @@ public class MessageDecoder {
         return byteBuffer.array();
     }
 
+    public static MessageExt decode(
+                                    java.nio.ByteBuffer byteBuffer, final boolean readBody, final boolean deCompressBody) {
+        return decode(byteBuffer, readBody, deCompressBody, false);
+    }
 
-    public static MessageExt decode(java.nio.ByteBuffer byteBuffer, final boolean readBody, final boolean deCompressBody) {
+    public static MessageExt decode(
+                                    java.nio.ByteBuffer byteBuffer, final boolean readBody, final boolean deCompressBody, final boolean isClient) {
         try {
-            MessageExt msgExt = new MessageExt();
+
+            MessageExt msgExt;
+            if (isClient) {
+                msgExt = new MessageClientExt();                
+            }
+            else {
+                msgExt = new MessageExt();
+            }
 
             // 1 TOTALSIZE
             int storeSize = byteBuffer.getInt();
@@ -324,6 +342,12 @@ public class MessageDecoder {
             String msgId = createMessageId(byteBufferMsgId, msgExt.getStoreHostBytes(), msgExt.getCommitLogOffset());
             msgExt.setMsgId(msgId);
 
+            if (isClient) {
+                //虽然也可以在MessageClientExt里面封装，当setMsgId时就是setOffsetMsgId，
+                //但这样做MessageClientExt的逻辑会和外部耦合
+                ((MessageClientExt)msgExt).setOffsetMsgId(msgId);
+            }
+            
             return msgExt;
         }
         catch (UnknownHostException e) {
@@ -351,7 +375,7 @@ public class MessageDecoder {
     public static List<MessageExt> decodes(java.nio.ByteBuffer byteBuffer, final boolean readBody) {
         List<MessageExt> msgExts = new ArrayList<MessageExt>();
         while (byteBuffer.hasRemaining()) {
-            MessageExt msgExt = decode(byteBuffer, readBody);
+            MessageExt msgExt = clientDecode(byteBuffer, readBody);
             if (null != msgExt) {
                 msgExts.add(msgExt);
             }

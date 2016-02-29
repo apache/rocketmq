@@ -29,7 +29,7 @@ public class SendResult {
     private MessageQueue messageQueue;
     private long queueOffset;
     private String transactionId;
-
+    private String offsetMsgId;
 
     public SendResult() {
     }
@@ -40,9 +40,10 @@ public class SendResult {
         return JSON.parseObject(json, SendResult.class);
     }
 
-    public SendResult(SendStatus sendStatus, String msgId, MessageQueue messageQueue, long queueOffset) {
+    public SendResult(SendStatus sendStatus, String msgId, String offsetMsgId, MessageQueue messageQueue, long queueOffset) {
         this.sendStatus = sendStatus;
         this.msgId = msgId;
+        this.offsetMsgId = offsetMsgId;
         this.messageQueue = messageQueue;
         this.queueOffset = queueOffset;
     }
@@ -95,12 +96,18 @@ public class SendResult {
 
     public void setTransactionId(String transactionId) {
         this.transactionId = transactionId;
+    }    
+
+    public String getOffsetMsgId() {
+        return offsetMsgId;
     }
-
-
+    public void setOffsetMsgId(String offsetMsgId) {
+        this.offsetMsgId = offsetMsgId;
+    }
+    
     @Override
     public String toString() {
-        return "SendResult [sendStatus=" + sendStatus + ", msgId=" + msgId + ", messageQueue=" + messageQueue
+        return "SendResult [sendStatus=" + sendStatus + ", msgId=" + msgId + ",offsetMsgId=" + offsetMsgId + ", messageQueue=" + messageQueue
                 + ", queueOffset=" + queueOffset + "]";
     }
 }

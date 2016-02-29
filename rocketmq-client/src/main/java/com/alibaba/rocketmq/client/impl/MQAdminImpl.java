@@ -256,19 +256,40 @@ public class MQAdminImpl {
 
 
     public MessageExt viewMessage(String msgId) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
-        MessageId messageId = null;
-        try {
-            messageId = MessageDecoder.decodeMessageId(msgId);
+              
+        if (MessageClientIDSetter.isUniqID(msgId)) {
+            String[] topicKey = MessageClientIDSetter.splitTopicKey(msgId);
+            if (topicKey.length != 2) {
+                throw new MQClientException(ResponseCode.NO_MESSAGE, "query message by id finished, but no message.");
+            }
+            
+            QueryResult qr = queryMessage(topicKey[0], topicKey[1], 1, Long.MIN_VALUE, Long.MAX_VALUE, true);
+            if (qr.getMessageList().size() > 0) {
+                return qr.getMessageList().get(0);
+            }
+            else {
+                throw new MQClientException(ResponseCode.NO_MESSAGE, "query message by id finished, but no message.");
+            }
         }
-        catch (Exception e) {
-            throw new MQClientException(ResponseCode.NO_MESSAGE, "query message by id finished, but no message.");
+        else {
+            MessageId messageId = null;
+            try {
+                messageId = MessageDecoder.decodeMessageId(msgId);
+            }
+            catch (Exception e) {
+                throw new MQClientException(ResponseCode.NO_MESSAGE, "query message by id finished, but no message.");
+            }
+            return this.mQClientFactory.getMQClientAPIImpl().viewMessage(RemotingUtil.socketAddress2String(messageId.getAddress()),
+                messageId.getOffset(), timeoutMillis);
         }
-        return this.mQClientFactory.getMQClientAPIImpl().viewMessage(RemotingUtil.socketAddress2String(messageId.getAddress()),
-            messageId.getOffset(), timeoutMillis);
     }
 
-
     public QueryResult queryMessage(String topic, String key, int maxNum, long begin, long end) throws MQClientException,
+        InterruptedException {
+        return queryMessage(topic, key, maxNum, begin, end, false);
+    }
+
+    protected QueryResult queryMessage(String topic, String key, int maxNum, long begin, long end, boolean isUniqKey) throws MQClientException,
             InterruptedException {
         TopicRouteData topicRouteData = this.mQClientFactory.getAnExistTopicRouteData(topic);
         if (null == topicRouteData) {
@@ -297,6 +318,7 @@ public class MQAdminImpl {
                         requestHeader.setMaxNum(maxNum);
                         requestHeader.setBeginTimestamp(begin);
                         requestHeader.setEndTimestamp(end);
+                        requestHeader.setUniqKey(isUniqKey);
 
                         this.mQClientFactory.getMQClientAPIImpl().queryMessage(addr, requestHeader, timeoutMillis * 3,
                             new InvokeCallback() {

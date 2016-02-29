@@ -39,14 +39,16 @@ public class MessageClientIDSetter {
     
     //ip  + pid + classloaderid + counter + time
     //4 bytes for ip , 4 bytes for pid, 4 bytes for  classloaderid
-    //4 bytes for counter,  4 bytes for timediff, 
+    //2 bytes for counter,  6 bytes for timediff, 
     private static StringBuilder sb = null;
     
     private static ByteBuffer buffer = ByteBuffer.allocate(6 + 2); 
     
+    private static final String TOPIC_KEY_SPLITTER = "#";
+    
     static {
 
-        //算法是这样的 ip 4 byte + pid 4 byte + classloader 4 byte + timestamp 4 byte + counter 3 byte
+        //算法是这样的 ip 4 byte + pid 4 byte + classloader 4 byte + timestamp 6 byte + counter 2 byte
         //其中，前3个4byte提前预置， 
         //timestamp 6个byte，从20160101开始算起，豪秒级别，可以计算到上千年
         //counter 2 byte，可以计算到65535, 足够豪秒级别的自增了
@@ -101,6 +103,8 @@ public class MessageClientIDSetter {
      * @param msg
      */
     public static void setUniqID(final Message msg) {
+        //如果专有属性不存在时set，此时创造一个唯一ID，并且放入key中，然后将idx记入专有属性
+        //如果专有属性存在则不做任何操作
         if (msg.getProperty(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX) == null) {
             String uniqID = createUniqID();
             msg.appendKey(uniqID);
@@ -108,10 +112,46 @@ public class MessageClientIDSetter {
             msg.putProperty(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX, String.valueOf(keysIdx));            
         }
     }
+    
+    /**
+     * 客户端用来获取UniqID用, 由于查询的时候key必须配合topic查询，因此在这里Topic也是必须的
+     * 需要用splitter分割，一并返回
+     * @param msg
+     * @return
+     */
+    public static String getUniqID(final Message msg) {
+        //如果专有属性不存在，则返回null
+        //然后根据专有属性，取出idx, 在key中取出对应的key
+        if (msg.getProperty(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX) != null
+                && msg.getKeys() != null) {//property 存在 key 存在
+            String[] keyList = msg.getKeys().split(MessageConst.KEY_SEPARATOR);
+            int keyIdx = Integer.parseInt(msg.getProperty(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX));
+            if (keyIdx >= 0 && keyIdx < keyList.length) {//index合法
+                //TODO 有必要用正则判断一下key是否对？
+                return String.format("%s%s%s", msg.getTopic(), TOPIC_KEY_SPLITTER, keyList[keyIdx]);
+            }
+        }
+        return null;
+    }
+    
+    public static String[] splitTopicKey(String clientUniqID) {
+        return clientUniqID.split(TOPIC_KEY_SPLITTER);
+    }
         
-    public static void main(String[] args) {
-            
-        long threeday = 1000*60*60*24*3;
+    public static boolean isUniqID(String id) {
+        //目前的任何一种生成方式，生成的ID长度都大于 MessageDecoder.MSG_ID_LENGTH * 2  32个16进制数
+        if (id.length() > MessageDecoder.MSG_ID_LENGTH * 2) {
+            //TODO 进一步判断
+            return true;
+        }
+        else {
+            return false;
+        }
+    }
+    
+    public static void main(String[] args) throws Exception {
+                           
+         long threeday = 1000*60*60*24*3;
         System.out.println(Long.toBinaryString(threeday));
         
         int d = Integer.parseInt("1111111111111111", 2);
