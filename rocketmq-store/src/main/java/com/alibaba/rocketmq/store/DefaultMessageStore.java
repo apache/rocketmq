@@ -1842,6 +1842,6 @@ public class DefaultMessageStore implements MessageStore {
 
     @Override
     public long flush() {
-        this.commitLog.flush();
+        return this.commitLog.flush();
     }
 }
