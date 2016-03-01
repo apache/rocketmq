@@ -191,5 +191,10 @@ public abstract class AbstractPluginMessageStore implements MessageStore {
     public long dispatchBehindBytes() {
         return next.dispatchBehindBytes();
     }
+    
+    @Override
+    public long flush() {
+        return next.flush();
+    }
 
 }

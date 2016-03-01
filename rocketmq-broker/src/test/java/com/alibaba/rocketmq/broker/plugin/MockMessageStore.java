@@ -210,4 +210,9 @@ public class MockMessageStore implements MessageStore {
         return 0;
     }
 
+    @Override
+    public long flush() {
+        return 0;
+    }
+
 }
