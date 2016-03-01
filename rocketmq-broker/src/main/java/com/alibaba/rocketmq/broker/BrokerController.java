@@ -330,6 +330,10 @@ public class BrokerController {
          */
         SendMessageProcessor sendProcessor = new SendMessageProcessor(this);
         sendProcessor.registerSendMessageHook(sendMessageHookList);
+        /**
+         * consumerSendMsgBack方法中需要调用ConsumeMessageHook#consumeMessageAfter
+         */
+        sendProcessor.registerConsumeMessageHook(consumeMessageHookList);
         
         this.remotingServer.registerProcessor(RequestCode.SEND_MESSAGE, sendProcessor, this.sendMessageExecutor);
         this.remotingServer.registerProcessor(RequestCode.SEND_MESSAGE_V2, sendProcessor,this.sendMessageExecutor);
@@ -774,6 +778,9 @@ public class BrokerController {
 
     private final List<SendMessageHook> sendMessageHookList = new ArrayList<SendMessageHook>();
 
+    public List<SendMessageHook> getSendMessageHookList() {
+        return sendMessageHookList;
+    }
 
     public void registerSendMessageHook(final SendMessageHook hook) {
         this.sendMessageHookList.add(hook);
@@ -782,6 +789,9 @@ public class BrokerController {
 
     private final List<ConsumeMessageHook> consumeMessageHookList = new ArrayList<ConsumeMessageHook>();
 
+    public List<ConsumeMessageHook> getConsumeMessageHookList() {
+        return consumeMessageHookList;
+    }
 
     public void registerConsumeMessageHook(final ConsumeMessageHook hook) {
         this.consumeMessageHookList.add(hook);

@@ -1,12 +1,12 @@
 /**
  * Copyright (C) 2010-2013 Alibaba Group Holding Limited
- *
+ * <p/>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p/>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p/>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -25,7 +25,6 @@ import com.alibaba.rocketmq.common.message.Message;
 
 /**
  * Producer，发送消息
- * 
  */
 public class Producer {
     public static void main(String[] args) throws MQClientException, InterruptedException {
@@ -36,22 +35,22 @@ public class Producer {
         for (int i = 0; i < 1000; i++) {
             try {
                 Message msg = new Message("TopicTest",// topic
-                    "TagA",// tag
-                    ("Hello RocketMQ " + i).getBytes()// body
-                        );
+                        "TagA",// tag
+                        ("Hello RocketMQ " + i).getBytes()// body
+                );
                 SendResult sendResult = producer.send(msg);
-                LocalTransactionExecuter tranExecuter=new LocalTransactionExecuter() {
-					
-					@Override
-					public LocalTransactionState executeLocalTransactionBranch(Message msg, Object arg) {
-						// TODO Auto-generated method stub
-						return null;
-					}
-				};
-				//producer.sendMessageInTransaction(msg, tranExecuter, arg)
+                LocalTransactionExecuter tranExecuter = new LocalTransactionExecuter() {
+
+                    @Override
+                    public LocalTransactionState executeLocalTransactionBranch(Message msg, Object arg) {
+                        // TODO Auto-generated method stub
+                        return null;
+                    }
+                };
+
+                //producer.sendMessageInTransaction(msg, tranExecuter, arg)
                 System.out.println(sendResult);
-            }
-            catch (Exception e) {
+            } catch (Exception e) {
                 e.printStackTrace();
                 Thread.sleep(1000);
             }

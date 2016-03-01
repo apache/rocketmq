@@ -6,6 +6,7 @@ package com.alibaba.rocketmq.broker.api;
 import org.junit.Test;
 
 import com.alibaba.rocketmq.broker.BrokerController;
+import com.alibaba.rocketmq.client.hook.SendMessageContext;
 import com.alibaba.rocketmq.client.impl.CommunicationMode;
 import com.alibaba.rocketmq.client.impl.MQClientAPIImpl;
 import com.alibaba.rocketmq.client.producer.SendResult;
@@ -26,10 +27,10 @@ public class SendMessageTest {
     @Test
     public void test_sendMessage() throws Exception {
         BrokerController brokerController = new BrokerController(//
-                new BrokerConfig(), //
-                new NettyServerConfig(), //
-                new NettyClientConfig(), //
-                new MessageStoreConfig());
+            new BrokerConfig(), //
+            new NettyServerConfig(), //
+            new NettyClientConfig(), //
+            new MessageStoreConfig());
         boolean initResult = brokerController.initialize();
         System.out.println("initialize " + initResult);
 
@@ -55,10 +56,11 @@ public class SendMessageTest {
                 requestHeader.setFlag(msg.getFlag());
                 requestHeader.setProperties(MessageDecoder.messageProperties2String(msg.getProperties()));
 
-                SendResult result =
-                        client.sendMessage("127.0.0.1:10911", "brokerName", msg, requestHeader, 1000 * 5, CommunicationMode.SYNC);
+                SendResult result = client.sendMessage("127.0.0.1:10911", "brokerName", msg, requestHeader, 1000 * 5,
+                    CommunicationMode.SYNC, new SendMessageContext());
                 System.out.println(i + "\t" + result);
-            } catch (Exception e) {
+            }
+            catch (Exception e) {
                 e.printStackTrace();
             }
         }

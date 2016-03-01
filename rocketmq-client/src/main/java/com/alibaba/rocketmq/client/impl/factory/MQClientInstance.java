@@ -1,12 +1,12 @@
 /**
  * Copyright (C) 2010-2013 Alibaba Group Holding Limited
- *
+ * <p/>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p/>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p/>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -14,6 +14,17 @@
  * limitations under the License.
  */
 package com.alibaba.rocketmq.client.impl.factory;
+
+import java.io.UnsupportedEncodingException;
+import java.net.DatagramSocket;
+import java.util.*;
+import java.util.Map.Entry;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+
+import org.slf4j.Logger;
 
 import com.alibaba.rocketmq.client.ClientConfig;
 import com.alibaba.rocketmq.client.admin.MQAdminExtInner;
@@ -46,15 +57,6 @@ import com.alibaba.rocketmq.remoting.common.RemotingHelper;
 import com.alibaba.rocketmq.remoting.exception.RemotingException;
 import com.alibaba.rocketmq.remoting.netty.NettyClientConfig;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
-import org.slf4j.Logger;
-
-import java.io.UnsupportedEncodingException;
-import java.net.DatagramSocket;
-import java.util.*;
-import java.util.Map.Entry;
-import java.util.concurrent.*;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 
 
 /**
@@ -93,6 +95,7 @@ public class MQClientInstance {
     private DatagramSocket datagramSocket;
 
     private final ConsumerStatsManager consumerStatsManager;
+    private final AtomicLong storeTimesTotal = new AtomicLong(0);
 
 
     public MQClientInstance(ClientConfig clientConfig, int instanceIndex, String clientId, RPCHook rpcHook) {
@@ -101,8 +104,7 @@ public class MQClientInstance {
         this.nettyClientConfig = new NettyClientConfig();
         this.nettyClientConfig.setClientCallbackExecutorThreads(clientConfig.getClientCallbackExecutorThreads());
         this.clientRemotingProcessor = new ClientRemotingProcessor(this);
-        this.mQClientAPIImpl =
-                new MQClientAPIImpl(this.nettyClientConfig, this.clientRemotingProcessor, rpcHook, clientConfig.getUnitName());
+        this.mQClientAPIImpl = new MQClientAPIImpl(this.nettyClientConfig, this.clientRemotingProcessor, rpcHook, clientConfig);
 
         if (this.clientConfig.getNamesrvAddr() != null) {
             this.mQClientAPIImpl.updateNameServerAddressList(this.clientConfig.getNamesrvAddr());
@@ -122,7 +124,7 @@ public class MQClientInstance {
 
         this.consumerStatsManager = new ConsumerStatsManager(this.scheduledExecutorService);
 
-        log.info("created a new client Instance, FactoryIndex: {} ClinetID: {} {} {}, serializeType={}",//
+        log.info("created a new client Instance, FactoryIndex: {} ClinetID: {} {} {}, serializeType={}", //
             this.instanceIndex, //
             this.clientId, //
             this.clientConfig, //
@@ -352,7 +354,7 @@ public class MQClientInstance {
         }
         catch (Exception e1) {
             log.warn("uploadFilterClassToAllFilterServer Exception, ClassName: {} {}", //
-                fullClassName,//
+                fullClassName, //
                 RemotingHelper.exceptionSimpleDesc(e1));
         }
 
@@ -368,8 +370,8 @@ public class MQClientInstance {
                         this.mQClientAPIImpl.registerMessageFilterClass(fsAddr, consumerGroup, topic, fullClassName, classCRC, classBody,
                             5000);
 
-                        log.info("register message class filter to {} OK, ConsumerGroup: {} Topic: {} ClassName: {}", fsAddr,
-                            consumerGroup, topic, fullClassName);
+                        log.info("register message class filter to {} OK, ConsumerGroup: {} Topic: {} ClassName: {}", fsAddr, consumerGroup,
+                            topic, fullClassName);
 
                     }
                     catch (Exception e) {
@@ -411,6 +413,22 @@ public class MQClientInstance {
     }
 
 
+    private boolean isBrokerInNameServer(final String brokerAddr) {
+        Iterator<Entry<String, TopicRouteData>> it = this.topicRouteTable.entrySet().iterator();
+        while (it.hasNext()) {
+            Entry<String, TopicRouteData> itNext = it.next();
+            List<BrokerData> brokerDatas = itNext.getValue().getBrokerDatas();
+            for (BrokerData bd : brokerDatas) {
+                boolean contain = bd.getBrokerAddrs().containsValue(brokerAddr);
+                if (contain)
+                    return true;
+            }
+        }
+
+        return false;
+    }
+
+
     private void sendHeartbeatToAllBroker() {
         final HeartbeatData heartbeatData = this.prepareHeartbeatData();
         final boolean producerEmpty = heartbeatData.getProducerDataSet().isEmpty();
@@ -420,6 +438,7 @@ public class MQClientInstance {
             return;
         }
 
+        long times = this.storeTimesTotal.getAndIncrement();
         Iterator<Entry<String, HashMap<Long, String>>> it = this.brokerAddrTable.entrySet().iterator();
         while (it.hasNext()) {
             Entry<String, HashMap<Long, String>> entry = it.next();
@@ -436,11 +455,19 @@ public class MQClientInstance {
 
                         try {
                             this.mQClientAPIImpl.sendHearbeat(addr, heartbeatData, 3000);
-                            log.info("send heart beat to broker[{} {} {}] success", brokerName, id, addr);
-                            log.info(heartbeatData.toString());
+                            if (times % 20 == 0) {
+                                log.info("send heart beat to broker[{} {} {}] success", brokerName, id, addr);
+                                log.info(heartbeatData.toString());
+                            }
                         }
                         catch (Exception e) {
-                            log.error("send heart beat to broker exception", e);
+                            if (this.isBrokerInNameServer(addr)) {
+                                log.error("send heart beat to broker exception", e);
+                            }
+                            else {
+                                log.info("send heart beat to broker[{} {} {}] exception, because the broker not up, forget it", brokerName,
+                                    id, addr);
+                            }
                         }
                     }
                 }
@@ -536,9 +563,8 @@ public class MQClientInstance {
                 try {
                     TopicRouteData topicRouteData;
                     if (isDefault && defaultMQProducer != null) {
-                        topicRouteData =
-                                this.mQClientAPIImpl
-                                    .getDefaultTopicRouteInfoFromNameServer(defaultMQProducer.getCreateTopicKey(), 1000 * 3);
+                        topicRouteData = this.mQClientAPIImpl.getDefaultTopicRouteInfoFromNameServer(defaultMQProducer.getCreateTopicKey(),
+                            1000 * 3);
                         if (topicRouteData != null) {
                             for (QueueData data : topicRouteData.getQueueDatas()) {
                                 int queueNums = Math.min(defaultMQProducer.getDefaultTopicQueueNums(), data.getReadQueueNums());
@@ -964,8 +990,8 @@ public class MQClientInstance {
 
 
     public FindBrokerResult findBrokerAddressInSubscribe(//
-            final String brokerName,//
-            final long brokerId,//
+            final String brokerName, //
+            final long brokerId, //
             final boolean onlyThisBroker//
     ) {
         String brokerAddr = null;
@@ -1055,13 +1081,13 @@ public class MQClientInstance {
             while (iterator.hasNext()) {
                 MessageQueue mq = iterator.next();
                 consumer.updateConsumeOffset(mq, offsetTable.get(mq));
-                log.info("[reset-offset] reset offsetTable. topic={}, group={}, mq={}, offset={}", new Object[] { topic, group, mq,
-                                                                                                                 offsetTable.get(mq) });
+                log.info("[reset-offset] reset offsetTable. topic={}, group={}, mq={}, offset={}",
+                    new Object[] { topic, group, mq, offsetTable.get(mq) });
             }
             consumer.getOffsetStore().persistAll(offsetTable.keySet());
 
             try {
-                TimeUnit.SECONDS.sleep(10);
+                TimeUnit.SECONDS.sleep(30);
             }
             catch (InterruptedException e) {
                 //
@@ -1071,8 +1097,8 @@ public class MQClientInstance {
             while (iterator.hasNext()) {
                 MessageQueue mq = iterator.next();
                 consumer.updateConsumeOffset(mq, offsetTable.get(mq));
-                log.info("[reset-offset] reset offsetTable. topic={}, group={}, mq={}, offset={}", new Object[] { topic, group, mq,
-                                                                                                                 offsetTable.get(mq) });
+                log.info("[reset-offset] reset offsetTable. topic={}, group={}, mq={}, offset={}",
+                    new Object[] { topic, group, mq, offsetTable.get(mq) });
             }
             consumer.getOffsetStore().persistAll(offsetTable.keySet());
 
@@ -1199,8 +1225,8 @@ public class MQClientInstance {
 
         consumerRunningInfo.getProperties().put(ConsumerRunningInfo.PROP_NAMESERVER_ADDR, nsAddr);
         consumerRunningInfo.getProperties().put(ConsumerRunningInfo.PROP_CONSUME_TYPE, mqConsumerInner.consumeType());
-        consumerRunningInfo.getProperties()
-            .put(ConsumerRunningInfo.PROP_CLIENT_VERSION, MQVersion.getVersionDesc(MQVersion.CurrentVersion));
+        consumerRunningInfo.getProperties().put(ConsumerRunningInfo.PROP_CLIENT_VERSION,
+            MQVersion.getVersionDesc(MQVersion.CurrentVersion));
 
         return consumerRunningInfo;
     }

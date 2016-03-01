@@ -39,9 +39,8 @@ public class RebalancePullImpl extends RebalanceImpl {
     }
 
 
-    public RebalancePullImpl(String consumerGroup, MessageModel messageModel,
-            AllocateMessageQueueStrategy allocateMessageQueueStrategy, MQClientInstance mQClientFactory,
-            DefaultMQPullConsumerImpl defaultMQPullConsumerImpl) {
+    public RebalancePullImpl(String consumerGroup, MessageModel messageModel, AllocateMessageQueueStrategy allocateMessageQueueStrategy,
+            MQClientInstance mQClientFactory, DefaultMQPullConsumerImpl defaultMQPullConsumerImpl) {
         super(consumerGroup, messageModel, allocateMessageQueueStrategy, mQClientFactory);
         this.defaultMQPullConsumerImpl = defaultMQPullConsumerImpl;
     }
@@ -60,8 +59,7 @@ public class RebalancePullImpl extends RebalanceImpl {
 
     @Override
     public void messageQueueChanged(String topic, Set<MessageQueue> mqAll, Set<MessageQueue> mqDivided) {
-        MessageQueueListener messageQueueListener =
-                this.defaultMQPullConsumerImpl.getDefaultMQPullConsumer().getMessageQueueListener();
+        MessageQueueListener messageQueueListener = this.defaultMQPullConsumerImpl.getDefaultMQPullConsumer().getMessageQueueListener();
         if (messageQueueListener != null) {
             try {
                 messageQueueListener.messageQueueChanged(topic, mqAll, mqDivided);
@@ -78,6 +76,12 @@ public class RebalancePullImpl extends RebalanceImpl {
         this.defaultMQPullConsumerImpl.getOffsetStore().persist(mq);
         this.defaultMQPullConsumerImpl.getOffsetStore().removeOffset(mq);
         return true;
+    }
+
+
+    @Override
+    public void removeDirtyOffset(final MessageQueue mq) {
+        this.defaultMQPullConsumerImpl.getOffsetStore().removeOffset(mq);
     }
 
 

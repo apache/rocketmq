@@ -19,6 +19,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
+import com.alibaba.rocketmq.store.DefaultMessageFilter;
+import com.alibaba.rocketmq.store.MessageFilter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,11 +39,11 @@ import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
 public class PullRequestHoldService extends ServiceThread {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.BrokerLoggerName);
     private static final String TOPIC_QUEUEID_SEPARATOR = "@";
-
     private ConcurrentHashMap<String/* topic@queueid */, ManyPullRequest> pullRequestTable =
             new ConcurrentHashMap<String, ManyPullRequest>(1024);
-
     private final BrokerController brokerController;
+    // 消息过滤
+    private final MessageFilter messageFilter = new DefaultMessageFilter();
 
 
     public PullRequestHoldService(final BrokerController brokerController) {
@@ -79,8 +81,7 @@ public class PullRequestHoldService extends ServiceThread {
             if (kArray != null && 2 == kArray.length) {
                 String topic = kArray[0];
                 int queueId = Integer.parseInt(kArray[1]);
-                final long offset =
-                        this.brokerController.getMessageStore().getMaxOffsetInQuque(topic, queueId);
+                final long offset = this.brokerController.getMessageStore().getMaxOffsetInQuque(topic, queueId);
                 this.notifyMessageArriving(topic, queueId, offset);
             }
         }
@@ -88,6 +89,11 @@ public class PullRequestHoldService extends ServiceThread {
 
 
     public void notifyMessageArriving(final String topic, final int queueId, final long maxOffset) {
+        notifyMessageArriving(topic, queueId, maxOffset, null);
+    }
+
+
+    public void notifyMessageArriving(final String topic, final int queueId, final long maxOffset, final Long tagsCode) {
         String key = this.buildKey(topic, queueId);
         ManyPullRequest mpr = this.pullRequestTable.get(key);
         if (mpr != null) {
@@ -97,38 +103,29 @@ public class PullRequestHoldService extends ServiceThread {
 
                 for (PullRequest request : requestList) {
                     // 查看是否offset OK
-                    if (maxOffset > request.getPullFromThisOffset()) {
+                    long newestOffset = maxOffset;
+                    if (newestOffset <= request.getPullFromThisOffset()) {
+                        // 尝试取最新Offset
+                        newestOffset = this.brokerController.getMessageStore().getMaxOffsetInQuque(topic, queueId);
+                    }
+
+                    if (newestOffset > request.getPullFromThisOffset()
+                            && this.messageFilter.isMessageMatched(request.getSubscriptionData(), tagsCode)) {
                         try {
-                            this.brokerController.getPullMessageProcessor().excuteRequestWhenWakeup(
-                                request.getClientChannel(), request.getRequestCommand());
+                            this.brokerController.getPullMessageProcessor().excuteRequestWhenWakeup(request.getClientChannel(),
+                                request.getRequestCommand());
                         }
                         catch (RemotingCommandException e) {
                             log.error("", e);
                         }
                         continue;
                     }
-                    // 尝试取最新Offset
-                    else {
-                        final long newestOffset =
-                                this.brokerController.getMessageStore().getMaxOffsetInQuque(topic, queueId);
-                        if (newestOffset > request.getPullFromThisOffset()) {
-                            try {
-                                this.brokerController.getPullMessageProcessor().excuteRequestWhenWakeup(
-                                    request.getClientChannel(), request.getRequestCommand());
-                            }
-                            catch (RemotingCommandException e) {
-                                log.error("", e);
-                            }
-                            continue;
-                        }
-                    }
 
                     // 查看是否超时
-                    if (System.currentTimeMillis() >= (request.getSuspendTimestamp() + request
-                        .getTimeoutMillis())) {
+                    if (System.currentTimeMillis() >= (request.getSuspendTimestamp() + request.getTimeoutMillis())) {
                         try {
-                            this.brokerController.getPullMessageProcessor().excuteRequestWhenWakeup(
-                                request.getClientChannel(), request.getRequestCommand());
+                            this.brokerController.getPullMessageProcessor().excuteRequestWhenWakeup(request.getClientChannel(),
+                                request.getRequestCommand());
                         }
                         catch (RemotingCommandException e) {
                             log.error("", e);

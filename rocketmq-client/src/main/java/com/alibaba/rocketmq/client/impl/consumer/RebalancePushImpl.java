@@ -15,6 +15,10 @@
  */
 package com.alibaba.rocketmq.client.impl.consumer;
 
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+
 import com.alibaba.rocketmq.client.consumer.AllocateMessageQueueStrategy;
 import com.alibaba.rocketmq.client.consumer.store.OffsetStore;
 import com.alibaba.rocketmq.client.consumer.store.ReadOffsetType;
@@ -26,10 +30,6 @@ import com.alibaba.rocketmq.common.consumer.ConsumeFromWhere;
 import com.alibaba.rocketmq.common.message.MessageQueue;
 import com.alibaba.rocketmq.common.protocol.heartbeat.ConsumeType;
 import com.alibaba.rocketmq.common.protocol.heartbeat.MessageModel;
-
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
 
 
 /**
@@ -45,9 +45,8 @@ public class RebalancePushImpl extends RebalanceImpl {
     }
 
 
-    public RebalancePushImpl(String consumerGroup, MessageModel messageModel,
-            AllocateMessageQueueStrategy allocateMessageQueueStrategy, MQClientInstance mQClientFactory,
-            DefaultMQPushConsumerImpl defaultMQPushConsumerImpl) {
+    public RebalancePushImpl(String consumerGroup, MessageModel messageModel, AllocateMessageQueueStrategy allocateMessageQueueStrategy,
+            MQClientInstance mQClientFactory, DefaultMQPushConsumerImpl defaultMQPushConsumerImpl) {
         super(consumerGroup, messageModel, allocateMessageQueueStrategy, mQClientFactory);
         this.defaultMQPushConsumerImpl = defaultMQPushConsumerImpl;
     }
@@ -65,8 +64,7 @@ public class RebalancePushImpl extends RebalanceImpl {
     @Override
     public long computePullFromWhere(MessageQueue mq) {
         long result = -1;
-        final ConsumeFromWhere consumeFromWhere =
-                this.defaultMQPushConsumerImpl.getDefaultMQPushConsumer().getConsumeFromWhere();
+        final ConsumeFromWhere consumeFromWhere = this.defaultMQPushConsumerImpl.getDefaultMQPushConsumer().getConsumeFromWhere();
         final OffsetStore offsetStore = this.defaultMQPushConsumerImpl.getOffsetStore();
         switch (consumeFromWhere) {
         case CONSUME_FROM_LAST_OFFSET_AND_FROM_MIN_WHEN_BOOT_FIRST:
@@ -125,10 +123,8 @@ public class RebalancePushImpl extends RebalanceImpl {
                 }
                 else {
                     try {
-                        long timestamp =
-                                UtilAll.parseDate(
-                                    this.defaultMQPushConsumerImpl.getDefaultMQPushConsumer()
-                                        .getConsumeTimestamp(), UtilAll.yyyyMMddHHmmss).getTime();
+                        long timestamp = UtilAll.parseDate(this.defaultMQPushConsumerImpl.getDefaultMQPushConsumer().getConsumeTimestamp(),
+                            UtilAll.yyyyMMddHHmmss).getTime();
                         result = this.mQClientFactory.getMQAdminImpl().searchOffset(mq, timestamp);
                     }
                     catch (MQClientException e) {
@@ -153,8 +149,8 @@ public class RebalancePushImpl extends RebalanceImpl {
     @Override
     public void messageQueueChanged(String topic, Set<MessageQueue> mqAll, Set<MessageQueue> mqDivided) {
     }
-    private final static long UnlockDelayTimeMills = Long.parseLong(System.getProperty(
-            "rocketmq.client.unlockDelayTimeMills", "20000"));
+
+    private final static long UnlockDelayTimeMills = Long.parseLong(System.getProperty("rocketmq.client.unlockDelayTimeMills", "20000"));
 
 
     private boolean unlockDelay(final MessageQueue mq, final ProcessQueue pq) {
@@ -169,11 +165,12 @@ public class RebalancePushImpl extends RebalanceImpl {
                 }
             }, UnlockDelayTimeMills, TimeUnit.MILLISECONDS);
         }
-        else{
-            this.unlock(mq,true);
+        else {
+            this.unlock(mq, true);
         }
         return true;
     }
+
 
     @Override
     public boolean removeUnnecessaryMessageQueue(MessageQueue mq, ProcessQueue pq) {
@@ -191,10 +188,9 @@ public class RebalancePushImpl extends RebalanceImpl {
                     }
                 }
                 else {
-                    log.warn(
-                            "[WRONG]mq is consuming, so can not unlock it, {}. maybe hanged for a while, {}",//
-                            mq,//
-                            pq.getTryUnlockTimes());
+                    log.warn("[WRONG]mq is consuming, so can not unlock it, {}. maybe hanged for a while, {}", //
+                        mq, //
+                        pq.getTryUnlockTimes());
 
                     pq.incTryUnlockTimes();
                 }
@@ -206,6 +202,12 @@ public class RebalancePushImpl extends RebalanceImpl {
             return false;
         }
         return true;
+    }
+
+
+    @Override
+    public void removeDirtyOffset(final MessageQueue mq) {
+        this.defaultMQPushConsumerImpl.getOffsetStore().removeOffset(mq);
     }
 
 

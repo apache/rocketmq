@@ -15,16 +15,6 @@
  */
 package com.alibaba.rocketmq.broker.processor;
 
-import io.netty.channel.ChannelHandlerContext;
-
-import java.net.InetSocketAddress;
-import java.net.SocketAddress;
-import java.util.List;
-import java.util.Random;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.alibaba.rocketmq.broker.BrokerController;
 import com.alibaba.rocketmq.broker.mqtrace.SendMessageContext;
 import com.alibaba.rocketmq.broker.mqtrace.SendMessageHook;
@@ -50,6 +40,14 @@ import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
 import com.alibaba.rocketmq.remoting.netty.NettyRequestProcessor;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 import com.alibaba.rocketmq.store.MessageExtBrokerInner;
+import io.netty.channel.ChannelHandlerContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.net.InetSocketAddress;
+import java.net.SocketAddress;
+import java.util.List;
+import java.util.Random;
 
 
 /**
@@ -284,16 +282,18 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
         if (hasSendMessageHook()) {
             for (SendMessageHook hook : this.sendMessageHookList) {
                 try {
-                    final SendMessageRequestHeader requestHeader =
-                            (SendMessageRequestHeader) request
-                                .decodeCommandCustomHeader(SendMessageRequestHeader.class);
-                    context.setProducerGroup(requestHeader.getProducerGroup());
-                    context.setTopic(requestHeader.getTopic());
-                    context.setBodyLength(request.getBody().length);
-                    context.setMsgProps(requestHeader.getProperties());
-                    context.setBornHost(RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
-                    context.setBrokerAddr(this.brokerController.getBrokerAddr());
-                    context.setQueueId(requestHeader.getQueueId());
+                    final SendMessageRequestHeader requestHeader = parseRequestHeader(request);
+
+                    if(null != requestHeader){
+                        context.setProducerGroup(requestHeader.getProducerGroup());
+                        context.setTopic(requestHeader.getTopic());
+                        context.setBodyLength(request.getBody().length);
+                        context.setMsgProps(requestHeader.getProperties());
+                        context.setBornHost(RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
+                        context.setBrokerAddr(this.brokerController.getBrokerAddr());
+                        context.setQueueId(requestHeader.getQueueId());
+                    }
+
                     hook.sendMessageBefore(context);
                     requestHeader.setProperties(context.getMsgProps());
                 }

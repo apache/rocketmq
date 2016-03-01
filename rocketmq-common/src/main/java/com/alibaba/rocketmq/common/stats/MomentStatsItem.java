@@ -1,12 +1,11 @@
 package com.alibaba.rocketmq.common.stats;
 
+import com.alibaba.rocketmq.common.UtilAll;
+import org.slf4j.Logger;
+
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
-
-import org.slf4j.Logger;
-
-import com.alibaba.rocketmq.common.UtilAll;
 
 
 public class MomentStatsItem {
@@ -35,6 +34,8 @@ public class MomentStatsItem {
             public void run() {
                 try {
                     printAtMinutes();
+
+                    MomentStatsItem.this.value.set(0);
                 }
                 catch (Throwable e) {
                 }
@@ -50,7 +51,6 @@ public class MomentStatsItem {
             this.statsKey,//
             this.value.get()));
     }
-
 
     public AtomicLong getValue() {
         return value;

@@ -103,6 +103,8 @@ public class BrokerConfig {
     private boolean notifyConsumerIdsChangedEnable = true;
     // 高速模式
     private boolean highSpeedMode = false;
+    //商业化日志采集开关
+    private boolean commercialEnable = true;
 
     // 通过Java堆来传输消息
     private boolean transferMsgByHeap = true;
@@ -400,5 +402,13 @@ public class BrokerConfig {
 
     public void setClientManageThreadPoolNums(int clientManageThreadPoolNums) {
         this.clientManageThreadPoolNums = clientManageThreadPoolNums;
+    }
+
+    public boolean isCommercialEnable() {
+        return commercialEnable;
+    }
+
+    public void setCommercialEnable(final boolean commercialEnable) {
+        this.commercialEnable = commercialEnable;
     }
 }

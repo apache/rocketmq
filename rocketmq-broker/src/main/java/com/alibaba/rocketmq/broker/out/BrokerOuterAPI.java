@@ -28,21 +28,13 @@ import com.alibaba.rocketmq.common.namesrv.RegisterBrokerResult;
 import com.alibaba.rocketmq.common.namesrv.TopAddressing;
 import com.alibaba.rocketmq.common.protocol.RequestCode;
 import com.alibaba.rocketmq.common.protocol.ResponseCode;
-import com.alibaba.rocketmq.common.protocol.body.ConsumerOffsetSerializeWrapper;
-import com.alibaba.rocketmq.common.protocol.body.KVTable;
-import com.alibaba.rocketmq.common.protocol.body.RegisterBrokerBody;
-import com.alibaba.rocketmq.common.protocol.body.SubscriptionGroupWrapper;
-import com.alibaba.rocketmq.common.protocol.body.TopicConfigSerializeWrapper;
+import com.alibaba.rocketmq.common.protocol.body.*;
 import com.alibaba.rocketmq.common.protocol.header.namesrv.RegisterBrokerRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.namesrv.RegisterBrokerResponseHeader;
 import com.alibaba.rocketmq.common.protocol.header.namesrv.UnRegisterBrokerRequestHeader;
 import com.alibaba.rocketmq.remoting.RPCHook;
 import com.alibaba.rocketmq.remoting.RemotingClient;
-import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
-import com.alibaba.rocketmq.remoting.exception.RemotingConnectException;
-import com.alibaba.rocketmq.remoting.exception.RemotingSendRequestException;
-import com.alibaba.rocketmq.remoting.exception.RemotingTimeoutException;
-import com.alibaba.rocketmq.remoting.exception.RemotingTooMuchRequestException;
+import com.alibaba.rocketmq.remoting.exception.*;
 import com.alibaba.rocketmq.remoting.netty.NettyClientConfig;
 import com.alibaba.rocketmq.remoting.netty.NettyRemotingClient;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
@@ -116,14 +108,14 @@ public class BrokerOuterAPI {
 
 
     private RegisterBrokerResult registerBroker(//
-            final String namesrvAddr,//
-            final String clusterName,// 1
-            final String brokerAddr,// 2
-            final String brokerName,// 3
-            final long brokerId,// 4
-            final String haServerAddr,// 5
+            final String namesrvAddr, //
+            final String clusterName, // 1
+            final String brokerAddr, // 2
+            final String brokerName, // 3
+            final long brokerId, // 4
+            final String haServerAddr, // 5
             final TopicConfigSerializeWrapper topicConfigWrapper, // 6
-            final List<String> filterServerList,// 7
+            final List<String> filterServerList, // 7
             final boolean oneway// 8
     ) throws RemotingCommandException, MQBrokerException, RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException,
             InterruptedException {
@@ -173,13 +165,13 @@ public class BrokerOuterAPI {
 
 
     public RegisterBrokerResult registerBrokerAll(//
-            final String clusterName,// 1
-            final String brokerAddr,// 2
-            final String brokerName,// 3
-            final long brokerId,// 4
-            final String haServerAddr,// 5
-            final TopicConfigSerializeWrapper topicConfigWrapper,// 6
-            final List<String> filterServerList,// 7
+            final String clusterName, // 1
+            final String brokerAddr, // 2
+            final String brokerName, // 3
+            final long brokerId, // 4
+            final String haServerAddr, // 5
+            final TopicConfigSerializeWrapper topicConfigWrapper, // 6
+            final List<String> filterServerList, // 7
             final boolean oneway// 8
     ) {
         RegisterBrokerResult registerBrokerResult = null;
@@ -188,9 +180,8 @@ public class BrokerOuterAPI {
         if (nameServerAddressList != null) {
             for (String namesrvAddr : nameServerAddressList) {
                 try {
-                    RegisterBrokerResult result =
-                            this.registerBroker(namesrvAddr, clusterName, brokerAddr, brokerName, brokerId, haServerAddr,
-                                topicConfigWrapper, filterServerList, oneway);
+                    RegisterBrokerResult result = this.registerBroker(namesrvAddr, clusterName, brokerAddr, brokerName, brokerId,
+                        haServerAddr, topicConfigWrapper, filterServerList, oneway);
                     if (result != null) {
                         registerBrokerResult = result;
                     }
@@ -208,10 +199,10 @@ public class BrokerOuterAPI {
 
 
     public void unregisterBroker(//
-            final String namesrvAddr,//
-            final String clusterName,// 1
-            final String brokerAddr,// 2
-            final String brokerName,// 3
+            final String namesrvAddr, //
+            final String clusterName, // 1
+            final String brokerAddr, // 2
+            final String brokerName, // 3
             final long brokerId// 4
     ) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, InterruptedException, MQBrokerException {
         UnRegisterBrokerRequestHeader requestHeader = new UnRegisterBrokerRequestHeader();
@@ -236,9 +227,9 @@ public class BrokerOuterAPI {
 
 
     public void unregisterBrokerAll(//
-            final String clusterName,// 1
-            final String brokerAddr,// 2
-            final String brokerName,// 3
+            final String clusterName, // 1
+            final String brokerAddr, // 2
+            final String brokerName, // 3
             final long brokerId// 4
     ) {
         List<String> nameServerAddressList = this.remotingClient.getNameServerAddressList();
@@ -260,7 +251,7 @@ public class BrokerOuterAPI {
             RemotingTimeoutException, InterruptedException, MQBrokerException {
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_ALL_TOPIC_CONFIG, null);
 
-        RemotingCommand response = this.remotingClient.invokeSync(MixAll.brokerVIPChannel(addr), request, 3000);
+        RemotingCommand response = this.remotingClient.invokeSync(MixAll.brokerVIPChannel(true, addr), request, 3000);
         assert response != null;
         switch (response.getCode()) {
         case ResponseCode.SUCCESS: {

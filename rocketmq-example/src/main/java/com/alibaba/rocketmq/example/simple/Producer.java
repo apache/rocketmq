@@ -45,7 +45,7 @@ public class Producer {
         for (int i = 0; i < 10000000; i++)
             try {
                 {
-                    Message msg = new Message("Jodie_topic_1023",// topic
+                    Message msg = new Message("TopicTest",// topic
                         "TagA",// tag
                         "OrderID188",// key
                         ("Hello MetaQ").getBytes());// body

@@ -1,14 +1,14 @@
 package com.alibaba.rocketmq.common.protocol.body;
 
-import java.util.Date;
-
 import com.alibaba.rocketmq.common.UtilAll;
 import com.alibaba.rocketmq.common.message.MessageQueue;
+
+import java.util.Date;
 
 
 /**
  * description
- * 
+ *
  * @author: manhong.yqd<jodie.yqd@gmail.com>
  * @since: 14-5-28
  */
@@ -17,6 +17,7 @@ public class QueueTimeSpan {
     private long minTimeStamp;
     private long maxTimeStamp;
     private long consumeTimeStamp;
+    private long delayTime;
 
 
     public MessageQueue getMessageQueue() {
@@ -71,5 +72,15 @@ public class QueueTimeSpan {
 
     public String getConsumeTimeStampStr() {
         return UtilAll.formatDate(new Date(consumeTimeStamp), UtilAll.yyyy_MM_dd_HH_mm_ss_SSS);
+    }
+
+
+    public long getDelayTime() {
+        return delayTime;
+    }
+
+
+    public void setDelayTime(long delayTime) {
+        this.delayTime = delayTime;
     }
 }
