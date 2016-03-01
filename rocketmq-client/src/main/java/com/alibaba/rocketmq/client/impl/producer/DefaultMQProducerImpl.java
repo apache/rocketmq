@@ -611,9 +611,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
         SendMessageContext context = null;
         if (brokerAddr != null) {
-            if (this.defaultMQProducer.isSendMessageWithVIPChannel()) {
-                brokerAddr = MixAll.brokerVIPChannel(brokerAddr);
-            }
+            brokerAddr = MixAll.brokerVIPChannel(this.defaultMQProducer.isSendMessageWithVIPChannel(), brokerAddr);
 
             byte[] prevBody = msg.getBody();
             try {
@@ -641,6 +639,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
                 if (this.hasSendMessageHook()) {
                     context = new SendMessageContext();
+                    context.setProducer(this);
                     context.setProducerGroup(this.defaultMQProducer.getProducerGroup());
                     context.setCommunicationMode(communicationMode);
                     context.setBornHost(this.defaultMQProducer.getClientIP());
@@ -682,7 +681,9 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                         communicationMode, // 6
                         sendCallback, // 7
                         topicPublishInfo, // 8
-                        this.mQClientFactory, this.defaultMQProducer.getRetryTimesWhenSendFailed());
+                        this.mQClientFactory,//9
+                        this.defaultMQProducer.getRetryTimesWhenSendFailed(),//10
+                        context );
                     break;
                 case ONEWAY:
                 case SYNC:
@@ -692,7 +693,8 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                         msg, // 3
                         requestHeader, // 4
                         timeout, // 5
-                        communicationMode// 6
+                        communicationMode,// 6
+                        context
                     );
                     break;
                 default:

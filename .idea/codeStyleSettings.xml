@@ -6,8 +6,6 @@
         <option name="LINE_SEPARATOR" value="&#10;" />
         <option name="GENERATE_FINAL_LOCALS" value="true" />
         <option name="GENERATE_FINAL_PARAMETERS" value="true" />
-        <option name="VISIBILITY" value="private" />
-        <option name="USE_FQ_CLASS_NAMES" value="true" />
         <option name="JD_ADD_BLANK_AFTER_PARM_COMMENTS" value="true" />
         <option name="JD_ADD_BLANK_AFTER_RETURN" value="true" />
         <option name="JD_PARAM_DESCRIPTION_ON_NEW_LINE" value="true" />

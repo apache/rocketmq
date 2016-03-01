@@ -314,27 +314,6 @@ public class PullMessageProcessor implements NettyRequestProcessor {
             switch (getMessageResult.getStatus()) {
             case FOUND:
                 response.setCode(ResponseCode.SUCCESS);
-
-                // 消息轨迹：记录客户端拉取的消息记录（不表示消费成功）
-                if (this.hasConsumeMessageHook()) {
-                    // 执行hook
-                    ConsumeMessageContext context = new ConsumeMessageContext();
-                    context.setConsumerGroup(requestHeader.getConsumerGroup());
-                    context.setTopic(requestHeader.getTopic());
-                    context.setClientHost(RemotingHelper.parseChannelRemoteAddr(channel));
-                    context.setStoreHost(this.brokerController.getBrokerAddr());
-                    context.setQueueId(requestHeader.getQueueId());
-
-                    final SocketAddress storeHost = new InetSocketAddress(brokerController.getBrokerConfig().getBrokerIP1(),
-                        brokerController.getNettyServerConfig().getListenPort());
-                    Map<String, Long> messageIds = this.brokerController.getMessageStore().getMessageIds(requestHeader.getTopic(),
-                        requestHeader.getQueueId(), requestHeader.getQueueOffset(),
-                        requestHeader.getQueueOffset() + getMessageResult.getMessageCount(), storeHost);
-                    context.setMessageIds(messageIds);
-                    context.setBodyLength(getMessageResult.getBufferTotalSize() / getMessageResult.getMessageCount());
-                    this.executeConsumeMessageHookBefore(context);
-                }
-
                 break;
             case MESSAGE_WAS_REMOVING:
                 response.setCode(ResponseCode.PULL_RETRY_IMMEDIATELY);
@@ -384,34 +363,58 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                 break;
             }
 
-            // For commercial
+            // 消息轨迹 & 商业化：记录客户端拉取的消息记录（不表示消费成功）
+            if (this.hasConsumeMessageHook()) {
 
-            switch (response.getCode()) {
-            case ResponseCode.SUCCESS:
-                this.brokerController.getBrokerStatsManager().incCommercialGroupRcvTimes(requestHeader.getConsumerGroup(),
-                    requestHeader.getTopic(), BrokerStatsManager.StatsType.RCV_SUCCESS.toString(),
-                    getMessageResult.getMsgCount4Commercial());
+                ConsumeMessageContext context = new ConsumeMessageContext();
+                context.setConsumerGroup(requestHeader.getConsumerGroup());
+                context.setTopic(requestHeader.getTopic());
+                context.setClientHost(RemotingHelper.parseChannelRemoteAddr(channel));
+                context.setStoreHost(this.brokerController.getBrokerAddr());
+                context.setQueueId(requestHeader.getQueueId());
 
-                this.brokerController.getBrokerStatsManager().incCommercialGroupRcvSize(requestHeader.getConsumerGroup(),
-                    requestHeader.getTopic(), BrokerStatsManager.StatsType.RCV_SUCCESS.toString(), getMessageResult.getBufferTotalSize());
+                String owner = request.getExtFields().get(BrokerStatsManager.COMMERCIAL_OWNER);
 
-                break;
-            case ResponseCode.PULL_NOT_FOUND:
-                if (!brokerAllowSuspend) {
-                    // 如果客户端的pull请求没有命中，会在broker阻塞该长轮询，特定时间或者条件下，由broker模拟一次pull请求
-                    // 针对这两次pull请求，对于被阻塞的那次请求，我们不作计数
-                    this.brokerController.getBrokerStatsManager().incCommercialGroupRcvEpolls(requestHeader.getConsumerGroup(),
-                        requestHeader.getTopic(), BrokerStatsManager.StatsType.RCV_EPOLLS.toString(), 1);
+                switch (response.getCode()) {
+                    case ResponseCode.SUCCESS:
+                        //消息轨迹
+                        final SocketAddress storeHost = new InetSocketAddress(brokerController.getBrokerConfig().getBrokerIP1(),
+                                brokerController.getNettyServerConfig().getListenPort());
+                        Map<String, Long> messageIds = this.brokerController.getMessageStore().getMessageIds(requestHeader.getTopic(),
+                                requestHeader.getQueueId(), requestHeader.getQueueOffset(),
+                                requestHeader.getQueueOffset() + getMessageResult.getMessageCount(), storeHost);
+                        context.setMessageIds(messageIds);
+                        context.setBodyLength(getMessageResult.getBufferTotalSize() / getMessageResult.getMessageCount());
+
+                        //ONS商业化
+                        context.setCommercialRcvStats(BrokerStatsManager.StatsType.RCV_SUCCESS);
+                        context.setCommercialRcvTimes(getMessageResult.getMsgCount4Commercial());
+                        context.setCommercialRcvSize(getMessageResult.getBufferTotalSize());
+                        context.setCommercialOwner(owner);
+
+                        break;
+                    case ResponseCode.PULL_NOT_FOUND:
+                        if (!brokerAllowSuspend) {
+                            // 如果客户端的pull请求没有命中，会在broker阻塞该长轮询，特定时间或者条件下，由broker模拟一次pull请求
+                            // 针对这两次pull请求，对于被阻塞的那次请求，我们不作计数
+                            context.setCommercialRcvStats(BrokerStatsManager.StatsType.RCV_EPOLLS);
+                            context.setCommercialRcvTimes(1);
+                            context.setCommercialOwner(owner);
+
+                        }
+                        break;
+                    case ResponseCode.PULL_RETRY_IMMEDIATELY:
+                    case ResponseCode.PULL_OFFSET_MOVED:
+                        context.setCommercialRcvStats(BrokerStatsManager.StatsType.RCV_EPOLLS);
+                        context.setCommercialRcvTimes(1);
+                        context.setCommercialOwner(owner);
+                        break;
+                    default:
+                        assert false;
+                        break;
                 }
-                break;
-            case ResponseCode.PULL_RETRY_IMMEDIATELY:
-            case ResponseCode.PULL_OFFSET_MOVED:
-                this.brokerController.getBrokerStatsManager().incCommercialGroupRcvEpolls(requestHeader.getConsumerGroup(),
-                    requestHeader.getTopic(), BrokerStatsManager.StatsType.RCV_EPOLLS.toString(), 1);
-                break;
-            default:
-                assert false;
 
+                this.executeConsumeMessageHookBefore(context);
             }
 
             switch (response.getCode()) {
@@ -460,7 +463,7 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                     }
 
                     PullRequest pullRequest = new PullRequest(request, channel, pollingTimeMills,
-                        this.brokerController.getMessageStore().now(), requestHeader.getQueueOffset());
+                        this.brokerController.getMessageStore().now(), requestHeader.getQueueOffset(), subscriptionData);
                     this.brokerController.getPullRequestHoldService().suspendPullRequest(requestHeader.getTopic(),
                         requestHeader.getQueueId(), pullRequest);
                     response = null;
