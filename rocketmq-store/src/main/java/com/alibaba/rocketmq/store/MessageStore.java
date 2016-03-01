@@ -15,13 +15,13 @@
  */
 package com.alibaba.rocketmq.store;
 
+import com.alibaba.rocketmq.common.message.MessageExt;
+import com.alibaba.rocketmq.common.protocol.heartbeat.SubscriptionData;
+
 import java.net.SocketAddress;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
-
-import com.alibaba.rocketmq.common.message.MessageExt;
-import com.alibaba.rocketmq.common.protocol.heartbeat.SubscriptionData;
 
 
 /**
@@ -205,4 +205,6 @@ public interface MessageStore {
 
 
     public long dispatchBehindBytes();
+
+    public long flush();
 }
