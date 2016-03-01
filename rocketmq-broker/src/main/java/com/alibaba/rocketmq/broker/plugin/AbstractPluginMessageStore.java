@@ -196,5 +196,17 @@ public abstract class AbstractPluginMessageStore implements MessageStore {
     public long flush() {
         return next.flush();
     }
-
+    @Override
+    public long getConfirmOffset() {
+        return next.getConfirmOffset();
+    }
+    @Override
+    public void setConfirmOffset(long phyOffset) {
+        next.setConfirmOffset(phyOffset);
+    }
+    @Override
+    public void resetWriteOffset(long phyOffset) {
+        next.resetWriteOffset(phyOffset);
+    }
+    
 }

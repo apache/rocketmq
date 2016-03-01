@@ -215,4 +215,18 @@ public class MockMessageStore implements MessageStore {
         return 0;
     }
 
+    @Override
+    public void resetWriteOffset(long phyOffset) {
+        
+    }
+
+    @Override
+    public void setConfirmOffset(long phyOffset) {
+    }
+
+    @Override
+    public long getConfirmOffset() {
+        return 0;
+    }
+
 }

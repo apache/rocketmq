@@ -33,4 +33,5 @@ public class LoggerName {
     public static final String CommercialLoggerName = "RocketmqCommercial";
     public static final String FlowControlLoggerName = "RocketmqFlowControl";
     public static final String RocketmqAuthorizeLoggerName = "RocketmqAuthorize";
+    public static final String DuplicationLoggerName = "RocketmqDuplication";
 }
