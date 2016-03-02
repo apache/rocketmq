@@ -25,46 +25,46 @@ import com.alibaba.rocketmq.store.config.MessageStoreConfig;
 public class SendMessageTest {
     @Test
     public void test_sendMessage() throws Exception {
-        BrokerController brokerController = new BrokerController(//
-                new BrokerConfig(), //
-                new NettyServerConfig(), //
-                new NettyClientConfig(), //
-                new MessageStoreConfig());
-        boolean initResult = brokerController.initialize();
-        System.out.println("initialize " + initResult);
-
-        brokerController.start();
-
-        MQClientAPIImpl client = new MQClientAPIImpl(new NettyClientConfig(), null, null, null);
-        client.start();
-
-        for (int i = 0; i < 100000; i++) {
-            String topic = "UnitTestTopic_" + i % 3;
-            Message msg = new Message(topic, "TAG1 TAG2", "100200300", ("Hello, Nice world\t" + i).getBytes());
-            msg.setDelayTimeLevel(i % 3 + 1);
-
-            try {
-                SendMessageRequestHeader requestHeader = new SendMessageRequestHeader();
-                requestHeader.setProducerGroup("abc");
-                requestHeader.setTopic(msg.getTopic());
-                requestHeader.setDefaultTopic(MixAll.DEFAULT_TOPIC);
-                requestHeader.setDefaultTopicQueueNums(4);
-                requestHeader.setQueueId(i % 4);
-                requestHeader.setSysFlag(0);
-                requestHeader.setBornTimestamp(System.currentTimeMillis());
-                requestHeader.setFlag(msg.getFlag());
-                requestHeader.setProperties(MessageDecoder.messageProperties2String(msg.getProperties()));
-
-                SendResult result =
-                        client.sendMessage("127.0.0.1:10911", "brokerName", msg, requestHeader, 1000 * 5, CommunicationMode.SYNC);
-                System.out.println(i + "\t" + result);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
-
-        client.shutdown();
-
-        brokerController.shutdown();
+//        BrokerController brokerController = new BrokerController(//
+//                new BrokerConfig(), //
+//                new NettyServerConfig(), //
+//                new NettyClientConfig(), //
+//                new MessageStoreConfig());
+//        boolean initResult = brokerController.initialize();
+//        System.out.println("initialize " + initResult);
+//
+//        brokerController.start();
+//
+//        MQClientAPIImpl client = new MQClientAPIImpl(new NettyClientConfig(), null, null, null);
+//        client.start();
+//
+//        for (int i = 0; i < 100000; i++) {
+//            String topic = "UnitTestTopic_" + i % 3;
+//            Message msg = new Message(topic, "TAG1 TAG2", "100200300", ("Hello, Nice world\t" + i).getBytes());
+//            msg.setDelayTimeLevel(i % 3 + 1);
+//
+//            try {
+//                SendMessageRequestHeader requestHeader = new SendMessageRequestHeader();
+//                requestHeader.setProducerGroup("abc");
+//                requestHeader.setTopic(msg.getTopic());
+//                requestHeader.setDefaultTopic(MixAll.DEFAULT_TOPIC);
+//                requestHeader.setDefaultTopicQueueNums(4);
+//                requestHeader.setQueueId(i % 4);
+//                requestHeader.setSysFlag(0);
+//                requestHeader.setBornTimestamp(System.currentTimeMillis());
+//                requestHeader.setFlag(msg.getFlag());
+//                requestHeader.setProperties(MessageDecoder.messageProperties2String(msg.getProperties()));
+//
+//                SendResult result =
+//                        client.sendMessage("127.0.0.1:10911", "brokerName", msg, requestHeader, 1000 * 5, CommunicationMode.SYNC);
+//                System.out.println(i + "\t" + result);
+//            } catch (Exception e) {
+//                e.printStackTrace();
+//            }
+//        }
+//
+//        client.shutdown();
+//
+//        brokerController.shutdown();
     }
 }

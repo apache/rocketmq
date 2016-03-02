@@ -253,42 +253,35 @@ public class MQAdminImpl {
 
         throw new MQClientException("The broker[" + mq.getBrokerName() + "] not exist", null);
     }
-
-
+    
     public MessageExt viewMessage(String msgId) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
-              
-        if (MessageClientIDSetter.isUniqID(msgId)) {
-            String[] topicKey = MessageClientIDSetter.splitTopicKey(msgId);
-            if (topicKey.length != 2) {
-                throw new MQClientException(ResponseCode.NO_MESSAGE, "query message by id finished, but no message.");
-            }
-            
-            QueryResult qr = queryMessage(topicKey[0], topicKey[1], 1, Long.MIN_VALUE, Long.MAX_VALUE, true);
-            if (qr.getMessageList().size() > 0) {
-                return qr.getMessageList().get(0);
-            }
-            else {
-                throw new MQClientException(ResponseCode.NO_MESSAGE, "query message by id finished, but no message.");
-            }
+
+        MessageId messageId = null;
+        try {
+            messageId = MessageDecoder.decodeMessageId(msgId);
         }
-        else {
-            MessageId messageId = null;
-            try {
-                messageId = MessageDecoder.decodeMessageId(msgId);
-            }
-            catch (Exception e) {
-                throw new MQClientException(ResponseCode.NO_MESSAGE, "query message by id finished, but no message.");
-            }
-            return this.mQClientFactory.getMQClientAPIImpl().viewMessage(RemotingUtil.socketAddress2String(messageId.getAddress()),
-                messageId.getOffset(), timeoutMillis);
+        catch (Exception e) {
+            throw new MQClientException(ResponseCode.NO_MESSAGE, "query message by id finished, but no message.");
         }
+        return this.mQClientFactory.getMQClientAPIImpl().viewMessage(RemotingUtil.socketAddress2String(messageId.getAddress()),
+            messageId.getOffset(), timeoutMillis);
     }
 
     public QueryResult queryMessage(String topic, String key, int maxNum, long begin, long end) throws MQClientException,
         InterruptedException {
         return queryMessage(topic, key, maxNum, begin, end, false);
-    }
+    }    
 
+    public MessageExt queryMessageByUniqKey(String topic, String uniqKey)  throws InterruptedException, MQClientException  {
+        QueryResult qr = this.queryMessage(topic, uniqKey, 1, Long.MIN_VALUE, Long.MAX_VALUE, true);
+        if (qr != null && qr.getMessageList() != null && qr.getMessageList().size() > 0) {
+            return qr.getMessageList().get(0);
+        }
+        else {
+            return null;
+        }
+    }
+    
     protected QueryResult queryMessage(String topic, String key, int maxNum, long begin, long end, boolean isUniqKey) throws MQClientException,
             InterruptedException {
         TopicRouteData topicRouteData = this.mQClientFactory.getAnExistTopicRouteData(topic);

@@ -439,6 +439,12 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         this.makeSureStateOK();
         return this.mQClientFactory.getMQAdminImpl().queryMessage(topic, key, maxNum, begin, end);
     }
+    
+    public MessageExt queryMessageByUniqKey(String topic, String uniqKey)
+            throws MQClientException, InterruptedException {
+        this.makeSureStateOK();
+        return this.mQClientFactory.getMQAdminImpl().queryMessageByUniqKey(topic, uniqKey);
+    }
 
 
     /**

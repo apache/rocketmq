@@ -52,7 +52,7 @@ public class MessageConst {
     public static final String PROPERTY_CORRECTION_FLAG = "CORRECTION_FLAG";
     public static final String PROPERTY_MQ2_FLAG = "MQ2_FLAG";
     public static final String PROPERTY_RECONSUME_TIME = "RECONSUME_TIME";
-    public static final String PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX="CLIENT_MSG_ID_KEYIDX";
+    public static final String PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX="UNIQ_KEY";
 
     public static final String KEY_SEPARATOR = " ";
 

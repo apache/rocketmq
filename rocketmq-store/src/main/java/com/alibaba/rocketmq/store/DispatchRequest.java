@@ -31,7 +31,7 @@ public class DispatchRequest {
     private final long consumeQueueOffset;
     private final String keys;
     private final boolean success;
-    private final int uniqKeyIdx;
+    private final String uniqKey;
     
     /**
      * 事务相关部分
@@ -49,7 +49,7 @@ public class DispatchRequest {
             final long storeTimestamp,// 6
             final long consumeQueueOffset,// 7
             final String keys,// 8
-            final int uniqKeyIdx, //唯一key索引
+            final String uniqKey, //唯一key索引
             /**
              * 事务相关部分
              */
@@ -64,7 +64,7 @@ public class DispatchRequest {
         this.storeTimestamp = storeTimestamp;
         this.consumeQueueOffset = consumeQueueOffset;
         this.keys = keys;
-        this.uniqKeyIdx = uniqKeyIdx;
+        this.uniqKey = uniqKey;
         
         /**
          * 事务相关部分
@@ -96,7 +96,7 @@ public class DispatchRequest {
         // 8
         this.keys = "";
         //9
-        this.uniqKeyIdx = -1;
+        this.uniqKey = null;
         
         /**
          * 事务相关部分
@@ -129,7 +129,7 @@ public class DispatchRequest {
         // 8
         this.keys = "";
         // 9
-        this.uniqKeyIdx = -1;
+        this.uniqKey = null;
 
         /**
          * 事务相关部分
@@ -194,8 +194,8 @@ public class DispatchRequest {
         return success;
     }
 
-    public int getUniqKeyIdx() {
-        return uniqKeyIdx;
+    public String getUniqKey() {
+        return uniqKey;
     }
     
     
