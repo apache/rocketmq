@@ -376,7 +376,20 @@ public class MQAdminImpl {
                     for (MessageExt msgExt : qr.getMessageList()) {
                         if (isUniqKey) {
                             if (msgExt.getMsgId().equals(key)) {
-                                messageList.add(msgExt);
+                                //只保存一条
+                                if (messageList.size() > 0) {
+                                    //如果已经存在了
+                                    if (messageList.get(0).getStoreTimestamp() < msgExt.getStoreTimestamp()) {
+                                        //并且现存的storetime < 新的storetime //存储新的
+                                        messageList.clear();
+                                        messageList.add(msgExt);
+                                    }
+                                    //否则什么也不做
+                                }
+                                else {
+                                    //如果尚未存在，则存储
+                                    messageList.add(msgExt);
+                                }
                             }
                             else {
                                 log.warn("queryMessage by uniqKey, find message key not matched, maybe hash duplicate {}", msgExt.toString());
@@ -406,7 +419,7 @@ public class MQAdminImpl {
                         }
                     }
                 }
-
+                
                 if (!messageList.isEmpty()) {
                     return new QueryResult(indexLastUpdateTimestamp, messageList);
                 }
