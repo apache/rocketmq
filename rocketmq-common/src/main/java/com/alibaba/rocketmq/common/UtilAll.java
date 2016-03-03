@@ -559,7 +559,7 @@ public class UtilAll {
      * @param ip
      * @return
      */
-    private static String ipToIPv4Str(byte[] ip) {
+    public static String ipToIPv4Str(byte[] ip) {
         if (ip.length != 4) {
             return null;
         }

@@ -14,6 +14,7 @@ import java.net.InetAddress;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Calendar;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -96,6 +97,41 @@ public class MessageClientIDSetter {
         nextStartTime = cal.getTimeInMillis();
     }
     
+    public static Date getNearlyTimeFromID(String msgID) {
+        ByteBuffer buf = ByteBuffer.allocate(8);
+        byte[] bytes = UtilAll.string2bytes(msgID);
+        buf.put((byte) 0);buf.put((byte) 0);buf.put((byte) 0);buf.put((byte) 0);
+        buf.put(bytes, 10, 4);
+        buf.position(0);
+        long spanMS = buf.getLong();
+        
+        Calendar cal = Calendar.getInstance();
+        long now = cal.getTimeInMillis();
+        cal.set(Calendar.DAY_OF_MONTH,1);//1号0点0分0秒
+        cal.set(Calendar.HOUR,0);
+        cal.set(Calendar.MINUTE,0);
+        cal.set(Calendar.SECOND,0);        
+        long monStartTime = cal.getTimeInMillis();
+        if (monStartTime + spanMS >= now) {
+            cal.add(Calendar.MONTH, -1);
+            monStartTime = cal.getTimeInMillis();
+        }
+        cal.setTimeInMillis(monStartTime + spanMS);
+        return cal.getTime();
+    }
+    
+    public static String getIPStrFromID(String msgID) {
+        byte[] ipBytes = getIPFromID(msgID);
+        return UtilAll.ipToIPv4Str(ipBytes);
+    }
+    
+    public static byte[] getIPFromID(String msgID) {  
+        byte[] result = new byte[4];
+        byte[] bytes = UtilAll.string2bytes(msgID);
+        System.arraycopy(bytes, 0, result, 0, 4);
+        return result;
+    }
+    
     private static synchronized String createUniqID() {
         if (validate) {
             //连接正常唯一id
@@ -154,6 +190,13 @@ public class MessageClientIDSetter {
         
         String id = createUniqID();
         System.out.println(id);
+        
+        String ip = getIPStrFromID(id);
+        
+        Date date = getNearlyTimeFromID(id);
+        
+        System.out.println(ip);
+        System.out.println(date.toString());
         
         System.out.println("end...");
         
