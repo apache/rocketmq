@@ -374,24 +374,34 @@ public class MQAdminImpl {
                     }
 
                     for (MessageExt msgExt : qr.getMessageList()) {
-                        String keys = msgExt.getKeys();
-                        if (keys != null) {
-                            boolean matched = false;
-                            String[] keyArray = keys.split(MessageConst.KEY_SEPARATOR);
-                            if (keyArray != null) {
-                                for (String k : keyArray) {
-                                    if (key.equals(k)) {
-                                        matched = true;
-                                        break;
-                                    }
-                                }
-                            }
-
-                            if (matched) {
+                        if (isUniqKey) {
+                            if (msgExt.getMsgId().equals(key)) {
                                 messageList.add(msgExt);
                             }
                             else {
-                                log.warn("queryMessage, find message key not matched, maybe hash duplicate {}", msgExt.toString());
+                                log.warn("queryMessage by uniqKey, find message key not matched, maybe hash duplicate {}", msgExt.toString());
+                            }
+                        }
+                        else {
+                            String keys = msgExt.getKeys();
+                            if (keys != null) {
+                                boolean matched = false;
+                                String[] keyArray = keys.split(MessageConst.KEY_SEPARATOR);
+                                if (keyArray != null) {
+                                    for (String k : keyArray) {
+                                        if (key.equals(k)) {
+                                            matched = true;
+                                            break;
+                                        }
+                                    }
+                                }
+    
+                                if (matched) {
+                                    messageList.add(msgExt);
+                                }
+                                else {
+                                    log.warn("queryMessage, find message key not matched, maybe hash duplicate {}", msgExt.toString());
+                                }
                             }
                         }
                     }

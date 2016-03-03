@@ -583,13 +583,13 @@ public class UtilAll {
                         System.out.println("get IP " + ipToIPv4Str(ipByte));
                         //首先，必须能获得合法的IP字符串
                         if (ipByte.length == 4) {
-                            //判断是否是正确IP
-                            if (ipCheck(ipByte)) {    
-                                //判断是否是内网IP
-                                if (!isInternalIP(ipByte)) {
+                            //判断是否是正确IP                            
+ //                           if (ipCheck(ipByte)) {    
+//                                //判断是否是内网IP
+//                                if (!isInternalIP(ipByte)) {
                                     return ipByte;
-                                }
-                            }
+//                                }
+//                           }
                         }
                     } 
                 }

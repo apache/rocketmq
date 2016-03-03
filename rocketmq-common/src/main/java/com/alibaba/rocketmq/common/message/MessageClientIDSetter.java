@@ -44,7 +44,7 @@ public class MessageClientIDSetter {
     //2 bytes for counter,  6 bytes for timediff, 
     private static StringBuilder sb = null;
     
-    private static ByteBuffer buffer = ByteBuffer.allocate(6 + 2); 
+    private static ByteBuffer buffer = ByteBuffer.allocate(4 + 2); 
     
     private static final String TOPIC_KEY_SPLITTER = "#";
     
@@ -140,22 +140,7 @@ public class MessageClientIDSetter {
         //然后根据专有属性，取出idx, 在key中取出对应的key
         return msg.getProperty(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX);
     }
-    
-//    public static String[] splitTopicKey(String clientUniqID) {
-//        return clientUniqID.split(TOPIC_KEY_SPLITTER);
-//    }
         
-    public static boolean isUniqID(String id) {
-        //目前的任何一种生成方式，生成的ID长度都大于 MessageDecoder.MSG_ID_LENGTH * 2  32个16进制数
-        if (id.length() > MessageDecoder.MSG_ID_LENGTH * 2) {
-            //TODO 进一步判断
-            return true;
-        }
-        else {
-            return false;
-        }
-    }
-    
     public static void main(String[] args) throws Exception {
                            
          long threeday = 1000*60*60*24*3;
@@ -166,6 +151,11 @@ public class MessageClientIDSetter {
         
         System.out.println(Short.MAX_VALUE);
         System.out.println(Byte.MAX_VALUE);
+        
+        String id = createUniqID();
+        System.out.println(id);
+        
+        System.out.println("end...");
         
         //性能测试
         long begin = System.currentTimeMillis();

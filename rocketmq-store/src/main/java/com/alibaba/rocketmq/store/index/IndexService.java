@@ -200,7 +200,7 @@ public class IndexService {
 
                     if (f.isTimeMatched(begin, end)) {
                         // 最后一个文件需要加锁
-                        f.selectPhyOffset(phyOffsets, this.buildKey(topic, key, isUniqKey), maxNum, begin, end, lastFile);
+                        f.selectPhyOffset(phyOffsets, buildKey(topic, key, isUniqKey), maxNum, begin, end, lastFile);
                     }
 
                     // 再往前遍历时间更不符合
@@ -256,10 +256,12 @@ public class IndexService {
                 return;
             }                                    
             
-            indexFile = putKey(indexFile, msg, req.getUniqKey());
-            if (indexFile == null) {
-                log.error("putKey error commitlog {} uniqkey {}", req.getCommitLogOffset(), req.getUniqKey());
-                return;
+            if (req.getUniqKey() != null) {
+                indexFile = putKey(indexFile, msg, req.getUniqKey());
+                if (indexFile == null) {
+                    log.error("putKey error commitlog {} uniqkey {}", req.getCommitLogOffset(), req.getUniqKey());
+                    return;
+                }
             }
             
             if ((keys != null && keys.length() > 0)) {
