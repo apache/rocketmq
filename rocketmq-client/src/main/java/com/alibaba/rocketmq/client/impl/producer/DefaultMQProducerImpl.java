@@ -15,6 +15,13 @@
  */
 package com.alibaba.rocketmq.client.impl.producer;
 
+import java.io.IOException;
+import java.net.UnknownHostException;
+import java.util.*;
+import java.util.concurrent.*;
+
+import org.slf4j.Logger;
+
 import com.alibaba.rocketmq.client.QueryResult;
 import com.alibaba.rocketmq.client.Validators;
 import com.alibaba.rocketmq.client.exception.MQBrokerException;
@@ -41,12 +48,6 @@ import com.alibaba.rocketmq.common.sysflag.MessageSysFlag;
 import com.alibaba.rocketmq.remoting.RPCHook;
 import com.alibaba.rocketmq.remoting.common.RemotingHelper;
 import com.alibaba.rocketmq.remoting.exception.RemotingException;
-import org.slf4j.Logger;
-
-import java.io.IOException;
-import java.net.UnknownHostException;
-import java.util.*;
-import java.util.concurrent.*;
 
 
 /**
@@ -681,9 +682,9 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                         communicationMode, // 6
                         sendCallback, // 7
                         topicPublishInfo, // 8
-                        this.mQClientFactory,//9
-                        this.defaultMQProducer.getRetryTimesWhenSendFailed(),//10
-                        context );
+                        this.mQClientFactory, // 9
+                        this.defaultMQProducer.getRetryTimesWhenSendFailed(), // 10
+                        context);
                     break;
                 case ONEWAY:
                 case SYNC:
@@ -693,9 +694,8 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                         msg, // 3
                         requestHeader, // 4
                         timeout, // 5
-                        communicationMode,// 6
-                        context
-                    );
+                        communicationMode, // 6
+                        context);
                     break;
                 default:
                     assert false;
