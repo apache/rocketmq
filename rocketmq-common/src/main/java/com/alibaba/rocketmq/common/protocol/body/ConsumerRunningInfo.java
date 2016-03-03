@@ -212,7 +212,7 @@ public class ConsumerRunningInfo extends RemotingSerializable {
             // todo: 兼容旧版本客户端
             String property = prev.getProperties().getProperty(ConsumerRunningInfo.PROP_CONSUMER_START_TIMESTAMP);
             if (property == null) {
-                property = (String) prev.getProperties().get(ConsumerRunningInfo.PROP_CONSUMER_START_TIMESTAMP);
+                property = String.valueOf(prev.getProperties().get(ConsumerRunningInfo.PROP_CONSUMER_START_TIMESTAMP));
             }
             startForAWhile = (System.currentTimeMillis() - Long.parseLong(property)) > (1000 * 60 * 2);
         }
