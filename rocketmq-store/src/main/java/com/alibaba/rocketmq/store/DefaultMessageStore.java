@@ -31,6 +31,7 @@ import com.alibaba.rocketmq.store.index.IndexService;
 import com.alibaba.rocketmq.store.index.QueryOffsetResult;
 import com.alibaba.rocketmq.store.schedule.ScheduleMessageService;
 import com.alibaba.rocketmq.store.stats.BrokerStatsManager;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -1838,5 +1839,28 @@ public class DefaultMessageStore implements MessageStore {
 
     public long dispatchBehindBytes() {
         return this.reputMessageService.behind();
+    }
+
+    @Override
+    public long flush() {
+        return this.commitLog.flush();
+    }
+
+
+    @Override
+    public void resetWriteOffset(long phyOffset) {
+        throw new RuntimeException("unsupported method");
+    }
+
+
+    @Override
+    public void setConfirmOffset(long phyOffset) {
+        throw new RuntimeException("unsupported method");
+    }
+
+
+    @Override
+    public long getConfirmOffset() {
+        throw new RuntimeException("unsupported method");
     }
 }

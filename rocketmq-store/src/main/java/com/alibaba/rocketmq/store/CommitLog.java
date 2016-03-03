@@ -106,6 +106,14 @@ public class CommitLog {
         return -1;
     }
 
+    /**
+     * 刷盘操作
+     * @return 返回刷盘到了哪里
+     */
+    public long flush() {
+        this.mapedFileQueue.commit(0);
+        return this.mapedFileQueue.getCommittedWhere();
+    }
 
     public long rollNextFile(final long offset) {
         int mapedFileSize = this.defaultMessageStore.getMessageStoreConfig().getMapedFileSizeCommitLog();

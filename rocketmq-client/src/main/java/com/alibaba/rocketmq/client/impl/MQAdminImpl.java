@@ -84,6 +84,7 @@ public class MQAdminImpl {
             if (brokerDataList != null && !brokerDataList.isEmpty()) {
                 Collections.sort(brokerDataList);
 
+                boolean createOKAtLeastOnce = false;
                 MQClientException exception = null;
 
                 StringBuilder orderTopicString = new StringBuilder();
@@ -101,6 +102,7 @@ public class MQAdminImpl {
                             try {
                                 this.mQClientFactory.getMQClientAPIImpl().createTopic(addr, key, topicConfig, timeoutMillis);
                                 createOK = true;
+                                createOKAtLeastOnce = true;
                                 break;
                             } catch (Exception e) {
                                 if (4 == i) {
@@ -118,7 +120,7 @@ public class MQAdminImpl {
                     }
                 }
 
-                if (exception != null) {
+                if (exception != null && !createOKAtLeastOnce) {
                     throw exception;
                 }
             }
