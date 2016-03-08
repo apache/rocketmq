@@ -167,7 +167,7 @@ public interface MessageStore {
      * 根据消息Key查询消息
      */
     public QueryMessageResult queryMessage(final String topic, final String key, final int maxNum,
-            final long begin, final long end, final boolean isUniqKey);
+            final long begin, final long end);
 
 
     public void updateHaMasterAddress(final String newAddr);

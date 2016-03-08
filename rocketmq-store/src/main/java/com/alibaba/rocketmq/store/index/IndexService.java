@@ -181,7 +181,7 @@ public class IndexService {
 //        return queryOffset(topic, key, maxNum, begin, end, false);
 //    }
     
-    public QueryOffsetResult queryOffset(String topic, String key, int maxNum, long begin, long end, boolean isUniqKey) {
+    public QueryOffsetResult queryOffset(String topic, String key, int maxNum, long begin, long end) {
         List<Long> phyOffsets = new ArrayList<Long>(maxNum);
         // TODO 可能需要返回给最终用户
         long indexLastUpdateTimestamp = 0;
@@ -200,7 +200,7 @@ public class IndexService {
 
                     if (f.isTimeMatched(begin, end)) {
                         // 最后一个文件需要加锁
-                        f.selectPhyOffset(phyOffsets, buildKey(topic, key, isUniqKey), maxNum, begin, end, lastFile);
+                        f.selectPhyOffset(phyOffsets, buildKey(topic, key), maxNum, begin, end, lastFile);
                     }
 
                     // 再往前遍历时间更不符合
@@ -225,13 +225,8 @@ public class IndexService {
     }
 
 
-    private String buildKey(final String topic, final String key, final boolean isUniqKey) {
-        if (!isUniqKey) {
-            return topic + "#" + key;
-        }
-        else {
-            return key;
-        }
+    private String buildKey(final String topic, final String key) {
+        return topic + "#" + key;
     }
 
 
@@ -257,7 +252,7 @@ public class IndexService {
             }                                    
             
             if (req.getUniqKey() != null) {
-                indexFile = putKey(indexFile, msg, req.getUniqKey());
+                indexFile = putKey(indexFile, msg, buildKey(topic, req.getUniqKey()));
                 if (indexFile == null) {
                     log.error("putKey error commitlog {} uniqkey {}", req.getCommitLogOffset(), req.getUniqKey());
                     return;
@@ -270,7 +265,7 @@ public class IndexService {
                     String key = keyset[i]; 
                     // TODO 是否需要TRIM
                     if (key.length() > 0) {
-                            indexFile = putKey(indexFile, msg, buildKey(topic, key, false));
+                            indexFile = putKey(indexFile, msg, buildKey(topic, key));
                             if (indexFile == null) {
                                 log.error("putKey error commitlog {} uniqkey {}", req.getCommitLogOffset(), req.getUniqKey());
                                 return;

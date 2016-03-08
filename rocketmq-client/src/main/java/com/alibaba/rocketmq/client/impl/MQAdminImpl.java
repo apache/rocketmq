@@ -52,6 +52,9 @@ import java.util.concurrent.TimeUnit;
  * @since 2013-7-24
  */
 public class MQAdminImpl {
+    
+    private static final int MAX_UNIQ_KEY_SEARCH_NUM = 50;
+    
     private final Logger log = ClientLogger.getLog();
     private final MQClientInstance mQClientFactory;
     private long timeoutMillis = 6000;
@@ -280,7 +283,7 @@ public class MQAdminImpl {
         else {
             return null;
         }
-    }
+    }        
     
     protected QueryResult queryMessage(String topic, String key, int maxNum, long begin, long end, boolean isUniqKey) throws MQClientException,
             InterruptedException {
@@ -308,10 +311,14 @@ public class MQAdminImpl {
                         QueryMessageRequestHeader requestHeader = new QueryMessageRequestHeader();
                         requestHeader.setTopic(topic);
                         requestHeader.setKey(key);
-                        requestHeader.setMaxNum(maxNum);
+                        if (isUniqKey) {
+                            requestHeader.setMaxNum(MAX_UNIQ_KEY_SEARCH_NUM);                            
+                        }
+                        else {                            
+                            requestHeader.setMaxNum(maxNum);
+                        }
                         requestHeader.setBeginTimestamp(begin);
                         requestHeader.setEndTimestamp(end);
-                        requestHeader.setUniqKey(isUniqKey);
 
                         this.mQClientFactory.getMQClientAPIImpl().queryMessage(addr, requestHeader, timeoutMillis * 3,
                             new InvokeCallback() {
