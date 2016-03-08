@@ -91,10 +91,13 @@ public class MessageClientIDSetter {
         cal.set(Calendar.HOUR,0);
         cal.set(Calendar.MINUTE,0);
         cal.set(Calendar.SECOND,0);
-        //cal.set(Calendar.MILLISECOND,1);
+        cal.set(Calendar.MILLISECOND,0);
+        //cal.set(Calendar.MILLISECOND,1);        
         startTime = cal.getTimeInMillis();
+        System.out.println("start " + startTime);
         cal.add(Calendar.MONTH, 1);//下个月1号0点0分0秒
         nextStartTime = cal.getTimeInMillis();
+        System.out.println("next start " + nextStartTime);
     }
     
     public static Date getNearlyTimeFromID(String msgID) {
@@ -111,6 +114,7 @@ public class MessageClientIDSetter {
         cal.set(Calendar.HOUR,0);
         cal.set(Calendar.MINUTE,0);
         cal.set(Calendar.SECOND,0);        
+        cal.set(Calendar.MILLISECOND,0);
         long monStartTime = cal.getTimeInMillis();
         if (monStartTime + spanMS >= now) {
             cal.add(Calendar.MONTH, -1);
@@ -179,6 +183,13 @@ public class MessageClientIDSetter {
         
     public static void main(String[] args) throws Exception {
                            
+        
+        setStartTime(System.currentTimeMillis());
+        
+        Thread.currentThread().sleep(100);
+        
+        setStartTime(System.currentTimeMillis());
+        
          long threeday = 1000*60*60*24*3;
         System.out.println(Long.toBinaryString(threeday));
         
