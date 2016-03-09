@@ -665,8 +665,14 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                 if (requestHeader.getTopic().startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
                     String reconsumeTimes = MessageAccessor.getReconsumeTime(msg);
                     if (reconsumeTimes != null) {
-                        requestHeader.setReconsumeTimes(new Integer(reconsumeTimes));
+                        requestHeader.setReconsumeTimes(Integer.valueOf(reconsumeTimes));
                         MessageAccessor.clearProperty(msg, MessageConst.PROPERTY_RECONSUME_TIME);
+                    }
+
+                    String maxReconsumeTimes = MessageAccessor.getMaxReconsumeTimes(msg);
+                    if (maxReconsumeTimes != null) {
+                        requestHeader.setMaxReconsumeTimes(Integer.valueOf(maxReconsumeTimes));
+                        MessageAccessor.clearProperty(msg, MessageConst.PROPERTY_MAX_RECONSUME_TIMES);
                     }
                 }
 

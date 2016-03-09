@@ -15,6 +15,10 @@
  */
 package com.alibaba.rocketmq.client.consumer;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+
 import com.alibaba.rocketmq.client.ClientConfig;
 import com.alibaba.rocketmq.client.QueryResult;
 import com.alibaba.rocketmq.client.consumer.listener.MessageListener;
@@ -33,10 +37,6 @@ import com.alibaba.rocketmq.common.message.MessageQueue;
 import com.alibaba.rocketmq.common.protocol.heartbeat.MessageModel;
 import com.alibaba.rocketmq.remoting.RPCHook;
 import com.alibaba.rocketmq.remoting.exception.RemotingException;
-
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
 
 
 /**
@@ -129,6 +129,11 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
      */
     private boolean unitMode = false;
 
+    /**
+     * 消费失败重试次数
+     */
+    private int maxReconsumeTimes = 16;
+
 
     public DefaultMQPushConsumer() {
         this(MixAll.DEFAULT_CONSUMER_GROUP, null, new AllocateMessageQueueAveragely());
@@ -195,8 +200,8 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
 
 
     @Override
-    public QueryResult queryMessage(String topic, String key, int maxNum, long begin, long end) throws MQClientException,
-            InterruptedException {
+    public QueryResult queryMessage(String topic, String key, int maxNum, long begin, long end)
+            throws MQClientException, InterruptedException {
         return this.defaultMQPushConsumerImpl.queryMessage(topic, key, maxNum, begin, end);
     }
 
@@ -337,15 +342,15 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
 
 
     @Override
-    public void sendMessageBack(MessageExt msg, int delayLevel) throws RemotingException, MQBrokerException, InterruptedException,
-            MQClientException {
+    public void sendMessageBack(MessageExt msg, int delayLevel)
+            throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
         this.defaultMQPushConsumerImpl.sendMessageBack(msg, delayLevel, null);
     }
 
 
     @Override
-    public void sendMessageBack(MessageExt msg, int delayLevel, String brokerName) throws RemotingException, MQBrokerException,
-            InterruptedException, MQClientException {
+    public void sendMessageBack(MessageExt msg, int delayLevel, String brokerName)
+            throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
         this.defaultMQPushConsumerImpl.sendMessageBack(msg, delayLevel, brokerName);
     }
 
@@ -473,5 +478,15 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
 
     public void setAdjustThreadPoolNumsThreshold(long adjustThreadPoolNumsThreshold) {
         this.adjustThreadPoolNumsThreshold = adjustThreadPoolNumsThreshold;
+    }
+
+
+    public int getMaxReconsumeTimes() {
+        return maxReconsumeTimes;
+    }
+
+
+    public void setMaxReconsumeTimes(final int maxReconsumeTimes) {
+        this.maxReconsumeTimes = maxReconsumeTimes;
     }
 }
