@@ -15,17 +15,6 @@
  */
 package com.alibaba.rocketmq.store;
 
-import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.alibaba.rocketmq.common.ServiceThread;
 import com.alibaba.rocketmq.common.UtilAll;
 import com.alibaba.rocketmq.common.constant.LoggerName;
@@ -38,6 +27,16 @@ import com.alibaba.rocketmq.store.config.BrokerRole;
 import com.alibaba.rocketmq.store.config.FlushDiskType;
 import com.alibaba.rocketmq.store.ha.HAService;
 import com.alibaba.rocketmq.store.schedule.ScheduleMessageService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 
 /**
@@ -211,6 +210,18 @@ public class CommitLog {
         }
     }
 
+    /**
+     *
+     */
+    private volatile long confirmOffset = -1L;
+
+    public void setConfirmOffset(long phyOffset) {
+        this.confirmOffset = phyOffset;
+    }
+
+    public long getConfirmOffset() {
+        return this.confirmOffset;
+    }
 
     public DispatchRequest checkMessageAndReturnSize(java.nio.ByteBuffer byteBuffer, final boolean checkCRC) {
         return this.checkMessageAndReturnSize(byteBuffer, checkCRC, true);
@@ -416,11 +427,17 @@ public class CommitLog {
             while (true) {
                 DispatchRequest dispatchRequest = this.checkMessageAndReturnSize(byteBuffer, checkCRCOnRecover);
                 int size = dispatchRequest.getMsgSize();
+
+                // 如果开启多副本复制组件，判断两阶段确认位点后，数据才可消费
+                if (this.defaultMessageStore.getMessageStoreConfig().isDuplicationEnable() //
+                        && dispatchRequest.getCommitLogOffset() >= this.defaultMessageStore.getConfirmOffset()) {
+                    size = -1;
+                }
+
                 // Normal data
                 if (size > 0) {
                     mapedFileOffset += size;
                     this.defaultMessageStore.doDispatch(dispatchRequest);
-
                 }
                 // Intermediate file read error
                 else if (size == -1) {

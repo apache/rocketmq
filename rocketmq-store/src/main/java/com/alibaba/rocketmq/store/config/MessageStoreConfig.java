@@ -148,8 +148,16 @@ public class MessageStoreConfig {
         this.debugLockEnable = debugLockEnable;
     }
 
+    public boolean isDuplicationEnable() {
+        return duplicationEnable;
+    }
 
+    public void setDuplicationEnable(final boolean duplicationEnable) {
+        this.duplicationEnable = duplicationEnable;
+    }
 
+    // 是否开启新的主从复制机制
+    private boolean duplicationEnable = false;
 
     // 是否记录磁盘的落后情况
     private boolean diskFallRecorded = true;
