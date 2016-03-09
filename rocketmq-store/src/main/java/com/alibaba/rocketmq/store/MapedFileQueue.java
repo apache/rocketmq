@@ -181,6 +181,8 @@ public class MapedFileQueue {
     }
 
 
+
+
     public boolean load() {
         File dir = new File(this.storePath);
         File[] files = dir.listFiles();
@@ -253,6 +255,34 @@ public class MapedFileQueue {
 
     public MapedFile getLastMapedFile(final long startOffset) {
         return getLastMapedFile(startOffset, true);
+    }
+
+    public boolean resetOffset(long offset) {
+        this.readWriteLock.writeLock().lock();
+        if (!this.mapedFiles.isEmpty()) {
+            MapedFile mapedFileLast = this.mapedFiles.get(this.mapedFiles.size() - 1);
+            long lastOffset = mapedFileLast.getFileFromOffset() +
+                    mapedFileLast.getWrotePostion();
+            long diff = lastOffset - offset;
+
+            final int maxdiff = 1024 * 1024 * 1024 * 2;
+
+            if (diff > maxdiff) return false;
+        }
+
+        for (int i = this.mapedFiles.size() - 1; i >= 0; i--) {
+            MapedFile mapedFileLast = this.mapedFiles.get(i);
+
+            if (offset >= mapedFileLast.getFileFromOffset()) {
+                int where = (int) (offset % mapedFileLast.getFileSize());
+                mapedFileLast.setCommittedPosition(where);
+                mapedFileLast.setWrotePostion(where);
+            } else {
+                this.mapedFiles.remove(mapedFileLast);
+            }
+        }
+        this.readWriteLock.writeLock().unlock();
+        return true;
     }
 
 

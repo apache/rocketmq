@@ -1854,8 +1854,8 @@ public class DefaultMessageStore implements MessageStore {
 
 
     @Override
-    public void resetWriteOffset(long phyOffset) {
-        throw new RuntimeException("unsupported method");
+    public boolean resetWriteOffset(long phyOffset) {
+        return this.commitLog.resetOffset(phyOffset);
     }
 
     @Override

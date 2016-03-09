@@ -519,6 +519,10 @@ public class CommitLog {
         return false;
     }
 
+    public boolean resetOffset(long offset) {
+        return this.mapedFileQueue.resetOffset(offset);
+    }
+
 
     public long getBeginTimeInLock() {
         return beginTimeInLock;

@@ -208,7 +208,7 @@ public interface MessageStore {
     
     public long flush();
     
-    public void resetWriteOffset(long phyOffset);
+    public boolean resetWriteOffset(long phyOffset);
     
     public void setConfirmOffset(long phyOffset);
     
