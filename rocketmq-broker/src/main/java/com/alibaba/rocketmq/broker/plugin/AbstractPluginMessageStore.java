@@ -3,19 +3,14 @@
  */
 package com.alibaba.rocketmq.broker.plugin;
 
+import com.alibaba.rocketmq.common.message.MessageExt;
+import com.alibaba.rocketmq.common.protocol.heartbeat.SubscriptionData;
+import com.alibaba.rocketmq.store.*;
+
 import java.net.SocketAddress;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
-
-import com.alibaba.rocketmq.common.message.MessageExt;
-import com.alibaba.rocketmq.common.protocol.heartbeat.SubscriptionData;
-import com.alibaba.rocketmq.store.GetMessageResult;
-import com.alibaba.rocketmq.store.MessageExtBrokerInner;
-import com.alibaba.rocketmq.store.MessageStore;
-import com.alibaba.rocketmq.store.PutMessageResult;
-import com.alibaba.rocketmq.store.QueryMessageResult;
-import com.alibaba.rocketmq.store.SelectMapedBufferResult;
 
 /**
  * @author qinan.qn@taobao.com 2015年12月9日
@@ -205,8 +200,8 @@ public abstract class AbstractPluginMessageStore implements MessageStore {
         next.setConfirmOffset(phyOffset);
     }
     @Override
-    public void resetWriteOffset(long phyOffset) {
-        next.resetWriteOffset(phyOffset);
+    public boolean resetWriteOffset(long phyOffset) {
+       return next.resetWriteOffset(phyOffset);
     }
     
 }

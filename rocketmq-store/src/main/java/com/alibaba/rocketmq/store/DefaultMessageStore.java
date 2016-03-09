@@ -1592,6 +1592,12 @@ public class DefaultMessageStore implements MessageStore {
 
         private void doReput() {
             for (boolean doNext = true; this.isCommitLogAvailable() && doNext;) {
+                // 如果开启多副本复制组件，判断两阶段确认位点后，数据才可消费
+                if (DefaultMessageStore.this.getMessageStoreConfig().isDuplicationEnable() //
+                        && this.reputFromOffset >= DefaultMessageStore.this.getConfirmOffset()) {
+                    break;
+                }
+
                 SelectMapedBufferResult result = DefaultMessageStore.this.commitLog.getData(reputFromOffset);
                 if (result != null) {
                     try {
@@ -1848,19 +1854,17 @@ public class DefaultMessageStore implements MessageStore {
 
 
     @Override
-    public void resetWriteOffset(long phyOffset) {
-        throw new RuntimeException("unsupported method");
+    public boolean resetWriteOffset(long phyOffset) {
+        return this.commitLog.resetOffset(phyOffset);
     }
-
 
     @Override
     public void setConfirmOffset(long phyOffset) {
-        throw new RuntimeException("unsupported method");
+        this.commitLog.setConfirmOffset(phyOffset);
     }
-
 
     @Override
     public long getConfirmOffset() {
-        throw new RuntimeException("unsupported method");
+        return this.commitLog.getConfirmOffset();
     }
 }
