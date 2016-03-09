@@ -28,6 +28,7 @@ import java.lang.management.RuntimeMXBean;
 import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
+import java.net.SocketException;
 import java.nio.ByteBuffer;
 import java.text.NumberFormat;
 import java.text.ParseException;
@@ -568,7 +569,7 @@ public class UtilAll {
                 .append(".").append(ip[3] & 0xFF).toString(); 
     }
     
-    public static byte[] getIP() throws Exception {
+    public static byte[] getIP() {
         try {
             Enumeration allNetInterfaces = NetworkInterface.getNetworkInterfaces();
             InetAddress ip = null;
@@ -597,8 +598,8 @@ public class UtilAll {
             throw new RuntimeException("获取本机ip失败");
         }
         catch (Exception e) {
-            //TODO 考虑用cmd获取ip
-            throw e;
+//            //TODO 考虑用cmd获取ip
+            throw new RuntimeException("获取本机ip失败", e);
         }
     }    
 }

@@ -106,7 +106,7 @@ public interface MQAdmin {
      * @throws RemotingException
      * @throws MQClientException
      */
-    MessageExt viewMessage(final String msgId) throws RemotingException, MQBrokerException,
+    MessageExt viewMessage(final String offsetMsgId) throws RemotingException, MQBrokerException,
             InterruptedException, MQClientException;
 
 
@@ -135,7 +135,7 @@ public interface MQAdmin {
      * @throws InterruptedException
      * @throws MQClientException
      */
-    MessageExt queryMessageByUniqKey(String topic, String uniqKey) throws RemotingException, MQBrokerException, InterruptedException, MQClientException;        
+    MessageExt viewMessage(String topic, String msgId) throws RemotingException, MQBrokerException, InterruptedException, MQClientException;        
 
     
 }
