@@ -133,6 +133,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
      * 消费失败重试次数
      */
     private int maxReconsumeTimes = 16;
+    private long suspendCurrentQueueTimeMillis = 1000;
 
 
     public DefaultMQPushConsumer() {
@@ -488,5 +489,15 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
 
     public void setMaxReconsumeTimes(final int maxReconsumeTimes) {
         this.maxReconsumeTimes = maxReconsumeTimes;
+    }
+
+
+    public long getSuspendCurrentQueueTimeMillis() {
+        return suspendCurrentQueueTimeMillis;
+    }
+
+
+    public void setSuspendCurrentQueueTimeMillis(final long suspendCurrentQueueTimeMillis) {
+        this.suspendCurrentQueueTimeMillis = suspendCurrentQueueTimeMillis;
     }
 }
