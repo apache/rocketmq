@@ -109,7 +109,7 @@ public class BrokerConfig {
     private boolean transferMsgByHeap = true;
 
     // 定时消息最大延迟时间(默认:40天)
-    private long maxDelayTime = 3456000000L;
+    private int maxDelayTime = 40;
 
 
     public boolean isTransferMsgByHeap() {
@@ -424,12 +424,12 @@ public class BrokerConfig {
     }
 
 
-    public long getMaxDelayTime() {
+    public int getMaxDelayTime() {
         return maxDelayTime;
     }
 
 
-    public void setMaxDelayTime(final long maxDelayTime) {
+    public void setMaxDelayTime(final int maxDelayTime) {
         this.maxDelayTime = maxDelayTime;
     }
 }
