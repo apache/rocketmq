@@ -162,6 +162,17 @@ public class MessageStoreConfig {
     // 是否记录磁盘的落后情况
     private boolean diskFallRecorded = true;
 
+
+    public long getOsPageCacheBusyTimeOutMills() {
+        return osPageCacheBusyTimeOutMills;
+    }
+
+    public void setOsPageCacheBusyTimeOutMills(final long osPageCacheBusyTimeOutMills) {
+        this.osPageCacheBusyTimeOutMills = osPageCacheBusyTimeOutMills;
+    }
+
+    private long osPageCacheBusyTimeOutMills = 2000;
+
     public boolean isDiskFallRecorded() {
         return diskFallRecorded;
     }

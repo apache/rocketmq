@@ -406,6 +406,10 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
                 response.setRemark(
                     "service not available now, maybe disk full, " + diskUtil() + ", maybe your broker machine memory too small.");
                 break;
+            case OS_PAGECACHE_BUSY:
+                response.setCode(ResponseCode.SYSTEM_ERROR);
+                response.setRemark("OS page cache busy, please try another machine");
+                break;
             case UNKNOWN_ERROR:
                 response.setCode(ResponseCode.SYSTEM_ERROR);
                 response.setRemark("UNKNOWN_ERROR");

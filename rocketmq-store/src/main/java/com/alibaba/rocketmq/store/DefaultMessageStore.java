@@ -394,6 +394,19 @@ public class DefaultMessageStore implements MessageStore {
         }
     }
 
+    // 判断操作系统是否Hang住，用来快速失败，防止客户端产生大量超时问题
+    private boolean isOSPageCacheBusy() {
+        long begin = this.getCommitLog().getBeginTimeInLock();
+        long diff = this.systemClock.now() - begin;
+
+        if (diff < 10000000 //
+                && diff > this.messageStoreConfig.getOsPageCacheBusyTimeOutMills()) {
+            return true;
+        }
+
+        return false;
+    }
+
 
     public PutMessageResult putMessage(MessageExtBrokerInner msg) {
         if (this.shutdown) {
@@ -432,6 +445,11 @@ public class DefaultMessageStore implements MessageStore {
         if (msg.getPropertiesString() != null && msg.getPropertiesString().length() > Short.MAX_VALUE) {
             log.warn("putMessage message properties length too long " + msg.getPropertiesString().length());
             return new PutMessageResult(PutMessageStatus.PROPERTIES_SIZE_EXCEEDED, null);
+        }
+
+        // 检查操作系统是否Hang住
+        if(this.isOSPageCacheBusy()){
+            return new PutMessageResult(PutMessageStatus.OS_PAGECACHE_BUSY, null);
         }
 
         long beginTime = this.getSystemClock().now();

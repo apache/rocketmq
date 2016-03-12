@@ -220,6 +220,10 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
                     response.setCode(ResponseCode.SERVICE_NOT_AVAILABLE);
                     response.setRemark("service not available now.");
                     break;
+                case OS_PAGECACHE_BUSY:
+                    response.setCode(ResponseCode.SYSTEM_ERROR);
+                    response.setRemark("OS page cache busy, please try another machine");
+                    break;
                 case UNKNOWN_ERROR:
                     response.setCode(ResponseCode.SYSTEM_ERROR);
                     response.setRemark("UNKNOWN_ERROR");
