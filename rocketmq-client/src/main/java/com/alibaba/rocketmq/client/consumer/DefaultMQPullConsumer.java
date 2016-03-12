@@ -15,6 +15,9 @@
  */
 package com.alibaba.rocketmq.client.consumer;
 
+import java.util.HashSet;
+import java.util.Set;
+
 import com.alibaba.rocketmq.client.ClientConfig;
 import com.alibaba.rocketmq.client.QueryResult;
 import com.alibaba.rocketmq.client.consumer.rebalance.AllocateMessageQueueAveragely;
@@ -29,9 +32,6 @@ import com.alibaba.rocketmq.common.protocol.heartbeat.MessageModel;
 import com.alibaba.rocketmq.remoting.RPCHook;
 import com.alibaba.rocketmq.remoting.exception.RemotingException;
 
-import java.util.HashSet;
-import java.util.Set;
-
 
 /**
  * Default pulling consumer
@@ -43,15 +43,18 @@ public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsume
     protected final transient DefaultMQPullConsumerImpl defaultMQPullConsumerImpl;
 
     /**
-     * Do the same thing for the same Group, the application must be set,and guarantee Globally unique
+     * Do the same thing for the same Group, the application must be set,and
+     * guarantee Globally unique
      */
     private String consumerGroup;
     /**
-     * Long polling mode, the Consumer connection max suspend time, it is not recommended to modify
+     * Long polling mode, the Consumer connection max suspend time, it is not
+     * recommended to modify
      */
     private long brokerSuspendMaxTimeMillis = 1000 * 20;
     /**
-     * Long polling mode, the Consumer connection timeout(must greater than brokerSuspendMaxTimeMillis), it is not recommended to modify
+     * Long polling mode, the Consumer connection timeout(must greater than
+     * brokerSuspendMaxTimeMillis), it is not recommended to modify
      */
     private long consumerTimeoutMillisWhenSuspend = 1000 * 30;
     /**
@@ -83,6 +86,11 @@ public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsume
      */
     private boolean unitMode = false;
 
+    /**
+     * 消费失败重试次数
+     */
+    private int maxReconsumeTimes = 16;
+
 
     public DefaultMQPullConsumer() {
         this(MixAll.DEFAULT_CONSUMER_GROUP, null);
@@ -112,8 +120,7 @@ public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsume
 
 
     @Override
-    public void createTopic(String key, String newTopic, int queueNum, int topicSysFlag)
-            throws MQClientException {
+    public void createTopic(String key, String newTopic, int queueNum, int topicSysFlag) throws MQClientException {
         this.defaultMQPullConsumerImpl.createTopic(key, newTopic, queueNum, topicSysFlag);
     }
 
@@ -143,8 +150,7 @@ public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsume
 
 
     @Override
-    public MessageExt viewMessage(String msgId) throws RemotingException, MQBrokerException,
-            InterruptedException, MQClientException {
+    public MessageExt viewMessage(String msgId) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
         return this.defaultMQPullConsumerImpl.viewMessage(msgId);
     }
 
@@ -237,15 +243,15 @@ public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsume
 
 
     @Override
-    public void sendMessageBack(MessageExt msg, int delayLevel) throws RemotingException, MQBrokerException,
-            InterruptedException, MQClientException {
+    public void sendMessageBack(MessageExt msg, int delayLevel)
+            throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
         this.defaultMQPullConsumerImpl.sendMessageBack(msg, delayLevel, null);
     }
 
 
     @Override
-    public void sendMessageBack(MessageExt msg, int delayLevel, String brokerName) throws RemotingException,
-            MQBrokerException, InterruptedException, MQClientException {
+    public void sendMessageBack(MessageExt msg, int delayLevel, String brokerName)
+            throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
         this.defaultMQPullConsumerImpl.sendMessageBack(msg, delayLevel, brokerName);
     }
 
@@ -301,16 +307,15 @@ public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsume
 
 
     @Override
-    public void pull(MessageQueue mq, String subExpression, long offset, int maxNums,
-                     PullCallback pullCallback) throws MQClientException, RemotingException, InterruptedException {
+    public void pull(MessageQueue mq, String subExpression, long offset, int maxNums, PullCallback pullCallback)
+            throws MQClientException, RemotingException, InterruptedException {
         this.defaultMQPullConsumerImpl.pull(mq, subExpression, offset, maxNums, pullCallback);
     }
 
 
     @Override
-    public void pull(MessageQueue mq, String subExpression, long offset, int maxNums,
-                     PullCallback pullCallback, long timeout) throws MQClientException, RemotingException,
-            InterruptedException {
+    public void pull(MessageQueue mq, String subExpression, long offset, int maxNums, PullCallback pullCallback, long timeout)
+            throws MQClientException, RemotingException, InterruptedException {
         this.defaultMQPullConsumerImpl.pull(mq, subExpression, offset, maxNums, pullCallback, timeout);
     }
 
@@ -323,8 +328,8 @@ public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsume
 
 
     @Override
-    public void pullBlockIfNotFound(MessageQueue mq, String subExpression, long offset, int maxNums,
-                                    PullCallback pullCallback) throws MQClientException, RemotingException, InterruptedException {
+    public void pullBlockIfNotFound(MessageQueue mq, String subExpression, long offset, int maxNums, PullCallback pullCallback)
+            throws MQClientException, RemotingException, InterruptedException {
         this.defaultMQPullConsumerImpl.pullBlockIfNotFound(mq, subExpression, offset, maxNums, pullCallback);
     }
 
@@ -371,4 +376,13 @@ public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsume
         this.unitMode = isUnitMode;
     }
 
+
+    public int getMaxReconsumeTimes() {
+        return maxReconsumeTimes;
+    }
+
+
+    public void setMaxReconsumeTimes(final int maxReconsumeTimes) {
+        this.maxReconsumeTimes = maxReconsumeTimes;
+    }
 }

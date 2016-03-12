@@ -15,12 +15,12 @@
  */
 package com.alibaba.rocketmq.common;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+
 import com.alibaba.rocketmq.common.annotation.ImportantField;
 import com.alibaba.rocketmq.common.constant.PermName;
 import com.alibaba.rocketmq.remoting.common.RemotingUtil;
-
-import java.net.InetAddress;
-import java.net.UnknownHostException;
 
 
 /**
@@ -29,11 +29,9 @@ import java.net.UnknownHostException;
  * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public class BrokerConfig {
-    private String rocketmqHome = System.getProperty(MixAll.ROCKETMQ_HOME_PROPERTY,
-            System.getenv(MixAll.ROCKETMQ_HOME_ENV));
+    private String rocketmqHome = System.getProperty(MixAll.ROCKETMQ_HOME_PROPERTY, System.getenv(MixAll.ROCKETMQ_HOME_ENV));
     @ImportantField
-    private String namesrvAddr = System.getProperty(MixAll.NAMESRV_ADDR_PROPERTY,
-            System.getenv(MixAll.NAMESRV_ADDR_ENV));
+    private String namesrvAddr = System.getProperty(MixAll.NAMESRV_ADDR_PROPERTY, System.getenv(MixAll.NAMESRV_ADDR_ENV));
     @ImportantField
     private String brokerIP1 = RemotingUtil.getLocalAddress();
     private String brokerIP2 = RemotingUtil.getLocalAddress();
@@ -55,7 +53,7 @@ public class BrokerConfig {
     // 自动创建订阅组功能是否开启（线上建议关闭）
     @ImportantField
     private boolean autoCreateSubscriptionGroup = true;
-    //messageStore的plugin
+    // messageStore的plugin
     private String messageStorePlugIn = "";
 
     private int sendMessageThreadPoolNums = 16 + Runtime.getRuntime().availableProcessors() * 4;
@@ -67,14 +65,15 @@ public class BrokerConfig {
 
     private int flushConsumerOffsetHistoryInterval = 1000 * 60;
 
+
     public String getMessageStorePlugIn() {
         return messageStorePlugIn;
     }
 
+
     public void setMessageStorePlugIn(String messageStorePlugIn) {
         this.messageStorePlugIn = messageStorePlugIn;
     }
-
 
     // 是否拒绝接收事务消息
     @ImportantField
@@ -103,37 +102,47 @@ public class BrokerConfig {
     private boolean notifyConsumerIdsChangedEnable = true;
     // 高速模式
     private boolean highSpeedMode = false;
-    //商业化日志采集开关
+    // 商业化日志采集开关
     private boolean commercialEnable = true;
 
     // 通过Java堆来传输消息
     private boolean transferMsgByHeap = true;
+
+    // 定时消息最大延迟时间(默认:40天)
+    private int maxDelayTime = 40;
 
 
     public boolean isTransferMsgByHeap() {
         return transferMsgByHeap;
     }
 
+
     public void setTransferMsgByHeap(final boolean transferMsgByHeap) {
         this.transferMsgByHeap = transferMsgByHeap;
     }
+
+
     public static String localHostName() {
         try {
             return InetAddress.getLocalHost().getHostName();
-        } catch (UnknownHostException e) {
+        }
+        catch (UnknownHostException e) {
             e.printStackTrace();
         }
 
         return "DEFAULT_BROKER";
     }
 
+
     public boolean isHighSpeedMode() {
         return highSpeedMode;
     }
 
+
     public void setHighSpeedMode(final boolean highSpeedMode) {
         this.highSpeedMode = highSpeedMode;
     }
+
 
     public String getRocketmqHome() {
         return rocketmqHome;
@@ -404,11 +413,23 @@ public class BrokerConfig {
         this.clientManageThreadPoolNums = clientManageThreadPoolNums;
     }
 
+
     public boolean isCommercialEnable() {
         return commercialEnable;
     }
 
+
     public void setCommercialEnable(final boolean commercialEnable) {
         this.commercialEnable = commercialEnable;
+    }
+
+
+    public int getMaxDelayTime() {
+        return maxDelayTime;
+    }
+
+
+    public void setMaxDelayTime(final int maxDelayTime) {
+        this.maxDelayTime = maxDelayTime;
     }
 }

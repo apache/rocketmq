@@ -19,8 +19,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
-import com.alibaba.rocketmq.store.DefaultMessageFilter;
-import com.alibaba.rocketmq.store.MessageFilter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,6 +26,8 @@ import com.alibaba.rocketmq.broker.BrokerController;
 import com.alibaba.rocketmq.common.ServiceThread;
 import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
+import com.alibaba.rocketmq.store.DefaultMessageFilter;
+import com.alibaba.rocketmq.store.MessageFilter;
 
 
 /**
@@ -39,7 +39,7 @@ import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
 public class PullRequestHoldService extends ServiceThread {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.BrokerLoggerName);
     private static final String TOPIC_QUEUEID_SEPARATOR = "@";
-    private ConcurrentHashMap<String/* topic@queueid */, ManyPullRequest> pullRequestTable =
+    private ConcurrentHashMap<String/* topic@queueId */, ManyPullRequest> pullRequestTable =
             new ConcurrentHashMap<String, ManyPullRequest>(1024);
     private final BrokerController brokerController;
     // 消息过滤
@@ -109,16 +109,22 @@ public class PullRequestHoldService extends ServiceThread {
                         newestOffset = this.brokerController.getMessageStore().getMaxOffsetInQuque(topic, queueId);
                     }
 
-                    if (newestOffset > request.getPullFromThisOffset()
-                            && this.messageFilter.isMessageMatched(request.getSubscriptionData(), tagsCode)) {
-                        try {
-                            this.brokerController.getPullMessageProcessor().excuteRequestWhenWakeup(request.getClientChannel(),
-                                request.getRequestCommand());
+                    Long tmp = tagsCode;
+                    if (newestOffset > request.getPullFromThisOffset()) {
+                        if (tagsCode == null) {
+                            // tmp = getLatestMessageTagsCode(topic, queueId,
+                            // maxOffset);
                         }
-                        catch (RemotingCommandException e) {
-                            log.error("", e);
+                        if (this.messageFilter.isMessageMatched(request.getSubscriptionData(), tmp)) {
+                            try {
+                                this.brokerController.getPullMessageProcessor().excuteRequestWhenWakeup(request.getClientChannel(),
+                                    request.getRequestCommand());
+                            }
+                            catch (RemotingCommandException e) {
+                                log.error("", e);
+                            }
+                            continue;
                         }
-                        continue;
                     }
 
                     // 查看是否超时
@@ -150,7 +156,12 @@ public class PullRequestHoldService extends ServiceThread {
         log.info(this.getServiceName() + " service started");
         while (!this.isStoped()) {
             try {
-                this.waitForRunning(1000);
+                if (this.brokerController.getBrokerConfig().isLongPollingEnable()) {
+                    this.waitForRunning(1000 * 30);
+                }
+                else {
+                    this.waitForRunning(this.brokerController.getBrokerConfig().getShortPollingTimeMills());
+                }
                 this.checkHoldRequest();
             }
             catch (Exception e) {

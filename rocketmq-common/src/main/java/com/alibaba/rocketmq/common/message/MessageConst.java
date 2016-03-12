@@ -52,10 +52,13 @@ public class MessageConst {
     public static final String PROPERTY_CORRECTION_FLAG = "CORRECTION_FLAG";
     public static final String PROPERTY_MQ2_FLAG = "MQ2_FLAG";
     public static final String PROPERTY_RECONSUME_TIME = "RECONSUME_TIME";
+    public static final String PROPERTY_MAX_RECONSUME_TIMES = "MAX_RECONSUME_TIMES";
 
     public static final String KEY_SEPARATOR = " ";
 
     public static final HashSet<String> systemKeySet = new HashSet<String>();
+
+
     static {
         systemKeySet.add(PROPERTY_KEYS);
         systemKeySet.add(PROPERTY_TAGS);
@@ -74,5 +77,6 @@ public class MessageConst {
         systemKeySet.add(PROPERTY_CORRECTION_FLAG);
         systemKeySet.add(PROPERTY_MQ2_FLAG);
         systemKeySet.add(PROPERTY_RECONSUME_TIME);
+        systemKeySet.add(PROPERTY_MAX_RECONSUME_TIMES);
     }
 }

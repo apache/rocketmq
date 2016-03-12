@@ -15,15 +15,17 @@
  */
 package com.alibaba.rocketmq.broker.processor;
 
+import java.net.SocketAddress;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import com.alibaba.rocketmq.broker.BrokerController;
 import com.alibaba.rocketmq.broker.mqtrace.ConsumeMessageContext;
 import com.alibaba.rocketmq.broker.mqtrace.ConsumeMessageHook;
 import com.alibaba.rocketmq.broker.mqtrace.SendMessageContext;
 import com.alibaba.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
-import com.alibaba.rocketmq.common.MixAll;
-import com.alibaba.rocketmq.common.TopicConfig;
-import com.alibaba.rocketmq.common.TopicFilterType;
-import com.alibaba.rocketmq.common.UtilAll;
+import com.alibaba.rocketmq.common.*;
 import com.alibaba.rocketmq.common.constant.PermName;
 import com.alibaba.rocketmq.common.help.FAQUrl;
 import com.alibaba.rocketmq.common.message.MessageAccessor;
@@ -47,11 +49,6 @@ import com.alibaba.rocketmq.store.PutMessageResult;
 import com.alibaba.rocketmq.store.config.StorePathConfigHelper;
 import com.alibaba.rocketmq.store.stats.BrokerStatsManager;
 import io.netty.channel.ChannelHandlerContext;
-
-import java.net.SocketAddress;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 
 /**
@@ -109,7 +106,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
             messageIds.put(requestHeader.getOriginMsgId(), requestHeader.getOffset());
             context.setMessageIds(messageIds);
 
-            //ONS商业化：消费失败打回--API调用一次
+            // ONS商业化：消费失败打回--API调用一次
             context.setCommercialRcvStats(BrokerStatsManager.StatsType.SEND_BACK);
             context.setCommercialRcvTimes(1);
             context.setCommercialOwner(request.getExtFields().get(BrokerStatsManager.COMMERCIAL_OWNER));
@@ -187,8 +184,14 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         // 客户端自动决定定时级别
         int delayLevel = requestHeader.getDelayLevel();
 
+        // 最大重试次数
+        int maxReconsumeTimes = subscriptionGroupConfig.getRetryMaxTimes();
+        if (request.getVersion() >= MQVersion.Version.V3_4_9.ordinal()) {
+            maxReconsumeTimes = requestHeader.getMaxReconsumeTimes();
+        }
+
         // 死信消息处理
-        if (msgExt.getReconsumeTimes() >= subscriptionGroupConfig.getRetryMaxTimes()//
+        if (msgExt.getReconsumeTimes() >= maxReconsumeTimes//
                 || delayLevel < 0) {
             newTopic = MixAll.getDLQTopic(requestHeader.getGroup());
             queueIdInt = Math.abs(this.random.nextInt() % 99999999) % DLQ_NUMS_PER_GROUP;
@@ -242,14 +245,14 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
                     backTopic = correctTopic;
                 }
 
-                    this.brokerController.getBrokerStatsManager().incSendBackNums(requestHeader.getGroup(), backTopic);
+                this.brokerController.getBrokerStatsManager().incSendBackNums(requestHeader.getGroup(), backTopic);
 
-                    response.setCode(ResponseCode.SUCCESS);
-                    response.setRemark(null);
+                response.setCode(ResponseCode.SUCCESS);
+                response.setRemark(null);
 
-                    return response;
-                default:
-                    break;
+                return response;
+            default:
+                break;
             }
 
             response.setCode(ResponseCode.SYSTEM_ERROR);
@@ -280,9 +283,9 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
 
 
     private RemotingCommand sendMessage(final ChannelHandlerContext ctx, //
-                                        final RemotingCommand request, //
-                                        final SendMessageContext sendMessageContext, //
-                                        final SendMessageRequestHeader requestHeader) throws RemotingCommandException {
+            final RemotingCommand request, //
+            final SendMessageContext sendMessageContext, //
+            final SendMessageRequestHeader requestHeader) throws RemotingCommandException {
 
         final RemotingCommand response = RemotingCommand.createResponseCommand(SendMessageResponseHeader.class);
         final SendMessageResponseHeader responseHeader = (SendMessageResponseHeader) response.readCustomHeader();
@@ -314,26 +317,32 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
             sysFlag |= MessageSysFlag.MultiTagsFlag;
         }
         // 死信消息处理,因为有可能该消息是sendback流程里的，需要拦截
-        String newTopic=requestHeader.getTopic();
-        if((null != newTopic && newTopic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX))){
-            //是重试topic的发送
-            String groupName =newTopic.substring(MixAll.RETRY_GROUP_TOPIC_PREFIX.length());
+        String newTopic = requestHeader.getTopic();
+        if ((null != newTopic && newTopic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX))) {
+            // 是重试topic的发送
+            String groupName = newTopic.substring(MixAll.RETRY_GROUP_TOPIC_PREFIX.length());
             // 确保订阅组存在
             SubscriptionGroupConfig subscriptionGroupConfig =
                     this.brokerController.getSubscriptionGroupManager().findSubscriptionGroupConfig(groupName);
             if (null == subscriptionGroupConfig) {
                 response.setCode(ResponseCode.SUBSCRIPTION_GROUP_NOT_EXIST);
-                response.setRemark("subscription group not exist, " + groupName + " "
-                        + FAQUrl.suggestTodo(FAQUrl.SUBSCRIPTION_GROUP_NOT_EXIST));
+                response.setRemark(
+                    "subscription group not exist, " + groupName + " " + FAQUrl.suggestTodo(FAQUrl.SUBSCRIPTION_GROUP_NOT_EXIST));
                 return response;
             }
-            int reconsumeTimes=requestHeader.getReconsumeTimes();
-            if (reconsumeTimes >= subscriptionGroupConfig.getRetryMaxTimes()) {
+
+            // 最大重试次数
+            int maxReconsumeTimes = subscriptionGroupConfig.getRetryMaxTimes();
+            if (request.getVersion() >= MQVersion.Version.V3_4_9.ordinal()) {
+                maxReconsumeTimes = requestHeader.getMaxReconsumeTimes();
+            }
+            int reconsumeTimes = requestHeader.getReconsumeTimes();
+            if (reconsumeTimes >= maxReconsumeTimes) {
                 newTopic = MixAll.getDLQTopic(groupName);
                 queueIdInt = Math.abs(this.random.nextInt() % 99999999) % DLQ_NUMS_PER_GROUP;
                 topicConfig = this.brokerController.getTopicConfigManager().createTopicInSendMessageBackMethod(newTopic, //
-                        DLQ_NUMS_PER_GROUP, //
-                        PermName.PERM_WRITE, 0 // 死信消息不需要同步，不需要较正。
+                    DLQ_NUMS_PER_GROUP, //
+                    PermName.PERM_WRITE, 0 // 死信消息不需要同步，不需要较正。
                 );
                 if (null == topicConfig) {
                     response.setCode(ResponseCode.SYSTEM_ERROR);
@@ -420,7 +429,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
                 break;
             }
 
-            String  owner = request.getExtFields().get(BrokerStatsManager.COMMERCIAL_OWNER);
+            String owner = request.getExtFields().get(BrokerStatsManager.COMMERCIAL_OWNER);
             if (sendOK) {
                 // 统计
                 this.brokerController.getBrokerStatsManager().incTopicPutNums(msgInner.getTopic());
@@ -443,7 +452,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
                     sendMessageContext.setQueueId(responseHeader.getQueueId());
                     sendMessageContext.setQueueOffset(responseHeader.getQueueOffset());
 
-                    //ONS 商业化：消息发送成功，计费Size考虑 body + properties
+                    // ONS 商业化：消息发送成功，计费Size考虑 body + properties
                     int wroteSize = putMessageResult.getAppendMessageResult().getWroteBytes();
                     int incValue = (int) Math.ceil(wroteSize / BrokerStatsManager.SIZE_PER_COUNT);
 
@@ -453,11 +462,12 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
                     sendMessageContext.setCommercialOwner(owner);
                 }
                 return null;
-            } else {
+            }
+            else {
                 // ONS 商业化：如果消息发送失败，计费Size考虑 body
                 if (hasSendMessageHook()) {
                     int wroteSize = request.getBody().length;
-                    int incValue = (int) Math.ceil(wroteSize/ BrokerStatsManager.SIZE_PER_COUNT);
+                    int incValue = (int) Math.ceil(wroteSize / BrokerStatsManager.SIZE_PER_COUNT);
 
                     sendMessageContext.setCommercialSendStats(BrokerStatsManager.StatsType.SEND_FAILURE);
                     sendMessageContext.setCommercialSendTimes(incValue);

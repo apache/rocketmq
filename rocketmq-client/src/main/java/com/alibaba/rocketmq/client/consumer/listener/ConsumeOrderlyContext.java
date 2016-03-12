@@ -27,7 +27,7 @@ import com.alibaba.rocketmq.common.message.MessageQueue;
 public class ConsumeOrderlyContext {
     private final MessageQueue messageQueue;
     private boolean autoCommit = true;
-    private long suspendCurrentQueueTimeMillis = 1000;
+    private long suspendCurrentQueueTimeMillis = -1;
 
 
     public ConsumeOrderlyContext(MessageQueue messageQueue) {

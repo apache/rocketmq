@@ -21,6 +21,7 @@ public class ConsumerSendMsgBackRequestHeader implements CommandCustomHeader {
     private String originTopic;
     @CFNullable
     private boolean unitMode = false;
+    private Integer maxReconsumeTimes;
 
 
     @Override
@@ -89,10 +90,19 @@ public class ConsumerSendMsgBackRequestHeader implements CommandCustomHeader {
     }
 
 
+    public Integer getMaxReconsumeTimes() {
+        return maxReconsumeTimes;
+    }
+
+
+    public void setMaxReconsumeTimes(final Integer maxReconsumeTimes) {
+        this.maxReconsumeTimes = maxReconsumeTimes;
+    }
+
+
     @Override
     public String toString() {
-        return "ConsumerSendMsgBackRequestHeader [group=" + group + ", originTopic=" + originTopic
-                + ", originMsgId=" + originMsgId + ", delayLevel=" + delayLevel + ", unitMode=" + unitMode
-                + "]";
+        return "ConsumerSendMsgBackRequestHeader [group=" + group + ", originTopic=" + originTopic + ", originMsgId=" + originMsgId
+                + ", delayLevel=" + delayLevel + ", unitMode=" + unitMode + ", maxReconsumeTimes=" + maxReconsumeTimes + "]";
     }
 }

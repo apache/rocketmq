@@ -29,9 +29,10 @@ import com.alibaba.rocketmq.client.consumer.listener.MessageListenerOrderly;
 import com.alibaba.rocketmq.client.hook.ConsumeMessageContext;
 import com.alibaba.rocketmq.client.log.ClientLogger;
 import com.alibaba.rocketmq.client.stat.ConsumerStatsManager;
+import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.ThreadFactoryImpl;
-import com.alibaba.rocketmq.common.message.MessageExt;
-import com.alibaba.rocketmq.common.message.MessageQueue;
+import com.alibaba.rocketmq.common.UtilAll;
+import com.alibaba.rocketmq.common.message.*;
 import com.alibaba.rocketmq.common.protocol.body.CMResult;
 import com.alibaba.rocketmq.common.protocol.body.ConsumeMessageDirectlyResult;
 import com.alibaba.rocketmq.common.protocol.heartbeat.MessageModel;
@@ -310,14 +311,18 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
                 this.getConsumerStatsManager().incConsumeOKTPS(consumerGroup, consumeRequest.getMessageQueue().getTopic(), msgs.size());
                 break;
             case SUSPEND_CURRENT_QUEUE_A_MOMENT:
-                consumeRequest.getProcessQueue().makeMessageToCosumeAgain(msgs);
-                this.submitConsumeRequestLater(//
-                    consumeRequest.getProcessQueue(), //
-                    consumeRequest.getMessageQueue(), //
-                    context.getSuspendCurrentQueueTimeMillis());
-                continueConsume = false;
-
                 this.getConsumerStatsManager().incConsumeFailedTPS(consumerGroup, consumeRequest.getMessageQueue().getTopic(), msgs.size());
+                if (checkReconsumeTimes(msgs)) {
+                    consumeRequest.getProcessQueue().makeMessageToCosumeAgain(msgs);
+                    this.submitConsumeRequestLater(//
+                        consumeRequest.getProcessQueue(), //
+                        consumeRequest.getMessageQueue(), //
+                        context.getSuspendCurrentQueueTimeMillis());
+                    continueConsume = false;
+                }
+                else {
+                    commitOffset = consumeRequest.getProcessQueue().commit();
+                }
                 break;
             default:
                 break;
@@ -340,13 +345,15 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
                 continueConsume = false;
                 break;
             case SUSPEND_CURRENT_QUEUE_A_MOMENT:
-                consumeRequest.getProcessQueue().makeMessageToCosumeAgain(msgs);
-                this.submitConsumeRequestLater(//
-                    consumeRequest.getProcessQueue(), //
-                    consumeRequest.getMessageQueue(), //
-                    context.getSuspendCurrentQueueTimeMillis());
-                continueConsume = false;
                 this.getConsumerStatsManager().incConsumeFailedTPS(consumerGroup, consumeRequest.getMessageQueue().getTopic(), msgs.size());
+                if (checkReconsumeTimes(msgs)) {
+                    consumeRequest.getProcessQueue().makeMessageToCosumeAgain(msgs);
+                    this.submitConsumeRequestLater(//
+                        consumeRequest.getProcessQueue(), //
+                        consumeRequest.getMessageQueue(), //
+                        context.getSuspendCurrentQueueTimeMillis());
+                    continueConsume = false;
+                }
                 break;
             default:
                 break;
@@ -361,12 +368,61 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
     }
 
 
+    private boolean checkReconsumeTimes(List<MessageExt> msgs) {
+        boolean suspend = false;
+        if (msgs != null && !msgs.isEmpty()) {
+            for (MessageExt msg : msgs) {
+                if (msg.getReconsumeTimes() >= this.defaultMQPushConsumer.getMaxReconsumeTimes()) {
+                    // 因为是顺序消息,一旦死信队列发送失败则会继续重试.死信队列将不再保证顺序,需要人工进行恢复.
+                    MessageAccessor.setReconsumeTime(msg, String.valueOf(msg.getReconsumeTimes()));
+                    if (!sendMessageBack(msg)) {
+                        suspend = true;
+                        msg.setReconsumeTimes(msg.getReconsumeTimes() + 1);
+                    }
+                }
+                else {
+                    suspend = true;
+                    msg.setReconsumeTimes(msg.getReconsumeTimes() + 1);
+                }
+            }
+        }
+        return suspend;
+    }
+
+
+    public boolean sendMessageBack(final MessageExt msg) {
+        try {
+            Message newMsg = new Message(MixAll.getRetryTopic(this.defaultMQPushConsumer.getConsumerGroup()), msg.getBody());
+            String originMsgId = MessageAccessor.getOriginMessageId(msg);
+            MessageAccessor.setOriginMessageId(newMsg, UtilAll.isBlank(originMsgId) ? msg.getMsgId() : originMsgId);
+            newMsg.setFlag(msg.getFlag());
+            MessageAccessor.setProperties(newMsg, msg.getProperties());
+            MessageAccessor.putProperty(newMsg, MessageConst.PROPERTY_RETRY_TOPIC, msg.getTopic());
+            MessageAccessor.setReconsumeTime(newMsg, String.valueOf(msg.getReconsumeTimes()));
+            MessageAccessor.setMaxReconsumeTimes(newMsg, String.valueOf(this.defaultMQPushConsumer.getMaxReconsumeTimes()));
+            newMsg.setDelayTimeLevel(3 + msg.getReconsumeTimes());
+
+            this.defaultMQPushConsumer.getDefaultMQPushConsumerImpl().getmQClientFactory().getDefaultMQProducer().send(newMsg);
+            return true;
+        }
+        catch (Exception e) {
+            log.error("sendMessageBack exception, group: " + this.consumerGroup + " msg: " + msg.toString(), e);
+        }
+
+        return false;
+    }
+
+
     private void submitConsumeRequestLater(//
             final ProcessQueue processQueue, //
             final MessageQueue messageQueue, //
             final long suspendTimeMillis//
     ) {
         long timeMillis = suspendTimeMillis;
+        if (timeMillis == -1) {
+            timeMillis = this.defaultMQPushConsumer.getSuspendCurrentQueueTimeMillis();
+        }
+
         if (timeMillis < 10) {
             timeMillis = 10;
         }

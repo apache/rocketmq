@@ -15,6 +15,12 @@
  */
 package com.alibaba.rocketmq.client.impl.consumer;
 
+import java.util.*;
+import java.util.Map.Entry;
+import java.util.concurrent.ConcurrentHashMap;
+
+import org.slf4j.Logger;
+
 import com.alibaba.rocketmq.client.QueryResult;
 import com.alibaba.rocketmq.client.Validators;
 import com.alibaba.rocketmq.client.consumer.DefaultMQPushConsumer;
@@ -57,12 +63,6 @@ import com.alibaba.rocketmq.common.sysflag.PullSysFlag;
 import com.alibaba.rocketmq.remoting.RPCHook;
 import com.alibaba.rocketmq.remoting.common.RemotingHelper;
 import com.alibaba.rocketmq.remoting.exception.RemotingException;
-
-import org.slf4j.Logger;
-
-import java.util.*;
-import java.util.Map.Entry;
-import java.util.concurrent.ConcurrentHashMap;
 
 
 /**
@@ -357,12 +357,13 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
         }
         // 顺序消息必须等锁住才能拉消息，且要重新初始化从哪里拉
         else {
-            if(processQueue.isLocked()){
-                if(!pullRequest.isLockedFirst()){
+            if (processQueue.isLocked()) {
+                if (!pullRequest.isLockedFirst()) {
                     final long offset = this.rebalanceImpl.computePullFromWhere(pullRequest.getMessageQueue());
                     boolean brokerBusy = offset < pullRequest.getNextOffset();
-                    log.info("[NOTIFYME]pull message, and first pull, so fix offset, pullRequest: {} NEWOFFSET: {} brokerBusy: {}", pullRequest, offset, brokerBusy);
-                    if(offset < pullRequest.getNextOffset()){
+                    log.info("[NOTIFYME]pull message, and first pull, so fix offset, pullRequest: {} NEWOFFSET: {} brokerBusy: {}",
+                        pullRequest, offset, brokerBusy);
+                    if (offset < pullRequest.getNextOffset()) {
                         this.executePullRequestLater(pullRequest, PullTimeDelayMillsWhenException);
                         return;
                     }
@@ -392,9 +393,8 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
             @Override
             public void onSuccess(PullResult pullResult) {
                 if (pullResult != null) {
-                    pullResult =
-                            DefaultMQPushConsumerImpl.this.pullAPIWrapper.processPullResult(pullRequest.getMessageQueue(), pullResult,
-                                subscriptionData);
+                    pullResult = DefaultMQPushConsumerImpl.this.pullAPIWrapper.processPullResult(pullRequest.getMessageQueue(), pullResult,
+                        subscriptionData);
 
                     switch (pullResult.getPullStatus()) {
                     case FOUND:
@@ -433,9 +433,9 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                         if (pullResult.getNextBeginOffset() < prevRequestOffset//
                                 || firstMsgOffset < prevRequestOffset) {
                             log.warn(
-                                "[BUG] pull message result maybe data wrong, nextBeginOffset: {} firstMsgOffset: {} prevRequestOffset: {}",//
-                                pullResult.getNextBeginOffset(),//
-                                firstMsgOffset,//
+                                "[BUG] pull message result maybe data wrong, nextBeginOffset: {} firstMsgOffset: {} prevRequestOffset: {}", //
+                                pullResult.getNextBeginOffset(), //
+                                firstMsgOffset, //
                                 prevRequestOffset);
                         }
 
@@ -455,7 +455,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                         DefaultMQPushConsumerImpl.this.executePullRequestImmediately(pullRequest);
                         break;
                     case OFFSET_ILLEGAL:
-                        log.warn("the pull request offset illegal, {} {}",//
+                        log.warn("the pull request offset illegal, {} {}", //
                             pullRequest.toString(), pullResult.toString());
                         pullRequest.setNextOffset(pullResult.getNextBeginOffset());
 
@@ -520,9 +520,9 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
         int sysFlag = PullSysFlag.buildSysFlag(//
             commitOffsetEnable, // commitOffset
             true, // suspend
-            subExpression != null,// subscription
+            subExpression != null, // subscription
             classFilter // class filter
-            );
+        );
         try {
             this.pullAPIWrapper.pullKernelImpl(//
                 pullRequest.getMessageQueue(), // 1
@@ -531,12 +531,12 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                 pullRequest.getNextOffset(), // 4
                 this.defaultMQPushConsumer.getPullBatchSize(), // 5
                 sysFlag, // 6
-                commitOffsetValue,// 7
+                commitOffsetValue, // 7
                 BrokerSuspendMaxTimeMillis, // 8
                 ConsumerTimeoutMillisWhenSuspend, // 9
                 CommunicationMode.ASYNC, // 10
                 pullCallback// 11
-                );
+            );
         }
         catch (Exception e) {
             log.error("pullKernelImpl exception", e);
@@ -574,13 +574,14 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
         if (this.serviceState != ServiceState.RUNNING) {
             throw new MQClientException("The consumer service state not OK, "//
                     + this.serviceState//
-                    + FAQUrl.suggestTodo(FAQUrl.CLIENT_SERVICE_NOT_OK), null);
+                    + FAQUrl.suggestTodo(FAQUrl.CLIENT_SERVICE_NOT_OK),
+                null);
         }
     }
 
 
-    public QueryResult queryMessage(String topic, String key, int maxNum, long begin, long end) throws MQClientException,
-            InterruptedException {
+    public QueryResult queryMessage(String topic, String key, int maxNum, long begin, long end)
+            throws MQClientException, InterruptedException {
         return this.mQClientFactory.getMQAdminImpl().queryMessage(topic, key, maxNum, begin, end);
     }
 
@@ -601,14 +602,13 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
     }
 
 
-    public void sendMessageBack(MessageExt msg, int delayLevel, final String brokerName) throws RemotingException, MQBrokerException,
-            InterruptedException, MQClientException {
+    public void sendMessageBack(MessageExt msg, int delayLevel, final String brokerName)
+            throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
         try {
-            String brokerAddr =
-                    (null != brokerName) ? this.mQClientFactory.findBrokerAddressInPublish(brokerName) : RemotingHelper
-                        .parseSocketAddressAddr(msg.getStoreHost());
+            String brokerAddr = (null != brokerName) ? this.mQClientFactory.findBrokerAddressInPublish(brokerName)
+                    : RemotingHelper.parseSocketAddressAddr(msg.getStoreHost());
             this.mQClientFactory.getMQClientAPIImpl().consumerSendMessageBack(brokerAddr, msg,
-                this.defaultMQPushConsumer.getConsumerGroup(), delayLevel, 5000);
+                this.defaultMQPushConsumer.getConsumerGroup(), delayLevel, 5000, this.defaultMQPushConsumer.getMaxReconsumeTimes());
         }
         catch (Exception e) {
             log.error("sendMessageBack Exception, " + this.defaultMQPushConsumer.getConsumerGroup(), e);
@@ -621,7 +621,8 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
             newMsg.setFlag(msg.getFlag());
             MessageAccessor.setProperties(newMsg, msg.getProperties());
             MessageAccessor.putProperty(newMsg, MessageConst.PROPERTY_RETRY_TOPIC, msg.getTopic());
-            MessageAccessor.setReconsumeTime(newMsg, msg.getReconsumeTimes() + 1 + "");
+            MessageAccessor.setReconsumeTime(newMsg, String.valueOf(msg.getReconsumeTimes() + 1));
+            MessageAccessor.setMaxReconsumeTimes(newMsg, String.valueOf(this.defaultMQPushConsumer.getMaxReconsumeTimes()));
             newMsg.setDelayTimeLevel(3 + msg.getReconsumeTimes());
 
             this.mQClientFactory.getDefaultMQProducer().send(newMsg);
@@ -673,7 +674,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
             this.rebalanceImpl.setmQClientFactory(this.mQClientFactory);
 
             this.pullAPIWrapper = new PullAPIWrapper(//
-                mQClientFactory,//
+                mQClientFactory, //
                 this.defaultMQPushConsumer.getConsumerGroup(), isUnitMode());
             this.pullAPIWrapper.registerFilterMessageHook(filterMessageHookList);
 
@@ -725,7 +726,8 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
         case SHUTDOWN_ALREADY:
             throw new MQClientException("The PushConsumer service state not OK, maybe started once, "//
                     + this.serviceState//
-                    + FAQUrl.suggestTodo(FAQUrl.CLIENT_SERVICE_NOT_OK), null);
+                    + FAQUrl.suggestTodo(FAQUrl.CLIENT_SERVICE_NOT_OK),
+                null);
         default:
             break;
         }
@@ -742,64 +744,73 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
         Validators.checkGroup(this.defaultMQPushConsumer.getConsumerGroup());
 
         if (null == this.defaultMQPushConsumer.getConsumerGroup()) {
-            throw new MQClientException("consumerGroup is null" //
-                    + FAQUrl.suggestTodo(FAQUrl.CLIENT_PARAMETER_CHECK_URL), //
+            throw new MQClientException(
+                "consumerGroup is null" //
+                        + FAQUrl.suggestTodo(FAQUrl.CLIENT_PARAMETER_CHECK_URL), //
                 null);
         }
 
         if (this.defaultMQPushConsumer.getConsumerGroup().equals(MixAll.DEFAULT_CONSUMER_GROUP)) {
-            throw new MQClientException("consumerGroup can not equal "//
-                    + MixAll.DEFAULT_CONSUMER_GROUP //
-                    + ", please specify another one."//
-                    + FAQUrl.suggestTodo(FAQUrl.CLIENT_PARAMETER_CHECK_URL), //
+            throw new MQClientException(
+                "consumerGroup can not equal "//
+                        + MixAll.DEFAULT_CONSUMER_GROUP //
+                        + ", please specify another one."//
+                        + FAQUrl.suggestTodo(FAQUrl.CLIENT_PARAMETER_CHECK_URL), //
                 null);
         }
 
         if (null == this.defaultMQPushConsumer.getMessageModel()) {
-            throw new MQClientException("messageModel is null" //
-                    + FAQUrl.suggestTodo(FAQUrl.CLIENT_PARAMETER_CHECK_URL), //
+            throw new MQClientException(
+                "messageModel is null" //
+                        + FAQUrl.suggestTodo(FAQUrl.CLIENT_PARAMETER_CHECK_URL), //
                 null);
         }
 
         if (null == this.defaultMQPushConsumer.getConsumeFromWhere()) {
-            throw new MQClientException("consumeFromWhere is null" //
-                    + FAQUrl.suggestTodo(FAQUrl.CLIENT_PARAMETER_CHECK_URL), //
+            throw new MQClientException(
+                "consumeFromWhere is null" //
+                        + FAQUrl.suggestTodo(FAQUrl.CLIENT_PARAMETER_CHECK_URL), //
                 null);
         }
 
         Date dt = UtilAll.parseDate(this.defaultMQPushConsumer.getConsumeTimestamp(), UtilAll.yyyyMMddHHmmss);
         if (null == dt) {
-            throw new MQClientException("consumeTimestamp is invalid, yyyyMMddHHmmss" //
-                    + FAQUrl.suggestTodo(FAQUrl.CLIENT_PARAMETER_CHECK_URL), //
+            throw new MQClientException(
+                "consumeTimestamp is invalid, yyyyMMddHHmmss" //
+                        + FAQUrl.suggestTodo(FAQUrl.CLIENT_PARAMETER_CHECK_URL), //
                 null);
         }
 
         // allocateMessageQueueStrategy
         if (null == this.defaultMQPushConsumer.getAllocateMessageQueueStrategy()) {
-            throw new MQClientException("allocateMessageQueueStrategy is null" //
-                    + FAQUrl.suggestTodo(FAQUrl.CLIENT_PARAMETER_CHECK_URL), //
+            throw new MQClientException(
+                "allocateMessageQueueStrategy is null" //
+                        + FAQUrl.suggestTodo(FAQUrl.CLIENT_PARAMETER_CHECK_URL), //
                 null);
         }
 
         // subscription
         if (null == this.defaultMQPushConsumer.getSubscription()) {
-            throw new MQClientException("subscription is null" //
-                    + FAQUrl.suggestTodo(FAQUrl.CLIENT_PARAMETER_CHECK_URL), //
+            throw new MQClientException(
+                "subscription is null" //
+                        + FAQUrl.suggestTodo(FAQUrl.CLIENT_PARAMETER_CHECK_URL), //
                 null);
         }
 
         // messageListener
         if (null == this.defaultMQPushConsumer.getMessageListener()) {
-            throw new MQClientException("messageListener is null" //
-                    + FAQUrl.suggestTodo(FAQUrl.CLIENT_PARAMETER_CHECK_URL), //
+            throw new MQClientException(
+                "messageListener is null" //
+                        + FAQUrl.suggestTodo(FAQUrl.CLIENT_PARAMETER_CHECK_URL), //
                 null);
         }
 
         boolean orderly = this.defaultMQPushConsumer.getMessageListener() instanceof MessageListenerOrderly;
         boolean concurrently = this.defaultMQPushConsumer.getMessageListener() instanceof MessageListenerConcurrently;
         if (!orderly && !concurrently) {
-            throw new MQClientException("messageListener must be instanceof MessageListenerOrderly or MessageListenerConcurrently" //
-                    + FAQUrl.suggestTodo(FAQUrl.CLIENT_PARAMETER_CHECK_URL), //
+            throw new MQClientException(
+                "messageListener must be instanceof MessageListenerOrderly or MessageListenerConcurrently" //
+                        + FAQUrl.suggestTodo(FAQUrl.CLIENT_PARAMETER_CHECK_URL), //
                 null);
         }
 
@@ -808,52 +819,59 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                 || this.defaultMQPushConsumer.getConsumeThreadMin() > 1000//
                 || this.defaultMQPushConsumer.getConsumeThreadMin() > this.defaultMQPushConsumer.getConsumeThreadMax()//
         ) {
-            throw new MQClientException("consumeThreadMin Out of range [1, 1000]" //
-                    + FAQUrl.suggestTodo(FAQUrl.CLIENT_PARAMETER_CHECK_URL), //
+            throw new MQClientException(
+                "consumeThreadMin Out of range [1, 1000]" //
+                        + FAQUrl.suggestTodo(FAQUrl.CLIENT_PARAMETER_CHECK_URL), //
                 null);
         }
 
         // consumeThreadMax
         if (this.defaultMQPushConsumer.getConsumeThreadMax() < 1 || this.defaultMQPushConsumer.getConsumeThreadMax() > 1000) {
-            throw new MQClientException("consumeThreadMax Out of range [1, 1000]" //
-                    + FAQUrl.suggestTodo(FAQUrl.CLIENT_PARAMETER_CHECK_URL), //
+            throw new MQClientException(
+                "consumeThreadMax Out of range [1, 1000]" //
+                        + FAQUrl.suggestTodo(FAQUrl.CLIENT_PARAMETER_CHECK_URL), //
                 null);
         }
 
         // consumeConcurrentlyMaxSpan
         if (this.defaultMQPushConsumer.getConsumeConcurrentlyMaxSpan() < 1
                 || this.defaultMQPushConsumer.getConsumeConcurrentlyMaxSpan() > 65535) {
-            throw new MQClientException("consumeConcurrentlyMaxSpan Out of range [1, 65535]" //
-                    + FAQUrl.suggestTodo(FAQUrl.CLIENT_PARAMETER_CHECK_URL), //
+            throw new MQClientException(
+                "consumeConcurrentlyMaxSpan Out of range [1, 65535]" //
+                        + FAQUrl.suggestTodo(FAQUrl.CLIENT_PARAMETER_CHECK_URL), //
                 null);
         }
 
         // pullThresholdForQueue
         if (this.defaultMQPushConsumer.getPullThresholdForQueue() < 1 || this.defaultMQPushConsumer.getPullThresholdForQueue() > 65535) {
-            throw new MQClientException("pullThresholdForQueue Out of range [1, 65535]" //
-                    + FAQUrl.suggestTodo(FAQUrl.CLIENT_PARAMETER_CHECK_URL), //
+            throw new MQClientException(
+                "pullThresholdForQueue Out of range [1, 65535]" //
+                        + FAQUrl.suggestTodo(FAQUrl.CLIENT_PARAMETER_CHECK_URL), //
                 null);
         }
 
         // pullInterval
         if (this.defaultMQPushConsumer.getPullInterval() < 0 || this.defaultMQPushConsumer.getPullInterval() > 65535) {
-            throw new MQClientException("pullInterval Out of range [0, 65535]" //
-                    + FAQUrl.suggestTodo(FAQUrl.CLIENT_PARAMETER_CHECK_URL), //
+            throw new MQClientException(
+                "pullInterval Out of range [0, 65535]" //
+                        + FAQUrl.suggestTodo(FAQUrl.CLIENT_PARAMETER_CHECK_URL), //
                 null);
         }
 
         // consumeMessageBatchMaxSize
         if (this.defaultMQPushConsumer.getConsumeMessageBatchMaxSize() < 1
                 || this.defaultMQPushConsumer.getConsumeMessageBatchMaxSize() > 1024) {
-            throw new MQClientException("consumeMessageBatchMaxSize Out of range [1, 1024]" //
-                    + FAQUrl.suggestTodo(FAQUrl.CLIENT_PARAMETER_CHECK_URL), //
+            throw new MQClientException(
+                "consumeMessageBatchMaxSize Out of range [1, 1024]" //
+                        + FAQUrl.suggestTodo(FAQUrl.CLIENT_PARAMETER_CHECK_URL), //
                 null);
         }
 
         // pullBatchSize
         if (this.defaultMQPushConsumer.getPullBatchSize() < 1 || this.defaultMQPushConsumer.getPullBatchSize() > 1024) {
-            throw new MQClientException("pullBatchSize Out of range [1, 1024]" //
-                    + FAQUrl.suggestTodo(FAQUrl.CLIENT_PARAMETER_CHECK_URL), //
+            throw new MQClientException(
+                "pullBatchSize Out of range [1, 1024]" //
+                        + FAQUrl.suggestTodo(FAQUrl.CLIENT_PARAMETER_CHECK_URL), //
                 null);
         }
     }
@@ -866,7 +884,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                 for (final Map.Entry<String, String> entry : sub.entrySet()) {
                     final String topic = entry.getKey();
                     final String subString = entry.getValue();
-                    SubscriptionData subscriptionData = FilterAPI.buildSubscriptionData(this.defaultMQPushConsumer.getConsumerGroup(),//
+                    SubscriptionData subscriptionData = FilterAPI.buildSubscriptionData(this.defaultMQPushConsumer.getConsumerGroup(), //
                         topic, subString);
                     this.rebalanceImpl.getSubscriptionInner().put(topic, subscriptionData);
                 }
@@ -881,7 +899,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                 break;
             case CLUSTERING:
                 final String retryTopic = MixAll.getRetryTopic(this.defaultMQPushConsumer.getConsumerGroup());
-                SubscriptionData subscriptionData = FilterAPI.buildSubscriptionData(this.defaultMQPushConsumer.getConsumerGroup(),//
+                SubscriptionData subscriptionData = FilterAPI.buildSubscriptionData(this.defaultMQPushConsumer.getConsumerGroup(), //
                     retryTopic, SubscriptionData.SUB_ALL);
                 this.rebalanceImpl.getSubscriptionInner().put(retryTopic, subscriptionData);
                 break;
@@ -913,7 +931,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
 
     public void subscribe(String topic, String subExpression) throws MQClientException {
         try {
-            SubscriptionData subscriptionData = FilterAPI.buildSubscriptionData(this.defaultMQPushConsumer.getConsumerGroup(),//
+            SubscriptionData subscriptionData = FilterAPI.buildSubscriptionData(this.defaultMQPushConsumer.getConsumerGroup(), //
                 topic, subExpression);
             this.rebalanceImpl.getSubscriptionInner().put(topic, subscriptionData);
             if (this.mQClientFactory != null) {
@@ -928,7 +946,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
 
     public void subscribe(String topic, String fullClassName, String filterClassSource) throws MQClientException {
         try {
-            SubscriptionData subscriptionData = FilterAPI.buildSubscriptionData(this.defaultMQPushConsumer.getConsumerGroup(),//
+            SubscriptionData subscriptionData = FilterAPI.buildSubscriptionData(this.defaultMQPushConsumer.getConsumerGroup(), //
                 topic, "*");
             subscriptionData.setSubString(fullClassName);
             subscriptionData.setClassFilterMode(true);
@@ -992,7 +1010,8 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
     }
 
 
-    public void resetOffsetByTimeStamp(long timeStamp) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
+    public void resetOffsetByTimeStamp(long timeStamp)
+            throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
         for (String topic : rebalanceImpl.getSubscriptionInner().keySet()) {
             Set<MessageQueue> mqs = rebalanceImpl.getTopicSubscribeInfoTable().get(topic);
             Map<MessageQueue, Long> offsetTable = new HashMap<MessageQueue, Long>();
@@ -1100,8 +1119,8 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
     }
 
 
-    public List<QueueTimeSpan> queryConsumeTimeSpan(final String topic) throws RemotingException, MQClientException, InterruptedException,
-            MQBrokerException {
+    public List<QueueTimeSpan> queryConsumeTimeSpan(final String topic)
+            throws RemotingException, MQClientException, InterruptedException, MQBrokerException {
         List<QueueTimeSpan> queueTimeSpan = new ArrayList<QueueTimeSpan>();
         TopicRouteData routeData = this.mQClientFactory.getMQClientAPIImpl().getTopicRouteInfoFromNameServer(topic, 3000);
         for (BrokerData brokerData : routeData.getBrokerDatas()) {
