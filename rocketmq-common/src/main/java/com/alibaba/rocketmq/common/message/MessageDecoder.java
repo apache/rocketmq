@@ -15,9 +15,6 @@
  */
 package com.alibaba.rocketmq.common.message;
 
-import com.alibaba.rocketmq.common.UtilAll;
-import com.alibaba.rocketmq.common.sysflag.MessageSysFlag;
-
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
@@ -29,6 +26,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import com.alibaba.rocketmq.common.UtilAll;
+import com.alibaba.rocketmq.common.sysflag.MessageSysFlag;
 
 
 /**
@@ -234,7 +234,7 @@ public class MessageDecoder {
     }
 
     // 当前该方法没有用到
-    public static byte[] encode(MessageExt messageExt) throws Exception {
+    public static byte[] encode(MessageExt messageExt, boolean needCompress) throws Exception {
         byte[] body = messageExt.getBody();
         byte[] topics = messageExt.getTopic().getBytes(CHARSET_UTF8);
         byte topicLen = (byte) topics.length;
@@ -243,7 +243,7 @@ public class MessageDecoder {
         short propertiesLength = (short) propertiesBytes.length;
         int sysFlag = messageExt.getSysFlag();
         byte[] newBody = messageExt.getBody();
-        if ((sysFlag & MessageSysFlag.CompressedFlag) == MessageSysFlag.CompressedFlag) {
+        if (needCompress && (sysFlag & MessageSysFlag.CompressedFlag) == MessageSysFlag.CompressedFlag) {
             newBody = UtilAll.compress(body, 5);
         }
         int bodyLength = newBody.length;
