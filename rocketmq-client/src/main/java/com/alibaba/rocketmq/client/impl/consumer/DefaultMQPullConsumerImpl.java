@@ -617,6 +617,14 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
                             + FAQUrl.suggestTodo(FAQUrl.CLIENT_PARAMETER_CHECK_URL), //
                     null);
         }
+
+        // allocateMessageQueueStrategy
+        if (this.defaultMQPullConsumer.getConsumerTimeoutMillisWhenSuspend() < this.defaultMQPullConsumer.getBrokerSuspendMaxTimeMillis()) {
+            throw new MQClientException(
+                "Long polling mode, the consumer consumerTimeoutMillisWhenSuspend must greater than brokerSuspendMaxTimeMillis" //
+                        + FAQUrl.suggestTodo(FAQUrl.CLIENT_PARAMETER_CHECK_URL), //
+                null);
+        }
     }
 
     private void copySubscription() throws MQClientException {

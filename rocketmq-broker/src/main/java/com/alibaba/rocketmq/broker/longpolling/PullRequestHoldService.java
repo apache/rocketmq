@@ -77,7 +77,7 @@ public class PullRequestHoldService extends ServiceThread {
         while (!this.isStoped()) {
             try {
                 if (this.brokerController.getBrokerConfig().isLongPollingEnable()) {
-                    this.waitForRunning(1000 * 30);
+                    this.waitForRunning(10 * 1000);
                 } else {
                     this.waitForRunning(this.brokerController.getBrokerConfig().getShortPollingTimeMills());
                 }
