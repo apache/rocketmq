@@ -133,7 +133,14 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
      * 消费失败重试次数
      */
     private int maxReconsumeTimes = 16;
+    /**
+     * 顺序消息消费失败后,暂停一断时间后,继续重试
+     */
     private long suspendCurrentQueueTimeMillis = 1000;
+    /**
+     * 一条消息消费的超时时间
+     */
+    private long consumeTimeout = 2 * 60 * 1000;
 
 
     public DefaultMQPushConsumer() {
@@ -499,5 +506,15 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
 
     public void setSuspendCurrentQueueTimeMillis(final long suspendCurrentQueueTimeMillis) {
         this.suspendCurrentQueueTimeMillis = suspendCurrentQueueTimeMillis;
+    }
+
+
+    public long getConsumeTimeout() {
+        return consumeTimeout;
+    }
+
+
+    public void setConsumeTimeout(final long consumeTimeout) {
+        this.consumeTimeout = consumeTimeout;
     }
 }

@@ -15,9 +15,7 @@
  */
 package com.alibaba.rocketmq.client.impl.consumer;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.*;
 
 import org.slf4j.Logger;
@@ -53,6 +51,7 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
     private final String consumerGroup;
 
     private final ScheduledExecutorService scheduledExecutorService;
+    private final ScheduledExecutorService CleanExpireMsgExecutors;
 
 
     public ConsumeMessageConcurrentlyService(DefaultMQPushConsumerImpl defaultMQPushConsumerImpl,
@@ -73,10 +72,19 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
             new ThreadFactoryImpl("ConsumeMessageThread_"));
 
         this.scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("ConsumeMessageScheduledThread_"));
+        this.CleanExpireMsgExecutors = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("CleanExpireMsgScheduledThread_"));
     }
 
 
     public void start() {
+        this.CleanExpireMsgExecutors.scheduleAtFixedRate(new Runnable() {
+
+            @Override
+            public void run() {
+                cleanExpireMsg();
+            }
+
+        }, this.defaultMQPushConsumer.getConsumeTimeout() * 2, this.defaultMQPushConsumer.getConsumeTimeout() * 2, TimeUnit.MILLISECONDS);
     }
 
 
@@ -449,6 +457,17 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
             if (retryTopic != null && groupTopic.equals(msg.getTopic())) {
                 msg.setTopic(retryTopic);
             }
+        }
+    }
+
+
+    private void cleanExpireMsg() {
+        Iterator<Map.Entry<MessageQueue, ProcessQueue>> it =
+                this.defaultMQPushConsumerImpl.getRebalanceImpl().getProcessQueueTable().entrySet().iterator();
+        while (it.hasNext()) {
+            Map.Entry<MessageQueue, ProcessQueue> next = it.next();
+            ProcessQueue pq = next.getValue();
+            pq.cleanExpiredMsg(this.defaultMQPushConsumer);
         }
     }
 }
