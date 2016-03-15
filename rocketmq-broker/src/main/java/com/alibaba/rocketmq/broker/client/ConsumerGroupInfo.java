@@ -1,12 +1,12 @@
 /**
  * Copyright (C) 2010-2013 Alibaba Group Holding Limited
- *
+ * <p/>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p/>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p/>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -34,7 +34,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * 整个Consumer Group信息
- * 
+ *
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-26
  */
@@ -52,7 +52,7 @@ public class ConsumerGroupInfo {
 
 
     public ConsumerGroupInfo(String groupName, ConsumeType consumeType, MessageModel messageModel,
-            ConsumeFromWhere consumeFromWhere) {
+                             ConsumeFromWhere consumeFromWhere) {
         this.groupName = groupName;
         this.consumeType = consumeType;
         this.messageModel = messageModel;
@@ -119,8 +119,8 @@ public class ConsumerGroupInfo {
         final ClientChannelInfo info = this.channelInfoTable.remove(channel);
         if (info != null) {
             log.warn(
-                "NETTY EVENT: remove not active channel[{}] from ConsumerGroupInfo groupChannelTable, consumer group: {}",
-                info.toString(), groupName);
+                    "NETTY EVENT: remove not active channel[{}] from ConsumerGroupInfo groupChannelTable, consumer group: {}",
+                    info.toString(), groupName);
             return true;
         }
 
@@ -132,7 +132,7 @@ public class ConsumerGroupInfo {
      * 返回值表示是否发生变更
      */
     public boolean updateChannel(final ClientChannelInfo infoNew, ConsumeType consumeType,
-            MessageModel messageModel, ConsumeFromWhere consumeFromWhere) {
+                                 MessageModel messageModel, ConsumeFromWhere consumeFromWhere) {
         boolean updated = false;
         this.consumeType = consumeType;
         this.messageModel = messageModel;
@@ -143,19 +143,18 @@ public class ConsumerGroupInfo {
             ClientChannelInfo prev = this.channelInfoTable.put(infoNew.getChannel(), infoNew);
             if (null == prev) {
                 log.info("new consumer connected, group: {} {} {} channel: {}", this.groupName, consumeType,
-                    messageModel, infoNew.toString());
+                        messageModel, infoNew.toString());
                 updated = true;
             }
 
             infoOld = infoNew;
-        }
-        else {
+        } else {
             if (!infoOld.getClientId().equals(infoNew.getClientId())) {
                 log.error(
-                    "[BUG] consumer channel exist in broker, but clientId not equal. GROUP: {} OLD: {} NEW: {} ",
-                    this.groupName,//
-                    infoOld.toString(),//
-                    infoNew.toString());
+                        "[BUG] consumer channel exist in broker, but clientId not equal. GROUP: {} OLD: {} NEW: {} ",
+                        this.groupName,//
+                        infoOld.toString(),//
+                        infoNew.toString());
                 this.channelInfoTable.put(infoNew.getChannel(), infoNew);
             }
         }
@@ -180,15 +179,14 @@ public class ConsumerGroupInfo {
                 if (null == prev) {
                     updated = true;
                     log.info("subscription changed, add new topic, group: {} {}", this.groupName,
-                        sub.toString());
+                            sub.toString());
                 }
-            }
-            else if (sub.getSubVersion() > old.getSubVersion()) {
+            } else if (sub.getSubVersion() > old.getSubVersion()) {
                 if (this.consumeType == ConsumeType.CONSUME_PASSIVELY) {
                     log.info("subscription changed, group: {} OLD: {} NEW: {}", //
-                        this.groupName,//
-                        old.toString(),//
-                        sub.toString()//
+                            this.groupName,//
+                            old.toString(),//
+                            sub.toString()//
                     );
                 }
 
@@ -212,9 +210,9 @@ public class ConsumerGroupInfo {
 
             if (!exist) {
                 log.warn("subscription changed, group: {} remove topic {} {}", //
-                    this.groupName,//
-                    oldTopic,//
-                    next.getValue().toString()//
+                        this.groupName,//
+                        oldTopic,//
+                        next.getValue().toString()//
                 );
 
                 it.remove();

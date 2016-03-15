@@ -1,15 +1,15 @@
 package com.alibaba.rocketmq.common.protocol.body;
 
-import java.util.concurrent.ConcurrentHashMap;
-
 import com.alibaba.rocketmq.common.DataVersion;
 import com.alibaba.rocketmq.common.subscription.SubscriptionGroupConfig;
 import com.alibaba.rocketmq.remoting.protocol.RemotingSerializable;
 
+import java.util.concurrent.ConcurrentHashMap;
+
 
 /**
  * 订阅组配置，序列化包装
- * 
+ *
  * @author manhong.yqd<manhong.yqd@taobao.com>
  * @since 2013-8-19
  */

@@ -7,7 +7,7 @@ import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
 
 /**
  * 删除订阅组请求参数
- * 
+ *
  * @author manhong.yqd<manhong.yqd@taobao.com>
  * @since 2013-8-22
  */

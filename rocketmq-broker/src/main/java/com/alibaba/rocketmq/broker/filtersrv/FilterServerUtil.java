@@ -4,12 +4,6 @@ import org.slf4j.Logger;
 
 
 public class FilterServerUtil {
-    private static String[] splitShellString(final String shellString) {
-        String[] split = shellString.split(" ");
-        return split;
-    }
-
-
     public static void callShell(final String shellString, final Logger log) {
         Process process = null;
         try {
@@ -17,13 +11,16 @@ public class FilterServerUtil {
             process = Runtime.getRuntime().exec(cmdArray);
             process.waitFor();
             log.info("callShell: <{}> OK", shellString);
-        }
-        catch (Throwable e) {
+        } catch (Throwable e) {
             log.error("callShell: readLine IOException, " + shellString, e);
-        }
-        finally {
+        } finally {
             if (null != process)
                 process.destroy();
         }
+    }
+
+    private static String[] splitShellString(final String shellString) {
+        String[] split = shellString.split(" ");
+        return split;
     }
 }

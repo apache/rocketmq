@@ -1,12 +1,12 @@
 /**
  * Copyright (C) 2010-2013 Alibaba Group Holding Limited
- *
+ * <p/>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p/>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p/>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -61,18 +61,18 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
     protected final BrokerController brokerController;
     protected final Random random = new Random(System.currentTimeMillis());
     protected final SocketAddress storeHost;
+    private List<SendMessageHook> sendMessageHookList;
 
 
     public AbstractSendMessageProcessor(final BrokerController brokerController) {
         this.brokerController = brokerController;
         this.storeHost =
                 new InetSocketAddress(brokerController.getBrokerConfig().getBrokerIP1(), brokerController
-                    .getNettyServerConfig().getListenPort());
+                        .getNettyServerConfig().getListenPort());
     }
 
-
     protected SendMessageContext buildMsgContext(ChannelHandlerContext ctx,
-            SendMessageRequestHeader requestHeader) {
+                                                 SendMessageRequestHeader requestHeader) {
         if (!this.hasSendMessageHook()) {
             return null;
         }
@@ -86,35 +86,12 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
         return mqtraceContext;
     }
 
-
-    protected SendMessageRequestHeader parseRequestHeader(RemotingCommand request)
-            throws RemotingCommandException {
-
-        SendMessageRequestHeaderV2 requestHeaderV2 = null;
-        SendMessageRequestHeader requestHeader = null;
-        switch (request.getCode()) {
-        case RequestCode.SEND_MESSAGE_V2:
-            requestHeaderV2 =
-                    (SendMessageRequestHeaderV2) request
-                        .decodeCommandCustomHeader(SendMessageRequestHeaderV2.class);
-        case RequestCode.SEND_MESSAGE:
-            if (null == requestHeaderV2) {
-                requestHeader =
-                        (SendMessageRequestHeader) request
-                            .decodeCommandCustomHeader(SendMessageRequestHeader.class);
-            }
-            else {
-                requestHeader = SendMessageRequestHeaderV2.createSendMessageRequestHeaderV1(requestHeaderV2);
-            }
-        default:
-            break;
-        }
-        return requestHeader;
+    public boolean hasSendMessageHook() {
+        return sendMessageHookList != null && !this.sendMessageHookList.isEmpty();
     }
 
-
     protected MessageExtBrokerInner buildInnerMsg(final ChannelHandlerContext ctx,
-            final SendMessageRequestHeader requestHeader, final byte[] body, TopicConfig topicConfig) {
+                                                  final SendMessageRequestHeader requestHeader, final byte[] body, TopicConfig topicConfig) {
         int queueIdInt = requestHeader.getQueueId();
         if (queueIdInt < 0) {
             queueIdInt = Math.abs(this.random.nextInt() % 99999999) % topicConfig.getWriteQueueNums();
@@ -130,10 +107,10 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
         msgInner.setBody(body);
         msgInner.setFlag(requestHeader.getFlag());
         MessageAccessor.setProperties(msgInner,
-            MessageDecoder.string2messageProperties(requestHeader.getProperties()));
+                MessageDecoder.string2messageProperties(requestHeader.getProperties()));
         msgInner.setPropertiesString(requestHeader.getProperties());
         msgInner.setTagsCode(MessageExtBrokerInner.tagsString2tagsCode(topicConfig.getTopicFilterType(),
-            msgInner.getTags()));
+                msgInner.getTags()));
 
         msgInner.setQueueId(queueIdInt);
         msgInner.setSysFlag(sysFlag);
@@ -141,14 +118,17 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
         msgInner.setBornHost(ctx.channel().remoteAddress());
         msgInner.setStoreHost(this.getStoreHost());
         msgInner.setReconsumeTimes(requestHeader.getReconsumeTimes() == null ? 0 : requestHeader
-            .getReconsumeTimes());
+                .getReconsumeTimes());
         return msgInner;
     }
 
+    public SocketAddress getStoreHost() {
+        return storeHost;
+    }
 
     protected RemotingCommand msgContentCheck(final ChannelHandlerContext ctx,
-            final SendMessageRequestHeader requestHeader, RemotingCommand request,
-            final RemotingCommand response) {
+                                              final SendMessageRequestHeader requestHeader, RemotingCommand request,
+                                              final RemotingCommand response) {
         if (requestHeader.getTopic().length() > Byte.MAX_VALUE) {
             log.warn("putMessage message topic length too long " + requestHeader.getTopic().length());
             response.setCode(ResponseCode.MESSAGE_ILLEGAL);
@@ -162,7 +142,7 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
         }
         if (request.getBody().length > DBMsgConstants.maxBodySize) {
             log.warn(" topic {}  msg body size {}  from {}", requestHeader.getTopic(),
-                request.getBody().length, ChannelUtil.getRemoteIp(ctx.channel()));
+                    request.getBody().length, ChannelUtil.getRemoteIp(ctx.channel()));
             response.setRemark("msg body must be less 64KB");
             response.setCode(ResponseCode.MESSAGE_ILLEGAL);
             return response;
@@ -170,9 +150,8 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
         return response;
     }
 
-
     protected RemotingCommand msgCheck(final ChannelHandlerContext ctx,
-            final SendMessageRequestHeader requestHeader, final RemotingCommand response) {
+                                       final SendMessageRequestHeader requestHeader, final RemotingCommand response) {
         if (!PermName.isWriteable(this.brokerController.getBrokerConfig().getBrokerPermission())
                 && this.brokerController.getTopicConfigManager().isOrderTopic(requestHeader.getTopic())) {
             response.setCode(ResponseCode.NO_PERMISSION);
@@ -196,8 +175,7 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
             if (requestHeader.isUnitMode()) {
                 if (requestHeader.getTopic().startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
                     topicSysFlag = TopicSysFlag.buildSysFlag(false, true);
-                }
-                else {
+                } else {
                     topicSysFlag = TopicSysFlag.buildSysFlag(true, false);
                 }
             }
@@ -205,17 +183,17 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
             log.warn("the topic " + requestHeader.getTopic() + " not exist, producer: "
                     + ctx.channel().remoteAddress());
             topicConfig = this.brokerController.getTopicConfigManager().createTopicInSendMessageMethod(//
-                requestHeader.getTopic(), //
-                requestHeader.getDefaultTopic(), //
-                RemotingHelper.parseChannelRemoteAddr(ctx.channel()), //
-                requestHeader.getDefaultTopicQueueNums(), topicSysFlag);
+                    requestHeader.getTopic(), //
+                    requestHeader.getDefaultTopic(), //
+                    RemotingHelper.parseChannelRemoteAddr(ctx.channel()), //
+                    requestHeader.getDefaultTopicQueueNums(), topicSysFlag);
 
             if (null == topicConfig) {
                 if (requestHeader.getTopic().startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
                     topicConfig =
                             this.brokerController.getTopicConfigManager().createTopicInSendMessageBackMethod(
-                                requestHeader.getTopic(), 1, PermName.PERM_WRITE | PermName.PERM_READ,
-                                topicSysFlag);
+                                    requestHeader.getTopic(), 1, PermName.PERM_WRITE | PermName.PERM_READ,
+                                    topicSysFlag);
                 }
             }
 
@@ -231,9 +209,9 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
         int idValid = Math.max(topicConfig.getWriteQueueNums(), topicConfig.getReadQueueNums());
         if (queueIdInt >= idValid) {
             String errorInfo = String.format("request queueId[%d] is illagal, %s Producer: %s",//
-                queueIdInt,//
-                topicConfig.toString(),//
-                RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
+                    queueIdInt,//
+                    topicConfig.toString(),//
+                    RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
 
             log.warn(errorInfo);
             response.setCode(ResponseCode.SYSTEM_ERROR);
@@ -244,31 +222,16 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
         return response;
     }
 
-
-    public SocketAddress getStoreHost() {
-        return storeHost;
-    }
-
-    private List<SendMessageHook> sendMessageHookList;
-
-
-    public boolean hasSendMessageHook() {
-        return sendMessageHookList != null && !this.sendMessageHookList.isEmpty();
-    }
-
-
     public void registerSendMessageHook(List<SendMessageHook> sendMessageHookList) {
         this.sendMessageHookList = sendMessageHookList;
     }
 
-
     protected void doResponse(ChannelHandlerContext ctx, RemotingCommand request,
-            final RemotingCommand response) {
+                              final RemotingCommand response) {
         if (!request.isOnewayRPC()) {
             try {
                 ctx.writeAndFlush(response);
-            }
-            catch (Throwable e) {
+            } catch (Throwable e) {
                 log.error("SendMessageProcessor process request over, but response failed", e);
                 log.error(request.toString());
                 log.error(response.toString());
@@ -276,15 +239,14 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
         }
     }
 
-
     public void executeSendMessageHookBefore(final ChannelHandlerContext ctx, final RemotingCommand request,
-            SendMessageContext context) {
+                                             SendMessageContext context) {
         if (hasSendMessageHook()) {
             for (SendMessageHook hook : this.sendMessageHookList) {
                 try {
                     final SendMessageRequestHeader requestHeader = parseRequestHeader(request);
 
-                    if(null != requestHeader){
+                    if (null != requestHeader) {
                         context.setProducerGroup(requestHeader.getProducerGroup());
                         context.setTopic(requestHeader.getTopic());
                         context.setBodyLength(request.getBody().length);
@@ -296,13 +258,35 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
 
                     hook.sendMessageBefore(context);
                     requestHeader.setProperties(context.getMsgProps());
-                }
-                catch (Throwable e) {
+                } catch (Throwable e) {
                 }
             }
         }
     }
 
+    protected SendMessageRequestHeader parseRequestHeader(RemotingCommand request)
+            throws RemotingCommandException {
+
+        SendMessageRequestHeaderV2 requestHeaderV2 = null;
+        SendMessageRequestHeader requestHeader = null;
+        switch (request.getCode()) {
+            case RequestCode.SEND_MESSAGE_V2:
+                requestHeaderV2 =
+                        (SendMessageRequestHeaderV2) request
+                                .decodeCommandCustomHeader(SendMessageRequestHeaderV2.class);
+            case RequestCode.SEND_MESSAGE:
+                if (null == requestHeaderV2) {
+                    requestHeader =
+                            (SendMessageRequestHeader) request
+                                    .decodeCommandCustomHeader(SendMessageRequestHeader.class);
+                } else {
+                    requestHeader = SendMessageRequestHeaderV2.createSendMessageRequestHeaderV1(requestHeaderV2);
+                }
+            default:
+                break;
+        }
+        return requestHeader;
+    }
 
     public void executeSendMessageHookAfter(final RemotingCommand response, final SendMessageContext context) {
         if (hasSendMessageHook()) {
@@ -318,8 +302,7 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
                         context.setErrorMsg(response.getRemark());
                     }
                     hook.sendMessageAfter(context);
-                }
-                catch (Throwable e) {
+                } catch (Throwable e) {
 
                 }
             }

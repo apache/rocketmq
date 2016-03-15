@@ -3,11 +3,11 @@
  */
 package com.alibaba.rocketmq.store;
 
-import static org.junit.Assert.assertTrue;
-
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
+
+import static org.junit.Assert.assertTrue;
 
 
 public class StoreCheckpointTest {
@@ -41,8 +41,7 @@ public class StoreCheckpointTest {
             storeCheckpoint = new StoreCheckpoint("a/b/0000");
             assertTrue(physicMsgTimestamp == storeCheckpoint.getPhysicMsgTimestamp());
             assertTrue(logicsMsgTimestamp == storeCheckpoint.getLogicsMsgTimestamp());
-        }
-        catch (Throwable e) {
+        } catch (Throwable e) {
             e.printStackTrace();
             assertTrue(false);
         }

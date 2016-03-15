@@ -1,12 +1,12 @@
 /**
  * Copyright (C) 2010-2013 Alibaba Group Holding Limited
- *
+ * <p/>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p/>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p/>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -32,7 +32,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
  * KV配置管理
- * 
+ *
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-1
  */
@@ -78,91 +78,20 @@ public class KVConfigManager {
                 final String prev = kvTable.put(key, value);
                 if (null != prev) {
                     log.info("putKVConfig update config item, Namespace: {} Key: {} Value: {}", //
-                        namespace, key, value);
-                }
-                else {
+                            namespace, key, value);
+                } else {
                     log.info("putKVConfig create new config item, Namespace: {} Key: {} Value: {}", //
-                        namespace, key, value);
+                            namespace, key, value);
                 }
-            }
-            finally {
+            } finally {
                 this.lock.writeLock().unlock();
             }
-        }
-        catch (InterruptedException e) {
+        } catch (InterruptedException e) {
             log.error("putKVConfig InterruptedException", e);
         }
 
         this.persist();
     }
-
-
-    public void deleteKVConfig(final String namespace, final String key) {
-        try {
-            this.lock.writeLock().lockInterruptibly();
-            try {
-                HashMap<String, String> kvTable = this.configTable.get(namespace);
-                if (null != kvTable) {
-                    String value = kvTable.remove(key);
-                    log.info("deleteKVConfig delete a config item, Namespace: {} Key: {} Value: {}", //
-                        namespace, key, value);
-                }
-            }
-            finally {
-                this.lock.writeLock().unlock();
-            }
-        }
-        catch (InterruptedException e) {
-            log.error("deleteKVConfig InterruptedException", e);
-        }
-
-        this.persist();
-    }
-
-
-    public byte[] getKVListByNamespace(final String namespace) {
-        try {
-            this.lock.readLock().lockInterruptibly();
-            try {
-                HashMap<String, String> kvTable = this.configTable.get(namespace);
-                if (null != kvTable) {
-                    KVTable table = new KVTable();
-                    table.setTable(kvTable);
-                    return table.encode();
-                }
-            }
-            finally {
-                this.lock.readLock().unlock();
-            }
-        }
-        catch (InterruptedException e) {
-            log.error("getKVListByNamespace InterruptedException", e);
-        }
-
-        return null;
-    }
-
-
-    public String getKVConfig(final String namespace, final String key) {
-        try {
-            this.lock.readLock().lockInterruptibly();
-            try {
-                HashMap<String, String> kvTable = this.configTable.get(namespace);
-                if (null != kvTable) {
-                    return kvTable.get(key);
-                }
-            }
-            finally {
-                this.lock.readLock().unlock();
-            }
-        }
-        catch (InterruptedException e) {
-            log.error("getKVConfig InterruptedException", e);
-        }
-
-        return null;
-    }
-
 
     public void persist() {
         try {
@@ -176,21 +105,75 @@ public class KVConfigManager {
                 if (null != content) {
                     MixAll.string2File(content, this.namesrvController.getNamesrvConfig().getKvConfigPath());
                 }
-            }
-            catch (IOException e) {
+            } catch (IOException e) {
                 log.error("persist kvconfig Exception, "
                         + this.namesrvController.getNamesrvConfig().getKvConfigPath(), e);
-            }
-            finally {
+            } finally {
                 this.lock.readLock().unlock();
             }
-        }
-        catch (InterruptedException e) {
+        } catch (InterruptedException e) {
             log.error("persist InterruptedException", e);
         }
 
     }
 
+    public void deleteKVConfig(final String namespace, final String key) {
+        try {
+            this.lock.writeLock().lockInterruptibly();
+            try {
+                HashMap<String, String> kvTable = this.configTable.get(namespace);
+                if (null != kvTable) {
+                    String value = kvTable.remove(key);
+                    log.info("deleteKVConfig delete a config item, Namespace: {} Key: {} Value: {}", //
+                            namespace, key, value);
+                }
+            } finally {
+                this.lock.writeLock().unlock();
+            }
+        } catch (InterruptedException e) {
+            log.error("deleteKVConfig InterruptedException", e);
+        }
+
+        this.persist();
+    }
+
+    public byte[] getKVListByNamespace(final String namespace) {
+        try {
+            this.lock.readLock().lockInterruptibly();
+            try {
+                HashMap<String, String> kvTable = this.configTable.get(namespace);
+                if (null != kvTable) {
+                    KVTable table = new KVTable();
+                    table.setTable(kvTable);
+                    return table.encode();
+                }
+            } finally {
+                this.lock.readLock().unlock();
+            }
+        } catch (InterruptedException e) {
+            log.error("getKVListByNamespace InterruptedException", e);
+        }
+
+        return null;
+    }
+
+    public String getKVConfig(final String namespace, final String key) {
+        try {
+            this.lock.readLock().lockInterruptibly();
+            try {
+                HashMap<String, String> kvTable = this.configTable.get(namespace);
+                if (null != kvTable) {
+                    return kvTable.get(key);
+                }
+            } finally {
+                this.lock.readLock().unlock();
+            }
+        } catch (InterruptedException e) {
+            log.error("getKVConfig InterruptedException", e);
+        }
+
+        return null;
+    }
 
     public void printAllPeriodically() {
         try {
@@ -208,16 +191,14 @@ public class KVConfigManager {
                         while (itSub.hasNext()) {
                             Entry<String, String> nextSub = itSub.next();
                             log.info("configTable NS: {} Key: {} Value: {}", next.getKey(), nextSub.getKey(),
-                                nextSub.getValue());
+                                    nextSub.getValue());
                         }
                     }
                 }
-            }
-            finally {
+            } finally {
                 this.lock.readLock().unlock();
             }
-        }
-        catch (InterruptedException e) {
+        } catch (InterruptedException e) {
             log.error("printAllPeriodically InterruptedException", e);
         }
     }

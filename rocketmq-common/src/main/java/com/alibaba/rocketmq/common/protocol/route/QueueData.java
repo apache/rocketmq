@@ -10,56 +10,37 @@ public class QueueData implements Comparable<QueueData> {
     private int perm;
     private int topicSynFlag;
 
-
-    public String getBrokerName() {
-        return brokerName;
-    }
-
-
-    public void setBrokerName(String brokerName) {
-        this.brokerName = brokerName;
-    }
-
-
     public int getReadQueueNums() {
         return readQueueNums;
     }
-
 
     public void setReadQueueNums(int readQueueNums) {
         this.readQueueNums = readQueueNums;
     }
 
-
     public int getWriteQueueNums() {
         return writeQueueNums;
     }
-
 
     public void setWriteQueueNums(int writeQueueNums) {
         this.writeQueueNums = writeQueueNums;
     }
 
-
     public int getPerm() {
         return perm;
     }
-
 
     public void setPerm(int perm) {
         this.perm = perm;
     }
 
-
     public int getTopicSynFlag() {
         return topicSynFlag;
     }
 
-
     public void setTopicSynFlag(int topicSynFlag) {
         this.topicSynFlag = topicSynFlag;
     }
-
 
     @Override
     public int hashCode() {
@@ -73,7 +54,6 @@ public class QueueData implements Comparable<QueueData> {
         return result;
     }
 
-
     @Override
     public boolean equals(Object obj) {
         if (this == obj)
@@ -86,8 +66,7 @@ public class QueueData implements Comparable<QueueData> {
         if (brokerName == null) {
             if (other.brokerName != null)
                 return false;
-        }
-        else if (!brokerName.equals(other.brokerName))
+        } else if (!brokerName.equals(other.brokerName))
             return false;
         if (perm != other.perm)
             return false;
@@ -100,7 +79,6 @@ public class QueueData implements Comparable<QueueData> {
         return true;
     }
 
-
     @Override
     public String toString() {
         return "QueueData [brokerName=" + brokerName + ", readQueueNums=" + readQueueNums
@@ -108,9 +86,16 @@ public class QueueData implements Comparable<QueueData> {
                 + "]";
     }
 
-
     @Override
     public int compareTo(QueueData o) {
         return this.brokerName.compareTo(o.getBrokerName());
+    }
+
+    public String getBrokerName() {
+        return brokerName;
+    }
+
+    public void setBrokerName(String brokerName) {
+        this.brokerName = brokerName;
     }
 }

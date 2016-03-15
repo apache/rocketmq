@@ -1,12 +1,12 @@
 /**
  * Copyright (C) 2010-2013 Alibaba Group Holding Limited
- *
+ * <p/>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p/>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p/>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -35,7 +35,6 @@ import com.taobao.tlog.client.TLogQueryClient;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
-
 import org.slf4j.Logger;
 
 import java.util.*;
@@ -43,24 +42,47 @@ import java.util.*;
 
 /**
  * Consume消息福布斯排行...
- * 
+ *
  * @author zhouli
  * @since 2017-10-10
  */
 public class ConsumeOffsetRankSubCommand implements SubCommand {
     private final Logger log = ClientLogger.getLog();
 
+    public static void main(String[] args) {
+        for (int i = 0; i < 1; ++i) {
+            long endTime = System.currentTimeMillis() - 60000;
+            long startTime = endTime - 60000;
+
+            KeyValueQuery kvq = new KeyValueQuery("metaq_metaqstats", // StageId
+                    "meta_stats_1min",// BizId
+                    new KeyValueParam("type", "TOPIC_PUT_NUMS"), //kv1-定值
+                    new KeyValueParam("key", "TRADE"), //kv2-定值
+                    new KeyValueParam("date", startTime + "", endTime + ""));//kv3-范围值，格式为ms
+
+            JSONResult queryData = TLogQueryClient.queryData("http://110.75.84.129:9999", kvq); //查询url,query keys
+            long tps = 0;
+            if (queryData != null) {
+                JSONResult.JSONRecord[] records = queryData.getRecords();
+                for (JSONResult.JSONRecord r : records) {
+                    tps += (Long) r.getValueByKeyName("sum"); //从结果中获取sum这个key的value
+                }
+                System.out.println(tps);
+            }
+        }
+
+
+    }
+
     @Override
     public String commandName() {
         return "consumeOffsetRank";
     }
 
-
     @Override
     public String commandDesc() {
         return "Query rank list of certain consume data";
     }
-
 
     @Override
     public Options buildCommandlineOptions(Options options) {
@@ -82,7 +104,6 @@ public class ConsumeOffsetRankSubCommand implements SubCommand {
 
         return options;
     }
-
 
     @Override
     public void execute(CommandLine commandLine, Options options, RPCHook rpcHook) {
@@ -114,44 +135,41 @@ public class ConsumeOffsetRankSubCommand implements SubCommand {
                 if (null == clusterInfo)
                     return;
                 //查询一个集群
-                if (commandLine.hasOption('c')){
+                if (commandLine.hasOption('c')) {
                     String clusterName = commandLine.getOptionValue('c').trim();
                     printClusterConsumeDataInfo(clusterInfo, clusterName, defaultMQAdminExt, timeoutMillis, amount, consumeDataInfoMap);
                 }
                 //查询全部集群
                 else {
-                    for (String clusterName : clusterInfo.getClusterAddrTable().keySet()){
+                    for (String clusterName : clusterInfo.getClusterAddrTable().keySet()) {
                         consumeDataInfoMap.clear();
                         try {
                             System.out.println("consume offset rank list for cluster [" + clusterName + "]");
                             printClusterConsumeDataInfo(clusterInfo, clusterName, defaultMQAdminExt, timeoutMillis, amount, consumeDataInfoMap);
                             System.out.println();
-                        }
-                        catch (Exception e){
+                        } catch (Exception e) {
                             //异常的cluster直接跳过，继续获取下一个cluster信息
-                            System.out.println("get cluster [" + clusterName + "]" +"consume offset data error");
+                            System.out.println("get cluster [" + clusterName + "]" + "consume offset data error");
                             System.out.println();
                         }
                     }
                 }
             }
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             e.printStackTrace();
-        }
-        finally {
+        } finally {
             defaultMQAdminExt.shutdown();
         }
     }
 
     private List<ConsumeDataInfo> consumeRankInBroker(DefaultMQAdminExt defaultMQAdminExt, String brokerAddr,
-                                                      long timeoutMillis) throws Exception{
+                                                      long timeoutMillis) throws Exception {
         ConsumeStatsList consumeStatsList = defaultMQAdminExt.fetchConsumeStatsInBroker(brokerAddr, false, timeoutMillis);
         List<ConsumeDataInfo> consumeDataInfoList = new ArrayList<ConsumeDataInfo>();
-        for (Map<String, List<ConsumeStats>> map : consumeStatsList.getConsumeStatsList()){
-            for (String group : map.keySet()){
+        for (Map<String, List<ConsumeStats>> map : consumeStatsList.getConsumeStatsList()) {
+            for (String group : map.keySet()) {
                 List<ConsumeStats> consumeStatsArray = map.get(group);
-                for (ConsumeStats consumeStats : consumeStatsArray){
+                for (ConsumeStats consumeStats : consumeStatsArray) {
                     ConsumeDataInfo consumeDataInfo = new ConsumeDataInfo();
                     consumeDataInfo.setGroup(group);
                     if (consumeStats != null) {
@@ -165,40 +183,23 @@ public class ConsumeOffsetRankSubCommand implements SubCommand {
         return consumeDataInfoList;
     }
 
-    private void mergeConsumeDataInfoList(Map<String/*group*/, ConsumeDataInfo> consumeDataInfoMap, List<ConsumeDataInfo> consumeDataInfoList){
+    private void mergeConsumeDataInfoList(Map<String/*group*/, ConsumeDataInfo> consumeDataInfoMap, List<ConsumeDataInfo> consumeDataInfoList) {
         if (null == consumeDataInfoMap || null == consumeDataInfoList)
             return;
         for (ConsumeDataInfo consumeDataInfo : consumeDataInfoList) {
             ConsumeDataInfo mergeConsumeDataInfo = consumeDataInfoMap.get(consumeDataInfo.getGroup());
-            if (null == mergeConsumeDataInfo){
+            if (null == mergeConsumeDataInfo) {
                 mergeConsumeDataInfo = consumeDataInfo;
                 consumeDataInfoMap.put(mergeConsumeDataInfo.getGroup(), mergeConsumeDataInfo);
-            }
-            else {
+            } else {
                 mergeConsumeDataInfo.setDiffTotal(mergeConsumeDataInfo.getDiffTotal() + consumeDataInfo.getDiffTotal());
             }
         }
     }
 
-    private void printClusterConsumeDataInfo(ClusterInfo clusterInfo, String clusterName, DefaultMQAdminExt defaultMQAdminExt,
-                                             long timeoutMillis, int amount, Map<String/*group*/, ConsumeDataInfo> consumeDataInfoMap) throws Exception{
-        Set<String> brokerNameSet = clusterInfo.getClusterAddrTable().get(clusterName);
-        if (null == brokerNameSet)
-            return;
-        for (String brokerName : brokerNameSet){
-            String brokerAddr = clusterInfo.getBrokerAddrTable().get(brokerName).getBrokerAddrs().get(MixAll.MASTER_ID);
-            if (null != brokerAddr && brokerAddr.length() > 0){
-                List<ConsumeDataInfo> consumeDataInfoList = consumeRankInBroker(defaultMQAdminExt, brokerAddr, timeoutMillis);
-                mergeConsumeDataInfoList(consumeDataInfoMap, consumeDataInfoList);
-            }
-        }
-        //打印结果
-        printResult(defaultMQAdminExt, consumeDataInfoMap, amount);
-    }
-
-    private void printResult(DefaultMQAdminExt defaultMQAdminExt, Map<String/*group*/, ConsumeDataInfo> consumeDataInfoMap, int amount){
+    private void printResult(DefaultMQAdminExt defaultMQAdminExt, Map<String/*group*/, ConsumeDataInfo> consumeDataInfoMap, int amount) {
         List<ConsumeDataInfo> consumeDataInfoRet = new ArrayList<ConsumeDataInfo>();
-        for (String group : consumeDataInfoMap.keySet()){
+        for (String group : consumeDataInfoMap.keySet()) {
             consumeDataInfoRet.add(consumeDataInfoMap.get(group));
         }
         Collections.sort(consumeDataInfoRet);
@@ -212,16 +213,15 @@ public class ConsumeOffsetRankSubCommand implements SubCommand {
                 "#Diff Total"//
         );
         int onlineCount = 0;
-        for (int i = 0; i < consumeDataInfoRet.size(); i++){
-            if (onlineCount == amount){
+        for (int i = 0; i < consumeDataInfoRet.size(); i++) {
+            if (onlineCount == amount) {
                 break;
             }
             ConsumeDataInfo consumeDataInfo = consumeDataInfoRet.get(i);
             ConsumerConnection cc = null;
             try {
                 cc = defaultMQAdminExt.examineConsumerConnectionInfo(consumeDataInfo.getGroup());
-            }
-            catch (Exception e) {
+            } catch (Exception e) {
                 log.error("examineConsumerConnectionInfo exception, " + consumeDataInfo.getGroup());
             }
             if (cc != null) {
@@ -243,6 +243,22 @@ public class ConsumeOffsetRankSubCommand implements SubCommand {
         }
     }
 
+    private void printClusterConsumeDataInfo(ClusterInfo clusterInfo, String clusterName, DefaultMQAdminExt defaultMQAdminExt,
+                                             long timeoutMillis, int amount, Map<String/*group*/, ConsumeDataInfo> consumeDataInfoMap) throws Exception {
+        Set<String> brokerNameSet = clusterInfo.getClusterAddrTable().get(clusterName);
+        if (null == brokerNameSet)
+            return;
+        for (String brokerName : brokerNameSet) {
+            String brokerAddr = clusterInfo.getBrokerAddrTable().get(brokerName).getBrokerAddrs().get(MixAll.MASTER_ID);
+            if (null != brokerAddr && brokerAddr.length() > 0) {
+                List<ConsumeDataInfo> consumeDataInfoList = consumeRankInBroker(defaultMQAdminExt, brokerAddr, timeoutMillis);
+                mergeConsumeDataInfoList(consumeDataInfoMap, consumeDataInfoList);
+            }
+        }
+        //打印结果
+        printResult(defaultMQAdminExt, consumeDataInfoMap, amount);
+    }
+
     class ConsumeDataInfo implements Comparable<ConsumeDataInfo> {
         private String group;
         private int version;
@@ -257,6 +273,9 @@ public class ConsumeOffsetRankSubCommand implements SubCommand {
             return group;
         }
 
+        public void setGroup(String group) {
+            this.group = group;
+        }
 
         public String consumeTypeDesc() {
             if (this.count != 0) {
@@ -265,14 +284,28 @@ public class ConsumeOffsetRankSubCommand implements SubCommand {
             return "";
         }
 
+        public ConsumeType getConsumeType() {
+            return consumeType;
+        }
+
+        public void setConsumeType(ConsumeType consumeType) {
+            this.consumeType = consumeType;
+        }
 
         public String messageModelDesc() {
-            if (this.count != 0){
+            if (this.count != 0) {
                 return this.getMessageModel().toString();
             }
             return "";
         }
 
+        public MessageModel getMessageModel() {
+            return messageModel;
+        }
+
+        public void setMessageModel(MessageModel messageModel) {
+            this.messageModel = messageModel;
+        }
 
         public String versionDesc() {
             if (this.count != 0) {
@@ -292,40 +325,13 @@ public class ConsumeOffsetRankSubCommand implements SubCommand {
             return 0;
         }
 
-        public void setGroup(String group) {
-            this.group = group;
-        }
-
-
         public int getCount() {
             return count;
         }
 
-
         public void setCount(int count) {
             this.count = count;
         }
-
-
-        public ConsumeType getConsumeType() {
-            return consumeType;
-        }
-
-
-        public void setConsumeType(ConsumeType consumeType) {
-            this.consumeType = consumeType;
-        }
-
-
-        public MessageModel getMessageModel() {
-            return messageModel;
-        }
-
-
-        public void setMessageModel(MessageModel messageModel) {
-            this.messageModel = messageModel;
-        }
-
 
         public long getDiffTotal() {
             return diffTotal;
@@ -362,33 +368,6 @@ public class ConsumeOffsetRankSubCommand implements SubCommand {
         public void setClusterName(String clusterName) {
             this.clusterName = clusterName;
         }
-    }
-
-
-    public static void main(String[] args) {
-        for (int i = 0; i < 1; ++i){
-            long endTime = System.currentTimeMillis() - 60000;
-            long startTime = endTime - 60000;
-
-            KeyValueQuery kvq = new KeyValueQuery("metaq_metaqstats", // StageId
-                    "meta_stats_1min",// BizId
-                    new KeyValueParam("type", "TOPIC_PUT_NUMS"), //kv1-定值
-                    new KeyValueParam("key", "TRADE"), //kv2-定值
-                    new KeyValueParam("date", startTime + "", endTime + ""));//kv3-范围值，格式为ms
-
-            JSONResult queryData = TLogQueryClient.queryData("http://110.75.84.129:9999", kvq); //查询url,query keys
-            long tps = 0;
-            if (queryData != null) {
-                JSONResult.JSONRecord[] records = queryData.getRecords();
-                for (JSONResult.JSONRecord r : records) {
-                    tps += (Long) r.getValueByKeyName("sum"); //从结果中获取sum这个key的value
-                }
-                System.out.println(tps);
-            }
-        }
-
-
-
     }
 
 }

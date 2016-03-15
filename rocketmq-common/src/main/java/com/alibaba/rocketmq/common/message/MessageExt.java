@@ -1,12 +1,12 @@
 /**
  * Copyright (C) 2010-2013 Alibaba Group Holding Limited
- *
+ * <p/>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p/>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p/>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -15,17 +15,17 @@
  */
 package com.alibaba.rocketmq.common.message;
 
+import com.alibaba.rocketmq.common.TopicFilterType;
+import com.alibaba.rocketmq.common.sysflag.MessageSysFlag;
+
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 
-import com.alibaba.rocketmq.common.TopicFilterType;
-import com.alibaba.rocketmq.common.sysflag.MessageSysFlag;
-
 
 /**
  * 消息扩展属性，在服务器上产生此对象
- * 
+ *
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-18
  */
@@ -65,7 +65,7 @@ public class MessageExt extends Message {
 
 
     public MessageExt(int queueId, long bornTimestamp, SocketAddress bornHost, long storeTimestamp,
-            SocketAddress storeHost, String msgId) {
+                      SocketAddress storeHost, String msgId) {
         this.queueId = queueId;
         this.bornTimestamp = bornTimestamp;
         this.bornHost = bornHost;
@@ -74,6 +74,20 @@ public class MessageExt extends Message {
         this.msgId = msgId;
     }
 
+    public static TopicFilterType parseTopicFilterType(final int sysFlag) {
+        if ((sysFlag & MessageSysFlag.MultiTagsFlag) == MessageSysFlag.MultiTagsFlag) {
+            return TopicFilterType.MULTI_TAG;
+        }
+
+        return TopicFilterType.SINGLE_TAG;
+    }
+
+    /**
+     * 获取bornHost字节形式，8个字节 HOST + PORT
+     */
+    public ByteBuffer getBornHostBytes() {
+        return SocketAddress2ByteBuffer(this.bornHost);
+    }
 
     /**
      * SocketAddress ----> ByteBuffer 转化成8个字节
@@ -87,15 +101,6 @@ public class MessageExt extends Message {
         return byteBuffer;
     }
 
-
-    /**
-     * 获取bornHost字节形式，8个字节 HOST + PORT
-     */
-    public ByteBuffer getBornHostBytes() {
-        return SocketAddress2ByteBuffer(this.bornHost);
-    }
-
-
     /**
      * 获取storehost字节形式，8个字节 HOST + PORT
      */
@@ -103,31 +108,29 @@ public class MessageExt extends Message {
         return SocketAddress2ByteBuffer(this.storeHost);
     }
 
-
     public int getQueueId() {
         return queueId;
     }
-
 
     public void setQueueId(int queueId) {
         this.queueId = queueId;
     }
 
-
     public long getBornTimestamp() {
         return bornTimestamp;
     }
-
 
     public void setBornTimestamp(long bornTimestamp) {
         this.bornTimestamp = bornTimestamp;
     }
 
-
     public SocketAddress getBornHost() {
         return bornHost;
     }
 
+    public void setBornHost(SocketAddress bornHost) {
+        this.bornHost = bornHost;
+    }
 
     public String getBornHostString() {
         if (this.bornHost != null) {
@@ -138,7 +141,6 @@ public class MessageExt extends Message {
         return null;
     }
 
-
     public String getBornHostNameString() {
         if (this.bornHost != null) {
             InetSocketAddress inetSocketAddress = (InetSocketAddress) this.bornHost;
@@ -148,100 +150,69 @@ public class MessageExt extends Message {
         return null;
     }
 
-
-    public void setBornHost(SocketAddress bornHost) {
-        this.bornHost = bornHost;
-    }
-
-
     public long getStoreTimestamp() {
         return storeTimestamp;
     }
-
 
     public void setStoreTimestamp(long storeTimestamp) {
         this.storeTimestamp = storeTimestamp;
     }
 
-
     public SocketAddress getStoreHost() {
         return storeHost;
     }
-
 
     public void setStoreHost(SocketAddress storeHost) {
         this.storeHost = storeHost;
     }
 
-
     public String getMsgId() {
         return msgId;
     }
-
 
     public void setMsgId(String msgId) {
         this.msgId = msgId;
     }
 
-
     public int getSysFlag() {
         return sysFlag;
     }
-
 
     public void setSysFlag(int sysFlag) {
         this.sysFlag = sysFlag;
     }
 
-
     public int getBodyCRC() {
         return bodyCRC;
     }
-
 
     public void setBodyCRC(int bodyCRC) {
         this.bodyCRC = bodyCRC;
     }
 
-
     public long getQueueOffset() {
         return queueOffset;
     }
-
 
     public void setQueueOffset(long queueOffset) {
         this.queueOffset = queueOffset;
     }
 
-
     public long getCommitLogOffset() {
         return commitLogOffset;
     }
-
 
     public void setCommitLogOffset(long physicOffset) {
         this.commitLogOffset = physicOffset;
     }
 
-
     public int getStoreSize() {
         return storeSize;
     }
 
-
     public void setStoreSize(int storeSize) {
         this.storeSize = storeSize;
     }
-
-
-    public static TopicFilterType parseTopicFilterType(final int sysFlag) {
-        if ((sysFlag & MessageSysFlag.MultiTagsFlag) == MessageSysFlag.MultiTagsFlag) {
-            return TopicFilterType.MULTI_TAG;
-        }
-
-        return TopicFilterType.SINGLE_TAG;
-    }
-
 
     public int getReconsumeTimes() {
         return reconsumeTimes;

@@ -1,12 +1,12 @@
 /**
  * Copyright (C) 2010-2013 Alibaba Group Holding Limited
- *
+ * <p/>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p/>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p/>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -20,7 +20,7 @@ import java.io.Serializable;
 
 /**
  * 消息队列数据结构，对外提供
- * 
+ *
  * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public class MessageQueue implements Comparable<MessageQueue>, Serializable {
@@ -95,16 +95,14 @@ public class MessageQueue implements Comparable<MessageQueue>, Serializable {
         if (brokerName == null) {
             if (other.brokerName != null)
                 return false;
-        }
-        else if (!brokerName.equals(other.brokerName))
+        } else if (!brokerName.equals(other.brokerName))
             return false;
         if (queueId != other.queueId)
             return false;
         if (topic == null) {
             if (other.topic != null)
                 return false;
-        }
-        else if (!topic.equals(other.topic))
+        } else if (!topic.equals(other.topic))
             return false;
         return true;
     }

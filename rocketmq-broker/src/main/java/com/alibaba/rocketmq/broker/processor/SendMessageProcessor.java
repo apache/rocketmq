@@ -15,11 +15,6 @@
  */
 package com.alibaba.rocketmq.broker.processor;
 
-import java.net.SocketAddress;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 import com.alibaba.rocketmq.broker.BrokerController;
 import com.alibaba.rocketmq.broker.mqtrace.ConsumeMessageContext;
 import com.alibaba.rocketmq.broker.mqtrace.ConsumeMessageHook;
@@ -50,6 +45,11 @@ import com.alibaba.rocketmq.store.config.StorePathConfigHelper;
 import com.alibaba.rocketmq.store.stats.BrokerStatsManager;
 import io.netty.channel.ChannelHandlerContext;
 
+import java.net.SocketAddress;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 
 /**
  * 处理客户端发送消息的请求
@@ -59,32 +59,36 @@ import io.netty.channel.ChannelHandlerContext;
  */
 public class SendMessageProcessor extends AbstractSendMessageProcessor implements NettyRequestProcessor {
 
+    /**
+     * 消费每条消息会回调
+     */
+    private List<ConsumeMessageHook> consumeMessageHookList;
+
+
     public SendMessageProcessor(final BrokerController brokerController) {
         super(brokerController);
     }
-
 
     @Override
     public RemotingCommand processRequest(ChannelHandlerContext ctx, RemotingCommand request) throws RemotingCommandException {
         SendMessageContext mqtraceContext = null;
         switch (request.getCode()) {
-        case RequestCode.CONSUMER_SEND_MSG_BACK:
-            return this.consumerSendMsgBack(ctx, request);
-        default:
-            SendMessageRequestHeader requestHeader = parseRequestHeader(request);
-            if (requestHeader == null) {
-                return null;
-            }
-            // 消息轨迹：记录到达 broker 的消息
-            mqtraceContext = buildMsgContext(ctx, requestHeader);
-            this.executeSendMessageHookBefore(ctx, request, mqtraceContext);
-            final RemotingCommand response = this.sendMessage(ctx, request, mqtraceContext, requestHeader);
-            // 消息轨迹：记录发送成功的消息
-            this.executeSendMessageHookAfter(response, mqtraceContext);
-            return response;
+            case RequestCode.CONSUMER_SEND_MSG_BACK:
+                return this.consumerSendMsgBack(ctx, request);
+            default:
+                SendMessageRequestHeader requestHeader = parseRequestHeader(request);
+                if (requestHeader == null) {
+                    return null;
+                }
+                // 消息轨迹：记录到达 broker 的消息
+                mqtraceContext = buildMsgContext(ctx, requestHeader);
+                this.executeSendMessageHookBefore(ctx, request, mqtraceContext);
+                final RemotingCommand response = this.sendMessage(ctx, request, mqtraceContext, requestHeader);
+                // 消息轨迹：记录发送成功的消息
+                this.executeSendMessageHookAfter(response, mqtraceContext);
+                return response;
         }
     }
-
 
     private RemotingCommand consumerSendMsgBack(final ChannelHandlerContext ctx, final RemotingCommand request)
             throws RemotingCommandException {
@@ -149,9 +153,9 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
 
         // 检查topic是否存在
         TopicConfig topicConfig = this.brokerController.getTopicConfigManager().createTopicInSendMessageBackMethod(//
-            newTopic, //
-            subscriptionGroupConfig.getRetryQueueNums(), //
-            PermName.PERM_WRITE | PermName.PERM_READ, topicSysFlag);
+                newTopic, //
+                subscriptionGroupConfig.getRetryQueueNums(), //
+                PermName.PERM_WRITE | PermName.PERM_READ, topicSysFlag);
         if (null == topicConfig) {
             response.setCode(ResponseCode.SYSTEM_ERROR);
             response.setRemark("topic[" + newTopic + "] not exist");
@@ -197,8 +201,8 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
             queueIdInt = Math.abs(this.random.nextInt() % 99999999) % DLQ_NUMS_PER_GROUP;
 
             topicConfig = this.brokerController.getTopicConfigManager().createTopicInSendMessageBackMethod(newTopic, //
-                DLQ_NUMS_PER_GROUP, //
-                PermName.PERM_WRITE, 0 // 死信消息不需要同步，不需要较正。
+                    DLQ_NUMS_PER_GROUP, //
+                    PermName.PERM_WRITE, 0 // 死信消息不需要同步，不需要较正。
             );
             if (null == topicConfig) {
                 response.setCode(ResponseCode.SYSTEM_ERROR);
@@ -237,22 +241,22 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         PutMessageResult putMessageResult = this.brokerController.getMessageStore().putMessage(msgInner);
         if (putMessageResult != null) {
             switch (putMessageResult.getPutMessageStatus()) {
-            case PUT_OK:
-                // 统计失败重试的Topic
-                String backTopic = msgExt.getTopic();
-                String correctTopic = msgExt.getProperty(MessageConst.PROPERTY_RETRY_TOPIC);
-                if (correctTopic != null) {
-                    backTopic = correctTopic;
-                }
+                case PUT_OK:
+                    // 统计失败重试的Topic
+                    String backTopic = msgExt.getTopic();
+                    String correctTopic = msgExt.getProperty(MessageConst.PROPERTY_RETRY_TOPIC);
+                    if (correctTopic != null) {
+                        backTopic = correctTopic;
+                    }
 
-                this.brokerController.getBrokerStatsManager().incSendBackNums(requestHeader.getGroup(), backTopic);
+                    this.brokerController.getBrokerStatsManager().incSendBackNums(requestHeader.getGroup(), backTopic);
 
-                response.setCode(ResponseCode.SUCCESS);
-                response.setRemark(null);
+                    response.setCode(ResponseCode.SUCCESS);
+                    response.setRemark(null);
 
-                return response;
-            default:
-                break;
+                    return response;
+                default:
+                    break;
             }
 
             response.setCode(ResponseCode.SYSTEM_ERROR);
@@ -265,27 +269,10 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         return response;
     }
 
-
-    private String diskUtil() {
-        String storePathPhysic = this.brokerController.getMessageStoreConfig().getStorePathCommitLog();
-        double physicRatio = UtilAll.getDiskPartitionSpaceUsedPercent(storePathPhysic);
-
-        String storePathLogis =
-                StorePathConfigHelper.getStorePathConsumeQueue(this.brokerController.getMessageStoreConfig().getStorePathRootDir());
-        double logisRatio = UtilAll.getDiskPartitionSpaceUsedPercent(storePathLogis);
-
-        String storePathIndex =
-                StorePathConfigHelper.getStorePathIndex(this.brokerController.getMessageStoreConfig().getStorePathRootDir());
-        double indexRatio = UtilAll.getDiskPartitionSpaceUsedPercent(storePathIndex);
-
-        return String.format("CL: %5.2f CQ: %5.2f INDEX: %5.2f", physicRatio, logisRatio, indexRatio);
-    }
-
-
     private RemotingCommand sendMessage(final ChannelHandlerContext ctx, //
-            final RemotingCommand request, //
-            final SendMessageContext sendMessageContext, //
-            final SendMessageRequestHeader requestHeader) throws RemotingCommandException {
+                                        final RemotingCommand request, //
+                                        final SendMessageContext sendMessageContext, //
+                                        final SendMessageRequestHeader requestHeader) throws RemotingCommandException {
 
         final RemotingCommand response = RemotingCommand.createResponseCommand(SendMessageResponseHeader.class);
         final SendMessageResponseHeader responseHeader = (SendMessageResponseHeader) response.readCustomHeader();
@@ -327,7 +314,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
             if (null == subscriptionGroupConfig) {
                 response.setCode(ResponseCode.SUBSCRIPTION_GROUP_NOT_EXIST);
                 response.setRemark(
-                    "subscription group not exist, " + groupName + " " + FAQUrl.suggestTodo(FAQUrl.SUBSCRIPTION_GROUP_NOT_EXIST));
+                        "subscription group not exist, " + groupName + " " + FAQUrl.suggestTodo(FAQUrl.SUBSCRIPTION_GROUP_NOT_EXIST));
                 return response;
             }
 
@@ -341,8 +328,8 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
                 newTopic = MixAll.getDLQTopic(groupName);
                 queueIdInt = Math.abs(this.random.nextInt() % 99999999) % DLQ_NUMS_PER_GROUP;
                 topicConfig = this.brokerController.getTopicConfigManager().createTopicInSendMessageBackMethod(newTopic, //
-                    DLQ_NUMS_PER_GROUP, //
-                    PermName.PERM_WRITE, 0 // 死信消息不需要同步，不需要较正。
+                        DLQ_NUMS_PER_GROUP, //
+                        PermName.PERM_WRITE, 0 // 死信消息不需要同步，不需要较正。
                 );
                 if (null == topicConfig) {
                     response.setCode(ResponseCode.SYSTEM_ERROR);
@@ -371,7 +358,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
             if (traFlag != null) {
                 response.setCode(ResponseCode.NO_PERMISSION);
                 response.setRemark(
-                    "the broker[" + this.brokerController.getBrokerConfig().getBrokerIP1() + "] sending transaction message is forbidden");
+                        "the broker[" + this.brokerController.getBrokerConfig().getBrokerIP1() + "] sending transaction message is forbidden");
                 return response;
             }
         }
@@ -381,52 +368,52 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
             boolean sendOK = false;
 
             switch (putMessageResult.getPutMessageStatus()) {
-            // Success
-            case PUT_OK:
-                sendOK = true;
-                response.setCode(ResponseCode.SUCCESS);
-                break;
-            case FLUSH_DISK_TIMEOUT:
-                response.setCode(ResponseCode.FLUSH_DISK_TIMEOUT);
-                sendOK = true;
-                break;
-            case FLUSH_SLAVE_TIMEOUT:
-                response.setCode(ResponseCode.FLUSH_SLAVE_TIMEOUT);
-                sendOK = true;
-                break;
-            case SLAVE_NOT_AVAILABLE:
-                response.setCode(ResponseCode.SLAVE_NOT_AVAILABLE);
-                sendOK = true;
-                break;
+                // Success
+                case PUT_OK:
+                    sendOK = true;
+                    response.setCode(ResponseCode.SUCCESS);
+                    break;
+                case FLUSH_DISK_TIMEOUT:
+                    response.setCode(ResponseCode.FLUSH_DISK_TIMEOUT);
+                    sendOK = true;
+                    break;
+                case FLUSH_SLAVE_TIMEOUT:
+                    response.setCode(ResponseCode.FLUSH_SLAVE_TIMEOUT);
+                    sendOK = true;
+                    break;
+                case SLAVE_NOT_AVAILABLE:
+                    response.setCode(ResponseCode.SLAVE_NOT_AVAILABLE);
+                    sendOK = true;
+                    break;
 
-            // Failed
-            case CREATE_MAPEDFILE_FAILED:
-                response.setCode(ResponseCode.SYSTEM_ERROR);
-                response.setRemark("create maped file failed, please make sure OS and JDK both 64bit.");
-                break;
-            case MESSAGE_ILLEGAL:
-            case PROPERTIES_SIZE_EXCEEDED:
-                response.setCode(ResponseCode.MESSAGE_ILLEGAL);
-                response.setRemark(
-                    "the message is illegal, maybe msg body or properties length not matched. msg body length limit 128k, msg properties length limit 32k.");
-                break;
-            case SERVICE_NOT_AVAILABLE:
-                response.setCode(ResponseCode.SERVICE_NOT_AVAILABLE);
-                response.setRemark(
-                    "service not available now, maybe disk full, " + diskUtil() + ", maybe your broker machine memory too small.");
-                break;
-            case OS_PAGECACHE_BUSY:
-                response.setCode(ResponseCode.SYSTEM_ERROR);
-                response.setRemark("OS page cache busy, please try another machine");
-                break;
-            case UNKNOWN_ERROR:
-                response.setCode(ResponseCode.SYSTEM_ERROR);
-                response.setRemark("UNKNOWN_ERROR");
-                break;
-            default:
-                response.setCode(ResponseCode.SYSTEM_ERROR);
-                response.setRemark("UNKNOWN_ERROR DEFAULT");
-                break;
+                // Failed
+                case CREATE_MAPEDFILE_FAILED:
+                    response.setCode(ResponseCode.SYSTEM_ERROR);
+                    response.setRemark("create maped file failed, please make sure OS and JDK both 64bit.");
+                    break;
+                case MESSAGE_ILLEGAL:
+                case PROPERTIES_SIZE_EXCEEDED:
+                    response.setCode(ResponseCode.MESSAGE_ILLEGAL);
+                    response.setRemark(
+                            "the message is illegal, maybe msg body or properties length not matched. msg body length limit 128k, msg properties length limit 32k.");
+                    break;
+                case SERVICE_NOT_AVAILABLE:
+                    response.setCode(ResponseCode.SERVICE_NOT_AVAILABLE);
+                    response.setRemark(
+                            "service not available now, maybe disk full, " + diskUtil() + ", maybe your broker machine memory too small.");
+                    break;
+                case OS_PAGECACHE_BUSY:
+                    response.setCode(ResponseCode.SYSTEM_ERROR);
+                    response.setRemark("OS page cache busy, please try another machine");
+                    break;
+                case UNKNOWN_ERROR:
+                    response.setCode(ResponseCode.SYSTEM_ERROR);
+                    response.setRemark("UNKNOWN_ERROR");
+                    break;
+                default:
+                    response.setCode(ResponseCode.SYSTEM_ERROR);
+                    response.setRemark("UNKNOWN_ERROR DEFAULT");
+                    break;
             }
 
             String owner = request.getExtFields().get(BrokerStatsManager.COMMERCIAL_OWNER);
@@ -434,7 +421,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
                 // 统计
                 this.brokerController.getBrokerStatsManager().incTopicPutNums(msgInner.getTopic());
                 this.brokerController.getBrokerStatsManager().incTopicPutSize(msgInner.getTopic(),
-                    putMessageResult.getAppendMessageResult().getWroteBytes());
+                        putMessageResult.getAppendMessageResult().getWroteBytes());
                 this.brokerController.getBrokerStatsManager().incBrokerPutNums();
 
                 response.setRemark(null);
@@ -462,8 +449,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
                     sendMessageContext.setCommercialOwner(owner);
                 }
                 return null;
-            }
-            else {
+            } else {
                 // ONS 商业化：如果消息发送失败，计费Size考虑 body
                 if (hasSendMessageHook()) {
                     int wroteSize = request.getBody().length;
@@ -475,8 +461,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
                     sendMessageContext.setCommercialOwner(owner);
                 }
             }
-        }
-        else {
+        } else {
             response.setCode(ResponseCode.SYSTEM_ERROR);
             response.setRemark("store putMessage return null");
         }
@@ -484,36 +469,41 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         return response;
     }
 
-
-    public SocketAddress getStoreHost() {
-        return storeHost;
-    }
-
-    /**
-     * 消费每条消息会回调
-     */
-    private List<ConsumeMessageHook> consumeMessageHookList;
-
-
     public boolean hasConsumeMessageHook() {
         return consumeMessageHookList != null && !this.consumeMessageHookList.isEmpty();
     }
-
-
-    public void registerConsumeMessageHook(List<ConsumeMessageHook> consumeMessageHookList) {
-        this.consumeMessageHookList = consumeMessageHookList;
-    }
-
 
     public void executeConsumeMessageHookAfter(final ConsumeMessageContext context) {
         if (hasConsumeMessageHook()) {
             for (ConsumeMessageHook hook : this.consumeMessageHookList) {
                 try {
                     hook.consumeMessageAfter(context);
-                }
-                catch (Throwable e) {
+                } catch (Throwable e) {
                 }
             }
         }
+    }
+
+    public SocketAddress getStoreHost() {
+        return storeHost;
+    }
+
+    private String diskUtil() {
+        String storePathPhysic = this.brokerController.getMessageStoreConfig().getStorePathCommitLog();
+        double physicRatio = UtilAll.getDiskPartitionSpaceUsedPercent(storePathPhysic);
+
+        String storePathLogis =
+                StorePathConfigHelper.getStorePathConsumeQueue(this.brokerController.getMessageStoreConfig().getStorePathRootDir());
+        double logisRatio = UtilAll.getDiskPartitionSpaceUsedPercent(storePathLogis);
+
+        String storePathIndex =
+                StorePathConfigHelper.getStorePathIndex(this.brokerController.getMessageStoreConfig().getStorePathRootDir());
+        double indexRatio = UtilAll.getDiskPartitionSpaceUsedPercent(storePathIndex);
+
+        return String.format("CL: %5.2f CQ: %5.2f INDEX: %5.2f", physicRatio, logisRatio, indexRatio);
+    }
+
+    public void registerConsumeMessageHook(List<ConsumeMessageHook> consumeMessageHookList) {
+        this.consumeMessageHookList = consumeMessageHookList;
     }
 }

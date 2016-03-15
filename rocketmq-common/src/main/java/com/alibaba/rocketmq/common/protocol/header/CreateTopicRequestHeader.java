@@ -34,8 +34,7 @@ public class CreateTopicRequestHeader implements CommandCustomHeader {
     public void checkFields() throws RemotingCommandException {
         try {
             TopicFilterType.valueOf(this.topicFilterType);
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             throw new RemotingCommandException("topicFilterType = [" + topicFilterType + "] value invalid", e);
         }
     }

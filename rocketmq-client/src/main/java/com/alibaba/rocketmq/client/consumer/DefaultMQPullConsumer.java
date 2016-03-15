@@ -1,12 +1,12 @@
 /**
  * Copyright (C) 2010-2013 Alibaba Group Holding Limited
- *
+ * <p/>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p/>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p/>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -14,9 +14,6 @@
  * limitations under the License.
  */
 package com.alibaba.rocketmq.client.consumer;
-
-import java.util.HashSet;
-import java.util.Set;
 
 import com.alibaba.rocketmq.client.ClientConfig;
 import com.alibaba.rocketmq.client.QueryResult;
@@ -31,6 +28,9 @@ import com.alibaba.rocketmq.common.message.MessageQueue;
 import com.alibaba.rocketmq.common.protocol.heartbeat.MessageModel;
 import com.alibaba.rocketmq.remoting.RPCHook;
 import com.alibaba.rocketmq.remoting.exception.RemotingException;
+
+import java.util.HashSet;
+import java.util.Set;
 
 
 /**
@@ -97,6 +97,12 @@ public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsume
     }
 
 
+    public DefaultMQPullConsumer(final String consumerGroup, RPCHook rpcHook) {
+        this.consumerGroup = consumerGroup;
+        defaultMQPullConsumerImpl = new DefaultMQPullConsumerImpl(this, rpcHook);
+    }
+
+
     public DefaultMQPullConsumer(final String consumerGroup) {
         this(consumerGroup, null);
     }
@@ -105,13 +111,6 @@ public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsume
     public DefaultMQPullConsumer(RPCHook rpcHook) {
         this(MixAll.DEFAULT_CONSUMER_GROUP, rpcHook);
     }
-
-
-    public DefaultMQPullConsumer(final String consumerGroup, RPCHook rpcHook) {
-        this.consumerGroup = consumerGroup;
-        defaultMQPullConsumerImpl = new DefaultMQPullConsumerImpl(this, rpcHook);
-    }
-
 
     @Override
     public void createTopic(String key, String newTopic, int queueNum) throws MQClientException {
@@ -255,31 +254,20 @@ public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsume
         this.defaultMQPullConsumerImpl.sendMessageBack(msg, delayLevel, brokerName);
     }
 
-
-    @Override
-    public void sendMessageBack(MessageExt msg, int delayLevel, String brokerName, String consumerGroup)
-            throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
-        this.defaultMQPullConsumerImpl.sendMessageBack(msg, delayLevel, brokerName, consumerGroup);
-    }
-
-
     @Override
     public Set<MessageQueue> fetchSubscribeMessageQueues(String topic) throws MQClientException {
         return this.defaultMQPullConsumerImpl.fetchSubscribeMessageQueues(topic);
     }
-
 
     @Override
     public void start() throws MQClientException {
         this.defaultMQPullConsumerImpl.start();
     }
 
-
     @Override
     public void shutdown() {
         this.defaultMQPullConsumerImpl.shutdown();
     }
-
 
     @Override
     public void registerMessageQueueListener(String topic, MessageQueueListener listener) {
@@ -291,13 +279,11 @@ public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsume
         }
     }
 
-
     @Override
     public PullResult pull(MessageQueue mq, String subExpression, long offset, int maxNums)
             throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
         return this.defaultMQPullConsumerImpl.pull(mq, subExpression, offset, maxNums);
     }
-
 
     @Override
     public PullResult pull(MessageQueue mq, String subExpression, long offset, int maxNums, long timeout)
@@ -305,13 +291,11 @@ public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsume
         return this.defaultMQPullConsumerImpl.pull(mq, subExpression, offset, maxNums, timeout);
     }
 
-
     @Override
     public void pull(MessageQueue mq, String subExpression, long offset, int maxNums, PullCallback pullCallback)
             throws MQClientException, RemotingException, InterruptedException {
         this.defaultMQPullConsumerImpl.pull(mq, subExpression, offset, maxNums, pullCallback);
     }
-
 
     @Override
     public void pull(MessageQueue mq, String subExpression, long offset, int maxNums, PullCallback pullCallback, long timeout)
@@ -319,13 +303,11 @@ public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsume
         this.defaultMQPullConsumerImpl.pull(mq, subExpression, offset, maxNums, pullCallback, timeout);
     }
 
-
     @Override
     public PullResult pullBlockIfNotFound(MessageQueue mq, String subExpression, long offset, int maxNums)
             throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
         return this.defaultMQPullConsumerImpl.pullBlockIfNotFound(mq, subExpression, offset, maxNums);
     }
-
 
     @Override
     public void pullBlockIfNotFound(MessageQueue mq, String subExpression, long offset, int maxNums, PullCallback pullCallback)
@@ -333,24 +315,26 @@ public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsume
         this.defaultMQPullConsumerImpl.pullBlockIfNotFound(mq, subExpression, offset, maxNums, pullCallback);
     }
 
-
     @Override
     public void updateConsumeOffset(MessageQueue mq, long offset) throws MQClientException {
         this.defaultMQPullConsumerImpl.updateConsumeOffset(mq, offset);
     }
-
 
     @Override
     public long fetchConsumeOffset(MessageQueue mq, boolean fromStore) throws MQClientException {
         return this.defaultMQPullConsumerImpl.fetchConsumeOffset(mq, fromStore);
     }
 
-
     @Override
     public Set<MessageQueue> fetchMessageQueuesInBalance(String topic) throws MQClientException {
         return this.defaultMQPullConsumerImpl.fetchMessageQueuesInBalance(topic);
     }
 
+    @Override
+    public void sendMessageBack(MessageExt msg, int delayLevel, String brokerName, String consumerGroup)
+            throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
+        this.defaultMQPullConsumerImpl.sendMessageBack(msg, delayLevel, brokerName, consumerGroup);
+    }
 
     public OffsetStore getOffsetStore() {
         return offsetStore;

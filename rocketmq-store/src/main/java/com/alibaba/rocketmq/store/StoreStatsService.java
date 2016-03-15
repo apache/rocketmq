@@ -1,12 +1,12 @@
 /**
  * Copyright (C) 2010-2013 Alibaba Group Holding Limited
- *
+ * <p/>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p/>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p/>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -31,7 +31,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * 存储层内部统计服务
- * 
+ *
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-21
  */
@@ -182,20 +182,13 @@ public class StoreStatsService extends ServiceThread {
         return sb.toString();
     }
 
-
-    private String getPutMessageDistributeTimeStringInfo(Long total) {
-        final StringBuilder sb = new StringBuilder(512);
-
-        for (AtomicLong i : this.putMessageDistributeTime) {
-            long value = i.get();
-            double ratio = value / total.doubleValue();
-            sb.append("\r\n\t\t");
-            sb.append(value + "(" + (ratio * 100) + "%)");
+    public long getPutMessageTimesTotal() {
+        long rs = 0;
+        for (AtomicLong data : putMessageTopicTimesTotal.values()) {
+            rs += data.get();
         }
-
-        return sb.toString();
+        return rs;
     }
-
 
     private String getFormatRuntime() {
         final long MILLISECOND = 1;
@@ -210,9 +203,29 @@ public class StoreStatsService extends ServiceThread {
         long hours = (time % DAY) / HOUR;
         long minutes = (time % HOUR) / MINUTE;
         long seconds = (time % MINUTE) / SECOND;
-        return TIME.format(new Long[] { days, hours, minutes, seconds });
+        return TIME.format(new Long[]{days, hours, minutes, seconds});
     }
 
+    public long getPutMessageSizeTotal() {
+        long rs = 0;
+        for (AtomicLong data : putMessageTopicSizeTotal.values()) {
+            rs += data.get();
+        }
+        return rs;
+    }
+
+    private String getPutMessageDistributeTimeStringInfo(Long total) {
+        final StringBuilder sb = new StringBuilder(512);
+
+        for (AtomicLong i : this.putMessageDistributeTime) {
+            long value = i.get();
+            double ratio = value / total.doubleValue();
+            sb.append("\r\n\t\t");
+            sb.append(value + "(" + (ratio * 100) + "%)");
+        }
+
+        return sb.toString();
+    }
 
     private String getPutTps() {
         StringBuilder sb = new StringBuilder();
@@ -230,26 +243,6 @@ public class StoreStatsService extends ServiceThread {
         return sb.toString();
     }
 
-
-    private String getPutTps(int time) {
-        String result = "";
-        this.lockSampling.lock();
-        try {
-            CallSnapshot last = this.putTimesList.getLast();
-
-            if (this.putTimesList.size() > time) {
-                CallSnapshot lastBefore = this.putTimesList.get(this.putTimesList.size() - (time + 1));
-                result += CallSnapshot.getTPS(lastBefore, last);
-            }
-
-        }
-        finally {
-            this.lockSampling.unlock();
-        }
-        return result;
-    }
-
-
     private String getGetFoundTps() {
         StringBuilder sb = new StringBuilder();
         // 10秒钟
@@ -265,27 +258,6 @@ public class StoreStatsService extends ServiceThread {
 
         return sb.toString();
     }
-
-
-    private String getGetFoundTps(int time) {
-        String result = "";
-        this.lockSampling.lock();
-        try {
-            CallSnapshot last = this.getTimesFoundList.getLast();
-
-            if (this.getTimesFoundList.size() > time) {
-                CallSnapshot lastBefore =
-                        this.getTimesFoundList.get(this.getTimesFoundList.size() - (time + 1));
-                result += CallSnapshot.getTPS(lastBefore, last);
-            }
-        }
-        finally {
-            this.lockSampling.unlock();
-        }
-
-        return result;
-    }
-
 
     private String getGetMissTps() {
         StringBuilder sb = new StringBuilder();
@@ -303,27 +275,21 @@ public class StoreStatsService extends ServiceThread {
         return sb.toString();
     }
 
+    private String getGetTotalTps() {
+        StringBuilder sb = new StringBuilder();
+        // 10秒钟
+        sb.append(this.getGetTotalTps(10));
+        sb.append(" ");
 
-    private String getGetMissTps(int time) {
-        String result = "";
-        this.lockSampling.lock();
-        try {
-            CallSnapshot last = this.getTimesMissList.getLast();
+        // 1分钟
+        sb.append(this.getGetTotalTps(60));
+        sb.append(" ");
 
-            if (this.getTimesMissList.size() > time) {
-                CallSnapshot lastBefore =
-                        this.getTimesMissList.get(this.getTimesMissList.size() - (time + 1));
-                result += CallSnapshot.getTPS(lastBefore, last);
-            }
+        // 10分钟
+        sb.append(this.getGetTotalTps(600));
 
-        }
-        finally {
-            this.lockSampling.unlock();
-        }
-
-        return result;
+        return sb.toString();
     }
-
 
     private String getGetTransferedTps() {
         StringBuilder sb = new StringBuilder();
@@ -341,44 +307,59 @@ public class StoreStatsService extends ServiceThread {
         return sb.toString();
     }
 
-
-    private String getGetTransferedTps(int time) {
+    private String getPutTps(int time) {
         String result = "";
         this.lockSampling.lock();
         try {
-            CallSnapshot last = this.transferedMsgCountList.getLast();
+            CallSnapshot last = this.putTimesList.getLast();
 
-            if (this.transferedMsgCountList.size() > time) {
-                CallSnapshot lastBefore =
-                        this.transferedMsgCountList.get(this.transferedMsgCountList.size() - (time + 1));
+            if (this.putTimesList.size() > time) {
+                CallSnapshot lastBefore = this.putTimesList.get(this.putTimesList.size() - (time + 1));
                 result += CallSnapshot.getTPS(lastBefore, last);
             }
 
+        } finally {
+            this.lockSampling.unlock();
         }
-        finally {
+        return result;
+    }
+
+    private String getGetFoundTps(int time) {
+        String result = "";
+        this.lockSampling.lock();
+        try {
+            CallSnapshot last = this.getTimesFoundList.getLast();
+
+            if (this.getTimesFoundList.size() > time) {
+                CallSnapshot lastBefore =
+                        this.getTimesFoundList.get(this.getTimesFoundList.size() - (time + 1));
+                result += CallSnapshot.getTPS(lastBefore, last);
+            }
+        } finally {
             this.lockSampling.unlock();
         }
 
         return result;
     }
 
+    private String getGetMissTps(int time) {
+        String result = "";
+        this.lockSampling.lock();
+        try {
+            CallSnapshot last = this.getTimesMissList.getLast();
 
-    private String getGetTotalTps() {
-        StringBuilder sb = new StringBuilder();
-        // 10秒钟
-        sb.append(this.getGetTotalTps(10));
-        sb.append(" ");
+            if (this.getTimesMissList.size() > time) {
+                CallSnapshot lastBefore =
+                        this.getTimesMissList.get(this.getTimesMissList.size() - (time + 1));
+                result += CallSnapshot.getTPS(lastBefore, last);
+            }
 
-        // 1分钟
-        sb.append(this.getGetTotalTps(60));
-        sb.append(" ");
+        } finally {
+            this.lockSampling.unlock();
+        }
 
-        // 10分钟
-        sb.append(this.getGetTotalTps(600));
-
-        return sb.toString();
+        return result;
     }
-
 
     private String getGetTotalTps(int time) {
         this.lockSampling.lock();
@@ -404,32 +385,31 @@ public class StoreStatsService extends ServiceThread {
                 }
             }
 
-        }
-        finally {
+        } finally {
             this.lockSampling.unlock();
         }
 
         return Double.toString(found + miss);
     }
 
+    private String getGetTransferedTps(int time) {
+        String result = "";
+        this.lockSampling.lock();
+        try {
+            CallSnapshot last = this.transferedMsgCountList.getLast();
 
-    public long getPutMessageTimesTotal() {
-        long rs = 0;
-        for (AtomicLong data : putMessageTopicTimesTotal.values()) {
-            rs += data.get();
+            if (this.transferedMsgCountList.size() > time) {
+                CallSnapshot lastBefore =
+                        this.transferedMsgCountList.get(this.transferedMsgCountList.size() - (time + 1));
+                result += CallSnapshot.getTPS(lastBefore, last);
+            }
+
+        } finally {
+            this.lockSampling.unlock();
         }
-        return rs;
+
+        return result;
     }
-
-
-    public long getPutMessageSizeTotal() {
-        long rs = 0;
-        for (AtomicLong data : putMessageTopicSizeTotal.values()) {
-            rs += data.get();
-        }
-        return rs;
-    }
-
 
     public HashMap<String, String> getRuntimeInfo() {
         HashMap<String, String> result = new HashMap<String, String>(64);
@@ -445,9 +425,9 @@ public class StoreStatsService extends ServiceThread {
         result.put("putMessageTimesTotal", String.valueOf(totalTimes));
         result.put("putMessageSizeTotal", String.valueOf(this.getPutMessageSizeTotal()));
         result.put("putMessageDistributeTime",
-            String.valueOf(this.getPutMessageDistributeTimeStringInfo(totalTimes)));
+                String.valueOf(this.getPutMessageDistributeTimeStringInfo(totalTimes)));
         result.put("putMessageAverageSize",
-            String.valueOf((this.getPutMessageSizeTotal() / totalTimes.doubleValue())));
+                String.valueOf((this.getPutMessageSizeTotal() / totalTimes.doubleValue())));
         result.put("dispatchMaxBuffer", String.valueOf(this.dispatchMaxBuffer));
         result.put("getMessageEntireTimeMax", String.valueOf(this.getMessageEntireTimeMax));
         result.put("putTps", String.valueOf(this.getPutTps()));
@@ -470,8 +450,7 @@ public class StoreStatsService extends ServiceThread {
                 this.sampling();
 
                 this.printTps();
-            }
-            catch (Exception e) {
+            } catch (Exception e) {
                 log.warn(this.getServiceName() + " service has exception. ", e);
             }
         }
@@ -479,6 +458,10 @@ public class StoreStatsService extends ServiceThread {
         log.info(this.getServiceName() + " service end");
     }
 
+    @Override
+    public String getServiceName() {
+        return StoreStatsService.class.getSimpleName();
+    }
 
     private void sampling() {
         this.lockSampling.lock();
@@ -489,29 +472,27 @@ public class StoreStatsService extends ServiceThread {
             }
 
             this.getTimesFoundList.add(new CallSnapshot(System.currentTimeMillis(),
-                this.getMessageTimesTotalFound.get()));
+                    this.getMessageTimesTotalFound.get()));
             if (this.getTimesFoundList.size() > (MaxRecordsOfSampling + 1)) {
                 this.getTimesFoundList.removeFirst();
             }
 
             this.getTimesMissList.add(new CallSnapshot(System.currentTimeMillis(),
-                this.getMessageTimesTotalMiss.get()));
+                    this.getMessageTimesTotalMiss.get()));
             if (this.getTimesMissList.size() > (MaxRecordsOfSampling + 1)) {
                 this.getTimesMissList.removeFirst();
             }
 
             this.transferedMsgCountList.add(new CallSnapshot(System.currentTimeMillis(),
-                this.getMessageTransferedMsgCount.get()));
+                    this.getMessageTransferedMsgCount.get()));
             if (this.transferedMsgCountList.size() > (MaxRecordsOfSampling + 1)) {
                 this.transferedMsgCountList.removeFirst();
             }
 
-        }
-        finally {
+        } finally {
             this.lockSampling.unlock();
         }
     }
-
 
     /**
      * 1分钟打印一次TPS
@@ -529,13 +510,6 @@ public class StoreStatsService extends ServiceThread {
             log.info("get_transfered_tps {}", this.getGetTransferedTps(PrintTPSInterval));
         }
     }
-
-
-    @Override
-    public String getServiceName() {
-        return StoreStatsService.class.getSimpleName();
-    }
-
 
     public AtomicLong getGetMessageTimesTotalFound() {
         return getMessageTimesTotalFound;

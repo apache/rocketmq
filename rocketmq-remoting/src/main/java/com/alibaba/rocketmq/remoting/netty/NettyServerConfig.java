@@ -1,12 +1,12 @@
 /**
  * Copyright (C) 2010-2013 Alibaba Group Holding Limited
- *
+ * <p/>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p/>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p/>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -17,11 +17,11 @@ package com.alibaba.rocketmq.remoting.netty;
 
 /**
  * Netty服务端配置
- * 
+ *
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-13
  */
-public class NettyServerConfig implements Cloneable{
+public class NettyServerConfig implements Cloneable {
     private int listenPort = 8888;
     private int serverWorkerThreads = 8;
     private int serverCallbackExecutorThreads = 0;
@@ -36,8 +36,8 @@ public class NettyServerConfig implements Cloneable{
 
     /**
      * make make install
-     * 
-     * 
+     *
+     *
      * ../glibc-2.10.1/configure \ --prefix=/usr \ --with-headers=/usr/include \
      * --host=x86_64-linux-gnu \ --build=x86_64-pc-linux-gnu \ --without-gd
      */
@@ -152,9 +152,9 @@ public class NettyServerConfig implements Cloneable{
     public void setUseEpollNativeSelector(boolean useEpollNativeSelector) {
         this.useEpollNativeSelector = useEpollNativeSelector;
     }
-    
-    @Override  
-    public Object clone() throws CloneNotSupportedException {  
-        return (NettyServerConfig)super.clone();  
-    }  
+
+    @Override
+    public Object clone() throws CloneNotSupportedException {
+        return (NettyServerConfig) super.clone();
+    }
 }

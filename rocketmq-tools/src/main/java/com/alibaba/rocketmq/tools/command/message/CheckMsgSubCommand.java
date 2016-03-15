@@ -1,11 +1,10 @@
 package com.alibaba.rocketmq.tools.command.message;
 
+import com.alibaba.rocketmq.remoting.RPCHook;
+import com.alibaba.rocketmq.tools.command.SubCommand;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
-
-import com.alibaba.rocketmq.remoting.RPCHook;
-import com.alibaba.rocketmq.tools.command.SubCommand;
 
 
 /**
@@ -49,9 +48,9 @@ public class CheckMsgSubCommand implements SubCommand {
     @Override
     public void execute(CommandLine commandLine, Options options, RPCHook rpcHook) {
         Store store = new Store(commandLine.getOptionValue("cStorePath").trim(), //
-            Integer.parseInt(commandLine.getOptionValue("cSize").trim()),//
-            commandLine.getOptionValue("lStorePath").trim(), //
-            Integer.parseInt(commandLine.getOptionValue("lSize").trim()));
+                Integer.parseInt(commandLine.getOptionValue("cSize").trim()),//
+                commandLine.getOptionValue("lStorePath").trim(), //
+                Integer.parseInt(commandLine.getOptionValue("lSize").trim()));
         store.load();
         store.traval(false);
     }

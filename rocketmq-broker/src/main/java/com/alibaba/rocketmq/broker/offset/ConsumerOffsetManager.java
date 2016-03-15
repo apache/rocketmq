@@ -140,21 +140,6 @@ public class ConsumerOffsetManager extends ConfigManager {
         this.commitOffset(clientHost, key, queueId, offset);
     }
 
-
-    public long queryOffset(final String group, final String topic, final int queueId) {
-        // topic@group
-        String key = topic + TOPIC_GROUP_SEPARATOR + group;
-        ConcurrentHashMap<Integer, Long> map = this.offsetTable.get(key);
-        if (null != map) {
-            Long offset = map.get(queueId);
-            if (offset != null)
-                return offset;
-        }
-
-        return -1;
-    }
-
-
     private void commitOffset(final String clientHost, final String key, final int queueId, final long offset) {
         ConcurrentHashMap<Integer, Long> map = this.offsetTable.get(key);
         if (null == map) {
@@ -169,16 +154,27 @@ public class ConsumerOffsetManager extends ConfigManager {
         }
     }
 
+    public long queryOffset(final String group, final String topic, final int queueId) {
+        // topic@group
+        String key = topic + TOPIC_GROUP_SEPARATOR + group;
+        ConcurrentHashMap<Integer, Long> map = this.offsetTable.get(key);
+        if (null != map) {
+            Long offset = map.get(queueId);
+            if (offset != null)
+                return offset;
+        }
+
+        return -1;
+    }
 
     public String encode() {
         return this.encode(false);
     }
 
-
-    public String encode(final boolean prettyFormat) {
-        return RemotingSerializable.toJson(this, prettyFormat);
+    @Override
+    public String configFilePath() {
+        return BrokerPathConfigHelper.getConsumerOffsetPath(this.brokerController.getMessageStoreConfig().getStorePathRootDir());
     }
-
 
     @Override
     public void decode(String jsonString) {
@@ -190,12 +186,9 @@ public class ConsumerOffsetManager extends ConfigManager {
         }
     }
 
-
-    @Override
-    public String configFilePath() {
-        return BrokerPathConfigHelper.getConsumerOffsetPath(this.brokerController.getMessageStoreConfig().getStorePathRootDir());
+    public String encode(final boolean prettyFormat) {
+        return RemotingSerializable.toJson(this, prettyFormat);
     }
-
 
     public ConcurrentHashMap<String, ConcurrentHashMap<Integer, Long>> getOffsetTable() {
         return offsetTable;

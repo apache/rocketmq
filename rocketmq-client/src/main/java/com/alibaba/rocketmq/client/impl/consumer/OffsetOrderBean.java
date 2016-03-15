@@ -13,16 +13,14 @@ public class OffsetOrderBean implements Comparable<OffsetOrderBean> {
         this.timestamp = System.currentTimeMillis();
     }
 
-
-    public long getOffset() {
-        return offset;
-    }
-
-
     public long getTimestamp() {
         return timestamp;
     }
 
+    @Override
+    public int hashCode() {
+        return (int) (offset ^ (offset >>> 32));
+    }
 
     @Override
     public boolean equals(final Object o) {
@@ -36,15 +34,12 @@ public class OffsetOrderBean implements Comparable<OffsetOrderBean> {
         return offset == orderBean.offset;
     }
 
-
-    @Override
-    public int hashCode() {
-        return (int) (offset ^ (offset >>> 32));
-    }
-
-
     @Override
     public int compareTo(final OffsetOrderBean o) {
         return (int) (this.offset - o.getOffset());
+    }
+
+    public long getOffset() {
+        return offset;
     }
 }

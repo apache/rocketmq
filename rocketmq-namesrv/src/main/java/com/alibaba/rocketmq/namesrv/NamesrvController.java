@@ -1,12 +1,12 @@
 /**
  * Copyright (C) 2010-2013 Alibaba Group Holding Limited
- *
+ * <p/>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p/>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p/>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -37,7 +37,7 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * Name Server服务控制
- * 
+ *
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-5
  */
@@ -47,22 +47,20 @@ public class NamesrvController {
     private final NamesrvConfig namesrvConfig;
     // 通信层配置
     private final NettyServerConfig nettyServerConfig;
+    // 定时线程
+    private final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl(
+            "NSScheduledThread"));
+    /**
+     * 核心数据结构
+     */
+    private final KVConfigManager kvConfigManager;
+    private final RouteInfoManager routeInfoManager;
     // 服务端通信层对象
     private RemotingServer remotingServer;
     // 接收Broker连接事件
     private BrokerHousekeepingService brokerHousekeepingService;
     // 服务端网络请求处理线程池
     private ExecutorService remotingExecutor;
-
-    // 定时线程
-    private final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl(
-        "NSScheduledThread"));
-
-    /**
-     * 核心数据结构
-     */
-    private final KVConfigManager kvConfigManager;
-    private final RouteInfoManager routeInfoManager;
 
 
     public NamesrvController(NamesrvConfig namesrvConfig, NettyServerConfig nettyServerConfig) {
@@ -112,9 +110,8 @@ public class NamesrvController {
         if (namesrvConfig.isClusterTest()) {
             // 全链路压测版本
             this.remotingServer.registerDefaultProcessor(new ClusterTestRequestProcessor(this, namesrvConfig.getProductEnvName()),
-                this.remotingExecutor);
-        }
-        else {
+                    this.remotingExecutor);
+        } else {
             // 生产网默认版本
             this.remotingServer.registerDefaultProcessor(new DefaultRequestProcessor(this), this.remotingExecutor);
         }

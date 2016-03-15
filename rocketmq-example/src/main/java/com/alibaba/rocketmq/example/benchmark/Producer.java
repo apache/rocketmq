@@ -1,12 +1,12 @@
 /**
  * Copyright (C) 2010-2013 Alibaba Group Holding Limited
- *
+ * <p/>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p/>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p/>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -15,19 +15,6 @@
  */
 package com.alibaba.rocketmq.example.benchmark;
 
-import java.util.LinkedList;
-import java.util.Timer;
-import java.util.TimerTask;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicLong;
-
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.Option;
-import org.apache.commons.cli.Options;
-import org.apache.commons.cli.PosixParser;
-import org.slf4j.Logger;
-
 import com.alibaba.rocketmq.client.exception.MQBrokerException;
 import com.alibaba.rocketmq.client.exception.MQClientException;
 import com.alibaba.rocketmq.client.log.ClientLogger;
@@ -35,29 +22,24 @@ import com.alibaba.rocketmq.client.producer.DefaultMQProducer;
 import com.alibaba.rocketmq.common.message.Message;
 import com.alibaba.rocketmq.remoting.exception.RemotingException;
 import com.alibaba.rocketmq.srvutil.ServerUtil;
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.Option;
+import org.apache.commons.cli.Options;
+import org.apache.commons.cli.PosixParser;
+import org.slf4j.Logger;
+
+import java.util.LinkedList;
+import java.util.Timer;
+import java.util.TimerTask;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicLong;
 
 
 /**
  * 性能测试，多线程同步发送消息
  */
 public class Producer {
-    public static Options buildCommandlineOptions(final Options options) {
-        Option opt = new Option("t", "threadCount", true, "Thread count, Default: 64");
-        opt.setRequired(false);
-        options.addOption(opt);
-
-        opt = new Option("s", "messageSize", true, "Message Size, Default: 128");
-        opt.setRequired(false);
-        options.addOption(opt);
-
-        opt = new Option("k", "keyEnable", true, "Message Key Enable, Default: false");
-        opt.setRequired(false);
-        options.addOption(opt);
-
-        return options;
-    }
-
-
     public static void main(String[] args) throws MQClientException {
         // 解析命令行
         Options options = ServerUtil.buildCommandlineOptions(new Options());
@@ -104,12 +86,12 @@ public class Producer {
                     final double averageRT = ((end[5] - begin[5]) / (double) (end[3] - begin[3]));
 
                     System.out.printf("Send TPS: %d Max RT: %d Average RT: %7.3f Send Failed: %d Response Failed: %d\n"//
-                        , sendTps//
-                        , statsBenchmark.getSendMessageMaxRT().get()//
-                        , averageRT//
-                        , end[2]//
-                        , end[4]//
-                        );
+                            , sendTps//
+                            , statsBenchmark.getSendMessageMaxRT().get()//
+                            , averageRT//
+                            , end[2]//
+                            , end[4]//
+                    );
                 }
             }
 
@@ -118,8 +100,7 @@ public class Producer {
             public void run() {
                 try {
                     this.printStats();
-                }
-                catch (Exception e) {
+                } catch (Exception e) {
                     e.printStackTrace();
                 }
             }
@@ -161,35 +142,28 @@ public class Producer {
 
                                 prevMaxRT = statsBenchmark.getSendMessageMaxRT().get();
                             }
-                        }
-                        catch (RemotingException e) {
+                        } catch (RemotingException e) {
                             statsBenchmark.getSendRequestFailedCount().incrementAndGet();
                             log.error("[BENCHMARK_PRODUCER] Send Exception", e);
 
                             try {
                                 Thread.sleep(3000);
+                            } catch (InterruptedException e1) {
                             }
-                            catch (InterruptedException e1) {
-                            }
-                        }
-                        catch (InterruptedException e) {
+                        } catch (InterruptedException e) {
                             statsBenchmark.getSendRequestFailedCount().incrementAndGet();
                             try {
                                 Thread.sleep(3000);
+                            } catch (InterruptedException e1) {
                             }
-                            catch (InterruptedException e1) {
-                            }
-                        }
-                        catch (MQClientException e) {
+                        } catch (MQClientException e) {
                             statsBenchmark.getSendRequestFailedCount().incrementAndGet();
                             log.error("[BENCHMARK_PRODUCER] Send Exception", e);
-                        }
-                        catch (MQBrokerException e) {
+                        } catch (MQBrokerException e) {
                             statsBenchmark.getReceiveResponseFailedCount().incrementAndGet();
                             try {
                                 Thread.sleep(3000);
-                            }
-                            catch (InterruptedException e1) {
+                            } catch (InterruptedException e1) {
                             }
                         }
                     }
@@ -198,6 +172,21 @@ public class Producer {
         }
     }
 
+    public static Options buildCommandlineOptions(final Options options) {
+        Option opt = new Option("t", "threadCount", true, "Thread count, Default: 64");
+        opt.setRequired(false);
+        options.addOption(opt);
+
+        opt = new Option("s", "messageSize", true, "Message Size, Default: 128");
+        opt.setRequired(false);
+        options.addOption(opt);
+
+        opt = new Option("k", "keyEnable", true, "Message Key Enable, Default: false");
+        opt.setRequired(false);
+        options.addOption(opt);
+
+        return options;
+    }
 
     private static Message buildMessage(final int messageSize) {
         Message msg = new Message();
@@ -231,14 +220,14 @@ class StatsBenchmarkProducer {
 
 
     public Long[] createSnapshot() {
-        Long[] snap = new Long[] {//
+        Long[] snap = new Long[]{//
                 System.currentTimeMillis(),//
-                        this.sendRequestSuccessCount.get(),//
-                        this.sendRequestFailedCount.get(),//
-                        this.receiveResponseSuccessCount.get(),//
-                        this.receiveResponseFailedCount.get(),//
-                        this.sendMessageSuccessTimeTotal.get(), //
-                };
+                this.sendRequestSuccessCount.get(),//
+                this.sendRequestFailedCount.get(),//
+                this.receiveResponseSuccessCount.get(),//
+                this.receiveResponseFailedCount.get(),//
+                this.sendMessageSuccessTimeTotal.get(), //
+        };
 
         return snap;
     }

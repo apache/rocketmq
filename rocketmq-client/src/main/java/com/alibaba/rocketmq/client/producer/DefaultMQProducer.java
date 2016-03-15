@@ -15,8 +15,6 @@
  */
 package com.alibaba.rocketmq.client.producer;
 
-import java.util.List;
-
 import com.alibaba.rocketmq.client.ClientConfig;
 import com.alibaba.rocketmq.client.QueryResult;
 import com.alibaba.rocketmq.client.exception.MQBrokerException;
@@ -28,6 +26,8 @@ import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.common.message.MessageQueue;
 import com.alibaba.rocketmq.remoting.RPCHook;
 import com.alibaba.rocketmq.remoting.exception.RemotingException;
+
+import java.util.List;
 
 
 /**
@@ -54,6 +54,12 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     }
 
 
+    public DefaultMQProducer(final String producerGroup, RPCHook rpcHook) {
+        this.producerGroup = producerGroup;
+        defaultMQProducerImpl = new DefaultMQProducerImpl(this, rpcHook);
+    }
+
+
     public DefaultMQProducer(final String producerGroup) {
         this(producerGroup, null);
     }
@@ -62,13 +68,6 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     public DefaultMQProducer(RPCHook rpcHook) {
         this(MixAll.DEFAULT_PRODUCER_GROUP, rpcHook);
     }
-
-
-    public DefaultMQProducer(final String producerGroup, RPCHook rpcHook) {
-        this.producerGroup = producerGroup;
-        defaultMQProducerImpl = new DefaultMQProducerImpl(this, rpcHook);
-    }
-
 
     @Override
     public void start() throws MQClientException {

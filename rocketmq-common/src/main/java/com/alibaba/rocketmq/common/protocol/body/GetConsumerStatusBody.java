@@ -1,15 +1,15 @@
 package com.alibaba.rocketmq.common.protocol.body;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import com.alibaba.rocketmq.common.message.MessageQueue;
 import com.alibaba.rocketmq.remoting.protocol.RemotingSerializable;
+
+import java.util.HashMap;
+import java.util.Map;
 
 
 /**
  * 查看客户端消费组的消费情况。
- * 
+ *
  * @author: manhong.yqd<jodie.yqd@gmail.com>
  * @since: 13-12-30
  */

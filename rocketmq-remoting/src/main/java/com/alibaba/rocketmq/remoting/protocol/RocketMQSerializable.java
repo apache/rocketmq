@@ -1,12 +1,12 @@
 /**
  * Copyright (C) 2010-2013 Alibaba Group Holding Limited
- *
+ * <p/>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p/>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p/>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -28,27 +28,6 @@ import java.util.Map;
  */
 public class RocketMQSerializable {
     public static final Charset CHARSET_UTF8 = Charset.forName("UTF-8");
-
-
-    private static int calTotalLen(int remark, int ext) {
-        // int code(~32767)
-        int length = 2
-                // LanguageCode language
-                + 1
-                // int version(~32767)
-                + 2
-                // int opaque
-                + 4
-                // int flag
-                + 4
-                // String remark
-                + 4 + remark
-                // HashMap<String, String> extFields
-                + 4 + ext;
-
-        return length;
-    }
-
 
     public static byte[] rocketMQProtocolEncode(RemotingCommand cmd) {
         // String remark
@@ -100,39 +79,6 @@ public class RocketMQSerializable {
         return headerBuffer.array();
     }
 
-
-    public static RemotingCommand rocketMQProtocolDecode(final byte[] headerArray) {
-        RemotingCommand cmd = new RemotingCommand();
-        ByteBuffer headerBuffer = ByteBuffer.wrap(headerArray);
-        // int code(~32767)
-        cmd.setCode(headerBuffer.getShort());
-        // LanguageCode language
-        cmd.setLanguage(LanguageCode.valueOf(headerBuffer.get()));
-        // int version(~32767)
-        cmd.setVersion(headerBuffer.getShort());
-        // int opaque
-        cmd.setOpaque(headerBuffer.getInt());
-        // int flag
-        cmd.setFlag(headerBuffer.getInt());
-        // String remark
-        int remarkLength = headerBuffer.getInt();
-        if (remarkLength > 0) {
-            byte[] remarkContent = new byte[remarkLength];
-            headerBuffer.get(remarkContent);
-            cmd.setRemark(new String(remarkContent, RemotingSerializable.CHARSET_UTF8));
-        }
-
-        // HashMap<String, String> extFields
-        int extFieldsLength = headerBuffer.getInt();
-        if (extFieldsLength > 0) {
-            byte[] extFieldsBytes = new byte[extFieldsLength];
-            headerBuffer.get(extFieldsBytes);
-            cmd.setExtFields(mapDeserialize(extFieldsBytes));
-        }
-        return cmd;
-    }
-
-
     public static byte[] mapSerialize(HashMap<String, String> map) {
         // keySize+key+valSize+val
         // keySize+key+valSize+val
@@ -175,6 +121,55 @@ public class RocketMQSerializable {
         return content.array();
     }
 
+    private static int calTotalLen(int remark, int ext) {
+        // int code(~32767)
+        int length = 2
+                // LanguageCode language
+                + 1
+                // int version(~32767)
+                + 2
+                // int opaque
+                + 4
+                // int flag
+                + 4
+                // String remark
+                + 4 + remark
+                // HashMap<String, String> extFields
+                + 4 + ext;
+
+        return length;
+    }
+
+    public static RemotingCommand rocketMQProtocolDecode(final byte[] headerArray) {
+        RemotingCommand cmd = new RemotingCommand();
+        ByteBuffer headerBuffer = ByteBuffer.wrap(headerArray);
+        // int code(~32767)
+        cmd.setCode(headerBuffer.getShort());
+        // LanguageCode language
+        cmd.setLanguage(LanguageCode.valueOf(headerBuffer.get()));
+        // int version(~32767)
+        cmd.setVersion(headerBuffer.getShort());
+        // int opaque
+        cmd.setOpaque(headerBuffer.getInt());
+        // int flag
+        cmd.setFlag(headerBuffer.getInt());
+        // String remark
+        int remarkLength = headerBuffer.getInt();
+        if (remarkLength > 0) {
+            byte[] remarkContent = new byte[remarkLength];
+            headerBuffer.get(remarkContent);
+            cmd.setRemark(new String(remarkContent, RemotingSerializable.CHARSET_UTF8));
+        }
+
+        // HashMap<String, String> extFields
+        int extFieldsLength = headerBuffer.getInt();
+        if (extFieldsLength > 0) {
+            byte[] extFieldsBytes = new byte[extFieldsLength];
+            headerBuffer.get(extFieldsBytes);
+            cmd.setExtFields(mapDeserialize(extFieldsBytes));
+        }
+        return cmd;
+    }
 
     public static HashMap<String, String> mapDeserialize(byte[] bytes) {
         if (bytes == null || bytes.length <= 0)

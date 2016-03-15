@@ -1,10 +1,10 @@
 package com.alibaba.rocketmq.example.simple;
 
-import java.util.List;
-import java.util.concurrent.ConcurrentHashMap;
-
 import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.common.message.MessageQueue;
+
+import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
 
 
 public class RandomAsyncCommit {

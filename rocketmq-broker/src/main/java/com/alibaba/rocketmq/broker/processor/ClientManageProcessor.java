@@ -56,12 +56,15 @@ public class ClientManageProcessor implements NettyRequestProcessor {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.BrokerLoggerName);
 
     private final BrokerController brokerController;
+    /**
+     * 消费每条消息会回调
+     */
+    private List<ConsumeMessageHook> consumeMessageHookList;
 
 
     public ClientManageProcessor(final BrokerController brokerController) {
         this.brokerController = brokerController;
     }
-
 
     @Override
     public RemotingCommand processRequest(ChannelHandlerContext ctx, RemotingCommand request)
@@ -84,33 +87,140 @@ public class ClientManageProcessor implements NettyRequestProcessor {
         return null;
     }
 
-    /**
-     * 消费每条消息会回调
-     */
-    private List<ConsumeMessageHook> consumeMessageHookList;
+    public RemotingCommand heartBeat(ChannelHandlerContext ctx, RemotingCommand request) {
+        RemotingCommand response = RemotingCommand.createResponseCommand(null);
 
+        HeartbeatData heartbeatData = HeartbeatData.decode(request.getBody(), HeartbeatData.class);
 
-    public boolean hasConsumeMessageHook() {
-        return consumeMessageHookList != null && !this.consumeMessageHookList.isEmpty();
-    }
+        ClientChannelInfo clientChannelInfo = new ClientChannelInfo(//
+                ctx.channel(),//
+                heartbeatData.getClientID(),//
+                request.getLanguage(),//
+                request.getVersion()//
+        );
 
-
-    public void registerConsumeMessageHook(List<ConsumeMessageHook> consumeMessageHookList) {
-        this.consumeMessageHookList = consumeMessageHookList;
-    }
-
-
-    public void executeConsumeMessageHookAfter(final ConsumeMessageContext context) {
-        if (hasConsumeMessageHook()) {
-            for (ConsumeMessageHook hook : this.consumeMessageHookList) {
-                try {
-                    hook.consumeMessageAfter(context);
-                } catch (Throwable e) {
+        // 注册Consumer
+        for (ConsumerData data : heartbeatData.getConsumerDataSet()) {
+            SubscriptionGroupConfig subscriptionGroupConfig =
+                    this.brokerController.getSubscriptionGroupManager().findSubscriptionGroupConfig(
+                            data.getGroupName());
+            if (null != subscriptionGroupConfig) {
+                // 如果是单元化模式，则对 topic 进行设置
+                int topicSysFlag = 0;
+                if (data.isUnitMode()) {
+                    topicSysFlag = TopicSysFlag.buildSysFlag(false, true);
                 }
+                String newTopic = MixAll.getRetryTopic(data.getGroupName());
+                this.brokerController.getTopicConfigManager().createTopicInSendMessageBackMethod(//
+                        newTopic,//
+                        subscriptionGroupConfig.getRetryQueueNums(), //
+                        PermName.PERM_WRITE | PermName.PERM_READ, topicSysFlag);
+            }
+
+            boolean changed = this.brokerController.getConsumerManager().registerConsumer(//
+                    data.getGroupName(),//
+                    clientChannelInfo,//
+                    data.getConsumeType(),//
+                    data.getMessageModel(),//
+                    data.getConsumeFromWhere(),//
+                    data.getSubscriptionDataSet()//
+            );
+
+            if (changed) {
+                log.info("registerConsumer info changed {} {}",//
+                        data.toString(),//
+                        RemotingHelper.parseChannelRemoteAddr(ctx.channel())//
+                );
+
+                // todo:有可能会有频繁变更
+                // for (SubscriptionData subscriptionData :
+                // data.getSubscriptionDataSet()) {
+                // this.brokerController.getTopicConfigManager().updateTopicUnitSubFlag(
+                // subscriptionData.getTopic(), data.isUnitMode());
+                // }
             }
         }
+
+        // 注册Producer
+        for (ProducerData data : heartbeatData.getProducerDataSet()) {
+            this.brokerController.getProducerManager().registerProducer(data.getGroupName(),
+                    clientChannelInfo);
+        }
+
+        response.setCode(ResponseCode.SUCCESS);
+        response.setRemark(null);
+        return response;
     }
 
+    public RemotingCommand unregisterClient(ChannelHandlerContext ctx, RemotingCommand request)
+            throws RemotingCommandException {
+        final RemotingCommand response =
+                RemotingCommand.createResponseCommand(UnregisterClientResponseHeader.class);
+        final UnregisterClientRequestHeader requestHeader =
+                (UnregisterClientRequestHeader) request
+                        .decodeCommandCustomHeader(UnregisterClientRequestHeader.class);
+
+        ClientChannelInfo clientChannelInfo = new ClientChannelInfo(//
+                ctx.channel(),//
+                requestHeader.getClientID(),//
+                request.getLanguage(),//
+                request.getVersion()//
+        );
+
+        // 注销Producer
+        {
+            final String group = requestHeader.getProducerGroup();
+            if (group != null) {
+                this.brokerController.getProducerManager().unregisterProducer(group, clientChannelInfo);
+            }
+        }
+
+        // 注销Consumer
+        {
+            final String group = requestHeader.getConsumerGroup();
+            if (group != null) {
+                this.brokerController.getConsumerManager().unregisterConsumer(group, clientChannelInfo);
+            }
+        }
+
+        response.setCode(ResponseCode.SUCCESS);
+        response.setRemark(null);
+        return response;
+    }
+
+    public RemotingCommand getConsumerListByGroup(ChannelHandlerContext ctx, RemotingCommand request)
+            throws RemotingCommandException {
+        final RemotingCommand response =
+                RemotingCommand.createResponseCommand(GetConsumerListByGroupResponseHeader.class);
+        final GetConsumerListByGroupRequestHeader requestHeader =
+                (GetConsumerListByGroupRequestHeader) request
+                        .decodeCommandCustomHeader(GetConsumerListByGroupRequestHeader.class);
+
+        ConsumerGroupInfo consumerGroupInfo =
+                this.brokerController.getConsumerManager().getConsumerGroupInfo(
+                        requestHeader.getConsumerGroup());
+        if (consumerGroupInfo != null) {
+            List<String> clientIds = consumerGroupInfo.getAllClientId();
+            if (!clientIds.isEmpty()) {
+                GetConsumerListByGroupResponseBody body = new GetConsumerListByGroupResponseBody();
+                body.setConsumerIdList(clientIds);
+                response.setBody(body.encode());
+                response.setCode(ResponseCode.SUCCESS);
+                response.setRemark(null);
+                return response;
+            } else {
+                log.warn("getAllClientId failed, {} {}", requestHeader.getConsumerGroup(),
+                        RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
+            }
+        } else {
+            log.warn("getConsumerGroupInfo failed, {} {}", requestHeader.getConsumerGroup(),
+                    RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
+        }
+
+        response.setCode(ResponseCode.SYSTEM_ERROR);
+        response.setRemark("no consumer for this group, " + requestHeader.getConsumerGroup());
+        return response;
+    }
 
     private RemotingCommand updateConsumerOffset(ChannelHandlerContext ctx, RemotingCommand request)
             throws RemotingCommandException {
@@ -197,141 +307,22 @@ public class ClientManageProcessor implements NettyRequestProcessor {
         return response;
     }
 
-
-    public RemotingCommand getConsumerListByGroup(ChannelHandlerContext ctx, RemotingCommand request)
-            throws RemotingCommandException {
-        final RemotingCommand response =
-                RemotingCommand.createResponseCommand(GetConsumerListByGroupResponseHeader.class);
-        final GetConsumerListByGroupRequestHeader requestHeader =
-                (GetConsumerListByGroupRequestHeader) request
-                        .decodeCommandCustomHeader(GetConsumerListByGroupRequestHeader.class);
-
-        ConsumerGroupInfo consumerGroupInfo =
-                this.brokerController.getConsumerManager().getConsumerGroupInfo(
-                        requestHeader.getConsumerGroup());
-        if (consumerGroupInfo != null) {
-            List<String> clientIds = consumerGroupInfo.getAllClientId();
-            if (!clientIds.isEmpty()) {
-                GetConsumerListByGroupResponseBody body = new GetConsumerListByGroupResponseBody();
-                body.setConsumerIdList(clientIds);
-                response.setBody(body.encode());
-                response.setCode(ResponseCode.SUCCESS);
-                response.setRemark(null);
-                return response;
-            } else {
-                log.warn("getAllClientId failed, {} {}", requestHeader.getConsumerGroup(),
-                        RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
-            }
-        } else {
-            log.warn("getConsumerGroupInfo failed, {} {}", requestHeader.getConsumerGroup(),
-                    RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
-        }
-
-        response.setCode(ResponseCode.SYSTEM_ERROR);
-        response.setRemark("no consumer for this group, " + requestHeader.getConsumerGroup());
-        return response;
+    public boolean hasConsumeMessageHook() {
+        return consumeMessageHookList != null && !this.consumeMessageHookList.isEmpty();
     }
 
-
-    public RemotingCommand unregisterClient(ChannelHandlerContext ctx, RemotingCommand request)
-            throws RemotingCommandException {
-        final RemotingCommand response =
-                RemotingCommand.createResponseCommand(UnregisterClientResponseHeader.class);
-        final UnregisterClientRequestHeader requestHeader =
-                (UnregisterClientRequestHeader) request
-                        .decodeCommandCustomHeader(UnregisterClientRequestHeader.class);
-
-        ClientChannelInfo clientChannelInfo = new ClientChannelInfo(//
-                ctx.channel(),//
-                requestHeader.getClientID(),//
-                request.getLanguage(),//
-                request.getVersion()//
-        );
-
-        // 注销Producer
-        {
-            final String group = requestHeader.getProducerGroup();
-            if (group != null) {
-                this.brokerController.getProducerManager().unregisterProducer(group, clientChannelInfo);
-            }
-        }
-
-        // 注销Consumer
-        {
-            final String group = requestHeader.getConsumerGroup();
-            if (group != null) {
-                this.brokerController.getConsumerManager().unregisterConsumer(group, clientChannelInfo);
-            }
-        }
-
-        response.setCode(ResponseCode.SUCCESS);
-        response.setRemark(null);
-        return response;
-    }
-
-
-    public RemotingCommand heartBeat(ChannelHandlerContext ctx, RemotingCommand request) {
-        RemotingCommand response = RemotingCommand.createResponseCommand(null);
-
-        HeartbeatData heartbeatData = HeartbeatData.decode(request.getBody(), HeartbeatData.class);
-
-        ClientChannelInfo clientChannelInfo = new ClientChannelInfo(//
-                ctx.channel(),//
-                heartbeatData.getClientID(),//
-                request.getLanguage(),//
-                request.getVersion()//
-        );
-
-        // 注册Consumer
-        for (ConsumerData data : heartbeatData.getConsumerDataSet()) {
-            SubscriptionGroupConfig subscriptionGroupConfig =
-                    this.brokerController.getSubscriptionGroupManager().findSubscriptionGroupConfig(
-                            data.getGroupName());
-            if (null != subscriptionGroupConfig) {
-                // 如果是单元化模式，则对 topic 进行设置
-                int topicSysFlag = 0;
-                if (data.isUnitMode()) {
-                    topicSysFlag = TopicSysFlag.buildSysFlag(false, true);
+    public void executeConsumeMessageHookAfter(final ConsumeMessageContext context) {
+        if (hasConsumeMessageHook()) {
+            for (ConsumeMessageHook hook : this.consumeMessageHookList) {
+                try {
+                    hook.consumeMessageAfter(context);
+                } catch (Throwable e) {
                 }
-                String newTopic = MixAll.getRetryTopic(data.getGroupName());
-                this.brokerController.getTopicConfigManager().createTopicInSendMessageBackMethod(//
-                        newTopic,//
-                        subscriptionGroupConfig.getRetryQueueNums(), //
-                        PermName.PERM_WRITE | PermName.PERM_READ, topicSysFlag);
-            }
-
-            boolean changed = this.brokerController.getConsumerManager().registerConsumer(//
-                    data.getGroupName(),//
-                    clientChannelInfo,//
-                    data.getConsumeType(),//
-                    data.getMessageModel(),//
-                    data.getConsumeFromWhere(),//
-                    data.getSubscriptionDataSet()//
-            );
-
-            if (changed) {
-                log.info("registerConsumer info changed {} {}",//
-                        data.toString(),//
-                        RemotingHelper.parseChannelRemoteAddr(ctx.channel())//
-                );
-
-                // todo:有可能会有频繁变更
-                // for (SubscriptionData subscriptionData :
-                // data.getSubscriptionDataSet()) {
-                // this.brokerController.getTopicConfigManager().updateTopicUnitSubFlag(
-                // subscriptionData.getTopic(), data.isUnitMode());
-                // }
             }
         }
+    }
 
-        // 注册Producer
-        for (ProducerData data : heartbeatData.getProducerDataSet()) {
-            this.brokerController.getProducerManager().registerProducer(data.getGroupName(),
-                    clientChannelInfo);
-        }
-
-        response.setCode(ResponseCode.SUCCESS);
-        response.setRemark(null);
-        return response;
+    public void registerConsumeMessageHook(List<ConsumeMessageHook> consumeMessageHookList) {
+        this.consumeMessageHookList = consumeMessageHookList;
     }
 }

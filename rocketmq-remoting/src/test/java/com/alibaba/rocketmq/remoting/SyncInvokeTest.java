@@ -3,11 +3,10 @@
  */
 package com.alibaba.rocketmq.remoting;
 
-import static org.junit.Assert.assertTrue;
-
+import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 import org.junit.Test;
 
-import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
+import static org.junit.Assert.assertTrue;
 
 
 /**
@@ -25,8 +24,7 @@ public class SyncInvokeTest {
                 RemotingCommand response = client.invokeSync("localhost:8888", request, 1000 * 3);
                 System.out.println(i + "\t" + "invoke result = " + response);
                 assertTrue(response != null);
-            }
-            catch (Exception e) {
+            } catch (Exception e) {
                 e.printStackTrace();
                 throw e;
             }

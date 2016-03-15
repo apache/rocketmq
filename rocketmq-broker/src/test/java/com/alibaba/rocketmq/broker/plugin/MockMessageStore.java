@@ -1,16 +1,16 @@
 /**
- * 
+ *
  */
 package com.alibaba.rocketmq.broker.plugin;
+
+import com.alibaba.rocketmq.common.message.MessageExt;
+import com.alibaba.rocketmq.common.protocol.heartbeat.SubscriptionData;
+import com.alibaba.rocketmq.store.*;
 
 import java.net.SocketAddress;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
-
-import com.alibaba.rocketmq.common.message.MessageExt;
-import com.alibaba.rocketmq.common.protocol.heartbeat.SubscriptionData;
-import com.alibaba.rocketmq.store.*;
 
 
 /**
@@ -51,7 +51,7 @@ public class MockMessageStore implements MessageStore {
 
     @Override
     public GetMessageResult getMessage(String group, String topic, int queueId, long offset, int maxMsgNums,
-            SubscriptionData subscriptionData) {
+                                       SubscriptionData subscriptionData) {
 
         return null;
     }
@@ -247,15 +247,13 @@ public class MockMessageStore implements MessageStore {
         return true;
     }
 
-
-    @Override
-    public void setConfirmOffset(long phyOffset) {
-    }
-
-
     @Override
     public long getConfirmOffset() {
         return 0;
+    }
+
+    @Override
+    public void setConfirmOffset(long phyOffset) {
     }
 
 }

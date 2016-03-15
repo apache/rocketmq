@@ -18,6 +18,7 @@ import static org.junit.Assert.assertTrue;
  * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public class DefaultMessageStoreTest {
+    private static final String StoreMessage = "Once, there was a chance for me!";
     // 队列个数
     private static int QUEUE_TOTAL = 100;
     // 发往哪个队列
@@ -29,26 +30,6 @@ public class DefaultMessageStoreTest {
     // 消息体
     private static byte[] MessageBody;
 
-    private static final String StoreMessage = "Once, there was a chance for me!";
-
-
-    public MessageExtBrokerInner buildMessage() {
-        MessageExtBrokerInner msg = new MessageExtBrokerInner();
-        msg.setTopic("AAA");
-        msg.setTags("TAG1");
-        msg.setKeys("Hello");
-        msg.setBody(MessageBody);
-        msg.setKeys(String.valueOf(System.currentTimeMillis()));
-        msg.setQueueId(Math.abs(QueueId.getAndIncrement()) % QUEUE_TOTAL);
-        msg.setSysFlag(4);
-        msg.setBornTimestamp(System.currentTimeMillis());
-        msg.setStoreHost(StoreHost);
-        msg.setBornHost(BornHost);
-
-        return msg;
-    }
-
-
     @BeforeClass
     public static void setUpBeforeClass() throws Exception {
         StoreHost = new InetSocketAddress(InetAddress.getLocalHost(), 8123);
@@ -56,11 +37,9 @@ public class DefaultMessageStoreTest {
 
     }
 
-
     @AfterClass
     public static void tearDownAfterClass() throws Exception {
     }
-
 
     @Test
     public void test_write_read() throws Exception {
@@ -101,8 +80,7 @@ public class DefaultMessageStoreTest {
                 assertTrue(result != null);
                 result.release();
                 System.out.println("read " + i + " OK");
-            }
-            catch (Exception e) {
+            } catch (Exception e) {
                 e.printStackTrace();
             }
 
@@ -116,6 +94,21 @@ public class DefaultMessageStoreTest {
         System.out.println("================================================================");
     }
 
+    public MessageExtBrokerInner buildMessage() {
+        MessageExtBrokerInner msg = new MessageExtBrokerInner();
+        msg.setTopic("AAA");
+        msg.setTags("TAG1");
+        msg.setKeys("Hello");
+        msg.setBody(MessageBody);
+        msg.setKeys(String.valueOf(System.currentTimeMillis()));
+        msg.setQueueId(Math.abs(QueueId.getAndIncrement()) % QUEUE_TOTAL);
+        msg.setSysFlag(4);
+        msg.setBornTimestamp(System.currentTimeMillis());
+        msg.setStoreHost(StoreHost);
+        msg.setBornHost(BornHost);
+
+        return msg;
+    }
 
     @Test
     public void test_group_commit() throws Exception {
@@ -156,8 +149,7 @@ public class DefaultMessageStoreTest {
                 assertTrue(result != null);
                 result.release();
                 System.out.println("read " + i + " OK");
-            }
-            catch (Exception e) {
+            } catch (Exception e) {
                 e.printStackTrace();
             }
 

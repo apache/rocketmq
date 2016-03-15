@@ -1,12 +1,12 @@
 /**
  * Copyright (C) 2010-2013 Alibaba Group Holding Limited
- *
+ * <p/>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p/>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p/>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -23,7 +23,7 @@ import java.io.File;
 
 /**
  * 存储层配置文件类
- * 
+ *
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-21
  */
@@ -139,6 +139,11 @@ public class MessageStoreConfig {
     private boolean offsetCheckInSlave = false;
     //
     private boolean debugLockEnable = false;
+    // 是否开启新的主从复制机制
+    private boolean duplicationEnable = false;
+    // 是否记录磁盘的落后情况
+    private boolean diskFallRecorded = true;
+    private long osPageCacheBusyTimeOutMills = 2000;
 
     public boolean isDebugLockEnable() {
         return debugLockEnable;
@@ -156,13 +161,6 @@ public class MessageStoreConfig {
         this.duplicationEnable = duplicationEnable;
     }
 
-    // 是否开启新的主从复制机制
-    private boolean duplicationEnable = false;
-
-    // 是否记录磁盘的落后情况
-    private boolean diskFallRecorded = true;
-
-
     public long getOsPageCacheBusyTimeOutMills() {
         return osPageCacheBusyTimeOutMills;
     }
@@ -170,8 +168,6 @@ public class MessageStoreConfig {
     public void setOsPageCacheBusyTimeOutMills(final long osPageCacheBusyTimeOutMills) {
         this.osPageCacheBusyTimeOutMills = osPageCacheBusyTimeOutMills;
     }
-
-    private long osPageCacheBusyTimeOutMills = 2000;
 
     public boolean isDiskFallRecorded() {
         return diskFallRecorded;
@@ -528,16 +524,13 @@ public class MessageStoreConfig {
         return brokerRole;
     }
 
-
-    public void setBrokerRole(BrokerRole brokerRole) {
-        this.brokerRole = brokerRole;
-    }
-
-
     public void setBrokerRole(String brokerRole) {
         this.brokerRole = BrokerRole.valueOf(brokerRole);
     }
 
+    public void setBrokerRole(BrokerRole brokerRole) {
+        this.brokerRole = brokerRole;
+    }
 
     public int getHaTransferBatchSize() {
         return haTransferBatchSize;
@@ -563,16 +556,13 @@ public class MessageStoreConfig {
         return flushDiskType;
     }
 
-
-    public void setFlushDiskType(FlushDiskType flushDiskType) {
-        this.flushDiskType = flushDiskType;
-    }
-
-
     public void setFlushDiskType(String type) {
         this.flushDiskType = FlushDiskType.valueOf(type);
     }
 
+    public void setFlushDiskType(FlushDiskType flushDiskType) {
+        this.flushDiskType = flushDiskType;
+    }
 
     public int getSyncFlushTimeout() {
         return syncFlushTimeout;

@@ -8,7 +8,7 @@ import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
 
 /**
  * 为减少网络传输数量准备
- * 
+ *
  * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public class SendMessageRequestHeaderV2 implements CommandCustomHeader {
@@ -37,12 +37,6 @@ public class SendMessageRequestHeaderV2 implements CommandCustomHeader {
 
     private Integer l; // consumeRetryTimes
 
-
-    @Override
-    public void checkFields() throws RemotingCommandException {
-    }
-
-
     public static SendMessageRequestHeader createSendMessageRequestHeaderV1(final SendMessageRequestHeaderV2 v2) {
         SendMessageRequestHeader v1 = new SendMessageRequestHeader();
         v1.setProducerGroup(v2.a);
@@ -59,7 +53,6 @@ public class SendMessageRequestHeaderV2 implements CommandCustomHeader {
         v1.setMaxReconsumeTimes(v2.l);
         return v1;
     }
-
 
     public static SendMessageRequestHeaderV2 createSendMessageRequestHeaderV2(final SendMessageRequestHeader v1) {
         SendMessageRequestHeaderV2 v2 = new SendMessageRequestHeaderV2();
@@ -78,6 +71,9 @@ public class SendMessageRequestHeaderV2 implements CommandCustomHeader {
         return v2;
     }
 
+    @Override
+    public void checkFields() throws RemotingCommandException {
+    }
 
     public String getA() {
         return a;

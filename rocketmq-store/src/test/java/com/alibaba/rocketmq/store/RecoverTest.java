@@ -21,6 +21,7 @@ import static org.junit.Assert.assertTrue;
 
 
 public class RecoverTest {
+    private static final String StoreMessage = "Once, there was a chance for me!aaaaaaaaaaaaaaaaaaaaaaaa";
     // 队列个数
     private static int QUEUE_TOTAL = 10;
     // 发往哪个队列
@@ -31,26 +32,9 @@ public class RecoverTest {
     private static SocketAddress StoreHost;
     // 消息体
     private static byte[] MessageBody;
-
-    private static final String StoreMessage = "Once, there was a chance for me!aaaaaaaaaaaaaaaaaaaaaaaa";
-
-
-    public MessageExtBrokerInner buildMessage() {
-        MessageExtBrokerInner msg = new MessageExtBrokerInner();
-        msg.setTopic("TOPIC_A");
-        msg.setTags("TAG1");
-        msg.setKeys("Hello");
-        msg.setBody(MessageBody);
-        msg.setKeys(String.valueOf(System.currentTimeMillis()));
-        msg.setQueueId(Math.abs(QueueId.getAndIncrement()) % QUEUE_TOTAL);
-        msg.setSysFlag(4);
-        msg.setBornTimestamp(System.currentTimeMillis());
-        msg.setStoreHost(StoreHost);
-        msg.setBornHost(BornHost);
-
-        return msg;
-    }
-
+    private MessageStore storeWrite1;
+    private MessageStore storeWrite2;
+    private MessageStore storeRead;
 
     @BeforeClass
     public static void setUpBeforeClass() throws Exception {
@@ -58,39 +42,20 @@ public class RecoverTest {
         BornHost = new InetSocketAddress(InetAddress.getByName("127.0.0.1"), 0);
     }
 
-
     @AfterClass
     public static void tearDownAfterClass() throws Exception {
     }
 
-    private MessageStore storeWrite1;
-    private MessageStore storeWrite2;
-    private MessageStore storeRead;
-
-
-    private void destroy() {
-        if (storeWrite1 != null) {
-            // 关闭存储服务
-            storeWrite1.shutdown();
-            // 删除文件
-            storeWrite1.destroy();
-        }
-
-        if (storeWrite2 != null) {
-            // 关闭存储服务
-            storeWrite2.shutdown();
-            // 删除文件
-            storeWrite2.destroy();
-        }
-
-        if (storeRead != null) {
-            // 关闭存储服务
-            storeRead.shutdown();
-            // 删除文件
-            storeRead.destroy();
-        }
+    /**
+     * 正常关闭后，重启恢复消息，验证是否有消息丢失
+     */
+    @Test
+    public void test_recover_normally() throws Exception {
+        this.writeMessage(true, true);
+        Thread.sleep(1000 * 3);
+        this.readMessage(1000);
+        this.destroy();
     }
-
 
     public void writeMessage(boolean normal, boolean first) throws Exception {
         System.out.println("================================================================");
@@ -110,8 +75,7 @@ public class RecoverTest {
         MessageStore messageStore = new DefaultMessageStore(messageStoreConfig, null, null, null);
         if (first) {
             this.storeWrite1 = messageStore;
-        }
-        else {
+        } else {
             this.storeWrite2 = messageStore;
         }
 
@@ -138,20 +102,6 @@ public class RecoverTest {
         System.out.println("========================writeMessage OK========================================");
     }
 
-
-    private void veryReadMessage(int queueId, long queueOffset, List<ByteBuffer> byteBuffers) {
-        for (ByteBuffer byteBuffer : byteBuffers) {
-            MessageExt msg = MessageDecoder.decode(byteBuffer);
-            System.out.println("request queueId " + queueId + ", request queueOffset " + queueOffset + " msg queue offset "
-                    + msg.getQueueOffset());
-
-            assertTrue(msg.getQueueOffset() == queueOffset);
-
-            queueOffset++;
-        }
-    }
-
-
     public void readMessage(final long msgCnt) throws Exception {
         System.out.println("================================================================");
         QUEUE_TOTAL = 3;
@@ -177,7 +127,7 @@ public class RecoverTest {
         // 第三步，收消息
         long readCnt = 0;
         for (int queueId = 0; queueId < QUEUE_TOTAL; queueId++) {
-            for (long offset = 0;;) {
+            for (long offset = 0; ; ) {
                 GetMessageResult result = storeRead.getMessage("GROUP_A", "TOPIC_A", queueId, offset, 1024 * 1024, null);
                 if (result.getStatus() == GetMessageStatus.FOUND) {
                     System.out.println(queueId + "\t" + result.getMessageCount());
@@ -185,8 +135,7 @@ public class RecoverTest {
                     offset += result.getMessageCount();
                     readCnt += result.getMessageCount();
                     result.release();
-                }
-                else {
+                } else {
                     break;
                 }
             }
@@ -198,18 +147,56 @@ public class RecoverTest {
         System.out.println("========================readMessage OK========================================");
     }
 
+    private void destroy() {
+        if (storeWrite1 != null) {
+            // 关闭存储服务
+            storeWrite1.shutdown();
+            // 删除文件
+            storeWrite1.destroy();
+        }
 
-    /**
-     * 正常关闭后，重启恢复消息，验证是否有消息丢失
-     */
-    @Test
-    public void test_recover_normally() throws Exception {
-        this.writeMessage(true, true);
-        Thread.sleep(1000 * 3);
-        this.readMessage(1000);
-        this.destroy();
+        if (storeWrite2 != null) {
+            // 关闭存储服务
+            storeWrite2.shutdown();
+            // 删除文件
+            storeWrite2.destroy();
+        }
+
+        if (storeRead != null) {
+            // 关闭存储服务
+            storeRead.shutdown();
+            // 删除文件
+            storeRead.destroy();
+        }
     }
 
+    public MessageExtBrokerInner buildMessage() {
+        MessageExtBrokerInner msg = new MessageExtBrokerInner();
+        msg.setTopic("TOPIC_A");
+        msg.setTags("TAG1");
+        msg.setKeys("Hello");
+        msg.setBody(MessageBody);
+        msg.setKeys(String.valueOf(System.currentTimeMillis()));
+        msg.setQueueId(Math.abs(QueueId.getAndIncrement()) % QUEUE_TOTAL);
+        msg.setSysFlag(4);
+        msg.setBornTimestamp(System.currentTimeMillis());
+        msg.setStoreHost(StoreHost);
+        msg.setBornHost(BornHost);
+
+        return msg;
+    }
+
+    private void veryReadMessage(int queueId, long queueOffset, List<ByteBuffer> byteBuffers) {
+        for (ByteBuffer byteBuffer : byteBuffers) {
+            MessageExt msg = MessageDecoder.decode(byteBuffer);
+            System.out.println("request queueId " + queueId + ", request queueOffset " + queueOffset + " msg queue offset "
+                    + msg.getQueueOffset());
+
+            assertTrue(msg.getQueueOffset() == queueOffset);
+
+            queueOffset++;
+        }
+    }
 
     /**
      * 正常关闭后，重启恢复消息，并再次写入消息，验证是否有消息丢失

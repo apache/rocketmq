@@ -15,6 +15,13 @@
  */
 package com.alibaba.rocketmq.client.impl.consumer;
 
+import com.alibaba.rocketmq.client.consumer.DefaultMQPushConsumer;
+import com.alibaba.rocketmq.client.log.ClientLogger;
+import com.alibaba.rocketmq.common.message.MessageConst;
+import com.alibaba.rocketmq.common.message.MessageExt;
+import com.alibaba.rocketmq.common.protocol.body.ProcessQueueInfo;
+import org.slf4j.Logger;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -24,14 +31,6 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-
-import org.slf4j.Logger;
-
-import com.alibaba.rocketmq.client.consumer.DefaultMQPushConsumer;
-import com.alibaba.rocketmq.client.log.ClientLogger;
-import com.alibaba.rocketmq.common.message.MessageConst;
-import com.alibaba.rocketmq.common.message.MessageExt;
-import com.alibaba.rocketmq.common.protocol.body.ProcessQueueInfo;
 
 
 /**
@@ -44,27 +43,21 @@ public class ProcessQueue {
     public final static long RebalanceLockMaxLiveTime =
             Long.parseLong(System.getProperty("rocketmq.client.rebalance.lockMaxLiveTime", "30000"));
     public final static long RebalanceLockInterval = Long.parseLong(System.getProperty("rocketmq.client.rebalance.lockInterval", "20000"));
-
+    private final static long PullMaxIdleTime = Long.parseLong(System.getProperty("rocketmq.client.pull.pullMaxIdleTime", "120000"));
     private final Logger log = ClientLogger.getLog();
     private final ReadWriteLock lockTreeMap = new ReentrantReadWriteLock();
     private final TreeMap<OffsetOrderBean, MessageExt> msgTreeMap = new TreeMap<OffsetOrderBean, MessageExt>();
-    private volatile long queueOffsetMax = 0L;
     private final AtomicLong msgCount = new AtomicLong();
-
+    private final Lock lockConsume = new ReentrantLock();
+    private final TreeMap<OffsetOrderBean, MessageExt> msgTreeMapTemp = new TreeMap<OffsetOrderBean, MessageExt>();
+    private final AtomicLong tryUnlockTimes = new AtomicLong(0);
+    private volatile long queueOffsetMax = 0L;
     private volatile boolean dropped = false;
     private volatile long lastPullTimestamp = System.currentTimeMillis();
-    private final static long PullMaxIdleTime = Long.parseLong(System.getProperty("rocketmq.client.pull.pullMaxIdleTime", "120000"));
-
     private volatile long lastConsumeTimestamp = System.currentTimeMillis();
-
-    private final Lock lockConsume = new ReentrantLock();
-
     private volatile boolean locked = false;
     private volatile long lastLockTimestamp = System.currentTimeMillis();
     private volatile boolean consuming = false;
-    private final TreeMap<OffsetOrderBean, MessageExt> msgTreeMapTemp = new TreeMap<OffsetOrderBean, MessageExt>();
-    private final AtomicLong tryUnlockTimes = new AtomicLong(0);
-
     private volatile long msgAccCnt = 0;
     /**
      * 一条消息消费的超时时间(默认:10分钟)
@@ -244,16 +237,13 @@ public class ProcessQueue {
         this.dropped = dropped;
     }
 
-
-    public void setLocked(boolean locked) {
-        this.locked = locked;
-    }
-
-
     public boolean isLocked() {
         return locked;
     }
 
+    public void setLocked(boolean locked) {
+        this.locked = locked;
+    }
 
     public void rollback() {
         try {

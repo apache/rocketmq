@@ -1,10 +1,13 @@
 /**
- * 
+ *
  */
 package com.alibaba.rocketmq.broker.plugin;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import com.alibaba.rocketmq.common.BrokerConfig;
+import com.alibaba.rocketmq.store.MessageStore;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 
 import java.io.IOException;
 import java.lang.reflect.InvocationHandler;
@@ -12,15 +15,11 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-
-import com.alibaba.rocketmq.common.BrokerConfig;
-import com.alibaba.rocketmq.store.MessageStore;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 /**
- * @author qinan.qn@taobao.com 2015Äê12ÔÂ12ÈÕ
+ * @author qinan.qn@taobao.com 2015ï¿½ï¿½12ï¿½ï¿½12ï¿½ï¿½
  */
 public class PlugInTest {
 
@@ -37,64 +36,64 @@ public class PlugInTest {
     @After
     public void tearDown() throws Exception {
     }
-    
+
     @Test
-    public void testMessageStoreFactory() throws IOException{
+    public void testMessageStoreFactory() throws IOException {
         BrokerConfig brokerConfig = new BrokerConfig();
-        MessageStorePluginContext context=  new MessageStorePluginContext(null, null, null, brokerConfig);
+        MessageStorePluginContext context = new MessageStorePluginContext(null, null, null, brokerConfig);
         MessageStore messageStore = null;
         AbstractPluginMessageStore m = null;
-        //ÎÞplugin²âÊÔ
+        //ï¿½ï¿½pluginï¿½ï¿½ï¿½ï¿½
         brokerConfig.setMessageStorePlugIn(null);
         messageStore = MessageStoreFactory.build(context, new MockMessageStore());
         assertTrue(messageStore instanceof MockMessageStore);
-        
+
         brokerConfig.setMessageStorePlugIn("");
         messageStore = MessageStoreFactory.build(context, new MockMessageStore());
         assertTrue(messageStore instanceof MockMessageStore);
-        
-        //ÓÐplugin²âÊÔ
+
+        //ï¿½ï¿½pluginï¿½ï¿½ï¿½ï¿½
         brokerConfig.setMessageStorePlugIn("com.alibaba.rocketmq.broker.plugin.MockMessageStorePlugin1,com.alibaba.rocketmq.broker.plugin.MockMessageStorePlugin2");
-        messageStore = MessageStoreFactory.build(context,new MockMessageStore());
+        messageStore = MessageStoreFactory.build(context, new MockMessageStore());
         assertTrue(messageStore instanceof MockMessageStorePlugin1);
-        m = (AbstractPluginMessageStore)messageStore;
-        
+        m = (AbstractPluginMessageStore) messageStore;
+
         assertTrue(m.next instanceof MockMessageStorePlugin2);
-        m = (AbstractPluginMessageStore)m.next;
+        m = (AbstractPluginMessageStore) m.next;
         assertTrue(m.next instanceof MockMessageStore);
-        
-        //Å×³öÒì³£²âÊÔ
+
+        //ï¿½×³ï¿½ï¿½ì³£ï¿½ï¿½ï¿½ï¿½
         brokerConfig.setMessageStorePlugIn("aaaaaa");
-        try{
-            messageStore = MessageStoreFactory.build(context,new MockMessageStore());
+        try {
+            messageStore = MessageStoreFactory.build(context, new MockMessageStore());
             assertTrue(false);
-        }catch(RuntimeException e){
+        } catch (RuntimeException e) {
         }
-        
+
     }
-    
+
     @Test
     public void testAbstractPluginMessageStore() throws IllegalAccessException, IllegalArgumentException,
             InvocationTargetException {
 
-        
+
         final ThreadLocal<String> invokingMethodName = new ThreadLocal<String>();
-        
+
         MessageStore messageStore = (MessageStore) Proxy.newProxyInstance(
-                MessageStore.class.getClassLoader(), new Class[] { MessageStore.class },
+                MessageStore.class.getClassLoader(), new Class[]{MessageStore.class},
                 new InvocationHandler() {
                     @Override
                     public Object invoke(Object proxy, Method method, Object[] args)
                             throws Throwable {
                         assertEquals(invokingMethodName.get(), method.getName());
-                        if (method.getReturnType() == int.class){
+                        if (method.getReturnType() == int.class) {
                             return new Integer(0);
-                        }else if( method.getReturnType() == long.class){
-                            return new Long((byte)0);
-                        }else if(method.getReturnType() == char.class){
-                            return new Byte((byte)0);
-                        }else if( method.getReturnType() == byte.class){
-                            return new Byte((byte)0);
+                        } else if (method.getReturnType() == long.class) {
+                            return new Long((byte) 0);
+                        } else if (method.getReturnType() == char.class) {
+                            return new Byte((byte) 0);
+                        } else if (method.getReturnType() == byte.class) {
+                            return new Byte((byte) 0);
                         } else if (method.getReturnType() == boolean.class) {
                             return true;
                         } else {
@@ -104,7 +103,7 @@ public class PlugInTest {
                 });
 
         AbstractPluginMessageStore pluginMessageStore = new AbstractPluginMessageStore(null, messageStore) {
-            
+
         };
 
         Method[] methods = MessageStore.class.getMethods();

@@ -1,12 +1,12 @@
 /**
  * Copyright (C) 2010-2013 Alibaba Group Holding Limited
- *
+ * <p/>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p/>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p/>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -15,17 +15,16 @@
  */
 package com.alibaba.rocketmq.common;
 
-import java.io.IOException;
-
+import com.alibaba.rocketmq.common.constant.LoggerName;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.alibaba.rocketmq.common.constant.LoggerName;
+import java.io.IOException;
 
 
 /**
  * 各种配置的管理接口
- * 
+ *
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-6-18
  */
@@ -35,16 +34,6 @@ public abstract class ConfigManager {
 
     public abstract String encode();
 
-
-    public abstract String encode(final boolean prettyFormat);
-
-
-    public abstract void decode(final String jsonString);
-
-
-    public abstract String configFilePath();
-
-
     public boolean load() {
         String fileName = null;
         try {
@@ -53,19 +42,18 @@ public abstract class ConfigManager {
             // 文件不存在，或者为空文件
             if (null == jsonString || jsonString.length() == 0) {
                 return this.loadBak();
-            }
-            else {
+            } else {
                 this.decode(jsonString);
                 plog.info("load {} OK", fileName);
                 return true;
             }
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             plog.error("load " + fileName + " Failed, and try to load backup file", e);
             return this.loadBak();
         }
     }
 
+    public abstract String configFilePath();
 
     private boolean loadBak() {
         String fileName = null;
@@ -77,8 +65,7 @@ public abstract class ConfigManager {
                 plog.info("load " + fileName + " OK");
                 return true;
             }
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             plog.error("load " + fileName + " Failed", e);
             return false;
         }
@@ -86,6 +73,7 @@ public abstract class ConfigManager {
         return true;
     }
 
+    public abstract void decode(final String jsonString);
 
     public synchronized void persist() {
         String jsonString = this.encode(true);
@@ -93,10 +81,11 @@ public abstract class ConfigManager {
             String fileName = this.configFilePath();
             try {
                 MixAll.string2File(jsonString, fileName);
-            }
-            catch (IOException e) {
+            } catch (IOException e) {
                 plog.error("persist file Exception, " + fileName, e);
             }
         }
     }
+
+    public abstract String encode(final boolean prettyFormat);
 }

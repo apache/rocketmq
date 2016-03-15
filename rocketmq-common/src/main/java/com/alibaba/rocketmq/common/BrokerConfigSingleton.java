@@ -11,18 +11,17 @@ public class BrokerConfigSingleton {
     private static AtomicBoolean isInit = new AtomicBoolean();
     private static BrokerConfig brokerConfig;
 
+    public static BrokerConfig getBrokerConfig() {
+        if (brokerConfig == null) {
+            throw new IllegalArgumentException("没有设置值");
+        }
+        return brokerConfig;
+    }
 
     public static void setBrokerConfig(BrokerConfig brokerConfig) {
         if (!isInit.compareAndSet(false, true)) {
             throw new IllegalArgumentException("已经初始化过了");
         }
         BrokerConfigSingleton.brokerConfig = brokerConfig;
-    }
-
-    public static BrokerConfig getBrokerConfig() {
-        if (brokerConfig == null) {
-            throw new IllegalArgumentException("没有设置值");
-        }
-        return brokerConfig;
     }
 }

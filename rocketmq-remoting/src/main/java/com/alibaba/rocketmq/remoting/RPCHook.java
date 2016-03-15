@@ -8,5 +8,5 @@ public interface RPCHook {
 
 
     public void doAfterResponse(final String remoteAddr, final RemotingCommand request,
-            final RemotingCommand response);
+                                final RemotingCommand response);
 }

@@ -7,17 +7,11 @@ public enum SerializeType {
     JSON((byte) 0),
     ROCKETMQ((byte) 1);
 
+    private byte code;
+
     SerializeType(byte code) {
         this.code = code;
     }
-
-    private byte code;
-
-
-    public byte getCode() {
-        return code;
-    }
-
 
     public static SerializeType valueOf(byte code) {
         for (SerializeType serializeType : SerializeType.values()) {
@@ -26,5 +20,9 @@ public enum SerializeType {
             }
         }
         return null;
+    }
+
+    public byte getCode() {
+        return code;
     }
 }

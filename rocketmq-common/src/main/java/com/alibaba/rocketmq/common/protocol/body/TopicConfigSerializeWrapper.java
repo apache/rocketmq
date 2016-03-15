@@ -1,10 +1,10 @@
 package com.alibaba.rocketmq.common.protocol.body;
 
-import java.util.concurrent.ConcurrentHashMap;
-
 import com.alibaba.rocketmq.common.DataVersion;
 import com.alibaba.rocketmq.common.TopicConfig;
 import com.alibaba.rocketmq.remoting.protocol.RemotingSerializable;
+
+import java.util.concurrent.ConcurrentHashMap;
 
 
 public class TopicConfigSerializeWrapper extends RemotingSerializable {

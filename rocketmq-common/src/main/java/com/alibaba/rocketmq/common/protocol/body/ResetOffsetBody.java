@@ -1,14 +1,14 @@
 package com.alibaba.rocketmq.common.protocol.body;
 
-import java.util.Map;
-
 import com.alibaba.rocketmq.common.message.MessageQueue;
 import com.alibaba.rocketmq.remoting.protocol.RemotingSerializable;
+
+import java.util.Map;
 
 
 /**
  * 重置 offset 处理结果。
- * 
+ *
  * @author: manhong.yqd<jodie.yqd@gmail.com>
  * @since: 13-12-30
  */

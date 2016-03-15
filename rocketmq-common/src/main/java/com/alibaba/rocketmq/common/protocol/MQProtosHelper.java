@@ -10,7 +10,7 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 
 /**
  * 协议辅助类
- * 
+ *
  * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public class MQProtosHelper {
@@ -18,7 +18,7 @@ public class MQProtosHelper {
      * 将Broker地址注册到Name Server
      */
     public static boolean registerBrokerToNameServer(final String nsaddr, final String brokerAddr,
-            final long timeoutMillis) {
+                                                     final long timeoutMillis) {
         RegisterBrokerRequestHeader requestHeader = new RegisterBrokerRequestHeader();
         requestHeader.setBrokerAddr(brokerAddr);
 
@@ -30,17 +30,13 @@ public class MQProtosHelper {
             if (response != null) {
                 return ResponseCode.SUCCESS == response.getCode();
             }
-        }
-        catch (RemotingConnectException e) {
+        } catch (RemotingConnectException e) {
             e.printStackTrace();
-        }
-        catch (RemotingSendRequestException e) {
+        } catch (RemotingSendRequestException e) {
             e.printStackTrace();
-        }
-        catch (RemotingTimeoutException e) {
+        } catch (RemotingTimeoutException e) {
             e.printStackTrace();
-        }
-        catch (InterruptedException e) {
+        } catch (InterruptedException e) {
             e.printStackTrace();
         }
 

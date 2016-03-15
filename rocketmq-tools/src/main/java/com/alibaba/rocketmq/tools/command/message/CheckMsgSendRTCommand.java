@@ -1,12 +1,12 @@
 /**
  * Copyright (C) 2010-2013 Alibaba Group Holding Limited
- *
+ * <p/>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p/>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p/>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -15,30 +15,27 @@
  */
 package com.alibaba.rocketmq.tools.command.message;
 
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
-
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.Option;
-import org.apache.commons.cli.Options;
-
 import com.alibaba.rocketmq.client.producer.DefaultMQProducer;
 import com.alibaba.rocketmq.client.producer.MessageQueueSelector;
 import com.alibaba.rocketmq.common.message.Message;
 import com.alibaba.rocketmq.common.message.MessageQueue;
 import com.alibaba.rocketmq.remoting.RPCHook;
 import com.alibaba.rocketmq.tools.command.SubCommand;
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.Option;
+import org.apache.commons.cli.Options;
+
+import java.util.List;
 
 /**
  * 发送一百条消息，打印消息的响应时间
- * 
+ *
  * @author fengliang.hfl
  * @since 2015-10-27
  */
 public class CheckMsgSendRTCommand implements SubCommand {
     private static String brokerName = "";
-    private static int    queueId    = 0;
+    private static int queueId = 0;
 
     @Override
     public String commandName() {
@@ -109,7 +106,7 @@ public class CheckMsgSendRTCommand implements SubCommand {
                     sendSuccess = false;
                     end = System.currentTimeMillis();
                 }
-                
+
                 //第一条消息不算入到平均响应时间中
                 if (i != 0) {
                     timeElapsed += (end - start);
@@ -120,14 +117,12 @@ public class CheckMsgSendRTCommand implements SubCommand {
                         queueId,//
                         sendSuccess,//
                         (end - start)//
-                        );
+                );
             }
 
-            double rt = (double)timeElapsed / (amount - 1);
+            double rt = (double) timeElapsed / (amount - 1);
             System.out.printf("Avg RT: %s\n", String.format("%.2f", rt));
-        }
-
-        catch (Exception e) {
+        } catch (Exception e) {
             e.printStackTrace();
         } finally {
             producer.shutdown();

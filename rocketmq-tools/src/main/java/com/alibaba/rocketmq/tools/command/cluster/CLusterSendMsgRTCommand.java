@@ -1,12 +1,12 @@
 /**
  * Copyright (C) 2010-2013 Alibaba Group Holding Limited
- *
+ * <p/>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p/>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p/>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -16,32 +16,30 @@
 
 package com.alibaba.rocketmq.tools.command.cluster;
 
-import java.math.BigDecimal;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Set;
-import java.util.TimeZone;
-import java.util.TreeSet;
-
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.Option;
-import org.apache.commons.cli.Options;
-
 import com.alibaba.rocketmq.client.producer.DefaultMQProducer;
 import com.alibaba.rocketmq.common.message.Message;
 import com.alibaba.rocketmq.common.protocol.body.ClusterInfo;
 import com.alibaba.rocketmq.remoting.RPCHook;
 import com.alibaba.rocketmq.tools.admin.DefaultMQAdminExt;
 import com.alibaba.rocketmq.tools.command.SubCommand;
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.Option;
+import org.apache.commons.cli.Options;
+
+import java.math.BigDecimal;
+import java.text.SimpleDateFormat;
+import java.util.*;
 
 /**
  * 查看集群信息
- * 
+ *
  * @author fengliang.hfl
  * @since 2015-10-30
  */
 public class CLusterSendMsgRTCommand implements SubCommand {
+
+    public static void main(String args[]) {
+    }
 
     @Override
     public String commandName() {
@@ -172,7 +170,7 @@ public class CLusterSendMsgRTCommand implements SubCommand {
                                     String.format("%.2f", rt),//
                                     successCount,//
                                     failCount//
-                                    );
+                            );
                         } else {
                             System.out.println(String.format("%s|%s|%s|%s|%s", getCurTime(),
                                     machineRoom, clusterName, brokerName,
@@ -211,9 +209,6 @@ public class CLusterSendMsgRTCommand implements SubCommand {
         format.setTimeZone(TimeZone.getTimeZone(fromTimeZone));
         String chinaDate = format.format(date);
         return chinaDate;
-    }
-
-    public static void main(String args[]) {
     }
 
 }

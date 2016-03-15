@@ -170,6 +170,27 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
         }
     }
 
+    public void removeOffset(MessageQueue mq) {
+        if (mq != null) {
+            this.offsetTable.remove(mq);
+            log.info("remove unnecessary messageQueue offset. mq={}, offsetTableSize={}", mq,
+                    offsetTable.size());
+        }
+    }
+
+    @Override
+    public Map<MessageQueue, Long> cloneOffsetTable(String topic) {
+        Map<MessageQueue, Long> cloneOffsetTable = new HashMap<MessageQueue, Long>();
+        Iterator<MessageQueue> iterator = this.offsetTable.keySet().iterator();
+        while (iterator.hasNext()) {
+            MessageQueue mq = iterator.next();
+            if (!UtilAll.isBlank(topic) && !topic.equals(mq.getTopic())) {
+                continue;
+            }
+            cloneOffsetTable.put(mq, this.offsetTable.get(mq).get());
+        }
+        return cloneOffsetTable;
+    }
 
     /**
      * Update the Consumer Offset, once the Master is off, updated to Slave,
@@ -198,7 +219,6 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
         }
     }
 
-
     private long fetchConsumeOffsetFromBroker(MessageQueue mq) throws RemotingException, MQBrokerException,
             InterruptedException, MQClientException {
         FindBrokerResult findBrokerResult = this.mQClientFactory.findBrokerAddressInAdmin(mq.getBrokerName());
@@ -219,29 +239,5 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
         } else {
             throw new MQClientException("The broker[" + mq.getBrokerName() + "] not exist", null);
         }
-    }
-
-
-    public void removeOffset(MessageQueue mq) {
-        if (mq != null) {
-            this.offsetTable.remove(mq);
-            log.info("remove unnecessary messageQueue offset. mq={}, offsetTableSize={}", mq,
-                    offsetTable.size());
-        }
-    }
-
-
-    @Override
-    public Map<MessageQueue, Long> cloneOffsetTable(String topic) {
-        Map<MessageQueue, Long> cloneOffsetTable = new HashMap<MessageQueue, Long>();
-        Iterator<MessageQueue> iterator = this.offsetTable.keySet().iterator();
-        while (iterator.hasNext()) {
-            MessageQueue mq = iterator.next();
-            if (!UtilAll.isBlank(topic) && !topic.equals(mq.getTopic())) {
-                continue;
-            }
-            cloneOffsetTable.put(mq, this.offsetTable.get(mq).get());
-        }
-        return cloneOffsetTable;
     }
 }

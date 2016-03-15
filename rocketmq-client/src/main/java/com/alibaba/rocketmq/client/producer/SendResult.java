@@ -1,12 +1,12 @@
 /**
  * Copyright (C) 2010-2013 Alibaba Group Holding Limited
- *
+ * <p/>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p/>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p/>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -33,12 +33,6 @@ public class SendResult {
 
     public SendResult() {
     }
-    public static  String encoderSendResultToJson(final Object obj){
-        return JSON.toJSONString(obj);
-    }
-    public static SendResult decoderSendResultFromJson(String json){
-        return JSON.parseObject(json, SendResult.class);
-    }
 
     public SendResult(SendStatus sendStatus, String msgId, MessageQueue messageQueue, long queueOffset) {
         this.sendStatus = sendStatus;
@@ -47,6 +41,13 @@ public class SendResult {
         this.queueOffset = queueOffset;
     }
 
+    public static String encoderSendResultToJson(final Object obj) {
+        return JSON.toJSONString(obj);
+    }
+
+    public static SendResult decoderSendResultFromJson(String json) {
+        return JSON.parseObject(json, SendResult.class);
+    }
 
     public String getMsgId() {
         return msgId;

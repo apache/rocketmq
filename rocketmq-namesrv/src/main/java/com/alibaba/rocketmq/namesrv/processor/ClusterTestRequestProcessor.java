@@ -1,12 +1,12 @@
 /**
  * Copyright (C) 2010-2013 Alibaba Group Holding Limited
- *
+ * <p/>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p/>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p/>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -33,7 +33,7 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Name Server网络请求处理(全链路压测版本)
- * 
+ *
  * @author manhong.yqd<jodie.yqd@gmail.com>
  * @since 2015-09-17
  */
@@ -51,8 +51,7 @@ public class ClusterTestRequestProcessor extends DefaultRequestProcessor {
         adminExt.setUnitName(productEnvName);
         try {
             adminExt.start();
-        }
-        catch (MQClientException e) {
+        } catch (MQClientException e) {
             e.printStackTrace();
         }
     }
@@ -69,15 +68,13 @@ public class ClusterTestRequestProcessor extends DefaultRequestProcessor {
         if (topicRouteData != null) {
             String orderTopicConf =
                     this.namesrvController.getKvConfigManager().getKVConfig(NamesrvUtil.NAMESPACE_ORDER_TOPIC_CONFIG,
-                        requestHeader.getTopic());
+                            requestHeader.getTopic());
             topicRouteData.setOrderTopicConf(orderTopicConf);
-        }
-        else {
+        } else {
             // 当前环境，该topic不存在，获取非隔离环境的topic
             try {
                 topicRouteData = adminExt.examineTopicRouteInfo(requestHeader.getTopic());
-            }
-            catch (Exception e) {
+            } catch (Exception e) {
                 log.info("get route info by topic from product environment failed. envName={},", productEnvName);
             }
         }

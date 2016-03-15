@@ -1,12 +1,12 @@
 /**
  * Copyright (C) 2010-2013 Alibaba Group Holding Limited
- *
+ * <p/>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p/>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p/>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -54,28 +54,33 @@ public class BrokerStartup {
     public static String configFile = null;
     public static Logger log;
 
-
-    public static Options buildCommandlineOptions(final Options options) {
-        Option opt = new Option("c", "configFile", true, "Broker config properties file");
-        opt.setRequired(false);
-        options.addOption(opt);
-
-        opt = new Option("p", "printConfigItem", false, "Print all config item");
-        opt.setRequired(false);
-        options.addOption(opt);
-
-        opt = new Option("m", "printImportantConfig", false, "Print important config item");
-        opt.setRequired(false);
-        options.addOption(opt);
-
-        return options;
-    }
-
-
     public static void main(String[] args) {
         start(createBrokerController(args));
     }
 
+    public static BrokerController start(BrokerController controller) {
+        try {
+            // 启动服务控制对象
+            controller.start();
+            String tip =
+                    "The broker[" + controller.getBrokerConfig().getBrokerName() + ", "
+                            + controller.getBrokerAddr() + "] boot success. serializeType=" + RemotingCommand.getSerializeTypeConfigInThisServer();
+
+            if (null != controller.getBrokerConfig().getNamesrvAddr()) {
+                tip += " and name server is " + controller.getBrokerConfig().getNamesrvAddr();
+            }
+
+            log.info(tip);
+            System.out.println(tip);
+
+            return controller;
+        } catch (Throwable e) {
+            e.printStackTrace();
+            System.exit(-1);
+        }
+
+        return null;
+    }
 
     public static BrokerController createBrokerController(String[] args) {
         System.setProperty(RemotingCommand.RemotingVersionKey, Integer.toString(MQVersion.CurrentVersion));
@@ -98,7 +103,7 @@ public class BrokerStartup {
             Options options = ServerUtil.buildCommandlineOptions(new Options());
             commandLine =
                     ServerUtil.parseCmdLine("mqbroker", args, buildCommandlineOptions(options),
-                        new PosixParser());
+                            new PosixParser());
             if (null == commandLine) {
                 System.exit(-1);
                 return null;
@@ -124,8 +129,7 @@ public class BrokerStartup {
                 MixAll.printObjectProperties(null, nettyClientConfig);
                 MixAll.printObjectProperties(null, messageStoreConfig);
                 System.exit(0);
-            }
-            else if (commandLine.hasOption('m')) {
+            } else if (commandLine.hasOption('m')) {
                 MixAll.printObjectProperties(null, brokerConfig, true);
                 MixAll.printObjectProperties(null, nettyServerConfig, true);
                 MixAll.printObjectProperties(null, nettyClientConfig, true);
@@ -171,32 +175,31 @@ public class BrokerStartup {
                             RemotingUtil.string2SocketAddress(addr);
                         }
                     }
-                }
-                catch (Exception e) {
+                } catch (Exception e) {
                     System.out
-                        .printf(
-                            "The Name Server Address[%s] illegal, please set it as follows, \"127.0.0.1:9876;192.168.0.1:9876\"\n",
-                            namesrvAddr);
+                            .printf(
+                                    "The Name Server Address[%s] illegal, please set it as follows, \"127.0.0.1:9876;192.168.0.1:9876\"\n",
+                                    namesrvAddr);
                     System.exit(-3);
                 }
             }
 
             // BrokerId的处理
             switch (messageStoreConfig.getBrokerRole()) {
-            case ASYNC_MASTER:
-            case SYNC_MASTER:
-                // Master Id必须是0
-                brokerConfig.setBrokerId(MixAll.MASTER_ID);
-                break;
-            case SLAVE:
-                if (brokerConfig.getBrokerId() <= 0) {
-                    System.out.println("Slave's brokerId must be > 0");
-                    System.exit(-3);
-                }
+                case ASYNC_MASTER:
+                case SYNC_MASTER:
+                    // Master Id必须是0
+                    brokerConfig.setBrokerId(MixAll.MASTER_ID);
+                    break;
+                case SLAVE:
+                    if (brokerConfig.getBrokerId() <= 0) {
+                        System.out.println("Slave's brokerId must be > 0");
+                        System.exit(-3);
+                    }
 
-                break;
-            default:
-                break;
+                    break;
+                default:
+                    break;
             }
 
             // Master监听Slave请求的端口，默认为服务端口+1
@@ -218,10 +221,10 @@ public class BrokerStartup {
 
             // 初始化服务控制对象
             final BrokerController controller = new BrokerController(//
-                brokerConfig, //
-                nettyServerConfig, //
-                nettyClientConfig, //
-                messageStoreConfig);
+                    brokerConfig, //
+                    nettyServerConfig, //
+                    nettyClientConfig, //
+                    messageStoreConfig);
             boolean initResult = controller.initialize();
             if (!initResult) {
                 controller.shutdown();
@@ -249,8 +252,7 @@ public class BrokerStartup {
             }, "ShutdownHook"));
 
             return controller;
-        }
-        catch (Throwable e) {
+        } catch (Throwable e) {
             e.printStackTrace();
             System.exit(-1);
         }
@@ -258,29 +260,19 @@ public class BrokerStartup {
         return null;
     }
 
+    public static Options buildCommandlineOptions(final Options options) {
+        Option opt = new Option("c", "configFile", true, "Broker config properties file");
+        opt.setRequired(false);
+        options.addOption(opt);
 
-    public static BrokerController start(BrokerController controller) {
-        try {
-            // 启动服务控制对象
-            controller.start();
-            String tip =
-                    "The broker[" + controller.getBrokerConfig().getBrokerName() + ", "
-                            + controller.getBrokerAddr() + "] boot success. serializeType=" + RemotingCommand.getSerializeTypeConfigInThisServer();
+        opt = new Option("p", "printConfigItem", false, "Print all config item");
+        opt.setRequired(false);
+        options.addOption(opt);
 
-            if (null != controller.getBrokerConfig().getNamesrvAddr()) {
-                tip += " and name server is " + controller.getBrokerConfig().getNamesrvAddr();
-            }
+        opt = new Option("m", "printImportantConfig", false, "Print important config item");
+        opt.setRequired(false);
+        options.addOption(opt);
 
-            log.info(tip);
-            System.out.println(tip);
-
-            return controller;
-        }
-        catch (Throwable e) {
-            e.printStackTrace();
-            System.exit(-1);
-        }
-
-        return null;
+        return options;
     }
 }

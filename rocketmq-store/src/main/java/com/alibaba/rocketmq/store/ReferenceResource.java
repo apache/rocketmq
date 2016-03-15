@@ -1,12 +1,12 @@
 /**
  * Copyright (C) 2010-2013 Alibaba Group Holding Limited
- *
+ * <p/>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p/>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p/>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -20,7 +20,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * 引用计数基类，类似于C++智能指针实现
- * 
+ *
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-21
  */
@@ -38,8 +38,7 @@ public abstract class ReferenceResource {
         if (this.isAvailable()) {
             if (this.refCount.getAndIncrement() > 0) {
                 return true;
-            }
-            else {
+            } else {
                 this.refCount.getAndDecrement();
             }
         }
@@ -74,12 +73,6 @@ public abstract class ReferenceResource {
         }
     }
 
-
-    public long getRefCount() {
-        return this.refCount.get();
-    }
-
-
     /**
      * 释放资源
      */
@@ -94,6 +87,9 @@ public abstract class ReferenceResource {
         }
     }
 
+    public long getRefCount() {
+        return this.refCount.get();
+    }
 
     public abstract boolean cleanup(final long currentRef);
 
