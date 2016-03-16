@@ -54,7 +54,9 @@ public class StringUtil {
             if (ch != UNDERSCORE) {
                 buffer.append(ch);
             }
-        }        protected void startSentence(StringBuffer buffer, char ch) {
+        }
+
+        protected void startSentence(StringBuffer buffer, char ch) {
             buffer.append(Character.toLowerCase(ch));
         }
 
@@ -86,7 +88,6 @@ public class StringUtil {
         protected void inDigitWord(StringBuffer buffer, char ch) {
             buffer.append(ch);
         }
-
 
 
     };

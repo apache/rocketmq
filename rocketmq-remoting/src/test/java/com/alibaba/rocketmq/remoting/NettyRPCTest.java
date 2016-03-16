@@ -202,7 +202,9 @@ class TestResponseHeader implements CommandCustomHeader {
 
     public void setCount(Integer count) {
         this.count = count;
-    }    @Override
+    }
+
+    @Override
     public void checkFields() throws RemotingCommandException {
 
     }
@@ -214,8 +216,6 @@ class TestResponseHeader implements CommandCustomHeader {
     public void setMessageTitle(String messageTitle) {
         this.messageTitle = messageTitle;
     }
-
-
 
 
 }

@@ -1628,7 +1628,9 @@ public class DefaultMessageStore implements MessageStore {
 
         public long getReputFromOffset() {
             return reputFromOffset;
-        }        @Override
+        }
+
+        @Override
         public void shutdown() {
             for (int i = 0; i < 50 && this.isCommitLogAvailable(); i++) {
                 try {
@@ -1652,8 +1654,6 @@ public class DefaultMessageStore implements MessageStore {
         public long behind() {
             return DefaultMessageStore.this.commitLog.getMaxOffset() - this.reputFromOffset;
         }
-
-
 
 
         private boolean isCommitLogAvailable() {

@@ -377,7 +377,9 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
 
         public ProcessQueue getProcessQueue() {
             return processQueue;
-        }        @Override
+        }
+
+        @Override
         public void run() {
             if (this.processQueue.isDropped()) {
                 log.info("the message queue not be able to consume, because it's dropped {}", this.messageQueue);
@@ -440,8 +442,6 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
         public MessageQueue getMessageQueue() {
             return messageQueue;
         }
-
-
 
 
     }
