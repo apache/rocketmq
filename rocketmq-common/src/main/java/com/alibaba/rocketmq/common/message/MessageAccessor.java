@@ -75,4 +75,13 @@ public class MessageAccessor {
         return msg.getProperty(MessageConst.PROPERTY_MAX_RECONSUME_TIMES);
     }
 
+    public static void setConsumeStartTimeStamp(final Message msg, String propertyConsumeStartTimeStamp) {
+        putProperty(msg, MessageConst.PROPERTY_CONSUME_START_TIMESTAMP, propertyConsumeStartTimeStamp);
+    }
+
+
+    public static String getConsumeStartTimeStamp(final Message msg) {
+        return msg.getProperty(MessageConst.PROPERTY_CONSUME_START_TIMESTAMP);
+    }
+
 }

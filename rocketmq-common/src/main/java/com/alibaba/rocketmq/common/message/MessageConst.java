@@ -53,6 +53,7 @@ public class MessageConst {
     public static final String PROPERTY_MQ2_FLAG = "MQ2_FLAG";
     public static final String PROPERTY_RECONSUME_TIME = "RECONSUME_TIME";
     public static final String PROPERTY_MAX_RECONSUME_TIMES = "MAX_RECONSUME_TIMES";
+    public static final String PROPERTY_CONSUME_START_TIMESTAMP = "CONSUME_START_TIME";
 
     public static final String KEY_SEPARATOR = " ";
 
@@ -78,5 +79,6 @@ public class MessageConst {
         systemKeySet.add(PROPERTY_MQ2_FLAG);
         systemKeySet.add(PROPERTY_RECONSUME_TIME);
         systemKeySet.add(PROPERTY_MAX_RECONSUME_TIMES);
+        systemKeySet.add(PROPERTY_CONSUME_START_TIMESTAMP);
     }
 }

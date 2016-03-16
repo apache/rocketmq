@@ -17,6 +17,7 @@ package com.alibaba.rocketmq.client.impl.consumer;
 
 import com.alibaba.rocketmq.client.consumer.DefaultMQPushConsumer;
 import com.alibaba.rocketmq.client.log.ClientLogger;
+import com.alibaba.rocketmq.common.message.MessageAccessor;
 import com.alibaba.rocketmq.common.message.MessageConst;
 import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.common.protocol.body.ProcessQueueInfo;
@@ -46,10 +47,10 @@ public class ProcessQueue {
     private final static long PullMaxIdleTime = Long.parseLong(System.getProperty("rocketmq.client.pull.pullMaxIdleTime", "120000"));
     private final Logger log = ClientLogger.getLog();
     private final ReadWriteLock lockTreeMap = new ReentrantReadWriteLock();
-    private final TreeMap<OffsetOrderBean, MessageExt> msgTreeMap = new TreeMap<OffsetOrderBean, MessageExt>();
+    private final TreeMap<Long, MessageExt> msgTreeMap = new TreeMap<Long, MessageExt>();
     private final AtomicLong msgCount = new AtomicLong();
     private final Lock lockConsume = new ReentrantLock();
-    private final TreeMap<OffsetOrderBean, MessageExt> msgTreeMapTemp = new TreeMap<OffsetOrderBean, MessageExt>();
+    private final TreeMap<Long, MessageExt> msgTreeMapTemp = new TreeMap<Long, MessageExt>();
     private final AtomicLong tryUnlockTimes = new AtomicLong(0);
     private volatile long queueOffsetMax = 0L;
     private volatile boolean dropped = false;
@@ -82,12 +83,13 @@ public class ProcessQueue {
      * @param pushConsumer
      */
     public void cleanExpiredMsg(DefaultMQPushConsumer pushConsumer) {
-        for (int i = 0; i < 32; i++) {
+        int loop = msgTreeMap.size() < 16 ? msgTreeMap.size() : 16;
+        for (int i = 0; i < loop; i++) {
             MessageExt msg = null;
             try {
                 this.lockTreeMap.readLock().lockInterruptibly();
                 try {
-                    if (!msgTreeMap.isEmpty() && System.currentTimeMillis() - msgTreeMap.firstKey().getTimestamp() > consumeTimeout) {
+                    if (!msgTreeMap.isEmpty() && System.currentTimeMillis() - Long.valueOf(MessageAccessor.getConsumeStartTimeStamp(msgTreeMap.firstEntry().getValue())) > consumeTimeout) {
                         msg = msgTreeMap.firstEntry().getValue();
                     } else {
                         // 不再有过期的消息,退出检查
@@ -106,7 +108,7 @@ public class ProcessQueue {
                 try {
                     this.lockTreeMap.writeLock().lockInterruptibly();
                     try {
-                        if (!msgTreeMap.isEmpty() && msg.getQueueOffset() == msgTreeMap.firstKey().getOffset()) {
+                        if (!msgTreeMap.isEmpty() && msg.getQueueOffset() == msgTreeMap.firstKey()) {
                             try {
                                 msgTreeMap.remove(msgTreeMap.firstKey());
                             } catch (Exception e) {
@@ -133,7 +135,7 @@ public class ProcessQueue {
             try {
                 int validMsgCnt = 0;
                 for (MessageExt msg : msgs) {
-                    MessageExt old = msgTreeMap.put(new OffsetOrderBean(msg.getQueueOffset()), msg);
+                    MessageExt old = msgTreeMap.put(msg.getQueueOffset(), msg);
                     if (null == old) {
                         validMsgCnt++;
                         this.queueOffsetMax = msg.getQueueOffset();
@@ -172,7 +174,7 @@ public class ProcessQueue {
             this.lockTreeMap.readLock().lockInterruptibly();
             try {
                 if (!this.msgTreeMap.isEmpty()) {
-                    return this.msgTreeMap.lastKey().getOffset() - this.msgTreeMap.firstKey().getOffset();
+                    return this.msgTreeMap.lastKey() - this.msgTreeMap.firstKey();
                 }
             } finally {
                 this.lockTreeMap.readLock().unlock();
@@ -196,7 +198,7 @@ public class ProcessQueue {
                     result = this.queueOffsetMax + 1;
                     int removedCnt = 0;
                     for (MessageExt msg : msgs) {
-                        MessageExt prev = msgTreeMap.remove(new OffsetOrderBean(msg.getQueueOffset()));
+                        MessageExt prev = msgTreeMap.remove(msg.getQueueOffset());
                         if (prev != null) {
                             removedCnt--;
                         }
@@ -204,7 +206,7 @@ public class ProcessQueue {
                     msgCount.addAndGet(removedCnt);
 
                     if (!msgTreeMap.isEmpty()) {
-                        result = msgTreeMap.firstKey().getOffset();
+                        result = msgTreeMap.firstKey();
                     }
                 }
             } finally {
@@ -218,7 +220,7 @@ public class ProcessQueue {
     }
 
 
-    public TreeMap<OffsetOrderBean, MessageExt> getMsgTreeMap() {
+    public TreeMap<Long, MessageExt> getMsgTreeMap() {
         return msgTreeMap;
     }
 
@@ -264,7 +266,7 @@ public class ProcessQueue {
         try {
             this.lockTreeMap.writeLock().lockInterruptibly();
             try {
-                Long offset = this.msgTreeMapTemp.lastKey().getOffset();
+                Long offset = this.msgTreeMapTemp.lastKey();
                 msgCount.addAndGet(this.msgTreeMapTemp.size() * (-1));
                 this.msgTreeMapTemp.clear();
                 if (offset != null) {
@@ -287,7 +289,7 @@ public class ProcessQueue {
             try {
                 for (MessageExt msg : msgs) {
                     this.msgTreeMapTemp.remove(msg.getQueueOffset());
-                    this.msgTreeMap.put(new OffsetOrderBean(msg.getQueueOffset()), msg);
+                    this.msgTreeMap.put(msg.getQueueOffset(), msg);
                 }
             } finally {
                 this.lockTreeMap.writeLock().unlock();
@@ -307,7 +309,7 @@ public class ProcessQueue {
             try {
                 if (!this.msgTreeMap.isEmpty()) {
                     for (int i = 0; i < batchSize; i++) {
-                        Map.Entry<OffsetOrderBean, MessageExt> entry = this.msgTreeMap.pollFirstEntry();
+                        Map.Entry<Long, MessageExt> entry = this.msgTreeMap.pollFirstEntry();
                         if (entry != null) {
                             result.add(entry.getValue());
                             msgTreeMapTemp.put(entry.getKey(), entry.getValue());
@@ -413,14 +415,14 @@ public class ProcessQueue {
             this.lockTreeMap.readLock().lockInterruptibly();
 
             if (!this.msgTreeMap.isEmpty()) {
-                info.setCachedMsgMinOffset(this.msgTreeMap.firstKey().getOffset());
-                info.setCachedMsgMaxOffset(this.msgTreeMap.lastKey().getOffset());
+                info.setCachedMsgMinOffset(this.msgTreeMap.firstKey());
+                info.setCachedMsgMaxOffset(this.msgTreeMap.lastKey());
                 info.setCachedMsgCount(this.msgTreeMap.size());
             }
 
             if (!this.msgTreeMapTemp.isEmpty()) {
-                info.setTransactionMsgMinOffset(this.msgTreeMapTemp.firstKey().getOffset());
-                info.setTransactionMsgMaxOffset(this.msgTreeMapTemp.lastKey().getOffset());
+                info.setTransactionMsgMinOffset(this.msgTreeMapTemp.firstKey());
+                info.setTransactionMsgMaxOffset(this.msgTreeMapTemp.lastKey());
                 info.setTransactionMsgCount(this.msgTreeMapTemp.size());
             }
 

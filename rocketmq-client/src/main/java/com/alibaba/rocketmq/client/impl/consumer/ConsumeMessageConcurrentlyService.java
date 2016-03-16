@@ -24,6 +24,7 @@ import com.alibaba.rocketmq.client.log.ClientLogger;
 import com.alibaba.rocketmq.client.stat.ConsumerStatsManager;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.ThreadFactoryImpl;
+import com.alibaba.rocketmq.common.message.MessageAccessor;
 import com.alibaba.rocketmq.common.message.MessageConst;
 import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.common.message.MessageQueue;
@@ -83,7 +84,7 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
                 cleanExpireMsg();
             }
 
-        }, this.defaultMQPushConsumer.getConsumeTimeout() * 2, this.defaultMQPushConsumer.getConsumeTimeout() * 2, TimeUnit.MILLISECONDS);
+        }, this.defaultMQPushConsumer.getConsumeTimeout() * 5, this.defaultMQPushConsumer.getConsumeTimeout() * 5, TimeUnit.MILLISECONDS);
     }
 
 
@@ -404,6 +405,11 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
 
             try {
                 ConsumeMessageConcurrentlyService.this.resetRetryTopic(msgs);
+                if (msgs != null && !msgs.isEmpty()) {
+                    for (MessageExt msg : msgs) {
+                        MessageAccessor.setConsumeStartTimeStamp(msg, String.valueOf(System.currentTimeMillis()));
+                    }
+                }
                 status = listener.consumeMessage(Collections.unmodifiableList(msgs), context);
             } catch (Throwable e) {
                 log.warn("consumeMessage exception: {} Group: {} Msgs: {} MQ: {}", //
