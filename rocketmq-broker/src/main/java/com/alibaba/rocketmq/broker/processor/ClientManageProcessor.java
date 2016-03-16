@@ -18,9 +18,6 @@ package com.alibaba.rocketmq.broker.processor;
 import com.alibaba.rocketmq.broker.BrokerController;
 import com.alibaba.rocketmq.broker.client.ClientChannelInfo;
 import com.alibaba.rocketmq.broker.client.ConsumerGroupInfo;
-import com.alibaba.rocketmq.broker.mqtrace.ConsumeMessageContext;
-import com.alibaba.rocketmq.broker.mqtrace.ConsumeMessageHook;
-import com.alibaba.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.common.constant.PermName;
@@ -40,10 +37,7 @@ import io.netty.channel.ChannelHandlerContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.net.InetSocketAddress;
-import java.net.SocketAddress;
 import java.util.List;
-import java.util.Map;
 
 
 /**
@@ -56,10 +50,6 @@ public class ClientManageProcessor implements NettyRequestProcessor {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.BrokerLoggerName);
 
     private final BrokerController brokerController;
-    /**
-     * 消费每条消息会回调
-     */
-    private List<ConsumeMessageHook> consumeMessageHookList;
 
 
     public ClientManageProcessor(final BrokerController brokerController) {
@@ -226,35 +216,9 @@ public class ClientManageProcessor implements NettyRequestProcessor {
             throws RemotingCommandException {
         final RemotingCommand response =
                 RemotingCommand.createResponseCommand(UpdateConsumerOffsetResponseHeader.class);
-        // final UpdateConsumerOffsetResponseHeader responseHeader =
-        // (UpdateConsumerOffsetResponseHeader) response.readCustomHeader();
         final UpdateConsumerOffsetRequestHeader requestHeader =
                 (UpdateConsumerOffsetRequestHeader) request
                         .decodeCommandCustomHeader(UpdateConsumerOffsetRequestHeader.class);
-
-        // 消息轨迹：记录已经消费成功并提交 offset 的消息记录
-        if (this.hasConsumeMessageHook()) {
-            // 执行hook
-            ConsumeMessageContext context = new ConsumeMessageContext();
-            context.setConsumerGroup(requestHeader.getConsumerGroup());
-            context.setTopic(requestHeader.getTopic());
-            context.setClientHost(RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
-            context.setSuccess(true);
-            context.setStatus(ConsumeConcurrentlyStatus.CONSUME_SUCCESS.toString());
-            final SocketAddress storeHost =
-                    new InetSocketAddress(brokerController.getBrokerConfig().getBrokerIP1(), brokerController
-                            .getNettyServerConfig().getListenPort());
-
-            long preOffset =
-                    this.brokerController.getConsumerOffsetManager().queryOffset(
-                            requestHeader.getConsumerGroup(), requestHeader.getTopic(),
-                            requestHeader.getQueueId());
-            Map<String, Long> messageIds =
-                    this.brokerController.getMessageStore().getMessageIds(requestHeader.getTopic(),
-                            requestHeader.getQueueId(), preOffset, requestHeader.getCommitOffset(), storeHost);
-            context.setMessageIds(messageIds);
-            this.executeConsumeMessageHookAfter(context);
-        }
         this.brokerController.getConsumerOffsetManager().commitOffset(RemotingHelper.parseChannelRemoteAddr(ctx.channel()), requestHeader.getConsumerGroup(),
                 requestHeader.getTopic(), requestHeader.getQueueId(), requestHeader.getCommitOffset());
         response.setCode(ResponseCode.SUCCESS);
@@ -305,24 +269,5 @@ public class ClientManageProcessor implements NettyRequestProcessor {
         }
 
         return response;
-    }
-
-    public boolean hasConsumeMessageHook() {
-        return consumeMessageHookList != null && !this.consumeMessageHookList.isEmpty();
-    }
-
-    public void executeConsumeMessageHookAfter(final ConsumeMessageContext context) {
-        if (hasConsumeMessageHook()) {
-            for (ConsumeMessageHook hook : this.consumeMessageHookList) {
-                try {
-                    hook.consumeMessageAfter(context);
-                } catch (Throwable e) {
-                }
-            }
-        }
-    }
-
-    public void registerConsumeMessageHook(List<ConsumeMessageHook> consumeMessageHookList) {
-        this.consumeMessageHookList = consumeMessageHookList;
     }
 }

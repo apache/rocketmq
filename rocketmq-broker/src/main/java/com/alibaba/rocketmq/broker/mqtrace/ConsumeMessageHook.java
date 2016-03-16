@@ -16,11 +16,11 @@
 package com.alibaba.rocketmq.broker.mqtrace;
 
 public interface ConsumeMessageHook {
-    public String hookName();
+    String hookName();
 
 
-    public void consumeMessageBefore(final ConsumeMessageContext context);
+    void consumeMessageBefore(final ConsumeMessageContext context);
 
 
-    public void consumeMessageAfter(final ConsumeMessageContext context);
+    void consumeMessageAfter(final ConsumeMessageContext context);
 }

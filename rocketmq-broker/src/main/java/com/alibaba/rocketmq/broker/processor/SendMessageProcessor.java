@@ -19,7 +19,6 @@ import com.alibaba.rocketmq.broker.BrokerController;
 import com.alibaba.rocketmq.broker.mqtrace.ConsumeMessageContext;
 import com.alibaba.rocketmq.broker.mqtrace.ConsumeMessageHook;
 import com.alibaba.rocketmq.broker.mqtrace.SendMessageContext;
-import com.alibaba.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
 import com.alibaba.rocketmq.common.*;
 import com.alibaba.rocketmq.common.constant.PermName;
 import com.alibaba.rocketmq.common.help.FAQUrl;
@@ -35,7 +34,6 @@ import com.alibaba.rocketmq.common.protocol.header.SendMessageResponseHeader;
 import com.alibaba.rocketmq.common.subscription.SubscriptionGroupConfig;
 import com.alibaba.rocketmq.common.sysflag.MessageSysFlag;
 import com.alibaba.rocketmq.common.sysflag.TopicSysFlag;
-import com.alibaba.rocketmq.remoting.common.RemotingHelper;
 import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
 import com.alibaba.rocketmq.remoting.netty.NettyRequestProcessor;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
@@ -46,9 +44,7 @@ import com.alibaba.rocketmq.store.stats.BrokerStatsManager;
 import io.netty.channel.ChannelHandlerContext;
 
 import java.net.SocketAddress;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 
 /**
@@ -96,21 +92,12 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         final ConsumerSendMsgBackRequestHeader requestHeader =
                 (ConsumerSendMsgBackRequestHeader) request.decodeCommandCustomHeader(ConsumerSendMsgBackRequestHeader.class);
 
-        // 消息轨迹：记录消费失败的消息
+        // 消费失败执行Hook
         if (this.hasConsumeMessageHook() && !UtilAll.isBlank(requestHeader.getOriginMsgId())) {
-            // 执行hook
+            // ONS商业化：消费失败打回--API调用一次
             ConsumeMessageContext context = new ConsumeMessageContext();
             context.setConsumerGroup(requestHeader.getGroup());
             context.setTopic(requestHeader.getOriginTopic());
-            context.setClientHost(RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
-            context.setSuccess(false);
-            context.setStatus(ConsumeConcurrentlyStatus.RECONSUME_LATER.toString());
-
-            Map<String, Long> messageIds = new HashMap<String, Long>();
-            messageIds.put(requestHeader.getOriginMsgId(), requestHeader.getOffset());
-            context.setMessageIds(messageIds);
-
-            // ONS商业化：消费失败打回--API调用一次
             context.setCommercialRcvStats(BrokerStatsManager.StatsType.SEND_BACK);
             context.setCommercialRcvTimes(1);
             context.setCommercialOwner(request.getExtFields().get(BrokerStatsManager.COMMERCIAL_OWNER));

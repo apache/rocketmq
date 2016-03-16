@@ -7,9 +7,7 @@ import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.common.protocol.heartbeat.SubscriptionData;
 import com.alibaba.rocketmq.store.*;
 
-import java.net.SocketAddress;
 import java.util.HashMap;
-import java.util.Map;
 import java.util.Set;
 
 
@@ -212,13 +210,6 @@ public class MockMessageStore implements MessageStore {
     @Override
     public void cleanExpiredConsumerQueue() {
 
-    }
-
-
-    @Override
-    public Map<String, Long> getMessageIds(String topic, int queueId, long minOffset, long maxOffset, SocketAddress storeHost) {
-
-        return null;
     }
 
 
