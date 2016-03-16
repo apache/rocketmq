@@ -33,7 +33,6 @@ import java.util.Set;
 
 /**
  * 修改Topic的perm配置命令
- *
  */
 public class UpdateTopicPermSubCommand implements SubCommand {
 

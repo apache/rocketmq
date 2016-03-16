@@ -71,7 +71,9 @@ public class TpsStatsSubCommand implements SubCommand {
         public void setClusterName(String clusterName) {
             this.clusterName = clusterName;
         }
-    }    @Override
+    }
+
+    @Override
     public String commandName() {
         return "tpsStats";
     }
@@ -294,8 +296,6 @@ public class TpsStatsSubCommand implements SubCommand {
             }
         }
     }
-
-
 
 
 }

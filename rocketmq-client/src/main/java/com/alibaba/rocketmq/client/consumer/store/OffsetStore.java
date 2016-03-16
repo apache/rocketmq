@@ -51,6 +51,7 @@ public interface OffsetStore {
      *
      * @param mq
      * @param type
+     *
      * @return
      */
     long readOffset(final MessageQueue mq, final ReadOffsetType type);
@@ -78,6 +79,7 @@ public interface OffsetStore {
 
     /**
      * @param topic
+     *
      * @return
      */
     Map<MessageQueue, Long> cloneOffsetTable(String topic);

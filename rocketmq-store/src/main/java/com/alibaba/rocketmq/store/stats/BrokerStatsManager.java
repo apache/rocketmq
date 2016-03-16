@@ -54,6 +54,7 @@ public class BrokerStatsManager {
     private final HashMap<String, StatsItemSet> statsTable = new HashMap<String, StatsItemSet>();
     private final String clusterName;
     private final MomentStatsItemSet momentStatsItemSet = new MomentStatsItemSet(GROUP_GET_FALL, scheduledExecutorService, log);
+
     public BrokerStatsManager(String clusterName) {
         this.clusterName = clusterName;
 

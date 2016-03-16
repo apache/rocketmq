@@ -37,6 +37,7 @@ public interface MQConsumer extends MQAdmin {
      *
      * @param msg
      * @param delayLevel
+     *
      * @throws InterruptedException
      * @throws MQBrokerException
      * @throws RemotingException
@@ -53,6 +54,7 @@ public interface MQConsumer extends MQAdmin {
      * @param msg
      * @param delayLevel
      * @param brokerName
+     *
      * @throws RemotingException
      * @throws MQBrokerException
      * @throws InterruptedException
@@ -65,8 +67,11 @@ public interface MQConsumer extends MQAdmin {
     /**
      * Fetch message queues from consumer cache according to the topic
      *
-     * @param topic message topic
+     * @param topic
+     *         message topic
+     *
      * @return queue set
+     *
      * @throws MQClientException
      */
     Set<MessageQueue> fetchSubscribeMessageQueues(final String topic) throws MQClientException;

@@ -93,6 +93,7 @@ public class CommitLog {
 
     /**
      * 刷盘操作
+     *
      * @return 返回刷盘到了哪里
      */
     public long flush() {
@@ -197,7 +198,7 @@ public class CommitLog {
      * check the message and returns the message size
      *
      * @return 0 Come the end of the file // >0 Normal messages // -1 Message
-     *         checksum failure
+     * checksum failure
      */
     public DispatchRequest checkMessageAndReturnSize(java.nio.ByteBuffer byteBuffer, final boolean checkCRC, final boolean readBody) {
         try {

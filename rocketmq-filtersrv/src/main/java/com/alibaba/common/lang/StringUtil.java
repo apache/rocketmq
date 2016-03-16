@@ -50,7 +50,11 @@ public class StringUtil {
      * 解析单词的解析器。
      */
     private static final WordTokenizer CAMEL_CASE_TOKENIZER = new WordTokenizer() {
-        protected void startSentence(StringBuffer buffer, char ch) {
+        protected void inDelimiter(StringBuffer buffer, char ch) {
+            if (ch != UNDERSCORE) {
+                buffer.append(ch);
+            }
+        }        protected void startSentence(StringBuffer buffer, char ch) {
             buffer.append(Character.toLowerCase(ch));
         }
 
@@ -84,11 +88,7 @@ public class StringUtil {
         }
 
 
-        protected void inDelimiter(StringBuffer buffer, char ch) {
-            if (ch != UNDERSCORE) {
-                buffer.append(ch);
-            }
-        }
+
     };
     private static final WordTokenizer PASCAL_CASE_TOKENIZER = new WordTokenizer() {
         protected void startSentence(StringBuffer buffer, char ch) {

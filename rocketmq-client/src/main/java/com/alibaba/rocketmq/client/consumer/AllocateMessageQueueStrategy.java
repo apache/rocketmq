@@ -32,10 +32,15 @@ public interface AllocateMessageQueueStrategy {
     /**
      * Allocating by consumer id
      *
-     * @param consumerGroup current consumer group
-     * @param currentCID    current consumer id
-     * @param mqAll         message queue set in current topic
-     * @param cidAll        consumer set in current consumer group
+     * @param consumerGroup
+     *         current consumer group
+     * @param currentCID
+     *         current consumer id
+     * @param mqAll
+     *         message queue set in current topic
+     * @param cidAll
+     *         consumer set in current consumer group
+     *
      * @return
      */
     public List<MessageQueue> allocate(//

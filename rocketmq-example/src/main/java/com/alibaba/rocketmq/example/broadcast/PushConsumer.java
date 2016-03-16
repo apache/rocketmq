@@ -29,7 +29,6 @@ import java.util.List;
 
 /**
  * PushConsumer，广播方式订阅消息
- *
  */
 public class PushConsumer {
 

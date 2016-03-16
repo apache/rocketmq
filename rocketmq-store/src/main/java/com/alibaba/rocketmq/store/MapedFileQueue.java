@@ -230,7 +230,8 @@ public class MapedFileQueue {
      * 获取最后一个MapedFile对象，如果一个都没有，则新创建一个，如果最后一个写满了，则新创建一个
      *
      * @param startOffset
-     *            如果创建新的文件，起始offset
+     *         如果创建新的文件，起始offset
+     *
      * @return
      */
     public MapedFile getLastMapedFile(final long startOffset, boolean needCreate) {
@@ -437,7 +438,7 @@ public class MapedFileQueue {
      * 根据物理队列最小Offset来删除逻辑队列
      *
      * @param offset
-     *            物理队列最小offset
+     *         物理队列最小offset
      */
     public int deleteExpiredFileByOffset(long offset, int unitSize) {
         Object[] mfs = this.copyMapedFiles(0);

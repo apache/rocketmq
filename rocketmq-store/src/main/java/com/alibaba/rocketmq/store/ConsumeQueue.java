@@ -411,11 +411,12 @@ public class ConsumeQueue {
      * 存储一个20字节的信息，putMessagePostionInfo只有一个线程调用，所以不需要加锁
      *
      * @param offset
-     *            消息对应的CommitLog offset
+     *         消息对应的CommitLog offset
      * @param size
-     *            消息在CommitLog存储的大小
+     *         消息在CommitLog存储的大小
      * @param tagsCode
-     *            tags 计算出来的长整数
+     *         tags 计算出来的长整数
+     *
      * @return 是否成功
      */
     private boolean putMessagePostionInfo(final long offset, final int size, final long tagsCode,
@@ -485,7 +486,7 @@ public class ConsumeQueue {
      * 返回Index Buffer
      *
      * @param startIndex
-     *            起始偏移量索引
+     *         起始偏移量索引
      */
     public SelectMapedBufferResult getIndexBuffer(final long startIndex) {
         int mapedFileSize = this.mapedFileSize;

@@ -258,6 +258,7 @@ public class BrokerOuterAPI {
      * 获取所有Consumer Offset
      *
      * @param addr
+     *
      * @return
      */
     public ConsumerOffsetSerializeWrapper getAllConsumerOffset(final String addr) throws InterruptedException, RemotingTimeoutException,
@@ -281,6 +282,7 @@ public class BrokerOuterAPI {
      * 获取所有定时进度
      *
      * @param addr
+     *
      * @return
      */
     public String getAllDelayOffset(final String addr) throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException,
@@ -304,6 +306,7 @@ public class BrokerOuterAPI {
      * 获取订阅组配置
      *
      * @param addr
+     *
      * @return
      */
     public SubscriptionGroupWrapper getAllSubscriptionGroupConfig(final String addr) throws InterruptedException, RemotingTimeoutException,

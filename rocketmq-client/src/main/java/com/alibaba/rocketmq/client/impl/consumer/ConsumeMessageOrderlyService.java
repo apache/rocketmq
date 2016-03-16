@@ -39,7 +39,6 @@ import java.util.concurrent.*;
 
 
 /**
- *
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-6-27
  */
@@ -380,6 +379,10 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
 
         public ProcessQueue getProcessQueue() {
             return processQueue;
+        }
+
+        public MessageQueue getMessageQueue() {
+            return messageQueue;
         }        @Override
         public void run() {
             if (this.processQueue.isDropped()) {
@@ -500,9 +503,6 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
             }
         }
 
-        public MessageQueue getMessageQueue() {
-            return messageQueue;
-        }
 
 
 

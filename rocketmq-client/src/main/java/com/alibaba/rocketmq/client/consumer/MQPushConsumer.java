@@ -62,9 +62,10 @@ public interface MQPushConsumer extends MQConsumer {
      *
      * @param topic
      * @param subExpression
-     *            subscription expression.it only support or operation such as
-     *            "tag1 || tag2 || tag3" <br>
-     *            if null or * expression,meaning subscribe all
+     *         subscription expression.it only support or operation such as
+     *         "tag1 || tag2 || tag3" <br>
+     *         if null or * expression,meaning subscribe all
+     *
      * @throws MQClientException
      */
     void subscribe(final String topic, final String subExpression) throws MQClientException;
@@ -75,11 +76,12 @@ public interface MQPushConsumer extends MQConsumer {
      *
      * @param topic
      * @param fullClassName
-     *            full class name，must extend
-     *            com.alibaba.rocketmq.common.filter. MessageFilter
+     *         full class name，must extend
+     *         com.alibaba.rocketmq.common.filter. MessageFilter
      * @param filterClassSource
-     *            class source code，used UTF-8 file encoding,must be responsible
-     *            for your code safety
+     *         class source code，used UTF-8 file encoding,must be responsible
+     *         for your code safety
+     *
      * @throws MQClientException
      */
     void subscribe(final String topic, final String fullClassName, final String filterClassSource) throws MQClientException;
@@ -89,7 +91,7 @@ public interface MQPushConsumer extends MQConsumer {
      * Unsubscribe consumption some topic
      *
      * @param topic
-     *            message topic
+     *         message topic
      */
     void unsubscribe(final String topic);
 

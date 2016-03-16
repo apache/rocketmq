@@ -1624,7 +1624,11 @@ public class DefaultMessageStore implements MessageStore {
      */
     class ReputMessageService extends ServiceThread {
         // 从这里开始解析物理队列数据，并分发到逻辑队列
-        private volatile long reputFromOffset = 0;        @Override
+        private volatile long reputFromOffset = 0;
+
+        public long getReputFromOffset() {
+            return reputFromOffset;
+        }        @Override
         public void shutdown() {
             for (int i = 0; i < 50 && this.isCommitLogAvailable(); i++) {
                 try {
@@ -1641,10 +1645,6 @@ public class DefaultMessageStore implements MessageStore {
             super.shutdown();
         }
 
-        public long getReputFromOffset() {
-            return reputFromOffset;
-        }
-
         public void setReputFromOffset(long reputFromOffset) {
             this.reputFromOffset = reputFromOffset;
         }
@@ -1654,12 +1654,11 @@ public class DefaultMessageStore implements MessageStore {
         }
 
 
+
+
         private boolean isCommitLogAvailable() {
             return this.reputFromOffset < DefaultMessageStore.this.commitLog.getMaxOffset();
         }
-
-
-
 
 
         private void doReput() {

@@ -788,6 +788,10 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
         }
     }
 
+    public ConcurrentHashMap<String, SubscriptionData> getSubscriptionInner() {
+        return this.rebalanceImpl.getSubscriptionInner();
+    }
+
     public void subscribe(String topic, String subExpression) throws MQClientException {
         try {
             SubscriptionData subscriptionData = FilterAPI.buildSubscriptionData(this.defaultMQPushConsumer.getConsumerGroup(), //
@@ -930,10 +934,6 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                 this.rebalanceImpl.topicSubscribeInfoTable.put(topic, info);
             }
         }
-    }
-
-    public ConcurrentHashMap<String, SubscriptionData> getSubscriptionInner() {
-        return this.rebalanceImpl.getSubscriptionInner();
     }
 
     @Override

@@ -691,6 +691,7 @@ public class RouteInfoManager {
      * 获取指定集群下的所有 topic 列表
      *
      * @param cluster
+     *
      * @return
      */
     public byte[] getTopicsByCluster(String cluster) {

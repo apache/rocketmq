@@ -373,6 +373,10 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
 
         public List<MessageExt> getMsgs() {
             return msgs;
+        }
+
+        public ProcessQueue getProcessQueue() {
+            return processQueue;
         }        @Override
         public void run() {
             if (this.processQueue.isDropped()) {
@@ -433,13 +437,10 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
             }
         }
 
-        public ProcessQueue getProcessQueue() {
-            return processQueue;
-        }
-
         public MessageQueue getMessageQueue() {
             return messageQueue;
         }
+
 
 
 

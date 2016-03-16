@@ -21,7 +21,6 @@ import java.nio.charset.Charset;
 
 
 /**
- *
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-13
  */
@@ -34,6 +33,10 @@ public abstract class RemotingSerializable {
             return json.getBytes(CHARSET_UTF8);
         }
         return null;
+    }
+
+    public static String toJson(final Object obj, boolean prettyFormat) {
+        return JSON.toJSONString(obj, prettyFormat);
     }
 
     public static <T> T decode(final byte[] data, Class<T> classOfT) {
@@ -59,9 +62,5 @@ public abstract class RemotingSerializable {
 
     public String toJson(final boolean prettyFormat) {
         return toJson(this, prettyFormat);
-    }
-
-    public static String toJson(final Object obj, boolean prettyFormat) {
-        return JSON.toJSONString(obj, prettyFormat);
     }
 }

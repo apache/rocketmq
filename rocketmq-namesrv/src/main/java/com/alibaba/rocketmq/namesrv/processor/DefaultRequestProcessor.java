@@ -322,6 +322,7 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
      *
      * @param ctx
      * @param request
+     *
      * @return
      */
     private RemotingCommand getAllTopicListFromNameserver(ChannelHandlerContext ctx, RemotingCommand request) {
@@ -374,6 +375,7 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
      *
      * @param ctx
      * @param request
+     *
      * @return
      */
     private RemotingCommand getTopicsByCluster(ChannelHandlerContext ctx, RemotingCommand request) throws RemotingCommandException {
@@ -395,7 +397,9 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
      *
      * @param ctx
      * @param request
+     *
      * @return
+     *
      * @throws RemotingCommandException
      */
     private RemotingCommand getSystemTopicListFromNs(ChannelHandlerContext ctx, RemotingCommand request) throws RemotingCommandException {
@@ -415,7 +419,9 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
      *
      * @param ctx
      * @param request
+     *
      * @return
+     *
      * @throws RemotingCommandException
      */
     private RemotingCommand getUnitTopicList(ChannelHandlerContext ctx, RemotingCommand request) throws RemotingCommandException {
@@ -435,7 +441,9 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
      *
      * @param ctx
      * @param request
+     *
      * @return
+     *
      * @throws RemotingCommandException
      */
     private RemotingCommand getHasUnitSubTopicList(ChannelHandlerContext ctx, RemotingCommand request) throws RemotingCommandException {
@@ -455,7 +463,9 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
      *
      * @param ctx
      * @param request
+     *
      * @return
+     *
      * @throws RemotingCommandException
      */
     private RemotingCommand getHasUnitSubUnUnitTopicList(ChannelHandlerContext ctx, RemotingCommand request)

@@ -32,6 +32,7 @@ public interface AppendMessageCallback {
      * @param byteBuffer
      * @param maxBlank
      * @param msg
+     *
      * @return How many bytes to write
      */
     public AppendMessageResult doAppend(final long fileFromOffset, final ByteBuffer byteBuffer,

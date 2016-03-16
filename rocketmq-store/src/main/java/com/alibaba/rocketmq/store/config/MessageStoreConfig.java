@@ -524,12 +524,12 @@ public class MessageStoreConfig {
         return brokerRole;
     }
 
-    public void setBrokerRole(String brokerRole) {
-        this.brokerRole = BrokerRole.valueOf(brokerRole);
-    }
-
     public void setBrokerRole(BrokerRole brokerRole) {
         this.brokerRole = brokerRole;
+    }
+
+    public void setBrokerRole(String brokerRole) {
+        this.brokerRole = BrokerRole.valueOf(brokerRole);
     }
 
     public int getHaTransferBatchSize() {
@@ -556,12 +556,12 @@ public class MessageStoreConfig {
         return flushDiskType;
     }
 
-    public void setFlushDiskType(String type) {
-        this.flushDiskType = FlushDiskType.valueOf(type);
-    }
-
     public void setFlushDiskType(FlushDiskType flushDiskType) {
         this.flushDiskType = flushDiskType;
+    }
+
+    public void setFlushDiskType(String type) {
+        this.flushDiskType = FlushDiskType.valueOf(type);
     }
 
     public int getSyncFlushTimeout() {
