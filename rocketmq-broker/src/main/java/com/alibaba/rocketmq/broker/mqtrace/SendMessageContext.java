@@ -35,12 +35,29 @@ public class SendMessageContext {
     private String msgProps;
     private Object mqTraceContext;
     private Properties extProps;
+    private String brokerRegionId;
+    private long bornTimeStamp;
     //For Commercial
     private String commercialOwner;
     private BrokerStatsManager.StatsType commercialSendStats;
     private int commercialSendSize;
     private int commercialSendTimes;
 
+    public long getBornTimeStamp() {
+        return bornTimeStamp;
+    }
+
+    public void setBornTimeStamp(final long bornTimeStamp) {
+        this.bornTimeStamp = bornTimeStamp;
+    }
+
+    public String getBrokerRegionId() {
+        return brokerRegionId;
+    }
+
+    public void setBrokerRegionId(final String brokerRegionId) {
+        this.brokerRegionId = brokerRegionId;
+    }
 
     public String getProducerGroup() {
         return producerGroup;

@@ -346,8 +346,12 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         msgInner.setTopic(newTopic);
         msgInner.setBody(body);
         msgInner.setFlag(requestHeader.getFlag());
-        MessageAccessor.setProperties(msgInner, MessageDecoder.string2messageProperties(requestHeader.getProperties()));
-        msgInner.setPropertiesString(requestHeader.getProperties());
+        //取出消息体的properties，并放入region信息字段
+        Map<String, String> properties =MessageDecoder.string2messageProperties(requestHeader.getProperties());
+        properties.put(MessageConst.PROPERTY_MSG_REGION,this.brokerController.getBrokerConfig().getRegionId());
+        MessageAccessor.setProperties(msgInner, properties);
+        msgInner.setPropertiesString(MessageDecoder.messageProperties2String(properties));
+
         msgInner.setTagsCode(MessageExtBrokerInner.tagsString2tagsCode(topicConfig.getTopicFilterType(), msgInner.getTags()));
 
         msgInner.setQueueId(queueIdInt);

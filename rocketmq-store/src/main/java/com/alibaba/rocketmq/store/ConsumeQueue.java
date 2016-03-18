@@ -15,14 +15,13 @@
  */
 package com.alibaba.rocketmq.store;
 
-import java.io.File;
-import java.nio.ByteBuffer;
-import java.util.List;
-
+import com.alibaba.rocketmq.common.constant.LoggerName;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.alibaba.rocketmq.common.constant.LoggerName;
+import java.io.File;
+import java.nio.ByteBuffer;
+import java.util.List;
 
 
 /**
@@ -166,7 +165,7 @@ public class ConsumeQueue {
             int high = 0;
             int midOffset = -1, targetOffset = -1, leftOffset = -1, rightOffset = -1;
             long leftIndexValue = -1L, rightIndexValue = -1L;
-
+            long minPhyOffset =this.defaultMessageStore.getMinPhyOffset();
             // 取出该mapedFile里面所有的映射空间(没有映射的空间并不会返回,不会返回文件空洞)
             SelectMapedBufferResult sbr = mapedFile.selectMapedBuffer(0);
             if (null != sbr) {
@@ -178,13 +177,20 @@ public class ConsumeQueue {
                         byteBuffer.position(midOffset);
                         long phyOffset = byteBuffer.getLong();
                         int size = byteBuffer.getInt();
-
+                        if(phyOffset<minPhyOffset){
+                            //比最小的物理ｏｆｆｓｅｔ小，说明消息已经被删除了　
+                            low = midOffset + CQStoreUnitSize;
+                            leftOffset = midOffset;
+                            continue;
+                        }
                         // 比较时间, 折半
                         long storeTime =
                                 this.defaultMessageStore.getCommitLog().pickupStoretimestamp(phyOffset, size);
                         if (storeTime < 0) {
-                            // 没有从物理文件找到消息，此时直接返回0
-                            return 0;
+                            // 没有从物理文件找到消息，此时先不返回
+                            low = midOffset + CQStoreUnitSize;
+                            leftOffset = midOffset;
+                            leftIndexValue = storeTime;
                         }
                         else if (storeTime == timestamp) {
                             targetOffset = midOffset;
@@ -222,7 +228,10 @@ public class ConsumeQueue {
                                             - rightIndexValue) ? rightOffset : leftOffset;
                         }
                     }
-
+                    if(offset<0){
+                        //最终的结果也被删除了
+                        return 0;
+                    }
                     return (mapedFile.getFileFromOffset() + offset) / CQStoreUnitSize;
                 }
                 finally {

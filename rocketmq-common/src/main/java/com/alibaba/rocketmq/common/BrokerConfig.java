@@ -109,6 +109,16 @@ public class BrokerConfig {
     // 通过Java堆来传输消息
     private boolean transferMsgByHeap = true;
 
+    //broker所在的Region名称
+    private String regionId = "DefaultRegionId";
+
+    public String getRegionId() {
+        return regionId;
+    }
+
+    public void setRegionId(final String regionId) {
+        this.regionId = regionId;
+    }
 
     public boolean isTransferMsgByHeap() {
         return transferMsgByHeap;
