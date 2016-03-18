@@ -860,13 +860,13 @@ public class DefaultMessageStore implements MessageStore {
 
 
     @Override
-    public QueryMessageResult queryMessage(String topic, String key, int maxNum, long begin, long end, boolean isUniqKey) {
+    public QueryMessageResult queryMessage(String topic, String key, int maxNum, long begin, long end) {
         QueryMessageResult queryMessageResult = new QueryMessageResult();
 
         long lastQueryMsgTime = end;
 
         for (int i = 0; i < 3; i++) {
-            QueryOffsetResult queryOffsetResult = this.indexService.queryOffset(topic, key, maxNum, begin, lastQueryMsgTime, isUniqKey);
+            QueryOffsetResult queryOffsetResult = this.indexService.queryOffset(topic, key, maxNum, begin, lastQueryMsgTime);
             if (queryOffsetResult.getPhyOffsets().isEmpty()) {
                 break;
             }

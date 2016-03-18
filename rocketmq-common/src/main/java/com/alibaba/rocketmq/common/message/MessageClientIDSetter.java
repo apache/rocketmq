@@ -32,8 +32,6 @@ public class MessageClientIDSetter {
                 
     private static short counter;
     
-    private static boolean validate;
-    
     private static int basePos = 0;
     
     private static long startTime;
@@ -42,7 +40,7 @@ public class MessageClientIDSetter {
     
     //ip  + pid + classloaderid + counter + time
     //4 bytes for ip , 4 bytes for pid, 4 bytes for  classloaderid
-    //2 bytes for counter,  6 bytes for timediff, 
+    //2 bytes for counter,  4 bytes for timediff, 
     private static StringBuilder sb = null;
     
     private static ByteBuffer buffer = ByteBuffer.allocate(4 + 2); 
@@ -53,35 +51,29 @@ public class MessageClientIDSetter {
 
         //算法是这样的 ip 4 byte + pid 2 byte + classloader 4 byte + timestamp 4 byte + counter 2 byte
         //其中，前3个4byte提前预置， 
-        //timestamp 6个byte，从20160101开始算起，豪秒级别，可以计算到上千年
+        //timestamp 4个byte，存储当前时间到每个月1号0点0分0秒的毫秒差值
         //counter 2 byte，可以计算到65535, 足够豪秒级别的自增了
         //如果是一个进程多个容器，classloader可以区分
         //如果是c++等语言调用，那么毫秒级别不可能启动关闭多个jvm，并有同样的pid
         int len = 4 + 2 + 4  + 4 + 2;        
-        try {
-            //分配空间
-            sb = new StringBuilder(len*2);
-            ByteBuffer tempBuffer =  ByteBuffer.allocate(len - buffer.limit());                
-            //本机ip, 进程id，classloader标识
-            tempBuffer.position(2);
-            tempBuffer.putInt(UtilAll.getPid());//2
-            tempBuffer.position(0);
-            tempBuffer.put(UtilAll.getIP());    //4  
-            tempBuffer.position(6);
-            tempBuffer.putInt(MessageClientIDSetter.class.getClassLoader().hashCode()); //4
-            sb.append(UtilAll.bytes2string(tempBuffer.array()));            
-            basePos = sb.length();
-            //以每月1号作为基准时间点计算差值
-            setStartTime(System.currentTimeMillis());
-            //计数器
-            counter = 0;
-            validate = true;
-        }
-        catch (Exception e) {
-            validate = false;
-            System.out.println("MessageClientIDSetter initialize error");
-            e.printStackTrace();            
-        }
+        
+        //分配空间
+        sb = new StringBuilder(len*2);
+        ByteBuffer tempBuffer =  ByteBuffer.allocate(len - buffer.limit());                
+        //本机ip, 进程id，classloader标识
+        tempBuffer.position(2);
+        tempBuffer.putInt(UtilAll.getPid());//2
+        tempBuffer.position(0);
+        tempBuffer.put(UtilAll.getIP());    //4  
+        tempBuffer.position(6);
+        tempBuffer.putInt(MessageClientIDSetter.class.getClassLoader().hashCode()); //4
+        sb.append(UtilAll.bytes2string(tempBuffer.array()));            
+        basePos = sb.length();
+        //以每月1号作为基准时间点计算差值
+        setStartTime(System.currentTimeMillis());
+        //计数器
+        counter = 0;
+
     }
     
     private static void setStartTime(long millis) {
@@ -91,7 +83,7 @@ public class MessageClientIDSetter {
         cal.set(Calendar.HOUR,0);
         cal.set(Calendar.MINUTE,0);
         cal.set(Calendar.SECOND,0);
-        //cal.set(Calendar.MILLISECOND,1);
+        cal.set(Calendar.MILLISECOND,0);       
         startTime = cal.getTimeInMillis();
         cal.add(Calendar.MONTH, 1);//下个月1号0点0分0秒
         nextStartTime = cal.getTimeInMillis();
@@ -111,6 +103,7 @@ public class MessageClientIDSetter {
         cal.set(Calendar.HOUR,0);
         cal.set(Calendar.MINUTE,0);
         cal.set(Calendar.SECOND,0);        
+        cal.set(Calendar.MILLISECOND,0);
         long monStartTime = cal.getTimeInMillis();
         if (monStartTime + spanMS >= now) {
             cal.add(Calendar.MONTH, -1);
@@ -133,7 +126,6 @@ public class MessageClientIDSetter {
     }
     
     private static synchronized String createUniqID() {
-        if (validate) {
             //连接正常唯一id
             long current = System.currentTimeMillis();
             if (current >= nextStartTime) {
@@ -145,11 +137,6 @@ public class MessageClientIDSetter {
             buffer.putShort(counter++); //覆盖timestamp前2byte，每ms 1个short 65535，应该足够计数了                  
             sb.append(UtilAll.bytes2string(buffer.array()));
             return sb.toString();
-        }
-        else {
-            //如果ip无效，则生成一个UUID
-            return UUID.randomUUID().toString();
-        }
     }
     
     /**
@@ -179,6 +166,18 @@ public class MessageClientIDSetter {
         
     public static void main(String[] args) throws Exception {
                            
+        Calendar cal = Calendar.getInstance();
+        cal.setTimeInMillis(1457442383176L);
+        System.out.println(cal.getTime());
+        cal.setTimeInMillis(1457442382996L);
+        System.out.println(cal.getTime());
+        
+        setStartTime(System.currentTimeMillis());
+        
+        Thread.currentThread().sleep(100);
+        
+        setStartTime(System.currentTimeMillis());
+        
          long threeday = 1000*60*60*24*3;
         System.out.println(Long.toBinaryString(threeday));
         

@@ -15,11 +15,6 @@
  */
 package com.alibaba.rocketmq.broker.processor;
 
-import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelFutureListener;
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.FileRegion;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,6 +32,11 @@ import com.alibaba.rocketmq.remoting.netty.NettyRequestProcessor;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 import com.alibaba.rocketmq.store.QueryMessageResult;
 import com.alibaba.rocketmq.store.SelectMapedBufferResult;
+
+import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelFutureListener;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.FileRegion;
 
 
 /**
@@ -84,16 +84,16 @@ public class QueryMessageProcessor implements NettyRequestProcessor {
 
         // 由于使用sendfile，所以必须要设置
         response.setOpaque(request.getOpaque());
-
-        boolean isUniqKey = false;
-        if (requestHeader.isUniqKey()  != null) {
-            isUniqKey = requestHeader.isUniqKey().booleanValue();
+        
+        //如果没有MaxNum，则设置默认
+        if (requestHeader.getMaxNum() == null) {
+            requestHeader.setMaxNum(this.brokerController.getMessageStoreConfig().getDefaultQueryMaxNum());
         }
         
         final QueryMessageResult queryMessageResult =
                 this.brokerController.getMessageStore().queryMessage(requestHeader.getTopic(),
                     requestHeader.getKey(), requestHeader.getMaxNum(), requestHeader.getBeginTimestamp(),
-                    requestHeader.getEndTimestamp(), isUniqKey);
+                    requestHeader.getEndTimestamp());
         assert queryMessageResult != null;
 
         responseHeader.setIndexLastUpdatePhyoffset(queryMessageResult.getIndexLastUpdatePhyoffset());

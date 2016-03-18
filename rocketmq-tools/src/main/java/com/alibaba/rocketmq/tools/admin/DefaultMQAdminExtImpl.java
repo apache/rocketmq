@@ -283,8 +283,8 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
 
 
     @Override
-    public MessageExt viewMessage(String msgId) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
-        return this.mqClientInstance.getMQAdminImpl().viewMessage(msgId);
+    public MessageExt viewMessage(String offsetMsgId) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
+        return this.mqClientInstance.getMQAdminImpl().viewMessage(offsetMsgId);
     }
 
 
@@ -295,8 +295,8 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
     }
 
     @Override
-    public MessageExt queryMessageByUniqKey(String topic, String uniqKey) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
-        return this.mqClientInstance.getMQAdminImpl().queryMessageByUniqKey(topic, uniqKey);
+    public MessageExt viewMessage(String topic, String msgId) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
+        return this.mqClientInstance.getMQAdminImpl().queryMessageByUniqKey(topic, msgId);
     }
 
     @Override

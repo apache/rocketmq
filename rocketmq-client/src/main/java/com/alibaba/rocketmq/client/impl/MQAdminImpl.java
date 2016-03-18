@@ -52,6 +52,7 @@ import java.util.concurrent.TimeUnit;
  * @since 2013-7-24
  */
 public class MQAdminImpl {
+        
     private final Logger log = ClientLogger.getLog();
     private final MQClientInstance mQClientFactory;
     private long timeoutMillis = 6000;
@@ -275,14 +276,16 @@ public class MQAdminImpl {
     }    
 
     public MessageExt queryMessageByUniqKey(String topic, String uniqKey)  throws InterruptedException, MQClientException  {
-        QueryResult qr = this.queryMessage(topic, uniqKey, 1, Long.MIN_VALUE, Long.MAX_VALUE, true);
+        //打开1s的误差，因为服务器存储时间差是以秒计算的
+        QueryResult qr = this.queryMessage(topic, uniqKey, 1, 
+                MessageClientIDSetter.getNearlyTimeFromID(uniqKey).getTime() - 1000, Long.MAX_VALUE, true);
         if (qr != null && qr.getMessageList() != null && qr.getMessageList().size() > 0) {
             return qr.getMessageList().get(0);
         }
         else {
             return null;
         }
-    }
+    }        
     
     protected QueryResult queryMessage(String topic, String key, int maxNum, long begin, long end, boolean isUniqKey) throws MQClientException,
             InterruptedException {
@@ -310,10 +313,14 @@ public class MQAdminImpl {
                         QueryMessageRequestHeader requestHeader = new QueryMessageRequestHeader();
                         requestHeader.setTopic(topic);
                         requestHeader.setKey(key);
-                        requestHeader.setMaxNum(maxNum);
+                        if (isUniqKey) {
+                            requestHeader.setMaxNum(null);                            
+                        }
+                        else {                            
+                            requestHeader.setMaxNum(maxNum);
+                        }
                         requestHeader.setBeginTimestamp(begin);
                         requestHeader.setEndTimestamp(end);
-                        requestHeader.setUniqKey(isUniqKey);
 
                         this.mQClientFactory.getMQClientAPIImpl().queryMessage(addr, requestHeader, timeoutMillis * 3,
                             new InvokeCallback() {
@@ -378,11 +385,11 @@ public class MQAdminImpl {
                     for (MessageExt msgExt : qr.getMessageList()) {
                         if (isUniqKey) {
                             if (msgExt.getMsgId().equals(key)) {
-                                //只保存一条
+                                //只保存一条, 存储storetime最新的一条
                                 if (messageList.size() > 0) {
                                     //如果已经存在了
-                                    if (messageList.get(0).getStoreTimestamp() < msgExt.getStoreTimestamp()) {
-                                        //并且现存的storetime < 新的storetime //存储新的
+                                    if (messageList.get(0).getStoreTimestamp() > msgExt.getStoreTimestamp()) {
+                                        //并且现存的storetime > 新的storetime //存储新的
                                         messageList.clear();
                                         messageList.add(msgExt);
                                     }
