@@ -345,7 +345,11 @@ public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsume
     public Set<MessageQueue> fetchMessageQueuesInBalance(String topic) throws MQClientException {
         return this.defaultMQPullConsumerImpl.fetchMessageQueuesInBalance(topic);
     }
-
+    
+    @Override
+    public MessageExt queryMessageByUniqKey(String topic, String uniqKey) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
+        return this.defaultMQPullConsumerImpl.queryMessageByUniqKey(topic, uniqKey);
+    }
 
     public OffsetStore getOffsetStore() {
         return offsetStore;

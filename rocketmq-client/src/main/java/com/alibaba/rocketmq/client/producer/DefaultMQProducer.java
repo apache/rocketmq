@@ -242,6 +242,11 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
             throws MQClientException, InterruptedException {
         return this.defaultMQProducerImpl.queryMessage(topic, key, maxNum, begin, end);
     }
+    
+    @Override
+    public MessageExt queryMessageByUniqKey(String topic, String uniqKey) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
+        return this.defaultMQProducerImpl.queryMessageByUniqKey(topic, uniqKey);
+    }
 
 
     public String getProducerGroup() {

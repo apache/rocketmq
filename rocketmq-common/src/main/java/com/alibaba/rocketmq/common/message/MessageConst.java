@@ -52,7 +52,12 @@ public class MessageConst {
     public static final String PROPERTY_CORRECTION_FLAG = "CORRECTION_FLAG";
     public static final String PROPERTY_MQ2_FLAG = "MQ2_FLAG";
     public static final String PROPERTY_RECONSUME_TIME = "RECONSUME_TIME";
+<<<<<<< HEAD
     public static final String PROPERTY_MSG_REGION = "MSG_REGION";
+=======
+    public static final String PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX="UNIQ_KEY";
+
+>>>>>>> origin/norepeat
     public static final String KEY_SEPARATOR = " ";
 
     public static final HashSet<String> systemKeySet = new HashSet<String>();
@@ -75,5 +80,6 @@ public class MessageConst {
         systemKeySet.add(PROPERTY_CORRECTION_FLAG);
         systemKeySet.add(PROPERTY_MQ2_FLAG);
         systemKeySet.add(PROPERTY_RECONSUME_TIME);
+        systemKeySet.add(PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX);
     }
 }

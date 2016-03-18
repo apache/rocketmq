@@ -177,8 +177,11 @@ public class IndexService {
         }
     }
 
-
-    public QueryOffsetResult queryOffset(String topic, String key, int maxNum, long begin, long end) {
+//    public QueryOffsetResult queryOffset(String topic, String key, int maxNum, long begin, long end) {
+//        return queryOffset(topic, key, maxNum, begin, end, false);
+//    }
+    
+    public QueryOffsetResult queryOffset(String topic, String key, int maxNum, long begin, long end, boolean isUniqKey) {
         List<Long> phyOffsets = new ArrayList<Long>(maxNum);
         // TODO 可能需要返回给最终用户
         long indexLastUpdateTimestamp = 0;
@@ -197,7 +200,7 @@ public class IndexService {
 
                     if (f.isTimeMatched(begin, end)) {
                         // 最后一个文件需要加锁
-                        f.selectPhyOffset(phyOffsets, this.buildKey(topic, key), maxNum, begin, end, lastFile);
+                        f.selectPhyOffset(phyOffsets, buildKey(topic, key, isUniqKey), maxNum, begin, end, lastFile);
                     }
 
                     // 再往前遍历时间更不符合
@@ -222,13 +225,17 @@ public class IndexService {
     }
 
 
-    private String buildKey(final String topic, final String key) {
-        return topic + "#" + key;
+    private String buildKey(final String topic, final String key, final boolean isUniqKey) {
+        if (!isUniqKey) {
+            return topic + "#" + key;
+        }
+        else {
+            return key;
+        }
     }
 
 
     public void buildIndex(DispatchRequest req) {
-        boolean breakdown = false;
         IndexFile indexFile = retryGetAndCreateIndexFile();
         if (indexFile != null) {
             long endPhyOffset = indexFile.getEndPhyOffset();
@@ -247,35 +254,53 @@ public class IndexService {
             case MessageSysFlag.TransactionCommitType:
             case MessageSysFlag.TransactionRollbackType:
                 return;
+            }                                    
+            
+            if (req.getUniqKey() != null) {
+                indexFile = putKey(indexFile, msg, req.getUniqKey());
+                if (indexFile == null) {
+                    log.error("putKey error commitlog {} uniqkey {}", req.getCommitLogOffset(), req.getUniqKey());
+                    return;
+                }
             }
-
-            if (keys != null && keys.length() > 0) {
-                String[] keyset = keys.split(MessageConst.KEY_SEPARATOR);
-                for (String key : keyset) {
+            
+            if ((keys != null && keys.length() > 0)) {
+                String[] keyset = keys.split(MessageConst.KEY_SEPARATOR);                
+                for (int i = 0; i <  keyset.length; i++) {
+                    String key = keyset[i]; 
                     // TODO 是否需要TRIM
                     if (key.length() > 0) {
-                        for (boolean ok =
-                                indexFile.putKey(buildKey(topic, key), msg.getCommitLogOffset(),
-                                    msg.getStoreTimestamp()); !ok;) {
-                            log.warn("index file full, so create another one, " + indexFile.getFileName());
-                            indexFile = retryGetAndCreateIndexFile();
-                            if (null == indexFile) {
-                                breakdown = true;
+                            indexFile = putKey(indexFile, msg, buildKey(topic, key, false));
+                            if (indexFile == null) {
+                                log.error("putKey error commitlog {} uniqkey {}", req.getCommitLogOffset(), req.getUniqKey());
                                 return;
                             }
-
-                            ok =
-                                    indexFile.putKey(buildKey(topic, key), msg.getCommitLogOffset(),
-                                        msg.getStoreTimestamp());
                         }
-                    }
-                }
+                 }                
             }
         }
         // IO发生故障，build索引过程中断，需要人工参与处理
         else {
             log.error("build index error, stop building index");
         }
+    }
+
+
+    private IndexFile putKey(IndexFile indexFile, DispatchRequest msg, String idxKey) {
+        for (boolean ok =
+                indexFile.putKey(idxKey, msg.getCommitLogOffset(),
+                    msg.getStoreTimestamp()); !ok;) {
+            log.warn("index file full, so create another one, " + indexFile.getFileName());
+            indexFile = retryGetAndCreateIndexFile();
+            if (null == indexFile) {
+                return null;
+            }
+
+            ok =
+                    indexFile.putKey(idxKey, msg.getCommitLogOffset(),
+                        msg.getStoreTimestamp());
+        }
+        return indexFile;
     }
 
 

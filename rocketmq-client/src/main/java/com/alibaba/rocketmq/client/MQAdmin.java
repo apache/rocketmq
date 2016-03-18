@@ -124,4 +124,18 @@ public interface MQAdmin {
      */
     QueryResult queryMessage(final String topic, final String key, final int maxNum, final long begin,
                              final long end) throws MQClientException, InterruptedException;
+    
+    /**
+     * 唯一键查询
+     * @param topic
+     * @param uniqKey
+     * @return
+     * @throws RemotingException
+     * @throws MQBrokerException
+     * @throws InterruptedException
+     * @throws MQClientException
+     */
+    MessageExt queryMessageByUniqKey(String topic, String uniqKey) throws RemotingException, MQBrokerException, InterruptedException, MQClientException;        
+
+    
 }

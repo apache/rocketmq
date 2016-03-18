@@ -17,19 +17,28 @@ package com.alibaba.rocketmq.common;
 
 import com.alibaba.rocketmq.remoting.common.RemotingHelper;
 
+import io.netty.util.internal.StringUtil;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.lang.management.RuntimeMXBean;
+import java.net.Inet4Address;
+import java.net.InetAddress;
+import java.net.NetworkInterface;
+import java.nio.ByteBuffer;
 import java.text.NumberFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.zip.CRC32;
 import java.util.zip.DeflaterOutputStream;
 import java.util.zip.InflaterInputStream;
@@ -47,7 +56,7 @@ public class UtilAll {
 
 
     public static int getPid() {
-        RuntimeMXBean runtime = ManagementFactory.getRuntimeMXBean();
+        RuntimeMXBean runtime = ManagementFactory.getRuntimeMXBean();        
         String name = runtime.getName(); // format: "pid@hostname"
         try {
             return Integer.parseInt(name.substring(0, name.indexOf('@')));
@@ -55,9 +64,8 @@ public class UtilAll {
         catch (Exception e) {
             return -1;
         }
-    }
-
-
+    }    
+    
     public static String currentStackTrace() {
         StringBuilder sb = new StringBuilder();
         StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
@@ -466,4 +474,131 @@ public class UtilAll {
 
         return result.toString();
     }
+         
+    /**
+     * 判断一个IP地址是否是内网IP
+     * @param ip
+     * @return
+     */
+    public static boolean isInternalIP(byte[] ip) {
+        if (ip.length != 4) {
+            throw new RuntimeException("非法ipv4 byte数组");
+        }
+        
+        //内网IP地址段
+        //10.0.0.0~10.255.255.255
+        //172.16.0.0~172.31.255.255
+        //192.168.0.0~192.168.255.255
+        if (ip[0] == (byte)10) {
+            //10的所有段都不行
+            return true;
+        }
+        else if (ip[0] == (byte)172) {
+            if (ip[1] >= (byte)16 && ip[1] <= (byte)31) {
+                return true;
+            }
+        }
+        else if (ip[0] == (byte)192) {
+            if (ip[1] == (byte)168) {
+                return true;
+            }
+        }
+        return false;
+    }
+        
+    /**
+     * 判断一个IP地址是否是合法IP
+     * @param text
+     * @return
+     */
+    private static boolean ipCheck(byte[] ip) {
+        if (ip.length != 4) {
+            throw new RuntimeException("非法ipv4 byte数组");
+        }
+        
+//        if (ip[0] == (byte)30 && ip[1] == (byte)10 && ip[2] == (byte)163 && ip[3] == (byte)120) {
+//            System.out.println("right!");
+//        }
+        
+        // 判断ip地址是否与正则表达式匹配
+        if (ip[0] >= (byte)1 && ip[0] <= (byte)126) {
+            //A类IP地址, 排除全0, 全1
+            if (ip[1] == (byte)1 && ip[2] == (byte)1 && ip[3] == (byte)1) {
+                return false;
+            }
+            if (ip[1] == (byte)0 && ip[2] == (byte)0 && ip[3] == (byte)0) { 
+                return false;
+            }
+            return true;
+        }
+        else if (ip[0] >= (byte)128 && ip[0] <= (byte)191) {
+            //B类IP地址, 排除全0或全1
+            if (ip[2] == (byte)1 && ip[3] == (byte)1) {
+                return false;
+            }
+            if (ip[2] == (byte)0 && ip[3] == (byte)0) {
+                return false;
+            }
+            return true;
+        }
+        else if (ip[0] >= (byte)192 && ip[0] <= (byte)223) {
+            //C类IP地址, 排除全0或全1
+            if (ip[3] == (byte)1) {
+                return false;
+            }
+            if (ip[3] == (byte)0) {
+                return false;
+            }
+            return true;
+        }
+        return false;
+    }
+    
+    /**
+     * ipv4 byte to string
+     * @param ip
+     * @return
+     */
+    public static String ipToIPv4Str(byte[] ip) {
+        if (ip.length != 4) {
+            return null;
+        }
+        return new StringBuilder().append(ip[0] & 0xFF).append(".").append(   
+                ip[1] & 0xFF).append(".").append(ip[2] & 0xFF)   
+                .append(".").append(ip[3] & 0xFF).toString(); 
+    }
+    
+    public static byte[] getIP() throws Exception {
+        try {
+            Enumeration allNetInterfaces = NetworkInterface.getNetworkInterfaces();
+            InetAddress ip = null;
+            while (allNetInterfaces.hasMoreElements()) {
+                NetworkInterface netInterface = (NetworkInterface) allNetInterfaces.nextElement();
+                System.out.println(netInterface.getName());
+                Enumeration addresses = netInterface.getInetAddresses();
+                while (addresses.hasMoreElements()) {
+                    ip = (InetAddress) addresses.nextElement();
+                    if (ip != null && ip instanceof Inet4Address) {
+                        byte[] ipByte = ip.getAddress();
+                        System.out.println("get IP " + ipToIPv4Str(ipByte));
+                        //首先，必须能获得合法的IP字符串
+                        if (ipByte.length == 4) {
+                            //判断是否是正确IP                            
+ //                           if (ipCheck(ipByte)) {    
+//                                //判断是否是内网IP
+//                                if (!isInternalIP(ipByte)) {
+                                    return ipByte;
+//                                }
+//                           }
+                        }
+                    } 
+                }
+            }
+            throw new RuntimeException("获取本机ip失败");
+        }
+        catch (Exception e) {
+            //TODO 考虑用cmd获取ip
+            throw e;
+        }
+    }    
 }

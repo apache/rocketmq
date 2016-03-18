@@ -145,12 +145,22 @@ public class Message implements Serializable {
         return this.getProperty(MessageConst.PROPERTY_KEYS);
     }
 
-
+    /**
+     * 由于客户端唯一id存储在keys中，而property存储的该id在keys中的index, 
+     * 依赖key的顺序，因此不要向keys的前面插入数据，
+     * 只向后面追加
+     * @param keys
+     */
     public void setKeys(String keys) {
         this.putProperty(MessageConst.PROPERTY_KEYS, keys);
     }
 
-
+    /**
+     * 由于客户端唯一id存储在keys中，而property存储的该id在keys中的index, 
+     * 依赖key的顺序，因此不要向keys的前面插入数据，
+     * 只向后面追加
+     * @param keys
+     */
     public void setKeys(Collection<String> keys) {
         StringBuffer sb = new StringBuffer();
         for (String k : keys) {
@@ -161,6 +171,26 @@ public class Message implements Serializable {
         this.setKeys(sb.toString().trim());
     }
 
+    /**
+     * 在keys字符串后面加入一个新key，此方法并非线程安全
+     * @param key
+     */
+    void appendKey(String key) {
+        Object keys = this.getKeys();
+        if (keys == null) {
+            this.setKeys(key);
+        }
+        else {
+            StringBuilder sb = new StringBuilder();
+            sb.append(keys);
+            if (!this.getKeys().endsWith(MessageConst.KEY_SEPARATOR)) {               
+                sb.append(MessageConst.KEY_SEPARATOR);
+            }
+            sb.append(key);
+            sb.append(MessageConst.KEY_SEPARATOR);
+            this.setKeys(sb.toString());            
+        }
+    }
 
     public int getDelayTimeLevel() {
         String t = this.getProperty(MessageConst.PROPERTY_DELAY_TIME_LEVEL);

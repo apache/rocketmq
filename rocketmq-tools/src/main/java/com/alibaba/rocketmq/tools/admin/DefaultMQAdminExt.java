@@ -473,4 +473,14 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
         return this.defaultMQAdminExtImpl.getAllTopicGroup(brokerAddr, timeoutMillis);
     }
 
+
+    /* (non-Javadoc)
+     * @see com.alibaba.rocketmq.client.MQAdmin#queryMessageByUniqKey(java.lang.String, java.lang.String)
+     */
+    @Override
+    public MessageExt queryMessageByUniqKey(String topic, String uniqKey)
+            throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
+        return this.defaultMQAdminExtImpl.queryMessageByUniqKey(topic, uniqKey);
+    }
+
 }

@@ -200,6 +200,10 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
         return this.defaultMQPushConsumerImpl.queryMessage(topic, key, maxNum, begin, end);
     }
 
+    @Override
+    public MessageExt queryMessageByUniqKey(String topic, String uniqKey) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
+        return this.defaultMQPushConsumerImpl.queryMessageByUniqKey(topic, uniqKey);
+    }
 
     public AllocateMessageQueueStrategy getAllocateMessageQueueStrategy() {
         return allocateMessageQueueStrategy;

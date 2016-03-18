@@ -85,10 +85,15 @@ public class QueryMessageProcessor implements NettyRequestProcessor {
         // 由于使用sendfile，所以必须要设置
         response.setOpaque(request.getOpaque());
 
+        boolean isUniqKey = false;
+        if (requestHeader.isUniqKey()  != null) {
+            isUniqKey = requestHeader.isUniqKey().booleanValue();
+        }
+        
         final QueryMessageResult queryMessageResult =
                 this.brokerController.getMessageStore().queryMessage(requestHeader.getTopic(),
                     requestHeader.getKey(), requestHeader.getMaxNum(), requestHeader.getBeginTimestamp(),
-                    requestHeader.getEndTimestamp());
+                    requestHeader.getEndTimestamp(), isUniqKey);
         assert queryMessageResult != null;
 
         responseHeader.setIndexLastUpdatePhyoffset(queryMessageResult.getIndexLastUpdatePhyoffset());
