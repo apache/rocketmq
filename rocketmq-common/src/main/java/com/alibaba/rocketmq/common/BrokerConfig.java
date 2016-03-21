@@ -86,6 +86,12 @@ public class BrokerConfig {
     private boolean highSpeedMode = false;
     // 商业化日志采集开关
     private boolean commercialEnable = true;
+    // 商业化定时消息系数(默认:1)
+    private int commercialTimerCount = 1;
+    //商业化事务消息系数(默认:1)
+    private int commercialTransCount = 1;
+    //商业化大消息系数(默认:1)
+    private int commercialBigCount = 1;
     // 通过Java堆来传输消息
     private boolean transferMsgByHeap = true;
     // 定时消息最大延迟时间(默认:40天)
@@ -406,6 +412,29 @@ public class BrokerConfig {
         this.commercialEnable = commercialEnable;
     }
 
+    public int getCommercialTimerCount() {
+        return commercialTimerCount;
+    }
+
+    public void setCommercialTimerCount(final int commercialTimerCount) {
+        this.commercialTimerCount = commercialTimerCount;
+    }
+
+    public int getCommercialTransCount() {
+        return commercialTransCount;
+    }
+
+    public void setCommercialTransCount(final int commercialTransCount) {
+        this.commercialTransCount = commercialTransCount;
+    }
+
+    public int getCommercialBigCount() {
+        return commercialBigCount;
+    }
+
+    public void setCommercialBigCount(final int commercialBigCount) {
+        this.commercialBigCount = commercialBigCount;
+    }
 
     public int getMaxDelayTime() {
         return maxDelayTime;

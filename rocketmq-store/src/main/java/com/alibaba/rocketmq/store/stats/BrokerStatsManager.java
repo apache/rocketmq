@@ -37,10 +37,7 @@ public class BrokerStatsManager {
     public static final String COMMERCIAL_OWNER = "Owner";
     // Message Size limit for one api-calling count.
     public static final double SIZE_PER_COUNT = 64 * 1024;
-    // Counting base when sending transaction message.
-    public static final int TRANSACTION_COUNT_BASE = 100;
-    // Counting base when sending timer message.
-    public static final int TIMER_COUNT_BASE = 100;
+
     /**
      * 读磁盘落后统计
      */
