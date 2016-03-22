@@ -36,12 +36,21 @@ public class SendMessageContext {
     private Object mqTraceContext;
     private Properties extProps;
     private String brokerRegionId;
+    private String msgUniqueKey;
     private long bornTimeStamp;
     //For Commercial
     private String commercialOwner;
     private BrokerStatsManager.StatsType commercialSendStats;
     private int commercialSendSize;
     private int commercialSendTimes;
+
+    public String getMsgUniqueKey() {
+        return msgUniqueKey;
+    }
+
+    public void setMsgUniqueKey(final String msgUniqueKey) {
+        this.msgUniqueKey = msgUniqueKey;
+    }
 
     public long getBornTimeStamp() {
         return bornTimeStamp;

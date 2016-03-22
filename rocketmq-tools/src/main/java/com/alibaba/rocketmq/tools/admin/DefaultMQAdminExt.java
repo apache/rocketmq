@@ -421,6 +421,11 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
         return defaultMQAdminExtImpl.consumeMessageDirectly(consumerGroup, clientId, msgId);
     }
 
+    @Override
+    public ConsumeMessageDirectlyResult consumeMessageDirectly(final String consumerGroup, final String clientId, final String topic, final String msgId) throws RemotingException, MQClientException, InterruptedException, MQBrokerException {
+        return defaultMQAdminExtImpl.consumeMessageDirectly(consumerGroup,clientId,topic,msgId);
+    }
+
 
     @Override
     public List<MessageTrack> messageTrackDetail(MessageExt msg) throws RemotingException, MQClientException, InterruptedException,

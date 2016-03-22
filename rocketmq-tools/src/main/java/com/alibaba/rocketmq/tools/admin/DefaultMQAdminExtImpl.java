@@ -28,8 +28,7 @@ import com.alibaba.rocketmq.common.TopicConfig;
 import com.alibaba.rocketmq.common.UtilAll;
 import com.alibaba.rocketmq.common.admin.*;
 import com.alibaba.rocketmq.common.help.FAQUrl;
-import com.alibaba.rocketmq.common.message.MessageExt;
-import com.alibaba.rocketmq.common.message.MessageQueue;
+import com.alibaba.rocketmq.common.message.*;
 import com.alibaba.rocketmq.common.namesrv.NamesrvUtil;
 import com.alibaba.rocketmq.common.protocol.ResponseCode;
 import com.alibaba.rocketmq.common.protocol.body.*;
@@ -296,6 +295,13 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
 
     @Override
     public MessageExt viewMessage(String topic, String msgId) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
+        try {
+            MessageId oldMsgId = MessageDecoder.decodeMessageId(msgId);
+            //确定是老的客户端生成的msgid,用老的方式查询msg
+            return this.viewMessage(msgId);
+        } catch (Exception e) {
+            log.info("this msgid is created by old client version,the topic is {}, the msgid is {}",topic,msgId);
+        }
         return this.mqClientInstance.getMQAdminImpl().queryMessageByUniqKey(topic, msgId);
     }
 
@@ -750,6 +756,14 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
 
         return this.mqClientInstance.getMQClientAPIImpl().consumeMessageDirectly(RemotingUtil.socketAddress2String(msg.getStoreHost()),
             consumerGroup, clientId, msgId, timeoutMillis * 3);
+    }
+
+    @Override
+    public ConsumeMessageDirectlyResult consumeMessageDirectly(String consumerGroup, String clientId,String topic, String msgId)
+            throws RemotingException, MQClientException, InterruptedException, MQBrokerException {
+        MessageClientExt msg = (MessageClientExt) this.viewMessage(topic,msgId);
+        return this.mqClientInstance.getMQClientAPIImpl().consumeMessageDirectly(RemotingUtil.socketAddress2String(msg.getStoreHost()),
+                consumerGroup, clientId, msg.getOffsetMsgId(), timeoutMillis * 3);
     }
 
 

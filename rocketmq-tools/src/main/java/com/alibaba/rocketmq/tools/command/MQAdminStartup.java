@@ -77,6 +77,7 @@ public class MQAdminStartup {
         initCommand(new BrokerStatusSubCommand());
         initCommand(new QueryMsgByIdSubCommand());
         initCommand(new QueryMsgByKeySubCommand());
+        initCommand(new QueryMsgByUniqueKeySubCommand());
         initCommand(new QueryMsgByOffsetSubCommand());
         initCommand(new PrintMessageSubCommand());
         initCommand(new SendMsgStatusCommand());
@@ -113,6 +114,7 @@ public class MQAdminStartup {
         
         initCommand(new CheckMsgSendRTCommand());
         initCommand(new CLusterSendMsgRTCommand());
+
     }
 
 

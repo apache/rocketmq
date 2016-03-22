@@ -442,7 +442,12 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
                     sendMessageContext.setMsgId(responseHeader.getMsgId());
                     sendMessageContext.setQueueId(responseHeader.getQueueId());
                     sendMessageContext.setQueueOffset(responseHeader.getQueueOffset());
-
+                    String uniqueKey = msgInner.getProperties().get(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX);
+                    //对老的客户端兼容，没有unique msgid则以offset msgid为准
+                    if(uniqueKey ==null){
+                        uniqueKey =responseHeader.getMsgId();
+                    }
+                    sendMessageContext.setMsgUniqueKey(uniqueKey);
                     //ONS 商业化：消息发送成功，计费Size考虑 body + properties
                     int wroteSize = putMessageResult.getAppendMessageResult().getWroteBytes();
                     int incValue = (int) Math.ceil(wroteSize / BrokerStatsManager.SIZE_PER_COUNT);
