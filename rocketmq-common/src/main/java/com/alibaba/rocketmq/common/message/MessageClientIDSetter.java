@@ -64,7 +64,12 @@ public class MessageClientIDSetter {
         tempBuffer.position(2);
         tempBuffer.putInt(UtilAll.getPid());//2
         tempBuffer.position(0);
-        tempBuffer.put(UtilAll.getIP());    //4  
+        try {
+            tempBuffer.put(UtilAll.getIP());    //4
+        }
+        catch (Exception e) {
+            tempBuffer.put(createFakeIP()); //4
+        }
         tempBuffer.position(6);
         tempBuffer.putInt(MessageClientIDSetter.class.getClassLoader().hashCode()); //4
         sb.append(UtilAll.bytes2string(tempBuffer.array()));            
@@ -164,8 +169,42 @@ public class MessageClientIDSetter {
         return msg.getProperty(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX);
     }
         
+    public static byte[] createFakeIP() {
+        ByteBuffer bb = ByteBuffer.allocate(8);
+        bb.putLong(System.currentTimeMillis());
+        bb.position(4);
+        byte[] fakeIP = new byte[4];        
+        bb.get(fakeIP);
+        return fakeIP;
+    }
+    
+    private static void printIP(byte[] ip) {
+        String str = UtilAll.ipToIPv4Str(ip);
+        System.out.println(str);
+    }
+    
     public static void main(String[] args) throws Exception {
-                           
+                         
+        byte[] realIP = UtilAll.getIP();
+        printIP(realIP);
+        
+        if (realIP[3] > (byte)248 && realIP[3] < (byte)250) {
+            System.out.println("true");
+        }
+        
+        byte[] fakeIP = createFakeIP();          
+        printIP(fakeIP);
+        
+        byte[] innerIP = new byte[4];
+        innerIP[0] = (byte)172;
+        innerIP[1] = (byte)16;
+        innerIP[2] = (byte)217;
+        innerIP[3] = (byte)1;
+        System.out.println("inner = " + UtilAll.isInternalIP(innerIP));
+        
+        System.out.println("end");
+        
+        
         Calendar cal = Calendar.getInstance();
         cal.setTimeInMillis(1457442383176L);
         System.out.println(cal.getTime());

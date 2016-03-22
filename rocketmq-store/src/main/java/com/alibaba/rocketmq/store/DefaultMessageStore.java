@@ -889,15 +889,15 @@ public class DefaultMessageStore implements MessageStore {
                         lastQueryMsgTime = msg.getStoreTimestamp();
                     }
 
-                    String[] keyArray = msg.getKeys().split(MessageConst.KEY_SEPARATOR);
-                    if (topic.equals(msg.getTopic())) {
-                        for (String k : keyArray) {
-                            if (k.equals(key)) {
-                                match = true;
-                                break;
-                            }
-                        }
-                    }
+//                    String[] keyArray = msg.getKeys().split(MessageConst.KEY_SEPARATOR);
+//                    if (topic.equals(msg.getTopic())) {
+//                        for (String k : keyArray) {
+//                            if (k.equals(key)) {
+//                                match = true;
+//                                break;
+//                            }
+//                        }
+//                    }
 
                     if (match) {
                         SelectMapedBufferResult result = this.commitLog.getData(offset, false);
