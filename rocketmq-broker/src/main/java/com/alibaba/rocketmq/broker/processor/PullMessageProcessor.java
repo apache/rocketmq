@@ -52,11 +52,8 @@ import io.netty.channel.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.net.InetSocketAddress;
-import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.util.List;
-import java.util.Map;
 
 
 /**
@@ -276,30 +273,18 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                     break;
             }
 
-            // 消息轨迹 & 商业化：记录客户端拉取的消息记录（不表示消费成功）
+            // pull消息执行Hook
             if (this.hasConsumeMessageHook()) {
-
                 ConsumeMessageContext context = new ConsumeMessageContext();
                 context.setConsumerGroup(requestHeader.getConsumerGroup());
                 context.setTopic(requestHeader.getTopic());
-                context.setClientHost(RemotingHelper.parseChannelRemoteAddr(channel));
-                context.setStoreHost(this.brokerController.getBrokerAddr());
                 context.setQueueId(requestHeader.getQueueId());
 
                 String owner = request.getExtFields().get(BrokerStatsManager.COMMERCIAL_OWNER);
 
                 switch (response.getCode()) {
                     case ResponseCode.SUCCESS:
-                        //消息轨迹
-                        final SocketAddress storeHost = new InetSocketAddress(brokerController.getBrokerConfig().getBrokerIP1(),
-                                brokerController.getNettyServerConfig().getListenPort());
-                        Map<String, Long> messageIds = this.brokerController.getMessageStore().getMessageIds(requestHeader.getTopic(),
-                                requestHeader.getQueueId(), requestHeader.getQueueOffset(),
-                                requestHeader.getQueueOffset() + getMessageResult.getMessageCount(), storeHost);
-                        context.setMessageIds(messageIds);
-                        context.setBodyLength(getMessageResult.getBufferTotalSize() / getMessageResult.getMessageCount());
-
-                        //ONS商业化
+                        // ONS商业化
                         context.setCommercialRcvStats(BrokerStatsManager.StatsType.RCV_SUCCESS);
                         context.setCommercialRcvTimes(getMessageResult.getMsgCount4Commercial());
                         context.setCommercialRcvSize(getMessageResult.getBufferTotalSize());
