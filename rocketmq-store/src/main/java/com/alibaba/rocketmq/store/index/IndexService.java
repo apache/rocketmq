@@ -233,8 +233,8 @@ public class IndexService {
             switch (tranType) {
                 case MessageSysFlag.TransactionNotType:
                 case MessageSysFlag.TransactionPreparedType:
-                    break;
                 case MessageSysFlag.TransactionCommitType:
+                    break;
                 case MessageSysFlag.TransactionRollbackType:
                     return;
             }
