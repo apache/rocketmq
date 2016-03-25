@@ -509,7 +509,7 @@ public class UtilAll {
         
     /**
      * 判断一个IP地址是否是合法IP
-     * @param text
+     * @param ip
      * @return
      */
     private static boolean ipCheck(byte[] ip) {
@@ -573,10 +573,11 @@ public class UtilAll {
         try {
             Enumeration allNetInterfaces = NetworkInterface.getNetworkInterfaces();
             InetAddress ip = null;
+            byte[] internalIP = null;
             while (allNetInterfaces.hasMoreElements()) {
                 NetworkInterface netInterface = (NetworkInterface) allNetInterfaces.nextElement();
-      //          System.out.println(netInterface.getName());
-                Enumeration addresses = netInterface.getInetAddresses();
+                System.out.println(netInterface.getName());
+                Enumeration addresses = netInterface.getInetAddresses();                
                 while (addresses.hasMoreElements()) {
                     ip = (InetAddress) addresses.nextElement();
                     if (ip != null && ip instanceof Inet4Address) {
@@ -585,17 +586,25 @@ public class UtilAll {
                         //首先，必须能获得合法的IP字符串
                         if (ipByte.length == 4) {
                             //判断是否是正确IP                            
- //                           if (ipCheck(ipByte)) {    
-//                                //判断是否是内网IP
-//                                if (!isInternalIP(ipByte)) {
-                                    return ipByte;
-//                                }
-//                           }
+                            if (ipCheck(ipByte)) {
+                                  //判断是否是内网IP
+                                   if (!isInternalIP(ipByte)) {
+                                        return ipByte;//非内网IP立刻返回
+                                    }
+                                   else if (internalIP == null){
+                                       internalIP = ipByte;//内网IP， 记录第一个
+                                   }
+                           }
                         }
                     } 
                 }
             }
-            throw new RuntimeException("获取本机ip失败");
+            if (internalIP != null) {//未能取得IP但是有内网IP
+                return internalIP;
+            }
+            else {
+                throw new RuntimeException("获取本机ip失败");
+            }
         }
         catch (Exception e) {
 //            //TODO 考虑用cmd获取ip
