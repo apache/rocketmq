@@ -28,8 +28,7 @@ import com.alibaba.rocketmq.common.TopicConfig;
 import com.alibaba.rocketmq.common.UtilAll;
 import com.alibaba.rocketmq.common.admin.*;
 import com.alibaba.rocketmq.common.help.FAQUrl;
-import com.alibaba.rocketmq.common.message.MessageExt;
-import com.alibaba.rocketmq.common.message.MessageQueue;
+import com.alibaba.rocketmq.common.message.*;
 import com.alibaba.rocketmq.common.namesrv.NamesrvUtil;
 import com.alibaba.rocketmq.common.protocol.ResponseCode;
 import com.alibaba.rocketmq.common.protocol.body.*;
@@ -243,6 +242,13 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
 
     @Override
     public MessageExt viewMessage(String topic, String msgId) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
+        try {
+            MessageId oldMsgId = MessageDecoder.decodeMessageId(msgId);
+            //确定是老的客户端生成的msgid,用老的方式查询msg
+            return this.viewMessage(msgId);
+        } catch (Exception e) {
+            log.warn("the msgid maybe created by new client",e);
+        }
         return this.mqClientInstance.getMQAdminImpl().queryMessageByUniqKey(topic, msgId);
     }
 
@@ -655,6 +661,19 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
 
         return this.mqClientInstance.getMQClientAPIImpl().consumeMessageDirectly(RemotingUtil.socketAddress2String(msg.getStoreHost()),
                 consumerGroup, clientId, msgId, timeoutMillis * 3);
+    }
+
+    @Override
+    public ConsumeMessageDirectlyResult consumeMessageDirectly(final String consumerGroup, final String clientId, final String topic, final String msgId) throws RemotingException, MQClientException, InterruptedException, MQBrokerException {
+        MessageExt msg = this.viewMessage(topic,msgId);
+        if(msg.getProperty(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX)==null){
+            return this.mqClientInstance.getMQClientAPIImpl().consumeMessageDirectly(RemotingUtil.socketAddress2String(msg.getStoreHost()),
+                    consumerGroup, clientId, msgId, timeoutMillis * 3);
+        }else{
+            MessageClientExt msgClient = (MessageClientExt) msg;
+            return this.mqClientInstance.getMQClientAPIImpl().consumeMessageDirectly(RemotingUtil.socketAddress2String(msg.getStoreHost()),
+                    consumerGroup, clientId, msgClient.getOffsetMsgId(), timeoutMillis * 3);
+        }
     }
 
     @Override

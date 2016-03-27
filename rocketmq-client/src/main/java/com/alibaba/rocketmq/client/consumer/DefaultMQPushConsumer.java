@@ -28,7 +28,9 @@ import com.alibaba.rocketmq.client.impl.consumer.DefaultMQPushConsumerImpl;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.UtilAll;
 import com.alibaba.rocketmq.common.consumer.ConsumeFromWhere;
+import com.alibaba.rocketmq.common.message.MessageDecoder;
 import com.alibaba.rocketmq.common.message.MessageExt;
+import com.alibaba.rocketmq.common.message.MessageId;
 import com.alibaba.rocketmq.common.message.MessageQueue;
 import com.alibaba.rocketmq.common.protocol.heartbeat.MessageModel;
 import com.alibaba.rocketmq.remoting.RPCHook;
@@ -214,6 +216,12 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
 
     @Override
     public MessageExt viewMessage(String topic, String msgId) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
+        try {
+            MessageId oldMsgId = MessageDecoder.decodeMessageId(msgId);
+            //确定是老的客户端生成的msgid,用老的方式查询msg
+            return this.viewMessage(msgId);
+        } catch (Exception e) {
+        }
         return this.defaultMQPushConsumerImpl.queryMessageByUniqKey(topic, msgId);
     }
 

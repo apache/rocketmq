@@ -7,22 +7,13 @@
  */
 package com.alibaba.rocketmq.common.message;
 
-import java.io.File;
-import java.lang.management.RuntimeMXBean;
-import java.lang.reflect.Array;
-import java.net.InetAddress;
+import com.alibaba.rocketmq.common.UtilAll;
+
 import java.nio.ByteBuffer;
-import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.UUID;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
-
-import com.alibaba.rocketmq.common.UtilAll;
-
-import io.netty.util.internal.StringUtil;
 
 /**
  * 类MessageClientIDDecoder.java的实现描述：TODO 类实现描述 

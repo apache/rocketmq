@@ -140,6 +140,7 @@ public class MQAdminStartup {
         initCommand(new QueryMsgByIdSubCommand());
         initCommand(new QueryMsgByKeySubCommand());
         initCommand(new QueryMsgByOffsetSubCommand());
+        initCommand(new QueryMsgByUniqueKeySubCommand());
         initCommand(new PrintMessageSubCommand());
         initCommand(new SendMsgStatusCommand());
         initCommand(new BrokerConsumeStatsSubCommad());

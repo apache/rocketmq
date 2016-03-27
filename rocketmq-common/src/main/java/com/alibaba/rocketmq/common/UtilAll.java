@@ -563,13 +563,13 @@ public class UtilAll {
             byte[] internalIP = null;
             while (allNetInterfaces.hasMoreElements()) {
                 NetworkInterface netInterface = (NetworkInterface) allNetInterfaces.nextElement();
-                System.out.println(netInterface.getName());
+            //    System.out.println(netInterface.getName());
                 Enumeration addresses = netInterface.getInetAddresses();                
                 while (addresses.hasMoreElements()) {
                     ip = (InetAddress) addresses.nextElement();
                     if (ip != null && ip instanceof Inet4Address) {
                         byte[] ipByte = ip.getAddress();
-                        System.out.println("get IP " + ipToIPv4Str(ipByte));
+                //        System.out.println("get IP " + ipToIPv4Str(ipByte));
                         //首先，必须能获得合法的IP字符串
                         if (ipByte.length == 4) {
                             //判断是否是正确IP                            

@@ -23,7 +23,9 @@ import com.alibaba.rocketmq.client.exception.MQBrokerException;
 import com.alibaba.rocketmq.client.exception.MQClientException;
 import com.alibaba.rocketmq.client.impl.consumer.DefaultMQPullConsumerImpl;
 import com.alibaba.rocketmq.common.MixAll;
+import com.alibaba.rocketmq.common.message.MessageDecoder;
 import com.alibaba.rocketmq.common.message.MessageExt;
+import com.alibaba.rocketmq.common.message.MessageId;
 import com.alibaba.rocketmq.common.message.MessageQueue;
 import com.alibaba.rocketmq.common.protocol.heartbeat.MessageModel;
 import com.alibaba.rocketmq.remoting.RPCHook;
@@ -333,6 +335,12 @@ public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsume
 
     @Override
     public MessageExt viewMessage(String topic, String uniqKey) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
+        try {
+            MessageId oldMsgId = MessageDecoder.decodeMessageId(uniqKey);
+            //确定是老的客户端生成的msgid,用老的方式查询msg
+            return this.viewMessage(uniqKey);
+        } catch (Exception e) {
+        }
         return this.defaultMQPullConsumerImpl.queryMessageByUniqKey(topic, uniqKey);
     }
 
