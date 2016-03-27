@@ -463,6 +463,12 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
         return this.mQClientFactory.getMQAdminImpl().queryMessage(topic, key, maxNum, begin, end);
     }
 
+    public MessageExt queryMessageByUniqKey(String topic, String uniqKey) throws MQClientException,
+            InterruptedException {
+        return this.mQClientFactory.getMQAdminImpl().queryMessageByUniqKey(topic, uniqKey);
+     }
+
+
     public void registerMessageListener(MessageListener messageListener) {
         this.messageListenerInner = messageListener;
     }

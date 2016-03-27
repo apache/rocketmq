@@ -231,8 +231,8 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
 
 
     @Override
-    public MessageExt viewMessage(String msgId) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
-        return this.defaultMQProducerImpl.viewMessage(msgId);
+    public MessageExt viewMessage(String offsetMsgId) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
+        return this.defaultMQProducerImpl.viewMessage(offsetMsgId);
     }
 
 
@@ -240,6 +240,11 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     public QueryResult queryMessage(String topic, String key, int maxNum, long begin, long end)
             throws MQClientException, InterruptedException {
         return this.defaultMQProducerImpl.queryMessage(topic, key, maxNum, begin, end);
+    }
+    
+    @Override
+    public MessageExt viewMessage(String topic, String msgId) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
+        return this.defaultMQProducerImpl.queryMessageByUniqKey(topic, msgId);
     }
 
 

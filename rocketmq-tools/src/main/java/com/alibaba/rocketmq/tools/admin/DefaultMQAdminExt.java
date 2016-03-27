@@ -122,8 +122,8 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
 
 
     @Override
-    public MessageExt viewMessage(String msgId) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
-        return defaultMQAdminExtImpl.viewMessage(msgId);
+    public MessageExt viewMessage(String offsetMsgId) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
+        return defaultMQAdminExtImpl.viewMessage(offsetMsgId);
     }
 
 
@@ -408,6 +408,16 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
     public TopicConfigSerializeWrapper getAllTopicGroup(final String brokerAddr, long timeoutMillis) throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException,
             RemotingConnectException, MQBrokerException {
         return this.defaultMQAdminExtImpl.getAllTopicGroup(brokerAddr, timeoutMillis);
+    }
+
+
+    /* (non-Javadoc)
+     * @see com.alibaba.rocketmq.client.MQAdmin#queryMessageByUniqKey(java.lang.String, java.lang.String)
+     */
+    @Override
+    public MessageExt viewMessage(String topic, String msgId)
+            throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
+        return this.defaultMQAdminExtImpl.viewMessage(topic, msgId);
     }
 
     public String getAdminExtGroup() {

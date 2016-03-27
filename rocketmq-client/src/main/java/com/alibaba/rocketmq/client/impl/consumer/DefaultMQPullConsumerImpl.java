@@ -457,6 +457,12 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
         return this.mQClientFactory.getMQAdminImpl().queryMessage(topic, key, maxNum, begin, end);
     }
 
+    public MessageExt queryMessageByUniqKey(String topic, String uniqKey)
+            throws MQClientException, InterruptedException {
+        this.makeSureStateOK();
+        return this.mQClientFactory.getMQAdminImpl().queryMessageByUniqKey(topic, uniqKey);
+    }
+
     public long searchOffset(MessageQueue mq, long timestamp) throws MQClientException {
         this.makeSureStateOK();
         return this.mQClientFactory.getMQAdminImpl().searchOffset(mq, timestamp);

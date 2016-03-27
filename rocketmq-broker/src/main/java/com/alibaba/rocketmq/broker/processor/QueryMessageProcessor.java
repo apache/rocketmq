@@ -83,6 +83,11 @@ public class QueryMessageProcessor implements NettyRequestProcessor {
         // 由于使用sendfile，所以必须要设置
         response.setOpaque(request.getOpaque());
 
+        //如果没有MaxNum，则设置默认
+        if (requestHeader.getMaxNum() == null) {
+            requestHeader.setMaxNum(this.brokerController.getMessageStoreConfig().getDefaultQueryMaxNum());
+        }
+
         final QueryMessageResult queryMessageResult =
                 this.brokerController.getMessageStore().queryMessage(requestHeader.getTopic(),
                         requestHeader.getKey(), requestHeader.getMaxNum(), requestHeader.getBeginTimestamp(),

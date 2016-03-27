@@ -149,8 +149,9 @@ public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsume
 
 
     @Override
-    public MessageExt viewMessage(String msgId) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
-        return this.defaultMQPullConsumerImpl.viewMessage(msgId);
+    public MessageExt viewMessage(String offsetMsgId) throws RemotingException, MQBrokerException,
+            InterruptedException, MQClientException {
+        return this.defaultMQPullConsumerImpl.viewMessage(offsetMsgId);
     }
 
 
@@ -328,6 +329,11 @@ public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsume
     @Override
     public Set<MessageQueue> fetchMessageQueuesInBalance(String topic) throws MQClientException {
         return this.defaultMQPullConsumerImpl.fetchMessageQueuesInBalance(topic);
+    }
+
+    @Override
+    public MessageExt viewMessage(String topic, String uniqKey) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
+        return this.defaultMQPullConsumerImpl.queryMessageByUniqKey(topic, uniqKey);
     }
 
     @Override

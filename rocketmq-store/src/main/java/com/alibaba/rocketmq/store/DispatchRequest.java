@@ -31,6 +31,8 @@ public class DispatchRequest {
     private final long consumeQueueOffset;
     private final String keys;
     private final boolean success;
+    private final String uniqKey;
+
     /**
      * 事务相关部分
      */
@@ -39,19 +41,20 @@ public class DispatchRequest {
 
 
     public DispatchRequest(//
-                           final String topic,// 1
-                           final int queueId,// 2
-                           final long commitLogOffset,// 3
-                           final int msgSize,// 4
-                           final long tagsCode,// 5
-                           final long storeTimestamp,// 6
-                           final long consumeQueueOffset,// 7
-                           final String keys,// 8
-                           /**
-                            * 事务相关部分
-                            */
-                           final int sysFlag,// 9
-                           final long preparedTransactionOffset// 10
+            final String topic,// 1
+            final int queueId,// 2
+            final long commitLogOffset,// 3
+            final int msgSize,// 4
+            final long tagsCode,// 5
+            final long storeTimestamp,// 6
+            final long consumeQueueOffset,// 7
+            final String keys,// 8
+            final String uniqKey, //唯一key索引
+            /**
+             * 事务相关部分
+             */
+            final int sysFlag,// 9
+            final long preparedTransactionOffset// 10
     ) {
         this.topic = topic;
         this.queueId = queueId;
@@ -61,6 +64,7 @@ public class DispatchRequest {
         this.storeTimestamp = storeTimestamp;
         this.consumeQueueOffset = consumeQueueOffset;
         this.keys = keys;
+        this.uniqKey = uniqKey;
 
         /**
          * 事务相关部分
@@ -70,7 +74,10 @@ public class DispatchRequest {
         this.success = true;
     }
 
-
+    /**
+     * 失败
+     * @param size
+     */
     public DispatchRequest(int size) {
         // 1
         this.topic = "";
@@ -88,6 +95,8 @@ public class DispatchRequest {
         this.consumeQueueOffset = 0;
         // 8
         this.keys = "";
+        //9
+        this.uniqKey = null;
 
         /**
          * 事务相关部分
@@ -97,7 +106,11 @@ public class DispatchRequest {
         this.success = false;
     }
 
-
+    /**
+     * Blank Message Code时调用
+     * @param size
+     * @param success
+     */
     public DispatchRequest(int size, boolean success) {
         // 1
         this.topic = "";
@@ -115,6 +128,8 @@ public class DispatchRequest {
         this.consumeQueueOffset = 0;
         // 8
         this.keys = "";
+        // 9
+        this.uniqKey = null;
 
         /**
          * 事务相关部分
@@ -178,4 +193,10 @@ public class DispatchRequest {
     public boolean isSuccess() {
         return success;
     }
+
+    public String getUniqKey() {
+        return uniqKey;
+    }
+
+
 }
