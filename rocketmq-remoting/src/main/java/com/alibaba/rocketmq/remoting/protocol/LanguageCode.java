@@ -11,17 +11,11 @@ public enum LanguageCode {
     OTHER((byte) 7),
     HTTP((byte) 8);
 
+    private byte code;
+
     LanguageCode(byte code) {
         this.code = code;
     }
-
-    private byte code;
-
-
-    public byte getCode() {
-        return code;
-    }
-
 
     public static LanguageCode valueOf(byte code) {
         for (LanguageCode languageCode : LanguageCode.values()) {
@@ -30,5 +24,9 @@ public enum LanguageCode {
             }
         }
         return null;
+    }
+
+    public byte getCode() {
+        return code;
     }
 }

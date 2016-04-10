@@ -1,21 +1,14 @@
 /**
- * 
+ *
  */
 package com.alibaba.rocketmq.broker.plugin;
 
-import java.net.SocketAddress;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
-
 import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.common.protocol.heartbeat.SubscriptionData;
-import com.alibaba.rocketmq.store.GetMessageResult;
-import com.alibaba.rocketmq.store.MessageExtBrokerInner;
-import com.alibaba.rocketmq.store.MessageStore;
-import com.alibaba.rocketmq.store.PutMessageResult;
-import com.alibaba.rocketmq.store.QueryMessageResult;
-import com.alibaba.rocketmq.store.SelectMapedBufferResult;
+import com.alibaba.rocketmq.store.*;
+
+import java.util.HashMap;
+import java.util.Set;
 
 /**
  * @author qinan.qn@taobao.com 2015年12月9日
@@ -56,7 +49,7 @@ public abstract class AbstractPluginMessageStore implements MessageStore {
 
     @Override
     public GetMessageResult getMessage(String group, String topic, int queueId, long offset,
-            int maxMsgNums, SubscriptionData subscriptionData) {
+                                       int maxMsgNums, SubscriptionData subscriptionData) {
         return next.getMessage(group, topic, queueId, offset, maxMsgNums, subscriptionData);
     }
 
@@ -147,7 +140,7 @@ public abstract class AbstractPluginMessageStore implements MessageStore {
 
     @Override
     public QueryMessageResult queryMessage(String topic, String key, int maxNum, long begin,
-            long end) {
+                                           long end) {
         return next.queryMessage(topic, key, maxNum, begin, end);
     }
 
@@ -177,12 +170,6 @@ public abstract class AbstractPluginMessageStore implements MessageStore {
     }
 
     @Override
-    public Map<String, Long> getMessageIds(String topic, int queueId, long minOffset,
-            long maxOffset, SocketAddress storeHost) {
-        return next.getMessageIds(topic, queueId, minOffset, maxOffset, storeHost);
-    }
-
-    @Override
     public boolean checkInDiskByConsumeOffset(String topic, int queueId, long consumeOffset) {
         return next.checkInDiskByConsumeOffset(topic, queueId, consumeOffset);
     }
@@ -191,22 +178,25 @@ public abstract class AbstractPluginMessageStore implements MessageStore {
     public long dispatchBehindBytes() {
         return next.dispatchBehindBytes();
     }
-    
+
     @Override
     public long flush() {
         return next.flush();
     }
+
+    @Override
+    public boolean resetWriteOffset(long phyOffset) {
+        return next.resetWriteOffset(phyOffset);
+    }
+
     @Override
     public long getConfirmOffset() {
         return next.getConfirmOffset();
     }
+
     @Override
     public void setConfirmOffset(long phyOffset) {
         next.setConfirmOffset(phyOffset);
     }
-    @Override
-    public void resetWriteOffset(long phyOffset) {
-        next.resetWriteOffset(phyOffset);
-    }
-    
+
 }

@@ -13,7 +13,7 @@ import java.io.File;
 
 /**
  * Name server 的配置类
- * 
+ *
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @author lansheng.zj@taobao.com
  */

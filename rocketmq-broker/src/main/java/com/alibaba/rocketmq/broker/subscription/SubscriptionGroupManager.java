@@ -1,12 +1,12 @@
 /**
  * Copyright (C) 2010-2013 Alibaba Group Holding Limited
- *
+ * <p/>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p/>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p/>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -33,19 +33,22 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * 用来管理订阅组，包括订阅权限等
- * 
+ *
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-26
  */
 public class SubscriptionGroupManager extends ConfigManager {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.BrokerLoggerName);
-    private transient BrokerController brokerController;
-
     // 订阅组
     private final ConcurrentHashMap<String, SubscriptionGroupConfig> subscriptionGroupTable =
             new ConcurrentHashMap<String, SubscriptionGroupConfig>(1024);
     private final DataVersion dataVersion = new DataVersion();
+    private transient BrokerController brokerController;
 
+
+    public SubscriptionGroupManager() {
+        this.init();
+    }
 
     private void init() {
         {
@@ -96,11 +99,6 @@ public class SubscriptionGroupManager extends ConfigManager {
     }
 
 
-    public SubscriptionGroupManager() {
-        this.init();
-    }
-
-
     public SubscriptionGroupManager(BrokerController brokerController) {
         this.brokerController = brokerController;
         this.init();
@@ -111,8 +109,7 @@ public class SubscriptionGroupManager extends ConfigManager {
         SubscriptionGroupConfig old = this.subscriptionGroupTable.put(config.getGroupName(), config);
         if (old != null) {
             log.info("update subscription group config, old: " + old + " new: " + config);
-        }
-        else {
+        } else {
             log.info("create new subscription group, " + config);
         }
 
@@ -144,11 +141,10 @@ public class SubscriptionGroupManager extends ConfigManager {
         return this.encode(false);
     }
 
-
-    public String encode(final boolean prettyFormat) {
-        return RemotingSerializable.toJson(this, prettyFormat);
+    @Override
+    public String configFilePath() {
+        return BrokerPathConfigHelper.getSubscriptionGroupPath(this.brokerController.getMessageStoreConfig().getStorePathRootDir());
     }
-
 
     @Override
     public void decode(String jsonString) {
@@ -162,6 +158,9 @@ public class SubscriptionGroupManager extends ConfigManager {
         }
     }
 
+    public String encode(final boolean prettyFormat) {
+        return RemotingSerializable.toJson(this, prettyFormat);
+    }
 
     private void printLoadDataWhenFirstBoot(final SubscriptionGroupManager sgm) {
         Iterator<Entry<String, SubscriptionGroupConfig>> it = sgm.getSubscriptionGroupTable().entrySet().iterator();
@@ -170,13 +169,6 @@ public class SubscriptionGroupManager extends ConfigManager {
             log.info("load exist subscription group, {}", next.getValue().toString());
         }
     }
-
-
-    @Override
-    public String configFilePath() {
-        return BrokerPathConfigHelper.getSubscriptionGroupPath(this.brokerController.getMessageStoreConfig().getStorePathRootDir());
-    }
-
 
     public ConcurrentHashMap<String, SubscriptionGroupConfig> getSubscriptionGroupTable() {
         return subscriptionGroupTable;
@@ -194,8 +186,7 @@ public class SubscriptionGroupManager extends ConfigManager {
             log.info("delete subscription group OK, subscription group: " + old);
             this.dataVersion.nextVersion();
             this.persist();
-        }
-        else {
+        } else {
             log.warn("delete subscription group failed, subscription group: " + old + " not exist");
         }
     }

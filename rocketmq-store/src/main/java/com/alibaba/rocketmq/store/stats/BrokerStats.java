@@ -1,12 +1,12 @@
 /**
  * Copyright (C) 2010-2013 Alibaba Group Holding Limited
- *
+ * <p/>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p/>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p/>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -15,33 +15,29 @@
  */
 package com.alibaba.rocketmq.store.stats;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.store.DefaultMessageStore;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 /**
  * Broker上的一些统计数据
- * 
+ *
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-10-23
  */
 public class BrokerStats {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.BrokerLoggerName);
-
+    private final DefaultMessageStore defaultMessageStore;
     // 昨天凌晨00:00:00记录的put消息总数
     private volatile long msgPutTotalYesterdayMorning;
     // 今天凌晨00:00:00记录的put消息总数
     private volatile long msgPutTotalTodayMorning;
-
     // 昨天凌晨00:00:00记录的get消息总数
     private volatile long msgGetTotalYesterdayMorning;
     // 今天凌晨00:00:00记录的get消息总数
     private volatile long msgGetTotalTodayMorning;
-
-    private final DefaultMessageStore defaultMessageStore;
 
 
     public BrokerStats(DefaultMessageStore defaultMessageStore) {

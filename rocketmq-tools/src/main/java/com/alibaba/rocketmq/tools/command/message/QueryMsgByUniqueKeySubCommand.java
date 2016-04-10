@@ -81,7 +81,7 @@ public class QueryMsgByUniqueKeySubCommand implements SubCommand {
     }
 
 
-    public static void queryById(final DefaultMQAdminExt admin,final String topic, final String msgId) throws MQClientException,
+    public static void queryById(final DefaultMQAdminExt admin, final String topic, final String msgId) throws MQClientException,
             RemotingException, MQBrokerException, InterruptedException, IOException {
         MessageExt msg = admin.viewMessage(topic,msgId);
 

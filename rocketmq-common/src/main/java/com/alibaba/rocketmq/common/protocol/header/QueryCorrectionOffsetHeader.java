@@ -10,7 +10,7 @@ import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
 
 /**
  * 查找被纠正的 offset
- * 
+ *
  * @author: manhong.yqd<jodie.yqd@gmail.com>
  * @since: 14-08-06
  */

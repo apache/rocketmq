@@ -20,33 +20,6 @@ public class Operator extends Op {
         this.compareable = compareable;
     }
 
-
-    public int getPriority() {
-        return priority;
-    }
-
-
-    public boolean isCompareable() {
-        return compareable;
-    }
-
-
-    // -1 小于; 0 等于; 1大于
-    public int compare(Operator operator) {
-        if (this.priority > operator.priority)
-            return 1;
-        else if (this.priority == operator.priority)
-            return 0;
-        else
-            return -1;
-    }
-
-
-    public boolean isSpecifiedOp(String operator) {
-        return this.getSymbol().equals(operator);
-    }
-
-
     public static Operator createOperator(String operator) {
         if (LEFTPARENTHESIS.getSymbol().equals(operator))
             return LEFTPARENTHESIS;
@@ -58,5 +31,27 @@ public class Operator extends Op {
             return OR;
         else
             throw new IllegalArgumentException("unsupport operator " + operator);
+    }
+
+    public int getPriority() {
+        return priority;
+    }
+
+    public boolean isCompareable() {
+        return compareable;
+    }
+
+    // -1 小于; 0 等于; 1大于
+    public int compare(Operator operator) {
+        if (this.priority > operator.priority)
+            return 1;
+        else if (this.priority == operator.priority)
+            return 0;
+        else
+            return -1;
+    }
+
+    public boolean isSpecifiedOp(String operator) {
+        return this.getSymbol().equals(operator);
     }
 }

@@ -1,20 +1,16 @@
 package com.alibaba.common.lang;
 
 import java.lang.reflect.Array;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 
 /**
  * 有关数组处理的工具类。
- * 
+ * <p/>
  * <p>
  * 这个类中的每个方法都可以“安全”地处理<code>null</code>，而不会抛出<code>NullPointerException</code>。
  * </p>
- * 
+ *
  * @author Michael Zhou
  * @version $Id: ArrayUtil.java 1479 2006-01-13 05:40:46Z baobao $
  */
@@ -29,67 +25,109 @@ public class ArrayUtil {
      * ==
      */
 
-    /** 空的<code>Object</code>数组。 */
+    /**
+     * 空的<code>Object</code>数组。
+     */
     public static final Object[] EMPTY_OBJECT_ARRAY = new Object[0];
 
-    /** 空的<code>Class</code>数组。 */
+    /**
+     * 空的<code>Class</code>数组。
+     */
     public static final Class[] EMPTY_CLASS_ARRAY = new Class[0];
 
-    /** 空的<code>String</code>数组。 */
+    /**
+     * 空的<code>String</code>数组。
+     */
     public static final String[] EMPTY_STRING_ARRAY = new String[0];
 
-    /** 空的<code>long</code>数组。 */
+    /**
+     * 空的<code>long</code>数组。
+     */
     public static final long[] EMPTY_LONG_ARRAY = new long[0];
 
-    /** 空的<code>Long</code>数组。 */
+    /**
+     * 空的<code>Long</code>数组。
+     */
     public static final Long[] EMPTY_LONG_OBJECT_ARRAY = new Long[0];
 
-    /** 空的<code>int</code>数组。 */
+    /**
+     * 空的<code>int</code>数组。
+     */
     public static final int[] EMPTY_INT_ARRAY = new int[0];
 
-    /** 空的<code>Integer</code>数组。 */
+    /**
+     * 空的<code>Integer</code>数组。
+     */
     public static final Integer[] EMPTY_INTEGER_OBJECT_ARRAY = new Integer[0];
 
-    /** 空的<code>short</code>数组。 */
+    /**
+     * 空的<code>short</code>数组。
+     */
     public static final short[] EMPTY_SHORT_ARRAY = new short[0];
 
-    /** 空的<code>Short</code>数组。 */
+    /**
+     * 空的<code>Short</code>数组。
+     */
     public static final Short[] EMPTY_SHORT_OBJECT_ARRAY = new Short[0];
 
-    /** 空的<code>byte</code>数组。 */
+    /**
+     * 空的<code>byte</code>数组。
+     */
     public static final byte[] EMPTY_BYTE_ARRAY = new byte[0];
 
-    /** 空的<code>Byte</code>数组。 */
+    /**
+     * 空的<code>Byte</code>数组。
+     */
     public static final Byte[] EMPTY_BYTE_OBJECT_ARRAY = new Byte[0];
 
-    /** 空的<code>double</code>数组。 */
+    /**
+     * 空的<code>double</code>数组。
+     */
     public static final double[] EMPTY_DOUBLE_ARRAY = new double[0];
 
-    /** 空的<code>Double</code>数组。 */
+    /**
+     * 空的<code>Double</code>数组。
+     */
     public static final Double[] EMPTY_DOUBLE_OBJECT_ARRAY = new Double[0];
 
-    /** 空的<code>float</code>数组。 */
+    /**
+     * 空的<code>float</code>数组。
+     */
     public static final float[] EMPTY_FLOAT_ARRAY = new float[0];
 
-    /** 空的<code>Float</code>数组。 */
+    /**
+     * 空的<code>Float</code>数组。
+     */
     public static final Float[] EMPTY_FLOAT_OBJECT_ARRAY = new Float[0];
 
-    /** 空的<code>boolean</code>数组。 */
+    /**
+     * 空的<code>boolean</code>数组。
+     */
     public static final boolean[] EMPTY_BOOLEAN_ARRAY = new boolean[0];
 
-    /** 空的<code>Boolean</code>数组。 */
+    /**
+     * 空的<code>Boolean</code>数组。
+     */
     public static final Boolean[] EMPTY_BOOLEAN_OBJECT_ARRAY = new Boolean[0];
 
-    /** 空的<code>char</code>数组。 */
+    /**
+     * 空的<code>char</code>数组。
+     */
     public static final char[] EMPTY_CHAR_ARRAY = new char[0];
 
-    /** 空的<code>Character</code>数组。 */
+    /**
+     * 空的<code>Character</code>数组。
+     */
     public static final Character[] EMPTY_CHARACTER_OBJECT_ARRAY = new Character[0];
 
-    /** 计算hashcode所用的常量。 */
+    /**
+     * 计算hashcode所用的常量。
+     */
     private static final int INITIAL_NON_ZERO_ODD_NUMBER = 17;
 
-    /** 计算hashcode所用的常量。 */
+    /**
+     * 计算hashcode所用的常量。
+     */
     private static final int MULTIPLIER_NON_ZERO_ODD_NUMBER = 37;
 
 
@@ -107,16 +145,16 @@ public class ArrayUtil {
 
     /**
      * 检查数组是否为<code>null</code>或空数组<code>[]</code>。
-     * 
+     * <p/>
      * <pre>
      * ArrayUtil.isEmpty(null)              = true
      * ArrayUtil.isEmpty(new String[0])     = true
      * ArrayUtil.isEmpty(new String[10])    = false
      * </pre>
-     * 
+     *
      * @param array
-     *            要检查的数组
-     * 
+     *         要检查的数组
+     *
      * @return 如果为空, 则返回<code>true</code>
      */
     public static boolean isEmpty(Object[] array) {
@@ -126,16 +164,16 @@ public class ArrayUtil {
 
     /**
      * 检查数组是否为<code>null</code>或空数组<code>[]</code>。
-     * 
+     * <p/>
      * <pre>
      * ArrayUtil.isEmpty(null)              = true
      * ArrayUtil.isEmpty(new long[0])     = true
      * ArrayUtil.isEmpty(new long[10])    = false
      * </pre>
-     * 
+     *
      * @param array
-     *            要检查的数组
-     * 
+     *         要检查的数组
+     *
      * @return 如果为空, 则返回<code>true</code>
      */
     public static boolean isEmpty(long[] array) {
@@ -145,16 +183,16 @@ public class ArrayUtil {
 
     /**
      * 检查数组是否为<code>null</code>或空数组<code>[]</code>。
-     * 
+     * <p/>
      * <pre>
      * ArrayUtil.isEmpty(null)              = true
      * ArrayUtil.isEmpty(new int[0])     = true
      * ArrayUtil.isEmpty(new int[10])    = false
      * </pre>
-     * 
+     *
      * @param array
-     *            要检查的数组
-     * 
+     *         要检查的数组
+     *
      * @return 如果为空, 则返回<code>true</code>
      */
     public static boolean isEmpty(int[] array) {
@@ -164,16 +202,16 @@ public class ArrayUtil {
 
     /**
      * 检查数组是否为<code>null</code>或空数组<code>[]</code>。
-     * 
+     * <p/>
      * <pre>
      * ArrayUtil.isEmpty(null)              = true
      * ArrayUtil.isEmpty(new short[0])     = true
      * ArrayUtil.isEmpty(new short[10])    = false
      * </pre>
-     * 
+     *
      * @param array
-     *            要检查的数组
-     * 
+     *         要检查的数组
+     *
      * @return 如果为空, 则返回<code>true</code>
      */
     public static boolean isEmpty(short[] array) {
@@ -183,16 +221,16 @@ public class ArrayUtil {
 
     /**
      * 检查数组是否为<code>null</code>或空数组<code>[]</code>。
-     * 
+     * <p/>
      * <pre>
      * ArrayUtil.isEmpty(null)              = true
      * ArrayUtil.isEmpty(new byte[0])     = true
      * ArrayUtil.isEmpty(new byte[10])    = false
      * </pre>
-     * 
+     *
      * @param array
-     *            要检查的数组
-     * 
+     *         要检查的数组
+     *
      * @return 如果为空, 则返回<code>true</code>
      */
     public static boolean isEmpty(byte[] array) {
@@ -202,16 +240,16 @@ public class ArrayUtil {
 
     /**
      * 检查数组是否为<code>null</code>或空数组<code>[]</code>。
-     * 
+     * <p/>
      * <pre>
      * ArrayUtil.isEmpty(null)              = true
      * ArrayUtil.isEmpty(new double[0])     = true
      * ArrayUtil.isEmpty(new double[10])    = false
      * </pre>
-     * 
+     *
      * @param array
-     *            要检查的数组
-     * 
+     *         要检查的数组
+     *
      * @return 如果为空, 则返回<code>true</code>
      */
     public static boolean isEmpty(double[] array) {
@@ -221,16 +259,16 @@ public class ArrayUtil {
 
     /**
      * 检查数组是否为<code>null</code>或空数组<code>[]</code>。
-     * 
+     * <p/>
      * <pre>
      * ArrayUtil.isEmpty(null)              = true
      * ArrayUtil.isEmpty(new float[0])     = true
      * ArrayUtil.isEmpty(new float[10])    = false
      * </pre>
-     * 
+     *
      * @param array
-     *            要检查的数组
-     * 
+     *         要检查的数组
+     *
      * @return 如果为空, 则返回<code>true</code>
      */
     public static boolean isEmpty(float[] array) {
@@ -240,16 +278,16 @@ public class ArrayUtil {
 
     /**
      * 检查数组是否为<code>null</code>或空数组<code>[]</code>。
-     * 
+     * <p/>
      * <pre>
      * ArrayUtil.isEmpty(null)              = true
      * ArrayUtil.isEmpty(new boolean[0])     = true
      * ArrayUtil.isEmpty(new boolean[10])    = false
      * </pre>
-     * 
+     *
      * @param array
-     *            要检查的数组
-     * 
+     *         要检查的数组
+     *
      * @return 如果为空, 则返回<code>true</code>
      */
     public static boolean isEmpty(boolean[] array) {
@@ -259,16 +297,16 @@ public class ArrayUtil {
 
     /**
      * 检查数组是否为<code>null</code>或空数组<code>[]</code>。
-     * 
+     * <p/>
      * <pre>
      * ArrayUtil.isEmpty(null)              = true
      * ArrayUtil.isEmpty(new char[0])     = true
      * ArrayUtil.isEmpty(new char[10])    = false
      * </pre>
-     * 
+     *
      * @param array
-     *            要检查的数组
-     * 
+     *         要检查的数组
+     *
      * @return 如果为空, 则返回<code>true</code>
      */
     public static boolean isEmpty(char[] array) {
@@ -278,16 +316,16 @@ public class ArrayUtil {
 
     /**
      * 检查数组是否不是<code>null</code>和空数组<code>[]</code>。
-     * 
+     * <p/>
      * <pre>
      * ArrayUtil.isEmpty(null)              = false
      * ArrayUtil.isEmpty(new String[0])     = false
      * ArrayUtil.isEmpty(new String[10])    = true
      * </pre>
-     * 
+     *
      * @param array
-     *            要检查的数组
-     * 
+     *         要检查的数组
+     *
      * @return 如果不为空, 则返回<code>true</code>
      */
     public static boolean isNotEmpty(Object[] array) {
@@ -297,16 +335,16 @@ public class ArrayUtil {
 
     /**
      * 检查数组是否不是<code>null</code>和空数组<code>[]</code>。
-     * 
+     * <p/>
      * <pre>
      * ArrayUtil.isEmpty(null)              = false
      * ArrayUtil.isEmpty(new long[0])     = false
      * ArrayUtil.isEmpty(new long[10])    = true
      * </pre>
-     * 
+     *
      * @param array
-     *            要检查的数组
-     * 
+     *         要检查的数组
+     *
      * @return 如果不为空, 则返回<code>true</code>
      */
     public static boolean isNotEmpty(long[] array) {
@@ -316,16 +354,16 @@ public class ArrayUtil {
 
     /**
      * 检查数组是否不是<code>null</code>和空数组<code>[]</code>。
-     * 
+     * <p/>
      * <pre>
      * ArrayUtil.isEmpty(null)              = false
      * ArrayUtil.isEmpty(new int[0])     = false
      * ArrayUtil.isEmpty(new int[10])    = true
      * </pre>
-     * 
+     *
      * @param array
-     *            要检查的数组
-     * 
+     *         要检查的数组
+     *
      * @return 如果不为空, 则返回<code>true</code>
      */
     public static boolean isNotEmpty(int[] array) {
@@ -335,16 +373,16 @@ public class ArrayUtil {
 
     /**
      * 检查数组是否不是<code>null</code>和空数组<code>[]</code>。
-     * 
+     * <p/>
      * <pre>
      * ArrayUtil.isEmpty(null)              = false
      * ArrayUtil.isEmpty(new short[0])     = false
      * ArrayUtil.isEmpty(new short[10])    = true
      * </pre>
-     * 
+     *
      * @param array
-     *            要检查的数组
-     * 
+     *         要检查的数组
+     *
      * @return 如果不为空, 则返回<code>true</code>
      */
     public static boolean isNotEmpty(short[] array) {
@@ -354,16 +392,16 @@ public class ArrayUtil {
 
     /**
      * 检查数组是否不是<code>null</code>和空数组<code>[]</code>。
-     * 
+     * <p/>
      * <pre>
      * ArrayUtil.isEmpty(null)              = false
      * ArrayUtil.isEmpty(new byte[0])     = false
      * ArrayUtil.isEmpty(new byte[10])    = true
      * </pre>
-     * 
+     *
      * @param array
-     *            要检查的数组
-     * 
+     *         要检查的数组
+     *
      * @return 如果不为空, 则返回<code>true</code>
      */
     public static boolean isNotEmpty(byte[] array) {
@@ -373,16 +411,16 @@ public class ArrayUtil {
 
     /**
      * 检查数组是否不是<code>null</code>和空数组<code>[]</code>。
-     * 
+     * <p/>
      * <pre>
      * ArrayUtil.isEmpty(null)              = false
      * ArrayUtil.isEmpty(new double[0])     = false
      * ArrayUtil.isEmpty(new double[10])    = true
      * </pre>
-     * 
+     *
      * @param array
-     *            要检查的数组
-     * 
+     *         要检查的数组
+     *
      * @return 如果不为空, 则返回<code>true</code>
      */
     public static boolean isNotEmpty(double[] array) {
@@ -392,16 +430,16 @@ public class ArrayUtil {
 
     /**
      * 检查数组是否不是<code>null</code>和空数组<code>[]</code>。
-     * 
+     * <p/>
      * <pre>
      * ArrayUtil.isEmpty(null)              = false
      * ArrayUtil.isEmpty(new float[0])     = false
      * ArrayUtil.isEmpty(new float[10])    = true
      * </pre>
-     * 
+     *
      * @param array
-     *            要检查的数组
-     * 
+     *         要检查的数组
+     *
      * @return 如果不为空, 则返回<code>true</code>
      */
     public static boolean isNotEmpty(float[] array) {
@@ -411,16 +449,16 @@ public class ArrayUtil {
 
     /**
      * 检查数组是否不是<code>null</code>和空数组<code>[]</code>。
-     * 
+     * <p/>
      * <pre>
      * ArrayUtil.isEmpty(null)              = false
      * ArrayUtil.isEmpty(new boolean[0])     = false
      * ArrayUtil.isEmpty(new boolean[10])    = true
      * </pre>
-     * 
+     *
      * @param array
-     *            要检查的数组
-     * 
+     *         要检查的数组
+     *
      * @return 如果不为空, 则返回<code>true</code>
      */
     public static boolean isNotEmpty(boolean[] array) {
@@ -430,16 +468,16 @@ public class ArrayUtil {
 
     /**
      * 检查数组是否不是<code>null</code>和空数组<code>[]</code>。
-     * 
+     * <p/>
      * <pre>
      * ArrayUtil.isEmpty(null)              = false
      * ArrayUtil.isEmpty(new char[0])     = false
      * ArrayUtil.isEmpty(new char[10])    = true
      * </pre>
-     * 
+     *
      * @param array
-     *            要检查的数组
-     * 
+     *         要检查的数组
+     *
      * @return 如果不为空, 则返回<code>true</code>
      */
     public static boolean isNotEmpty(char[] array) {
@@ -461,16 +499,16 @@ public class ArrayUtil {
 
     /**
      * 如果数组是<code>null</code>，则返回空数组<code>[]</code>，否则返回数组本身。
-     * 
+     * <p/>
      * <pre>
      * ArrayUtil.defaultIfNull(null)           = []
      * ArrayUtil.defaultIfNull(new String[0])  = 数组本身
      * ArrayUtil.defaultIfNull(new String[10]) = 数组本身
      * </pre>
-     * 
+     *
      * @param array
-     *            要转换的数组
-     * 
+     *         要转换的数组
+     *
      * @return 数组本身或空数组<code>[]</code>
      */
     public static Object[] defaultIfNull(Object[] array) {
@@ -480,16 +518,16 @@ public class ArrayUtil {
 
     /**
      * 如果数组是<code>null</code>，则返回空数组<code>[]</code>，否则返回数组本身。
-     * 
+     * <p/>
      * <pre>
      * ArrayUtil.defaultIfNull(null)           = []
      * ArrayUtil.defaultIfNull(new long[0])  = 数组本身
      * ArrayUtil.defaultIfNull(new long[10]) = 数组本身
      * </pre>
-     * 
+     *
      * @param array
-     *            要转换的数组
-     * 
+     *         要转换的数组
+     *
      * @return 数组本身或空数组<code>[]</code>
      */
     public static long[] defaultIfNull(long[] array) {
@@ -499,16 +537,16 @@ public class ArrayUtil {
 
     /**
      * 如果数组是<code>null</code>，则返回空数组<code>[]</code>，否则返回数组本身。
-     * 
+     * <p/>
      * <pre>
      * ArrayUtil.defaultIfNull(null)           = []
      * ArrayUtil.defaultIfNull(new int[0])  = 数组本身
      * ArrayUtil.defaultIfNull(new int[10]) = 数组本身
      * </pre>
-     * 
+     *
      * @param array
-     *            要转换的数组
-     * 
+     *         要转换的数组
+     *
      * @return 数组本身或空数组<code>[]</code>
      */
     public static int[] defaultIfNull(int[] array) {
@@ -518,16 +556,16 @@ public class ArrayUtil {
 
     /**
      * 如果数组是<code>null</code>，则返回空数组<code>[]</code>，否则返回数组本身。
-     * 
+     * <p/>
      * <pre>
      * ArrayUtil.defaultIfNull(null)           = []
      * ArrayUtil.defaultIfNull(new short[0])  = 数组本身
      * ArrayUtil.defaultIfNull(new short[10]) = 数组本身
      * </pre>
-     * 
+     *
      * @param array
-     *            要转换的数组
-     * 
+     *         要转换的数组
+     *
      * @return 数组本身或空数组<code>[]</code>
      */
     public static short[] defaultIfNull(short[] array) {
@@ -537,16 +575,16 @@ public class ArrayUtil {
 
     /**
      * 如果数组是<code>null</code>，则返回空数组<code>[]</code>，否则返回数组本身。
-     * 
+     * <p/>
      * <pre>
      * ArrayUtil.defaultIfNull(null)           = []
      * ArrayUtil.defaultIfNull(new byte[0])  = 数组本身
      * ArrayUtil.defaultIfNull(new byte[10]) = 数组本身
      * </pre>
-     * 
+     *
      * @param array
-     *            要转换的数组
-     * 
+     *         要转换的数组
+     *
      * @return 数组本身或空数组<code>[]</code>
      */
     public static byte[] defaultIfNull(byte[] array) {
@@ -556,16 +594,16 @@ public class ArrayUtil {
 
     /**
      * 如果数组是<code>null</code>，则返回空数组<code>[]</code>，否则返回数组本身。
-     * 
+     * <p/>
      * <pre>
      * ArrayUtil.defaultIfNull(null)           = []
      * ArrayUtil.defaultIfNull(new double[0])  = 数组本身
      * ArrayUtil.defaultIfNull(new double[10]) = 数组本身
      * </pre>
-     * 
+     *
      * @param array
-     *            要转换的数组
-     * 
+     *         要转换的数组
+     *
      * @return 数组本身或空数组<code>[]</code>
      */
     public static double[] defaultIfNull(double[] array) {
@@ -575,16 +613,16 @@ public class ArrayUtil {
 
     /**
      * 如果数组是<code>null</code>，则返回空数组<code>[]</code>，否则返回数组本身。
-     * 
+     * <p/>
      * <pre>
      * ArrayUtil.defaultIfNull(null)           = []
      * ArrayUtil.defaultIfNull(new float[0])  = 数组本身
      * ArrayUtil.defaultIfNull(new float[10]) = 数组本身
      * </pre>
-     * 
+     *
      * @param array
-     *            要转换的数组
-     * 
+     *         要转换的数组
+     *
      * @return 数组本身或空数组<code>[]</code>
      */
     public static float[] defaultIfNull(float[] array) {
@@ -594,16 +632,16 @@ public class ArrayUtil {
 
     /**
      * 如果数组是<code>null</code>，则返回空数组<code>[]</code>，否则返回数组本身。
-     * 
+     * <p/>
      * <pre>
      * ArrayUtil.defaultIfNull(null)           = []
      * ArrayUtil.defaultIfNull(new boolean[0])  = 数组本身
      * ArrayUtil.defaultIfNull(new boolean[10]) = 数组本身
      * </pre>
-     * 
+     *
      * @param array
-     *            要转换的数组
-     * 
+     *         要转换的数组
+     *
      * @return 数组本身或空数组<code>[]</code>
      */
     public static boolean[] defaultIfNull(boolean[] array) {
@@ -613,16 +651,16 @@ public class ArrayUtil {
 
     /**
      * 如果数组是<code>null</code>，则返回空数组<code>[]</code>，否则返回数组本身。
-     * 
+     * <p/>
      * <pre>
      * ArrayUtil.defaultIfNull(null)           = []
      * ArrayUtil.defaultIfNull(new char[0])  = 数组本身
      * ArrayUtil.defaultIfNull(new char[10]) = 数组本身
      * </pre>
-     * 
+     *
      * @param array
-     *            要转换的数组
-     * 
+     *         要转换的数组
+     *
      * @return 数组本身或空数组<code>[]</code>
      */
     public static char[] defaultIfNull(char[] array) {
@@ -632,18 +670,18 @@ public class ArrayUtil {
 
     /**
      * 如果数组是<code>null</code>，则返回指定默认数组，否则返回数组本身。
-     * 
+     * <p/>
      * <pre>
      * ArrayUtil.defaultIfNull(null, defaultArray)           = defaultArray
      * ArrayUtil.defaultIfNull(new String[0], defaultArray)  = 数组本身
      * ArrayUtil.defaultIfNull(new String[10], defaultArray) = 数组本身
      * </pre>
-     * 
+     *
      * @param array
-     *            要转换的数组
+     *         要转换的数组
      * @param defaultArray
-     *            默认数组
-     * 
+     *         默认数组
+     *
      * @return 数组本身或指定的默认数组
      */
     public static Object[] defaultIfNull(Object[] array, Object[] defaultArray) {
@@ -653,18 +691,18 @@ public class ArrayUtil {
 
     /**
      * 如果数组是<code>null</code>，则返回指定默认数组，否则返回数组本身。
-     * 
+     * <p/>
      * <pre>
      * ArrayUtil.defaultIfNull(null, defaultArray)         = defaultArray
      * ArrayUtil.defaultIfNull(new long[0], defaultArray)  = 数组本身
      * ArrayUtil.defaultIfNull(new long[10], defaultArray) = 数组本身
      * </pre>
-     * 
+     *
      * @param array
-     *            要转换的数组
+     *         要转换的数组
      * @param defaultArray
-     *            默认数组
-     * 
+     *         默认数组
+     *
      * @return 数组本身或指定的默认数组
      */
     public static long[] defaultIfNull(long[] array, long[] defaultArray) {
@@ -674,18 +712,18 @@ public class ArrayUtil {
 
     /**
      * 如果数组是<code>null</code>，则返回指定默认数组，否则返回数组本身。
-     * 
+     * <p/>
      * <pre>
      * ArrayUtil.defaultIfNull(null, defaultArray)        = defaultArray
      * ArrayUtil.defaultIfNull(new int[0], defaultArray)  = 数组本身
      * ArrayUtil.defaultIfNull(new int[10], defaultArray) = 数组本身
      * </pre>
-     * 
+     *
      * @param array
-     *            要转换的数组
+     *         要转换的数组
      * @param defaultArray
-     *            默认数组
-     * 
+     *         默认数组
+     *
      * @return 数组本身或指定的默认数组
      */
     public static int[] defaultIfNull(int[] array, int[] defaultArray) {
@@ -695,18 +733,18 @@ public class ArrayUtil {
 
     /**
      * 如果数组是<code>null</code>，则返回指定默认数组，否则返回数组本身。
-     * 
+     * <p/>
      * <pre>
      * ArrayUtil.defaultIfNull(null, defaultArray)          = defaultArray
      * ArrayUtil.defaultIfNull(new short[0], defaultArray)  = 数组本身
      * ArrayUtil.defaultIfNull(new short[10], defaultArray) = 数组本身
      * </pre>
-     * 
+     *
      * @param array
-     *            要转换的数组
+     *         要转换的数组
      * @param defaultArray
-     *            默认数组
-     * 
+     *         默认数组
+     *
      * @return 数组本身或指定的默认数组
      */
     public static short[] defaultIfNull(short[] array, short[] defaultArray) {
@@ -716,18 +754,18 @@ public class ArrayUtil {
 
     /**
      * 如果数组是<code>null</code>，则返回指定默认数组，否则返回数组本身。
-     * 
+     * <p/>
      * <pre>
      * ArrayUtil.defaultIfNull(null, defaultArray)         = defaultArray
      * ArrayUtil.defaultIfNull(new byte[0], defaultArray)  = 数组本身
      * ArrayUtil.defaultIfNull(new byte[10], defaultArray) = 数组本身
      * </pre>
-     * 
+     *
      * @param array
-     *            要转换的数组
+     *         要转换的数组
      * @param defaultArray
-     *            默认数组
-     * 
+     *         默认数组
+     *
      * @return 数组本身或指定的默认数组
      */
     public static byte[] defaultIfNull(byte[] array, byte[] defaultArray) {
@@ -737,18 +775,18 @@ public class ArrayUtil {
 
     /**
      * 如果数组是<code>null</code>，则返回指定默认数组，否则返回数组本身。
-     * 
+     * <p/>
      * <pre>
      * ArrayUtil.defaultIfNull(null, defaultArray)         = defaultArray
      * ArrayUtil.defaultIfNull(new double[0], defaultArray)  = 数组本身
      * ArrayUtil.defaultIfNull(new double[10], defaultArray) = 数组本身
      * </pre>
-     * 
+     *
      * @param array
-     *            要转换的数组
+     *         要转换的数组
      * @param defaultArray
-     *            默认数组
-     * 
+     *         默认数组
+     *
      * @return 数组本身或指定的默认数组
      */
     public static double[] defaultIfNull(double[] array, double[] defaultArray) {
@@ -758,18 +796,18 @@ public class ArrayUtil {
 
     /**
      * 如果数组是<code>null</code>，则返回指定默认数组，否则返回数组本身。
-     * 
+     * <p/>
      * <pre>
      * ArrayUtil.defaultIfNull(null, defaultArray)          = defaultArray
      * ArrayUtil.defaultIfNull(new float[0], defaultArray)  = 数组本身
      * ArrayUtil.defaultIfNull(new float[10], defaultArray) = 数组本身
      * </pre>
-     * 
+     *
      * @param array
-     *            要转换的数组
+     *         要转换的数组
      * @param defaultArray
-     *            默认数组
-     * 
+     *         默认数组
+     *
      * @return 数组本身或指定的默认数组
      */
     public static float[] defaultIfNull(float[] array, float[] defaultArray) {
@@ -779,18 +817,18 @@ public class ArrayUtil {
 
     /**
      * 如果数组是<code>null</code>，则返回指定默认数组，否则返回数组本身。
-     * 
+     * <p/>
      * <pre>
      * ArrayUtil.defaultIfNull(null, defaultArray)            = defaultArray
      * ArrayUtil.defaultIfNull(new boolean[0], defaultArray)  = 数组本身
      * ArrayUtil.defaultIfNull(new boolean[10], defaultArray) = 数组本身
      * </pre>
-     * 
+     *
      * @param array
-     *            要转换的数组
+     *         要转换的数组
      * @param defaultArray
-     *            默认数组
-     * 
+     *         默认数组
+     *
      * @return 数组本身或指定的默认数组
      */
     public static boolean[] defaultIfNull(boolean[] array, boolean[] defaultArray) {
@@ -800,18 +838,18 @@ public class ArrayUtil {
 
     /**
      * 如果数组是<code>null</code>，则返回指定默认数组，否则返回数组本身。
-     * 
+     * <p/>
      * <pre>
      * ArrayUtil.defaultIfNull(null, defaultArray)         = defaultArray
      * ArrayUtil.defaultIfNull(new char[0], defaultArray)  = 数组本身
      * ArrayUtil.defaultIfNull(new char[10], defaultArray) = 数组本身
      * </pre>
-     * 
+     *
      * @param array
-     *            要转换的数组
+     *         要转换的数组
      * @param defaultArray
-     *            默认数组
-     * 
+     *         默认数组
+     *
      * @return 数组本身或指定的默认数组
      */
     public static char[] defaultIfNull(char[] array, char[] defaultArray) {
@@ -821,43 +859,43 @@ public class ArrayUtil {
 
     /**
      * 如果数组是<code>null</code>，则返回指定元素类型的空数组，否则返回数组本身。
-     * 
+     * <p/>
      * <pre>
      * ArrayUtil.defaultIfNull(null, String.class)           = new String[0]
      * ArrayUtil.defaultIfNull(new String[0], String.class)  = 数组本身
      * ArrayUtil.defaultIfNull(new String[10], String.class) = 数组本身
      * </pre>
-     * 
+     *
      * @param array
-     *            要转换的数组
+     *         要转换的数组
      * @param defaultComponentType
-     *            默认数组的元素类型
-     * 
+     *         默认数组的元素类型
+     *
      * @return 数组本身或指定类型的空数组
      */
     public static Object[] defaultIfNull(Object[] array, Class defaultComponentType) {
         return (array == null) ? (Object[]) Array.newInstance(
-            ClassUtil.getNonPrimitiveType(defaultComponentType), 0) : array;
+                ClassUtil.getNonPrimitiveType(defaultComponentType), 0) : array;
     }
 
 
     /**
      * 如果数组是<code>null</code>或空数组<code>[]</code>，则返回空数组<code>[]</code>，否则返回数组本身。
-     * 
+     * <p/>
      * <p>
      * 此方法实际上和<code>defaultIfNull(Object[])</code>等效。
-     * 
+     * <p/>
      * <pre>
      * ArrayUtil.defaultIfEmpty(null)           = []
      * ArrayUtil.defaultIfEmpty(new String[0])  = 数组本身
      * ArrayUtil.defaultIfEmpty(new String[10]) = 数组本身
      * </pre>
-     * 
+     * <p/>
      * </p>
-     * 
+     *
      * @param array
-     *            要转换的数组
-     * 
+     *         要转换的数组
+     *
      * @return 数组本身或空数组<code>[]</code>
      */
     public static Object[] defaultIfEmpty(Object[] array) {
@@ -867,21 +905,21 @@ public class ArrayUtil {
 
     /**
      * 如果数组是<code>null</code>或空数组<code>[]</code>，则返回空数组<code>[]</code>，否则返回数组本身。
-     * 
+     * <p/>
      * <p>
      * 此方法实际上和<code>defaultIfNull(Object[])</code>等效。
-     * 
+     * <p/>
      * <pre>
      * ArrayUtil.defaultIfEmpty(null)           = []
      * ArrayUtil.defaultIfEmpty(new long[0])    = 数组本身
      * ArrayUtil.defaultIfEmpty(new long[10])   = 数组本身
      * </pre>
-     * 
+     * <p/>
      * </p>
-     * 
+     *
      * @param array
-     *            要转换的数组
-     * 
+     *         要转换的数组
+     *
      * @return 数组本身或空数组<code>[]</code>
      */
     public static long[] defaultIfEmpty(long[] array) {
@@ -891,21 +929,21 @@ public class ArrayUtil {
 
     /**
      * 如果数组是<code>null</code>或空数组<code>[]</code>，则返回空数组<code>[]</code>，否则返回数组本身。
-     * 
+     * <p/>
      * <p>
      * 此方法实际上和<code>defaultIfNull(Object[])</code>等效。
-     * 
+     * <p/>
      * <pre>
      * ArrayUtil.defaultIfEmpty(null)          = []
      * ArrayUtil.defaultIfEmpty(new int[0])    = 数组本身
      * ArrayUtil.defaultIfEmpty(new int[10])   = 数组本身
      * </pre>
-     * 
+     * <p/>
      * </p>
-     * 
+     *
      * @param array
-     *            要转换的数组
-     * 
+     *         要转换的数组
+     *
      * @return 数组本身或空数组<code>[]</code>
      */
     public static int[] defaultIfEmpty(int[] array) {
@@ -915,21 +953,21 @@ public class ArrayUtil {
 
     /**
      * 如果数组是<code>null</code>或空数组<code>[]</code>，则返回空数组<code>[]</code>，否则返回数组本身。
-     * 
+     * <p/>
      * <p>
      * 此方法实际上和<code>defaultIfNull(Object[])</code>等效。
-     * 
+     * <p/>
      * <pre>
      * ArrayUtil.defaultIfEmpty(null)               = []
      * ArrayUtil.defaultIfEmpty(new short[0])    = 数组本身
      * ArrayUtil.defaultIfEmpty(new short[10])   = 数组本身
      * </pre>
-     * 
+     * <p/>
      * </p>
-     * 
+     *
      * @param array
-     *            要转换的数组
-     * 
+     *         要转换的数组
+     *
      * @return 数组本身或空数组<code>[]</code>
      */
     public static short[] defaultIfEmpty(short[] array) {
@@ -939,21 +977,21 @@ public class ArrayUtil {
 
     /**
      * 如果数组是<code>null</code>或空数组<code>[]</code>，则返回空数组<code>[]</code>，否则返回数组本身。
-     * 
+     * <p/>
      * <p>
      * 此方法实际上和<code>defaultIfNull(Object[])</code>等效。
-     * 
+     * <p/>
      * <pre>
      * ArrayUtil.defaultIfEmpty(null)           = []
      * ArrayUtil.defaultIfEmpty(new byte[0])    = 数组本身
      * ArrayUtil.defaultIfEmpty(new byte[10])   = 数组本身
      * </pre>
-     * 
+     * <p/>
      * </p>
-     * 
+     *
      * @param array
-     *            要转换的数组
-     * 
+     *         要转换的数组
+     *
      * @return 数组本身或空数组<code>[]</code>
      */
     public static byte[] defaultIfEmpty(byte[] array) {
@@ -963,21 +1001,21 @@ public class ArrayUtil {
 
     /**
      * 如果数组是<code>null</code>或空数组<code>[]</code>，则返回空数组<code>[]</code>，否则返回数组本身。
-     * 
+     * <p/>
      * <p>
      * 此方法实际上和<code>defaultIfNull(Object[])</code>等效。
-     * 
+     * <p/>
      * <pre>
      * ArrayUtil.defaultIfEmpty(null)               = []
      * ArrayUtil.defaultIfEmpty(new double[0])    = 数组本身
      * ArrayUtil.defaultIfEmpty(new double[10])   = 数组本身
      * </pre>
-     * 
+     * <p/>
      * </p>
-     * 
+     *
      * @param array
-     *            要转换的数组
-     * 
+     *         要转换的数组
+     *
      * @return 数组本身或空数组<code>[]</code>
      */
     public static double[] defaultIfEmpty(double[] array) {
@@ -987,21 +1025,21 @@ public class ArrayUtil {
 
     /**
      * 如果数组是<code>null</code>或空数组<code>[]</code>，则返回空数组<code>[]</code>，否则返回数组本身。
-     * 
+     * <p/>
      * <p>
      * 此方法实际上和<code>defaultIfNull(Object[])</code>等效。
-     * 
+     * <p/>
      * <pre>
      * ArrayUtil.defaultIfEmpty(null)               = []
      * ArrayUtil.defaultIfEmpty(new float[0])    = 数组本身
      * ArrayUtil.defaultIfEmpty(new float[10])   = 数组本身
      * </pre>
-     * 
+     * <p/>
      * </p>
-     * 
+     *
      * @param array
-     *            要转换的数组
-     * 
+     *         要转换的数组
+     *
      * @return 数组本身或空数组<code>[]</code>
      */
     public static float[] defaultIfEmpty(float[] array) {
@@ -1011,21 +1049,21 @@ public class ArrayUtil {
 
     /**
      * 如果数组是<code>null</code>或空数组<code>[]</code>，则返回空数组<code>[]</code>，否则返回数组本身。
-     * 
+     * <p/>
      * <p>
      * 此方法实际上和<code>defaultIfNull(Object[])</code>等效。
-     * 
+     * <p/>
      * <pre>
      * ArrayUtil.defaultIfEmpty(null)               = []
      * ArrayUtil.defaultIfEmpty(new boolean[0])    = 数组本身
      * ArrayUtil.defaultIfEmpty(new boolean[10])   = 数组本身
      * </pre>
-     * 
+     * <p/>
      * </p>
-     * 
+     *
      * @param array
-     *            要转换的数组
-     * 
+     *         要转换的数组
+     *
      * @return 数组本身或空数组<code>[]</code>
      */
     public static boolean[] defaultIfEmpty(boolean[] array) {
@@ -1035,21 +1073,21 @@ public class ArrayUtil {
 
     /**
      * 如果数组是<code>null</code>或空数组<code>[]</code>，则返回空数组<code>[]</code>，否则返回数组本身。
-     * 
+     * <p/>
      * <p>
      * 此方法实际上和<code>defaultIfNull(Object[])</code>等效。
-     * 
+     * <p/>
      * <pre>
      * ArrayUtil.defaultIfEmpty(null)           = []
      * ArrayUtil.defaultIfEmpty(new char[0])    = 数组本身
      * ArrayUtil.defaultIfEmpty(new char[10])   = 数组本身
      * </pre>
-     * 
+     * <p/>
      * </p>
-     * 
+     *
      * @param array
-     *            要转换的数组
-     * 
+     *         要转换的数组
+     *
      * @return 数组本身或空数组<code>[]</code>
      */
     public static char[] defaultIfEmpty(char[] array) {
@@ -1059,18 +1097,18 @@ public class ArrayUtil {
 
     /**
      * 如果数组是<code>null</code>或空数组<code>[]</code>，则返回指定默认数组，否则返回数组本身。
-     * 
+     * <p/>
      * <pre>
      * ArrayUtil.defaultIfEmpty(null, defaultArray)           = defaultArray
      * ArrayUtil.defaultIfEmpty(new String[0], defaultArray)  = defaultArray
      * ArrayUtil.defaultIfEmpty(new String[10], defaultArray) = 数组本身
      * </pre>
-     * 
+     *
      * @param array
-     *            要转换的数组
+     *         要转换的数组
      * @param defaultArray
-     *            默认数组
-     * 
+     *         默认数组
+     *
      * @return 数组本身或指定的默认数组
      */
     public static Object[] defaultIfEmpty(Object[] array, Object[] defaultArray) {
@@ -1080,18 +1118,18 @@ public class ArrayUtil {
 
     /**
      * 如果数组是<code>null</code>或空数组<code>[]</code>，则返回指定默认数组，否则返回数组本身。
-     * 
+     * <p/>
      * <pre>
      * ArrayUtil.defaultIfEmpty(null, defaultArray)           = defaultArray
      * ArrayUtil.defaultIfEmpty(new long[0], defaultArray)    = defaultArray
      * ArrayUtil.defaultIfEmpty(new long[10], defaultArray)   = 数组本身
      * </pre>
-     * 
+     *
      * @param array
-     *            要转换的数组
+     *         要转换的数组
      * @param defaultArray
-     *            默认数组
-     * 
+     *         默认数组
+     *
      * @return 数组本身或指定的默认数组
      */
     public static long[] defaultIfEmpty(long[] array, long[] defaultArray) {
@@ -1101,18 +1139,18 @@ public class ArrayUtil {
 
     /**
      * 如果数组是<code>null</code>或空数组<code>[]</code>，则返回指定默认数组，否则返回数组本身。
-     * 
+     * <p/>
      * <pre>
      * ArrayUtil.defaultIfEmpty(null, defaultArray)           = defaultArray
      * ArrayUtil.defaultIfEmpty(new int[0], defaultArray)     = defaultArray
      * ArrayUtil.defaultIfEmpty(new int[10], defaultArray)    = 数组本身
      * </pre>
-     * 
+     *
      * @param array
-     *            要转换的数组
+     *         要转换的数组
      * @param defaultArray
-     *            默认数组
-     * 
+     *         默认数组
+     *
      * @return 数组本身或指定的默认数组
      */
     public static int[] defaultIfEmpty(int[] array, int[] defaultArray) {
@@ -1122,18 +1160,18 @@ public class ArrayUtil {
 
     /**
      * 如果数组是<code>null</code>或空数组<code>[]</code>，则返回指定默认数组，否则返回数组本身。
-     * 
+     * <p/>
      * <pre>
      * ArrayUtil.defaultIfEmpty(null, defaultArray)           = defaultArray
      * ArrayUtil.defaultIfEmpty(new short[0], defaultArray)   = defaultArray
      * ArrayUtil.defaultIfEmpty(new short[10], defaultArray)  = 数组本身
      * </pre>
-     * 
+     *
      * @param array
-     *            要转换的数组
+     *         要转换的数组
      * @param defaultArray
-     *            默认数组
-     * 
+     *         默认数组
+     *
      * @return 数组本身或指定的默认数组
      */
     public static short[] defaultIfEmpty(short[] array, short[] defaultArray) {
@@ -1143,18 +1181,18 @@ public class ArrayUtil {
 
     /**
      * 如果数组是<code>null</code>或空数组<code>[]</code>，则返回指定默认数组，否则返回数组本身。
-     * 
+     * <p/>
      * <pre>
      * ArrayUtil.defaultIfEmpty(null, defaultArray)           = defaultArray
      * ArrayUtil.defaultIfEmpty(new byte[0], defaultArray)    = defaultArray
      * ArrayUtil.defaultIfEmpty(new byte[10], defaultArray)   = 数组本身
      * </pre>
-     * 
+     *
      * @param array
-     *            要转换的数组
+     *         要转换的数组
      * @param defaultArray
-     *            默认数组
-     * 
+     *         默认数组
+     *
      * @return 数组本身或指定的默认数组
      */
     public static byte[] defaultIfEmpty(byte[] array, byte[] defaultArray) {
@@ -1164,18 +1202,18 @@ public class ArrayUtil {
 
     /**
      * 如果数组是<code>null</code>或空数组<code>[]</code>，则返回指定默认数组，否则返回数组本身。
-     * 
+     * <p/>
      * <pre>
      * ArrayUtil.defaultIfEmpty(null, defaultArray)           = defaultArray
      * ArrayUtil.defaultIfEmpty(new double[0], defaultArray)  = defaultArray
      * ArrayUtil.defaultIfEmpty(new double[10], defaultArray) = 数组本身
      * </pre>
-     * 
+     *
      * @param array
-     *            要转换的数组
+     *         要转换的数组
      * @param defaultArray
-     *            默认数组
-     * 
+     *         默认数组
+     *
      * @return 数组本身或指定的默认数组
      */
     public static double[] defaultIfEmpty(double[] array, double[] defaultArray) {
@@ -1185,18 +1223,18 @@ public class ArrayUtil {
 
     /**
      * 如果数组是<code>null</code>或空数组<code>[]</code>，则返回指定默认数组，否则返回数组本身。
-     * 
+     * <p/>
      * <pre>
      * ArrayUtil.defaultIfEmpty(null, defaultArray)           = defaultArray
      * ArrayUtil.defaultIfEmpty(new float[0], defaultArray)   = defaultArray
      * ArrayUtil.defaultIfEmpty(new float[10], defaultArray)  = 数组本身
      * </pre>
-     * 
+     *
      * @param array
-     *            要转换的数组
+     *         要转换的数组
      * @param defaultArray
-     *            默认数组
-     * 
+     *         默认数组
+     *
      * @return 数组本身或指定的默认数组
      */
     public static float[] defaultIfEmpty(float[] array, float[] defaultArray) {
@@ -1206,18 +1244,18 @@ public class ArrayUtil {
 
     /**
      * 如果数组是<code>null</code>或空数组<code>[]</code>，则返回指定默认数组，否则返回数组本身。
-     * 
+     * <p/>
      * <pre>
      * ArrayUtil.defaultIfEmpty(null, defaultArray)              = defaultArray
      * ArrayUtil.defaultIfEmpty(new boolean[0], defaultArray)    = defaultArray
      * ArrayUtil.defaultIfEmpty(new boolean[10], defaultArray)   = 数组本身
      * </pre>
-     * 
+     *
      * @param array
-     *            要转换的数组
+     *         要转换的数组
      * @param defaultArray
-     *            默认数组
-     * 
+     *         默认数组
+     *
      * @return 数组本身或指定的默认数组
      */
     public static boolean[] defaultIfEmpty(boolean[] array, boolean[] defaultArray) {
@@ -1227,18 +1265,18 @@ public class ArrayUtil {
 
     /**
      * 如果数组是<code>null</code>或空数组<code>[]</code>，则返回指定默认数组，否则返回数组本身。
-     * 
+     * <p/>
      * <pre>
      * ArrayUtil.defaultIfEmpty(null, defaultArray)           = defaultArray
      * ArrayUtil.defaultIfEmpty(new char[0], defaultArray)    = defaultArray
      * ArrayUtil.defaultIfEmpty(new char[10], defaultArray)   = 数组本身
      * </pre>
-     * 
+     *
      * @param array
-     *            要转换的数组
+     *         要转换的数组
      * @param defaultArray
-     *            默认数组
-     * 
+     *         默认数组
+     *
      * @return 数组本身或指定的默认数组
      */
     public static char[] defaultIfEmpty(char[] array, char[] defaultArray) {
@@ -1248,23 +1286,23 @@ public class ArrayUtil {
 
     /**
      * 如果数组是<code>null</code>或空数组<code>[]</code>，则返回指定元素类型的空数组，否则返回数组本身。
-     * 
+     * <p/>
      * <pre>
      * ArrayUtil.defaultIfNull(null, String.class)           = new String[0]
      * ArrayUtil.defaultIfNull(new String[0], String.class)  = new String[0]
      * ArrayUtil.defaultIfNull(new String[10], String.class) = 数组本身
      * </pre>
-     * 
+     *
      * @param array
-     *            要转换的数组
+     *         要转换的数组
      * @param defaultComponentType
-     *            默认数组的元素类型
-     * 
+     *         默认数组的元素类型
+     *
      * @return 数组本身或指定类型的空数组
      */
     public static Object[] defaultIfEmpty(Object[] array, Class defaultComponentType) {
         return ((array == null) || (array.length == 0)) ? (Object[]) Array.newInstance(
-            ClassUtil.getNonPrimitiveType(defaultComponentType), 0) : array;
+                ClassUtil.getNonPrimitiveType(defaultComponentType), 0) : array;
     }
 
 
@@ -1282,16 +1320,16 @@ public class ArrayUtil {
 
     /**
      * 递归地比较两个数组是否相同，支持多维数组。
-     * 
+     * <p/>
      * <p>
      * 如果比较的对象不是数组，则此方法的结果同<code>ObjectUtil.equals</code>。
      * </p>
-     * 
+     *
      * @param array1
-     *            数组1
+     *         数组1
      * @param array2
-     *            数组2
-     * 
+     *         数组2
+     *
      * @return 如果相等, 则返回<code>true</code>
      */
     public static boolean equals(Object array1, Object array2) {
@@ -1329,8 +1367,7 @@ public class ArrayUtil {
             }
 
             return true;
-        }
-        else if (array1 instanceof int[]) {
+        } else if (array1 instanceof int[]) {
             int[] intArray1 = (int[]) array1;
             int[] intArray2 = (int[]) array2;
 
@@ -1345,8 +1382,7 @@ public class ArrayUtil {
             }
 
             return true;
-        }
-        else if (array1 instanceof short[]) {
+        } else if (array1 instanceof short[]) {
             short[] shortArray1 = (short[]) array1;
             short[] shortArray2 = (short[]) array2;
 
@@ -1361,8 +1397,7 @@ public class ArrayUtil {
             }
 
             return true;
-        }
-        else if (array1 instanceof byte[]) {
+        } else if (array1 instanceof byte[]) {
             byte[] byteArray1 = (byte[]) array1;
             byte[] byteArray2 = (byte[]) array2;
 
@@ -1377,8 +1412,7 @@ public class ArrayUtil {
             }
 
             return true;
-        }
-        else if (array1 instanceof double[]) {
+        } else if (array1 instanceof double[]) {
             double[] doubleArray1 = (double[]) array1;
             double[] doubleArray2 = (double[]) array2;
 
@@ -1393,8 +1427,7 @@ public class ArrayUtil {
             }
 
             return true;
-        }
-        else if (array1 instanceof float[]) {
+        } else if (array1 instanceof float[]) {
             float[] floatArray1 = (float[]) array1;
             float[] floatArray2 = (float[]) array2;
 
@@ -1409,8 +1442,7 @@ public class ArrayUtil {
             }
 
             return true;
-        }
-        else if (array1 instanceof boolean[]) {
+        } else if (array1 instanceof boolean[]) {
             boolean[] booleanArray1 = (boolean[]) array1;
             boolean[] booleanArray2 = (boolean[]) array2;
 
@@ -1425,8 +1457,7 @@ public class ArrayUtil {
             }
 
             return true;
-        }
-        else if (array1 instanceof char[]) {
+        } else if (array1 instanceof char[]) {
             char[] charArray1 = (char[]) array1;
             char[] charArray2 = (char[]) array2;
 
@@ -1441,8 +1472,7 @@ public class ArrayUtil {
             }
 
             return true;
-        }
-        else {
+        } else {
             Object[] objectArray1 = (Object[]) array1;
             Object[] objectArray2 = (Object[]) array2;
 
@@ -1475,14 +1505,14 @@ public class ArrayUtil {
 
     /**
      * 取得数组的hash值, 如果数组为<code>null</code>, 则返回<code>0</code>。
-     * 
+     * <p/>
      * <p>
      * 如果对象不是数组，则此方法的结果同<code>ObjectUtil.hashCode</code>。
      * </p>
-     * 
+     *
      * @param array
-     *            数组
-     * 
+     *         数组
+     *
      * @return hash值
      */
     public static int hashCode(Object array) {
@@ -1505,29 +1535,25 @@ public class ArrayUtil {
                         (hashCode * MULTIPLIER_NON_ZERO_ODD_NUMBER)
                                 + ((int) (longArray[i] ^ (longArray[i] >> 32)));
             }
-        }
-        else if (array instanceof int[]) {
+        } else if (array instanceof int[]) {
             int[] intArray = (int[]) array;
 
             for (int i = 0; i < intArray.length; i++) {
                 hashCode = (hashCode * MULTIPLIER_NON_ZERO_ODD_NUMBER) + intArray[i];
             }
-        }
-        else if (array instanceof short[]) {
+        } else if (array instanceof short[]) {
             short[] shortArray = (short[]) array;
 
             for (int i = 0; i < shortArray.length; i++) {
                 hashCode = (hashCode * MULTIPLIER_NON_ZERO_ODD_NUMBER) + shortArray[i];
             }
-        }
-        else if (array instanceof byte[]) {
+        } else if (array instanceof byte[]) {
             byte[] byteArray = (byte[]) array;
 
             for (int i = 0; i < byteArray.length; i++) {
                 hashCode = (hashCode * MULTIPLIER_NON_ZERO_ODD_NUMBER) + byteArray[i];
             }
-        }
-        else if (array instanceof double[]) {
+        } else if (array instanceof double[]) {
             double[] doubleArray = (double[]) array;
 
             for (int i = 0; i < doubleArray.length; i++) {
@@ -1536,29 +1562,25 @@ public class ArrayUtil {
                 hashCode =
                         (hashCode * MULTIPLIER_NON_ZERO_ODD_NUMBER) + ((int) (longBits ^ (longBits >> 32)));
             }
-        }
-        else if (array instanceof float[]) {
+        } else if (array instanceof float[]) {
             float[] floatArray = (float[]) array;
 
             for (int i = 0; i < floatArray.length; i++) {
                 hashCode = (hashCode * MULTIPLIER_NON_ZERO_ODD_NUMBER) + Float.floatToIntBits(floatArray[i]);
             }
-        }
-        else if (array instanceof boolean[]) {
+        } else if (array instanceof boolean[]) {
             boolean[] booleanArray = (boolean[]) array;
 
             for (int i = 0; i < booleanArray.length; i++) {
                 hashCode = (hashCode * MULTIPLIER_NON_ZERO_ODD_NUMBER) + (booleanArray[i] ? 1 : 0);
             }
-        }
-        else if (array instanceof char[]) {
+        } else if (array instanceof char[]) {
             char[] charArray = (char[]) array;
 
             for (int i = 0; i < charArray.length; i++) {
                 hashCode = (hashCode * MULTIPLIER_NON_ZERO_ODD_NUMBER) + charArray[i];
             }
-        }
-        else {
+        } else {
             Object[] objectArray = (Object[]) array;
 
             for (int i = 0; i < objectArray.length; i++) {
@@ -1582,28 +1604,28 @@ public class ArrayUtil {
 
     /**
      * 将数组映射成固定长度的<code>List</code>，当改变这个<code>List</code>中的值时。数组中的相应值也被改变。
-     * 
+     * <p/>
      * <p>
      * 如果输入数组为<code>null</code>，则返回<code>null</code>。
      * </p>
-     * 
+     * <p/>
      * <p>
      * 该方法内部调用<code>java.util.Arrays.asList</code>
      * 方法所返回的列表为指定数组的映像（固定长度），因此性能和内存占用上比<code>toList</code>方法更优。
      * </p>
-     * 
+     * <p/>
      * <p>
      * 这个方法常被用于初始化，例如：
-     * 
+     * <p/>
      * <pre>
      * List myList = ArrayUtil.toFixedList(new String[] { &quot;aaa&quot;, &quot;bbb&quot;, &quot;ccc&quot; });
      * </pre>
-     * 
+     * <p/>
      * </p>
-     * 
+     *
      * @param array
-     *            要转换的数组
-     * 
+     *         要转换的数组
+     *
      * @return 以数组本身为映射的list
      */
     public static List toFixedList(Object[] array) {
@@ -1617,29 +1639,29 @@ public class ArrayUtil {
 
     /**
      * 将数组转换成<code>List</code>。
-     * 
+     * <p/>
      * <p>
      * 如果输入数组为<code>null</code>，则返回<code>null</code>。
      * </p>
-     * 
+     * <p/>
      * <p>
      * 该方法返回的列表为指定数组的复本，而<code>java.util.Arrays.asList</code>
      * 方法所返回的列表为指定数组的映像（固定长度）。
      * </p>
-     * 
+     * <p/>
      * <p>
      * 这个方法常被用于初始化，例如：
-     * 
+     * <p/>
      * <pre>
      * List myList = ArrayUtil.toList(new String[] { &quot;aaa&quot;, &quot;bbb&quot;, &quot;ccc&quot; });
      * List singleList = ArrayUtil.toList(&quot;hello&quot;); // 返回单个元素的列表[&quot;hello&quot;]
      * </pre>
-     * 
+     * <p/>
      * </p>
-     * 
+     *
      * @param array
-     *            要转换的数组
-     * 
+     *         要转换的数组
+     *
      * @return 被创建的list
      */
     public static List toList(Object array) {
@@ -1649,31 +1671,31 @@ public class ArrayUtil {
 
     /**
      * 将数组转换成<code>List</code>。
-     * 
+     * <p/>
      * <p>
      * 如果输入数组为<code>null</code>，则返回<code>null</code>。
      * </p>
-     * 
+     * <p/>
      * <p>
      * 该方法返回的列表为指定数组的复本，而<code>java.util.Arrays.asList</code>
      * 方法所返回的列表为指定数组的映像（固定长度）。
      * </p>
-     * 
+     * <p/>
      * <p>
      * 这个方法常被用于初始化，例如：
-     * 
+     * <p/>
      * <pre>
      * List myList = ArrayUtil.toList(new String[] { &quot;aaa&quot;, &quot;bbb&quot;, &quot;ccc&quot; }, new ArrayList());
      * List singleList = ArrayUtil.toList(&quot;hello&quot;, new ArrayList()); // 返回单个元素的列表[&quot;hello&quot;]
      * </pre>
-     * 
+     * <p/>
      * </p>
-     * 
+     *
      * @param array
-     *            要转换的数组
+     *         要转换的数组
      * @param list
-     *            要填充的列表，如果是<code>null</code>，则创建之
-     * 
+     *         要填充的列表，如果是<code>null</code>，则创建之
+     *
      * @return 被创建或填充的list
      */
     public static List toList(Object array, List list) {
@@ -1688,8 +1710,7 @@ public class ArrayUtil {
             }
 
             list.add(array);
-        }
-        else if (array instanceof long[]) {
+        } else if (array instanceof long[]) {
             long[] longArray = (long[]) array;
 
             if (list == null) {
@@ -1699,8 +1720,7 @@ public class ArrayUtil {
             for (int i = 0; i < longArray.length; i++) {
                 list.add(new Long(longArray[i]));
             }
-        }
-        else if (array instanceof int[]) {
+        } else if (array instanceof int[]) {
             int[] intArray = (int[]) array;
 
             if (list == null) {
@@ -1710,8 +1730,7 @@ public class ArrayUtil {
             for (int i = 0; i < intArray.length; i++) {
                 list.add(new Integer(intArray[i]));
             }
-        }
-        else if (array instanceof short[]) {
+        } else if (array instanceof short[]) {
             short[] shortArray = (short[]) array;
 
             if (list == null) {
@@ -1721,8 +1740,7 @@ public class ArrayUtil {
             for (int i = 0; i < shortArray.length; i++) {
                 list.add(new Short(shortArray[i]));
             }
-        }
-        else if (array instanceof byte[]) {
+        } else if (array instanceof byte[]) {
             byte[] byteArray = (byte[]) array;
 
             if (list == null) {
@@ -1732,8 +1750,7 @@ public class ArrayUtil {
             for (int i = 0; i < byteArray.length; i++) {
                 list.add(new Byte(byteArray[i]));
             }
-        }
-        else if (array instanceof double[]) {
+        } else if (array instanceof double[]) {
             double[] doubleArray = (double[]) array;
 
             if (list == null) {
@@ -1743,8 +1760,7 @@ public class ArrayUtil {
             for (int i = 0; i < doubleArray.length; i++) {
                 list.add(new Double(doubleArray[i]));
             }
-        }
-        else if (array instanceof float[]) {
+        } else if (array instanceof float[]) {
             float[] floatArray = (float[]) array;
 
             if (list == null) {
@@ -1754,8 +1770,7 @@ public class ArrayUtil {
             for (int i = 0; i < floatArray.length; i++) {
                 list.add(new Float(floatArray[i]));
             }
-        }
-        else if (array instanceof boolean[]) {
+        } else if (array instanceof boolean[]) {
             boolean[] booleanArray = (boolean[]) array;
 
             if (list == null) {
@@ -1765,8 +1780,7 @@ public class ArrayUtil {
             for (int i = 0; i < booleanArray.length; i++) {
                 list.add(booleanArray[i] ? Boolean.TRUE : Boolean.FALSE);
             }
-        }
-        else if (array instanceof char[]) {
+        } else if (array instanceof char[]) {
             char[] charArray = (char[]) array;
 
             if (list == null) {
@@ -1776,8 +1790,7 @@ public class ArrayUtil {
             for (int i = 0; i < charArray.length; i++) {
                 list.add(new Character(charArray[i]));
             }
-        }
-        else {
+        } else {
             Object[] objectArray = (Object[]) array;
 
             if (list == null) {
@@ -1795,28 +1808,28 @@ public class ArrayUtil {
 
     /**
      * 将数组转换成<code>Map</code>。数组的元素必须是<code>Map.Entry</code>或元素个数多于2的子数组。
-     * 
+     * <p/>
      * <p>
      * 如果输入数组为<code>null</code>，则返回<code>null</code>。
      * </p>
-     * 
+     * <p/>
      * <p>
      * 这个方法常被用于初始化，例如：
-     * 
+     * <p/>
      * <pre>
      * Map colorMap = ArrayUtil.toMap(new String[][] { { &quot;RED&quot;, &quot;#FF0000&quot; }, { &quot;GREEN&quot;, &quot;#00FF00&quot; },
      *                                                { &quot;BLUE&quot;, &quot;#0000FF&quot; } });
      * </pre>
-     * 
+     * <p/>
      * </p>
-     * 
+     *
      * @param array
-     *            要转换的数组
-     * 
+     *         要转换的数组
+     *
      * @return 被创建的map
-     * 
+     *
      * @throws IllegalArgumentException
-     *             如果有一个子数组元素个数小于2或不是<code>Map.Entry</code>实例
+     *         如果有一个子数组元素个数小于2或不是<code>Map.Entry</code>实例
      */
     public static Map toMap(Object[] array) {
         return toMap(array, null);
@@ -1825,32 +1838,32 @@ public class ArrayUtil {
 
     /**
      * 将数组转换成<code>Map</code>。数组的元素必须是<code>Map.Entry</code>或元素个数多于2的子数组。
-     * 
+     * <p/>
      * <p>
      * 如果输入数组为<code>null</code>，则返回<code>null</code>。
      * </p>
-     * 
+     * <p/>
      * <p>
      * 这个方法常被用于初始化，例如：
-     * 
+     * <p/>
      * <pre>
      * Map colorMap = ArrayUtil.toMap(new String[][] {{
      *     {"RED", "#FF0000"},
      *     {"GREEN", "#00FF00"},
      *     {"BLUE", "#0000FF"}}, new HashMap());
      * </pre>
-     * 
+     * <p/>
      * </p>
-     * 
+     *
      * @param array
-     *            要转换的数组
+     *         要转换的数组
      * @param map
-     *            要填充的map，如果为<code>null</code>则自动创建之
-     * 
+     *         要填充的map，如果为<code>null</code>则自动创建之
+     *
      * @return 被创建或填充的map
-     * 
+     *
      * @throws IllegalArgumentException
-     *             如果有一个子数组元素个数小于2或不是<code>Map.Entry</code>实例
+     *         如果有一个子数组元素个数小于2或不是<code>Map.Entry</code>实例
      */
     public static Map toMap(Object[] array, Map map) {
         if (array == null) {
@@ -1868,8 +1881,7 @@ public class ArrayUtil {
                 Map.Entry entry = (Map.Entry) object;
 
                 map.put(entry.getKey(), entry.getValue());
-            }
-            else if (object instanceof Object[]) {
+            } else if (object instanceof Object[]) {
                 Object[] entry = (Object[]) object;
 
                 if (entry.length < 2) {
@@ -1878,8 +1890,7 @@ public class ArrayUtil {
                 }
 
                 map.put(entry[0], entry[1]);
-            }
-            else {
+            } else {
                 throw new IllegalArgumentException("Array element " + i + ", '" + object
                         + "', is neither of type Map.Entry nor an Array");
             }
@@ -1903,14 +1914,14 @@ public class ArrayUtil {
 
     /**
      * 复制一个数组。如果数组为<code>null</code>，则返回<code>null</code>。
-     * 
+     * <p/>
      * <p>
      * 此方法只进行“浅复制”，也就是说，数组中的对象本身不会被复制。 另外，此方法也不处理多维数组。
      * </p>
-     * 
+     *
      * @param array
-     *            要复制的数组
-     * 
+     *         要复制的数组
+     *
      * @return 数组的复本，如果原始数组为<code>null</code>，则返回<code>null</code>
      */
     public static Object[] clone(Object[] array) {
@@ -1924,14 +1935,14 @@ public class ArrayUtil {
 
     /**
      * 复制一个数组。如果数组为<code>null</code>，则返回<code>null</code>。
-     * 
+     * <p/>
      * <p>
      * 此方法也不处理多维数组。
      * </p>
-     * 
+     *
      * @param array
-     *            要复制的数组
-     * 
+     *         要复制的数组
+     *
      * @return 数组的复本，如果原始数组为<code>null</code>，则返回<code>null</code>
      */
     public static long[] clone(long[] array) {
@@ -1945,14 +1956,14 @@ public class ArrayUtil {
 
     /**
      * 复制一个数组。如果数组为<code>null</code>，则返回<code>null</code>。
-     * 
+     * <p/>
      * <p>
      * 此方法也不处理多维数组。
      * </p>
-     * 
+     *
      * @param array
-     *            要复制的数组
-     * 
+     *         要复制的数组
+     *
      * @return 数组的复本，如果原始数组为<code>null</code>，则返回<code>null</code>
      */
     public static int[] clone(int[] array) {
@@ -1966,14 +1977,14 @@ public class ArrayUtil {
 
     /**
      * 复制一个数组。如果数组为<code>null</code>，则返回<code>null</code>。
-     * 
+     * <p/>
      * <p>
      * 此方法也不处理多维数组。
      * </p>
-     * 
+     *
      * @param array
-     *            要复制的数组
-     * 
+     *         要复制的数组
+     *
      * @return 数组的复本，如果原始数组为<code>null</code>，则返回<code>null</code>
      */
     public static short[] clone(short[] array) {
@@ -1987,14 +1998,14 @@ public class ArrayUtil {
 
     /**
      * 复制一个数组。如果数组为<code>null</code>，则返回<code>null</code>。
-     * 
+     * <p/>
      * <p>
      * 此方法也不处理多维数组。
      * </p>
-     * 
+     *
      * @param array
-     *            要复制的数组
-     * 
+     *         要复制的数组
+     *
      * @return 数组的复本，如果原始数组为<code>null</code>，则返回<code>null</code>
      */
     public static byte[] clone(byte[] array) {
@@ -2008,14 +2019,14 @@ public class ArrayUtil {
 
     /**
      * 复制一个数组。如果数组为<code>null</code>，则返回<code>null</code>。
-     * 
+     * <p/>
      * <p>
      * 此方法也不处理多维数组。
      * </p>
-     * 
+     *
      * @param array
-     *            要复制的数组
-     * 
+     *         要复制的数组
+     *
      * @return 数组的复本，如果原始数组为<code>null</code>，则返回<code>null</code>
      */
     public static double[] clone(double[] array) {
@@ -2029,14 +2040,14 @@ public class ArrayUtil {
 
     /**
      * 复制一个数组。如果数组为<code>null</code>，则返回<code>null</code>。
-     * 
+     * <p/>
      * <p>
      * 此方法也不处理多维数组。
      * </p>
-     * 
+     *
      * @param array
-     *            要复制的数组
-     * 
+     *         要复制的数组
+     *
      * @return 数组的复本，如果原始数组为<code>null</code>，则返回<code>null</code>
      */
     public static float[] clone(float[] array) {
@@ -2050,14 +2061,14 @@ public class ArrayUtil {
 
     /**
      * 复制一个数组。如果数组为<code>null</code>，则返回<code>null</code>。
-     * 
+     * <p/>
      * <p>
      * 此方法也不处理多维数组。
      * </p>
-     * 
+     *
      * @param array
-     *            要复制的数组
-     * 
+     *         要复制的数组
+     *
      * @return 数组的复本，如果原始数组为<code>null</code>，则返回<code>null</code>
      */
     public static boolean[] clone(boolean[] array) {
@@ -2071,14 +2082,14 @@ public class ArrayUtil {
 
     /**
      * 复制一个数组。如果数组为<code>null</code>，则返回<code>null</code>。
-     * 
+     * <p/>
      * <p>
      * 此方法也不处理多维数组。
      * </p>
-     * 
+     *
      * @param array
-     *            要复制的数组
-     * 
+     *         要复制的数组
+     *
      * @return 数组的复本，如果原始数组为<code>null</code>，则返回<code>null</code>
      */
     public static char[] clone(char[] array) {
@@ -2102,12 +2113,12 @@ public class ArrayUtil {
 
     /**
      * 判断两个数组是否具有相同的长度。如果数组为<code>null</code>则被看作长度为<code>0</code>。
-     * 
+     *
      * @param array1
-     *            数组1
+     *         数组1
      * @param array2
-     *            数组2
-     * 
+     *         数组2
+     *
      * @return 如果两个数组长度相同，则返回<code>true</code>
      */
     public static boolean isSameLength(Object[] array1, Object[] array2) {
@@ -2120,12 +2131,12 @@ public class ArrayUtil {
 
     /**
      * 判断两个数组是否具有相同的长度。如果数组为<code>null</code>则被看作长度为<code>0</code>。
-     * 
+     *
      * @param array1
-     *            数组1
+     *         数组1
      * @param array2
-     *            数组2
-     * 
+     *         数组2
+     *
      * @return 如果两个数组长度相同，则返回<code>true</code>
      */
     public static boolean isSameLength(long[] array1, long[] array2) {
@@ -2138,12 +2149,12 @@ public class ArrayUtil {
 
     /**
      * 判断两个数组是否具有相同的长度。如果数组为<code>null</code>则被看作长度为<code>0</code>。
-     * 
+     *
      * @param array1
-     *            数组1
+     *         数组1
      * @param array2
-     *            数组2
-     * 
+     *         数组2
+     *
      * @return 如果两个数组长度相同，则返回<code>true</code>
      */
     public static boolean isSameLength(int[] array1, int[] array2) {
@@ -2156,12 +2167,12 @@ public class ArrayUtil {
 
     /**
      * 判断两个数组是否具有相同的长度。如果数组为<code>null</code>则被看作长度为<code>0</code>。
-     * 
+     *
      * @param array1
-     *            数组1
+     *         数组1
      * @param array2
-     *            数组2
-     * 
+     *         数组2
+     *
      * @return 如果两个数组长度相同，则返回<code>true</code>
      */
     public static boolean isSameLength(short[] array1, short[] array2) {
@@ -2174,12 +2185,12 @@ public class ArrayUtil {
 
     /**
      * 判断两个数组是否具有相同的长度。如果数组为<code>null</code>则被看作长度为<code>0</code>。
-     * 
+     *
      * @param array1
-     *            数组1
+     *         数组1
      * @param array2
-     *            数组2
-     * 
+     *         数组2
+     *
      * @return 如果两个数组长度相同，则返回<code>true</code>
      */
     public static boolean isSameLength(byte[] array1, byte[] array2) {
@@ -2192,12 +2203,12 @@ public class ArrayUtil {
 
     /**
      * 判断两个数组是否具有相同的长度。如果数组为<code>null</code>则被看作长度为<code>0</code>。
-     * 
+     *
      * @param array1
-     *            数组1
+     *         数组1
      * @param array2
-     *            数组2
-     * 
+     *         数组2
+     *
      * @return 如果两个数组长度相同，则返回<code>true</code>
      */
     public static boolean isSameLength(double[] array1, double[] array2) {
@@ -2210,12 +2221,12 @@ public class ArrayUtil {
 
     /**
      * 判断两个数组是否具有相同的长度。如果数组为<code>null</code>则被看作长度为<code>0</code>。
-     * 
+     *
      * @param array1
-     *            数组1
+     *         数组1
      * @param array2
-     *            数组2
-     * 
+     *         数组2
+     *
      * @return 如果两个数组长度相同，则返回<code>true</code>
      */
     public static boolean isSameLength(float[] array1, float[] array2) {
@@ -2228,12 +2239,12 @@ public class ArrayUtil {
 
     /**
      * 判断两个数组是否具有相同的长度。如果数组为<code>null</code>则被看作长度为<code>0</code>。
-     * 
+     *
      * @param array1
-     *            数组1
+     *         数组1
      * @param array2
-     *            数组2
-     * 
+     *         数组2
+     *
      * @return 如果两个数组长度相同，则返回<code>true</code>
      */
     public static boolean isSameLength(boolean[] array1, boolean[] array2) {
@@ -2246,12 +2257,12 @@ public class ArrayUtil {
 
     /**
      * 判断两个数组是否具有相同的长度。如果数组为<code>null</code>则被看作长度为<code>0</code>。
-     * 
+     *
      * @param array1
-     *            数组1
+     *         数组1
      * @param array2
-     *            数组2
-     * 
+     *         数组2
+     *
      * @return 如果两个数组长度相同，则返回<code>true</code>
      */
     public static boolean isSameLength(char[] array1, char[] array2) {
@@ -2274,9 +2285,9 @@ public class ArrayUtil {
 
     /**
      * 反转数组的元素顺序。如果数组为<code>null</code>，则什么也不做。
-     * 
+     *
      * @param array
-     *            要反转的数组
+     *         要反转的数组
      */
     public static void reverse(Object[] array) {
         if (array == null) {
@@ -2295,9 +2306,9 @@ public class ArrayUtil {
 
     /**
      * 反转数组的元素顺序。如果数组为<code>null</code>，则什么也不做。
-     * 
+     *
      * @param array
-     *            要反转的数组
+     *         要反转的数组
      */
     public static void reverse(long[] array) {
         if (array == null) {
@@ -2316,9 +2327,9 @@ public class ArrayUtil {
 
     /**
      * 反转数组的元素顺序。如果数组为<code>null</code>，则什么也不做。
-     * 
+     *
      * @param array
-     *            要反转的数组
+     *         要反转的数组
      */
     public static void reverse(int[] array) {
         if (array == null) {
@@ -2337,9 +2348,9 @@ public class ArrayUtil {
 
     /**
      * 反转数组的元素顺序。如果数组为<code>null</code>，则什么也不做。
-     * 
+     *
      * @param array
-     *            要反转的数组
+     *         要反转的数组
      */
     public static void reverse(short[] array) {
         if (array == null) {
@@ -2358,9 +2369,9 @@ public class ArrayUtil {
 
     /**
      * 反转数组的元素顺序。如果数组为<code>null</code>，则什么也不做。
-     * 
+     *
      * @param array
-     *            要反转的数组
+     *         要反转的数组
      */
     public static void reverse(byte[] array) {
         if (array == null) {
@@ -2379,9 +2390,9 @@ public class ArrayUtil {
 
     /**
      * 反转数组的元素顺序。如果数组为<code>null</code>，则什么也不做。
-     * 
+     *
      * @param array
-     *            要反转的数组
+     *         要反转的数组
      */
     public static void reverse(double[] array) {
         if (array == null) {
@@ -2400,9 +2411,9 @@ public class ArrayUtil {
 
     /**
      * 反转数组的元素顺序。如果数组为<code>null</code>，则什么也不做。
-     * 
+     *
      * @param array
-     *            要反转的数组
+     *         要反转的数组
      */
     public static void reverse(float[] array) {
         if (array == null) {
@@ -2421,9 +2432,9 @@ public class ArrayUtil {
 
     /**
      * 反转数组的元素顺序。如果数组为<code>null</code>，则什么也不做。
-     * 
+     *
      * @param array
-     *            要反转的数组
+     *         要反转的数组
      */
     public static void reverse(boolean[] array) {
         if (array == null) {
@@ -2442,9 +2453,9 @@ public class ArrayUtil {
 
     /**
      * 反转数组的元素顺序。如果数组为<code>null</code>，则什么也不做。
-     * 
+     *
      * @param array
-     *            要反转的数组
+     *         要反转的数组
      */
     public static void reverse(char[] array) {
         if (array == null) {
@@ -2474,221 +2485,41 @@ public class ArrayUtil {
      */
 
     /**
-     * 在数组中查找一个元素。
-     * 
-     * <p>
-     * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
-     * </p>
-     * 
-     * @param array
-     *            要扫描的数组
-     * @param objectToFind
-     *            要查找的元素
-     * 
-     * @return 该元素在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
-     */
-    public static int indexOf(Object[] array, Object objectToFind) {
-        return indexOf(array, objectToFind, 0);
-    }
-
-
-    /**
-     * 在数组中查找一个元素序列。
-     * 
-     * <p>
-     * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
-     * </p>
-     * 
-     * @param array
-     *            要扫描的数组
-     * @param arrayToFind
-     *            要查找的元素序列
-     * 
-     * @return 该元素序列在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
-     */
-    public static int indexOf(Object[] array, Object[] arrayToFind) {
-        return indexOf(array, arrayToFind, 0);
-    }
-
-
-    /**
-     * 在数组中查找一个元素。
-     * 
-     * <p>
-     * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
-     * </p>
-     * 
-     * <p>
-     * 起始索引小于<code>0</code>则看作<code>0</code>，超出数组长度的起始索引则返回<code>-1</code>。
-     * </p>
-     * 
-     * @param array
-     *            要扫描的数组
-     * @param objectToFind
-     *            要查找的元素
-     * @param startIndex
-     *            起始索引
-     * 
-     * @return 该元素在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
-     */
-    public static int indexOf(Object[] array, Object objectToFind, int startIndex) {
-        if (array == null) {
-            return -1;
-        }
-
-        if (startIndex < 0) {
-            startIndex = 0;
-        }
-
-        if (objectToFind == null) {
-            for (int i = startIndex; i < array.length; i++) {
-                if (array[i] == null) {
-                    return i;
-                }
-            }
-        }
-        else {
-            for (int i = startIndex; i < array.length; i++) {
-                if (objectToFind.equals(array[i])) {
-                    return i;
-                }
-            }
-        }
-
-        return -1;
-    }
-
-
-    /**
-     * 在数组中查找一个元素序列。
-     * 
-     * <p>
-     * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
-     * </p>
-     * 
-     * <p>
-     * 起始索引小于<code>0</code>则看作<code>0</code>，超出数组长度的起始索引则返回<code>-1</code>。
-     * </p>
-     * 
-     * @param array
-     *            要扫描的数组
-     * @param arrayToFind
-     *            要查找的元素序列
-     * @param startIndex
-     *            起始索引
-     * 
-     * @return 该元素序列在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
-     */
-    public static int indexOf(Object[] array, Object[] arrayToFind, int startIndex) {
-        if ((array == null) || (arrayToFind == null)) {
-            return -1;
-        }
-
-        int sourceLength = array.length;
-        int targetLength = arrayToFind.length;
-
-        if (startIndex >= sourceLength) {
-            return (targetLength == 0) ? sourceLength : (-1);
-        }
-
-        if (startIndex < 0) {
-            startIndex = 0;
-        }
-
-        if (targetLength == 0) {
-            return startIndex;
-        }
-
-        Object first = arrayToFind[0];
-        int i = startIndex;
-        int max = sourceLength - targetLength;
-
-        startSearchForFirst: while (true) {
-            // 查找第一个元素
-            while ((i <= max) && !ObjectUtil.equals(array[i], first)) {
-                i++;
-            }
-
-            if (i > max) {
-                return -1;
-            }
-
-            // 已经找到第一个元素，接着找
-            int j = i + 1;
-            int end = (j + targetLength) - 1;
-            int k = 1;
-
-            while (j < end) {
-                if (!ObjectUtil.equals(array[j++], arrayToFind[k++])) {
-                    i++;
-
-                    // 重新查找第一个元素
-                    continue startSearchForFirst;
-                }
-            }
-
-            // 找到了
-            return i;
-        }
-    }
-
-
-    /**
      * 在数组中从末尾开始查找一个元素。
-     * 
+     * <p/>
      * <p>
      * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
      * </p>
-     * 
+     *
      * @param array
-     *            要扫描的数组
+     *         要扫描的数组
      * @param objectToFind
-     *            要查找的元素
-     * 
+     *         要查找的元素
+     *
      * @return 该元素在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
      */
     public static int lastIndexOf(Object[] array, Object objectToFind) {
         return lastIndexOf(array, objectToFind, Integer.MAX_VALUE);
     }
 
-
-    /**
-     * 在数组中从末尾开始查找一个元素序列。
-     * 
-     * <p>
-     * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
-     * </p>
-     * 
-     * @param array
-     *            要扫描的数组
-     * @param arrayToFind
-     *            要查找的元素序列
-     * 
-     * @return 该元素序列在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
-     */
-    public static int lastIndexOf(Object[] array, Object[] arrayToFind) {
-        return lastIndexOf(array, arrayToFind, Integer.MAX_VALUE);
-    }
-
-
     /**
      * 在数组中从末尾开始查找一个元素。
-     * 
+     * <p/>
      * <p>
      * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
      * </p>
-     * 
+     * <p/>
      * <p>
      * 起始索引小于<code>0</code>则返回<code>-1</code>，超出数组长度的起始索引则从数组末尾开始找。
      * </p>
-     * 
+     *
      * @param array
-     *            要扫描的数组
+     *         要扫描的数组
      * @param objectToFind
-     *            要查找的元素
+     *         要查找的元素
      * @param startIndex
-     *            起始索引
-     * 
+     *         起始索引
+     *
      * @return 该元素在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
      */
     public static int lastIndexOf(Object[] array, Object objectToFind, int startIndex) {
@@ -2698,8 +2529,7 @@ public class ArrayUtil {
 
         if (startIndex < 0) {
             return -1;
-        }
-        else if (startIndex >= array.length) {
+        } else if (startIndex >= array.length) {
             startIndex = array.length - 1;
         }
 
@@ -2709,8 +2539,7 @@ public class ArrayUtil {
                     return i;
                 }
             }
-        }
-        else {
+        } else {
             for (int i = startIndex; i >= 0; i--) {
                 if (objectToFind.equals(array[i])) {
                     return i;
@@ -2721,25 +2550,42 @@ public class ArrayUtil {
         return -1;
     }
 
-
     /**
      * 在数组中从末尾开始查找一个元素序列。
-     * 
+     * <p/>
      * <p>
      * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
      * </p>
-     * 
+     *
+     * @param array
+     *         要扫描的数组
+     * @param arrayToFind
+     *         要查找的元素序列
+     *
+     * @return 该元素序列在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
+     */
+    public static int lastIndexOf(Object[] array, Object[] arrayToFind) {
+        return lastIndexOf(array, arrayToFind, Integer.MAX_VALUE);
+    }
+
+    /**
+     * 在数组中从末尾开始查找一个元素序列。
+     * <p/>
+     * <p>
+     * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
+     * </p>
+     * <p/>
      * <p>
      * 起始索引小于<code>0</code>则返回<code>-1</code>，超出数组长度的起始索引则从数组末尾开始找。
      * </p>
-     * 
+     *
      * @param array
-     *            要扫描的数组
+     *         要扫描的数组
      * @param arrayToFind
-     *            要查找的元素序列
+     *         要查找的元素序列
      * @param startIndex
-     *            起始索引
-     * 
+     *         起始索引
+     *
      * @return 该元素序列在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
      */
     public static int lastIndexOf(Object[] array, Object[] arrayToFind, int startIndex) {
@@ -2769,7 +2615,8 @@ public class ArrayUtil {
         int min = targetLength - 1;
         int i = min + startIndex;
 
-        startSearchForLast: while (true) {
+        startSearchForLast:
+        while (true) {
             while ((i >= min) && !ObjectUtil.equals(array[i], last)) {
                 i--;
             }
@@ -2793,116 +2640,63 @@ public class ArrayUtil {
         }
     }
 
-
     /**
      * 判断指定对象是否存在于指定数组中。
-     * 
+     * <p/>
      * <p>
      * 如果数组为<code>null</code>则返回<code>false</code>。
      * </p>
-     * 
+     *
      * @param array
-     *            要扫描的数组
+     *         要扫描的数组
      * @param objectToFind
-     *            要查找的元素
-     * 
+     *         要查找的元素
+     *
      * @return 如果找到则返回<code>true</code>
      */
     public static boolean contains(Object[] array, Object objectToFind) {
         return indexOf(array, objectToFind) != -1;
     }
 
-
-    /**
-     * 判断指定元素序列是否存在于指定数组中。
-     * 
-     * <p>
-     * 如果数组为<code>null</code>则返回<code>false</code>。
-     * </p>
-     * 
-     * @param array
-     *            要扫描的数组
-     * @param arrayToFind
-     *            要查找的元素序列
-     * 
-     * @return 如果找到则返回<code>true</code>
-     */
-    public static boolean contains(Object[] array, Object[] arrayToFind) {
-        return indexOf(array, arrayToFind) != -1;
-    }
-
-
-    /*
-     * ==========================================================================
-     * ==
-     */
-    /* 在数组中查找一个元素或一个元素序列。 */
-    /*                                                                              */
-    /* 类型：long[] */
-    /*
-     * ==========================================================================
-     * ==
-     */
-
     /**
      * 在数组中查找一个元素。
-     * 
+     * <p/>
      * <p>
      * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
      * </p>
-     * 
+     *
      * @param array
-     *            要扫描的数组
-     * @param longToFind
-     *            要查找的元素
-     * 
+     *         要扫描的数组
+     * @param objectToFind
+     *         要查找的元素
+     *
      * @return 该元素在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
      */
-    public static int indexOf(long[] array, long longToFind) {
-        return indexOf(array, longToFind, 0);
+    public static int indexOf(Object[] array, Object objectToFind) {
+        return indexOf(array, objectToFind, 0);
     }
-
-
-    /**
-     * 在数组中查找一个元素序列。
-     * 
-     * <p>
-     * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
-     * </p>
-     * 
-     * @param array
-     *            要扫描的数组
-     * @param arrayToFind
-     *            要查找的元素序列
-     * 
-     * @return 该元素序列在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
-     */
-    public static int indexOf(long[] array, long[] arrayToFind) {
-        return indexOf(array, arrayToFind, 0);
-    }
-
 
     /**
      * 在数组中查找一个元素。
-     * 
+     * <p/>
      * <p>
      * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
      * </p>
-     * 
+     * <p/>
      * <p>
      * 起始索引小于<code>0</code>则看作<code>0</code>，超出数组长度的起始索引则返回<code>-1</code>。
      * </p>
-     * 
+     *
      * @param array
-     *            要扫描的数组
-     * @param longToFind
-     *            要查找的元素
+     *         要扫描的数组
+     * @param objectToFind
+     *         要查找的元素
      * @param startIndex
-     *            起始索引
-     * 
+     *         起始索引
+     *
      * @return 该元素在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
      */
-    public static int indexOf(long[] array, long longToFind, int startIndex) {
+    public static int indexOf(Object[] array, Object objectToFind, int startIndex) {
         if (array == null) {
             return -1;
         }
@@ -2911,37 +2705,80 @@ public class ArrayUtil {
             startIndex = 0;
         }
 
-        for (int i = startIndex; i < array.length; i++) {
-            if (longToFind == array[i]) {
-                return i;
+        if (objectToFind == null) {
+            for (int i = startIndex; i < array.length; i++) {
+                if (array[i] == null) {
+                    return i;
+                }
+            }
+        } else {
+            for (int i = startIndex; i < array.length; i++) {
+                if (objectToFind.equals(array[i])) {
+                    return i;
+                }
             }
         }
 
         return -1;
     }
 
+    /**
+     * 判断指定元素序列是否存在于指定数组中。
+     * <p/>
+     * <p>
+     * 如果数组为<code>null</code>则返回<code>false</code>。
+     * </p>
+     *
+     * @param array
+     *         要扫描的数组
+     * @param arrayToFind
+     *         要查找的元素序列
+     *
+     * @return 如果找到则返回<code>true</code>
+     */
+    public static boolean contains(Object[] array, Object[] arrayToFind) {
+        return indexOf(array, arrayToFind) != -1;
+    }
 
     /**
      * 在数组中查找一个元素序列。
-     * 
+     * <p/>
      * <p>
      * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
      * </p>
-     * 
+     *
+     * @param array
+     *         要扫描的数组
+     * @param arrayToFind
+     *         要查找的元素序列
+     *
+     * @return 该元素序列在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
+     */
+    public static int indexOf(Object[] array, Object[] arrayToFind) {
+        return indexOf(array, arrayToFind, 0);
+    }
+
+    /**
+     * 在数组中查找一个元素序列。
+     * <p/>
+     * <p>
+     * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
+     * </p>
+     * <p/>
      * <p>
      * 起始索引小于<code>0</code>则看作<code>0</code>，超出数组长度的起始索引则返回<code>-1</code>。
      * </p>
-     * 
+     *
      * @param array
-     *            要扫描的数组
+     *         要扫描的数组
      * @param arrayToFind
-     *            要查找的元素序列
+     *         要查找的元素序列
      * @param startIndex
-     *            起始索引
-     * 
+     *         起始索引
+     *
      * @return 该元素序列在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
      */
-    public static int indexOf(long[] array, long[] arrayToFind, int startIndex) {
+    public static int indexOf(Object[] array, Object[] arrayToFind, int startIndex) {
         if ((array == null) || (arrayToFind == null)) {
             return -1;
         }
@@ -2961,13 +2798,14 @@ public class ArrayUtil {
             return startIndex;
         }
 
-        long first = arrayToFind[0];
+        Object first = arrayToFind[0];
         int i = startIndex;
         int max = sourceLength - targetLength;
 
-        startSearchForFirst: while (true) {
+        startSearchForFirst:
+        while (true) {
             // 查找第一个元素
-            while ((i <= max) && (array[i] != first)) {
+            while ((i <= max) && !ObjectUtil.equals(array[i], first)) {
                 i++;
             }
 
@@ -2981,7 +2819,7 @@ public class ArrayUtil {
             int k = 1;
 
             while (j < end) {
-                if (array[j++] != arrayToFind[k++]) {
+                if (!ObjectUtil.equals(array[j++], arrayToFind[k++])) {
                     i++;
 
                     // 重新查找第一个元素
@@ -2995,62 +2833,54 @@ public class ArrayUtil {
     }
 
 
+    /*
+     * ==========================================================================
+     * ==
+     */
+    /* 在数组中查找一个元素或一个元素序列。 */
+    /*                                                                              */
+    /* 类型：long[] */
+    /*
+     * ==========================================================================
+     * ==
+     */
+
     /**
      * 在数组中从末尾开始查找一个元素。
-     * 
+     * <p/>
      * <p>
      * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
      * </p>
-     * 
+     *
      * @param array
-     *            要扫描的数组
+     *         要扫描的数组
      * @param longToFind
-     *            要查找的元素
-     * 
+     *         要查找的元素
+     *
      * @return 该元素在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
      */
     public static int lastIndexOf(long[] array, long longToFind) {
         return lastIndexOf(array, longToFind, Integer.MAX_VALUE);
     }
 
-
-    /**
-     * 在数组中从末尾开始查找一个元素序列。
-     * 
-     * <p>
-     * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
-     * </p>
-     * 
-     * @param array
-     *            要扫描的数组
-     * @param arrayToFind
-     *            要查找的元素序列
-     * 
-     * @return 该元素序列在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
-     */
-    public static int lastIndexOf(long[] array, long[] arrayToFind) {
-        return lastIndexOf(array, arrayToFind, Integer.MAX_VALUE);
-    }
-
-
     /**
      * 在数组中从末尾开始查找一个元素。
-     * 
+     * <p/>
      * <p>
      * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
      * </p>
-     * 
+     * <p/>
      * <p>
      * 起始索引小于<code>0</code>则返回<code>-1</code>，超出数组长度的起始索引则从数组末尾开始找。
      * </p>
-     * 
+     *
      * @param array
-     *            要扫描的数组
+     *         要扫描的数组
      * @param longToFind
-     *            要查找的元素
+     *         要查找的元素
      * @param startIndex
-     *            起始索引
-     * 
+     *         起始索引
+     *
      * @return 该元素在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
      */
     public static int lastIndexOf(long[] array, long longToFind, int startIndex) {
@@ -3060,8 +2890,7 @@ public class ArrayUtil {
 
         if (startIndex < 0) {
             return -1;
-        }
-        else if (startIndex >= array.length) {
+        } else if (startIndex >= array.length) {
             startIndex = array.length - 1;
         }
 
@@ -3074,25 +2903,42 @@ public class ArrayUtil {
         return -1;
     }
 
-
     /**
      * 在数组中从末尾开始查找一个元素序列。
-     * 
+     * <p/>
      * <p>
      * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
      * </p>
-     * 
+     *
+     * @param array
+     *         要扫描的数组
+     * @param arrayToFind
+     *         要查找的元素序列
+     *
+     * @return 该元素序列在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
+     */
+    public static int lastIndexOf(long[] array, long[] arrayToFind) {
+        return lastIndexOf(array, arrayToFind, Integer.MAX_VALUE);
+    }
+
+    /**
+     * 在数组中从末尾开始查找一个元素序列。
+     * <p/>
+     * <p>
+     * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
+     * </p>
+     * <p/>
      * <p>
      * 起始索引小于<code>0</code>则返回<code>-1</code>，超出数组长度的起始索引则从数组末尾开始找。
      * </p>
-     * 
+     *
      * @param array
-     *            要扫描的数组
+     *         要扫描的数组
      * @param arrayToFind
-     *            要查找的元素序列
+     *         要查找的元素序列
      * @param startIndex
-     *            起始索引
-     * 
+     *         起始索引
+     *
      * @return 该元素序列在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
      */
     public static int lastIndexOf(long[] array, long[] arrayToFind, int startIndex) {
@@ -3122,7 +2968,8 @@ public class ArrayUtil {
         int min = targetLength - 1;
         int i = min + startIndex;
 
-        startSearchForLast: while (true) {
+        startSearchForLast:
+        while (true) {
             while ((i >= min) && (array[i] != last)) {
                 i--;
             }
@@ -3146,116 +2993,63 @@ public class ArrayUtil {
         }
     }
 
-
     /**
      * 判断指定对象是否存在于指定数组中。
-     * 
+     * <p/>
      * <p>
      * 如果数组为<code>null</code>则返回<code>false</code>。
      * </p>
-     * 
+     *
      * @param array
-     *            要扫描的数组
+     *         要扫描的数组
      * @param longToFind
-     *            要查找的元素
-     * 
+     *         要查找的元素
+     *
      * @return 如果找到则返回<code>true</code>
      */
     public static boolean contains(long[] array, long longToFind) {
         return indexOf(array, longToFind) != -1;
     }
 
-
-    /**
-     * 判断指定元素序列是否存在于指定数组中。
-     * 
-     * <p>
-     * 如果数组为<code>null</code>则返回<code>false</code>。
-     * </p>
-     * 
-     * @param array
-     *            要扫描的数组
-     * @param arrayToFind
-     *            要查找的元素序列
-     * 
-     * @return 如果找到则返回<code>true</code>
-     */
-    public static boolean contains(long[] array, long[] arrayToFind) {
-        return indexOf(array, arrayToFind) != -1;
-    }
-
-
-    /*
-     * ==========================================================================
-     * ==
-     */
-    /* 在数组中查找一个元素或一个元素序列。 */
-    /*                                                                              */
-    /* 类型：int[] */
-    /*
-     * ==========================================================================
-     * ==
-     */
-
     /**
      * 在数组中查找一个元素。
-     * 
+     * <p/>
      * <p>
      * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
      * </p>
-     * 
+     *
      * @param array
-     *            要扫描的数组
-     * @param intToFind
-     *            要查找的元素
-     * 
+     *         要扫描的数组
+     * @param longToFind
+     *         要查找的元素
+     *
      * @return 该元素在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
      */
-    public static int indexOf(int[] array, int intToFind) {
-        return indexOf(array, intToFind, 0);
+    public static int indexOf(long[] array, long longToFind) {
+        return indexOf(array, longToFind, 0);
     }
-
-
-    /**
-     * 在数组中查找一个元素序列。
-     * 
-     * <p>
-     * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
-     * </p>
-     * 
-     * @param array
-     *            要扫描的数组
-     * @param arrayToFind
-     *            要查找的元素序列
-     * 
-     * @return 该元素序列在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
-     */
-    public static int indexOf(int[] array, int[] arrayToFind) {
-        return indexOf(array, arrayToFind, 0);
-    }
-
 
     /**
      * 在数组中查找一个元素。
-     * 
+     * <p/>
      * <p>
      * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
      * </p>
-     * 
+     * <p/>
      * <p>
      * 起始索引小于<code>0</code>则看作<code>0</code>，超出数组长度的起始索引则返回<code>-1</code>。
      * </p>
-     * 
+     *
      * @param array
-     *            要扫描的数组
-     * @param intToFind
-     *            要查找的元素
+     *         要扫描的数组
+     * @param longToFind
+     *         要查找的元素
      * @param startIndex
-     *            起始索引
-     * 
+     *         起始索引
+     *
      * @return 该元素在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
      */
-    public static int indexOf(int[] array, int intToFind, int startIndex) {
+    public static int indexOf(long[] array, long longToFind, int startIndex) {
         if (array == null) {
             return -1;
         }
@@ -3265,7 +3059,7 @@ public class ArrayUtil {
         }
 
         for (int i = startIndex; i < array.length; i++) {
-            if (intToFind == array[i]) {
+            if (longToFind == array[i]) {
                 return i;
             }
         }
@@ -3273,28 +3067,63 @@ public class ArrayUtil {
         return -1;
     }
 
+    /**
+     * 判断指定元素序列是否存在于指定数组中。
+     * <p/>
+     * <p>
+     * 如果数组为<code>null</code>则返回<code>false</code>。
+     * </p>
+     *
+     * @param array
+     *         要扫描的数组
+     * @param arrayToFind
+     *         要查找的元素序列
+     *
+     * @return 如果找到则返回<code>true</code>
+     */
+    public static boolean contains(long[] array, long[] arrayToFind) {
+        return indexOf(array, arrayToFind) != -1;
+    }
 
     /**
      * 在数组中查找一个元素序列。
-     * 
+     * <p/>
      * <p>
      * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
      * </p>
-     * 
+     *
+     * @param array
+     *         要扫描的数组
+     * @param arrayToFind
+     *         要查找的元素序列
+     *
+     * @return 该元素序列在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
+     */
+    public static int indexOf(long[] array, long[] arrayToFind) {
+        return indexOf(array, arrayToFind, 0);
+    }
+
+    /**
+     * 在数组中查找一个元素序列。
+     * <p/>
+     * <p>
+     * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
+     * </p>
+     * <p/>
      * <p>
      * 起始索引小于<code>0</code>则看作<code>0</code>，超出数组长度的起始索引则返回<code>-1</code>。
      * </p>
-     * 
+     *
      * @param array
-     *            要扫描的数组
+     *         要扫描的数组
      * @param arrayToFind
-     *            要查找的元素序列
+     *         要查找的元素序列
      * @param startIndex
-     *            起始索引
-     * 
+     *         起始索引
+     *
      * @return 该元素序列在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
      */
-    public static int indexOf(int[] array, int[] arrayToFind, int startIndex) {
+    public static int indexOf(long[] array, long[] arrayToFind, int startIndex) {
         if ((array == null) || (arrayToFind == null)) {
             return -1;
         }
@@ -3314,11 +3143,12 @@ public class ArrayUtil {
             return startIndex;
         }
 
-        int first = arrayToFind[0];
+        long first = arrayToFind[0];
         int i = startIndex;
         int max = sourceLength - targetLength;
 
-        startSearchForFirst: while (true) {
+        startSearchForFirst:
+        while (true) {
             // 查找第一个元素
             while ((i <= max) && (array[i] != first)) {
                 i++;
@@ -3348,62 +3178,54 @@ public class ArrayUtil {
     }
 
 
+    /*
+     * ==========================================================================
+     * ==
+     */
+    /* 在数组中查找一个元素或一个元素序列。 */
+    /*                                                                              */
+    /* 类型：int[] */
+    /*
+     * ==========================================================================
+     * ==
+     */
+
     /**
      * 在数组中从末尾开始查找一个元素。
-     * 
+     * <p/>
      * <p>
      * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
      * </p>
-     * 
+     *
      * @param array
-     *            要扫描的数组
+     *         要扫描的数组
      * @param intToFind
-     *            要查找的元素
-     * 
+     *         要查找的元素
+     *
      * @return 该元素在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
      */
     public static int lastIndexOf(int[] array, int intToFind) {
         return lastIndexOf(array, intToFind, Integer.MAX_VALUE);
     }
 
-
-    /**
-     * 在数组中从末尾开始查找一个元素序列。
-     * 
-     * <p>
-     * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
-     * </p>
-     * 
-     * @param array
-     *            要扫描的数组
-     * @param arrayToFind
-     *            要查找的元素序列
-     * 
-     * @return 该元素序列在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
-     */
-    public static int lastIndexOf(int[] array, int[] arrayToFind) {
-        return lastIndexOf(array, arrayToFind, Integer.MAX_VALUE);
-    }
-
-
     /**
      * 在数组中从末尾开始查找一个元素。
-     * 
+     * <p/>
      * <p>
      * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
      * </p>
-     * 
+     * <p/>
      * <p>
      * 起始索引小于<code>0</code>则返回<code>-1</code>，超出数组长度的起始索引则从数组末尾开始找。
      * </p>
-     * 
+     *
      * @param array
-     *            要扫描的数组
+     *         要扫描的数组
      * @param intToFind
-     *            要查找的元素
+     *         要查找的元素
      * @param startIndex
-     *            起始索引
-     * 
+     *         起始索引
+     *
      * @return 该元素在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
      */
     public static int lastIndexOf(int[] array, int intToFind, int startIndex) {
@@ -3413,8 +3235,7 @@ public class ArrayUtil {
 
         if (startIndex < 0) {
             return -1;
-        }
-        else if (startIndex >= array.length) {
+        } else if (startIndex >= array.length) {
             startIndex = array.length - 1;
         }
 
@@ -3427,25 +3248,42 @@ public class ArrayUtil {
         return -1;
     }
 
-
     /**
      * 在数组中从末尾开始查找一个元素序列。
-     * 
+     * <p/>
      * <p>
      * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
      * </p>
-     * 
+     *
+     * @param array
+     *         要扫描的数组
+     * @param arrayToFind
+     *         要查找的元素序列
+     *
+     * @return 该元素序列在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
+     */
+    public static int lastIndexOf(int[] array, int[] arrayToFind) {
+        return lastIndexOf(array, arrayToFind, Integer.MAX_VALUE);
+    }
+
+    /**
+     * 在数组中从末尾开始查找一个元素序列。
+     * <p/>
+     * <p>
+     * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
+     * </p>
+     * <p/>
      * <p>
      * 起始索引小于<code>0</code>则返回<code>-1</code>，超出数组长度的起始索引则从数组末尾开始找。
      * </p>
-     * 
+     *
      * @param array
-     *            要扫描的数组
+     *         要扫描的数组
      * @param arrayToFind
-     *            要查找的元素序列
+     *         要查找的元素序列
      * @param startIndex
-     *            起始索引
-     * 
+     *         起始索引
+     *
      * @return 该元素序列在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
      */
     public static int lastIndexOf(int[] array, int[] arrayToFind, int startIndex) {
@@ -3475,7 +3313,8 @@ public class ArrayUtil {
         int min = targetLength - 1;
         int i = min + startIndex;
 
-        startSearchForLast: while (true) {
+        startSearchForLast:
+        while (true) {
             while ((i >= min) && (array[i] != last)) {
                 i--;
             }
@@ -3499,116 +3338,63 @@ public class ArrayUtil {
         }
     }
 
-
     /**
      * 判断指定对象是否存在于指定数组中。
-     * 
+     * <p/>
      * <p>
      * 如果数组为<code>null</code>则返回<code>false</code>。
      * </p>
-     * 
+     *
      * @param array
-     *            要扫描的数组
+     *         要扫描的数组
      * @param intToFind
-     *            要查找的元素
-     * 
+     *         要查找的元素
+     *
      * @return 如果找到则返回<code>true</code>
      */
     public static boolean contains(int[] array, int intToFind) {
         return indexOf(array, intToFind) != -1;
     }
 
-
-    /**
-     * 判断指定元素序列是否存在于指定数组中。
-     * 
-     * <p>
-     * 如果数组为<code>null</code>则返回<code>false</code>。
-     * </p>
-     * 
-     * @param array
-     *            要扫描的数组
-     * @param arrayToFind
-     *            要查找的元素序列
-     * 
-     * @return 如果找到则返回<code>true</code>
-     */
-    public static boolean contains(int[] array, int[] arrayToFind) {
-        return indexOf(array, arrayToFind) != -1;
-    }
-
-
-    /*
-     * ==========================================================================
-     * ==
-     */
-    /* 在数组中查找一个元素或一个元素序列。 */
-    /*                                                                              */
-    /* 类型：short[] */
-    /*
-     * ==========================================================================
-     * ==
-     */
-
     /**
      * 在数组中查找一个元素。
-     * 
+     * <p/>
      * <p>
      * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
      * </p>
-     * 
+     *
      * @param array
-     *            要扫描的数组
-     * @param shortToFind
-     *            要查找的元素
-     * 
+     *         要扫描的数组
+     * @param intToFind
+     *         要查找的元素
+     *
      * @return 该元素在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
      */
-    public static int indexOf(short[] array, short shortToFind) {
-        return indexOf(array, shortToFind, 0);
+    public static int indexOf(int[] array, int intToFind) {
+        return indexOf(array, intToFind, 0);
     }
-
-
-    /**
-     * 在数组中查找一个元素序列。
-     * 
-     * <p>
-     * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
-     * </p>
-     * 
-     * @param array
-     *            要扫描的数组
-     * @param arrayToFind
-     *            要查找的元素序列
-     * 
-     * @return 该元素序列在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
-     */
-    public static int indexOf(short[] array, short[] arrayToFind) {
-        return indexOf(array, arrayToFind, 0);
-    }
-
 
     /**
      * 在数组中查找一个元素。
-     * 
+     * <p/>
      * <p>
      * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
      * </p>
-     * 
+     * <p/>
      * <p>
      * 起始索引小于<code>0</code>则看作<code>0</code>，超出数组长度的起始索引则返回<code>-1</code>。
      * </p>
-     * 
+     *
      * @param array
-     *            要扫描的数组
-     * @param shortToFind
-     *            要查找的元素
+     *         要扫描的数组
+     * @param intToFind
+     *         要查找的元素
      * @param startIndex
-     *            起始索引
-     * 
+     *         起始索引
+     *
      * @return 该元素在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
      */
-    public static int indexOf(short[] array, short shortToFind, int startIndex) {
+    public static int indexOf(int[] array, int intToFind, int startIndex) {
         if (array == null) {
             return -1;
         }
@@ -3618,7 +3404,7 @@ public class ArrayUtil {
         }
 
         for (int i = startIndex; i < array.length; i++) {
-            if (shortToFind == array[i]) {
+            if (intToFind == array[i]) {
                 return i;
             }
         }
@@ -3626,28 +3412,63 @@ public class ArrayUtil {
         return -1;
     }
 
+    /**
+     * 判断指定元素序列是否存在于指定数组中。
+     * <p/>
+     * <p>
+     * 如果数组为<code>null</code>则返回<code>false</code>。
+     * </p>
+     *
+     * @param array
+     *         要扫描的数组
+     * @param arrayToFind
+     *         要查找的元素序列
+     *
+     * @return 如果找到则返回<code>true</code>
+     */
+    public static boolean contains(int[] array, int[] arrayToFind) {
+        return indexOf(array, arrayToFind) != -1;
+    }
 
     /**
      * 在数组中查找一个元素序列。
-     * 
+     * <p/>
      * <p>
      * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
      * </p>
-     * 
+     *
+     * @param array
+     *         要扫描的数组
+     * @param arrayToFind
+     *         要查找的元素序列
+     *
+     * @return 该元素序列在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
+     */
+    public static int indexOf(int[] array, int[] arrayToFind) {
+        return indexOf(array, arrayToFind, 0);
+    }
+
+    /**
+     * 在数组中查找一个元素序列。
+     * <p/>
+     * <p>
+     * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
+     * </p>
+     * <p/>
      * <p>
      * 起始索引小于<code>0</code>则看作<code>0</code>，超出数组长度的起始索引则返回<code>-1</code>。
      * </p>
-     * 
+     *
      * @param array
-     *            要扫描的数组
+     *         要扫描的数组
      * @param arrayToFind
-     *            要查找的元素序列
+     *         要查找的元素序列
      * @param startIndex
-     *            起始索引
-     * 
+     *         起始索引
+     *
      * @return 该元素序列在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
      */
-    public static int indexOf(short[] array, short[] arrayToFind, int startIndex) {
+    public static int indexOf(int[] array, int[] arrayToFind, int startIndex) {
         if ((array == null) || (arrayToFind == null)) {
             return -1;
         }
@@ -3667,11 +3488,12 @@ public class ArrayUtil {
             return startIndex;
         }
 
-        short first = arrayToFind[0];
+        int first = arrayToFind[0];
         int i = startIndex;
         int max = sourceLength - targetLength;
 
-        startSearchForFirst: while (true) {
+        startSearchForFirst:
+        while (true) {
             // 查找第一个元素
             while ((i <= max) && (array[i] != first)) {
                 i++;
@@ -3701,62 +3523,54 @@ public class ArrayUtil {
     }
 
 
+    /*
+     * ==========================================================================
+     * ==
+     */
+    /* 在数组中查找一个元素或一个元素序列。 */
+    /*                                                                              */
+    /* 类型：short[] */
+    /*
+     * ==========================================================================
+     * ==
+     */
+
     /**
      * 在数组中从末尾开始查找一个元素。
-     * 
+     * <p/>
      * <p>
      * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
      * </p>
-     * 
+     *
      * @param array
-     *            要扫描的数组
+     *         要扫描的数组
      * @param shortToFind
-     *            要查找的元素
-     * 
+     *         要查找的元素
+     *
      * @return 该元素在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
      */
     public static int lastIndexOf(short[] array, short shortToFind) {
         return lastIndexOf(array, shortToFind, Integer.MAX_VALUE);
     }
 
-
-    /**
-     * 在数组中从末尾开始查找一个元素序列。
-     * 
-     * <p>
-     * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
-     * </p>
-     * 
-     * @param array
-     *            要扫描的数组
-     * @param arrayToFind
-     *            要查找的元素序列
-     * 
-     * @return 该元素序列在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
-     */
-    public static int lastIndexOf(short[] array, short[] arrayToFind) {
-        return lastIndexOf(array, arrayToFind, Integer.MAX_VALUE);
-    }
-
-
     /**
      * 在数组中从末尾开始查找一个元素。
-     * 
+     * <p/>
      * <p>
      * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
      * </p>
-     * 
+     * <p/>
      * <p>
      * 起始索引小于<code>0</code>则返回<code>-1</code>，超出数组长度的起始索引则从数组末尾开始找。
      * </p>
-     * 
+     *
      * @param array
-     *            要扫描的数组
+     *         要扫描的数组
      * @param shortToFind
-     *            要查找的元素
+     *         要查找的元素
      * @param startIndex
-     *            起始索引
-     * 
+     *         起始索引
+     *
      * @return 该元素在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
      */
     public static int lastIndexOf(short[] array, short shortToFind, int startIndex) {
@@ -3766,8 +3580,7 @@ public class ArrayUtil {
 
         if (startIndex < 0) {
             return -1;
-        }
-        else if (startIndex >= array.length) {
+        } else if (startIndex >= array.length) {
             startIndex = array.length - 1;
         }
 
@@ -3780,25 +3593,42 @@ public class ArrayUtil {
         return -1;
     }
 
-
     /**
      * 在数组中从末尾开始查找一个元素序列。
-     * 
+     * <p/>
      * <p>
      * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
      * </p>
-     * 
+     *
+     * @param array
+     *         要扫描的数组
+     * @param arrayToFind
+     *         要查找的元素序列
+     *
+     * @return 该元素序列在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
+     */
+    public static int lastIndexOf(short[] array, short[] arrayToFind) {
+        return lastIndexOf(array, arrayToFind, Integer.MAX_VALUE);
+    }
+
+    /**
+     * 在数组中从末尾开始查找一个元素序列。
+     * <p/>
+     * <p>
+     * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
+     * </p>
+     * <p/>
      * <p>
      * 起始索引小于<code>0</code>则返回<code>-1</code>，超出数组长度的起始索引则从数组末尾开始找。
      * </p>
-     * 
+     *
      * @param array
-     *            要扫描的数组
+     *         要扫描的数组
      * @param arrayToFind
-     *            要查找的元素序列
+     *         要查找的元素序列
      * @param startIndex
-     *            起始索引
-     * 
+     *         起始索引
+     *
      * @return 该元素序列在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
      */
     public static int lastIndexOf(short[] array, short[] arrayToFind, int startIndex) {
@@ -3828,7 +3658,8 @@ public class ArrayUtil {
         int min = targetLength - 1;
         int i = min + startIndex;
 
-        startSearchForLast: while (true) {
+        startSearchForLast:
+        while (true) {
             while ((i >= min) && (array[i] != last)) {
                 i--;
             }
@@ -3852,116 +3683,63 @@ public class ArrayUtil {
         }
     }
 
-
     /**
      * 判断指定对象是否存在于指定数组中。
-     * 
+     * <p/>
      * <p>
      * 如果数组为<code>null</code>则返回<code>false</code>。
      * </p>
-     * 
+     *
      * @param array
-     *            要扫描的数组
+     *         要扫描的数组
      * @param shortToFind
-     *            要查找的元素
-     * 
+     *         要查找的元素
+     *
      * @return 如果找到则返回<code>true</code>
      */
     public static boolean contains(short[] array, short shortToFind) {
         return indexOf(array, shortToFind) != -1;
     }
 
-
-    /**
-     * 判断指定元素序列是否存在于指定数组中。
-     * 
-     * <p>
-     * 如果数组为<code>null</code>则返回<code>false</code>。
-     * </p>
-     * 
-     * @param array
-     *            要扫描的数组
-     * @param arrayToFind
-     *            要查找的元素序列
-     * 
-     * @return 如果找到则返回<code>true</code>
-     */
-    public static boolean contains(short[] array, short[] arrayToFind) {
-        return indexOf(array, arrayToFind) != -1;
-    }
-
-
-    /*
-     * ==========================================================================
-     * ==
-     */
-    /* 在数组中查找一个元素或一个元素序列。 */
-    /*                                                                              */
-    /* 类型：byte[] */
-    /*
-     * ==========================================================================
-     * ==
-     */
-
     /**
      * 在数组中查找一个元素。
-     * 
+     * <p/>
      * <p>
      * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
      * </p>
-     * 
+     *
      * @param array
-     *            要扫描的数组
-     * @param byteToFind
-     *            要查找的元素
-     * 
+     *         要扫描的数组
+     * @param shortToFind
+     *         要查找的元素
+     *
      * @return 该元素在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
      */
-    public static int indexOf(byte[] array, byte byteToFind) {
-        return indexOf(array, byteToFind, 0);
+    public static int indexOf(short[] array, short shortToFind) {
+        return indexOf(array, shortToFind, 0);
     }
-
-
-    /**
-     * 在数组中查找一个元素序列。
-     * 
-     * <p>
-     * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
-     * </p>
-     * 
-     * @param array
-     *            要扫描的数组
-     * @param arrayToFind
-     *            要查找的元素序列
-     * 
-     * @return 该元素序列在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
-     */
-    public static int indexOf(byte[] array, byte[] arrayToFind) {
-        return indexOf(array, arrayToFind, 0);
-    }
-
 
     /**
      * 在数组中查找一个元素。
-     * 
+     * <p/>
      * <p>
      * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
      * </p>
-     * 
+     * <p/>
      * <p>
      * 起始索引小于<code>0</code>则看作<code>0</code>，超出数组长度的起始索引则返回<code>-1</code>。
      * </p>
-     * 
+     *
      * @param array
-     *            要扫描的数组
-     * @param byteToFind
-     *            要查找的元素
+     *         要扫描的数组
+     * @param shortToFind
+     *         要查找的元素
      * @param startIndex
-     *            起始索引
-     * 
+     *         起始索引
+     *
      * @return 该元素在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
      */
-    public static int indexOf(byte[] array, byte byteToFind, int startIndex) {
+    public static int indexOf(short[] array, short shortToFind, int startIndex) {
         if (array == null) {
             return -1;
         }
@@ -3971,7 +3749,7 @@ public class ArrayUtil {
         }
 
         for (int i = startIndex; i < array.length; i++) {
-            if (byteToFind == array[i]) {
+            if (shortToFind == array[i]) {
                 return i;
             }
         }
@@ -3979,28 +3757,63 @@ public class ArrayUtil {
         return -1;
     }
 
+    /**
+     * 判断指定元素序列是否存在于指定数组中。
+     * <p/>
+     * <p>
+     * 如果数组为<code>null</code>则返回<code>false</code>。
+     * </p>
+     *
+     * @param array
+     *         要扫描的数组
+     * @param arrayToFind
+     *         要查找的元素序列
+     *
+     * @return 如果找到则返回<code>true</code>
+     */
+    public static boolean contains(short[] array, short[] arrayToFind) {
+        return indexOf(array, arrayToFind) != -1;
+    }
 
     /**
      * 在数组中查找一个元素序列。
-     * 
+     * <p/>
      * <p>
      * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
      * </p>
-     * 
+     *
+     * @param array
+     *         要扫描的数组
+     * @param arrayToFind
+     *         要查找的元素序列
+     *
+     * @return 该元素序列在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
+     */
+    public static int indexOf(short[] array, short[] arrayToFind) {
+        return indexOf(array, arrayToFind, 0);
+    }
+
+    /**
+     * 在数组中查找一个元素序列。
+     * <p/>
+     * <p>
+     * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
+     * </p>
+     * <p/>
      * <p>
      * 起始索引小于<code>0</code>则看作<code>0</code>，超出数组长度的起始索引则返回<code>-1</code>。
      * </p>
-     * 
+     *
      * @param array
-     *            要扫描的数组
+     *         要扫描的数组
      * @param arrayToFind
-     *            要查找的元素序列
+     *         要查找的元素序列
      * @param startIndex
-     *            起始索引
-     * 
+     *         起始索引
+     *
      * @return 该元素序列在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
      */
-    public static int indexOf(byte[] array, byte[] arrayToFind, int startIndex) {
+    public static int indexOf(short[] array, short[] arrayToFind, int startIndex) {
         if ((array == null) || (arrayToFind == null)) {
             return -1;
         }
@@ -4020,11 +3833,12 @@ public class ArrayUtil {
             return startIndex;
         }
 
-        byte first = arrayToFind[0];
+        short first = arrayToFind[0];
         int i = startIndex;
         int max = sourceLength - targetLength;
 
-        startSearchForFirst: while (true) {
+        startSearchForFirst:
+        while (true) {
             // 查找第一个元素
             while ((i <= max) && (array[i] != first)) {
                 i++;
@@ -4054,62 +3868,54 @@ public class ArrayUtil {
     }
 
 
+    /*
+     * ==========================================================================
+     * ==
+     */
+    /* 在数组中查找一个元素或一个元素序列。 */
+    /*                                                                              */
+    /* 类型：byte[] */
+    /*
+     * ==========================================================================
+     * ==
+     */
+
     /**
      * 在数组中从末尾开始查找一个元素。
-     * 
+     * <p/>
      * <p>
      * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
      * </p>
-     * 
+     *
      * @param array
-     *            要扫描的数组
+     *         要扫描的数组
      * @param byteToFind
-     *            要查找的元素
-     * 
+     *         要查找的元素
+     *
      * @return 该元素在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
      */
     public static int lastIndexOf(byte[] array, byte byteToFind) {
         return lastIndexOf(array, byteToFind, Integer.MAX_VALUE);
     }
 
-
-    /**
-     * 在数组中从末尾开始查找一个元素序列。
-     * 
-     * <p>
-     * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
-     * </p>
-     * 
-     * @param array
-     *            要扫描的数组
-     * @param arrayToFind
-     *            要查找的元素序列
-     * 
-     * @return 该元素序列在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
-     */
-    public static int lastIndexOf(byte[] array, byte[] arrayToFind) {
-        return lastIndexOf(array, arrayToFind, Integer.MAX_VALUE);
-    }
-
-
     /**
      * 在数组中从末尾开始查找一个元素。
-     * 
+     * <p/>
      * <p>
      * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
      * </p>
-     * 
+     * <p/>
      * <p>
      * 起始索引小于<code>0</code>则返回<code>-1</code>，超出数组长度的起始索引则从数组末尾开始找。
      * </p>
-     * 
+     *
      * @param array
-     *            要扫描的数组
+     *         要扫描的数组
      * @param byteToFind
-     *            要查找的元素
+     *         要查找的元素
      * @param startIndex
-     *            起始索引
-     * 
+     *         起始索引
+     *
      * @return 该元素在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
      */
     public static int lastIndexOf(byte[] array, byte byteToFind, int startIndex) {
@@ -4119,8 +3925,7 @@ public class ArrayUtil {
 
         if (startIndex < 0) {
             return -1;
-        }
-        else if (startIndex >= array.length) {
+        } else if (startIndex >= array.length) {
             startIndex = array.length - 1;
         }
 
@@ -4133,25 +3938,42 @@ public class ArrayUtil {
         return -1;
     }
 
-
     /**
      * 在数组中从末尾开始查找一个元素序列。
-     * 
+     * <p/>
      * <p>
      * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
      * </p>
-     * 
+     *
+     * @param array
+     *         要扫描的数组
+     * @param arrayToFind
+     *         要查找的元素序列
+     *
+     * @return 该元素序列在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
+     */
+    public static int lastIndexOf(byte[] array, byte[] arrayToFind) {
+        return lastIndexOf(array, arrayToFind, Integer.MAX_VALUE);
+    }
+
+    /**
+     * 在数组中从末尾开始查找一个元素序列。
+     * <p/>
+     * <p>
+     * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
+     * </p>
+     * <p/>
      * <p>
      * 起始索引小于<code>0</code>则返回<code>-1</code>，超出数组长度的起始索引则从数组末尾开始找。
      * </p>
-     * 
+     *
      * @param array
-     *            要扫描的数组
+     *         要扫描的数组
      * @param arrayToFind
-     *            要查找的元素序列
+     *         要查找的元素序列
      * @param startIndex
-     *            起始索引
-     * 
+     *         起始索引
+     *
      * @return 该元素序列在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
      */
     public static int lastIndexOf(byte[] array, byte[] arrayToFind, int startIndex) {
@@ -4181,7 +4003,8 @@ public class ArrayUtil {
         int min = targetLength - 1;
         int i = min + startIndex;
 
-        startSearchForLast: while (true) {
+        startSearchForLast:
+        while (true) {
             while ((i >= min) && (array[i] != last)) {
                 i--;
             }
@@ -4205,42 +4028,188 @@ public class ArrayUtil {
         }
     }
 
-
     /**
      * 判断指定对象是否存在于指定数组中。
-     * 
+     * <p/>
      * <p>
      * 如果数组为<code>null</code>则返回<code>false</code>。
      * </p>
-     * 
+     *
      * @param array
-     *            要扫描的数组
+     *         要扫描的数组
      * @param byteToFind
-     *            要查找的元素
-     * 
+     *         要查找的元素
+     *
      * @return 如果找到则返回<code>true</code>
      */
     public static boolean contains(byte[] array, byte byteToFind) {
         return indexOf(array, byteToFind) != -1;
     }
 
+    /**
+     * 在数组中查找一个元素。
+     * <p/>
+     * <p>
+     * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
+     * </p>
+     *
+     * @param array
+     *         要扫描的数组
+     * @param byteToFind
+     *         要查找的元素
+     *
+     * @return 该元素在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
+     */
+    public static int indexOf(byte[] array, byte byteToFind) {
+        return indexOf(array, byteToFind, 0);
+    }
+
+    /**
+     * 在数组中查找一个元素。
+     * <p/>
+     * <p>
+     * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
+     * </p>
+     * <p/>
+     * <p>
+     * 起始索引小于<code>0</code>则看作<code>0</code>，超出数组长度的起始索引则返回<code>-1</code>。
+     * </p>
+     *
+     * @param array
+     *         要扫描的数组
+     * @param byteToFind
+     *         要查找的元素
+     * @param startIndex
+     *         起始索引
+     *
+     * @return 该元素在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
+     */
+    public static int indexOf(byte[] array, byte byteToFind, int startIndex) {
+        if (array == null) {
+            return -1;
+        }
+
+        if (startIndex < 0) {
+            startIndex = 0;
+        }
+
+        for (int i = startIndex; i < array.length; i++) {
+            if (byteToFind == array[i]) {
+                return i;
+            }
+        }
+
+        return -1;
+    }
 
     /**
      * 判断指定元素序列是否存在于指定数组中。
-     * 
+     * <p/>
      * <p>
      * 如果数组为<code>null</code>则返回<code>false</code>。
      * </p>
-     * 
+     *
      * @param array
-     *            要扫描的数组
+     *         要扫描的数组
      * @param arrayToFind
-     *            要查找的元素序列
-     * 
+     *         要查找的元素序列
+     *
      * @return 如果找到则返回<code>true</code>
      */
     public static boolean contains(byte[] array, byte[] arrayToFind) {
         return indexOf(array, arrayToFind) != -1;
+    }
+
+    /**
+     * 在数组中查找一个元素序列。
+     * <p/>
+     * <p>
+     * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
+     * </p>
+     *
+     * @param array
+     *         要扫描的数组
+     * @param arrayToFind
+     *         要查找的元素序列
+     *
+     * @return 该元素序列在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
+     */
+    public static int indexOf(byte[] array, byte[] arrayToFind) {
+        return indexOf(array, arrayToFind, 0);
+    }
+
+    /**
+     * 在数组中查找一个元素序列。
+     * <p/>
+     * <p>
+     * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
+     * </p>
+     * <p/>
+     * <p>
+     * 起始索引小于<code>0</code>则看作<code>0</code>，超出数组长度的起始索引则返回<code>-1</code>。
+     * </p>
+     *
+     * @param array
+     *         要扫描的数组
+     * @param arrayToFind
+     *         要查找的元素序列
+     * @param startIndex
+     *         起始索引
+     *
+     * @return 该元素序列在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
+     */
+    public static int indexOf(byte[] array, byte[] arrayToFind, int startIndex) {
+        if ((array == null) || (arrayToFind == null)) {
+            return -1;
+        }
+
+        int sourceLength = array.length;
+        int targetLength = arrayToFind.length;
+
+        if (startIndex >= sourceLength) {
+            return (targetLength == 0) ? sourceLength : (-1);
+        }
+
+        if (startIndex < 0) {
+            startIndex = 0;
+        }
+
+        if (targetLength == 0) {
+            return startIndex;
+        }
+
+        byte first = arrayToFind[0];
+        int i = startIndex;
+        int max = sourceLength - targetLength;
+
+        startSearchForFirst:
+        while (true) {
+            // 查找第一个元素
+            while ((i <= max) && (array[i] != first)) {
+                i++;
+            }
+
+            if (i > max) {
+                return -1;
+            }
+
+            // 已经找到第一个元素，接着找
+            int j = i + 1;
+            int end = (j + targetLength) - 1;
+            int k = 1;
+
+            while (j < end) {
+                if (array[j++] != arrayToFind[k++]) {
+                    i++;
+
+                    // 重新查找第一个元素
+                    continue startSearchForFirst;
+                }
+            }
+
+            // 找到了
+            return i;
+        }
     }
 
 
@@ -4258,129 +4227,48 @@ public class ArrayUtil {
 
     /**
      * 在数组中查找一个元素。
-     * 
+     * <p/>
      * <p>
      * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
      * </p>
-     * 
-     * @param array
-     *            要扫描的数组
-     * @param doubleToFind
-     *            要查找的元素
-     * 
-     * @return 该元素在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
-     */
-    public static int indexOf(double[] array, double doubleToFind) {
-        return indexOf(array, doubleToFind, 0, 0);
-    }
-
-
-    /**
-     * 在数组中查找一个元素。
-     * 
-     * <p>
-     * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
-     * </p>
-     * 
-     * @param array
-     *            要扫描的数组
-     * @param doubleToFind
-     *            要查找的元素
-     * @param tolerance
-     *            误差
-     * 
-     * @return 该元素在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
-     */
-    public static int indexOf(double[] array, double doubleToFind, double tolerance) {
-        return indexOf(array, doubleToFind, 0, tolerance);
-    }
-
-
-    /**
-     * 在数组中查找一个元素序列。
-     * 
-     * <p>
-     * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
-     * </p>
-     * 
-     * @param array
-     *            要扫描的数组
-     * @param arrayToFind
-     *            要查找的元素序列
-     * 
-     * @return 该元素序列在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
-     */
-    public static int indexOf(double[] array, double[] arrayToFind) {
-        return indexOf(array, arrayToFind, 0, 0);
-    }
-
-
-    /**
-     * 在数组中查找一个元素序列。
-     * 
-     * <p>
-     * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
-     * </p>
-     * 
-     * @param array
-     *            要扫描的数组
-     * @param arrayToFind
-     *            要查找的元素序列
-     * @param tolerance
-     *            误差
-     * 
-     * @return 该元素序列在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
-     */
-    public static int indexOf(double[] array, double[] arrayToFind, double tolerance) {
-        return indexOf(array, arrayToFind, 0, tolerance);
-    }
-
-
-    /**
-     * 在数组中查找一个元素。
-     * 
-     * <p>
-     * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
-     * </p>
-     * 
+     * <p/>
      * <p>
      * 起始索引小于<code>0</code>则看作<code>0</code>，超出数组长度的起始索引则返回<code>-1</code>。
      * </p>
-     * 
+     *
      * @param array
-     *            要扫描的数组
+     *         要扫描的数组
      * @param doubleToFind
-     *            要查找的元素
+     *         要查找的元素
      * @param startIndex
-     *            起始索引
-     * 
+     *         起始索引
+     *
      * @return 该元素在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
      */
     public static int indexOf(double[] array, double doubleToFind, int startIndex) {
         return indexOf(array, doubleToFind, startIndex, 0);
     }
 
-
     /**
      * 在数组中查找一个元素。
-     * 
+     * <p/>
      * <p>
      * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
      * </p>
-     * 
+     * <p/>
      * <p>
      * 起始索引小于<code>0</code>则看作<code>0</code>，超出数组长度的起始索引则返回<code>-1</code>。
      * </p>
-     * 
+     *
      * @param array
-     *            要扫描的数组
+     *         要扫描的数组
      * @param doubleToFind
-     *            要查找的元素
+     *         要查找的元素
      * @param startIndex
-     *            起始索引
+     *         起始索引
      * @param tolerance
-     *            误差
-     * 
+     *         误差
+     *
      * @return 该元素在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
      */
     public static int indexOf(double[] array, double doubleToFind, int startIndex, double tolerance) {
@@ -4404,52 +4292,50 @@ public class ArrayUtil {
         return -1;
     }
 
-
     /**
      * 在数组中查找一个元素序列。
-     * 
+     * <p/>
      * <p>
      * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
      * </p>
-     * 
+     * <p/>
      * <p>
      * 起始索引小于<code>0</code>则看作<code>0</code>，超出数组长度的起始索引则返回<code>-1</code>。
      * </p>
-     * 
+     *
      * @param array
-     *            要扫描的数组
+     *         要扫描的数组
      * @param arrayToFind
-     *            要查找的元素序列
+     *         要查找的元素序列
      * @param startIndex
-     *            起始索引
-     * 
+     *         起始索引
+     *
      * @return 该元素序列在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
      */
     public static int indexOf(double[] array, double[] arrayToFind, int startIndex) {
         return indexOf(array, arrayToFind, startIndex, 0);
     }
 
-
     /**
      * 在数组中查找一个元素序列。
-     * 
+     * <p/>
      * <p>
      * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
      * </p>
-     * 
+     * <p/>
      * <p>
      * 起始索引小于<code>0</code>则看作<code>0</code>，超出数组长度的起始索引则返回<code>-1</code>。
      * </p>
-     * 
+     *
      * @param array
-     *            要扫描的数组
+     *         要扫描的数组
      * @param arrayToFind
-     *            要查找的元素序列
+     *         要查找的元素序列
      * @param startIndex
-     *            起始索引
+     *         起始索引
      * @param tolerance
-     *            误差
-     * 
+     *         误差
+     *
      * @return 该元素序列在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
      */
     public static int indexOf(double[] array, double[] arrayToFind, int startIndex, double tolerance) {
@@ -4477,7 +4363,8 @@ public class ArrayUtil {
         int i = startIndex;
         int max = sourceLength - targetLength;
 
-        startSearchForFirst: while (true) {
+        startSearchForFirst:
+        while (true) {
             // 查找第一个元素
             while ((i <= max) && ((array[i] < firstMin) || (array[i] > firstMax))) {
                 i++;
@@ -4506,132 +4393,44 @@ public class ArrayUtil {
         }
     }
 
-
     /**
      * 在数组中从末尾开始查找一个元素。
-     * 
+     * <p/>
      * <p>
      * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
      * </p>
-     * 
+     *
      * @param array
-     *            要扫描的数组
+     *         要扫描的数组
      * @param doubleToFind
-     *            要查找的元素
-     * 
+     *         要查找的元素
+     *
      * @return 该元素在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
      */
     public static int lastIndexOf(double[] array, double doubleToFind) {
         return lastIndexOf(array, doubleToFind, Integer.MAX_VALUE, 0);
     }
 
-
     /**
      * 在数组中从末尾开始查找一个元素。
-     * 
+     * <p/>
      * <p>
      * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
      * </p>
-     * 
-     * @param array
-     *            要扫描的数组
-     * @param doubleToFind
-     *            要查找的元素
-     * @param tolerance
-     *            误差
-     * 
-     * @return 该元素在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
-     */
-    public static int lastIndexOf(double[] array, double doubleToFind, double tolerance) {
-        return lastIndexOf(array, doubleToFind, Integer.MAX_VALUE, tolerance);
-    }
-
-
-    /**
-     * 在数组中从末尾开始查找一个元素序列。
-     * 
-     * <p>
-     * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
-     * </p>
-     * 
-     * @param array
-     *            要扫描的数组
-     * @param arrayToFind
-     *            要查找的元素序列
-     * 
-     * @return 该元素序列在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
-     */
-    public static int lastIndexOf(double[] array, double[] arrayToFind) {
-        return lastIndexOf(array, arrayToFind, Integer.MAX_VALUE, 0);
-    }
-
-
-    /**
-     * 在数组中从末尾开始查找一个元素序列。
-     * 
-     * <p>
-     * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
-     * </p>
-     * 
-     * @param array
-     *            要扫描的数组
-     * @param arrayToFind
-     *            要查找的元素序列
-     * @param tolerance
-     *            误差
-     * 
-     * @return 该元素序列在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
-     */
-    public static int lastIndexOf(double[] array, double[] arrayToFind, double tolerance) {
-        return lastIndexOf(array, arrayToFind, Integer.MAX_VALUE, tolerance);
-    }
-
-
-    /**
-     * 在数组中从末尾开始查找一个元素。
-     * 
-     * <p>
-     * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
-     * </p>
-     * 
+     * <p/>
      * <p>
      * 起始索引小于<code>0</code>则返回<code>-1</code>，超出数组长度的起始索引则从数组末尾开始找。
      * </p>
-     * 
+     *
      * @param array
-     *            要扫描的数组
+     *         要扫描的数组
      * @param doubleToFind
-     *            要查找的元素
+     *         要查找的元素
      * @param startIndex
-     *            起始索引
-     * 
-     * @return 该元素在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
-     */
-    public static int lastIndexOf(double[] array, double doubleToFind, int startIndex) {
-        return lastIndexOf(array, doubleToFind, startIndex, 0);
-    }
-
-
-    /**
-     * 在数组中从末尾开始查找一个元素。
-     * 
-     * <p>
-     * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
-     * </p>
-     * 
-     * <p>
-     * 起始索引小于<code>0</code>则返回<code>-1</code>，超出数组长度的起始索引则从数组末尾开始找。
-     * </p>
-     * 
-     * @param array
-     *            要扫描的数组
-     * @param doubleToFind
-     *            要查找的元素
-     * @param startIndex
-     *            起始索引
+     *         起始索引
      * @param tolerance
-     *            误差
-     * 
+     *         误差
+     *
      * @return 该元素在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
      */
     public static int lastIndexOf(double[] array, double doubleToFind, int startIndex, double tolerance) {
@@ -4641,8 +4440,7 @@ public class ArrayUtil {
 
         if (startIndex < 0) {
             return -1;
-        }
-        else if (startIndex >= array.length) {
+        } else if (startIndex >= array.length) {
             startIndex = array.length - 1;
         }
 
@@ -4658,52 +4456,64 @@ public class ArrayUtil {
         return -1;
     }
 
-
     /**
-     * 在数组中从末尾开始查找一个元素序列。
-     * 
+     * 在数组中从末尾开始查找一个元素。
+     * <p/>
      * <p>
      * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
      * </p>
-     * 
-     * <p>
-     * 起始索引小于<code>0</code>则返回<code>-1</code>，超出数组长度的起始索引则从数组末尾开始找。
-     * </p>
-     * 
+     *
      * @param array
-     *            要扫描的数组
-     * @param arrayToFind
-     *            要查找的元素序列
-     * @param startIndex
-     *            起始索引
-     * 
-     * @return 该元素序列在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
+     *         要扫描的数组
+     * @param doubleToFind
+     *         要查找的元素
+     * @param tolerance
+     *         误差
+     *
+     * @return 该元素在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
      */
-    public static int lastIndexOf(double[] array, double[] arrayToFind, int startIndex) {
-        return lastIndexOf(array, arrayToFind, startIndex, 0);
+    public static int lastIndexOf(double[] array, double doubleToFind, double tolerance) {
+        return lastIndexOf(array, doubleToFind, Integer.MAX_VALUE, tolerance);
     }
 
-
     /**
      * 在数组中从末尾开始查找一个元素序列。
-     * 
+     * <p/>
      * <p>
      * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
      * </p>
-     * 
+     *
+     * @param array
+     *         要扫描的数组
+     * @param arrayToFind
+     *         要查找的元素序列
+     *
+     * @return 该元素序列在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
+     */
+    public static int lastIndexOf(double[] array, double[] arrayToFind) {
+        return lastIndexOf(array, arrayToFind, Integer.MAX_VALUE, 0);
+    }
+
+    /**
+     * 在数组中从末尾开始查找一个元素序列。
+     * <p/>
+     * <p>
+     * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
+     * </p>
+     * <p/>
      * <p>
      * 起始索引小于<code>0</code>则返回<code>-1</code>，超出数组长度的起始索引则从数组末尾开始找。
      * </p>
-     * 
+     *
      * @param array
-     *            要扫描的数组
+     *         要扫描的数组
      * @param arrayToFind
-     *            要查找的元素序列
+     *         要查找的元素序列
      * @param startIndex
-     *            起始索引
+     *         起始索引
      * @param tolerance
-     *            误差
-     * 
+     *         误差
+     *
      * @return 该元素序列在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
      */
     public static int lastIndexOf(double[] array, double[] arrayToFind, int startIndex, double tolerance) {
@@ -4734,7 +4544,8 @@ public class ArrayUtil {
         int min = targetLength - 1;
         int i = min + startIndex;
 
-        startSearchForLast: while (true) {
+        startSearchForLast:
+        while (true) {
             while ((i >= min) && ((array[i] < lastMin) || (array[i] > lastMax))) {
                 i--;
             }
@@ -4758,84 +4569,224 @@ public class ArrayUtil {
         }
     }
 
+    /**
+     * 在数组中从末尾开始查找一个元素序列。
+     * <p/>
+     * <p>
+     * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
+     * </p>
+     *
+     * @param array
+     *         要扫描的数组
+     * @param arrayToFind
+     *         要查找的元素序列
+     * @param tolerance
+     *         误差
+     *
+     * @return 该元素序列在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
+     */
+    public static int lastIndexOf(double[] array, double[] arrayToFind, double tolerance) {
+        return lastIndexOf(array, arrayToFind, Integer.MAX_VALUE, tolerance);
+    }
+
+    /**
+     * 在数组中从末尾开始查找一个元素。
+     * <p/>
+     * <p>
+     * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
+     * </p>
+     * <p/>
+     * <p>
+     * 起始索引小于<code>0</code>则返回<code>-1</code>，超出数组长度的起始索引则从数组末尾开始找。
+     * </p>
+     *
+     * @param array
+     *         要扫描的数组
+     * @param doubleToFind
+     *         要查找的元素
+     * @param startIndex
+     *         起始索引
+     *
+     * @return 该元素在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
+     */
+    public static int lastIndexOf(double[] array, double doubleToFind, int startIndex) {
+        return lastIndexOf(array, doubleToFind, startIndex, 0);
+    }
+
+    /**
+     * 在数组中从末尾开始查找一个元素序列。
+     * <p/>
+     * <p>
+     * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
+     * </p>
+     * <p/>
+     * <p>
+     * 起始索引小于<code>0</code>则返回<code>-1</code>，超出数组长度的起始索引则从数组末尾开始找。
+     * </p>
+     *
+     * @param array
+     *         要扫描的数组
+     * @param arrayToFind
+     *         要查找的元素序列
+     * @param startIndex
+     *         起始索引
+     *
+     * @return 该元素序列在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
+     */
+    public static int lastIndexOf(double[] array, double[] arrayToFind, int startIndex) {
+        return lastIndexOf(array, arrayToFind, startIndex, 0);
+    }
 
     /**
      * 判断指定对象是否存在于指定数组中。
-     * 
+     * <p/>
      * <p>
      * 如果数组为<code>null</code>则返回<code>false</code>。
      * </p>
-     * 
+     *
      * @param array
-     *            要扫描的数组
+     *         要扫描的数组
      * @param doubleToFind
-     *            要查找的元素
-     * 
+     *         要查找的元素
+     *
      * @return 如果找到则返回<code>true</code>
      */
     public static boolean contains(double[] array, double doubleToFind) {
         return indexOf(array, doubleToFind) != -1;
     }
 
+    /**
+     * 在数组中查找一个元素。
+     * <p/>
+     * <p>
+     * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
+     * </p>
+     *
+     * @param array
+     *         要扫描的数组
+     * @param doubleToFind
+     *         要查找的元素
+     *
+     * @return 该元素在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
+     */
+    public static int indexOf(double[] array, double doubleToFind) {
+        return indexOf(array, doubleToFind, 0, 0);
+    }
 
     /**
      * 判断指定对象是否存在于指定数组中。
-     * 
+     * <p/>
      * <p>
      * 如果数组为<code>null</code>则返回<code>false</code>。
      * </p>
-     * 
+     *
      * @param array
-     *            要扫描的数组
+     *         要扫描的数组
      * @param doubleToFind
-     *            要查找的元素
+     *         要查找的元素
      * @param tolerance
-     *            误差
-     * 
+     *         误差
+     *
      * @return 如果找到则返回<code>true</code>
      */
     public static boolean contains(double[] array, double doubleToFind, double tolerance) {
         return indexOf(array, doubleToFind, tolerance) != -1;
     }
 
+    /**
+     * 在数组中查找一个元素。
+     * <p/>
+     * <p>
+     * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
+     * </p>
+     *
+     * @param array
+     *         要扫描的数组
+     * @param doubleToFind
+     *         要查找的元素
+     * @param tolerance
+     *         误差
+     *
+     * @return 该元素在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
+     */
+    public static int indexOf(double[] array, double doubleToFind, double tolerance) {
+        return indexOf(array, doubleToFind, 0, tolerance);
+    }
 
     /**
      * 判断指定元素序列是否存在于指定数组中。
-     * 
+     * <p/>
      * <p>
      * 如果数组为<code>null</code>则返回<code>false</code>。
      * </p>
-     * 
+     *
      * @param array
-     *            要扫描的数组
+     *         要扫描的数组
      * @param arrayToFind
-     *            要查找的元素序列
-     * 
+     *         要查找的元素序列
+     *
      * @return 如果找到则返回<code>true</code>
      */
     public static boolean contains(double[] array, double[] arrayToFind) {
         return indexOf(array, arrayToFind) != -1;
     }
 
+    /**
+     * 在数组中查找一个元素序列。
+     * <p/>
+     * <p>
+     * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
+     * </p>
+     *
+     * @param array
+     *         要扫描的数组
+     * @param arrayToFind
+     *         要查找的元素序列
+     *
+     * @return 该元素序列在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
+     */
+    public static int indexOf(double[] array, double[] arrayToFind) {
+        return indexOf(array, arrayToFind, 0, 0);
+    }
 
     /**
      * 判断指定元素序列是否存在于指定数组中。
-     * 
+     * <p/>
      * <p>
      * 如果数组为<code>null</code>则返回<code>false</code>。
      * </p>
-     * 
+     *
      * @param array
-     *            要扫描的数组
+     *         要扫描的数组
      * @param arrayToFind
-     *            要查找的元素序列
+     *         要查找的元素序列
      * @param tolerance
-     *            误差
-     * 
+     *         误差
+     *
      * @return 如果找到则返回<code>true</code>
      */
     public static boolean contains(double[] array, double[] arrayToFind, double tolerance) {
         return indexOf(array, arrayToFind, tolerance) != -1;
+    }
+
+    /**
+     * 在数组中查找一个元素序列。
+     * <p/>
+     * <p>
+     * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
+     * </p>
+     *
+     * @param array
+     *         要扫描的数组
+     * @param arrayToFind
+     *         要查找的元素序列
+     * @param tolerance
+     *         误差
+     *
+     * @return 该元素序列在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
+     */
+    public static int indexOf(double[] array, double[] arrayToFind, double tolerance) {
+        return indexOf(array, arrayToFind, 0, tolerance);
     }
 
 
@@ -4853,129 +4804,48 @@ public class ArrayUtil {
 
     /**
      * 在数组中查找一个元素。
-     * 
+     * <p/>
      * <p>
      * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
      * </p>
-     * 
-     * @param array
-     *            要扫描的数组
-     * @param floatToFind
-     *            要查找的元素
-     * 
-     * @return 该元素在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
-     */
-    public static int indexOf(float[] array, float floatToFind) {
-        return indexOf(array, floatToFind, 0, 0);
-    }
-
-
-    /**
-     * 在数组中查找一个元素。
-     * 
-     * <p>
-     * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
-     * </p>
-     * 
-     * @param array
-     *            要扫描的数组
-     * @param floatToFind
-     *            要查找的元素
-     * @param tolerance
-     *            误差
-     * 
-     * @return 该元素在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
-     */
-    public static int indexOf(float[] array, float floatToFind, float tolerance) {
-        return indexOf(array, floatToFind, 0, tolerance);
-    }
-
-
-    /**
-     * 在数组中查找一个元素序列。
-     * 
-     * <p>
-     * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
-     * </p>
-     * 
-     * @param array
-     *            要扫描的数组
-     * @param arrayToFind
-     *            要查找的元素序列
-     * 
-     * @return 该元素序列在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
-     */
-    public static int indexOf(float[] array, float[] arrayToFind) {
-        return indexOf(array, arrayToFind, 0, 0);
-    }
-
-
-    /**
-     * 在数组中查找一个元素序列。
-     * 
-     * <p>
-     * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
-     * </p>
-     * 
-     * @param array
-     *            要扫描的数组
-     * @param arrayToFind
-     *            要查找的元素序列
-     * @param tolerance
-     *            误差
-     * 
-     * @return 该元素序列在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
-     */
-    public static int indexOf(float[] array, float[] arrayToFind, float tolerance) {
-        return indexOf(array, arrayToFind, 0, tolerance);
-    }
-
-
-    /**
-     * 在数组中查找一个元素。
-     * 
-     * <p>
-     * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
-     * </p>
-     * 
+     * <p/>
      * <p>
      * 起始索引小于<code>0</code>则看作<code>0</code>，超出数组长度的起始索引则返回<code>-1</code>。
      * </p>
-     * 
+     *
      * @param array
-     *            要扫描的数组
+     *         要扫描的数组
      * @param floatToFind
-     *            要查找的元素
+     *         要查找的元素
      * @param startIndex
-     *            起始索引
-     * 
+     *         起始索引
+     *
      * @return 该元素在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
      */
     public static int indexOf(float[] array, float floatToFind, int startIndex) {
         return indexOf(array, floatToFind, startIndex, 0);
     }
 
-
     /**
      * 在数组中查找一个元素。
-     * 
+     * <p/>
      * <p>
      * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
      * </p>
-     * 
+     * <p/>
      * <p>
      * 起始索引小于<code>0</code>则看作<code>0</code>，超出数组长度的起始索引则返回<code>-1</code>。
      * </p>
-     * 
+     *
      * @param array
-     *            要扫描的数组
+     *         要扫描的数组
      * @param floatToFind
-     *            要查找的元素
+     *         要查找的元素
      * @param startIndex
-     *            起始索引
+     *         起始索引
      * @param tolerance
-     *            误差
-     * 
+     *         误差
+     *
      * @return 该元素在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
      */
     public static int indexOf(float[] array, float floatToFind, int startIndex, float tolerance) {
@@ -4999,52 +4869,50 @@ public class ArrayUtil {
         return -1;
     }
 
-
     /**
      * 在数组中查找一个元素序列。
-     * 
+     * <p/>
      * <p>
      * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
      * </p>
-     * 
+     * <p/>
      * <p>
      * 起始索引小于<code>0</code>则看作<code>0</code>，超出数组长度的起始索引则返回<code>-1</code>。
      * </p>
-     * 
+     *
      * @param array
-     *            要扫描的数组
+     *         要扫描的数组
      * @param arrayToFind
-     *            要查找的元素序列
+     *         要查找的元素序列
      * @param startIndex
-     *            起始索引
-     * 
+     *         起始索引
+     *
      * @return 该元素序列在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
      */
     public static int indexOf(float[] array, float[] arrayToFind, int startIndex) {
         return indexOf(array, arrayToFind, startIndex, 0);
     }
 
-
     /**
      * 在数组中查找一个元素序列。
-     * 
+     * <p/>
      * <p>
      * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
      * </p>
-     * 
+     * <p/>
      * <p>
      * 起始索引小于<code>0</code>则看作<code>0</code>，超出数组长度的起始索引则返回<code>-1</code>。
      * </p>
-     * 
+     *
      * @param array
-     *            要扫描的数组
+     *         要扫描的数组
      * @param arrayToFind
-     *            要查找的元素序列
+     *         要查找的元素序列
      * @param startIndex
-     *            起始索引
+     *         起始索引
      * @param tolerance
-     *            误差
-     * 
+     *         误差
+     *
      * @return 该元素序列在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
      */
     public static int indexOf(float[] array, float[] arrayToFind, int startIndex, float tolerance) {
@@ -5072,7 +4940,8 @@ public class ArrayUtil {
         int i = startIndex;
         int max = sourceLength - targetLength;
 
-        startSearchForFirst: while (true) {
+        startSearchForFirst:
+        while (true) {
             // 查找第一个元素
             while ((i <= max) && ((array[i] < firstMin) || (array[i] > firstMax))) {
                 i++;
@@ -5101,132 +4970,44 @@ public class ArrayUtil {
         }
     }
 
-
     /**
      * 在数组中从末尾开始查找一个元素。
-     * 
+     * <p/>
      * <p>
      * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
      * </p>
-     * 
+     *
      * @param array
-     *            要扫描的数组
+     *         要扫描的数组
      * @param floatToFind
-     *            要查找的元素
-     * 
+     *         要查找的元素
+     *
      * @return 该元素在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
      */
     public static int lastIndexOf(float[] array, float floatToFind) {
         return lastIndexOf(array, floatToFind, Integer.MAX_VALUE, 0);
     }
 
-
     /**
      * 在数组中从末尾开始查找一个元素。
-     * 
+     * <p/>
      * <p>
      * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
      * </p>
-     * 
-     * @param array
-     *            要扫描的数组
-     * @param floatToFind
-     *            要查找的元素
-     * @param tolerance
-     *            误差
-     * 
-     * @return 该元素在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
-     */
-    public static int lastIndexOf(float[] array, float floatToFind, float tolerance) {
-        return lastIndexOf(array, floatToFind, Integer.MAX_VALUE, tolerance);
-    }
-
-
-    /**
-     * 在数组中从末尾开始查找一个元素序列。
-     * 
-     * <p>
-     * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
-     * </p>
-     * 
-     * @param array
-     *            要扫描的数组
-     * @param arrayToFind
-     *            要查找的元素序列
-     * 
-     * @return 该元素序列在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
-     */
-    public static int lastIndexOf(float[] array, float[] arrayToFind) {
-        return lastIndexOf(array, arrayToFind, Integer.MAX_VALUE, 0);
-    }
-
-
-    /**
-     * 在数组中从末尾开始查找一个元素序列。
-     * 
-     * <p>
-     * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
-     * </p>
-     * 
-     * @param array
-     *            要扫描的数组
-     * @param arrayToFind
-     *            要查找的元素序列
-     * @param tolerance
-     *            误差
-     * 
-     * @return 该元素序列在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
-     */
-    public static int lastIndexOf(float[] array, float[] arrayToFind, float tolerance) {
-        return lastIndexOf(array, arrayToFind, Integer.MAX_VALUE, tolerance);
-    }
-
-
-    /**
-     * 在数组中从末尾开始查找一个元素。
-     * 
-     * <p>
-     * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
-     * </p>
-     * 
+     * <p/>
      * <p>
      * 起始索引小于<code>0</code>则返回<code>-1</code>，超出数组长度的起始索引则从数组末尾开始找。
      * </p>
-     * 
+     *
      * @param array
-     *            要扫描的数组
+     *         要扫描的数组
      * @param floatToFind
-     *            要查找的元素
+     *         要查找的元素
      * @param startIndex
-     *            起始索引
-     * 
-     * @return 该元素在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
-     */
-    public static int lastIndexOf(float[] array, float floatToFind, int startIndex) {
-        return lastIndexOf(array, floatToFind, startIndex, 0);
-    }
-
-
-    /**
-     * 在数组中从末尾开始查找一个元素。
-     * 
-     * <p>
-     * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
-     * </p>
-     * 
-     * <p>
-     * 起始索引小于<code>0</code>则返回<code>-1</code>，超出数组长度的起始索引则从数组末尾开始找。
-     * </p>
-     * 
-     * @param array
-     *            要扫描的数组
-     * @param floatToFind
-     *            要查找的元素
-     * @param startIndex
-     *            起始索引
+     *         起始索引
      * @param tolerance
-     *            误差
-     * 
+     *         误差
+     *
      * @return 该元素在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
      */
     public static int lastIndexOf(float[] array, float floatToFind, int startIndex, float tolerance) {
@@ -5236,8 +5017,7 @@ public class ArrayUtil {
 
         if (startIndex < 0) {
             return -1;
-        }
-        else if (startIndex >= array.length) {
+        } else if (startIndex >= array.length) {
             startIndex = array.length - 1;
         }
 
@@ -5253,52 +5033,64 @@ public class ArrayUtil {
         return -1;
     }
 
-
     /**
-     * 在数组中从末尾开始查找一个元素序列。
-     * 
+     * 在数组中从末尾开始查找一个元素。
+     * <p/>
      * <p>
      * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
      * </p>
-     * 
-     * <p>
-     * 起始索引小于<code>0</code>则返回<code>-1</code>，超出数组长度的起始索引则从数组末尾开始找。
-     * </p>
-     * 
+     *
      * @param array
-     *            要扫描的数组
-     * @param arrayToFind
-     *            要查找的元素序列
-     * @param startIndex
-     *            起始索引
-     * 
-     * @return 该元素序列在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
+     *         要扫描的数组
+     * @param floatToFind
+     *         要查找的元素
+     * @param tolerance
+     *         误差
+     *
+     * @return 该元素在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
      */
-    public static int lastIndexOf(float[] array, float[] arrayToFind, int startIndex) {
-        return lastIndexOf(array, arrayToFind, startIndex, 0);
+    public static int lastIndexOf(float[] array, float floatToFind, float tolerance) {
+        return lastIndexOf(array, floatToFind, Integer.MAX_VALUE, tolerance);
     }
 
-
     /**
      * 在数组中从末尾开始查找一个元素序列。
-     * 
+     * <p/>
      * <p>
      * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
      * </p>
-     * 
+     *
+     * @param array
+     *         要扫描的数组
+     * @param arrayToFind
+     *         要查找的元素序列
+     *
+     * @return 该元素序列在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
+     */
+    public static int lastIndexOf(float[] array, float[] arrayToFind) {
+        return lastIndexOf(array, arrayToFind, Integer.MAX_VALUE, 0);
+    }
+
+    /**
+     * 在数组中从末尾开始查找一个元素序列。
+     * <p/>
+     * <p>
+     * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
+     * </p>
+     * <p/>
      * <p>
      * 起始索引小于<code>0</code>则返回<code>-1</code>，超出数组长度的起始索引则从数组末尾开始找。
      * </p>
-     * 
+     *
      * @param array
-     *            要扫描的数组
+     *         要扫描的数组
      * @param arrayToFind
-     *            要查找的元素序列
+     *         要查找的元素序列
      * @param startIndex
-     *            起始索引
+     *         起始索引
      * @param tolerance
-     *            误差
-     * 
+     *         误差
+     *
      * @return 该元素序列在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
      */
     public static int lastIndexOf(float[] array, float[] arrayToFind, int startIndex, float tolerance) {
@@ -5329,7 +5121,8 @@ public class ArrayUtil {
         int min = targetLength - 1;
         int i = min + startIndex;
 
-        startSearchForLast: while (true) {
+        startSearchForLast:
+        while (true) {
             while ((i >= min) && ((array[i] < lastMin) || (array[i] > lastMax))) {
                 i--;
             }
@@ -5353,84 +5146,224 @@ public class ArrayUtil {
         }
     }
 
+    /**
+     * 在数组中从末尾开始查找一个元素序列。
+     * <p/>
+     * <p>
+     * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
+     * </p>
+     *
+     * @param array
+     *         要扫描的数组
+     * @param arrayToFind
+     *         要查找的元素序列
+     * @param tolerance
+     *         误差
+     *
+     * @return 该元素序列在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
+     */
+    public static int lastIndexOf(float[] array, float[] arrayToFind, float tolerance) {
+        return lastIndexOf(array, arrayToFind, Integer.MAX_VALUE, tolerance);
+    }
+
+    /**
+     * 在数组中从末尾开始查找一个元素。
+     * <p/>
+     * <p>
+     * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
+     * </p>
+     * <p/>
+     * <p>
+     * 起始索引小于<code>0</code>则返回<code>-1</code>，超出数组长度的起始索引则从数组末尾开始找。
+     * </p>
+     *
+     * @param array
+     *         要扫描的数组
+     * @param floatToFind
+     *         要查找的元素
+     * @param startIndex
+     *         起始索引
+     *
+     * @return 该元素在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
+     */
+    public static int lastIndexOf(float[] array, float floatToFind, int startIndex) {
+        return lastIndexOf(array, floatToFind, startIndex, 0);
+    }
+
+    /**
+     * 在数组中从末尾开始查找一个元素序列。
+     * <p/>
+     * <p>
+     * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
+     * </p>
+     * <p/>
+     * <p>
+     * 起始索引小于<code>0</code>则返回<code>-1</code>，超出数组长度的起始索引则从数组末尾开始找。
+     * </p>
+     *
+     * @param array
+     *         要扫描的数组
+     * @param arrayToFind
+     *         要查找的元素序列
+     * @param startIndex
+     *         起始索引
+     *
+     * @return 该元素序列在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
+     */
+    public static int lastIndexOf(float[] array, float[] arrayToFind, int startIndex) {
+        return lastIndexOf(array, arrayToFind, startIndex, 0);
+    }
 
     /**
      * 判断指定对象是否存在于指定数组中。
-     * 
+     * <p/>
      * <p>
      * 如果数组为<code>null</code>则返回<code>false</code>。
      * </p>
-     * 
+     *
      * @param array
-     *            要扫描的数组
+     *         要扫描的数组
      * @param floatToFind
-     *            要查找的元素
-     * 
+     *         要查找的元素
+     *
      * @return 如果找到则返回<code>true</code>
      */
     public static boolean contains(float[] array, float floatToFind) {
         return indexOf(array, floatToFind) != -1;
     }
 
+    /**
+     * 在数组中查找一个元素。
+     * <p/>
+     * <p>
+     * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
+     * </p>
+     *
+     * @param array
+     *         要扫描的数组
+     * @param floatToFind
+     *         要查找的元素
+     *
+     * @return 该元素在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
+     */
+    public static int indexOf(float[] array, float floatToFind) {
+        return indexOf(array, floatToFind, 0, 0);
+    }
 
     /**
      * 判断指定对象是否存在于指定数组中。
-     * 
+     * <p/>
      * <p>
      * 如果数组为<code>null</code>则返回<code>false</code>。
      * </p>
-     * 
+     *
      * @param array
-     *            要扫描的数组
+     *         要扫描的数组
      * @param floatToFind
-     *            要查找的元素
+     *         要查找的元素
      * @param tolerance
-     *            误差
-     * 
+     *         误差
+     *
      * @return 如果找到则返回<code>true</code>
      */
     public static boolean contains(float[] array, float floatToFind, float tolerance) {
         return indexOf(array, floatToFind, tolerance) != -1;
     }
 
+    /**
+     * 在数组中查找一个元素。
+     * <p/>
+     * <p>
+     * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
+     * </p>
+     *
+     * @param array
+     *         要扫描的数组
+     * @param floatToFind
+     *         要查找的元素
+     * @param tolerance
+     *         误差
+     *
+     * @return 该元素在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
+     */
+    public static int indexOf(float[] array, float floatToFind, float tolerance) {
+        return indexOf(array, floatToFind, 0, tolerance);
+    }
 
     /**
      * 判断指定元素序列是否存在于指定数组中。
-     * 
+     * <p/>
      * <p>
      * 如果数组为<code>null</code>则返回<code>false</code>。
      * </p>
-     * 
+     *
      * @param array
-     *            要扫描的数组
+     *         要扫描的数组
      * @param arrayToFind
-     *            要查找的元素序列
-     * 
+     *         要查找的元素序列
+     *
      * @return 如果找到则返回<code>true</code>
      */
     public static boolean contains(float[] array, float[] arrayToFind) {
         return indexOf(array, arrayToFind) != -1;
     }
 
+    /**
+     * 在数组中查找一个元素序列。
+     * <p/>
+     * <p>
+     * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
+     * </p>
+     *
+     * @param array
+     *         要扫描的数组
+     * @param arrayToFind
+     *         要查找的元素序列
+     *
+     * @return 该元素序列在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
+     */
+    public static int indexOf(float[] array, float[] arrayToFind) {
+        return indexOf(array, arrayToFind, 0, 0);
+    }
 
     /**
      * 判断指定元素序列是否存在于指定数组中。
-     * 
+     * <p/>
      * <p>
      * 如果数组为<code>null</code>则返回<code>false</code>。
      * </p>
-     * 
+     *
      * @param array
-     *            要扫描的数组
+     *         要扫描的数组
      * @param arrayToFind
-     *            要查找的元素序列
+     *         要查找的元素序列
      * @param tolerance
-     *            误差
-     * 
+     *         误差
+     *
      * @return 如果找到则返回<code>true</code>
      */
     public static boolean contains(float[] array, float[] arrayToFind, float tolerance) {
         return indexOf(array, arrayToFind, tolerance) != -1;
+    }
+
+    /**
+     * 在数组中查找一个元素序列。
+     * <p/>
+     * <p>
+     * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
+     * </p>
+     *
+     * @param array
+     *         要扫描的数组
+     * @param arrayToFind
+     *         要查找的元素序列
+     * @param tolerance
+     *         误差
+     *
+     * @return 该元素序列在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
+     */
+    public static int indexOf(float[] array, float[] arrayToFind, float tolerance) {
+        return indexOf(array, arrayToFind, 0, tolerance);
     }
 
 
@@ -5447,212 +5380,41 @@ public class ArrayUtil {
      */
 
     /**
-     * 在数组中查找一个元素。
-     * 
-     * <p>
-     * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
-     * </p>
-     * 
-     * @param array
-     *            要扫描的数组
-     * @param booleanToFind
-     *            要查找的元素
-     * 
-     * @return 该元素在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
-     */
-    public static int indexOf(boolean[] array, boolean booleanToFind) {
-        return indexOf(array, booleanToFind, 0);
-    }
-
-
-    /**
-     * 在数组中查找一个元素序列。
-     * 
-     * <p>
-     * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
-     * </p>
-     * 
-     * @param array
-     *            要扫描的数组
-     * @param arrayToFind
-     *            要查找的元素序列
-     * 
-     * @return 该元素序列在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
-     */
-    public static int indexOf(boolean[] array, boolean[] arrayToFind) {
-        return indexOf(array, arrayToFind, 0);
-    }
-
-
-    /**
-     * 在数组中查找一个元素。
-     * 
-     * <p>
-     * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
-     * </p>
-     * 
-     * <p>
-     * 起始索引小于<code>0</code>则看作<code>0</code>，超出数组长度的起始索引则返回<code>-1</code>。
-     * </p>
-     * 
-     * @param array
-     *            要扫描的数组
-     * @param booleanToFind
-     *            要查找的元素
-     * @param startIndex
-     *            起始索引
-     * 
-     * @return 该元素在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
-     */
-    public static int indexOf(boolean[] array, boolean booleanToFind, int startIndex) {
-        if (array == null) {
-            return -1;
-        }
-
-        if (startIndex < 0) {
-            startIndex = 0;
-        }
-
-        for (int i = startIndex; i < array.length; i++) {
-            if (booleanToFind == array[i]) {
-                return i;
-            }
-        }
-
-        return -1;
-    }
-
-
-    /**
-     * 在数组中查找一个元素序列。
-     * 
-     * <p>
-     * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
-     * </p>
-     * 
-     * <p>
-     * 起始索引小于<code>0</code>则看作<code>0</code>，超出数组长度的起始索引则返回<code>-1</code>。
-     * </p>
-     * 
-     * @param array
-     *            要扫描的数组
-     * @param arrayToFind
-     *            要查找的元素序列
-     * @param startIndex
-     *            起始索引
-     * 
-     * @return 该元素序列在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
-     */
-    public static int indexOf(boolean[] array, boolean[] arrayToFind, int startIndex) {
-        if ((array == null) || (arrayToFind == null)) {
-            return -1;
-        }
-
-        int sourceLength = array.length;
-        int targetLength = arrayToFind.length;
-
-        if (startIndex >= sourceLength) {
-            return (targetLength == 0) ? sourceLength : (-1);
-        }
-
-        if (startIndex < 0) {
-            startIndex = 0;
-        }
-
-        if (targetLength == 0) {
-            return startIndex;
-        }
-
-        boolean first = arrayToFind[0];
-        int i = startIndex;
-        int max = sourceLength - targetLength;
-
-        startSearchForFirst: while (true) {
-            // 查找第一个元素
-            while ((i <= max) && (array[i] != first)) {
-                i++;
-            }
-
-            if (i > max) {
-                return -1;
-            }
-
-            // 已经找到第一个元素，接着找
-            int j = i + 1;
-            int end = (j + targetLength) - 1;
-            int k = 1;
-
-            while (j < end) {
-                if (array[j++] != arrayToFind[k++]) {
-                    i++;
-
-                    // 重新查找第一个元素
-                    continue startSearchForFirst;
-                }
-            }
-
-            // 找到了
-            return i;
-        }
-    }
-
-
-    /**
      * 在数组中从末尾开始查找一个元素。
-     * 
+     * <p/>
      * <p>
      * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
      * </p>
-     * 
+     *
      * @param array
-     *            要扫描的数组
+     *         要扫描的数组
      * @param booleanToFind
-     *            要查找的元素
-     * 
+     *         要查找的元素
+     *
      * @return 该元素在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
      */
     public static int lastIndexOf(boolean[] array, boolean booleanToFind) {
         return lastIndexOf(array, booleanToFind, Integer.MAX_VALUE);
     }
 
-
-    /**
-     * 在数组中从末尾开始查找一个元素序列。
-     * 
-     * <p>
-     * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
-     * </p>
-     * 
-     * @param array
-     *            要扫描的数组
-     * @param arrayToFind
-     *            要查找的元素序列
-     * 
-     * @return 该元素序列在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
-     */
-    public static int lastIndexOf(boolean[] array, boolean[] arrayToFind) {
-        return lastIndexOf(array, arrayToFind, Integer.MAX_VALUE);
-    }
-
-
     /**
      * 在数组中从末尾开始查找一个元素。
-     * 
+     * <p/>
      * <p>
      * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
      * </p>
-     * 
+     * <p/>
      * <p>
      * 起始索引小于<code>0</code>则返回<code>-1</code>，超出数组长度的起始索引则从数组末尾开始找。
      * </p>
-     * 
+     *
      * @param array
-     *            要扫描的数组
+     *         要扫描的数组
      * @param booleanToFind
-     *            要查找的元素
+     *         要查找的元素
      * @param startIndex
-     *            起始索引
-     * 
+     *         起始索引
+     *
      * @return 该元素在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
      */
     public static int lastIndexOf(boolean[] array, boolean booleanToFind, int startIndex) {
@@ -5662,8 +5424,7 @@ public class ArrayUtil {
 
         if (startIndex < 0) {
             return -1;
-        }
-        else if (startIndex >= array.length) {
+        } else if (startIndex >= array.length) {
             startIndex = array.length - 1;
         }
 
@@ -5676,25 +5437,42 @@ public class ArrayUtil {
         return -1;
     }
 
-
     /**
      * 在数组中从末尾开始查找一个元素序列。
-     * 
+     * <p/>
      * <p>
      * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
      * </p>
-     * 
+     *
+     * @param array
+     *         要扫描的数组
+     * @param arrayToFind
+     *         要查找的元素序列
+     *
+     * @return 该元素序列在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
+     */
+    public static int lastIndexOf(boolean[] array, boolean[] arrayToFind) {
+        return lastIndexOf(array, arrayToFind, Integer.MAX_VALUE);
+    }
+
+    /**
+     * 在数组中从末尾开始查找一个元素序列。
+     * <p/>
+     * <p>
+     * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
+     * </p>
+     * <p/>
      * <p>
      * 起始索引小于<code>0</code>则返回<code>-1</code>，超出数组长度的起始索引则从数组末尾开始找。
      * </p>
-     * 
+     *
      * @param array
-     *            要扫描的数组
+     *         要扫描的数组
      * @param arrayToFind
-     *            要查找的元素序列
+     *         要查找的元素序列
      * @param startIndex
-     *            起始索引
-     * 
+     *         起始索引
+     *
      * @return 该元素序列在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
      */
     public static int lastIndexOf(boolean[] array, boolean[] arrayToFind, int startIndex) {
@@ -5724,7 +5502,8 @@ public class ArrayUtil {
         int min = targetLength - 1;
         int i = min + startIndex;
 
-        startSearchForLast: while (true) {
+        startSearchForLast:
+        while (true) {
             while ((i >= min) && (array[i] != last)) {
                 i--;
             }
@@ -5748,116 +5527,63 @@ public class ArrayUtil {
         }
     }
 
-
     /**
      * 判断指定对象是否存在于指定数组中。
-     * 
+     * <p/>
      * <p>
      * 如果数组为<code>null</code>则返回<code>false</code>。
      * </p>
-     * 
+     *
      * @param array
-     *            要扫描的数组
+     *         要扫描的数组
      * @param booleanToFind
-     *            要查找的元素
-     * 
+     *         要查找的元素
+     *
      * @return 如果找到则返回<code>true</code>
      */
     public static boolean contains(boolean[] array, boolean booleanToFind) {
         return indexOf(array, booleanToFind) != -1;
     }
 
-
-    /**
-     * 判断指定元素序列是否存在于指定数组中。
-     * 
-     * <p>
-     * 如果数组为<code>null</code>则返回<code>false</code>。
-     * </p>
-     * 
-     * @param array
-     *            要扫描的数组
-     * @param arrayToFind
-     *            要查找的元素序列
-     * 
-     * @return 如果找到则返回<code>true</code>
-     */
-    public static boolean contains(boolean[] array, boolean[] arrayToFind) {
-        return indexOf(array, arrayToFind) != -1;
-    }
-
-
-    /*
-     * ==========================================================================
-     * ==
-     */
-    /* 在数组中查找一个元素或一个元素序列。 */
-    /*                                                                              */
-    /* 类型：char[] */
-    /*
-     * ==========================================================================
-     * ==
-     */
-
     /**
      * 在数组中查找一个元素。
-     * 
+     * <p/>
      * <p>
      * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
      * </p>
-     * 
+     *
      * @param array
-     *            要扫描的数组
-     * @param charToFind
-     *            要查找的元素
-     * 
+     *         要扫描的数组
+     * @param booleanToFind
+     *         要查找的元素
+     *
      * @return 该元素在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
      */
-    public static int indexOf(char[] array, char charToFind) {
-        return indexOf(array, charToFind, 0);
+    public static int indexOf(boolean[] array, boolean booleanToFind) {
+        return indexOf(array, booleanToFind, 0);
     }
-
-
-    /**
-     * 在数组中查找一个元素序列。
-     * 
-     * <p>
-     * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
-     * </p>
-     * 
-     * @param array
-     *            要扫描的数组
-     * @param arrayToFind
-     *            要查找的元素序列
-     * 
-     * @return 该元素序列在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
-     */
-    public static int indexOf(char[] array, char[] arrayToFind) {
-        return indexOf(array, arrayToFind, 0);
-    }
-
 
     /**
      * 在数组中查找一个元素。
-     * 
+     * <p/>
      * <p>
      * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
      * </p>
-     * 
+     * <p/>
      * <p>
      * 起始索引小于<code>0</code>则看作<code>0</code>，超出数组长度的起始索引则返回<code>-1</code>。
      * </p>
-     * 
+     *
      * @param array
-     *            要扫描的数组
-     * @param charToFind
-     *            要查找的元素
+     *         要扫描的数组
+     * @param booleanToFind
+     *         要查找的元素
      * @param startIndex
-     *            起始索引
-     * 
+     *         起始索引
+     *
      * @return 该元素在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
      */
-    public static int indexOf(char[] array, char charToFind, int startIndex) {
+    public static int indexOf(boolean[] array, boolean booleanToFind, int startIndex) {
         if (array == null) {
             return -1;
         }
@@ -5867,7 +5593,7 @@ public class ArrayUtil {
         }
 
         for (int i = startIndex; i < array.length; i++) {
-            if (charToFind == array[i]) {
+            if (booleanToFind == array[i]) {
                 return i;
             }
         }
@@ -5875,28 +5601,63 @@ public class ArrayUtil {
         return -1;
     }
 
+    /**
+     * 判断指定元素序列是否存在于指定数组中。
+     * <p/>
+     * <p>
+     * 如果数组为<code>null</code>则返回<code>false</code>。
+     * </p>
+     *
+     * @param array
+     *         要扫描的数组
+     * @param arrayToFind
+     *         要查找的元素序列
+     *
+     * @return 如果找到则返回<code>true</code>
+     */
+    public static boolean contains(boolean[] array, boolean[] arrayToFind) {
+        return indexOf(array, arrayToFind) != -1;
+    }
 
     /**
      * 在数组中查找一个元素序列。
-     * 
+     * <p/>
      * <p>
      * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
      * </p>
-     * 
+     *
+     * @param array
+     *         要扫描的数组
+     * @param arrayToFind
+     *         要查找的元素序列
+     *
+     * @return 该元素序列在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
+     */
+    public static int indexOf(boolean[] array, boolean[] arrayToFind) {
+        return indexOf(array, arrayToFind, 0);
+    }
+
+    /**
+     * 在数组中查找一个元素序列。
+     * <p/>
+     * <p>
+     * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
+     * </p>
+     * <p/>
      * <p>
      * 起始索引小于<code>0</code>则看作<code>0</code>，超出数组长度的起始索引则返回<code>-1</code>。
      * </p>
-     * 
+     *
      * @param array
-     *            要扫描的数组
+     *         要扫描的数组
      * @param arrayToFind
-     *            要查找的元素序列
+     *         要查找的元素序列
      * @param startIndex
-     *            起始索引
-     * 
+     *         起始索引
+     *
      * @return 该元素序列在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
      */
-    public static int indexOf(char[] array, char[] arrayToFind, int startIndex) {
+    public static int indexOf(boolean[] array, boolean[] arrayToFind, int startIndex) {
         if ((array == null) || (arrayToFind == null)) {
             return -1;
         }
@@ -5916,11 +5677,12 @@ public class ArrayUtil {
             return startIndex;
         }
 
-        char first = arrayToFind[0];
+        boolean first = arrayToFind[0];
         int i = startIndex;
         int max = sourceLength - targetLength;
 
-        startSearchForFirst: while (true) {
+        startSearchForFirst:
+        while (true) {
             // 查找第一个元素
             while ((i <= max) && (array[i] != first)) {
                 i++;
@@ -5950,62 +5712,54 @@ public class ArrayUtil {
     }
 
 
+    /*
+     * ==========================================================================
+     * ==
+     */
+    /* 在数组中查找一个元素或一个元素序列。 */
+    /*                                                                              */
+    /* 类型：char[] */
+    /*
+     * ==========================================================================
+     * ==
+     */
+
     /**
      * 在数组中从末尾开始查找一个元素。
-     * 
+     * <p/>
      * <p>
      * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
      * </p>
-     * 
+     *
      * @param array
-     *            要扫描的数组
+     *         要扫描的数组
      * @param charToFind
-     *            要查找的元素
-     * 
+     *         要查找的元素
+     *
      * @return 该元素在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
      */
     public static int lastIndexOf(char[] array, char charToFind) {
         return lastIndexOf(array, charToFind, Integer.MAX_VALUE);
     }
 
-
-    /**
-     * 在数组中从末尾开始查找一个元素序列。
-     * 
-     * <p>
-     * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
-     * </p>
-     * 
-     * @param array
-     *            要扫描的数组
-     * @param arrayToFind
-     *            要查找的元素序列
-     * 
-     * @return 该元素序列在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
-     */
-    public static int lastIndexOf(char[] array, char[] arrayToFind) {
-        return lastIndexOf(array, arrayToFind, Integer.MAX_VALUE);
-    }
-
-
     /**
      * 在数组中从末尾开始查找一个元素。
-     * 
+     * <p/>
      * <p>
      * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
      * </p>
-     * 
+     * <p/>
      * <p>
      * 起始索引小于<code>0</code>则返回<code>-1</code>，超出数组长度的起始索引则从数组末尾开始找。
      * </p>
-     * 
+     *
      * @param array
-     *            要扫描的数组
+     *         要扫描的数组
      * @param charToFind
-     *            要查找的元素
+     *         要查找的元素
      * @param startIndex
-     *            起始索引
-     * 
+     *         起始索引
+     *
      * @return 该元素在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
      */
     public static int lastIndexOf(char[] array, char charToFind, int startIndex) {
@@ -6015,8 +5769,7 @@ public class ArrayUtil {
 
         if (startIndex < 0) {
             return -1;
-        }
-        else if (startIndex >= array.length) {
+        } else if (startIndex >= array.length) {
             startIndex = array.length - 1;
         }
 
@@ -6029,25 +5782,42 @@ public class ArrayUtil {
         return -1;
     }
 
-
     /**
      * 在数组中从末尾开始查找一个元素序列。
-     * 
+     * <p/>
      * <p>
      * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
      * </p>
-     * 
+     *
+     * @param array
+     *         要扫描的数组
+     * @param arrayToFind
+     *         要查找的元素序列
+     *
+     * @return 该元素序列在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
+     */
+    public static int lastIndexOf(char[] array, char[] arrayToFind) {
+        return lastIndexOf(array, arrayToFind, Integer.MAX_VALUE);
+    }
+
+    /**
+     * 在数组中从末尾开始查找一个元素序列。
+     * <p/>
+     * <p>
+     * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
+     * </p>
+     * <p/>
      * <p>
      * 起始索引小于<code>0</code>则返回<code>-1</code>，超出数组长度的起始索引则从数组末尾开始找。
      * </p>
-     * 
+     *
      * @param array
-     *            要扫描的数组
+     *         要扫描的数组
      * @param arrayToFind
-     *            要查找的元素序列
+     *         要查找的元素序列
      * @param startIndex
-     *            起始索引
-     * 
+     *         起始索引
+     *
      * @return 该元素序列在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
      */
     public static int lastIndexOf(char[] array, char[] arrayToFind, int startIndex) {
@@ -6077,7 +5847,8 @@ public class ArrayUtil {
         int min = targetLength - 1;
         int i = min + startIndex;
 
-        startSearchForLast: while (true) {
+        startSearchForLast:
+        while (true) {
             while ((i >= min) && (array[i] != last)) {
                 i--;
             }
@@ -6101,42 +5872,188 @@ public class ArrayUtil {
         }
     }
 
-
     /**
      * 判断指定对象是否存在于指定数组中。
-     * 
+     * <p/>
      * <p>
      * 如果数组为<code>null</code>则返回<code>false</code>。
      * </p>
-     * 
+     *
      * @param array
-     *            要扫描的数组
+     *         要扫描的数组
      * @param charToFind
-     *            要查找的元素
-     * 
+     *         要查找的元素
+     *
      * @return 如果找到则返回<code>true</code>
      */
     public static boolean contains(char[] array, char charToFind) {
         return indexOf(array, charToFind) != -1;
     }
 
+    /**
+     * 在数组中查找一个元素。
+     * <p/>
+     * <p>
+     * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
+     * </p>
+     *
+     * @param array
+     *         要扫描的数组
+     * @param charToFind
+     *         要查找的元素
+     *
+     * @return 该元素在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
+     */
+    public static int indexOf(char[] array, char charToFind) {
+        return indexOf(array, charToFind, 0);
+    }
+
+    /**
+     * 在数组中查找一个元素。
+     * <p/>
+     * <p>
+     * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
+     * </p>
+     * <p/>
+     * <p>
+     * 起始索引小于<code>0</code>则看作<code>0</code>，超出数组长度的起始索引则返回<code>-1</code>。
+     * </p>
+     *
+     * @param array
+     *         要扫描的数组
+     * @param charToFind
+     *         要查找的元素
+     * @param startIndex
+     *         起始索引
+     *
+     * @return 该元素在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
+     */
+    public static int indexOf(char[] array, char charToFind, int startIndex) {
+        if (array == null) {
+            return -1;
+        }
+
+        if (startIndex < 0) {
+            startIndex = 0;
+        }
+
+        for (int i = startIndex; i < array.length; i++) {
+            if (charToFind == array[i]) {
+                return i;
+            }
+        }
+
+        return -1;
+    }
 
     /**
      * 判断指定元素序列是否存在于指定数组中。
-     * 
+     * <p/>
      * <p>
      * 如果数组为<code>null</code>则返回<code>false</code>。
      * </p>
-     * 
+     *
      * @param array
-     *            要扫描的数组
+     *         要扫描的数组
      * @param arrayToFind
-     *            要查找的元素序列
-     * 
+     *         要查找的元素序列
+     *
      * @return 如果找到则返回<code>true</code>
      */
     public static boolean contains(char[] array, char[] arrayToFind) {
         return indexOf(array, arrayToFind) != -1;
+    }
+
+    /**
+     * 在数组中查找一个元素序列。
+     * <p/>
+     * <p>
+     * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
+     * </p>
+     *
+     * @param array
+     *         要扫描的数组
+     * @param arrayToFind
+     *         要查找的元素序列
+     *
+     * @return 该元素序列在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
+     */
+    public static int indexOf(char[] array, char[] arrayToFind) {
+        return indexOf(array, arrayToFind, 0);
+    }
+
+    /**
+     * 在数组中查找一个元素序列。
+     * <p/>
+     * <p>
+     * 如果未找到或数组为<code>null</code>则返回<code>-1</code>。
+     * </p>
+     * <p/>
+     * <p>
+     * 起始索引小于<code>0</code>则看作<code>0</code>，超出数组长度的起始索引则返回<code>-1</code>。
+     * </p>
+     *
+     * @param array
+     *         要扫描的数组
+     * @param arrayToFind
+     *         要查找的元素序列
+     * @param startIndex
+     *         起始索引
+     *
+     * @return 该元素序列在数组中的序号，如果数组为<code>null</code>或未找到，则返回<code>-1</code>。
+     */
+    public static int indexOf(char[] array, char[] arrayToFind, int startIndex) {
+        if ((array == null) || (arrayToFind == null)) {
+            return -1;
+        }
+
+        int sourceLength = array.length;
+        int targetLength = arrayToFind.length;
+
+        if (startIndex >= sourceLength) {
+            return (targetLength == 0) ? sourceLength : (-1);
+        }
+
+        if (startIndex < 0) {
+            startIndex = 0;
+        }
+
+        if (targetLength == 0) {
+            return startIndex;
+        }
+
+        char first = arrayToFind[0];
+        int i = startIndex;
+        int max = sourceLength - targetLength;
+
+        startSearchForFirst:
+        while (true) {
+            // 查找第一个元素
+            while ((i <= max) && (array[i] != first)) {
+                i++;
+            }
+
+            if (i > max) {
+                return -1;
+            }
+
+            // 已经找到第一个元素，接着找
+            int j = i + 1;
+            int end = (j + targetLength) - 1;
+            int k = 1;
+
+            while (j < end) {
+                if (array[j++] != arrayToFind[k++]) {
+                    i++;
+
+                    // 重新查找第一个元素
+                    continue startSearchForFirst;
+                }
+            }
+
+            // 找到了
+            return i;
+        }
     }
 
 
@@ -6154,11 +6071,11 @@ public class ArrayUtil {
 
     /**
      * 将数组转换成易于阅读的字符串表示。
-     * 
+     * <p/>
      * <p>
      * 如果数组是<code>null</code>则返回<code>[]</code>，支持多维数组。 如果数组元素为<code>null</code>
      * ，则显示<code>&lt;null&gt;</code>。
-     * 
+     * <p/>
      * <pre>
      * ArrayUtil.toString(null)                              = "[]"
      * ArrayUtil.toString(new int[] {1, 2, 3})               = "[1, 2, 3]"
@@ -6171,12 +6088,12 @@ public class ArrayUtil {
      *                       {2, 3, 4}   // 嵌套数组
      *                    })                                 = "[[1, 2, 3], hello, <null>, [], [2, 3, 4]]"
      * </pre>
-     * 
+     * <p/>
      * </p>
-     * 
+     *
      * @param array
-     *            要转换的数组
-     * 
+     *         要转换的数组
+     *
      * @return 字符串表示，<code>"[]"</code>表示空数组或<code>null</code>
      */
     public static String toString(Object array) {
@@ -6186,11 +6103,11 @@ public class ArrayUtil {
 
     /**
      * 将数组转换成易于阅读的字符串表示。
-     * 
+     * <p/>
      * <p>
      * 如果数组是<code>null</code>则返回指定字符串，支持多维数组。 如果数组元素为<code>null</code>，则显示
      * <code>&lt;null&gt;</code>。
-     * 
+     * <p/>
      * <pre>
      * ArrayUtil.toString(null, "null")                              = "null"
      * ArrayUtil.toString(new int[] {1, 2, 3}, "null")               = "[1, 2, 3]"
@@ -6203,14 +6120,14 @@ public class ArrayUtil {
      *                       {2, 3, 4}   // 嵌套数组
      *                    }, "null")                                 = "[[1, 2, 3], hello, <null>, [], [2, 3, 4]]"
      * </pre>
-     * 
+     * <p/>
      * </p>
-     * 
+     *
      * @param array
-     *            要转换的数组
+     *         要转换的数组
      * @param nullArrayStr
-     *            如果数组是<code>null</code>，则返回此字符串
-     * 
+     *         如果数组是<code>null</code>，则返回此字符串
+     *
      * @return 字符串表示，或返回指定字符串表示<code>null</code>
      */
     public static String toString(Object array, String nullArrayStr) {
@@ -6220,10 +6137,10 @@ public class ArrayUtil {
 
     /**
      * 将数组转换成易于阅读的字符串表示。
-     * 
+     * <p/>
      * <p>
      * 如果数组是<code>null</code>则返回指定字符串，支持多维数组。 如果数组元素为<code>null</code>，则显示指定字符串。
-     * 
+     * <p/>
      * <pre>
      * ArrayUtil.toString(null, "null", "NULL")                              = "null"
      * ArrayUtil.toString(new int[] {1, 2, 3}, "null", "NULL")               = "[1, 2, 3]"
@@ -6236,16 +6153,16 @@ public class ArrayUtil {
      *                       {2, 3, 4}   // 嵌套数组
      *                    }, "null", "NULL")                                 = "[[1, 2, 3], hello, NULL, [], [2, 3, 4]]"
      * </pre>
-     * 
+     * <p/>
      * </p>
-     * 
+     *
      * @param array
-     *            要转换的数组
+     *         要转换的数组
      * @param nullArrayStr
-     *            如果数组是<code>null</code>，则返回此字符串
+     *         如果数组是<code>null</code>，则返回此字符串
      * @param nullElementStr
-     *            如果数组中的元素为<code>null</code>，则返回此字符串
-     * 
+     *         如果数组中的元素为<code>null</code>，则返回此字符串
+     *
      * @return 字符串表示，或返回指定字符串表示<code>null</code>
      */
     public static String toString(Object array, String nullArrayStr, String nullElementStr) {
@@ -6263,15 +6180,15 @@ public class ArrayUtil {
 
     /**
      * 将数组转换成易于阅读的字符串表示。<code>null</code>将被看作空数组。 支持多维数组。
-     * 
+     *
      * @param buffer
-     *            将转换后的字符串加入到这个<code>StringBuffer</code>中
+     *         将转换后的字符串加入到这个<code>StringBuffer</code>中
      * @param array
-     *            要转换的数组
+     *         要转换的数组
      * @param nullArrayStr
-     *            如果数组是<code>null</code>，则返回此字符串
+     *         如果数组是<code>null</code>，则返回此字符串
      * @param nullElementStr
-     *            如果数组中的元素为<code>null</code>，则返回此字符串
+     *         如果数组中的元素为<code>null</code>，则返回此字符串
      */
     private static void toString(StringBuffer buffer, Object array, String nullArrayStr, String nullElementStr) {
         if (array == null) {
@@ -6298,8 +6215,7 @@ public class ArrayUtil {
 
                 buffer.append(longArray[i]);
             }
-        }
-        else if (array instanceof int[]) {
+        } else if (array instanceof int[]) {
             int[] intArray = (int[]) array;
             int length = intArray.length;
 
@@ -6310,8 +6226,7 @@ public class ArrayUtil {
 
                 buffer.append(intArray[i]);
             }
-        }
-        else if (array instanceof short[]) {
+        } else if (array instanceof short[]) {
             short[] shortArray = (short[]) array;
             int length = shortArray.length;
 
@@ -6322,16 +6237,14 @@ public class ArrayUtil {
 
                 buffer.append(shortArray[i]);
             }
-        }
-        else if (array instanceof byte[]) {
+        } else if (array instanceof byte[]) {
             byte[] byteArray = (byte[]) array;
             int length = byteArray.length;
 
             for (int i = 0; i < length; i++) {
                 if (i > 0) {
                     buffer.append(", ");
-                }
-                else {
+                } else {
                     buffer.append("0x");
                 }
 
@@ -6339,15 +6252,13 @@ public class ArrayUtil {
 
                 if (hexStr.length() == 0) {
                     buffer.append("00");
-                }
-                else if (hexStr.length() == 1) {
+                } else if (hexStr.length() == 1) {
                     buffer.append("0");
                 }
 
                 buffer.append(hexStr);
             }
-        }
-        else if (array instanceof double[]) {
+        } else if (array instanceof double[]) {
             double[] doubleArray = (double[]) array;
             int length = doubleArray.length;
 
@@ -6358,8 +6269,7 @@ public class ArrayUtil {
 
                 buffer.append(doubleArray[i]);
             }
-        }
-        else if (array instanceof float[]) {
+        } else if (array instanceof float[]) {
             float[] floatArray = (float[]) array;
             int length = floatArray.length;
 
@@ -6370,8 +6280,7 @@ public class ArrayUtil {
 
                 buffer.append(floatArray[i]);
             }
-        }
-        else if (array instanceof boolean[]) {
+        } else if (array instanceof boolean[]) {
             boolean[] booleanArray = (boolean[]) array;
             int length = booleanArray.length;
 
@@ -6382,8 +6291,7 @@ public class ArrayUtil {
 
                 buffer.append(booleanArray[i]);
             }
-        }
-        else if (array instanceof char[]) {
+        } else if (array instanceof char[]) {
             char[] charArray = (char[]) array;
             int length = charArray.length;
 
@@ -6394,8 +6302,7 @@ public class ArrayUtil {
 
                 buffer.append(charArray[i]);
             }
-        }
-        else {
+        } else {
             Object[] objectArray = (Object[]) array;
             int length = objectArray.length;
 

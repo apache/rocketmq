@@ -1,12 +1,12 @@
 /**
  * Copyright (C) 2010-2013 Alibaba Group Holding Limited
- *
+ * <p/>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p/>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p/>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -30,7 +30,7 @@ import java.nio.channels.SocketChannel;
 
 /**
  * 通信层一些辅助方法
- * 
+ *
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-13
  */
@@ -69,7 +69,7 @@ public class RemotingHelper {
      * 短连接调用 TODO
      */
     public static RemotingCommand invokeSync(final String addr, final RemotingCommand request,
-            final long timeoutMillis) throws InterruptedException, RemotingConnectException,
+                                             final long timeoutMillis) throws InterruptedException, RemotingConnectException,
             RemotingSendRequestException, RemotingTimeoutException {
         long beginTime = System.currentTimeMillis();
         SocketAddress socketAddress = RemotingUtil.string2SocketAddress(addr);
@@ -98,8 +98,7 @@ public class RemotingHelper {
                                 throw new RemotingSendRequestException(addr);
                             }
                         }
-                    }
-                    else {
+                    } else {
                         throw new RemotingSendRequestException(addr);
                     }
 
@@ -120,8 +119,7 @@ public class RemotingHelper {
                                 throw new RemotingTimeoutException(addr, timeoutMillis);
                             }
                         }
-                    }
-                    else {
+                    } else {
                         throw new RemotingTimeoutException(addr, timeoutMillis);
                     }
 
@@ -141,8 +139,7 @@ public class RemotingHelper {
                                 throw new RemotingTimeoutException(addr, timeoutMillis);
                             }
                         }
-                    }
-                    else {
+                    } else {
                         throw new RemotingTimeoutException(addr, timeoutMillis);
                     }
 
@@ -153,27 +150,22 @@ public class RemotingHelper {
                 // 对应答数据解码
                 byteBufferBody.flip();
                 return RemotingCommand.decode(byteBufferBody);
-            }
-            catch (IOException e) {
+            } catch (IOException e) {
                 e.printStackTrace();
 
                 if (sendRequestOK) {
                     throw new RemotingTimeoutException(addr, timeoutMillis);
-                }
-                else {
+                } else {
                     throw new RemotingSendRequestException(addr);
                 }
-            }
-            finally {
+            } finally {
                 try {
                     socketChannel.close();
-                }
-                catch (IOException e) {
+                } catch (IOException e) {
                     e.printStackTrace();
                 }
             }
-        }
-        else {
+        } else {
             throw new RemotingConnectException(addr);
         }
     }
@@ -183,7 +175,7 @@ public class RemotingHelper {
         if (null == channel) {
             return "";
         }
-         SocketAddress remote = channel.remoteAddress();
+        SocketAddress remote = channel.remoteAddress();
         final String addr = remote != null ? remote.toString() : "";
 
         if (addr.length() > 0) {

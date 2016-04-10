@@ -10,11 +10,9 @@ import java.util.TreeMap;
 
 
 public class DefaultMonitorListener implements MonitorListener {
-    private final Logger log = ClientLogger.getLog();
-
     private final static String LogPrefix = "[MONITOR] ";
-
     private final static String LogNotify = LogPrefix + " [NOTIFY] ";
+    private final Logger log = ClientLogger.getLog();
 
 
     public DefaultMonitorListener() {
@@ -53,7 +51,7 @@ public class DefaultMonitorListener implements MonitorListener {
             if (!result) {
                 log.info(String.format(LogNotify
                         + "reportConsumerRunningInfo: ConsumerGroup: %s, Subscription different", criTable
-                    .firstEntry().getValue().getProperties().getProperty("consumerGroup")));
+                        .firstEntry().getValue().getProperties().getProperty("consumerGroup")));
             }
         }
 
@@ -65,10 +63,10 @@ public class DefaultMonitorListener implements MonitorListener {
                 String result = ConsumerRunningInfo.analyzeProcessQueue(next.getKey(), next.getValue());
                 if (result != null && !result.isEmpty()) {
                     log.info(String.format(LogNotify
-                            + "reportConsumerRunningInfo: ConsumerGroup: %s, ClientId: %s, %s", //
-                        criTable.firstEntry().getValue().getProperties().getProperty("consumerGroup"),//
-                        next.getKey(),//
-                        result));
+                                    + "reportConsumerRunningInfo: ConsumerGroup: %s, ClientId: %s, %s", //
+                            criTable.firstEntry().getValue().getProperties().getProperty("consumerGroup"),//
+                            next.getKey(),//
+                            result));
                 }
             }
         }

@@ -3,10 +3,10 @@
  */
 package com.alibaba.rocketmq.common.protocol.heartbeat;
 
+import com.alibaba.fastjson.annotation.JSONField;
+
 import java.util.HashSet;
 import java.util.Set;
-
-import com.alibaba.fastjson.annotation.JSONField;
 
 
 /**
@@ -28,16 +28,6 @@ public class SubscriptionData implements Comparable<SubscriptionData> {
     private String filterClassSource;
 
 
-    public String getFilterClassSource() {
-        return filterClassSource;
-    }
-
-
-    public void setFilterClassSource(String filterClassSource) {
-        this.filterClassSource = filterClassSource;
-    }
-
-
     public SubscriptionData() {
 
     }
@@ -49,6 +39,13 @@ public class SubscriptionData implements Comparable<SubscriptionData> {
         this.subString = subString;
     }
 
+    public String getFilterClassSource() {
+        return filterClassSource;
+    }
+
+    public void setFilterClassSource(String filterClassSource) {
+        this.filterClassSource = filterClassSource;
+    }
 
     public String getTopic() {
         return topic;
@@ -137,28 +134,24 @@ public class SubscriptionData implements Comparable<SubscriptionData> {
         if (codeSet == null) {
             if (other.codeSet != null)
                 return false;
-        }
-        else if (!codeSet.equals(other.codeSet))
+        } else if (!codeSet.equals(other.codeSet))
             return false;
         if (subString == null) {
             if (other.subString != null)
                 return false;
-        }
-        else if (!subString.equals(other.subString))
+        } else if (!subString.equals(other.subString))
             return false;
         if (subVersion != other.subVersion)
             return false;
         if (tagsSet == null) {
             if (other.tagsSet != null)
                 return false;
-        }
-        else if (!tagsSet.equals(other.tagsSet))
+        } else if (!tagsSet.equals(other.tagsSet))
             return false;
         if (topic == null) {
             if (other.topic != null)
                 return false;
-        }
-        else if (!topic.equals(other.topic))
+        } else if (!topic.equals(other.topic))
             return false;
         return true;
     }

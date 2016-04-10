@@ -1,12 +1,12 @@
 /**
  * Copyright (C) 2010-2013 Alibaba Group Holding Limited
- *
+ * <p/>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p/>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p/>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -15,25 +15,59 @@
  */
 package com.alibaba.rocketmq.example.operation;
 
-import java.util.List;
-import java.util.concurrent.atomic.AtomicLong;
-
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.HelpFormatter;
-import org.apache.commons.cli.Option;
-import org.apache.commons.cli.Options;
-import org.apache.commons.cli.ParseException;
-import org.apache.commons.cli.PosixParser;
-
 import com.alibaba.rocketmq.client.consumer.DefaultMQPushConsumer;
 import com.alibaba.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext;
 import com.alibaba.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
 import com.alibaba.rocketmq.client.consumer.listener.MessageListenerConcurrently;
 import com.alibaba.rocketmq.client.exception.MQClientException;
 import com.alibaba.rocketmq.common.message.MessageExt;
+import org.apache.commons.cli.*;
+
+import java.util.List;
+import java.util.concurrent.atomic.AtomicLong;
 
 
 public class Consumer {
+
+    public static void main(String[] args) throws InterruptedException, MQClientException {
+        CommandLine commandLine = buildCommandline(args);
+        if (commandLine != null) {
+            String group = commandLine.getOptionValue('g');
+            String topic = commandLine.getOptionValue('t');
+            String subscription = commandLine.getOptionValue('s');
+            final String returnFailedHalf = commandLine.getOptionValue('f');
+
+            DefaultMQPushConsumer consumer = new DefaultMQPushConsumer(group);
+            consumer.setInstanceName(Long.toString(System.currentTimeMillis()));
+
+            consumer.subscribe(topic, subscription);
+
+            consumer.registerMessageListener(new MessageListenerConcurrently() {
+                AtomicLong consumeTimes = new AtomicLong(0);
+
+
+                @Override
+                public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> msgs,
+                                                                ConsumeConcurrentlyContext context) {
+                    long currentTimes = this.consumeTimes.incrementAndGet();
+
+                    System.out.printf("%-8d %s\n", currentTimes, msgs);
+
+                    if (Boolean.parseBoolean(returnFailedHalf)) {
+                        if ((currentTimes % 2) == 0) {
+                            return ConsumeConcurrentlyStatus.RECONSUME_LATER;
+                        }
+                    }
+
+                    return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
+                }
+            });
+
+            consumer.start();
+
+            System.out.println("Consumer Started.");
+        }
+    }
 
     public static CommandLine buildCommandline(String[] args) {
         final Options options = new Options();
@@ -70,53 +104,11 @@ public class Consumer {
                 hf.printHelp("producer", options, true);
                 return null;
             }
-        }
-        catch (ParseException e) {
+        } catch (ParseException e) {
             hf.printHelp("producer", options, true);
             return null;
         }
 
         return commandLine;
-    }
-
-
-    public static void main(String[] args) throws InterruptedException, MQClientException {
-        CommandLine commandLine = buildCommandline(args);
-        if (commandLine != null) {
-            String group = commandLine.getOptionValue('g');
-            String topic = commandLine.getOptionValue('t');
-            String subscription = commandLine.getOptionValue('s');
-            final String returnFailedHalf = commandLine.getOptionValue('f');
-
-            DefaultMQPushConsumer consumer = new DefaultMQPushConsumer(group);
-            consumer.setInstanceName(Long.toString(System.currentTimeMillis()));
-
-            consumer.subscribe(topic, subscription);
-
-            consumer.registerMessageListener(new MessageListenerConcurrently() {
-                AtomicLong consumeTimes = new AtomicLong(0);
-
-
-                @Override
-                public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> msgs,
-                        ConsumeConcurrentlyContext context) {
-                    long currentTimes = this.consumeTimes.incrementAndGet();
-
-                    System.out.printf("%-8d %s\n", currentTimes, msgs);
-
-                    if (Boolean.parseBoolean(returnFailedHalf)) {
-                        if ((currentTimes % 2) == 0) {
-                            return ConsumeConcurrentlyStatus.RECONSUME_LATER;
-                        }
-                    }
-
-                    return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
-                }
-            });
-
-            consumer.start();
-
-            System.out.println("Consumer Started.");
-        }
     }
 }

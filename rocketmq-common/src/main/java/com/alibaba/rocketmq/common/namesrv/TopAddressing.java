@@ -17,7 +17,7 @@ import java.io.IOException;
 
 /**
  * 寻址服务
- * 
+ *
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @author manhong.yqd<jodie.yqd@gmail.com>
  */
@@ -38,27 +38,9 @@ public class TopAddressing {
         this.unitName = unitName;
     }
 
-
-    private static String clearNewLine(final String str) {
-        String newString = str.trim();
-        int index = newString.indexOf("\r");
-        if (index != -1) {
-            return newString.substring(0, index);
-        }
-
-        index = newString.indexOf("\n");
-        if (index != -1) {
-            return newString.substring(0, index);
-        }
-
-        return newString;
-    }
-
-
     public final String fetchNSAddr() {
         return fetchNSAddr(true, 3000);
     }
-
 
     public final String fetchNSAddr(boolean verbose, long timeoutMills) {
         String url = this.wsAddr;
@@ -71,16 +53,13 @@ public class TopAddressing {
                 String responseStr = result.content;
                 if (responseStr != null) {
                     return clearNewLine(responseStr);
-                }
-                else {
+                } else {
                     log.error("fetch nameserver address is null");
                 }
-            }
-            else {
+            } else {
                 log.error("fetch nameserver address failed. statusCode={}", result.code);
             }
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
             if (verbose) {
                 log.error("fetch name server address exception", e);
             }
@@ -96,6 +75,20 @@ public class TopAddressing {
         return null;
     }
 
+    private static String clearNewLine(final String str) {
+        String newString = str.trim();
+        int index = newString.indexOf("\r");
+        if (index != -1) {
+            return newString.substring(0, index);
+        }
+
+        index = newString.indexOf("\n");
+        if (index != -1) {
+            return newString.substring(0, index);
+        }
+
+        return newString;
+    }
 
     public String getNsAddr() {
         return nsAddr;

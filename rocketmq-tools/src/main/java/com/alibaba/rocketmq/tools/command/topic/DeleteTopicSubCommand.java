@@ -1,12 +1,12 @@
 /**
  * Copyright (C) 2010-2013 Alibaba Group Holding Limited
- *
+ * <p/>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p/>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p/>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -14,14 +14,6 @@
  * limitations under the License.
  */
 package com.alibaba.rocketmq.tools.command.topic;
-
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Set;
-
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.Option;
-import org.apache.commons.cli.Options;
 
 import com.alibaba.rocketmq.client.exception.MQBrokerException;
 import com.alibaba.rocketmq.client.exception.MQClientException;
@@ -31,11 +23,18 @@ import com.alibaba.rocketmq.srvutil.ServerUtil;
 import com.alibaba.rocketmq.tools.admin.DefaultMQAdminExt;
 import com.alibaba.rocketmq.tools.command.CommandUtil;
 import com.alibaba.rocketmq.tools.command.SubCommand;
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.Option;
+import org.apache.commons.cli.Options;
+
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
 
 
 /**
  * 删除Topic配置命令
- * 
+ *
  * @author manhong.yqd<manhong.yqd@alibaba-inc.com>
  * @since 2013-8-21
  */
@@ -67,8 +66,8 @@ public class DeleteTopicSubCommand implements SubCommand {
 
 
     public static void deleteTopic(final DefaultMQAdminExt adminExt,//
-            final String clusterName,//
-            final String topic//
+                                   final String clusterName,//
+                                   final String topic//
     ) throws InterruptedException, MQBrokerException, RemotingException, MQClientException {
         // 删除 broker 上的 topic 信息
         Set<String> masterSet = CommandUtil.fetchMasterAddrByClusterName(adminExt, clusterName);
@@ -104,11 +103,9 @@ public class DeleteTopicSubCommand implements SubCommand {
             }
 
             ServerUtil.printCommandLineHelp("mqadmin " + this.commandName(), options);
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             e.printStackTrace();
-        }
-        finally {
+        } finally {
             adminExt.shutdown();
         }
     }

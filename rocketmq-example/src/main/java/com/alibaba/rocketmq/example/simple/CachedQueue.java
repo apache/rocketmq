@@ -1,8 +1,8 @@
 package com.alibaba.rocketmq.example.simple;
 
-import java.util.TreeMap;
-
 import com.alibaba.rocketmq.common.message.MessageExt;
+
+import java.util.TreeMap;
 
 
 public class CachedQueue {

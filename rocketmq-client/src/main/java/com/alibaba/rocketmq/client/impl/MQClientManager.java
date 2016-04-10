@@ -1,12 +1,12 @@
 /**
  * Copyright (C) 2010-2013 Alibaba Group Holding Limited
- *
+ * <p/>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p/>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p/>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -15,12 +15,12 @@
  */
 package com.alibaba.rocketmq.client.impl;
 
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
-
 import com.alibaba.rocketmq.client.ClientConfig;
 import com.alibaba.rocketmq.client.impl.factory.MQClientInstance;
 import com.alibaba.rocketmq.remoting.RPCHook;
+
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
 
 /**
@@ -43,6 +43,9 @@ public class MQClientManager {
         return instance;
     }
 
+    public MQClientInstance getAndCreateMQClientInstance(final ClientConfig clientConfig) {
+        return getAndCreateMQClientInstance(clientConfig, null);
+    }
 
     public MQClientInstance getAndCreateMQClientInstance(final ClientConfig clientConfig, RPCHook rpcHook) {
         String clientId = clientConfig.buildMQClientId();
@@ -61,12 +64,6 @@ public class MQClientManager {
 
         return instance;
     }
-
-
-    public MQClientInstance getAndCreateMQClientInstance(final ClientConfig clientConfig) {
-        return getAndCreateMQClientInstance(clientConfig, null);
-    }
-
 
     public void removeClientFactory(final String clientId) {
         this.factoryTable.remove(clientId);

@@ -1,8 +1,8 @@
 package com.alibaba.rocketmq.tools.github;
 
-import java.io.File;
-import java.util.Arrays;
-
+import com.alibaba.rocketmq.common.MixAll;
+import com.alibaba.rocketmq.remoting.RPCHook;
+import com.alibaba.rocketmq.tools.command.SubCommand;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
@@ -11,9 +11,8 @@ import org.kohsuke.github.GHOrganization;
 import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GitHub;
 
-import com.alibaba.rocketmq.common.MixAll;
-import com.alibaba.rocketmq.remoting.RPCHook;
-import com.alibaba.rocketmq.tools.command.SubCommand;
+import java.io.File;
+import java.util.Arrays;
 
 
 /**
@@ -45,27 +44,6 @@ public class SyncDocsToGithubSubCommand implements SubCommand {
 
         return options;
     }
-
-
-    private static boolean syncIssue(final GHRepository rep, final int issueId, final String body) {
-        try {
-            GHIssue issue = rep.getIssue(issueId);
-            issue.setBody(body);
-            return true;
-        }
-        catch (Exception e) {
-            e.printStackTrace();
-        }
-
-        return false;
-    }
-
-
-    private static boolean syncWiki(final GHRepository rep, final String wikiName, final String body) {
-
-        return false;
-    }
-
 
     @Override
     public void execute(CommandLine commandLine, Options options, RPCHook rpcHook) {
@@ -117,9 +95,25 @@ public class SyncDocsToGithubSubCommand implements SubCommand {
                     }
                 }
             }
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    private static boolean syncIssue(final GHRepository rep, final int issueId, final String body) {
+        try {
+            GHIssue issue = rep.getIssue(issueId);
+            issue.setBody(body);
+            return true;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return false;
+    }
+
+    private static boolean syncWiki(final GHRepository rep, final String wikiName, final String body) {
+
+        return false;
     }
 }

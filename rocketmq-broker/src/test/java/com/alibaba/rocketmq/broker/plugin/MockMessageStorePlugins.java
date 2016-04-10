@@ -1,5 +1,5 @@
 /**
- * 
+ *
  */
 package com.alibaba.rocketmq.broker.plugin;
 
@@ -7,9 +7,9 @@ import com.alibaba.rocketmq.store.MessageStore;
 
 /**
  * @author qinan.qn@taobao.com
- *2015Äê12ÔÂ12ÈÕ
+ *         2015ï¿½ï¿½12ï¿½ï¿½12ï¿½ï¿½
  */
-class MockMessageStorePlugin1 extends AbstractPluginMessageStore{
+class MockMessageStorePlugin1 extends AbstractPluginMessageStore {
 
     /**
      * @param context
@@ -19,7 +19,8 @@ class MockMessageStorePlugin1 extends AbstractPluginMessageStore{
         super(context, next);
     }
 }
-class MockMessageStorePlugin2 extends AbstractPluginMessageStore{
+
+class MockMessageStorePlugin2 extends AbstractPluginMessageStore {
 
     /**
      * @param context

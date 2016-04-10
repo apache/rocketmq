@@ -1,8 +1,8 @@
 package com.alibaba.rocketmq.tools.monitor;
 
-import java.util.TreeMap;
-
 import com.alibaba.rocketmq.common.protocol.body.ConsumerRunningInfo;
+
+import java.util.TreeMap;
 
 
 /**

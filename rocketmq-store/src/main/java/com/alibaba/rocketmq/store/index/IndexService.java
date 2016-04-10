@@ -1,12 +1,12 @@
 /**
  * Copyright (C) 2010-2013 Alibaba Group Holding Limited
- *
+ * <p/>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p/>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p/>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -36,7 +36,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
  * 消息索引服务
- * 
+ *
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-21
  */
@@ -75,7 +75,7 @@ public class IndexService {
 
                     if (!lastExitOK) {
                         if (f.getEndTimestamp() > this.defaultMessageStore.getStoreCheckpoint()
-                            .getIndexMsgTimestamp()) {
+                                .getIndexMsgTimestamp()) {
                             f.destroy(0);
                             continue;
                         }
@@ -83,8 +83,7 @@ public class IndexService {
 
                     log.info("load index file OK, " + f.getFileName());
                     this.indexFileList.add(f);
-                }
-                catch (IOException e) {
+                } catch (IOException e) {
                     log.error("load file " + file + " error", e);
                     return false;
                 }
@@ -110,11 +109,9 @@ public class IndexService {
             if (endPhyOffset < offset) {
                 files = this.indexFileList.toArray();
             }
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             log.error("destroy exception", e);
-        }
-        finally {
+        } finally {
             this.readWriteLock.readLock().unlock();
         }
 
@@ -124,8 +121,7 @@ public class IndexService {
                 IndexFile f = (IndexFile) files[i];
                 if (f.getEndPhyOffset() < offset) {
                     fileList.add(f);
-                }
-                else {
+                } else {
                     break;
                 }
             }
@@ -150,11 +146,9 @@ public class IndexService {
                         break;
                     }
                 }
-            }
-            catch (Exception e) {
+            } catch (Exception e) {
                 log.error("deleteExpiredFile has exception.", e);
-            }
-            finally {
+            } finally {
                 this.readWriteLock.writeLock().unlock();
             }
         }
@@ -168,19 +162,14 @@ public class IndexService {
                 f.destroy(1000 * 3);
             }
             this.indexFileList.clear();
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             log.error("destroy exception", e);
-        }
-        finally {
+        } finally {
             this.readWriteLock.readLock().unlock();
         }
     }
 
-//    public QueryOffsetResult queryOffset(String topic, String key, int maxNum, long begin, long end) {
-//        return queryOffset(topic, key, maxNum, begin, end, false);
-//    }
-    
+
     public QueryOffsetResult queryOffset(String topic, String key, int maxNum, long begin, long end) {
         List<Long> phyOffsets = new ArrayList<Long>(maxNum);
         // TODO 可能需要返回给最终用户
@@ -213,11 +202,9 @@ public class IndexService {
                     }
                 }
             }
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             log.error("queryMsg exception", e);
-        }
-        finally {
+        } finally {
             this.readWriteLock.readLock().unlock();
         }
 
@@ -245,12 +232,12 @@ public class IndexService {
             switch (tranType) {
             case MessageSysFlag.TransactionNotType:
             case MessageSysFlag.TransactionPreparedType:
-                break;
             case MessageSysFlag.TransactionCommitType:
+                    break;
             case MessageSysFlag.TransactionRollbackType:
                 return;
-            }                                    
-            
+            }
+
             if (req.getUniqKey() != null) {
                 indexFile = putKey(indexFile, msg, buildKey(topic, req.getUniqKey()));
                 if (indexFile == null) {
@@ -258,11 +245,11 @@ public class IndexService {
                     return;
                 }
             }
-            
+
             if ((keys != null && keys.length() > 0)) {
-                String[] keyset = keys.split(MessageConst.KEY_SEPARATOR);                
+                String[] keyset = keys.split(MessageConst.KEY_SEPARATOR);
                 for (int i = 0; i <  keyset.length; i++) {
-                    String key = keyset[i]; 
+                    String key = keyset[i];
                     // TODO 是否需要TRIM
                     if (key.length() > 0) {
                             indexFile = putKey(indexFile, msg, buildKey(topic, key));
@@ -271,7 +258,7 @@ public class IndexService {
                                 return;
                             }
                         }
-                 }                
+                 }
             }
         }
         // IO发生故障，build索引过程中断，需要人工参与处理
@@ -311,8 +298,7 @@ public class IndexService {
             try {
                 log.error("try to create index file, " + times + " times");
                 Thread.sleep(1000);
-            }
-            catch (InterruptedException e) {
+            } catch (InterruptedException e) {
                 e.printStackTrace();
             }
         }
@@ -343,8 +329,7 @@ public class IndexService {
                 IndexFile tmp = this.indexFileList.get(this.indexFileList.size() - 1);
                 if (!tmp.isWriteFull()) {
                     indexFile = tmp;
-                }
-                else {
+                } else {
                     lastUpdateEndPhyOffset = tmp.getEndPhyOffset();
                     lastUpdateIndexTimestamp = tmp.getEndTimestamp();
                     prevIndexFile = tmp;
@@ -362,14 +347,12 @@ public class IndexService {
                                 + UtilAll.timeMillisToHumanString(System.currentTimeMillis());
                 indexFile =
                         new IndexFile(fileName, this.hashSlotNum, this.indexNum, lastUpdateEndPhyOffset,
-                            lastUpdateIndexTimestamp);
+                                lastUpdateIndexTimestamp);
                 this.readWriteLock.writeLock().lock();
                 this.indexFileList.add(indexFile);
-            }
-            catch (Exception e) {
+            } catch (Exception e) {
                 log.error("getLastIndexFile exception ", e);
-            }
-            finally {
+            } finally {
                 this.readWriteLock.writeLock().unlock();
             }
 

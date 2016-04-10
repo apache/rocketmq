@@ -1,18 +1,18 @@
 package com.alibaba.rocketmq.common.protocol.body;
 
-import java.util.HashSet;
-import java.util.concurrent.ConcurrentHashMap;
-
 import com.alibaba.rocketmq.common.consumer.ConsumeFromWhere;
 import com.alibaba.rocketmq.common.protocol.heartbeat.ConsumeType;
 import com.alibaba.rocketmq.common.protocol.heartbeat.MessageModel;
 import com.alibaba.rocketmq.common.protocol.heartbeat.SubscriptionData;
 import com.alibaba.rocketmq.remoting.protocol.RemotingSerializable;
 
+import java.util.HashSet;
+import java.util.concurrent.ConcurrentHashMap;
+
 
 /**
  * TODO
- * 
+ *
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 13-8-5
  */

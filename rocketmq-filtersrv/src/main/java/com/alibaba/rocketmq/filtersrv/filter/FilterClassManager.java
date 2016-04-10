@@ -1,5 +1,14 @@
 package com.alibaba.rocketmq.filtersrv.filter;
 
+import com.alibaba.rocketmq.common.MixAll;
+import com.alibaba.rocketmq.common.ThreadFactoryImpl;
+import com.alibaba.rocketmq.common.UtilAll;
+import com.alibaba.rocketmq.common.constant.LoggerName;
+import com.alibaba.rocketmq.common.filter.MessageFilter;
+import com.alibaba.rocketmq.filtersrv.FiltersrvController;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
@@ -7,32 +16,17 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.alibaba.rocketmq.common.MixAll;
-import com.alibaba.rocketmq.common.ThreadFactoryImpl;
-import com.alibaba.rocketmq.common.UtilAll;
-import com.alibaba.rocketmq.common.constant.LoggerName;
-import com.alibaba.rocketmq.common.filter.MessageFilter;
-import com.alibaba.rocketmq.filtersrv.FiltersrvController;
-
 
 public class FilterClassManager {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.FiltersrvLoggerName);
-
-    private ConcurrentHashMap<String/* topic@consumerGroup */, FilterClassInfo> filterClassTable =
-            new ConcurrentHashMap<String, FilterClassInfo>(128);
-
     // 只为编译加锁使用
     private final Object compileLock = new Object();
-
     private final FiltersrvController filtersrvController;
-
     // 定时线程
     private final ScheduledExecutorService scheduledExecutorService = Executors
-        .newSingleThreadScheduledExecutor(new ThreadFactoryImpl("FSGetClassScheduledThread"));
-
+            .newSingleThreadScheduledExecutor(new ThreadFactoryImpl("FSGetClassScheduledThread"));
+    private ConcurrentHashMap<String/* topic@consumerGroup */, FilterClassInfo> filterClassTable =
+            new ConcurrentHashMap<String, FilterClassInfo>(128);
     private FilterClassFetchMethod filterClassFetchMethod;
 
 
@@ -40,7 +34,7 @@ public class FilterClassManager {
         this.filtersrvController = filtersrvController;
         this.filterClassFetchMethod =
                 new HttpFilterClassFetchMethod(this.filtersrvController.getFiltersrvConfig()
-                    .getFilterClassRepertoryUrl());
+                        .getFilterClassRepertoryUrl());
     }
 
 
@@ -56,12 +50,6 @@ public class FilterClassManager {
         }
     }
 
-
-    public void shutdown() {
-        this.scheduledExecutorService.shutdown();
-    }
-
-
     private void fetchClassFromRemoteHost() {
         Iterator<Entry<String, FilterClassInfo>> it = this.filterClassTable.entrySet().iterator();
         while (it.hasNext()) {
@@ -71,7 +59,7 @@ public class FilterClassManager {
                 String[] topicAndGroup = next.getKey().split("@");
                 String responseStr =
                         this.filterClassFetchMethod.fetch(topicAndGroup[0], topicAndGroup[1],
-                            filterClassInfo.getClassName());
+                                filterClassInfo.getClassName());
                 byte[] filterSourceBinary = responseStr.getBytes("UTF-8");
                 int classCRC = UtilAll.crc32(responseStr.getBytes("UTF-8"));
                 if (classCRC != filterClassInfo.getClassCRC()) {
@@ -83,23 +71,20 @@ public class FilterClassManager {
                     filterClassInfo.setClassCRC(classCRC);
 
                     log.info("fetch Remote class File OK, {} {}", next.getKey(),
-                        filterClassInfo.getClassName());
+                            filterClassInfo.getClassName());
                 }
-            }
-            catch (Exception e) {
+            } catch (Exception e) {
                 log.error("fetchClassFromRemoteHost Exception", e);
             }
         }
     }
 
-
-    private static String buildKey(final String consumerGroup, final String topic) {
-        return topic + "@" + consumerGroup;
+    public void shutdown() {
+        this.scheduledExecutorService.shutdown();
     }
 
-
     public boolean registerFilterClass(final String consumerGroup, final String topic,
-            final String className, final int classCRC, final byte[] filterSourceBinary) {
+                                       final String className, final int classCRC, final byte[] filterSourceBinary) {
         final String key = buildKey(consumerGroup, topic);
 
         // 先检查是否存在，是否CRC相同
@@ -107,8 +92,7 @@ public class FilterClassManager {
         FilterClassInfo filterClassInfoPrev = this.filterClassTable.get(key);
         if (null == filterClassInfoPrev) {
             registerNew = true;
-        }
-        else {
+        } else {
             if (this.filtersrvController.getFiltersrvConfig().isClientUploadFilterClassEnable()) {
                 if (filterClassInfoPrev.getClassCRC() != classCRC && classCRC != 0) {
                     registerNew = true;
@@ -140,13 +124,12 @@ public class FilterClassManager {
                     }
 
                     this.filterClassTable.put(key, filterClassInfoNew);
-                }
-                catch (Throwable e) {
+                } catch (Throwable e) {
                     String info =
                             String
-                                .format(
-                                    "FilterServer, registerFilterClass Exception, consumerGroup: %s topic: %s className: %s",
-                                    consumerGroup, topic, className);
+                                    .format(
+                                            "FilterServer, registerFilterClass Exception, consumerGroup: %s topic: %s className: %s",
+                                            consumerGroup, topic, className);
                     log.error(info, e);
                     return false;
                 }
@@ -156,6 +139,9 @@ public class FilterClassManager {
         return true;
     }
 
+    private static String buildKey(final String consumerGroup, final String topic) {
+        return topic + "@" + consumerGroup;
+    }
 
     public FilterClassInfo findFilterClass(final String consumerGroup, final String topic) {
         return this.filterClassTable.get(buildKey(consumerGroup, topic));

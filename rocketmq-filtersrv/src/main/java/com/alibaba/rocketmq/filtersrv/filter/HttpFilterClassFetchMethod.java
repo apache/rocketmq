@@ -1,11 +1,10 @@
 package com.alibaba.rocketmq.filtersrv.filter;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.common.utils.HttpTinyClient;
 import com.alibaba.rocketmq.common.utils.HttpTinyClient.HttpResult;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 public class HttpFilterClassFetchMethod implements FilterClassFetchMethod {
@@ -27,10 +26,9 @@ public class HttpFilterClassFetchMethod implements FilterClassFetchMethod {
             if (200 == result.code) {
                 return result.content;
             }
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             log.error(
-                String.format("call <%s> exception, Topic: %s Group: %s", thisUrl, topic, consumerGroup), e);
+                    String.format("call <%s> exception, Topic: %s Group: %s", thisUrl, topic, consumerGroup), e);
         }
 
         return null;

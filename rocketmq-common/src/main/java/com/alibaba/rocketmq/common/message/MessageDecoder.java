@@ -117,7 +117,7 @@ public class MessageDecoder {
 
 
     // 当前该方法没有用到
-    public static byte[] encode(MessageExt messageExt) throws Exception {
+    public static byte[] encode(MessageExt messageExt, boolean needCompress) throws Exception {
         byte[] body = messageExt.getBody();
         byte[] topics = messageExt.getTopic().getBytes(CHARSET_UTF8);
         byte topicLen = (byte) topics.length;
@@ -126,7 +126,7 @@ public class MessageDecoder {
         short propertiesLength = (short) propertiesBytes.length;
         int sysFlag = messageExt.getSysFlag();
         byte[] newBody = messageExt.getBody();
-        if ((sysFlag & MessageSysFlag.CompressedFlag) == MessageSysFlag.CompressedFlag) {
+        if (needCompress && (sysFlag & MessageSysFlag.CompressedFlag) == MessageSysFlag.CompressedFlag) {
             newBody = UtilAll.compress(body, 5);
         }
         int bodyLength = newBody.length;
@@ -134,8 +134,7 @@ public class MessageDecoder {
         ByteBuffer byteBuffer;
         if (storeSize > 0) {
             byteBuffer = ByteBuffer.allocate(storeSize);
-        }
-        else {
+        } else {
             storeSize = 4 // 1 TOTALSIZE
                     + 4 // 2 MAGICCODE
                     + 4 // 3 BODYCRC

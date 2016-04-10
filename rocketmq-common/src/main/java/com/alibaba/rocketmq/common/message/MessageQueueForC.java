@@ -39,11 +39,9 @@ public class MessageQueueForC implements Comparable<MessageQueueForC>, Serializa
         }
         if ((this.offset - o.offset) > 0) {
             return 1;
-        }
-        else if ((this.offset - o.offset) == 0) {
+        } else if ((this.offset - o.offset) == 0) {
             return 0;
-        }
-        else {
+        } else {
             return -1;
         }
     }
@@ -72,16 +70,14 @@ public class MessageQueueForC implements Comparable<MessageQueueForC>, Serializa
         if (brokerName == null) {
             if (other.brokerName != null)
                 return false;
-        }
-        else if (!brokerName.equals(other.brokerName))
+        } else if (!brokerName.equals(other.brokerName))
             return false;
         if (queueId != other.queueId)
             return false;
         if (topic == null) {
             if (other.topic != null)
                 return false;
-        }
-        else if (!topic.equals(other.topic))
+        } else if (!topic.equals(other.topic))
             return false;
 
         if (offset != other.offset) {

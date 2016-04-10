@@ -1,12 +1,12 @@
 /**
  * Copyright (C) 2010-2013 Alibaba Group Holding Limited
- *
+ * <p/>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p/>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p/>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -15,23 +15,51 @@
  */
 package com.alibaba.rocketmq.example.operation;
 
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.HelpFormatter;
-import org.apache.commons.cli.Option;
-import org.apache.commons.cli.Options;
-import org.apache.commons.cli.ParseException;
-import org.apache.commons.cli.PosixParser;
-
 import com.alibaba.rocketmq.client.exception.MQClientException;
 import com.alibaba.rocketmq.client.producer.DefaultMQProducer;
 import com.alibaba.rocketmq.client.producer.SendResult;
 import com.alibaba.rocketmq.common.message.Message;
+import org.apache.commons.cli.*;
 
 
 /**
  * Producer，发送消息，内置到安装包，方便线上进行调试定位问题
  */
 public class Producer {
+
+    public static void main(String[] args) throws MQClientException, InterruptedException {
+        CommandLine commandLine = buildCommandline(args);
+        if (commandLine != null) {
+            String group = commandLine.getOptionValue('g');
+            String topic = commandLine.getOptionValue('t');
+            String tags = commandLine.getOptionValue('a');
+            String keys = commandLine.getOptionValue('k');
+            String msgCount = commandLine.getOptionValue('c');
+
+            DefaultMQProducer producer = new DefaultMQProducer(group);
+            producer.setInstanceName(Long.toString(System.currentTimeMillis()));
+
+            producer.start();
+
+            for (int i = 0; i < Integer.parseInt(msgCount); i++) {
+                try {
+                    Message msg = new Message(//
+                            topic,// topic
+                            tags,// tag
+                            keys,// key
+                            ("Hello RocketMQ " + i).getBytes());// body
+                    SendResult sendResult = producer.send(msg);
+
+                    System.out.printf("%-8d %s\n", i, sendResult);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    Thread.sleep(1000);
+                }
+            }
+
+            producer.shutdown();
+        }
+    }
 
     public static CommandLine buildCommandline(String[] args) {
         final Options options = new Options();
@@ -72,48 +100,11 @@ public class Producer {
                 hf.printHelp("producer", options, true);
                 return null;
             }
-        }
-        catch (ParseException e) {
+        } catch (ParseException e) {
             hf.printHelp("producer", options, true);
             return null;
         }
 
         return commandLine;
-    }
-
-
-    public static void main(String[] args) throws MQClientException, InterruptedException {
-        CommandLine commandLine = buildCommandline(args);
-        if (commandLine != null) {
-            String group = commandLine.getOptionValue('g');
-            String topic = commandLine.getOptionValue('t');
-            String tags = commandLine.getOptionValue('a');
-            String keys = commandLine.getOptionValue('k');
-            String msgCount = commandLine.getOptionValue('c');
-
-            DefaultMQProducer producer = new DefaultMQProducer(group);
-            producer.setInstanceName(Long.toString(System.currentTimeMillis()));
-
-            producer.start();
-
-            for (int i = 0; i < Integer.parseInt(msgCount); i++) {
-                try {
-                    Message msg = new Message(//
-                        topic,// topic
-                        tags,// tag
-                        keys,// key
-                        ("Hello RocketMQ " + i).getBytes());// body
-                    SendResult sendResult = producer.send(msg);
-
-                    System.out.printf("%-8d %s\n", i, sendResult);
-                }
-                catch (Exception e) {
-                    e.printStackTrace();
-                    Thread.sleep(1000);
-                }
-            }
-
-            producer.shutdown();
-        }
     }
 }

@@ -1,13 +1,12 @@
 package com.alibaba.rocketmq.broker.transaction.jdbc;
 
-import java.util.ArrayList;
-import java.util.List;
-
+import com.alibaba.rocketmq.broker.transaction.TransactionRecord;
+import com.alibaba.rocketmq.broker.transaction.TransactionStore;
 import org.junit.Assert;
 import org.junit.Test;
 
-import com.alibaba.rocketmq.broker.transaction.TransactionRecord;
-import com.alibaba.rocketmq.broker.transaction.TransactionStore;
+import java.util.ArrayList;
+import java.util.List;
 
 
 public class JDBCTransactionStoreTest {

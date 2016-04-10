@@ -1,12 +1,12 @@
 /**
  * Copyright (C) 2010-2013 Alibaba Group Holding Limited
- *
+ * <p/>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p/>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p/>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -15,11 +15,11 @@
  */
 package com.alibaba.rocketmq.client.impl.producer;
 
+import com.alibaba.rocketmq.common.message.MessageQueue;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
-
-import com.alibaba.rocketmq.common.message.MessageQueue;
 
 
 /**
@@ -37,16 +37,13 @@ public class TopicPublishInfo {
         return orderTopic;
     }
 
-
-    public boolean ok() {
-        return null != this.messageQueueList && !this.messageQueueList.isEmpty();
-    }
-
-
     public void setOrderTopic(boolean orderTopic) {
         this.orderTopic = orderTopic;
     }
 
+    public boolean ok() {
+        return null != this.messageQueueList && !this.messageQueueList.isEmpty();
+    }
 
     public List<MessageQueue> getMessageQueueList() {
         return messageQueueList;
@@ -90,8 +87,7 @@ public class TopicPublishInfo {
             }
 
             return null;
-        }
-        else {
+        } else {
             int index = this.sendWhichQueue.getAndIncrement();
             int pos = Math.abs(index) % this.messageQueueList.size();
             return this.messageQueueList.get(pos);

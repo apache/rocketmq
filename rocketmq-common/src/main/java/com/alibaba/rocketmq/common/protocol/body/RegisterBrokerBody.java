@@ -1,9 +1,9 @@
 package com.alibaba.rocketmq.common.protocol.body;
 
+import com.alibaba.rocketmq.remoting.protocol.RemotingSerializable;
+
 import java.util.ArrayList;
 import java.util.List;
-
-import com.alibaba.rocketmq.remoting.protocol.RemotingSerializable;
 
 
 public class RegisterBrokerBody extends RemotingSerializable {

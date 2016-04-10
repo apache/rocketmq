@@ -29,11 +29,9 @@ import java.net.UnknownHostException;
  * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public class BrokerConfig {
-    private String rocketmqHome = System.getProperty(MixAll.ROCKETMQ_HOME_PROPERTY,
-            System.getenv(MixAll.ROCKETMQ_HOME_ENV));
+    private String rocketmqHome = System.getProperty(MixAll.ROCKETMQ_HOME_PROPERTY, System.getenv(MixAll.ROCKETMQ_HOME_ENV));
     @ImportantField
-    private String namesrvAddr = System.getProperty(MixAll.NAMESRV_ADDR_PROPERTY,
-            System.getenv(MixAll.NAMESRV_ADDR_ENV));
+    private String namesrvAddr = System.getProperty(MixAll.NAMESRV_ADDR_PROPERTY, System.getenv(MixAll.NAMESRV_ADDR_ENV));
     @ImportantField
     private String brokerIP1 = RemotingUtil.getLocalAddress();
     private String brokerIP2 = RemotingUtil.getLocalAddress();
@@ -55,7 +53,7 @@ public class BrokerConfig {
     // 自动创建订阅组功能是否开启（线上建议关闭）
     @ImportantField
     private boolean autoCreateSubscriptionGroup = true;
-    //messageStore的plugin
+    // messageStore的plugin
     private String messageStorePlugIn = "";
 
     private int sendMessageThreadPoolNums = 16 + Runtime.getRuntime().availableProcessors() * 4;
@@ -66,48 +64,38 @@ public class BrokerConfig {
     private int flushConsumerOffsetInterval = 1000 * 5;
 
     private int flushConsumerOffsetHistoryInterval = 1000 * 60;
-
-    public String getMessageStorePlugIn() {
-        return messageStorePlugIn;
-    }
-
-    public void setMessageStorePlugIn(String messageStorePlugIn) {
-        this.messageStorePlugIn = messageStorePlugIn;
-    }
-
-
     // 是否拒绝接收事务消息
     @ImportantField
     private boolean rejectTransactionMessage = false;
-
     // 是否从地址服务器寻找Name Server地址，正式发布后，默认值为false
     @ImportantField
     private boolean fetchNamesrvAddrByAddressServer = false;
-
     // 发送消息对应的线程池阻塞队列size
     private int sendThreadPoolQueueCapacity = 100000;
-
     // 订阅消息对应的线程池阻塞队列size
     private int pullThreadPoolQueueCapacity = 100000;
-
     // 过滤服务器数量
     private int filterServerNums = 0;
-
     // Consumer订阅消息时，Broker是否开启长轮询
     private boolean longPollingEnable = true;
-
     // 如果是短轮询，服务器挂起时间
     private long shortPollingTimeMills = 1000;
-
     // notify consumerId changed 开关
     private boolean notifyConsumerIdsChangedEnable = true;
     // 高速模式
     private boolean highSpeedMode = false;
-    //商业化日志采集开关
+    // 商业化日志采集开关
     private boolean commercialEnable = true;
-
+    // 商业化定时消息系数(默认:1)
+    private int commercialTimerCount = 1;
+    //商业化事务消息系数(默认:1)
+    private int commercialTransCount = 1;
+    //商业化大消息系数(默认:1)
+    private int commercialBigCount = 1;
     // 通过Java堆来传输消息
     private boolean transferMsgByHeap = true;
+    // 定时消息最大延迟时间(默认:40天)
+    private int maxDelayTime = 40;
 
     //broker所在的Region名称
     private String regionId = "DefaultRegionId";
@@ -137,13 +125,23 @@ public class BrokerConfig {
         return "DEFAULT_BROKER";
     }
 
+    public String getMessageStorePlugIn() {
+        return messageStorePlugIn;
+    }
+
+    public void setMessageStorePlugIn(String messageStorePlugIn) {
+        this.messageStorePlugIn = messageStorePlugIn;
+    }
+
     public boolean isHighSpeedMode() {
         return highSpeedMode;
     }
 
+
     public void setHighSpeedMode(final boolean highSpeedMode) {
         this.highSpeedMode = highSpeedMode;
     }
+
 
     public String getRocketmqHome() {
         return rocketmqHome;
@@ -414,11 +412,46 @@ public class BrokerConfig {
         this.clientManageThreadPoolNums = clientManageThreadPoolNums;
     }
 
+
     public boolean isCommercialEnable() {
         return commercialEnable;
     }
 
+
     public void setCommercialEnable(final boolean commercialEnable) {
         this.commercialEnable = commercialEnable;
+    }
+
+    public int getCommercialTimerCount() {
+        return commercialTimerCount;
+    }
+
+    public void setCommercialTimerCount(final int commercialTimerCount) {
+        this.commercialTimerCount = commercialTimerCount;
+    }
+
+    public int getCommercialTransCount() {
+        return commercialTransCount;
+    }
+
+    public void setCommercialTransCount(final int commercialTransCount) {
+        this.commercialTransCount = commercialTransCount;
+    }
+
+    public int getCommercialBigCount() {
+        return commercialBigCount;
+    }
+
+    public void setCommercialBigCount(final int commercialBigCount) {
+        this.commercialBigCount = commercialBigCount;
+    }
+
+    public int getMaxDelayTime() {
+        return maxDelayTime;
+    }
+
+
+    public void setMaxDelayTime(final int maxDelayTime) {
+        this.maxDelayTime = maxDelayTime;
     }
 }

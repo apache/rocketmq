@@ -1,14 +1,13 @@
 package com.alibaba.rocketmq.client.stat;
 
-import java.util.concurrent.ScheduledExecutorService;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.common.protocol.body.ConsumeStatus;
 import com.alibaba.rocketmq.common.stats.StatsItemSet;
 import com.alibaba.rocketmq.common.stats.StatsSnapshot;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.concurrent.ScheduledExecutorService;
 
 
 public class ConsumerStatsManager {
@@ -75,37 +74,6 @@ public class ConsumerStatsManager {
         this.topicAndGroupConsumeFailedTPS.addValue(topic + "@" + group, (int) msgs, 1);
     }
 
-
-    private StatsSnapshot getPullRT(final String group, final String topic) {
-        return this.topicAndGroupPullRT.getStatsDataInMinute(topic + "@" + group);
-    }
-
-
-    private StatsSnapshot getPullTPS(final String group, final String topic) {
-        return this.topicAndGroupPullTPS.getStatsDataInMinute(topic + "@" + group);
-    }
-
-
-    private StatsSnapshot getConsumeRT(final String group, final String topic) {
-        StatsSnapshot statsData = this.topicAndGroupConsumeRT.getStatsDataInMinute(topic + "@" + group);
-        if (0 == statsData.getSum()) {
-            statsData = this.topicAndGroupConsumeRT.getStatsDataInHour(topic + "@" + group);
-        }
-
-        return statsData;
-    }
-
-
-    private StatsSnapshot getConsumeOKTPS(final String group, final String topic) {
-        return this.topicAndGroupConsumeOKTPS.getStatsDataInMinute(topic + "@" + group);
-    }
-
-
-    private StatsSnapshot getConsumeFailedTPS(final String group, final String topic) {
-        return this.topicAndGroupConsumeFailedTPS.getStatsDataInMinute(topic + "@" + group);
-    }
-
-
     public ConsumeStatus consumeStatus(final String group, final String topic) {
         ConsumeStatus cs = new ConsumeStatus();
         {
@@ -151,5 +119,30 @@ public class ConsumerStatsManager {
         }
 
         return cs;
+    }
+
+    private StatsSnapshot getPullRT(final String group, final String topic) {
+        return this.topicAndGroupPullRT.getStatsDataInMinute(topic + "@" + group);
+    }
+
+    private StatsSnapshot getPullTPS(final String group, final String topic) {
+        return this.topicAndGroupPullTPS.getStatsDataInMinute(topic + "@" + group);
+    }
+
+    private StatsSnapshot getConsumeRT(final String group, final String topic) {
+        StatsSnapshot statsData = this.topicAndGroupConsumeRT.getStatsDataInMinute(topic + "@" + group);
+        if (0 == statsData.getSum()) {
+            statsData = this.topicAndGroupConsumeRT.getStatsDataInHour(topic + "@" + group);
+        }
+
+        return statsData;
+    }
+
+    private StatsSnapshot getConsumeOKTPS(final String group, final String topic) {
+        return this.topicAndGroupConsumeOKTPS.getStatsDataInMinute(topic + "@" + group);
+    }
+
+    private StatsSnapshot getConsumeFailedTPS(final String group, final String topic) {
+        return this.topicAndGroupConsumeFailedTPS.getStatsDataInMinute(topic + "@" + group);
     }
 }

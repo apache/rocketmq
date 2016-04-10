@@ -1,12 +1,12 @@
 /**
  * Copyright (C) 2010-2013 Alibaba Group Holding Limited
- *
+ * <p/>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p/>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p/>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -28,8 +28,11 @@ import com.alibaba.rocketmq.remoting.common.RemotingUtil;
  * @since 2013-7-24
  */
 public class ClientConfig {
+    /**
+     * 设置VIP专有通道
+     */
+    public static final String SendMessageWithVIPChannelProperty = "com.rocketmq.sendMessageWithVIPChannel";
     private String namesrvAddr = System.getProperty(MixAll.NAMESRV_ADDR_PROPERTY, System.getenv(MixAll.NAMESRV_ADDR_ENV));
-
     private String clientIP = RemotingUtil.getLocalAddress();
     private String instanceName = System.getProperty("rocketmq.client.name", "DEFAULT");
     private int clientCallbackExecutorThreads = Runtime.getRuntime().availableProcessors();
@@ -47,11 +50,8 @@ public class ClientConfig {
     private int persistConsumerOffsetInterval = 1000 * 5;
     private boolean unitMode = false;
     private String unitName;
-    /**
-     * 设置VIP专有通道
-     */
-    public static final String SendMessageWithVIPChannelProperty = "com.rocketmq.sendMessageWithVIPChannel";
-    private boolean vipChannelEnabled = Boolean.parseBoolean(System.getProperty(SendMessageWithVIPChannelProperty, "true"));;
+    private boolean vipChannelEnabled = Boolean.parseBoolean(System.getProperty(SendMessageWithVIPChannelProperty, "true"));
+    ;
 
 
     public String buildMQClientId() {
@@ -68,13 +68,27 @@ public class ClientConfig {
         return sb.toString();
     }
 
+    public String getClientIP() {
+        return clientIP;
+    }
+
+    public void setClientIP(String clientIP) {
+        this.clientIP = clientIP;
+    }
+
+    public String getInstanceName() {
+        return instanceName;
+    }
+
+    public void setInstanceName(String instanceName) {
+        this.instanceName = instanceName;
+    }
 
     public void changeInstanceNameToPID() {
         if (this.instanceName.equals("DEFAULT")) {
             this.instanceName = String.valueOf(UtilAll.getPid());
         }
     }
-
 
     public void resetClientConfig(final ClientConfig cc) {
         this.namesrvAddr = cc.namesrvAddr;
@@ -88,7 +102,6 @@ public class ClientConfig {
         this.unitName = cc.unitName;
         this.vipChannelEnabled = cc.vipChannelEnabled;
     }
-
 
     public ClientConfig cloneClientConfig() {
         ClientConfig cc = new ClientConfig();
@@ -105,36 +118,13 @@ public class ClientConfig {
         return cc;
     }
 
-
     public String getNamesrvAddr() {
         return namesrvAddr;
     }
 
-
     public void setNamesrvAddr(String namesrvAddr) {
         this.namesrvAddr = namesrvAddr;
     }
-
-
-    public String getClientIP() {
-        return clientIP;
-    }
-
-
-    public void setClientIP(String clientIP) {
-        this.clientIP = clientIP;
-    }
-
-
-    public String getInstanceName() {
-        return instanceName;
-    }
-
-
-    public void setInstanceName(String instanceName) {
-        this.instanceName = instanceName;
-    }
-
 
     public int getClientCallbackExecutorThreads() {
         return clientCallbackExecutorThreads;

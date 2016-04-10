@@ -15,25 +15,6 @@ import java.util.concurrent.ScheduledExecutorService;
 
 public class BrokerStatsManager {
 
-    public enum StatsType {
-        SEND_SUCCESS,
-        SEND_FAILURE,
-        SEND_BACK,
-        SEND_TIMER,
-        SEND_TRANSACTION,
-        RCV_SUCCESS,
-        RCV_EPOLLS,
-        PERM_FAILURE
-    }
-
-    private static final Logger log = LoggerFactory.getLogger(LoggerName.RocketmqStatsLoggerName);
-    private final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl(
-        "BrokerStatsThread"));
-
-    private static final Logger commercialLog = LoggerFactory.getLogger(LoggerName.CommercialLoggerName);
-    private final ScheduledExecutorService commercialExecutor = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl(
-        "CommercialStatsThread"));
-
     public static final String TOPIC_PUT_NUMS = "TOPIC_PUT_NUMS";
     public static final String TOPIC_PUT_SIZE = "TOPIC_PUT_SIZE";
     public static final String GROUP_GET_NUMS = "GROUP_GET_NUMS";
@@ -45,36 +26,31 @@ public class BrokerStatsManager {
     public static final String GROUP_GET_FROM_DISK_SIZE = "GROUP_GET_FROM_DISK_SIZE";
     public static final String BROKER_GET_FROM_DISK_NUMS = "BROKER_GET_FROM_DISK_NUMS";
     public static final String BROKER_GET_FROM_DISK_SIZE = "BROKER_GET_FROM_DISK_SIZE";
-
     // For commercial
     public static final String COMMERCIAL_SEND_TIMES = "COMMERCIAL_SEND_TIMES";
     public static final String COMMERCIAL_SNDBCK_TIMES = "COMMERCIAL_SNDBCK_TIMES";
     public static final String COMMERCIAL_RCV_TIMES = "COMMERCIAL_RCV_TIMES";
     public static final String COMMERCIAL_RCV_EPOLLS = "COMMERCIAL_RCV_EPOLLS";
-
     public static final String COMMERCIAL_SEND_SIZE = "COMMERCIAL_SEND_SIZE";
     public static final String COMMERCIAL_RCV_SIZE = "COMMERCIAL_RCV_SIZE";
     public static final String COMMERCIAL_PERM_FAILURES = "COMMERCIAL_PERM_FAILURES";
     public static final String COMMERCIAL_OWNER = "Owner";
-
     // Message Size limit for one api-calling count.
     public static final double SIZE_PER_COUNT = 64 * 1024;
-
-    // Counting base when sending transaction message.
-    public static final int TRANSACTION_COUNT_BASE = 100;
-
-    // Counting base when sending timer message.
-    public static final int TIMER_COUNT_BASE = 100;
-
-    private final HashMap<String, StatsItemSet> statsTable = new HashMap<String, StatsItemSet>();
-    private final String clusterName;
 
     /**
      * 读磁盘落后统计
      */
     public static final String GROUP_GET_FALL = "GROUP_GET_FALL";
+    private static final Logger log = LoggerFactory.getLogger(LoggerName.RocketmqStatsLoggerName);
+    private static final Logger commercialLog = LoggerFactory.getLogger(LoggerName.CommercialLoggerName);
+    private final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl(
+            "BrokerStatsThread"));
+    private final ScheduledExecutorService commercialExecutor = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl(
+            "CommercialStatsThread"));
+    private final HashMap<String, StatsItemSet> statsTable = new HashMap<String, StatsItemSet>();
+    private final String clusterName;
     private final MomentStatsItemSet momentStatsItemSet = new MomentStatsItemSet(GROUP_GET_FALL, scheduledExecutorService, log);
-
 
     public BrokerStatsManager(String clusterName) {
         this.clusterName = clusterName;
@@ -101,15 +77,12 @@ public class BrokerStatsManager {
         this.statsTable.put(COMMERCIAL_PERM_FAILURES, new StatsItemSet(COMMERCIAL_PERM_FAILURES, this.commercialExecutor, commercialLog));
     }
 
-
     public void start() {
     }
-
 
     public void shutdown() {
         this.scheduledExecutorService.shutdown();
     }
-
 
     public StatsItem getStatsItem(final String statsName, final String statsKey) {
         try {
@@ -120,22 +93,26 @@ public class BrokerStatsManager {
         return null;
     }
 
-
     public void incTopicPutNums(final String topic) {
         this.statsTable.get(TOPIC_PUT_NUMS).addValue(topic, 1, 1);
     }
 
-
     public void incTopicPutSize(final String topic, final int size) {
         this.statsTable.get(TOPIC_PUT_SIZE).addValue(topic, size, 1);
     }
-
 
     public void incGroupGetNums(final String group, final String topic, final int incValue) {
         final String statsKey = buildStatsKey(topic, group);
         this.statsTable.get(GROUP_GET_NUMS).addValue(statsKey, incValue, 1);
     }
 
+    public String buildStatsKey(String topic, String group) {
+        StringBuffer strBuilder = new StringBuffer();
+        strBuilder.append(topic);
+        strBuilder.append("@");
+        strBuilder.append(group);
+        return strBuilder.toString();
+    }
 
     public void incGroupGetSize(final String group, final String topic, final int incValue) {
         final String statsKey = buildStatsKey(topic, group);
@@ -193,15 +170,17 @@ public class BrokerStatsManager {
         this.statsTable.get(BROKER_GET_FROM_DISK_SIZE).addValue(statsKey, incValue, 1);
     }
 
-
-    public String buildStatsKey(String topic, String group) {
-        StringBuffer strBuilder = new StringBuffer();
-        strBuilder.append(topic);
-        strBuilder.append("@");
-        strBuilder.append(group);
-        return strBuilder.toString();
+    public void recordDiskFallBehind(final String group, final String topic, final int queueId, final long fallBehind) {
+        final String statsKey = String.format("%d@%s@%s", queueId, topic, group);
+        this.momentStatsItemSet.getAndCreateStatsItem(statsKey).getValue().set(fallBehind);
     }
 
+    //ONS商业化
+    public void incCommercialValue(final String key, final String owner, final String group,
+                                   final String topic, final String type, final int incValue) {
+        final String statsKey = buildCommercialStatsKey(owner, topic, group, type);
+        this.statsTable.get(key).addValue(statsKey, incValue, 1);
+    }
 
     public String buildCommercialStatsKey(String owner, String topic, String group, String type) {
         StringBuffer strBuilder = new StringBuffer();
@@ -216,16 +195,14 @@ public class BrokerStatsManager {
     }
 
 
-    public void recordDiskFallBehind(final String group, final String topic, final int queueId, final long fallBehind) {
-        final String statsKey = String.format("%d@%s@%s", queueId, topic, group);
-        this.momentStatsItemSet.getAndCreateStatsItem(statsKey).getValue().set(fallBehind);
-    }
-
-
-    //ONS商业化
-    public void incCommercialValue(final String key, final String owner, final String group,
-                                   final String topic, final String type, final int incValue) {
-        final String statsKey = buildCommercialStatsKey(owner, topic, group, type);
-        this.statsTable.get(key).addValue(statsKey, incValue, 1);
+    public enum StatsType {
+        SEND_SUCCESS,
+        SEND_FAILURE,
+        SEND_BACK,
+        SEND_TIMER,
+        SEND_TRANSACTION,
+        RCV_SUCCESS,
+        RCV_EPOLLS,
+        PERM_FAILURE
     }
 }

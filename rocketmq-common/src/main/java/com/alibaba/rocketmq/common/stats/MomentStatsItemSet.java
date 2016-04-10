@@ -1,14 +1,13 @@
 package com.alibaba.rocketmq.common.stats;
 
+import com.alibaba.rocketmq.common.UtilAll;
+import org.slf4j.Logger;
+
 import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-
-import org.slf4j.Logger;
-
-import com.alibaba.rocketmq.common.UtilAll;
 
 
 public class MomentStatsItemSet {
@@ -27,6 +26,32 @@ public class MomentStatsItemSet {
         this.init();
     }
 
+    public void init() {
+        // 分钟整点执行
+        this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
+                                                              @Override
+                                                              public void run() {
+                                                                  try {
+                                                                      printAtMinutes();
+                                                                  } catch (Throwable e) {
+                                                                  }
+                                                              }
+                                                          }, Math.abs(UtilAll.computNextMinutesTimeMillis() - System.currentTimeMillis()), //
+                1000 * 60 * 5, TimeUnit.MILLISECONDS);
+    }
+
+    private void printAtMinutes() {
+        Iterator<Entry<String, MomentStatsItem>> it = this.statsItemTable.entrySet().iterator();
+        while (it.hasNext()) {
+            Entry<String, MomentStatsItem> next = it.next();
+            next.getValue().printAtMinutes();
+        }
+    }
+
+    public void setValue(final String statsKey, final int value) {
+        MomentStatsItem statsItem = this.getAndCreateStatsItem(statsKey);
+        statsItem.getValue().set(value);
+    }
 
     public MomentStatsItem getAndCreateStatsItem(final String statsKey) {
         MomentStatsItem statsItem = this.statsItemTable.get(statsKey);
@@ -42,36 +67,5 @@ public class MomentStatsItemSet {
         }
 
         return statsItem;
-    }
-
-
-    public void setValue(final String statsKey, final int value) {
-        MomentStatsItem statsItem = this.getAndCreateStatsItem(statsKey);
-        statsItem.getValue().set(value);
-    }
-
-
-    public void init() {
-        // 分钟整点执行
-        this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    printAtMinutes();
-                }
-                catch (Throwable e) {
-                }
-            }
-        }, Math.abs(UtilAll.computNextMinutesTimeMillis() - System.currentTimeMillis()), //
-            1000 * 60 * 5, TimeUnit.MILLISECONDS);
-    }
-
-
-    private void printAtMinutes() {
-        Iterator<Entry<String, MomentStatsItem>> it = this.statsItemTable.entrySet().iterator();
-        while (it.hasNext()) {
-            Entry<String, MomentStatsItem> next = it.next();
-            next.getValue().printAtMinutes();
-        }
     }
 }

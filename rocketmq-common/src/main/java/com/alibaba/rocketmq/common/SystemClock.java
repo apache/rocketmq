@@ -1,12 +1,12 @@
 /**
  * Copyright (C) 2010-2013 Alibaba Group Holding Limited
- *
+ * <p/>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p/>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p/>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -24,11 +24,10 @@ import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * 后台定时更新时钟，JVM退出时，线程自动回收
- * 
+ *
  * @author vintage.wang@gmail.com shijia.wxr@taobao.com
- * @see 
- *      <A>https://github.com/zhongl/jtoolkit/blob/master/common/src/main/java/com
- *      /github/zhongl/jtoolkit/SystemClock.java</A>
+ * @see <A>https://github.com/zhongl/jtoolkit/blob/master/common/src/main/java/com
+ * /github/zhongl/jtoolkit/SystemClock.java</A>
  */
 public class SystemClock {
 

@@ -1,12 +1,12 @@
 /**
  * Copyright (C) 2010-2013 Alibaba Group Holding Limited
- *
+ * <p/>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p/>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p/>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -20,7 +20,6 @@ import com.alibaba.rocketmq.common.admin.ConsumeStats;
 import com.alibaba.rocketmq.common.admin.OffsetWrapper;
 import com.alibaba.rocketmq.common.message.MessageQueue;
 import com.alibaba.rocketmq.common.protocol.body.ConsumeStatsList;
-import com.alibaba.rocketmq.common.protocol.body.KVTable;
 import com.alibaba.rocketmq.remoting.RPCHook;
 import com.alibaba.rocketmq.tools.admin.DefaultMQAdminExt;
 import com.alibaba.rocketmq.tools.command.SubCommand;
@@ -29,12 +28,11 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 
 import java.util.*;
-import java.util.Map.Entry;
 
 
 /**
  * 获取Broker运行时统计信息
- * 
+ *
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-8-14
  */
@@ -103,10 +101,10 @@ public class BrokerConsumeStatsSubCommad implements SubCommand {
                     "#Consumer Offset",//
                     "#Diff", //
                     "#LastTime");
-            for (Map<String, List<ConsumeStats>> map : consumeStatsList.getConsumeStatsList()){
-                for (String group : map.keySet()){
+            for (Map<String, List<ConsumeStats>> map : consumeStatsList.getConsumeStatsList()) {
+                for (String group : map.keySet()) {
                     List<ConsumeStats> consumeStatsArray = map.get(group);
-                    for (ConsumeStats consumeStats : consumeStatsArray){
+                    for (ConsumeStats consumeStats : consumeStatsArray) {
                         List<MessageQueue> mqList = new LinkedList<MessageQueue>();
                         mqList.addAll(consumeStats.getOffsetTable().keySet());
                         Collections.sort(mqList);
@@ -114,14 +112,13 @@ public class BrokerConsumeStatsSubCommad implements SubCommand {
                             OffsetWrapper offsetWrapper = consumeStats.getOffsetTable().get(mq);
                             long diff = offsetWrapper.getBrokerOffset() - offsetWrapper.getConsumerOffset();
                             //如果设置了输出diff最小阀值，判断一下
-                            if (diff < diffLevel){
+                            if (diff < diffLevel) {
                                 continue;
                             }
                             String lastTime = "-";
                             try {
                                 lastTime = UtilAll.formatDate(new Date(offsetWrapper.getLastTimestamp()), UtilAll.yyyy_MM_dd_HH_mm_ss);
-                            }
-                            catch (Exception e) {
+                            } catch (Exception e) {
                                 //
                             }
                             if (offsetWrapper.getLastTimestamp() > 0)
@@ -141,11 +138,9 @@ public class BrokerConsumeStatsSubCommad implements SubCommand {
             }
             System.out.println();
             System.out.printf("Diff Total: %d\n", consumeStatsList.getTotalDiff());
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             e.printStackTrace();
-        }
-        finally {
+        } finally {
             defaultMQAdminExt.shutdown();
         }
     }

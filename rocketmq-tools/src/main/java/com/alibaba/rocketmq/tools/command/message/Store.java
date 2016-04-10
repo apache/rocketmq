@@ -1,16 +1,16 @@
 package com.alibaba.rocketmq.tools.command.message;
 
-import java.io.File;
-import java.nio.ByteBuffer;
-import java.util.Date;
-import java.util.List;
-import java.util.concurrent.ConcurrentHashMap;
-
 import com.alibaba.rocketmq.store.ConsumeQueue;
 import com.alibaba.rocketmq.store.MapedFile;
 import com.alibaba.rocketmq.store.MapedFileQueue;
 import com.alibaba.rocketmq.store.SelectMapedBufferResult;
 import com.alibaba.rocketmq.store.config.StorePathConfigHelper;
+
+import java.io.File;
+import java.nio.ByteBuffer;
+import java.util.Date;
+import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
 
 
 /**
@@ -68,11 +68,11 @@ public class Store {
                     for (File fileQueueId : fileQueueIdList) {
                         int queueId = Integer.parseInt(fileQueueId.getName());
                         ConsumeQueue logic = new ConsumeQueue(//
-                            topic,//
-                            queueId,//
-                            StorePathConfigHelper.getStorePathConsumeQueue(lStorePath),//
-                            lSize,//
-                            null);
+                                topic,//
+                                queueId,//
+                                StorePathConfigHelper.getStorePathConsumeQueue(lStorePath),//
+                                lSize,//
+                                null);
                         this.putConsumeQueue(topic, queueId, logic);
                         if (!logic.load()) {
                             return false;
@@ -92,51 +92,17 @@ public class Store {
             map = new ConcurrentHashMap<Integer/* queueId */, ConsumeQueue>();
             map.put(queueId, consumeQueue);
             this.consumeQueueTable.put(topic, map);
-        }
-        else {
+        } else {
             map.put(queueId, consumeQueue);
         }
     }
-
-
-    public ConsumeQueue findConsumeQueue(String topic, int queueId) {
-        ConcurrentHashMap<Integer, ConsumeQueue> map = consumeQueueTable.get(topic);
-        if (null == map) {
-            ConcurrentHashMap<Integer, ConsumeQueue> newMap =
-                    new ConcurrentHashMap<Integer, ConsumeQueue>(128);
-            ConcurrentHashMap<Integer, ConsumeQueue> oldMap = consumeQueueTable.putIfAbsent(topic, newMap);
-            if (oldMap != null) {
-                map = oldMap;
-            }
-            else {
-                map = newMap;
-            }
-        }
-        ConsumeQueue logic = map.get(queueId);
-        if (null == logic) {
-            ConsumeQueue newLogic = new ConsumeQueue(//
-                topic,//
-                queueId,//
-                StorePathConfigHelper.getStorePathConsumeQueue(lStorePath),//
-                lSize,//
-                null);
-            ConsumeQueue oldLogic = map.putIfAbsent(queueId, newLogic);
-            if (oldLogic != null) {
-                logic = oldLogic;
-            }
-            else {
-                logic = newLogic;
-            }
-        }
-        return logic;
-    }
-
 
     public void traval(boolean openAll) {
         boolean success = true;
         byte[] bytesContent = new byte[1024];
         List<MapedFile> mapedFiles = this.mapedFileQueue.getMapedFiles();
-        ALL: for (MapedFile mapedFile : mapedFiles) {
+        ALL:
+        for (MapedFile mapedFile : mapedFiles) {
             long startOffset = mapedFile.getFileFromOffset();
             int position = 0;
             int msgCount = 0;
@@ -244,8 +210,7 @@ public class Store {
                             break ALL;
                         }
                     }
-                }
-                finally {
+                } finally {
                     smb.release();
                 }
 
@@ -259,5 +224,35 @@ public class Store {
         }
 
         System.out.println("travel " + (success ? "ok" : "fail"));
+    }
+
+    public ConsumeQueue findConsumeQueue(String topic, int queueId) {
+        ConcurrentHashMap<Integer, ConsumeQueue> map = consumeQueueTable.get(topic);
+        if (null == map) {
+            ConcurrentHashMap<Integer, ConsumeQueue> newMap =
+                    new ConcurrentHashMap<Integer, ConsumeQueue>(128);
+            ConcurrentHashMap<Integer, ConsumeQueue> oldMap = consumeQueueTable.putIfAbsent(topic, newMap);
+            if (oldMap != null) {
+                map = oldMap;
+            } else {
+                map = newMap;
+            }
+        }
+        ConsumeQueue logic = map.get(queueId);
+        if (null == logic) {
+            ConsumeQueue newLogic = new ConsumeQueue(//
+                    topic,//
+                    queueId,//
+                    StorePathConfigHelper.getStorePathConsumeQueue(lStorePath),//
+                    lSize,//
+                    null);
+            ConsumeQueue oldLogic = map.putIfAbsent(queueId, newLogic);
+            if (oldLogic != null) {
+                logic = oldLogic;
+            } else {
+                logic = newLogic;
+            }
+        }
+        return logic;
     }
 }

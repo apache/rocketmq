@@ -1,12 +1,12 @@
 /**
  * Copyright (C) 2010-2013 Alibaba Group Holding Limited
- *
+ * <p/>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p/>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p/>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -60,6 +60,8 @@ public class MessageConst {
     public static final String KEY_SEPARATOR = " ";
 
     public static final HashSet<String> systemKeySet = new HashSet<String>();
+
+
     static {
         systemKeySet.add(PROPERTY_MSG_REGION);
         systemKeySet.add(PROPERTY_KEYS);
@@ -80,5 +82,7 @@ public class MessageConst {
         systemKeySet.add(PROPERTY_MQ2_FLAG);
         systemKeySet.add(PROPERTY_RECONSUME_TIME);
         systemKeySet.add(PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX);
+        systemKeySet.add(PROPERTY_MAX_RECONSUME_TIMES);
+        systemKeySet.add(PROPERTY_CONSUME_START_TIMESTAMP);
     }
 }

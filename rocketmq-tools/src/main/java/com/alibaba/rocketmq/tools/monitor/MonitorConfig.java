@@ -5,7 +5,7 @@ import com.alibaba.rocketmq.common.MixAll;
 
 public class MonitorConfig {
     private String namesrvAddr = System.getProperty(MixAll.NAMESRV_ADDR_PROPERTY,
-        System.getenv(MixAll.NAMESRV_ADDR_ENV));
+            System.getenv(MixAll.NAMESRV_ADDR_ENV));
     // 监控一轮间隔时间
     private int roundInterval = 1000 * 60;
 

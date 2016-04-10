@@ -1,17 +1,17 @@
 package com.alibaba.rocketmq.common.protocol.body;
 
+import com.alibaba.rocketmq.common.protocol.route.BrokerData;
+import com.alibaba.rocketmq.remoting.protocol.RemotingSerializable;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
 
-import com.alibaba.rocketmq.common.protocol.route.BrokerData;
-import com.alibaba.rocketmq.remoting.protocol.RemotingSerializable;
-
 
 /**
  * 协议中传输对象，内容为集群信息
- * 
+ *
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-16
  */
@@ -52,11 +52,11 @@ public class ClusterInfo extends RemotingSerializable {
             }
         }
 
-        return addrs.toArray(new String[] {});
+        return addrs.toArray(new String[]{});
     }
 
 
     public String[] retrieveAllClusterNames() {
-        return clusterAddrTable.keySet().toArray(new String[] {});
+        return clusterAddrTable.keySet().toArray(new String[]{});
     }
 }

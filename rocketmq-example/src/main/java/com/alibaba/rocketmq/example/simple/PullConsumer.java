@@ -1,12 +1,12 @@
 /**
  * Copyright (C) 2010-2013 Alibaba Group Holding Limited
- *
+ * <p/>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p/>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p/>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -15,14 +15,14 @@
  */
 package com.alibaba.rocketmq.example.simple;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
-
 import com.alibaba.rocketmq.client.consumer.DefaultMQPullConsumer;
 import com.alibaba.rocketmq.client.consumer.PullResult;
 import com.alibaba.rocketmq.client.exception.MQClientException;
 import com.alibaba.rocketmq.common.message.MessageQueue;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
 
 
 /**
@@ -40,27 +40,27 @@ public class PullConsumer {
         Set<MessageQueue> mqs = consumer.fetchSubscribeMessageQueues("TopicTest1");
         for (MessageQueue mq : mqs) {
             System.out.println("Consume from the queue: " + mq);
-            SINGLE_MQ: while (true) {
+            SINGLE_MQ:
+            while (true) {
                 try {
                     PullResult pullResult =
                             consumer.pullBlockIfNotFound(mq, null, getMessageQueueOffset(mq), 32);
                     System.out.println(pullResult);
                     putMessageQueueOffset(mq, pullResult.getNextBeginOffset());
                     switch (pullResult.getPullStatus()) {
-                    case FOUND:
-                        // TODO
-                        break;
-                    case NO_MATCHED_MSG:
-                        break;
-                    case NO_NEW_MSG:
-                        break SINGLE_MQ;
-                    case OFFSET_ILLEGAL:
-                        break;
-                    default:
-                        break;
+                        case FOUND:
+                            // TODO
+                            break;
+                        case NO_MATCHED_MSG:
+                            break;
+                        case NO_NEW_MSG:
+                            break SINGLE_MQ;
+                        case OFFSET_ILLEGAL:
+                            break;
+                        default:
+                            break;
                     }
-                }
-                catch (Exception e) {
+                } catch (Exception e) {
                     e.printStackTrace();
                 }
             }
@@ -69,18 +69,16 @@ public class PullConsumer {
         consumer.shutdown();
     }
 
-
-    private static void putMessageQueueOffset(MessageQueue mq, long offset) {
-        offseTable.put(mq, offset);
-    }
-
-
     private static long getMessageQueueOffset(MessageQueue mq) {
         Long offset = offseTable.get(mq);
         if (offset != null)
             return offset;
 
         return 0;
+    }
+
+    private static void putMessageQueueOffset(MessageQueue mq, long offset) {
+        offseTable.put(mq, offset);
     }
 
 }

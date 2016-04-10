@@ -143,8 +143,7 @@ public class SubscriptionGroupConfig {
         if (groupName == null) {
             if (other.groupName != null)
                 return false;
-        }
-        else if (!groupName.equals(other.groupName))
+        } else if (!groupName.equals(other.groupName))
             return false;
         if (retryMaxTimes != other.retryMaxTimes)
             return false;

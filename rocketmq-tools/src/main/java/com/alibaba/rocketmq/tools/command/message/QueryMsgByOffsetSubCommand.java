@@ -1,12 +1,12 @@
 /**
  * Copyright (C) 2010-2013 Alibaba Group Holding Limited
- *
+ * <p/>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p/>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p/>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -15,10 +15,6 @@
  */
 package com.alibaba.rocketmq.tools.command.message;
 
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.Option;
-import org.apache.commons.cli.Options;
-
 import com.alibaba.rocketmq.client.consumer.DefaultMQPullConsumer;
 import com.alibaba.rocketmq.client.consumer.PullResult;
 import com.alibaba.rocketmq.common.MixAll;
@@ -26,11 +22,14 @@ import com.alibaba.rocketmq.common.message.MessageQueue;
 import com.alibaba.rocketmq.remoting.RPCHook;
 import com.alibaba.rocketmq.tools.admin.DefaultMQAdminExt;
 import com.alibaba.rocketmq.tools.command.SubCommand;
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.Option;
+import org.apache.commons.cli.Options;
 
 
 /**
  * 根据消息Offset查询消息
- * 
+ *
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-8-12
  */
@@ -95,22 +94,20 @@ public class QueryMsgByOffsetSubCommand implements SubCommand {
             PullResult pullResult = defaultMQPullConsumer.pull(mq, "*", Long.parseLong(offset), 1);
             if (pullResult != null) {
                 switch (pullResult.getPullStatus()) {
-                case FOUND:
-                    QueryMsgByIdSubCommand.queryById(defaultMQAdminExt, pullResult.getMsgFoundList().get(0)
-                        .getMsgId());
-                    break;
-                case NO_MATCHED_MSG:
-                case NO_NEW_MSG:
-                case OFFSET_ILLEGAL:
-                default:
-                    break;
+                    case FOUND:
+                        QueryMsgByIdSubCommand.queryById(defaultMQAdminExt, pullResult.getMsgFoundList().get(0)
+                                .getMsgId());
+                        break;
+                    case NO_MATCHED_MSG:
+                    case NO_NEW_MSG:
+                    case OFFSET_ILLEGAL:
+                    default:
+                        break;
                 }
             }
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             e.printStackTrace();
-        }
-        finally {
+        } finally {
             defaultMQPullConsumer.shutdown();
             defaultMQAdminExt.shutdown();
         }

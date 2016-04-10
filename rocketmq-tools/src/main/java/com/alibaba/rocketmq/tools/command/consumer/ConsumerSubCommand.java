@@ -1,12 +1,12 @@
 /**
  * Copyright (C) 2010-2013 Alibaba Group Holding Limited
- *
+ * <p/>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p/>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p/>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -35,23 +35,28 @@ import java.util.TreeMap;
 
 /**
  * 查询Consumer网络连接，消费进度，内部数据结构等。
- * 
+ *
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2014-07-20
  */
 public class ConsumerSubCommand implements SubCommand {
+
+    public static void main(String[] args) {
+        System.setProperty(MixAll.NAMESRV_ADDR_PROPERTY, "127.0.0.1:9876");
+        MQAdminStartup.main(new String[]{new ConsumerSubCommand().commandName(), //
+                "-g", "benchmark_consumer" //
+        });
+    }
 
     @Override
     public String commandName() {
         return "consumer";
     }
 
-
     @Override
     public String commandDesc() {
         return "Query consumer's connection, status, etc.";
     }
-
 
     @Override
     public Options buildCommandlineOptions(Options options) {
@@ -65,7 +70,6 @@ public class ConsumerSubCommand implements SubCommand {
 
         return options;
     }
-
 
     @Override
     public void execute(CommandLine commandLine, Options options, RPCHook rpcHook) {
@@ -97,13 +101,12 @@ public class ConsumerSubCommand implements SubCommand {
                             String filePath = now + "/" + conn.getClientId();
                             MixAll.string2FileNotSafe(consumerRunningInfo.formatString(), filePath);
                             System.out.printf("%03d  %-40s %-20s %s\n",//
-                                i++,//
-                                conn.getClientId(),//
-                                MQVersion.getVersionDesc(conn.getVersion()),//
-                                filePath);
+                                    i++,//
+                                    conn.getClientId(),//
+                                    MQVersion.getVersionDesc(conn.getVersion()),//
+                                    filePath);
                         }
-                    }
-                    catch (Exception e) {
+                    } catch (Exception e) {
                         e.printStackTrace();
                     }
                 }
@@ -127,14 +130,12 @@ public class ConsumerSubCommand implements SubCommand {
                                 System.out.println(result);
                             }
                         }
-                    }
-                    else {
+                    } else {
                         System.out
-                            .println("\n\nWARN: Different subscription in the same group of consumer!!!");
+                                .println("\n\nWARN: Different subscription in the same group of consumer!!!");
                     }
                 }
-            }
-            else {
+            } else {
                 String clientId = commandLine.getOptionValue('i').trim();
                 ConsumerRunningInfo consumerRunningInfo =
                         defaultMQAdminExt.getConsumerRunningInfo(group, clientId, jstack);
@@ -142,20 +143,10 @@ public class ConsumerSubCommand implements SubCommand {
                     System.out.println(consumerRunningInfo.formatString());
                 }
             }
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             e.printStackTrace();
-        }
-        finally {
+        } finally {
             defaultMQAdminExt.shutdown();
         }
-    }
-
-
-    public static void main(String[] args) {
-        System.setProperty(MixAll.NAMESRV_ADDR_PROPERTY, "127.0.0.1:9876");
-        MQAdminStartup.main(new String[] { new ConsumerSubCommand().commandName(), //
-                                          "-g", "benchmark_consumer" //
-        });
     }
 }

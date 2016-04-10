@@ -8,7 +8,7 @@ import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
 
 /**
  * 为减少网络传输数量准备
- * 
+ *
  * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public class SendMessageRequestHeaderV2 implements CommandCustomHeader {
@@ -35,14 +35,9 @@ public class SendMessageRequestHeaderV2 implements CommandCustomHeader {
     @CFNullable
     private boolean k;// unitMode = false;
 
+    private Integer l; // consumeRetryTimes
 
-    @Override
-    public void checkFields() throws RemotingCommandException {
-    }
-
-
-    public static SendMessageRequestHeader createSendMessageRequestHeaderV1(
-            final SendMessageRequestHeaderV2 v2) {
+    public static SendMessageRequestHeader createSendMessageRequestHeaderV1(final SendMessageRequestHeaderV2 v2) {
         SendMessageRequestHeader v1 = new SendMessageRequestHeader();
         v1.setProducerGroup(v2.a);
         v1.setTopic(v2.b);
@@ -55,12 +50,11 @@ public class SendMessageRequestHeaderV2 implements CommandCustomHeader {
         v1.setProperties(v2.i);
         v1.setReconsumeTimes(v2.j);
         v1.setUnitMode(v2.k);
+        v1.setMaxReconsumeTimes(v2.l);
         return v1;
     }
 
-
-    public static SendMessageRequestHeaderV2 createSendMessageRequestHeaderV2(
-            final SendMessageRequestHeader v1) {
+    public static SendMessageRequestHeaderV2 createSendMessageRequestHeaderV2(final SendMessageRequestHeader v1) {
         SendMessageRequestHeaderV2 v2 = new SendMessageRequestHeaderV2();
         v2.a = v1.getProducerGroup();
         v2.b = v1.getTopic();
@@ -73,9 +67,13 @@ public class SendMessageRequestHeaderV2 implements CommandCustomHeader {
         v2.i = v1.getProperties();
         v2.j = v1.getReconsumeTimes();
         v2.k = v1.isUnitMode();
+        v2.l = (v1.getMaxReconsumeTimes());
         return v2;
     }
 
+    @Override
+    public void checkFields() throws RemotingCommandException {
+    }
 
     public String getA() {
         return a;
@@ -184,5 +182,15 @@ public class SendMessageRequestHeaderV2 implements CommandCustomHeader {
 
     public void setK(boolean k) {
         this.k = k;
+    }
+
+
+    public Integer getL() {
+        return l;
+    }
+
+
+    public void setL(final Integer l) {
+        this.l = l;
     }
 }

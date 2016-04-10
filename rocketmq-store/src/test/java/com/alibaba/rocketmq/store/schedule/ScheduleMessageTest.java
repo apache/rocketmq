@@ -18,6 +18,7 @@ import static org.junit.Assert.assertTrue;
 
 
 public class ScheduleMessageTest {
+    private static final String StoreMessage = "Once, there was a chance for me!";
     // 队列个数
     private static int QUEUE_TOTAL = 100;
     // 发往哪个队列
@@ -29,37 +30,15 @@ public class ScheduleMessageTest {
     // 消息体
     private static byte[] MessageBody;
 
-    private static final String StoreMessage = "Once, there was a chance for me!";
-
-
-    public MessageExtBrokerInner buildMessage() {
-        MessageExtBrokerInner msg = new MessageExtBrokerInner();
-        msg.setTopic("AAA");
-        msg.setTags("TAG1");
-        msg.setKeys("Hello");
-        msg.setBody(MessageBody);
-        msg.setKeys(String.valueOf(System.currentTimeMillis()));
-        msg.setQueueId(Math.abs(QueueId.getAndIncrement()) % QUEUE_TOTAL);
-        msg.setSysFlag(4);
-        msg.setBornTimestamp(System.currentTimeMillis());
-        msg.setStoreHost(StoreHost);
-        msg.setBornHost(BornHost);
-
-        return msg;
-    }
-
-
     @BeforeClass
     public static void setUpBeforeClass() throws Exception {
         StoreHost = new InetSocketAddress(InetAddress.getLocalHost(), 8123);
         BornHost = new InetSocketAddress(InetAddress.getByName("127.0.0.1"), 0);
     }
 
-
     @AfterClass
     public static void tearDownAfterClass() throws Exception {
     }
-
 
     @Test
     public void test_delay_message() throws Exception {
@@ -105,8 +84,7 @@ public class ScheduleMessageTest {
                 assertTrue(result != null);
                 result.release();
                 System.out.println("read " + i + " OK");
-            }
-            catch (Exception e) {
+            } catch (Exception e) {
                 e.printStackTrace();
             }
 
@@ -120,5 +98,21 @@ public class ScheduleMessageTest {
         // 删除文件
         master.destroy();
         System.out.println("================================================================");
+    }
+
+    public MessageExtBrokerInner buildMessage() {
+        MessageExtBrokerInner msg = new MessageExtBrokerInner();
+        msg.setTopic("AAA");
+        msg.setTags("TAG1");
+        msg.setKeys("Hello");
+        msg.setBody(MessageBody);
+        msg.setKeys(String.valueOf(System.currentTimeMillis()));
+        msg.setQueueId(Math.abs(QueueId.getAndIncrement()) % QUEUE_TOTAL);
+        msg.setSysFlag(4);
+        msg.setBornTimestamp(System.currentTimeMillis());
+        msg.setStoreHost(StoreHost);
+        msg.setBornHost(BornHost);
+
+        return msg;
     }
 }

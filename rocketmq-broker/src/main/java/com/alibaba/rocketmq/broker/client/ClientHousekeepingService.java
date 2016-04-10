@@ -1,12 +1,12 @@
 /**
  * Copyright (C) 2010-2013 Alibaba Group Holding Limited
- *
+ * <p/>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p/>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p/>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -15,24 +15,22 @@
  */
 package com.alibaba.rocketmq.broker.client;
 
+import com.alibaba.rocketmq.broker.BrokerController;
+import com.alibaba.rocketmq.common.ThreadFactoryImpl;
+import com.alibaba.rocketmq.common.constant.LoggerName;
+import com.alibaba.rocketmq.remoting.ChannelEventListener;
 import io.netty.channel.Channel;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.alibaba.rocketmq.broker.BrokerController;
-import com.alibaba.rocketmq.common.ThreadFactoryImpl;
-import com.alibaba.rocketmq.common.constant.LoggerName;
-import com.alibaba.rocketmq.remoting.ChannelEventListener;
-
 
 /**
  * 定期检测客户端连接，清除不活动的连接
- * 
+ *
  * @author shijia.wxr<vintage.wang@gmail.com>
  * @since 2013-7-26
  */
@@ -41,7 +39,7 @@ public class ClientHousekeepingService implements ChannelEventListener {
     private final BrokerController brokerController;
 
     private ScheduledExecutorService scheduledExecutorService = Executors
-        .newSingleThreadScheduledExecutor(new ThreadFactoryImpl("ClientHousekeepingScheduledThread"));
+            .newSingleThreadScheduledExecutor(new ThreadFactoryImpl("ClientHousekeepingScheduledThread"));
 
 
     public ClientHousekeepingService(final BrokerController brokerController) {
@@ -56,19 +54,12 @@ public class ClientHousekeepingService implements ChannelEventListener {
             public void run() {
                 try {
                     ClientHousekeepingService.this.scanExceptionChannel();
-                }
-                catch (Exception e) {
+                } catch (Exception e) {
                     log.error("", e);
                 }
             }
         }, 1000 * 10, 1000 * 10, TimeUnit.MILLISECONDS);
     }
-
-
-    public void shutdown() {
-        this.scheduledExecutorService.shutdown();
-    }
-
 
     private void scanExceptionChannel() {
         this.brokerController.getProducerManager().scanNotActiveChannel();
@@ -76,6 +67,9 @@ public class ClientHousekeepingService implements ChannelEventListener {
         this.brokerController.getFilterServerManager().scanNotActiveChannel();
     }
 
+    public void shutdown() {
+        this.scheduledExecutorService.shutdown();
+    }
 
     @Override
     public void onChannelConnect(String remoteAddr, Channel channel) {

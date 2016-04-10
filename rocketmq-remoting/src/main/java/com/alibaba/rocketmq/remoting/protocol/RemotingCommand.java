@@ -39,38 +39,31 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @since 2013-7-13
  */
 public class RemotingCommand {
-    private static final Logger log = LoggerFactory.getLogger(RemotingHelper.RemotingLogName);
-    public static String RemotingVersionKey = "rocketmq.remoting.version";
     public static final String SERIALIZE_TYPE_PROPERTY = "rocketmq.serialize.type";
     public static final String SERIALIZE_TYPE_ENV = "ROCKETMQ_SERIALIZE_TYPE";
-    private static volatile int ConfigVersion = -1;
-    private static AtomicInteger RequestId = new AtomicInteger(0);
-
+    private static final Logger log = LoggerFactory.getLogger(RemotingHelper.RemotingLogName);
     private static final int RPC_TYPE = 0; // 0, REQUEST_COMMAND
-    // 1, RESPONSE_COMMAND
-
     private static final int RPC_ONEWAY = 1; // 0, RPC
-    // 1, Oneway
-
-    /**
-     * Header 部分
-     */
-    private int code;
-    private LanguageCode language = LanguageCode.JAVA;
-    private int version = 0;
-    private int opaque = RequestId.getAndIncrement();
-    private int flag = 0;
-    private String remark;
-    private HashMap<String, String> extFields;
-
-    private transient CommandCustomHeader customHeader;
-
     // 序列化&反序化字段缓存
     private static final Map<Class<? extends CommandCustomHeader>, Field[]> clazzFieldsCache =
             new HashMap<Class<? extends CommandCustomHeader>, Field[]>();
     private static final Map<Class, String> canonicalNameCache = new HashMap<Class, String>();
+    // 1, RESPONSE_COMMAND
     private static final Map<Field, Annotation> notNullAnnotationCache = new HashMap<Field, Annotation>();
-
+    // 1, Oneway
+    // 基本类型
+    private static final String StringCanonicalName = String.class.getCanonicalName();//
+    private static final String DoubleCanonicalName1 = Double.class.getCanonicalName();//
+    private static final String DoubleCanonicalName2 = double.class.getCanonicalName();//
+    private static final String IntegerCanonicalName1 = Integer.class.getCanonicalName();//
+    private static final String IntegerCanonicalName2 = int.class.getCanonicalName();//
+    private static final String LongCanonicalName1 = Long.class.getCanonicalName();//
+    private static final String LongCanonicalName2 = long.class.getCanonicalName();//
+    private static final String BooleanCanonicalName1 = Boolean.class.getCanonicalName();//
+    private static final String BooleanCanonicalName2 = boolean.class.getCanonicalName();//
+    public static String RemotingVersionKey = "rocketmq.remoting.version";
+    private static volatile int ConfigVersion = -1;
+    private static AtomicInteger RequestId = new AtomicInteger(0);
     /**
      * 序列化全局配置
      */
@@ -88,49 +81,20 @@ public class RemotingCommand {
     }
 
     /**
+     * Header 部分
+     */
+    private int code;
+    private LanguageCode language = LanguageCode.JAVA;
+    private int version = 0;
+    private int opaque = RequestId.getAndIncrement();
+    private int flag = 0;
+    private String remark;
+    private HashMap<String, String> extFields;
+    private transient CommandCustomHeader customHeader;
+    /**
      * 当前这次RPC的序列化方式
      */
     private SerializeType serializeTypeCurrentRPC = SerializeTypeConfigInThisServer;
-
-
-    private Field[] getClazzFields(Class<? extends CommandCustomHeader> classHeader) {
-        Field[] field = clazzFieldsCache.get(classHeader);
-
-        if (field == null) {
-            field = classHeader.getDeclaredFields();
-            synchronized (clazzFieldsCache) {
-                clazzFieldsCache.put(classHeader, field);
-            }
-        }
-        return field;
-    }
-
-
-    private String getCanonicalName(Class clazz) {
-        String name = canonicalNameCache.get(clazz);
-
-        if (name == null) {
-            name = clazz.getCanonicalName();
-            synchronized (canonicalNameCache) {
-                canonicalNameCache.put(clazz, name);
-            }
-        }
-        return name;
-    }
-
-
-    private Annotation getNotNullAnnotation(Field field) {
-        Annotation annotation = notNullAnnotationCache.get(field);
-
-        if (annotation == null) {
-            annotation = field.getAnnotation(CFNotNull.class);
-            synchronized (notNullAnnotationCache) {
-                notNullAnnotationCache.put(field, annotation);
-            }
-        }
-        return annotation;
-    }
-
     /**
      * Body 部分
      */
@@ -140,7 +104,6 @@ public class RemotingCommand {
     protected RemotingCommand() {
     }
 
-
     public static RemotingCommand createRequestCommand(int code, CommandCustomHeader customHeader) {
         RemotingCommand cmd = new RemotingCommand();
         cmd.setCode(code);
@@ -149,18 +112,24 @@ public class RemotingCommand {
         return cmd;
     }
 
+    private static void setCmdVersion(RemotingCommand cmd) {
+        if (ConfigVersion >= 0) {
+            cmd.setVersion(ConfigVersion);
+        } else {
+            String v = System.getProperty(RemotingVersionKey);
+            if (v != null) {
+                int value = Integer.parseInt(v);
+                cmd.setVersion(value);
+                ConfigVersion = value;
+            }
+        }
+    }
 
     public static RemotingCommand createResponseCommand(Class<? extends CommandCustomHeader> classHeader) {
         RemotingCommand cmd = createResponseCommand(RemotingSysResponseCode.SYSTEM_ERROR, "not set any response code", classHeader);
 
         return cmd;
     }
-
-
-    public static RemotingCommand createResponseCommand(int code, String remark) {
-        return createResponseCommand(code, remark, null);
-    }
-
 
     /**
      * 只有通信层内部会调用，业务不会调用
@@ -186,74 +155,94 @@ public class RemotingCommand {
         return cmd;
     }
 
-
-    private static void setCmdVersion(RemotingCommand cmd) {
-        if (ConfigVersion >= 0) {
-            cmd.setVersion(ConfigVersion);
-        } else {
-            String v = System.getProperty(RemotingVersionKey);
-            if (v != null) {
-                int value = Integer.parseInt(v);
-                cmd.setVersion(value);
-                ConfigVersion = value;
-            }
-        }
+    public void markResponseType() {
+        int bits = 1 << RPC_TYPE;
+        this.flag |= bits;
     }
 
-
-    public void makeCustomHeaderToNet() {
-        if (this.customHeader != null) {
-            Field[] fields = getClazzFields(customHeader.getClass());
-            if (null == this.extFields) {
-                this.extFields = new HashMap<String, String>();
-            }
-
-            for (Field field : fields) {
-                if (!Modifier.isStatic(field.getModifiers())) {
-                    String name = field.getName();
-                    if (!name.startsWith("this")) {
-                        Object value = null;
-                        try {
-                            field.setAccessible(true);
-                            value = field.get(this.customHeader);
-                        } catch (IllegalArgumentException e) {
-                        } catch (IllegalAccessException e) {
-                        }
-
-                        if (value != null) {
-                            this.extFields.put(name, value.toString());
-                        }
-                    }
-                }
-            }
-        }
+    public static RemotingCommand createResponseCommand(int code, String remark) {
+        return createResponseCommand(code, remark, null);
     }
 
+    public static RemotingCommand decode(final byte[] array) {
+        ByteBuffer byteBuffer = ByteBuffer.wrap(array);
+        return decode(byteBuffer);
+    }
+
+    public static RemotingCommand decode(final ByteBuffer byteBuffer) {
+        int length = byteBuffer.limit();
+        int oriHeaderLen = byteBuffer.getInt();
+        int headerLength = getHeaderLength(oriHeaderLen);
+
+        byte[] headerData = new byte[headerLength];
+        byteBuffer.get(headerData);
+
+        RemotingCommand cmd = headerDecode(headerData, getProtocolType(oriHeaderLen));
+
+        int bodyLength = length - 4 - headerLength;
+        byte[] bodyData = null;
+        if (bodyLength > 0) {
+            bodyData = new byte[bodyLength];
+            byteBuffer.get(bodyData);
+        }
+        cmd.body = bodyData;
+
+        return cmd;
+    }
+
+    public static int getHeaderLength(int length) {
+        return length & 0xFFFFFF;
+    }
+
+    private static RemotingCommand headerDecode(byte[] headerData, SerializeType type) {
+        switch (type) {
+            case JSON:
+                RemotingCommand resultJson = RemotingSerializable.decode(headerData, RemotingCommand.class);
+                resultJson.setSerializeTypeCurrentRPC(type);
+                return resultJson;
+            case ROCKETMQ:
+                RemotingCommand resultRMQ = RocketMQSerializable.rocketMQProtocolDecode(headerData);
+                resultRMQ.setSerializeTypeCurrentRPC(type);
+                return resultRMQ;
+            default:
+                break;
+        }
+
+        return null;
+    }
+
+    public static SerializeType getProtocolType(int source) {
+        return SerializeType.valueOf((byte) ((source >> 24) & 0xFF));
+    }
+
+    public static int createNewRequestId() {
+        return RequestId.incrementAndGet();
+    }
+
+    public static SerializeType getSerializeTypeConfigInThisServer() {
+        return SerializeTypeConfigInThisServer;
+    }
+
+    private static boolean isBlank(String str) {
+        int strLen;
+        if (str == null || (strLen = str.length()) == 0) {
+            return true;
+        }
+        for (int i = 0; i < strLen; i++) {
+            if ((Character.isWhitespace(str.charAt(i)) == false)) {
+                return false;
+            }
+        }
+        return true;
+    }
 
     public CommandCustomHeader readCustomHeader() {
         return customHeader;
     }
 
-
     public void writeCustomHeader(CommandCustomHeader customHeader) {
         this.customHeader = customHeader;
     }
-
-    // 基本类型
-    private static final String StringCanonicalName = String.class.getCanonicalName();//
-
-    private static final String DoubleCanonicalName1 = Double.class.getCanonicalName();//
-    private static final String DoubleCanonicalName2 = double.class.getCanonicalName();//
-
-    private static final String IntegerCanonicalName1 = Integer.class.getCanonicalName();//
-    private static final String IntegerCanonicalName2 = int.class.getCanonicalName();//
-
-    private static final String LongCanonicalName1 = Long.class.getCanonicalName();//
-    private static final String LongCanonicalName2 = long.class.getCanonicalName();//
-
-    private static final String BooleanCanonicalName1 = Boolean.class.getCanonicalName();//
-    private static final String BooleanCanonicalName2 = boolean.class.getCanonicalName();//
-
 
     public CommandCustomHeader decodeCommandCustomHeader(Class<? extends CommandCustomHeader> classHeader) throws RemotingCommandException {
         CommandCustomHeader objectHeader;
@@ -315,34 +304,41 @@ public class RemotingCommand {
         return objectHeader;
     }
 
+    private Field[] getClazzFields(Class<? extends CommandCustomHeader> classHeader) {
+        Field[] field = clazzFieldsCache.get(classHeader);
 
-    private byte[] headerEncode() {
-        this.makeCustomHeaderToNet();
-        if (SerializeType.ROCKETMQ == serializeTypeCurrentRPC) {
-            return RocketMQSerializable.rocketMQProtocolEncode(this);
-        } else {
-            return RemotingSerializable.encode(this);
+        if (field == null) {
+            field = classHeader.getDeclaredFields();
+            synchronized (clazzFieldsCache) {
+                clazzFieldsCache.put(classHeader, field);
+            }
         }
+        return field;
     }
 
+    private Annotation getNotNullAnnotation(Field field) {
+        Annotation annotation = notNullAnnotationCache.get(field);
 
-    private static RemotingCommand headerDecode(byte[] headerData, SerializeType type) {
-        switch (type) {
-            case JSON:
-                RemotingCommand resultJson = RemotingSerializable.decode(headerData, RemotingCommand.class);
-                resultJson.setSerializeTypeCurrentRPC(type);
-                return resultJson;
-            case ROCKETMQ:
-                RemotingCommand resultRMQ = RocketMQSerializable.rocketMQProtocolDecode(headerData);
-                resultRMQ.setSerializeTypeCurrentRPC(type);
-                return resultRMQ;
-            default:
-                break;
+        if (annotation == null) {
+            annotation = field.getAnnotation(CFNotNull.class);
+            synchronized (notNullAnnotationCache) {
+                notNullAnnotationCache.put(field, annotation);
+            }
         }
-
-        return null;
+        return annotation;
     }
 
+    private String getCanonicalName(Class clazz) {
+        String name = canonicalNameCache.get(clazz);
+
+        if (name == null) {
+            name = clazz.getCanonicalName();
+            synchronized (canonicalNameCache) {
+                canonicalNameCache.put(clazz, name);
+            }
+        }
+        return name;
+    }
 
     public ByteBuffer encode() {
         // 1> header length size
@@ -378,11 +374,56 @@ public class RemotingCommand {
         return result;
     }
 
+    private byte[] headerEncode() {
+        this.makeCustomHeaderToNet();
+        if (SerializeType.ROCKETMQ == serializeTypeCurrentRPC) {
+            return RocketMQSerializable.rocketMQProtocolEncode(this);
+        } else {
+            return RemotingSerializable.encode(this);
+        }
+    }
+
+    public static byte[] markProtocolType(int source, SerializeType type) {
+        byte[] result = new byte[4];
+        // 由高位到低位
+        result[0] = type.getCode();
+        result[1] = (byte) ((source >> 16) & 0xFF);
+        result[2] = (byte) ((source >> 8) & 0xFF);
+        result[3] = (byte) (source & 0xFF);
+        return result;
+    }
+
+    public void makeCustomHeaderToNet() {
+        if (this.customHeader != null) {
+            Field[] fields = getClazzFields(customHeader.getClass());
+            if (null == this.extFields) {
+                this.extFields = new HashMap<String, String>();
+            }
+
+            for (Field field : fields) {
+                if (!Modifier.isStatic(field.getModifiers())) {
+                    String name = field.getName();
+                    if (!name.startsWith("this")) {
+                        Object value = null;
+                        try {
+                            field.setAccessible(true);
+                            value = field.get(this.customHeader);
+                        } catch (IllegalArgumentException e) {
+                        } catch (IllegalAccessException e) {
+                        }
+
+                        if (value != null) {
+                            this.extFields.put(name, value.toString());
+                        }
+                    }
+                }
+            }
+        }
+    }
 
     public ByteBuffer encodeHeader() {
         return encodeHeader(this.body != null ? this.body.length : 0);
     }
-
 
     /**
      * 只打包Header，body部分独立传输
@@ -416,74 +457,10 @@ public class RemotingCommand {
         return result;
     }
 
-
-    public static RemotingCommand decode(final byte[] array) {
-        ByteBuffer byteBuffer = ByteBuffer.wrap(array);
-        return decode(byteBuffer);
-    }
-
-
-    public static RemotingCommand decode(final ByteBuffer byteBuffer) {
-        int length = byteBuffer.limit();
-        int oriHeaderLen = byteBuffer.getInt();
-        int headerLength = getHeaderLength(oriHeaderLen);
-
-        byte[] headerData = new byte[headerLength];
-        byteBuffer.get(headerData);
-
-        RemotingCommand cmd = headerDecode(headerData, getProtocolType(oriHeaderLen));
-
-        int bodyLength = length - 4 - headerLength;
-        byte[] bodyData = null;
-        if (bodyLength > 0) {
-            bodyData = new byte[bodyLength];
-            byteBuffer.get(bodyData);
-        }
-        cmd.body = bodyData;
-
-        return cmd;
-    }
-
-
-    public static byte[] markProtocolType(int source, SerializeType type) {
-        byte[] result = new byte[4];
-        // 由高位到低位
-        result[0] = type.getCode();
-        result[1] = (byte) ((source >> 16) & 0xFF);
-        result[2] = (byte) ((source >> 8) & 0xFF);
-        result[3] = (byte) (source & 0xFF);
-        return result;
-    }
-
-
-    public static SerializeType getProtocolType(int source) {
-        return SerializeType.valueOf((byte) ((source >> 24) & 0xFF));
-    }
-
-
-    public static int getHeaderLength(int length) {
-        return length & 0xFFFFFF;
-    }
-
-
-    public void markResponseType() {
-        int bits = 1 << RPC_TYPE;
-        this.flag |= bits;
-    }
-
-
-    @JSONField(serialize = false)
-    public boolean isResponseType() {
-        int bits = 1 << RPC_TYPE;
-        return (this.flag & bits) == bits;
-    }
-
-
     public void markOnewayRPC() {
         int bits = 1 << RPC_ONEWAY;
         this.flag |= bits;
     }
-
 
     @JSONField(serialize = false)
     public boolean isOnewayRPC() {
@@ -491,16 +468,13 @@ public class RemotingCommand {
         return (this.flag & bits) == bits;
     }
 
-
     public int getCode() {
         return code;
     }
 
-
     public void setCode(int code) {
         this.code = code;
     }
-
 
     @JSONField(serialize = false)
     public RemotingCommandType getType() {
@@ -511,81 +485,67 @@ public class RemotingCommand {
         return RemotingCommandType.REQUEST_COMMAND;
     }
 
+    @JSONField(serialize = false)
+    public boolean isResponseType() {
+        int bits = 1 << RPC_TYPE;
+        return (this.flag & bits) == bits;
+    }
 
     public LanguageCode getLanguage() {
         return language;
     }
 
-
     public void setLanguage(LanguageCode language) {
         this.language = language;
     }
-
 
     public int getVersion() {
         return version;
     }
 
-
     public void setVersion(int version) {
         this.version = version;
     }
-
 
     public int getOpaque() {
         return opaque;
     }
 
-
     public void setOpaque(int opaque) {
         this.opaque = opaque;
     }
-
 
     public int getFlag() {
         return flag;
     }
 
-
     public void setFlag(int flag) {
         this.flag = flag;
     }
-
 
     public String getRemark() {
         return remark;
     }
 
-
     public void setRemark(String remark) {
         this.remark = remark;
     }
-
 
     public byte[] getBody() {
         return body;
     }
 
-
     public void setBody(byte[] body) {
         this.body = body;
     }
-
 
     public HashMap<String, String> getExtFields() {
         return extFields;
     }
 
-
     public void setExtFields(HashMap<String, String> extFields) {
         this.extFields = extFields;
     }
-
-
-    public static int createNewRequestId() {
-        return RequestId.incrementAndGet();
-    }
-
 
     public void addExtField(String key, String value) {
         if (null == extFields) {
@@ -593,26 +553,6 @@ public class RemotingCommand {
         }
         extFields.put(key, value);
     }
-
-
-    public static SerializeType getSerializeTypeConfigInThisServer() {
-        return SerializeTypeConfigInThisServer;
-    }
-
-
-    private static boolean isBlank(String str) {
-        int strLen;
-        if (str == null || (strLen = str.length()) == 0) {
-            return true;
-        }
-        for (int i = 0; i < strLen; i++) {
-            if ((Character.isWhitespace(str.charAt(i)) == false)) {
-                return false;
-            }
-        }
-        return true;
-    }
-
 
     @Override
     public String toString() {

@@ -1,12 +1,12 @@
 /**
  * Copyright (C) 2010-2013 Alibaba Group Holding Limited
- *
+ * <p/>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p/>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p/>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -15,12 +15,12 @@
  */
 package com.alibaba.rocketmq.client.consumer.rebalance;
 
+import com.alibaba.rocketmq.client.consumer.AllocateMessageQueueStrategy;
+import com.alibaba.rocketmq.common.message.MessageQueue;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
-
-import com.alibaba.rocketmq.client.consumer.AllocateMessageQueueStrategy;
-import com.alibaba.rocketmq.common.message.MessageQueue;
 
 
 /**
@@ -31,13 +31,6 @@ import com.alibaba.rocketmq.common.message.MessageQueue;
  */
 public class AllocateMessageQueueByMachineRoom implements AllocateMessageQueueStrategy {
     private Set<String> consumeridcs;
-
-
-    @Override
-    public String getName() {
-        return "MACHINE_ROOM";
-    }
-
 
     @Override
     public List<MessageQueue> allocate(String consumerGroup, String currentCID, List<MessageQueue> mqAll,
@@ -68,6 +61,10 @@ public class AllocateMessageQueueByMachineRoom implements AllocateMessageQueueSt
         return result;
     }
 
+    @Override
+    public String getName() {
+        return "MACHINE_ROOM";
+    }
 
     public Set<String> getConsumeridcs() {
         return consumeridcs;

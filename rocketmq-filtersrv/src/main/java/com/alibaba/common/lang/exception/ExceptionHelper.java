@@ -11,7 +11,7 @@ import java.util.List;
 
 /**
  * 异常的辅助类.
- * 
+ *
  * @author Michael Zhou
  * @version $Id: ExceptionHelper.java 643 2004-03-07 07:29:35Z baobao $
  */
@@ -30,25 +30,23 @@ public class ExceptionHelper {
         // JDK1.4支持Throwable.getStackTrace()方法
         try {
             GET_STACK_TRACE_METHOD = Throwable.class.getMethod(GET_STACK_TRACE_METHOD_NAME, new Class[0]);
-        }
-        catch (NoSuchMethodException e) {
+        } catch (NoSuchMethodException e) {
         }
     }
 
 
     /**
      * 从<code>ChainedThrowable</code>实例中取得<code>Throwable</code>对象.
-     * 
+     *
      * @param throwable
-     *            <code>ChainedThrowable</code>实例
-     * 
+     *         <code>ChainedThrowable</code>实例
+     *
      * @return <code>Throwable</code>对象
      */
     private static Throwable getThrowable(ChainedThrowable throwable) {
         if (throwable instanceof ChainedThrowableDelegate) {
             return ((ChainedThrowableDelegate) throwable).delegatedThrowable;
-        }
-        else {
+        } else {
             return (Throwable) throwable;
         }
     }
@@ -58,10 +56,10 @@ public class ExceptionHelper {
      * 将<code>Throwable</code>转换成<code>ChainedThrowable</code>. 如果已经是
      * <code>ChainedThrowable</code>了, 则直接返回, 否则将它包装在
      * <code>ChainedThrowableDelegate</code>中返回.
-     * 
+     *
      * @param throwable
-     *            <code>Throwable</code>对象
-     * 
+     *         <code>Throwable</code>对象
+     *
      * @return <code>ChainedThrowable</code>对象
      */
     public static ChainedThrowable getChainedThrowable(Throwable throwable) {
@@ -76,10 +74,10 @@ public class ExceptionHelper {
     /**
      * 取得被代理的异常的起因, 如果起因不是<code>ChainedThrowable</code>, 则用
      * <code>ChainedThrowableDelegate</code>包装并返回.
-     * 
+     *
      * @param throwable
-     *            异常
-     * 
+     *         异常
+     *
      * @return 异常的起因
      */
     public static ChainedThrowable getChainedThrowableCause(ChainedThrowable throwable) {
@@ -89,9 +87,9 @@ public class ExceptionHelper {
 
     /**
      * 打印调用栈到标准错误.
-     * 
+     *
      * @param throwable
-     *            异常
+     *         异常
      */
     public static void printStackTrace(ChainedThrowable throwable) {
         printStackTrace(throwable, System.err);
@@ -100,11 +98,11 @@ public class ExceptionHelper {
 
     /**
      * 打印调用栈到指定输出流.
-     * 
+     *
      * @param throwable
-     *            异常
+     *         异常
      * @param stream
-     *            输出字节流
+     *         输出字节流
      */
     public static void printStackTrace(ChainedThrowable throwable, PrintStream stream) {
         printStackTrace(throwable, new PrintWriter(stream));
@@ -113,11 +111,11 @@ public class ExceptionHelper {
 
     /**
      * 打印调用栈到指定输出流.
-     * 
+     *
      * @param throwable
-     *            异常
+     *         异常
      * @param writer
-     *            输出字符流
+     *         输出字符流
      */
     public static void printStackTrace(ChainedThrowable throwable, PrintWriter writer) {
         synchronized (writer) {
@@ -138,16 +136,16 @@ public class ExceptionHelper {
 
     /**
      * 递归地打印所有异常链的调用栈.
-     * 
+     *
      * @param throwable
-     *            异常
+     *         异常
      * @param writer
-     *            输出流
+     *         输出流
      * @param currentStack
-     *            当前的堆栈
+     *         当前的堆栈
      */
     private static void printStackTraceRecursive(ChainedThrowable throwable, PrintWriter writer,
-            String[] currentStack) {
+                                                 String[] currentStack) {
         ChainedThrowable cause = getChainedThrowableCause(throwable);
 
         if (cause != null) {
@@ -178,13 +176,13 @@ public class ExceptionHelper {
 
     /**
      * 打印异常的message.
-     * 
+     *
      * @param throwable
-     *            异常
+     *         异常
      * @param writer
-     *            输出流
+     *         输出流
      * @param cause
-     *            是否是起因异常
+     *         是否是起因异常
      */
     private static void printThrowableMessage(ChainedThrowable throwable, PrintWriter writer, boolean cause) {
         StringBuffer buffer = new StringBuffer();
@@ -209,10 +207,10 @@ public class ExceptionHelper {
 
     /**
      * 分析异常的调用栈, 取得当前异常的信息, 不包括起因异常的信息.
-     * 
+     *
      * @param throwable
-     *            取得指定异常的调用栈
-     * 
+     *         取得指定异常的调用栈
+     *
      * @return 调用栈数组
      */
     private static String[] analyzeStackTrace(ChainedThrowable throwable) {
@@ -228,12 +226,9 @@ public class ExceptionHelper {
                 }
 
                 return list;
-            }
-            catch (IllegalAccessException e) {
-            }
-            catch (IllegalArgumentException e) {
-            }
-            catch (InvocationTargetException e) {
+            } catch (IllegalAccessException e) {
+            } catch (IllegalArgumentException e) {
+            } catch (InvocationTargetException e) {
             }
         }
 
@@ -379,8 +374,7 @@ public class ExceptionHelper {
                     lines.add(line);
                     count++;
                     return null;
-                }
-                else if (count > 0) {
+                } else if (count > 0) {
                     StackTraceEntry newEntry = new StackTraceEntry();
 
                     newEntry.accept(line, includesMessage);
@@ -408,8 +402,7 @@ public class ExceptionHelper {
                 // weight大的排在前, 如果weight相同, 则count小的排在前
                 if (thisWeight == otherWeight) {
                     return count - otherEntry.count;
-                }
-                else {
+                } else {
                     return otherWeight - thisWeight;
                 }
             }
