@@ -15,6 +15,10 @@
  */
 package com.alibaba.rocketmq.common;
 
+import com.alibaba.rocketmq.common.annotation.ImportantField;
+import com.alibaba.rocketmq.common.help.FAQUrl;
+import org.slf4j.Logger;
+
 import java.io.*;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
@@ -24,11 +28,6 @@ import java.net.*;
 import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
-
-import org.slf4j.Logger;
-
-import com.alibaba.rocketmq.common.annotation.ImportantField;
-import com.alibaba.rocketmq.common.help.FAQUrl;
 
 
 /**
@@ -64,7 +63,7 @@ public class MixAll {
     public static final String CID_ONSAPI_OWNER_GROUP = "CID_ONSAPI_OWNER";
     public static final String CID_ONSAPI_PULL_GROUP = "CID_ONSAPI_PULL";
     public static final String CID_RMQ_SYS_PREFIX = "CID_RMQ_SYS_";
-
+    public static final String SYSTEM_TOPIC_PREFIX = "rmq_sys_";
     public static final List<String> LocalInetAddrs = getLocalInetAddress();
     public static final String Localhost = localhost();
     public static final String DEFAULT_CHARSET = "UTF-8";
@@ -74,7 +73,6 @@ public class MixAll {
     public static final String RETRY_GROUP_TOPIC_PREFIX = "%RETRY%";
     // 为每个Consumer Group建立一个默认的Topic，前缀 + GroupName，用来保存重试多次都失败，接下来不再重试的消息
     public static final String DLQ_GROUP_TOPIC_PREFIX = "%DLQ%";
-    public static final String SYSTEM_TOPIC_PREFIX = "rmq_sys_";
 
 
     public static String getRetryTopic(final String consumerGroup) {
@@ -86,6 +84,9 @@ public class MixAll {
         return consumerGroup.startsWith(CID_RMQ_SYS_PREFIX);
     }
 
+    public static boolean isSystemTopic(final String topic) {
+        return topic.startsWith(SYSTEM_TOPIC_PREFIX);
+    }
 
     public static String getDLQTopic(final String consumerGroup) {
         return DLQ_GROUP_TOPIC_PREFIX + consumerGroup;

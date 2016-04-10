@@ -111,6 +111,24 @@ public class BrokerConfig {
 
     //broker所在的Region名称
     private String regionId = "DefaultRegionId";
+<<<<<<< Updated upstream
+=======
+
+    public String getRegionId() {
+        return regionId;
+    }
+
+    public void setRegionId(final String regionId) {
+        this.regionId = regionId;
+    }
+
+    public static String localHostName() {
+        try {
+            return InetAddress.getLocalHost().getHostName();
+        } catch (UnknownHostException e) {
+            e.printStackTrace();
+        }
+>>>>>>> Stashed changes
 
     public String getRegionId() {
         return regionId;
