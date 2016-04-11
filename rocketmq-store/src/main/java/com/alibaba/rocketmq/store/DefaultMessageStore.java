@@ -1170,7 +1170,12 @@ public class DefaultMessageStore implements MessageStore {
                 File[] fileQueueIdList = fileTopic.listFiles();
                 if (fileQueueIdList != null) {
                     for (File fileQueueId : fileQueueIdList) {
-                        int queueId = Integer.parseInt(fileQueueId.getName());
+                        int queueId;
+                        try {
+                            queueId = Integer.parseInt(fileQueueId.getName());
+                        }catch (NumberFormatException e) {
+                            continue;
+                        }
                         ConsumeQueue logic = new ConsumeQueue(//
                                 topic, //
                                 queueId, //
