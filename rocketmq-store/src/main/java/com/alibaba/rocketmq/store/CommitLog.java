@@ -404,16 +404,18 @@ public class CommitLog {
                 DispatchRequest dispatchRequest = this.checkMessageAndReturnSize(byteBuffer, checkCRCOnRecover);
                 int size = dispatchRequest.getMsgSize();
 
-                // 如果开启多副本复制组件，判断两阶段确认位点后，数据才可消费
-                if (this.defaultMessageStore.getMessageStoreConfig().isDuplicationEnable() //
-                        && dispatchRequest.getCommitLogOffset() >= this.defaultMessageStore.getConfirmOffset()) {
-                    size = -1;
-                }
-
                 // Normal data
                 if (size > 0) {
                     mapedFileOffset += size;
-                    this.defaultMessageStore.doDispatch(dispatchRequest);
+
+                    // 如果开启多副本复制组件，判断两阶段确认位点后，数据才可消费
+                    if (this.defaultMessageStore.getMessageStoreConfig().isDuplicationEnable()) {
+                        if (dispatchRequest.getCommitLogOffset() < this.defaultMessageStore.getConfirmOffset()) {
+                            this.defaultMessageStore.doDispatch(dispatchRequest);
+                        }
+                    } else {
+                        this.defaultMessageStore.doDispatch(dispatchRequest);
+                    }
                 }
                 // Intermediate file read error
                 else if (size == -1) {

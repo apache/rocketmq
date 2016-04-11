@@ -86,6 +86,8 @@ public class IndexService {
                 } catch (IOException e) {
                     log.error("load file " + file + " error", e);
                     return false;
+                } catch (NumberFormatException e) {
+                    continue;
                 }
             }
         }
