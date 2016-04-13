@@ -52,6 +52,7 @@ import java.util.concurrent.TimeUnit;
  * @since 2013-7-24
  */
 public class MQAdminImpl {
+
     private final Logger log = ClientLogger.getLog();
     private final MQClientInstance mQClientFactory;
     private long timeoutMillis = 6000;
@@ -247,8 +248,8 @@ public class MQAdminImpl {
         throw new MQClientException("The broker[" + mq.getBrokerName() + "] not exist", null);
     }
 
-
     public MessageExt viewMessage(String msgId) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
+
         MessageId messageId = null;
         try {
             messageId = MessageDecoder.decodeMessageId(msgId);
@@ -259,8 +260,24 @@ public class MQAdminImpl {
                 messageId.getOffset(), timeoutMillis);
     }
 
-
     public QueryResult queryMessage(String topic, String key, int maxNum, long begin, long end) throws MQClientException,
+        InterruptedException {
+        return queryMessage(topic, key, maxNum, begin, end, false);
+    }
+
+    public MessageExt queryMessageByUniqKey(String topic, String uniqKey)  throws InterruptedException, MQClientException  {
+        //打开1s的误差，因为服务器存储时间差是以秒计算的
+        QueryResult qr = this.queryMessage(topic, uniqKey, 1,
+                MessageClientIDSetter.getNearlyTimeFromID(uniqKey).getTime() - 1000, Long.MAX_VALUE, true);
+        if (qr != null && qr.getMessageList() != null && qr.getMessageList().size() > 0) {
+            return qr.getMessageList().get(0);
+        }
+        else {
+            return null;
+        }
+    }
+
+    protected QueryResult queryMessage(String topic, String key, int maxNum, long begin, long end, boolean isUniqKey) throws MQClientException,
             InterruptedException {
         TopicRouteData topicRouteData = this.mQClientFactory.getAnExistTopicRouteData(topic);
         if (null == topicRouteData) {
@@ -286,7 +303,12 @@ public class MQAdminImpl {
                         QueryMessageRequestHeader requestHeader = new QueryMessageRequestHeader();
                         requestHeader.setTopic(topic);
                         requestHeader.setKey(key);
-                        requestHeader.setMaxNum(maxNum);
+                        if (isUniqKey) {
+                            requestHeader.setMaxNum(null);
+                        }
+                        else {
+                            requestHeader.setMaxNum(maxNum);
+                        }
                         requestHeader.setBeginTimestamp(begin);
                         requestHeader.setEndTimestamp(end);
 
@@ -347,23 +369,47 @@ public class MQAdminImpl {
                     }
 
                     for (MessageExt msgExt : qr.getMessageList()) {
-                        String keys = msgExt.getKeys();
-                        if (keys != null) {
-                            boolean matched = false;
-                            String[] keyArray = keys.split(MessageConst.KEY_SEPARATOR);
-                            if (keyArray != null) {
-                                for (String k : keyArray) {
-                                    if (key.equals(k)) {
-                                        matched = true;
-                                        break;
+                        if (isUniqKey) {
+                            if (msgExt.getMsgId().equals(key)) {
+                                //只保存一条, 存储storetime最新的一条
+                                if (messageList.size() > 0) {
+                                    //如果已经存在了
+                                    if (messageList.get(0).getStoreTimestamp() > msgExt.getStoreTimestamp()) {
+                                        //并且现存的storetime > 新的storetime //存储新的
+                                        messageList.clear();
+                                        messageList.add(msgExt);
                                     }
+                                    //否则什么也不做
+                                }
+                                else {
+                                    //如果尚未存在，则存储
+                                    messageList.add(msgExt);
                                 }
                             }
+                            else {
+                                log.warn("queryMessage by uniqKey, find message key not matched, maybe hash duplicate {}", msgExt.toString());
+                            }
+                        }
+                        else {
+                            String keys = msgExt.getKeys();
+                            if (keys != null) {
+                                boolean matched = false;
+                                String[] keyArray = keys.split(MessageConst.KEY_SEPARATOR);
+                                if (keyArray != null) {
+                                    for (String k : keyArray) {
+                                        if (key.equals(k)) {
+                                            matched = true;
+                                            break;
+                                        }
+                                    }
+                                }
 
-                            if (matched) {
-                                messageList.add(msgExt);
-                            } else {
-                                log.warn("queryMessage, find message key not matched, maybe hash duplicate {}", msgExt.toString());
+                                if (matched) {
+                                    messageList.add(msgExt);
+                                }
+                                else {
+                                    log.warn("queryMessage, find message key not matched, maybe hash duplicate {}", msgExt.toString());
+                                }
                             }
                         }
                     }

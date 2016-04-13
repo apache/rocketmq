@@ -584,6 +584,24 @@ public interface MQAdminExt extends MQAdmin {
     public ConsumeMessageDirectlyResult consumeMessageDirectly(String consumerGroup, //
                                                                String clientId, //
                                                                String msgId) throws RemotingException, MQClientException, InterruptedException, MQBrokerException;
+    /**
+     * 向指定Consumer发送某条消息
+     *
+     * @param consumerGroup
+     * @param clientId
+     * @param topic
+     * @param msgId
+     * @return
+     *
+     * @throws InterruptedException
+     * @throws MQClientException
+     * @throws RemotingException
+     * @throws MQBrokerException
+     */
+    public ConsumeMessageDirectlyResult consumeMessageDirectly(String consumerGroup, //
+                                                               String clientId, //
+                                                               String topic,//
+                                                               String msgId) throws RemotingException, MQClientException, InterruptedException, MQBrokerException;
 
 
     /**

@@ -145,6 +145,9 @@ public class MessageStoreConfig {
     private boolean diskFallRecorded = true;
     private long osPageCacheBusyTimeOutMills = 2000;
 
+    //根据key查询消息时，如果MaxNum为Null此时的默认值
+    private int defaultQueryMaxNum = 32;
+    
     public boolean isDebugLockEnable() {
         return debugLockEnable;
     }
@@ -662,4 +665,14 @@ public class MessageStoreConfig {
     public void setOffsetCheckInSlave(boolean offsetCheckInSlave) {
         this.offsetCheckInSlave = offsetCheckInSlave;
     }
+
+    public int getDefaultQueryMaxNum() {
+        return defaultQueryMaxNum;
+    }
+
+    public void setDefaultQueryMaxNum(int defaultQueryMaxNum) {
+        this.defaultQueryMaxNum = defaultQueryMaxNum;
+    }
+    
+    
 }

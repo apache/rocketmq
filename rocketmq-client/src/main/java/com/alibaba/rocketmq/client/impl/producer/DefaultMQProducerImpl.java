@@ -369,6 +369,12 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         return this.mQClientFactory.getMQAdminImpl().queryMessage(topic, key, maxNum, begin, end);
     }
 
+    public MessageExt queryMessageByUniqKey(String topic, String uniqKey)
+            throws MQClientException, InterruptedException {
+        this.makeSureStateOK();
+        return this.mQClientFactory.getMQAdminImpl().queryMessageByUniqKey(topic, uniqKey);
+    }
+
     /**
      * DEFAULT ASYNC -------------------------------------------------------
      */
@@ -543,6 +549,9 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
             byte[] prevBody = msg.getBody();
             try {
+                //设置客户端唯一ID，作为标识，去重
+                MessageClientIDSetter.setUniqID(msg);
+
                 int sysFlag = 0;
                 if (this.tryToCompressMessage(msg)) {
                     sysFlag |= MessageSysFlag.CompressedFlag;
@@ -942,10 +951,16 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     }
 
     public void endTransaction(//
-                               final SendResult sendResult, //
-                               final LocalTransactionState localTransactionState, //
-                               final Throwable localException) throws RemotingException, MQBrokerException, InterruptedException, UnknownHostException {
-        final MessageId id = MessageDecoder.decodeMessageId(sendResult.getMsgId());
+            final SendResult sendResult, //
+            final LocalTransactionState localTransactionState, //
+            final Throwable localException) throws RemotingException, MQBrokerException, InterruptedException, UnknownHostException {
+        final MessageId id;
+        if (sendResult.getOffsetMsgId() != null) {
+            id = MessageDecoder.decodeMessageId(sendResult.getOffsetMsgId());
+        }
+        else {
+            id = MessageDecoder.decodeMessageId(sendResult.getMsgId());
+        }
         String transactionId = sendResult.getTransactionId();
         final String brokerAddr = this.mQClientFactory.findBrokerAddressInPublish(sendResult.getMessageQueue().getBrokerName());
         EndTransactionRequestHeader requestHeader = new EndTransactionRequestHeader();

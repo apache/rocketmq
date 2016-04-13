@@ -86,6 +86,8 @@ public class IndexService {
                 } catch (IOException e) {
                     log.error("load file " + file + " error", e);
                     return false;
+                } catch (NumberFormatException e) {
+                    continue;
                 }
             }
         }
@@ -189,7 +191,7 @@ public class IndexService {
 
                     if (f.isTimeMatched(begin, end)) {
                         // 最后一个文件需要加锁
-                        f.selectPhyOffset(phyOffsets, this.buildKey(topic, key), maxNum, begin, end, lastFile);
+                        f.selectPhyOffset(phyOffsets, buildKey(topic, key), maxNum, begin, end, lastFile);
                     }
 
                     // 再往前遍历时间更不符合
@@ -218,7 +220,6 @@ public class IndexService {
 
 
     public void buildIndex(DispatchRequest req) {
-        boolean breakdown = false;
         IndexFile indexFile = retryGetAndCreateIndexFile();
         if (indexFile != null) {
             long endPhyOffset = indexFile.getEndPhyOffset();
@@ -231,41 +232,59 @@ public class IndexService {
 
             final int tranType = MessageSysFlag.getTransactionValue(msg.getSysFlag());
             switch (tranType) {
-                case MessageSysFlag.TransactionNotType:
-                case MessageSysFlag.TransactionPreparedType:
+            case MessageSysFlag.TransactionNotType:
+            case MessageSysFlag.TransactionPreparedType:
+            case MessageSysFlag.TransactionCommitType:
                     break;
-                case MessageSysFlag.TransactionCommitType:
-                case MessageSysFlag.TransactionRollbackType:
-                    return;
+            case MessageSysFlag.TransactionRollbackType:
+                return;
             }
 
-            if (keys != null && keys.length() > 0) {
+            if (req.getUniqKey() != null) {
+                indexFile = putKey(indexFile, msg, buildKey(topic, req.getUniqKey()));
+                if (indexFile == null) {
+                    log.error("putKey error commitlog {} uniqkey {}", req.getCommitLogOffset(), req.getUniqKey());
+                    return;
+                }
+            }
+
+            if ((keys != null && keys.length() > 0)) {
                 String[] keyset = keys.split(MessageConst.KEY_SEPARATOR);
-                for (String key : keyset) {
+                for (int i = 0; i <  keyset.length; i++) {
+                    String key = keyset[i];
                     // TODO 是否需要TRIM
                     if (key.length() > 0) {
-                        for (boolean ok =
-                             indexFile.putKey(buildKey(topic, key), msg.getCommitLogOffset(),
-                                     msg.getStoreTimestamp()); !ok; ) {
-                            log.warn("index file full, so create another one, " + indexFile.getFileName());
-                            indexFile = retryGetAndCreateIndexFile();
-                            if (null == indexFile) {
-                                breakdown = true;
+                            indexFile = putKey(indexFile, msg, buildKey(topic, key));
+                            if (indexFile == null) {
+                                log.error("putKey error commitlog {} uniqkey {}", req.getCommitLogOffset(), req.getUniqKey());
                                 return;
                             }
-
-                            ok =
-                                    indexFile.putKey(buildKey(topic, key), msg.getCommitLogOffset(),
-                                            msg.getStoreTimestamp());
                         }
-                    }
-                }
+                 }
             }
         }
         // IO发生故障，build索引过程中断，需要人工参与处理
         else {
             log.error("build index error, stop building index");
         }
+    }
+
+
+    private IndexFile putKey(IndexFile indexFile, DispatchRequest msg, String idxKey) {
+        for (boolean ok =
+                indexFile.putKey(idxKey, msg.getCommitLogOffset(),
+                    msg.getStoreTimestamp()); !ok;) {
+            log.warn("index file full, so create another one, " + indexFile.getFileName());
+            indexFile = retryGetAndCreateIndexFile();
+            if (null == indexFile) {
+                return null;
+            }
+
+            ok =
+                    indexFile.putKey(idxKey, msg.getCommitLogOffset(),
+                        msg.getStoreTimestamp());
+        }
+        return indexFile;
     }
 
 

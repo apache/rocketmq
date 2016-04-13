@@ -281,6 +281,7 @@ public class CommitLog {
 
             long tagsCode = 0;
             String keys = "";
+            String uniqKey = null;
 
             // 17 properties
             short propertiesLength = byteBuffer.getShort();
@@ -290,6 +291,10 @@ public class CommitLog {
                 Map<String, String> propertiesMap = MessageDecoder.string2messageProperties(properties);
 
                 keys = propertiesMap.get(MessageConst.PROPERTY_KEYS);
+
+                //标志着消息ID的key
+                uniqKey = propertiesMap.get(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX);
+
                 String tags = propertiesMap.get(MessageConst.PROPERTY_TAGS);
                 if (tags != null && tags.length() > 0) {
                     tagsCode = MessageExtBrokerInner.tagsString2tagsCode(MessageExt.parseTopicFilterType(sysFlag), tags);
@@ -322,16 +327,17 @@ public class CommitLog {
             }
 
             return new DispatchRequest(//
-                    topic, // 1
-                    queueId, // 2
-                    physicOffset, // 3
-                    totalSize, // 4
-                    tagsCode, // 5
-                    storeTimestamp, // 6
-                    queueOffset, // 7
-                    keys, // 8
-                    sysFlag, // 9
-                    preparedTransactionOffset// 10
+                topic, // 1
+                queueId, // 2
+                physicOffset, // 3
+                totalSize, // 4
+                tagsCode, // 5
+                storeTimestamp, // 6
+                queueOffset, // 7
+                keys, // 8
+                uniqKey, //9
+                sysFlag, // 9
+                preparedTransactionOffset// 10
             );
         } catch (Exception e) {
         }
@@ -398,16 +404,18 @@ public class CommitLog {
                 DispatchRequest dispatchRequest = this.checkMessageAndReturnSize(byteBuffer, checkCRCOnRecover);
                 int size = dispatchRequest.getMsgSize();
 
-                // 如果开启多副本复制组件，判断两阶段确认位点后，数据才可消费
-                if (this.defaultMessageStore.getMessageStoreConfig().isDuplicationEnable() //
-                        && dispatchRequest.getCommitLogOffset() >= this.defaultMessageStore.getConfirmOffset()) {
-                    size = -1;
-                }
-
                 // Normal data
                 if (size > 0) {
                     mapedFileOffset += size;
-                    this.defaultMessageStore.doDispatch(dispatchRequest);
+
+                    // 如果开启多副本复制组件，判断两阶段确认位点后，数据才可消费
+                    if (this.defaultMessageStore.getMessageStoreConfig().isDuplicationEnable()) {
+                        if (dispatchRequest.getCommitLogOffset() < this.defaultMessageStore.getConfirmOffset()) {
+                            this.defaultMessageStore.doDispatch(dispatchRequest);
+                        }
+                    } else {
+                        this.defaultMessageStore.doDispatch(dispatchRequest);
+                    }
                 }
                 // Intermediate file read error
                 else if (size == -1) {
@@ -987,6 +995,8 @@ public class CommitLog {
             MessageExtBrokerInner msgInner = (MessageExtBrokerInner) msg;
             // PHY OFFSET
             long wroteOffset = fileFromOffset + byteBuffer.position();
+
+            //TODO 返回的客户端ID给 SendResult 要注意定时消息的情形, 定时消息这个ID应该没有用
             String msgId = MessageDecoder.createMessageId(this.msgIdMemory, msgInner.getStoreHostBytes(), wroteOffset);
 
             // Record ConsumeQueue information

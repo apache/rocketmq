@@ -131,7 +131,7 @@ public interface MQAdmin {
      * @throws RemotingException
      * @throws MQClientException
      */
-    MessageExt viewMessage(final String msgId) throws RemotingException, MQBrokerException,
+    MessageExt viewMessage(final String offsetMsgId) throws RemotingException, MQBrokerException,
             InterruptedException, MQClientException;
 
 
@@ -156,4 +156,18 @@ public interface MQAdmin {
      */
     QueryResult queryMessage(final String topic, final String key, final int maxNum, final long begin,
                              final long end) throws MQClientException, InterruptedException;
+    
+    /**
+     * 唯一键查询
+     * @param topic
+     * @param uniqKey
+     * @return
+     * @throws RemotingException
+     * @throws MQBrokerException
+     * @throws InterruptedException
+     * @throws MQClientException
+     */
+    MessageExt viewMessage(String topic, String msgId) throws RemotingException, MQBrokerException, InterruptedException, MQClientException;        
+
+    
 }

@@ -17,7 +17,6 @@ package com.alibaba.rocketmq.store;
 
 import com.alibaba.rocketmq.common.*;
 import com.alibaba.rocketmq.common.constant.LoggerName;
-import com.alibaba.rocketmq.common.message.MessageConst;
 import com.alibaba.rocketmq.common.message.MessageDecoder;
 import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.common.protocol.heartbeat.SubscriptionData;
@@ -203,7 +202,11 @@ public class DefaultMessageStore implements MessageStore {
             this.scheduleMessageService.start();
         }
 
-        this.reputMessageService.setReputFromOffset(this.commitLog.getMaxOffset());
+        if (this.getMessageStoreConfig().isDuplicationEnable()) {
+            this.reputMessageService.setReputFromOffset(this.commitLog.getConfirmOffset());
+        } else {
+            this.reputMessageService.setReputFromOffset(this.commitLog.getMaxOffset());
+        }
         this.reputMessageService.start();
 
         this.haService.start();
@@ -752,15 +755,15 @@ public class DefaultMessageStore implements MessageStore {
                         lastQueryMsgTime = msg.getStoreTimestamp();
                     }
 
-                    String[] keyArray = msg.getKeys().split(MessageConst.KEY_SEPARATOR);
-                    if (topic.equals(msg.getTopic())) {
-                        for (String k : keyArray) {
-                            if (k.equals(key)) {
-                                match = true;
-                                break;
-                            }
-                        }
-                    }
+//                    String[] keyArray = msg.getKeys().split(MessageConst.KEY_SEPARATOR);
+//                    if (topic.equals(msg.getTopic())) {
+//                        for (String k : keyArray) {
+//                            if (k.equals(key)) {
+//                                match = true;
+//                                break;
+//                            }
+//                        }
+//                    }
 
                     if (match) {
                         SelectMapedBufferResult result = this.commitLog.getData(offset, false);
@@ -1167,7 +1170,12 @@ public class DefaultMessageStore implements MessageStore {
                 File[] fileQueueIdList = fileTopic.listFiles();
                 if (fileQueueIdList != null) {
                     for (File fileQueueId : fileQueueIdList) {
-                        int queueId = Integer.parseInt(fileQueueId.getName());
+                        int queueId;
+                        try {
+                            queueId = Integer.parseInt(fileQueueId.getName());
+                        }catch (NumberFormatException e) {
+                            continue;
+                        }
                         ConsumeQueue logic = new ConsumeQueue(//
                                 topic, //
                                 queueId, //
