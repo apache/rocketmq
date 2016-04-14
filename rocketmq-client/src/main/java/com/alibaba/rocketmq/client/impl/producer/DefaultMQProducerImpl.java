@@ -15,9 +15,9 @@
  */
 package com.alibaba.rocketmq.client.impl.producer;
 
-import com.alibaba.rocketmq.client.common.ClientErrorCode;
 import com.alibaba.rocketmq.client.QueryResult;
 import com.alibaba.rocketmq.client.Validators;
+import com.alibaba.rocketmq.client.common.ClientErrorCode;
 import com.alibaba.rocketmq.client.exception.MQBrokerException;
 import com.alibaba.rocketmq.client.exception.MQClientException;
 import com.alibaba.rocketmq.client.hook.CheckForbiddenContext;
@@ -302,7 +302,6 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         if (info != null && topic != null) {
             TopicPublishInfo prev = this.topicPublishInfoTable.put(topic, info);
             if (prev != null) {
-                info.getSendWhichQueue().set(prev.getSendWhichQueue().get());
                 log.info("updateTopicPublishInfo prev is not null, " + prev.toString());
             }
         }
@@ -491,16 +490,13 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             info += FAQUrl.suggestTodo(FAQUrl.SEND_MSG_FAILED);
 
             MQClientException mqClientException = new MQClientException(info, exception);
-            if(exception instanceof MQBrokerException){
-                mqClientException.setResponseCode(((MQBrokerException)exception).getResponseCode());
-            }
-            else if(exception instanceof RemotingConnectException){
+            if (exception instanceof MQBrokerException) {
+                mqClientException.setResponseCode(((MQBrokerException) exception).getResponseCode());
+            } else if (exception instanceof RemotingConnectException) {
                 mqClientException.setResponseCode(ClientErrorCode.ConnectBrokerException);
-            }
-            else if(exception instanceof RemotingTimeoutException){
+            } else if (exception instanceof RemotingTimeoutException) {
                 mqClientException.setResponseCode(ClientErrorCode.AccessBrokerTimeout);
-            }
-            else if(exception instanceof MQClientException){
+            } else if (exception instanceof MQClientException) {
                 mqClientException.setResponseCode(ClientErrorCode.BrokerNotExistException);
             }
 
@@ -954,14 +950,13 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     }
 
     public void endTransaction(//
-            final SendResult sendResult, //
-            final LocalTransactionState localTransactionState, //
-            final Throwable localException) throws RemotingException, MQBrokerException, InterruptedException, UnknownHostException {
+                               final SendResult sendResult, //
+                               final LocalTransactionState localTransactionState, //
+                               final Throwable localException) throws RemotingException, MQBrokerException, InterruptedException, UnknownHostException {
         final MessageId id;
         if (sendResult.getOffsetMsgId() != null) {
             id = MessageDecoder.decodeMessageId(sendResult.getOffsetMsgId());
-        }
-        else {
+        } else {
             id = MessageDecoder.decodeMessageId(sendResult.getMsgId());
         }
         String transactionId = sendResult.getTransactionId();

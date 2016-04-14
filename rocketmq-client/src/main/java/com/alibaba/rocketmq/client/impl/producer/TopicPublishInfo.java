@@ -15,11 +15,11 @@
  */
 package com.alibaba.rocketmq.client.impl.producer;
 
+import com.alibaba.rocketmq.client.common.ThreadLocalIndex;
 import com.alibaba.rocketmq.common.message.MessageQueue;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
 
 
 /**
@@ -30,7 +30,7 @@ public class TopicPublishInfo {
     private boolean orderTopic = false;
     private boolean haveTopicRouterInfo = false;
     private List<MessageQueue> messageQueueList = new ArrayList<MessageQueue>();
-    private AtomicInteger sendWhichQueue = new AtomicInteger(0);
+    private volatile ThreadLocalIndex sendWhichQueue = new ThreadLocalIndex(0);
 
 
     public boolean isOrderTopic() {
@@ -55,12 +55,12 @@ public class TopicPublishInfo {
     }
 
 
-    public AtomicInteger getSendWhichQueue() {
+    public ThreadLocalIndex getSendWhichQueue() {
         return sendWhichQueue;
     }
 
 
-    public void setSendWhichQueue(AtomicInteger sendWhichQueue) {
+    public void setSendWhichQueue(ThreadLocalIndex sendWhichQueue) {
         this.sendWhichQueue = sendWhichQueue;
     }
 
