@@ -15,6 +15,7 @@
  */
 package com.alibaba.rocketmq.client.impl.producer;
 
+import com.alibaba.rocketmq.client.ClientErrorCode;
 import com.alibaba.rocketmq.client.QueryResult;
 import com.alibaba.rocketmq.client.Validators;
 import com.alibaba.rocketmq.client.exception.MQBrokerException;
@@ -400,7 +401,6 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         this.makeSureStateOK();
         Validators.checkMessage(msg, this.defaultMQProducer);
 
-        final long maxTimeout = this.defaultMQProducer.getSendMsgTimeout() + 1000;
         final long beginTimestamp = System.currentTimeMillis();
         long endTimestamp = beginTimestamp;
         TopicPublishInfo topicPublishInfo = this.tryToFindTopicPublishInfo(msg.getTopic());
@@ -411,7 +411,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             int timesTotal = 1 + this.defaultMQProducer.getRetryTimesWhenSendFailed();
             int times = 0;
             String[] brokersSent = new String[timesTotal];
-            for (; times < timesTotal && (endTimestamp - beginTimestamp) < maxTimeout; times++) {
+            for (; times < timesTotal; times++) {
                 String lastBrokerName = null == mq ? null : mq.getBrokerName();
                 MessageQueue tmpmq = topicPublishInfo.selectOneMessageQueue(lastBrokerName);
                 if (tmpmq != null) {
@@ -495,10 +495,13 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                 mqClientException.setResponseCode(((MQBrokerException)exception).getResponseCode());
             }
             else if(exception instanceof RemotingConnectException){
-                mqClientException.setResponseCode(10001);
+                mqClientException.setResponseCode(ClientErrorCode.ConnectBrokerException);
             }
             else if(exception instanceof RemotingTimeoutException){
-                mqClientException.setResponseCode(10002);
+                mqClientException.setResponseCode(ClientErrorCode.AccessBrokerTimeout);
+            }
+            else if(exception instanceof MQClientException){
+                mqClientException.setResponseCode(ClientErrorCode.BrokerNotExistException);
             }
 
             throw mqClientException;
@@ -507,11 +510,11 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         List<String> nsList = this.getmQClientFactory().getMQClientAPIImpl().getNameServerAddressList();
         if (null == nsList || nsList.isEmpty()) {
             throw new MQClientException(
-                    "No name server address, please set it." + FAQUrl.suggestTodo(FAQUrl.NAME_SERVER_ADDR_NOT_EXIST_URL), null);
+                    "No name server address, please set it." + FAQUrl.suggestTodo(FAQUrl.NAME_SERVER_ADDR_NOT_EXIST_URL), null).setResponseCode(ClientErrorCode.NoNameServerException);
         }
 
         throw new MQClientException("No route info of this topic, " + msg.getTopic() + FAQUrl.suggestTodo(FAQUrl.NO_TOPIC_ROUTE_INFO),
-                null);
+                null).setResponseCode(ClientErrorCode.NotFoundTopicException);
     }
 
     private TopicPublishInfo tryToFindTopicPublishInfo(final String topic) {

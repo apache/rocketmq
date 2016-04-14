@@ -46,8 +46,9 @@ public class MQClientException extends Exception {
         return responseCode;
     }
 
-    public void setResponseCode(final int responseCode) {
+    public MQClientException setResponseCode(final int responseCode) {
         this.responseCode = responseCode;
+        return this;
     }
 
     public String getErrorMessage() {
