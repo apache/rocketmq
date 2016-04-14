@@ -15,7 +15,7 @@
  */
 package com.alibaba.rocketmq.client.impl.producer;
 
-import com.alibaba.rocketmq.client.ClientErrorCode;
+import com.alibaba.rocketmq.client.common.ClientErrorCode;
 import com.alibaba.rocketmq.client.QueryResult;
 import com.alibaba.rocketmq.client.Validators;
 import com.alibaba.rocketmq.client.exception.MQBrokerException;

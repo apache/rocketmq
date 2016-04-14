@@ -1,4 +1,4 @@
-package com.alibaba.rocketmq.client;
+package com.alibaba.rocketmq.client.common;
 
 public class ClientErrorCode {
     public static final int ConnectBrokerException = 10001;
