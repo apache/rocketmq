@@ -1043,6 +1043,24 @@ public class MQClientAPIImpl {
     }
 
 
+    public Properties getBrokerConfig(final String addr, final long timeoutMillis)
+            throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, InterruptedException,
+            MQBrokerException, UnsupportedEncodingException{
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_BROKER_CONFIG, null);
+
+        RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
+        assert response != null;
+        switch (response.getCode()) {
+            case ResponseCode.SUCCESS: {
+                return MixAll.string2Properties(new String(response.getBody()));
+            }
+            default:
+                break;
+        }
+
+        throw new MQBrokerException(response.getCode(), response.getRemark());
+    }
+
     public ClusterInfo getBrokerClusterInfo(final long timeoutMillis) throws InterruptedException, RemotingTimeoutException,
             RemotingSendRequestException, RemotingConnectException, MQBrokerException {
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_BROKER_CLUSTER_INFO, null);
@@ -1059,7 +1077,6 @@ public class MQClientAPIImpl {
         }
 
         throw new MQBrokerException(response.getCode(), response.getRemark());
-
     }
 
 

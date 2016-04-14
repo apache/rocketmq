@@ -68,6 +68,21 @@ public interface MQAdminExt extends MQAdmin {
 
 
     /**
+     * 获取broker配置
+     * @param brokerAddr
+     * @return
+     * @throws RemotingConnectException
+     * @throws RemotingSendRequestException
+     * @throws RemotingTimeoutException
+     * @throws UnsupportedEncodingException
+     * @throws InterruptedException
+     * @throws MQBrokerException
+     */
+    public Properties getBrokerConfig(final String brokerAddr) throws RemotingConnectException,
+            RemotingSendRequestException, RemotingTimeoutException, UnsupportedEncodingException, InterruptedException, MQBrokerException;
+
+
+    /**
      * 向指定Broker创建或者更新Topic配置
      *
      * @param addr
@@ -140,6 +155,16 @@ public interface MQAdminExt extends MQAdmin {
      * @throws RemotingException
      */
     public TopicList fetchAllTopicList() throws RemotingException, MQClientException, InterruptedException;
+
+    /**
+     * 获取cluster的topic列表
+     * @param clusterName
+     * @return
+     * @throws RemotingException
+     * @throws MQClientException
+     * @throws InterruptedException
+     */
+    public TopicList fetchTopicsByCLuster(String clusterName) throws RemotingException, MQClientException, InterruptedException;
 
 
     /**
