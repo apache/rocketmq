@@ -145,6 +145,8 @@ public class BrokerStartup {
                     InputStream in = new BufferedInputStream(new FileInputStream(file));
                     properties = new Properties();
                     properties.load(in);
+                    //提前解析properties参数，设置相关环境变量，必须早于Mixall的调用
+                    parsePropertie2SystemEnv(properties);
                     MixAll.properties2Object(properties, brokerConfig);
                     MixAll.properties2Object(properties, nettyServerConfig);
                     MixAll.properties2Object(properties, nettyClientConfig);
@@ -260,6 +262,15 @@ public class BrokerStartup {
         return null;
     }
 
+    private static void parsePropertie2SystemEnv(Properties properties){
+        if(properties ==null){
+            return;
+        }
+        String rmqAddressServerDomain = properties.getProperty("rmqAddressServerDomain","jmenv.tbsite.net");
+        String rmqAddressServerSubGroup = properties.getProperty("rmqAddressServerSubGroup","nsaddr");
+        System.setProperty("rocketmq.namesrv.domain",rmqAddressServerDomain);
+        System.setProperty("rocketmq.namesrv.domain.subgroup",rmqAddressServerSubGroup);
+    }
     public static Options buildCommandlineOptions(final Options options) {
         Option opt = new Option("c", "configFile", true, "Broker config properties file");
         opt.setRequired(false);

@@ -40,7 +40,9 @@ import com.alibaba.rocketmq.common.protocol.header.SendMessageRequestHeader;
 import com.alibaba.rocketmq.common.sysflag.MessageSysFlag;
 import com.alibaba.rocketmq.remoting.RPCHook;
 import com.alibaba.rocketmq.remoting.common.RemotingHelper;
+import com.alibaba.rocketmq.remoting.exception.RemotingConnectException;
 import com.alibaba.rocketmq.remoting.exception.RemotingException;
+import com.alibaba.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.slf4j.Logger;
 
 import java.io.IOException;
@@ -488,7 +490,18 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
             info += FAQUrl.suggestTodo(FAQUrl.SEND_MSG_FAILED);
 
-            throw new MQClientException(info, exception);
+            MQClientException mqClientException = new MQClientException(info, exception);
+            if(exception instanceof MQBrokerException){
+                mqClientException.setResponseCode(((MQBrokerException)exception).getResponseCode());
+            }
+            else if(exception instanceof RemotingConnectException){
+                mqClientException.setResponseCode(10001);
+            }
+            else if(exception instanceof RemotingTimeoutException){
+                mqClientException.setResponseCode(10002);
+            }
+
+            throw mqClientException;
         }
 
         List<String> nsList = this.getmQClientFactory().getMQClientAPIImpl().getNameServerAddressList();
