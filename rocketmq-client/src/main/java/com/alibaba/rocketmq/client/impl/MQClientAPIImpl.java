@@ -35,11 +35,7 @@ import com.alibaba.rocketmq.common.TopicConfig;
 import com.alibaba.rocketmq.common.UtilAll;
 import com.alibaba.rocketmq.common.admin.ConsumeStats;
 import com.alibaba.rocketmq.common.admin.TopicStatsTable;
-import com.alibaba.rocketmq.common.message.Message;
-import com.alibaba.rocketmq.common.message.MessageClientIDSetter;
-import com.alibaba.rocketmq.common.message.MessageDecoder;
-import com.alibaba.rocketmq.common.message.MessageExt;
-import com.alibaba.rocketmq.common.message.MessageQueue;
+import com.alibaba.rocketmq.common.message.*;
 import com.alibaba.rocketmq.common.namesrv.TopAddressing;
 import com.alibaba.rocketmq.common.protocol.RequestCode;
 import com.alibaba.rocketmq.common.protocol.ResponseCode;
@@ -413,10 +409,16 @@ public class MQClientAPIImpl {
                 MessageQueue messageQueue = new MessageQueue(msg.getTopic(), brokerName, responseHeader.getQueueId());
 
             //原来的ID变为offset id，
+
             SendResult sendResult = new SendResult(sendStatus,
                     MessageClientIDSetter.getUniqID(msg),
                     responseHeader.getMsgId(), messageQueue, responseHeader.getQueueOffset());
             sendResult.setTransactionId(responseHeader.getTransactionId());
+                String regionId = response.getExtFields().get(MessageConst.PROPERTY_MSG_REGION);
+                if(regionId ==null|| regionId.isEmpty()){
+                    regionId ="DefaultRegion";
+                }
+                sendResult.setRegionId(regionId);
             return sendResult;
         }
         default:

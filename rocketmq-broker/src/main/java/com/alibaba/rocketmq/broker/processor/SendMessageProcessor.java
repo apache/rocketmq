@@ -267,6 +267,8 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
 
         // 由于有直接返回的逻辑，所以必须要设置
         response.setOpaque(request.getOpaque());
+        //需要将region信息回传给客户端,只能放到协议头里
+        response.addExtField(MessageConst.PROPERTY_MSG_REGION,this.brokerController.getBrokerConfig().getRegionId());
 
         if (log.isDebugEnabled()) {
             log.debug("receive SendMessage request command, " + request);

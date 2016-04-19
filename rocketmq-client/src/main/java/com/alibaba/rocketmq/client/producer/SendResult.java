@@ -30,6 +30,7 @@ public class SendResult {
     private long queueOffset;
     private String transactionId;
     private String offsetMsgId;
+    private String regionId;
 
     public SendResult() {
     }
@@ -40,6 +41,24 @@ public class SendResult {
         this.offsetMsgId = offsetMsgId;
         this.messageQueue = messageQueue;
         this.queueOffset = queueOffset;
+    }
+
+    public SendResult(final SendStatus sendStatus, final String msgId, final MessageQueue messageQueue, final long queueOffset, final String transactionId, final String offsetMsgId, final String regionId) {
+        this.sendStatus = sendStatus;
+        this.msgId = msgId;
+        this.messageQueue = messageQueue;
+        this.queueOffset = queueOffset;
+        this.transactionId = transactionId;
+        this.offsetMsgId = offsetMsgId;
+        this.regionId = regionId;
+    }
+
+    public String getRegionId() {
+        return regionId;
+    }
+
+    public void setRegionId(final String regionId) {
+        this.regionId = regionId;
     }
 
     public static String encoderSendResultToJson(final Object obj) {
