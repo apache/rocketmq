@@ -152,6 +152,12 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
     }
 
     @Override
+    public Properties getBrokerConfig(final String brokerAddr) throws RemotingConnectException,
+            RemotingSendRequestException, RemotingTimeoutException, UnsupportedEncodingException, InterruptedException, MQBrokerException{
+        return defaultMQAdminExtImpl.getBrokerConfig(brokerAddr);
+    }
+
+    @Override
     public void createAndUpdateTopicConfig(String addr, TopicConfig config) throws RemotingException, MQBrokerException,
             InterruptedException, MQClientException {
         defaultMQAdminExtImpl.createAndUpdateTopicConfig(addr, config);
@@ -182,6 +188,11 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
     @Override
     public TopicList fetchAllTopicList() throws RemotingException, MQClientException, InterruptedException {
         return this.defaultMQAdminExtImpl.fetchAllTopicList();
+    }
+
+    @Override
+    public TopicList fetchTopicsByCLuster(String clusterName) throws RemotingException, MQClientException, InterruptedException{
+        return this.defaultMQAdminExtImpl.fetchTopicsByCLuster(clusterName);
     }
 
     @Override
