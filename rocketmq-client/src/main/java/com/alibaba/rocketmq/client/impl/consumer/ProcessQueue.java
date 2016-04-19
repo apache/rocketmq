@@ -100,6 +100,7 @@ public class ProcessQueue {
             try {
                 // 过期的消息进入重试队列
                 pushConsumer.sendMessageBack(msg, 3);
+                log.info("send expire msg back. topic={}, msgId={}, storeHost={}, queueId={}, queueOffset={}", msg.getTopic(), msg.getMsgId(), msg.getStoreHost(), msg.getQueueId(), msg.getQueueOffset());
                 try {
                     this.lockTreeMap.writeLock().lockInterruptibly();
                     try {
