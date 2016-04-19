@@ -1,12 +1,12 @@
 /**
  * Copyright (C) 2010-2013 Alibaba Group Holding Limited
- * <p/>
+ * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * <p/>
+ * <p>
  * http://www.apache.org/licenses/LICENSE-2.0
- * <p/>
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -60,11 +60,6 @@ public class ProcessQueue {
     private volatile long lastLockTimestamp = System.currentTimeMillis();
     private volatile boolean consuming = false;
     private volatile long msgAccCnt = 0;
-    /**
-     * 一条消息消费的超时时间(默认:10分钟)
-     */
-    private long consumeTimeout = 10 * 60 * 1000;
-
 
     public boolean isLockExpired() {
         boolean result = (System.currentTimeMillis() - this.lastLockTimestamp) > RebalanceLockMaxLiveTime;
@@ -89,7 +84,7 @@ public class ProcessQueue {
             try {
                 this.lockTreeMap.readLock().lockInterruptibly();
                 try {
-                    if (!msgTreeMap.isEmpty() && System.currentTimeMillis() - Long.valueOf(MessageAccessor.getConsumeStartTimeStamp(msgTreeMap.firstEntry().getValue())) > consumeTimeout) {
+                    if (!msgTreeMap.isEmpty() && System.currentTimeMillis() - Long.valueOf(MessageAccessor.getConsumeStartTimeStamp(msgTreeMap.firstEntry().getValue())) > pushConsumer.getConsumeTimeout() * 60 * 1000) {
                         msg = msgTreeMap.firstEntry().getValue();
                     } else {
                         // 不再有过期的消息,退出检查
@@ -104,7 +99,7 @@ public class ProcessQueue {
 
             try {
                 // 过期的消息进入重试队列
-                pushConsumer.sendMessageBack(msg, 0);
+                pushConsumer.sendMessageBack(msg, 3);
                 try {
                     this.lockTreeMap.writeLock().lockInterruptibly();
                     try {
@@ -448,5 +443,4 @@ public class ProcessQueue {
     public void setLastConsumeTimestamp(long lastConsumeTimestamp) {
         this.lastConsumeTimestamp = lastConsumeTimestamp;
     }
-
 }

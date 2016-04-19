@@ -1,12 +1,12 @@
 /**
  * Copyright (C) 2010-2013 Alibaba Group Holding Limited
- * <p/>
+ * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * <p/>
+ * <p>
  * http://www.apache.org/licenses/LICENSE-2.0
- * <p/>
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -35,11 +35,7 @@ import com.alibaba.rocketmq.common.TopicConfig;
 import com.alibaba.rocketmq.common.UtilAll;
 import com.alibaba.rocketmq.common.admin.ConsumeStats;
 import com.alibaba.rocketmq.common.admin.TopicStatsTable;
-import com.alibaba.rocketmq.common.message.Message;
-import com.alibaba.rocketmq.common.message.MessageClientIDSetter;
-import com.alibaba.rocketmq.common.message.MessageDecoder;
-import com.alibaba.rocketmq.common.message.MessageExt;
-import com.alibaba.rocketmq.common.message.MessageQueue;
+import com.alibaba.rocketmq.common.message.*;
 import com.alibaba.rocketmq.common.namesrv.TopAddressing;
 import com.alibaba.rocketmq.common.protocol.RequestCode;
 import com.alibaba.rocketmq.common.protocol.ResponseCode;
@@ -289,24 +285,26 @@ public class MQClientAPIImpl {
             @Override
             public void operationComplete(ResponseFuture responseFuture) {
                 RemotingCommand response = responseFuture.getResponseCommand();
-                if (null == sendCallback) {
-                    // 如果没有回调，则只尝试执行hook，不抛异常
+                if (null == sendCallback && response != null) {
+                    //如果没有回调，则只尝试执行hook，不抛异常
                     try {
-                        if (response != null) {
-                            SendResult sendResult = MQClientAPIImpl.this.processSendResponse(brokerName, msg, response);
-                            if (context != null && sendResult != null) {
-                                context.setSendResult(sendResult);
-                                context.getProducer().executeSendMessageHookAfter(context);
-                            }
+                        SendResult sendResult = MQClientAPIImpl.this.processSendResponse(brokerName, msg, response);
+                        if (context != null && sendResult != null) {
+                            context.setSendResult(sendResult);
+                            context.getProducer().executeSendMessageHookAfter(context);
                         }
                     } catch (Exception e) {
+                        //
                     }
+                    return;
                 }
+
                 if (response != null) {
                     try {
                         SendResult sendResult = MQClientAPIImpl.this.processSendResponse(brokerName, msg, response);
                         assert sendResult != null;
-                        // context在没有sendMessagehook时为null
+                        System.out.println(sendResult);
+                        // context在没有sendMessageHook时为null
                         if (context != null) {
                             context.setSendResult(sendResult);
                             context.getProducer().executeSendMessageHookAfter(context);
@@ -314,22 +312,22 @@ public class MQClientAPIImpl {
                         sendCallback.onSuccess(sendResult);
                     } catch (Exception e) {
                         onExceptionImpl(brokerName, msg, timeoutMillis, request, sendCallback, topicPublishInfo, instance,
-                                retryTimesWhenSendFailed, times, e, context);
+                                retryTimesWhenSendFailed, times, e, context, false);
                     }
                 } else {
                     if (!responseFuture.isSendRequestOK()) {
                         MQClientException ex = new MQClientException("send request failed", responseFuture.getCause());
                         onExceptionImpl(brokerName, msg, timeoutMillis, request, sendCallback, topicPublishInfo, instance,
-                                retryTimesWhenSendFailed, times, ex, context);
+                                retryTimesWhenSendFailed, times, ex, context, true);
                     } else if (responseFuture.isTimeout()) {
                         MQClientException ex = new MQClientException("wait response timeout " + responseFuture.getTimeoutMillis() + "ms",
                                 responseFuture.getCause());
                         onExceptionImpl(brokerName, msg, timeoutMillis, request, sendCallback, topicPublishInfo, instance,
-                                retryTimesWhenSendFailed, times, ex, context);
+                                retryTimesWhenSendFailed, times, ex, context, true);
                     } else {
                         MQClientException ex = new MQClientException("unknow reseaon", responseFuture.getCause());
                         onExceptionImpl(brokerName, msg, timeoutMillis, request, sendCallback, topicPublishInfo, instance,
-                                retryTimesWhenSendFailed, times, ex, context);
+                                retryTimesWhenSendFailed, times, ex, context, true);
                     }
                 }
             }
@@ -347,26 +345,27 @@ public class MQClientAPIImpl {
                                  final int timesTotal, //
                                  final AtomicInteger curTimes, //
                                  final Exception e, //
-                                 final SendMessageContext context) {
+                                 final SendMessageContext context,
+                                 final boolean needRetry) {
         int tmp = curTimes.incrementAndGet();
-        if (tmp <= timesTotal) {
+        if (needRetry && tmp <= timesTotal) {
             MessageQueue tmpmq = topicPublishInfo.selectOneMessageQueue(brokerName);
             String addr = instance.findBrokerAddressInPublish(tmpmq.getBrokerName());
-            // todo-->jodie:
-            log.info("async send msg by retry {} times. topic={}, brokerAddr={}, brokerName={}", msg.getTopic(), tmp, addr,
+            log.info("async send msg by retry {} times. topic={}, brokerAddr={}, brokerName={}", tmp, msg.getTopic(), addr,
                     tmpmq.getBrokerName());
             try {
+                request.setOpaque(RemotingCommand.createNewRequestId());
                 sendMessageAsync(addr, tmpmq.getBrokerName(), msg, timeoutMillis, request, sendCallback, topicPublishInfo, instance,
                         timesTotal, curTimes, context);
             } catch (InterruptedException e1) {
-                onExceptionImpl(brokerName, msg, timeoutMillis, request, sendCallback, topicPublishInfo, instance, timesTotal, curTimes, e1,
-                        context);
+                onExceptionImpl(tmpmq.getBrokerName(), msg, timeoutMillis, request, sendCallback, topicPublishInfo, instance, timesTotal, curTimes, e1,
+                        context, true);
             } catch (RemotingException e1) {
-                onExceptionImpl(brokerName, msg, timeoutMillis, request, sendCallback, topicPublishInfo, instance, timesTotal, curTimes, e1,
-                        context);
+                onExceptionImpl(tmpmq.getBrokerName(), msg, timeoutMillis, request, sendCallback, topicPublishInfo, instance, timesTotal, curTimes, e1,
+                        context, true);
             }
         } else {
-            // 最终发送失败的地方，记录轨迹埋点
+            //最终发送失败的地方，记录轨迹埋点
             if (context != null) {
                 context.setException(e);
                 context.getProducer().executeSendMessageHookAfter(context);
@@ -412,15 +411,15 @@ public class MQClientAPIImpl {
 
                 MessageQueue messageQueue = new MessageQueue(msg.getTopic(), brokerName, responseHeader.getQueueId());
 
-            //原来的ID变为offset id，
-            SendResult sendResult = new SendResult(sendStatus,
-                    MessageClientIDSetter.getUniqID(msg),
-                    responseHeader.getMsgId(), messageQueue, responseHeader.getQueueOffset());
-            sendResult.setTransactionId(responseHeader.getTransactionId());
-            return sendResult;
-        }
-        default:
-            break;
+                //原来的ID变为offset id，
+                SendResult sendResult = new SendResult(sendStatus,
+                        MessageClientIDSetter.getUniqID(msg),
+                        responseHeader.getMsgId(), messageQueue, responseHeader.getQueueOffset());
+                sendResult.setTransactionId(responseHeader.getTransactionId());
+                return sendResult;
+            }
+            default:
+                break;
         }
 
         throw new MQBrokerException(response.getCode(), response.getRemark());
@@ -1774,7 +1773,7 @@ public class MQClientAPIImpl {
         requestHeader.setDestGroup(destGroup);
         requestHeader.setTopic(topic);
         requestHeader.setOffline(isOffline);
-        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.CLONE_GROUP_OFFSET, null);
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.CLONE_GROUP_OFFSET, requestHeader);
 
         RemotingCommand response = this.remotingClient.invokeSync(MixAll.brokerVIPChannel(this.clientConfig.isVipChannelEnabled(), addr),
                 request, timeoutMillis);
