@@ -259,7 +259,12 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                 thisHeader.setProducerGroup(producerGroup);
                 thisHeader.setTranStateTableOffset(checkRequestHeader.getTranStateTableOffset());
                 thisHeader.setFromTransactionCheck(true);
-                thisHeader.setMsgId(message.getMsgId());
+                //此处需要使用uniqueKey回传提交信息,不然轨迹数据中无法匹配是哪个msg的提交
+                String uniqueKey = message.getProperties().get(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX);
+                if (uniqueKey == null) {
+                    uniqueKey = message.getMsgId();
+                }
+                thisHeader.setMsgId(uniqueKey);
                 thisHeader.setTransactionId(checkRequestHeader.getTransactionId());
                 switch (localTransactionState) {
                     case COMMIT_MESSAGE:
@@ -570,6 +575,14 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                     context.setBrokerAddr(brokerAddr);
                     context.setMessage(msg);
                     context.setMq(mq);
+                    String isTrans = msg.getProperty(MessageConst.PROPERTY_TRANSACTION_PREPARED);
+                    if (isTrans != null && isTrans.equals("true")) {
+                        context.setMsgType(MessageType.Trans_Msg_Half);
+                    }
+                    //此处为了不依赖ons的包,直接写上key的名称,可能存在风险
+                    if (msg.getProperty("__STARTDELIVERTIME") != null) {
+                        context.setMsgType(MessageType.Delay_Msg);
+                    }
                     this.executeSendMessageHookBefore(context);
                 }
 

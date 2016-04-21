@@ -20,6 +20,7 @@ import com.alibaba.rocketmq.client.impl.producer.DefaultMQProducerImpl;
 import com.alibaba.rocketmq.client.producer.SendResult;
 import com.alibaba.rocketmq.common.message.Message;
 import com.alibaba.rocketmq.common.message.MessageQueue;
+import com.alibaba.rocketmq.common.message.MessageType;
 
 import java.util.Map;
 
@@ -36,6 +37,15 @@ public class SendMessageContext {
     private Object mqTraceContext;
     private Map<String, String> props;
     private DefaultMQProducerImpl producer;
+    private MessageType msgType = MessageType.Normal_Msg;
+
+    public MessageType getMsgType() {
+        return msgType;
+    }
+
+    public void setMsgType(final MessageType msgType) {
+        this.msgType = msgType;
+    }
 
     public DefaultMQProducerImpl getProducer() {
         return producer;

@@ -45,7 +45,6 @@ import io.netty.channel.ChannelHandlerContext;
 
 import java.net.SocketAddress;
 import java.util.List;
-import java.util.Map;
 
 
 /**
@@ -332,12 +331,8 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         msgInner.setTopic(newTopic);
         msgInner.setBody(body);
         msgInner.setFlag(requestHeader.getFlag());
-        //取出消息体的properties，并放入region信息字段
-        Map<String, String> properties =MessageDecoder.string2messageProperties(requestHeader.getProperties());
-        properties.put(MessageConst.PROPERTY_MSG_REGION,this.brokerController.getBrokerConfig().getRegionId());
-        MessageAccessor.setProperties(msgInner, properties);
-        msgInner.setPropertiesString(MessageDecoder.messageProperties2String(properties));
-
+        MessageAccessor.setProperties(msgInner, MessageDecoder.string2messageProperties(requestHeader.getProperties()));
+        msgInner.setPropertiesString(requestHeader.getProperties());
         msgInner.setTagsCode(MessageExtBrokerInner.tagsString2tagsCode(topicConfig.getTopicFilterType(), msgInner.getTags()));
 
         msgInner.setQueueId(queueIdInt);
@@ -433,12 +428,6 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
                     sendMessageContext.setQueueId(responseHeader.getQueueId());
                     sendMessageContext.setQueueOffset(responseHeader.getQueueOffset());
 
-                    String uniqueKey = msgInner.getProperties().get(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX);
-                    //对老的客户端兼容，没有unique msgid则以offset msgid为准
-                    if(uniqueKey ==null){
-                        uniqueKey =responseHeader.getMsgId();
-                    }
-                    sendMessageContext.setMsgUniqueKey(uniqueKey);
                     //ONS 商业化：消息发送成功，计费Size考虑 body + properties
                     int wroteSize = putMessageResult.getAppendMessageResult().getWroteBytes();
                     int incValue = (int) Math.ceil(wroteSize / BrokerStatsManager.SIZE_PER_COUNT);

@@ -26,6 +26,7 @@ import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.common.constant.PermName;
 import com.alibaba.rocketmq.common.help.FAQUrl;
 import com.alibaba.rocketmq.common.message.MessageAccessor;
+import com.alibaba.rocketmq.common.message.MessageConst;
 import com.alibaba.rocketmq.common.message.MessageDecoder;
 import com.alibaba.rocketmq.common.protocol.RequestCode;
 import com.alibaba.rocketmq.common.protocol.ResponseCode;
@@ -47,6 +48,7 @@ import org.slf4j.LoggerFactory;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 
 
@@ -85,6 +87,17 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
         mqtraceContext.setBrokerAddr(this.brokerController.getBrokerAddr());
         mqtraceContext.setBrokerRegionId(this.brokerController.getBrokerConfig().getRegionId());
         mqtraceContext.setBornTimeStamp(requestHeader.getBornTimestamp());
+        //取出消息体的properties，并放入region信息字段
+        Map<String, String> properties = MessageDecoder.string2messageProperties(requestHeader.getProperties());
+        String uniqueKey = properties.get(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX);
+        properties.put(MessageConst.PROPERTY_MSG_REGION, this.brokerController.getBrokerConfig().getRegionId());
+        requestHeader.setProperties(MessageDecoder.messageProperties2String(properties));
+
+        //对老的客户端兼容，没有unique msgid则置空
+        if (uniqueKey == null) {
+            uniqueKey = "";
+        }
+        mqtraceContext.setMsgUniqueKey(uniqueKey);
         return mqtraceContext;
     }
 
