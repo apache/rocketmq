@@ -98,7 +98,7 @@ public class BrokerConfig {
     private int maxDelayTime = 40;
 
     //broker所在的Region名称
-    private String regionId = "DefaultRegionId";
+    private String regionId = "DefaultRegion";
 
     public String getRegionId() {
         return regionId;

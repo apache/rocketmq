@@ -29,6 +29,7 @@ import com.alibaba.rocketmq.common.sysflag.TopicSysFlag;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map.Entry;
@@ -410,8 +411,9 @@ public class TopicConfigManager extends ConfigManager {
 
     @Override
     public String configFilePath() {
-        return BrokerPathConfigHelper.getTopicConfigPath(this.brokerController.getMessageStoreConfig()
-                .getStorePathRootDir());
+//        return BrokerPathConfigHelper.getTopicConfigPath(this.brokerController.getMessageStoreConfig()
+//                .getStorePathRootDir());
+        return BrokerPathConfigHelper.getTopicConfigPath(System.getProperty("user.home") + File.separator + "store");
     }
 
     @Override

@@ -1,12 +1,12 @@
 /**
  * Copyright (C) 2010-2013 Alibaba Group Holding Limited
- * <p/>
+ * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * <p/>
+ * <p>
  * http://www.apache.org/licenses/LICENSE-2.0
- * <p/>
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -76,7 +76,9 @@ public class TopicPublishInfo {
 
 
     public MessageQueue selectOneMessageQueue(final String lastBrokerName) {
-        if (lastBrokerName != null) {
+        if (lastBrokerName == null) {
+            return selectOneMessageQueue();
+        } else {
             int index = this.sendWhichQueue.getAndIncrement();
             for (int i = 0; i < this.messageQueueList.size(); i++) {
                 int pos = Math.abs(index++) % this.messageQueueList.size();
@@ -85,13 +87,15 @@ public class TopicPublishInfo {
                     return mq;
                 }
             }
-
-            return null;
-        } else {
-            int index = this.sendWhichQueue.getAndIncrement();
-            int pos = Math.abs(index) % this.messageQueueList.size();
-            return this.messageQueueList.get(pos);
+            return selectOneMessageQueue();
         }
+    }
+
+
+    public MessageQueue selectOneMessageQueue() {
+        int index = this.sendWhichQueue.getAndIncrement();
+        int pos = Math.abs(index) % this.messageQueueList.size();
+        return this.messageQueueList.get(pos);
     }
 
 

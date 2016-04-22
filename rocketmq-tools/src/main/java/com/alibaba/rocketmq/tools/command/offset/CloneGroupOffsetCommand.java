@@ -1,6 +1,10 @@
 package com.alibaba.rocketmq.tools.command.offset;
 
 import com.alibaba.rocketmq.common.MixAll;
+import com.alibaba.rocketmq.common.admin.ConsumeStats;
+import com.alibaba.rocketmq.common.message.MessageQueue;
+import com.alibaba.rocketmq.common.protocol.route.BrokerData;
+import com.alibaba.rocketmq.common.protocol.route.TopicRouteData;
 import com.alibaba.rocketmq.remoting.RPCHook;
 import com.alibaba.rocketmq.srvutil.ServerUtil;
 import com.alibaba.rocketmq.tools.admin.DefaultMQAdminExt;
@@ -9,6 +13,8 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.PosixParser;
+
+import java.util.Set;
 
 
 /**
@@ -51,7 +57,7 @@ public class CloneGroupOffsetCommand implements SubCommand {
         options.addOption(opt);
 
         opt = new Option("t", "topic", true, "set the topic");
-        opt.setRequired(false);
+        opt.setRequired(true);
         options.addOption(opt);
 
         opt = new Option("o", "offline", true, "the group or the topic is offline");
@@ -65,23 +71,33 @@ public class CloneGroupOffsetCommand implements SubCommand {
 
     @Override
     public void execute(CommandLine commandLine, Options options, RPCHook rpcHook) {
+        String srcGroup = commandLine.getOptionValue("s").trim();
+        String destGroup = commandLine.getOptionValue("d").trim();
+        String topic = commandLine.getOptionValue("t").trim();
+
         DefaultMQAdminExt defaultMQAdminExt = new DefaultMQAdminExt(rpcHook);
-        defaultMQAdminExt.setInstanceName(Long.toString(System.currentTimeMillis()));
+        defaultMQAdminExt.setInstanceName("admin-" + Long.toString(System.currentTimeMillis()));
+
         try {
-            String srcGroup = commandLine.getOptionValue("s").trim();
-            String destGroup = commandLine.getOptionValue("d").trim();
-            String topic = "";
-            if (commandLine.hasOption('t')) {
-                topic = commandLine.getOptionValue("t").trim();
-            }
-
-            boolean isOffline = false;
-            if (commandLine.hasOption('o')) {
-                isOffline = Boolean.parseBoolean(commandLine.getOptionValue("o").trim());
-            }
-
             defaultMQAdminExt.start();
-            defaultMQAdminExt.cloneGroupOffset(srcGroup, destGroup, topic, isOffline);
+            ConsumeStats consumeStats = defaultMQAdminExt.examineConsumeStats(srcGroup);
+            Set<MessageQueue> mqs = consumeStats.getOffsetTable().keySet();
+            if (mqs != null && !mqs.isEmpty()) {
+                TopicRouteData topicRoute = defaultMQAdminExt.examineTopicRouteInfo(topic);
+                for (MessageQueue mq : mqs) {
+                    String addr = null;
+                    for (BrokerData brokerData : topicRoute.getBrokerDatas()) {
+                        if (brokerData.getBrokerName().equals(mq.getBrokerName())) {
+                            addr = brokerData.selectBrokerAddr();
+                            break;
+                        }
+                    }
+                    long offset = consumeStats.getOffsetTable().get(mq).getBrokerOffset();
+                    if (offset >= 0) {
+                        defaultMQAdminExt.updateConsumeOffset(addr, destGroup, mq, offset);
+                    }
+                }
+            }
             System.out.printf("clone group offset success. srcGroup[%s], destGroup=[%s], topic[%s]",
                     srcGroup, destGroup, topic);
         } catch (Exception e) {
