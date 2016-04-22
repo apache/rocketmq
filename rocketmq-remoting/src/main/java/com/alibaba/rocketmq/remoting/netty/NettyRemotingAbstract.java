@@ -195,13 +195,13 @@ public abstract class NettyRemotingAbstract {
                                 try {
                                     responseFuture.executeInvokeCallback();
                                 } catch (Throwable e) {
-                                    plog.warn("excute callback in executor exception, and callback throw", e);
+                                    plog.warn("execute callback in executor exception, and callback throw", e);
                                 }
                             }
                         });
                     } catch (Exception e) {
                         runInThisThread = true;
-                        plog.warn("excute callback in executor exception, maybe executor busy", e);
+                        plog.warn("execute callback in executor exception, maybe executor busy", e);
                     }
                 } else {
                     runInThisThread = true;

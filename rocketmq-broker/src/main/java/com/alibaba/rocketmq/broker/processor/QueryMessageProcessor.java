@@ -18,6 +18,7 @@ package com.alibaba.rocketmq.broker.processor;
 import com.alibaba.rocketmq.broker.BrokerController;
 import com.alibaba.rocketmq.broker.pagecache.OneMessageTransfer;
 import com.alibaba.rocketmq.broker.pagecache.QueryMessageTransfer;
+import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.common.protocol.RequestCode;
 import com.alibaba.rocketmq.common.protocol.ResponseCode;
@@ -83,8 +84,9 @@ public class QueryMessageProcessor implements NettyRequestProcessor {
         // 由于使用sendfile，所以必须要设置
         response.setOpaque(request.getOpaque());
 
-        //如果没有MaxNum，则设置默认
-        if (requestHeader.getMaxNum() == null) {
+        //如果是ＵｎｉｑｕｅＫｅｙ查询，则设置默认
+        String isUniqueKey = request.getExtFields().get(MixAll.UNIQUE_MSG_QUERY_FLAG);
+        if (isUniqueKey != null && isUniqueKey.equals("true")) {
             requestHeader.setMaxNum(this.brokerController.getMessageStoreConfig().getDefaultQueryMaxNum());
         }
 

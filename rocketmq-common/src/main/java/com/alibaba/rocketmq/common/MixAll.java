@@ -63,7 +63,7 @@ public class MixAll {
     public static final String CID_ONSAPI_OWNER_GROUP = "CID_ONSAPI_OWNER";
     public static final String CID_ONSAPI_PULL_GROUP = "CID_ONSAPI_PULL";
     public static final String CID_RMQ_SYS_PREFIX = "CID_RMQ_SYS_";
-    public static final String SYSTEM_TOPIC_PREFIX = "rmq_sys_";
+
     public static final List<String> LocalInetAddrs = getLocalInetAddress();
     public static final String Localhost = localhost();
     public static final String DEFAULT_CHARSET = "UTF-8";
@@ -73,6 +73,8 @@ public class MixAll {
     public static final String RETRY_GROUP_TOPIC_PREFIX = "%RETRY%";
     // 为每个Consumer Group建立一个默认的Topic，前缀 + GroupName，用来保存重试多次都失败，接下来不再重试的消息
     public static final String DLQ_GROUP_TOPIC_PREFIX = "%DLQ%";
+    public static final String SYSTEM_TOPIC_PREFIX = "rmq_sys_";
+    public static final String UNIQUE_MSG_QUERY_FLAG = "_UNIQUE_KEY_QUERY";
 
 
     public static String getRetryTopic(final String consumerGroup) {

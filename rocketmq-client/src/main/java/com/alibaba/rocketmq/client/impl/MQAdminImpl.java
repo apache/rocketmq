@@ -267,7 +267,7 @@ public class MQAdminImpl {
 
     public MessageExt queryMessageByUniqKey(String topic, String uniqKey)  throws InterruptedException, MQClientException  {
         //打开1s的误差，因为服务器存储时间差是以秒计算的
-        QueryResult qr = this.queryMessage(topic, uniqKey, 1,
+        QueryResult qr = this.queryMessage(topic, uniqKey, 32,
                 MessageClientIDSetter.getNearlyTimeFromID(uniqKey).getTime() - 1000, Long.MAX_VALUE, true);
         if (qr != null && qr.getMessageList() != null && qr.getMessageList().size() > 0) {
             return qr.getMessageList().get(0);
@@ -303,12 +303,7 @@ public class MQAdminImpl {
                         QueryMessageRequestHeader requestHeader = new QueryMessageRequestHeader();
                         requestHeader.setTopic(topic);
                         requestHeader.setKey(key);
-                        if (isUniqKey) {
-                            requestHeader.setMaxNum(null);
-                        }
-                        else {
-                            requestHeader.setMaxNum(maxNum);
-                        }
+                        requestHeader.setMaxNum(maxNum);
                         requestHeader.setBeginTimestamp(begin);
                         requestHeader.setEndTimestamp(end);
 
@@ -349,7 +344,7 @@ public class MQAdminImpl {
                                             countDownLatch.countDown();
                                         }
                                     }
-                                });
+                                }, isUniqKey);
                     } catch (Exception e) {
                         log.warn("queryMessage exception", e);
                     }// end of try
