@@ -798,10 +798,11 @@ public class MQClientAPIImpl {
                              final String addr, //
                              final QueryMessageRequestHeader requestHeader, //
                              final long timeoutMillis, //
-                             final InvokeCallback invokeCallback//
+                             final InvokeCallback invokeCallback,//
+                             final Boolean isUnqiueKey
     ) throws RemotingException, MQBrokerException, InterruptedException {
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.QUERY_MESSAGE, requestHeader);
-
+        request.addExtField(MixAll.UNIQUE_MSG_QUERY_FLAG, isUnqiueKey.toString());
         this.remotingClient.invokeAsync(MixAll.brokerVIPChannel(this.clientConfig.isVipChannelEnabled(), addr), request, timeoutMillis,
                 invokeCallback);
     }
