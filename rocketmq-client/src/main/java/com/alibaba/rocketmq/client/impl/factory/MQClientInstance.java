@@ -1,12 +1,12 @@
 /**
  * Copyright (C) 2010-2013 Alibaba Group Holding Limited
- * <p/>
+ * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * <p/>
+ * <p>
  * http://www.apache.org/licenses/LICENSE-2.0
- * <p/>
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -1014,6 +1014,10 @@ public class MQClientInstance {
                 return;
             }
 
+            // 将consumer suspend
+            consumer.suspend();
+
+            // 将ProcessQueue设置为drop
             ConcurrentHashMap<MessageQueue, ProcessQueue> processQueueTable = consumer.getRebalanceImpl().getProcessQueueTable();
             Iterator<MessageQueue> itr = processQueueTable.keySet().iterator();
             while (itr.hasNext()) {
@@ -1025,38 +1029,25 @@ public class MQClientInstance {
                 }
             }
 
-            Iterator<MessageQueue> iterator = offsetTable.keySet().iterator();
-            while (iterator.hasNext()) {
-                MessageQueue mq = iterator.next();
-                consumer.updateConsumeOffset(mq, offsetTable.get(mq));
-                log.info("[reset-offset] reset offsetTable. topic={}, group={}, mq={}, offset={}",
-                        new Object[]{topic, group, mq, offsetTable.get(mq)});
-            }
-            consumer.getOffsetStore().persistAll(offsetTable.keySet());
-
+            // 等待正在运行的消息处理完成,不会有脏的offset提交
             try {
                 TimeUnit.SECONDS.sleep(30);
             } catch (InterruptedException e) {
                 //
             }
 
-            iterator = offsetTable.keySet().iterator();
-            while (iterator.hasNext()) {
-                MessageQueue mq = iterator.next();
-                consumer.updateConsumeOffset(mq, offsetTable.get(mq));
-                log.info("[reset-offset] reset offsetTable. topic={}, group={}, mq={}, offset={}",
-                        new Object[]{topic, group, mq, offsetTable.get(mq)});
-            }
-            consumer.getOffsetStore().persistAll(offsetTable.keySet());
-
-            iterator = offsetTable.keySet().iterator();
+            Iterator<MessageQueue> iterator = processQueueTable.keySet().iterator();
             processQueueTable = consumer.getRebalanceImpl().getProcessQueueTable();
             while (iterator.hasNext()) {
-                MessageQueue mq = iterator.next();
-                processQueueTable.remove(mq);
+                MessageQueue mq = itr.next();
+                if (topic.equals(mq.getTopic())) {
+                    consumer.updateConsumeOffset(mq, offsetTable.get(mq));
+                    consumer.getRebalanceImpl().removeUnnecessaryMessageQueue(mq, processQueueTable.get(mq));
+                    iterator.remove();
+                }
             }
         } finally {
-            consumer.getRebalanceImpl().doRebalance();
+            consumer.resume();
         }
     }
 
