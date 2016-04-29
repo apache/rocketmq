@@ -1,5 +1,3 @@
-[![Coffee Pay](http://cp.alibaba.net/projects/5721cb2088fe172240057922/badge)](http://cp.alibaba.net/donates?id=5721cb2088fe172240057922)
-
 ### RocketMQ是什么？[![Build Status](https://travis-ci.org/alibaba/RocketMQ.svg?branch=develop)](https://travis-ci.org/alibaba/RocketMQ)
 RocketMQ是一款分布式、队列模型的消息中间件，具有以下特点：
 
