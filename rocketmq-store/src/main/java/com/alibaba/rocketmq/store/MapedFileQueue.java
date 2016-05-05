@@ -324,6 +324,7 @@ public class MapedFileQueue {
                 int where = (int) (offset % mapedFileLast.getFileSize());
                 mapedFileLast.setCommittedPosition(where);
                 mapedFileLast.setWrotePostion(where);
+                break;
             } else {
                 this.mapedFiles.remove(mapedFileLast);
             }
