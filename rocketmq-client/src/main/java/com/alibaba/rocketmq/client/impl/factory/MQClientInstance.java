@@ -31,7 +31,6 @@ import com.alibaba.rocketmq.common.MQVersion;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.ServiceState;
 import com.alibaba.rocketmq.common.UtilAll;
-import com.alibaba.rocketmq.common.conflict.PackageConflictDetect;
 import com.alibaba.rocketmq.common.constant.PermName;
 import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.common.message.MessageQueue;
@@ -135,7 +134,6 @@ public class MQClientInstance {
     }
 
     public void start() throws MQClientException {
-        PackageConflictDetect.detectFastjson();
 
         synchronized (this) {
             switch (this.serviceState) {
