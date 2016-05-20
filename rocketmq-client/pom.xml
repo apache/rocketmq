@@ -53,30 +53,8 @@
                                     <pattern>com.alibaba.fastjson</pattern>
                                     <shadedPattern>com.alibaba.rocketmq.shade.com.alibaba.fastjson</shadedPattern>
                                 </relocation>
-                                <relocation>
-                                    <pattern>Lcom/alibaba/fastjson</pattern>
-                                    <shadedPattern>Lcom/alibaba/rocketmq/shade/com/alibaba/fastjson</shadedPattern>
-                                    <rawString>true</rawString>
-                                </relocation>
-                                <relocation>
-                                    <pattern>\)Lcom/alibaba/fastjson</pattern>
-                                    <shadedPattern>\)Lcom/alibaba/rocketmq/shade/com/alibaba/fastjson</shadedPattern>
-                                    <rawString>true</rawString>
-                                </relocation>
-                                <relocation>
-                                    <pattern>\(Lcom/alibaba/fastjson</pattern>
-                                    <shadedPattern>\(Lcom/alibaba/rocketmq/shade/com/alibaba/fastjson</shadedPattern>
-                                    <rawString>true</rawString>
-                                </relocation>
-                                <relocation>
-                                    <pattern>\[CLcom/alibaba/fastjson</pattern>
-                                    <shadedPattern>\[CLcom/alibaba/rocketmq/shade/com/alibaba/fastjson
-                                    </shadedPattern>
-                                    <rawString>true</rawString>
-                                </relocation>
                             </relocations>
                         </configuration>
-
                     </plugin>
                 </plugins>
             </build>
