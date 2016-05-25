@@ -33,7 +33,7 @@
                             <keepDependenciesWithProvidedScope>false</keepDependenciesWithProvidedScope>
                             <promoteTransitiveDependencies>false</promoteTransitiveDependencies>
                             <createDependencyReducedPom>true</createDependencyReducedPom>
-                            <minimizeJar>true</minimizeJar>
+                            <minimizeJar>false</minimizeJar>
                             <createSourcesJar>true</createSourcesJar>
                             <artifactSet>
                                 <includes>
