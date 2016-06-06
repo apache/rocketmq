@@ -352,7 +352,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
             }
         } else {
             this.closeChannel(addr, channel);
-            throw new RemotingConnectException(RemotingHelper.parseChannelRemoteAddr(channel));
+            throw new RemotingConnectException(addr);
         }
     }
 
@@ -500,7 +500,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
             }
         } else {
             this.closeChannel(addr, channel);
-            throw new RemotingConnectException(RemotingHelper.parseChannelRemoteAddr(channel));
+            throw new RemotingConnectException(addr);
         }
     }
 
@@ -526,7 +526,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
             }
         } else {
             this.closeChannel(addr, channel);
-            throw new RemotingConnectException(RemotingHelper.parseChannelRemoteAddr(channel));
+            throw new RemotingConnectException(addr);
         }
     }
 
