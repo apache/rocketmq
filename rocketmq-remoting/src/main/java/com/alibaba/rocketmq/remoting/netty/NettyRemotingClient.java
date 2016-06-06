@@ -140,6 +140,8 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                 //
                 .option(ChannelOption.SO_KEEPALIVE, false)
                 //
+                .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, nettyClientConfig.getConnectTimeoutMillis())
+                //
                 .option(ChannelOption.SO_SNDBUF, nettyClientConfig.getClientSocketSndBufSize())
                 //
                 .option(ChannelOption.SO_RCVBUF, nettyClientConfig.getClientSocketRcvBufSize())

@@ -405,6 +405,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         this.makeSureStateOK();
         Validators.checkMessage(msg, this.defaultMQProducer);
 
+        final long invokeID = new Random().nextLong();
         final long beginTimestamp = System.currentTimeMillis();
         long endTimestamp = beginTimestamp;
         TopicPublishInfo topicPublishInfo = this.tryToFindTopicPublishInfo(msg.getTopic());
@@ -441,22 +442,22 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                                 break;
                         }
                     } catch (RemotingException e) {
-                        log.warn("sendKernelImpl exception", e);
+                        endTimestamp = System.currentTimeMillis();
+                        log.warn(String.format("sendKernelImpl exception, resend at once, InvokeID: %s, RT: %sms, Broker: %s", invokeID, endTimestamp - beginTimestamp, mq), e);
                         log.warn(msg.toString());
                         exception = e;
-                        endTimestamp = System.currentTimeMillis();
                         continue;
                     } catch (MQClientException e) {
-                        log.warn("sendKernelImpl exception", e);
+                        endTimestamp = System.currentTimeMillis();
+                        log.warn(String.format("sendKernelImpl exception, resend at once, InvokeID: %s, RT: %sms, Broker: %s", invokeID, endTimestamp - beginTimestamp, mq), e);
                         log.warn(msg.toString());
                         exception = e;
-                        endTimestamp = System.currentTimeMillis();
                         continue;
                     } catch (MQBrokerException e) {
-                        log.warn("sendKernelImpl exception", e);
+                        endTimestamp = System.currentTimeMillis();
+                        log.warn(String.format("sendKernelImpl exception, resend at once, InvokeID: %s, RT: %sms, Broker: %s", invokeID, endTimestamp - beginTimestamp, mq), e);
                         log.warn(msg.toString());
                         exception = e;
-                        endTimestamp = System.currentTimeMillis();
                         switch (e.getResponseCode()) {
                             case ResponseCode.TOPIC_NOT_EXIST:
                             case ResponseCode.SERVICE_NOT_AVAILABLE:
@@ -473,6 +474,11 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                                 throw e;
                         }
                     } catch (InterruptedException e) {
+                        endTimestamp = System.currentTimeMillis();
+                        log.warn(String.format("sendKernelImpl exception, throw exception, InvokeID: %s, RT: %sms, Broker: %s", invokeID, endTimestamp - beginTimestamp, mq), e);
+                        log.warn(msg.toString());
+                        exception = e;
+
                         log.warn("sendKernelImpl exception", e);
                         log.warn(msg.toString());
                         throw e;
