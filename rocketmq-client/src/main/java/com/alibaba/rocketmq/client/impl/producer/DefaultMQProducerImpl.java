@@ -592,7 +592,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                         context.setMsgType(MessageType.Trans_Msg_Half);
                     }
                     //此处为了不依赖ons的包,直接写上key的名称,可能存在风险
-                    if (msg.getProperty("__STARTDELIVERTIME") != null) {
+                    if (msg.getProperty("__STARTDELIVERTIME") != null || msg.getProperty(MessageConst.PROPERTY_DELAY_TIME_LEVEL) != null) {
                         context.setMsgType(MessageType.Delay_Msg);
                     }
                     this.executeSendMessageHookBefore(context);
