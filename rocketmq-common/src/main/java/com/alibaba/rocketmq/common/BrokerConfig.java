@@ -97,8 +97,27 @@ public class BrokerConfig {
     // 定时消息最大延迟时间(默认:40天)
     private int maxDelayTime = 40;
 
-    //broker所在的Region名称
+    // broker所在的Region名称
     private String regionId = "DefaultRegion";
+    private int registerBrokerTimeoutMills = 6000;
+
+    public static String localHostName() {
+        try {
+            return InetAddress.getLocalHost().getHostName();
+        } catch (UnknownHostException e) {
+            e.printStackTrace();
+        }
+
+        return "DEFAULT_BROKER";
+    }
+
+    public int getRegisterBrokerTimeoutMills() {
+        return registerBrokerTimeoutMills;
+    }
+
+    public void setRegisterBrokerTimeoutMills(final int registerBrokerTimeoutMills) {
+        this.registerBrokerTimeoutMills = registerBrokerTimeoutMills;
+    }
 
     public String getRegionId() {
         return regionId;
@@ -114,15 +133,6 @@ public class BrokerConfig {
 
     public void setTransferMsgByHeap(final boolean transferMsgByHeap) {
         this.transferMsgByHeap = transferMsgByHeap;
-    }
-    public static String localHostName() {
-        try {
-            return InetAddress.getLocalHost().getHostName();
-        } catch (UnknownHostException e) {
-            e.printStackTrace();
-        }
-
-        return "DEFAULT_BROKER";
     }
 
     public String getMessageStorePlugIn() {
