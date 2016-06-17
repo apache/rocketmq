@@ -162,7 +162,7 @@ public class ConsumeQueue {
             int high = 0;
             int midOffset = -1, targetOffset = -1, leftOffset = -1, rightOffset = -1;
             long leftIndexValue = -1L, rightIndexValue = -1L;
-
+            long minPhysicOffset = this.defaultMessageStore.getMinPhyOffset();
             // 取出该mapedFile里面所有的映射空间(没有映射的空间并不会返回,不会返回文件空洞)
             SelectMapedBufferResult sbr = mapedFile.selectMapedBuffer(0);
             if (null != sbr) {
@@ -174,7 +174,11 @@ public class ConsumeQueue {
                         byteBuffer.position(midOffset);
                         long phyOffset = byteBuffer.getLong();
                         int size = byteBuffer.getInt();
-
+                        if (phyOffset < minPhysicOffset) {
+                            low = midOffset + CQStoreUnitSize;
+                            leftOffset = midOffset;
+                            continue;
+                        }
                         // 比较时间, 折半
                         long storeTime =
                                 this.defaultMessageStore.getCommitLog().pickupStoretimestamp(phyOffset, size);
