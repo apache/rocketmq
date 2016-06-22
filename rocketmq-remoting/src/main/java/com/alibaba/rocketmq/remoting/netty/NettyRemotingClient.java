@@ -140,6 +140,8 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                 //
                 .option(ChannelOption.SO_KEEPALIVE, false)
                 //
+                .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, nettyClientConfig.getConnectTimeoutMillis())
+                //
                 .option(ChannelOption.SO_SNDBUF, nettyClientConfig.getClientSocketSndBufSize())
                 //
                 .option(ChannelOption.SO_RCVBUF, nettyClientConfig.getClientSocketRcvBufSize())
@@ -352,7 +354,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
             }
         } else {
             this.closeChannel(addr, channel);
-            throw new RemotingConnectException(RemotingHelper.parseChannelRemoteAddr(channel));
+            throw new RemotingConnectException(addr);
         }
     }
 
@@ -483,11 +485,6 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
             RemotingSendRequestException {
         final Channel channel = this.getAndCreateChannel(addr);
         if (channel != null && channel.isActive()) {
-            // test the channel writable or not
-            if (!channel.isWritable()) {
-                throw new RemotingTooMuchRequestException(String.format("the channel[%s] is not writable now", channel.toString()));
-            }
-
             try {
                 if (this.rpcHook != null) {
                     this.rpcHook.doBeforeRequest(addr, request);
@@ -500,7 +497,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
             }
         } else {
             this.closeChannel(addr, channel);
-            throw new RemotingConnectException(RemotingHelper.parseChannelRemoteAddr(channel));
+            throw new RemotingConnectException(addr);
         }
     }
 
@@ -509,11 +506,6 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
             RemotingConnectException, RemotingTooMuchRequestException, RemotingTimeoutException, RemotingSendRequestException {
         final Channel channel = this.getAndCreateChannel(addr);
         if (channel != null && channel.isActive()) {
-            // test the channel writable or not
-            if (!channel.isWritable()) {
-                throw new RemotingTooMuchRequestException(String.format("the channel[%s] is not writable now", channel.toString()));
-            }
-
             try {
                 if (this.rpcHook != null) {
                     this.rpcHook.doBeforeRequest(addr, request);
@@ -526,7 +518,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
             }
         } else {
             this.closeChannel(addr, channel);
-            throw new RemotingConnectException(RemotingHelper.parseChannelRemoteAddr(channel));
+            throw new RemotingConnectException(addr);
         }
     }
 

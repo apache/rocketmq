@@ -405,8 +405,10 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         this.makeSureStateOK();
         Validators.checkMessage(msg, this.defaultMQProducer);
 
-        final long beginTimestamp = System.currentTimeMillis();
-        long endTimestamp = beginTimestamp;
+        final long invokeID = new Random().nextLong();
+        long beginTimestampFirst = System.currentTimeMillis();
+        long beginTimestampPrev = beginTimestampFirst;
+        long endTimestamp = beginTimestampFirst;
         TopicPublishInfo topicPublishInfo = this.tryToFindTopicPublishInfo(msg.getTopic());
         if (topicPublishInfo != null && topicPublishInfo.ok()) {
             MessageQueue mq = null;
@@ -422,6 +424,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                     mq = tmpmq;
                     brokersSent[times] = mq.getBrokerName();
                     try {
+                        beginTimestampPrev = System.currentTimeMillis();
                         sendResult = this.sendKernelImpl(msg, mq, communicationMode, sendCallback, topicPublishInfo, timeout);
                         endTimestamp = System.currentTimeMillis();
                         switch (communicationMode) {
@@ -441,22 +444,22 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                                 break;
                         }
                     } catch (RemotingException e) {
-                        log.warn("sendKernelImpl exception", e);
+                        endTimestamp = System.currentTimeMillis();
+                        log.warn(String.format("sendKernelImpl exception, resend at once, InvokeID: %s, RT: %sms, Broker: %s", invokeID, endTimestamp - beginTimestampPrev, mq), e);
                         log.warn(msg.toString());
                         exception = e;
-                        endTimestamp = System.currentTimeMillis();
                         continue;
                     } catch (MQClientException e) {
-                        log.warn("sendKernelImpl exception", e);
+                        endTimestamp = System.currentTimeMillis();
+                        log.warn(String.format("sendKernelImpl exception, resend at once, InvokeID: %s, RT: %sms, Broker: %s", invokeID, endTimestamp - beginTimestampPrev, mq), e);
                         log.warn(msg.toString());
                         exception = e;
-                        endTimestamp = System.currentTimeMillis();
                         continue;
                     } catch (MQBrokerException e) {
-                        log.warn("sendKernelImpl exception", e);
+                        endTimestamp = System.currentTimeMillis();
+                        log.warn(String.format("sendKernelImpl exception, resend at once, InvokeID: %s, RT: %sms, Broker: %s", invokeID, endTimestamp - beginTimestampPrev, mq), e);
                         log.warn(msg.toString());
                         exception = e;
-                        endTimestamp = System.currentTimeMillis();
                         switch (e.getResponseCode()) {
                             case ResponseCode.TOPIC_NOT_EXIST:
                             case ResponseCode.SERVICE_NOT_AVAILABLE:
@@ -473,6 +476,11 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                                 throw e;
                         }
                     } catch (InterruptedException e) {
+                        endTimestamp = System.currentTimeMillis();
+                        log.warn(String.format("sendKernelImpl exception, throw exception, InvokeID: %s, RT: %sms, Broker: %s", invokeID, endTimestamp - beginTimestampPrev, mq), e);
+                        log.warn(msg.toString());
+                        exception = e;
+
                         log.warn("sendKernelImpl exception", e);
                         log.warn(msg.toString());
                         throw e;
@@ -488,7 +496,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
             String info = String.format("Send [%d] times, still failed, cost [%d]ms, Topic: %s, BrokersSent: %s", //
                     times, //
-                    (System.currentTimeMillis() - beginTimestamp), //
+                    (System.currentTimeMillis() - beginTimestampFirst), //
                     msg.getTopic(), //
                     Arrays.toString(brokersSent));
 

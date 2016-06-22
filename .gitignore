@@ -68,3 +68,5 @@ rocketmq-example/src/main/java/com/alibaba/rocketmq/example/pollv2/AsyncTask.jav
 rocketmq-example/src/main/java/com/alibaba/rocketmq/example/pollv2/Record.java
 rocketmq-example/src/main/java/com/alibaba/rocketmq/example/pollv2/TaskManager.java
 rocketmq-example/src/main/java/com/alibaba/rocketmq/example/shenxun/MessageListenerImp.java
+/rocketmq-client/dependency-reduced-pom.xml
+/rocketmq-client/install - 副本.bat
