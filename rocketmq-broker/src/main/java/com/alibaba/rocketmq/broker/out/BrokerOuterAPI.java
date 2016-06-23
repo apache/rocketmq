@@ -111,7 +111,8 @@ public class BrokerOuterAPI {
                                                   final String haServerAddr, // 5
                                                   final TopicConfigSerializeWrapper topicConfigWrapper, // 6
                                                   final List<String> filterServerList, // 7
-                                                  final boolean oneway// 8
+                                                  final boolean oneway,// 8
+                                                  final int timeoutMills// 9
     ) {
         RegisterBrokerResult registerBrokerResult = null;
 
@@ -120,7 +121,7 @@ public class BrokerOuterAPI {
             for (String namesrvAddr : nameServerAddressList) {
                 try {
                     RegisterBrokerResult result = this.registerBroker(namesrvAddr, clusterName, brokerAddr, brokerName, brokerId,
-                            haServerAddr, topicConfigWrapper, filterServerList, oneway);
+                            haServerAddr, topicConfigWrapper, filterServerList, oneway, timeoutMills);
                     if (result != null) {
                         registerBrokerResult = result;
                     }
@@ -144,7 +145,8 @@ public class BrokerOuterAPI {
                                                 final String haServerAddr, // 5
                                                 final TopicConfigSerializeWrapper topicConfigWrapper, // 6
                                                 final List<String> filterServerList, // 7
-                                                final boolean oneway// 8
+                                                final boolean oneway,// 8
+                                                final int timeoutMills// 9
     ) throws RemotingCommandException, MQBrokerException, RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException,
             InterruptedException {
         RegisterBrokerRequestHeader requestHeader = new RegisterBrokerRequestHeader();
@@ -162,13 +164,13 @@ public class BrokerOuterAPI {
 
         if (oneway) {
             try {
-                this.remotingClient.invokeOneway(namesrvAddr, request, 3000);
+                this.remotingClient.invokeOneway(namesrvAddr, request, timeoutMills);
             } catch (RemotingTooMuchRequestException e) {
             }
             return null;
         }
 
-        RemotingCommand response = this.remotingClient.invokeSync(namesrvAddr, request, 3000);
+        RemotingCommand response = this.remotingClient.invokeSync(namesrvAddr, request, timeoutMills);
         assert response != null;
         switch (response.getCode()) {
             case ResponseCode.SUCCESS: {

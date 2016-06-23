@@ -3,7 +3,7 @@
     <parent>
         <groupId>com.alibaba.rocketmq</groupId>
         <artifactId>rocketmq-all</artifactId>
-        <version>3.5.2-SNAPSHOT</version>
+        <version>3.5.3-SNAPSHOT</version>
     </parent>
 
 
@@ -33,7 +33,7 @@
                             <keepDependenciesWithProvidedScope>false</keepDependenciesWithProvidedScope>
                             <promoteTransitiveDependencies>false</promoteTransitiveDependencies>
                             <createDependencyReducedPom>true</createDependencyReducedPom>
-                            <minimizeJar>true</minimizeJar>
+                            <minimizeJar>false</minimizeJar>
                             <createSourcesJar>true</createSourcesJar>
                             <artifactSet>
                                 <includes>
