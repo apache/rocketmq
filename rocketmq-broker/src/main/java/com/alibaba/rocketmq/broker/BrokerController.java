@@ -104,6 +104,7 @@ public class BrokerController {
     private boolean updateMasterHAServerAddrPeriodically = false;
     private BrokerStats brokerStats;
     private InetSocketAddress storeHost;
+    private DataVersion dataVersion;
 
     public BrokerController(//
                             final BrokerConfig brokerConfig, //
@@ -128,6 +129,7 @@ public class BrokerController {
         this.subscriptionGroupManager = new SubscriptionGroupManager(this);
         this.brokerOuterAPI = new BrokerOuterAPI(nettyClientConfig);
         this.filterServerManager = new FilterServerManager(this);
+        this.dataVersion = new DataVersion();
 
         if (this.brokerConfig.getNamesrvAddr() != null) {
             this.brokerOuterAPI.updateNameServerAddressList(this.brokerConfig.getNamesrvAddr());
@@ -581,6 +583,14 @@ public class BrokerController {
                 topicConfigTable.put(topicConfig.getTopicName(), tmp);
             }
             topicConfigWrapper.setTopicConfigTable(topicConfigTable);
+        }
+
+        if(dataVersion.equals(topicConfigWrapper.getDataVersion())){
+            ConcurrentHashMap<String, TopicConfig> topicConfigTable = new ConcurrentHashMap<String, TopicConfig>();
+            topicConfigWrapper.setTopicConfigTable(topicConfigTable);
+        }else {
+            dataVersion.setTimestatmp(topicConfigWrapper.getDataVersion().getTimestatmp());
+            dataVersion.setCounter(topicConfigWrapper.getDataVersion().getCounter());
         }
 
         RegisterBrokerResult registerBrokerResult = this.brokerOuterAPI.registerBrokerAll(//
