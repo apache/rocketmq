@@ -104,6 +104,7 @@ public class BrokerController {
     private boolean updateMasterHAServerAddrPeriodically = false;
     private BrokerStats brokerStats;
     private InetSocketAddress storeHost;
+    private TopicConfigSerializeWrapper topicConfigSerializeBackup;
 
     public BrokerController(//
                             final BrokerConfig brokerConfig, //
@@ -128,6 +129,8 @@ public class BrokerController {
         this.subscriptionGroupManager = new SubscriptionGroupManager(this);
         this.brokerOuterAPI = new BrokerOuterAPI(nettyClientConfig);
         this.filterServerManager = new FilterServerManager(this);
+        this.topicConfigSerializeBackup = new TopicConfigSerializeWrapper();
+        ;
 
         if (this.brokerConfig.getNamesrvAddr() != null) {
             this.brokerOuterAPI.updateNameServerAddressList(this.brokerConfig.getNamesrvAddr());
@@ -583,13 +586,33 @@ public class BrokerController {
             topicConfigWrapper.setTopicConfigTable(topicConfigTable);
         }
 
+        boolean isSame = false;
+        if (topicConfigSerializeBackup != null) {
+            String backup = topicConfigSerializeBackup.getTopicConfigTable().toString();
+            String wrapper = topicConfigWrapper.getTopicConfigTable().toString();
+            if (backup != null && wrapper != null && backup.equalsIgnoreCase(wrapper)) {
+                isSame = true;
+            } else
+                isSame = false;
+        }
+        topicConfigSerializeBackup.setTopicConfigTable(topicConfigWrapper.getTopicConfigTable());
+        TopicConfigSerializeWrapper topicConfigResult = new TopicConfigSerializeWrapper();
+        if (isSame) {
+            ConcurrentHashMap<String, TopicConfig> topicConfigTable = new ConcurrentHashMap<String, TopicConfig>();
+            topicConfigResult.setDataVersion(topicConfigWrapper.getDataVersion());
+            topicConfigResult.setTopicConfigTable(topicConfigTable);
+        } else {
+            topicConfigResult.setDataVersion(topicConfigWrapper.getDataVersion());
+            topicConfigResult.setTopicConfigTable(topicConfigWrapper.getTopicConfigTable());
+        }
+
         RegisterBrokerResult registerBrokerResult = this.brokerOuterAPI.registerBrokerAll(//
                 this.brokerConfig.getBrokerClusterName(), //
                 this.getBrokerAddr(), //
                 this.brokerConfig.getBrokerName(), //
                 this.brokerConfig.getBrokerId(), //
                 this.getHAServerAddr(), //
-                topicConfigWrapper,//
+                topicConfigResult,//
                 this.filterServerManager.buildNewFilterServerList(),//
                 oneway,//
                 this.brokerConfig.getRegisterBrokerTimeoutMills());
