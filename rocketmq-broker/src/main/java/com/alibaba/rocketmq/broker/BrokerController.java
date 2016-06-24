@@ -588,6 +588,9 @@ public class BrokerController {
         if(dataVersion.equals(topicConfigWrapper.getDataVersion())){
             ConcurrentHashMap<String, TopicConfig> topicConfigTable = new ConcurrentHashMap<String, TopicConfig>();
             topicConfigWrapper.setTopicConfigTable(topicConfigTable);
+        }else {
+            dataVersion.setTimestatmp(topicConfigWrapper.getDataVersion().getTimestatmp());
+            dataVersion.setCounter(topicConfigWrapper.getDataVersion().getCounter());
         }
 
         RegisterBrokerResult registerBrokerResult = this.brokerOuterAPI.registerBrokerAll(//
@@ -611,7 +614,6 @@ public class BrokerController {
             if (checkOrderConfig) {
                 this.getTopicConfigManager().updateOrderTopicConfig(registerBrokerResult.getKvTable());
             }
-            dataVersion = topicConfigWrapper.getDataVersion();
         }
     }
 
