@@ -39,7 +39,15 @@ public class NettyClientConfig {
     private int clientSocketSndBufSize = NettySystemConfig.SocketSndbufSize;
     private int clientSocketRcvBufSize = NettySystemConfig.SocketRcvbufSize;
     private boolean clientPooledByteBufAllocatorEnable = false;
+    private boolean clientCloseSocketIfTimeout = true;
 
+    public boolean isClientCloseSocketIfTimeout() {
+        return clientCloseSocketIfTimeout;
+    }
+
+    public void setClientCloseSocketIfTimeout(final boolean clientCloseSocketIfTimeout) {
+        this.clientCloseSocketIfTimeout = clientCloseSocketIfTimeout;
+    }
 
     public int getClientWorkerThreads() {
         return clientWorkerThreads;

@@ -349,6 +349,10 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                 this.closeChannel(addr, channel);
                 throw e;
             } catch (RemotingTimeoutException e) {
+                if (nettyClientConfig.isClientCloseSocketIfTimeout()) {
+                    this.closeChannel(addr, channel);
+                    log.warn("invokeSync: close socket because of timeout, {}ms, {}", timeoutMillis, addr);
+                }
                 log.warn("invokeSync: wait response timeout exception, the channel[{}]", addr);
                 throw e;
             }
