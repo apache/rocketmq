@@ -1037,7 +1037,7 @@ public class MQClientInstance {
             Iterator<MessageQueue> iterator = processQueueTable.keySet().iterator();
             processQueueTable = consumer.getRebalanceImpl().getProcessQueueTable();
             while (iterator.hasNext()) {
-                MessageQueue mq = itr.next();
+                MessageQueue mq = iterator.next();
                 if (topic.equals(mq.getTopic())) {
                     consumer.updateConsumeOffset(mq, offsetTable.get(mq));
                     consumer.getRebalanceImpl().removeUnnecessaryMessageQueue(mq, processQueueTable.get(mq));
