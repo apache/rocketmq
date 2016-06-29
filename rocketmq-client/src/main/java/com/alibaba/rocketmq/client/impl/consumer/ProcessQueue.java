@@ -78,6 +78,10 @@ public class ProcessQueue {
      * @param pushConsumer
      */
     public void cleanExpiredMsg(DefaultMQPushConsumer pushConsumer) {
+        if (pushConsumer.getDefaultMQPushConsumerImpl().isConsumeOrderly()) {
+            return;
+        }
+        
         int loop = msgTreeMap.size() < 16 ? msgTreeMap.size() : 16;
         for (int i = 0; i < loop; i++) {
             MessageExt msg = null;
