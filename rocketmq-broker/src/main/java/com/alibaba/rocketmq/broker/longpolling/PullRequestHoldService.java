@@ -26,10 +26,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
-import java.util.TreeMap;
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.concurrent.ConcurrentHashMap;
 
 
 /**
@@ -44,8 +41,8 @@ public class PullRequestHoldService extends ServiceThread {
     private final BrokerController brokerController;
     // 消息过滤
     private final MessageFilter messageFilter = new DefaultMessageFilter();
-    private final ReadWriteLock lock = new ReentrantReadWriteLock();
-    private TreeMap<String, ManyPullRequest> pullRequestTable = new TreeMap<String, ManyPullRequest>();
+    private ConcurrentHashMap<String/* topic@queueId */, ManyPullRequest> pullRequestTable =
+            new ConcurrentHashMap<String, ManyPullRequest>(1024);
 
 
     public PullRequestHoldService(final BrokerController brokerController) {
@@ -54,24 +51,16 @@ public class PullRequestHoldService extends ServiceThread {
 
     public void suspendPullRequest(final String topic, final int queueId, final PullRequest pullRequest) {
         String key = this.buildKey(topic, queueId);
-        ManyPullRequest mpr = null;
-        try {
-            mpr = this.getPullRequest(key);
-            lock.writeLock().lockInterruptibly();
-            if (null == mpr) {
-                mpr = new ManyPullRequest();
-                ManyPullRequest prev = this.pullRequestTable.put(key, mpr);
-                if (prev != null) {
-                    mpr = prev;
-                }
+        ManyPullRequest mpr = this.pullRequestTable.get(key);
+        if (null == mpr) {
+            mpr = new ManyPullRequest();
+            ManyPullRequest prev = this.pullRequestTable.putIfAbsent(key, mpr);
+            if (prev != null) {
+                mpr = prev;
             }
-        } catch (InterruptedException e) {
-            log.error("putMessage exception", e);
-        } finally {
-            lock.writeLock().unlock();
         }
-        if (mpr != null)
-            mpr.addPullRequest(pullRequest);
+
+        mpr.addPullRequest(pullRequest);
     }
 
     private String buildKey(final String topic, final int queueId) {
@@ -80,32 +69,6 @@ public class PullRequestHoldService extends ServiceThread {
         sb.append(TOPIC_QUEUEID_SEPARATOR);
         sb.append(queueId);
         return sb.toString();
-    }
-
-    private Set<String> getPullRequestKeySet() {
-        Set<String> keySet = null;
-        try {
-            lock.readLock().lockInterruptibly();
-            keySet = this.pullRequestTable.keySet();
-        } catch (InterruptedException e) {
-            log.error("getPullRequestKeySet exception", e);
-        } finally {
-            lock.readLock().unlock();
-        }
-        return keySet;
-    }
-
-    private ManyPullRequest getPullRequest(String key) {
-        ManyPullRequest result = null;
-        try {
-            lock.readLock().lockInterruptibly();
-            result = this.pullRequestTable.get(key);
-        } catch (InterruptedException e) {
-            log.error("getPullRequest exception", e);
-        } finally {
-            lock.readLock().unlock();
-        }
-        return result;
     }
 
     @Override
@@ -133,8 +96,7 @@ public class PullRequestHoldService extends ServiceThread {
     }
 
     private void checkHoldRequest() {
-        Set<String> keySet = this.getPullRequestKeySet();
-        for (String key : keySet) {
+        for (String key : this.pullRequestTable.keySet()) {
             String[] kArray = key.split(TOPIC_QUEUEID_SEPARATOR);
             if (kArray != null && 2 == kArray.length) {
                 String topic = kArray[0];
@@ -151,7 +113,7 @@ public class PullRequestHoldService extends ServiceThread {
 
     public void notifyMessageArriving(final String topic, final int queueId, final long maxOffset, final Long tagsCode) {
         String key = this.buildKey(topic, queueId);
-        ManyPullRequest mpr = this.getPullRequest(key);
+        ManyPullRequest mpr = this.pullRequestTable.get(key);
         if (mpr != null) {
             List<PullRequest> requestList = mpr.cloneListAndClear();
             if (requestList != null) {
