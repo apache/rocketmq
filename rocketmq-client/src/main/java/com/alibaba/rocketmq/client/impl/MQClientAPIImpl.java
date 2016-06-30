@@ -410,21 +410,21 @@ public class MQClientAPIImpl {
 
                 MessageQueue messageQueue = new MessageQueue(msg.getTopic(), brokerName, responseHeader.getQueueId());
 
-            //原来的ID变为offset id，
+                //原来的ID变为offset id，
 
-            SendResult sendResult = new SendResult(sendStatus,
-                    MessageClientIDSetter.getUniqID(msg),
-                    responseHeader.getMsgId(), messageQueue, responseHeader.getQueueOffset());
-            sendResult.setTransactionId(responseHeader.getTransactionId());
+                SendResult sendResult = new SendResult(sendStatus,
+                        MessageClientIDSetter.getUniqID(msg),
+                        responseHeader.getMsgId(), messageQueue, responseHeader.getQueueOffset());
+                sendResult.setTransactionId(responseHeader.getTransactionId());
                 String regionId = response.getExtFields().get(MessageConst.PROPERTY_MSG_REGION);
-                if(regionId ==null|| regionId.isEmpty()){
-                    regionId ="DefaultRegion";
+                if (regionId == null || regionId.isEmpty()) {
+                    regionId = "DefaultRegion";
                 }
                 sendResult.setRegionId(regionId);
-            return sendResult;
-        }
-        default:
-            break;
+                return sendResult;
+            }
+            default:
+                break;
         }
 
         throw new MQBrokerException(response.getCode(), response.getRemark());
@@ -1050,7 +1050,7 @@ public class MQClientAPIImpl {
 
     public Properties getBrokerConfig(final String addr, final long timeoutMillis)
             throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, InterruptedException,
-            MQBrokerException, UnsupportedEncodingException{
+            MQBrokerException, UnsupportedEncodingException {
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_BROKER_CONFIG, null);
 
         RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
@@ -1124,7 +1124,8 @@ public class MQClientAPIImpl {
         assert response != null;
         switch (response.getCode()) {
             case ResponseCode.TOPIC_NOT_EXIST: {
-                log.warn("get Topic [{}] RouteInfoFromNameServer is not exist value", topic);
+                if (!topic.equals(MixAll.DEFAULT_TOPIC))
+                    log.warn("get Topic [{}] RouteInfoFromNameServer is not exist value", topic);
                 break;
             }
             case ResponseCode.SUCCESS: {
