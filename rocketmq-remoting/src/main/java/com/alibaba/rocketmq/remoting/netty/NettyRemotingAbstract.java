@@ -272,7 +272,6 @@ public abstract class NettyRemotingAbstract {
                     responseFuture.setCause(f.cause());
                     responseFuture.putResponse(null);
                     plog.warn("send a request command to channel <" + addr + "> failed.");
-                    plog.warn(request.toString());
                 }
             });
 
@@ -324,7 +323,6 @@ public abstract class NettyRemotingAbstract {
                         }
 
                         plog.warn("send a request command to channel <{}> failed.", RemotingHelper.parseChannelRemoteAddr(channel));
-                        plog.warn(request.toString());
                     }
                 });
             } catch (Exception e) {
@@ -343,7 +341,6 @@ public abstract class NettyRemotingAbstract {
                                 this.semaphoreAsync.availablePermits()//
                         );
                 plog.warn(info);
-                plog.warn(request.toString());
                 throw new RemotingTimeoutException(info);
             }
         }
@@ -362,7 +359,6 @@ public abstract class NettyRemotingAbstract {
                         once.release();
                         if (!f.isSuccess()) {
                             plog.warn("send a request command to channel <" + channel.remoteAddress() + "> failed.");
-                            plog.warn(request.toString());
                         }
                     }
                 });
@@ -382,7 +378,6 @@ public abstract class NettyRemotingAbstract {
                         this.semaphoreAsync.availablePermits()//
                 );
                 plog.warn(info);
-                plog.warn(request.toString());
                 throw new RemotingTimeoutException(info);
             }
         }
