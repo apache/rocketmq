@@ -221,7 +221,7 @@ public class BrokerController {
                 public void run() {
                     try {
                         BrokerController.this.getBrokerStats().record();
-                    } catch (Exception e) {
+                    } catch (Throwable e) {
                         log.error("schedule record error.", e);
                     }
                 }
@@ -232,7 +232,7 @@ public class BrokerController {
                 public void run() {
                     try {
                         BrokerController.this.consumerOffsetManager.persist();
-                    } catch (Exception e) {
+                    } catch (Throwable e) {
                         log.error("schedule persist consumerOffset error.", e);
                     }
                 }
@@ -245,7 +245,7 @@ public class BrokerController {
              *
              * @Override public void run() { try {
              * BrokerController.this.consumerOffsetManager
-             * .scanUnsubscribedTopic(); } catch (Exception e) {
+             * .scanUnsubscribedTopic(); } catch (Throwable e) {
              * log.error("schedule scanUnsubscribedTopic error.", e); } } }, 10,
              * 60, TimeUnit.MINUTES);
              */
@@ -256,7 +256,7 @@ public class BrokerController {
                 public void run() {
                     try {
                         log.info("dispatch behind commit log {} bytes", BrokerController.this.getMessageStore().dispatchBehindBytes());
-                    } catch (Exception e) {
+                    } catch (Throwable e) {
                         log.error("schedule dispatchBehindBytes error.", e);
                     }
                 }
@@ -271,7 +271,7 @@ public class BrokerController {
                     public void run() {
                         try {
                             BrokerController.this.brokerOuterAPI.fetchNameServerAddr();
-                        } catch (Exception e) {
+                        } catch (Throwable e) {
                             log.error("ScheduledTask fetchNameServerAddr exception", e);
                         }
                     }
@@ -292,7 +292,7 @@ public class BrokerController {
                     public void run() {
                         try {
                             BrokerController.this.slaveSynchronize.syncAll();
-                        } catch (Exception e) {
+                        } catch (Throwable e) {
                             log.error("ScheduledTask syncAll slave exception", e);
                         }
                     }
@@ -304,7 +304,7 @@ public class BrokerController {
                     public void run() {
                         try {
                             BrokerController.this.printMasterAndSlaveDiff();
-                        } catch (Exception e) {
+                        } catch (Throwable e) {
                             log.error("schedule printMasterAndSlaveDiff error.", e);
                         }
                     }
@@ -557,7 +557,7 @@ public class BrokerController {
             public void run() {
                 try {
                     BrokerController.this.registerBrokerAll(true, false);
-                } catch (Exception e) {
+                } catch (Throwable e) {
                     log.error("registerBrokerAll Exception", e);
                 }
             }
