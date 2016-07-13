@@ -563,7 +563,7 @@ public class StoreStatsService extends ServiceThread {
                 sb.append(" ");
             }
 
-            log.info("TotalPut %d, PutMessageDistributeTime {}", totalPut, sb.toString());
+            log.info("TotalPut {}, PutMessageDistributeTime {}", totalPut, sb.toString());
         }
     }
 
