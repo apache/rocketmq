@@ -5,7 +5,8 @@
 #
 
 echo 'vm.overcommit_memory=1' >> /etc/sysctl.conf
-echo 'vm.min_free_kbytes=5000000' >> /etc/sysctl.conf
+echo 'vm.min_free_kbytes=1000000' >> /etc/sysctl.conf
+echo 'vm.extra_free_kbytes=5000000' >> /etc/sysctl.conf
 echo 'vm.drop_caches=1' >> /etc/sysctl.conf
 echo 'vm.zone_reclaim_mode=0' >> /etc/sysctl.conf
 echo 'vm.max_map_count=655360' >> /etc/sysctl.conf
@@ -27,6 +28,7 @@ echo 'deadline' > /sys/block/$DISK/queue/scheduler
 echo "---------------------------------------------------------------"
 sysctl vm.overcommit_memory
 sysctl vm.min_free_kbytes
+sysctl vm.extra_free_kbytes
 sysctl vm.drop_caches
 sysctl vm.zone_reclaim_mode
 sysctl vm.max_map_count
