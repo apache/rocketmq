@@ -26,10 +26,9 @@ import java.util.Map;
  */
 public class ResetOffsetByTimeCommand implements SubCommand {
     public static void main(String[] args) {
-        System.setProperty(MixAll.NAMESRV_ADDR_PROPERTY, "127.0.0.1:9876");
         ResetOffsetByTimeCommand cmd = new ResetOffsetByTimeCommand();
         Options options = ServerUtil.buildCommandlineOptions(new Options());
-        String[] subargs = new String[]{"-t qatest_TopicTest", "-g qatest_consumer", "-s 1389098416742", "-f true"};
+        String[] subargs = new String[]{"-t Jodie_rest_test", "-g CID_Jodie_rest_test", "-s -1", "-f true"};
         final CommandLine commandLine =
                 ServerUtil.parseCmdLine("mqadmin " + cmd.commandName(), subargs, cmd.buildCommandlineOptions(options), new PosixParser());
         cmd.execute(commandLine, options, null);

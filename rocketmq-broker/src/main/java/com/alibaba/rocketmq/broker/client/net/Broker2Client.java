@@ -180,6 +180,7 @@ public class Broker2Client {
             }
 
             if (timeStampOffset < 0) {
+                log.warn("reset offset is invalid. topic={}, queueId={}, timeStampOffset={}", topic, i, timeStampOffset);
                 timeStampOffset = 0;
             }
 
