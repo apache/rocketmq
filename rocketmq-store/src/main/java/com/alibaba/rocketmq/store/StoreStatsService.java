@@ -542,14 +542,12 @@ public class StoreStatsService extends ServiceThread {
         if (System.currentTimeMillis() > (this.lastPrintTimestamp + PrintTPSInterval * 1000)) {
             this.lastPrintTimestamp = System.currentTimeMillis();
 
-            log.info("put_tps {}", this.getPutTps(PrintTPSInterval));
-
-            log.info("get_found_tps {}", this.getGetFoundTps(PrintTPSInterval));
-
-            log.info("get_miss_tps {}", this.getGetMissTps(PrintTPSInterval));
-
-            log.info("get_transfered_tps {}", this.getGetTransferedTps(PrintTPSInterval));
-
+            log.info("[STORETPS] put_tps {} get_found_tps {} get_miss_tps {} get_transfered_tps {}" //
+                    , this.getPutTps(PrintTPSInterval) //
+                    , this.getGetFoundTps(PrintTPSInterval) //
+                    , this.getGetMissTps(PrintTPSInterval) //
+                    , this.getGetTransferedTps(PrintTPSInterval)
+            );
 
             final AtomicLong[] times = this.initPutMessageDistributeTime();
             if (null == times) return;
@@ -563,7 +561,7 @@ public class StoreStatsService extends ServiceThread {
                 sb.append(" ");
             }
 
-            log.info("TotalPut {}, PutMessageDistributeTime {}", totalPut, sb.toString());
+            log.info("[PAGECACHERT] TotalPut {}, PutMessageDistributeTime {}", totalPut, sb.toString());
         }
     }
 
