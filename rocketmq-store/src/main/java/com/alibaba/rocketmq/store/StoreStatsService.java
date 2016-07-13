@@ -41,6 +41,19 @@ public class StoreStatsService extends ServiceThread {
     private static final int FrequencyOfSampling = 1000;
     // 采样最大记录数，超过则将之前的删除掉
     private static final int MaxRecordsOfSampling = 60 * 10;
+    private static final String[] PutMessageEntireTimeMaxDesc = new String[]{
+            "[<=0ms]", // 0
+            "[0~10ms]", // 1
+            "[10~100ms]", // 2
+            "[100~500ms]", // 3
+            "[500ms~1s]", // 4
+            "[1~2s]", // 5
+            "[2~3s]", // 6
+            "[3~4s]", // 7
+            "[4~5s]", // 8
+            "[5~10s]", // 9
+            "[10s~]", // 10
+    };
     // 打印TPS数据间隔时间，单位秒，1分钟
     private static int PrintTPSInterval = 60 * 1;
     // putMessage，失败次数
@@ -55,14 +68,14 @@ public class StoreStatsService extends ServiceThread {
     private final AtomicLong getMessageTimesTotalFound = new AtomicLong(0);
     private final AtomicLong getMessageTransferedMsgCount = new AtomicLong(0);
     private final AtomicLong getMessageTimesTotalMiss = new AtomicLong(0);
-    // putMessage，耗时分布
-    private final AtomicLong[] putMessageDistributeTime = new AtomicLong[7];
     // put最近10分钟采样
     private final LinkedList<CallSnapshot> putTimesList = new LinkedList<CallSnapshot>();
     // get最近10分钟采样
     private final LinkedList<CallSnapshot> getTimesFoundList = new LinkedList<CallSnapshot>();
     private final LinkedList<CallSnapshot> getTimesMissList = new LinkedList<CallSnapshot>();
     private final LinkedList<CallSnapshot> transferedMsgCountList = new LinkedList<CallSnapshot>();
+    // putMessage，耗时分布
+    private volatile AtomicLong[] putMessageDistributeTime = new AtomicLong[7];
     // 启动时间
     private long messageStoreBootTimestamp = System.currentTimeMillis();
     // putMessage，写入整个消息耗时，含加锁竟争时间（单位毫秒）
@@ -79,47 +92,75 @@ public class StoreStatsService extends ServiceThread {
     private ReentrantLock lockSampling = new ReentrantLock();
     private long lastPrintTimestamp = System.currentTimeMillis();
 
-
     public StoreStatsService() {
-        for (int i = 0; i < this.putMessageDistributeTime.length; i++) {
-            putMessageDistributeTime[i] = new AtomicLong(0);
-        }
+        this.initPutMessageDistributeTime();
     }
 
+    private AtomicLong[] initPutMessageDistributeTime() {
+        AtomicLong[] next = new AtomicLong[11];
+        for (int i = 0; i < next.length; i++) {
+            next[i] = new AtomicLong(0);
+        }
+
+        AtomicLong[] old = this.putMessageDistributeTime;
+
+        this.putMessageDistributeTime = next;
+
+        return old;
+    }
 
     public long getPutMessageEntireTimeMax() {
         return putMessageEntireTimeMax;
     }
 
-
     public void setPutMessageEntireTimeMax(long value) {
+        final AtomicLong[] times = this.putMessageDistributeTime;
+
+        if (null == times) return;
+
         // 微秒
         if (value <= 0) {
-            this.putMessageDistributeTime[0].incrementAndGet();
+            times[0].incrementAndGet();
         }
         // 几毫秒
         else if (value < 10) {
-            this.putMessageDistributeTime[1].incrementAndGet();
+            times[1].incrementAndGet();
         }
         // 几十毫秒
         else if (value < 100) {
-            this.putMessageDistributeTime[2].incrementAndGet();
+            times[2].incrementAndGet();
         }
         // 几百毫秒（500毫秒以内）
         else if (value < 500) {
-            this.putMessageDistributeTime[3].incrementAndGet();
+            times[3].incrementAndGet();
         }
         // 几百毫秒（500毫秒以上）
         else if (value < 1000) {
-            this.putMessageDistributeTime[4].incrementAndGet();
+            times[4].incrementAndGet();
         }
-        // 几秒
+        // 2秒
+        else if (value < 2000) {
+            times[5].incrementAndGet();
+        }
+        // 3秒
+        else if (value < 3000) {
+            times[6].incrementAndGet();
+        }
+        // 4秒
+        else if (value < 4000) {
+            times[7].incrementAndGet();
+        }
+        // 5秒
+        else if (value < 5000) {
+            times[8].incrementAndGet();
+        }
+        // 10秒
         else if (value < 10000) {
-            this.putMessageDistributeTime[5].incrementAndGet();
+            times[9].incrementAndGet();
         }
         // 大等于10秒
         else {
-            this.putMessageDistributeTime[6].incrementAndGet();
+            times[10].incrementAndGet();
         }
 
         if (value > this.putMessageEntireTimeMax) {
@@ -508,6 +549,21 @@ public class StoreStatsService extends ServiceThread {
             log.info("get_miss_tps {}", this.getGetMissTps(PrintTPSInterval));
 
             log.info("get_transfered_tps {}", this.getGetTransferedTps(PrintTPSInterval));
+
+
+            final AtomicLong[] times = this.initPutMessageDistributeTime();
+            if (null == times) return;
+
+            final StringBuilder sb = new StringBuilder();
+            long totalPut = 0;
+            for (int i = 0; i < times.length; i++) {
+                long value = times[i].get();
+                totalPut += value;
+                sb.append(String.format("%s:%d", PutMessageEntireTimeMaxDesc[i], value));
+                sb.append(" ");
+            }
+
+            log.info("TotalPut %d, PutMessageDistributeTime {}", totalPut, sb.toString());
         }
     }
 
