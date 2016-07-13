@@ -75,7 +75,7 @@ public class StoreStatsService extends ServiceThread {
     private final LinkedList<CallSnapshot> getTimesMissList = new LinkedList<CallSnapshot>();
     private final LinkedList<CallSnapshot> transferedMsgCountList = new LinkedList<CallSnapshot>();
     // putMessage，耗时分布
-    private volatile AtomicLong[] putMessageDistributeTime = new AtomicLong[7];
+    private volatile AtomicLong[] putMessageDistributeTime;
     // 启动时间
     private long messageStoreBootTimestamp = System.currentTimeMillis();
     // putMessage，写入整个消息耗时，含加锁竟争时间（单位毫秒）
