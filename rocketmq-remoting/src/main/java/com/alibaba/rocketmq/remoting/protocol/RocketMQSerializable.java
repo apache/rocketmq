@@ -205,26 +205,10 @@ public class RocketMQSerializable {
             return true;
         }
         for (int i = 0; i < strLen; i++) {
-            if ((Character.isWhitespace(str.charAt(i)) == false)) {
+            if (!Character.isWhitespace(str.charAt(i))) {
                 return false;
             }
         }
         return true;
-    }
-
-
-    public static void main(String[] args) {
-        HashMap<String, String> map = new HashMap<String, String>();
-        map.put("aaa", "bbb");
-        map.put(null, "aa");
-        map.put("ccc", null);
-
-        byte[] aa = mapSerialize(map);
-        System.out.println(aa.length);
-
-        HashMap<String, String> map2 = mapDeserialize(aa);
-        System.out.println(map2);
-
-        System.out.println((short) 32766);
     }
 }

@@ -86,12 +86,12 @@ public class BrokerStartup {
 
 
         if (null == System.getProperty(NettySystemConfig.SystemPropertySocketSndbufSize)) {
-            NettySystemConfig.SocketSndbufSize = 131072;
+            NettySystemConfig.socketSndbufSize = 131072;
         }
 
 
         if (null == System.getProperty(NettySystemConfig.SystemPropertySocketRcvbufSize)) {
-            NettySystemConfig.SocketRcvbufSize = 131072;
+            NettySystemConfig.socketRcvbufSize = 131072;
         }
 
         try {
