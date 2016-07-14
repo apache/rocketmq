@@ -50,7 +50,7 @@ public class AllocateMessageQueueAveragelyTest {
     }
 
     @Test
-    public void testConsumer1() { 1
+    public void testConsumer1() {
         currentCID = "0";
         createConsumerIdList(1);
         createMessageQueueList(5);
@@ -95,7 +95,7 @@ public class AllocateMessageQueueAveragelyTest {
     }
 
     @Test
-    public void testConsumer2() { 2
+    public void testConsumer2() {
         currentCID = "1";
         createConsumerIdList(2);
         createMessageQueueList(5);
@@ -108,7 +108,7 @@ public class AllocateMessageQueueAveragelyTest {
     }
 
     @Test
-    public void testConsumer3CurrentCID0() { 3
+    public void testConsumer3CurrentCID0() {
         currentCID = "0";
         createConsumerIdList(3);
         createMessageQueueList(5);
@@ -120,7 +120,7 @@ public class AllocateMessageQueueAveragelyTest {
     }
 
     @Test
-    public void testConsumer3CurrentCID1() { 3
+    public void testConsumer3CurrentCID1() {
         currentCID = "1";
         createConsumerIdList(3);
         createMessageQueueList(5);
@@ -132,7 +132,7 @@ public class AllocateMessageQueueAveragelyTest {
     }
 
     @Test
-    public void testConsumer3CurrentCID2() { 3
+    public void testConsumer3CurrentCID2() {
         currentCID = "2";
         createConsumerIdList(3);
         createMessageQueueList(5);
@@ -144,7 +144,7 @@ public class AllocateMessageQueueAveragelyTest {
     }
 
     @Test
-    public void testConsumer4() { 4
+    public void testConsumer4() {
         currentCID = "1";
         createConsumerIdList(4);
         createMessageQueueList(5);
@@ -156,7 +156,7 @@ public class AllocateMessageQueueAveragelyTest {
     }
 
     @Test
-    public void testConsumer5() { 5
+    public void testConsumer5() {
         currentCID = "1";
         createConsumerIdList(5);
         createMessageQueueList(5);
@@ -168,7 +168,7 @@ public class AllocateMessageQueueAveragelyTest {
     }
 
     @Test
-    public void testConsumer6() { 6
+    public void testConsumer6() {
         currentCID = "1";
         createConsumerIdList(2);
         createMessageQueueList(6);
