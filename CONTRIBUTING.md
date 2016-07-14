@@ -8,9 +8,9 @@ Nor is code the only way to contribute to the project. We strongly value documen
 ## Contributing code
 
 To submit a change for inclusion, please do the following:
-If the change is non-trivial please include some unit tests that cover the new functionality.
-If you are introducing a completely new feature or API it is a good idea to start a wiki and get consensus on the basic design first.
-It is our job to follow up on patches in a timely fashion. Nag us if we aren't doing our job (sometimes we drop things).
+#### If the change is non-trivial please include some unit tests that cover the new functionality.
+#### If you are introducing a completely new feature or API it is a good idea to start a wiki and get consensus on the basic design first.
+#### It is our job to follow up on patches in a timely fashion. Nag us if we aren't doing our job (sometimes we drop things).
 
 ## Becoming a Committer
 
