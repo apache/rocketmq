@@ -51,20 +51,9 @@ It offers a variety of features as follows:
 
 ----------
 
-## Contributors
-* [@allenzhu](https://github.com/allenzhu)
-* [@lizhanhui](https://github.com/lizhanhui)
-* [@majinkai](https://github.com/majinkai) developed [rocketmq-flume](https://github.com/rocketmq/rocketmq-flume) for rocketmq
-* [@kangliqiang](https://github.com/kangliqiang) developed [rocketmq-client4cpp](https://github.com/rocketmq/rocketmq-client4cpp) for rocketmq
-* [@yankai913](https://github.com/yankai913) developed [rocketmq-console](https://github.com/rocketmq/rocketmq-console) for rocketmq
-* [@calvinzhan](https://github.com/calvinzhan) developed [rocketmq-jmsclient](https://github.com/rocketmq/rocketmq-jmsclient) for rocketmq
-
-----------
-
-## Donate us
-If you like RockemtMQ project,please do not hesitate to your [applause](https://github.com/alibaba/RocketMQ/wiki/How-to-donate). 
+## Contributing
+We are always very happy to have contributions, whether for trivial cleanups,big new features or other material rewards. more details see [here](https://github.com/alibaba/RocketMQ/wiki/How-to-donate) 
  
-
-
+----------
 ## License
 [Apache License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0.html) Copyright (C) 2010-2013 Alibaba Group Holding Limited
