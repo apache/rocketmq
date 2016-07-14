@@ -33,7 +33,8 @@
                 <include>benchmark/*</include>
                 <include>issues/*</include>
                 <include>wiki/*</include>
-                <include>LICENSE.txt</include>
+                <include>LICENSE</include>
+                <include>NOTICE</include>
             </includes>
         </fileSet>
     </fileSets>

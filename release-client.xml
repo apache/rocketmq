@@ -26,7 +26,8 @@
     <fileSets>
         <fileSet>
             <includes>
-                <include>LICENSE.txt</include>
+                <include>LICENSE</include>
+                <include>NOTICE</include>
             </includes>
         </fileSet>
     </fileSets>

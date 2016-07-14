@@ -17,11 +17,10 @@
 
 package com.alibaba.rocketmq.filtersrv.filter;
 
-import com.alibaba.common.lang.ArrayUtil;
-import com.alibaba.common.lang.StringUtil;
 import com.alibaba.rocketmq.common.UtilAll;
 import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.common.filter.FilterAPI;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -96,7 +95,7 @@ public class DynaCode {
 
     @SuppressWarnings("unchecked")
     public DynaCode(String code) {
-        this(Thread.currentThread().getContextClassLoader(), ArrayUtil.toList(new String[]{code}));
+        this(Thread.currentThread().getContextClassLoader(), Arrays.asList(code));
     }
 
 
@@ -183,10 +182,10 @@ public class DynaCode {
     public static String getQualifiedName(String code) {
         StringBuilder sb = new StringBuilder();
         String className = getClassName(code);
-        if (StringUtil.isNotBlank(className)) {
+        if (StringUtils.isNotBlank(className)) {
 
             String packageName = getPackageName(code);
-            if (StringUtil.isNotBlank(packageName)) {
+            if (StringUtils.isNotBlank(packageName)) {
                 sb.append(packageName).append(".");
             }
             sb.append(className);
@@ -204,14 +203,14 @@ public class DynaCode {
     private String[] uploadSrcFile() throws Exception {
         List<String> srcFileAbsolutePaths = new ArrayList<String>(codeStrs.size());
         for (String code : codeStrs) {
-            if (StringUtil.isNotBlank(code)) {
+            if (StringUtils.isNotBlank(code)) {
                 String packageName = getPackageName(code);
                 String className = getClassName(code);
-                if (StringUtil.isNotBlank(className)) {
+                if (StringUtils.isNotBlank(className)) {
                     File srcFile = null;
                     BufferedWriter bufferWriter = null;
                     try {
-                        if (StringUtil.isBlank(packageName)) {
+                        if (StringUtils.isBlank(packageName)) {
                             File pathFile = new File(sourcePath);
                             // 如果不存在就创建
                             if (!pathFile.exists()) {
@@ -221,7 +220,7 @@ public class DynaCode {
                             }
                             srcFile = new File(sourcePath + FILE_SP + className + ".java");
                         } else {
-                            String srcPath = StringUtil.replace(packageName, ".", FILE_SP);
+                            String srcPath = StringUtils.replace(packageName, ".", FILE_SP);
                             File pathFile = new File(sourcePath + FILE_SP + srcPath);
                             // 如果不存在就创建
                             if (!pathFile.exists()) {
@@ -306,44 +305,44 @@ public class DynaCode {
     }
 
     public static String getClassName(String code) {
-        String className = StringUtil.substringBefore(code, "{");
-        if (StringUtil.isBlank(className)) {
+        String className = StringUtils.substringBefore(code, "{");
+        if (StringUtils.isBlank(className)) {
             return className;
         }
-        if (StringUtil.contains(code, " class ")) {
-            className = StringUtil.substringAfter(className, " class ");
-            if (StringUtil.contains(className, " extends ")) {
-                className = StringUtil.substringBefore(className, " extends ").trim();
-            } else if (StringUtil.contains(className, " implements ")) {
-                className = StringUtil.trim(StringUtil.substringBefore(className, " implements "));
+        if (StringUtils.contains(code, " class ")) {
+            className = StringUtils.substringAfter(className, " class ");
+            if (StringUtils.contains(className, " extends ")) {
+                className = StringUtils.substringBefore(className, " extends ").trim();
+            } else if (StringUtils.contains(className, " implements ")) {
+                className = StringUtils.trim(StringUtils.substringBefore(className, " implements "));
             } else {
-                className = StringUtil.trim(className);
+                className = StringUtils.trim(className);
             }
-        } else if (StringUtil.contains(code, " interface ")) {
-            className = StringUtil.substringAfter(className, " interface ");
-            if (StringUtil.contains(className, " extends ")) {
-                className = StringUtil.substringBefore(className, " extends ").trim();
+        } else if (StringUtils.contains(code, " interface ")) {
+            className = StringUtils.substringAfter(className, " interface ");
+            if (StringUtils.contains(className, " extends ")) {
+                className = StringUtils.substringBefore(className, " extends ").trim();
             } else {
-                className = StringUtil.trim(className);
+                className = StringUtils.trim(className);
             }
-        } else if (StringUtil.contains(code, " enum ")) {
-            className = StringUtil.trim(StringUtil.substringAfter(className, " enum "));
+        } else if (StringUtils.contains(code, " enum ")) {
+            className = StringUtils.trim(StringUtils.substringAfter(className, " enum "));
         } else {
-            return StringUtil.EMPTY_STRING;
+            return StringUtils.EMPTY;
         }
         return className;
     }
 
     public static String getPackageName(String code) {
         String packageName =
-                StringUtil.substringBefore(StringUtil.substringAfter(code, "package "), ";").trim();
+                StringUtils.substringBefore(StringUtils.substringAfter(code, "package "), ";").trim();
         return packageName;
     }
 
     public static String getFullClassName(String code) {
         String packageName = getPackageName(code);
         String className = getClassName(code);
-        return StringUtil.isBlank(packageName) ? className : packageName + "." + className;
+        return StringUtils.isBlank(packageName) ? className : packageName + "." + className;
     }
 
     /**
@@ -355,31 +354,31 @@ public class DynaCode {
      */
     private String[] buildCompileJavacArgs(String srcFiles[]) {
         ArrayList<String> args = new ArrayList<String>();
-        if (StringUtil.isNotBlank(classpath)) {
+        if (StringUtils.isNotBlank(classpath)) {
             args.add("-classpath");
             args.add(classpath);
         }
-        if (StringUtil.isNotBlank(outPutClassPath)) {
+        if (StringUtils.isNotBlank(outPutClassPath)) {
             args.add("-d");
             args.add(outPutClassPath);
         }
-        if (StringUtil.isNotBlank(sourcePath)) {
+        if (StringUtils.isNotBlank(sourcePath)) {
             args.add("-sourcepath");
             args.add(sourcePath);
         }
-        if (StringUtil.isNotBlank(bootclasspath)) {
+        if (StringUtils.isNotBlank(bootclasspath)) {
             args.add("-bootclasspath");
             args.add(bootclasspath);
         }
-        if (StringUtil.isNotBlank(extdirs)) {
+        if (StringUtils.isNotBlank(extdirs)) {
             args.add("-extdirs");
             args.add(extdirs);
         }
-        if (StringUtil.isNotBlank(encoding)) {
+        if (StringUtils.isNotBlank(encoding)) {
             args.add("-encoding");
             args.add(encoding);
         }
-        if (StringUtil.isNotBlank(target)) {
+        if (StringUtils.isNotBlank(target)) {
             args.add("-target");
             args.add(target);
         }

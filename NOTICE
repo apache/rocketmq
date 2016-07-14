@@ -1,0 +1,8 @@
+RocketMQ
+Copyright 2016 Alibaba Group.
+
+This product includes software developed at
+The Apache Software Foundation (http://www.apache.org/).
+
+This distribution has a binary dependency on mysql-connector-java, which is available under gpl 2.0.
+The source code of mysql-connector-java can be found at http://dev.mysql.com/downloads/connector/j/.

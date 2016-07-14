@@ -1,17 +1,23 @@
 ## RocketMQ -- Alibaba's MQ [![Build Status](https://travis-ci.org/alibaba/RocketMQ.svg?branch=master)](https://travis-ci.org/alibaba/RocketMQ)
+[![Maven Central](https://img.shields.io/badge/maven--center-stable--version-green.svg)](http://search.maven.org/#search%7Cga%7C1%7Ccom.alibaba.rocketmq)
+[![GitHub release](https://img.shields.io/badge/release-download-orange.svg)](https://github.com/alibaba/RocketMQ/releases)
+[![License](https://img.shields.io/badge/license-Apache%202-4EB1BA.svg)](https://www.apache.org/licenses/LICENSE-2.0.html)
+
 **RocketMQ is a fast, reliable, scalable, easy to use message oriented middleware breeding from alibaba massive messaging business.**
 
 It offers a variety of features as follows:
 
-* Reliable FIFO and strict sequential messaging
 * Pub/Sub and P2P messaging model
+* Reliable FIFO and strict sequential messaging in the same queue
+* Long pull queue model,also support push consumption style
 * Million message accumulation ability in single queue
-* Pull queues and push queues
-* Over a variety of messaging protocols.such as JMS,MQTT etc.
-* Distributed clustering, support fault-tolerance
+* Over a variety of messaging protocols.such as JMS,MQTT,HTTP2 etc.
+* Distributed high available deploy architecture, meets at least once message delivery semantics
 * Docker images for isolated testing and cloud Isolated clusters
-* Feature-rich administrative dashboard for configuration and monitoring
-
+* Feature-rich administrative dashboard for configuration,metrics and monitoring [![Cloud Charge](https://img.shields.io/badge/cloud-charge-red.svg)](https://www.aliyun.com/product/ons/?spm=5176.7960203.237031.135.67OdNO)
+* Message full-link tracking [![Cloud Charge] (https://img.shields.io/badge/cloud-charge-red.svg)](https://www.aliyun.com/product/ons/?spm=5176.7960203.237031.135.67OdNO)
+* Producer transaction message,making producer and local database transaction in one atomic operation [![Cloud Charge](https://img.shields.io/badge/cloud-charge-red.svg)](https://www.aliyun.com/product/ons/?spm=5176.7960203.237031.135.67OdNO)
+* Message Schedule delivery,similar JMS2 spec's delivery delay [![Cloud Charge] (https://img.shields.io/badge/cloud-charge-red.svg)](https://www.aliyun.com/product/ons/?spm=5176.7960203.237031.135.67OdNO)
 
 ----------
 
@@ -21,8 +27,6 @@ It offers a variety of features as follows:
 * Documentation: <https://github.com/alibaba/RocketMQ/wiki>
 * Wiki: <https://github.com/alibaba/RocketMQ/wiki>
 * Issues: <https://github.com/alibaba/RocketMQ/issues>
-* QQ Group: [5776652](http://url.cn/Knxm0o)
-* Weibo <http://q.weibo.com/1628465>
 * [![Gitter](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/alibaba/RocketMQ?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
  
 
@@ -35,29 +39,32 @@ It offers a variety of features as follows:
 * [`Docker images`](https://registry.hub.docker.com/u/vongosling/rocketmq/)
 * [Integrate with Alibaba JStorm](https://github.com/alibaba/jstorm)
 * [Integrate with Alibaba Canal](https://github.com/alibaba/canal)
+* [RocketMQ Community Projects](https://github.com/rocketmq)
 
 ----------
 
-## Development team in Alibaba
+## PMC members & Committers
 * vintagewang([@vintagewang](https://github.com/vintagewang))
 * vongosling([@vongosling](https://github.com/vongosling))
-* manhong
-* lansheng
-* longji
-* fuchong
-* mouyu
+* manhong([@YangJodie](https://github.com/YangJodie))
+* mouyu([@lollipopjin](https://github.com/lollipopjin))
 
 ----------
 
-## Contributors in RocketMQ community
-* [@lizhanhui](https://github.com/lizhanhui) fixed several important bugs.
-* [@vongosling](https://github.com/vongosling) developed [rocketmq-storm](https://github.com/rocketmq/rocketmq-storm) for rocketmq
+## Contributors
+* [@allenzhu](https://github.com/allenzhu)
+* [@lizhanhui](https://github.com/lizhanhui)
 * [@majinkai](https://github.com/majinkai) developed [rocketmq-flume](https://github.com/rocketmq/rocketmq-flume) for rocketmq
 * [@kangliqiang](https://github.com/kangliqiang) developed [rocketmq-client4cpp](https://github.com/rocketmq/rocketmq-client4cpp) for rocketmq
 * [@yankai913](https://github.com/yankai913) developed [rocketmq-console](https://github.com/rocketmq/rocketmq-console) for rocketmq
 * [@calvinzhan](https://github.com/calvinzhan) developed [rocketmq-jmsclient](https://github.com/rocketmq/rocketmq-jmsclient) for rocketmq
 
 ----------
+
+## Donate us
+If you like RockemtMQ project,please do not hesitate to your [applause](https://github.com/alibaba/RocketMQ/wiki/How-to-donate). 
+ 
+
 
 ## License
 [Apache License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0.html) Copyright (C) 2010-2013 Alibaba Group Holding Limited

@@ -41,7 +41,6 @@
     <packaging>pom</packaging>
     <name>rocketmq-all ${project.version}</name>
     <url>https://github.com/alibaba/rocketmq</url>
-    <description>https://github.com/alibaba/RocketMQ/blob/develop/README.md</description>
 
     <prerequisites>
         <maven>2.2.1</maven>
@@ -62,29 +61,40 @@
 
     <developers>
         <developer>
+            <id>vintagewang</id>
             <name>vintagewang</name>
-            <url>https://github.com/vintagewang</url>
+            <roles>
+                <role>project leader</role>
+                <role>architect</role>
+            </roles>
             <email>vintage.wang@gmail.com</email>
+            <url>https://github.com/vintagewang</url>
             <timezone>8</timezone>
         </developer>
         <developer>
-            <name>manhong</name>
-            <url>https://github.com/YangJodie</url>
-            <email>manhong.yqd@alibaba-inc.com</email>
-            <timezone>8</timezone>
-        </developer>
-        <developer>
-            <name>allenzhu</name>
-            <url>https://github.com/allenzhu</url>
-            <email>allen.jie.zhu@gmail.com</email>
-            <timezone>8</timezone>
-        </developer>
-        <developer>
-            <id>Von Gosling</id>
-            <name>Von Gosling</name>
+            <id>vongosling</id>
+            <name>vongosling</name>
+            <roles>
+                <role>project leader</role>
+                <role>architect</role>
+            </roles>
             <email>fengjia10@gmail.com</email>
             <url>https://github.com/vongosling</url>
             <timezone>+8</timezone>
+        </developer>
+        <developer>
+            <id>manhong</id>
+            <name>manhong</name>
+            <email>manhong.yqd@alibaba-inc.com</email>
+            <url>https://github.com/YangJodie</url>
+            <timezone>8</timezone>
+        </developer>
+        <developer>
+            <id>mouyu</id>
+            <name>mouyu</name>
+            <email>lollipop_jin@126.com</email>
+            <url>https://github.com/lollipopjin</url>
+            <timezone>8</timezone>
         </developer>
     </developers>
 
@@ -95,30 +105,30 @@
         </license>
     </licenses>
 
-    <scm>
-        <url>git@gitlab.alibaba-inc.com:middleware/rocketmq.git</url>
-        <connection>scm:git:git@gitlab.alibaba-inc.com:middleware/rocketmq.git</connection>
-        <developerConnection>scm:git:git@gitlab.alibaba-inc.com:middleware/rocketmq.git</developerConnection>
-    </scm>
-
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <!--maven properties -->
         <maven.test.skip>true</maven.test.skip>
-        <maven.jdoc.skip>true</maven.jdoc.skip>
+        <maven.javadoc.skip>true</maven.javadoc.skip>
         <downloadSources>true</downloadSources>
         <!-- compiler settings properties -->
-        <java_source_version>1.6</java_source_version>
-        <java_target_version>1.6</java_target_version>
-        <file_encoding>UTF-8</file_encoding>
+        <maven.compiler.source>1.6</maven.compiler.source>
+        <maven.compiler.target>1.6</maven.compiler.target>
     </properties>
 
     <build>
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>false</filtering>
+            </resource>
+        </resources>
+
         <plugins>
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>versions-maven-plugin</artifactId>
-                <version>2.1</version>
+                <version>2.2</version>
             </plugin>
             <plugin>
                 <groupId>com.github.vongosling</groupId>
@@ -128,11 +138,11 @@
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>clirr-maven-plugin</artifactId>
-                <version>2.6.1</version>
+                <version>2.7</version>
             </plugin>
             <plugin>
                 <artifactId>maven-enforcer-plugin</artifactId>
-                <version>1.4</version>
+                <version>1.4.1</version>
                 <executions>
                     <execution>
                         <id>enforce-ban-circular-dependencies</id>
@@ -151,36 +161,26 @@
                     <dependency>
                         <groupId>org.codehaus.mojo</groupId>
                         <artifactId>extra-enforcer-rules</artifactId>
-                        <version>1.0-beta-2</version>
+                        <version>1.0-beta-4</version>
                     </dependency>
                 </dependencies>
             </plugin>
             <plugin>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.2</version>
+                <version>3.5.1</version>
                 <configuration>
-                    <source>${java_source_version}</source>
-                    <target>${java_target_version}</target>
-                    <encoding>${file_encoding}</encoding>
+                    <source>${maven.compiler.source}</source>
+                    <target>${maven.compiler.target}</target>
+                    <compilerVersion>${maven.compiler.source}</compilerVersion>
                     <showDeprecation>true</showDeprecation>
                     <showWarnings>true</showWarnings>
                 </configuration>
             </plugin>
             <plugin>
-                <artifactId>maven-eclipse-plugin</artifactId>
-                <version>2.9</version>
-                <configuration>
-                    <downloadSources>true</downloadSources>
-                    <downloadJavadocs>false</downloadJavadocs>
-                </configuration>
-            </plugin>
-            <plugin>
                 <artifactId>maven-surefire-plugin</artifactId>
-                <version>2.18.1</version>
+                <version>2.19.1</version>
                 <configuration>
-                    <skip>${maven.test.skip}</skip>
                     <argLine>-Xms512m -Xmx1024m</argLine>
-                    <forkMode>once</forkMode>
                     <includes>
                         <include>**/*Test.java</include>
                     </includes>
@@ -191,9 +191,7 @@
                         <exclude>com/alibaba/rocketmq/remoting/NettyConnectionTest.java</exclude>
                         <exclude>com/alibaba/rocketmq/common/filter/PolishExprTest.java</exclude>
                         <exclude>com/alibaba/rocketmq/common/protocol/MQProtosHelperTest.java</exclude>
-                        <exclude>
-                            com/alibaba/rocketmq/client/consumer/loadbalance/AllocateMessageQueueAveragelyTest.java
-                        </exclude>
+                        <exclude>com/alibaba/rocketmq/client/consumer/loadbalance/AllocateMessageQueueAveragelyTest.java</exclude>
                         <exclude>com/alibaba/rocketmq/store/RecoverTest.java</exclude>
                         <exclude>com/alibaba/rocketmq/broker/api/SendMessageTest.java</exclude>
                         <exclude>com/alibaba/rocketmq/test/integration/*/*.java</exclude>
@@ -203,11 +201,9 @@
                     </excludes>
                 </configuration>
             </plugin>
-
-
             <plugin>
                 <artifactId>maven-assembly-plugin</artifactId>
-                <version>2.5.3</version>
+                <version>2.6</version>
                 <configuration>
                     <finalName>alibaba-rocketmq</finalName>
                     <descriptors>
@@ -228,10 +224,9 @@
                         </plugin>
             -->
 
-
             <plugin>
                 <artifactId>maven-javadoc-plugin</artifactId>
-                <version>2.10.1</version>
+                <version>2.10.4</version>
                 <executions>
                     <execution>
                         <id>attach-javadocs</id>
@@ -240,26 +235,10 @@
                         </goals>
                     </execution>
                 </executions>
-                <configuration>
-                    <skip>${maven.jdoc.skip}</skip>
-                    <encoding>${file_encoding}</encoding>
-                    <charset>${file_encoding}</charset>
-                    <doclet>org.jboss.apiviz.APIviz</doclet>
-                    <docletArtifact>
-                        <groupId>org.jboss.apiviz</groupId>
-                        <artifactId>apiviz</artifactId>
-                        <version>1.3.0.GA</version>
-                    </docletArtifact>
-                    <useStandardDocletOptions>true</useStandardDocletOptions>
-                    <breakiterator>true</breakiterator>
-                    <version>true</version>
-                    <author>true</author>
-                    <keywords>true</keywords>
-                </configuration>
             </plugin>
             <plugin>
                 <artifactId>maven-source-plugin</artifactId>
-                <version>2.4</version>
+                <version>3.0.1</version>
                 <executions>
                     <execution>
                         <id>attach-sources</id>
@@ -270,21 +249,54 @@
                 </executions>
             </plugin>
             <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>clirr-maven-plugin</artifactId>
-                <version>2.6.1</version>
+                <artifactId>maven-help-plugin</artifactId>
+                <version>2.2</version>
+                <executions>
+                    <execution>
+                        <id>generate-effective-dependencies-pom</id>
+                        <phase>generate-resources</phase>
+                        <goals>
+                            <goal>effective-pom</goal>
+                        </goals>
+                        <configuration>
+                            <output>${project.build.directory}/effective-pom/effective-dependencies.xml</output>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
-
-        <resources>
-            <resource>
-                <directory>src/main/resources</directory>
-                <filtering>false</filtering>
-            </resource>
-        </resources>
     </build>
 
     <profiles>
+        <profile>
+            <id>jdk8</id>
+            <activation>
+                <jdk>[1.8,)</jdk>
+            </activation>
+            <!-- Disable doclint under JDK 8 -->
+            <reporting>
+                <plugins>
+                    <plugin>
+                        <artifactId>maven-javadoc-plugin</artifactId>
+                        <version>2.10.4</version>
+                        <configuration>
+                            <additionalparam>-Xdoclint:none</additionalparam>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </reporting>
+            <build>
+                <plugins>
+                    <plugin>
+                        <artifactId>maven-javadoc-plugin</artifactId>
+                        <version>2.10.4</version>
+                        <configuration>
+                            <additionalparam>-Xdoclint:none</additionalparam>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
         <profile>
             <id>release-sign-artifacts</id>
             <activation>
@@ -399,12 +411,12 @@
             <dependency>
                 <groupId>io.netty</groupId>
                 <artifactId>netty-all</artifactId>
-                <version>4.0.36.Final</version>
+                <version>4.0.29.Final</version>
             </dependency>
             <dependency>
                 <groupId>com.alibaba</groupId>
                 <artifactId>fastjson</artifactId>
-                <version>1.2.12</version>
+                <version>1.2.3</version>
             </dependency>
             <dependency>
                 <groupId>mysql</groupId>
@@ -417,15 +429,18 @@
                 <version>10.10.2.0</version>
             </dependency>
             <dependency>
-                <groupId>jboss</groupId>
+                <groupId>org.javassist</groupId>
                 <artifactId>javassist</artifactId>
-                <version>3.7.ga</version>
+                <version>3.20.0-GA</version>
             </dependency>
             <dependency>
-                <groupId>com.taobao.tlog</groupId>
-                <artifactId>tlog-client</artifactId>
-                <version>2.0.0-SNAPSHOT</version>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-lang3</artifactId>
+                <version>3.4</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
 </project>
+
+
+
