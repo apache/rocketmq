@@ -31,8 +31,8 @@ public class NettyServerConfig implements Cloneable {
     private int serverAsyncSemaphoreValue = 64;
     private int serverChannelMaxIdleTimeSeconds = 120;
 
-    private int serverSocketSndBufSize = NettySystemConfig.SocketSndbufSize;
-    private int serverSocketRcvBufSize = NettySystemConfig.SocketRcvbufSize;
+    private int serverSocketSndBufSize = NettySystemConfig.socketSndbufSize;
+    private int serverSocketRcvBufSize = NettySystemConfig.socketRcvbufSize;
     private boolean serverPooledByteBufAllocatorEnable = true;
 
     /**

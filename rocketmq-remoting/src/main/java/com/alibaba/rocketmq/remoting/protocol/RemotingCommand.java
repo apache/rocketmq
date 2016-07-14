@@ -50,28 +50,26 @@ public class RemotingCommand {
     private static final Map<Field, Annotation> notNullAnnotationCache = new HashMap<Field, Annotation>();
     // 1, Oneway
 
-    private static final String StringCanonicalName = String.class.getCanonicalName();//
-    private static final String DoubleCanonicalName1 = Double.class.getCanonicalName();//
-    private static final String DoubleCanonicalName2 = double.class.getCanonicalName();//
-    private static final String IntegerCanonicalName1 = Integer.class.getCanonicalName();//
-    private static final String IntegerCanonicalName2 = int.class.getCanonicalName();//
-    private static final String LongCanonicalName1 = Long.class.getCanonicalName();//
-    private static final String LongCanonicalName2 = long.class.getCanonicalName();//
-    private static final String BooleanCanonicalName1 = Boolean.class.getCanonicalName();//
-    private static final String BooleanCanonicalName2 = boolean.class.getCanonicalName();//
-    public static String RemotingVersionKey = "rocketmq.remoting.version";
-    private static volatile int ConfigVersion = -1;
-    private static AtomicInteger RequestId = new AtomicInteger(0);
-    /**
+    private static final String StringCanonicalName = String.class.getCanonicalName();
+    private static final String DoubleCanonicalName1 = Double.class.getCanonicalName();
+    private static final String DoubleCanonicalName2 = double.class.getCanonicalName();
+    private static final String IntegerCanonicalName1 = Integer.class.getCanonicalName();
+    private static final String IntegerCanonicalName2 = int.class.getCanonicalName();
+    private static final String LongCanonicalName1 = Long.class.getCanonicalName();
+    private static final String LongCanonicalName2 = long.class.getCanonicalName();
+    private static final String BooleanCanonicalName1 = Boolean.class.getCanonicalName();
+    private static final String BooleanCanonicalName2 = boolean.class.getCanonicalName();
+    public static final String RemotingVersionKey = "rocketmq.remoting.version";
+    private static volatile int configVersion = -1;
+    private static AtomicInteger requestId = new AtomicInteger(0);
 
-     */
-    private static SerializeType SerializeTypeConfigInThisServer = SerializeType.JSON;
+    private static SerializeType serializeTypeConfigInThisServer = SerializeType.JSON;
 
     static {
         final String protocol = System.getProperty(SERIALIZE_TYPE_PROPERTY, System.getenv(SERIALIZE_TYPE_ENV));
         if (!isBlank(protocol)) {
             try {
-                SerializeTypeConfigInThisServer = SerializeType.valueOf(protocol);
+                serializeTypeConfigInThisServer = SerializeType.valueOf(protocol);
             } catch (IllegalArgumentException e) {
                 throw new RuntimeException("parser specified protocol error. protocol=" + protocol, e);
             }
@@ -84,7 +82,7 @@ public class RemotingCommand {
     private int code;
     private LanguageCode language = LanguageCode.JAVA;
     private int version = 0;
-    private int opaque = RequestId.getAndIncrement();
+    private int opaque = requestId.getAndIncrement();
     private int flag = 0;
     private String remark;
     private HashMap<String, String> extFields;
@@ -92,7 +90,7 @@ public class RemotingCommand {
     /**
 
      */
-    private SerializeType serializeTypeCurrentRPC = SerializeTypeConfigInThisServer;
+    private SerializeType serializeTypeCurrentRPC = serializeTypeConfigInThisServer;
     /**
 
      */
@@ -111,14 +109,14 @@ public class RemotingCommand {
     }
 
     private static void setCmdVersion(RemotingCommand cmd) {
-        if (ConfigVersion >= 0) {
-            cmd.setVersion(ConfigVersion);
+        if (configVersion >= 0) {
+            cmd.setVersion(configVersion);
         } else {
             String v = System.getProperty(RemotingVersionKey);
             if (v != null) {
                 int value = Integer.parseInt(v);
                 cmd.setVersion(value);
-                ConfigVersion = value;
+                configVersion = value;
             }
         }
     }
@@ -214,11 +212,11 @@ public class RemotingCommand {
     }
 
     public static int createNewRequestId() {
-        return RequestId.incrementAndGet();
+        return requestId.incrementAndGet();
     }
 
     public static SerializeType getSerializeTypeConfigInThisServer() {
-        return SerializeTypeConfigInThisServer;
+        return serializeTypeConfigInThisServer;
     }
 
     private static boolean isBlank(String str) {
@@ -227,7 +225,7 @@ public class RemotingCommand {
             return true;
         }
         for (int i = 0; i < strLen; i++) {
-            if ((Character.isWhitespace(str.charAt(i)) == false)) {
+            if (!Character.isWhitespace(str.charAt(i))) {
                 return false;
             }
         }

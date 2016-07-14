@@ -56,12 +56,12 @@ public class NamesrvStartup {
 
 
         if (null == System.getProperty(NettySystemConfig.SystemPropertySocketSndbufSize)) {
-            NettySystemConfig.SocketSndbufSize = 4096;
+            NettySystemConfig.socketSndbufSize = 4096;
         }
 
 
         if (null == System.getProperty(NettySystemConfig.SystemPropertySocketRcvbufSize)) {
-            NettySystemConfig.SocketRcvbufSize = 4096;
+            NettySystemConfig.socketRcvbufSize = 4096;
         }
 
         try {

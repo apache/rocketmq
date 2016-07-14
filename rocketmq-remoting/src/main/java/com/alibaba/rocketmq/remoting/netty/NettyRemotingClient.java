@@ -219,7 +219,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                     boolean removeItemFromTable = true;
                     final ChannelWrapper prevCW = this.channelTables.get(addrRemote);
 
-                    log.info("closeChannel: begin close the channel[{}] Found: {}", addrRemote, (prevCW != null));
+                    log.info("closeChannel: begin close the channel[{}] Found: {}", addrRemote, prevCW != null);
 
                     if (null == prevCW) {
                         log.info("closeChannel: the channel[{}] has been removed from the channel table before", addrRemote);
@@ -577,7 +577,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
 
 
         public boolean isOK() {
-            return (this.channelFuture.channel() != null && this.channelFuture.channel().isActive());
+            return this.channelFuture.channel() != null && this.channelFuture.channel().isActive();
         }
 
 

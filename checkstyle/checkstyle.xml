@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE module PUBLIC
+        "-//Puppy Crawl//DTD Check Configuration 1.3//EN"
+        "http://www.puppycrawl.com/dtds/configuration_1_3.dtd">
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+  -->
+<!--Refer http://checkstyle.sourceforge.net/reports/google-java-style.html#s2.2-file-encoding -->
+<module name="Checker">
+
+    <property name="localeLanguage" value="en"/>
+
+    <!--To configure the check to report on the first instance in each file-->
+    <module name="FileTabCharacter"/>
+
+    <!-- header -->
+    <module name="RegexpHeader">
+        <property name="header" value="/\*\*\nLicensed to the Apache.*"/>
+    </module>
+
+    <!--<module name="RegexpSingleline">-->
+        <!--<property name="format" value="System\.out\.println" />-->
+        <!--<property name="message" value="Prohibit invoking System.out.println in source code !" />-->
+    <!--</module>-->
+    <!--<module name="RegexpSingleline">-->
+        <!--<property name="format" value="//FIXME"/>-->
+        <!--<property name="message" value="Recommended fix FIXME task !"/>-->
+    <!--</module>-->
+    <!--<module name="RegexpSingleline">-->
+        <!--<property name="format" value="//TODO"/>-->
+        <!--<property name="message" value="Recommended fix TODO task !"/>-->
+    <!--</module>-->
+    <module name="RegexpSingleline">
+        <property name="format" value=".*[\u4E00-\u9FA5]+.*"/>
+        <property name="message" value="Recommended remove chinese !"/>
+    </module>
+
+    <module name="FileLength">
+        <property name="max" value="2000" />
+    </module>
+
+    <!--<module name="TreeWalker">-->
+
+        <!--&lt;!&ndash; code cleanup &ndash;&gt;-->
+        <!--<module name="UnusedImports">-->
+            <!--<property name="processJavadoc" value="true" />-->
+        <!--</module>-->
+        <!--<module name="RedundantImport"/>-->
+        <!--<module name="IllegalImport" />-->
+        <!--&lt;!&ndash;Checks that classes that override equals() also override hashCode()&ndash;&gt;-->
+        <!--<module name="EqualsHashCode"/>-->
+        <!--&lt;!&ndash;Checks for over-complicated boolean expressions. Currently finds code like if (b == true), b || true, !false, etc.&ndash;&gt;-->
+        <!--<module name="SimplifyBooleanExpression"/>-->
+        <!--<module name="OneStatementPerLine"/>-->
+        <!--<module name="UnnecessaryParentheses" />-->
+        <!--&lt;!&ndash;Checks for over-complicated boolean return statements. For example the following code&ndash;&gt;-->
+        <!--&lt;!&ndash;<module name="SimplifyBooleanReturn"/>&ndash;&gt;-->
+
+        <!--&lt;!&ndash; style &ndash;&gt;-->
+        <!--&lt;!&ndash;Check that the default is after all the cases in a switch statement&ndash;&gt;-->
+        <!--<module name="DefaultComesLast"/>-->
+        <!--&lt;!&ndash;Detects empty statements (standalone ";" semicolon)&ndash;&gt;-->
+        <!--<module name="EmptyStatement"/>-->
+        <!--&lt;!&ndash;Checks that long constants are defined with an upper ell&ndash;&gt;-->
+        <!--&lt;!&ndash;<module name="UpperEll"/>&ndash;&gt;-->
+        <!--&lt;!&ndash;-->
+        <!--<module name="ConstantName">-->
+            <!--<property name="format" value="(^[A-Z][A-Z0-9]*(_[A-Z0-9]+)*$)|(^log$)"/>-->
+        <!--</module>-->
+        <!--&ndash;&gt;-->
+        <!--&lt;!&ndash;Checks that local, non-final variable names conform to a format specified by the format property&ndash;&gt;-->
+        <!--<module name="LocalVariableName"/>-->
+        <!--&lt;!&ndash;Validates identifiers for local, final variables, including catch parameters&ndash;&gt;-->
+        <!--<module name="LocalFinalVariableName"/>-->
+        <!--&lt;!&ndash;Validates identifiers for non-static fields&ndash;&gt;-->
+        <!--<module name="MemberName"/>-->
+        <!--&lt;!&ndash;Validates identifiers for class type parameters&ndash;&gt;-->
+        <!--&lt;!&ndash;-->
+        <!--<module name="ClassTypeParameterName">-->
+            <!--<property name="format" value="^[A-Z0-9]*$"/>-->
+        <!--</module>-->
+        <!--&ndash;&gt;-->
+        <!--&lt;!&ndash;Validates identifiers for method type parameters&ndash;&gt;-->
+        <!--&lt;!&ndash;-->
+        <!--<module name="MethodTypeParameterName">-->
+            <!--<property name="format" value="^[A-Z0-9]*$"/>-->
+        <!--</module>-->
+        <!--&ndash;&gt;-->
+        <!--<module name="PackageName"/>-->
+        <!--<module name="ParameterName"/>-->
+        <!--<module name="StaticVariableName"/>-->
+        <!--<module name="TypeName"/>-->
+        <!--&lt;!&ndash;Checks that there are no import statements that use the * notation&ndash;&gt;-->
+        <!--&lt;!&ndash;<module name="AvoidStarImport"/>&ndash;&gt;-->
+
+        <!--&lt;!&ndash; whitespace &ndash;&gt;-->
+        <!--<module name="GenericWhitespace"/>-->
+        <!--<module name="NoWhitespaceBefore"/>-->
+        <!--<module name="WhitespaceAfter" />-->
+        <!--<module name="NoWhitespaceAfter"/>-->
+        <!--<module name="WhitespaceAround">-->
+            <!--<property name="allowEmptyConstructors" value="true"/>-->
+            <!--<property name="allowEmptyMethods" value="true"/>-->
+        <!--</module>-->
+        <!--<module name="Indentation"/>-->
+        <!--<module name="MethodParamPad"/>-->
+        <!--<module name="ParenPad"/>-->
+        <!--<module name="TypecastParenPad"/>-->
+    <!--</module>-->
+</module>

@@ -70,12 +70,12 @@ public class FiltersrvStartup {
 
 
         if (null == System.getProperty(NettySystemConfig.SystemPropertySocketSndbufSize)) {
-            NettySystemConfig.SocketSndbufSize = 65535;
+            NettySystemConfig.socketSndbufSize = 65535;
         }
 
 
         if (null == System.getProperty(NettySystemConfig.SystemPropertySocketRcvbufSize)) {
-            NettySystemConfig.SocketRcvbufSize = 1024;
+            NettySystemConfig.socketRcvbufSize = 1024;
         }
 
         try {
