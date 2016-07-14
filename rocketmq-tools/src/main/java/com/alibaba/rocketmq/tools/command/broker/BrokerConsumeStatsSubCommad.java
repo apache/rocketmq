@@ -34,8 +34,8 @@ import java.util.*;
 /**
  * 获取Broker运行时统计信息
  *
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2013-8-14
+ * @author shijia.wxr
+ *
  */
 public class BrokerConsumeStatsSubCommad implements SubCommand {
 

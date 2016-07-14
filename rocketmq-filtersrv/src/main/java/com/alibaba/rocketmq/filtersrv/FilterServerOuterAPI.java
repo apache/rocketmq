@@ -34,8 +34,8 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 /**
  * Broker对外调用的API封装
  *
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2014-4-10
+ * @author shijia.wxr
+ *
  */
 public class FilterServerOuterAPI {
     private final RemotingClient remotingClient;

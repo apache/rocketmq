@@ -26,8 +26,8 @@ import java.util.HashMap;
 
 
 /**
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2013-7-2
+ * @author shijia.wxr
+ *
  */
 public class BrokerData implements Comparable<BrokerData> {
     private String cluster;

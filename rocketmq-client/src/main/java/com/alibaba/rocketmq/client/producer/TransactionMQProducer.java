@@ -22,8 +22,7 @@ import com.alibaba.rocketmq.remoting.RPCHook;
 
 
 /**
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2013-7-25
+ * @author shijia.wxr
  */
 public class TransactionMQProducer extends DefaultMQProducer {
     private TransactionCheckListener transactionCheckListener;

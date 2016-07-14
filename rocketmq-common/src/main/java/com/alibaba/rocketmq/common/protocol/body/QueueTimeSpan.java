@@ -24,10 +24,7 @@ import java.util.Date;
 
 
 /**
- * description
- *
- * @author: manhong.yqd<jodie.yqd@gmail.com>
- * @since: 14-5-28
+ * @author manhong.yqd
  */
 public class QueueTimeSpan {
     private MessageQueue messageQueue;

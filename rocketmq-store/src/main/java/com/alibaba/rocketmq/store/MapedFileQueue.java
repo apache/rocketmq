@@ -34,8 +34,8 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  * 存储队列，数据定时删除，无限增长<br>
  * 队列是由多个文件组成
  *
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2013-7-21
+ * @author shijia.wxr
+ *
  */
 public class MapedFileQueue {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.StoreLoggerName);

@@ -39,10 +39,7 @@ import org.slf4j.LoggerFactory;
 
 
 /**
- * Commit或Rollback事务
- *
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2013-7-26
+ * @author shijia.wxr
  */
 public class EndTransactionProcessor implements NettyRequestProcessor {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.BrokerLoggerName);

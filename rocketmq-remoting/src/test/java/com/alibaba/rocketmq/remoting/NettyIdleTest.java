@@ -30,8 +30,8 @@ import static org.junit.Assert.assertTrue;
 
 
 /**
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2013-7-6
+ * @author shijia.wxr
+ *
  */
 public class NettyIdleTest {
     // @Test

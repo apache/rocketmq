@@ -28,9 +28,7 @@ import java.util.List;
 
 
 /**
- * Topic路由数据，从Name Server获取
- *
- * @author shijia.wxr<vintage.wang@gmail.com>
+ * @author shijia.wxr
  */
 public class TopicRouteData extends RemotingSerializable {
     private String orderTopicConf;

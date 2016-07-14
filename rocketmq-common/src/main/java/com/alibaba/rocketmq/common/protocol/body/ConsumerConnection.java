@@ -28,10 +28,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 
 /**
- * TODO
- *
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 13-8-5
+ * @author shijia.wxr
  */
 public class ConsumerConnection extends RemotingSerializable {
     private HashSet<Connection> connectionSet = new HashSet<Connection>();

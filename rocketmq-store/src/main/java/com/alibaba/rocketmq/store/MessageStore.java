@@ -26,8 +26,8 @@ import java.util.Set;
 /**
  * 存储层对外提供的接口
  *
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2013-7-21
+ * @author shijia.wxr
+ *
  */
 public interface MessageStore {
 

@@ -110,7 +110,6 @@
         <!--maven properties -->
         <maven.test.skip>true</maven.test.skip>
         <maven.javadoc.skip>true</maven.javadoc.skip>
-        <downloadSources>true</downloadSources>
         <!-- compiler settings properties -->
         <maven.compiler.source>1.6</maven.compiler.source>
         <maven.compiler.target>1.6</maven.compiler.target>

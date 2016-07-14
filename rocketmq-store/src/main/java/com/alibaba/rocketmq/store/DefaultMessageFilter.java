@@ -22,8 +22,8 @@ import com.alibaba.rocketmq.common.protocol.heartbeat.SubscriptionData;
 /**
  * 消息过滤规则实现
  *
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2013-7-21
+ * @author shijia.wxr
+ *
  */
 public class DefaultMessageFilter implements MessageFilter {
 

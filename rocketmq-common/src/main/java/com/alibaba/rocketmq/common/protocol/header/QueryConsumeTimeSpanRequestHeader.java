@@ -23,10 +23,8 @@ import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
 
 
 /**
- * 根据 topic 和 group 获取消息的时间跨度
+ * @author manhong.yqd
  *
- * @author: manhong.yqd<jodie.yqd@gmail.com>
- * @since: 13-12-30
  */
 public class QueryConsumeTimeSpanRequestHeader implements CommandCustomHeader {
     @CFNotNull

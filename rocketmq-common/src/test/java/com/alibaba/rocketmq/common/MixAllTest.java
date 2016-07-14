@@ -25,7 +25,7 @@ import java.util.List;
 
 
 /**
- * @auther lansheng.zj@taobao.com
+ * @author lansheng.zj
  */
 public class MixAllTest {
 

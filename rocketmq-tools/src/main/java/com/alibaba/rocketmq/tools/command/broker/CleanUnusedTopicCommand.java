@@ -26,7 +26,7 @@ import org.apache.commons.cli.Options;
 
 
 /**
- * @auther manhong.yqd<jodie.yqd@gmail.com>
+ * @author lansheng.zj
  */
 public class CleanUnusedTopicCommand implements SubCommand {
 

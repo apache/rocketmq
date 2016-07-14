@@ -25,10 +25,6 @@ import com.alibaba.rocketmq.store.MessageArrivingListener;
 import com.alibaba.rocketmq.store.config.MessageStoreConfig;
 import com.alibaba.rocketmq.store.stats.BrokerStatsManager;
 
-/**
- * @author qinan.qn@taobao.com
- *         2015年12月12日
- */
 public class MessageStorePluginContext {
     private MessageStoreConfig messageStoreConfig;
     private BrokerStatsManager brokerStatsManager;

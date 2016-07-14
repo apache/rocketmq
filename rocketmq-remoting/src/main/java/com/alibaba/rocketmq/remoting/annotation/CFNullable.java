@@ -22,8 +22,8 @@ import java.lang.annotation.*;
 /**
  * 标识字段可以非空
  *
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2013-7-13
+ * @author shijia.wxr
+ *
  */
 @Documented
 @Retention(RetentionPolicy.RUNTIME)

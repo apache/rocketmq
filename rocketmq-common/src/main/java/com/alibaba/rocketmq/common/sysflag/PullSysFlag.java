@@ -17,9 +17,7 @@
 package com.alibaba.rocketmq.common.sysflag;
 
 /**
- * Pull接口用到的flag定义
- *
- * @author shijia.wxr<vintage.wang@gmail.com>
+ * @author shijia.wxr
  */
 public class PullSysFlag {
     private final static int FLAG_COMMIT_OFFSET = 0x1 << 0;

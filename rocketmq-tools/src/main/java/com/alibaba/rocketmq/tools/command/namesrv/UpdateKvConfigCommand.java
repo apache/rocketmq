@@ -27,8 +27,8 @@ import org.apache.commons.cli.Options;
 /**
  * 添加或者更新 KV 配置信息
  *
- * @author: manhong.yqd<jodie.yqd@gmail.com>
- * @since: 13-8-29
+ * @author manhong.yqd
+ *
  */
 public class UpdateKvConfigCommand implements SubCommand {
     @Override

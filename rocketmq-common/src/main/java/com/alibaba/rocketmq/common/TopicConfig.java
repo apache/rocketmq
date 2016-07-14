@@ -20,9 +20,7 @@ import com.alibaba.rocketmq.common.constant.PermName;
 
 
 /**
- * Topic配置
- *
- * @author shijia.wxr<vintage.wang@gmail.com>
+ * @author shijia.wxr
  */
 public class TopicConfig {
     private static final String SEPARATOR = " ";

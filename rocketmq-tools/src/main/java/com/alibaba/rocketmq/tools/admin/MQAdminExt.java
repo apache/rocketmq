@@ -42,7 +42,7 @@ import java.util.Set;
  * MQ管理类接口，涉及所有与MQ管理相关的对外接口<br>
  * 包括Topic创建、订阅组创建、配置修改等
  *
- * @since 2013-7-14
+ *
  */
 public interface MQAdminExt extends MQAdmin {
     public void start() throws MQClientException;

@@ -19,8 +19,8 @@ package com.alibaba.rocketmq.store;
 /**
  * 分发消息位置信息到逻辑队列和索引服务
  *
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2013-7-21
+ * @author shijia.wxr
+ *
  */
 public class DispatchRequest {
     private final String topic;

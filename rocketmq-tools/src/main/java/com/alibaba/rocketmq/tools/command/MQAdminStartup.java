@@ -52,8 +52,8 @@ import java.util.List;
 /**
  * mqadmin启动程序
  *
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2013-7-25
+ * @author shijia.wxr
+ *
  */
 public class MQAdminStartup {
     protected static List<SubCommand> subCommandList = new ArrayList<SubCommand>();

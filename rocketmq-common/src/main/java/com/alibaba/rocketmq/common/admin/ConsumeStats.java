@@ -27,8 +27,8 @@ import java.util.Map.Entry;
 /**
  * Consumer消费进度
  *
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2013-7-14
+ * @author shijia.wxr
+ *
  */
 public class ConsumeStats extends RemotingSerializable {
     private HashMap<MessageQueue, OffsetWrapper> offsetTable = new HashMap<MessageQueue, OffsetWrapper>();

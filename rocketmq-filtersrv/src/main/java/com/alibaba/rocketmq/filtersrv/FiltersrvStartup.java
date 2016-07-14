@@ -42,8 +42,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 /**
  * Filter server 启动入口
  *
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2014-4-10
+ * @author shijia.wxr
+ *
  */
 public class FiltersrvStartup {
     public static Logger log;

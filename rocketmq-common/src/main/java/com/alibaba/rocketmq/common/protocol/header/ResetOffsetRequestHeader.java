@@ -23,10 +23,9 @@ import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
 
 
 /**
- * 重置 offset。
  *
- * @author: manhong.yqd<jodie.yqd@gmail.com>
- * @since: 13-12-30
+ * @author manhong.yqd
+ *
  */
 public class ResetOffsetRequestHeader implements CommandCustomHeader {
     @CFNotNull

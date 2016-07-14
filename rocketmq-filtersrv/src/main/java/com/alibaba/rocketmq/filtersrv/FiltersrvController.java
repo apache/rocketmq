@@ -40,8 +40,8 @@ import java.util.concurrent.TimeUnit;
 /**
  * Filter Server服务控制
  *
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2014-4-10
+ * @author shijia.wxr
+ *
  */
 public class FiltersrvController {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.FiltersrvLoggerName);

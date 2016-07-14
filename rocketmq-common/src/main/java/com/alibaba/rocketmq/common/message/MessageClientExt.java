@@ -15,10 +15,7 @@
  *  limitations under the License.
  */
 package com.alibaba.rocketmq.common.message;
-/**
- * 类MessageClientExt.java的实现描述：客户端使用，对msgId进行了封装
- * @author yp 2016年2月26日 下午2:24:32
- */
+
 public class MessageClientExt extends MessageExt {
         
     /**
@@ -29,10 +26,7 @@ public class MessageClientExt extends MessageExt {
         super.setMsgId(offsetMsgId);
     }
     
-    /**
-     * 用offset msg id 取代原来的msg id
-     * @param offsetMsgId
-     */
+
     public String getOffsetMsgId() {
         return super.getMsgId();
     }

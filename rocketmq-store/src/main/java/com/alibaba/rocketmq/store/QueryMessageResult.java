@@ -24,8 +24,8 @@ import java.util.List;
 /**
  * 通过Key查询消息，返回结果
  *
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2013-7-21
+ * @author shijia.wxr
+ *
  */
 public class QueryMessageResult {
     // 多个连续的消息集合

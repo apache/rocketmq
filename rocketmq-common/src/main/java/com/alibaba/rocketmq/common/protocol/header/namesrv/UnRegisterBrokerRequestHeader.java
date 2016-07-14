@@ -26,7 +26,7 @@ import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
 
 
 /**
- * @author lansheng.zj@taobao.com
+ * @author lansheng.zj
  */
 public class UnRegisterBrokerRequestHeader implements CommandCustomHeader {
     @CFNotNull

@@ -19,8 +19,8 @@ package com.alibaba.rocketmq.store;
 /**
  * When write a message to the commit log, returns code
  *
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2013-7-21
+ * @author shijia.wxr
+ *
  */
 public enum AppendMessageStatus {
     PUT_OK,

@@ -22,8 +22,8 @@ import java.util.HashSet;
 
 
 /**
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2014-3-20
+ * @author shijia.wxr
+ *
  */
 public class GroupList extends RemotingSerializable {
     private HashSet<String> groupList = new HashSet<String>();

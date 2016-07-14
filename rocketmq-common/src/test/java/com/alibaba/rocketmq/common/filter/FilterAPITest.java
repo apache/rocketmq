@@ -23,8 +23,8 @@ import org.junit.Test;
 
 
 /**
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2013-6-18
+ * @author shijia.wxr
+ *
  */
 public class FilterAPITest {
 

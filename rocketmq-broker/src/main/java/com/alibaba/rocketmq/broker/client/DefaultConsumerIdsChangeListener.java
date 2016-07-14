@@ -23,10 +23,7 @@ import java.util.List;
 
 
 /**
- * ConsumerId列表变化，通知所有Consumer
- *
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2013-7-26
+ * @author shijia.wxr
  */
 public class DefaultConsumerIdsChangeListener implements ConsumerIdsChangeListener {
     private final BrokerController brokerController;

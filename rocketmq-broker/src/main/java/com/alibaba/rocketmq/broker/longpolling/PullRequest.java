@@ -22,10 +22,7 @@ import io.netty.channel.Channel;
 
 
 /**
- * 一个拉消息请求
- *
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2013-7-26
+ * @author shijia.wxr
  */
 public class PullRequest {
     private final RemotingCommand requestCommand;

@@ -28,8 +28,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 /**
  * 异步请求应答封装
  *
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2013-7-13
+ * @author shijia.wxr
+ *
  */
 public class ResponseFuture {
     private final int opaque;

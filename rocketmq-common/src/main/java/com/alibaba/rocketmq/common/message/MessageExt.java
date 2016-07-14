@@ -27,8 +27,8 @@ import java.nio.ByteBuffer;
 /**
  * 消息扩展属性，在服务器上产生此对象
  *
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2013-7-18
+ * @author shijia.wxr
+ *
  */
 public class MessageExt extends Message {
     private static final long serialVersionUID = 5720810158625748049L;

@@ -23,8 +23,8 @@ import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
 
 
 /**
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 13-8-4
+ * @author shijia.wxr
+ *
  */
 public class GetTopicStatsInfoRequestHeader implements CommandCustomHeader {
     @CFNotNull

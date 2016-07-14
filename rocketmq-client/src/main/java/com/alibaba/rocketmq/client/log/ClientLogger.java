@@ -26,7 +26,7 @@ import java.net.URL;
 
 
 /**
- * @author shijia.wxr<vintage.wang@gmail.com>
+ * @author shijia.wxr
  */
 public class ClientLogger {
     private static Logger log;

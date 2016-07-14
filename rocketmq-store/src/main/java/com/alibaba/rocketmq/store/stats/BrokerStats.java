@@ -25,8 +25,8 @@ import org.slf4j.LoggerFactory;
 /**
  * Broker上的一些统计数据
  *
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2013-10-23
+ * @author shijia.wxr
+ *
  */
 public class BrokerStats {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.BrokerLoggerName);

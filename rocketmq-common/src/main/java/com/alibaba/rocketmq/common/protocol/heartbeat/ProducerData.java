@@ -21,7 +21,7 @@
 package com.alibaba.rocketmq.common.protocol.heartbeat;
 
 /**
- * @author shijia.wxr<vintage.wang@gmail.com>
+ * @author shijia.wxr
  */
 public class ProducerData {
     private String groupName;

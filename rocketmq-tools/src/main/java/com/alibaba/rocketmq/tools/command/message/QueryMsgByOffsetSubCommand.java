@@ -31,8 +31,8 @@ import org.apache.commons.cli.Options;
 /**
  * 根据消息Offset查询消息
  *
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2013-8-12
+ * @author shijia.wxr
+ *
  */
 public class QueryMsgByOffsetSubCommand implements SubCommand {
 

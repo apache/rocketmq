@@ -29,8 +29,8 @@ import java.util.Set;
 /**
  * 协议中传输对象，内容为集群信息
  *
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2013-7-16
+ * @author shijia.wxr
+ *
  */
 public class ClusterInfo extends RemotingSerializable {
     private HashMap<String/* brokerName */, BrokerData> brokerAddrTable;

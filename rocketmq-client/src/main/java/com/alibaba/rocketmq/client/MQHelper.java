@@ -27,8 +27,7 @@ import java.util.TreeSet;
 
 
 /**
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2013-11-13
+ * @author shijia.wxr
  */
 public class MQHelper {
     public static void resetOffsetByTimestamp(//

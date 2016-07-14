@@ -19,8 +19,8 @@ package com.alibaba.rocketmq.store.config;
 /**
  * Broker角色
  *
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2013-7-21
+ * @author shijia.wxr
+ *
  */
 public enum BrokerRole {
     // 异步复制Master

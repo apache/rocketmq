@@ -37,8 +37,8 @@ import java.util.Set;
 /**
  * 复制某一个 group 的 offset。
  *
- * @author: manhong.yqd<jodie.yqd@gmail.com>
- * @since: 13-9-12
+ * @author manhong.yqd
+ *
  */
 public class CloneGroupOffsetCommand implements SubCommand {
     public static void main(String[] args) {

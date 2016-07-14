@@ -27,9 +27,6 @@ import com.alibaba.rocketmq.store.*;
 import java.util.HashMap;
 import java.util.Set;
 
-/**
- * @author qinan.qn@taobao.com 2015年12月9日
- */
 public abstract class AbstractPluginMessageStore implements MessageStore {
     protected MessageStore next = null;
     protected MessageStorePluginContext context;

@@ -43,8 +43,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 /**
  * Name server 启动入口
  *
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2013-7-5
+ * @author shijia.wxr
+ *
  */
 public class NamesrvStartup {
     public static Properties properties = null;

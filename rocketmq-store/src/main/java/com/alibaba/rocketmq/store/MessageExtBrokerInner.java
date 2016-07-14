@@ -23,8 +23,8 @@ import com.alibaba.rocketmq.common.message.MessageExt;
 /**
  * 存储内部使用的Message对象
  *
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2013-7-21
+ * @author shijia.wxr
+ *
  */
 public class MessageExtBrokerInner extends MessageExt {
     private static final long serialVersionUID = 7256001576878700634L;

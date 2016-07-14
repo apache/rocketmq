@@ -22,10 +22,6 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingSerializable;
 
 import java.util.List;
 
-
-/**
- * @auther lansheng.zj
- */
 public class ResetOffsetBodyForC extends RemotingSerializable {
 
     private List<MessageQueueForC> offsetTable;

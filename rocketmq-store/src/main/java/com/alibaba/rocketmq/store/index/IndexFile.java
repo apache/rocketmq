@@ -32,8 +32,8 @@ import java.util.List;
 /**
  * 存储具体消息索引信息的文件
  *
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2013-7-21
+ * @author shijia.wxr
+ *
  */
 public class IndexFile {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.StoreLoggerName);

@@ -45,8 +45,8 @@ import java.util.concurrent.*;
 /**
  * Server与Client公用抽象类
  *
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2013-7-13
+ * @author shijia.wxr
+ *
  */
 public abstract class NettyRemotingAbstract {
     private static final Logger plog = LoggerFactory.getLogger(RemotingHelper.RemotingLogName);

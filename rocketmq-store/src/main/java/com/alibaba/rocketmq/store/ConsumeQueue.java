@@ -28,8 +28,8 @@ import java.util.List;
 /**
  * 消费队列实现
  *
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2013-7-21
+ * @author shijia.wxr
+ *
  */
 public class ConsumeQueue {
     // 存储单元大小

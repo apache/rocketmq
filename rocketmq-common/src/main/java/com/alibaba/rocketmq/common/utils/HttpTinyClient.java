@@ -28,17 +28,8 @@ import java.util.Iterator;
 import java.util.List;
 
 
-/**
- * HTTP 简易客户端
- *
- * @author manhong.yqd<jodie.yqd@gmail.com>
- */
-
 public class HttpTinyClient {
 
-    /**
-     * 发送GET请求。
-     */
     static public HttpResult httpGet(String url, List<String> headers, List<String> paramValues,
                                      String encoding, long readTimeoutMs) throws IOException {
         String encodedContent = encodingParams(paramValues, encoding);

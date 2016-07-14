@@ -21,10 +21,6 @@ import com.alibaba.rocketmq.common.protocol.body.ConsumerRunningInfo;
 
 import java.util.TreeMap;
 
-
-/**
- * 监控监听器
- */
 public interface MonitorListener {
     /**
      * 开始一轮监控

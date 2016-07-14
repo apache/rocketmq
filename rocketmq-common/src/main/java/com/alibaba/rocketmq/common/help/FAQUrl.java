@@ -17,9 +17,7 @@
 package com.alibaba.rocketmq.common.help;
 
 /**
- * 记录一些问题对应的解决方案，减少答疑工作量
- *
- * @author shijia.wxr<vintage.wang@gmail.com>
+ * @author shijia.wxr
  */
 public class FAQUrl {
     // FAQ: Topic不存在如何解决

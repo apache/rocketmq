@@ -23,8 +23,8 @@ import java.util.Set;
 
 
 /**
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2013-8-10
+ * @author shijia.wxr
+ *
  */
 public class TopicList extends RemotingSerializable {
     private Set<String> topicList = new HashSet<String>();

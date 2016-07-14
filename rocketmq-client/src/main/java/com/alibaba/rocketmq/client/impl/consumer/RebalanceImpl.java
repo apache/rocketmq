@@ -37,8 +37,7 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * Base class for rebalance algorithm
  *
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2013-6-22
+ * @author shijia.wxr
  */
 public abstract class RebalanceImpl {
     protected static final Logger log = ClientLogger.getLog();

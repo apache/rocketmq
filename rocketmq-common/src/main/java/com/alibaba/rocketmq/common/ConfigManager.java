@@ -24,10 +24,7 @@ import java.io.IOException;
 
 
 /**
- * 各种配置的管理接口
- *
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2013-6-18
+ * @author shijia.wxr
  */
 public abstract class ConfigManager {
     private static final Logger plog = LoggerFactory.getLogger(LoggerName.CommonLoggerName);

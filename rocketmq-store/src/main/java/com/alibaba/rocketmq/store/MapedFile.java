@@ -40,8 +40,8 @@ import java.util.concurrent.atomic.AtomicLong;
 /**
  * Pagecache文件访问封装
  *
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2013-7-21
+ * @author shijia.wxr
+ *
  */
 public class MapedFile extends ReferenceResource {
     public static final int OS_PAGE_SIZE = 1024 * 4;

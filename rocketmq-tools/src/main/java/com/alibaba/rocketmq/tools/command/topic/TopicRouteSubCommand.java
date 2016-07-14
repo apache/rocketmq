@@ -28,8 +28,8 @@ import org.apache.commons.cli.Options;
 /**
  * 查看Topic路由信息
  *
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2013-8-3
+ * @author shijia.wxr
+ *
  */
 public class TopicRouteSubCommand implements SubCommand {
 

@@ -22,8 +22,8 @@ import java.nio.ByteBuffer;
 /**
  * 查询Pagecache返回结果
  *
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2013-7-21
+ * @author shijia.wxr
+ *
  */
 public class SelectMapedBufferResult {
     // 从队列中哪个绝对Offset开始

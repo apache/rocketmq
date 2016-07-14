@@ -34,8 +34,7 @@ import java.util.concurrent.TimeUnit;
 /**
  * Schedule service for pull consumer
  *
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2014-2-26
+ * @author shijia.wxr
  */
 public class MQPullConsumerScheduleService {
     private final Logger log = ClientLogger.getLog();

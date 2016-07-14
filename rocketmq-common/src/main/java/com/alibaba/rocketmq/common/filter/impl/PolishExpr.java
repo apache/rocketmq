@@ -23,10 +23,6 @@ import java.util.Stack;
 
 import static com.alibaba.rocketmq.common.filter.impl.Operator.*;
 
-
-/**
- * @auther lansheng.zj@taobao.com
- */
 public class PolishExpr {
 
     /**

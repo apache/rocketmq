@@ -22,8 +22,8 @@ import io.netty.channel.Channel;
 /**
  * Netty产生的各种事件
  *
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2013-7-13
+ * @author shijia.wxr
+ *
  */
 public class NettyEvent {
     private final NettyEventType type;

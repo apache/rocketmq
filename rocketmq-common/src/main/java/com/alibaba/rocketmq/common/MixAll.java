@@ -32,10 +32,8 @@ import java.util.concurrent.atomic.AtomicLong;
 
 
 /**
- * 各种方法大杂烩
- *
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @author lansheng.zj@taobao.com
+ * @author shijia.wxr
+ * @author lansheng.zj
  */
 public class MixAll {
     public static final String ROCKETMQ_HOME_ENV = "ROCKETMQ_HOME";

@@ -23,8 +23,8 @@ import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
 
 
 /**
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2013-7-1
+ * @author shijia.wxr
+ *
  */
 public class DeleteKVConfigRequestHeader implements CommandCustomHeader {
     @CFNotNull

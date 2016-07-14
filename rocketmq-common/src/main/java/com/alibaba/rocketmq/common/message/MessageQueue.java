@@ -22,7 +22,7 @@ import java.io.Serializable;
 /**
  * 消息队列数据结构，对外提供
  *
- * @author shijia.wxr<vintage.wang@gmail.com>
+ * @author shijia.wxr
  */
 public class MessageQueue implements Comparable<MessageQueue>, Serializable {
     private static final long serialVersionUID = 6191200464116433425L;

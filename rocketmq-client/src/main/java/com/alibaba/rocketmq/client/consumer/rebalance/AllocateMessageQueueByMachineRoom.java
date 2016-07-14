@@ -26,9 +26,6 @@ import java.util.Set;
 
 /**
  * Computer room Hashing queue algorithm, such as Alipay logic room
- *
- * @author linye<jin.qian@alipay.com>
- * @since 2013-7-24
  */
 public class AllocateMessageQueueByMachineRoom implements AllocateMessageQueueStrategy {
     private Set<String> consumeridcs;

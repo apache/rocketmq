@@ -17,8 +17,7 @@
 package com.alibaba.rocketmq.client.producer;
 
 /**
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2013-7-25
+ * @author shijia.wxr
  */
 public enum SendStatus {
     SEND_OK,

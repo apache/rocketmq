@@ -20,9 +20,6 @@ package com.alibaba.rocketmq.broker.longpolling;
 import com.alibaba.rocketmq.store.MessageArrivingListener;
 
 
-/**
- * Created by manhong.yqd<jodie.yqd@gmail.com> on 15/6/19.
- */
 public class NotifyMessageArrivingListener implements MessageArrivingListener {
     private final PullRequestHoldService pullRequestHoldService;
 

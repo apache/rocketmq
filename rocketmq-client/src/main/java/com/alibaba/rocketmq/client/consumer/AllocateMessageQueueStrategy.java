@@ -24,9 +24,8 @@ import java.util.List;
 /**
  * Strategy Algorithm for message allocating between consumers
  *
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @author von gosling<fengjia10@gmail.com>
- * @since 2013-7-24
+ * @author shijia.wxr
+ * @author vongosling
  */
 public interface AllocateMessageQueueStrategy {
 

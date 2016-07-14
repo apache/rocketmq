@@ -19,8 +19,8 @@ package com.alibaba.rocketmq.common.sysflag;
 /**
  * topic 配置标识
  *
- * @author: manhong.yqd<jodie.yqd@gmail.com>
- * @since: 14-5-28
+ * @author manhong.yqd
+ *
  */
 public class TopicSysFlag {
     // 单元化逻辑 topic 标识

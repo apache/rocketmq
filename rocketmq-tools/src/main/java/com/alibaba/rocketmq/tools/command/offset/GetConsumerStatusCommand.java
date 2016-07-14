@@ -36,8 +36,8 @@ import java.util.Map;
 /**
  * 根据时间来设置消费进度，设置之前要关闭这个订阅组的所有consumer，设置完再启动，方可生效。
  *
- * @author: manhong.yqd<jodie.yqd@gmail.com>
- * @since: 13-9-12
+ * @author manhong.yqd
+ *
  */
 public class GetConsumerStatusCommand implements SubCommand {
     public static void main(String[] args) {

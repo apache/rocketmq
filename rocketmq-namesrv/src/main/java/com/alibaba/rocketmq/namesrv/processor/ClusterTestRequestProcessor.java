@@ -35,8 +35,8 @@ import org.slf4j.LoggerFactory;
 /**
  * Name Server网络请求处理(全链路压测版本)
  *
- * @author manhong.yqd<jodie.yqd@gmail.com>
- * @since 2015-09-17
+ * @author manhong.yqd
+ *
  */
 public class ClusterTestRequestProcessor extends DefaultRequestProcessor {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.NamesrvLoggerName);

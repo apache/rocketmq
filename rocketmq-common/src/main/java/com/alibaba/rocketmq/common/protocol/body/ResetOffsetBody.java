@@ -24,10 +24,8 @@ import java.util.Map;
 
 
 /**
- * 重置 offset 处理结果。
+ * @author manhong.yqd
  *
- * @author: manhong.yqd<jodie.yqd@gmail.com>
- * @since: 13-12-30
  */
 public class ResetOffsetBody extends RemotingSerializable {
     private Map<MessageQueue, Long> offsetTable;

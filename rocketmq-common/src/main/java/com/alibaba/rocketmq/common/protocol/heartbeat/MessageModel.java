@@ -23,7 +23,7 @@ package com.alibaba.rocketmq.common.protocol.heartbeat;
 /**
  * Message model
  *
- * @author shijia.wxr<vintage.wang@gmail.com>
+ * @author shijia.wxr
  */
 public enum MessageModel {
     /**

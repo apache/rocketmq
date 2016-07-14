@@ -31,8 +31,7 @@ import java.util.regex.Pattern;
 /**
  * Common Validator
  *
- * @author manhong.yqd<jodie.yqd@gmail.com>
- * @since 2013-8-28
+ * @author manhong.yqd
  */
 public class Validators {
     public static final String VALID_PATTERN_STR = "^[%|a-zA-Z0-9_-]+$";

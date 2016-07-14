@@ -31,11 +31,8 @@ import java.io.IOException;
 
 
 /**
- * Slave从Master同步信息（非消息）
- *
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @author manhong.yqd<manhong.yqd@taobao.com>
- * @since 2013-7-8
+ * @author shijia.wxr
+ * @author manhong.yqd
  */
 public class SlaveSynchronize {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.BrokerLoggerName);

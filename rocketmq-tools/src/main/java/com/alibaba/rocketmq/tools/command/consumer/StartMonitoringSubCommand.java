@@ -30,8 +30,8 @@ import org.slf4j.Logger;
 /**
  * 启动监控
  *
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2014-7-5
+ * @author shijia.wxr
+ *
  */
 public class StartMonitoringSubCommand implements SubCommand {
     private final Logger log = ClientLogger.getLog();

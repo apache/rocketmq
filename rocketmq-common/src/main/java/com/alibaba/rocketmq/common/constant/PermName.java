@@ -17,7 +17,7 @@
 package com.alibaba.rocketmq.common.constant;
 
 /**
- * @author shijia.wxr<vintage.wang@gmail.com>
+ * @author shijia.wxr
  */
 public class PermName {
     public static final int PERM_PRIORITY = 0x1 << 3;

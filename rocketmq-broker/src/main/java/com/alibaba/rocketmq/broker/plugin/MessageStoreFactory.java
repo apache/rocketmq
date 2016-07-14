@@ -25,9 +25,6 @@ import com.alibaba.rocketmq.store.MessageStore;
 import java.io.IOException;
 import java.lang.reflect.Constructor;
 
-/**
- * @author qinan.qn@taobao.com 2015年12月12日
- */
 public final class MessageStoreFactory {
     public final static MessageStore build(MessageStorePluginContext context, MessageStore messageStore)
             throws IOException {

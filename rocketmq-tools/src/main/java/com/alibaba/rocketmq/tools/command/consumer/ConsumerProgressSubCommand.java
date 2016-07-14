@@ -44,8 +44,8 @@ import java.util.List;
 /**
  * 查看订阅组消费状态，消费进度
  *
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2013-8-11
+ * @author shijia.wxr
+ *
  */
 public class ConsumerProgressSubCommand implements SubCommand {
     private final Logger log = ClientLogger.getLog();

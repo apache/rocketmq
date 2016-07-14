@@ -26,8 +26,7 @@ import java.util.Set;
 /**
  * Offset store interface
  *
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2013-7-25
+ * @author shijia.wxr
  */
 public interface OffsetStore {
     /**

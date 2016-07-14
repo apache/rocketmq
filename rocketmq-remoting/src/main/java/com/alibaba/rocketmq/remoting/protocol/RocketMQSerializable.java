@@ -24,8 +24,8 @@ import java.util.Map;
 
 
 /**
- * @author manhong.yqd<jodie.yqd@gmail.com>
- * @since 2015-4-13
+ * @author manhong.yqd
+ *
  */
 public class RocketMQSerializable {
     public static final Charset CHARSET_UTF8 = Charset.forName("UTF-8");

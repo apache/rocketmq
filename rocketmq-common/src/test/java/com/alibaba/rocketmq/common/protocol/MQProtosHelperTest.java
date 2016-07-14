@@ -18,7 +18,7 @@
 package com.alibaba.rocketmq.common.protocol;
 
 /**
- * @author shijia.wxr<vintage.wang@gmail.com>
+ * @author shijia.wxr
  */
 public class MQProtosHelperTest {
 

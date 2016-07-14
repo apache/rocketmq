@@ -23,8 +23,8 @@ import io.netty.channel.ChannelHandlerContext;
 /**
  * Common remoting command processor
  *
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2013-7-13
+ * @author shijia.wxr
+ *
  */
 public interface NettyRequestProcessor {
     RemotingCommand processRequest(ChannelHandlerContext ctx, RemotingCommand request)

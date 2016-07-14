@@ -17,9 +17,7 @@
 package com.alibaba.rocketmq.common;
 
 /**
- * 定义各个版本信息
- *
- * @author shijia.wxr<vintage.wang@gmail.com>
+ * @author shijia.wxr
  */
 public class MQVersion {
     // TODO 每次发布版本都要修改此处版本号

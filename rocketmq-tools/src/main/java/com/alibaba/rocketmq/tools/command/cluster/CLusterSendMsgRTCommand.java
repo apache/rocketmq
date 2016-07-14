@@ -35,7 +35,7 @@ import java.util.*;
  * 查看集群信息
  *
  * @author fengliang.hfl
- * @since 2015-10-30
+ *
  */
 public class CLusterSendMsgRTCommand implements SubCommand {
 

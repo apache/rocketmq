@@ -26,8 +26,8 @@ import java.util.List;
 /**
  * 访问消息返回结果
  *
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2013-7-21
+ * @author shijia.wxr
+ *
  */
 public class GetMessageResult {
     // 多个连续的消息集合

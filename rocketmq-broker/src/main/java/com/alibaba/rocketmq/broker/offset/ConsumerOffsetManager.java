@@ -31,10 +31,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 
 /**
- * Consumer消费进度管理
- *
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2013-8-11
+ * @author shijia.wxr
  */
 public class ConsumerOffsetManager extends ConfigManager {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.BrokerLoggerName);

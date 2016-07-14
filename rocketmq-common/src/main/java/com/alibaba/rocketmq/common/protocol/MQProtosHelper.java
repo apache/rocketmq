@@ -28,7 +28,7 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 /**
  * 协议辅助类
  *
- * @author shijia.wxr<vintage.wang@gmail.com>
+ * @author shijia.wxr
  */
 public class MQProtosHelper {
     /**

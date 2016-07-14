@@ -20,12 +20,6 @@ import org.apache.commons.cli.*;
 
 import java.util.Properties;
 
-
-/**
- * 只提供Server程序依赖，目的为了拆解客户端依赖，尽可能减少客户端的依赖
- *
- * @author vive
- */
 public class ServerUtil {
 
     public static Options buildCommandlineOptions(final Options options) {

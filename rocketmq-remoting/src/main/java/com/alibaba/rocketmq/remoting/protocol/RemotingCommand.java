@@ -36,8 +36,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 /**
  * Remoting模块中，服务器与客户端通过传递RemotingCommand来交互
  *
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2013-7-13
+ * @author shijia.wxr
+ *
  */
 public class RemotingCommand {
     public static final String SERIALIZE_TYPE_PROPERTY = "rocketmq.serialize.type";

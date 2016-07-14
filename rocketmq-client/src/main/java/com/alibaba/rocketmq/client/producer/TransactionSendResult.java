@@ -17,8 +17,7 @@
 package com.alibaba.rocketmq.client.producer;
 
 /**
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2013-7-31
+ * @author shijia.wxr
  */
 public class TransactionSendResult extends SendResult {
     private LocalTransactionState localTransactionState;

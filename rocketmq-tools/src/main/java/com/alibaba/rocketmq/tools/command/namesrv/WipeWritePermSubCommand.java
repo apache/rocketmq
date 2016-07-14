@@ -29,8 +29,8 @@ import java.util.List;
 /**
  * 从所有Name Server上清除特定Broker的先权限
  *
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2013-8-6
+ * @author shijia.wxr
+ *
  */
 public class WipeWritePermSubCommand implements SubCommand {
 

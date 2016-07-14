@@ -21,8 +21,8 @@ import com.alibaba.rocketmq.common.MixAll;
 
 
 /**
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2013-6-18
+ * @author shijia.wxr
+ *
  */
 public class SubscriptionGroupConfig {
     // 订阅组名

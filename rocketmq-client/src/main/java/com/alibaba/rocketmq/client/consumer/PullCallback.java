@@ -19,8 +19,7 @@ package com.alibaba.rocketmq.client.consumer;
 /**
  * Async message pulling interface
  *
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2013-7-24
+ * @author shijia.wxr
  */
 public interface PullCallback {
     public void onSuccess(final PullResult pullResult);

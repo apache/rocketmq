@@ -20,8 +20,7 @@ package com.alibaba.rocketmq.common.admin;
 /**
  * 按时间回溯消费进度
  *
- * @author: manhong.yqd<jodie.yqd@gmail.com>
- * @since: 13-9-12
+ * @author manhong.yqd
  */
 public class RollbackStats {
     private String brokerName;

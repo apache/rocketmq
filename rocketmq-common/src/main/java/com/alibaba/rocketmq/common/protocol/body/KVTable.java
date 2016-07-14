@@ -22,8 +22,8 @@ import java.util.HashMap;
 
 
 /**
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2013-8-14
+ * @author shijia.wxr
+ *
  */
 public class KVTable extends RemotingSerializable {
     private HashMap<String, String> table = new HashMap<String, String>();

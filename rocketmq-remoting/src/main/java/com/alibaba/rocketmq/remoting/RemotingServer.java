@@ -30,8 +30,8 @@ import java.util.concurrent.ExecutorService;
 /**
  * 远程通信，Server接口
  *
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2013-7-13
+ * @author shijia.wxr
+ *
  */
 public interface RemotingServer extends RemotingService {
 

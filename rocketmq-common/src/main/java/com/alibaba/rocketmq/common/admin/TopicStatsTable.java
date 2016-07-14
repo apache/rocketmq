@@ -25,8 +25,8 @@ import java.util.HashMap;
 /**
  * Topic所有队列的Offset
  *
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2013-7-14
+ * @author shijia.wxr
+ *
  */
 public class TopicStatsTable extends RemotingSerializable {
     private HashMap<MessageQueue, TopicOffset> offsetTable = new HashMap<MessageQueue, TopicOffset>();

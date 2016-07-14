@@ -33,8 +33,8 @@ import java.util.Set;
 /**
  * 修改、创建Topic配置命令
  *
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2013-7-21
+ * @author shijia.wxr
+ *
  */
 public class UpdateTopicSubCommand implements SubCommand {
 

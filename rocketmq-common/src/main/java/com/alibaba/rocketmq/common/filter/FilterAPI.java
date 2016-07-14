@@ -22,8 +22,8 @@ import java.net.URL;
 
 
 /**
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2013-6-15
+ * @author shijia.wxr
+ *
  */
 public class FilterAPI {
     public static URL classFile(final String className) {

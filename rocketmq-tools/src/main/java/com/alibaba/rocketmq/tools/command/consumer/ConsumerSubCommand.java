@@ -37,8 +37,8 @@ import java.util.TreeMap;
 /**
  * 查询Consumer网络连接，消费进度，内部数据结构等。
  *
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2014-07-20
+ * @author shijia.wxr
+ *
  */
 public class ConsumerSubCommand implements SubCommand {
 

@@ -42,8 +42,8 @@ import java.util.List;
 /**
  * 根据消息Id查询消息
  * 
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2013-8-12
+ * @author shijia.wxr
+ *
  */
 public class QueryMsgByUniqueKeySubCommand implements SubCommand {
 

@@ -21,10 +21,7 @@ import java.util.List;
 
 
 /**
- * 长轮询请求
- *
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2013-7-26
+ * @author shijia.wxr
  */
 public class ManyPullRequest {
     private final ArrayList<PullRequest> pullRequestList = new ArrayList<PullRequest>();

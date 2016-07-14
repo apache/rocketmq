@@ -30,8 +30,8 @@ import org.apache.commons.cli.Options;
 /**
  * 查询Producer的网络连接
  *
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2013-10-13
+ * @author shijia.wxr
+ *
  */
 public class ProducerConnectionSubCommand implements SubCommand {
 

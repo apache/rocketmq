@@ -30,8 +30,8 @@ import org.apache.commons.cli.Options;
 /**
  * 根据消息Key查询消息
  *
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2013-8-12
+ * @author shijia.wxr
+ *
  */
 public class QueryMsgByKeySubCommand implements SubCommand {
 

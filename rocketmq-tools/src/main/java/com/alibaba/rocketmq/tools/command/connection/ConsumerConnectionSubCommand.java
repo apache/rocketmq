@@ -34,8 +34,8 @@ import java.util.Map.Entry;
 /**
  * 查询Consumer的网络连接，以及客户端版本号，订阅关系等
  *
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2013-10-13
+ * @author shijia.wxr
+ *
  */
 public class ConsumerConnectionSubCommand implements SubCommand {
 

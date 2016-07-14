@@ -26,8 +26,8 @@ import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
 
 
 /**
- * @author manhong.yqd<jodie.yqd@gmail.com>
- * @since 14-09-15
+ * @author manhong.yqd
+ *
  */
 public class CloneGroupOffsetRequestHeader implements CommandCustomHeader {
     @CFNotNull

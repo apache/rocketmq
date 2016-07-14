@@ -17,7 +17,7 @@
 package com.alibaba.rocketmq.common.constant;
 
 /**
- * @author shijia.wxr<vintage.wang@gmail.com>
+ * @author shijia.wxr
  */
 public class LoggerName {
     public static final String FiltersrvLoggerName = "RocketmqFiltersrv";

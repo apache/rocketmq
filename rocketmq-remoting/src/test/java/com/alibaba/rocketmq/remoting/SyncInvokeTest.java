@@ -27,7 +27,7 @@ import static org.junit.Assert.assertTrue;
 
 
 /**
- * @author shijia.wxr<vintage.wang@gmail.com>
+ * @author shijia.wxr
  */
 public class SyncInvokeTest {
     @Test

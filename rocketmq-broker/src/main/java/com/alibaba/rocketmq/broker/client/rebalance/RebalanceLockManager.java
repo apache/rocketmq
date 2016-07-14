@@ -29,10 +29,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 
 /**
- * 顺序消息争抢队列锁
- *
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2013-6-26
+ * @author shijia.wxr
  */
 public class RebalanceLockManager {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.RebalanceLockLoggerName);

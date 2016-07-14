@@ -33,8 +33,8 @@ import java.util.concurrent.locks.ReentrantLock;
 /**
  * 存储层内部统计服务
  *
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2013-7-21
+ * @author shijia.wxr
+ *
  */
 public class StoreStatsService extends ServiceThread {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.StoreLoggerName);

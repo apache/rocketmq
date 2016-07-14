@@ -24,7 +24,7 @@ import org.junit.Test;
 
 
 /**
- * @author shijia.wxr<vintage.wang@gmail.com>
+ * @author shijia.wxr
  */
 public class TestSubClassAuto {
     @Test

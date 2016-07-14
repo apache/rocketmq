@@ -36,8 +36,8 @@ import java.util.Set;
 /**
  * 打印指定Topic的所有消息，某个时间区间，方便排查问题
  *
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2014-6-22
+ * @author shijia.wxr
+ *
  */
 public class PrintMessageSubCommand implements SubCommand {
 

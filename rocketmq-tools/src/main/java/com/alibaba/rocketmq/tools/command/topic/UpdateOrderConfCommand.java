@@ -30,8 +30,8 @@ import org.apache.commons.cli.Options;
 /**
  * 创建、修改、删除顺序消息 Topic 的分区配置命令
  *
- * @author manhong.yqd<jodie.yqd@gmail.com>
- * @since 2014-2-20
+ * @author manhong.yqd
+ *
  */
 public class UpdateOrderConfCommand implements SubCommand {
 

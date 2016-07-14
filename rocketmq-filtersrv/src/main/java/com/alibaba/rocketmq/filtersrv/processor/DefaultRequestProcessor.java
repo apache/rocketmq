@@ -54,8 +54,8 @@ import java.util.List;
 /**
  * Filter Server网络请求处理
  *
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2014-4-20
+ * @author shijia.wxr
+ *
  */
 public class DefaultRequestProcessor implements NettyRequestProcessor {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.FiltersrvLoggerName);

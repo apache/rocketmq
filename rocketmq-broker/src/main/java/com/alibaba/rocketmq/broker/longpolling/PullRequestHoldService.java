@@ -31,10 +31,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 
 /**
- * 拉消息请求管理，如果拉不到消息，则在这里Hold住，等待消息到来
- *
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2013-7-26
+ * @author shijia.wxr
  */
 public class PullRequestHoldService extends ServiceThread {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.BrokerLoggerName);

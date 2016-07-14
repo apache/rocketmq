@@ -17,8 +17,7 @@
 package com.alibaba.rocketmq.client.hook;
 
 /**
- * @author manhong.yqd<jodie.yqd@gmail.com>
- * @since 2014-3-19
+ * @author manhong.yqd
  */
 public interface FilterMessageHook {
     public String hookName();

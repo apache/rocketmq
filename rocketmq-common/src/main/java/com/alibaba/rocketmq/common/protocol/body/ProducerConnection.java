@@ -23,10 +23,7 @@ import java.util.HashSet;
 
 
 /**
- * TODO
- *
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 13-8-5
+ * @author shijia.wxr
  */
 public class ProducerConnection extends RemotingSerializable {
     private HashSet<Connection> connectionSet = new HashSet<Connection>();

@@ -28,12 +28,6 @@ import org.apache.commons.cli.Options;
 
 import java.util.List;
 
-/**
- * 发送一百条消息，打印消息的响应时间
- *
- * @author fengliang.hfl
- * @since 2015-10-27
- */
 public class CheckMsgSendRTCommand implements SubCommand {
     private static String brokerName = "";
     private static int queueId = 0;

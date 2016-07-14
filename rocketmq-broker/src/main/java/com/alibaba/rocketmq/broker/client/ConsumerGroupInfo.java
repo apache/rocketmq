@@ -34,10 +34,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 
 /**
- * 整个Consumer Group信息
- *
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2013-7-26
+ * @author shijia.wxr
  */
 public class ConsumerGroupInfo {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.BrokerLoggerName);

@@ -21,8 +21,8 @@ import java.lang.management.OperatingSystemMXBean;
 
 
 /**
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 13-8-3
+ * @author shijia.wxr
+ *
  */
 public class StoreUtil {
     public static final long TotalPhysicalMemorySize = getTotalPhysicalMemorySize();

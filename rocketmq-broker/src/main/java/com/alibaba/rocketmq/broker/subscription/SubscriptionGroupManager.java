@@ -34,10 +34,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 
 /**
- * 用来管理订阅组，包括订阅权限等
- *
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2013-7-26
+ * @author shijia.wxr
  */
 public class SubscriptionGroupManager extends ConfigManager {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.BrokerLoggerName);

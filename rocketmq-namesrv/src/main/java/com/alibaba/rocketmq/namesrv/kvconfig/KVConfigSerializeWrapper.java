@@ -24,8 +24,8 @@ import java.util.HashMap;
 /**
  * KV配置序列化，json包装
  *
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2013-7-25
+ * @author shijia.wxr
+ *
  */
 public class KVConfigSerializeWrapper extends RemotingSerializable {
     private HashMap<String/* Namespace */, HashMap<String/* Key */, String/* Value */>> configTable;

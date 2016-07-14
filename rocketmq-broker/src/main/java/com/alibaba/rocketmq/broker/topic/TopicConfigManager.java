@@ -42,11 +42,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 
 /**
- * Topic配置管理
- *
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @author lansheng.zj@taobao.com
- * @since 2013-7-26
+ * @author shijia.wxr
  */
 public class TopicConfigManager extends ConfigManager {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.BrokerLoggerName);

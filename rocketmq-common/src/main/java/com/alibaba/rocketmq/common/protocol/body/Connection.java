@@ -21,10 +21,7 @@ import com.alibaba.rocketmq.remoting.protocol.LanguageCode;
 
 
 /**
- * TODO
- *
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 13-8-5
+ * @author shijia.wxr
  */
 public class Connection {
     private String clientId;

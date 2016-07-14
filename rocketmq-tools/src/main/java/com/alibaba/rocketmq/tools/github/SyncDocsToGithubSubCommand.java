@@ -31,10 +31,6 @@ import org.kohsuke.github.GitHub;
 import java.io.File;
 import java.util.Arrays;
 
-
-/**
- * 同步版本库中的wiki和issue到github
- */
 public class SyncDocsToGithubSubCommand implements SubCommand {
 
     @Override

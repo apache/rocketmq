@@ -33,8 +33,8 @@ import java.nio.channels.SocketChannel;
 /**
  * HA服务，Master用来向Slave Push数据，并接收Slave应答
  *
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2013-7-21
+ * @author shijia.wxr
+ *
  */
 public class HAConnection {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.StoreLoggerName);
@@ -100,7 +100,7 @@ public class HAConnection {
     /**
      * 读取Slave请求，一般为push ack
      *
-     * @author shijia.wxr<vintage.wang@gmail.com>
+     * @author shijia.wxr
      */
     class ReadSocketService extends ServiceThread {
         private static final int ReadMaxBufferSize = 1024 * 1024;
@@ -226,7 +226,7 @@ public class HAConnection {
     /**
      * 向Slave写入数据
      *
-     * @author shijia.wxr<vintage.wang@gmail.com>
+     * @author shijia.wxr
      */
     class WriteSocketService extends ServiceThread {
         private final Selector selector;

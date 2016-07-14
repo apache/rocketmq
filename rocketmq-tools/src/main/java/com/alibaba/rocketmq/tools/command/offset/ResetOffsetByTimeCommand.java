@@ -38,8 +38,8 @@ import java.util.Map;
 /**
  * 根据时间设置消费进度，客户端无需重启。
  *
- * @author: manhong.yqd<jodie.yqd@gmail.com>
- * @since: 13-9-12
+ * @author manhong.yqd
+ *
  */
 public class ResetOffsetByTimeCommand implements SubCommand {
     public static void main(String[] args) {

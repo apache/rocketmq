@@ -37,8 +37,7 @@ import java.util.concurrent.atomic.AtomicLong;
 /**
  * Remote storage implementation
  *
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2013-7-24
+ * @author shijia.wxr
  */
 public class RemoteBrokerOffsetStore implements OffsetStore {
     private final static Logger log = ClientLogger.getLog();

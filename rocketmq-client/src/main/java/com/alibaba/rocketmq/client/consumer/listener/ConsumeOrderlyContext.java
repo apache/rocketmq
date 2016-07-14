@@ -22,8 +22,7 @@ import com.alibaba.rocketmq.common.message.MessageQueue;
 /**
  * Consumer Orderly consumption context
  *
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2013-7-24
+ * @author shijia.wxr
  */
 public class ConsumeOrderlyContext {
     private final MessageQueue messageQueue;

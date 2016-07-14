@@ -33,8 +33,8 @@ import java.util.Set;
 /**
  * 删除订阅组配置命令
  *
- * @author manhong.yqd<manhong.yqd@alibaba-inc.com>
- * @since 2013-8-22
+ * @author lansheng.zj
+ *
  */
 public class DeleteSubscriptionGroupCommand implements SubCommand {
     @Override

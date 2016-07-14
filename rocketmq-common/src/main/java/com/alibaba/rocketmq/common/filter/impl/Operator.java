@@ -17,9 +17,6 @@
 
 package com.alibaba.rocketmq.common.filter.impl;
 
-/**
- * @auther lansheng.zj@taobao.com
- */
 public class Operator extends Op {
 
     public static final Operator LEFTPARENTHESIS = new Operator("(", 30, false);

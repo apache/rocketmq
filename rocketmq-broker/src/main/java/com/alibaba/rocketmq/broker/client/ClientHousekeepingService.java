@@ -30,10 +30,7 @@ import java.util.concurrent.TimeUnit;
 
 
 /**
- * 定期检测客户端连接，清除不活动的连接
- *
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2013-7-26
+ * @author shijia.wxr
  */
 public class ClientHousekeepingService implements ChannelEventListener {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.BrokerLoggerName);

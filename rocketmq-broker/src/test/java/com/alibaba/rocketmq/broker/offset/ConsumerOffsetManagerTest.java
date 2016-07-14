@@ -31,7 +31,7 @@ import java.util.Random;
 
 
 /**
- * @author shijia.wxr<vintage.wang@gmail.com>
+ * @author shijia.wxr
  */
 public class ConsumerOffsetManagerTest {
     @Test

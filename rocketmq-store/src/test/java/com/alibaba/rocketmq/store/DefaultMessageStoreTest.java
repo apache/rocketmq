@@ -32,7 +32,7 @@ import static org.junit.Assert.assertTrue;
 
 
 /**
- * @author shijia.wxr<vintage.wang@gmail.com>
+ * @author shijia.wxr
  */
 public class DefaultMessageStoreTest {
     private static final String StoreMessage = "Once, there was a chance for me!";

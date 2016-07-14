@@ -25,8 +25,7 @@ import java.util.Random;
 
 
 /**
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2013-7-25
+ * @author shijia.wxr
  */
 public class SelectMessageQueueByRandoom implements MessageQueueSelector {
     private Random random = new Random(System.currentTimeMillis());

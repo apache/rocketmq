@@ -24,8 +24,8 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * 延时消息进度，序列化包装
  *
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2013-7-21
+ * @author shijia.wxr
+ *
  */
 public class DelayOffsetSerializeWrapper extends RemotingSerializable {
     private ConcurrentHashMap<Integer /* level */, Long/* offset */> offsetTable =

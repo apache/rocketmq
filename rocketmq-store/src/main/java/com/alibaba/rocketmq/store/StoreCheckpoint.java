@@ -32,8 +32,8 @@ import java.nio.channels.FileChannel.MapMode;
 /**
  * 记录存储模型最终一致的时间点
  *
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2013-7-21
+ * @author shijia.wxr
+ *
  */
 public class StoreCheckpoint {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.StoreLoggerName);

@@ -23,8 +23,7 @@ import java.util.List;
 
 
 /**
- * @author manhong.yqd<jodie.yqd@gmail.com>
- * @since 2014-3-19
+ * @author manhong.yqd
  */
 public class FilterMessageContext {
     private String consumerGroup;

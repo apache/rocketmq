@@ -23,8 +23,7 @@ import java.util.Map;
 
 
 /**
- * @author: manhong.yqd<jodie.yqd@gmail.com>
- * @since: 14-08-06
+ * @author manhong.yqd
  */
 public class QueryCorrectionOffsetBody extends RemotingSerializable {
     private Map<Integer, Long> correctionOffsets = new HashMap<Integer, Long>();

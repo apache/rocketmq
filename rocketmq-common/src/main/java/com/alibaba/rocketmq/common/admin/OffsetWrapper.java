@@ -19,8 +19,8 @@ package com.alibaba.rocketmq.common.admin;
 /**
  * Offset包装类，含Broker、Consumer
  *
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2013-7-14
+ * @author shijia.wxr
+ *
  */
 public class OffsetWrapper {
     private long brokerOffset;

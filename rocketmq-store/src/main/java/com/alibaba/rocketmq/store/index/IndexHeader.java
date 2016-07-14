@@ -24,8 +24,8 @@ import java.util.concurrent.atomic.AtomicLong;
 /**
  * 索引文件头
  *
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2013-7-21
+ * @author shijia.wxr
+ *
  */
 public class IndexHeader {
     public static final int INDEX_HEADER_SIZE = 40;

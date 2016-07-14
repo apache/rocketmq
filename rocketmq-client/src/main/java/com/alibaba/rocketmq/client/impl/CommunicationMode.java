@@ -17,8 +17,7 @@
 package com.alibaba.rocketmq.client.impl;
 
 /**
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2013-7-24
+ * @author shijia.wxr
  */
 public enum CommunicationMode {
     SYNC,

@@ -24,9 +24,8 @@ import java.util.Set;
 /**
  * A MessageQueueListener is implemented by the application and may be specified when a message queue changed
  *
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @author von gosling<fengjia10@gmail.com>
- * @since 2013-7-24
+ * @author shijia.wxr
+ * @author vongosling
  */
 public interface MessageQueueListener {
     /**

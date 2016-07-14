@@ -23,8 +23,8 @@ import java.nio.ByteBuffer;
 /**
  * 确认消息是否需要过滤 Hook
  *
- * @author manhong.yqd<jodie.yqd@gmail.com>
- * @since 2014-3-19
+ * @author manhong.yqd
+ *
  */
 public interface FilterCheckHook {
     public String hookName();

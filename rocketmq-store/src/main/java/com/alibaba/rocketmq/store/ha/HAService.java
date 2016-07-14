@@ -41,8 +41,8 @@ import java.util.concurrent.atomic.AtomicReference;
 /**
  * HA服务，负责同步双写，异步复制功能
  *
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2013-7-21
+ * @author shijia.wxr
+ *
  */
 public class HAService {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.StoreLoggerName);

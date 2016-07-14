@@ -24,9 +24,7 @@ import java.util.List;
 
 
 /**
- * IO操作
- *
- * @author manhong.yqd<jodie.yqd@gmail.com>
+ * @author manhong.yqd
  */
 public class IOTinyUtils {
 

@@ -32,8 +32,8 @@ import java.nio.channels.SocketChannel;
 /**
  * 通信层一些辅助方法
  *
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2013-7-13
+ * @author shijia.wxr
+ *
  */
 public class RemotingHelper {
     public static final String RemotingLogName = "RocketmqRemoting";

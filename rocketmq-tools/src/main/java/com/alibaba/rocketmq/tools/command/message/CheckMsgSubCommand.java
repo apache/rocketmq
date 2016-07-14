@@ -23,10 +23,6 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 
-
-/**
- * @auther lansheng.zj
- */
 public class CheckMsgSubCommand implements SubCommand {
     @Override
     public String commandName() {

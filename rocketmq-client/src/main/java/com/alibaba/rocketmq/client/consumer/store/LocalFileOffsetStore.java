@@ -38,8 +38,7 @@ import java.util.concurrent.atomic.AtomicLong;
 /**
  * Local storage implementation
  *
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2013-7-24
+ * @author shijia.wxr
  */
 public class LocalFileOffsetStore implements OffsetStore {
     public final static String LocalOffsetStoreDir = System.getProperty(

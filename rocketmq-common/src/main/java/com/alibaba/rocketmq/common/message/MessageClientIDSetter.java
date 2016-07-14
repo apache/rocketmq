@@ -24,10 +24,6 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.UUID;
 
-/**
- * 类MessageClientIDDecoder.java的实现描述：TODO 类实现描述 
- * @author yp 2016年1月26日 下午5:53:01
- */
 public class MessageClientIDSetter {
                 
     private static short counter;

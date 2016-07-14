@@ -38,8 +38,8 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 /**
  * 消息索引服务
  *
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2013-7-21
+ * @author shijia.wxr
+ *
  */
 public class IndexService {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.StoreLoggerName);

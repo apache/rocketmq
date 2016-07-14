@@ -29,8 +29,8 @@ import org.junit.Test;
 /**
  * 连接超时测试
  *
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2013-7-6
+ * @author shijia.wxr
+ *
  */
 public class NettyConnectionTest {
     @Test

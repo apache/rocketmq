@@ -27,8 +27,8 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * 订阅组配置，序列化包装
  *
- * @author manhong.yqd<manhong.yqd@taobao.com>
- * @since 2013-8-19
+ * @author manhong.yqd
+ *
  */
 public class SubscriptionGroupWrapper extends RemotingSerializable {
     private ConcurrentHashMap<String, SubscriptionGroupConfig> subscriptionGroupTable =

@@ -23,10 +23,9 @@ import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
 
 
 /**
- * TODO
  *
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 13-8-5
+ * @author shijia.wxr
+ *
  */
 public class GetConsumerConnectionListRequestHeader implements CommandCustomHeader {
     @CFNotNull

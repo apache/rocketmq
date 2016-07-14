@@ -25,10 +25,7 @@ import java.util.Map;
 
 
 /**
- * 查看客户端消费组的消费情况。
- *
- * @author: manhong.yqd<jodie.yqd@gmail.com>
- * @since: 13-12-30
+ * @author manhong.yqd
  */
 @Deprecated
 public class GetConsumerStatusBody extends RemotingSerializable {

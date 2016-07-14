@@ -44,8 +44,8 @@ import java.util.concurrent.atomic.AtomicLong;
 /**
  * Name Server网络请求处理
  *
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2013-7-5
+ * @author shijia.wxr
+ *
  */
 public class DefaultRequestProcessor implements NettyRequestProcessor {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.NamesrvLoggerName);

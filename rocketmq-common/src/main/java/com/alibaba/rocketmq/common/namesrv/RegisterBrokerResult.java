@@ -21,8 +21,8 @@ import com.alibaba.rocketmq.common.protocol.body.KVTable;
 
 
 /**
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2013-7-8
+ * @author shijia.wxr
+ *
  */
 public class RegisterBrokerResult {
     private String haServerAddr;

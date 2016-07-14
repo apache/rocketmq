@@ -22,9 +22,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 
 /**
- * 用来标识数据的版本号
- *
- * @author shijia.wxr<vintage.wang@gmail.com>
+ * @author shijia.wxr
  */
 public class DataVersion extends RemotingSerializable {
     private long timestatmp = System.currentTimeMillis();

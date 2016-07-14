@@ -20,8 +20,8 @@ import io.netty.channel.Channel;
 
 
 /**
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2013-7-13
+ * @author shijia.wxr
+ *
  */
 public interface ChannelEventListener {
     void onChannelConnect(final String remoteAddr, final Channel channel);

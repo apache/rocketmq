@@ -19,8 +19,8 @@ package com.alibaba.rocketmq.store.config;
 /**
  * 刷盘方式
  *
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2013-7-21
+ * @author shijia.wxr
+ *
  */
 public enum FlushDiskType {
     /**

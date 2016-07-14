@@ -33,10 +33,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 
 /**
- * 管理Producer组及各个Producer连接
- *
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2013-7-26
+ * @author shijia.wxr
  */
 public class ProducerManager {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.BrokerLoggerName);

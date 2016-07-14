@@ -27,7 +27,7 @@ import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
 
 
 /**
- * @author shijia.wxr<vintage.wang@gmail.com>
+ * @author shijia.wxr
  */
 public class CreateTopicRequestHeader implements CommandCustomHeader {
     @CFNotNull

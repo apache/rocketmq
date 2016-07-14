@@ -35,8 +35,8 @@ import java.io.IOException;
 /**
  * 寻址服务
  *
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @author manhong.yqd<jodie.yqd@gmail.com>
+ * @author shijia.wxr
+ * @author manhong.yqd
  */
 public class TopAddressing {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.CommonLoggerName);

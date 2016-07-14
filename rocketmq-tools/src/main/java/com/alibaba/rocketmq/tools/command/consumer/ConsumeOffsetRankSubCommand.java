@@ -45,7 +45,7 @@ import java.util.*;
  * Consume消息福布斯排行...
  *
  * @author zhouli
- * @since 2017-10-10
+ *
  */
 public class ConsumeOffsetRankSubCommand implements SubCommand {
     private final Logger log = ClientLogger.getLog();

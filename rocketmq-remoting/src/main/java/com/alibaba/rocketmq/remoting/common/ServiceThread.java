@@ -23,8 +23,8 @@ import org.slf4j.LoggerFactory;
 /**
  * Base class for background thread
  *
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2013-7-13
+ * @author shijia.wxr
+ *
  */
 public abstract class ServiceThread implements Runnable {
     private static final Logger stlog = LoggerFactory.getLogger(RemotingHelper.RemotingLogName);

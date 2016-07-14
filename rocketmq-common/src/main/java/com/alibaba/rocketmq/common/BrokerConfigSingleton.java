@@ -19,11 +19,6 @@ package com.alibaba.rocketmq.common;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
-/**
- * User: yubao.fyb
- * Date: 14/12/15
- * Time: 13:35
- */
 public class BrokerConfigSingleton {
     private static AtomicBoolean isInit = new AtomicBoolean();
     private static BrokerConfig brokerConfig;

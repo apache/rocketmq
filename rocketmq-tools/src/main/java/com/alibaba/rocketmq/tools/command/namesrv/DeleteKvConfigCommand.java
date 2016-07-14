@@ -27,8 +27,8 @@ import org.apache.commons.cli.Options;
 /**
  * 删除 KV 配置信息
  *
- * @author: manhong.yqd<jodie.yqd@gmail.com>
- * @since: 13-8-29
+ * @author manhong.yqd
+ *
  */
 public class DeleteKvConfigCommand implements SubCommand {
     @Override

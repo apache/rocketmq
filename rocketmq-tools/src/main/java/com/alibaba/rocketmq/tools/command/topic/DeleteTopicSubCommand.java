@@ -36,8 +36,8 @@ import java.util.Set;
 /**
  * 删除Topic配置命令
  *
- * @author manhong.yqd<manhong.yqd@alibaba-inc.com>
- * @since 2013-8-21
+ * @author lansheng.zj
+ *
  */
 public class DeleteTopicSubCommand implements SubCommand {
     @Override

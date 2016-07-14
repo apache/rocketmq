@@ -29,8 +29,8 @@ import org.apache.commons.cli.Options;
 /**
  * 发送消息
  *
- * @author manhong.yqd<manhong.yqd@alibaba-inc.com>
- * @since 2015-8-01
+ * @author lansheng.zj
+ *
  */
 public class SendMsgStatusCommand implements SubCommand {
 

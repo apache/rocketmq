@@ -19,8 +19,7 @@ package com.alibaba.rocketmq.client.consumer.listener;
 /**
  * A MessageListener object is used to receive asynchronously delivered messages.
  *
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2013-7-24
+ * @author shijia.wxr
  */
 public interface MessageListener {
 }

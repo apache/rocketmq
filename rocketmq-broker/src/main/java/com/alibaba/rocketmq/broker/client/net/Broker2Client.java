@@ -56,10 +56,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 
 /**
- * Broker主动调用客户端接口
- *
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2013-7-26
+ * @author shijia.wxr
  */
 public class Broker2Client {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.BrokerLoggerName);

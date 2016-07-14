@@ -22,8 +22,8 @@ import java.util.List;
 /**
  * 根据索引查询消息，返回结果
  *
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2013-7-21
+ * @author shijia.wxr
+ *
  */
 public class QueryOffsetResult {
     private final List<Long> phyOffsets;

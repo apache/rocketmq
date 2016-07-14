@@ -35,7 +35,7 @@ import java.util.Map;
 /**
  * 消息解码
  * 
- * @author shijia.wxr<vintage.wang@gmail.com>
+ * @author shijia.wxr
  */
 public class MessageDecoder {
     /**

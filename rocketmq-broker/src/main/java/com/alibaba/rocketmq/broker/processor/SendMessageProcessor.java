@@ -49,10 +49,7 @@ import java.util.List;
 
 
 /**
- * 处理客户端发送消息的请求
- *
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2013-7-26
+ * @author shijia.wxr
  */
 public class SendMessageProcessor extends AbstractSendMessageProcessor implements NettyRequestProcessor {
 

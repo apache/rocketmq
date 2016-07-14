@@ -24,9 +24,8 @@ import com.alibaba.rocketmq.remoting.common.RemotingUtil;
 /**
  * Client Common configuration
  *
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @author von gosling<fengjia10@gmail.com>
- * @since 2013-7-24
+ * @author shijia.wxr
+ * @author vongosling
  */
 public class ClientConfig {
     /**

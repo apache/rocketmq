@@ -20,7 +20,7 @@ import java.net.SocketAddress;
 
 
 /**
- * @author shijia.wxr<vintage.wang@gmail.com>
+ * @author shijia.wxr
  */
 public class MessageId {
     private SocketAddress address;

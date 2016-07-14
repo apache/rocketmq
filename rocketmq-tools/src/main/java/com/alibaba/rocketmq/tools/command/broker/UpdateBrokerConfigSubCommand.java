@@ -32,8 +32,8 @@ import java.util.Set;
 /**
  * 更新Broker配置文件
  *
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2013-10-20
+ * @author shijia.wxr
+ *
  */
 public class UpdateBrokerConfigSubCommand implements SubCommand {
 

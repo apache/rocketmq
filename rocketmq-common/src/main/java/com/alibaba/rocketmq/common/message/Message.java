@@ -25,8 +25,8 @@ import java.util.Map;
 /**
  * 消息，Producer与Consumer使用
  *
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2013-7-18
+ * @author shijia.wxr
+ *
  */
 public class Message implements Serializable {
     private static final long serialVersionUID = 8445773977080406428L;

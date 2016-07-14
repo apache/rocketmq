@@ -44,8 +44,8 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 /**
  * 运行过程中的路由信息，数据只在内存，宕机后数据消失，但是Broker会定期推送最新数据
  *
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2013-7-2
+ * @author shijia.wxr
+ *
  */
 public class RouteInfoManager {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.NamesrvLoggerName);

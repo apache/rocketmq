@@ -23,8 +23,7 @@ import com.alibaba.rocketmq.common.message.MessageQueue;
 
 
 /**
- * @author manhong.yqd<jodie.yqd@gmail.com>
- * @since 2014-3-19
+ * @author manhong.yqd
  */
 public class CheckForbiddenContext {
     private String nameSrvAddr;

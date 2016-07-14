@@ -26,8 +26,7 @@ import com.alibaba.rocketmq.remoting.exception.RemotingException;
 /**
  * Base interface for MQ management
  *
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2013-7-24
+ * @author shijia.wxr
  */
 public interface MQAdmin {
     /**

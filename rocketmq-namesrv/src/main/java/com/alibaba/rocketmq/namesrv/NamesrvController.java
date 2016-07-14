@@ -39,8 +39,8 @@ import java.util.concurrent.TimeUnit;
 /**
  * Name Server服务控制
  *
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2013-7-5
+ * @author shijia.wxr
+ *
  */
 public class NamesrvController {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.NamesrvLoggerName);

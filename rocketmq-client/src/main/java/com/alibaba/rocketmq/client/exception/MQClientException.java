@@ -21,7 +21,7 @@ import com.alibaba.rocketmq.common.help.FAQUrl;
 
 
 /**
- * @author shijia.wxr<vintage.wang@gmail.com>
+ * @author shijia.wxr
  */
 public class MQClientException extends Exception {
     private static final long serialVersionUID = -5758410930844185841L;

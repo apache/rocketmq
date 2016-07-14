@@ -24,10 +24,8 @@ import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
 
 
 /**
- * 查看客户端消费组的消费情况。
+ * @author manhong.yqd
  *
- * @author: manhong.yqd<jodie.yqd@gmail.com>
- * @since: 13-12-30
  */
 public class GetConsumerStatusRequestHeader implements CommandCustomHeader {
     @CFNotNull

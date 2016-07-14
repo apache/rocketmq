@@ -19,8 +19,8 @@ package com.alibaba.rocketmq.store;
 /**
  * 存储模型运行过程的状态位
  *
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2013-7-21
+ * @author shijia.wxr
+ *
  */
 public class RunningFlags {
     // 禁止读权限

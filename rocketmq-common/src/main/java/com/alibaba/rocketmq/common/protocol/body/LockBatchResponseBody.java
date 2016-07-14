@@ -25,8 +25,8 @@ import java.util.Set;
 
 
 /**
- * @author shijia.wxr<vintage.wang@gmail.com>
- * @since 2013-6-26
+ * @author shijia.wxr
+ *
  */
 public class LockBatchResponseBody extends RemotingSerializable {
     // Lock成功的队列集合
