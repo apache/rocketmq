@@ -30,10 +30,7 @@ import java.util.TreeMap;
 
 
 /**
- * 获取Broker运行时统计信息
- *
  * @author shijia.wxr
- *
  */
 public class BrokerStatusSubCommand implements SubCommand {
 
@@ -72,7 +69,7 @@ public class BrokerStatusSubCommand implements SubCommand {
 
             KVTable kvTable = defaultMQAdminExt.fetchBrokerRuntimeStats(brokerAddr);
 
-            // 为了排序
+
             TreeMap<String, String> tmp = new TreeMap<String, String>();
             tmp.putAll(kvTable.getTable());
 

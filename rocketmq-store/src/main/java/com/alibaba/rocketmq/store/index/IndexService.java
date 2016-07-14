@@ -36,21 +36,17 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 
 /**
- * 消息索引服务
- *
  * @author shijia.wxr
- *
  */
 public class IndexService {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.StoreLoggerName);
     private final DefaultMessageStore defaultMessageStore;
-    // 索引配置
+
     private final int hashSlotNum;
     private final int indexNum;
     private final String storePath;
-    // 索引文件集合
+
     private final ArrayList<IndexFile> indexFileList = new ArrayList<IndexFile>();
-    // 读写锁（针对indexFileList）
     private final ReadWriteLock readWriteLock = new ReentrantReadWriteLock();
 
 
@@ -96,10 +92,6 @@ public class IndexService {
         return true;
     }
 
-
-    /**
-     * 删除索引文件
-     */
     public void deleteExpiredFile(long offset) {
         Object[] files = null;
         try {
@@ -133,10 +125,6 @@ public class IndexService {
         }
     }
 
-
-    /**
-     * 删除文件只能从头开始删
-     */
     private void deleteExpiredFile(List<IndexFile> files) {
         if (!files.isEmpty()) {
             try {
@@ -175,7 +163,7 @@ public class IndexService {
 
     public QueryOffsetResult queryOffset(String topic, String key, int maxNum, long begin, long end) {
         List<Long> phyOffsets = new ArrayList<Long>(maxNum);
-        // TODO 可能需要返回给最终用户
+
         long indexLastUpdateTimestamp = 0;
         long indexLastUpdatePhyoffset = 0;
         maxNum = Math.min(maxNum, this.defaultMessageStore.getMessageStoreConfig().getMaxMsgsNumBatch());
@@ -191,11 +179,11 @@ public class IndexService {
                     }
 
                     if (f.isTimeMatched(begin, end)) {
-                        // 最后一个文件需要加锁
+
                         f.selectPhyOffset(phyOffsets, buildKey(topic, key), maxNum, begin, end, lastFile);
                     }
 
-                    // 再往前遍历时间更不符合
+
                     if (f.getBeginTimestamp() < begin) {
                         break;
                     }
@@ -253,7 +241,6 @@ public class IndexService {
                 String[] keyset = keys.split(MessageConst.KEY_SEPARATOR);
                 for (int i = 0; i <  keyset.length; i++) {
                     String key = keyset[i];
-                    // TODO 是否需要TRIM
                     if (key.length() > 0) {
                             indexFile = putKey(indexFile, msg, buildKey(topic, key));
                             if (indexFile == null) {
@@ -264,7 +251,7 @@ public class IndexService {
                  }
             }
         }
-        // IO发生故障，build索引过程中断，需要人工参与处理
+
         else {
             log.error("build index error, stop building index");
         }
@@ -292,7 +279,7 @@ public class IndexService {
     public IndexFile retryGetAndCreateIndexFile() {
         IndexFile indexFile = null;
 
-        // 如果创建失败，尝试重建3次
+
         for (int times = 0; null == indexFile && times < 3; times++) {
             indexFile = this.getAndCreateLastIndexFile();
             if (null != indexFile)
@@ -306,7 +293,7 @@ public class IndexService {
             }
         }
 
-        // 重试多次，仍然无法创建索引文件
+
         if (null == indexFile) {
             this.defaultMessageStore.getAccessRights().makeIndexFileError();
             log.error("mark index file can not build flag");
@@ -316,16 +303,12 @@ public class IndexService {
     }
 
 
-    /**
-     * 获取最后一个索引文件，如果集合为空或者最后一个文件写满了，则新建一个文件<br>
-     * 只有一个线程调用，所以不存在写竟争问题
-     */
     public IndexFile getAndCreateLastIndexFile() {
         IndexFile indexFile = null;
         IndexFile prevIndexFile = null;
         long lastUpdateEndPhyOffset = 0;
         long lastUpdateIndexTimestamp = 0;
-        // 先尝试使用读锁
+
         {
             this.readWriteLock.readLock().lock();
             if (!this.indexFileList.isEmpty()) {
@@ -342,7 +325,7 @@ public class IndexService {
             this.readWriteLock.readLock().unlock();
         }
 
-        // 如果没找到，使用写锁创建文件
+
         if (indexFile == null) {
             try {
                 String fileName =
@@ -359,7 +342,7 @@ public class IndexService {
                 this.readWriteLock.writeLock().unlock();
             }
 
-            // 每创建一个新文件，之前文件要刷盘
+
             if (indexFile != null) {
                 final IndexFile flushThisFile = prevIndexFile;
                 Thread flushThread = new Thread(new Runnable() {

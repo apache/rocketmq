@@ -64,7 +64,6 @@ public class ClientManageProcessor implements NettyRequestProcessor {
                 return this.unregisterClient(ctx, request);
             case RequestCode.GET_CONSUMER_LIST_BY_GROUP:
                 return this.getConsumerListByGroup(ctx, request);
-            // 更新Consumer Offset
             case RequestCode.UPDATE_CONSUMER_OFFSET:
                 return this.updateConsumerOffset(ctx, request);
             case RequestCode.QUERY_CONSUMER_OFFSET:
@@ -87,13 +86,12 @@ public class ClientManageProcessor implements NettyRequestProcessor {
                 request.getVersion()//
         );
 
-        // 注册Consumer
         for (ConsumerData data : heartbeatData.getConsumerDataSet()) {
             SubscriptionGroupConfig subscriptionGroupConfig =
                     this.brokerController.getSubscriptionGroupManager().findSubscriptionGroupConfig(
                             data.getGroupName());
             if (null != subscriptionGroupConfig) {
-                // 如果是单元化模式，则对 topic 进行设置
+
                 int topicSysFlag = 0;
                 if (data.isUnitMode()) {
                     topicSysFlag = TopicSysFlag.buildSysFlag(false, true);
@@ -120,7 +118,7 @@ public class ClientManageProcessor implements NettyRequestProcessor {
                         RemotingHelper.parseChannelRemoteAddr(ctx.channel())//
                 );
 
-                // todo:有可能会有频繁变更
+
                 // for (SubscriptionData subscriptionData :
                 // data.getSubscriptionDataSet()) {
                 // this.brokerController.getTopicConfigManager().updateTopicUnitSubFlag(
@@ -129,7 +127,6 @@ public class ClientManageProcessor implements NettyRequestProcessor {
             }
         }
 
-        // 注册Producer
         for (ProducerData data : heartbeatData.getProducerDataSet()) {
             this.brokerController.getProducerManager().registerProducer(data.getGroupName(),
                     clientChannelInfo);
@@ -155,7 +152,6 @@ public class ClientManageProcessor implements NettyRequestProcessor {
                 request.getVersion()//
         );
 
-        // 注销Producer
         {
             final String group = requestHeader.getProducerGroup();
             if (group != null) {
@@ -163,7 +159,6 @@ public class ClientManageProcessor implements NettyRequestProcessor {
             }
         }
 
-        // 注销Consumer
         {
             final String group = requestHeader.getConsumerGroup();
             if (group != null) {
@@ -239,19 +234,17 @@ public class ClientManageProcessor implements NettyRequestProcessor {
                 this.brokerController.getConsumerOffsetManager().queryOffset(
                         requestHeader.getConsumerGroup(), requestHeader.getTopic(), requestHeader.getQueueId());
 
-        // 订阅组存在
+
         if (offset >= 0) {
             responseHeader.setOffset(offset);
             response.setCode(ResponseCode.SUCCESS);
             response.setRemark(null);
         }
-        // 订阅组不存在
+
         else {
             long minOffset =
                     this.brokerController.getMessageStore().getMinOffsetInQuque(requestHeader.getTopic(),
                             requestHeader.getQueueId());
-            // 订阅组不存在情况下，如果这个队列的消息最小Offset是0，则表示这个Topic上线时间不长，服务器堆积的数据也不多，那么这个订阅组就从0开始消费。
-            // 尤其对于Topic队列数动态扩容时，必须要从0开始消费。
             if (minOffset <= 0
                     && !this.brokerController.getMessageStore().checkInDiskByConsumeOffset(
                     requestHeader.getTopic(), requestHeader.getQueueId(), 0)) {
@@ -259,7 +252,7 @@ public class ClientManageProcessor implements NettyRequestProcessor {
                 response.setCode(ResponseCode.SUCCESS);
                 response.setRemark(null);
             }
-            // 新版本服务器不做消费进度纠正
+
             else {
                 response.setCode(ResponseCode.QUERY_NOT_FOUND);
                 response.setRemark("Not found, V3_0_6_SNAPSHOT maybe this group consumer boot first");

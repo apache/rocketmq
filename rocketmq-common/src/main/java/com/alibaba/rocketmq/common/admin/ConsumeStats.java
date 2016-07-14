@@ -25,7 +25,6 @@ import java.util.Map.Entry;
 
 
 /**
- * Consumer消费进度
  *
  * @author shijia.wxr
  *

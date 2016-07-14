@@ -51,7 +51,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 
 /**
- * Remoting服务端实现
+
  *
  * @author shijia.wxr
  *
@@ -62,16 +62,16 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
     private final EventLoopGroup eventLoopGroupSelector;
     private final EventLoopGroup eventLoopGroupBoss;
     private final NettyServerConfig nettyServerConfig;
-    // 处理Callback应答器
+
     private final ExecutorService publicExecutor;
     private final ChannelEventListener channelEventListener;
-    // 定时器
+
     private final Timer timer = new Timer("ServerHouseKeepingService", true);
     private DefaultEventExecutorGroup defaultEventExecutorGroup;
 
     private RPCHook rpcHook;
 
-    // 本地server绑定的端口
+
     private int port = 0;
 
 

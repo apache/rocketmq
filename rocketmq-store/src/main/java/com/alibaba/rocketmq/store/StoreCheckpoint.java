@@ -30,10 +30,7 @@ import java.nio.channels.FileChannel.MapMode;
 
 
 /**
- * 记录存储模型最终一致的时间点
- *
  * @author shijia.wxr
- *
  */
 public class StoreCheckpoint {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.StoreLoggerName);
@@ -122,7 +119,7 @@ public class StoreCheckpoint {
     public long getMinTimestamp() {
         long min = Math.min(this.physicMsgTimestamp, this.logicsMsgTimestamp);
 
-        // 向前倒退3s，防止因为时间精度问题导致丢数据
+
         // fixed https://github.com/alibaba/RocketMQ/issues/467
         min -= 1000 * 3;
         if (min < 0)

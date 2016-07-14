@@ -48,7 +48,7 @@ public interface MQPushConsumer extends MQConsumer {
      * @param messageListener
      */
     @Deprecated
-    public void registerMessageListener(MessageListener messageListener);
+    void registerMessageListener(MessageListener messageListener);
 
 
     void registerMessageListener(final MessageListenerConcurrently messageListener);

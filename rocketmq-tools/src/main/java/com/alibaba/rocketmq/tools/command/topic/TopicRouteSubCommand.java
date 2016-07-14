@@ -26,7 +26,6 @@ import org.apache.commons.cli.Options;
 
 
 /**
- * 查看Topic路由信息
  *
  * @author shijia.wxr
  *

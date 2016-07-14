@@ -20,11 +20,11 @@ package com.alibaba.rocketmq.tools.monitor;
 public class UndoneMsgs {
     private String consumerGroup;
     private String topic;
-    // 堆积的消息总数
+
     private long undoneMsgsTotal;
-    // 单个队列堆积的最多消息数
+
     private long undoneMsgsSingleMQ;
-    // Delay的最长时间，单位秒
+
     private long undoneMsgsDelayTimeMills;
 
 

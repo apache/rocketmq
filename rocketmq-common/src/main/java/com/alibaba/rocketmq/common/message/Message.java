@@ -23,7 +23,6 @@ import java.util.Map;
 
 
 /**
- * 消息，Producer与Consumer使用
  *
  * @author shijia.wxr
  *
@@ -31,21 +30,9 @@ import java.util.Map;
 public class Message implements Serializable {
     private static final long serialVersionUID = 8445773977080406428L;
 
-    /**
-     * 消息主题
-     */
     private String topic;
-    /**
-     * 消息标志，系统不做干预，完全由应用决定如何使用
-     */
     private int flag;
-    /**
-     * 消息属性，都是系统属性，禁止应用设置
-     */
     private Map<String, String> properties;
-    /**
-     * 消息体
-     */
     private byte[] body;
 
 

@@ -21,28 +21,16 @@ import com.alibaba.rocketmq.common.UtilAll;
 
 
 public class ProcessQueueInfo {
-    /**
-     * 消费到哪里，提交的offset
-     */
     private long commitOffset;
 
-    /**
-     * 缓存的消息Offset信息
-     */
     private long cachedMsgMinOffset;
     private long cachedMsgMaxOffset;
     private int cachedMsgCount;
 
-    /**
-     * 正在事务中的消息
-     */
     private long transactionMsgMinOffset;
     private long transactionMsgMaxOffset;
     private int transactionMsgCount;
 
-    /**
-     * 顺序消息的状态信息
-     */
     private boolean locked;
     private long tryUnlockTimes;
     private long lastLockTimestamp;

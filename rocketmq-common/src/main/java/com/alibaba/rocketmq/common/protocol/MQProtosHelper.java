@@ -26,14 +26,9 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 
 
 /**
- * 协议辅助类
- *
  * @author shijia.wxr
  */
 public class MQProtosHelper {
-    /**
-     * 将Broker地址注册到Name Server
-     */
     public static boolean registerBrokerToNameServer(final String nsaddr, final String brokerAddr,
                                                      final long timeoutMillis) {
         RegisterBrokerRequestHeader requestHeader = new RegisterBrokerRequestHeader();

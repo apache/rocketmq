@@ -29,11 +29,6 @@ import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
  */
 public class UnregisterClientResponseHeader implements CommandCustomHeader {
 
-    /*
-     * (non-Javadoc)
-     * 
-     * @see com.alibaba.rocketmq.remoting.CommandCustomHeader#checkFields()
-     */
     @Override
     public void checkFields() throws RemotingCommandException {
         // TODO Auto-generated method stub

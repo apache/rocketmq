@@ -17,7 +17,6 @@
 package com.alibaba.rocketmq.common.admin;
 
 /**
- * Topic 统计信息信息
  *
  * @author shijia.wxr
  *

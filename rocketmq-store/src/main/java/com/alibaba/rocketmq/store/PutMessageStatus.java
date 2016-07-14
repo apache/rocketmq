@@ -17,10 +17,7 @@
 package com.alibaba.rocketmq.store;
 
 /**
- * 写入消息过程的返回结果
- *
  * @author shijia.wxr
- *
  */
 public enum PutMessageStatus {
     PUT_OK,

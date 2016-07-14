@@ -25,21 +25,20 @@ import com.alibaba.rocketmq.common.MixAll;
  *
  */
 public class SubscriptionGroupConfig {
-    // 订阅组名
+
     private String groupName;
-    // 消费功能是否开启
+
     private boolean consumeEnable = true;
-    // 是否允许从队列最小位置开始消费，线上默认会设置为false
     private boolean consumeFromMinEnable = true;
-    // 是否允许广播方式消费
+
     private boolean consumeBroadcastEnable = true;
-    // 消费失败的消息放到一个重试队列，每个订阅组配置几个重试队列
+
     private int retryQueueNums = 1;
-    // 重试消费最大次数，超过则投递到死信队列，不再投递，并报警
+
     private int retryMaxTimes = 16;
-    // 从哪个Broker开始消费
+
     private long brokerId = MixAll.MASTER_ID;
-    // 发现消息堆积后，将Consumer的消费请求重定向到另外一台Slave机器
+
     private long whichBrokerWhenConsumeSlowly = 1;
 
 

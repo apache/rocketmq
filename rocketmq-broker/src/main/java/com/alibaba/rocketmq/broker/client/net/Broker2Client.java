@@ -68,9 +68,6 @@ public class Broker2Client {
     }
 
 
-    /**
-     * Broker主动回查Producer事务状态，Oneway
-     */
     public void checkProducerTransactionState(//
                                               final Channel channel,//
                                               final CheckTransactionStateRequestHeader requestHeader,//
@@ -107,10 +104,6 @@ public class Broker2Client {
         return this.brokerController.getRemotingServer().invokeSync(channel, request, 10000);
     }
 
-
-    /**
-     * Broker主动通知Consumer，Id列表发生变化，Oneway
-     */
     public void notifyConsumerIdsChanged(//
                                          final Channel channel,//
                                          final String consumerGroup//
@@ -138,9 +131,6 @@ public class Broker2Client {
     }
 
 
-    /**
-     * Broker 主动通知 Consumer，offset 需要进行重置列表发生变化
-     */
     public RemotingCommand resetOffset(String topic, String group, long timeStamp, boolean isForce,
                                        boolean isC) {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
@@ -171,7 +161,7 @@ public class Broker2Client {
 
             long timeStampOffset;
             if (timeStamp == -1) {
-                // 获取最大消费位点,清除消息时使用
+
                 timeStampOffset = this.brokerController.getMessageStore().getMaxOffsetInQuque(topic, i);
             } else {
                 timeStampOffset = this.brokerController.getMessageStore().getOffsetInQueueByTime(topic, i, timeStamp);
@@ -211,7 +201,7 @@ public class Broker2Client {
         ConsumerGroupInfo consumerGroupInfo =
                 this.brokerController.getConsumerManager().getConsumerGroupInfo(group);
 
-        // Consumer在线
+
         if (consumerGroupInfo != null && !consumerGroupInfo.getAllChannel().isEmpty()) {
             ConcurrentHashMap<Channel, ClientChannelInfo> channelInfoTable =
                     consumerGroupInfo.getChannelInfoTable();
@@ -227,7 +217,6 @@ public class Broker2Client {
                                 new Object[]{topic, group}, e);
                     }
                 } else {
-                    // 如果有一个客户端是不支持该功能的，则直接返回错误，需要应用方升级。
                     response.setCode(ResponseCode.SYSTEM_ERROR);
                     response.setRemark("the client does not support this feature. version="
                             + MQVersion.getVersionDesc(version));
@@ -237,7 +226,7 @@ public class Broker2Client {
                 }
             }
         }
-        // Consumer不在线
+
         else {
             String errorInfo =
                     String.format(
@@ -269,9 +258,6 @@ public class Broker2Client {
         return list;
     }
 
-    /**
-     * Broker主动获取Consumer端的消息情况
-     */
     public RemotingCommand getConsumeStatus(String topic, String group, String originClientId) {
         final RemotingCommand result = RemotingCommand.createResponseCommand(null);
 
@@ -296,7 +282,6 @@ public class Broker2Client {
             int version = channelInfoTable.get(channel).getVersion();
             String clientId = channelInfoTable.get(channel).getClientId();
             if (version < MQVersion.Version.V3_0_7_SNAPSHOT.ordinal()) {
-                // 如果有一个客户端是不支持该功能的，则直接返回错误，需要应用方升级。
                 result.setCode(ResponseCode.SYSTEM_ERROR);
                 result.setRemark("the client does not support this feature. version="
                         + MQVersion.getVersionDesc(version));
@@ -304,8 +289,8 @@ public class Broker2Client {
                         RemotingHelper.parseChannelRemoteAddr(channel), MQVersion.getVersionDesc(version));
                 return result;
             } else if (UtilAll.isBlank(originClientId) || originClientId.equals(clientId)) {
-                // 不指定 originClientId 则对所有的 client 进行处理；若指定 originClientId 则只对当前
-                // originClientId 进行处理
+
+
                 try {
                     RemotingCommand response =
                             this.brokerController.getRemotingServer().invokeSync(channel, request, 5000);
@@ -332,7 +317,7 @@ public class Broker2Client {
                             new Object[]{topic, group}, e);
                 }
 
-                // 若指定 originClientId 相应的 client 处理完成，则退出循环
+
                 if (!UtilAll.isBlank(originClientId) && originClientId.equals(clientId)) {
                     break;
                 }

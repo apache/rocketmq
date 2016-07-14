@@ -31,10 +31,7 @@ import java.util.Set;
 
 
 /**
- * 删除订阅组配置命令
- *
  * @author lansheng.zj
- *
  */
 public class DeleteSubscriptionGroupCommand implements SubCommand {
     @Override
@@ -96,7 +93,6 @@ public class DeleteSubscriptionGroupCommand implements SubCommand {
                             groupName, master, clusterName);
                 }
 
-                // 删除%RETRY%打头的Topic
                 try {
                     DeleteTopicSubCommand.deleteTopic(adminExt, clusterName, MixAll.RETRY_GROUP_TOPIC_PREFIX
                             + groupName);

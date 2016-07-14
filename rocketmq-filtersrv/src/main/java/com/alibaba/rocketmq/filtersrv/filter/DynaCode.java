@@ -41,55 +41,33 @@ public class DynaCode {
 
     private static final String LINE_SP = System.getProperty("line.separator");
 
-    /**
-     * 生成java文件的路径
-     */
     private String sourcePath = System.getProperty("user.home") + FILE_SP + "rocketmq_filter_class" + FILE_SP
             + UtilAll.getPid();
 
-    /**
-     * 生成class文件的路径
-     */
     private String outPutClassPath = sourcePath;
 
-    /**
-     * 编译使用的生成ClassPath的ClassLoader
-     */
+
     private ClassLoader parentClassLoader;
 
-    /**
-     * java的text代码
-     */
+
     private List<String> codeStrs;
 
-    /**
-     * 已经加载好的class
-     */
+
     private Map<String/* fullClassName */, Class<?>/* class */> loadClass;
 
-    /**
-     * 编译参数,使用的classpath，如果不指定则使用当前给定的 classloder所具有的classpath进行编译
-     */
+
     private String classpath;
 
-    /**
-     * 编译参数，同javac的bootclasspath
-     */
+
     private String bootclasspath;
 
-    /**
-     * 编译参数，同javac的extdirs
-     */
+
     private String extdirs;
 
-    /**
-     * 编译参数，同javac的encoding
-     */
+
     private String encoding = "UTF-8";
 
-    /**
-     * 编译参数，同javac的target
-     */
+
     private String target;
 
 
@@ -111,9 +89,7 @@ public class DynaCode {
         this.loadClass = new HashMap<String, Class<?>>(codeStrs.size());
     }
 
-    /**
-     * 根据给定的classLoader获取其对应的classPath的完整字符串 路径 URLClassLoader.
-     */
+
     private static String extractClasspath(ClassLoader cl) {
         StringBuffer buf = new StringBuffer();
         while (cl != null) {
@@ -147,28 +123,20 @@ public class DynaCode {
             throws Exception {
         String classSimpleName = FilterAPI.simpleClassName(className);
         String javaCode = new String(javaSource);
-        // Java类名需要替换，否则可能会产生Source变更，但是无法加载的类冲突问题
+
         final String newClassSimpleName = classSimpleName + System.currentTimeMillis();
         String newJavaCode = javaCode.replaceAll(classSimpleName, newClassSimpleName);
 
         List<String> codes = new ArrayList<String>();
         codes.add(newJavaCode);
-        // 创建DynaCode
         DynaCode dc = new DynaCode(codes);
-        // 执行编译并且load
         dc.compileAndLoadClass();
-        // 获取对应的clazz
         Map<String, Class<?>> map = dc.getLoadClass();
-        // 反射执行结果
+
         Class<?> clazz = map.get(getQualifiedName(newJavaCode));
         return clazz;
     }
 
-    /**
-     * 编译并且加载给定的java编码类
-     *
-     * @throws Exception
-     */
     public void compileAndLoadClass() throws Exception {
         String[] sourceFiles = this.uploadSrcFile();
         this.compile(sourceFiles);
@@ -193,13 +161,6 @@ public class DynaCode {
         return sb.toString();
     }
 
-    /**
-     * 将给定code的text生成java文件，并且写入硬盘
-     *
-     * @return
-     *
-     * @throws Exception
-     */
     private String[] uploadSrcFile() throws Exception {
         List<String> srcFileAbsolutePaths = new ArrayList<String>(codeStrs.size());
         for (String code : codeStrs) {
@@ -212,7 +173,7 @@ public class DynaCode {
                     try {
                         if (StringUtils.isBlank(packageName)) {
                             File pathFile = new File(sourcePath);
-                            // 如果不存在就创建
+
                             if (!pathFile.exists()) {
                                 if (!pathFile.mkdirs()) {
                                     throw new RuntimeException("create PathFile Error!");
@@ -222,7 +183,7 @@ public class DynaCode {
                         } else {
                             String srcPath = StringUtils.replace(packageName, ".", FILE_SP);
                             File pathFile = new File(sourcePath + FILE_SP + srcPath);
-                            // 如果不存在就创建
+
                             if (!pathFile.exists()) {
                                 if (!pathFile.mkdirs()) {
                                     throw new RuntimeException("create PathFile Error!");
@@ -257,13 +218,6 @@ public class DynaCode {
         return srcFileAbsolutePaths.toArray(new String[srcFileAbsolutePaths.size()]);
     }
 
-    /**
-     * 编译给定文件绝对路径的java文件列表
-     *
-     * @param srcFiles
-     *
-     * @throws Exception
-     */
     private void compile(String[] srcFiles) throws Exception {
         String args[] = this.buildCompileJavacArgs(srcFiles);
         ByteArrayOutputStream err = new ByteArrayOutputStream();
@@ -278,17 +232,8 @@ public class DynaCode {
         }
     }
 
-    /**
-     * 加载给定className的class
-     *
-     * @param classFullNames
-     *
-     * @throws ClassNotFoundException
-     * @throws MalformedURLException
-     */
     private void loadClass(Set<String> classFullNames) throws ClassNotFoundException, MalformedURLException {
         synchronized (loadClass) {
-            // 使用outPutClassPath的URL创建个新的ClassLoader
             ClassLoader classLoader =
                     new URLClassLoader(new URL[]{new File(outPutClassPath).toURI().toURL()},
                             parentClassLoader);
@@ -345,13 +290,6 @@ public class DynaCode {
         return StringUtils.isBlank(packageName) ? className : packageName + "." + className;
     }
 
-    /**
-     * 根据给定文件列表和当前的编译参数来构建 调用javac的编译参数数组
-     *
-     * @param srcFiles
-     *
-     * @return
-     */
     private String[] buildCompileJavacArgs(String srcFiles[]) {
         ArrayList<String> args = new ArrayList<String>();
         if (StringUtils.isNotBlank(classpath)) {

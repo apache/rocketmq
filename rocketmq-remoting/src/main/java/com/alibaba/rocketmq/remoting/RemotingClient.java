@@ -28,8 +28,6 @@ import java.util.concurrent.ExecutorService;
 
 
 /**
- * 远程通信，Client接口
- *
  * @author shijia.wxr
  *
  */

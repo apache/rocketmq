@@ -235,7 +235,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                 return;
             }
         }
-        // 顺序消息必须等锁住才能拉消息，且要重新初始化从哪里拉
+
         else {
             if (processQueue.isLocked()) {
                 if (!pullRequest.isLockedFirst()) {
@@ -260,7 +260,6 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
 
         final SubscriptionData subscriptionData = this.rebalanceImpl.getSubscriptionInner().get(pullRequest.getMessageQueue().getTopic());
         if (null == subscriptionData) {
-            // 由于并发关系，即使找不到订阅关系，也要重试下，防止丢失PullRequest
             this.executePullRequestLater(pullRequest, PullTimeDelayMillsWhenException);
             log.warn("find the consumer's subscription failed, {}", pullRequest);
             return;
@@ -475,7 +474,6 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
 
     public void resume() {
         this.pause = false;
-        // consumer 恢复之后,重新进行rebalance
         doRebalance();
         log.info("resume this consumer, {}", this.defaultMQPushConsumer.getConsumerGroup());
     }

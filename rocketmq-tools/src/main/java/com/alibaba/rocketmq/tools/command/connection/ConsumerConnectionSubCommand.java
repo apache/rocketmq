@@ -32,10 +32,7 @@ import java.util.Map.Entry;
 
 
 /**
- * 查询Consumer的网络连接，以及客户端版本号，订阅关系等
- *
  * @author shijia.wxr
- *
  */
 public class ConsumerConnectionSubCommand implements SubCommand {
 
@@ -74,7 +71,7 @@ public class ConsumerConnectionSubCommand implements SubCommand {
 
             ConsumerConnection cc = defaultMQAdminExt.examineConsumerConnectionInfo(group);
 
-            // 打印连接
+
             int i = 1;
             for (Connection conn : cc.getConnectionSet()) {
                 System.out.printf("%03d  %-32s %-22s %-8s %s\n",//
@@ -86,7 +83,7 @@ public class ConsumerConnectionSubCommand implements SubCommand {
                 );
             }
 
-            // 打印订阅关系
+
             System.out.println("\nBelow is subscription:");
             Iterator<Entry<String, SubscriptionData>> it = cc.getSubscriptionTable().entrySet().iterator();
             i = 1;
@@ -100,7 +97,7 @@ public class ConsumerConnectionSubCommand implements SubCommand {
                 );
             }
 
-            // 打印其他订阅参数
+
             System.out.println("");
             System.out.printf("ConsumeType: %s\n", cc.getConsumeType());
             System.out.printf("MessageModel: %s\n", cc.getMessageModel());

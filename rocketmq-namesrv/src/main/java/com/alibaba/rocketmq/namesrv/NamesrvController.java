@@ -37,30 +37,24 @@ import java.util.concurrent.TimeUnit;
 
 
 /**
- * Name Server服务控制
- *
  * @author shijia.wxr
- *
  */
 public class NamesrvController {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.NamesrvLoggerName);
-    // Name Server配置
+
     private final NamesrvConfig namesrvConfig;
-    // 通信层配置
+
     private final NettyServerConfig nettyServerConfig;
-    // 定时线程
+
     private final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl(
             "NSScheduledThread"));
-    /**
-     * 核心数据结构
-     */
     private final KVConfigManager kvConfigManager;
     private final RouteInfoManager routeInfoManager;
-    // 服务端通信层对象
+
     private RemotingServer remotingServer;
-    // 接收Broker连接事件
+
     private BrokerHousekeepingService brokerHousekeepingService;
-    // 服务端网络请求处理线程池
+
     private ExecutorService remotingExecutor;
 
 
@@ -74,19 +68,19 @@ public class NamesrvController {
 
 
     public boolean initialize() {
-        // 加载KV配置
+
         this.kvConfigManager.load();
 
-        // 初始化通信层
+
         this.remotingServer = new NettyRemotingServer(this.nettyServerConfig, this.brokerHousekeepingService);
 
-        // 初始化线程池
+
         this.remotingExecutor =
                 Executors.newFixedThreadPool(nettyServerConfig.getServerWorkerThreads(), new ThreadFactoryImpl("RemotingExecutorThread_"));
 
         this.registerProcessor();
 
-        // 增加定时任务
+
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 
             @Override
@@ -109,11 +103,11 @@ public class NamesrvController {
 
     private void registerProcessor() {
         if (namesrvConfig.isClusterTest()) {
-            // 全链路压测版本
+
             this.remotingServer.registerDefaultProcessor(new ClusterTestRequestProcessor(this, namesrvConfig.getProductEnvName()),
                     this.remotingExecutor);
         } else {
-            // 生产网默认版本
+
             this.remotingServer.registerDefaultProcessor(new DefaultRequestProcessor(this), this.remotingExecutor);
         }
     }

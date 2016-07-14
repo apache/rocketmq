@@ -44,7 +44,7 @@ public class StatsItemSet {
     }
 
     public void init() {
-        // 每隔10s执行一次
+
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
             @Override
             public void run() {
@@ -55,7 +55,7 @@ public class StatsItemSet {
             }
         }, 0, 10, TimeUnit.SECONDS);
 
-        // 每隔10分钟执行一次
+
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
             @Override
             public void run() {
@@ -66,7 +66,7 @@ public class StatsItemSet {
             }
         }, 0, 10, TimeUnit.MINUTES);
 
-        // 每隔1小时执行一次
+
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
             @Override
             public void run() {
@@ -77,7 +77,7 @@ public class StatsItemSet {
             }
         }, 0, 1, TimeUnit.HOURS);
 
-        // 分钟整点执行
+
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
                                                               @Override
                                                               public void run() {
@@ -89,7 +89,7 @@ public class StatsItemSet {
                                                           }, Math.abs(UtilAll.computNextMinutesTimeMillis() - System.currentTimeMillis()), //
                 1000 * 60, TimeUnit.MILLISECONDS);
 
-        // 小时整点执行
+
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
                                                               @Override
                                                               public void run() {
@@ -101,7 +101,7 @@ public class StatsItemSet {
                                                           }, Math.abs(UtilAll.computNextHourTimeMillis() - System.currentTimeMillis()), //
                 1000 * 60 * 60, TimeUnit.MILLISECONDS);
 
-        // 每天0点执行
+
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
                                                               @Override
                                                               public void run() {
@@ -173,9 +173,9 @@ public class StatsItemSet {
         if (null == statsItem) {
             statsItem = new StatsItem(this.statsName, statsKey, this.scheduledExecutorService, this.log);
             StatsItem prev = this.statsItemTable.put(statsKey, statsItem);
-            // 说明是第一次插入
+
             if (null == prev) {
-                // 内部不需要定时，外部统一定时
+
                 // statsItem.init();
             }
         }

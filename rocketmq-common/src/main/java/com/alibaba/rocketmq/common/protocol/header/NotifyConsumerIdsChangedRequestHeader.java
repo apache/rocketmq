@@ -32,7 +32,6 @@ public class NotifyConsumerIdsChangedRequestHeader implements CommandCustomHeade
 
     @Override
     public void checkFields() throws RemotingCommandException {
-        // TODO Auto-generated method stub
     }
 
 

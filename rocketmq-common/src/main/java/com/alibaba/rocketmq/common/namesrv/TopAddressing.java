@@ -33,8 +33,6 @@ import java.io.IOException;
 
 
 /**
- * 寻址服务
- *
  * @author shijia.wxr
  * @author manhong.yqd
  */

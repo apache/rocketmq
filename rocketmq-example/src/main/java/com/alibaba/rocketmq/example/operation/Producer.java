@@ -22,10 +22,6 @@ import com.alibaba.rocketmq.client.producer.SendResult;
 import com.alibaba.rocketmq.common.message.Message;
 import org.apache.commons.cli.*;
 
-
-/**
- * Producer，发送消息，内置到安装包，方便线上进行调试定位问题
- */
 public class Producer {
 
     public static void main(String[] args) throws MQClientException, InterruptedException {

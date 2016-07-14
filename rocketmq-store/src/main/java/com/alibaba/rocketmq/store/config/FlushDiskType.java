@@ -17,18 +17,9 @@
 package com.alibaba.rocketmq.store.config;
 
 /**
- * 刷盘方式
- *
  * @author shijia.wxr
- *
  */
 public enum FlushDiskType {
-    /**
-     * 同步刷盘
-     */
     SYNC_FLUSH,
-    /**
-     * 异步刷盘
-     */
     ASYNC_FLUSH
 }

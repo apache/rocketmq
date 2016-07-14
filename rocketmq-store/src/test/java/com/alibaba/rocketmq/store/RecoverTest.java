@@ -39,15 +39,15 @@ import static org.junit.Assert.assertTrue;
 
 public class RecoverTest {
     private static final String StoreMessage = "Once, there was a chance for me!aaaaaaaaaaaaaaaaaaaaaaaa";
-    // 队列个数
+
     private static int QUEUE_TOTAL = 10;
-    // 发往哪个队列
+
     private static AtomicInteger QueueId = new AtomicInteger(0);
-    // 发送主机地址
+
     private static SocketAddress BornHost;
-    // 存储主机地址
+
     private static SocketAddress StoreHost;
-    // 消息体
+
     private static byte[] MessageBody;
     private MessageStore storeWrite1;
     private MessageStore storeWrite2;
@@ -63,9 +63,6 @@ public class RecoverTest {
     public static void tearDownAfterClass() throws Exception {
     }
 
-    /**
-     * 正常关闭后，重启恢复消息，验证是否有消息丢失
-     */
     @Test
     public void test_recover_normally() throws Exception {
         this.writeMessage(true, true);
@@ -79,13 +76,13 @@ public class RecoverTest {
         long totalMsgs = 1000;
         QUEUE_TOTAL = 3;
 
-        // 构造消息体
+
         MessageBody = StoreMessage.getBytes();
 
         MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
-        // 每个物理映射文件
+
         messageStoreConfig.setMapedFileSizeCommitLog(1024 * 32);
-        // 每个逻辑映射文件
+
         messageStoreConfig.setMapedFileSizeConsumeQueue(100 * 20);
         messageStoreConfig.setMessageIndexEnable(false);
 
@@ -96,14 +93,14 @@ public class RecoverTest {
             this.storeWrite2 = messageStore;
         }
 
-        // 第一步，load已有数据
+
         boolean loadResult = messageStore.load();
         assertTrue(loadResult);
 
-        // 第二步，启动服务
+
         messageStore.start();
 
-        // 第三步，发消息
+
         for (long i = 0; i < totalMsgs; i++) {
 
             PutMessageResult result = messageStore.putMessage(buildMessage());
@@ -112,7 +109,7 @@ public class RecoverTest {
         }
 
         if (normal) {
-            // 关闭存储服务
+
             messageStore.shutdown();
         }
 
@@ -123,25 +120,25 @@ public class RecoverTest {
         System.out.println("================================================================");
         QUEUE_TOTAL = 3;
 
-        // 构造消息体
+
         MessageBody = StoreMessage.getBytes();
 
         MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
-        // 每个物理映射文件
+
         messageStoreConfig.setMapedFileSizeCommitLog(1024 * 32);
-        // 每个逻辑映射文件
+
         messageStoreConfig.setMapedFileSizeConsumeQueue(100 * 20);
         messageStoreConfig.setMessageIndexEnable(false);
 
         storeRead = new DefaultMessageStore(messageStoreConfig, null, null, null);
-        // 第一步，load已有数据
+
         boolean loadResult = storeRead.load();
         assertTrue(loadResult);
 
-        // 第二步，启动服务
+
         storeRead.start();
 
-        // 第三步，收消息
+
         long readCnt = 0;
         for (int queueId = 0; queueId < QUEUE_TOTAL; queueId++) {
             for (long offset = 0; ; ) {
@@ -166,23 +163,23 @@ public class RecoverTest {
 
     private void destroy() {
         if (storeWrite1 != null) {
-            // 关闭存储服务
+
             storeWrite1.shutdown();
-            // 删除文件
+
             storeWrite1.destroy();
         }
 
         if (storeWrite2 != null) {
-            // 关闭存储服务
+
             storeWrite2.shutdown();
-            // 删除文件
+
             storeWrite2.destroy();
         }
 
         if (storeRead != null) {
-            // 关闭存储服务
+
             storeRead.shutdown();
-            // 删除文件
+
             storeRead.destroy();
         }
     }
@@ -216,7 +213,7 @@ public class RecoverTest {
     }
 
     /**
-     * 正常关闭后，重启恢复消息，并再次写入消息，验证是否有消息丢失
+
      */
     @Test
     public void test_recover_normally_write() throws Exception {
@@ -230,7 +227,7 @@ public class RecoverTest {
 
 
     /**
-     * 异常关闭后，重启恢复消息，验证是否有消息丢失
+
      */
     @Test
     public void test_recover_abnormally() throws Exception {
@@ -242,7 +239,7 @@ public class RecoverTest {
 
 
     /**
-     * 异常关闭后，重启恢复消息，并再次写入消息，验证是否有消息丢失
+
      */
     @Test
     public void test_recover_abnormally_write() throws Exception {

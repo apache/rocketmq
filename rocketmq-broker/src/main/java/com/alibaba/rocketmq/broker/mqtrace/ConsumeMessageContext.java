@@ -32,7 +32,7 @@ public class ConsumeMessageContext {
     private boolean success;
     private String status;
     private Object mqTraceContext;
-    //ONS 商业化
+
     private String commercialOwner;
     private BrokerStatsManager.StatsType commercialRcvStats;
     private int commercialRcvTimes;

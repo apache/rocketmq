@@ -25,7 +25,6 @@ import org.apache.commons.cli.Options;
 
 
 /**
- * 添加或者更新 KV 配置信息
  *
  * @author manhong.yqd
  *

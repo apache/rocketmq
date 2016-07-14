@@ -56,7 +56,7 @@ public class JDBCTransactionStore implements TransactionStore {
 
                 this.connection.setAutoCommit(false);
 
-                // 如果表不存在，尝试初始化表
+
                 if (!this.computeTotalRecords()) {
                     return this.createDB();
                 }
@@ -221,25 +221,21 @@ public class JDBCTransactionStore implements TransactionStore {
 
     @Override
     public List<TransactionRecord> traverse(long pk, int nums) {
-        // TODO Auto-generated method stub
         return null;
     }
 
     @Override
     public long totalRecords() {
-        // TODO Auto-generated method stub
         return this.totalRecordsValue.get();
     }
 
     @Override
     public long minPK() {
-        // TODO Auto-generated method stub
         return 0;
     }
 
     @Override
     public long maxPK() {
-        // TODO Auto-generated method stub
         return 0;
     }
 }

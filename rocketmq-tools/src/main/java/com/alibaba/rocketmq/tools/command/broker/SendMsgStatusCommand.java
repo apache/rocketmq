@@ -27,10 +27,7 @@ import org.apache.commons.cli.Options;
 
 
 /**
- * 发送消息
- *
  * @author lansheng.zj
- *
  */
 public class SendMsgStatusCommand implements SubCommand {
 

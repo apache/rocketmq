@@ -211,7 +211,6 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
             consumeMessageContext.setMsgList(pullResult.getMsgFoundList());
             consumeMessageContext.setSuccess(false);
             this.executeHookBefore(consumeMessageContext);
-            // 拉模式消费消息，拉到消息即认为消费成功。
             consumeMessageContext.setStatus(ConsumeConcurrentlyStatus.CONSUME_SUCCESS.toString());
             consumeMessageContext.setSuccess(true);
             this.executeHookAfter(consumeMessageContext);

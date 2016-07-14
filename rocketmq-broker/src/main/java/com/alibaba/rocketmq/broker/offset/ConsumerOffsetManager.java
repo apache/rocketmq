@@ -52,9 +52,6 @@ public class ConsumerOffsetManager extends ConfigManager {
     }
 
 
-    /**
-     * 扫描数据被删除了的topic，offset记录也对应删除
-     */
     public void scanUnsubscribedTopic() {
         Iterator<Entry<String, ConcurrentHashMap<Integer, Long>>> it = this.offsetTable.entrySet().iterator();
         while (it.hasNext()) {
@@ -64,7 +61,7 @@ public class ConsumerOffsetManager extends ConfigManager {
             if (arrays != null && arrays.length == 2) {
                 String topic = arrays[0];
                 String group = arrays[1];
-                // 当前订阅关系里面没有group-topic订阅关系（消费端当前是停机的状态）并且offset落后很多,则删除消费进度
+
                 if (null == brokerController.getConsumerManager().findSubscriptionData(group, topic)
                         && this.offsetBehindMuchThanData(topic, next.getValue())) {
                     it.remove();

@@ -173,7 +173,7 @@ public class MessageStoreConfig {
 
 
     public int getMapedFileSizeConsumeQueue() {
-        // 此处需要向上取整
+
         int factor = (int) Math.ceil(this.mapedFileSizeConsumeQueue / (ConsumeQueue.CQStoreUnitSize * 1.0));
         return (int) (factor * ConsumeQueue.CQStoreUnitSize);
     }

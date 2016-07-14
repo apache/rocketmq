@@ -28,7 +28,6 @@ import org.apache.commons.cli.Options;
 
 
 /**
- * 根据消息Key查询消息
  *
  * @author shijia.wxr
  *

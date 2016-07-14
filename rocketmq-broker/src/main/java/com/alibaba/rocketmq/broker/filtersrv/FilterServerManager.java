@@ -37,12 +37,11 @@ import java.util.concurrent.TimeUnit;
 
 
 public class FilterServerManager {
-    // Filter Server最大空闲时间
+
     public static final long FilterServerMaxIdleTimeMills = 30000;
     private static final Logger log = LoggerFactory.getLogger(LoggerName.BrokerLoggerName);
-    private final ConcurrentHashMap<Channel/* 注册连接 */, FilterServerInfo/* filterServer监听端口 */> filterServerTable =
+    private final ConcurrentHashMap<Channel, FilterServerInfo> filterServerTable =
             new ConcurrentHashMap<Channel, FilterServerInfo>(16);
-
     private final BrokerController brokerController;
 
     private ScheduledExecutorService scheduledExecutorService = Executors
@@ -53,7 +52,7 @@ public class FilterServerManager {
     }
 
     public void start() {
-        // 定时检查Filter Server个数，数量不符合，则创建
+
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
             @Override
             public void run() {
@@ -114,10 +113,10 @@ public class FilterServerManager {
     }
 
     /**
-     * Filter Server 10s向Broker注册一次，Broker如果发现30s没有注册，则删除它
+
      */
     public void scanNotActiveChannel() {
-        // 单位毫秒
+
         Iterator<Entry<Channel, FilterServerInfo>> it = this.filterServerTable.entrySet().iterator();
         while (it.hasNext()) {
             Entry<Channel, FilterServerInfo> next = it.next();

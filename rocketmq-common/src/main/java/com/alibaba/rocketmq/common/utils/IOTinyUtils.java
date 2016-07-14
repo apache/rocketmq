@@ -53,7 +53,7 @@ public class IOTinyUtils {
 
 
     /**
-     * 从输入流读行列表。保证不返回NULL。
+
      */
     static public List<String> readLines(Reader input) throws IOException {
         BufferedReader reader = toBufferedReader(input);
@@ -118,7 +118,7 @@ public class IOTinyUtils {
 
 
     /**
-     * 清理目录下的内容
+
      */
     public static void cleanDirectory(File directory) throws IOException {
         if (!directory.exists()) {

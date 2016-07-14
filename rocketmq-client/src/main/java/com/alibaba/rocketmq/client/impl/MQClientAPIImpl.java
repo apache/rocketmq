@@ -286,7 +286,7 @@ public class MQClientAPIImpl {
             public void operationComplete(ResponseFuture responseFuture) {
                 RemotingCommand response = responseFuture.getResponseCommand();
                 if (null == sendCallback && response != null) {
-                    //如果没有回调，则只尝试执行hook，不抛异常
+
                     try {
                         SendResult sendResult = MQClientAPIImpl.this.processSendResponse(brokerName, msg, response);
                         if (context != null && sendResult != null) {
@@ -303,7 +303,6 @@ public class MQClientAPIImpl {
                     try {
                         SendResult sendResult = MQClientAPIImpl.this.processSendResponse(brokerName, msg, response);
                         assert sendResult != null;
-                        // context在没有sendMessageHook时为null
                         if (context != null) {
                             context.setSendResult(sendResult);
                             context.getProducer().executeSendMessageHookAfter(context);
@@ -364,7 +363,7 @@ public class MQClientAPIImpl {
                         context, true);
             }
         } else {
-            //最终发送失败的地方，记录轨迹埋点
+
             if (context != null) {
                 context.setException(e);
                 context.getProducer().executeSendMessageHookAfter(context);
@@ -409,8 +408,6 @@ public class MQClientAPIImpl {
                         (SendMessageResponseHeader) response.decodeCommandCustomHeader(SendMessageResponseHeader.class);
 
                 MessageQueue messageQueue = new MessageQueue(msg.getTopic(), brokerName, responseHeader.getQueueId());
-
-                //原来的ID变为offset id，
 
                 SendResult sendResult = new SendResult(sendStatus,
                         MessageClientIDSetter.getUniqID(msg),

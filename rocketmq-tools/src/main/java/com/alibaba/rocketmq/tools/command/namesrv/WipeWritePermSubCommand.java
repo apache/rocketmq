@@ -27,8 +27,6 @@ import java.util.List;
 
 
 /**
- * 从所有Name Server上清除特定Broker的先权限
- *
  * @author shijia.wxr
  *
  */

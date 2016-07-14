@@ -102,7 +102,7 @@ public class CheckMsgSendRTCommand implements SubCommand {
                     end = System.currentTimeMillis();
                 }
 
-                //第一条消息不算入到平均响应时间中
+
                 if (i != 0) {
                     timeElapsed += (end - start);
                 }

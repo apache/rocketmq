@@ -22,8 +22,6 @@ import java.util.concurrent.ConcurrentHashMap;
 
 
 /**
- * 延时消息进度，序列化包装
- *
  * @author shijia.wxr
  *
  */

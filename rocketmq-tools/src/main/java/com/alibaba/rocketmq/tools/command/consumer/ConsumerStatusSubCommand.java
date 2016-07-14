@@ -35,10 +35,7 @@ import java.util.TreeMap;
 
 
 /**
- * 查询Consumer内部数据结构
- *
  * @author shijia.wxr
- *
  */
 public class ConsumerStatusSubCommand implements SubCommand {
 
@@ -92,7 +89,7 @@ public class ConsumerStatusSubCommand implements SubCommand {
             boolean jstack = commandLine.hasOption('s');
 
             if (!commandLine.hasOption('i')) {
-                // 打印连接
+
                 int i = 1;
                 long now = System.currentTimeMillis();
                 final TreeMap<String/* clientId */, ConsumerRunningInfo> criTable =

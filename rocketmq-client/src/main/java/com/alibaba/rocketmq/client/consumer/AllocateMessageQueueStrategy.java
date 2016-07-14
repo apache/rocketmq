@@ -43,7 +43,7 @@ public interface AllocateMessageQueueStrategy {
      *
      * @return
      */
-    public List<MessageQueue> allocate(//
+     List<MessageQueue> allocate(//
                                        final String consumerGroup,//
                                        final String currentCID,//
                                        final List<MessageQueue> mqAll,//
@@ -56,5 +56,5 @@ public interface AllocateMessageQueueStrategy {
      *
      * @return
      */
-    public String getName();
+     String getName();
 }

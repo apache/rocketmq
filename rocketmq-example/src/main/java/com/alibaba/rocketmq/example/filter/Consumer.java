@@ -31,7 +31,7 @@ public class Consumer {
 
     public static void main(String[] args) throws InterruptedException, MQClientException {
         DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("ConsumerGroupNamecc4");
-        // 使用Java代码，在服务器做消息过滤
+
         String filterCode = MixAll.file2String("/home/admin/MessageFilterImpl.java");
         consumer.subscribe("TopicFilter7", "com.alibaba.rocketmq.example.filter.MessageFilterImpl",
                 filterCode);
@@ -46,7 +46,6 @@ public class Consumer {
             }
         });
 
-        // Consumer对象在使用之前必须要调用start初始化，初始化一次即可<br>
         consumer.start();
 
         System.out.println("Consumer Started.");

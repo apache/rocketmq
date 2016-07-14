@@ -86,7 +86,7 @@ public class RebalancePushImpl extends RebalanceImpl {
     }
 
     private boolean unlockDelay(final MessageQueue mq, final ProcessQueue pq) {
-        // 说明有未commit的消息
+
         if (pq.hasTempMessage()) {
             log.info("[{}]unlockDelay, begin {} ", mq.hashCode(), mq);
             this.defaultMQPushConsumerImpl.getmQClientFactory().getScheduledExecutorService().schedule(new Runnable() {

@@ -23,10 +23,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 
 /**
- * Consumer消费进度，序列化包装
- *
  * @author manhong.yqd
- *
  */
 public class ConsumerOffsetSerializeWrapper extends RemotingSerializable {
     private ConcurrentHashMap<String/* topic@group */, ConcurrentHashMap<Integer, Long>> offsetTable =

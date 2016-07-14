@@ -33,10 +33,7 @@ import java.util.Enumeration;
 
 
 /**
- * 网络相关方法
- *
  * @author shijia.wxr
- *
  */
 public class RemotingUtil {
     public static final String OS_NAME = System.getProperty("os.name");
@@ -60,7 +57,7 @@ public class RemotingUtil {
 
     public static Selector openSelector() throws IOException {
         Selector result = null;
-        // 在linux平台，尽量启用epoll实现
+
         if (isLinuxPlatform()) {
             try {
                 final Class<?> providerClazz = Class.forName("sun.nio.ch.EPollSelectorProvider");
@@ -149,10 +146,6 @@ public class RemotingUtil {
         }
     }
 
-
-    /**
-     * IP:PORT
-     */
     public static SocketAddress string2SocketAddress(final String addr) {
         String[] s = addr.split(":");
         InetSocketAddress isa = new InetSocketAddress(s[0], Integer.valueOf(s[1]));

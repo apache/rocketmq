@@ -20,16 +20,8 @@ package com.alibaba.rocketmq.common.sysflag;
  * @author shijia.wxr
  */
 public class MessageSysFlag {
-    /**
-     * SysFlag
-     */
     public final static int CompressedFlag = (0x1 << 0);
     public final static int MultiTagsFlag = (0x1 << 1);
-
-    /**
-     * 7 6 5 4 3 2 1 0<br>
-     * SysFlag 事务相关，从左属，2与3
-     */
     public final static int TransactionNotType = (0x0 << 2);
     public final static int TransactionPreparedType = (0x1 << 2);
     public final static int TransactionCommitType = (0x2 << 2);

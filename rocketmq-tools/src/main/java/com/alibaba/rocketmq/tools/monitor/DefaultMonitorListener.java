@@ -62,7 +62,7 @@ public class DefaultMonitorListener implements MonitorListener {
 
     @Override
     public void reportConsumerRunningInfo(TreeMap<String, ConsumerRunningInfo> criTable) {
-        // 分析订阅关系
+
         {
             boolean result = ConsumerRunningInfo.analyzeSubscription(criTable);
             if (!result) {
@@ -72,7 +72,7 @@ public class DefaultMonitorListener implements MonitorListener {
             }
         }
 
-        // 分析顺序消息
+
         {
             Iterator<Entry<String, ConsumerRunningInfo>> it = criTable.entrySet().iterator();
             while (it.hasNext()) {

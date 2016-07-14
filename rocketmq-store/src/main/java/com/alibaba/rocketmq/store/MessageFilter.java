@@ -20,10 +20,7 @@ import com.alibaba.rocketmq.common.protocol.heartbeat.SubscriptionData;
 
 
 /**
- * 消息过滤接口
- *
  * @author shijia.wxr
- *
  */
 public interface MessageFilter {
     boolean isMessageMatched(final SubscriptionData subscriptionData, final Long tagsCode);

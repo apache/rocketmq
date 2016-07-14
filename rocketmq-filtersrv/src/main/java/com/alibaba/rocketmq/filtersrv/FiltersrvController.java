@@ -38,29 +38,26 @@ import java.util.concurrent.TimeUnit;
 
 
 /**
- * Filter Server服务控制
- *
  * @author shijia.wxr
- *
  */
 public class FiltersrvController {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.FiltersrvLoggerName);
-    // Filter Server配置
+
     private final FiltersrvConfig filtersrvConfig;
-    // 通信层配置
+
     private final NettyServerConfig nettyServerConfig;
     private final FilterClassManager filterClassManager;
-    // 访问Broker的api封装
+
     private final FilterServerOuterAPI filterServerOuterAPI = new FilterServerOuterAPI();
     private final DefaultMQPullConsumer defaultMQPullConsumer = new DefaultMQPullConsumer(
             MixAll.FILTERSRV_CONSUMER_GROUP);
-    // 定时线程
+
     private final ScheduledExecutorService scheduledExecutorService = Executors
             .newSingleThreadScheduledExecutor(new ThreadFactoryImpl("FSScheduledThread"));
     private final FilterServerStatsManager filterServerStatsManager = new FilterServerStatsManager();
-    // 服务端通信层对象
+
     private RemotingServer remotingServer;
-    // 服务端网络请求处理线程池
+
     private ExecutorService remotingExecutor;
     private volatile String brokerName = null;
 
@@ -73,20 +70,20 @@ public class FiltersrvController {
 
 
     public boolean initialize() {
-        // 打印服务器配置参数
+
         MixAll.printObjectProperties(log, this.filtersrvConfig);
 
-        // 初始化通信层
+
         this.remotingServer = new NettyRemotingServer(this.nettyServerConfig);
 
-        // 初始化线程池
+
         this.remotingExecutor =
                 Executors.newFixedThreadPool(nettyServerConfig.getServerWorkerThreads(),
                         new ThreadFactoryImpl("RemotingExecutorThread_"));
 
         this.registerProcessor();
 
-        // 定时向Broker注册自己
+
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 
             @Override
@@ -95,7 +92,6 @@ public class FiltersrvController {
             }
         }, 3, 10, TimeUnit.SECONDS);
 
-        // 初始化PullConsumer参数，要比默认参数小。
         this.defaultMQPullConsumer.setBrokerSuspendMaxTimeMillis(this.defaultMQPullConsumer
                 .getBrokerSuspendMaxTimeMillis() - 1000);
         this.defaultMQPullConsumer.setConsumerTimeoutMillisWhenSuspend(this.defaultMQPullConsumer
@@ -132,7 +128,7 @@ public class FiltersrvController {
             );
         } catch (Exception e) {
             log.warn("register filter server Exception", e);
-            // 如果失败，尝试自杀
+
             log.warn("access broker failed, kill oneself");
             System.exit(-1);
         }

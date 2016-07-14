@@ -24,13 +24,7 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingSerializable;
 public class OffsetMovedEvent extends RemotingSerializable {
     private String consumerGroup;
     private MessageQueue messageQueue;
-    /**
-     * 客户端请求的Offset
-     */
     private long offsetRequest;
-    /**
-     * Broker要求从这个新的Offset开始消费
-     */
     private long offsetNew;
 
 

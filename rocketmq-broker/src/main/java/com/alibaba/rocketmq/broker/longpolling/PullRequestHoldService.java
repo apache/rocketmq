@@ -37,7 +37,7 @@ public class PullRequestHoldService extends ServiceThread {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.BrokerLoggerName);
     private static final String TOPIC_QUEUEID_SEPARATOR = "@";
     private final BrokerController brokerController;
-    // 消息过滤
+
     private final MessageFilter messageFilter = new DefaultMessageFilter();
     private ConcurrentHashMap<String/* topic@queueId */, ManyPullRequest> pullRequestTable =
             new ConcurrentHashMap<String, ManyPullRequest>(1024);
@@ -118,10 +118,8 @@ public class PullRequestHoldService extends ServiceThread {
                 List<PullRequest> replayList = new ArrayList<PullRequest>();
 
                 for (PullRequest request : requestList) {
-                    // 查看是否offset OK
                     long newestOffset = maxOffset;
                     if (newestOffset <= request.getPullFromThisOffset()) {
-                        // 尝试取最新Offset
                         newestOffset = this.brokerController.getMessageStore().getMaxOffsetInQuque(topic, queueId);
                     }
 
@@ -142,7 +140,7 @@ public class PullRequestHoldService extends ServiceThread {
                         }
                     }
 
-                    // 查看是否超时
+
                     if (System.currentTimeMillis() >= (request.getSuspendTimestamp() + request.getTimeoutMillis())) {
                         try {
                             this.brokerController.getPullMessageProcessor().excuteRequestWhenWakeup(request.getClientChannel(),
@@ -153,7 +151,7 @@ public class PullRequestHoldService extends ServiceThread {
                         continue;
                     }
 
-                    // 当前不满足要求，重新放回Hold列表中
+
                     replayList.add(request);
                 }
 

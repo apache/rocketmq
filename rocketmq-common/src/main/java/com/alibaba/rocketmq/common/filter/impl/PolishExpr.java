@@ -25,19 +25,11 @@ import static com.alibaba.rocketmq.common.filter.impl.Operator.*;
 
 public class PolishExpr {
 
-    /**
-     * 将中缀表达式转换成逆波兰表达式
-     *
-     * @param expression
-     *
-     * @return
-     */
     public static List<Op> reversePolish(String expression) {
         return reversePolish(participle(expression));
     }
 
     /**
-     * 将中缀表达式转换成逆波兰表达式<br/>
      * Shunting-yard algorithm <br/>
      * http://en.wikipedia.org/wiki/Shunting_yard_algorithm
      *
@@ -52,13 +44,13 @@ public class PolishExpr {
         for (int i = 0; i < tokens.size(); i++) {
             Op token = tokens.get(i);
             if (isOperand(token)) {
-                // 操作数
+
                 segments.add(token);
             } else if (isLeftParenthesis(token)) {
-                // 左括号
+
                 operatorStack.push((Operator) token);
             } else if (isRightParenthesis(token)) {
-                // 右括号
+
                 Operator opNew = null;
                 while (!operatorStack.empty() && LEFTPARENTHESIS != (opNew = operatorStack.pop())) {
                     segments.add(opNew);
@@ -66,7 +58,7 @@ public class PolishExpr {
                 if (null == opNew || LEFTPARENTHESIS != opNew)
                     throw new IllegalArgumentException("mismatched parentheses");
             } else if (isOperator(token)) {
-                // 操作符,暂不考虑结合性(左结合,右结合),支持的操作符都是左结合的
+
                 Operator opNew = (Operator) token;
                 if (!operatorStack.empty()) {
                     Operator opOld = operatorStack.peek();
@@ -90,7 +82,6 @@ public class PolishExpr {
     }
 
     /**
-     * 拆分单词
      *
      * @param expression
      *
@@ -111,7 +102,7 @@ public class PolishExpr {
 
             if ((97 <= chValue && chValue <= 122) || (65 <= chValue && chValue <= 90)
                     || (49 <= chValue && chValue <= 57) || 95 == chValue) {
-                // 操作数
+
 
                 if (Type.OPERATOR == preType || Type.SEPAERATOR == preType || Type.NULL == preType
                         || Type.PARENTHESIS == preType) {
@@ -125,7 +116,7 @@ public class PolishExpr {
                 preType = Type.OPERAND;
                 wordLen++;
             } else if (40 == chValue || 41 == chValue) {
-                // 括号
+
 
                 if (Type.OPERATOR == preType) {
                     segments.add(createOperator(expression
@@ -141,7 +132,7 @@ public class PolishExpr {
                 preType = Type.PARENTHESIS;
                 segments.add(createOperator((char) chValue + ""));
             } else if (38 == chValue || 124 == chValue) {
-                // 操作符
+
                 if (Type.OPERAND == preType || Type.SEPAERATOR == preType || Type.PARENTHESIS == preType) {
                     if (Type.OPERAND == preType) {
                         segments.add(new Operand(expression.substring(wordStartIndex, wordStartIndex
@@ -153,7 +144,7 @@ public class PolishExpr {
                 preType = Type.OPERATOR;
                 wordLen++;
             } else if (32 == chValue || 9 == chValue) {
-                // 单词分隔符
+
 
                 if (Type.OPERATOR == preType) {
                     segments.add(createOperator(expression
@@ -167,7 +158,7 @@ public class PolishExpr {
                 }
                 preType = Type.SEPAERATOR;
             } else {
-                // 非法字符
+
                 throw new IllegalArgumentException("illegal expression, at index " + i + " " + (char) chValue);
             }
 

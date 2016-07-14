@@ -57,10 +57,10 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
         final EndTransactionRequestHeader requestHeader =
                 (EndTransactionRequestHeader) request.decodeCommandCustomHeader(EndTransactionRequestHeader.class);
 
-        // 回查应答
+
         if (requestHeader.getFromTransactionCheck()) {
             switch (requestHeader.getCommitOrRollback()) {
-                // 不提交也不回滚
+
                 case MessageSysFlag.TransactionNotType: {
                     logTransaction.warn("check producer[{}] transaction state, but it's pending status.\n"//
                                     + "RequestHeader: {} Remark: {}",//
@@ -69,7 +69,7 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
                             request.getRemark());
                     return null;
                 }
-                // 提交
+
                 case MessageSysFlag.TransactionCommitType: {
                     logTransaction.warn("check producer[{}] transaction state, the producer commit the message.\n"//
                                     + "RequestHeader: {} Remark: {}",//
@@ -79,7 +79,7 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
 
                     break;
                 }
-                // 回滚
+
                 case MessageSysFlag.TransactionRollbackType: {
                     logTransaction.warn("check producer[{}] transaction state, the producer rollback the message.\n"//
                                     + "RequestHeader: {} Remark: {}",//
@@ -92,10 +92,10 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
                     return null;
             }
         }
-        // 正常提交回滚
+
         else {
             switch (requestHeader.getCommitOrRollback()) {
-                // 不提交也不回滚
+
                 case MessageSysFlag.TransactionNotType: {
                     logTransaction.warn("the producer[{}] end transaction in sending message,  and it's pending status.\n"//
                                     + "RequestHeader: {} Remark: {}",//
@@ -104,11 +104,11 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
                             request.getRemark());
                     return null;
                 }
-                // 提交
+
                 case MessageSysFlag.TransactionCommitType: {
                     break;
                 }
-                // 回滚
+
                 case MessageSysFlag.TransactionRollbackType: {
                     logTransaction.warn("the producer[{}] end transaction in sending message, rollback the message.\n"//
                                     + "RequestHeader: {} Remark: {}",//
@@ -124,7 +124,6 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
 
         final MessageExt msgExt = this.brokerController.getMessageStore().lookMessageByOffset(requestHeader.getCommitLogOffset());
         if (msgExt != null) {
-            // 校验Producer Group
             final String pgroupRead = msgExt.getProperty(MessageConst.PROPERTY_PRODUCER_GROUP);
             if (!pgroupRead.equals(requestHeader.getProducerGroup())) {
                 response.setCode(ResponseCode.SYSTEM_ERROR);
@@ -132,14 +131,12 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
                 return response;
             }
 
-            // 校验Transaction State Table Offset
             if (msgExt.getQueueOffset() != requestHeader.getTranStateTableOffset()) {
                 response.setCode(ResponseCode.SYSTEM_ERROR);
                 response.setRemark("the transaction state table offset wrong");
                 return response;
             }
 
-            // 校验Commit Log Offset
             if (msgExt.getCommitLogOffset() != requestHeader.getCommitLogOffset()) {
                 response.setCode(ResponseCode.SYSTEM_ERROR);
                 response.setRemark("the commit log offset wrong");

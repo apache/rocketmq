@@ -25,10 +25,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
-
-/**
- * PullConsumer，订阅消息
- */
 public class PullConsumer {
     private static final Map<MessageQueue, Long> offseTable = new HashMap<MessageQueue, Long>();
 
@@ -50,7 +46,6 @@ public class PullConsumer {
                     putMessageQueueOffset(mq, pullResult.getNextBeginOffset());
                     switch (pullResult.getPullStatus()) {
                         case FOUND:
-                            // TODO
                             break;
                         case NO_MATCHED_MSG:
                             break;

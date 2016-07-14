@@ -32,10 +32,7 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 
 /**
- * 查看集群信息
- *
  * @author fengliang.hfl
- *
  */
 public class CLusterSendMsgRTCommand implements SubCommand {
 
@@ -132,14 +129,14 @@ public class CLusterSendMsgRTCommand implements SubCommand {
             }
 
             while (true) {
-                for (String clusterName : clusterNames) { //查询所有的集群
+                for (String clusterName : clusterNames) {
                     Set<String> brokerNames = clusterAddr.get(clusterName);
                     if (brokerNames == null) {
                         System.out.printf("cluster [%s] not exist", clusterName);
                         break;
                     }
 
-                    for (String brokerName : brokerNames) { //查询所有的Broker
+                    for (String brokerName : brokerNames) {
                         Message msg = new Message(brokerName, getStringBySize(size).getBytes());
                         long start = 0;
                         long end = 0;
@@ -147,7 +144,7 @@ public class CLusterSendMsgRTCommand implements SubCommand {
                         int successCount = 0;
                         int failCount = 0;
 
-                        for (int i = 0; i < amount; i++) { //发送指定条数的消息
+                        for (int i = 0; i < amount; i++) {
                             start = System.currentTimeMillis();
                             try {
                                 producer.send(msg);
@@ -202,9 +199,9 @@ public class CLusterSendMsgRTCommand implements SubCommand {
     }
 
     public String getCurTime() {
-        String fromTimeZone = "GMT+8"; //显示中国时间
-        //        String toTimeZone = "GMT+0";  //显示格林威治时间
-        //        String usZoneString = "America/New_York";  //显示美国时间
+        String fromTimeZone = "GMT+8";
+
+
         SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         Date date = new Date();
         format.setTimeZone(TimeZone.getTimeZone(fromTimeZone));

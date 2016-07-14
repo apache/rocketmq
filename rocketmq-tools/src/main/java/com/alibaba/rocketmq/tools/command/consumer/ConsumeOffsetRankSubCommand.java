@@ -41,12 +41,6 @@ import org.slf4j.Logger;
 import java.util.*;
 
 
-/**
- * Consume消息福布斯排行...
- *
- * @author zhouli
- *
- */
 public class ConsumeOffsetRankSubCommand implements SubCommand {
     private final Logger log = ClientLogger.getLog();
 
@@ -57,16 +51,16 @@ public class ConsumeOffsetRankSubCommand implements SubCommand {
 
             KeyValueQuery kvq = new KeyValueQuery("metaq_metaqstats", // StageId
                     "meta_stats_1min",// BizId
-                    new KeyValueParam("type", "TOPIC_PUT_NUMS"), //kv1-定值
-                    new KeyValueParam("key", "TRADE"), //kv2-定值
-                    new KeyValueParam("date", startTime + "", endTime + ""));//kv3-范围值，格式为ms
+                    new KeyValueParam("type", "TOPIC_PUT_NUMS"),
+                    new KeyValueParam("key", "TRADE"),
+                    new KeyValueParam("date", startTime + "", endTime + ""));
 
-            JSONResult queryData = TLogQueryClient.queryData("http://110.75.84.129:9999", kvq); //查询url,query keys
+            JSONResult queryData = TLogQueryClient.queryData("http://110.75.84.129:9999", kvq);
             long tps = 0;
             if (queryData != null) {
                 JSONResult.JSONRecord[] records = queryData.getRecords();
                 for (JSONResult.JSONRecord r : records) {
-                    tps += (Long) r.getValueByKeyName("sum"); //从结果中获取sum这个key的value
+                    tps += (Long) r.getValueByKeyName("sum");
                 }
                 System.out.println(tps);
             }
@@ -121,26 +115,26 @@ public class ConsumeOffsetRankSubCommand implements SubCommand {
         }
         try {
             defaultMQAdminExt.start();
-            //查询单个节点
+
             if (commandLine.hasOption('b')) {
                 String brokerAddr = commandLine.getOptionValue('b').trim();
                 List<ConsumeDataInfo> consumeDataInfoList = consumeRankInBroker(defaultMQAdminExt, brokerAddr, timeoutMillis);
                 if (null != consumeDataInfoList)
                     mergeConsumeDataInfoList(consumeDataInfoMap, consumeDataInfoList);
-                //打印结果
+
                 printResult(defaultMQAdminExt, consumeDataInfoMap, amount);
             }
-            //全部查询，按照集群展示
+
             else {
                 ClusterInfo clusterInfo = defaultMQAdminExt.examineBrokerClusterInfo();
                 if (null == clusterInfo)
                     return;
-                //查询一个集群
+
                 if (commandLine.hasOption('c')) {
                     String clusterName = commandLine.getOptionValue('c').trim();
                     printClusterConsumeDataInfo(clusterInfo, clusterName, defaultMQAdminExt, timeoutMillis, amount, consumeDataInfoMap);
                 }
-                //查询全部集群
+
                 else {
                     for (String clusterName : clusterInfo.getClusterAddrTable().keySet()) {
                         consumeDataInfoMap.clear();
@@ -149,7 +143,7 @@ public class ConsumeOffsetRankSubCommand implements SubCommand {
                             printClusterConsumeDataInfo(clusterInfo, clusterName, defaultMQAdminExt, timeoutMillis, amount, consumeDataInfoMap);
                             System.out.println();
                         } catch (Exception e) {
-                            //异常的cluster直接跳过，继续获取下一个cluster信息
+
                             System.out.println("get cluster [" + clusterName + "]" + "consume offset data error");
                             System.out.println();
                         }
@@ -256,7 +250,7 @@ public class ConsumeOffsetRankSubCommand implements SubCommand {
                 mergeConsumeDataInfoList(consumeDataInfoMap, consumeDataInfoList);
             }
         }
-        //打印结果
+
         printResult(defaultMQAdminExt, consumeDataInfoMap, amount);
     }
 

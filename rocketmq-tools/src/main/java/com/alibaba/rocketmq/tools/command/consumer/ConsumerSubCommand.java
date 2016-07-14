@@ -35,10 +35,7 @@ import java.util.TreeMap;
 
 
 /**
- * 查询Consumer网络连接，消费进度，内部数据结构等。
- *
  * @author shijia.wxr
- *
  */
 public class ConsumerSubCommand implements SubCommand {
 
@@ -88,7 +85,7 @@ public class ConsumerSubCommand implements SubCommand {
             boolean jstack = commandLine.hasOption('s');
 
             if (!commandLine.hasOption('i')) {
-                // 打印连接
+
                 int i = 1;
                 long now = System.currentTimeMillis();
                 final TreeMap<String/* clientId */, ConsumerRunningInfo> criTable =

@@ -28,10 +28,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicLong;
 
-
-/**
- * 性能测试，多线程同步发送事务消息
- */
 public class TransactionProducer {
     private static int threadCount;
     private static int messageSize;

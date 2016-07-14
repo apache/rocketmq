@@ -18,7 +18,6 @@
 package com.alibaba.rocketmq.common.admin;
 
 /**
- * 按时间回溯消费进度
  *
  * @author manhong.yqd
  */

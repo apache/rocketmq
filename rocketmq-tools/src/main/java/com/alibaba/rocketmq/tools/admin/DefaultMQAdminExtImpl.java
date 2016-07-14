@@ -53,10 +53,7 @@ import java.util.Map.Entry;
 
 
 /**
- * 所有运维接口都在这里实现
- *
  * @author shijia.wxr
- *
  */
 public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
     private final Logger log = ClientLogger.getLog();
@@ -223,7 +220,6 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
         for (BrokerData bd : topicRouteData.getBrokerDatas()) {
             String addr = bd.selectBrokerAddr();
             if (addr != null) {
-                // 由于查询时间戳会产生IO操作，可能会耗时较长，所以超时时间设置为15s
                 ConsumeStats consumeStats =
                         this.mqClientInstance.getMQClientAPIImpl().getConsumeStats(addr, consumerGroup, topic, timeoutMillis * 3);
                 result.getOffsetTable().putAll(consumeStats.getOffsetTable());
@@ -256,7 +252,6 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
     public MessageExt viewMessage(String topic, String msgId) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
         try {
             MessageId oldMsgId = MessageDecoder.decodeMessageId(msgId);
-            //确定是老的客户端生成的msgid,用老的方式查询msg
             return this.viewMessage(msgId);
         } catch (Exception e) {
             log.warn("the msgid maybe created by new client", e);
@@ -384,10 +379,8 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
         for (BrokerData bd : topicRouteData.getBrokerDatas()) {
             String addr = bd.selectBrokerAddr();
             if (addr != null) {
-                // 根据 consumerGroup 查找对应的 mq
                 ConsumeStats consumeStats = this.mqClientInstance.getMQClientAPIImpl().getConsumeStats(addr, consumerGroup, timeoutMillis);
 
-                // 根据 topic 过滤不需要的 mq
                 boolean hasConsumed = false;
                 for (Map.Entry<MessageQueue, OffsetWrapper> entry : consumeStats.getOffsetTable().entrySet()) {
                     MessageQueue queue = entry.getKey();
@@ -460,10 +453,9 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
 
     private RollbackStats resetOffsetConsumeOffset(String brokerAddr, String consumeGroup, MessageQueue queue, OffsetWrapper offsetWrapper,
                                                    long timestamp, boolean force) throws RemotingException, InterruptedException, MQBrokerException {
-        // 根据 timestamp 查找对应的offset
         long resetOffset;
         if (timestamp == -1) {
-            // 获取最大消费位点,清除消息时使用
+
             resetOffset = this.mqClientInstance.getMQClientAPIImpl().getMaxOffset(brokerAddr, queue.getTopic(), queue.getQueueId(), timeoutMillis);
         } else {
             resetOffset =
@@ -471,7 +463,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
                             timeoutMillis);
         }
 
-        // 构建按时间回溯消费进度
+
         RollbackStats rollbackStats = new RollbackStats();
         rollbackStats.setBrokerName(queue.getBrokerName());
         rollbackStats.setQueueId(queue.getQueueId());
@@ -480,7 +472,6 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
         rollbackStats.setTimestampOffset(resetOffset);
         rollbackStats.setRollbackOffset(offsetWrapper.getConsumerOffset());
 
-        // 更新 offset
         if (force || resetOffset <= offsetWrapper.getConsumerOffset()) {
             rollbackStats.setRollbackOffset(resetOffset);
             UpdateConsumerOffsetRequestHeader requestHeader = new UpdateConsumerOffsetRequestHeader();
@@ -498,7 +489,6 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
             MQBrokerException, InterruptedException, MQClientException {
         TopicRouteData topicRouteData = this.examineTopicRouteInfo(topic);
         List<BrokerData> brokerDatas = topicRouteData.getBrokerDatas();
-        // 每个 broker 上有所有的 consumer 连接，故只需要在一个 broker 执行即可。
         if (brokerDatas != null && brokerDatas.size() > 0) {
             String addr = brokerDatas.get(0).selectBrokerAddr();
             if (addr != null) {
@@ -525,7 +515,6 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
                 e.printStackTrace();
             }
 
-            // 添加或替换需要更新的 broker
             Map<String, String> orderConfMap = new HashMap<String, String>();
             if (!UtilAll.isBlank(oldOrderConfs)) {
                 String[] oldOrderConfArr = oldOrderConfs.split(";");
@@ -703,7 +692,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
         GroupList groupList = this.queryTopicConsumeByWho(msg.getTopic());
 
         for (String group : groupList.getGroupList()) {
-            // 查询连接
+
             MessageTrack mt = new MessageTrack();
             mt.setConsumerGroup(group);
             mt.setTrackType(TrackType.UNKNOWN);
@@ -754,7 +743,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
                     if (ifConsumed) {
                         mt.setTrackType(TrackType.CONSUMED);
 
-                        // 查看订阅关系是否匹配
+
                         Iterator<Entry<String, SubscriptionData>> it = cc.getSubscriptionTable().entrySet().iterator();
                         while (it.hasNext()) {
                             Entry<String, SubscriptionData> next = it.next();
@@ -783,7 +772,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
 
     public boolean consumed(final MessageExt msg, final String group) throws RemotingException, MQClientException, InterruptedException,
             MQBrokerException {
-        // 查询消费进度
+
         ConsumeStats cstats = this.examineConsumeStats(group);
 
         ClusterInfo ci = this.examineBrokerClusterInfo();
@@ -817,7 +806,6 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
         for (BrokerData bd : topicRouteData.getBrokerDatas()) {
             String addr = bd.selectBrokerAddr();
             if (addr != null) {
-                // 由于查询时间戳会产生IO操作，可能会耗时较长，所以超时时间设置为15s
                 this.mqClientInstance.getMQClientAPIImpl().cloneGroupOffset(addr, srcGroup, destGroup, topic, isOffline, timeoutMillis * 3);
             }
         }

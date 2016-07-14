@@ -39,13 +39,8 @@ public class RebalanceLockManager {
     private final ConcurrentHashMap<String/* group */, ConcurrentHashMap<MessageQueue, LockEntry>> mqLockTable =
             new ConcurrentHashMap<String, ConcurrentHashMap<MessageQueue, LockEntry>>(1024);
 
-    /**
-     * 尝试锁队列
-     *
-     * @return 是否lock成功
-     */
     public boolean tryLock(final String group, final MessageQueue mq, final String clientId) {
-        // 没有被锁住
+
         if (!this.isLocked(group, mq, clientId)) {
             try {
                 this.lock.lockInterruptibly();
@@ -74,7 +69,7 @@ public class RebalanceLockManager {
 
                     String oldClientId = lockEntry.getClientId();
 
-                    // 锁已经过期，抢占它
+
                     if (lockEntry.isExpired()) {
                         lockEntry.setClientId(clientId);
                         lockEntry.setLastUpdateTimestamp(System.currentTimeMillis());
@@ -87,7 +82,7 @@ public class RebalanceLockManager {
                         return true;
                     }
 
-                    // 锁被别的Client占用
+
                     log.warn(
                             "tryLock, message queue locked by other client. Group: {} OtherClientId: {} NewClientId: {} {}", //
                             group, //
@@ -102,9 +97,9 @@ public class RebalanceLockManager {
                 log.error("putMessage exception", e);
             }
         }
-        // 已经锁住，尝试更新时间
+
         else {
-            // isLocked 中已经更新了时间，这里不需要再更新
+
         }
 
         return true;
@@ -127,17 +122,12 @@ public class RebalanceLockManager {
         return false;
     }
 
-    /**
-     * 批量方式锁队列，返回锁定成功的队列集合
-     *
-     * @return 是否lock成功
-     */
     public Set<MessageQueue> tryLockBatch(final String group, final Set<MessageQueue> mqs,
                                           final String clientId) {
         Set<MessageQueue> lockedMqs = new HashSet<MessageQueue>(mqs.size());
         Set<MessageQueue> notLockedMqs = new HashSet<MessageQueue>(mqs.size());
 
-        // 先通过不加锁的方式尝试查看哪些锁定，哪些没锁定
+
         for (MessageQueue mq : mqs) {
             if (this.isLocked(group, mq, clientId)) {
                 lockedMqs.add(mq);
@@ -156,7 +146,7 @@ public class RebalanceLockManager {
                         this.mqLockTable.put(group, groupValue);
                     }
 
-                    // 遍历没有锁住的队列
+
                     for (MessageQueue mq : notLockedMqs) {
                         LockEntry lockEntry = groupValue.get(mq);
                         if (null == lockEntry) {
@@ -170,7 +160,7 @@ public class RebalanceLockManager {
                                     mq);
                         }
 
-                        // 已经锁定
+
                         if (lockEntry.isLocked(clientId)) {
                             lockEntry.setLastUpdateTimestamp(System.currentTimeMillis());
                             lockedMqs.add(mq);
@@ -179,7 +169,7 @@ public class RebalanceLockManager {
 
                         String oldClientId = lockEntry.getClientId();
 
-                        // 锁已经过期，抢占它
+
                         if (lockEntry.isExpired()) {
                             lockEntry.setClientId(clientId);
                             lockEntry.setLastUpdateTimestamp(System.currentTimeMillis());
@@ -193,7 +183,7 @@ public class RebalanceLockManager {
                             continue;
                         }
 
-                        // 锁被别的Client占用
+
                         log.warn(
                                 "tryLockBatch, message queue locked by other client. Group: {} OtherClientId: {} NewClientId: {} {}", //
                                 group, //

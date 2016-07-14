@@ -66,11 +66,6 @@ public class UtilAll {
         return sb.toString();
     }
 
-
-    /**
-     * 将offset转化成字符串形式<br>
-     * 左补零对齐至20位
-     */
     public static String offset2FileName(final long offset) {
         final NumberFormat nf = NumberFormat.getInstance();
         nf.setMinimumIntegerDigits(20);
@@ -79,10 +74,6 @@ public class UtilAll {
         return nf.format(offset);
     }
 
-
-    /**
-     * 计算耗时操作，单位ms
-     */
     public static long computeEclipseTimeMilliseconds(final long beginTime) {
         return (System.currentTimeMillis() - beginTime);
     }
@@ -184,14 +175,6 @@ public class UtilAll {
     }
 
 
-    /**
-     * 返回日期时间格式，精度到秒<br>
-     * 格式如下：2013122305190000
-     *
-     * @param t
-     *
-     * @return
-     */
     public static String timeMillisToHumanString3(final long t) {
         Calendar cal = Calendar.getInstance();
         cal.setTimeInMillis(t);
@@ -205,9 +188,6 @@ public class UtilAll {
     }
 
 
-    /**
-     * 获取磁盘分区空间使用率
-     */
     public static double getDiskPartitionSpaceUsedPercent(final String path) {
         if (null == path || path.isEmpty())
             return -1;
@@ -217,7 +197,6 @@ public class UtilAll {
             if (!file.exists()) {
                 boolean result = file.mkdirs();
                 if (!result) {
-                    // TODO
                 }
             }
 
@@ -250,10 +229,6 @@ public class UtilAll {
         return (int) (crc32.getValue() & 0x7FFFFFFF);
     }
 
-
-    /**
-     * 字节数组转化成16进制形式
-     */
     public static String bytes2string(byte[] src) {
         StringBuilder sb = new StringBuilder();
         if (src == null || src.length <= 0) {
@@ -270,10 +245,6 @@ public class UtilAll {
         return sb.toString();
     }
 
-
-    /**
-     * 16进制字符串转化成字节数组
-     */
     public static byte[] string2bytes(String hexString) {
         if (hexString == null || hexString.equals("")) {
             return null;
@@ -453,21 +424,21 @@ public class UtilAll {
     }
          
     /**
-     * 判断一个IP地址是否是内网IP
+
      * @param ip
      * @return
      */
     public static boolean isInternalIP(byte[] ip) {
         if (ip.length != 4) {
-            throw new RuntimeException("非法ipv4 byte数组");
+
         }
         
-        //内网IP地址段
+
         //10.0.0.0~10.255.255.255
         //172.16.0.0~172.31.255.255
         //192.168.0.0~192.168.255.255
         if (ip[0] == (byte)10) {
-            //10的所有段都不行
+
             return true;
         }
         else if (ip[0] == (byte)172) {
@@ -484,22 +455,21 @@ public class UtilAll {
     }
         
     /**
-     * 判断一个IP地址是否是合法IP
+
      * @param ip
      * @return
      */
     private static boolean ipCheck(byte[] ip) {
         if (ip.length != 4) {
-            throw new RuntimeException("非法ipv4 byte数组");
+
         }
         
 //        if (ip[0] == (byte)30 && ip[1] == (byte)10 && ip[2] == (byte)163 && ip[3] == (byte)120) {
 //            System.out.println("right!");
 //        }
         
-        // 判断ip地址是否与正则表达式匹配
+
         if (ip[0] >= (byte)1 && ip[0] <= (byte)126) {
-            //A类IP地址, 排除全0, 全1
             if (ip[1] == (byte)1 && ip[2] == (byte)1 && ip[3] == (byte)1) {
                 return false;
             }
@@ -509,7 +479,6 @@ public class UtilAll {
             return true;
         }
         else if (ip[0] >= (byte)128 && ip[0] <= (byte)191) {
-            //B类IP地址, 排除全0或全1
             if (ip[2] == (byte)1 && ip[3] == (byte)1) {
                 return false;
             }
@@ -519,7 +488,6 @@ public class UtilAll {
             return true;
         }
         else if (ip[0] >= (byte)192 && ip[0] <= (byte)223) {
-            //C类IP地址, 排除全0或全1
             if (ip[3] == (byte)1) {
                 return false;
             }
@@ -530,12 +498,7 @@ public class UtilAll {
         }
         return false;
     }
-    
-    /**
-     * ipv4 byte to string
-     * @param ip
-     * @return
-     */
+
     public static String ipToIPv4Str(byte[] ip) {
         if (ip.length != 4) {
             return null;
@@ -552,39 +515,31 @@ public class UtilAll {
             byte[] internalIP = null;
             while (allNetInterfaces.hasMoreElements()) {
                 NetworkInterface netInterface = (NetworkInterface) allNetInterfaces.nextElement();
-            //    System.out.println(netInterface.getName());
-                Enumeration addresses = netInterface.getInetAddresses();                
+                Enumeration addresses = netInterface.getInetAddresses();
                 while (addresses.hasMoreElements()) {
                     ip = (InetAddress) addresses.nextElement();
                     if (ip != null && ip instanceof Inet4Address) {
                         byte[] ipByte = ip.getAddress();
-                //        System.out.println("get IP " + ipToIPv4Str(ipByte));
-                        //首先，必须能获得合法的IP字符串
                         if (ipByte.length == 4) {
-                            //判断是否是正确IP                            
                             if (ipCheck(ipByte)) {
-                                  //判断是否是内网IP
                                    if (!isInternalIP(ipByte)) {
-                                        return ipByte;//非内网IP立刻返回
+                                        return ipByte;
                                     }
                                    else if (internalIP == null){
-                                       internalIP = ipByte;//内网IP， 记录第一个
+                                       internalIP = ipByte;
                                    }
                            }
                         }
                     } 
                 }
             }
-            if (internalIP != null) {//未能取得IP但是有内网IP
+            if (internalIP != null) {
                 return internalIP;
             }
             else {
-                throw new RuntimeException("获取本机ip失败");
+                throw new RuntimeException("Can not get local ip");
             }
+        }catch (Exception e) {
+            throw new RuntimeException("Can not get local ip", e);
         }
-        catch (Exception e) {
-//            //TODO 考虑用cmd获取ip
-            throw new RuntimeException("获取本机ip失败", e);
-        }
-    }    
-}
+}}

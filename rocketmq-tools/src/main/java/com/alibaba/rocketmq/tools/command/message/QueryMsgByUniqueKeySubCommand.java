@@ -40,8 +40,7 @@ import java.util.List;
 
 
 /**
- * 根据消息Id查询消息
- * 
+ *
  * @author shijia.wxr
  *
  */
@@ -85,7 +84,7 @@ public class QueryMsgByUniqueKeySubCommand implements SubCommand {
             RemotingException, MQBrokerException, InterruptedException, IOException {
         MessageExt msg = admin.viewMessage(topic,msgId);
 
-        // 存储消息 body 到指定路径
+
         String bodyTmpFilePath = createBodyFile(msg);
 
         System.out.printf("%-20s %s\n",//

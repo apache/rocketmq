@@ -36,13 +36,9 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicLong;
 
-
-/**
- * 性能测试，多线程同步发送消息
- */
 public class Producer {
     public static void main(String[] args) throws MQClientException {
-        // 解析命令行
+
         Options options = ServerUtil.buildCommandlineOptions(new Options());
         CommandLine commandLine = ServerUtil.parseCmdLine("producer", args, buildCommandlineOptions(options), new PosixParser());
         if (null == commandLine) {
@@ -110,7 +106,6 @@ public class Producer {
         final DefaultMQProducer producer = new DefaultMQProducer("benchmark_producer");
         producer.setInstanceName(Long.toString(System.currentTimeMillis()));
 
-        // 设置Name Server
         if (commandLine.hasOption('n')) {
             String ns = commandLine.getOptionValue('n');
             producer.setNamesrvAddr(ns);

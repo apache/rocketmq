@@ -40,10 +40,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 
 /**
- * Filter server 启动入口
- *
  * @author shijia.wxr
- *
  */
 public class FiltersrvStartup {
     public static Logger log;
@@ -53,7 +50,7 @@ public class FiltersrvStartup {
     }
 
     public static FiltersrvController start(FiltersrvController controller) {
-        // 启动服务
+
         try {
             controller.start();
         } catch (Exception e) {
@@ -71,21 +68,21 @@ public class FiltersrvStartup {
     public static FiltersrvController createController(String[] args) {
         System.setProperty(RemotingCommand.RemotingVersionKey, Integer.toString(MQVersion.CurrentVersion));
 
-        // Socket发送缓冲区大小
+
         if (null == System.getProperty(NettySystemConfig.SystemPropertySocketSndbufSize)) {
             NettySystemConfig.SocketSndbufSize = 65535;
         }
 
-        // Socket接收缓冲区大小
+
         if (null == System.getProperty(NettySystemConfig.SystemPropertySocketRcvbufSize)) {
             NettySystemConfig.SocketRcvbufSize = 1024;
         }
 
         try {
-            // 检测包冲突
+
             //PackageConflictDetect.detectFastjson();
 
-            // 解析命令行
+
             Options options = ServerUtil.buildCommandlineOptions(new Options());
             final CommandLine commandLine =
                     ServerUtil.parseCmdLine("mqfiltersrv", args, buildCommandlineOptions(options),
@@ -95,7 +92,7 @@ public class FiltersrvStartup {
                 return null;
             }
 
-            // 初始化配置文件
+
             final FiltersrvConfig filtersrvConfig = new FiltersrvConfig();
             final NettyServerConfig nettyServerConfig = new NettyServerConfig();
 
@@ -116,7 +113,7 @@ public class FiltersrvStartup {
                 }
             }
 
-            // 强制设置为0，自动分配端口号
+
             nettyServerConfig.setListenPort(0);
 
             nettyServerConfig.setServerAsyncSemaphoreValue(filtersrvConfig.getFsServerAsyncSemaphoreValue());
@@ -124,7 +121,7 @@ public class FiltersrvStartup {
                     .getFsServerCallbackExecutorThreads());
             nettyServerConfig.setServerWorkerThreads(filtersrvConfig.getFsServerWorkerThreads());
 
-            // 打印默认配置
+
             if (commandLine.hasOption('p')) {
                 MixAll.printObjectProperties(null, filtersrvConfig);
                 MixAll.printObjectProperties(null, nettyServerConfig);
@@ -139,7 +136,6 @@ public class FiltersrvStartup {
                 System.exit(-2);
             }
 
-            // 初始化Logback
             LoggerContext lc = (LoggerContext) LoggerFactory.getILoggerFactory();
             JoranConfigurator configurator = new JoranConfigurator();
             configurator.setContext(lc);
@@ -147,7 +143,7 @@ public class FiltersrvStartup {
             configurator.doConfigure(filtersrvConfig.getRocketmqHome() + "/conf/logback_filtersrv.xml");
             log = LoggerFactory.getLogger(LoggerName.FiltersrvLoggerName);
 
-            // 初始化服务控制对象
+
             final FiltersrvController controller =
                     new FiltersrvController(filtersrvConfig, nettyServerConfig);
             boolean initResult = controller.initialize();

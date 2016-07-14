@@ -34,7 +34,7 @@ import java.util.Set;
 
 
 /**
- * 打印指定Topic的所有消息，某个时间区间，方便排查问题
+
  *
  * @author shijia.wxr
  *
@@ -153,10 +153,9 @@ public class PrintMessageSubCommand implements SubCommand {
     public static long timestampFormat(final String value) {
         long timestamp = 0;
         try {
-            // 直接输入 long 类型的 timestamp
             timestamp = Long.valueOf(value);
         } catch (NumberFormatException e) {
-            // 输入的为日期格式，精确到毫秒
+
             timestamp = UtilAll.parseDate(value, UtilAll.yyyy_MM_dd_HH_mm_ss_SSS).getTime();
         }
 

@@ -34,7 +34,6 @@ import java.util.List;
 
 
 /**
- * 根据时间来设置消费进度，设置之前要关闭这个订阅组的所有consumer，设置完再启动，方可生效。
  *
  * @author manhong.yqd
  *
@@ -82,10 +81,9 @@ public class ResetOffsetByTimeOldCommand implements SubCommand {
             String timeStampStr = commandLine.getOptionValue("s").trim();
             long timestamp = 0;
             try {
-                // 直接输入 long 类型的 timestamp
                 timestamp = Long.valueOf(timeStampStr);
             } catch (NumberFormatException e) {
-                // 输入的为日期格式，精确到毫秒
+
                 Date date = UtilAll.parseDate(timeStampStr, UtilAll.yyyy_MM_dd_HH_mm_ss_SSS);
                 if (date != null) {
                     timestamp = UtilAll.parseDate(timeStampStr, UtilAll.yyyy_MM_dd_HH_mm_ss_SSS).getTime();

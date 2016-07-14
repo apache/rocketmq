@@ -20,8 +20,6 @@ import com.alibaba.rocketmq.remoting.netty.ResponseFuture;
 
 
 /**
- * 异步调用应答回调接口
- *
  * @author shijia.wxr
  *
  */

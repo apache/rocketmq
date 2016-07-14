@@ -22,20 +22,17 @@ import java.util.List;
 
 
 /**
- * 通过Key查询消息，返回结果
- *
  * @author shijia.wxr
- *
  */
 public class QueryMessageResult {
-    // 多个连续的消息集合
+
     private final List<SelectMapedBufferResult> messageMapedList =
             new ArrayList<SelectMapedBufferResult>(100);
-    // 用来向Consumer传送消息
+
     private final List<ByteBuffer> messageBufferList = new ArrayList<ByteBuffer>(100);
     private long indexLastUpdateTimestamp;
     private long indexLastUpdatePhyoffset;
-    // ByteBuffer 总字节数
+
     private int bufferTotalSize = 0;
 
 

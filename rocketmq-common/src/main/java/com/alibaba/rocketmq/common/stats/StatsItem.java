@@ -27,17 +27,17 @@ import java.util.concurrent.atomic.AtomicLong;
 
 
 public class StatsItem {
-    // 具体的统计值
+
     private final AtomicLong value = new AtomicLong(0);
-    // 统计次数
+
     private final AtomicLong times = new AtomicLong(0);
-    // 最近一分钟内的镜像，数量6，10秒钟采样一次
+
     private final LinkedList<CallSnapshot> csListMinute = new LinkedList<CallSnapshot>();
 
-    // 最近一小时内的镜像，数量6，10分钟采样一次
+
     private final LinkedList<CallSnapshot> csListHour = new LinkedList<CallSnapshot>();
 
-    // 最近一天内的镜像，数量24，1小时采样一次
+
     private final LinkedList<CallSnapshot> csListDay = new LinkedList<CallSnapshot>();
 
     private final String statsName;
@@ -93,7 +93,7 @@ public class StatsItem {
     }
 
     public void init() {
-        // 每隔10s执行一次
+
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
             @Override
             public void run() {
@@ -104,7 +104,7 @@ public class StatsItem {
             }
         }, 0, 10, TimeUnit.SECONDS);
 
-        // 每隔10分钟执行一次
+
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
             @Override
             public void run() {
@@ -115,7 +115,7 @@ public class StatsItem {
             }
         }, 0, 10, TimeUnit.MINUTES);
 
-        // 每隔1小时执行一次
+
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
             @Override
             public void run() {
@@ -126,7 +126,7 @@ public class StatsItem {
             }
         }, 0, 1, TimeUnit.HOURS);
 
-        // 分钟整点执行
+
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
                                                               @Override
                                                               public void run() {
@@ -138,7 +138,7 @@ public class StatsItem {
                                                           }, Math.abs(UtilAll.computNextMinutesTimeMillis() - System.currentTimeMillis()), //
                 1000 * 60, TimeUnit.MILLISECONDS);
 
-        // 小时整点执行
+
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
                                                               @Override
                                                               public void run() {
@@ -150,7 +150,7 @@ public class StatsItem {
                                                           }, Math.abs(UtilAll.computNextHourTimeMillis() - System.currentTimeMillis()), //
                 1000 * 60 * 60, TimeUnit.MILLISECONDS);
 
-        // 每天0点执行
+
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
                                                               @Override
                                                               public void run() {

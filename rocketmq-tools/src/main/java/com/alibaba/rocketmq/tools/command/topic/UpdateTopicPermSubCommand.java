@@ -32,9 +32,6 @@ import java.util.List;
 import java.util.Set;
 
 
-/**
- * 修改Topic的perm配置命令
- */
 public class UpdateTopicPermSubCommand implements SubCommand {
 
     @Override
@@ -78,13 +75,13 @@ public class UpdateTopicPermSubCommand implements SubCommand {
         try {
             defaultMQAdminExt.start();
             TopicConfig topicConfig = new TopicConfig();
-            //先查询一下，topic是否存在
+
             String topic = commandLine.getOptionValue('t').trim();
             TopicRouteData topicRouteData = defaultMQAdminExt.examineTopicRouteInfo(topic);
             assert topicRouteData != null;
             List<QueueData> queueDatas = topicRouteData.getQueueDatas();
             assert queueDatas != null && queueDatas.size() > 0;
-            //取第一个，每个元素除了brokerName，其他值应该都是一样的
+
             QueueData queueData = queueDatas.get(0);
             topicConfig.setTopicName(topic);
             topicConfig.setWriteQueueNums(queueData.getWriteQueueNums());

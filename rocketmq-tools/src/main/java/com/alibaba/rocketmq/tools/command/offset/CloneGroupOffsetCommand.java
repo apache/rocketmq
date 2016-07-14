@@ -35,8 +35,6 @@ import java.util.Set;
 
 
 /**
- * 复制某一个 group 的 offset。
- *
  * @author manhong.yqd
  *
  */

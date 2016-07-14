@@ -29,11 +29,11 @@ public enum MessageModel {
     /**
      * broadcast
      */
-    BROADCASTING("广播消费"),
+    BROADCASTING("BROADCASTING"),
     /**
      * clustering
      */
-    CLUSTERING("集群消费");
+    CLUSTERING("CLUSTERING");
 
     private String modeCN;
 

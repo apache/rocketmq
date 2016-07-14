@@ -55,9 +55,6 @@ public class BrokerStatsManager {
     // Message Size limit for one api-calling count.
     public static final double SIZE_PER_COUNT = 64 * 1024;
 
-    /**
-     * 读磁盘落后统计
-     */
     public static final String GROUP_GET_FALL = "GROUP_GET_FALL";
     private static final Logger log = LoggerFactory.getLogger(LoggerName.RocketmqStatsLoggerName);
     private static final Logger commercialLog = LoggerFactory.getLogger(LoggerName.CommercialLoggerName);
@@ -84,7 +81,7 @@ public class BrokerStatsManager {
         this.statsTable.put(BROKER_GET_FROM_DISK_NUMS, new StatsItemSet(BROKER_GET_FROM_DISK_NUMS, this.scheduledExecutorService, log));
         this.statsTable.put(BROKER_GET_FROM_DISK_SIZE, new StatsItemSet(BROKER_GET_FROM_DISK_SIZE, this.scheduledExecutorService, log));
 
-        //ONS商业化
+
         this.statsTable.put(COMMERCIAL_SEND_TIMES, new StatsItemSet(COMMERCIAL_SEND_TIMES, this.commercialExecutor, commercialLog));
         this.statsTable.put(COMMERCIAL_RCV_TIMES, new StatsItemSet(COMMERCIAL_RCV_TIMES, this.commercialExecutor, commercialLog));
         this.statsTable.put(COMMERCIAL_SEND_SIZE, new StatsItemSet(COMMERCIAL_SEND_SIZE, this.commercialExecutor, commercialLog));
@@ -192,7 +189,7 @@ public class BrokerStatsManager {
         this.momentStatsItemSet.getAndCreateStatsItem(statsKey).getValue().set(fallBehind);
     }
 
-    //ONS商业化
+
     public void incCommercialValue(final String key, final String owner, final String group,
                                    final String topic, final String type, final int incValue) {
         final String statsKey = buildCommercialStatsKey(owner, topic, group, type);

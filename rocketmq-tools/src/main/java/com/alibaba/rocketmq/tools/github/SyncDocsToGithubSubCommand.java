@@ -68,9 +68,6 @@ public class SyncDocsToGithubSubCommand implements SubCommand {
             GHOrganization alibaba = github.getOrganization("Alibaba");
             GHRepository rep = alibaba.getRepository("RocketMQ");
 
-            //
-            // 同步Issue
-            //
             {
                 File dir = new File(System.getenv(MixAll.ROCKETMQ_HOME_ENV) + "/" + "issues");
                 File[] files = dir.listFiles();
@@ -87,7 +84,6 @@ public class SyncDocsToGithubSubCommand implements SubCommand {
                 }
             }
 
-            // 同步Wiki
             {
                 File dir = new File(System.getenv(MixAll.ROCKETMQ_HOME_ENV) + "/" + "wiki");
                 File[] files = dir.listFiles();

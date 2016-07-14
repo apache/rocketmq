@@ -34,9 +34,6 @@ import java.util.List;
 import java.util.Set;
 
 
-/**
- * 模拟负载均衡来分配队列
- */
 public class AllocateMQSubCommand implements SubCommand {
     @Override
     public String commandName() {

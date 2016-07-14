@@ -41,7 +41,6 @@ public class ForwardRequestProcessor implements NettyRequestProcessor {
 
     @Override
     public RemotingCommand processRequest(ChannelHandlerContext ctx, RemotingCommand request) {
-        // TODO Auto-generated method stub
         return null;
     }
 }

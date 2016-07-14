@@ -314,7 +314,7 @@ public abstract class RebalanceImpl {
 
         for (MessageQueue mq : this.processQueueTable.keySet()) {
             if (!subTable.containsKey(mq.getTopic())) {
-                // todo-->jodie:不再订阅该topic时,offset需要清除
+
                 ProcessQueue pq = this.processQueueTable.remove(mq);
                 if (pq != null) {
                     pq.setDropped(true);

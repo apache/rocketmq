@@ -29,7 +29,6 @@ import org.apache.commons.cli.Options;
 
 
 /**
- * 根据消息Offset查询消息
  *
  * @author shijia.wxr
  *

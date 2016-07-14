@@ -121,7 +121,7 @@ public interface MQAdmin {
     /**
      * Query message according tto message id
      *
-     * @param msgId
+     * @param offsetMsgId
      *         message id
      *
      * @return message
@@ -158,9 +158,9 @@ public interface MQAdmin {
                              final long end) throws MQClientException, InterruptedException;
     
     /**
-     * 唯一键查询
+
      * @param topic
-     * @param uniqKey
+     * @param msgId
      * @return
      * @throws RemotingException
      * @throws MQBrokerException

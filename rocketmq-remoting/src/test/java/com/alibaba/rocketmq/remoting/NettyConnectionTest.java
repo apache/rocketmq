@@ -27,7 +27,7 @@ import org.junit.Test;
 
 
 /**
- * 连接超时测试
+
  *
  * @author shijia.wxr
  *

@@ -331,7 +331,6 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
         if (msgs != null && !msgs.isEmpty()) {
             for (MessageExt msg : msgs) {
                 if (msg.getReconsumeTimes() >= this.defaultMQPushConsumer.getMaxReconsumeTimes()) {
-                    // 因为是顺序消息,一旦死信队列发送失败则会继续重试.死信队列将不再保证顺序,需要人工进行恢复.
                     MessageAccessor.setReconsumeTime(msg, String.valueOf(msg.getReconsumeTimes()));
                     if (!sendMessageBack(msg)) {
                         suspend = true;

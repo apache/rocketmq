@@ -17,10 +17,7 @@
 package com.alibaba.rocketmq.store;
 
 /**
- * 写入消息返回结果
- *
  * @author shijia.wxr
- *
  */
 public class PutMessageResult {
     private PutMessageStatus putMessageStatus;

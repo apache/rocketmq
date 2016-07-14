@@ -29,9 +29,7 @@ import com.alibaba.rocketmq.client.impl.consumer.DefaultMQPushConsumerImpl;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.UtilAll;
 import com.alibaba.rocketmq.common.consumer.ConsumeFromWhere;
-import com.alibaba.rocketmq.common.message.MessageDecoder;
 import com.alibaba.rocketmq.common.message.MessageExt;
-import com.alibaba.rocketmq.common.message.MessageId;
 import com.alibaba.rocketmq.common.message.MessageQueue;
 import com.alibaba.rocketmq.common.protocol.heartbeat.MessageModel;
 import com.alibaba.rocketmq.remoting.RPCHook;
@@ -131,18 +129,8 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
      */
     private boolean unitMode = false;
 
-    /**
-     * 消费失败重试次数
-     */
     private int maxReconsumeTimes = 16;
-    /**
-     * 顺序消息消费失败后,暂停一断时间后,继续重试
-     */
     private long suspendCurrentQueueTimeMillis = 1000;
-    /**
-     * 设置每条消息消费的最大超时时间,超过这个时间,这条消息将会被视为消费失败,等下次重新投递再次消费.
-     * 每个业务需要设置一个合理的值. 单位(分钟)
-     */
     private long consumeTimeout = 2;
 
 
@@ -218,8 +206,6 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
     @Override
     public MessageExt viewMessage(String topic, String msgId) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
         try {
-            MessageId oldMsgId = MessageDecoder.decodeMessageId(msgId);
-            //确定是老的客户端生成的msgid,用老的方式查询msg
             return this.viewMessage(msgId);
         } catch (Exception e) {
         }
@@ -525,12 +511,6 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
         return consumeTimeout;
     }
 
-    /**
-     * 设置每条消息消费的最大超时时间,超过这个时间,这条消息将会被视为消费失败,等下次重新投递再次消费.
-     * 每个业务需要设置一个合理的值.
-     *
-     * @param consumeTimeout (分钟)
-     */
     public void setConsumeTimeout(final long consumeTimeout) {
         this.consumeTimeout = consumeTimeout;
     }

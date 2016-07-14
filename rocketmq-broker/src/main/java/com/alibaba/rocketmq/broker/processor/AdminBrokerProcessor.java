@@ -78,24 +78,21 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
     @Override
     public RemotingCommand processRequest(ChannelHandlerContext ctx, RemotingCommand request) throws RemotingCommandException {
         switch (request.getCode()) {
-            // 更新创建Topic
             case RequestCode.UPDATE_AND_CREATE_TOPIC:
                 return this.updateAndCreateTopic(ctx, request);
-            // 删除Topic
             case RequestCode.DELETE_TOPIC_IN_BROKER:
                 return this.deleteTopic(ctx, request);
-            // 获取Topic配置
+
             case RequestCode.GET_ALL_TOPIC_CONFIG:
                 return this.getAllTopicConfig(ctx, request);
 
-            // 更新Broker配置 TODO 可能存在并发问题
+
             case RequestCode.UPDATE_BROKER_CONFIG:
                 return this.updateBrokerConfig(ctx, request);
-            // 获取Broker配置
+
             case RequestCode.GET_BROKER_CONFIG:
                 return this.getBrokerConfig(ctx, request);
 
-            // 根据时间查询Offset
             case RequestCode.SEARCH_OFFSET_BY_TIMESTAMP:
                 return this.searchOffsetByTimestamp(ctx, request);
             case RequestCode.GET_MAX_OFFSET:
@@ -105,17 +102,17 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             case RequestCode.GET_EARLIEST_MSG_STORETIME:
                 return this.getEarliestMsgStoretime(ctx, request);
 
-            // 获取Broker运行时信息
+
             case RequestCode.GET_BROKER_RUNTIME_INFO:
                 return this.getBrokerRuntimeInfo(ctx, request);
 
-            // 锁队列与解锁队列
+
             case RequestCode.LOCK_BATCH_MQ:
                 return this.lockBatchMQ(ctx, request);
             case RequestCode.UNLOCK_BATCH_MQ:
                 return this.unlockBatchMQ(ctx, request);
 
-            // 订阅组配置
+
             case RequestCode.UPDATE_AND_CREATE_SUBSCRIPTIONGROUP:
                 return this.updateAndCreateSubscriptionGroup(ctx, request);
             case RequestCode.GET_ALL_SUBSCRIPTIONGROUP_CONFIG:
@@ -123,58 +120,54 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             case RequestCode.DELETE_SUBSCRIPTIONGROUP:
                 return this.deleteSubscriptionGroup(ctx, request);
 
-            // 统计信息，获取Topic统计信息
+
             case RequestCode.GET_TOPIC_STATS_INFO:
                 return this.getTopicStatsInfo(ctx, request);
 
-            // Consumer连接管理
+
             case RequestCode.GET_CONSUMER_CONNECTION_LIST:
                 return this.getConsumerConnectionList(ctx, request);
-            // Producer连接管理
+
             case RequestCode.GET_PRODUCER_CONNECTION_LIST:
                 return this.getProducerConnectionList(ctx, request);
 
-            // 查询消费进度，订阅组下的所有Topic
             case RequestCode.GET_CONSUME_STATS:
                 return this.getConsumeStats(ctx, request);
             case RequestCode.GET_ALL_CONSUMER_OFFSET:
                 return this.getAllConsumerOffset(ctx, request);
 
-            // 定时进度
+
             case RequestCode.GET_ALL_DELAY_OFFSET:
                 return this.getAllDelayOffset(ctx, request);
 
-            // 调用客户端重置 offset
             case RequestCode.INVOKE_BROKER_TO_RESET_OFFSET:
                 return this.resetOffset(ctx, request);
 
-            // 调用客户端订阅消息处理
+
             case RequestCode.INVOKE_BROKER_TO_GET_CONSUMER_STATUS:
                 return this.getConsumerStatus(ctx, request);
 
-            // 查询Topic被哪些消费者消费
+
             case RequestCode.QUERY_TOPIC_CONSUME_BY_WHO:
                 return this.queryTopicConsumeByWho(ctx, request);
 
             case RequestCode.REGISTER_FILTER_SERVER:
                 return this.registerFilterServer(ctx, request);
-            // 根据 topic 和 group 获取消息的时间跨度
+
             case RequestCode.QUERY_CONSUME_TIME_SPAN:
                 return this.queryConsumeTimeSpan(ctx, request);
             case RequestCode.GET_SYSTEM_TOPIC_LIST_FROM_BROKER:
                 return this.getSystemTopicListFromBroker(ctx, request);
 
-            // 删除失效队列
+
             case RequestCode.CLEAN_EXPIRED_CONSUMEQUEUE:
                 return this.cleanExpiredConsumeQueue();
-            // 删除失效TOPIC
             case RequestCode.CLEAN_UNUSED_TOPIC:
                 return this.cleanUnusedTopic();
 
             case RequestCode.GET_CONSUMER_RUNNING_INFO:
                 return this.getConsumerRunningInfo(ctx, request);
 
-            // 查找被修正 offset (转发组件）
             case RequestCode.QUERY_CORRECTION_OFFSET:
                 return this.queryCorrectionOffset(ctx, request);
 
@@ -183,10 +176,10 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             case RequestCode.CLONE_GROUP_OFFSET:
                 return this.cloneGroupOffset(ctx, request);
 
-            // 查看Broker统计信息
+
             case RequestCode.VIEW_BROKER_STATS_DATA:
                 return ViewBrokerStatsData(ctx, request);
-            // 查看broker的消费堆积统计
+
             case RequestCode.GET_BROKER_CONSUME_STATS:
                 return fetchAllConsumeStatsInBroker(ctx, request);
             default:
@@ -202,7 +195,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 (CreateTopicRequestHeader) request.decodeCommandCustomHeader(CreateTopicRequestHeader.class);
         log.info("updateAndCreateTopic called by {}", RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
 
-        // Topic名字是否与保留字段冲突
+
         if (requestHeader.getTopic().equals(this.brokerController.getBrokerConfig().getBrokerClusterName())) {
             String errorMsg = "the topic[" + requestHeader.getTopic() + "] is conflict with system reserved words.";
             log.warn(errorMsg);
@@ -642,12 +635,12 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             }
 
             /**
-             * Consumer不在线的时候，也允许查询消费进度
+
              */
             {
                 SubscriptionData findSubscriptionData =
                         this.brokerController.getConsumerManager().findSubscriptionData(requestHeader.getConsumerGroup(), topic);
-                // 如果Consumer在线，而且这个topic没有被订阅，那么就跳过
+
                 if (null == findSubscriptionData //
                         && this.brokerController.getConsumerManager().findSubscriptionDataCount(requestHeader.getConsumerGroup()) > 0) {
                     log.warn("consumeStats, the consumer group[{}], topic[{}] not exist", requestHeader.getConsumerGroup(), topic);
@@ -677,7 +670,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 offsetWrapper.setBrokerOffset(brokerOffset);
                 offsetWrapper.setConsumerOffset(consumerOffset);
 
-                // 查询消费者最后一条消息对应的时间戳
+
                 long timeOffset = consumerOffset - 1;
                 if (timeOffset >= 0) {
                     long lastTimestamp = this.brokerController.getMessageStore().getMessageStoreTimeStamp(topic, i, timeOffset);
@@ -789,9 +782,9 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         QueryTopicConsumeByWhoRequestHeader requestHeader =
                 (QueryTopicConsumeByWhoRequestHeader) request.decodeCommandCustomHeader(QueryTopicConsumeByWhoRequestHeader.class);
 
-        // 从订阅关系查询topic被谁消费，只查询在线
+
         HashSet<String> groups = this.brokerController.getConsumerManager().queryTopicConsumeByWho(requestHeader.getTopic());
-        // 从Offset持久化查询topic被谁消费，离线和在线都会查询
+
         Set<String> groupInOffset = this.brokerController.getConsumerOffsetManager().whichGroupByTopic(requestHeader.getTopic());
         if (groupInOffset != null && !groupInOffset.isEmpty()) {
             groups.addAll(groupInOffset);
@@ -862,7 +855,6 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             }
             timeSpan.setConsumeTimeStamp(consumeTime);
 
-            // 在消息堆积的情况下,延迟时间 = 当前时间 - 下一条待消费的消息产生时间; 消息不堆积的情况下,延迟时间 = 0;
             long maxBrokerOffset = this.brokerController.getMessageStore().getMaxOffsetInQuque(requestHeader.getTopic(), i);
             if (consumerOffset < maxBrokerOffset) {
                 long nextTime = this.brokerController.getMessageStore().getMessageStoreTimeStamp(topic, i, consumerOffset);
@@ -913,7 +905,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
     }
 
     /**
-     * 调用Consumer，获取Consumer内存数据结构，为监控以及定位问题
+
      */
     private RemotingCommand getConsumerRunningInfo(ChannelHandlerContext ctx, RemotingCommand request) throws RemotingCommandException {
         final GetConsumerRunningInfoRequestHeader requestHeader =
@@ -994,10 +986,10 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             }
 
             /**
-             * Consumer不在线的时候，也允许查询消费进度
+
              */
             if (!requestHeader.isOffline()) {
-                // 如果Consumer在线，而且这个topic没有被订阅，那么就跳过
+
                 SubscriptionData findSubscriptionData =
                         this.brokerController.getConsumerManager().findSubscriptionData(requestHeader.getSrcGroup(), topic);
                 if (this.brokerController.getConsumerManager().findSubscriptionDataCount(requestHeader.getSrcGroup()) > 0
@@ -1030,7 +1022,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         }
 
         BrokerStatsData brokerStatsData = new BrokerStatsData();
-        // 分钟
+
         {
             BrokerStatsItem it = new BrokerStatsItem();
             StatsSnapshot ss = statsItem.getStatsDataInMinute();
@@ -1040,7 +1032,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             brokerStatsData.setStatsMinute(it);
         }
 
-        // 小时
+
         {
             BrokerStatsItem it = new BrokerStatsItem();
             StatsSnapshot ss = statsItem.getStatsDataInHour();
@@ -1050,7 +1042,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             brokerStatsData.setStatsHour(it);
         }
 
-        // 天
+
         {
             BrokerStatsItem it = new BrokerStatsItem();
             StatsSnapshot ss = statsItem.getStatsDataInDay();
@@ -1072,18 +1064,16 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         GetConsumeStatsInBrokerHeader requestHeader =
                 (GetConsumeStatsInBrokerHeader) request.decodeCommandCustomHeader(GetConsumeStatsInBrokerHeader.class);
         boolean isOrder = requestHeader.isOrder();
-        // 获取Broker有多少个订阅的group
         ConcurrentHashMap<String, SubscriptionGroupConfig> subscriptionGroups =
                 brokerController.getSubscriptionGroupManager().getSubscriptionGroupTable();
-        // 存放最后的结果
+
         List<Map<String/* subscriptionGroupName */, List<ConsumeStats>>> brokerConsumeStatsList =
                 new ArrayList<Map<String, List<ConsumeStats>>>();
-        // 统计总的堆积量
+
         long totalDiff = 0L;
-        // 开始查询每个group订阅的每个topic的消费情况
+
         for (String group : subscriptionGroups.keySet()) {
             Map<String, List<ConsumeStats>> subscripTopicConsumeMap = new HashMap<String, List<ConsumeStats>>();
-            // 每个group订阅了哪些topic
             Set<String> topics = this.brokerController.getConsumerOffsetManager().whichTopicByConsumer(group);
             List<ConsumeStats> consumeStatsList = new ArrayList<ConsumeStats>();
             for (String topic : topics) {
@@ -1093,16 +1083,16 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                     log.warn("consumeStats, topic config not exist, {}", topic);
                     continue;
                 }
-                // 只查顺序消息的堆积
+
                 if (isOrder && !topicConfig.isOrder()) {
                     continue;
                 }
                 /**
-                 * Consumer不在线的时候，也允许查询消费进度
+
                  */
                 {
                     SubscriptionData findSubscriptionData = this.brokerController.getConsumerManager().findSubscriptionData(group, topic);
-                    // 如果Consumer在线，而且这个topic没有被订阅，那么就跳过
+
                     if (null == findSubscriptionData //
                             && this.brokerController.getConsumerManager().findSubscriptionDataCount(group) > 0) {
                         log.warn("consumeStats, the consumer group[{}], topic[{}] not exist", group, topic);
@@ -1129,7 +1119,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                     offsetWrapper.setBrokerOffset(brokerOffset);
                     offsetWrapper.setConsumerOffset(consumerOffset);
 
-                    // 查询消费者最后一条消息对应的时间戳
+
                     long timeOffset = consumerOffset - 1;
                     if (timeOffset >= 0) {
                         long lastTimestamp = this.brokerController.getMessageStore().getMessageStoreTimeStamp(topic, i, timeOffset);

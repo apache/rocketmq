@@ -30,19 +30,16 @@ public class FiltersrvConfig {
     private String namesrvAddr = System.getProperty(MixAll.NAMESRV_ADDR_PROPERTY,
             System.getenv(MixAll.NAMESRV_ADDR_ENV));
 
-    // 连接到哪个Broker
     private String connectWhichBroker = "127.0.0.1:10911";
-    // Filter Server对外服务的IP
     private String filterServerIP = RemotingUtil.getLocalAddress();
-    // 消息超过指定大小，开始压缩
+
     private int compressMsgBodyOverHowmuch = 1024 * 8;
-    // 压缩Level
     private int zipCompressLevel = 5;
 
-    // 是否允许客户端上传Java类
+
     private boolean clientUploadFilterClassEnable = true;
 
-    // 过滤类的仓库地址
+
     private String filterClassRepertoryUrl = "http://fsrep.tbsite.net/filterclass";
 
     private int fsServerAsyncSemaphoreValue = 2048;

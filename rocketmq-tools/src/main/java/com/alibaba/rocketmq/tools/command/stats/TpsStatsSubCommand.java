@@ -146,7 +146,6 @@ public class TpsStatsSubCommand implements SubCommand {
             if (commandLine.hasOption('c')) {
                 clusterName = commandLine.getOptionValue('c').trim();
             }
-            //查询写入tps
             if (commandLine.hasOption('p')) {
                 List<TpsDataInfo> tpsDataInfoList = new ArrayList<TpsDataInfo>();
                 if (clusterName.length() > 0) {
@@ -166,7 +165,6 @@ public class TpsStatsSubCommand implements SubCommand {
                 }
                 return;
             }
-            //查询消费tps
             else if (commandLine.hasOption('s')) {
                 List<TpsDataInfo> tpsDataInfoList = new ArrayList<TpsDataInfo>();
                 if (clusterName.length() > 0) {
@@ -235,7 +233,7 @@ public class TpsStatsSubCommand implements SubCommand {
         ClusterInfo clusterInfoSerializeWrapper = defaultMQAdminExt.examineBrokerClusterInfo();
         Set<String> brokerNameSet = clusterInfoSerializeWrapper.getClusterAddrTable().get(clusterName);
         String brokerAddr = "";
-        //找个broker取数据
+
         for (String brokerName : brokerNameSet) {
             BrokerData brokerData = clusterInfoSerializeWrapper.getBrokerAddrTable().get(brokerName);
             if (null != brokerData)
@@ -259,11 +257,11 @@ public class TpsStatsSubCommand implements SubCommand {
         long startTime = endTime - 60000;
         KeyValueQuery kvq = new KeyValueQuery("metaq_metaqstats", // StageId
                 "meta_stats_1min",// BizId
-                new KeyValueParam("type", type), //type-发送tps
+                new KeyValueParam("type", type),
                 new KeyValueParam("key", key), //topic or topic@group
-                new KeyValueParam("date", startTime + "", endTime + ""));//kv3-范围值，格式为ms
+                new KeyValueParam("date", startTime + "", endTime + ""));
 
-        JSONResult queryData = TLogQueryClient.queryData(TLOG_DOMAIN, kvq); //查询url,query keys
+        JSONResult queryData = TLogQueryClient.queryData(TLOG_DOMAIN, kvq);
         if (queryData != null) {
             JSONResult.JSONRecord[] records = queryData.getRecords();
             int tps = 0;

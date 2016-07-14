@@ -36,15 +36,15 @@ import static org.junit.Assert.assertTrue;
  */
 public class DefaultMessageStoreTest {
     private static final String StoreMessage = "Once, there was a chance for me!";
-    // 队列个数
+
     private static int QUEUE_TOTAL = 100;
-    // 发往哪个队列
+
     private static AtomicInteger QueueId = new AtomicInteger(0);
-    // 发送主机地址
+
     private static SocketAddress BornHost;
-    // 存储主机地址
+
     private static SocketAddress StoreHost;
-    // 消息体
+
     private static byte[] MessageBody;
 
     @BeforeClass
@@ -64,22 +64,21 @@ public class DefaultMessageStoreTest {
         long totalMsgs = 10000;
         QUEUE_TOTAL = 1;
 
-        // 构造消息体
+
         MessageBody = StoreMessage.getBytes();
 
         MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
-        // 每个物理映射文件 4K
         messageStoreConfig.setMapedFileSizeCommitLog(1024 * 8);
         messageStoreConfig.setMapedFileSizeConsumeQueue(1024 * 4);
         messageStoreConfig.setMaxHashSlotNum(100);
         messageStoreConfig.setMaxIndexNum(100 * 10);
 
         MessageStore master = new DefaultMessageStore(messageStoreConfig, null, null, null);
-        // 第一步，load已有数据
+
         boolean load = master.load();
         assertTrue(load);
 
-        // 第二步，启动服务
+
         master.start();
         for (long i = 0; i < totalMsgs; i++) {
             PutMessageResult result = master.putMessage(buildMessage());
@@ -87,7 +86,7 @@ public class DefaultMessageStoreTest {
             System.out.println(i + "\t" + result.getAppendMessageResult().getMsgId());
         }
 
-        // 开始读文件
+
         for (long i = 0; i < totalMsgs; i++) {
             try {
                 GetMessageResult result = master.getMessage("GROUP_A", "TOPIC_A", 0, i, 1024 * 1024, null);
@@ -103,10 +102,10 @@ public class DefaultMessageStoreTest {
 
         }
 
-        // 关闭存储服务
+
         master.shutdown();
 
-        // 删除文件
+
         master.destroy();
         System.out.println("================================================================");
     }
@@ -133,22 +132,21 @@ public class DefaultMessageStoreTest {
         long totalMsgs = 10000;
         QUEUE_TOTAL = 1;
 
-        // 构造消息体
+
         MessageBody = StoreMessage.getBytes();
 
         MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
-        // 每个物理映射文件 4K
         messageStoreConfig.setMapedFileSizeCommitLog(1024 * 8);
 
-        // 开启GroupCommit功能
+
         messageStoreConfig.setFlushDiskType(FlushDiskType.SYNC_FLUSH);
 
         MessageStore master = new DefaultMessageStore(messageStoreConfig, null, null, null);
-        // 第一步，load已有数据
+
         boolean load = master.load();
         assertTrue(load);
 
-        // 第二步，启动服务
+
         master.start();
         for (long i = 0; i < totalMsgs; i++) {
             PutMessageResult result = master.putMessage(buildMessage());
@@ -156,7 +154,7 @@ public class DefaultMessageStoreTest {
             System.out.println(i + "\t" + result.getAppendMessageResult().getMsgId());
         }
 
-        // 开始读文件
+
         for (long i = 0; i < totalMsgs; i++) {
             try {
                 GetMessageResult result = master.getMessage("GROUP_A", "TOPIC_A", 0, i, 1024 * 1024, null);
@@ -172,10 +170,10 @@ public class DefaultMessageStoreTest {
 
         }
 
-        // 关闭存储服务
+
         master.shutdown();
 
-        // 删除文件
+
         master.destroy();
         System.out.println("================================================================");
     }

@@ -21,12 +21,5 @@ import com.alibaba.rocketmq.common.message.MessageExt;
 
 
 public interface MessageFilter {
-    /**
-     * 过滤消息
-     *
-     * @param msg
-     *
-     * @return 是否可以被Consumer消费
-     */
-    public boolean match(final MessageExt msg, final FilterContext context);
+   boolean match(final MessageExt msg, final FilterContext context);
 }

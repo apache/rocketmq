@@ -20,7 +20,7 @@ package com.alibaba.rocketmq.common;
  * @author shijia.wxr
  */
 public class MQVersion {
-    // TODO 每次发布版本都要修改此处版本号
+
     public static final int CurrentVersion = Version.V3_5_4_SNAPSHOT.ordinal();
 
 

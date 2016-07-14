@@ -30,10 +30,7 @@ import java.util.Set;
 
 
 /**
- * 修改、创建订阅组配置命令
- *
  * @author shijia.wxr
- *
  */
 public class UpdateSubGroupSubCommand implements SubCommand {
 

@@ -17,7 +17,6 @@
 package com.alibaba.rocketmq.common.admin;
 
 /**
- * Offset包装类，含Broker、Consumer
  *
  * @author shijia.wxr
  *
@@ -25,7 +24,7 @@ package com.alibaba.rocketmq.common.admin;
 public class OffsetWrapper {
     private long brokerOffset;
     private long consumerOffset;
-    // 消费的最后一条消息对应的时间戳
+
     private long lastTimestamp;
 
 

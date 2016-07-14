@@ -28,10 +28,7 @@ import org.apache.commons.cli.Options;
 
 
 /**
- * 查询Producer的网络连接
- *
  * @author shijia.wxr
- *
  */
 public class ProducerConnectionSubCommand implements SubCommand {
 
@@ -53,7 +50,7 @@ public class ProducerConnectionSubCommand implements SubCommand {
         opt.setRequired(true);
         options.addOption(opt);
 
-        // topic必须设置
+
         opt = new Option("t", "topic", true, "topic name");
         opt.setRequired(true);
         options.addOption(opt);

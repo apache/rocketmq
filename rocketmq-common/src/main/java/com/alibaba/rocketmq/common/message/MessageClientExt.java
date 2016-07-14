@@ -18,10 +18,6 @@ package com.alibaba.rocketmq.common.message;
 
 public class MessageClientExt extends MessageExt {
         
-    /**
-     * 用offset msg id 取代原来的msg id
-     * @param offsetMsgId
-     */
     public void setOffsetMsgId(String offsetMsgId) {
         super.setMsgId(offsetMsgId);
     }
@@ -31,17 +27,11 @@ public class MessageClientExt extends MessageExt {
         return super.getMsgId();
     }
     
-    /**
-     * 采用新的msgid
-     */
     public void setMsgId(String msgId) {
         //DO NOTHING
         //MessageClientIDSetter.setUniqID(this);
     }
     
-    /**
-     * 采用新的msgid
-     */
     @Override
     public String getMsgId() {
         String uniqID = MessageClientIDSetter.getUniqID(this);

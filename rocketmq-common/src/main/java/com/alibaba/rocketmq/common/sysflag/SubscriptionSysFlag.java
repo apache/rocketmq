@@ -17,13 +17,13 @@
 package com.alibaba.rocketmq.common.sysflag;
 
 /**
- * subscription 配置标识
+
  *
  * @author manhong.yqd
  *
  */
 public class SubscriptionSysFlag {
-    // 单元化逻辑 topic 标识
+
     private final static int FLAG_UNIT = 0x1 << 0;
 
 

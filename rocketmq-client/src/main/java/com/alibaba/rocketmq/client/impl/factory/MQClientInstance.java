@@ -1012,10 +1012,8 @@ public class MQClientInstance {
                 return;
             }
 
-            // 将consumer suspend
             consumer.suspend();
 
-            // 将ProcessQueue设置为drop
             ConcurrentHashMap<MessageQueue, ProcessQueue> processQueueTable = consumer.getRebalanceImpl().getProcessQueueTable();
             Iterator<MessageQueue> itr = processQueueTable.keySet().iterator();
             while (itr.hasNext()) {
@@ -1027,7 +1025,7 @@ public class MQClientInstance {
                 }
             }
 
-            // 等待正在运行的消息处理完成,不会有脏的offset提交
+
             try {
                 TimeUnit.SECONDS.sleep(30);
             } catch (InterruptedException e) {

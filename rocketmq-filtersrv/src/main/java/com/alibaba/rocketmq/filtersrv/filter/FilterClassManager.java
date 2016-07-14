@@ -36,10 +36,10 @@ import java.util.concurrent.TimeUnit;
 
 public class FilterClassManager {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.FiltersrvLoggerName);
-    // 只为编译加锁使用
+
     private final Object compileLock = new Object();
     private final FiltersrvController filtersrvController;
-    // 定时线程
+
     private final ScheduledExecutorService scheduledExecutorService = Executors
             .newSingleThreadScheduledExecutor(new ThreadFactoryImpl("FSGetClassScheduledThread"));
     private ConcurrentHashMap<String/* topic@consumerGroup */, FilterClassInfo> filterClassTable =
@@ -104,7 +104,7 @@ public class FilterClassManager {
                                        final String className, final int classCRC, final byte[] filterSourceBinary) {
         final String key = buildKey(consumerGroup, topic);
 
-        // 先检查是否存在，是否CRC相同
+
         boolean registerNew = false;
         FilterClassInfo filterClassInfoPrev = this.filterClassTable.get(key);
         if (null == filterClassInfoPrev) {
@@ -117,7 +117,6 @@ public class FilterClassManager {
             }
         }
 
-        // 注册新的Class
         if (registerNew) {
             synchronized (this.compileLock) {
                 filterClassInfoPrev = this.filterClassTable.get(key);

@@ -125,10 +125,6 @@ public class ConsumerGroupInfo {
         return false;
     }
 
-
-    /**
-     * 返回值表示是否发生变更
-     */
     public boolean updateChannel(final ClientChannelInfo infoNew, ConsumeType consumeType,
                                  MessageModel messageModel, ConsumeFromWhere consumeFromWhere) {
         boolean updated = false;
@@ -164,12 +160,9 @@ public class ConsumerGroupInfo {
     }
 
 
-    /**
-     * 返回值表示是否发生变更
-     */
     public boolean updateSubscription(final Set<SubscriptionData> subList) {
         boolean updated = false;
-        // 增加新的订阅关系
+
         for (SubscriptionData sub : subList) {
             SubscriptionData old = this.subscriptionTable.get(sub.getTopic());
             if (old == null) {
@@ -192,7 +185,7 @@ public class ConsumerGroupInfo {
             }
         }
 
-        // 删除老的订阅关系
+
         Iterator<Entry<String, SubscriptionData>> it = this.subscriptionTable.entrySet().iterator();
         while (it.hasNext()) {
             Entry<String, SubscriptionData> next = it.next();

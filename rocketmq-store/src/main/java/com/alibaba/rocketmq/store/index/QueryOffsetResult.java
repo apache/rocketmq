@@ -20,10 +20,7 @@ import java.util.List;
 
 
 /**
- * 根据索引查询消息，返回结果
- *
  * @author shijia.wxr
- *
  */
 public class QueryOffsetResult {
     private final List<Long> phyOffsets;

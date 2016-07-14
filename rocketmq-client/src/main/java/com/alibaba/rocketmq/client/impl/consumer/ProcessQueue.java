@@ -73,7 +73,7 @@ public class ProcessQueue {
     }
 
     /**
-     * 检查缓冲队列中是否有过期的消息,每次最多检查32条消息.
+
      *
      * @param pushConsumer
      */
@@ -91,7 +91,7 @@ public class ProcessQueue {
                     if (!msgTreeMap.isEmpty() && System.currentTimeMillis() - Long.valueOf(MessageAccessor.getConsumeStartTimeStamp(msgTreeMap.firstEntry().getValue())) > pushConsumer.getConsumeTimeout() * 60 * 1000) {
                         msg = msgTreeMap.firstEntry().getValue();
                     } else {
-                        // 不再有过期的消息,退出检查
+
                         break;
                     }
                 } finally {
@@ -102,7 +102,7 @@ public class ProcessQueue {
             }
 
             try {
-                // 过期的消息进入重试队列
+
                 pushConsumer.sendMessageBack(msg, 3);
                 log.info("send expire msg back. topic={}, msgId={}, storeHost={}, queueId={}, queueOffset={}", msg.getTopic(), msg.getMsgId(), msg.getStoreHost(), msg.getQueueId(), msg.getQueueOffset());
                 try {

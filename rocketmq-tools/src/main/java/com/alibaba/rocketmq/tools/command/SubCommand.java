@@ -22,10 +22,7 @@ import org.apache.commons.cli.Options;
 
 
 /**
- * 各个子命令的接口
- *
  * @author shijia.wxr
- *
  */
 public interface SubCommand {
     public String commandName();

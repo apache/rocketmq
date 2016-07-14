@@ -20,19 +20,16 @@ import java.nio.ByteBuffer;
 
 
 /**
- * 查询Pagecache返回结果
- *
  * @author shijia.wxr
- *
  */
 public class SelectMapedBufferResult {
-    // 从队列中哪个绝对Offset开始
+
     private final long startOffset;
-    // position从0开始
+
     private final ByteBuffer byteBuffer;
-    // 有效数据大小
+
     private int size;
-    // 用来释放内存
+
     private MapedFile mapedFile;
 
 
@@ -73,9 +70,6 @@ public class SelectMapedBufferResult {
     }
 
 
-    /**
-     * 此方法只能被调用一次，重复调用无效
-     */
     public synchronized void release() {
         if (this.mapedFile != null) {
             this.mapedFile.release();

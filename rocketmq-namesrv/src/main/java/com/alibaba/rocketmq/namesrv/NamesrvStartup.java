@@ -41,10 +41,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 
 /**
- * Name server 启动入口
- *
  * @author shijia.wxr
- *
  */
 public class NamesrvStartup {
     public static Properties properties = null;
@@ -57,21 +54,19 @@ public class NamesrvStartup {
     public static NamesrvController main0(String[] args) {
         System.setProperty(RemotingCommand.RemotingVersionKey, Integer.toString(MQVersion.CurrentVersion));
 
-        // Socket发送缓冲区大小
+
         if (null == System.getProperty(NettySystemConfig.SystemPropertySocketSndbufSize)) {
             NettySystemConfig.SocketSndbufSize = 4096;
         }
 
-        // Socket接收缓冲区大小
+
         if (null == System.getProperty(NettySystemConfig.SystemPropertySocketRcvbufSize)) {
             NettySystemConfig.SocketRcvbufSize = 4096;
         }
 
         try {
-            // 检测包冲突
             //PackageConflictDetect.detectFastjson();
 
-            // 解析命令行
             Options options = ServerUtil.buildCommandlineOptions(new Options());
             commandLine =
                     ServerUtil.parseCmdLine("mqnamesrv", args, buildCommandlineOptions(options),
@@ -81,7 +76,7 @@ public class NamesrvStartup {
                 return null;
             }
 
-            // 初始化配置文件
+
             final NamesrvConfig namesrvConfig = new NamesrvConfig();
             final NettyServerConfig nettyServerConfig = new NettyServerConfig();
             nettyServerConfig.setListenPort(9876);
@@ -98,7 +93,7 @@ public class NamesrvStartup {
                 }
             }
 
-            // 打印默认配置
+
             if (commandLine.hasOption('p')) {
                 MixAll.printObjectProperties(null, namesrvConfig);
                 MixAll.printObjectProperties(null, nettyServerConfig);
@@ -113,7 +108,6 @@ public class NamesrvStartup {
                 System.exit(-2);
             }
 
-            // 初始化Logback
             LoggerContext lc = (LoggerContext) LoggerFactory.getILoggerFactory();
             JoranConfigurator configurator = new JoranConfigurator();
             configurator.setContext(lc);
@@ -121,11 +115,11 @@ public class NamesrvStartup {
             configurator.doConfigure(namesrvConfig.getRocketmqHome() + "/conf/logback_namesrv.xml");
             final Logger log = LoggerFactory.getLogger(LoggerName.NamesrvLoggerName);
 
-            // 打印服务器配置参数
+
             MixAll.printObjectProperties(log, namesrvConfig);
             MixAll.printObjectProperties(log, nettyServerConfig);
 
-            // 初始化服务控制对象
+
             final NamesrvController controller = new NamesrvController(namesrvConfig, nettyServerConfig);
             boolean initResult = controller.initialize();
             if (!initResult) {
@@ -153,7 +147,7 @@ public class NamesrvStartup {
                 }
             }, "ShutdownHook"));
 
-            // 启动服务
+
             controller.start();
 
             String tip = "The Name Server boot success. serializeType=" + RemotingCommand.getSerializeTypeConfigInThisServer();

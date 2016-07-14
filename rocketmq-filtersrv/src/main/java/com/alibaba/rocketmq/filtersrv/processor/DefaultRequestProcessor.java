@@ -52,10 +52,7 @@ import java.util.List;
 
 
 /**
- * Filter Server网络请求处理
- *
  * @author shijia.wxr
- *
  */
 public class DefaultRequestProcessor implements NettyRequestProcessor {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.FiltersrvLoggerName);
@@ -97,7 +94,7 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
                     requestHeader.getTopic(),//
                     requestHeader.getClassName(),//
                     requestHeader.getClassCRC(), //
-                    request.getBody());// Body传输的是Java Source，必须UTF-8编码
+                    request.getBody());
             if (!ok) {
                 throw new Exception("registerFilterClass error");
             }
@@ -121,7 +118,7 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
         final FilterContext filterContext = new FilterContext();
         filterContext.setConsumerGroup(requestHeader.getConsumerGroup());
 
-        // 由于异步返回，所以必须要设置
+
         response.setOpaque(request.getOpaque());
 
         DefaultMQPullConsumer pullConsumer = this.filtersrvController.getDefaultMQPullConsumer();
@@ -142,7 +139,7 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
 
         responseHeader.setSuggestWhichBrokerId(MixAll.MASTER_ID);
 
-        // 构造从Broker拉消息的参数
+
         MessageQueue mq = new MessageQueue();
         mq.setTopic(requestHeader.getTopic());
         mq.setQueueId(requestHeader.getQueueId());
@@ -172,17 +169,17 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
                                 }
                             }
 
-                            // 有消息返回
+
                             if (!msgListOK.isEmpty()) {
                                 returnResponse(requestHeader.getConsumerGroup(), requestHeader.getTopic(), ctx, response, msgListOK);
                                 return;
                             }
-                            // 全部都被过滤掉了
+
                             else {
                                 response.setCode(ResponseCode.PULL_RETRY_IMMEDIATELY);
                             }
                         }
-                        // 只要抛异常，就终止过滤，并返回客户端异常
+
                         catch (Throwable e) {
                             final String error =
                                     String.format("do Message Filter Exception, ConsumerGroup: %s Topic: %s ",
@@ -249,7 +246,7 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
 
             response.setBody(body.array());
 
-            // 统计
+
             this.filtersrvController.getFilterServerStatsManager().incGroupGetNums(group, topic, msgList.size());
 
             this.filtersrvController.getFilterServerStatsManager().incGroupGetSize(group, topic, bodyTotalSize);

@@ -49,9 +49,6 @@ public class RandomAsyncCommit {
     }
 
 
-    /**
-     * 可以被提交的Offset
-     */
     public long commitableOffset(final MessageQueue mq) {
         CachedQueue cachedQueue = this.mqCachedTable.get(mq);
         if (null != cachedQueue) {

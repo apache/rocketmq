@@ -68,9 +68,9 @@ public class MixAll {
     public static final String DEFAULT_CHARSET = "UTF-8";
     public static final long MASTER_ID = 0L;
     public static final long CURRENT_JVM_PID = getPID();
-    // 为每个Consumer Group建立一个默认的Topic，前缀 + GroupName，用来保存处理失败需要重试的消息
+
     public static final String RETRY_GROUP_TOPIC_PREFIX = "%RETRY%";
-    // 为每个Consumer Group建立一个默认的Topic，前缀 + GroupName，用来保存重试多次都失败，接下来不再重试的消息
+
     public static final String DLQ_GROUP_TOPIC_PREFIX = "%DLQ%";
     public static final String SYSTEM_TOPIC_PREFIX = "rmq_sys_";
     public static final String UNIQUE_MSG_QUERY_FLAG = "_UNIQUE_KEY_QUERY";
@@ -131,25 +131,25 @@ public class MixAll {
 
 
     /**
-     * 安全的写文件
+
      */
     public static final void string2File(final String str, final String fileName) throws IOException {
-        // 先写入临时文件
+
         String tmpFile = fileName + ".tmp";
         string2FileNotSafe(str, tmpFile);
 
-        // 备份之前的文件
+
         String bakFile = fileName + ".bak";
         String prevContent = file2String(fileName);
         if (prevContent != null) {
             string2FileNotSafe(prevContent, bakFile);
         }
 
-        // 删除正式文件
+
         File file = new File(fileName);
         file.delete();
 
-        // 临时文件改为正式文件
+
         file = new File(tmpFile);
         file.renameTo(new File(fileName));
     }
@@ -301,7 +301,7 @@ public class MixAll {
 
 
     /**
-     * 字符串转化成Properties 字符串和Properties配置文件格式一样
+
      */
     public static Properties string2Properties(final String str) {
         Properties properties = new Properties();
@@ -321,7 +321,7 @@ public class MixAll {
 
 
     /**
-     * 将对象各成员属性值转化为Properties
+
      */
     public static Properties object2Properties(final Object object) {
         Properties properties = new Properties();
@@ -353,7 +353,7 @@ public class MixAll {
 
 
     /**
-     * 将Properties中的值写入Object
+
      */
     public static void properties2Object(final Properties p, final Object object) {
         Method[] methods = object.getClass().getMethods();

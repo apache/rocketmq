@@ -32,10 +32,7 @@ import java.util.*;
 
 
 /**
- * 获取Broker运行时统计信息
- *
  * @author shijia.wxr
- *
  */
 public class BrokerConsumeStatsSubCommad implements SubCommand {
 
@@ -112,7 +109,7 @@ public class BrokerConsumeStatsSubCommad implements SubCommand {
                         for (MessageQueue mq : mqList) {
                             OffsetWrapper offsetWrapper = consumeStats.getOffsetTable().get(mq);
                             long diff = offsetWrapper.getBrokerOffset() - offsetWrapper.getConsumerOffset();
-                            //如果设置了输出diff最小阀值，判断一下
+
                             if (diff < diffLevel) {
                                 continue;
                             }

@@ -17,10 +17,7 @@
 package com.alibaba.rocketmq.store;
 
 /**
- * 分发消息位置信息到逻辑队列和索引服务
- *
  * @author shijia.wxr
- *
  */
 public class DispatchRequest {
     private final String topic;
@@ -34,9 +31,6 @@ public class DispatchRequest {
     private final boolean success;
     private final String uniqKey;
 
-    /**
-     * 事务相关部分
-     */
     private final int sysFlag;
     private final long preparedTransactionOffset;
 
@@ -50,10 +44,7 @@ public class DispatchRequest {
             final long storeTimestamp,// 6
             final long consumeQueueOffset,// 7
             final String keys,// 8
-            final String uniqKey, //唯一key索引
-            /**
-             * 事务相关部分
-             */
+            final String uniqKey,
             final int sysFlag,// 9
             final long preparedTransactionOffset// 10
     ) {
@@ -67,18 +58,11 @@ public class DispatchRequest {
         this.keys = keys;
         this.uniqKey = uniqKey;
 
-        /**
-         * 事务相关部分
-         */
         this.sysFlag = sysFlag;
         this.preparedTransactionOffset = preparedTransactionOffset;
         this.success = true;
     }
 
-    /**
-     * 失败
-     * @param size
-     */
     public DispatchRequest(int size) {
         // 1
         this.topic = "";
@@ -98,20 +82,11 @@ public class DispatchRequest {
         this.keys = "";
         //9
         this.uniqKey = null;
-
-        /**
-         * 事务相关部分
-         */
         this.sysFlag = 0;
         this.preparedTransactionOffset = 0;
         this.success = false;
     }
 
-    /**
-     * Blank Message Code时调用
-     * @param size
-     * @param success
-     */
     public DispatchRequest(int size, boolean success) {
         // 1
         this.topic = "";
@@ -131,10 +106,6 @@ public class DispatchRequest {
         this.keys = "";
         // 9
         this.uniqKey = null;
-
-        /**
-         * 事务相关部分
-         */
         this.sysFlag = 0;
         this.preparedTransactionOffset = 0;
         this.success = success;

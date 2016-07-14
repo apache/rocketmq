@@ -23,21 +23,18 @@ import org.slf4j.LoggerFactory;
 
 
 /**
- * Broker上的一些统计数据
- *
  * @author shijia.wxr
- *
  */
 public class BrokerStats {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.BrokerLoggerName);
     private final DefaultMessageStore defaultMessageStore;
-    // 昨天凌晨00:00:00记录的put消息总数
+
     private volatile long msgPutTotalYesterdayMorning;
-    // 今天凌晨00:00:00记录的put消息总数
+
     private volatile long msgPutTotalTodayMorning;
-    // 昨天凌晨00:00:00记录的get消息总数
+
     private volatile long msgGetTotalYesterdayMorning;
-    // 今天凌晨00:00:00记录的get消息总数
+
     private volatile long msgGetTotalTodayMorning;
 
 
@@ -47,7 +44,7 @@ public class BrokerStats {
 
 
     /**
-     * 每天00:00:00调用
+
      */
     public void record() {
         this.msgPutTotalYesterdayMorning = this.msgPutTotalTodayMorning;

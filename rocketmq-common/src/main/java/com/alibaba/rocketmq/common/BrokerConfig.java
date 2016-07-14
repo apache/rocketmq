@@ -42,17 +42,14 @@ public class BrokerConfig {
     private long brokerId = MixAll.MASTER_ID;
     private int brokerPermission = PermName.PERM_READ | PermName.PERM_WRITE;
     private int defaultTopicQueueNums = 8;
-    // 自动创建Topic功能是否开启（线上建议关闭）
     @ImportantField
     private boolean autoCreateTopicEnable = true;
-    // 自动创建以集群名字命名的Topic功能是否开启
+
     private boolean clusterTopicEnable = true;
-    // 自动创建以服务器名字命名的Topic功能是否开启
+
     private boolean brokerTopicEnable = true;
-    // 自动创建订阅组功能是否开启（线上建议关闭）
     @ImportantField
     private boolean autoCreateSubscriptionGroup = true;
-    // messageStore的plugin
     private String messageStorePlugIn = "";
 
     private int sendMessageThreadPoolNums = 16 + Runtime.getRuntime().availableProcessors() * 4;
@@ -63,40 +60,33 @@ public class BrokerConfig {
     private int flushConsumerOffsetInterval = 1000 * 5;
 
     private int flushConsumerOffsetHistoryInterval = 1000 * 60;
-    // 是否拒绝接收事务消息
+
     @ImportantField
     private boolean rejectTransactionMessage = false;
-    // 是否从地址服务器寻找Name Server地址，正式发布后，默认值为false
     @ImportantField
     private boolean fetchNamesrvAddrByAddressServer = false;
-    // 发送消息对应的线程池阻塞队列size
     private int sendThreadPoolQueueCapacity = 100000;
-    // 订阅消息对应的线程池阻塞队列size
     private int pullThreadPoolQueueCapacity = 100000;
-    // 过滤服务器数量
+
     private int filterServerNums = 0;
-    // Consumer订阅消息时，Broker是否开启长轮询
+
     private boolean longPollingEnable = true;
-    // 如果是短轮询，服务器挂起时间
+
     private long shortPollingTimeMills = 1000;
-    // notify consumerId changed 开关
+
     private boolean notifyConsumerIdsChangedEnable = true;
-    // 高速模式
+
     private boolean highSpeedMode = false;
-    // 商业化日志采集开关
+
     private boolean commercialEnable = true;
-    // 商业化定时消息系数(默认:1)
     private int commercialTimerCount = 1;
-    //商业化事务消息系数(默认:1)
     private int commercialTransCount = 1;
-    //商业化大消息系数(默认:1)
     private int commercialBigCount = 1;
-    // 通过Java堆来传输消息
+
     private boolean transferMsgByHeap = true;
-    // 定时消息最大延迟时间(默认:40天)
     private int maxDelayTime = 40;
 
-    // broker所在的Region名称
+
     private String regionId = "DefaultRegion";
     private int registerBrokerTimeoutMills = 6000;
 

@@ -55,7 +55,7 @@ public class Operator extends Op {
         return compareable;
     }
 
-    // -1 小于; 0 等于; 1大于
+
     public int compare(Operator operator) {
         if (this.priority > operator.priority)
             return 1;

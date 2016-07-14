@@ -24,8 +24,6 @@ import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
 
 
 /**
- * 为减少网络传输数量准备
- *
  * @author shijia.wxr
  */
 public class SendMessageRequestHeaderV2 implements CommandCustomHeader {

@@ -37,7 +37,6 @@ public class GetMaxOffsetRequestHeader implements CommandCustomHeader {
 
     @Override
     public void checkFields() throws RemotingCommandException {
-        // TODO Auto-generated method stub
     }
 
 

@@ -28,7 +28,6 @@ import org.apache.commons.cli.Options;
 
 
 /**
- * 创建、修改、删除顺序消息 Topic 的分区配置命令
  *
  * @author manhong.yqd
  *
@@ -75,7 +74,7 @@ public class UpdateOrderConfCommand implements SubCommand {
             String type = commandLine.getOptionValue('m').trim();
 
             if ("get".equals(type)) {
-                // 获取顺序消息
+
                 defaultMQAdminExt.start();
                 String orderConf =
                         defaultMQAdminExt.getKVConfig(NamesrvUtil.NAMESPACE_ORDER_TOPIC_CONFIG, topic);
@@ -83,7 +82,7 @@ public class UpdateOrderConfCommand implements SubCommand {
 
                 return;
             } else if ("put".equals(type)) {
-                // 更新顺序消息
+
                 defaultMQAdminExt.start();
                 String orderConf = "";
                 if (commandLine.hasOption('v')) {
@@ -98,7 +97,7 @@ public class UpdateOrderConfCommand implements SubCommand {
                         orderConf.toString());
                 return;
             } else if ("delete".equals(type)) {
-                // 删除顺序消息
+
                 defaultMQAdminExt.start();
                 defaultMQAdminExt.deleteKvConfig(NamesrvUtil.NAMESPACE_ORDER_TOPIC_CONFIG, topic);
                 System.out.printf("delete orderConf success. topic=[%s]", topic);

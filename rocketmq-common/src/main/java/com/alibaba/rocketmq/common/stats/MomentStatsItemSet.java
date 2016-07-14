@@ -44,7 +44,7 @@ public class MomentStatsItemSet {
     }
 
     public void init() {
-        // 分钟整点执行
+
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
                                                               @Override
                                                               public void run() {
@@ -76,9 +76,9 @@ public class MomentStatsItemSet {
             statsItem =
                     new MomentStatsItem(this.statsName, statsKey, this.scheduledExecutorService, this.log);
             MomentStatsItem prev = this.statsItemTable.put(statsKey, statsItem);
-            // 说明是第一次插入
+
             if (null == prev) {
-                // 内部不需要定时，外部统一定时
+
                 // statsItem.init();
             }
         }

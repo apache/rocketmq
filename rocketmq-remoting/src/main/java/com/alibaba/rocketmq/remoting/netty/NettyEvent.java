@@ -20,10 +20,7 @@ import io.netty.channel.Channel;
 
 
 /**
- * Netty产生的各种事件
- *
  * @author shijia.wxr
- *
  */
 public class NettyEvent {
     private final NettyEventType type;

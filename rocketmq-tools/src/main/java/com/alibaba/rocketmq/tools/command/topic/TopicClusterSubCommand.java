@@ -27,7 +27,6 @@ import java.util.Set;
 
 
 /**
- * 查看Topic所在的集群信息
  *
  * @author zhouli
  *

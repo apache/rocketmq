@@ -50,10 +50,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 
 /**
- * Remoting客户端实现
- *
  * @author shijia.wxr
- *
  */
 public class NettyRemotingClient extends NettyRemotingAbstract implements RemotingClient {
     private static final Logger log = LoggerFactory.getLogger(RemotingHelper.RemotingLogName);
@@ -65,14 +62,14 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
     private final EventLoopGroup eventLoopGroupWorker;
     private final Lock lockChannelTables = new ReentrantLock();
     private final ConcurrentHashMap<String /* addr */, ChannelWrapper> channelTables = new ConcurrentHashMap<String, ChannelWrapper>();
-    // 定时器
+
     private final Timer timer = new Timer("ClientHouseKeepingService", true);
-    // Name server相关
+
     private final AtomicReference<List<String>> namesrvAddrList = new AtomicReference<List<String>>();
     private final AtomicReference<String> namesrvAddrChoosed = new AtomicReference<String>();
     private final AtomicInteger namesrvIndex = new AtomicInteger(initValueIndex());
     private final Lock lockNamesrvChannel = new ReentrantLock();
-    // 处理Callback应答器
+
     private final ExecutorService publicExecutor;
     private final ChannelEventListener channelEventListener;
     private DefaultEventExecutorGroup defaultEventExecutorGroup;
@@ -426,27 +423,27 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
             return cw.getChannel();
         }
 
-        // 进入临界区后，不能有阻塞操作，网络连接采用异步方式
+
         if (this.lockChannelTables.tryLock(LockTimeoutMillis, TimeUnit.MILLISECONDS)) {
             try {
                 boolean createNewConnection = false;
                 cw = this.channelTables.get(addr);
                 if (cw != null) {
-                    // channel正常
+
                     if (cw.isOK()) {
                         return cw.getChannel();
                     }
-                    // 正在连接，退出锁等待
+
                     else if (!cw.getChannelFuture().isDone()) {
                         createNewConnection = false;
                     }
-                    // 说明连接不成功
+
                     else {
                         this.channelTables.remove(addr);
                         createNewConnection = true;
                     }
                 }
-                // ChannelWrapper不存在
+
                 else {
                     createNewConnection = true;
                 }

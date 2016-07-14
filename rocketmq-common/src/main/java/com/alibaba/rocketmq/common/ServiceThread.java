@@ -26,13 +26,12 @@ import org.slf4j.LoggerFactory;
  */
 public abstract class ServiceThread implements Runnable {
     private static final Logger stlog = LoggerFactory.getLogger(LoggerName.CommonLoggerName);
-    // 线程回收时间，默认90S
     private static final long JoinTime = 90 * 1000;
-    // 执行线程
+
     protected final Thread thread;
-    // 是否已经被Notify过
+
     protected volatile boolean hasNotified = false;
-    // 线程是否已经停止
+
     protected volatile boolean stoped = false;
 
 

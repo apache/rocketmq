@@ -102,14 +102,10 @@ public class ConsumerManager {
         }
     }
 
-
-    /**
-     * 返回是否有变化
-     */
     public boolean registerConsumer(final String group, final ClientChannelInfo clientChannelInfo,
                                     ConsumeType consumeType, MessageModel messageModel, ConsumeFromWhere consumeFromWhere,
                                     final Set<SubscriptionData> subList) {
-        // todo:jodie 并发问题
+
         ConsumerGroupInfo consumerGroupInfo = this.consumerTable.get(group);
         if (null == consumerGroupInfo) {
             ConsumerGroupInfo tmp = new ConsumerGroupInfo(group, consumeType, messageModel, consumeFromWhere);

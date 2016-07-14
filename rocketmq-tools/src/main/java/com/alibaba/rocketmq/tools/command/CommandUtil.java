@@ -29,10 +29,7 @@ import java.util.*;
 
 
 /**
- * 各个子命令的接口
- *
  * @author shijia.wxr
- *
  */
 public class CommandUtil {
     public static Set<String> fetchMasterAddrByClusterName(final MQAdminExt adminExt, final String clusterName)

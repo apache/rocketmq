@@ -44,7 +44,7 @@ public class HttpTinyClient {
             setHeaders(conn, headers, encoding);
 
             conn.connect();
-            int respCode = conn.getResponseCode(); // 这里内部发送请求
+            int respCode = conn.getResponseCode();
             String resp = null;
 
             if (HttpURLConnection.HTTP_OK == respCode) {
@@ -86,23 +86,23 @@ public class HttpTinyClient {
         conn.addRequestProperty("Client-Version", MQVersion.getVersionDesc(MQVersion.CurrentVersion));
         conn.addRequestProperty("Content-Type", "application/x-www-form-urlencoded;charset=" + encoding);
 
-        // 其它
+
         String ts = String.valueOf(System.currentTimeMillis());
         conn.addRequestProperty("Metaq-Client-RequestTS", ts);
     }
 
     /**
-     * 发送POST请求。
+
      *
      * @param url
      * @param headers
-     *         请求Header，可以为null
+
      * @param paramValues
-     *         参数，可以为null
+
      * @param encoding
-     *         URL编码使用的字符集
+
      * @param readTimeoutMs
-     *         响应超时
+
      *
      * @return
      *
@@ -124,7 +124,7 @@ public class HttpTinyClient {
 
             conn.getOutputStream().write(encodedContent.getBytes());
 
-            int respCode = conn.getResponseCode(); // 这里内部发送请求
+            int respCode = conn.getResponseCode();
             String resp = null;
 
             if (HttpURLConnection.HTTP_OK == respCode) {

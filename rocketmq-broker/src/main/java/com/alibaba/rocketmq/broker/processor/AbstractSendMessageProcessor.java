@@ -87,13 +87,13 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
         mqtraceContext.setBrokerAddr(this.brokerController.getBrokerAddr());
         mqtraceContext.setBrokerRegionId(this.brokerController.getBrokerConfig().getRegionId());
         mqtraceContext.setBornTimeStamp(requestHeader.getBornTimestamp());
-        //取出消息体的properties，并放入region信息字段
+
         Map<String, String> properties = MessageDecoder.string2messageProperties(requestHeader.getProperties());
         String uniqueKey = properties.get(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX);
         properties.put(MessageConst.PROPERTY_MSG_REGION, this.brokerController.getBrokerConfig().getRegionId());
         requestHeader.setProperties(MessageDecoder.messageProperties2String(properties));
 
-        //对老的客户端兼容，没有unique msgid则置空
+
         if (uniqueKey == null) {
             uniqueKey = "";
         }

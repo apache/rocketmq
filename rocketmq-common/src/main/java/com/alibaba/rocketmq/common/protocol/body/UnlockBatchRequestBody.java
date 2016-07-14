@@ -26,7 +26,6 @@ import java.util.Set;
 
 /**
  * @author shijia.wxr
- *
  */
 public class UnlockBatchRequestBody extends RemotingSerializable {
     private String consumerGroup;

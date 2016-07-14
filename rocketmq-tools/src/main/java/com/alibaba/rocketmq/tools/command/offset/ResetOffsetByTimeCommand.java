@@ -18,7 +18,6 @@
 package com.alibaba.rocketmq.tools.command.offset;
 
 import com.alibaba.rocketmq.client.exception.MQClientException;
-import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.UtilAll;
 import com.alibaba.rocketmq.common.message.MessageQueue;
 import com.alibaba.rocketmq.common.protocol.ResponseCode;
@@ -36,10 +35,7 @@ import java.util.Map;
 
 
 /**
- * 根据时间设置消费进度，客户端无需重启。
- *
  * @author manhong.yqd
- *
  */
 public class ResetOffsetByTimeCommand implements SubCommand {
     public static void main(String[] args) {
@@ -96,12 +92,11 @@ public class ResetOffsetByTimeCommand implements SubCommand {
             long timestamp = timeStampStr.equals("now") ? System.currentTimeMillis() : 0;
 
             try {
-                // 直接输入 long 类型的 timestamp
                 if (timestamp == 0) {
                     timestamp = Long.valueOf(timeStampStr);
                 }
             } catch (NumberFormatException e) {
-                // 输入的为日期格式，精确到毫秒
+
                 timestamp = UtilAll.parseDate(timeStampStr, UtilAll.yyyy_MM_dd_HH_mm_ss_SSS).getTime();
             }
 

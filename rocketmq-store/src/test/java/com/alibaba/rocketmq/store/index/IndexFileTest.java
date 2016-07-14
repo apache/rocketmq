@@ -39,17 +39,17 @@ public class IndexFileTest {
         try {
             IndexFile indexFile = new IndexFile("100", hashSlotNum, indexNum, 0, 0);
 
-            // 写入索引
+
             for (long i = 0; i < (indexNum - 1); i++) {
                 boolean putResult = indexFile.putKey(Long.toString(i), i, System.currentTimeMillis());
                 assertTrue(putResult);
             }
 
-            // 索引文件已经满了， 再写入会失败
+
             boolean putResult = indexFile.putKey(Long.toString(400), 400, System.currentTimeMillis());
             assertFalse(putResult);
 
-            // 删除文件
+
             indexFile.destroy(0);
         } catch (Exception e) {
             e.printStackTrace();
@@ -63,17 +63,17 @@ public class IndexFileTest {
         try {
             IndexFile indexFile = new IndexFile("200", hashSlotNum, indexNum, 0, 0);
 
-            // 写入索引
+
             for (long i = 0; i < (indexNum - 1); i++) {
                 boolean putResult = indexFile.putKey(Long.toString(i), i, System.currentTimeMillis());
                 assertTrue(putResult);
             }
 
-            // 索引文件已经满了， 再写入会失败
+
             boolean putResult = indexFile.putKey(Long.toString(400), 400, System.currentTimeMillis());
             assertFalse(putResult);
 
-            // 读索引
+
             final List<Long> phyOffsets = new ArrayList<Long>();
             indexFile.selectPhyOffset(phyOffsets, "60", 10, 0, Long.MAX_VALUE, true);
             for (Long offset : phyOffsets) {
@@ -82,7 +82,7 @@ public class IndexFileTest {
 
             assertFalse(phyOffsets.isEmpty());
 
-            // 删除文件
+
             indexFile.destroy(0);
         } catch (Exception e) {
             e.printStackTrace();

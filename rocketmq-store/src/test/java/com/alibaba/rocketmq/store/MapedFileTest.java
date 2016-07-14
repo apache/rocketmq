@@ -62,29 +62,24 @@ public class MapedFileTest {
             System.out.println("Read: " + readString);
             assertTrue(readString.equals(StoreMessage));
 
-            // 禁止Buffer读写
+
             mapedFile.shutdown(1000);
 
-            // mapedFile对象不可用
+
             assertTrue(!mapedFile.isAvailable());
 
-            // 释放读到的Buffer
             selectMapedBufferResult.release();
 
-            // 内存真正释放掉
+
             assertTrue(mapedFile.isCleanupOver());
 
-            // 文件删除成功
+
             assertTrue(mapedFile.destroy(1000));
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
-
-    /**
-     * 当前测试用例由于对mmap操作错误，会导致JVM CRASHED
-     */
     @Ignore
     public void test_jvm_crashed() {
         try {

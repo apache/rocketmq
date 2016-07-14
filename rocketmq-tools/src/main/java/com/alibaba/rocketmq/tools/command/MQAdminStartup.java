@@ -50,10 +50,7 @@ import java.util.List;
 
 
 /**
- * mqadmin启动程序
- *
  * @author shijia.wxr
- *
  */
 public class MQAdminStartup {
     protected static List<SubCommand> subCommandList = new ArrayList<SubCommand>();
@@ -65,7 +62,7 @@ public class MQAdminStartup {
     public static void main0(String[] args, RPCHook rpcHook) {
         System.setProperty(RemotingCommand.RemotingVersionKey, Integer.toString(MQVersion.CurrentVersion));
 
-        // 检测包冲突
+
         //PackageConflictDetect.detectFastjson();
 
         initCommand();
@@ -94,10 +91,9 @@ public class MQAdminStartup {
                 default:
                     SubCommand cmd = findSubCommand(args[0]);
                     if (cmd != null) {
-                        // 将main中的args转化为子命令的args（去除第一个参数）
                         String[] subargs = parseSubArgs(args);
 
-                        // 解析命令行
+
                         Options options = ServerUtil.buildCommandlineOptions(new Options());
                         final CommandLine commandLine =
                                 ServerUtil.parseCmdLine("mqadmin " + cmd.commandName(), subargs, cmd.buildCommandlineOptions(options),
@@ -183,7 +179,6 @@ public class MQAdminStartup {
     private static void initLogback() throws JoranException {
         String rocketmqHome = System.getProperty(MixAll.ROCKETMQ_HOME_PROPERTY, System.getenv(MixAll.ROCKETMQ_HOME_ENV));
 
-        // 初始化Logback
         LoggerContext lc = (LoggerContext) LoggerFactory.getILoggerFactory();
         JoranConfigurator configurator = new JoranConfigurator();
         configurator.setContext(lc);

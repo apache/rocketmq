@@ -31,52 +31,46 @@ import java.util.concurrent.locks.ReentrantLock;
 
 
 /**
- * 存储层内部统计服务
- *
  * @author shijia.wxr
- *
  */
 public class StoreStatsService extends ServiceThread {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.StoreLoggerName);
-    // 采样频率，1秒钟采样一次
+
     private static final int FrequencyOfSampling = 1000;
-    // 采样最大记录数，超过则将之前的删除掉
+
     private static final int MaxRecordsOfSampling = 60 * 10;
-    // 打印TPS数据间隔时间，单位秒，1分钟
+
     private static int PrintTPSInterval = 60 * 1;
-    // putMessage，失败次数
+
     private final AtomicLong putMessageFailedTimes = new AtomicLong(0);
-    // putMessage，调用总数
+
     private final Map<String, AtomicLong> putMessageTopicTimesTotal =
             new ConcurrentHashMap<String, AtomicLong>(128);
-    // putMessage，Message Size Total
     private final Map<String, AtomicLong> putMessageTopicSizeTotal =
             new ConcurrentHashMap<String, AtomicLong>(128);
-    // getMessage，调用总数
+
     private final AtomicLong getMessageTimesTotalFound = new AtomicLong(0);
     private final AtomicLong getMessageTransferedMsgCount = new AtomicLong(0);
     private final AtomicLong getMessageTimesTotalMiss = new AtomicLong(0);
-    // putMessage，耗时分布
+
     private final AtomicLong[] putMessageDistributeTime = new AtomicLong[7];
-    // put最近10分钟采样
+
     private final LinkedList<CallSnapshot> putTimesList = new LinkedList<CallSnapshot>();
-    // get最近10分钟采样
+
     private final LinkedList<CallSnapshot> getTimesFoundList = new LinkedList<CallSnapshot>();
     private final LinkedList<CallSnapshot> getTimesMissList = new LinkedList<CallSnapshot>();
     private final LinkedList<CallSnapshot> transferedMsgCountList = new LinkedList<CallSnapshot>();
-    // 启动时间
+
     private long messageStoreBootTimestamp = System.currentTimeMillis();
-    // putMessage，写入整个消息耗时，含加锁竟争时间（单位毫秒）
     private volatile long putMessageEntireTimeMax = 0;
-    // getMessage，读取一批消息耗时，含加锁竟争时间（单位毫秒）
     private volatile long getMessageEntireTimeMax = 0;
     // for putMessageEntireTimeMax
     private ReentrantLock lockPut = new ReentrantLock();
     // for getMessageEntireTimeMax
     private ReentrantLock lockGet = new ReentrantLock();
-    // DispatchMessageService，缓冲区最大值
+
     private volatile long dispatchMaxBuffer = 0;
-    // 针对采样线程加锁
+
     private ReentrantLock lockSampling = new ReentrantLock();
     private long lastPrintTimestamp = System.currentTimeMillis();
 
@@ -94,31 +88,28 @@ public class StoreStatsService extends ServiceThread {
 
 
     public void setPutMessageEntireTimeMax(long value) {
-        // 微秒
+
         if (value <= 0) {
             this.putMessageDistributeTime[0].incrementAndGet();
         }
-        // 几毫秒
+
         else if (value < 10) {
             this.putMessageDistributeTime[1].incrementAndGet();
         }
-        // 几十毫秒
         else if (value < 100) {
             this.putMessageDistributeTime[2].incrementAndGet();
         }
-        // 几百毫秒（500毫秒以内）
         else if (value < 500) {
             this.putMessageDistributeTime[3].incrementAndGet();
         }
-        // 几百毫秒（500毫秒以上）
         else if (value < 1000) {
             this.putMessageDistributeTime[4].incrementAndGet();
         }
-        // 几秒
+
         else if (value < 10000) {
             this.putMessageDistributeTime[5].incrementAndGet();
         }
-        // 大等于10秒
+
         else {
             this.putMessageDistributeTime[6].incrementAndGet();
         }
@@ -230,15 +221,15 @@ public class StoreStatsService extends ServiceThread {
 
     private String getPutTps() {
         StringBuilder sb = new StringBuilder();
-        // 10秒钟
+
         sb.append(this.getPutTps(10));
         sb.append(" ");
 
-        // 1分钟
+
         sb.append(this.getPutTps(60));
         sb.append(" ");
 
-        // 10分钟
+
         sb.append(this.getPutTps(600));
 
         return sb.toString();
@@ -246,15 +237,15 @@ public class StoreStatsService extends ServiceThread {
 
     private String getGetFoundTps() {
         StringBuilder sb = new StringBuilder();
-        // 10秒钟
+
         sb.append(this.getGetFoundTps(10));
         sb.append(" ");
 
-        // 1分钟
+
         sb.append(this.getGetFoundTps(60));
         sb.append(" ");
 
-        // 10分钟
+
         sb.append(this.getGetFoundTps(600));
 
         return sb.toString();
@@ -262,15 +253,15 @@ public class StoreStatsService extends ServiceThread {
 
     private String getGetMissTps() {
         StringBuilder sb = new StringBuilder();
-        // 10秒钟
+
         sb.append(this.getGetMissTps(10));
         sb.append(" ");
 
-        // 1分钟
+
         sb.append(this.getGetMissTps(60));
         sb.append(" ");
 
-        // 10分钟
+
         sb.append(this.getGetMissTps(600));
 
         return sb.toString();
@@ -278,15 +269,15 @@ public class StoreStatsService extends ServiceThread {
 
     private String getGetTotalTps() {
         StringBuilder sb = new StringBuilder();
-        // 10秒钟
+
         sb.append(this.getGetTotalTps(10));
         sb.append(" ");
 
-        // 1分钟
+
         sb.append(this.getGetTotalTps(60));
         sb.append(" ");
 
-        // 10分钟
+
         sb.append(this.getGetTotalTps(600));
 
         return sb.toString();
@@ -294,15 +285,15 @@ public class StoreStatsService extends ServiceThread {
 
     private String getGetTransferedTps() {
         StringBuilder sb = new StringBuilder();
-        // 10秒钟
+
         sb.append(this.getGetTransferedTps(10));
         sb.append(" ");
 
-        // 1分钟
+
         sb.append(this.getGetTransferedTps(60));
         sb.append(" ");
 
-        // 10分钟
+
         sb.append(this.getGetTransferedTps(600));
 
         return sb.toString();
@@ -494,10 +485,6 @@ public class StoreStatsService extends ServiceThread {
             this.lockSampling.unlock();
         }
     }
-
-    /**
-     * 1分钟打印一次TPS
-     */
     private void printTps() {
         if (System.currentTimeMillis() > (this.lastPrintTimestamp + PrintTPSInterval * 1000)) {
             this.lastPrintTimestamp = System.currentTimeMillis();

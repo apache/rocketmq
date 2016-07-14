@@ -38,7 +38,6 @@ import java.util.Set;
 
 
 /**
- * 查看Topic统计信息，包括offset、最后更新时间
  *
  * @author shijia.wxr
  *

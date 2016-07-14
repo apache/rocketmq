@@ -34,14 +34,11 @@ import java.util.concurrent.ConcurrentHashMap;
  * @auther lansheng.zj
  */
 public class Store {
-
-    // 每个消息对应的MAGIC CODE daa320a7
     public final static int MessageMagicCode = 0xAABBCCDD ^ 1880681586 + 8;
-    // 文件末尾空洞对应的MAGIC CODE cbd43194
     private final static int BlankMagicCode = 0xBBCCDDEE ^ 1880681586 + 8;
-    // 存储消息的队列
+
     private MapedFileQueue mapedFileQueue;
-    // ConsumeQueue集合
+
     private ConcurrentHashMap<String/* topic */, ConcurrentHashMap<Integer/* queueId */, ConsumeQueue>> consumeQueueTable;
 
     private String cStorePath;
@@ -76,10 +73,10 @@ public class Store {
         File dirLogic = new File(StorePathConfigHelper.getStorePathConsumeQueue(lStorePath));
         File[] fileTopicList = dirLogic.listFiles();
         if (fileTopicList != null) {
-            // TOPIC 遍历
+
             for (File fileTopic : fileTopicList) {
                 String topic = fileTopic.getName();
-                // TOPIC 下队列遍历
+
                 File[] fileQueueIdList = fileTopic.listFiles();
                 if (fileQueueIdList != null) {
                     for (File fileQueueId : fileQueueIdList) {
@@ -188,7 +185,7 @@ public class Store {
 
                 Date storeTime = new Date(storeTimestamp);
 
-                // 计算出来当前消息的偏移量
+
                 long currentPhyOffset = startOffset + position;
                 if (physicOffset != currentPhyOffset) {
                     System.out.println(storeTime

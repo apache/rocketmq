@@ -23,7 +23,6 @@ import java.util.HashMap;
 
 
 /**
- * Topic所有队列的Offset
  *
  * @author shijia.wxr
  *

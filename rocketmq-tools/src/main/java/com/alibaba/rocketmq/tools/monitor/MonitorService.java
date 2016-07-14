@@ -174,14 +174,14 @@ public class MonitorService {
         for (String topic : topicList.getTopicList()) {
             if (topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
                 String consumerGroup = topic.substring(MixAll.RETRY_GROUP_TOPIC_PREFIX.length());
-                // 监控消费进度
+
                 try {
                     this.reportUndoneMsgs(consumerGroup);
                 } catch (Exception e) {
                     // log.error("reportUndoneMsgs Exception", e);
                 }
 
-                // 监控每个Consumer内存状态
+
                 try {
                     this.reportConsumerRunningInfo(consumerGroup);
                 } catch (Exception e) {
@@ -210,7 +210,7 @@ public class MonitorService {
         }
 
         if (cs != null) {
-            // 按照Topic拆分
+
             HashMap<String/* Topic */, ConsumeStats> csByTopic = new HashMap<String, ConsumeStats>();
             {
                 Iterator<Entry<MessageQueue, OffsetWrapper>> it = cs.getOffsetTable().entrySet().iterator();
@@ -228,7 +228,7 @@ public class MonitorService {
                 }
             }
 
-            // 按照Topic开始报警
+
             {
                 Iterator<Entry<String, ConsumeStats>> it = csByTopic.entrySet().iterator();
                 while (it.hasNext()) {
@@ -250,7 +250,7 @@ public class MonitorService {
         TreeMap<String, ConsumerRunningInfo> infoMap = new TreeMap<String, ConsumerRunningInfo>();
         for (Connection c : cc.getConnectionSet()) {
             String clientId = c.getClientId();
-            // 低于3.1.8版本，不支持此功能
+
             if (c.getVersion() < MQVersion.Version.V3_1_8_SNAPSHOT.ordinal()) {
                 continue;
             }

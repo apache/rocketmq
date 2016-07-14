@@ -28,9 +28,6 @@ import com.alibaba.rocketmq.remoting.common.RemotingUtil;
  * @author vongosling
  */
 public class ClientConfig {
-    /**
-     * 设置VIP专有通道
-     */
     public static final String SendMessageWithVIPChannelProperty = "com.rocketmq.sendMessageWithVIPChannel";
     private String namesrvAddr = System.getProperty(MixAll.NAMESRV_ADDR_PROPERTY, System.getenv(MixAll.NAMESRV_ADDR_ENV));
     private String clientIP = RemotingUtil.getLocalAddress();

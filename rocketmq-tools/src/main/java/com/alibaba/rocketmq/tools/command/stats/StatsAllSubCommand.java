@@ -112,7 +112,7 @@ public class StatsAllSubCommand implements SubCommand {
 
         long inMsgCntToday = 0;
 
-        // 统计Topic写入
+
         for (BrokerData bd : topicRouteData.getBrokerDatas()) {
             String masterAddr = bd.getBrokerAddrs().get(MixAll.MASTER_ID);
             if (masterAddr != null) {
@@ -126,7 +126,7 @@ public class StatsAllSubCommand implements SubCommand {
         }
 
         if (groupList != null && !groupList.getGroupList().isEmpty()) {
-            // 统计订阅
+
             for (String group : groupList.getGroupList()) {
                 double outTPS = 0;
                 long outMsgCntToday = 0;
@@ -146,7 +146,7 @@ public class StatsAllSubCommand implements SubCommand {
 
                 if (!activeTopic || (inMsgCntToday > 0) || //
                         (outMsgCntToday > 0)) {
-                    // 打印
+
                     System.out.printf("%-32s  %-32s %11.2f %11.2f %14d %14d\n",//
                             UtilAll.frontStringAtLeast(topic, 32),//
                             UtilAll.frontStringAtLeast(group, 32),//
@@ -158,10 +158,10 @@ public class StatsAllSubCommand implements SubCommand {
                 }
             }
         }
-        // 没有订阅者
+
         else {
             if (!activeTopic || (inMsgCntToday > 0)) {
-                // 打印
+
                 System.out.printf("%-32s  %-32s %11.2f %11s %14d %14s\n",//
                         UtilAll.frontStringAtLeast(topic, 32),//
                         "",//

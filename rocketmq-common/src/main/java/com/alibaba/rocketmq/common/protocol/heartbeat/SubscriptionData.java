@@ -38,9 +38,6 @@ public class SubscriptionData implements Comparable<SubscriptionData> {
     private Set<Integer> codeSet = new HashSet<Integer>();
     private long subVersion = System.currentTimeMillis();
 
-    /**
-     * Java过滤类，通过专有的上传接口上传到Filter Server
-     */
     @JSONField(serialize = false)
     private String filterClassSource;
 

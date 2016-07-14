@@ -27,18 +27,11 @@ import com.alibaba.rocketmq.common.protocol.heartbeat.MessageModel;
 
 import java.util.List;
 
-
-/**
- * PushConsumer，广播方式订阅消息
- */
 public class PushConsumer {
 
     public static void main(String[] args) throws InterruptedException, MQClientException {
         DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("please_rename_unique_group_name_1");
-        /**
-         * 设置Consumer第一次启动是从队列头部开始消费还是队列尾部开始消费<br>
-         * 如果非第一次启动，那么按照上次消费的位置继续消费
-         */
+
         consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET);
 
         consumer.setMessageModel(MessageModel.BROADCASTING);

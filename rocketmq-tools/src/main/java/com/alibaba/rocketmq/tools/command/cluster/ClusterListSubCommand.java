@@ -37,10 +37,7 @@ import java.util.TreeSet;
 
 
 /**
- * 查看集群信息
- *
  * @author shijia.wxr
- *
  */
 public class ClusterListSubCommand implements SubCommand {
 

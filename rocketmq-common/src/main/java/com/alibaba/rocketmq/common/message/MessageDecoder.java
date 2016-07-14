@@ -33,20 +33,12 @@ import java.util.Map;
 
 
 /**
- * 消息解码
- * 
  * @author shijia.wxr
  */
 public class MessageDecoder {
-    /**
-     * 消息ID定长,  此长度任意增加可能会导致MessageClientIDSetter.isUniqID判断错误
-     */
     public final static int MSG_ID_LENGTH = 8 + 8;
 
     public final static Charset CHARSET_UTF8 = Charset.forName("UTF-8");
-    /**
-     * 存储记录各个字段位置
-     */
     public final static int MessageMagicCodePostion = 4;
     public final static int MessageFlagPostion = 16;
     public final static int MessagePhysicOffsetPostion = 28;
@@ -58,9 +50,7 @@ public class MessageDecoder {
         input.flip();
         input.limit(MessageDecoder.MSG_ID_LENGTH);
 
-        // 消息存储主机地址 IP PORT 8
         input.put(addr);
-        // 消息对应的物理分区 OFFSET 8
         input.putLong(offset);
 
         return UtilAll.bytes2string(input.array());
@@ -82,7 +72,7 @@ public class MessageDecoder {
         SocketAddress address;
         long offset;
 
-        // 地址
+
         byte[] ip = UtilAll.string2bytes(msgId.substring(0, 8));
         byte[] port = UtilAll.string2bytes(msgId.substring(8, 16));
         ByteBuffer bb = ByteBuffer.wrap(port);
@@ -102,22 +92,15 @@ public class MessageDecoder {
         return decode(byteBuffer, true, true, false);
     }
 
-    /**
-     * 客户端使用
-     */
     public static MessageExt clientDecode(java.nio.ByteBuffer byteBuffer, final boolean readBody) {
         return decode(byteBuffer, readBody, true, true);
     }
-    
-    /**
-     * SLAVE使用
-     */
     public static MessageExt decode(java.nio.ByteBuffer byteBuffer, final boolean readBody) {
         return decode(byteBuffer, readBody, true, false);
     }
 
 
-    // 当前该方法没有用到
+
     public static byte[] encode(MessageExt messageExt, boolean needCompress) throws Exception {
         byte[] body = messageExt.getBody();
         byte[] topics = messageExt.getTopic().getBytes(CHARSET_UTF8);
@@ -337,14 +320,11 @@ public class MessageDecoder {
                 msgExt.setProperties(map);
             }
 
-            // 消息ID
             ByteBuffer byteBufferMsgId = ByteBuffer.allocate(MSG_ID_LENGTH);
             String msgId = createMessageId(byteBufferMsgId, msgExt.getStoreHostBytes(), msgExt.getCommitLogOffset());
             msgExt.setMsgId(msgId);
 
             if (isClient) {
-                //虽然也可以在MessageClientExt里面封装，当setMsgId时就是setOffsetMsgId，
-                //但这样做MessageClientExt的逻辑会和外部耦合
                 ((MessageClientExt)msgExt).setOffsetMsgId(msgId);
             }
             
@@ -368,10 +348,6 @@ public class MessageDecoder {
         return decodes(byteBuffer, true);
     }
 
-
-    /**
-     * 客户端使用
-     */
     public static List<MessageExt> decodes(java.nio.ByteBuffer byteBuffer, final boolean readBody) {
         List<MessageExt> msgExts = new ArrayList<MessageExt>();
         while (byteBuffer.hasRemaining()) {
@@ -385,10 +361,6 @@ public class MessageDecoder {
         }
         return msgExts;
     }
-
-    /**
-     * 序列化消息属性
-     */
     public static final char NAME_VALUE_SEPARATOR = 1;
     public static final char PROPERTY_SEPARATOR = 2;
 
@@ -408,7 +380,6 @@ public class MessageDecoder {
         }
         return sb.toString();
     }
-
 
     public static Map<String, String> string2messageProperties(final String properties) {
         Map<String, String> map = new HashMap<String, String>();

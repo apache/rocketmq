@@ -34,7 +34,6 @@ import java.util.concurrent.TimeUnit;
  * Create MapedFile in advance
  *
  * @author shijia.wxr
- *
  */
 public class AllocateMapedFileService extends ServiceThread {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.StoreLoggerName);

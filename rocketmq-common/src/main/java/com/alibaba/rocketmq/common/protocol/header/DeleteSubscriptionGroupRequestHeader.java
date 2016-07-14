@@ -23,10 +23,7 @@ import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
 
 
 /**
- * 删除订阅组请求参数
- *
  * @author manhong.yqd
- *
  */
 public class DeleteSubscriptionGroupRequestHeader implements CommandCustomHeader {
     @CFNotNull

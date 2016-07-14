@@ -31,12 +31,6 @@ public class MessageStorePluginContext {
     private MessageArrivingListener messageArrivingListener;
     private BrokerConfig brokerConfig;
 
-    /**
-     * @param messageStoreConfig
-     * @param brokerStatsManager
-     * @param messageArrivingListener
-     * @param brokerConfig
-     */
     public MessageStorePluginContext(MessageStoreConfig messageStoreConfig,
                                      BrokerStatsManager brokerStatsManager, MessageArrivingListener messageArrivingListener,
                                      BrokerConfig brokerConfig) {

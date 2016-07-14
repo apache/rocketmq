@@ -79,10 +79,10 @@ public class QueryMessageProcessor implements NettyRequestProcessor {
                 (QueryMessageRequestHeader) request
                         .decodeCommandCustomHeader(QueryMessageRequestHeader.class);
 
-        // 由于使用sendfile，所以必须要设置
+
         response.setOpaque(request.getOpaque());
 
-        //如果是ＵｎｉｑｕｅＫｅｙ查询，则设置默认
+
         String isUniqueKey = request.getExtFields().get(MixAll.UNIQUE_MSG_QUERY_FLAG);
         if (isUniqueKey != null && isUniqueKey.equals("true")) {
             requestHeader.setMaxNum(this.brokerController.getMessageStoreConfig().getDefaultQueryMaxNum());
@@ -97,7 +97,7 @@ public class QueryMessageProcessor implements NettyRequestProcessor {
         responseHeader.setIndexLastUpdatePhyoffset(queryMessageResult.getIndexLastUpdatePhyoffset());
         responseHeader.setIndexLastUpdateTimestamp(queryMessageResult.getIndexLastUpdateTimestamp());
 
-        // 说明找到消息
+
         if (queryMessageResult.getBufferTotalSize() > 0) {
             response.setCode(ResponseCode.SUCCESS);
             response.setRemark(null);
@@ -135,7 +135,7 @@ public class QueryMessageProcessor implements NettyRequestProcessor {
         final ViewMessageRequestHeader requestHeader =
                 (ViewMessageRequestHeader) request.decodeCommandCustomHeader(ViewMessageRequestHeader.class);
 
-        // 由于使用sendfile，所以必须要设置
+
         response.setOpaque(request.getOpaque());
 
         final SelectMapedBufferResult selectMapedBufferResult =

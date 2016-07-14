@@ -46,7 +46,7 @@ public class ClientHousekeepingService implements ChannelEventListener {
 
 
     public void start() {
-        // 定时扫描过期的连接
+
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
             @Override
             public void run() {

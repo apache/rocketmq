@@ -42,10 +42,7 @@ import java.util.Set;
 
 
 /**
- * 所有运维接口都在这里实现
- *
  * @author shijia.wxr
- *
  */
 public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
     private final DefaultMQAdminExtImpl defaultMQAdminExtImpl;

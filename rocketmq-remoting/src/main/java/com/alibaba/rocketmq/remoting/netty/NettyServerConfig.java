@@ -17,7 +17,7 @@
 package com.alibaba.rocketmq.remoting.netty;
 
 /**
- * Netty服务端配置
+
  *
  * @author shijia.wxr
  *

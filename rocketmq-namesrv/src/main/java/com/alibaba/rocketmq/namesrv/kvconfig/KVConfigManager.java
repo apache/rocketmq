@@ -32,10 +32,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 
 /**
- * KV配置管理
- *
  * @author shijia.wxr
- *
  */
 public class KVConfigManager {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.NamesrvLoggerName);

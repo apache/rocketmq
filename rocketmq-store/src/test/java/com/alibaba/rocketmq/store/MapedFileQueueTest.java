@@ -152,7 +152,7 @@ public class MapedFileQueueTest {
             assertTrue(result);
         }
 
-        // 不断尝试提交
+
         boolean result = mapedFileQueue.commit(0);
         assertFalse(result);
         assertEquals(1024 * 1, mapedFileQueue.getCommittedWhere());

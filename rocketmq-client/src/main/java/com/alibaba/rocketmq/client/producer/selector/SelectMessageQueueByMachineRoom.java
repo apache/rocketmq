@@ -33,7 +33,6 @@ public class SelectMessageQueueByMachineRoom implements MessageQueueSelector {
 
     @Override
     public MessageQueue select(List<MessageQueue> mqs, Message msg, Object arg) {
-        // TODO Auto-generated method stub
         return null;
     }
 

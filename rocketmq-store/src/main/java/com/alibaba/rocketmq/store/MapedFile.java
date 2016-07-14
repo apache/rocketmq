@@ -38,35 +38,32 @@ import java.util.concurrent.atomic.AtomicLong;
 
 
 /**
- * Pagecache文件访问封装
- *
  * @author shijia.wxr
- *
  */
 public class MapedFile extends ReferenceResource {
     public static final int OS_PAGE_SIZE = 1024 * 4;
     private static final Logger log = LoggerFactory.getLogger(LoggerName.StoreLoggerName);
-    // 当前JVM中映射的虚拟内存总大小
+
     private static final AtomicLong TotalMapedVitualMemory = new AtomicLong(0);
-    // 当前JVM中mmap句柄数量
+
     private static final AtomicInteger TotalMapedFiles = new AtomicInteger(0);
-    // 映射的文件名
+
     private final String fileName;
-    // 映射的起始偏移量
+
     private final long fileFromOffset;
-    // 映射的文件大小，定长
+
     private final int fileSize;
-    // 映射的文件
+
     private final File file;
-    // 映射的内存对象，position永远不变
+
     private final MappedByteBuffer mappedByteBuffer;
-    // 当前写到什么位置
+
     private final AtomicInteger wrotePostion = new AtomicInteger(0);
-    // Flush到什么位置
+
     private final AtomicInteger committedPosition = new AtomicInteger(0);
-    // 映射的FileChannel对象
+
     private FileChannel fileChannel;
-    // 最后一条消息存储时间
+
     private volatile long storeTimestamp = 0;
     private boolean firstCreateInQueue = false;
 
@@ -146,7 +143,7 @@ public class MapedFile extends ReferenceResource {
     private static ByteBuffer viewed(ByteBuffer buffer) {
         String methodName = "viewedBuffer";
 
-        // JDK7中将DirectByteBuffer类中的viewedBuffer方法换成了attachment方法
+
         Method[] methods = buffer.getClass().getMethods();
         for (int i = 0; i < methods.length; i++) {
             if (methods[i].getName().equals("attachment")) {
@@ -177,9 +174,6 @@ public class MapedFile extends ReferenceResource {
         return this.file.lastModified();
     }
 
-    /**
-     * 获取文件大小
-     */
     public int getFileSize() {
         return fileSize;
     }
@@ -188,23 +182,13 @@ public class MapedFile extends ReferenceResource {
         return fileChannel;
     }
 
-    /**
-     * 向MapedBuffer追加消息<br>
-     *
-     * @param msg
-     *         要追加的消息
-     * @param cb
-     *         用来对消息进行序列化，尤其对于依赖MapedFile Offset的属性进行动态序列化
-     *
-     * @return 是否成功，写入多少数据
-     */
     public AppendMessageResult appendMessage(final Object msg, final AppendMessageCallback cb) {
         assert msg != null;
         assert cb != null;
 
         int currentPos = this.wrotePostion.get();
 
-        // 表示有空余空间
+
         if (currentPos < this.fileSize) {
             ByteBuffer byteBuffer = this.mappedByteBuffer.slice();
             byteBuffer.position(currentPos);
@@ -215,28 +199,28 @@ public class MapedFile extends ReferenceResource {
             return result;
         }
 
-        // 上层应用应该保证不会走到这里
+
         log.error("MapedFile.appendMessage return null, wrotePostion: " + currentPos + " fileSize: "
                 + this.fileSize);
         return new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR);
     }
 
     /**
-     * 文件起始偏移量
+
      */
     public long getFileFromOffset() {
         return this.fileFromOffset;
     }
 
     /**
-     * 向存储层追加数据，一般在SLAVE存储结构中使用
+
      *
-     * @return 返回写入了多少数据
+
      */
     public boolean appendMessage(final byte[] data) {
         int currentPos = this.wrotePostion.get();
 
-        // 表示有空余空间
+
         if ((currentPos + data.length) <= this.fileSize) {
             ByteBuffer byteBuffer = this.mappedByteBuffer.slice();
             byteBuffer.position(currentPos);
@@ -249,10 +233,10 @@ public class MapedFile extends ReferenceResource {
     }
 
     /**
-     * 消息刷盘
+
      *
      * @param flushLeastPages
-     *         至少刷几个page
+
      *
      * @return
      */
@@ -276,12 +260,12 @@ public class MapedFile extends ReferenceResource {
         int flush = this.committedPosition.get();
         int write = this.wrotePostion.get();
 
-        // 如果当前文件已经写满，应该立刻刷盘
+
         if (this.isFull()) {
             return true;
         }
 
-        // 只有未刷盘数据满足指定page数目才刷盘
+
         if (flushLeastPages > 0) {
             return ((write / OS_PAGE_SIZE) - (flush / OS_PAGE_SIZE)) >= flushLeastPages;
         }
@@ -303,9 +287,9 @@ public class MapedFile extends ReferenceResource {
     }
 
     public SelectMapedBufferResult selectMapedBuffer(int pos, int size) {
-        // 有消息
+
         if ((pos + size) <= this.wrotePostion.get()) {
-            // 从MapedBuffer读
+
             if (this.hold()) {
                 ByteBuffer byteBuffer = this.mappedByteBuffer.slice();
                 byteBuffer.position(pos);
@@ -317,18 +301,18 @@ public class MapedFile extends ReferenceResource {
                         + this.fileFromOffset);
             }
         }
-        // 请求参数非法
+
         else {
             log.warn("selectMapedBuffer request pos invalid, request pos: " + pos + ", size: " + size
                     + ", fileFromOffset: " + this.fileFromOffset);
         }
 
-        // 非法参数或者mmap资源已经被释放
+
         return null;
     }
 
     /**
-     * 读逻辑分区
+
      */
     public SelectMapedBufferResult selectMapedBuffer(int pos) {
         if (pos < this.wrotePostion.get() && pos >= 0) {
@@ -342,24 +326,21 @@ public class MapedFile extends ReferenceResource {
             }
         }
 
-        // 非法参数或者mmap资源已经被释放
+
         return null;
     }
 
     @Override
     public boolean cleanup(final long currentRef) {
-        // 如果没有被shutdown，则不可以unmap文件，否则会crash
         if (this.isAvailable()) {
             log.error("this file[REF:" + currentRef + "] " + this.fileName
                     + " have not shutdown, stop unmaping.");
             return false;
         }
 
-        // 如果已经cleanup，再次操作会引起crash
         if (this.isCleanupOver()) {
             log.error("this file[REF:" + currentRef + "] " + this.fileName
                     + " have cleanup, do not do it again.");
-            // 必须返回true
             return true;
         }
 
@@ -370,11 +351,6 @@ public class MapedFile extends ReferenceResource {
         return true;
     }
 
-    /**
-     * 清理资源，destroy与调用shutdown的线程必须是同一个
-     *
-     * @return 是否被destory成功，上层调用需要对失败情况处理，失败后尝试重试
-     */
     public boolean destroy(final long intervalForcibly) {
         this.shutdown(intervalForcibly);
 
@@ -410,11 +386,6 @@ public class MapedFile extends ReferenceResource {
         this.wrotePostion.set(pos);
     }
 
-    /**
-     * 每隔 OS_PAGE_SIZE(1024*4) 预写一次
-     *
-     * @return
-     */
     public void warmMappedFile(FlushDiskType type, int pages) {
         long beginTime = System.currentTimeMillis();
         ByteBuffer byteBuffer = this.mappedByteBuffer.slice();
@@ -460,10 +431,6 @@ public class MapedFile extends ReferenceResource {
         return mappedByteBuffer;
     }
 
-
-    /**
-     * 方法不能在运行时调用，不安全。只在启动时，reload已有数据时调用
-     */
     public ByteBuffer sliceByteBuffer() {
         return this.mappedByteBuffer.slice();
     }

@@ -29,10 +29,6 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.atomic.AtomicLong;
 
-
-/**
- * 性能测试，订阅消息
- */
 public class Consumer {
 
     public static void main(String[] args) throws MQClientException {

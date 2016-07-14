@@ -38,8 +38,6 @@ import java.util.concurrent.ConcurrentHashMap;
 
 
 /**
- * 定时消息服务
- *
  * @author shijia.wxr
  *
  */
@@ -49,17 +47,17 @@ public class ScheduleMessageService extends ConfigManager {
     private static final long FIRST_DELAY_TIME = 1000L;
     private static final long DELAY_FOR_A_WHILE = 100L;
     private static final long DELAY_FOR_A_PERIOD = 10000L;
-    // 每个level对应的延时时间
+
     private final ConcurrentHashMap<Integer /* level */, Long/* delay timeMillis */> delayLevelTable =
             new ConcurrentHashMap<Integer, Long>(32);
-    // 延时计算到了哪里
+
     private final ConcurrentHashMap<Integer /* level */, Long/* offset */> offsetTable =
             new ConcurrentHashMap<Integer, Long>(32);
-    // 定时器
+
     private final Timer timer = new Timer("ScheduleMessageTimerThread", true);
-    // 存储顶层对象
+
     private final DefaultMessageStore defaultMessageStore;
-    // 最大值
+
     private int maxDelayLevel;
 
 
@@ -105,7 +103,7 @@ public class ScheduleMessageService extends ConfigManager {
 
 
     public void start() {
-        // 为每个延时队列增加定时器
+
         for (Integer level : this.delayLevelTable.keySet()) {
             Long timeDelay = this.delayLevelTable.get(level);
             Long offset = this.offsetTable.get(level);
@@ -118,7 +116,7 @@ public class ScheduleMessageService extends ConfigManager {
             }
         }
 
-        // 定时将延时进度刷盘
+
         this.timer.scheduleAtFixedRate(new TimerTask() {
 
             @Override
@@ -233,14 +231,14 @@ public class ScheduleMessageService extends ConfigManager {
 
 
         /**
-         * 纠正下次投递时间，如果时间特别大，则纠正为当前时间
+
          *
          * @return
          */
         private long correctDeliverTimestamp(final long now, final long deliverTimestamp) {
-            // 如果为0，则会立刻投递
+
             long result = deliverTimestamp;
-            // 超过最大值，纠正为当前时间
+
             long maxTimestamp = now + ScheduleMessageService.this.delayLevelTable.get(this.delayLevel);
             if (deliverTimestamp > maxTimestamp) {
                 result = now;
@@ -268,14 +266,14 @@ public class ScheduleMessageService extends ConfigManager {
                             int sizePy = bufferCQ.getByteBuffer().getInt();
                             long tagsCode = bufferCQ.getByteBuffer().getLong();
 
-                            // 队列里存储的tagsCode实际是一个时间点
+
                             long now = System.currentTimeMillis();
                             long deliverTimestamp = this.correctDeliverTimestamp(now, tagsCode);
 
                             nextOffset = offset + (i / ConsumeQueue.CQStoreUnitSize);
 
                             long countdown = deliverTimestamp - now;
-                            // 时间到了，该投递
+
                             if (countdown <= 0) {
                                 MessageExt msgExt =
                                         ScheduleMessageService.this.defaultMessageStore.lookMessageByOffset(
@@ -287,12 +285,12 @@ public class ScheduleMessageService extends ConfigManager {
                                         PutMessageResult putMessageResult =
                                                 ScheduleMessageService.this.defaultMessageStore
                                                         .putMessage(msgInner);
-                                        // 成功
+
                                         if (putMessageResult != null
                                                 && putMessageResult.getPutMessageStatus() == PutMessageStatus.PUT_OK) {
                                             continue;
                                         }
-                                        // 失败
+
                                         else {
                                             // XXX: warn and notify me
                                             log.error(
@@ -308,9 +306,9 @@ public class ScheduleMessageService extends ConfigManager {
                                     } catch (Exception e) {
                                         /*
                                          * XXX: warn and notify me
-                                         * msgExt里面的内容不完整
-                                         * ，如没有REAL_QID,REAL_TOPIC之类的
-                                         * ，导致数据无法正常的投递到正确的消费队列，所以暂时先直接跳过该条消息
+
+
+
                                          */
                                         log.error(
                                                 "ScheduleMessageService, messageTimeup execute error, drop it. msgExt="
@@ -319,7 +317,7 @@ public class ScheduleMessageService extends ConfigManager {
                                     }
                                 }
                             }
-                            // 时候未到，继续定时
+
                             else {
                                 ScheduleMessageService.this.timer.schedule(
                                         new DeliverDelayedMessageTimerTask(this.delayLevel, nextOffset),
@@ -335,14 +333,14 @@ public class ScheduleMessageService extends ConfigManager {
                         ScheduleMessageService.this.updateOffset(this.delayLevel, nextOffset);
                         return;
                     } finally {
-                        // 必须释放资源
+
                         bufferCQ.release();
                     }
                 } // end of if (bufferCQ != null)
                 else {
                     /*
-                     * 索引文件被删除，定时任务中记录的offset已经被删除，会导致从该位置中取不到数据，
-                     * 这里直接纠正下一次定时任务的offset为当前定时任务队列的最小值
+
+
                      */
                     long cqMinOffset = cq.getMinOffsetInQuque();
                     if (offset < cqMinOffset) {
@@ -379,10 +377,8 @@ public class ScheduleMessageService extends ConfigManager {
             msgInner.setWaitStoreMsgOK(false);
             MessageAccessor.clearProperty(msgInner, MessageConst.PROPERTY_DELAY_TIME_LEVEL);
 
-            // 恢复Topic
             msgInner.setTopic(msgInner.getProperty(MessageConst.PROPERTY_REAL_TOPIC));
 
-            // 恢复QueueId
             String queueIdStr = msgInner.getProperty(MessageConst.PROPERTY_REAL_QUEUE_ID);
             int queueId = Integer.parseInt(queueIdStr);
             msgInner.setQueueId(queueId);

@@ -33,10 +33,7 @@ import org.slf4j.LoggerFactory;
 
 
 /**
- * Name Server网络请求处理(全链路压测版本)
- *
  * @author manhong.yqd
- *
  */
 public class ClusterTestRequestProcessor extends DefaultRequestProcessor {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.NamesrvLoggerName);
@@ -64,7 +61,6 @@ public class ClusterTestRequestProcessor extends DefaultRequestProcessor {
         final GetRouteInfoRequestHeader requestHeader =
                 (GetRouteInfoRequestHeader) request.decodeCommandCustomHeader(GetRouteInfoRequestHeader.class);
 
-        // 获取当前环境的topic
         TopicRouteData topicRouteData = this.namesrvController.getRouteInfoManager().pickupTopicRouteData(requestHeader.getTopic());
         if (topicRouteData != null) {
             String orderTopicConf =
@@ -72,7 +68,6 @@ public class ClusterTestRequestProcessor extends DefaultRequestProcessor {
                             requestHeader.getTopic());
             topicRouteData.setOrderTopicConf(orderTopicConf);
         } else {
-            // 当前环境，该topic不存在，获取非隔离环境的topic
             try {
                 topicRouteData = adminExt.examineTopicRouteInfo(requestHeader.getTopic());
             } catch (Exception e) {

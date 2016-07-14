@@ -30,10 +30,7 @@ import java.util.List;
 
 
 /**
- * 存储具体消息索引信息的文件
- *
  * @author shijia.wxr
- *
  */
 public class IndexFile {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.StoreLoggerName);
@@ -93,10 +90,6 @@ public class IndexFile {
         }
     }
 
-
-    /**
-     * 当前索引文件是否写满
-     */
     public boolean isWriteFull() {
         return this.indexHeader.getIndexCount() >= this.indexNum;
     }
@@ -106,10 +99,6 @@ public class IndexFile {
         return this.mapedFile.destroy(intervalForcibly);
     }
 
-
-    /**
-     * 如果返回false，表示需要创建新的索引文件
-     */
     public boolean putKey(final String key, final long phyOffset, final long storeTimestamp) {
         if (this.indexHeader.getIndexCount() < this.indexNum) {
             int keyHash = indexKeyHashMethod(key);
@@ -119,7 +108,7 @@ public class IndexFile {
             FileLock fileLock = null;
 
             try {
-                // TODO 是否是读写锁
+
                 // fileLock = this.fileChannel.lock(absSlotPos, HASH_SLOT_SIZE,
                 // false);
                 int slotValue = this.mappedByteBuffer.getInt(absSlotPos);
@@ -129,10 +118,10 @@ public class IndexFile {
 
                 long timeDiff = storeTimestamp - this.indexHeader.getBeginTimestamp();
 
-                // 时间差存储单位由毫秒改为秒
+
                 timeDiff = timeDiff / 1000;
 
-                // 25000天后溢出
+
                 if (this.indexHeader.getBeginTimestamp() <= 0) {
                     timeDiff = 0;
                 } else if (timeDiff > Integer.MAX_VALUE) {
@@ -145,16 +134,16 @@ public class IndexFile {
                         IndexHeader.INDEX_HEADER_SIZE + this.hashSlotNum * HASH_SLOT_SIZE
                                 + this.indexHeader.getIndexCount() * INDEX_SIZE;
 
-                // 写入真正索引
+
                 this.mappedByteBuffer.putInt(absIndexPos, keyHash);
                 this.mappedByteBuffer.putLong(absIndexPos + 4, phyOffset);
                 this.mappedByteBuffer.putInt(absIndexPos + 4 + 8, (int) timeDiff);
                 this.mappedByteBuffer.putInt(absIndexPos + 4 + 8 + 4, slotValue);
 
-                // 更新哈希槽
+
                 this.mappedByteBuffer.putInt(absSlotPos, this.indexHeader.getIndexCount());
 
-                // 第一次写入
+
                 if (this.indexHeader.getIndexCount() <= 1) {
                     this.indexHeader.setBeginPhyOffset(phyOffset);
                     this.indexHeader.setBeginTimestamp(storeTimestamp);
@@ -185,7 +174,6 @@ public class IndexFile {
         return false;
     }
 
-    // 返回值是大于0
     public int indexKeyHashMethod(final String key) {
         int keyHash = key.hashCode();
         int keyHashPositive = Math.abs(keyHash);
@@ -206,9 +194,6 @@ public class IndexFile {
         return this.indexHeader.getEndPhyOffset();
     }
 
-    /**
-     * 时间区间是否匹配
-     */
     public boolean isTimeMatched(final long begin, final long end) {
         boolean result =
                 begin < this.indexHeader.getBeginTimestamp() && end > this.indexHeader.getEndTimestamp();
@@ -225,9 +210,6 @@ public class IndexFile {
         return result;
     }
 
-    /**
-     * 前提：入参时间区间在调用前已经匹配了当前索引文件的起始结束时间
-     */
     public void selectPhyOffset(final List<Long> phyOffsets, final String key, final int maxNum,
                                 final long begin, final long end, boolean lock) {
         if (this.mapedFile.hold()) {
@@ -263,16 +245,15 @@ public class IndexFile {
 
                         int keyHashRead = this.mappedByteBuffer.getInt(absIndexPos);
                         long phyOffsetRead = this.mappedByteBuffer.getLong(absIndexPos + 4);
-                        // int转为long，避免下面计算时间差值时溢出
+
                         long timeDiff = (long) this.mappedByteBuffer.getInt(absIndexPos + 4 + 8);
                         int prevIndexRead = this.mappedByteBuffer.getInt(absIndexPos + 4 + 8 + 4);
 
-                        // 读到了未知数据
+
                         if (timeDiff < 0) {
                             break;
                         }
 
-                        // 时间差存储的是秒，再还原为毫秒， long避免溢出
                         timeDiff *= 1000L;
 
                         long timeRead = this.indexHeader.getBeginTimestamp() + timeDiff;

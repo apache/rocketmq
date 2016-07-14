@@ -43,28 +43,25 @@ import java.util.concurrent.*;
 
 
 /**
- * Server与Client公用抽象类
- *
  * @author shijia.wxr
- *
  */
 public abstract class NettyRemotingAbstract {
     private static final Logger plog = LoggerFactory.getLogger(RemotingHelper.RemotingLogName);
 
-    // 信号量，Oneway情况会使用，防止本地Netty缓存请求过多
+
     protected final Semaphore semaphoreOneway;
 
-    // 信号量，异步调用情况会使用，防止本地Netty缓存请求过多
+
     protected final Semaphore semaphoreAsync;
 
-    // 缓存所有对外请求
+
     protected final ConcurrentHashMap<Integer /* opaque */, ResponseFuture> responseTable =
             new ConcurrentHashMap<Integer, ResponseFuture>(256);
-    // 注册的各个RPC处理器
+
     protected final HashMap<Integer/* request code */, Pair<NettyRequestProcessor, ExecutorService>> processorTable =
             new HashMap<Integer, Pair<NettyRequestProcessor, ExecutorService>>(64);
     protected final NettyEventExecuter nettyEventExecuter = new NettyEventExecuter();
-    // 默认请求代码处理器
+
     protected Pair<NettyRequestProcessor, ExecutorService> defaultRequestProcessor;
 
 
@@ -127,7 +124,7 @@ public abstract class NettyRemotingAbstract {
                                     plog.error(response.toString());
                                 }
                             } else {
-                                // 收到请求，但是没有返回应答，可能是processRequest中进行了应答，忽略这种情况
+
                             }
                         }
                     } catch (Throwable e) {
@@ -148,10 +145,10 @@ public abstract class NettyRemotingAbstract {
             };
 
             try {
-                // 这里需要做流控，要求线程池对应的队列必须是有大小限制的
+
                 pair.getObject2().submit(run);
             } catch (RejectedExecutionException e) {
-                // 每个线程10s打印一次
+
                 if ((System.currentTimeMillis() % 10000) == 0) {
                     plog.warn(RemotingHelper.parseChannelRemoteAddr(ctx.channel()) //
                             + ", too many requests and system thread pool busy, RejectedExecutionException " //
@@ -184,7 +181,6 @@ public abstract class NettyRemotingAbstract {
 
             responseFuture.release();
 
-            // 在回调之前删除可以解决用户同一个线程使用同一个RemotingCommand对象发送多个rpc请求产生的超时问题。
             responseTable.remove(opaque);
 
             if (responseFuture.getInvokeCallback() != null) {

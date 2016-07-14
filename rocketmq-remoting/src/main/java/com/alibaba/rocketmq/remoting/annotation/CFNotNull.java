@@ -20,10 +20,7 @@ import java.lang.annotation.*;
 
 
 /**
- * 表示字段不允许为空
- *
  * @author shijia.wxr
- *
  */
 @Documented
 @Retention(RetentionPolicy.RUNTIME)

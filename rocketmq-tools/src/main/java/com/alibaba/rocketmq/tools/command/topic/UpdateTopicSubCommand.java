@@ -31,7 +31,6 @@ import java.util.Set;
 
 
 /**
- * 修改、创建Topic配置命令
  *
  * @author shijia.wxr
  *
@@ -144,7 +143,6 @@ public class UpdateTopicSubCommand implements SubCommand {
                 defaultMQAdminExt.createAndUpdateTopicConfig(addr, topicConfig);
 
                 if (isOrder) {
-                    // 注册顺序消息到 nameserver
                     String brokerName = CommandUtil.fetchBrokerNameByAddr(defaultMQAdminExt, addr);
                     String orderConf = brokerName + ":" + topicConfig.getWriteQueueNums();
                     defaultMQAdminExt.createOrUpdateOrderConf(topicConfig.getTopicName(), orderConf, false);
@@ -168,7 +166,6 @@ public class UpdateTopicSubCommand implements SubCommand {
                 }
 
                 if (isOrder) {
-                    // 注册顺序消息到 nameserver
                     Set<String> brokerNameSet =
                             CommandUtil.fetchBrokerNameByClusterName(defaultMQAdminExt, clusterName);
                     StringBuilder orderConf = new StringBuilder();

@@ -28,10 +28,6 @@ import com.alibaba.rocketmq.remoting.exception.RemotingException;
 
 import java.util.List;
 
-
-/**
- * Producer，发送顺序消息
- */
 public class Producer {
     public static void main(String[] args) {
         try {
@@ -42,7 +38,7 @@ public class Producer {
             String[] tags = new String[]{"TagA", "TagB", "TagC", "TagD", "TagE"};
 
             for (int i = 0; i < 100; i++) {
-                // 订单ID相同的消息要有序
+
                 int orderId = i % 10;
                 Message msg =
                         new Message("TopicTestjjj", tags[i % tags.length], "KEY" + i,

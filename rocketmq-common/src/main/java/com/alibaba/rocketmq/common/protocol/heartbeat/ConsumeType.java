@@ -24,13 +24,9 @@ package com.alibaba.rocketmq.common.protocol.heartbeat;
  * @author shijia.wxr
  */
 public enum ConsumeType {
-    /**
-     * 主动方式消费
-     */
+
     CONSUME_ACTIVELY("PULL"),
-    /**
-     * 被动方式消费
-     */
+
     CONSUME_PASSIVELY("PUSH");
 
     private String typeCN;

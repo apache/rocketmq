@@ -49,7 +49,6 @@ public class StoreCheckpointTest {
             storeCheckpoint.setLogicsMsgTimestamp(logicsMsgTimestamp);
             storeCheckpoint.flush();
 
-            // 因为时间精度问题，所以最小时间向前回退3s
             long diff = physicMsgTimestamp - storeCheckpoint.getMinTimestamp();
             assertTrue(diff == 3000);
 

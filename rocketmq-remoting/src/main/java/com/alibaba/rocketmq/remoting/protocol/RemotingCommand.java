@@ -34,10 +34,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 
 /**
- * Remoting模块中，服务器与客户端通过传递RemotingCommand来交互
- *
  * @author shijia.wxr
- *
  */
 public class RemotingCommand {
     public static final String SERIALIZE_TYPE_PROPERTY = "rocketmq.serialize.type";
@@ -45,14 +42,14 @@ public class RemotingCommand {
     private static final Logger log = LoggerFactory.getLogger(RemotingHelper.RemotingLogName);
     private static final int RPC_TYPE = 0; // 0, REQUEST_COMMAND
     private static final int RPC_ONEWAY = 1; // 0, RPC
-    // 序列化&反序化字段缓存
+
     private static final Map<Class<? extends CommandCustomHeader>, Field[]> clazzFieldsCache =
             new HashMap<Class<? extends CommandCustomHeader>, Field[]>();
     private static final Map<Class, String> canonicalNameCache = new HashMap<Class, String>();
     // 1, RESPONSE_COMMAND
     private static final Map<Field, Annotation> notNullAnnotationCache = new HashMap<Field, Annotation>();
     // 1, Oneway
-    // 基本类型
+
     private static final String StringCanonicalName = String.class.getCanonicalName();//
     private static final String DoubleCanonicalName1 = Double.class.getCanonicalName();//
     private static final String DoubleCanonicalName2 = double.class.getCanonicalName();//
@@ -66,7 +63,7 @@ public class RemotingCommand {
     private static volatile int ConfigVersion = -1;
     private static AtomicInteger RequestId = new AtomicInteger(0);
     /**
-     * 序列化全局配置
+
      */
     private static SerializeType SerializeTypeConfigInThisServer = SerializeType.JSON;
 
@@ -82,7 +79,7 @@ public class RemotingCommand {
     }
 
     /**
-     * Header 部分
+
      */
     private int code;
     private LanguageCode language = LanguageCode.JAVA;
@@ -93,11 +90,11 @@ public class RemotingCommand {
     private HashMap<String, String> extFields;
     private transient CommandCustomHeader customHeader;
     /**
-     * 当前这次RPC的序列化方式
+
      */
     private SerializeType serializeTypeCurrentRPC = SerializeTypeConfigInThisServer;
     /**
-     * Body 部分
+
      */
     private transient byte[] body;
 
@@ -133,7 +130,7 @@ public class RemotingCommand {
     }
 
     /**
-     * 只有通信层内部会调用，业务不会调用
+
      */
     public static RemotingCommand createResponseCommand(int code, String remark, Class<? extends CommandCustomHeader> classHeader) {
         RemotingCommand cmd = new RemotingCommand();
@@ -256,7 +253,7 @@ public class RemotingCommand {
         }
 
         if (this.extFields != null) {
-            // 检查返回对象是否有效
+
             Field[] fields = getClazzFields(classHeader);
             for (Field field : fields) {
                 if (!Modifier.isStatic(field.getModifiers())) {
@@ -386,7 +383,7 @@ public class RemotingCommand {
 
     public static byte[] markProtocolType(int source, SerializeType type) {
         byte[] result = new byte[4];
-        // 由高位到低位
+
         result[0] = type.getCode();
         result[1] = (byte) ((source >> 16) & 0xFF);
         result[2] = (byte) ((source >> 8) & 0xFF);
@@ -427,7 +424,7 @@ public class RemotingCommand {
     }
 
     /**
-     * 只打包Header，body部分独立传输
+
      */
     public ByteBuffer encodeHeader(final int bodyLength) {
         // 1> header length size

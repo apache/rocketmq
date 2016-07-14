@@ -42,10 +42,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 
 /**
- * Name Server网络请求处理
- *
  * @author shijia.wxr
- *
  */
 public class DefaultRequestProcessor implements NettyRequestProcessor {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.NamesrvLoggerName);
@@ -76,11 +73,9 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
                 return this.deleteKVConfig(ctx, request);
             case RequestCode.REGISTER_BROKER:
                 Version brokerVersion = MQVersion.value2Version(request.getVersion());
-                // 新版本Broker，支持Filter Server
                 if (brokerVersion.ordinal() >= MQVersion.Version.V3_0_11.ordinal()) {
                     return this.registerBrokerWithFilterServer(ctx, request);
                 }
-                // 低版本Broker，不支持Filter Server
                 else {
                     return this.registerBroker(ctx, request);
                 }
@@ -198,7 +193,7 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
         responseHeader.setHaServerAddr(result.getHaServerAddr());
         responseHeader.setMasterAddr(result.getMasterAddr());
 
-        // 获取顺序消息 topic 列表
+
         byte[] jsonValue = this.namesrvController.getKvConfigManager().getKVListByNamespace(NamesrvUtil.NAMESPACE_ORDER_TOPIC_CONFIG);
         response.setBody(jsonValue);
 
@@ -236,7 +231,7 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
         responseHeader.setHaServerAddr(result.getHaServerAddr());
         responseHeader.setMasterAddr(result.getMasterAddr());
 
-        // 获取顺序消息 topic 列表
+
         byte[] jsonValue = this.namesrvController.getKvConfigManager().getKVListByNamespace(NamesrvUtil.NAMESPACE_ORDER_TOPIC_CONFIG);
         response.setBody(jsonValue);
         response.setCode(ResponseCode.SUCCESS);
@@ -318,14 +313,6 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
         return response;
     }
 
-    /**
-     * 获取全部Topic列表
-     *
-     * @param ctx
-     * @param request
-     *
-     * @return
-     */
     private RemotingCommand getAllTopicListFromNameserver(ChannelHandlerContext ctx, RemotingCommand request) {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
 
@@ -349,9 +336,6 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
         return response;
     }
 
-    /**
-     * 获取一个Namespace下的所有kv
-     */
     private RemotingCommand getKVListByNamespace(ChannelHandlerContext ctx, RemotingCommand request) throws RemotingCommandException {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
         final GetKVListByNamespaceRequestHeader requestHeader =
@@ -371,14 +355,6 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
         return response;
     }
 
-    /**
-     * 获取指定集群下的全部Topic列表
-     *
-     * @param ctx
-     * @param request
-     *
-     * @return
-     */
     private RemotingCommand getTopicsByCluster(ChannelHandlerContext ctx, RemotingCommand request) throws RemotingCommandException {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
         final GetTopicsByClusterRequestHeader requestHeader =
@@ -393,16 +369,6 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
     }
 
 
-    /**
-     * 获取所有系统内置 Topic 列表
-     *
-     * @param ctx
-     * @param request
-     *
-     * @return
-     *
-     * @throws RemotingCommandException
-     */
     private RemotingCommand getSystemTopicListFromNs(ChannelHandlerContext ctx, RemotingCommand request) throws RemotingCommandException {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
 
@@ -415,16 +381,6 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
     }
 
 
-    /**
-     * 获取单元化逻辑 Topic 列表
-     *
-     * @param ctx
-     * @param request
-     *
-     * @return
-     *
-     * @throws RemotingCommandException
-     */
     private RemotingCommand getUnitTopicList(ChannelHandlerContext ctx, RemotingCommand request) throws RemotingCommandException {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
 
@@ -437,16 +393,6 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
     }
 
 
-    /**
-     * 获取含有单元化订阅组的 Topic 列表
-     *
-     * @param ctx
-     * @param request
-     *
-     * @return
-     *
-     * @throws RemotingCommandException
-     */
     private RemotingCommand getHasUnitSubTopicList(ChannelHandlerContext ctx, RemotingCommand request) throws RemotingCommandException {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
 
@@ -459,16 +405,6 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
     }
 
 
-    /**
-     * 获取含有单元化订阅组的非单元化 Topic 列表
-     *
-     * @param ctx
-     * @param request
-     *
-     * @return
-     *
-     * @throws RemotingCommandException
-     */
     private RemotingCommand getHasUnitSubUnUnitTopicList(ChannelHandlerContext ctx, RemotingCommand request)
             throws RemotingCommandException {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);

@@ -42,10 +42,7 @@ import java.util.List;
 
 
 /**
- * 查看订阅组消费状态，消费进度
- *
  * @author shijia.wxr
- *
  */
 public class ConsumerProgressSubCommand implements SubCommand {
     private final Logger log = ClientLogger.getLog();
@@ -82,7 +79,6 @@ public class ConsumerProgressSubCommand implements SubCommand {
         try {
             defaultMQAdminExt.start();
 
-            // 查询特定consumer
             if (commandLine.hasOption('g')) {
                 String consumerGroup = commandLine.getOptionValue('g').trim();
                 ConsumeStats consumeStats = defaultMQAdminExt.examineConsumeStats(consumerGroup);
@@ -129,7 +125,7 @@ public class ConsumerProgressSubCommand implements SubCommand {
                 System.out.printf("Consume TPS: %s\n", consumeStats.getConsumeTps());
                 System.out.printf("Diff Total: %d\n", diffTotal);
             }
-            // 查询全部
+
             else {
                 System.out.printf("%-32s  %-6s  %-24s %-5s  %-14s  %-7s  %s\n",//
                         "#Group",//

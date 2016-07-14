@@ -29,7 +29,7 @@ import java.util.Set;
  *
  */
 public class LockBatchResponseBody extends RemotingSerializable {
-    // Lock成功的队列集合
+
     private Set<MessageQueue> lockOKMQSet = new HashSet<MessageQueue>();
 
 

@@ -21,7 +21,6 @@ import java.nio.ByteBuffer;
 
 
 /**
- * 确认消息是否需要过滤 Hook
  *
  * @author manhong.yqd
  *

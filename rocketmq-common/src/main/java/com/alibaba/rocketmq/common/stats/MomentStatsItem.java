@@ -26,7 +26,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 
 public class MomentStatsItem {
-    // 具体的统计值
+
     private final AtomicLong value = new AtomicLong(0);
 
     private final String statsName;
@@ -45,7 +45,7 @@ public class MomentStatsItem {
 
 
     public void init() {
-        // 分钟整点执行
+
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
                                                               @Override
                                                               public void run() {

@@ -57,9 +57,6 @@ public class CommitLog {
     private final FlushCommitLogService flushCommitLogService;
     private final AppendMessageCallback appendMessageCallback;
     private HashMap<String/* topic-queueid */, Long/* offset */> topicQueueTable = new HashMap<String, Long>(1024);
-    /**
-     *
-     */
     private volatile long confirmOffset = -1L;
     private volatile long beginTimeInLock = 0;
 
@@ -92,11 +89,6 @@ public class CommitLog {
         this.flushCommitLogService.shutdown();
     }
 
-    /**
-     * 刷盘操作
-     *
-     * @return 返回刷盘到了哪里
-     */
     public long flush() {
         this.mapedFileQueue.commit(0);
         return this.mapedFileQueue.getCommittedWhere();
@@ -293,7 +285,6 @@ public class CommitLog {
 
                 keys = propertiesMap.get(MessageConst.PROPERTY_KEYS);
 
-                //标志着消息ID的key
                 uniqKey = propertiesMap.get(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX);
 
                 String tags = propertiesMap.get(MessageConst.PROPERTY_TAGS);
@@ -409,7 +400,7 @@ public class CommitLog {
                 if (size > 0) {
                     mapedFileOffset += size;
 
-                    // 如果开启多副本复制组件，判断两阶段确认位点后，数据才可消费
+
                     if (this.defaultMessageStore.getMessageStoreConfig().isDuplicationEnable()) {
                         if (dispatchRequest.getCommitLogOffset() < this.defaultMessageStore.getConfirmOffset()) {
                             this.defaultMessageStore.doDispatch(dispatchRequest);
@@ -997,7 +988,7 @@ public class CommitLog {
             // PHY OFFSET
             long wroteOffset = fileFromOffset + byteBuffer.position();
 
-            //TODO 返回的客户端ID给 SendResult 要注意定时消息的情形, 定时消息这个ID应该没有用
+
             String msgId = MessageDecoder.createMessageId(this.msgIdMemory, msgInner.getStoreHostBytes(), wroteOffset);
 
             // Record ConsumeQueue information
