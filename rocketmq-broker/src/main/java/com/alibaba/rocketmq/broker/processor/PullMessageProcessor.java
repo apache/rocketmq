@@ -320,7 +320,8 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                     this.brokerController.getBrokerStatsManager().incBrokerGetNums(getMessageResult.getMessageCount());
 
                     if (this.brokerController.getBrokerConfig().isTransferMsgByHeap()) {
-                        final byte[] r = this.readGetMessageResult(getMessageResult);
+                        final byte[] r = this.readGetMessageResult(getMessageResult, requestHeader.getConsumerGroup(),
+                                requestHeader.getTopic(), requestHeader.getQueueId());
                         response.setBody(r);
                     } else {
                         try {
@@ -426,19 +427,22 @@ public class PullMessageProcessor implements NettyRequestProcessor {
         }
     }
 
-    private byte[] readGetMessageResult(final GetMessageResult getMessageResult) {
+    private byte[] readGetMessageResult(final GetMessageResult getMessageResult, final String group, final String topic, final int queueId) {
         final ByteBuffer byteBuffer = ByteBuffer.allocate(getMessageResult.getBufferTotalSize());
 
+        long storeTimestamp = 0;
         try {
             List<ByteBuffer> messageBufferList = getMessageResult.getMessageBufferList();
             for (ByteBuffer bb : messageBufferList) {
 
                 byteBuffer.put(bb);
+                storeTimestamp = bb.getLong(MessageDecoder.MessageStoreTimestampPostion);
             }
         } finally {
             getMessageResult.release();
         }
 
+        this.brokerController.getBrokerStatsManager().recordDiskFallBehindTime(group, topic, queueId, this.brokerController.getMessageStore().now() - storeTimestamp);
         return byteBuffer.array();
     }
 

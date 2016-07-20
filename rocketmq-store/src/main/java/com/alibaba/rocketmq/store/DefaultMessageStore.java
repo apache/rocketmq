@@ -457,7 +457,7 @@ public class DefaultMessageStore implements MessageStore {
 
                         if (diskFallRecorded) {
                             long fallBehind = maxOffsetPy - maxPhyOffsetPulling;
-                            brokerStatsManager.recordDiskFallBehind(group, topic, queueId, fallBehind);
+                            brokerStatsManager.recordDiskFallBehindSize(group, topic, queueId, fallBehind);
                         }
 
                         nextBeginOffset = offset + (i / ConsumeQueue.CQStoreUnitSize);
