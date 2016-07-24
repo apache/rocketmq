@@ -209,17 +209,28 @@ public class PullMessageProcessor implements NettyRequestProcessor {
             responseHeader.setMinOffset(getMessageResult.getMinOffset());
             responseHeader.setMaxOffset(getMessageResult.getMaxOffset());
 
-            // 消费较慢，重定向到另外一台机器
-            if (getMessageResult.isSuggestPullingFromSlave()) {
-                responseHeader.setSuggestWhichBrokerId(subscriptionGroupConfig.getWhichBrokerWhenConsumeSlowly());
-                // 注释日志，打印过于频繁
-                log.debug("consume message too slow, suggest pulling from slave. group={}, topic={}, subString={}, queueId={}, offset={}",
-                        requestHeader.getConsumerGroup(), requestHeader.getTopic(), subscriptionData.getSubString(), requestHeader.getQueueId(),
-                        requestHeader.getQueueOffset());
+
+            switch (this.brokerController.getMessageStoreConfig().getBrokerRole()) {
+                case ASYNC_MASTER:
+                case SYNC_MASTER:
+                    break;
+                case SLAVE:
+                    if (!this.brokerController.getBrokerConfig().isSlaveReadEnable()) {
+                        response.setCode(ResponseCode.PULL_RETRY_IMMEDIATELY);
+                        responseHeader.setSuggestWhichBrokerId(MixAll.MASTER_ID);
+                    }
+                    break;
             }
-            // 消费正常，按照订阅组配置重定向
-            else {
-                responseHeader.setSuggestWhichBrokerId(subscriptionGroupConfig.getBrokerId());
+
+            if (this.brokerController.getBrokerConfig().isSlaveReadEnable()) {
+                // 消费较慢，重定向到另外一台机器
+                if (getMessageResult.isSuggestPullingFromSlave()) {
+                    responseHeader.setSuggestWhichBrokerId(subscriptionGroupConfig.getWhichBrokerWhenConsumeSlowly());
+                }
+                // 消费正常，按照订阅组配置重定向
+                else {
+                    responseHeader.setSuggestWhichBrokerId(subscriptionGroupConfig.getBrokerId());
+                }
             }
 
             switch (getMessageResult.getStatus()) {

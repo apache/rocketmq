@@ -101,6 +101,16 @@ public class BrokerConfig {
     private String regionId = "DefaultRegion";
     private int registerBrokerTimeoutMills = 6000;
 
+    private boolean slaveReadEnable = false;
+
+    public boolean isSlaveReadEnable() {
+        return slaveReadEnable;
+    }
+
+    public void setSlaveReadEnable(final boolean slaveReadEnable) {
+        this.slaveReadEnable = slaveReadEnable;
+    }
+
     public static String localHostName() {
         try {
             return InetAddress.getLocalHost().getHostName();
