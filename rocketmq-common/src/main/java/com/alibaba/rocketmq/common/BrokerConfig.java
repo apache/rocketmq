@@ -103,6 +103,25 @@ public class BrokerConfig {
 
     private boolean slaveReadEnable = false;
 
+    private boolean disableConsumeIfConsumerReadSlowly = false;
+    private long consumerFallbehindThreshold = 1024 * 1024 * 1024 * 16;
+
+    public long getConsumerFallbehindThreshold() {
+        return consumerFallbehindThreshold;
+    }
+
+    public void setConsumerFallbehindThreshold(final long consumerFallbehindThreshold) {
+        this.consumerFallbehindThreshold = consumerFallbehindThreshold;
+    }
+
+    public boolean isDisableConsumeIfConsumerReadSlowly() {
+        return disableConsumeIfConsumerReadSlowly;
+    }
+
+    public void setDisableConsumeIfConsumerReadSlowly(final boolean disableConsumeIfConsumerReadSlowly) {
+        this.disableConsumeIfConsumerReadSlowly = disableConsumeIfConsumerReadSlowly;
+    }
+
     public boolean isSlaveReadEnable() {
         return slaveReadEnable;
     }

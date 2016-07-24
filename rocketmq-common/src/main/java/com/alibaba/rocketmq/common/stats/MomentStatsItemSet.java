@@ -13,7 +13,6 @@ import java.util.concurrent.TimeUnit;
 public class MomentStatsItemSet {
     private final ConcurrentHashMap<String/* key */, MomentStatsItem> statsItemTable =
             new ConcurrentHashMap<String, MomentStatsItem>(128);
-
     private final String statsName;
     private final ScheduledExecutorService scheduledExecutorService;
     private final Logger log;
@@ -24,6 +23,14 @@ public class MomentStatsItemSet {
         this.scheduledExecutorService = scheduledExecutorService;
         this.log = log;
         this.init();
+    }
+
+    public ConcurrentHashMap<String, MomentStatsItem> getStatsItemTable() {
+        return statsItemTable;
+    }
+
+    public String getStatsName() {
+        return statsName;
     }
 
     public void init() {
