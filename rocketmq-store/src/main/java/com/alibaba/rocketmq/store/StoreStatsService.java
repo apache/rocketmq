@@ -66,19 +66,12 @@ public class StoreStatsService extends ServiceThread {
     private final AtomicLong getMessageTimesTotalFound = new AtomicLong(0);
     private final AtomicLong getMessageTransferedMsgCount = new AtomicLong(0);
     private final AtomicLong getMessageTimesTotalMiss = new AtomicLong(0);
-    // put最近10分钟采样
-
-    private final AtomicLong[] putMessageDistributeTime = new AtomicLong[7];
-
     private final LinkedList<CallSnapshot> putTimesList = new LinkedList<CallSnapshot>();
 
     private final LinkedList<CallSnapshot> getTimesFoundList = new LinkedList<CallSnapshot>();
     private final LinkedList<CallSnapshot> getTimesMissList = new LinkedList<CallSnapshot>();
     private final LinkedList<CallSnapshot> transferedMsgCountList = new LinkedList<CallSnapshot>();
-    // putMessage，耗时分布
     private volatile AtomicLong[] putMessageDistributeTime;
-    // 启动时间
-
     private long messageStoreBootTimestamp = System.currentTimeMillis();
     private volatile long putMessageEntireTimeMax = 0;
     private volatile long getMessageEntireTimeMax = 0;

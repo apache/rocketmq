@@ -6,13 +6,13 @@
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package com.alibaba.rocketmq.broker.processor;
 
@@ -207,14 +207,9 @@ public class PullMessageProcessor implements NettyRequestProcessor {
 
             if (getMessageResult.isSuggestPullingFromSlave()) {
                 responseHeader.setSuggestWhichBrokerId(subscriptionGroupConfig.getWhichBrokerWhenConsumeSlowly());
-
-                log.debug("consume message too slow, suggest pulling from slave. group={}, topic={}, subString={}, queueId={}, offset={}",
-                        requestHeader.getConsumerGroup(), requestHeader.getTopic(), subscriptionData.getSubString(), requestHeader.getQueueId(),
-                        requestHeader.getQueueOffset());
+            } else {
+                responseHeader.setSuggestWhichBrokerId(MixAll.MASTER_ID);
             }
-
-            else {
-                responseHeader.setSuggestWhichBrokerId(subscriptionGroupConfig.getBrokerId());
 
             switch (this.brokerController.getMessageStoreConfig().getBrokerRole()) {
                 case ASYNC_MASTER:
@@ -345,7 +340,7 @@ public class PullMessageProcessor implements NettyRequestProcessor {
 
                     if (this.brokerController.getBrokerConfig().isTransferMsgByHeap()) {
                         final long beginTimeMills = this.brokerController.getMessageStore().now();
-                        final byte[] r = this.readGetMessageResult(getMessageResult);
+                        final byte[] r = this.readGetMessageResult(getMessageResult, requestHeader.getConsumerGroup(), requestHeader.getTopic(), requestHeader.getQueueId());
                         this.brokerController.getBrokerStatsManager().incGroupGetLatency(requestHeader.getConsumerGroup(), //
                                 requestHeader.getTopic(), requestHeader.getQueueId(),//
                                 (int) (this.brokerController.getMessageStore().now() - beginTimeMills));
@@ -438,6 +433,7 @@ public class PullMessageProcessor implements NettyRequestProcessor {
         }
         return response;
     }
+
 
     public boolean hasConsumeMessageHook() {
         return consumeMessageHookList != null && !this.consumeMessageHookList.isEmpty();
