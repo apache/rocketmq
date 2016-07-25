@@ -57,6 +57,13 @@ public class BrokerStatsManager {
 
     public static final String GROUP_GET_FALL_SIZE = "GROUP_GET_FALL_SIZE";
     public static final String GROUP_GET_FALL_TIME = "GROUP_GET_FALL_TIME";
+    // Pull Message Latency
+    public static final String GROUP_GET_LATENCY = "GROUP_GET_LATENCY";
+
+    /**
+     * 读磁盘落后统计
+     */
+    public static final String GROUP_GET_FALL = "GROUP_GET_FALL";
     private static final Logger log = LoggerFactory.getLogger(LoggerName.RocketmqStatsLoggerName);
     private static final Logger commercialLog = LoggerFactory.getLogger(LoggerName.CommercialLoggerName);
     private final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl(
@@ -69,6 +76,12 @@ public class BrokerStatsManager {
     private final MomentStatsItemSet momentStatsItemSetFallSize = new MomentStatsItemSet(GROUP_GET_FALL_SIZE, scheduledExecutorService, log);
     private final MomentStatsItemSet momentStatsItemSetFallTime = new MomentStatsItemSet(GROUP_GET_FALL_TIME, scheduledExecutorService, log);
 
+    private final MomentStatsItemSet momentStatsItemSet = new MomentStatsItemSet(GROUP_GET_FALL, scheduledExecutorService, log);
+
+    public MomentStatsItemSet getMomentStatsItemSet() {
+        return momentStatsItemSet;
+    }
+
     public BrokerStatsManager(String clusterName) {
         this.clusterName = clusterName;
 
@@ -76,6 +89,7 @@ public class BrokerStatsManager {
         this.statsTable.put(TOPIC_PUT_SIZE, new StatsItemSet(TOPIC_PUT_SIZE, this.scheduledExecutorService, log));
         this.statsTable.put(GROUP_GET_NUMS, new StatsItemSet(GROUP_GET_NUMS, this.scheduledExecutorService, log));
         this.statsTable.put(GROUP_GET_SIZE, new StatsItemSet(GROUP_GET_SIZE, this.scheduledExecutorService, log));
+        this.statsTable.put(GROUP_GET_LATENCY, new StatsItemSet(GROUP_GET_LATENCY, this.scheduledExecutorService, log));
         this.statsTable.put(SNDBCK_PUT_NUMS, new StatsItemSet(SNDBCK_PUT_NUMS, this.scheduledExecutorService, log));
         this.statsTable.put(BROKER_PUT_NUMS, new StatsItemSet(BROKER_PUT_NUMS, this.scheduledExecutorService, log));
         this.statsTable.put(BROKER_GET_NUMS, new StatsItemSet(BROKER_GET_NUMS, this.scheduledExecutorService, log));
@@ -134,6 +148,11 @@ public class BrokerStatsManager {
     public void incGroupGetSize(final String group, final String topic, final int incValue) {
         final String statsKey = buildStatsKey(topic, group);
         this.statsTable.get(GROUP_GET_SIZE).addValue(statsKey, incValue, 1);
+    }
+
+    public void incGroupGetLatency(final String group, final String topic, final int queueId, final int incValue) {
+        final String statsKey = String.format("%d@%s@%s", queueId, topic, group);
+        this.statsTable.get(GROUP_GET_LATENCY).addValue(statsKey, incValue, 1);
     }
 
 

@@ -171,6 +171,12 @@ public class TopicConfigManager extends ConfigManager {
 
                     TopicConfig defaultTopicConfig = this.topicConfigTable.get(defaultTopic);
                     if (defaultTopicConfig != null) {
+                        if (defaultTopic.equals(MixAll.DEFAULT_TOPIC)) {
+                            if (!this.brokerController.getBrokerConfig().isAutoCreateTopicEnable()) {
+                                defaultTopicConfig.setPerm(PermName.PERM_READ | PermName.PERM_WRITE);
+                            }
+                        }
+
                         if (PermName.isInherited(defaultTopicConfig.getPerm())) {
                             topicConfig = new TopicConfig(topic);
 

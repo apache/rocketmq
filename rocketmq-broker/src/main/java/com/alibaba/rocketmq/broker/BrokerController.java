@@ -38,6 +38,7 @@ import com.alibaba.rocketmq.common.constant.PermName;
 import com.alibaba.rocketmq.common.namesrv.RegisterBrokerResult;
 import com.alibaba.rocketmq.common.protocol.RequestCode;
 import com.alibaba.rocketmq.common.protocol.body.TopicConfigSerializeWrapper;
+import com.alibaba.rocketmq.common.stats.MomentStatsItem;
 import com.alibaba.rocketmq.remoting.RPCHook;
 import com.alibaba.rocketmq.remoting.RemotingServer;
 import com.alibaba.rocketmq.remoting.netty.NettyClientConfig;
@@ -56,9 +57,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Properties;
+import java.util.*;
 import java.util.concurrent.*;
 
 
@@ -67,6 +66,7 @@ import java.util.concurrent.*;
  */
 public class BrokerController {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.BrokerLoggerName);
+    private static final Logger logProtection = LoggerFactory.getLogger(LoggerName.ProtectionLoggerName);
     private final BrokerConfig brokerConfig;
     private final NettyServerConfig nettyServerConfig;
     private final NettyClientConfig nettyClientConfig;
@@ -237,6 +237,18 @@ public class BrokerController {
                     }
                 }
             }, 1000 * 10, this.brokerConfig.getFlushConsumerOffsetInterval(), TimeUnit.MILLISECONDS);
+
+
+            this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        BrokerController.this.protectBroker();
+                    } catch (Exception e) {
+                        log.error("protectBroker error.", e);
+                    }
+                }
+            }, 3, 3, TimeUnit.MINUTES);
 
             /*
              * this.scheduledExecutorService.scheduleAtFixedRate(new Runnable()
@@ -743,5 +755,21 @@ public class BrokerController {
 
     public void setStoreHost(InetSocketAddress storeHost) {
         this.storeHost = storeHost;
+    }
+
+    public void protectBroker() {
+        if (this.brokerConfig.isDisableConsumeIfConsumerReadSlowly()) {
+            final Iterator<Map.Entry<String, MomentStatsItem>> it = this.brokerStatsManager.getMomentStatsItemSet().getStatsItemTable().entrySet().iterator();
+            while (it.hasNext()) {
+                final Map.Entry<String, MomentStatsItem> next = it.next();
+                final long fallBehindBytes = next.getValue().getValue().get();
+                if (fallBehindBytes > this.brokerConfig.getConsumerFallbehindThreshold()) {
+                    final String[] split = next.getValue().getStatsKey().split("@");
+                    final String group = split[2];
+                    logProtection.info("[PROTECT_BROKER] the consumer[{}] consume slowly, {} bytes, disable it", group, fallBehindBytes);
+                    this.subscriptionGroupManager.disableConsume(group);
+                }
+            }
+        }
     }
 }

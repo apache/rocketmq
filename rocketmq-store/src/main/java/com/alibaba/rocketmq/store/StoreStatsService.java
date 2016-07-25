@@ -39,6 +39,20 @@ public class StoreStatsService extends ServiceThread {
     private static final int FrequencyOfSampling = 1000;
 
     private static final int MaxRecordsOfSampling = 60 * 10;
+    private static final String[] PutMessageEntireTimeMaxDesc = new String[]{
+            "[<=0ms]", // 0
+            "[0~10ms]", // 1
+            "[10~100ms]", // 2
+            "[100~500ms]", // 3
+            "[500ms~1s]", // 4
+            "[1~2s]", // 5
+            "[2~3s]", // 6
+            "[3~4s]", // 7
+            "[4~5s]", // 8
+            "[5~10s]", // 9
+            "[10s~]", // 10
+    };
+    // 打印TPS数据间隔时间，单位秒，1分钟
 
     private static int PrintTPSInterval = 60 * 1;
 
@@ -52,6 +66,7 @@ public class StoreStatsService extends ServiceThread {
     private final AtomicLong getMessageTimesTotalFound = new AtomicLong(0);
     private final AtomicLong getMessageTransferedMsgCount = new AtomicLong(0);
     private final AtomicLong getMessageTimesTotalMiss = new AtomicLong(0);
+    // put最近10分钟采样
 
     private final AtomicLong[] putMessageDistributeTime = new AtomicLong[7];
 
@@ -60,6 +75,9 @@ public class StoreStatsService extends ServiceThread {
     private final LinkedList<CallSnapshot> getTimesFoundList = new LinkedList<CallSnapshot>();
     private final LinkedList<CallSnapshot> getTimesMissList = new LinkedList<CallSnapshot>();
     private final LinkedList<CallSnapshot> transferedMsgCountList = new LinkedList<CallSnapshot>();
+    // putMessage，耗时分布
+    private volatile AtomicLong[] putMessageDistributeTime;
+    // 启动时间
 
     private long messageStoreBootTimestamp = System.currentTimeMillis();
     private volatile long putMessageEntireTimeMax = 0;
@@ -76,42 +94,71 @@ public class StoreStatsService extends ServiceThread {
 
 
     public StoreStatsService() {
-        for (int i = 0; i < this.putMessageDistributeTime.length; i++) {
-            putMessageDistributeTime[i] = new AtomicLong(0);
-        }
+        this.initPutMessageDistributeTime();
     }
 
+    private AtomicLong[] initPutMessageDistributeTime() {
+        AtomicLong[] next = new AtomicLong[11];
+        for (int i = 0; i < next.length; i++) {
+            next[i] = new AtomicLong(0);
+        }
+
+        AtomicLong[] old = this.putMessageDistributeTime;
+
+        this.putMessageDistributeTime = next;
+
+        return old;
+    }
 
     public long getPutMessageEntireTimeMax() {
         return putMessageEntireTimeMax;
     }
 
-
     public void setPutMessageEntireTimeMax(long value) {
+        final AtomicLong[] times = this.putMessageDistributeTime;
 
+        if (null == times) return;
+
+        // 微秒
         if (value <= 0) {
-            this.putMessageDistributeTime[0].incrementAndGet();
+            times[0].incrementAndGet();
         }
 
         else if (value < 10) {
-            this.putMessageDistributeTime[1].incrementAndGet();
+            times[1].incrementAndGet();
         }
         else if (value < 100) {
-            this.putMessageDistributeTime[2].incrementAndGet();
+            times[2].incrementAndGet();
         }
         else if (value < 500) {
-            this.putMessageDistributeTime[3].incrementAndGet();
+            times[3].incrementAndGet();
         }
         else if (value < 1000) {
-            this.putMessageDistributeTime[4].incrementAndGet();
+            times[4].incrementAndGet();
         }
-
+        // 2秒
+        else if (value < 2000) {
+            times[5].incrementAndGet();
+        }
+        // 3秒
+        else if (value < 3000) {
+            times[6].incrementAndGet();
+        }
+        // 4秒
+        else if (value < 4000) {
+            times[7].incrementAndGet();
+        }
+        // 5秒
+        else if (value < 5000) {
+            times[8].incrementAndGet();
+        }
+        // 10秒
         else if (value < 10000) {
-            this.putMessageDistributeTime[5].incrementAndGet();
+            times[9].incrementAndGet();
         }
 
         else {
-            this.putMessageDistributeTime[6].incrementAndGet();
+            times[10].incrementAndGet();
         }
 
         if (value > this.putMessageEntireTimeMax) {
@@ -489,13 +536,26 @@ public class StoreStatsService extends ServiceThread {
         if (System.currentTimeMillis() > (this.lastPrintTimestamp + PrintTPSInterval * 1000)) {
             this.lastPrintTimestamp = System.currentTimeMillis();
 
-            log.info("put_tps {}", this.getPutTps(PrintTPSInterval));
+            log.info("[STORETPS] put_tps {} get_found_tps {} get_miss_tps {} get_transfered_tps {}" //
+                    , this.getPutTps(PrintTPSInterval) //
+                    , this.getGetFoundTps(PrintTPSInterval) //
+                    , this.getGetMissTps(PrintTPSInterval) //
+                    , this.getGetTransferedTps(PrintTPSInterval)
+            );
 
-            log.info("get_found_tps {}", this.getGetFoundTps(PrintTPSInterval));
+            final AtomicLong[] times = this.initPutMessageDistributeTime();
+            if (null == times) return;
 
-            log.info("get_miss_tps {}", this.getGetMissTps(PrintTPSInterval));
+            final StringBuilder sb = new StringBuilder();
+            long totalPut = 0;
+            for (int i = 0; i < times.length; i++) {
+                long value = times[i].get();
+                totalPut += value;
+                sb.append(String.format("%s:%d", PutMessageEntireTimeMaxDesc[i], value));
+                sb.append(" ");
+            }
 
-            log.info("get_transfered_tps {}", this.getGetTransferedTps(PrintTPSInterval));
+            log.info("[PAGECACHERT] TotalPut {}, PutMessageDistributeTime {}", totalPut, sb.toString());
         }
     }
 

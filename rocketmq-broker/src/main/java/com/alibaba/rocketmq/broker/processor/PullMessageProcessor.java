@@ -215,6 +215,30 @@ public class PullMessageProcessor implements NettyRequestProcessor {
 
             else {
                 responseHeader.setSuggestWhichBrokerId(subscriptionGroupConfig.getBrokerId());
+
+            switch (this.brokerController.getMessageStoreConfig().getBrokerRole()) {
+                case ASYNC_MASTER:
+                case SYNC_MASTER:
+                    break;
+                case SLAVE:
+                    if (!this.brokerController.getBrokerConfig().isSlaveReadEnable()) {
+                        response.setCode(ResponseCode.PULL_RETRY_IMMEDIATELY);
+                        responseHeader.setSuggestWhichBrokerId(MixAll.MASTER_ID);
+                    }
+                    break;
+            }
+
+            if (this.brokerController.getBrokerConfig().isSlaveReadEnable()) {
+                // 消费较慢，重定向到另外一台机器
+                if (getMessageResult.isSuggestPullingFromSlave()) {
+                    responseHeader.setSuggestWhichBrokerId(subscriptionGroupConfig.getWhichBrokerWhenConsumeSlowly());
+                }
+                // 消费正常，按照订阅组配置重定向
+                else {
+                    responseHeader.setSuggestWhichBrokerId(subscriptionGroupConfig.getBrokerId());
+                }
+            } else {
+                responseHeader.setSuggestWhichBrokerId(MixAll.MASTER_ID);
             }
 
             switch (getMessageResult.getStatus()) {
@@ -320,8 +344,11 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                     this.brokerController.getBrokerStatsManager().incBrokerGetNums(getMessageResult.getMessageCount());
 
                     if (this.brokerController.getBrokerConfig().isTransferMsgByHeap()) {
-                        final byte[] r = this.readGetMessageResult(getMessageResult, requestHeader.getConsumerGroup(),
-                                requestHeader.getTopic(), requestHeader.getQueueId());
+                        final long beginTimeMills = this.brokerController.getMessageStore().now();
+                        final byte[] r = this.readGetMessageResult(getMessageResult);
+                        this.brokerController.getBrokerStatsManager().incGroupGetLatency(requestHeader.getConsumerGroup(), //
+                                requestHeader.getTopic(), requestHeader.getQueueId(),//
+                                (int) (this.brokerController.getMessageStore().now() - beginTimeMills));
                         response.setBody(r);
                     } else {
                         try {
