@@ -231,6 +231,8 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                 else {
                     responseHeader.setSuggestWhichBrokerId(subscriptionGroupConfig.getBrokerId());
                 }
+            } else {
+                responseHeader.setSuggestWhichBrokerId(MixAll.MASTER_ID);
             }
 
             switch (getMessageResult.getStatus()) {
