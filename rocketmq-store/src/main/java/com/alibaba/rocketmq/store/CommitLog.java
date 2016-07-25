@@ -242,13 +242,13 @@ public class CommitLog {
             bornTimeStamp = bornTimeStamp + 0;
 
             // 10 BORNHOST（IP+PORT）
-            byteBuffer.get(bytesContent, 0, 8);
+            final ByteBuffer byteBuffer1 = byteBuffer.get(bytesContent, 0, 8);
 
             // 11 STORETIMESTAMP
             long storeTimestamp = byteBuffer.getLong();
 
             // 12 STOREHOST（IP+PORT）
-            byteBuffer.get(bytesContent, 0, 8);
+            final ByteBuffer byteBuffer2 = byteBuffer.get(bytesContent, 0, 8);
 
             // 13 RECONSUMETIMES
             int reconsumeTimes = byteBuffer.getInt();
