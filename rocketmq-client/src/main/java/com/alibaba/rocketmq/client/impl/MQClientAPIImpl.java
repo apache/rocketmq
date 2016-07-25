@@ -1811,7 +1811,7 @@ public class MQClientAPIImpl {
     }
 
 
-    public BrokerStatsData ViewBrokerStatsData(String brokerAddr, String statsName, String statsKey, long timeoutMillis)
+    public BrokerStatsData viewBrokerStatsData(String brokerAddr, String statsName, String statsKey, long timeoutMillis)
             throws MQClientException, RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException,
             InterruptedException {
         ViewBrokerStatsDataRequestHeader requestHeader = new ViewBrokerStatsDataRequestHeader();

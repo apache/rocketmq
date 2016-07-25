@@ -117,7 +117,7 @@ public class StatsAllSubCommand implements SubCommand {
             String masterAddr = bd.getBrokerAddrs().get(MixAll.MASTER_ID);
             if (masterAddr != null) {
                 try {
-                    BrokerStatsData bsd = admin.ViewBrokerStatsData(masterAddr, BrokerStatsManager.TOPIC_PUT_NUMS, topic);
+                    BrokerStatsData bsd = admin.viewBrokerStatsData(masterAddr, BrokerStatsManager.TOPIC_PUT_NUMS, topic);
                     inTPS += bsd.getStatsMinute().getTps();
                     inMsgCntToday += compute24HourSum(bsd);
                 } catch (Exception e) {
@@ -136,7 +136,7 @@ public class StatsAllSubCommand implements SubCommand {
                     if (masterAddr != null) {
                         try {
                             String statsKey = String.format("%s@%s", topic, group);
-                            BrokerStatsData bsd = admin.ViewBrokerStatsData(masterAddr, BrokerStatsManager.GROUP_GET_NUMS, statsKey);
+                            BrokerStatsData bsd = admin.viewBrokerStatsData(masterAddr, BrokerStatsManager.GROUP_GET_NUMS, statsKey);
                             outTPS += bsd.getStatsMinute().getTps();
                             outMsgCntToday += compute24HourSum(bsd);
                         } catch (Exception e) {
