@@ -29,6 +29,7 @@ import com.alibaba.rocketmq.client.impl.consumer.DefaultMQPushConsumerImpl;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.UtilAll;
 import com.alibaba.rocketmq.common.consumer.ConsumeFromWhere;
+import com.alibaba.rocketmq.common.message.MessageDecoder;
 import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.common.message.MessageQueue;
 import com.alibaba.rocketmq.common.protocol.heartbeat.MessageModel;
@@ -206,6 +207,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
     @Override
     public MessageExt viewMessage(String topic, String msgId) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
         try {
+            MessageDecoder.decodeMessageId(msgId);
             return this.viewMessage(msgId);
         } catch (Exception e) {
         }

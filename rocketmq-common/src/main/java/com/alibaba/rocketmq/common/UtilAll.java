@@ -422,15 +422,10 @@ public class UtilAll {
 
         return result.toString();
     }
-         
-    /**
 
-     * @param ip
-     * @return
-     */
     public static boolean isInternalIP(byte[] ip) {
         if (ip.length != 4) {
-
+            throw new RuntimeException("illegal ipv4 bytes");
         }
         
 
@@ -453,15 +448,10 @@ public class UtilAll {
         }
         return false;
     }
-        
-    /**
 
-     * @param ip
-     * @return
-     */
     private static boolean ipCheck(byte[] ip) {
         if (ip.length != 4) {
-
+            throw new RuntimeException("illegal ipv4 bytes");
         }
         
 //        if (ip[0] == (byte)30 && ip[1] == (byte)10 && ip[2] == (byte)163 && ip[3] == (byte)120) {
