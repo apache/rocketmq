@@ -71,7 +71,7 @@ public class RemotingUtil {
                             }
                         }
                     } catch (final Exception e) {
-                        // ignore
+                        log.warn("Open ePoll Selector for linux platform exception", e);
                     }
                 }
             } catch (final Exception e) {
