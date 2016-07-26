@@ -123,10 +123,10 @@ public class ResetOffsetByTimeCommand implements SubCommand {
             }
 
             System.out.printf(
-                    "rollback consumer offset by specified group[%s], topic[%s], force[%s], timestamp(string)[%s], timestamp(long)[%s]\n",
+                    "rollback consumer offset by specified group[%s], topic[%s], force[%s], timestamp(string)[%s], timestamp(long)[%s]%n",
                     group, topic, force, timeStampStr, timestamp);
 
-            System.out.printf("%-40s  %-40s  %-40s\n",//
+            System.out.printf("%-40s  %-40s  %-40s%n",//
                     "#brokerName",//
                     "#queueId",//
                     "#offset");
@@ -134,7 +134,7 @@ public class ResetOffsetByTimeCommand implements SubCommand {
             Iterator<Map.Entry<MessageQueue, Long>> iterator = offsetTable.entrySet().iterator();
             while (iterator.hasNext()) {
                 Map.Entry<MessageQueue, Long> entry = iterator.next();
-                System.out.printf("%-40s  %-40d  %-40d\n",//
+                System.out.printf("%-40s  %-40d  %-40d%n",//
                         UtilAll.frontStringAtLeast(entry.getKey().getBrokerName(), 32),//
                         entry.getKey().getQueueId(),//
                         entry.getValue());

@@ -67,7 +67,7 @@ public class DeleteKvConfigCommand implements SubCommand {
 
             defaultMQAdminExt.start();
             defaultMQAdminExt.deleteKvConfig(namespace, key);
-            System.out.printf("delete kv config from namespace success.\n");
+            System.out.printf("delete kv config from namespace success.%n");
             return;
         } catch (Exception e) {
             e.printStackTrace();

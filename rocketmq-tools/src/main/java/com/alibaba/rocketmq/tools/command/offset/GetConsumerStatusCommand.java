@@ -91,10 +91,10 @@ public class GetConsumerStatusCommand implements SubCommand {
 
             Map<String, Map<MessageQueue, Long>> consumerStatusTable =
                     defaultMQAdminExt.getConsumeStatus(topic, group, originClientId);
-            System.out.printf("get consumer status from client. group=%s, topic=%s, originClientId=%s\n",
+            System.out.printf("get consumer status from client. group=%s, topic=%s, originClientId=%s%n",
                     group, topic, originClientId);
 
-            System.out.printf("%-50s  %-15s  %-15s  %-20s\n",//
+            System.out.printf("%-50s  %-15s  %-15s  %-20s%n",//
                     "#clientId",//
                     "#brokerName", //
                     "#queueId",//
@@ -107,7 +107,7 @@ public class GetConsumerStatusCommand implements SubCommand {
                 Iterator<MessageQueue> mqIterator = mqTable.keySet().iterator();
                 while (mqIterator.hasNext()) {
                     MessageQueue mq = mqIterator.next();
-                    System.out.printf("%-50s  %-15s  %-15d  %-20d\n",//
+                    System.out.printf("%-50s  %-15s  %-15d  %-20d%n",//
                             UtilAll.frontStringAtLeast(clientId, 50),//
                             mq.getBrokerName(),//
                             mq.getQueueId(),//

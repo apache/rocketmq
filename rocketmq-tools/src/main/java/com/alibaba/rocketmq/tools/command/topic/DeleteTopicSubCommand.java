@@ -72,7 +72,7 @@ public class DeleteTopicSubCommand implements SubCommand {
 
         Set<String> masterSet = CommandUtil.fetchMasterAddrByClusterName(adminExt, clusterName);
         adminExt.deleteTopicInBroker(masterSet, topic);
-        System.out.printf("delete topic [%s] from cluster [%s] success.\n", topic, clusterName);
+        System.out.printf("delete topic [%s] from cluster [%s] success.%n", topic, clusterName);
 
 
         Set<String> nameServerSet = null;
@@ -83,7 +83,7 @@ public class DeleteTopicSubCommand implements SubCommand {
 
 
         adminExt.deleteTopicInNameServer(nameServerSet, topic);
-        System.out.printf("delete topic [%s] from NameServer success.\n", topic);
+        System.out.printf("delete topic [%s] from NameServer success.%n", topic);
     }
 
 

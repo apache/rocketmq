@@ -90,7 +90,7 @@ public class BrokerConsumeStatsSubCommad implements SubCommand {
             }
 
             ConsumeStatsList consumeStatsList = defaultMQAdminExt.fetchConsumeStatsInBroker(brokerAddr, isOrder, timeoutMillis);
-            System.out.printf("%-32s  %-32s  %-32s  %-4s  %-20s  %-20s  %-20s  %s\n",//
+            System.out.printf("%-32s  %-32s  %-32s  %-4s  %-20s  %-20s  %-20s  %s%n",//
                     "#Topic",//
                     "#Group",//
                     "#Broker Name",//
@@ -120,7 +120,7 @@ public class BrokerConsumeStatsSubCommad implements SubCommand {
                                 //
                             }
                             if (offsetWrapper.getLastTimestamp() > 0)
-                                System.out.printf("%-32s  %-32s  %-32s  %-4d  %-20d  %-20d  %-20d  %s\n",//
+                                System.out.printf("%-32s  %-32s  %-32s  %-4d  %-20d  %-20d  %-20d  %s%n",//
                                         UtilAll.frontStringAtLeast(mq.getTopic(), 32),//
                                         group,
                                         UtilAll.frontStringAtLeast(mq.getBrokerName(), 32),//
@@ -135,7 +135,7 @@ public class BrokerConsumeStatsSubCommad implements SubCommand {
                 }
             }
             System.out.println();
-            System.out.printf("Diff Total: %d\n", consumeStatsList.getTotalDiff());
+            System.out.printf("Diff Total: %d%n", consumeStatsList.getTotalDiff());
         } catch (Exception e) {
             e.printStackTrace();
         } finally {

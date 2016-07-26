@@ -76,7 +76,7 @@ public class BrokerStatusSubCommand implements SubCommand {
             Iterator<Entry<String, String>> it = tmp.entrySet().iterator();
             while (it.hasNext()) {
                 Entry<String, String> next = it.next();
-                System.out.printf("%-32s: %s\n", next.getKey(), next.getValue());
+                System.out.printf("%-32s: %s%n", next.getKey(), next.getValue());
             }
         } catch (Exception e) {
             e.printStackTrace();

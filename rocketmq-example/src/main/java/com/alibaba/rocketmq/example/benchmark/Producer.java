@@ -49,7 +49,7 @@ public class Producer {
         final int messageSize = commandLine.hasOption('s') ? Integer.parseInt(commandLine.getOptionValue('s')) : 128;
         final boolean keyEnable = commandLine.hasOption('k') ? Boolean.parseBoolean(commandLine.getOptionValue('k')) : false;
 
-        System.out.printf("threadCount %d messageSize %d keyEnable %s\n", threadCount, messageSize, keyEnable);
+        System.out.printf("threadCount %d messageSize %d keyEnable %s%n", threadCount, messageSize, keyEnable);
 
         final Logger log = ClientLogger.getLog();
 
@@ -82,7 +82,7 @@ public class Producer {
                     final long sendTps = (long) (((end[3] - begin[3]) / (double) (end[0] - begin[0])) * 1000L);
                     final double averageRT = ((end[5] - begin[5]) / (double) (end[3] - begin[3]));
 
-                    System.out.printf("Send TPS: %d Max RT: %d Average RT: %7.3f Send Failed: %d Response Failed: %d\n"//
+                    System.out.printf("Send TPS: %d Max RT: %d Average RT: %7.3f Send Failed: %d Response Failed: %d%n"//
                             , sendTps//
                             , statsBenchmark.getSendMessageMaxRT().get()//
                             , averageRT//

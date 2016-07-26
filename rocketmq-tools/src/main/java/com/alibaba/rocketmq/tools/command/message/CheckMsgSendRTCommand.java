@@ -76,7 +76,7 @@ public class CheckMsgSendRTCommand implements SubCommand {
                     .getOptionValue('s').trim());
             Message msg = new Message(topic, getStringBySize(msgSize).getBytes());
 
-            System.out.printf("%-32s  %-4s  %-20s    %s\n",//
+            System.out.printf("%-32s  %-4s  %-20s    %s%n",//
                     "#Broker Name",//
                     "#QID",//
                     "#Send Result",//
@@ -107,7 +107,7 @@ public class CheckMsgSendRTCommand implements SubCommand {
                     timeElapsed += (end - start);
                 }
 
-                System.out.printf("%-32s  %-4s  %-20s    %s\n",//
+                System.out.printf("%-32s  %-4s  %-20s    %s%n",//
                         brokerName,//
                         queueId,//
                         sendSuccess,//
@@ -116,7 +116,7 @@ public class CheckMsgSendRTCommand implements SubCommand {
             }
 
             double rt = (double) timeElapsed / (amount - 1);
-            System.out.printf("Avg RT: %s\n", String.format("%.2f", rt));
+            System.out.printf("Avg RT: %s%n", String.format("%.2f", rt));
         } catch (Exception e) {
             e.printStackTrace();
         } finally {

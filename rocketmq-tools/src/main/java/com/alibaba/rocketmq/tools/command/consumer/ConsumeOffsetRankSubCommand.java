@@ -198,7 +198,7 @@ public class ConsumeOffsetRankSubCommand implements SubCommand {
             consumeDataInfoRet.add(consumeDataInfoMap.get(group));
         }
         Collections.sort(consumeDataInfoRet);
-        System.out.printf("%-48s  %-6s  %-24s %-5s  %-14s  %-7s  %s\n",//
+        System.out.printf("%-48s  %-6s  %-24s %-5s  %-14s  %-7s  %s%n",//
                 "#Group",//
                 "#Count",//
                 "#Version",//
@@ -225,7 +225,7 @@ public class ConsumeOffsetRankSubCommand implements SubCommand {
                 consumeDataInfo.setMessageModel(cc.getMessageModel());
                 consumeDataInfo.setConsumeType(cc.getConsumeType());
                 consumeDataInfo.setVersion(cc.computeMinVersion());
-                System.out.printf("%-48s  %-6d  %-24s %-5s  %-14s  %-7d  %d\n",//
+                System.out.printf("%-48s  %-6d  %-24s %-5s  %-14s  %-7d  %d%n",//
                         UtilAll.frontStringAtLeast(consumeDataInfo.getGroup(), 32),//
                         consumeDataInfo.getCount(),//
                         consumeDataInfo.getCount() > 0 ? consumeDataInfo.versionDesc() : "OFFLINE",//

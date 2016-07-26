@@ -281,12 +281,12 @@ public class TpsStatsSubCommand implements SubCommand {
         if (tpsDataInfoList.size() > 0) {
             Collections.sort(tpsDataInfoList);
             if (type.equals(PUT_TPS)) {
-                System.out.printf("%-64s  %11s\n",//
+                System.out.printf("%-64s  %11s%n",//
                         "#Topic Name",//
                         "#InTPS"
                 );
             } else if (type.equals(GET_TPS)) {
-                System.out.printf("%-64s  %64s  %11s\n",//
+                System.out.printf("%-64s  %64s  %11s%n",//
                         "#Group Name",//
                         "#Topic Name",//
                         "#InTPS"
@@ -297,12 +297,12 @@ public class TpsStatsSubCommand implements SubCommand {
                 if (amount > 0 && i >= amount)
                     break;
                 if (type.equals(PUT_TPS)) {
-                    System.out.printf("%-64s  %11s\n",//
+                    System.out.printf("%-64s  %11s%n",//
                             tpsDataInfo.getTopicName(),
                             tpsDataInfo.getTps()
                     );
                 } else if (type.equals(GET_TPS)) {
-                    System.out.printf("%-64s  %64s  %11s\n",//
+                    System.out.printf("%-64s  %64s  %11s%n",//
                             tpsDataInfo.getGroupName(),
                             tpsDataInfo.getTopicName(),
                             tpsDataInfo.getTps()

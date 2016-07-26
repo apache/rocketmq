@@ -73,7 +73,7 @@ public class UpdateKvConfigCommand implements SubCommand {
 
             defaultMQAdminExt.start();
             defaultMQAdminExt.createAndUpdateKvConfig(namespace, key, value);
-            System.out.printf("create or update kv config to namespace success.\n");
+            System.out.printf("create or update kv config to namespace success.%n");
             return;
         } catch (Exception e) {
             e.printStackTrace();

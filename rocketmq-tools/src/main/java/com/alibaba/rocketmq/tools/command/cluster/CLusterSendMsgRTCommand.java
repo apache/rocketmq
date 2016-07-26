@@ -119,7 +119,7 @@ public class CLusterSendMsgRTCommand implements SubCommand {
             }
 
             if (!printAsTlog) {
-                System.out.printf("%-24s  %-24s  %-4s  %-8s  %-8s\n",//
+                System.out.printf("%-24s  %-24s  %-4s  %-8s  %-8s%n",//
                         "#Cluster Name",//
                         "#Broker Name",//
                         "#RT",//
@@ -162,7 +162,7 @@ public class CLusterSendMsgRTCommand implements SubCommand {
 
                         double rt = (double) elapsed / (amount - 1);
                         if (!printAsTlog) {
-                            System.out.printf("%-24s  %-24s  %-8s  %-16s  %-16s\n",//
+                            System.out.printf("%-24s  %-24s  %-8s  %-16s  %-16s%n",//
                                     clusterName,//
                                     brokerName, //
                                     String.format("%.2f", rt),//

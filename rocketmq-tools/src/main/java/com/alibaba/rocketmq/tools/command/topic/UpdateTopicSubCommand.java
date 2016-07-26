@@ -149,7 +149,7 @@ public class UpdateTopicSubCommand implements SubCommand {
                     System.out.println(String.format("set broker orderConf. isOrder=%s, orderConf=[%s]",
                             isOrder, orderConf.toString()));
                 }
-                System.out.printf("create topic to %s success.\n", addr);
+                System.out.printf("create topic to %s success.%n", addr);
                 System.out.println(topicConfig);
                 return;
 
@@ -162,7 +162,7 @@ public class UpdateTopicSubCommand implements SubCommand {
                         CommandUtil.fetchMasterAddrByClusterName(defaultMQAdminExt, clusterName);
                 for (String addr : masterSet) {
                     defaultMQAdminExt.createAndUpdateTopicConfig(addr, topicConfig);
-                    System.out.printf("create topic to %s success.\n", addr);
+                    System.out.printf("create topic to %s success.%n", addr);
                 }
 
                 if (isOrder) {
