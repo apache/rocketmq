@@ -61,7 +61,7 @@ public class BrokerStatsManager {
     public static final String GROUP_GET_LATENCY = "GROUP_GET_LATENCY";
 
     /**
-     * 读磁盘落后统计
+     * read disk follow stats
      */
     public static final String GROUP_GET_FALL = "GROUP_GET_FALL";
     private static final Logger log = LoggerFactory.getLogger(LoggerName.RocketmqStatsLoggerName);
