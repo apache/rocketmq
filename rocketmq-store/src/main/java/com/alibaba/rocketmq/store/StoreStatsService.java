@@ -52,7 +52,6 @@ public class StoreStatsService extends ServiceThread {
             "[5~10s]", // 9
             "[10s~]", // 10
     };
-    // 打印TPS数据间隔时间，单位秒，1分钟
 
     private static int PrintTPSInterval = 60 * 1;
 
@@ -112,7 +111,7 @@ public class StoreStatsService extends ServiceThread {
 
         if (null == times) return;
 
-        // 微秒
+        // us
         if (value <= 0) {
             times[0].incrementAndGet();
         }
@@ -129,23 +128,23 @@ public class StoreStatsService extends ServiceThread {
         else if (value < 1000) {
             times[4].incrementAndGet();
         }
-        // 2秒
+        // 2s
         else if (value < 2000) {
             times[5].incrementAndGet();
         }
-        // 3秒
+        // 3s
         else if (value < 3000) {
             times[6].incrementAndGet();
         }
-        // 4秒
+        // 4s
         else if (value < 4000) {
             times[7].incrementAndGet();
         }
-        // 5秒
+        // 5s
         else if (value < 5000) {
             times[8].incrementAndGet();
         }
-        // 10秒
+        // 10s
         else if (value < 10000) {
             times[9].incrementAndGet();
         }
