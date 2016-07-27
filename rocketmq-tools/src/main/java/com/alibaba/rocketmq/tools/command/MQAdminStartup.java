@@ -164,7 +164,6 @@ public class MQAdminStartup {
         initCommand(new CleanUnusedTopicCommand());
 
         initCommand(new StartMonitoringSubCommand());
-        initCommand(new CheckMsgSubCommand());
         initCommand(new StatsAllSubCommand());
         initCommand(new TpsStatsSubCommand());
 

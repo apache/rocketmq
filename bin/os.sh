@@ -15,18 +15,22 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-echo 'vm.overcommit_memory=1' >> /etc/sysctl.conf
-echo 'vm.min_free_kbytes=1000000' >> /etc/sysctl.conf
-echo 'vm.extra_free_kbytes=5000000' >> /etc/sysctl.conf
-echo 'vm.drop_caches=1' >> /etc/sysctl.conf
-echo 'vm.zone_reclaim_mode=0' >> /etc/sysctl.conf
-echo 'vm.max_map_count=655360' >> /etc/sysctl.conf
-echo 'vm.dirty_background_ratio=50' >> /etc/sysctl.conf
-echo 'vm.dirty_ratio=50' >> /etc/sysctl.conf
-echo 'vm.page-cluster=3' >> /etc/sysctl.conf
-echo 'vm.dirty_writeback_centisecs=360000' >> /etc/sysctl.conf
-echo 'vm.swappiness=60' >> /etc/sysctl.conf
-sysctl -p
+#
+# Execute Only Once
+#
+
+sudo /sbin/sysctl -w vm.overcommit_memory=1
+sudo /sbin/sysctl -w vm.min_free_kbytes=5000000
+sudo /sbin/sysctl -w vm.extra_free_kbytes=5000000
+sudo /sbin/sysctl -w vm.drop_caches=1
+sudo /sbin/sysctl -w vm.zone_reclaim_mode=0
+sudo /sbin/sysctl -w vm.max_map_count=655360
+sudo /sbin/sysctl -w vm.dirty_background_ratio=50
+sudo /sbin/sysctl -w vm.dirty_ratio=50
+sudo /sbin/sysctl -w vm.page-cluster=3
+sudo /sbin/sysctl -w vm.dirty_writeback_centisecs=360000
+sudo /sbin/sysctl -w vm.swappiness=10
+/sbin/sysctl -p
 
 echo 'ulimit -n 655350' >> /etc/profile
 echo 'admin hard nofile 655350' >> /etc/security/limits.conf
@@ -37,17 +41,17 @@ echo 'deadline' > /sys/block/$DISK/queue/scheduler
 
 
 echo "---------------------------------------------------------------"
-sysctl vm.overcommit_memory
-sysctl vm.min_free_kbytes
-sysctl vm.extra_free_kbytes
-sysctl vm.drop_caches
-sysctl vm.zone_reclaim_mode
-sysctl vm.max_map_count
-sysctl vm.dirty_background_ratio
-sysctl vm.dirty_ratio
-sysctl vm.page-cluster
-sysctl vm.dirty_writeback_centisecs
-sysctl vm.swappiness
+/sbin/sysctl vm.overcommit_memory
+/sbin/sysctl vm.min_free_kbytes
+/sbin/sysctl vm.extra_free_kbytes
+/sbin/sysctl vm.drop_caches
+/sbin/sysctl vm.zone_reclaim_mode
+/sbin/sysctl vm.max_map_count
+/sbin/sysctl vm.dirty_background_ratio
+/sbin/sysctl vm.dirty_ratio
+/sbin/sysctl vm.page-cluster
+/sbin/sysctl vm.dirty_writeback_centisecs
+/sbin/sysctl vm.swappiness
 
 su - admin -c 'ulimit -n'
 cat /sys/block/$DISK/queue/scheduler
