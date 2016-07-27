@@ -19,13 +19,13 @@
 <configuration>
     <appender name="RocketmqClientAppender"
               class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>${user.home}/logs/rocketmqlogs/rocketmq_client.log</file>
+        <file>${client.logRoot}/rocketmq_client.log</file>
         <append>true</append>
         <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
-            <fileNamePattern>${user.home}/logs/rocketmqlogs/otherdays/rocketmq_client.%i.log
+            <fileNamePattern>${client.logRoot}/otherdays/rocketmq_client.%i.log
             </fileNamePattern>
             <minIndex>1</minIndex>
-            <maxIndex>10</maxIndex>
+            <maxIndex>${client.logFileMaxIndex}</maxIndex>
         </rollingPolicy>
         <triggeringPolicy
                 class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
@@ -38,19 +38,19 @@
     </appender>
 
     <logger name="RocketmqCommon" additivity="false">
-        <level value="INFO"/>
+        <level value="${client.logLevel}"/>
         <appender-ref ref="RocketmqClientAppender"/>
     </logger>
 
 
     <logger name="RocketmqRemoting" additivity="false">
-        <level value="INFO"/>
+        <level value="${client.logLevel}"/>
         <appender-ref ref="RocketmqClientAppender"/>
     </logger>
 
 
     <logger name="RocketmqClient" additivity="false">
-        <level value="INFO"/>
+        <level value="${client.logLevel}"/>
         <appender-ref ref="RocketmqClientAppender"/>
     </logger>
 

@@ -30,6 +30,9 @@ import java.net.URL;
  */
 public class ClientLogger {
     private static Logger log;
+    public static final String CLIENT_LOG_ROOT = "rocketmq.client.logRoot";
+    public static final String CLIENT_LOG_MAXINDEX = "rocketmq.client.logFileMaxIndex";
+    public static final String CLIENT_LOG_LEVEL = "rocketmq.client.logLevel";
 
     static {
         log = createLogger(LoggerName.ClientLoggerName);
@@ -49,6 +52,13 @@ public class ClientLogger {
         final String logback_resource_file =
                 System
                         .getProperty("rocketmq.client.logback.resource.fileName", "logback_rocketmq_client.xml");
+
+        String clientLogRoot = System.getProperty(CLIENT_LOG_ROOT,"${user.home}/logs/rocketmqlogs");
+        System.setProperty("client.logRoot",clientLogRoot);
+        String clientLogLevel = System.getProperty(CLIENT_LOG_LEVEL,"INFO");
+        System.setProperty("client.logLevel",clientLogLevel);
+        String clientLogMaxIndex = System.getProperty(CLIENT_LOG_MAXINDEX,"10");
+        System.setProperty("client.logFileMaxIndex",clientLogMaxIndex);
 
         if (isloadconfig) {
             try {
