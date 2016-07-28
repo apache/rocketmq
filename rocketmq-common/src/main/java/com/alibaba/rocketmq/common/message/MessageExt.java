@@ -72,9 +72,9 @@ public class MessageExt extends Message {
     }
 
     public ByteBuffer getBornHostBytes() {
-        return SocketAddress2ByteBuffer(this.bornHost);
+        return socketAddress2ByteBuffer(this.bornHost);
     }
-    public static ByteBuffer SocketAddress2ByteBuffer(SocketAddress socketAddress) {
+    public static ByteBuffer socketAddress2ByteBuffer(SocketAddress socketAddress) {
         ByteBuffer byteBuffer = ByteBuffer.allocate(8);
         InetSocketAddress inetSocketAddress = (InetSocketAddress) socketAddress;
         byteBuffer.put(inetSocketAddress.getAddress().getAddress());
@@ -83,7 +83,7 @@ public class MessageExt extends Message {
         return byteBuffer;
     }
     public ByteBuffer getStoreHostBytes() {
-        return SocketAddress2ByteBuffer(this.storeHost);
+        return socketAddress2ByteBuffer(this.storeHost);
     }
 
     public int getQueueId() {
