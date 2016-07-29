@@ -45,7 +45,7 @@ public class TpsStatsSubCommand implements SubCommand {
     private static final String GET_TPS = "GROUP_GET_NUMS";
     private static final String TLOG_DOMAIN = "http://110.75.84.129:9999";
 
-    class TpsDataInfo implements Comparable<TpsDataInfo> {
+    static class TpsDataInfo implements Comparable<TpsDataInfo> {
         private String topicName;
         private String groupName;
         private int tps = 0;

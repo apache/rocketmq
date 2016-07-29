@@ -100,8 +100,9 @@ public class BrokerConsumeStatsSubCommad implements SubCommand {
                     "#Diff", //
                     "#LastTime");
             for (Map<String, List<ConsumeStats>> map : consumeStatsList.getConsumeStatsList()) {
-                for (String group : map.keySet()) {
-                    List<ConsumeStats> consumeStatsArray = map.get(group);
+                for (Map.Entry<String, List<ConsumeStats>> entry : map.entrySet()) {
+                    String group = entry.getKey();
+                    List<ConsumeStats> consumeStatsArray = entry.getValue();
                     for (ConsumeStats consumeStats : consumeStatsArray) {
                         List<MessageQueue> mqList = new LinkedList<MessageQueue>();
                         mqList.addAll(consumeStats.getOffsetTable().keySet());

@@ -402,8 +402,9 @@ public class MQClientInstance {
             String brokerName = entry.getKey();
             HashMap<Long, String> oneTable = entry.getValue();
             if (oneTable != null) {
-                for (Long id : oneTable.keySet()) {
-                    String addr = oneTable.get(id);
+                for (Map.Entry<Long, String> entry1 : oneTable.entrySet()) {
+                    Long id = entry1.getKey();
+                    String addr = entry1.getValue();
                     if (addr != null) {
                         if (consumerEmpty) {
                             if (id != MixAll.MASTER_ID)
@@ -545,8 +546,8 @@ public class MQClientInstance {
         heartbeatData.setClientID(this.clientId);
 
         // Consumer
-        for (String group : this.consumerTable.keySet()) {
-            MQConsumerInner impl = this.consumerTable.get(group);
+        for(Map.Entry<String,MQConsumerInner> entry: this.consumerTable.entrySet()){
+            MQConsumerInner impl = entry.getValue();
             if (impl != null) {
                 ConsumerData consumerData = new ConsumerData();
                 consumerData.setGroupName(impl.groupName());
@@ -560,12 +561,13 @@ public class MQClientInstance {
             }
         }
 
+
         // Producer
-        for (String group : this.producerTable.keySet()) {
-            MQProducerInner impl = this.producerTable.get(group);
+        for (Map.Entry<String/* group */, MQProducerInner> entry : this.producerTable.entrySet()) {
+            MQProducerInner impl = entry.getValue();
             if (impl != null) {
                 ProducerData producerData = new ProducerData();
-                producerData.setGroupName(group);
+                producerData.setGroupName(entry.getKey());
 
                 heartbeatData.getProducerDataSet().add(producerData);
             }
@@ -817,13 +819,13 @@ public class MQClientInstance {
             HashMap<Long, String> oneTable = entry.getValue();
 
             if (oneTable != null) {
-                for (Long id : oneTable.keySet()) {
-                    String addr = oneTable.get(id);
+                for (Map.Entry<Long, String> entry1 : oneTable.entrySet()) {
+                    String addr = entry1.getValue();
                     if (addr != null) {
                         try {
                             this.mQClientAPIImpl.unregisterClient(addr, this.clientId, producerGroup, consumerGroup, 3000);
                             log.info("unregister client[Producer: {} Consumer: {}] from broker[{} {} {}] success", producerGroup,
-                                    consumerGroup, brokerName, id, addr);
+                                    consumerGroup, brokerName, entry1.getKey(), addr);
                         } catch (RemotingException e) {
                             log.error("unregister client exception from broker: " + addr, e);
                         } catch (MQBrokerException e) {
@@ -879,8 +881,8 @@ public class MQClientInstance {
     }
 
     public void doRebalance() {
-        for (String group : this.consumerTable.keySet()) {
-            MQConsumerInner impl = this.consumerTable.get(group);
+        for (Map.Entry<String, MQConsumerInner> entry : this.consumerTable.entrySet()) {
+            MQConsumerInner impl = entry.getValue();
             if (impl != null) {
                 try {
                     impl.doRebalance();
@@ -1015,11 +1017,11 @@ public class MQClientInstance {
             consumer.suspend();
 
             ConcurrentHashMap<MessageQueue, ProcessQueue> processQueueTable = consumer.getRebalanceImpl().getProcessQueueTable();
-            Iterator<MessageQueue> itr = processQueueTable.keySet().iterator();
-            while (itr.hasNext()) {
-                MessageQueue mq = itr.next();
-                if (topic.equals(mq.getTopic())) {
-                    ProcessQueue pq = processQueueTable.get(mq);
+
+            for(Map.Entry<MessageQueue,ProcessQueue> entry : processQueueTable.entrySet()){
+                MessageQueue mq = entry.getKey();
+                if(topic.equals(mq.getTopic())){
+                    ProcessQueue pq = entry.getValue();
                     pq.setDropped(true);
                     pq.clear();
                 }
@@ -1032,14 +1034,14 @@ public class MQClientInstance {
                 //
             }
 
-            Iterator<MessageQueue> iterator = processQueueTable.keySet().iterator();
             processQueueTable = consumer.getRebalanceImpl().getProcessQueueTable();
-            while (iterator.hasNext()) {
-                MessageQueue mq = iterator.next();
+
+            for (Map.Entry<MessageQueue, ProcessQueue> entry : processQueueTable.entrySet()) {
+                MessageQueue mq = entry.getKey();
                 if (topic.equals(mq.getTopic())) {
                     consumer.updateConsumeOffset(mq, offsetTable.get(mq));
-                    consumer.getRebalanceImpl().removeUnnecessaryMessageQueue(mq, processQueueTable.get(mq));
-                    iterator.remove();
+                    consumer.getRebalanceImpl().removeUnnecessaryMessageQueue(mq, entry.getValue());
+                    processQueueTable.remove(mq);
                 }
             }
         } finally {
@@ -1113,13 +1115,15 @@ public class MQClientInstance {
         ConsumerRunningInfo consumerRunningInfo = mqConsumerInner.consumerRunningInfo();
 
         List<String> nsList = this.mQClientAPIImpl.getRemotingClient().getNameServerAddressList();
-        String nsAddr = "";
+
+        StringBuffer strBuffer = new StringBuffer();
         if (nsList != null) {
             for (String addr : nsList) {
-                nsAddr = nsAddr + addr + ";";
+                strBuffer.append(addr + ";");
             }
         }
 
+        String nsAddr = strBuffer.toString();
         consumerRunningInfo.getProperties().put(ConsumerRunningInfo.PROP_NAMESERVER_ADDR, nsAddr);
         consumerRunningInfo.getProperties().put(ConsumerRunningInfo.PROP_CONSUME_TYPE, mqConsumerInner.consumeType().name());
         consumerRunningInfo.getProperties().put(ConsumerRunningInfo.PROP_CLIENT_VERSION,

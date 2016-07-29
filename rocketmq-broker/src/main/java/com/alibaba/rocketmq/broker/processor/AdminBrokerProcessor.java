@@ -927,9 +927,10 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 this.brokerController.getConsumerOffsetManager().queryOffset(requestHeader.getTopic(), requestHeader.getCompareGroup());
 
         if (compareOffset != null && !compareOffset.isEmpty()) {
-            for (Integer queueId : compareOffset.keySet()) {
+            for(Map.Entry<Integer, Long> entry: compareOffset.entrySet()){
+                Integer queueId = entry.getKey();
                 correctionOffset.put(queueId,
-                        correctionOffset.get(queueId) > compareOffset.get(queueId) ? Long.MAX_VALUE : correctionOffset.get(queueId));
+                        correctionOffset.get(queueId) > entry.getValue() ? Long.valueOf(Long.MAX_VALUE) : correctionOffset.get(queueId));
             }
         }
 

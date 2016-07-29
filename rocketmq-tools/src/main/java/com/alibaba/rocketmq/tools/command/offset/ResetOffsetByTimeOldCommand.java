@@ -81,7 +81,7 @@ public class ResetOffsetByTimeOldCommand implements SubCommand {
             String timeStampStr = commandLine.getOptionValue("s").trim();
             long timestamp = 0;
             try {
-                timestamp = Long.valueOf(timeStampStr);
+                timestamp = Long.parseLong(timeStampStr);
             } catch (NumberFormatException e) {
 
                 Date date = UtilAll.parseDate(timeStampStr, UtilAll.yyyy_MM_dd_HH_mm_ss_SSS);

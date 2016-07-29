@@ -247,7 +247,7 @@ public class ClusterListSubCommand implements SubCommand {
                         System.out.printf("%-16s  %-22s  %-4s  %-22s %-16s %11.2f%s %11.2f%s\n",//
                                 clusterName,//
                                 brokerName,//
-                                next1.getKey().longValue(),//
+                                String.valueOf(next1.getKey()),//
                                 next1.getValue(),//
                                 version,//
                                 in,//

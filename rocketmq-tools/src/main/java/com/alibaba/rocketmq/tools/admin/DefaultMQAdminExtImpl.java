@@ -528,8 +528,8 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
 
             StringBuilder newOrderConf = new StringBuilder();
             String splitor = "";
-            for (String tmp : orderConfMap.keySet()) {
-                newOrderConf.append(splitor).append(orderConfMap.get(tmp));
+            for (Map.Entry<String, String> entry : orderConfMap.entrySet()) {
+                newOrderConf.append(splitor).append(entry.getValue());
                 splitor = ";";
             }
             this.mqClientInstance.getMQClientAPIImpl().putKVConfigValue(NamesrvUtil.NAMESPACE_ORDER_TOPIC_CONFIG, key,

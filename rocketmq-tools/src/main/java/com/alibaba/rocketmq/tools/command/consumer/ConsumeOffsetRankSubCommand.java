@@ -162,8 +162,9 @@ public class ConsumeOffsetRankSubCommand implements SubCommand {
         ConsumeStatsList consumeStatsList = defaultMQAdminExt.fetchConsumeStatsInBroker(brokerAddr, false, timeoutMillis);
         List<ConsumeDataInfo> consumeDataInfoList = new ArrayList<ConsumeDataInfo>();
         for (Map<String, List<ConsumeStats>> map : consumeStatsList.getConsumeStatsList()) {
-            for (String group : map.keySet()) {
-                List<ConsumeStats> consumeStatsArray = map.get(group);
+            for (Map.Entry<String, List<ConsumeStats>> entry : map.entrySet()) {
+                String group = entry.getKey();
+                List<ConsumeStats> consumeStatsArray = entry.getValue();
                 for (ConsumeStats consumeStats : consumeStatsArray) {
                     ConsumeDataInfo consumeDataInfo = new ConsumeDataInfo();
                     consumeDataInfo.setGroup(group);
@@ -194,9 +195,10 @@ public class ConsumeOffsetRankSubCommand implements SubCommand {
 
     private void printResult(DefaultMQAdminExt defaultMQAdminExt, Map<String/*group*/, ConsumeDataInfo> consumeDataInfoMap, int amount) {
         List<ConsumeDataInfo> consumeDataInfoRet = new ArrayList<ConsumeDataInfo>();
-        for (String group : consumeDataInfoMap.keySet()) {
-            consumeDataInfoRet.add(consumeDataInfoMap.get(group));
+        for(Map.Entry<String, ConsumeDataInfo> entry: consumeDataInfoMap.entrySet()){
+            consumeDataInfoRet.add(entry.getValue());
         }
+
         Collections.sort(consumeDataInfoRet);
         System.out.printf("%-48s  %-6s  %-24s %-5s  %-14s  %-7s  %s\n",//
                 "#Group",//
@@ -254,7 +256,7 @@ public class ConsumeOffsetRankSubCommand implements SubCommand {
         printResult(defaultMQAdminExt, consumeDataInfoMap, amount);
     }
 
-    class ConsumeDataInfo implements Comparable<ConsumeDataInfo> {
+    static class ConsumeDataInfo implements Comparable<ConsumeDataInfo> {
         private String group;
         private int version;
         private int count;
