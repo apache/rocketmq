@@ -17,4 +17,24 @@
 
 export PATH=$PATH:/sbin
 
-sysctl -w vm.drop_caches=3
+#
+# GB
+#
+function changeFreeCache()
+{
+    EXTRA=$1
+    MIN=$2
+    sysctl -w vm.extra_free_kbytes=${EXTRA}000000
+    sysctl -w vm.min_free_kbytes=${MIN}000000
+}
+
+
+if [ $# -ne 1 ]
+then
+    echo "Usage: $0 freecache(GB)"
+    echo "Example: $0 15"
+    exit
+fi
+
+changeFreeCache 3 $1
+changeFreeCache 3 1
