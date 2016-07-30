@@ -26,6 +26,7 @@ function changeFreeCache()
     MIN=$2
     sysctl -w vm.extra_free_kbytes=${EXTRA}000000
     sysctl -w vm.min_free_kbytes=${MIN}000000
+    sysctl -w vm.swappiness=0
 }
 
 
