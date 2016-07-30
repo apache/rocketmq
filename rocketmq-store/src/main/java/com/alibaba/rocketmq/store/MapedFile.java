@@ -16,11 +16,16 @@
  */
 package com.alibaba.rocketmq.store;
 
+import com.alibaba.rocketmq.common.SystemClock;
 import com.alibaba.rocketmq.common.UtilAll;
 import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.store.config.FlushDiskType;
+import com.alibaba.rocketmq.store.util.LibC;
+import com.sun.jna.NativeLong;
+import com.sun.jna.Pointer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import sun.nio.ch.DirectBuffer;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -421,6 +426,8 @@ public class MapedFile extends ReferenceResource {
         }
         log.info("mapped file worm up done. mappedFile={}, costTime={}", this.getFileName(),
                 System.currentTimeMillis() - beginTime);
+
+        this.mlock();
     }
 
     public String getFileName() {
@@ -450,6 +457,22 @@ public class MapedFile extends ReferenceResource {
         this.firstCreateInQueue = firstCreateInQueue;
     }
 
+
+    public  void mlock(){
+        final long beginTime = System.currentTimeMillis();
+        final long address = ((DirectBuffer)(this.mappedByteBuffer)).address();
+        Pointer pointer = new Pointer(address);
+        int ret = LibC.INSTANCE.mlock(pointer, new NativeLong(this.fileSize));
+        log.info("mlock {} {} {} ret = {} time consuming = {}", address, this.fileName, this.fileSize, ret, System.currentTimeMillis() - beginTime);
+    };
+
+    public  void munlock(){
+        final long beginTime = System.currentTimeMillis();
+        final long address = ((DirectBuffer)(this.mappedByteBuffer)).address();
+        Pointer pointer = new Pointer(address);
+        int ret = LibC.INSTANCE.munlock(pointer, new NativeLong(this.fileSize));
+        log.info("munlock {} {} {} ret = {} time consuming = {}", address, this.fileName, this.fileSize, ret, System.currentTimeMillis() - beginTime);
+    };
 
     @Override
     public String toString() {
