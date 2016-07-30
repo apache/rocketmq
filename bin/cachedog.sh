@@ -21,16 +21,21 @@ while true; do
     nr_free_pages=`fgrep -A 10 Normal /proc/zoneinfo  |grep nr_free_pages  |awk -F ' ' '{print $2}'`
     high=`fgrep -A 10 Normal /proc/zoneinfo  |grep high  |awk -F ' ' '{print $2}'`
 
+    NOW_DATE=`date +%D`
+    NOW_TIME=`date +%T`
+
     if [ ${nr_free_pages} -le ${high} ]; then
         sysctl -w vm.drop_caches=3
         nr_free_pages_new=`fgrep -A 10 Normal /proc/zoneinfo  |grep nr_free_pages  |awk -F ' ' '{print $2}'`
 
-        NOW_DATE=`date +%D`
-        NOW_TIME=`date +%T`
-        printf "%s %s nr_free_pages < high, clean cache. nr_free_pages=%s ====> nr_free_pages=%s\n" "${NOW_DATE}" "${NOW_TIME}" ${nr_free_pages} ${nr_free_pages_new}
+        printf "%s %s [CLEAN] nr_free_pages < high, clean cache. nr_free_pages=%s ====> nr_free_pages=%s\n" "${NOW_DATE}" "${NOW_TIME}" ${nr_free_pages} ${nr_free_pages_new}
+
+        sysctl -w vm.drop_caches=1
         echo
         echo
         echo
+    else
+        printf "%s %s [NOTHING] nr_free_pages=%s high=%s\n" "${NOW_DATE}" "${NOW_TIME}" ${nr_free_pages} ${high}
     fi
 
     sleep 1
