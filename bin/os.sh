@@ -36,9 +36,12 @@ sudo sysctl -w vm.swappiness=0
 echo 'ulimit -n 655350' >> /etc/profile
 echo '* hard nofile 655350' >> /etc/security/limits.conf
 
+echo '* hard memlock      unlimited' >> /etc/security/limits.conf
+echo '* soft memlock      unlimited' >> /etc/security/limits.conf
+
 DISK=`df -k | sort -n -r -k 2 | awk -F/ 'NR==1 {gsub(/[0-9].*/,"",$3); print $3}'`
 [ "$DISK" = 'cciss' ] && DISK='cciss!c0d0'
-echo 'deadline' > /sys/block/$DISK/queue/scheduler
+echo 'deadline' > /sys/block/${DISK}/queue/scheduler
 
 
 echo "---------------------------------------------------------------"
