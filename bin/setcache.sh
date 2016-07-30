@@ -29,12 +29,11 @@ function changeFreeCache()
 }
 
 
-if [ $# -ne 1 ]
+if [ $# -ne 2 ]
 then
-    echo "Usage: $0 freecache(GB)"
-    echo "Example: $0 15"
+    echo "Usage: $0 extra_free_kbytes(GB) min_free_kbytes(GB)"
+    echo "Example: $0 3 1"
     exit
 fi
 
-changeFreeCache 3 $1
-changeFreeCache 3 1
+changeFreeCache $1 $2
