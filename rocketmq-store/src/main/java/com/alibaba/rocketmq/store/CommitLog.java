@@ -187,6 +187,12 @@ public class CommitLog {
         return this.checkMessageAndReturnSize(byteBuffer, checkCRC, true);
     }
 
+    private void doNothingForDeadCode(final Object obj) {
+        if (obj != null) {
+            log.warn(String.valueOf(obj.hashCode()));
+        }
+    }
+
     /**
      * check the message and returns the message size
      *
@@ -219,7 +225,6 @@ public class CommitLog {
 
             // 5 FLAG
             int flag = byteBuffer.getInt();
-            flag = flag + 0;
 
             // 6 QUEUEOFFSET
             long queueOffset = byteBuffer.getLong();
@@ -232,7 +237,6 @@ public class CommitLog {
 
             // 9 BORNTIMESTAMP
             long bornTimeStamp = byteBuffer.getLong();
-            bornTimeStamp = bornTimeStamp + 0;
 
             // 10 BORNHOST（IP+PORT）
             final ByteBuffer byteBuffer1 = byteBuffer.get(bytesContent, 0, 8);
@@ -312,6 +316,11 @@ public class CommitLog {
 
             int readLength = calMsgLength(bodyLen, topicLen, propertiesLength);
             if (totalSize != readLength) {
+                doNothingForDeadCode(reconsumeTimes);
+                doNothingForDeadCode(flag);
+                doNothingForDeadCode(bornTimeStamp);
+                doNothingForDeadCode(byteBuffer1);
+                doNothingForDeadCode(byteBuffer2);
                 log.error(
                         "[BUG]read total count not equals msg total size. totalSize={}, readTotalCount={}, bodyLen={}, topicLen={}, propertiesLength={}",
                         totalSize, readLength, bodyLen, topicLen, propertiesLength);
