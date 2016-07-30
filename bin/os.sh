@@ -32,7 +32,6 @@ sudo sysctl -w vm.dirty_ratio=50
 sudo sysctl -w vm.dirty_writeback_centisecs=360000
 sudo sysctl -w vm.page-cluster=3
 sudo sysctl -w vm.swappiness=0
-sysctl -p
 
 echo 'ulimit -n 655350' >> /etc/profile
 echo '* hard nofile 655350' >> /etc/security/limits.conf

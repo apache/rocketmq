@@ -30,13 +30,12 @@ function changeFreeCache()
     MIN=$2
     sysctl -w vm.extra_free_kbytes=${EXTRA}000000
     sysctl -w vm.min_free_kbytes=${MIN}000000
-    sysctl -p
 }
 
 
 if [ $# -ne 2 ]
 then
-    echo "Usage: $0 extra_free_kbytes min_free_kbytes"
+    echo "Usage: $0 extra_free_gbytes min_free_gbytes"
     echo "Example: $0 3 1"
     echo "Example: $0 3 10"
     exit
