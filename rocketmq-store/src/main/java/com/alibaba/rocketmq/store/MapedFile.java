@@ -16,7 +16,6 @@
  */
 package com.alibaba.rocketmq.store;
 
-import com.alibaba.rocketmq.common.SystemClock;
 import com.alibaba.rocketmq.common.UtilAll;
 import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.store.config.FlushDiskType;
@@ -458,21 +457,28 @@ public class MapedFile extends ReferenceResource {
     }
 
 
-    public  void mlock(){
+    public void mlock() {
         final long beginTime = System.currentTimeMillis();
-        final long address = ((DirectBuffer)(this.mappedByteBuffer)).address();
+        final long address = ((DirectBuffer) (this.mappedByteBuffer)).address();
         Pointer pointer = new Pointer(address);
-        int ret = LibC.INSTANCE.mlock(pointer, new NativeLong(this.fileSize));
-        log.info("mlock {} {} {} ret = {} time consuming = {}", address, this.fileName, this.fileSize, ret, System.currentTimeMillis() - beginTime);
-    };
+        {
+            int ret = LibC.INSTANCE.mlock(pointer, new NativeLong(this.fileSize));
+            log.info("mlock {} {} {} ret = {} time consuming = {}", address, this.fileName, this.fileSize, ret, System.currentTimeMillis() - beginTime);
+        }
 
-    public  void munlock(){
+        {
+            int ret = LibC.INSTANCE.madvise(pointer, new NativeLong(this.fileSize), LibC.MADV_WILLNEED);
+            log.info("madvise {} {} {} ret = {} time consuming = {}", address, this.fileName, this.fileSize, ret, System.currentTimeMillis() - beginTime);
+        }
+    }
+
+    public void munlock() {
         final long beginTime = System.currentTimeMillis();
-        final long address = ((DirectBuffer)(this.mappedByteBuffer)).address();
+        final long address = ((DirectBuffer) (this.mappedByteBuffer)).address();
         Pointer pointer = new Pointer(address);
         int ret = LibC.INSTANCE.munlock(pointer, new NativeLong(this.fileSize));
         log.info("munlock {} {} {} ret = {} time consuming = {}", address, this.fileName, this.fileSize, ret, System.currentTimeMillis() - beginTime);
-    };
+    }
 
     @Override
     public String toString() {
