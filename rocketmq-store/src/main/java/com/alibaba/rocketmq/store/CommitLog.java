@@ -530,6 +530,7 @@ public class CommitLog {
         }
 
         long eclipseTimeInLock = 0;
+        MapedFile unlockMapedFile = null;
         MapedFile mapedFile = this.mapedFileQueue.getLastMapedFileWithLock();
         synchronized (this) {
             long beginLockTimestamp = this.defaultMessageStore.getSystemClock().now();
@@ -552,6 +553,7 @@ public class CommitLog {
                 case PUT_OK:
                     break;
                 case END_OF_FILE:
+                    unlockMapedFile = mapedFile;
                     // Create a new file, re-write the message
                     mapedFile = this.mapedFileQueue.getLastMapedFile();
                     if (null == mapedFile) {
@@ -580,6 +582,9 @@ public class CommitLog {
 
         if (eclipseTimeInLock > 1000) {
             log.warn("[NOTIFYME]putMessage in lock eclipse time(ms)={}, bodyLength={}", eclipseTimeInLock, msg.getBody().length);
+        }
+        if (null != unlockMapedFile){
+            this.defaultMessageStore.unlockMapedFile(unlockMapedFile);
         }
 
         PutMessageResult putMessageResult = new PutMessageResult(PutMessageStatus.PUT_OK, result);
