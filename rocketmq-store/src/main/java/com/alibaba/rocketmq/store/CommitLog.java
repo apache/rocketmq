@@ -590,9 +590,9 @@ public class CommitLog {
         } // end of synchronized
 
         if (eclipseTimeInLock > 1000) {
-            log.warn("[NOTIFYME]putMessage in lock eclipse time(ms)={}, bodyLength={}", eclipseTimeInLock, msg.getBody().length);
+            log.warn("[NOTIFYME]putMessage in lock cost time(ms)={}, bodyLength={} AppendMessageResult={}", eclipseTimeInLock, msg.getBody().length, result);
         }
-        if (null != unlockMapedFile){
+        if (null != unlockMapedFile) {
             this.defaultMessageStore.unlockMapedFile(unlockMapedFile);
         }
 
@@ -1067,7 +1067,7 @@ public class CommitLog {
                 // Here the length of the specially set maxBlank
                 byteBuffer.put(this.msgStoreItemMemory.array(), 0, maxBlank);
                 return new AppendMessageResult(AppendMessageStatus.END_OF_FILE, wroteOffset, maxBlank, msgId, msgInner.getStoreTimestamp(),
-                        queueOffset);
+                        queueOffset, 0);
             }
 
             // Initialization of storage space
@@ -1112,11 +1112,12 @@ public class CommitLog {
             if (propertiesLength > 0)
                 this.msgStoreItemMemory.put(propertiesData);
 
+            final long beginTimeMills = CommitLog.this.defaultMessageStore.now();
             // Write messages to the queue buffer
             byteBuffer.put(this.msgStoreItemMemory.array(), 0, msgLen);
 
             AppendMessageResult result = new AppendMessageResult(AppendMessageStatus.PUT_OK, wroteOffset, msgLen, msgId,
-                    msgInner.getStoreTimestamp(), queueOffset);
+                    msgInner.getStoreTimestamp(), queueOffset, CommitLog.this.defaultMessageStore.now() - beginTimeMills);
 
             switch (tranType) {
                 case MessageSysFlag.TransactionPreparedType:
