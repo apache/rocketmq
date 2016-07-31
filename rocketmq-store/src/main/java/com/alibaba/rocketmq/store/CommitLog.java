@@ -189,7 +189,9 @@ public class CommitLog {
 
     private void doNothingForDeadCode(final Object obj) {
         if (obj != null) {
-            log.warn(String.valueOf(obj.hashCode()));
+            if (log.isDebugEnabled()) {
+                log.debug(String.valueOf(obj.hashCode()));
+            }
         }
     }
 
