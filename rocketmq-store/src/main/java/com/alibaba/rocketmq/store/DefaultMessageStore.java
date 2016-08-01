@@ -44,7 +44,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 import static com.alibaba.rocketmq.store.config.BrokerRole.SLAVE;
@@ -1311,13 +1310,13 @@ public class DefaultMessageStore implements MessageStore {
                 Double.parseDouble(System.getProperty("rocketmq.broker.diskSpaceCleanForciblyRatio", "0.85"));
         private long lastRedeleteTimestamp = 0;
 
-        private AtomicInteger manualDeleteFileSeveralTimes = new AtomicInteger(0);
+        private volatile int manualDeleteFileSeveralTimes = 0;
 
         private volatile boolean cleanImmediately = false;
 
 
         public void excuteDeleteFilesManualy() {
-            this.manualDeleteFileSeveralTimes.set(MaxManualDeleteFileTimes);
+            this.manualDeleteFileSeveralTimes = MaxManualDeleteFileTimes;
             DefaultMessageStore.log.info("excuteDeleteFilesManualy was invoked");
         }
 
@@ -1340,13 +1339,13 @@ public class DefaultMessageStore implements MessageStore {
 
             boolean timeup = this.isTimeToDelete();
             boolean spacefull = this.isSpaceToDelete();
-            boolean manualDelete = this.manualDeleteFileSeveralTimes.get() > 0;
+            boolean manualDelete = this.manualDeleteFileSeveralTimes > 0;
 
 
             if (timeup || spacefull || manualDelete) {
 
                 if (manualDelete)
-                    this.manualDeleteFileSeveralTimes.decrementAndGet();
+                    this.manualDeleteFileSeveralTimes --;
 
 
                 boolean cleanAtOnce = DefaultMessageStore.this.getMessageStoreConfig().isCleanFileForciblyEnable() && this.cleanImmediately;
@@ -1455,6 +1454,14 @@ public class DefaultMessageStore implements MessageStore {
             }
 
             return false;
+        }
+
+        public int getManualDeleteFileSeveralTimes() {
+            return manualDeleteFileSeveralTimes;
+        }
+
+        public void setManualDeleteFileSeveralTimes(int manualDeleteFileSeveralTimes) {
+            this.manualDeleteFileSeveralTimes = manualDeleteFileSeveralTimes;
         }
     }
     class CleanConsumeQueueService {

@@ -67,8 +67,8 @@ public class MQPullConsumerScheduleService {
         for (MessageQueue mq : mqNewSet) {
             if (!this.taskTable.containsKey(mq)) {
                 PullTaskImpl command = new PullTaskImpl(mq);
+                this.taskTable.put(mq, command);
                 this.scheduledThreadPoolExecutor.schedule(command, 0, TimeUnit.MILLISECONDS);
-                this.taskTable.putIfAbsent(mq, command);
 
             }
         }

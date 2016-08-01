@@ -930,7 +930,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             for(Map.Entry<Integer, Long> entry: compareOffset.entrySet()){
                 Integer queueId = entry.getKey();
                 correctionOffset.put(queueId,
-                        correctionOffset.get(queueId) > entry.getValue() ? Long.valueOf(Long.MAX_VALUE) : correctionOffset.get(queueId));
+                        correctionOffset.get(queueId) > entry.getValue() ? Long.MAX_VALUE : correctionOffset.get(queueId));
             }
         }
 
