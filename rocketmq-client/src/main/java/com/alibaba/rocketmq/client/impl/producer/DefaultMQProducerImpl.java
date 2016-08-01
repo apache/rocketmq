@@ -6,13 +6,13 @@
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package com.alibaba.rocketmq.client.impl.producer;
 
@@ -28,6 +28,7 @@ import com.alibaba.rocketmq.client.hook.SendMessageHook;
 import com.alibaba.rocketmq.client.impl.CommunicationMode;
 import com.alibaba.rocketmq.client.impl.MQClientManager;
 import com.alibaba.rocketmq.client.impl.factory.MQClientInstance;
+import com.alibaba.rocketmq.client.latency.MQFaultStrategy;
 import com.alibaba.rocketmq.client.log.ClientLogger;
 import com.alibaba.rocketmq.client.producer.*;
 import com.alibaba.rocketmq.common.MixAll;
@@ -69,6 +70,8 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     private MQClientInstance mQClientFactory;
     private ArrayList<CheckForbiddenHook> checkForbiddenHookList = new ArrayList<CheckForbiddenHook>();
     private int zipCompressLevel = Integer.parseInt(System.getProperty(MixAll.MESSAGE_COMPRESS_LEVEL, "5"));
+
+    private MQFaultStrategy mqFaultStrategy = new MQFaultStrategy();
 
 
     public DefaultMQProducerImpl(final DefaultMQProducer defaultMQProducer) {
@@ -419,7 +422,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             String[] brokersSent = new String[timesTotal];
             for (; times < timesTotal; times++) {
                 String lastBrokerName = null == mq ? null : mq.getBrokerName();
-                MessageQueue tmpmq = topicPublishInfo.selectOneMessageQueue(lastBrokerName);
+                MessageQueue tmpmq = this.mqFaultStrategy.selectOneMessageQueue(topicPublishInfo, lastBrokerName);
                 if (tmpmq != null) {
                     mq = tmpmq;
                     brokersSent[times] = mq.getBrokerName();
@@ -427,6 +430,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                         beginTimestampPrev = System.currentTimeMillis();
                         sendResult = this.sendKernelImpl(msg, mq, communicationMode, sendCallback, topicPublishInfo, timeout);
                         endTimestamp = System.currentTimeMillis();
+                        this.mqFaultStrategy.updateFaultItem(mq.getBrokerName(), endTimestamp - beginTimestampPrev, false);
                         switch (communicationMode) {
                             case ASYNC:
                                 return null;
@@ -445,18 +449,21 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                         }
                     } catch (RemotingException e) {
                         endTimestamp = System.currentTimeMillis();
+                        this.mqFaultStrategy.updateFaultItem(mq.getBrokerName(), endTimestamp - beginTimestampPrev, true);
                         log.warn(String.format("sendKernelImpl exception, resend at once, InvokeID: %s, RT: %sms, Broker: %s", invokeID, endTimestamp - beginTimestampPrev, mq), e);
                         log.warn(msg.toString());
                         exception = e;
                         continue;
                     } catch (MQClientException e) {
                         endTimestamp = System.currentTimeMillis();
+                        this.mqFaultStrategy.updateFaultItem(mq.getBrokerName(), endTimestamp - beginTimestampPrev, true);
                         log.warn(String.format("sendKernelImpl exception, resend at once, InvokeID: %s, RT: %sms, Broker: %s", invokeID, endTimestamp - beginTimestampPrev, mq), e);
                         log.warn(msg.toString());
                         exception = e;
                         continue;
                     } catch (MQBrokerException e) {
                         endTimestamp = System.currentTimeMillis();
+                        this.mqFaultStrategy.updateFaultItem(mq.getBrokerName(), endTimestamp - beginTimestampPrev, true);
                         log.warn(String.format("sendKernelImpl exception, resend at once, InvokeID: %s, RT: %sms, Broker: %s", invokeID, endTimestamp - beginTimestampPrev, mq), e);
                         log.warn(msg.toString());
                         exception = e;
@@ -477,6 +484,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                         }
                     } catch (InterruptedException e) {
                         endTimestamp = System.currentTimeMillis();
+                        this.mqFaultStrategy.updateFaultItem(mq.getBrokerName(), endTimestamp - beginTimestampPrev, false);
                         log.warn(String.format("sendKernelImpl exception, throw exception, InvokeID: %s, RT: %sms, Broker: %s", invokeID, endTimestamp - beginTimestampPrev, mq), e);
                         log.warn(msg.toString());
                         exception = e;
@@ -1032,5 +1040,29 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
     public void setServiceState(ServiceState serviceState) {
         this.serviceState = serviceState;
+    }
+
+    public long[] getNotAvailableDuration() {
+        return this.mqFaultStrategy.getNotAvailableDuration();
+    }
+
+    public void setNotAvailableDuration(final long[] notAvailableDuration) {
+        this.mqFaultStrategy.setNotAvailableDuration(notAvailableDuration);
+    }
+
+    public long[] getLatencyMax() {
+        return this.mqFaultStrategy.getLatencyMax();
+    }
+
+    public void setLatencyMax(final long[] latencyMax) {
+        this.mqFaultStrategy.setLatencyMax(latencyMax);
+    }
+
+    public boolean isSendLatencyFaultEnable() {
+        return this.mqFaultStrategy.isSendLatencyFaultEnable();
+    }
+
+    public void setSendLatencyFaultEnable(final boolean sendLatencyFaultEnable) {
+        this.mqFaultStrategy.setSendLatencyFaultEnable(sendLatencyFaultEnable);
     }
 }

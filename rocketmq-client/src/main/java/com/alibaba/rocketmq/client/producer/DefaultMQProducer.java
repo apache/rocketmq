@@ -344,4 +344,28 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     public void setSendMessageWithVIPChannel(final boolean sendMessageWithVIPChannel) {
         this.setVipChannelEnabled(sendMessageWithVIPChannel);
     }
+
+    public long[] getNotAvailableDuration() {
+        return this.defaultMQProducerImpl.getNotAvailableDuration();
+    }
+
+    public void setNotAvailableDuration(final long[] notAvailableDuration) {
+        this.defaultMQProducerImpl.setNotAvailableDuration(notAvailableDuration);
+    }
+
+    public long[] getLatencyMax() {
+        return this.defaultMQProducerImpl.getLatencyMax();
+    }
+
+    public void setLatencyMax(final long[] latencyMax) {
+        this.defaultMQProducerImpl.setLatencyMax(latencyMax);
+    }
+
+    public boolean isSendLatencyFaultEnable() {
+        return this.defaultMQProducerImpl.isSendLatencyFaultEnable();
+    }
+
+    public void setSendLatencyFaultEnable(final boolean sendLatencyFaultEnable) {
+        this.defaultMQProducerImpl.setSendLatencyFaultEnable(sendLatencyFaultEnable);
+    }
 }
