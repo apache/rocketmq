@@ -536,7 +536,7 @@ public class MQClientAPIImpl {
         switch (response.getCode()) {
             case ResponseCode.SUCCESS: {
                 ByteBuffer byteBuffer = ByteBuffer.wrap(response.getBody());
-                MessageExt messageExt = MessageDecoder.decode(byteBuffer);
+                MessageExt messageExt = MessageDecoder.clientDecode(byteBuffer,true);
                 return messageExt;
             }
             default:
