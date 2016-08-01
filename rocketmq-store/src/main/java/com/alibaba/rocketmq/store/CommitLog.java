@@ -187,6 +187,14 @@ public class CommitLog {
         return this.checkMessageAndReturnSize(byteBuffer, checkCRC, true);
     }
 
+    private void doNothingForDeadCode(final Object obj) {
+        if (obj != null) {
+            if (log.isDebugEnabled()) {
+                log.debug(String.valueOf(obj.hashCode()));
+            }
+        }
+    }
+
     /**
      * check the message and returns the message size
      *
@@ -219,7 +227,6 @@ public class CommitLog {
 
             // 5 FLAG
             int flag = byteBuffer.getInt();
-            flag = flag + 0;
 
             // 6 QUEUEOFFSET
             long queueOffset = byteBuffer.getLong();
@@ -232,16 +239,15 @@ public class CommitLog {
 
             // 9 BORNTIMESTAMP
             long bornTimeStamp = byteBuffer.getLong();
-            bornTimeStamp = bornTimeStamp + 0;
 
-            // 10 BORNHOST（IP+PORT）
-            final ByteBuffer byteBuffer1 = byteBuffer.get(bytesContent, 0, 8);
+            // 10
+            ByteBuffer byteBuffer1 = byteBuffer.get(bytesContent, 0, 8);
 
             // 11 STORETIMESTAMP
             long storeTimestamp = byteBuffer.getLong();
 
-            // 12 STOREHOST（IP+PORT）
-            final ByteBuffer byteBuffer2 = byteBuffer.get(bytesContent, 0, 8);
+            // 12
+            ByteBuffer byteBuffer2 = byteBuffer.get(bytesContent, 0, 8);
 
             // 13 RECONSUMETIMES
             int reconsumeTimes = byteBuffer.getInt();
@@ -312,6 +318,11 @@ public class CommitLog {
 
             int readLength = calMsgLength(bodyLen, topicLen, propertiesLength);
             if (totalSize != readLength) {
+                doNothingForDeadCode(reconsumeTimes);
+                doNothingForDeadCode(flag);
+                doNothingForDeadCode(bornTimeStamp);
+                doNothingForDeadCode(byteBuffer1);
+                doNothingForDeadCode(byteBuffer2);
                 log.error(
                         "[BUG]read total count not equals msg total size. totalSize={}, readTotalCount={}, bodyLen={}, topicLen={}, propertiesLength={}",
                         totalSize, readLength, bodyLen, topicLen, propertiesLength);
@@ -530,6 +541,7 @@ public class CommitLog {
         }
 
         long eclipseTimeInLock = 0;
+        MapedFile unlockMapedFile = null;
         MapedFile mapedFile = this.mapedFileQueue.getLastMapedFileWithLock();
         synchronized (this) {
             long beginLockTimestamp = this.defaultMessageStore.getSystemClock().now();
@@ -552,6 +564,7 @@ public class CommitLog {
                 case PUT_OK:
                     break;
                 case END_OF_FILE:
+                    unlockMapedFile = mapedFile;
                     // Create a new file, re-write the message
                     mapedFile = this.mapedFileQueue.getLastMapedFile();
                     if (null == mapedFile) {
@@ -579,7 +592,10 @@ public class CommitLog {
         } // end of synchronized
 
         if (eclipseTimeInLock > 1000) {
-            log.warn("[NOTIFYME]putMessage in lock eclipse time(ms)={}, bodyLength={}", eclipseTimeInLock, msg.getBody().length);
+            log.warn("[NOTIFYME]putMessage in lock cost time(ms)={}, bodyLength={} AppendMessageResult={}", eclipseTimeInLock, msg.getBody().length, result);
+        }
+        if (null != unlockMapedFile) {
+            this.defaultMessageStore.unlockMapedFile(unlockMapedFile);
         }
 
         PutMessageResult putMessageResult = new PutMessageResult(PutMessageStatus.PUT_OK, result);
@@ -1051,9 +1067,10 @@ public class CommitLog {
                 //
 
                 // Here the length of the specially set maxBlank
+                final long beginTimeMills = CommitLog.this.defaultMessageStore.now();
                 byteBuffer.put(this.msgStoreItemMemory.array(), 0, maxBlank);
                 return new AppendMessageResult(AppendMessageStatus.END_OF_FILE, wroteOffset, maxBlank, msgId, msgInner.getStoreTimestamp(),
-                        queueOffset);
+                        queueOffset, CommitLog.this.defaultMessageStore.now() - beginTimeMills);
             }
 
             // Initialization of storage space
@@ -1098,11 +1115,12 @@ public class CommitLog {
             if (propertiesLength > 0)
                 this.msgStoreItemMemory.put(propertiesData);
 
+            final long beginTimeMills = CommitLog.this.defaultMessageStore.now();
             // Write messages to the queue buffer
             byteBuffer.put(this.msgStoreItemMemory.array(), 0, msgLen);
 
             AppendMessageResult result = new AppendMessageResult(AppendMessageStatus.PUT_OK, wroteOffset, msgLen, msgId,
-                    msgInner.getStoreTimestamp(), queueOffset);
+                    msgInner.getStoreTimestamp(), queueOffset, CommitLog.this.defaultMessageStore.now() - beginTimeMills);
 
             switch (tranType) {
                 case MessageSysFlag.TransactionPreparedType:

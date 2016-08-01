@@ -67,6 +67,7 @@ import java.util.concurrent.*;
 public class BrokerController {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.BrokerLoggerName);
     private static final Logger logProtection = LoggerFactory.getLogger(LoggerName.ProtectionLoggerName);
+    private static final Logger logWaterMark = LoggerFactory.getLogger(LoggerName.WaterMarkLoggerName);
     private final BrokerConfig brokerConfig;
     private final NettyServerConfig nettyServerConfig;
     private final NettyClientConfig nettyClientConfig;
@@ -249,6 +250,17 @@ public class BrokerController {
                     }
                 }
             }, 3, 3, TimeUnit.MINUTES);
+
+            this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        BrokerController.this.printWaterMark();
+                    } catch (Exception e) {
+                        log.error("printWaterMark error.", e);
+                    }
+                }
+            }, 10, 1, TimeUnit.SECONDS);
 
             /*
              * this.scheduledExecutorService.scheduleAtFixedRate(new Runnable()
@@ -771,5 +783,9 @@ public class BrokerController {
                 }
             }
         }
+    }
+
+    public void printWaterMark(){
+        logWaterMark.info("[WATERMARK] Send Load: {} Pull Load: {}", this.sendThreadPoolQueue.size(), this.pullThreadPoolQueue.size());
     }
 }

@@ -6,13 +6,13 @@
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package com.alibaba.rocketmq.store;
 
@@ -20,7 +20,6 @@ package com.alibaba.rocketmq.store;
  * When write a message to the commit log, returns results
  *
  * @author shijia.wxr
- *
  */
 public class AppendMessageResult {
     // Return code
@@ -35,23 +34,30 @@ public class AppendMessageResult {
     private long storeTimestamp;
     // Consume queue's offset(step by one)
     private long logicsOffset;
-
+    private long pagecacheRT = 0;
 
     public AppendMessageResult(AppendMessageStatus status) {
-        this(status, 0, 0, "", 0, 0);
+        this(status, 0, 0, "", 0, 0, 0);
     }
 
-
     public AppendMessageResult(AppendMessageStatus status, long wroteOffset, int wroteBytes, String msgId,
-                               long storeTimestamp, long logicsOffset) {
+                               long storeTimestamp, long logicsOffset, long pagecacheRT) {
         this.status = status;
         this.wroteOffset = wroteOffset;
         this.wroteBytes = wroteBytes;
         this.msgId = msgId;
         this.storeTimestamp = storeTimestamp;
         this.logicsOffset = logicsOffset;
+        this.pagecacheRT = pagecacheRT;
     }
 
+    public long getPagecacheRT() {
+        return pagecacheRT;
+    }
+
+    public void setPagecacheRT(final long pagecacheRT) {
+        this.pagecacheRT = pagecacheRT;
+    }
 
     public boolean isOk() {
         return this.status == AppendMessageStatus.PUT_OK;
@@ -117,12 +123,16 @@ public class AppendMessageResult {
         this.logicsOffset = logicsOffset;
     }
 
-
     @Override
     public String toString() {
-        return "AppendMessageResult [status=" + status + ", wroteOffset=" + wroteOffset + ", wroteBytes="
-                + wroteBytes + ", msgId=" + msgId + ", storeTimestamp=" + storeTimestamp + ", logicsOffset="
-                + logicsOffset + "]";
+        return "AppendMessageResult{" +
+                "status=" + status +
+                ", wroteOffset=" + wroteOffset +
+                ", wroteBytes=" + wroteBytes +
+                ", msgId='" + msgId + '\'' +
+                ", storeTimestamp=" + storeTimestamp +
+                ", logicsOffset=" + logicsOffset +
+                ", pagecacheRT=" + pagecacheRT +
+                '}';
     }
-
 }

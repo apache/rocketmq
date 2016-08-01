@@ -1717,5 +1717,16 @@ public class DefaultMessageStore implements MessageStore {
             return ReputMessageService.class.getSimpleName();
         }
 
+
+    }
+
+
+    public void unlockMapedFile(final MapedFile mapedFile){
+        this.scheduledExecutorService.schedule(new Runnable() {
+            @Override
+            public void run() {
+                mapedFile.munlock();
+            }
+        }, 6, TimeUnit.SECONDS);
     }
 }
