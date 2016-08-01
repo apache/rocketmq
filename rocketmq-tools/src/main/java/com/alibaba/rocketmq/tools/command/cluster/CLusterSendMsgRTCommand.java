@@ -18,6 +18,7 @@
 package com.alibaba.rocketmq.tools.command.cluster;
 
 import com.alibaba.rocketmq.client.producer.DefaultMQProducer;
+import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.message.Message;
 import com.alibaba.rocketmq.common.protocol.body.ClusterInfo;
 import com.alibaba.rocketmq.remoting.RPCHook;
@@ -137,7 +138,7 @@ public class CLusterSendMsgRTCommand implements SubCommand {
                     }
 
                     for (String brokerName : brokerNames) {
-                        Message msg = new Message(brokerName, getStringBySize(size).getBytes());
+                        Message msg = new Message(brokerName, getStringBySize(size).getBytes(MixAll.DEFAULT_CHARSET));
                         long start = 0;
                         long end = 0;
                         long elapsed = 0;

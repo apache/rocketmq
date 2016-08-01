@@ -156,7 +156,7 @@ public class MixAll {
 
 
     public static final void string2FileNotSafe(final String str, final String fileName) throws IOException {
-        File file = new File(fileName);
+        File file = new File(fileName,DEFAULT_CHARSET);
         File fileParent = file.getParentFile();
         if (fileParent != null) {
             fileParent.mkdirs();

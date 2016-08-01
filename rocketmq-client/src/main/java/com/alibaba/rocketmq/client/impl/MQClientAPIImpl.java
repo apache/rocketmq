@@ -1054,7 +1054,7 @@ public class MQClientAPIImpl {
         assert response != null;
         switch (response.getCode()) {
             case ResponseCode.SUCCESS: {
-                return MixAll.string2Properties(new String(response.getBody()));
+                return MixAll.string2Properties(new String(response.getBody(),MixAll.DEFAULT_CHARSET));
             }
             default:
                 break;

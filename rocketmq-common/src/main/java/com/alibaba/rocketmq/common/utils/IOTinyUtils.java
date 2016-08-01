@@ -17,6 +17,8 @@
 
 package com.alibaba.rocketmq.common.utils;
 
+import com.alibaba.rocketmq.remoting.common.RemotingHelper;
+
 import java.io.*;
 import java.nio.channels.FileChannel;
 import java.util.ArrayList;
@@ -29,7 +31,7 @@ import java.util.List;
 public class IOTinyUtils {
 
     static public String toString(InputStream input, String encoding) throws IOException {
-        return (null == encoding) ? toString(new InputStreamReader(input)) : toString(new InputStreamReader(
+        return (null == encoding) ? toString(new InputStreamReader(input, RemotingHelper.DEFAULT_CHARSET)) : toString(new InputStreamReader(
                 input, encoding));
     }
 

@@ -20,6 +20,7 @@ package com.alibaba.rocketmq.filtersrv.filter;
 import com.alibaba.rocketmq.common.UtilAll;
 import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.common.filter.FilterAPI;
+import com.alibaba.rocketmq.remoting.common.RemotingHelper;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -228,7 +229,7 @@ public class DynaCode {
         }
         int resultCode = compiler.run(null, null, err, args);
         if (resultCode != 0) {
-            throw new Exception(err.toString());
+            throw new Exception(err.toString(RemotingHelper.DEFAULT_CHARSET));
         }
     }
 

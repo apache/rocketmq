@@ -18,6 +18,7 @@ package com.alibaba.rocketmq.tools.command.message;
 
 import com.alibaba.rocketmq.client.producer.DefaultMQProducer;
 import com.alibaba.rocketmq.client.producer.MessageQueueSelector;
+import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.message.Message;
 import com.alibaba.rocketmq.common.message.MessageQueue;
 import com.alibaba.rocketmq.remoting.RPCHook;
@@ -74,7 +75,7 @@ public class CheckMsgSendRTCommand implements SubCommand {
                     .getOptionValue('a').trim());
             long msgSize = !commandLine.hasOption('s') ? 128 : Long.parseLong(commandLine
                     .getOptionValue('s').trim());
-            Message msg = new Message(topic, getStringBySize(msgSize).getBytes());
+            Message msg = new Message(topic, getStringBySize(msgSize).getBytes(MixAll.DEFAULT_CHARSET));
 
             System.out.printf("%-32s  %-4s  %-20s    %s%n",//
                     "#Broker Name",//

@@ -24,12 +24,14 @@ import com.alibaba.rocketmq.client.producer.MessageQueueSelector;
 import com.alibaba.rocketmq.client.producer.SendResult;
 import com.alibaba.rocketmq.common.message.Message;
 import com.alibaba.rocketmq.common.message.MessageQueue;
+import com.alibaba.rocketmq.remoting.common.RemotingHelper;
 import com.alibaba.rocketmq.remoting.exception.RemotingException;
 
+import java.io.UnsupportedEncodingException;
 import java.util.List;
 
 public class Producer {
-    public static void main(String[] args) {
+    public static void main(String[] args) throws UnsupportedEncodingException {
         try {
             MQProducer producer = new DefaultMQProducer("please_rename_unique_group_name");
 
@@ -42,7 +44,7 @@ public class Producer {
                 int orderId = i % 10;
                 Message msg =
                         new Message("TopicTestjjj", tags[i % tags.length], "KEY" + i,
-                                ("Hello RocketMQ " + i).getBytes());
+                                ("Hello RocketMQ " + i).getBytes(RemotingHelper.DEFAULT_CHARSET));
 
                 SendResult sendResult = producer.send(msg, new MessageQueueSelector() {
                     @Override

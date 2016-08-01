@@ -20,6 +20,7 @@ import com.alibaba.rocketmq.client.exception.MQClientException;
 import com.alibaba.rocketmq.client.producer.DefaultMQProducer;
 import com.alibaba.rocketmq.client.producer.SendResult;
 import com.alibaba.rocketmq.common.message.Message;
+import com.alibaba.rocketmq.remoting.common.RemotingHelper;
 import org.apache.commons.cli.*;
 
 public class Producer {
@@ -44,7 +45,7 @@ public class Producer {
                             topic,// topic
                             tags,// tag
                             keys,// key
-                            ("Hello RocketMQ " + i).getBytes());// body
+                            ("Hello RocketMQ " + i).getBytes(RemotingHelper.DEFAULT_CHARSET));// body
                     SendResult sendResult = producer.send(msg);
 
                     System.out.printf("%-8d %s%n", i, sendResult);

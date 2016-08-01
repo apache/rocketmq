@@ -21,6 +21,7 @@ import com.alibaba.rocketmq.client.exception.MQClientException;
 import com.alibaba.rocketmq.client.log.ClientLogger;
 import com.alibaba.rocketmq.client.producer.DefaultMQProducer;
 import com.alibaba.rocketmq.common.message.Message;
+import com.alibaba.rocketmq.remoting.common.RemotingHelper;
 import com.alibaba.rocketmq.remoting.exception.RemotingException;
 import com.alibaba.rocketmq.srvutil.ServerUtil;
 import org.apache.commons.cli.CommandLine;
@@ -29,6 +30,7 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.cli.PosixParser;
 import org.slf4j.Logger;
 
+import java.io.UnsupportedEncodingException;
 import java.util.LinkedList;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -37,7 +39,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class Producer {
-    public static void main(String[] args) throws MQClientException {
+    public static void main(String[] args) throws MQClientException, UnsupportedEncodingException {
 
         Options options = ServerUtil.buildCommandlineOptions(new Options());
         CommandLine commandLine = ServerUtil.parseCmdLine("producer", args, buildCommandlineOptions(options), new PosixParser());
@@ -184,7 +186,7 @@ public class Producer {
         return options;
     }
 
-    private static Message buildMessage(final int messageSize) {
+    private static Message buildMessage(final int messageSize) throws UnsupportedEncodingException {
         Message msg = new Message();
         msg.setTopic("BenchmarkTest");
 
@@ -193,7 +195,7 @@ public class Producer {
             sb.append("hello baby");
         }
 
-        msg.setBody(sb.toString().getBytes());
+        msg.setBody(sb.toString().getBytes(RemotingHelper.DEFAULT_CHARSET));
 
         return msg;
     }

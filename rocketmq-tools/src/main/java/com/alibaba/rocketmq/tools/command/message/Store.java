@@ -17,6 +17,7 @@
 
 package com.alibaba.rocketmq.tools.command.message;
 
+import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.store.ConsumeQueue;
 import com.alibaba.rocketmq.store.MapedFile;
 import com.alibaba.rocketmq.store.MapedFileQueue;
@@ -24,6 +25,7 @@ import com.alibaba.rocketmq.store.SelectMapedBufferResult;
 import com.alibaba.rocketmq.store.config.StorePathConfigHelper;
 
 import java.io.File;
+import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.util.Date;
 import java.util.List;
@@ -181,7 +183,13 @@ public class Store {
                 // 16 TOPIC
                 byte topicLen = byteBuffer.get();
                 byteBuffer.get(bytesContent, 0, topicLen);
-                String topic = new String(bytesContent, 0, topicLen);
+                String topic = null;
+                try {
+                    topic = new String(bytesContent, 0, topicLen, MixAll.DEFAULT_CHARSET);
+                } catch (UnsupportedEncodingException e) {
+                    e.printStackTrace();
+                }
+
 
                 Date storeTime = new Date(storeTimestamp);
 

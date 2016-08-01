@@ -37,6 +37,7 @@ import java.util.Enumeration;
  */
 public class RemotingUtil {
     public static final String OS_NAME = System.getProperty("os.name");
+
     private static final Logger log = LoggerFactory.getLogger(RemotingHelper.RemotingLogName);
     private static boolean isLinuxPlatform = false;
     private static boolean isWindowsPlatform = false;
