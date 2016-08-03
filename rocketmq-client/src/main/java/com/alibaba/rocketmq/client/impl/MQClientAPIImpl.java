@@ -357,7 +357,7 @@ public class MQClientAPIImpl {
                         timesTotal, curTimes, context);
             } catch (InterruptedException e1) {
                 onExceptionImpl(tmpmq.getBrokerName(), msg, timeoutMillis, request, sendCallback, topicPublishInfo, instance, timesTotal, curTimes, e1,
-                        context, true);
+                        context, false);
             } catch (RemotingException e1) {
                 onExceptionImpl(tmpmq.getBrokerName(), msg, timeoutMillis, request, sendCallback, topicPublishInfo, instance, timesTotal, curTimes, e1,
                         context, true);
