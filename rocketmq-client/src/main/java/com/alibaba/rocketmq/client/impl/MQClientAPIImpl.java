@@ -309,22 +309,22 @@ public class MQClientAPIImpl {
                         }
                         sendCallback.onSuccess(sendResult);
                     } catch (Exception e) {
-                        onExceptionImpl(brokerName, msg, timeoutMillis, request, sendCallback, topicPublishInfo, instance,
+                        onExceptionImpl(brokerName, msg, 0L, request, sendCallback, topicPublishInfo, instance,
                                 retryTimesWhenSendFailed, times, e, context, false);
                     }
                 } else {
                     if (!responseFuture.isSendRequestOK()) {
                         MQClientException ex = new MQClientException("send request failed", responseFuture.getCause());
-                        onExceptionImpl(brokerName, msg, timeoutMillis, request, sendCallback, topicPublishInfo, instance,
+                        onExceptionImpl(brokerName, msg, 0L, request, sendCallback, topicPublishInfo, instance,
                                 retryTimesWhenSendFailed, times, ex, context, true);
                     } else if (responseFuture.isTimeout()) {
                         MQClientException ex = new MQClientException("wait response timeout " + responseFuture.getTimeoutMillis() + "ms",
                                 responseFuture.getCause());
-                        onExceptionImpl(brokerName, msg, timeoutMillis, request, sendCallback, topicPublishInfo, instance,
+                        onExceptionImpl(brokerName, msg, 0L, request, sendCallback, topicPublishInfo, instance,
                                 retryTimesWhenSendFailed, times, ex, context, true);
                     } else {
                         MQClientException ex = new MQClientException("unknow reseaon", responseFuture.getCause());
-                        onExceptionImpl(brokerName, msg, timeoutMillis, request, sendCallback, topicPublishInfo, instance,
+                        onExceptionImpl(brokerName, msg, 0L, request, sendCallback, topicPublishInfo, instance,
                                 retryTimesWhenSendFailed, times, ex, context, true);
                     }
                 }
