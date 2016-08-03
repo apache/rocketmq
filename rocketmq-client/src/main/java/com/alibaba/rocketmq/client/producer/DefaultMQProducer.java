@@ -43,10 +43,10 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     private int sendMsgTimeout = 3000;
     private int compressMsgBodyOverHowmuch = 1024 * 4;
     private int retryTimesWhenSendFailed = 2;
+    private int retryTimesWhenSendAsyncFailed = 2;
+
     private boolean retryAnotherBrokerWhenNotStoreOK = false;
     private int maxMessageSize = 1024 * 1024 * 4; // 4M
-
-
     public DefaultMQProducer() {
         this(MixAll.DEFAULT_PRODUCER_GROUP, null);
     }
@@ -67,11 +67,11 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
         this(MixAll.DEFAULT_PRODUCER_GROUP, rpcHook);
     }
 
+
     @Override
     public void start() throws MQClientException {
         this.defaultMQProducerImpl.start();
     }
-
 
     @Override
     public void shutdown() {
@@ -239,7 +239,8 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
             throws MQClientException, InterruptedException {
         return this.defaultMQProducerImpl.queryMessage(topic, key, maxNum, begin, end);
     }
-    
+
+
     @Override
     public MessageExt viewMessage(String topic, String msgId) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
         try {
@@ -249,7 +250,6 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
         }
         return this.defaultMQProducerImpl.queryMessageByUniqKey(topic, msgId);
     }
-
 
     public String getProducerGroup() {
         return producerGroup;
@@ -345,6 +345,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
         this.setVipChannelEnabled(sendMessageWithVIPChannel);
     }
 
+
     public long[] getNotAvailableDuration() {
         return this.defaultMQProducerImpl.getNotAvailableDuration();
     }
@@ -367,5 +368,13 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
 
     public void setSendLatencyFaultEnable(final boolean sendLatencyFaultEnable) {
         this.defaultMQProducerImpl.setSendLatencyFaultEnable(sendLatencyFaultEnable);
+    }
+
+    public int getRetryTimesWhenSendAsyncFailed() {
+        return retryTimesWhenSendAsyncFailed;
+    }
+
+    public void setRetryTimesWhenSendAsyncFailed(final int retryTimesWhenSendAsyncFailed) {
+        this.retryTimesWhenSendAsyncFailed = retryTimesWhenSendAsyncFailed;
     }
 }

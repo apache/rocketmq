@@ -1132,4 +1132,8 @@ public class MQClientInstance {
     public ConsumerStatsManager getConsumerStatsManager() {
         return consumerStatsManager;
     }
+
+    public NettyClientConfig getNettyClientConfig() {
+        return nettyClientConfig;
+    }
 }

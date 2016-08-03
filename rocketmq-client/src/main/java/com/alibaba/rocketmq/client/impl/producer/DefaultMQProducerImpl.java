@@ -653,7 +653,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                                 sendCallback, // 7
                                 topicPublishInfo, // 8
                                 this.mQClientFactory, // 9
-                                this.defaultMQProducer.getRetryTimesWhenSendFailed(), // 10
+                                this.defaultMQProducer.getRetryTimesWhenSendAsyncFailed(), // 10
                                 context);
                         break;
                     case ONEWAY:
