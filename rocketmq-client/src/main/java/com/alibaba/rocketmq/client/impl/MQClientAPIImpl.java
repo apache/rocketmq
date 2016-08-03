@@ -343,8 +343,9 @@ public class MQClientAPIImpl {
                                  final int timesTotal, //
                                  final AtomicInteger curTimes, //
                                  final Exception e, //
-                                 final SendMessageContext context,
-                                 final boolean needRetry) {
+                                 final SendMessageContext context, //
+                                 final boolean needRetry //
+    ) {
         int tmp = curTimes.incrementAndGet();
         if (needRetry && tmp <= timesTotal) {
             MessageQueue tmpmq = topicPublishInfo.selectOneMessageQueue(brokerName);
@@ -358,12 +359,17 @@ public class MQClientAPIImpl {
             } catch (InterruptedException e1) {
                 onExceptionImpl(tmpmq.getBrokerName(), msg, timeoutMillis, request, sendCallback, topicPublishInfo, instance, timesTotal, curTimes, e1,
                         context, false);
+            } catch (RemotingConnectException e1) {
+                onExceptionImpl(tmpmq.getBrokerName(), msg, timeoutMillis, request, sendCallback, topicPublishInfo, instance, timesTotal, curTimes, e1,
+                        context, true);
+            } catch (RemotingTooMuchRequestException e1) {
+                onExceptionImpl(tmpmq.getBrokerName(), msg, timeoutMillis, request, sendCallback, topicPublishInfo, instance, timesTotal, curTimes, e1,
+                        context, false);
             } catch (RemotingException e1) {
                 onExceptionImpl(tmpmq.getBrokerName(), msg, timeoutMillis, request, sendCallback, topicPublishInfo, instance, timesTotal, curTimes, e1,
                         context, true);
             }
         } else {
-
             if (context != null) {
                 context.setException(e);
                 context.getProducer().executeSendMessageHookAfter(context);
