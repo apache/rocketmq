@@ -233,13 +233,12 @@ public abstract class NettyRemotingAbstract {
             ResponseFuture rep = next.getValue();
 
             if ((rep.getBeginTimestamp() + rep.getTimeoutMillis() + 1000) <= System.currentTimeMillis()) {
+                rep.release();
                 it.remove();
                 try {
                     rep.executeInvokeCallback();
                 } catch (Throwable e) {
                     plog.warn("scanResponseTable, operationComplete Exception", e);
-                } finally {
-                    rep.release();
                 }
 
                 plog.warn("remove timeout request, " + rep);
