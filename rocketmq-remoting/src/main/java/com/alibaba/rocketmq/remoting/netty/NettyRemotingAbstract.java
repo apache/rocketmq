@@ -38,6 +38,8 @@ import org.slf4j.LoggerFactory;
 import java.net.SocketAddress;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map.Entry;
 import java.util.concurrent.*;
 
@@ -227,6 +229,7 @@ public abstract class NettyRemotingAbstract {
     abstract public ExecutorService getCallbackExecutor();
 
     public void scanResponseTable() {
+        final List<ResponseFuture> rfList = new LinkedList<ResponseFuture>();
         Iterator<Entry<Integer, ResponseFuture>> it = this.responseTable.entrySet().iterator();
         while (it.hasNext()) {
             Entry<Integer, ResponseFuture> next = it.next();
@@ -235,13 +238,16 @@ public abstract class NettyRemotingAbstract {
             if ((rep.getBeginTimestamp() + rep.getTimeoutMillis() + 1000) <= System.currentTimeMillis()) {
                 rep.release();
                 it.remove();
-                try {
-                    rep.executeInvokeCallback();
-                } catch (Throwable e) {
-                    plog.warn("scanResponseTable, operationComplete Exception", e);
-                }
-
+                rfList.add(rep);
                 plog.warn("remove timeout request, " + rep);
+            }
+        }
+
+        for (ResponseFuture rf : rfList) {
+            try {
+                rf.executeInvokeCallback();
+            } catch (Throwable e) {
+                plog.warn("scanResponseTable, operationComplete Exception", e);
             }
         }
     }
