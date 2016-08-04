@@ -73,7 +73,7 @@ public class SendMessageTest {
                 requestHeader.setProperties(MessageDecoder.messageProperties2String(msg.getProperties()));
 
                 SendResult result = client.sendMessage("127.0.0.1:10911", "brokerName", msg, requestHeader, 1000 * 5,
-                        CommunicationMode.SYNC, new SendMessageContext());
+                        CommunicationMode.SYNC, new SendMessageContext(), null);
                 System.out.println(i + "\t" + result);
             } catch (Exception e) {
                 e.printStackTrace();
