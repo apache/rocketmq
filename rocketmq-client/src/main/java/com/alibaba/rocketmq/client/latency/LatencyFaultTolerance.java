@@ -25,5 +25,7 @@ public interface LatencyFaultTolerance<T> {
 
     boolean isAvailable(final T name);
 
+    void remove(final T name);
+
     T pickOneAtLeast();
 }
