@@ -146,11 +146,18 @@ public abstract class NettyRemotingAbstract {
                 }
             };
 
+            if(pair.getObject1().rejectRequest()){
+                final RemotingCommand response = RemotingCommand.createResponseCommand(RemotingSysResponseCode.SYSTEM_BUSY,
+                        "business is busy, refused to enter the thread pool queue");
+                response.setOpaque(opaque);
+                ctx.writeAndFlush(response);
+                return;
+            }
+
             try {
-
-                pair.getObject2().submit(run);
+                final RequestTask requestTask = new RequestTask(run, ctx.channel(), cmd);
+                pair.getObject2().submit(requestTask);
             } catch (RejectedExecutionException e) {
-
                 if ((System.currentTimeMillis() % 10000) == 0) {
                     plog.warn(RemotingHelper.parseChannelRemoteAddr(ctx.channel()) //
                             + ", too many requests and system thread pool busy, RejectedExecutionException " //

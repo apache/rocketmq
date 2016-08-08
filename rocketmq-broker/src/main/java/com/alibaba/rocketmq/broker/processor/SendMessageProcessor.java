@@ -81,6 +81,11 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         }
     }
 
+    @Override
+    public boolean rejectRequest() {
+        return this.brokerController.getMessageStore().isOSPageCacheBusy();
+    }
+
     private RemotingCommand consumerSendMsgBack(final ChannelHandlerContext ctx, final RemotingCommand request)
             throws RemotingCommandException {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);

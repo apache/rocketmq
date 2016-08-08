@@ -79,6 +79,11 @@ public class ClientRemotingProcessor implements NettyRequestProcessor {
         return null;
     }
 
+    @Override
+    public boolean rejectRequest() {
+        return false;
+    }
+
     public RemotingCommand checkTransactionState(ChannelHandlerContext ctx, RemotingCommand request) throws RemotingCommandException {
         final CheckTransactionStateRequestHeader requestHeader =
                 (CheckTransactionStateRequestHeader) request.decodeCommandCustomHeader(CheckTransactionStateRequestHeader.class);

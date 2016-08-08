@@ -109,6 +109,11 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
         return null;
     }
 
+    @Override
+    public boolean rejectRequest() {
+        return false;
+    }
+
     public RemotingCommand putKVConfig(ChannelHandlerContext ctx, RemotingCommand request) throws RemotingCommandException {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
         final PutKVConfigRequestHeader requestHeader =

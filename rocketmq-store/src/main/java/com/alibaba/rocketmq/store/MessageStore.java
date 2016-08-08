@@ -126,4 +126,6 @@ public interface MessageStore {
     long getConfirmOffset();
 
     void setConfirmOffset(long phyOffset);
+
+    boolean isOSPageCacheBusy();
 }

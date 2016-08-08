@@ -328,7 +328,7 @@ public class DefaultMessageStore implements MessageStore {
     }
 
 
-    private boolean isOSPageCacheBusy() {
+    public boolean isOSPageCacheBusy() {
         long begin = this.getCommitLog().getBeginTimeInLock();
         long diff = this.systemClock.now() - begin;
 
