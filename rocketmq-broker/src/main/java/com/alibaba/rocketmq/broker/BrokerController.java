@@ -20,6 +20,7 @@ import com.alibaba.rocketmq.broker.client.*;
 import com.alibaba.rocketmq.broker.client.net.Broker2Client;
 import com.alibaba.rocketmq.broker.client.rebalance.RebalanceLockManager;
 import com.alibaba.rocketmq.broker.filtersrv.FilterServerManager;
+import com.alibaba.rocketmq.broker.latency.BrokerFastFailure;
 import com.alibaba.rocketmq.broker.longpolling.NotifyMessageArrivingListener;
 import com.alibaba.rocketmq.broker.longpolling.PullRequestHoldService;
 import com.alibaba.rocketmq.broker.mqtrace.ConsumeMessageHook;
@@ -102,6 +103,7 @@ public class BrokerController {
     private boolean updateMasterHAServerAddrPeriodically = false;
     private BrokerStats brokerStats;
     private InetSocketAddress storeHost;
+    private BrokerFastFailure brokerFastFailure;
 
     public BrokerController(//
                             final BrokerConfig brokerConfig, //
@@ -140,6 +142,8 @@ public class BrokerController {
 
         this.brokerStatsManager = new BrokerStatsManager(this.brokerConfig.getBrokerClusterName());
         this.setStoreHost(new InetSocketAddress(this.getBrokerConfig().getBrokerIP1(), this.getNettyServerConfig().getListenPort()));
+
+        this.brokerFastFailure = new BrokerFastFailure(this);
     }
 
     public BrokerConfig getBrokerConfig() {
@@ -546,6 +550,10 @@ public class BrokerController {
         if (this.filterServerManager != null) {
             this.filterServerManager.shutdown();
         }
+
+        if (this.brokerFastFailure != null) {
+            this.brokerFastFailure.shutdown();
+        }
     }
 
     private void unregisterBrokerAll() {
@@ -606,6 +614,10 @@ public class BrokerController {
 
         if (this.brokerStatsManager != null) {
             this.brokerStatsManager.start();
+        }
+
+        if (this.brokerFastFailure != null) {
+            this.brokerFastFailure.start();
         }
     }
 
