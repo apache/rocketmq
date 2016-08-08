@@ -6,13 +6,13 @@
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package com.alibaba.rocketmq.broker;
 
@@ -41,10 +41,7 @@ import com.alibaba.rocketmq.common.protocol.body.TopicConfigSerializeWrapper;
 import com.alibaba.rocketmq.common.stats.MomentStatsItem;
 import com.alibaba.rocketmq.remoting.RPCHook;
 import com.alibaba.rocketmq.remoting.RemotingServer;
-import com.alibaba.rocketmq.remoting.netty.NettyClientConfig;
-import com.alibaba.rocketmq.remoting.netty.NettyRemotingServer;
-import com.alibaba.rocketmq.remoting.netty.NettyRequestProcessor;
-import com.alibaba.rocketmq.remoting.netty.NettyServerConfig;
+import com.alibaba.rocketmq.remoting.netty.*;
 import com.alibaba.rocketmq.store.DefaultMessageStore;
 import com.alibaba.rocketmq.store.MessageArrivingListener;
 import com.alibaba.rocketmq.store.MessageStore;
@@ -404,10 +401,45 @@ public class BrokerController {
         return brokerStats;
     }
 
+    public void setBrokerStats(BrokerStats brokerStats) {
+        this.brokerStats = brokerStats;
+    }
+
+    public void protectBroker() {
+        if (this.brokerConfig.isDisableConsumeIfConsumerReadSlowly()) {
+            final Iterator<Map.Entry<String, MomentStatsItem>> it = this.brokerStatsManager.getMomentStatsItemSetFallSize().getStatsItemTable().entrySet().iterator();
+            while (it.hasNext()) {
+                final Map.Entry<String, MomentStatsItem> next = it.next();
+                final long fallBehindBytes = next.getValue().getValue().get();
+                if (fallBehindBytes > this.brokerConfig.getConsumerFallbehindThreshold()) {
+                    final String[] split = next.getValue().getStatsKey().split("@");
+                    final String group = split[2];
+                    logProtection.info("[PROTECT_BROKER] the consumer[{}] consume slowly, {} bytes, disable it", group, fallBehindBytes);
+                    this.subscriptionGroupManager.disableConsume(group);
+                }
+            }
+        }
+    }
+
+    public long headSlowTimeMills(BlockingQueue<Runnable> q){
+        long slowTimeMills = 0;
+        final Runnable peek = q.peek();
+        if (peek != null) {
+            RequestTask rt = (RequestTask) peek;
+            slowTimeMills = this.messageStore.now() - rt.getCreateTimestamp();
+        }
+
+        return slowTimeMills;
+    }
+
+    public void printWaterMark() {
+        logWaterMark.info("[WATERMARK] Send Queue Size: {} SlowTimeMills: {}", this.sendThreadPoolQueue.size(), headSlowTimeMills(this.sendThreadPoolQueue));
+        logWaterMark.info("[WATERMARK] Pull Queue Size: {} SlowTimeMills: {}", this.pullThreadPoolQueue.size(), headSlowTimeMills(this.pullThreadPoolQueue));
+    }
+
     public MessageStore getMessageStore() {
         return messageStore;
     }
-
 
     public void setMessageStore(MessageStore messageStore) {
         this.messageStore = messageStore;
@@ -418,10 +450,6 @@ public class BrokerController {
 
         // XXX: warn and notify me
         log.info("slave fall behind master, how much, {} bytes", diff);
-    }
-
-    public void setBrokerStats(BrokerStats brokerStats) {
-        this.brokerStats = brokerStats;
     }
 
     public Broker2Client getBroker2Client() {
@@ -712,11 +740,9 @@ public class BrokerController {
         return sendThreadPoolQueue;
     }
 
-
     public FilterServerManager getFilterServerManager() {
         return filterServerManager;
     }
-
 
     public BrokerStatsManager getBrokerStatsManager() {
         return brokerStatsManager;
@@ -764,28 +790,7 @@ public class BrokerController {
         return storeHost;
     }
 
-
     public void setStoreHost(InetSocketAddress storeHost) {
         this.storeHost = storeHost;
-    }
-
-    public void protectBroker() {
-        if (this.brokerConfig.isDisableConsumeIfConsumerReadSlowly()) {
-                final Iterator<Map.Entry<String, MomentStatsItem>> it = this.brokerStatsManager.getMomentStatsItemSetFallSize().getStatsItemTable().entrySet().iterator();
-                while (it.hasNext()) {
-                final Map.Entry<String, MomentStatsItem> next = it.next();
-                final long fallBehindBytes = next.getValue().getValue().get();
-                if (fallBehindBytes > this.brokerConfig.getConsumerFallbehindThreshold()) {
-                    final String[] split = next.getValue().getStatsKey().split("@");
-                    final String group = split[2];
-                    logProtection.info("[PROTECT_BROKER] the consumer[{}] consume slowly, {} bytes, disable it", group, fallBehindBytes);
-                    this.subscriptionGroupManager.disableConsume(group);
-                }
-            }
-        }
-    }
-
-    public void printWaterMark(){
-        logWaterMark.info("[WATERMARK] Send Load: {} Pull Load: {}", this.sendThreadPoolQueue.size(), this.pullThreadPoolQueue.size());
     }
 }
