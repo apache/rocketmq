@@ -42,15 +42,18 @@ public class BrokerFastFailure {
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
             @Override
             public void run() {
-                doExpiredRequest();
+                cleanExpiredRequest();
             }
         }, 1000, 10, TimeUnit.MILLISECONDS);
     }
 
-    private void doExpiredRequest() {
+    private void cleanExpiredRequest() {
         while (this.brokerController.getMessageStore().isOSPageCacheBusy()) {
             try {
                 final Runnable runnable = this.brokerController.getSendThreadPoolQueue().poll(0, TimeUnit.SECONDS);
+                if (null == runnable) {
+                    return;
+                }
                 final RequestTask rt = (RequestTask) runnable;
                 rt.returnResponse(RemotingSysResponseCode.SYSTEM_BUSY, "broker busy, return failure to client at once");
             } catch (Exception e) {
