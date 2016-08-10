@@ -95,6 +95,16 @@ public class BrokerConfig {
     private boolean disableConsumeIfConsumerReadSlowly = false;
     private long consumerFallbehindThreshold = 1024 * 1024 * 1024 * 16;
 
+    private long waitTimeMillsInSendQueue = 600;
+
+    public long getWaitTimeMillsInSendQueue() {
+        return waitTimeMillsInSendQueue;
+    }
+
+    public void setWaitTimeMillsInSendQueue(final long waitTimeMillsInSendQueue) {
+        this.waitTimeMillsInSendQueue = waitTimeMillsInSendQueue;
+    }
+
     public long getConsumerFallbehindThreshold() {
         return consumerFallbehindThreshold;
     }
