@@ -263,17 +263,6 @@ public class BrokerController {
                 }
             }, 10, 1, TimeUnit.SECONDS);
 
-            /*
-             * this.scheduledExecutorService.scheduleAtFixedRate(new Runnable()
-             * {
-             *
-             * @Override public void run() { try {
-             * BrokerController.this.consumerOffsetManager
-             * .scanUnsubscribedTopic(); } catch (Throwable e) {
-             * log.error("schedule scanUnsubscribedTopic error.", e); } } }, 10,
-             * 60, TimeUnit.MINUTES);
-             */
-
             this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 
                 @Override

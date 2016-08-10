@@ -5,7 +5,9 @@ import com.alibaba.rocketmq.common.ThreadFactoryImpl;
 import com.alibaba.rocketmq.remoting.netty.RequestTask;
 import com.alibaba.rocketmq.remoting.protocol.RemotingSysResponseCode;
 
+import java.lang.reflect.Field;
 import java.util.concurrent.Executors;
+import java.util.concurrent.FutureTask;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
@@ -39,12 +41,14 @@ public class BrokerFastFailure {
                     if (null == runnable) {
                         break;
                     }
-                    final RequestTask rt = (RequestTask) runnable;
+
+
+                    final RequestTask rt = castRunnable(runnable);
                     rt.returnResponse(RemotingSysResponseCode.SYSTEM_BUSY, String.format("[PC_CLEAN_QUEUE]broker busy, start flow control for a while, period in queue: %sms", System.currentTimeMillis() - rt.getCreateTimestamp()));
                 } else {
                     break;
                 }
-            } catch (Exception e) {
+            } catch (Throwable e) {
             }
         }
 
@@ -55,7 +59,7 @@ public class BrokerFastFailure {
                     if (null == runnable) {
                         break;
                     }
-                    final RequestTask rt = (RequestTask) runnable;
+                    final RequestTask rt = castRunnable(runnable);
                     if (rt.isStopRun()) {
                         break;
                     }
@@ -71,9 +75,26 @@ public class BrokerFastFailure {
                 } else {
                     break;
                 }
-            } catch (Exception e) {
+            } catch (Throwable e) {
             }
         }
+    }
+
+    public static RequestTask castRunnable(final Runnable runnable) {
+        try {
+            FutureTask object = (FutureTask) runnable;
+            final Field callable = object.getClass().getDeclaredField("callable");
+            callable.setAccessible(true);
+            final Object objCallable = callable.get(object);
+
+            final Field task = objCallable.getClass().getDeclaredField("task");
+            task.setAccessible(true);
+            final Object requestTask = task.get(objCallable);
+            return (RequestTask) requestTask;
+        } catch (Throwable e) {
+        }
+
+        return null;
     }
 
     public void shutdown() {
