@@ -37,6 +37,11 @@ public abstract class AbstractPluginMessageStore implements MessageStore {
     }
 
     @Override
+    public boolean isOSPageCacheBusy() {
+        return next.isOSPageCacheBusy();
+    }
+
+    @Override
     public boolean load() {
         return next.load();
     }
