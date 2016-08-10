@@ -55,7 +55,7 @@ public class BrokerFastFailure {
                     return;
                 }
                 final RequestTask rt = (RequestTask) runnable;
-                rt.returnResponse(RemotingSysResponseCode.SYSTEM_BUSY, "broker busy, return failure to client at once");
+                rt.returnResponse(RemotingSysResponseCode.SYSTEM_BUSY, String.format("[PC_CLEAN_QUEUE]broker busy, start flow control for a while, period in queue: %sms", System.currentTimeMillis() - rt.getCreateTimestamp()));
             } catch (Exception e) {
             }
         }
