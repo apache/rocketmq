@@ -2,8 +2,11 @@ package com.alibaba.rocketmq.broker.latency;
 
 import com.alibaba.rocketmq.broker.BrokerController;
 import com.alibaba.rocketmq.common.ThreadFactoryImpl;
+import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.remoting.netty.RequestTask;
 import com.alibaba.rocketmq.remoting.protocol.RemotingSysResponseCode;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.Field;
 import java.util.concurrent.Executors;
@@ -16,6 +19,7 @@ import java.util.concurrent.TimeUnit;
  * @author shijia.wxr
  */
 public class BrokerFastFailure {
+    private static final Logger log = LoggerFactory.getLogger(LoggerName.BrokerLoggerName);
     private final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl(
             "BrokerFastFailureScheduledThread"));
     private final BrokerController brokerController;
@@ -92,6 +96,7 @@ public class BrokerFastFailure {
             final Object requestTask = task.get(objCallable);
             return (RequestTask) requestTask;
         } catch (Throwable e) {
+            log.error(String.format("castRunnable exception, %s", runnable.getClass().getName()), e);
         }
 
         return null;
