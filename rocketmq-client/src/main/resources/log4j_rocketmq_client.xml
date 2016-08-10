@@ -29,28 +29,28 @@
     </appender>
 
     <appender name="RocketmqClientAppender" class="org.apache.log4j.RollingFileAppender">
-        <param name="file" value="${user.home}/logs/rocketmqlogs/rocketmq_client.log"/>
+        <param name="file" value="${client.logRoot}/rocketmq_client.log"/>
         <param name="append" value="true"/>
         <param name="encoding" value="UTF-8"/>
         <param name="maxFileSize" value="1073741824"/>
-        <param name="maxBackupIndex" value="10"/>
+        <param name="maxBackupIndex" value="${client.logFileMaxIndex}"/>
         <layout class="org.apache.log4j.PatternLayout">
             <param name="ConversionPattern" value="%d{yyy-MM-dd HH\:mm\:ss,SSS} %p %c{1}(%L) - %m%n"/>
         </layout>
     </appender>
 
     <logger name="RocketmqClient" additivity="false">
-        <level value="INFO"/>
+        <level value="${client.logLevel}"/>
         <appender-ref ref="RocketmqClientAppender"/>
     </logger>
 
     <logger name="RocketmqCommon" additivity="false">
-        <level value="INFO"/>
+        <level value="${client.logLevel}"/>
         <appender-ref ref="RocketmqClientAppender"/>
     </logger>
 
     <logger name="RocketmqRemoting" additivity="false">
-        <level value="INFO"/>
+        <level value="${client.logLevel}"/>
         <appender-ref ref="RocketmqClientAppender"/>
     </logger>
 
