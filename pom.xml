@@ -37,7 +37,7 @@
     <inceptionYear>2012</inceptionYear>
     <groupId>com.alibaba.rocketmq</groupId>
     <artifactId>rocketmq-all</artifactId>
-    <version>3.5.7-SNAPSHOT</version>
+    <version>3.5.8-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>rocketmq-all ${project.version}</name>
     <url>https://github.com/alibaba/rocketmq</url>
@@ -114,7 +114,11 @@
         <maven.compiler.source>1.6</maven.compiler.source>
         <maven.compiler.target>1.6</maven.compiler.target>
     </properties>
-
+    <scm>
+        <url>git@gitlab.alibaba-inc.com:middleware/rocketmq.git</url>
+        <connection>scm:git:git@gitlab.alibaba-inc.com:middleware/rocketmq.git</connection>
+        <developerConnection>scm:git:git@gitlab.alibaba-inc.com:middleware/rocketmq.git</developerConnection>
+    </scm>
     <build>
         <resources>
             <resource>
