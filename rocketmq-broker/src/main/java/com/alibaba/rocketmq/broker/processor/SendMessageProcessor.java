@@ -267,6 +267,14 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         if (log.isDebugEnabled()) {
             log.debug("receive SendMessage request command, " + request);
         }
+
+        final long startTimstamp = this.brokerController.getBrokerConfig().getStartAcceptSendRequestTimeStamp();
+        if (this.brokerController.getMessageStore().now() < startTimstamp) {
+            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setRemark(String.format("broker unable to service, until %s", UtilAll.timeMillisToHumanString2(startTimstamp)));
+            return response;
+        }
+
         response.setCode(-1);
         super.msgCheck(ctx, requestHeader, response);
         if (response.getCode() != -1) {

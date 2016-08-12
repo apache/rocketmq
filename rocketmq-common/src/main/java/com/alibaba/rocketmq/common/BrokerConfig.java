@@ -97,6 +97,16 @@ public class BrokerConfig {
 
     private long waitTimeMillsInSendQueue = 600;
 
+    private long startAcceptSendRequestTimeStamp = 0L;
+
+    public long getStartAcceptSendRequestTimeStamp() {
+        return startAcceptSendRequestTimeStamp;
+    }
+
+    public void setStartAcceptSendRequestTimeStamp(final long startAcceptSendRequestTimeStamp) {
+        this.startAcceptSendRequestTimeStamp = startAcceptSendRequestTimeStamp;
+    }
+
     public long getWaitTimeMillsInSendQueue() {
         return waitTimeMillsInSendQueue;
     }
