@@ -1144,4 +1144,18 @@ public class CommitLog {
             this.msgStoreItemMemory.limit(length);
         }
     }
+
+    public long lockTimeMills() {
+        long diff = 0;
+        long begin = this.beginTimeInLock;
+        if (begin > 0) {
+            diff = this.defaultMessageStore.now() - begin;
+        }
+
+        if (diff < 0) {
+            diff = 0;
+        }
+
+        return diff;
+    }
 }

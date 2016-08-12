@@ -128,4 +128,6 @@ public interface MessageStore {
     void setConfirmOffset(long phyOffset);
 
     boolean isOSPageCacheBusy();
+
+    long lockTimeMills();
 }

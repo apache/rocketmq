@@ -340,6 +340,11 @@ public class DefaultMessageStore implements MessageStore {
         return false;
     }
 
+    @Override
+    public long lockTimeMills() {
+        return this.commitLog.lockTimeMills();
+    }
+
     public SystemClock getSystemClock() {
         return systemClock;
     }
