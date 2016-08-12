@@ -8,9 +8,7 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingSysResponseCode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.lang.reflect.Field;
 import java.util.concurrent.Executors;
-import java.util.concurrent.FutureTask;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
@@ -45,7 +43,6 @@ public class BrokerFastFailure {
                     if (null == runnable) {
                         break;
                     }
-
 
                     final RequestTask rt = castRunnable(runnable);
                     rt.returnResponse(RemotingSysResponseCode.SYSTEM_BUSY, String.format("[PC_CLEAN_QUEUE]broker busy, start flow control for a while, period in queue: %sms", System.currentTimeMillis() - rt.getCreateTimestamp()));
@@ -86,15 +83,8 @@ public class BrokerFastFailure {
 
     public static RequestTask castRunnable(final Runnable runnable) {
         try {
-            FutureTask object = (FutureTask) runnable;
-            final Field callable = object.getClass().getDeclaredField("callable");
-            callable.setAccessible(true);
-            final Object objCallable = callable.get(object);
-
-            final Field task = objCallable.getClass().getDeclaredField("task");
-            task.setAccessible(true);
-            final Object requestTask = task.get(objCallable);
-            return (RequestTask) requestTask;
+            FutureTaskExt object = (FutureTaskExt) runnable;
+            return (RequestTask) object.getRunnable();
         } catch (Throwable e) {
             log.error(String.format("castRunnable exception, %s", runnable.getClass().getName()), e);
         }

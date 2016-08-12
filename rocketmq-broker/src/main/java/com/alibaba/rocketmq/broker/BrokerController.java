@@ -21,6 +21,7 @@ import com.alibaba.rocketmq.broker.client.net.Broker2Client;
 import com.alibaba.rocketmq.broker.client.rebalance.RebalanceLockManager;
 import com.alibaba.rocketmq.broker.filtersrv.FilterServerManager;
 import com.alibaba.rocketmq.broker.latency.BrokerFastFailure;
+import com.alibaba.rocketmq.broker.latency.BrokerFixedThreadPoolExecutor;
 import com.alibaba.rocketmq.broker.longpolling.NotifyMessageArrivingListener;
 import com.alibaba.rocketmq.broker.longpolling.PullRequestHoldService;
 import com.alibaba.rocketmq.broker.mqtrace.ConsumeMessageHook;
@@ -188,7 +189,7 @@ public class BrokerController {
             NettyServerConfig fastConfig = (NettyServerConfig) this.nettyServerConfig.clone();
             fastConfig.setListenPort(nettyServerConfig.getListenPort() - 2);
             this.fastRemotingServer = new NettyRemotingServer(fastConfig, this.clientHousekeepingService);
-            this.sendMessageExecutor = new ThreadPoolExecutor(//
+            this.sendMessageExecutor = new BrokerFixedThreadPoolExecutor(//
                     this.brokerConfig.getSendMessageThreadPoolNums(),//
                     this.brokerConfig.getSendMessageThreadPoolNums(),//
                     1000 * 60,//
@@ -196,7 +197,7 @@ public class BrokerController {
                     this.sendThreadPoolQueue,//
                     new ThreadFactoryImpl("SendMessageThread_"));
 
-            this.pullMessageExecutor = new ThreadPoolExecutor(//
+            this.pullMessageExecutor = new BrokerFixedThreadPoolExecutor(//
                     this.brokerConfig.getPullMessageThreadPoolNums(),//
                     this.brokerConfig.getPullMessageThreadPoolNums(),//
                     1000 * 60,//
