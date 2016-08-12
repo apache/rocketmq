@@ -415,13 +415,15 @@ public class BrokerController {
         }
     }
 
-    public long headSlowTimeMills(BlockingQueue<Runnable> q){
+    public long headSlowTimeMills(BlockingQueue<Runnable> q) {
         long slowTimeMills = 0;
         final Runnable peek = q.peek();
         if (peek != null) {
             RequestTask rt = BrokerFastFailure.castRunnable(peek);
             slowTimeMills = this.messageStore.now() - rt.getCreateTimestamp();
         }
+
+        if (slowTimeMills < 0) slowTimeMills = 0;
 
         return slowTimeMills;
     }
