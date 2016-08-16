@@ -237,7 +237,7 @@ public class ClusterListSubCommand implements SubCommand {
                         } catch (Exception e) {
                         }
 
-                        System.out.printf("%-16s  %-22s  %-4s  %-22s %-16s %-19s %-19s\n",//
+                        System.out.printf("%-16s  %-22s  %-4s  %-22s %-16s %19s %19s\n",//
                                 clusterName,//
                                 brokerName,//
                                 next1.getKey().longValue(),//
