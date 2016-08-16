@@ -205,6 +205,7 @@ public class ClusterListSubCommand implements SubCommand {
                         String pullThreadPoolQueueSize = "";
                         String sendThreadPoolQueueHeadWaitTimeMills = "";
                         String pullThreadPoolQueueHeadWaitTimeMills = "";
+                        String pageCacheLockTimeMills = "";
                         try {
                             KVTable kvTable = defaultMQAdminExt.fetchBrokerRuntimeStats(next1.getValue());
                             String putTps = kvTable.getTable().get("putTps");
@@ -217,6 +218,7 @@ public class ClusterListSubCommand implements SubCommand {
 
                             sendThreadPoolQueueHeadWaitTimeMills = kvTable.getTable().get("sendThreadPoolQueueHeadWaitTimeMills");
                             pullThreadPoolQueueHeadWaitTimeMills = kvTable.getTable().get("pullThreadPoolQueueHeadWaitTimeMills");
+                            pageCacheLockTimeMills = kvTable.getTable().get("pageCacheLockTimeMills");
 
                             version = kvTable.getTable().get("brokerVersionDesc");
                             {
@@ -235,16 +237,14 @@ public class ClusterListSubCommand implements SubCommand {
                         } catch (Exception e) {
                         }
 
-                        System.out.printf("%-16s  %-22s  %-4s  %-22s %-16s %11.2f%s %11.2f%s\n",//
+                        System.out.printf("%-16s  %-22s  %-4s  %-22s %-16s %-19s %-19s\n",//
                                 clusterName,//
                                 brokerName,//
                                 next1.getKey().longValue(),//
                                 next1.getValue(),//
                                 version,//
-                                in,//
-                                String.format("(%s,%sms)", sendThreadPoolQueueSize, sendThreadPoolQueueHeadWaitTimeMills),//
-                                out,//
-                                String.format("(%s,%sms)", pullThreadPoolQueueSize, pullThreadPoolQueueHeadWaitTimeMills)//
+                                String.format("%9.2f(%s,%sms)", in, sendThreadPoolQueueSize, sendThreadPoolQueueHeadWaitTimeMills),//
+                                String.format("%9.2f(%s,%sms)", out, pullThreadPoolQueueSize, pullThreadPoolQueueHeadWaitTimeMills)//
                         );
                     }
                 }
