@@ -174,14 +174,15 @@ public class ClusterListSubCommand implements SubCommand {
 
         ClusterInfo clusterInfoSerializeWrapper = defaultMQAdminExt.examineBrokerClusterInfo();
 
-        System.out.printf("%-16s  %-22s  %-4s  %-22s %-16s %19s %19s\n",//
+        System.out.printf("%-16s  %-22s  %-4s  %-22s %-16s %19s %19s %10s\n",//
                 "#Cluster Name",//
                 "#Broker Name",//
                 "#BID",//
                 "#Addr",//
                 "#Version",//
                 "#InTPS(LOAD)",//
-                "#OutTPS(LOAD)"//
+                "#OutTPS(LOAD)",//
+                "#PCWait(ms)"//
         );
 
         Iterator<Map.Entry<String, Set<String>>> itCluster = clusterInfoSerializeWrapper.getClusterAddrTable().entrySet().iterator();
@@ -237,14 +238,15 @@ public class ClusterListSubCommand implements SubCommand {
                         } catch (Exception e) {
                         }
 
-                        System.out.printf("%-16s  %-22s  %-4s  %-22s %-16s %19s %19s\n",//
+                        System.out.printf("%-16s  %-22s  %-4s  %-22s %-16s %19s %19s %10s\n",//
                                 clusterName,//
                                 brokerName,//
                                 next1.getKey().longValue(),//
                                 next1.getValue(),//
                                 version,//
                                 String.format("%9.2f(%s,%sms)", in, sendThreadPoolQueueSize, sendThreadPoolQueueHeadWaitTimeMills),//
-                                String.format("%9.2f(%s,%sms)", out, pullThreadPoolQueueSize, pullThreadPoolQueueHeadWaitTimeMills)//
+                                String.format("%9.2f(%s,%sms)", out, pullThreadPoolQueueSize, pullThreadPoolQueueHeadWaitTimeMills),//
+                                pageCacheLockTimeMills
                         );
                     }
                 }
