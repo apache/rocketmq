@@ -65,8 +65,8 @@ public class BrokerConfig {
     private boolean rejectTransactionMessage = false;
     @ImportantField
     private boolean fetchNamesrvAddrByAddressServer = false;
-    private int sendThreadPoolQueueCapacity = 100000;
-    private int pullThreadPoolQueueCapacity = 100000;
+    private int sendThreadPoolQueueCapacity = 10000;
+    private int pullThreadPoolQueueCapacity = 10000;
 
     private int filterServerNums = 0;
 
