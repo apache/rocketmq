@@ -67,9 +67,10 @@ public class BrokerFastFailure {
 
                     final long behind = System.currentTimeMillis() - rt.getCreateTimestamp();
                     if (behind >= this.brokerController.getBrokerConfig().getWaitTimeMillsInSendQueue()) {
-                        this.brokerController.getSendThreadPoolQueue().remove(runnable);
-                        rt.setStopRun(true);
-                        rt.returnResponse(RemotingSysResponseCode.SYSTEM_BUSY, String.format("[TIMEOUT_CLEAN_QUEUE]broker busy, start flow control for a while, period in queue: %sms", behind));
+                        if (this.brokerController.getSendThreadPoolQueue().remove(runnable)) {
+                            rt.setStopRun(true);
+                            rt.returnResponse(RemotingSysResponseCode.SYSTEM_BUSY, String.format("[TIMEOUT_CLEAN_QUEUE]broker busy, start flow control for a while, period in queue: %sms", behind));
+                        }
                     } else {
                         break;
                     }
