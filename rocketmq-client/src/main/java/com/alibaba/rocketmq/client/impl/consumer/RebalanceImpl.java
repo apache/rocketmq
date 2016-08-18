@@ -364,6 +364,12 @@ public abstract class RebalanceImpl {
         List<PullRequest> pullRequestList = new ArrayList<PullRequest>();
         for (MessageQueue mq : mqSet) {
             if (!this.processQueueTable.containsKey(mq)) {
+                final boolean lock = this.lock(mq);
+                if(!lock) {
+                    log.warn("doRebalance, {}, add new mq failed, {}, because lock failed", consumerGroup, mq);
+                    continue;
+                }
+
                 this.removeDirtyOffset(mq);
                 ProcessQueue pq = new ProcessQueue();
                 long nextOffset = this.computePullFromWhere(mq);
