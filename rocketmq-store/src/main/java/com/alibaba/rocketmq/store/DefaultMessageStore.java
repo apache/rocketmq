@@ -663,6 +663,13 @@ public class DefaultMessageStore implements MessageStore {
     }
 
     @Override
+    public long getEarliestMessageTime() {
+        final long minPhyOffset = this.getMinPhyOffset();
+        final int size = this.messageStoreConfig.getMaxMessageSize() * 2;
+        return this.getCommitLog().pickupStoretimestamp(minPhyOffset, size);
+    }
+
+    @Override
     public long getMessageStoreTimeStamp(String topic, int queueId, long offset) {
         ConsumeQueue logicQueue = this.findConsumeQueue(topic, queueId);
         if (logicQueue != null) {

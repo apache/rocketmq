@@ -665,7 +665,7 @@ public class CommitLog {
      * occurs, it returns -1
      */
     public long pickupStoretimestamp(final long offset, final int size) {
-        if (offset > this.getMinOffset()) {
+        if (offset >= this.getMinOffset()) {
             SelectMapedBufferResult result = this.getMessage(offset, size);
             if (null != result) {
                 try {

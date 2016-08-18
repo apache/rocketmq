@@ -35,6 +35,16 @@ class MockMessageStorePlugin1 extends AbstractPluginMessageStore {
     public boolean isOSPageCacheBusy() {
         return false;
     }
+
+    @Override
+    public long lockTimeMills() {
+        return 0;
+    }
+
+    @Override
+    public long getEarliestMessageTime() {
+        return 0;
+    }
 }
 
 class MockMessageStorePlugin2 extends AbstractPluginMessageStore {
