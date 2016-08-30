@@ -144,11 +144,7 @@ public class TopicConfigManager extends ConfigManager {
 
 
     public boolean isTopicCanSendMessage(final String topic) {
-        boolean reservedWords =
-                topic.equals(MixAll.DEFAULT_TOPIC)
-                        || topic.equals(this.brokerController.getBrokerConfig().getBrokerClusterName());
-
-        return !reservedWords;
+        return !topic.equals(MixAll.DEFAULT_TOPIC);
     }
 
 

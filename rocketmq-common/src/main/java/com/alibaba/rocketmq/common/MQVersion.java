@@ -21,7 +21,7 @@ package com.alibaba.rocketmq.common;
  */
 public class MQVersion {
 
-    public static final int CurrentVersion = Version.V3_5_7_SNAPSHOT.ordinal();
+    public static final int CurrentVersion = Version.V3_5_8_SNAPSHOT.ordinal();
 
 
     public static String getVersionDesc(int value) {
