@@ -5,14 +5,14 @@
  * The ASF licenses this file to You under the Apache License, Version 2.0
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package com.alibaba.rocketmq.client.impl.consumer;
 
@@ -234,18 +234,16 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                 }
                 return;
             }
-        }
-
-        else {
+        } else {
             if (processQueue.isLocked()) {
                 if (!pullRequest.isLockedFirst()) {
                     final long offset = this.rebalanceImpl.computePullFromWhere(pullRequest.getMessageQueue());
                     boolean brokerBusy = offset < pullRequest.getNextOffset();
-                    log.info("[NOTIFYME]pull message, and first pull, so fix offset, pullRequest: {} NEWOFFSET: {} brokerBusy: {}",
+                    log.info("the first time to pull message, so fix offset from broker. pullRequest: {} NewOffset: {} brokerBusy: {}",
                             pullRequest, offset, brokerBusy);
-                    if (offset < pullRequest.getNextOffset()) {
-                        this.executePullRequestLater(pullRequest, PullTimeDelayMillsWhenException);
-                        return;
+                    if (brokerBusy) {
+                        log.info("[NOTIFYME]the first time to pull message, but pull request offset larger than broker consume offset. pullRequest: {} NewOffset: {}",
+                                pullRequest, offset);
                     }
 
                     pullRequest.setLockedFirst(true);
@@ -253,7 +251,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                 }
             } else {
                 this.executePullRequestLater(pullRequest, PullTimeDelayMillsWhenException);
-                log.info("[NOTIFYME]pull message, but not locked in broker, {}", pullRequest);
+                log.info("pull message later because not locked in broker, {}", pullRequest);
                 return;
             }
         }
@@ -912,7 +910,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
     @Override
     public void doRebalance() {
         if (this.rebalanceImpl != null && !this.pause) {
-            this.rebalanceImpl.doRebalance();
+            this.rebalanceImpl.doRebalance(this.isConsumeOrderly());
         }
     }
 
