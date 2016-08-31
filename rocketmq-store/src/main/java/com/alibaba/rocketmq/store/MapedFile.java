@@ -261,7 +261,7 @@ public class MapedFile extends ReferenceResource {
         if (this.isAbleToFlush(flushLeastPages)) {
             long begin = System.currentTimeMillis();
             if (this.hold()) {
-                int value = this.wrotePostion.get();
+                int value = writeBuffer == null ? this.wrotePostion.get() : this.committedPosition.get();
 
                 if (writeBuffer != null) {
                     try {
@@ -277,7 +277,7 @@ public class MapedFile extends ReferenceResource {
                 this.release();
             } else {
                 log.warn("in flush, hold failed, flush offset = " + this.flushedPosition.get());
-                this.flushedPosition.set(this.committedPosition.get());
+                this.flushedPosition.set(writeBuffer == null ? this.wrotePostion.get() : this.committedPosition.get());
             }
             log.info("flush cost : {}", System.currentTimeMillis() - begin);
         }
@@ -304,6 +304,7 @@ public class MapedFile extends ReferenceResource {
                         byteBuffer.limit(value);
 
                         try {
+                            this.fileChannel.position(this.committedPosition.get());
                             this.fileChannel.write(byteBuffer);
                         } catch (IOException e) {
                             log.error("Error occurred when commit data to filechannel.", e);
