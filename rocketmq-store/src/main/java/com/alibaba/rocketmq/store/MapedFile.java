@@ -452,7 +452,7 @@ public class MapedFile extends ReferenceResource {
     }
 
     public int getWrotePostion() {
-        return wrotePostion.get();
+        return writeBuffer != null ? committedPosition.get() : wrotePostion.get();
     }
 
     public void setWrotePostion(int pos) {

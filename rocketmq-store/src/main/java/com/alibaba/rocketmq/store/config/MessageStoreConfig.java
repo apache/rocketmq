@@ -44,12 +44,12 @@ public class MessageStoreConfig {
     // CommitLog flush interval
     // flush data to disk
     @ImportantField
-    private int flushIntervalCommitLog = 100;
+    private int flushIntervalCommitLog = 500;
 
     // Only used if TransientStorePool enabled
-    // flush data to FileChannel
+    // commit data to FileChannel
     @ImportantField
-    private int commitIntervalCommitLog = 500;
+    private int commitIntervalCommitLog = 200;
 
     // Whether schedule flush,default is real-time
     @ImportantField

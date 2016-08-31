@@ -190,8 +190,8 @@ public class BrokerController {
             fastConfig.setListenPort(nettyServerConfig.getListenPort() - 2);
             this.fastRemotingServer = new NettyRemotingServer(fastConfig, this.clientHousekeepingService);
             this.sendMessageExecutor = new BrokerFixedThreadPoolExecutor(//
-                    this.brokerConfig.getSendMessageThreadPoolNums(),//
-                    this.brokerConfig.getSendMessageThreadPoolNums(),//
+                    1,//
+                    1,//
                     1000 * 60,//
                     TimeUnit.MILLISECONDS,//
                     this.sendThreadPoolQueue,//
