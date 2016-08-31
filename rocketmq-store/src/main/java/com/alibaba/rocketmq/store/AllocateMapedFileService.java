@@ -155,7 +155,14 @@ public class AllocateMapedFileService extends ServiceThread {
 
             if (req.getMapedFile() == null) {
                 long beginTime = System.currentTimeMillis();
-                MapedFile mapedFile = new MapedFile(req.getFilePath(), req.getFileSize());
+
+                MapedFile mapedFile;
+                if (messageStore.getMessageStoreConfig().isTransientStorePoolEnable()) {
+                    mapedFile = new MapedFile(req.getFilePath(), req.getFileSize(), messageStore.getTransientStorePool());
+                } else {
+                    mapedFile = new MapedFile(req.getFilePath(), req.getFileSize());
+                }
+
                 long eclipseTime = UtilAll.computeEclipseTimeMilliseconds(beginTime);
                 if (eclipseTime > 10) {
                     int queueSize = this.requestQueue.size();

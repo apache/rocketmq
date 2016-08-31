@@ -122,7 +122,7 @@ public class MessageStoreConfig {
 
     @ImportantField
     private boolean transientStorePoolEnable = false;
-    private int transientStorePoolSizeInGB = 5;
+    private int transientStorePoolSize = 5;
     
     public boolean isDebugLockEnable() {
         return debugLockEnable;
@@ -658,11 +658,11 @@ public class MessageStoreConfig {
         this.transientStorePoolEnable = transientStorePoolEnable;
     }
 
-    public int getTransientStorePoolSizeInGB() {
-        return transientStorePoolSizeInGB;
+    public int getTransientStorePoolSize() {
+        return transientStorePoolSize;
     }
 
-    public void setTransientStorePoolSizeInGB(final int transientStorePoolSizeInGB) {
-        this.transientStorePoolSizeInGB = transientStorePoolSizeInGB;
+    public void setTransientStorePoolSize(final int transientStorePoolSize) {
+        this.transientStorePoolSize = transientStorePoolSize;
     }
 }

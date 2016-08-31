@@ -1222,6 +1222,10 @@ public class DefaultMessageStore implements MessageStore {
         return messageStoreConfig;
     }
 
+    public TransientStorePool getTransientStorePool() {
+        return transientStorePool;
+    }
+
     private void putConsumeQueue(final String topic, final int queueId, final ConsumeQueue consumeQueue) {
         ConcurrentHashMap<Integer/* queueId */, ConsumeQueue> map = this.consumeQueueTable.get(topic);
         if (null == map) {

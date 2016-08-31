@@ -41,7 +41,7 @@ public class TransientStorePool {
     private final Deque<ByteBuffer> availableBuffers;
 
     public TransientStorePool(final MessageStoreConfig storeConfig) {
-        this.poolSize = storeConfig.getTransientStorePoolSizeInGB();
+        this.poolSize = storeConfig.getTransientStorePoolSize();
         this.fileSize = storeConfig.getMapedFileSizeCommitLog();
         this.availableBuffers = new LinkedBlockingDeque<ByteBuffer>();
 
