@@ -48,6 +48,7 @@ public class MapedFileQueue {
 
     private final AllocateMapedFileService allocateMapedFileService;
 
+    private long flushedWhere = 0;
     private long committedWhere = 0;
 
     private volatile long storeTimestamp = 0;
@@ -202,7 +203,7 @@ public class MapedFileQueue {
         if (this.mapedFiles.isEmpty())
             return 0;
 
-        long committed = this.committedWhere;
+        long committed = this.flushedWhere;
         if (committed != 0) {
             MapedFile mapedFile = this.getLastMapedFile(0, false);
             if (mapedFile != null) {
@@ -448,16 +449,29 @@ public class MapedFileQueue {
 
     public boolean flush(final int flushLeastPages) {
         boolean result = true;
-        MapedFile mapedFile = this.findMapedFileByOffset(this.committedWhere, true);
+        MapedFile mapedFile = this.findMapedFileByOffset(this.flushedWhere, true);
         if (mapedFile != null) {
             long tmpTimeStamp = mapedFile.getStoreTimestamp();
             int offset = mapedFile.flush(flushLeastPages);
             long where = mapedFile.getFileFromOffset() + offset;
-            result = (where == this.committedWhere);
-            this.committedWhere = where;
+            result = (where == this.flushedWhere);
+            this.flushedWhere = where;
             if (0 == flushLeastPages) {
                 this.storeTimestamp = tmpTimeStamp;
             }
+        }
+
+        return result;
+    }
+
+    public boolean commit(final int commitLeastPages) {
+        boolean result = true;
+        MapedFile mapedFile = this.findMapedFileByOffset(this.committedWhere, true);
+        if (mapedFile != null) {
+            int offset = mapedFile.commit(commitLeastPages);
+            long where = mapedFile.getFileFromOffset() + offset;
+            result = (where == this.committedWhere);
+            this.committedWhere = where;
         }
 
         return result;
@@ -587,7 +601,7 @@ public class MapedFileQueue {
             mf.destroy(1000 * 3);
         }
         this.mapedFiles.clear();
-        this.committedWhere = 0;
+        this.flushedWhere = 0;
 
         // delete parent directory
         File file = new File(storePath);
@@ -598,13 +612,13 @@ public class MapedFileQueue {
     }
 
 
-    public long getCommittedWhere() {
-        return committedWhere;
+    public long getFlushedWhere() {
+        return flushedWhere;
     }
 
 
-    public void setCommittedWhere(long committedWhere) {
-        this.committedWhere = committedWhere;
+    public void setFlushedWhere(long flushedWhere) {
+        this.flushedWhere = flushedWhere;
     }
 
 
@@ -620,5 +634,13 @@ public class MapedFileQueue {
 
     public int getMapedFileSize() {
         return mapedFileSize;
+    }
+
+    public long getCommittedWhere() {
+        return committedWhere;
+    }
+
+    public void setCommittedWhere(final long committedWhere) {
+        this.committedWhere = committedWhere;
     }
 }

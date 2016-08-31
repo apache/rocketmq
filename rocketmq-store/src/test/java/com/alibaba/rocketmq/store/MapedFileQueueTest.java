@@ -155,33 +155,33 @@ public class MapedFileQueueTest {
 
         boolean result = mapedFileQueue.flush(0);
         assertFalse(result);
-        assertEquals(1024 * 1, mapedFileQueue.getCommittedWhere());
-        System.out.println("1 " + result + " " + mapedFileQueue.getCommittedWhere());
+        assertEquals(1024 * 1, mapedFileQueue.getFlushedWhere());
+        System.out.println("1 " + result + " " + mapedFileQueue.getFlushedWhere());
 
         result = mapedFileQueue.flush(0);
         assertFalse(result);
-        assertEquals(1024 * 2, mapedFileQueue.getCommittedWhere());
-        System.out.println("2 " + result + " " + mapedFileQueue.getCommittedWhere());
+        assertEquals(1024 * 2, mapedFileQueue.getFlushedWhere());
+        System.out.println("2 " + result + " " + mapedFileQueue.getFlushedWhere());
 
         result = mapedFileQueue.flush(0);
         assertFalse(result);
-        assertEquals(1024 * 3, mapedFileQueue.getCommittedWhere());
-        System.out.println("3 " + result + " " + mapedFileQueue.getCommittedWhere());
+        assertEquals(1024 * 3, mapedFileQueue.getFlushedWhere());
+        System.out.println("3 " + result + " " + mapedFileQueue.getFlushedWhere());
 
         result = mapedFileQueue.flush(0);
         assertFalse(result);
-        assertEquals(1024 * 4, mapedFileQueue.getCommittedWhere());
-        System.out.println("4 " + result + " " + mapedFileQueue.getCommittedWhere());
+        assertEquals(1024 * 4, mapedFileQueue.getFlushedWhere());
+        System.out.println("4 " + result + " " + mapedFileQueue.getFlushedWhere());
 
         result = mapedFileQueue.flush(0);
         assertFalse(result);
-        assertEquals(1024 * 5, mapedFileQueue.getCommittedWhere());
-        System.out.println("5 " + result + " " + mapedFileQueue.getCommittedWhere());
+        assertEquals(1024 * 5, mapedFileQueue.getFlushedWhere());
+        System.out.println("5 " + result + " " + mapedFileQueue.getFlushedWhere());
 
         result = mapedFileQueue.flush(0);
         assertFalse(result);
-        assertEquals(1024 * 6, mapedFileQueue.getCommittedWhere());
-        System.out.println("6 " + result + " " + mapedFileQueue.getCommittedWhere());
+        assertEquals(1024 * 6, mapedFileQueue.getFlushedWhere());
+        System.out.println("6 " + result + " " + mapedFileQueue.getFlushedWhere());
 
         mapedFileQueue.shutdown(1000);
         mapedFileQueue.destroy();

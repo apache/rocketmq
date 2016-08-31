@@ -286,7 +286,9 @@ public class MapedFile extends ReferenceResource {
             if (this.hold()) {
                 // DirectMemory may be not pageAligned, so we back 1.x page size.
                 int value = this.wrotePostion.get() - this.wrotePostion.get() % OS_PAGE_SIZE - OS_PAGE_SIZE;
-                if (isFull()) {
+
+                //commitLeastPages=0 means must commit to FileChannel immediately
+                if (commitLeastPages == 0 || isFull()) {
                     value = this.wrotePostion.get();
                 }
 
