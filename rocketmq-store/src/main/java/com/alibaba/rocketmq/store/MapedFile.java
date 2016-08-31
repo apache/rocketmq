@@ -207,7 +207,7 @@ public class MapedFile extends ReferenceResource {
 
 
         if (currentPos < this.fileSize) {
-            ByteBuffer byteBuffer = this.mappedByteBuffer.slice();
+            ByteBuffer byteBuffer = writeBuffer != null ? writeBuffer.slice() : this.mappedByteBuffer.slice();
             byteBuffer.position(currentPos);
             AppendMessageResult result =
                     cb.doAppend(this.getFileFromOffset(), byteBuffer, this.fileSize - currentPos, msg);
@@ -239,7 +239,7 @@ public class MapedFile extends ReferenceResource {
 
 
         if ((currentPos + data.length) <= this.fileSize) {
-            ByteBuffer byteBuffer = this.mappedByteBuffer.slice();
+            ByteBuffer byteBuffer = writeBuffer != null ? writeBuffer.slice() : this.mappedByteBuffer.slice();
             byteBuffer.position(currentPos);
             byteBuffer.put(data);
             this.wrotePostion.addAndGet(data.length);
@@ -259,6 +259,7 @@ public class MapedFile extends ReferenceResource {
      */
     public int flush(final int flushLeastPages) {
         if (this.isAbleToFlush(flushLeastPages)) {
+            long begin = System.currentTimeMillis();
             if (this.hold()) {
                 int value = this.wrotePostion.get();
 
@@ -278,6 +279,7 @@ public class MapedFile extends ReferenceResource {
                 log.warn("in flush, hold failed, flush offset = " + this.flushedPosition.get());
                 this.flushedPosition.set(this.committedPosition.get());
             }
+            log.info("flush cost : {}", System.currentTimeMillis() - begin);
         }
 
         return this.getFlushedPosition();
@@ -285,6 +287,7 @@ public class MapedFile extends ReferenceResource {
 
     public int commit(final int commitLeastPages) {
         if (this.isAbleToCommit(commitLeastPages)) {
+            long begin = System.currentTimeMillis();
             if (this.hold()) {
                 // DirectMemory may be not pageAligned, so we back 1.x page size.
                 int value = this.wrotePostion.get() - this.wrotePostion.get() % OS_PAGE_SIZE - OS_PAGE_SIZE;
@@ -313,6 +316,7 @@ public class MapedFile extends ReferenceResource {
                 log.warn("in commit, hold failed, commit offset = " + this.committedPosition.get());
                 this.committedPosition.set(this.wrotePostion.get());
             }
+            log.info("commit cost : {}", System.currentTimeMillis() - begin);
         }
 
         // All dirty data has been committed to FileChannel.
