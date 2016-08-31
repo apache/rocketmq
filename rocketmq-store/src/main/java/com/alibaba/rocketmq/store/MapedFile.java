@@ -77,10 +77,12 @@ public class MapedFile extends ReferenceResource {
      * Message will put to here first, and then reput to FileChannel if writeBuffer is not null.
      */
     private ByteBuffer writeBuffer = null;
+    private TransientStorePool transientStorePool = null;
 
     public MapedFile(final String fileName, final int fileSize, final TransientStorePool transientStorePool) throws IOException {
         this(fileName, fileSize);
         this.writeBuffer = transientStorePool.borrowBuffer();
+        this.transientStorePool = transientStorePool;
     }
 
     public MapedFile(final String fileName, final int fileSize) throws IOException {
@@ -310,6 +312,11 @@ public class MapedFile extends ReferenceResource {
                 log.warn("in commit, hold failed, commit offset = " + this.committedPosition.get());
                 this.committedPosition.set(this.wrotePostion.get());
             }
+        }
+
+        // All dirty data has been committed to FileChannel.
+        if (writeBuffer != null && this.transientStorePool != null && this.fileSize == this.committedPosition.get()) {
+            this.transientStorePool.returnBuffer(writeBuffer);
         }
 
         return this.committedPosition.get();
