@@ -303,7 +303,8 @@ public class MapedFile extends ReferenceResource {
                         try {
                             this.fileChannel.write(byteBuffer);
                         } catch (IOException e) {
-                            log.error("Error occurred when commit data to filechannel.", e);                        }
+                            log.error("Error occurred when commit data to filechannel.", e);
+                        }
                     }
                 }
                 this.committedPosition.set(value);
