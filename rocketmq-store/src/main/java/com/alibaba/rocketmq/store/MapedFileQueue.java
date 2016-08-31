@@ -133,7 +133,7 @@ public class MapedFileQueue {
             if (fileTailOffset > offset) {
                 if (offset >= file.getFileFromOffset()) {
                     file.setWrotePostion((int) (offset % this.mapedFileSize));
-                    file.setCommittedPosition((int) (offset % this.mapedFileSize));
+                    file.setFlushedPosition((int) (offset % this.mapedFileSize));
                 } else {
 
                     file.destroy(1000);
@@ -184,7 +184,7 @@ public class MapedFileQueue {
                     MapedFile mapedFile = new MapedFile(file.getPath(), mapedFileSize);
 
                     mapedFile.setWrotePostion(this.mapedFileSize);
-                    mapedFile.setCommittedPosition(this.mapedFileSize);
+                    mapedFile.setFlushedPosition(this.mapedFileSize);
                     this.mapedFiles.add(mapedFile);
                     log.info("load " + file.getPath() + " OK");
                 } catch (IOException e) {
@@ -302,7 +302,7 @@ public class MapedFileQueue {
 
             if (offset >= mapedFileLast.getFileFromOffset()) {
                 int where = (int) (offset % mapedFileLast.getFileSize());
-                mapedFileLast.setCommittedPosition(where);
+                mapedFileLast.setFlushedPosition(where);
                 mapedFileLast.setWrotePostion(where);
                 break;
             } else {
@@ -446,12 +446,12 @@ public class MapedFileQueue {
     }
 
 
-    public boolean commit(final int flushLeastPages) {
+    public boolean flush(final int flushLeastPages) {
         boolean result = true;
         MapedFile mapedFile = this.findMapedFileByOffset(this.committedWhere, true);
         if (mapedFile != null) {
             long tmpTimeStamp = mapedFile.getStoreTimestamp();
-            int offset = mapedFile.commit(flushLeastPages);
+            int offset = mapedFile.flush(flushLeastPages);
             long where = mapedFile.getFileFromOffset() + offset;
             result = (where == this.committedWhere);
             this.committedWhere = where;

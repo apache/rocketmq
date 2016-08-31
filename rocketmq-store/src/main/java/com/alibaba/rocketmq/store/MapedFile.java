@@ -64,7 +64,9 @@ public class MapedFile extends ReferenceResource {
 
     private final AtomicInteger wrotePostion = new AtomicInteger(0);
 
+    private final AtomicInteger flushedPosition = new AtomicInteger(0);
     private final AtomicInteger committedPosition = new AtomicInteger(0);
+
 
     private FileChannel fileChannel;
 
@@ -253,11 +255,53 @@ public class MapedFile extends ReferenceResource {
      *
      * @return
      */
-    public int commit(final int flushLeastPages) {
+    public int flush(final int flushLeastPages) {
         if (this.isAbleToFlush(flushLeastPages)) {
             if (this.hold()) {
                 int value = this.wrotePostion.get();
-                this.mappedByteBuffer.force();
+
+                if (writeBuffer != null) {
+                    try {
+                        this.fileChannel.force(false);
+                    } catch (IOException e) {
+                        log.error("Error occurred when force data to disk.", e);
+                    }
+                } else {
+                    this.mappedByteBuffer.force();
+                }
+
+                this.flushedPosition.set(value);
+                this.release();
+            } else {
+                log.warn("in flush, hold failed, flush offset = " + this.flushedPosition.get());
+                this.flushedPosition.set(this.committedPosition.get());
+            }
+        }
+
+        return this.getFlushedPosition();
+    }
+
+    public int commit(final int commitLeastPages) {
+        if (this.isAbleToCommit(commitLeastPages)) {
+            if (this.hold()) {
+                // DirectMemory may be not pageAligned, so we back 1.x page size.
+                int value = this.wrotePostion.get() - this.wrotePostion.get() % OS_PAGE_SIZE - OS_PAGE_SIZE;
+                if (isFull()) {
+                    value = this.wrotePostion.get();
+                }
+
+                if (writeBuffer != null) {
+                    if ((value - this.committedPosition.get() > 0)) {
+                        ByteBuffer byteBuffer = writeBuffer.slice();
+                        byteBuffer.position(this.committedPosition.get());
+                        byteBuffer.limit(value);
+
+                        try {
+                            this.fileChannel.write(byteBuffer);
+                        } catch (IOException e) {
+                            log.error("Error occurred when commit data to filechannel.", e);                        }
+                    }
+                }
                 this.committedPosition.set(value);
                 this.release();
             } else {
@@ -266,18 +310,16 @@ public class MapedFile extends ReferenceResource {
             }
         }
 
-        return this.getCommittedPosition();
+        return this.committedPosition.get();
     }
 
     private boolean isAbleToFlush(final int flushLeastPages) {
-        int flush = this.committedPosition.get();
-        int write = this.wrotePostion.get();
-
+        int flush = this.flushedPosition.get();
+        int write = writeBuffer == null ? this.wrotePostion.get() : this.committedPosition.get();
 
         if (this.isFull()) {
             return true;
         }
-
 
         if (flushLeastPages > 0) {
             return ((write / OS_PAGE_SIZE) - (flush / OS_PAGE_SIZE)) >= flushLeastPages;
@@ -286,14 +328,30 @@ public class MapedFile extends ReferenceResource {
         return write > flush;
     }
 
-    public int getCommittedPosition() {
-        return committedPosition.get();
+    private boolean isAbleToCommit(final int commitLeastPages) {
+        int flush = this.committedPosition.get();
+        int write = this.wrotePostion.get();
+
+        if (this.isFull()) {
+            return true;
+        }
+
+        if (commitLeastPages > 0) {
+            return ((write / OS_PAGE_SIZE) - (flush / OS_PAGE_SIZE)) >= commitLeastPages;
+        }
+
+        return write > flush;
+    }
+
+    public int getFlushedPosition() {
+        return flushedPosition.get();
     }
 
 
-    public void setCommittedPosition(int pos) {
-        this.committedPosition.set(pos);
+    public void setFlushedPosition(int pos) {
+        this.flushedPosition.set(pos);
     }
+
 
     public boolean isFull() {
         return this.fileSize == this.wrotePostion.get();
@@ -376,7 +434,7 @@ public class MapedFile extends ReferenceResource {
                 boolean result = this.file.delete();
                 log.info("delete file[REF:" + this.getRefCount() + "] " + this.fileName
                         + (result ? " OK, " : " Failed, ") + "W:" + this.getWrotePostion() + " M:"
-                        + this.getCommittedPosition() + ", "
+                        + this.getFlushedPosition() + ", "
                         + UtilAll.computeEclipseTimeMilliseconds(beginTime));
             } catch (Exception e) {
                 log.warn("close file channel " + this.fileName + " Failed. ", e);

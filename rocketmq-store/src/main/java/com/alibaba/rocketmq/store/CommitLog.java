@@ -77,7 +77,7 @@ public class CommitLog {
 
     public boolean load() {
         boolean result = this.mapedFileQueue.load();
-        log.info("load commit log " + (result ? "OK" : "Failed"));
+        log.info("load flush log " + (result ? "OK" : "Failed"));
         return result;
     }
 
@@ -90,7 +90,7 @@ public class CommitLog {
     }
 
     public long flush() {
-        this.mapedFileQueue.commit(0);
+        this.mapedFileQueue.flush(0);
         return this.mapedFileQueue.getCommittedWhere();
     }
 
@@ -796,7 +796,7 @@ public class CommitLog {
                         this.printFlushProgress();
                     }
 
-                    CommitLog.this.mapedFileQueue.commit(flushPhysicQueueLeastPages);
+                    CommitLog.this.mapedFileQueue.flush(flushPhysicQueueLeastPages);
                     long storeTimestamp = CommitLog.this.mapedFileQueue.getStoreTimestamp();
                     if (storeTimestamp > 0) {
                         CommitLog.this.defaultMessageStore.getStoreCheckpoint().setPhysicMsgTimestamp(storeTimestamp);
@@ -810,7 +810,7 @@ public class CommitLog {
             // Normal shutdown, to ensure that all the flush before exit
             boolean result = false;
             for (int i = 0; i < RetryTimesOver && !result; i++) {
-                result = CommitLog.this.mapedFileQueue.commit(0);
+                result = CommitLog.this.mapedFileQueue.flush(0);
                 CommitLog.log.info(this.getServiceName() + " service shutdown, retry " + (i + 1) + " times " + (result ? "OK" : "Not OK"));
             }
 
@@ -907,7 +907,7 @@ public class CommitLog {
                         flushOK = (CommitLog.this.mapedFileQueue.getCommittedWhere() >= req.getNextOffset());
 
                         if (!flushOK) {
-                            CommitLog.this.mapedFileQueue.commit(0);
+                            CommitLog.this.mapedFileQueue.flush(0);
                         }
                     }
 
@@ -923,7 +923,7 @@ public class CommitLog {
             } else {
                 // Because of individual messages is set to not sync flush, it
                 // will come to this process
-                CommitLog.this.mapedFileQueue.commit(0);
+                CommitLog.this.mapedFileQueue.flush(0);
             }
         }
 

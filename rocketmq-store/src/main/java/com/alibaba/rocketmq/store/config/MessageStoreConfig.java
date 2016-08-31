@@ -40,9 +40,17 @@ public class MessageStoreConfig {
     private int mapedFileSizeCommitLog = 1024 * 1024 * 1024;
     // ConsumeQueue file size, default is 30W
     private int mapedFileSizeConsumeQueue = 300000 * ConsumeQueue.CQStoreUnitSize;
+
     // CommitLog flush interval
+    // flush data to disk
     @ImportantField
-    private int flushIntervalCommitLog = 1000;
+    private int flushIntervalCommitLog = 100;
+
+    // Only used if TransientStorePool enabled
+    // flush data to FileChannel
+    @ImportantField
+    private int commitIntervalCommitLog = 500;
+
     // Whether schedule flush,default is real-time
     @ImportantField
     private boolean flushCommitLogTimed = false;
@@ -664,5 +672,13 @@ public class MessageStoreConfig {
 
     public void setTransientStorePoolSize(final int transientStorePoolSize) {
         this.transientStorePoolSize = transientStorePoolSize;
+    }
+
+    public int getCommitIntervalCommitLog() {
+        return commitIntervalCommitLog;
+    }
+
+    public void setCommitIntervalCommitLog(final int commitIntervalCommitLog) {
+        this.commitIntervalCommitLog = commitIntervalCommitLog;
     }
 }

@@ -269,7 +269,7 @@ public class BrokerController {
                 @Override
                 public void run() {
                     try {
-                        log.info("dispatch behind commit log {} bytes", BrokerController.this.getMessageStore().dispatchBehindBytes());
+                        log.info("dispatch behind flush log {} bytes", BrokerController.this.getMessageStore().dispatchBehindBytes());
                     } catch (Throwable e) {
                         log.error("schedule dispatchBehindBytes error.", e);
                     }

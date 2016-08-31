@@ -216,7 +216,7 @@ public class ConsumeQueue {
                 ByteBuffer byteBuffer = mapedFile.sliceByteBuffer();
 
                 mapedFile.setWrotePostion(0);
-                mapedFile.setCommittedPosition(0);
+                mapedFile.setFlushedPosition(0);
 
                 for (int i = 0; i < logicFileSize; i += CQStoreUnitSize) {
                     long offset = byteBuffer.getLong();
@@ -231,7 +231,7 @@ public class ConsumeQueue {
                         } else {
                             int pos = i + CQStoreUnitSize;
                             mapedFile.setWrotePostion(pos);
-                            mapedFile.setCommittedPosition(pos);
+                            mapedFile.setFlushedPosition(pos);
                             this.maxPhysicOffset = offset;
                         }
                     }
@@ -246,7 +246,7 @@ public class ConsumeQueue {
 
                             int pos = i + CQStoreUnitSize;
                             mapedFile.setWrotePostion(pos);
-                            mapedFile.setCommittedPosition(pos);
+                            mapedFile.setFlushedPosition(pos);
                             this.maxPhysicOffset = offset;
 
 
@@ -296,7 +296,7 @@ public class ConsumeQueue {
 
 
     public boolean commit(final int flushLeastPages) {
-        return this.mapedFileQueue.commit(flushLeastPages);
+        return this.mapedFileQueue.flush(flushLeastPages);
     }
 
 
@@ -353,7 +353,7 @@ public class ConsumeQueue {
 
             else {
                 // XXX: warn and notify me
-                log.warn("[BUG]put commit log postion info to " + topic + ":" + queueId + " " + offset
+                log.warn("[BUG]put flush log postion info to " + topic + ":" + queueId + " " + offset
                         + " failed, retry " + i + " times");
 
                 try {
