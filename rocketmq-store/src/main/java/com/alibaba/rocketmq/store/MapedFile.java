@@ -71,6 +71,15 @@ public class MapedFile extends ReferenceResource {
     private volatile long storeTimestamp = 0;
     private boolean firstCreateInQueue = false;
 
+    /**
+     * Message will put to here first, and then reput to FileChannel if writeBuffer is not null.
+     */
+    private ByteBuffer writeBuffer = null;
+
+    public MapedFile(final String fileName, final int fileSize, final TransientStorePool transientStorePool) throws IOException {
+        this(fileName, fileSize);
+        this.writeBuffer = transientStorePool.borrowBuffer();
+    }
 
     public MapedFile(final String fileName, final int fileSize) throws IOException {
         this.fileName = fileName;

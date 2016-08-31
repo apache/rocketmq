@@ -119,6 +119,10 @@ public class MessageStoreConfig {
     private boolean diskFallRecorded = true;
     private long osPageCacheBusyTimeOutMills = 1000;
     private int defaultQueryMaxNum = 32;
+
+    @ImportantField
+    private boolean transientStorePoolEnable = false;
+    private int transientStorePoolSizeInGB = 5;
     
     public boolean isDebugLockEnable() {
         return debugLockEnable;
@@ -645,6 +649,20 @@ public class MessageStoreConfig {
     public void setDefaultQueryMaxNum(int defaultQueryMaxNum) {
         this.defaultQueryMaxNum = defaultQueryMaxNum;
     }
-    
-    
+
+    public boolean isTransientStorePoolEnable() {
+        return transientStorePoolEnable;
+    }
+
+    public void setTransientStorePoolEnable(final boolean transientStorePoolEnable) {
+        this.transientStorePoolEnable = transientStorePoolEnable;
+    }
+
+    public int getTransientStorePoolSizeInGB() {
+        return transientStorePoolSizeInGB;
+    }
+
+    public void setTransientStorePoolSizeInGB(final int transientStorePoolSizeInGB) {
+        this.transientStorePoolSizeInGB = transientStorePoolSizeInGB;
+    }
 }

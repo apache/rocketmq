@@ -81,8 +81,10 @@ public class DefaultMessageStore implements MessageStore {
 
     private final StoreStatsService storeStatsService;
 
+    private final TransientStorePool transientStorePool;
+
     private final RunningFlags runningFlags = new RunningFlags();
-    private final SystemClock systemClock = new SystemClock(1);
+    private final SystemClock systemClock = new SystemClock();
 
     private final ScheduledExecutorService scheduledExecutorService =
             Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("StoreScheduledThread"));
@@ -95,7 +97,6 @@ public class DefaultMessageStore implements MessageStore {
     private StoreCheckpoint storeCheckpoint;
 
     private AtomicLong printTimes = new AtomicLong(0);
-
 
     public DefaultMessageStore(final MessageStoreConfig messageStoreConfig, final BrokerStatsManager brokerStatsManager,
                                final MessageArrivingListener messageArrivingListener, final BrokerConfig brokerConfig) throws IOException {
@@ -117,6 +118,8 @@ public class DefaultMessageStore implements MessageStore {
         this.reputMessageService = new ReputMessageService();
 
         this.scheduleMessageService = new ScheduleMessageService(this);
+
+        this.transientStorePool = new TransientStorePool(messageStoreConfig);
 
 
         this.allocateMapedFileService.start();
