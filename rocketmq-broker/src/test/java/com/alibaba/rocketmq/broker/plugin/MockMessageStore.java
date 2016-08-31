@@ -155,6 +155,11 @@ public class MockMessageStore implements MessageStore {
         return 0;
     }
 
+    @Override
+    public long getEarliestMessageTime() {
+        return 0;
+    }
+
 
     @Override
     public long getMessageStoreTimeStamp(String topic, int queueId, long offset) {
@@ -267,6 +272,11 @@ public class MockMessageStore implements MessageStore {
     @Override
     public boolean isOSPageCacheBusy() {
         return false;
+    }
+
+    @Override
+    public long lockTimeMills() {
+        return 0;
     }
 
 }
