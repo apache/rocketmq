@@ -39,7 +39,7 @@ import com.alibaba.rocketmq.remoting.common.RemotingHelper;
 import com.alibaba.rocketmq.remoting.exception.RemotingSendRequestException;
 import com.alibaba.rocketmq.remoting.exception.RemotingTimeoutException;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
-import com.alibaba.rocketmq.store.SelectMapedBufferResult;
+import com.alibaba.rocketmq.store.SelectMappedBufferResult;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
@@ -71,7 +71,7 @@ public class Broker2Client {
     public void checkProducerTransactionState(//
                                               final Channel channel,//
                                               final CheckTransactionStateRequestHeader requestHeader,//
-                                              final SelectMapedBufferResult selectMapedBufferResult//
+                                              final SelectMappedBufferResult selectMappedBufferResult//
     ) {
         RemotingCommand request =
                 RemotingCommand.createRequestCommand(RequestCode.CHECK_TRANSACTION_STATE, requestHeader);
@@ -79,12 +79,12 @@ public class Broker2Client {
 
         try {
             FileRegion fileRegion =
-                    new OneMessageTransfer(request.encodeHeader(selectMapedBufferResult.getSize()),
-                            selectMapedBufferResult);
+                    new OneMessageTransfer(request.encodeHeader(selectMappedBufferResult.getSize()),
+                            selectMappedBufferResult);
             channel.writeAndFlush(fileRegion).addListener(new ChannelFutureListener() {
                 @Override
                 public void operationComplete(ChannelFuture future) throws Exception {
-                    selectMapedBufferResult.release();
+                    selectMappedBufferResult.release();
                     if (!future.isSuccess()) {
                         log.error("invokeProducer failed,", future.cause());
                     }
@@ -92,7 +92,7 @@ public class Broker2Client {
             });
         } catch (Throwable e) {
             log.error("invokeProducer exception", e);
-            selectMapedBufferResult.release();
+            selectMappedBufferResult.release();
         }
     }
 

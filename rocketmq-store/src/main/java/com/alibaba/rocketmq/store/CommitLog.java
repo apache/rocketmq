@@ -129,17 +129,17 @@ public class CommitLog {
     /**
      * Read CommitLog data, use data replication
      */
-    public SelectMapedBufferResult getData(final long offset) {
+    public SelectMappedBufferResult getData(final long offset) {
         return this.getData(offset, (0 == offset ? true : false));
     }
 
 
-    public SelectMapedBufferResult getData(final long offset, final boolean returnFirstOnNotFound) {
+    public SelectMappedBufferResult getData(final long offset, final boolean returnFirstOnNotFound) {
         int mapedFileSize = this.defaultMessageStore.getMessageStoreConfig().getMapedFileSizeCommitLog();
-        MappedFile mappedFile = this.mappedFileQueue.findMapedFileByOffset(offset, returnFirstOnNotFound);
+        MappedFile mappedFile = this.mappedFileQueue.findMappedFileByOffset(offset, returnFirstOnNotFound);
         if (mappedFile != null) {
             int pos = (int) (offset % mapedFileSize);
-            SelectMapedBufferResult result = mappedFile.selectMapedBuffer(pos);
+            SelectMappedBufferResult result = mappedFile.selectMapedBuffer(pos);
             return result;
         }
 
@@ -559,7 +559,7 @@ public class CommitLog {
 
         long eclipseTimeInLock = 0;
         MappedFile unlockMappedFile = null;
-        MappedFile mappedFile = this.mappedFileQueue.getLastMapedFileWithLock();
+        MappedFile mappedFile = this.mappedFileQueue.getLastMappedFile();
 
         long beginLockTimestamp = this.defaultMessageStore.getSystemClock().now();
         this.beginTimeInLock = beginLockTimestamp;
@@ -569,7 +569,7 @@ public class CommitLog {
         msg.setStoreTimestamp(beginLockTimestamp);
 
         if (null == mappedFile || mappedFile.isFull()) {
-            mappedFile = this.mappedFileQueue.getLastMapedFile();
+            mappedFile = this.mappedFileQueue.getLastMappedFile(0);
         }
         if (null == mappedFile) {
             log.error("create maped file1 error, topic: " + msg.getTopic() + " clientAddr: " + msg.getBornHostString());
@@ -583,7 +583,7 @@ public class CommitLog {
             case END_OF_FILE:
                 unlockMappedFile = mappedFile;
                 // Create a new file, re-write the message
-                mappedFile = this.mappedFileQueue.getLastMapedFile();
+                mappedFile = this.mappedFileQueue.getLastMappedFile(0);
                 if (null == mappedFile) {
                     // XXX: warn and notify me
                     log.error("create maped file2 error, topic: " + msg.getTopic() + " clientAddr: " + msg.getBornHostString());
@@ -682,7 +682,7 @@ public class CommitLog {
      */
     public long pickupStoretimestamp(final long offset, final int size) {
         if (offset >= this.getMinOffset()) {
-            SelectMapedBufferResult result = this.getMessage(offset, size);
+            SelectMappedBufferResult result = this.getMessage(offset, size);
             if (null != result) {
                 try {
                     return result.getByteBuffer().getLong(MessageDecoder.MessageStoreTimestampPostion);
@@ -696,7 +696,7 @@ public class CommitLog {
     }
 
     public long getMinOffset() {
-        MappedFile mappedFile = this.mappedFileQueue.getFirstMapedFileOnLock();
+        MappedFile mappedFile = this.mappedFileQueue.getFirstMappedFile();
         if (mappedFile != null) {
             if (mappedFile.isAvailable()) {
                 return mappedFile.getFileFromOffset();
@@ -708,12 +708,12 @@ public class CommitLog {
         return -1;
     }
 
-    public SelectMapedBufferResult getMessage(final long offset, final int size) {
+    public SelectMappedBufferResult getMessage(final long offset, final int size) {
         int mapedFileSize = this.defaultMessageStore.getMessageStoreConfig().getMapedFileSizeCommitLog();
-        MappedFile mappedFile = this.mappedFileQueue.findMapedFileByOffset(offset, (0 == offset ? true : false));
+        MappedFile mappedFile = this.mappedFileQueue.findMappedFileByOffset(offset, (0 == offset ? true : false));
         if (mappedFile != null) {
             int pos = (int) (offset % mapedFileSize);
-            SelectMapedBufferResult result = mappedFile.selectMapedBuffer(pos, size);
+            SelectMappedBufferResult result = mappedFile.selectMapedBuffer(pos, size);
             return result;
         }
 
@@ -742,9 +742,9 @@ public class CommitLog {
 
     public boolean appendData(long startOffset, byte[] data) {
         synchronized (this) {
-            MappedFile mappedFile = this.mappedFileQueue.getLastMapedFile(startOffset);
+            MappedFile mappedFile = this.mappedFileQueue.getLastMappedFile(startOffset);
             if (null == mappedFile) {
-                log.error("appendData getLastMapedFile error  " + startOffset);
+                log.error("appendData getLastMappedFile error  " + startOffset);
                 return false;
             }
 

@@ -108,14 +108,14 @@ public class MockMessageStore implements MessageStore {
 
 
     @Override
-    public SelectMapedBufferResult selectOneMessageByOffset(long commitLogOffset) {
+    public SelectMappedBufferResult selectOneMessageByOffset(long commitLogOffset) {
 
         return null;
     }
 
 
     @Override
-    public SelectMapedBufferResult selectOneMessageByOffset(long commitLogOffset, int msgSize) {
+    public SelectMappedBufferResult selectOneMessageByOffset(long commitLogOffset, int msgSize) {
 
         return null;
     }
@@ -176,7 +176,7 @@ public class MockMessageStore implements MessageStore {
 
 
     @Override
-    public SelectMapedBufferResult getCommitLogData(long offset) {
+    public SelectMappedBufferResult getCommitLogData(long offset) {
 
         return null;
     }

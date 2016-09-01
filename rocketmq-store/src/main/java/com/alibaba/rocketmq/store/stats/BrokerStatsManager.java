@@ -14,7 +14,6 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  */
-
 package com.alibaba.rocketmq.store.stats;
 
 import com.alibaba.rocketmq.common.ThreadFactoryImpl;

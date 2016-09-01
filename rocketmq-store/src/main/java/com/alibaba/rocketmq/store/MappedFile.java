@@ -372,7 +372,7 @@ public class MappedFile extends ReferenceResource {
         return this.fileSize == this.wrotePostion.get();
     }
 
-    public SelectMapedBufferResult selectMapedBuffer(int pos, int size) {
+    public SelectMappedBufferResult selectMapedBuffer(int pos, int size) {
 
         if ((pos + size) <= this.wrotePostion.get()) {
 
@@ -381,7 +381,7 @@ public class MappedFile extends ReferenceResource {
                 byteBuffer.position(pos);
                 ByteBuffer byteBufferNew = byteBuffer.slice();
                 byteBufferNew.limit(size);
-                return new SelectMapedBufferResult(this.fileFromOffset + pos, byteBufferNew, size, this);
+                return new SelectMappedBufferResult(this.fileFromOffset + pos, byteBufferNew, size, this);
             } else {
                 log.warn("matched, but hold failed, request pos: " + pos + ", fileFromOffset: "
                         + this.fileFromOffset);
@@ -400,7 +400,7 @@ public class MappedFile extends ReferenceResource {
     /**
 
      */
-    public SelectMapedBufferResult selectMapedBuffer(int pos) {
+    public SelectMappedBufferResult selectMapedBuffer(int pos) {
         if (pos < this.wrotePostion.get() && pos >= 0) {
             if (this.hold()) {
                 ByteBuffer byteBuffer = this.mappedByteBuffer.slice();
@@ -408,7 +408,7 @@ public class MappedFile extends ReferenceResource {
                 int size = this.wrotePostion.get() - pos;
                 ByteBuffer byteBufferNew = byteBuffer.slice();
                 byteBufferNew.limit(size);
-                return new SelectMapedBufferResult(this.fileFromOffset + pos, byteBufferNew, size, this);
+                return new SelectMappedBufferResult(this.fileFromOffset + pos, byteBufferNew, size, this);
             }
         }
 
@@ -471,6 +471,10 @@ public class MappedFile extends ReferenceResource {
 
     public void setWrotePostion(int pos) {
         this.wrotePostion.set(pos);
+    }
+
+    public void setCommittedPosition(int pos) {
+        this.committedPosition.set(pos);
     }
 
     public void warmMappedFile(FlushDiskType type, int pages) {

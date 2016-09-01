@@ -22,7 +22,7 @@ import java.nio.ByteBuffer;
 /**
  * @author shijia.wxr
  */
-public class SelectMapedBufferResult {
+public class SelectMappedBufferResult {
 
     private final long startOffset;
 
@@ -33,7 +33,7 @@ public class SelectMapedBufferResult {
     private MappedFile mappedFile;
 
 
-    public SelectMapedBufferResult(long startOffset, ByteBuffer byteBuffer, int size, MappedFile mappedFile) {
+    public SelectMappedBufferResult(long startOffset, ByteBuffer byteBuffer, int size, MappedFile mappedFile) {
         this.startOffset = startOffset;
         this.byteBuffer = byteBuffer;
         this.size = size;
