@@ -42,7 +42,7 @@ public class ConsumeQueue {
     private final ByteBuffer byteBufferIndex;
 
     private final String storePath;
-    private final int mapedFileSize;
+    private final int mappedFileSize;
     private long maxPhysicOffset = -1;
     private volatile long minLogicOffset = 0;
 
@@ -54,7 +54,7 @@ public class ConsumeQueue {
                         final int mappedFileSize,//
                         final DefaultMessageStore defaultMessageStore) {
         this.storePath = storePath;
-        this.mapedFileSize = mappedFileSize;
+        this.mappedFileSize = mappedFileSize;
         this.defaultMessageStore = defaultMessageStore;
 
         this.topic = topic;
@@ -85,7 +85,7 @@ public class ConsumeQueue {
             if (index < 0)
                 index = 0;
 
-            int mapedFileSizeLogics = this.mapedFileSize;
+            int mapedFileSizeLogics = this.mappedFileSize;
             MappedFile mappedFile = mappedFiles.get(index);
             ByteBuffer byteBuffer = mappedFile.sliceByteBuffer();
             long processOffset = mappedFile.getFileFromOffset();
@@ -206,7 +206,7 @@ public class ConsumeQueue {
 
     public void truncateDirtyLogicFiles(long phyOffet) {
 
-        int logicFileSize = this.mapedFileSize;
+        int logicFileSize = this.mappedFileSize;
 
         this.maxPhysicOffset = phyOffet - 1;
 
@@ -266,7 +266,7 @@ public class ConsumeQueue {
     public long getLastOffset() {
         long lastOffset = -1;
 
-        int logicFileSize = this.mapedFileSize;
+        int logicFileSize = this.mappedFileSize;
 
         MappedFile mappedFile = this.mappedFileQueue.getLastMappedFile();
         if (mappedFile != null) {
@@ -340,12 +340,12 @@ public class ConsumeQueue {
     }
 
 
-    public void putMessagePostionInfoWrapper(long offset, int size, long tagsCode, long storeTimestamp,
-                                             long logicOffset) {
+    public void putMessagePositionInfoWrapper(long offset, int size, long tagsCode, long storeTimestamp,
+                                              long logicOffset) {
         final int MaxRetries = 30;
         boolean canWrite = this.defaultMessageStore.getRunningFlags().isWriteable();
         for (int i = 0; i < MaxRetries && canWrite; i++) {
-            boolean result = this.putMessagePostionInfo(offset, size, tagsCode, logicOffset);
+            boolean result = this.putMessagePositionInfo(offset, size, tagsCode, logicOffset);
             if (result) {
                 this.defaultMessageStore.getStoreCheckpoint().setLogicsMsgTimestamp(storeTimestamp);
                 return;
@@ -353,7 +353,7 @@ public class ConsumeQueue {
 
             else {
                 // XXX: warn and notify me
-                log.warn("[BUG]put flush log postion info to " + topic + ":" + queueId + " " + offset
+                log.warn("[BUG]put flush log position info to " + topic + ":" + queueId + " " + offset
                         + " failed, retry " + i + " times");
 
                 try {
@@ -369,8 +369,8 @@ public class ConsumeQueue {
         this.defaultMessageStore.getRunningFlags().makeLogicsQueueError();
     }
 
-    private boolean putMessagePostionInfo(final long offset, final int size, final long tagsCode,
-                                          final long cqOffset) {
+    private boolean putMessagePositionInfo(final long offset, final int size, final long tagsCode,
+                                           final long cqOffset) {
 
         if (offset <= this.maxPhysicOffset) {
             return true;
@@ -429,7 +429,7 @@ public class ConsumeQueue {
     }
 
     public SelectMappedBufferResult getIndexBuffer(final long startIndex) {
-        int mapedFileSize = this.mapedFileSize;
+        int mapedFileSize = this.mappedFileSize;
         long offset = startIndex * CQStoreUnitSize;
         if (offset >= this.getMinLogicOffset()) {
             MappedFile mappedFile = this.mappedFileQueue.findMappedFileByOffset(offset);
@@ -450,7 +450,7 @@ public class ConsumeQueue {
     }
 
     public long rollNextFile(final long index) {
-        int mapedFileSize = this.mapedFileSize;
+        int mapedFileSize = this.mappedFileSize;
         int totalUnitsInFile = mapedFileSize / CQStoreUnitSize;
         return (index + totalUnitsInFile - index % totalUnitsInFile);
     }

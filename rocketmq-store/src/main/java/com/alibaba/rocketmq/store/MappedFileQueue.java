@@ -312,7 +312,7 @@ public class MappedFileQueue {
     public long getMaxOffset() {
         MappedFile mappedFile = getLastMappedFile();
         if (mappedFile != null) {
-            return mappedFile.getFileFromOffset() + mappedFile.getWrotePosition();
+            return mappedFile.getFileFromOffset() + mappedFile.getReadPosition();
         }
         return 0;
     }

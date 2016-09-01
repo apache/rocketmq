@@ -130,15 +130,15 @@ public class CommitLog {
      * Read CommitLog data, use data replication
      */
     public SelectMappedBufferResult getData(final long offset) {
-        return this.getData(offset, (0 == offset ? true : false));
+        return this.getData(offset, (offset == 0));
     }
 
 
     public SelectMappedBufferResult getData(final long offset, final boolean returnFirstOnNotFound) {
-        int mapedFileSize = this.defaultMessageStore.getMessageStoreConfig().getMapedFileSizeCommitLog();
+        int mappedFileSize = this.defaultMessageStore.getMessageStoreConfig().getMapedFileSizeCommitLog();
         MappedFile mappedFile = this.mappedFileQueue.findMappedFileByOffset(offset, returnFirstOnNotFound);
         if (mappedFile != null) {
-            int pos = (int) (offset % mapedFileSize);
+            int pos = (int) (offset % mappedFileSize);
             SelectMappedBufferResult result = mappedFile.selectMappedBuffer(pos);
             return result;
         }
@@ -162,13 +162,13 @@ public class CommitLog {
             MappedFile mappedFile = mappedFiles.get(index);
             ByteBuffer byteBuffer = mappedFile.sliceByteBuffer();
             long processOffset = mappedFile.getFileFromOffset();
-            long mapedFileOffset = 0;
+            long mappedFileOffset = 0;
             while (true) {
                 DispatchRequest dispatchRequest = this.checkMessageAndReturnSize(byteBuffer, checkCRCOnRecover);
                 int size = dispatchRequest.getMsgSize();
                 // Normal data
                 if (dispatchRequest.isSuccess() && size > 0) {
-                    mapedFileOffset += size;
+                    mappedFileOffset += size;
                 }
                 // Come the end of the file, switch to the next file Since the
                 // return 0 representatives met last hole,
@@ -183,7 +183,7 @@ public class CommitLog {
                         mappedFile = mappedFiles.get(index);
                         byteBuffer = mappedFile.sliceByteBuffer();
                         processOffset = mappedFile.getFileFromOffset();
-                        mapedFileOffset = 0;
+                        mappedFileOffset = 0;
                         log.info("recover next physics file, " + mappedFile.getFileName());
                     }
                 }
@@ -194,7 +194,7 @@ public class CommitLog {
                 }
             }
 
-            processOffset += mapedFileOffset;
+            processOffset += mappedFileOffset;
             this.mappedFileQueue.setFlushedWhere(processOffset);
             this.mappedFileQueue.truncateDirtyFiles(processOffset);
         }
@@ -419,14 +419,14 @@ public class CommitLog {
 
             ByteBuffer byteBuffer = mappedFile.sliceByteBuffer();
             long processOffset = mappedFile.getFileFromOffset();
-            long mapedFileOffset = 0;
+            long mappedFileOffset = 0;
             while (true) {
                 DispatchRequest dispatchRequest = this.checkMessageAndReturnSize(byteBuffer, checkCRCOnRecover);
                 int size = dispatchRequest.getMsgSize();
 
                 // Normal data
                 if (size > 0) {
-                    mapedFileOffset += size;
+                    mappedFileOffset += size;
 
 
                     if (this.defaultMessageStore.getMessageStoreConfig().isDuplicationEnable()) {
@@ -456,13 +456,13 @@ public class CommitLog {
                         mappedFile = mappedFiles.get(index);
                         byteBuffer = mappedFile.sliceByteBuffer();
                         processOffset = mappedFile.getFileFromOffset();
-                        mapedFileOffset = 0;
+                        mappedFileOffset = 0;
                         log.info("recover next physics file, " + mappedFile.getFileName());
                     }
                 }
             }
 
-            processOffset += mapedFileOffset;
+            processOffset += mappedFileOffset;
             this.mappedFileQueue.setFlushedWhere(processOffset);
             this.mappedFileQueue.truncateDirtyFiles(processOffset);
 
@@ -1046,6 +1046,7 @@ public class CommitLog {
 
 
         public AppendMessageResult doAppend(final long fileFromOffset, final ByteBuffer byteBuffer, final int maxBlank, final Object msg) {
+            long begin = System.currentTimeMillis();
             // STORETIMESTAMP + STOREHOSTADDRESS + OFFSET <br>
             MessageExtBrokerInner msgInner = (MessageExtBrokerInner) msg;
             // PHY OFFSET
@@ -1181,7 +1182,10 @@ public class CommitLog {
                 default:
                     break;
             }
-
+            long appendCost = System.currentTimeMillis() - begin - (System.currentTimeMillis() - beginTimeMills);
+            if (appendCost > 100) {
+                CommitLog.log.info("[NOTIFYME] concat message costs {} ms", appendCost);
+            }
             return result;
         }
 

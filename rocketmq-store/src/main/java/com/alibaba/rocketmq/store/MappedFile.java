@@ -290,11 +290,27 @@ public class MappedFile extends ReferenceResource {
             long begin = System.currentTimeMillis();
             if (this.hold()) {
                 // DirectMemory may be not pageAligned, so we back 1.x page size.
-                int value = this.wrotePosition.get() - this.wrotePosition.get() % OS_PAGE_SIZE - OS_PAGE_SIZE;
+                int value = this.wrotePosition.get() - this.wrotePosition.get() % OS_PAGE_SIZE -  OS_PAGE_SIZE;
 
-                //commitLeastPages=0 means must commit to FileChannel immediately
+                // commitLeastPages=0 means must commit to FileChannel immediately
                 if (commitLeastPages == 0 || isFull()) {
                     value = this.wrotePosition.get();
+                } else {
+                    // seek a message start position
+                    ByteBuffer byteBuffer = writeBuffer.slice();
+                    for (int i = this.committedPosition.get(); i <= value;) {
+                        byteBuffer.position(i);
+                        if (value - i < 4) {
+                            value = i;
+                            break;
+                        }
+                        int msgLen = byteBuffer.getInt();
+                        if (value - i < msgLen) {
+                            value = i;
+                            break;
+                        }
+                        i += msgLen;
+                    }
                 }
 
                 if (writeBuffer != null) {
@@ -307,7 +323,7 @@ public class MappedFile extends ReferenceResource {
                             this.fileChannel.position(this.committedPosition.get());
                             this.fileChannel.write(byteBuffer);
                         } catch (IOException e) {
-                            log.error("Error occurred when commit data to filechannel.", e);
+                            log.error("Error occurred when commit data to FileChannel.", e);
                         }
                     }
                 }
@@ -315,7 +331,6 @@ public class MappedFile extends ReferenceResource {
                 this.release();
             } else {
                 log.warn("in commit, hold failed, commit offset = " + this.committedPosition.get());
-                this.committedPosition.set(this.wrotePosition.get());
             }
             log.info("commit cost : {}", System.currentTimeMillis() - begin);
         }
@@ -467,7 +482,7 @@ public class MappedFile extends ReferenceResource {
 
     // TODO: be carefully
     public int getWrotePosition() {
-        return writeBuffer != null ? committedPosition.get() : wrotePosition.get();
+        return wrotePosition.get();
     }
 
     /**
