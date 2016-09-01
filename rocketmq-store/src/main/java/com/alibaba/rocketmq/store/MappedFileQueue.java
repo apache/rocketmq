@@ -42,9 +42,9 @@ public class MappedFileQueue {
 
     private final String storePath;
 
-    private final int mapedFileSize;
+    private final int mappedFileSize;
 
-    private final List<MappedFile> mappedFiles = new CopyOnWriteArrayList<MappedFile>();
+    private final CopyOnWriteArrayList<MappedFile> mappedFiles = new CopyOnWriteArrayList<MappedFile>();
     private final ReadWriteLock readWriteLock = new ReentrantReadWriteLock();
 
     private final AllocateMappedFileService allocateMappedFileService;
@@ -55,10 +55,10 @@ public class MappedFileQueue {
     private volatile long storeTimestamp = 0;
 
 
-    public MappedFileQueue(final String storePath, int mapedFileSize,
+    public MappedFileQueue(final String storePath, int mappedFileSize,
                            AllocateMappedFileService allocateMappedFileService) {
         this.storePath = storePath;
-        this.mapedFileSize = mapedFileSize;
+        this.mappedFileSize = mappedFileSize;
         this.allocateMappedFileService = allocateMappedFileService;
     }
 
@@ -71,14 +71,14 @@ public class MappedFileQueue {
                 MappedFile last = this.mappedFiles.get(this.mappedFiles.size() - 1);
 
                 int sizeCompute =
-                        (int) ((last.getFileFromOffset() - first.getFileFromOffset()) / this.mapedFileSize) + 1;
+                        (int) ((last.getFileFromOffset() - first.getFileFromOffset()) / this.mappedFileSize) + 1;
                 int sizeReal = this.mappedFiles.size();
                 if (sizeCompute != sizeReal) {
                     logError
                             .error(
-                                    "[BUG]The mapedfile queue's data is damaged, {} mapedFileSize={} sizeCompute={} sizeReal={}\n{}", //
+                                    "[BUG]The mapedfile queue's data is damaged, {} mappedFileSize={} sizeCompute={} sizeReal={}\n{}", //
                                     this.storePath,//
-                                    this.mapedFileSize,//
+                                    this.mappedFileSize,//
                                     sizeCompute,//
                                     sizeReal,//
                                     this.mappedFiles.toString()//
@@ -131,11 +131,11 @@ public class MappedFileQueue {
         List<MappedFile> willRemoveFiles = new ArrayList<MappedFile>();
 
         for (MappedFile file : this.mappedFiles) {
-            long fileTailOffset = file.getFileFromOffset() + this.mapedFileSize;
+            long fileTailOffset = file.getFileFromOffset() + this.mappedFileSize;
             if (fileTailOffset > offset) {
                 if (offset >= file.getFileFromOffset()) {
-                    file.setWrotePostion((int) (offset % this.mapedFileSize));
-                    file.setFlushedPosition((int) (offset % this.mapedFileSize));
+                    file.setWrotePostion((int) (offset % this.mappedFileSize));
+                    file.setFlushedPosition((int) (offset % this.mappedFileSize));
                 } else {
 
                     file.destroy(1000);
@@ -175,7 +175,7 @@ public class MappedFileQueue {
             Arrays.sort(files);
             for (File file : files) {
 
-                if (file.length() != this.mapedFileSize) {
+                if (file.length() != this.mappedFileSize) {
                     log.warn(file + "\t" + file.length()
                             + " length not matched message store config value, ignore it");
                     return true;
@@ -183,10 +183,10 @@ public class MappedFileQueue {
 
 
                 try {
-                    MappedFile mappedFile = new MappedFile(file.getPath(), mapedFileSize);
+                    MappedFile mappedFile = new MappedFile(file.getPath(), mappedFileSize);
 
-                    mappedFile.setWrotePostion(this.mapedFileSize);
-                    mappedFile.setFlushedPosition(this.mapedFileSize);
+                    mappedFile.setWrotePostion(this.mappedFileSize);
+                    mappedFile.setFlushedPosition(this.mappedFileSize);
                     this.mappedFiles.add(mappedFile);
                     log.info("load " + file.getPath() + " OK");
                 } catch (IOException e) {
@@ -222,7 +222,7 @@ public class MappedFileQueue {
         {
             this.readWriteLock.readLock().lock();
             if (this.mappedFiles.isEmpty()) {
-                createOffset = startOffset - (startOffset % this.mapedFileSize);
+                createOffset = startOffset - (startOffset % this.mappedFileSize);
             } else {
                 mappedFileLast = this.mappedFiles.get(this.mappedFiles.size() - 1);
             }
@@ -230,23 +230,23 @@ public class MappedFileQueue {
         }
 
         if (mappedFileLast != null && mappedFileLast.isFull()) {
-            createOffset = mappedFileLast.getFileFromOffset() + this.mapedFileSize;
+            createOffset = mappedFileLast.getFileFromOffset() + this.mappedFileSize;
         }
 
         if (createOffset != -1 && needCreate) {
             String nextFilePath = this.storePath + File.separator + UtilAll.offset2FileName(createOffset);
             String nextNextFilePath =
                     this.storePath + File.separator
-                            + UtilAll.offset2FileName(createOffset + this.mapedFileSize);
+                            + UtilAll.offset2FileName(createOffset + this.mappedFileSize);
             MappedFile mappedFile = null;
 
             if (this.allocateMappedFileService != null) {
                 mappedFile =
                         this.allocateMappedFileService.putRequestAndReturnMapedFile(nextFilePath,
-                                nextNextFilePath, this.mapedFileSize);
+                                nextNextFilePath, this.mappedFileSize);
             } else {
                 try {
-                    mappedFile = new MappedFile(nextFilePath, this.mapedFileSize);
+                    mappedFile = new MappedFile(nextFilePath, this.mappedFileSize);
                 } catch (IOException e) {
                     log.error("create mapedfile exception", e);
                 }
@@ -418,7 +418,7 @@ public class MappedFileQueue {
             for (int i = 0; i < mfsLength; i++) {
                 boolean destroy = true;
                 MappedFile mappedFile = (MappedFile) mfs[i];
-                SelectMapedBufferResult result = mappedFile.selectMapedBuffer(this.mapedFileSize - unitSize);
+                SelectMapedBufferResult result = mappedFile.selectMapedBuffer(this.mappedFileSize - unitSize);
                 if (result != null) {
                     long maxOffsetInLogicQueue = result.getByteBuffer().getLong();
                     result.release();
@@ -486,14 +486,14 @@ public class MappedFileQueue {
 
             if (mappedFile != null) {
                 int index =
-                        (int) ((offset / this.mapedFileSize) - (mappedFile.getFileFromOffset() / this.mapedFileSize));
+                        (int) ((offset / this.mappedFileSize) - (mappedFile.getFileFromOffset() / this.mappedFileSize));
                 if (index < 0 || index >= this.mappedFiles.size()) {
                     logError
                             .warn(
-                                    "findMapedFileByOffset offset not matched, request Offset: {}, index: {}, mapedFileSize: {}, mappedFiles count: {}, StackTrace: {}",//
+                                    "findMapedFileByOffset offset not matched, request Offset: {}, index: {}, mappedFileSize: {}, mappedFiles count: {}, StackTrace: {}",//
                                     offset,//
                                     index,//
-                                    this.mapedFileSize,//
+                                    this.mappedFileSize,//
                                     this.mappedFiles.size(),//
                                     UtilAll.currentStackTrace());
                 }
@@ -545,7 +545,7 @@ public class MappedFileQueue {
         if (mfs != null) {
             for (Object mf : mfs) {
                 if (((ReferenceResource) mf).isAvailable()) {
-                    size += this.mapedFileSize;
+                    size += this.mappedFileSize;
                 }
             }
         }
@@ -633,8 +633,8 @@ public class MappedFileQueue {
     }
 
 
-    public int getMapedFileSize() {
-        return mapedFileSize;
+    public int getMappedFileSize() {
+        return mappedFileSize;
     }
 
     public long getCommittedWhere() {

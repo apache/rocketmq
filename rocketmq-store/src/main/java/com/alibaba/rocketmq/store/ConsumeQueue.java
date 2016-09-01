@@ -51,10 +51,10 @@ public class ConsumeQueue {
                         final String topic,//
                         final int queueId,//
                         final String storePath,//
-                        final int mapedFileSize,//
+                        final int mappedFileSize,//
                         final DefaultMessageStore defaultMessageStore) {
         this.storePath = storePath;
-        this.mapedFileSize = mapedFileSize;
+        this.mapedFileSize = mappedFileSize;
         this.defaultMessageStore = defaultMessageStore;
 
         this.topic = topic;
@@ -64,7 +64,7 @@ public class ConsumeQueue {
                 + File.separator + topic//
                 + File.separator + queueId;//
 
-        this.mappedFileQueue = new MappedFileQueue(queueDir, mapedFileSize, null);
+        this.mappedFileQueue = new MappedFileQueue(queueDir, mappedFileSize, null);
 
         this.byteBufferIndex = ByteBuffer.allocate(CQStoreUnitSize);
     }
@@ -422,7 +422,7 @@ public class ConsumeQueue {
         byteBuffer.putInt(Integer.MAX_VALUE);
         byteBuffer.putLong(0L);
 
-        int until = (int) (untilWhere % this.mappedFileQueue.getMapedFileSize());
+        int until = (int) (untilWhere % this.mappedFileQueue.getMappedFileSize());
         for (int i = 0; i < until; i += CQStoreUnitSize) {
             mappedFile.appendMessage(byteBuffer.array());
         }
