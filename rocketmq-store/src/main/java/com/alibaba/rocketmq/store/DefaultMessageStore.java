@@ -71,7 +71,7 @@ public class DefaultMessageStore implements MessageStore {
 
     private final IndexService indexService;
 
-    private final AllocateMapedFileService allocateMapedFileService;
+    private final AllocateMappedFileService allocateMappedFileService;
 
     private final ReputMessageService reputMessageService;
 
@@ -104,7 +104,7 @@ public class DefaultMessageStore implements MessageStore {
         this.brokerConfig = brokerConfig;
         this.messageStoreConfig = messageStoreConfig;
         this.brokerStatsManager = brokerStatsManager;
-        this.allocateMapedFileService = new AllocateMapedFileService(this);
+        this.allocateMappedFileService = new AllocateMappedFileService(this);
         this.commitLog = new CommitLog(this);
         this.consumeQueueTable = new ConcurrentHashMap<String/* topic */, ConcurrentHashMap<Integer/* queueId */, ConsumeQueue>>(32);
 
@@ -122,7 +122,7 @@ public class DefaultMessageStore implements MessageStore {
         this.transientStorePool = new TransientStorePool(messageStoreConfig);
 
 
-        this.allocateMapedFileService.start();
+        this.allocateMappedFileService.start();
 
         this.indexService.start();
     }
@@ -181,7 +181,7 @@ public class DefaultMessageStore implements MessageStore {
         }
 
         if (!result) {
-            this.allocateMapedFileService.shutdown();
+            this.allocateMappedFileService.shutdown();
         }
 
         return result;
@@ -243,7 +243,7 @@ public class DefaultMessageStore implements MessageStore {
             this.flushConsumeQueueService.shutdown();
             this.commitLog.shutdown();
             this.reputMessageService.shutdown();
-            this.allocateMapedFileService.shutdown();
+            this.allocateMappedFileService.shutdown();
             this.storeCheckpoint.flush();
             this.storeCheckpoint.shutdown();
 
@@ -1089,7 +1089,7 @@ public class DefaultMessageStore implements MessageStore {
     private void createTempFile() throws IOException {
         String fileName = StorePathConfigHelper.getAbortFile(this.messageStoreConfig.getStorePathRootDir());
         File file = new File(fileName);
-        MapedFile.ensureDirOK(file.getParent());
+        MappedFile.ensureDirOK(file.getParent());
         boolean result = file.createNewFile();
         log.info(fileName + (result ? " create OK" : " already exists"));
     }
@@ -1259,8 +1259,8 @@ public class DefaultMessageStore implements MessageStore {
         this.commitLog.setTopicQueueTable(table);
     }
 
-    public AllocateMapedFileService getAllocateMapedFileService() {
-        return allocateMapedFileService;
+    public AllocateMappedFileService getAllocateMappedFileService() {
+        return allocateMappedFileService;
     }
 
     public StoreStatsService getStoreStatsService() {
@@ -1740,11 +1740,11 @@ public class DefaultMessageStore implements MessageStore {
     }
 
 
-    public void unlockMapedFile(final MapedFile mapedFile){
+    public void unlockMapedFile(final MappedFile mappedFile){
         this.scheduledExecutorService.schedule(new Runnable() {
             @Override
             public void run() {
-                mapedFile.munlock();
+                mappedFile.munlock();
             }
         }, 6, TimeUnit.SECONDS);
     }

@@ -44,7 +44,7 @@ import java.util.concurrent.atomic.AtomicLong;
 /**
  * @author shijia.wxr
  */
-public class MapedFile extends ReferenceResource {
+public class MappedFile extends ReferenceResource {
     public static final int OS_PAGE_SIZE = 1024 * 4;
     private static final Logger log = LoggerFactory.getLogger(LoggerName.StoreLoggerName);
 
@@ -79,13 +79,13 @@ public class MapedFile extends ReferenceResource {
     private ByteBuffer writeBuffer = null;
     private TransientStorePool transientStorePool = null;
 
-    public MapedFile(final String fileName, final int fileSize, final TransientStorePool transientStorePool) throws IOException {
+    public MappedFile(final String fileName, final int fileSize, final TransientStorePool transientStorePool) throws IOException {
         this(fileName, fileSize);
         this.writeBuffer = transientStorePool.borrowBuffer();
         this.transientStorePool = transientStorePool;
     }
 
-    public MapedFile(final String fileName, final int fileSize) throws IOException {
+    public MappedFile(final String fileName, final int fileSize) throws IOException {
         this.fileName = fileName;
         this.fileSize = fileSize;
         this.file = new File(fileName);
@@ -217,7 +217,7 @@ public class MapedFile extends ReferenceResource {
         }
 
 
-        log.error("MapedFile.appendMessage return null, wrotePostion: " + currentPos + " fileSize: "
+        log.error("MappedFile.appendMessage return null, wrotePostion: " + currentPos + " fileSize: "
                 + this.fileSize);
         return new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR);
     }
@@ -464,6 +464,7 @@ public class MapedFile extends ReferenceResource {
         return false;
     }
 
+    // TODO: be carefully
     public int getWrotePostion() {
         return writeBuffer != null ? committedPosition.get() : wrotePostion.get();
     }
@@ -477,7 +478,7 @@ public class MapedFile extends ReferenceResource {
         ByteBuffer byteBuffer = this.mappedByteBuffer.slice();
         int flush = 0;
         long time = System.currentTimeMillis();
-        for (int i = 0, j = 0; i < this.fileSize; i += MapedFile.OS_PAGE_SIZE, j++) {
+        for (int i = 0, j = 0; i < this.fileSize; i += MappedFile.OS_PAGE_SIZE, j++) {
             byteBuffer.put(i, (byte) 0);
             // force flush when flush disk type is sync
             if (type == FlushDiskType.SYNC_FLUSH) {

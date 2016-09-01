@@ -52,7 +52,7 @@ public class CommitLog {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.StoreLoggerName);
     // End of file empty MAGIC CODE cbd43194
     private final static int BlankMagicCode = 0xBBCCDDEE ^ 1880681586 + 8;
-    private final MapedFileQueue mapedFileQueue;
+    private final MappedFileQueue mappedFileQueue;
     private final DefaultMessageStore defaultMessageStore;
     private final FlushCommitLogService flushCommitLogService;
 
@@ -68,8 +68,8 @@ public class CommitLog {
 
 
     public CommitLog(final DefaultMessageStore defaultMessageStore) {
-        this.mapedFileQueue = new MapedFileQueue(defaultMessageStore.getMessageStoreConfig().getStorePathCommitLog(),
-                defaultMessageStore.getMessageStoreConfig().getMapedFileSizeCommitLog(), defaultMessageStore.getAllocateMapedFileService());
+        this.mappedFileQueue = new MappedFileQueue(defaultMessageStore.getMessageStoreConfig().getStorePathCommitLog(),
+                defaultMessageStore.getMessageStoreConfig().getMapedFileSizeCommitLog(), defaultMessageStore.getAllocateMappedFileService());
         this.defaultMessageStore = defaultMessageStore;
 
         if (FlushDiskType.SYNC_FLUSH == defaultMessageStore.getMessageStoreConfig().getFlushDiskType()) {
@@ -84,7 +84,7 @@ public class CommitLog {
     }
 
     public boolean load() {
-        boolean result = this.mapedFileQueue.load();
+        boolean result = this.mappedFileQueue.load();
         log.info("load flush log " + (result ? "OK" : "Failed"));
         return result;
     }
@@ -106,13 +106,13 @@ public class CommitLog {
     }
 
     public long flush() {
-        this.mapedFileQueue.commit(0);
-        this.mapedFileQueue.flush(0);
-        return this.mapedFileQueue.getFlushedWhere();
+        this.mappedFileQueue.commit(0);
+        this.mappedFileQueue.flush(0);
+        return this.mappedFileQueue.getFlushedWhere();
     }
 
     public long getMaxOffset() {
-        return this.mapedFileQueue.getMaxOffset();
+        return this.mappedFileQueue.getMaxOffset();
     }
 
 
@@ -122,7 +122,7 @@ public class CommitLog {
                                  final long intervalForcibly, //
                                  final boolean cleanImmediately//
     ) {
-        return this.mapedFileQueue.deleteExpiredFileByTime(expiredTime, deleteFilesInterval, intervalForcibly, cleanImmediately);
+        return this.mappedFileQueue.deleteExpiredFileByTime(expiredTime, deleteFilesInterval, intervalForcibly, cleanImmediately);
     }
 
 
@@ -136,10 +136,10 @@ public class CommitLog {
 
     public SelectMapedBufferResult getData(final long offset, final boolean returnFirstOnNotFound) {
         int mapedFileSize = this.defaultMessageStore.getMessageStoreConfig().getMapedFileSizeCommitLog();
-        MapedFile mapedFile = this.mapedFileQueue.findMapedFileByOffset(offset, returnFirstOnNotFound);
-        if (mapedFile != null) {
+        MappedFile mappedFile = this.mappedFileQueue.findMapedFileByOffset(offset, returnFirstOnNotFound);
+        if (mappedFile != null) {
             int pos = (int) (offset % mapedFileSize);
-            SelectMapedBufferResult result = mapedFile.selectMapedBuffer(pos);
+            SelectMapedBufferResult result = mappedFile.selectMapedBuffer(pos);
             return result;
         }
 
@@ -152,16 +152,16 @@ public class CommitLog {
      */
     public void recoverNormally() {
         boolean checkCRCOnRecover = this.defaultMessageStore.getMessageStoreConfig().isCheckCRCOnRecover();
-        final List<MapedFile> mapedFiles = this.mapedFileQueue.getMapedFiles();
-        if (!mapedFiles.isEmpty()) {
+        final List<MappedFile> mappedFiles = this.mappedFileQueue.getMappedFiles();
+        if (!mappedFiles.isEmpty()) {
             // Began to recover from the last third file
-            int index = mapedFiles.size() - 3;
+            int index = mappedFiles.size() - 3;
             if (index < 0)
                 index = 0;
 
-            MapedFile mapedFile = mapedFiles.get(index);
-            ByteBuffer byteBuffer = mapedFile.sliceByteBuffer();
-            long processOffset = mapedFile.getFileFromOffset();
+            MappedFile mappedFile = mappedFiles.get(index);
+            ByteBuffer byteBuffer = mappedFile.sliceByteBuffer();
+            long processOffset = mappedFile.getFileFromOffset();
             long mapedFileOffset = 0;
             while (true) {
                 DispatchRequest dispatchRequest = this.checkMessageAndReturnSize(byteBuffer, checkCRCOnRecover);
@@ -175,28 +175,28 @@ public class CommitLog {
                 // this can not be included in truncate offset
                 else if (dispatchRequest.isSuccess() && size == 0) {
                     index++;
-                    if (index >= mapedFiles.size()) {
+                    if (index >= mappedFiles.size()) {
                         // Current branch can not happen
-                        log.info("recover last 3 physics file over, last maped file " + mapedFile.getFileName());
+                        log.info("recover last 3 physics file over, last maped file " + mappedFile.getFileName());
                         break;
                     } else {
-                        mapedFile = mapedFiles.get(index);
-                        byteBuffer = mapedFile.sliceByteBuffer();
-                        processOffset = mapedFile.getFileFromOffset();
+                        mappedFile = mappedFiles.get(index);
+                        byteBuffer = mappedFile.sliceByteBuffer();
+                        processOffset = mappedFile.getFileFromOffset();
                         mapedFileOffset = 0;
-                        log.info("recover next physics file, " + mapedFile.getFileName());
+                        log.info("recover next physics file, " + mappedFile.getFileName());
                     }
                 }
                 // Intermediate file read error
                 else if (!dispatchRequest.isSuccess()) {
-                    log.info("recover physics file end, " + mapedFile.getFileName());
+                    log.info("recover physics file end, " + mappedFile.getFileName());
                     break;
                 }
             }
 
             processOffset += mapedFileOffset;
-            this.mapedFileQueue.setFlushedWhere(processOffset);
-            this.mapedFileQueue.truncateDirtyFiles(processOffset);
+            this.mappedFileQueue.setFlushedWhere(processOffset);
+            this.mappedFileQueue.truncateDirtyFiles(processOffset);
         }
     }
 
@@ -399,26 +399,26 @@ public class CommitLog {
     public void recoverAbnormally() {
         // recover by the minimum time stamp
         boolean checkCRCOnRecover = this.defaultMessageStore.getMessageStoreConfig().isCheckCRCOnRecover();
-        final List<MapedFile> mapedFiles = this.mapedFileQueue.getMapedFiles();
-        if (!mapedFiles.isEmpty()) {
+        final List<MappedFile> mappedFiles = this.mappedFileQueue.getMappedFiles();
+        if (!mappedFiles.isEmpty()) {
             // Looking beginning to recover from which file
-            int index = mapedFiles.size() - 1;
-            MapedFile mapedFile = null;
+            int index = mappedFiles.size() - 1;
+            MappedFile mappedFile = null;
             for (; index >= 0; index--) {
-                mapedFile = mapedFiles.get(index);
-                if (this.isMapedFileMatchedRecover(mapedFile)) {
-                    log.info("recover from this maped file " + mapedFile.getFileName());
+                mappedFile = mappedFiles.get(index);
+                if (this.isMapedFileMatchedRecover(mappedFile)) {
+                    log.info("recover from this maped file " + mappedFile.getFileName());
                     break;
                 }
             }
 
             if (index < 0) {
                 index = 0;
-                mapedFile = mapedFiles.get(index);
+                mappedFile = mappedFiles.get(index);
             }
 
-            ByteBuffer byteBuffer = mapedFile.sliceByteBuffer();
-            long processOffset = mapedFile.getFileFromOffset();
+            ByteBuffer byteBuffer = mappedFile.sliceByteBuffer();
+            long processOffset = mappedFile.getFileFromOffset();
             long mapedFileOffset = 0;
             while (true) {
                 DispatchRequest dispatchRequest = this.checkMessageAndReturnSize(byteBuffer, checkCRCOnRecover);
@@ -439,7 +439,7 @@ public class CommitLog {
                 }
                 // Intermediate file read error
                 else if (size == -1) {
-                    log.info("recover physics file end, " + mapedFile.getFileName());
+                    log.info("recover physics file end, " + mappedFile.getFileName());
                     break;
                 }
                 // Come the end of the file, switch to the next file
@@ -447,37 +447,37 @@ public class CommitLog {
                 // not be included in truncate offset
                 else if (size == 0) {
                     index++;
-                    if (index >= mapedFiles.size()) {
+                    if (index >= mappedFiles.size()) {
                         // The current branch under normal circumstances should
                         // not happen
-                        log.info("recover physics file over, last maped file " + mapedFile.getFileName());
+                        log.info("recover physics file over, last maped file " + mappedFile.getFileName());
                         break;
                     } else {
-                        mapedFile = mapedFiles.get(index);
-                        byteBuffer = mapedFile.sliceByteBuffer();
-                        processOffset = mapedFile.getFileFromOffset();
+                        mappedFile = mappedFiles.get(index);
+                        byteBuffer = mappedFile.sliceByteBuffer();
+                        processOffset = mappedFile.getFileFromOffset();
                         mapedFileOffset = 0;
-                        log.info("recover next physics file, " + mapedFile.getFileName());
+                        log.info("recover next physics file, " + mappedFile.getFileName());
                     }
                 }
             }
 
             processOffset += mapedFileOffset;
-            this.mapedFileQueue.setFlushedWhere(processOffset);
-            this.mapedFileQueue.truncateDirtyFiles(processOffset);
+            this.mappedFileQueue.setFlushedWhere(processOffset);
+            this.mappedFileQueue.truncateDirtyFiles(processOffset);
 
             // Clear ConsumeQueue redundant data
             this.defaultMessageStore.truncateDirtyLogicFiles(processOffset);
         }
         // Commitlog case files are deleted
         else {
-            this.mapedFileQueue.setFlushedWhere(0);
+            this.mappedFileQueue.setFlushedWhere(0);
             this.defaultMessageStore.destroyLogics();
         }
     }
 
-    private boolean isMapedFileMatchedRecover(final MapedFile mapedFile) {
-        ByteBuffer byteBuffer = mapedFile.sliceByteBuffer();
+    private boolean isMapedFileMatchedRecover(final MappedFile mappedFile) {
+        ByteBuffer byteBuffer = mappedFile.sliceByteBuffer();
 
         int magicCode = byteBuffer.getInt(MessageDecoder.MessageMagicCodePostion);
         if (magicCode != MessageMagicCode) {
@@ -514,7 +514,7 @@ public class CommitLog {
     }
 
     public boolean resetOffset(long offset) {
-        return this.mapedFileQueue.resetOffset(offset);
+        return this.mappedFileQueue.resetOffset(offset);
     }
 
     public long getBeginTimeInLock() {
@@ -558,8 +558,8 @@ public class CommitLog {
         }
 
         long eclipseTimeInLock = 0;
-        MapedFile unlockMapedFile = null;
-        MapedFile mapedFile = this.mapedFileQueue.getLastMapedFileWithLock();
+        MappedFile unlockMappedFile = null;
+        MappedFile mappedFile = this.mappedFileQueue.getLastMapedFileWithLock();
 
         long beginLockTimestamp = this.defaultMessageStore.getSystemClock().now();
         this.beginTimeInLock = beginLockTimestamp;
@@ -568,29 +568,29 @@ public class CommitLog {
         // global
         msg.setStoreTimestamp(beginLockTimestamp);
 
-        if (null == mapedFile || mapedFile.isFull()) {
-            mapedFile = this.mapedFileQueue.getLastMapedFile();
+        if (null == mappedFile || mappedFile.isFull()) {
+            mappedFile = this.mappedFileQueue.getLastMapedFile();
         }
-        if (null == mapedFile) {
+        if (null == mappedFile) {
             log.error("create maped file1 error, topic: " + msg.getTopic() + " clientAddr: " + msg.getBornHostString());
             beginTimeInLock = 0;
             return new PutMessageResult(PutMessageStatus.CREATE_MAPEDFILE_FAILED, null);
         }
-        result = mapedFile.appendMessage(msg, this.appendMessageCallback);
+        result = mappedFile.appendMessage(msg, this.appendMessageCallback);
         switch (result.getStatus()) {
             case PUT_OK:
                 break;
             case END_OF_FILE:
-                unlockMapedFile = mapedFile;
+                unlockMappedFile = mappedFile;
                 // Create a new file, re-write the message
-                mapedFile = this.mapedFileQueue.getLastMapedFile();
-                if (null == mapedFile) {
+                mappedFile = this.mappedFileQueue.getLastMapedFile();
+                if (null == mappedFile) {
                     // XXX: warn and notify me
                     log.error("create maped file2 error, topic: " + msg.getTopic() + " clientAddr: " + msg.getBornHostString());
                     beginTimeInLock = 0;
                     return new PutMessageResult(PutMessageStatus.CREATE_MAPEDFILE_FAILED, result);
                 }
-                result = mapedFile.appendMessage(msg, this.appendMessageCallback);
+                result = mappedFile.appendMessage(msg, this.appendMessageCallback);
                 break;
             case MESSAGE_SIZE_EXCEEDED:
             case PROPERTIES_SIZE_EXCEEDED:
@@ -610,8 +610,8 @@ public class CommitLog {
         if (eclipseTimeInLock > 1000) {
             log.warn("[NOTIFYME]putMessage in lock cost time(ms)={}, bodyLength={} AppendMessageResult={}", eclipseTimeInLock, msg.getBody().length, result);
         }
-        if (null != unlockMapedFile) {
-            this.defaultMessageStore.unlockMapedFile(unlockMapedFile);
+        if (null != unlockMappedFile) {
+            this.defaultMessageStore.unlockMapedFile(unlockMappedFile);
         }
 
         PutMessageResult putMessageResult = new PutMessageResult(PutMessageStatus.PUT_OK, result);
@@ -696,12 +696,12 @@ public class CommitLog {
     }
 
     public long getMinOffset() {
-        MapedFile mapedFile = this.mapedFileQueue.getFirstMapedFileOnLock();
-        if (mapedFile != null) {
-            if (mapedFile.isAvailable()) {
-                return mapedFile.getFileFromOffset();
+        MappedFile mappedFile = this.mappedFileQueue.getFirstMapedFileOnLock();
+        if (mappedFile != null) {
+            if (mappedFile.isAvailable()) {
+                return mappedFile.getFileFromOffset();
             } else {
-                return this.rollNextFile(mapedFile.getFileFromOffset());
+                return this.rollNextFile(mappedFile.getFileFromOffset());
             }
         }
 
@@ -710,10 +710,10 @@ public class CommitLog {
 
     public SelectMapedBufferResult getMessage(final long offset, final int size) {
         int mapedFileSize = this.defaultMessageStore.getMessageStoreConfig().getMapedFileSizeCommitLog();
-        MapedFile mapedFile = this.mapedFileQueue.findMapedFileByOffset(offset, (0 == offset ? true : false));
-        if (mapedFile != null) {
+        MappedFile mappedFile = this.mappedFileQueue.findMapedFileByOffset(offset, (0 == offset ? true : false));
+        if (mappedFile != null) {
             int pos = (int) (offset % mapedFileSize);
-            SelectMapedBufferResult result = mapedFile.selectMapedBuffer(pos, size);
+            SelectMapedBufferResult result = mappedFile.selectMapedBuffer(pos, size);
             return result;
         }
 
@@ -736,25 +736,25 @@ public class CommitLog {
 
 
     public void destroy() {
-        this.mapedFileQueue.destroy();
+        this.mappedFileQueue.destroy();
     }
 
 
     public boolean appendData(long startOffset, byte[] data) {
         synchronized (this) {
-            MapedFile mapedFile = this.mapedFileQueue.getLastMapedFile(startOffset);
-            if (null == mapedFile) {
+            MappedFile mappedFile = this.mappedFileQueue.getLastMapedFile(startOffset);
+            if (null == mappedFile) {
                 log.error("appendData getLastMapedFile error  " + startOffset);
                 return false;
             }
 
-            return mapedFile.appendMessage(data);
+            return mappedFile.appendMessage(data);
         }
     }
 
 
     public boolean retryDeleteFirstFile(final long intervalForcibly) {
-        return this.mapedFileQueue.retryDeleteFirstFile(intervalForcibly);
+        return this.mappedFileQueue.retryDeleteFirstFile(intervalForcibly);
     }
 
     public void removeQueurFromTopicQueueTable(final String topic, final int queueId) {
@@ -767,7 +767,7 @@ public class CommitLog {
     }
 
     public void checkSelf() {
-        mapedFileQueue.checkSelf();
+        mappedFileQueue.checkSelf();
     }
 
     abstract class FlushCommitLogService extends ServiceThread {
@@ -789,7 +789,7 @@ public class CommitLog {
                 int flushPhysicQueueLeastPages = CommitLog.this.defaultMessageStore.getMessageStoreConfig().getFlushCommitLogLeastPages();
 
                 try {
-                    CommitLog.this.mapedFileQueue.commit(flushPhysicQueueLeastPages);
+                    CommitLog.this.mappedFileQueue.commit(flushPhysicQueueLeastPages);
                     this.waitForRunning(interval);
                 } catch (Exception e) {
                     CommitLog.log.warn(this.getServiceName() + " service has exception. ", e);
@@ -798,7 +798,7 @@ public class CommitLog {
 
             boolean result = false;
             for (int i = 0; i < RetryTimesOver && !result; i++) {
-                result = CommitLog.this.mapedFileQueue.commit(0);
+                result = CommitLog.this.mappedFileQueue.commit(0);
                 CommitLog.log.info(this.getServiceName() + " service shutdown, retry " + (i + 1) + " times " + (result ? "OK" : "Not OK"));
             }
             CommitLog.log.info(this.getServiceName() + " service end");
@@ -843,8 +843,8 @@ public class CommitLog {
                         this.printFlushProgress();
                     }
 
-                    CommitLog.this.mapedFileQueue.flush(flushPhysicQueueLeastPages);
-                    long storeTimestamp = CommitLog.this.mapedFileQueue.getStoreTimestamp();
+                    CommitLog.this.mappedFileQueue.flush(flushPhysicQueueLeastPages);
+                    long storeTimestamp = CommitLog.this.mappedFileQueue.getStoreTimestamp();
                     if (storeTimestamp > 0) {
                         CommitLog.this.defaultMessageStore.getStoreCheckpoint().setPhysicMsgTimestamp(storeTimestamp);
                     }
@@ -857,7 +857,7 @@ public class CommitLog {
             // Normal shutdown, to ensure that all the flush before exit
             boolean result = false;
             for (int i = 0; i < RetryTimesOver && !result; i++) {
-                result = CommitLog.this.mapedFileQueue.flush(0);
+                result = CommitLog.this.mappedFileQueue.flush(0);
                 CommitLog.log.info(this.getServiceName() + " service shutdown, retry " + (i + 1) + " times " + (result ? "OK" : "Not OK"));
             }
 
@@ -875,7 +875,7 @@ public class CommitLog {
 
         private void printFlushProgress() {
             // CommitLog.log.info("how much disk fall behind memory, "
-            // + CommitLog.this.mapedFileQueue.howMuchFallBehind());
+            // + CommitLog.this.mappedFileQueue.howMuchFallBehind());
         }
 
 
@@ -951,17 +951,17 @@ public class CommitLog {
                     // two times the flush
                     boolean flushOK = false;
                     for (int i = 0; (i < 2) && !flushOK; i++) {
-                        flushOK = (CommitLog.this.mapedFileQueue.getFlushedWhere() >= req.getNextOffset());
+                        flushOK = (CommitLog.this.mappedFileQueue.getFlushedWhere() >= req.getNextOffset());
 
                         if (!flushOK) {
-                            CommitLog.this.mapedFileQueue.flush(0);
+                            CommitLog.this.mappedFileQueue.flush(0);
                         }
                     }
 
                     req.wakeupCustomer(flushOK);
                 }
 
-                long storeTimestamp = CommitLog.this.mapedFileQueue.getStoreTimestamp();
+                long storeTimestamp = CommitLog.this.mappedFileQueue.getStoreTimestamp();
                 if (storeTimestamp > 0) {
                     CommitLog.this.defaultMessageStore.getStoreCheckpoint().setPhysicMsgTimestamp(storeTimestamp);
                 }
@@ -970,7 +970,7 @@ public class CommitLog {
             } else {
                 // Because of individual messages is set to not sync flush, it
                 // will come to this process
-                CommitLog.this.mapedFileQueue.flush(0);
+                CommitLog.this.mappedFileQueue.flush(0);
             }
         }
 
