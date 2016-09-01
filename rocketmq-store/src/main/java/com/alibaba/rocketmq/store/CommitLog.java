@@ -607,7 +607,7 @@ public class CommitLog {
         eclipseTimeInLock = this.defaultMessageStore.getSystemClock().now() - beginLockTimestamp;
         beginTimeInLock = 0;
 
-        if (eclipseTimeInLock > 1000) {
+        if (eclipseTimeInLock > 10) {
             log.warn("[NOTIFYME]putMessage in lock cost time(ms)={}, bodyLength={} AppendMessageResult={}", eclipseTimeInLock, msg.getBody().length, result);
         }
         if (null != unlockMappedFile) {
@@ -640,7 +640,7 @@ public class CommitLog {
         }
         // Asynchronous flush
         else {
-            this.flushCommitLogService.wakeup();
+            //this.flushCommitLogService.wakeup(); //// FIXME: 16/9/1 need wakeup really?
         }
 
         // Synchronous write double
@@ -1183,7 +1183,7 @@ public class CommitLog {
                     break;
             }
             long appendCost = System.currentTimeMillis() - begin - (System.currentTimeMillis() - beginTimeMills);
-            if (appendCost > 100) {
+            if (appendCost > 10) {
                 CommitLog.log.info("[NOTIFYME] concat message costs {} ms", appendCost);
             }
             return result;

@@ -259,7 +259,7 @@ public class MappedFile extends ReferenceResource {
      */
     public int flush(final int flushLeastPages) {
         if (this.isAbleToFlush(flushLeastPages)) {
-            long begin = System.currentTimeMillis();
+            //long begin = System.currentTimeMillis();
             if (this.hold()) {
                 int value = getReadPosition();
 
@@ -279,7 +279,7 @@ public class MappedFile extends ReferenceResource {
                 log.warn("in flush, hold failed, flush offset = " + this.flushedPosition.get());
                 this.flushedPosition.set(getReadPosition());
             }
-            log.info("flush cost : {}", System.currentTimeMillis() - begin);
+            //log.info("flush cost : {}", System.currentTimeMillis() - begin);
         }
 
         return this.getFlushedPosition();
@@ -287,7 +287,7 @@ public class MappedFile extends ReferenceResource {
 
     public int commit(final int commitLeastPages) {
         if (this.isAbleToCommit(commitLeastPages)) {
-            long begin = System.currentTimeMillis();
+            //long begin = System.currentTimeMillis();
             if (this.hold()) {
                 // DirectMemory may be not pageAligned, so we back 1.x page size.
                 int value = this.wrotePosition.get() - this.wrotePosition.get() % OS_PAGE_SIZE -  OS_PAGE_SIZE;
@@ -332,7 +332,7 @@ public class MappedFile extends ReferenceResource {
             } else {
                 log.warn("in commit, hold failed, commit offset = " + this.committedPosition.get());
             }
-            log.info("commit cost : {}", System.currentTimeMillis() - begin);
+            //log.info("commit cost : {}", System.currentTimeMillis() - begin);
         }
 
         // All dirty data has been committed to FileChannel.
