@@ -115,7 +115,7 @@ public class MappedFileQueue {
             long fileTailOffset = file.getFileFromOffset() + this.mappedFileSize;
             if (fileTailOffset > offset) {
                 if (offset >= file.getFileFromOffset()) {
-                    file.setWrotePostion((int) (offset % this.mappedFileSize));
+                    file.setWrotePosition((int) (offset % this.mappedFileSize));
                     file.setFlushedPosition((int) (offset % this.mappedFileSize));
                 } else {
                     file.destroy(1000);
@@ -170,7 +170,7 @@ public class MappedFileQueue {
                 try {
                     MappedFile mappedFile = new MappedFile(file.getPath(), mappedFileSize);
 
-                    mappedFile.setWrotePostion(this.mappedFileSize);
+                    mappedFile.setWrotePosition(this.mappedFileSize);
                     mappedFile.setFlushedPosition(this.mappedFileSize);
                     mappedFile.setCommittedPosition(this.mappedFileSize);
                     this.mappedFiles.add(mappedFile);
@@ -194,7 +194,7 @@ public class MappedFileQueue {
         if (committed != 0) {
             MappedFile mappedFile = this.getLastMappedFile(0, false);
             if (mappedFile != null) {
-                return (mappedFile.getFileFromOffset() + mappedFile.getWrotePostion()) - committed;
+                return (mappedFile.getFileFromOffset() + mappedFile.getWrotePosition()) - committed;
             }
         }
 
@@ -271,7 +271,7 @@ public class MappedFileQueue {
 
         if (mappedFileLast != null) {
             long lastOffset = mappedFileLast.getFileFromOffset() +
-                    mappedFileLast.getWrotePostion();
+                    mappedFileLast.getWrotePosition();
             long diff = lastOffset - offset;
 
             final int maxDiff = 1024 * 1024 * 1024 * 2; // FIXME: 16/9/1 use CommitLogFileSize in StoreConfig.
@@ -285,7 +285,7 @@ public class MappedFileQueue {
             if (offset >= mappedFileLast.getFileFromOffset()) {
                 int where = (int) (offset % mappedFileLast.getFileSize());
                 mappedFileLast.setFlushedPosition(where);
-                mappedFileLast.setWrotePostion(where); // FIXME: 16/9/1 need setCommittedPosition?
+                mappedFileLast.setWrotePosition(where); // FIXME: 16/9/1 need setCommittedPosition?
                 break;
             } else {
                 this.mappedFiles.remove(mappedFileLast);
@@ -312,7 +312,7 @@ public class MappedFileQueue {
     public long getMaxOffset() {
         MappedFile mappedFile = getLastMappedFile();
         if (mappedFile != null) {
-            return mappedFile.getFileFromOffset() + mappedFile.getWrotePostion();
+            return mappedFile.getFileFromOffset() + mappedFile.getWrotePosition();
         }
         return 0;
     }
@@ -383,7 +383,7 @@ public class MappedFileQueue {
             for (int i = 0; i < mfsLength; i++) {
                 boolean destroy;
                 MappedFile mappedFile = (MappedFile) mfs[i];
-                SelectMappedBufferResult result = mappedFile.selectMapedBuffer(this.mappedFileSize - unitSize);
+                SelectMappedBufferResult result = mappedFile.selectMappedBuffer(this.mappedFileSize - unitSize);
                 if (result != null) {
                     long maxOffsetInLogicQueue = result.getByteBuffer().getLong();
                     result.release();

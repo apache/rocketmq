@@ -139,7 +139,7 @@ public class CommitLog {
         MappedFile mappedFile = this.mappedFileQueue.findMappedFileByOffset(offset, returnFirstOnNotFound);
         if (mappedFile != null) {
             int pos = (int) (offset % mapedFileSize);
-            SelectMappedBufferResult result = mappedFile.selectMapedBuffer(pos);
+            SelectMappedBufferResult result = mappedFile.selectMappedBuffer(pos);
             return result;
         }
 
@@ -709,11 +709,11 @@ public class CommitLog {
     }
 
     public SelectMappedBufferResult getMessage(final long offset, final int size) {
-        int mapedFileSize = this.defaultMessageStore.getMessageStoreConfig().getMapedFileSizeCommitLog();
-        MappedFile mappedFile = this.mappedFileQueue.findMappedFileByOffset(offset, (0 == offset ? true : false));
+        int mappedFileSize = this.defaultMessageStore.getMessageStoreConfig().getMapedFileSizeCommitLog();
+        MappedFile mappedFile = this.mappedFileQueue.findMappedFileByOffset(offset, (offset == 0));
         if (mappedFile != null) {
-            int pos = (int) (offset % mapedFileSize);
-            SelectMappedBufferResult result = mappedFile.selectMapedBuffer(pos, size);
+            int pos = (int) (offset % mappedFileSize);
+            SelectMappedBufferResult result = mappedFile.selectMappedBuffer(pos, size);
             return result;
         }
 
@@ -721,8 +721,8 @@ public class CommitLog {
     }
 
     public long rollNextFile(final long offset) {
-        int mapedFileSize = this.defaultMessageStore.getMessageStoreConfig().getMapedFileSizeCommitLog();
-        return (offset + mapedFileSize - offset % mapedFileSize);
+        int mappedFileSize = this.defaultMessageStore.getMessageStoreConfig().getMapedFileSizeCommitLog();
+        return (offset + mappedFileSize - offset % mappedFileSize);
     }
 
     public HashMap<String, Long> getTopicQueueTable() {

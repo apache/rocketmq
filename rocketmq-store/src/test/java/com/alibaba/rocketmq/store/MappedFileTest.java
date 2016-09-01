@@ -54,7 +54,7 @@ public class MappedFileTest {
             assertTrue(result);
             System.out.println("write OK");
 
-            SelectMappedBufferResult selectMappedBufferResult = mappedFile.selectMapedBuffer(0);
+            SelectMappedBufferResult selectMappedBufferResult = mappedFile.selectMappedBuffer(0);
             byte[] data = new byte[StoreMessage.length()];
             selectMappedBufferResult.getByteBuffer().get(data);
             String readString = new String(data);
@@ -88,7 +88,7 @@ public class MappedFileTest {
             assertTrue(result);
             System.out.println("write OK");
 
-            SelectMappedBufferResult selectMappedBufferResult = mappedFile.selectMapedBuffer(0);
+            SelectMappedBufferResult selectMappedBufferResult = mappedFile.selectMappedBuffer(0);
             selectMappedBufferResult.release();
             mappedFile.shutdown(1000);
 
