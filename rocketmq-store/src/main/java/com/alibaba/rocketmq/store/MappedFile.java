@@ -199,7 +199,7 @@ public class MappedFile extends ReferenceResource {
         return fileChannel;
     }
 
-    public AppendMessageResult appendMessage(final Object msg, final AppendMessageCallback cb) {
+    public AppendMessageResult appendMessage(final MessageExtBrokerInner msg, final AppendMessageCallback cb) {
         assert msg != null;
         assert cb != null;
 

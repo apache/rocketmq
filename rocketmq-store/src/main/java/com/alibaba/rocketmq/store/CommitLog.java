@@ -1049,10 +1049,10 @@ public class CommitLog {
         }
 
 
-        public AppendMessageResult doAppend(final long fileFromOffset, final ByteBuffer byteBuffer, final int maxBlank, final Object msg) {
+        public AppendMessageResult doAppend(final long fileFromOffset, final ByteBuffer byteBuffer, final int maxBlank, final MessageExtBrokerInner msgInner) {
             long begin = System.currentTimeMillis();
             // STORETIMESTAMP + STOREHOSTADDRESS + OFFSET <br>
-            MessageExtBrokerInner msgInner = (MessageExtBrokerInner) msg;
+
             // PHY OFFSET
             long wroteOffset = fileFromOffset + byteBuffer.position();
 
