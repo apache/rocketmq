@@ -297,19 +297,21 @@ public class MappedFile extends ReferenceResource {
                     value = this.wrotePosition.get();
                 } else {
                     // seek a message start position
-                    ByteBuffer byteBuffer = writeBuffer.slice();
-                    for (int i = this.committedPosition.get(); i <= value;) {
-                        byteBuffer.position(i);
-                        if (value - i < 4) {
-                            value = i;
-                            break;
+                    if (writeBuffer != null) {
+                        ByteBuffer byteBuffer = writeBuffer.slice();
+                        for (int i = this.committedPosition.get(); i <= value;) {
+                            byteBuffer.position(i);
+                            if (value - i < 4) {
+                                value = i;
+                                break;
+                            }
+                            int msgLen = byteBuffer.getInt();
+                            if (value - i < msgLen) {
+                                value = i;
+                                break;
+                            }
+                            i += msgLen;
                         }
-                        int msgLen = byteBuffer.getInt();
-                        if (value - i < msgLen) {
-                            value = i;
-                            break;
-                        }
-                        i += msgLen;
                     }
                 }
 
