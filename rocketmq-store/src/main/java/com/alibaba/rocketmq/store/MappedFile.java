@@ -322,12 +322,12 @@ public class MappedFile extends ReferenceResource {
                         try {
                             this.fileChannel.position(this.committedPosition.get());
                             this.fileChannel.write(byteBuffer);
+                            this.committedPosition.set(value);
                         } catch (IOException e) {
                             log.error("Error occurred when commit data to FileChannel.", e);
                         }
                     }
                 }
-                this.committedPosition.set(value);
                 this.release();
             } else {
                 log.warn("in commit, hold failed, commit offset = " + this.committedPosition.get());

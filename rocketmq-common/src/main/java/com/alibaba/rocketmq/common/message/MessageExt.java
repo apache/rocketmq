@@ -74,16 +74,30 @@ public class MessageExt extends Message {
     public ByteBuffer getBornHostBytes() {
         return SocketAddress2ByteBuffer(this.bornHost);
     }
-    public static ByteBuffer SocketAddress2ByteBuffer(SocketAddress socketAddress) {
-        ByteBuffer byteBuffer = ByteBuffer.allocate(8);
+
+    public ByteBuffer getBornHostBytes(ByteBuffer byteBuffer) {
+        return SocketAddress2ByteBuffer(this.bornHost, byteBuffer);
+    }
+
+    private static ByteBuffer SocketAddress2ByteBuffer(final SocketAddress socketAddress, final ByteBuffer byteBuffer) {
         InetSocketAddress inetSocketAddress = (InetSocketAddress) socketAddress;
         byteBuffer.put(inetSocketAddress.getAddress().getAddress());
         byteBuffer.putInt(inetSocketAddress.getPort());
         byteBuffer.flip();
         return byteBuffer;
     }
+
+    public static ByteBuffer SocketAddress2ByteBuffer(SocketAddress socketAddress) {
+        ByteBuffer byteBuffer = ByteBuffer.allocate(8);
+        return SocketAddress2ByteBuffer(socketAddress, byteBuffer);
+    }
+
     public ByteBuffer getStoreHostBytes() {
         return SocketAddress2ByteBuffer(this.storeHost);
+    }
+
+    public ByteBuffer getStoreHostBytes(ByteBuffer byteBuffer) {
+        return SocketAddress2ByteBuffer(this.storeHost, byteBuffer);
     }
 
     public int getQueueId() {

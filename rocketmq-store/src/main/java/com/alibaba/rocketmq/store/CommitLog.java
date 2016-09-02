@@ -1031,6 +1031,10 @@ public class CommitLog {
         private final ByteBuffer msgStoreItemMemory;
         // The maximum length of the message
         private final int maxMessageSize;
+        // Build Message Key
+        private final StringBuilder keyBuilder = new StringBuilder();
+
+        private final ByteBuffer hostHolder = ByteBuffer.allocate(8);
 
 
         DefaultAppendMessageCallback(final int size) {
@@ -1056,7 +1060,11 @@ public class CommitLog {
             String msgId = MessageDecoder.createMessageId(this.msgIdMemory, msgInner.getStoreHostBytes(), wroteOffset);
 
             // Record ConsumeQueue information
-            String key = msgInner.getTopic() + "-" + msgInner.getQueueId();
+            keyBuilder.setLength(0);
+            keyBuilder.append(msgInner.getTopic());
+            keyBuilder.append('-');
+            keyBuilder.append(msgInner.getQueueId());
+            String key = keyBuilder.toString();
             Long queueOffset = CommitLog.this.topicQueueTable.get(key);
             if (null == queueOffset) {
                 queueOffset = 0L;
@@ -1106,7 +1114,7 @@ public class CommitLog {
 
             // Determines whether there is sufficient free space
             if ((msgLen + END_FILE_MIN_BLANK_LENGTH) > maxBlank) {
-                this.resetMsgStoreItemMemory(maxBlank);
+                this.resetByteBuffer(this.msgStoreItemMemory, maxBlank);
                 // 1 TOTALSIZE
                 this.msgStoreItemMemory.putInt(maxBlank);
                 // 2 MAGICCODE
@@ -1122,7 +1130,7 @@ public class CommitLog {
             }
 
             // Initialization of storage space
-            this.resetMsgStoreItemMemory(msgLen);
+            this.resetByteBuffer(msgStoreItemMemory, msgLen);
             // 1 TOTALSIZE
             this.msgStoreItemMemory.putInt(msgLen);
             // 2 MAGICCODE
@@ -1142,11 +1150,14 @@ public class CommitLog {
             // 9 BORNTIMESTAMP
             this.msgStoreItemMemory.putLong(msgInner.getBornTimestamp());
             // 10 BORNHOST
-            this.msgStoreItemMemory.put(msgInner.getBornHostBytes());
+            this.resetByteBuffer(hostHolder, 8);
+            this.msgStoreItemMemory.put(msgInner.getBornHostBytes(hostHolder));
             // 11 STORETIMESTAMP
             this.msgStoreItemMemory.putLong(msgInner.getStoreTimestamp());
             // 12 STOREHOSTADDRESS
-            this.msgStoreItemMemory.put(msgInner.getStoreHostBytes());
+            this.resetByteBuffer(hostHolder, 8);
+            this.msgStoreItemMemory.put(msgInner.getStoreHostBytes(hostHolder));
+            //this.msgStoreItemMemory.put(msgInner.getStoreHostBytes());
             // 13 RECONSUMETIMES
             this.msgStoreItemMemory.putInt(msgInner.getReconsumeTimes());
             // 14 Prepared Transaction Offset
@@ -1190,9 +1201,9 @@ public class CommitLog {
         }
 
 
-        private void resetMsgStoreItemMemory(final int length) {
-            this.msgStoreItemMemory.flip();
-            this.msgStoreItemMemory.limit(length);
+        private void resetByteBuffer(final ByteBuffer byteBuffer, final int limit) {
+            byteBuffer.flip();
+            byteBuffer.limit(limit);
         }
     }
 

@@ -245,6 +245,18 @@ public class UtilAll {
         return sb.toString();
     }
 
+    // FIXME: 16/9/2 Need unit tests
+    final static char[] hexArray = "0123456789ABCDEF".toCharArray();
+    public static String bytes2stringNew(byte[] src) {
+        char[] hexChars = new char[src.length * 2];
+        for ( int j = 0; j < src.length; j++ ) {
+            int v = src[j] & 0xFF;
+            hexChars[j * 2] = hexArray[v >>> 4];
+            hexChars[j * 2 + 1] = hexArray[v & 0x0F];
+        }
+        return new String(hexChars);
+    }
+
     public static byte[] string2bytes(String hexString) {
         if (hexString == null || hexString.equals("")) {
             return null;
