@@ -610,9 +610,11 @@ public class CommitLog {
         if (eclipseTimeInLock > 10) {
             log.warn("[NOTIFYME]putMessage in lock cost time(ms)={}, bodyLength={} AppendMessageResult={}", eclipseTimeInLock, msg.getBody().length, result);
         }
-        if (null != unlockMappedFile) {
+
+        if (null != unlockMappedFile && !CommitLog.this.defaultMessageStore.getMessageStoreConfig().isTransientStorePoolEnable()) {
             this.defaultMessageStore.unlockMapedFile(unlockMappedFile);
         }
+
 
         PutMessageResult putMessageResult = new PutMessageResult(PutMessageStatus.PUT_OK, result);
 
@@ -640,7 +642,11 @@ public class CommitLog {
         }
         // Asynchronous flush
         else {
-            //this.flushCommitLogService.wakeup(); //// FIXME: 16/9/1 need wakeup really?
+            if (this.defaultMessageStore.getMessageStoreConfig().isTransientStorePoolEnable()) {
+                this.commitLogService.wakeup();
+            } else {
+                this.flushCommitLogService.wakeup(); // FIXME: If SYNC_FLUSH?
+            }
         }
 
         // Synchronous write double
