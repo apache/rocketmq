@@ -43,6 +43,7 @@ JAVA_OPT="${JAVA_OPT} -XX:-OmitStackTraceInFastThrow"
 JAVA_OPT="${JAVA_OPT} -XX:+AlwaysPreTouch"
 JAVA_OPT="${JAVA_OPT} -XX:MaxDirectMemorySize=10g"
 JAVA_OPT="${JAVA_OPT}  -XX:-UseLargePages"
+JAVA_OPT="${JAVA_OPT} -Dsun.nio.PageAlignDirectMemory=true
 JAVA_OPT="${JAVA_OPT}  -XX:+PerfDisableSharedMem"
 JAVA_OPT="${JAVA_OPT} -Djava.ext.dirs=${BASE_DIR}/lib"
 #JAVA_OPT="${JAVA_OPT} -Xdebug -Xrunjdwp:transport=dt_socket,address=9555,server=y,suspend=n"
