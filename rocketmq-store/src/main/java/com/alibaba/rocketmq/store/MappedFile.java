@@ -292,6 +292,7 @@ public class MappedFile extends ReferenceResource {
                 // DirectMemory may be not pageAligned, so we back 1.x page size.
                 int value = this.wrotePosition.get() - this.wrotePosition.get() % OS_PAGE_SIZE -  OS_PAGE_SIZE;
 
+                int newValue = -1; // keep pageAligned to avoid 100ms's noise.
                 // commitLeastPages=0 means must commit to FileChannel immediately
                 if (commitLeastPages == 0 || isFull()) {
                     value = this.wrotePosition.get();
@@ -302,12 +303,12 @@ public class MappedFile extends ReferenceResource {
                         for (int i = this.committedPosition.get(); i <= value;) {
                             byteBuffer.position(i);
                             if (value - i < 4) {
-                                value = i;
+                                newValue = i;
                                 break;
                             }
                             int msgLen = byteBuffer.getInt();
                             if (value - i < msgLen) {
-                                value = i;
+                                newValue = i;
                                 break;
                             }
                             i += msgLen;
@@ -324,6 +325,8 @@ public class MappedFile extends ReferenceResource {
                         try {
                             this.fileChannel.position(this.committedPosition.get());
                             this.fileChannel.write(byteBuffer);
+                            value = newValue == -1 ? value : newValue;
+                            this.fileChannel.position(value); // back to the message start position
                             this.committedPosition.set(value);
                         } catch (IOException e) {
                             log.error("Error occurred when commit data to FileChannel.", e);
