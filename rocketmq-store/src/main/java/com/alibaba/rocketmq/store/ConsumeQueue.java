@@ -320,8 +320,8 @@ public class ConsumeQueue {
 
                         if (offsetPy >= phyMinOffset) {
                             this.minLogicOffset = result.getMappedFile().getFileFromOffset() + i;
-                            log.info("compute logics min offset: " + this.getMinOffsetInQuque() + ", topic: "
-                                    + this.topic + ", queueId: " + this.queueId);
+//                            log.info("compute logics min offset: " + this.getMinOffsetInQuque() + ", topic: "
+//                                    + this.topic + ", queueId: " + this.queueId);
                             break;
                         }
                     }

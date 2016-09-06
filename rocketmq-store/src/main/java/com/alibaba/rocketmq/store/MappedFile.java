@@ -239,9 +239,15 @@ public class MappedFile extends ReferenceResource {
 
 
         if ((currentPos + data.length) <= this.fileSize) {
-            ByteBuffer byteBuffer = writeBuffer != null ? writeBuffer.slice() : this.mappedByteBuffer.slice();
-            byteBuffer.position(currentPos);
-            byteBuffer.put(data);
+//            ByteBuffer byteBuffer = writeBuffer != null ? writeBuffer.slice() : this.mappedByteBuffer.slice();
+//            byteBuffer.position(currentPos);
+//            byteBuffer.put(data);
+            try {
+                this.fileChannel.position(currentPos);
+                this.fileChannel.write(ByteBuffer.wrap(data));
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
             this.wrotePosition.addAndGet(data.length);
             return true;
         }
@@ -263,7 +269,7 @@ public class MappedFile extends ReferenceResource {
             if (this.hold()) {
                 int value = getReadPosition();
 
-                if (writeBuffer != null) {
+                if (writeBuffer != null || true) {
                     try {
                         this.fileChannel.force(false);
                     } catch (IOException e) {
