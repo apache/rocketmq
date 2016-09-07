@@ -288,6 +288,7 @@ public class MappedFile extends ReferenceResource {
         return this.getFlushedPosition();
     }
 
+    private int commitCompensation = 0;
     public int commit(final int commitLeastPages) {
         if (this.isAbleToCommit(commitLeastPages)) {
             //long begin = System.currentTimeMillis();
@@ -322,12 +323,13 @@ public class MappedFile extends ReferenceResource {
                 if (writeBuffer != null) {
                     if ((value - this.committedPosition.get() > 0)) {
                         ByteBuffer byteBuffer = writeBuffer.slice();
-                        byteBuffer.position(this.committedPosition.get());
+                        byteBuffer.position(this.committedPosition.get() + commitCompensation);
                         byteBuffer.limit(value);
 
                         try {
-                            this.fileChannel.position(this.committedPosition.get());
+                            this.fileChannel.position(this.committedPosition.get() + commitCompensation);
                             this.fileChannel.write(byteBuffer);
+                            commitCompensation = newValue == -1 ? 0 : value - newValue;
                             value = newValue == -1 ? value : newValue;
                             this.fileChannel.position(value); // back to the message start position
                             this.committedPosition.set(value);
