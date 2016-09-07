@@ -47,7 +47,7 @@ public class MessageStoreConfig {
     private int flushIntervalCommitLog = 500;
 
     // Only used if TransientStorePool enabled
-    // commit data to FileChannel
+    // flush data to FileChannel
     @ImportantField
     private int commitIntervalCommitLog = 200;
 
@@ -658,8 +658,12 @@ public class MessageStoreConfig {
         this.defaultQueryMaxNum = defaultQueryMaxNum;
     }
 
+    /**
+     * Enable transient commitLog store poll only if transientStorePoolEnable is true and the FlushDiskType is ASYNC_FLUSH
+     * @return
+     */
     public boolean isTransientStorePoolEnable() {
-        return transientStorePoolEnable;
+        return transientStorePoolEnable && FlushDiskType.ASYNC_FLUSH == getFlushDiskType();
     }
 
     public void setTransientStorePoolEnable(final boolean transientStorePoolEnable) {

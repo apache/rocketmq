@@ -239,14 +239,11 @@ public class MappedFile extends ReferenceResource {
 
 
         if ((currentPos + data.length) <= this.fileSize) {
-//            ByteBuffer byteBuffer = writeBuffer != null ? writeBuffer.slice() : this.mappedByteBuffer.slice();
-//            byteBuffer.position(currentPos);
-//            byteBuffer.put(data);
             try {
                 this.fileChannel.position(currentPos);
                 this.fileChannel.write(ByteBuffer.wrap(data));
             } catch (IOException e) {
-                e.printStackTrace();
+                log.error("Error occurred when append message to mappedFile.", e);
             }
             this.wrotePosition.addAndGet(data.length);
             return true;
@@ -269,14 +266,14 @@ public class MappedFile extends ReferenceResource {
             if (this.hold()) {
                 int value = getReadPosition();
 
-                if (writeBuffer != null || true) {
-                    try {
+                try {
+                    if (writeBuffer != null || this.fileChannel.position() != 0) {
                         this.fileChannel.force(false);
-                    } catch (IOException e) {
-                        log.error("Error occurred when force data to disk.", e);
+                    } else {
+                        this.mappedByteBuffer.force();
                     }
-                } else {
-                    this.mappedByteBuffer.force();
+                } catch (IOException e) {
+                    log.error("Error occurred when force data to disk.", e);
                 }
 
                 this.flushedPosition.set(value);
@@ -299,7 +296,7 @@ public class MappedFile extends ReferenceResource {
                 int value = this.wrotePosition.get() - this.wrotePosition.get() % OS_PAGE_SIZE -  OS_PAGE_SIZE;
 
                 int newValue = -1; // keep pageAligned to avoid 100ms's noise.
-                // commitLeastPages=0 means must commit to FileChannel immediately
+                // commitLeastPages=0 means must flush to FileChannel immediately
                 if (commitLeastPages == 0 || isFull()) {
                     value = this.wrotePosition.get();
                 } else {
@@ -335,15 +332,15 @@ public class MappedFile extends ReferenceResource {
                             this.fileChannel.position(value); // back to the message start position
                             this.committedPosition.set(value);
                         } catch (IOException e) {
-                            log.error("Error occurred when commit data to FileChannel.", e);
+                            log.error("Error occurred when flush data to FileChannel.", e);
                         }
                     }
                 }
                 this.release();
             } else {
-                log.warn("in commit, hold failed, commit offset = " + this.committedPosition.get());
+                log.warn("in flush, hold failed, flush offset = " + this.committedPosition.get());
             }
-            //log.info("commit cost : {}", System.currentTimeMillis() - begin);
+            //log.info("flush cost : {}", System.currentTimeMillis() - begin);
         }
 
         // All dirty data has been committed to FileChannel.

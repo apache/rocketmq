@@ -295,7 +295,7 @@ public class ConsumeQueue {
     }
 
 
-    public boolean commit(final int flushLeastPages) {
+    public boolean flush(final int flushLeastPages) {
         return this.mappedFileQueue.flush(flushLeastPages);
     }
 

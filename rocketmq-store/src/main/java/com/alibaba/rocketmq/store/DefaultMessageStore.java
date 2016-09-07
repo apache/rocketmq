@@ -1558,7 +1558,7 @@ public class DefaultMessageStore implements MessageStore {
                 for (ConsumeQueue cq : maps.values()) {
                     boolean result = false;
                     for (int i = 0; i < retryTimes && !result; i++) {
-                        result = cq.commit(flushConsumeQueueLeastPages);
+                        result = cq.flush(flushConsumeQueueLeastPages);
                     }
                 }
             }
