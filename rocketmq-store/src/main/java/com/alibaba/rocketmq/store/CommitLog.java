@@ -577,11 +577,13 @@ public class CommitLog {
             beginTimeInLock = 0;
             return new PutMessageResult(PutMessageStatus.CREATE_MAPEDFILE_FAILED, null);
         }
+        StopWatch watch = new StopWatch("ENDFILE", "ENDFILE");
         result = mappedFile.appendMessage(msg, this.appendMessageCallback);
         switch (result.getStatus()) {
             case PUT_OK:
                 break;
             case END_OF_FILE:
+                watch.lap("firstAppend", log);
                 unlockMappedFile = mappedFile;
                 // Create a new file, re-write the message
                 mappedFile = this.mappedFileQueue.getLastMappedFile(0);
@@ -591,7 +593,9 @@ public class CommitLog {
                     beginTimeInLock = 0;
                     return new PutMessageResult(PutMessageStatus.CREATE_MAPEDFILE_FAILED, result);
                 }
+                watch.lap("newFile", log);
                 result = mappedFile.appendMessage(msg, this.appendMessageCallback);
+                watch.lap("secondAppend", log);
                 break;
             case MESSAGE_SIZE_EXCEEDED:
             case PROPERTIES_SIZE_EXCEEDED:

@@ -37,6 +37,7 @@ import java.nio.channels.FileChannel;
 import java.nio.channels.FileChannel.MapMode;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -82,6 +83,9 @@ public class MappedFile extends ReferenceResource {
     public MappedFile(final String fileName, final int fileSize, final TransientStorePool transientStorePool) throws IOException {
         this(fileName, fileSize);
         this.writeBuffer = transientStorePool.borrowBuffer();
+        if (writeBuffer != null) {
+            log.info("TEST borrow : {}", fileName);
+        }
         this.transientStorePool = transientStorePool;
     }
 
@@ -260,7 +264,11 @@ public class MappedFile extends ReferenceResource {
      *
      * @return
      */
+    private AtomicBoolean canFlush = new AtomicBoolean(true);
     public int flush(final int flushLeastPages) {
+        if (!canFlush.compareAndSet(true, false)) {
+            return this.getFlushedPosition();
+        }
         if (this.isAbleToFlush(flushLeastPages)) {
             //long begin = System.currentTimeMillis();
             if (this.hold()) {
@@ -284,60 +292,61 @@ public class MappedFile extends ReferenceResource {
             }
             //log.info("flush cost : {}", System.currentTimeMillis() - begin);
         }
-
+        canFlush.compareAndSet(false, true);
         return this.getFlushedPosition();
     }
 
     private int commitCompensation = 0;
     public int commit(final int commitLeastPages) {
+        if (writeBuffer == null) {
+            //no need to commit data to file channel, so just regard wrotePosition as committedPosition.
+            return this.wrotePosition.get();
+        }
         if (this.isAbleToCommit(commitLeastPages)) {
             //long begin = System.currentTimeMillis();
             if (this.hold()) {
                 // DirectMemory may be not pageAligned, so we back 1.x page size.
                 int value = this.wrotePosition.get() - this.wrotePosition.get() % OS_PAGE_SIZE -  OS_PAGE_SIZE;
 
-                int newValue = -1; // keep pageAligned to avoid 100ms's noise.
+                int newValue = -1; // avoid dispatch noise.
                 // commitLeastPages=0 means must flush to FileChannel immediately
                 if (commitLeastPages == 0 || isFull()) {
                     value = this.wrotePosition.get();
                 } else {
                     // seek a message start position
-                    if (writeBuffer != null) {
-                        ByteBuffer byteBuffer = writeBuffer.slice();
-                        for (int i = this.committedPosition.get(); i <= value;) {
-                            byteBuffer.position(i);
-                            if (value - i < 4) {
-                                newValue = i;
-                                break;
-                            }
-                            int msgLen = byteBuffer.getInt();
-                            if (value - i < msgLen) {
-                                newValue = i;
-                                break;
-                            }
-                            i += msgLen;
+                    ByteBuffer byteBuffer = writeBuffer.slice();
+                    for (int i = this.committedPosition.get(); i <= value;) {
+                        byteBuffer.position(i);
+                        if (value - i < 4) {
+                            newValue = i;
+                            break;
                         }
+                        int msgLen = byteBuffer.getInt();
+                        if (value - i < msgLen) {
+                            newValue = i;
+                            break;
+                        }
+                        i += msgLen;
                     }
                 }
 
-                if (writeBuffer != null) {
-                    if ((value - this.committedPosition.get() > 0)) {
-                        ByteBuffer byteBuffer = writeBuffer.slice();
-                        byteBuffer.position(this.committedPosition.get() + commitCompensation);
-                        byteBuffer.limit(value);
+                if ((value - this.committedPosition.get() > 0)) {
+                    ByteBuffer byteBuffer = writeBuffer.slice();
+                    byteBuffer.position(this.committedPosition.get() + commitCompensation);
+                    byteBuffer.limit(value);
 
-                        try {
-                            this.fileChannel.position(this.committedPosition.get() + commitCompensation);
-                            this.fileChannel.write(byteBuffer);
-                            commitCompensation = newValue == -1 ? 0 : value - newValue;
-                            value = newValue == -1 ? value : newValue;
-                            this.fileChannel.position(value); // back to the message start position
-                            this.committedPosition.set(value);
-                        } catch (IOException e) {
-                            log.error("Error occurred when flush data to FileChannel.", e);
-                        }
+                    try {
+                        this.fileChannel.position(this.committedPosition.get() + commitCompensation);
+                        this.fileChannel.write(byteBuffer);
+                        commitCompensation = newValue == -1 ? 0 : value - newValue;
+                        value = newValue == -1 ? value : newValue;
+                        this.fileChannel.position(value); // back to the message start position
+                        this.committedPosition.set(value);
+                    } catch (IOException e) {
+                        log.error("Error occurred when flush data to FileChannel.", e);
                     }
                 }
+
                 this.release();
             } else {
                 log.warn("in flush, hold failed, flush offset = " + this.committedPosition.get());
@@ -347,7 +356,9 @@ public class MappedFile extends ReferenceResource {
 
         // All dirty data has been committed to FileChannel.
         if (writeBuffer != null && this.transientStorePool != null && this.fileSize == this.committedPosition.get()) {
+            log.info("TEST return : {}", fileName);
             this.transientStorePool.returnBuffer(writeBuffer);
+            this.writeBuffer = null;
         }
 
         return this.committedPosition.get();
