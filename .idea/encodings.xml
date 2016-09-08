@@ -11,6 +11,7 @@
     <file url="file://$PROJECT_DIR$/rocketmq-remoting" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/rocketmq-srvutil" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/rocketmq-store" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/rocketmq-store/src/main/java/com/alibaba/rocketmq/store/CommitLog.java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/rocketmq-tools" charset="UTF-8" />
     <file url="PROJECT" charset="UTF-8" />
   </component>

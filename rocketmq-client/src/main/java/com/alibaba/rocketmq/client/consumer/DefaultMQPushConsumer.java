@@ -132,7 +132,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
 
     private int maxReconsumeTimes = 16;
     private long suspendCurrentQueueTimeMillis = 1000;
-    private long consumeTimeout = 2;
+    private long consumeTimeout = 15;
 
 
     public DefaultMQPushConsumer() {

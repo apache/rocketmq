@@ -328,7 +328,7 @@ public class DefaultMessageStore implements MessageStore {
     }
 
 
-    private boolean isOSPageCacheBusy() {
+    public boolean isOSPageCacheBusy() {
         long begin = this.getCommitLog().getBeginTimeInLock();
         long diff = this.systemClock.now() - begin;
 
@@ -338,6 +338,11 @@ public class DefaultMessageStore implements MessageStore {
         }
 
         return false;
+    }
+
+    @Override
+    public long lockTimeMills() {
+        return this.commitLog.lockTimeMills();
     }
 
     public SystemClock getSystemClock() {
@@ -655,6 +660,13 @@ public class DefaultMessageStore implements MessageStore {
         }
 
         return -1;
+    }
+
+    @Override
+    public long getEarliestMessageTime() {
+        final long minPhyOffset = this.getMinPhyOffset();
+        final int size = this.messageStoreConfig.getMaxMessageSize() * 2;
+        return this.getCommitLog().pickupStoretimestamp(minPhyOffset, size);
     }
 
     @Override
@@ -1714,5 +1726,16 @@ public class DefaultMessageStore implements MessageStore {
             return ReputMessageService.class.getSimpleName();
         }
 
+
+    }
+
+
+    public void unlockMapedFile(final MapedFile mapedFile){
+        this.scheduledExecutorService.schedule(new Runnable() {
+            @Override
+            public void run() {
+                mapedFile.munlock();
+            }
+        }, 6, TimeUnit.SECONDS);
     }
 }

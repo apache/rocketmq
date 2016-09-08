@@ -65,8 +65,8 @@ public class BrokerConfig {
     private boolean rejectTransactionMessage = false;
     @ImportantField
     private boolean fetchNamesrvAddrByAddressServer = false;
-    private int sendThreadPoolQueueCapacity = 100000;
-    private int pullThreadPoolQueueCapacity = 100000;
+    private int sendThreadPoolQueueCapacity = 10000;
+    private int pullThreadPoolQueueCapacity = 10000;
 
     private int filterServerNums = 0;
 
@@ -94,6 +94,26 @@ public class BrokerConfig {
 
     private boolean disableConsumeIfConsumerReadSlowly = false;
     private long consumerFallbehindThreshold = 1024 * 1024 * 1024 * 16;
+
+    private long waitTimeMillsInSendQueue = 200;
+
+    private long startAcceptSendRequestTimeStamp = 0L;
+
+    public long getStartAcceptSendRequestTimeStamp() {
+        return startAcceptSendRequestTimeStamp;
+    }
+
+    public void setStartAcceptSendRequestTimeStamp(final long startAcceptSendRequestTimeStamp) {
+        this.startAcceptSendRequestTimeStamp = startAcceptSendRequestTimeStamp;
+    }
+
+    public long getWaitTimeMillsInSendQueue() {
+        return waitTimeMillsInSendQueue;
+    }
+
+    public void setWaitTimeMillsInSendQueue(final long waitTimeMillsInSendQueue) {
+        this.waitTimeMillsInSendQueue = waitTimeMillsInSendQueue;
+    }
 
     public long getConsumerFallbehindThreshold() {
         return consumerFallbehindThreshold;

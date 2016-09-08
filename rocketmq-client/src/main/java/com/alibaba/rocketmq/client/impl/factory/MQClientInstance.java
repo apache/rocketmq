@@ -672,6 +672,7 @@ public class MQClientInstance {
 
     public static TopicPublishInfo topicRouteData2TopicPublishInfo(final String topic, final TopicRouteData route) {
         TopicPublishInfo info = new TopicPublishInfo();
+        info.setTopicRouteData(route);
         if (route.getOrderTopicConf() != null && route.getOrderTopicConf().length() > 0) {
             String[] brokers = route.getOrderTopicConf().split(";");
             for (String broker : brokers) {
@@ -1135,5 +1136,9 @@ public class MQClientInstance {
 
     public ConsumerStatsManager getConsumerStatsManager() {
         return consumerStatsManager;
+    }
+
+    public NettyClientConfig getNettyClientConfig() {
+        return nettyClientConfig;
     }
 }

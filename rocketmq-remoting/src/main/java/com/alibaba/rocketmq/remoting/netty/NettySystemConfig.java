@@ -36,7 +36,7 @@ public class NettySystemConfig {
     public static int socketRcvbufSize = //
             Integer.parseInt(System.getProperty(SystemPropertySocketRcvbufSize, "65535"));
     public static final int ClientAsyncSemaphoreValue = //
-            Integer.parseInt(System.getProperty(SystemPropertyClientAsyncSemaphoreValue, "2048"));
+            Integer.parseInt(System.getProperty(SystemPropertyClientAsyncSemaphoreValue, "65535"));
     public static final int ClientOnewaySemaphoreValue = //
-            Integer.parseInt(System.getProperty(SystemPropertyClientOnewaySemaphoreValue, "2048"));
+            Integer.parseInt(System.getProperty(SystemPropertyClientOnewaySemaphoreValue, "65535"));
 }

@@ -43,4 +43,9 @@ public class ForwardRequestProcessor implements NettyRequestProcessor {
     public RemotingCommand processRequest(ChannelHandlerContext ctx, RemotingCommand request) {
         return null;
     }
+
+    @Override
+    public boolean rejectRequest() {
+        return false;
+    }
 }

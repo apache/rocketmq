@@ -121,6 +121,10 @@ public class PlugInTest {
 
         AbstractPluginMessageStore pluginMessageStore = new AbstractPluginMessageStore(null, messageStore) {
 
+            @Override
+            public boolean isOSPageCacheBusy() {
+                return false;
+            }
         };
 
         Method[] methods = MessageStore.class.getMethods();
