@@ -570,7 +570,7 @@ public class CommitLog {
         msg.setStoreTimestamp(beginLockTimestamp);
 
         if (null == mappedFile || mappedFile.isFull()) {
-            mappedFile = this.mappedFileQueue.getLastMappedFile(0);
+            mappedFile = this.mappedFileQueue.getLastMappedFile(0); // Mark: NewFile may be cause noise
         }
         if (null == mappedFile) {
             log.error("create maped file1 error, topic: " + msg.getTopic() + " clientAddr: " + msg.getBornHostString());
@@ -854,14 +854,18 @@ public class CommitLog {
                         this.printFlushProgress();
                     }
 
-                    CommitLog.this.mappedFileQueue.flush(flushPhysicQueueLeastPages);
-                    long storeTimestamp = CommitLog.this.mappedFileQueue.getStoreTimestamp();
-                    if (storeTimestamp > 0) {
-                        CommitLog.this.defaultMessageStore.getStoreCheckpoint().setPhysicMsgTimestamp(storeTimestamp);
+                    if (MappedFile.acquireDiskIO()) {
+                        CommitLog.this.mappedFileQueue.flush(flushPhysicQueueLeastPages);
+                        long storeTimestamp = CommitLog.this.mappedFileQueue.getStoreTimestamp();
+                        if (storeTimestamp > 0) {
+                            CommitLog.this.defaultMessageStore.getStoreCheckpoint().setPhysicMsgTimestamp(storeTimestamp);
+                        }
                     }
                 } catch (Exception e) {
                     CommitLog.log.warn(this.getServiceName() + " service has exception. ", e);
                     this.printFlushProgress();
+                } finally {
+                    MappedFile.releaseDiskIO();
                 }
             }
 

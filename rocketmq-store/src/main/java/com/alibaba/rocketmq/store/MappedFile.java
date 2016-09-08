@@ -264,11 +264,7 @@ public class MappedFile extends ReferenceResource {
      *
      * @return
      */
-    private AtomicBoolean canFlush = new AtomicBoolean(true);
     public int flush(final int flushLeastPages) {
-        if (!canFlush.compareAndSet(true, false)) {
-            return this.getFlushedPosition();
-        }
         if (this.isAbleToFlush(flushLeastPages)) {
             //long begin = System.currentTimeMillis();
             if (this.hold()) {
@@ -292,8 +288,16 @@ public class MappedFile extends ReferenceResource {
             }
             //log.info("flush cost : {}", System.currentTimeMillis() - begin);
         }
-        canFlush.compareAndSet(false, true);
         return this.getFlushedPosition();
+    }
+
+    private static AtomicBoolean canFlush = new AtomicBoolean(true);
+    public static boolean acquireDiskIO() {
+        return canFlush.compareAndSet(true, false);
+    }
+
+    public static boolean releaseDiskIO() {
+        return canFlush.compareAndSet(false, true);
     }
 
     private int commitCompensation = 0;
@@ -303,10 +307,10 @@ public class MappedFile extends ReferenceResource {
             return this.wrotePosition.get();
         }
         if (this.isAbleToCommit(commitLeastPages)) {
-            //long begin = System.currentTimeMillis();
+            long begin = System.currentTimeMillis();
             if (this.hold()) {
                 // DirectMemory may be not pageAligned, so we back 1.x page size.
-                int value = this.wrotePosition.get() - this.wrotePosition.get() % OS_PAGE_SIZE -  OS_PAGE_SIZE;
+                int value = this.wrotePosition.get() - this.wrotePosition.get() % OS_PAGE_SIZE;
 
                 int newValue = -1; // avoid dispatch noise.
                 // commitLeastPages=0 means must flush to FileChannel immediately
@@ -351,7 +355,9 @@ public class MappedFile extends ReferenceResource {
             } else {
                 log.warn("in flush, hold failed, flush offset = " + this.committedPosition.get());
             }
-            //log.info("flush cost : {}", System.currentTimeMillis() - begin);
+            if (System.currentTimeMillis() - begin > 100) {
+                log.info("commit cost : {}", System.currentTimeMillis() - begin);
+            }
         }
 
         // All dirty data has been committed to FileChannel.
