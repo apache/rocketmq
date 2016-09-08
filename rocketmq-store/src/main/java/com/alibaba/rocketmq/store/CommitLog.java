@@ -39,7 +39,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 
 /**
@@ -781,7 +780,7 @@ public class CommitLog {
     public void checkSelf() {
         mappedFileQueue.checkSelf();
     }
-    private AtomicBoolean mutextCommitAndFlush = new AtomicBoolean(true);
+
     abstract class FlushCommitLogService extends ServiceThread {
         protected static final int RetryTimesOver = 5;
     }
@@ -801,9 +800,7 @@ public class CommitLog {
                 int flushPhysicQueueLeastPages = CommitLog.this.defaultMessageStore.getMessageStoreConfig().getFlushCommitLogLeastPages();
 
                 try {
-                    if (mutextCommitAndFlush.compareAndSet(true, true)) {
-                        CommitLog.this.mappedFileQueue.commit(flushPhysicQueueLeastPages);
-                    }
+                    CommitLog.this.mappedFileQueue.commit(flushPhysicQueueLeastPages);
                     this.waitForRunning(interval);
                 } catch (Exception e) {
                     CommitLog.log.warn(this.getServiceName() + " service has exception. ", e);
@@ -857,7 +854,7 @@ public class CommitLog {
                         this.printFlushProgress();
                     }
 
-                    if (mutextCommitAndFlush.compareAndSet(true, false) && MappedFile.acquireDiskIO()) {
+                    if (MappedFile.acquireDiskIO()) {
                         long begin = System.currentTimeMillis();
                         CommitLog.this.mappedFileQueue.flush(flushPhysicQueueLeastPages);
                         long storeTimestamp = CommitLog.this.mappedFileQueue.getStoreTimestamp();
@@ -871,7 +868,6 @@ public class CommitLog {
                     this.printFlushProgress();
                 } finally {
                     MappedFile.releaseDiskIO();
-                    mutextCommitAndFlush.compareAndSet(false, true);
                 }
             }
 
