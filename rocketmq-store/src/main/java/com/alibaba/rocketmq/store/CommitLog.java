@@ -39,6 +39,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 
 /**
@@ -780,7 +781,7 @@ public class CommitLog {
     public void checkSelf() {
         mappedFileQueue.checkSelf();
     }
-
+    private AtomicBoolean mutextCommitAndFlush = new AtomicBoolean(true);
     abstract class FlushCommitLogService extends ServiceThread {
         protected static final int RetryTimesOver = 5;
     }
@@ -800,7 +801,9 @@ public class CommitLog {
                 int flushPhysicQueueLeastPages = CommitLog.this.defaultMessageStore.getMessageStoreConfig().getFlushCommitLogLeastPages();
 
                 try {
-                    CommitLog.this.mappedFileQueue.commit(flushPhysicQueueLeastPages);
+                    if (mutextCommitAndFlush.compareAndSet(true, true)) {
+                        CommitLog.this.mappedFileQueue.commit(flushPhysicQueueLeastPages);
+                    }
                     this.waitForRunning(interval);
                 } catch (Exception e) {
                     CommitLog.log.warn(this.getServiceName() + " service has exception. ", e);
@@ -854,18 +857,21 @@ public class CommitLog {
                         this.printFlushProgress();
                     }
 
-                    if (MappedFile.acquireDiskIO()) {
+                    if (mutextCommitAndFlush.compareAndSet(true, false) && MappedFile.acquireDiskIO()) {
+                        long begin = System.currentTimeMillis();
                         CommitLog.this.mappedFileQueue.flush(flushPhysicQueueLeastPages);
                         long storeTimestamp = CommitLog.this.mappedFileQueue.getStoreTimestamp();
                         if (storeTimestamp > 0) {
                             CommitLog.this.defaultMessageStore.getStoreCheckpoint().setPhysicMsgTimestamp(storeTimestamp);
                         }
+                        log.info("Flush cost {}", System.currentTimeMillis() - begin);
                     }
                 } catch (Exception e) {
                     CommitLog.log.warn(this.getServiceName() + " service has exception. ", e);
                     this.printFlushProgress();
                 } finally {
                     MappedFile.releaseDiskIO();
+                    mutextCommitAndFlush.compareAndSet(false, true);
                 }
             }
 
