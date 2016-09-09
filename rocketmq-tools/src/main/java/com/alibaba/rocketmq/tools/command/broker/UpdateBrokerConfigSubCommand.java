@@ -97,8 +97,12 @@ public class UpdateBrokerConfigSubCommand implements SubCommand {
                 Set<String> masterSet =
                         CommandUtil.fetchMasterAddrByClusterName(defaultMQAdminExt, clusterName);
                 for (String brokerAddr : masterSet) {
-                    defaultMQAdminExt.updateBrokerConfig(brokerAddr, properties);
-                    System.out.printf("update broker config success, %s\n", brokerAddr);
+                    try {
+                        defaultMQAdminExt.updateBrokerConfig(brokerAddr, properties);
+                        System.out.printf("update broker config success, %s\n", brokerAddr);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
                 }
                 return;
             }
