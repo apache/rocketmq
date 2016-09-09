@@ -247,12 +247,12 @@ public class ClusterListSubCommand implements SubCommand {
                         double hour = 0.0;
                         double space = 0.0;
 
-                        if (earliestMessageTimeStamp != null) {
+                        if (earliestMessageTimeStamp != null && earliestMessageTimeStamp.length() > 0) {
                             long mills = System.currentTimeMillis() - Long.valueOf(earliestMessageTimeStamp);
                             hour = mills / 1000.0 / 60.0 / 60.0;
                         }
 
-                        if (commitLogDiskRatio != null) {
+                        if (commitLogDiskRatio != null && commitLogDiskRatio.length() > 0) {
                             space = Double.valueOf(commitLogDiskRatio);
                         }
 
