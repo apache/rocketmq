@@ -27,7 +27,7 @@ import sun.nio.ch.DirectBuffer;
 
 import java.nio.ByteBuffer;
 import java.util.Deque;
-import java.util.concurrent.LinkedBlockingDeque;
+import java.util.concurrent.ConcurrentLinkedDeque;
 
 /**
  * @author xinyuzhou.zxy
@@ -42,7 +42,7 @@ public class TransientStorePool {
     public TransientStorePool(final MessageStoreConfig storeConfig) {
         this.poolSize = storeConfig.getTransientStorePoolSize();
         this.fileSize = storeConfig.getMapedFileSizeCommitLog();
-        this.availableBuffers = new LinkedBlockingDeque<ByteBuffer>();
+        this.availableBuffers = new ConcurrentLinkedDeque<>();
 
         if (storeConfig.isTransientStorePoolEnable()) {
             init();
