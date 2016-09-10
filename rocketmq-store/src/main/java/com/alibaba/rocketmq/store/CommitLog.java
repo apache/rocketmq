@@ -648,7 +648,7 @@ public class CommitLog {
         // Asynchronous flush
         else {
             if (this.defaultMessageStore.getMessageStoreConfig().isTransientStorePoolEnable()) {
-                this.commitLogService.wakeup();
+                //this.commitLogService.wakeup(); wakeup thread will cause 100ms noise.
             } else {
                 this.flushCommitLogService.wakeup();
             }
