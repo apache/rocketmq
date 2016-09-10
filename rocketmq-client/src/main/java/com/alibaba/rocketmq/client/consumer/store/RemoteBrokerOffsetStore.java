@@ -123,8 +123,9 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
 
         final HashSet<MessageQueue> unusedMQ = new HashSet<MessageQueue>();
         if (mqs != null && !mqs.isEmpty()) {
-            for (MessageQueue mq : this.offsetTable.keySet()) {
-                AtomicLong offset = this.offsetTable.get(mq);
+            for(Map.Entry<MessageQueue, AtomicLong> entry:this.offsetTable.entrySet()){
+                MessageQueue mq = entry.getKey();
+                AtomicLong offset = entry.getValue();
                 if (offset != null) {
                     if (mqs.contains(mq)) {
                         try {
@@ -181,13 +182,12 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
     @Override
     public Map<MessageQueue, Long> cloneOffsetTable(String topic) {
         Map<MessageQueue, Long> cloneOffsetTable = new HashMap<MessageQueue, Long>();
-        Iterator<MessageQueue> iterator = this.offsetTable.keySet().iterator();
-        while (iterator.hasNext()) {
-            MessageQueue mq = iterator.next();
+        for (Map.Entry<MessageQueue, AtomicLong> entry : this.offsetTable.entrySet()) {
+            MessageQueue mq = entry.getKey();
             if (!UtilAll.isBlank(topic) && !topic.equals(mq.getTopic())) {
                 continue;
             }
-            cloneOffsetTable.put(mq, this.offsetTable.get(mq).get());
+            cloneOffsetTable.put(mq, entry.getValue().get());
         }
         return cloneOffsetTable;
     }

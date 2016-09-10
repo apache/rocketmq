@@ -37,6 +37,21 @@ public abstract class AbstractPluginMessageStore implements MessageStore {
     }
 
     @Override
+    public long getEarliestMessageTime() {
+        return next.getEarliestMessageTime();
+    }
+
+    @Override
+    public long lockTimeMills() {
+        return next.lockTimeMills();
+    }
+
+    @Override
+    public boolean isOSPageCacheBusy() {
+        return next.isOSPageCacheBusy();
+    }
+
+    @Override
     public boolean load() {
         return next.load();
     }

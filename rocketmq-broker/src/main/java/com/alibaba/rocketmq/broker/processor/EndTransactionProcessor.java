@@ -209,6 +209,11 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
         return response;
     }
 
+    @Override
+    public boolean rejectRequest() {
+        return false;
+    }
+
     private MessageExtBrokerInner endMessageTransaction(MessageExt msgExt) {
         MessageExtBrokerInner msgInner = new MessageExtBrokerInner();
         msgInner.setBody(msgExt.getBody());

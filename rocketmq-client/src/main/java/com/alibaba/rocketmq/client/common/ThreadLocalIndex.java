@@ -41,4 +41,11 @@ public class ThreadLocalIndex {
         this.threadLocalIndex.set(index);
         return index;
     }
+
+    @Override
+    public String toString() {
+        return "ThreadLocalIndex{" +
+                "threadLocalIndex=" + threadLocalIndex.get() +
+                '}';
+    }
 }

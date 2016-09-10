@@ -6,13 +6,13 @@
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package com.alibaba.rocketmq.tools.command.cluster;
 
@@ -174,14 +174,15 @@ public class ClusterListSubCommand implements SubCommand {
 
         ClusterInfo clusterInfoSerializeWrapper = defaultMQAdminExt.examineBrokerClusterInfo();
 
-        System.out.printf("%-16s  %-22s  %-4s  %-22s %-16s %19s %19s%n",//
+        System.out.printf("%-16s  %-22s  %-4s  %-22s %-16s %19s %19s %10s%n",//
                 "#Cluster Name",//
                 "#Broker Name",//
                 "#BID",//
                 "#Addr",//
                 "#Version",//
-                "#InTPS(UTIL)",//
-                "#OutTPS(UTIL)"//
+                "#InTPS(LOAD)",//
+                "#OutTPS(LOAD)",//
+                "#PCWait(ms)"//
         );
 
         Iterator<Map.Entry<String, Set<String>>> itCluster = clusterInfoSerializeWrapper.getClusterAddrTable().entrySet().iterator();
@@ -198,20 +199,27 @@ public class ClusterListSubCommand implements SubCommand {
                     Iterator<Map.Entry<Long, String>> itAddr = brokerData.getBrokerAddrs().entrySet().iterator();
                     while (itAddr.hasNext()) {
                         Map.Entry<Long, String> next1 = itAddr.next();
-                        double sendUtil = 0;
-                        double pullUtil = 0;
                         double in = 0;
                         double out = 0;
                         String version = "";
-
+                        String sendThreadPoolQueueSize = "";
+                        String pullThreadPoolQueueSize = "";
+                        String sendThreadPoolQueueHeadWaitTimeMills = "";
+                        String pullThreadPoolQueueHeadWaitTimeMills = "";
+                        String pageCacheLockTimeMills = "";
                         try {
                             KVTable kvTable = defaultMQAdminExt.fetchBrokerRuntimeStats(next1.getValue());
                             String putTps = kvTable.getTable().get("putTps");
                             String getTransferedTps = kvTable.getTable().get("getTransferedTps");
-                            String sendThreadPoolQueueSize = kvTable.getTable().get("sendThreadPoolQueueSize");
-                            String sendThreadPoolQueueCapacity = kvTable.getTable().get("sendThreadPoolQueueCapacity");
-                            String pullThreadPoolQueueSize = kvTable.getTable().get("pullThreadPoolQueueSize");
-                            String pullThreadPoolQueueCapacity = kvTable.getTable().get("pullThreadPoolQueueCapacity");
+                            sendThreadPoolQueueSize = kvTable.getTable().get("sendThreadPoolQueueSize");
+                            pullThreadPoolQueueSize = kvTable.getTable().get("pullThreadPoolQueueSize");
+
+                            sendThreadPoolQueueSize = kvTable.getTable().get("sendThreadPoolQueueSize");
+                            pullThreadPoolQueueSize = kvTable.getTable().get("pullThreadPoolQueueSize");
+
+                            sendThreadPoolQueueHeadWaitTimeMills = kvTable.getTable().get("sendThreadPoolQueueHeadWaitTimeMills");
+                            pullThreadPoolQueueHeadWaitTimeMills = kvTable.getTable().get("pullThreadPoolQueueHeadWaitTimeMills");
+                            pageCacheLockTimeMills = kvTable.getTable().get("pageCacheLockTimeMills");
 
                             version = kvTable.getTable().get("brokerVersionDesc");
                             {
@@ -227,33 +235,18 @@ public class ClusterListSubCommand implements SubCommand {
                                     out = Double.parseDouble(tpss[0]);
                                 }
                             }
-
-                            {
-                                sendUtil = Double.parseDouble(sendThreadPoolQueueSize) / Double.parseDouble(sendThreadPoolQueueCapacity);
-                                sendUtil *= 100;
-                            }
-
-                            {
-                                pullUtil = Double.parseDouble(pullThreadPoolQueueSize) / Double.parseDouble(pullThreadPoolQueueCapacity);
-                                pullUtil *= 100;
-                            }
                         } catch (Exception e) {
                         }
 
-
-                        String sendUtilStr = String.format("(%06.2f)", sendUtil);
-                        String pullUtilStr = String.format("(%06.2f)", pullUtil);
-
-                        System.out.printf("%-16s  %-22s  %-4s  %-22s %-16s %11.2f%s %11.2f%s%n",//
+                        System.out.printf("%-16s  %-22s  %-4s  %-22s %-16s %19s %19s %10s%n",//
                                 clusterName,//
                                 brokerName,//
-                                next1.getKey().longValue(),//
+                                String.valueOf(next1.getKey()),//
                                 next1.getValue(),//
                                 version,//
-                                in,//
-                                sendUtilStr,//
-                                out,//
-                                pullUtilStr//
+                                String.format("%9.2f(%s,%sms)", in, sendThreadPoolQueueSize, sendThreadPoolQueueHeadWaitTimeMills),//
+                                String.format("%9.2f(%s,%sms)", out, pullThreadPoolQueueSize, pullThreadPoolQueueHeadWaitTimeMills),//
+                                pageCacheLockTimeMills
                         );
                     }
                 }

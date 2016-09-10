@@ -117,6 +117,14 @@ public class SubscriptionGroupManager extends ConfigManager {
         this.persist();
     }
 
+    public void disableConsume(final String groupName) {
+        SubscriptionGroupConfig old = this.subscriptionGroupTable.get(groupName);
+        if (old != null) {
+            old.setConsumeEnable(false);
+            this.dataVersion.nextVersion();
+        }
+    }
+
 
     public SubscriptionGroupConfig findSubscriptionGroupConfig(final String group) {
         SubscriptionGroupConfig subscriptionGroupConfig = this.subscriptionGroupTable.get(group);
@@ -124,8 +132,10 @@ public class SubscriptionGroupManager extends ConfigManager {
             if (brokerController.getBrokerConfig().isAutoCreateSubscriptionGroup() || MixAll.isSysConsumerGroup(group)) {
                 subscriptionGroupConfig = new SubscriptionGroupConfig();
                 subscriptionGroupConfig.setGroupName(group);
-                this.subscriptionGroupTable.putIfAbsent(group, subscriptionGroupConfig);
-                log.info("auto create a subscription group, {}", subscriptionGroupConfig.toString());
+                SubscriptionGroupConfig preConfig = this.subscriptionGroupTable.putIfAbsent(group, subscriptionGroupConfig);
+                if(null == preConfig){
+                    log.info("auto create a subscription group, {}", subscriptionGroupConfig.toString());
+                }
                 this.dataVersion.nextVersion();
                 this.persist();
             }

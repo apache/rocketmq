@@ -93,7 +93,7 @@ public class ResetOffsetByTimeCommand implements SubCommand {
 
             try {
                 if (timestamp == 0) {
-                    timestamp = Long.valueOf(timeStampStr);
+                    timestamp = Long.parseLong(timeStampStr);
                 }
             } catch (NumberFormatException e) {
 

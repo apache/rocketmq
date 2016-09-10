@@ -50,6 +50,11 @@ public class ExceptionTest {
                 request.setRemark("hello, I am respponse " + ctx.channel().remoteAddress());
                 return request;
             }
+
+            @Override
+            public boolean rejectRequest() {
+                return false;
+            }
         }, Executors.newCachedThreadPool());
         client.start();
         return client;

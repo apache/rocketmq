@@ -159,6 +159,7 @@ public class Producer {
                             log.error("[BENCHMARK_PRODUCER] Send Exception", e);
                         } catch (MQBrokerException e) {
                             statsBenchmark.getReceiveResponseFailedCount().incrementAndGet();
+                            log.error("[BENCHMARK_PRODUCER] Send Exception", e);
                             try {
                                 Thread.sleep(3000);
                             } catch (InterruptedException e1) {

@@ -69,6 +69,7 @@ public class MQPullConsumerScheduleService {
                 PullTaskImpl command = new PullTaskImpl(mq);
                 this.taskTable.put(mq, command);
                 this.scheduledThreadPoolExecutor.schedule(command, 0, TimeUnit.MILLISECONDS);
+
             }
         }
     }

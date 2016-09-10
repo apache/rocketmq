@@ -80,6 +80,7 @@ public interface MessageStore {
 
 
     long getEarliestMessageTime(final String topic, final int queueId);
+    long getEarliestMessageTime();
 
 
     long getMessageStoreTimeStamp(final String topic, final int queueId, final long offset);
@@ -126,4 +127,8 @@ public interface MessageStore {
     long getConfirmOffset();
 
     void setConfirmOffset(long phyOffset);
+
+    boolean isOSPageCacheBusy();
+
+    long lockTimeMills();
 }

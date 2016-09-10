@@ -6,13 +6,13 @@
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package com.alibaba.rocketmq.remoting.netty;
 
@@ -38,6 +38,8 @@ import org.slf4j.LoggerFactory;
 import java.net.SocketAddress;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map.Entry;
 import java.util.concurrent.*;
 
@@ -144,11 +146,18 @@ public abstract class NettyRemotingAbstract {
                 }
             };
 
+            if (pair.getObject1().rejectRequest()) {
+                final RemotingCommand response = RemotingCommand.createResponseCommand(RemotingSysResponseCode.SYSTEM_BUSY,
+                        "[REJECTREQUEST]system busy, start flow control for a while");
+                response.setOpaque(opaque);
+                ctx.writeAndFlush(response);
+                return;
+            }
+
             try {
-
-                pair.getObject2().submit(run);
+                final RequestTask requestTask = new RequestTask(run, ctx.channel(), cmd);
+                pair.getObject2().submit(requestTask);
             } catch (RejectedExecutionException e) {
-
                 if ((System.currentTimeMillis() % 10000) == 0) {
                     plog.warn(RemotingHelper.parseChannelRemoteAddr(ctx.channel()) //
                             + ", too many requests and system thread pool busy, RejectedExecutionException " //
@@ -158,7 +167,7 @@ public abstract class NettyRemotingAbstract {
 
                 if (!cmd.isOnewayRPC()) {
                     final RemotingCommand response = RemotingCommand.createResponseCommand(RemotingSysResponseCode.SYSTEM_BUSY,
-                            "too many requests and system thread pool busy, please try another server");
+                            "[OVERLOAD]system busy, start flow control for a while");
                     response.setOpaque(opaque);
                     ctx.writeAndFlush(response);
                 }
@@ -227,22 +236,25 @@ public abstract class NettyRemotingAbstract {
     abstract public ExecutorService getCallbackExecutor();
 
     public void scanResponseTable() {
+        final List<ResponseFuture> rfList = new LinkedList<ResponseFuture>();
         Iterator<Entry<Integer, ResponseFuture>> it = this.responseTable.entrySet().iterator();
         while (it.hasNext()) {
             Entry<Integer, ResponseFuture> next = it.next();
             ResponseFuture rep = next.getValue();
 
             if ((rep.getBeginTimestamp() + rep.getTimeoutMillis() + 1000) <= System.currentTimeMillis()) {
+                rep.release();
                 it.remove();
-                try {
-                    rep.executeInvokeCallback();
-                } catch (Throwable e) {
-                    plog.warn("scanResponseTable, operationComplete Exception", e);
-                } finally {
-                    rep.release();
-                }
-
+                rfList.add(rep);
                 plog.warn("remove timeout request, " + rep);
+            }
+        }
+
+        for (ResponseFuture rf : rfList) {
+            try {
+                rf.executeInvokeCallback();
+            } catch (Throwable e) {
+                plog.warn("scanResponseTable, operationComplete Exception", e);
             }
         }
     }
@@ -328,18 +340,14 @@ public abstract class NettyRemotingAbstract {
                 throw new RemotingSendRequestException(RemotingHelper.parseChannelRemoteAddr(channel), e);
             }
         } else {
-            if (timeoutMillis <= 0) {
-                throw new RemotingTooMuchRequestException("invokeAsyncImpl invoke too fast");
-            } else {
-                String info =
-                        String.format("invokeAsyncImpl tryAcquire semaphore timeout, %dms, waiting thread nums: %d semaphoreAsyncValue: %d", //
-                                timeoutMillis, //
-                                this.semaphoreAsync.getQueueLength(), //
-                                this.semaphoreAsync.availablePermits()//
-                        );
-                plog.warn(info);
-                throw new RemotingTimeoutException(info);
-            }
+            String info =
+                    String.format("invokeAsyncImpl tryAcquire semaphore timeout, %dms, waiting thread nums: %d semaphoreAsyncValue: %d", //
+                            timeoutMillis, //
+                            this.semaphoreAsync.getQueueLength(), //
+                            this.semaphoreAsync.availablePermits()//
+                    );
+            plog.warn(info);
+            throw new RemotingTooMuchRequestException(info);
         }
     }
 

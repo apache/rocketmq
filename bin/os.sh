@@ -15,39 +15,54 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-echo 'vm.overcommit_memory=1' >> /etc/sysctl.conf
-echo 'vm.min_free_kbytes=1000000' >> /etc/sysctl.conf
-echo 'vm.extra_free_kbytes=5000000' >> /etc/sysctl.conf
-echo 'vm.drop_caches=1' >> /etc/sysctl.conf
-echo 'vm.zone_reclaim_mode=0' >> /etc/sysctl.conf
-echo 'vm.max_map_count=655360' >> /etc/sysctl.conf
-echo 'vm.dirty_background_ratio=50' >> /etc/sysctl.conf
-echo 'vm.dirty_ratio=50' >> /etc/sysctl.conf
-echo 'vm.page-cluster=3' >> /etc/sysctl.conf
-echo 'vm.dirty_writeback_centisecs=360000' >> /etc/sysctl.conf
-echo 'vm.swappiness=60' >> /etc/sysctl.conf
-sysctl -p
+#
+# Execute Only Once
+#
+
+export PATH=$PATH:/sbin
+
+sudo sysctl -w vm.extra_free_kbytes=3000000
+sudo sysctl -w vm.min_free_kbytes=1000000
+sudo sysctl -w vm.overcommit_memory=1
+sudo sysctl -w vm.drop_caches=1
+sudo sysctl -w vm.zone_reclaim_mode=0
+sudo sysctl -w vm.max_map_count=655360
+sudo sysctl -w vm.dirty_background_ratio=50
+sudo sysctl -w vm.dirty_ratio=50
+sudo sysctl -w vm.dirty_writeback_centisecs=360000
+sudo sysctl -w vm.page-cluster=3
+sudo sysctl -w vm.swappiness=0
 
 echo 'ulimit -n 655350' >> /etc/profile
-echo 'admin hard nofile 655350' >> /etc/security/limits.conf
+echo '* hard nofile 655350' >> /etc/security/limits.conf
+
+echo '* hard memlock      unlimited' >> /etc/security/limits.conf
+echo '* soft memlock      unlimited' >> /etc/security/limits.conf
 
 DISK=`df -k | sort -n -r -k 2 | awk -F/ 'NR==1 {gsub(/[0-9].*/,"",$3); print $3}'`
 [ "$DISK" = 'cciss' ] && DISK='cciss!c0d0'
-echo 'deadline' > /sys/block/$DISK/queue/scheduler
+echo 'deadline' > /sys/block/${DISK}/queue/scheduler
 
 
 echo "---------------------------------------------------------------"
-sysctl vm.overcommit_memory
-sysctl vm.min_free_kbytes
 sysctl vm.extra_free_kbytes
+sysctl vm.min_free_kbytes
+sysctl vm.overcommit_memory
 sysctl vm.drop_caches
 sysctl vm.zone_reclaim_mode
 sysctl vm.max_map_count
 sysctl vm.dirty_background_ratio
 sysctl vm.dirty_ratio
-sysctl vm.page-cluster
 sysctl vm.dirty_writeback_centisecs
+sysctl vm.page-cluster
 sysctl vm.swappiness
 
 su - admin -c 'ulimit -n'
 cat /sys/block/$DISK/queue/scheduler
+
+if [ -d ${HOME}/tmpfs ] ; then
+    echo "tmpfs exist, do nothing."
+else
+    ln -s /dev/shm tmpfs
+    echo "create tmpfs ok"
+fi

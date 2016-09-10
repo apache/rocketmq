@@ -104,13 +104,13 @@ public class PlugInTest {
                             throws Throwable {
                         assertEquals(invokingMethodName.get(), method.getName());
                         if (method.getReturnType() == int.class) {
-                            return new Integer(0);
+                            return Integer.valueOf(0);
                         } else if (method.getReturnType() == long.class) {
-                            return new Long((byte) 0);
+                            return Long.valueOf(0);
                         } else if (method.getReturnType() == char.class) {
-                            return new Byte((byte) 0);
+                            return Byte.valueOf((byte) 0);
                         } else if (method.getReturnType() == byte.class) {
-                            return new Byte((byte) 0);
+                            return Byte.valueOf((byte) 0);
                         } else if (method.getReturnType() == boolean.class) {
                             return true;
                         } else {
@@ -121,6 +121,10 @@ public class PlugInTest {
 
         AbstractPluginMessageStore pluginMessageStore = new AbstractPluginMessageStore(null, messageStore) {
 
+            @Override
+            public boolean isOSPageCacheBusy() {
+                return false;
+            }
         };
 
         Method[] methods = MessageStore.class.getMethods();
@@ -129,13 +133,13 @@ public class PlugInTest {
             Object[] mockParam = new Object[paramType.length];
             for (int i = 0; i < paramType.length; ++i) {
                 if (paramType[i] == int.class) {
-                    mockParam[i] = new Integer(0);
+                    mockParam[i] = Integer.valueOf(0);
                 } else if (paramType[i] == long.class) {
-                    mockParam[i] = new Long(0);
+                    mockParam[i] = Long.valueOf(0);
                 } else if (paramType[i] == byte.class) {
-                    mockParam[i] = new Byte((byte) 0);
+                    mockParam[i] = Byte.valueOf((byte)0);
                 } else if (paramType[i] == char.class) {
-                    mockParam[i] = new Byte((byte) 0);
+                    mockParam[i] = Byte.valueOf((byte)0);
                 } else
                     mockParam[i] = null;
             }

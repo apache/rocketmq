@@ -74,6 +74,11 @@ public class ClientManageProcessor implements NettyRequestProcessor {
         return null;
     }
 
+    @Override
+    public boolean rejectRequest() {
+        return false;
+    }
+
     public RemotingCommand heartBeat(ChannelHandlerContext ctx, RemotingCommand request) {
         RemotingCommand response = RemotingCommand.createResponseCommand(null);
 

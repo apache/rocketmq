@@ -264,4 +264,9 @@ public class MockMessageStore implements MessageStore {
     public void setConfirmOffset(long phyOffset) {
     }
 
+    @Override
+    public boolean isOSPageCacheBusy() {
+        return false;
+    }
+
 }

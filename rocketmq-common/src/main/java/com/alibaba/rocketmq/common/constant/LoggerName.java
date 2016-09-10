@@ -35,4 +35,6 @@ public class LoggerName {
     public static final String FlowControlLoggerName = "RocketmqFlowControl";
     public static final String RocketmqAuthorizeLoggerName = "RocketmqAuthorize";
     public static final String DuplicationLoggerName = "RocketmqDuplication";
+    public static final String ProtectionLoggerName = "RocketmqProtection";
+    public static final String WaterMarkLoggerName = "RocketmqWaterMark";
 }

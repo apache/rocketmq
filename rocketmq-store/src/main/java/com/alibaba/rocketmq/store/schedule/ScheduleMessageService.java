@@ -29,11 +29,8 @@ import com.alibaba.rocketmq.store.config.StorePathConfigHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.HashMap;
-import java.util.Iterator;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Timer;
-import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
 
 
@@ -104,8 +101,9 @@ public class ScheduleMessageService extends ConfigManager {
 
     public void start() {
 
-        for (Integer level : this.delayLevelTable.keySet()) {
-            Long timeDelay = this.delayLevelTable.get(level);
+        for (Map.Entry<Integer, Long> entry : this.delayLevelTable.entrySet()) {
+            Integer level = entry.getKey();
+            Long timeDelay = entry.getValue();
             Long offset = this.offsetTable.get(level);
             if (null == offset) {
                 offset = 0L;
@@ -115,7 +113,6 @@ public class ScheduleMessageService extends ConfigManager {
                 this.timer.schedule(new DeliverDelayedMessageTimerTask(level, offset), FIRST_DELAY_TIME);
             }
         }
-
 
         this.timer.scheduleAtFixedRate(new TimerTask() {
 

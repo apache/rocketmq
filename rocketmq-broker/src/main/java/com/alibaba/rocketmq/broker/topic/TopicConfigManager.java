@@ -33,6 +33,7 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -144,11 +145,7 @@ public class TopicConfigManager extends ConfigManager {
 
 
     public boolean isTopicCanSendMessage(final String topic) {
-        boolean reservedWords =
-                topic.equals(MixAll.DEFAULT_TOPIC)
-                        || topic.equals(this.brokerController.getBrokerConfig().getBrokerClusterName());
-
-        return !reservedWords;
+        return !topic.equals(MixAll.DEFAULT_TOPIC);
     }
 
 
@@ -171,6 +168,12 @@ public class TopicConfigManager extends ConfigManager {
 
                     TopicConfig defaultTopicConfig = this.topicConfigTable.get(defaultTopic);
                     if (defaultTopicConfig != null) {
+                        if (defaultTopic.equals(MixAll.DEFAULT_TOPIC)) {
+                            if (!this.brokerController.getBrokerConfig().isAutoCreateTopicEnable()) {
+                                defaultTopicConfig.setPerm(PermName.PERM_READ | PermName.PERM_WRITE);
+                            }
+                        }
+
                         if (PermName.isInherited(defaultTopicConfig.getPerm())) {
                             topicConfig = new TopicConfig(topic);
 
@@ -342,9 +345,11 @@ public class TopicConfigManager extends ConfigManager {
                     log.info("update order topic config, topic={}, order={}", topic, true);
                 }
             }
-            for (String topic : this.topicConfigTable.keySet()) {
+
+            for (Map.Entry<String, TopicConfig> entry : this.topicConfigTable.entrySet()) {
+                String topic = entry.getKey();
                 if (!orderTopics.contains(topic)) {
-                    TopicConfig topicConfig = this.topicConfigTable.get(topic);
+                    TopicConfig topicConfig = entry.getValue();
                     if (topicConfig.isOrder()) {
                         topicConfig.setOrder(false);
                         isChange = true;
@@ -352,6 +357,7 @@ public class TopicConfigManager extends ConfigManager {
                     }
                 }
             }
+
             if (isChange) {
                 this.dataVersion.nextVersion();
                 this.persist();

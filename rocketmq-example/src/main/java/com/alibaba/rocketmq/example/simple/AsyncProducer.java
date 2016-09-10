@@ -23,43 +23,44 @@ import com.alibaba.rocketmq.client.producer.SendResult;
 import com.alibaba.rocketmq.common.message.Message;
 import com.alibaba.rocketmq.remoting.common.RemotingHelper;
 
+import java.io.UnsupportedEncodingException;
+import com.alibaba.rocketmq.remoting.common.RemotingHelper;
+
 
 public class AsyncProducer {
-    public static void main(String[] args) throws MQClientException, InterruptedException {
+    public static void main(String[] args) throws MQClientException, InterruptedException, UnsupportedEncodingException {
 
         DefaultMQProducer producer = new DefaultMQProducer("Jodie_Daily_test");
 
         producer.start();
+        producer.setRetryTimesWhenSendAsyncFailed(0);
 
-        for (int i = 0; i < 10000000; i++)
+        for (int i = 0; i < 10000000; i++) {
             try {
-                {
-                    Message msg = new Message("Jodie_topic_1023",// topic
-                            "TagA",// tag
-                            "OrderID188",// key
-                            ("Hello MetaQ").getBytes(RemotingHelper.DEFAULT_CHARSET));// body
-                    producer.send(msg, createCallBack());
-                }
+                final int index = i;
+                Message msg = new Message("Jodie_topic_1023",// topic
+                        "TagA",// tag
+                        "OrderID188",// key
+                        ("Hello MetaQ").getBytes(RemotingHelper.DEFAULT_CHARSET));// body
+                producer.send(msg, new SendCallback() {
+                    @Override
+                    public void onSuccess(SendResult sendResult) {
+                        System.out.printf("%-10d OK %s %n", index, sendResult.getMsgId());
+                    }
 
+                    @Override
+                    public void onException(Throwable e) {
+                        System.out.printf("%-10d Exception %s %n", index, e);
+                        e.printStackTrace();
+                    }
+                });
             } catch (Exception e) {
                 e.printStackTrace();
             }
 
+//            TimeUnit.MILLISECONDS.sleep(1);
+        }
+
         producer.shutdown();
-    }
-
-    private static SendCallback createCallBack() {
-        SendCallback callback = new SendCallback() {
-            @Override
-            public void onSuccess(SendResult sendResult) {
-                System.out.println(sendResult.getMsgId());
-            }
-
-            @Override
-            public void onException(Throwable e) {
-                e.printStackTrace();
-            }
-        };
-        return callback;
     }
 }
