@@ -63,7 +63,7 @@ public class SendMsgStatusCommand implements SubCommand {
 
     @Override
     public void execute(CommandLine commandLine, Options options, RPCHook rpcHook) {
-        final DefaultMQProducer producer = new DefaultMQProducer("PID_SMSC");
+        final DefaultMQProducer producer = new DefaultMQProducer("PID_SMSC",rpcHook);
         producer.setInstanceName("PID_SMSC_" + System.currentTimeMillis());
 
         try {

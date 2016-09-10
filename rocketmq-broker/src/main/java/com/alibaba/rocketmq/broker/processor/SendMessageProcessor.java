@@ -81,6 +81,11 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         }
     }
 
+    @Override
+    public boolean rejectRequest() {
+        return this.brokerController.getMessageStore().isOSPageCacheBusy();
+    }
+
     private RemotingCommand consumerSendMsgBack(final ChannelHandlerContext ctx, final RemotingCommand request)
             throws RemotingCommandException {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
@@ -262,6 +267,14 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         if (log.isDebugEnabled()) {
             log.debug("receive SendMessage request command, " + request);
         }
+
+        final long startTimstamp = this.brokerController.getBrokerConfig().getStartAcceptSendRequestTimeStamp();
+        if (this.brokerController.getMessageStore().now() < startTimstamp) {
+            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setRemark(String.format("broker unable to service, until %s", UtilAll.timeMillisToHumanString2(startTimstamp)));
+            return response;
+        }
+
         response.setCode(-1);
         super.msgCheck(ctx, requestHeader, response);
         if (response.getCode() != -1) {
@@ -383,7 +396,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
                     break;
                 case OS_PAGECACHE_BUSY:
                     response.setCode(ResponseCode.SYSTEM_ERROR);
-                    response.setRemark("OS page cache busy, please try another machine");
+                    response.setRemark("[PC_SYNCHRONIZED]broker busy, start flow control for a while");
                     break;
                 case UNKNOWN_ERROR:
                     response.setCode(ResponseCode.SYSTEM_ERROR);

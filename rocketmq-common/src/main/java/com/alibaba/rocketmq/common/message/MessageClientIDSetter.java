@@ -119,7 +119,7 @@ public class MessageClientIDSetter {
         return result;
     }
     
-    private static synchronized String createUniqID() {
+    public static synchronized String createUniqID() {
             long current = System.currentTimeMillis();
             if (current >= nextStartTime) {
                 setStartTime(current);

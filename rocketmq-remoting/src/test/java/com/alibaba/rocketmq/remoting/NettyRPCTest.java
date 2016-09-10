@@ -70,6 +70,11 @@ public class NettyRPCTest {
                 request.setRemark("hello, I am respponse " + ctx.channel().remoteAddress());
                 return request;
             }
+
+            @Override
+            public boolean rejectRequest() {
+                return false;
+            }
         }, Executors.newCachedThreadPool());
         remotingServer.start();
         return remotingServer;
@@ -146,6 +151,11 @@ public class NettyRPCTest {
 
                 return null;
             }
+
+            @Override
+            public boolean rejectRequest() {
+                return false;
+            }
         }, Executors.newCachedThreadPool());
 
         client.registerProcessor(0, new NettyRequestProcessor() {
@@ -154,6 +164,11 @@ public class NettyRPCTest {
                 System.out.println("client receive server request = " + request);
                 request.setRemark("client remark");
                 return request;
+            }
+
+            @Override
+            public boolean rejectRequest() {
+                return false;
             }
         }, Executors.newCachedThreadPool());
 

@@ -70,6 +70,11 @@ public class NettyIdleTest {
                 request.setRemark("hello, I am respponse " + ctx.channel().remoteAddress());
                 return request;
             }
+
+            @Override
+            public boolean rejectRequest() {
+                return false;
+            }
         }, Executors.newCachedThreadPool());
         remotingServer.start();
         return remotingServer;
