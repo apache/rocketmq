@@ -808,7 +808,7 @@ public class CommitLog {
             }
 
             boolean result = false;
-            for (int i = 0; i < RetryTimesOver && !result; i++) {
+            for (int i = 0; i < RetryTimesOver && !result; i++) { // FIXME: 16/9/10 May be try more times
                 result = CommitLog.this.mappedFileQueue.commit(0);
                 CommitLog.log.info(this.getServiceName() + " service shutdown, retry " + (i + 1) + " times " + (result ? "OK" : "Not OK"));
             }
