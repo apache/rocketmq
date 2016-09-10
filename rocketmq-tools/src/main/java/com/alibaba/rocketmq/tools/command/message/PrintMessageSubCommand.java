@@ -153,7 +153,7 @@ public class PrintMessageSubCommand implements SubCommand {
     public static long timestampFormat(final String value) {
         long timestamp = 0;
         try {
-            timestamp = Long.valueOf(value);
+            timestamp = Long.parseLong(value);
         } catch (NumberFormatException e) {
 
             timestamp = UtilAll.parseDate(value, UtilAll.yyyy_MM_dd_HH_mm_ss_SSS).getTime();

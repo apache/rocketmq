@@ -147,9 +147,8 @@ public class RouteInfoManager {
                         ConcurrentHashMap<String, TopicConfig> tcTable =
                                 topicConfigWrapper.getTopicConfigTable();
                         if (tcTable != null) {
-                            for (String topic : tcTable.keySet()) {
-                                TopicConfig topicConfig = tcTable.get(topic);
-                                this.createAndUpdateQueueData(brokerName, topicConfig);
+                            for(Map.Entry<String,TopicConfig> entry: tcTable.entrySet()){
+                                this.createAndUpdateQueueData(brokerName, entry.getValue());
                             }
                         }
                     }
@@ -621,9 +620,9 @@ public class RouteInfoManager {
         try {
             try {
                 this.lock.readLock().lockInterruptibly();
-                for (String cluster : clusterAddrTable.keySet()) {
-                    topicList.getTopicList().add(cluster);
-                    topicList.getTopicList().addAll(this.clusterAddrTable.get(cluster));
+                for (Map.Entry<String, Set<String>> entry : clusterAddrTable.entrySet()) {
+                    topicList.getTopicList().add(entry.getKey());
+                    topicList.getTopicList().addAll(entry.getValue());
                 }
 
                 if (brokerAddrTable != null && !brokerAddrTable.isEmpty()) {

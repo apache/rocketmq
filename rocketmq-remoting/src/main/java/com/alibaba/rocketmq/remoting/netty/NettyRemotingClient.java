@@ -264,8 +264,9 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                     boolean removeItemFromTable = true;
                     ChannelWrapper prevCW = null;
                     String addrRemote = null;
-                    for (String key : channelTables.keySet()) {
-                        ChannelWrapper prev = this.channelTables.get(key);
+                    for (Map.Entry<String, ChannelWrapper> entry : channelTables.entrySet()) {
+                        String key = entry.getKey();
+                        ChannelWrapper prev = entry.getValue();
                         if (prev.getChannel() != null) {
                             if (prev.getChannel() == channel) {
                                 prevCW = prev;
@@ -567,7 +568,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
         return rpcHook;
     }
 
-    class ChannelWrapper {
+    static class ChannelWrapper {
         private final ChannelFuture channelFuture;
 
 

@@ -29,7 +29,7 @@ public class ThreadLocalIndex {
     public int getAndIncrement() {
         Integer index = this.threadLocalIndex.get();
         if (null == index) {
-            index = new Integer(Math.abs(new Random().nextInt()));
+            index = Integer.valueOf(Math.abs(new Random().nextInt()));
             if (index < 0) index = 0;
             this.threadLocalIndex.set(index);
         }

@@ -30,8 +30,8 @@ import static org.junit.Assert.assertTrue;
 
 
 public class IndexFileTest {
-    private final int hashSlotNum = 100;
-    private final int indexNum = 400;
+    private static final int hashSlotNum = 100;
+    private static final int indexNum = 400;
 
 
     @Test

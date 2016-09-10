@@ -28,7 +28,6 @@ import org.slf4j.Logger;
 import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -141,10 +140,10 @@ public class LocalFileOffsetStore implements OffsetStore {
             return;
 
         OffsetSerializeWrapper offsetSerializeWrapper = new OffsetSerializeWrapper();
-        for (MessageQueue mq : this.offsetTable.keySet()) {
-            if (mqs.contains(mq)) {
-                AtomicLong offset = this.offsetTable.get(mq);
-                offsetSerializeWrapper.getOffsetTable().put(mq, offset);
+        for(Map.Entry<MessageQueue, AtomicLong> entry: this.offsetTable.entrySet()){
+            if (mqs.contains(entry.getKey())) {
+                AtomicLong offset = entry.getValue();
+                offsetSerializeWrapper.getOffsetTable().put(entry.getKey(), offset);
             }
         }
 
@@ -171,13 +170,13 @@ public class LocalFileOffsetStore implements OffsetStore {
     @Override
     public Map<MessageQueue, Long> cloneOffsetTable(String topic) {
         Map<MessageQueue, Long> cloneOffsetTable = new HashMap<MessageQueue, Long>();
-        Iterator<MessageQueue> iterator = this.offsetTable.keySet().iterator();
-        while (iterator.hasNext()) {
-            MessageQueue mq = iterator.next();
+        for (Map.Entry<MessageQueue, AtomicLong> entry : this.offsetTable.entrySet()) {
+            MessageQueue mq = entry.getKey();
             if (!UtilAll.isBlank(topic) && !topic.equals(mq.getTopic())) {
                 continue;
             }
-            cloneOffsetTable.put(mq, this.offsetTable.get(mq).get());
+            cloneOffsetTable.put(mq,entry.getValue().get());
+
         }
         return cloneOffsetTable;
     }

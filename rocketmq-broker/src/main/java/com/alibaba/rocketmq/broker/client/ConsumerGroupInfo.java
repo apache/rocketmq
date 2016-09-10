@@ -166,7 +166,7 @@ public class ConsumerGroupInfo {
         for (SubscriptionData sub : subList) {
             SubscriptionData old = this.subscriptionTable.get(sub.getTopic());
             if (old == null) {
-                SubscriptionData prev = this.subscriptionTable.put(sub.getTopic(), sub);
+                SubscriptionData prev = this.subscriptionTable.putIfAbsent(sub.getTopic(), sub);
                 if (null == prev) {
                     updated = true;
                     log.info("subscription changed, add new topic, group: {} {}", this.groupName,

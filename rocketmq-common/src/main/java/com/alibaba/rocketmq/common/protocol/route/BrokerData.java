@@ -23,6 +23,7 @@ package com.alibaba.rocketmq.common.protocol.route;
 import com.alibaba.rocketmq.common.MixAll;
 
 import java.util.HashMap;
+import java.util.Map;
 
 
 /**
@@ -37,8 +38,8 @@ public class BrokerData implements Comparable<BrokerData> {
     public String selectBrokerAddr() {
         String value = this.brokerAddrs.get(MixAll.MASTER_ID);
         if (null == value) {
-            for (Long key : this.brokerAddrs.keySet()) {
-                return this.brokerAddrs.get(key);
+            for (Map.Entry<Long, String> entry : this.brokerAddrs.entrySet()) {
+                return entry.getValue();
             }
         }
 

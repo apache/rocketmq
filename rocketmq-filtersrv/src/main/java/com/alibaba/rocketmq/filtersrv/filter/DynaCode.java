@@ -122,7 +122,7 @@ public class DynaCode {
     public static Class<?> compileAndLoadClass(final String className, final String javaSource)
             throws Exception {
         String classSimpleName = FilterAPI.simpleClassName(className);
-        String javaCode = new String(javaSource);
+        String javaCode = javaSource;
 
         final String newClassSimpleName = classSimpleName + System.currentTimeMillis();
         String newJavaCode = javaCode.replaceAll(classSimpleName, newClassSimpleName);

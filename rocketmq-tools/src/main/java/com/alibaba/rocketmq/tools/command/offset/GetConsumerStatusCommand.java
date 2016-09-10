@@ -29,7 +29,6 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.PosixParser;
 
-import java.util.Iterator;
 import java.util.Map;
 
 
@@ -100,13 +99,11 @@ public class GetConsumerStatusCommand implements SubCommand {
                     "#queueId",//
                     "#offset");
 
-            Iterator<String> clientIterator = consumerStatusTable.keySet().iterator();
-            while (clientIterator.hasNext()) {
-                String clientId = clientIterator.next();
-                Map<MessageQueue, Long> mqTable = consumerStatusTable.get(clientId);
-                Iterator<MessageQueue> mqIterator = mqTable.keySet().iterator();
-                while (mqIterator.hasNext()) {
-                    MessageQueue mq = mqIterator.next();
+            for(Map.Entry<String, Map<MessageQueue, Long>> entry: consumerStatusTable.entrySet()){
+                String clientId = entry.getKey();
+                Map<MessageQueue, Long> mqTable = entry.getValue();
+                for(Map.Entry<MessageQueue,Long> entry1: mqTable.entrySet()){
+                    MessageQueue mq = entry1.getKey();
                     System.out.printf("%-50s  %-15s  %-15d  %-20d\n",//
                             UtilAll.frontStringAtLeast(clientId, 50),//
                             mq.getBrokerName(),//
@@ -114,6 +111,7 @@ public class GetConsumerStatusCommand implements SubCommand {
                             mqTable.get(mq));
                 }
             }
+
         } catch (Exception e) {
             e.printStackTrace();
         } finally {

@@ -244,7 +244,7 @@ public class RebalanceLockManager {
         }
     }
 
-    class LockEntry {
+    static class LockEntry {
         private String clientId;
         private volatile long lastUpdateTimestamp = System.currentTimeMillis();
 
