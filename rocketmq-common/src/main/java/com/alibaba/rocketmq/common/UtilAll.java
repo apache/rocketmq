@@ -16,7 +16,6 @@
  */
 package com.alibaba.rocketmq.common;
 
-import com.alibaba.rocketmq.common.utils.PureJavaCrc32;
 import com.alibaba.rocketmq.remoting.common.RemotingHelper;
 
 import java.io.ByteArrayInputStream;
@@ -32,6 +31,7 @@ import java.text.NumberFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.zip.CRC32;
 import java.util.zip.DeflaterOutputStream;
 import java.util.zip.InflaterInputStream;
 
@@ -224,7 +224,7 @@ public class UtilAll {
 
 
     public static final int crc32(byte[] array, int offset, int length) {
-        PureJavaCrc32 crc32 = new PureJavaCrc32();
+        CRC32 crc32 = new CRC32(); //PureJavaCrc32 crc32 = new PureJavaCrc32();
         crc32.update(array, offset, length);
         return (int) (crc32.getValue() & 0x7FFFFFFF);
     }
