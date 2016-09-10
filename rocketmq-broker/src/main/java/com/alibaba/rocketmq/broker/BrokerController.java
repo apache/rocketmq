@@ -137,7 +137,7 @@ public class BrokerController {
 
         this.slaveSynchronize = new SlaveSynchronize(this);
 
-        this.sendThreadPoolQueue = new LinkedBlockingQueue<Runnable>(this.brokerConfig.getSendThreadPoolQueueCapacity());
+        this.sendThreadPoolQueue = new LinkedTransferQueue();//new LinkedBlockingQueue<Runnable>(this.brokerConfig.getSendThreadPoolQueueCapacity());
 
         this.pullThreadPoolQueue = new LinkedBlockingQueue<Runnable>(this.brokerConfig.getPullThreadPoolQueueCapacity());
 

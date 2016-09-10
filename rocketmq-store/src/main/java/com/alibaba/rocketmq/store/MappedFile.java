@@ -66,6 +66,7 @@ public class MappedFile extends ReferenceResource {
     private final AtomicInteger wrotePosition = new AtomicInteger(0);
 
     private final AtomicInteger flushedPosition = new AtomicInteger(0);
+    //ADD BY ChenYang
     private final AtomicInteger committedPosition = new AtomicInteger(0);
 
 
@@ -345,7 +346,7 @@ public class MappedFile extends ReferenceResource {
                         commitCompensation = newValue == -1 ? 0 : value - newValue;
                         value = newValue == -1 ? value : newValue;
                         this.committedPosition.set(value);
-                    } catch (IOException e) {
+                    } catch (Exception e) {
                         log.error("Error occurred when flush data to FileChannel.", e);
                     }
                 }

@@ -288,7 +288,7 @@ public class MappedFileQueue {
                 mappedFileLast.setWrotePosition(where); // FIXME: 16/9/1 need setCommittedPosition?
                 break;
             } else {
-                this.mappedFiles.remove(mappedFileLast);
+                this.mappedFiles.remove(mappedFileLast); // // FIXME: 16/9/10
             }
         }
         return true;
