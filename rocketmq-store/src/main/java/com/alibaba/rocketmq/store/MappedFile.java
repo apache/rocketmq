@@ -244,7 +244,6 @@ public class MappedFile extends ReferenceResource {
 
         if ((currentPos + data.length) <= this.fileSize) {
             try {
-                this.fileChannel.position(currentPos);
                 this.fileChannel.write(ByteBuffer.wrap(data));
             } catch (IOException e) {
                 log.error("Error occurred when append message to mappedFile.", e);
@@ -317,6 +316,7 @@ public class MappedFile extends ReferenceResource {
                 if (commitLeastPages == 0 || isFull()) {
                     value = this.wrotePosition.get();
                 } else {
+                    value -= OS_PAGE_SIZE;
                     // seek a message start position
                     ByteBuffer byteBuffer = writeBuffer.slice();
                     for (int i = this.committedPosition.get(); i <= value;) {
@@ -332,6 +332,7 @@ public class MappedFile extends ReferenceResource {
                         }
                         i += msgLen;
                     }
+                    value += OS_PAGE_SIZE;
                 }
 
                 if ((value - this.committedPosition.get() > 0)) {
@@ -340,11 +341,9 @@ public class MappedFile extends ReferenceResource {
                     byteBuffer.limit(value);
 
                     try {
-                        this.fileChannel.position(this.committedPosition.get() + commitCompensation);
                         this.fileChannel.write(byteBuffer);
                         commitCompensation = newValue == -1 ? 0 : value - newValue;
                         value = newValue == -1 ? value : newValue;
-                        this.fileChannel.position(value); // back to the message start position
                         this.committedPosition.set(value);
                     } catch (IOException e) {
                         log.error("Error occurred when flush data to FileChannel.", e);
