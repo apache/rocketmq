@@ -43,16 +43,12 @@ public class TransientStorePool {
         this.poolSize = storeConfig.getTransientStorePoolSize();
         this.fileSize = storeConfig.getMapedFileSizeCommitLog();
         this.availableBuffers = new ConcurrentLinkedDeque<>();
-
-        if (storeConfig.isTransientStorePoolEnable()) {
-            init();
-        }
     }
 
     /**
      * It's a heavy init method.
      */
-    private void init() {
+    public void init() {
         for (int i = 0; i < poolSize; i++) {
             ByteBuffer byteBuffer = ByteBuffer.allocateDirect(fileSize);
 
@@ -61,6 +57,14 @@ public class TransientStorePool {
             LibC.INSTANCE.mlock(pointer, new NativeLong(fileSize));
 
             availableBuffers.offer(byteBuffer);
+        }
+    }
+
+    public void destroy() {
+        for (ByteBuffer byteBuffer : availableBuffers) {
+            final long address = ((DirectBuffer) (byteBuffer)).address();
+            Pointer pointer = new Pointer(address);
+            LibC.INSTANCE.munlock(pointer, new NativeLong(fileSize));
         }
     }
 

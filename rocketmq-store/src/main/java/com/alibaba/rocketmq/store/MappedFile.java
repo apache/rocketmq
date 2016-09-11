@@ -81,14 +81,13 @@ public class MappedFile extends ReferenceResource {
     private ByteBuffer writeBuffer = null;
     private TransientStorePool transientStorePool = null;
     private int commitMaxInterval = 5000;
+    private long lastCommitTimestamp = System.currentTimeMillis();
+
 
     public MappedFile(final String fileName, final int fileSize, final TransientStorePool transientStorePool, int commitMaxInterval) throws IOException {
         this(fileName, fileSize);
         this.writeBuffer = transientStorePool.borrowBuffer();
         this.commitMaxInterval = commitMaxInterval;
-        if (writeBuffer != null) {
-            log.info("TEST borrow : {}", fileName);
-        }
         this.transientStorePool = transientStorePool;
     }
 
@@ -370,7 +369,6 @@ public class MappedFile extends ReferenceResource {
 
         // All dirty data has been committed to FileChannel.
         if (writeBuffer != null && this.transientStorePool != null && this.fileSize == this.committedPosition.get()) {
-            log.info("TEST return : {}", fileName);
             this.transientStorePool.returnBuffer(writeBuffer);
             this.writeBuffer = null;
         }
@@ -393,7 +391,6 @@ public class MappedFile extends ReferenceResource {
         return write > flush;
     }
 
-    private long lastCommitTimestamp = System.currentTimeMillis();
     private boolean isAbleToCommit(final int commitLeastPages) {
         int flush = this.committedPosition.get();
         int write = this.wrotePosition.get();

@@ -121,6 +121,10 @@ public class DefaultMessageStore implements MessageStore {
 
         this.transientStorePool = new TransientStorePool(messageStoreConfig);
 
+        if (messageStoreConfig.isTransientStorePoolEnable()) {
+            this.transientStorePool.init();
+        }
+
 
         this.allocateMappedFileService.start();
 
@@ -253,6 +257,8 @@ public class DefaultMessageStore implements MessageStore {
                 log.warn("the store may be wrong, so shutdown abnormally, and keep abort file.");
             }
         }
+
+        this.transientStorePool.destroy();
     }
 
     public void destroy() {
