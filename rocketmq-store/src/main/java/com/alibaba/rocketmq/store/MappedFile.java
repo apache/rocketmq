@@ -312,8 +312,9 @@ public class MappedFile extends ReferenceResource {
             if (this.hold()) {
                 int lastCommittedPosition = this.committedPosition.get() + this.commitCompensation;
 
-                // DirectMemory may be not pageAligned, so we back 1.x page size.
-                int value = this.wrotePosition.get() - this.wrotePosition.get() % OS_PAGE_SIZE - OS_PAGE_SIZE;
+                //use -Dsun.nio.PageAlignDirectMemory=true ensure DirectMemory pageAligned
+                //, so we only back 0.x page size.
+                int value = this.wrotePosition.get() - this.wrotePosition.get() % OS_PAGE_SIZE;
 
                 int newValue = -1; // avoid dispatch noise.
                 // commitLeastPages=0 means must flush to FileChannel immediately
