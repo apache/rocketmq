@@ -24,7 +24,6 @@ import com.alibaba.rocketmq.common.message.MessageConst;
 import com.alibaba.rocketmq.common.message.MessageDecoder;
 import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.common.sysflag.MessageSysFlag;
-import com.alibaba.rocketmq.common.utils.StopWatch;
 import com.alibaba.rocketmq.store.config.BrokerRole;
 import com.alibaba.rocketmq.store.config.FlushDiskType;
 import com.alibaba.rocketmq.store.ha.HAService;
@@ -577,13 +576,12 @@ public class CommitLog {
             beginTimeInLock = 0;
             return new PutMessageResult(PutMessageStatus.CREATE_MAPEDFILE_FAILED, null);
         }
-        StopWatch watch = new StopWatch("ENDFILE", "ENDFILE");
+
         result = mappedFile.appendMessage(msg, this.appendMessageCallback);
         switch (result.getStatus()) {
             case PUT_OK:
                 break;
             case END_OF_FILE:
-                watch.lap("firstAppend", log);
                 unlockMappedFile = mappedFile;
                 // Create a new file, re-write the message
                 mappedFile = this.mappedFileQueue.getLastMappedFile(0);
@@ -593,9 +591,7 @@ public class CommitLog {
                     beginTimeInLock = 0;
                     return new PutMessageResult(PutMessageStatus.CREATE_MAPEDFILE_FAILED, result);
                 }
-                watch.lap("newFile", log);
                 result = mappedFile.appendMessage(msg, this.appendMessageCallback);
-                watch.lap("secondAppend", log);
                 break;
             case MESSAGE_SIZE_EXCEEDED:
             case PROPERTIES_SIZE_EXCEEDED:
@@ -612,11 +608,11 @@ public class CommitLog {
         eclipseTimeInLock = this.defaultMessageStore.getSystemClock().now() - beginLockTimestamp;
         beginTimeInLock = 0;
 
-        if (eclipseTimeInLock > 10) {
+        if (eclipseTimeInLock > 100) {
             log.warn("[NOTIFYME]putMessage in lock cost time(ms)={}, bodyLength={} AppendMessageResult={}", eclipseTimeInLock, msg.getBody().length, result);
         }
 
-        if (null != unlockMappedFile && !CommitLog.this.defaultMessageStore.getMessageStoreConfig().isTransientStorePoolEnable()) {
+        if (null != unlockMappedFile && this.defaultMessageStore.getMessageStoreConfig().isWarmMapedFileEnable()) {
             this.defaultMessageStore.unlockMapedFile(unlockMappedFile);
         }
 
@@ -1068,7 +1064,6 @@ public class CommitLog {
 
         public AppendMessageResult doAppend(final long fileFromOffset, final ByteBuffer byteBuffer, final int maxBlank, final MessageExtBrokerInner msgInner) {
             long begin = System.currentTimeMillis();
-            StopWatch watch = new StopWatch("NOTIFYME", "NOTIFYME");
             // STORETIMESTAMP + STOREHOSTADDRESS + OFFSET <br>
 
             // PHY OFFSET
@@ -1076,8 +1071,6 @@ public class CommitLog {
 
             this.resetByteBuffer(hostHolder, 8);
             String msgId = MessageDecoder.createMessageId(this.msgIdMemory, msgInner.getStoreHostBytes(hostHolder), wroteOffset);
-
-            watch.lap("CreateMessageId", log);
 
             // Record ConsumeQueue information
             keyBuilder.setLength(0);
@@ -1090,7 +1083,6 @@ public class CommitLog {
                 queueOffset = 0L;
                 CommitLog.this.topicQueueTable.put(key, queueOffset);
             }
-            watch.lap("KeyBuilder", log);
 
             // Transaction messages that require special handling
             final int tranType = MessageSysFlag.getTransactionValue(msgInner.getSysFlag());
@@ -1117,9 +1109,6 @@ public class CommitLog {
                 return new AppendMessageResult(AppendMessageStatus.PROPERTIES_SIZE_EXCEEDED);
             }
 
-            watch.lap("EncodeProperty", log);
-
-
             final short propertiesLength = propertiesData == null ? 0 : (short) propertiesData.length;
 
             final byte[] topicData = msgInner.getTopic().getBytes(MessageDecoder.CHARSET_UTF8);
@@ -1128,8 +1117,6 @@ public class CommitLog {
             final int bodyLength = msgInner.getBody() == null ? 0 : msgInner.getBody().length;
 
             final int msgLen = calMsgLength(bodyLength, topicLength, propertiesLength);
-
-            watch.lap("EncodeTopic", log);
 
             // Exceeds the maximum message
             if (msgLen > this.maxMessageSize) {
@@ -1200,17 +1187,12 @@ public class CommitLog {
             if (propertiesLength > 0)
                 this.msgStoreItemMemory.put(propertiesData);
 
-            watch.lap("ConcatMessage", log);
-
-
             final long beginTimeMills = CommitLog.this.defaultMessageStore.now();
             // Write messages to the queue buffer
             byteBuffer.put(this.msgStoreItemMemory.array(), 0, msgLen);
 
             AppendMessageResult result = new AppendMessageResult(AppendMessageStatus.PUT_OK, wroteOffset, msgLen, msgId,
                     msgInner.getStoreTimestamp(), queueOffset, CommitLog.this.defaultMessageStore.now() - beginTimeMills);
-
-            watch.lap("PutMessage", log);
 
             switch (tranType) {
                 case MessageSysFlag.TransactionPreparedType:
@@ -1223,10 +1205,6 @@ public class CommitLog {
                     break;
                 default:
                     break;
-            }
-            long appendCost = System.currentTimeMillis() - begin - (System.currentTimeMillis() - beginTimeMills);
-            if (appendCost > 10) {
-                CommitLog.log.info("[NOTIFYME] concat message costs {} ms", appendCost);
             }
             return result;
         }
