@@ -1185,6 +1185,9 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         runtimeInfo.put("earliestMessageTimeStamp", String.valueOf(this.brokerController.getMessageStore().getEarliestMessageTime()));
         runtimeInfo.put("startAcceptSendRequestTimeStamp", String.valueOf(this.brokerController.getBrokerConfig().getStartAcceptSendRequestTimeStamp()));
 
+        if (this.brokerController.getMessageStore() instanceof DefaultMessageStore) {
+            runtimeInfo.put("remainTransientStoreBufferNumbs", String.valueOf(((DefaultMessageStore) this.brokerController.getMessageStore()).remainTransientStoreBufferNumbs()));
+        }
 
         return runtimeInfo;
     }

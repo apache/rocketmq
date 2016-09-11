@@ -1751,6 +1751,10 @@ public class DefaultMessageStore implements MessageStore {
 
     }
 
+    public int remainTransientStoreBufferNumbs() {
+        return this.transientStorePool.remainBufferNumbs();
+    }
+
 
     public void unlockMapedFile(final MappedFile mappedFile){
         this.scheduledExecutorService.schedule(new Runnable() {

@@ -38,8 +38,10 @@ public class TransientStorePool {
     private final int poolSize;
     private final int fileSize;
     private final Deque<ByteBuffer> availableBuffers;
+    private final MessageStoreConfig storeConfig;
 
     public TransientStorePool(final MessageStoreConfig storeConfig) {
+        this.storeConfig = storeConfig;
         this.poolSize = storeConfig.getTransientStorePoolSize();
         this.fileSize = storeConfig.getMapedFileSizeCommitLog();
         this.availableBuffers = new ConcurrentLinkedDeque<>();
@@ -77,8 +79,15 @@ public class TransientStorePool {
     public ByteBuffer borrowBuffer() {
         ByteBuffer buffer = availableBuffers.pollFirst();
         if (availableBuffers.size() < poolSize * 0.4) {
-            log.info("TransientStorePool only remain {} sheet.", availableBuffers.size());
+            log.warn("TransientStorePool only remain {} sheets.", availableBuffers.size());
         }
         return buffer;
+    }
+
+    public int remainBufferNumbs() {
+        if (storeConfig.isTransientStorePoolEnable()) {
+            return availableBuffers.size();
+        }
+        return Integer.MAX_VALUE;
     }
 }
