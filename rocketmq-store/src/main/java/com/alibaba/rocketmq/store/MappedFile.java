@@ -80,10 +80,12 @@ public class MappedFile extends ReferenceResource {
      */
     private ByteBuffer writeBuffer = null;
     private TransientStorePool transientStorePool = null;
+    private int commitMaxInterval = 5000;
 
-    public MappedFile(final String fileName, final int fileSize, final TransientStorePool transientStorePool) throws IOException {
+    public MappedFile(final String fileName, final int fileSize, final TransientStorePool transientStorePool, int commitMaxInterval) throws IOException {
         this(fileName, fileSize);
         this.writeBuffer = transientStorePool.borrowBuffer();
+        this.commitMaxInterval = commitMaxInterval;
         if (writeBuffer != null) {
             log.info("TEST borrow : {}", fileName);
         }
@@ -309,12 +311,14 @@ public class MappedFile extends ReferenceResource {
         if (this.isAbleToCommit(commitLeastPages)) {
             long begin = System.currentTimeMillis();
             if (this.hold()) {
+                int lastCommittedPosition = this.committedPosition.get() + this.commitCompensation;
+
                 // DirectMemory may be not pageAligned, so we back 1.x page size.
                 int value = this.wrotePosition.get() - this.wrotePosition.get() % OS_PAGE_SIZE - OS_PAGE_SIZE;
 
                 int newValue = -1; // avoid dispatch noise.
                 // commitLeastPages=0 means must flush to FileChannel immediately
-                if (commitLeastPages == 0 || isFull()) {
+                if (commitLeastPages == 0 || isFull() || value <= lastCommittedPosition) {
                     value = this.wrotePosition.get();
                 } else {
                     value -= OS_PAGE_SIZE;
@@ -334,18 +338,22 @@ public class MappedFile extends ReferenceResource {
                         i += msgLen;
                     }
                     value += OS_PAGE_SIZE;
+
+                    if (newValue == -1) {
+                        value = this.wrotePosition.get();
+                    }
                 }
 
                 if ((value - this.committedPosition.get() > 0)) {
                     ByteBuffer byteBuffer = writeBuffer.slice();
-                    byteBuffer.position(this.committedPosition.get() + commitCompensation);
+                    byteBuffer.position(lastCommittedPosition);
                     byteBuffer.limit(value);
 
                     try {
                         this.fileChannel.write(byteBuffer);
                         commitCompensation = newValue == -1 ? 0 : value - newValue;
-                        value = newValue == -1 ? value : newValue;
-                        this.committedPosition.set(value);
+                        this.committedPosition.set(newValue == -1 ? value : newValue);
+                        this.lastCommitTimestamp = System.currentTimeMillis();
                     } catch (Exception e) {
                         log.error("Error occurred when flush data to FileChannel.", e);
                     }
@@ -385,11 +393,12 @@ public class MappedFile extends ReferenceResource {
         return write > flush;
     }
 
+    private long lastCommitTimestamp = System.currentTimeMillis();
     private boolean isAbleToCommit(final int commitLeastPages) {
         int flush = this.committedPosition.get();
         int write = this.wrotePosition.get();
 
-        if (this.isFull()) {
+        if (this.isFull() || System.currentTimeMillis() - lastCommitTimestamp > commitMaxInterval) {
             return true;
         }
 

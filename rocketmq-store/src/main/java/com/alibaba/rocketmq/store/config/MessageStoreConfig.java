@@ -51,6 +51,9 @@ public class MessageStoreConfig {
     @ImportantField
     private int commitIntervalCommitLog = 200;
 
+    // Should commit anyway if 5 seconds is elapsed.
+    private int commitMaxInterval = 5000;
+
     // Whether schedule flush,default is real-time
     @ImportantField
     private boolean flushCommitLogTimed = false;
@@ -684,5 +687,13 @@ public class MessageStoreConfig {
 
     public void setCommitIntervalCommitLog(final int commitIntervalCommitLog) {
         this.commitIntervalCommitLog = commitIntervalCommitLog;
+    }
+
+    public int getCommitMaxInterval() {
+        return commitMaxInterval;
+    }
+
+    public void setCommitMaxInterval(final int commitMaxInterval) {
+        this.commitMaxInterval = commitMaxInterval;
     }
 }

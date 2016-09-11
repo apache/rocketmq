@@ -158,7 +158,8 @@ public class AllocateMappedFileService extends ServiceThread {
 
                 MappedFile mappedFile;
                 if (messageStore.getMessageStoreConfig().isTransientStorePoolEnable()) {
-                    mappedFile = new MappedFile(req.getFilePath(), req.getFileSize(), messageStore.getTransientStorePool());
+                    mappedFile = new MappedFile(req.getFilePath(), req.getFileSize(), messageStore.getTransientStorePool(),
+                            messageStore.getMessageStoreConfig().getCommitMaxInterval());
                 } else {
                     mappedFile = new MappedFile(req.getFilePath(), req.getFileSize());
                 }
