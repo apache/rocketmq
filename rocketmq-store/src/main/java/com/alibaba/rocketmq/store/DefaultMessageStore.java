@@ -1561,17 +1561,11 @@ public class DefaultMessageStore implements MessageStore {
             ConcurrentHashMap<String, ConcurrentHashMap<Integer, ConsumeQueue>> tables = DefaultMessageStore.this.consumeQueueTable;
 
             for (ConcurrentHashMap<Integer, ConsumeQueue> maps : tables.values()) {
-                try {
-                    if (MappedFile.acquireDiskIO()) {
-                        for (ConsumeQueue cq : maps.values()) {
-                            boolean result = false;
-                            for (int i = 0; i < retryTimes && !result; i++) {
-                                result = cq.flush(flushConsumeQueueLeastPages);
-                            }
-                        }
+                for (ConsumeQueue cq : maps.values()) {
+                    boolean result = false;
+                    for (int i = 0; i < retryTimes && !result; i++) {
+                        result = cq.flush(flushConsumeQueueLeastPages);
                     }
-                } finally {
-                    MappedFile.releaseDiskIO();
                 }
             }
 

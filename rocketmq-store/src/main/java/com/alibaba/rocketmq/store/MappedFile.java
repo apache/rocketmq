@@ -37,7 +37,6 @@ import java.nio.channels.FileChannel;
 import java.nio.channels.FileChannel.MapMode;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -292,16 +291,7 @@ public class MappedFile extends ReferenceResource {
         return this.getFlushedPosition();
     }
 
-    private static AtomicBoolean canFlush = new AtomicBoolean(true);
-    public static boolean acquireDiskIO() {
-        return canFlush.compareAndSet(true, false);
-    }
-
-    public static boolean releaseDiskIO() {
-        return canFlush.compareAndSet(false, true);
-    }
-
-    private int commitCompensation = 0;
+    private int commitCompensation = 0; //avoid commit repeatedly
     public int commit(final int commitLeastPages) {
         if (writeBuffer == null) {
             //no need to commit data to file channel, so just regard wrotePosition as committedPosition.

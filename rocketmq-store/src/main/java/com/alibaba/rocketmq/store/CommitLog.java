@@ -873,20 +873,19 @@ public class CommitLog {
                         this.printFlushProgress();
                     }
 
-                    if (MappedFile.acquireDiskIO()) {
-                        long begin = System.currentTimeMillis();
-                        CommitLog.this.mappedFileQueue.flush(flushPhysicQueueLeastPages);
-                        long storeTimestamp = CommitLog.this.mappedFileQueue.getStoreTimestamp();
-                        if (storeTimestamp > 0) {
-                            CommitLog.this.defaultMessageStore.getStoreCheckpoint().setPhysicMsgTimestamp(storeTimestamp);
-                        }
-                        log.info("Flush cost {}", System.currentTimeMillis() - begin);
+                    long begin = System.currentTimeMillis();
+                    CommitLog.this.mappedFileQueue.flush(flushPhysicQueueLeastPages);
+                    long storeTimestamp = CommitLog.this.mappedFileQueue.getStoreTimestamp();
+                    if (storeTimestamp > 0) {
+                        CommitLog.this.defaultMessageStore.getStoreCheckpoint().setPhysicMsgTimestamp(storeTimestamp);
+                    }
+                    long past = System.currentTimeMillis() - begin;
+                    if (past > 100) {
+                        log.info("Flush cost {}", past);
                     }
                 } catch (Exception e) {
                     CommitLog.log.warn(this.getServiceName() + " service has exception. ", e);
                     this.printFlushProgress();
-                } finally {
-                    MappedFile.releaseDiskIO();
                 }
             }
 
