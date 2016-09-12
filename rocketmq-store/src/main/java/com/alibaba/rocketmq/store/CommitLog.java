@@ -644,23 +644,13 @@ public class CommitLog {
                     putMessageResult.setPutMessageStatus(PutMessageStatus.FLUSH_DISK_TIMEOUT);
                 }
             } else {
-                threadWakeUpService.submit(new Runnable() {
-                    @Override
-                    public void run() {
-                        service.wakeup();
-                    }
-                });
+                wakeupService(service);
             }
         }
         // Asynchronous flush
         else {
             if (!this.defaultMessageStore.getMessageStoreConfig().isTransientStorePoolEnable()) {
-                threadWakeUpService.submit(new Runnable() {
-                    @Override
-                    public void run() {
-                        flushCommitLogService.wakeup();
-                    }
-                });
+                wakeupService(flushCommitLogService);
             }
         }
 
@@ -813,12 +803,7 @@ public class CommitLog {
                     boolean result = CommitLog.this.mappedFileQueue.commit(flushPhysicQueueLeastPages);
                     if (!result) {
                         //now wake up flush thread.
-                        threadWakeUpService.submit(new Runnable() {
-                            @Override
-                            public void run() {
-                                flushCommitLogService.wakeup();
-                            }
-                        });
+                        wakeupService(flushCommitLogService);
                     }
                     this.waitForRunning(interval);
                 } catch (Exception e) {
@@ -1250,5 +1235,18 @@ public class CommitLog {
         }
 
         return diff;
+    }
+
+    private void wakeupService(final ServiceThread service) {
+        try {
+            threadWakeUpService.submit(new Runnable() {
+                @Override
+                public void run() {
+                    service.wakeup();
+                }
+            });
+        } catch (Exception e) {
+            log.warn("Can't submit wakeup task to threadWakeUpService");
+        }
     }
 }
