@@ -17,6 +17,7 @@
 package com.alibaba.rocketmq.store;
 
 import com.alibaba.rocketmq.common.ServiceThread;
+import com.alibaba.rocketmq.common.ThreadFactoryImpl;
 import com.alibaba.rocketmq.common.UtilAll;
 import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.common.message.MessageAccessor;
@@ -36,8 +37,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
 
 /**
@@ -65,6 +65,11 @@ public class CommitLog {
 
     // now beginTimeInLock has a different semantic
     private volatile long beginTimeInLock = 0;
+
+    private final ExecutorService threadWakeUpService = new ThreadPoolExecutor(1, 1,
+            0L, TimeUnit.MILLISECONDS,
+            new LinkedBlockingQueue<Runnable>(10000),
+            new ThreadFactoryImpl("ThreadWakeUpService_"));
 
 
     public CommitLog(final DefaultMessageStore defaultMessageStore) {
@@ -98,6 +103,7 @@ public class CommitLog {
     }
 
     public void shutdown() {
+        this.threadWakeUpService.shutdownNow();
         this.flushCommitLogService.shutdown();
 
         if (defaultMessageStore.getMessageStoreConfig().isTransientStorePoolEnable()) {
@@ -627,7 +633,7 @@ public class CommitLog {
 
         // Synchronization flush
         if (FlushDiskType.SYNC_FLUSH == this.defaultMessageStore.getMessageStoreConfig().getFlushDiskType()) {
-            GroupCommitService service = (GroupCommitService) this.flushCommitLogService;
+            final GroupCommitService service = (GroupCommitService) this.flushCommitLogService;
             if (msg.isWaitStoreMsgOK()) {
                 request = new GroupCommitRequest(result.getWroteOffset() + result.getWroteBytes());
                 service.putRequest(request);
@@ -638,15 +644,23 @@ public class CommitLog {
                     putMessageResult.setPutMessageStatus(PutMessageStatus.FLUSH_DISK_TIMEOUT);
                 }
             } else {
-                service.wakeup();
+                threadWakeUpService.submit(new Runnable() {
+                    @Override
+                    public void run() {
+                        service.wakeup();
+                    }
+                });
             }
         }
         // Asynchronous flush
         else {
-            if (this.defaultMessageStore.getMessageStoreConfig().isTransientStorePoolEnable()) {
-                //this.commitLogService.wakeup(); wakeup thread will cause 100ms noise.
-            } else {
-                this.flushCommitLogService.wakeup();
+            if (!this.defaultMessageStore.getMessageStoreConfig().isTransientStorePoolEnable()) {
+                threadWakeUpService.submit(new Runnable() {
+                    @Override
+                    public void run() {
+                        flushCommitLogService.wakeup();
+                    }
+                });
             }
         }
 
@@ -687,7 +701,7 @@ public class CommitLog {
      * According to receive certain message or offset storage time if an error
      * occurs, it returns -1
      */
-    public long pickupStoretimestamp(final long offset, final int size) {
+    public long pickupStoreTimestamp(final long offset, final int size) {
         if (offset >= this.getMinOffset()) {
             SelectMappedBufferResult result = this.getMessage(offset, size);
             if (null != result) {
@@ -764,13 +778,13 @@ public class CommitLog {
         return this.mappedFileQueue.retryDeleteFirstFile(intervalForcibly);
     }
 
-    public void removeQueurFromTopicQueueTable(final String topic, final int queueId) {
+    public void removeQueueFromTopicQueueTable(final String topic, final int queueId) {
         String key = topic + "-" + queueId;
         synchronized (this) {
             this.topicQueueTable.remove(key);
         }
 
-        log.info("removeQueurFromTopicQueueTable OK Topic: {} QueueId: {}", topic, queueId);
+        log.info("removeQueueFromTopicQueueTable OK Topic: {} QueueId: {}", topic, queueId);
     }
 
     public void checkSelf() {
@@ -778,7 +792,7 @@ public class CommitLog {
     }
 
     abstract class FlushCommitLogService extends ServiceThread {
-        protected static final int RetryTimesOver = 5;
+        protected static final int RetryTimesOver = 10;
     }
 
     class CommitRealTimeService extends FlushCommitLogService {
@@ -796,7 +810,16 @@ public class CommitLog {
                 int flushPhysicQueueLeastPages = CommitLog.this.defaultMessageStore.getMessageStoreConfig().getFlushCommitLogLeastPages();
 
                 try {
-                    CommitLog.this.mappedFileQueue.commit(flushPhysicQueueLeastPages);
+                    boolean result = CommitLog.this.mappedFileQueue.commit(flushPhysicQueueLeastPages);
+                    if (!result) {
+                        //now wake up flush thread.
+                        threadWakeUpService.submit(new Runnable() {
+                            @Override
+                            public void run() {
+                                flushCommitLogService.wakeup();
+                            }
+                        });
+                    }
                     this.waitForRunning(interval);
                 } catch (Exception e) {
                     CommitLog.log.warn(this.getServiceName() + " service has exception. ", e);
@@ -804,7 +827,7 @@ public class CommitLog {
             }
 
             boolean result = false;
-            for (int i = 0; i < RetryTimesOver && !result; i++) { // FIXME: 16/9/10 May be try more times
+            for (int i = 0; i < RetryTimesOver && !result; i++) {
                 result = CommitLog.this.mappedFileQueue.commit(0);
                 CommitLog.log.info(this.getServiceName() + " service shutdown, retry " + (i + 1) + " times " + (result ? "OK" : "Not OK"));
             }

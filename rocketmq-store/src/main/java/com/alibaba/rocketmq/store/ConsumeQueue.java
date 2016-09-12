@@ -161,7 +161,7 @@ public class ConsumeQueue {
                         }
 
                         long storeTime =
-                                this.defaultMessageStore.getCommitLog().pickupStoretimestamp(phyOffset, size);
+                                this.defaultMessageStore.getCommitLog().pickupStoreTimestamp(phyOffset, size);
                         if (storeTime < 0) {
                             return 0;
                         } else if (storeTime == timestamp) {

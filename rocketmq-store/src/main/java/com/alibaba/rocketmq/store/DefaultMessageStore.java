@@ -659,7 +659,7 @@ public class DefaultMessageStore implements MessageStore {
                 try {
                     final long phyOffset = result.getByteBuffer().getLong();
                     final int size = result.getByteBuffer().getInt();
-                    long storeTime = this.getCommitLog().pickupStoretimestamp(phyOffset, size);
+                    long storeTime = this.getCommitLog().pickupStoreTimestamp(phyOffset, size);
                     return storeTime;
                 } catch (Exception e) {
                 } finally {
@@ -675,7 +675,7 @@ public class DefaultMessageStore implements MessageStore {
     public long getEarliestMessageTime() {
         final long minPhyOffset = this.getMinPhyOffset();
         final int size = this.messageStoreConfig.getMaxMessageSize() * 2;
-        return this.getCommitLog().pickupStoretimestamp(minPhyOffset, size);
+        return this.getCommitLog().pickupStoreTimestamp(minPhyOffset, size);
     }
 
     @Override
@@ -687,7 +687,7 @@ public class DefaultMessageStore implements MessageStore {
                 try {
                     final long phyOffset = result.getByteBuffer().getLong();
                     final int size = result.getByteBuffer().getInt();
-                    long storeTime = this.getCommitLog().pickupStoretimestamp(phyOffset, size);
+                    long storeTime = this.getCommitLog().pickupStoreTimestamp(phyOffset, size);
                     return storeTime;
                 } catch (Exception e) {
                 } finally {
@@ -841,7 +841,7 @@ public class DefaultMessageStore implements MessageStore {
                             cq.getQueueId() //
                     );
 
-                    this.commitLog.removeQueurFromTopicQueueTable(cq.getTopic(), cq.getQueueId());
+                    this.commitLog.removeQueueFromTopicQueueTable(cq.getTopic(), cq.getQueueId());
                 }
                 it.remove();
 
@@ -881,7 +881,7 @@ public class DefaultMessageStore implements MessageStore {
                                 minCommitLogOffset, //
                                 maxCLOffsetInConsumeQueue);
 
-                        DefaultMessageStore.this.commitLog.removeQueurFromTopicQueueTable(nextQT.getValue().getTopic(),
+                        DefaultMessageStore.this.commitLog.removeQueueFromTopicQueueTable(nextQT.getValue().getTopic(),
                                 nextQT.getValue().getQueueId());
 
                         nextQT.getValue().destroy();
