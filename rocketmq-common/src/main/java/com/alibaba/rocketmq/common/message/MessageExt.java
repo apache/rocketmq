@@ -81,7 +81,7 @@ public class MessageExt extends Message {
 
     private static ByteBuffer SocketAddress2ByteBuffer(final SocketAddress socketAddress, final ByteBuffer byteBuffer) {
         InetSocketAddress inetSocketAddress = (InetSocketAddress) socketAddress;
-        byteBuffer.put(inetSocketAddress.getAddress().getAddress()); // FIXME: 16/9/13 If ipv6?
+        byteBuffer.put(inetSocketAddress.getAddress().getAddress(), 0, 4);
         byteBuffer.putInt(inetSocketAddress.getPort());
         byteBuffer.flip();
         return byteBuffer;
