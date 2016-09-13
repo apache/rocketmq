@@ -104,11 +104,12 @@ public class CommitLog {
 
     public void shutdown() {
         this.threadWakeUpService.shutdownNow();
-        this.flushCommitLogService.shutdown();
 
         if (defaultMessageStore.getMessageStoreConfig().isTransientStorePoolEnable()) {
             this.commitLogService.shutdown();
         }
+
+        this.flushCommitLogService.shutdown();
     }
 
     public long flush() {
@@ -806,8 +807,8 @@ public class CommitLog {
                         wakeupService(flushCommitLogService);
                     }
                     this.waitForRunning(interval);
-                } catch (Exception e) {
-                    CommitLog.log.warn(this.getServiceName() + " service has exception. ", e);
+                } catch (Throwable e) {
+                    CommitLog.log.error(this.getServiceName() + " service has exception. ", e);
                 }
             }
 
@@ -868,7 +869,7 @@ public class CommitLog {
                     if (past > 100) {
                         log.info("Flush cost {}", past);
                     }
-                } catch (Exception e) {
+                } catch (Throwable e) {
                     CommitLog.log.warn(this.getServiceName() + " service has exception. ", e);
                     this.printFlushProgress();
                 }
@@ -1070,7 +1071,6 @@ public class CommitLog {
 
 
         public AppendMessageResult doAppend(final long fileFromOffset, final ByteBuffer byteBuffer, final int maxBlank, final MessageExtBrokerInner msgInner) {
-            long begin = System.currentTimeMillis();
             // STORETIMESTAMP + STOREHOSTADDRESS + OFFSET <br>
 
             // PHY OFFSET

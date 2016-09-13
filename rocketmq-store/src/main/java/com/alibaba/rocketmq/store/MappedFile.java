@@ -276,7 +276,7 @@ public class MappedFile extends ReferenceResource {
                     } else {
                         this.mappedByteBuffer.force();
                     }
-                } catch (IOException e) {
+                } catch (Throwable e) {
                     log.error("Error occurred when force data to disk.", e);
                 }
 
@@ -344,7 +344,7 @@ public class MappedFile extends ReferenceResource {
                         commitCompensation = newValue == -1 ? 0 : value - newValue;
                         this.committedPosition.set(newValue == -1 ? value : newValue);
                         this.lastCommitTimestamp = System.currentTimeMillis();
-                    } catch (Exception e) {
+                    } catch (Throwable e) {
                         log.error("Error occurred when flush data to FileChannel.", e);
                     }
                 }
