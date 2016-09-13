@@ -19,6 +19,7 @@ package com.alibaba.rocketmq.store;
 import com.alibaba.rocketmq.common.ServiceThread;
 import com.alibaba.rocketmq.common.UtilAll;
 import com.alibaba.rocketmq.common.constant.LoggerName;
+import com.alibaba.rocketmq.store.config.BrokerRole;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -53,34 +54,36 @@ public class AllocateMappedFileService extends ServiceThread {
 
     public MappedFile putRequestAndReturnMappedFile(String nextFilePath, String nextNextFilePath, int fileSize) {
         int canSubmitRequests = 2;
-        if (this.messageStore.getMessageStoreConfig().isFastFailIfNoBufferInStorePool()) {
+        if (this.messageStore.getMessageStoreConfig().isFastFailIfNoBufferInStorePool()
+                && BrokerRole.SLAVE != this.messageStore.getMessageStoreConfig().getBrokerRole()) { //if broker is slave, don't fast fail even no buffer in pool
             canSubmitRequests = this.messageStore.getTransientStorePool().remainBufferNumbs() - this.requestQueue.size();
-            if (canSubmitRequests <= 0) {
-                log.warn("[NOTIFYME]TransientStorePool is not enough, so create mapped file error, " +
-                        "RequestQueueSize : {}, StorePoolSize: {}", this.requestQueue.size(), this.messageStore.getTransientStorePool().remainBufferNumbs());
-                return null;
-            }
-            if (canSubmitRequests == 1) {
-                log.warn("[NOTIFYME]TransientStorePool is not enough, so skip preallocate mapped file, " +
-                        "RequestQueueSize : {}, StorePoolSize: {}", this.requestQueue.size(), this.messageStore.getTransientStorePool().remainBufferNumbs());
-            }
         }
 
         AllocateRequest nextReq = new AllocateRequest(nextFilePath, fileSize);
         boolean nextPutOK = (this.requestTable.putIfAbsent(nextFilePath, nextReq) == null);
 
         if (nextPutOK) {
+            if (canSubmitRequests <= 0) {
+                log.warn("[NOTIFYME]TransientStorePool is not enough, so create mapped file error, " +
+                        "RequestQueueSize : {}, StorePoolSize: {}", this.requestQueue.size(), this.messageStore.getTransientStorePool().remainBufferNumbs());
+                this.requestTable.remove(nextFilePath);
+                return null;
+            }
             boolean offerOK = this.requestQueue.offer(nextReq);
             if (!offerOK) {
                 log.warn("never expected here, add a request to preallocate queue failed");
             }
+            canSubmitRequests--;
         }
-        canSubmitRequests--;
 
-        if (canSubmitRequests <= 0) {
-            AllocateRequest nextNextReq = new AllocateRequest(nextNextFilePath, fileSize);
-            boolean nextNextPutOK = (this.requestTable.putIfAbsent(nextNextFilePath, nextNextReq) == null);
-            if (nextNextPutOK) {
+        AllocateRequest nextNextReq = new AllocateRequest(nextNextFilePath, fileSize);
+        boolean nextNextPutOK = (this.requestTable.putIfAbsent(nextNextFilePath, nextNextReq) == null);
+        if (nextNextPutOK) {
+            if (canSubmitRequests <= 0) {
+                log.warn("[NOTIFYME]TransientStorePool is not enough, so skip preallocate mapped file, " +
+                        "RequestQueueSize : {}, StorePoolSize: {}", this.requestQueue.size(), this.messageStore.getTransientStorePool().remainBufferNumbs());
+                this.requestTable.remove(nextNextFilePath);
+            } else {
                 boolean offerOK = this.requestQueue.offer(nextNextReq);
                 if (!offerOK) {
                     log.warn("never expected here, add a request to preallocate queue failed");

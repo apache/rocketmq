@@ -381,7 +381,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
                 // Failed
                 case CREATE_MAPEDFILE_FAILED:
                     response.setCode(ResponseCode.SYSTEM_ERROR);
-                    response.setRemark("create maped file failed, please make sure OS and JDK both 64bit.");
+                    response.setRemark("create mapped file failed, server is busy or broken.");
                     break;
                 case MESSAGE_ILLEGAL:
                 case PROPERTIES_SIZE_EXCEEDED:
