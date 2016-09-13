@@ -229,7 +229,6 @@ public class CommitLog {
         try {
             // 1 TOTAL SIZE
             int totalSize = byteBuffer.getInt();
-            byte[] bytesContent = new byte[totalSize];
 
             // 2 MAGIC CODE
             int magicCode = byteBuffer.getInt();
@@ -242,6 +241,8 @@ public class CommitLog {
                     log.warn("found a illegal magic code 0x" + Integer.toHexString(magicCode));
                     return new DispatchRequest(-1, false /* success */);
             }
+
+            byte[] bytesContent = new byte[totalSize];
 
             // 3 BODYCRC
             int bodyCRC = byteBuffer.getInt();

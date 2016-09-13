@@ -271,6 +271,7 @@ public class MappedFile extends ReferenceResource {
                 int value = getReadPosition();
 
                 try {
+                    //We only append data to fileChannel or mappedByteBuffer, never both.
                     if (writeBuffer != null || this.fileChannel.position() != 0) {
                         this.fileChannel.force(false);
                     } else {
@@ -326,6 +327,11 @@ public class MappedFile extends ReferenceResource {
                             break;
                         }
                         i += msgLen;
+
+                        if (msgLen == 0) {
+                            newValue = -1;
+                            break;
+                        }
                     }
                     value += OS_PAGE_SIZE;
 
@@ -335,16 +341,18 @@ public class MappedFile extends ReferenceResource {
                 }
 
                 if ((value - this.committedPosition.get() > 0)) {
-                    ByteBuffer byteBuffer = writeBuffer.slice();
-                    byteBuffer.position(lastCommittedPosition);
-                    byteBuffer.limit(value);
-
                     try {
+                        ByteBuffer byteBuffer = writeBuffer.slice();
+                        byteBuffer.position(lastCommittedPosition);
+                        byteBuffer.limit(value);
+
                         this.fileChannel.write(byteBuffer);
                         commitCompensation = newValue == -1 ? 0 : value - newValue;
                         this.committedPosition.set(newValue == -1 ? value : newValue);
                         this.lastCommitTimestamp = System.currentTimeMillis();
                     } catch (Throwable e) {
+                        log.error("[NOTIFYME], value : {} newValue : {}, committedPosition : {}, commitCompensation : {}, wrotePosition: {}"
+                                    , value, newValue, committedPosition.get(), commitCompensation, wrotePosition.get());
                         log.error("Error occurred when flush data to FileChannel.", e);
                     }
                 }
