@@ -134,7 +134,7 @@ public class MessageStoreConfig {
     @ImportantField
     private boolean transientStorePoolEnable = false;
     private int transientStorePoolSize = 5;
-    private boolean fastFailIfNoBufferInStorePool = true;
+    private boolean fastFailIfNoBufferInStorePool = false;
     
     public boolean isDebugLockEnable() {
         return debugLockEnable;
