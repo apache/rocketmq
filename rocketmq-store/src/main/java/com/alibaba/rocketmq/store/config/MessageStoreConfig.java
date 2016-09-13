@@ -134,6 +134,7 @@ public class MessageStoreConfig {
     @ImportantField
     private boolean transientStorePoolEnable = false;
     private int transientStorePoolSize = 5;
+    private boolean fastFailIfNoBufferInStorePool = true;
     
     public boolean isDebugLockEnable() {
         return debugLockEnable;
@@ -695,5 +696,13 @@ public class MessageStoreConfig {
 
     public void setCommitMaxInterval(final int commitMaxInterval) {
         this.commitMaxInterval = commitMaxInterval;
+    }
+
+    public boolean isFastFailIfNoBufferInStorePool() {
+        return fastFailIfNoBufferInStorePool;
+    }
+
+    public void setFastFailIfNoBufferInStorePool(final boolean fastFailIfNoBufferInStorePool) {
+        this.fastFailIfNoBufferInStorePool = fastFailIfNoBufferInStorePool;
     }
 }

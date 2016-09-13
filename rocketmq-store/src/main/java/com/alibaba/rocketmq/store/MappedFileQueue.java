@@ -221,7 +221,7 @@ public class MappedFileQueue {
             MappedFile mappedFile = null;
 
             if (this.allocateMappedFileService != null) {
-                mappedFile = this.allocateMappedFileService.putRequestAndReturnMapedFile(nextFilePath,
+                mappedFile = this.allocateMappedFileService.putRequestAndReturnMappedFile(nextFilePath,
                         nextNextFilePath, this.mappedFileSize);
             } else {
                 try {

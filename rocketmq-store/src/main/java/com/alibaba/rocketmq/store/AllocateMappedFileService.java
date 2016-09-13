@@ -51,23 +51,40 @@ public class AllocateMappedFileService extends ServiceThread {
     }
 
 
-    public MappedFile putRequestAndReturnMapedFile(String nextFilePath, String nextNextFilePath, int fileSize) {
+    public MappedFile putRequestAndReturnMappedFile(String nextFilePath, String nextNextFilePath, int fileSize) {
+        int canSubmitRequests = 2;
+        if (this.messageStore.getMessageStoreConfig().isFastFailIfNoBufferInStorePool()) {
+            canSubmitRequests = this.messageStore.getTransientStorePool().remainBufferNumbs() - this.requestQueue.size();
+            if (canSubmitRequests <= 0) {
+                log.warn("[NOTIFYME]TransientStorePool is not enough, so create mapped file error, " +
+                        "RequestQueueSize : {}, StorePoolSize: {}", this.requestQueue.size(), this.messageStore.getTransientStorePool().remainBufferNumbs());
+                return null;
+            }
+            if (canSubmitRequests == 1) {
+                log.warn("[NOTIFYME]TransientStorePool is not enough, so skip preallocate mapped file, " +
+                        "RequestQueueSize : {}, StorePoolSize: {}", this.requestQueue.size(), this.messageStore.getTransientStorePool().remainBufferNumbs());
+            }
+        }
+
         AllocateRequest nextReq = new AllocateRequest(nextFilePath, fileSize);
-        AllocateRequest nextNextReq = new AllocateRequest(nextNextFilePath, fileSize);
         boolean nextPutOK = (this.requestTable.putIfAbsent(nextFilePath, nextReq) == null);
-        boolean nextNextPutOK = (this.requestTable.putIfAbsent(nextNextFilePath, nextNextReq) == null);
 
         if (nextPutOK) {
             boolean offerOK = this.requestQueue.offer(nextReq);
             if (!offerOK) {
-                log.warn("never expetced here, add a request to preallocate queue failed");
+                log.warn("never expected here, add a request to preallocate queue failed");
             }
         }
+        canSubmitRequests--;
 
-        if (nextNextPutOK) {
-            boolean offerOK = this.requestQueue.offer(nextNextReq);
-            if (!offerOK) {
-                log.warn("never expetced here, add a request to preallocate queue failed");
+        if (canSubmitRequests <= 0) {
+            AllocateRequest nextNextReq = new AllocateRequest(nextNextFilePath, fileSize);
+            boolean nextNextPutOK = (this.requestTable.putIfAbsent(nextNextFilePath, nextNextReq) == null);
+            if (nextNextPutOK) {
+                boolean offerOK = this.requestQueue.offer(nextNextReq);
+                if (!offerOK) {
+                    log.warn("never expected here, add a request to preallocate queue failed");
+                }
             }
         }
 
