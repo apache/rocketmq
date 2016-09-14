@@ -568,53 +568,54 @@ public class CommitLog {
         long eclipseTimeInLock = 0;
         MappedFile unlockMappedFile = null;
         MappedFile mappedFile = this.mappedFileQueue.getLastMappedFile();
+        synchronized (this) {
+            long beginLockTimestamp = this.defaultMessageStore.getSystemClock().now();
+            this.beginTimeInLock = beginLockTimestamp;
 
-        long beginLockTimestamp = this.defaultMessageStore.getSystemClock().now();
-        this.beginTimeInLock = beginLockTimestamp;
+            // Here settings are stored timestamp, in order to ensure an orderly
+            // global
+            msg.setStoreTimestamp(beginLockTimestamp);
 
-        // Here settings are stored timestamp, in order to ensure an orderly
-        // global
-        msg.setStoreTimestamp(beginLockTimestamp);
+            if (null == mappedFile || mappedFile.isFull()) {
+                mappedFile = this.mappedFileQueue.getLastMappedFile(0); // Mark: NewFile may be cause noise
+            }
+            if (null == mappedFile) {
+                log.error("create maped file1 error, topic: " + msg.getTopic() + " clientAddr: " + msg.getBornHostString());
+                beginTimeInLock = 0;
+                return new PutMessageResult(PutMessageStatus.CREATE_MAPEDFILE_FAILED, null);
+            }
 
-        if (null == mappedFile || mappedFile.isFull()) {
-            mappedFile = this.mappedFileQueue.getLastMappedFile(0); // Mark: NewFile may be cause noise
-        }
-        if (null == mappedFile) {
-            log.error("create maped file1 error, topic: " + msg.getTopic() + " clientAddr: " + msg.getBornHostString());
-            beginTimeInLock = 0;
-            return new PutMessageResult(PutMessageStatus.CREATE_MAPEDFILE_FAILED, null);
-        }
-
-        result = mappedFile.appendMessage(msg, this.appendMessageCallback);
-        switch (result.getStatus()) {
-            case PUT_OK:
-                break;
-            case END_OF_FILE:
-                unlockMappedFile = mappedFile;
-                // Create a new file, re-write the message
-                mappedFile = this.mappedFileQueue.getLastMappedFile(0);
-                if (null == mappedFile) {
-                    // XXX: warn and notify me
-                    log.error("create maped file2 error, topic: " + msg.getTopic() + " clientAddr: " + msg.getBornHostString());
+            result = mappedFile.appendMessage(msg, this.appendMessageCallback);
+            switch (result.getStatus()) {
+                case PUT_OK:
+                    break;
+                case END_OF_FILE:
+                    unlockMappedFile = mappedFile;
+                    // Create a new file, re-write the message
+                    mappedFile = this.mappedFileQueue.getLastMappedFile(0);
+                    if (null == mappedFile) {
+                        // XXX: warn and notify me
+                        log.error("create maped file2 error, topic: " + msg.getTopic() + " clientAddr: " + msg.getBornHostString());
+                        beginTimeInLock = 0;
+                        return new PutMessageResult(PutMessageStatus.CREATE_MAPEDFILE_FAILED, result);
+                    }
+                    result = mappedFile.appendMessage(msg, this.appendMessageCallback);
+                    break;
+                case MESSAGE_SIZE_EXCEEDED:
+                case PROPERTIES_SIZE_EXCEEDED:
                     beginTimeInLock = 0;
-                    return new PutMessageResult(PutMessageStatus.CREATE_MAPEDFILE_FAILED, result);
-                }
-                result = mappedFile.appendMessage(msg, this.appendMessageCallback);
-                break;
-            case MESSAGE_SIZE_EXCEEDED:
-            case PROPERTIES_SIZE_EXCEEDED:
-                beginTimeInLock = 0;
-                return new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, result);
-            case UNKNOWN_ERROR:
-                beginTimeInLock = 0;
-                return new PutMessageResult(PutMessageStatus.UNKNOWN_ERROR, result);
-            default:
-                beginTimeInLock = 0;
-                return new PutMessageResult(PutMessageStatus.UNKNOWN_ERROR, result);
-        }
+                    return new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, result);
+                case UNKNOWN_ERROR:
+                    beginTimeInLock = 0;
+                    return new PutMessageResult(PutMessageStatus.UNKNOWN_ERROR, result);
+                default:
+                    beginTimeInLock = 0;
+                    return new PutMessageResult(PutMessageStatus.UNKNOWN_ERROR, result);
+            }
 
-        eclipseTimeInLock = this.defaultMessageStore.getSystemClock().now() - beginLockTimestamp;
-        beginTimeInLock = 0;
+            eclipseTimeInLock = this.defaultMessageStore.getSystemClock().now() - beginLockTimestamp;
+            beginTimeInLock = 0;
+        }
 
         if (eclipseTimeInLock > 100) {
             log.warn("[NOTIFYME]putMessage in lock cost time(ms)={}, bodyLength={} AppendMessageResult={}", eclipseTimeInLock, msg.getBody().length, result);
