@@ -18,10 +18,7 @@
 package com.alibaba.rocketmq.tools.command.message;
 
 import com.alibaba.rocketmq.common.MixAll;
-import com.alibaba.rocketmq.store.ConsumeQueue;
-import com.alibaba.rocketmq.store.MapedFile;
-import com.alibaba.rocketmq.store.MapedFileQueue;
-import com.alibaba.rocketmq.store.SelectMapedBufferResult;
+import com.alibaba.rocketmq.store.*;
 import com.alibaba.rocketmq.store.config.StorePathConfigHelper;
 
 import java.io.File;
@@ -39,7 +36,7 @@ public class Store {
     public final static int MessageMagicCode = 0xAABBCCDD ^ 1880681586 + 8;
     private final static int BlankMagicCode = 0xBBCCDDEE ^ 1880681586 + 8;
 
-    private MapedFileQueue mapedFileQueue;
+    private MappedFileQueue mapedFileQueue;
 
     private ConcurrentHashMap<String/* topic */, ConcurrentHashMap<Integer/* queueId */, ConsumeQueue>> consumeQueueTable;
 
@@ -54,7 +51,7 @@ public class Store {
         this.cSize = cSize;
         this.lStorePath = lStorePath;
         this.lSize = lSize;
-        mapedFileQueue = new MapedFileQueue(cStorePath, cSize, null);
+        mapedFileQueue = new MappedFileQueue(cStorePath, cSize, null);
         consumeQueueTable =
                 new ConcurrentHashMap<String/* topic */, ConcurrentHashMap<Integer/* queueId */, ConsumeQueue>>();
     }
@@ -116,9 +113,9 @@ public class Store {
     public void traval(boolean openAll) {
         boolean success = true;
         byte[] bytesContent = new byte[1024];
-        List<MapedFile> mapedFiles = this.mapedFileQueue.getMapedFiles();
+        List<MappedFile> mapedFiles = this.mapedFileQueue.getMappedFiles();
         ALL:
-        for (MapedFile mapedFile : mapedFiles) {
+        for (MappedFile mapedFile : mapedFiles) {
             long startOffset = mapedFile.getFileFromOffset();
             int position = 0;
             int msgCount = 0;
@@ -208,7 +205,7 @@ public class Store {
                 }
 
                 ConsumeQueue consumeQueue = findConsumeQueue(topic, queueId);
-                SelectMapedBufferResult smb = consumeQueue.getIndexBuffer(queueOffset);
+                SelectMappedBufferResult smb = consumeQueue.getIndexBuffer(queueOffset);
                 try {
                     long offsetPy = smb.getByteBuffer().getLong();
                     int sizePy = smb.getByteBuffer().getInt();

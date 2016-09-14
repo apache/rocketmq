@@ -72,14 +72,14 @@ public class MessageExt extends Message {
     }
 
     public ByteBuffer getBornHostBytes() {
-        return SocketAddress2ByteBuffer(this.bornHost);
+        return socketAddress2ByteBuffer(this.bornHost);
     }
 
     public ByteBuffer getBornHostBytes(ByteBuffer byteBuffer) {
-        return SocketAddress2ByteBuffer(this.bornHost, byteBuffer);
+        return socketAddress2ByteBuffer(this.bornHost, byteBuffer);
     }
 
-    private static ByteBuffer SocketAddress2ByteBuffer(final SocketAddress socketAddress, final ByteBuffer byteBuffer) {
+    private static ByteBuffer socketAddress2ByteBuffer(final SocketAddress socketAddress, final ByteBuffer byteBuffer) {
         InetSocketAddress inetSocketAddress = (InetSocketAddress) socketAddress;
         byteBuffer.put(inetSocketAddress.getAddress().getAddress(), 0, 4);
         byteBuffer.putInt(inetSocketAddress.getPort());
@@ -87,17 +87,17 @@ public class MessageExt extends Message {
         return byteBuffer;
     }
 
-    public static ByteBuffer SocketAddress2ByteBuffer(SocketAddress socketAddress) {
+    public static ByteBuffer socketAddress2ByteBuffer(SocketAddress socketAddress) {
         ByteBuffer byteBuffer = ByteBuffer.allocate(8);
-        return SocketAddress2ByteBuffer(socketAddress, byteBuffer);
+        return socketAddress2ByteBuffer(socketAddress, byteBuffer);
     }
 
     public ByteBuffer getStoreHostBytes() {
-        return SocketAddress2ByteBuffer(this.storeHost);
+        return socketAddress2ByteBuffer(this.storeHost);
     }
 
     public ByteBuffer getStoreHostBytes(ByteBuffer byteBuffer) {
-        return SocketAddress2ByteBuffer(this.storeHost, byteBuffer);
+        return socketAddress2ByteBuffer(this.storeHost, byteBuffer);
     }
 
     public int getQueueId() {
