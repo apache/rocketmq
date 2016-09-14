@@ -20,7 +20,9 @@ import com.alibaba.rocketmq.client.exception.MQClientException;
 import com.alibaba.rocketmq.client.producer.*;
 import com.alibaba.rocketmq.common.message.Message;
 import com.alibaba.rocketmq.common.message.MessageExt;
+import com.alibaba.rocketmq.remoting.common.RemotingHelper;
 
+import java.io.UnsupportedEncodingException;
 import java.util.LinkedList;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -35,7 +37,7 @@ public class TransactionProducer {
     private static boolean ischeckffalse;
 
 
-    public static void main(String[] args) throws MQClientException {
+    public static void main(String[] args) throws MQClientException, UnsupportedEncodingException {
         threadCount = args.length >= 1 ? Integer.parseInt(args[0]) : 32;
         messageSize = args.length >= 2 ? Integer.parseInt(args[1]) : 1024 * 2;
         ischeck = args.length >= 3 ? Boolean.parseBoolean(args[2]) : false;
@@ -72,7 +74,7 @@ public class TransactionProducer {
                     final double averageRT = ((end[5] - begin[5]) / (double) (end[3] - begin[3]));
 
                     System.out.printf(
-                            "Send TPS: %d Max RT: %d Average RT: %7.3f Send Failed: %d Response Failed: %d transaction checkCount: %d \n"//
+                            "Send TPS: %d Max RT: %d Average RT: %7.3f Send Failed: %d Response Failed: %d transaction checkCount: %d %n"//
                             , sendTps//
                             , statsBenchmark.getSendMessageMaxRT().get()//
                             , averageRT//
@@ -140,7 +142,7 @@ public class TransactionProducer {
     }
 
 
-    private static Message buildMessage(final int messageSize) {
+    private static Message buildMessage(final int messageSize) throws UnsupportedEncodingException {
         Message msg = new Message();
         msg.setTopic("BenchmarkTest");
 
@@ -149,7 +151,7 @@ public class TransactionProducer {
             sb.append("hello baby");
         }
 
-        msg.setBody(sb.toString().getBytes());
+        msg.setBody(sb.toString().getBytes(RemotingHelper.DEFAULT_CHARSET));
 
         return msg;
     }

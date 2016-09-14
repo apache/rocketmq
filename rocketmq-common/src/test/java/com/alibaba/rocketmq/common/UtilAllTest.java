@@ -115,7 +115,7 @@ public class UtilAllTest {
         }
     }
 
-    class DemoConfig {
+    static class DemoConfig {
         private int demoWidth = 0;
         private int demoLength = 0;
         private boolean demoOK = false;

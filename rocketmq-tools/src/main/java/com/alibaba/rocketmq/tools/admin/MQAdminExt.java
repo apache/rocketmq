@@ -204,7 +204,7 @@ public interface MQAdminExt extends MQAdmin {
             MQClientException, InterruptedException, MQBrokerException;
 
 
-    BrokerStatsData ViewBrokerStatsData(final String brokerAddr, final String statsName, final String statsKey)
+    BrokerStatsData viewBrokerStatsData(final String brokerAddr, final String statsName, final String statsKey)
             throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, MQClientException,
             InterruptedException;
 

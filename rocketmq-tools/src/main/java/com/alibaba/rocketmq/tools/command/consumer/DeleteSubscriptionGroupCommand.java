@@ -77,7 +77,7 @@ public class DeleteSubscriptionGroupCommand implements SubCommand {
                 adminExt.start();
 
                 adminExt.deleteSubscriptionGroup(addr, groupName);
-                System.out.printf("delete subscription group [%s] from broker [%s] success.\n", groupName,
+                System.out.printf("delete subscription group [%s] from broker [%s] success.%n", groupName,
                         addr);
 
                 return;
@@ -89,7 +89,7 @@ public class DeleteSubscriptionGroupCommand implements SubCommand {
                 for (String master : masterSet) {
                     adminExt.deleteSubscriptionGroup(master, groupName);
                     System.out.printf(
-                            "delete subscription group [%s] from broker [%s] in cluster [%s] success.\n",
+                            "delete subscription group [%s] from broker [%s] in cluster [%s] success.%n",
                             groupName, master, clusterName);
                 }
 

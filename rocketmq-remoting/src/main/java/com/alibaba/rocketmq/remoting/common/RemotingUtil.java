@@ -37,6 +37,7 @@ import java.util.Enumeration;
  */
 public class RemotingUtil {
     public static final String OS_NAME = System.getProperty("os.name");
+
     private static final Logger log = LoggerFactory.getLogger(RemotingHelper.RemotingLogName);
     private static boolean isLinuxPlatform = false;
     private static boolean isWindowsPlatform = false;
@@ -71,7 +72,7 @@ public class RemotingUtil {
                             }
                         }
                     } catch (final Exception e) {
-                        // ignore
+                        log.warn("Open ePoll Selector for linux platform exception", e);
                     }
                 }
             } catch (final Exception e) {
@@ -148,7 +149,7 @@ public class RemotingUtil {
 
     public static SocketAddress string2SocketAddress(final String addr) {
         String[] s = addr.split(":");
-        InetSocketAddress isa = new InetSocketAddress(s[0], Integer.valueOf(s[1]));
+        InetSocketAddress isa = new InetSocketAddress(s[0], Integer.parseInt(s[1]));
         return isa;
     }
 

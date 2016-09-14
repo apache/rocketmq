@@ -97,7 +97,7 @@ public class MixAll {
     public static String brokerVIPChannel(final boolean isChange, final String brokerAddr) {
         if (isChange) {
             String[] ipAndPort = brokerAddr.split(":");
-            String brokerAddrNew = ipAndPort[0] + ":" + (Integer.valueOf(ipAndPort[1]) - 2);
+            String brokerAddrNew = ipAndPort[0] + ":" + (Integer.parseInt(ipAndPort[1]) - 2);
             return brokerAddrNew;
         } else {
             return brokerAddr;
@@ -156,7 +156,7 @@ public class MixAll {
 
 
     public static final void string2FileNotSafe(final String str, final String fileName) throws IOException {
-        File file = new File(fileName);
+        File file = new File(fileName,DEFAULT_CHARSET);
         File fileParent = file.getParentFile();
         if (fileParent != null) {
             fileParent.mkdirs();
@@ -287,15 +287,12 @@ public class MixAll {
 
 
     public static String properties2String(final Properties properties) {
-        Set<Object> sets = properties.keySet();
         StringBuilder sb = new StringBuilder();
-        for (Object key : sets) {
-            Object value = properties.get(key);
-            if (value != null) {
-                sb.append(key.toString() + "=" + value.toString() + "\n");
+        for (Map.Entry<Object, Object> entry : properties.entrySet()) {
+            if (entry.getValue() != null) {
+                sb.append(entry.getKey().toString() + "=" + entry.getValue().toString() + "\n");
             }
         }
-
         return sb.toString();
     }
 

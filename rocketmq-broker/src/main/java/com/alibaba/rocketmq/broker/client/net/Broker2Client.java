@@ -205,13 +205,13 @@ public class Broker2Client {
         if (consumerGroupInfo != null && !consumerGroupInfo.getAllChannel().isEmpty()) {
             ConcurrentHashMap<Channel, ClientChannelInfo> channelInfoTable =
                     consumerGroupInfo.getChannelInfoTable();
-            for (Channel channel : channelInfoTable.keySet()) {
-                int version = channelInfoTable.get(channel).getVersion();
+            for (Map.Entry<Channel, ClientChannelInfo> entry : channelInfoTable.entrySet()) {
+                int version = entry.getValue().getVersion();
                 if (version >= MQVersion.Version.V3_0_7_SNAPSHOT.ordinal()) {
                     try {
-                        this.brokerController.getRemotingServer().invokeOneway(channel, request, 5000);
+                        this.brokerController.getRemotingServer().invokeOneway(entry.getKey(), request, 5000);
                         log.info("[reset-offset] reset offset success. topic={}, group={}, clientId={}",
-                                new Object[]{topic, group, channelInfoTable.get(channel).getClientId()});
+                                new Object[]{topic, group, entry.getValue().getClientId()});
                     } catch (Exception e) {
                         log.error("[reset-offset] reset offset exception. topic={}, group={}",
                                 new Object[]{topic, group}, e);
@@ -221,7 +221,7 @@ public class Broker2Client {
                     response.setRemark("the client does not support this feature. version="
                             + MQVersion.getVersionDesc(version));
                     log.warn("[reset-offset] the client does not support this feature. version={}",
-                            RemotingHelper.parseChannelRemoteAddr(channel), MQVersion.getVersionDesc(version));
+                            RemotingHelper.parseChannelRemoteAddr(entry.getKey()), MQVersion.getVersionDesc(version));
                     return response;
                 }
             }
@@ -278,22 +278,22 @@ public class Broker2Client {
             return result;
         }
 
-        for (Channel channel : channelInfoTable.keySet()) {
-            int version = channelInfoTable.get(channel).getVersion();
-            String clientId = channelInfoTable.get(channel).getClientId();
+        for(Map.Entry<Channel, ClientChannelInfo> entry : channelInfoTable.entrySet()){
+            int version = entry.getValue().getVersion();
+            String clientId = entry.getValue().getClientId();
             if (version < MQVersion.Version.V3_0_7_SNAPSHOT.ordinal()) {
                 result.setCode(ResponseCode.SYSTEM_ERROR);
                 result.setRemark("the client does not support this feature. version="
                         + MQVersion.getVersionDesc(version));
                 log.warn("[get-consumer-status] the client does not support this feature. version={}",
-                        RemotingHelper.parseChannelRemoteAddr(channel), MQVersion.getVersionDesc(version));
+                        RemotingHelper.parseChannelRemoteAddr(entry.getKey()), MQVersion.getVersionDesc(version));
                 return result;
             } else if (UtilAll.isBlank(originClientId) || originClientId.equals(clientId)) {
 
 
                 try {
                     RemotingCommand response =
-                            this.brokerController.getRemotingServer().invokeSync(channel, request, 5000);
+                            this.brokerController.getRemotingServer().invokeSync(entry.getKey(), request, 5000);
                     assert response != null;
                     switch (response.getCode()) {
                         case ResponseCode.SUCCESS: {
@@ -323,6 +323,7 @@ public class Broker2Client {
                 }
             }
         }
+
 
         result.setCode(ResponseCode.SUCCESS);
         GetConsumerStatusBody resBody = new GetConsumerStatusBody();

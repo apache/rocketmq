@@ -379,7 +379,7 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                             pollingTimeMills = this.brokerController.getBrokerConfig().getShortPollingTimeMills();
                         }
 
-                        String topic = new String(requestHeader.getTopic());
+                        String topic = requestHeader.getTopic();
                         long offset = requestHeader.getQueueOffset();
                         int queueId = requestHeader.getQueueId();
                         PullRequest pullRequest = new PullRequest(request, channel, pollingTimeMills,

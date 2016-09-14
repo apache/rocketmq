@@ -18,12 +18,15 @@ package com.alibaba.rocketmq.tools.command.broker;
 
 import com.alibaba.rocketmq.client.producer.DefaultMQProducer;
 import com.alibaba.rocketmq.client.producer.SendResult;
+import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.message.Message;
 import com.alibaba.rocketmq.remoting.RPCHook;
 import com.alibaba.rocketmq.tools.command.SubCommand;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
+
+import java.io.UnsupportedEncodingException;
 
 
 /**
@@ -87,7 +90,7 @@ public class SendMsgStatusCommand implements SubCommand {
     }
 
 
-    private static Message buildMessage(final String topic, final int messageSize) {
+    private static Message buildMessage(final String topic, final int messageSize) throws UnsupportedEncodingException {
         Message msg = new Message();
         msg.setTopic(topic);
 
@@ -95,7 +98,7 @@ public class SendMsgStatusCommand implements SubCommand {
         for (int i = 0; i < messageSize; i += 11) {
             sb.append("hello jodie");
         }
-        msg.setBody(sb.toString().getBytes());
+        msg.setBody(sb.toString().getBytes(MixAll.DEFAULT_CHARSET));
         return msg;
     }
 }

@@ -188,6 +188,11 @@ public class BrokerStatsManager {
         this.momentStatsItemSetFallSize.getAndCreateStatsItem(statsKey).getValue().set(fallBehind);
     }
 
+    public void incCommercialValue(final String key, final String owner, final String group,
+                                   final String topic, final String type, final int incValue) {
+        final String statsKey = buildCommercialStatsKey(owner, topic, group, type);
+        this.statsTable.get(key).addValue(statsKey, incValue, 1);
+    }
 
     public String buildCommercialStatsKey(String owner, String topic, String group, String type) {
         StringBuffer strBuilder = new StringBuffer();

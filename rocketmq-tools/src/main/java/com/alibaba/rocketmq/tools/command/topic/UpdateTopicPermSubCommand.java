@@ -100,7 +100,7 @@ public class UpdateTopicPermSubCommand implements SubCommand {
             if (commandLine.hasOption('b')) {
                 String addr = commandLine.getOptionValue('b').trim();
                 defaultMQAdminExt.createAndUpdateTopicConfig(addr, topicConfig);
-                System.out.printf("update topic perm from %s to %s in %s success.\n", oldPerm, perm, addr);
+                System.out.printf("update topic perm from %s to %s in %s success.%n", oldPerm, perm, addr);
                 System.out.println(topicConfig);
                 return;
             } else if (commandLine.hasOption('c')) {
@@ -109,7 +109,7 @@ public class UpdateTopicPermSubCommand implements SubCommand {
                         CommandUtil.fetchMasterAddrByClusterName(defaultMQAdminExt, clusterName);
                 for (String addr : masterSet) {
                     defaultMQAdminExt.createAndUpdateTopicConfig(addr, topicConfig);
-                    System.out.printf("update topic perm from %s to %s in %s success.\n", oldPerm, perm, addr);
+                    System.out.printf("update topic perm from %s to %s in %s success.%n", oldPerm, perm, addr);
                 }
                 return;
             }

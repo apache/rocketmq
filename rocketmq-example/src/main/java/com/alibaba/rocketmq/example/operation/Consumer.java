@@ -52,7 +52,7 @@ public class Consumer {
                                                                 ConsumeConcurrentlyContext context) {
                     long currentTimes = this.consumeTimes.incrementAndGet();
 
-                    System.out.printf("%-8d %s\n", currentTimes, msgs);
+                    System.out.printf("%-8d %s%n", currentTimes, msgs);
 
                     if (Boolean.parseBoolean(returnFailedHalf)) {
                         if ((currentTimes % 2) == 0) {

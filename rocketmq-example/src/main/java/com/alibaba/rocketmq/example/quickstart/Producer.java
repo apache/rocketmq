@@ -22,6 +22,7 @@ import com.alibaba.rocketmq.client.producer.LocalTransactionExecuter;
 import com.alibaba.rocketmq.client.producer.LocalTransactionState;
 import com.alibaba.rocketmq.client.producer.SendResult;
 import com.alibaba.rocketmq.common.message.Message;
+import com.alibaba.rocketmq.remoting.common.RemotingHelper;
 
 public class Producer {
     public static void main(String[] args) throws MQClientException, InterruptedException {
@@ -32,7 +33,7 @@ public class Producer {
             try {
                 Message msg = new Message("TopicTest",// topic
                         "TagA",// tag
-                        ("Hello RocketMQ " + i).getBytes()// body
+                        ("Hello RocketMQ " + i).getBytes(RemotingHelper.DEFAULT_CHARSET)// body
                 );
                 SendResult sendResult = producer.send(msg);
                 LocalTransactionExecuter tranExecuter = new LocalTransactionExecuter() {

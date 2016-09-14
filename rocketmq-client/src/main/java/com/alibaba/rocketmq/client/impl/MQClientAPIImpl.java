@@ -1082,7 +1082,7 @@ public class MQClientAPIImpl {
         assert response != null;
         switch (response.getCode()) {
             case ResponseCode.SUCCESS: {
-                return MixAll.string2Properties(new String(response.getBody()));
+                return MixAll.string2Properties(new String(response.getBody(),MixAll.DEFAULT_CHARSET));
             }
             default:
                 break;
@@ -1839,7 +1839,7 @@ public class MQClientAPIImpl {
     }
 
 
-    public BrokerStatsData ViewBrokerStatsData(String brokerAddr, String statsName, String statsKey, long timeoutMillis)
+    public BrokerStatsData viewBrokerStatsData(String brokerAddr, String statsName, String statsKey, long timeoutMillis)
             throws MQClientException, RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException,
             InterruptedException {
         ViewBrokerStatsDataRequestHeader requestHeader = new ViewBrokerStatsDataRequestHeader();
