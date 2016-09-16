@@ -53,7 +53,7 @@ public class MessageDecoder {
         input.put(addr);
         input.putLong(offset);
 
-        return UtilAll.bytes2stringNew(input.array());
+        return UtilAll.bytes2string(input.array());
     }
 
 

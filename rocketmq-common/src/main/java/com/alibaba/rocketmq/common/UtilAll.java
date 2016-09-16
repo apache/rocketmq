@@ -229,25 +229,8 @@ public class UtilAll {
         return (int) (crc32.getValue() & 0x7FFFFFFF);
     }
 
-    public static String bytes2string(byte[] src) {
-        StringBuilder sb = new StringBuilder();
-        if (src == null || src.length <= 0) {
-            return null;
-        }
-        for (int i = 0; i < src.length; i++) {
-            int v = src[i] & 0xFF;
-            String hv = Integer.toHexString(v);
-            if (hv.length() < 2) {
-                sb.append(0);
-            }
-            sb.append(hv.toUpperCase());
-        }
-        return sb.toString();
-    }
-
-    // FIXME: 16/9/2 Need unit tests
     final static char[] hexArray = "0123456789ABCDEF".toCharArray();
-    public static String bytes2stringNew(byte[] src) {
+    public static String bytes2string(byte[] src) {
         char[] hexChars = new char[src.length * 2];
         for ( int j = 0; j < src.length; j++ ) {
             int v = src[j] & 0xFF;
