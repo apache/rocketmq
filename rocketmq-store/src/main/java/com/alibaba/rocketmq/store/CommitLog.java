@@ -38,6 +38,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 
 /**
@@ -63,8 +64,10 @@ public class CommitLog {
     private HashMap<String/* topic-queueid */, Long/* offset */> topicQueueTable = new HashMap<String, Long>(1024);
     private volatile long confirmOffset = -1L;
 
-    // now beginTimeInLock has a different semantic
     private volatile long beginTimeInLock = 0;
+
+    //true: Can lock, false : in lock.
+    private AtomicBoolean putMessageSpinLock = new AtomicBoolean(true);
 
     private final ExecutorService threadWakeUpService = new ThreadPoolExecutor(1, 1,
             0L, TimeUnit.MILLISECONDS,
@@ -568,7 +571,9 @@ public class CommitLog {
         long eclipseTimeInLock = 0;
         MappedFile unlockMappedFile = null;
         MappedFile mappedFile = this.mappedFileQueue.getLastMappedFile();
-        synchronized (this) {
+
+        lockForPutMessage(); //spin...
+        try {
             long beginLockTimestamp = this.defaultMessageStore.getSystemClock().now();
             this.beginTimeInLock = beginLockTimestamp;
 
@@ -615,6 +620,8 @@ public class CommitLog {
 
             eclipseTimeInLock = this.defaultMessageStore.getSystemClock().now() - beginLockTimestamp;
             beginTimeInLock = 0;
+        } finally {
+            releasePutMessageLock();
         }
 
         if (eclipseTimeInLock > 100) {
@@ -1247,8 +1254,22 @@ public class CommitLog {
                     service.wakeup();
                 }
             });
-        } catch (Exception e) {
+        } catch (Throwable e) {
             log.warn("Can't submit wakeup task to threadWakeUpService");
         }
+    }
+
+    /**
+     * Spin util acquired the lock.
+     */
+    private void lockForPutMessage() {
+        boolean flag;
+        do {
+            flag = this.putMessageSpinLock.compareAndSet(true, false);
+        } while (!flag);
+    }
+
+    private void releasePutMessageLock() {
+        this.putMessageSpinLock.compareAndSet(false, true);
     }
 }
