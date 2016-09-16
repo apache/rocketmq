@@ -52,6 +52,11 @@ public abstract class AbstractPluginMessageStore implements MessageStore {
     }
 
     @Override
+    public boolean isTransientStorePoolDeficient() {
+        return next.isTransientStorePoolDeficient();
+    }
+
+    @Override
     public boolean load() {
         return next.load();
     }

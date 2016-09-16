@@ -629,7 +629,7 @@ public class CommitLog {
         }
 
         if (null != unlockMappedFile && this.defaultMessageStore.getMessageStoreConfig().isWarmMapedFileEnable()) {
-            this.defaultMessageStore.unlockMapedFile(unlockMappedFile);
+            this.defaultMessageStore.unlockMappedFile(unlockMappedFile);
         }
 
 

@@ -275,6 +275,11 @@ public class MockMessageStore implements MessageStore {
     }
 
     @Override
+    public boolean isTransientStorePoolDeficient() {
+        return false;
+    }
+
+    @Override
     public long lockTimeMills() {
         return 0;
     }

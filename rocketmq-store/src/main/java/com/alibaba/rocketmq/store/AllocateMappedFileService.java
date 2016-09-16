@@ -54,9 +54,11 @@ public class AllocateMappedFileService extends ServiceThread {
 
     public MappedFile putRequestAndReturnMappedFile(String nextFilePath, String nextNextFilePath, int fileSize) {
         int canSubmitRequests = 2;
-        if (this.messageStore.getMessageStoreConfig().isFastFailIfNoBufferInStorePool()
-                && BrokerRole.SLAVE != this.messageStore.getMessageStoreConfig().getBrokerRole()) { //if broker is slave, don't fast fail even no buffer in pool
-            canSubmitRequests = this.messageStore.getTransientStorePool().remainBufferNumbs() - this.requestQueue.size();
+        if (this.messageStore.getMessageStoreConfig().isTransientStorePoolEnable()) {
+            if (this.messageStore.getMessageStoreConfig().isFastFailIfNoBufferInStorePool()
+                    && BrokerRole.SLAVE != this.messageStore.getMessageStoreConfig().getBrokerRole()) { //if broker is slave, don't fast fail even no buffer in pool
+                canSubmitRequests = this.messageStore.getTransientStorePool().remainBufferNumbs() - this.requestQueue.size();
+            }
         }
 
         AllocateRequest nextReq = new AllocateRequest(nextFilePath, fileSize);

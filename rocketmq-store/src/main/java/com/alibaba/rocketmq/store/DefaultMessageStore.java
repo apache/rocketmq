@@ -336,7 +336,7 @@ public class DefaultMessageStore implements MessageStore {
         return result;
     }
 
-
+    @Override
     public boolean isOSPageCacheBusy() {
         long begin = this.getCommitLog().getBeginTimeInLock();
         long diff = this.systemClock.now() - begin;
@@ -1746,8 +1746,13 @@ public class DefaultMessageStore implements MessageStore {
         return this.transientStorePool.remainBufferNumbs();
     }
 
+    @Override
+    public boolean isTransientStorePoolDeficient() {
+        return remainTransientStoreBufferNumbs() == 0;
+    }
 
-    public void unlockMapedFile(final MappedFile mappedFile){
+
+    public void unlockMappedFile(final MappedFile mappedFile){
         this.scheduledExecutorService.schedule(new Runnable() {
             @Override
             public void run() {

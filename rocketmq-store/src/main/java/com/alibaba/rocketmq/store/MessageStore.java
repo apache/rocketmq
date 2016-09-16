@@ -136,4 +136,6 @@ public interface MessageStore {
     boolean isOSPageCacheBusy();
 
     long lockTimeMills();
+
+    boolean isTransientStorePoolDeficient();
 }
