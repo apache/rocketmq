@@ -14,65 +14,62 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  */
-package com.alibaba.rocketmq.tools.command.namesrv;
+package com.alibaba.rocketmq.tools.command.message;
 
+import com.alibaba.rocketmq.common.UtilAll;
+import com.alibaba.rocketmq.common.message.MessageClientIDSetter;
 import com.alibaba.rocketmq.remoting.RPCHook;
-import com.alibaba.rocketmq.tools.admin.DefaultMQAdminExt;
 import com.alibaba.rocketmq.tools.command.SubCommand;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 
-
 /**
- *
- * @author manhong.yqd
- *
+ * Created by jodie on 16/8/18.
  */
-public class DeleteKvConfigCommand implements SubCommand {
+public class DecodeMessageIdCommond implements SubCommand {
     @Override
     public String commandName() {
-        return "deleteKvConfig";
+        return "DecodeMessageId";
     }
 
 
     @Override
     public String commandDesc() {
-        return "Delete KV config.";
+        return "decode unique message ID";
     }
 
 
     @Override
     public Options buildCommandlineOptions(Options options) {
-        Option opt = new Option("s", "namespace", true, "set the namespace");
-        opt.setRequired(true);
-        options.addOption(opt);
-
-        opt = new Option("k", "key", true, "set the key name");
-        opt.setRequired(true);
+        Option opt = new Option("i", "messageId", true, "unique message ID");
+        opt.setRequired(false);
         options.addOption(opt);
         return options;
     }
 
 
     @Override
-    public void execute(CommandLine commandLine, Options options, RPCHook rpcHook) {
-        DefaultMQAdminExt defaultMQAdminExt = new DefaultMQAdminExt(rpcHook);
-        defaultMQAdminExt.setInstanceName(Long.toString(System.currentTimeMillis()));
-        try {
-            // namespace
-            String namespace = commandLine.getOptionValue('s').trim();
-            // key name
-            String key = commandLine.getOptionValue('k').trim();
+    public void execute(final CommandLine commandLine, final Options options, RPCHook rpcHook) {
+        String messageId = commandLine.getOptionValue('i').trim();
 
-            defaultMQAdminExt.start();
-            defaultMQAdminExt.deleteKvConfig(namespace, key);
-            System.out.printf("delete kv config from namespace success.%n");
-            return;
+        try {
+            System.out.println("ip=" + MessageClientIDSetter.getIPStrFromID(messageId));
         } catch (Exception e) {
             e.printStackTrace();
-        } finally {
-            defaultMQAdminExt.shutdown();
         }
+
+        try {
+            String date = UtilAll.formatDate(MessageClientIDSetter.getNearlyTimeFromID(messageId), UtilAll.yyyy_MM_dd_HH_mm_ss_SSS);
+            System.out.println("date=" + date);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static void main(String[] args) {
+        System.out.println(MessageClientIDSetter.getIPStrFromID("783786393794180EEDC3636C5D3A0011"));
+        System.out.println(MessageClientIDSetter.getIPStrFromID("783786393794180EEDC3636C5D420013"));
+        System.out.println(MessageClientIDSetter.getIPStrFromID("783786393794180EEDC36386D07B001F"));
     }
 }

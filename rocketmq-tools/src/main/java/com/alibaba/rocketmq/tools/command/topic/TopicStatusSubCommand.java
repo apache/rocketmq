@@ -77,7 +77,7 @@ public class TopicStatusSubCommand implements SubCommand {
             mqList.addAll(topicStatsTable.getOffsetTable().keySet());
             Collections.sort(mqList);
 
-            System.out.printf("%-32s  %-4s  %-20s  %-20s    %s\n",//
+            System.out.printf("%-32s  %-4s  %-20s  %-20s    %s%n",//
                     "#Broker Name",//
                     "#QID",//
                     "#Min Offset",//
@@ -93,7 +93,7 @@ public class TopicStatusSubCommand implements SubCommand {
                     humanTimestamp = UtilAll.timeMillisToHumanString2(topicOffset.getLastUpdateTimestamp());
                 }
 
-                System.out.printf("%-32s  %-4d  %-20d  %-20d    %s\n",//
+                System.out.printf("%-32s  %-4d  %-20d  %-20d    %s%n",//
                         UtilAll.frontStringAtLeast(mq.getBrokerName(), 32),//
                         mq.getQueueId(),//
                         topicOffset.getMinOffset(),//

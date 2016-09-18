@@ -21,10 +21,14 @@ import com.alibaba.rocketmq.client.producer.DefaultMQProducer;
 import com.alibaba.rocketmq.client.producer.SendCallback;
 import com.alibaba.rocketmq.client.producer.SendResult;
 import com.alibaba.rocketmq.common.message.Message;
+import com.alibaba.rocketmq.remoting.common.RemotingHelper;
+
+import java.io.UnsupportedEncodingException;
+import com.alibaba.rocketmq.remoting.common.RemotingHelper;
 
 
 public class AsyncProducer {
-    public static void main(String[] args) throws MQClientException, InterruptedException {
+    public static void main(String[] args) throws MQClientException, InterruptedException, UnsupportedEncodingException {
 
         DefaultMQProducer producer = new DefaultMQProducer("Jodie_Daily_test");
 
@@ -37,7 +41,7 @@ public class AsyncProducer {
                 Message msg = new Message("Jodie_topic_1023",// topic
                         "TagA",// tag
                         "OrderID188",// key
-                        ("Hello MetaQ").getBytes());// body
+                        ("Hello MetaQ").getBytes(RemotingHelper.DEFAULT_CHARSET));// body
                 producer.send(msg, new SendCallback() {
                     @Override
                     public void onSuccess(SendResult sendResult) {

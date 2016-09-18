@@ -528,8 +528,8 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
 
             StringBuilder newOrderConf = new StringBuilder();
             String splitor = "";
-            for (String tmp : orderConfMap.keySet()) {
-                newOrderConf.append(splitor).append(orderConfMap.get(tmp));
+            for (Map.Entry<String, String> entry : orderConfMap.entrySet()) {
+                newOrderConf.append(splitor).append(entry.getValue());
                 splitor = ";";
             }
             this.mqClientInstance.getMQClientAPIImpl().putKVConfigValue(NamesrvUtil.NAMESPACE_ORDER_TOPIC_CONFIG, key,
@@ -812,9 +812,9 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
     }
 
     @Override
-    public BrokerStatsData ViewBrokerStatsData(String brokerAddr, String statsName, String statsKey) throws RemotingConnectException,
+    public BrokerStatsData viewBrokerStatsData(String brokerAddr, String statsName, String statsKey) throws RemotingConnectException,
             RemotingSendRequestException, RemotingTimeoutException, MQClientException, InterruptedException {
-        return this.mqClientInstance.getMQClientAPIImpl().ViewBrokerStatsData(brokerAddr, statsName, statsKey, timeoutMillis);
+        return this.mqClientInstance.getMQClientAPIImpl().viewBrokerStatsData(brokerAddr, statsName, statsKey, timeoutMillis);
     }
 
     @Override

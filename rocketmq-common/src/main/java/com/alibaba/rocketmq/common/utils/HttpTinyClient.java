@@ -18,6 +18,7 @@
 package com.alibaba.rocketmq.common.utils;
 
 import com.alibaba.rocketmq.common.MQVersion;
+import com.alibaba.rocketmq.common.MixAll;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
@@ -122,7 +123,7 @@ public class HttpTinyClient {
             conn.setDoInput(true);
             setHeaders(conn, headers, encoding);
 
-            conn.getOutputStream().write(encodedContent.getBytes());
+            conn.getOutputStream().write(encodedContent.getBytes(MixAll.DEFAULT_CHARSET));
 
             int respCode = conn.getResponseCode();
             String resp = null;

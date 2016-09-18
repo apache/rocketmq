@@ -62,8 +62,21 @@ public class DataVersion extends RemotingSerializable {
 
 
     @Override
-    public boolean equals(Object obj) {
-        DataVersion dv = (DataVersion) obj;
-        return this.timestatmp == dv.timestatmp && this.counter.get() == dv.counter.get();
+    public boolean equals(final Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        final DataVersion that = (DataVersion) o;
+
+        if (timestatmp != that.timestatmp) return false;
+        return counter != null ? counter.equals(that.counter) : that.counter == null;
+
+    }
+
+    @Override
+    public int hashCode() {
+        int result = (int) (timestatmp ^ (timestatmp >>> 32));
+        result = 31 * result + (counter != null ? counter.hashCode() : 0);
+        return result;
     }
 }

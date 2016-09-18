@@ -81,7 +81,7 @@ public class ResetOffsetByTimeOldCommand implements SubCommand {
             String timeStampStr = commandLine.getOptionValue("s").trim();
             long timestamp = 0;
             try {
-                timestamp = Long.valueOf(timeStampStr);
+                timestamp = Long.parseLong(timeStampStr);
             } catch (NumberFormatException e) {
 
                 Date date = UtilAll.parseDate(timeStampStr, UtilAll.yyyy_MM_dd_HH_mm_ss_SSS);
@@ -112,10 +112,10 @@ public class ResetOffsetByTimeOldCommand implements SubCommand {
                                    String timeStampStr) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
         List<RollbackStats> rollbackStatsList = defaultMQAdminExt.resetOffsetByTimestampOld(consumerGroup, topic, timestamp, force);
         System.out.printf(
-                "rollback consumer offset by specified consumerGroup[%s], topic[%s], force[%s], timestamp(string)[%s], timestamp(long)[%s]\n",
+                "rollback consumer offset by specified consumerGroup[%s], topic[%s], force[%s], timestamp(string)[%s], timestamp(long)[%s]%n",
                 consumerGroup, topic, force, timeStampStr, timestamp);
 
-        System.out.printf("%-20s  %-20s  %-20s  %-20s  %-20s  %-20s\n",//
+        System.out.printf("%-20s  %-20s  %-20s  %-20s  %-20s  %-20s%n",//
                 "#brokerName",//
                 "#queueId",//
                 "#brokerOffset",//
@@ -125,7 +125,7 @@ public class ResetOffsetByTimeOldCommand implements SubCommand {
         );
 
         for (RollbackStats rollbackStats : rollbackStatsList) {
-            System.out.printf("%-20s  %-20d  %-20d  %-20d  %-20d  %-20d\n",//
+            System.out.printf("%-20s  %-20d  %-20d  %-20d  %-20d  %-20d%n",//
                     UtilAll.frontStringAtLeast(rollbackStats.getBrokerName(), 32),//
                     rollbackStats.getQueueId(),//
                     rollbackStats.getBrokerOffset(),//

@@ -77,7 +77,7 @@ public class TopicListSubCommand implements SubCommand {
             if (commandLine.hasOption('c')) {
                 ClusterInfo clusterInfo = defaultMQAdminExt.examineBrokerClusterInfo();
 
-                System.out.printf("%-20s  %-48s  %-48s\n",//
+                System.out.printf("%-20s  %-48s  %-48s%n",//
                         "#Cluster Name",//
                         "#Topic",//
                         "#Consumer Group"//
@@ -106,7 +106,7 @@ public class TopicListSubCommand implements SubCommand {
                     }
 
                     for (String group : groupList.getGroupList()) {
-                        System.out.printf("%-20s  %-48s  %-48s\n",//
+                        System.out.printf("%-20s  %-48s  %-48s%n",//
                                 UtilAll.frontStringAtLeast(clusterName, 20),//
                                 UtilAll.frontStringAtLeast(topic, 48),//
                                 UtilAll.frontStringAtLeast(group, 48)//

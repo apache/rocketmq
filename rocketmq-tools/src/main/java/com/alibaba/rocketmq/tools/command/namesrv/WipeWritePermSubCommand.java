@@ -67,13 +67,13 @@ public class WipeWritePermSubCommand implements SubCommand {
                 for (String namesrvAddr : namesrvList) {
                     try {
                         int wipeTopicCount = defaultMQAdminExt.wipeWritePermOfBroker(namesrvAddr, brokerName);
-                        System.out.printf("wipe write perm of broker[%s] in name server[%s] OK, %d\n",//
+                        System.out.printf("wipe write perm of broker[%s] in name server[%s] OK, %d%n",//
                                 brokerName,//
                                 namesrvAddr,//
                                 wipeTopicCount//
                         );
                     } catch (Exception e) {
-                        System.out.printf("wipe write perm of broker[%s] in name server[%s] Failed\n",//
+                        System.out.printf("wipe write perm of broker[%s] in name server[%s] Failed%n",//
                                 brokerName,//
                                 namesrvAddr//
                         );

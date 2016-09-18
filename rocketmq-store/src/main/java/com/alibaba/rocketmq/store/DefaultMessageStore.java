@@ -913,7 +913,7 @@ public class DefaultMessageStore implements MessageStore {
                             long offsetPy = bufferConsumeQueue.getByteBuffer().getLong();
                             final ByteBuffer msgIdMemory = ByteBuffer.allocate(MessageDecoder.MSG_ID_LENGTH);
                             String msgId =
-                                    MessageDecoder.createMessageId(msgIdMemory, MessageExt.SocketAddress2ByteBuffer(storeHost), offsetPy);
+                                    MessageDecoder.createMessageId(msgIdMemory, MessageExt.socketAddress2ByteBuffer(storeHost), offsetPy);
                             messageIds.put(msgId, nextOffset++);
                             if (nextOffset > maxOffset) {
                                 return messageIds;
@@ -1357,7 +1357,7 @@ public class DefaultMessageStore implements MessageStore {
             if (timeup || spacefull || manualDelete) {
 
                 if (manualDelete)
-                    this.manualDeleteFileSeveralTimes--;
+                    this.manualDeleteFileSeveralTimes --;
 
 
                 boolean cleanAtOnce = DefaultMessageStore.this.getMessageStoreConfig().isCleanFileForciblyEnable() && this.cleanImmediately;
@@ -1420,7 +1420,6 @@ public class DefaultMessageStore implements MessageStore {
                     boolean diskok = DefaultMessageStore.this.runningFlags.getAndMakeDiskFull();
                     if (diskok) {
                         DefaultMessageStore.log.error("physic disk maybe full soon " + physicRatio + ", so mark disk full");
-                        System.gc();
                     }
 
                     cleanImmediately = true;
@@ -1448,7 +1447,6 @@ public class DefaultMessageStore implements MessageStore {
                     boolean diskok = DefaultMessageStore.this.runningFlags.getAndMakeDiskFull();
                     if (diskok) {
                         DefaultMessageStore.log.error("logics disk maybe full soon " + logicsRatio + ", so mark disk full");
-                        System.gc();
                     }
 
                     cleanImmediately = true;
@@ -1473,7 +1471,6 @@ public class DefaultMessageStore implements MessageStore {
         public int getManualDeleteFileSeveralTimes() {
             return manualDeleteFileSeveralTimes;
         }
-
 
         public void setManualDeleteFileSeveralTimes(int manualDeleteFileSeveralTimes) {
             this.manualDeleteFileSeveralTimes = manualDeleteFileSeveralTimes;

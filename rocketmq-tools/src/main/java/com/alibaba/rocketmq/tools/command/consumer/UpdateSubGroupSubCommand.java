@@ -153,7 +153,7 @@ public class UpdateSubGroupSubCommand implements SubCommand {
                 defaultMQAdminExt.start();
 
                 defaultMQAdminExt.createAndUpdateSubscriptionGroupConfig(addr, subscriptionGroupConfig);
-                System.out.printf("create subscription group to %s success.\n", addr);
+                System.out.printf("create subscription group to %s success.%n", addr);
                 System.out.println(subscriptionGroupConfig);
                 return;
 
@@ -167,7 +167,7 @@ public class UpdateSubGroupSubCommand implements SubCommand {
                 for (String addr : masterSet) {
                     try {
                         defaultMQAdminExt.createAndUpdateSubscriptionGroupConfig(addr, subscriptionGroupConfig);
-                        System.out.printf("create subscription group to %s success.\n", addr);
+                        System.out.printf("create subscription group to %s success.%n", addr);
                     } catch (Exception e) {
                         e.printStackTrace();
                         Thread.sleep(1000 * 1);

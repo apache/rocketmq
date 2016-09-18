@@ -102,7 +102,7 @@ public class ConsumerStatusSubCommand implements SubCommand {
                             criTable.put(conn.getClientId(), consumerRunningInfo);
                             String filePath = now + "/" + conn.getClientId();
                             MixAll.string2FileNotSafe(consumerRunningInfo.formatString(), filePath);
-                            System.out.printf("%03d  %-40s %-20s %s\n",//
+                            System.out.printf("%03d  %-40s %-20s %s%n",//
                                     i++,//
                                     conn.getClientId(),//
                                     MQVersion.getVersionDesc(conn.getVersion()),//
@@ -119,9 +119,9 @@ public class ConsumerStatusSubCommand implements SubCommand {
                     boolean rebalanceOK = subSame && ConsumerRunningInfo.analyzeRebalance(criTable);
 
                     if (subSame) {
-                        System.out.println("\n\nSame subscription in the same group of consumer");
+                        System.out.println("%n%nSame subscription in the same group of consumer");
 
-                        System.out.printf("\n\nRebalance %s\n", rebalanceOK ? "OK" : "Failed");
+                        System.out.printf("%n%nRebalance %s%n", rebalanceOK ? "OK" : "Failed");
 
                         Iterator<Entry<String, ConsumerRunningInfo>> it = criTable.entrySet().iterator();
                         while (it.hasNext()) {

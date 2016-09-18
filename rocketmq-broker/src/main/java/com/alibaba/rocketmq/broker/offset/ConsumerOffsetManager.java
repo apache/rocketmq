@@ -209,10 +209,12 @@ public class ConsumerOffsetManager extends ConfigManager {
                 }
             }
         }
-        for (String topicGroup : topicGroups) {
+
+        for (Map.Entry<String, ConcurrentHashMap<Integer, Long>> offSetEntry : this.offsetTable.entrySet()) {
+            String topicGroup = offSetEntry.getKey();
             String[] topicGroupArr = topicGroup.split(TOPIC_GROUP_SEPARATOR);
             if (topic.equals(topicGroupArr[0])) {
-                for (Entry<Integer, Long> entry : this.offsetTable.get(topicGroup).entrySet()) {
+                for (Entry<Integer, Long> entry : offSetEntry.getValue().entrySet()) {
                     long minOffset = this.brokerController.getMessageStore().getMinOffsetInQuque(topic, entry.getKey());
                     if (entry.getValue() >= minOffset) {
                         Long offset = queueMinOffset.get(entry.getKey());
@@ -224,6 +226,7 @@ public class ConsumerOffsetManager extends ConfigManager {
                     }
                 }
             }
+
         }
         return queueMinOffset;
     }
@@ -242,4 +245,5 @@ public class ConsumerOffsetManager extends ConfigManager {
             this.offsetTable.put(topic + TOPIC_GROUP_SEPARATOR + destGroup, new ConcurrentHashMap<Integer, Long>(offsets));
         }
     }
+
 }

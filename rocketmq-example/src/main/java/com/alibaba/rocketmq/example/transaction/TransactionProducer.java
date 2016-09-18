@@ -21,6 +21,9 @@ import com.alibaba.rocketmq.client.producer.SendResult;
 import com.alibaba.rocketmq.client.producer.TransactionCheckListener;
 import com.alibaba.rocketmq.client.producer.TransactionMQProducer;
 import com.alibaba.rocketmq.common.message.Message;
+import com.alibaba.rocketmq.remoting.common.RemotingHelper;
+
+import java.io.UnsupportedEncodingException;
 
 public class TransactionProducer {
     public static void main(String[] args) throws MQClientException, InterruptedException {
@@ -42,12 +45,14 @@ public class TransactionProducer {
             try {
                 Message msg =
                         new Message("TopicTest", tags[i % tags.length], "KEY" + i,
-                                ("Hello RocketMQ " + i).getBytes());
+                                ("Hello RocketMQ " + i).getBytes(RemotingHelper.DEFAULT_CHARSET));
                 SendResult sendResult = producer.sendMessageInTransaction(msg, tranExecuter, null);
                 System.out.println(sendResult);
 
                 Thread.sleep(10);
             } catch (MQClientException e) {
+                e.printStackTrace();
+            } catch (UnsupportedEncodingException e) {
                 e.printStackTrace();
             }
         }

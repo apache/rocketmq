@@ -197,7 +197,7 @@ public class AllocateMapedFileService extends ServiceThread {
         return true;
     }
 
-    class AllocateRequest implements Comparable<AllocateRequest> {
+    static class AllocateRequest implements Comparable<AllocateRequest> {
         // Full file path
         private String filePath;
         private int fileSize;

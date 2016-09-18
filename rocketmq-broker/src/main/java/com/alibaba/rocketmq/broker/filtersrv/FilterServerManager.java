@@ -148,7 +148,7 @@ public class FilterServerManager {
         return addr;
     }
 
-    class FilterServerInfo {
+    static class FilterServerInfo {
         private String filterServerAddr;
         private long lastUpdateTimestamp;
 

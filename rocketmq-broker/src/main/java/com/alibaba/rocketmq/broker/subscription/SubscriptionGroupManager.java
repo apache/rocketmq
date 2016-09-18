@@ -132,8 +132,10 @@ public class SubscriptionGroupManager extends ConfigManager {
             if (brokerController.getBrokerConfig().isAutoCreateSubscriptionGroup() || MixAll.isSysConsumerGroup(group)) {
                 subscriptionGroupConfig = new SubscriptionGroupConfig();
                 subscriptionGroupConfig.setGroupName(group);
-                this.subscriptionGroupTable.putIfAbsent(group, subscriptionGroupConfig);
-                log.info("auto create a subscription group, {}", subscriptionGroupConfig.toString());
+                SubscriptionGroupConfig preConfig = this.subscriptionGroupTable.putIfAbsent(group, subscriptionGroupConfig);
+                if(null == preConfig){
+                    log.info("auto create a subscription group, {}", subscriptionGroupConfig.toString());
+                }
                 this.dataVersion.nextVersion();
                 this.persist();
             }

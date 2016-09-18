@@ -838,7 +838,7 @@ public class CommitLog {
         }
     }
 
-    public class GroupCommitRequest {
+    public static class GroupCommitRequest {
         private final long nextOffset;
         private final CountDownLatch countDownLatch = new CountDownLatch(1);
         private volatile boolean flushOK = false;

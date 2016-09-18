@@ -78,7 +78,7 @@ public class SyncDocsToGithubSubCommand implements SubCommand {
                         int issueId = Integer.parseInt(file.getName());
                         String body = MixAll.file2String(file);
                         boolean result = syncIssue(rep, issueId, body);
-                        System.out.printf("Sync issue <%d> to github.com %s\n", issueId, result ? "OK"
+                        System.out.printf("Sync issue <%d> to github.com %s%n", issueId, result ? "OK"
                                 : "Failed");
                     }
                 }
@@ -99,7 +99,7 @@ public class SyncDocsToGithubSubCommand implements SubCommand {
 
                         String body = MixAll.file2String(file);
                         boolean result = syncWiki(rep, fileName, body);
-                        System.out.printf("Sync wiki <%s> to github.com %s\n", fileName, result ? "OK"
+                        System.out.printf("Sync wiki <%s> to github.com %s%n", fileName, result ? "OK"
                                 : "Failed");
                     }
                 }

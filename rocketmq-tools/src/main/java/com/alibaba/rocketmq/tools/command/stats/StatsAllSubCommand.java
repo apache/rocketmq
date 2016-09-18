@@ -74,7 +74,7 @@ public class StatsAllSubCommand implements SubCommand {
 
             TopicList topicList = defaultMQAdminExt.fetchAllTopicList();
 
-            System.out.printf("%-32s  %-32s %11s %11s %14s %14s\n",//
+            System.out.printf("%-32s  %-32s %11s %11s %14s %14s%n",//
                     "#Topic",//
                     "#Consumer Group",//
                     "#InTPS",//
@@ -117,7 +117,7 @@ public class StatsAllSubCommand implements SubCommand {
             String masterAddr = bd.getBrokerAddrs().get(MixAll.MASTER_ID);
             if (masterAddr != null) {
                 try {
-                    BrokerStatsData bsd = admin.ViewBrokerStatsData(masterAddr, BrokerStatsManager.TOPIC_PUT_NUMS, topic);
+                    BrokerStatsData bsd = admin.viewBrokerStatsData(masterAddr, BrokerStatsManager.TOPIC_PUT_NUMS, topic);
                     inTPS += bsd.getStatsMinute().getTps();
                     inMsgCntToday += compute24HourSum(bsd);
                 } catch (Exception e) {
@@ -136,7 +136,7 @@ public class StatsAllSubCommand implements SubCommand {
                     if (masterAddr != null) {
                         try {
                             String statsKey = String.format("%s@%s", topic, group);
-                            BrokerStatsData bsd = admin.ViewBrokerStatsData(masterAddr, BrokerStatsManager.GROUP_GET_NUMS, statsKey);
+                            BrokerStatsData bsd = admin.viewBrokerStatsData(masterAddr, BrokerStatsManager.GROUP_GET_NUMS, statsKey);
                             outTPS += bsd.getStatsMinute().getTps();
                             outMsgCntToday += compute24HourSum(bsd);
                         } catch (Exception e) {
@@ -147,7 +147,7 @@ public class StatsAllSubCommand implements SubCommand {
                 if (!activeTopic || (inMsgCntToday > 0) || //
                         (outMsgCntToday > 0)) {
 
-                    System.out.printf("%-32s  %-32s %11.2f %11.2f %14d %14d\n",//
+                    System.out.printf("%-32s  %-32s %11.2f %11.2f %14d %14d%n",//
                             UtilAll.frontStringAtLeast(topic, 32),//
                             UtilAll.frontStringAtLeast(group, 32),//
                             inTPS,//
@@ -162,7 +162,7 @@ public class StatsAllSubCommand implements SubCommand {
         else {
             if (!activeTopic || (inMsgCntToday > 0)) {
 
-                System.out.printf("%-32s  %-32s %11.2f %11s %14d %14s\n",//
+                System.out.printf("%-32s  %-32s %11.2f %11s %14d %14s%n",//
                         UtilAll.frontStringAtLeast(topic, 32),//
                         "",//
                         inTPS,//

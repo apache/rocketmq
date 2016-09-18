@@ -22,6 +22,7 @@ import com.alibaba.rocketmq.client.producer.DefaultMQProducer;
 import com.alibaba.rocketmq.client.producer.SendResult;
 import com.alibaba.rocketmq.common.message.Message;
 import com.alibaba.rocketmq.common.message.MessageExt;
+import com.alibaba.rocketmq.remoting.common.RemotingHelper;
 
 
 public class TestProducer {
@@ -37,7 +38,7 @@ public class TestProducer {
                     Message msg = new Message("TopicTest1",// topic
                             "TagA",// tag
                             "key113",// key
-                            ("Hello MetaQ").getBytes());// body
+                            ("Hello MetaQ").getBytes(RemotingHelper.DEFAULT_CHARSET));// body
                     SendResult sendResult = producer.send(msg);
                     System.out.println(sendResult);
 

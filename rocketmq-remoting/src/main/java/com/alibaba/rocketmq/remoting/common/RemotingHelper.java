@@ -34,7 +34,7 @@ import java.nio.channels.SocketChannel;
  */
 public class RemotingHelper {
     public static final String RemotingLogName = "RocketmqRemoting";
-
+    public static final String DEFAULT_CHARSET = "UTF-8";
 
     public static String exceptionSimpleDesc(final Throwable e) {
         StringBuffer sb = new StringBuffer();
@@ -54,7 +54,7 @@ public class RemotingHelper {
 
     public static SocketAddress string2SocketAddress(final String addr) {
         String[] s = addr.split(":");
-        InetSocketAddress isa = new InetSocketAddress(s[0], Integer.valueOf(s[1]));
+        InetSocketAddress isa = new InetSocketAddress(s[0], Integer.parseInt(s[1]));
         return isa;
     }
 

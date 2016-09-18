@@ -136,6 +136,7 @@ public class JDBCTransactionStore implements TransactionStore {
                 try {
                     statement.close();
                 } catch (SQLException e) {
+                    log.warn("Close statement exception", e);
                 }
             }
         }
@@ -180,6 +181,7 @@ public class JDBCTransactionStore implements TransactionStore {
                 try {
                     statement.close();
                 } catch (SQLException e) {
+                    log.warn("Close statement exception", e);
                 }
             }
         }

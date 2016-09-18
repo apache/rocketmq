@@ -52,7 +52,7 @@ public abstract class RemotingSerializable {
     public byte[] encode() {
         final String json = this.toJson();
         if (json != null) {
-            return json.getBytes();
+            return json.getBytes(CHARSET_UTF8);
         }
         return null;
     }

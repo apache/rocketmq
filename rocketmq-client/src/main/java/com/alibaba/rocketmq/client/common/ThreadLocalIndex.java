@@ -21,7 +21,7 @@ import java.util.Random;
 
 public class ThreadLocalIndex {
     private final ThreadLocal<Integer> threadLocalIndex = new ThreadLocal<Integer>();
-
+    private final Random random = new Random();
     public ThreadLocalIndex(int value) {
 
     }
@@ -29,7 +29,7 @@ public class ThreadLocalIndex {
     public int getAndIncrement() {
         Integer index = this.threadLocalIndex.get();
         if (null == index) {
-            index = new Integer(Math.abs(new Random().nextInt()));
+            index = Math.abs(random.nextInt());
             if (index < 0) index = 0;
             this.threadLocalIndex.set(index);
         }

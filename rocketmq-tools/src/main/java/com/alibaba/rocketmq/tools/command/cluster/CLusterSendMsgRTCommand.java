@@ -18,6 +18,7 @@
 package com.alibaba.rocketmq.tools.command.cluster;
 
 import com.alibaba.rocketmq.client.producer.DefaultMQProducer;
+import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.message.Message;
 import com.alibaba.rocketmq.common.protocol.body.ClusterInfo;
 import com.alibaba.rocketmq.remoting.RPCHook;
@@ -119,7 +120,7 @@ public class CLusterSendMsgRTCommand implements SubCommand {
             }
 
             if (!printAsTlog) {
-                System.out.printf("%-24s  %-24s  %-4s  %-8s  %-8s\n",//
+                System.out.printf("%-24s  %-24s  %-4s  %-8s  %-8s%n",//
                         "#Cluster Name",//
                         "#Broker Name",//
                         "#RT",//
@@ -137,7 +138,7 @@ public class CLusterSendMsgRTCommand implements SubCommand {
                     }
 
                     for (String brokerName : brokerNames) {
-                        Message msg = new Message(brokerName, getStringBySize(size).getBytes());
+                        Message msg = new Message(brokerName, getStringBySize(size).getBytes(MixAll.DEFAULT_CHARSET));
                         long start = 0;
                         long end = 0;
                         long elapsed = 0;
@@ -162,7 +163,7 @@ public class CLusterSendMsgRTCommand implements SubCommand {
 
                         double rt = (double) elapsed / (amount - 1);
                         if (!printAsTlog) {
-                            System.out.printf("%-24s  %-24s  %-8s  %-16s  %-16s\n",//
+                            System.out.printf("%-24s  %-24s  %-8s  %-16s  %-16s%n",//
                                     clusterName,//
                                     brokerName, //
                                     String.format("%.2f", rt),//
