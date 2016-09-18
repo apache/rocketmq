@@ -214,6 +214,7 @@ public class CommitLog {
 
             processOffset += mappedFileOffset;
             this.mappedFileQueue.setFlushedWhere(processOffset);
+            this.mappedFileQueue.setCommittedWhere(processOffset);
             this.mappedFileQueue.truncateDirtyFiles(processOffset);
         }
     }
@@ -483,6 +484,7 @@ public class CommitLog {
 
             processOffset += mappedFileOffset;
             this.mappedFileQueue.setFlushedWhere(processOffset);
+            this.mappedFileQueue.setCommittedWhere(processOffset);
             this.mappedFileQueue.truncateDirtyFiles(processOffset);
 
             // Clear ConsumeQueue redundant data
@@ -491,6 +493,7 @@ public class CommitLog {
         // Commitlog case files are deleted
         else {
             this.mappedFileQueue.setFlushedWhere(0);
+            this.mappedFileQueue.setCommittedWhere(0);
             this.defaultMessageStore.destroyLogics();
         }
     }

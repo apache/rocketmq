@@ -216,6 +216,7 @@ public class ConsumeQueue {
                 ByteBuffer byteBuffer = mappedFile.sliceByteBuffer();
 
                 mappedFile.setWrotePosition(0);
+                mappedFile.setCommittedPosition(0);
                 mappedFile.setFlushedPosition(0);
 
                 for (int i = 0; i < logicFileSize; i += CQStoreUnitSize) {
@@ -231,6 +232,7 @@ public class ConsumeQueue {
                         } else {
                             int pos = i + CQStoreUnitSize;
                             mappedFile.setWrotePosition(pos);
+                            mappedFile.setCommittedPosition(pos);
                             mappedFile.setFlushedPosition(pos);
                             this.maxPhysicOffset = offset;
                         }
@@ -246,6 +248,7 @@ public class ConsumeQueue {
 
                             int pos = i + CQStoreUnitSize;
                             mappedFile.setWrotePosition(pos);
+                            mappedFile.setCommittedPosition(pos);
                             mappedFile.setFlushedPosition(pos);
                             this.maxPhysicOffset = offset;
 
