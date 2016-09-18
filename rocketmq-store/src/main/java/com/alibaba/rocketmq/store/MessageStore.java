@@ -39,12 +39,6 @@ public interface MessageStore {
 
     void destroy();
 
-    /**
-     * This method is not thread-safe, and only call it from SendMessageProcessor
-     *
-     * @param msg a inner msg
-     * @return PutMessageResult
-     */
     PutMessageResult putMessage(final MessageExtBrokerInner msg);
 
 

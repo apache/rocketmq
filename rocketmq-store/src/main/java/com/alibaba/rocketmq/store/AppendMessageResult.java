@@ -17,7 +17,7 @@
 package com.alibaba.rocketmq.store;
 
 /**
- * When write a message to the flush log, returns results
+ * When write a message to the commit log, returns results
  *
  * @author shijia.wxr
  */

@@ -356,7 +356,7 @@ public class ConsumeQueue {
 
             else {
                 // XXX: warn and notify me
-                log.warn("[BUG]put flush log position info to " + topic + ":" + queueId + " " + offset
+                log.warn("[BUG]put commit log position info to " + topic + ":" + queueId + " " + offset
                         + " failed, retry " + i + " times");
 
                 try {

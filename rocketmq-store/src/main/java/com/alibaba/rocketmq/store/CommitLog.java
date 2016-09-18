@@ -93,7 +93,7 @@ public class CommitLog {
 
     public boolean load() {
         boolean result = this.mappedFileQueue.load();
-        log.info("load flush log " + (result ? "OK" : "Failed"));
+        log.info("load commit log " + (result ? "OK" : "Failed"));
         return result;
     }
 

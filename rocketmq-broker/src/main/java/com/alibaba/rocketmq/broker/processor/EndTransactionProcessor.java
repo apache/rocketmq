@@ -71,7 +71,7 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
                 }
 
                 case MessageSysFlag.TransactionCommitType: {
-                    logTransaction.warn("check producer[{}] transaction state, the producer flush the message.\n"//
+                    logTransaction.warn("check producer[{}] transaction state, the producer commit the message.\n"//
                                     + "RequestHeader: {} Remark: {}",//
                             RemotingHelper.parseChannelRemoteAddr(ctx.channel()), //
                             requestHeader.toString(),//
@@ -139,7 +139,7 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
 
             if (msgExt.getCommitLogOffset() != requestHeader.getCommitLogOffset()) {
                 response.setCode(ResponseCode.SYSTEM_ERROR);
-                response.setRemark("the flush log offset wrong");
+                response.setRemark("the commit log offset wrong");
                 return response;
             }
 
