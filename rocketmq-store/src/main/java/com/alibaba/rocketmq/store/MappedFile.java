@@ -266,7 +266,6 @@ public class MappedFile extends ReferenceResource {
      */
     public int flush(final int flushLeastPages) {
         if (this.isAbleToFlush(flushLeastPages)) {
-            //long begin = System.currentTimeMillis();
             if (this.hold()) {
                 int value = getReadPosition();
 
@@ -287,7 +286,6 @@ public class MappedFile extends ReferenceResource {
                 log.warn("in flush, hold failed, flush offset = " + this.flushedPosition.get());
                 this.flushedPosition.set(getReadPosition());
             }
-            //log.info("flush cost : {}", System.currentTimeMillis() - begin);
         }
         return this.getFlushedPosition();
     }
@@ -299,7 +297,6 @@ public class MappedFile extends ReferenceResource {
             return this.wrotePosition.get();
         }
         if (this.isAbleToCommit(commitLeastPages)) {
-            long begin = System.currentTimeMillis();
             if (this.hold()) {
                 int lastCommittedPosition = this.committedPosition.get() + this.commitCompensation;
 
@@ -351,8 +348,6 @@ public class MappedFile extends ReferenceResource {
                         this.committedPosition.set(newValue == -1 ? value : newValue);
                         this.lastCommitTimestamp = System.currentTimeMillis();
                     } catch (Throwable e) {
-                        log.error("[NOTIFYME], value : {} newValue : {}, committedPosition : {}, commitCompensation : {}, wrotePosition: {}"
-                                    , value, newValue, committedPosition.get(), commitCompensation, wrotePosition.get());
                         log.error("Error occurred when flush data to FileChannel.", e);
                     }
                 }
@@ -360,9 +355,6 @@ public class MappedFile extends ReferenceResource {
                 this.release();
             } else {
                 log.warn("in flush, hold failed, flush offset = " + this.committedPosition.get());
-            }
-            if (System.currentTimeMillis() - begin > 100) {
-                log.info("commit cost : {}", System.currentTimeMillis() - begin);
             }
         }
 

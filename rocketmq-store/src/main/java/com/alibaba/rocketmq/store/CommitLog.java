@@ -810,10 +810,15 @@ public class CommitLog {
                 int flushPhysicQueueLeastPages = CommitLog.this.defaultMessageStore.getMessageStoreConfig().getFlushCommitLogLeastPages();
 
                 try {
+                    long begin = System.currentTimeMillis();
                     boolean result = CommitLog.this.mappedFileQueue.commit(flushPhysicQueueLeastPages);
                     if (!result) {
                         //now wake up flush thread.
                         wakeupService(flushCommitLogService);
+                    }
+                    long past = System.currentTimeMillis() - begin;
+                    if (past > 100) {
+                        log.info("Commit data to file costs {} ms", past);
                     }
                     this.waitForRunning(interval);
                 } catch (Throwable e) {
@@ -876,7 +881,7 @@ public class CommitLog {
                     }
                     long past = System.currentTimeMillis() - begin;
                     if (past > 100) {
-                        log.info("Flush cost {}", past);
+                        log.info("Flush data to disk costs {} ms", past);
                     }
                 } catch (Throwable e) {
                     CommitLog.log.warn(this.getServiceName() + " service has exception. ", e);
