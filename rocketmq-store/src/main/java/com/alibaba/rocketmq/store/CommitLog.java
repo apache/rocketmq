@@ -632,7 +632,7 @@ public class CommitLog {
             releasePutMessageLock();
         }
 
-        if (eclipseTimeInLock > 100) {
+        if (eclipseTimeInLock > 500) {
             log.warn("[NOTIFYME]putMessage in lock cost time(ms)={}, bodyLength={} AppendMessageResult={}", eclipseTimeInLock, msg.getBody().length, result);
         }
 
@@ -825,7 +825,7 @@ public class CommitLog {
                         wakeupService(flushCommitLogService);
                     }
                     long past = System.currentTimeMillis() - begin;
-                    if (past > 100) {
+                    if (past > 500) {
                         log.info("Commit data to file costs {} ms", past);
                     }
                     this.waitForRunning(interval);
@@ -888,7 +888,7 @@ public class CommitLog {
                         CommitLog.this.defaultMessageStore.getStoreCheckpoint().setPhysicMsgTimestamp(storeTimestamp);
                     }
                     long past = System.currentTimeMillis() - begin;
-                    if (past > 100) {
+                    if (past > 500) {
                         log.info("Flush data to disk costs {} ms", past);
                     }
                 } catch (Throwable e) {

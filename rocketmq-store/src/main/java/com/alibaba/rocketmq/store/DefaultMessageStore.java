@@ -324,7 +324,7 @@ public class DefaultMessageStore implements MessageStore {
         PutMessageResult result = this.commitLog.putMessage(msg);
 
         long eclipseTime = this.getSystemClock().now() - beginTime;
-        if (eclipseTime > 10) {
+        if (eclipseTime > 500) {
             log.warn("putMessage not in lock eclipse time(ms)={}, bodyLength={}", eclipseTime, msg.getBody().length);
         }
         this.storeStatsService.setPutMessageEntireTimeMax(eclipseTime);
