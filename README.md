@@ -48,8 +48,8 @@ It offers a variety of features as follows:
 * vongosling([@vongosling](https://github.com/vongosling))
 * manhong([@YangJodie](https://github.com/YangJodie))
 * mouyu([@lollipopjin](https://github.com/lollipopjin))
-* zhouxinyu[@zhouxinyu](https://github.com/zhouxinyu)
-* lizhanhui[@lizhanhui](https://github.com/lizhanhui)
+* zhouxinyu([@zhouxinyu](https://github.com/zhouxinyu))
+* lizhanhui([@lizhanhui](https://github.com/lizhanhui))
 
 ----------
 
