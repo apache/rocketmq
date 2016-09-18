@@ -105,7 +105,7 @@ public class ClusterListSubCommand implements SubCommand {
 
         ClusterInfo clusterInfoSerializeWrapper = defaultMQAdminExt.examineBrokerClusterInfo();
 
-        System.out.printf("%-16s  %-32s %14s %14s %14s %14s\n",//
+        System.out.printf("%-16s  %-32s %14s %14s %14s %14s%n",//
                 "#Cluster Name",//
                 "#Broker Name",//
                 "#InTotalYest",//
@@ -151,7 +151,7 @@ public class ClusterListSubCommand implements SubCommand {
                         } catch (Exception e) {
                         }
 
-                        System.out.printf("%-16s  %-32s %14d %14d %14d %14d\n",//
+                        System.out.printf("%-16s  %-32s %14d %14d %14d %14d%n",//
                                 clusterName,//
                                 brokerName,//
                                 InTotalYest,//
@@ -174,7 +174,7 @@ public class ClusterListSubCommand implements SubCommand {
 
         ClusterInfo clusterInfoSerializeWrapper = defaultMQAdminExt.examineBrokerClusterInfo();
 
-        System.out.printf("%-16s  %-22s  %-4s  %-22s %-16s %19s %19s %10s %5s %6s\n",//
+        System.out.printf("%-16s  %-22s  %-4s  %-22s %-16s %19s %19s %10s %5s %6s%n",//
                 "#Cluster Name",//
                 "#Broker Name",//
                 "#BID",//
@@ -256,7 +256,7 @@ public class ClusterListSubCommand implements SubCommand {
                             space = Double.valueOf(commitLogDiskRatio);
                         }
 
-                        System.out.printf("%-16s  %-22s  %-4s  %-22s %-16s %19s %19s %10s %5s %6s\n",//
+                        System.out.printf("%-16s  %-22s  %-4s  %-22s %-16s %19s %19s %10s %5s %6s%n",//
                                 clusterName,//
                                 brokerName,//
                                 next1.getKey().longValue(),//
