@@ -125,6 +125,14 @@ public class CommitLog {
         return this.mappedFileQueue.getMaxOffset();
     }
 
+    public long remainHowManyDataToCommit(){
+        return this.mappedFileQueue.remainHowManyDataToCommit();
+    }
+
+    public long remainHowManyDataToFlush() {
+        return this.mappedFileQueue.remainHowManyDataToFlush();
+    }
+
 
     public int deleteExpiredFile(//
                                  final long expiredTime, //

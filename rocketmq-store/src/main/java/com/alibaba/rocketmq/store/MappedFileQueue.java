@@ -318,6 +318,22 @@ public class MappedFileQueue {
         return 0;
     }
 
+    public long getMaxWrotePosition() {
+        MappedFile mappedFile = getLastMappedFile();
+        if (mappedFile != null) {
+            return mappedFile.getFileFromOffset() + mappedFile.getWrotePosition();
+        }
+        return 0;
+    }
+
+    public long remainHowManyDataToCommit(){
+        return getMaxWrotePosition() - committedWhere;
+    }
+
+    public long remainHowManyDataToFlush() {
+        return getMaxOffset() - flushedWhere;
+    }
+
     public void deleteLastMappedFile() {
         MappedFile lastMappedFile = getLastMappedFile();
         if (lastMappedFile != null) {
