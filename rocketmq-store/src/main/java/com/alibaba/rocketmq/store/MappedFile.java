@@ -504,7 +504,6 @@ public class MappedFile extends ReferenceResource {
         return false;
     }
 
-    // TODO: be carefully
     public int getWrotePosition() {
         return wrotePosition.get();
     }

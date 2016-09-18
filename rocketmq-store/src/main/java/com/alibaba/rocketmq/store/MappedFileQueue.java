@@ -285,10 +285,11 @@ public class MappedFileQueue {
             if (offset >= mappedFileLast.getFileFromOffset()) {
                 int where = (int) (offset % mappedFileLast.getFileSize());
                 mappedFileLast.setFlushedPosition(where);
-                mappedFileLast.setWrotePosition(where); // FIXME: 16/9/1 need setCommittedPosition?
+                mappedFileLast.setWrotePosition(where);
+                mappedFileLast.setCommittedPosition(where);
                 break;
             } else {
-                this.mappedFiles.remove(mappedFileLast); // // FIXME: 16/9/10
+                iterator.remove();
             }
         }
         return true;

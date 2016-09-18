@@ -417,7 +417,7 @@ public class CommitLog {
             MappedFile mappedFile = null;
             for (; index >= 0; index--) {
                 mappedFile = mappedFiles.get(index);
-                if (this.isMapedFileMatchedRecover(mappedFile)) {
+                if (this.isMappedFileMatchedRecover(mappedFile)) {
                     log.info("recover from this maped file " + mappedFile.getFileName());
                     break;
                 }
@@ -487,7 +487,7 @@ public class CommitLog {
         }
     }
 
-    private boolean isMapedFileMatchedRecover(final MappedFile mappedFile) {
+    private boolean isMappedFileMatchedRecover(final MappedFile mappedFile) {
         ByteBuffer byteBuffer = mappedFile.sliceByteBuffer();
 
         int magicCode = byteBuffer.getInt(MessageDecoder.MessageMagicCodePostion);
