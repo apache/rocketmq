@@ -41,7 +41,6 @@ JAVA_OPT="${JAVA_OPT} -XX:+UseConcMarkSweepGC -XX:+UseCMSCompactAtFullCollection
 JAVA_OPT="${JAVA_OPT} -verbose:gc -Xloggc:/dev/shm/rmq_srv_gc.log -XX:+PrintGCDetails"
 JAVA_OPT="${JAVA_OPT} -XX:-OmitStackTraceInFastThrow"
 JAVA_OPT="${JAVA_OPT}  -XX:-UseLargePages"
-JAVA_OPT="${JAVA_OPT}  -XX:+PerfDisableSharedMem"
 JAVA_OPT="${JAVA_OPT} -Djava.ext.dirs=${BASE_DIR}/lib"
 #JAVA_OPT="${JAVA_OPT} -Xdebug -Xrunjdwp:transport=dt_socket,address=9555,server=y,suspend=n"
 JAVA_OPT="${JAVA_OPT} -cp ${CLASSPATH}"
