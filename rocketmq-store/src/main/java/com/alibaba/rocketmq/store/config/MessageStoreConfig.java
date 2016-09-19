@@ -51,8 +51,8 @@ public class MessageStoreConfig {
     @ImportantField
     private int commitIntervalCommitLog = 50;
 
-    // Should commit anyway if 5 seconds is elapsed.
-    private int commitMaxInterval = 5000;
+    // Should commit anyway if 3 seconds is elapsed.
+    private int commitMaxInterval = 3000;
 
     // Whether schedule flush,default is real-time
     @ImportantField

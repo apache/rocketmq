@@ -245,6 +245,7 @@ public class MappedFile extends ReferenceResource {
 
         if ((currentPos + data.length) <= this.fileSize) {
             try {
+                this.fileChannel.position(currentPos);
                 this.fileChannel.write(ByteBuffer.wrap(data));
             } catch (IOException e) {
                 log.error("Error occurred when append message to mappedFile.", e);
@@ -306,7 +307,7 @@ public class MappedFile extends ReferenceResource {
 
                 int newValue = -1; // avoid dispatch noise.
                 // commitLeastPages=0 means must flush to FileChannel immediately
-                if (commitLeastPages == 0 || isFull() || value <= lastCommittedPosition) {
+                if (commitLeastPages == 0 || isFull() || value <= lastCommittedPosition || isCommitTimeout()) {
                     value = this.wrotePosition.get();
                 } else {
                     value -= OS_PAGE_SIZE;
@@ -342,7 +343,7 @@ public class MappedFile extends ReferenceResource {
                         ByteBuffer byteBuffer = writeBuffer.slice();
                         byteBuffer.position(lastCommittedPosition);
                         byteBuffer.limit(value);
-
+                        this.fileChannel.position(lastCommittedPosition);
                         this.fileChannel.write(byteBuffer);
                         commitCompensation = newValue == -1 ? 0 : value - newValue;
                         this.committedPosition.set(newValue == -1 ? value : newValue);
@@ -386,7 +387,7 @@ public class MappedFile extends ReferenceResource {
         int flush = this.committedPosition.get();
         int write = this.wrotePosition.get();
 
-        if (this.isFull() || System.currentTimeMillis() - lastCommitTimestamp > commitMaxInterval) {
+        if (this.isFull() || isCommitTimeout()) {
             return true;
         }
 
@@ -395,6 +396,10 @@ public class MappedFile extends ReferenceResource {
         }
 
         return write > flush;
+    }
+
+    private boolean isCommitTimeout() {
+        return System.currentTimeMillis() - lastCommitTimestamp > commitMaxInterval;
     }
 
     public int getFlushedPosition() {
