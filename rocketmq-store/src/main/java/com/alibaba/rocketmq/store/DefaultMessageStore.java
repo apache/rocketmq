@@ -244,9 +244,9 @@ public class DefaultMessageStore implements MessageStore {
 
             this.storeStatsService.shutdown();
             this.indexService.shutdown();
-            this.flushConsumeQueueService.shutdown();
             this.commitLog.shutdown();
             this.reputMessageService.shutdown();
+            this.flushConsumeQueueService.shutdown();
             this.allocateMappedFileService.shutdown();
             this.storeCheckpoint.flush();
             this.storeCheckpoint.shutdown();
