@@ -79,7 +79,6 @@ public class MappedFileQueue {
 
 
     public MappedFile getMappedFileByTime(final long timestamp) {
-        // FIXME: 16/9/1 If we use FileChannel.force(false), the LastModifiedTimestamp may be not accurate
         Object[] mfs = this.copyMappedFiles(0);
 
         if (null == mfs)
@@ -275,7 +274,7 @@ public class MappedFileQueue {
                     mappedFileLast.getWrotePosition();
             long diff = lastOffset - offset;
 
-            final int maxDiff = 1024 * 1024 * 1024 * 2; // FIXME: 16/9/1 use CommitLogFileSize in StoreConfig.
+            final int maxDiff = this.mappedFileSize * 2;
             if (diff > maxDiff) return false;
         }
 
