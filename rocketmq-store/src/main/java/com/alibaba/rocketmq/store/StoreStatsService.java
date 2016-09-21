@@ -53,6 +53,14 @@ public class StoreStatsService extends ServiceThread {
             "[10s~]", // 10
     };
 
+    private String clusterName;
+    private String brokerName;
+
+    public StoreStatsService(final String clusterName, final String brokerName) {
+        this.clusterName = clusterName;
+        this.brokerName = brokerName;
+    }
+
     private static int PrintTPSInterval = 60 * 1;
 
     private final AtomicLong putMessageFailedTimes = new AtomicLong(0);
@@ -547,7 +555,7 @@ public class StoreStatsService extends ServiceThread {
                 sb.append(" ");
             }
 
-            log.info("[PAGECACHERT] TotalPut {}, PutMessageDistributeTime {}", totalPut, sb.toString());
+            log.info("[PAGECACHERT] [{}] [{}] TotalPut {}, PutMessageDistributeTime {}", this.clusterName, this.brokerName, totalPut, sb.toString());
         }
     }
 
