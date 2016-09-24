@@ -106,12 +106,12 @@ public class DefaultMessageStore implements MessageStore {
         this.brokerStatsManager = brokerStatsManager;
         this.allocateMappedFileService = new AllocateMappedFileService(this);
         this.commitLog = new CommitLog(this);
-        this.consumeQueueTable = new ConcurrentHashMap<String/* topic */, ConcurrentHashMap<Integer/* queueId */, ConsumeQueue>>(32);
+        this.consumeQueueTable = new ConcurrentHashMap<>(32);
 
         this.flushConsumeQueueService = new FlushConsumeQueueService();
         this.cleanCommitLogService = new CleanCommitLogService();
         this.cleanConsumeQueueService = new CleanConsumeQueueService();
-        this.storeStatsService = new StoreStatsService(this.brokerConfig.getBrokerClusterName(), this.brokerConfig.getBrokerName());
+        this.storeStatsService = new StoreStatsService();
         this.indexService = new IndexService(this);
         this.haService = new HAService(this);
 
