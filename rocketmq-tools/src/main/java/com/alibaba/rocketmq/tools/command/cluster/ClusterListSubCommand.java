@@ -174,7 +174,7 @@ public class ClusterListSubCommand implements SubCommand {
 
         ClusterInfo clusterInfoSerializeWrapper = defaultMQAdminExt.examineBrokerClusterInfo();
 
-        System.out.printf("%-16s  %-22s  %-4s  %-22s %-16s %19s %19s %10s%n",//
+        System.out.printf("%-16s  %-22s  %-4s  %-22s %-16s %19s %19s %10s %5s %6s%n",//
                 "#Cluster Name",//
                 "#Broker Name",//
                 "#BID",//
@@ -182,7 +182,9 @@ public class ClusterListSubCommand implements SubCommand {
                 "#Version",//
                 "#InTPS(LOAD)",//
                 "#OutTPS(LOAD)",//
-                "#PCWait(ms)"//
+                "#PCWait(ms)",//
+                "#Hour",//
+                "#SPACE"//
         );
 
         Iterator<Map.Entry<String, Set<String>>> itCluster = clusterInfoSerializeWrapper.getClusterAddrTable().entrySet().iterator();
@@ -207,6 +209,8 @@ public class ClusterListSubCommand implements SubCommand {
                         String sendThreadPoolQueueHeadWaitTimeMills = "";
                         String pullThreadPoolQueueHeadWaitTimeMills = "";
                         String pageCacheLockTimeMills = "";
+                        String earliestMessageTimeStamp = "";
+                        String commitLogDiskRatio = "";
                         try {
                             KVTable kvTable = defaultMQAdminExt.fetchBrokerRuntimeStats(next1.getValue());
                             String putTps = kvTable.getTable().get("putTps");
@@ -220,6 +224,8 @@ public class ClusterListSubCommand implements SubCommand {
                             sendThreadPoolQueueHeadWaitTimeMills = kvTable.getTable().get("sendThreadPoolQueueHeadWaitTimeMills");
                             pullThreadPoolQueueHeadWaitTimeMills = kvTable.getTable().get("pullThreadPoolQueueHeadWaitTimeMills");
                             pageCacheLockTimeMills = kvTable.getTable().get("pageCacheLockTimeMills");
+                            earliestMessageTimeStamp = kvTable.getTable().get("earliestMessageTimeStamp");
+                            commitLogDiskRatio = kvTable.getTable().get("commitLogDiskRatio");
 
                             version = kvTable.getTable().get("brokerVersionDesc");
                             {
@@ -238,15 +244,29 @@ public class ClusterListSubCommand implements SubCommand {
                         } catch (Exception e) {
                         }
 
-                        System.out.printf("%-16s  %-22s  %-4s  %-22s %-16s %19s %19s %10s%n",//
+                        double hour = 0.0;
+                        double space = 0.0;
+
+                        if (earliestMessageTimeStamp != null && earliestMessageTimeStamp.length() > 0) {
+                            long mills = System.currentTimeMillis() - Long.valueOf(earliestMessageTimeStamp);
+                            hour = mills / 1000.0 / 60.0 / 60.0;
+                        }
+
+                        if (commitLogDiskRatio != null && commitLogDiskRatio.length() > 0) {
+                            space = Double.valueOf(commitLogDiskRatio);
+                        }
+
+                        System.out.printf("%-16s  %-22s  %-4s  %-22s %-16s %19s %19s %10s %5s %6s%n",//
                                 clusterName,//
                                 brokerName,//
-                                String.valueOf(next1.getKey()),//
+                                next1.getKey().longValue(),//
                                 next1.getValue(),//
                                 version,//
                                 String.format("%9.2f(%s,%sms)", in, sendThreadPoolQueueSize, sendThreadPoolQueueHeadWaitTimeMills),//
                                 String.format("%9.2f(%s,%sms)", out, pullThreadPoolQueueSize, pullThreadPoolQueueHeadWaitTimeMills),//
-                                pageCacheLockTimeMills
+                                pageCacheLockTimeMills,//
+                                String.format("%2.2f", hour),//
+                                String.format("%.4f", space)//
                         );
                     }
                 }

@@ -8,11 +8,11 @@
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package com.alibaba.rocketmq.store;
 
@@ -117,7 +117,6 @@ public class StoreStatsService extends ServiceThread {
         if (value <= 0) {
             times[0].incrementAndGet();
         }
-
         else if (value < 10) {
             times[1].incrementAndGet();
         }
@@ -155,9 +154,7 @@ public class StoreStatsService extends ServiceThread {
         // 10s
         else if (value < 10000) {
             times[11].incrementAndGet();
-        }
-
-        else {
+        } else {
             times[12].incrementAndGet();
         }
 
@@ -254,16 +251,7 @@ public class StoreStatsService extends ServiceThread {
     }
 
     private String getPutMessageDistributeTimeStringInfo(Long total) {
-        final StringBuilder sb = new StringBuilder(512);
-
-        for (AtomicLong i : this.putMessageDistributeTime) {
-            long value = i.get();
-            double ratio = value / total.doubleValue();
-            sb.append("\r\n\t\t");
-            sb.append(value + "(" + (ratio * 100) + "%)");
-        }
-
-        return sb.toString();
+        return this.putMessageDistributeTimeToString();
     }
 
     private String getPutTps() {
@@ -342,6 +330,20 @@ public class StoreStatsService extends ServiceThread {
 
 
         sb.append(this.getGetTransferedTps(600));
+
+        return sb.toString();
+    }
+
+    private String putMessageDistributeTimeToString() {
+        final AtomicLong[] times = this.putMessageDistributeTime;
+        if (null == times) return null;
+
+        final StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < times.length; i++) {
+            long value = times[i].get();
+            sb.append(String.format("%s:%d", PutMessageEntireTimeMaxDesc[i], value));
+            sb.append(" ");
+        }
 
         return sb.toString();
     }
@@ -478,7 +480,6 @@ public class StoreStatsService extends ServiceThread {
         return result;
     }
 
-
     public void run() {
         log.info(this.getServiceName() + " service started");
 
@@ -532,6 +533,7 @@ public class StoreStatsService extends ServiceThread {
             this.lockSampling.unlock();
         }
     }
+
     private void printTps() {
         if (System.currentTimeMillis() > (this.lastPrintTimestamp + PrintTPSInterval * 1000)) {
             this.lastPrintTimestamp = System.currentTimeMillis();

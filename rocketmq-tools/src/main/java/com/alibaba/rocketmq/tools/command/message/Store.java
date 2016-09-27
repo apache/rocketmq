@@ -156,13 +156,13 @@ public class Store {
                 long bornTimeStamp = byteBuffer.getLong();
                 bornTimeStamp = bornTimeStamp + 0;
 
-                // 10 BORNHOST（IP+PORT）
+                // 10 BORNHOST(IP+PORT)
                 byteBuffer.position(byteBuffer.position() + 8);
 
                 // 11 STORETIMESTAMP
                 long storeTimestamp = byteBuffer.getLong();
 
-                // 12 STOREHOST（IP+PORT）
+                // 12 STOREHOST(IP+PORT)
                 byteBuffer.position(byteBuffer.position() + 8);
 
                 // 13 RECONSUMETIMES
