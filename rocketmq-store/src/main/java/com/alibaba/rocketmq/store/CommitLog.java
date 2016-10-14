@@ -773,7 +773,8 @@ public class CommitLog {
 
 
     public boolean appendData(long startOffset, byte[] data) {
-        synchronized (this) {
+        lockForPutMessage(); //spin...
+        try {
             MappedFile mappedFile = this.mappedFileQueue.getLastMappedFile(startOffset);
             if (null == mappedFile) {
                 log.error("appendData getLastMappedFile error  " + startOffset);
@@ -781,6 +782,8 @@ public class CommitLog {
             }
 
             return mappedFile.appendMessage(data);
+        } finally {
+            releasePutMessageLock();
         }
     }
 

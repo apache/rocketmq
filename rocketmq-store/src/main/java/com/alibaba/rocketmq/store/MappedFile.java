@@ -245,9 +245,17 @@ public class MappedFile extends ReferenceResource {
 
         if ((currentPos + data.length) <= this.fileSize) {
             try {
-                this.fileChannel.position(currentPos);
-                this.fileChannel.write(ByteBuffer.wrap(data));
-            } catch (IOException e) {
+                if (writeBuffer != null) {
+                    //Only HA service may be here..
+                    ByteBuffer byteBuffer = writeBuffer.slice();
+                    byteBuffer.position(currentPos);
+                    byteBuffer.put(data);
+                }
+                else {
+                    this.fileChannel.position(currentPos);
+                    this.fileChannel.write(ByteBuffer.wrap(data));
+                }
+            } catch (Throwable e) {
                 log.error("Error occurred when append message to mappedFile.", e);
             }
             this.wrotePosition.addAndGet(data.length);
