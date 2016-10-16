@@ -91,6 +91,7 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
     public void shutdown() {
         this.scheduledExecutorService.shutdown();
         this.consumeExecutor.shutdown();
+        this.CleanExpireMsgExecutors.shutdown();
     }
 
     @Override
