@@ -28,6 +28,12 @@
     <artifactId>rocketmq-store</artifactId>
     <name>rocketmq-store ${project.version}</name>
 
+    <properties>
+        <!-- compiler settings properties -->
+        <maven.compiler.source>1.7</maven.compiler.source>
+        <maven.compiler.target>1.7</maven.compiler.target>
+    </properties>
+
     <dependencies>
         <dependency>
             <groupId>junit</groupId>

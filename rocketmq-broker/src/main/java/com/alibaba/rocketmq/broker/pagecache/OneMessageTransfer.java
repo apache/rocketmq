@@ -16,7 +16,7 @@
  */
 package com.alibaba.rocketmq.broker.pagecache;
 
-import com.alibaba.rocketmq.store.SelectMapedBufferResult;
+import com.alibaba.rocketmq.store.SelectMappedBufferResult;
 import io.netty.channel.FileRegion;
 import io.netty.util.AbstractReferenceCounted;
 
@@ -30,19 +30,19 @@ import java.nio.channels.WritableByteChannel;
  */
 public class OneMessageTransfer extends AbstractReferenceCounted implements FileRegion {
     private final ByteBuffer byteBufferHeader;
-    private final SelectMapedBufferResult selectMapedBufferResult;
+    private final SelectMappedBufferResult selectMappedBufferResult;
     private long transfered; // the bytes which was transfered already
 
 
-    public OneMessageTransfer(ByteBuffer byteBufferHeader, SelectMapedBufferResult selectMapedBufferResult) {
+    public OneMessageTransfer(ByteBuffer byteBufferHeader, SelectMappedBufferResult selectMappedBufferResult) {
         this.byteBufferHeader = byteBufferHeader;
-        this.selectMapedBufferResult = selectMapedBufferResult;
+        this.selectMappedBufferResult = selectMappedBufferResult;
     }
 
 
     @Override
     public long position() {
-        return this.byteBufferHeader.position() + this.selectMapedBufferResult.getByteBuffer().position();
+        return this.byteBufferHeader.position() + this.selectMappedBufferResult.getByteBuffer().position();
     }
 
     @Override
@@ -52,7 +52,7 @@ public class OneMessageTransfer extends AbstractReferenceCounted implements File
 
     @Override
     public long count() {
-        return this.byteBufferHeader.limit() + this.selectMapedBufferResult.getSize();
+        return this.byteBufferHeader.limit() + this.selectMappedBufferResult.getSize();
     }
 
     @Override
@@ -60,8 +60,8 @@ public class OneMessageTransfer extends AbstractReferenceCounted implements File
         if (this.byteBufferHeader.hasRemaining()) {
             transfered += target.write(this.byteBufferHeader);
             return transfered;
-        } else if (this.selectMapedBufferResult.getByteBuffer().hasRemaining()) {
-            transfered += target.write(this.selectMapedBufferResult.getByteBuffer());
+        } else if (this.selectMappedBufferResult.getByteBuffer().hasRemaining()) {
+            transfered += target.write(this.selectMappedBufferResult.getByteBuffer());
             return transfered;
         }
 
@@ -74,6 +74,6 @@ public class OneMessageTransfer extends AbstractReferenceCounted implements File
 
     @Override
     protected void deallocate() {
-        this.selectMapedBufferResult.release();
+        this.selectMappedBufferResult.release();
     }
 }

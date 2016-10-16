@@ -6,7 +6,7 @@
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -42,15 +42,17 @@ public class StoreStatsService extends ServiceThread {
     private static final String[] PutMessageEntireTimeMaxDesc = new String[]{
             "[<=0ms]", // 0
             "[0~10ms]", // 1
-            "[10~100ms]", // 2
-            "[100~500ms]", // 3
-            "[500ms~1s]", // 4
-            "[1~2s]", // 5
-            "[2~3s]", // 6
-            "[3~4s]", // 7
-            "[4~5s]", // 8
-            "[5~10s]", // 9
-            "[10s~]", // 10
+            "[10~50ms]", // 2
+            "[50~100ms]", // 3
+            "[100~200ms]", // 4
+            "[200~500ms]", // 5
+            "[500ms~1s]", // 6
+            "[1~2s]", // 7
+            "[2~3s]", // 8
+            "[3~4s]", // 9
+            "[4~5s]", // 10
+            "[5~10s]", // 11
+            "[10s~]", // 12
     };
 
     private static int PrintTPSInterval = 60 * 1;
@@ -90,7 +92,7 @@ public class StoreStatsService extends ServiceThread {
     }
 
     private AtomicLong[] initPutMessageDistributeTime() {
-        AtomicLong[] next = new AtomicLong[11];
+        AtomicLong[] next = new AtomicLong[13];
         for (int i = 0; i < next.length; i++) {
             next[i] = new AtomicLong(0);
         }
@@ -114,36 +116,46 @@ public class StoreStatsService extends ServiceThread {
         // us
         if (value <= 0) {
             times[0].incrementAndGet();
-        } else if (value < 10) {
+        }
+        else if (value < 10) {
             times[1].incrementAndGet();
-        } else if (value < 100) {
+        }
+        else if (value < 50) {
             times[2].incrementAndGet();
-        } else if (value < 500) {
+        }
+        else if (value < 100) {
             times[3].incrementAndGet();
-        } else if (value < 1000) {
+        }
+        else if (value < 200) {
             times[4].incrementAndGet();
+        }
+        else if (value < 500) {
+            times[5].incrementAndGet();
+        }
+        else if (value < 1000) {
+            times[6].incrementAndGet();
         }
         // 2s
         else if (value < 2000) {
-            times[5].incrementAndGet();
+            times[7].incrementAndGet();
         }
         // 3s
         else if (value < 3000) {
-            times[6].incrementAndGet();
+            times[8].incrementAndGet();
         }
         // 4s
         else if (value < 4000) {
-            times[7].incrementAndGet();
+            times[9].incrementAndGet();
         }
         // 5s
         else if (value < 5000) {
-            times[8].incrementAndGet();
+            times[10].incrementAndGet();
         }
         // 10s
         else if (value < 10000) {
-            times[9].incrementAndGet();
+            times[11].incrementAndGet();
         } else {
-            times[10].incrementAndGet();
+            times[12].incrementAndGet();
         }
 
         if (value > this.putMessageEntireTimeMax) {

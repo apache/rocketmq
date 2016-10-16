@@ -19,6 +19,7 @@ package com.alibaba.rocketmq.store;
 import com.alibaba.rocketmq.common.ServiceThread;
 import com.alibaba.rocketmq.common.UtilAll;
 import com.alibaba.rocketmq.common.constant.LoggerName;
+import com.alibaba.rocketmq.store.config.BrokerRole;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,11 +32,11 @@ import java.util.concurrent.TimeUnit;
 
 
 /**
- * Create MapedFile in advance
+ * Create MappedFile in advance
  *
  * @author shijia.wxr
  */
-public class AllocateMapedFileService extends ServiceThread {
+public class AllocateMappedFileService extends ServiceThread {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.StoreLoggerName);
     private static int WaitTimeOut = 1000 * 5;
     private ConcurrentHashMap<String, AllocateRequest> requestTable =
@@ -46,28 +47,49 @@ public class AllocateMapedFileService extends ServiceThread {
     private DefaultMessageStore messageStore;
 
 
-    public AllocateMapedFileService(DefaultMessageStore messageStore) {
+    public AllocateMappedFileService(DefaultMessageStore messageStore) {
         this.messageStore = messageStore;
     }
 
 
-    public MapedFile putRequestAndReturnMapedFile(String nextFilePath, String nextNextFilePath, int fileSize) {
-        AllocateRequest nextReq = new AllocateRequest(nextFilePath, fileSize);
-        AllocateRequest nextNextReq = new AllocateRequest(nextNextFilePath, fileSize);
-        boolean nextPutOK = (this.requestTable.putIfAbsent(nextFilePath, nextReq) == null);
-        boolean nextNextPutOK = (this.requestTable.putIfAbsent(nextNextFilePath, nextNextReq) == null);
-
-        if (nextPutOK) {
-            boolean offerOK = this.requestQueue.offer(nextReq);
-            if (!offerOK) {
-                log.warn("never expetced here, add a request to preallocate queue failed");
+    public MappedFile putRequestAndReturnMappedFile(String nextFilePath, String nextNextFilePath, int fileSize) {
+        int canSubmitRequests = 2;
+        if (this.messageStore.getMessageStoreConfig().isTransientStorePoolEnable()) {
+            if (this.messageStore.getMessageStoreConfig().isFastFailIfNoBufferInStorePool()
+                    && BrokerRole.SLAVE != this.messageStore.getMessageStoreConfig().getBrokerRole()) { //if broker is slave, don't fast fail even no buffer in pool
+                canSubmitRequests = this.messageStore.getTransientStorePool().remainBufferNumbs() - this.requestQueue.size();
             }
         }
 
-        if (nextNextPutOK) {
-            boolean offerOK = this.requestQueue.offer(nextNextReq);
+        AllocateRequest nextReq = new AllocateRequest(nextFilePath, fileSize);
+        boolean nextPutOK = (this.requestTable.putIfAbsent(nextFilePath, nextReq) == null);
+
+        if (nextPutOK) {
+            if (canSubmitRequests <= 0) {
+                log.warn("[NOTIFYME]TransientStorePool is not enough, so create mapped file error, " +
+                        "RequestQueueSize : {}, StorePoolSize: {}", this.requestQueue.size(), this.messageStore.getTransientStorePool().remainBufferNumbs());
+                this.requestTable.remove(nextFilePath);
+                return null;
+            }
+            boolean offerOK = this.requestQueue.offer(nextReq);
             if (!offerOK) {
-                log.warn("never expetced here, add a request to preallocate queue failed");
+                log.warn("never expected here, add a request to preallocate queue failed");
+            }
+            canSubmitRequests--;
+        }
+
+        AllocateRequest nextNextReq = new AllocateRequest(nextNextFilePath, fileSize);
+        boolean nextNextPutOK = (this.requestTable.putIfAbsent(nextNextFilePath, nextNextReq) == null);
+        if (nextNextPutOK) {
+            if (canSubmitRequests <= 0) {
+                log.warn("[NOTIFYME]TransientStorePool is not enough, so skip preallocate mapped file, " +
+                        "RequestQueueSize : {}, StorePoolSize: {}", this.requestQueue.size(), this.messageStore.getTransientStorePool().remainBufferNumbs());
+                this.requestTable.remove(nextNextFilePath);
+            } else {
+                boolean offerOK = this.requestQueue.offer(nextNextReq);
+                if (!offerOK) {
+                    log.warn("never expected here, add a request to preallocate queue failed");
+                }
             }
         }
 
@@ -85,7 +107,7 @@ public class AllocateMapedFileService extends ServiceThread {
                     return null;
                 } else {
                     this.requestTable.remove(nextFilePath);
-                    return result.getMapedFile();
+                    return result.getMappedFile();
                 }
             } else {
                 log.error("find preallocate mmap failed, this never happen");
@@ -100,7 +122,7 @@ public class AllocateMapedFileService extends ServiceThread {
 
     @Override
     public String getServiceName() {
-        return AllocateMapedFileService.class.getSimpleName();
+        return AllocateMappedFileService.class.getSimpleName();
     }
 
 
@@ -115,9 +137,9 @@ public class AllocateMapedFileService extends ServiceThread {
         }
 
         for (AllocateRequest req : this.requestTable.values()) {
-            if (req.mapedFile != null) {
-                log.info("delete pre allocated maped file, {}", req.mapedFile.getFileName());
-                req.mapedFile.destroy(1000);
+            if (req.mappedFile != null) {
+                log.info("delete pre allocated maped file, {}", req.mappedFile.getFileName());
+                req.mappedFile.destroy(1000);
             }
         }
     }
@@ -153,26 +175,34 @@ public class AllocateMapedFileService extends ServiceThread {
                 return true;
             }
 
-            if (req.getMapedFile() == null) {
+            if (req.getMappedFile() == null) {
                 long beginTime = System.currentTimeMillis();
-                MapedFile mapedFile = new MapedFile(req.getFilePath(), req.getFileSize());
+
+                MappedFile mappedFile;
+                if (messageStore.getMessageStoreConfig().isTransientStorePoolEnable()) {
+                    mappedFile = new MappedFile(req.getFilePath(), req.getFileSize(), messageStore.getTransientStorePool(),
+                            messageStore.getMessageStoreConfig().getCommitMaxInterval());
+                } else {
+                    mappedFile = new MappedFile(req.getFilePath(), req.getFileSize());
+                }
+
                 long eclipseTime = UtilAll.computeEclipseTimeMilliseconds(beginTime);
                 if (eclipseTime > 10) {
                     int queueSize = this.requestQueue.size();
-                    log.warn("create mapedFile spent time(ms) " + eclipseTime + " queue size " + queueSize
+                    log.warn("create mappedFile spent time(ms) " + eclipseTime + " queue size " + queueSize
                             + " " + req.getFilePath() + " " + req.getFileSize());
                 }
 
                 // pre write mappedFile
-                if (mapedFile.getFileSize() >= this.messageStore.getMessageStoreConfig()
+                if (mappedFile.getFileSize() >= this.messageStore.getMessageStoreConfig()
                         .getMapedFileSizeCommitLog() //
                         && //
                         this.messageStore.getMessageStoreConfig().isWarmMapedFileEnable()) {
-                    mapedFile.warmMappedFile(this.messageStore.getMessageStoreConfig().getFlushDiskType(),
+                    mappedFile.warmMappedFile(this.messageStore.getMessageStoreConfig().getFlushDiskType(),
                             this.messageStore.getMessageStoreConfig().getFlushLeastPagesWhenWarmMapedFile());
                 }
 
-                req.setMapedFile(mapedFile);
+                req.setMappedFile(mappedFile);
                 this.hasException = false;
                 isSuccess = true;
             }
@@ -202,7 +232,7 @@ public class AllocateMapedFileService extends ServiceThread {
         private String filePath;
         private int fileSize;
         private CountDownLatch countDownLatch = new CountDownLatch(1);
-        private volatile MapedFile mapedFile = null;
+        private volatile MappedFile mappedFile = null;
 
 
         public AllocateRequest(String filePath, int fileSize) {
@@ -241,13 +271,13 @@ public class AllocateMapedFileService extends ServiceThread {
         }
 
 
-        public MapedFile getMapedFile() {
-            return mapedFile;
+        public MappedFile getMappedFile() {
+            return mappedFile;
         }
 
 
-        public void setMapedFile(MapedFile mapedFile) {
-            this.mapedFile = mapedFile;
+        public void setMappedFile(MappedFile mappedFile) {
+            this.mappedFile = mappedFile;
         }
 
 

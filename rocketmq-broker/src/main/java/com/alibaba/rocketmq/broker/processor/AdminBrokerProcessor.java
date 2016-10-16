@@ -49,7 +49,7 @@ import com.alibaba.rocketmq.remoting.protocol.LanguageCode;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 import com.alibaba.rocketmq.remoting.protocol.RemotingSerializable;
 import com.alibaba.rocketmq.store.DefaultMessageStore;
-import com.alibaba.rocketmq.store.SelectMapedBufferResult;
+import com.alibaba.rocketmq.store.SelectMappedBufferResult;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import org.slf4j.Logger;
@@ -952,18 +952,18 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 .decodeCommandCustomHeader(ConsumeMessageDirectlyResultRequestHeader.class);
 
         request.getExtFields().put("brokerName", this.brokerController.getBrokerConfig().getBrokerName());
-        SelectMapedBufferResult selectMapedBufferResult = null;
+        SelectMappedBufferResult selectMappedBufferResult = null;
         try {
             MessageId messageId = MessageDecoder.decodeMessageId(requestHeader.getMsgId());
-            selectMapedBufferResult = this.brokerController.getMessageStore().selectOneMessageByOffset(messageId.getOffset());
+            selectMappedBufferResult = this.brokerController.getMessageStore().selectOneMessageByOffset(messageId.getOffset());
 
-            byte[] body = new byte[selectMapedBufferResult.getSize()];
-            selectMapedBufferResult.getByteBuffer().get(body);
+            byte[] body = new byte[selectMappedBufferResult.getSize()];
+            selectMappedBufferResult.getByteBuffer().get(body);
             request.setBody(body);
         } catch (UnknownHostException e) {
         } finally {
-            if (selectMapedBufferResult != null) {
-                selectMapedBufferResult.release();
+            if (selectMappedBufferResult != null) {
+                selectMappedBufferResult.release();
             }
         }
 
@@ -1185,7 +1185,19 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         runtimeInfo.put("pullThreadPoolQueueHeadWaitTimeMills", String.valueOf(this.brokerController.headSlowTimeMills4PullThreadPoolQueue()));
         runtimeInfo.put("earliestMessageTimeStamp", String.valueOf(this.brokerController.getMessageStore().getEarliestMessageTime()));
         runtimeInfo.put("startAcceptSendRequestTimeStamp", String.valueOf(this.brokerController.getBrokerConfig().getStartAcceptSendRequestTimeStamp()));
+        if (this.brokerController.getMessageStore() instanceof DefaultMessageStore) {
+            DefaultMessageStore defaultMessageStore = (DefaultMessageStore) this.brokerController.getMessageStore();
+            runtimeInfo.put("remainTransientStoreBufferNumbs", String.valueOf(defaultMessageStore.remainTransientStoreBufferNumbs()));
+            if (defaultMessageStore.getMessageStoreConfig().isTransientStorePoolEnable()) {
+                runtimeInfo.put("remainHowManyDataToCommit", MixAll.humanReadableByteCount(defaultMessageStore.getCommitLog().remainHowManyDataToCommit(), false));
+            }
+            runtimeInfo.put("remainHowManyDataToFlush", MixAll.humanReadableByteCount(defaultMessageStore.getCommitLog().remainHowManyDataToFlush(), false));
+        }
 
+        java.io.File commitLogDir = new java.io.File(this.brokerController.getMessageStoreConfig().getStorePathRootDir());
+        if (commitLogDir.exists()) {
+            runtimeInfo.put("commitLogDirCapacity", String.format("Total : %s, Free : %s.", MixAll.humanReadableByteCount(commitLogDir.getTotalSpace(), false), MixAll.humanReadableByteCount(commitLogDir.getFreeSpace(), false)));
+        }
 
         return runtimeInfo;
     }

@@ -52,6 +52,11 @@ public abstract class AbstractPluginMessageStore implements MessageStore {
     }
 
     @Override
+    public boolean isTransientStorePoolDeficient() {
+        return next.isTransientStorePoolDeficient();
+    }
+
+    @Override
     public boolean load() {
         return next.load();
     }
@@ -108,12 +113,12 @@ public abstract class AbstractPluginMessageStore implements MessageStore {
     }
 
     @Override
-    public SelectMapedBufferResult selectOneMessageByOffset(long commitLogOffset) {
+    public SelectMappedBufferResult selectOneMessageByOffset(long commitLogOffset) {
         return next.selectOneMessageByOffset(commitLogOffset);
     }
 
     @Override
-    public SelectMapedBufferResult selectOneMessageByOffset(long commitLogOffset, int msgSize) {
+    public SelectMappedBufferResult selectOneMessageByOffset(long commitLogOffset, int msgSize) {
         return next.selectOneMessageByOffset(commitLogOffset, msgSize);
     }
 
@@ -153,7 +158,7 @@ public abstract class AbstractPluginMessageStore implements MessageStore {
     }
 
     @Override
-    public SelectMapedBufferResult getCommitLogData(long offset) {
+    public SelectMappedBufferResult getCommitLogData(long offset) {
         return next.getCommitLogData(offset);
     }
 

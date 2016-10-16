@@ -27,7 +27,6 @@ import com.alibaba.rocketmq.remoting.common.RemotingHelper;
 public class Producer {
     public static void main(String[] args) throws MQClientException, InterruptedException {
         DefaultMQProducer producer = new DefaultMQProducer("please_rename_unique_group_name");
-
         producer.start();
 
         for (int i = 0; i < 1000; i++) {

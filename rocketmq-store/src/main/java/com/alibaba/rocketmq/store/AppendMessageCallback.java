@@ -36,6 +36,6 @@ public interface AppendMessageCallback {
      *
      * @return How many bytes to write
      */
-    public AppendMessageResult doAppend(final long fileFromOffset, final ByteBuffer byteBuffer,
-                                        final int maxBlank, final Object msg);
+    AppendMessageResult doAppend(final long fileFromOffset, final ByteBuffer byteBuffer,
+                                 final int maxBlank, final MessageExtBrokerInner msg);
 }

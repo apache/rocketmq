@@ -40,9 +40,20 @@ public class MessageStoreConfig {
     private int mapedFileSizeCommitLog = 1024 * 1024 * 1024;
     // ConsumeQueue file size, default is 30W
     private int mapedFileSizeConsumeQueue = 300000 * ConsumeQueue.CQStoreUnitSize;
+
     // CommitLog flush interval
+    // flush data to disk
     @ImportantField
-    private int flushIntervalCommitLog = 1000;
+    private int flushIntervalCommitLog = 500;
+
+    // Only used if TransientStorePool enabled
+    // flush data to FileChannel
+    @ImportantField
+    private int commitIntervalCommitLog = 50;
+
+    // Should commit anyway if 3 seconds is elapsed.
+    private int commitMaxInterval = 3000;
+
     // Whether schedule flush,default is real-time
     @ImportantField
     private boolean flushCommitLogTimed = false;
@@ -119,6 +130,11 @@ public class MessageStoreConfig {
     private boolean diskFallRecorded = true;
     private long osPageCacheBusyTimeOutMills = 1000;
     private int defaultQueryMaxNum = 32;
+
+    @ImportantField
+    private boolean transientStorePoolEnable = false;
+    private int transientStorePoolSize = 5;
+    private boolean fastFailIfNoBufferInStorePool = false;
     
     public boolean isDebugLockEnable() {
         return debugLockEnable;
@@ -645,6 +661,49 @@ public class MessageStoreConfig {
     public void setDefaultQueryMaxNum(int defaultQueryMaxNum) {
         this.defaultQueryMaxNum = defaultQueryMaxNum;
     }
-    
-    
+
+    /**
+     * Enable transient commitLog store poll only if transientStorePoolEnable is true and the FlushDiskType is ASYNC_FLUSH
+     * @return
+     */
+    public boolean isTransientStorePoolEnable() {
+        return transientStorePoolEnable && FlushDiskType.ASYNC_FLUSH == getFlushDiskType()
+                && BrokerRole.SLAVE != getBrokerRole();
+    }
+
+    public void setTransientStorePoolEnable(final boolean transientStorePoolEnable) {
+        this.transientStorePoolEnable = transientStorePoolEnable;
+    }
+
+    public int getTransientStorePoolSize() {
+        return transientStorePoolSize;
+    }
+
+    public void setTransientStorePoolSize(final int transientStorePoolSize) {
+        this.transientStorePoolSize = transientStorePoolSize;
+    }
+
+    public int getCommitIntervalCommitLog() {
+        return commitIntervalCommitLog;
+    }
+
+    public void setCommitIntervalCommitLog(final int commitIntervalCommitLog) {
+        this.commitIntervalCommitLog = commitIntervalCommitLog;
+    }
+
+    public int getCommitMaxInterval() {
+        return commitMaxInterval;
+    }
+
+    public void setCommitMaxInterval(final int commitMaxInterval) {
+        this.commitMaxInterval = commitMaxInterval;
+    }
+
+    public boolean isFastFailIfNoBufferInStorePool() {
+        return fastFailIfNoBufferInStorePool;
+    }
+
+    public void setFastFailIfNoBufferInStorePool(final boolean fastFailIfNoBufferInStorePool) {
+        this.fastFailIfNoBufferInStorePool = fastFailIfNoBufferInStorePool;
+    }
 }

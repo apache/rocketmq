@@ -83,7 +83,8 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
 
     @Override
     public boolean rejectRequest() {
-        return this.brokerController.getMessageStore().isOSPageCacheBusy();
+        return this.brokerController.getMessageStore().isOSPageCacheBusy() ||
+                this.brokerController.getMessageStore().isTransientStorePoolDeficient();
     }
 
     private RemotingCommand consumerSendMsgBack(final ChannelHandlerContext ctx, final RemotingCommand request)
@@ -315,7 +316,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
             if (request.getVersion() >= MQVersion.Version.V3_4_9.ordinal()) {
                 maxReconsumeTimes = requestHeader.getMaxReconsumeTimes();
             }
-            int reconsumeTimes = requestHeader.getReconsumeTimes();
+            int reconsumeTimes = requestHeader.getReconsumeTimes() == null ? 0 : requestHeader.getReconsumeTimes();
             if (reconsumeTimes >= maxReconsumeTimes) {
                 newTopic = MixAll.getDLQTopic(groupName);
                 queueIdInt = Math.abs(this.random.nextInt() % 99999999) % DLQ_NUMS_PER_GROUP;
@@ -381,7 +382,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
                 // Failed
                 case CREATE_MAPEDFILE_FAILED:
                     response.setCode(ResponseCode.SYSTEM_ERROR);
-                    response.setRemark("create maped file failed, please make sure OS and JDK both 64bit.");
+                    response.setRemark("create mapped file failed, server is busy or broken.");
                     break;
                 case MESSAGE_ILLEGAL:
                 case PROPERTIES_SIZE_EXCEEDED:

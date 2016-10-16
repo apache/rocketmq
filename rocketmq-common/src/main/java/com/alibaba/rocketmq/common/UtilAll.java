@@ -229,20 +229,15 @@ public class UtilAll {
         return (int) (crc32.getValue() & 0x7FFFFFFF);
     }
 
+    final static char[] hexArray = "0123456789ABCDEF".toCharArray();
     public static String bytes2string(byte[] src) {
-        StringBuilder sb = new StringBuilder();
-        if (src == null || src.length <= 0) {
-            return null;
+        char[] hexChars = new char[src.length * 2];
+        for ( int j = 0; j < src.length; j++ ) {
+            int v = src[j] & 0xFF;
+            hexChars[j * 2] = hexArray[v >>> 4];
+            hexChars[j * 2 + 1] = hexArray[v & 0x0F];
         }
-        for (int i = 0; i < src.length; i++) {
-            int v = src[i] & 0xFF;
-            String hv = Integer.toHexString(v);
-            if (hv.length() < 2) {
-                sb.append(0);
-            }
-            sb.append(hv.toUpperCase());
-        }
-        return sb.toString();
+        return new String(hexChars);
     }
 
     public static byte[] string2bytes(String hexString) {

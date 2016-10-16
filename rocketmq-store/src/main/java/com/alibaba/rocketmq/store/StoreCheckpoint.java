@@ -44,12 +44,12 @@ public class StoreCheckpoint {
 
     public StoreCheckpoint(final String scpPath) throws IOException {
         File file = new File(scpPath);
-        MapedFile.ensureDirOK(file.getParent());
+        MappedFile.ensureDirOK(file.getParent());
         boolean fileExists = file.exists();
 
         this.randomAccessFile = new RandomAccessFile(file, "rw");
         this.fileChannel = this.randomAccessFile.getChannel();
-        this.mappedByteBuffer = fileChannel.map(MapMode.READ_WRITE, 0, MapedFile.OS_PAGE_SIZE);
+        this.mappedByteBuffer = fileChannel.map(MapMode.READ_WRITE, 0, MappedFile.OS_PAGE_SIZE);
 
         if (fileExists) {
             log.info("store checkpoint file exists, " + scpPath);
@@ -73,7 +73,7 @@ public class StoreCheckpoint {
         this.flush();
 
         // unmap mappedByteBuffer
-        MapedFile.clean(this.mappedByteBuffer);
+        MappedFile.clean(this.mappedByteBuffer);
 
         try {
             this.fileChannel.close();
