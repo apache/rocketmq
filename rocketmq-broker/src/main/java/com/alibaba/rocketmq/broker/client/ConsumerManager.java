@@ -133,7 +133,7 @@ public class ConsumerManager {
             if (consumerGroupInfo.getChannelInfoTable().isEmpty()) {
                 ConsumerGroupInfo remove = this.consumerTable.remove(group);
                 if (remove != null) {
-                    log.info("ungister consumer ok, no any connection, and remove consumer group, {}", group);
+                    log.info("unregister consumer ok, no any connection, and remove consumer group, {}", group);
                 }
             }
             this.consumerIdsChangeListener.consumerIdsChanged(group, consumerGroupInfo.getAllChannel());
