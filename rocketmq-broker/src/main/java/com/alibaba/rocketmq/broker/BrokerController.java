@@ -211,7 +211,7 @@ public class BrokerController {
                     Executors.newFixedThreadPool(this.brokerConfig.getAdminBrokerThreadPoolNums(), new ThreadFactoryImpl(
                             "AdminBrokerThread_"));
 
-            this.pullMessageExecutor = new BrokerFixedThreadPoolExecutor(//
+            this.clientManageExecutor = new BrokerFixedThreadPoolExecutor(//
                     this.brokerConfig.getClientManageThreadPoolNums(),//
                     this.brokerConfig.getClientManageThreadPoolNums(),//
                     1000 * 60,//

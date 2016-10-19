@@ -553,7 +553,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
 
         ConsumerGroupInfo consumerGroupInfo =
                 this.brokerController.getConsumerManager().getConsumerGroupInfo(requestHeader.getConsumerGroup());
-        if (consumerGroupInfo != null && !consumerGroupInfo.getChannelInfoTable().isEmpty()) {
+        if (consumerGroupInfo != null) {
             ConsumerConnection bodydata = new ConsumerConnection();
             bodydata.setConsumeFromWhere(consumerGroupInfo.getConsumeFromWhere());
             bodydata.setConsumeType(consumerGroupInfo.getConsumeType());

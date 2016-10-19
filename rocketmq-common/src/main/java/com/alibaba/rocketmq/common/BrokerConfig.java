@@ -68,7 +68,7 @@ public class BrokerConfig {
     private boolean fetchNamesrvAddrByAddressServer = false;
     private int sendThreadPoolQueueCapacity = 10000;
     private int pullThreadPoolQueueCapacity = 10000;
-    private int clientManagerThreadPoolQueueCapacity = 100000;
+    private int clientManagerThreadPoolQueueCapacity = 500000;
 
     private int filterServerNums = 0;
 

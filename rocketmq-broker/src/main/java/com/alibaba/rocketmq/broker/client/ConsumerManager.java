@@ -163,12 +163,12 @@ public class ConsumerManager {
                 }
             }
 
-//            if (channelInfoTable.isEmpty()) {
-//                log.warn(
-//                        "SCAN: remove expired channel from ConsumerManager consumerTable, all clear, consumerGroup={}",
-//                        group);
-//                it.remove();
-//            }
+            if (channelInfoTable.isEmpty()) {
+                log.warn(
+                        "SCAN: remove expired channel from ConsumerManager consumerTable, all clear, consumerGroup={}",
+                        group);
+                it.remove();
+            }
         }
     }
 
