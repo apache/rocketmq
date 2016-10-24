@@ -56,7 +56,8 @@ public class BrokerConfig {
     private int sendMessageThreadPoolNums = 16 + Runtime.getRuntime().availableProcessors() * 4;
     private int pullMessageThreadPoolNums = 16 + Runtime.getRuntime().availableProcessors() * 2;
     private int adminBrokerThreadPoolNums = 16;
-    private int clientManageThreadPoolNums = 16;
+    private int clientManageThreadPoolNums = 32;
+    private int consumerManageThreadPoolNums = 32;
 
     private int flushConsumerOffsetInterval = 1000 * 5;
 
@@ -68,6 +69,8 @@ public class BrokerConfig {
     private boolean fetchNamesrvAddrByAddressServer = false;
     private int sendThreadPoolQueueCapacity = 10000;
     private int pullThreadPoolQueueCapacity = 10000;
+    private int clientManagerThreadPoolQueueCapacity = 1000000;
+    private int consumerManagerThreadPoolQueueCapacity = 1000000;
 
     private int filterServerNums = 0;
 
@@ -502,5 +505,29 @@ public class BrokerConfig {
 
     public void setMaxDelayTime(final int maxDelayTime) {
         this.maxDelayTime = maxDelayTime;
+    }
+
+    public int getClientManagerThreadPoolQueueCapacity() {
+        return clientManagerThreadPoolQueueCapacity;
+    }
+
+    public void setClientManagerThreadPoolQueueCapacity(int clientManagerThreadPoolQueueCapacity) {
+        this.clientManagerThreadPoolQueueCapacity = clientManagerThreadPoolQueueCapacity;
+    }
+
+    public int getConsumerManagerThreadPoolQueueCapacity() {
+        return consumerManagerThreadPoolQueueCapacity;
+    }
+
+    public void setConsumerManagerThreadPoolQueueCapacity(int consumerManagerThreadPoolQueueCapacity) {
+        this.consumerManagerThreadPoolQueueCapacity = consumerManagerThreadPoolQueueCapacity;
+    }
+
+    public int getConsumerManageThreadPoolNums() {
+        return consumerManageThreadPoolNums;
+    }
+
+    public void setConsumerManageThreadPoolNums(int consumerManageThreadPoolNums) {
+        this.consumerManageThreadPoolNums = consumerManageThreadPoolNums;
     }
 }

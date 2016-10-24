@@ -37,8 +37,7 @@
         </encoder>
     </appender>
 
-
-    <appender name="RocketmqBrokerAppender"
+    <appender name="RocketmqBrokerAppender_inner"
               class="ch.qos.logback.core.rolling.RollingFileAppender">
         <file>${user.home}/logs/rocketmqlogs/broker.log</file>
         <append>true</append>
@@ -57,8 +56,11 @@
             <charset class="java.nio.charset.Charset">UTF-8</charset>
         </encoder>
     </appender>
+    <appender name="RocketmqBrokerAppender" class="ch.qos.logback.classic.AsyncAppender">
+        <appender-ref ref="RocketmqBrokerAppender_inner"/>
+    </appender>
 
-    <appender name="RocketmqProtectionAppender"
+    <appender name="RocketmqProtectionAppender_inner"
               class="ch.qos.logback.core.rolling.RollingFileAppender">
         <file>${user.home}/logs/rocketmqlogs/protection.log</file>
         <append>true</append>
@@ -77,8 +79,11 @@
             <charset class="java.nio.charset.Charset">UTF-8</charset>
         </encoder>
     </appender>
+    <appender name="RocketmqProtectionAppender" class="ch.qos.logback.classic.AsyncAppender">
+        <appender-ref ref="RocketmqProtectionAppender_inner"/>
+    </appender>
 
-    <appender name="RocketmqWaterMarkAppender"
+    <appender name="RocketmqWaterMarkAppender_inner"
               class="ch.qos.logback.core.rolling.RollingFileAppender">
         <file>${user.home}/logs/rocketmqlogs/watermark.log</file>
         <append>true</append>
@@ -96,6 +101,9 @@
             <pattern>%d{yyy-MM-dd HH:mm:ss,GMT+8} - %m%n</pattern>
             <charset class="java.nio.charset.Charset">UTF-8</charset>
         </encoder>
+    </appender>
+    <appender name="RocketmqWaterMarkAppender" class="ch.qos.logback.classic.AsyncAppender">
+        <appender-ref ref="RocketmqWaterMarkAppender_inner"/>
     </appender>
 
     <appender name="RocketmqStoreAppender"
@@ -117,8 +125,11 @@
             <charset class="java.nio.charset.Charset">UTF-8</charset>
         </encoder>
     </appender>
+    <appender name="RocketmqStoreAppender" class="ch.qos.logback.classic.AsyncAppender">
+        <appender-ref ref="RocketmqStoreAppender_inner"/>
+    </appender>
 
-    <appender name="RocketmqRemotingAppender"
+    <appender name="RocketmqRemotingAppender_inner"
               class="ch.qos.logback.core.rolling.RollingFileAppender">
         <file>${user.home}/logs/rocketmqlogs/remoting.log</file>
         <append>true</append>
@@ -137,8 +148,11 @@
             <charset class="java.nio.charset.Charset">UTF-8</charset>
         </encoder>
     </appender>
+    <appender name="RocketmqRemotingAppender" class="ch.qos.logback.classic.AsyncAppender">
+        <appender-ref ref="RocketmqRemotingAppender_inner"/>
+    </appender>
 
-    <appender name="RocketmqStoreErrorAppender"
+    <appender name="RocketmqStoreErrorAppender_inner"
               class="ch.qos.logback.core.rolling.RollingFileAppender">
         <file>${user.home}/logs/rocketmqlogs/storeerror.log</file>
         <append>true</append>
@@ -157,9 +171,12 @@
             <charset class="java.nio.charset.Charset">UTF-8</charset>
         </encoder>
     </appender>
+    <appender name="RocketmqStoreErrorAppender" class="ch.qos.logback.classic.AsyncAppender">
+        <appender-ref ref="RocketmqStoreErrorAppender_inner"/>
+    </appender>
 
 
-    <appender name="RocketmqTransactionAppender"
+    <appender name="RocketmqTransactionAppender_inner"
               class="ch.qos.logback.core.rolling.RollingFileAppender">
         <file>${user.home}/logs/rocketmqlogs/transaction.log</file>
         <append>true</append>
@@ -178,9 +195,11 @@
             <charset class="java.nio.charset.Charset">UTF-8</charset>
         </encoder>
     </appender>
+    <appender name="RocketmqTransactionAppender" class="ch.qos.logback.classic.AsyncAppender">
+        <appender-ref ref="RocketmqTransactionAppender_inner"/>
+    </appender>
 
-
-    <appender name="RocketmqRebalanceLockAppender"
+    <appender name="RocketmqRebalanceLockAppender_inner"
               class="ch.qos.logback.core.rolling.RollingFileAppender">
         <file>${user.home}/logs/rocketmqlogs/lock.log</file>
         <append>true</append>
@@ -199,8 +218,11 @@
             <charset class="java.nio.charset.Charset">UTF-8</charset>
         </encoder>
     </appender>
+    <appender name="RocketmqRebalanceLockAppender" class="ch.qos.logback.classic.AsyncAppender">
+        <appender-ref ref="RocketmqRebalanceLockAppender_inner"/>
+    </appender>
 
-    <appender name="RocketmqStatsAppender"
+    <appender name="RocketmqStatsAppender_inner"
               class="ch.qos.logback.core.rolling.RollingFileAppender">
         <file>${user.home}/logs/rocketmqlogs/stats.log</file>
         <append>true</append>
@@ -218,8 +240,11 @@
             <charset class="java.nio.charset.Charset">UTF-8</charset>
         </encoder>
     </appender>
+    <appender name="RocketmqStatsAppender" class="ch.qos.logback.classic.AsyncAppender">
+        <appender-ref ref="RocketmqStatsAppender_inner"/>
+    </appender>
 
-    <appender name="RocketmqCommercialAppender"
+    <appender name="RocketmqCommercialAppender_inner"
               class="ch.qos.logback.core.rolling.RollingFileAppender">
         <file>${user.home}/logs/rocketmqlogs/commercial.log</file>
         <append>true</append>
@@ -236,6 +261,9 @@
             <pattern>%d{yyy-MM-dd HH:mm:ss,GMT+8} %p - %m%n</pattern>
             <charset class="java.nio.charset.Charset">UTF-8</charset>
         </encoder>
+    </appender>
+    <appender name="RocketmqCommercialAppender" class="ch.qos.logback.classic.AsyncAppender">
+        <appender-ref ref="RocketmqCommercialAppender_inner"/>
     </appender>
 
     <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">

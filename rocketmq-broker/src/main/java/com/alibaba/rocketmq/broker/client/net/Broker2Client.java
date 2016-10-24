@@ -5,14 +5,14 @@
  * The ASF licenses this file to You under the Apache License, Version 2.0
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package com.alibaba.rocketmq.broker.client.net;
 
@@ -121,7 +121,7 @@ public class Broker2Client {
         try {
             this.brokerController.getRemotingServer().invokeOneway(channel, request, 10);
         } catch (Exception e) {
-            log.error("notifyConsumerIdsChanged exception, " + consumerGroup, e);
+            log.error("notifyConsumerIdsChanged exception, " + consumerGroup, e.getMessage());
         }
     }
 
@@ -225,9 +225,7 @@ public class Broker2Client {
                     return response;
                 }
             }
-        }
-
-        else {
+        } else {
             String errorInfo =
                     String.format(
                             "Consumer not online, so can not reset offset, Group: %s Topic: %s Timestamp: %d",//
@@ -278,7 +276,7 @@ public class Broker2Client {
             return result;
         }
 
-        for(Map.Entry<Channel, ClientChannelInfo> entry : channelInfoTable.entrySet()){
+        for (Map.Entry<Channel, ClientChannelInfo> entry : channelInfoTable.entrySet()) {
             int version = entry.getValue().getVersion();
             String clientId = entry.getValue().getClientId();
             if (version < MQVersion.Version.V3_0_7_SNAPSHOT.ordinal()) {
