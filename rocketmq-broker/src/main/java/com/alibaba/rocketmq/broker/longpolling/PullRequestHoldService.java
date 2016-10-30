@@ -5,21 +5,21 @@
  * The ASF licenses this file to You under the Apache License, Version 2.0
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package com.alibaba.rocketmq.broker.longpolling;
 
 import com.alibaba.rocketmq.broker.BrokerController;
 import com.alibaba.rocketmq.common.ServiceThread;
+import com.alibaba.rocketmq.common.SystemClock;
 import com.alibaba.rocketmq.common.constant.LoggerName;
-import com.alibaba.rocketmq.remoting.exception.RemotingCommandException;
 import com.alibaba.rocketmq.store.DefaultMessageFilter;
 import com.alibaba.rocketmq.store.MessageFilter;
 import org.slf4j.Logger;
@@ -37,7 +37,7 @@ public class PullRequestHoldService extends ServiceThread {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.BrokerLoggerName);
     private static final String TOPIC_QUEUEID_SEPARATOR = "@";
     private final BrokerController brokerController;
-
+    private final SystemClock systemClock = new SystemClock();
     private final MessageFilter messageFilter = new DefaultMessageFilter();
     private ConcurrentHashMap<String/* topic@queueId */, ManyPullRequest> pullRequestTable =
             new ConcurrentHashMap<String, ManyPullRequest>(1024);
@@ -75,12 +75,18 @@ public class PullRequestHoldService extends ServiceThread {
         while (!this.isStoped()) {
             try {
                 if (this.brokerController.getBrokerConfig().isLongPollingEnable()) {
-                    this.waitForRunning(10 * 1000);
+                    this.waitForRunning(5 * 1000);
                 } else {
                     this.waitForRunning(this.brokerController.getBrokerConfig().getShortPollingTimeMills());
                 }
+
+                long beginLockTimestamp = this.systemClock.now();
                 this.checkHoldRequest();
-            } catch (Exception e) {
+                long costTime = this.systemClock.now() - beginLockTimestamp;
+                if (costTime > 5 * 1000) {
+                    log.info("[NOTIFYME] check hold request cost {} ms.", costTime);
+                }
+            } catch (Throwable e) {
                 log.warn(this.getServiceName() + " service has exception. ", e);
             }
         }
@@ -100,7 +106,11 @@ public class PullRequestHoldService extends ServiceThread {
                 String topic = kArray[0];
                 int queueId = Integer.parseInt(kArray[1]);
                 final long offset = this.brokerController.getMessageStore().getMaxOffsetInQuque(topic, queueId);
-                this.notifyMessageArriving(topic, queueId, offset);
+                try {
+                    this.notifyMessageArriving(topic, queueId, offset);
+                } catch (Throwable e) {
+                    log.error("check hold request failed. topic={}, queueId={}", topic, queueId, e);
+                }
             }
         }
     }
@@ -125,28 +135,23 @@ public class PullRequestHoldService extends ServiceThread {
 
                     Long tmp = tagsCode;
                     if (newestOffset > request.getPullFromThisOffset()) {
-                        if (tagsCode == null) {
-                            // tmp = getLatestMessageTagsCode(topic, queueId,
-                            // maxOffset);
-                        }
                         if (this.messageFilter.isMessageMatched(request.getSubscriptionData(), tmp)) {
                             try {
                                 this.brokerController.getPullMessageProcessor().excuteRequestWhenWakeup(request.getClientChannel(),
                                         request.getRequestCommand());
-                            } catch (RemotingCommandException e) {
-                                log.error("", e);
+                            } catch (Throwable e) {
+                                log.error("execute request when wakeup failed.", e);
                             }
                             continue;
                         }
                     }
 
-
                     if (System.currentTimeMillis() >= (request.getSuspendTimestamp() + request.getTimeoutMillis())) {
                         try {
                             this.brokerController.getPullMessageProcessor().excuteRequestWhenWakeup(request.getClientChannel(),
                                     request.getRequestCommand());
-                        } catch (RemotingCommandException e) {
-                            log.error("", e);
+                        } catch (Throwable e) {
+                            log.error("execute request when wakeup failed.", e);
                         }
                         continue;
                     }
