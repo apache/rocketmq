@@ -45,8 +45,10 @@ public class Consumer {
         }
 
         final String topic = commandLine.hasOption('t') ? commandLine.getOptionValue('t').trim() : "BenchmarkTest";
+        final String groupPrefix = commandLine.hasOption('g') ? commandLine.getOptionValue('g').trim() : "benchmark_consumer";
+        final String group = groupPrefix + "_" + Long.toString(System.currentTimeMillis() % 100);
 
-        System.out.printf("topic %s%n", topic);
+        System.out.printf("topic %s group %s %n", topic, group);
 
         final StatsBenchmarkConsumer statsBenchmarkConsumer = new StatsBenchmarkConsumer();
 
@@ -97,12 +99,10 @@ public class Consumer {
             }
         }, 10000, 10000);
 
-        DefaultMQPushConsumer consumer =
-                new DefaultMQPushConsumer("benchmark_consumer_"
-                        + Long.toString(System.currentTimeMillis() % 100));
+        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer(group);
         consumer.setInstanceName(Long.toString(System.currentTimeMillis()));
 
-        consumer.subscribe("BenchmarkTest", "*");
+        consumer.subscribe(topic, "*");
 
         consumer.registerMessageListener(new MessageListenerConcurrently() {
             @Override
@@ -139,6 +139,10 @@ public class Consumer {
 
     public static Options buildCommandlineOptions(final Options options) {
         Option opt = new Option("t", "topic", true, "Topic name, Default: BenchmarkTest");
+        opt.setRequired(false);
+        options.addOption(opt);
+
+        opt = new Option("g", "group", true, "Consumer group name, Default: BenchmarkTest");
         opt.setRequired(false);
         options.addOption(opt);
 
