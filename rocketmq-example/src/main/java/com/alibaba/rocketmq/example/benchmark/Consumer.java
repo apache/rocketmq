@@ -46,9 +46,13 @@ public class Consumer {
 
         final String topic = commandLine.hasOption('t') ? commandLine.getOptionValue('t').trim() : "BenchmarkTest";
         final String groupPrefix = commandLine.hasOption('g') ? commandLine.getOptionValue('g').trim() : "benchmark_consumer";
-        final String group = groupPrefix + "_" + Long.toString(System.currentTimeMillis() % 100);
+        final String isPrefixEnable = commandLine.hasOption('p') ? commandLine.getOptionValue('p').trim() : "true";
+        String group = groupPrefix;
+        if (Boolean.parseBoolean(isPrefixEnable)) {
+            group = groupPrefix + "_" + Long.toString(System.currentTimeMillis() % 100);
+        }
 
-        System.out.printf("topic %s group %s %n", topic, group);
+        System.out.printf("topic %s group %s prefix %s%n", topic, group, isPrefixEnable);
 
         final StatsBenchmarkConsumer statsBenchmarkConsumer = new StatsBenchmarkConsumer();
 
@@ -142,7 +146,12 @@ public class Consumer {
         opt.setRequired(false);
         options.addOption(opt);
 
-        opt = new Option("g", "group", true, "Consumer group name, Default: BenchmarkTest");
+        opt = new Option("g", "group", true, "Consumer group name, Default: benchmark_consumer");
+        opt.setRequired(false);
+        options.addOption(opt);
+
+
+        opt = new Option("p", "group prefix enable", true, "Consumer group name, Default: false");
         opt.setRequired(false);
         options.addOption(opt);
 
