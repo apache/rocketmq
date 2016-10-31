@@ -229,6 +229,10 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
         }
     }
 
+    public void unsubscribe(String topic) {
+        this.rebalanceImpl.getSubscriptionInner().remove(topic);
+    }
+
     @Override
     public String groupName() {
         return this.defaultMQPullConsumer.getConsumerGroup();
