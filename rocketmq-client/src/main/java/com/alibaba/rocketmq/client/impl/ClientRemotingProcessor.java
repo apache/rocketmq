@@ -161,7 +161,6 @@ public class ClientRemotingProcessor implements NettyRequestProcessor {
         if (null != consumerRunningInfo) {
             if (requestHeader.isJstackEnable()) {
                 Map<Thread, StackTraceElement[]> map = Thread.getAllStackTraces();
-                consumerRunningInfo.setStackTraceElementMap(map);
                 String jstack = UtilAll.jstack(map);
                 consumerRunningInfo.setJstack(jstack);
             }

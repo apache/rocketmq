@@ -6,13 +6,13 @@
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package com.alibaba.rocketmq.common.protocol.body;
@@ -43,7 +43,6 @@ public class ConsumerRunningInfo extends RemotingSerializable {
     private TreeMap<String/* Topic */, ConsumeStatus> statusTable = new TreeMap<String, ConsumeStatus>();
 
     private String jstack;
-    private Map<Thread, StackTraceElement[]> stackTraceElementMap;
 
     public static boolean analyzeSubscription(final TreeMap<String/* clientId */, ConsumerRunningInfo> criTable) {
         ConsumerRunningInfo prev = criTable.firstEntry().getValue();
@@ -151,9 +150,7 @@ public class ConsumerRunningInfo extends RemotingSerializable {
                                 clientId, //
                                 mq, //
                                 System.currentTimeMillis() - pq.getLastLockTimestamp()));
-                    }
-
-                    else {
+                    } else {
                         if (pq.isDroped() && (pq.getTryUnlockTimes() > 0)) {
                             sb.append(String.format("%s %s unlock %d times, still failed%n", //
                                     clientId, //
@@ -163,9 +160,7 @@ public class ConsumerRunningInfo extends RemotingSerializable {
                     }
 
 
-                }
-
-                else {
+                } else {
                     long diff = System.currentTimeMillis() - pq.getLastConsumeTimestamp();
 
                     if (diff > (1000 * 60) && pq.getCachedMsgCount() > 0) {
@@ -317,13 +312,4 @@ public class ConsumerRunningInfo extends RemotingSerializable {
         this.jstack = jstack;
     }
 
-
-    public Map<Thread, StackTraceElement[]> getStackTraceElementMap() {
-        return stackTraceElementMap;
-    }
-
-
-    public void setStackTraceElementMap(Map<Thread, StackTraceElement[]> stackTraceElementMap) {
-        this.stackTraceElementMap = stackTraceElementMap;
-    }
 }
