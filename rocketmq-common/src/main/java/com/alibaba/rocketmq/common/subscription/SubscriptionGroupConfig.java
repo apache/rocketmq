@@ -6,13 +6,13 @@
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package com.alibaba.rocketmq.common.subscription;
@@ -22,7 +22,6 @@ import com.alibaba.rocketmq.common.MixAll;
 
 /**
  * @author shijia.wxr
- *
  */
 public class SubscriptionGroupConfig {
 
@@ -40,6 +39,8 @@ public class SubscriptionGroupConfig {
     private long brokerId = MixAll.MASTER_ID;
 
     private long whichBrokerWhenConsumeSlowly = 1;
+
+    private boolean notifyConsumerIdsChangedEnable = true;
 
 
     public String getGroupName() {
@@ -121,6 +122,13 @@ public class SubscriptionGroupConfig {
         this.whichBrokerWhenConsumeSlowly = whichBrokerWhenConsumeSlowly;
     }
 
+    public boolean isNotifyConsumerIdsChangedEnable() {
+        return notifyConsumerIdsChangedEnable;
+    }
+
+    public void setNotifyConsumerIdsChangedEnable(final boolean notifyConsumerIdsChangedEnable) {
+        this.notifyConsumerIdsChangedEnable = notifyConsumerIdsChangedEnable;
+    }
 
     @Override
     public int hashCode() {
@@ -130,6 +138,7 @@ public class SubscriptionGroupConfig {
         result = prime * result + (consumeBroadcastEnable ? 1231 : 1237);
         result = prime * result + (consumeEnable ? 1231 : 1237);
         result = prime * result + (consumeFromMinEnable ? 1231 : 1237);
+        result = prime * result + (notifyConsumerIdsChangedEnable ? 1231 : 1237);
         result = prime * result + ((groupName == null) ? 0 : groupName.hashCode());
         result = prime * result + retryMaxTimes;
         result = prime * result + retryQueueNums;
@@ -167,6 +176,8 @@ public class SubscriptionGroupConfig {
             return false;
         if (whichBrokerWhenConsumeSlowly != other.whichBrokerWhenConsumeSlowly)
             return false;
+        if (notifyConsumerIdsChangedEnable != other.notifyConsumerIdsChangedEnable)
+            return false;
         return true;
     }
 
@@ -177,6 +188,7 @@ public class SubscriptionGroupConfig {
                 + ", consumeFromMinEnable=" + consumeFromMinEnable + ", consumeBroadcastEnable="
                 + consumeBroadcastEnable + ", retryQueueNums=" + retryQueueNums + ", retryMaxTimes="
                 + retryMaxTimes + ", brokerId=" + brokerId + ", whichBrokerWhenConsumeSlowly="
-                + whichBrokerWhenConsumeSlowly + "]";
+                + whichBrokerWhenConsumeSlowly + ", notifyConsumerIdsChangedEnable="
+                + notifyConsumerIdsChangedEnable + "]";
     }
 }
