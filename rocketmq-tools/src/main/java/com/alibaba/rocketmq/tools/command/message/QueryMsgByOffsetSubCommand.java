@@ -6,13 +6,13 @@
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package com.alibaba.rocketmq.tools.command.message;
 
@@ -29,9 +29,7 @@ import org.apache.commons.cli.Options;
 
 
 /**
- *
  * @author shijia.wxr
- *
  */
 public class QueryMsgByOffsetSubCommand implements SubCommand {
 
@@ -72,7 +70,7 @@ public class QueryMsgByOffsetSubCommand implements SubCommand {
     @Override
     public void execute(CommandLine commandLine, Options options, RPCHook rpcHook) {
         DefaultMQAdminExt defaultMQAdminExt = new DefaultMQAdminExt(rpcHook);
-        DefaultMQPullConsumer defaultMQPullConsumer = new DefaultMQPullConsumer(MixAll.TOOLS_CONSUMER_GROUP,rpcHook);
+        DefaultMQPullConsumer defaultMQPullConsumer = new DefaultMQPullConsumer(MixAll.TOOLS_CONSUMER_GROUP, rpcHook);
 
         defaultMQAdminExt.setInstanceName(Long.toString(System.currentTimeMillis()));
         defaultMQPullConsumer.setInstanceName(Long.toString(System.currentTimeMillis()));
@@ -95,8 +93,7 @@ public class QueryMsgByOffsetSubCommand implements SubCommand {
             if (pullResult != null) {
                 switch (pullResult.getPullStatus()) {
                     case FOUND:
-                        QueryMsgByIdSubCommand.queryById(defaultMQAdminExt, pullResult.getMsgFoundList().get(0)
-                                .getMsgId());
+                        QueryMsgByIdSubCommand.printMsg(defaultMQAdminExt, pullResult.getMsgFoundList().get(0));
                         break;
                     case NO_MATCHED_MSG:
                     case NO_NEW_MSG:
