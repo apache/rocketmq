@@ -100,7 +100,7 @@ public class MessageClientIDSetter {
         return result;
     }
 
-    private static String createUniqID() {
+    public static String createUniqID() {
         StringBuilder sb = new StringBuilder(len * 2);
         sb.append(fixString);
         sb.append(UtilAll.bytes2string(createUniqIDBuffer()));
