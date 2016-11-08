@@ -192,7 +192,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
     public void pullMessage(final PullRequest pullRequest) {
         final ProcessQueue processQueue = pullRequest.getProcessQueue();
         if (processQueue.isDropped()) {
-            log.info("the pull request[{}] is droped.", pullRequest.toString());
+            log.info("the pull request[{}] is dropped.", pullRequest.toString());
             return;
         }
 
@@ -207,7 +207,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
         }
 
         if (this.isPause()) {
-            log.warn("consumer was paused, execute pull request later. instanceName={}", this.defaultMQPushConsumer.getInstanceName());
+            log.warn("consumer was paused, execute pull request later. instanceName={}, group={}", this.defaultMQPushConsumer.getInstanceName(), this.defaultMQPushConsumer.getConsumerGroup());
             this.executePullRequestLater(pullRequest, PullTimeDelayMillsWhenSuspend);
             return;
         }
