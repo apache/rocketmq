@@ -18,6 +18,7 @@ package com.alibaba.rocketmq.client.impl.factory;
 
 import com.alibaba.rocketmq.client.ClientConfig;
 import com.alibaba.rocketmq.client.admin.MQAdminExtInner;
+import com.alibaba.rocketmq.client.common.ThreadLocalIndex;
 import com.alibaba.rocketmq.client.exception.MQBrokerException;
 import com.alibaba.rocketmq.client.exception.MQClientException;
 import com.alibaba.rocketmq.client.impl.*;
@@ -93,6 +94,7 @@ public class MQClientInstance {
     private final AtomicLong storeTimesTotal = new AtomicLong(0);
     private ServiceState serviceState = ServiceState.CREATE_JUST;
     private DatagramSocket datagramSocket;
+    private Random random = new Random();
 
 
     public MQClientInstance(ClientConfig clientConfig, int instanceIndex, String clientId) {
@@ -996,7 +998,8 @@ public class MQClientInstance {
         if (topicRouteData != null) {
             List<BrokerData> brokers = topicRouteData.getBrokerDatas();
             if (!brokers.isEmpty()) {
-                BrokerData bd = brokers.get(0);
+                int index = random.nextInt(brokers.size());
+                BrokerData bd = brokers.get(index % brokers.size());
                 return bd.selectBrokerAddr();
             }
         }
