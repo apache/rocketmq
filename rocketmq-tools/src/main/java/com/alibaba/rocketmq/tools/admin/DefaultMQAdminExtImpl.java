@@ -6,13 +6,13 @@
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package com.alibaba.rocketmq.tools.admin;
 
@@ -45,6 +45,7 @@ import com.alibaba.rocketmq.remoting.common.RemotingUtil;
 import com.alibaba.rocketmq.remoting.exception.*;
 import com.alibaba.rocketmq.tools.admin.api.MessageTrack;
 import com.alibaba.rocketmq.tools.admin.api.TrackType;
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 
 import java.io.UnsupportedEncodingException;
@@ -62,6 +63,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
     private MQClientInstance mqClientInstance;
     private RPCHook rpcHook;
     private long timeoutMillis = 20000;
+    private Random random = new Random();
 
 
     public DefaultMQAdminExtImpl(DefaultMQAdminExt defaultMQAdminExt, long timeoutMillis) {
@@ -251,10 +253,10 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
     @Override
     public MessageExt viewMessage(String topic, String msgId) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
         try {
-            MessageId oldMsgId = MessageDecoder.decodeMessageId(msgId);
+            MessageDecoder.decodeMessageId(msgId);
             return this.viewMessage(msgId);
         } catch (Exception e) {
-            log.warn("the msgid maybe created by new client", e);
+            log.warn("the msgId maybe created by new client. msgId={}", msgId, e);
         }
         return this.mqClientInstance.getMQAdminImpl().queryMessageByUniqKey(topic, msgId);
     }
@@ -262,18 +264,20 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
     @Override
     public ConsumerConnection examineConsumerConnectionInfo(String consumerGroup) throws InterruptedException, MQBrokerException,
             RemotingException, MQClientException {
-        String topic = MixAll.getRetryTopic(consumerGroup);
-        TopicRouteData topicRouteData = this.examineTopicRouteInfo(topic);
         ConsumerConnection result = new ConsumerConnection();
-
-        for (BrokerData bd : topicRouteData.getBrokerDatas()) {
-            String addr = bd.selectBrokerAddr();
-            if (addr != null) {
-                return this.mqClientInstance.getMQClientAPIImpl().getConsumerConnectionList(addr, consumerGroup, timeoutMillis);
+        String topic = MixAll.getRetryTopic(consumerGroup);
+        List<BrokerData> brokers = this.examineTopicRouteInfo(topic).getBrokerDatas();
+        BrokerData brokerData = brokers.get(random.nextInt(brokers.size()));
+        String addr = null;
+        if (brokerData != null) {
+            addr = brokerData.selectBrokerAddr();
+            if (StringUtils.isNotBlank(addr)) {
+                result = this.mqClientInstance.getMQClientAPIImpl().getConsumerConnectionList(addr, consumerGroup, timeoutMillis);
             }
         }
 
         if (result.getConnectionSet().isEmpty()) {
+            log.warn("the consumer group not online. brokerAddr={}, group={}", addr, consumerGroup);
             throw new MQClientException(ResponseCode.CONSUMER_NOT_ONLINE, "Not found the consumer group connection");
         }
 
@@ -283,18 +287,20 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
     @Override
     public ProducerConnection examineProducerConnectionInfo(String producerGroup, final String topic) throws RemotingException,
             MQClientException, InterruptedException, MQBrokerException {
-        TopicRouteData topicRouteData = this.examineTopicRouteInfo(topic);
         ProducerConnection result = new ProducerConnection();
-
-        for (BrokerData bd : topicRouteData.getBrokerDatas()) {
-            String addr = bd.selectBrokerAddr();
-            if (addr != null) {
-                return this.mqClientInstance.getMQClientAPIImpl().getProducerConnectionList(addr, producerGroup, timeoutMillis);
+        List<BrokerData> brokers = this.examineTopicRouteInfo(topic).getBrokerDatas();
+        BrokerData brokerData = brokers.get(random.nextInt(brokers.size()));
+        String addr = null;
+        if (brokerData != null) {
+            addr = brokerData.selectBrokerAddr();
+            if (StringUtils.isNotBlank(addr)) {
+                result = this.mqClientInstance.getMQClientAPIImpl().getProducerConnectionList(addr, producerGroup, timeoutMillis);
             }
         }
 
         if (result.getConnectionSet().isEmpty()) {
-            throw new MQClientException("Not found the consumer group connection", null);
+            log.warn("the producer group not online. brokerAddr={}, group={}", addr, producerGroup);
+            throw new MQClientException("Not found the producer group connection", null);
         }
 
         return result;

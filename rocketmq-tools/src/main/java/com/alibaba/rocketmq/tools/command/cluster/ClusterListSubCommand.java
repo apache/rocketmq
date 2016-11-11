@@ -81,17 +81,18 @@ public class ClusterListSubCommand implements SubCommand {
 
         try {
             defaultMQAdminExt.start();
+            long i = 0;
 
             do {
+                if (i++ > 0) {
+                    System.out.println("== == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == ==");
+                    Thread.sleep(printInterval);
+                }
                 if (commandLine.hasOption('m')) {
                     this.printClusterMoreStats(defaultMQAdminExt);
                 } else {
                     this.printClusterBaseInfo(defaultMQAdminExt);
                 }
-
-                Thread.sleep(printInterval);
-
-                System.out.println("");
             } while (enableInterval);
         } catch (Exception e) {
             e.printStackTrace();
