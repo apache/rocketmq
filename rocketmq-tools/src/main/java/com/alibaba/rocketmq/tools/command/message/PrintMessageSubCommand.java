@@ -6,13 +6,13 @@
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package com.alibaba.rocketmq.tools.command.message;
 
@@ -34,10 +34,7 @@ import java.util.Set;
 
 
 /**
-
- *
  * @author shijia.wxr
- *
  */
 public class PrintMessageSubCommand implements SubCommand {
 
@@ -123,6 +120,8 @@ public class PrintMessageSubCommand implements SubCommand {
                     maxOffset = consumer.searchOffset(mq, timeValue);
                 }
 
+                System.out.println("minOffset=" + minOffset + ", maxOffset=" + maxOffset + ", " + mq);
+
                 READQ:
                 for (long offset = minOffset; offset < maxOffset; ) {
                     try {
@@ -133,11 +132,15 @@ public class PrintMessageSubCommand implements SubCommand {
                                 printMessage(pullResult.getMsgFoundList(), charsetName, printBody);
                                 break;
                             case NO_MATCHED_MSG:
+                                System.out.println(mq + " no matched msg. status=" + pullResult.getPullStatus() + ", offset=" + offset);
+                                break;
                             case NO_NEW_MSG:
                             case OFFSET_ILLEGAL:
+                                System.out.println(mq + " print msg finished. status=" + pullResult.getPullStatus() + ", offset=" + offset);
                                 break READQ;
                         }
                     } catch (Exception e) {
+                        e.printStackTrace();
                         break;
                     }
                 }
@@ -155,7 +158,6 @@ public class PrintMessageSubCommand implements SubCommand {
         try {
             timestamp = Long.parseLong(value);
         } catch (NumberFormatException e) {
-
             timestamp = UtilAll.parseDate(value, UtilAll.yyyy_MM_dd_HH_mm_ss_SSS).getTime();
         }
 
@@ -168,6 +170,7 @@ public class PrintMessageSubCommand implements SubCommand {
                 System.out.printf("MSGID: %s %s BODY: %s%n", msg.getMsgId(), msg.toString(),
                         printBody ? new String(msg.getBody(), charsetName) : "NOT PRINT BODY");
             } catch (UnsupportedEncodingException e) {
+                //
             }
         }
     }
