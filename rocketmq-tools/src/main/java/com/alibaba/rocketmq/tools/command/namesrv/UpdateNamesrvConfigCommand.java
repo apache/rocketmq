@@ -29,7 +29,7 @@ import java.util.List;
 import java.util.Properties;
 
 /**
- * Created by xigu.lx on 2016/11/14.
+ * @author xigu.lx
  */
 public class UpdateNamesrvConfigCommand implements SubCommand {
     @Override

@@ -30,7 +30,7 @@ import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
- * Created by xigu.lx on 2016/11/14.
+ * @author xigu.lx
  *
  * manager of name server's config
  */
