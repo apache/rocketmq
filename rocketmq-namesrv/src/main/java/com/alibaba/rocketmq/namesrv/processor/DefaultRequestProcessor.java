@@ -18,6 +18,7 @@ package com.alibaba.rocketmq.namesrv.processor;
 
 import com.alibaba.rocketmq.common.MQVersion;
 import com.alibaba.rocketmq.common.MQVersion.Version;
+import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.common.help.FAQUrl;
 import com.alibaba.rocketmq.common.namesrv.NamesrvUtil;
@@ -38,6 +39,8 @@ import io.netty.channel.ChannelHandlerContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.UnsupportedEncodingException;
+import java.util.Properties;
 import java.util.concurrent.atomic.AtomicLong;
 
 
@@ -103,6 +106,10 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
                 return this.getHasUnitSubTopicList(ctx, request);
             case RequestCode.GET_HAS_UNIT_SUB_UNUNIT_TOPIC_LIST:
                 return this.getHasUnitSubUnUnitTopicList(ctx, request);
+            case RequestCode.UPDATE_NAMESRV_CONFIG:
+                return this.updateConfig(ctx, request);
+            case RequestCode.GET_NAMESRV_CONFIG:
+                return this.getConfig(ctx, request);
             default:
                 break;
         }
@@ -421,4 +428,65 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
         response.setRemark(null);
         return response;
     }
+
+    private RemotingCommand updateConfig(ChannelHandlerContext ctx, RemotingCommand request) {
+        log.info("updateConfig called by {}", RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
+
+        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
+
+        byte[] body = request.getBody();
+        if (body != null) {
+            String bodyStr = null;
+            try {
+                bodyStr = new String(body, MixAll.DEFAULT_CHARSET);
+            } catch (UnsupportedEncodingException e) {
+                log.error("updateConfig byte array to string error: ", e);
+                response.setCode(ResponseCode.SYSTEM_ERROR);
+                response.setRemark("UnsupportedEncodingException " + e);
+                return response;
+            }
+
+            if (bodyStr == null) {
+                log.error("updateConfig get null body!");
+                response.setCode(ResponseCode.SYSTEM_ERROR);
+                response.setRemark("string2Properties error");
+                return response;
+            }
+
+            Properties properties = MixAll.string2Properties(bodyStr);
+            if (properties == null) {
+                log.error("updateConfig MixAll.string2Properties error {}", bodyStr);
+                response.setCode(ResponseCode.SYSTEM_ERROR);
+                response.setRemark("string2Properties error");
+                return response;
+            }
+
+            this.namesrvController.getNamesrvConfigManager().update(properties);
+        }
+
+        response.setCode(ResponseCode.SUCCESS);
+        response.setRemark(null);
+        return response;
+    }
+
+    private RemotingCommand getConfig(ChannelHandlerContext ctx, RemotingCommand request) {
+        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
+
+        String content = this.namesrvController.getNamesrvConfigManager().getConfigs();
+        if (content != null && content.length() > 0) {
+            try {
+                response.setBody(content.getBytes(MixAll.DEFAULT_CHARSET));
+            } catch (UnsupportedEncodingException e) {
+                log.error("getConfig error, ", e);
+                response.setCode(ResponseCode.SYSTEM_ERROR);
+                response.setRemark("UnsupportedEncodingException " + e);
+                return response;
+            }
+        }
+
+        response.setCode(ResponseCode.SUCCESS);
+        response.setRemark(null);
+        return response;
+    }
+
 }

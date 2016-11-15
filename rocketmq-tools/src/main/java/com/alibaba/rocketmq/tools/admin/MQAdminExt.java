@@ -227,4 +227,48 @@ public interface MQAdminExt extends MQAdmin {
 
 
     void updateConsumeOffset(String brokerAddr, String consumeGroup, MessageQueue mq, long offset) throws RemotingException, InterruptedException, MQBrokerException;
+
+
+    /**
+     * Update name server config.
+     * <br>
+     * Command Code : RequestCode.UPDATE_NAMESRV_CONFIG
+     *
+     * <br> If param(nameServers) is null or empty, will use name servers from ns!
+     *
+     * @param properties
+     * @param nameServers
+     *
+     * @throws InterruptedException
+     * @throws RemotingConnectException
+     * @throws UnsupportedEncodingException
+     * @throws RemotingSendRequestException
+     * @throws RemotingTimeoutException
+     * @throws MQClientException
+     * @throws MQBrokerException
+     */
+    void updateNameServerConfig(final Properties properties, final List<String> nameServers) throws InterruptedException, RemotingConnectException,
+            UnsupportedEncodingException, RemotingSendRequestException, RemotingTimeoutException,
+            MQClientException, MQBrokerException;
+
+    /**
+     * Get name server config.
+     * <br>
+     * Command Code : RequestCode.GET_NAMESRV_CONFIG
+     * <br> If param(nameServers) is null or empty, will use name servers from ns!
+     *
+     * @param nameServers
+     *
+     * @return
+     *
+     * @throws InterruptedException
+     * @throws RemotingTimeoutException
+     * @throws RemotingSendRequestException
+     * @throws RemotingConnectException
+     * @throws MQClientException
+     * @throws UnsupportedEncodingException
+     */
+    Map<String, Properties> getNameServerConfig(final List<String> nameServers) throws InterruptedException,
+            RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException,
+            MQClientException, UnsupportedEncodingException;
 }

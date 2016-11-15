@@ -20,6 +20,7 @@ import com.alibaba.rocketmq.common.ThreadFactoryImpl;
 import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.common.namesrv.NamesrvConfig;
 import com.alibaba.rocketmq.namesrv.kvconfig.KVConfigManager;
+import com.alibaba.rocketmq.namesrv.kvconfig.NamesrvConfigManager;
 import com.alibaba.rocketmq.namesrv.processor.ClusterTestRequestProcessor;
 import com.alibaba.rocketmq.namesrv.processor.DefaultRequestProcessor;
 import com.alibaba.rocketmq.namesrv.routeinfo.BrokerHousekeepingService;
@@ -57,6 +58,8 @@ public class NamesrvController {
 
     private ExecutorService remotingExecutor;
 
+    private NamesrvConfigManager namesrvConfigManager;
+
 
     public NamesrvController(NamesrvConfig namesrvConfig, NettyServerConfig nettyServerConfig) {
         this.namesrvConfig = namesrvConfig;
@@ -64,13 +67,13 @@ public class NamesrvController {
         this.kvConfigManager = new KVConfigManager(this);
         this.routeInfoManager = new RouteInfoManager();
         this.brokerHousekeepingService = new BrokerHousekeepingService(this);
+        this.namesrvConfigManager = new NamesrvConfigManager(this);
     }
 
 
     public boolean initialize() {
 
         this.kvConfigManager.load();
-
 
         this.remotingServer = new NettyRemotingServer(this.nettyServerConfig, this.brokerHousekeepingService);
 
@@ -152,5 +155,9 @@ public class NamesrvController {
 
     public void setRemotingServer(RemotingServer remotingServer) {
         this.remotingServer = remotingServer;
+    }
+
+    public NamesrvConfigManager getNamesrvConfigManager() {
+        return namesrvConfigManager;
     }
 }
