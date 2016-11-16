@@ -54,6 +54,8 @@ public class MessageStoreConfig {
     // Should commit anyway if 3 seconds is elapsed.
     private int commitMaxInterval = 3000;
 
+    private boolean useReentrantLockWhenPutMessage = false;
+
     // Whether schedule flush,default is real-time
     @ImportantField
     private boolean flushCommitLogTimed = false;
@@ -705,5 +707,13 @@ public class MessageStoreConfig {
 
     public void setFastFailIfNoBufferInStorePool(final boolean fastFailIfNoBufferInStorePool) {
         this.fastFailIfNoBufferInStorePool = fastFailIfNoBufferInStorePool;
+    }
+
+    public boolean isUseReentrantLockWhenPutMessage() {
+        return useReentrantLockWhenPutMessage;
+    }
+
+    public void setUseReentrantLockWhenPutMessage(final boolean useReentrantLockWhenPutMessage) {
+        this.useReentrantLockWhenPutMessage = useReentrantLockWhenPutMessage;
     }
 }
