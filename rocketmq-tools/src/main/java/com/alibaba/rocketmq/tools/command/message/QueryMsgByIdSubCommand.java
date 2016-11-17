@@ -19,6 +19,7 @@ package com.alibaba.rocketmq.tools.command.message;
 import com.alibaba.rocketmq.client.exception.MQBrokerException;
 import com.alibaba.rocketmq.client.exception.MQClientException;
 import com.alibaba.rocketmq.common.UtilAll;
+import com.alibaba.rocketmq.common.message.MessageClientExt;
 import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.common.protocol.body.ConsumeMessageDirectlyResult;
 import com.alibaba.rocketmq.remoting.RPCHook;
@@ -113,8 +114,25 @@ public class QueryMsgByIdSubCommand implements SubCommand {
             RemotingException, MQBrokerException, InterruptedException, IOException {
         MessageExt msg = admin.viewMessage(msgId);
 
+        printMsg(admin, msg);
+    }
+
+    public static void printMsg(final DefaultMQAdminExt admin, final MessageExt msg) throws IOException {
+        if (msg == null) {
+            System.out.println("\nMessage not found!");
+            return;
+        }
 
         String bodyTmpFilePath = createBodyFile(msg);
+        String msgId = msg.getMsgId();
+        if (msg instanceof MessageClientExt) {
+            msgId = ((MessageClientExt)msg).getOffsetMsgId();
+        }
+
+        System.out.printf("%-20s %s%n",//
+                "OffsetID:",//
+                msgId//
+        );
 
         System.out.printf("%-20s %s%n",//
                 "Topic:",//
