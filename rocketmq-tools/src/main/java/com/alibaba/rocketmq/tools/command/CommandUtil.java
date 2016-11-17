@@ -32,6 +32,46 @@ import java.util.*;
  * @author shijia.wxr
  */
 public class CommandUtil {
+
+    public static Map<String/*master addr*/, List<String>/*slave addr*/> fetchMasterAndSlaveDistinguish(
+            final MQAdminExt adminExt, final String clusterName)
+            throws InterruptedException, RemotingConnectException,
+            RemotingTimeoutException, RemotingSendRequestException,
+            MQBrokerException {
+        Map<String, List<String>> masterAndSlaveMap = new HashMap<String, List<String>>(4);
+
+        ClusterInfo clusterInfoSerializeWrapper = adminExt.examineBrokerClusterInfo();
+        Set<String> brokerNameSet = clusterInfoSerializeWrapper.getClusterAddrTable().get(clusterName);
+
+        if (brokerNameSet == null) {
+            System.out
+                    .printf("[error] Make sure the specified clusterName exists or the nameserver which connected is correct.");
+            return masterAndSlaveMap;
+        }
+
+        for (String brokerName : brokerNameSet) {
+            BrokerData brokerData = clusterInfoSerializeWrapper.getBrokerAddrTable().get(brokerName);
+
+            if (brokerData == null || brokerData.getBrokerAddrs() == null) {
+                continue;
+            }
+
+            String masterAddr = brokerData.getBrokerAddrs().get(MixAll.MASTER_ID);
+            masterAndSlaveMap.put(masterAddr, new ArrayList<String>());
+
+            for (Long id : brokerData.getBrokerAddrs().keySet()) {
+                if (brokerData.getBrokerAddrs().get(id) == null
+                        || id.longValue() == MixAll.MASTER_ID) {
+                    continue;
+                }
+
+                masterAndSlaveMap.get(masterAddr).add(brokerData.getBrokerAddrs().get(id));
+            }
+        }
+
+        return masterAndSlaveMap;
+    }
+
     public static Set<String> fetchMasterAddrByClusterName(final MQAdminExt adminExt, final String clusterName)
             throws InterruptedException, RemotingConnectException, RemotingTimeoutException,
             RemotingSendRequestException, MQBrokerException {

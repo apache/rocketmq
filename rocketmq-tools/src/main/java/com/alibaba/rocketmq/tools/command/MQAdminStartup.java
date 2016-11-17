@@ -170,6 +170,7 @@ public class MQAdminStartup {
 
         initCommand(new GetNamesrvConfigCommand());
         initCommand(new UpdateNamesrvConfigCommand());
+        initCommand(new GetBrokerConfigCommand());
     }
 
     private static void initLogback() throws JoranException {

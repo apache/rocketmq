@@ -72,7 +72,7 @@ public class GetNamesrvConfigCommand implements SubCommand {
                 System.out.printf("============%s============\n",
                         server);
                 for (Object key : nameServerConfigs.get(server).keySet()) {
-                    System.out.printf("%s=%s\n", key, nameServerConfigs.get(server).get(key));
+                    System.out.printf("%-50s=  %s\n", key, nameServerConfigs.get(server).get(key));
                 }
             }
             return;
