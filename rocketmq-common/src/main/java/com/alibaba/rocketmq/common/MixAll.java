@@ -368,15 +368,17 @@ public class MixAll {
                         if (pt != null && pt.length > 0) {
                             String cn = pt[0].getSimpleName();
                             Object arg = null;
-                            if (cn.equals("int")) {
+                            if (cn.equals("int") || cn.equals("Integer")) {
                                 arg = Integer.parseInt(property);
-                            } else if (cn.equals("long")) {
+                            } else if (cn.equals("long") || cn.equals("Long")) {
                                 arg = Long.parseLong(property);
-                            } else if (cn.equals("double")) {
+                            } else if (cn.equals("double") || cn.equals("Double")) {
                                 arg = Double.parseDouble(property);
-                            } else if (cn.equals("boolean")) {
+                            } else if (cn.equals("boolean") || cn.equals("Boolean")) {
                                 arg = Boolean.parseBoolean(property);
-                            } else if (cn.equals("String")) {
+                            } else if (cn.equals("float") || cn.equals("Float")) {
+                                arg = Float.parseFloat(property);
+                            }else if (cn.equals("String")) {
                                 arg = property;
                             } else if (cn.equals("AtomicLong")) {
                                 arg = new AtomicLong(Long.parseLong(property));
