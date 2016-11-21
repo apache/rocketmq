@@ -461,7 +461,7 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
                 return response;
             }
 
-            this.namesrvController.getNamesrvConfigManager().update(properties);
+            this.namesrvController.getConfiguration().update(properties);
         }
 
         response.setCode(ResponseCode.SUCCESS);
@@ -472,7 +472,7 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
     private RemotingCommand getConfig(ChannelHandlerContext ctx, RemotingCommand request) {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
 
-        String content = this.namesrvController.getNamesrvConfigManager().getConfigs();
+        String content = this.namesrvController.getConfiguration().getAllConfigsFormatString();
         if (content != null && content.length() > 0) {
             try {
                 response.setBody(content.getBytes(MixAll.DEFAULT_CHARSET));

@@ -124,6 +124,10 @@ public class NamesrvStartup {
 
 
             final NamesrvController controller = new NamesrvController(namesrvConfig, nettyServerConfig);
+
+            // remember all configs to prevent discard
+            controller.getConfiguration().registerConfig(properties);
+
             boolean initResult = controller.initialize();
             if (!initResult) {
                 controller.shutdown();

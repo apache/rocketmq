@@ -380,8 +380,6 @@ public class MixAll {
                                 arg = Float.parseFloat(property);
                             }else if (cn.equals("String")) {
                                 arg = property;
-                            } else if (cn.equals("AtomicLong")) {
-                                arg = new AtomicLong(Long.parseLong(property));
                             } else {
                                 continue;
                             }

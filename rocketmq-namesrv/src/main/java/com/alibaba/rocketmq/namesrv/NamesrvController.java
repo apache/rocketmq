@@ -16,11 +16,11 @@
  */
 package com.alibaba.rocketmq.namesrv;
 
+import com.alibaba.rocketmq.common.Configuration;
 import com.alibaba.rocketmq.common.ThreadFactoryImpl;
 import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.common.namesrv.NamesrvConfig;
 import com.alibaba.rocketmq.namesrv.kvconfig.KVConfigManager;
-import com.alibaba.rocketmq.namesrv.kvconfig.NamesrvConfigManager;
 import com.alibaba.rocketmq.namesrv.processor.ClusterTestRequestProcessor;
 import com.alibaba.rocketmq.namesrv.processor.DefaultRequestProcessor;
 import com.alibaba.rocketmq.namesrv.routeinfo.BrokerHousekeepingService;
@@ -58,7 +58,7 @@ public class NamesrvController {
 
     private ExecutorService remotingExecutor;
 
-    private NamesrvConfigManager namesrvConfigManager;
+    private Configuration configuration;
 
 
     public NamesrvController(NamesrvConfig namesrvConfig, NettyServerConfig nettyServerConfig) {
@@ -67,7 +67,11 @@ public class NamesrvController {
         this.kvConfigManager = new KVConfigManager(this);
         this.routeInfoManager = new RouteInfoManager();
         this.brokerHousekeepingService = new BrokerHousekeepingService(this);
-        this.namesrvConfigManager = new NamesrvConfigManager(this);
+        this.configuration = new Configuration(
+                log,
+                this.namesrvConfig, this.nettyServerConfig
+        );
+        this.configuration.setStorePathFromConfig(this.namesrvConfig, "configStorePath");
     }
 
 
@@ -157,7 +161,7 @@ public class NamesrvController {
         this.remotingServer = remotingServer;
     }
 
-    public NamesrvConfigManager getNamesrvConfigManager() {
-        return namesrvConfigManager;
+    public Configuration getConfiguration() {
+        return configuration;
     }
 }
