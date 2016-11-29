@@ -1933,4 +1933,66 @@ public class MQClientAPIImpl {
         throw new MQBrokerException(response.getCode(), response.getRemark());
     }
 
+    public void updateNameServerConfig(final Properties properties, final List<String> nameServers, long timeoutMillis)
+            throws UnsupportedEncodingException,
+            MQBrokerException, InterruptedException, RemotingTimeoutException, RemotingSendRequestException,
+            RemotingConnectException, MQClientException {
+        String str = MixAll.properties2String(properties);
+        if (str == null || str.length() < 1) {
+            return;
+        }
+        List<String> invokeNameServers = (nameServers == null || nameServers.isEmpty()) ?
+                this.remotingClient.getNameServerAddressList() : nameServers;
+        if (invokeNameServers == null || invokeNameServers.isEmpty()) {
+            return;
+        }
+
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.UPDATE_NAMESRV_CONFIG, null);
+        request.setBody(str.getBytes(MixAll.DEFAULT_CHARSET));
+
+        RemotingCommand errResponse = null;
+        for (String nameServer : invokeNameServers) {
+            RemotingCommand response = this.remotingClient.invokeSync(nameServer, request, timeoutMillis);
+            assert response != null;
+            switch (response.getCode()) {
+                case ResponseCode.SUCCESS: {
+                    break;
+                }
+                default:
+                    errResponse = response;
+            }
+        }
+
+        if (errResponse != null) {
+            throw new MQClientException(errResponse.getCode(), errResponse.getRemark());
+        }
+    }
+
+    public Map<String, Properties> getNameServerConfig(final List<String> nameServers, long timeoutMillis)
+            throws InterruptedException,
+            RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException,
+            MQClientException, UnsupportedEncodingException {
+        List<String> invokeNameServers = (nameServers == null || nameServers.isEmpty()) ?
+                this.remotingClient.getNameServerAddressList() : nameServers;
+        if (invokeNameServers == null || invokeNameServers.isEmpty()) {
+            return null;
+        }
+
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_NAMESRV_CONFIG, null);
+
+        Map<String, Properties> configMap = new HashMap<String, Properties>(4);
+        for (String nameServer : invokeNameServers) {
+            RemotingCommand response = this.remotingClient.invokeSync(nameServer, request, timeoutMillis);
+
+            assert response != null;
+
+            if (ResponseCode.SUCCESS == response.getCode()) {
+                configMap.put(nameServer, MixAll.string2Properties(new String(response.getBody(), MixAll.DEFAULT_CHARSET)));
+            } else {
+                throw new MQClientException(response.getCode(), response.getRemark());
+            }
+        }
+        return configMap;
+    }
+
 }

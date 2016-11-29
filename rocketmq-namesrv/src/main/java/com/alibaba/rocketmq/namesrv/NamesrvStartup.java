@@ -88,6 +88,9 @@ public class NamesrvStartup {
                     properties.load(in);
                     MixAll.properties2Object(properties, namesrvConfig);
                     MixAll.properties2Object(properties, nettyServerConfig);
+
+                    namesrvConfig.setConfigStorePath(file);
+
                     System.out.println("load config properties file OK, " + file);
                     in.close();
                 }
@@ -121,6 +124,10 @@ public class NamesrvStartup {
 
 
             final NamesrvController controller = new NamesrvController(namesrvConfig, nettyServerConfig);
+
+            // remember all configs to prevent discard
+            controller.getConfiguration().registerConfig(properties);
+
             boolean initResult = controller.initialize();
             if (!initResult) {
                 controller.shutdown();

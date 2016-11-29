@@ -154,4 +154,13 @@ public class RequestCode {
 
     public static final int GET_BROKER_CONSUME_STATS = 317;
 
+    /**
+     * update the config of name server
+     */
+    public static final int UPDATE_NAMESRV_CONFIG = 318;
+
+    /**
+     * get config from name server
+     */
+    public static final int GET_NAMESRV_CONFIG = 319;
 }

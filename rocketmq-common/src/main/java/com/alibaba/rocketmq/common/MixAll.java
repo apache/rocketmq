@@ -380,7 +380,7 @@ public class MixAll {
                                 arg = Float.parseFloat(property);
                             }else if (cn.equals("String")) {
                                 arg = property;
-                            }else {
+                            } else {
                                 continue;
                             }
                             method.invoke(object, new Object[]{arg});

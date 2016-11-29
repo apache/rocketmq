@@ -71,7 +71,6 @@ public class BrokerController {
     private final NettyServerConfig nettyServerConfig;
     private final NettyClientConfig nettyClientConfig;
     private final MessageStoreConfig messageStoreConfig;
-    private final DataVersion configDataVersion = new DataVersion();
     private final ConsumerOffsetManager consumerOffsetManager;
     private final ConsumerManager consumerManager;
     private final ProducerManager producerManager;
@@ -108,6 +107,7 @@ public class BrokerController {
     private BrokerStats brokerStats;
     private InetSocketAddress storeHost;
     private BrokerFastFailure brokerFastFailure;
+    private Configuration configuration;
 
     public BrokerController(//
                             final BrokerConfig brokerConfig, //
@@ -150,6 +150,11 @@ public class BrokerController {
         this.setStoreHost(new InetSocketAddress(this.getBrokerConfig().getBrokerIP1(), this.getNettyServerConfig().getListenPort()));
 
         this.brokerFastFailure = new BrokerFastFailure(this);
+        this.configuration = new Configuration(
+                log,
+                BrokerPathConfigHelper.getBrokerConfigPath(),
+                this.brokerConfig, this.nettyServerConfig, this.nettyClientConfig, this.messageStoreConfig
+        );
     }
 
     public BrokerConfig getBrokerConfig() {
@@ -478,10 +483,6 @@ public class BrokerController {
         return broker2Client;
     }
 
-    public String getConfigDataVersion() {
-        return this.configDataVersion.toJson();
-    }
-
     public ConsumerManager getConsumerManager() {
         return consumerManager;
     }
@@ -691,65 +692,6 @@ public class BrokerController {
         return addr;
     }
 
-    public void updateAllConfig(Properties properties) {
-        MixAll.properties2Object(properties, brokerConfig);
-        MixAll.properties2Object(properties, nettyServerConfig);
-        MixAll.properties2Object(properties, nettyClientConfig);
-        MixAll.properties2Object(properties, messageStoreConfig);
-        this.configDataVersion.nextVersion();
-        this.flushAllConfig();
-    }
-
-    private void flushAllConfig() {
-        String allConfig = this.encodeAllConfig();
-        try {
-            MixAll.string2File(allConfig, BrokerPathConfigHelper.getBrokerConfigPath());
-            log.info("flush broker config, {} OK", BrokerPathConfigHelper.getBrokerConfigPath());
-        } catch (IOException e) {
-            log.info("flush broker config Exception, " + BrokerPathConfigHelper.getBrokerConfigPath(), e);
-        }
-    }
-
-    public String encodeAllConfig() {
-        StringBuilder sb = new StringBuilder();
-        {
-            Properties properties = MixAll.object2Properties(this.brokerConfig);
-            if (properties != null) {
-                sb.append(MixAll.properties2String(properties));
-            } else {
-                log.error("encodeAllConfig object2Properties error");
-            }
-        }
-
-        {
-            Properties properties = MixAll.object2Properties(this.messageStoreConfig);
-            if (properties != null) {
-                sb.append(MixAll.properties2String(properties));
-            } else {
-                log.error("encodeAllConfig object2Properties error");
-            }
-        }
-
-        {
-            Properties properties = MixAll.object2Properties(this.nettyServerConfig);
-            if (properties != null) {
-                sb.append(MixAll.properties2String(properties));
-            } else {
-                log.error("encodeAllConfig object2Properties error");
-            }
-        }
-
-        {
-            Properties properties = MixAll.object2Properties(this.nettyClientConfig);
-            if (properties != null) {
-                sb.append(MixAll.properties2String(properties));
-            } else {
-                log.error("encodeAllConfig object2Properties error");
-            }
-        }
-        return sb.toString();
-    }
-
     public RebalanceLockManager getRebalanceLockManager() {
         return rebalanceLockManager;
     }
@@ -822,5 +764,9 @@ public class BrokerController {
 
     public void setStoreHost(InetSocketAddress storeHost) {
         this.storeHost = storeHost;
+    }
+
+    public Configuration getConfiguration() {
+        return this.configuration;
     }
 }
