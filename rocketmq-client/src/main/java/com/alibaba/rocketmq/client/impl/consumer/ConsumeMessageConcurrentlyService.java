@@ -396,9 +396,8 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
             ConsumeMessageContext consumeMessageContext = null;
             if (ConsumeMessageConcurrentlyService.this.defaultMQPushConsumerImpl.hasHook()) {
                 consumeMessageContext = new ConsumeMessageContext();
+                consumeMessageContext.setConsumerGroup(defaultMQPushConsumer.getConsumerGroup());
                 consumeMessageContext.setProps(new HashMap<String, String>());
-                // init the consume context type
-                consumeMessageContext.getProps().put(MixAll.CONSUME_CONTEXT_TYPE, ConsumeReturnType.SUCCESS.name());
                 consumeMessageContext.setMq(messageQueue);
                 consumeMessageContext.setMsgList(msgs);
                 consumeMessageContext.setSuccess(false);
