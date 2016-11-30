@@ -264,6 +264,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         response.setOpaque(request.getOpaque());
 
         response.addExtField(MessageConst.PROPERTY_MSG_REGION,this.brokerController.getBrokerConfig().getRegionId());
+        response.addExtField(MessageConst.PROPERTY_TRACE_SWITCH, String.valueOf(this.brokerController.getBrokerConfig().isTraceOn()));
 
         if (log.isDebugEnabled()) {
             log.debug("receive SendMessage request command, " + request);

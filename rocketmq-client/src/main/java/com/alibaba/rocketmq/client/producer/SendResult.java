@@ -31,6 +31,7 @@ public class SendResult {
     private String transactionId;
     private String offsetMsgId;
     private String regionId;
+    private boolean traceOn=true;
 
     public SendResult() {
     }
@@ -51,6 +52,14 @@ public class SendResult {
         this.transactionId = transactionId;
         this.offsetMsgId = offsetMsgId;
         this.regionId = regionId;
+    }
+
+    public boolean isTraceOn() {
+        return traceOn;
+    }
+
+    public void setTraceOn(final boolean traceOn) {
+        this.traceOn = traceOn;
     }
 
     public String getRegionId() {

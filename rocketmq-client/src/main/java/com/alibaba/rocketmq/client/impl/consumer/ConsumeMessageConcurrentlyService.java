@@ -19,6 +19,7 @@ package com.alibaba.rocketmq.client.impl.consumer;
 import com.alibaba.rocketmq.client.consumer.DefaultMQPushConsumer;
 import com.alibaba.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext;
 import com.alibaba.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
+import com.alibaba.rocketmq.client.consumer.listener.ConsumeReturnType;
 import com.alibaba.rocketmq.client.consumer.listener.MessageListenerConcurrently;
 import com.alibaba.rocketmq.client.hook.ConsumeMessageContext;
 import com.alibaba.rocketmq.client.log.ClientLogger;
@@ -395,7 +396,9 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
             ConsumeMessageContext consumeMessageContext = null;
             if (ConsumeMessageConcurrentlyService.this.defaultMQPushConsumerImpl.hasHook()) {
                 consumeMessageContext = new ConsumeMessageContext();
-                consumeMessageContext.setConsumerGroup(ConsumeMessageConcurrentlyService.this.defaultMQPushConsumer.getConsumerGroup());
+                consumeMessageContext.setProps(new HashMap<String, String>());
+                // init the consume context type
+                consumeMessageContext.getProps().put(MixAll.CONSUME_CONTEXT_TYPE, ConsumeReturnType.SUCCESS.name());
                 consumeMessageContext.setMq(messageQueue);
                 consumeMessageContext.setMsgList(msgs);
                 consumeMessageContext.setSuccess(false);
@@ -403,7 +406,8 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
             }
 
             long beginTimestamp = System.currentTimeMillis();
-
+            boolean hasException =false;
+            ConsumeReturnType returnType =ConsumeReturnType.SUCCESS;
             try {
                 ConsumeMessageConcurrentlyService.this.resetRetryTopic(msgs);
                 if (msgs != null && !msgs.isEmpty()) {
@@ -418,10 +422,23 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
                         ConsumeMessageConcurrentlyService.this.consumerGroup, //
                         msgs, //
                         messageQueue);
+                hasException=true;
             }
-
             long consumeRT = System.currentTimeMillis() - beginTimestamp;
-
+            if(null ==status){
+                if(hasException){
+                    returnType=ConsumeReturnType.EXCEPTION;
+                }else {
+                    returnType=ConsumeReturnType.RETURNNULL;
+                }
+            } else if(consumeRT>=defaultMQPushConsumer.getConsumeTimeout()*60*1000){
+                returnType =ConsumeReturnType.TIME_OUT;
+            }else if(ConsumeConcurrentlyStatus.RECONSUME_LATER==status){
+                returnType=ConsumeReturnType.FAILED;
+            }else if(ConsumeConcurrentlyStatus.CONSUME_SUCCESS==status){
+                returnType=ConsumeReturnType.SUCCESS;
+            }
+            consumeMessageContext.getProps().put(MixAll.CONSUME_CONTEXT_TYPE,returnType.name());
             if (null == status) {
                 log.warn("consumeMessage return null, Group: {} Msgs: {} MQ: {}", //
                         ConsumeMessageConcurrentlyService.this.consumerGroup, //

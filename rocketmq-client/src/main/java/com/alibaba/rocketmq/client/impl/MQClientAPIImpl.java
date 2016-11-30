@@ -6,13 +6,13 @@
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package com.alibaba.rocketmq.client.impl;
 
@@ -84,7 +84,6 @@ public class MQClientAPIImpl {
     private final ClientRemotingProcessor clientRemotingProcessor;
     private String nameSrvAddr = null;
     private ClientConfig clientConfig;
-
 
     public MQClientAPIImpl(final NettyClientConfig nettyClientConfig, final ClientRemotingProcessor clientRemotingProcessor,
                            RPCHook rpcHook, final ClientConfig clientConfig) {
@@ -215,7 +214,6 @@ public class MQClientAPIImpl {
         return sendMessage(addr, brokerName, msg, requestHeader, timeoutMillis, communicationMode, null, null, null, 0, context, producer);
     }
 
-
     public SendResult sendMessage(//
                                   final String addr, // 1
                                   final String brokerName, // 2
@@ -229,7 +227,7 @@ public class MQClientAPIImpl {
                                   final int retryTimesWhenSendFailed, // 10
                                   final SendMessageContext context, // 11
                                   final DefaultMQProducerImpl producer // 12
-                                  ) throws RemotingException, MQBrokerException, InterruptedException {
+    ) throws RemotingException, MQBrokerException, InterruptedException {
         RemotingCommand request = null;
         if (sendSmartMsg) {
             SendMessageRequestHeaderV2 requestHeaderV2 = SendMessageRequestHeaderV2.createSendMessageRequestHeaderV2(requestHeader);
@@ -259,7 +257,6 @@ public class MQClientAPIImpl {
         return null;
     }
 
-
     private SendResult sendMessageSync(//
                                        final String addr, //
                                        final String brokerName, //
@@ -271,7 +268,6 @@ public class MQClientAPIImpl {
         assert response != null;
         return this.processSendResponse(brokerName, msg, response);
     }
-
 
     private void sendMessageAsync(//
                                   final String addr, //
@@ -442,8 +438,14 @@ public class MQClientAPIImpl {
                         responseHeader.getMsgId(), messageQueue, responseHeader.getQueueOffset());
                 sendResult.setTransactionId(responseHeader.getTransactionId());
                 String regionId = response.getExtFields().get(MessageConst.PROPERTY_MSG_REGION);
+                String traceOn = response.getExtFields().get(MessageConst.PROPERTY_TRACE_SWITCH);
                 if (regionId == null || regionId.isEmpty()) {
-                    regionId = "DefaultRegion";
+                    regionId = MixAll.DEFAULT_TRACE_REGION_ID;
+                }
+                if (traceOn != null && traceOn.equals("false")) {
+                    sendResult.setTraceOn(false);
+                } else {
+                    sendResult.setTraceOn(true);
                 }
                 sendResult.setRegionId(regionId);
                 return sendResult;
@@ -564,7 +566,7 @@ public class MQClientAPIImpl {
         switch (response.getCode()) {
             case ResponseCode.SUCCESS: {
                 ByteBuffer byteBuffer = ByteBuffer.wrap(response.getBody());
-                MessageExt messageExt = MessageDecoder.clientDecode(byteBuffer,true);
+                MessageExt messageExt = MessageDecoder.clientDecode(byteBuffer, true);
                 return messageExt;
             }
             default:
@@ -1082,7 +1084,7 @@ public class MQClientAPIImpl {
         assert response != null;
         switch (response.getCode()) {
             case ResponseCode.SUCCESS: {
-                return MixAll.string2Properties(new String(response.getBody(),MixAll.DEFAULT_CHARSET));
+                return MixAll.string2Properties(new String(response.getBody(), MixAll.DEFAULT_CHARSET));
             }
             default:
                 break;
@@ -1629,7 +1631,6 @@ public class MQClientAPIImpl {
         throw new MQClientException(response.getCode(), response.getRemark());
     }
 
-
     public ConsumerRunningInfo getConsumerRunningInfo(final String addr, String consumerGroup, String clientId, boolean jstack,
                                                       final long timeoutMillis) throws RemotingException, MQClientException, InterruptedException {
         GetConsumerRunningInfoRequestHeader requestHeader = new GetConsumerRunningInfoRequestHeader();
@@ -1656,7 +1657,6 @@ public class MQClientAPIImpl {
 
         throw new MQClientException(response.getCode(), response.getRemark());
     }
-
 
     public ConsumeMessageDirectlyResult consumeMessageDirectly(final String addr, //
                                                                String consumerGroup, //
@@ -1687,7 +1687,6 @@ public class MQClientAPIImpl {
 
         throw new MQClientException(response.getCode(), response.getRemark());
     }
-
 
     public Map<Integer, Long> queryCorrectionOffset(final String addr, final String topic, final String group, Set<String> filterGroup,
                                                     long timeoutMillis) throws MQClientException, RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException,
@@ -1722,7 +1721,6 @@ public class MQClientAPIImpl {
 
         throw new MQClientException(response.getCode(), response.getRemark());
     }
-
 
     public TopicList getUnitTopicList(final boolean containRetry, final long timeoutMillis)
             throws RemotingException, MQClientException, InterruptedException {
