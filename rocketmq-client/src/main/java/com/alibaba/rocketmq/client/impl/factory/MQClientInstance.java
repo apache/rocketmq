@@ -889,7 +889,7 @@ public class MQClientInstance {
             if (impl != null) {
                 try {
                     impl.doRebalance();
-                } catch (Exception e) {
+                } catch (Throwable e) {
                     log.error("doRebalance exception", e);
                 }
             }
