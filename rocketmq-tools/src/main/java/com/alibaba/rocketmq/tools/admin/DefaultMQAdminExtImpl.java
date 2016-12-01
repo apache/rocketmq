@@ -916,4 +916,21 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
         requestHeader.setCommitOffset(offset);
         this.mqClientInstance.getMQClientAPIImpl().updateConsumerOffset(brokerAddr, requestHeader, timeoutMillis);
     }
+
+    @Override
+    public void updateNameServerConfig(final Properties properties, final List<String> nameServers)
+            throws InterruptedException, RemotingConnectException,
+            UnsupportedEncodingException, RemotingSendRequestException, RemotingTimeoutException,
+            MQClientException, MQBrokerException {
+        this.mqClientInstance.getMQClientAPIImpl().updateNameServerConfig(properties, nameServers, timeoutMillis);
+    }
+
+    @Override
+    public Map<String, Properties> getNameServerConfig(final List<String> nameServers)
+            throws InterruptedException, RemotingTimeoutException,
+            RemotingSendRequestException, RemotingConnectException, MQClientException,
+            UnsupportedEncodingException {
+        return this.mqClientInstance.getMQClientAPIImpl().getNameServerConfig(nameServers, timeoutMillis);
+    }
+
 }

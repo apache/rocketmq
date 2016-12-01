@@ -38,6 +38,7 @@ public class MessageConst {
     public static final String PROPERTY_MQ2_FLAG = "MQ2_FLAG";
     public static final String PROPERTY_RECONSUME_TIME = "RECONSUME_TIME";
     public static final String PROPERTY_MSG_REGION = "MSG_REGION";
+    public static final String PROPERTY_TRACE_SWITCH="TRACE_ON";
     public static final String PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX = "UNIQ_KEY";
     public static final String PROPERTY_MAX_RECONSUME_TIMES = "MAX_RECONSUME_TIMES";
     public static final String PROPERTY_CONSUME_START_TIMESTAMP = "CONSUME_START_TIME";
@@ -48,6 +49,7 @@ public class MessageConst {
 
 
     static {
+        systemKeySet.add(PROPERTY_TRACE_SWITCH);
         systemKeySet.add(PROPERTY_MSG_REGION);
         systemKeySet.add(PROPERTY_KEYS);
         systemKeySet.add(PROPERTY_TAGS);

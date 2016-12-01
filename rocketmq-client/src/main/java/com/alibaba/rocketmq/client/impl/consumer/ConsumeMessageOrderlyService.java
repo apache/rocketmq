@@ -17,9 +17,7 @@
 package com.alibaba.rocketmq.client.impl.consumer;
 
 import com.alibaba.rocketmq.client.consumer.DefaultMQPushConsumer;
-import com.alibaba.rocketmq.client.consumer.listener.ConsumeOrderlyContext;
-import com.alibaba.rocketmq.client.consumer.listener.ConsumeOrderlyStatus;
-import com.alibaba.rocketmq.client.consumer.listener.MessageListenerOrderly;
+import com.alibaba.rocketmq.client.consumer.listener.*;
 import com.alibaba.rocketmq.client.hook.ConsumeMessageContext;
 import com.alibaba.rocketmq.client.log.ClientLogger;
 import com.alibaba.rocketmq.client.stat.ConsumerStatsManager;
@@ -35,6 +33,7 @@ import org.slf4j.Logger;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.*;
 
@@ -439,11 +438,14 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
                                 consumeMessageContext.setMq(messageQueue);
                                 consumeMessageContext.setMsgList(msgs);
                                 consumeMessageContext.setSuccess(false);
+                                // init the consume context type
+                                consumeMessageContext.setProps(new HashMap<String, String>());
                                 ConsumeMessageOrderlyService.this.defaultMQPushConsumerImpl.executeHookBefore(consumeMessageContext);
                             }
 
                             long beginTimestamp = System.currentTimeMillis();
-
+                            ConsumeReturnType returnType=ConsumeReturnType.SUCCESS;
+                            boolean hasException =false;
                             try {
                                 this.processQueue.getLockConsume().lock();
                                 if (this.processQueue.isDropped()) {
@@ -459,6 +461,7 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
                                         ConsumeMessageOrderlyService.this.consumerGroup, //
                                         msgs, //
                                         messageQueue);
+                                hasException=true;
                             } finally {
                                 this.processQueue.getLockConsume().unlock();
                             }
@@ -473,7 +476,20 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
                             }
 
                             long consumeRT = System.currentTimeMillis() - beginTimestamp;
-
+                            if(null ==status){
+                                if(hasException){
+                                    returnType=ConsumeReturnType.EXCEPTION;
+                                }else {
+                                    returnType=ConsumeReturnType.RETURNNULL;
+                                }
+                            } else if(consumeRT>=defaultMQPushConsumer.getConsumeTimeout()*60*1000){
+                                returnType =ConsumeReturnType.TIME_OUT;
+                            }else if(ConsumeOrderlyStatus.SUSPEND_CURRENT_QUEUE_A_MOMENT==status){
+                                returnType=ConsumeReturnType.FAILED;
+                            }else if(ConsumeOrderlyStatus.SUCCESS==status){
+                                returnType=ConsumeReturnType.SUCCESS;
+                            }
+                            consumeMessageContext.getProps().put(MixAll.CONSUME_CONTEXT_TYPE,returnType.name());
                             if (null == status) {
                                 status = ConsumeOrderlyStatus.SUSPEND_CURRENT_QUEUE_A_MOMENT;
                             }

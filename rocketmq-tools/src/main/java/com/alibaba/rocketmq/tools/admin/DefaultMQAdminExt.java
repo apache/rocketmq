@@ -454,4 +454,20 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
     public void updateConsumeOffset(String brokerAddr, String consumeGroup, MessageQueue mq, long offset) throws RemotingException, InterruptedException, MQBrokerException {
         this.defaultMQAdminExtImpl.updateConsumeOffset(brokerAddr, consumeGroup, mq, offset);
     }
+
+    @Override
+    public void updateNameServerConfig(final Properties properties, final List<String> nameServers)
+            throws InterruptedException, RemotingConnectException,
+            UnsupportedEncodingException, MQBrokerException, RemotingTimeoutException,
+            MQClientException, RemotingSendRequestException {
+        this.defaultMQAdminExtImpl.updateNameServerConfig(properties, nameServers);
+    }
+
+    @Override
+    public Map<String, Properties> getNameServerConfig(final List<String> nameServers)
+            throws InterruptedException, RemotingTimeoutException,
+            RemotingSendRequestException, RemotingConnectException, MQClientException,
+            UnsupportedEncodingException {
+        return this.defaultMQAdminExtImpl.getNameServerConfig(nameServers);
+    }
 }

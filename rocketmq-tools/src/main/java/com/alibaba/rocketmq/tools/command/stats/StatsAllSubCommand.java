@@ -21,6 +21,7 @@ import com.alibaba.rocketmq.client.exception.MQBrokerException;
 import com.alibaba.rocketmq.client.exception.MQClientException;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.UtilAll;
+import com.alibaba.rocketmq.common.admin.ConsumeStats;
 import com.alibaba.rocketmq.common.protocol.body.BrokerStatsData;
 import com.alibaba.rocketmq.common.protocol.body.GroupList;
 import com.alibaba.rocketmq.common.protocol.body.TopicList;
@@ -60,6 +61,10 @@ public class StatsAllSubCommand implements SubCommand {
         opt.setRequired(false);
         options.addOption(opt);
 
+        opt = new Option("t", "topic", true, "print select topic only");
+        opt.setRequired(false);
+        options.addOption(opt);
+
         return options;
     }
 
@@ -74,9 +79,10 @@ public class StatsAllSubCommand implements SubCommand {
 
             TopicList topicList = defaultMQAdminExt.fetchAllTopicList();
 
-            System.out.printf("%-32s  %-32s %11s %11s %14s %14s%n",//
+            System.out.printf("%-32s  %-32s %12s %11s %11s %14s %14s%n",//
                     "#Topic",//
                     "#Consumer Group",//
+                    "#Accumulation",//
                     "#InTPS",//
                     "#OutTPS",//
                     "#InMsg24Hour",//
@@ -84,9 +90,14 @@ public class StatsAllSubCommand implements SubCommand {
             );
 
             boolean activeTopic = commandLine.hasOption('a');
+            String selectTopic = commandLine.getOptionValue('t');
 
             for (String topic : topicList.getTopicList()) {
                 if (topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX) || topic.startsWith(MixAll.DLQ_GROUP_TOPIC_PREFIX)) {
+                    continue;
+                }
+
+                if (selectTopic != null && selectTopic != "" && !topic.equals(selectTopic)) {
                     continue;
                 }
 
@@ -144,12 +155,25 @@ public class StatsAllSubCommand implements SubCommand {
                     }
                 }
 
+                long accumulate = 0;
+                try {
+                    ConsumeStats consumeStats = admin.examineConsumeStats(group, topic);
+                    if (consumeStats != null) {
+                        accumulate = consumeStats.computeTotalDiff();
+                        if (accumulate < 0) {
+                            accumulate = 0;
+                        }
+                    }
+                } catch (Exception e) {
+                }
+
                 if (!activeTopic || (inMsgCntToday > 0) || //
                         (outMsgCntToday > 0)) {
 
-                    System.out.printf("%-32s  %-32s %11.2f %11.2f %14d %14d%n",//
+                    System.out.printf("%-32s  %-32s %12d %11.2f %11.2f %14d %14d%n",//
                             UtilAll.frontStringAtLeast(topic, 32),//
                             UtilAll.frontStringAtLeast(group, 32),//
+                            accumulate,//
                             inTPS,//
                             outTPS,//
                             inMsgCntToday,//
@@ -162,9 +186,10 @@ public class StatsAllSubCommand implements SubCommand {
         else {
             if (!activeTopic || (inMsgCntToday > 0)) {
 
-                System.out.printf("%-32s  %-32s %11.2f %11s %14d %14s%n",//
+                System.out.printf("%-32s  %-32s %12d %11.2f %11s %14d %14s%n",//
                         UtilAll.frontStringAtLeast(topic, 32),//
                         "",//
+                        0,//
                         inTPS,//
                         "",//
                         inMsgCntToday,//

@@ -287,7 +287,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 Properties properties = MixAll.string2Properties(bodyStr);
                 if (properties != null) {
                     log.info("updateBrokerConfig, new config: " + properties + " client: " + ctx.channel().remoteAddress());
-                    this.brokerController.updateAllConfig(properties);
+                    this.brokerController.getConfiguration().update(properties);
                     if (properties.containsKey("brokerPermission")) {
                         this.brokerController.registerBrokerAll(false, false);
                         this.brokerController.getTopicConfigManager().getDataVersion().nextVersion();
@@ -316,7 +316,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         final RemotingCommand response = RemotingCommand.createResponseCommand(GetBrokerConfigResponseHeader.class);
         final GetBrokerConfigResponseHeader responseHeader = (GetBrokerConfigResponseHeader) response.readCustomHeader();
 
-        String content = this.brokerController.encodeAllConfig();
+        String content = this.brokerController.getConfiguration().getAllConfigsFormatString();
         if (content != null && content.length() > 0) {
             try {
                 response.setBody(content.getBytes(MixAll.DEFAULT_CHARSET));
@@ -329,7 +329,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             }
         }
 
-        responseHeader.setVersion(this.brokerController.getConfigDataVersion());
+        responseHeader.setVersion(this.brokerController.getConfiguration().getDataVersionJson());
 
         response.setCode(ResponseCode.SUCCESS);
         response.setRemark(null);

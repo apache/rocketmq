@@ -31,9 +31,7 @@ import com.alibaba.rocketmq.tools.command.connection.ConsumerConnectionSubComman
 import com.alibaba.rocketmq.tools.command.connection.ProducerConnectionSubCommand;
 import com.alibaba.rocketmq.tools.command.consumer.*;
 import com.alibaba.rocketmq.tools.command.message.*;
-import com.alibaba.rocketmq.tools.command.namesrv.DeleteKvConfigCommand;
-import com.alibaba.rocketmq.tools.command.namesrv.UpdateKvConfigCommand;
-import com.alibaba.rocketmq.tools.command.namesrv.WipeWritePermSubCommand;
+import com.alibaba.rocketmq.tools.command.namesrv.*;
 import com.alibaba.rocketmq.tools.command.offset.CloneGroupOffsetCommand;
 import com.alibaba.rocketmq.tools.command.offset.ResetOffsetByTimeCommand;
 import com.alibaba.rocketmq.tools.command.stats.StatsAllSubCommand;
@@ -171,6 +169,9 @@ public class MQAdminStartup {
         initCommand(new CheckMsgSendRTCommand());
         initCommand(new CLusterSendMsgRTCommand());
 
+        initCommand(new GetNamesrvConfigCommand());
+        initCommand(new UpdateNamesrvConfigCommand());
+        initCommand(new GetBrokerConfigCommand());
     }
 
     private static void initLogback() throws JoranException {

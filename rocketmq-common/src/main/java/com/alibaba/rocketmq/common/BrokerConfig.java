@@ -52,8 +52,7 @@ public class BrokerConfig {
     private boolean autoCreateSubscriptionGroup = true;
     private String messageStorePlugIn = "";
 
-    @Deprecated
-    private int sendMessageThreadPoolNums = 16 + Runtime.getRuntime().availableProcessors() * 4;
+    private int sendMessageThreadPoolNums = 1; //16 + Runtime.getRuntime().availableProcessors() * 4;
     private int pullMessageThreadPoolNums = 16 + Runtime.getRuntime().availableProcessors() * 2;
     private int adminBrokerThreadPoolNums = 16;
     private int clientManageThreadPoolNums = 32;
@@ -102,6 +101,16 @@ public class BrokerConfig {
     private long waitTimeMillsInSendQueue = 200;
 
     private long startAcceptSendRequestTimeStamp = 0L;
+
+    private boolean traceOn=true;
+
+    public boolean isTraceOn() {
+        return traceOn;
+    }
+
+    public void setTraceOn(final boolean traceOn) {
+        this.traceOn = traceOn;
+    }
 
     public long getStartAcceptSendRequestTimeStamp() {
         return startAcceptSendRequestTimeStamp;
@@ -274,12 +283,10 @@ public class BrokerConfig {
         this.brokerIP2 = brokerIP2;
     }
 
-    @Deprecated
     public int getSendMessageThreadPoolNums() {
         return sendMessageThreadPoolNums;
     }
 
-    @Deprecated
     public void setSendMessageThreadPoolNums(int sendMessageThreadPoolNums) {
         this.sendMessageThreadPoolNums = sendMessageThreadPoolNums;
     }

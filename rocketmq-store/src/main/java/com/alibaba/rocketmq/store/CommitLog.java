@@ -39,6 +39,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.locks.ReentrantLock;
 
 
 /**
@@ -68,6 +69,8 @@ public class CommitLog {
 
     //true: Can lock, false : in lock.
     private AtomicBoolean putMessageSpinLock = new AtomicBoolean(true);
+
+    private ReentrantLock putMessageNormalLock = new ReentrantLock(); // NonfairSync
 
     private final ExecutorService threadWakeUpService = new ThreadPoolExecutor(1, 1,
             0L, TimeUnit.MILLISECONDS,
@@ -1283,13 +1286,22 @@ public class CommitLog {
      * Spin util acquired the lock.
      */
     private void lockForPutMessage() {
-        boolean flag;
-        do {
-            flag = this.putMessageSpinLock.compareAndSet(true, false);
-        } while (!flag);
+        if (this.defaultMessageStore.getMessageStoreConfig().isUseReentrantLockWhenPutMessage()) {
+            putMessageNormalLock.lock();
+        }
+        else {
+            boolean flag;
+            do {
+                flag = this.putMessageSpinLock.compareAndSet(true, false);
+            } while (!flag);
+        }
     }
 
     private void releasePutMessageLock() {
-        this.putMessageSpinLock.compareAndSet(false, true);
+        if (this.defaultMessageStore.getMessageStoreConfig().isUseReentrantLockWhenPutMessage()) {
+            putMessageNormalLock.unlock();
+        } else {
+            this.putMessageSpinLock.compareAndSet(false, true);
+        }
     }
 }
