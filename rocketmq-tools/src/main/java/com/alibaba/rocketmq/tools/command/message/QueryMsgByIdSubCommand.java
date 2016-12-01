@@ -18,6 +18,8 @@ package com.alibaba.rocketmq.tools.command.message;
 
 import com.alibaba.rocketmq.client.exception.MQBrokerException;
 import com.alibaba.rocketmq.client.exception.MQClientException;
+import com.alibaba.rocketmq.client.producer.DefaultMQProducer;
+import com.alibaba.rocketmq.client.producer.SendResult;
 import com.alibaba.rocketmq.common.UtilAll;
 import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.common.protocol.body.ConsumeMessageDirectlyResult;
@@ -31,6 +33,7 @@ import com.alibaba.rocketmq.tools.command.SubCommand;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
+import org.apache.commons.lang.StringUtils;
 
 import java.io.DataOutputStream;
 import java.io.File;
@@ -40,18 +43,16 @@ import java.util.List;
 
 
 /**
- *
  * @author shijia.wxr
- *
+ * @author jodie.yqd@gmail.com
  */
 public class QueryMsgByIdSubCommand implements SubCommand {
 
     public static void main(String[] args) {
+        System.setProperty("rocketmq.home.dir", "/Users/jodie/workspace/rmq.msgid");
         MQAdminStartup.main(new String[]{new QueryMsgByIdSubCommand().commandName(), //
-                "-n", "127.0.0.1:9876", //
-                "-g", "CID_110", //
-                "-d", "127.0.0.1@73376", //
-                "-i", "0A654A3400002ABD00000011C3555205" //
+                "-s", "true", //
+                "-i", "0ADA91A600002A9F00000128AB94ED96,6451A57700002A9F000001AFA9622F4B" //
         });
     }
 
@@ -79,42 +80,106 @@ public class QueryMsgByIdSubCommand implements SubCommand {
         opt.setRequired(false);
         options.addOption(opt);
 
+        opt = new Option("s", "sendMessage", true, "resend message");
+        opt.setRequired(false);
+        options.addOption(opt);
+
+        opt = new Option("u", "unitName", true, "unit name");
+        opt.setRequired(false);
+        options.addOption(opt);
+
         return options;
     }
 
     @Override
     public void execute(CommandLine commandLine, Options options, RPCHook rpcHook) {
         DefaultMQAdminExt defaultMQAdminExt = new DefaultMQAdminExt(rpcHook);
-
         defaultMQAdminExt.setInstanceName(Long.toString(System.currentTimeMillis()));
+        DefaultMQProducer defaultMQProducer = new DefaultMQProducer("ReSendMsgById");
+        defaultMQProducer.setInstanceName(Long.toString(System.currentTimeMillis()));
 
         try {
             defaultMQAdminExt.start();
+            if (commandLine.hasOption('s')) {
+                if (commandLine.hasOption('u')) {
+                    String unitName = commandLine.getOptionValue('u').trim();
+                    defaultMQProducer.setUnitName(unitName);
+                }
+                defaultMQProducer.start();
+            }
 
-            final String msgId = commandLine.getOptionValue('i').trim();
+            final String msgIds = commandLine.getOptionValue('i').trim();
+            final String[] msgIdArr = StringUtils.split(msgIds, ",");
+
             if (commandLine.hasOption('g') && commandLine.hasOption('d')) {
                 final String consumerGroup = commandLine.getOptionValue('g').trim();
                 final String clientId = commandLine.getOptionValue('d').trim();
-                ConsumeMessageDirectlyResult result =
-                        defaultMQAdminExt.consumeMessageDirectly(consumerGroup, clientId, msgId);
-                System.out.println(result);
+                for (String msgId : msgIdArr) {
+                    if (StringUtils.isNotBlank(msgId)) {
+                        pushMsg(defaultMQAdminExt, consumerGroup, clientId, msgId.trim());
+                    }
+                }
+            } else if (commandLine.hasOption('s')) {
+                boolean resend = Boolean.parseBoolean(commandLine.getOptionValue('s', "false").trim());
+                if (resend) {
+                    for (String msgId : msgIdArr) {
+                        if (StringUtils.isNotBlank(msgId)) {
+                            sendMsg(defaultMQAdminExt, defaultMQProducer, msgId.trim());
+                        }
+                    }
+                }
             } else {
+                for (String msgId : msgIdArr) {
+                    if (StringUtils.isNotBlank(msgId)) {
+                        queryById(defaultMQAdminExt, msgId.trim());
+                    }
+                }
 
-                queryById(defaultMQAdminExt, msgId);
             }
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
+            defaultMQProducer.shutdown();
             defaultMQAdminExt.shutdown();
+        }
+    }
+
+    private void pushMsg(final DefaultMQAdminExt defaultMQAdminExt, final String consumerGroup, final String clientId, final String msgId) {
+        try {
+            ConsumeMessageDirectlyResult result =
+                    defaultMQAdminExt.consumeMessageDirectly(consumerGroup, clientId, msgId);
+            System.out.println(result);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void sendMsg(final DefaultMQAdminExt defaultMQAdminExt, final DefaultMQProducer defaultMQProducer, final String msgId) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
+        try {
+            MessageExt msg = defaultMQAdminExt.viewMessage(msgId);
+            if (msg != null) {
+                // resend msg by id
+                System.out.println("prepare resend msg. originalMsgId=" + msgId);
+                SendResult result = defaultMQProducer.send(msg);
+                System.out.println(result);
+            } else {
+                System.out.println("no message. msgId=" + msgId);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
     public static void queryById(final DefaultMQAdminExt admin, final String msgId) throws MQClientException,
             RemotingException, MQBrokerException, InterruptedException, IOException {
-        MessageExt msg = admin.viewMessage(msgId);
-
-        printMsg(admin, msg);
+        try {
+            MessageExt msg = admin.viewMessage(msgId);
+            printMsg(admin, msg);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
+
 
     public static void printMsg(final DefaultMQAdminExt admin, final MessageExt msg) throws IOException {
         String bodyTmpFilePath = createBodyFile(msg);
