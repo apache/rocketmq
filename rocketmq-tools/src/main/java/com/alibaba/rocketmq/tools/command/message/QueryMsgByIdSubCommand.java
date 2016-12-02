@@ -173,13 +173,7 @@ public class QueryMsgByIdSubCommand implements SubCommand {
 
     public static void queryById(final DefaultMQAdminExt admin, final String msgId) throws MQClientException,
             RemotingException, MQBrokerException, InterruptedException, IOException {
-        try {
-            MessageExt msg = admin.viewMessage(msgId);
-            printMsg(admin, msg);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
+        MessageExt msg = admin.viewMessage(msgId);
 
         printMsg(admin, msg);
     }
@@ -190,12 +184,16 @@ public class QueryMsgByIdSubCommand implements SubCommand {
             return;
         }
 
-    public static void printMsg(final DefaultMQAdminExt admin, final MessageExt msg) throws IOException {
         String bodyTmpFilePath = createBodyFile(msg);
         String msgId = msg.getMsgId();
         if (msg instanceof MessageClientExt) {
             msgId = ((MessageClientExt)msg).getOffsetMsgId();
         }
+
+        System.out.printf("%-20s %s%n",//
+                "OffsetID:",//
+                msgId//
+        );
 
         System.out.printf("%-20s %s%n",//
                 "OffsetID:",//
